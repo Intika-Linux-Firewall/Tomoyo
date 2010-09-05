@@ -1,0 +1,1446 @@
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(working copy)
+@@ -112,9 +112,13 @@
+ 		type == CCS_TYPE_AUTO_TASK_ACL;
+ 	const bool is_delete = param->is_delete;
+ 	struct ccs_domain_info * const domain = param->domain;
+-	new_entry->cond = param->condition;
++	if (param->data[0]) {
++		new_entry->cond = ccs_get_condition(param->data);
++		if (!new_entry->cond)
++			return -EINVAL;
++	}
+ 	if (mutex_lock_interruptible(&ccs_policy_lock))
+-		return error;
++		goto out;
+ 	list_for_each_entry_rcu(entry, &domain->acl_info_list[i], list) {
+ 		if (!ccs_same_acl_head(entry, new_entry) ||
+ 		    !check_duplicate(entry, new_entry))
+@@ -130,14 +134,14 @@
+ 	if (error && !is_delete) {
+ 		entry = ccs_commit_ok(new_entry, size);
+ 		if (entry) {
+-			if (entry->cond)
+-				atomic_inc(&entry->cond->head.users);
+ 			list_add_tail_rcu(&entry->list,
+ 					  &domain->acl_info_list[i]);
+ 			error = 0;
+ 		}
+ 	}
+ 	mutex_unlock(&ccs_policy_lock);
++ out:
++	ccs_put_condition(new_entry->cond);
+ 	return error;
+ }
+ 
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(working copy)
+@@ -97,6 +97,35 @@
+ 	return false;
+ }
+ 
++char *ccs_read_token(struct ccs_acl_param *param)
++{
++	char *pos = param->data;
++	char *del = strchr(pos, ' ');
++	if (del)
++		*del++ = '\0';
++	else
++		del = pos + strlen(pos);
++	param->data = del;
++	return pos;
++}
++
++const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param)
++{
++	char *start = param->data;
++	char *pos = start;
++	while (*pos) {
++		if (*pos++ != ' ' || *pos++ == '/')
++			continue;
++		pos -= 2;
++		*pos++ = '\0';
++		break;
++	}
++	param->data = pos;
++	if (ccs_correct_domain(start))
++		return ccs_get_name(start);
++	return NULL;
++}
++
+ /**
+  * ccs_parse_ulong - Parse an "unsigned long" value.
+  *
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c	(working copy)
+@@ -159,34 +159,32 @@
+ /**
+  * ccs_write_signal - Write "struct ccs_signal_acl" list.
+  *
+- * @data:  String to parse.
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_write_signal(char *data, struct ccs_acl_param *param)
++static int ccs_write_signal(struct ccs_acl_param *param)
+ {
+ 	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL };
+ 	int error;
+ 	int sig;
+-	char *domainname = strchr(data, ' ');
+-	if (sscanf(data, "%d", &sig) != 1 || !domainname ||
+-	    !ccs_correct_domain(domainname + 1))
++	if (sscanf(ccs_read_token(param), "%d", &sig) != 1)
+ 		return -EINVAL;
+ 	e.sig = sig;
+-	e.domainname = ccs_get_name(domainname + 1);
++	e.domainname = ccs_get_domainname(param);
+ 	if (!e.domainname)
+-		return -ENOMEM;
+-	error = ccs_update_domain(&e.head, sizeof(e), param,
+-				  ccs_same_signal_entry, NULL);
++		error = -EINVAL;
++	else
++		error = ccs_update_domain(&e.head, sizeof(e), param,
++					  ccs_same_signal_entry, NULL);
+ 	ccs_put_name(e.domainname);
+ 	return error;
+ }
+ 
+-int ccs_write_ipc(char *data, struct ccs_acl_param *param)
++int ccs_write_ipc(struct ccs_acl_param *param)
+ {
+-	if (ccs_str_starts(&data, "signal "))
+-		return ccs_write_signal(data, param);
++	if (ccs_str_starts(&param->data, "signal "))
++		return ccs_write_signal(param);
+ 	return -EINVAL;
+ }
+ 
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(working copy)
+@@ -441,7 +441,7 @@
+ 		.perm = perm
+ 	};
+ 	int error;
+-	if (!ccs_parse_name_union(param->w[1], &e.name))
++	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
+ 		error = -EINVAL;
+ 	else
+ 		error = ccs_update_domain(&e.head, sizeof(e), param,
+@@ -493,10 +493,10 @@
+ 		.perm = perm
+ 	};
+ 	int error;
+-	if (!ccs_parse_name_union(param->w[1], &e.name) ||
+-	    !ccs_parse_number_union(param->w[2], &e.mode) ||
+-	    !ccs_parse_number_union(param->w[3], &e.major) ||
+-	    !ccs_parse_number_union(param->w[4], &e.minor))
++	if (!ccs_parse_name_union(ccs_read_token(param), &e.name) ||
++	    !ccs_parse_number_union(ccs_read_token(param), &e.mode) ||
++	    !ccs_parse_number_union(ccs_read_token(param), &e.major) ||
++	    !ccs_parse_number_union(ccs_read_token(param), &e.minor))
+ 		error = -EINVAL;
+ 	else
+ 		error = ccs_update_domain(&e.head, sizeof(e), param,
+@@ -549,8 +549,8 @@
+ 		.perm = perm
+ 	};
+ 	int error;
+-	if (!ccs_parse_name_union(param->w[1], &e.name1) ||
+-	    !ccs_parse_name_union(param->w[2], &e.name2))
++	if (!ccs_parse_name_union(ccs_read_token(param), &e.name1) ||
++	    !ccs_parse_name_union(ccs_read_token(param), &e.name2))
+ 		error = -EINVAL;
+ 	else
+ 		error = ccs_update_domain(&e.head, sizeof(e), param,
+@@ -585,10 +585,10 @@
+ {
+ 	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL };
+ 	int error;
+-	if (!ccs_parse_name_union(param->w[1], &e.dev_name) ||
+-	    !ccs_parse_name_union(param->w[2], &e.dir_name) ||
+-	    !ccs_parse_name_union(param->w[3], &e.fs_type) ||
+-	    !ccs_parse_number_union(param->w[4], &e.flags))
++	if (!ccs_parse_name_union(ccs_read_token(param), &e.dev_name) ||
++	    !ccs_parse_name_union(ccs_read_token(param), &e.dir_name) ||
++	    !ccs_parse_name_union(ccs_read_token(param), &e.fs_type) ||
++	    !ccs_parse_number_union(ccs_read_token(param), &e.flags))
+ 		error = -EINVAL;
+ 	else
+ 		error = ccs_update_domain(&e.head, sizeof(e), param,
+@@ -984,8 +984,8 @@
+ 		.perm = perm
+ 	};
+ 	int error;
+-	if (!ccs_parse_name_union(param->w[1], &e.name) ||
+-	    !ccs_parse_number_union(param->w[2], &e.number))
++	if (!ccs_parse_name_union(ccs_read_token(param), &e.name) ||
++	    !ccs_parse_number_union(ccs_read_token(param), &e.number))
+ 		error = -EINVAL;
+ 	else
+ 		error = ccs_update_domain(&e.head, sizeof(e), param,
+@@ -1168,38 +1168,36 @@
+ /**
+  * ccs_write_file - Update file related list.
+  *
+- * @data:  String to parse.
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int ccs_write_file(char *data, struct ccs_acl_param *param)
++int ccs_write_file(struct ccs_acl_param *param)
+ {
+ 	u16 perm = 0;
+ 	u8 type;
+-	if (!ccs_tokenize(data, param->w, sizeof(param->w)))
+-		return -EINVAL;
++	const char *operation = ccs_read_token(param);
+ 	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
+-		if (ccs_permstr(param->w[0], ccs_path_keyword[type]))
++		if (ccs_permstr(operation, ccs_path_keyword[type]))
+ 			perm |= 1 << type;
+ 	if (perm)
+ 		return ccs_update_path_acl(perm, param);
+ 	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++)
+-		if (ccs_permstr(param->w[0], ccs_path2_keyword[type]))
++		if (ccs_permstr(operation, ccs_path2_keyword[type]))
+ 			perm |= 1 << type;
+ 	if (perm)
+ 		return ccs_update_path2_acl(perm, param);
+ 	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++)
+-		if (ccs_permstr(param->w[0], ccs_path_number_keyword[type]))
++		if (ccs_permstr(operation, ccs_path_number_keyword[type]))
+ 			perm |= 1 << type;
+ 	if (perm)
+ 		return ccs_update_path_number_acl(perm, param);
+ 	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++)
+-		if (ccs_permstr(param->w[0], ccs_mkdev_keyword[type]))
++		if (ccs_permstr(operation, ccs_mkdev_keyword[type]))
+ 			perm |= 1 << type;
+ 	if (perm)
+ 		return ccs_update_mkdev_acl(perm, param);
+-	if (ccs_permstr(param->w[0], "mount"))
++	if (ccs_permstr(operation, "mount"))
+ 		return ccs_update_mount_acl(param);
+ 	return -EINVAL;
+ }
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/environ.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/environ.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/environ.c	(working copy)
+@@ -76,15 +76,15 @@
+ /**
+  * ccs_write_env - Write "struct ccs_env_acl" list.
+  *
+- * @data:  String to parse.
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_write_env(char *data, struct ccs_acl_param *param)
++static int ccs_write_env(struct ccs_acl_param *param)
+ {
+ 	struct ccs_env_acl e = { .head.type = CCS_TYPE_ENV_ACL };
+ 	int error = -ENOMEM;
++	const char *data = ccs_read_token(param);
+ 	if (!ccs_correct_word(data) || strchr(data, '='))
+ 		return -EINVAL;
+ 	e.env = ccs_get_name(data);
+@@ -96,9 +96,9 @@
+ 	return error;
+ }
+ 
+-int ccs_write_misc(char *data, struct ccs_acl_param *param)
++int ccs_write_misc(struct ccs_acl_param *param)
+ {
+-	if (ccs_str_starts(&data, "env "))
+-		return ccs_write_env(data, param);
++	if (ccs_str_starts(&param->data, "env "))
++		return ccs_write_env(param);
+ 	return -EINVAL;
+ }
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
+@@ -526,7 +526,7 @@
+ 	bool equals;
+ };
+ 
+-/* Structure for " if " part. */
++/* Structure for optional arguments. */
+ struct ccs_condition {
+ 	struct ccs_shared_acl_head head;
+ 	u32 size;
+@@ -901,10 +901,9 @@
+ };
+ 
+ struct ccs_acl_param {
++	char *data;
+ 	struct ccs_domain_info *domain;
+-	struct ccs_condition *condition; /* This may be NULL. */
+ 	bool is_delete;
+-	char *w[5];
+ };
+ 
+ #define CCS_MAX_IO_READ_QUEUE 32
+@@ -1013,6 +1012,7 @@
+ 			      const struct ccs_group *group);
+ bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
+ bool ccs_parse_number_union(char *data, struct ccs_number_union *num);
++char *ccs_read_token(struct ccs_acl_param *param);
+ const struct ccs_path_info *
+ ccs_path_matches_group(const struct ccs_path_info *pathname,
+ 		       const struct ccs_group *group);
+@@ -1029,6 +1029,7 @@
+ const char *ccs_file_pattern(const struct ccs_path_info *filename);
+ const char *ccs_get_exe(void);
+ const char *ccs_last_word(const char *name);
++const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
+ const struct ccs_path_info *ccs_get_name(const char *name);
+ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
+ int ccs_close_control(struct file *file);
+@@ -1060,18 +1061,18 @@
+ 		      bool (*check_duplicate) (const struct ccs_acl_head *,
+ 					       const struct ccs_acl_head *));
+ int ccs_write_aggregator(char *data, const bool is_delete);
+-int ccs_write_capability(char *data, struct ccs_acl_param *param);
++int ccs_write_capability(struct ccs_acl_param *param);
+ int ccs_write_control(struct file *file, const char __user *buffer,
+ 		      const int buffer_len);
+-int ccs_write_file(char *data, struct ccs_acl_param *param);
++int ccs_write_file(struct ccs_acl_param *param);
+ int ccs_write_group(char *data, const bool is_delete, const u8 type);
+-int ccs_write_ipc(char *data, struct ccs_acl_param *param);
++int ccs_write_ipc(struct ccs_acl_param *param);
+ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+      __attribute__ ((format(printf, 2, 3)));
+ int ccs_write_memory_quota(struct ccs_io_buffer *head);
+-int ccs_write_misc(char *data, struct ccs_acl_param *param);
+-int ccs_write_inet_network(char *data, struct ccs_acl_param *param);
+-int ccs_write_unix_network(char *data, struct ccs_acl_param *param);
++int ccs_write_misc(struct ccs_acl_param *param);
++int ccs_write_inet_network(struct ccs_acl_param *param);
++int ccs_write_unix_network(struct ccs_acl_param *param);
+ int ccs_write_pattern(char *data, const bool is_delete);
+ int ccs_write_reserved_port(char *data, const bool is_delete);
+ int ccs_write_transition_control(char *data, const bool is_delete,
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/capability.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/capability.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/capability.c	(working copy)
+@@ -81,17 +81,17 @@
+ /**
+  * ccs_write_capability - Write "struct ccs_capability_acl" list.
+  *
+- * @data:  String to parse.
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int ccs_write_capability(char *data, struct ccs_acl_param *param)
++int ccs_write_capability(struct ccs_acl_param *param)
+ {
+ 	struct ccs_capability_acl e = {	.head.type = CCS_TYPE_CAPABILITY_ACL };
++	const char *operation = ccs_read_token(param);
+ 	for (e.operation = 0; e.operation < CCS_MAX_CAPABILITY_INDEX;
+ 	     e.operation++) {
+-		if (strcmp(data, ccs_cap2keyword(e.operation)))
++		if (strcmp(operation, ccs_cap2keyword(e.operation)))
+ 			continue;
+ 		return ccs_update_domain(&e.head, sizeof(e), param,
+ 					 ccs_same_capability_entry, NULL);
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
+@@ -794,30 +794,6 @@
+ }
+ 
+ /**
+- * ccs_find_condition_part - Find condition part from the statement.
+- *
+- * @data: String to parse.
+- *
+- * Returns pointer to the condition part if it was found in the statement,
+- * NULL otherwise.
+- */
+-static char *ccs_find_condition_part(char *data)
+-{
+-	char *cp = strstr(data, " if ");
+-	if (cp) {
+-		while (1) {
+-			char *cp2 = strstr(cp + 3, " if ");
+-			if (!cp2)
+-				break;
+-			cp = cp2;
+-		}
+-		*cp = '\0';
+-		cp += 4;
+-	}
+-	return cp;
+-}
+-
+-/**
+  * ccs_select_one - Parse select command.
+  *
+  * @head: Pointer to "struct ccs_io_buffer".
+@@ -892,26 +868,30 @@
+ /**
+  * ccs_write_task - Update task related list.
+  *
+- * @data:  String to parse.
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_write_task(char *data, struct ccs_acl_param *param)
++static int ccs_write_task(struct ccs_acl_param *param)
+ {
+ 	int error;
+-	const bool is_auto = ccs_str_starts(&data, "auto_domain_transition ");
+-	if (!is_auto && !ccs_str_starts(&data, "manual_domain_transition ")) {
++	const bool is_auto = ccs_str_starts(&param->data,
++					    "auto_domain_transition ");
++	if (!is_auto && !ccs_str_starts(&param->data,
++					"manual_domain_transition ")) {
+ 		struct ccs_handler_acl e = { };
+-		if (ccs_str_starts(&data, "auto_execute_handler "))
++		char *handler;
++		if (ccs_str_starts(&param->data, "auto_execute_handler "))
+ 			e.head.type = CCS_TYPE_AUTO_EXECUTE_HANDLER;
+-		else if (ccs_str_starts(&data, "denied_execute_handler "))
++		else if (ccs_str_starts(&param->data,
++					"denied_execute_handler "))
+ 			e.head.type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
+ 		else
+ 			return -EINVAL;
+-		if (!ccs_correct_path(data))
++		handler = ccs_read_token(param);
++		if (!ccs_correct_path(handler))
+ 			return -EINVAL;
+-		e.handler = ccs_get_name(data);
++		e.handler = ccs_get_name(handler);
+ 		if (!e.handler)
+ 			return -ENOMEM;
+ 		if (e.handler->is_patterned)
+@@ -923,15 +903,14 @@
+ 	} else {
+ 		struct ccs_task_acl e = {
+ 			.head.type = is_auto ?
+-			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL
++			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL,
++			.domainname = ccs_get_domainname(param),
+ 		};
+-		if (!ccs_correct_domain(data))
+-			return -EINVAL;
+-		e.domainname = ccs_get_name(data);
+ 		if (!e.domainname)
+-			return -ENOMEM;
+-		error = ccs_update_domain(&e.head, sizeof(e), param,
+-					  ccs_same_task_acl, NULL);
++			error = -EINVAL;
++		else
++			error = ccs_update_domain(&e.head, sizeof(e), param,
++						  ccs_same_task_acl, NULL);
+ 		ccs_put_name(e.domainname);
+ 	}
+ 	return error;
+@@ -941,12 +920,13 @@
+ 			     const bool is_delete)
+ {
+ 	struct ccs_acl_param param = {
++		.data = data,
+ 		.domain = domain,
+ 		.is_delete = is_delete,
+ 	};
+ 	static const struct {
+ 		const char *keyword;
+-		int (*write) (char *, struct ccs_acl_param *);
++		int (*write) (struct ccs_acl_param *);
+ 	} ccs_callback[7] = {
+ 		{ "file ", ccs_write_file },
+ 		{ "network inet ", ccs_write_inet_network },
+@@ -956,23 +936,13 @@
+ 		{ "ipc ", ccs_write_ipc },
+ 		{ "task ", ccs_write_task },
+ 	};
+-	int error = -EINVAL;
+ 	u8 i;
+-	char *cp = ccs_find_condition_part(data);
+-	if (cp) {
+-		param.condition = ccs_get_condition(cp);
+-		if (!param.condition)
+-			return -EINVAL;
+-	}
+ 	for (i = 0; i < 7; i++) {
+-		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
++		if (!ccs_str_starts(&param.data, ccs_callback[i].keyword))
+ 			continue;
+-		error = ccs_callback[i].write(data, &param);
+-		break;
++		return ccs_callback[i].write(&param);
+ 	}
+-	if (param.condition)
+-		ccs_put_condition(param.condition);
+-	return error;
++	return -EINVAL;
+ }
+ 
+ static const char *ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
+@@ -1122,11 +1092,8 @@
+ {
+ 	switch (head->r.cond_step) {
+ 	case 0:
+-		{ 
+-			ccs_set_string(head, " if");
+-			head->r.cond_index = 0;
+-			head->r.cond_step++;
+-		}
++		head->r.cond_index = 0;
++		head->r.cond_step++;
+ 		/* fall through */
+ 	case 1:
+ 		{
+@@ -2008,7 +1975,6 @@
+ 			vsnprintf(buffer, len - 1, fmt, args);
+ 			va_end(args);
+ 			if (handler || realpath || argv0 || symlink) {
+-				ccs_addprintf(buffer, len, " if");
+ 				if (handler)
+ 					ccs_addprintf(buffer, len, " task.%s",
+ 						      handler);
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 3949)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(working copy)
+@@ -339,29 +339,29 @@
+ /**
+  * ccs_write_inet_network - Write "struct ccs_inet_acl" list.
+  *
+- * @data:  String to parse.
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int ccs_write_inet_network(char *data, struct ccs_acl_param *param)
++int ccs_write_inet_network(struct ccs_acl_param *param)
+ {
+ 	struct ccs_inet_acl e = { .head.type = CCS_TYPE_INET_ACL };
+ 	u16 min_address[8];
+ 	u16 max_address[8];
+ 	int error = -EINVAL;
+ 	u8 type;
+-	if (!ccs_tokenize(data, param->w, sizeof(param->w)) || !param->w[3][0])
+-		return -EINVAL;
++	const char *protocol = ccs_read_token(param);
++	const char *operation = ccs_read_token(param);
++	char *address = ccs_read_token(param);
+ 	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
+-		if (!strcmp(param->w[0], ccs_proto_keyword[e.protocol]))
++		if (!strcmp(protocol, ccs_proto_keyword[e.protocol]))
+ 			break;
+ 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
+-		if (ccs_permstr(param->w[1], ccs_socket_keyword[type]))
++		if (ccs_permstr(operation, ccs_socket_keyword[type]))
+ 			e.perm |= 1 << type;
+ 	if (e.protocol == CCS_SOCK_MAX || !e.perm)
+ 		return -EINVAL;
+-	switch (ccs_parse_ip_address(param->w[2], min_address, max_address)) {
++	switch (ccs_parse_ip_address(address, min_address, max_address)) {
+ 	case CCS_IP_ADDRESS_TYPE_IPv6:
+ 		e.address_type = CCS_IP_ADDRESS_TYPE_IPv6;
+ 		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
+@@ -378,16 +378,16 @@
+ 		e.address.ipv4.max = ntohl(*(u32 *) max_address);
+ 		break;
+ 	default:
+-		if (param->w[2][0] != '@')
++		if (address[0] != '@')
+ 			return -EINVAL;
+ 		e.address_type = CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
+-		e.address.group = ccs_get_group(param->w[2] + 1,
++		e.address.group = ccs_get_group(address + 1,
+ 						CCS_ADDRESS_GROUP);
+ 		if (!e.address.group)
+ 			return -ENOMEM;
+ 		break;
+ 	}
+-	if (!ccs_parse_number_union(param->w[3], &e.port))
++	if (!ccs_parse_number_union(ccs_read_token(param), &e.port))
+ 		goto out;
+ 	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_inet_acl,
+ 				  ccs_merge_inet_acl);
+@@ -405,27 +405,26 @@
+ /**
+  * ccs_write_unix_network - Write "struct ccs_unix_acl" list.
+  *
+- * @data:  String to parse.
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int ccs_write_unix_network(char *data, struct ccs_acl_param *param)
++int ccs_write_unix_network(struct ccs_acl_param *param)
+ {
+ 	struct ccs_unix_acl e = { .head.type = CCS_TYPE_UNIX_ACL };
+ 	int error;
+ 	u8 type;
+-	if (!ccs_tokenize(data, param->w, sizeof(param->w)) || !param->w[2][0])
+-		return -EINVAL;
++	const char *protocol = ccs_read_token(param);
++	const char *operation = ccs_read_token(param);
+ 	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
+-		if (!strcmp(param->w[0], ccs_proto_keyword[e.protocol]))
++		if (!strcmp(protocol, ccs_proto_keyword[e.protocol]))
+ 			break;
+ 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
+-		if (ccs_permstr(param->w[1], ccs_socket_keyword[type]))
++		if (ccs_permstr(operation, ccs_socket_keyword[type]))
+ 			e.perm |= 1 << type;
+ 	if (e.protocol == CCS_SOCK_MAX || !e.perm)
+ 		return -EINVAL;
+-	if (!ccs_parse_name_union(param->w[2], &e.name))
++	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
+                 return -EINVAL;
+ 	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_unix_acl,
+ 				  ccs_merge_unix_acl);
+Index: trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_cond_test.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_cond_test.c	(revision 3942)
++++ trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_cond_test.c	(working copy)
+@@ -100,31 +100,31 @@
+ 			 1);
+ 		try_open("file read/write /etc/fstab", "/etc/fstab", O_WRONLY,
+ 			 1);
+-		try_open("file read /etc/fstab if task.uid=0 task.euid=0",
++		try_open("file read /etc/fstab task.uid=0 task.euid=0",
+ 			 "/etc/fstab", O_RDONLY, 1);
+ 		try_open("file read /etc/fstab "
+-			 "if task.uid=0 task.euid=0-4294967295", "/etc/fstab",
++			 "task.uid=0 task.euid=0-4294967295", "/etc/fstab",
+ 			 O_RDONLY, 1);
+ 		try_open("file read /etc/fstab "
+-			 "if task.uid=0 task.euid!=0-4294967295", "/etc/fstab",
++			 "task.uid=0 task.euid!=0-4294967295", "/etc/fstab",
+ 			 O_RDONLY, 0);
+-		try_open("file read /etc/fstab if task.uid=0 task.euid!=0",
++		try_open("file read /etc/fstab task.uid=0 task.euid!=0",
+ 			 "/etc/fstab", O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.argc=0", "/etc/fstab",
++		try_open("file read /etc/fstab exec.argc=0", "/etc/fstab",
+ 			 O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.envc=0", "/etc/fstab",
++		try_open("file read /etc/fstab exec.envc=0", "/etc/fstab",
+ 			 O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.argv[0]=\"\"",
++		try_open("file read /etc/fstab exec.argv[0]=\"\"",
+ 			 "/etc/fstab", O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.argv[0]!=\"\"",
++		try_open("file read /etc/fstab exec.argv[0]!=\"\"",
+ 			 "/etc/fstab", O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]=\"\"",
++		try_open("file read /etc/fstab exec.envp[\"HOME\"]=\"\"",
+ 			 "/etc/fstab", O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]!=\"\"",
++		try_open("file read /etc/fstab exec.envp[\"HOME\"]!=\"\"",
+ 			 "/etc/fstab", O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]=NULL",
++		try_open("file read /etc/fstab exec.envp[\"HOME\"]=NULL",
+ 			 "/etc/fstab", O_RDONLY, 0);
+-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]!=NULL",
++		try_open("file read /etc/fstab exec.envp[\"HOME\"]!=NULL",
+ 			 "/etc/fstab", O_RDONLY, 0);
+ 
+ 		try_open("file read proc:/\\*/mounts", buffer, O_RDONLY, 1);
+Index: trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_policy_memory_test.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_policy_memory_test.c	(revision 3942)
++++ trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_policy_memory_test.c	(working copy)
+@@ -83,105 +83,105 @@
+ 
+ static const char *domain_testcases[] = {
+ 	"file create /tmp/mknod_reg_test 0600",
+-	"file create /tmp/open_test 0600 if path1.parent.uid=task.uid",
+-	"file create /tmp/open_test 0600 if 0=0",
++	"file create /tmp/open_test 0600 path1.parent.uid=task.uid",
++	"file create /tmp/open_test 0600 0=0",
+ 	"file create /tmp/open_test 0600",
+-	"file execute /bin/true if task.uid!=10 path1.parent.uid=0",
++	"file execute /bin/true task.uid!=10 path1.parent.uid=0",
+ 	"file execute /bin/true",
+-	"file execute /bin/true0 if task.uid=0",
+-	"file execute /bin/true1 if task.uid=task.gid",
+-	"file execute /bin/true2 if 0=0",
+-	"file execute /bin/true3 if 0!=0",
+-	"file execute /bin/true4 if 123-456=789",
+-	"file execute /bin/true5 if exec.realpath=\"/bin/true5\"",
+-	"file execute /bin/true6 if exec.argv[0]=\"true6\"",
+-	"file execute /bin/true7 if 1-2=@bar",
+-	"file execute /bin/true7 if exec.realpath!=@foo",
+-	"file execute /bin/true7 if exec.realpath=@foo",
++	"file execute /bin/true0 task.uid=0",
++	"file execute /bin/true1 task.uid=task.gid",
++	"file execute /bin/true2 0=0",
++	"file execute /bin/true3 0!=0",
++	"file execute /bin/true4 123-456=789",
++	"file execute /bin/true5 exec.realpath=\"/bin/true5\"",
++	"file execute /bin/true6 exec.argv[0]=\"true6\"",
++	"file execute /bin/true7 1-2=@bar",
++	"file execute /bin/true7 exec.realpath!=@foo",
++	"file execute /bin/true7 exec.realpath=@foo",
+ 	"file execute /bin/true8 "
+-	"if exec.argv[0]=\"test8\" exec.realpath=\"/bin/true8\"",
++	"exec.argv[0]=\"test8\" exec.realpath=\"/bin/true8\"",
+ 	"file ioctl socket:[family=2:type=2:protocol=17] 0-35122",
+ 	"file ioctl socket:[family=2:type=2:protocol=17] 35122-35124 "
+-	"if task.uid=0",
++	"task.uid=0",
+ 	"file link /tmp/link_source_test /tmp/link_dest_test",
+ 	"file mkblock /tmp/mknod_blk_test 0600 1 0",
+ 	"file mkchar /tmp/mknod_chr_test 0600 1 3",
+ 	"file mkdir /tmp/mkdir_test/ 0755",
+-	"file mkfifo /tmp/mknod_fifo_test 0600 if path1.parent.perm=01777 "
++	"file mkfifo /tmp/mknod_fifo_test 0600 path1.parent.perm=01777 "
+ 	"path1.parent.perm=sticky path1.parent.uid=0 path1.parent.gid=0",
+ 	"file mkfifo /tmp/mknod_fifo_test 0600",
+ 	"file mksock /tmp/mknod_sock_test 0600",
+ 	"file mksock /tmp/socket_test 0600",
+-	"file read /bin/true if path1.uid=0 path1.parent.uid=0 10=10-100",
++	"file read /bin/true path1.uid=0 path1.parent.uid=0 10=10-100",
+ 	"file read /bin/true",
+-	"file read /dev/null if path1.parent.ino=path1.parent.ino",
+-	"file read /dev/null if path1.perm!=0777",
+-	"file read /dev/null if path1.perm=0666",
+-	"file read /dev/null if path1.perm=owner_read path1.perm=owner_write "
++	"file read /dev/null path1.parent.ino=path1.parent.ino",
++	"file read /dev/null path1.perm!=0777",
++	"file read /dev/null path1.perm=0666",
++	"file read /dev/null path1.perm=owner_read path1.perm=owner_write "
+ 	"path1.perm!=owner_execute path1.perm=group_read "
+ 	"path1.perm=group_write path1.perm!=group_execute "
+ 	"path1.perm=others_read path1.perm=others_write "
+ 	"path1.perm!=others_execute path1.perm!=setuid path1.perm!=setgid "
+ 	"path1.perm!=sticky",
+ 	"file read /dev/null "
+-	"if path1.type=char path1.dev_major=1 path1.dev_minor=3",
++	"path1.type=char path1.dev_major=1 path1.dev_minor=3",
+ 	"file read /dev/null",
+ 	"file read /foo",
+ 	"file read proc:/sys/net/ipv4/ip_local_port_range "
+-	"if task.uid=0 task.gid=0",
++	"task.uid=0 task.gid=0",
+ 	"file read proc:/sys/net/ipv4/ip_local_port_range",
+ 	"file append /bar",
+-	"file append /dev/null if task.uid=path1.parent.uid",
++	"file append /dev/null task.uid=path1.parent.uid",
+ 	"file append /dev/null",
+-	"file read proc:/sys/net/ipv4/ip_local_port_range if 1!=10-100",
++	"file read proc:/sys/net/ipv4/ip_local_port_range 1!=10-100",
+ 	"file read proc:/sys/net/ipv4/ip_local_port_range",
+-	"file append /tmp/fifo if path1.type=fifo",
++	"file append /tmp/fifo path1.type=fifo",
+ 	"file append /tmp/fifo",
+ 	"file append /tmp/rewrite_test",
+ 	"file rename /tmp/rename_source_test /tmp/rename_dest_test",
+ 	"file rmdir /tmp/rmdir_test/",
+-	"file symlink /symlink if symlink.target!=@target",
+-	"file symlink /symlink if symlink.target!=\"target\"",
+-	"file symlink /symlink if symlink.target=@symlink_target",
+-	"file symlink /symlink if symlink.target=\"target\"",
++	"file symlink /symlink symlink.target!=@target",
++	"file symlink /symlink symlink.target!=\"target\"",
++	"file symlink /symlink symlink.target=@symlink_target",
++	"file symlink /symlink symlink.target=\"target\"",
+ 	"file symlink /tmp/symlink_source_test "
+-	"if symlink.target!=\"/tmp/symlink_\\*_test\"",
+-	"file symlink /tmp/symlink_source_test if symlink.target!=\"\\*\"",
++	"symlink.target!=\"/tmp/symlink_\\*_test\"",
++	"file symlink /tmp/symlink_source_test symlink.target!=\"\\*\"",
+ 	"file symlink /tmp/symlink_source_test "
+-	"if symlink.target=\"/tmp/symlink_\\*_test\"",
++	"symlink.target=\"/tmp/symlink_\\*_test\"",
+ 	"file symlink /tmp/symlink_source_test "
+-	"if task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"",
++	"task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"",
+ 	"file symlink /tmp/symlink_source_test",
+ 	"file truncate /tmp/rewrite_test",
+-	"file truncate /tmp/truncate_test if task.uid=path1.uid",
++	"file truncate /tmp/truncate_test task.uid=path1.uid",
+ 	"file truncate /tmp/truncate_test",
+ 	"file unlink /tmp/unlink_test",
+ 	"file write /123",
+-	"file write /dev/null if path1.uid=path1.gid",
++	"file write /dev/null path1.uid=path1.gid",
+ 	"file write /dev/null",
+-	"file write /devfile if path1.major=1024 path1.minor=1048576",
++	"file write /devfile path1.major=1024 path1.minor=1048576",
+ 	"file write /devfile",
+ 	"file write proc:/sys/net/ipv4/ip_local_port_range "
+-	"if task.euid=0 0=0 1-100=10-1000",
++	"task.euid=0 0=0 1-100=10-1000",
+ 	"file write proc:/sys/net/ipv4/ip_local_port_range",
+-	"file write /tmp/open_test if path1.parent.uid=0",
+-	"file write /tmp/open_test if task.uid=0 path1.ino!=0",
++	"file write /tmp/open_test path1.parent.uid=0",
++	"file write /tmp/open_test task.uid=0 path1.ino!=0",
+ 	"file write /tmp/open_test",
+-	"file write /tmp/truncate_test if 1!=100-1000000",
++	"file write /tmp/truncate_test 1!=100-1000000",
+ 	"file write /tmp/truncate_test",
+ 	"file mount /dev/sda1 /mnt/sda1/ ext3 0x123",
+ 	"file mount /dev/sda1 /mnt/sda1/ ext3 123",
+ 	"file mount /dev/sda1 /mnt/sda1/ ext3 0123",
+-	"file mount /dev/sda1 /mnt/sda1/ ext3 0x123 if path1.uid=path2.uid",
+-	"file mount /dev/sda1 /mnt/sda1/ ext3 123 if path1.uid=task.uid",
+-	"file mount /dev/sda1 /mnt/sda1/ ext3 0123 if path1.uid=@uid",
++	"file mount /dev/sda1 /mnt/sda1/ ext3 0x123 path1.uid=path2.uid",
++	"file mount /dev/sda1 /mnt/sda1/ ext3 123 path1.uid=task.uid",
++	"file mount /dev/sda1 /mnt/sda1/ ext3 0123 path1.uid=@uid",
+ 	"file chroot /",
+-	"file chroot / if task.uid=123-456",
+-	"file chroot /mnt/ if task.uid=123-456 path1.gid=0",
+-	"file pivot_root / /proc/ if path1.uid!=0",
+-	"file pivot_root /mnt/ /proc/mnt/ if path1.uid!=0 path2.gid=150",
+-	"file unmount / if path1.uid!=0",
+-	"file unmount /proc/ if path1.uid!=0",
++	"file chroot / task.uid=123-456",
++	"file chroot /mnt/ task.uid=123-456 path1.gid=0",
++	"file pivot_root / /proc/ path1.uid!=0",
++	"file pivot_root /mnt/ /proc/mnt/ path1.uid!=0 path2.gid=150",
++	"file unmount / path1.uid!=0",
++	"file unmount /proc/ path1.uid!=0",
+ 	NULL
+ };
+ 
+Index: trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_new_file_test.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_new_file_test.c	(revision 3942)
++++ trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_new_file_test.c	(working copy)
+@@ -162,42 +162,42 @@
+ 	set_profile(3, "file::pivot_root");
+ 
+ 	policy = "file read proc:/sys/net/ipv4/ip_local_port_range "
+-		"if task.uid=0 task.gid=0";
++		"task.uid=0 task.gid=0";
+ 	write_domain_policy(policy, 0);
+ 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 1);
+ 	write_domain_policy(policy, 1);
+ 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 0);
+ 
+ 	policy = "file write proc:/sys/net/ipv4/ip_local_port_range "
+-		"if task.euid=0 0=0 1-100=10-1000";
++		"task.euid=0 0=0 1-100=10-1000";
+ 	write_domain_policy(policy, 0);
+ 	show_result(sysctl(name, 3, 0, 0, buffer, size), 1);
+ 	write_domain_policy(policy, 1);
+ 	show_result(sysctl(name, 3, 0, 0, buffer, size), 0);
+ 
+ 	policy = "file read proc:/sys/net/ipv4/ip_local_port_range "
+-		"if 1!=10-100";
++		"1!=10-100";
+ 	write_domain_policy(policy, 0);
+ 	policy = "file write proc:/sys/net/ipv4/ip_local_port_range "
+-		"if 1!=10-100";
++		"1!=10-100";
+ 	write_domain_policy(policy, 0);
+ 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 1);
+ 	policy = "file read proc:/sys/net/ipv4/ip_local_port_range "
+-		"if 1!=10-100";
++		"1!=10-100";
+ 	write_domain_policy(policy, 1);
+ 	policy = "file write proc:/sys/net/ipv4/ip_local_port_range "
+-		"if 1!=10-100";
++		"1!=10-100";
+ 	write_domain_policy(policy, 1);
+ 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 0);
+ 
+ 	policy = "file read /bin/true "
+-		"if path1.uid=0 path1.parent.uid=0 10=10-100";
++		"path1.uid=0 path1.parent.uid=0 10=10-100";
+ 	write_domain_policy(policy, 0);
+ 	show_result(uselib("/bin/true"), 1);
+ 	write_domain_policy(policy, 1);
+ 	show_result(uselib("/bin/true"), 0);
+ 
+-	policy = "file execute /bin/true if task.uid!=10 path1.parent.uid=0";
++	policy = "file execute /bin/true task.uid!=10 path1.parent.uid=0";
+ 	write_domain_policy(policy, 0);
+ 	fflush(stdout);
+ 	fflush(stderr);
+@@ -231,7 +231,7 @@
+ 	errno = err;
+ 	show_result(err ? EOF : 0, 0);
+ 
+-	policy = "file read /dev/null if path1.type=char path1.dev_major=1 "
++	policy = "file read /dev/null path1.type=char path1.dev_major=1 "
+ 		"path1.dev_minor=3";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/dev/null", O_RDONLY);
+@@ -244,7 +244,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 
+-	policy = "file read /dev/null if path1.perm=0666";
++	policy = "file read /dev/null path1.perm=0666";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/dev/null", O_RDONLY);
+ 	show_result(fd, 1);
+@@ -256,7 +256,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 
+-	policy = "file read /dev/null if path1.perm!=0777";
++	policy = "file read /dev/null path1.perm!=0777";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/dev/null", O_RDONLY);
+ 	show_result(fd, 1);
+@@ -268,7 +268,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 
+-	policy = "file read /dev/null if path1.perm=owner_read "
++	policy = "file read /dev/null path1.perm=owner_read "
+ 		"path1.perm=owner_write path1.perm!=owner_execute "
+ 		"path1.perm=group_read path1.perm=group_write "
+ 		"path1.perm!=group_execute path1.perm=others_read "
+@@ -287,7 +287,7 @@
+ 
+ 	set_profile(3, "file::mkfifo");
+ 	policy = "file mkfifo /tmp/mknod_fifo_test 0644 "
+-		"if path1.parent.perm=01777 path1.parent.perm=sticky "
++		"path1.parent.perm=01777 path1.parent.perm=sticky "
+ 		"path1.parent.uid=0 path1.parent.gid=0";
+ 	write_domain_policy(policy, 0);
+ 	filename = "/tmp/mknod_fifo_test";
+@@ -301,7 +301,7 @@
+ 	filename = "/dev/null";
+ 	stat(filename, &sbuf);
+ 	snprintf(pbuffer, sizeof(pbuffer) - 1,
+-		 "file write %s if path1.major=%u path1.minor=%u",
++		 "file write %s path1.major=%u path1.minor=%u",
+ 		 filename, (unsigned int) MAJOR(sbuf.st_dev),
+ 		 (unsigned int) MINOR(sbuf.st_dev));
+ 	policy = pbuffer;
+@@ -316,7 +316,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 
+-	policy = "file read/write /tmp/fifo if path1.type=fifo";
++	policy = "file read/write /tmp/fifo path1.type=fifo";
+ 	mkfifo2("/tmp/fifo");
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/tmp/fifo", O_RDWR);
+@@ -329,7 +329,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 
+-	policy = "file read /dev/null if path1.parent.ino=path1.parent.ino";
++	policy = "file read /dev/null path1.parent.ino=path1.parent.ino";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/dev/null", O_RDONLY);
+ 	show_result(fd, 1);
+@@ -341,7 +341,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 
+-	policy = "file write /dev/null if path1.uid=path1.gid";
++	policy = "file write /dev/null path1.uid=path1.gid";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/dev/null", O_WRONLY);
+ 	show_result(fd, 1);
+@@ -353,7 +353,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 
+-	policy = "file read/write /dev/null if task.uid=path1.parent.uid";
++	policy = "file read/write /dev/null task.uid=path1.parent.uid";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/dev/null", O_RDWR);
+ 	show_result(fd, 1);
+@@ -366,9 +366,9 @@
+ 		close(fd);
+ 
+ 	policy = "file create /tmp/open_test 0644 "
+-		"if path1.parent.uid=task.uid";
++		"path1.parent.uid=task.uid";
+ 	write_domain_policy(policy, 0);
+-	policy = "file write /tmp/open_test if path1.parent.uid=0";
++	policy = "file write /tmp/open_test path1.parent.uid=0";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/tmp/open_test", O_WRONLY | O_CREAT | O_EXCL, 0644);
+ 	show_result(fd, 1);
+@@ -383,12 +383,12 @@
+ 	unlink2("/tmp/open_test");
+ 
+ 	policy = "file create /tmp/open_test 0644 "
+-		"if path1.parent.uid=task.uid";
++		"path1.parent.uid=task.uid";
+ 	write_domain_policy(policy, 1);
+ 
+-	policy = "file write /tmp/open_test if task.uid=0 path1.ino!=0";
++	policy = "file write /tmp/open_test task.uid=0 path1.ino!=0";
+ 	write_domain_policy(policy, 0);
+-	policy = "file create /tmp/open_test 0644 if 0=0";
++	policy = "file create /tmp/open_test 0644 0=0";
+ 	write_domain_policy(policy, 0);
+ 	fd = open("/tmp/open_test", O_WRONLY | O_CREAT | O_EXCL, 0644);
+ 	show_result(fd, 1);
+@@ -401,15 +401,15 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 	unlink2("/tmp/open_test");
+-	policy = "file write /tmp/open_test if task.uid=0 path1.ino!=0";
++	policy = "file write /tmp/open_test task.uid=0 path1.ino!=0";
+ 	write_domain_policy(policy, 1);
+ 
+ 	filename = "/tmp/truncate_test";
+ 	create2(filename);
+ 
+-	policy = "file truncate /tmp/truncate_test if task.uid=path1.uid";
++	policy = "file truncate /tmp/truncate_test task.uid=path1.uid";
+ 	write_domain_policy(policy, 0);
+-	policy = "file write /tmp/truncate_test if 1!=100-1000000";
++	policy = "file write /tmp/truncate_test 1!=100-1000000";
+ 	write_domain_policy(policy, 0);
+ 	fd = open(filename, O_WRONLY | O_TRUNC);
+ 	show_result(fd, 1);
+@@ -421,7 +421,7 @@
+ 	if (fd != EOF)
+ 		close(fd);
+ 	policy = "file truncate /tmp/truncate_test "
+-		"if task.uid=path1.uid";
++		"task.uid=path1.uid";
+ 	write_domain_policy(policy, 1);
+ 
+ 	policy = "file write /tmp/truncate_test";
+@@ -536,7 +536,7 @@
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
+ 
+ 	policy = "file symlink /tmp/symlink_source_test "
+-		"if symlink.target=\"/tmp/symlink_\\*_test\"";
++		"symlink.target=\"/tmp/symlink_\\*_test\"";
+ 	write_domain_policy(policy, 0);
+ 	filename = "/tmp/symlink_source_test";
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 1);
+@@ -545,7 +545,7 @@
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
+ 
+ 	policy = "file symlink /tmp/symlink_source_test "
+-		"if task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"";
++		"task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"";
+ 	write_domain_policy(policy, 0);
+ 	filename = "/tmp/symlink_source_test";
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 1);
+@@ -554,7 +554,7 @@
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
+ 
+ 	policy = "file symlink /tmp/symlink_source_test "
+-		"if symlink.target!=\"\\*\"";
++		"symlink.target!=\"\\*\"";
+ 	write_domain_policy(policy, 0);
+ 	filename = "/tmp/symlink_source_test";
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 1);
+@@ -563,7 +563,7 @@
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
+ 
+ 	policy = "file symlink /tmp/symlink_source_test "
+-		"if symlink.target!=\"/tmp/symlink_\\*_test\"";
++		"symlink.target!=\"/tmp/symlink_\\*_test\"";
+ 	write_domain_policy(policy, 0);
+ 	filename = "/tmp/symlink_source_test";
+ 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
+@@ -613,7 +613,7 @@
+ 	unlink2(filename);
+ 
+ 	policy = "file ioctl socket:[family=2:type=2:protocol=17] "
+-		"35122-35124 if task.uid=0";
++		"35122-35124 task.uid=0";
+ 	write_domain_policy(policy, 0);
+ 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+ 	memset(&ifreq, 0, sizeof(ifreq));
+Index: trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_new_test.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_new_test.c	(revision 3942)
++++ trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_new_test.c	(working copy)
+@@ -486,54 +486,54 @@
+ 	{ NULL, test_read_etc_fstab, cleanup_file_open, "file::open",
+ 	  "file read /etc/fstab" },
+ 	{ NULL, test_read_etc_fstab, cleanup_file_open, "file::open",
+-	  "file read /etc/fstab if task.uid=0" },
++	  "file read /etc/fstab task.uid=0" },
+ 	{ NULL, test_read_etc_fstab, cleanup_file_open, "file::open",
+-	  "file read /etc/fstab if path1.uid=0 path1.parent.uid=0" },
++	  "file read /etc/fstab path1.uid=0 path1.parent.uid=0" },
+ 	{ setup_open_group, test_read_etc_fstab, cleanup_open_group,
+-	  "file::open", "file read @READABLE if path1.uid=@READABLE_IDS "
++	  "file::open", "file read @READABLE path1.uid=@READABLE_IDS "
+ 	  "path1.parent.uid=0" },
+ 	{ NULL, test_write_dev_null, cleanup_file_open, "file::open",
+ 	  "file write /dev/null" },
+ 	{ NULL, test_write_dev_null, cleanup_file_open, "file::open",
+-	  "file write /dev/null if task.uid=0" },
++	  "file write /dev/null task.uid=0" },
+ 	{ NULL, test_write_dev_null, cleanup_file_open, "file::open",
+-	  "file write /dev/null if path1.type=char path1.dev_major=1 "
++	  "file write /dev/null path1.type=char path1.dev_major=1 "
+ 	  "path1.dev_minor=3 path1.perm=0666" },
+ 	{ cleanup_mkdir_testdir, test_mkdir_testdir, cleanup_mkdir_testdir,
+ 	  "file::mkdir", "file mkdir /tmp/testdir/ 0755" },
+ 	{ cleanup_mkdir_testdir, test_mkdir_testdir, cleanup_mkdir_testdir,
+ 	  "file::mkdir", "file mkdir /tmp/testdir/ 0755 "
+-	  "if path1.parent.uid=0 path1.parent.perm=01777" },
++	  "path1.parent.uid=0 path1.parent.perm=01777" },
+ 	{ cleanup_mkdir_testdir, test_mkdir_testdir, cleanup_mkdir_testdir,
+ 	  "file::mkdir", "file mkdir /tmp/testdir/ 0755 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_mkdir_testdir, test_rmdir_testdir, cleanup_mkdir_testdir,
+ 	  "file::rmdir", "file rmdir /tmp/testdir/" },
+ 	{ setup_mkdir_testdir, test_rmdir_testdir, cleanup_mkdir_testdir,
+-	  "file::rmdir", "file rmdir /tmp/testdir/ if path1.parent.uid=0 "
++	  "file::rmdir", "file rmdir /tmp/testdir/ path1.parent.uid=0 "
+ 	  "path1.parent.perm=01777" },
+ 	{ setup_mkdir_testdir, test_rmdir_testdir, cleanup_mkdir_testdir,
+-	  "file::rmdir", "file rmdir /tmp/testdir/ if task.uid=0-100 "
++	  "file::rmdir", "file rmdir /tmp/testdir/ task.uid=0-100 "
+ 	  "task.gid=0x0-0xFF path1.uid=0" },
+ 	{ setup_execute_bin_true, test_execute_bin_true,
+ 	  cleanup_execute_bin_true, "file::execute",
+ 	  "file execute /bin/true" },
+ 	{ setup_execute_bin_true, test_execute_bin_true,
+ 	  cleanup_execute_bin_true, "file::execute", "file execute /bin/true "
+-	  "if exec.argc=1 exec.argv[0]=\"/bin/true\"" },
++	  "exec.argc=1 exec.argv[0]=\"/bin/true\"" },
+ 	{ setup_execute_bin_true, test_execute_bin_true,
+ 	  cleanup_execute_bin_true, "file::execute", "file execute /bin/true "
+-	  "if exec.envc=1 exec.envp[\"HOME\"]=\"/\" exec.envp[\"PATH\"]=NULL"
++	  "exec.envc=1 exec.envp[\"HOME\"]=\"/\" exec.envp[\"PATH\"]=NULL"
+ 	},
+ 	{ NULL, test_chmod_dev_null, NULL, "file::chmod",
+-	  "file chmod /dev/null 0666 if path1.perm=00-07777 path1.type=char"
++	  "file chmod /dev/null 0666 path1.perm=00-07777 path1.type=char"
+ 	},
+ 	{ NULL, test_chown_dev_null, NULL, "file::chown",
+-	  "file chown /dev/null 0 if task.gid=path1.gid path1.type!=block" },
++	  "file chown /dev/null 0 task.gid=path1.gid path1.type!=block" },
+ 	{ NULL, test_chgrp_dev_null, NULL, "file::chgrp",
+-	  "file chgrp /dev/null 0 if task.uid=path1.parent.uid" },
++	  "file chgrp /dev/null 0 task.uid=path1.parent.uid" },
+ 	{ NULL, test_ioctl_dev_null, NULL, "file::ioctl",
+-	  "file ioctl /dev/null 0x5451 if 0=0-1000" },
++	  "file ioctl /dev/null 0x5451 0=0-1000" },
+ 	{ setup_chmod_group, test_chmod_dev_null, cleanup_chmod_group,
+ 	  "file::chmod", "file chmod @CHMOD_TARGET @CHMOD_MODES" },
+ 	{ setup_chown_group, test_chown_dev_null, cleanup_chown_group,
+@@ -543,135 +543,135 @@
+ 	{ setup_ioctl_group, test_ioctl_dev_null, cleanup_ioctl_group,
+ 	  "file::ioctl", "file ioctl @IOCTL_TARGET @IOCTL_NUMBERS" },
+ 	{ setup_test_file, test_file_open_0, cleanup_test_file, "file::open",
+-	  "file read /tmp/testfile0 if task.uid=path1.uid" },
++	  "file read /tmp/testfile0 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_1, cleanup_test_file, "file::open",
+-	  "file read /tmp/testfile1 if task.uid=path1.uid" },
++	  "file read /tmp/testfile1 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_1, cleanup_test_file, "file::create",
+-	  "file create /tmp/testfile1 0600 if task.uid=path1.parent.uid" },
++	  "file create /tmp/testfile1 0600 task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_2, cleanup_test_file, "file::open",
+-	  "file read /tmp/testfile2 if task.uid=path1.uid" },
++	  "file read /tmp/testfile2 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_2, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile2 "
+-	  "if task.uid=path1.uid" },
++	  "task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_3, cleanup_test_file,
+-	  "file::open", "file read /tmp/testfile3 if task.uid=path1.uid" },
++	  "file::open", "file read /tmp/testfile3 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_3, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile3 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_4, cleanup_test_file, "file::open",
+-	  "file read /tmp/testfile4 if task.uid=path1.uid" },
++	  "file read /tmp/testfile4 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_5, cleanup_test_file, "file::open",
+-	  "file read /tmp/testfile5 if task.uid=path1.uid" },
++	  "file read /tmp/testfile5 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_5, cleanup_test_file, "file::create",
+-	  "file create /tmp/testfile5 0600 if task.uid=path1.parent.uid" },
++	  "file create /tmp/testfile5 0600 task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_6, cleanup_test_file, "file::open",
+-	  "file read /tmp/testfile6 if task.uid=path1.uid" },
++	  "file read /tmp/testfile6 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_6, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile6 "
+-	  "if task.uid=path1.uid" },
++	  "task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_7, cleanup_test_file, "file::open",
+-	  "file read /tmp/testfile7 if task.uid=path1.uid" },
++	  "file read /tmp/testfile7 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_7, cleanup_test_file, "file::create",
+-	  "file create /tmp/testfile7 0600 if task.uid=path1.parent.uid" },
++	  "file create /tmp/testfile7 0600 task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_8, cleanup_test_file, "file::open",
+-	  "file write /tmp/testfile8 if task.uid=path1.uid" },
++	  "file write /tmp/testfile8 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_9, cleanup_test_file, "file::open",
+-	  "file write /tmp/testfile9 if task.uid=path1.uid" },
++	  "file write /tmp/testfile9 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_9, cleanup_test_file, "file::create",
+-	  "file create /tmp/testfile9 0600 if task.uid=path1.parent.uid" },
++	  "file create /tmp/testfile9 0600 task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_10, cleanup_test_file, "file::open",
+-	  "file write /tmp/testfile10 if task.uid=path1.uid" },
++	  "file write /tmp/testfile10 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_10, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile10 "
+-	  "if task.uid=path1.uid" },
++	  "task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_11, cleanup_test_file, "file::open",
+-	  "file write /tmp/testfile11 if task.uid=path1.uid" },
++	  "file write /tmp/testfile11 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_11, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile11 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_12, cleanup_test_file, "file::open",
+-	  "file append /tmp/testfile12 if task.uid=path1.uid" },
++	  "file append /tmp/testfile12 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_13, cleanup_test_file, "file::open",
+-	  "file append /tmp/testfile13 if task.uid=path1.uid" },
++	  "file append /tmp/testfile13 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_13, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile13 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_14, cleanup_test_file, "file::open",
+-	  "file append /tmp/testfile14 if task.uid=path1.uid" },
++	  "file append /tmp/testfile14 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_14, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile14 "
+-	  "if task.uid=path1.uid" },
++	  "task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_15, cleanup_test_file, "file::open",
+-	  "file append /tmp/testfile15 if task.uid=path1.uid" },
++	  "file append /tmp/testfile15 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_15, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile15 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_16, cleanup_test_file, "file::open",
+-	  "file read/write /tmp/testfile16 if task.uid=path1.uid" },
++	  "file read/write /tmp/testfile16 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_17, cleanup_test_file, "file::open",
+-	  "file read/write /tmp/testfile17 if task.uid=path1.uid" },
++	  "file read/write /tmp/testfile17 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_17, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile17 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_18, cleanup_test_file, "file::open",
+-	  "file read/write /tmp/testfile18 if task.uid=path1.uid" },
++	  "file read/write /tmp/testfile18 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_18, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile18 "
+-	  "if task.uid=path1.uid" },
++	  "task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_19, cleanup_test_file, "file::open",
+-	  "file read/write /tmp/testfile19 if task.uid=path1.uid" },
++	  "file read/write /tmp/testfile19 task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_19, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile19 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_21, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile21 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_test_file, test_file_open_22, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile22 "
+-	  "if task.uid=path1.uid" },
++	  "task.uid=path1.uid" },
+ 	{ setup_test_file, test_file_open_23, cleanup_test_file,
+ 	  "file::create", "file create /tmp/testfile23 0600 "
+-	  "if task.uid=path1.parent.uid" },
++	  "task.uid=path1.parent.uid" },
+ 	{ setup_all_test_file, test_file_open_0, cleanup_test_file,
+-	  "file::open", "file read /tmp/testfile0 if task.uid=path1.gid" },
++	  "file::open", "file read /tmp/testfile0 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_2, cleanup_test_file,
+-	  "file::open", "file read /tmp/testfile2 if task.uid=path1.gid" },
++	  "file::open", "file read /tmp/testfile2 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_2, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile2 "
+-	  "if task.uid=path1.gid" },
++	  "task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_4, cleanup_test_file,
+-	  "file::open", "file read /tmp/testfile4 if task.uid=path1.gid" },
++	  "file::open", "file read /tmp/testfile4 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_6, cleanup_test_file,
+-	  "file::open", "file read /tmp/testfile6 if task.uid=path1.gid" },
++	  "file::open", "file read /tmp/testfile6 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_6, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile6 "
+-	  "if task.uid=path1.gid" },
++	  "task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_8, cleanup_test_file,
+-	  "file::open", "file write /tmp/testfile8 if task.uid=path1.gid" },
++	  "file::open", "file write /tmp/testfile8 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_10, cleanup_test_file,
+-	  "file::open", "file write /tmp/testfile10 if task.uid=path1.gid" },
++	  "file::open", "file write /tmp/testfile10 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_10, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile10 "
+-	  "if task.uid=path1.gid" },
++	  "task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_12, cleanup_test_file,
+-	  "file::open", "file append /tmp/testfile12 if task.uid=path1.gid" },
++	  "file::open", "file append /tmp/testfile12 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_14, cleanup_test_file,
+-	  "file::open", "file append /tmp/testfile14 if task.uid=path1.gid" },
++	  "file::open", "file append /tmp/testfile14 task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_14, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile14 "
+-	  "if task.uid=path1.gid" },
++	  "task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_16, cleanup_test_file,
+ 	  "file::open", "file read/write /tmp/testfile16 "
+-	  "if task.uid=path1.gid" },
++	  "task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_18, cleanup_test_file,
+ 	  "file::open", "file read/write /tmp/testfile18 "
+-	  "if task.uid=path1.gid" },
++	  "task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_18, cleanup_test_file,
+ 	  "file::truncate", "file truncate /tmp/testfile18 "
+-	  "if task.uid=path1.gid" },
++	  "task.uid=path1.gid" },
+ 	{ setup_all_test_file, test_file_open_22, cleanup_test_file,
+ 	  "file::truncate",
+-	  "file truncate /tmp/testfile22 if task.uid=path1.gid" },
++	  "file truncate /tmp/testfile22 task.uid=path1.gid" },
+ 	{ NULL, test_use_route, NULL,          "capability::use_route",
+ 	  "capability use_route" },
+ 	{ NULL, test_use_packet, NULL,         "capability::use_packet",
+Index: trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_bprm_test.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_bprm_test.c	(revision 3942)
++++ trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_bprm_test.c	(working copy)
+@@ -92,81 +92,81 @@
+ 
+ 		argv[0] = "/bin/true";
+ 		try_exec("file execute /bin/true "
+-			 "if task.gid=0-100 exec.argc=1", argv, envp, 1);
++			 "task.gid=0-100 exec.argc=1", argv, envp, 1);
+ 		argv[0] = NULL;
+ 		try_exec("file execute /bin/true "
+-			 "if task.gid=0-100 exec.argc=1", argv, envp, 0);
++			 "task.gid=0-100 exec.argc=1", argv, envp, 0);
+ 
+ 		envp[0] = "";
+-		try_exec("file execute /bin/true if task.gid!=100 task.euid=0 "
++		try_exec("file execute /bin/true task.gid!=100 task.euid=0 "
+ 			 "path1.uid=0 path1.parent.uid=0 exec.envc=1", argv,
+ 			 envp, 1);
+ 		envp[0] = NULL;
+-		try_exec("file execute /bin/true if task.gid!=100 task.euid=0 "
++		try_exec("file execute /bin/true task.gid!=100 task.euid=0 "
+ 			 "path1.uid=0 path1.parent.uid=0 exec.envc=1", argv,
+ 			 envp, 0);
+ 
+ 		argv[0] = "/bin/true";
+ 		argv[1] = "--";
+-		try_exec("file execute /bin/true if 0=0 exec.argc=1-5", argv,
++		try_exec("file execute /bin/true 0=0 exec.argc=1-5", argv,
+ 			 envp, 1);
+-		try_exec("file execute /bin/true if 0=0 exec.argc!=1-5", argv,
++		try_exec("file execute /bin/true 0=0 exec.argc!=1-5", argv,
+ 			 envp, 0);
+ 
+ 		envp[0] = "";
+ 		envp[1] = "";
+-		try_exec("file execute /bin/true if task.uid=0 "
++		try_exec("file execute /bin/true task.uid=0 "
+ 			 "task.gid!=1-100 path1.parent.uid!=1 path1.gid=0 "
+ 			 "exec.envc=1-5", argv, envp, 1);
+-		try_exec("file execute /bin/true if task.uid=0 "
++		try_exec("file execute /bin/true task.uid=0 "
+ 			 "task.gid!=1-100 path1.parent.uid!=1 path1.gid=0 "
+ 			 "exec.envc!=1-5", argv, envp, 0);
+ 
+ 		argv[0] = "/bin/true";
+ 		argv[1] = "--";
+-		try_exec("file execute /bin/true if task.uid=0 task.gid=0 "
++		try_exec("file execute /bin/true task.uid=0 task.gid=0 "
+ 			 "path1.parent.uid=0 path1.uid=0 exec.argv[1]=\"--\"",
+ 			 argv, envp, 1);
+-		try_exec("file execute /bin/true if task.uid=0 task.gid=0 "
++		try_exec("file execute /bin/true task.uid=0 task.gid=0 "
+ 			 "path1.parent.uid=0 path1.uid=0 exec.argv[1]!=\"--\"",
+ 			 argv, envp, 0);
+ 
+ 		argv[0] = "/bin/true";
+ 		argv[1] = "-";
+-		try_exec("file execute /bin/true if 1!=0 exec.argv[1]=\"--\"",
++		try_exec("file execute /bin/true 1!=0 exec.argv[1]=\"--\"",
+ 			 argv, envp, 0);
+-		try_exec("file execute /bin/true if 1!=0 exec.argv[1]!=\"--\"",
++		try_exec("file execute /bin/true 1!=0 exec.argv[1]!=\"--\"",
+ 			 argv, envp, 1);
+ 
+ 		envp[0] = "HOME=/";
+-		try_exec("file execute /bin/true if task.euid=0 "
++		try_exec("file execute /bin/true task.euid=0 "
+ 			 "exec.envp[\"HOME\"]!=NULL", argv, envp, 1);
+-		try_exec("file execute /bin/true if task.euid=0 "
++		try_exec("file execute /bin/true task.euid=0 "
+ 			 "exec.envp[\"HOME\"]=NULL", argv, envp, 0);
+-		try_exec("file execute /bin/true if 0!=1 "
++		try_exec("file execute /bin/true 0!=1 "
+ 			 "exec.envp[\"HOME\"]=\"/\"", argv, envp, 1);
+-		try_exec("file execute /bin/true if 0!=1 "
++		try_exec("file execute /bin/true 0!=1 "
+ 			 "exec.envp[\"HOME\"]!=\"/\"", argv, envp, 0);
+ 
+ 		envp[0] = "HOME2=/";
+-		try_exec("file execute /bin/true if path1.uid=0 "
++		try_exec("file execute /bin/true path1.uid=0 "
+ 			 "exec.envp[\"HOME\"]!=NULL", argv, envp, 0);
+-		try_exec("file execute /bin/true if path1.uid=0 "
++		try_exec("file execute /bin/true path1.uid=0 "
+ 			 "exec.envp[\"HOME\"]=NULL", argv, envp, 1);
+-		try_exec("file execute /bin/true if 100=1-1000 "
++		try_exec("file execute /bin/true 100=1-1000 "
+ 			 "exec.envp[\"HOME\"]=\"/\"", argv, envp, 0);
+-		try_exec("file execute /bin/true if 100=1-1000 "
++		try_exec("file execute /bin/true 100=1-1000 "
+ 			 "exec.envp[\"HOME\"]!=\"/\"", argv, envp, 1);
+-		try_exec("file execute /bin/true if path1.parent.gid!=100 "
++		try_exec("file execute /bin/true path1.parent.gid!=100 "
+ 			 "exec.envp[\"HOME\"]!=NULL exec.envp[\"HOME3\"]=NULL",
+ 			 argv, envp, 0);
+-		try_exec("file execute /bin/true if path1.parent.gid!=100 "
++		try_exec("file execute /bin/true path1.parent.gid!=100 "
+ 			 "exec.envp[\"HOME\"]=NULL exec.envp[\"HOME3\"]=NULL",
+ 			 argv, envp, 1);
+-		try_exec("file execute /bin/true if path1.parent.gid=0 "
++		try_exec("file execute /bin/true path1.parent.gid=0 "
+ 			 "exec.envp[\"HOME\"]=\"/\" exec.envp[\"HOME3\"]=NULL",
+ 			 argv, envp, 0);
+-		try_exec("file execute /bin/true if path1.parent.gid=0 "
++		try_exec("file execute /bin/true path1.parent.gid=0 "
+ 			 "exec.envp[\"HOME\"]!=\"/\" exec.envp[\"HOME3\"]=NULL",
+ 			 argv, envp, 1);
+ 	}
