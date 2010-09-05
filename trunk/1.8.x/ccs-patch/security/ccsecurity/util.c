@@ -193,6 +193,8 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 	u8 type;
 	unsigned long v;
 	memset(num, 0, sizeof(*num));
+	if (!data[0])
+		return false;
 	if (data[0] == '@') {
 		if (!ccs_correct_word(data))
 			return false;
