@@ -289,9 +289,8 @@ static bool ccs_same_inet_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_inet_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_inet_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head)
-		&& p1->protocol == p2->protocol
-		&& p1->address_type == p2->address_type &&
+	return p1->protocol == p2->protocol &&
+		p1->address_type == p2->address_type &&
 		p1->address.ipv4.min == p2->address.ipv4.min &&
 		p1->address.ipv6.min == p2->address.ipv6.min &&
 		p1->address.ipv4.max == p2->address.ipv4.max &&
@@ -305,8 +304,7 @@ static bool ccs_same_unix_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_unix_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_unix_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head) &&
-		p1->protocol == p2->protocol &&
+	return p1->protocol == p2->protocol &&
 		ccs_same_name_union(&p1->name, &p2->name);
 }
 
@@ -341,37 +339,29 @@ static bool ccs_merge_unix_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_write_inet_network - Write "struct ccs_inet_acl" list.
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @data:  String to parse.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_inet_network(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition *condition,
-			   const bool is_delete)
+int ccs_write_inet_network(char *data, struct ccs_acl_param *param)
 {
-	struct ccs_inet_acl e = {
-		.head.type = CCS_TYPE_INET_ACL,
-		.head.cond = condition,
-	};
+	struct ccs_inet_acl e = { .head.type = CCS_TYPE_INET_ACL };
 	u16 min_address[8];
 	u16 max_address[8];
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	char *w[4];
+	int error = -EINVAL;
 	u8 type;
-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
+	if (!ccs_tokenize(data, param->w, sizeof(param->w)) || !param->w[3][0])
 		return -EINVAL;
 	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
-		if (!strcmp(w[0], ccs_proto_keyword[e.protocol]))
+		if (!strcmp(param->w[0], ccs_proto_keyword[e.protocol]))
 			break;
 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_socket_keyword[type]))
+		if (ccs_permstr(param->w[1], ccs_socket_keyword[type]))
 			e.perm |= 1 << type;
 	if (e.protocol == CCS_SOCK_MAX || !e.perm)
 		return -EINVAL;
-	switch (ccs_parse_ip_address(w[2], min_address, max_address)) {
+	switch (ccs_parse_ip_address(param->w[2], min_address, max_address)) {
 	case CCS_IP_ADDRESS_TYPE_IPv6:
 		e.address_type = CCS_IP_ADDRESS_TYPE_IPv6;
 		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
@@ -388,18 +378,19 @@ int ccs_write_inet_network(char *data, struct ccs_domain_info *domain,
 		e.address.ipv4.max = ntohl(*(u32 *) max_address);
 		break;
 	default:
-		if (w[2][0] != '@')
+		if (param->w[2][0] != '@')
 			return -EINVAL;
 		e.address_type = CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
-		e.address.group = ccs_get_group(w[2] + 1, CCS_ADDRESS_GROUP);
+		e.address.group = ccs_get_group(param->w[2] + 1,
+						CCS_ADDRESS_GROUP);
 		if (!e.address.group)
 			return -ENOMEM;
 		break;
 	}
-	if (!ccs_parse_number_union(w[3], &e.port))
+	if (!ccs_parse_number_union(param->w[3], &e.port))
 		goto out;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_inet_acl, ccs_merge_inet_acl);
+	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_inet_acl,
+				  ccs_merge_inet_acl);
  out:
 	if (e.address_type == CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP)
 		ccs_put_group(e.address.group);
@@ -414,38 +405,30 @@ int ccs_write_inet_network(char *data, struct ccs_domain_info *domain,
 /**
  * ccs_write_unix_network - Write "struct ccs_unix_acl" list.
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @data:  String to parse.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_unix_network(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition *condition,
-			   const bool is_delete)
+int ccs_write_unix_network(char *data, struct ccs_acl_param *param)
 {
-	struct ccs_unix_acl e = {
-		.head.type = CCS_TYPE_UNIX_ACL,
-		.head.cond = condition,
-	};
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	char *w[3];
+	struct ccs_unix_acl e = { .head.type = CCS_TYPE_UNIX_ACL };
+	int error;
 	u8 type;
-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[2][0])
+	if (!ccs_tokenize(data, param->w, sizeof(param->w)) || !param->w[2][0])
 		return -EINVAL;
 	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
-		if (!strcmp(w[0], ccs_proto_keyword[e.protocol]))
+		if (!strcmp(param->w[0], ccs_proto_keyword[e.protocol]))
 			break;
 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_socket_keyword[type]))
+		if (ccs_permstr(param->w[1], ccs_socket_keyword[type]))
 			e.perm |= 1 << type;
 	if (e.protocol == CCS_SOCK_MAX || !e.perm)
 		return -EINVAL;
-	if (!ccs_parse_name_union(w[2], &e.name))
+	if (!ccs_parse_name_union(param->w[2], &e.name))
                 return -EINVAL;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_unix_acl, ccs_merge_unix_acl);
+	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_unix_acl,
+				  ccs_merge_unix_acl);
 	ccs_put_name_union(&e.name);
 	return error;
 }

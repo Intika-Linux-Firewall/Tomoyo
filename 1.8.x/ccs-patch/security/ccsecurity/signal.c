@@ -159,19 +159,14 @@ static bool ccs_same_signal_entry(const struct ccs_acl_info *a,
 /**
  * ccs_write_signal - Write "struct ccs_signal_acl" list.
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @data:  String to parse.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_signal(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition *condition,
-			    const bool is_delete)
+static int ccs_write_signal(char *data, struct ccs_acl_param *param)
 {
-	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL,
-				    .head.cond = condition };
+	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL };
 	int error;
 	int sig;
 	char *domainname = strchr(data, ' ');
@@ -182,17 +177,16 @@ static int ccs_write_signal(char *data, struct ccs_domain_info *domain,
 	e.domainname = ccs_get_name(domainname + 1);
 	if (!e.domainname)
 		return -ENOMEM;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+	error = ccs_update_domain(&e.head, sizeof(e), param,
 				  ccs_same_signal_entry, NULL);
 	ccs_put_name(e.domainname);
 	return error;
 }
 
-int ccs_write_ipc(char *data, struct ccs_domain_info *domain,
-		  struct ccs_condition *condition, const bool is_delete)
+int ccs_write_ipc(char *data, struct ccs_acl_param *param)
 {
 	if (ccs_str_starts(&data, "signal "))
-		return ccs_write_signal(data, domain, condition, is_delete);
+		return ccs_write_signal(data, param);
 	return -EINVAL;
 }
 

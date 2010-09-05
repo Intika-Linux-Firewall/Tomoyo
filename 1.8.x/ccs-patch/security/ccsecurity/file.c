@@ -407,8 +407,7 @@ static bool ccs_same_path_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_path_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_path_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head) &&
-		ccs_same_name_union(&p1->name, &p2->name);
+	return ccs_same_name_union(&p1->name, &p2->name);
 }
 
 static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
@@ -428,31 +427,26 @@ static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_update_path_acl - Update "struct ccs_path_acl" list.
  *
- * @perm:      Permission.
- * @filename:  Filename.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @perm:  Permission.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_update_path_acl(const u16 perm, const char *filename,
-			       struct ccs_domain_info * const domain,
-			       struct ccs_condition *condition,
-			       const bool is_delete)
+static int ccs_update_path_acl(const u16 perm, struct ccs_acl_param *param)
 {
 	struct ccs_path_acl e = {
 		.head.type = CCS_TYPE_PATH_ACL,
-		.head.cond = condition,
 		.perm = perm
 	};
 	int error;
-	if (!ccs_parse_name_union(filename, &e.name))
-		return -EINVAL;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_path_acl, ccs_merge_path_acl);
+	if (!ccs_parse_name_union(param->w[1], &e.name))
+		error = -EINVAL;
+	else
+		error = ccs_update_domain(&e.head, sizeof(e), param,
+					  ccs_same_path_acl,
+					  ccs_merge_path_acl);
 	ccs_put_name_union(&e.name);
 	return error;
 }
@@ -462,11 +456,10 @@ static bool ccs_same_mkdev_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_mkdev_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_mkdev_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head)
-		&& ccs_same_name_union(&p1->name, &p2->name)
-		&& ccs_same_number_union(&p1->mode, &p2->mode)
-		&& ccs_same_number_union(&p1->major, &p2->major)
-		&& ccs_same_number_union(&p1->minor, &p2->minor);
+	return ccs_same_name_union(&p1->name, &p2->name) &&
+		ccs_same_number_union(&p1->mode, &p2->mode) &&
+		ccs_same_number_union(&p1->major, &p2->major) &&
+		ccs_same_number_union(&p1->minor, &p2->minor);
 }
 
 static bool ccs_merge_mkdev_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
@@ -486,40 +479,29 @@ static bool ccs_merge_mkdev_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_update_mkdev_acl - Update "struct ccs_mkdev_acl" list.
  *
- * @perm:      Permission.
- * @filename:  Filename.
- * @mode:      Create mode.
- * @major:     Device major number.
- * @minor:     Device minor number.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @perm:  Permission.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_update_mkdev_acl(const u8 perm, const char *filename,
-				char *mode, char *major, char *minor,
-				struct ccs_domain_info * const domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
+static int ccs_update_mkdev_acl(const u8 perm, struct ccs_acl_param *param)
 {
 	struct ccs_mkdev_acl e = {
 		.head.type = CCS_TYPE_MKDEV_ACL,
-		.head.cond = condition,
 		.perm = perm
 	};
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_parse_name_union(filename, &e.name) ||
-	    !ccs_parse_number_union(mode, &e.mode) ||
-	    !ccs_parse_number_union(major, &e.major) ||
-	    !ccs_parse_number_union(minor, &e.minor))
-		goto out;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_mkdev_acl,
-				  ccs_merge_mkdev_acl);
- out:
+	int error;
+	if (!ccs_parse_name_union(param->w[1], &e.name) ||
+	    !ccs_parse_number_union(param->w[2], &e.mode) ||
+	    !ccs_parse_number_union(param->w[3], &e.major) ||
+	    !ccs_parse_number_union(param->w[4], &e.minor))
+		error = -EINVAL;
+	else
+		error = ccs_update_domain(&e.head, sizeof(e), param,
+					  ccs_same_mkdev_acl,
+					  ccs_merge_mkdev_acl);
 	ccs_put_name_union(&e.name);
 	ccs_put_number_union(&e.mode);
 	ccs_put_number_union(&e.major);
@@ -532,9 +514,8 @@ static bool ccs_same_path2_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_path2_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_path2_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head)
-		&& ccs_same_name_union(&p1->name1, &p2->name1)
-		&& ccs_same_name_union(&p1->name2, &p2->name2);
+	return ccs_same_name_union(&p1->name1, &p2->name1) &&
+		ccs_same_name_union(&p1->name2, &p2->name2);
 }
 
 static bool ccs_merge_path2_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
@@ -554,35 +535,27 @@ static bool ccs_merge_path2_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_update_path2_acl - Update "struct ccs_path2_acl" list.
  *
- * @perm:      Permission.
- * @filename1: First filename.
- * @filename2: Second filename.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @perm:  Permission.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_update_path2_acl(const u8 perm, const char *filename1,
-				const char *filename2,
-				struct ccs_domain_info * const domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
+static int ccs_update_path2_acl(const u8 perm, struct ccs_acl_param *param)
 {
 	struct ccs_path2_acl e = {
 		.head.type = CCS_TYPE_PATH2_ACL,
-		.head.cond = condition,
 		.perm = perm
 	};
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_parse_name_union(filename1, &e.name1) ||
-	    !ccs_parse_name_union(filename2, &e.name2))
-		goto out;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_path2_acl, ccs_merge_path2_acl);
- out:
+	int error;
+	if (!ccs_parse_name_union(param->w[1], &e.name1) ||
+	    !ccs_parse_name_union(param->w[2], &e.name2))
+		error = -EINVAL;
+	else
+		error = ccs_update_domain(&e.head, sizeof(e), param,
+					  ccs_same_path2_acl,
+					  ccs_merge_path2_acl);
 	ccs_put_name_union(&e.name1);
 	ccs_put_name_union(&e.name2);
 	return error;
@@ -593,8 +566,7 @@ static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_mount_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_mount_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head) &&
-		ccs_same_name_union(&p1->dev_name, &p2->dev_name) &&
+	return ccs_same_name_union(&p1->dev_name, &p2->dev_name) &&
 		ccs_same_name_union(&p1->dir_name, &p2->dir_name) &&
 		ccs_same_name_union(&p1->fs_type, &p2->fs_type) &&
 		ccs_same_number_union(&p1->flags, &p2->flags);
@@ -603,34 +575,24 @@ static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
 /**
  * ccs_update_mount_acl - Write "struct ccs_mount_acl" list.
  *
- * @dev:       Device name.
- * @dir:       Mount point.
- * @fs:        Filesystem type.
- * @flags:     Mount flags.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_update_mount_acl(char *dev, char *dir, char *fs, char *flags,
-				struct ccs_domain_info *domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
+static int ccs_update_mount_acl(struct ccs_acl_param *param)
 {
-	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL,
-				   .head.cond = condition };
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_parse_name_union(dev, &e.dev_name) ||
-	    !ccs_parse_name_union(dir, &e.dir_name) ||
-	    !ccs_parse_name_union(fs, &e.fs_type) ||
-	    !ccs_parse_number_union(flags, &e.flags))
-		goto out;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_mount_acl, NULL);
- out:
+	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL };
+	int error;
+	if (!ccs_parse_name_union(param->w[1], &e.dev_name) ||
+	    !ccs_parse_name_union(param->w[2], &e.dir_name) ||
+	    !ccs_parse_name_union(param->w[3], &e.fs_type) ||
+	    !ccs_parse_number_union(param->w[4], &e.flags))
+		error = -EINVAL;
+	else
+		error = ccs_update_domain(&e.head, sizeof(e), param,
+					  ccs_same_mount_acl, NULL);
 	ccs_put_name_union(&e.dev_name);
 	ccs_put_name_union(&e.dir_name);
 	ccs_put_name_union(&e.fs_type);
@@ -985,9 +947,8 @@ static bool ccs_same_path_number_acl(const struct ccs_acl_info *a,
 							    head);
 	const struct ccs_path_number_acl *p2 = container_of(b, typeof(*p2),
 							    head);
-	return ccs_same_acl_head(&p1->head, &p2->head)
-		&& ccs_same_name_union(&p1->name, &p2->name)
-		&& ccs_same_number_union(&p1->number, &p2->number);
+	return ccs_same_name_union(&p1->name, &p2->name) &&
+		ccs_same_number_union(&p1->number, &p2->number);
 }
 
 static bool ccs_merge_path_number_acl(struct ccs_acl_info *a,
@@ -1008,37 +969,28 @@ static bool ccs_merge_path_number_acl(struct ccs_acl_info *a,
 }
 
 /**
- * ccs_update_path_number_acl - Update ioctl/chmod/chown/chgrp ACL.
+ * ccs_update_path_number_acl - Update create/mkdir/mkfifo/mksock/ioctl/chmod/chown/chgrp ACL.
  *
- * @perm:      Permission.
- * @filename:  Filename.
- * @number:    Number.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @perm:  Permission.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_path_number_acl(const u8 perm, const char *filename,
-				      char *number,
-				      struct ccs_domain_info * const domain,
-				      struct ccs_condition *condition,
-				      const bool is_delete)
+static int ccs_update_path_number_acl(const u8 perm,
+				      struct ccs_acl_param *param)
 {
 	struct ccs_path_number_acl e = {
 		.head.type = CCS_TYPE_PATH_NUMBER_ACL,
-		.head.cond = condition,
 		.perm = perm
 	};
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_parse_name_union(filename, &e.name))
-		return -EINVAL;
-	if (!ccs_parse_number_union(number, &e.number))
-		goto out;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_path_number_acl,
-				  ccs_merge_path_number_acl);
- out:
+	int error;
+	if (!ccs_parse_name_union(param->w[1], &e.name) ||
+	    !ccs_parse_number_union(param->w[2], &e.number))
+		error = -EINVAL;
+	else
+		error = ccs_update_domain(&e.head, sizeof(e), param,
+					  ccs_same_path_number_acl,
+					  ccs_merge_path_number_acl);
 	ccs_put_name_union(&e.name);
 	ccs_put_number_union(&e.number);
 	return error;
@@ -1216,53 +1168,39 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 /**
  * ccs_write_file - Update file related list.
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @data:  String to parse.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_file(char *data, struct ccs_domain_info *domain,
-		   struct ccs_condition *condition, const bool is_delete)
+int ccs_write_file(char *data, struct ccs_acl_param *param)
 {
-	char *w[5];
 	u16 perm = 0;
 	u8 type;
-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+	if (!ccs_tokenize(data, param->w, sizeof(param->w)))
 		return -EINVAL;
 	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
-		if (ccs_permstr(w[0], ccs_path_keyword[type]))
+		if (ccs_permstr(param->w[0], ccs_path_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_path_acl(perm, w[1], domain, condition,
-					   is_delete);
-	if (!w[2][0])
-		goto out;
+		return ccs_update_path_acl(perm, param);
 	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++)
-		if (ccs_permstr(w[0], ccs_path2_keyword[type]))
+		if (ccs_permstr(param->w[0], ccs_path2_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_path2_acl(perm, w[1], w[2], domain,
-					    condition, is_delete);
+		return ccs_update_path2_acl(perm, param);
 	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++)
-		if (ccs_permstr(w[0], ccs_path_number_keyword[type]))
+		if (ccs_permstr(param->w[0], ccs_path_number_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_path_number_acl(perm, w[1], w[2], domain,
-						  condition, is_delete);
-	if (!w[3][0] || !w[4][0])
-		goto out;
+		return ccs_update_path_number_acl(perm, param);
 	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++)
-		if (ccs_permstr(w[0], ccs_mkdev_keyword[type]))
+		if (ccs_permstr(param->w[0], ccs_mkdev_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_mkdev_acl(perm, w[1], w[2], w[3], w[4],
-					    domain, condition, is_delete);
-	if (ccs_permstr(w[0], "mount"))
-		return ccs_update_mount_acl(w[1], w[2], w[3], w[4], domain,
-					    condition, is_delete);
- out:
+		return ccs_update_mkdev_acl(perm, param);
+	if (ccs_permstr(param->w[0], "mount"))
+		return ccs_update_mount_acl(param);
 	return -EINVAL;
 }
 

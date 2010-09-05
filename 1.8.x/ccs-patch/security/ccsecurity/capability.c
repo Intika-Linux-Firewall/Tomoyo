@@ -75,40 +75,28 @@ static bool ccs_same_capability_entry(const struct ccs_acl_info *a,
 							   head);
 	const struct ccs_capability_acl *p2 = container_of(b, typeof(*p2),
 							   head);
-	return p1->head.type == p2->head.type && p1->head.cond == p2->head.cond
-		&& p1->head.type == CCS_TYPE_CAPABILITY_ACL
-		&& p1->operation == p2->operation;
+	return p1->operation == p2->operation;
 }
 
 /**
  * ccs_write_capability - Write "struct ccs_capability_acl" list.
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @data:  String to parse.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_capability(char *data, struct ccs_domain_info *domain,
-			 struct ccs_condition *condition, const bool is_delete)
+int ccs_write_capability(char *data, struct ccs_acl_param *param)
 {
-	struct ccs_capability_acl e = {
-		.head.type = CCS_TYPE_CAPABILITY_ACL,
-		.head.cond = condition,
-	};
-	u8 capability;
-	for (capability = 0; capability < CCS_MAX_CAPABILITY_INDEX;
-	     capability++) {
-		if (strcmp(data, ccs_cap2keyword(capability)))
+	struct ccs_capability_acl e = {	.head.type = CCS_TYPE_CAPABILITY_ACL };
+	for (e.operation = 0; e.operation < CCS_MAX_CAPABILITY_INDEX;
+	     e.operation++) {
+		if (strcmp(data, ccs_cap2keyword(e.operation)))
 			continue;
-		break;
+		return ccs_update_domain(&e.head, sizeof(e), param,
+					 ccs_same_capability_entry, NULL);
 	}
-	if (capability == CCS_MAX_CAPABILITY_INDEX)
-		return -EINVAL;
-	e.operation = capability;
-	return ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				 ccs_same_capability_entry, NULL);
+	return -EINVAL;
 }
 
 void __init ccs_capability_init(void)

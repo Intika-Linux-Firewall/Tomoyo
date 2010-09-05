@@ -878,8 +878,7 @@ static bool ccs_same_handler_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_handler_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_handler_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head) &&
-		p1->handler == p2->handler;
+	return p1->handler == p2->handler;
 }
 
 static bool ccs_same_task_acl(const struct ccs_acl_info *a,
@@ -887,30 +886,23 @@ static bool ccs_same_task_acl(const struct ccs_acl_info *a,
 {
 	const struct ccs_task_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_task_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head) &&
-		p1->domainname == p2->domainname;
+	return p1->domainname == p2->domainname;
 }
 
 /**
  * ccs_write_task - Update task related list.
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @data:  String to parse.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_task(char *data, struct ccs_domain_info *domain,
-			  struct ccs_condition *condition,
-			  const bool is_delete)
+static int ccs_write_task(char *data, struct ccs_acl_param *param)
 {
 	int error;
 	const bool is_auto = ccs_str_starts(&data, "auto_domain_transition ");
 	if (!is_auto && !ccs_str_starts(&data, "manual_domain_transition ")) {
-		struct ccs_handler_acl e = {
-			.head.cond = condition,
-		};
+		struct ccs_handler_acl e = { };
 		if (ccs_str_starts(&data, "auto_execute_handler "))
 			e.head.type = CCS_TYPE_AUTO_EXECUTE_HANDLER;
 		else if (ccs_str_starts(&data, "denied_execute_handler "))
@@ -925,23 +917,21 @@ static int ccs_write_task(char *data, struct ccs_domain_info *domain,
 		if (e.handler->is_patterned)
 			error = -EINVAL; /* No patterns allowed. */
 		else
-			error = ccs_update_domain(&e.head, sizeof(e),
-						  is_delete, domain,
+			error = ccs_update_domain(&e.head, sizeof(e), param,
 						  ccs_same_handler_acl, NULL);
 		ccs_put_name(e.handler);
 	} else {
 		struct ccs_task_acl e = {
 			.head.type = is_auto ?
-			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL,
-			.head.cond = condition,
+			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL
 		};
 		if (!ccs_correct_domain(data))
 			return -EINVAL;
 		e.domainname = ccs_get_name(data);
 		if (!e.domainname)
 			return -ENOMEM;
-		error = ccs_update_domain(&e.head, sizeof(e), is_delete,
-					  domain, ccs_same_task_acl, NULL);
+		error = ccs_update_domain(&e.head, sizeof(e), param,
+					  ccs_same_task_acl, NULL);
 		ccs_put_name(e.domainname);
 	}
 	return error;
@@ -950,10 +940,13 @@ static int ccs_write_task(char *data, struct ccs_domain_info *domain,
 static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 			     const bool is_delete)
 {
+	struct ccs_acl_param param = {
+		.domain = domain,
+		.is_delete = is_delete,
+	};
 	static const struct {
 		const char *keyword;
-		int (*write) (char *, struct ccs_domain_info *,
-			      struct ccs_condition *, const bool);
+		int (*write) (char *, struct ccs_acl_param *);
 	} ccs_callback[7] = {
 		{ "file ", ccs_write_file },
 		{ "network inet ", ccs_write_inet_network },
@@ -965,21 +958,20 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 	};
 	int error = -EINVAL;
 	u8 i;
-	struct ccs_condition *cond = NULL;
 	char *cp = ccs_find_condition_part(data);
 	if (cp) {
-		cond = ccs_get_condition(cp);
-		if (!cond)
+		param.condition = ccs_get_condition(cp);
+		if (!param.condition)
 			return -EINVAL;
 	}
 	for (i = 0; i < 7; i++) {
 		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
 			continue;
-		error = ccs_callback[i].write(data, domain, cond, is_delete);
+		error = ccs_callback[i].write(data, &param);
 		break;
 	}
-	if (cond)
-		ccs_put_condition(cond);
+	if (param.condition)
+		ccs_put_condition(param.condition);
 	return error;
 }
 

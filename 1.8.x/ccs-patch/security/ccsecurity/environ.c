@@ -76,36 +76,29 @@ static bool ccs_same_env_entry(const struct ccs_acl_info *a,
 /**
  * ccs_write_env - Write "struct ccs_env_acl" list.
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
+ * @data:  String to parse.
+ * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_env(char *data, struct ccs_domain_info *domain,
-			 struct ccs_condition *condition, const bool is_delete)
+static int ccs_write_env(char *data, struct ccs_acl_param *param)
 {
-	struct ccs_env_acl e = {
-		.head.type = CCS_TYPE_ENV_ACL,
-		.head.cond = condition
-	};
-	int error = is_delete ? -ENOENT : -ENOMEM;
+	struct ccs_env_acl e = { .head.type = CCS_TYPE_ENV_ACL };
+	int error = -ENOMEM;
 	if (!ccs_correct_word(data) || strchr(data, '='))
 		return -EINVAL;
 	e.env = ccs_get_name(data);
 	if (!e.env)
 		return error;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+	error = ccs_update_domain(&e.head, sizeof(e), param,
 				  ccs_same_env_entry, NULL);
 	ccs_put_name(e.env);
 	return error;
 }
 
-int ccs_write_misc(char *data, struct ccs_domain_info *domain,
-		   struct ccs_condition *condition, const bool is_delete)
+int ccs_write_misc(char *data, struct ccs_acl_param *param)
 {
 	if (ccs_str_starts(&data, "env "))
-		return ccs_write_env(data, domain, condition, is_delete);
+		return ccs_write_env(data, param);
 	return -EINVAL;
 }

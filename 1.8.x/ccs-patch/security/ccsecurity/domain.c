@@ -77,38 +77,47 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 	return error;
 }
 
+static inline bool ccs_same_acl_head(const struct ccs_acl_info *p1,
+				     const struct ccs_acl_info *p2)
+{
+	return p1->type == p2->type && p1->cond == p2->cond;
+}
+
 /**
  * ccs_update_domain - Update an entry for domain policy.
  *
  * @new_entry:       Pointer to "struct ccs_acl_info".
  * @size:            Size of @new_entry in bytes.
- * @is_delete:       True if it is a delete request.
- * @domain:          Pointer to "struct ccs_domain_info".
+ * @param:           Pointer to "struct ccs_acl_param".
  * @check_duplicate: Callback function to find duplicated entry.
- * @merge_duplicate: Callback function to merge duplicated entry.
+ * @merge_duplicate: Callback function to merge duplicated entry. Maybe NULL.
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
 int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
-		      bool is_delete, struct ccs_domain_info *domain,
+		      struct ccs_acl_param *param,
 		      bool (*check_duplicate) (const struct ccs_acl_info *,
 					       const struct ccs_acl_info *),
 		      bool (*merge_duplicate) (struct ccs_acl_info *,
 					       struct ccs_acl_info *,
 					       const bool))
 {
-	int error = is_delete ? -ENOENT : -ENOMEM;
+	int error = param->is_delete ? -ENOENT : -ENOMEM;
 	struct ccs_acl_info *entry;
 	const u8 type = new_entry->type;
 	const u8 i = type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
 		type == CCS_TYPE_DENIED_EXECUTE_HANDLER ||
 		type == CCS_TYPE_AUTO_TASK_ACL;
+	const bool is_delete = param->is_delete;
+	struct ccs_domain_info * const domain = param->domain;
+	new_entry->cond = param->condition;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return error;
 	list_for_each_entry_rcu(entry, &domain->acl_info_list[i], list) {
-		if (!check_duplicate(entry, new_entry))
+		if (!ccs_same_acl_head(entry, new_entry) ||
+		    !check_duplicate(entry, new_entry))
 			continue;
 		if (merge_duplicate)
 			entry->is_deleted = merge_duplicate(entry, new_entry,
