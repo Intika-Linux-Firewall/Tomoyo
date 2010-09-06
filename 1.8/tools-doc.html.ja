@@ -145,9 +145,6 @@
 <h3><a name="init_policy">＜ポリシー初期化ツール　init_policy＞</a></h3>
 <p>ポリシーの雛型を生成する。自動生成された結果には余計なものや危険なものが含まれているかもしれないため、随時見直しを行うこと。</p>
 
-<h3><a name="force-logout">＜強制ログアウトツール　force-logout＞</a></h3>
-<p>このプログラムを実行したユーザの端末をハングアップさせることにより強制的にログアウトさせる。現在のユーザを追い出すために使用する。</p>
-
 <h3><a name="audit-exec-param">＜パラメータ記録ツール　audit-exec-param＞</a></h3>
 <p>このプログラムは execve() に渡されたパラメータを syslog に記録してから要求されたプログラムを実行する。</p>
 <p>このプログラムをどこかにコピー（例えば cp -p /usr/lib/ccs/audit-exec-param /bin/audit-exec-param ）して使う。例えば Apache の CGI として実行されるプログラムのパラメータを記録したい場合、例外ポリシーに keep_domain /usr/lib/ccs/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd というエントリを登録することで /bin/audit-exec-param が実行されてもドメイン遷移を行わないようにしておき、 Apache のドメイン（例えば &lt;kernel&gt; /usr/sbin/httpd ドメイン）に対して execute_handler /bin/audit-exec-param というエントリを追加する。</p>

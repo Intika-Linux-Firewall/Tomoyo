@@ -145,9 +145,6 @@ Set new quota value for selected entries. (Valid only for screen for memory usag
 <h3><a name="init_policy">&lt;Policy Template Generator "init_policy"&gt;</a></h3>
 <p>Generates templates for policy. You need to review the output because automatically generated policy may contain redundant or dangerous entries.</p>
 
-<h3><a name="force-logout">&lt;A program that forcibly logs the user out "force-logout"&gt;</a></h3>
-<p>This program forcibly logs the current user out. You can use this program to chase the current user away.</p>
-
 <h3><a name="audit-exec-param">&lt;A program for auditing execute parameter "audit-exec-param"&gt;</a></h3>
 <p>This program writes parameters passed to execve() to syslog before actually executes the execve() request.</p>
 <p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program, tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy, and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
