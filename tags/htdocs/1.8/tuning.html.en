@@ -35,8 +35,8 @@ file read /var/www/html/blog/image2.jpg
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
 file read /var/www/html/\*.html<br>
-file read /var/www/html/\*/\*.html<br>
-file read /var/www/html/\*/\*.jpg<br>
+file read /var/www/html/\{\*\}/\*.html<br>
+file read /var/www/html/\{\*\}/\*.jpg<br>
 <br>
 <br>
 <br>
@@ -49,8 +49,8 @@ file read /var/www/html/\*/\*.jpg<br>
 <table border="1">
 <tr><td>
 path_group WEB-CONTENTS /var/www/html/\*.html<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*.html<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*.jpg<br>
+path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg<br>
 </td></tr>
 </table>
 
@@ -66,18 +66,63 @@ file read @WEB-CONTENTS
 
 <p>in the domain policy.</p>
 
-<p>You can confirm the range of accessible files by using "ccs-pathmatch" command that lists pathnames matching to the given pathname patterns.</p>
+<hr>
+
+<h2>Step 2: Handling temporary files</h2>
+
+<p>You can not handle temporary files by simply using "learning mode" and "permissive mode". You need to interactively handle temporary files according to <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.<br>
+But if you want to convert temporary files into patterns non-interactively, you can do it as shown below.</p>
+
+<p>List up pathnames that can be temporary files.</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
-/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<p>We can consider that "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" are temporary files, thus we make patterns for these pathnames. First, we need to consider what patterns to use. In these examples, numeric seems decimal digits. Thus, we use \$ pattern which matches one or more repetitions of decimal digits.</p>
+
+<p>Append patterns to the exception policy.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/ccs-loadpolicy -e<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -e
+</td></tr>
+</table>
+
+<p>Replace "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$'</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy -d | /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -d
 </td></tr>
 </table>
 
 <hr>
 
-<h2>Step 2: Patterning Numeric Permissions</h2>
+<h2>Step 3: Patterning Numeric Permissions</h2>
 
 <p>Make patterns for numeric parameters such as file's create mode and network's port numbers.<br>
 The following example permits /usr/sbin/httpd to accept connections from client's port 1024-65535.</a>
@@ -121,7 +166,7 @@ network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 
 <hr>
 
-<h2>Step 3: Patterning Network Access Permissions</h2>
+<h2>Step 4: Patterning Network Access Permissions</h2>
 
 <p>Similarly, make patterns for IP addresses. Don't copy the following permissions.</a>
 
@@ -170,7 +215,7 @@ network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 
 <hr>
 
-<h2>Step 4: Adding conditions to ACLs (Optional)</h2>
+<h2>Step 5: Adding conditions to ACLs (Optional)</h2>
 
 <p>You can add conditions to individual ACLs if necessary. By using this feature, you can enforce system's user ID based access control.</p>
 

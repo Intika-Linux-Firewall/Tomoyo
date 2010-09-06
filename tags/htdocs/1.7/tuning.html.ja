@@ -35,8 +35,8 @@ allow_read /var/www/html/blog/image2.jpg
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
 allow_read /var/www/html/\*.html<br>
-allow_read /var/www/html/\*/\*.html<br>
-allow_read /var/www/html/\*/\*.jpg<br>
+allow_read /var/www/html/\{\*\}/\*.html<br>
+allow_read /var/www/html/\{\*\}/\*.jpg<br>
 <br>
 <br>
 <br>
@@ -49,8 +49,8 @@ allow_read /var/www/html/\*/\*.jpg<br>
 <table border="1">
 <tr><td>
 path_group WEB-CONTENTS /var/www/html/\*.html<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*.html<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*.jpg<br>
+path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg<br>
 </td></tr>
 </table>
 
@@ -66,18 +66,63 @@ allow_read @WEB-CONTENTS
 
 <p>のように指定することもできます。</p>
 
-<p>与えられたパターンと一致するディスク上のパス名を一覧表示する ccs-pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
+<hr>
+
+<h2>ステップ２：テンポラリファイルに対処する</h2>
+
+<p>テンポラリファイルのように毎回異なるファイル名を持つ場合や、クライアントプログラムが利用するテンポラリなポート番号については、学習モードと確認モードでは対処できません。<a href="tool-editpolicy.html.ja#acl_editor">ポリシーエディタのパターン化支援機能</a>を用いて対話的に対処する必要があります。<br>
+ただし、テンポラリファイルのパス名をパターン化する処理は、以下のように非対話的に行うこともできます。</p>
+
+<p>テンポラリファイルの可能性があるパス名を抽出します。</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
-/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<p>「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」がテンポラリファイルであると考えられるので、これらのパターン化を行います。まず、どのようにパターン化するかを決めます。この例では１０進数数値であると考えられることから、１桁以上の１０進数数値一致する \$ を使います。</p>
+
+<p>例外ポリシーにパターンを追加します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/ccs-loadpolicy -e<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -e
+</td></tr>
+</table>
+
+<p>ドメインポリシーの中の「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」を「 /etc/mtab~\$ 」および「 /tmp/sh-thd-\$ 」に置換します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy -d | /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -d
 </td></tr>
 </table>
 
 <hr>
 
-<h2>ステップ２：数値パラメータをパターン化する</h2>
+<h2>ステップ３：数値パラメータをパターン化する</h2>
 
 <p>ファイル作成時のパーミッションやネットワークに関するアクセス許可のポート番号のような数値で指定するパラメータのパターン化を行います。<br>
 以下の例では、 /usr/sbin/httpd に対してポート 1024 ～ 65535 からの接続要求を許可しています。</p>
@@ -121,7 +166,7 @@ allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 
 <hr>
 
-<h2>ステップ３：ネットワークのアドレスをパターン化する</h2>
+<h2>ステップ４：ネットワークのアドレスをパターン化する</h2>
 
 <p>同様にＩＰアドレスについてもパターン化を行います。以下の設定をそのままコピーしないようにしてください。</a>
 
@@ -170,7 +215,7 @@ allow_network TCP accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 
 <hr>
 
-<h2>ステップ４：アクセス許可に条件を付与（省略可）</h2>
+<h2>ステップ５：アクセス許可に条件を付与（省略可）</h2>
 
 <p>個々のアクセス許可に対して必要に応じて条件を付けることができます。これにより、システムアカウントのユーザＩＤに基づくアクセス制御が可能です。</p>
 
