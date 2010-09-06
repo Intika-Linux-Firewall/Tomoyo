@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.4.37.9.
+This is TOMOYO Linux patch for kernel 2.4.37.10.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.37.9.tar.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.37.10.tar.bz2
 ---
  Makefile                     |    8 ++++++++
  arch/alpha/kernel/ptrace.c   |    3 +++
@@ -50,8 +50,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/unix/af_unix.c           |    4 ++++
  46 files changed, 325 insertions(+), 5 deletions(-)
 
---- linux-2.4.37.9.orig/Makefile
-+++ linux-2.4.37.9/Makefile
+--- linux-2.4.37.10.orig/Makefile
++++ linux-2.4.37.10/Makefile
 @@ -139,6 +139,14 @@ NETWORKS	=net/network.o
  
  LIBS		=$(TOPDIR)/lib/lib.a
@@ -67,8 +67,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  DRIVERS-n :=
  DRIVERS-y :=
---- linux-2.4.37.9.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/alpha/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.4.37.10/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -86,8 +86,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.4.37.9.orig/arch/arm/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/arm/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/arm/kernel/ptrace.c
++++ linux-2.4.37.10/arch/arm/kernel/ptrace.c
 @@ -22,6 +22,7 @@
  #include <asm/uaccess.h>
  #include <asm/pgtable.h>
@@ -105,8 +105,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/cris/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/cris/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/cris/kernel/ptrace.c
++++ linux-2.4.37.10/arch/cris/kernel/ptrace.c
 @@ -48,6 +48,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -124,8 +124,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/i386/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/i386/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/i386/kernel/ptrace.c
++++ linux-2.4.37.10/arch/i386/kernel/ptrace.c
 @@ -20,6 +20,7 @@
  #include <asm/processor.h>
  #include <asm/i387.h>
@@ -143,8 +143,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.4.37.9/arch/ia64/ia32/sys_ia32.c
+--- linux-2.4.37.10.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.4.37.10/arch/ia64/ia32/sys_ia32.c
 @@ -57,6 +57,7 @@
  #include <net/scm.h>
  #include <net/sock.h>
@@ -162,8 +162,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.37.9.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/ia64/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.4.37.10/arch/ia64/kernel/ptrace.c
 @@ -27,6 +27,7 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -181,8 +181,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/m68k/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/m68k/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.4.37.10/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -200,8 +200,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/mips/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/mips/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/mips/kernel/ptrace.c
++++ linux-2.4.37.10/arch/mips/kernel/ptrace.c
 @@ -28,6 +28,7 @@
  #include <asm/bootinfo.h>
  #include <asm/cpu.h>
@@ -219,8 +219,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  #if 0
---- linux-2.4.37.9.orig/arch/mips64/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/mips64/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/mips64/kernel/ptrace.c
++++ linux-2.4.37.10/arch/mips64/kernel/ptrace.c
 @@ -30,6 +30,7 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -247,8 +247,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  #if 0
---- linux-2.4.37.9.orig/arch/parisc/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/parisc/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.4.37.10/arch/parisc/kernel/ptrace.c
 @@ -21,6 +21,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -266,8 +266,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/ppc/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/ppc/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.4.37.10/arch/ppc/kernel/ptrace.c
 @@ -29,6 +29,7 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -285,8 +285,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.37.9.orig/arch/ppc64/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/ppc64/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.4.37.10/arch/ppc64/kernel/ptrace.c
 @@ -30,6 +30,7 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -304,8 +304,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.37.9.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.4.37.9/arch/ppc64/kernel/ptrace32.c
+--- linux-2.4.37.10.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.4.37.10/arch/ppc64/kernel/ptrace32.c
 @@ -30,6 +30,7 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -323,8 +323,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.4.37.9.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/s390/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/s390/kernel/ptrace.c
++++ linux-2.4.37.10/arch/s390/kernel/ptrace.c
 @@ -37,6 +37,7 @@
  #include <asm/pgalloc.h>
  #include <asm/system.h>
@@ -342,8 +342,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
---- linux-2.4.37.9.orig/arch/s390x/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/s390x/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/s390x/kernel/ptrace.c
++++ linux-2.4.37.10/arch/s390x/kernel/ptrace.c
 @@ -43,6 +43,7 @@
  #else
  #define parent_31bit 0
@@ -361,8 +361,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
  	{
---- linux-2.4.37.9.orig/arch/sh/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/sh/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/sh/kernel/ptrace.c
++++ linux-2.4.37.10/arch/sh/kernel/ptrace.c
 @@ -26,6 +26,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -380,8 +380,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/sh64/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.4.37.10/arch/sh64/kernel/ptrace.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -399,8 +399,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.4.37.9.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/sparc/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.4.37.10/arch/sparc/kernel/ptrace.c
 @@ -21,6 +21,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -420,8 +420,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.4.37.9.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/sparc64/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.4.37.10/arch/sparc64/kernel/ptrace.c
 @@ -26,6 +26,7 @@
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
@@ -441,8 +441,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	if (current->thread.flags & SPARC_FLAG_32BIT) {
  		addr &= 0xffffffffUL;
---- linux-2.4.37.9.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.4.37.9/arch/x86_64/ia32/ptrace32.c
+--- linux-2.4.37.10.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.4.37.10/arch/x86_64/ia32/ptrace32.c
 @@ -24,6 +24,7 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -460,8 +460,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.4.37.9.orig/arch/x86_64/kernel/ptrace.c
-+++ linux-2.4.37.9/arch/x86_64/kernel/ptrace.c
+--- linux-2.4.37.10.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.4.37.10/arch/x86_64/kernel/ptrace.c
 @@ -22,6 +22,7 @@
  #include <asm/processor.h>
  #include <asm/i387.h>
@@ -479,8 +479,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.4.37.9.orig/fs/Config.in
-+++ linux-2.4.37.9/fs/Config.in
+--- linux-2.4.37.10.orig/fs/Config.in
++++ linux-2.4.37.10/fs/Config.in
 @@ -176,4 +176,7 @@ comment 'Partition Types'
  source fs/partitions/Config.in
  endmenu
@@ -489,8 +489,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  endmenu
 +
 +source security/ccsecurity/Config.in
---- linux-2.4.37.9.orig/fs/exec.c
-+++ linux-2.4.37.9/fs/exec.c
+--- linux-2.4.37.10.orig/fs/exec.c
++++ linux-2.4.37.10/fs/exec.c
 @@ -48,6 +48,8 @@
  #include <linux/kmod.h>
  #endif
@@ -531,8 +531,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	if (retval >= 0)
  		/* execve success */
  		return retval;
---- linux-2.4.37.9.orig/fs/fcntl.c
-+++ linux-2.4.37.9/fs/fcntl.c
+--- linux-2.4.37.10.orig/fs/fcntl.c
++++ linux-2.4.37.10/fs/fcntl.c
 @@ -16,6 +16,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -551,8 +551,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	/* Did FASYNC state change? */
  	if ((arg ^ filp->f_flags) & FASYNC) {
  		if (filp->f_op && filp->f_op->fasync) {
---- linux-2.4.37.9.orig/fs/ioctl.c
-+++ linux-2.4.37.9/fs/ioctl.c
+--- linux-2.4.37.10.orig/fs/ioctl.c
++++ linux-2.4.37.10/fs/ioctl.c
 @@ -10,6 +10,7 @@
  
  #include <asm/uaccess.h>
@@ -584,8 +584,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			error = -ENOTTY;
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
---- linux-2.4.37.9.orig/fs/namei.c
-+++ linux-2.4.37.9/fs/namei.c
+--- linux-2.4.37.10.orig/fs/namei.c
++++ linux-2.4.37.10/fs/namei.c
 @@ -28,6 +28,9 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -723,8 +723,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	dput(new_dentry);
  exit4:
  	dput(old_dentry);
---- linux-2.4.37.9.orig/fs/namespace.c
-+++ linux-2.4.37.9/fs/namespace.c
+--- linux-2.4.37.10.orig/fs/namespace.c
++++ linux-2.4.37.10/fs/namespace.c
 @@ -21,6 +21,8 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
@@ -834,8 +834,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	read_lock(&current->fs->lock);
  	user_nd.mnt = mntget(current->fs->rootmnt);
  	user_nd.dentry = dget(current->fs->root);
---- linux-2.4.37.9.orig/fs/open.c
-+++ linux-2.4.37.9/fs/open.c
+--- linux-2.4.37.10.orig/fs/open.c
++++ linux-2.4.37.10/fs/open.c
 @@ -20,6 +20,8 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
@@ -941,16 +941,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->tty);
  		return 0;
---- linux-2.4.37.9.orig/fs/proc/proc_misc.c
-+++ linux-2.4.37.9/fs/proc/proc_misc.c
+--- linux-2.4.37.10.orig/fs/proc/proc_misc.c
++++ linux-2.4.37.10/fs/proc/proc_misc.c
 @@ -670,4 +670,5 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.37.9 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.4.37.10 2010/09/06\n");
  }
---- linux-2.4.37.9.orig/include/linux/sched.h
-+++ linux-2.4.37.9/include/linux/sched.h
+--- linux-2.4.37.10.orig/include/linux/sched.h
++++ linux-2.4.37.10/include/linux/sched.h
 @@ -123,6 +123,15 @@ struct completion;
  
  #ifdef __KERNEL__
@@ -986,8 +986,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  }
  
  
---- linux-2.4.37.9.orig/kernel/kmod.c
-+++ linux-2.4.37.9/kernel/kmod.c
+--- linux-2.4.37.10.orig/kernel/kmod.c
++++ linux-2.4.37.10/kernel/kmod.c
 @@ -134,6 +134,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
@@ -1000,8 +1000,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	/* Go, go, go... */
  	if (execve(program_path, argv, envp) < 0)
  		return -errno;
---- linux-2.4.37.9.orig/kernel/module.c
-+++ linux-2.4.37.9/kernel/module.c
+--- linux-2.4.37.10.orig/kernel/module.c
++++ linux-2.4.37.10/kernel/module.c
 @@ -10,6 +10,7 @@
  #include <linux/slab.h>
  #include <linux/kmod.h>
@@ -1037,8 +1037,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  	if (name_user) {
---- linux-2.4.37.9.orig/kernel/sched.c
-+++ linux-2.4.37.9/kernel/sched.c
+--- linux-2.4.37.10.orig/kernel/sched.c
++++ linux-2.4.37.10/kernel/sched.c
 @@ -32,6 +32,7 @@
  
  #include <asm/uaccess.h>
@@ -1056,8 +1056,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	/*
  	 *	Setpriority might change our priority at the same moment.
---- linux-2.4.37.9.orig/kernel/signal.c
-+++ linux-2.4.37.9/kernel/signal.c
+--- linux-2.4.37.10.orig/kernel/signal.c
++++ linux-2.4.37.10/kernel/signal.c
 @@ -15,6 +15,7 @@
  #include <linux/sched.h>
  
@@ -1093,8 +1093,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
---- linux-2.4.37.9.orig/kernel/sys.c
-+++ linux-2.4.37.9/kernel/sys.c
+--- linux-2.4.37.10.orig/kernel/sys.c
++++ linux-2.4.37.10/kernel/sys.c
 @@ -17,6 +17,7 @@
  
  #include <asm/uaccess.h>
@@ -1139,8 +1139,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.4.37.9.orig/kernel/sysctl.c
-+++ linux-2.4.37.9/kernel/sysctl.c
+--- linux-2.4.37.10.orig/kernel/sysctl.c
++++ linux-2.4.37.10/kernel/sysctl.c
 @@ -33,6 +33,7 @@
  #include <linux/swap.h>
  
@@ -1182,8 +1182,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  }
  
  /*
---- linux-2.4.37.9.orig/kernel/time.c
-+++ linux-2.4.37.9/kernel/time.c
+--- linux-2.4.37.10.orig/kernel/time.c
++++ linux-2.4.37.10/kernel/time.c
 @@ -29,6 +29,7 @@
  #include <linux/smp_lock.h>
  
@@ -1219,8 +1219,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.4.37.9.orig/net/ipv4/raw.c
-+++ linux-2.4.37.9/net/ipv4/raw.c
+--- linux-2.4.37.10.orig/net/ipv4/raw.c
++++ linux-2.4.37.10/net/ipv4/raw.c
 @@ -64,6 +64,7 @@
  #include <net/raw.h>
  #include <net/inet_common.h>
@@ -1239,8 +1239,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.4.37.9.orig/net/ipv4/tcp_ipv4.c
-+++ linux-2.4.37.9/net/ipv4/tcp_ipv4.c
+--- linux-2.4.37.10.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.4.37.10/net/ipv4/tcp_ipv4.c
 @@ -67,6 +67,7 @@
  #include <linux/inet.h>
  #include <linux/stddef.h>
@@ -1267,8 +1267,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  			/* Does not bother with rcv_saddr checks,
  			 * because the established check is already
---- linux-2.4.37.9.orig/net/ipv4/udp.c
-+++ linux-2.4.37.9/net/ipv4/udp.c
+--- linux-2.4.37.10.orig/net/ipv4/udp.c
++++ linux-2.4.37.10/net/ipv4/udp.c
 @@ -97,6 +97,7 @@
  #include <net/route.h>
  #include <net/inet_common.h>
@@ -1305,8 +1305,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
    
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
---- linux-2.4.37.9.orig/net/ipv6/raw.c
-+++ linux-2.4.37.9/net/ipv6/raw.c
+--- linux-2.4.37.10.orig/net/ipv6/raw.c
++++ linux-2.4.37.10/net/ipv6/raw.c
 @@ -45,6 +45,7 @@
  #include <net/inet_common.h>
  
@@ -1325,8 +1325,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	copied = skb->len;
    	if (copied > len) {
---- linux-2.4.37.9.orig/net/ipv6/tcp_ipv6.c
-+++ linux-2.4.37.9/net/ipv6/tcp_ipv6.c
+--- linux-2.4.37.10.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.4.37.10/net/ipv6/tcp_ipv6.c
 @@ -52,6 +52,7 @@
  #include <net/inet_ecn.h>
  
@@ -1344,8 +1344,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			for (tb = head->chain; tb; tb = tb->next)
  				if (tb->port == rover)
  					goto next;
---- linux-2.4.37.9.orig/net/ipv6/udp.c
-+++ linux-2.4.37.9/net/ipv6/udp.c
+--- linux-2.4.37.10.orig/net/ipv6/udp.c
++++ linux-2.4.37.10/net/ipv6/udp.c
 @@ -50,6 +50,7 @@
  #include <net/inet_common.h>
  
@@ -1382,8 +1382,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
---- linux-2.4.37.9.orig/net/socket.c
-+++ linux-2.4.37.9/net/socket.c
+--- linux-2.4.37.10.orig/net/socket.c
++++ linux-2.4.37.10/net/socket.c
 @@ -84,6 +84,7 @@
  #include <net/sock.h>
  #include <net/scm.h>
@@ -1456,8 +1456,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.4.37.9.orig/net/unix/af_unix.c
-+++ linux-2.4.37.9/net/unix/af_unix.c
+--- linux-2.4.37.10.orig/net/unix/af_unix.c
++++ linux-2.4.37.10/net/unix/af_unix.c
 @@ -111,6 +111,7 @@
  #include <linux/rtnetlink.h>
  
