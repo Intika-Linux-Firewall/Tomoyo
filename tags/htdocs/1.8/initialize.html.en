@@ -88,10 +88,6 @@
 <td>Configuration of learning mode.</td>
 </tr>
 <tr>
-<td>PREFERENCE::permissive</td>
-<td>Configuration of permissive mode.</td>
-</tr>
-<tr>
 <td>PREFERENCE::enforcing</td>
 <td>Configuration of enforcing mode.</td>
 </tr>
@@ -102,21 +98,6 @@
 <tr>
 <td>CONFIG</td>
 <td>Configuratiof of Mandatory Access Control(MAC) level.</td>
-</tr>
-</table>
-<p>You can give the following values for verbose= parameter of PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing .</p>
-<table border="1">
-<tr>
-<td>Value</td>
-<td>Meaning</td>
-</tr>
-<tr>
-<td>no</td>
-<td>Don't dump policy violation messages.</td>
-</tr>
-<tr>
-<td>yes</td>
-<td>Dump policy violation messages.</td>
 </tr>
 </table>
 <p>You can give the following values for mode= parameter of CONFIG line.</p>
@@ -140,6 +121,21 @@
 <tr>
 <td>enforcing</td>
 <td>Enforcing mode. Rejected if the request violates policy.</td>
+</tr>
+</table>
+<p>You can give the following values for verbose= parameter of CONFIG line.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>no</td>
+<td>Don't dump policy violation messages.</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>Dump policy violation messages.</td>
 </tr>
 </table>
 
@@ -269,6 +265,37 @@ Some programs require specific port numbers which might be assigned by automatic
 
 <p>TOMOYO Linux can record "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).<br>
 The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider you should allow the access.</p>
+
+<p>You can give the following values for grant_log= parameter of CONFIG line.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>no</td>
+<td>Don't record "access granted logs" unless "audit=yes" is explicitly specified in the individual ACL entry.</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>Record "access granted logs" unless "audit=no" is explicitly specified in the individual ACL entry.</td>
+</tr>
+</table>
+<p>You can give the following values for reject_log= parameter of CONFIG line.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>no</td>
+<td>Don't record "access rejected logs".</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>Record "access rejected logs".</td>
+</tr>
+</table>
 
 <p>You can use a daemon program that reads from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to files. Run in the following way from (for example) /etc/rc.local .</p>
 
