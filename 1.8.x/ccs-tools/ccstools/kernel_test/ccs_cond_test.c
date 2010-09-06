@@ -100,31 +100,31 @@ static void stage_open_test(void)
 			 1);
 		try_open("file read/write /etc/fstab", "/etc/fstab", O_WRONLY,
 			 1);
-		try_open("file read /etc/fstab if task.uid=0 task.euid=0",
+		try_open("file read /etc/fstab task.uid=0 task.euid=0",
 			 "/etc/fstab", O_RDONLY, 1);
 		try_open("file read /etc/fstab "
-			 "if task.uid=0 task.euid=0-4294967295", "/etc/fstab",
+			 "task.uid=0 task.euid=0-4294967295", "/etc/fstab",
 			 O_RDONLY, 1);
 		try_open("file read /etc/fstab "
-			 "if task.uid=0 task.euid!=0-4294967295", "/etc/fstab",
+			 "task.uid=0 task.euid!=0-4294967295", "/etc/fstab",
 			 O_RDONLY, 0);
-		try_open("file read /etc/fstab if task.uid=0 task.euid!=0",
+		try_open("file read /etc/fstab task.uid=0 task.euid!=0",
 			 "/etc/fstab", O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.argc=0", "/etc/fstab",
+		try_open("file read /etc/fstab exec.argc=0", "/etc/fstab",
 			 O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.envc=0", "/etc/fstab",
+		try_open("file read /etc/fstab exec.envc=0", "/etc/fstab",
 			 O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.argv[0]=\"\"",
+		try_open("file read /etc/fstab exec.argv[0]=\"\"",
 			 "/etc/fstab", O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.argv[0]!=\"\"",
+		try_open("file read /etc/fstab exec.argv[0]!=\"\"",
 			 "/etc/fstab", O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]=\"\"",
+		try_open("file read /etc/fstab exec.envp[\"HOME\"]=\"\"",
 			 "/etc/fstab", O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]!=\"\"",
+		try_open("file read /etc/fstab exec.envp[\"HOME\"]!=\"\"",
 			 "/etc/fstab", O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]=NULL",
+		try_open("file read /etc/fstab exec.envp[\"HOME\"]=NULL",
 			 "/etc/fstab", O_RDONLY, 0);
-		try_open("file read /etc/fstab if exec.envp[\"HOME\"]!=NULL",
+		try_open("file read /etc/fstab exec.envp[\"HOME\"]!=NULL",
 			 "/etc/fstab", O_RDONLY, 0);
 
 		try_open("file read proc:/\\*/mounts", buffer, O_RDONLY, 1);

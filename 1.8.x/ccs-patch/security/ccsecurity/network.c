@@ -339,29 +339,29 @@ static bool ccs_merge_unix_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_write_inet_network - Write "struct ccs_inet_acl" list.
  *
- * @data:  String to parse.
  * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_inet_network(char *data, struct ccs_acl_param *param)
+int ccs_write_inet_network(struct ccs_acl_param *param)
 {
 	struct ccs_inet_acl e = { .head.type = CCS_TYPE_INET_ACL };
 	u16 min_address[8];
 	u16 max_address[8];
 	int error = -EINVAL;
 	u8 type;
-	if (!ccs_tokenize(data, param->w, sizeof(param->w)) || !param->w[3][0])
-		return -EINVAL;
+	const char *protocol = ccs_read_token(param);
+	const char *operation = ccs_read_token(param);
+	char *address = ccs_read_token(param);
 	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
-		if (!strcmp(param->w[0], ccs_proto_keyword[e.protocol]))
+		if (!strcmp(protocol, ccs_proto_keyword[e.protocol]))
 			break;
 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(param->w[1], ccs_socket_keyword[type]))
+		if (ccs_permstr(operation, ccs_socket_keyword[type]))
 			e.perm |= 1 << type;
 	if (e.protocol == CCS_SOCK_MAX || !e.perm)
 		return -EINVAL;
-	switch (ccs_parse_ip_address(param->w[2], min_address, max_address)) {
+	switch (ccs_parse_ip_address(address, min_address, max_address)) {
 	case CCS_IP_ADDRESS_TYPE_IPv6:
 		e.address_type = CCS_IP_ADDRESS_TYPE_IPv6;
 		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
@@ -378,16 +378,16 @@ int ccs_write_inet_network(char *data, struct ccs_acl_param *param)
 		e.address.ipv4.max = ntohl(*(u32 *) max_address);
 		break;
 	default:
-		if (param->w[2][0] != '@')
+		if (address[0] != '@')
 			return -EINVAL;
 		e.address_type = CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
-		e.address.group = ccs_get_group(param->w[2] + 1,
+		e.address.group = ccs_get_group(address + 1,
 						CCS_ADDRESS_GROUP);
 		if (!e.address.group)
 			return -ENOMEM;
 		break;
 	}
-	if (!ccs_parse_number_union(param->w[3], &e.port))
+	if (!ccs_parse_number_union(ccs_read_token(param), &e.port))
 		goto out;
 	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_inet_acl,
 				  ccs_merge_inet_acl);
@@ -405,27 +405,26 @@ int ccs_write_inet_network(char *data, struct ccs_acl_param *param)
 /**
  * ccs_write_unix_network - Write "struct ccs_unix_acl" list.
  *
- * @data:  String to parse.
  * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_unix_network(char *data, struct ccs_acl_param *param)
+int ccs_write_unix_network(struct ccs_acl_param *param)
 {
 	struct ccs_unix_acl e = { .head.type = CCS_TYPE_UNIX_ACL };
 	int error;
 	u8 type;
-	if (!ccs_tokenize(data, param->w, sizeof(param->w)) || !param->w[2][0])
-		return -EINVAL;
+	const char *protocol = ccs_read_token(param);
+	const char *operation = ccs_read_token(param);
 	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
-		if (!strcmp(param->w[0], ccs_proto_keyword[e.protocol]))
+		if (!strcmp(protocol, ccs_proto_keyword[e.protocol]))
 			break;
 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(param->w[1], ccs_socket_keyword[type]))
+		if (ccs_permstr(operation, ccs_socket_keyword[type]))
 			e.perm |= 1 << type;
 	if (e.protocol == CCS_SOCK_MAX || !e.perm)
 		return -EINVAL;
-	if (!ccs_parse_name_union(param->w[2], &e.name))
+	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
                 return -EINVAL;
 	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_unix_acl,
 				  ccs_merge_unix_acl);

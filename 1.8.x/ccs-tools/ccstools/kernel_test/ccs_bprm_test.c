@@ -92,81 +92,81 @@ static void stage_exec_test(void)
 
 		argv[0] = "/bin/true";
 		try_exec("file execute /bin/true "
-			 "if task.gid=0-100 exec.argc=1", argv, envp, 1);
+			 "task.gid=0-100 exec.argc=1", argv, envp, 1);
 		argv[0] = NULL;
 		try_exec("file execute /bin/true "
-			 "if task.gid=0-100 exec.argc=1", argv, envp, 0);
+			 "task.gid=0-100 exec.argc=1", argv, envp, 0);
 
 		envp[0] = "";
-		try_exec("file execute /bin/true if task.gid!=100 task.euid=0 "
+		try_exec("file execute /bin/true task.gid!=100 task.euid=0 "
 			 "path1.uid=0 path1.parent.uid=0 exec.envc=1", argv,
 			 envp, 1);
 		envp[0] = NULL;
-		try_exec("file execute /bin/true if task.gid!=100 task.euid=0 "
+		try_exec("file execute /bin/true task.gid!=100 task.euid=0 "
 			 "path1.uid=0 path1.parent.uid=0 exec.envc=1", argv,
 			 envp, 0);
 
 		argv[0] = "/bin/true";
 		argv[1] = "--";
-		try_exec("file execute /bin/true if 0=0 exec.argc=1-5", argv,
+		try_exec("file execute /bin/true 0=0 exec.argc=1-5", argv,
 			 envp, 1);
-		try_exec("file execute /bin/true if 0=0 exec.argc!=1-5", argv,
+		try_exec("file execute /bin/true 0=0 exec.argc!=1-5", argv,
 			 envp, 0);
 
 		envp[0] = "";
 		envp[1] = "";
-		try_exec("file execute /bin/true if task.uid=0 "
+		try_exec("file execute /bin/true task.uid=0 "
 			 "task.gid!=1-100 path1.parent.uid!=1 path1.gid=0 "
 			 "exec.envc=1-5", argv, envp, 1);
-		try_exec("file execute /bin/true if task.uid=0 "
+		try_exec("file execute /bin/true task.uid=0 "
 			 "task.gid!=1-100 path1.parent.uid!=1 path1.gid=0 "
 			 "exec.envc!=1-5", argv, envp, 0);
 
 		argv[0] = "/bin/true";
 		argv[1] = "--";
-		try_exec("file execute /bin/true if task.uid=0 task.gid=0 "
+		try_exec("file execute /bin/true task.uid=0 task.gid=0 "
 			 "path1.parent.uid=0 path1.uid=0 exec.argv[1]=\"--\"",
 			 argv, envp, 1);
-		try_exec("file execute /bin/true if task.uid=0 task.gid=0 "
+		try_exec("file execute /bin/true task.uid=0 task.gid=0 "
 			 "path1.parent.uid=0 path1.uid=0 exec.argv[1]!=\"--\"",
 			 argv, envp, 0);
 
 		argv[0] = "/bin/true";
 		argv[1] = "-";
-		try_exec("file execute /bin/true if 1!=0 exec.argv[1]=\"--\"",
+		try_exec("file execute /bin/true 1!=0 exec.argv[1]=\"--\"",
 			 argv, envp, 0);
-		try_exec("file execute /bin/true if 1!=0 exec.argv[1]!=\"--\"",
+		try_exec("file execute /bin/true 1!=0 exec.argv[1]!=\"--\"",
 			 argv, envp, 1);
 
 		envp[0] = "HOME=/";
-		try_exec("file execute /bin/true if task.euid=0 "
+		try_exec("file execute /bin/true task.euid=0 "
 			 "exec.envp[\"HOME\"]!=NULL", argv, envp, 1);
-		try_exec("file execute /bin/true if task.euid=0 "
+		try_exec("file execute /bin/true task.euid=0 "
 			 "exec.envp[\"HOME\"]=NULL", argv, envp, 0);
-		try_exec("file execute /bin/true if 0!=1 "
+		try_exec("file execute /bin/true 0!=1 "
 			 "exec.envp[\"HOME\"]=\"/\"", argv, envp, 1);
-		try_exec("file execute /bin/true if 0!=1 "
+		try_exec("file execute /bin/true 0!=1 "
 			 "exec.envp[\"HOME\"]!=\"/\"", argv, envp, 0);
 
 		envp[0] = "HOME2=/";
-		try_exec("file execute /bin/true if path1.uid=0 "
+		try_exec("file execute /bin/true path1.uid=0 "
 			 "exec.envp[\"HOME\"]!=NULL", argv, envp, 0);
-		try_exec("file execute /bin/true if path1.uid=0 "
+		try_exec("file execute /bin/true path1.uid=0 "
 			 "exec.envp[\"HOME\"]=NULL", argv, envp, 1);
-		try_exec("file execute /bin/true if 100=1-1000 "
+		try_exec("file execute /bin/true 100=1-1000 "
 			 "exec.envp[\"HOME\"]=\"/\"", argv, envp, 0);
-		try_exec("file execute /bin/true if 100=1-1000 "
+		try_exec("file execute /bin/true 100=1-1000 "
 			 "exec.envp[\"HOME\"]!=\"/\"", argv, envp, 1);
-		try_exec("file execute /bin/true if path1.parent.gid!=100 "
+		try_exec("file execute /bin/true path1.parent.gid!=100 "
 			 "exec.envp[\"HOME\"]!=NULL exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 0);
-		try_exec("file execute /bin/true if path1.parent.gid!=100 "
+		try_exec("file execute /bin/true path1.parent.gid!=100 "
 			 "exec.envp[\"HOME\"]=NULL exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 1);
-		try_exec("file execute /bin/true if path1.parent.gid=0 "
+		try_exec("file execute /bin/true path1.parent.gid=0 "
 			 "exec.envp[\"HOME\"]=\"/\" exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 0);
-		try_exec("file execute /bin/true if path1.parent.gid=0 "
+		try_exec("file execute /bin/true path1.parent.gid=0 "
 			 "exec.envp[\"HOME\"]!=\"/\" exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 1);
 	}

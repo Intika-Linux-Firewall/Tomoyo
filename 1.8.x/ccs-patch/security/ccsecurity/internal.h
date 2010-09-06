@@ -526,7 +526,7 @@ struct ccs_condition_element {
 	bool equals;
 };
 
-/* Structure for " if " part. */
+/* Structure for optional arguments. */
 struct ccs_condition {
 	struct ccs_shared_acl_head head;
 	u32 size;
@@ -901,10 +901,9 @@ struct ccs_name {
 };
 
 struct ccs_acl_param {
+	char *data;
 	struct ccs_domain_info *domain;
-	struct ccs_condition *condition; /* This may be NULL. */
 	bool is_delete;
-	char *w[5];
 };
 
 #define CCS_MAX_IO_READ_QUEUE 32
@@ -1013,6 +1012,7 @@ bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 			      const struct ccs_group *group);
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
 bool ccs_parse_number_union(char *data, struct ccs_number_union *num);
+char *ccs_read_token(struct ccs_acl_param *param);
 const struct ccs_path_info *
 ccs_path_matches_group(const struct ccs_path_info *pathname,
 		       const struct ccs_group *group);
@@ -1029,6 +1029,7 @@ const char *ccs_cap2keyword(const u8 operation);
 const char *ccs_file_pattern(const struct ccs_path_info *filename);
 const char *ccs_get_exe(void);
 const char *ccs_last_word(const char *name);
+const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 int ccs_close_control(struct file *file);
@@ -1060,18 +1061,18 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 		      bool (*check_duplicate) (const struct ccs_acl_head *,
 					       const struct ccs_acl_head *));
 int ccs_write_aggregator(char *data, const bool is_delete);
-int ccs_write_capability(char *data, struct ccs_acl_param *param);
+int ccs_write_capability(struct ccs_acl_param *param);
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
-int ccs_write_file(char *data, struct ccs_acl_param *param);
+int ccs_write_file(struct ccs_acl_param *param);
 int ccs_write_group(char *data, const bool is_delete, const u8 type);
-int ccs_write_ipc(char *data, struct ccs_acl_param *param);
+int ccs_write_ipc(struct ccs_acl_param *param);
 int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
-int ccs_write_misc(char *data, struct ccs_acl_param *param);
-int ccs_write_inet_network(char *data, struct ccs_acl_param *param);
-int ccs_write_unix_network(char *data, struct ccs_acl_param *param);
+int ccs_write_misc(struct ccs_acl_param *param);
+int ccs_write_inet_network(struct ccs_acl_param *param);
+int ccs_write_unix_network(struct ccs_acl_param *param);
 int ccs_write_pattern(char *data, const bool is_delete);
 int ccs_write_reserved_port(char *data, const bool is_delete);
 int ccs_write_transition_control(char *data, const bool is_delete,

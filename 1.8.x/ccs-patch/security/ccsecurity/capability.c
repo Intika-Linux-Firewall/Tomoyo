@@ -81,17 +81,17 @@ static bool ccs_same_capability_entry(const struct ccs_acl_info *a,
 /**
  * ccs_write_capability - Write "struct ccs_capability_acl" list.
  *
- * @data:  String to parse.
  * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_capability(char *data, struct ccs_acl_param *param)
+int ccs_write_capability(struct ccs_acl_param *param)
 {
 	struct ccs_capability_acl e = {	.head.type = CCS_TYPE_CAPABILITY_ACL };
+	const char *operation = ccs_read_token(param);
 	for (e.operation = 0; e.operation < CCS_MAX_CAPABILITY_INDEX;
 	     e.operation++) {
-		if (strcmp(data, ccs_cap2keyword(e.operation)))
+		if (strcmp(operation, ccs_cap2keyword(e.operation)))
 			continue;
 		return ccs_update_domain(&e.head, sizeof(e), param,
 					 ccs_same_capability_entry, NULL);
