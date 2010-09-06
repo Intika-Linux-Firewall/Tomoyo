@@ -69,7 +69,7 @@
 </td></tr>
 </table>
 
-<p>これらのコマンドを path_group として例外ポリシーに登録しておきましょう（図３）．ただし，図２の中に起動時の名前（ argv[0] ）によって異なる動作をするようなプログラムがある場合には，そのプログラムは path_group から除外し， file execute /usr/bin/passwd if exec.argv[0]="passwd" のように個別に指定するようにしてください．</p>
+<p>これらのコマンドを path_group として例外ポリシーに登録しておきましょう（図３）．ただし，図２の中に起動時の名前（ argv[0] ）によって異なる動作をするようなプログラムがある場合には，そのプログラムは path_group から除外し， file execute /usr/bin/passwd exec.argv[0]="passwd" のように個別に指定するようにしてください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -243,24 +243,24 @@ file rename @HOME_DIR @HOME_DIR
 
 <h3>所有者によるアクセスのみを認める</h3>
 
-<p>他人が自分のホームディレクトリ内にアクセスしてくるのを阻止するには，ホームディレクトリのパーミッションを 0700 に設定することで実現できます．しかし，たとえば Apache に対して ~/public_html/ ディレクトリへのアクセスを認めるためにホームディレクトリのパーミッションを緩くしておかざるを得ない場合もあります．そんな場合，個々のアクセス許可に対して if task.uid=path1.uid のように条件を付与することで，ホームディレクトリのパーミッションでは防げないアクセスを防げるようになります．具体的には，図１２を図１３のように置き換えます．</p>
+<p>他人が自分のホームディレクトリ内にアクセスしてくるのを阻止するには，ホームディレクトリのパーミッションを 0700 に設定することで実現できます．しかし，たとえば Apache に対して ~/public_html/ ディレクトリへのアクセスを認めるためにホームディレクトリのパーミッションを緩くしておかざるを得ない場合もあります．そんな場合，個々のアクセス許可に対して task.uid=path1.uid のように条件を付与することで，ホームディレクトリのパーミッションでは防げないアクセスを防げるようになります．具体的には，図１２を図１３のように置き換えます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図１３　所有者によるアクセスのみを認める
 <pre>
 file execute @COMMANDS_FOR_LOGIN
-file read/write @HOME_FILE if task.uid=path1.uid
-file create @HOME_FILE 00-0666 if task.uid=path1.parent.uid
-file unlink @HOME_FILE if task.uid=path1.uid
-file symlink @HOME_FILE if task.uid=path1.parent.uid
-file link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-file rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-file truncate @HOME_FILE if task.uid=path1.uid
-file append @HOME_FILE if task.uid=path1.uid
-file mkdir @HOME_DIR 00-0777 if task.uid=path1.parent.uid
-file rmdir @HOME_DIR if task.uid=path1.uid
-file rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file read/write @HOME_FILE task.uid=path1.uid
+file create @HOME_FILE 00-0666 task.uid=path1.parent.uid
+file unlink @HOME_FILE task.uid=path1.uid
+file symlink @HOME_FILE task.uid=path1.parent.uid
+file link @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file rename @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file truncate @HOME_FILE task.uid=path1.uid
+file append @HOME_FILE task.uid=path1.uid
+file mkdir @HOME_DIR 00-0777 task.uid=path1.parent.uid
+file rmdir @HOME_DIR task.uid=path1.uid
+file rename @HOME_DIR @HOME_DIR task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 </pre>
 </td></tr>
 </table>

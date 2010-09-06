@@ -127,7 +127,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 [root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf<br>
 #2010-01-12 16:11:32# profile=2 mode=permissive (global-pid=3039) task={ pid=3039 ppid=3034 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
-network TCP accept 0:0:0:0:0:ffff:c0a8:801 1507<br>
+network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1507<br>
 <br>
 #2010-01-12 16:11:32# profile=2 mode=permissive (global-pid=4641) task={ pid=4641 ppid=4637 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=603159 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=589834 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
@@ -203,7 +203,7 @@ file read /etc/group
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
 #2010-01-12 16:11:32# profile=2 mode=permissive (global-pid=4641) task={ pid=4641 ppid=4637 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=603159 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=589834 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-network TCP accept 0:0:0:0:0:ffff:c0a8:801 1507<br>
+network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1507<br>
 <br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 <br>

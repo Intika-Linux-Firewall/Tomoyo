@@ -40,7 +40,7 @@ address_group HTTP_SERVERS 192.168.1.20
 <tr><td>
 ■図２　ＨＴＴＰサーバと通信するためのアクセス許可
 <pre>
-network TCP connect @HTTP_SERVERS 80
+network inet stream connect @HTTP_SERVERS 80
 </pre>
 </td></tr>
 </table>
@@ -53,7 +53,7 @@ network TCP connect @HTTP_SERVERS 80
 <tr><td>
 ■図３　ＤＮＳサーバと通信するためのアクセス許可
 <pre>
-network UDP connect @DNS_SERVERS 53
+network inet dgram connect @DNS_SERVERS 53
 </pre>
 </td></tr>
 </table>
@@ -66,7 +66,7 @@ network UDP connect @DNS_SERVERS 53
 <tr><td>
 ■図４　ＦＴＰ制御用のアクセス許可
 <pre>
-network TCP connect @FTP_SERVERS 21
+network inet stream connect @FTP_SERVERS 21
 </pre>
 </td></tr>
 </table>
@@ -77,7 +77,7 @@ network TCP connect @FTP_SERVERS 21
 <tr><td>
 ■図５　ＦＴＰデータ（アクティブモード）用のアクセス許可
 <pre>
-network TCP accept @FTP_SERVERS 20
+network inet stream accept @FTP_SERVERS 20
 </pre>
 </td></tr>
 </table>
@@ -88,7 +88,7 @@ network TCP accept @FTP_SERVERS 20
 <tr><td>
 ■図６　ＦＴＰデータ（パッシブモード）用のアクセス許可
 <pre>
-network TCP connect @FTP_SERVERS 1024-65535
+network inet stream connect @FTP_SERVERS 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -101,7 +101,7 @@ network TCP connect @FTP_SERVERS 1024-65535
 <tr><td>
 ■図７　ＳＳＨサーバと通信するためのアクセス許可
 <pre>
-network TCP connect @SSH_SERVERS 1024-65535
+network inet stream connect @SSH_SERVERS 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -214,17 +214,17 @@ $ ls .bashrc | xargs /bin/cat &gt; /dev/null
 ■図１６　あらかじめ与えておいたアクセス許可
 <pre>
 file execute @COMMANDS_FOR_LOGIN
-file read/write @HOME_FILE if task.uid=path1.uid
-file create @HOME_FILE if task.uid=path1.parent.uid
-file unlink @HOME_FILE if task.uid=path1.uid
-file symlink @HOME_FILE if task.uid=path1.parent.uid
-file link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-file rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-file truncate @HOME_FILE if task.uid=path1.uid
-file append @HOME_FILE if task.uid=path1.uid
-file mkdir @HOME_DIR if task.uid=path1.parent.uid
-file rmdir @HOME_DIR if task.uid=path1.uid
-file rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file read/write @HOME_FILE task.uid=path1.uid
+file create @HOME_FILE task.uid=path1.parent.uid
+file unlink @HOME_FILE task.uid=path1.uid
+file symlink @HOME_FILE task.uid=path1.parent.uid
+file link @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file rename @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file truncate @HOME_FILE task.uid=path1.uid
+file append @HOME_FILE task.uid=path1.uid
+file mkdir @HOME_DIR task.uid=path1.parent.uid
+file rmdir @HOME_DIR task.uid=path1.uid
+file rename @HOME_DIR @HOME_DIR task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 </pre>
 </td></tr>
 </table>

@@ -20,7 +20,7 @@
 
 <h3>条件付きアクセス許可について</h3>
 
-<p>TOMOYO Linux には RBAC （ Role Based Access Control ）機能はありませんが，ポリシーの中でユーザＩＤに基づく条件を付けることができます．これにより，システムアカウントのユーザＩＤに基づくアクセス制御が可能です．条件はアクセス許可の後ろに「 if 条件式」という形で指定します．利用できる条件について図１に，使い方の例を図２に示します．</p>
+<p>TOMOYO Linux には RBAC （ Role Based Access Control ）機能はありませんが，ポリシーの中でユーザＩＤに基づく条件を付けることができます．これにより，システムアカウントのユーザＩＤに基づくアクセス制御が可能です．条件はアクセス許可の後ろに追加する形で指定します．利用できる条件について図１に，使い方の例を図２に示します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -79,18 +79,18 @@
 ■図２　条件指定の例<br>
 <table border="1" summary="fig">
 <tr><td>条件</td><td>意味</td></tr>
-<tr><td>if task.uid=0</td><td>プロセスのユーザＩＤが 0 （ root ）である場合</td></tr>
-<tr><td>if task.uid!=0</td><td>プロセスのユーザＩＤが 0 （ root ）ではない場合</td></tr>
-<tr><td>if task.uid=100-500</td><td>プロセスのユーザＩＤが 100 以上 500 以下である場合</td></tr>
-<tr><td>if task.uid=0 task.gid=0</td><td>プロセスのユーザＩＤとグループＩＤの両方が 0 （ root ）である場合</td></tr>
-<tr><td>if task.uid!=0 task.gid!=0</td><td>プロセスのユーザＩＤとグループＩＤの両方が 0 （ root ）ではない場合</td></tr>
-<tr><td>if task.uid=100-500 task.gid!=0</td><td>プロセスのユーザＩＤが 100 以上 500 以下であり，かつ，グループＩＤが 0 ではない場合</td></tr>
-<tr><td>if exec.argv[index]="value"</td><td>index （ 0&lt;=index&lt;exec.argc ）番目の引数の値が value である場合</td></tr>
-<tr><td>if exec.argv[index]!="value"</td><td>index （ 0&lt;=index&lt;exec.argc ）番目の引数の値が value ではない場合</td></tr>
-<tr><td>if exec.envp["name"]="value"</td><td>環境変数 name が定義されており，値が value である場合</td></tr>
-<tr><td>if exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか，あるいは値が value ではない場合</td></tr>
-<tr><td>if exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている場合</td></tr>
-<tr><td>if exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない場合</td></tr>
+<tr><td>task.uid=0</td><td>プロセスのユーザＩＤが 0 （ root ）である場合</td></tr>
+<tr><td>task.uid!=0</td><td>プロセスのユーザＩＤが 0 （ root ）ではない場合</td></tr>
+<tr><td>task.uid=100-500</td><td>プロセスのユーザＩＤが 100 以上 500 以下である場合</td></tr>
+<tr><td>task.uid=0 task.gid=0</td><td>プロセスのユーザＩＤとグループＩＤの両方が 0 （ root ）である場合</td></tr>
+<tr><td>task.uid!=0 task.gid!=0</td><td>プロセスのユーザＩＤとグループＩＤの両方が 0 （ root ）ではない場合</td></tr>
+<tr><td>task.uid=100-500 task.gid!=0</td><td>プロセスのユーザＩＤが 100 以上 500 以下であり，かつ，グループＩＤが 0 ではない場合</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>index （ 0&lt;=index&lt;exec.argc ）番目の引数の値が value である場合</td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>index （ 0&lt;=index&lt;exec.argc ）番目の引数の値が value ではない場合</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>環境変数 name が定義されており，値が value である場合</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか，あるいは値が value ではない場合</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている場合</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない場合</td></tr>
 </table>
 </td></tr>
 </table>
@@ -186,10 +186,10 @@ file read /tmp/testfile2
 
 <table border="1" summary="fig">
 <tr><td>
-■図１０　アクセス許可を追加<br>（※これらをまとめて， file read /tmp/testfile\+ if task.uid=path1.uid のように入力してもかまいません．）
+■図１０　アクセス許可を追加<br>（※これらをまとめて， file read /tmp/testfile\+ task.uid=path1.uid のように入力してもかまいません．）
 <pre>
-file read /tmp/testfile1 if task.uid=path1.uid
-file read /tmp/testfile2 if task.uid=path1.uid
+file read /tmp/testfile1 task.uid=path1.uid
+file read /tmp/testfile2 task.uid=path1.uid
 </pre>
 </td></tr>
 </table>
@@ -240,7 +240,7 @@ cat: /tmp/testfile2: Operation not permitted
 [修正前]
 file execute /bin/bash
 [修正後]
-file execute /bin/bash if task.uid!=0
+file execute /bin/bash task.uid!=0
 </pre>
 </td></tr>
 </table>
@@ -254,7 +254,7 @@ file execute /bin/bash if task.uid!=0
 [修正前]
 file execute /bin/bash
 [修正後]
-file execute /bin/bash if task.uid=500-1000
+file execute /bin/bash task.uid=500-1000
 </pre>
 </td></tr>
 </table>
@@ -462,7 +462,7 @@ WARNING: Domain 'ドメイン名' has so many ACLs to hold. Stopped learning mod
 <tr><td>
 ■図３１　厳密すぎるアクセス許可
 <pre>
-file execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
+file execute /usr/bin/id task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
 </pre>
 </td></tr>
 </table>

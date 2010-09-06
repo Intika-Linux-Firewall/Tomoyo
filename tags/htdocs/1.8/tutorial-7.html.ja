@@ -108,7 +108,7 @@
 </td></tr>
 </table>
 
-<p>network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 network UDP connect 192.168.1.2 53 」という部分は，ＵＤＰプロトコルを用いてＤＮＳサーバ 192.168.1.2 のポート 53 にアクセスすることを許可するという意味です．また，「 network TCP connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
+<p>network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 network inet dgram connect 192.168.1.2 53 」という部分は，ＵＤＰプロトコルを用いてＤＮＳサーバ 192.168.1.2 のポート 53 にアクセスすることを許可するという意味です．また，「 network inet stream connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
 
 <h4>(2)サーバ側の学習</h4>
 
@@ -141,7 +141,7 @@
 </td></tr>
 </table>
 
-<p>「 network TCP accept 0:0:0:0:0:ffff:7f00:1 34561 」という部分は， 0:0:0:0:0:ffff:7f00:1 というＩＰｖ６アドレスを持つホストのポート 34561 からのＴＣＰコネクションを受け付けることを許可するという意味です．</p>
+<p>「 network inet stream accept 0:0:0:0:0:ffff:7f00:1 34561 」という部分は， 0:0:0:0:0:ffff:7f00:1 というＩＰｖ６アドレスを持つホストのポート 34561 からのＴＣＰコネクションを受け付けることを許可するという意味です．</p>
 
 <p>ファイルに対するアクセス許可と同様に，ネットワークに対するアクセス許可にも条件を付与することができます．たとえば，図１０のようにプロセスのユーザＩＤと組み合わせることで，ユーザごとに接続可能なサーバを制限したりすることもできます．</p>
 
@@ -149,8 +149,8 @@
 <tr><td>
 ■図１０　ユーザごとに接続可能なサーバを制限
 <pre>
-network TCP connect 202.221.179.21 80 if task.uid=500
-network TCP connect 66.35.250.203 80 if task.uid=501
+network inet stream connect 202.221.179.21 80 task.uid=500
+network inet stream connect 66.35.250.203 80 task.uid=501
 </pre>
 </td></tr>
 </table>
@@ -173,7 +173,7 @@ network TCP connect 66.35.250.203 80 if task.uid=501
 </td></tr>
 </table>
 
-<p>「 network RAW connect 202.221.179.21 1 」というアクセス許可が与えられていることを確認できます．これは， ping コマンドが動作しているドメインではＩＰソケット上でプロトコル番号１のプロトコル（ ICMP ）を用いて 202.221.179.21 と通信を行うことを許可するという意味です．</p>
+<p>「 network inet raw connect 202.221.179.21 1 」というアクセス許可が与えられていることを確認できます．これは， ping コマンドが動作しているドメインではＩＰソケット上でプロトコル番号１のプロトコル（ ICMP ）を用いて 202.221.179.21 と通信を行うことを許可するという意味です．</p>
 
 <h3>チューニングしてみよう</h3>
 
@@ -244,10 +244,10 @@ xxxxx-yyyyy
 <tr><td>
 ■図１８　ポート番号が連続するアクセス許可の例①
 <pre>
-network TCP bind 127.0.0.1 610
-network TCP bind 127.0.0.1 611
-network TCP bind 127.0.0.1 612
-network TCP bind 127.0.0.1 613
+network inet stream bind 127.0.0.1 610
+network inet stream bind 127.0.0.1 611
+network inet stream bind 127.0.0.1 612
+network inet stream bind 127.0.0.1 613
 </pre>
 </td></tr>
 </table>
@@ -258,7 +258,7 @@ network TCP bind 127.0.0.1 613
 <tr><td>
 ■図１９　図１８を元にパターン化したアクセス許可
 <pre>
-network TCP bind 127.0.0.1 600-1023
+network inet stream bind 127.0.0.1 600-1023
 </pre>
 </td></tr>
 </table>
@@ -269,11 +269,11 @@ network TCP bind 127.0.0.1 600-1023
 <tr><td>
 ■図２０　ポート番号が連続するアクセス許可の例②
 <pre>
-network TCP accept 127.0.0.1 32780
-network TCP accept 127.0.0.1 32781
-network TCP accept 127.0.0.1 32782
-network TCP accept 127.0.0.1 32783
-network TCP accept 127.0.0.1 32784
+network inet stream accept 127.0.0.1 32780
+network inet stream accept 127.0.0.1 32781
+network inet stream accept 127.0.0.1 32782
+network inet stream accept 127.0.0.1 32783
+network inet stream accept 127.0.0.1 32784
 </pre>
 </td></tr>
 </table>
@@ -282,7 +282,7 @@ network TCP accept 127.0.0.1 32784
 <tr><td>
 ■図２１　図２０を元にパターン化したアクセス許可
 <pre>
-network TCP accept 127.0.0.1 1024-65535
+network inet stream accept 127.0.0.1 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -291,7 +291,7 @@ network TCP accept 127.0.0.1 1024-65535
 <tr><td>
 ■図２２　図２０を元にパターン化したアクセス許可
 <pre>
-network TCP accept 127.0.0.1 32768-61000
+network inet stream accept 127.0.0.1 32768-61000
 </pre>
 </td></tr>
 </table>
