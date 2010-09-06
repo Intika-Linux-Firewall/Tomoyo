@@ -348,7 +348,7 @@ done:
 
 static int ccs_show_acl_line(const int index, const int list_indent)
 {
-	u8 directive = ccs_generic_acl_list[index].directive;
+	u16 directive = ccs_generic_acl_list[index].directive;
 	const char *cp1 = ccs_directives[directive].alias;
 	const char *cp2 = ccs_generic_acl_list[index].operand;
 	int len = list_indent - ccs_directives[directive].alias_len;
@@ -1285,7 +1285,7 @@ static void ccs_show_list(struct ccs_domain_policy *dp)
 	case CCS_SCREEN_EXCEPTION_LIST:
 	case CCS_SCREEN_ACL_LIST:
 		for (i = 0; i < ccs_list_item_count[ccs_current_screen]; i++) {
-			const u8 directive = ccs_generic_acl_list[i].directive;
+			const u16 directive = ccs_generic_acl_list[i].directive;
 			const int len = ccs_directives[directive].alias_len;
 			if (len > ccs_list_indent)
 				ccs_list_indent = len;
@@ -1595,7 +1595,7 @@ static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
 					ccs_current_domain);
 		}
 		for (i = 0; i < ccs_generic_acl_list_count; i++) {
-			u8 directive;
+			u16 directive;
 			if (!ccs_generic_acl_list[i].selected)
 				continue;
 			directive = ccs_generic_acl_list[i].directive;
@@ -1622,7 +1622,7 @@ static void ccs_add_entry(struct ccs_readline_data *rl)
 	if (!fp)
 		goto out;
 	switch (ccs_current_screen) {
-		u8 directive;
+		u16 directive;
 	case CCS_SCREEN_DOMAIN_LIST:
 		if (!ccs_correct_domain(line)) {
 			const int len = strlen(line) + 128;
@@ -1699,7 +1699,7 @@ start_search:
 					  ccs_generic_acl_list[index].directive,
 					  ccs_generic_acl_list[index].operand);
 		} else {
-			const u8 directive = ccs_generic_acl_list[index].directive;
+			const u16 directive = ccs_generic_acl_list[index].directive;
 			cp = ccs_shprintf("%s %s", ccs_directives[directive].alias,
 					  ccs_generic_acl_list[index].operand);
 		}
@@ -1976,7 +1976,7 @@ static void ccs_copy_to_history(struct ccs_domain_policy *dp, const int current,
 		return;
 	ccs_get();
 	switch (ccs_current_screen) {
-		u8 directive;
+		u16 directive;
 	case CCS_SCREEN_DOMAIN_LIST:
 		line = ccs_domain_name(dp, current);
 		break;

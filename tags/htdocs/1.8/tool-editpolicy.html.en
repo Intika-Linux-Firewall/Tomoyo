@@ -153,7 +153,7 @@ The last "pathname of program" in the domainname is shown on the right side of t
 <img src="editpolicy/before-initialize_domain-1.png" alt="Before initialize_domain" width="720" height="400"><br>
 <img src="editpolicy/before-initialize_domain-2.png" alt="Before initialize_domain" width="720" height="400"></p>
 
-<p>Switch to the screen for editing exception policy. Press "A" key and enter "initialize_domain /usr/sbin/sendmail.sendmail" and press "Enter" key. This entry means that "transit to "&lt;kernel&gt; /usr/sbin/sendmail.sendmail" domain if /usr/sbin/sendmail.sendmail is invoked".<br>
+<p>Switch to the screen for editing exception policy. Press "A" key and enter "initialize_domain /usr/sbin/sendmail.sendmail from any" and press "Enter" key. This entry means that "transit to "&lt;kernel&gt; /usr/sbin/sendmail.sendmail" domain if /usr/sbin/sendmail.sendmail is invoked".<br>
 <img src="editpolicy/adding-initialize_domain.png" alt="Adding initialize_domain" width="720" height="400"></p>
 
 <p>Return to the screen for editing domain transition tree. The domains for /usr/sbin/sendmail.sendmail now marked with "!". Also, the domains with "( -&gt; Not Found )" are appeared because the destination ("&lt;kernel&gt; /usr/sbin/sendmail.sendmail") domain doesn't exist.<br>
@@ -184,7 +184,7 @@ The last "pathname of program" in the domainname is shown on the right side of t
 <p>Before you specify "keep_domain" directive, domain transitions occur, as shown below.<br>
 <img src="editpolicy/before-keep_domain.png" alt="Before keep_domain" width="720" height="400"></p>
 
-<p>Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash" and press "Enter" key.<br>
+<p>Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash" and press "Enter" key.<br>
 <img src="editpolicy/adding-keep_domain-1.png" alt="Adding keep_domain" width="720" height="400"></p>
 
 <p>Return to the screen for editing domain transition tree. The "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash" domain is marked with "#" and its descendant domains are marked with "!".<br>
@@ -199,7 +199,7 @@ The last "pathname of program" in the domainname is shown on the right side of t
 <p>Return to the screen for editing domain transition tree. Now the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendants are not marked with "!".<br>
 <img src="editpolicy/after-no_keep_domain.png" alt="After no_keep_domain" width="720" height="400"></p>
 
-<p>Some commands are invoked by "/usr/bin/man" command, but it doesn't worth doing domain transitions. So, let's make /usr/bin/man not to transit domains. Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain /usr/bin/man" (or "keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man") and press "Enter" key.<br>
+<p>Some commands are invoked by "/usr/bin/man" command, but it doesn't worth doing domain transitions. So, let's make /usr/bin/man not to transit domains. Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain any from /usr/bin/man" (or "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man") and press "Enter" key.<br>
 <img src="editpolicy/adding-keep_domain-2.png" alt="Addint keep_domain" width="720" height="400"></p>
 
 <p>Return to the screen for editing domain transition tree. The "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain is marked with "#" and its descendant domains are marked with "!".<br>

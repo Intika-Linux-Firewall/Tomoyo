@@ -40,7 +40,7 @@ static int ccs_add_address_group_entry(const char *group_name, const char *membe
 static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name);
 static int ccs_add_number_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name);
-static _Bool ccs_compare_path(const char *sarg, const char *darg, const u8 directive);
+static _Bool ccs_compare_path(const char *sarg, const char *darg, const u16 directive);
 static _Bool ccs_compare_number(const char *sarg, const char *darg);
 static _Bool ccs_compare_address(const char *sarg, const char *darg);
 
@@ -66,7 +66,7 @@ int ccs_add_address_group_policy(char *data, const _Bool is_delete)
 }
 
 static _Bool ccs_compare_path(const char *sarg, const char *darg,
-			      const u8 directive)
+			      const u16 directive)
 {
 	int i;
 	struct ccs_path_group_entry *group;
@@ -198,7 +198,7 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 				 const int screen)
 {
 	char *cp;
-	u8 s_index;
+	u16 s_index;
 	int index;
 	char *s_cond;
 	char *d_cond;
@@ -222,7 +222,7 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 	ccs_get();
 	for (index = 0; index < ccs_list_item_count[screen]; index++) {
 		char *line;
-		const u8 d_index = ccs_generic_acl_list[index].directive;
+		const u16 d_index = ccs_generic_acl_list[index].directive;
 		if (index == current)
 			continue;
 		if (ccs_generic_acl_list[index].selected)
