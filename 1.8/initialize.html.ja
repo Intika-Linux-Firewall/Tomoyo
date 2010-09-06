@@ -88,10 +88,6 @@
 <td>学習モードに関する設定。</td>
 </tr>
 <tr>
-<td>PREFERENCE::permissive</td>
-<td>確認モードに関する設定。</td>
-</tr>
-<tr>
 <td>PREFERENCE::enforcing</td>
 <td>強制モードに関する設定。</td>
 </tr>
@@ -102,21 +98,6 @@
 <tr>
 <td>CONFIG</td>
 <td>強制アクセス制御のモード設定。</td>
-</tr>
-</table>
-<p>PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing の verbose については以下の値を指定できます。</p>
-<table border="1">
-<tr>
-<td>値</td>
-<td>内容</td>
-</tr>
-<tr>
-<td>no</td>
-<td>ポリシー違反のメッセージを表示しない。</td>
-</tr>
-<tr>
-<td>yes</td>
-<td>ポリシー違反のメッセージを表示する。</td>
 </tr>
 </table>
 <p>CONFIG 行で指定されている mode については以下の値を指定できます。</p>
@@ -140,6 +121,21 @@
 <tr>
 <td>enforcing</td>
 <td>強制モード。ポリシーに違反したらエラーとする。</td>
+</tr>
+</table>
+<p>CONFIG 行で指定されている verbose については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>no</td>
+<td>ポリシー違反のメッセージを表示しない。</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>ポリシー違反のメッセージを表示する。</td>
 </tr>
 </table>
 
@@ -269,6 +265,37 @@ file read /etc/fstab
 
 <p>TOMOYO Linux は、「アクセス許可ログ」（ポリシーに違反しなかったアクセス要求のログ）と「アクセス拒否ログ」（ポリシーに違反したアクセス要求のログ）を記録することができます。<br>
 アクセスログはドメインポリシーの形式と同じであり、そのままドメインポリシーへと追加することができます。「アクセス拒否ログ」に記録された要求の中で、許可すべきものと判断したものをドメインポリシーに追加してください。</p>
+
+<p>プロファイルの CONFIG 行で指定されている grant_log については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>no</td>
+<td>アクセス許可ログを生成しない。ただし、個別のアクセス許可で audit=yes と指定されている場合には生成する。</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>アクセス許可ログを生成する。ただし、個別のアクセス許可で audit=no と指定されている場合には生成しない。</td>
+</tr>
+</table>
+<p>プロファイルの CONFIG 行で指定されている reject_log については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>no</td>
+<td>アクセス拒否ログを生成しない。</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>アクセス拒否ログを生成する。</td>
+</tr>
+</table>
 
 <p>アクセス許可ログ /proc/ccs/grant_log とアクセス拒否ログ /proc/ccs/reject_log をカーネルから読み出してファイルに保存する為に、 ccs-auditd というデーモンプログラムを利用できます。以下のコマンドを /etc/rc.local 等から実行するようにしてください。</p>
 
