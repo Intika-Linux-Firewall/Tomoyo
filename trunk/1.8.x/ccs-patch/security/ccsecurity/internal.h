@@ -961,8 +961,6 @@ struct ccs_preference {
 #endif
 	unsigned int learning_max_entry;
 	unsigned int enforcing_penalty;
-	bool audit_task_info;
-	bool audit_path_info;
 	bool learning_exec_realpath;
 	bool learning_exec_argv0;
 	bool learning_symlink_target;

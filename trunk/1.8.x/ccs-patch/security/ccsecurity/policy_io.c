@@ -17,8 +17,6 @@ static struct ccs_profile ccs_default_profile = {
 	.preference.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
 	.preference.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
 #endif
-	.preference.audit_task_info = true,
-	.preference.audit_path_info = true,
 	.preference.enforcing_penalty = 0,
 	.preference.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
 	.preference.learning_exec_realpath = true,
@@ -410,19 +408,15 @@ static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
 static void ccs_set_pref(const char *name, const char *value,
 			 struct ccs_profile *profile)
 {
-	if (!strcmp(name, "audit")) {
 #ifdef CONFIG_CCSECURITY_AUDIT
+	if (!strcmp(name, "audit")) {
 		ccs_set_uint(&profile->preference.audit_max_grant_log, value,
 			     "max_grant_log");
 		ccs_set_uint(&profile->preference.audit_max_reject_log, value,
 			     "max_reject_log");
-#endif
-		ccs_set_bool(&profile->preference.audit_task_info, value,
-			     "task_info");
-		ccs_set_bool(&profile->preference.audit_path_info, value,
-			     "path_info");
 		return;
 	}
+#endif
 	if (!strcmp(name, "enforcing")) {
 		ccs_set_uint(&profile->preference.enforcing_penalty, value,
 			     "penalty");
@@ -556,18 +550,12 @@ static void ccs_print_preference(struct ccs_io_buffer *head, const int index)
 {
 	struct ccs_profile *profile = ccs_profile_ptr[index];
 	struct ccs_preference *pref = &profile->preference;
+#ifdef CONFIG_CCSECURITY_AUDIT
 	ccs_io_printf(head, "%u-PREFERENCE::%s={ "
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      "max_grant_log=%u max_reject_log=%u "
+		      "max_grant_log=%u max_reject_log=%u  }\n", index,
+		      "audit", pref->audit_max_grant_log,
+		      pref->audit_max_reject_log);
 #endif
-		      "task_info=%s path_info=%s }\n", index,
-		      "audit",
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      pref->audit_max_grant_log,
-		      pref->audit_max_reject_log,
-#endif
-		      ccs_yesno(pref->audit_task_info),
-		      ccs_yesno(pref->audit_path_info));
 	ccs_io_printf(head, "%u-PREFERENCE::%s={ "
 		      "max_entry=%u exec.realpath=%s "
 		      "exec.argv0=%s symlink.target=%s }\n",
