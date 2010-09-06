@@ -39,7 +39,6 @@
 
 <ul>
 <li><a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a></li>
-<li><a href="#profile_CONFIG::file::transit">CONFIG::file::transit</a></li>
 <li><a href="#profile_CONFIG::file::open">CONFIG::file::open</a></li>
 <li><a href="#profile_CONFIG::file::create">CONFIG::file::create</a></li>
 <li><a href="#profile_CONFIG::file::unlink">CONFIG::file::unlink</a></li>
@@ -86,7 +85,6 @@
 <li><a href="#profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></li>
 <li><a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a></li>
 <li><a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a></li>
-<li><a href="#profile_PREFERENCE::permissive">PREFERENCE::permissive</a></li>
 <li><a href="#profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></li>
 </ul>
 
@@ -632,10 +630,6 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies access control level regarding program execution and domain transition.</p>
 
-<h3><a name="profile_CONFIG::file::transit">CONFIG::file::transit</a></h3>
-
-<p>Specifies access control level regarding domain transition without program execution.</p>
-
 <h3><a name="profile_CONFIG::file::open">CONFIG::file::open</a></h3>
 
 <p>Specifies access control level regarding file open for reading and/or writing.</p>
@@ -824,8 +818,6 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies preference on learning mode.</p>
 
-<p>"verbose=" controls whether to print policy violation messages or not.</p>
-
 <p>"max_entry=" controls the max number of ACL entries that are automatically appended.</p>
 
 <p>"exec.realpath=" controls whether the dereferenced pathname of the requested program should be learned when adding an "file execute" entry.</p>
@@ -834,17 +826,9 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>"symlink.target=" controls whether the content of the symbolic link should be learned when adding an "file symlink" entry.</p>
 
-<h3><a name="profile_PREFERENCE::permissive">PREFERENCE::permissive</a></h3>
-
-<p>Specifies preference on permissive mode.</p>
-
-<p>"verbose=" controls whether to print policy violation messages or not.</p>
-
 <h3><a name="profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></h3>
 
 <p>Specifies preference on enforcing mode.</p>
-
-<p>"verbose=" controls whether to print policy violation messages or not.</p>
 
 <p>"penalty=" controls how long (in units of 0.1 second) should the process that violated policy sleep for.</p>
 
