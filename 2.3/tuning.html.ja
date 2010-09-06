@@ -12,68 +12,73 @@
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>第４章：ポリシーのチューニング</h1>
 
-<p>このページでは、 TOMOYO のポリシーをチューニングする方法について説明します。</p>
+<p>このページでは、 TOMOYO Linux のポリシーをチューニングする方法について説明します。</p>
 
 <hr>
 
 <h2>ステップ１：ファイルのパス名をパターン化する</h2>
 
-<p>WWW サーバがアクセスするコンテンツのように、学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を /etc/tomoyo/domain_policy.conf に追加します。<br>
-以下の例では、 /usr/sbin/httpd に対して /var/www/html/ 以下の読み込みを許可しています。</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-use_profile 3<br>
-allow_read /var/www/html/\*<br>
-allow_read /var/www/html/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*/\*/\*
-</td></tr>
-</table>
-
-<p>同様に、パターンを使用して手作業でのグループ化を行います。<br>
-以下の例では、 /usr/sbin/smbd に対して全てのログファイルを同様に扱うように指示しています。</p>
+<p>WWW サーバがアクセスするコンテンツのように、学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を追加します。</p>
 
 <table border="1">
 <tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
-&lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
-allow_write /var/log/samba/host1.log<br>
-allow_write /var/log/samba/host2.log<br>
-allow_write /var/log/samba/host3.log<br>
-allow_write /var/log/samba/host4.log<br>
-allow_write /var/log/samba/host5.log
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read /var/www/html/index.html<br>
+allow_read /var/www/html/blog/index.html<br>
+allow_read /var/www/html/blog/page1.html<br>
+allow_read /var/www/html/blog/page2.html<br>
+allow_read /var/www/html/blog/page3.html<br>
+allow_read /var/www/html/blog/image1.jpg<br>
+allow_read /var/www/html/blog/image2.jpg
 </td><td>
-&lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
-allow_write /var/log/samba/\*.log
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read /var/www/html/\*.html<br>
+allow_read /var/www/html/\{\*\}/\*.html<br>
+allow_read /var/www/html/\{\*\}/\*.jpg<br>
+<br>
+<br>
+<br>
+<br>
 </td></tr>
 </table>
 
-<p>与えられたパターンと一致するディスク上のパス名を一覧表示する tomoyo-pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
+<p>上記の指定は</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-pathmatch '/var/log/samba/\*.log'<br>
-/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+path_group WEB-CONTENTS /var/www/html/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg<br>
 </td></tr>
 </table>
 
-<h3>操作例</h3>
+<p>という path_group を例外ポリシーで定義しておくことにより、</p>
 
-<p>カーネルに存在するドメインポリシーをディスクに保存します。</p>
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy d<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read @WEB-CONTENTS
 </td></tr>
 </table>
+
+<p>のように指定することもできます。</p>
+
+<hr>
+
+<h2>ステップ２：テンポラリファイルに対処する</h2>
+
+<p>テンポラリファイルのように毎回異なるファイル名を持つ場合や、クライアントプログラムが利用するテンポラリなポート番号については、学習モードと確認モードでは対処できません。<a href="tool-editpolicy.html.ja#acl_editor">ポリシーエディタのパターン化支援機能</a>を用いて対話的に対処する必要があります。<br>
+ただし、テンポラリファイルのパス名をパターン化する処理は、以下のように非対話的に行うこともできます。</p>
+
 <p>テンポラリファイルの可能性があるパス名を抽出します。</p>
+
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /etc/tomoyo/domain_policy.conf<br>
+[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /sys/kernel/security/tomoyo/domain_policy<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /etc/mtab~2302<br>
@@ -96,185 +101,23 @@ allow_write /var/log/samba/\*.log
 /var/lock/mrtg/mrtg_l<br>
 </td></tr>
 </table>
-<p>テンポラリファイルにアクセスしているドメインを探します。</p>
+
+<p>「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」がテンポラリファイルであると考えられるので、これらのパターン化を行います。まず、どのようにパターン化するかを決めます。この例では１０進数数値であると考えられることから、１桁以上の１０進数数値一致する \$ を使います。</p>
+
+<p>例外ポリシーにパターンを追加します。</p>
+
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-domainmatch /etc/mtab~2302<br>
-&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
-allow_create /etc/mtab~2302<br>
-allow_write /etc/mtab~2302<br>
-allow_link /etc/mtab~2302 /etc/mtab~<br>
-allow_unlink /etc/mtab~2302<br>
-[root@tomoyo ~]# /usr/sbin/tomoyo-domainmatch /tmp/sh-thd-1163113704<br>
-&lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
-allow_create /tmp/sh-thd-1163113704<br>
-allow_read/write /tmp/sh-thd-1163113704<br>
-allow_unlink /tmp/sh-thd-1163113704<br>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/tomoyo-loadpolicy -e<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -e
 </td></tr>
 </table>
-<p>カーネルに存在する例外ポリシーをディスクに保存します。</p>
+
+<p>ドメインポリシーの中の「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」を「 /etc/mtab~\$ 」および「 /tmp/sh-thd-\$ 」に置換します。</p>
+
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy e<br>
-</td></tr>
-</table>
-<p>必要に応じてディスク上の例外ポリシーにパターンを追加します。</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/tomoyo/exception_policy.conf<br>
-[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/tomoyo/exception_policy.conf<br>
-</td></tr>
-</table>
-<p>ディスク上の例外ポリシーをカーネルに読み込みます。</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-loadpolicy ef<br>
-</td></tr>
-</table>
-<p>/etc/mtab~\$ および /tmp/sh-thd-\$ に一致するパス名のパターン化を行います。</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/tomoyo/domain_policy.conf &gt; /etc/tomoyo/domain_policy.tmp<br>
-</td></tr>
-</table>
-<p>パターン化されたことを確認します。</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /etc/tomoyo/domain_policy.tmp<br>
-/etc/mtab.tmp<br>
-/etc/mtab~<br>
-/halt<br>
-/selinux/disable<br>
-/selinux/enforce<br>
-/selinux/policyvers<br>
-/var/cache/samba/browse.dat.<br>
-/var/lib/nfs/etab.tmp<br>
-/var/lib/nfs/xtab.tmp<br>
-/var/lock/mrtg/mrtg_l<br>
-</td></tr>
-</table>
-<p>パターン化前後の差分を表示して、パターン化が適切に行われているかどうかを確認します。</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# diff /etc/tomoyo/domain_policy.conf /etc/tomoyo/domain_policy.tmp<br>
-2326,2331c2326,2331<br>
-&lt; allow_read/write /tmp/sh-thd-1163110572<br>
-&lt; allow_read/write /tmp/sh-thd-1163113704<br>
-&lt; allow_create /tmp/sh-thd-1163110572<br>
-&lt; allow_create /tmp/sh-thd-1163113704<br>
-&lt; allow_unlink /tmp/sh-thd-1163110572<br>
-&lt; allow_unlink /tmp/sh-thd-1163113704<br>
----<br>
-&gt; allow_read/write /tmp/sh-thd-\$<br>
-&gt; allow_read/write /tmp/sh-thd-\$<br>
-&gt; allow_create /tmp/sh-thd-\$<br>
-&gt; allow_create /tmp/sh-thd-\$<br>
-&gt; allow_unlink /tmp/sh-thd-\$<br>
-&gt; allow_unlink /tmp/sh-thd-\$<br>
-3331,3336c3331,3336<br>
-&lt; allow_write /etc/mtab~2328<br>
-&lt; allow_write /etc/mtab~2329<br>
-&lt; allow_write /etc/mtab~2330<br>
-&lt; allow_write /etc/mtab~2331<br>
-&lt; allow_write /etc/mtab~2332<br>
-&lt; allow_write /etc/mtab~2383<br>
----<br>
-&gt; allow_write /etc/mtab~\$<br>
-&gt; allow_write /etc/mtab~\$<br>
-&gt; allow_write /etc/mtab~\$<br>
-&gt; allow_write /etc/mtab~\$<br>
-&gt; allow_write /etc/mtab~\$<br>
-&gt; allow_write /etc/mtab~\$<br>
-3338,3349c3338,3349<br>
-&lt; allow_create /etc/mtab~2328<br>
-&lt; allow_create /etc/mtab~2329<br>
-&lt; allow_create /etc/mtab~2330<br>
-&lt; allow_create /etc/mtab~2331<br>
-&lt; allow_create /etc/mtab~2332<br>
-&lt; allow_create /etc/mtab~2383<br>
-&lt; allow_link /etc/mtab~2328 /etc/mtab~<br>
-&lt; allow_link /etc/mtab~2329 /etc/mtab~<br>
-&lt; allow_link /etc/mtab~2330 /etc/mtab~<br>
-&lt; allow_link /etc/mtab~2331 /etc/mtab~<br>
-&lt; allow_link /etc/mtab~2332 /etc/mtab~<br>
-&lt; allow_link /etc/mtab~2383 /etc/mtab~<br>
----<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-3351,3356c3351,3356<br>
-&lt; allow_unlink /etc/mtab~2328<br>
-&lt; allow_unlink /etc/mtab~2329<br>
-&lt; allow_unlink /etc/mtab~2330<br>
-&lt; allow_unlink /etc/mtab~2331<br>
-&lt; allow_unlink /etc/mtab~2332<br>
-&lt; allow_unlink /etc/mtab~2383<br>
----<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-3439,3440c3439,3440<br>
-&lt; allow_write /etc/mtab~2302<br>
-&lt; allow_write /etc/mtab~2339<br>
----<br>
-&gt; allow_write /etc/mtab~\$<br>
-&gt; allow_write /etc/mtab~\$<br>
-3443,3446c3443,3446<br>
-&lt; allow_create /etc/mtab~2302<br>
-&lt; allow_create /etc/mtab~2339<br>
-&lt; allow_link /etc/mtab~2302 /etc/mtab~<br>
-&lt; allow_link /etc/mtab~2339 /etc/mtab~<br>
----<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
-3449,3450c3449,3450<br>
-&lt; allow_unlink /etc/mtab~2302<br>
-&lt; allow_unlink /etc/mtab~2339<br>
----<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-&gt; allow_unlink /etc/mtab~\$<br>
-</td></tr>
-</table>
-<p>ディスク上のドメインポリシーを更新します</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# cat /etc/tomoyo/domain_policy.tmp &gt; /etc/tomoyo/domain_policy.conf<br>
-</td></tr>
-</table>
-<p>ディスク上のドメインポリシーをカーネルに読み込みます。</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-loadpolicy df<br>
-</td></tr>
-</table>
-<p>カーネルに読み込まれているドメインポリシーが更新されていることを確認します。</p>
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-findtemp<br>
-/etc/mtab.tmp<br>
-/etc/mtab~<br>
-/halt<br>
-/selinux/disable<br>
-/selinux/enforce<br>
-/selinux/policyvers<br>
-/var/cache/samba/browse.dat.<br>
-/var/lib/nfs/etab.tmp<br>
-/var/lib/nfs/xtab.tmp<br>
-/var/lock/mrtg/mrtg_l<br>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -d
 </td></tr>
 </table>
 

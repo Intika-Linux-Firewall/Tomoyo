@@ -247,69 +247,13 @@ file read /usr/lib/locale/locale-archive
 </td></tr>
 </table>
 
-<hr>
-
-<h2>Step 4: Handling temporary files</h2>
-
-<p>You can not handle temporary files by simply using "learning mode" and "permissive mode". You need to interactively handle temporary files according to <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.<br>
-But if you want to convert temporary files into patterns non-interactively, you can do it as shown below.</p>
-
-<p>List up pathnames that can be temporary files.</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
-/etc/mtab.tmp<br>
-/etc/mtab~<br>
-/etc/mtab~2302<br>
-/etc/mtab~2328<br>
-/etc/mtab~2329<br>
-/etc/mtab~2330<br>
-/etc/mtab~2331<br>
-/etc/mtab~2332<br>
-/etc/mtab~2339<br>
-/etc/mtab~2383<br>
-/halt<br>
-/selinux/disable<br>
-/selinux/enforce<br>
-/selinux/policyvers<br>
-/tmp/sh-thd-1163110572<br>
-/tmp/sh-thd-1163113704<br>
-/var/cache/samba/browse.dat.<br>
-/var/lib/nfs/etab.tmp<br>
-/var/lib/nfs/xtab.tmp<br>
-/var/lock/mrtg/mrtg_l<br>
-</td></tr>
-</table>
-
-<p>We can consider that "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" are temporary files, thus we make patterns for these pathnames. First, we need to consider what patterns to use. In these examples, numeric seems decimal digits. Thus, we use \$ pattern which matches one or more repetitions of decimal digits.</p>
-
-<p>Append patterns to the exception policy.</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/ccs-loadpolicy -e<br>
-[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -e
-</td></tr>
-</table>
-
-<p>Replace "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$'</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/savepolicy -d | /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/loadpolicy -d
-</td></tr>
-</table>
-
 <p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save exception_policy.conf and domain_poilicy.conf using "ccs-savepolicy" command.</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/savepolicy a
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy a
 </td></tr>
 </table>
-
-<p>If the "WARNING:" messages are no longer printed after you have likely done everything you want Apache to allow, proceed to the next step. (You can ignore "Access TCP accept" warnings against /usr/sbin/httpd , for you will make the address and port number patterns at next phase.)</p>
 
 <p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this procedure.</p>
 

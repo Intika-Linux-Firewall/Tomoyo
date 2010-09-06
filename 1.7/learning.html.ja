@@ -247,69 +247,13 @@ allow_read /usr/lib/locale/locale-archive
 </td></tr>
 </table>
 
-<hr>
-
-<h2>ステップ４：テンポラリファイルに対処する</h2>
-
-<p>テンポラリファイルのように毎回異なるファイル名を持つ場合や、クライアントプログラムが利用するテンポラリなポート番号については、学習モードと確認モードでは対処できません。<a href="tool-editpolicy.html.ja#acl_editor">ポリシーエディタのパターン化支援機能</a>を用いて対話的に対処する必要があります。<br>
-ただし、テンポラリファイルのパス名をパターン化する処理は、以下のように非対話的に行うこともできます。</p>
-
-<p>テンポラリファイルの可能性があるパス名を抽出します。</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
-/etc/mtab.tmp<br>
-/etc/mtab~<br>
-/etc/mtab~2302<br>
-/etc/mtab~2328<br>
-/etc/mtab~2329<br>
-/etc/mtab~2330<br>
-/etc/mtab~2331<br>
-/etc/mtab~2332<br>
-/etc/mtab~2339<br>
-/etc/mtab~2383<br>
-/halt<br>
-/selinux/disable<br>
-/selinux/enforce<br>
-/selinux/policyvers<br>
-/tmp/sh-thd-1163110572<br>
-/tmp/sh-thd-1163113704<br>
-/var/cache/samba/browse.dat.<br>
-/var/lib/nfs/etab.tmp<br>
-/var/lib/nfs/xtab.tmp<br>
-/var/lock/mrtg/mrtg_l<br>
-</td></tr>
-</table>
-
-<p>「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」がテンポラリファイルであると考えられるので、これらのパターン化を行います。まず、どのようにパターン化するかを決めます。この例では１０進数数値であると考えられることから、１桁以上の１０進数数値一致する \$ を使います。</p>
-
-<p>例外ポリシーにパターンを追加します。</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/ccs-loadpolicy -e<br>
-[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -e
-</td></tr>
-</table>
-
-<p>ドメインポリシーの中の「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」を「 /etc/mtab~\$ 」および「 /tmp/sh-thd-\$ 」に置換します。</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/savepolicy -d | /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/loadpolicy -d
-</td></tr>
-</table>
-
 <p>メモリ上のポリシーを編集したため、このままではシャットダウンすると失われてしまいます。 ccs-savepolicy コマンドを使って exception_policy.conf と domain_poilicy.conf を保存するようにしてください。</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/savepolicy a
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy a
 </td></tr>
 </table>
-
-<p>もし、 Apache に対して許可したい操作を全て行っても WARNING: というメッセージが表示されなくなれば、次のステップへ進んでください。（次の章で IP アドレスとポート番号のパターン化を行うことになるので、 /usr/sbin/httpd に対する Access TCP accept という警告は無視して構いません。）</p>
 
 <p>TOMOYO Linux を使う目的が解析であれば、ここで解析は終了です。</p>
 
