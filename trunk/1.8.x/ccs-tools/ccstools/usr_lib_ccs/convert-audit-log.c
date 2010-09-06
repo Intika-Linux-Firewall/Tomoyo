@@ -130,22 +130,19 @@ int main(int argc, char *argv[])
 				break;
 			if (!fgets(buffer, sizeof(buffer) - 1, stdin))
 				break;
-			cp = strstr(buffer, " if ");
-			if (!cp)
-				cp = strchr(buffer, '\n');
+			cp = strchr(buffer, '\n');
 			if (!cp)
 				break;
 			*cp = '\0';
 			if (!strncmp(buffer, "use_profile ", 12) ||
-			    !strncmp(buffer, "execute_handler ", 16) ||
-			    !strncmp(buffer, "denied_execute_handler ", 23)) {
+			    !strncmp(buffer, "use_group ", 11)) {
 				cond_len = 0;
 				continue;
 			}
 			printf("<kernel>%s", domainname);
 			printf("%s", buffer);
 			if (cond_len) {
-				printf(" if%s", cond);
+				printf("%s", cond);
 				cond_len = 0;
 			}
 			putchar('\n');
