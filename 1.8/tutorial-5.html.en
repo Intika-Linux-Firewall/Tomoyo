@@ -20,7 +20,7 @@
 
 <h3>About conditional ACL</h3>
 
-<p>TOMOYO Linux does not support RBAC ( Role Based Access Control ). But you can specify conditions based on user ID in the policy configuration. Therefore, you can use access control based on system account's user ID. Conditions are appended at the tail of individual permissions in the form of "if condition". Available conditions are listed in Fig. 1 and usage examples are listed in Fig. 2.</p>
+<p>TOMOYO Linux does not support RBAC ( Role Based Access Control ). But you can specify conditions based on user ID in the policy configuration. Therefore, you can use access control based on system account's user ID. Conditions are appended at the tail of individual permissions. Available conditions are listed in Fig. 1 and usage examples are listed in Fig. 2.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -79,18 +79,18 @@
 &diams; Fig. 2&nbsp;&nbsp;Example of conditions<br>
 <table border="1" summary="fig">
 <tr><td>Condition</td><td>Meaning</td></tr>
-<tr><td>if task.uid=0</td><td>if process's user ID is 0 (i.e. "root" user)</td></tr>
-<tr><td>if task.uid!=0</td><td>if process's user ID is not 0 (i.e. not "root" user)</td></tr>
-<tr><td>if task.uid=100-500</td><td>if process's user ID is between 100 and 500</td></tr>
-<tr><td>if task.uid=0 task.gid=0</td><td>if both process's user ID is 0 and group ID is 0 (i.e. "root")</td></tr>
-<tr><td>if task.uid!=0 task.gid!=0</td><td>if both process's user ID is not 0 and group ID is not 0 (i.e. not "root")</td></tr>
-<tr><td>if task.uid=100-500 task.gid!=0</td><td>if process's user ID is between 100 and 500 and process's group ID is not 0</td></tr>
-<tr><td>if exec.argv[index]="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value matches "value"</td></tr>
-<tr><td>if exec.argv[index]!="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value does not match "value"</td></tr>
-<tr><td>if exec.envp["name"]="value"</td><td>if environment variable "name" is defined and its value matches "value"</td></tr>
-<tr><td>if exec.envp["name"]!="value"</td><td>if environment variable "name" is  not defined or its value does not match "value"</td></tr>
-<tr><td>if exec.envp["name"]!=NULL</td><td>if environment variable "name" is defined</td></tr>
-<tr><td>if exec.envp["name"]=NULL</td><td>if environment variable "name" is not defined</td></tr>
+<tr><td>task.uid=0</td><td>if process's user ID is 0 (i.e. "root" user)</td></tr>
+<tr><td>task.uid!=0</td><td>if process's user ID is not 0 (i.e. not "root" user)</td></tr>
+<tr><td>task.uid=100-500</td><td>if process's user ID is between 100 and 500</td></tr>
+<tr><td>task.uid=0 task.gid=0</td><td>if both process's user ID is 0 and group ID is 0 (i.e. "root")</td></tr>
+<tr><td>task.uid!=0 task.gid!=0</td><td>if both process's user ID is not 0 and group ID is not 0 (i.e. not "root")</td></tr>
+<tr><td>task.uid=100-500 task.gid!=0</td><td>if process's user ID is between 100 and 500 and process's group ID is not 0</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value matches "value"</td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value does not match "value"</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>if environment variable "name" is defined and its value matches "value"</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>if environment variable "name" is  not defined or its value does not match "value"</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>if environment variable "name" is defined</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>if environment variable "name" is not defined</td></tr>
 </table>
 </td></tr>
 </table>
@@ -186,10 +186,10 @@ file read /tmp/testfile2
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 10&nbsp;&nbsp;Adding permissions with conditions<br>(&diams; You may specify "file read /tmp/testfile\+ if task.uid=path1.uid" instead for these lines.)
+&diams; Fig. 10&nbsp;&nbsp;Adding permissions with conditions<br>(&diams; You may specify "file read /tmp/testfile\+ task.uid=path1.uid" instead for these lines.)
 <pre>
-file read /tmp/testfile1 if task.uid=path1.uid
-file read /tmp/testfile2 if task.uid=path1.uid
+file read /tmp/testfile1 task.uid=path1.uid
+file read /tmp/testfile2 task.uid=path1.uid
 </pre>
 </td></tr>
 </table>
@@ -240,7 +240,7 @@ cat: /tmp/testfile2: Operation not permitted
 [Before modification]
 file execute /bin/bash
 [After modification]
-file execute /bin/bash if task.uid!=0
+file execute /bin/bash task.uid!=0
 </pre>
 </td></tr>
 </table>
@@ -254,7 +254,7 @@ file execute /bin/bash if task.uid!=0
 [Before modification]
 file execute /bin/bash
 [After modification]
-file execute /bin/bash if task.uid=500-1000
+file execute /bin/bash task.uid=500-1000
 </pre>
 </td></tr>
 </table>
@@ -462,7 +462,7 @@ WARNING: Domain 'domainname' has so many ACLs to hold. Stopped learning mode.
 <tr><td>
 &diams; Fig. 31&nbsp;&nbsp;Permission which is too strict to apply
 <pre>
-file execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
+file execute /usr/bin/id task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
 </pre>
 </td></tr>
 </table>

@@ -69,7 +69,7 @@
 </td></tr>
 </table>
 
-<p>Let's group these commands using "path_group" keyword in exception policy. (Fig. 3) But do not use "path_group" keyword for programs which behaves differently depending on invocation name (a.k.a. argv[0]) and specify such programs individually (e.g. file execute /usr/bin/passwd if exec.argv[0]="passwd") using "if exec.argv[0]" conditions.</p>
+<p>Let's group these commands using "path_group" keyword in exception policy. (Fig. 3) But do not use "path_group" keyword for programs which behaves differently depending on invocation name (a.k.a. argv[0]). Instead, specify such programs individually (e.g. file execute /usr/bin/passwd exec.argv[0]="passwd").</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -239,28 +239,28 @@ file rename @HOME_DIR @HOME_DIR
 <li>Allow renaming directories if both old and new pathnames are under user's home directory</li>
 </ul>
 
-<p>Note that by modification in Fig. 11, "user's home directory" does not include ~/.ssh/ and ~/.ssh/\* . Above example does not check symbolic link's targets when creating symbolic links. TOMOYO Linux restricts reading and/or writing files based on dereferenced pathnames. Thus, the symbolic link's pathname does not matter. When executing programs, users can set arbitrary values to argv[0]. But "if exec.argv[0]" should be specified if programs in COMMANDS_FOR_LOGIN group are affected by argv[0]. Thus, users cannot execute arbitrary commands by creating symbolic links of hard links of busybox command. Users can create hard links only if files are under user's home directory. Thus, users cannot create hard link of /etc/shadow in order to access password file via user's home directory. Same for rename.</p>
+<p>Note that by modification in Fig. 11, "user's home directory" does not include ~/.ssh/ and ~/.ssh/\* . Above example does not check symbolic link's targets when creating symbolic links. TOMOYO Linux restricts reading and/or writing files based on dereferenced pathnames. Thus, the symbolic link's pathname does not matter. When executing programs, users can set arbitrary values to argv[0]. But exec.argv[0] should be specified if programs in COMMANDS_FOR_LOGIN group are affected by argv[0]. Thus, users cannot execute arbitrary commands by creating symbolic links of hard links of busybox command. Users can create hard links only if files are under user's home directory. Thus, users cannot create hard link of /etc/shadow in order to access password file via user's home directory. Same for rename.</p>
 
 <h3>Allow accessing only owned files</h3>
 
-<p>By changing user's home directory's permission to 0700, you can prevent other users from accessing your home directory. But sometimes you have to loosen home directory's permission in order to allow Apache to access ~/public_html/ directory. In that case, you can forbid accesses which cannot be prevented by home directory's permissions by adding "if task.uid=path1.uid" condition to individual permissions. Namely, replace Fig. 12 by Fig. 13.</p>
+<p>By changing user's home directory's permission to 0700, you can prevent other users from accessing your home directory. But sometimes you have to loosen home directory's permission in order to allow Apache to access ~/public_html/ directory. In that case, you can forbid accesses which cannot be prevented by home directory's permissions by adding task.uid=path1.uid condition to individual permissions. Namely, replace Fig. 12 by Fig. 13.</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 13&nbsp;&nbsp;Allowing accessing files owned by the user
 <pre>
 file execute @COMMANDS_FOR_LOGIN
-file read/write @HOME_FILE if task.uid=path1.uid
-file create @HOME_FILE 00-0666 if task.uid=path1.parent.uid
-file unlink @HOME_FILE if task.uid=path1.uid
-file symlink @HOME_FILE if task.uid=path1.parent.uid
-file link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-file rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-file truncate @HOME_FILE if task.uid=path1.uid
-file append @HOME_FILE if task.uid=path1.uid
-file mkdir @HOME_DIR 00-0777 if task.uid=path1.parent.uid
-file rmdir @HOME_DIR if task.uid=path1.uid
-file rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file read/write @HOME_FILE task.uid=path1.uid
+file create @HOME_FILE 00-0666 task.uid=path1.parent.uid
+file unlink @HOME_FILE task.uid=path1.uid
+file symlink @HOME_FILE task.uid=path1.parent.uid
+file link @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file rename @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file truncate @HOME_FILE task.uid=path1.uid
+file append @HOME_FILE task.uid=path1.uid
+file mkdir @HOME_DIR 00-0777 task.uid=path1.parent.uid
+file rmdir @HOME_DIR task.uid=path1.uid
+file rename @HOME_DIR @HOME_DIR task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 </pre>
 </td></tr>
 </table>

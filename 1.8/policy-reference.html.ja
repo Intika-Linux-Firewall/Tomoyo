@@ -29,7 +29,7 @@
 <p>6.2 <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
 <p>6.3 <a href="#transit_on_match">アクセスを許可するのと同時にドメイン遷移を行う</a></p>
 <p>6.4 <a href="#sleep_penalty">ポリシー違反時のペナルティ指定</a></p>
-<p>6.5 <a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
+<p>6.5 <a href="#auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
 <p>6.6 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
 <hr>
 
@@ -110,7 +110,6 @@
 
 <ul>
 <li><a href="#domain_policy_file_execute">file execute</a></li>
-<li><a href="#domain_policy_file_transit">file transit</a></li>
 <li><a href="#domain_policy_file_read">file read</a></li>
 <li><a href="#domain_policy_file_write">file write</a></li>
 <li><a href="#domain_policy_file_append">file append</a></li>
@@ -137,8 +136,8 @@
 <li><a href="#domain_policy_ipc_signal">ipc signal</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_use_group">use_group</a></li>
-<li><a href="#domain_policy_execute_handler">execute_handler</a></li>
-<li><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a></li>
+<li><a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a></li>
+<li><a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 <li><a href="#domain_policy_transition_failed">transition_failed</a></li>
 </ul>
@@ -433,22 +432,22 @@ Query lists: 1048576
 <p>ただし、例外として</p>
 
 <ul>
-<li>上記手順の「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」のどちらかに於いて拒否されたが、プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードが指定されている</li>
-<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている</li>
+<li>上記手順の「<a href="#exec_stage_check_execute">権限のチェック</a>」「<a href="#exec_stage_check_destination">遷移先の決定</a>」のどちらかに於いて拒否されたが、プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> キーワードが指定されている</li>
+<li>プログラムの実行を要求したプロセスの属しているドメインに <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> キーワードが指定されている</li>
 </ul>
 
 <p>のどちらかに該当し、かつ、</p>
 
 <ul>
-<li>プログラムの実行を要求したプロセスが <a href="#domain_policy_execute_handler">execute_handler</a> キーワードまたは <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> キーワードにより起動されたプロセスではない</li>
+<li>プログラムの実行を要求したプロセスが <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> キーワードまたは <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> キーワードにより起動されたプロセスではない</li>
 </ul>
 
-<p>場合には、以下の手順を実行します。この例外の使い方については「<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>」と「<a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a>」で説明します。</p>
+<p>場合には、以下の手順を実行します。この例外の使い方については「<a href="#auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a>」と「<a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a>」で説明します。</p>
 
 <table border="1">
 <tr><td>Step</td><td>内容</td></tr>
 <tr><td>プログラム名の取得</td><td>
-<p><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> または <a href="#domain_policy_execute_handler">execute_handler</a> で指定されているプログラムのパス名を取得し、「パス名候補」とします。</p>
+<p><a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> または <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> で指定されているプログラムのパス名を取得し、「パス名候補」とします。</p>
 </td></tr>
 <tr><td>情報の追加</td><td>
 <p>全ての環境変数を引数の末尾に追加し、全ての環境変数を削除します。</p>
@@ -554,16 +553,16 @@ use_profile 1
 
 <p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash /bin/audit-exec-param /bin/cat というドメインが新規作成され、プロファイルとして 1 が割り当てられたことを示しています。 TOMOYO Linux では、ドメインが自動的に新規作成されていきます。自動的に新規作成された場合には、ドメインを新規作成することになったプロセスの属しているドメインに割り当てられていたプロファイル番号が引き継がれます。</p>
 
-<p>次の例は、<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
+<p>次の例は、<a href="#auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
 <table border="1">
 <tr><td>
 #2010-01-13 21:05:22# profile=1 mode=learning (global-pid=3007) task={ pid=3007 ppid=2991 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=360482 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=851969 perm=0755 } exec={ realpath="/bin/audit-exec-param" argc=29 envc=0 argv[]={ "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=3007\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0" "/bin/cat" "2" "20" "cat" "/etc/fstab" "HOSTNAME=tomoyo" "SHELL=/bin/bash" "TERM=vt100" "HISTSIZE=1000" "SSH_CLIENT=192.168.1.2\0402845\04022" "SSH_TTY=/dev/pts/0" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/sbin:/root/bin:/usr/sbin" "MAIL=/var/spool/mail/root" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LOGNAME=root" "CVS_RSH=ssh" "SSH_CONNECTION=192.168.1.2\0402845\040192.168.1.7\04022" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/cat" } envp[]={ } }<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash<br>
-execute_handler /bin/audit-exec-param
+task auto_execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=3007\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0" "/bin/cat" "2" "20" "cat" "/etc/fstab" "HOSTNAME=tomoyo" "SHELL=/bin/bash" "TERM=vt100" "HISTSIZE=1000" "SSH_CLIENT=192.168.1.2\0402845\04022" "SSH_TTY=/dev/pts/0" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/sbin:/root/bin:/usr/sbin" "MAIL=/var/spool/mail/root" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LOGNAME=root" "CVS_RSH=ssh" "SSH_CONNECTION=192.168.1.2\0402845\040192.168.1.7\04022" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/cat" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
+<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 task auto_execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=3007\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0" "/bin/cat" "2" "20" "cat" "/etc/fstab" "HOSTNAME=tomoyo" "SHELL=/bin/bash" "TERM=vt100" "HISTSIZE=1000" "SSH_CLIENT=192.168.1.2\0402845\04022" "SSH_TTY=/dev/pts/0" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/sbin:/root/bin:/usr/sbin" "MAIL=/var/spool/mail/root" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LOGNAME=root" "CVS_RSH=ssh" "SSH_CONNECTION=192.168.1.2\0402845\040192.168.1.7\04022" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/cat" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
 
 <p>このように、アクセスログは 3 行で 1 件（ /usr/sbin/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシーとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
 
@@ -578,7 +577,7 @@ execute_handler /bin/audit-exec-param
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-file execute /bin/cat if exec.argc=2 exec.realpath="/bin/cat" exec.argv[0]="cat" exec.argv[1]="/etc/fstab"
+file execute /bin/cat exec.argc=2 exec.realpath="/bin/cat" exec.argv[0]="cat" exec.argv[1]="/etc/fstab"
 </td></tr>
 </table>
 
@@ -587,7 +586,7 @@ file execute /bin/cat if exec.argc=2 exec.realpath="/bin/cat" exec.argv[0]="cat"
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-file execute /bin/cat if exec.realpath="/bin/cat" exec.argv[0]="cat"
+file execute /bin/cat exec.realpath="/bin/cat" exec.argv[0]="cat"
 </td></tr>
 </table>
 
@@ -876,10 +875,6 @@ cat /proc/ccs/domain_policy</p>
 <p>（例） file execute /bin/ls</p>
 <p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_aggregator">aggregator</a></p>
 
-<h3><a name="domain_policy_file_transit">file transit</a></h3>
-<p>プログラムの実行を伴わないで指定されたパス名のドメインに遷移することを許可します。</p>
-<p>（例） file transit //app=cgi1\040id=10000</p>
-
 <h3><a name="domain_policy_file_write">file write</a></h3>
 <p>指定されたパス名を書き込みモードでオープンすることを許可します。</p>
 <p>（例） file write /dev/null</p>
@@ -1042,17 +1037,17 @@ file chroot /</p>
 <p>ネットワークのアクセス許可を指定するには、 network というキーワードに続けて、プロトコル（ TCP UDP RAW の何れか）、 IP アドレス、ポート番号（ TCP UDP の場合）またはプロトコル番号（ RAW の場合）を指定します。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象です。</p>
 <table border="1">
 <tr><td>キーワード</td><td>許可されるアクセス</td><td>指定例</td></tr>
-<tr><td>network TCP bind</td><td>ローカルの TCP アドレス／ポートの割り当て</td><td>network TCP bind 0.0.0.0 80</td></tr>
-<tr><td>network TCP listen</td><td>ローカルの TCP アドレス／ポートでの待機</td><td>network TCP listen 0.0.0.0 80</td></tr>
-<tr><td>network TCP accept</td><td>リモートの TCP アドレス／ポートからの接続受付および通信</td><td>network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
-<tr><td>network TCP connect</td><td>リモートの TCP アドレス／ポートへの接続および通信</td><td>network TCP connect 127.0.0.1 1024-65535</td></tr>
-<tr><td>network UDP bind</td><td>ローカルの UDP アドレス／ポートの割り当て</td><td>network UDP bind 0.0.0.0 53</td></tr>
+<tr><td>network inet stream bind</td><td>ローカルの TCP アドレス／ポートの割り当て</td><td>network inet stream bind 0.0.0.0 80</td></tr>
+<tr><td>network inet stream listen</td><td>ローカルの TCP アドレス／ポートでの待機</td><td>network inet stream listen 0.0.0.0 80</td></tr>
+<tr><td>network inet stream accept</td><td>リモートの TCP アドレス／ポートからの接続受付および通信</td><td>network inet stream accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
+<tr><td>network inet stream connect</td><td>リモートの TCP アドレス／ポートへの接続および通信</td><td>network inet stream connect 127.0.0.1 1024-65535</td></tr>
+<tr><td>network inet dgram bind</td><td>ローカルの UDP アドレス／ポートの割り当て</td><td>network inet dgram bind 0.0.0.0 53</td></tr>
 
-<tr><td>network UDP send</td><td>指定されたアドレス／ポート番号への UDP パケットの送信</td><td>network UDP send 127.0.0.1 53</td></tr>
-<tr><td>network UDP recv</td><td>指定されたアドレス／ポート番号からの UDP パケットの受信</td><td>network UDP recv 127.0.0.1 53</td></tr>
-<tr><td>network RAW bind</td><td>ローカルの IP アドレス／プロトコルの割り当て</td><td>network RAW bind 127.0.0.1 255</td></tr>
-<tr><td>network RAW send</td><td>指定されたアドレス／ポート番号への IP パケットの送信</td><td>network RAW send 10.0.0.1 1</td></tr>
-<tr><td>network RAW recv</td><td>指定されたアドレス／ポート番号からの IP パケットの受信</td><td>network RAW recv 10.0.0.1 1</td></tr>
+<tr><td>network inet dgram send</td><td>指定されたアドレス／ポート番号への UDP パケットの送信</td><td>network inet dgram send 127.0.0.1 53</td></tr>
+<tr><td>network inet dgram recv</td><td>指定されたアドレス／ポート番号からの UDP パケットの受信</td><td>network inet dgram recv 127.0.0.1 53</td></tr>
+<tr><td>network inet raw bind</td><td>ローカルの IP アドレス／プロトコルの割り当て</td><td>network inet raw bind 127.0.0.1 255</td></tr>
+<tr><td>network inet raw send</td><td>指定されたアドレス／ポート番号への IP パケットの送信</td><td>network inet raw send 10.0.0.1 1</td></tr>
+<tr><td>network inet raw recv</td><td>指定されたアドレス／ポート番号からの IP パケットの受信</td><td>network inet raw recv 10.0.0.1 1</td></tr>
 </table>
 <p>IPv6 で使われる "::" という表記はサポートされていません。 "::1" ではなく "0:0:0:0:0:0:0:1" のように表記する必要があります。</p>
 
@@ -1075,19 +1070,19 @@ file chroot /</p>
 
 <p>これは、このドメインに対して割り当てられているグループ番号を示しています。グループ番号は 0 ～ 255 の値をとります。</p>
 
-<h3><a name="domain_policy_execute_handler">execute_handler</a></h3>
+<h3><a name="domain_policy_task_auto_execute_handler">task auto_execute_handler</a></h3>
 
 <p>これは、このドメインに対しては常にこのキーワードで指定されたプログラムだけを実行することを示しています。特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
 
 <p>このキーワードが指定されている場合、 <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
 
-<p>関連項目： <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> <a href="#domain_policy_file_execute">file execute</a></p>
+<p>関連項目： <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> <a href="#domain_policy_file_execute">file execute</a></p>
 
-<h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
+<h3><a name="domain_policy_task_denied_execute_handler">task denied_execute_handler</a></h3>
 
 <p>これは、 <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
 
-<p>ただし、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
+<p>ただし、ドメインに対して <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
@@ -1185,7 +1180,7 @@ address_group local-address 192.168.0.0-192.168.255.255
 
 <table border="1">
 <tr><td>
-network TCP accept @local-address 1024-65535
+network inet stream accept @local-address 1024-65535
 </td></tr>
 </table>
 
@@ -1368,17 +1363,17 @@ chown -R demo /proc/ccs/
 
 <h2>6.2 <a name="conditional_acl">条件付きアクセス許可の指定</a></h2>
 
-<p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができます。条件は個々のアクセス許可の末尾に " if " 句を追加する形で指定します。</p>
+<p>アクセス許可にユーザＩＤ等に基づいた条件を付加することができます。条件は個々のアクセス許可の末尾に追加する形で指定します。</p>
 
 <table border="1">
 <tr><td>指定例</td><td>意味</td></tr>
 <tr><td>file read /etc/passwd</td><td>/etc/passwd の参照を許可</td></tr>
-<tr><td>file read /etc/passwd if task.uid=0</td><td>プロセスのユーザＩＤが 0 の場合に限り、 /etc/passwd の参照を許可</td></tr>
-<tr><td>file read /etc/passwd if task.uid!=0</td><td>プロセスのユーザＩＤが 0 ではない場合に限り、 /etc/passwd の参照を許可</td></tr>
-<tr><td>network TCP connect 10.0.0.1 80</td><td>TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
-<tr><td>network TCP connect 10.0.0.1 80 if task.uid=100</td><td>プロセスのユーザＩＤが 100 の場合に限り、 TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
+<tr><td>file read /etc/passwd task.uid=0</td><td>プロセスのユーザＩＤが 0 の場合に限り、 /etc/passwd の参照を許可</td></tr>
+<tr><td>file read /etc/passwd task.uid!=0</td><td>プロセスのユーザＩＤが 0 ではない場合に限り、 /etc/passwd の参照を許可</td></tr>
+<tr><td>network inet stream connect 10.0.0.1 80</td><td>TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
+<tr><td>network inet stream connect 10.0.0.1 80 task.uid=100</td><td>プロセスのユーザＩＤが 100 の場合に限り、 TCP プロトコルで 10.0.0.1 ポート 80 への接続を許可</td></tr>
 <tr><td>capability SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
-<tr><td>capability SYS_PTRACE if task.ppid=1 task.uid=0 task.euid=0</td><td>親プロセスが /sbin/init であり、かつ、プロセスのユーザＩＤと実効ユーザＩＤが 0 の場合に限り、 ptrace(2) の使用を許可</td></tr>
+<tr><td>capability SYS_PTRACE task.ppid=1 task.uid=0 task.euid=0</td><td>親プロセスが /sbin/init であり、かつ、プロセスのユーザＩＤと実効ユーザＩＤが 0 の場合に限り、 ptrace(2) の使用を許可</td></tr>
 </table>
 
 <p>以下の変数を指定できます。</p>
@@ -1538,7 +1533,7 @@ chown -R demo /proc/ccs/
 <h4>例</h4>
 
 <ul>
-<li>file append /dev/null if path1.type=char path1.major=1 path1.minor=3 path1.perm=0666
+<li>file append /dev/null path1.type=char path1.major=1 path1.minor=3 path1.perm=0666
 </ul>
 
 <p>「パス名が /dev/null 」「ファイル種別がキャラクタデバイスファイル」「デバイスメジャー番号が 1 」「デバイスマイナー番号が 3 」「パーミッションが 0666 」の場合のみ「読み書きモードでのオープンを許可する」という意味になります。</p>
@@ -1585,28 +1580,28 @@ chown -R demo /proc/ccs/
 
 <p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシー違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
 
-<h2>6.5 <a name="execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
+<h2>6.5 <a name="auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
 
 <p>TOMOYO Linux では、原則としてポリシーに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">条件付きアクセス許可の指定</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
 
-<p>そこで、 TOMOYO Linux では <a href="#domain_policy_execute_handler">execute_handler</a> という仕組みがサポートされています。この仕組みは、プログラムの実行可否をカーネルが判断するのではなく、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムが判断し、プログラムの実行を許可すべきと判断した場合には実際にプログラムを実行するという動作をします。</p>
+<p>そこで、 TOMOYO Linux では <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> という仕組みがサポートされています。この仕組みは、プログラムの実行可否をカーネルが判断するのではなく、 <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> により指定されたプログラムが判断し、プログラムの実行を許可すべきと判断した場合には実際にプログラムを実行するという動作をします。</p>
 
 <p>Linux に於いては、プログラムを実行するという動作は、プログラムの実行を要求したプロセスを上書きするという動作であり、プログラムの実行に成功した場合にはプログラムの実行を要求したプロセスに制御が戻ることはありません。つまり、要求されたプログラムの実行に失敗した場合にしか、プログラムの実行を要求したプロセスに対して、要求されたプログラムが実行されなかったことが通知されません。<br>
 例えば、プログラムＡとして動作しているプロセスがプログラムＢの実行を要求する場合を考えてみます。<br>
 プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、カーネルが「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」をポリシーを照合することで判断し、適切であると判断された場合には「プログラムＡとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＡとして動作しているプロセスにプログラムＢの実行が認められていないことを通知」します。</p>
 
-<p><a href="#domain_policy_execute_handler">execute_handler</a> を指定した場合、 execute_handler として指定されたプログラムＣがこの動作に介在します。<br>
+<p><a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> を指定した場合、 task auto_execute_handler として指定されたプログラムＣがこの動作に介在します。<br>
 プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、プログラムＣに「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」を判断してもらうために「プログラムＡとして動作しているプロセスをプログラムＣで上書き」します。プログラムＣとして動作するようになったプロセスが「プログラムＡとして動作していたプロセスからプログラムＢを実行することは適切であるかどうか」を判断し、適切であると判断した場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書きせずに終了」します。</p>
 
 <p>このように、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスがに対して、プログラムＢの実行に失敗したことを通知する手段を放棄することになるため、プログラムＢの実行を要求したプログラムＡとして動作していたプロセスが、プログラムＢが実行されなかったという通知を受けることができなくなるという副作用が発生します。<br>
-しかし、たとえ <a href="#domain_policy_execute_handler">execute_handler</a> を指定していない場合であっても、「共有ライブラリの読み込みができなかった」「 KILL シグナルを受信した」「メモリ不足になり OOM killer によって強制終了させられた」など、様々な要因によって「実行には成功したが期待された動作を始める前に終了してしまった」という状況が起こりえます。つまり、「プログラムの実行が失敗しなかった」ということと「要求されたプログラムが期待した動作を始めた」ということの間には、不確定要素が存在します。<br>
-そう考えると、「プログラムの実行に失敗したという通知が無い限りプログラムは期待された動作を始める」という保証は最初から存在しないわけなので、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムＣが、プログラムＢの実行に失敗したことをプログラムＢの実行を要求したプログラムＡとして動作していたプロセスに通知できなかったという結果になったとしても、容認できる範囲であると言えると思います。</p>
+しかし、たとえ <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> を指定していない場合であっても、「共有ライブラリの読み込みができなかった」「 KILL シグナルを受信した」「メモリ不足になり OOM killer によって強制終了させられた」など、様々な要因によって「実行には成功したが期待された動作を始める前に終了してしまった」という状況が起こりえます。つまり、「プログラムの実行が失敗しなかった」ということと「要求されたプログラムが期待した動作を始めた」ということの間には、不確定要素が存在します。<br>
+そう考えると、「プログラムの実行に失敗したという通知が無い限りプログラムは期待された動作を始める」という保証は最初から存在しないわけなので、 <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> により指定されたプログラムＣが、プログラムＢの実行に失敗したことをプログラムＢの実行を要求したプログラムＡとして動作していたプロセスに通知できなかったという結果になったとしても、容認できる範囲であると言えると思います。</p>
 
-<p>TOMOYO Linux は、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、正常な動作をしている限り、ポリシーで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求をとりあえず受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、 <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
+<p>TOMOYO Linux は、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、正常な動作をしている限り、ポリシーで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求をとりあえず受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、 <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
 
-<p>そこで、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
+<p>そこで、ドメインに対して <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
 <p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
-カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、 <a href="#domain_policy_execute_handler">execute_handler</a> で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
+カーネルの外部であれば豊富なライブラリを使ってメモリ割り当ての限界を心配せずに詳細なチェックが可能になります。そこで、 <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> で指定したプログラムにプログラム実行時のパラメータをチェックしてもらい、適切であればプログラムを実行してもらうようにすることができます。</p>
 
 <p>この方式の副作用は、プログラムの実行を拒否すべきと判断した場合に、プログラムの実行を要求したプロセスに通知する方法が無い点です。しかし、自由にカスタマイズできるので、 ssh 等を用いて遠隔地のマシンに問い合わせをしながらしながら判断することも可能です。</p>
 
@@ -1614,13 +1609,13 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
-<tr><td>execute_handler /usr/sbin/check-and-exec</td><td>このドメインに属しているプロセスがプログラムの実行を要求した場合、要求されたプログラムを実行する代わりに /usr/sbin/check-and-exec を実行します。 /usr/sbin/check-and-exec はパラメータをチェックし、妥当と判断した場合には要求されたプログラムを実行します。</td></tr>
+<tr><td>task auto_execute_handler /usr/sbin/check-and-exec</td><td>このドメインに属しているプロセスがプログラムの実行を要求した場合、要求されたプログラムを実行する代わりに /usr/sbin/check-and-exec を実行します。 /usr/sbin/check-and-exec はパラメータをチェックし、妥当と判断した場合には要求されたプログラムを実行します。</td></tr>
 </table>
 
-<p>execute_handler で指定されたプログラムは、以下のパラメータを受け取ります。<a href="#access_logs">アクセスログについて</a>で説明した、 file execute のログと比較してみてください。</p>
+<p>task auto_execute_handler で指定されたプログラムは、以下のパラメータを受け取ります。<a href="#access_logs">アクセスログについて</a>で説明した、 file execute のログと比較してみてください。</p>
 
 <ul>
-<li>argv[0] には、 execute_handler で指定されたプログラムのパス名が入っています。</li>
+<li>argv[0] には、 task auto_execute_handler で指定されたプログラムのパス名が入っています。</li>
 <li>argv[1] には、プログラムの実行を要求したプロセスのドメイン名が入っています。</li>
 <li>argv[2] には、プログラムの実行を要求したプロセスのパス名が入っています。</li>
 <li>argv[3] には、プログラムの実行を要求したプロセスの情報が入っています。</li>
@@ -1636,10 +1631,10 @@ chown -R demo /proc/ccs/
 <p>この機能を使用する際には、以下の点に注意してください。</p>
 
 <ul>
-<li>execute_handler で指定されたプログラムに対して実行許可（ <a href="#domain_policy_file_execute">file execute</a> ）を与える必要はありませんし、与えるべきではありません。</li>
-<li>プロセスが chroot 内部の環境で動作している場合、 execute_handler で指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスが chroot 内部の環境で動作している場合に、 chroot 外部の環境にあるプログラムを実行できてしまうと危険なので、 execute_handler で指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
-<li>execute_handler で指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば &lt;kernel&gt; 直下に execute_handler で指定されたプログラム用のドメインを作成して、そのプログラムを <a href="#exception_policy_initialize_domain">initialize_domain</a> キーワードで指定するなどの準備をしてください。</li>
-<li>execute_handler で指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、 execute_handler で指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
+<li>task auto_execute_handler で指定されたプログラムに対して実行許可（ <a href="#domain_policy_file_execute">file execute</a> ）を与える必要はありませんし、与えるべきではありません。</li>
+<li>プロセスが chroot 内部の環境で動作している場合、 task auto_execute_handler で指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスが chroot 内部の環境で動作している場合に、 chroot 外部の環境にあるプログラムを実行できてしまうと危険なので、 task auto_execute_handler で指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
+<li>task auto_execute_handler で指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば &lt;kernel&gt; 直下に task auto_execute_handler で指定されたプログラム用のドメインを作成して、そのプログラムを <a href="#exception_policy_initialize_domain">initialize_domain</a> キーワードで指定するなどの準備をしてください。</li>
+<li>task auto_execute_handler で指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、 task auto_execute_handler で指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
 </ul>
 
 <p>ccs-tools のソースパッケージには、 audit-exec-param.c というサンプルプログラムが入っています。ご自由に改造してお使いください。</p>
@@ -1675,10 +1670,10 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
-<tr><td>3-CONFIG::file::execute=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
+<tr><td>3-CONFIG::file::execute=enforcing</td><td>use_profile 3<br>task denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
 </table>
 
-<p>この機能を使用する際の注意事項は<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
+<p>この機能を使用する際の注意事項は<a href="#auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
 
 <hr>
 
