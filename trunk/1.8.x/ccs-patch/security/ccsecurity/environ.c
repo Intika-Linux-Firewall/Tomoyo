@@ -76,15 +76,15 @@ static bool ccs_same_env_entry(const struct ccs_acl_info *a,
 /**
  * ccs_write_env - Write "struct ccs_env_acl" list.
  *
- * @data:  String to parse.
  * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_env(char *data, struct ccs_acl_param *param)
+static int ccs_write_env(struct ccs_acl_param *param)
 {
 	struct ccs_env_acl e = { .head.type = CCS_TYPE_ENV_ACL };
 	int error = -ENOMEM;
+	const char *data = ccs_read_token(param);
 	if (!ccs_correct_word(data) || strchr(data, '='))
 		return -EINVAL;
 	e.env = ccs_get_name(data);
@@ -96,9 +96,9 @@ static int ccs_write_env(char *data, struct ccs_acl_param *param)
 	return error;
 }
 
-int ccs_write_misc(char *data, struct ccs_acl_param *param)
+int ccs_write_misc(struct ccs_acl_param *param)
 {
-	if (ccs_str_starts(&data, "env "))
-		return ccs_write_env(data, param);
+	if (ccs_str_starts(&param->data, "env "))
+		return ccs_write_env(param);
 	return -EINVAL;
 }

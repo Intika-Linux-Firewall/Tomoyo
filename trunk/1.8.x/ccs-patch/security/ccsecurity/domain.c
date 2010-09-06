@@ -112,9 +112,13 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		type == CCS_TYPE_AUTO_TASK_ACL;
 	const bool is_delete = param->is_delete;
 	struct ccs_domain_info * const domain = param->domain;
-	new_entry->cond = param->condition;
+	if (param->data[0]) {
+		new_entry->cond = ccs_get_condition(param->data);
+		if (!new_entry->cond)
+			return -EINVAL;
+	}
 	if (mutex_lock_interruptible(&ccs_policy_lock))
-		return error;
+		goto out;
 	list_for_each_entry_rcu(entry, &domain->acl_info_list[i], list) {
 		if (!ccs_same_acl_head(entry, new_entry) ||
 		    !check_duplicate(entry, new_entry))
@@ -130,14 +134,14 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 	if (error && !is_delete) {
 		entry = ccs_commit_ok(new_entry, size);
 		if (entry) {
-			if (entry->cond)
-				atomic_inc(&entry->cond->head.users);
 			list_add_tail_rcu(&entry->list,
 					  &domain->acl_info_list[i]);
 			error = 0;
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
+	ccs_put_condition(new_entry->cond);
 	return error;
 }
 

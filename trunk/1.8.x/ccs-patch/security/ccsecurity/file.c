@@ -441,7 +441,7 @@ static int ccs_update_path_acl(const u16 perm, struct ccs_acl_param *param)
 		.perm = perm
 	};
 	int error;
-	if (!ccs_parse_name_union(param->w[1], &e.name))
+	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
 		error = -EINVAL;
 	else
 		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -493,10 +493,10 @@ static int ccs_update_mkdev_acl(const u8 perm, struct ccs_acl_param *param)
 		.perm = perm
 	};
 	int error;
-	if (!ccs_parse_name_union(param->w[1], &e.name) ||
-	    !ccs_parse_number_union(param->w[2], &e.mode) ||
-	    !ccs_parse_number_union(param->w[3], &e.major) ||
-	    !ccs_parse_number_union(param->w[4], &e.minor))
+	if (!ccs_parse_name_union(ccs_read_token(param), &e.name) ||
+	    !ccs_parse_number_union(ccs_read_token(param), &e.mode) ||
+	    !ccs_parse_number_union(ccs_read_token(param), &e.major) ||
+	    !ccs_parse_number_union(ccs_read_token(param), &e.minor))
 		error = -EINVAL;
 	else
 		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -549,8 +549,8 @@ static int ccs_update_path2_acl(const u8 perm, struct ccs_acl_param *param)
 		.perm = perm
 	};
 	int error;
-	if (!ccs_parse_name_union(param->w[1], &e.name1) ||
-	    !ccs_parse_name_union(param->w[2], &e.name2))
+	if (!ccs_parse_name_union(ccs_read_token(param), &e.name1) ||
+	    !ccs_parse_name_union(ccs_read_token(param), &e.name2))
 		error = -EINVAL;
 	else
 		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -585,10 +585,10 @@ static int ccs_update_mount_acl(struct ccs_acl_param *param)
 {
 	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL };
 	int error;
-	if (!ccs_parse_name_union(param->w[1], &e.dev_name) ||
-	    !ccs_parse_name_union(param->w[2], &e.dir_name) ||
-	    !ccs_parse_name_union(param->w[3], &e.fs_type) ||
-	    !ccs_parse_number_union(param->w[4], &e.flags))
+	if (!ccs_parse_name_union(ccs_read_token(param), &e.dev_name) ||
+	    !ccs_parse_name_union(ccs_read_token(param), &e.dir_name) ||
+	    !ccs_parse_name_union(ccs_read_token(param), &e.fs_type) ||
+	    !ccs_parse_number_union(ccs_read_token(param), &e.flags))
 		error = -EINVAL;
 	else
 		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -984,8 +984,8 @@ static int ccs_update_path_number_acl(const u8 perm,
 		.perm = perm
 	};
 	int error;
-	if (!ccs_parse_name_union(param->w[1], &e.name) ||
-	    !ccs_parse_number_union(param->w[2], &e.number))
+	if (!ccs_parse_name_union(ccs_read_token(param), &e.name) ||
+	    !ccs_parse_number_union(ccs_read_token(param), &e.number))
 		error = -EINVAL;
 	else
 		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -1168,38 +1168,36 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 /**
  * ccs_write_file - Update file related list.
  *
- * @data:  String to parse.
  * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_file(char *data, struct ccs_acl_param *param)
+int ccs_write_file(struct ccs_acl_param *param)
 {
 	u16 perm = 0;
 	u8 type;
-	if (!ccs_tokenize(data, param->w, sizeof(param->w)))
-		return -EINVAL;
+	const char *operation = ccs_read_token(param);
 	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
-		if (ccs_permstr(param->w[0], ccs_path_keyword[type]))
+		if (ccs_permstr(operation, ccs_path_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path_acl(perm, param);
 	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++)
-		if (ccs_permstr(param->w[0], ccs_path2_keyword[type]))
+		if (ccs_permstr(operation, ccs_path2_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path2_acl(perm, param);
 	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++)
-		if (ccs_permstr(param->w[0], ccs_path_number_keyword[type]))
+		if (ccs_permstr(operation, ccs_path_number_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path_number_acl(perm, param);
 	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++)
-		if (ccs_permstr(param->w[0], ccs_mkdev_keyword[type]))
+		if (ccs_permstr(operation, ccs_mkdev_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_mkdev_acl(perm, param);
-	if (ccs_permstr(param->w[0], "mount"))
+	if (ccs_permstr(operation, "mount"))
 		return ccs_update_mount_acl(param);
 	return -EINVAL;
 }

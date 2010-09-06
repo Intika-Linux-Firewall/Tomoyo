@@ -39,7 +39,6 @@
 
 <ul>
 <li><a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a></li>
-<li><a href="#profile_CONFIG::file::transit">CONFIG::file::transit</a></li>
 <li><a href="#profile_CONFIG::file::open">CONFIG::file::open</a></li>
 <li><a href="#profile_CONFIG::file::create">CONFIG::file::create</a></li>
 <li><a href="#profile_CONFIG::file::unlink">CONFIG::file::unlink</a></li>
@@ -86,7 +85,6 @@
 <li><a href="#profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></li>
 <li><a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a></li>
 <li><a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a></li>
-<li><a href="#profile_PREFERENCE::permissive">PREFERENCE::permissive</a></li>
 <li><a href="#profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></li>
 </ul>
 
@@ -632,10 +630,6 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>プログラムの実行およびドメイン遷移に対する強制アクセス制御のレベルを指定します。</p>
 
-<h3><a name="profile_CONFIG::file::transit">CONFIG::file::transit</a></h3>
-
-<p>プログラムの実行を伴わないドメイン遷移に対する強制アクセス制御のレベルを指定します。</p>
-
 <h3><a name="profile_CONFIG::file::open">CONFIG::file::open</a></h3>
 
 <p>読み込みまたは書き込みモードでのファイルのオープンに対する強制アクセス制御のレベルを指定します。</p>
@@ -824,8 +818,6 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>学習モードに関する設定を指定します。</p>
 
-<p>verbose= にはポリシー違反を表示するかどうかを指定します。</p>
-
 <p>max_entry= には自動的に追加されるアクセス許可の上限を指定します。</p>
 
 <p>exec.realpath= にはプログラムの実行許可を追加するときに、プログラムの実体のパス名も学習するかどうかを指定します。</p>
@@ -834,17 +826,9 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>symlink.target= にはシンボリックリンクの作成許可を追加するときに、シンボリックリンクの内容も学習するかどうかを指定します。</p>
 
-<h3><a name="profile_PREFERENCE::permissive">PREFERENCE::permissive</a></h3>
-
-<p>確認モードに関する設定を指定します。</p>
-
-<p>verbose= にはポリシーに対する違反を表示するかどうかを指定します。</p>
-
 <h3><a name="profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></h3>
 
 <p>強制モードに関する設定を指定します。</p>
-
-<p>verbose= にはポリシーに対する違反を表示するかどうかを指定します。</p>
 
 <p>penalty= にはポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。</p>
 

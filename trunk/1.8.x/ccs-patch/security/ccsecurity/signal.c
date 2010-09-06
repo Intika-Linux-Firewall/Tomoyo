@@ -159,34 +159,32 @@ static bool ccs_same_signal_entry(const struct ccs_acl_info *a,
 /**
  * ccs_write_signal - Write "struct ccs_signal_acl" list.
  *
- * @data:  String to parse.
  * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_signal(char *data, struct ccs_acl_param *param)
+static int ccs_write_signal(struct ccs_acl_param *param)
 {
 	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL };
 	int error;
 	int sig;
-	char *domainname = strchr(data, ' ');
-	if (sscanf(data, "%d", &sig) != 1 || !domainname ||
-	    !ccs_correct_domain(domainname + 1))
+	if (sscanf(ccs_read_token(param), "%d", &sig) != 1)
 		return -EINVAL;
 	e.sig = sig;
-	e.domainname = ccs_get_name(domainname + 1);
+	e.domainname = ccs_get_domainname(param);
 	if (!e.domainname)
-		return -ENOMEM;
-	error = ccs_update_domain(&e.head, sizeof(e), param,
-				  ccs_same_signal_entry, NULL);
+		error = -EINVAL;
+	else
+		error = ccs_update_domain(&e.head, sizeof(e), param,
+					  ccs_same_signal_entry, NULL);
 	ccs_put_name(e.domainname);
 	return error;
 }
 
-int ccs_write_ipc(char *data, struct ccs_acl_param *param)
+int ccs_write_ipc(struct ccs_acl_param *param)
 {
-	if (ccs_str_starts(&data, "signal "))
-		return ccs_write_signal(data, param);
+	if (ccs_str_starts(&param->data, "signal "))
+		return ccs_write_signal(param);
 	return -EINVAL;
 }
 

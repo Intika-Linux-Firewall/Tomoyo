@@ -794,30 +794,6 @@ static bool ccs_manager(void)
 }
 
 /**
- * ccs_find_condition_part - Find condition part from the statement.
- *
- * @data: String to parse.
- *
- * Returns pointer to the condition part if it was found in the statement,
- * NULL otherwise.
- */
-static char *ccs_find_condition_part(char *data)
-{
-	char *cp = strstr(data, " if ");
-	if (cp) {
-		while (1) {
-			char *cp2 = strstr(cp + 3, " if ");
-			if (!cp2)
-				break;
-			cp = cp2;
-		}
-		*cp = '\0';
-		cp += 4;
-	}
-	return cp;
-}
-
-/**
  * ccs_select_one - Parse select command.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -892,26 +868,30 @@ static bool ccs_same_task_acl(const struct ccs_acl_info *a,
 /**
  * ccs_write_task - Update task related list.
  *
- * @data:  String to parse.
  * @param: Pointer to "struct ccs_acl_param".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_task(char *data, struct ccs_acl_param *param)
+static int ccs_write_task(struct ccs_acl_param *param)
 {
 	int error;
-	const bool is_auto = ccs_str_starts(&data, "auto_domain_transition ");
-	if (!is_auto && !ccs_str_starts(&data, "manual_domain_transition ")) {
+	const bool is_auto = ccs_str_starts(&param->data,
+					    "auto_domain_transition ");
+	if (!is_auto && !ccs_str_starts(&param->data,
+					"manual_domain_transition ")) {
 		struct ccs_handler_acl e = { };
-		if (ccs_str_starts(&data, "auto_execute_handler "))
+		char *handler;
+		if (ccs_str_starts(&param->data, "auto_execute_handler "))
 			e.head.type = CCS_TYPE_AUTO_EXECUTE_HANDLER;
-		else if (ccs_str_starts(&data, "denied_execute_handler "))
+		else if (ccs_str_starts(&param->data,
+					"denied_execute_handler "))
 			e.head.type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
 		else
 			return -EINVAL;
-		if (!ccs_correct_path(data))
+		handler = ccs_read_token(param);
+		if (!ccs_correct_path(handler))
 			return -EINVAL;
-		e.handler = ccs_get_name(data);
+		e.handler = ccs_get_name(handler);
 		if (!e.handler)
 			return -ENOMEM;
 		if (e.handler->is_patterned)
@@ -923,15 +903,14 @@ static int ccs_write_task(char *data, struct ccs_acl_param *param)
 	} else {
 		struct ccs_task_acl e = {
 			.head.type = is_auto ?
-			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL
+			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL,
+			.domainname = ccs_get_domainname(param),
 		};
-		if (!ccs_correct_domain(data))
-			return -EINVAL;
-		e.domainname = ccs_get_name(data);
 		if (!e.domainname)
-			return -ENOMEM;
-		error = ccs_update_domain(&e.head, sizeof(e), param,
-					  ccs_same_task_acl, NULL);
+			error = -EINVAL;
+		else
+			error = ccs_update_domain(&e.head, sizeof(e), param,
+						  ccs_same_task_acl, NULL);
 		ccs_put_name(e.domainname);
 	}
 	return error;
@@ -941,12 +920,13 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 			     const bool is_delete)
 {
 	struct ccs_acl_param param = {
+		.data = data,
 		.domain = domain,
 		.is_delete = is_delete,
 	};
 	static const struct {
 		const char *keyword;
-		int (*write) (char *, struct ccs_acl_param *);
+		int (*write) (struct ccs_acl_param *);
 	} ccs_callback[7] = {
 		{ "file ", ccs_write_file },
 		{ "network inet ", ccs_write_inet_network },
@@ -956,23 +936,13 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 		{ "ipc ", ccs_write_ipc },
 		{ "task ", ccs_write_task },
 	};
-	int error = -EINVAL;
 	u8 i;
-	char *cp = ccs_find_condition_part(data);
-	if (cp) {
-		param.condition = ccs_get_condition(cp);
-		if (!param.condition)
-			return -EINVAL;
-	}
 	for (i = 0; i < 7; i++) {
-		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
+		if (!ccs_str_starts(&param.data, ccs_callback[i].keyword))
 			continue;
-		error = ccs_callback[i].write(data, &param);
-		break;
+		return ccs_callback[i].write(&param);
 	}
-	if (param.condition)
-		ccs_put_condition(param.condition);
-	return error;
+	return -EINVAL;
 }
 
 static const char *ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
@@ -1122,11 +1092,8 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 {
 	switch (head->r.cond_step) {
 	case 0:
-		{ 
-			ccs_set_string(head, " if");
-			head->r.cond_index = 0;
-			head->r.cond_step++;
-		}
+		head->r.cond_index = 0;
+		head->r.cond_step++;
 		/* fall through */
 	case 1:
 		{
@@ -2008,7 +1975,6 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 			vsnprintf(buffer, len - 1, fmt, args);
 			va_end(args);
 			if (handler || realpath || argv0 || symlink) {
-				ccs_addprintf(buffer, len, " if");
 				if (handler)
 					ccs_addprintf(buffer, len, " task.%s",
 						      handler);

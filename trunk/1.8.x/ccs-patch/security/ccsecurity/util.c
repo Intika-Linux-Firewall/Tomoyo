@@ -97,6 +97,35 @@ bool ccs_permstr(const char *string, const char *keyword)
 	return false;
 }
 
+char *ccs_read_token(struct ccs_acl_param *param)
+{
+	char *pos = param->data;
+	char *del = strchr(pos, ' ');
+	if (del)
+		*del++ = '\0';
+	else
+		del = pos + strlen(pos);
+	param->data = del;
+	return pos;
+}
+
+const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param)
+{
+	char *start = param->data;
+	char *pos = start;
+	while (*pos) {
+		if (*pos++ != ' ' || *pos++ == '/')
+			continue;
+		pos -= 2;
+		*pos++ = '\0';
+		break;
+	}
+	param->data = pos;
+	if (ccs_correct_domain(start))
+		return ccs_get_name(start);
+	return NULL;
+}
+
 /**
  * ccs_parse_ulong - Parse an "unsigned long" value.
  *
