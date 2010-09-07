@@ -825,68 +825,23 @@ static void ccs_unescape(unsigned char *dest)
 	*dest = '\0';
 }
 
-/**
- * ccs_root_depth - Get number of directories to strip.
- *
- * @dentry: Pointer to "struct dentry".
- * @vfsmnt: Pointer to "struct vfsmount".
- *
- * Returns number of directories to strip.
- */
-static inline int ccs_root_depth(struct dentry *dentry,
-				 struct vfsmount *vfsmnt)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+static int ccs_copy_argv(const char *arg, struct linux_binprm *bprm)
 {
-	int depth = 0;
-	ccs_realpath_lock();
-	for (;;) {
-		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
-			/* Global root? */
-			if (vfsmnt->mnt_parent == vfsmnt)
-				break;
-			dentry = vfsmnt->mnt_mountpoint;
-			vfsmnt = vfsmnt->mnt_parent;
-			continue;
-		}
-		dentry = dentry->d_parent;
-		depth++;
-	}
-	ccs_realpath_unlock();
-	return depth;
+	const int ret = copy_strings_kernel(1, &arg, bprm);
+	if (ret >= 0)
+		bprm->argc++;
+	return ret;
 }
-
-/**
- * ccs_get_root_depth - return the depth of root directory.
- *
- * Returns number of directories to strip.
- */
-static int ccs_get_root_depth(void)
+#else
+static int ccs_copy_argv(char *arg, struct linux_binprm *bprm)
 {
-	int depth;
-	struct dentry *dentry;
-	struct vfsmount *vfsmnt;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	struct path root;
-#endif
-	read_lock(&current->fs->lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	root = current->fs->root;
-	path_get(&current->fs->root);
-	dentry = root.dentry;
-	vfsmnt = root.mnt;
-#else
-	dentry = dget(current->fs->root);
-	vfsmnt = mntget(current->fs->rootmnt);
-#endif
-	read_unlock(&current->fs->lock);
-	depth = ccs_root_depth(dentry, vfsmnt);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	path_put(&root);
-#else
-	dput(dentry);
-	mntput(vfsmnt);
-#endif
-	return depth;
+	const int ret = copy_strings_kernel(1, &arg, bprm);
+	if (ret >= 0)
+		bprm->argc++;
+	return ret;
 }
+#endif
 
 /**
  * ccs_try_alt_exec - Try to start execute handler.
@@ -957,35 +912,29 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 
 	/* Set argv[6] */
 	{
-		char *cp = ee->tmp;
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%d", original_envc);
-		retval = copy_strings_kernel(1, &cp, bprm);
+		retval = ccs_copy_argv(ee->tmp, bprm);
 		if (retval < 0)
 			goto out;
-		bprm->argc++;
 	}
 
 	/* Set argv[5] */
 	{
-		char *cp = ee->tmp;
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%d", original_argc);
-		retval = copy_strings_kernel(1, &cp, bprm);
+		retval = ccs_copy_argv(ee->tmp, bprm);
 		if (retval < 0)
 			goto out;
-		bprm->argc++;
 	}
 
 	/* Set argv[4] */
 	{
-		retval = copy_strings_kernel(1, &bprm->filename, bprm);
+		retval = ccs_copy_argv(bprm->filename, bprm);
 		if (retval < 0)
 			goto out;
-		bprm->argc++;
 	}
 
 	/* Set argv[3] */
 	{
-		char *cp = ee->tmp;
 		const u32 ccs_flags = task->ccs_flags;
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1,
 			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
@@ -997,67 +946,81 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 			 current_fsuid(), current_fsgid(),
 			 (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
 			 (u8) (ccs_flags >> 8));
-		retval = copy_strings_kernel(1, &cp, bprm);
+		retval = ccs_copy_argv(ee->tmp, bprm);
 		if (retval < 0)
 			goto out;
-		bprm->argc++;
 	}
 
 	/* Set argv[2] */
 	{
 		char *exe = (char *) ccs_get_exe();
 		if (exe) {
-			retval = copy_strings_kernel(1, &exe, bprm);
+			retval = ccs_copy_argv(exe, bprm);
 			kfree(exe);
 		} else {
-			exe = ee->tmp;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+			retval = ccs_copy_argv("<unknown>", bprm);
+#else
 			snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<unknown>");
-			retval = copy_strings_kernel(1, &exe, bprm);
+			retval = ccs_copy_argv(ee->tmp, bprm);
+#endif
 		}
 		if (retval < 0)
 			goto out;
-		bprm->argc++;
 	}
 
 	/* Set argv[1] */
 	{
-		char *cp = ee->tmp;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+		retval = ccs_copy_argv(ccs_current_domain()->domainname->name,
+				       bprm);
+#else
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s",
 			 ccs_current_domain()->domainname->name);
-		retval = copy_strings_kernel(1, &cp, bprm);
+		retval = ccs_copy_argv(ee->tmp, bprm);
+#endif
 		if (retval < 0)
 			goto out;
-		bprm->argc++;
 	}
 
 	/* Set argv[0] */
 	{
-		int depth = ccs_get_root_depth();
-		int len = ee->handler->total_len + 1;
-		char *cp = kmalloc(len, CCS_GFP_FLAGS);
+		struct path root;
+		char *cp;
+		int root_len;
+		int handler_len;
+		get_fs_root(current->fs, &root);
+		cp = ccs_realpath_from_path(&root);
+		path_put(&root);
+		if (!cp) {
+			retval = -ENOMEM;
+			goto out;
+		}
+		root_len = strlen(cp);
+		retval = strncmp(ee->handler->name, cp, root_len);
+		root_len--;
+		kfree(cp);
+		if (retval) {
+			retval = -ENOENT;
+			goto out;
+		}
+		handler_len = ee->handler->total_len + 1;
+		cp = kmalloc(handler_len, CCS_GFP_FLAGS);
 		if (!cp) {
 			retval = -ENOMEM;
 			goto out;
 		}
 		ee->handler_path = cp;
-		memmove(cp, ee->handler->name, len);
+		/* Adjust root directory for open_exec(). */
+		memmove(cp, ee->handler->name + root_len,
+			handler_len - root_len);
 		ccs_unescape(cp);
 		retval = -ENOENT;
 		if (!*cp || *cp != '/')
 			goto out;
-		/* Adjust root directory for open_exec(). */
-		while (depth) {
-			cp = strchr(cp + 1, '/');
-			if (!cp)
-				goto out;
-			depth--;
-		}
-		memmove(ee->handler_path, cp, strlen(cp) + 1);
-		cp = ee->handler_path;
-		retval = copy_strings_kernel(1, &cp, bprm);
+		retval = ccs_copy_argv(cp, bprm);
 		if (retval < 0)
 			goto out;
-		bprm->argc++;
 	}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
