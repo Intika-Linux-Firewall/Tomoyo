@@ -278,11 +278,11 @@ The logs are in the form of domain policy so that the logs can be directly appen
 </tr>
 <tr>
 <td>no</td>
-<td>Don't record "access granted logs" unless "audit=yes" is explicitly specified in the individual ACL entry.</td>
+<td>Don't record "access granted logs" unless "grant_log=yes" is explicitly specified in the individual ACL entry.</td>
 </tr>
 <tr>
 <td>yes</td>
-<td>Record "access granted logs" unless "audit=no" is explicitly specified in the individual ACL entry.</td>
+<td>Record "access granted logs" unless "grant_log=no" is explicitly specified in the individual ACL entry.</td>
 </tr>
 </table>
 <p>You can give the following values for reject_log= parameter of CONFIG line.</p>
@@ -341,7 +341,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 </td></tr>
 </table>
 
-<p>If you don't want neither "access granted logs" nor "access rejected logs", you needn't to run "ccs-auditd" and you can give PREFERENCE::audit= { max_grant_log=0 max_reject_log=0 } for profiles to save memory and improve performance.</p>
+<p>If you don't want neither "access granted logs" nor "access rejected logs", you needn't to run "ccs-auditd" and you can give PREFERENCE::audit={ max_grant_log=0 max_reject_log=0 } for profiles to save memory and improve performance.</p>
 
 <hr>
 
