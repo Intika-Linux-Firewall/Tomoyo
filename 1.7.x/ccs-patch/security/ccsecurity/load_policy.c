@@ -241,7 +241,7 @@ static int __ccs_search_binary_handler(struct linux_binprm *bprm,
  */
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
 extern spinlock_t vfsmount_lock;
 #endif
 
@@ -268,7 +268,7 @@ const struct ccsecurity_exports ccsecurity_exports = {
 	.put_filesystem = put_filesystem,
 	.sys_getppid = sys_getppid,
 	.sys_getpid = sys_getpid,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
 	.vfsmount_lock = &vfsmount_lock,
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)

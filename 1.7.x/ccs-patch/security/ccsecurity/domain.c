@@ -1010,6 +1010,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 			retval = -ENOMEM;
 			goto out;
 		}
+		/* ee->handler_path is released by ccs_finish_execve(). */
 		ee->handler_path = cp;
 		/* Adjust root directory for open_exec(). */
 		memmove(cp, ee->handler->name + root_len,
