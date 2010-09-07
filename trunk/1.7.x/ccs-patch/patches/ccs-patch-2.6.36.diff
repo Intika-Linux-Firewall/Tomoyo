@@ -842,7 +842,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
  		return 0;
 -	return security_ops->path_truncate(path);
-+	error = security_ops->path_truncate(path, length, time_attrs);
++	error = security_ops->path_truncate(path);
 +	if (!error)
 +		error = ccs_truncate_permission(path->dentry, path->mnt, 0, 0);
 +	return error;

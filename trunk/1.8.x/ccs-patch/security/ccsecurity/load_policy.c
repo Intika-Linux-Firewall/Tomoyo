@@ -241,7 +241,7 @@ static int __ccs_search_binary_handler(struct linux_binprm *bprm,
  */
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
 extern spinlock_t vfsmount_lock;
 #endif
 
