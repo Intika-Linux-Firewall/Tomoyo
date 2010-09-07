@@ -2570,45 +2570,40 @@ Fix 2010/09/01
       "ignore_global_allow_read" and "ignore_global_allow_env" directives were
       removed from domain policy and "use_group" keyword was added.
 
+    @ Remove "if" and "; set" keyword.
+
+      I removed need for specifying these keyword.
+      You can simply specify like below.
+
+        file read /etc/shadow task.uid=0
+
+    @ Remove per-profile preference.
+
+      I removed per profile preference in order to make code simpler.
+
     @ Allow controlling generation of access granted logs for per an entry
       basis.
 
       I added per-entry flag which controls generation of grant logs because
       Xen and KVM issues ioctl requests so frequently. For example,
 
-        file ioctl /dev/null 0x5401 if audit=no
+        file ioctl /dev/null 0x5401 audit=no
 
-      will suppress /proc/ccs/grant_log even if profile says grant_log=yes .
+      will suppress /proc/ccs/grant_log even if preference says grant_log=yes .
 
-        file ioctl /dev/null 0x5401 if audit=yes
+        file ioctl /dev/null 0x5401 audit=yes
 
-      will generate /proc/ccs/grant_log even if profile says grant_log=no .
+      will generate /proc/ccs/grant_log even if preference says grant_log=no .
 
         file ioctl /dev/null 0x5401
 
-      will generate /proc/ccs/grant_log only if profile says grant_log=yes .
+      will generate /proc/ccs/grant_log only if preference says grant_log=yes .
 
       This flag is intended for frequently accessed resources like
 
-        file read /var/www/html/\{\*\}/\*.html if audit=no
+        file read /var/www/html/\{\*\}/\*.html audit=no
 
       .
-
-    @ Change profile structure.
-
-      To make it clear that preferences can be specified by per-profile basis,
-      I removed global preference ("PREFERENCE::"). Now, you need to explicitly
-      specify per-profile preference ("$profilenumber-PREFERENCE::").
-      
-      I changed default mode for access grant logs from "yes" to "no".
-      You may change mode to "yes" if you want all grant logs to be generated.
-      You may override mode using "if audit=yes" if you want specific grant
-      logs to be generated.
-
-      Since printing all warning/error messages to console is noisy,
-      I changed verbose mode control from per-preference basis to
-      per-functionality basis. Now, you can selectively print warning/error
-      messages.
 
     @ Automatically create domain by execve() even if enforcing mode.
 
@@ -2643,14 +2638,14 @@ Fix 2010/09/01
     @ Add "task auto_domain_transition".
 
       This is similar to "task manual_domain_transition", but is automatically
-      applied if conditions are met. For example,
+      applied whenever conditions are met. For example,
 
-        task auto_domain_transition <kernel> //./non-root if task.uid!=0
+        task auto_domain_transition <kernel> //./non-root task.uid!=0
 
       will automatically jump to "<kernel> //./non-root" domain if current
       process's UID is not 0 whereas
 
-        task manual_domain_transition <kernel> //./non-root if task.uid!=0
+        task manual_domain_transition <kernel> //./non-root task.uid!=0
 
       will jump to "<kernel> //./non-root" domain if current process's UID is
       not 0 and current process wrote "<kernel> //./non-root" + '\n' to

@@ -187,7 +187,7 @@ static void clear_status(void)
 		exit(1);
 	}
 	for (i = 0; keywords[i]; i++)
-		fprintf(profile_fp, "255-CONFIG::%s=disabled verbose=no "
+		fprintf(profile_fp, "255-CONFIG::%s=disabled "
 			"grant_log=no reject_log=no\n", keywords[i]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 10, fp)) {
@@ -207,24 +207,22 @@ static void clear_status(void)
 		if (!strcmp(cp, "COMMENT"))
 			mode = "Profile for kernel test\n";
 		else
-			mode = "disabled verbose=no grant_log=no reject_log=no"
+			mode = "disabled grant_log=no reject_log=no"
 				"\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
-	/* fprintf(profile_fp, "255-PREFERENCE::enforcing= penalty=1\n"); */
+	/* fprintf(profile_fp, "PREFERENCE::enforcing= penalty=1\n"); */
 	/*
-	  fprintf(profile_fp, "255-PREFERENCE::learning= verbose=yes\n");
-	  fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=yes\n");
-	  fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=yes\n");
-	  fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=yes\n");
+	  fprintf(profile_fp, "PREFERENCE::learning= verbose=yes\n");
+	  fprintf(profile_fp, "PREFERENCE::enforcing= verbose=yes\n");
+	  fprintf(profile_fp, "PREFERENCE::permissive= verbose=yes\n");
+	  fprintf(profile_fp, "PREFERENCE::disabled= verbose=yes\n");
 	*/
-	/*
-	  fprintf(profile_fp, "255-PREFERENCE::learning= verbose=no\n");
-	  fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=no\n");
-	  fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=no\n");
-	  fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=no\n");
-	  fprintf(profile_fp, "255-PREFERENCE::learning= max_entry=2048\n");
-	*/
+	fprintf(profile_fp, "PREFERENCE::learning= verbose=no\n");
+	fprintf(profile_fp, "PREFERENCE::enforcing= verbose=no\n");
+	fprintf(profile_fp, "PREFERENCE::permissive= verbose=no\n");
+	fprintf(profile_fp, "PREFERENCE::disabled= verbose=no\n");
+	fprintf(profile_fp, "PREFERENCE::learning= max_entry=2048\n");
 	fflush(profile_fp);
 	fclose(fp);
 }

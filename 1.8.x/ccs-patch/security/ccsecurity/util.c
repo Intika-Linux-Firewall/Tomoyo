@@ -1009,8 +1009,20 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 	va_list args;
 	char *buffer;
 	const struct ccs_domain_info * const domain = ccs_current_domain();
-	if (!(ccs_get_config(domain->profile, r->type) & CCS_CONFIG_VERBOSE))
-		return;
+	switch (r->mode) {
+        case CCS_CONFIG_ENFORCING:
+                if (!ccs_preference.enforcing_verbose)
+                        return;
+                break;
+        case CCS_CONFIG_PERMISSIVE:
+                if (!ccs_preference.permissive_verbose)
+                        return;
+                break;
+        case CCS_CONFIG_LEARNING:
+                if (!ccs_preference.learning_verbose)
+                        return;
+                break;
+        }
 	buffer = kmalloc(4096, CCS_GFP_FLAGS);
 	if (!buffer)
 		return;
@@ -1079,8 +1091,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			if (perm & (1 << i))
 				count++;
 	}
-	if (count < ccs_profile(domain->profile)->preference.
-	    learning_max_entry)
+	if (count < ccs_preference.learning_max_entry)
 		return true;
 	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
 		domain->flags[CCS_DIF_QUOTA_WARNED] = true;

@@ -355,9 +355,6 @@ enum ccs_policy_id {
 #define CCS_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
 #define CCS_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
 #define CCS_KEYWORD_PATH_GROUP                "path_group "
-#define CCS_KEYWORD_PREFERENCE_AUDIT          "PREFERENCE::audit"
-#define CCS_KEYWORD_PREFERENCE_ENFORCING      "PREFERENCE::enforcing"
-#define CCS_KEYWORD_PREFERENCE_LEARNING       "PREFERENCE::learning"
 #define CCS_KEYWORD_NUMBER_GROUP              "number_group "
 #define CCS_KEYWORD_SELECT                    "select "
 #define CCS_KEYWORD_USE_PROFILE               "use_profile "
@@ -392,7 +389,6 @@ enum ccs_mode_value {
 	CCS_CONFIG_PERMISSIVE,
 	CCS_CONFIG_ENFORCING,
 	CCS_CONFIG_MAX_MODE,
-	CCS_CONFIG_VERBOSE         =  32,
 	CCS_CONFIG_WANT_REJECT_LOG =  64,
 	CCS_CONFIG_WANT_GRANT_LOG  = 128,
 	CCS_CONFIG_USE_DEFAULT     = 255
@@ -961,14 +957,18 @@ struct ccs_preference {
 #endif
 	unsigned int learning_max_entry;
 	unsigned int enforcing_penalty;
+	bool audit_task_info;
+	bool audit_path_info;
+	bool enforcing_verbose;
+	bool learning_verbose;
 	bool learning_exec_realpath;
 	bool learning_exec_argv0;
 	bool learning_symlink_target;
+	bool permissive_verbose;
 };
 
 struct ccs_profile {
 	const struct ccs_path_info *comment;
-	struct ccs_preference preference;
 	u8 default_config;
 	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 		  + CCS_MAX_MAC_CATEGORY_INDEX];
@@ -1152,6 +1152,7 @@ extern const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION];
 extern const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION];
 extern const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION];
 extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
+extern struct ccs_preference ccs_preference;	
 extern unsigned int ccs_log_memory_size;
 extern unsigned int ccs_quota_for_log;
 extern unsigned int ccs_query_memory_size;
