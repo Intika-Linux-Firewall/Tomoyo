@@ -278,11 +278,11 @@ file read /etc/fstab
 </tr>
 <tr>
 <td>no</td>
-<td>アクセス許可ログを生成しない。ただし、個別のアクセス許可で audit=yes と指定されている場合には生成する。</td>
+<td>アクセス許可ログを生成しない。ただし、個別のアクセス許可で grant_log=yes と指定されている場合には生成する。</td>
 </tr>
 <tr>
 <td>yes</td>
-<td>アクセス許可ログを生成する。ただし、個別のアクセス許可で audit=no と指定されている場合には生成しない。</td>
+<td>アクセス許可ログを生成する。ただし、個別のアクセス許可で grant_log=no と指定されている場合には生成しない。</td>
 </tr>
 </table>
 <p>プロファイルの CONFIG 行で指定されている reject_log については以下の値を指定できます。</p>
@@ -341,7 +341,7 @@ file read /etc/fstab
 </td></tr>
 </table>
 
-<p>アクセス許可ログ・アクセス拒否ログのどちらも保存しない場合には ccs-auditd を実行する必要はありません。また、プロファイルで PREFERENCE::audit= { max_grant_log=0 max_reject_log=0 } を指定しておくことで、消費メモリの節約と応答速度の向上が期待できます。</p>
+<p>アクセス許可ログ・アクセス拒否ログのどちらも保存しない場合には ccs-auditd を実行する必要はありません。また、プロファイルで PREFERENCE::audit={ max_grant_log=0 max_reject_log=0 } を指定しておくことで、消費メモリの節約と応答速度の向上が期待できます。</p>
 
 <hr>
 

@@ -2587,11 +2587,11 @@ Fix 2010/09/01
       I added per-entry flag which controls generation of grant logs because
       Xen and KVM issues ioctl requests so frequently. For example,
 
-        file ioctl /dev/null 0x5401 audit=no
+        file ioctl /dev/null 0x5401 grant_log=no
 
       will suppress /proc/ccs/grant_log even if preference says grant_log=yes .
 
-        file ioctl /dev/null 0x5401 audit=yes
+        file ioctl /dev/null 0x5401 grant_log=yes
 
       will generate /proc/ccs/grant_log even if preference says grant_log=no .
 
@@ -2601,7 +2601,7 @@ Fix 2010/09/01
 
       This flag is intended for frequently accessed resources like
 
-        file read /var/www/html/\{\*\}/\*.html audit=no
+        file read /var/www/html/\{\*\}/\*.html grant_log=no
 
       .
 

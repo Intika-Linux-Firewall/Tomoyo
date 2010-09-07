@@ -451,7 +451,7 @@ static inline bool ccs_same_condition(const struct ccs_condition *p1,
 		p1->numbers_count == p2->numbers_count &&
 		p1->names_count == p2->names_count &&
 		p1->argc == p2->argc && p1->envc == p2->envc &&
-		p1->audit == p2->audit && p1->transit == p2->transit &&
+		p1->grant_log == p2->grant_log && p1->transit == p2->transit &&
 		!memcmp(p1 + 1, p2 + 1, p1->size - sizeof(*p1));
 }
 
@@ -550,15 +550,15 @@ struct ccs_condition *ccs_get_condition(char *condition)
 			start = "";
 		}
 		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
-		if (!strncmp(word, "audit=", 6)) {
+		if (!strncmp(word, "grant_log=", 10)) {
 			if (!dry_run) {
-				word += 6;
-				if (entry->audit)
+				word += 10;
+				if (entry->grant_log)
 					goto out;
 				else if (!strcmp(word, "yes"))
-					entry->audit = 2;
+					entry->grant_log = 2;
 				else if (!strcmp(word, "no"))
-					entry->audit = 1;
+					entry->grant_log = 1;
 				else
 					goto out;
 			}

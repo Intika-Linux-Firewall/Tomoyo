@@ -379,8 +379,8 @@ static bool ccs_get_audit(const u8 profile, const u8 index,
 	if (!ccs_policy_loaded)
 		return false;
 	if (is_granted && matched_acl && matched_acl->cond &&
-	    matched_acl->cond->audit)
-		return matched_acl->cond->audit == 2;
+	    matched_acl->cond->grant_log)
+		return matched_acl->cond->grant_log == 2;
 	mode = ccs_profile(profile)->config[index];
 	if (mode == CCS_CONFIG_USE_DEFAULT)
 		mode = ccs_profile(profile)->config[category];
