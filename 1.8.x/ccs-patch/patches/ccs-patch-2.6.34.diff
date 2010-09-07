@@ -872,10 +872,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +	error = security_ops->path_rename(old_dir, old_dentry, new_dir,
 +					  new_dentry);
 +	if (!error)
-+		error =  ccs_rename_permission(old_dir->dentry->d_inode,
-+					       old_dentry,
-+					       new_dir->dentry->d_inode,
-+					       new_dentry, new_dir->mnt);
++		error = ccs_rename_permission(old_dir->dentry->d_inode,
++					      old_dentry,
++					      new_dir->dentry->d_inode,
++					      new_dentry, new_dir->mnt);
 +	return error;
  }
  
