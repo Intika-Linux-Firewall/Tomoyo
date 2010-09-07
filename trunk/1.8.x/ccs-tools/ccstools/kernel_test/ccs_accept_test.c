@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 {
 	ccs_test_init();
 	set_profile(0, "file");
-	fprintf(profile_fp, "255-PREFERENCE::learning={ max_entry=2048 }\n");
+	fprintf(profile_fp, "PREFERENCE::learning={ max_entry=2048 }\n");
 	{
 		int append_loop;
 		for (append_loop = 0; append_loop < 2; append_loop++) {
