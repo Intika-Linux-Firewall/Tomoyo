@@ -531,7 +531,7 @@ struct ccs_condition {
 	u16 names_count;
 	u16 argc;
 	u16 envc;
-	u8 audit;
+	u8 grant_log;
 	const struct ccs_path_info *transit; /* This may be NULL. */
 	/*
 	 * struct ccs_condition_element condition[condc];
