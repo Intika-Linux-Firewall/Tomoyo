@@ -36,154 +36,165 @@ static unsigned int ccs_profile_version;
 static struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
 /* String table for functionality that takes 4 modes. */
-const char *ccs_mode[CCS_CONFIG_MAX_MODE] = {
-	[CCS_CONFIG_DISABLED] = "disabled",
-	[CCS_CONFIG_LEARNING] = "learning",
+const char * const ccs_mode[CCS_CONFIG_MAX_MODE] = {
+	[CCS_CONFIG_DISABLED]   = "disabled",
+	[CCS_CONFIG_LEARNING]   = "learning",
 	[CCS_CONFIG_PERMISSIVE] = "permissive",
-	[CCS_CONFIG_ENFORCING] = "enforcing"
+	[CCS_CONFIG_ENFORCING]  = "enforcing"
 };
 
 /* String table for /proc/ccs/profile */
-static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
-				    CCS_MAX_CAPABILITY_INDEX +
-				    CCS_MAX_MAC_CATEGORY_INDEX] = {
-	[CCS_MAC_FILE_EXECUTE]
-	= "file::execute",
-	[CCS_MAC_FILE_OPEN]
-	= "file::open",
-	[CCS_MAC_FILE_CREATE]
-	= "file::create",
-	[CCS_MAC_FILE_UNLINK]
-	= "file::unlink",
-	[CCS_MAC_FILE_MKDIR]
-	= "file::mkdir",
-	[CCS_MAC_FILE_RMDIR]
-	= "file::rmdir",
-	[CCS_MAC_FILE_MKFIFO]
-	= "file::mkfifo",
-	[CCS_MAC_FILE_MKSOCK]
-	= "file::mksock",
-	[CCS_MAC_FILE_TRUNCATE]
-	= "file::truncate",
-	[CCS_MAC_FILE_SYMLINK]
-	= "file::symlink",
-	[CCS_MAC_FILE_MKBLOCK]
-	= "file::mkblock",
-	[CCS_MAC_FILE_MKCHAR]
-	= "file::mkchar",
-	[CCS_MAC_FILE_LINK]
-	= "file::link",
-	[CCS_MAC_FILE_RENAME]
-	= "file::rename",
-	[CCS_MAC_FILE_CHMOD]
-	= "file::chmod",
-	[CCS_MAC_FILE_CHOWN]
-	= "file::chown",
-	[CCS_MAC_FILE_CHGRP]
-	= "file::chgrp",
-	[CCS_MAC_FILE_IOCTL]
-	= "file::ioctl",
-	[CCS_MAC_FILE_CHROOT]
-	= "file::chroot",
-	[CCS_MAC_FILE_MOUNT]
-	= "file::mount",
-	[CCS_MAC_FILE_UMOUNT]
-	= "file::umount",
-	[CCS_MAC_FILE_PIVOT_ROOT]
-	= "file::pivot_root",
-	[CCS_MAC_ENVIRON]
-	= "misc::env",
-	[CCS_MAC_NETWORK_INET_STREAM_BIND]
-	= "network::inet_stream_bind",
-	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]
-	= "network::inet_stream_listen",
-	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]
-	= "network::inet_stream_connect",
-	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]
-	= "network::inet_stream_accept",
-	[CCS_MAC_NETWORK_INET_DGRAM_BIND]
-	= "network::inet_dgram_bind",
-	[CCS_MAC_NETWORK_INET_DGRAM_SEND]
-	= "network::inet_dgram_send",
-	[CCS_MAC_NETWORK_INET_DGRAM_RECV]
-	= "network::inet_dgram_recv",
-	[CCS_MAC_NETWORK_INET_RAW_BIND]
-	= "network::inet_raw_bind",
-	[CCS_MAC_NETWORK_INET_RAW_SEND]
-	= "network::inet_raw_send",
-	[CCS_MAC_NETWORK_INET_RAW_RECV]
-	= "network::inet_raw_recv",
-	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]
-	= "network::unix_stream_bind",
-	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]
-	= "network::unix_stream_listen",
-	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]
-	= "network::unix_stream_connect",
-	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]
-	= "network::unix_stream_accept",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]
-	= "network::unix_dgram_bind",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]
-	= "network::unix_dgram_send",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]
-	= "network::unix_dgram_recv",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]
-	= "network::unix_seqpacket_bind",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]
-	= "network::unix_seqpacket_listen",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT]
-	= "network::unix_seqpacket_connect",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]
-	= "network::unix_seqpacket_accept",
-	[CCS_MAC_SIGNAL]
-	= "ipc::signal",
-	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]
-	= "capability::use_route",
-	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]
-	= "capability::use_packet",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_REBOOT]
-	= "capability::SYS_REBOOT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_VHANGUP]
-	= "capability::SYS_VHANGUP",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SETTIME]
-	= "capability::SYS_TIME",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_NICE]
-	= "capability::SYS_NICE",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SETHOSTNAME]
-	= "capability::SYS_SETHOSTNAME",
-	[CCS_MAX_MAC_INDEX + CCS_USE_KERNEL_MODULE]
-	= "capability::use_kernel_module",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]
-	= "capability::SYS_KEXEC_LOAD",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]
-	= "capability::SYS_PTRACE",
-	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-	 + CCS_MAC_CATEGORY_FILE] = "file",
-	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-	 + CCS_MAC_CATEGORY_NETWORK] = "network",
-	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-	 + CCS_MAC_CATEGORY_MISC] = "misc",
-	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-	 + CCS_MAC_CATEGORY_IPC] = "ipc",
-	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-	 + CCS_MAC_CATEGORY_CAPABILITY] = "capability",
+const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
+				    + CCS_MAX_MAC_CATEGORY_INDEX] = {
+	[CCS_MAC_FILE_EXECUTE]    = "execute",
+	[CCS_MAC_FILE_OPEN]       = "open",
+	[CCS_MAC_FILE_CREATE]     = "create",
+	[CCS_MAC_FILE_UNLINK]     = "unlink",
+	[CCS_MAC_FILE_MKDIR]      = "mkdir",
+	[CCS_MAC_FILE_RMDIR]      = "rmdir",
+	[CCS_MAC_FILE_MKFIFO]     = "mkfifo",
+	[CCS_MAC_FILE_MKSOCK]     = "mksock",
+	[CCS_MAC_FILE_TRUNCATE]   = "truncate",
+	[CCS_MAC_FILE_SYMLINK]    = "symlink",
+	[CCS_MAC_FILE_MKBLOCK]    = "mkblock",
+	[CCS_MAC_FILE_MKCHAR]     = "mkchar",
+	[CCS_MAC_FILE_LINK]       = "link",
+	[CCS_MAC_FILE_RENAME]     = "rename",
+	[CCS_MAC_FILE_CHMOD]      = "chmod",
+	[CCS_MAC_FILE_CHOWN]      = "chown", 
+	[CCS_MAC_FILE_CHGRP]      = "chgrp",
+	[CCS_MAC_FILE_IOCTL]      = "ioctl",
+	[CCS_MAC_FILE_CHROOT]     = "chroot",
+	[CCS_MAC_FILE_MOUNT]      = "mount",
+	[CCS_MAC_FILE_UMOUNT]     = "unmount",
+	[CCS_MAC_FILE_PIVOT_ROOT] = "pivot_root",
+	[CCS_MAC_ENVIRON] = "env",
+	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = "inet_stream_bind",
+	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = "inet_stream_listen",
+	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]    = "inet_stream_connect",
+	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]     = "inet_stream_accept",
+	[CCS_MAC_NETWORK_INET_DGRAM_BIND]        = "inet_dgram_bind",
+	[CCS_MAC_NETWORK_INET_DGRAM_SEND]        = "inet_dgram_send",
+	[CCS_MAC_NETWORK_INET_DGRAM_RECV]        = "inet_dgram_recv",
+	[CCS_MAC_NETWORK_INET_RAW_BIND]          = "inet_raw_bind",
+	[CCS_MAC_NETWORK_INET_RAW_SEND]          = "inet_raw_send",
+	[CCS_MAC_NETWORK_INET_RAW_RECV]          = "inet_raw_recv",
+	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]       = "unix_stream_bind",
+	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]     = "unix_stream_listen",
+	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]    = "unix_stream_connect",
+	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = "unix_stream_accept",
+	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]        = "unix_dgram_bind",
+	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]        = "unix_dgram_send",
+	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]        = "unix_dgram_recv",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = "unix_seqpacket_bind",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = "unix_seqpacket_listen",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
+	[CCS_MAC_SIGNAL] = "signal",
+	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = "use_route",
+	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = "use_packet",
+	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = "SYS_REBOOT",
+	[CCS_MAC_CAPABILITY_SYS_VHANGUP]       = "SYS_VHANGUP",
+	[CCS_MAC_CAPABILITY_SYS_SETTIME]       = "SYS_TIME",
+	[CCS_MAC_CAPABILITY_SYS_NICE]          = "SYS_NICE",
+	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = "SYS_SETHOSTNAME",
+	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = "use_kernel_module",
+	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = "SYS_KEXEC_LOAD",
+	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = "SYS_PTRACE",
+	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_FILE]       = "file",
+	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_NETWORK]    = "network",
+	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_MISC]       = "misc",
+	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_IPC]        = "ipc",
+	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_CAPABILITY] = "capability",
+};
+
+const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
+	[CCS_TYPE_EXECUTE]    = "execute",
+	[CCS_TYPE_READ]       = "read",
+	[CCS_TYPE_WRITE]      = "write",
+	[CCS_TYPE_APPEND]     = "append",
+	[CCS_TYPE_UNLINK]     = "unlink",
+	[CCS_TYPE_RMDIR]      = "rmdir",
+	[CCS_TYPE_TRUNCATE]   = "truncate",
+	[CCS_TYPE_SYMLINK]    = "symlink",
+	[CCS_TYPE_CHROOT]     = "chroot",
+	[CCS_TYPE_UMOUNT]     = "unmount",
+};
+
+static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
+	[CCS_MAC_CATEGORY_FILE]       = "file",
+	[CCS_MAC_CATEGORY_NETWORK]    = "network",
+	[CCS_MAC_CATEGORY_MISC]       = "misc",
+	[CCS_MAC_CATEGORY_IPC]        = "ipc",
+	[CCS_MAC_CATEGORY_CAPABILITY] = "capability",
+};
+
+const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
+	[CCS_TASK_UID]             = "task.uid",
+	[CCS_TASK_EUID]            = "task.euid",
+	[CCS_TASK_SUID]            = "task.suid",
+	[CCS_TASK_FSUID]           = "task.fsuid",
+	[CCS_TASK_GID]             = "task.gid",
+	[CCS_TASK_EGID]            = "task.egid",
+	[CCS_TASK_SGID]            = "task.sgid",
+	[CCS_TASK_FSGID]           = "task.fsgid",
+	[CCS_TASK_PID]             = "task.pid",
+	[CCS_TASK_PPID]            = "task.ppid",
+	[CCS_EXEC_ARGC]            = "exec.argc",
+	[CCS_EXEC_ENVC]            = "exec.envc",
+	[CCS_TYPE_IS_SOCKET]       = "socket",
+	[CCS_TYPE_IS_SYMLINK]      = "symlink",
+	[CCS_TYPE_IS_FILE]         = "file",
+	[CCS_TYPE_IS_BLOCK_DEV]    = "block",
+	[CCS_TYPE_IS_DIRECTORY]    = "directory",
+	[CCS_TYPE_IS_CHAR_DEV]     = "char",
+	[CCS_TYPE_IS_FIFO]         = "fifo",
+	[CCS_MODE_SETUID]          = "setuid",
+	[CCS_MODE_SETGID]          = "setgid",
+	[CCS_MODE_STICKY]          = "sticky",
+	[CCS_MODE_OWNER_READ]      = "owner_read",
+	[CCS_MODE_OWNER_WRITE]     = "owner_write",
+	[CCS_MODE_OWNER_EXECUTE]   = "owner_execute",
+	[CCS_MODE_GROUP_READ]      = "group_read",
+	[CCS_MODE_GROUP_WRITE]     = "group_write",
+	[CCS_MODE_GROUP_EXECUTE]   = "group_execute",
+	[CCS_MODE_OTHERS_READ]     = "others_read",
+	[CCS_MODE_OTHERS_WRITE]    = "others_write",
+	[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
+	[CCS_TASK_TYPE]            = "task.type",
+	[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
+	[CCS_EXEC_REALPATH]        = "exec.realpath",
+	[CCS_SYMLINK_TARGET]       = "symlink.target",
+	[CCS_PATH1_UID]            = "path1.uid",
+	[CCS_PATH1_GID]            = "path1.gid",
+	[CCS_PATH1_INO]            = "path1.ino",
+	[CCS_PATH1_MAJOR]          = "path1.major",
+	[CCS_PATH1_MINOR]          = "path1.minor",
+	[CCS_PATH1_PERM]           = "path1.perm",
+	[CCS_PATH1_TYPE]           = "path1.type",
+	[CCS_PATH1_DEV_MAJOR]      = "path1.dev_major",
+	[CCS_PATH1_DEV_MINOR]      = "path1.dev_minor",
+	[CCS_PATH2_UID]            = "path2.uid",
+	[CCS_PATH2_GID]            = "path2.gid",
+	[CCS_PATH2_INO]            = "path2.ino",
+	[CCS_PATH2_MAJOR]          = "path2.major",
+	[CCS_PATH2_MINOR]          = "path2.minor",
+	[CCS_PATH2_PERM]           = "path2.perm",
+	[CCS_PATH2_TYPE]           = "path2.type",
+	[CCS_PATH2_DEV_MAJOR]      = "path2.dev_major",
+	[CCS_PATH2_DEV_MINOR]      = "path2.dev_minor",
+	[CCS_PATH1_PARENT_UID]     = "path1.parent.uid",
+	[CCS_PATH1_PARENT_GID]     = "path1.parent.gid",
+	[CCS_PATH1_PARENT_INO]     = "path1.parent.ino",
+	[CCS_PATH1_PARENT_PERM]    = "path1.parent.perm",
+	[CCS_PATH2_PARENT_UID]     = "path2.parent.uid",
+	[CCS_PATH2_PARENT_GID]     = "path2.parent.gid",
+	[CCS_PATH2_PARENT_INO]     = "path2.parent.ino",
+	[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
 };
 
 /* Permit policy management by non-root user? */
 static bool ccs_manage_by_non_root;
-
-/**
- * ccs_cap2keyword - Convert capability operation to capability name.
- *
- * @operation: The capability index.
- *
- * Returns the name of the specified capability's name.
- */
-const char *ccs_cap2keyword(const u8 operation)
-{
-	return operation < CCS_MAX_CAPABILITY_INDEX
-		? ccs_mac_keywords[CCS_MAX_MAC_INDEX + operation] + 12 : NULL;
-}
 
 /**
  * ccs_yesno - Return "yes" or "no".
@@ -436,11 +447,11 @@ static int ccs_set_pref(char *data)
 		ccs_set_uint(&ccs_preference.learning_max_entry, data,
 			     "max_entry");
 		ccs_set_bool(&ccs_preference.learning_exec_realpath, data,
-			     "exec.realpath");
+			     ccs_condition_keyword[CCS_EXEC_REALPATH]);
 		ccs_set_bool(&ccs_preference.learning_exec_argv0, data,
 			     "exec.argv0");
 		ccs_set_bool(&ccs_preference.learning_symlink_target, data,
-			     "symlink.target");
+			     ccs_condition_keyword[CCS_SYMLINK_TARGET]);
 	} else
 		return -EINVAL;
 	return 0;
@@ -452,20 +463,27 @@ static int ccs_set_mode(char *name, const char *value,
 	u8 i;
 	u8 config;
 	if (!strcmp(name, "CONFIG")) {
-		i = CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-			+ CCS_MAX_MAC_CATEGORY_INDEX;
+		i = CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX;
 		config = profile->default_config;
 	} else if (ccs_str_starts(&name, "CONFIG::")) {
 		config = 0;
-		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-			     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
-			if (strcmp(name, ccs_mac_keywords[i]))
+		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX;
+		     i++) {
+			int len = 0;
+			if (i < CCS_MAX_MAC_INDEX) {
+				const u8 c = ccs_index2category[i];
+				const char *category = ccs_category_keywords[c]; 
+				len = strlen(category);
+				if (strncmp(name, category, len) ||
+				    name[len++] != ':' || name[len++] != ':')
+					continue;
+			}
+			if (strcmp(name + len, ccs_mac_keywords[i]))
 				continue;
 			config = profile->config[i];
 			break;
 		}
-		if (i == CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-		    + CCS_MAX_MAC_CATEGORY_INDEX)
+		if (i == CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX)
 			return -EINVAL;
 	} else {
 		return -EINVAL;
@@ -481,8 +499,8 @@ static int ccs_set_mode(char *name, const char *value,
 				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
 				 */
 				config = (config & ~7) | mode;
-		if (config != CCS_CONFIG_USE_DEFAULT) {
 #ifdef CONFIG_CCSECURITY_AUDIT
+		if (config != CCS_CONFIG_USE_DEFAULT) {
 			switch (ccs_find_yesno(value, "grant_log")) {
 			case 1:
 				config |= CCS_CONFIG_WANT_GRANT_LOG;
@@ -499,11 +517,10 @@ static int ccs_set_mode(char *name, const char *value,
 				config &= ~CCS_CONFIG_WANT_REJECT_LOG;
 				break;
 			}
-#endif
 		}
+#endif
 	}
-	if (i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-	    + CCS_MAX_MAC_CATEGORY_INDEX)
+	if (i < CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX)
 		profile->config[i] = config;
 	else if (config != CCS_CONFIG_USE_DEFAULT)
 		profile->default_config = config;
@@ -631,20 +648,24 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		break;
 	case 4:
 		for ( ; head->r.bit < CCS_MAX_MAC_INDEX
-			      + CCS_MAX_CAPABILITY_INDEX
 			      + CCS_MAX_MAC_CATEGORY_INDEX; head->r.bit++) {
 			const u8 i = head->r.bit;
 			const u8 config = profile->config[i];
 			if (config == CCS_CONFIG_USE_DEFAULT)
 				continue;
-			ccs_io_printf(head, "%u-%s%s", index, "CONFIG::",
-				      ccs_mac_keywords[i]);
+			if (i < CCS_MAX_MAC_INDEX)
+				ccs_io_printf(head, "%u-CONFIG::%s::%s", index,
+					      ccs_category_keywords
+					      [ccs_index2category[i]],
+					      ccs_mac_keywords[i]);
+			else
+				ccs_io_printf(head, "%u-CONFIG::%s", index,
+					      ccs_mac_keywords[i]);
 			ccs_print_config(head, config);
 			head->r.bit++;
 			break;
 		}
 		if (head->r.bit == CCS_MAX_MAC_INDEX
-		    + CCS_MAX_CAPABILITY_INDEX
 		    + CCS_MAX_MAC_CATEGORY_INDEX) {
 			head->r.index++;
 			head->r.step = 1;
@@ -702,7 +723,7 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 static int ccs_write_manager(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
+	bool is_delete = ccs_str_starts(&data, "delete ");
 	if (!strcmp(data, "manage_by_non_root")) {
 		ccs_manage_by_non_root = !is_delete;
 		return 0;
@@ -938,11 +959,11 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 	return -EINVAL;
 }
 
-static const char *ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
-	[CCS_DIF_QUOTA_WARNED] = CCS_KEYWORD_QUOTA_EXCEEDED "\n",
-	[CCS_DIF_TRANSITION_FAILED] = CCS_KEYWORD_TRANSITION_FAILED "\n"
+const char * const ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
+	[CCS_DIF_QUOTA_WARNED]      = "quota_exceeded\n",
+	[CCS_DIF_TRANSITION_FAILED] = "transition_failed\n",
 };
-	
+
 /**
  * ccs_write_domain - Write domain policy.
  *
@@ -957,9 +978,9 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 	bool is_delete = false;
 	bool is_select = false;
 	unsigned int profile;
-	if (ccs_str_starts(&data, CCS_KEYWORD_DELETE))
+	if (ccs_str_starts(&data, "delete "))
 		is_delete = true;
-	else if (ccs_str_starts(&data, CCS_KEYWORD_SELECT))
+	else if (ccs_str_starts(&data, "select "))
 		is_select = true;
 	if (is_select && ccs_select_one(head, data))
 		return 0;
@@ -980,13 +1001,13 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 	if (!domain)
 		return -EINVAL;
 
-	if (sscanf(data, CCS_KEYWORD_USE_PROFILE "%u", &profile) == 1
+	if (sscanf(data, "use_profile %u\n", &profile) == 1
 	    && profile < CCS_MAX_PROFILES) {
 		if (!ccs_policy_loaded || ccs_profile_ptr[(u8) profile])
 			domain->profile = (u8) profile;
 		return 0;
 	}
-	if (sscanf(data, CCS_KEYWORD_USE_GROUP "%u", &profile) == 1
+	if (sscanf(data, "use_group %u\n", &profile) == 1
 	    && profile < CCS_MAX_ACL_GROUPS) {
 		domain->group = (u8) profile;
 		return 0;
@@ -1301,7 +1322,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			goto done;
 		ccs_set_group(head);
 		ccs_set_string(head, "file ");
-		ccs_set_string(head, ccs_mkdev_keyword[bit]);
+		ccs_set_string(head, ccs_mac_keywords[ccs_pnnn2mac[bit]]);
 		ccs_print_name_union(head, &ptr->name);
 		ccs_print_number_union(head, &ptr->mode);
 		ccs_print_number_union(head, &ptr->major);
@@ -1314,7 +1335,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			goto done;
 		ccs_set_group(head);
 		ccs_set_string(head, "file ");
-		ccs_set_string(head, ccs_path2_keyword[bit]);
+		ccs_set_string(head, ccs_mac_keywords[ccs_pp2mac[bit]]);
 		ccs_print_name_union(head, &ptr->name1);
 		ccs_print_name_union(head, &ptr->name2);
 	} else if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
@@ -1325,7 +1346,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			goto done;
 		ccs_set_group(head);
 		ccs_set_string(head, "file ");
-		ccs_set_string(head, ccs_path_number_keyword[bit]);
+		ccs_set_string(head, ccs_mac_keywords[ccs_pn2mac[bit]]);
 		ccs_print_name_union(head, &ptr->name);
 		ccs_print_number_union(head, &ptr->number);
 	} else if (acl_type == CCS_TYPE_ENV_ACL) {
@@ -1339,7 +1360,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			container_of(acl, typeof(*ptr), head);
 		ccs_set_group(head);
 		ccs_set_string(head, "capability ");
-		ccs_set_string(head, ccs_cap2keyword(ptr->operation));
+		ccs_set_string(head,
+			       ccs_mac_keywords[ccs_c2mac[ptr->operation]]);
 	} else if (acl_type == CCS_TYPE_INET_ACL) {
 		struct ccs_inet_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
@@ -1475,10 +1497,9 @@ static void ccs_read_domain(struct ccs_io_buffer *head)
 			/* Print domainname and flags. */
 			ccs_set_string(head, domain->domainname->name);
 			ccs_set_lf(head);
-			ccs_io_printf(head, CCS_KEYWORD_USE_PROFILE "%u\n",
+			ccs_io_printf(head, "use_profile %u\n",
 				      domain->profile);
-			ccs_io_printf(head, CCS_KEYWORD_USE_GROUP "%u\n",
-				      domain->group);
+			ccs_io_printf(head, "use_group %u\n", domain->group);
 			for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
 				if (domain->flags[i])
 					ccs_set_string(head, ccs_dif[i]);
@@ -1645,18 +1666,17 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 	}
 }
 
-static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_NO_INITIALIZE]
-	= CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
-	[CCS_TRANSITION_CONTROL_INITIALIZE] = CCS_KEYWORD_INITIALIZE_DOMAIN,
-	[CCS_TRANSITION_CONTROL_NO_KEEP] = CCS_KEYWORD_NO_KEEP_DOMAIN,
-	[CCS_TRANSITION_CONTROL_KEEP] = CCS_KEYWORD_KEEP_DOMAIN
+static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
+	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
+	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
+	[CCS_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
+	[CCS_TRANSITION_CONTROL_KEEP]          = "keep_domain ",
 };
 
-static const char *ccs_group_name[CCS_MAX_GROUP] = {
-	[CCS_PATH_GROUP] = CCS_KEYWORD_PATH_GROUP,
-	[CCS_NUMBER_GROUP] = CCS_KEYWORD_NUMBER_GROUP,
-	[CCS_ADDRESS_GROUP] = CCS_KEYWORD_ADDRESS_GROUP
+static const char * const ccs_group_name[CCS_MAX_GROUP] = {
+	[CCS_PATH_GROUP]    = "path_group ",
+	[CCS_NUMBER_GROUP]  = "number_group ",
+	[CCS_ADDRESS_GROUP] = "address_group ",
 };
 
 /**
@@ -1669,15 +1689,15 @@ static const char *ccs_group_name[CCS_MAX_GROUP] = {
 static int ccs_write_exception(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	const bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
+	const bool is_delete = ccs_str_starts(&data, "delete ");
 	u8 i;
 	static const struct {
 		const char *keyword;
 		int (*write) (char *, const bool);
 	} ccs_callback[3] = {
-		{ CCS_KEYWORD_AGGREGATOR, ccs_write_aggregator },
-		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern },
-		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port }
+		{ "aggregator ",    ccs_write_aggregator },
+		{ "file_pattern ",  ccs_write_pattern },
+		{ "deny_autobind ", ccs_write_reserved_port },
 	};
 	for (i = 0; i < 3; i++)
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
@@ -1796,7 +1816,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			{
 				struct ccs_aggregator *ptr =
 					container_of(acl, typeof(*ptr), head);
-				ccs_set_string(head, CCS_KEYWORD_AGGREGATOR);
+				ccs_set_string(head, "aggregator ");
 				ccs_set_string(head, ptr->original_name->name);
 				ccs_set_space(head);
 				ccs_set_string(head,
@@ -1807,7 +1827,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			{
 				struct ccs_pattern *ptr =
 					container_of(acl, typeof(*ptr), head);
-				ccs_set_string(head, CCS_KEYWORD_FILE_PATTERN);
+				ccs_set_string(head, "file_pattern ");
 				ccs_set_string(head, ptr->pattern->name);
 			}
 			break;
@@ -1817,8 +1837,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 					container_of(acl, typeof(*ptr), head);
 				const u16 min_port = ptr->min_port;
 				const u16 max_port = ptr->max_port;
-				ccs_set_string(head,
-					       CCS_KEYWORD_DENY_AUTOBIND);
+				ccs_set_string(head, "deny_autobind ");
 				ccs_io_printf(head, "%u", min_port);
 				if (min_port != max_port)
 					ccs_io_printf(head, "-%u", max_port);
@@ -1965,21 +1984,17 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 			va_start(args, fmt);
 			vsnprintf(buffer, len - 1, fmt, args);
 			va_end(args);
-			if (handler || realpath || argv0 || symlink) {
-				if (handler)
-					ccs_addprintf(buffer, len, " task.%s",
-						      handler);
-				if (realpath)
-					ccs_addprintf(buffer, len, " exec.%s",
-						      realpath);
-				if (argv0)
-					ccs_addprintf(buffer, len,
-						      " exec.argv[0]=%s",
-						      argv0);
-				if (symlink)
-					ccs_addprintf(buffer, len, "%s",
-						      symlink);
-			}
+			if (handler)
+				ccs_addprintf(buffer, len, " task.%s",
+					      handler);
+			if (realpath)
+				ccs_addprintf(buffer, len, " exec.%s",
+					      realpath);
+			if (argv0)
+				ccs_addprintf(buffer, len, " exec.argv[0]=%s",
+					      argv0);
+			if (symlink)
+				ccs_addprintf(buffer, len, "%s", symlink);
 			ccs_normalize_line(buffer);
 			ccs_write_domain2(buffer, domain, false);
 			kfree(buffer);

@@ -30,42 +30,6 @@
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 #endif
 
-const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
-	[CCS_TYPE_EXECUTE]    = "execute",
-	[CCS_TYPE_READ]       = "read",
-	[CCS_TYPE_WRITE]      = "write",
-	[CCS_TYPE_APPEND]     = "append",
-	[CCS_TYPE_UNLINK]     = "unlink",
-	[CCS_TYPE_RMDIR]      = "rmdir",
-	[CCS_TYPE_TRUNCATE]   = "truncate",
-	[CCS_TYPE_SYMLINK]    = "symlink",
-	[CCS_TYPE_CHROOT]     = "chroot",
-	[CCS_TYPE_UMOUNT]     = "unmount",
-	//[CCS_TYPE_TRANSIT]    = "transit",
-};
-
-const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION] = {
-	[CCS_TYPE_LINK]       = "link",
-	[CCS_TYPE_RENAME]     = "rename",
-	[CCS_TYPE_PIVOT_ROOT] = "pivot_root",
-};
-
-const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION] = {
-	[CCS_TYPE_CREATE] = "create",
-	[CCS_TYPE_MKDIR]  = "mkdir",
-	[CCS_TYPE_MKFIFO] = "mkfifo",
-	[CCS_TYPE_MKSOCK] = "mksock",
-	[CCS_TYPE_IOCTL]  = "ioctl",
-	[CCS_TYPE_CHMOD]  = "chmod",
-	[CCS_TYPE_CHOWN]  = "chown",
-	[CCS_TYPE_CHGRP]  = "chgrp",
-};
-
-const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION] = {
-	[CCS_TYPE_MKBLOCK]    = "mkblock",
-	[CCS_TYPE_MKCHAR]     = "mkchar",
-};
-
 static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_EXECUTE]    = CCS_MAC_FILE_EXECUTE,
 	[CCS_TYPE_READ]       = CCS_MAC_FILE_OPEN,
@@ -77,21 +41,20 @@ static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
 	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
 	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
-	//[CCS_TYPE_TRANSIT]    = CCS_MAC_FILE_TRANSIT,
 };
 
-static const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION] = {
+const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION] = {
 	[CCS_TYPE_MKBLOCK] = CCS_MAC_FILE_MKBLOCK,
 	[CCS_TYPE_MKCHAR]  = CCS_MAC_FILE_MKCHAR,
 };
 
-static const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION] = {
+const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION] = {
 	[CCS_TYPE_LINK]       = CCS_MAC_FILE_LINK,
 	[CCS_TYPE_RENAME]     = CCS_MAC_FILE_RENAME,
 	[CCS_TYPE_PIVOT_ROOT] = CCS_MAC_FILE_PIVOT_ROOT,
 };
 
-static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
+const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
 	[CCS_TYPE_CREATE] = CCS_MAC_FILE_CREATE,
 	[CCS_TYPE_MKDIR]  = CCS_MAC_FILE_MKDIR,
 	[CCS_TYPE_MKFIFO] = CCS_MAC_FILE_MKFIFO,
@@ -200,7 +163,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
 	ccs_write_log(r, "file %s %s\n", operation, filename->name);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "file %s %s", operation, filename->name);
+	ccs_warn_log(r, "file %s %s\n", operation, filename->name);
 	return ccs_supervisor(r, "file %s %s\n", operation,
 			      ccs_file_pattern(filename));
 }
@@ -214,14 +177,15 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
  */
 static int ccs_audit_path2_log(struct ccs_request_info *r)
 {
-	const char *operation = ccs_path2_keyword[r->param.path2.operation];
+	const char *operation =
+		ccs_mac_keywords[ccs_pp2mac[r->param.path2.operation]];
 	const struct ccs_path_info *filename1 = r->param.path2.filename1;
 	const struct ccs_path_info *filename2 = r->param.path2.filename2;
 	ccs_write_log(r, "file %s %s %s\n", operation, filename1->name,
 		      filename2->name);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "file %s %s %s", operation, filename1->name,
+	ccs_warn_log(r, "file %s %s %s\n", operation, filename1->name,
 		     filename2->name);
 	return ccs_supervisor(r, "file %s %s %s\n", operation,
 			      ccs_file_pattern(filename1),
@@ -237,7 +201,8 @@ static int ccs_audit_path2_log(struct ccs_request_info *r)
  */
 static int ccs_audit_mkdev_log(struct ccs_request_info *r)
 {
-	const char *operation = ccs_mkdev_keyword[r->param.mkdev.operation];
+	const char *operation =
+		ccs_mac_keywords[ccs_pnnn2mac[r->param.mkdev.operation]];
 	const struct ccs_path_info *filename = r->param.mkdev.filename;
 	const unsigned int major = r->param.mkdev.major;
 	const unsigned int minor = r->param.mkdev.minor;
@@ -246,8 +211,8 @@ static int ccs_audit_mkdev_log(struct ccs_request_info *r)
 		      mode, major, minor);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "file %s %s 0%o %u %u", operation, filename->name, mode,
-		     major, minor);
+	ccs_warn_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
+		     mode, major, minor);
 	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", operation,
 			      ccs_file_pattern(filename), mode, major, minor);
 }
@@ -265,7 +230,7 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 	const u8 type = r->param.path_number.operation;
 	u8 radix;
 	const struct ccs_path_info *filename = r->param.path_number.filename;
-	const char *operation = ccs_path_number_keyword[type];
+	const char *operation = ccs_mac_keywords[ccs_pn2mac[type]];
 	char buffer[64];
 	switch (type) {
 	case CCS_TYPE_CREATE:
@@ -288,7 +253,7 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 		      buffer);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "file %s %s %s", operation, filename->name, buffer);
+	ccs_warn_log(r, "file %s %s %s\n", operation, filename->name, buffer);
 	return ccs_supervisor(r, "file %s %s %s\n", operation,
 			      ccs_file_pattern(filename), buffer);
 }
@@ -1183,21 +1148,22 @@ int ccs_write_file(struct ccs_acl_param *param)
 	if (perm)
 		return ccs_update_path_acl(perm, param);
 	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++)
-		if (ccs_permstr(operation, ccs_path2_keyword[type]))
+		if (ccs_permstr(operation, ccs_mac_keywords[ccs_pp2mac[type]]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path2_acl(perm, param);
 	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++)
-		if (ccs_permstr(operation, ccs_path_number_keyword[type]))
+		if (ccs_permstr(operation, ccs_mac_keywords[ccs_pn2mac[type]]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path_number_acl(perm, param);
 	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++)
-		if (ccs_permstr(operation, ccs_mkdev_keyword[type]))
+		if (ccs_permstr(operation,
+				ccs_mac_keywords[ccs_pnnn2mac[type]]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_mkdev_acl(perm, param);
-	if (ccs_permstr(operation, "mount"))
+	if (ccs_permstr(operation, ccs_mac_keywords[CCS_MAC_FILE_MOUNT]))
 		return ccs_update_mount_acl(param);
 	return -EINVAL;
 }

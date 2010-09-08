@@ -122,19 +122,19 @@ static inline const char *ccs_filetype(const mode_t mode)
 	switch (mode & S_IFMT) {
 	case S_IFREG:
 	case 0:
-		return "file";
+		return ccs_condition_keyword[CCS_TYPE_IS_FILE];
 	case S_IFDIR:
-		return "directory";
+		return ccs_condition_keyword[CCS_TYPE_IS_DIRECTORY];
 	case S_IFLNK:
-		return "symlink";
+		return ccs_condition_keyword[CCS_TYPE_IS_SYMLINK];
 	case S_IFIFO:
-		return "fifo";
+		return ccs_condition_keyword[CCS_TYPE_IS_FIFO];
 	case S_IFSOCK:
-		return "socket";
+		return ccs_condition_keyword[CCS_TYPE_IS_SOCKET];
 	case S_IFBLK:
-		return "block";
+		return ccs_condition_keyword[CCS_TYPE_IS_BLOCK_DEV];
 	case S_IFCHR:
-		return "char";
+		return ccs_condition_keyword[CCS_TYPE_IS_CHAR_DEV];
 	}
 	return "unknown"; /* This should not happen. */
 }
@@ -287,6 +287,13 @@ char *ccs_init_log(int *len, struct ccs_request_info *r)
 	return buf;
 }
 
+void ccs_transition_failed(const char *domainname)
+{
+	printk(KERN_WARNING
+	       "ERROR: Unable to transit to '%s' domain.\n", domainname);
+	force_sig(SIGKILL, current);
+}
+
 /**
  * ccs_update_task_domain - Update task's domain.
  *
@@ -306,17 +313,13 @@ static void ccs_update_task_domain(struct ccs_request_info *r)
 			break;
 		ssleep(1);
 		if (fatal_signal_pending(current))
-			goto out;
+			return;
 	}
 	domain = ccs_current_domain();
 	snprintf(buf, CCS_EXEC_TMPSIZE - 1, "%s %s", domain->domainname->name,
 		 acl->cond->transit->name);
-	if (!ccs_assign_domain(buf, r->profile, domain->group, true)) {
- out:
-		printk(KERN_WARNING
-		       "ERROR: Unable to transit to '%s' domain.\n", buf);
-		force_sig(SIGKILL, current);
-	}
+	if (!ccs_assign_domain(buf, r->profile, domain->group, true))
+		ccs_transition_failed(buf);
 	kfree(buf);
 }
 
@@ -374,8 +377,7 @@ static bool ccs_get_audit(const u8 profile, const u8 index,
 			  const bool is_granted)
 {
 	u8 mode;
-	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
-		+ CCS_MAX_CAPABILITY_INDEX;
+	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX;
 	if (!ccs_policy_loaded)
 		return false;
 	if (is_granted && matched_acl && matched_acl->cond &&

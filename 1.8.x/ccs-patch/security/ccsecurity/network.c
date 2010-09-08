@@ -40,14 +40,16 @@ struct ccs_addr_info {
 	struct ccs_unix_addr_info unix0;
 };
 
-const char *ccs_proto_keyword[CCS_SOCK_MAX] = {
+const char * const ccs_proto_keyword[CCS_SOCK_MAX] = {
 	[SOCK_STREAM]    = "stream",
 	[SOCK_DGRAM]     = "dgram",
 	[SOCK_RAW]       = "raw",
 	[SOCK_SEQPACKET] = "seqpacket",
+	[0] = " ",
+	[4] = " ",
 };
 
-const char *ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
+const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
 	[CCS_NETWORK_BIND]    = "bind",
 	[CCS_NETWORK_LISTEN]  = "listen",
 	[CCS_NETWORK_CONNECT] = "connect",
@@ -65,7 +67,7 @@ static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
 		      protocol, operation, address);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "network %s %s %s %s", family, protocol, operation,
+	ccs_warn_log(r, "network %s %s %s %s\n", family, protocol, operation,
 		     address);
 	return ccs_supervisor(r, "network %s %s %s %s\n", family, protocol,
 			      operation, address);
@@ -436,10 +438,6 @@ int ccs_write_unix_network(struct ccs_acl_param *param)
 
 void __init ccs_network_init(void)
 {
-	u8 i;
-	for (i = 0; i < CCS_SOCK_MAX; i++)
-		if (!ccs_proto_keyword[i])
-			ccs_proto_keyword[i] = "unknown";
 }
 
 #else
@@ -838,10 +836,6 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 
 void __init ccs_network_init(void)
 {
-	u8 i;
-	for (i = 0; i < CCS_SOCK_MAX; i++)
-		if (!ccs_proto_keyword[i])
-			ccs_proto_keyword[i] = "unknown";
 	ccsecurity_ops.socket_create_permission =
 		__ccs_socket_create_permission;
 	ccsecurity_ops.socket_listen_permission =

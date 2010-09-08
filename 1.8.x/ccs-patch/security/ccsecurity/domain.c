@@ -592,7 +592,8 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 		if (!old_domain->flags[CCS_DIF_TRANSITION_FAILED]) {
 			old_domain->flags[CCS_DIF_TRANSITION_FAILED] = true;
 			r->granted = false;
-			ccs_write_log(r, CCS_KEYWORD_TRANSITION_FAILED "\n");
+			ccs_write_log(r, "%s",
+				      ccs_dif[CCS_DIF_TRANSITION_FAILED]);
 			printk(KERN_WARNING
 			       "ERROR: Domain '%s' not defined.\n", ee->tmp);
 		}

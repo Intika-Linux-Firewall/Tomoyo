@@ -30,20 +30,33 @@
 
 /* Keywords for mount restrictions. */
 
-/* Allow to call 'mount --bind /source_dir /dest_dir' */
-#define CCS_MOUNT_BIND_KEYWORD                           "--bind"
-/* Allow to call 'mount --move /old_dir    /new_dir ' */
-#define CCS_MOUNT_MOVE_KEYWORD                           "--move"
-/* Allow to call 'mount -o remount /dir             ' */
-#define CCS_MOUNT_REMOUNT_KEYWORD                        "--remount"
-/* Allow to call 'mount --make-unbindable /dir'       */
-#define CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD                "--make-unbindable"
-/* Allow to call 'mount --make-private /dir'          */
-#define CCS_MOUNT_MAKE_PRIVATE_KEYWORD                   "--make-private"
-/* Allow to call 'mount --make-slave /dir'            */
-#define CCS_MOUNT_MAKE_SLAVE_KEYWORD                     "--make-slave"
-/* Allow to call 'mount --make-shared /dir'           */
-#define CCS_MOUNT_MAKE_SHARED_KEYWORD                    "--make-shared"
+enum ccs_special_mount {
+	/* Allow to call 'mount --bind /source_dir /dest_dir' */
+	CCS_MOUNT_BIND,
+	/* Allow to call 'mount --move /old_dir    /new_dir ' */
+	CCS_MOUNT_MOVE,
+	/* Allow to call 'mount -o remount /dir             ' */
+	CCS_MOUNT_REMOUNT,
+	/* Allow to call 'mount --make-unbindable /dir'       */
+	CCS_MOUNT_MAKE_UNBINDABLE,
+	/* Allow to call 'mount --make-private /dir'          */
+	CCS_MOUNT_MAKE_PRIVATE,
+	/* Allow to call 'mount --make-slave /dir'            */
+	CCS_MOUNT_MAKE_SLAVE,
+	/* Allow to call 'mount --make-shared /dir'           */
+	CCS_MOUNT_MAKE_SHARED,
+	CCS_MAX_REMOUNT_PATTERNS,
+};
+
+static const char * const ccs_mounts[CCS_MAX_REMOUNT_PATTERNS] = {
+	[CCS_MOUNT_BIND]            = "--bind",
+	[CCS_MOUNT_MOVE]            = "--move",
+	[CCS_MOUNT_REMOUNT]         = "--remount",
+	[CCS_MOUNT_MAKE_UNBINDABLE] = "--make-unbindable",
+	[CCS_MOUNT_MAKE_PRIVATE]    = "--make-private",
+	[CCS_MOUNT_MAKE_SLAVE]      = "--make-slave",
+	[CCS_MOUNT_MAKE_SHARED]     = "--make-shared",
+};
 
 /**
  * ccs_audit_mount_log - Audit mount log.
@@ -61,15 +74,16 @@ static int ccs_audit_mount_log(struct ccs_request_info *r)
 	ccs_write_log(r, "file mount %s %s %s 0x%lX\n", dev, dir, type, flags);
 	if (r->granted)
 		return 0;
-	if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
+	if (type == ccs_mounts[CCS_MOUNT_REMOUNT])
 		ccs_warn_log(r, "file mount -o remount %s 0x%lX", dir, flags);
-	else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD)
-		 || !strcmp(type, CCS_MOUNT_MOVE_KEYWORD))
-		ccs_warn_log(r, "file mount %s %s %s 0x%lX", type, dev, dir, flags);
-	else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-		 !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
-		 !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
-		 !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
+	else if (type == ccs_mounts[CCS_MOUNT_BIND] || 
+		 type == ccs_mounts[CCS_MOUNT_MOVE])
+		ccs_warn_log(r, "file mount %s %s %s 0x%lX\n", type, dev, dir,
+			     flags);
+	else if (type == ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE] ||
+		 type == ccs_mounts[CCS_MOUNT_MAKE_PRIVATE] ||
+		 type == ccs_mounts[CCS_MOUNT_MAKE_SLAVE] ||
+		 type == ccs_mounts[CCS_MOUNT_MAKE_SHARED])
 		ccs_warn_log(r, "file mount %s %s 0x%lX", type, dir, flags);
 	else
 		ccs_warn_log(r, "file mount -t %s %s %s 0x%lX", type, dev, dir,
@@ -106,7 +120,8 @@ static bool ccs_check_mount_acl(struct ccs_request_info *r,
  * Caller holds ccs_read_lock().
  */
 static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
-			 struct path *dir, char *type, unsigned long flags)
+			 struct path *dir, const char *type,
+			 unsigned long flags)
 {
 	struct ccs_obj_info obj = { };
 	struct path path;
@@ -139,15 +154,15 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 	ccs_fill_path_info(&rdir);
 
 	/* Compare fs name. */
-	if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD)) {
+	if (type == ccs_mounts[CCS_MOUNT_REMOUNT]) {
 		/* dev_name is ignored. */
-	} else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-		   !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
-		   !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
-		   !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD)) {
+	} else if (type == ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_PRIVATE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_SLAVE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_SHARED]) {
 		/* dev_name is ignored. */
-	} else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD) ||
-		   !strcmp(type, CCS_MOUNT_MOVE_KEYWORD)) {
+	} else if (type == ccs_mounts[CCS_MOUNT_BIND] ||
+		   type == ccs_mounts[CCS_MOUNT_MOVE]) {
 		need_dev = -1; /* dev_name is a directory */
 	} else {
 		fstype = get_fs_type(type);
@@ -217,7 +232,7 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
  * Returns 0 on success, negative value otherwise.
  */
 static int __ccs_mount_permission(char *dev_name, struct path *path,
-				  char *type, unsigned long flags,
+				  const char *type, unsigned long flags,
 				  void *data_page)
 {
 	struct ccs_request_info r;
@@ -226,31 +241,31 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;
 	if (flags & MS_REMOUNT) {
-		type = CCS_MOUNT_REMOUNT_KEYWORD;
+		type = ccs_mounts[CCS_MOUNT_REMOUNT];
 		flags &= ~MS_REMOUNT;
 	}
 	if (flags & MS_MOVE) {
-		type = CCS_MOUNT_MOVE_KEYWORD;
+		type = ccs_mounts[CCS_MOUNT_MOVE];
 		flags &= ~MS_MOVE;
 	}
 	if (flags & MS_BIND) {
-		type = CCS_MOUNT_BIND_KEYWORD;
+		type = ccs_mounts[CCS_MOUNT_BIND];
 		flags &= ~MS_BIND;
 	}
 	if (flags & MS_UNBINDABLE) {
-		type = CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD;
+		type = ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE];
 		flags &= ~MS_UNBINDABLE;
 	}
 	if (flags & MS_PRIVATE) {
-		type = CCS_MOUNT_MAKE_PRIVATE_KEYWORD;
+		type = ccs_mounts[CCS_MOUNT_MAKE_PRIVATE];
 		flags &= ~MS_PRIVATE;
 	}
 	if (flags & MS_SLAVE) {
-		type = CCS_MOUNT_MAKE_SLAVE_KEYWORD;
+		type = ccs_mounts[CCS_MOUNT_MAKE_SLAVE];
 		flags &= ~MS_SLAVE;
 	}
 	if (flags & MS_SHARED) {
-		type = CCS_MOUNT_MAKE_SHARED_KEYWORD;
+		type = ccs_mounts[CCS_MOUNT_MAKE_SHARED];
 		flags &= ~MS_SHARED;
 	}
 	if (!type)
@@ -265,7 +280,7 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
 static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
-				    char *type, unsigned long flags,
+				    const char *type, unsigned long flags,
 				    void *data_page)
 {
 	struct path path = { nd->mnt, nd->dentry };

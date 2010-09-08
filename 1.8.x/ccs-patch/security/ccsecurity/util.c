@@ -19,7 +19,7 @@ DEFINE_MUTEX(ccs_policy_lock);
 bool ccs_policy_loaded;
 
 /* Index table for searching parent category. */
-const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX] = {
+const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_FILE_EXECUTE]    = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_OPEN]       = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_CREATE]     = CCS_MAC_CATEGORY_FILE,
@@ -65,26 +65,16 @@ const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX] = {
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_SIGNAL]          = CCS_MAC_CATEGORY_IPC,
-	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_SYS_REBOOT]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_SYS_VHANGUP]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SETTIME]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_SYS_NICE]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SETHOSTNAME]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_USE_KERNEL_MODULE]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]
-	= CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]
-	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_SYS_VHANGUP]       = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_SYS_SETTIME]       = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_SYS_NICE]          = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = CCS_MAC_CATEGORY_CAPABILITY,
 };
 
 /* Utility functions. */
@@ -942,8 +932,7 @@ u8 ccs_get_config(const u8 profile, const u8 index)
 	config = p->config[index];
 	if (config == CCS_CONFIG_USE_DEFAULT)
 		config = p->config[ccs_index2category[index]
-				   + CCS_MAX_MAC_INDEX
-				   + CCS_MAX_CAPABILITY_INDEX];
+				   + CCS_MAX_MAC_INDEX];
 	if (config == CCS_CONFIG_USE_DEFAULT)
 		config = p->default_config;
 	return config;
@@ -977,9 +966,7 @@ int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 		if (!ccs_assign_domain(buf, profile, domain->group, true))
 			break;
 	}
-	printk(KERN_WARNING "ERROR: Unable to transit to '%s' domain.\n",
-	       buf);
-	force_sig(SIGKILL, current);
+	ccs_transition_failed(buf);
 	return CCS_CONFIG_DISABLED;
 }
 
@@ -1008,6 +995,7 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 {
 	va_list args;
 	char *buffer;
+	char *cp;
 	const struct ccs_domain_info * const domain = ccs_current_domain();
 	switch (r->mode) {
         case CCS_CONFIG_ENFORCING:
@@ -1030,6 +1018,9 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 	vsnprintf(buffer, 4095, fmt, args);
 	va_end(args);
 	buffer[4095] = '\0';
+	cp = strchr(buffer, '\n');
+	if (cp)
+		*cp = '\0';
 	printk(KERN_WARNING "%s: Access %s denied for %s\n",
 	       r->mode == CCS_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
 	       ccs_last_word(domain->domainname->name));
@@ -1096,7 +1087,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
 		domain->flags[CCS_DIF_QUOTA_WARNED] = true;
 		/* r->granted = false; */
-		ccs_write_log(r, CCS_KEYWORD_QUOTA_EXCEEDED "\n");
+		ccs_write_log(r, "%s", ccs_dif[CCS_DIF_QUOTA_WARNED]);
 		printk(KERN_WARNING "WARNING: "
 		       "Domain '%s' has so many ACLs to hold. "
 		       "Stopped learning mode.\n", domain->domainname->name);

@@ -158,7 +158,7 @@ static void stage_file_test(void)
 	set_profile(3, "file::ioctl");
 	set_profile(3, "file::chroot");
 	set_profile(3, "file::mount");
-	set_profile(3, "file::umount");
+	set_profile(3, "file::unmount");
 	set_profile(3, "file::pivot_root");
 
 	policy = "file read proc:/sys/net/ipv4/ip_local_port_range "
