@@ -315,45 +315,23 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 
 <p>Linux kernel 2.2 and later supports POSIX capabilities. Capabilities realize secure OS's basic concept "least privileges" and are used for restricting use of various privileged operations for per a process basis. You can find list of capabilities which Linux supports in /usr/include/linux/capability.h . However, since CAP_SYS_ADMIN privilege is used for various purposes, we cannot expect fine grained restriction. Therefore, TOMOYO Linux defined and uses original capabilities. (Hereafter, capabilities refers to TOMOYO Linux's capabilities rather than POSIX's capabilities.)</p>
 
-<p>While TOMOYO Linux uses original capabilities that are not compatible with POSIX capabilities, TOMOYO Linux's capabilities are not visible from userland applications. Thus, you don't need to modify userland programs. TOMOYO Linux 1.7.2 uses capabilities listed in Fig. 24.</p>
+<p>While TOMOYO Linux uses original capabilities that are not compatible with POSIX capabilities, TOMOYO Linux's capabilities are not visible from userland applications. Thus, you don't need to modify userland programs. TOMOYO Linux 1.8.0 uses capabilities listed in Fig. 24.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 24&nbsp;&nbsp;Capabilities defined in TOMOYO Linux 1.7.2<br>
+&diams; Fig. 24&nbsp;&nbsp;Capabilities defined in TOMOYO Linux 1.8.0<br>
 <table border="1" summary="fig">
 <tr><td>Type</td><td>Meaning</td></tr>
-<tr><td>inet_tcp_create</td><td>Permit creation of TCP sockets.</td></tr>
-<tr><td>inet_tcp_listen</td><td>Permit TCP socket's listen operation.</td></tr>
-<tr><td>inet_tcp_connect</td><td>Permit TCP socket's connect operation.</td></tr>
-<tr><td>use_inet_udp</td><td>Permit use of UDP sockets.</td></tr>
-<tr><td>use_inet_ip</td><td>Permit use of RAW sockets.</td></tr>
 <tr><td>use_route</td><td>Permit use of ROUTE sockets.</td></tr>
 <tr><td>use_packet</td><td>Permit use of PACKET sockets.</td></tr>
 <tr><td>use_kernel_module</td><td>Permit use of create_module(2) init_module(2) delete_module(2) syscall.</td></tr>
-<tr><td>create_fifo</td><td>Permit creation of FIFO using mknod(2) syscall.</td></tr>
-<tr><td>create_block_dev</td><td>Permit creation of block device using mknod(2) syscall.</td></tr>
-<tr><td>create_char_dev</td><td>Permit creation of character device using mknod(2) syscall.</td></tr>
-<tr><td>create_unix_socket</td><td>Permit creation of UNIX domain sockets using mknod(2) syscall.</td></tr>
-<tr><td>SYS_MOUNT</td><td>Permit use of mount(2) syscall.</td></tr>
-<tr><td>SYS_UMOUNT</td><td>Permit use of umount(2) syscall.</td></tr>
 <tr><td>SYS_REBOOT</td><td>Permit use of reboot(2) syscall.</td></tr>
-<tr><td>SYS_CHROOT</td><td>Permit use of chroot(2) syscall.</td></tr>
-<tr><td>SYS_KILL</td><td>Permit use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</td></tr>
 <tr><td>SYS_VHANGUP</td><td>Permit use of vhangup(2) syscall.</td></tr>
 <tr><td>SYS_TIME</td><td>Permit use of stime(2) settimeofday(2) adjtimex(2) syscall.</td></tr>
 <tr><td>SYS_NICE</td><td>Permit use of nice(2) setpriority(2) syscall.</td></tr>
 <tr><td>SYS_SETHOSTNAME</td><td>Permit use of sethostname(2) setdomainname(2) syscall.</td></tr>
-<tr><td>SYS_LINK</td><td>Permit use of link(2) syscall.</td></tr>
-<tr><td>SYS_SYMLINK</td><td>Permit use of symlink(2) syscall.</td></tr>
-<tr><td>SYS_RENAME</td><td>Permit use of rename(2) syscall.</td></tr>
-<tr><td>SYS_UNLINK</td><td>Permit use of unlink(2) syscall.</td></tr>
-<tr><td>SYS_CHMOD</td><td>Permit use of chmod(2) fchmod(2) syscall.</td></tr>
-<tr><td>SYS_CHOWN</td><td>Permit use of chown(2) fchown(2) lchown(2) syscall.</td></tr>
-<tr><td>SYS_IOCTL</td><td>Permit use of ioctl(2) compat_sys_ioctl(2) syscall.</td></tr>
 <tr><td>SYS_KEXEC_LOAD</td><td>Permit use of kexec_load(2) syscall.</td></tr>
-<tr><td>SYS_PIVOT_ROOT</td><td>Permit use of pivot_root(2) syscall.</td></tr>
 <tr><td>SYS_PTRACE</td><td>Permit use of ptrace(2) syscall.</td></tr>
-<tr><td>conceal_mount</td><td>Permit use of mount(2) syscall that will hide existing mounts.</td></tr>
 </table>
 </td></tr>
 </table>

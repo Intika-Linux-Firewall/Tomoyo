@@ -315,45 +315,23 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 
 <p>Linux カーネル 2.2 以降では POSIX ケイパビリティに対応しています．ケイパビリティは，セキュアＯＳの基本概念である最少権限を形にしたもので，プロセス単位で各種特権の利用について制限を加えるために用いられます． Linux で対応済みのケイパビリティについては， /usr/include/linux/capability.h の中で参照することができます．しかし， CAP_SYS_ADMIN 権限がさまざまな目的に用いられているので，そのままでは本来の効果が期待できません．そこで TOMOYO Linux では独自にケイパビリティを定義，制御しています（以下「ケイパビリティ」は TOMOYO Linux におけるケイパビリティを指します）．</p>
 
-<p>TOMOYO Linux では POSIX とは異なる独自のケイパビリティを使用していますが，プログラムからはその存在は見えないので，プログラムに変更を加える必要はありません．バージョン 1.7.2 では図２４の操作の可否を制限することができます．</p>
+<p>TOMOYO Linux では POSIX とは異なる独自のケイパビリティを使用していますが，プログラムからはその存在は見えないので，プログラムに変更を加える必要はありません．バージョン 1.8.0 では図２４の操作の可否を制限することができます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２４　TOMOYO Linux 1.7.2 のケイパビリティ<br>
+■図２４　TOMOYO Linux 1.8.0 のケイパビリティ<br>
 <table border="1" summary="fig">
 <tr><td>値</td><td>内容</td></tr>
-<tr><td>inet_tcp_create</td><td>ＴＣＰソケットの作成を許可</td></tr>
-<tr><td>inet_tcp_listen</td><td>ＴＣＰソケットの listen を許可</td></tr>
-<tr><td>inet_tcp_connect</td><td>ＴＣＰソケットの connect を許可</td></tr>
-<tr><td>use_inet_udp</td><td>ＵＤＰソケットの使用を許可</td></tr>
-<tr><td>use_inet_ip</td><td>ＲＡＷソケットの使用を許可</td></tr>
 <tr><td>use_route</td><td>ＲＯＵＴＥソケットの使用を許可</td></tr>
 <tr><td>use_packet</td><td>ＰＡＣＫＥＴソケットの使用を許可</td></tr>
 <tr><td>use_kernel_module</td><td>create_module(2), init_module(2), delete_module(2) の使用を許可</td></tr>
-<tr><td>create_fifo</td><td>mknod(2) でＦＩＦＯの作成を許可</td></tr>
-<tr><td>create_block_dev</td><td>mknod(2) でブロック型デバイスの作成を許可</td></tr>
-<tr><td>create_char_dev</td><td>mknod(2) でキャラクタ型デバイスの作成を許可</td></tr>
-<tr><td>create_unix_socket</td><td>mknod(2) でＵＮＩＸドメインソケットの作成を許可</td></tr>
-<tr><td>SYS_MOUNT</td><td>mount(2) の使用を許可</td></tr>
-<tr><td>SYS_UMOUNT</td><td>umount(2) の使用を許可</td></tr>
 <tr><td>SYS_REBOOT</td><td>reboot(2) の使用を許可</td></tr>
-<tr><td>SYS_CHROOT</td><td>chroot(2) の使用を許可</td></tr>
-<tr><td>SYS_KILL</td><td>０以外のシグナルで kill(2), tkill(2), tgkill(2) の使用を許可</td></tr>
 <tr><td>SYS_VHANGUP</td><td>vhangup(2) の使用を許可</td></tr>
 <tr><td>SYS_TIME</td><td>stime(2), settimeofday(2), adjtimex(2) の使用を許可</td></tr>
 <tr><td>SYS_NICE</td><td>nice(2), setpriority(2) の使用を許可</td></tr>
 <tr><td>SYS_SETHOSTNAME</td><td>sethostname(2), setdomainname(2) の使用を許可</td></tr>
-<tr><td>SYS_LINK</td><td>link(2) の使用を許可</td></tr>
-<tr><td>SYS_SYMLINK</td><td>symlink(2) の使用を許可</td></tr>
-<tr><td>SYS_RENAME</td><td>rename(2) の使用を許可</td></tr>
-<tr><td>SYS_UNLINK</td><td>unlink(2) の使用を許可</td></tr>
-<tr><td>SYS_CHMOD</td><td>chmod(2), fchmod(2) の使用を許可</td></tr>
-<tr><td>SYS_CHOWN</td><td>chown(2), fchown(2), lchown(2) の使用を許可</td></tr>
-<tr><td>SYS_IOCTL</td><td>ioctl(2), compat_sys_ioctl(2) の使用を許可</td></tr>
 <tr><td>SYS_KEXEC_LOAD</td><td>kexec_load(2) の使用を許可</td></tr>
-<tr><td>SYS_PIVOT_ROOT</td><td>pivot_root(2) の使用を許可</td></tr>
 <tr><td>SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
-<tr><td>conceal_mount</td><td>既存のマウントを隠ぺいするようなマウントを許可</td></tr>
 </table>
 </td></tr>
 </table>

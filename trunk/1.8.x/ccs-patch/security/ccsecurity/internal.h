@@ -204,6 +204,16 @@ enum ccs_mac_index {
 	CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
 	CCS_MAC_ENVIRON,
 	CCS_MAC_SIGNAL,
+	CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET,
+	CCS_MAC_CAPABILITY_USE_PACKET_SOCKET,
+	CCS_MAC_CAPABILITY_SYS_REBOOT,
+	CCS_MAC_CAPABILITY_SYS_VHANGUP,
+	CCS_MAC_CAPABILITY_SYS_SETTIME,
+	CCS_MAC_CAPABILITY_SYS_NICE,
+	CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
+	CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
+	CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
+	CCS_MAC_CAPABILITY_SYS_PTRACE,
 	CCS_MAX_MAC_INDEX
 };
 
@@ -343,26 +353,6 @@ enum ccs_policy_id {
 	CCS_ID_DOMAIN,
 	CCS_MAX_POLICY
 };
-
-/* Keywords for ACLs. */
-#define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
-#define CCS_KEYWORD_AGGREGATOR                "aggregator "
-#define CCS_KEYWORD_DELETE                    "delete "
-#define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
-#define CCS_KEYWORD_FILE_PATTERN              "file_pattern "
-#define CCS_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
-#define CCS_KEYWORD_KEEP_DOMAIN               "keep_domain "
-#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
-#define CCS_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
-#define CCS_KEYWORD_PATH_GROUP                "path_group "
-#define CCS_KEYWORD_NUMBER_GROUP              "number_group "
-#define CCS_KEYWORD_SELECT                    "select "
-#define CCS_KEYWORD_USE_PROFILE               "use_profile "
-#define CCS_KEYWORD_USE_GROUP                 "use_group "
-#define CCS_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
-#define CCS_KEYWORD_TRANSITION_FAILED         "transition_failed"
-#define CCS_KEYWORD_AUTO_EXECUTE_HANDLER      "auto_execute_handler"
-#define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
 
 /* A domain definition starts with <kernel>. */
 #define CCS_ROOT_NAME                         "<kernel>"
@@ -970,8 +960,7 @@ struct ccs_preference {
 struct ccs_profile {
 	const struct ccs_path_info *comment;
 	u8 default_config;
-	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-		  + CCS_MAX_MAC_CATEGORY_INDEX];
+	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX];
 };
 
 /* Prototype definition for "struct ccsecurity_operations". */
@@ -1023,7 +1012,6 @@ char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
 char *ccs_init_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
-const char *ccs_cap2keyword(const u8 operation);
 const char *ccs_file_pattern(const struct ccs_path_info *filename);
 const char *ccs_get_exe(void);
 const char *ccs_last_word(const char *name);
@@ -1105,6 +1093,7 @@ void ccs_put_number_union(struct ccs_number_union *ptr);
 void ccs_read_log(struct ccs_io_buffer *head);
 void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_run_gc(void);
+void ccs_transition_failed(const char *domainname);
 void ccs_unlock(const int idx);
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
@@ -1143,16 +1132,20 @@ extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_acl_group[CCS_MAX_ACL_GROUPS];
 extern struct ccs_domain_info ccs_kernel_domain;
-extern const char *ccs_mode[CCS_CONFIG_MAX_MODE];
-extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
-extern const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION];
-extern const char *ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION];
-extern const char *ccs_proto_keyword[CCS_SOCK_MAX];
-extern const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION];
-extern const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION];
-extern const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION];
-extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
-extern struct ccs_preference ccs_preference;	
+extern const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
+extern const char * const ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS];
+extern const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
+				    + CCS_MAX_MAC_CATEGORY_INDEX];
+extern const char * const ccs_mode[CCS_CONFIG_MAX_MODE];
+extern const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION];
+extern const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION];
+extern const char * const ccs_proto_keyword[CCS_SOCK_MAX];
+extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX];
+extern const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX];
+extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
+extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
+extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
+extern struct ccs_preference ccs_preference;
 extern unsigned int ccs_log_memory_size;
 extern unsigned int ccs_quota_for_log;
 extern unsigned int ccs_query_memory_size;

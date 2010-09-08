@@ -247,7 +247,7 @@ static void set_file_enforce(int enforce)
 		set_profile(3, "file::ioctl");
 		set_profile(3, "file::chroot");
 		set_profile(3, "file::mount");
-		set_profile(3, "file::umount");
+		set_profile(3, "file::unmount");
 		set_profile(3, "file::pivot_root");
 	} else {
 		set_profile(0, "file::execute");
@@ -270,7 +270,7 @@ static void set_file_enforce(int enforce)
 		set_profile(0, "file::ioctl");
 		set_profile(0, "file::chroot");
 		set_profile(0, "file::mount");
-		set_profile(0, "file::umount");
+		set_profile(0, "file::unmount");
 		set_profile(0, "file::pivot_root");
 	}
 }

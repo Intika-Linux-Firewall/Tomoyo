@@ -466,9 +466,9 @@ int main(int argc, char *argv[])
 		/* Test standard case */
 		fprintf(domain_fp, "file unmount /tmp/mount/\n");
 
-		set_profile(0, "file::umount");
+		set_profile(0, "file::unmount");
 		mount2("none", "/tmp/mount/", "tmpfs");
-		set_profile(3, "file::umount");
+		set_profile(3, "file::unmount");
 		show_prompt("umount('/tmp/mount/') for '/tmp/mount/'", 0);
 		if (umount("/tmp/mount/") == 0)
 			printf("OK\n");
@@ -476,10 +476,10 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 		fprintf(domain_fp, "delete file unmount /tmp/mount/\n");
 
-		set_profile(0, "file::umount");
+		set_profile(0, "file::unmount");
 
 		mount2("none", "/tmp/mount/", "tmpfs");
-		set_profile(3, "file::umount");
+		set_profile(3, "file::unmount");
 		show_prompt("umount('/tmp/mount/') for '/tmp/mount/'", 1);
 		if (umount("/tmp/mount/") == EOF && errno == EPERM)
 			printf("OK: Permission denied.\n");
@@ -488,9 +488,9 @@ int main(int argc, char *argv[])
 
 		/* Test pattern */
 		fprintf(domain_fp, "file unmount /tmp/\\?\\?\\?\\?\\?/\n");
-		set_profile(0, "file::umount");
+		set_profile(0, "file::unmount");
 		mount2("none", "/tmp/mount/", "tmpfs");
-		set_profile(3, "file::umount");
+		set_profile(3, "file::unmount");
 		show_prompt("umount('/tmp/mount/') for "
 			    "'/tmp/\\?\\?\\?\\?\\?/'", 1);
 		if (umount("/tmp/mount/") == 0)
@@ -500,7 +500,7 @@ int main(int argc, char *argv[])
 		fprintf(domain_fp,
 			"delete file unmount /tmp/\\?\\?\\?\\?\\?/\n");
 
-		set_profile(0, "file::umount");
+		set_profile(0, "file::unmount");
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
 	}

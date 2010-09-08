@@ -12,6 +12,19 @@
 
 #include "internal.h"
 
+const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX] = {
+	[CCS_USE_ROUTE_SOCKET]  = CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET,
+	[CCS_USE_PACKET_SOCKET] = CCS_MAC_CAPABILITY_USE_PACKET_SOCKET,
+	[CCS_SYS_REBOOT]        = CCS_MAC_CAPABILITY_SYS_REBOOT,
+	[CCS_SYS_VHANGUP]       = CCS_MAC_CAPABILITY_SYS_VHANGUP,
+	[CCS_SYS_SETTIME]       = CCS_MAC_CAPABILITY_SYS_SETTIME,
+	[CCS_SYS_NICE]          = CCS_MAC_CAPABILITY_SYS_NICE,
+	[CCS_SYS_SETHOSTNAME]   = CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
+	[CCS_USE_KERNEL_MODULE] = CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
+	[CCS_SYS_KEXEC_LOAD]    = CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
+	[CCS_SYS_PTRACE]        = CCS_MAC_CAPABILITY_SYS_PTRACE,
+};
+
 /**
  * ccs_audit_capability_log - Audit capability log.
  *
@@ -22,11 +35,12 @@
  */
 static int ccs_audit_capability_log(struct ccs_request_info *r)
 {
-	const char *operation = ccs_cap2keyword(r->param.capability.operation);
+	const char *operation =
+		ccs_mac_keywords[ccs_c2mac[r->param.capability.operation]];
 	ccs_write_log(r, "capability %s\n", operation);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "capability %s", operation);
+	ccs_warn_log(r, "capability %s\n", operation);
 	return ccs_supervisor(r, "capability %s\n", operation);
 }
 
@@ -50,7 +64,7 @@ static bool __ccs_capable(const u8 operation)
 	struct ccs_request_info r;
 	int error = 0;
 	const int idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, CCS_MAX_MAC_INDEX + operation)
+	if (ccs_init_request_info(&r, ccs_c2mac[operation])
 	    != CCS_CONFIG_DISABLED) {
 		r.param_type = CCS_TYPE_CAPABILITY_ACL;
 		r.param.capability.operation = operation;
@@ -91,7 +105,8 @@ int ccs_write_capability(struct ccs_acl_param *param)
 	const char *operation = ccs_read_token(param);
 	for (e.operation = 0; e.operation < CCS_MAX_CAPABILITY_INDEX;
 	     e.operation++) {
-		if (strcmp(operation, ccs_cap2keyword(e.operation)))
+		if (strcmp(operation,
+			   ccs_mac_keywords[ccs_c2mac[e.operation]]))
 			continue;
 		return ccs_update_domain(&e.head, sizeof(e), param,
 					 ccs_same_capability_entry, NULL);

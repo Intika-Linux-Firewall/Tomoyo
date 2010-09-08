@@ -43,7 +43,7 @@ static void set_level(const int i)
 	set_profile(i, "file::symlink");
 	//set_profile(i, "file::transit");
 	set_profile(i, "file::truncate");
-	set_profile(i, "file::umount");
+	set_profile(i, "file::unmount");
 	set_profile(i, "file::unlink");
 }
 

@@ -145,7 +145,7 @@ static void clear_status(void)
 		"file::ioctl",
 		"file::chroot",
 		"file::mount",
-		"file::umount",
+		"file::unmount",
 		"file::pivot_root",
 		"misc::env",
 		"network::inet_stream_bind",
