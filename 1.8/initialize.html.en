@@ -155,104 +155,39 @@
 <tr><td>
 (1) Pathname pattern
 </td><td>
-<p>Register pathnames with patterns using the "file_pattern" directive. When a file operation is performed and the requested pathname matches a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.<br>
-The following is the guideline.</p>
-
-<ul>
-<li>Files under /proc/PID/ directory.</li>
-<li>Files under /sys/ directory. (Applicable to 2.6 kernels only)</li>
-<li>Some files under /dev/ directory.</li>
-<li>Policy files under /etc/ccs/ directory.</li>
-<li>Manual pages.</li>
-<li>Spool directories.</li>
-<li>Temporary files used for sending and receiving mails.</li>
-<li>Temporary files used by man command.</li>
-<li>Temporary files used by mount command.</li>
-</ul>
-
-<p>TOMOYO Linux needs more patterned pathnames depending on the applications installed and their configurations. You can add missing patterned pathnames after running the system.</p>
+<p>Register pathnames with patterns using "file_pattern" directive. When a file operation is performed and the requested pathname matches a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.</p>
 </td></tr><tr><td>
 (2) Pathname group
 </td><td>
-<p>Register pathname groups using the "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names. An example usage is shown later.</p>
+<p>Register pathname groups using "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names. An example usage is shown later.</p>
 </td></tr><tr><td>
 (3) Number group
 </td><td>
-<p>Register number groups using the "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names. An example usage is shown later.</p>
+<p>Register number groups using "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names. An example usage is shown later.</p>
 </td></tr><tr><td>
 (4) Address group
 </td><td>
-<p>Register IPv4 or IPv6 address groups using the "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names. An example usage is shown later.<br>
+<p>Register IPv4 or IPv6 address groups using "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names. An example usage is shown later.<br>
 </td></tr><tr><td>
 (5) ACL group
 </td><td>
-<p>Give permissions using the "acl_group" directive followed by group number and permissions for domain policy. The ACL group is referenced by "use_group" directive in the domain policy.<br>
+<p>Give permissions using "acl_group" directive followed by group number and permissions for domain policy. The ACL group is referenced by "use_group" directive in the domain policy.<br>
 </td></tr><tr><td>
 (6) Program aggregations
 </td><td>
 <p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. Patterns are allowed for name of original program.<br>
 For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
 </td></tr><tr><td>
-(7) Programs that cause domain transition initialization
+(7) Domain transition exceptions
 </td><td>
-<p>Register programs that initializes the domain transition history using the "initialize_domain" directive. No patterns allowed. When a program that is registered with "initialize_domain" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
-The following is the guideline.</p>
-
-<ul>
-<li>Scripts that start or terminate daemon programs located under /etc/init.d/ directory.</li>
-<li>Daemon programs that you want to make domain names shorter (for example, httpd and sshd).</li>
-</ul>
-
-<p>You may find more programs depending on applications in your system or configurations. Add missing programs after observing which programs should be initialize their domain transition history. But be careful with the side effect of other domains. For example, when the domain policy already includes</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; ... /bin/bash<br>
-use_profile 3<br>
-file execute /bin/tcsh<br>
-<br>
-&lt;kernel&gt; ... /bin/bash /bin/tcsh<br>
-use_profile 3<br>
-file execute /bin/cat<br>
-<br>
-&lt;kernel&gt; ... /bin/bash /bin/tcsh /bin/cat<br>
-use_profile 3<br>
-file read /etc/fstab
-</td></tr>
-</table>
-
-<p>and you add /bin/tcsh as initialize_domain, "&lt;kernel&gt; ... /bin/bash /bin/tcsh" will become  unreachable domain because /bin/tcsh runs in "&lt;kernel&gt; /bin/tcsh" domain. In that case, you will need to replace "&lt;kernel&gt; ... /bin/bash /bin/tcsh" with "&lt;kernel&gt; /bin/tcsh" as shown below.</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; ... /bin/bash<br>
-use_profile 3<br>
-file execute /bin/tcsh<br>
-<br>
-&lt;kernel&gt; /bin/tcsh<br>
-use_profile 3<br>
-file execute /bin/cat<br>
-<br>
-&lt;kernel&gt; /bin/tcsh /bin/cat<br>
-use_profile 3<br>
-file read /etc/fstab
-</td></tr>
-</table>
+<p>Basically, domain transition occurs whenever a program is executed. But you can suppress or initialize domain transitions as needed.</p>
+<p>You can specify programs that initialize the domain transition history using "initialize_domain" directive. For example, if "initialize_domain /usr/sbin/sshd" is specified, /usr/sbin/sshd will run under "&lt;kernel&gt; /usr/sbin/sshd" domain.</p>
+<p>You can deny the effect of "initialize_domain" directive using "no_initialize_domain" directive. You can use "no_initialize_domain" directive when you don't want to initialize domain transition history under specific conditions.</p>
+<p>You can specify domains that suppress domain transition using "keep_domain" directive.<br>
+For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is specified, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless programs specified using "initialize_domain" directive are executed.</p>
+<p>You can deny the effect of "keep_domain" directive using "no_keep_domain" directive. You can use "no_keep_domain" directive when you don't want to suppress domain transition under specific conditions.</p>
 </td></tr><tr><td>
-(8) Programs that prevent domain transition initialization
-</td><td>
-<p>To deny the effect of "initialize_domain" directive under specific conditions, use "no_initialize_domain" directive.</p>
-</td></tr><tr><td>
-(9) Domains that prevent domain transition
-</td><td>
-<p>To declare domain keepers, use "keep_domain" directive followed by domain definition.<br>
-For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless any program registered with "initialize_domain" directive is executed.</p>
-</td></tr><tr><td>
-(10) Domains that cause domain transition
-</td><td>
-<p>To deny the effect of "keep_domain" directive under specific conditions, use "no_keep_domain" directive.</p>
-</td></tr><tr><td>
-(11) Reserved local ports
+(8) Reserved local ports
 </td><td>
 <p>To reserve local ports, use "deny_autobind" directive followed by port number.<br>
 Some programs require specific port numbers which might be assigned by automatic port number assignment functionality. If such port numbers are assigned by automatic port number assignment functionality, such programs can't work. This directive reserves such port numbers.</p>
