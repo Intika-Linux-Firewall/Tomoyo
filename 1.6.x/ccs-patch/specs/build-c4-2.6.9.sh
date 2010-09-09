@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-89.0.28.EL.src.rpm ]
+if [ ! -r kernel-2.6.9-89.0.29.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.0.28.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.0.29.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-89.0.28.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-89.0.29.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
@@ -31,8 +31,8 @@ patch << "EOF" || die "Can't patch spec file."
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 89.0.28.EL
-+%define release 89.0.28.EL_tomoyo_1.6.8p3
+-%define release 89.0.29.EL
++%define release 89.0.29.EL_tomoyo_1.6.8p3
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -176,7 +179,7 @@
+@@ -178,7 +181,7 @@
  %define __find_provides /usr/lib/rpm/redhat/find-kmod-provides.sh
  %define __find_requires %{nil}
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -5653,6 +5656,10 @@
+@@ -5661,6 +5664,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -5664,6 +5671,9 @@
+@@ -5672,6 +5679,9 @@
  for i in *.config 
  do 
  	mv $i .config 
