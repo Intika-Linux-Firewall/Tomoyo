@@ -39,17 +39,17 @@
 
 <p>Let's try an operation which is permitted by policy.</p>
 
-<p><img src="operation-permitted.png" width="688" height="933"></p>
+<p><img src="operation-permitted.png" width="684" height="912"></p>
 
 <p>The operation was successfully completed, for sending mail is permitted by policy.</p>
 
 <p>Let's try an operation which is not permitted by policy.</p>
 
-<p><img src="unix-penguin.png" width="688" height="933"></p>
+<p><img src="unix-penguin.png" width="684" height="912"></p>
 
 <p>The operation was rejected. (Seemingly, it looks like it was successfully completed. But actually, the execution of /bin/cat was rejected as you can see warning message by /bin/mail that the input was empty.)</p>
 
-<p><img src="unix-penguin-rejected.png" width="688" height="623"></p>
+<p><img src="unix-penguin-rejected.png" width="684" height="597"></p>
 
 <p>If the profile is configured as "PREFERENCE::enforcing={ verbose=yes }" (this is default), the "ERROR:" messages will be printed to the console when policy violation occurs.</p>
 
@@ -60,12 +60,11 @@
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# grep -A 3 -F 'profile=3 mode=enforcing' /var/log/tomoyo/reject_log.conf<br>
-#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }<br>
+#2010-09-09 20:43:43# profile=3 mode=enforcing (global-pid=3176) task={ pid=3176 ppid=3175 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=852009 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=851969 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=15 argv[]={ "cat" "/etc/passwd" } envp[]={ "SELINUX_INIT=YES" "CONSOLE=/dev/console" "TERM=linux" "INIT_VERSION=sysvinit-2.86" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "RUNLEVEL=3" "runlevel=3" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "PREVLEVEL=N" "previous=N" "HOME=/" "SHLVL=4" "LANGUAGE=en_US.UTF-8" } }<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 file execute /bin/cat<br>
 <br>
---<br>
-#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 }<br>
+#2010-09-09 20:43:43# profile=3 mode=enforcing (global-pid=3176) task={ pid=3176 ppid=3175 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=852009 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=851969 perm=0755 }<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 file read /bin/cat
 </td></tr>
@@ -82,16 +81,16 @@ file read /bin/cat
 [root@tomoyo ~]# mail<br>
 Mail version 8.1 6/6/93.  Type ? for help.<br>
 "/var/spool/mail/root": 1 message 1 unread<br>
-&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234<br>
+&gt;U  1 root@localhost.local  Thu Sep  9 20:43  19/1335<br>
 &amp;<br>
 Message 1:<br>
-From root@localhost.localdomain  Tue Jan 12 16:19:17 2010<br>
-Date: Tue, 12 Jan 2010 16:19:17 +0900<br>
+From root@localhost.localdomain  Thu Sep  9 20:43:43 2010<br>
+Date: Thu, 9 Sep 2010 20:43:43 +0900<br>
 From: root &lt;root@localhost.localdomain&gt;<br>
 To: root@localhost.localdomain<br>
 <br>
 Q0-0<br>
-#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }<br>
+#2010-09-09 20:43:43# profile=3 mode=enforcing (global-pid=3176) task={ pid=3176 ppid=3175 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=852009 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=851969 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=15 argv[]={ "cat" "/etc/passwd" } envp[]={ "SELINUX_INIT=YES" "CONSOLE=/dev/console" "TERM=linux" "INIT_VERSION=sysvinit-2.86" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "RUNLEVEL=3" "runlevel=3" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "PREVLEVEL=N" "previous=N" "HOME=/" "SHLVL=4" "LANGUAGE=en_US.UTF-8" } }<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 file execute /bin/cat
 </td></tr>
