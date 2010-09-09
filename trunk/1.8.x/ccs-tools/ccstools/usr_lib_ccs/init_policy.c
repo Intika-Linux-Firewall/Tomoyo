@@ -729,6 +729,7 @@ static void make_patterns_for_unnamed_objects(void)
 {
 	/* Make patterns for unnamed pipes and sockets. */
 	echo("file_pattern pipe:[\\$]");
+	echo("file_pattern pipefs:[\\$]");
 	echo("file_pattern socket:[\\$]");
 }
 
