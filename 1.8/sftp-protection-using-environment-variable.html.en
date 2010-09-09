@@ -91,7 +91,7 @@ SendEnv sftp_type
 
 <table border="1">
 <tr><td>
-initialize_domain /bin/sftp-shell
+initialize_domain /bin/sftp-shell from any
 </td></tr>
 </table>
 
@@ -179,8 +179,6 @@ sftp sftp@server
 <h2>Explanation</h2>
 
 <p>We create two domains for sftp-server programs with different parent domain, and we give write permissions to only one domain. Since this program is just an example, we used straightforward environment variables. When you use at real systems, please use unguessable environment variables because these environment variables act as passwords.</p>
-
-<p>If you want to forbid access to files listed using file read keyword in the exception policy (e.g. shared libraries), you can specify ignore_global_file read directive to the domain policy.</p>
 
 <h2>Application idea</h2>
 

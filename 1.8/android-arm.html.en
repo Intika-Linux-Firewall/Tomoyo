@@ -181,7 +181,7 @@ adb emu kill
 
 <h2>Step 12: Edit initialized policy.</h2>
 
-<p>Add missing entries (e.g. file_pattern / file read ) to exception policy. Below is just an example. Domain policy is configured to use profile 1 (which is a profile for "learning mode"). Manager is configured to allow only agent program.</p>
+<p>Add missing entries (e.g. file_pattern / acl_group 0 file read ) to exception policy. Below is just an example. Domain policy is configured to use profile 1 (which is a profile for "learning mode"). Manager is configured to allow only agent program.</p>
 
 <table border="1">
 <tr><td>
@@ -193,13 +193,13 @@ echo 'initialize_domain /system/bin/app_process'<br>
 echo 'file_pattern /dev/tty\$'<br>
 <br>
 echo 'file_pattern /system/lib/\@.so'<br>
-echo 'file read /system/lib/\@.so'<br>
+echo 'acl_group 0 file read /system/lib/\@.so'<br>
 echo 'file_pattern /system/framework/\*.jar'<br>
-echo 'file read /system/framework/\*.jar'<br>
+echo 'acl_group 0 file read /system/framework/\*.jar'<br>
 echo 'file_pattern /system/media/audio/\*/\*'<br>
-echo 'file read /system/media/audio/\*/\*'<br>
+echo 'acl_group 0 file read /system/media/audio/\*/\*'<br>
 echo 'file_pattern /system/fonts/\*.ttf'<br>
-echo 'file read /system/fonts/\*.ttf'<br>
+echo 'acl_group 0 file read /system/fonts/\*.ttf'<br>
 echo 'file_pattern /data/tombstones/tombstone_\$'<br>
 <br>
 echo 'file_pattern /data/dalvik-cache/system@framework@\*.jar@classes.dex'<br>
@@ -223,15 +223,15 @@ echo 'file_pattern /sdcard/dcim/.thumbnails/.thumbdata3--\$'<br>
 <br>
 echo 'path_group SYSTEM_APK /system/app/\@.apk'<br>
 <br>
-echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_wmem_min'<br>
-echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_wmem_def'<br>
-echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_wmem_max'<br>
-echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_min'<br>
-echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_def'<br>
-echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_max'<br>
+echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_wmem_min'<br>
+echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_wmem_def'<br>
+echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_wmem_max'<br>
+echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_rmem_min'<br>
+echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_rmem_def'<br>
+echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_rmem_max'<br>
 <br>
-echo 'file read /sys/devices/platform/\*battery\*/power_supply/ac/online'<br>
-echo 'file read /sys/devices/platform/\*battery\*/power_supply/battery/\@'<br>
+echo 'acl_group 0 file read sys:devices/platform/\*battery\*/power_supply/ac/online'<br>
+echo 'acl_group 0 file read sys:devices/platform/\*battery\*/power_supply/battery/\@'<br>
 <br>
 #App. specific data files<br>
 echo 'file_pattern /data/data/com.android.browser/cache/webviewCache/\*'<br>

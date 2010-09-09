@@ -152,7 +152,7 @@ int main(int raw_argc, char *raw_argv[])
 
 <table border="1">
 <tr><td>
-initialize_domain /usr/sbin/sshd
+initialize_domain /usr/sbin/sshd from any
 </td></tr>
 </table>
 
@@ -160,7 +160,7 @@ initialize_domain /usr/sbin/sshd
 
 <table border="1">
 <tr><td>
-keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </td></tr>
 </table>
 
@@ -169,7 +169,7 @@ keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-execute_handler /bin/record_cmdline
+task auto_execute_handler /bin/record_cmdline
 </td></tr>
 </table>
 

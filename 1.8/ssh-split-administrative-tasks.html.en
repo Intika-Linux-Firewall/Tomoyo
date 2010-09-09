@@ -171,7 +171,7 @@ exit 1
 
 <table border="1">
 <tr><td>
-initialize_domain /usr/sbin/sshd
+initialize_domain /usr/sbin/sshd from any
 </td></tr>
 </table>
 
@@ -180,7 +180,7 @@ initialize_domain /usr/sbin/sshd
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
-execute_handler /bin/sshd_login
+task auto_execute_handler /bin/sshd_login
 </td></tr>
 </table>
 
@@ -267,9 +267,9 @@ less /var/log/tomoyo/reject_log.conf
 
 <table border="1">
 <tr><td>
-keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash<br>
-keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash<br>
-keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/securityadmin-auth /bin/bash
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash<br>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash<br>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/securityadmin-auth /bin/bash
 </td></tr>
 </table>
 
