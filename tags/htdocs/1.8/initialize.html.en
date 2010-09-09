@@ -131,15 +131,15 @@
 </tr>
 <tr>
 <td>learning</td>
-<td>Learning mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
+<td>Learning mode. Do not reject an access request if the request violates policy. Append the request to policy.</td>
 </tr>
 <tr>
 <td>permissive</td>
-<td>Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</td>
+<td>Permissive mode. Do not reject an access request if the request violates policy. Do not append the request to policy.</td>
 </tr>
 <tr>
 <td>enforcing</td>
-<td>Enforcing mode. Rejected if the request violates policy.</td>
+<td>Enforcing mode. Reject an access request if the request violates policy. Do not append the request to policy.</td>
 </tr>
 </table>
 
@@ -149,29 +149,29 @@
 
 <p>You can scroll this window using arrow keys and/or Home/End/PageUp/PageDown keys.</p>
 
-<p>This screen contains the following types of exceptions.</p>
+<p>This screen contains the following types of macros and exceptions.</p>
 
 <table border="1">
 <tr><td>
 (1) Pathname pattern
 </td><td>
-<p>Register pathnames with patterns using "file_pattern" directive. When a file operation is performed and the requested pathname matches a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.</p>
+<p>You can specify pathnames with patterns using "file_pattern" directive. When a file operation is performed and the requested pathname matches a patterned pathname specified using "file_pattern" directive, policy is generated using the patterned pathnames.</p>
 </td></tr><tr><td>
 (2) Pathname group
 </td><td>
-<p>Register pathname groups using "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names. An example usage is shown later.</p>
+<p>You can specify pathname groups using "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names.</p>
 </td></tr><tr><td>
 (3) Number group
 </td><td>
-<p>Register number groups using "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names. An example usage is shown later.</p>
+<p>You can specify number groups using "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names.</p>
 </td></tr><tr><td>
 (4) Address group
 </td><td>
-<p>Register IPv4 or IPv6 address groups using "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names. An example usage is shown later.<br>
+<p>You can specify IPv4 or IPv6 address groups using "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names.<br>
 </td></tr><tr><td>
 (5) ACL group
 </td><td>
-<p>Give permissions using "acl_group" directive followed by group number and permissions for domain policy. The ACL group is referenced by "use_group" directive in the domain policy.<br>
+<p>You can specify permissions using "acl_group" directive followed by group number and permissions for that group. The ACL group is referenced by "use_group" directive in the domain policy. This is a macro to reduce the amount of domain policy by grouping commonly granted permissions.</p>
 </td></tr><tr><td>
 (6) Program aggregations
 </td><td>
@@ -188,8 +188,7 @@ For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is specifi
 </td></tr><tr><td>
 (8) Reserved local ports
 </td><td>
-<p>To reserve local ports, use "deny_autobind" directive followed by port number.<br>
-Some programs require specific port numbers which might be assigned by automatic port number assignment functionality. If such port numbers are assigned by automatic port number assignment functionality, such programs can't work. This directive reserves such port numbers.</p>
+<p>You can specify reserved local ports using "deny_autobind" directive. This is similar to /proc/sys/net/ipv4/ip_local_reserved_ports which is available since Linux 2.6.35 kernels.</p>
 </td></tr>
 </table>
 
