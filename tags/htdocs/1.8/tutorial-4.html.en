@@ -253,7 +253,7 @@ file unlink /tmp/abc12345
 <tr><td>
 &diams; Fig. 16&nbsp;&nbsp;Contents to append to /etc/rc.d/rc.local
 <pre>
-/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
 </pre>
 </td></tr>
 </table>
@@ -264,7 +264,7 @@ file unlink /tmp/abc12345
 <tr><td>
 &diams; Fig. 17&nbsp;&nbsp;Configure logrotate to rotate access logs ( /etc/logrotate.d/tomoyo )
 <pre>
-/var/log/tomoyo/reject_log.txt {
+/var/log/tomoyo/reject_log.conf {
     weekly
     rotate 9
     missingok
@@ -283,9 +283,9 @@ file unlink /tmp/abc12345
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 18&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_log.txt )
+&diams; Fig. 18&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_log.conf )
 <pre>
-# cat /var/log/tomoyo/reject_log.txt
+# cat /var/log/tomoyo/reject_log.conf
 #2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
 file read /tmp/testfile2
