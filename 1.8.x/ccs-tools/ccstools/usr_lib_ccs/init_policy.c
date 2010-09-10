@@ -216,8 +216,7 @@ static inline void echo(const char *str)
 
 static const char *keyword = NULL;
 
-#define SCANDIR_MAY_CONTAIN_NUMBER_WILDCARD  1
-#define SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD 2
+#define SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD 1
 
 static void printf_encoded(const char *str, const unsigned int flags)
 {
@@ -251,8 +250,7 @@ static void printf_encoded(const char *str, const unsigned int flags)
 		if (!c)
 			break;
 		if (c == '/' &&
-		    (flags == SCANDIR_MAY_CONTAIN_NUMBER_WILDCARD ||
-		     flags == SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD)) {
+		    (flags == SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD)) {
 			const size_t numbers = strspn(str, "0123456789");
 			const char c2 = str[numbers];
 			if (numbers && (c2 == '/' || !c2)) {
@@ -309,14 +307,6 @@ static void scan_dir_for_pattern(const char *dir)
 	memset(path, 0, sizeof(path));
 	strncpy(path, dir, sizeof(path) - 1);
 	return scan_dir_for_pattern2(SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD);
-}
-
-static void scan_dir_for_read(const char *dir)
-{
-	keyword = "acl_group 0 file read";
-	memset(path, 0, sizeof(path));
-	strncpy(path, dir, sizeof(path) - 1);
-	return scan_dir_for_pattern2(SCANDIR_MAY_CONTAIN_NUMBER_WILDCARD);
 }
 
 static void scan_dir_for_depth2(int depth, int *max_depth)
@@ -614,18 +604,38 @@ static void make_globally_readable_files(void)
 static void make_self_readable_files(void)
 {
 	/* Allow reading information for current process. */
-	scan_dir_for_read("/proc/self");
+	fprintf(filp, "acl_group 0 file read proc:/self/\\*\n");
+	fprintf(filp, "acl_group 0 file read proc:/self/\\{\\*\\}/\\*\n");
 }
 
 static void make_ldconfig_readable_files(void)
 {
 	/* Allow reading DLL files registered with ldconfig(8). */
+	static const char *dirs[] = {
+		"/lib/", "/lib/i486/", "/lib/i586/", "/lib/i686/",
+		"/lib/i686/cmov/", "/lib/tls/", "/lib/tls/i486/",
+		"/lib/tls/i586/", "/lib/tls/i686/", "/lib/tls/i686/cmov/",
+		"/lib/i686/nosegneg/", "/usr/lib/", "/usr/lib/i486/",
+		"/usr/lib/i586/", "/usr/lib/i686/", "/usr/lib/i686/cmov/",
+		"/usr/lib/tls/", "/usr/lib/tls/i486/", "/usr/lib/tls/i586/",
+		"/usr/lib/tls/i686/", "/usr/lib/tls/i686/cmov/",
+		"/usr/lib/sse2/", "/usr/X11R6/lib/", "/usr/lib32/",
+		"/usr/lib64/", "/lib64/", "/lib64/tls/",
+	};
+	int i;
 	FILE *fp = !access("/sbin/ldconfig", X_OK) ||
 		!access("/bin/ldconfig", X_OK)
 		? popen("ldconfig -NXp", "r") : NULL;
 	if (!fp)
 		return;
-	keyword = "acl_group 0 file read";
+	keyword = NULL;
+	for (i = 0; i < elementof(dirs); i++) {
+		char *cp = get_realpath(dirs[i]);
+		if (!cp)
+			continue;
+		fprintf(filp, "acl_group 0 file read %s/lib\\*.so\\*\n", cp);
+		free(cp);
+	}
 	while (memset(path, 0, sizeof(path)),
 	       fgets(path, sizeof(path) - 1, fp)) {
 		char *cp = strchr(path, '\n');
@@ -638,7 +648,29 @@ static void make_ldconfig_readable_files(void)
 		cp = get_realpath(cp + 4);
 		if (!cp)
 			continue;
-		printf_encoded(cp, 0);
+		for (i = 0; i < elementof(dirs); i++) {
+			const int len = strlen(dirs[i]);
+			if (!strncmp(cp, dirs[i], len) &&
+			    !strncmp(cp + len, "lib", 3) &&
+			    strstr(cp + len + 3, ".so"))
+				break;
+		}
+		if (i == elementof(dirs)) {
+			char *cp2 = strrchr(cp, '/');
+			const int len = strlen(cp);
+			char buf[16];
+			memset(buf, 0, sizeof(buf));
+			fprintf(filp, "acl_group 0 file read ");
+			if (cp2 && !strncmp(cp2, "/ld-2.", 6) &&
+			    len > 3 && !strcmp(cp + len - 3, ".so"))
+				*(cp2 + 6) = '\0';
+			else
+				cp2 = NULL;
+			printf_encoded(cp, 0);
+			if (cp2)
+				fprintf(filp, "\\*.so");
+			fputc('\n', filp);
+		}
 		free(cp);
 	}
 	pclose(fp);
@@ -1330,7 +1362,6 @@ static void make_manager(void)
 	fprintf(fp, "%s/ccs-editpolicy\n", tools_dir);
 	fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
 	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
-	fprintf(fp, "%s/ccs-ld-watch\n", tools_dir);
 	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
 	fclose(fp);
 	if (!chdir(policy_dir) &&
