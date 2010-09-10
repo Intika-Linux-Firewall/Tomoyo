@@ -23,16 +23,9 @@
 #include "ccstools.h"
 #include "readline.h"
 
-#define CCS_GLOBALLY_READABLE_FILES_UPDATE_NONE 0
-#define CCS_GLOBALLY_READABLE_FILES_UPDATE_ASK  1
-#define CCS_GLOBALLY_READABLE_FILES_UPDATE_AUTO 2
-
 /* Prototypes */
 
 static void ccs_printw(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-static int ccs_send_encoded(const int fd, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
-static void ccs_do_check_update(const int fd);
-static void ccs_handle_update(const int ccs_check_update, const int fd);
 /*
 static _Bool ccs_convert_path_info(FILE *fp, const struct ccs_path_info *pattern, const char *new);
 */
@@ -60,47 +53,6 @@ static void ccs_printw(const char *fmt, ...)
 		refresh();
 	}
 	free(buffer);
-}
-
-static int ccs_send_encoded(const int fd, const char *fmt, ...)
-{
-	va_list args;
-	int i;
-	int len;
-	char *buffer;
-	char *sp;
-	char *dp;
-	va_start(args, fmt);
-	len = vsnprintf((char *) &i, sizeof(i) - 1, fmt, args) + 16;
-	va_end(args);
-	buffer = malloc(len * 5);
-	if (!buffer)
-		ccs_out_of_memory();
-	va_start(args, fmt);
-	vsnprintf(buffer, len, fmt, args);
-	va_end(args);
-	sp = buffer;
-	dp = buffer + len;
-	while (true) {
-		unsigned char c = *(const unsigned char *) sp++;
-		if (!c) {
-			*dp++ = '\0';
-			break;
-		} else if (c == '\\') {
-			*dp++ = '\\';
-			*dp++ = '\\';
-		} else if (c > ' ' && c < 127) {
-			*dp++ = c;
-		} else {
-			*dp++ = '\\';
-			*dp++ = (c >> 6) + '0';
-			*dp++ = ((c >> 3) & 7) + '0';
-			*dp++ = (c & 7) + '0';
-		}
-	}
-	len = send(fd, buffer + len, strlen(buffer + len), 0);
-	free(buffer);
-	return len;
 }
 
 #if 0
@@ -144,102 +96,6 @@ static _Bool ccs_check_path_info(const char *buffer)
 	return modified;
 }
 #endif
-
-static void ccs_do_check_update(const int fd)
-{
-	FILE *fp_in = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r");
-	char **pathnames = NULL;
-	int pathnames_len = 0;
-	char buffer[16384];
-	memset(buffer, 0, sizeof(buffer));
-	if (!fp_in) {
-		fprintf(stderr, "Can't open policy file.\n");
-		return;
-	}
-	while (fgets(buffer, sizeof(buffer) - 1, fp_in)) {
-		char *cp = strchr(buffer, '\n');
-		if (!cp)
-			break;
-		*cp = '\0';
-		if (!ccs_str_starts(buffer, "acl_group "))
-			continue;
-		cp = strchr(buffer, ' ');
-		if (!cp)
-			continue;
-		memmove(buffer, cp + 1, strlen(cp + 1) + 1);
-		if (!ccs_str_starts(buffer, "file read "))
-			continue;
-		if (!ccs_decode(buffer, buffer))
-			continue;
-		pathnames = realloc(pathnames, sizeof(char *) *
-				    (pathnames_len + 1));
-		if (!pathnames)
-			ccs_out_of_memory();
-		pathnames[pathnames_len] = strdup(buffer);
-		if (!pathnames[pathnames_len])
-			ccs_out_of_memory();
-		pathnames_len++;
-	}
-	fclose(fp_in);
-	while (true) {
-		struct stat64 buf;
-		static time_t last_modified = 0;
-		int i;
-		sleep(1);
-		for (i = 0; i < pathnames_len; i++) {
-			int j;
-			if (!stat64(pathnames[i], &buf))
-				continue;
-			ccs_send_encoded(fd, "-%s", pathnames[i]);
-			free(pathnames[i]);
-			pathnames_len--;
-			for (j = i; j < pathnames_len; j++)
-				pathnames[j] = pathnames[j + 1];
-			i--;
-		}
-		if (stat64("/etc/ld.so.cache", &buf) ||
-		    buf.st_mtime == last_modified)
-			continue;
-		fp_in = popen("/sbin/ldconfig -NXp", "r");
-		if (!fp_in)
-			continue;
-		last_modified = buf.st_mtime;
-		memset(buffer, 0, sizeof(buffer));
-		while (fgets(buffer, sizeof(buffer) - 1, fp_in)) {
-			char *cp = strchr(buffer, '\n');
-			char *real_pathname;
-			if (!cp)
-				break;
-			*cp = '\0';
-			cp = strrchr(buffer, ' ');
-			if (!cp || *++cp != '/')
-				continue;
-			if (stat64(cp, &buf))
-				continue;
-			real_pathname = realpath(cp, NULL);
-			if (!real_pathname)
-				continue;
-			for (i = 0; i < pathnames_len; i++) {
-				if (!strcmp(real_pathname, pathnames[i]))
-					break;
-			}
-			if (i == pathnames_len) {
-				char *cp;
-				pathnames = realloc(pathnames, sizeof(char *) *
-						    (pathnames_len + 1));
-				if (!pathnames)
-					ccs_out_of_memory();
-				cp = strdup(real_pathname);
-				if (!cp)
-					ccs_out_of_memory();
-				pathnames[pathnames_len++] = cp;
-				ccs_send_encoded(fd, "+%s", pathnames[i]);
-			}
-			free(real_pathname);
-		}
-		pclose(fp_in);
-	}
-}
 
 #if 0
 static _Bool ccs_convert_path_info(FILE *fp, const struct ccs_path_info *pattern,
@@ -297,50 +153,9 @@ static void ccs_send_keepalive(void)
 	}
 }
 
-static void ccs_handle_update(const int check_update, const int fd)
-{
-	static FILE *fp = NULL;
-	char pathname[8192];
-	int c;
-	if (!fp)
-		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "w");
-	memset(pathname, 0, sizeof(pathname));
-	if (recv(fd, pathname, sizeof(pathname) - 1, 0) == EOF)
-		return;
-	if (check_update == CCS_GLOBALLY_READABLE_FILES_UPDATE_AUTO) {
-		if (pathname[0] == '-')
-			fprintf(fp, "delete ");
-		fprintf(fp, "acl_group 0 file read %s\n", pathname + 1);
-		fflush(fp);
-		ccs_printw("The pathname %s was %s globally readable file.\n\n",
-		       pathname + 1, (pathname[0] == '-') ?
-		       "deleted. Deleted from" : "created. Appended to");
-		return;
-	}
-	ccs_printw("The pathname %s was %s globally readable file? ('Y'es/'N'o):",
-	       pathname + 1, (pathname[0] == '-') ?
-	       "deleted. Delete from" : "created. Append to");
-	while (true) {
-		c = ccs_getch2();
-		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n')
-			break;
-		ccs_send_keepalive();
-	}
-	ccs_printw("%c\n", c);
-	if (c == 'Y' || c == 'y') {
-		if (pathname[0] == '-')
-			fprintf(fp, "delete ");
-		fprintf(fp, "acl_group 0 file read %s\n", pathname + 1);
-		fflush(fp);
-	}
-	ccs_printw("\n");
-}
-
 /* Variables */
 
 static unsigned short int ccs_retries = 0;
-
-static int ccs_check_update = CCS_GLOBALLY_READABLE_FILES_UPDATE_AUTO;
 
 static FILE *ccs_domain_fp = NULL;
 static int ccs_domain_policy_fd = EOF;
@@ -505,7 +320,6 @@ not_domain_query:
 
 int main(int argc, char *argv[])
 {
-	int pipe_fd[2] = { EOF, EOF };
 	if (argc == 1)
 		goto ok;
 	{
@@ -517,19 +331,10 @@ int main(int argc, char *argv[])
 			ccs_network_mode = true;
 			if (!ccs_check_remote_host())
 				return 1;
-			ccs_check_update = CCS_GLOBALLY_READABLE_FILES_UPDATE_NONE;
 			goto ok;
 		}
 	}
-	if (!strcmp(argv[1], "--no-update")) {
-		ccs_check_update = CCS_GLOBALLY_READABLE_FILES_UPDATE_NONE;
-		goto ok;
-	}
-	if (!strcmp(argv[1], "--ask-update")) {
-		ccs_check_update = CCS_GLOBALLY_READABLE_FILES_UPDATE_ASK;
-		goto ok;
-	}
-	printf("Usage: %s [--no-update|--ask-update|remote_ip:remote_port]\n\n",
+	printf("Usage: %s [remote_ip:remote_port]\n\n",
 	       argv[0]);
 	printf("This program is used for granting access requests manually.\n");
 	printf("This program shows access requests that are about to rejected "
@@ -558,25 +363,6 @@ int main(int argc, char *argv[])
 			"run this program.\n", CCS_PROC_POLICY_MANAGER);
 		return 1;
 	}
-	if (ccs_check_update != CCS_GLOBALLY_READABLE_FILES_UPDATE_NONE) {
-		socketpair(AF_UNIX, SOCK_DGRAM, 0, pipe_fd);
-		switch (fork()) {
-		case 0:
-			if (ccs_domain_fp)
-				fclose(ccs_domain_fp);
-			else
-				close(ccs_domain_policy_fd);
-			close(ccs_query_fd);
-			close(pipe_fd[0]);
-			ccs_do_check_update(pipe_fd[1]);
-			_exit(0);
-		case -1:
-			fprintf(stderr, "Can't fork().\n");
-			return 1;
-		}
-		close(pipe_fd[1]);
-		pipe_fd[1] = EOF;
-	}
 	ccs_readline_history = malloc(CCS_MAX_READLINE_HISTORY * sizeof(const char *));
 	if (!ccs_readline_history)
 		ccs_out_of_memory();
@@ -596,9 +382,7 @@ int main(int argc, char *argv[])
 			   (u8) (ip >> 24), (u8) (ip >> 16), (u8) (ip >> 8),
 			   (u8) ip, ntohs(ccs_network_port));
 	} else
-		ccs_printw("Monitoring /proc/ccs/query %s.",
-			   ccs_check_update != CCS_GLOBALLY_READABLE_FILES_UPDATE_NONE ?
-			   "and /etc/ld.so.cache " : "");
+		ccs_printw("Monitoring /proc/ccs/query .");
 	ccs_printw(" Press Ctrl-C to terminate.\n\n");
 	while (true) {
 		static _Bool first = true;
@@ -626,12 +410,7 @@ int main(int argc, char *argv[])
 		}
 		FD_ZERO(&rfds);
 		FD_SET(ccs_query_fd, &rfds);
-		if (pipe_fd[0] != EOF)
-			FD_SET(pipe_fd[0], &rfds);
-		select(ccs_query_fd > pipe_fd[0] ? ccs_query_fd + 1 : pipe_fd[0] + 1,
-		       &rfds, NULL, NULL, NULL);
-		if (pipe_fd[0] != EOF && FD_ISSET(pipe_fd[0], &rfds))
-			ccs_handle_update(ccs_check_update, pipe_fd[0]);
+		select(ccs_query_fd + 1, &rfds, NULL, NULL, NULL);
 		if (!FD_ISSET(ccs_query_fd, &rfds))
 			continue;
 

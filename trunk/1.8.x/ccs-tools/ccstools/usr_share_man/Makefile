@@ -1,4 +1,4 @@
-SRC = init_policy ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch ccs-editpolicy ccs-editpolicy-agent ccs-findtemp ccs-init ccs-ld-watch ccs-loadpolicy ccs-notifyd ccs-patternize ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-setlevel ccs-setprofile ccs-sortpolicy
+SRC = init_policy ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch ccs-editpolicy ccs-editpolicy-agent ccs-findtemp ccs-init ccs-loadpolicy ccs-notifyd ccs-patternize ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-setlevel ccs-setprofile ccs-sortpolicy
 
 man8/%.8.gz : %
 	@mkdir -p man8
