@@ -70,7 +70,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>Press 'Enter' key to browse the permissions gathered by now.</p>
 
-<p><img src="editpolicy-httpd-acl1.png" width="1088" height="1646"></p>
+<p><a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
 
 <p>Press 'q' key to quit the policy editor. Do whatever you want to allow Apache.</p>
 
@@ -120,7 +120,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="permissive-warning.png" width="720" height="400"></p>
 
-<p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up necessary permissions from audit logs using "grep".</p>
+<p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up necessary permissions from audit logs using "grep" command.</p>
 
 <table border="1">
 <tr><td>
@@ -269,7 +269,41 @@ network unix stream connect /var/run/setrans/.setrans-unix
 </td></tr>
 </table>
 
-<p>You can save the compressed logs into a temporary file. Then, you can edit as you need and append to currently used policy in the kernel using "ccs-loadpolicy". ccs-loadpolicy's "-" option means read from stdin, "d" option means domain_policy.conf .</p>
+<p>You can generate finest grained access logs by applying "convert-audit-log" command before applying "ccs-sortpolicy" command.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/lib/ccs/convert-audit-log | /usr/sbin/ccs-sortpolicy<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+network inet stream accept 0:0:0:0:0:ffff:c0a8:103 3878 task.pid=3057 task.ppid=3049 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+<br>
+file execute /usr/bin/id task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+<br>
+file read /etc/group task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=901236 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=901121 path1.parent.perm=0755<br>
+file read /etc/nsswitch.conf task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=902027 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=901121 path1.parent.perm=0755<br>
+file read /etc/passwd task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=905247 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=901121 path1.parent.perm=0755<br>
+file read /etc/selinux/config task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=902139 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=902121 path1.parent.perm=0755<br>
+file read /usr/lib/locale/locale-archive task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1626176 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1625571 path1.parent.perm=0755<br>
+file read proc:/filesystems task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=4026531844 path1.major=0 path1.minor=3 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1 path1.parent.perm=0555<br>
+file read selinuxfs:/mls task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=12 path1.major=0 path1.minor=15 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=469 path1.parent.perm=0755<br>
+misc env LANG task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env LANGUAGE task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env PATH task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env PWD task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env SHLVL task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env TERM task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env _ task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=1676438 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1676072 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+network unix stream connect /var/run/nscd/socket task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler<br>
+network unix stream connect /var/run/setrans/.setrans-unix task.pid=3392 task.ppid=3388 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler
+</td></tr>
+</table>
+
+<p>You can save the compressed logs into a temporary file. Then, you can edit as you need and append to currently used policy in the kernel using "ccs-loadpolicy" command. ccs-loadpolicy's "-" option means read from stdin, "d" option means domain_policy.conf .</p>
 
 <table border="1">
 <tr><td>
