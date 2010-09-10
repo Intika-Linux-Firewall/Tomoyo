@@ -123,7 +123,7 @@ file execute /bin/cat
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-queryd<br>
-Monitoring /proc/ccs/query and /etc/ld.so.cache . Press Ctrl-C to terminate.<br>
+Monitoring /proc/ccs/query . Press Ctrl-C to terminate.<br>
 <br>
 #2010-01-10 12:27:10# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1766 major=0 minor=17 perm=0666 type=char dev_major=1 dev_minor=3 } path1.parent={ uid=0 gid=0 ino=962 perm=0755 }<br>
 &lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
@@ -175,10 +175,6 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
 Enter new entry&gt; file ioctl /dev/null 0x5401<br>
 Added 'file ioctl /dev/null 0x5401'.<br>
 <br>
-The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.<br>
-<br>
-The pathname /usr/lib/libpurple-client.so.0.6.3 was created. Appended to globally readable file.<br>
-<br>
 ----------------------------------------<br>
 #2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
 &lt;kernel&gt; /etc/rc.d/init.d/cups<br>
@@ -200,33 +196,9 @@ Added 'file read /usr/lib/locale/locale-archive'.<br>
 file unlink /var/run/acpid.socket<br>
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
 Enter new entry&gt; file unlink /var/run/acpid.socket path1.type=socket<br>
-Added 'file unlink /var/run/acpid.socket path1.type=socket'.<br>
-<br>
-The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.<br>
-<br>
-The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
+Added 'file unlink /var/run/acpid.socket path1.type=socket'.
 </td></tr>
 </table>
-
-<p>The "ccs-queryd" automatically appends shared libraries to exception policy using "file read" directive when the location of shared libraries in /etc/ld.so.cache has changed. The line</p>
-
-<table border="1">
-<tr><td>
-The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
-</td></tr>
-</table>
-
-<p>indicates that the pathname /usr/lib/libpurple.so.0.6.3 was appended to exception policy because it was created and was registered to /etc/ld.so.cache .</p>
-
-<p>Also, the "ccs-queryd" automatically removes the pathname registered as globally readable files in exception policy when it was deleted. The line</p>
-
-<table border="1">
-<tr><td>
-The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
-</td></tr>
-</table>
-
-<p>indicates that the pathname /usr/lib/libpurple.so.0.5.9 was removed from exception policy because it was deleted.</p>
 
 <p>Policy violation might occur while updating packages due to unusual behavior such as restarting daemons. When a policy violation occurs, a prompt appears in the "ccs-queryd". The lines</p>
 
