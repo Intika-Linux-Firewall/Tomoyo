@@ -583,8 +583,8 @@ static void make_globally_readable_files(void)
 {
 	/* Allow reading some data files. */
 	static const char *files[] = {
-		"/etc/ld.so.cache", "proc:/meminfo",
-		"proc:/sys/kernel/version", "/etc/localtime",
+		"/etc/ld.so.cache", "/proc/meminfo",
+		"/proc/sys/kernel/version", "/etc/localtime",
 		"/usr/lib/gconv/gconv-modules.cache",
 		"/usr/lib32/gconv/gconv-modules.cache",
 		"/usr/lib64/gconv/gconv-modules.cache",
