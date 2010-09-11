@@ -25,7 +25,7 @@
 </td></tr>
 </table>
 
-<p>if you want to use only MAC for files, or</p>
+<p>if you want to analyze or restrict only file related operations (e.g. read / write / execute), or</p>
 
 <table border="1">
 <tr><td>
@@ -33,7 +33,7 @@
 </td></tr>
 </table>
 
-<p>if you want to enable all MAC functionalities.</p>
+<p>if you want to analyze or restrict all operations (e.g. files, networks, capabilities, environment variable's names, signal transmissions).</p>
 
 <p>TOMOYO Linux's policy files will be saved in /etc/ccs/ directory.</p>
 
@@ -55,7 +55,7 @@
 
 <p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
 
-<p>The MAC in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and basically the process will transit to different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history. For example, the name of domain which the kernel belongs to is "&lt;kernel&gt;", the name of domain which /sbin/init invoked by the kernel belongs to is "&lt;kernel&gt; /sbin/init", the name of domain which /etc/rc.d/rc invoked by the /sbin/init belongs to is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc". The exceptions of this transition rule are described later.</p>
+<p>The access analysis/restriction in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and basically the process will transit to different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history. For example, the name of domain which the kernel belongs to is "&lt;kernel&gt;", the name of domain which /sbin/init invoked by the kernel belongs to is "&lt;kernel&gt; /sbin/init", the name of domain which /etc/rc.d/rc invoked by the /sbin/init belongs to is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc". The exceptions of this transition rule are described later.</p>
 
 <p>Look at the number which are the second column of each line.</p>
 
@@ -101,7 +101,7 @@
 </tr>
 <tr>
 <td>CONFIG</td>
-<td>Configuration of Mandatory Access Control(MAC) level.</td>
+<td>Configuration of access control level.</td>
 </tr>
 </table>
 <p>You can give the following values for verbose= parameter of PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing .</p>
