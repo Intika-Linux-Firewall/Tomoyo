@@ -1,0 +1,1098 @@
+Index: mount.c
+===================================================================
+--- mount.c	(revision 3980)
++++ mount.c	(working copy)
+@@ -71,9 +71,8 @@
+ 	const char *dir = r->param.mount.dir->name;
+ 	const char *type = r->param.mount.type->name;
+ 	const unsigned long flags = r->param.mount.flags;
+-	ccs_write_log(r, "file mount %s %s %s 0x%lX\n", dev, dir, type, flags);
+ 	if (r->granted)
+-		return 0;
++		goto ok;
+ 	if (type == ccs_mounts[CCS_MOUNT_REMOUNT])
+ 		ccs_warn_log(r, "file mount -o remount %s 0x%lX", dir, flags);
+ 	else if (type == ccs_mounts[CCS_MOUNT_BIND] || 
+@@ -88,10 +87,9 @@
+ 	else
+ 		ccs_warn_log(r, "file mount -t %s %s %s 0x%lX", type, dev, dir,
+ 			     flags);
+-	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
+-			      ccs_file_pattern(r->param.mount.dev),
+-			      ccs_file_pattern(r->param.mount.dir), type,
+-			      flags);
++ ok:
++	return ccs_supervisor(r, false, "file mount %s %s %s 0x%lX\n", dev,
++			      dir, type, flags);
+ }
+ 
+ static bool ccs_check_mount_acl(struct ccs_request_info *r,
+Index: audit.c
+===================================================================
+--- audit.c	(revision 3980)
++++ audit.c	(working copy)
+@@ -233,7 +233,7 @@
+  *
+  * Returns pointer to allocated memory.
+  *
+- * The @len is updated to add the header lines' size on success.
++ * The @len is updated to allocated size on success.
+  *
+  * This function uses kzalloc(), so caller must kfree() if this function
+  * didn't return NULL.
+@@ -267,6 +267,7 @@
+ 		symlink = r->obj->symlink_target->name;
+ 		*len += 18 + strlen(symlink);
+ 	}
++	*len = ccs_round2(*len);
+ 	buf = kzalloc(*len, CCS_GFP_FLAGS);
+ 	if (!buf)
+ 		goto out;
+@@ -330,13 +331,10 @@
+  *
+  * @r:   Pointer to "struct ccs_request_info".
+  * @fmt: The printf()'s format string, followed by parameters.
+- *
+- * Returns 0 on success, -ENOMEM otherwise.
+  */
+-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
++void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+ {
+ 	ccs_update_task_domain(r);
+-	return 0;
+ }
+ 
+ #else
+@@ -398,13 +396,9 @@
+  *
+  * @r:   Pointer to "struct ccs_request_info".
+  * @fmt: The printf()'s format string, followed by parameters.
+- *
+- * Returns 0 on success, -ENOMEM otherwise.
+  */
+-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
++void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args)
+ {
+-	va_list args;
+-	int error = -ENOMEM;
+ 	int pos;
+ 	int len;
+ 	char *buf;
+@@ -418,16 +412,12 @@
+ 	if (ccs_log_count[is_granted] >= len ||
+ 	    !ccs_get_audit(r->profile, r->type, r->matched_acl, is_granted))
+ 		goto out;
+-	va_start(args, fmt);
+ 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
+-	va_end(args);
+ 	buf = ccs_init_log(&len, r);
+ 	if (!buf)
+ 		goto out;
+ 	pos = strlen(buf);
+-	va_start(args, fmt);
+ 	vsnprintf(buf + pos, len - pos - 1, fmt, args);
+-	va_end(args);
+ 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+ 	if (!entry) {
+ 		kfree(buf);
+@@ -438,7 +428,7 @@
+ 	 * The entry->size is used for memory quota checks.
+ 	 * Don't go beyond strlen(entry->log).
+ 	 */
+-	entry->size = ccs_round2(len) + ccs_round2(sizeof(*entry));
++	entry->size = len + ccs_round2(sizeof(*entry));
+ 	spin_lock(&ccs_log_lock);
+ 	if (ccs_quota_for_log && ccs_log_memory_size
+ 	    + entry->size >= ccs_quota_for_log) {
+@@ -455,12 +445,18 @@
+ 		goto out;
+ 	}
+ 	wake_up(&ccs_log_wait[is_granted]);
+-	error = 0;
+  out:
+ 	ccs_update_task_domain(r);
+-	return error;
+ }
+ 
++void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
++{
++	va_list args;
++	va_start(args, fmt);
++	ccs_write_log2(r, fmt, args);
++	va_end(args);
++}
++
+ /**
+  * ccs_read_log - Read an audit log.
+  *
+Index: util.c
+===================================================================
+--- util.c	(revision 3980)
++++ util.c	(working copy)
+@@ -991,9 +991,8 @@
+  * @r:   Pointer to "struct ccs_request_info".
+  * @fmt: The printf()'s format string, followed by parameters.
+  */
+-void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
++void ccs_warn_log2(struct ccs_request_info *r, const char *fmt, va_list args)
+ {
+-	va_list args;
+ 	char *buffer;
+ 	char *cp;
+ 	const struct ccs_domain_info * const domain = ccs_current_domain();
+@@ -1014,9 +1013,7 @@
+ 	buffer = kmalloc(4096, CCS_GFP_FLAGS);
+ 	if (!buffer)
+ 		return;
+-	va_start(args, fmt);
+ 	vsnprintf(buffer, 4095, fmt, args);
+-	va_end(args);
+ 	buffer[4095] = '\0';
+ 	cp = strchr(buffer, '\n');
+ 	if (cp)
+@@ -1027,6 +1024,14 @@
+ 	kfree(buffer);
+ }
+ 
++void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
++{
++	va_list args;
++	va_start(args, fmt);
++	ccs_warn_log2(r, fmt, args);
++	va_end(args);
++}
++
+ /**
+  * ccs_domain_quota_ok - Check for domain's quota.
+  *
+Index: signal.c
+===================================================================
+--- signal.c	(revision 3980)
++++ signal.c	(working copy)
+@@ -28,11 +28,11 @@
+ {
+ 	const int sig = r->param.signal.sig;
+ 	const char *dest_domain = r->param.signal.dest_pattern;
+-	ccs_write_log(r, "ipc signal %d %s\n", sig, dest_domain);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
+-	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
++	if (!r->granted)
++		ccs_warn_log(r, "signal %d to %s", sig,
++			     ccs_last_word(dest_domain));
++	return ccs_supervisor(r, false, "ipc signal %d %s\n", sig,
++			      dest_domain);
+ }
+ 
+ static bool ccs_check_signal_acl(struct ccs_request_info *r,
+Index: file.c
+===================================================================
+--- file.c	(revision 3980)
++++ file.c	(working copy)
+@@ -112,23 +112,6 @@
+ }
+ 
+ /**
+- * ccs_strendswith - Check whether the token ends with the given token.
+- *
+- * @name: The token to check.
+- * @tail: The token to find.
+- *
+- * Returns true if @name ends with @tail, false otherwise.
+- */
+-static bool ccs_strendswith(const char *name, const char *tail)
+-{
+-	int len;
+-	if (!name || !tail)
+-		return false;
+-	len = strlen(name) - strlen(tail);
+-	return len >= 0 && !strcmp(name + len, tail);
+-}
+-
+-/**
+  * ccs_get_realpath - Get realpath.
+  *
+  * @buf:    Pointer to "struct ccs_path_info".
+@@ -158,14 +141,9 @@
+  */
+ static int ccs_audit_path_log(struct ccs_request_info *r)
+ {
+-	const char *operation = ccs_path_keyword[r->param.path.operation];
+-	const struct ccs_path_info *filename = r->param.path.filename;
+-	ccs_write_log(r, "file %s %s\n", operation, filename->name);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "file %s %s\n", operation, filename->name);
+-	return ccs_supervisor(r, "file %s %s\n", operation,
+-			      ccs_file_pattern(filename));
++	return ccs_supervisor(r, true, "file %s %s\n",
++			      ccs_path_keyword[r->param.path.operation],
++			      r->param.path.filename->name);
+ }
+ 
+ /**
+@@ -177,19 +155,11 @@
+  */
+ static int ccs_audit_path2_log(struct ccs_request_info *r)
+ {
+-	const char *operation =
+-		ccs_mac_keywords[ccs_pp2mac[r->param.path2.operation]];
+-	const struct ccs_path_info *filename1 = r->param.path2.filename1;
+-	const struct ccs_path_info *filename2 = r->param.path2.filename2;
+-	ccs_write_log(r, "file %s %s %s\n", operation, filename1->name,
+-		      filename2->name);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "file %s %s %s\n", operation, filename1->name,
+-		     filename2->name);
+-	return ccs_supervisor(r, "file %s %s %s\n", operation,
+-			      ccs_file_pattern(filename1),
+-			      ccs_file_pattern(filename2));
++	return ccs_supervisor(r, true, "file %s %s %s\n",
++			      ccs_mac_keywords
++			      [ccs_pp2mac[r->param.path2.operation]],
++			      r->param.path2.filename1->name,
++			      r->param.path2.filename2->name);
+ }
+ 
+ /**
+@@ -201,20 +171,12 @@
+  */
+ static int ccs_audit_mkdev_log(struct ccs_request_info *r)
+ {
+-	const char *operation =
+-		ccs_mac_keywords[ccs_pnnn2mac[r->param.mkdev.operation]];
+-	const struct ccs_path_info *filename = r->param.mkdev.filename;
+-	const unsigned int major = r->param.mkdev.major;
+-	const unsigned int minor = r->param.mkdev.minor;
+-	const unsigned int mode = r->param.mkdev.mode;
+-	ccs_write_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
+-		      mode, major, minor);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
+-		     mode, major, minor);
+-	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", operation,
+-			      ccs_file_pattern(filename), mode, major, minor);
++	return ccs_supervisor(r, true, "file %s %s 0%o %u %u\n",
++			      ccs_mac_keywords
++			      [ccs_pnnn2mac[r->param.mkdev.operation]],
++			      r->param.mkdev.filename->name,
++			      r->param.mkdev.mode, r->param.mkdev.major,
++			      r->param.mkdev.minor);
+ }
+ 
+ /**
+@@ -229,8 +191,6 @@
+ {
+ 	const u8 type = r->param.path_number.operation;
+ 	u8 radix;
+-	const struct ccs_path_info *filename = r->param.path_number.filename;
+-	const char *operation = ccs_mac_keywords[ccs_pn2mac[type]];
+ 	char buffer[64];
+ 	switch (type) {
+ 	case CCS_TYPE_CREATE:
+@@ -249,76 +209,11 @@
+ 	}
+ 	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
+ 			radix);
+-	ccs_write_log(r, "file %s %s %s\n", operation, filename->name,
+-		      buffer);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "file %s %s %s\n", operation, filename->name, buffer);
+-	return ccs_supervisor(r, "file %s %s %s\n", operation,
+-			      ccs_file_pattern(filename), buffer);
++	return ccs_supervisor(r, true, "file %s %s %s\n",
++			      ccs_mac_keywords[ccs_pn2mac[type]],
++			      r->param.path_number.filename->name, buffer);
+ }
+ 
+-/**
+- * ccs_file_pattern - Get patterned pathname.
+- *
+- * @filename: Pointer to "struct ccs_path_info".
+- *
+- * Returns pointer to patterned pathname.
+- *
+- * Caller holds ccs_read_lock().
+- */
+-const char *ccs_file_pattern(const struct ccs_path_info *filename)
+-{
+-	struct ccs_pattern *ptr;
+-	const struct ccs_path_info *pattern = NULL;
+-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_PATTERN],
+-				head.list) {
+-		if (ptr->head.is_deleted)
+-			continue;
+-		if (!ccs_path_matches_pattern(filename, ptr->pattern))
+-			continue;
+-		pattern = ptr->pattern;
+-		if (ccs_strendswith(pattern->name, "/\\*")) {
+-			/* Do nothing. Try to find the better match. */
+-		} else {
+-			/* This would be the better match. Use this. */
+-			break;
+-		}
+-	}
+-	return pattern ? pattern->name : filename->name;
+-}
+-
+-static bool ccs_same_pattern(const struct ccs_acl_head *a,
+-			     const struct ccs_acl_head *b)
+-{
+-	return container_of(a, struct ccs_pattern, head)->pattern ==
+-		container_of(b, struct ccs_pattern, head)->pattern;
+-}
+-
+-/**
+- * ccs_write_pattern - Write "struct ccs_pattern" list.
+- *
+- * @data:      String to parse.
+- * @is_delete: True if it is a delete request.
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-int ccs_write_pattern(char *data, const bool is_delete)
+-{
+-	struct ccs_pattern e = { };
+-	int error;
+-	if (!ccs_correct_word(data))
+-		return -EINVAL;
+-	e.pattern = ccs_get_name(data);
+-	if (!e.pattern)
+-		return -ENOMEM;
+-	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
+-				  &ccs_policy_list[CCS_ID_PATTERN],
+-				  ccs_same_pattern);
+-	ccs_put_name(e.pattern);
+-	return error;
+-}
+-
+ static bool ccs_check_path_acl(struct ccs_request_info *r,
+ 			       const struct ccs_acl_info *ptr)
+ {
+Index: environ.c
+===================================================================
+--- environ.c	(revision 3980)
++++ environ.c	(working copy)
+@@ -30,11 +30,9 @@
+ static int ccs_audit_env_log(struct ccs_request_info *r)
+ {
+ 	const char *env = r->param.environ.name->name;
+-	ccs_write_log(r, "misc env %s\n", env);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "environ %s", env);
+-	return ccs_supervisor(r, "misc env %s\n", env);
++	if (!r->granted)
++		ccs_warn_log(r, "environ %s", env);
++	return ccs_supervisor(r, false, "misc env %s\n", env);
+ }
+ 
+ /**
+Index: internal.h
+===================================================================
+--- internal.h	(revision 3980)
++++ internal.h	(working copy)
+@@ -152,7 +152,8 @@
+ 	CCS_SELFDOMAIN,
+ 	CCS_VERSION,
+ 	CCS_PROFILE,
+-	CCS_QUERY,
++	CCS_ENFORCINGLOG,
++	CCS_LEARNINGLOG,
+ 	CCS_MANAGER,
+ 	CCS_EXECUTE_HANDLER
+ };
+@@ -344,7 +345,6 @@
+ 	CCS_ID_NUMBER_GROUP,
+ 	CCS_ID_AGGREGATOR,
+ 	CCS_ID_TRANSITION_CONTROL,
+-	CCS_ID_PATTERN,
+ 	CCS_ID_MANAGER,
+ 	CCS_ID_IPV6_ADDRESS,
+ 	CCS_ID_CONDITION,
+@@ -675,12 +675,6 @@
+ 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
+ };
+ 
+-/* Structure for "file_pattern" keyword. */
+-struct ccs_pattern {
+-	struct ccs_acl_head head;
+-	const struct ccs_path_info *pattern;
+-};
+-
+ /*
+  * Structure for "initialize_domain"/"no_initialize_domain" and
+  * "keep_domain"/"no_keep_domain" keyword.
+@@ -951,9 +945,6 @@
+ 	bool audit_path_info;
+ 	bool enforcing_verbose;
+ 	bool learning_verbose;
+-	bool learning_exec_realpath;
+-	bool learning_exec_argv0;
+-	bool learning_symlink_target;
+ 	bool permissive_verbose;
+ };
+ 
+@@ -1012,7 +1003,6 @@
+ char *ccs_encode2(const char *str, int str_len);
+ char *ccs_init_log(int *len, struct ccs_request_info *r);
+ char *ccs_realpath_from_path(struct path *path);
+-const char *ccs_file_pattern(const struct ccs_path_info *filename);
+ const char *ccs_get_exe(void);
+ const char *ccs_last_word(const char *name);
+ const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
+@@ -1032,8 +1022,9 @@
+ int ccs_poll_log(struct file *file, poll_table *wait);
+ int ccs_read_control(struct file *file, char __user *buffer,
+ 		     const int buffer_len);
+-int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
+-     __attribute__ ((format(printf, 2, 3)));
++int ccs_supervisor(struct ccs_request_info *r, const bool warn,
++		   const char *fmt, ...)
++	__attribute__ ((format(printf, 3, 4)));
+ int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
+ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
+ 		      struct ccs_acl_param *param,
+@@ -1053,13 +1044,10 @@
+ int ccs_write_file(struct ccs_acl_param *param);
+ int ccs_write_group(char *data, const bool is_delete, const u8 type);
+ int ccs_write_ipc(struct ccs_acl_param *param);
+-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+-     __attribute__ ((format(printf, 2, 3)));
+ int ccs_write_memory_quota(struct ccs_io_buffer *head);
+ int ccs_write_misc(struct ccs_acl_param *param);
+ int ccs_write_inet_network(struct ccs_acl_param *param);
+ int ccs_write_unix_network(struct ccs_acl_param *param);
+-int ccs_write_pattern(char *data, const bool is_delete);
+ int ccs_write_reserved_port(char *data, const bool is_delete);
+ int ccs_write_transition_control(char *data, const bool is_delete,
+ 				 const u8 type);
+@@ -1097,7 +1085,11 @@
+ void ccs_unlock(const int idx);
+ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
+      __attribute__ ((format(printf, 2, 3)));
++void ccs_warn_log2(struct ccs_request_info *r, const char *fmt, va_list args);
+ void ccs_warn_oom(const char *function);
++void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
++	__attribute__ ((format(printf, 2, 3)));
++void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args);
+ 
+ /* strcmp() for "struct ccs_path_info" structure. */
+ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
+Index: capability.c
+===================================================================
+--- capability.c	(revision 3980)
++++ capability.c	(working copy)
+@@ -35,13 +35,9 @@
+  */
+ static int ccs_audit_capability_log(struct ccs_request_info *r)
+ {
+-	const char *operation =
+-		ccs_mac_keywords[ccs_c2mac[r->param.capability.operation]];
+-	ccs_write_log(r, "capability %s\n", operation);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "capability %s\n", operation);
+-	return ccs_supervisor(r, "capability %s\n", operation);
++	return ccs_supervisor(r, true, "capability %s\n",
++			      ccs_mac_keywords
++			      [ccs_c2mac[r->param.capability.operation]]);
+ }
+ 
+ static bool ccs_check_capability_acl(struct ccs_request_info *r,
+Index: proc_if.c
+===================================================================
+--- proc_if.c	(revision 3980)
++++ proc_if.c	(working copy)
+@@ -293,7 +293,8 @@
+ 		ccs_dir_inode_operations.setattr = proc_notify_change;
+ 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
+ #endif
+-	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
++	ccs_create_entry("query",            0600, ccs_dir, CCS_ENFORCINGLOG);
++	ccs_create_entry(".query",           0600, ccs_dir, CCS_LEARNINGLOG);
+ 	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
+ 	ccs_create_entry("exception_policy", 0600, ccs_dir,
+ 			 CCS_EXCEPTIONPOLICY);
+Index: policy_io.c
+===================================================================
+--- policy_io.c	(revision 3980)
++++ policy_io.c	(working copy)
+@@ -23,9 +23,6 @@
+ 	.enforcing_verbose = true,
+ 	.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
+ 	.learning_verbose = false,
+-	.learning_exec_realpath = true,
+-	.learning_exec_argv0 = true,
+-	.learning_symlink_target = true,
+ 	.permissive_verbose = true,
+ };
+ 
+@@ -446,12 +443,6 @@
+ 			     "verbose");
+ 		ccs_set_uint(&ccs_preference.learning_max_entry, data,
+ 			     "max_entry");
+-		ccs_set_bool(&ccs_preference.learning_exec_realpath, data,
+-			     ccs_condition_keyword[CCS_EXEC_REALPATH]);
+-		ccs_set_bool(&ccs_preference.learning_exec_argv0, data,
+-			     "exec.argv0");
+-		ccs_set_bool(&ccs_preference.learning_symlink_target, data,
+-			     ccs_condition_keyword[CCS_SYMLINK_TARGET]);
+ 	} else
+ 		return -EINVAL;
+ 	return 0;
+@@ -577,13 +568,9 @@
+ #endif
+ 		      ccs_yesno(ccs_preference.audit_task_info),
+ 		      ccs_yesno(ccs_preference.audit_path_info));
+-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s max_entry=%u "
+-		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
++	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s max_entry=%u }\n",
+ 		      "learning", ccs_yesno(ccs_preference.learning_verbose),
+-		      ccs_preference.learning_max_entry,
+-		      ccs_yesno(ccs_preference.learning_exec_realpath),
+-		      ccs_yesno(ccs_preference.learning_exec_argv0),
+-		      ccs_yesno(ccs_preference.learning_symlink_target));
++		      ccs_preference.learning_max_entry);
+ 	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s }\n", "permissive",
+ 		      ccs_yesno(ccs_preference.permissive_verbose));
+ 	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s penalty=%u }\n",
+@@ -1694,12 +1681,11 @@
+ 	static const struct {
+ 		const char *keyword;
+ 		int (*write) (char *, const bool);
+-	} ccs_callback[3] = {
++	} ccs_callback[2] = {
+ 		{ "aggregator ",    ccs_write_aggregator },
+-		{ "file_pattern ",  ccs_write_pattern },
+ 		{ "deny_autobind ", ccs_write_reserved_port },
+ 	};
+-	for (i = 0; i < 3; i++)
++	for (i = 0; i < 2; i++)
+ 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
+ 			return ccs_callback[i].write(data, is_delete);
+ 	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
+@@ -1823,14 +1809,6 @@
+ 					       ptr->aggregated_name->name);
+ 			}
+ 			break;
+-		case CCS_ID_PATTERN:
+-			{
+-				struct ccs_pattern *ptr =
+-					container_of(acl, typeof(*ptr), head);
+-				ccs_set_string(head, "file_pattern ");
+-				ccs_set_string(head, ptr->pattern->name);
+-			}
+-			break;
+ 		case CCS_ID_RESERVEDPORT:
+ 			{
+ 				struct ccs_reserved *ptr =
+@@ -1900,167 +1878,182 @@
+ 	unsigned int serial;
+ 	int timer;
+ 	int answer;
++	u8 retry;
+ };
+ 
+ /* The list for "struct ccs_query". */
+-static LIST_HEAD(ccs_query_list);
++static struct list_head ccs_query_list[2] = {
++	LIST_HEAD_INIT(ccs_query_list[0]), LIST_HEAD_INIT(ccs_query_list[1]),
++};
+ 
+ /* Number of "struct file" referring /proc/ccs/query interface. */
+-static atomic_t ccs_query_observers = ATOMIC_INIT(0);
++static atomic_t ccs_query_observers[2] = { ATOMIC_INIT(0), ATOMIC_INIT(0) };
+ 
+-static void ccs_truncate(char *str)
++static int ccs_truncate(char *str)
+ {
++	char *start = str;
+ 	while (* (unsigned char *) str > (unsigned char) ' ')
+ 		str++;
+ 	*str = '\0';
++	return strlen(start) + 1;
+ }
+ 
++static void ccs_add_entry(struct ccs_query *entry)
++{
++	char *buffer;
++	char *realpath = NULL;
++	char *argv0 = NULL;
++	char *symlink = NULL;
++	char *handler;
++	char *query = entry->query;
++	char *cp = strchr(query, '\n');
++	int len;
++	if (!cp)
++		return;
++	cp = strchr(cp + 1, '\n');
++	if (!cp)
++		return;
++	*cp++ = '\0';
++	len = strlen(cp) + 1;
++	/* strstr() will return NULL if ordering is wrong. */
++	if (*cp == 'f') {
++		argv0 = strstr(query, " argv[]={ \"");
++		if (argv0) {
++			argv0 += 10;
++			len += ccs_truncate(argv0) + 14;
++		}
++		realpath = strstr(query, " exec={ realpath=\"");
++		if (realpath) {
++			realpath += 8;
++			len += ccs_truncate(realpath) + 6;
++		}
++		symlink = strstr(query, " symlink.target=\"");
++		if (symlink)
++			len += ccs_truncate(symlink + 1) + 1;
++	}
++	handler = strstr(query, "type=execute_handler");
++	if (handler)
++		len += ccs_truncate(handler) + 6;
++	buffer = kmalloc(len, CCS_GFP_FLAGS);
++	if (!buffer)
++		return;
++	snprintf(buffer, len - 1, "%s", cp);
++	if (handler)
++		ccs_addprintf(buffer, len, " task.%s", handler);
++	if (realpath)
++		ccs_addprintf(buffer, len, " exec.%s", realpath);
++	if (argv0)
++		ccs_addprintf(buffer, len, " exec.argv[0]=%s",
++			      argv0);
++	if (symlink)
++		ccs_addprintf(buffer, len, "%s", symlink);
++	//printk(KERN_DEBUG "'%s'\n", buffer);
++	ccs_normalize_line(buffer);
++	ccs_write_domain2(buffer, ccs_current_domain(), false);
++	kfree(buffer);
++}
++
+ /**
+  * ccs_supervisor - Ask for the supervisor's decision.
+  *
+- * @r:   Pointer to "struct ccs_request_info".
+- * @fmt: The printf()'s format string, followed by parameters.
++ * @r:    Pointer to "struct ccs_request_info".
++ * @warn: Print warning message if rejected?
++ * @fmt:  The printf()'s format string, followed by parameters.
+  *
+  * Returns 0 if the supervisor decided to permit the access request which
+  * violated the policy in enforcing mode, CCS_RETRY_REQUEST if the supervisor
+  * decided to retry the access request which violated the policy in enforcing
+  * mode, 0 if it is not in enforcing mode, -EPERM otherwise.
+  */
+-int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
++int ccs_supervisor(struct ccs_request_info *r, const bool warn,
++		   const char *fmt, ...)
+ {
+ 	va_list args;
+ 	int error = -EPERM;
+ 	int pos;
+ 	int len;
+-	static unsigned int ccs_serial;
+-	struct ccs_query *entry = NULL;
++	static unsigned int ccs_serial[2];
++	struct ccs_query entry = { };
+ 	bool quota_exceeded = false;
+-	char *header;
+-	struct ccs_domain_info * const domain = ccs_current_domain();
++	bool is_enforce;
++	/* Write /proc/ccs/grant_log or /proc/ccs/reject_log . */
+ 	va_start(args, fmt);
+-	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 80;
++	ccs_write_log2(r, fmt, args);
+ 	va_end(args);
+-	if (r->mode == CCS_CONFIG_LEARNING) {
+-		char *buffer;
+-		char *realpath = NULL;
+-		char *argv0 = NULL;
+-		char *symlink = NULL;
+-		char *handler = NULL;
++	/* Nothing more to do if granted. */
++	if (r->granted) {
++		return 0;
++	} else if (warn) {
++		va_start(args, fmt);
++		ccs_warn_log2(r, fmt, args);
++		va_end(args);
++	}
++	/* Nothing more to do if neither learning mode nor enforcing mode. */
++	switch (r->mode) {
++	case CCS_CONFIG_LEARNING:
++		/* Check PREFERENCE::learning max_entry parameter. */
+ 		if (!ccs_domain_quota_ok(r))
+ 			return 0;
+-		header = ccs_init_log(&len, r);
+-		if (!header)
+-			return 0;
+-		/* strstr() will return NULL if ordering is wrong. */
+-		if (r->param_type == CCS_TYPE_PATH_ACL &&
+-		    r->param.path.operation == CCS_TYPE_EXECUTE) {
+-			if (ccs_preference.learning_exec_argv0) {
+-				argv0 = strstr(header, " argv[]={ \"");
+-				if (argv0) {
+-					argv0 += 10;
+-					ccs_truncate(argv0);
+-				}
+-			}
+-			if (ccs_preference.learning_exec_realpath) {
+-				realpath = strstr(header,
+-						  " exec={ realpath=\"");
+-				if (realpath) {
+-					realpath += 8;
+-					ccs_truncate(realpath);
+-				}
+-			}
+-		} else if (r->param_type == CCS_TYPE_PATH_ACL &&
+-			   r->param.path.operation == CCS_TYPE_SYMLINK &&
+-			   ccs_preference.learning_symlink_target) {
+-			symlink = strstr(header, " symlink.target=\"");
+-			if (symlink)
+-				ccs_truncate(symlink + 1);
+-		}
+-		handler = strstr(header, "type=execute_handler");
+-		if (handler)
+-			ccs_truncate(handler);
+-		buffer = kmalloc(len, CCS_GFP_FLAGS);
+-		if (buffer) {
+-			va_start(args, fmt);
+-			vsnprintf(buffer, len - 1, fmt, args);
+-			va_end(args);
+-			if (handler)
+-				ccs_addprintf(buffer, len, " task.%s",
+-					      handler);
+-			if (realpath)
+-				ccs_addprintf(buffer, len, " exec.%s",
+-					      realpath);
+-			if (argv0)
+-				ccs_addprintf(buffer, len, " exec.argv[0]=%s",
+-					      argv0);
+-			if (symlink)
+-				ccs_addprintf(buffer, len, "%s", symlink);
+-			ccs_normalize_line(buffer);
+-			ccs_write_domain2(buffer, domain, false);
+-			kfree(buffer);
+-		}
+-		kfree(header);
+-		return 0;
+-	}
+-	if (r->mode != CCS_CONFIG_ENFORCING)
+-		return 0;
+-	if (!atomic_read(&ccs_query_observers)) {
+-		int i;
++		error = 0;
++		is_enforce = false;
++		break;
++	case CCS_CONFIG_ENFORCING:
++		is_enforce = true;
++		if (atomic_read(&ccs_query_observers[is_enforce]))
++			break;
++		/* Check PREFERENCE::enforcing sleep parameter. */
+ 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
+ 			return -EPERM;
+-		for (i = 0; i < ccs_preference.enforcing_penalty; i++) {
++		for (len = 0; len < ccs_preference.enforcing_penalty; len++) {
+ 			set_current_state(TASK_INTERRUPTIBLE);
+ 			schedule_timeout(HZ / 10);
+ 		}
+ 		return -EPERM;
++	default:
++		return 0;
+ 	}
+-	header = ccs_init_log(&len, r);
+-	if (!header)
++	/* Calculate message body's length. */
++	va_start(args, fmt);
++	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 80;
++	va_end(args);
++	/* Get message header. */
++	entry.query = ccs_init_log(&len, r);
++	if (!entry.query)
+ 		goto out;
+-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+-	if (!entry)
+-		goto out;
+-	len = ccs_round2(len);
+-	entry->query = kzalloc(len, CCS_GFP_FLAGS);
+-	if (!entry->query)
+-		goto out;
+ 	spin_lock(&ccs_query_list_lock);
+-	if (ccs_quota_for_query && ccs_query_memory_size + len +
+-	    sizeof(*entry) >= ccs_quota_for_query) {
++	if (ccs_quota_for_query && ccs_query_memory_size + len
++	    >= ccs_quota_for_query) {
+ 		quota_exceeded = true;
+ 	} else {
+-		ccs_query_memory_size += len + sizeof(*entry);
+-		entry->serial = ccs_serial++;
++		ccs_query_memory_size += len;
++		entry.serial = ccs_serial[is_enforce]++;
++		entry.retry = r->retry;
+ 	}
+ 	spin_unlock(&ccs_query_list_lock);
+ 	if (quota_exceeded)
+ 		goto out;
+-	pos = snprintf(entry->query, len - 1, "Q%u-%hu\n%s",
+-		       entry->serial, r->retry, header);
+-	kfree(header);
+-	header = NULL;
++	pos = strlen(entry.query);
+ 	va_start(args, fmt);
+-	vsnprintf(entry->query + pos, len - 1 - pos, fmt, args);
+-	entry->query_len = strlen(entry->query) + 1;
++	vsnprintf(entry.query + pos, len - 1 - pos, fmt, args);
++	entry.query_len = strlen(entry.query) + 1;
+ 	va_end(args);
+ 	spin_lock(&ccs_query_list_lock);
+-	list_add_tail(&entry->list, &ccs_query_list);
++	list_add_tail(&entry.list, &ccs_query_list[is_enforce]);
+ 	spin_unlock(&ccs_query_list_lock);
+ 	/* Give 10 seconds for supervisor's opinion. */
+-	for (entry->timer = 0;
+-	     atomic_read(&ccs_query_observers) && entry->timer < 100;
+-	     entry->timer++) {
++	for (entry.timer = 0; atomic_read(&ccs_query_observers[is_enforce]) &&
++		     entry.timer < 100; entry.timer++) {
+ 		wake_up(&ccs_query_wait);
+ 		set_current_state(TASK_INTERRUPTIBLE);
+ 		schedule_timeout(HZ / 10);
+-		if (entry->answer)
++		if (entry.answer)
+ 			break;
+ 	}
+ 	spin_lock(&ccs_query_list_lock);
+-	list_del(&entry->list);
+-	ccs_query_memory_size -= len + sizeof(*entry);
++	list_del(&entry.list);
++	ccs_query_memory_size -= len;
+ 	spin_unlock(&ccs_query_list_lock);
+-	switch (entry->answer) {
++	switch (entry.answer) {
+ 	case 3: /* Asked to retry by administrator. */
+ 		error = CCS_RETRY_REQUEST;
+ 		r->retry++;
+@@ -2069,18 +2062,15 @@
+ 		/* Granted by administrator. */
+ 		error = 0;
+ 		break;
+-	case 0:
+-		/* Timed out. */
+-		break;
+ 	default:
+-		/* Rejected by administrator. */
++		/* Timed out or rejected by administrator. */
+ 		break;
+ 	}
++	/* Userspace daemon did not respond. */
++	if (!is_enforce && !entry.answer)
++		ccs_add_entry(&entry);
+  out:
+-	if (entry)
+-		kfree(entry->query);
+-	kfree(entry);
+-	kfree(header);
++	kfree(entry.query);
+ 	return error;
+ }
+ 
+@@ -2099,9 +2089,12 @@
+ 	struct list_head *tmp;
+ 	bool found = false;
+ 	u8 i;
++	struct ccs_io_buffer *head = file->private_data;
++	struct list_head *list =
++		&ccs_query_list[head->type == CCS_ENFORCINGLOG];
+ 	for (i = 0; i < 2; i++) {
+ 		spin_lock(&ccs_query_list_lock);
+-		list_for_each(tmp, &ccs_query_list) {
++		list_for_each(tmp, list) {
+ 			struct ccs_query *ptr =
+ 				list_entry(tmp, typeof(*ptr), list);
+ 			if (ptr->answer)
+@@ -2130,6 +2123,8 @@
+ 	int pos = 0;
+ 	int len = 0;
+ 	char *buf;
++	struct list_head *list =
++		&ccs_query_list[head->type == CCS_ENFORCINGLOG];
+ 	if (head->r.w_pos)
+ 		return;
+ 	if (head->read_buf) {
+@@ -2137,7 +2132,7 @@
+ 		head->read_buf = NULL;
+ 	}
+ 	spin_lock(&ccs_query_list_lock);
+-	list_for_each(tmp, &ccs_query_list) {
++	list_for_each(tmp, list) {
+ 		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
+ 		if (ptr->answer)
+ 			continue;
+@@ -2156,7 +2151,7 @@
+ 		return;
+ 	pos = 0;
+ 	spin_lock(&ccs_query_list_lock);
+-	list_for_each(tmp, &ccs_query_list) {
++	list_for_each(tmp, list) {
+ 		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
+ 		if (ptr->answer)
+ 			continue;
+@@ -2167,7 +2162,8 @@
+ 		 * can change, but I don't care.
+ 		 */
+ 		if (len == ptr->query_len)
+-			memmove(buf, ptr->query, len);
++			snprintf(buf, len, "Q%u-%hu\n%s", ptr->serial,
++				 ptr->retry, ptr->query);
+ 		break;
+ 	}
+ 	spin_unlock(&ccs_query_list_lock);
+@@ -2193,8 +2189,10 @@
+ 	struct list_head *tmp;
+ 	unsigned int serial;
+ 	unsigned int answer;
++	struct list_head *list =
++		&ccs_query_list[head->type == CCS_ENFORCINGLOG];
+ 	spin_lock(&ccs_query_list_lock);
+-	list_for_each(tmp, &ccs_query_list) {
++	list_for_each(tmp, list) {
+ 		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
+ 		ptr->timer = 0;
+ 	}
+@@ -2202,7 +2200,7 @@
+ 	if (sscanf(data, "A%u=%u", &serial, &answer) != 2)
+ 		return -EINVAL;
+ 	spin_lock(&ccs_query_list_lock);
+-	list_for_each(tmp, &ccs_query_list) {
++	list_for_each(tmp, list) {
+ 		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
+ 		if (ptr->serial != serial)
+ 			continue;
+@@ -2306,7 +2304,8 @@
+ 		head->write = ccs_write_profile;
+ 		head->read = ccs_read_profile;
+ 		break;
+-	case CCS_QUERY: /* /proc/ccs/query */
++	case CCS_LEARNINGLOG:  /* /proc/ccs/.query */
++	case CCS_ENFORCINGLOG: /* /proc/ccs/query */
+ 		head->poll = ccs_poll_query;
+ 		head->write = ccs_write_answer;
+ 		head->read = ccs_read_query;
+@@ -2348,8 +2347,16 @@
+ 			return -ENOMEM;
+ 		}
+ 	}
+-	if (type != CCS_QUERY &&
+-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
++	/*
++	 * If the file is /proc/ccs/query , increment the observer counter.
++	 * The obserber counter is used by ccs_supervisor() to see if
++	 * there is some process monitoring /proc/ccs/query.
++	 */
++	if (type == CCS_ENFORCINGLOG)
++		atomic_inc(&ccs_query_observers[1]);
++	else if (type == CCS_LEARNINGLOG)
++		atomic_inc(&ccs_query_observers[0]);
++	else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+ 		head->reader_idx = ccs_lock();
+ 	file->private_data = head;
+ 	/*
+@@ -2359,13 +2366,6 @@
+ 	 */
+ 	if (type == CCS_SELFDOMAIN)
+ 		ccs_read_control(file, NULL, 0);
+-	/*
+-	 * If the file is /proc/ccs/query , increment the observer counter.
+-	 * The obserber counter is used by ccs_supervisor() to see if
+-	 * there is some process monitoring /proc/ccs/query.
+-	 */
+-	else if (type == CCS_QUERY)
+-		atomic_inc(&ccs_query_observers);
+ 	return 0;
+ }
+ 
+@@ -2503,10 +2503,11 @@
+ 	/*
+ 	 * If the file is /proc/ccs/query , decrement the observer counter.
+ 	 */
+-	if (type == CCS_QUERY)
+-		atomic_dec(&ccs_query_observers);
+-	if (type != CCS_QUERY &&
+-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
++	if (type == CCS_ENFORCINGLOG)
++		atomic_dec(&ccs_query_observers[1]);
++	else if (type == CCS_LEARNINGLOG)
++		atomic_dec(&ccs_query_observers[0]);
++	else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+ 		ccs_unlock(head->reader_idx);
+ 	/* Release memory used for policy I/O. */
+ 	kfree(head->read_buf);
+Index: gc.c
+===================================================================
+--- gc.c	(revision 3980)
++++ gc.c	(working copy)
+@@ -58,21 +58,6 @@
+ }
+ 
+ /**
+- * ccs_del_file_pattern - Delete members in "struct ccs_pattern".
+- *
+- * @element: Pointer to "struct list_head".
+- *
+- * Returns size of @element (for later kfree()).
+- */
+-static inline size_t ccs_del_file_pattern(struct list_head *element)
+-{
+-	struct ccs_pattern *ptr =
+-		container_of(element, typeof(*ptr), head.list);
+-	ccs_put_name(ptr->pattern);
+-	return sizeof(*ptr);
+-}
+-
+-/**
+  * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
+  *
+  * @element: Pointer to "struct list_head".
+@@ -692,9 +677,6 @@
+ 		case CCS_ID_TRANSITION_CONTROL:
+ 			size = ccs_del_transition_control(element);
+ 			break;
+-		case CCS_ID_PATTERN:
+-			size = ccs_del_file_pattern(element);
+-			break;
+ 		case CCS_ID_MANAGER:
+ 			size = ccs_del_manager(element);
+ 			break;
+Index: network.c
+===================================================================
+--- network.c	(revision 3980)
++++ network.c	(working copy)
+@@ -59,18 +59,12 @@
+ };
+ 
+ static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
+-			     const u8 proto, const u8 ope, const char *address)
++			     const u8 protocol, const u8 operation,
++			     const char *address)
+ {
+-	const char *protocol = ccs_proto_keyword[proto];
+-	const char *operation = ccs_socket_keyword[ope];
+-	ccs_write_log(r, "network %s %s %s %s\n", family,
+-		      protocol, operation, address);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "network %s %s %s %s\n", family, protocol, operation,
+-		     address);
+-	return ccs_supervisor(r, "network %s %s %s %s\n", family, protocol,
+-			      operation, address);
++	return ccs_supervisor(r, true, "network %s %s %s %s\n", family,
++			      ccs_proto_keyword[protocol],
++			      ccs_socket_keyword[operation], address);
+ }
+ 
+ /**
