@@ -2,28 +2,38 @@ Index: mount.c
 ===================================================================
 --- mount.c	(revision 3980)
 +++ mount.c	(working copy)
-@@ -71,9 +71,8 @@
- 	const char *dir = r->param.mount.dir->name;
- 	const char *type = r->param.mount.type->name;
- 	const unsigned long flags = r->param.mount.flags;
+@@ -67,31 +67,10 @@
+  */
+ static int ccs_audit_mount_log(struct ccs_request_info *r)
+ {
+-	const char *dev = r->param.mount.dev->name;
+-	const char *dir = r->param.mount.dir->name;
+-	const char *type = r->param.mount.type->name;
+-	const unsigned long flags = r->param.mount.flags;
 -	ccs_write_log(r, "file mount %s %s %s 0x%lX\n", dev, dir, type, flags);
- 	if (r->granted)
+-	if (r->granted)
 -		return 0;
-+		goto ok;
- 	if (type == ccs_mounts[CCS_MOUNT_REMOUNT])
- 		ccs_warn_log(r, "file mount -o remount %s 0x%lX", dir, flags);
- 	else if (type == ccs_mounts[CCS_MOUNT_BIND] || 
-@@ -88,10 +87,9 @@
- 	else
- 		ccs_warn_log(r, "file mount -t %s %s %s 0x%lX", type, dev, dir,
- 			     flags);
--	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
+-	if (type == ccs_mounts[CCS_MOUNT_REMOUNT])
+-		ccs_warn_log(r, "file mount -o remount %s 0x%lX", dir, flags);
+-	else if (type == ccs_mounts[CCS_MOUNT_BIND] || 
+-		 type == ccs_mounts[CCS_MOUNT_MOVE])
+-		ccs_warn_log(r, "file mount %s %s %s 0x%lX\n", type, dev, dir,
+-			     flags);
+-	else if (type == ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE] ||
+-		 type == ccs_mounts[CCS_MOUNT_MAKE_PRIVATE] ||
+-		 type == ccs_mounts[CCS_MOUNT_MAKE_SLAVE] ||
+-		 type == ccs_mounts[CCS_MOUNT_MAKE_SHARED])
+-		ccs_warn_log(r, "file mount %s %s 0x%lX", type, dir, flags);
+-	else
+-		ccs_warn_log(r, "file mount -t %s %s %s 0x%lX", type, dev, dir,
+-			     flags);
+ 	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
 -			      ccs_file_pattern(r->param.mount.dev),
 -			      ccs_file_pattern(r->param.mount.dir), type,
 -			      flags);
-+ ok:
-+	return ccs_supervisor(r, false, "file mount %s %s %s 0x%lX\n", dev,
-+			      dir, type, flags);
++			      r->param.mount.dev->name,
++			      r->param.mount.dir->name,
++			      r->param.mount.type->name, r->param.mount.flags);
  }
  
  static bool ccs_check_mount_acl(struct ccs_request_info *r,
@@ -48,7 +58,7 @@ Index: audit.c
  	buf = kzalloc(*len, CCS_GFP_FLAGS);
  	if (!buf)
  		goto out;
-@@ -330,13 +331,10 @@
+@@ -330,15 +331,17 @@
   *
   * @r:   Pointer to "struct ccs_request_info".
   * @fmt: The printf()'s format string, followed by parameters.
@@ -62,8 +72,15 @@ Index: audit.c
 -	return 0;
  }
  
++void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args)
++{
++	ccs_update_task_domain(r);
++}
++
  #else
-@@ -398,13 +396,9 @@
+ 
+ static wait_queue_head_t ccs_log_wait[2] = {
+@@ -398,13 +401,9 @@
   *
   * @r:   Pointer to "struct ccs_request_info".
   * @fmt: The printf()'s format string, followed by parameters.
@@ -78,7 +95,7 @@ Index: audit.c
  	int pos;
  	int len;
  	char *buf;
-@@ -418,16 +412,12 @@
+@@ -418,16 +417,12 @@
  	if (ccs_log_count[is_granted] >= len ||
  	    !ccs_get_audit(r->profile, r->type, r->matched_acl, is_granted))
  		goto out;
@@ -95,7 +112,7 @@ Index: audit.c
  	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
  	if (!entry) {
  		kfree(buf);
-@@ -438,7 +428,7 @@
+@@ -438,7 +433,7 @@
  	 * The entry->size is used for memory quota checks.
  	 * Don't go beyond strlen(entry->log).
  	 */
@@ -104,7 +121,7 @@ Index: audit.c
  	spin_lock(&ccs_log_lock);
  	if (ccs_quota_for_log && ccs_log_memory_size
  	    + entry->size >= ccs_quota_for_log) {
-@@ -455,12 +445,18 @@
+@@ -455,12 +450,18 @@
  		goto out;
  	}
  	wake_up(&ccs_log_wait[is_granted]);
@@ -125,67 +142,130 @@ Index: audit.c
  /**
   * ccs_read_log - Read an audit log.
   *
+Index: domain.c
+===================================================================
+--- domain.c	(revision 3980)
++++ domain.c	(working copy)
+@@ -256,6 +256,21 @@
+ }
+ 
+ /**
++ * ccs_last_word - Get last component of a domainname.
++ *
++ * @name: Domainname to check.
++ *
++ * Returns the last word of @name.
++ */
++static const char *ccs_last_word(const char *name)
++{
++	const char *cp = strrchr(name, ' ');
++	if (cp)
++		return cp + 1;
++	return name;
++}
++
++/**
+  * ccs_transition_type - Get domain transition type.
+  *
+  * @domainname: The name of domain.
+@@ -450,7 +465,8 @@
+ 			struct ccs_request_info r;
+ 			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
+ 			r.granted = false;
+-			ccs_write_log(&r, "use_profile %u\n", r.profile);
++			ccs_write_log(&r, "use_profile %u\nuse_group %u\n",
++				      r.profile, group);
+ 		}
+ 	}
+ 	return entry;
+Index: util.c
+===================================================================
+--- util.c	(revision 3980)
++++ util.c	(working copy)
+@@ -971,63 +971,6 @@
+ }
+ 
+ /**
+- * ccs_last_word - Get last component of a domainname.
+- *
+- * @name: Domainname to check.
+- *
+- * Returns the last word of @name.
+- */
+-const char *ccs_last_word(const char *name)
+-{
+-	const char *cp = strrchr(name, ' ');
+-	if (cp)
+-		return cp + 1;
+-	return name;
+-}
+-
+-/**
+- * ccs_warn_log - Print warning or error message on console.
+- *
+- * @r:   Pointer to "struct ccs_request_info".
+- * @fmt: The printf()'s format string, followed by parameters.
+- */
+-void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
+-{
+-	va_list args;
+-	char *buffer;
+-	char *cp;
+-	const struct ccs_domain_info * const domain = ccs_current_domain();
+-	switch (r->mode) {
+-        case CCS_CONFIG_ENFORCING:
+-                if (!ccs_preference.enforcing_verbose)
+-                        return;
+-                break;
+-        case CCS_CONFIG_PERMISSIVE:
+-                if (!ccs_preference.permissive_verbose)
+-                        return;
+-                break;
+-        case CCS_CONFIG_LEARNING:
+-                if (!ccs_preference.learning_verbose)
+-                        return;
+-                break;
+-        }
+-	buffer = kmalloc(4096, CCS_GFP_FLAGS);
+-	if (!buffer)
+-		return;
+-	va_start(args, fmt);
+-	vsnprintf(buffer, 4095, fmt, args);
+-	va_end(args);
+-	buffer[4095] = '\0';
+-	cp = strchr(buffer, '\n');
+-	if (cp)
+-		*cp = '\0';
+-	printk(KERN_WARNING "%s: Access %s denied for %s\n",
+-	       r->mode == CCS_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
+-	       ccs_last_word(domain->domainname->name));
+-	kfree(buffer);
+-}
+-
+-/**
+  * ccs_domain_quota_ok - Check for domain's quota.
+  *
+  * @r: Pointer to "struct ccs_request_info".
 Index: signal.c
 ===================================================================
 --- signal.c	(revision 3980)
 +++ signal.c	(working copy)
-@@ -28,11 +28,11 @@
+@@ -26,13 +26,8 @@
+  */
+ static int ccs_audit_signal_log(struct ccs_request_info *r)
  {
- 	const int sig = r->param.signal.sig;
- 	const char *dest_domain = r->param.signal.dest_pattern;
+-	const int sig = r->param.signal.sig;
+-	const char *dest_domain = r->param.signal.dest_pattern;
 -	ccs_write_log(r, "ipc signal %d %s\n", sig, dest_domain);
 -	if (r->granted)
 -		return 0;
 -	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
 -	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
-+	if (!r->granted)
-+		ccs_warn_log(r, "signal %d to %s", sig,
-+			     ccs_last_word(dest_domain));
-+	return ccs_supervisor(r, false, "ipc signal %d %s\n", sig,
-+			      dest_domain);
++	return ccs_supervisor(r, "ipc signal %d %s\n", r->param.signal.sig,
++			      r->param.signal.dest_pattern);
  }
  
  static bool ccs_check_signal_acl(struct ccs_request_info *r,
-Index: util.c
-===================================================================
---- util.c	(revision 3980)
-+++ util.c	(working copy)
-@@ -991,9 +991,8 @@
-  * @r:   Pointer to "struct ccs_request_info".
-  * @fmt: The printf()'s format string, followed by parameters.
-  */
--void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
-+void ccs_warn_log2(struct ccs_request_info *r, const char *fmt, va_list args)
- {
--	va_list args;
- 	char *buffer;
- 	char *cp;
- 	const struct ccs_domain_info * const domain = ccs_current_domain();
-@@ -1014,9 +1013,7 @@
- 	buffer = kmalloc(4096, CCS_GFP_FLAGS);
- 	if (!buffer)
- 		return;
--	va_start(args, fmt);
- 	vsnprintf(buffer, 4095, fmt, args);
--	va_end(args);
- 	buffer[4095] = '\0';
- 	cp = strchr(buffer, '\n');
- 	if (cp)
-@@ -1027,6 +1024,14 @@
- 	kfree(buffer);
- }
- 
-+void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
-+{
-+	va_list args;
-+	va_start(args, fmt);
-+	ccs_warn_log2(r, fmt, args);
-+	va_end(args);
-+}
-+
- /**
-  * ccs_domain_quota_ok - Check for domain's quota.
-  *
 Index: file.c
 ===================================================================
 --- file.c	(revision 3980)
@@ -226,13 +306,13 @@ Index: file.c
 -	ccs_warn_log(r, "file %s %s\n", operation, filename->name);
 -	return ccs_supervisor(r, "file %s %s\n", operation,
 -			      ccs_file_pattern(filename));
-+	return ccs_supervisor(r, true, "file %s %s\n",
-+			      ccs_path_keyword[r->param.path.operation],
++	return ccs_supervisor(r, "file %s %s\n", ccs_path_keyword
++			      [r->param.path.operation],
 +			      r->param.path.filename->name);
  }
  
  /**
-@@ -177,19 +155,11 @@
+@@ -177,19 +155,10 @@
   */
  static int ccs_audit_path2_log(struct ccs_request_info *r)
  {
@@ -249,15 +329,14 @@ Index: file.c
 -	return ccs_supervisor(r, "file %s %s %s\n", operation,
 -			      ccs_file_pattern(filename1),
 -			      ccs_file_pattern(filename2));
-+	return ccs_supervisor(r, true, "file %s %s %s\n",
-+			      ccs_mac_keywords
++	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
 +			      [ccs_pp2mac[r->param.path2.operation]],
 +			      r->param.path2.filename1->name,
 +			      r->param.path2.filename2->name);
  }
  
  /**
-@@ -201,20 +171,12 @@
+@@ -201,20 +170,11 @@
   */
  static int ccs_audit_mkdev_log(struct ccs_request_info *r)
  {
@@ -275,8 +354,7 @@ Index: file.c
 -		     mode, major, minor);
 -	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", operation,
 -			      ccs_file_pattern(filename), mode, major, minor);
-+	return ccs_supervisor(r, true, "file %s %s 0%o %u %u\n",
-+			      ccs_mac_keywords
++	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", ccs_mac_keywords
 +			      [ccs_pnnn2mac[r->param.mkdev.operation]],
 +			      r->param.mkdev.filename->name,
 +			      r->param.mkdev.mode, r->param.mkdev.major,
@@ -284,7 +362,7 @@ Index: file.c
  }
  
  /**
-@@ -229,8 +191,6 @@
+@@ -229,8 +189,6 @@
  {
  	const u8 type = r->param.path_number.operation;
  	u8 radix;
@@ -293,7 +371,7 @@ Index: file.c
  	char buffer[64];
  	switch (type) {
  	case CCS_TYPE_CREATE:
-@@ -249,76 +209,11 @@
+@@ -249,76 +207,11 @@
  	}
  	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
  			radix);
@@ -304,8 +382,8 @@ Index: file.c
 -	ccs_warn_log(r, "file %s %s %s\n", operation, filename->name, buffer);
 -	return ccs_supervisor(r, "file %s %s %s\n", operation,
 -			      ccs_file_pattern(filename), buffer);
-+	return ccs_supervisor(r, true, "file %s %s %s\n",
-+			      ccs_mac_keywords[ccs_pn2mac[type]],
++	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
++			      [ccs_pn2mac[type]],
 +			      r->param.path_number.filename->name, buffer);
  }
  
@@ -377,56 +455,20 @@ Index: environ.c
 ===================================================================
 --- environ.c	(revision 3980)
 +++ environ.c	(working copy)
-@@ -30,11 +30,9 @@
+@@ -29,12 +29,7 @@
+  */
  static int ccs_audit_env_log(struct ccs_request_info *r)
  {
- 	const char *env = r->param.environ.name->name;
+-	const char *env = r->param.environ.name->name;
 -	ccs_write_log(r, "misc env %s\n", env);
 -	if (r->granted)
 -		return 0;
 -	ccs_warn_log(r, "environ %s", env);
 -	return ccs_supervisor(r, "misc env %s\n", env);
-+	if (!r->granted)
-+		ccs_warn_log(r, "environ %s", env);
-+	return ccs_supervisor(r, false, "misc env %s\n", env);
++	return ccs_supervisor(r, "misc env %s\n", r->param.environ.name->name);
  }
  
  /**
-Index: proc_if.c
-===================================================================
---- proc_if.c	(revision 3980)
-+++ proc_if.c	(working copy)
-@@ -293,7 +293,8 @@
- 		ccs_dir_inode_operations.setattr = proc_notify_change;
- 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
- #endif
--	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
-+	ccs_create_entry("query",            0600, ccs_dir, CCS_ENFORCINGLOG);
-+	ccs_create_entry(".query",           0600, ccs_dir, CCS_LEARNINGLOG);
- 	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
- 	ccs_create_entry("exception_policy", 0600, ccs_dir,
- 			 CCS_EXCEPTIONPOLICY);
-Index: capability.c
-===================================================================
---- capability.c	(revision 3980)
-+++ capability.c	(working copy)
-@@ -35,13 +35,9 @@
-  */
- static int ccs_audit_capability_log(struct ccs_request_info *r)
- {
--	const char *operation =
--		ccs_mac_keywords[ccs_c2mac[r->param.capability.operation]];
--	ccs_write_log(r, "capability %s\n", operation);
--	if (r->granted)
--		return 0;
--	ccs_warn_log(r, "capability %s\n", operation);
--	return ccs_supervisor(r, "capability %s\n", operation);
-+	return ccs_supervisor(r, true, "capability %s\n",
-+			      ccs_mac_keywords
-+			      [ccs_c2mac[r->param.capability.operation]]);
- }
- 
- static bool ccs_check_capability_acl(struct ccs_request_info *r,
 Index: internal.h
 ===================================================================
 --- internal.h	(revision 3980)
@@ -462,37 +504,39 @@ Index: internal.h
  /*
   * Structure for "initialize_domain"/"no_initialize_domain" and
   * "keep_domain"/"no_keep_domain" keyword.
-@@ -951,9 +945,6 @@
+@@ -949,12 +943,6 @@
+ 	unsigned int enforcing_penalty;
+ 	bool audit_task_info;
  	bool audit_path_info;
- 	bool enforcing_verbose;
- 	bool learning_verbose;
+-	bool enforcing_verbose;
+-	bool learning_verbose;
 -	bool learning_exec_realpath;
 -	bool learning_exec_argv0;
 -	bool learning_symlink_target;
- 	bool permissive_verbose;
+-	bool permissive_verbose;
  };
  
-@@ -1012,7 +1003,6 @@
+ struct ccs_profile {
+@@ -1012,9 +1000,7 @@
  char *ccs_encode2(const char *str, int str_len);
  char *ccs_init_log(int *len, struct ccs_request_info *r);
  char *ccs_realpath_from_path(struct path *path);
 -const char *ccs_file_pattern(const struct ccs_path_info *filename);
  const char *ccs_get_exe(void);
- const char *ccs_last_word(const char *name);
+-const char *ccs_last_word(const char *name);
  const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
-@@ -1032,8 +1022,9 @@
- int ccs_poll_log(struct file *file, poll_table *wait);
+ const struct ccs_path_info *ccs_get_name(const char *name);
+ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
+@@ -1033,7 +1019,7 @@
  int ccs_read_control(struct file *file, char __user *buffer,
  		     const int buffer_len);
--int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
+ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 -     __attribute__ ((format(printf, 2, 3)));
-+int ccs_supervisor(struct ccs_request_info *r, const bool warn,
-+		   const char *fmt, ...)
-+	__attribute__ ((format(printf, 3, 4)));
++	__attribute__ ((format(printf, 2, 3)));
  int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
  int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
  		      struct ccs_acl_param *param,
-@@ -1053,13 +1044,10 @@
+@@ -1053,13 +1039,10 @@
  int ccs_write_file(struct ccs_acl_param *param);
  int ccs_write_group(char *data, const bool is_delete, const u8 type);
  int ccs_write_ipc(struct ccs_acl_param *param);
@@ -506,11 +550,12 @@ Index: internal.h
  int ccs_write_reserved_port(char *data, const bool is_delete);
  int ccs_write_transition_control(char *data, const bool is_delete,
  				 const u8 type);
-@@ -1097,7 +1085,11 @@
+@@ -1095,9 +1078,10 @@
+ void ccs_run_gc(void);
+ void ccs_transition_failed(const char *domainname);
  void ccs_unlock(const int idx);
- void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
-      __attribute__ ((format(printf, 2, 3)));
-+void ccs_warn_log2(struct ccs_request_info *r, const char *fmt, va_list args);
+-void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
+-     __attribute__ ((format(printf, 2, 3)));
  void ccs_warn_oom(const char *function);
 +void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 +	__attribute__ ((format(printf, 2, 3)));
@@ -518,22 +563,78 @@ Index: internal.h
  
  /* strcmp() for "struct ccs_path_info" structure. */
  static inline bool ccs_pathcmp(const struct ccs_path_info *a,
+Index: capability.c
+===================================================================
+--- capability.c	(revision 3980)
++++ capability.c	(working copy)
+@@ -29,19 +29,13 @@
+  * ccs_audit_capability_log - Audit capability log.
+  *
+  * @r:     Pointer to "struct ccs_request_info".
+- * @error: Error code.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int ccs_audit_capability_log(struct ccs_request_info *r)
+ {
+-	const char *operation =
+-		ccs_mac_keywords[ccs_c2mac[r->param.capability.operation]];
+-	ccs_write_log(r, "capability %s\n", operation);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "capability %s\n", operation);
+-	return ccs_supervisor(r, "capability %s\n", operation);
++	return ccs_supervisor(r, "capability %s\n", ccs_mac_keywords
++			      [ccs_c2mac[r->param.capability.operation]]);
+ }
+ 
+ static bool ccs_check_capability_acl(struct ccs_request_info *r,
+Index: proc_if.c
+===================================================================
+--- proc_if.c	(revision 3980)
++++ proc_if.c	(working copy)
+@@ -293,7 +293,8 @@
+ 		ccs_dir_inode_operations.setattr = proc_notify_change;
+ 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
+ #endif
+-	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
++	ccs_create_entry("query",            0600, ccs_dir, CCS_ENFORCINGLOG);
++	ccs_create_entry(".query",           0600, ccs_dir, CCS_LEARNINGLOG);
+ 	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
+ 	ccs_create_entry("exception_policy", 0600, ccs_dir,
+ 			 CCS_EXCEPTIONPOLICY);
 Index: policy_io.c
 ===================================================================
 --- policy_io.c	(revision 3980)
 +++ policy_io.c	(working copy)
-@@ -23,9 +23,6 @@
- 	.enforcing_verbose = true,
+@@ -20,13 +20,7 @@
+ 	.audit_task_info = true,
+ 	.audit_path_info = true,
+ 	.enforcing_penalty = 0,
+-	.enforcing_verbose = true,
  	.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
- 	.learning_verbose = false,
+-	.learning_verbose = false,
 -	.learning_exec_realpath = true,
 -	.learning_exec_argv0 = true,
 -	.learning_symlink_target = true,
- 	.permissive_verbose = true,
+-	.permissive_verbose = true,
  };
  
-@@ -446,12 +443,6 @@
- 			     "verbose");
+ /* Profile version. Currently only 20100903 is defined. */
+@@ -434,24 +428,11 @@
+ 		ccs_set_bool(&ccs_preference.audit_path_info, data,
+ 			     "path_info");
+ 	} else if (ccs_str_starts(&data, "enforcing")) {
+-		ccs_set_bool(&ccs_preference.enforcing_verbose, data,
+-			     "verbose");
+ 		ccs_set_uint(&ccs_preference.enforcing_penalty, data,
+ 			     "penalty");
+-	} else if (ccs_str_starts(&data, "permissive")) {
+-		ccs_set_bool(&ccs_preference.permissive_verbose, data,
+-			     "verbose");
+ 	} else if (ccs_str_starts(&data, "learning")) {
+-		ccs_set_bool(&ccs_preference.learning_verbose, data,
+-			     "verbose");
  		ccs_set_uint(&ccs_preference.learning_max_entry, data,
  			     "max_entry");
 -		ccs_set_bool(&ccs_preference.learning_exec_realpath, data,
@@ -545,23 +646,30 @@ Index: policy_io.c
  	} else
  		return -EINVAL;
  	return 0;
-@@ -577,13 +568,9 @@
+@@ -577,18 +558,10 @@
  #endif
  		      ccs_yesno(ccs_preference.audit_task_info),
  		      ccs_yesno(ccs_preference.audit_path_info));
 -	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s max_entry=%u "
 -		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
-+	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s max_entry=%u }\n",
- 		      "learning", ccs_yesno(ccs_preference.learning_verbose),
+-		      "learning", ccs_yesno(ccs_preference.learning_verbose),
 -		      ccs_preference.learning_max_entry,
 -		      ccs_yesno(ccs_preference.learning_exec_realpath),
 -		      ccs_yesno(ccs_preference.learning_exec_argv0),
 -		      ccs_yesno(ccs_preference.learning_symlink_target));
-+		      ccs_preference.learning_max_entry);
- 	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s }\n", "permissive",
- 		      ccs_yesno(ccs_preference.permissive_verbose));
- 	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s penalty=%u }\n",
-@@ -1694,12 +1681,11 @@
+-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s }\n", "permissive",
+-		      ccs_yesno(ccs_preference.permissive_verbose));
+-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s penalty=%u }\n",
+-		      "enforcing", ccs_yesno(ccs_preference.enforcing_verbose),
+-		      ccs_preference.enforcing_penalty);
++	ccs_io_printf(head, "PREFERENCE::%s={ max_entry=%u }\n",
++		      "learning", ccs_preference.learning_max_entry);
++	ccs_io_printf(head, "PREFERENCE::%s={ penalty=%u }\n",
++		      "enforcing", ccs_preference.enforcing_penalty);
+ }
+ 
+ static void ccs_print_config(struct ccs_io_buffer *head, const u8 config)
+@@ -1694,12 +1667,11 @@
  	static const struct {
  		const char *keyword;
  		int (*write) (char *, const bool);
@@ -576,7 +684,7 @@ Index: policy_io.c
  		if (ccs_str_starts(&data, ccs_callback[i].keyword))
  			return ccs_callback[i].write(data, is_delete);
  	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
-@@ -1823,14 +1809,6 @@
+@@ -1823,14 +1795,6 @@
  					       ptr->aggregated_name->name);
  			}
  			break;
@@ -591,7 +699,7 @@ Index: policy_io.c
  		case CCS_ID_RESERVEDPORT:
  			{
  				struct ccs_reserved *ptr =
-@@ -1900,167 +1878,182 @@
+@@ -1900,21 +1864,81 @@
  	unsigned int serial;
  	int timer;
  	int answer;
@@ -676,22 +784,7 @@ Index: policy_io.c
  /**
   * ccs_supervisor - Ask for the supervisor's decision.
   *
-- * @r:   Pointer to "struct ccs_request_info".
-- * @fmt: The printf()'s format string, followed by parameters.
-+ * @r:    Pointer to "struct ccs_request_info".
-+ * @warn: Print warning message if rejected?
-+ * @fmt:  The printf()'s format string, followed by parameters.
-  *
-  * Returns 0 if the supervisor decided to permit the access request which
-  * violated the policy in enforcing mode, CCS_RETRY_REQUEST if the supervisor
-  * decided to retry the access request which violated the policy in enforcing
-  * mode, 0 if it is not in enforcing mode, -EPERM otherwise.
-  */
--int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
-+int ccs_supervisor(struct ccs_request_info *r, const bool warn,
-+		   const char *fmt, ...)
- {
- 	va_list args;
+@@ -1932,135 +1956,83 @@
  	int error = -EPERM;
  	int pos;
  	int len;
@@ -715,13 +808,8 @@ Index: policy_io.c
 -		char *symlink = NULL;
 -		char *handler = NULL;
 +	/* Nothing more to do if granted. */
-+	if (r->granted) {
++	if (r->granted)
 +		return 0;
-+	} else if (warn) {
-+		va_start(args, fmt);
-+		ccs_warn_log2(r, fmt, args);
-+		va_end(args);
-+	}
 +	/* Nothing more to do if neither learning mode nor enforcing mode. */
 +	switch (r->mode) {
 +	case CCS_CONFIG_LEARNING:
@@ -878,7 +966,7 @@ Index: policy_io.c
  	case 3: /* Asked to retry by administrator. */
  		error = CCS_RETRY_REQUEST;
  		r->retry++;
-@@ -2069,18 +2062,15 @@
+@@ -2069,18 +2041,15 @@
  		/* Granted by administrator. */
  		error = 0;
  		break;
@@ -902,7 +990,7 @@ Index: policy_io.c
  	return error;
  }
  
-@@ -2099,9 +2089,12 @@
+@@ -2099,9 +2068,12 @@
  	struct list_head *tmp;
  	bool found = false;
  	u8 i;
@@ -916,7 +1004,7 @@ Index: policy_io.c
  			struct ccs_query *ptr =
  				list_entry(tmp, typeof(*ptr), list);
  			if (ptr->answer)
-@@ -2130,6 +2123,8 @@
+@@ -2130,6 +2102,8 @@
  	int pos = 0;
  	int len = 0;
  	char *buf;
@@ -925,7 +1013,7 @@ Index: policy_io.c
  	if (head->r.w_pos)
  		return;
  	if (head->read_buf) {
-@@ -2137,7 +2132,7 @@
+@@ -2137,7 +2111,7 @@
  		head->read_buf = NULL;
  	}
  	spin_lock(&ccs_query_list_lock);
@@ -934,7 +1022,7 @@ Index: policy_io.c
  		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
  		if (ptr->answer)
  			continue;
-@@ -2151,12 +2146,12 @@
+@@ -2151,12 +2125,12 @@
  		head->r.query_index = 0;
  		return;
  	}
@@ -949,7 +1037,7 @@ Index: policy_io.c
  		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
  		if (ptr->answer)
  			continue;
-@@ -2167,7 +2162,8 @@
+@@ -2167,7 +2141,8 @@
  		 * can change, but I don't care.
  		 */
  		if (len == ptr->query_len)
@@ -959,7 +1047,7 @@ Index: policy_io.c
  		break;
  	}
  	spin_unlock(&ccs_query_list_lock);
-@@ -2193,8 +2189,10 @@
+@@ -2193,8 +2168,10 @@
  	struct list_head *tmp;
  	unsigned int serial;
  	unsigned int answer;
@@ -971,7 +1059,7 @@ Index: policy_io.c
  		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
  		ptr->timer = 0;
  	}
-@@ -2202,7 +2200,7 @@
+@@ -2202,7 +2179,7 @@
  	if (sscanf(data, "A%u=%u", &serial, &answer) != 2)
  		return -EINVAL;
  	spin_lock(&ccs_query_list_lock);
@@ -980,7 +1068,7 @@ Index: policy_io.c
  		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
  		if (ptr->serial != serial)
  			continue;
-@@ -2306,7 +2304,8 @@
+@@ -2306,7 +2283,8 @@
  		head->write = ccs_write_profile;
  		head->read = ccs_read_profile;
  		break;
@@ -990,7 +1078,7 @@ Index: policy_io.c
  		head->poll = ccs_poll_query;
  		head->write = ccs_write_answer;
  		head->read = ccs_read_query;
-@@ -2348,8 +2347,16 @@
+@@ -2348,8 +2326,16 @@
  			return -ENOMEM;
  		}
  	}
@@ -1009,7 +1097,7 @@ Index: policy_io.c
  		head->reader_idx = ccs_lock();
  	file->private_data = head;
  	/*
-@@ -2359,13 +2366,6 @@
+@@ -2359,13 +2345,6 @@
  	 */
  	if (type == CCS_SELFDOMAIN)
  		ccs_read_control(file, NULL, 0);
@@ -1023,7 +1111,7 @@ Index: policy_io.c
  	return 0;
  }
  
-@@ -2503,10 +2503,11 @@
+@@ -2503,10 +2482,11 @@
  	/*
  	 * If the file is /proc/ccs/query , decrement the observer counter.
  	 */
@@ -1097,14 +1185,14 @@ Index: network.c
 -		     address);
 -	return ccs_supervisor(r, "network %s %s %s %s\n", family, protocol,
 -			      operation, address);
-+	return ccs_supervisor(r, true, "network %s %s %s %s\n", family,
++	return ccs_supervisor(r, "network %s %s %s %s\n", family,
 +			      ccs_proto_keyword[protocol],
 +			      ccs_socket_keyword[operation], address);
  }
  
  /**
 --- /dev/null	2010-09-12 23:07:23.639286001 +0900
-+++ ccs-learningd.c	2010-09-12 23:02:52.000000000 +0900
++++ ccs-learningd.c	2010-09-13 16:33:50.000000000 +0900
 @@ -0,0 +1,211 @@
 +/*
 + * ccs-queryd.c
