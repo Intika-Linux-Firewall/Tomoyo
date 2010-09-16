@@ -1,6 +1,6 @@
 Index: mount.c
 ===================================================================
---- mount.c	(revision 3987)
+--- mount.c	(revision 3989)
 +++ mount.c	(working copy)
 @@ -67,31 +67,10 @@
   */
@@ -39,7 +39,7 @@ Index: mount.c
  static bool ccs_check_mount_acl(struct ccs_request_info *r,
 Index: audit.c
 ===================================================================
---- audit.c	(revision 3987)
+--- audit.c	(revision 3989)
 +++ audit.c	(working copy)
 @@ -228,17 +228,19 @@
  /**
@@ -92,10 +92,11 @@ Index: audit.c
 +		/* +18 is for " symlink.target=\"%s\"" */
 +		pos += 18 + strlen(symlink);
  	}
-+	/* +80 is for caller. */
-+	pos += vsnprintf(&c, sizeof(c), fmt, args) + 80;
+-	buf = kzalloc(*len, CCS_GFP_FLAGS);
++	/* +1 is for '\0'. */
++	pos += vsnprintf(&c, sizeof(c), fmt, args) + 1;
 +	pos = ccs_round2(pos);
- 	buf = kzalloc(*len, CCS_GFP_FLAGS);
++	buf = kzalloc(pos, CCS_GFP_FLAGS);
  	if (!buf)
  		goto out;
 +	*len = pos;
@@ -200,7 +201,7 @@ Index: audit.c
   *
 Index: domain.c
 ===================================================================
---- domain.c	(revision 3987)
+--- domain.c	(revision 3989)
 +++ domain.c	(working copy)
 @@ -256,6 +256,21 @@
  }
@@ -234,9 +235,29 @@ Index: domain.c
  		}
  	}
  	return entry;
+Index: signal.c
+===================================================================
+--- signal.c	(revision 3989)
++++ signal.c	(working copy)
+@@ -26,13 +26,8 @@
+  */
+ static int ccs_audit_signal_log(struct ccs_request_info *r)
+ {
+-	const int sig = r->param.signal.sig;
+-	const char *dest_domain = r->param.signal.dest_pattern;
+-	ccs_write_log(r, "ipc signal %d %s\n", sig, dest_domain);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
+-	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
++	return ccs_supervisor(r, "ipc signal %d %s\n", r->param.signal.sig,
++			      r->param.signal.dest_pattern);
+ }
+ 
+ static bool ccs_check_signal_acl(struct ccs_request_info *r,
 Index: util.c
 ===================================================================
---- util.c	(revision 3987)
+--- util.c	(revision 3989)
 +++ util.c	(working copy)
 @@ -971,63 +971,6 @@
  }
@@ -302,29 +323,9 @@ Index: util.c
   * ccs_domain_quota_ok - Check for domain's quota.
   *
   * @r: Pointer to "struct ccs_request_info".
-Index: signal.c
-===================================================================
---- signal.c	(revision 3987)
-+++ signal.c	(working copy)
-@@ -26,13 +26,8 @@
-  */
- static int ccs_audit_signal_log(struct ccs_request_info *r)
- {
--	const int sig = r->param.signal.sig;
--	const char *dest_domain = r->param.signal.dest_pattern;
--	ccs_write_log(r, "ipc signal %d %s\n", sig, dest_domain);
--	if (r->granted)
--		return 0;
--	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
--	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
-+	return ccs_supervisor(r, "ipc signal %d %s\n", r->param.signal.sig,
-+			      r->param.signal.dest_pattern);
- }
- 
- static bool ccs_check_signal_acl(struct ccs_request_info *r,
 Index: file.c
 ===================================================================
---- file.c	(revision 3987)
+--- file.c	(revision 3989)
 +++ file.c	(working copy)
 @@ -112,23 +112,6 @@
  }
@@ -509,7 +510,7 @@ Index: file.c
  {
 Index: environ.c
 ===================================================================
---- environ.c	(revision 3987)
+--- environ.c	(revision 3989)
 +++ environ.c	(working copy)
 @@ -29,12 +29,7 @@
   */
@@ -525,35 +526,9 @@ Index: environ.c
  }
  
  /**
-Index: capability.c
-===================================================================
---- capability.c	(revision 3987)
-+++ capability.c	(working copy)
-@@ -29,19 +29,13 @@
-  * ccs_audit_capability_log - Audit capability log.
-  *
-  * @r:     Pointer to "struct ccs_request_info".
-- * @error: Error code.
-  *
-  * Returns 0 on success, negative value otherwise.
-  */
- static int ccs_audit_capability_log(struct ccs_request_info *r)
- {
--	const char *operation =
--		ccs_mac_keywords[ccs_c2mac[r->param.capability.operation]];
--	ccs_write_log(r, "capability %s\n", operation);
--	if (r->granted)
--		return 0;
--	ccs_warn_log(r, "capability %s\n", operation);
--	return ccs_supervisor(r, "capability %s\n", operation);
-+	return ccs_supervisor(r, "capability %s\n", ccs_mac_keywords
-+			      [ccs_c2mac[r->param.capability.operation]]);
- }
- 
- static bool ccs_check_capability_acl(struct ccs_request_info *r,
 Index: internal.h
 ===================================================================
---- internal.h	(revision 3987)
+--- internal.h	(revision 3989)
 +++ internal.h	(working copy)
 @@ -344,7 +344,6 @@
  	CCS_ID_NUMBER_GROUP,
@@ -639,9 +614,35 @@ Index: internal.h
  
  /* strcmp() for "struct ccs_path_info" structure. */
  static inline bool ccs_pathcmp(const struct ccs_path_info *a,
+Index: capability.c
+===================================================================
+--- capability.c	(revision 3989)
++++ capability.c	(working copy)
+@@ -29,19 +29,13 @@
+  * ccs_audit_capability_log - Audit capability log.
+  *
+  * @r:     Pointer to "struct ccs_request_info".
+- * @error: Error code.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int ccs_audit_capability_log(struct ccs_request_info *r)
+ {
+-	const char *operation =
+-		ccs_mac_keywords[ccs_c2mac[r->param.capability.operation]];
+-	ccs_write_log(r, "capability %s\n", operation);
+-	if (r->granted)
+-		return 0;
+-	ccs_warn_log(r, "capability %s\n", operation);
+-	return ccs_supervisor(r, "capability %s\n", operation);
++	return ccs_supervisor(r, "capability %s\n", ccs_mac_keywords
++			      [ccs_c2mac[r->param.capability.operation]]);
+ }
+ 
+ static bool ccs_check_capability_acl(struct ccs_request_info *r,
 Index: policy_io.c
 ===================================================================
---- policy_io.c	(revision 3987)
+--- policy_io.c	(revision 3989)
 +++ policy_io.c	(working copy)
 @@ -20,13 +20,7 @@
  	.audit_task_info = true,
@@ -1103,7 +1104,7 @@ Index: policy_io.c
  	kfree(head->read_buf);
 Index: gc.c
 ===================================================================
---- gc.c	(revision 3987)
+--- gc.c	(revision 3989)
 +++ gc.c	(working copy)
 @@ -58,21 +58,6 @@
  }
@@ -1139,7 +1140,7 @@ Index: gc.c
  			break;
 Index: network.c
 ===================================================================
---- network.c	(revision 3987)
+--- network.c	(revision 3989)
 +++ network.c	(working copy)
 @@ -59,18 +59,12 @@
  };
