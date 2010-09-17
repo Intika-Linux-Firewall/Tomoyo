@@ -34,7 +34,7 @@
 <li>Vine Linux 4.2/5.1</li>
 <li>Asianux 2.0/3.0</li>
 <li>Debian Etch/Lenny</li>
-<li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04</li>
+<li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04/10.10</li>
 </ul>
 
 <p>RPM 形式のバイナリパッケージをインストールする場合、以下のように GPG 鍵をインストールしてください。</p>
@@ -154,6 +154,11 @@ Ubuntu 9.10 (for generic flavour)</td><td>
 </td></tr><tr><td>
 Ubuntu 10.04 (for generic-pae flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/47128/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 10.10 (for generic-pae flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/48987/ ./' &gt;&gt; /etc/apt/sources.list<br>
 [root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr>
@@ -349,6 +354,20 @@ sh build-ubuntu_9.04.sh<br>
 wget -O build-ubuntu_9.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.10.sh?root=tomoyo'<br>
 # ビルドスクリプトを実行する。<br>
 sh build-ubuntu_9.10.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu10.04">Ubuntu 10.04</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_10.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_10.04.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_10.04.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu10.10">Ubuntu 10.10</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_10.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_10.10.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_10.10.sh<br>
 </td></tr><tr><td>
 <a name="VineLinux4.2">VineLinux 4.2</a>
 </td><td>
