@@ -42,14 +42,6 @@ int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 /* For exporting variables and functions. */
 struct ccsecurity_exports {
 	void (*load_policy) (const char *filename);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	int (*may_create) (struct inode *dir, struct dentry *dentry);
-#else
-	int (*may_create) (struct inode *dir, struct dentry *dentry,
-			   int is_dir);
-#endif
-	int (*may_delete) (struct inode *dir, struct dentry *dentry,
-			   int is_dir);
 	void (*put_filesystem) (struct file_system_type *fs);
 	asmlinkage long (*sys_getppid) (void);
 	asmlinkage long (*sys_getpid) (void);
@@ -761,13 +753,6 @@ static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 }
 
 #endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-int ccs_may_create(struct inode *dir, struct dentry *dentry);
-#else
-int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir);
-#endif
-int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
 
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {
