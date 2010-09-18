@@ -2440,3 +2440,15 @@ Fix 2010/06/09
       Since 1.7.0 , if 'if symlink.target=' part was given against non-file
       permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
       NULL pointer dereference.
+
+Fix 2019/09/18
+
+    @ Remove pre-vfs functions.
+
+      I again encountered build failure due to may_create()/may_delete()
+      changes by distributor's patches. Since directory modification syscalls
+      (e.g. mkdir()/unlink()) seldom violate DAC's permission whereas directory
+      scanning syscalls (e.g. open()/stat()) sometimes violate it (because of
+      environment variable PATH), not doing DAC checks before MAC checks won't
+      trigger MAC's permission error flooding. Thus, I removed DAC checks which
+      are done before MAC checks.
