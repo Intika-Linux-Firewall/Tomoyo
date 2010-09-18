@@ -1413,7 +1413,7 @@ static void make_meminfo(void)
 		return;
 	fp = fopen("meminfo.tmp", "w");
 	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create manager policy.\n");
+		fprintf(stderr, "ERROR: Can't create meminfo policy.\n");
 		return;
 	}
 	fprintf(stderr, "Creating memory quota policy... ");
@@ -1441,6 +1441,7 @@ static void make_module_loader(void)
 	}
 	fprintf(stderr, "Creating module loader... ");
 	fprintf(fp, "#! /bin/sh\n");
+	fprintf(fp, "export PATH=/sbin:/bin:$PATH\n");
 	fprintf(fp, "exec modprobe ccsecurity\n");
 	fclose(fp);
 	if (!chdir(policy_dir) &&

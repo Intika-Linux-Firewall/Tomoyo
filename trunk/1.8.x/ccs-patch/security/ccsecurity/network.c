@@ -527,7 +527,7 @@ static int ccs_unix_entry(const struct ccs_addr_info *address)
 	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
 		char *buf;
 		if (address->unix0.addr_len <= sizeof(sa_family_t))
-			buf = ccs_encode2("anonymous", 9);			
+			buf = ccs_encode2("anonymous", 9);
 		else if (address->unix0.addr[0])
 			buf = ccs_encode(address->unix0.addr);
 		else
