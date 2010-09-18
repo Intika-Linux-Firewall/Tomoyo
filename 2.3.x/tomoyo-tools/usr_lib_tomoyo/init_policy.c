@@ -1417,7 +1417,7 @@ static void make_meminfo(void)
 		return;
 	fp = fopen("meminfo.tmp", "w");
 	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create manager policy.\n");
+		fprintf(stderr, "ERROR: Can't create meminfo policy.\n");
 		return;
 	}
 	fprintf(stderr, "Creating memory quota policy... ");
