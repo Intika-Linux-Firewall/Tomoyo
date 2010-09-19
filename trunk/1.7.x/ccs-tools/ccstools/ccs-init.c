@@ -294,7 +294,8 @@ int main(int argc, char *argv[])
 	/* Load kernel module if needed. */
 	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
 		if (!access("/etc/ccs/ccs-load-module", X_OK)) {
-			switch (fork()) {
+			const pid_t pid = fork();
+			switch (pid) {
 			case 0:
 				execl("/etc/ccs/ccs-load-module",
 				      "/etc/ccs/ccs-load-module", NULL);
@@ -302,7 +303,8 @@ int main(int argc, char *argv[])
 			case -1:
 				panic();
 			}
-			wait(NULL);
+			while (waitpid(pid, NULL, __WALL) == EOF &&
+			       errno == EINTR);
 		}
 	}
 
@@ -406,7 +408,8 @@ int main(int argc, char *argv[])
 
 	/* Do additional initialization. */
 	if (!access("/etc/ccs/ccs-post-init", X_OK)) {
-		switch (fork()) {
+		const pid_t pid = fork();
+		switch (pid) {
 		case 0:
 			execl("/etc/ccs/ccs-post-init",
 			      "/etc/ccs/ccs-post-init", NULL);
@@ -414,7 +417,8 @@ int main(int argc, char *argv[])
 		case -1:
 			panic();
 		}
-		wait(NULL);
+		while (waitpid(pid, NULL, __WALL) == EOF &&
+		       errno == EINTR);
 	}
 
 	show_domain_usage();
