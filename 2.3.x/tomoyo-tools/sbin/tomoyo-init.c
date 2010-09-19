@@ -418,7 +418,8 @@ int main(int argc, char *argv[])
 
 	/* Do additional initialization. */
 	if (!access("/etc/tomoyo/tomoyo-post-init", X_OK)) {
-		switch (fork()) {
+		const pid_t pid = fork();
+		switch (pid) {
 		case 0:
 			execl("/etc/tomoyo/tomoyo-post-init",
 			      "/etc/tomoyo/tomoyo-post-init", NULL);
@@ -426,7 +427,8 @@ int main(int argc, char *argv[])
 		case -1:
 			panic();
 		}
-		wait(NULL);
+		while (waitpid(pid, NULL, __WALL) == EOF &&
+		       errno == EINTR);
 	}
 
 	show_domain_usage();
