@@ -15,7 +15,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |   11 ++++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   31 ++++++++++++++++++++++++++++++-
+ fs/namei.c                      |   30 +++++++++++++++++++++++++++++-
  fs/namespace.c                  |   20 ++++++++++++++++++++
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -43,7 +43,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 262 insertions(+), 3 deletions(-)
+ 41 files changed, 261 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24.7.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24.7/arch/ia64/ia32/sys_ia32.c
@@ -372,15 +372,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->dentry);
-@@ -1692,6 +1702,7 @@ static int open_namei_create(struct name
- 	return may_open(nd, 0, flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  *	open_namei()
-  *
-@@ -1965,6 +1976,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1965,6 +1975,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -390,7 +382,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -2041,6 +2055,8 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2041,6 +2054,8 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
@@ -399,7 +391,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  	dput(dentry);
  out_unlock:
-@@ -2148,6 +2164,8 @@ static long do_rmdir(int dfd, const char
+@@ -2148,6 +2163,8 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
@@ -408,7 +400,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
  	dput(dentry);
  exit2:
-@@ -2228,6 +2246,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2228,6 +2245,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -418,7 +410,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2309,6 +2330,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2309,6 +2329,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
@@ -428,7 +420,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  	dput(dentry);
  out_unlock:
-@@ -2404,6 +2428,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2404,6 +2427,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
@@ -438,7 +430,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2629,7 +2656,9 @@ static int do_rename(int olddfd, const c
+@@ -2629,7 +2655,9 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -654,7 +646,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24.7 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.24.7 2010/09/21\n");
  }
 --- linux-2.6.24.7.orig/include/linux/init_task.h
 +++ linux-2.6.24.7/include/linux/init_task.h

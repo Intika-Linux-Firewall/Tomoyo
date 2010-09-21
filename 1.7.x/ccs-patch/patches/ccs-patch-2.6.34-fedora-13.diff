@@ -6,7 +6,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  fs/compat_ioctl.c               |    4 +
  fs/exec.c                       |    2 
  fs/ioctl.c                      |    2 
- fs/namei.c                      |    6 +
+ fs/namei.c                      |    5 +
  fs/namespace.c                  |    9 ++
  fs/open.c                       |    2 
  fs/proc/version.c               |    7 ++
@@ -31,7 +31,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  security/Kconfig                |    2 
  security/Makefile               |    3 
  security/security.c             |  135 +++++++++++++++++++++++++++++++++-------
- 29 files changed, 264 insertions(+), 47 deletions(-)
+ 29 files changed, 263 insertions(+), 47 deletions(-)
 
 --- linux-2.6.34.6-54.fc13.orig/fs/compat.c
 +++ linux-2.6.34.6-54.fc13/fs/compat.c
@@ -93,14 +93,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1521,6 +1526,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
 --- linux-2.6.34.6-54.fc13.orig/fs/namespace.c
 +++ linux-2.6.34.6-54.fc13/fs/namespace.c
 @@ -1506,6 +1506,9 @@ static int do_loopback(struct path *path
@@ -153,7 +145,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.34.6-54.fc13 2010/09/09\n");
++	printk(KERN_INFO "Hook version: 2.6.34.6-54.fc13 2010/09/21\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

@@ -6,7 +6,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  fs/compat_ioctl.c         |    4 +
  fs/exec.c                 |    2 
  fs/ioctl.c                |    2 
- fs/namei.c                |    6 ++
+ fs/namei.c                |    5 +
  fs/namespace.c            |    9 +++
  fs/open.c                 |    2 
  fs/proc/version.c         |    7 ++
@@ -30,7 +30,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  security/Kconfig          |    2 
  security/Makefile         |    3 +
  security/security.c       |  134 ++++++++++++++++++++++++++++++++++++++--------
- 28 files changed, 260 insertions(+), 47 deletions(-)
+ 28 files changed, 259 insertions(+), 47 deletions(-)
 
 --- linux-2.6.35-22.32.orig/fs/compat.c
 +++ linux-2.6.35-22.32/fs/compat.c
@@ -92,14 +92,6 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1525,6 +1530,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
 --- linux-2.6.35-22.32.orig/fs/namespace.c
 +++ linux-2.6.35-22.32/fs/namespace.c
 @@ -1497,6 +1497,9 @@ static int do_loopback(struct path *path
@@ -152,7 +144,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.35-22.32 2010/09/17\n");
++	printk(KERN_INFO "Hook version: 2.6.35-22.32 2010/09/21\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -425,7 +417,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	 * Verify we have a legal set of flags
 --- linux-2.6.35-22.32.orig/kernel/kmod.c
 +++ linux-2.6.35-22.32/kernel/kmod.c
-@@ -153,6 +153,11 @@ static int ____call_usermodehelper(void
+@@ -153,6 +153,11 @@ static int ____call_usermodehelper(void 
  			goto fail;
  	}
  
@@ -516,7 +508,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2397,6 +2401,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2397,6 +2401,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -525,7 +517,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2414,6 +2420,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t,
+@@ -2414,6 +2420,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;

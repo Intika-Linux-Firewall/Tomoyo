@@ -33,7 +33,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                          |   12 +++++++++++-
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    5 +++++
- fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
+ fs/namei.c                         |   31 +++++++++++++++++++++++++++++++
  fs/namespace.c                     |   23 +++++++++++++++++++++--
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
@@ -57,7 +57,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 55 files changed, 330 insertions(+), 12 deletions(-)
+ 55 files changed, 329 insertions(+), 12 deletions(-)
 
 --- linux-2.6.11.12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.11.12/arch/alpha/kernel/ptrace.c
@@ -728,15 +728,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1337,6 +1344,7 @@ int may_open(struct nameidata *nd, int a
- 	return 0;
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  *	open_namei()
-  *
-@@ -1411,6 +1419,9 @@ do_last:
+@@ -1411,6 +1418,9 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -746,7 +738,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1585,6 +1596,9 @@ asmlinkage long sys_mknod(const char __u
+@@ -1585,6 +1595,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -756,7 +748,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1655,6 +1669,9 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1655,6 +1668,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -766,7 +758,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1763,6 +1780,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1763,6 +1779,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -776,7 +768,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1838,6 +1858,9 @@ asmlinkage long sys_unlink(const char __
+@@ -1838,6 +1857,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -786,7 +778,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1901,6 +1924,9 @@ asmlinkage long sys_symlink(const char _
+@@ -1901,6 +1923,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -796,7 +788,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -1985,6 +2011,9 @@ asmlinkage long sys_link(const char __us
+@@ -1985,6 +2010,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -806,7 +798,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2207,6 +2236,9 @@ static inline int do_rename(const char *
+@@ -2207,6 +2235,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -1023,7 +1015,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.11.12 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.11.12 2010/09/21\n");
  }
 --- linux-2.6.11.12.orig/include/linux/init_task.h
 +++ linux-2.6.11.12/include/linux/init_task.h

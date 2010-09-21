@@ -28,7 +28,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/exec.c                    |   12 +++++++++++-
  fs/fcntl.c                   |    4 ++++
  fs/ioctl.c                   |   10 ++++++++++
- fs/namei.c                   |   37 +++++++++++++++++++++++++++++++++++++
+ fs/namei.c                   |   36 ++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   32 +++++++++++++++++++++++++++++++-
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
@@ -48,7 +48,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   23 +++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 322 insertions(+), 5 deletions(-)
+ 46 files changed, 321 insertions(+), 5 deletions(-)
 
 --- linux-2.4.36.9.orig/Makefile
 +++ linux-2.4.36.9/Makefile
@@ -596,15 +596,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1003,6 +1006,7 @@ exit_lock:
- 	return error;
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  *	open_namei()
-  *
-@@ -1068,6 +1072,9 @@ do_last:
+@@ -1068,6 +1071,9 @@ do_last:
  
  	/* Negative dentry, just create the file */
  	if (!dentry->d_inode) {
@@ -614,7 +606,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		error = vfs_create(dir->d_inode, dentry,
  				   mode & ~current->fs->umask);
  		up(&dir->d_inode->i_sem);
-@@ -1154,6 +1161,11 @@ ok:
+@@ -1154,6 +1160,11 @@ ok:
  			goto exit;
  	}
  
@@ -626,7 +618,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1292,6 +1304,7 @@ asmlinkage long sys_mknod(const char * f
+@@ -1292,6 +1303,7 @@ asmlinkage long sys_mknod(const char * f
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -634,7 +626,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1304,6 +1317,9 @@ asmlinkage long sys_mknod(const char * f
+@@ -1304,6 +1316,9 @@ asmlinkage long sys_mknod(const char * f
  
  	mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -644,7 +636,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
-@@ -1370,6 +1386,9 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1370,6 +1385,9 @@ asmlinkage long sys_mkdir(const char * p
  		dentry = lookup_create(&nd, 1);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -654,7 +646,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			error = vfs_mkdir(nd.dentry->d_inode, dentry,
  					  mode & ~current->fs->umask);
  			dput(dentry);
-@@ -1479,6 +1498,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1479,6 +1497,9 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -664,7 +656,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1548,6 +1570,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1548,6 +1569,9 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
@@ -674,7 +666,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1612,6 +1637,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1612,6 +1636,9 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -684,7 +676,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1698,6 +1726,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1698,6 +1725,10 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
@@ -695,7 +687,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1928,12 +1960,17 @@ static inline int do_rename(const char *
+@@ -1928,12 +1959,17 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;
@@ -937,7 +929,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.36.9 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.4.36.9 2010/09/21\n");
  }
 --- linux-2.4.36.9.orig/include/linux/sched.h
 +++ linux-2.4.36.9/include/linux/sched.h
