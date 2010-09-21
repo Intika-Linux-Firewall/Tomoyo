@@ -6,7 +6,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  fs/compat_ioctl.c         |    4 +
  fs/exec.c                 |    2 
  fs/ioctl.c                |    2 
- fs/namei.c                |    6 ++
+ fs/namei.c                |    5 +
  fs/namespace.c            |    9 +++
  fs/open.c                 |    2 
  fs/proc/version.c         |    7 ++
@@ -30,7 +30,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  security/Kconfig          |    2 
  security/Makefile         |    3 +
  security/security.c       |  134 ++++++++++++++++++++++++++++++++++++++--------
- 28 files changed, 259 insertions(+), 47 deletions(-)
+ 28 files changed, 258 insertions(+), 47 deletions(-)
 
 --- linux-2.6.36-rc5.orig/fs/compat.c
 +++ linux-2.6.36-rc5/fs/compat.c
@@ -92,14 +92,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1502,6 +1507,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
 --- linux-2.6.36-rc5.orig/fs/namespace.c
 +++ linux-2.6.36-rc5/fs/namespace.c
 @@ -1561,6 +1561,9 @@ static int do_loopback(struct path *path

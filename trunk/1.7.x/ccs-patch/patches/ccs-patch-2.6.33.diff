@@ -6,7 +6,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/compat_ioctl.c               |    4 +
  fs/exec.c                       |    2 
  fs/ioctl.c                      |    2 
- fs/namei.c                      |   10 ++
+ fs/namei.c                      |    9 ++
  fs/namespace.c                  |    9 ++
  fs/open.c                       |    2 
  fs/proc/version.c               |    7 +
@@ -31,7 +31,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  security/Kconfig                |    2 
  security/Makefile               |    3 
  security/security.c             |  155 +++++++++++++++++++++++++++++++---------
- 29 files changed, 278 insertions(+), 57 deletions(-)
+ 29 files changed, 277 insertions(+), 57 deletions(-)
 
 --- linux-2.6.33.7.orig/fs/compat.c
 +++ linux-2.6.33.7/fs/compat.c
@@ -93,15 +93,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1568,6 +1573,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
-@@ -1736,7 +1742,9 @@ do_last:
+@@ -1736,7 +1741,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -111,7 +103,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1798,7 +1806,9 @@ ok:
+@@ -1798,7 +1805,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -173,7 +165,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33.7 2010/08/03\n");
++	printk(KERN_INFO "Hook version: 2.6.33.7 2010/09/21\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

@@ -32,7 +32,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/exec.c                          |   17 +++++++++++++++--
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    7 +++++++
- fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
+ fs/namei.c                         |   31 +++++++++++++++++++++++++++++++
  fs/namespace.c                     |   22 +++++++++++++++++++++-
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 330 insertions(+), 12 deletions(-)
+ 54 files changed, 329 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-89.13.AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.13.AXS2/arch/alpha/kernel/ptrace.c
@@ -727,15 +727,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1588,6 +1595,7 @@ do_lookup_undo(struct nameidata *nd)
- 	}
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  *	open_namei()
-  *
-@@ -1667,6 +1675,9 @@ do_last:
+@@ -1667,6 +1674,9 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -745,7 +737,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1869,6 +1880,9 @@ asmlinkage long sys_mknod(const char __u
+@@ -1869,6 +1879,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -755,7 +747,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1946,6 +1960,9 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1946,6 +1959,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -765,7 +757,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2060,6 +2077,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -2060,6 +2076,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -775,7 +767,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2141,6 +2161,9 @@ asmlinkage long sys_unlink(const char __
+@@ -2141,6 +2160,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -785,7 +777,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2211,6 +2234,9 @@ asmlinkage long sys_symlink(const char _
+@@ -2211,6 +2233,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -795,7 +787,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2302,6 +2328,9 @@ asmlinkage long sys_link(const char __us
+@@ -2302,6 +2327,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -805,7 +797,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2532,6 +2561,9 @@ static inline int do_rename(const char *
+@@ -2532,6 +2560,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -1021,7 +1013,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-89.13.AXS2 2010/09/03\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.13.AXS2 2010/09/21\n");
  }
 --- linux-2.6.9-89.13.AXS2.orig/include/linux/init_task.h
 +++ linux-2.6.9-89.13.AXS2/include/linux/init_task.h

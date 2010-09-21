@@ -7,7 +7,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |    3 ++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   20 ++++++++++++++++++++
  fs/open.c                       |   20 ++++++++++++++++++++
  fs/proc/version.c               |    8 ++++++++
@@ -34,7 +34,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 237 insertions(+), 3 deletions(-)
+ 32 files changed, 236 insertions(+), 3 deletions(-)
 
 --- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/compat.c
 +++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/compat.c
@@ -185,15 +185,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1658,6 +1668,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
-@@ -1813,7 +1824,9 @@ do_last:
+@@ -1813,7 +1823,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -203,7 +195,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1890,7 +1903,9 @@ ok:
+@@ -1890,7 +1902,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -213,7 +205,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2138,6 +2153,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2138,6 +2152,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -223,7 +215,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2221,6 +2239,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2221,6 +2238,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -233,7 +225,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2354,6 +2375,9 @@ static long do_rmdir(int dfd, const char
+@@ -2354,6 +2374,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -243,7 +235,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2458,6 +2482,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2458,6 +2481,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -253,7 +245,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2550,6 +2577,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2550,6 +2576,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -263,7 +255,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2666,6 +2696,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2666,6 +2695,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -274,7 +266,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2915,6 +2949,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2915,6 +2948,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
@@ -458,7 +450,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +static int __init ccs_show_version(void)
 +{
 +	printk(KERN_INFO "Hook version: 2.6.32.15+grsecurity-2.1.14-2.6.32.15 "
-+	       "2010/07/21\n");
++	       "2010/09/21\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
