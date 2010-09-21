@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32.21-166.fc12.src.rpm ]
+if [ ! -r kernel-2.6.32.21-168.fc12.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.21-166.fc12.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.21-168.fc12.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32.21-166.fc12.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32.21-166.fc12.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32.21-168.fc12.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32.21-168.fc12.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -942,7 +947,7 @@
+@@ -964,7 +969,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -76,7 +76,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1548,6 +1553,10 @@
+@@ -1595,6 +1600,10 @@
  # END OF PATCH APPLICATIONS ====================================================
  %endif
  
@@ -87,7 +87,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -1574,6 +1583,9 @@
+@@ -1621,6 +1630,9 @@
  for i in *.config
  do
    mv $i .config
@@ -110,7 +110,7 @@ sleep 30
 patch << "EOF" || die "Can't patch spec file."
 --- /root/rpmbuild/SPECS/ccs-kernel.spec
 +++ /root/rpmbuild/SPECS/ccs-kernel.spec
-@@ -205,7 +205,7 @@
+@@ -224,7 +224,7 @@
  
  # kernel-PAE is only built on i686.
  %ifarch i686
