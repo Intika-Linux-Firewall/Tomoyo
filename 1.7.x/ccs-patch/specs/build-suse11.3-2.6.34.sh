@@ -75,14 +75,9 @@ rpm --checksig kernel-default-2.6.34.7-0.2.2.nosrc.rpm || die "Can't verify sign
 rpm -ivh kernel-default-2.6.34.7-0.2.2.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20100923.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.7.2-20100918.diff ]
-then
-    wget -O ccs-patch-1.7.2-20100918.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.34-suse-11.3.diff?revision=3994&root=tomoyo' || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100923.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -99,7 +94,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel
  Version:        2.6.34.7
 -Release:        0.2.2
-+Release:        0.2.2_tomoyo_1.7.2p2
++Release:        0.2.2_tomoyo_1.7.2p3
  %if %using_buildservice
  %else
  %endif
@@ -108,8 +103,8 @@ patch << "EOF" || die "Can't patch spec file."
  	%_sourcedir/series.conf .. $SYMBOLS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100918.diff
++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100923.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.34-suse-11.3.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
 +
  cd %kernel_build_dir
