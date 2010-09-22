@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.18-194.11.4.el5.src.rpm || die "Can't verify signature
 rpm -ivh kernel-2.6.18-194.11.4.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+if [ ! -r ccs-patch-1.6.8-20100923.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100923.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100923.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.18-centos-5.5.diff
 +
  cp %{SOURCE10} Documentation/
@@ -85,8 +85,4 @@ echo ""
 echo "Edit /tmp/ccs-kernel.spec if needed, and run"
 echo "rpmbuild -bb --without kabichk /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
-echo ""
-echo "I'll start 'rpmbuild -bb --target i686 --without kabichk --with baseonly --without debug --without debuginfo /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
-sleep 30
-exec rpmbuild -bb --target i686 --without kabichk --with baseonly --without debug --without debuginfo /tmp/ccs-kernel.spec
 exit 0

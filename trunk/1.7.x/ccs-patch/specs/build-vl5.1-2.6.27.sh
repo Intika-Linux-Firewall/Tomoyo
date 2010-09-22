@@ -18,14 +18,9 @@ rpm --checksig kernel-2.6.27-59vl5.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.27-59vl5.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20100923.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.7.2-20100824.diff ]
-then
-    wget -O ccs-patch-1.7.2-20100824.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.27-vine-linux-5.1.diff?revision=3921&root=tomoyo' || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100923.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -38,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 59%{?_dist_release}
-+%define release 59%{?_dist_release}_tomoyo_1.7.2p2
++%define release 59%{?_dist_release}_tomoyo_1.7.2p3
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -66,8 +61,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100824.diff
++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100923.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.27-vine-linux-5.1.diff
 +
  cp %{SOURCE10} Documentation/
  
