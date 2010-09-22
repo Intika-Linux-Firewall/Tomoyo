@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100824.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.6.8-20100824.diff
 +
  cp %{SOURCE10} Documentation/
  

@@ -14,7 +14,7 @@ update_linux_26_header_package() {
     dpkg-deb -x $1 old
     dpkg-deb -x $2 new
     dpkg-deb -e $2 new/DEBIAN
-    for i in sched.h init_task.h ccsecurity.h ccsecurity_vfs.h
+    for i in sched.h init_task.h ccsecurity.h
       do
       rm -f new/usr/src/*/include/linux/$i
       cp -p old/usr/src/*/include/linux/$i new/usr/src/*/include/linux/
