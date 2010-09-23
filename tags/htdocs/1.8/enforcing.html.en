@@ -74,7 +74,15 @@ file read /bin/cat
 
 <p>The second log reports that opening /bin/cat for reading requested by /bin/sh which was invoked by /usr/sbin/httpd was rejected. This is because that /bin/sh tries to open the requested program for reading when that program was not executed.</p>
 
-<p>If you have configured notification daemon at <a href="initialize.html.en#configure_notify_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you will receive mails sent by "ccs-notifyd" program. The content of mail is identical to the audit logs, except that it has serial numbers in the header.</p>
+<p>TOMOYO Linux can report the occurrence of policy violation in enforcing mode, if you have set up a mean to notify (e.g. mail). You can use cron daemon for notifying. For example, to notify root@example.com via mail, once per an hour, add</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/ccs/ccs-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
+
+<p>to /etc/crontab . If you have configured like above, you will receive mails like below. The content of mail is identical to the audit logs, except that it has serial numbers in the header.</p>
 
 <table border="1">
 <tr><td>
