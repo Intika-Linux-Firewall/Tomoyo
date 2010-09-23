@@ -182,8 +182,7 @@
 <p>Basically, domain transition occurs whenever a program is executed. But you can suppress or initialize domain transitions as needed.</p>
 <p>You can specify programs that initialize the domain transition history using "initialize_domain" directive. For example, if "initialize_domain /usr/sbin/sshd" is specified, /usr/sbin/sshd will run under "&lt;kernel&gt; /usr/sbin/sshd" domain.</p>
 <p>You can deny the effect of "initialize_domain" directive using "no_initialize_domain" directive. You can use "no_initialize_domain" directive when you don't want to initialize domain transition history under specific conditions.</p>
-<p>You can specify domains that suppress domain transition using "keep_domain" directive.<br>
-For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is specified, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless programs specified using "initialize_domain" directive are executed.</p>
+<p>You can specify domains that suppress domain transition using "keep_domain" directive. For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is specified, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless programs specified using "initialize_domain" directive are executed.</p>
 <p>You can deny the effect of "keep_domain" directive using "no_keep_domain" directive. You can use "no_keep_domain" directive when you don't want to suppress domain transition under specific conditions.</p>
 </td></tr><tr><td>
 (8) Reserved local ports
@@ -278,23 +277,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 
 <hr>
 
-<h2><a name="configure_notify_daemon">Step 4: Configure to mail TOMOYO Linux's policy violation events (Optional)</a></h2>
-
-<p>TOMOYO Linux can report the occurrence of policy violation in enforcing mode, if you have set up a mean to notify (e.g. mail).</p>
-
-<p>You can use cron daemon for notifying. For example, to notify root@example.com via mail, once per an hour, add</p>
-
-<table border="1">
-<tr><td>
-00 * * * * root /usr/lib/ccs/ccs-notifyd 0 'mail root@example.com'
-</td></tr>
-</table>
-
-<p>to /etc/crontab .</p>
-
-<hr>
-
-<h2>Step 5: Reboot the system</h2>
+<h2>Step 4: Reboot the system</h2>
 
 <p>Now, reboot with TOMOYO Linux kernel.</p>
 

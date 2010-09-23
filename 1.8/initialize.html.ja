@@ -277,23 +277,7 @@
 
 <hr>
 
-<h2><a name="configure_notify_daemon">ステップ４：ポリシー違反の発生をメールで通知するよう設定（省略可）</a></h2>
-
-<p>TOMOYO Linux では、メールなどの通知手段を予め設定しておくことにより、強制モードにおけるポリシー違反の発生を報告することができます。</p>
-
-<p>通知のために cron デーモンを使うことができます。例えば、１時間に１回まで root@example.com 宛のメールで通知するには</p>
-
-<table border="1">
-<tr><td>
-00 * * * * root /usr/lib/ccs/ccs-notifyd 0 'mail root@example.com'
-</td></tr>
-</table>
-
-<p>という行を /etc/crontab に追加してください。</p>
-
-<hr>
-
-<h2>ステップ５：システムの再起動</h2>
+<h2>ステップ４：システムの再起動</h2>
 
 <p>システムを再起動して、起動時に TOMOYO Linux 対応カーネルを選択してください。</p>
 
