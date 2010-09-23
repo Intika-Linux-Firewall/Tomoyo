@@ -374,7 +374,7 @@ static void test_inet_tcp_listen(void)
 	errno = 0;
 	result = listen(fd, 5);
 	err = errno;
-	close(result);
+	close(fd);
 	errno = err;
 }
 
