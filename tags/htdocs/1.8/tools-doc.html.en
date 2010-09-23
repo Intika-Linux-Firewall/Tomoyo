@@ -115,10 +115,6 @@ Set new quota value for selected entries. (Valid only for screen for memory usag
 <p>The nonexistent pathnames are likely used as temporary pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/ccs/exception_policy.conf and /proc/ccs/exception_policy .</p>
 <p>You can pass the content of /etc/ccs/domain_policy.conf or /proc/ccs/domain_policy using redirection or pipes to the standard input of this program.</p>
 
-<h3><a name="ccs-ld-watch">&lt;Library Pathnames Updater "ccs-ld-watch"&gt;</a></h3>
-<p>Appends shared libraries to exception policy automatically using "file read" directive when the location of shared libraries in /etc/ld.so.cache has changed.</p>
-<p>By running this program while updating packages, you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
-
 <h3><a name="ccs-queryd">&lt;Delayed Enforcing Mode Handler "ccs-queryd"&gt;</a></h3>
 <p>Detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
 <p>By running this program while updating packages, you can avoid errors due to insufficient permissions.</p>
