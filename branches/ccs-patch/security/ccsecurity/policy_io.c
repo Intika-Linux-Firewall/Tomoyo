@@ -2174,23 +2174,6 @@ static void ccs_read_version(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_read_self_domain - Get the current process's domainname.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- */
-static void ccs_read_self_domain(struct ccs_io_buffer *head)
-{
-	if (head->r.eof)
-		return;
-	/*
-	 * ccs_current_domain()->domainname != NULL because every process
-	 * belongs to a domain and the domain's name cannot be NULL.
-	 */
-	ccs_io_printf(head, "%s", ccs_current_domain()->domainname->name);
-	head->r.eof = true;
-}
-
-/**
  * ccs_open_control - open() for /proc/ccs/ interface.
  *
  * @type: Type of interface.
@@ -2218,9 +2201,6 @@ int ccs_open_control(const u8 type, struct file *file)
 	case CCS_REJECTLOG: /* /proc/ccs/reject_log */
 		head->poll = ccs_poll_log;
 		head->read = ccs_read_log;
-		break;
-	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
-		head->read = ccs_read_self_domain;
 		break;
 	case CCS_DOMAIN_STATUS: /* /proc/ccs/.domain_status */
 		head->write = ccs_write_domain_profile;
@@ -2302,13 +2282,6 @@ int ccs_open_control(const u8 type, struct file *file)
 	else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG)
 		head->reader_idx = ccs_lock();
 	file->private_data = head;
-	/*
-	 * Call the handler now if the file is /proc/ccs/self_domain
-	 * so that the user can use "cat < /proc/ccs/self_domain" to
-	 * know the current process's domainname.
-	 */
-	if (type == CCS_SELFDOMAIN)
-		ccs_read_control(file, NULL, 0);
 	return 0;
 }
 
