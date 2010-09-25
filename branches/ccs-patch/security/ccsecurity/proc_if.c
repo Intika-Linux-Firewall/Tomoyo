@@ -89,13 +89,17 @@ static int ccs_read_self(struct file *file, char __user *buf, size_t count,
 			 loff_t *ppos)
 {
 	const char *domain = ccs_current_domain()->domainname->name;
-	const int len = strlen(domain) - *ppos;
-	const int pos = *ppos;
-	if (pos >= len)
+	loff_t len = strlen(domain);
+	loff_t pos = *ppos;
+	if (pos >= len || !count)
 		return 0;
-	if (copy_to_user(buf, domain + pos, len - pos))
+	len -= pos;
+	if (count < len)
+		len = count;
+	if (copy_to_user(buf, domain + pos, len))
 		return -EFAULT;
-	return len - pos;
+	*ppos += len;
+	return len;
 }
 
 /* Operations for /proc/ccs/self_domain interface. */
