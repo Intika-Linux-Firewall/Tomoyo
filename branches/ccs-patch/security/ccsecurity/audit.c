@@ -334,26 +334,6 @@ static void ccs_update_task_domain(struct ccs_request_info *r)
 	kfree(buf);
 }
 
-#ifndef CONFIG_CCSECURITY_AUDIT
-
-/**
- * ccs_write_log - Write audit log.
- *
- * @r:   Pointer to "struct ccs_request_info".
- * @fmt: The printf()'s format string, followed by parameters.
- */
-void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
-{
-	ccs_update_task_domain(r);
-}
-
-void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args)
-{
-	ccs_update_task_domain(r);
-}
-
-#else
-
 static wait_queue_head_t ccs_log_wait[2] = {
 	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_log_wait[0]),
 	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_log_wait[1]),
@@ -517,5 +497,3 @@ int ccs_poll_log(struct file *file, poll_table *wait)
 		return POLLIN | POLLRDNORM;
 	return 0;
 }
-
-#endif

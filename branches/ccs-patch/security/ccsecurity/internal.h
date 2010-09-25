@@ -934,10 +934,8 @@ struct ccs_io_buffer {
 };
 
 struct ccs_preference {
-#ifdef CONFIG_CCSECURITY_AUDIT
 	unsigned int audit_max_grant_log;
 	unsigned int audit_max_reject_log;
-#endif
 	unsigned int learning_max_entry;
 	unsigned int enforcing_penalty;
 	bool audit_task_info;

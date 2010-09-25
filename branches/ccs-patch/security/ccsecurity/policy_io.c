@@ -13,10 +13,8 @@
 #include "internal.h"
 
 struct ccs_preference ccs_preference = {
-#ifdef CONFIG_CCSECURITY_AUDIT
 	.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
 	.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
-#endif
 	.audit_task_info = true,
 	.audit_path_info = true,
 	.enforcing_penalty = 0,
@@ -417,12 +415,10 @@ static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
 static int ccs_set_pref(char *data)
 {
 	if (ccs_str_starts(&data, "audit")) {
-#ifdef CONFIG_CCSECURITY_AUDIT
 		ccs_set_uint(&ccs_preference.audit_max_grant_log, data,
 			     "max_grant_log");
 		ccs_set_uint(&ccs_preference.audit_max_reject_log, data,
 			     "max_reject_log");
-#endif
 		ccs_set_bool(&ccs_preference.audit_task_info, data,
 			     "task_info");
 		ccs_set_bool(&ccs_preference.audit_path_info, data,
@@ -480,7 +476,6 @@ static int ccs_set_mode(char *name, const char *value,
 				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
 				 */
 				config = (config & ~7) | mode;
-#ifdef CONFIG_CCSECURITY_AUDIT
 		if (config != CCS_CONFIG_USE_DEFAULT) {
 			switch (ccs_find_yesno(value, "grant_log")) {
 			case 1:
@@ -499,7 +494,6 @@ static int ccs_set_mode(char *name, const char *value,
 				break;
 			}
 		}
-#endif
 	}
 	if (i < CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX)
 		profile->config[i] = config;
@@ -548,14 +542,10 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 static void ccs_print_preference(struct ccs_io_buffer *head)
 {
 	ccs_io_printf(head, "PREFERENCE::%s={ "
-#ifdef CONFIG_CCSECURITY_AUDIT
 		      "max_grant_log=%u max_reject_log=%u "
-#endif
 		      "task_info=%s path_info=%s }\n", "audit",
-#ifdef CONFIG_CCSECURITY_AUDIT
 		      ccs_preference.audit_max_grant_log,
 		      ccs_preference.audit_max_reject_log,
-#endif
 		      ccs_yesno(ccs_preference.audit_task_info),
 		      ccs_yesno(ccs_preference.audit_path_info));
 	ccs_io_printf(head, "PREFERENCE::%s={ max_entry=%u }\n",
@@ -566,13 +556,10 @@ static void ccs_print_preference(struct ccs_io_buffer *head)
 
 static void ccs_print_config(struct ccs_io_buffer *head, const u8 config)
 {
-	ccs_io_printf(head, "={ mode=%s", ccs_mode[config & 3]);
-#ifdef CONFIG_CCSECURITY_AUDIT
-	ccs_io_printf(head, " grant_log=%s reject_log=%s",
+	ccs_io_printf(head, "={ mode=%s grant_log=%s reject_log=%s }\n",
+		      ccs_mode[config & 3],
 		      ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG),
 		      ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG));
-#endif
-	ccs_set_string(head, " }\n");
 }
 
 /**
@@ -2227,13 +2214,11 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = ccs_write_exception;
 		head->read = ccs_read_exception;
 		break;
-#ifdef CONFIG_CCSECURITY_AUDIT
 	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
 	case CCS_REJECTLOG: /* /proc/ccs/reject_log */
 		head->poll = ccs_poll_log;
 		head->read = ccs_read_log;
 		break;
-#endif
 	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
 		head->read = ccs_read_self_domain;
 		break;
