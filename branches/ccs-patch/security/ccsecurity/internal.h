@@ -344,7 +344,6 @@ enum ccs_policy_id {
 	CCS_ID_NUMBER_GROUP,
 	CCS_ID_AGGREGATOR,
 	CCS_ID_TRANSITION_CONTROL,
-	CCS_ID_PATTERN,
 	CCS_ID_MANAGER,
 	CCS_ID_IPV6_ADDRESS,
 	CCS_ID_CONDITION,
@@ -675,12 +674,6 @@ struct ccs_domain_info {
 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
 };
 
-/* Structure for "file_pattern" keyword. */
-struct ccs_pattern {
-	struct ccs_acl_head head;
-	const struct ccs_path_info *pattern;
-};
-
 /*
  * Structure for "initialize_domain"/"no_initialize_domain" and
  * "keep_domain"/"no_keep_domain" keyword.
@@ -949,12 +942,6 @@ struct ccs_preference {
 	unsigned int enforcing_penalty;
 	bool audit_task_info;
 	bool audit_path_info;
-	bool enforcing_verbose;
-	bool learning_verbose;
-	bool learning_exec_realpath;
-	bool learning_exec_argv0;
-	bool learning_symlink_target;
-	bool permissive_verbose;
 };
 
 struct ccs_profile {
@@ -1010,11 +997,10 @@ bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
-char *ccs_init_log(int *len, struct ccs_request_info *r);
+char *ccs_init_log(int *len, struct ccs_request_info *r, const char *fmt,
+		   va_list args);
 char *ccs_realpath_from_path(struct path *path);
-const char *ccs_file_pattern(const struct ccs_path_info *filename);
 const char *ccs_get_exe(void);
-const char *ccs_last_word(const char *name);
 const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
@@ -1033,7 +1019,7 @@ int ccs_poll_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer,
 		     const int buffer_len);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
+	__attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		      struct ccs_acl_param *param,
@@ -1053,13 +1039,10 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 int ccs_write_file(struct ccs_acl_param *param);
 int ccs_write_group(char *data, const bool is_delete, const u8 type);
 int ccs_write_ipc(struct ccs_acl_param *param);
-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_misc(struct ccs_acl_param *param);
 int ccs_write_inet_network(struct ccs_acl_param *param);
 int ccs_write_unix_network(struct ccs_acl_param *param);
-int ccs_write_pattern(char *data, const bool is_delete);
 int ccs_write_reserved_port(char *data, const bool is_delete);
 int ccs_write_transition_control(char *data, const bool is_delete,
 				 const u8 type);
@@ -1095,9 +1078,10 @@ void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_run_gc(void);
 void ccs_transition_failed(const char *domainname);
 void ccs_unlock(const int idx);
-void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
 void ccs_warn_oom(const char *function);
+void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+	__attribute__ ((format(printf, 2, 3)));
+void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,

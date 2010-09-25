@@ -26,13 +26,8 @@
  */
 static int ccs_audit_signal_log(struct ccs_request_info *r)
 {
-	const int sig = r->param.signal.sig;
-	const char *dest_domain = r->param.signal.dest_pattern;
-	ccs_write_log(r, "ipc signal %d %s\n", sig, dest_domain);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
-	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
+	return ccs_supervisor(r, "ipc signal %d %s\n", r->param.signal.sig,
+			      r->param.signal.dest_pattern);
 }
 
 static bool ccs_check_signal_acl(struct ccs_request_info *r,

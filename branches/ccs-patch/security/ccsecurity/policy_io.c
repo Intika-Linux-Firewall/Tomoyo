@@ -20,13 +20,7 @@ struct ccs_preference ccs_preference = {
 	.audit_task_info = true,
 	.audit_path_info = true,
 	.enforcing_penalty = 0,
-	.enforcing_verbose = true,
 	.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
-	.learning_verbose = false,
-	.learning_exec_realpath = true,
-	.learning_exec_argv0 = true,
-	.learning_symlink_target = true,
-	.permissive_verbose = true,
 };
 
 /* Profile version. Currently only 20100903 is defined. */
@@ -434,24 +428,11 @@ static int ccs_set_pref(char *data)
 		ccs_set_bool(&ccs_preference.audit_path_info, data,
 			     "path_info");
 	} else if (ccs_str_starts(&data, "enforcing")) {
-		ccs_set_bool(&ccs_preference.enforcing_verbose, data,
-			     "verbose");
 		ccs_set_uint(&ccs_preference.enforcing_penalty, data,
 			     "penalty");
-	} else if (ccs_str_starts(&data, "permissive")) {
-		ccs_set_bool(&ccs_preference.permissive_verbose, data,
-			     "verbose");
 	} else if (ccs_str_starts(&data, "learning")) {
-		ccs_set_bool(&ccs_preference.learning_verbose, data,
-			     "verbose");
 		ccs_set_uint(&ccs_preference.learning_max_entry, data,
 			     "max_entry");
-		ccs_set_bool(&ccs_preference.learning_exec_realpath, data,
-			     ccs_condition_keyword[CCS_EXEC_REALPATH]);
-		ccs_set_bool(&ccs_preference.learning_exec_argv0, data,
-			     "exec.argv0");
-		ccs_set_bool(&ccs_preference.learning_symlink_target, data,
-			     ccs_condition_keyword[CCS_SYMLINK_TARGET]);
 	} else
 		return -EINVAL;
 	return 0;
@@ -577,18 +558,10 @@ static void ccs_print_preference(struct ccs_io_buffer *head)
 #endif
 		      ccs_yesno(ccs_preference.audit_task_info),
 		      ccs_yesno(ccs_preference.audit_path_info));
-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s max_entry=%u "
-		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
-		      "learning", ccs_yesno(ccs_preference.learning_verbose),
-		      ccs_preference.learning_max_entry,
-		      ccs_yesno(ccs_preference.learning_exec_realpath),
-		      ccs_yesno(ccs_preference.learning_exec_argv0),
-		      ccs_yesno(ccs_preference.learning_symlink_target));
-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s }\n", "permissive",
-		      ccs_yesno(ccs_preference.permissive_verbose));
-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s penalty=%u }\n",
-		      "enforcing", ccs_yesno(ccs_preference.enforcing_verbose),
-		      ccs_preference.enforcing_penalty);
+	ccs_io_printf(head, "PREFERENCE::%s={ max_entry=%u }\n",
+		      "learning", ccs_preference.learning_max_entry);
+	ccs_io_printf(head, "PREFERENCE::%s={ penalty=%u }\n",
+		      "enforcing", ccs_preference.enforcing_penalty);
 }
 
 static void ccs_print_config(struct ccs_io_buffer *head, const u8 config)
@@ -1694,12 +1667,11 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 	static const struct {
 		const char *keyword;
 		int (*write) (char *, const bool);
-	} ccs_callback[3] = {
+	} ccs_callback[2] = {
 		{ "aggregator ",    ccs_write_aggregator },
-		{ "file_pattern ",  ccs_write_pattern },
 		{ "deny_autobind ", ccs_write_reserved_port },
 	};
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 2; i++)
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
 			return ccs_callback[i].write(data, is_delete);
 	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
@@ -1823,14 +1795,6 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 					       ptr->aggregated_name->name);
 			}
 			break;
-		case CCS_ID_PATTERN:
-			{
-				struct ccs_pattern *ptr =
-					container_of(acl, typeof(*ptr), head);
-				ccs_set_string(head, "file_pattern ");
-				ccs_set_string(head, ptr->pattern->name);
-			}
-			break;
 		case CCS_ID_RESERVEDPORT:
 			{
 				struct ccs_reserved *ptr =
@@ -1888,6 +1852,7 @@ static void ccs_read_exception(struct ccs_io_buffer *head)
 
 /* Wait queue for ccs_query_list. */
 static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
+static DECLARE_WAIT_QUEUE_HEAD(ccs_answer_wait);
 
 /* Lock for manipulating ccs_query_list. */
 static DEFINE_SPINLOCK(ccs_query_list_lock);
@@ -1900,6 +1865,7 @@ struct ccs_query {
 	unsigned int serial;
 	int timer;
 	int answer;
+	u8 retry;
 };
 
 /* The list for "struct ccs_query". */
@@ -1908,11 +1874,66 @@ static LIST_HEAD(ccs_query_list);
 /* Number of "struct file" referring /proc/ccs/query interface. */
 static atomic_t ccs_query_observers = ATOMIC_INIT(0);
 
-static void ccs_truncate(char *str)
+static int ccs_truncate(char *str)
 {
+	char *start = str;
 	while (* (unsigned char *) str > (unsigned char) ' ')
 		str++;
 	*str = '\0';
+	return strlen(start) + 1;
+}
+
+static void ccs_add_entry(char *header)
+{
+	char *buffer;
+	char *realpath = NULL;
+	char *argv0 = NULL;
+	char *symlink = NULL;
+	char *handler;
+	char *cp = strchr(header, '\n');
+	int len;
+	if (!cp)
+		return;
+	cp = strchr(cp + 1, '\n');
+	if (!cp)
+		return;
+	*cp++ = '\0';
+	len = strlen(cp) + 1;
+	/* strstr() will return NULL if ordering is wrong. */
+	if (*cp == 'f') {
+		argv0 = strstr(header, " argv[]={ \"");
+		if (argv0) {
+			argv0 += 10;
+			len += ccs_truncate(argv0) + 14;
+		}
+		realpath = strstr(header, " exec={ realpath=\"");
+		if (realpath) {
+			realpath += 8;
+			len += ccs_truncate(realpath) + 6;
+		}
+		symlink = strstr(header, " symlink.target=\"");
+		if (symlink)
+			len += ccs_truncate(symlink + 1) + 1;
+	}
+	handler = strstr(header, "type=execute_handler");
+	if (handler)
+		len += ccs_truncate(handler) + 6;
+	buffer = kmalloc(len, CCS_GFP_FLAGS);
+	if (!buffer)
+		return;
+	snprintf(buffer, len - 1, "%s", cp);
+	if (handler)
+		ccs_addprintf(buffer, len, " task.%s", handler);
+	if (realpath)
+		ccs_addprintf(buffer, len, " exec.%s", realpath);
+	if (argv0)
+		ccs_addprintf(buffer, len, " exec.argv[0]=%s", argv0);
+	if (symlink)
+		ccs_addprintf(buffer, len, "%s", symlink);
+	//printk(KERN_DEBUG "'%s'\n", buffer);
+	ccs_normalize_line(buffer);
+	ccs_write_domain2(buffer, ccs_current_domain(), false);
+	kfree(buffer);
 }
 
 /**
@@ -1929,138 +1950,80 @@ static void ccs_truncate(char *str)
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 {
 	va_list args;
-	int error = -EPERM;
-	int pos;
+	int error;
 	int len;
 	static unsigned int ccs_serial;
-	struct ccs_query *entry = NULL;
+	struct ccs_query entry = { };
 	bool quota_exceeded = false;
-	char *header;
-	struct ccs_domain_info * const domain = ccs_current_domain();
+	/* Write /proc/ccs/grant_log or /proc/ccs/reject_log . */
 	va_start(args, fmt);
-	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 80;
+	ccs_write_log2(r, fmt, args);
 	va_end(args);
-	if (r->mode == CCS_CONFIG_LEARNING) {
-		char *buffer;
-		char *realpath = NULL;
-		char *argv0 = NULL;
-		char *symlink = NULL;
-		char *handler = NULL;
-		if (!ccs_domain_quota_ok(r))
-			return 0;
-		header = ccs_init_log(&len, r);
-		if (!header)
-			return 0;
-		/* strstr() will return NULL if ordering is wrong. */
-		if (r->param_type == CCS_TYPE_PATH_ACL &&
-		    r->param.path.operation == CCS_TYPE_EXECUTE) {
-			if (ccs_preference.learning_exec_argv0) {
-				argv0 = strstr(header, " argv[]={ \"");
-				if (argv0) {
-					argv0 += 10;
-					ccs_truncate(argv0);
-				}
-			}
-			if (ccs_preference.learning_exec_realpath) {
-				realpath = strstr(header,
-						  " exec={ realpath=\"");
-				if (realpath) {
-					realpath += 8;
-					ccs_truncate(realpath);
-				}
-			}
-		} else if (r->param_type == CCS_TYPE_PATH_ACL &&
-			   r->param.path.operation == CCS_TYPE_SYMLINK &&
-			   ccs_preference.learning_symlink_target) {
-			symlink = strstr(header, " symlink.target=\"");
-			if (symlink)
-				ccs_truncate(symlink + 1);
-		}
-		handler = strstr(header, "type=execute_handler");
-		if (handler)
-			ccs_truncate(handler);
-		buffer = kmalloc(len, CCS_GFP_FLAGS);
-		if (buffer) {
-			va_start(args, fmt);
-			vsnprintf(buffer, len - 1, fmt, args);
-			va_end(args);
-			if (handler)
-				ccs_addprintf(buffer, len, " task.%s",
-					      handler);
-			if (realpath)
-				ccs_addprintf(buffer, len, " exec.%s",
-					      realpath);
-			if (argv0)
-				ccs_addprintf(buffer, len, " exec.argv[0]=%s",
-					      argv0);
-			if (symlink)
-				ccs_addprintf(buffer, len, "%s", symlink);
-			ccs_normalize_line(buffer);
-			ccs_write_domain2(buffer, domain, false);
-			kfree(buffer);
-		}
-		kfree(header);
+	/* Nothing more to do if granted. */
+	if (r->granted)
 		return 0;
-	}
-	if (r->mode != CCS_CONFIG_ENFORCING)
-		return 0;
-	if (!atomic_read(&ccs_query_observers)) {
+	switch (r->mode) {
 		int i;
+	case CCS_CONFIG_ENFORCING:
+		error = -EPERM;
+		if (atomic_read(&ccs_query_observers))
+			break;
 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
-			return -EPERM;
+			goto out;
+		/* Check PREFERENCE::enforcing sleep parameter. */
 		for (i = 0; i < ccs_preference.enforcing_penalty; i++) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(HZ / 10);
 		}
-		return -EPERM;
+		goto out;
+	case CCS_CONFIG_LEARNING:
+		error = 0;
+		/* Check PREFERENCE::learning max_entry parameter. */
+		if (ccs_domain_quota_ok(r))
+			break;
+		/* fall through */
+	default:
+		return 0;
 	}
-	header = ccs_init_log(&len, r);
-	if (!header)
+	/* Get message. */
+	va_start(args, fmt);
+	entry.query = ccs_init_log(&len, r, fmt, args);
+	va_end(args);
+	if (!entry.query)
 		goto out;
-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-	if (!entry)
+	entry.query_len = strlen(entry.query) + 1;
+	if (!error) {
+		ccs_add_entry(entry.query);
 		goto out;
-	len = ccs_round2(len);
-	entry->query = kzalloc(len, CCS_GFP_FLAGS);
-	if (!entry->query)
-		goto out;
+	}
 	spin_lock(&ccs_query_list_lock);
-	if (ccs_quota_for_query && ccs_query_memory_size + len +
-	    sizeof(*entry) >= ccs_quota_for_query) {
+	if (ccs_quota_for_query && ccs_query_memory_size + len
+	    >= ccs_quota_for_query) {
 		quota_exceeded = true;
 	} else {
-		ccs_query_memory_size += len + sizeof(*entry);
-		entry->serial = ccs_serial++;
+		entry.serial = ccs_serial++;
+		entry.retry = r->retry;
+		ccs_query_memory_size += len;
+		list_add_tail(&entry.list, &ccs_query_list);
 	}
 	spin_unlock(&ccs_query_list_lock);
 	if (quota_exceeded)
 		goto out;
-	pos = snprintf(entry->query, len - 1, "Q%u-%hu\n%s",
-		       entry->serial, r->retry, header);
-	kfree(header);
-	header = NULL;
-	va_start(args, fmt);
-	vsnprintf(entry->query + pos, len - 1 - pos, fmt, args);
-	entry->query_len = strlen(entry->query) + 1;
-	va_end(args);
-	spin_lock(&ccs_query_list_lock);
-	list_add_tail(&entry->list, &ccs_query_list);
-	spin_unlock(&ccs_query_list_lock);
 	/* Give 10 seconds for supervisor's opinion. */
-	for (entry->timer = 0;
-	     atomic_read(&ccs_query_observers) && entry->timer < 100;
-	     entry->timer++) {
-		wake_up(&ccs_query_wait);
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(HZ / 10);
-		if (entry->answer)
+	while (entry.timer < 10) {
+		wake_up_all(&ccs_query_wait);
+		if (wait_event_interruptible_timeout
+		    (ccs_answer_wait, entry.answer ||
+		     !atomic_read(&ccs_query_observers), HZ))
 			break;
+		else
+			entry.timer++;
 	}
 	spin_lock(&ccs_query_list_lock);
-	list_del(&entry->list);
-	ccs_query_memory_size -= len + sizeof(*entry);
+	list_del(&entry.list);
+	ccs_query_memory_size -= len;
 	spin_unlock(&ccs_query_list_lock);
-	switch (entry->answer) {
+	switch (entry.answer) {
 	case 3: /* Asked to retry by administrator. */
 		error = CCS_RETRY_REQUEST;
 		r->retry++;
@@ -2069,18 +2032,12 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		/* Granted by administrator. */
 		error = 0;
 		break;
-	case 0:
-		/* Timed out. */
-		break;
 	default:
-		/* Rejected by administrator. */
+		/* Timed out or rejected by administrator. */
 		break;
 	}
  out:
-	if (entry)
-		kfree(entry->query);
-	kfree(entry);
-	kfree(header);
+	kfree(entry.query);
 	return error;
 }
 
@@ -2151,7 +2108,7 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 		head->r.query_index = 0;
 		return;
 	}
-	buf = kzalloc(len, CCS_GFP_FLAGS);
+	buf = kzalloc(len + 32, CCS_GFP_FLAGS);
 	if (!buf)
 		return;
 	pos = 0;
@@ -2167,7 +2124,8 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 		 * can change, but I don't care.
 		 */
 		if (len == ptr->query_len)
-			memmove(buf, ptr->query, len);
+			snprintf(buf, len + 32, "Q%u-%hu\n%s", ptr->serial,
+				 ptr->retry, ptr->query);
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
@@ -2211,6 +2169,7 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
+	wake_up_all(&ccs_answer_wait);
 	return 0;
 }
 
@@ -2348,8 +2307,14 @@ int ccs_open_control(const u8 type, struct file *file)
 			return -ENOMEM;
 		}
 	}
-	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+	/*
+	 * If the file is /proc/ccs/query , increment the observer counter.
+	 * The obserber counter is used by ccs_supervisor() to see if
+	 * there is some process monitoring /proc/ccs/query.
+	 */
+	if (type == CCS_QUERY)
+		atomic_inc(&ccs_query_observers);
+	else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG)
 		head->reader_idx = ccs_lock();
 	file->private_data = head;
 	/*
@@ -2359,13 +2324,6 @@ int ccs_open_control(const u8 type, struct file *file)
 	 */
 	if (type == CCS_SELFDOMAIN)
 		ccs_read_control(file, NULL, 0);
-	/*
-	 * If the file is /proc/ccs/query , increment the observer counter.
-	 * The obserber counter is used by ccs_supervisor() to see if
-	 * there is some process monitoring /proc/ccs/query.
-	 */
-	else if (type == CCS_QUERY)
-		atomic_inc(&ccs_query_observers);
 	return 0;
 }
 
@@ -2503,10 +2461,10 @@ int ccs_close_control(struct file *file)
 	/*
 	 * If the file is /proc/ccs/query , decrement the observer counter.
 	 */
-	if (type == CCS_QUERY)
-		atomic_dec(&ccs_query_observers);
-	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+	if (type == CCS_QUERY) {
+		if (atomic_dec_and_test(&ccs_query_observers))
+			wake_up_all(&ccs_answer_wait);
+	} else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG)
 		ccs_unlock(head->reader_idx);
 	/* Release memory used for policy I/O. */
 	kfree(head->read_buf);

@@ -256,6 +256,21 @@ int ccs_write_transition_control(char *data, const bool is_delete,
 }
 
 /**
+ * ccs_last_word - Get last component of a domainname.
+ *
+ * @name: Domainname to check.
+ *
+ * Returns the last word of @name.
+ */
+static const char *ccs_last_word(const char *name)
+{
+	const char *cp = strrchr(name, ' ');
+	if (cp)
+		return cp + 1;
+	return name;
+}
+
+/**
  * ccs_transition_type - Get domain transition type.
  *
  * @domainname: The name of domain.
@@ -450,7 +465,8 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 			struct ccs_request_info r;
 			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
 			r.granted = false;
-			ccs_write_log(&r, "use_profile %u\n", r.profile);
+			ccs_write_log(&r, "use_profile %u\n", profile);
+			ccs_write_log(&r, "use_group %u\n", group);
 		}
 	}
 	return entry;

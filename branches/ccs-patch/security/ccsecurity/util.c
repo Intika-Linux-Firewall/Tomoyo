@@ -971,63 +971,6 @@ int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 }
 
 /**
- * ccs_last_word - Get last component of a domainname.
- *
- * @name: Domainname to check.
- *
- * Returns the last word of @name.
- */
-const char *ccs_last_word(const char *name)
-{
-	const char *cp = strrchr(name, ' ');
-	if (cp)
-		return cp + 1;
-	return name;
-}
-
-/**
- * ccs_warn_log - Print warning or error message on console.
- *
- * @r:   Pointer to "struct ccs_request_info".
- * @fmt: The printf()'s format string, followed by parameters.
- */
-void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
-{
-	va_list args;
-	char *buffer;
-	char *cp;
-	const struct ccs_domain_info * const domain = ccs_current_domain();
-	switch (r->mode) {
-        case CCS_CONFIG_ENFORCING:
-                if (!ccs_preference.enforcing_verbose)
-                        return;
-                break;
-        case CCS_CONFIG_PERMISSIVE:
-                if (!ccs_preference.permissive_verbose)
-                        return;
-                break;
-        case CCS_CONFIG_LEARNING:
-                if (!ccs_preference.learning_verbose)
-                        return;
-                break;
-        }
-	buffer = kmalloc(4096, CCS_GFP_FLAGS);
-	if (!buffer)
-		return;
-	va_start(args, fmt);
-	vsnprintf(buffer, 4095, fmt, args);
-	va_end(args);
-	buffer[4095] = '\0';
-	cp = strchr(buffer, '\n');
-	if (cp)
-		*cp = '\0';
-	printk(KERN_WARNING "%s: Access %s denied for %s\n",
-	       r->mode == CCS_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
-	       ccs_last_word(domain->domainname->name));
-	kfree(buffer);
-}
-
-/**
  * ccs_domain_quota_ok - Check for domain's quota.
  *
  * @r: Pointer to "struct ccs_request_info".

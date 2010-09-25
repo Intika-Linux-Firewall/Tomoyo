@@ -112,23 +112,6 @@ static void ccs_add_slash(struct ccs_path_info *buf)
 }
 
 /**
- * ccs_strendswith - Check whether the token ends with the given token.
- *
- * @name: The token to check.
- * @tail: The token to find.
- *
- * Returns true if @name ends with @tail, false otherwise.
- */
-static bool ccs_strendswith(const char *name, const char *tail)
-{
-	int len;
-	if (!name || !tail)
-		return false;
-	len = strlen(name) - strlen(tail);
-	return len >= 0 && !strcmp(name + len, tail);
-}
-
-/**
  * ccs_get_realpath - Get realpath.
  *
  * @buf:    Pointer to "struct ccs_path_info".
@@ -158,14 +141,9 @@ static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
  */
 static int ccs_audit_path_log(struct ccs_request_info *r)
 {
-	const char *operation = ccs_path_keyword[r->param.path.operation];
-	const struct ccs_path_info *filename = r->param.path.filename;
-	ccs_write_log(r, "file %s %s\n", operation, filename->name);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s\n", operation, filename->name);
-	return ccs_supervisor(r, "file %s %s\n", operation,
-			      ccs_file_pattern(filename));
+	return ccs_supervisor(r, "file %s %s\n", ccs_path_keyword
+			      [r->param.path.operation],
+			      r->param.path.filename->name);
 }
 
 /**
@@ -177,19 +155,10 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
  */
 static int ccs_audit_path2_log(struct ccs_request_info *r)
 {
-	const char *operation =
-		ccs_mac_keywords[ccs_pp2mac[r->param.path2.operation]];
-	const struct ccs_path_info *filename1 = r->param.path2.filename1;
-	const struct ccs_path_info *filename2 = r->param.path2.filename2;
-	ccs_write_log(r, "file %s %s %s\n", operation, filename1->name,
-		      filename2->name);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s %s\n", operation, filename1->name,
-		     filename2->name);
-	return ccs_supervisor(r, "file %s %s %s\n", operation,
-			      ccs_file_pattern(filename1),
-			      ccs_file_pattern(filename2));
+	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+			      [ccs_pp2mac[r->param.path2.operation]],
+			      r->param.path2.filename1->name,
+			      r->param.path2.filename2->name);
 }
 
 /**
@@ -201,20 +170,11 @@ static int ccs_audit_path2_log(struct ccs_request_info *r)
  */
 static int ccs_audit_mkdev_log(struct ccs_request_info *r)
 {
-	const char *operation =
-		ccs_mac_keywords[ccs_pnnn2mac[r->param.mkdev.operation]];
-	const struct ccs_path_info *filename = r->param.mkdev.filename;
-	const unsigned int major = r->param.mkdev.major;
-	const unsigned int minor = r->param.mkdev.minor;
-	const unsigned int mode = r->param.mkdev.mode;
-	ccs_write_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
-		      mode, major, minor);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
-		     mode, major, minor);
-	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", operation,
-			      ccs_file_pattern(filename), mode, major, minor);
+	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", ccs_mac_keywords
+			      [ccs_pnnn2mac[r->param.mkdev.operation]],
+			      r->param.mkdev.filename->name,
+			      r->param.mkdev.mode, r->param.mkdev.major,
+			      r->param.mkdev.minor);
 }
 
 /**
@@ -229,8 +189,6 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 {
 	const u8 type = r->param.path_number.operation;
 	u8 radix;
-	const struct ccs_path_info *filename = r->param.path_number.filename;
-	const char *operation = ccs_mac_keywords[ccs_pn2mac[type]];
 	char buffer[64];
 	switch (type) {
 	case CCS_TYPE_CREATE:
@@ -249,74 +207,9 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 	}
 	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
 			radix);
-	ccs_write_log(r, "file %s %s %s\n", operation, filename->name,
-		      buffer);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s %s\n", operation, filename->name, buffer);
-	return ccs_supervisor(r, "file %s %s %s\n", operation,
-			      ccs_file_pattern(filename), buffer);
-}
-
-/**
- * ccs_file_pattern - Get patterned pathname.
- *
- * @filename: Pointer to "struct ccs_path_info".
- *
- * Returns pointer to patterned pathname.
- *
- * Caller holds ccs_read_lock().
- */
-const char *ccs_file_pattern(const struct ccs_path_info *filename)
-{
-	struct ccs_pattern *ptr;
-	const struct ccs_path_info *pattern = NULL;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_PATTERN],
-				head.list) {
-		if (ptr->head.is_deleted)
-			continue;
-		if (!ccs_path_matches_pattern(filename, ptr->pattern))
-			continue;
-		pattern = ptr->pattern;
-		if (ccs_strendswith(pattern->name, "/\\*")) {
-			/* Do nothing. Try to find the better match. */
-		} else {
-			/* This would be the better match. Use this. */
-			break;
-		}
-	}
-	return pattern ? pattern->name : filename->name;
-}
-
-static bool ccs_same_pattern(const struct ccs_acl_head *a,
-			     const struct ccs_acl_head *b)
-{
-	return container_of(a, struct ccs_pattern, head)->pattern ==
-		container_of(b, struct ccs_pattern, head)->pattern;
-}
-
-/**
- * ccs_write_pattern - Write "struct ccs_pattern" list.
- *
- * @data:      String to parse.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_pattern(char *data, const bool is_delete)
-{
-	struct ccs_pattern e = { };
-	int error;
-	if (!ccs_correct_word(data))
-		return -EINVAL;
-	e.pattern = ccs_get_name(data);
-	if (!e.pattern)
-		return -ENOMEM;
-	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  &ccs_policy_list[CCS_ID_PATTERN],
-				  ccs_same_pattern);
-	ccs_put_name(e.pattern);
-	return error;
+	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+			      [ccs_pn2mac[type]],
+			      r->param.path_number.filename->name, buffer);
 }
 
 static bool ccs_check_path_acl(struct ccs_request_info *r,

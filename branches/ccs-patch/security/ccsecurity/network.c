@@ -59,18 +59,12 @@ const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
 };
 
 static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
-			     const u8 proto, const u8 ope, const char *address)
+			     const u8 protocol, const u8 operation,
+			     const char *address)
 {
-	const char *protocol = ccs_proto_keyword[proto];
-	const char *operation = ccs_socket_keyword[ope];
-	ccs_write_log(r, "network %s %s %s %s\n", family,
-		      protocol, operation, address);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "network %s %s %s %s\n", family, protocol, operation,
-		     address);
-	return ccs_supervisor(r, "network %s %s %s %s\n", family, protocol,
-			      operation, address);
+	return ccs_supervisor(r, "network %s %s %s %s\n", family,
+			      ccs_proto_keyword[protocol],
+			      ccs_socket_keyword[operation], address);
 }
 
 /**
