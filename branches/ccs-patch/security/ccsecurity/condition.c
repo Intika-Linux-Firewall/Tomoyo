@@ -648,22 +648,20 @@ struct ccs_condition *ccs_get_condition(char *condition)
 void ccs_get_attributes(struct ccs_obj_info *obj)
 {
 	u8 i;
-	struct vfsmount *mnt = NULL;
 	struct dentry *dentry = NULL;
 
 	for (i = 0; i < CCS_MAX_STAT; i++) {
 		struct inode *inode;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
-		struct kstat kstat;
-#endif
 		switch (i) {
 		case CCS_PATH1:
-			mnt = obj->path1.mnt;
 			dentry = obj->path1.dentry;
+			if (!dentry)
+				continue;
 			break;
 		case CCS_PATH2:
-			mnt = obj->path2.mnt;
 			dentry = obj->path2.dentry;
+			if (!dentry)
+				continue;
 			break;
 		default:
 			if (!dentry)
@@ -677,40 +675,21 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 #endif
 			break;
 		}
-		if (!mnt)
-			goto out;
 		inode = dentry->d_inode;
-		if (!inode)
-			goto out;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-		if (inode->i_op && inode->i_op->revalidate &&
-		    inode->i_op->revalidate(dentry)) {
-			/* Nothing to do. */
-		} else {
+		if (inode) {
 			struct ccs_mini_stat *stat = &obj->stat[i];
-			stat->uid = inode->i_uid;
-			stat->gid = inode->i_gid;
-			stat->ino = inode->i_ino;
+			stat->uid  = inode->i_uid;
+			stat->gid  = inode->i_gid;
+			stat->ino  = inode->i_ino;
 			stat->mode = inode->i_mode;
-			stat->dev = inode->i_dev;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+			stat->dev  = inode->i_dev;
+#else
+			stat->dev  = inode->i_sb->s_dev;
+#endif
 			stat->rdev = inode->i_rdev;
 			obj->stat_valid[i] = true;
 		}
-#else
-		if (!inode->i_op || vfs_getattr(mnt, dentry, &kstat)) {
-			/* Nothing to do. */
-		} else {
-			struct ccs_mini_stat *stat = &obj->stat[i];
-			stat->uid = kstat.uid;
-			stat->gid = kstat.gid;
-			stat->ino = kstat.ino;
-			stat->mode = kstat.mode;
-			stat->dev = kstat.dev;
-			stat->rdev = kstat.rdev;
-			obj->stat_valid[i] = true;
-		}
-#endif
-	out:
 		if (i & 1) /* i == CCS_PATH1_PARENT || i == CCS_PATH2_PARENT */
 			dput(dentry);
 	}

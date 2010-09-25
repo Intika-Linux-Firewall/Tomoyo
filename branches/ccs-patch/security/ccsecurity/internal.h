@@ -937,8 +937,6 @@ struct ccs_preference {
 	unsigned int audit_max_reject_log;
 	unsigned int learning_max_entry;
 	unsigned int enforcing_penalty;
-	bool audit_task_info;
-	bool audit_path_info;
 };
 
 struct ccs_profile {

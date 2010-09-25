@@ -15,10 +15,8 @@
 struct ccs_preference ccs_preference = {
 	.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
 	.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
-	.audit_task_info = true,
-	.audit_path_info = true,
-	.enforcing_penalty = 0,
 	.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
+	.enforcing_penalty = 0,
 };
 
 /* Profile version. Currently only 20100903 is defined. */
@@ -393,18 +391,6 @@ static s8 ccs_find_yesno(const char *string, const char *find)
 	return -1;
 }
 
-static void ccs_set_bool(bool *b, const char *string, const char *find)
-{
-	switch (ccs_find_yesno(string, find)) {
-	case 1:
-		*b = true;
-		break;
-	case 0:
-		*b = false;
-		break;
-	}
-}
-
 static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
 {
 	const char *cp = strstr(string, find);
@@ -419,10 +405,6 @@ static int ccs_set_pref(char *data)
 			     "max_grant_log");
 		ccs_set_uint(&ccs_preference.audit_max_reject_log, data,
 			     "max_reject_log");
-		ccs_set_bool(&ccs_preference.audit_task_info, data,
-			     "task_info");
-		ccs_set_bool(&ccs_preference.audit_path_info, data,
-			     "path_info");
 	} else if (ccs_str_starts(&data, "enforcing")) {
 		ccs_set_uint(&ccs_preference.enforcing_penalty, data,
 			     "penalty");
@@ -542,12 +524,9 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 static void ccs_print_preference(struct ccs_io_buffer *head)
 {
 	ccs_io_printf(head, "PREFERENCE::%s={ "
-		      "max_grant_log=%u max_reject_log=%u "
-		      "task_info=%s path_info=%s }\n", "audit",
+		      "max_grant_log=%u max_reject_log=%u }\n", "audit",
 		      ccs_preference.audit_max_grant_log,
-		      ccs_preference.audit_max_reject_log,
-		      ccs_yesno(ccs_preference.audit_task_info),
-		      ccs_yesno(ccs_preference.audit_path_info));
+		      ccs_preference.audit_max_reject_log);
 	ccs_io_printf(head, "PREFERENCE::%s={ max_entry=%u }\n",
 		      "learning", ccs_preference.learning_max_entry);
 	ccs_io_printf(head, "PREFERENCE::%s={ penalty=%u }\n",

@@ -116,7 +116,7 @@ static void ccs_add_slash(struct ccs_path_info *buf)
  *
  * @buf:    Pointer to "struct ccs_path_info".
  * @dentry: Pointer to "struct dentry".
- * @mnt:    Pointer to "struct vfsmount".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
  *
  * Returns true success, false otherwise.
  */
@@ -525,7 +525,7 @@ static void __ccs_clear_open_mode(void)
  * ccs_open_permission - Check permission for "read" and "write".
  *
  * @dentry: Pointer to "struct dentry".
- * @mnt:    Pointer to "struct vfsmount".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
  * @flag:   Flags for open().
  *
  * Returns 0 on success, negative value otherwise.
@@ -536,7 +536,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = mnt
+		.path1.mnt = mnt,
 	};
 	struct task_struct * const task = current;
 	const u32 ccs_flags = task->ccs_flags;
@@ -556,7 +556,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	if (task->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		return 0;
 #endif
-	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
 		return 0;
 	buf.name = NULL;
 	r.mode = CCS_CONFIG_DISABLED;
@@ -609,7 +609,7 @@ static int ccs_new_open_permission(struct file *filp)
  * @operation: Type of operation.
  * @dir:       Pointer to "struct inode". Maybe NULL.
  * @dentry:    Pointer to "struct dentry".
- * @mnt:       Pointer to "struct vfsmount".
+ * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
  * @target:    Symlink's target if @operation is CCS_TYPE_SYMLINK.
  *
  * Returns 0 on success, negative value otherwise.
@@ -621,15 +621,13 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = mnt
+		.path1.mnt = mnt,
 	};
 	int error = 0;
 	struct ccs_path_info buf;
 	bool is_enforce = false;
 	struct ccs_path_info symlink_target;
 	int idx;
-	if (!mnt)
-		return 0;
 	buf.name = NULL;
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
@@ -672,7 +670,7 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
  * @operation: Type of operation. (CCS_TYPE_MKCHAR or CCS_TYPE_MKBLOCK)
  * @dir:       Pointer to "struct inode".
  * @dentry:    Pointer to "struct dentry".
- * @mnt:       Pointer to "struct vfsmount".
+ * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
  * @mode:      Create mode.
  * @dev:       Device number.
  *
@@ -685,14 +683,12 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = mnt
+		.path1.mnt = mnt,
 	};
 	int error = 0;
 	struct ccs_path_info buf;
 	bool is_enforce = false;
 	int idx;
-	if (!mnt)
-		return 0;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, ccs_pnnn2mac[operation])
 	    == CCS_CONFIG_DISABLED)
@@ -732,10 +728,10 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
  * @operation: Type of operation.
  * @dir1:      Pointer to "struct inode". Maybe NULL.
  * @dentry1:   Pointer to "struct dentry".
- * @mnt1:      Pointer to "struct vfsmount".
+ * @mnt1:      Pointer to "struct vfsmount". Maybe NULL.
  * @dir2:      Pointer to "struct inode". Maybe NULL.
  * @dentry2:   Pointer to "struct dentry".
- * @mnt2:      Pointer to "struct vfsmount".
+ * @mnt2:      Pointer to "struct vfsmount". Maybe NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -753,11 +749,9 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 		.path1.dentry = dentry1,
 		.path1.mnt = mnt1,
 		.path2.dentry = dentry2,
-		.path2.mnt = mnt2
+		.path2.mnt = mnt2,
 	};
 	int idx;
-	if (!mnt1 || !mnt2)
-		return 0;
 	buf1.name = NULL;
 	buf2.name = NULL;
 	idx = ccs_read_lock();
@@ -860,7 +854,7 @@ static int ccs_update_path_number_acl(const u8 perm,
  * @type:   Type of operation.
  * @dir:    Pointer to "struct inode". Maybe NULL.
  * @dentry: Pointer to "struct dentry".
- * @vfsmnt: Pointer to "struct vfsmount".
+ * @vfsmnt: Pointer to "struct vfsmount". Maybe NULL.
  * @number: Number.
  *
  * Returns 0 on success, negative value otherwise.
@@ -872,12 +866,12 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = vfsmnt
+		.path1.mnt = vfsmnt,
 	};
 	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
-	if (!vfsmnt || !dentry)
+	if (!dentry)
 		return 0;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, ccs_pn2mac[type]) == CCS_CONFIG_DISABLED)
@@ -970,7 +964,8 @@ static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
 {
 	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
 		/* 00 means "write". */
-		return __ccs_open_permission(file->f_dentry, file->f_vfsmnt, 00);
+		return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
+					     00);
 	return 0;
 }
 #else
