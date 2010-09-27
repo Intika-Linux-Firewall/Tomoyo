@@ -57,6 +57,22 @@ struct in6_addr;
 	for ( ; pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
 #endif
 
+enum ccs_policy_stat_type {
+	/* Do not change this order. */
+	CCS_STAT_POLICY_UPDATES,
+	CCS_STAT_POLICY_LEARNING,   /* == CCS_CONFIG_LEARNING */
+	CCS_STAT_POLICY_PERMISSIVE, /* == CCS_CONFIG_PERMISSIVE */
+	CCS_STAT_POLICY_ENFORCING,  /* == CCS_CONFIG_ENFORCING */
+	CCS_MAX_POLICY_STAT
+};
+
+enum ccs_memory_stat_type {
+	CCS_MEMORY_POLICY,
+	CCS_MEMORY_AUDIT,
+	CCS_MEMORY_QUERY,
+	CCS_MAX_MEMORY_STAT,
+};
+
 enum ccs_transition_type {
 	/* Do not change this order, */
 	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
@@ -295,12 +311,12 @@ enum ccs_conditions_index {
 	CCS_ENVP_ENTRY
 };
 
-enum ccs_stat_index {
+enum ccs_path_stat_index {
 	CCS_PATH1,
 	CCS_PATH1_PARENT,
 	CCS_PATH2,
 	CCS_PATH2_PARENT,
-	CCS_MAX_STAT
+	CCS_MAX_PATH_STAT
 };
 
 #define CCS_HASH_BITS 8
@@ -486,10 +502,10 @@ struct ccs_page_dump {
 /* Structure for attribute checks in addition to pathname checks. */
 struct ccs_obj_info {
 	bool validate_done;
-	bool stat_valid[CCS_MAX_STAT];
+	bool stat_valid[CCS_MAX_PATH_STAT];
 	struct path path1;
 	struct path path2;
-	struct ccs_mini_stat stat[CCS_MAX_STAT];
+	struct ccs_mini_stat stat[CCS_MAX_PATH_STAT];
 	struct ccs_path_info *symlink_target;
 };
 
@@ -1073,6 +1089,7 @@ void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_run_gc(void);
 void ccs_transition_failed(const char *domainname);
 void ccs_unlock(const int idx);
+void ccs_update_stat(const u8 index);
 void ccs_warn_oom(const char *function);
 void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
@@ -1125,10 +1142,8 @@ extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
 extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
 extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
 extern struct ccs_preference ccs_preference;
-extern unsigned int ccs_log_memory_size;
-extern unsigned int ccs_quota_for_log;
-extern unsigned int ccs_query_memory_size;
-extern unsigned int ccs_quota_for_query;
+extern unsigned int ccs_memory_used[CCS_MAX_MEMORY_STAT];
+extern unsigned int ccs_memory_quota[CCS_MAX_MEMORY_STAT];
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 extern struct srcu_struct ccs_ss;
 #endif

@@ -184,7 +184,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		ccs_get_attributes(obj);
 		obj->validate_done = true;
 	}
-	for (i = 0; i < CCS_MAX_STAT; i++) {
+	for (i = 0; i < CCS_MAX_PATH_STAT; i++) {
 		struct ccs_mini_stat *stat;
 		unsigned int dev;
 		mode_t mode;
@@ -418,11 +418,12 @@ void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args)
 	 */
 	entry->size = len + ccs_round2(sizeof(*entry));
 	spin_lock(&ccs_log_lock);
-	if (ccs_quota_for_log && ccs_log_memory_size
-	    + entry->size >= ccs_quota_for_log) {
+	if (ccs_memory_quota[CCS_MEMORY_AUDIT] &&
+	    ccs_memory_used[CCS_MEMORY_AUDIT] + entry->size >=
+	    ccs_memory_quota[CCS_MEMORY_AUDIT]) {
 		quota_exceeded = true;
 	} else {
-		ccs_log_memory_size += entry->size;
+		ccs_memory_used[CCS_MEMORY_AUDIT] += entry->size;
 		list_add_tail(&entry->list, &ccs_log[is_granted]);
 		ccs_log_count[is_granted]++;
 	}
@@ -465,7 +466,7 @@ void ccs_read_log(struct ccs_io_buffer *head)
 		ptr = list_entry(ccs_log[is_granted].next, typeof(*ptr), list);
 		list_del(&ptr->list);
 		ccs_log_count[is_granted]--;
-		ccs_log_memory_size -= ptr->size;
+		ccs_memory_used[CCS_MEMORY_AUDIT] -= ptr->size;
 	}
 	spin_unlock(&ccs_log_lock);
 	if (ptr) {

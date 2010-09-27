@@ -467,6 +467,7 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 			r.granted = false;
 			ccs_write_log(&r, "use_profile %u\n", profile);
 			ccs_write_log(&r, "use_group %u\n", group);
+			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
 		}
 	}
 	return entry;

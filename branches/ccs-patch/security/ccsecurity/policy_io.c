@@ -197,6 +197,9 @@ static const char *ccs_yesno(const unsigned int value)
 }
 
 static void ccs_addprintf(char *buffer, int len, const char *fmt, ...)
+     __attribute__ ((format(printf, 3, 4)));
+
+static void ccs_addprintf(char *buffer, int len, const char *fmt, ...)
 {
 	va_list args;
 	const int pos = strlen(buffer);
@@ -1898,7 +1901,8 @@ static void ccs_add_entry(char *header)
 		ccs_addprintf(buffer, len, "%s", symlink);
 	//printk(KERN_DEBUG "'%s'\n", buffer);
 	ccs_normalize_line(buffer);
-	ccs_write_domain2(buffer, ccs_current_domain(), false);
+	if (!ccs_write_domain2(buffer, ccs_current_domain(), false))
+		ccs_update_stat(CCS_STAT_POLICY_UPDATES);
 	kfree(buffer);
 }
 
@@ -1928,6 +1932,8 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	/* Nothing more to do if granted. */
 	if (r->granted)
 		return 0;
+	if (r->mode)
+		ccs_update_stat(r->mode);
 	switch (r->mode) {
 		int i;
 	case CCS_CONFIG_ENFORCING:
@@ -1963,13 +1969,14 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		goto out;
 	}
 	spin_lock(&ccs_query_list_lock);
-	if (ccs_quota_for_query && ccs_query_memory_size + len
-	    >= ccs_quota_for_query) {
+	if (ccs_memory_quota[CCS_MEMORY_QUERY] &&
+	    ccs_memory_used[CCS_MEMORY_QUERY] + len
+	    >= ccs_memory_quota[CCS_MEMORY_QUERY]) {
 		quota_exceeded = true;
 	} else {
 		entry.serial = ccs_serial++;
 		entry.retry = r->retry;
-		ccs_query_memory_size += len;
+		ccs_memory_used[CCS_MEMORY_QUERY] += len;
 		list_add_tail(&entry.list, &ccs_query_list);
 	}
 	spin_unlock(&ccs_query_list_lock);
@@ -1987,7 +1994,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	}
 	spin_lock(&ccs_query_list_lock);
 	list_del(&entry.list);
-	ccs_query_memory_size -= len;
+	ccs_memory_used[CCS_MEMORY_QUERY] -= len;
 	spin_unlock(&ccs_query_list_lock);
 	switch (entry.answer) {
 	case 3: /* Asked to retry by administrator. */
@@ -2376,7 +2383,17 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		cp0[head->w.avail - 1] = '\0';
 		head->w.avail = 0;
 		ccs_normalize_line(cp0);
-		head->write(head);
+		if (head->write(head))
+			continue;
+		switch (head->type) {
+		case CCS_DOMAINPOLICY:
+		case CCS_EXCEPTIONPOLICY:
+		case CCS_DOMAIN_STATUS:
+		case CCS_MEMINFO:
+		case CCS_PROFILE:
+		case CCS_MANAGER:
+			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
+		}
 	}
 	ccs_read_unlock(idx);
 	mutex_unlock(&head->io_sem);

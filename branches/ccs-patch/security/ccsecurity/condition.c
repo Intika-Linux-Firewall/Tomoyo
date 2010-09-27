@@ -650,7 +650,7 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 	u8 i;
 	struct dentry *dentry = NULL;
 
-	for (i = 0; i < CCS_MAX_STAT; i++) {
+	for (i = 0; i < CCS_MAX_PATH_STAT; i++) {
 		struct inode *inode;
 		switch (i) {
 		case CCS_PATH1:
