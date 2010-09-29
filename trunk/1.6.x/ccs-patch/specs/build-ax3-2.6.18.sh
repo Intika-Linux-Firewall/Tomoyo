@@ -10,17 +10,22 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-194.3.AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-194.6.AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-194.3.AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-194.6.AXS3.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-194.3.AXS3.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-194.3.AXS3.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-194.6.AXS3.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-194.6.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20100923.tar.gz ]
 then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100923.tar.gz || die "Can't download patch."
+fi
+
+if [ ! -r ccs-patch-1.6.8-20100929.tar.gz ]
+then
+    wget -O ccs-patch-1.6.8-20100929.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?revision=4021&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,8 +37,8 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
  # %dist is defined in Asianux VPBS
--%define release 194.3%{?dist}
-+%define release 194.3%{?dist}_tomoyo_1.6.8p3
+-%define release 194.6%{?dist}
++%define release 194.6%{?dist}_tomoyo_1.6.8p3
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
@@ -56,18 +61,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -10368,6 +10371,10 @@
+@@ -10411,6 +10414,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.8-20100923.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.6.8-20100929.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -10435,6 +10442,9 @@
+@@ -10478,6 +10485,9 @@
  for i in `ls *86*.config *ia64*.config`
  do
    mv $i .config
