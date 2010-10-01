@@ -803,7 +803,7 @@ int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
 	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
 	if (index >= 0)
 		goto found;
-	if (!ccs_correct_domain(domainname)) {
+	if (!is_dis && !ccs_correct_domain(domainname)) {
 		fprintf(stderr, "Invalid domainname '%s'\n",
 			domainname);
 		return EOF;

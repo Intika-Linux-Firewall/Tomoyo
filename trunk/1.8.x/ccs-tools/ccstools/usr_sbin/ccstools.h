@@ -99,6 +99,7 @@ struct ccs_number_entry {
 
 struct ccs_domain_info {
 	const struct ccs_path_info *domainname;
+	const char *target_domainname; /* This may be NULL */
 	const struct ccs_transition_control_entry *d_t; /* This may be NULL */
 	const struct ccs_path_info **string_ptr;
 	int string_count;
