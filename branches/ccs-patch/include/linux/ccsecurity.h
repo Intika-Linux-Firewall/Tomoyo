@@ -168,12 +168,13 @@ static inline int ccs_pivot_root_permission(struct path *old_path,
 }
 
 static inline int ccs_mount_permission(char *dev_name, struct path *path,
-				       const char *type, unsigned long flags,
+				       char *type, unsigned long flags,
 				       void *data_page)
 {
 	int (*func) (char *, struct path *, const char *, unsigned long,
 		     void *) = ccsecurity_ops.mount_permission;
-	return func ? func(dev_name, path, type, flags, data_page) : 0;
+	return func ? func(dev_name, path, (const char *) type, flags,
+			   data_page) : 0;
 }
 
 #else
@@ -193,12 +194,13 @@ static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
 }
 
 static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
-				       const char *type, unsigned long flags,
+				       char *type, unsigned long flags,
 				       void *data_page)
 {
 	int (*func) (char *, struct nameidata *, const char *, unsigned long,
 		     void *) = ccsecurity_ops.mount_permission;
-	return func ? func(dev_name, nd, type, flags, data_page) : 0;
+	return func ? func(dev_name, nd, (const char *) type, flags,
+			   data_page) : 0;
 }
 #endif
 

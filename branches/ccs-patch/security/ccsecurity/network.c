@@ -543,7 +543,6 @@ static int ccs_unix_entry(const struct ccs_addr_info *address)
 			if (no_sleep)
 				task->ccs_flags |=
 					CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-		
 			do {
 				ccs_check_acl(&r, ccs_check_unix_acl);
 				error = ccs_audit_unix_log(&r);
