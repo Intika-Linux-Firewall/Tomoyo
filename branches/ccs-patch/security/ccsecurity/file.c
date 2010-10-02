@@ -538,8 +538,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		.path1.dentry = dentry,
 		.path1.mnt = mnt,
 	};
-	struct task_struct * const task = current;
-	const u32 ccs_flags = task->ccs_flags;
+	const u32 ccs_flags = current->ccs_flags;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
 #else
@@ -553,7 +552,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	struct ccs_path_info buf;
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
-	if (task->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
+	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		return 0;
 #endif
 	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
