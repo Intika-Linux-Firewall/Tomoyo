@@ -450,7 +450,7 @@ static int ccs_inet_entry(const struct ccs_addr_info *address)
 	int error = 0;
 	const u8 type = ccs_inet2mac[address->protocol][address->operation];
 	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
-		struct task_struct * const task = current;
+		struct ccs_security * const task = ccs_current_security();
 		const bool no_sleep = address->operation == CCS_NETWORK_ACCEPT
 			|| address->operation == CCS_NETWORK_RECV;
 		r.param_type = CCS_TYPE_INET_ACL;
@@ -529,7 +529,7 @@ static int ccs_unix_entry(const struct ccs_addr_info *address)
 					  address->unix0.addr_len
 					  - sizeof(sa_family_t));
 		if (buf) {
-			struct task_struct * const task = current;
+			struct ccs_security * const task = ccs_current_security();
 			const bool no_sleep =
 				address->operation == CCS_NETWORK_ACCEPT ||
 				address->operation == CCS_NETWORK_RECV;

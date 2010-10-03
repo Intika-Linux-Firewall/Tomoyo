@@ -1246,20 +1246,6 @@ static inline void ccs_tasklist_unlock(void)
 
 #endif
 
-static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
-{
-	struct ccs_domain_info *domain = task->ccs_domain_info;
-	return domain ? domain : &ccs_kernel_domain;
-}
-
-static inline struct ccs_domain_info *ccs_current_domain(void)
-{
-	struct task_struct *task = current;
-	if (!task->ccs_domain_info)
-		task->ccs_domain_info = &ccs_kernel_domain;
-	return task->ccs_domain_info;
-}
-
 static inline u8 ccs_get_mode(const u8 profile, const u8 index)
 {
 	return ccs_get_config(profile, index) & (CCS_CONFIG_MAX_MODE - 1);
@@ -1310,6 +1296,49 @@ static inline void ccs_put_name(const struct ccs_path_info *name)
 	if (name)
 		atomic_dec(&container_of(name, struct ccs_name, entry)->
 			   head.users);
+}
+
+#define ccs_security task_struct
+
+static inline struct ccs_security *ccs_find_task_security(struct task_struct *
+							  task)
+{
+	return task;
+}
+
+static inline void ccs_update_security_domain(struct ccs_domain_info **pdomain,
+					      struct ccs_domain_info *domain)
+{
+	*pdomain = domain;
+}
+
+static inline struct ccs_security *ccs_current_security(void)
+{
+	return ccs_find_task_security(current);
+}
+
+static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
+{
+	struct ccs_domain_info *domain = task->ccs_domain_info;
+	return domain ? domain : &ccs_kernel_domain;
+}
+
+static inline struct ccs_domain_info *ccs_current_domain(void)
+{
+	struct task_struct *task = current;
+	if (!task->ccs_domain_info)
+		task->ccs_domain_info = &ccs_kernel_domain;
+	return task->ccs_domain_info;
+}
+
+static inline u32 ccs_task_flags(struct task_struct *task)
+{
+	return ccs_find_task_security(task)->ccs_flags;
+}
+
+static inline u32 ccs_current_flags(void)
+{
+	return ccs_task_flags(current);
 }
 
 #endif

@@ -708,7 +708,7 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 bool ccs_condition(struct ccs_request_info *r,
 		   const struct ccs_condition *cond)
 {
-	const u32 ccs_flags = current->ccs_flags;
+	const u32 ccs_flags = ccs_current_flags();
 	u32 i;
 	unsigned long min_v[2] = { 0, 0 };
 	unsigned long max_v[2] = { 0, 0 };

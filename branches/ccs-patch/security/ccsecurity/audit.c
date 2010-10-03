@@ -153,7 +153,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 {
 	struct timeval tv;
 	struct ccs_obj_info *obj = r->obj;
-	const u32 ccs_flags = current->ccs_flags;
+	const u32 ccs_flags = ccs_current_flags();
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 	const pid_t gpid = (pid_t) ccsecurity_exports.sys_getpid();
 #else

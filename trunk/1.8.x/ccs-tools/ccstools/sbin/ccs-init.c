@@ -292,7 +292,7 @@ static void show_memory_usage(void)
 	putchar('\n');
 }
 
-int main(int argc, char *argv[])
+static int main2(int argc, char *argv[])
 {
 	struct stat buf;
 
@@ -439,4 +439,16 @@ int main(int argc, char *argv[])
 		umount("/proc");
 
 	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	int rc = main2(argc, argv);
+	if (getpid() != 1)
+		return rc;
+	argv[0] = "/sbin/init";
+	execv(argv[0], argv);
+	printf("FATAL: Failed to execute %s\n", argv[0]);
+	fflush(stdout);
+	return 1;
 }

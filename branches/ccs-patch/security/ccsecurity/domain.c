@@ -460,7 +460,7 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
  out:
 	ccs_put_name(e.domainname);
 	if (entry && transit) {
-		current->ccs_domain_info = entry;
+		ccs_update_security_domain(&ccs_current_security()->ccs_domain_info, entry);
 		if (created) {
 			struct ccs_request_info r;
 			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
@@ -489,7 +489,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	struct ccs_domain_info *domain = NULL;
 	struct ccs_domain_info * const old_domain = ccs_current_domain();
 	struct linux_binprm *bprm = ee->bprm;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	struct ccs_path_info rn = { }; /* real name */
 	int retval;
 	bool need_kfree = false;
@@ -812,7 +812,7 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 	int retval;
 	const int original_argc = bprm->argc;
 	const int original_envc = bprm->envc;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 
 	/* Close the requested program's dentry. */
 	ee->obj.path1.dentry = NULL;
@@ -986,7 +986,7 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 	 * To avoid infinite execute handler loop, don't use execute handler
 	 * if the current process is marked as execute handler .
 	 */
-	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
+	if (ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
 	r->param_type = type;
 	ccs_check_acl(r, NULL);
@@ -1065,7 +1065,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 			    struct ccs_execve **eep)
 {
 	int retval;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	struct ccs_execve *ee;
 	*eep = NULL;
 	ee = kzalloc(sizeof(*ee), CCS_GFP_FLAGS);
@@ -1078,7 +1078,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	}
 	ee->reader_idx = ccs_read_lock();
 	/* ee->dump->data is allocated by ccs_dump_page(). */
-	ee->previous_domain = task->ccs_domain_info;
+	ccs_update_security_domain(&ee->previous_domain, task->ccs_domain_info);
 	/* Clear manager flag. */
 	task->ccs_flags &= ~CCS_TASK_IS_MANAGER;
 	*eep = ee;
@@ -1115,7 +1115,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
  */
 static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 {
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	if (!ee)
 		return;
 	if (retval < 0) {

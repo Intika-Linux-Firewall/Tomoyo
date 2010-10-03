@@ -506,18 +506,18 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 static void __ccs_save_open_mode(int mode)
 {
 	if ((mode & 3) == 3)
-		current->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
+		ccs_current_security()->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
 	/* O_TRUNC passes MAY_WRITE to ccs_open_permission(). */
 	else if (!(mode & 3) && (mode & O_TRUNC))
-		current->ccs_flags |= CCS_OPEN_FOR_READ_TRUNCATE;
+		ccs_current_security()->ccs_flags |= CCS_OPEN_FOR_READ_TRUNCATE;
 #endif
 }
 
 static void __ccs_clear_open_mode(void)
 {
-	current->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
-				CCS_OPEN_FOR_READ_TRUNCATE);
+	ccs_current_security()->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
+					       CCS_OPEN_FOR_READ_TRUNCATE);
 }
 #endif
 
@@ -538,7 +538,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		.path1.dentry = dentry,
 		.path1.mnt = mnt,
 	};
-	const u32 ccs_flags = current->ccs_flags;
+	const u32 ccs_flags = ccs_current_flags();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
 #else
@@ -1154,7 +1154,7 @@ static int __ccs_link_permission(struct dentry *old_dentry,
 static int __ccs_open_exec_permission(struct dentry *dentry,
 				      struct vfsmount *mnt)
 {
-	return (current->ccs_flags & CCS_TASK_IS_IN_EXECVE) ?
+	return (ccs_current_flags() & CCS_TASK_IS_IN_EXECVE) ?
 		/* 01 means "read". */
 		__ccs_open_permission(dentry, mnt, 01) : 0;
 }

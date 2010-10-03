@@ -709,7 +709,7 @@ static bool ccs_manager(void)
 {
 	struct ccs_manager *ptr;
 	const char *exe;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	const struct ccs_path_info *domainname
 		= ccs_current_domain()->domainname;
 	bool found = false;
@@ -1591,7 +1591,7 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 #endif
 	if (p) {
 		domain = ccs_task_domain(p);
-		ccs_flags = p->ccs_flags;
+		ccs_flags = ccs_task_flags(p);
 	}
 	ccs_tasklist_unlock();
 	if (!domain)
@@ -1940,7 +1940,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		error = -EPERM;
 		if (atomic_read(&ccs_query_observers))
 			break;
-		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
+		if (ccs_current_flags() & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			goto out;
 		/* Check PREFERENCE::enforcing sleep parameter. */
 		for (i = 0; i < ccs_preference.enforcing_penalty; i++) {
@@ -2194,7 +2194,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		break;
 	case CCS_EXECUTE_HANDLER: /* /proc/ccs/.execute_handler */
 		/* Allow execute_handler to read process's status. */
-		if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)) {
+		if (!(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
 			kfree(head);
 			return -EPERM;
 		}
