@@ -1119,7 +1119,8 @@ static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 	if (!ee)
 		return;
 	if (retval < 0) {
-		task->ccs_domain_info = ee->previous_domain;
+		ccs_update_security_domain(&task->ccs_domain_info,
+					   ee->previous_domain);
 		/*
 		 * Make task->ccs_domain_info visible to GC before changing
 		 * task->ccs_flags .
@@ -1133,6 +1134,7 @@ static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 		else
 			task->ccs_flags &= ~CCS_TASK_IS_EXECUTE_HANDLER;
 	}
+	ccs_update_security_domain(&ee->previous_domain, NULL);
 	/* Tell GC that I finished execve(). */
 	task->ccs_flags &= ~CCS_TASK_IS_IN_EXECVE;
 	ccs_read_unlock(ee->reader_idx);
