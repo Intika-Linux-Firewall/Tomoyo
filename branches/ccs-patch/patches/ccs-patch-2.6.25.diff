@@ -9,7 +9,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    3 +++
  fs/exec.c                       |   12 +++++++++++-
- fs/fcntl.c                      |    4 ++++
+ fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    3 +++
  fs/namei.c                      |   34 +++++++++++++++++++++++++++++++++-
  fs/namespace.c                  |    9 +++++++++
@@ -38,7 +38,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 256 insertions(+), 11 deletions(-)
+ 36 files changed, 257 insertions(+), 11 deletions(-)
 
 --- linux-2.6.25.20.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20/arch/ia64/ia32/sys_ia32.c
@@ -206,16 +206,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  void set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -217,6 +218,9 @@ static int setfl(int fd, struct file * f
- 	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
- 		return -EPERM;
+@@ -397,6 +398,8 @@ asmlinkage long sys_fcntl(unsigned int f
+ 		goto out;
  
-+	if (((arg ^ filp->f_flags) & O_APPEND) && ccs_rewrite_permission(filp))
-+		return -EPERM;
-+
- 	/* O_NOATIME can only be set by the owner or superuser */
- 	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
- 		if (!is_owner_or_cap(inode))
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
+@@ -421,6 +424,8 @@ asmlinkage long sys_fcntl64(unsigned int
+ 		goto out;
+ 
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
 --- linux-2.6.25.20.orig/fs/ioctl.c
 +++ linux-2.6.25.20/fs/ioctl.c
 @@ -15,6 +15,7 @@

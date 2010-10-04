@@ -7,7 +7,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    3 +++
  fs/exec.c                       |   10 +++++++++-
- fs/fcntl.c                      |    4 ++++
+ fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    3 +++
  fs/namei.c                      |   36 ++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |    9 +++++++++
@@ -36,7 +36,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 248 insertions(+), 10 deletions(-)
+ 34 files changed, 249 insertions(+), 10 deletions(-)
 
 --- linux-2.6.27-hardened-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-hardened-r8/arch/ia64/ia32/sys_ia32.c
@@ -164,16 +164,24 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  void set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -156,6 +157,9 @@ static int setfl(int fd, struct file * f
- 	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
- 		return -EPERM;
+@@ -346,6 +347,8 @@ SYSCALL_DEFINE3(fcntl, unsigned int, fd,
+ 		goto out;
  
-+	if (((arg ^ filp->f_flags) & O_APPEND) && ccs_rewrite_permission(filp))
-+		return -EPERM;
-+
- 	/* O_NOATIME can only be set by the owner or superuser */
- 	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
- 		if (!is_owner_or_cap(inode))
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
+@@ -371,6 +374,8 @@ SYSCALL_DEFINE3(fcntl64, unsigned int, f
+ 		goto out;
+ 
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
 --- linux-2.6.27-hardened-r8.orig/fs/ioctl.c
 +++ linux-2.6.27-hardened-r8/fs/ioctl.c
 @@ -15,6 +15,7 @@
