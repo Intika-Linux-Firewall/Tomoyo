@@ -625,11 +625,6 @@ static inline int ccs_open_permission(struct file *filp)
 }
 #endif
 
-static inline int ccs_rewrite_permission(struct file *filp)
-{
-	return 0;
-}
-
 static inline int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 				       unsigned long arg)
 {
