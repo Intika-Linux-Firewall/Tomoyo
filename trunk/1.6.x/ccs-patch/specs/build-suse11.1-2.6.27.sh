@@ -69,7 +69,7 @@ rpm -ivh kernel-source-2.6.27.48-0.3.1.src.rpm || die "Can't install source pack
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20100923.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100923.tar.gz || die "Can't download patch."
+    wget -O ccs-patch-1.6.8-20100923.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100923.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."

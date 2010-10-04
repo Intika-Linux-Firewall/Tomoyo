@@ -77,7 +77,7 @@ rpm -ivh kernel-default-2.6.34.7-0.3.1.nosrc.rpm || die "Can't install source pa
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100923.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100923.tar.gz || die "Can't download patch."
+    wget -O ccs-patch-1.7.2-20100923.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100923.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
