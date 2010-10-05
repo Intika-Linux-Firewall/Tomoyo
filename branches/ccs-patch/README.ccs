@@ -2580,8 +2580,16 @@ Fix 2010/10/05
     @ Remove "file_pattern" keyword.
 
       I removed "file_pattern" keyword because it is impossible to predefine
-      all possible pathname patterns. Also, learning pathnames using imcomplete
+      all possible pathname patterns. Also, learning pathnames using incomplete
       patterns makes it difficult to later replace using "path_group" keyword.
+
+    @ Replace verbose= parameter with statistic interface.
+
+      Since it is noisy if a lot of policy violation messages are printed,
+      I removed printk(). To be able to check whether policy violation occurred
+      or not, I introduced /proc/ccs/stat interface which counts number of
+      policy violations occurred. You can firstly check /proc/ccs/stat and then
+      check /proc/ccs/reject_log .
 
     @ Remove global preference.
 
