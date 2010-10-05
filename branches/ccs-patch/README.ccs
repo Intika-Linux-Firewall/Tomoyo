@@ -2441,7 +2441,7 @@ Fix 2010/06/09
       permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
       NULL pointer dereference.
 
-Fix 2010/09/01
+Fix 2010/10/05
 
     @ Change directives.
 
@@ -2577,9 +2577,15 @@ Fix 2010/09/01
 
         file read /etc/shadow task.uid=0
 
-    @ Remove per-profile preference.
+    @ Remove "file_pattern" keyword.
 
-      I removed per profile preference in order to make code simpler.
+      I removed "file_pattern" keyword because it is impossible to predefine
+      all possible pathname patterns. Also, learning pathnames using imcomplete
+      patterns makes it difficult to later replace using "path_group" keyword.
+
+    @ Remove global preference.
+
+      I removed global preference in order to make code simpler.
 
     @ Allow controlling generation of access granted logs for per an entry
       basis.
