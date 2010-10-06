@@ -1279,7 +1279,7 @@ static inline pid_t ccs_sys_getppid(void)
 {
 	pid_t pid;
 	read_lock(&tasklist_lock);
-	pid = current = me->p_opptr->pid;
+	pid = current->p_opptr->pid;
 	read_unlock(&tasklist_lock);
 	return pid;
 }
