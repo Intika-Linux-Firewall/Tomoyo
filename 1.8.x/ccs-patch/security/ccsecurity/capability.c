@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,19 +29,13 @@ const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX] = {
  * ccs_audit_capability_log - Audit capability log.
  *
  * @r:     Pointer to "struct ccs_request_info".
- * @error: Error code.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_audit_capability_log(struct ccs_request_info *r)
 {
-	const char *operation =
-		ccs_mac_keywords[ccs_c2mac[r->param.capability.operation]];
-	ccs_write_log(r, "capability %s\n", operation);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "capability %s\n", operation);
-	return ccs_supervisor(r, "capability %s\n", operation);
+	return ccs_supervisor(r, "capability %s\n", ccs_mac_keywords
+			      [ccs_c2mac[r->param.capability.operation]]);
 }
 
 static bool ccs_check_capability_acl(struct ccs_request_info *r,
@@ -51,7 +45,7 @@ static bool ccs_check_capability_acl(struct ccs_request_info *r,
 		container_of(ptr, typeof(*acl), head);
 	return acl->operation == r->param.capability.operation;
 }
-			
+
 /**
  * ccs_capable - Check permission for capability.
  *

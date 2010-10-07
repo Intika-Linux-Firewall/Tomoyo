@@ -25,7 +25,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  arch/x86_64/kernel/ptrace.c  |    3 +++
  fs/Config.in                 |    3 +++
  fs/exec.c                    |   10 +++++++++-
- fs/fcntl.c                   |    3 +++
+ fs/fcntl.c                   |    5 +++++
  fs/ioctl.c                   |    6 ++++++
  fs/namei.c                   |   36 ++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   17 +++++++++++++++++
@@ -47,7 +47,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/udp.c               |   14 +++++++++++++-
  net/socket.c                 |   21 +++++++++++++++++++++
  net/unix/af_unix.c           |    9 +++++++++
- 45 files changed, 325 insertions(+), 11 deletions(-)
+ 45 files changed, 327 insertions(+), 11 deletions(-)
 
 --- linux-2.4.21-63.EL.orig/Makefile
 +++ linux-2.4.21-63.EL/Makefile
@@ -519,15 +519,24 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  extern int sock_fcntl (struct file *, unsigned int cmd, unsigned long arg);
  extern int fcntl_setlease(unsigned int fd, struct file *filp, long arg);
-@@ -212,6 +213,8 @@ static int setfl(int fd, struct file * f
- 	 */
- 	if (!(arg & O_APPEND) && IS_APPEND(inode))
- 		return -EPERM;
-+	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
-+		return -EPERM;
- 	if ((arg & O_DIRECT) && !(inode->i_mapping && 
- 				  inode->i_mapping->a_ops &&
- 				  (inode->i_mapping->a_ops->direct_IO ||
+@@ -350,6 +351,8 @@ asmlinkage long sys_fcntl(unsigned int f
+ 	if (!filp)
+ 		goto out;
+ 
++	err = ccs_fcntl_permission(filp, cmd, arg);
++	if (!err)
+ 	err = do_fcntl(fd, cmd, arg, filp);
+ 
+  	fput(filp);
+@@ -368,6 +371,8 @@ asmlinkage long sys_fcntl64(unsigned int
+ 	if (!filp)
+ 		goto out;
+ 
++	err = ccs_fcntl_permission(filp, cmd, arg);
++	if (!err)
+ 	switch (cmd) {
+ 		case F_GETLK64:
+ 			err = fcntl_getlk64(fd, (struct flock64 *) arg);
 --- linux-2.4.21-63.EL.orig/fs/ioctl.c
 +++ linux-2.4.21-63.EL/fs/ioctl.c
 @@ -10,6 +10,7 @@

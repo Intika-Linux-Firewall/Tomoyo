@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,12 +29,7 @@ static bool ccs_check_env_acl(struct ccs_request_info *r,
  */
 static int ccs_audit_env_log(struct ccs_request_info *r)
 {
-	const char *env = r->param.environ.name->name;
-	ccs_write_log(r, "misc env %s\n", env);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "environ %s", env);
-	return ccs_supervisor(r, "misc env %s\n", env);
+	return ccs_supervisor(r, "misc env %s\n", r->param.environ.name->name);
 }
 
 /**

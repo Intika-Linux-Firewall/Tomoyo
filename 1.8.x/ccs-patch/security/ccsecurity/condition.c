@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -182,7 +182,7 @@ static bool ccs_scan_bprm(struct ccs_execve *ee,
 		if (!result)
 			break;
 	}
- out:
+out:
 	if (result) {
 		int i;
 		/* Check not-yet-checked entries. */
@@ -320,7 +320,7 @@ static bool ccs_parse_argv(char *start, struct ccs_argv *argv)
 	argv->is_not = is_not;
 	argv->value = value;
 	return true;
- out:
+out:
 	return false;
 }
 
@@ -376,7 +376,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp *envp)
 	envp->is_not = is_not;
 	envp->value = value;
 	return true;
- out:
+out:
 	return false;
 }
 
@@ -419,8 +419,8 @@ static struct ccs_condition *ccs_commit_condition(struct ccs_condition *entry)
 		found = true;
 		goto out;
 	}
-	list_for_each_entry_rcu(ptr, &ccs_shared_list[CCS_CONDITION_LIST],
-				head.list) {
+	list_for_each_entry_srcu(ptr, &ccs_shared_list[CCS_CONDITION_LIST],
+				 head.list, &ccs_ss) {
 		if (!ccs_same_condition(ptr, entry))
 			continue;
 		/* Same entry found. Share this entry. */
@@ -439,7 +439,7 @@ static struct ccs_condition *ccs_commit_condition(struct ccs_condition *entry)
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
- out:
+out:
 	if (found) {
 		ccs_del_condition(&entry->head.list);
 		kfree(entry);
@@ -467,7 +467,7 @@ struct ccs_condition *ccs_get_condition(char *condition)
 	struct ccs_condition e = { };
 	bool dry_run = true;
 	char *end_of_string = condition + strlen(condition);
- rerun:
+rerun:
 	start = condition;
 	while (1) {
 		u8 left = -1;
@@ -590,7 +590,7 @@ struct ccs_condition *ccs_get_condition(char *condition)
 					goto out;
 			}
 		}
- store_value:
+store_value:
 		if (dry_run)
 			continue;
 		condp->left = left;
@@ -629,7 +629,7 @@ struct ccs_condition *ccs_get_condition(char *condition)
 			*start = ' ';
 	dry_run = false;
 	goto rerun;
- out:
+out:
 	dprintk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
 	if (entry) {
 		ccs_del_condition(&entry->head.list);
@@ -648,22 +648,20 @@ struct ccs_condition *ccs_get_condition(char *condition)
 void ccs_get_attributes(struct ccs_obj_info *obj)
 {
 	u8 i;
-	struct vfsmount *mnt = NULL;
 	struct dentry *dentry = NULL;
 
-	for (i = 0; i < CCS_MAX_STAT; i++) {
+	for (i = 0; i < CCS_MAX_PATH_STAT; i++) {
 		struct inode *inode;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
-		struct kstat kstat;
-#endif
 		switch (i) {
 		case CCS_PATH1:
-			mnt = obj->path1.mnt;
 			dentry = obj->path1.dentry;
+			if (!dentry)
+				continue;
 			break;
 		case CCS_PATH2:
-			mnt = obj->path2.mnt;
 			dentry = obj->path2.dentry;
+			if (!dentry)
+				continue;
 			break;
 		default:
 			if (!dentry)
@@ -677,40 +675,21 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 #endif
 			break;
 		}
-		if (!mnt)
-			goto out;
 		inode = dentry->d_inode;
-		if (!inode)
-			goto out;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-		if (inode->i_op && inode->i_op->revalidate &&
-		    inode->i_op->revalidate(dentry)) {
-			/* Nothing to do. */
-		} else {
+		if (inode) {
 			struct ccs_mini_stat *stat = &obj->stat[i];
-			stat->uid = inode->i_uid;
-			stat->gid = inode->i_gid;
-			stat->ino = inode->i_ino;
+			stat->uid  = inode->i_uid;
+			stat->gid  = inode->i_gid;
+			stat->ino  = inode->i_ino;
 			stat->mode = inode->i_mode;
-			stat->dev = inode->i_dev;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+			stat->dev  = inode->i_dev;
+#else
+			stat->dev  = inode->i_sb->s_dev;
+#endif
 			stat->rdev = inode->i_rdev;
 			obj->stat_valid[i] = true;
 		}
-#else
-		if (!inode->i_op || vfs_getattr(mnt, dentry, &kstat)) {
-			/* Nothing to do. */
-		} else {
-			struct ccs_mini_stat *stat = &obj->stat[i];
-			stat->uid = kstat.uid;
-			stat->gid = kstat.gid;
-			stat->ino = kstat.ino;
-			stat->mode = kstat.mode;
-			stat->dev = kstat.dev;
-			stat->rdev = kstat.rdev;
-			obj->stat_valid[i] = true;
-		}
-#endif
-	out:
 		if (i & 1) /* i == CCS_PATH1_PARENT || i == CCS_PATH2_PARENT */
 			dput(dentry);
 	}
@@ -729,8 +708,7 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 bool ccs_condition(struct ccs_request_info *r,
 		   const struct ccs_condition *cond)
 {
-	const struct task_struct *task = current;
-	const u32 ccs_flags = task->ccs_flags;
+	const u32 ccs_flags = ccs_current_flags();
 	u32 i;
 	unsigned long min_v[2] = { 0, 0 };
 	unsigned long max_v[2] = { 0, 0 };
@@ -823,10 +801,10 @@ bool ccs_condition(struct ccs_request_info *r,
 				value = current_fsgid();
 				break;
 			case CCS_TASK_PID:
-				value = ccsecurity_exports.sys_getpid();
+				value = ccs_sys_getpid();
 				break;
 			case CCS_TASK_PPID:
-				value = ccsecurity_exports.sys_getppid();
+				value = ccs_sys_getppid();
 				break;
 			case CCS_TYPE_IS_SOCKET:
 				value = S_IFSOCK;

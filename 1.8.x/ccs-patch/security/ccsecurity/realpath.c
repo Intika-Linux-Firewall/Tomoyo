@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -28,7 +28,7 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW;
 static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
 #include <net/sock.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
 #include <linux/kthread.h>
 #endif
 #include <linux/proc_fs.h>
@@ -109,12 +109,12 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 		goto out;
 	memmove(pos, dentry->d_name.name, len);
 	return pos;
- out:
+out:
 	return ERR_PTR(-ENOMEM);
 }
 
 /**
- * ccs_get_dentry_path - Get the path of a dentry but ignores chroot'ed root.
+ * ccs_get_dentry_path - Get the path of a dentry.
  *
  * @dentry: Pointer to "struct dentry".
  * @buffer: Pointer to buffer to return value in.
@@ -148,8 +148,102 @@ static char *ccs_get_dentry_path(struct dentry *dentry, char * const buffer,
 		dentry = parent;
 	}
 	return pos;
- out:
+out:
 	return ERR_PTR(-ENOMEM);
+}
+
+/**
+ * ccs_get_local_path - Get the path of a dentry.
+ *
+ * @path:   Pointer to "struct path".
+ * @buffer: Pointer to buffer to return value in.
+ * @buflen: Sizeof @buffer.
+ *
+ * Returns the buffer on success, an error code otherwise.
+ */
+static char *ccs_get_local_path(struct path *path, char * const buffer,
+				const int buflen)
+{
+	char *pos;
+	struct dentry *dentry = path->dentry;
+	struct super_block *sb = dentry->d_sb;
+	spin_lock(&dcache_lock);
+	pos = ccs_get_dentry_path(dentry, buffer, buflen);
+	spin_unlock(&dcache_lock);
+	if (IS_ERR(pos))
+		return pos;
+	/* Convert from $PID to self if $PID is current thread. */
+	if (sb->s_magic == PROC_SUPER_MAGIC && *pos == '/') {
+		char *ep;
+		const pid_t pid = (pid_t) simple_strtoul(pos + 1, &ep, 10);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		if (*ep == '/' && pid && pid ==
+		    task_tgid_nr_ns(current, sb->s_fs_info)) {
+			pos = ep - 5;
+			if (pos < buffer)
+				goto out;
+			memmove(pos, "/self", 5);
+		}
+#else
+		if (*ep == '/' && pid == ccs_sys_getpid()) {
+			pos = ep - 5;
+			if (pos < buffer)
+				goto out;
+			memmove(pos, "/self", 5);
+		}
+#endif
+	/* Prepend device name if vfsmount is not available. */
+	} else if (!path->mnt) {
+		char name[64] = { };
+		int name_len;
+		const dev_t dev = sb->s_dev;
+		snprintf(name, sizeof(name) - 1, "dev(%u,%u):", MAJOR(dev),
+			 MINOR(dev));
+		name_len = strlen(name);
+		pos -= name_len;
+		if (pos < buffer)
+			goto out;
+		memmove(pos, name, name_len);
+		return pos;
+	}
+	/* Prepend filesystem name. */
+	{
+		const char *name = sb->s_type->name;
+		const int name_len = strlen(name);
+		pos -= name_len + 1;
+		if (pos < buffer)
+			goto out;
+		memmove(pos, name, name_len);
+		pos[name_len] = ':';
+	}
+	return pos;
+out:
+	return ERR_PTR(-ENOMEM);
+}
+
+/**
+ * ccs_get_socket_name - Get the name of a socket.
+ *
+ * @path:   Pointer to "struct path".
+ * @buffer: Pointer to buffer to return value in.
+ * @buflen: Sizeof @buffer.
+ *
+ * Returns the buffer.
+ */
+static char *ccs_get_socket_name(struct path *path, char * const buffer,
+				 const int buflen)
+{
+	struct inode *inode = path->dentry->d_inode;
+	struct socket *sock = inode ? SOCKET_I(inode) : NULL;
+	struct sock *sk = sock ? sock->sk : NULL;
+	if (sk) {
+		snprintf(buffer, buflen, "socket:[family=%u:type=%u:"
+			 "protocol=%u]", sk->sk_family, sk->sk_type,
+			 sk->sk_protocol);
+	} else {
+		snprintf(buffer, buflen, "socket:[unknown]");
+	}
+	return buffer;
 }
 
 #define SOCKFS_MAGIC 0x534F434B
@@ -176,91 +270,40 @@ char *ccs_realpath_from_path(struct path *path)
 	sb = dentry->d_sb;
 	while (1) {
 		char *pos;
+		struct inode *inode;
 		buf_len <<= 1;
 		kfree(buf);
 		buf = kmalloc(buf_len, CCS_GFP_FLAGS);
 		if (!buf)
 			break;
+		/* To make sure that pos is '\0' terminated. */
+		buf[buf_len - 1] = '\0';
 		/* Get better name for socket. */
 		if (sb->s_magic == SOCKFS_MAGIC) {
-			struct inode *inode = dentry->d_inode;
-			struct socket *sock = inode ? SOCKET_I(inode) : NULL;
-			struct sock *sk = sock ? sock->sk : NULL;
-			if (sk) {
-				snprintf(buf, buf_len - 1, "socket:[family=%u:"
-					 "type=%u:protocol=%u]", sk->sk_family,
-					 sk->sk_type, sk->sk_protocol);
-			} else {
-				snprintf(buf, buf_len - 1, "socket:[unknown]");
-			}
-			name = ccs_encode(buf);
-			break;
+			pos = ccs_get_socket_name(path, buf, buf_len - 1);
+			goto encode;
 		}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
-		/* For "socket:[\$]" and "pipe:[\$]". */
+		/* For "pipe:[\$]". */
 		if (dentry->d_op && dentry->d_op->d_dname) {
 			pos = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
-			if (IS_ERR(pos))
-				continue;
-			name = ccs_encode(pos);
-			break;
+			goto encode;
 		}
 #endif
+		inode = sb->s_root->d_inode;
 		/*
-		 * Get local name for filesystems without rename() operation.
+		 * Get local name for filesystems without rename() operation
+		 * or dentry without vfsmount.
 		 */
-		if (sb->s_root->d_inode && sb->s_root->d_inode->i_op &&
-		    !sb->s_root->d_inode->i_op->rename) {
-			spin_lock(&dcache_lock);
-			pos = ccs_get_dentry_path(dentry, buf, buf_len - 1);
-			spin_unlock(&dcache_lock);
-			if (IS_ERR(pos))
-				continue;
-			/*
-			 * Convert from $PID to self if $PID is current thread.
-			 */
-			if (sb->s_magic == PROC_SUPER_MAGIC && *pos == '/') {
-				char *ep;
-				const pid_t pid = (pid_t)
-					simple_strtoul(pos + 1, &ep, 10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-				if (*ep == '/' && pid && pid ==
-				    task_tgid_nr_ns(current, sb->s_fs_info)) {
-					pos = ep - 5;
-					if (pos < buf)
-						continue;
-					memmove(pos, "/self", 5);
-				}
-#else
-				if (*ep == '/' &&
-				    pid == ccsecurity_exports.sys_getpid()) {
-					pos = ep - 5;
-					if (pos < buf)
-						continue;
-					memmove(pos, "/self", 5);
-				}
-#endif
-			}
-			/* Prepend filesystem name. */
-			{
-				const char *name = sb->s_type->name;
-				const int name_len = strlen(name);
-				pos -= name_len + 1;
-				if (pos < buf)
-					continue;
-				memmove(pos, name, name_len);
-				pos[name_len] = ':';
-			}
-			name = ccs_encode(pos);
-			break;
+		if (!path->mnt || (inode->i_op && !inode->i_op->rename)) {
+			pos = ccs_get_local_path(path, buf, buf_len - 1);
+			goto encode;
 		}
-		if (!path->mnt)
-			break;
-		path_get(path);
+		/* Get absolute name for the rest. */
 		ccs_realpath_lock();
 		pos = ccs_get_absolute_path(path, buf, buf_len - 1);
 		ccs_realpath_unlock();
-		path_put(path);
+encode:
 		if (IS_ERR(pos))
 			continue;
 		name = ccs_encode(pos);

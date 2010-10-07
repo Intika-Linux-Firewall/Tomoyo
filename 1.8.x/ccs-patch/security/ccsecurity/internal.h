@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -45,17 +45,33 @@ struct in6_addr;
  * @pos:        the &struct list_head to use as a loop cursor.
  * @head:       the head for your list.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
-#define list_for_each_cookie(pos, head)			\
-	if (!pos)					\
-		pos = rcu_dereference((head)->next);	\
-	for ( ; pos != (head); pos = rcu_dereference(pos->next))
-#else
-#define list_for_each_cookie(pos, head)				\
-	if (!pos)						\
-		pos = srcu_dereference((head)->next, &ccs_ss);	\
-	for ( ; pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
-#endif
+#define list_for_each_cookie(pos, head)				     \
+	for (pos || (pos = srcu_dereference((head)->next, &ccs_ss)); \
+	pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
+
+enum ccs_policy_stat_type {
+	/* Do not change this order. */
+	CCS_STAT_POLICY_UPDATES,
+	CCS_STAT_POLICY_LEARNING,   /* == CCS_CONFIG_LEARNING */
+	CCS_STAT_POLICY_PERMISSIVE, /* == CCS_CONFIG_PERMISSIVE */
+	CCS_STAT_POLICY_ENFORCING,  /* == CCS_CONFIG_ENFORCING */
+	CCS_MAX_POLICY_STAT
+};
+
+enum ccs_pref_index {
+	CCS_PREF_MAX_GRANT_LOG,
+	CCS_PREF_MAX_REJECT_LOG,
+	CCS_PREF_MAX_LEARNING_ENTRY,
+	CCS_PREF_ENFORCING_PENALTY,
+	CCS_MAX_PREF,
+};
+
+enum ccs_memory_stat_type {
+	CCS_MEMORY_POLICY,
+	CCS_MEMORY_AUDIT,
+	CCS_MEMORY_QUERY,
+	CCS_MAX_MEMORY_STAT,
+};
 
 enum ccs_transition_type {
 	/* Do not change this order, */
@@ -95,7 +111,6 @@ enum ccs_path_acl_index {
 	CCS_TYPE_SYMLINK,
 	CCS_TYPE_CHROOT,
 	CCS_TYPE_UMOUNT,
-	//CCS_TYPE_TRANSIT,
 	CCS_MAX_PATH_OPERATION
 };
 
@@ -149,7 +164,6 @@ enum ccs_proc_interface_index {
 	CCS_MEMINFO,
 	CCS_GRANTLOG,
 	CCS_REJECTLOG,
-	CCS_SELFDOMAIN,
 	CCS_VERSION,
 	CCS_PROFILE,
 	CCS_QUERY,
@@ -180,7 +194,6 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_MOUNT,
 	CCS_MAC_FILE_UMOUNT,
 	CCS_MAC_FILE_PIVOT_ROOT,
-	//CCS_MAC_FILE_TRANSIT,
 	CCS_MAC_NETWORK_INET_STREAM_BIND,
 	CCS_MAC_NETWORK_INET_STREAM_LISTEN,
 	CCS_MAC_NETWORK_INET_STREAM_CONNECT,
@@ -296,12 +309,12 @@ enum ccs_conditions_index {
 	CCS_ENVP_ENTRY
 };
 
-enum ccs_stat_index {
+enum ccs_path_stat_index {
 	CCS_PATH1,
 	CCS_PATH1_PARENT,
 	CCS_PATH2,
 	CCS_PATH2_PARENT,
-	CCS_MAX_STAT
+	CCS_MAX_PATH_STAT
 };
 
 #define CCS_HASH_BITS 8
@@ -344,7 +357,6 @@ enum ccs_policy_id {
 	CCS_ID_NUMBER_GROUP,
 	CCS_ID_AGGREGATOR,
 	CCS_ID_TRANSITION_CONTROL,
-	CCS_ID_PATTERN,
 	CCS_ID_MANAGER,
 	CCS_ID_IPV6_ADDRESS,
 	CCS_ID_CONDITION,
@@ -488,10 +500,10 @@ struct ccs_page_dump {
 /* Structure for attribute checks in addition to pathname checks. */
 struct ccs_obj_info {
 	bool validate_done;
-	bool stat_valid[CCS_MAX_STAT];
+	bool stat_valid[CCS_MAX_PATH_STAT];
 	struct path path1;
 	struct path path2;
-	struct ccs_mini_stat stat[CCS_MAX_STAT];
+	struct ccs_mini_stat stat[CCS_MAX_PATH_STAT];
 	struct ccs_path_info *symlink_target;
 };
 
@@ -631,7 +643,7 @@ struct ccs_request_info {
 	u8 mode;
 	/*
 	 * For holding operation index used for this request.
-	 * Used by ccs_init_request_info() / ccs_get_mode() / 
+	 * Used by ccs_init_request_info() / ccs_get_mode() /
 	 * ccs_write_log(). One of values in "enum ccs_mac_index".
 	 */
 	u8 type;
@@ -673,12 +685,6 @@ struct ccs_domain_info {
 	u8 group;
 	bool is_deleted;   /* Delete flag.           */
 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
-};
-
-/* Structure for "file_pattern" keyword. */
-struct ccs_pattern {
-	struct ccs_acl_head head;
-	const struct ccs_path_info *pattern;
 };
 
 /*
@@ -940,27 +946,11 @@ struct ccs_io_buffer {
 	u8 type;
 };
 
-struct ccs_preference {
-#ifdef CONFIG_CCSECURITY_AUDIT
-	unsigned int audit_max_grant_log;
-	unsigned int audit_max_reject_log;
-#endif
-	unsigned int learning_max_entry;
-	unsigned int enforcing_penalty;
-	bool audit_task_info;
-	bool audit_path_info;
-	bool enforcing_verbose;
-	bool learning_verbose;
-	bool learning_exec_realpath;
-	bool learning_exec_argv0;
-	bool learning_symlink_target;
-	bool permissive_verbose;
-};
-
 struct ccs_profile {
 	const struct ccs_path_info *comment;
 	u8 default_config;
 	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX];
+	unsigned int pref[CCS_MAX_PREF];
 };
 
 /* Prototype definition for "struct ccsecurity_operations". */
@@ -1010,11 +1000,10 @@ bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
-char *ccs_init_log(int *len, struct ccs_request_info *r);
+char *ccs_init_log(int *len, struct ccs_request_info *r, const char *fmt,
+		   va_list args);
 char *ccs_realpath_from_path(struct path *path);
-const char *ccs_file_pattern(const struct ccs_path_info *filename);
 const char *ccs_get_exe(void);
-const char *ccs_last_word(const char *name);
 const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
@@ -1033,7 +1022,7 @@ int ccs_poll_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer,
 		     const int buffer_len);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
+	__attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		      struct ccs_acl_param *param,
@@ -1053,13 +1042,10 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 int ccs_write_file(struct ccs_acl_param *param);
 int ccs_write_group(char *data, const bool is_delete, const u8 type);
 int ccs_write_ipc(struct ccs_acl_param *param);
-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_misc(struct ccs_acl_param *param);
 int ccs_write_inet_network(struct ccs_acl_param *param);
 int ccs_write_unix_network(struct ccs_acl_param *param);
-int ccs_write_pattern(char *data, const bool is_delete);
 int ccs_write_reserved_port(char *data, const bool is_delete);
 int ccs_write_transition_control(char *data, const bool is_delete,
 				 const u8 type);
@@ -1095,9 +1081,11 @@ void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_run_gc(void);
 void ccs_transition_failed(const char *domainname);
 void ccs_unlock(const int idx);
-void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
+void ccs_update_stat(const u8 index);
 void ccs_warn_oom(const char *function);
+void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+	__attribute__ ((format(printf, 2, 3)));
+void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -1145,11 +1133,8 @@ extern const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX];
 extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
 extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
 extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
-extern struct ccs_preference ccs_preference;
-extern unsigned int ccs_log_memory_size;
-extern unsigned int ccs_quota_for_log;
-extern unsigned int ccs_query_memory_size;
-extern unsigned int ccs_quota_for_query;
+extern unsigned int ccs_memory_used[CCS_MAX_MEMORY_STAT];
+extern unsigned int ccs_memory_quota[CCS_MAX_MEMORY_STAT];
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 extern struct srcu_struct ccs_ss;
 #endif
@@ -1252,19 +1237,59 @@ static inline void ccs_tasklist_unlock(void)
 
 #endif
 
-static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+static inline pid_t ccs_sys_getppid(void)
 {
-	struct ccs_domain_info *domain = task->ccs_domain_info;
-	return domain ? domain : &ccs_kernel_domain;
+	pid_t pid;
+	rcu_read_lock();
+	pid = task_tgid_vnr(current->real_parent);
+	rcu_read_unlock();
+	return pid;
 }
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+static inline pid_t ccs_sys_getppid(void)
+{
+	pid_t pid;
+	rcu_read_lock();
+#if (defined(RHEL_MAJOR) && RHEL_MAJOR == 5) || (defined(AX_MAJOR) && AX_MAJOR == 3)
+	pid = rcu_dereference(current->parent)->tgid;
+#else
+	pid = rcu_dereference(current->real_parent)->tgid;
+#endif
+	rcu_read_unlock();
+	return pid;
+}
+#elif defined(TASK_DEAD)
+static inline pid_t ccs_sys_getppid(void)
+{
+	pid_t pid;
+	read_lock(&tasklist_lock);
+	pid = current->group_leader->real_parent->tgid;
+	read_unlock(&tasklist_lock);
+	return pid;
+}
+#else
+static inline pid_t ccs_sys_getppid(void)
+{
+	pid_t pid;
+	read_lock(&tasklist_lock);
+	pid = current->p_opptr->pid;
+	read_unlock(&tasklist_lock);
+	return pid;
+}
+#endif
 
-static inline struct ccs_domain_info *ccs_current_domain(void)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+static inline pid_t ccs_sys_getpid(void)
 {
-	struct task_struct *task = current;
-	if (!task->ccs_domain_info)
-		task->ccs_domain_info = &ccs_kernel_domain;
-	return task->ccs_domain_info;
+	return task_tgid_vnr(current);
 }
+#else
+static inline pid_t ccs_sys_getpid(void)
+{
+	return current->tgid;
+}
+#endif
 
 static inline u8 ccs_get_mode(const u8 profile, const u8 index)
 {
@@ -1316,6 +1341,43 @@ static inline void ccs_put_name(const struct ccs_path_info *name)
 	if (name)
 		atomic_dec(&container_of(name, struct ccs_name, entry)->
 			   head.users);
+}
+
+#define ccs_security task_struct
+
+static inline struct ccs_security *ccs_find_task_security(struct task_struct *
+							  task)
+{
+	return task;
+}
+
+static inline struct ccs_security *ccs_current_security(void)
+{
+	return ccs_find_task_security(current);
+}
+
+static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
+{
+	struct ccs_domain_info *domain = task->ccs_domain_info;
+	return domain ? domain : &ccs_kernel_domain;
+}
+
+static inline struct ccs_domain_info *ccs_current_domain(void)
+{
+	struct task_struct *task = current;
+	if (!task->ccs_domain_info)
+		task->ccs_domain_info = &ccs_kernel_domain;
+	return task->ccs_domain_info;
+}
+
+static inline u32 ccs_task_flags(struct task_struct *task)
+{
+	return ccs_find_task_security(task)->ccs_flags;
+}
+
+static inline u32 ccs_current_flags(void)
+{
+	return ccs_find_task_security(current)->ccs_flags;
 }
 
 #endif

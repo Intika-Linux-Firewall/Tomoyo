@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -112,28 +112,11 @@ static void ccs_add_slash(struct ccs_path_info *buf)
 }
 
 /**
- * ccs_strendswith - Check whether the token ends with the given token.
- *
- * @name: The token to check.
- * @tail: The token to find.
- *
- * Returns true if @name ends with @tail, false otherwise.
- */
-static bool ccs_strendswith(const char *name, const char *tail)
-{
-	int len;
-	if (!name || !tail)
-		return false;
-	len = strlen(name) - strlen(tail);
-	return len >= 0 && !strcmp(name + len, tail);
-}
-
-/**
  * ccs_get_realpath - Get realpath.
  *
  * @buf:    Pointer to "struct ccs_path_info".
  * @dentry: Pointer to "struct dentry".
- * @mnt:    Pointer to "struct vfsmount".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
  *
  * Returns true success, false otherwise.
  */
@@ -158,14 +141,9 @@ static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
  */
 static int ccs_audit_path_log(struct ccs_request_info *r)
 {
-	const char *operation = ccs_path_keyword[r->param.path.operation];
-	const struct ccs_path_info *filename = r->param.path.filename;
-	ccs_write_log(r, "file %s %s\n", operation, filename->name);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s\n", operation, filename->name);
-	return ccs_supervisor(r, "file %s %s\n", operation,
-			      ccs_file_pattern(filename));
+	return ccs_supervisor(r, "file %s %s\n", ccs_path_keyword
+			      [r->param.path.operation],
+			      r->param.path.filename->name);
 }
 
 /**
@@ -177,19 +155,10 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
  */
 static int ccs_audit_path2_log(struct ccs_request_info *r)
 {
-	const char *operation =
-		ccs_mac_keywords[ccs_pp2mac[r->param.path2.operation]];
-	const struct ccs_path_info *filename1 = r->param.path2.filename1;
-	const struct ccs_path_info *filename2 = r->param.path2.filename2;
-	ccs_write_log(r, "file %s %s %s\n", operation, filename1->name,
-		      filename2->name);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s %s\n", operation, filename1->name,
-		     filename2->name);
-	return ccs_supervisor(r, "file %s %s %s\n", operation,
-			      ccs_file_pattern(filename1),
-			      ccs_file_pattern(filename2));
+	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+			      [ccs_pp2mac[r->param.path2.operation]],
+			      r->param.path2.filename1->name,
+			      r->param.path2.filename2->name);
 }
 
 /**
@@ -201,20 +170,11 @@ static int ccs_audit_path2_log(struct ccs_request_info *r)
  */
 static int ccs_audit_mkdev_log(struct ccs_request_info *r)
 {
-	const char *operation =
-		ccs_mac_keywords[ccs_pnnn2mac[r->param.mkdev.operation]];
-	const struct ccs_path_info *filename = r->param.mkdev.filename;
-	const unsigned int major = r->param.mkdev.major;
-	const unsigned int minor = r->param.mkdev.minor;
-	const unsigned int mode = r->param.mkdev.mode;
-	ccs_write_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
-		      mode, major, minor);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
-		     mode, major, minor);
-	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", operation,
-			      ccs_file_pattern(filename), mode, major, minor);
+	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", ccs_mac_keywords
+			      [ccs_pnnn2mac[r->param.mkdev.operation]],
+			      r->param.mkdev.filename->name,
+			      r->param.mkdev.mode, r->param.mkdev.major,
+			      r->param.mkdev.minor);
 }
 
 /**
@@ -229,8 +189,6 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 {
 	const u8 type = r->param.path_number.operation;
 	u8 radix;
-	const struct ccs_path_info *filename = r->param.path_number.filename;
-	const char *operation = ccs_mac_keywords[ccs_pn2mac[type]];
 	char buffer[64];
 	switch (type) {
 	case CCS_TYPE_CREATE:
@@ -249,74 +207,9 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 	}
 	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
 			radix);
-	ccs_write_log(r, "file %s %s %s\n", operation, filename->name,
-		      buffer);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "file %s %s %s\n", operation, filename->name, buffer);
-	return ccs_supervisor(r, "file %s %s %s\n", operation,
-			      ccs_file_pattern(filename), buffer);
-}
-
-/**
- * ccs_file_pattern - Get patterned pathname.
- *
- * @filename: Pointer to "struct ccs_path_info".
- *
- * Returns pointer to patterned pathname.
- *
- * Caller holds ccs_read_lock().
- */
-const char *ccs_file_pattern(const struct ccs_path_info *filename)
-{
-	struct ccs_pattern *ptr;
-	const struct ccs_path_info *pattern = NULL;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_PATTERN],
-				head.list) {
-		if (ptr->head.is_deleted)
-			continue;
-		if (!ccs_path_matches_pattern(filename, ptr->pattern))
-			continue;
-		pattern = ptr->pattern;
-		if (ccs_strendswith(pattern->name, "/\\*")) {
-			/* Do nothing. Try to find the better match. */
-		} else {
-			/* This would be the better match. Use this. */
-			break;
-		}
-	}
-	return pattern ? pattern->name : filename->name;
-}
-
-static bool ccs_same_pattern(const struct ccs_acl_head *a,
-			     const struct ccs_acl_head *b)
-{
-	return container_of(a, struct ccs_pattern, head)->pattern ==
-		container_of(b, struct ccs_pattern, head)->pattern;
-}
-
-/**
- * ccs_write_pattern - Write "struct ccs_pattern" list.
- *
- * @data:      String to parse.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_pattern(char *data, const bool is_delete)
-{
-	struct ccs_pattern e = { };
-	int error;
-	if (!ccs_correct_word(data))
-		return -EINVAL;
-	e.pattern = ccs_get_name(data);
-	if (!e.pattern)
-		return -ENOMEM;
-	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  &ccs_policy_list[CCS_ID_PATTERN],
-				  ccs_same_pattern);
-	ccs_put_name(e.pattern);
-	return error;
+	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+			      [ccs_pn2mac[type]],
+			      r->param.path_number.filename->name, buffer);
 }
 
 static bool ccs_check_path_acl(struct ccs_request_info *r,
@@ -613,18 +506,19 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 static void __ccs_save_open_mode(int mode)
 {
 	if ((mode & 3) == 3)
-		current->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
+		ccs_current_security()->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
 	/* O_TRUNC passes MAY_WRITE to ccs_open_permission(). */
 	else if (!(mode & 3) && (mode & O_TRUNC))
-		current->ccs_flags |= CCS_OPEN_FOR_READ_TRUNCATE;
+		ccs_current_security()->ccs_flags |=
+			CCS_OPEN_FOR_READ_TRUNCATE;
 #endif
 }
 
 static void __ccs_clear_open_mode(void)
 {
-	current->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
-				CCS_OPEN_FOR_READ_TRUNCATE);
+	ccs_current_security()->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
+					       CCS_OPEN_FOR_READ_TRUNCATE);
 }
 #endif
 
@@ -632,7 +526,7 @@ static void __ccs_clear_open_mode(void)
  * ccs_open_permission - Check permission for "read" and "write".
  *
  * @dentry: Pointer to "struct dentry".
- * @mnt:    Pointer to "struct vfsmount".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
  * @flag:   Flags for open().
  *
  * Returns 0 on success, negative value otherwise.
@@ -643,10 +537,9 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = mnt
+		.path1.mnt = mnt,
 	};
-	struct task_struct * const task = current;
-	const u32 ccs_flags = task->ccs_flags;
+	const u32 ccs_flags = ccs_current_flags();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
 #else
@@ -660,10 +553,10 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	struct ccs_path_info buf;
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
-	if (task->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
+	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		return 0;
 #endif
-	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
 		return 0;
 	buf.name = NULL;
 	r.mode = CCS_CONFIG_DISABLED;
@@ -694,7 +587,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE, &buf);
 	}
 #endif
- out:
+out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
 	if (r.mode != CCS_CONFIG_ENFORCING)
@@ -716,7 +609,7 @@ static int ccs_new_open_permission(struct file *filp)
  * @operation: Type of operation.
  * @dir:       Pointer to "struct inode". Maybe NULL.
  * @dentry:    Pointer to "struct dentry".
- * @mnt:       Pointer to "struct vfsmount".
+ * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
  * @target:    Symlink's target if @operation is CCS_TYPE_SYMLINK.
  *
  * Returns 0 on success, negative value otherwise.
@@ -728,15 +621,13 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = mnt
+		.path1.mnt = mnt,
 	};
 	int error = 0;
 	struct ccs_path_info buf;
 	bool is_enforce = false;
 	struct ccs_path_info symlink_target;
 	int idx;
-	if (!mnt)
-		return 0;
 	buf.name = NULL;
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
@@ -765,7 +656,7 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
 	error = ccs_path_permission(&r, operation, &buf);
 	if (operation == CCS_TYPE_SYMLINK)
 		kfree(symlink_target.name);
- out:
+out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
 	if (!is_enforce)
@@ -779,7 +670,7 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
  * @operation: Type of operation. (CCS_TYPE_MKCHAR or CCS_TYPE_MKBLOCK)
  * @dir:       Pointer to "struct inode".
  * @dentry:    Pointer to "struct dentry".
- * @mnt:       Pointer to "struct vfsmount".
+ * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
  * @mode:      Create mode.
  * @dev:       Device number.
  *
@@ -792,14 +683,12 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = mnt
+		.path1.mnt = mnt,
 	};
 	int error = 0;
 	struct ccs_path_info buf;
 	bool is_enforce = false;
 	int idx;
-	if (!mnt)
-		return 0;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, ccs_pnnn2mac[operation])
 	    == CCS_CONFIG_DISABLED)
@@ -826,7 +715,7 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
 		error = ccs_audit_mkdev_log(&r);
 	} while (error == CCS_RETRY_REQUEST);
 	kfree(buf.name);
- out:
+out:
 	ccs_read_unlock(idx);
 	if (!is_enforce)
 		error = 0;
@@ -839,10 +728,10 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
  * @operation: Type of operation.
  * @dir1:      Pointer to "struct inode". Maybe NULL.
  * @dentry1:   Pointer to "struct dentry".
- * @mnt1:      Pointer to "struct vfsmount".
+ * @mnt1:      Pointer to "struct vfsmount". Maybe NULL.
  * @dir2:      Pointer to "struct inode". Maybe NULL.
  * @dentry2:   Pointer to "struct dentry".
- * @mnt2:      Pointer to "struct vfsmount".
+ * @mnt2:      Pointer to "struct vfsmount". Maybe NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -860,11 +749,9 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 		.path1.dentry = dentry1,
 		.path1.mnt = mnt1,
 		.path2.dentry = dentry2,
-		.path2.mnt = mnt2
+		.path2.mnt = mnt2,
 	};
 	int idx;
-	if (!mnt1 || !mnt2)
-		return 0;
 	buf1.name = NULL;
 	buf2.name = NULL;
 	idx = ccs_read_lock();
@@ -896,7 +783,7 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 		ccs_check_acl(&r, ccs_check_path2_acl);
 		error = ccs_audit_path2_log(&r);
 	} while (error == CCS_RETRY_REQUEST);
- out:
+out:
 	kfree(buf1.name);
 	kfree(buf2.name);
 	ccs_read_unlock(idx);
@@ -967,7 +854,7 @@ static int ccs_update_path_number_acl(const u8 perm,
  * @type:   Type of operation.
  * @dir:    Pointer to "struct inode". Maybe NULL.
  * @dentry: Pointer to "struct dentry".
- * @vfsmnt: Pointer to "struct vfsmount".
+ * @vfsmnt: Pointer to "struct vfsmount". Maybe NULL.
  * @number: Number.
  *
  * Returns 0 on success, negative value otherwise.
@@ -979,12 +866,12 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = vfsmnt
+		.path1.mnt = vfsmnt,
 	};
 	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
-	if (!vfsmnt || !dentry)
+	if (!dentry)
 		return 0;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, ccs_pn2mac[type]) == CCS_CONFIG_DISABLED)
@@ -1004,7 +891,7 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 		error = ccs_audit_path_number_log(&r);
 	} while (error == CCS_RETRY_REQUEST);
 	kfree(buf.name);
- out:
+out:
 	ccs_read_unlock(idx);
 	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
@@ -1081,20 +968,15 @@ static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
 					     01);
 	return 0;
 }
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+#else
 static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
 				  unsigned long arg)
 {
 	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
 		/* 02 means "write". */
-		return __ccs_open_permission(file->f_dentry, file->f_vfsmnt, 02);
+		return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
+					     02);
 	return 0;
-}
-#else
-static int __ccs_rewrite_permission(struct file *filp)
-{
-	/* 02 means "write". */
-	return __ccs_open_permission(filp->f_dentry, filp->f_vfsmnt, 02);
 }
 #endif
 
@@ -1277,7 +1159,7 @@ static int __ccs_link_permission(struct dentry *old_dentry,
 static int __ccs_open_exec_permission(struct dentry *dentry,
 				      struct vfsmount *mnt)
 {
-	return (current->ccs_flags & CCS_TASK_IS_IN_EXECVE) ?
+	return (ccs_current_flags() & CCS_TASK_IS_IN_EXECVE) ?
 		/* 01 means "read". */
 		__ccs_open_permission(dentry, mnt, 01) : 0;
 }
@@ -1322,7 +1204,7 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	if (!buffer)
 		goto out;
 	snprintf(buffer, PAGE_SIZE - 1, "proc:/sys");
- repeat:
+repeat:
 	if (!nlen) {
 		error = -ENOTDIR;
 		goto out;
@@ -1402,7 +1284,7 @@ no_child:
 		goto out;
 	}
 	error = -ENOTDIR;
- out:
+out:
 	ccs_read_unlock(idx);
 	kfree(buffer);
 	return error;
@@ -1431,17 +1313,11 @@ void __init ccs_file_init(void)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;
 	ccsecurity_ops.clear_open_mode = __ccs_clear_open_mode;
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-	ccsecurity_ops.open_permission = ccs_new_open_permission;
-#else
 	ccsecurity_ops.open_permission = __ccs_open_permission;
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-	ccsecurity_ops.fcntl_permission = __ccs_fcntl_permission;
 #else
-	ccsecurity_ops.rewrite_permission = __ccs_rewrite_permission;
+	ccsecurity_ops.open_permission = ccs_new_open_permission;
 #endif
+	ccsecurity_ops.fcntl_permission = __ccs_fcntl_permission;
 	ccsecurity_ops.ioctl_permission = __ccs_ioctl_permission;
 	ccsecurity_ops.chmod_permission = __ccs_chmod_permission;
 	ccsecurity_ops.chown_permission = __ccs_chown_permission;
