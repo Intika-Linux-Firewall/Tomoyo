@@ -386,9 +386,9 @@ I am running as /tmp/cat
 &diams; Fig. 25&nbsp;&nbsp;Changes in /etc/ccs/profile.conf
 <pre>
 [Before modification]
-PREFERENCE::learning={ verbose=no }
+PREFERENCE={ max_learning_entry=2048 }
 [After modification]
-PREFERENCE::learning={ verbose=no max_entry=0 }
+PREFERENCE={ max_learning_entry=0 }
 </pre>
 </td></tr>
 </table>
@@ -408,7 +408,7 @@ PREFERENCE::learning={ verbose=no max_entry=0 }
 
 <p>Run the programs. All policy violations are saved as "access rejected logs".</p>
 
-<p>A lot of messages like Fig. 27 will be printed since you specified max_entry=0 in Fig. 25, but you can ignore these messages.</p>
+<p>A lot of messages like Fig. 27 will be printed since you specified max_learning_entry=0 in Fig. 25, but you can ignore these messages.</p>
 
 <table border="1" summary="fig">
 <tr><td>

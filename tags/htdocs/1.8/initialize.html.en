@@ -9,7 +9,7 @@
 <body>
 <p style="text-align:right;"><a href="initialize.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>Phase 2: Initializing TOMOYO Linux.</h1>
+<h1>Phase 2: Initializing configuration.</h1>
 
 <p>This page describes basic operations needed for using TOMOYO Linux.</p>
 
@@ -80,43 +80,16 @@
 <table border="1">
 <tr><td>Name</td><td>Control</td></tr>
 <tr>
-<td>PREFERENCE::audit</td>
-<td>Configuration of auditing preference.</td>
-</tr>
-<tr>
-<td>PREFERENCE::learning</td>
-<td>Configuration of learning mode.</td>
-</tr>
-<tr>
-<td>PREFERENCE::permissive</td>
-<td>Configuration of permissive mode.</td>
-</tr>
-<tr>
-<td>PREFERENCE::enforcing</td>
-<td>Configuration of enforcing mode.</td>
-</tr>
-<tr>
 <td>COMMENT</td>
 <td>A line of text that describes the content of the profile.</td>
 </tr>
 <tr>
 <td>CONFIG</td>
-<td>Configuration of access control level.</td>
-</tr>
-</table>
-<p>You can give the following values for verbose= parameter of PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing .</p>
-<table border="1">
-<tr>
-<td>Value</td>
-<td>Meaning</td>
+<td>Configuration of operation mode.</td>
 </tr>
 <tr>
-<td>no</td>
-<td>Don't dump policy violation messages.</td>
-</tr>
-<tr>
-<td>yes</td>
-<td>Dump policy violation messages.</td>
+<td>PREFERENCE</td>
+<td>Configuration of auditing / learning / enforcing.</td>
 </tr>
 </table>
 <p>You can give the following values for mode= parameter of CONFIG line.</p>
@@ -153,31 +126,27 @@
 
 <table border="1">
 <tr><td>
-(1) Pathname pattern
-</td><td>
-<p>You can specify pathnames with patterns using "file_pattern" directive. When a file operation is performed and the requested pathname matches a patterned pathname specified using "file_pattern" directive, policy is generated using the patterned pathnames.</p>
-</td></tr><tr><td>
-(2) Pathname group
+(1) Pathname group
 </td><td>
 <p>You can specify pathname groups using "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names.</p>
 </td></tr><tr><td>
-(3) Number group
+(2) Number group
 </td><td>
 <p>You can specify number groups using "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names.</p>
 </td></tr><tr><td>
-(4) Address group
+(3) Address group
 </td><td>
 <p>You can specify IPv4 or IPv6 address groups using "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names.<br>
 </td></tr><tr><td>
-(5) ACL group
+(4) ACL group
 </td><td>
 <p>You can specify permissions using "acl_group" directive followed by group number and permissions for that group. The ACL group is referenced by "use_group" directive in the domain policy. This is a macro to reduce the amount of domain policy by grouping commonly granted permissions.</p>
 </td></tr><tr><td>
-(6) Program aggregations
+(5) Program aggregations
 </td><td>
 <p>Basically, each program's pathname is used for domain transitions. But you can aggregate multiple program's pathnames into single program's pathname as needed using "aggregator" directive.</p>
 </td></tr><tr><td>
-(7) Domain transition exceptions
+(6) Domain transition exceptions
 </td><td>
 <p>Basically, domain transition occurs whenever a program is executed. But you can suppress or initialize domain transitions as needed.</p>
 <p>You can specify programs that initialize the domain transition history using "initialize_domain" directive. For example, if "initialize_domain /usr/sbin/sshd" is specified, /usr/sbin/sshd will run under "&lt;kernel&gt; /usr/sbin/sshd" domain.</p>
@@ -185,7 +154,7 @@
 <p>You can specify domains that suppress domain transition using "keep_domain" directive. For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is specified, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless programs specified using "initialize_domain" directive are executed.</p>
 <p>You can deny the effect of "keep_domain" directive using "no_keep_domain" directive. You can use "no_keep_domain" directive when you don't want to suppress domain transition under specific conditions.</p>
 </td></tr><tr><td>
-(8) Reserved local ports
+(7) Reserved local ports
 </td><td>
 <p>You can specify reserved local ports using "deny_autobind" directive. This is similar to /proc/sys/net/ipv4/ip_local_reserved_ports which is available since Linux 2.6.35 kernels.</p>
 </td></tr>
@@ -241,9 +210,9 @@ The logs are in the form of domain policy so that the logs can be directly appen
 </td></tr>
 </table>
 
-<p>You may give PREFERENCE::audit={ max_grant_log=0 } for profiles and give /dev/null for $location_to_store_access_granted_logs if you don't want "access granted logs". Since "ccs-auditd" doesn't have filtering functions, be careful with the disk's free space if you want to save "access granted logs".</p>
+<p>You may give PREFERENCE={ max_grant_log=0 } for profiles and give /dev/null for $location_to_store_access_granted_logs if you don't want "access granted logs". Since "ccs-auditd" doesn't have filtering functions, be careful with the disk's free space if you want to save "access granted logs".</p>
 
-<p>You may give PREFERENCE::audit={ max_reject_log=0 } for profiles and give /dev/null for $location_to_store_access_rejected_logs if you don't want "access rejected logs". But I recommend you to save "access rejected logs". This manual assumes that "access rejected logs" is saved in /var/log/tomoyo/reject_log.conf .</p>
+<p>You may give PREFERENCE={ max_reject_log=0 } for profiles and give /dev/null for $location_to_store_access_rejected_logs if you don't want "access rejected logs". But I recommend you to save "access rejected logs". This manual assumes that "access rejected logs" is saved in /var/log/tomoyo/reject_log.conf .</p>
 
 <table border="1">
 <tr><td>
@@ -273,7 +242,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 </td></tr>
 </table>
 
-<p>If you don't want neither "access granted logs" nor "access rejected logs", you needn't to run "ccs-auditd" and you can give PREFERENCE::audit={ max_grant_log=0 max_reject_log=0 } for profiles to save memory and improve performance.</p>
+<p>If you don't want neither "access granted logs" nor "access rejected logs", you needn't to run "ccs-auditd" and you can give PREFERENCE={ max_grant_log=0 max_reject_log=0 } for profiles to save memory and improve performance.</p>
 
 <hr>
 
