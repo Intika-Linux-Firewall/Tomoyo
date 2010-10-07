@@ -104,7 +104,7 @@
 <h3><a name="ccs-auditd">＜アクセスログ保存デーモン　ccs-auditd＞</a></h3>
 <p>/proc/ccs/grant_log および /proc/ccs/reject_log の内容をコマンドラインで指定された場所に保存する。</p>
 <p>コマンドラインの最初のパラメータがアクセス許可ログを保存するファイル名、２番目のパラメータがアクセス拒否ログを保存するファイル名である。ファイル名として /dev/null を指定しても良い。アクセスログをファイルに保存する必要が無い場合は実行する必要はない。</p>
-<p>デーモンとして動作するので、 RedHat Linux の場合、 /etc/rc.d/rc.local で起動すればよい。 /proc/ccs/grant_log および /proc/ccs/reject_log に保持できる件数は、プロファイルの PREFERENCE::audit={ max_grant_log=件数 max_reject_log=件数 } で指定できる。</p>
+<p>デーモンとして動作するので、 RedHat Linux の場合、 /etc/rc.d/rc.local で起動すればよい。 /proc/ccs/grant_log および /proc/ccs/reject_log に保持できる件数は、プロファイルの PREFERENCE={ max_grant_log=件数 max_reject_log=件数 } で指定できる。</p>
 
 <h3><a name="ccs-sortpolicy">＜ポリシー圧縮プログラム　ccs-sortpolicy＞</a></h3>
 <p>ccs-auditd により保存されたログから重複を除去する。</p>

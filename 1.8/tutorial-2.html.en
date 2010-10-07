@@ -108,9 +108,6 @@ PROFILE_VERSION=20090903
 &diams; Fig. 7&nbsp;&nbsp;Profiles used in this series
 <pre>
 PROFILE_VERSION=20090903
-PREFERENCE::learning={ verbose=no }
-PREFERENCE::permissive={ verbose=yes }
-PREFERENCE::enforcing={ verbose=yes }
 0-CONFIG::file={ mode=disabled }
 1-CONFIG::file={ mode=learning }
 2-CONFIG::file={ mode=permissive }
@@ -206,7 +203,7 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>Permissive mode</h3>
 
-<p>When you have finished doing a series of operations you want to allow, assign a profile for permissive mode. (Fig. 14) Since the profile for permissive mode has a line "PREFERENCE::permissive={ verbose=yes }", warning messages starting with "WARNING:" are printed on the console whenever policy violation occurs. You can consider that all necessary permissions are appended into the policy if no warning messages are printed when you do operations you want to allow.</p>
+<p>When you have finished doing a series of operations you want to allow, assign a profile for permissive mode. (Fig. 14) Statistic counter /proc/ccs/stat is incremented whenever policy violation occurs. You can consider that all necessary permissions are appended into the policy if /proc/ccs/stat is no longer incremented when you do operations you want to allow.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -239,8 +236,6 @@ PREFERENCE::enforcing={ verbose=yes }
 <p>To check status, you can use ccs-pstree command explained in the previous installment. The first column of each line by ccs-pstree command is the profile number. Make sure that profiles you intended are assigned to applications you want to protect using mandatory access control (in this example, /usr/sbin/httpd ).</p>
 
 <p>Note that the system is protected by mandatory access control only if you assigned profile for enforcing mode.</p>
-
-<p>Since the profile for enforcing mode has a line "PREFERENCE::enforcing={ verbose=yes }", warning messages starting with "ERROR:" are printed on the console whenever policy violation occurs.</p>
 
 <h2>Tuning policy</h2>
 

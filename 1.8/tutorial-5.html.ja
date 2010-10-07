@@ -386,9 +386,9 @@ I am running as /tmp/cat
 ■図２５　/etc/ccs/profile.conf の変更箇所
 <pre>
 [修正前]
-PREFERENCE::learning={ verbose=no }
+PREFERENCE={ max_learning_entry=2048 }
 [修正後]
-PREFERENCE::learning={ verbose=no max_entry=0 }
+PREFERENCE={ max_learning_entry=0 }
 </pre>
 </td></tr>
 </table>
@@ -408,7 +408,7 @@ PREFERENCE::learning={ verbose=no max_entry=0 }
 
 <p>この状態でプログラムを動作させます．ポリシー違反は全てアクセスログとして保存されていきます．</p>
 
-<p>図２５で max_entry=0 という指定をしたため，図２７のようなメッセージが大量に表示されますが無視してください．</p>
+<p>図２５で max_learning_entry=0 という指定をしたため，図２７のようなメッセージが大量に表示されますが無視してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>

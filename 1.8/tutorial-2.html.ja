@@ -108,9 +108,6 @@ PROFILE_VERSION=20090903
 ■図７　この連載で使用するプロファイル
 <pre>
 PROFILE_VERSION=20090903
-PREFERENCE::learning={ verbose=no }
-PREFERENCE::permissive={ verbose=yes }
-PREFERENCE::enforcing={ verbose=yes }
 0-CONFIG::file={ mode=disabled }
 1-CONFIG::file={ mode=learning }
 2-CONFIG::file={ mode=permissive }
@@ -206,7 +203,7 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>確認モード</h3>
 
-<p>ひととおりの操作が完了したら，今度は確認用のプロファイルを割り当ててみましょう（図１４）．確認用に作成したプロファイルでは，「 PREFERENCE::permissive={ verbose=yes } 」という指定がされているので，ポリシー違反が発生するとコンソールに「 WARNING: 」で始まるメッセージが表示されます．許可したい操作を行ってもこのメッセージが表示されないようであれば，許可したい操作を行うのに必要なアクセス許可がポリシーに含まれていることがわかります．</p>
+<p>ひととおりの操作が完了したら，今度は確認用のプロファイルを割り当ててみましょう（図１４）．ポリシー違反が発生すると /proc/ccs/stat のカウンタが増加します．許可したい操作を行ってもこのカウンタが増えないようであれば，許可したい操作を行うのに必要なアクセス許可がポリシーに含まれていることがわかります．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -239,8 +236,6 @@ PREFERENCE::enforcing={ verbose=yes }
 <p>状態を確認するには，前回紹介した ccs-pstree コマンドを使用します． ccs-pstree コマンドの出力の行頭には，プロファイル番号が表示されています．保護したいアプリケーション（この例で言えば /usr/sbin/httpd ）に意図したとおりのプロファイル番号が割り当てられていることを確認してください．</p>
 
 <p>強制モードで動作するプロファイルを割り当てて初めて，強制アクセス制御により保護された状態になることに注意してください．</p>
-
-<p>強制用のプロファイルでは，「 PREFERENCE::enforcing={ verbose=yes } 」という指定がされているので，ポリシー違反が発生するとコンソールに「 ERROR: 」で始まるメッセージが表示されます．</p>
 
 <h2>ポリシーのチューニング</h2>
 
