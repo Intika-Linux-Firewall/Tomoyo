@@ -59,7 +59,7 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 	struct ccs_acl_head *entry;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return -ENOMEM;
-	list_for_each_entry_rcu(entry, list, list) {
+	list_for_each_entry_srcu(entry, list, list, &ccs_ss) {
 		if (!check_duplicate(entry, new_entry))
 			continue;
 		entry->is_deleted = is_delete;
@@ -119,7 +119,8 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 	}
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
-	list_for_each_entry_rcu(entry, &domain->acl_info_list[i], list) {
+	list_for_each_entry_srcu(entry, &domain->acl_info_list[i], list,
+				 &ccs_ss) {
 		if (!ccs_same_acl_head(entry, new_entry) ||
 		    !check_duplicate(entry, new_entry))
 			continue;
@@ -154,7 +155,8 @@ void ccs_check_acl(struct ccs_request_info *r,
 	bool retried = false;
 	const u8 i = !check_entry;
  retry:
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list[i], list) {
+	list_for_each_entry_srcu(ptr, &domain->acl_info_list[i], list,
+				 &ccs_ss) {
 		if (ptr->is_deleted)
 			continue;
 		if (ptr->type != r->param_type)
@@ -290,9 +292,9 @@ static u8 ccs_transition_type(const struct ccs_path_info *domainname,
 	u8 type;
 	for (type = 0; type < CCS_MAX_TRANSITION_TYPE; type++) {
  next:
-		list_for_each_entry_rcu(ptr, &ccs_policy_list
-					[CCS_ID_TRANSITION_CONTROL],
-					head.list) {
+		list_for_each_entry_srcu(ptr, &ccs_policy_list
+					 [CCS_ID_TRANSITION_CONTROL],
+					 head.list, &ccs_ss) {
 			if (ptr->head.is_deleted || ptr->type != type)
 				continue;
 			if (ptr->domainname) {
@@ -401,7 +403,7 @@ int ccs_delete_domain(char *domainname)
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return 0;
 	/* Is there an active domain? */
-	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
+	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
 		/* Never delete ccs_kernel_domain */
 		if (domain == &ccs_kernel_domain)
 			continue;
@@ -520,9 +522,9 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	} else {
 		struct ccs_aggregator *ptr;
 		/* Check 'aggregator' directive. */
-		list_for_each_entry_rcu(ptr,
-					&ccs_policy_list[CCS_ID_AGGREGATOR],
-					head.list) {
+		list_for_each_entry_srcu(ptr,
+					 &ccs_policy_list[CCS_ID_AGGREGATOR],
+					 head.list, &ccs_ss) {
 			if (ptr->head.is_deleted ||
 			    !ccs_path_matches_pattern(&rn, ptr->original_name))
 				continue;
