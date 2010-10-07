@@ -460,7 +460,7 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
  out:
 	ccs_put_name(e.domainname);
 	if (entry && transit) {
-		ccs_update_security_domain(&ccs_current_security()->ccs_domain_info, entry);
+		ccs_current_security()->ccs_domain_info = entry;
 		if (created) {
 			struct ccs_request_info r;
 			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
@@ -1077,7 +1077,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	}
 	ee->reader_idx = ccs_read_lock();
 	/* ee->dump->data is allocated by ccs_dump_page(). */
-	ccs_update_security_domain(&ee->previous_domain, task->ccs_domain_info);
+	ee->previous_domain = task->ccs_domain_info;
 	/* Clear manager flag. */
 	task->ccs_flags &= ~CCS_TASK_IS_MANAGER;
 	*eep = ee;
@@ -1118,8 +1118,7 @@ static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 	if (!ee)
 		return;
 	if (retval < 0) {
-		ccs_update_security_domain(&task->ccs_domain_info,
-					   ee->previous_domain);
+		task->ccs_domain_info = ee->previous_domain;
 		/*
 		 * Make task->ccs_domain_info visible to GC before changing
 		 * task->ccs_flags .
@@ -1133,7 +1132,6 @@ static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 		else
 			task->ccs_flags &= ~CCS_TASK_IS_EXECUTE_HANDLER;
 	}
-	ccs_update_security_domain(&ee->previous_domain, NULL);
 	/* Tell GC that I finished execve(). */
 	task->ccs_flags &= ~CCS_TASK_IS_IN_EXECVE;
 	ccs_read_unlock(ee->reader_idx);

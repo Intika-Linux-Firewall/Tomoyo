@@ -1361,12 +1361,6 @@ static inline struct ccs_security *ccs_find_task_security(struct task_struct *
 	return task;
 }
 
-static inline void ccs_update_security_domain(struct ccs_domain_info **pdomain,
-					      struct ccs_domain_info *domain)
-{
-	*pdomain = domain;
-}
-
 static inline struct ccs_security *ccs_current_security(void)
 {
 	return ccs_find_task_security(current);
@@ -1393,7 +1387,7 @@ static inline u32 ccs_task_flags(struct task_struct *task)
 
 static inline u32 ccs_current_flags(void)
 {
-	return ccs_task_flags(current);
+	return ccs_find_task_security(current)->ccs_flags;
 }
 
 #endif
