@@ -301,7 +301,6 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_FILE_MKFIFO]                   = { "file mkfifo", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_MKSOCK]                   = { "file mksock", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_MOUNT]                    = { "file mount", NULL, 0, 0 },
-	[CCS_DIRECTIVE_FILE_PATTERN]                  = { "file_pattern", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_PIVOT_ROOT]               = { "file pivot_root", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_READ]                     = { "file read", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_RENAME]                   = { "file rename", NULL, 0, 0 },
