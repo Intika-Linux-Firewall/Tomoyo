@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -459,7 +459,7 @@ static bool ccs_correct_word2(const char *string, size_t len)
 	if (in_repetition)
 		goto out;
 	return true;
- out:
+out:
 	return false;
 }
 
@@ -516,7 +516,7 @@ bool ccs_correct_domain(const unsigned char *domainname)
 		domainname = cp + 1;
 	}
 	return ccs_correct_path(domainname);
- out:
+out:
 	return false;
 }
 
@@ -547,7 +547,7 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname)
 	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
-	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
+	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
 		if (!domain->is_deleted &&
 		    !ccs_pathcmp(&name, domain->domainname))
 			return domain;
@@ -808,7 +808,7 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 	       (*(p + 1) == '*' || *(p + 1) == '@'))
 		p += 2;
 	return !*f && !*p;
- recursive:
+recursive:
 	/*
 	 * The "\{" pattern is permitted only after '/' character.
 	 * This guarantees that below "*(p - 1)" is safe.
@@ -925,7 +925,7 @@ const char *ccs_get_exe(void)
 u8 ccs_get_config(const u8 profile, const u8 index)
 {
 	u8 config;
-	const struct ccs_profile *p; 
+	const struct ccs_profile *p;
 	if (!ccs_policy_loaded)
 		return CCS_CONFIG_DISABLED;
 	p = ccs_profile(profile);
@@ -971,63 +971,6 @@ int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 }
 
 /**
- * ccs_last_word - Get last component of a domainname.
- *
- * @name: Domainname to check.
- *
- * Returns the last word of @name.
- */
-const char *ccs_last_word(const char *name)
-{
-	const char *cp = strrchr(name, ' ');
-	if (cp)
-		return cp + 1;
-	return name;
-}
-
-/**
- * ccs_warn_log - Print warning or error message on console.
- *
- * @r:   Pointer to "struct ccs_request_info".
- * @fmt: The printf()'s format string, followed by parameters.
- */
-void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
-{
-	va_list args;
-	char *buffer;
-	char *cp;
-	const struct ccs_domain_info * const domain = ccs_current_domain();
-	switch (r->mode) {
-        case CCS_CONFIG_ENFORCING:
-                if (!ccs_preference.enforcing_verbose)
-                        return;
-                break;
-        case CCS_CONFIG_PERMISSIVE:
-                if (!ccs_preference.permissive_verbose)
-                        return;
-                break;
-        case CCS_CONFIG_LEARNING:
-                if (!ccs_preference.learning_verbose)
-                        return;
-                break;
-        }
-	buffer = kmalloc(4096, CCS_GFP_FLAGS);
-	if (!buffer)
-		return;
-	va_start(args, fmt);
-	vsnprintf(buffer, 4095, fmt, args);
-	va_end(args);
-	buffer[4095] = '\0';
-	cp = strchr(buffer, '\n');
-	if (cp)
-		*cp = '\0';
-	printk(KERN_WARNING "%s: Access %s denied for %s\n",
-	       r->mode == CCS_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
-	       ccs_last_word(domain->domainname->name));
-	kfree(buffer);
-}
-
-/**
  * ccs_domain_quota_ok - Check for domain's quota.
  *
  * @r: Pointer to "struct ccs_request_info".
@@ -1045,7 +988,8 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		return false;
 	if (!domain)
 		return true;
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list[0], list) {
+	list_for_each_entry_srcu(ptr, &domain->acl_info_list[0], list,
+				 &ccs_ss) {
 		u16 perm;
 		u8 i;
 		if (ptr->is_deleted)
@@ -1082,7 +1026,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			if (perm & (1 << i))
 				count++;
 	}
-	if (count < ccs_preference.learning_max_entry)
+	if (count < ccs_profile(r->profile)->pref[CCS_PREF_MAX_LEARNING_ENTRY])
 		return true;
 	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
 		domain->flags[CCS_DIF_QUOTA_WARNED] = true;

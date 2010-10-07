@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,13 +26,8 @@
  */
 static int ccs_audit_signal_log(struct ccs_request_info *r)
 {
-	const int sig = r->param.signal.sig;
-	const char *dest_domain = r->param.signal.dest_pattern;
-	ccs_write_log(r, "ipc signal %d %s\n", sig, dest_domain);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
-	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
+	return ccs_supervisor(r, "ipc signal %d %s\n", r->param.signal.sig,
+			      r->param.signal.dest_pattern);
 }
 
 static bool ccs_check_signal_acl(struct ccs_request_info *r,
@@ -78,7 +73,7 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	r.param.signal.sig = sig;
 	r.param.signal.dest_pattern = domain->domainname->name;
 	r.granted = true;
-	if (ccsecurity_exports.sys_getpid() == pid) {
+	if (ccs_sys_getpid() == pid) {
 		ccs_audit_signal_log(&r);
 		return 0;                /* No check for self process. */
 	}

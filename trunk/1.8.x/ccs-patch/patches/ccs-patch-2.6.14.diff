@@ -33,7 +33,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/xtensa/kernel/ptrace.c        |    3 +++
  fs/compat.c                        |    9 ++++++++-
  fs/exec.c                          |   12 +++++++++++-
- fs/fcntl.c                         |    4 ++++
+ fs/fcntl.c                         |    5 +++++
  fs/ioctl.c                         |    3 +++
  fs/namei.c                         |   31 +++++++++++++++++++++++++++++++
  fs/namespace.c                     |    9 +++++++++
@@ -61,7 +61,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c                 |    9 +++++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 59 files changed, 345 insertions(+), 15 deletions(-)
+ 59 files changed, 346 insertions(+), 15 deletions(-)
 
 --- linux-2.6.14.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.14.7/arch/alpha/kernel/ptrace.c
@@ -709,16 +709,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  void fastcall set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -211,6 +212,9 @@ static int setfl(int fd, struct file * f
- 	if (!(arg & O_APPEND) && IS_APPEND(inode))
- 		return -EPERM;
+@@ -358,6 +359,8 @@ asmlinkage long sys_fcntl(unsigned int f
+ 		goto out;
  
-+	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
-+		return -EPERM;
-+
- 	/* O_NOATIME can only be set by the owner or superuser */
- 	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
- 		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
+@@ -382,6 +385,8 @@ asmlinkage long sys_fcntl64(unsigned int
+ 		goto out;
+ 
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
 --- linux-2.6.14.7.orig/fs/ioctl.c
 +++ linux-2.6.14.7/fs/ioctl.c
 @@ -15,6 +15,7 @@

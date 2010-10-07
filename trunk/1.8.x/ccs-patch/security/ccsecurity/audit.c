@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -105,7 +105,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
 	*cp++ = '}';
 	*cp = '\0';
 	return buffer;
- out:
+out:
 	snprintf(buffer, ccs_buffer_len - 1, "argv[]={ ... } envp[]= { ... }");
 	return buffer;
 }
@@ -153,9 +153,9 @@ static char *ccs_print_header(struct ccs_request_info *r)
 {
 	struct timeval tv;
 	struct ccs_obj_info *obj = r->obj;
-	const u32 ccs_flags = current->ccs_flags;
+	const u32 ccs_flags = ccs_current_flags();
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-	const pid_t gpid = (pid_t) ccsecurity_exports.sys_getpid();
+	const pid_t gpid = ccs_sys_getpid();
 #else
 	const pid_t gpid = task_pid_nr(current);
 #endif
@@ -167,27 +167,22 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		return NULL;
 	do_gettimeofday(&tv);
 	pos = snprintf(buffer, ccs_buffer_len - 1,
-		       "#timestamp=%lu profile=%u mode=%s "
-		       "(global-pid=%u)", tv.tv_sec, r->profile,
-		       ccs_mode[r->mode], gpid);
-	if (ccs_preference.audit_task_info)
-		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" task={ pid=%u ppid=%u uid=%u gid=%u euid=%u"
-				" egid=%u suid=%u sgid=%u fsuid=%u fsgid=%u"
-				" type%s=execute_handler }",
-				(pid_t) ccsecurity_exports.sys_getpid(),
-				(pid_t) ccsecurity_exports.sys_getppid(),
-				current_uid(), current_gid(), current_euid(),
-				current_egid(), current_suid(), current_sgid(),
-				current_fsuid(), current_fsgid(), ccs_flags &
-				CCS_TASK_IS_EXECUTE_HANDLER ? "" : "!");
-	if (!obj || !ccs_preference.audit_path_info)
+		       "#timestamp=%lu profile=%u mode=%s (global-pid=%u)"
+		       " task={ pid=%u ppid=%u uid=%u gid=%u euid=%u"
+		       " egid=%u suid=%u sgid=%u fsuid=%u fsgid=%u"
+		       " type%s=execute_handler }", tv.tv_sec, r->profile,
+		       ccs_mode[r->mode], gpid, ccs_sys_getpid(),
+		       ccs_sys_getppid(), current_uid(), current_gid(),
+		       current_euid(), current_egid(), current_suid(),
+		       current_sgid(), current_fsuid(), current_fsgid(),
+		       ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER ? "" : "!");
+	if (!obj)
 		goto no_obj_info;
 	if (!obj->validate_done) {
 		ccs_get_attributes(obj);
 		obj->validate_done = true;
 	}
-	for (i = 0; i < CCS_MAX_STAT; i++) {
+	for (i = 0; i < CCS_MAX_PATH_STAT; i++) {
 		struct ccs_mini_stat *stat;
 		unsigned int dev;
 		mode_t mode;
@@ -218,7 +213,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		}
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos, " }");
 	}
- no_obj_info:
+no_obj_info:
 	if (pos < ccs_buffer_len - 1)
 		return buffer;
 	kfree(buffer);
@@ -228,17 +223,19 @@ static char *ccs_print_header(struct ccs_request_info *r)
 /**
  * ccs_init_log - Allocate buffer for audit logs.
  *
- * @len: Required size.
+ * @len: Allocated size.
  * @r:   Pointer to "struct ccs_request_info".
+ * @fmt: The printf()'s format string, followed by parameters.
  *
  * Returns pointer to allocated memory.
  *
- * The @len is updated to add the header lines' size on success.
+ * The @len is updated to allocated size on success.
  *
  * This function uses kzalloc(), so caller must kfree() if this function
  * didn't return NULL.
  */
-char *ccs_init_log(int *len, struct ccs_request_info *r)
+char *ccs_init_log(int *len, struct ccs_request_info *r, const char *fmt,
+		   va_list args)
 {
 	char *buf = NULL;
 	char *bprm_info = NULL;
@@ -246,11 +243,13 @@ char *ccs_init_log(int *len, struct ccs_request_info *r)
 	const char *symlink = NULL;
 	const char *header = NULL;
 	int pos;
+	char c;
 	const char *domainname = ccs_current_domain()->domainname->name;
+	*len = 0;
 	header = ccs_print_header(r);
 	if (!header)
 		return NULL;
-	*len += strlen(domainname) + strlen(header) + 10;
+	pos = strlen(domainname) + strlen(header) + 10;
 	if (r->ee) {
 		struct file *file = r->ee->bprm->file;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
@@ -262,14 +261,20 @@ char *ccs_init_log(int *len, struct ccs_request_info *r)
 		bprm_info = ccs_print_bprm(r->ee->bprm, &r->ee->dump);
 		if (!realpath || !bprm_info)
 			goto out;
-		*len += strlen(realpath) + 80 + strlen(bprm_info);
+		/* +80 is for " exec={ realpath=\"%s\" argc=%d envc=%d %s }" */
+		pos += strlen(realpath) + 80 + strlen(bprm_info);
 	} else if (r->obj && r->obj->symlink_target) {
 		symlink = r->obj->symlink_target->name;
-		*len += 18 + strlen(symlink);
+		/* +18 is for " symlink.target=\"%s\"" */
+		pos += 18 + strlen(symlink);
 	}
-	buf = kzalloc(*len, CCS_GFP_FLAGS);
+	/* +1 is for '\0'. */
+	pos += vsnprintf(&c, sizeof(c), fmt, args) + 1;
+	pos = ccs_round2(pos);
+	buf = kzalloc(pos, CCS_GFP_FLAGS);
 	if (!buf)
 		goto out;
+	*len = pos;
 	pos = snprintf(buf, (*len) - 1, "%s", header);
 	if (realpath) {
 		struct linux_binprm *bprm = r->ee->bprm;
@@ -279,8 +284,9 @@ char *ccs_init_log(int *len, struct ccs_request_info *r)
 	} else if (symlink)
 		pos += snprintf(buf + pos, (*len) - 1 - pos,
 				" symlink.target=\"%s\"", symlink);
-	snprintf(buf + pos, (*len) - 1 - pos, "\n%s\n", domainname);
- out:
+	pos += snprintf(buf + pos, (*len) - 1 - pos, "\n%s\n", domainname);
+	vsnprintf(buf + pos, (*len) - 1 - pos, fmt, args);
+out:
 	kfree(realpath);
 	kfree(bprm_info);
 	kfree(header);
@@ -323,24 +329,6 @@ static void ccs_update_task_domain(struct ccs_request_info *r)
 	kfree(buf);
 }
 
-#ifndef CONFIG_CCSECURITY_AUDIT
-
-/**
- * ccs_write_log - Write audit log.
- *
- * @r:   Pointer to "struct ccs_request_info".
- * @fmt: The printf()'s format string, followed by parameters.
- *
- * Returns 0 on success, -ENOMEM otherwise.
- */
-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
-{
-	ccs_update_task_domain(r);
-	return 0;
-}
-
-#else
-
 static wait_queue_head_t ccs_log_wait[2] = {
 	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_log_wait[0]),
 	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_log_wait[1]),
@@ -376,18 +364,27 @@ static bool ccs_get_audit(const u8 profile, const u8 index,
 			  const struct ccs_acl_info *matched_acl,
 			  const bool is_granted)
 {
+	unsigned int len;
 	u8 mode;
 	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX;
+	struct ccs_profile *p;
 	if (!ccs_policy_loaded)
+		return false;
+	p = ccs_profile(profile);
+	if (is_granted)
+		len = p->pref[CCS_PREF_MAX_GRANT_LOG];
+	else
+		len = p->pref[CCS_PREF_MAX_REJECT_LOG];
+	if (ccs_log_count[is_granted] >= len)
 		return false;
 	if (is_granted && matched_acl && matched_acl->cond &&
 	    matched_acl->cond->grant_log)
 		return matched_acl->cond->grant_log == 2;
-	mode = ccs_profile(profile)->config[index];
+	mode = p->config[index];
 	if (mode == CCS_CONFIG_USE_DEFAULT)
-		mode = ccs_profile(profile)->config[category];
+		mode = p->config[category];
 	if (mode == CCS_CONFIG_USE_DEFAULT)
-		mode = ccs_profile(profile)->default_config;
+		mode = p->default_config;
 	if (is_granted)
 		return mode & CCS_CONFIG_WANT_GRANT_LOG;
 	return mode & CCS_CONFIG_WANT_REJECT_LOG;
@@ -398,36 +395,19 @@ static bool ccs_get_audit(const u8 profile, const u8 index,
  *
  * @r:   Pointer to "struct ccs_request_info".
  * @fmt: The printf()'s format string, followed by parameters.
- *
- * Returns 0 on success, -ENOMEM otherwise.
  */
-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+void ccs_write_log2(struct ccs_request_info *r, const char *fmt, va_list args)
 {
-	va_list args;
-	int error = -ENOMEM;
-	int pos;
 	int len;
 	char *buf;
 	struct ccs_log *entry;
 	bool quota_exceeded = false;
 	const bool is_granted = r->granted;
-	if (is_granted)
-		len = ccs_preference.audit_max_grant_log;
-	else
-		len = ccs_preference.audit_max_reject_log;
-	if (ccs_log_count[is_granted] >= len ||
-	    !ccs_get_audit(r->profile, r->type, r->matched_acl, is_granted))
+	if (!ccs_get_audit(r->profile, r->type, r->matched_acl, is_granted))
 		goto out;
-	va_start(args, fmt);
-	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
-	va_end(args);
-	buf = ccs_init_log(&len, r);
+	buf = ccs_init_log(&len, r, fmt, args);
 	if (!buf)
 		goto out;
-	pos = strlen(buf);
-	va_start(args, fmt);
-	vsnprintf(buf + pos, len - pos - 1, fmt, args);
-	va_end(args);
 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	if (!entry) {
 		kfree(buf);
@@ -438,13 +418,14 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	 * The entry->size is used for memory quota checks.
 	 * Don't go beyond strlen(entry->log).
 	 */
-	entry->size = ccs_round2(len) + ccs_round2(sizeof(*entry));
+	entry->size = len + ccs_round2(sizeof(*entry));
 	spin_lock(&ccs_log_lock);
-	if (ccs_quota_for_log && ccs_log_memory_size
-	    + entry->size >= ccs_quota_for_log) {
+	if (ccs_memory_quota[CCS_MEMORY_AUDIT] &&
+	    ccs_memory_used[CCS_MEMORY_AUDIT] + entry->size >=
+	    ccs_memory_quota[CCS_MEMORY_AUDIT]) {
 		quota_exceeded = true;
 	} else {
-		ccs_log_memory_size += entry->size;
+		ccs_memory_used[CCS_MEMORY_AUDIT] += entry->size;
 		list_add_tail(&entry->list, &ccs_log[is_granted]);
 		ccs_log_count[is_granted]++;
 	}
@@ -455,10 +436,16 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 		goto out;
 	}
 	wake_up(&ccs_log_wait[is_granted]);
-	error = 0;
- out:
+out:
 	ccs_update_task_domain(r);
-	return error;
+}
+
+void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	ccs_write_log2(r, fmt, args);
+	va_end(args);
 }
 
 /**
@@ -481,7 +468,7 @@ void ccs_read_log(struct ccs_io_buffer *head)
 		ptr = list_entry(ccs_log[is_granted].next, typeof(*ptr), list);
 		list_del(&ptr->list);
 		ccs_log_count[is_granted]--;
-		ccs_log_memory_size -= ptr->size;
+		ccs_memory_used[CCS_MEMORY_AUDIT] -= ptr->size;
 	}
 	spin_unlock(&ccs_log_lock);
 	if (ptr) {
@@ -510,5 +497,3 @@ int ccs_poll_log(struct file *file, poll_table *wait)
 		return POLLIN | POLLRDNORM;
 	return 0;
 }
-
-#endif

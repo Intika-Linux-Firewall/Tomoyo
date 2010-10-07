@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -239,33 +239,13 @@ static int __ccs_search_binary_handler(struct linux_binprm *bprm,
  * we don't put these into security/ccsecurity/compat.h because we want to
  * split built-in part and loadable kernel module part.
  */
-extern asmlinkage long sys_getpid(void);
-extern asmlinkage long sys_getppid(void);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
 extern spinlock_t vfsmount_lock;
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-static inline void module_put(struct module *module)
-{
-	if (module)
-		__MOD_DEC_USE_COUNT(module);
-}
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-static void put_filesystem(struct file_system_type *fs)
-{
-	module_put(fs->owner);
-}
 #endif
 
 /* Jump table for loadable kernel module. */
 const struct ccsecurity_exports ccsecurity_exports = {
 	.load_policy = ccs_load_policy,
-	.put_filesystem = put_filesystem,
-	.sys_getppid = sys_getppid,
-	.sys_getpid = sys_getpid,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
 	.vfsmount_lock = &vfsmount_lock,
 #endif

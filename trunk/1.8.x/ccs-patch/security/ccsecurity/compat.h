@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -109,22 +109,16 @@
 	})
 #endif
 
-#ifndef list_for_each_entry_rcu
-#define list_for_each_entry_rcu(pos, head, member)		 \
-	for (pos = list_entry(rcu_dereference((head)->next),	 \
-			      typeof(*pos), member);		 \
-	     prefetch(pos->member.next), &pos->member != (head); \
-	     pos = list_entry(rcu_dereference(pos->member.next), \
-			      typeof(*pos), member))
+#ifndef srcu_dereference
+#define srcu_dereference(p, ss) rcu_dereference(p)
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-#undef list_for_each_entry_rcu
-#define list_for_each_entry_rcu(pos, head, member)			   \
-	for (pos = list_entry(srcu_dereference((head)->next, &ccs_ss),	   \
-			      typeof(*pos), member);			   \
-	     prefetch(pos->member.next), &pos->member != (head);	   \
-	     pos = list_entry(srcu_dereference(pos->member.next, &ccs_ss), \
+#ifndef list_for_each_entry_srcu
+#define list_for_each_entry_srcu(pos, head, member, ss)		      \
+	for (pos = list_entry(srcu_dereference((head)->next, ss),     \
+			      typeof(*pos), member);		      \
+	     prefetch(pos->member.next), &pos->member != (head);      \
+	     pos = list_entry(srcu_dereference(pos->member.next, ss), \
 			      typeof(*pos), member))
 #endif
 
@@ -161,7 +155,46 @@ static inline void list_del_rcu(struct list_head *entry)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#define __wait_event_interruptible_timeout(wq, condition, ret)		\
+do {									\
+	wait_queue_t __wait;						\
+	init_waitqueue_entry(&__wait, current);				\
+									\
+	add_wait_queue(&wq, &__wait);					\
+	for (;;) {							\
+		set_current_state(TASK_INTERRUPTIBLE);			\
+		if (condition)						\
+			break;						\
+		if (!signal_pending(current)) {				\
+			ret = schedule_timeout(ret);			\
+			if (!ret)					\
+				break;					\
+			continue;					\
+		}							\
+		ret = -ERESTARTSYS;					\
+		break;							\
+	}								\
+	current->state = TASK_RUNNING;					\
+	remove_wait_queue(&wq, &__wait);				\
+} while (0)
+
+#define wait_event_interruptible_timeout(wq, condition, timeout)	\
+({									\
+	long __ret = timeout;						\
+	if (!(condition))						\
+		__wait_event_interruptible_timeout(wq, condition, __ret); \
+	__ret;								\
+})
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 30)
+#undef ssleep
+#define ssleep(secs) {						\
+		set_current_state(TASK_UNINTERRUPTIBLE);	\
+		schedule_timeout((HZ * secs) + 1);		\
+	}
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9)
 #undef ssleep
 #define ssleep(secs) {						\
 		set_current_state(TASK_UNINTERRUPTIBLE);	\

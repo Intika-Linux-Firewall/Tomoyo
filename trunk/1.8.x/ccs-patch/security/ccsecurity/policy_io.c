@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -11,23 +11,6 @@
  */
 
 #include "internal.h"
-
-struct ccs_preference ccs_preference = {
-#ifdef CONFIG_CCSECURITY_AUDIT
-	.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
-	.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
-#endif
-	.audit_task_info = true,
-	.audit_path_info = true,
-	.enforcing_penalty = 0,
-	.enforcing_verbose = true,
-	.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
-	.learning_verbose = false,
-	.learning_exec_realpath = true,
-	.learning_exec_argv0 = true,
-	.learning_symlink_target = true,
-	.permissive_verbose = true,
-};
 
 /* Profile version. Currently only 20100903 is defined. */
 static unsigned int ccs_profile_version;
@@ -61,7 +44,7 @@ const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 	[CCS_MAC_FILE_LINK]       = "link",
 	[CCS_MAC_FILE_RENAME]     = "rename",
 	[CCS_MAC_FILE_CHMOD]      = "chmod",
-	[CCS_MAC_FILE_CHOWN]      = "chown", 
+	[CCS_MAC_FILE_CHOWN]      = "chown",
 	[CCS_MAC_FILE_CHGRP]      = "chgrp",
 	[CCS_MAC_FILE_IOCTL]      = "ioctl",
 	[CCS_MAC_FILE_CHROOT]     = "chroot",
@@ -193,6 +176,13 @@ const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 	[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
 };
 
+static const char * const ccs_pref_keywords[CCS_MAX_PREF] = {
+	[CCS_PREF_MAX_GRANT_LOG]      = "max_grant_log",
+	[CCS_PREF_MAX_REJECT_LOG]     = "max_reject_log",
+	[CCS_PREF_MAX_LEARNING_ENTRY] = "max_learning_entry",
+	[CCS_PREF_ENFORCING_PENALTY]  = "enforcing_penalty",
+};
+
 /* Permit policy management by non-root user? */
 static bool ccs_manage_by_non_root;
 
@@ -205,6 +195,9 @@ static const char *ccs_yesno(const unsigned int value)
 {
 	return value ? "yes" : "no";
 }
+
+static void ccs_addprintf(char *buffer, int len, const char *fmt, ...)
+     __attribute__ ((format(printf, 3, 4)));
 
 static void ccs_addprintf(char *buffer, int len, const char *fmt, ...)
 {
@@ -339,12 +332,18 @@ static struct ccs_profile *ccs_assign_profile(const unsigned int profile)
 			CCS_CONFIG_WANT_GRANT_LOG | CCS_CONFIG_WANT_REJECT_LOG;
 		memset(ptr->config, CCS_CONFIG_USE_DEFAULT,
 		       sizeof(ptr->config));
+		ptr->pref[CCS_PREF_MAX_GRANT_LOG] =
+			CONFIG_CCSECURITY_MAX_GRANT_LOG;
+		ptr->pref[CCS_PREF_MAX_REJECT_LOG] =
+			CONFIG_CCSECURITY_MAX_REJECT_LOG;
+		ptr->pref[CCS_PREF_MAX_LEARNING_ENTRY] =
+			CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY;
 		mb(); /* Avoid out-of-order execution. */
 		ccs_profile_ptr[profile] = ptr;
 		entry = NULL;
 	}
 	mutex_unlock(&ccs_policy_lock);
- out:
+out:
 	kfree(entry);
 	return ptr;
 }
@@ -357,7 +356,7 @@ static void ccs_check_profile(void)
 	struct ccs_domain_info *domain;
 	const int idx = ccs_read_lock();
 	ccs_policy_loaded = true;
-	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
+	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
 		const u8 profile = domain->profile;
 		if (ccs_profile_ptr[profile])
 			continue;
@@ -368,7 +367,7 @@ static void ccs_check_profile(void)
 	if (ccs_profile_version != 20100903)
 		panic("Profile version %u is not supported.\n",
 		      ccs_profile_version);
-	printk(KERN_INFO "CCSecurity: 1.8.0-pre   2010/09/01\n");
+	printk(KERN_INFO "CCSecurity: 1.8.0-pre   2010/10/05\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
 
@@ -401,60 +400,11 @@ static s8 ccs_find_yesno(const char *string, const char *find)
 	return -1;
 }
 
-static void ccs_set_bool(bool *b, const char *string, const char *find)
-{
-	switch (ccs_find_yesno(string, find)) {
-	case 1:
-		*b = true;
-		break;
-	case 0:
-		*b = false;
-		break;
-	}
-}
-
 static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
 {
 	const char *cp = strstr(string, find);
 	if (cp)
 		sscanf(cp + strlen(find), "=%u", i);
-}
-
-static int ccs_set_pref(char *data)
-{
-	if (ccs_str_starts(&data, "audit")) {
-#ifdef CONFIG_CCSECURITY_AUDIT
-		ccs_set_uint(&ccs_preference.audit_max_grant_log, data,
-			     "max_grant_log");
-		ccs_set_uint(&ccs_preference.audit_max_reject_log, data,
-			     "max_reject_log");
-#endif
-		ccs_set_bool(&ccs_preference.audit_task_info, data,
-			     "task_info");
-		ccs_set_bool(&ccs_preference.audit_path_info, data,
-			     "path_info");
-	} else if (ccs_str_starts(&data, "enforcing")) {
-		ccs_set_bool(&ccs_preference.enforcing_verbose, data,
-			     "verbose");
-		ccs_set_uint(&ccs_preference.enforcing_penalty, data,
-			     "penalty");
-	} else if (ccs_str_starts(&data, "permissive")) {
-		ccs_set_bool(&ccs_preference.permissive_verbose, data,
-			     "verbose");
-	} else if (ccs_str_starts(&data, "learning")) {
-		ccs_set_bool(&ccs_preference.learning_verbose, data,
-			     "verbose");
-		ccs_set_uint(&ccs_preference.learning_max_entry, data,
-			     "max_entry");
-		ccs_set_bool(&ccs_preference.learning_exec_realpath, data,
-			     ccs_condition_keyword[CCS_EXEC_REALPATH]);
-		ccs_set_bool(&ccs_preference.learning_exec_argv0, data,
-			     "exec.argv0");
-		ccs_set_bool(&ccs_preference.learning_symlink_target, data,
-			     ccs_condition_keyword[CCS_SYMLINK_TARGET]);
-	} else
-		return -EINVAL;
-	return 0;
 }
 
 static int ccs_set_mode(char *name, const char *value,
@@ -472,7 +422,8 @@ static int ccs_set_mode(char *name, const char *value,
 			int len = 0;
 			if (i < CCS_MAX_MAC_INDEX) {
 				const u8 c = ccs_index2category[i];
-				const char *category = ccs_category_keywords[c]; 
+				const char *category =
+					ccs_category_keywords[c];
 				len = strlen(category);
 				if (strncmp(name, category, len) ||
 				    name[len++] != ':' || name[len++] != ':')
@@ -499,7 +450,6 @@ static int ccs_set_mode(char *name, const char *value,
 				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
 				 */
 				config = (config & ~7) | mode;
-#ifdef CONFIG_CCSECURITY_AUDIT
 		if (config != CCS_CONFIG_USE_DEFAULT) {
 			switch (ccs_find_yesno(value, "grant_log")) {
 			case 1:
@@ -518,7 +468,6 @@ static int ccs_set_mode(char *name, const char *value,
 				break;
 			}
 		}
-#endif
 	}
 	if (i < CCS_MAX_MAC_INDEX + CCS_MAX_MAC_CATEGORY_INDEX)
 		profile->config[i] = config;
@@ -542,8 +491,6 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	struct ccs_profile *profile;
 	if (sscanf(data, "PROFILE_VERSION=%u", &ccs_profile_version) == 1)
 		return 0;
-	if (ccs_str_starts(&data, "PREFERENCE::"))
-		return ccs_set_pref(data);
 	i = simple_strtoul(data, &cp, 10);
 	if (*cp != '-')
 		return -EINVAL;
@@ -561,45 +508,21 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_put_name(old_comment);
 		return 0;
 	}
+	if (!strcmp(data, "PREFERENCE")) {
+		for (i = 0; i < CCS_MAX_PREF; i++)
+			ccs_set_uint(&profile->pref[i], cp,
+				     ccs_pref_keywords[i]);
+		return 0;
+	}
 	return ccs_set_mode(data, cp, profile);
-}
-
-static void ccs_print_preference(struct ccs_io_buffer *head)
-{
-	ccs_io_printf(head, "PREFERENCE::%s={ "
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      "max_grant_log=%u max_reject_log=%u "
-#endif
-		      "task_info=%s path_info=%s }\n", "audit",
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      ccs_preference.audit_max_grant_log,
-		      ccs_preference.audit_max_reject_log,
-#endif
-		      ccs_yesno(ccs_preference.audit_task_info),
-		      ccs_yesno(ccs_preference.audit_path_info));
-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s max_entry=%u "
-		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
-		      "learning", ccs_yesno(ccs_preference.learning_verbose),
-		      ccs_preference.learning_max_entry,
-		      ccs_yesno(ccs_preference.learning_exec_realpath),
-		      ccs_yesno(ccs_preference.learning_exec_argv0),
-		      ccs_yesno(ccs_preference.learning_symlink_target));
-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s }\n", "permissive",
-		      ccs_yesno(ccs_preference.permissive_verbose));
-	ccs_io_printf(head, "PREFERENCE::%s={ verbose=%s penalty=%u }\n",
-		      "enforcing", ccs_yesno(ccs_preference.enforcing_verbose),
-		      ccs_preference.enforcing_penalty);
 }
 
 static void ccs_print_config(struct ccs_io_buffer *head, const u8 config)
 {
-	ccs_io_printf(head, "={ mode=%s", ccs_mode[config & 3]);
-#ifdef CONFIG_CCSECURITY_AUDIT
-	ccs_io_printf(head, " grant_log=%s reject_log=%s",
+	ccs_io_printf(head, "={ mode=%s grant_log=%s reject_log=%s }\n",
+		      ccs_mode[config & 3],
 		      ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG),
 		      ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG));
-#endif
-	ccs_set_string(head, " }\n");
 }
 
 /**
@@ -611,13 +534,12 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 {
 	u8 index;
 	const struct ccs_profile *profile;
- next:
+next:
 	index = head->r.index;
 	profile = ccs_profile_ptr[index];
 	switch (head->r.step) {
 	case 0:
 		ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20100903");
-		ccs_print_preference(head);
 		head->r.step++;
 		break;
 	case 1:
@@ -631,10 +553,17 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		break;
 	case 2:
 		{
+			u8 i;
 			const struct ccs_path_info *comment = profile->comment;
 			ccs_io_printf(head, "%u-COMMENT=", index);
 			ccs_set_string(head, comment ? comment->name : "");
 			ccs_set_lf(head);
+			ccs_io_printf(head, "%u-PREFERENCE={ ", index);
+			for (i = 0; i < CCS_MAX_PREF; i++)
+				ccs_io_printf(head, "%s=%u ",
+					      ccs_pref_keywords[i],
+					      profile->pref[i]);
+			ccs_set_string(head, " }\n");
 			head->r.step++;
 		}
 		break;
@@ -767,7 +696,7 @@ static bool ccs_manager(void)
 {
 	struct ccs_manager *ptr;
 	const char *exe;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	const struct ccs_path_info *domainname
 		= ccs_current_domain()->domainname;
 	bool found = false;
@@ -778,8 +707,8 @@ static bool ccs_manager(void)
 	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
 		return false;
 	exe = ccs_get_exe();
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_MANAGER],
-				head.list) {
+	list_for_each_entry_srcu(ptr, &ccs_policy_list[CCS_ID_MANAGER],
+				 head.list, &ccs_ss) {
 		if (ptr->head.is_deleted)
 			continue;
 		if (ptr->is_domain) {
@@ -1269,7 +1198,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		goto print_cond_part;
 	if (acl->is_deleted)
 		return true;
- next:
+next:
 	bit = head->r.bit;
 	if (!ccs_flush(head))
 		return false;
@@ -1428,7 +1357,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		head->r.cond_step = 0;
 		if (!ccs_flush(head))
 			return false;
- print_cond_part:
+print_cond_part:
 		if (!ccs_print_condition(head, acl->cond))
 			return false;
 		head->r.print_cond_part = false;
@@ -1444,7 +1373,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	case CCS_TYPE_UNIX_ACL:
 		goto next;
 	}
- done:
+done:
 	head->r.bit = 0;
 	return true;
 }
@@ -1524,7 +1453,7 @@ static void ccs_read_domain(struct ccs_io_buffer *head)
 				goto done;
 		}
 	}
- done:
+done:
 	head->r.eof = true;
 }
 
@@ -1649,7 +1578,7 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 #endif
 	if (p) {
 		domain = ccs_task_domain(p);
-		ccs_flags = p->ccs_flags;
+		ccs_flags = ccs_task_flags(p);
 	}
 	ccs_tasklist_unlock();
 	if (!domain)
@@ -1694,12 +1623,11 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 	static const struct {
 		const char *keyword;
 		int (*write) (char *, const bool);
-	} ccs_callback[3] = {
+	} ccs_callback[2] = {
 		{ "aggregator ",    ccs_write_aggregator },
-		{ "file_pattern ",  ccs_write_pattern },
 		{ "deny_autobind ", ccs_write_reserved_port },
 	};
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 2; i++)
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
 			return ccs_callback[i].write(data, is_delete);
 	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
@@ -1754,8 +1682,8 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 						head)->member_name->name);
 			} else if (idx == CCS_NUMBER_GROUP) {
 				ccs_print_number_union(head, &container_of
-						       (ptr, struct ccs_number_group,
-							head)->number);
+					       (ptr, struct ccs_number_group,
+						head)->number);
 			} else if (idx == CCS_ADDRESS_GROUP) {
 				char buffer[128];
 				struct ccs_address_group *member =
@@ -1823,14 +1751,6 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 					       ptr->aggregated_name->name);
 			}
 			break;
-		case CCS_ID_PATTERN:
-			{
-				struct ccs_pattern *ptr =
-					container_of(acl, typeof(*ptr), head);
-				ccs_set_string(head, "file_pattern ");
-				ccs_set_string(head, ptr->pattern->name);
-			}
-			break;
 		case CCS_ID_RESERVEDPORT:
 			{
 				struct ccs_reserved *ptr =
@@ -1888,6 +1808,7 @@ static void ccs_read_exception(struct ccs_io_buffer *head)
 
 /* Wait queue for ccs_query_list. */
 static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
+static DECLARE_WAIT_QUEUE_HEAD(ccs_answer_wait);
 
 /* Lock for manipulating ccs_query_list. */
 static DEFINE_SPINLOCK(ccs_query_list_lock);
@@ -1900,6 +1821,7 @@ struct ccs_query {
 	unsigned int serial;
 	int timer;
 	int answer;
+	u8 retry;
 };
 
 /* The list for "struct ccs_query". */
@@ -1908,11 +1830,66 @@ static LIST_HEAD(ccs_query_list);
 /* Number of "struct file" referring /proc/ccs/query interface. */
 static atomic_t ccs_query_observers = ATOMIC_INIT(0);
 
-static void ccs_truncate(char *str)
+static int ccs_truncate(char *str)
 {
-	while (* (unsigned char *) str > (unsigned char) ' ')
+	char *start = str;
+	while (*(unsigned char *) str > (unsigned char) ' ')
 		str++;
 	*str = '\0';
+	return strlen(start) + 1;
+}
+
+static void ccs_add_entry(char *header)
+{
+	char *buffer;
+	char *realpath = NULL;
+	char *argv0 = NULL;
+	char *symlink = NULL;
+	char *handler;
+	char *cp = strchr(header, '\n');
+	int len;
+	if (!cp)
+		return;
+	cp = strchr(cp + 1, '\n');
+	if (!cp)
+		return;
+	*cp++ = '\0';
+	len = strlen(cp) + 1;
+	/* strstr() will return NULL if ordering is wrong. */
+	if (*cp == 'f') {
+		argv0 = strstr(header, " argv[]={ \"");
+		if (argv0) {
+			argv0 += 10;
+			len += ccs_truncate(argv0) + 14;
+		}
+		realpath = strstr(header, " exec={ realpath=\"");
+		if (realpath) {
+			realpath += 8;
+			len += ccs_truncate(realpath) + 6;
+		}
+		symlink = strstr(header, " symlink.target=\"");
+		if (symlink)
+			len += ccs_truncate(symlink + 1) + 1;
+	}
+	handler = strstr(header, "type=execute_handler");
+	if (handler)
+		len += ccs_truncate(handler) + 6;
+	buffer = kmalloc(len, CCS_GFP_FLAGS);
+	if (!buffer)
+		return;
+	snprintf(buffer, len - 1, "%s", cp);
+	if (handler)
+		ccs_addprintf(buffer, len, " task.%s", handler);
+	if (realpath)
+		ccs_addprintf(buffer, len, " exec.%s", realpath);
+	if (argv0)
+		ccs_addprintf(buffer, len, " exec.argv[0]=%s", argv0);
+	if (symlink)
+		ccs_addprintf(buffer, len, "%s", symlink);
+	ccs_normalize_line(buffer);
+	if (!ccs_write_domain2(buffer, ccs_current_domain(), false))
+		ccs_update_stat(CCS_STAT_POLICY_UPDATES);
+	kfree(buffer);
 }
 
 /**
@@ -1929,138 +1906,85 @@ static void ccs_truncate(char *str)
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 {
 	va_list args;
-	int error = -EPERM;
-	int pos;
+	int error;
 	int len;
 	static unsigned int ccs_serial;
-	struct ccs_query *entry = NULL;
+	struct ccs_query entry = { };
 	bool quota_exceeded = false;
-	char *header;
-	struct ccs_domain_info * const domain = ccs_current_domain();
+	/* Write /proc/ccs/grant_log or /proc/ccs/reject_log . */
 	va_start(args, fmt);
-	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 80;
+	ccs_write_log2(r, fmt, args);
 	va_end(args);
-	if (r->mode == CCS_CONFIG_LEARNING) {
-		char *buffer;
-		char *realpath = NULL;
-		char *argv0 = NULL;
-		char *symlink = NULL;
-		char *handler = NULL;
-		if (!ccs_domain_quota_ok(r))
-			return 0;
-		header = ccs_init_log(&len, r);
-		if (!header)
-			return 0;
-		/* strstr() will return NULL if ordering is wrong. */
-		if (r->param_type == CCS_TYPE_PATH_ACL &&
-		    r->param.path.operation == CCS_TYPE_EXECUTE) {
-			if (ccs_preference.learning_exec_argv0) {
-				argv0 = strstr(header, " argv[]={ \"");
-				if (argv0) {
-					argv0 += 10;
-					ccs_truncate(argv0);
-				}
-			}
-			if (ccs_preference.learning_exec_realpath) {
-				realpath = strstr(header,
-						  " exec={ realpath=\"");
-				if (realpath) {
-					realpath += 8;
-					ccs_truncate(realpath);
-				}
-			}
-		} else if (r->param_type == CCS_TYPE_PATH_ACL &&
-			   r->param.path.operation == CCS_TYPE_SYMLINK &&
-			   ccs_preference.learning_symlink_target) {
-			symlink = strstr(header, " symlink.target=\"");
-			if (symlink)
-				ccs_truncate(symlink + 1);
-		}
-		handler = strstr(header, "type=execute_handler");
-		if (handler)
-			ccs_truncate(handler);
-		buffer = kmalloc(len, CCS_GFP_FLAGS);
-		if (buffer) {
-			va_start(args, fmt);
-			vsnprintf(buffer, len - 1, fmt, args);
-			va_end(args);
-			if (handler)
-				ccs_addprintf(buffer, len, " task.%s",
-					      handler);
-			if (realpath)
-				ccs_addprintf(buffer, len, " exec.%s",
-					      realpath);
-			if (argv0)
-				ccs_addprintf(buffer, len, " exec.argv[0]=%s",
-					      argv0);
-			if (symlink)
-				ccs_addprintf(buffer, len, "%s", symlink);
-			ccs_normalize_line(buffer);
-			ccs_write_domain2(buffer, domain, false);
-			kfree(buffer);
-		}
-		kfree(header);
+	/* Nothing more to do if granted. */
+	if (r->granted)
 		return 0;
-	}
-	if (r->mode != CCS_CONFIG_ENFORCING)
-		return 0;
-	if (!atomic_read(&ccs_query_observers)) {
+	if (r->mode)
+		ccs_update_stat(r->mode);
+	switch (r->mode) {
 		int i;
-		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
-			return -EPERM;
-		for (i = 0; i < ccs_preference.enforcing_penalty; i++) {
+		struct ccs_profile *p;
+	case CCS_CONFIG_ENFORCING:
+		error = -EPERM;
+		if (atomic_read(&ccs_query_observers))
+			break;
+		if (ccs_current_flags() & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
+			goto out;
+		p = ccs_profile(r->profile);
+		/* Check enforcing_penalty parameter. */
+		for (i = 0; i < p->pref[CCS_PREF_ENFORCING_PENALTY]; i++) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(HZ / 10);
 		}
-		return -EPERM;
+		goto out;
+	case CCS_CONFIG_LEARNING:
+		error = 0;
+		/* Check mac_learning_entry parameter. */
+		if (ccs_domain_quota_ok(r))
+			break;
+		/* fall through */
+	default:
+		return 0;
 	}
-	header = ccs_init_log(&len, r);
-	if (!header)
+	/* Get message. */
+	va_start(args, fmt);
+	entry.query = ccs_init_log(&len, r, fmt, args);
+	va_end(args);
+	if (!entry.query)
 		goto out;
-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-	if (!entry)
+	entry.query_len = strlen(entry.query) + 1;
+	if (!error) {
+		ccs_add_entry(entry.query);
 		goto out;
-	len = ccs_round2(len);
-	entry->query = kzalloc(len, CCS_GFP_FLAGS);
-	if (!entry->query)
-		goto out;
+	}
 	spin_lock(&ccs_query_list_lock);
-	if (ccs_quota_for_query && ccs_query_memory_size + len +
-	    sizeof(*entry) >= ccs_quota_for_query) {
+	if (ccs_memory_quota[CCS_MEMORY_QUERY] &&
+	    ccs_memory_used[CCS_MEMORY_QUERY] + len
+	    >= ccs_memory_quota[CCS_MEMORY_QUERY]) {
 		quota_exceeded = true;
 	} else {
-		ccs_query_memory_size += len + sizeof(*entry);
-		entry->serial = ccs_serial++;
+		entry.serial = ccs_serial++;
+		entry.retry = r->retry;
+		ccs_memory_used[CCS_MEMORY_QUERY] += len;
+		list_add_tail(&entry.list, &ccs_query_list);
 	}
 	spin_unlock(&ccs_query_list_lock);
 	if (quota_exceeded)
 		goto out;
-	pos = snprintf(entry->query, len - 1, "Q%u-%hu\n%s",
-		       entry->serial, r->retry, header);
-	kfree(header);
-	header = NULL;
-	va_start(args, fmt);
-	vsnprintf(entry->query + pos, len - 1 - pos, fmt, args);
-	entry->query_len = strlen(entry->query) + 1;
-	va_end(args);
-	spin_lock(&ccs_query_list_lock);
-	list_add_tail(&entry->list, &ccs_query_list);
-	spin_unlock(&ccs_query_list_lock);
 	/* Give 10 seconds for supervisor's opinion. */
-	for (entry->timer = 0;
-	     atomic_read(&ccs_query_observers) && entry->timer < 100;
-	     entry->timer++) {
-		wake_up(&ccs_query_wait);
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(HZ / 10);
-		if (entry->answer)
+	while (entry.timer < 10) {
+		wake_up_all(&ccs_query_wait);
+		if (wait_event_interruptible_timeout
+		    (ccs_answer_wait, entry.answer ||
+		     !atomic_read(&ccs_query_observers), HZ))
 			break;
+		else
+			entry.timer++;
 	}
 	spin_lock(&ccs_query_list_lock);
-	list_del(&entry->list);
-	ccs_query_memory_size -= len + sizeof(*entry);
+	list_del(&entry.list);
+	ccs_memory_used[CCS_MEMORY_QUERY] -= len;
 	spin_unlock(&ccs_query_list_lock);
-	switch (entry->answer) {
+	switch (entry.answer) {
 	case 3: /* Asked to retry by administrator. */
 		error = CCS_RETRY_REQUEST;
 		r->retry++;
@@ -2069,18 +1993,12 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		/* Granted by administrator. */
 		error = 0;
 		break;
-	case 0:
-		/* Timed out. */
-		break;
 	default:
-		/* Rejected by administrator. */
+		/* Timed out or rejected by administrator. */
 		break;
 	}
- out:
-	if (entry)
-		kfree(entry->query);
-	kfree(entry);
-	kfree(header);
+out:
+	kfree(entry.query);
 	return error;
 }
 
@@ -2151,7 +2069,7 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 		head->r.query_index = 0;
 		return;
 	}
-	buf = kzalloc(len, CCS_GFP_FLAGS);
+	buf = kzalloc(len + 32, CCS_GFP_FLAGS);
 	if (!buf)
 		return;
 	pos = 0;
@@ -2167,7 +2085,8 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 		 * can change, but I don't care.
 		 */
 		if (len == ptr->query_len)
-			memmove(buf, ptr->query, len);
+			snprintf(buf, len + 32, "Q%u-%hu\n%s", ptr->serial,
+				 ptr->retry, ptr->query);
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
@@ -2211,6 +2130,7 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
+	wake_up_all(&ccs_answer_wait);
 	return 0;
 }
 
@@ -2224,23 +2144,6 @@ static void ccs_read_version(struct ccs_io_buffer *head)
 	if (head->r.eof)
 		return;
 	ccs_set_string(head, "1.8.0-pre");
-	head->r.eof = true;
-}
-
-/**
- * ccs_read_self_domain - Get the current process's domainname.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- */
-static void ccs_read_self_domain(struct ccs_io_buffer *head)
-{
-	if (head->r.eof)
-		return;
-	/*
-	 * ccs_current_domain()->domainname != NULL because every process
-	 * belongs to a domain and the domain's name cannot be NULL.
-	 */
-	ccs_io_printf(head, "%s", ccs_current_domain()->domainname->name);
 	head->r.eof = true;
 }
 
@@ -2268,15 +2171,10 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = ccs_write_exception;
 		head->read = ccs_read_exception;
 		break;
-#ifdef CONFIG_CCSECURITY_AUDIT
 	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
 	case CCS_REJECTLOG: /* /proc/ccs/reject_log */
 		head->poll = ccs_poll_log;
 		head->read = ccs_read_log;
-		break;
-#endif
-	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
-		head->read = ccs_read_self_domain;
 		break;
 	case CCS_DOMAIN_STATUS: /* /proc/ccs/.domain_status */
 		head->write = ccs_write_domain_profile;
@@ -2284,7 +2182,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		break;
 	case CCS_EXECUTE_HANDLER: /* /proc/ccs/.execute_handler */
 		/* Allow execute_handler to read process's status. */
-		if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)) {
+		if (!(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
 			kfree(head);
 			return -EPERM;
 		}
@@ -2348,24 +2246,16 @@ int ccs_open_control(const u8 type, struct file *file)
 			return -ENOMEM;
 		}
 	}
-	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
-		head->reader_idx = ccs_lock();
-	file->private_data = head;
-	/*
-	 * Call the handler now if the file is /proc/ccs/self_domain
-	 * so that the user can use "cat < /proc/ccs/self_domain" to
-	 * know the current process's domainname.
-	 */
-	if (type == CCS_SELFDOMAIN)
-		ccs_read_control(file, NULL, 0);
 	/*
 	 * If the file is /proc/ccs/query , increment the observer counter.
 	 * The obserber counter is used by ccs_supervisor() to see if
 	 * there is some process monitoring /proc/ccs/query.
 	 */
-	else if (type == CCS_QUERY)
+	if (type == CCS_QUERY)
 		atomic_inc(&ccs_query_observers);
+	else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+		head->reader_idx = ccs_lock();
+	file->private_data = head;
 	return 0;
 }
 
@@ -2481,7 +2371,17 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		cp0[head->w.avail - 1] = '\0';
 		head->w.avail = 0;
 		ccs_normalize_line(cp0);
-		head->write(head);
+		if (head->write(head))
+			continue;
+		switch (head->type) {
+		case CCS_DOMAINPOLICY:
+		case CCS_EXCEPTIONPOLICY:
+		case CCS_DOMAIN_STATUS:
+		case CCS_MEMINFO:
+		case CCS_PROFILE:
+		case CCS_MANAGER:
+			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
+		}
 	}
 	ccs_read_unlock(idx);
 	mutex_unlock(&head->io_sem);
@@ -2503,10 +2403,10 @@ int ccs_close_control(struct file *file)
 	/*
 	 * If the file is /proc/ccs/query , decrement the observer counter.
 	 */
-	if (type == CCS_QUERY)
-		atomic_dec(&ccs_query_observers);
-	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+	if (type == CCS_QUERY) {
+		if (atomic_dec_and_test(&ccs_query_observers))
+			wake_up_all(&ccs_answer_wait);
+	} else if (type != CCS_GRANTLOG && type != CCS_REJECTLOG)
 		ccs_unlock(head->reader_idx);
 	/* Release memory used for policy I/O. */
 	kfree(head->read_buf);

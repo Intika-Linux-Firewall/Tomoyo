@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -67,31 +67,10 @@ static const char * const ccs_mounts[CCS_MAX_REMOUNT_PATTERNS] = {
  */
 static int ccs_audit_mount_log(struct ccs_request_info *r)
 {
-	const char *dev = r->param.mount.dev->name;
-	const char *dir = r->param.mount.dir->name;
-	const char *type = r->param.mount.type->name;
-	const unsigned long flags = r->param.mount.flags;
-	ccs_write_log(r, "file mount %s %s %s 0x%lX\n", dev, dir, type, flags);
-	if (r->granted)
-		return 0;
-	if (type == ccs_mounts[CCS_MOUNT_REMOUNT])
-		ccs_warn_log(r, "file mount -o remount %s 0x%lX", dir, flags);
-	else if (type == ccs_mounts[CCS_MOUNT_BIND] || 
-		 type == ccs_mounts[CCS_MOUNT_MOVE])
-		ccs_warn_log(r, "file mount %s %s %s 0x%lX\n", type, dev, dir,
-			     flags);
-	else if (type == ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE] ||
-		 type == ccs_mounts[CCS_MOUNT_MAKE_PRIVATE] ||
-		 type == ccs_mounts[CCS_MOUNT_MAKE_SLAVE] ||
-		 type == ccs_mounts[CCS_MOUNT_MAKE_SHARED])
-		ccs_warn_log(r, "file mount %s %s 0x%lX", type, dir, flags);
-	else
-		ccs_warn_log(r, "file mount -t %s %s %s 0x%lX", type, dev, dir,
-			     flags);
 	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
-			      ccs_file_pattern(r->param.mount.dev),
-			      ccs_file_pattern(r->param.mount.dir), type,
-			      flags);
+			      r->param.mount.dev->name,
+			      r->param.mount.dir->name,
+			      r->param.mount.type->name, r->param.mount.flags);
 }
 
 static bool ccs_check_mount_acl(struct ccs_request_info *r,
@@ -104,6 +83,19 @@ static bool ccs_check_mount_acl(struct ccs_request_info *r,
 		ccs_compare_name_union(r->param.mount.dir, &acl->dir_name) &&
 		(!r->param.mount.need_dev ||
 		 ccs_compare_name_union(r->param.mount.dev, &acl->dev_name));
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+static inline void module_put(struct module *module)
+{
+	if (module)
+		__MOD_DEC_USE_COUNT(module);
+}
+#endif
+
+static inline void ccs_put_filesystem(struct file_system_type *fstype)
+{
+	module_put(fstype->owner);
 }
 
 /**
@@ -208,11 +200,11 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 		ccs_check_acl(r, ccs_check_mount_acl);
 		error = ccs_audit_mount_log(r);
 	} while (error == CCS_RETRY_REQUEST);
- out:
+out:
 	kfree(requested_dev_name);
 	kfree(requested_dir_name);
 	if (fstype)
-		ccsecurity_exports.put_filesystem(fstype);
+		ccs_put_filesystem(fstype);
 	kfree(requested_type);
 	/* Drop refcount obtained by ccs_get_path(). */
 	if (obj.path1.dentry)

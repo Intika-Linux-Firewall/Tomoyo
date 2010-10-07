@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -34,10 +34,9 @@ void ccs_warn_oom(const char *function)
 		panic("MAC Initialization failed.\n");
 }
 
-/* Memory allocated for policy. */
-static atomic_t ccs_policy_memory_size;
-/* Quota for holding policy. */
-static unsigned int ccs_quota_for_policy;
+static DEFINE_SPINLOCK(ccs_policy_memory_lock);
+unsigned int ccs_memory_used[3];
+unsigned int ccs_memory_quota[3];
 
 /**
  * ccs_memory_ok - Check memory quota.
@@ -50,12 +49,17 @@ static unsigned int ccs_quota_for_policy;
 bool ccs_memory_ok(const void *ptr, const unsigned int size)
 {
 	size_t s = ccs_round2(size);
-	atomic_add(s, &ccs_policy_memory_size);
-	if (ptr && (!ccs_quota_for_policy ||
-		    atomic_read(&ccs_policy_memory_size)
-		    <= ccs_quota_for_policy))
+	bool result;
+	spin_lock(&ccs_policy_memory_lock);
+	ccs_memory_used[CCS_MEMORY_POLICY] += s;
+	result = ptr && (!ccs_memory_quota[CCS_MEMORY_POLICY] ||
+			 ccs_memory_used[CCS_MEMORY_POLICY] <=
+			 ccs_memory_quota[CCS_MEMORY_POLICY]);
+	if (!result)
+		ccs_memory_used[CCS_MEMORY_POLICY] -= s;
+	spin_unlock(&ccs_policy_memory_lock);
+	if (result)
 		return true;
-	atomic_sub(s, &ccs_policy_memory_size);
 	ccs_warn_oom(__func__);
 	return false;
 }
@@ -89,7 +93,10 @@ void *ccs_commit_ok(void *data, const unsigned int size)
  */
 void ccs_memory_free(const void *ptr, size_t size)
 {
-	atomic_sub(ccs_round2(size), &ccs_policy_memory_size);
+	size_t s = ccs_round2(size);
+	spin_lock(&ccs_policy_memory_lock);
+	ccs_memory_used[CCS_MEMORY_POLICY] -= s;
+	spin_unlock(&ccs_policy_memory_lock);
 	kfree(ptr);
 }
 
@@ -132,7 +139,7 @@ struct ccs_group *ccs_get_group(const char *group_name, const u8 idx)
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
- out:
+out:
 	ccs_put_name(e.group_name);
 	return found ? group : NULL;
 }
@@ -174,7 +181,7 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
- out:
+out:
 	kfree(entry);
 	return !error ? &ptr->addr : NULL;
 }
@@ -227,7 +234,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		kfree(ptr);
 		ptr = NULL;
 	}
- out:
+out:
 	mutex_unlock(&ccs_policy_lock);
 	return ptr ? &ptr->entry : NULL;
 }
@@ -269,15 +276,11 @@ void __init ccs_mm_init(void)
 	ccs_read_unlock(idx);
 }
 
-/* Memory allocated for audit logs. */
-unsigned int ccs_log_memory_size;
-/* Quota for holding audit logs. */
-unsigned int ccs_quota_for_log;
-
-/* Memory allocated for query lists. */
-unsigned int ccs_query_memory_size;
-/* Quota for holding query lists. */
-unsigned int ccs_quota_for_query;
+static const char * const ccs_memory_header[CCS_MAX_MEMORY_STAT] = {
+	[CCS_MEMORY_POLICY] = "Policy:",
+	[CCS_MEMORY_AUDIT]  = "Audit logs:",
+	[CCS_MEMORY_QUERY]  = "Query lists:",
+};
 
 /**
  * ccs_read_memory_counter - Check for memory usage.
@@ -286,34 +289,20 @@ unsigned int ccs_quota_for_query;
  */
 void ccs_read_memory_counter(struct ccs_io_buffer *head)
 {
-	const unsigned int usage[3] = {
-		atomic_read(&ccs_policy_memory_size),
-		ccs_log_memory_size,
-		ccs_query_memory_size
-	};
-	const unsigned int quota[3] = {
-		ccs_quota_for_policy,
-		ccs_quota_for_log,
-		ccs_quota_for_query
-	};
-	static const char *header[4] = {
-		"Policy:     ",
-		"Audit logs: ",
-		"Query lists:",
-		"Total:      "
-	};
 	unsigned int total = 0;
 	int i;
 	if (head->r.eof)
 		return;
-	for (i = 0; i < 3; i++) {
-		total += usage[i];
-		ccs_io_printf(head, "%s %10u", header[i], usage[i]);
-		if (quota[i])
-			ccs_io_printf(head, "   (Quota: %10u)", quota[i]);
+	for (i = 0; i < CCS_MAX_MEMORY_STAT; i++) {
+		unsigned int used = ccs_memory_used[i];
+		total += used;
+		ccs_io_printf(head, "%-12s %10u", ccs_memory_header[i], used);
+		if (ccs_memory_quota[i])
+			ccs_io_printf(head, "   (Quota: %10u)",
+				      ccs_memory_quota[i]);
 		ccs_io_printf(head, "\n");
 	}
-	ccs_io_printf(head, "%s %10u\n", header[3], total);
+	ccs_io_printf(head, "%-12s %10u\n", "Total:", total);
 	head->r.eof = true;
 }
 
@@ -327,12 +316,9 @@ void ccs_read_memory_counter(struct ccs_io_buffer *head)
 int ccs_write_memory_quota(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	unsigned int size;
-	if (sscanf(data, "Policy: %u", &size) == 1)
-		ccs_quota_for_policy = size;
-	else if (sscanf(data, "Audit logs: %u", &size) == 1)
-		ccs_quota_for_log = size;
-	else if (sscanf(data, "Query lists: %u", &size) == 1)
-		ccs_quota_for_query = size;
+	u8 i;
+	for (i = 0; i < CCS_MAX_MEMORY_STAT; i++)
+		if (ccs_str_starts(&data, ccs_memory_header[i]))
+			sscanf(data, "%u", &ccs_memory_quota[i]);
 	return 0;
 }

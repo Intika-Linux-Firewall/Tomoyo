@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -104,13 +104,13 @@ int ccs_write_group(char *data, const bool is_delete, const u8 type)
 		}
 		error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 					  member, ccs_same_address_group);
- out_address:
+out_address:
 		if (e.is_ipv6) {
 			ccs_put_ipv6_address(e.min.ipv6);
 			ccs_put_ipv6_address(e.max.ipv6);
 		}
 	}
- out:
+out:
 	ccs_put_group(group);
 	return error;
 }
@@ -131,7 +131,8 @@ ccs_path_matches_group(const struct ccs_path_info *pathname,
 		       const struct ccs_group *group)
 {
 	struct ccs_path_group *member;
-	list_for_each_entry_rcu(member, &group->member_list, head.list) {
+	list_for_each_entry_srcu(member, &group->member_list, head.list,
+				 &ccs_ss) {
 		if (member->head.is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(pathname, member->member_name))
@@ -157,7 +158,8 @@ bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 {
 	struct ccs_number_group *member;
 	bool matched = false;
-	list_for_each_entry_rcu(member, &group->member_list, head.list) {
+	list_for_each_entry_srcu(member, &group->member_list, head.list,
+				 &ccs_ss) {
 		if (member->head.is_deleted)
 			continue;
 		if (min > member->number.values[1] ||
@@ -186,7 +188,8 @@ bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 	struct ccs_address_group *member;
 	const u32 ip = ntohl(*address);
 	bool matched = false;
-	list_for_each_entry_rcu(member, &group->member_list, head.list) {
+	list_for_each_entry_srcu(member, &group->member_list, head.list,
+				 &ccs_ss) {
 		if (member->head.is_deleted)
 			continue;
 		if (member->is_ipv6) {

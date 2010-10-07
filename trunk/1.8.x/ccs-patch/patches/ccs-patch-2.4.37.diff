@@ -26,7 +26,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  arch/x86_64/kernel/ptrace.c  |    3 +++
  fs/Config.in                 |    3 +++
  fs/exec.c                    |   12 +++++++++++-
- fs/fcntl.c                   |    4 ++++
+ fs/fcntl.c                   |    5 +++++
  fs/ioctl.c                   |    6 ++++++
  fs/namei.c                   |   39 +++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   17 +++++++++++++++++
@@ -48,7 +48,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |   14 +++++++++++++-
  net/socket.c                 |   23 +++++++++++++++++++++--
  net/unix/af_unix.c           |    9 +++++++++
- 46 files changed, 331 insertions(+), 12 deletions(-)
+ 46 files changed, 332 insertions(+), 12 deletions(-)
 
 --- linux-2.4.37.10.orig/Makefile
 +++ linux-2.4.37.10/Makefile
@@ -541,16 +541,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  extern int sock_fcntl (struct file *, unsigned int cmd, unsigned long arg);
  extern int fcntl_setlease(unsigned int fd, struct file *filp, long arg);
-@@ -214,6 +215,9 @@ static int setfl(int fd, struct file * f
- 	if (!(arg & O_APPEND) && IS_APPEND(inode))
- 		return -EPERM;
+@@ -346,6 +347,8 @@ asmlinkage long sys_fcntl(unsigned int f
+ 	if (!filp)
+ 		goto out;
  
-+	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
-+		return -EPERM;
-+
- 	/* Did FASYNC state change? */
- 	if ((arg ^ filp->f_flags) & FASYNC) {
- 		if (filp->f_op && filp->f_op->fasync) {
++	err = ccs_fcntl_permission(filp, cmd, arg);
++	if (!err)
+ 	err = do_fcntl(fd, cmd, arg, filp);
+ 
+  	fput(filp);
+@@ -364,6 +367,8 @@ asmlinkage long sys_fcntl64(unsigned int
+ 	if (!filp)
+ 		goto out;
+ 
++	err = ccs_fcntl_permission(filp, cmd, arg);
++	if (!err)
+ 	switch (cmd) {
+ 		case F_GETLK64:
+ 			err = fcntl_getlk64(fd, (struct flock64 *) arg);
 --- linux-2.4.37.10.orig/fs/ioctl.c
 +++ linux-2.4.37.10/fs/ioctl.c
 @@ -10,6 +10,7 @@

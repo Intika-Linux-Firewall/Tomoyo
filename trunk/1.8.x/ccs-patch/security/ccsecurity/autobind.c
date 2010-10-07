@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -62,8 +62,8 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	ccs_tmp_map = kzalloc(8192, CCS_GFP_FLAGS);
 	if (!ccs_tmp_map)
 		return -ENOMEM;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_RESERVEDPORT],
-				head.list) {
+	list_for_each_entry_srcu(ptr, &ccs_policy_list[CCS_ID_RESERVEDPORT],
+				 head.list, &ccs_ss) {
 		unsigned int port;
 		if (ptr->head.is_deleted)
 			continue;
@@ -105,6 +105,6 @@ int ccs_write_reserved_port(char *data, const bool is_delete)
 							 is_delete);
 		break;
 	}
- out:
+out:
 	return -EINVAL;
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -42,9 +42,6 @@ int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 /* For exporting variables and functions. */
 struct ccsecurity_exports {
 	void (*load_policy) (const char *filename);
-	void (*put_filesystem) (struct file_system_type *fs);
-	asmlinkage long (*sys_getppid) (void);
-	asmlinkage long (*sys_getpid) (void);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
 	spinlock_t *vfsmount_lock;
 #endif
@@ -116,12 +113,8 @@ struct ccsecurity_operations {
 				     struct vfsmount *mnt);
 	int (*uselib_permission) (struct dentry *dentry, struct vfsmount *mnt);
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	int (*fcntl_permission) (struct file *file, unsigned int cmd,
 				 unsigned long arg);
-#else
-	int (*rewrite_permission) (struct file *filp);
-#endif
 	int (*kill_permission) (pid_t pid, int sig);
 	int (*tgkill_permission) (pid_t tgid, pid_t pid, int sig);
 	int (*tkill_permission) (pid_t pid, int sig);
@@ -168,12 +161,13 @@ static inline int ccs_pivot_root_permission(struct path *old_path,
 }
 
 static inline int ccs_mount_permission(char *dev_name, struct path *path,
-				       const char *type, unsigned long flags,
+				       char *type, unsigned long flags,
 				       void *data_page)
 {
 	int (*func) (char *, struct path *, const char *, unsigned long,
 		     void *) = ccsecurity_ops.mount_permission;
-	return func ? func(dev_name, path, type, flags, data_page) : 0;
+	return func ? func(dev_name, path, (const char *) type, flags,
+			   data_page) : 0;
 }
 
 #else
@@ -193,12 +187,13 @@ static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
 }
 
 static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
-				       const char *type, unsigned long flags,
+				       char *type, unsigned long flags,
 				       void *data_page)
 {
 	int (*func) (char *, struct nameidata *, const char *, unsigned long,
 		     void *) = ccsecurity_ops.mount_permission;
-	return func ? func(dev_name, nd, type, flags, data_page) : 0;
+	return func ? func(dev_name, nd, (const char *) type, flags,
+			   data_page) : 0;
 }
 #endif
 
@@ -251,7 +246,6 @@ static inline int ccs_open_permission(struct file *filp)
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
 				       unsigned long arg)
 {
@@ -259,13 +253,6 @@ static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
 		= ccsecurity_ops.fcntl_permission;
 	return func ? func(file, cmd, arg) : 0;
 }
-#else
-static inline int ccs_rewrite_permission(struct file *filp)
-{
-	int (*func) (struct file *) = ccsecurity_ops.rewrite_permission;
-	return func ? func(filp) : 0;
-}
-#endif
 
 static inline int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 				       unsigned long arg)
@@ -634,11 +621,6 @@ static inline int ccs_open_permission(struct file *filp)
 	return 0;
 }
 #endif
-
-static inline int ccs_rewrite_permission(struct file *filp)
-{
-	return 0;
-}
 
 static inline int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 				       unsigned long arg)

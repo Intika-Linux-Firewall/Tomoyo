@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/09/01
+ * Version: 1.8.0-pre   2010/10/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -59,7 +59,7 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 	struct ccs_acl_head *entry;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return -ENOMEM;
-	list_for_each_entry_rcu(entry, list, list) {
+	list_for_each_entry_srcu(entry, list, list, &ccs_ss) {
 		if (!check_duplicate(entry, new_entry))
 			continue;
 		entry->is_deleted = is_delete;
@@ -119,7 +119,8 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 	}
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
-	list_for_each_entry_rcu(entry, &domain->acl_info_list[i], list) {
+	list_for_each_entry_srcu(entry, &domain->acl_info_list[i], list,
+				 &ccs_ss) {
 		if (!ccs_same_acl_head(entry, new_entry) ||
 		    !check_duplicate(entry, new_entry))
 			continue;
@@ -140,7 +141,7 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
- out:
+out:
 	ccs_put_condition(new_entry->cond);
 	return error;
 }
@@ -153,8 +154,9 @@ void ccs_check_acl(struct ccs_request_info *r,
 	struct ccs_acl_info *ptr;
 	bool retried = false;
 	const u8 i = !check_entry;
- retry:
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list[i], list) {
+retry:
+	list_for_each_entry_srcu(ptr, &domain->acl_info_list[i], list,
+				 &ccs_ss) {
 		if (ptr->is_deleted)
 			continue;
 		if (ptr->type != r->param_type)
@@ -224,7 +226,7 @@ static int ccs_update_transition_control_entry(const char *domainname,
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  &ccs_policy_list[CCS_ID_TRANSITION_CONTROL],
 				  ccs_same_transition_control);
- out:
+out:
 	ccs_put_name(e.domainname);
 	ccs_put_name(e.program);
 	return error;
@@ -256,6 +258,21 @@ int ccs_write_transition_control(char *data, const bool is_delete,
 }
 
 /**
+ * ccs_last_word - Get last component of a domainname.
+ *
+ * @name: Domainname to check.
+ *
+ * Returns the last word of @name.
+ */
+static const char *ccs_last_word(const char *name)
+{
+	const char *cp = strrchr(name, ' ');
+	if (cp)
+		return cp + 1;
+	return name;
+}
+
+/**
  * ccs_transition_type - Get domain transition type.
  *
  * @domainname: The name of domain.
@@ -274,10 +291,10 @@ static u8 ccs_transition_type(const struct ccs_path_info *domainname,
 	const char *last_name = ccs_last_word(domainname->name);
 	u8 type;
 	for (type = 0; type < CCS_MAX_TRANSITION_TYPE; type++) {
- next:
-		list_for_each_entry_rcu(ptr, &ccs_policy_list
-					[CCS_ID_TRANSITION_CONTROL],
-					head.list) {
+next:
+		list_for_each_entry_srcu(ptr, &ccs_policy_list
+					 [CCS_ID_TRANSITION_CONTROL],
+					 head.list, &ccs_ss) {
 			if (ptr->head.is_deleted || ptr->type != type)
 				continue;
 			if (ptr->domainname) {
@@ -307,7 +324,7 @@ static u8 ccs_transition_type(const struct ccs_path_info *domainname,
 			goto done;
 		}
 	}
- done:
+done:
 	return type;
 }
 
@@ -346,7 +363,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  &ccs_policy_list[CCS_ID_AGGREGATOR],
 				  ccs_same_aggregator);
- out:
+out:
 	ccs_put_name(e.original_name);
 	ccs_put_name(e.aggregated_name);
 	return error;
@@ -386,7 +403,7 @@ int ccs_delete_domain(char *domainname)
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return 0;
 	/* Is there an active domain? */
-	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
+	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
 		/* Never delete ccs_kernel_domain */
 		if (domain == &ccs_kernel_domain)
 			continue;
@@ -442,15 +459,17 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
- out:
+out:
 	ccs_put_name(e.domainname);
 	if (entry && transit) {
-		current->ccs_domain_info = entry;
+		ccs_current_security()->ccs_domain_info = entry;
 		if (created) {
 			struct ccs_request_info r;
 			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
 			r.granted = false;
-			ccs_write_log(&r, "use_profile %u\n", r.profile);
+			ccs_write_log(&r, "use_profile %u\n", profile);
+			ccs_write_log(&r, "use_group %u\n", group);
+			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
 		}
 	}
 	return entry;
@@ -472,11 +491,11 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	struct ccs_domain_info *domain = NULL;
 	struct ccs_domain_info * const old_domain = ccs_current_domain();
 	struct linux_binprm *bprm = ee->bprm;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	struct ccs_path_info rn = { }; /* real name */
 	int retval;
 	bool need_kfree = false;
- retry:
+retry:
 	r->matched_acl = NULL;
 	if (need_kfree) {
 		kfree(rn.name);
@@ -503,9 +522,9 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	} else {
 		struct ccs_aggregator *ptr;
 		/* Check 'aggregator' directive. */
-		list_for_each_entry_rcu(ptr,
-					&ccs_policy_list[CCS_ID_AGGREGATOR],
-					head.list) {
+		list_for_each_entry_srcu(ptr,
+					 &ccs_policy_list[CCS_ID_AGGREGATOR],
+					 head.list, &ccs_ss) {
 			if (ptr->head.is_deleted ||
 			    !ccs_path_matches_pattern(&rn, ptr->original_name))
 				continue;
@@ -598,7 +617,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 			       "ERROR: Domain '%s' not defined.\n", ee->tmp);
 		}
 	}
- out:
+out:
 	if (need_kfree)
 		kfree(rn.name);
 	return retval;
@@ -680,7 +699,7 @@ static int ccs_environ(struct ccs_execve *ee)
 		}
 		offset = 0;
 	}
- out:
+out:
 	if (r->mode != 3)
 		error = 0;
 	kfree(env_page.data);
@@ -795,7 +814,7 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 	int retval;
 	const int original_argc = bprm->argc;
 	const int original_envc = bprm->envc;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 
 	/* Close the requested program's dentry. */
 	ee->obj.path1.dentry = NULL;
@@ -839,8 +858,7 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 	{
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1,
 			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
-			 "sgid=%d fsuid=%d fsgid=%d",
-			 (pid_t) ccsecurity_exports.sys_getpid(),
+			 "sgid=%d fsuid=%d fsgid=%d", ccs_sys_getpid(),
 			 current_uid(), current_gid(), current_euid(),
 			 current_egid(), current_suid(), current_sgid(),
 			 current_fsuid(), current_fsgid());
@@ -948,7 +966,7 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 	task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	retval = ccs_find_next_domain(ee);
 	task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
- out:
+out:
 	return retval;
 }
 
@@ -969,7 +987,7 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 	 * To avoid infinite execute handler loop, don't use execute handler
 	 * if the current process is marked as execute handler .
 	 */
-	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
+	if (ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
 	r->param_type = type;
 	ccs_check_acl(r, NULL);
@@ -1048,7 +1066,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 			    struct ccs_execve **eep)
 {
 	int retval;
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	struct ccs_execve *ee;
 	*eep = NULL;
 	ee = kzalloc(sizeof(*ee), CCS_GFP_FLAGS);
@@ -1083,7 +1101,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 					     CCS_TYPE_DENIED_EXECUTE_HANDLER))
 			return ccs_try_alt_exec(ee);
 	}
- 	if (!retval)
+	if (!retval)
 		retval = ccs_environ(ee);
 	return retval;
 }
@@ -1098,7 +1116,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
  */
 static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 {
-	struct task_struct *task = current;
+	struct ccs_security *task = ccs_current_security();
 	if (!ee)
 		return;
 	if (retval < 0) {

@@ -30,7 +30,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/attr.c                          |   11 ---
  fs/compat.c                        |   13 ++--
  fs/exec.c                          |   58 ++-----------------
- fs/fcntl.c                         |    9 +--
+ fs/fcntl.c                         |   12 +---
  fs/ioctl.c                         |    9 +--
  fs/namei.c                         |  108 ++++++++++---------------------------
  fs/namespace.c                     |   54 +++---------------
@@ -56,7 +56,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |   23 +++----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 56 files changed, 314 insertions(+), 520 deletions(-)
+ 56 files changed, 316 insertions(+), 521 deletions(-)
 
 --- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
@@ -739,18 +739,35 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  void fastcall set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -228,9 +226,8 @@ static int setfl(int fd, struct file * f
+@@ -228,10 +226,6 @@ static int setfl(int fd, struct file * f
  	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
 -	/***** TOMOYO Linux start. *****/
 -	if (!(arg & O_APPEND) && CheckReWritePermission(filp)) return -EPERM;
 -	/***** TOMOYO Linux end. *****/
-+	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
-+		return -EPERM;
- 
+-
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
+ 		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
+@@ -381,6 +375,8 @@ asmlinkage long sys_fcntl(int fd, unsign
+ 		goto out;
+ 
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
+@@ -405,6 +401,8 @@ asmlinkage long sys_fcntl64(unsigned int
+ 		goto out;
+ 
+ 	err = security_file_fcntl(filp, cmd, arg);
++	if (!err)
++		err = ccs_fcntl_permission(filp, cmd, arg);
+ 	if (err) {
+ 		fput(filp);
+ 		return err;
 --- linux-2.6.8-20.orig/fs/ioctl.c
 +++ linux-2.6.8-20/fs/ioctl.c
 @@ -14,9 +14,7 @@
