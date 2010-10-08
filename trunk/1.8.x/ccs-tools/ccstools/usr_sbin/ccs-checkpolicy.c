@@ -786,12 +786,6 @@ static void ccs_check_exception_policy(char *policy)
 				ccs_errors++;
 			}
 		}
-	} else if (ccs_str_starts(policy, "file_pattern ")) {
-		if (!ccs_correct_word(policy)) {
-			printf("%u: ERROR: '%s' is a bad pattern.\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
 	} else if (ccs_str_starts(policy, "deny_autobind ")) {
 		ccs_check_reserved_port_policy(policy);
 	} else if (ccs_str_starts(policy, "acl_group ")) {

@@ -123,10 +123,6 @@ static void stage_policy_io_test(void)
 		try_io("acl_group 0 misc env FOO BAR", 0);
 		try_io("acl_group 0 misc env FOO\\040BAR", 1);
 		try_io("acl_group 0 misc env FOO;BAR;BUZ", 1);
-		try_io("file_pattern /\\*\\*\\*", 1);
-		try_io("file_pattern /abc", 1);
-		try_io("file_pattern /abc /def", 0);
-		try_io("file_pattern abcdef", 1);
 		try_io("path_group TEST /", 1);
 		try_io("path_group TEST /boo", 1);
 		try_io("path_group TEST /bar", 1);
