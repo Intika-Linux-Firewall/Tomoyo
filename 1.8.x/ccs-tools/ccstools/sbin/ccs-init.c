@@ -89,7 +89,7 @@ static void ask_profile(void)
 {
 	static char input[128];
 	while (1) {
-		printf("TOMOYO Linux: Select a profile from "
+		printf("CCSecurity: Select a profile from "
 		       "the following list.\n");
 		if (chdir_ok) {
 			/* Show profiles in policy directory. */
@@ -394,14 +394,14 @@ int main(int argc, char *argv[])
 	if (chdir_ok) {
 		if (!strcmp(profile_name, "default")) {
 			if (access("profile.conf", R_OK)) {
-				printf("TOMOYO Linux: Default profile "
+				printf("CCSecurity: Default profile "
 				       "doesn't exist.\n");
 				profile_name = "ask";
 			}
 		} else if (strcmp(profile_name, "ask") &&
 			   strcmp(profile_name, "disable")) {
 			if (access(profile_name, R_OK)) {
-				printf("TOMOYO Linux: Specified profile "
+				printf("CCSecurity: Specified profile "
 				       "doesn't exist.\n");
 				profile_name = "ask";
 			}
