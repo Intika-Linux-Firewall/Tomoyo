@@ -230,9 +230,18 @@ int main(int argc, char *argv[])
 				break;
 			if (first) {
 				if (!strcmp(cp, "network")) {
-					skip_count = 2;
-					address_count = 1;
-					number_count = 1;
+					cp = strsep(&sp, " ");
+					if (!cp)
+						break;
+					if (strstr(cp, "unix")) {
+						path_count = 1;
+					} else if (strstr(cp, "inet")) {
+						address_count = 1;
+						number_count = 1;
+					} else {
+						break;
+					}
+					skip_count = 1;
 				} else if (!strcmp(cp, "file")) {
 					printf("file ");
 					cp = strsep(&sp, " ");

@@ -43,6 +43,7 @@
 static void panic(void)
 {
 	printf("Fatal error while loading policy.\n");
+	fflush(stdout);
 	while (1)
 		sleep(100);
 }
@@ -292,7 +293,7 @@ static void show_memory_usage(void)
 	putchar('\n');
 }
 
-static int main2(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	struct stat buf;
 
@@ -315,6 +316,23 @@ static int main2(int argc, char *argv[])
 			while (waitpid(pid, NULL, __WALL) == EOF &&
 			       errno == EINTR);
 		}
+	}
+
+	if (getpid() == 1) {
+		/*
+		 * Unmount /proc and execute /sbin/init if this program was
+		 * executed by passing init=/sbin/ccs-init . The kernel will
+		 * try to execute this program again with getpid() != 1 when
+		 * /sbin/init starts.
+		 */
+		if (proc_unmount)
+			umount("/proc/");
+		argv[0] = "/sbin/init";
+		execv(argv[0], argv);
+		printf("FATAL: Failed to execute %s\n", argv[0]);
+		fflush(stdout);
+		while (1)
+			sleep(100);
 	}
 
 	/* Unmount /proc and exit if policy interface doesn't exist. */
@@ -439,16 +457,4 @@ static int main2(int argc, char *argv[])
 		umount("/proc");
 
 	return 0;
-}
-
-int main(int argc, char *argv[])
-{
-	int rc = main2(argc, argv);
-	if (getpid() != 1)
-		return rc;
-	argv[0] = "/sbin/init";
-	execv(argv[0], argv);
-	printf("FATAL: Failed to execute %s\n", argv[0]);
-	fflush(stdout);
-	return 1;
 }

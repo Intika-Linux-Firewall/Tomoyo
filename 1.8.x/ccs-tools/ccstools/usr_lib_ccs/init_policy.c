@@ -607,15 +607,15 @@ static void make_profile(void)
 		"1-COMMENT=-----Learning Mode-----\n"
 		"1-PREFERENCE={ max_grant_log=1024 max_reject_log=1024 "
 		"max_learning_entry=2048 enforcing_penalty=0  }\n"
-		"1-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n"
+		"1-CONFIG%s={ mode=learning grant_log=yes reject_log=yes }\n"
 		"2-COMMENT=-----Permissive Mode-----\n"
 		"2-PREFERENCE={ max_grant_log=1024 max_reject_log=1024 "
 		"max_learning_entry=2048 enforcing_penalty=0  }\n"
-		"2-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n"
+		"2-CONFIG%s={ mode=permissive grant_log=yes reject_log=yes }\n"
 		"3-COMMENT=-----Enforcing Mode-----\n"
 		"3-PREFERENCE={ max_grant_log=1024 max_reject_log=1024 "
 		"max_learning_entry=2048 enforcing_penalty=0  }\n"
-		"3-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n",
+		"3-CONFIG%s={ mode=enforcing grant_log=yes reject_log=yes }\n",
 		file_only, file_only, file_only, file_only);
 	fclose(fp);
 	if (!chdir(policy_dir) && !rename("profile.tmp", "profile.conf"))
