@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/10/05
+ * Version: 1.8.0-pre   2010/10/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -47,7 +47,7 @@ struct in6_addr;
  */
 #define list_for_each_cookie(pos, head)					\
 	for (pos = pos ? pos : srcu_dereference((head)->next, &ccs_ss); \
-	pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
+	     pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
 
 enum ccs_policy_stat_type {
 	/* Do not change this order. */
