@@ -211,18 +211,8 @@ static void clear_status(void)
 				"\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
-	/* fprintf(profile_fp, "PREFERENCE::enforcing= penalty=1\n"); */
-	/*
-	  fprintf(profile_fp, "PREFERENCE::learning= verbose=yes\n");
-	  fprintf(profile_fp, "PREFERENCE::enforcing= verbose=yes\n");
-	  fprintf(profile_fp, "PREFERENCE::permissive= verbose=yes\n");
-	  fprintf(profile_fp, "PREFERENCE::disabled= verbose=yes\n");
-	*/
-	fprintf(profile_fp, "PREFERENCE::learning= verbose=no\n");
-	fprintf(profile_fp, "PREFERENCE::enforcing= verbose=no\n");
-	fprintf(profile_fp, "PREFERENCE::permissive= verbose=no\n");
-	fprintf(profile_fp, "PREFERENCE::disabled= verbose=no\n");
-	fprintf(profile_fp, "PREFERENCE::learning= max_entry=2048\n");
+	/* fprintf(profile_fp, "255-PREFERENCE={ enforcing_penalty=1 }\n"); */
+	fprintf(profile_fp, "255-PREFERENCE={ max_learning_entry=2048 }\n");
 	fflush(profile_fp);
 	fclose(fp);
 }
