@@ -60,24 +60,24 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.34.7-0.3.1.src.rpm ]
+if [ ! -r kernel-source-2.6.34.7-0.4.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.3/rpm/src/kernel-source-2.6.34.7-0.3.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.3/rpm/src/kernel-source-2.6.34.7-0.4.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-2.6.34.7-0.3.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-2.6.34.7-0.3.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-2.6.34.7-0.4.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-2.6.34.7-0.4.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-2.6.34.7-0.3.1.nosrc.rpm ]
+if [ ! -r kernel-default-2.6.34.7-0.4.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/11.3/rpm/src/kernel-default-2.6.34.7-0.3.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.3/rpm/src/kernel-default-2.6.34.7-0.4.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-2.6.34.7-0.3.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-2.6.34.7-0.3.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-2.6.34.7-0.4.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-2.6.34.7-0.4.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100923.tar.gz ]
 then
-    wget -O ccs-patch-1.7.2-20100923.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100923.tar.gz' || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100923.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -93,8 +93,8 @@ patch << "EOF" || die "Can't patch spec file."
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
  Version:        2.6.34.7
--Release:        0.3.1
-+Release:        0.3.1_tomoyo_1.7.2p3
+-Release:        0.4.1
++Release:        0.4.1_tomoyo_1.7.2p3
  %if %using_buildservice
  %else
  %endif
