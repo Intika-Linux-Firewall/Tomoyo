@@ -34,16 +34,16 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  kernel/time/ntp.c               |    3 +++
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
- net/ipv4/raw.c                  |   12 +++++++++---
- net/ipv4/udp.c                  |   13 ++++++++++++-
+ net/ipv4/raw.c                  |    5 +++++
+ net/ipv4/udp.c                  |    8 ++++++++
  net/ipv6/inet6_hashtables.c     |    3 +++
- net/ipv6/raw.c                  |   12 +++++++++---
- net/ipv6/udp.c                  |   10 +++++++++-
- net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    9 +++++++++
+ net/ipv6/raw.c                  |    5 +++++
+ net/ipv6/udp.c                  |    5 +++++
+ net/socket.c                    |   20 ++++++++++++++++++++
+ net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 272 insertions(+), 11 deletions(-)
+ 41 files changed, 253 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24-28.79.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-28.79/arch/ia64/ia32/sys_ia32.c
@@ -596,7 +596,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24-28.79 2010/09/21\n");
++	printk(KERN_INFO "Hook version: 2.6.24-28.79 2010/10/18\n");
  }
 --- linux-2.6.24-28.79.orig/include/linux/init_task.h
 +++ linux-2.6.24-28.79/include/linux/init_task.h
@@ -980,20 +980,13 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
  DEFINE_RWLOCK(raw_v4_lock);
-@@ -602,9 +603,14 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -605,6 +606,10 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
  		goto out;
- 	}
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
@@ -1025,36 +1018,17 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			if (! __udp_lib_lport_inuse(rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -827,6 +831,7 @@ int udp_recvmsg(struct kiocb *iocb, stru
- 	unsigned int ulen, copied;
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
-+	_Bool update_stat;
- 
- 	/*
- 	 *	Check any passed addresses
-@@ -841,6 +846,11 @@ try_again:
+@@ -841,6 +845,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-@@ -896,7 +906,8 @@ out:
- 	return err;
- 
- csum_copy_err:
--	UDP_INC_STATS_BH(UDP_MIB_INERRORS, is_udplite);
-+	if (update_stat)
-+		UDP_INC_STATS_BH(UDP_MIB_INERRORS, is_udplite);
- 
- 	skb_kill_datagram(sk, skb, flags);
- 
 --- linux-2.6.24-28.79.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.24-28.79/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,7 @@
@@ -1084,20 +1058,13 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
  DEFINE_RWLOCK(raw_v6_lock);
-@@ -440,9 +441,14 @@ static int rawv6_recvmsg(struct kiocb *i
- 	if (flags & MSG_ERRQUEUE)
- 		return ipv6_recv_error(sk, msg, len);
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
+@@ -443,6 +444,10 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
@@ -1112,36 +1079,17 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
  
-@@ -123,6 +124,7 @@ int udpv6_recvmsg(struct kiocb *iocb, st
- 	unsigned int ulen, copied;
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
-+	_Bool update_stat;
- 
- 	if (addr_len)
- 		*addr_len=sizeof(struct sockaddr_in6);
-@@ -134,6 +136,11 @@ try_again:
+@@ -134,6 +135,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-@@ -205,7 +212,8 @@ out:
- 	return err;
- 
- csum_copy_err:
--	UDP6_INC_STATS_USER(UDP_MIB_INERRORS, is_udplite);
-+	if (update_stat)
-+		UDP6_INC_STATS_USER(UDP_MIB_INERRORS, is_udplite);
- 	skb_kill_datagram(sk, skb, flags);
- 
- 	if (flags & MSG_DONTWAIT)
 --- linux-2.6.24-28.79.orig/net/socket.c
 +++ linux-2.6.24-28.79/net/socket.c
 @@ -94,6 +94,8 @@
@@ -1192,27 +1140,18 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1398,6 +1411,7 @@ asmlinkage long sys_accept(int fd, struc
- 	if (!sock)
- 		goto out;
- 
-+retry:
- 	err = -ENFILE;
- 	if (!(newsock = sock_alloc()))
- 		goto out_put;
-@@ -1430,6 +1444,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1430,6 +1443,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
 +	if (ccs_socket_post_accept_permission(sock, newsock)) {
-+		fput(newfile);
-+		put_unused_fd(newfd);
-+		goto retry;
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_fd;
 +	}
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1492,6 +1511,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1492,6 +1509,9 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1242,21 +1181,13 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, nd.mnt, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1657,6 +1661,7 @@ static int unix_dgram_recvmsg(struct kio
- 
- 	mutex_lock(&u->readlock);
- 
-+retry:
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb) {
- 		unix_state_lock(sk);
-@@ -1670,6 +1675,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1670,6 +1674,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible_sync(&u->peer_wait);
  
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		skb_kill_datagram(sk, skb, flags);
-+		goto retry;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_unlock;
 +	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);

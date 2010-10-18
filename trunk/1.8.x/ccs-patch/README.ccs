@@ -2480,19 +2480,6 @@ Fix 2010/10/05
       when you have to disable access control for recv() operation due to
       application breakage by discarding incoming datagram.
 
-    @ Wait for next connection/datagram if current connection/datagram was
-      discarded.
-
-      Regarding "network inet stream accept", "network inet dgram recv",
-      "network inet raw recv" directives, I modified to wait for next
-      connection/datagram if current connection/datagram was discarded.
-      LSM hooks for these directives are currently missing because this
-      behavior may break applications. If you found applications broken by
-      this behavior, you can set CONFIG::network::inet_stream_accept and/or
-      CONFIG::network::inet_dgram_recv and/or CONFIG::network::inet_raw_recv
-      to mode=disabled in order to only disable filtering for incoming
-      connection/datagram.
-
     @ Add Unix domain socket restriction support.
 
       Until now, it was possible to restrict only inet domain sockets (i.e.
