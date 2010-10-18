@@ -26,15 +26,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/time/ntp.c               |    6 ++++++
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
- net/ipv4/raw.c                  |   12 +++++++++---
- net/ipv4/udp.c                  |   12 ++++++++++--
- net/ipv6/raw.c                  |   12 +++++++++---
- net/ipv6/udp.c                  |    9 ++++++++-
- net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |   10 ++++++++++
+ net/ipv4/raw.c                  |    5 +++++
+ net/ipv4/udp.c                  |    8 +++++++-
+ net/ipv6/raw.c                  |    5 +++++
+ net/ipv6/udp.c                  |    5 +++++
+ net/socket.c                    |   20 ++++++++++++++++++++
+ net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 242 insertions(+), 11 deletions(-)
+ 32 files changed, 225 insertions(+), 3 deletions(-)
 
 --- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/compat.c
 +++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/compat.c
@@ -397,7 +397,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +static int __init ccs_show_version(void)
 +{
 +	printk(KERN_INFO "Hook version: 2.6.32.15+grsecurity-2.1.14-2.6.32.15 "
-+	       "2010/08/23\n");
++	       "2010/10/18\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -800,20 +800,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  static struct raw_hashinfo raw_v4_hashinfo = {
  	.lock = __RW_LOCK_UNLOCKED(raw_v4_hashinfo.lock),
-@@ -678,9 +679,14 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -681,6 +682,10 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
  		goto out;
- 	}
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
@@ -838,35 +831,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					goto found;
  				snum += rand;
  			} while (snum != first);
-@@ -946,6 +948,7 @@ int udp_recvmsg(struct kiocb *iocb, stru
- 	int peeked;
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
-+	_Bool update_stat;
- 
- 	/*
- 	 *	Check any passed addresses
-@@ -961,6 +964,11 @@ try_again:
+@@ -961,6 +963,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	err = gr_search_udp_recvmsg(sk, skb);
  	if (err)
-@@ -1026,7 +1034,7 @@ out:
- 
- csum_copy_err:
- 	lock_sock(sk);
--	if (!skb_kill_datagram(sk, skb, flags))
-+	if (!skb_kill_datagram(sk, skb, flags) && update_stat)
- 		UDP_INC_STATS_USER(sock_net(sk), UDP_MIB_INERRORS, is_udplite);
- 	release_sock(sk);
- 
 --- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/ipv6/raw.c
 +++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
@@ -877,20 +852,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  static struct raw_hashinfo raw_v6_hashinfo = {
  	.lock = __RW_LOCK_UNLOCKED(raw_v6_hashinfo.lock),
-@@ -462,9 +463,14 @@ static int rawv6_recvmsg(struct kiocb *i
- 	if (flags & MSG_ERRQUEUE)
- 		return ipv6_recv_error(sk, msg, len);
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
+@@ -465,6 +466,10 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
@@ -905,35 +873,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int ipv6_rcv_saddr_equal(const struct sock *sk, const struct sock *sk2)
  {
-@@ -199,6 +200,7 @@ int udpv6_recvmsg(struct kiocb *iocb, st
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
- 	int is_udp4;
-+	_Bool update_stat;
- 
- 	if (addr_len)
- 		*addr_len=sizeof(struct sockaddr_in6);
-@@ -211,6 +213,11 @@ try_again:
+@@ -211,6 +212,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-@@ -294,7 +301,7 @@ out:
- 
- csum_copy_err:
- 	lock_sock(sk);
--	if (!skb_kill_datagram(sk, skb, flags)) {
-+	if (!skb_kill_datagram(sk, skb, flags) && update_stat) {
- 		if (is_udp4)
- 			UDP_INC_STATS_USER(sock_net(sk),
- 					UDP_MIB_INERRORS, is_udplite);
 --- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/socket.c
 +++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/socket.c
 @@ -113,6 +113,8 @@ extern int gr_search_accept(struct socke
@@ -984,27 +934,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			err = sock->ops->listen(sock, backlog);
  
  error:
-@@ -1530,6 +1543,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
- 	if (!sock)
- 		goto out;
- 
-+retry:
- 	err = -ENFILE;
- 	if (!(newsock = sock_alloc()))
- 		goto out_put;
-@@ -1574,6 +1588,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1574,6 +1587,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
 +	if (ccs_socket_post_accept_permission(sock, newsock)) {
-+		fput(newfile);
-+		put_unused_fd(newfd);
-+		goto retry;
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_fd;
 +	}
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1654,6 +1673,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1654,6 +1671,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
@@ -1035,21 +976,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (err)
  			goto out_mknod_drop_write;
  		if (!gr_acl_handle_mknod(dentry, nd.path.dentry, nd.path.mnt, mode)) {
-@@ -1685,6 +1690,7 @@ static int unix_dgram_recvmsg(struct kio
- 
- 	mutex_lock(&u->readlock);
- 
-+retry:
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb) {
- 		unix_state_lock(sk);
-@@ -1698,6 +1704,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1698,6 +1703,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible_sync(&u->peer_wait);
  
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		skb_kill_datagram(sk, skb, flags);
-+		goto retry;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_unlock;
 +	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);

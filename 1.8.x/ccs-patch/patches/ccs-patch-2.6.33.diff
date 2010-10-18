@@ -20,16 +20,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/time/ntp.c               |    6 +
  net/ipv4/inet_connection_sock.c |    2 
  net/ipv4/inet_hashtables.c      |    2 
- net/ipv4/raw.c                  |   11 ++
- net/ipv4/udp.c                  |    9 ++
- net/ipv6/raw.c                  |   11 ++
- net/ipv6/udp.c                  |    8 +-
- net/socket.c                    |    6 +
- net/unix/af_unix.c              |    5 +
+ net/ipv4/raw.c                  |    4 +
+ net/ipv4/udp.c                  |    5 +
+ net/ipv6/raw.c                  |    4 +
+ net/ipv6/udp.c                  |    4 +
+ net/socket.c                    |    4 +
+ net/unix/af_unix.c              |    4 +
  security/Kconfig                |    2 
  security/Makefile               |    3 
  security/security.c             |  154 +++++++++++++++++++++++++++++++---------
- 27 files changed, 284 insertions(+), 65 deletions(-)
+ 27 files changed, 267 insertions(+), 57 deletions(-)
 
 --- linux-2.6.33.7.orig/fs/compat.c
 +++ linux-2.6.33.7/fs/compat.c
@@ -107,7 +107,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33.7 2010/08/23\n");
++	printk(KERN_INFO "Hook version: 2.6.33.7 2010/10/18\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -581,20 +581,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			spin_lock(&head->lock);
 --- linux-2.6.33.7.orig/net/ipv4/raw.c
 +++ linux-2.6.33.7/net/ipv4/raw.c
-@@ -677,9 +677,14 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -680,6 +680,10 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
  		goto out;
- 	}
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
@@ -609,125 +602,65 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				    !test_bit(snum >> udptable->log, bitmap))
  					goto found;
  				snum += rand;
-@@ -1121,6 +1122,7 @@ int udp_recvmsg(struct kiocb *iocb, stru
- 	int peeked;
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
-+	_Bool update_stat;
- 
- 	/*
- 	 *	Check any passed addresses
-@@ -1136,6 +1138,11 @@ try_again:
+@@ -1136,6 +1137,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-@@ -1197,7 +1204,7 @@ out:
- 
- csum_copy_err:
- 	lock_sock(sk);
--	if (!skb_kill_datagram(sk, skb, flags))
-+	if (!skb_kill_datagram(sk, skb, flags) && update_stat)
- 		UDP_INC_STATS_USER(sock_net(sk), UDP_MIB_INERRORS, is_udplite);
- 	release_sock(sk);
- 
 --- linux-2.6.33.7.orig/net/ipv6/raw.c
 +++ linux-2.6.33.7/net/ipv6/raw.c
-@@ -460,9 +460,14 @@ static int rawv6_recvmsg(struct kiocb *i
- 	if (flags & MSG_ERRQUEUE)
- 		return ipv6_recv_error(sk, msg, len);
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
+@@ -463,6 +463,10 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
  	if (copied > len) {
 --- linux-2.6.33.7.orig/net/ipv6/udp.c
 +++ linux-2.6.33.7/net/ipv6/udp.c
-@@ -327,6 +327,7 @@ int udpv6_recvmsg(struct kiocb *iocb, st
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
- 	int is_udp4;
-+	_Bool update_stat;
- 
- 	if (addr_len)
- 		*addr_len=sizeof(struct sockaddr_in6);
-@@ -339,6 +340,11 @@ try_again:
+@@ -339,6 +339,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-@@ -422,7 +428,7 @@ out:
- 
- csum_copy_err:
- 	lock_sock(sk);
--	if (!skb_kill_datagram(sk, skb, flags)) {
-+	if (!skb_kill_datagram(sk, skb, flags) && update_stat) {
- 		if (is_udp4)
- 			UDP_INC_STATS_USER(sock_net(sk),
- 					UDP_MIB_INERRORS, is_udplite);
 --- linux-2.6.33.7.orig/net/socket.c
 +++ linux-2.6.33.7/net/socket.c
-@@ -1492,6 +1492,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
- 	if (!sock)
- 		goto out;
- 
-+retry:
- 	err = -ENFILE;
- 	if (!(newsock = sock_alloc()))
- 		goto out_put;
-@@ -1520,6 +1521,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1520,6 +1520,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
 +	if (ccs_socket_post_accept_permission(sock, newsock)) {
-+		fput(newfile);
-+		put_unused_fd(newfd);
-+		goto retry;
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_fd;
 +	}
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
 --- linux-2.6.33.7.orig/net/unix/af_unix.c
 +++ linux-2.6.33.7/net/unix/af_unix.c
-@@ -1662,6 +1662,7 @@ static int unix_dgram_recvmsg(struct kio
- 
- 	mutex_lock(&u->readlock);
- 
-+retry:
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb) {
- 		unix_state_lock(sk);
-@@ -1675,6 +1676,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1675,6 +1675,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible_sync(&u->peer_wait);
  
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		skb_kill_datagram(sk, skb, flags);
-+		goto retry;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_unlock;
 +	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);

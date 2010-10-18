@@ -40,16 +40,16 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  net/core/datagram.c             |    9 ----
  net/ipv4/inet_connection_sock.c |    9 +---
  net/ipv4/inet_hashtables.c      |    9 +---
- net/ipv4/raw.c                  |   12 ++++-
- net/ipv4/udp.c                  |   23 ++++++----
+ net/ipv4/raw.c                  |    5 ++
+ net/ipv4/udp.c                  |   18 ++++----
  net/ipv6/inet6_hashtables.c     |    9 +---
- net/ipv6/raw.c                  |   12 ++++-
- net/ipv6/udp.c                  |   10 ++++
- net/socket.c                    |   46 +++++++++------------
- net/unix/af_unix.c              |   19 ++++----
+ net/ipv6/raw.c                  |    5 ++
+ net/ipv6/udp.c                  |    5 ++
+ net/socket.c                    |   42 +++++++------------
+ net/unix/af_unix.c              |   18 +++-----
  security/Kconfig                |    2 
  security/Makefile               |    3 +
- 49 files changed, 264 insertions(+), 524 deletions(-)
+ 49 files changed, 244 insertions(+), 515 deletions(-)
 
 --- linux-2.6.23-12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/alpha/kernel/ptrace.c
@@ -1081,7 +1081,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.23-12 2010/08/23\n");
++	printk(KERN_INFO "Hook version: 2.6.23-12 2010/10/18\n");
  }
 --- linux-2.6.23-12.orig/include/linux/init_task.h
 +++ linux-2.6.23-12/include/linux/init_task.h
@@ -1686,20 +1686,13 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
  DEFINE_RWLOCK(raw_v4_lock);
-@@ -598,9 +599,14 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -601,6 +602,10 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
  		goto out;
- 	}
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
@@ -1741,36 +1734,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
-@@ -828,6 +824,7 @@ int udp_recvmsg(struct kiocb *iocb, stru
- 	unsigned int ulen, copied;
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
-+	_Bool update_stat;
- 
- 	/*
- 	 *	Check any passed addresses
-@@ -842,6 +839,11 @@ try_again:
+@@ -842,6 +838,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-@@ -897,7 +899,8 @@ out:
- 	return err;
- 
- csum_copy_err:
--	UDP_INC_STATS_BH(UDP_MIB_INERRORS, is_udplite);
-+	if (update_stat)
-+		UDP_INC_STATS_BH(UDP_MIB_INERRORS, is_udplite);
- 
- 	skb_kill_datagram(sk, skb, flags);
- 
 --- linux-2.6.23-12.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.23-12/net/ipv6/inet6_hashtables.c
 @@ -21,9 +21,7 @@
@@ -1806,20 +1780,13 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
  DEFINE_RWLOCK(raw_v6_lock);
-@@ -439,9 +440,14 @@ static int rawv6_recvmsg(struct kiocb *i
- 	if (flags & MSG_ERRQUEUE)
- 		return ipv6_recv_error(sk, msg, len);
- 
--	skb = skb_recv_datagram(sk, flags, noblock, &err);
--	if (!skb)
--		goto out;
-+	for (;;) {
-+		skb = skb_recv_datagram(sk, flags, noblock, &err);
-+		if (!skb)
-+			goto out;
-+		if (!ccs_socket_post_recvmsg_permission(sk, skb))
-+			break;
-+		skb_kill_datagram(sk, skb, flags);
+@@ -442,6 +443,10 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
  
  	copied = skb->len;
@@ -1834,36 +1801,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
  
-@@ -123,6 +124,7 @@ int udpv6_recvmsg(struct kiocb *iocb, st
- 	unsigned int ulen, copied;
- 	int err;
- 	int is_udplite = IS_UDPLITE(sk);
-+	_Bool update_stat;
- 
- 	if (addr_len)
- 		*addr_len=sizeof(struct sockaddr_in6);
-@@ -134,6 +136,11 @@ try_again:
+@@ -134,6 +135,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		update_stat = 0;
-+		goto csum_copy_err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
 +	}
-+	update_stat = 1;
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-@@ -208,7 +215,8 @@ csum_copy_err:
- 	skb_kill_datagram(sk, skb, flags);
- 
- 	if (flags & MSG_DONTWAIT) {
--		UDP6_INC_STATS_USER(UDP_MIB_INERRORS, is_udplite);
-+		if (update_stat)
-+			UDP6_INC_STATS_USER(UDP_MIB_INERRORS, is_udplite);
- 		return -EAGAIN;
- 	}
- 	goto try_again;
 --- linux-2.6.23-12.orig/net/socket.c
 +++ linux-2.6.23-12/net/socket.c
 @@ -93,10 +93,7 @@
@@ -1933,32 +1881,22 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1411,6 +1406,7 @@ asmlinkage long sys_accept(int fd, struc
- 	if (!sock)
- 		goto out;
- 
-+retry:
- 	err = -ENFILE;
- 	if (!(newsock = sock_alloc()))
- 		goto out_put;
-@@ -1443,12 +1439,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1443,12 +1438,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
 -	/***** TOMOYO Linux start. *****/
 -	if (CheckSocketAcceptPermission(newsock, (struct sockaddr *) address)) {
 -		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
--		goto out_fd;
 +	if (ccs_socket_post_accept_permission(sock, newsock)) {
-+		fput(newfile);
-+		put_unused_fd(newfd);
-+		goto retry;
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
+ 		goto out_fd;
  	}
 -	/***** TOMOYO Linux end. *****/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1511,12 +1506,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1511,12 +1504,11 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -2011,21 +1949,13 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1660,6 +1654,7 @@ static int unix_dgram_recvmsg(struct kio
- 
- 	mutex_lock(&u->readlock);
- 
-+retry:
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb) {
- 		unix_state_lock(sk);
-@@ -1673,6 +1668,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1673,6 +1667,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible(&u->peer_wait);
  
-+	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
-+		skb_kill_datagram(sk, skb, flags);
-+		goto retry;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_unlock;
 +	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
