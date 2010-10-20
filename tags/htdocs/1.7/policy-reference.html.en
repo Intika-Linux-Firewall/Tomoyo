@@ -615,7 +615,7 @@ allow_execute /bin/cat if exec.realpath="/bin/cat" exec.argv[0]="cat"
 
 <p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To modify profile, use "ccs-setlevel" or "ccs-loadpolicy" commands.</p>
 
-<p>Each domain is assigned one profile. To assign profile to domains, use "setprofile" or "ccs-editpolicy" or "ccs-loadpolicy" commands.</p>
+<p>Each domain is assigned one profile. To assign profile to domains, use "ccs-setprofile" or "ccs-editpolicy" or "ccs-loadpolicy" commands.</p>
 
 <p>You can see profiles currently assigned to domains using "ccs-editpolicy" command.<br>
 You can see profiles currently assigned to processes using "ccs-pstree" command.<br>
@@ -867,7 +867,7 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <h3><a name="profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></h3>
 
-<p>Specifies access control level regarding use of ptrace(2) syscall.<br>
+<p>Specifies access control level regarding use of ptrace(2) syscall.</p>
 
 <h3><a name="profile_CONFIG::capability::conceal_mount">CONFIG::capability::conceal_mount</a></h3>
 
@@ -1449,7 +1449,7 @@ deny_autobind 8080</p>
 
 <h2><a name=".domain_status">/proc/ccs/.domain_status</a></h2>
 
-<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "setprofile" command can do line-oriented processing easily.</p>
+<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "ccs-setprofile" command can do line-oriented processing easily.</p>
 
 <h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
 

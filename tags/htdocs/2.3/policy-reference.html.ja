@@ -392,7 +392,7 @@ Query lists: 1048576
 
 <p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには tomoyo-setlevel コマンドまたは tomoyo-loadpolicy コマンドを使用します。</p>
 
-<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには setprofile コマンドまたは tomoyo-editpolicy コマンドまたは tomoyo-loadpolicy コマンドを使用します。</p>
+<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには tomoyo-setprofile コマンドまたは tomoyo-editpolicy コマンドまたは tomoyo-loadpolicy コマンドを使用します。</p>
 
 <p>現在ドメインに割り当てられているプロファイル番号は tomoyo-editpolicy コマンドで確認できます。<br>
 現在動作中のプロセスに割り当てられているプロファイル番号は tomoyo-pstree コマンドで確認できます。<br>
@@ -871,7 +871,7 @@ allow_create /tmp/file @CREATE_MODES
 
 <h2><a name=".domain_status">/sys/kernel/security/tomoyo/.domain_status</a></h2>
 
-<p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
+<p>tomoyo-setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
 
 <h2><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h2>
 

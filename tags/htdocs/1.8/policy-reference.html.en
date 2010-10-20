@@ -38,62 +38,7 @@
 <p>Used by /proc/ccs/profile and /etc/ccs/profile.conf</p>
 
 <ul>
-<li><a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a></li>
-<li><a href="#profile_CONFIG::file::open">CONFIG::file::open</a></li>
-<li><a href="#profile_CONFIG::file::create">CONFIG::file::create</a></li>
-<li><a href="#profile_CONFIG::file::unlink">CONFIG::file::unlink</a></li>
-<li><a href="#profile_CONFIG::file::mkdir">CONFIG::file::mkdir</a></li>
-<li><a href="#profile_CONFIG::file::rmdir">CONFIG::file::rmdir</a></li>
-<li><a href="#profile_CONFIG::file::mkfifo">CONFIG::file::mkfifo</a></li>
-<li><a href="#profile_CONFIG::file::mksock">CONFIG::file::mksock</a></li>
-<li><a href="#profile_CONFIG::file::truncate">CONFIG::file::truncate</a></li>
-<li><a href="#profile_CONFIG::file::symlink">CONFIG::file::symlink</a></li>
-<li><a href="#profile_CONFIG::file::rewrite">CONFIG::file::rewrite</a></li>
-<li><a href="#profile_CONFIG::file::mkblock">CONFIG::file::mkblock</a></li>
-<li><a href="#profile_CONFIG::file::mkchar">CONFIG::file::mkchar</a></li>
-<li><a href="#profile_CONFIG::file::link">CONFIG::file::link</a></li>
-<li><a href="#profile_CONFIG::file::rename">CONFIG::file::rename</a></li>
-<li><a href="#profile_CONFIG::file::chmod">CONFIG::file::chmod</a></li>
-<li><a href="#profile_CONFIG::file::chown">CONFIG::file::chown</a></li>
-<li><a href="#profile_CONFIG::file::chgrp">CONFIG::file::chgrp</a></li>
-<li><a href="#profile_CONFIG::file::ioctl">CONFIG::file::ioctl</a></li>
-<li><a href="#profile_CONFIG::file::chroot">CONFIG::file::chroot</a></li>
-<li><a href="#profile_CONFIG::file::mount">CONFIG::file::mount</a></li>
-<li><a href="#profile_CONFIG::file::unmount">CONFIG::file::unmount</a></li>
-<li><a href="#profile_CONFIG::file::pivot_root">CONFIG::file::pivot_root</a></li>
-<li><a href="#profile_CONFIG::misc::env">CONFIG::misc::env</a></li>
-<li><a href="#profile_CONFIG::capability::use_route">CONFIG::capability::use_route</a></li>
-<li><a href="#profile_CONFIG::capability::use_packet">CONFIG::capability::use_packet</a></li>
-<li><a href="#profile_CONFIG::capability::use_kernel_module">CONFIG::capability::use_kernel_module</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_REBOOT">CONFIG::capability::SYS_REBOOT</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_VHANGUP">CONFIG::capability::SYS_VHANGUP</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_TIME">CONFIG::capability::SYS_TIME</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_NICE">CONFIG::capability::SYS_NICE</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_SETHOSTNAME">CONFIG::capability::SYS_SETHOSTNAME</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_KEXEC_LOAD">CONFIG::capability::SYS_KEXEC_LOAD</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></li>
-<li><a href="#profile_CONFIG::network::inet_dgram_bind">CONFIG::network::inet_dgram_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_dgram_send">CONFIG::network::inet_dgram_send</a></li>
-<li><a href="#profile_CONFIG::network::inet_dgram_recv">CONFIG::network::inet_dgram_recv</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_bind">CONFIG::network::inet_stream_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_listen">CONFIG::network::inet_stream_listen</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_connect">CONFIG::network::inet_stream_connect</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_accept">CONFIG::network::inet_stream_accept</a></li>
-<li><a href="#profile_CONFIG::network::inet_raw_bind">CONFIG::network::inet_raw_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_raw_send">CONFIG::network::inet_raw_send</a></li>
-<li><a href="#profile_CONFIG::network::inet_raw_recv">CONFIG::network::inet_raw_recv</a></li>
-<li><a href="#profile_CONFIG::network::unix_dgram_bind">CONFIG::network::unix_dgram_bind</a></li>
-<li><a href="#profile_CONFIG::network::unix_dgram_send">CONFIG::network::unix_dgram_send</a></li>
-<li><a href="#profile_CONFIG::network::unix_dgram_recv">CONFIG::network::unix_dgram_recv</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_bind">CONFIG::network::unix_stream_bind</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_listen">CONFIG::network::unix_stream_listen</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_connect">CONFIG::network::unix_stream_connect</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_accept">CONFIG::network::unix_stream_accept</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_bind">CONFIG::network::unix_seqpacket_bind</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_listen">CONFIG::network::unix_seqpacket_listen</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_connect">CONFIG::network::unix_seqpacket_connect</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_accept">CONFIG::network::unix_seqpacket_accept</a></li>
-<li><a href="#profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></li>
+<li><a href="#profile_CONFIG">CONFIG</a></li>
 <li><a href="#profile_PREFERENCE">PREFERENCE</a></li>
 </ul>
 
@@ -275,7 +220,7 @@ Query lists: 1048576
 
 <table border="1">
 <tr><td>The kernel's interface</td><td>Policy file</td><td>Contents</td></tr>
-<tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>Profiles (Collection of access control levels)</td></tr>
+<tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>Profiles (Collection of operation modes)</td></tr>
 <tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>Managers (Programs that can modify policy via /proc/ccs/ interface)</td></tr>
 <tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>Exception policy (Collection of exceptions for domain policy)</td></tr>
 <tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>Domain policy (Access permissions given to individual domains)</td></tr>
@@ -607,7 +552,9 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
-<p>You can specify one of modes shown below for functionalities that start with "CONFIG".</p>
+<h3><a name="profile_CONFIG">CONFIG</a></h3>
+
+<p>Specifies operation modes and whether to generate audit logs or not.</p>
 
 <table border="1">
 <tr><td>Configuration</td><td>Meaning</td></tr>
@@ -621,229 +568,85 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 <tr><td>reject_log=no</td><td>Don't generate reject logs.</td></tr>
 </table>
 
-<h3><a name="profile_CONFIG::file::execute">CONFIG::file::execute</a></h3>
-
-<p>Specifies access control level regarding program execution and domain transition.</p>
-
-<h3><a name="profile_CONFIG::file::open">CONFIG::file::open</a></h3>
-
-<p>Specifies access control level regarding file open for reading and/or writing.</p>
-
-<h3><a name="profile_CONFIG::file::create">CONFIG::file::create</a></h3>
-
-<p>Specifies access control level regarding file create.</p>
-
-<h3><a name="profile_CONFIG::file::unlink">CONFIG::file::unlink</a></h3>
-
-<p>Specifies access control level regarding file delete.</p>
-
-<h3><a name="profile_CONFIG::file::mkdir">CONFIG::file::mkdir</a></h3>
-
-<p>Specifies access control level regarding directory create.</p>
-
-<h3><a name="profile_CONFIG::file::rmdir">CONFIG::file::rmdir</a></h3>
-
-<p>Specifies access control level regarding directory delete.</p>
-
-<h3><a name="profile_CONFIG::file::mkfifo">CONFIG::file::mkfifo</a></h3>
-
-<p>Specifies access control level regarding fifo create.</p>
-
-<h3><a name="profile_CONFIG::file::mksock">CONFIG::file::mksock</a></h3>
-
-<p>Specifies access control level regarding UNIX domain socket create.</p>
-
-<h3><a name="profile_CONFIG::file::truncate">CONFIG::file::truncate</a></h3>
-
-<p>Specifies access control level regarding file truncate.</p>
-
-<h3><a name="profile_CONFIG::file::symlink">CONFIG::file::symlink</a></h3>
-
-<p>Specifies access control level regarding symlink create.</p>
-
-<h3><a name="profile_CONFIG::file::rewrite">CONFIG::file::rewrite</a></h3>
-
-<p>Specifies access control level regarding file overwrite.</p>
-
-<h3><a name="profile_CONFIG::file::mkblock">CONFIG::file::mkblock</a></h3>
-
-<p>Specifies access control level regarding block device file create.</p>
-
-<h3><a name="profile_CONFIG::file::mkchar">CONFIG::file::mkchar</a></h3>
-
-<p>Specifies access control level regarding character device file create.</p>
-
-<h3><a name="profile_CONFIG::file::link">CONFIG::file::link</a></h3>
-
-<p>Specifies access control level regarding link create.</p>
-
-<h3><a name="profile_CONFIG::file::rename">CONFIG::file::rename</a></h3>
-
-<p>Specifies access control level regarding rename.</p>
-
-<h3><a name="profile_CONFIG::file::chmod">CONFIG::file::chmod</a></h3>
-
-<p>Specifies access control level regarding chmod.</p>
-
-<h3><a name="profile_CONFIG::file::chown">CONFIG::file::chown</a></h3>
-
-<p>Specifies access control level regarding chown.</p>
-
-<h3><a name="profile_CONFIG::file::chgrp">CONFIG::file::chgrp</a></h3>
-
-<p>Specifies access control level regarding chgrp.</p>
-
-<h3><a name="profile_CONFIG::file::ioctl">CONFIG::file::ioctl</a></h3>
-
-<p>Specifies access control level regarding ioctl.</p>
-
-<h3><a name="profile_CONFIG::file::chroot">CONFIG::file::chroot</a></h3>
-
-<p>Specifies access control level regarding chroot.</p>
-
-<h3><a name="profile_CONFIG::file::mount">CONFIG::file::mount</a></h3>
-
-<p>Specifies access control level regarding mount.</p>
-
-<h3><a name="profile_CONFIG::file::unmount">CONFIG::file::unmount</a></h3>
-
-<p>Specifies access control level regarding unmount.</p>
-
-<h3><a name="profile_CONFIG::file::pivot_root">CONFIG::file::pivot_root</a></h3>
-
-<p>Specifies access control level regarding pivot_root.</p>
-
-<h3><a name="profile_CONFIG::misc::env">CONFIG::misc::env</a></h3>
-
-<p>Specifies access control level regarding environment variable names (a.k.a. envp[]).</p>
-
-<h3><a name="profile_CONFIG::capability::use_route">CONFIG::capability::use_route</a></h3>
-
-<p>Specifies access control level regarding use of ROUTE sockets.</p>
-
-<h3><a name="profile_CONFIG::capability::use_packet">CONFIG::capability::use_packet</a></h3>
-
-<p>Specifies access control level regarding use of PACKET sockets.</p>
-
-<h3><a name="profile_CONFIG::capability::use_kernel_module">CONFIG::capability::use_kernel_module</a></h3>
-
-<p>Specifies access control level regarding use of create_module(2) init_module(2) delete_module(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_REBOOT">CONFIG::capability::SYS_REBOOT</a></h3>
-
-<p>Specifies access control level regarding use of reboot(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_VHANGUP">CONFIG::capability::SYS_VHANGUP</a></h3>
-
-<p>Specifies access control level regarding use of vhangup(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_TIME">CONFIG::capability::SYS_TIME</a></h3>
-
-<p>Specifies access control level regarding use of stime(2) settimeofday(2) adjtimex(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_NICE">CONFIG::capability::SYS_NICE</a></h3>
-
-<p>Specifies access control level regarding use of nice(2) setpriority(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_SETHOSTNAME">CONFIG::capability::SYS_SETHOSTNAME</a></h3>
-
-<p>Specifies access control level regarding use of sethostname(2) setdomainname(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_KEXEC_LOAD">CONFIG::capability::SYS_KEXEC_LOAD</a></h3>
-
-<p>Specifies access control level regarding use of kexec_load(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></h3>
-
-<p>Specifies access control level regarding use of ptrace(2) syscall.<br>
-
-<h3><a name="profile_CONFIG::network::inet_dgram_bind">CONFIG::network::inet_dgram_bind</a></h3>
-
-<p>Specifies access control level regarding UDP socket's local address restriction.</p>
-
-<h3><a name="profile_CONFIG::network::inet_dgram_send">CONFIG::network::inet_dgram_send</a></h3>
-
-<p>Specifies access control level regarding UDP socket's remote address restriction for outgoing packets.</p>
-
-<h3><a name="profile_CONFIG::network::inet_dgram_recv">CONFIG::network::inet_dgram_recv</a></h3>
-
-<p>Specifies access control level regarding UDP socket's remote address restriction for incoming packets.</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_bind">CONFIG::network::inet_stream_bind</a></h3>
-
-<p>Specifies access control level regarding TCP socket's bind() operation.</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_listen">CONFIG::network::inet_stream_listen</a></h3>
-
-<p>Specifies access control level regarding TCP socket's listen() operation.</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_connect">CONFIG::network::inet_stream_connect</a></h3>
-
-<p>Specifies access control level regarding TCP socket's connect() operation.</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_accept">CONFIG::network::inet_stream_accept</a></h3>
-
-<p>Specifies access control level regarding TCP socket's accept() operation.</p>
-
-<h3><a name="profile_CONFIG::network::inet_raw_bind">CONFIG::network::inet_raw_bind</a></h3>
-
-<p>Specifies access control level regarding RAW socket's local address restriction.</p>
-
-<h3><a name="profile_CONFIG::network::inet_raw_send">CONFIG::network::inet_raw_send</a></h3>
-
-<p>Specifies access control level regarding RAW socket's remote address restriction for outgoing packets.</p>
-
-<h3><a name="profile_CONFIG::network::inet_raw_recv">CONFIG::network::inet_raw_recv</a></h3>
-
-<p>Specifies access control level regarding RAW socket's remote address restriction for incoming packets.</p>
-
-<h3><a name="profile_CONFIG::network::unix_dgram_bind">CONFIG::network::unix_dgram_bind</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's datagram socket's local address restriction.</p>
-
-<h3><a name="profile_CONFIG::network::unix_dgram_send">CONFIG::network::unix_dgram_send</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's datagram socket's remote address restriction for outgoing packets.</p>
-
-<h3><a name="profile_CONFIG::network::unix_dgram_recv">CONFIG::network::unix_dgram_recv</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's datagram socket's remote address restriction for incoming packets.</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_bind">CONFIG::network::unix_stream_bind</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's stream socket's bind() operation.</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_listen">CONFIG::network::unix_stream_listen</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's stream socket's listen() operation.</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_connect">CONFIG::network::unix_stream_connect</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's stream socket's connect() operation.</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_accept">CONFIG::network::unix_stream_accept</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's stream socket's accept() operation.</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_bind">CONFIG::network::unix_seqpacket_bind</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's seqpacket socket's bind() operation.</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_listen">CONFIG::network::unix_seqpacket_listen</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's seqpacket socket's listen() operation.</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_connect">CONFIG::network::unix_seqpacket_connect</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's seqpacket socket's connect() operation.</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_accept">CONFIG::network::unix_seqpacket_accept</a></h3>
-
-<p>Specifies access control level regarding UNIX domain's seqpacket socket's accept() operation.</p>
-
-<h3><a name="profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></h3>
-
-<p>Specifies access control level regarding signal transmission requests.</p>
+<p>You can specify default configuration for all categories and all functionalities.</p>
+
+<table border="1">
+<tr><td>Name</td><td>Meaning</td></tr>
+<tr><td>CONFIG</td><td>Specifies default operation mode if neither per-category nor per-functionality configuration is specified.</td></tr>
+</table>
+
+<p>You can overwrite default configuration by specifying per-category configuration.</p>
+
+<table border="1">
+<tr><td>Name</td><td>Meaning</td></tr>
+<tr><td>CONFIG::file</td><td>Specifies default operation mode for file related operations.</td></tr>
+<tr><td>CONFIG::network</td><td>Specifies default operation mode for network related operations.</td></tr>
+<tr><td>CONFIG::misc</td><td>Specifies default operation mode for other parameters.</td></tr>
+<tr><td>CONFIG::capability</td><td>Specifies default operation mode for capabilities.</td></tr>
+<tr><td>CONFIG::ipc</td><td>Specifies default operation mode for file related inter process communications.</td></tr>
+</table>
+
+<p>You can overwrite per-category configuration and default configuration by specifying per-functionality configuration.</p>
+
+<table border="1">
+<tr><td>Name</td><td>Meaning</td></tr>
+<tr><td>CONFIG::file::execute</td><td>Specifies operation mode regarding program execution and domain transition.</td></tr>
+<tr><td>CONFIG::file::open</td><td>Specifies operation mode regarding file open for reading and/or writing.</td></tr>
+<tr><td>CONFIG::file::create</td><td>Specifies operation mode regarding file create.</td></tr>
+<tr><td>CONFIG::file::unlink</td><td>Specifies operation mode regarding file delete.</td></tr>
+<tr><td>CONFIG::file::mkdir</td><td>Specifies operation mode regarding directory create.</td></tr>
+<tr><td>CONFIG::file::rmdir</td><td>Specifies operation mode regarding directory delete.</td></tr>
+<tr><td>CONFIG::file::mkfifo</td><td>Specifies operation mode regarding fifo create.</td></tr>
+<tr><td>CONFIG::file::mksock</td><td>Specifies operation mode regarding UNIX domain socket create.</td></tr>
+<tr><td>CONFIG::file::truncate</td><td>Specifies operation mode regarding file truncate.</td></tr>
+<tr><td>CONFIG::file::symlink</td><td>Specifies operation mode regarding symlink create.</td></tr>
+<tr><td>CONFIG::file::rewrite</td><td>Specifies operation mode regarding file overwrite.</td></tr>
+<tr><td>CONFIG::file::mkblock</td><td>Specifies operation mode regarding block device file create.</td></tr>
+<tr><td>CONFIG::file::mkchar</td><td>Specifies operation mode regarding character device file create.</td></tr>
+<tr><td>CONFIG::file::link</td><td>Specifies operation mode regarding link create.</td></tr>
+<tr><td>CONFIG::file::rename</td><td>Specifies operation mode regarding rename.</td></tr>
+<tr><td>CONFIG::file::chmod</td><td>Specifies operation mode regarding chmod.</td></tr>
+<tr><td>CONFIG::file::chown</td><td>Specifies operation mode regarding chown.</td></tr>
+<tr><td>CONFIG::file::chgrp</td><td>Specifies operation mode regarding chgrp.</td></tr>
+<tr><td>CONFIG::file::ioctl</td><td>Specifies operation mode regarding ioctl.</td></tr>
+<tr><td>CONFIG::file::chroot</td><td>Specifies operation mode regarding chroot.</td></tr>
+<tr><td>CONFIG::file::mount</td><td>Specifies operation mode regarding mount.</td></tr>
+<tr><td>CONFIG::file::unmount</td><td>Specifies operation mode regarding unmount.</td></tr>
+<tr><td>CONFIG::file::pivot_root</td><td>Specifies operation mode regarding pivot_root.</td></tr>
+<tr><td>CONFIG::network::inet_dgram_bind</td><td>Specifies operation mode regarding UDP socket's local address restriction.</td></tr>
+<tr><td>CONFIG::network::inet_dgram_send</td><td>Specifies operation mode regarding UDP socket's remote address restriction for outgoing packets.</td></tr>
+<tr><td>CONFIG::network::inet_dgram_recv</td><td>Specifies operation mode regarding UDP socket's remote address restriction for incoming packets.</td></tr>
+<tr><td>CONFIG::network::inet_stream_bind</td><td>Specifies operation mode regarding TCP socket's bind() operation.</td></tr>
+<tr><td>CONFIG::network::inet_stream_listen</td><td>Specifies operation mode regarding TCP socket's listen() operation.</td></tr>
+<tr><td>CONFIG::network::inet_stream_connect</td><td>Specifies operation mode regarding TCP socket's connect() operation.</td></tr>
+<tr><td>CONFIG::network::inet_stream_accept</td><td>Specifies operation mode regarding TCP socket's accept() operation.</td></tr>
+<tr><td>CONFIG::network::inet_raw_bind</td><td>Specifies operation mode regarding RAW socket's local address restriction.</td></tr>
+<tr><td>CONFIG::network::inet_raw_send</td><td>Specifies operation mode regarding RAW socket's remote address restriction for outgoing packets.</td></tr>
+<tr><td>CONFIG::network::inet_raw_recv</td><td>Specifies operation mode regarding RAW socket's remote address restriction for incoming packets.</td></tr>
+<tr><td>CONFIG::network::unix_dgram_bind</td><td>Specifies operation mode regarding UNIX domain's datagram socket's local address restriction.</td></tr>
+<tr><td>CONFIG::network::unix_dgram_send</td><td>Specifies operation mode regarding UNIX domain's datagram socket's remote address restriction for outgoing packets.</td></tr>
+<tr><td>CONFIG::network::unix_dgram_recv</td><td>Specifies operation mode regarding UNIX domain's datagram socket's remote address restriction for incoming packets.</td></tr>
+<tr><td>CONFIG::network::unix_stream_bind</td><td>Specifies operation mode regarding UNIX domain's stream socket's bind() operation.</td></tr>
+<tr><td>CONFIG::network::unix_stream_listen</td><td>Specifies operation mode regarding UNIX domain's stream socket's listen() operation.</td></tr>
+<tr><td>CONFIG::network::unix_stream_connect</td><td>Specifies operation mode regarding UNIX domain's stream socket's connect() operation.</td></tr>
+<tr><td>CONFIG::network::unix_stream_accept</td><td>Specifies operation mode regarding UNIX domain's stream socket's accept() operation.</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_bind</td><td>Specifies operation mode regarding UNIX domain's seqpacket socket's bind() operation.</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_listen</td><td>Specifies operation mode regarding UNIX domain's seqpacket socket's listen() operation.</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_connect</td><td>Specifies operation mode regarding UNIX domain's seqpacket socket's connect() operation.</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_accept</td><td>Specifies operation mode regarding UNIX domain's seqpacket socket's accept() operation.</td></tr>
+<tr><td>CONFIG::misc::env</td><td>Specifies operation mode regarding environment variable names (a.k.a. envp[]).</td></tr>
+<tr><td>CONFIG::capability::use_route</td><td>Specifies operation mode regarding use of ROUTE sockets.</td></tr>
+<tr><td>CONFIG::capability::use_packet</td><td>Specifies operation mode regarding use of PACKET sockets.</td></tr>
+<tr><td>CONFIG::capability::use_kernel_module</td><td>Specifies operation mode regarding use of create_module(2) init_module(2) delete_module(2) syscall.</td></tr>
+<tr><td>CONFIG::capability::SYS_REBOOT</td><td>Specifies operation mode regarding use of reboot(2) syscall.</td></tr>
+<tr><td>CONFIG::capability::SYS_VHANGUP</td><td>Specifies operation mode regarding use of vhangup(2) syscall.</td></tr>
+<tr><td>CONFIG::capability::SYS_TIME</td><td>Specifies operation mode regarding use of stime(2) settimeofday(2) adjtimex(2) syscall.</td></tr>
+<tr><td>CONFIG::capability::SYS_NICE</td><td>Specifies operation mode regarding use of nice(2) setpriority(2) syscall.</td></tr>
+<tr><td>CONFIG::capability::SYS_SETHOSTNAME</td><td>Specifies operation mode regarding use of sethostname(2) setdomainname(2) syscall.</td></tr>
+<tr><td>CONFIG::capability::SYS_KEXEC_LOAD</td><td>Specifies operation mode regarding use of kexec_load(2) syscall.</td></tr>
+<tr><td>CONFIG::capability::SYS_PTRACE</td><td>Specifies operation mode regarding use of ptrace(2) syscall.</td></tr>
+<tr><td>CONFIG::ipc::signal</td><td>Specifies operation mode regarding signal transmission requests.</td></tr>
+</table>
 
 <h3><a name="profile_PREFERENCE">PREFERENCE</a></h3>
 
@@ -1083,13 +886,13 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>This domain executes only one program specified by this keyword. You can use this keyword for domains you want to validate parameters before executing the requested program.</p>
 
-<p>If this keyword is specified, only one program specified by this keyword regardless of the mode specified by <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>. Thus, if the pathname specified by this program cannot be executed, no programs can be executed from this domain.</p>
+<p>If this keyword is specified, only one program specified by this keyword regardless of the mode specified by <a href="#profile_CONFIG">CONFIG::file::execute</a>. Thus, if the pathname specified by this program cannot be executed, no programs can be executed from this domain.</p>
 
-<p>See also:  <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> <a href="#domain_policy_file_execute">file execute</a></p>
+<p>See also:  <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> <a href="#profile_CONFIG">CONFIG::file::execute</a> <a href="#domain_policy_file_execute">file execute</a></p>
 
 <h3><a name="domain_policy_task_denied_execute_handler">task denied_execute_handler</a></h3>
 
-<p>This domain executes this program only when execute request was rejected and the mode of <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> is enforcing. If this keyword is not specified and the mode of <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> is enforcing, execute request is rejected.</p>
+<p>This domain executes this program only when execute request was rejected and the mode of <a href="#profile_CONFIG">CONFIG::file::execute</a> is enforcing. If this keyword is not specified and the mode of <a href="#profile_CONFIG">CONFIG::file::execute</a> is enforcing, execute request is rejected.</p>
 
 <p>Exception is, if the <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> keyword is specified, task denied_execute_handler keyword is ignored.</p>
 
@@ -1103,9 +906,9 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>This keyword indicates that some process in this domain was not able to transit to new domain when processing the execute request.</p>
 
-<p>If this domain was assigned a profile with <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing , the execute request was rejected.</p>
+<p>If this domain was assigned a profile with <a href="#profile_CONFIG">CONFIG::file::execute</a>={ mode=enforcing } , the execute request was rejected.</p>
 
-<p>Otherwise, the execute request was not rejected. In that case, the process continued execution without domain transition. Since the reason of transition failure is either "the name of the domain was too long" or "the kernel was unable to allocate memory", you need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing to this domain.</p>
+<p>Otherwise, the execute request was not rejected. In that case, the process continued execution without domain transition. Since the reason of transition failure is either "the name of the domain was too long" or "the kernel was unable to allocate memory", you need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_CONFIG">CONFIG::file::execute</a>={ mode=enforcing } to this domain.</p>
 
 <p>See also:  <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_usage_infomation">Memory Usage Information</a></p>
 
@@ -1670,7 +1473,7 @@ Thus, TOMOYO Linux provides a mechanism that executes different program instead 
 
 <table border="1">
 <tr><td>Example of /proc/ccs/profile</td><td>Example of /proc/ccs/domain_policy</td><td>Meaning</td></tr>
-<tr><td>3-CONFIG::file::execute=enforcing</td><td>use_profile 3<br>task denied_execute_handler /bin/true</td><td>If a process which belongs to a domain with profile 3 requested execution of a program which is not permitted by the domain policy, execute /bin/true instead of rejecting the execute request.</td></tr>
+<tr><td>3-CONFIG::file::execute={ mode=enforcing }</td><td>use_profile 3<br>task denied_execute_handler /bin/true</td><td>If a process which belongs to a domain with profile 3 requested execution of a program which is not permitted by the domain policy, execute /bin/true instead of rejecting the execute request.</td></tr>
 </table>
 
 <p>Notes on this feature is the same as <a href="#auto_execute_handler">Judging execute request outside the kernel.</a></p>

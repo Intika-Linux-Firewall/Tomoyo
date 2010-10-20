@@ -392,7 +392,7 @@ Query lists: 1048576
 
 <p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To modify profile, use "tomoyo-setlevel" or "tomoyo-loadpolicy" commands.</p>
 
-<p>Each domain is assigned one profile. To assign profile to domains, use "setprofile" or "tomoyo-editpolicy" or "tomoyo-loadpolicy" commands.</p>
+<p>Each domain is assigned one profile. To assign profile to domains, use "tomoyo-setprofile" or "tomoyo-editpolicy" or "tomoyo-loadpolicy" commands.</p>
 
 <p>You can see profiles currently assigned to domains using "tomoyo-editpolicy" command.<br>
 You can see profiles currently assigned to processes using "tomoyo-pstree" command.<br>
@@ -871,7 +871,7 @@ allow_create /tmp/file @CREATE_MODES
 
 <h2><a name=".domain_status">/sys/kernel/security/tomoyo/.domain_status</a></h2>
 
-<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "setprofile" command can do line-oriented processing easily.</p>
+<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "tomoyo-setprofile" command can do line-oriented processing easily.</p>
 
 <h2><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h2>
 
