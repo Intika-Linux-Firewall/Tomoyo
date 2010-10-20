@@ -38,62 +38,7 @@
 <p>/proc/ccs/profile および /etc/ccs/profile.conf で使われるもの</p>
 
 <ul>
-<li><a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a></li>
-<li><a href="#profile_CONFIG::file::open">CONFIG::file::open</a></li>
-<li><a href="#profile_CONFIG::file::create">CONFIG::file::create</a></li>
-<li><a href="#profile_CONFIG::file::unlink">CONFIG::file::unlink</a></li>
-<li><a href="#profile_CONFIG::file::mkdir">CONFIG::file::mkdir</a></li>
-<li><a href="#profile_CONFIG::file::rmdir">CONFIG::file::rmdir</a></li>
-<li><a href="#profile_CONFIG::file::mkfifo">CONFIG::file::mkfifo</a></li>
-<li><a href="#profile_CONFIG::file::mksock">CONFIG::file::mksock</a></li>
-<li><a href="#profile_CONFIG::file::truncate">CONFIG::file::truncate</a></li>
-<li><a href="#profile_CONFIG::file::symlink">CONFIG::file::symlink</a></li>
-<li><a href="#profile_CONFIG::file::rewrite">CONFIG::file::rewrite</a></li>
-<li><a href="#profile_CONFIG::file::mkblock">CONFIG::file::mkblock</a></li>
-<li><a href="#profile_CONFIG::file::mkchar">CONFIG::file::mkchar</a></li>
-<li><a href="#profile_CONFIG::file::link">CONFIG::file::link</a></li>
-<li><a href="#profile_CONFIG::file::rename">CONFIG::file::rename</a></li>
-<li><a href="#profile_CONFIG::file::chmod">CONFIG::file::chmod</a></li>
-<li><a href="#profile_CONFIG::file::chown">CONFIG::file::chown</a></li>
-<li><a href="#profile_CONFIG::file::chgrp">CONFIG::file::chgrp</a></li>
-<li><a href="#profile_CONFIG::file::ioctl">CONFIG::file::ioctl</a></li>
-<li><a href="#profile_CONFIG::file::chroot">CONFIG::file::chroot</a></li>
-<li><a href="#profile_CONFIG::file::mount">CONFIG::file::mount</a></li>
-<li><a href="#profile_CONFIG::file::unmount">CONFIG::file::unmount</a></li>
-<li><a href="#profile_CONFIG::file::pivot_root">CONFIG::file::pivot_root</a></li>
-<li><a href="#profile_CONFIG::misc::env">CONFIG::misc::env</a></li>
-<li><a href="#profile_CONFIG::capability::use_route">CONFIG::capability::use_route</a></li>
-<li><a href="#profile_CONFIG::capability::use_packet">CONFIG::capability::use_packet</a></li>
-<li><a href="#profile_CONFIG::capability::use_kernel_module">CONFIG::capability::use_kernel_module</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_REBOOT">CONFIG::capability::SYS_REBOOT</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_VHANGUP">CONFIG::capability::SYS_VHANGUP</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_TIME">CONFIG::capability::SYS_TIME</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_NICE">CONFIG::capability::SYS_NICE</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_SETHOSTNAME">CONFIG::capability::SYS_SETHOSTNAME</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_KEXEC_LOAD">CONFIG::capability::SYS_KEXEC_LOAD</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></li>
-<li><a href="#profile_CONFIG::network::inet_dgram_bind">CONFIG::network::inet_dgram_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_dgram_send">CONFIG::network::inet_dgram_send</a></li>
-<li><a href="#profile_CONFIG::network::inet_dgram_recv">CONFIG::network::inet_dgram_recv</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_bind">CONFIG::network::inet_stream_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_listen">CONFIG::network::inet_stream_listen</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_connect">CONFIG::network::inet_stream_connect</a></li>
-<li><a href="#profile_CONFIG::network::inet_stream_accept">CONFIG::network::inet_stream_accept</a></li>
-<li><a href="#profile_CONFIG::network::inet_raw_bind">CONFIG::network::inet_raw_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_raw_send">CONFIG::network::inet_raw_send</a></li>
-<li><a href="#profile_CONFIG::network::inet_raw_recv">CONFIG::network::inet_raw_recv</a></li>
-<li><a href="#profile_CONFIG::network::unix_dgram_bind">CONFIG::network::unix_dgram_bind</a></li>
-<li><a href="#profile_CONFIG::network::unix_dgram_send">CONFIG::network::unix_dgram_send</a></li>
-<li><a href="#profile_CONFIG::network::unix_dgram_recv">CONFIG::network::unix_dgram_recv</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_bind">CONFIG::network::unix_stream_bind</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_listen">CONFIG::network::unix_stream_listen</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_connect">CONFIG::network::unix_stream_connect</a></li>
-<li><a href="#profile_CONFIG::network::unix_stream_accept">CONFIG::network::unix_stream_accept</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_bind">CONFIG::network::unix_seqpacket_bind</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_listen">CONFIG::network::unix_seqpacket_listen</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_connect">CONFIG::network::unix_seqpacket_connect</a></li>
-<li><a href="#profile_CONFIG::network::unix_seqpacket_accept">CONFIG::network::unix_seqpacket_accept</a></li>
-<li><a href="#profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></li>
+<li><a href="#profile_CONFIG">CONFIG</a></li>
 <li><a href="#profile_PREFERENCE">PREFERENCE</a></li>
 </ul>
 
@@ -591,7 +536,7 @@ file execute /bin/cat exec.realpath="/bin/cat" exec.argv[0]="cat"
 
 <p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには ccs-setlevel コマンドまたは ccs-loadpolicy コマンドを使用します。</p>
 
-<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには setprofile コマンドまたは ccs-editpolicy コマンドまたは ccs-loadpolicy コマンドを使用します。</p>
+<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには ccs-setprofile コマンドまたは ccs-editpolicy コマンドまたは ccs-loadpolicy コマンドを使用します。</p>
 
 <p>現在ドメインに割り当てられているプロファイル番号は ccs-editpolicy コマンドで確認できます。<br>
 現在動作中のプロセスに割り当てられているプロファイル番号は ccs-pstree コマンドで確認できます。<br>
@@ -607,7 +552,9 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
-<p>CONFIG で始まる項目に対しては以下の値を指定できます。</p>
+<h3><a name="profile_CONFIG">CONFIG</a></h3>
+
+<p>動作モード、アクセスログの要否に関する設定を指定します。</p>
 
 <table border="1">
 <tr><td>設定</td><td>内容</td></tr>
@@ -621,229 +568,85 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 <tr><td>reject_log=no</td><td>アクセス拒否ログを取得しない。</td></tr>
 </table>
 
-<h3><a name="profile_CONFIG::file::execute">CONFIG::file::execute</a></h3>
-
-<p>プログラムの実行およびドメイン遷移に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::open">CONFIG::file::open</a></h3>
-
-<p>読み込みまたは書き込みモードでのファイルのオープンに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::create">CONFIG::file::create</a></h3>
-
-<p>ファイルの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::unlink">CONFIG::file::unlink</a></h3>
-
-<p>ファイルの削除に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::mkdir">CONFIG::file::mkdir</a></h3>
-
-<p>ディレクトリの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::rmdir">CONFIG::file::rmdir</a></h3>
-
-<p>ディレクトリの削除に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::mkfifo">CONFIG::file::mkfifo</a></h3>
-
-<p>名前付きパイプの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::mksock">CONFIG::file::mksock</a></h3>
-
-<p>ＵＮＩＸドメインソケットの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::truncate">CONFIG::file::truncate</a></h3>
-
-<p>ファイルの切り詰めに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::symlink">CONFIG::file::symlink</a></h3>
-
-<p>シンボリックリンクの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::rewrite">CONFIG::file::rewrite</a></h3>
-
-<p>ファイルの上書きに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::mkblock">CONFIG::file::mkblock</a></h3>
-
-<p>ブロック型デバイスファイルの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::mkchar">CONFIG::file::mkchar</a></h3>
-
-<p>キャラクタ型デバイスファイルの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::link">CONFIG::file::link</a></h3>
-
-<p>ハードリンクの作成に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::rename">CONFIG::file::rename</a></h3>
-
-<p>名称変更に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::chmod">CONFIG::file::chmod</a></h3>
-
-<p>ファイルのモードの変更に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::chown">CONFIG::file::chown</a></h3>
-
-<p>ファイルの所有者の変更に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::chgrp">CONFIG::file::chgrp</a></h3>
-
-<p>ファイルのグループの変更に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::ioctl">CONFIG::file::ioctl</a></h3>
-
-<p>IOCTL に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::chroot">CONFIG::file::chroot</a></h3>
-
-<p>ルートディレクトリの変更に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::mount">CONFIG::file::mount</a></h3>
-
-<p>マウントに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::unmount">CONFIG::file::unmount</a></h3>
-
-<p>アンマウントに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::file::pivot_root">CONFIG::file::pivot_root</a></h3>
-
-<p>ルートディレクトリの交換に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::misc::env">CONFIG::misc::env</a></h3>
-
-<p>プログラム実行時の環境変数名に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::use_route">CONFIG::capability::use_route</a></h3>
-
-<p>ROUTE ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::use_packet">CONFIG::capability::use_packet</a></h3>
-
-<p>PACKET ソケットの使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::use_kernel_module">CONFIG::capability::use_kernel_module</a></h3>
-
-<p>create_module(2) init_module(2) delete_module(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_REBOOT">CONFIG::capability::SYS_REBOOT</a></h3>
-
-<p>reboot(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_VHANGUP">CONFIG::capability::SYS_VHANGUP</a></h3>
-
-<p>vhangup(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_TIME">CONFIG::capability::SYS_TIME</a></h3>
-
-<p>stime(2) settimeofday(2) adjtimex(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_NICE">CONFIG::capability::SYS_NICE</a></h3>
-
-<p>nice(2) setpriority(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_SETHOSTNAME">CONFIG::capability::SYS_SETHOSTNAME</a></h3>
-
-<p>sethostname(2) setdomainname(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_KEXEC_LOAD">CONFIG::capability::SYS_KEXEC_LOAD</a></h3>
-
-<p>kexec_load(2) の使用に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></h3>
-
-<p>ptrace(2) の使用に対する強制アクセス制御のレベルを指定します。<br>
-
-<h3><a name="profile_CONFIG::network::inet_dgram_bind">CONFIG::network::inet_dgram_bind</a></h3>
-
-<p>UDP ソケットが使用するローカルアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_dgram_send">CONFIG::network::inet_dgram_send</a></h3>
-
-<p>UDP ソケットが送信時に使用するリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_dgram_recv">CONFIG::network::inet_dgram_recv</a></h3>
-
-<p>UDP ソケットが受信時に使用するリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_bind">CONFIG::network::inet_stream_bind</a></h3>
-
-<p>TCP ソケットの bind() 操作に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_listen">CONFIG::network::inet_stream_listen</a></h3>
-
-<p>TCP ソケットの listen() 操作に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_connect">CONFIG::network::inet_stream_connect</a></h3>
-
-<p>TCP ソケットの connect() 操作に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_stream_accept">CONFIG::network::inet_stream_accept</a></h3>
-
-<p>TCP ソケットの accept() 操作に対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_raw_bind">CONFIG::network::inet_raw_bind</a></h3>
-
-<p>RAW ソケットが使用するローカルアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_raw_send">CONFIG::network::inet_raw_send</a></h3>
-
-<p>RAW ソケットが送信時に使用するリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::inet_raw_recv">CONFIG::network::inet_raw_recv</a></h3>
-
-<p>RAW ソケットが受信時に使用するリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_dgram_bind">CONFIG::network::unix_dgram_bind</a></h3>
-
-<p>同一ホスト内でのデータグラムソケットが使用するローカルアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_dgram_send">CONFIG::network::unix_dgram_send</a></h3>
-
-<p>同一ホスト内でのデータグラムソケットが送信してよいリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_dgram_recv">CONFIG::network::unix_dgram_recv</a></h3>
-
-<p>同一ホスト内でのデータグラムソケットが受信してよいリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_bind">CONFIG::network::unix_stream_bind</a></h3>
-
-<p>同一ホスト内でのストリームソケットが使用するローカルアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_listen">CONFIG::network::unix_stream_listen</a></h3>
-
-<p>同一ホスト内でのストリームソケットが待ち受けするローカルアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_connect">CONFIG::network::unix_stream_connect</a></h3>
-
-<p>同一ホスト内でのストリームソケットが接続するリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_stream_accept">CONFIG::network::unix_stream_accept</a></h3>
-
-<p>同一ホスト内でのストリームソケットが受け付けるリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_bind">CONFIG::network::unix_seqpacket_bind</a></h3>
-
-<p>同一ホスト内での SEQPACKET ソケットが使用するローカルアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_listen">CONFIG::network::unix_seqpacket_listen</a></h3>
-
-<p>同一ホスト内での SEQPACKET ソケットが待ち受けするローカルアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_connect">CONFIG::network::unix_seqpacket_connect</a></h3>
-
-<p>同一ホスト内での SEQPACKET ソケットが接続するリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::network::unix_seqpacket_accept">CONFIG::network::unix_seqpacket_accept</a></h3>
-
-<p>同一ホスト内での SEQPACKET ソケットが受け付けるリモートアドレスに対する強制アクセス制御のレベルを指定します。</p>
-
-<h3><a name="profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></h3>
-
-<p>シグナルの送信に対する強制アクセス制御のレベルを指定します。</p>
+<p>全カテゴリおよび全項目に対するデフォルトの設定を行うことができます。</p>
+
+<table border="1">
+<tr><td>項目</td><td>内容</td></tr>
+<tr><td>CONFIG</td><td>カテゴリまたは個々の操作に対する動作モードを指定しなかった場合に適用される動作モードを指定します。</td></tr>
+</table>
+
+<p>カテゴリ単位でデフォルトの設定を上書きすることができます。</p>
+
+<table border="1">
+<tr><td>項目</td><td>内容</td></tr>
+<tr><td>CONFIG::file</td><td>ファイルに対する個々の操作に対するデフォルトの動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network</td><td>ネットワークに対する個々の操作に対するデフォルトの動作モードを指定します。</td></tr>
+<tr><td>CONFIG::misc</td><td>その他のパラメータに対するデフォルトの動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability</td><td>個々のケイパビリティに対するデフォルトの動作モードを指定します。</td></tr>
+<tr><td>CONFIG::ipc</td><td>プロセス間通信に対するデフォルトの動作モードを指定します。</td></tr>
+</table>
+
+<p>項目単位でカテゴリ単位およびデフォルトの設定を上書きすることができます。</p>
+
+<table border="1">
+<tr><td>項目</td><td>内容</td></tr>
+<tr><td>CONFIG::file::execute</td><td>プログラムの実行およびドメイン遷移に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::open</td><td>読み込みまたは書き込みモードでのファイルのオープンに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::create</td><td>ファイルの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::unlink</td><td>ファイルの削除に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::mkdir</td><td>ディレクトリの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::rmdir</td><td>ディレクトリの削除に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::mkfifo</td><td>名前付きパイプの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::mksock</td><td>ＵＮＩＸドメインソケットの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::truncate</td><td>ファイルの切り詰めに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::symlink</td><td>シンボリックリンクの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::rewrite</td><td>ファイルの上書きに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::mkblock</td><td>ブロック型デバイスファイルの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::mkchar</td><td>キャラクタ型デバイスファイルの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::link</td><td>ハードリンクの作成に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::rename</td><td>名称変更に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::chmod</td><td>ファイルのモードの変更に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::chown</td><td>ファイルの所有者の変更に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::chgrp</td><td>ファイルのグループの変更に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::ioctl</td><td>IOCTL に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::chroot</td><td>ルートディレクトリの変更に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::mount</td><td>マウントに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::unmount</td><td>アンマウントに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::file::pivot_root</td><td>ルートディレクトリの交換に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_dgram_bind</td><td>UDP ソケットが使用するローカルアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_dgram_send</td><td>UDP ソケットが送信時に使用するリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_dgram_recv</td><td>UDP ソケットが受信時に使用するリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_stream_bind</td><td>TCP ソケットの bind() 操作に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_stream_listen</td><td>TCP ソケットの listen() 操作に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_stream_connect</td><td>TCP ソケットの connect() 操作に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_stream_accept</td><td>TCP ソケットの accept() 操作に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_raw_bind</td><td>RAW ソケットが使用するローカルアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_raw_send</td><td>RAW ソケットが送信時に使用するリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::inet_raw_recv</td><td>RAW ソケットが受信時に使用するリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_dgram_bind</td><td>同一ホスト内でのデータグラムソケットが使用するローカルアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_dgram_send</td><td>同一ホスト内でのデータグラムソケットが送信してよいリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_dgram_recv</td><td>同一ホスト内でのデータグラムソケットが受信してよいリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_stream_bind</td><td>同一ホスト内でのストリームソケットが使用するローカルアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_stream_listen</td><td>同一ホスト内でのストリームソケットが待ち受けするローカルアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_stream_connect</td><td>同一ホスト内でのストリームソケットが接続するリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_stream_accept</td><td>同一ホスト内でのストリームソケットが受け付けるリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_bind</td><td>同一ホスト内での SEQPACKET ソケットが使用するローカルアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_listen</td><td>同一ホスト内での SEQPACKET ソケットが待ち受けするローカルアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_connect</td><td>同一ホスト内での SEQPACKET ソケットが接続するリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_accept</td><td>同一ホスト内での SEQPACKET ソケットが受け付けるリモートアドレスに対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::misc::env</td><td>プログラム実行時の環境変数名に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::use_route</td><td>ROUTE ソケットの使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::use_packet</td><td>PACKET ソケットの使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::use_kernel_module</td><td>create_module(2) init_module(2) delete_module(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::SYS_REBOOT</td><td>reboot(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::SYS_VHANGUP</td><td>vhangup(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::SYS_TIME</td><td>stime(2) settimeofday(2) adjtimex(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::SYS_NICE</td><td>nice(2) setpriority(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::SYS_SETHOSTNAME</td><td>sethostname(2) setdomainname(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::SYS_KEXEC_LOAD</td><td>kexec_load(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::capability::SYS_PTRACE</td><td>ptrace(2) の使用に対する動作モードを指定します。</td></tr>
+<tr><td>CONFIG::ipc::signal</td><td>シグナルの送信に対する動作モードを指定します。</td></tr>
+</table>
 
 <h3><a name="profile_PREFERENCE">PREFERENCE</a></h3>
 
@@ -1083,13 +886,13 @@ file chroot /</p>
 
 <p>これは、このドメインに対しては常にこのキーワードで指定されたプログラムだけを実行することを示しています。特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
 
-<p>このキーワードが指定されている場合、 <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
+<p>このキーワードが指定されている場合、 <a href="#profile_CONFIG">CONFIG::file::execute</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
 
-<p>関連項目： <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> <a href="#domain_policy_file_execute">file execute</a></p>
+<p>関連項目： <a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a> <a href="#profile_CONFIG">CONFIG::file::execute</a> <a href="#domain_policy_file_execute">file execute</a></p>
 
 <h3><a name="domain_policy_task_denied_execute_handler">task denied_execute_handler</a></h3>
 
-<p>これは、 <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
+<p>これは、 <a href="#profile_CONFIG">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_CONFIG">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
 
 <p>ただし、ドメインに対して <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
 
@@ -1103,9 +906,9 @@ file chroot /</p>
 
 <p>これは、このドメインに属しているプロセスが、プログラムの実行時にドメイン遷移をすることができなかったことを示しています。</p>
 
-<p>このドメインに対して <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing のプロファイルが割り当てられていた場合、プログラムの実行要求は拒否されます。</p>
+<p>このドメインに対して <a href="#profile_CONFIG">CONFIG::file::execute</a>={ mode=enforcing } のプロファイルが割り当てられていた場合、プログラムの実行要求は拒否されます。</p>
 
-<p>そうではない場合、プログラムの実行要求は拒否されません。そのため、ドメイン遷移をせずにプログラムが実行されます。ドメイン遷移が失敗した理由は「遷移先ドメインのドメイン名が長すぎる」または「遷移先ドメインのためのメモリを割り当てることができなかった」のどちらかであるため、このドメインに対して <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
+<p>そうではない場合、プログラムの実行要求は拒否されません。そのため、ドメイン遷移をせずにプログラムが実行されます。ドメイン遷移が失敗した理由は「遷移先ドメインのドメイン名が長すぎる」または「遷移先ドメインのためのメモリを割り当てることができなかった」のどちらかであるため、このドメインに対して <a href="#profile_CONFIG">CONFIG::file::execute</a>={ mode=enforcing }のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
 
 <p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_usage_infomation">メモリ使用量に関する情報</a></p>
 
@@ -1670,7 +1473,7 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
-<tr><td>3-CONFIG::file::execute=enforcing</td><td>use_profile 3<br>task denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
+<tr><td>3-CONFIG::file::execute={ mode=enforcing }</td><td>use_profile 3<br>task denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
 </table>
 
 <p>この機能を使用する際の注意事項は<a href="#auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
