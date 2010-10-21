@@ -98,7 +98,7 @@ cd $ANDROID_HOME/tmp/<br>
 wget -O ccs-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
 tar -zxf ccs-tools.tar.gz<br>
 cd ccstools<br>
-sudo apt-get install libreadline5-dev<br>
+sudo apt-get install libreadline-dev<br>
 make<br>
 sudo make install
 </td></tr>
@@ -115,9 +115,9 @@ sudo make install
 cd $ANDROID_HOME/tmp/<br>
 wget -O agcc http://plausible.org/andy/agcc<br>
 chmod 755 agcc<br>
-./agcc -o init_policy $ANDROID_HOME/tmp/ccstools/init_policy.c<br>
-./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/ccs-editpolicy-agent.c<br>
-sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccstools/ccs-init.c &gt; $ANDROID_HOME/tmp/ccstools/ccs-init2.c<br>
+./agcc -o init_policy $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/init_policy.c<br>
+./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/ccs-editpolicy-agent.c<br>
+sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccstools/sbin/ccs-init.c &gt; $ANDROID_HOME/tmp/ccstools/ccs-init2.c<br>
 ./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/ccs-init2.c<br>
 chmod 700 init_policy ccs-editpolicy-agent ccs-init
 </td></tr>
