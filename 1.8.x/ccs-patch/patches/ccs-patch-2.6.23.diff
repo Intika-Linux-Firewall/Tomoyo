@@ -21,11 +21,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/namespace.c                  |    9 +++++++++
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
+ fs/stat.c                       |    3 +++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
@@ -45,7 +45,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 259 insertions(+), 3 deletions(-)
+ 43 files changed, 257 insertions(+), 3 deletions(-)
 
 --- linux-2.6.23.17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23.17/arch/alpha/kernel/ptrace.c
@@ -635,8 +635,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.23.17 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.6.23.17 2010/10/22\n");
  }
+--- linux-2.6.23.17.orig/fs/stat.c
++++ linux-2.6.23.17/fs/stat.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/ccsecurity.h>
+ 
+ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ {
+@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+ 	int retval;
+ 
+ 	retval = security_inode_getattr(mnt, dentry);
++	if (!retval)
++		retval = ccs_getattr_permission(mnt, dentry);
+ 	if (retval)
+ 		return retval;
+ 
 --- linux-2.6.23.17.orig/include/linux/init_task.h
 +++ linux-2.6.23.17/include/linux/init_task.h
 @@ -113,6 +113,14 @@ extern struct group_info init_groups;
@@ -722,20 +741,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.23.17.orig/kernel/kmod.c
-+++ linux-2.6.23.17/kernel/kmod.c
-@@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
- 	 */
- 	set_user_nice(current, 0);
- 
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
-+
- 	retval = -EPERM;
- 	if (current->fs->root)
- 		retval = kernel_execve(sub_info->path,
 --- linux-2.6.23.17.orig/kernel/module.c
 +++ linux-2.6.23.17/kernel/module.c
 @@ -45,6 +45,7 @@

@@ -175,7 +175,6 @@ static _Bool ccs_handle_query(unsigned int serial)
 	char *line = NULL;
 	static unsigned int prev_pid = 0;
 	unsigned int pid;
-	time_t stamp;
 	char pidbuf[128];
 	char *cp = strstr(ccs_buffer, " (global-pid=");
 	if (!cp || sscanf(cp + 13, "%u", &pid) != 1) {
@@ -198,16 +197,6 @@ static _Bool ccs_handle_query(unsigned int serial)
 		if (prev_pid)
 			ccs_printw("----------------------------------------\n");
 		prev_pid = pid;
-	}
-	if (sscanf(ccs_buffer, "#timestamp=%lu", &stamp) == 1) {
-		cp = strchr(ccs_buffer, ' ');
-		if (cp) {
-			struct tm *tm = localtime(&stamp);
-			ccs_printw("#%04d-%02d-%02d %02d:%02d:%02d#",
-				   tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-				   tm->tm_hour, tm->tm_min, tm->tm_sec);
-			memmove(ccs_buffer, cp, strlen(cp) + 1);
-		}
 	}
 	ccs_printw("%s\n", ccs_buffer);
 	/* Is this domain query? */

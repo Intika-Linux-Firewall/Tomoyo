@@ -31,8 +31,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  fs/namespace.c               |   17 +++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
+ fs/stat.c                    |   19 +++++++++++++++++++
  include/linux/sched.h        |   14 ++++++++++++++
- kernel/kmod.c                |    5 +++++
  kernel/module.c              |    7 +++++++
  kernel/sched.c               |    3 +++
  kernel/signal.c              |    7 +++++++
@@ -47,7 +47,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/udp.c               |    9 +++++++++
  net/socket.c                 |   20 ++++++++++++++++++++
  net/unix/af_unix.c           |    8 ++++++++
- 45 files changed, 309 insertions(+), 3 deletions(-)
+ 45 files changed, 323 insertions(+), 3 deletions(-)
 
 --- linux-2.4.21-63.EL.orig/Makefile
 +++ linux-2.4.21-63.EL/Makefile
@@ -854,8 +854,99 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.21-63.EL 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.4.21-63.EL 2010/10/22\n");
  }
+--- linux-2.4.21-63.EL.orig/fs/stat.c
++++ linux-2.4.21-63.EL/fs/stat.c
+@@ -12,6 +12,7 @@
+ #include <linux/highuid.h>
+ 
+ #include <asm/uaccess.h>
++#include <linux/ccsecurity.h>
+ 
+ /*
+  * Revalidate the inode. This is required for proper NFS attribute caching.
+@@ -150,6 +151,8 @@ again:
+ 	if (!error) {
+ 		error = do_revalidate(nd.dentry);
+ 		if (!error)
++			error = ccs_getattr_permission(nd.mnt, nd.dentry);
++		if (!error)
+ 			error = cp_old_stat(nd.dentry->d_inode, statbuf);
+ 		path_release(&nd);
+ 	}
+@@ -171,6 +174,8 @@ again:
+ 	if (!error) {
+ 		error = do_revalidate(nd.dentry);
+ 		if (!error)
++			error = ccs_getattr_permission(nd.mnt, nd.dentry);
++		if (!error)
+ 			error = cp_new_stat(nd.dentry->d_inode, statbuf);
+ 		path_release(&nd);
+ 	}
+@@ -198,6 +203,8 @@ again:
+ 	if (!error) {
+ 		error = do_revalidate(nd.dentry);
+ 		if (!error)
++			error = ccs_getattr_permission(nd.mnt, nd.dentry);
++		if (!error)
+ 			error = cp_old_stat(nd.dentry->d_inode, statbuf);
+ 		path_release(&nd);
+ 	}
+@@ -221,6 +228,8 @@ again:
+ 	if (!error) {
+ 		error = do_revalidate(nd.dentry);
+ 		if (!error)
++			error = ccs_getattr_permission(nd.mnt, nd.dentry);
++		if (!error)
+ 			error = cp_new_stat(nd.dentry->d_inode, statbuf);
+ 		path_release(&nd);
+ 	}
+@@ -250,6 +259,8 @@ asmlinkage long sys_fstat(unsigned int f
+ 
+ 		err = do_revalidate(dentry);
+ 		if (!err)
++			err = ccs_getattr_permission(f->f_vfsmnt, dentry);
++		if (!err)
+ 			err = cp_old_stat(dentry->d_inode, statbuf);
+ 		fput(f);
+ 	}
+@@ -269,6 +280,8 @@ asmlinkage long sys_newfstat(unsigned in
+ 
+ 		err = do_revalidate(dentry);
+ 		if (!err)
++			err = ccs_getattr_permission(f->f_vfsmnt, dentry);
++		if (!err)
+ 			err = cp_new_stat(dentry->d_inode, statbuf);
+ 		fput(f);
+ 	}
+@@ -371,6 +384,8 @@ again:
+ 	if (!error) {
+ 		error = do_revalidate(nd.dentry);
+ 		if (!error)
++			error = ccs_getattr_permission(nd.mnt, nd.dentry);
++		if (!error)
+ 			error = cp_new_stat64(nd.dentry->d_inode, statbuf);
+ 		path_release(&nd);
+ 	}
+@@ -392,6 +407,8 @@ again:
+ 	if (!error) {
+ 		error = do_revalidate(nd.dentry);
+ 		if (!error)
++			error = ccs_getattr_permission(nd.mnt, nd.dentry);
++		if (!error)
+ 			error = cp_new_stat64(nd.dentry->d_inode, statbuf);
+ 		path_release(&nd);
+ 	}
+@@ -414,6 +431,8 @@ asmlinkage long sys_fstat64(unsigned lon
+ 
+ 		err = do_revalidate(dentry);
+ 		if (!err)
++			err = ccs_getattr_permission(f->f_vfsmnt, dentry);
++		if (!err)
+ 			err = cp_new_stat64(dentry->d_inode, statbuf);
+ 		fput(f);
+ 	}
 --- linux-2.4.21-63.EL.orig/include/linux/sched.h
 +++ linux-2.4.21-63.EL/include/linux/sched.h
 @@ -140,6 +140,15 @@ struct completion;
@@ -893,20 +984,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  }
  
  
---- linux-2.4.21-63.EL.orig/kernel/kmod.c
-+++ linux-2.4.21-63.EL/kernel/kmod.c
-@@ -144,6 +144,11 @@ int exec_usermodehelper(char *program_pa
- 	/* Allow execve args to be in kernel space. */
- 	set_fs(KERNEL_DS);
- 
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
-+
- 	/* Go, go, go... */
- 	if (execve(program_path, argv, envp) < 0)
- 		return -errno;
 --- linux-2.4.21-63.EL.orig/kernel/module.c
 +++ linux-2.4.21-63.EL/kernel/module.c
 @@ -11,6 +11,7 @@

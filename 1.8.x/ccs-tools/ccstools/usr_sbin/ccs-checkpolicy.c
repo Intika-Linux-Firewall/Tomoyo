@@ -455,6 +455,7 @@ static void ccs_check_file_policy(char *data)
 		{ "chroot",     1 },
 		{ "create",     2 },
 		{ "execute",    1 },
+		{ "getattr",    1 },
 		{ "ioctl",      2 },
 		{ "link",       2 },
 		{ "mkblock",    4 },

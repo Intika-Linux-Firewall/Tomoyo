@@ -128,9 +128,6 @@ int main(int argc, char *argv[])
 		break;
 	}
 	switch (fork()) {
-		time_t stamp;
-		char *cp1;
-		char *cp2;
 	case 0:
 		close(query_fd);
 		fp = popen(action_to_take, "w");
@@ -140,24 +137,7 @@ int main(int argc, char *argv[])
 			closelog();
 			_exit(1);
 		}
-		cp1 = strchr(buffer, '\n');
-		if (cp1 && sscanf(cp1 + 1, "#timestamp=%lu", &stamp) == 1) {
-			cp2 = strchr(cp1 + 1, ' ');
-			if (cp2) {
-				/* New format. */
-				struct tm *tm = localtime(&stamp);
-				*(cp1 + 1) = '\0';
-				fprintf(fp, "%s#%04d-%02d-%02d "
-					"%02d:%02d:%02d#%s\n", buffer,
-					tm->tm_year + 1900, tm->tm_mon + 1,
-					tm->tm_mday, tm->tm_hour, tm->tm_min,
-					tm->tm_sec, cp2);
-			} else {
-				fprintf(fp, "%s\n", buffer);
-			}
-		} else {
-			fprintf(fp, "%s\n", buffer);
-		}
+		fprintf(fp, "%s\n", buffer);
 		pclose(fp);
 		_exit(0);
 	case -1:
