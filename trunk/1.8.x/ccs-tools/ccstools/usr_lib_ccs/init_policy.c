@@ -546,6 +546,12 @@ static void make_exception_policy(void)
 	make_globally_readable_files();
 	make_self_readable_files();
 	make_ldconfig_readable_files();
+	fprintf(filp, "acl_group 0 file getattr /\n");
+	fprintf(filp, "acl_group 0 file getattr /\\*\n");
+	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\n");
+	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\\*\n");
+	fprintf(filp, "acl_group 0 file read /\n");
+	fprintf(filp, "acl_group 0 file read /\\{\\*\\}/\n");
 	make_init_dir_as_initializers();
 	make_initializers();
 	make_init_scripts_as_aggregators();

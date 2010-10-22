@@ -11,11 +11,11 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  fs/namespace.c                  |    9 +++++++++
  fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
+ fs/stat.c                       |    3 +++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
@@ -34,7 +34,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 231 insertions(+), 3 deletions(-)
+ 32 files changed, 229 insertions(+), 3 deletions(-)
 
 --- linux-2.6.31-22.65.orig/fs/compat.c
 +++ linux-2.6.31-22.65/fs/compat.c
@@ -438,10 +438,29 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.31-22.65 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.6.31-22.65 2010/10/22\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
+--- linux-2.6.31-22.65.orig/fs/stat.c
++++ linux-2.6.31-22.65/fs/stat.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/ccsecurity.h>
+ 
+ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ {
+@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+ 	int retval;
+ 
+ 	retval = security_inode_getattr(mnt, dentry);
++	if (!retval)
++		retval = ccs_getattr_permission(mnt, dentry);
+ 	if (retval)
+ 		return retval;
+ 
 --- linux-2.6.31-22.65.orig/include/linux/init_task.h
 +++ linux-2.6.31-22.65/include/linux/init_task.h
 @@ -105,6 +105,14 @@ extern struct cred init_cred;
@@ -527,20 +546,6 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.31-22.65.orig/kernel/kmod.c
-+++ linux-2.6.31-22.65/kernel/kmod.c
-@@ -176,6 +176,11 @@ static int ____call_usermodehelper(void 
- 	 */
- 	set_user_nice(current, 0);
- 
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
-+
- 	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
- 
- 	/* Exec failed? */
 --- linux-2.6.31-22.65.orig/kernel/module.c
 +++ linux-2.6.31-22.65/kernel/module.c
 @@ -54,6 +54,7 @@

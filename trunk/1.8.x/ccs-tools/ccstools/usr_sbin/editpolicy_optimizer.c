@@ -276,6 +276,7 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 		case CCS_DIRECTIVE_FILE_READ:
 		case CCS_DIRECTIVE_FILE_WRITE:
 		case CCS_DIRECTIVE_FILE_UNLINK:
+		case CCS_DIRECTIVE_FILE_GETATTR:
 		case CCS_DIRECTIVE_FILE_RMDIR:
 		case CCS_DIRECTIVE_FILE_TRUNCATE:
 		case CCS_DIRECTIVE_FILE_APPEND:

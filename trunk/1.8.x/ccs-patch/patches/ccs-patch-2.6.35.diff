@@ -8,10 +8,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/proc/version.c         |    7 ++
  include/linux/init_task.h |    9 ++
  include/linux/sched.h     |    6 +
- include/linux/security.h  |   56 ++++++++++--------
+ include/linux/security.h  |   58 ++++++++++--------
  include/net/ip.h          |    2 
  kernel/kexec.c            |    3 
- kernel/kmod.c             |    5 +
  kernel/module.c           |    5 +
  kernel/ptrace.c           |    4 +
  kernel/sched.c            |    2 
@@ -26,8 +25,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c        |    4 +
  security/Kconfig          |    2 
  security/Makefile         |    3 
- security/security.c       |  139 ++++++++++++++++++++++++++++++++++++++--------
- 25 files changed, 250 insertions(+), 49 deletions(-)
+ security/security.c       |  145 ++++++++++++++++++++++++++++++++++++++--------
+ 24 files changed, 251 insertions(+), 51 deletions(-)
 
 --- linux-2.6.35.7.orig/fs/compat.c
 +++ linux-2.6.35.7/fs/compat.c
@@ -71,7 +70,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.35.6 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.6.35.6 2010/10/22\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -166,6 +165,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
+@@ -2101,7 +2105,7 @@ static inline int security_inode_setattr
+ static inline int security_inode_getattr(struct vfsmount *mnt,
+ 					  struct dentry *dentry)
+ {
+-	return 0;
++	return ccs_getattr_permission(mnt, dentry);
+ }
+ 
+ static inline int security_inode_setxattr(struct dentry *dentry,
 @@ -2177,7 +2181,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
@@ -350,20 +358,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.35.7.orig/kernel/kmod.c
-+++ linux-2.6.35.7/kernel/kmod.c
-@@ -153,6 +153,11 @@ static int ____call_usermodehelper(void 
- 			goto fail;
- 	}
- 
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
-+
- 	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
- 
- 	/* Exec failed? */
 --- linux-2.6.35.7.orig/kernel/module.c
 +++ linux-2.6.35.7/kernel/module.c
 @@ -55,6 +55,7 @@
@@ -830,7 +824,22 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  #endif
  
-@@ -635,7 +702,10 @@ void security_file_free(struct file *fil
+@@ -540,9 +607,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+ 
+ int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
+ {
++	int error;
+ 	if (unlikely(IS_PRIVATE(dentry->d_inode)))
+ 		return 0;
+-	return security_ops->inode_getattr(mnt, dentry);
++	error = security_ops->inode_getattr(mnt, dentry);
++	if (!error)
++		error = ccs_getattr_permission(mnt, dentry);
++	return error;
+ }
+ 
+ int security_inode_setxattr(struct dentry *dentry, const char *name,
+@@ -635,7 +706,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -842,7 +851,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -663,7 +733,10 @@ int security_file_lock(struct file *file
+@@ -663,7 +737,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -854,7 +863,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -684,7 +757,10 @@ int security_file_receive(struct file *f
+@@ -684,7 +761,10 @@ int security_file_receive(struct file *f
  
  int security_dentry_open(struct file *file, const struct cred *cred)
  {
@@ -866,7 +875,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_task_create(unsigned long clone_flags)
-@@ -997,7 +1073,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -997,7 +1077,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -878,7 +887,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1009,17 +1088,26 @@ int security_socket_post_create(struct s
+@@ -1009,17 +1092,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -908,7 +917,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1029,7 +1117,10 @@ int security_socket_accept(struct socket
+@@ -1029,7 +1121,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {

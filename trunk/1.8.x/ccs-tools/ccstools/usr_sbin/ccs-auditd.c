@@ -135,8 +135,6 @@ int main(int argc, char *argv[])
 		if (select(FD_SETSIZE, &rfds, NULL, NULL, NULL) == EOF)
 			break;
 		for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
-			time_t stamp;
-			char *cp;
 			if (!FD_ISSET(fd_in[i], &rfds))
 				continue;
 			memset(buffer, 0, sizeof(buffer));
@@ -165,17 +163,7 @@ int main(int argc, char *argv[])
 					goto out;
 				}
 			}
-			cp = strchr(buffer, ' ');
-			if (sscanf(buffer, "#timestamp=%lu", &stamp) == 1
-			    && cp) {
-				struct tm *tm = localtime(&stamp);
-				fprintf(fp_out[i],
-					"#%04d-%02d-%02d %02d:%02d:%02d#%s\n",
-					tm->tm_year + 1900, tm->tm_mon + 1,
-					tm->tm_mday, tm->tm_hour, tm->tm_min,
-					tm->tm_sec, cp);
-			} else
-				fprintf(fp_out[i], "%s\n", buffer);
+			fprintf(fp_out[i], "%s\n", buffer);
 			fflush(fp_out[i]);
 		}
 	}

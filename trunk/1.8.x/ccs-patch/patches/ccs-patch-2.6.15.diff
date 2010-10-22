@@ -20,11 +20,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/namespace.c                  |    9 +++++++++
  fs/open.c                       |   27 ++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
+ fs/stat.c                       |    3 +++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
@@ -43,7 +43,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 274 insertions(+), 8 deletions(-)
+ 41 files changed, 272 insertions(+), 8 deletions(-)
 
 --- linux-2.6.15.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15.7/arch/alpha/kernel/ptrace.c
@@ -629,8 +629,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.15.7 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.6.15.7 2010/10/22\n");
  }
+--- linux-2.6.15.7.orig/fs/stat.c
++++ linux-2.6.15.7/fs/stat.c
+@@ -18,6 +18,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/ccsecurity.h>
+ 
+ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ {
+@@ -44,6 +45,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+ 	int retval;
+ 
+ 	retval = security_inode_getattr(mnt, dentry);
++	if (!retval)
++		retval = ccs_getattr_permission(mnt, dentry);
+ 	if (retval)
+ 		return retval;
+ 
 --- linux-2.6.15.7.orig/include/linux/init_task.h
 +++ linux-2.6.15.7/include/linux/init_task.h
 @@ -72,6 +72,14 @@
@@ -716,20 +735,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.15.7.orig/kernel/kmod.c
-+++ linux-2.6.15.7/kernel/kmod.c
-@@ -149,6 +149,11 @@ static int ____call_usermodehelper(void 
- 	/* We can run anywhere, unlike our parent keventd(). */
- 	set_cpus_allowed(current, CPU_MASK_ALL);
- 
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
-+
- 	retval = -EPERM;
- 	if (current->fs->root)
- 		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
 --- linux-2.6.15.7.orig/kernel/module.c
 +++ linux-2.6.15.7/kernel/module.c
 @@ -41,6 +41,7 @@

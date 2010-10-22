@@ -37,9 +37,10 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/open.c                          |   68 ++++++++---------------
  fs/proc/Makefile                   |    3 -
  fs/proc/proc_misc.c                |   10 ---
+ fs/stat.c                          |    3 +
  include/linux/init_task.h          |   15 +++--
  include/linux/sched.h              |   17 ++---
- kernel/kmod.c                      |   10 +--
+ kernel/kmod.c                      |    7 --
  kernel/module.c                    |   14 +---
  kernel/sched.c                     |    9 +--
  kernel/signal.c                    |   25 +++-----
@@ -56,7 +57,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |   22 ++-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 56 files changed, 297 insertions(+), 512 deletions(-)
+ 57 files changed, 296 insertions(+), 513 deletions(-)
 
 --- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
@@ -1451,8 +1452,27 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.8-20 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.6.8-20 2010/10/22\n");
  }
+--- linux-2.6.8-20.orig/fs/stat.c
++++ linux-2.6.8-20/fs/stat.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/ccsecurity.h>
+ 
+ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ {
+@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+ 	int retval;
+ 
+ 	retval = security_inode_getattr(mnt, dentry);
++	if (!retval)
++		retval = ccs_getattr_permission(mnt, dentry);
+ 	if (retval)
+ 		return retval;
+ 
 --- linux-2.6.8-20.orig/include/linux/init_task.h
 +++ linux-2.6.8-20/include/linux/init_task.h
 @@ -60,6 +60,14 @@
@@ -1526,7 +1546,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  static inline pid_t process_group(struct task_struct *tsk)
 --- linux-2.6.8-20.orig/kernel/kmod.c
 +++ linux-2.6.8-20/kernel/kmod.c
-@@ -166,12 +166,10 @@ static int ____call_usermodehelper(void 
+@@ -166,13 +166,6 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
  
@@ -1536,13 +1556,10 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	/***** SAKURA Linux start. *****/
 -	current->dropped_capability = 0;
 -	/***** SAKURA Linux end. *****/
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
- 
+-
  	retval = -EPERM;
  	if (current->fs->root)
+ 		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
 --- linux-2.6.8-20.orig/kernel/module.c
 +++ linux-2.6.8-20/kernel/module.c
 @@ -37,9 +37,7 @@

@@ -13,11 +13,11 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  fs/namespace.c                  |    9 +++++++++
  fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
+ fs/stat.c                       |    3 +++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
@@ -36,7 +36,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 232 insertions(+), 2 deletions(-)
+ 34 files changed, 230 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27-hardened-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-hardened-r8/arch/ia64/ia32/sys_ia32.c
@@ -481,8 +481,27 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27-hardened-r8 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.6.27-hardened-r8 2010/10/22\n");
  }
+--- linux-2.6.27-hardened-r8.orig/fs/stat.c
++++ linux-2.6.27-hardened-r8/fs/stat.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/ccsecurity.h>
+ 
+ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ {
+@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+ 	int retval;
+ 
+ 	retval = security_inode_getattr(mnt, dentry);
++	if (!retval)
++		retval = ccs_getattr_permission(mnt, dentry);
+ 	if (retval)
+ 		return retval;
+ 
 --- linux-2.6.27-hardened-r8.orig/include/linux/init_task.h
 +++ linux-2.6.27-hardened-r8/include/linux/init_task.h
 @@ -113,6 +113,14 @@ extern struct group_info init_groups;
@@ -568,20 +587,6 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.27-hardened-r8.orig/kernel/kmod.c
-+++ linux-2.6.27-hardened-r8/kernel/kmod.c
-@@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
- 	 */
- 	set_user_nice(current, 0);
- 
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
-+
- 	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
- 
- 	/* Exec failed? */
 --- linux-2.6.27-hardened-r8.orig/kernel/module.c
 +++ linux-2.6.27-hardened-r8/kernel/module.c
 @@ -51,6 +51,7 @@

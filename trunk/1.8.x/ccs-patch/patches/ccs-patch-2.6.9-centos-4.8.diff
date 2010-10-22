@@ -36,10 +36,10 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  fs/namespace.c                     |    9 +++++++++
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
+ fs/stat.c                          |    3 +++
  include/linux/init_task.h          |    9 +++++++++
  include/linux/sched.h              |    6 ++++++
  kernel/compat.c                    |    3 +++
- kernel/kmod.c                      |    5 +++++
  kernel/module.c                    |    7 +++++--
  kernel/sched.c                     |    3 +++
  kernel/signal.c                    |    9 +++++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  net/unix/af_unix.c                 |    8 ++++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 321 insertions(+), 11 deletions(-)
+ 54 files changed, 319 insertions(+), 11 deletions(-)
 
 --- linux-2.6.9-89.31.1.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.31.1.EL/arch/alpha/kernel/ptrace.c
@@ -962,8 +962,27 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-89.31.1.EL 2010/10/21\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.31.1.EL 2010/10/22\n");
  }
+--- linux-2.6.9-89.31.1.EL.orig/fs/stat.c
++++ linux-2.6.9-89.31.1.EL/fs/stat.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/ccsecurity.h>
+ 
+ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ {
+@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+ 	int retval;
+ 
+ 	retval = security_inode_getattr(mnt, dentry);
++	if (!retval)
++		retval = ccs_getattr_permission(mnt, dentry);
+ 	if (retval)
+ 		return retval;
+ 
 --- linux-2.6.9-89.31.1.EL.orig/include/linux/init_task.h
 +++ linux-2.6.9-89.31.1.EL/include/linux/init_task.h
 @@ -60,6 +60,14 @@
@@ -1030,20 +1049,6 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  
  	tv.tv_nsec = 0;
  
---- linux-2.6.9-89.31.1.EL.orig/kernel/kmod.c
-+++ linux-2.6.9-89.31.1.EL/kernel/kmod.c
-@@ -169,6 +169,11 @@ static int ____exec_usermodehelper(char 
- 
- 	key_put(old_session);
- 
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
-+
- 	retval = -EPERM;
- 	if (current->fs->root)
- 		retval = execve(path, argv, envp);
 --- linux-2.6.9-89.31.1.EL.orig/kernel/module.c
 +++ linux-2.6.9-89.31.1.EL/kernel/module.c
 @@ -38,6 +38,7 @@

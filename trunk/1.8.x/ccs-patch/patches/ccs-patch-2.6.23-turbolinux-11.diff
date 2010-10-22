@@ -24,11 +24,12 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  fs/open.c                       |   48 ++++++++++++----------
  fs/proc/Makefile                |    3 -
  fs/proc/proc_misc.c             |   10 ----
+ fs/stat.c                       |    3 +
  include/linux/init_task.h       |   13 ++++--
  include/linux/sched.h           |   15 ++----
  kernel/compat.c                 |    9 +---
  kernel/kexec.c                  |    9 +---
- kernel/kmod.c                   |    8 +--
+ kernel/kmod.c                   |    5 --
  kernel/module.c                 |   14 ++----
  kernel/ptrace.c                 |   11 +----
  kernel/sched.c                  |    9 +---
@@ -49,7 +50,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  net/unix/af_unix.c              |   18 +++-----
  security/Kconfig                |    2 
  security/Makefile               |    3 +
- 49 files changed, 244 insertions(+), 515 deletions(-)
+ 50 files changed, 243 insertions(+), 516 deletions(-)
 
 --- linux-2.6.23-12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/alpha/kernel/ptrace.c
@@ -1081,8 +1082,27 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.23-12 2010/10/18\n");
++	printk(KERN_INFO "Hook version: 2.6.23-12 2010/10/22\n");
  }
+--- linux-2.6.23-12.orig/fs/stat.c
++++ linux-2.6.23-12/fs/stat.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/ccsecurity.h>
+ 
+ void generic_fillattr(struct inode *inode, struct kstat *stat)
+ {
+@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+ 	int retval;
+ 
+ 	retval = security_inode_getattr(mnt, dentry);
++	if (!retval)
++		retval = ccs_getattr_permission(mnt, dentry);
+ 	if (retval)
+ 		return retval;
+ 
 --- linux-2.6.23-12.orig/include/linux/init_task.h
 +++ linux-2.6.23-12/include/linux/init_task.h
 @@ -113,6 +113,14 @@ extern struct group_info init_groups;
@@ -1204,7 +1224,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	 * Verify we have a legal set of flags
 --- linux-2.6.23-12.orig/kernel/kmod.c
 +++ linux-2.6.23-12/kernel/kmod.c
-@@ -173,10 +173,10 @@ static int ____call_usermodehelper(void 
+@@ -173,11 +173,6 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
@@ -1212,13 +1232,10 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	current->domain_info = &KERNEL_DOMAIN;
 -	current->tomoyo_flags = 0;
 -	/***** TOMOYO Linux end. *****/
-+#ifdef CONFIG_CCSECURITY
-+	current->ccs_domain_info = NULL;
-+	current->ccs_flags = 0;
-+#endif
- 
+-
  	retval = -EPERM;
  	if (current->fs->root)
+ 		retval = kernel_execve(sub_info->path,
 --- linux-2.6.23-12.orig/kernel/module.c
 +++ linux-2.6.23-12/kernel/module.c
 @@ -45,9 +45,7 @@

@@ -293,6 +293,7 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_FILE_CHROOT]                   = { "file chroot", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_CREATE]                   = { "file create", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_EXECUTE]                  = { "file execute", NULL, 0, 0 },
+	[CCS_DIRECTIVE_FILE_GETATTR]                  = { "file getattr", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_IOCTL]                    = { "file ioctl", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_LINK]                     = { "file link", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_MKBLOCK]                  = { "file mkblock", NULL, 0, 0 },
