@@ -339,11 +339,13 @@ static void make_globally_readable_files(void)
 		"/usr/share/locale/locale.alias"
 	};
 	int i;
-	keyword = "acl_group 0 file read";
 	for (i = 0; i < elementof(files); i++) {
 		char *cp = get_realpath(files[i]);
 		if (!cp)
 			continue;
+		keyword = "acl_group 0 file read";
+		printf_encoded(cp, 0);
+		keyword = "acl_group 0 file getattr";
 		printf_encoded(cp, 0);
 		free(cp);
 	}
@@ -353,7 +355,9 @@ static void make_self_readable_files(void)
 {
 	/* Allow reading information for current process. */
 	fprintf(filp, "acl_group 0 file read proc:/self/\\*\n");
+	fprintf(filp, "acl_group 0 file getattr proc:/self/\\*\n");
 	fprintf(filp, "acl_group 0 file read proc:/self/\\{\\*\\}/\\*\n");
+	fprintf(filp, "acl_group 0 file getattr proc:/self/\\{\\*\\}/\\*\n");
 }
 
 static void make_ldconfig_readable_files(void)
@@ -382,6 +386,7 @@ static void make_ldconfig_readable_files(void)
 		if (!cp)
 			continue;
 		fprintf(filp, "acl_group 0 file read %s/lib\\*.so\\*\n", cp);
+		fprintf(filp, "acl_group 0 file getattr %s/lib\\*.so\\*\n", cp);
 		free(cp);
 	}
 	while (memset(path, 0, sizeof(path)),
@@ -414,6 +419,11 @@ static void make_ldconfig_readable_files(void)
 				*(cp2 + 6) = '\0';
 			else
 				cp2 = NULL;
+			printf_encoded(cp, 0);
+			if (cp2)
+				fprintf(filp, "\\*.so");
+			fputc('\n', filp);
+			fprintf(filp, "acl_group 0 file getattr ");
 			printf_encoded(cp, 0);
 			if (cp2)
 				fprintf(filp, "\\*.so");
@@ -546,12 +556,6 @@ static void make_exception_policy(void)
 	make_globally_readable_files();
 	make_self_readable_files();
 	make_ldconfig_readable_files();
-	fprintf(filp, "acl_group 0 file getattr /\n");
-	fprintf(filp, "acl_group 0 file getattr /\\*\n");
-	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\n");
-	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\\*\n");
-	fprintf(filp, "acl_group 0 file read /\n");
-	fprintf(filp, "acl_group 0 file read /\\{\\*\\}/\n");
 	make_init_dir_as_initializers();
 	make_initializers();
 	make_init_scripts_as_aggregators();
