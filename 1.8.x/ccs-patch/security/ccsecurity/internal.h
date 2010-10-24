@@ -1895,9 +1895,12 @@ static inline void ccs_put_name(const struct ccs_path_info *name)
 			   head.users);
 }
 
+/* For importing variables and functions. */
+extern const struct ccsecurity_exports ccsecurity_exports;
+
 /*
  * "struct ccs_domain_info *" and "u32 ccs_flags" for each "struct task_struct"
- * are embedded into that "struct task_struct". Therefore, ccs_security ==
+ * are maintained inside that "struct task_struct". Therefore, ccs_security ==
  * task_struct . This allows fast access but breaks KABI checks for
  * distributor's prebuilt kernels due to changes in "struct task_struct".
  */
