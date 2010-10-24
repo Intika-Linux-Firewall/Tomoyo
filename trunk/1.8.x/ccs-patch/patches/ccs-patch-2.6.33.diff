@@ -4,31 +4,30 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 ---
  fs/compat.c                     |    2 
  fs/exec.c                       |    2 
- fs/namei.c                      |    9 ++
  fs/open.c                       |    2 
  fs/proc/version.c               |    7 +
  include/linux/init_task.h       |    9 ++
  include/linux/sched.h           |    6 +
- include/linux/security.h        |   56 ++++++++------
+ include/linux/security.h        |   58 ++++++++------
  kernel/kexec.c                  |    3 
  kernel/module.c                 |    5 +
- kernel/ptrace.c                 |    4 +
+ kernel/ptrace.c                 |    4 
  kernel/sched.c                  |    2 
  kernel/signal.c                 |   10 ++
  kernel/sys.c                    |   10 ++
  kernel/time/ntp.c               |    6 +
  net/ipv4/inet_connection_sock.c |    2 
  net/ipv4/inet_hashtables.c      |    2 
- net/ipv4/raw.c                  |    4 +
+ net/ipv4/raw.c                  |    4 
  net/ipv4/udp.c                  |    5 +
- net/ipv6/raw.c                  |    4 +
- net/ipv6/udp.c                  |    4 +
- net/socket.c                    |    4 +
- net/unix/af_unix.c              |    4 +
+ net/ipv6/raw.c                  |    4 
+ net/ipv6/udp.c                  |    4 
+ net/socket.c                    |    4 
+ net/unix/af_unix.c              |    4 
  security/Kconfig                |    2 
  security/Makefile               |    3 
- security/security.c             |  160 +++++++++++++++++++++++++++++++---------
- 26 files changed, 268 insertions(+), 59 deletions(-)
+ security/security.c             |  165 +++++++++++++++++++++++++++++++---------
+ 25 files changed, 264 insertions(+), 61 deletions(-)
 
 --- linux-2.6.33.7.orig/fs/compat.c
 +++ linux-2.6.33.7/fs/compat.c
@@ -52,40 +51,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.33.7.orig/fs/namei.c
-+++ linux-2.6.33.7/fs/namei.c
-@@ -1513,6 +1513,11 @@ int may_open(struct path *path, int acc_
- 	if (flag & O_NOATIME && !is_owner_or_cap(inode))
- 		return -EPERM;
- 
-+	/* includes O_APPEND check */
-+	error = ccs_open_permission(dentry, path->mnt, flag);
-+	if (error)
-+		return error;
-+
- 	/*
- 	 * Ensure there are no outstanding leases on the file.
- 	 */
-@@ -1736,7 +1741,9 @@ do_last:
- 		error = mnt_want_write(nd.path.mnt);
- 		if (error)
- 			goto exit_mutex_unlock;
-+		ccs_save_open_mode(open_flag);
- 		error = __open_namei_create(&nd, &path, flag, mode);
-+		ccs_clear_open_mode();
- 		if (error) {
- 			mnt_drop_write(nd.path.mnt);
- 			goto exit;
-@@ -1798,7 +1805,9 @@ ok:
- 		if (error)
- 			goto exit;
- 	}
-+	ccs_save_open_mode(open_flag);
- 	error = may_open(&nd.path, acc_mode, flag);
-+	ccs_clear_open_mode();
- 	if (error) {
- 		if (will_truncate)
- 			mnt_drop_write(nd.path.mnt);
 --- linux-2.6.33.7.orig/fs/open.c
 +++ linux-2.6.33.7/fs/open.c
 @@ -1176,6 +1176,8 @@ EXPORT_SYMBOL(sys_close);
@@ -233,6 +198,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_file_set_fowner(struct file *file)
+@@ -2371,7 +2375,7 @@ static inline int security_file_receive(
+ static inline int security_dentry_open(struct file *file,
+ 				       const struct cred *cred)
+ {
+-	return 0;
++	return ccs_open_permission(file);
+ }
+ 
+ static inline int security_task_create(unsigned long clone_flags)
 @@ -2737,7 +2741,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
@@ -933,7 +907,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -1052,7 +1129,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -719,7 +796,10 @@ int security_file_receive(struct file *f
+ 
+ int security_dentry_open(struct file *file, const struct cred *cred)
+ {
+-	return security_ops->dentry_open(file, cred);
++	int error = security_ops->dentry_open(file, cred);
++	if (!error)
++		error = ccs_open_permission(file);
++	return error;
+ }
+ 
+ int security_task_create(unsigned long clone_flags)
+@@ -1052,7 +1132,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -945,7 +931,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1064,17 +1144,26 @@ int security_socket_post_create(struct s
+@@ -1064,17 +1147,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -975,7 +961,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1084,7 +1173,10 @@ int security_socket_accept(struct socket
+@@ -1084,7 +1176,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
