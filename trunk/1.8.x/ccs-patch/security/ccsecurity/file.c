@@ -792,7 +792,6 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
 	switch (operation) {
 	case CCS_TYPE_RMDIR:
 	case CCS_TYPE_CHROOT:
-	case CCS_TYPE_UMOUNT:
 		ccs_add_slash(&buf);
 		break;
 	case CCS_TYPE_SYMLINK:

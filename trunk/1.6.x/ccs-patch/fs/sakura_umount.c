@@ -46,7 +46,7 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
 	const struct ccs_path_info *saved_dir;
 	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
-	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
+	if (!ccs_is_correct_path(dir, 1, 0, 0, __func__))
 		return -EINVAL;
 	saved_dir = ccs_save_name(dir);
 	if (!saved_dir)
