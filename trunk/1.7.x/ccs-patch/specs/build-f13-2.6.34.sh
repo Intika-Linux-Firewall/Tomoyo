@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.34.7-56.fc13.src.rpm ]
+if [ ! -r kernel-2.6.34.7-61.fc13.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.34.7-56.fc13.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.34.7-61.fc13.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.34.7-56.fc13.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.34.7-56.fc13.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.34.7-61.fc13.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.34.7-61.fc13.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100923.tar.gz ]
@@ -58,7 +58,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -910,7 +915,7 @@
+@@ -940,7 +945,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1527,6 +1532,10 @@
+@@ -1590,6 +1595,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1555,6 +1564,9 @@
+@@ -1618,6 +1627,9 @@
  for i in *.config
  do
    mv $i .config
