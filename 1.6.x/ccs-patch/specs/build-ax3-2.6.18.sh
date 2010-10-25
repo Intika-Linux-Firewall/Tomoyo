@@ -23,7 +23,7 @@ then
     wget -O ccs-patch-1.6.8-20100923.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100923.tar.gz' || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.6.8-20100929.tar.gz ]
+if [ ! -r ccs-patch-1.6.8-20100929.diff ]
 then
     wget -O ccs-patch-1.6.8-20100929.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?revision=4021&root=tomoyo' || die "Can't download patch."
 fi
@@ -37,8 +37,8 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
  # %dist is defined in Asianux VPBS
--%define release 194.6%{?dist}
-+%define release 194.6%{?dist}_tomoyo_1.6.8p3
+-%define release 194.7%{?dist}
++%define release 194.7%{?dist}_tomoyo_1.6.8p3
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -10411,6 +10414,10 @@
+@@ -10455,6 +10458,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -72,7 +72,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -10478,6 +10485,9 @@
+@@ -10522,6 +10529,9 @@
  for i in `ls *86*.config *ia64*.config`
  do
    mv $i .config
