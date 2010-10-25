@@ -26,7 +26,7 @@ then
     wget -O ccs-patch-1.7.2-20100923.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100923.tar.gz' || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.7.2-20101004.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20101004.diff ]
 then
     wget -O ccs-patch-1.7.2-20101004.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-ubuntu-10.04.diff?revision=4031&root=tomoyo' || die "Can't download patch."
 fi
