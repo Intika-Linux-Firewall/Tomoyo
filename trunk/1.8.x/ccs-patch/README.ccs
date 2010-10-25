@@ -2441,7 +2441,14 @@ Fix 2010/06/09
       permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
       NULL pointer dereference.
 
-Fix 2010/10/05
+Fix 2010/10/25
+
+    @ Fix umount() pathname calculation.
+
+      "mount --bind /path/to/file1 /path/to/file2" is legal.
+      Therefore, "umount /path/to/file2" is also legal.
+      Do not automatically append trailing '/' if pathname to be unmounted
+      does not end with '/'.
 
     @ Change directives.
 
