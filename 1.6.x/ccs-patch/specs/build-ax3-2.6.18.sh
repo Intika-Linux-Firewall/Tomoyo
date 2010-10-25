@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-194.6.AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-194.7.AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-194.6.AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-194.7.AXS3.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-194.6.AXS3.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-194.6.AXS3.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-194.7.AXS3.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-194.7.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20100923.tar.gz ]
