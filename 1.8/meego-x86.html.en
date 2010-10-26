@@ -29,8 +29,8 @@
 
 <pre>
 $ cd
-$ wget http://download3.meego.com/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2
-$ tar -jxf meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2 --strip 1
+$ wget http://download3.meego.com/sep03/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0901.tar.bz2
+$ tar -jxf meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0901.tar.bz2 --strip 1
 </pre>
 
 <p>"root" user's password for this image file is "meego".</p>
@@ -47,7 +47,7 @@ $ chmod 755 qemugl_cmd.sh
 <p>You can boot QEMU like below.</p>
 
 <pre>
-$ ./qemugl_cmd.sh meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.raw
+$ ./qemugl_cmd.sh meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0901.raw
 </pre>
 
 <p>If the MeeGo environment shows up correctly, you can proceed to <a href="#step_2">step 2</a>.</p>
@@ -80,7 +80,7 @@ Disk /dev/sda doesn't contain a valid partition table
 <p>Retrieve this image file using ssh (or curl or wget or whatever) and write to virtual hard disk. Substitute below vmwarehost with VMware host's IP address.</p>
 
 <pre>
-# ssh root@vmwarehost 'cat ~/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.raw' &gt; /dev/sda
+# ssh root@vmwarehost 'cat ~/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0901.raw' &gt; /dev/sda
 # fdisk /dev/sda
 
 WARNING: DOS-compatible mode is deprecated. It's strongly recommended to
@@ -254,13 +254,13 @@ $ su -
 
 <pre>
 $ cd
-$ wget http://repo.meego.com/MeeGo/builds/trunk/1.0.90.0.20100831.1/core/repos/source/kernel-2.6.35.3-5.2.src.rpm
+$ wget http://repo.meego.com/MeeGo/builds/1.0.99/1.0.99.2.20101019.1/core/repos/source/kernel-2.6.35.3-10.3.src.rpm
 </pre>
 
 <p>Next, install the package and run preparation stage.</p>
 
 <pre>
-$ rpm -ivh kernel-2.6.35.3-5.2.src.rpm
+$ rpm -ivh kernel-2.6.35.3-10.3.src.rpm
 $ rpmbuild -bp ~/rpmbuild/SPECS/kernel.spec
 $ cd ~/rpmbuild/BUILD/kernel-2.6.35.3/linux-2.6.35/
 </pre>
