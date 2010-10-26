@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
 	set_profile(3, "network::inet_raw_bind");
 	set_profile(3, "network::inet_raw_send");
 	set_profile(3, "network::inet_raw_recv");
-	fprintf(profile_fp, "PREFERENCE::audit={ max_reject_log=1024 }\n");
+	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");
 	stage_network_test();
 	clear_status();
 	return 0;

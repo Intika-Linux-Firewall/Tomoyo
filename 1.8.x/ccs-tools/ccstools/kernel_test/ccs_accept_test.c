@@ -41,10 +41,10 @@ static void set_level(const int i)
 	set_profile(i, "file::rename");
 	set_profile(i, "file::rmdir");
 	set_profile(i, "file::symlink");
-	//set_profile(i, "file::transit");
 	set_profile(i, "file::truncate");
 	set_profile(i, "file::unmount");
 	set_profile(i, "file::unlink");
+	set_profile(i, "file::getattr");
 }
 
 static void test(int rw_loop, int truncate_loop, int append_loop,
@@ -96,7 +96,8 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 		*/
 	}
 	fprintf(domain_fp,
-		"delete file read/write/append/execute/truncate %s\n", buffer);
+		"delete file read/write/append/execute/truncate/getattr %s\n",
+		buffer);
 	fprintf(domain_fp, "delete file create %s 0644\n", buffer);
 	fd = open(buffer, flags, 0644);
 	if (fd != EOF) {
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
 {
 	ccs_test_init();
 	set_profile(0, "file");
-	fprintf(profile_fp, "PREFERENCE::learning={ max_entry=2048 }\n");
+	fprintf(profile_fp, "255-PREFERENCE={ max_learning_entry=2048 }\n");
 	{
 		int append_loop;
 		for (append_loop = 0; append_loop < 2; append_loop++) {
