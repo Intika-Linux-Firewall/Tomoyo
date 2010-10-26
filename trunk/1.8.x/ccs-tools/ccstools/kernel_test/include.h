@@ -129,6 +129,7 @@ static void clear_status(void)
 		"file::open",
 		"file::create",
 		"file::unlink",
+		"file::getattr",
 		"file::mkdir",
 		"file::rmdir",
 		"file::mkfifo",
@@ -187,8 +188,8 @@ static void clear_status(void)
 		exit(1);
 	}
 	for (i = 0; keywords[i]; i++)
-		fprintf(profile_fp, "255-CONFIG::%s=disabled "
-			"grant_log=no reject_log=no\n", keywords[i]);
+		fprintf(profile_fp, "255-CONFIG::%s={ mode=disabled "
+			"grant_log=no reject_log=no }\n", keywords[i]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 10, fp)) {
 		const char *mode;
@@ -207,7 +208,7 @@ static void clear_status(void)
 		if (!strcmp(cp, "COMMENT"))
 			mode = "Profile for kernel test\n";
 		else
-			mode = "disabled grant_log=no reject_log=no"
+			mode = "{ mode=disabled grant_log=no reject_log=no }"
 				"\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
@@ -274,11 +275,12 @@ static void ccs_test_init(void)
 	}
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
-	fprintf(domain_fp, "file read/write/truncate "
+	fprintf(domain_fp, "file read/write/truncate/getattr "
 		"proc:/ccs/domain_policy\n");
-	fprintf(domain_fp, "file read/write/truncate "
+	fprintf(domain_fp, "file read/write/truncate/getattr "
 		"proc:/ccs/exception_policy\n");
-	fprintf(domain_fp, "file read/write/truncate proc:/ccs/profile\n");
+	fprintf(domain_fp, "file read/write/truncate/getattr "
+		"proc:/ccs/profile\n");
 }
 
 static void BUG(const char *fmt, ...)

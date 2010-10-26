@@ -636,7 +636,7 @@ int main(int argc, char *argv[])
 	fprintf(domain_fp, "%s /bin/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
-	fprintf(profile_fp, "PREFERENCE::audit={ max_reject_log=1024 }\n");
+	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");
 	stage_file_test();
 	fprintf(domain_fp, "use_profile 0\n");
 	clear_status();
