@@ -9,6 +9,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  include/linux/init_task.h       |    9 ++
  include/linux/sched.h           |    6 +
  include/linux/security.h        |   58 ++++++++------
+ kernel/fork.c                   |    6 +
  kernel/kexec.c                  |    3 
  kernel/module.c                 |    5 +
  kernel/ptrace.c                 |    4 
@@ -27,7 +28,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  security/Kconfig                |    2 
  security/Makefile               |    3 
  security/security.c             |  165 +++++++++++++++++++++++++++++++---------
- 25 files changed, 264 insertions(+), 61 deletions(-)
+ 26 files changed, 270 insertions(+), 61 deletions(-)
 
 --- linux-2.6.33.7.orig/fs/compat.c
 +++ linux-2.6.33.7/fs/compat.c
@@ -71,7 +72,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33.7 2010/10/22\n");
++	printk(KERN_INFO "Hook version: 2.6.33.7 2010/10/28\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -81,7 +82,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  # define INIT_PERF_EVENTS(tsk)
  #endif
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -115,7 +116,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
@@ -334,6 +335,42 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
+--- linux-2.6.33.7.orig/kernel/fork.c
++++ linux-2.6.33.7/kernel/fork.c
+@@ -72,6 +72,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ #include <trace/events/sched.h>
+ 
+@@ -166,6 +167,7 @@ void __put_task_struct(struct task_struc
+ 	exit_creds(tsk);
+ 	delayacct_tsk_free(tsk);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1143,6 +1145,9 @@ static struct task_struct *copy_process(
+ 
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_policy;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1325,6 +1330,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_policy:
+ 	perf_event_free_task(p);
+ #ifdef CONFIG_NUMA
 --- linux-2.6.33.7.orig/kernel/kexec.c
 +++ linux-2.6.33.7/kernel/kexec.c
 @@ -39,6 +39,7 @@

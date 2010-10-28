@@ -15,6 +15,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
+ kernel/fork.c                   |    6 ++++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
@@ -34,7 +35,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 233 insertions(+), 3 deletions(-)
+ 33 files changed, 239 insertions(+), 3 deletions(-)
 
 --- android-goldfish-2.6.29.orig/fs/compat.c
 +++ android-goldfish-2.6.29/fs/compat.c
@@ -458,7 +459,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: android-goldfish-2.6.29 2010/10/22\n");
++	printk(KERN_INFO "Hook version: android-goldfish-2.6.29 2010/10/28\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -487,7 +488,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  
  extern struct cred init_cred;
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -521,7 +522,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  	/* state flags for use by tracers */
  	unsigned long trace;
  #endif
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
@@ -547,6 +548,42 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  
  	do_settimeofday(&tv);
  	return 0;
+--- android-goldfish-2.6.29.orig/kernel/fork.c
++++ android-goldfish-2.6.29/kernel/fork.c
+@@ -68,6 +68,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ /*
+  * Protected counters by write_lock_irq(&tasklist_lock)
+@@ -155,6 +156,7 @@ void __put_task_struct(struct task_struc
+ 	put_cred(tsk->cred);
+ 	delayacct_tsk_free(tsk);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1103,6 +1105,9 @@ static struct task_struct *copy_process(
+ 
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_policy;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1300,6 +1305,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_policy:
+ #ifdef CONFIG_NUMA
+ 	mpol_put(p->mempolicy);
 --- android-goldfish-2.6.29.orig/kernel/kexec.c
 +++ android-goldfish-2.6.29/kernel/kexec.c
 @@ -37,6 +37,7 @@

@@ -40,6 +40,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/stat.c                          |    3 +
  include/linux/init_task.h          |   15 +++--
  include/linux/sched.h              |   17 ++---
+ kernel/fork.c                      |    6 ++
  kernel/kmod.c                      |    7 --
  kernel/module.c                    |   14 +---
  kernel/sched.c                     |    9 +--
@@ -57,7 +58,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |   22 ++-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 57 files changed, 296 insertions(+), 513 deletions(-)
+ 58 files changed, 302 insertions(+), 513 deletions(-)
 
 --- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
@@ -1452,7 +1453,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.8-20 2010/10/22\n");
++	printk(KERN_INFO "Hook version: 2.6.8-20 2010/10/28\n");
  }
 --- linux-2.6.8-20.orig/fs/stat.c
 +++ linux-2.6.8-20/fs/stat.c
@@ -1479,7 +1480,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  extern struct group_info init_groups;
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -1537,13 +1538,49 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	/***** SAKURA Linux start. *****/
 -	unsigned int dropped_capability;
 -	/***** SAKURA Linux end. *****/
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
+--- linux-2.6.8-20.orig/kernel/fork.c
++++ linux-2.6.8-20/kernel/fork.c
+@@ -45,6 +45,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ /* The idle threads do not count..
+  * Protected by write_lock_irq(&tasklist_lock)
+@@ -96,6 +97,7 @@ void __put_task_struct(struct task_struc
+ 	free_uid(tsk->user);
+ 	put_group_info(tsk->group_info);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -888,6 +890,9 @@ static task_t *copy_process(unsigned lon
+ 		goto bad_fork_cleanup_policy;
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_security;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1040,6 +1045,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_security:
+ 	security_task_free(p);
+ bad_fork_cleanup_policy:
 --- linux-2.6.8-20.orig/kernel/kmod.c
 +++ linux-2.6.8-20/kernel/kmod.c
 @@ -166,13 +166,6 @@ static int ____call_usermodehelper(void 

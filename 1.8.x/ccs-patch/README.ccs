@@ -2441,7 +2441,7 @@ Fix 2010/06/09
       permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
       NULL pointer dereference.
 
-Fix 2010/10/25
+Fix 2010/10/28
 
     @ Fix umount() pathname calculation.
 
@@ -2449,6 +2449,22 @@ Fix 2010/10/25
       Therefore, "umount /path/to/file2" is also legal.
       Do not automatically append trailing '/' if pathname to be unmounted
       does not end with '/'.
+
+    @ Add preserve KABI compatibility option. (2.6 kernels only)
+
+      TOMOYO needs "struct ccs_domain_info *" and "u32" for each
+      "struct task_struct". But embedding these variables into
+      "struct task_struct" breaks KABI for prebuilt kernel modules (which
+      means that you will need to rebuild prebuilt kernel modules).
+
+      Since KABI is commonly used (compared to 5 years ago), asking users to
+      rebuild kernel modules which are not included in kernel package is no
+      longer preferable. Therefore, I added a new option that keeps
+      "struct task_struct" unmodified in order to keep KABI.
+
+      Note that you have to use ccs-patch-2.6.\*.diff which patches
+      kernel/fork.c in order to use this option. Otherwise, TOMOYO will leak
+      memory whenever "struct task_struct" is released.
 
     @ Change directives.
 

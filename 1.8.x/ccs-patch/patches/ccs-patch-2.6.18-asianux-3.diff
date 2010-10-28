@@ -19,6 +19,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
+ kernel/fork.c                   |    6 ++++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    5 +++++
@@ -38,7 +39,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 257 insertions(+), 5 deletions(-)
+ 37 files changed, 263 insertions(+), 5 deletions(-)
 
 --- linux-2.6.18-194.7AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.7AXS3/arch/alpha/kernel/ptrace.c
@@ -534,7 +535,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-194.7AXS3 2010/10/25\n");
++	printk(KERN_INFO "Hook version: 2.6.18-194.7AXS3 2010/10/28\n");
  }
 --- linux-2.6.18-194.7AXS3.orig/fs/stat.c
 +++ linux-2.6.18-194.7AXS3/fs/stat.c
@@ -561,7 +562,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  extern struct group_info init_groups;
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -595,7 +596,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;
  #endif
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
@@ -621,6 +622,42 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	do_settimeofday(&tv);
  	return 0;
+--- linux-2.6.18-194.7AXS3.orig/kernel/fork.c
++++ linux-2.6.18-194.7AXS3/kernel/fork.c
+@@ -60,6 +60,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ /*
+  * Protected counters by write_lock_irq(&tasklist_lock)
+@@ -140,6 +141,7 @@ void __put_task_struct(struct task_struc
+ 	put_group_info(tsk->group_info);
+ 	delayacct_tsk_free(tsk);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1238,6 +1240,9 @@ static struct task_struct *copy_process(
+ 		goto bad_fork_cleanup_policy;
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_security;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1413,6 +1418,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_security:
+ 	security_task_free(p);
+ bad_fork_cleanup_policy:
 --- linux-2.6.18-194.7AXS3.orig/kernel/kexec.c
 +++ linux-2.6.18-194.7AXS3/kernel/kexec.c
 @@ -32,6 +32,7 @@

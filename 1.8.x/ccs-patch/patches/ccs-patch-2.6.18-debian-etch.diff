@@ -24,6 +24,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
+ kernel/fork.c                   |    6 ++++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    3 +++
@@ -43,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 274 insertions(+), 8 deletions(-)
+ 42 files changed, 280 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18-26etch2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-26etch2/arch/alpha/kernel/ptrace.c
@@ -636,7 +637,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-26etch2 2010/10/22\n");
++	printk(KERN_INFO "Hook version: 2.6.18-26etch2 2010/10/28\n");
  }
 --- linux-2.6.18-26etch2.orig/fs/stat.c
 +++ linux-2.6.18-26etch2/fs/stat.c
@@ -663,7 +664,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  extern struct group_info init_groups;
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -697,7 +698,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;
  #endif
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
@@ -723,6 +724,42 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	do_settimeofday(&tv);
  	return 0;
+--- linux-2.6.18-26etch2.orig/kernel/fork.c
++++ linux-2.6.18-26etch2/kernel/fork.c
+@@ -52,6 +52,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ /*
+  * Protected counters by write_lock_irq(&tasklist_lock)
+@@ -119,6 +120,7 @@ void __put_task_struct(struct task_struc
+ 	put_group_info(tsk->group_info);
+ 	delayacct_tsk_free(tsk);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1089,6 +1091,9 @@ static struct task_struct *copy_process(
+ 		goto bad_fork_cleanup_policy;
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_security;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1270,6 +1275,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_security:
+ 	security_task_free(p);
+ bad_fork_cleanup_policy:
 --- linux-2.6.18-26etch2.orig/kernel/kexec.c
 +++ linux-2.6.18-26etch2/kernel/kexec.c
 @@ -26,6 +26,7 @@

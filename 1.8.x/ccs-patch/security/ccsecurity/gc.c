@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/10/25
+ * Version: 1.8.0-pre   2010/10/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -159,6 +159,20 @@ static inline size_t ccs_del_manager(struct list_head *element)
 static bool ccs_used_by_task(struct ccs_domain_info *domain)
 {
 	bool in_use = false;
+#ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+	struct ccs_security *ptr;
+	rcu_read_lock();
+	list_for_each_entry_rcu(ptr, &ccs_security_list, list) {
+		if (!(ptr->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
+			smp_mb(); /* Avoid out of order execution. */
+			if (ptr->ccs_domain_info != domain)
+				continue;
+		}
+		in_use = true;
+		break;
+	}
+	rcu_read_unlock();
+#else
 	/*
 	 * Don't delete this domain if somebody is doing execve().
 	 *
@@ -194,6 +208,7 @@ out:
 		break;
 	}
 	ccs_tasklist_unlock();
+#endif
 #endif
 	return in_use;
 }

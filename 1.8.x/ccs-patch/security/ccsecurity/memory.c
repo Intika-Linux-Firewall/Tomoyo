@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/10/25
+ * Version: 1.8.0-pre   2010/10/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -245,6 +245,150 @@ out:
 	return ptr ? &ptr->entry : NULL;
 }
 
+#ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+
+/* Dummy security context for avoiding NULL pointer dereference. */
+static struct ccs_security ccs_null_security = {
+	.ccs_domain_info = &ccs_kernel_domain
+};
+
+/* List of "struct ccs_security". */
+LIST_HEAD(ccs_security_list);
+/* Lock for protecting ccs_security_list. */
+static DEFINE_SPINLOCK(ccs_security_list_lock);
+
+/**
+ * ccs_add_security - Add "struct ccs_security" to list.
+ *
+ * @ptr: Pointer to "struct ccs_security".
+ *
+ * Returns nothing.
+ */
+static void ccs_add_security(struct ccs_security *ptr)
+{
+	unsigned long flags;
+	spin_lock_irqsave(&ccs_security_list_lock, flags);
+	list_add_rcu(&ptr->list, &ccs_security_list);
+	spin_unlock_irqrestore(&ccs_security_list_lock, flags);
+}
+
+/**
+ * __ccs_alloc_task_security - Allocate memory for new tasks.
+ *
+ * @task: Pointer to "struct task_struct".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_alloc_task_security(const struct task_struct *task)
+{
+	struct ccs_security *old_security = ccs_current_security();
+	struct ccs_security *new_security = kzalloc(sizeof(*new_security),
+						    GFP_KERNEL);
+	if (!new_security)
+		return -ENOMEM;
+	*new_security = *old_security;
+	new_security->task = task;
+	ccs_add_security(new_security);
+	return 0;
+}
+
+/**
+ * ccs_find_task_security - Find "struct ccs_security" for given task.
+ *
+ * @task: Pointer to "struct task_struct".
+ *
+ * Returns pointer to "struct ccs_security" on success, &ccs_null_security
+ * otherwise.
+ *
+ * If @task is current thread and "struct ccs_security" for current thread was
+ * not found, I try to allocate it. But if allocation failed, current thread
+ * will be killed by SIGKILL. Note that if current->pid == 1, sending SIGKILL
+ * won't work.
+ */
+struct ccs_security *ccs_find_task_security(const struct task_struct *task)
+{
+	struct ccs_security *ptr;
+	rcu_read_lock();
+	list_for_each_entry_rcu(ptr, &ccs_security_list, list) {
+		if (ptr->task != task)
+			continue;
+		rcu_read_unlock();
+		return ptr;
+	}
+	rcu_read_unlock();
+	if (task != current)
+		return &ccs_null_security;
+	/* Use GFP_ATOMIC because caller may have called rcu_read_lock(). */
+	ptr = kzalloc(sizeof(*ptr), GFP_ATOMIC);
+	if (!ptr) {
+		printk(KERN_WARNING "Unable to allocate memory for pid=%u\n",
+		       task->pid);
+		send_sig(SIGKILL, current, 0);
+		return &ccs_null_security;
+	}
+	*ptr = ccs_null_security;
+	ptr->task = task;
+	ccs_add_security(ptr);
+	return ptr;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 8)
+
+/**
+ * ccs_rcu_free - RCU callback for releasing "struct ccs_security".
+ *
+ * @rcu: Pointer to "struct rcu_head".
+ *
+ * Returns nothing.
+ */
+static void ccs_rcu_free(struct rcu_head *rcu)
+{
+	struct ccs_security *ptr = container_of(rcu, typeof(*ptr), rcu);
+	kfree(ptr);
+}
+
+#else
+
+/**
+ * ccs_rcu_free - RCU callback for releasing "struct ccs_security".
+ *
+ * @arg: Pointer to "void".
+ *
+ * Returns nothing.
+ */
+static void ccs_rcu_free(void *arg)
+{
+	struct ccs_security *ptr = arg;
+	kfree(ptr);
+}
+
+#endif
+
+/**
+ * __ccs_free_task_security - Release memory associated with "struct task_struct".
+ *
+ * @task: Pointer to "struct task_struct".
+ *
+ * Returns nothing.
+ */
+static void __ccs_free_task_security(const struct task_struct *task)
+{
+	unsigned long flags;
+	struct ccs_security *ptr = ccs_find_task_security(task);
+	if (ptr == &ccs_null_security)
+		return;
+	spin_lock_irqsave(&ccs_security_list_lock, flags);
+	list_del_rcu(&ptr->list);
+	spin_unlock_irqrestore(&ccs_security_list_lock, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 8)
+	call_rcu(&ptr->rcu, ccs_rcu_free);
+#else
+	call_rcu(&ptr->rcu, ccs_rcu_free, ptr);
+#endif
+}
+
+#endif
+
 /**
  * ccs_mm_init - Initialize mm related code.
  *
@@ -261,6 +405,10 @@ void __init ccs_mm_init(void)
 	}
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[0]);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[1]);
+#ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+	ccsecurity_ops.alloc_task_security = __ccs_alloc_task_security;
+	ccsecurity_ops.free_task_security = __ccs_free_task_security;
+#endif
 	ccs_kernel_domain.domainname = ccs_get_name(CCS_ROOT_NAME);
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
 	idx = ccs_read_lock();
