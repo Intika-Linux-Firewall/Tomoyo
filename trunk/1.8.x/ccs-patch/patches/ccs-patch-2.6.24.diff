@@ -23,6 +23,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
+ kernel/fork.c                   |    6 ++++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    3 +++
@@ -43,7 +44,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 250 insertions(+), 3 deletions(-)
+ 42 files changed, 256 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24.7.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24.7/arch/ia64/ia32/sys_ia32.c
@@ -595,7 +596,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24.7 2010/10/22\n");
++	printk(KERN_INFO "Hook version: 2.6.24.7 2010/10/28\n");
  }
 --- linux-2.6.24.7.orig/fs/stat.c
 +++ linux-2.6.24.7/fs/stat.c
@@ -622,7 +623,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	.pid = &init_struct_pid,				\
  }
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -656,7 +657,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	int make_it_fail;
  #endif
  	struct prop_local_single dirties;
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
@@ -682,6 +683,42 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	do_settimeofday(&tv);
  	return 0;
+--- linux-2.6.24.7.orig/kernel/fork.c
++++ linux-2.6.24.7/kernel/fork.c
+@@ -58,6 +58,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ /*
+  * Protected counters by write_lock_irq(&tasklist_lock)
+@@ -126,6 +127,7 @@ void __put_task_struct(struct task_struc
+ 	put_group_info(tsk->group_info);
+ 	delayacct_tsk_free(tsk);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1130,6 +1132,9 @@ static struct task_struct *copy_process(
+ 		goto bad_fork_cleanup_policy;
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_security;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1336,6 +1341,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_security:
+ 	security_task_free(p);
+ bad_fork_cleanup_policy:
 --- linux-2.6.24.7.orig/kernel/kexec.c
 +++ linux-2.6.24.7/kernel/kexec.c
 @@ -31,6 +31,7 @@

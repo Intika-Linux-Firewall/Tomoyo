@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/10/25
+ * Version: 1.8.0-pre   2010/10/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1898,6 +1898,97 @@ static inline void ccs_put_name(const struct ccs_path_info *name)
 /* For importing variables and functions. */
 extern const struct ccsecurity_exports ccsecurity_exports;
 
+#ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+
+/*
+ * Structure for holding "struct ccs_domain_info *" and "struct ccs_execve *"
+ * and "u32 ccs_flags" for each "struct task_struct".
+ *
+ * "struct ccs_domain_info *" and "u32 ccs_flags" for each "struct task_struct"
+ * are maintained outside that "struct task_struct". Therefore, ccs_security
+ * != task_struct . This keeps KABI for distributor's prebuilt kernels but
+ * entails slow access.
+ *
+ * Memory for this structure is allocated when current thread tries to access
+ * it. Therefore, if memory allocation failed, current thread will be killed by
+ * SIGKILL. Note that if current->pid == 1, sending SIGKILL won't work.
+ */
+struct ccs_security {
+	struct list_head list;
+	const struct task_struct *task;
+	struct ccs_domain_info *ccs_domain_info;
+	u32 ccs_flags;
+	struct rcu_head rcu;
+};
+
+extern struct list_head ccs_security_list;
+extern struct ccs_security *ccs_find_task_security(const struct task_struct *
+						   task);
+
+/**
+ * ccs_current_security - Get "struct ccs_security" for current thread.
+ *
+ * Returns pointer to "struct ccs_security" for current thread.
+ */
+static inline struct ccs_security *ccs_current_security(void)
+{
+	return ccs_find_task_security(current);
+}
+
+/**
+ * ccs_task_security - Get "struct ccs_security" for specified thread.
+ *
+ * @task: Pointer to "struct task_struct".
+ *
+ * Returns pointer to "struct ccs_security" for specified thread.
+ */
+static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
+{
+	struct ccs_domain_info *domain;
+	rcu_read_lock();
+	domain = ccs_find_task_security(task)->ccs_domain_info;
+	rcu_read_unlock();
+	return domain;
+}
+
+/**
+ * ccs_current_domain - Get "struct ccs_domain_info" for current thread.
+ *
+ * Returns pointer to "struct ccs_domain_info" for current thread.
+ */
+static inline struct ccs_domain_info *ccs_current_domain(void)
+{
+	return ccs_find_task_security(current)->ccs_domain_info;
+}
+
+/**
+ * ccs_task_flags - Get flags for specified thread.
+ *
+ * @task: Pointer to "struct task_struct".
+ *
+ * Returns flags for specified thread.
+ */
+static inline u32 ccs_task_flags(struct task_struct *task)
+{
+	u32 ccs_flags;
+	rcu_read_lock();
+	ccs_flags = ccs_find_task_security(task)->ccs_flags;
+	rcu_read_unlock();
+	return ccs_flags;
+}
+
+/**
+ * ccs_task_flags - Get flags for current thread.
+ *
+ * Returns flags for current thread.
+ */
+static inline u32 ccs_current_flags(void)
+{
+	return ccs_find_task_security(current)->ccs_flags;
+}
+
+#else
+
 /*
  * "struct ccs_domain_info *" and "u32 ccs_flags" for each "struct task_struct"
  * are maintained inside that "struct task_struct". Therefore, ccs_security ==
@@ -1980,5 +2071,7 @@ static inline u32 ccs_current_flags(void)
 {
 	return ccs_find_task_security(current)->ccs_flags;
 }
+
+#endif
 
 #endif

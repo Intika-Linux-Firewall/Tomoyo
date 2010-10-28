@@ -10,6 +10,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  include/linux/sched.h     |    6 +
  include/linux/security.h  |   58 ++++++++++--------
  include/net/ip.h          |    2 
+ kernel/fork.c             |    6 +
  kernel/kexec.c            |    3 
  kernel/module.c           |    5 +
  kernel/ptrace.c           |    4 +
@@ -26,7 +27,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  security/Kconfig          |    2 
  security/Makefile         |    3 
  security/security.c       |  144 ++++++++++++++++++++++++++++++++++++++--------
- 24 files changed, 250 insertions(+), 51 deletions(-)
+ 25 files changed, 256 insertions(+), 51 deletions(-)
 
 --- linux-2.6.35-22.34.orig/fs/compat.c
 +++ linux-2.6.35-22.34/fs/compat.c
@@ -70,7 +71,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.35-22.34 2010/10/22\n");
++	printk(KERN_INFO "Hook version: 2.6.35-22.34 2010/10/28\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -80,7 +81,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  # define INIT_PERF_EVENTS(tsk)
  #endif
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -114,7 +115,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
@@ -339,6 +340,42 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
+--- linux-2.6.35-22.34.orig/kernel/fork.c
++++ linux-2.6.35-22.34/kernel/fork.c
+@@ -72,6 +72,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ #include <trace/events/sched.h>
+ 
+@@ -188,6 +189,7 @@ void __put_task_struct(struct task_struc
+ 	delayacct_tsk_free(tsk);
+ 	put_signal_struct(tsk->signal);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1132,6 +1134,9 @@ static struct task_struct *copy_process(
+ 
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_policy;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1314,6 +1319,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_policy:
+ 	perf_event_free_task(p);
+ #ifdef CONFIG_NUMA
 --- linux-2.6.35-22.34.orig/kernel/kexec.c
 +++ linux-2.6.35-22.34/kernel/kexec.c
 @@ -39,6 +39,7 @@

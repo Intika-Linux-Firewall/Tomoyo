@@ -15,6 +15,7 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/src/k
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
+ kernel/fork.c                   |    6 ++++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
@@ -34,7 +35,7 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/src/k
  net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 229 insertions(+), 3 deletions(-)
+ 33 files changed, 235 insertions(+), 3 deletions(-)
 
 --- linux-2.6.31.14-0.2.1.orig/fs/compat.c
 +++ linux-2.6.31.14-0.2.1/fs/compat.c
@@ -438,7 +439,7 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/src/k
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.31.14-0.2.1 2010/10/22\n");
++	printk(KERN_INFO "Hook version: 2.6.31.14-0.2.1 2010/10/28\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -467,7 +468,7 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/src/k
  # define INIT_PERF_COUNTERS(tsk)
  #endif
  
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
 +	.ccs_domain_info = NULL, \
 +	.ccs_flags = 0,
@@ -501,7 +502,7 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/src/k
  #endif /* CONFIG_TRACING */
  	/* unused */
  	u64	instrumentation;
-+#ifdef CONFIG_CCSECURITY
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
 +#endif
@@ -527,6 +528,42 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/src/k
  
  	do_settimeofday(&tv);
  	return 0;
+--- linux-2.6.31.14-0.2.1.orig/kernel/fork.c
++++ linux-2.6.31.14-0.2.1/kernel/fork.c
+@@ -69,6 +69,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
++#include <linux/ccsecurity.h>
+ 
+ #include <trace/events/sched.h>
+ 
+@@ -156,6 +157,7 @@ void __put_task_struct(struct task_struc
+ 	put_cred(tsk->cred);
+ 	delayacct_tsk_free(tsk);
+ 
++	ccs_free_task_security(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1094,6 +1096,9 @@ static struct task_struct *copy_process(
+ 
+ 	if ((retval = audit_alloc(p)))
+ 		goto bad_fork_cleanup_policy;
++	retval = ccs_alloc_task_security(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	if ((retval = copy_semundo(clone_flags, p)))
+ 		goto bad_fork_cleanup_audit;
+@@ -1289,6 +1294,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	ccs_free_task_security(p);
+ bad_fork_cleanup_policy:
+ 	perf_counter_free_task(p);
+ #ifdef CONFIG_NUMA
 --- linux-2.6.31.14-0.2.1.orig/kernel/kexec.c
 +++ linux-2.6.31.14-0.2.1/kernel/kexec.c
 @@ -38,6 +38,7 @@

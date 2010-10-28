@@ -21,6 +21,21 @@ config CCSECURITY_DISABLE_BY_DEFAULT
 	  To enable TOMOYO, pass ccsecurity=on to kernel command line.
 	  To disable TOMOYO, pass ccsecurity=off to kernel command line.
 
+config CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+	bool "Do not modify 'struct task_struct' in order to keep KABI."
+	default n
+	depends on CCSECURITY
+	help
+	  Say Y here if you want to keep KABI for prebuilt kernel modules
+	  unchanged. TOMOYO needs "struct ccs_domain_info *" and "u32" for each
+	  "struct task_struct". But embedding these variables into
+	  "struct task_struct" breaks KABI for prebuilt kernel modules (which
+	  means that you will need to rebuild prebuilt kernel modules).
+	  If you say Y here, these variables are managed outside
+	  "struct task_struct" rather than embedding into "struct task_struct",
+	  but accessing these variables becomes slower because lookup operation
+	  is performed everytime the current thread needs to access them.
+
 config CCSECURITY_MAX_ACCEPT_ENTRY
 	int "Default maximal count for learning mode"
 	default 2048
