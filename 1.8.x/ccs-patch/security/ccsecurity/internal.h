@@ -1921,9 +1921,11 @@ struct ccs_security {
 	struct rcu_head rcu;
 };
 
-extern struct list_head ccs_security_list;
-extern struct ccs_security *ccs_find_task_security(const struct task_struct *
-						   task);
+#define CCS_TASK_SECURITY_HASH_BITS 12
+#define CCS_MAX_TASK_SECURITY_HASH (1u << CCS_TASK_SECURITY_HASH_BITS)
+extern struct list_head ccs_task_security_list[CCS_MAX_TASK_SECURITY_HASH];
+
+struct ccs_security *ccs_find_task_security(const struct task_struct *task);
 
 /**
  * ccs_current_security - Get "struct ccs_security" for current thread.
