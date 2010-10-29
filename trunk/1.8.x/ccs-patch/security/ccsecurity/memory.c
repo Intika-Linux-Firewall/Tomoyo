@@ -253,23 +253,25 @@ static struct ccs_security ccs_null_security = {
 };
 
 /* List of "struct ccs_security". */
-LIST_HEAD(ccs_security_list);
-/* Lock for protecting ccs_security_list. */
-static DEFINE_SPINLOCK(ccs_security_list_lock);
+struct list_head ccs_task_security_list[CCS_MAX_TASK_SECURITY_HASH];
+/* Lock for protecting ccs_task_security_list[]. */
+static DEFINE_SPINLOCK(ccs_task_security_list_lock);
 
 /**
- * ccs_add_security - Add "struct ccs_security" to list.
+ * ccs_add_task_security - Add "struct ccs_security" to list.
  *
- * @ptr: Pointer to "struct ccs_security".
+ * @ptr:  Pointer to "struct ccs_security".
+ * @list: Pointer to "struct list_head".
  *
  * Returns nothing.
  */
-static void ccs_add_security(struct ccs_security *ptr)
+static void ccs_add_task_security(struct ccs_security *ptr,
+				  struct list_head *list)
 {
 	unsigned long flags;
-	spin_lock_irqsave(&ccs_security_list_lock, flags);
-	list_add_rcu(&ptr->list, &ccs_security_list);
-	spin_unlock_irqrestore(&ccs_security_list_lock, flags);
+	spin_lock_irqsave(&ccs_task_security_list_lock, flags);
+	list_add_rcu(&ptr->list, list);
+	spin_unlock_irqrestore(&ccs_task_security_list_lock, flags);
 }
 
 /**
@@ -284,11 +286,13 @@ static int __ccs_alloc_task_security(const struct task_struct *task)
 	struct ccs_security *old_security = ccs_current_security();
 	struct ccs_security *new_security = kzalloc(sizeof(*new_security),
 						    GFP_KERNEL);
+	struct list_head *list = &ccs_task_security_list
+		[hash_ptr((void *) task, CCS_TASK_SECURITY_HASH_BITS)];
 	if (!new_security)
 		return -ENOMEM;
 	*new_security = *old_security;
 	new_security->task = task;
-	ccs_add_security(new_security);
+	ccs_add_task_security(new_security, list);
 	return 0;
 }
 
@@ -308,8 +312,13 @@ static int __ccs_alloc_task_security(const struct task_struct *task)
 struct ccs_security *ccs_find_task_security(const struct task_struct *task)
 {
 	struct ccs_security *ptr;
+	struct list_head *list = &ccs_task_security_list
+		[hash_ptr((void *) task, CCS_TASK_SECURITY_HASH_BITS)];
+	if (unlikely(!list->next))
+		/* Make sure INIT_LIST_HEAD() in ccs_mm_init() takes effect. */
+		smp_mb();
 	rcu_read_lock();
-	list_for_each_entry_rcu(ptr, &ccs_security_list, list) {
+	list_for_each_entry_rcu(ptr, list, list) {
 		if (ptr->task != task)
 			continue;
 		rcu_read_unlock();
@@ -328,7 +337,7 @@ struct ccs_security *ccs_find_task_security(const struct task_struct *task)
 	}
 	*ptr = ccs_null_security;
 	ptr->task = task;
-	ccs_add_security(ptr);
+	ccs_add_task_security(ptr, list);
 	return ptr;
 }
 
@@ -377,9 +386,9 @@ static void __ccs_free_task_security(const struct task_struct *task)
 	struct ccs_security *ptr = ccs_find_task_security(task);
 	if (ptr == &ccs_null_security)
 		return;
-	spin_lock_irqsave(&ccs_security_list_lock, flags);
+	spin_lock_irqsave(&ccs_task_security_list_lock, flags);
 	list_del_rcu(&ptr->list);
-	spin_unlock_irqrestore(&ccs_security_list_lock, flags);
+	spin_unlock_irqrestore(&ccs_task_security_list_lock, flags);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 8)
 	call_rcu(&ptr->rcu, ccs_rcu_free);
 #else
@@ -406,6 +415,9 @@ void __init ccs_mm_init(void)
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[0]);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[1]);
 #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+	for (idx = 0; idx < CCS_MAX_TASK_SECURITY_HASH; idx++)
+		INIT_LIST_HEAD(&ccs_task_security_list[idx]);
+	smp_mb(); /* Avoid out of order execution. */
 	ccsecurity_ops.alloc_task_security = __ccs_alloc_task_security;
 	ccsecurity_ops.free_task_security = __ccs_free_task_security;
 #endif

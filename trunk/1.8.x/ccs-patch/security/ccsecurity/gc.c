@@ -159,20 +159,6 @@ static inline size_t ccs_del_manager(struct list_head *element)
 static bool ccs_used_by_task(struct ccs_domain_info *domain)
 {
 	bool in_use = false;
-#ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
-	struct ccs_security *ptr;
-	rcu_read_lock();
-	list_for_each_entry_rcu(ptr, &ccs_security_list, list) {
-		if (!(ptr->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
-			smp_mb(); /* Avoid out of order execution. */
-			if (ptr->ccs_domain_info != domain)
-				continue;
-		}
-		in_use = true;
-		break;
-	}
-	rcu_read_unlock();
-#else
 	/*
 	 * Don't delete this domain if somebody is doing execve().
 	 *
@@ -180,7 +166,25 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 	 * updates ccs_flags, we need smp_mb() to make sure that GC first
 	 * checks ccs_flags and then checks ccs_domain_info.
 	 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
+#ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+	int idx;
+	rcu_read_lock();
+	for (idx = 0; idx < CCS_MAX_TASK_SECURITY_HASH; idx++) {
+		struct ccs_security *ptr;
+		struct list_head *list = &ccs_task_security_list[idx];
+		list_for_each_entry_rcu(ptr, list, list) {
+			if (!(ptr->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
+				smp_mb(); /* Avoid out of order execution. */
+				if (ptr->ccs_domain_info != domain)
+					continue;
+			}
+			in_use = true;
+			goto out;
+		}
+	}
+out:
+	rcu_read_unlock();
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
 	struct task_struct *g;
 	struct task_struct *t;
 	ccs_tasklist_lock();
@@ -208,7 +212,6 @@ out:
 		break;
 	}
 	ccs_tasklist_unlock();
-#endif
 #endif
 	return in_use;
 }
