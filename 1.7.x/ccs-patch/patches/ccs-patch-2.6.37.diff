@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for 2.6.36-git10.
+This is TOMOYO Linux patch for 2.6.36-git17.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.36.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.36-git10.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.36.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.36-git17.bz2
 ---
  fs/compat.c               |    2 
  fs/compat_ioctl.c         |    4 +
@@ -34,7 +34,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 
 --- linux-2.6.37.orig/fs/compat.c
 +++ linux-2.6.37/fs/compat.c
-@@ -1553,7 +1553,7 @@ int compat_do_execve(char * filename,
+@@ -1525,7 +1525,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -45,7 +45,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.37.orig/fs/compat_ioctl.c
 +++ linux-2.6.37/fs/compat_ioctl.c
-@@ -1623,6 +1623,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -1600,6 +1600,10 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -58,10 +58,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (error != -ENOIOCTLCMD)
 --- linux-2.6.37.orig/fs/exec.c
 +++ linux-2.6.37/fs/exec.c
-@@ -1407,7 +1407,7 @@ int do_execve(const char * filename,
+@@ -1412,7 +1412,7 @@ int do_execve(const char * filename,
+ 	if (retval < 0)
  		goto out;
  
- 	current->flags &= ~PF_KTHREAD;
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval < 0)
@@ -144,13 +144,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.36-git10 2010/10/28\n");
++	printk(KERN_INFO "Hook version: 2.6.36-git17 2010/10/31\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 --- linux-2.6.37.orig/include/linux/init_task.h
 +++ linux-2.6.37/include/linux/init_task.h
-@@ -108,6 +108,14 @@ extern struct cred init_cred;
+@@ -110,6 +110,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
  
@@ -184,7 +184,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  struct sched_param {
  	int sched_priority;
  };
-@@ -1507,6 +1509,10 @@ struct task_struct {
+@@ -1511,6 +1513,10 @@ struct task_struct {
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
@@ -457,7 +457,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mod = load_module(umod, len, uargs);
 --- linux-2.6.37.orig/kernel/ptrace.c
 +++ linux-2.6.37/kernel/ptrace.c
-@@ -695,6 +695,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -699,6 +699,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -466,7 +466,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -837,6 +839,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -843,6 +845,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -488,7 +488,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	 * Setpriority might change our priority at the same moment.
 --- linux-2.6.37.orig/kernel/signal.c
 +++ linux-2.6.37/kernel/signal.c
-@@ -2325,6 +2325,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2328,6 +2328,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -497,7 +497,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2393,6 +2395,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2396,6 +2398,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -506,7 +506,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2405,6 +2409,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2408,6 +2412,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -515,7 +515,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2422,6 +2428,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2425,6 +2431,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -524,7 +524,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2438,6 +2446,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2441,6 +2449,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  	if (info->si_code >= 0)
  		return -EPERM;
  	info->si_signo = sig;
@@ -649,7 +649,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (len > ulen)
 --- linux-2.6.37.orig/net/socket.c
 +++ linux-2.6.37/net/socket.c
-@@ -1503,6 +1503,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1501,6 +1501,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
