@@ -1,16 +1,16 @@
 Summary: TOMOYO Linux tools
 
 Name: ccs-tools
-Version: 1.7.2
+Version: 1.8.0
 Release: 1
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.2-1
+Conflicts: ccs-tools < 1.8.0-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20100401.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/?????/ccs-tools-1.8.0-20101111.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Thu Nov 11 2010 1.8.0-1
+- Fifth anniversary release.
+
 * Thu Apr 01 2010 1.7.2-1
 - ccs-sortpolicy should not remove use_profile lines.
 - ccs-init calls /etc/ccs/ccs-load-module for loading TOMOYO which was built as a loadable kernel module.

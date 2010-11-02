@@ -56,7 +56,6 @@ static void panic(void)
 #define proc_meminfo          "/proc/ccs/meminfo"
 static const char *profile_name = "default";
 static _Bool ccs_noload = 0;
-static _Bool ccs_quiet = 0;
 static _Bool proc_unmount = 0;
 static _Bool chdir_ok = 0;
 
@@ -81,8 +80,6 @@ static void check_arg(const char *arg)
 			panic();
 	} else if (!strcmp(arg, "CCS_NOLOAD"))
 		ccs_noload = 1;
-	else if (!strcmp(arg, "CCS_QUIET"))
-		ccs_quiet = 1;
 }
 
 static void ask_profile(void)
@@ -153,8 +150,6 @@ static void ask_profile(void)
 		}
 		if (!strcmp(input, "CCS_NOLOAD"))
 			ccs_noload = 1;
-		if (!strcmp(input, "CCS_QUIET"))
-			ccs_quiet = 1;
 	}
 }
 
@@ -231,25 +226,6 @@ static void disable_profile(void)
 			fprintf(fp_out, "%s=disabled\n", buffer);
 		else
 			fprintf(fp_out, "%s={ mode=disabled }\n", buffer);
-	}
-	fclose(fp_in);
-	fclose(fp_out);
-}
-
-static void disable_verbose(void)
-{
-	FILE *fp_out = fopen(proc_profile, "w");
-	FILE *fp_in = fopen(proc_profile, "r");
-	if (!fp_in || !fp_out)
-		panic();
-	while (memset(buffer, 0, sizeof(buffer)),
-	       fgets(buffer, sizeof(buffer) - 1, fp_in)) {
-		char *cp = strchr(buffer, '=');
-		if (!cp)
-			continue;
-		*cp = '\0';
-		if (strstr(buffer, "-CONFIG"))
-			fprintf(fp_out, "%s={ verbose=no }\n", buffer);
 	}
 	fclose(fp_in);
 	fclose(fp_out);
@@ -428,10 +404,6 @@ int main(int argc, char *argv[])
 	/* Use disabled mode? */
 	if (!strcmp(profile_name, "disable"))
 		disable_profile();
-
-	/* Disable verbose mode? */
-	if (ccs_quiet)
-		disable_verbose();
 
 	/* Do additional initialization. */
 	if (!access("/etc/ccs/ccs-post-init", X_OK)) {

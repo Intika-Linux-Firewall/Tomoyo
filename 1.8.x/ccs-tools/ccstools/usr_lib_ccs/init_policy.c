@@ -339,13 +339,11 @@ static void make_globally_readable_files(void)
 		"/usr/share/locale/locale.alias"
 	};
 	int i;
+	keyword = "acl_group 0 file read";
 	for (i = 0; i < elementof(files); i++) {
 		char *cp = get_realpath(files[i]);
 		if (!cp)
 			continue;
-		keyword = "acl_group 0 file read";
-		printf_encoded(cp, 0);
-		keyword = "acl_group 0 file getattr";
 		printf_encoded(cp, 0);
 		free(cp);
 	}
@@ -355,9 +353,7 @@ static void make_self_readable_files(void)
 {
 	/* Allow reading information for current process. */
 	fprintf(filp, "acl_group 0 file read proc:/self/\\*\n");
-	fprintf(filp, "acl_group 0 file getattr proc:/self/\\*\n");
 	fprintf(filp, "acl_group 0 file read proc:/self/\\{\\*\\}/\\*\n");
-	fprintf(filp, "acl_group 0 file getattr proc:/self/\\{\\*\\}/\\*\n");
 }
 
 static void make_ldconfig_readable_files(void)
@@ -386,7 +382,6 @@ static void make_ldconfig_readable_files(void)
 		if (!cp)
 			continue;
 		fprintf(filp, "acl_group 0 file read %s/lib\\*.so\\*\n", cp);
-		fprintf(filp, "acl_group 0 file getattr %s/lib\\*.so\\*\n", cp);
 		free(cp);
 	}
 	while (memset(path, 0, sizeof(path)),
@@ -419,11 +414,6 @@ static void make_ldconfig_readable_files(void)
 				*(cp2 + 6) = '\0';
 			else
 				cp2 = NULL;
-			printf_encoded(cp, 0);
-			if (cp2)
-				fprintf(filp, "\\*.so");
-			fputc('\n', filp);
-			fprintf(filp, "acl_group 0 file getattr ");
 			printf_encoded(cp, 0);
 			if (cp2)
 				fprintf(filp, "\\*.so");
@@ -542,6 +532,28 @@ static void make_policy_dir(void)
 	}
 }
 
+static void make_getattr(void)
+{
+	/* Allow getting attributes. */
+	fprintf(filp, "acl_group 0 file getattr /\n");
+	fprintf(filp, "acl_group 0 file getattr /\\*\n");
+	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\n");
+	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\\*\n");
+	fprintf(filp, "acl_group 0 file getattr \\*:/\n");
+	fprintf(filp, "acl_group 0 file getattr \\*:/\\*\n");
+	fprintf(filp, "acl_group 0 file getattr \\*:/\\{\\*\\}/\n");
+	fprintf(filp, "acl_group 0 file getattr \\*:/\\{\\*\\}/\\*\n");
+}
+
+static void make_readdir(void)
+{
+	/* Allow reading directories. */
+	fprintf(filp, "acl_group 0 file read /\n");
+	fprintf(filp, "acl_group 0 file read /\\{\\*\\}/\n");
+	fprintf(filp, "acl_group 0 file read \\*:/\n");
+	fprintf(filp, "acl_group 0 file read \\*:/\\{\\*\\}/\n");
+}
+
 static void make_exception_policy(void)
 {
 	if (chdir(policy_dir) || !access("exception_policy.conf", R_OK))
@@ -552,10 +564,12 @@ static void make_exception_policy(void)
 		return;
 	}
 	fprintf(stderr, "Creating exception policy... ");
-	scan_modprobe_and_hotplug();
 	make_globally_readable_files();
 	make_self_readable_files();
 	make_ldconfig_readable_files();
+	make_readdir();
+	make_getattr();
+	scan_modprobe_and_hotplug();
 	make_init_dir_as_initializers();
 	make_initializers();
 	make_init_scripts_as_aggregators();
@@ -594,6 +608,13 @@ static void make_manager(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static const char *grant_log = "no";
+static const char *reject_log = "yes";
+static unsigned int max_grant_log = 1024;
+static unsigned int max_reject_log = 1024;
+static unsigned int max_learning_entry = 2048;
+static unsigned int enforcing_penalty = 0;
+
 static void make_profile(void)
 {
 	static const char *file_only = "";
@@ -608,25 +629,31 @@ static void make_profile(void)
 	fprintf(stderr, "Creating default profile... ");
 	if (file_only_profile)
 		file_only = "::file";
-	fprintf(fp,
-		"PROFILE_VERSION=20100903\n"
-		"0-COMMENT=-----Disabled Mode-----\n"
-		"0-PREFERENCE={ max_grant_log=1024 max_reject_log=1024 "
-		"max_learning_entry=2048 enforcing_penalty=0  }\n"
-		"0-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n"
-		"1-COMMENT=-----Learning Mode-----\n"
-		"1-PREFERENCE={ max_grant_log=1024 max_reject_log=1024 "
-		"max_learning_entry=2048 enforcing_penalty=0  }\n"
-		"1-CONFIG%s={ mode=learning grant_log=yes reject_log=yes }\n"
-		"2-COMMENT=-----Permissive Mode-----\n"
-		"2-PREFERENCE={ max_grant_log=1024 max_reject_log=1024 "
-		"max_learning_entry=2048 enforcing_penalty=0  }\n"
-		"2-CONFIG%s={ mode=permissive grant_log=yes reject_log=yes }\n"
-		"3-COMMENT=-----Enforcing Mode-----\n"
-		"3-PREFERENCE={ max_grant_log=1024 max_reject_log=1024 "
-		"max_learning_entry=2048 enforcing_penalty=0  }\n"
-		"3-CONFIG%s={ mode=enforcing grant_log=yes reject_log=yes }\n",
-		file_only, file_only, file_only, file_only);
+	fprintf(fp, "PROFILE_VERSION=20100903\n");
+	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
+		"0-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
+		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"0-CONFIG%s={ mode=disabled grant_log=%s reject_log=%s }\n",
+		max_grant_log, max_reject_log, max_learning_entry,
+		enforcing_penalty, file_only, grant_log, reject_log);
+	fprintf(fp, "1-COMMENT=-----Learning Mode-----\n"
+		"1-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
+		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"1-CONFIG%s={ mode=learning grant_log=%s reject_log=%s }\n",
+		max_grant_log, max_reject_log, max_learning_entry,
+		enforcing_penalty, file_only, grant_log, reject_log);
+	fprintf(fp, "2-COMMENT=-----Permissive Mode-----\n"
+		"2-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
+		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"2-CONFIG%s={ mode=permissive grant_log=%s reject_log=%s }\n",
+		max_grant_log, max_reject_log, max_learning_entry,
+		enforcing_penalty, file_only, grant_log, reject_log);
+	fprintf(fp, "3-COMMENT=-----Enforcing Mode-----\n"
+		"3-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
+		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"3-CONFIG%s={ mode=enforcing grant_log=%s reject_log=%s }\n",
+		max_grant_log, max_reject_log, max_learning_entry,
+		enforcing_penalty, file_only, grant_log, reject_log);
 	fclose(fp);
 	if (!chdir(policy_dir) && !rename("profile.tmp", "profile.conf"))
 		fprintf(stderr, "OK\n");
@@ -634,12 +661,11 @@ static void make_profile(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static unsigned char default_profile = 0;
+static unsigned char default_group = 0;
+
 static void make_domain_policy(void)
 {
-	static const char domain_policy[] = {
-		"<kernel>\n"
-		"use_profile 0\n"
-	};
 	FILE *fp;
 	if (chdir(policy_dir) || !access("domain_policy.conf", R_OK))
 		return;
@@ -649,7 +675,8 @@ static void make_domain_policy(void)
 		return;
 	}
 	fprintf(stderr, "Creating domain policy... ");
-	fprintf(fp, "%s", domain_policy);
+	fprintf(fp, "<kernel>\nuse_profile %u\nuse_group %u\n",
+		default_profile, default_group);
 	fclose(fp);
 	if (!chdir(policy_dir) &&
 	    !rename("domain_policy.tmp", "domain_policy.conf"))
@@ -681,10 +708,13 @@ static void make_meminfo(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static const char *module_name = "ccsecurity";
+
 static void make_module_loader(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || !access("ccs-load-module", X_OK))
+	if (chdir(policy_dir) || !access("ccs-load-module", X_OK)
+	    || !module_name[0])
 		return;
 	fp = fopen("ccs-load-module.tmp", "w");
 	if (!fp) {
@@ -694,7 +724,7 @@ static void make_module_loader(void)
 	fprintf(stderr, "Creating module loader... ");
 	fprintf(fp, "#! /bin/sh\n");
 	fprintf(fp, "export PATH=$PATH:/sbin:/bin\n");
-	fprintf(fp, "exec modprobe ccsecurity\n");
+	fprintf(fp, "exec modprobe %s\n", module_name);
 	fclose(fp);
 	if (!chdir(policy_dir) &&
 	    !chmod("ccs-load-module.tmp", 0700) &&
@@ -710,6 +740,8 @@ int main(int argc, char *argv[])
 	const char *dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
+		if (*arg == '-' && *(arg + 1) == '-')
+			arg += 2;
 		if (!strncmp(arg, "root=", 5)) {
 			if (chroot(arg + 5) || chdir("/")) {
 				fprintf(stderr, "Can't chroot to '%s'\n",
@@ -718,12 +750,29 @@ int main(int argc, char *argv[])
 			}
 		} else if (!strncmp(arg, "policy_dir=", 11)) {
 			dir = arg + 11;
-		} else if (!strcmp(arg, "--file-only-profile")) {
+		} else if (!strcmp(arg, "file-only-profile")) {
 			file_only_profile = 1;
-		} else if (!strcmp(arg, "--full-profile")) {
+		} else if (!strcmp(arg, "full-profile")) {
 			file_only_profile = 0;
-		} else {
-			fprintf(stderr, "Unknown option: '%s'\n", arg);
+		} else if (!strncmp(arg, "module_name=", 12)) {
+			module_name = arg + 12;
+		} else if (!strncmp(arg, "use_profile=", 12)) {
+			default_profile = atoi(arg + 12);
+		} else if (!strncmp(arg, "use_group=", 10)) {
+			default_group = atoi(arg + 10);
+		} else if (!strncmp(arg, "grant_log=", 10)) {
+			grant_log = arg + 10;
+		} else if (!strncmp(arg, "reject_log=", 11)) {
+			reject_log = arg + 11;
+		} else if (!sscanf(arg, "max_grant_log=%u",
+				   &max_grant_log) &&
+			   !sscanf(arg, "max_reject_log=%u",
+				   &max_reject_log) &&
+			   !sscanf(arg, "max_learning_entry=%u",
+				   &max_learning_entry) &&
+			   !sscanf(arg, "enforcing_penalty=%u",
+				   &enforcing_penalty)) {
+			fprintf(stderr, "Unknown option: '%s'\n", argv[i]);
 			return 1;
 		}
 	}
