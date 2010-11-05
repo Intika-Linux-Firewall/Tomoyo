@@ -8,8 +8,10 @@ die () {
     exit 1
 }
 
-#VERSION=`uname -r | cut -d - -f 1,2`
-VERSION=`apt-cache search ^linux-image-2.6.32-..- | cut -b 13-21 | awk ' { print $1 }' | sort -r | uniq | head -n 1`
+ORIGINAL_FLAVOUR=`uname -r | cut -d - -f 3-` # e.g. generic generic-pae server
+NEW_FLAVOUR=${ORIGINAL_FLAVOUR}-ccs
+echo "Building "${NEW_FLAVOUR}" from "${ORIGINAL_FLAVOUR}"."
+
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
@@ -24,17 +26,16 @@ fi
 
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
-apt-get install fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-${VERSION}-generic-pae || die "Can't install packages."
-apt-get source linux-image-${VERSION}-generic-pae || die "Can't install kernel source."
-apt-get install linux-headers-${VERSION} || die "Can't install packages."
+apt-get -y install fakeroot build-essential || die "Can't install packages."
+apt-get build-dep linux || die "Can't install packages."
+apt-get source linux-source-2.6.32 || die "Can't install kernel source."
 
 # Apply patches and create kernel config.
 cd linux-2.6.32/ || die "Can't chdir to linux-2.6.32/ ."
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.0-20101111.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.32-ubuntu-10.04.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
-for i in `find debian.master/ -type f -name '*generic-pae*'`; do cp -p $i `echo $i | sed -e 's/generic-pae/ccs/g'`; done
+for i in `find debian.master/ -type f -name '*'${ORIGINAL_FLAVOUR}'*'`; do cp -p $i `echo $i | sed -e 's/'${ORIGINAL_FLAVOUR}'/'${NEW_FLAVOUR}'/g'`; done
 for i in debian.master/config/*/config.common.*; do cat config.ccs >> $i; done
 rm debian.master/control.stub || die "Can't delete control.stub."
 make -f debian/rules debian.master/control.stub || die "Can't update control.stub."
@@ -49,10 +50,10 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
  done
  )
  
-+if [ $flavour == "ccs" ]
++if [ $flavour == "NEW_FLAVOUR" ]
 +then
 +    cd $hdrdir/../../../../$symdir/usr/src/$symdir/include/linux/
-+    for i in sched.h init_task.h ccsecurity.h
++    for i in ccsecurity.h
 +    do
 +	rm -f $hdrdir/include/linux/$i
 +	cp -p $i $hdrdir/include/linux/
@@ -64,19 +65,20 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +
  exit
 EOF
+sed -i -e 's/NEW_FLAVOUR/'${NEW_FLAVOUR}'/' debian/scripts/link-headers || die "Can't patch link-headers."
 
 # Start compilation.
 debian/rules binary-headers || die "Failed to build kernel package."
-debian/rules binary-debs flavours=ccs || die "Failed to build kernel package."
+debian/rules binary-debs flavours=${NEW_FLAVOUR} || die "Failed to build kernel package."
 
 # Generate meta packages.
 cd /usr/src/
 rm -fR linux-meta-*/
 apt-get source linux-meta
 cd linux-meta-*/
-sed -e 's/generic-pae/ccs/g' -- debian/control.d/generic-pae > debian/ccs
+sed -e 's/'${ORIGINAL_FLAVOUR}'/'${NEW_FLAVOUR}'/g' -- debian/control.d/${ORIGINAL_FLAVOUR} > debian/${NEW_FLAVOUR}
 rm -f debian/control.d/*
-mv debian/ccs debian/control.d/ccs
+mv debian/${NEW_FLAVOUR} debian/control.d/${NEW_FLAVOUR}
 debian/rules binary-arch
 cd ../
 rm -fR linux-meta-*/
