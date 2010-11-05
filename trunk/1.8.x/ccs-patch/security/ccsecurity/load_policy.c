@@ -283,6 +283,6 @@ struct ccsecurity_operations ccsecurity_ops = {
 };
 /*
  * Non-GPL modules might need to access this struct via inlined functions
- * embedded into include/linux/security.h
+ * embedded into include/linux/security.h and include/net/ip.h
  */
 EXPORT_SYMBOL(ccsecurity_ops);
