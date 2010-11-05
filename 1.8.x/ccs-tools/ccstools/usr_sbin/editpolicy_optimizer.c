@@ -40,7 +40,7 @@ static int ccs_add_address_group_entry(const char *group_name, const char *membe
 static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name);
 static int ccs_add_number_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name);
-static _Bool ccs_compare_path(const char *sarg, const char *darg, const u16 directive);
+static _Bool ccs_compare_path(const char *sarg, const char *darg);
 static _Bool ccs_compare_number(const char *sarg, const char *darg);
 static _Bool ccs_compare_address(const char *sarg, const char *darg);
 
@@ -65,8 +65,7 @@ int ccs_add_address_group_policy(char *data, const _Bool is_delete)
 	return ccs_add_address_group_entry(data, cp, is_delete);
 }
 
-static _Bool ccs_compare_path(const char *sarg, const char *darg,
-			      const u16 directive)
+static _Bool ccs_compare_path(const char *sarg, const char *darg)
 {
 	int i;
 	struct ccs_path_group_entry *group;
@@ -130,30 +129,75 @@ static _Bool ccs_compare_address(const char *sarg, const char *darg)
 	return false;
 }
 
-static char *ccs_tokenize(char *buffer, char *w[], size_t size)
+static void ccs_tokenize(char *buffer, char *w[5], u16 index)
 {
-	int count = size / sizeof(char *);
-	int i;
-	char *cp;
-	cp = strstr(buffer, " if ");
-	if (!cp)
-		cp = strstr(buffer, " ; set ");
-	if (cp)
-		*cp++ = '\0';
-	else
-		cp = "";
-	for (i = 0; i < count; i++)
+	u8 i;
+	u8 words;
+	switch (index) {
+	case CCS_DIRECTIVE_FILE_MKBLOCK:
+	case CCS_DIRECTIVE_FILE_MKCHAR:
+	case CCS_DIRECTIVE_FILE_MOUNT:
+	case CCS_DIRECTIVE_NETWORK_INET:
+		words = 4;
+		break;
+	case CCS_DIRECTIVE_NETWORK_UNIX:
+		words = 3;
+		break;
+	case CCS_DIRECTIVE_FILE_CREATE:
+	case CCS_DIRECTIVE_FILE_MKDIR:
+	case CCS_DIRECTIVE_FILE_MKFIFO:
+	case CCS_DIRECTIVE_FILE_MKSOCK:
+	case CCS_DIRECTIVE_FILE_IOCTL:
+	case CCS_DIRECTIVE_FILE_CHMOD:
+	case CCS_DIRECTIVE_FILE_CHOWN:
+	case CCS_DIRECTIVE_FILE_CHGRP:
+	case CCS_DIRECTIVE_FILE_LINK:
+	case CCS_DIRECTIVE_FILE_RENAME:
+	case CCS_DIRECTIVE_FILE_PIVOT_ROOT:
+	case CCS_DIRECTIVE_IPC_SIGNAL:
+		words = 2;
+		break;
+	case CCS_DIRECTIVE_FILE_EXECUTE:
+	case CCS_DIRECTIVE_FILE_READ:
+	case CCS_DIRECTIVE_FILE_WRITE:
+	case CCS_DIRECTIVE_FILE_UNLINK:
+	case CCS_DIRECTIVE_FILE_GETATTR:
+	case CCS_DIRECTIVE_FILE_RMDIR:
+	case CCS_DIRECTIVE_FILE_TRUNCATE:
+	case CCS_DIRECTIVE_FILE_APPEND:
+	case CCS_DIRECTIVE_FILE_UNMOUNT:
+	case CCS_DIRECTIVE_FILE_CHROOT:
+	case CCS_DIRECTIVE_FILE_SYMLINK:
+	case CCS_DIRECTIVE_MISC_ENV:
+		words = 1;
+		break;
+	default:
+		words = 0;
+		break;
+	}
+	for (i = 0; i < 5; i++)
 		w[i] = "";
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < words; i++) {
 		char *cp = strchr(buffer, ' ');
-		if (cp)
-			*cp = '\0';
 		w[i] = buffer;
 		if (!cp)
-			break;
+			return;
+		if (index == CCS_DIRECTIVE_IPC_SIGNAL && i == 1 &&
+		    !strncmp(buffer, "<kernel>", 8)) {
+			cp = buffer + 8;
+			while (*cp) {
+				if (*cp++ != ' ' || *cp++ == '/')
+					continue;
+				cp -= 2;
+				break;
+			}
+			if (!*cp)
+				return;
+		}
+		*cp = '\0';
 		buffer = cp + 1;
 	}
-	return i < count || !*buffer ? cp : NULL;
+	w[4] = buffer;
 }
 
 int ccs_add_number_group_policy(char *data, const _Bool is_delete)
@@ -194,14 +238,12 @@ static _Bool ccs_compare_number(const char *sarg, const char *darg)
 	return false;
 }
 
-void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current,
-				 const int screen)
+void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp,
+				 const int current, const int screen)
 {
 	char *cp;
 	u16 s_index;
 	int index;
-	char *s_cond;
-	char *d_cond;
 	char *s[5];
 	char *d[5];
 	if (current < 0)
@@ -212,34 +254,26 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 	cp = strdup(ccs_generic_acl_list[current].operand);
 	if (!cp)
 		return;
-
-	s_cond = ccs_tokenize(cp, s, sizeof(s));
-	if (!s_cond) {
-		free(cp);
-		return;
-	}
-
+	ccs_tokenize(cp, s, s_index);
 	ccs_get();
 	for (index = 0; index < ccs_list_item_count[screen]; index++) {
 		char *line;
 		const u16 d_index = ccs_generic_acl_list[index].directive;
 		if (index == current)
+			/* Skip source. */
 			continue;
 		if (ccs_generic_acl_list[index].selected)
+			/* Dest already selected. */
 			continue;
-		else if (s_index == d_index) {
-			/* Source and dest start with same directive. */
-		} else {
-			/* Source and dest start with different directive. */
+		else if (s_index != d_index)
+			/* Source and dest have different directive. */
 			continue;
-		}
+		/* Source and dest have same directive. */
 		line = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
-		d_cond = ccs_tokenize(line, d, sizeof(d));
-
+		ccs_tokenize(line, d, d_index);
 		/* Compare condition part. */
-		if (!d_cond || strcmp(s_cond, d_cond))
+		if (strcmp(s[4], d[4]))
 			continue;
-
 		/* Compare non condition word. */
 		if (0) {
 			FILE *fp = fopen("/tmp/log", "a+");
@@ -283,19 +317,19 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 		case CCS_DIRECTIVE_FILE_UNMOUNT:
 		case CCS_DIRECTIVE_FILE_CHROOT:
 		case CCS_DIRECTIVE_FILE_SYMLINK:
-			if (!ccs_compare_path(s[0], d[0], d_index))
+			if (!ccs_compare_path(s[0], d[0]))
 				continue;
 			break;
 		case CCS_DIRECTIVE_FILE_MOUNT:
 			if (!ccs_compare_number(s[3], d[3]) ||
-			    !ccs_compare_path(s[2], d[2], d_index))
+			    !ccs_compare_path(s[2], d[2]))
 				continue;
 			/* fall through */
 		case CCS_DIRECTIVE_FILE_LINK:
 		case CCS_DIRECTIVE_FILE_RENAME:
 		case CCS_DIRECTIVE_FILE_PIVOT_ROOT:
-			if (!ccs_compare_path(s[1], d[1], d_index) ||
-			    !ccs_compare_path(s[0], d[0], d_index))
+			if (!ccs_compare_path(s[1], d[1]) ||
+			    !ccs_compare_path(s[0], d[0]))
 				continue;
 			break;
 		case CCS_DIRECTIVE_IPC_SIGNAL:
@@ -314,6 +348,11 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
 			    !ccs_compare_address(s[2], d[2]) ||
 			    !ccs_compare_number(s[3], d[3]))
+				continue;
+			break;
+		case CCS_DIRECTIVE_NETWORK_UNIX:
+			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
+			    !ccs_compare_path(s[2], d[2]))
 				continue;
 			break;
 		case CCS_DIRECTIVE_MISC_ENV:

@@ -307,7 +307,6 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_FILE_RENAME]                   = { "file rename", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_RMDIR]                    = { "file rmdir", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_SYMLINK]                  = { "file symlink", NULL, 0, 0 },
-	[CCS_DIRECTIVE_FILE_TRANSIT]                  = { "file transit", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_TRUNCATE]                 = { "file truncate", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_UNLINK]                   = { "file unlink", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_UNMOUNT]                  = { "file unmount", NULL, 0, 0 },

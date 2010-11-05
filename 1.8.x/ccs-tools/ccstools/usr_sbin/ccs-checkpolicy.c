@@ -22,7 +22,7 @@
  */
 #include "ccstools.h"
 
-#define CCS_MAX_PATHNAME_LEN             4000
+#define CCS_MAX_DOMAINNAME_LEN             4000
 
 enum ccs_policy_type {
 	CCS_POLICY_TYPE_UNKNOWN,
@@ -699,7 +699,7 @@ static void ccs_check_domain_policy(char *policy)
 		is_select = true;
 	if (!strncmp(policy, "<kernel>", 8)) {
 		if (!ccs_correct_domain(policy) ||
-		    strlen(policy) >= CCS_MAX_PATHNAME_LEN) {
+		    strlen(policy) >= CCS_MAX_DOMAINNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
 			       ccs_line, policy);
 			ccs_errors++;
