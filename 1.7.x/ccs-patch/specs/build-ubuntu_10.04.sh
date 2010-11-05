@@ -66,7 +66,7 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +    for i in sched.h init_task.h ccsecurity.h
 +    do
 +	rm -f $hdrdir/include/linux/$i
-+	cp -p $i $hdrdir/include/linux/
++	cp -p $i $hdrdir/include/linux/$i
 +    done
 +    rm -f $hdrdir/security
 +    cd ../../
