@@ -31,13 +31,13 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 
 <ul>
 <li>[*] CCSecurity support</li>
-<li>[ ]   Compile as loadable kernel module
-<li>[ ]   Disable by default
+<li>[ ]   Compile as loadable kernel module</li>
+<li>[ ]   Disable by default</li>
+<li>[ ]   Do not modify 'struct task_struct' in order to keep KABI</li>
 <li>(2048) Default maximal count for learning mode</li>
 <li>(/sbin/ccs-init) Default policy loader</li>
 <li>(/sbin/ccs-start) Alternative activation trigger</li>
 <li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
-<li>[*]&nbsp;&nbsp;&nbsp;Auditing interface support</li>
 <li>(1024)&nbsp;&nbsp;Default maximal count for grant log</li>
 <li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
 </ul>
@@ -45,6 +45,8 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 <p>If you choose "Compile as loadable kernel module" option, you can minimize file size increment of vmlinux because most part of TOMOYO Linux is compiled as a loadable kernel module. You can choose this option when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
 
 <p>If you choose "Disable by default", TOMOYO Linux is enabled only when ccsecurity=on is passed to the kernel's command line options. If you don't choose this option, TOMOYO Linux is disabled only when ccsecurity=off is passed to the kernel's command line options.</p>
+
+<p>If you choose "Do not modify 'struct task_struct' in order to keep KABI" (available for 2.6 kernels only), TOMOYO Linux will manage per "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel ABI breakage due to changes in "struct task_struct". You can choose this option when you want to apply TOMOYO Linux patch against distributor's kernels without breaking Kernel ABI. But please tolerate that since we have to export "struct ccsecurity_operations" to loadable kernel modules in order to allow loadable kernel modules to call TOMOYO's functions, we can't prevent kernel build scripts from printing warning messages.</p>
 
 <p>After creating a kernel config, compile the kernel.</p>
 
