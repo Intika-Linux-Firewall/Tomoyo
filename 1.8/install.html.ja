@@ -31,13 +31,13 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 
 <ul>
 <li>[*] CCSecurity support</li>
-<li>[ ]   Compile as loadable kernel module
-<li>[ ]   Disable by default
+<li>[ ]   Compile as loadable kernel module</li>
+<li>[ ]   Disable by default</li>
+<li>[ ]   Do not modify 'struct task_struct' in order to keep KABI</li>
 <li>(2048) Default maximal count for learning mode</li>
 <li>(/sbin/ccs-init) Default policy loader</li>
 <li>(/sbin/ccs-start) Alternative activation trigger</li>
 <li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
-<li>[*]&nbsp;&nbsp;&nbsp;Auditing interface support</li>
 <li>(1024)&nbsp;&nbsp;Default maximal count for grant log</li>
 <li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
 </ul>
@@ -45,6 +45,8 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 <p>Compile as loadable kernel module を選択した場合、処理の大部分がカーネルモジュールとして切り出されるため、 vmlinux のサイズの増加を抑えることができます。組込み環境などで、 vmlinux のサイズに上限がある場合に選択してください。</p>
 
 <p>Disable by default を選択した場合、カーネルのコマンドラインで ccsecurity=on という指定を行った場合だけ有効化されます。選択しなかった場合、カーネルのコマンドラインで ccsecurity=off という指定を行った場合だけ無効化されます。</p>
+
+<p>（カーネル 2.6 でのみ選択可能な） Do not modify 'struct task_struct' in order to keep KABI を選択した場合、 TOMOYO が利用する変数をタスク構造体の外部で管理することにより、タスク構造体に変更を加えることにより生じる Kernel ABI の変化を回避することができます。ディストリビュータのカーネルに対して適用する際に Kernel ABI の変化を避けたい場合に選択してください。ただし、カーネルモジュールに対して TOMOYO の機能を呼び出すための構造体へのアクセスを認める（エクスポートする）必要があるため、カーネルパッケージをコンパイルするスクリプトが警告を出力されることについては了承ください。</p>
 
 <p>カーネルコンフィグの作成が終わったら、カーネルをコンパイルしてください。</p>
 

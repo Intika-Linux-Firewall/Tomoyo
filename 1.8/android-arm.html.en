@@ -12,7 +12,7 @@
 
 <h1>TOMOYO Linux on Android</h1>
 
-<p>This page describes how to run TOMOYO Linux on Android emulator for ARM architecture. This page assumes Ubuntu 8.04.3 for x86 architecture as the host environment.</p>
+<p>This page describes how to run TOMOYO Linux on Android emulator for ARM architecture. This page assumes Ubuntu 8.04.4 for x86 architecture as the host environment.</p>
 
 <hr>
 
@@ -181,7 +181,7 @@ adb emu kill
 
 <h2>Step 12: Edit initialized policy.</h2>
 
-<p>Add missing entries (e.g. file_pattern / acl_group 0 file read ) to exception policy. Below is just an example. Domain policy is configured to use profile 1 (which is a profile for "learning mode"). Manager is configured to allow only agent program.</p>
+<p>Add missing entries (e.g. "acl_group 0 file read" ) to exception policy. Below is just an example. Domain policy is configured to use profile 1 (which is a profile for "learning mode"). Manager is configured to allow only agent program.</p>
 
 <table border="1">
 <tr><td>
@@ -190,36 +190,10 @@ cd $ANDROID_IMG/tmp/<br>
 echo 'initialize_domain /init'<br>
 echo 'initialize_domain /system/bin/app_process'<br>
 <br>
-echo 'file_pattern /dev/tty\$'<br>
-<br>
-echo 'file_pattern /system/lib/\@.so'<br>
 echo 'acl_group 0 file read /system/lib/\@.so'<br>
-echo 'file_pattern /system/framework/\*.jar'<br>
 echo 'acl_group 0 file read /system/framework/\*.jar'<br>
-echo 'file_pattern /system/media/audio/\*/\*'<br>
 echo 'acl_group 0 file read /system/media/audio/\*/\*'<br>
-echo 'file_pattern /system/fonts/\*.ttf'<br>
 echo 'acl_group 0 file read /system/fonts/\*.ttf'<br>
-echo 'file_pattern /data/tombstones/tombstone_\$'<br>
-<br>
-echo 'file_pattern /data/dalvik-cache/system@framework@\*.jar@classes.dex'<br>
-echo 'file_pattern /data/dalvik-cache/system@app@\*.jar@classes.dex'<br>
-echo 'file_pattern /data/dalvik-cache/data@app@\*@classes.dex'<br>
-<br>
-echo 'file_pattern /data/local/tmp/\*.apk'<br>
-echo 'file_pattern /data/local/tmp/\*.apk'<br>
-<br>
-echo 'file_pattern /data/app/\*.tmp'<br>
-echo 'file_pattern /data/data/\*/databases/\*'<br>
-echo 'file_pattern /data/data/\*/databases/'<br>
-<br>
-echo 'file_pattern /data/dalvik-cache/system@framework@\*.jar@classes.dex'<br>
-echo 'file_pattern /data/dalvik-cache/system@app@\*.apk@classes.dex'<br>
-echo 'file_pattern /data/dalvik-cache/system@app-private@\*.apk@classes.dex'<br>
-<br>
-echo 'file_pattern /sdcard/dcim/.thumbnails/\$.jpg'<br>
-echo 'file_pattern /sdcard/dcim/.thumbnails/.thumbdata\*'<br>
-echo 'file_pattern /sdcard/dcim/.thumbnails/.thumbdata3--\$'<br>
 <br>
 echo 'path_group SYSTEM_APK /system/app/\@.apk'<br>
 <br>
@@ -234,8 +208,6 @@ echo 'acl_group 0 file read sys:devices/platform/\*battery\*/power_supply/ac/onl
 echo 'acl_group 0 file read sys:devices/platform/\*battery\*/power_supply/battery/\@'<br>
 <br>
 #App. specific data files<br>
-echo 'file_pattern /data/data/com.android.browser/cache/webviewCache/\*'<br>
-echo 'file_pattern /data/data/com.android.browser/app_thumbnails/\*'<br>
 ) &gt;&gt; ccs/exception_policy.conf<br>
 (<br>
 echo '&lt;kernel&gt;'<br>
