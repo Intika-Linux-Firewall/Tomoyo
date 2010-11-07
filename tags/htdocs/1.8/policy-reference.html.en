@@ -30,6 +30,8 @@
 <p>6.3 <a href="#sleep_penalty">Sleep penalty for policy violation.</a></p>
 <p>6.4 <a href="#auto_execute_handler">Judging execute request outside the kernel.</a></p>
 <p>6.5 <a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></p>
+<p>6.6 <a href="#manual_domain_transition">Performing domain transition without program execution request.</a></p>
+<p>6.7 <a href="#auto_domain_transition">Performing domain transition automatically when conditions are met.</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">Keywords Index</a></h1>
@@ -81,13 +83,16 @@
 <li><a href="#domain_policy_file_chroot">file chroot</a></li>
 <li><a href="#domain_policy_file_pivot_root">file pivot_root</a></li>
 <li><a href="#domain_policy_misc_env">misc env</a></li>
-<li><a href="#domain_policy_network">network</a></li>
+<li><a href="#domain_policy_network_inet">network inet</a></li>
+<li><a href="#domain_policy_network_unix">network unix</a></li>
 <li><a href="#domain_policy_capability">capability</a></li>
 <li><a href="#domain_policy_ipc_signal">ipc signal</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_use_group">use_group</a></li>
 <li><a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a></li>
 <li><a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a></li>
+<li><a href="#domain_policy_task_auto_domain_transition">task auto_domain_transition</a></li>
+<li><a href="#domain_policy_task_manual_domain_transition">task manual_domain_transition</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 <li><a href="#domain_policy_transition_failed">transition_failed</a></li>
 </ul>
@@ -665,7 +670,13 @@ echo '1-CONFIG::file::execute={ mode=learning } '| ccs-loadpolicy -p</p>
 
 <p>Lines from the next line to a domain definition ( any lines starting with "&lt;kernel&gt;") to the previous line to the next domain definitions are interpreted as access permissions for that domain.</p>
 
-<p>You can specify additional conditions as needed. The syntax for specifying additional conditions are described in <a href="#conditional_acl">Using conditional ACL.</a></p>
+<p>Syntax for permissions is</p>
+
+<table border="1">
+<tr><td>$keyword $mandatory_arguments $conditional_arguments</td></tr>
+</table>
+
+<p>where $keyword specifies type of permission and $mandatory_arguments is parameters required by $keyword. $conditional_arguments is optional parameter and is described in <a href="#conditional_acl">Using conditional ACL.</a></p>
 
 <p>To read or modify current domain policy, operate like below.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
@@ -800,7 +811,7 @@ file mount /dev/hdc /var/www/ ext2 0xF<br>
 file mount any / --remount 0x0</p>
 
 <h3><a name="domain_policy_file_unmount">file unmount</a></h3>
-<p>To grant unmount request, use file unmount keyword followed by a canonicalized directory.</p>
+<p>To grant unmount request, use file unmount keyword followed by a canonicalized pathname.</p>
 
 <p>(Example)<br>
 file unmount /mnt/cdrom/</p>
@@ -843,9 +854,9 @@ Usually, you don't need this keyword.</p>
 <tr><td>capability SYS_PTRACE</td><td>Permit use of ptrace(2) syscall.</td></tr>
 </table>
 
-<h3><a name="domain_policy_network">network</a></h3>
+<h3><a name="domain_policy_network_inet">network inet</a></h3>
 
-<p>To grant permission for socket operations, use network keyword followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
+<p>To grant permission for internet domain's socket operations, use "network inet" keyword followed by protocol(stream or dgram or raw) and IP (IPv4 or IPv6) address and port number (for stream or dgram) / protocol number (for raw).</p>
 <table border="1">
 <tr><td>Keyword</td><td>Permitted operation</td><td>Example</td></tr>
 <tr><td>network inet stream bind</td><td>	Bind to local TCP address/port.</td><td>network inet stream bind 0.0.0.0 80</td></tr>
@@ -865,6 +876,14 @@ Usually, you don't need this keyword.</p>
 <p>To reduce the labor of repeating same IP addresses, you can define groups like pathnames.</p>
 
 <p>See also:  <a href="#exception_policy_address_group">address_group</a></p>
+
+<h3><a name="domain_policy_network_unix">network unix</a></h3>
+
+<p>To grant permission for unix domain's socket operations, use "network unix" keyword followed by protocol(stream or dgram or seqpacket) and address.</p>
+
+<p>To reduce the labor of repeating same addresses, you can define groups.</p>
+
+<p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_ipc_signal">ipc signal</a></h3>
 
@@ -894,6 +913,18 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 <p>This domain executes this program only when execute request was rejected and the mode of <a href="#profile_CONFIG">CONFIG::file::execute</a> is enforcing. If this keyword is not specified and the mode of <a href="#profile_CONFIG">CONFIG::file::execute</a> is enforcing, execute request is rejected.</p>
 
 <p>Exception is, if the <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> keyword is specified, task denied_execute_handler keyword is ignored.</p>
+
+<h3><a name="domain_policy_task_auto_domain_transition">task auto_domain_transition</a></h3>
+
+<p>This keyword is used for automatically triggering domain transition to specified domain when conditions are met. For example, you can make applications to jump to different domain when process's user ID became non-0 (i.e. task.uid!=0) using this keyword.</p>
+
+<p>See also:  <a href="#conditional_acl">Using conditional ACL.</a></p>
+
+<h3><a name="domain_policy_task_manual_domain_transition">task manual_domain_transition</a></h3>
+
+<p>This keyword is used for manually triggering domain transition to specified domain when the domainname is written to /proc/ccs/self_domain interface. You can make applications to jump to specified domain without using execve() system call.</p>
+
+<p>See also:  <a href="#self_domain">/proc/ccs/self_domain</a></p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
@@ -1456,6 +1487,16 @@ Thus, TOMOYO Linux provides a mechanism that executes different program instead 
 </table>
 
 <p>Notes on this feature is the same as <a href="#auto_execute_handler">Judging execute request outside the kernel.</a></p>
+
+<h2>6.6 <a name="manual_domain_transition">Performing domain transition without program execution request.</a></h2>
+
+<p>You can transit to domains specified by <a href="#domain_policy_task_manual_domain_transition">"task manual_domain_transition"</a> keyword by writing domainnames specified by that keyword to /proc/ccs/self_domain interface. This feature is useful for dividing permissions without calling execve() system call, at the cost of inserting a few lines (for writing domainnames to /proc/ccs/self_domain) to application and rebuild the application.</p>
+
+<h2>6.7 <a name="auto_domain_transition">Performing domain transition automatically when conditions are met.</a></h2>
+
+<p>You can automatically transit to domains specified by <a href="#domain_policy_task_auto_domain_transition">"task auto_domain_transition"</a> keyword. This feature is useful for dividing permissions without calling execve() system call.</p>
+
+<p>Be sure to specify conditions (e.g. task.uid!=0) to "task auto_domain_transition" entries.</p>
 
 <hr>
 

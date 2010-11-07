@@ -30,6 +30,8 @@
 <p>6.3 <a href="#sleep_penalty">ポリシー違反時のペナルティ指定</a></p>
 <p>6.4 <a href="#auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
 <p>6.5 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
+<p>6.6 <a href="#manual_domain_transition">プログラムの実行要求を伴わないでドメイン遷移を行う</a></p>
+<p>6.7 <a href="#auto_domain_transition">条件を満たした場合に自動的にドメイン遷移を行う</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">キーワード一覧</a></h1>
@@ -81,13 +83,16 @@
 <li><a href="#domain_policy_file_chroot">file chroot</a></li>
 <li><a href="#domain_policy_file_pivot_root">file pivot_root</a></li>
 <li><a href="#domain_policy_misc_env">misc env</a></li>
-<li><a href="#domain_policy_network">network</a></li>
+<li><a href="#domain_policy_network_inet">network inet</a></li>
+<li><a href="#domain_policy_network_unix">network unix</a></li>
 <li><a href="#domain_policy_capability">capability</a></li>
 <li><a href="#domain_policy_ipc_signal">ipc signal</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_use_group">use_group</a></li>
 <li><a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a></li>
 <li><a href="#domain_policy_task_denied_execute_handler">task denied_execute_handler</a></li>
+<li><a href="#domain_policy_task_auto_domain_transition">task auto_domain_transition</a></li>
+<li><a href="#domain_policy_task_manual_domain_transition">task manual_domain_transition</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
 <li><a href="#domain_policy_transition_failed">transition_failed</a></li>
 </ul>
@@ -665,7 +670,13 @@ echo '1-CONFIG::file::execute={ mode=learning } '| ccs-loadpolicy -p</p>
 
 <p>ドメインを定義している行（ &lt;kernel&gt; で始まる行）の次行から次のドメインを定義している行の前行までが、そのドメインに対するアクセス許可です。</p>
 
-<p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができます。そのための構文は<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明します。</p>
+<p>アクセス許可の構文は以下のようになります。</p>
+
+<table border="1">
+<tr><td>$keyword $mandatory_arguments $conditional_arguments</td></tr>
+</table>
+
+<p>$keyword にはアクセス許可の種別を指定します。 $mandatory_arguments には $keyword で必要とするパラメータを指定します。 $conditional_arguments には <a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明されているパラメータを任意で指定することができます。</p>
 
 <p>現在のドメインポリシーを読み出しまたは追加または削除するには、以下のように操作します。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
@@ -800,7 +811,7 @@ file mount /dev/hdc /var/www/ ext2 0xF<br>
 file mount any / --remount 0x0</p>
 
 <h3><a name="domain_policy_file_unmount">file unmount</a></h3>
-<p>アンマウント許可を指定するには、 file unmount というキーワードに続けて、アンマウントを許可する正規化されたディレクトリ名を指定します。</p>
+<p>アンマウント許可を指定するには、 file unmount というキーワードに続けて、アンマウントを許可する正規化されたパス名を指定します。</p>
 
 <p>（例）<br>
 file unmount /mnt/cdrom/</p>
@@ -843,9 +854,9 @@ file chroot /</p>
 <tr><td>capability SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
 </table>
 
-<h3><a name="domain_policy_network">network</a></h3>
+<h3><a name="domain_policy_network_inet">network inet</a></h3>
 
-<p>ネットワークのアクセス許可を指定するには、 network というキーワードに続けて、プロトコル（ TCP UDP RAW の何れか）、 IP アドレス、ポート番号（ TCP UDP の場合）またはプロトコル番号（ RAW の場合）を指定します。 IPv4 プロトコルおよび IPv6 プロトコルで使用するローカルポート番号が対象です。</p>
+<p>ＩＰネットワークのアクセス許可を指定するには、 network inet というキーワードに続けて、プロトコル（ stream dgram raw の何れか）、 IP アドレス（ IPv4 または IPv6 ）、ポート番号（ stream dgram の場合）またはプロトコル番号（ raw の場合）を指定します。</p>
 <table border="1">
 <tr><td>キーワード</td><td>許可されるアクセス</td><td>指定例</td></tr>
 <tr><td>network inet stream bind</td><td>ローカルの TCP アドレス／ポートの割り当て</td><td>network inet stream bind 0.0.0.0 80</td></tr>
@@ -865,6 +876,14 @@ file chroot /</p>
 <p>同じＩＰアドレスを繰り返し指定する手間を避けるために、パス名と同様にグループ化を行うことができます。</p>
 
 <p>関連項目： <a href="#exception_policy_address_group">address_group</a></p>
+
+<h3><a name="domain_policy_network_unix">network unix</a></h3>
+
+<p>UNIX ネットワークのアクセス許可を指定するには、 network unix というキーワードに続けて、プロトコル（ stream dgram seqpacket の何れか）とアドレスを指定します。</p>
+
+<p>同じアドレスを繰り返し指定する手間を避けるために、グループ化を行うことができます。</p>
+
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_ipc_signal">ipc signal</a></h3>
 
@@ -894,6 +913,18 @@ file chroot /</p>
 <p>これは、 <a href="#profile_CONFIG">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_CONFIG">CONFIG::file::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
 
 <p>ただし、ドメインに対して <a href="#domain_policy_task_auto_execute_handler">task auto_execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
+
+<h3><a name="domain_policy_task_auto_domain_transition">task auto_domain_transition</a></h3>
+
+<p>これは、このキーワードで指定された条件を満たした場合にこのキーワードで指定されたドメインへと自動的に遷移することを示しています。例えばユーザ ID が 0 ではなくなった時点で別のドメインへと遷移させることができます。</p>
+
+<p>関連項目： <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
+
+<h3><a name="domain_policy_task_manual_domain_transition">task manual_domain_transition</a></h3>
+
+<p>これは、このキーワードで指定されたドメイン名を /proc/ccs/self_domain に対して書きこむことにより、そのドメインへと遷移することを示しています。 execve() を使わずにドメイン遷移を行わせたい場合に使います。</p>
+
+<p>関連項目： <a href="#self_domain">/proc/ccs/self_domain</a></p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
@@ -1456,6 +1487,16 @@ chown -R demo /proc/ccs/
 </table>
 
 <p>この機能を使用する際の注意事項は<a href="#auto_execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
+
+<h2>6.6 <a name="manual_domain_transition">プログラムの実行要求を伴わないでドメイン遷移を行う</a></h2>
+
+<p>/proc/ccs/self_domain に対して <a href="#domain_policy_task_manual_domain_transition">"task manual_domain_transition"</a> キーワードで指定されているドメイン名を書きこむことにより、そのドメインへと遷移することができます。この機能は、プログラムに対して/proc/ccs/self_domain への書き込みを行うための数行の修正と再コンパイルを必要とする代わりに、 execve() を伴わないドメイン遷移を行うことで権限の分割をするのに役立ちます。</p>
+
+<h2>6.7 <a name="auto_domain_transition">条件を満たした場合に自動的にドメイン遷移を行う</a></h2>
+
+<p><a href="#domain_policy_task_auto_domain_transition">"task auto_domain_transition"</a> キーワードで指定されているドメインへと自動的に遷移することができます。この機能は、 execve() を伴わないドメイン遷移を行うことで権限の分割をするのに役立ちます。</p>
+
+<p>"task auto_domain_transition" キーワードを指定する場合には、条件指定（例えば task.uid!=0 ）を忘れないでください。</p>
 
 <hr>
 
