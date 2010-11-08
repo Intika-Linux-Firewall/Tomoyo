@@ -388,6 +388,194 @@ static void stage_network_test(void)
 
 }
 
+static void do_unix_bind_test(int i, int protocol, const char *proto_str,
+			      int should_success)
+{
+	struct {
+		unsigned short int family;
+		char address[512];
+	} buf = {
+		AF_UNIX,
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	};
+	int fd = socket(PF_UNIX, protocol, 0);
+	int ret;
+	int err;
+	printf("Testing network unix %s bind with %d bytes (%s): ", proto_str,
+	       i, should_success ? "should success" : "must fail");
+	if (i > 2) {
+		buf.address[i - 2] = '\0';
+		unlink(buf.address);
+		buf.address[i - 2] = 'a';
+	}
+	errno = 0;
+	ret = bind(fd, (struct sockaddr *) &buf, i);
+	err = errno;
+	close(fd);
+	if (i > 2) {
+		buf.address[i - 2] = '\0';
+		unlink(buf.address);
+		buf.address[i - 2] = 'a';
+	}
+	if (should_success) {
+		if (ret == EOF && err != EINVAL)
+			printf("Failed. %s\n", strerror(err));
+		else
+			printf("OK\n");
+	} else {
+		if (ret != EOF || (err != EPERM && err != EINVAL))
+			printf("BUG! %s\n", strerror(err));
+		else
+			printf("OK: Permission denied.\n");
+	}
+}
+
+static void do_unix_recv_test(int should_success)
+{
+	struct {
+		unsigned short int family;
+		char address[512];
+	} buf = {
+		AF_UNIX
+	};
+	int fd1 = socket(PF_UNIX, SOCK_DGRAM, 0);
+	int fd2 = socket(PF_UNIX, SOCK_DGRAM, 0);
+	socklen_t size = sizeof(buf);
+	int ret;
+	int err;
+	printf("Testing network unix dgram recv (%s): ",
+	       should_success ? "should success" : "must fail");
+	errno = 0;
+	ret = bind(fd1, (struct sockaddr *) &buf.family, sizeof(buf.family));
+	err = errno;
+	if (ret) {
+		printf("Failed to bind(). %s\n", strerror(err));
+		goto out;
+	}
+	ret = getsockname(fd1, (struct sockaddr *) &buf, &size);
+	err = errno;
+	if (ret) {
+		printf("Failed to getsockname(). %s\n", strerror(err));
+		goto out;
+	}
+	ret = connect(fd2, (struct sockaddr *) &buf, size);
+	err = errno;
+	if (ret) {
+		printf("Failed to connect(). %s\n", strerror(err));
+		goto out;
+	}
+	ret = write(fd2, &buf, sizeof(buf));
+	err = errno;
+	if (ret != sizeof(buf)) {
+		printf("Failed to send(). %s\n", strerror(err));
+		goto out;
+	}
+	ret = recv(fd1, (char *) &buf, sizeof(buf), 0);
+	err = errno;
+	if (should_success) {
+		if (ret == EOF)
+			printf("Failed to recv(). %s\n", strerror(err));
+		else
+			printf("OK\n");
+	} else {
+		if (ret != EOF || err != EAGAIN)
+			printf("BUG! %s\n", strerror(err));
+		else
+			printf("OK: Permission denied.\n");
+	}
+ out:
+	close(fd2);
+	close(fd1);
+}
+
+static void update_policy(int i, const char *proto_str, int is_delete)
+{
+	if (is_delete)
+		fprintf(domain_fp, "delete ");
+	fprintf(domain_fp, "network unix %s bind ", proto_str);
+	if (i > 2) {
+		char buf[512] = { };
+		memset(buf, 'a', i - 2);
+		fprintf(domain_fp, "%s\n", buf);
+	} else {
+		fprintf(domain_fp, "%s\n", "anonymous");
+	}
+}
+
+static void stage_unix_network_test(void)
+{
+	int j;
+	int i;
+	const char *profile_str;
+	const char *proto_str;
+	int proto;
+	for (j = 0; j < 3; j++) {
+		switch (j) {
+		case 0:
+			profile_str = "network::unix_stream_bind";
+			proto_str = "stream";
+			proto = SOCK_STREAM;
+			break;
+		case 1:
+			profile_str = "network::unix_dgram_bind";
+			proto_str = "dgram";
+			proto = SOCK_DGRAM;
+			break;
+		default:
+			profile_str = "network::unix_seqpacket_bind";
+			proto_str = "seqpacket";
+			proto = SOCK_SEQPACKET;
+			break;
+		}
+		for (i = 0; i <= 130; i++) {
+			if (i >= 5 && i <= 104)
+				continue;
+			set_profile(0, profile_str);
+			do_unix_bind_test(i, proto, proto_str, 1);
+			set_profile(3, profile_str);
+			do_unix_bind_test(i, proto, proto_str, 0);
+			set_profile(2, profile_str);
+			do_unix_bind_test(i, proto, proto_str, 1);
+			set_profile(1, profile_str);
+			do_unix_bind_test(i, proto, proto_str, 1);
+			set_profile(3, profile_str);
+			do_unix_bind_test(i, proto, proto_str, 1);
+			update_policy(i, proto_str, 1);
+			do_unix_bind_test(i, proto, proto_str, 0);
+			update_policy(i, proto_str, 0);
+			do_unix_bind_test(i, proto, proto_str, 1);
+			update_policy(i, proto_str, 1);
+		}
+		set_profile(0, profile_str);
+	}
+	profile_str = "network::unix_dgram_recv";
+	set_profile(0, profile_str);
+	do_unix_recv_test(1);
+	set_profile(3, profile_str);
+	do_unix_recv_test(0);
+	set_profile(2, profile_str);
+	do_unix_recv_test(1);
+	set_profile(1, profile_str);
+	do_unix_recv_test(1);
+	set_profile(3, profile_str);
+	do_unix_recv_test(1);
+	fprintf(domain_fp, "delete ");
+	fprintf(domain_fp, "network unix dgram recv anonymous\n");
+	do_unix_recv_test(0);
+	fprintf(domain_fp, "network unix dgram recv anonymous\n");
+	do_unix_recv_test(1);
+	fprintf(domain_fp, "delete ");
+	fprintf(domain_fp, "network unix dgram recv anonymous\n");
+	set_profile(0, profile_str);
+}
+
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
@@ -403,6 +591,7 @@ int main(int argc, char *argv[])
 	set_profile(3, "network::inet_raw_recv");
 	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");
 	stage_network_test();
+	stage_unix_network_test();
 	clear_status();
 	return 0;
 }
