@@ -108,8 +108,8 @@ patch << "EOF" || die "Can't patch spec file."
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
 patch << "EOF" || die "Can't patch spec file."
---- /tmp/ccs-kernel.spec
-+++ /tmp/ccs-kernel.spec
+--- kernel-default.spec
++++ kernel-default.spec
 @@ -97,7 +97,7 @@
  #!BuildIgnore:  perl-Bootloader mkinitrd
  
