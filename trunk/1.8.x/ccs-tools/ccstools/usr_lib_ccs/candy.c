@@ -44,12 +44,13 @@ static int get_start_time(pid_t pid, unsigned long long *t)
 	int i;
 	char *cp;
 	char buffer[1024];
+	char *ret_ignored;
 	memset(buffer, 0, sizeof(buffer));
 	snprintf(buffer, sizeof(buffer) - 1, "/proc/%d/stat", pid);
 	fp = fopen(buffer, "r");
 	if (!fp)
 		return EOF;
-	fgets(buffer, sizeof(buffer) - 1, fp);
+	ret_ignored = fgets(buffer, sizeof(buffer) - 1, fp);
 	fclose(fp);
 	for (i = 0; i < 21; i++) {
 		cp = strchr(buffer, ' ');
@@ -73,9 +74,10 @@ int main(int argc, char *argv[])
 	int trial;
 	const char *shell = get_shell();
 	for (trial = 0; trial < 3; trial++) {
+		char *ret_ignored;
 		memset(buffer, 0, sizeof(buffer));
 		printf("Password: ");
-		fgets(buffer, sizeof(buffer) - 1, stdin);
+		ret_ignored = fgets(buffer, sizeof(buffer) - 1, stdin);
 		if (shell && !strcmp(buffer, passwd)) {
 			unsigned long long t0;
 			unsigned long long t1;

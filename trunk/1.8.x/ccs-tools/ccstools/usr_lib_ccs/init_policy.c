@@ -303,13 +303,14 @@ static void scan_modprobe_and_hotplug(void)
 	};
 	int i;
 	for (i = 0; i < elementof(files); i++) {
+		char *ret_ignored;
 		char buffer[8192];
 		char *cp;
 		FILE *fp = fopen(files[i], "r");
 		if (!fp)
 			continue;
 		memset(buffer, 0, sizeof(buffer));
-		fgets(buffer, sizeof(buffer) - 1, fp);
+		ret_ignored = fgets(buffer, sizeof(buffer) - 1, fp);
 		fclose(fp);
 		cp = strrchr(buffer, '\n');
 		if (cp)

@@ -253,9 +253,10 @@ static int do_auth(void)
 		int trial;
 		for (trial = 0; trial < max_trials; trial++) {
 			char *cp;
+			char *ret_ignored;
 			printf("%s\n", password_prompt);
 			memset(buffer, 0, sizeof(buffer));
-			fgets(buffer, sizeof(buffer) - 1, stdin);
+			ret_ignored = fgets(buffer, sizeof(buffer) - 1, stdin);
 			cp = strchr(buffer, '\n');
 			if (cp)
 				*cp = '\0';

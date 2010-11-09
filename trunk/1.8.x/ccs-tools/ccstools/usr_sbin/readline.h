@@ -162,6 +162,7 @@ static char *ccs_readline(const int start_y, const int start_x, const char *prom
 		int x;
 		int y;
 		int i;
+		int ret_ignored;
 		getmaxyx(stdscr, window_height, window_width);
 		window_width -= prompt_len;
 		getyx(stdscr, y, x);
@@ -183,7 +184,7 @@ static char *ccs_readline(const int start_y, const int start_x, const char *prom
 		refresh();
 		c = ccs_getch2();
 		if (ccs_query_fd != EOF)
-			write(ccs_query_fd, "\n", 1);
+			ret_ignored = write(ccs_query_fd, "\n", 1);
 		if (c == 4) { /* Ctrl-D */
 			if (!buffer_len)
 				buffer_len = -1;

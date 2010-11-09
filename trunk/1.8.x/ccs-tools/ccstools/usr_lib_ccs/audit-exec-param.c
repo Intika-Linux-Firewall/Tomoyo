@@ -45,13 +45,14 @@ int main(int raw_argc, char *raw_argv[])
 			return 1;
 		}
 	} else {
+		int ret_ignored;
 		char buffer[1024];
 		int fd = open("/proc/ccs/.process_status", O_RDWR);
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "info %d\n", getpid());
-		write(fd, buffer, strlen(buffer));
+		ret_ignored = write(fd, buffer, strlen(buffer));
 		buffer[0] = '\0';
-		read(fd, buffer, sizeof(buffer) - 1);
+		ret_ignored = read(fd, buffer, sizeof(buffer) - 1);
 		close(fd);
 		if (!strstr(buffer, " execute_handler=yes")) {
 			fprintf(stderr, "FATAL: I'm not execute_handler.\n");

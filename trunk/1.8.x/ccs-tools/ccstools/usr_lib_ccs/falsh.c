@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
 	struct passwd *pw = getpwuid(getuid());
 	char *line;
 	int shelllevel = 0;
+	char *ret_ignored;
 	if (argc == 3 && !strcmp(argv[1], "-c"))
 		return do_shell(argv[2]);
 	else if (argc != 1)
@@ -138,7 +139,7 @@ int main(int argc, char *argv[])
 	memset(buffer, 0, sizeof(buffer));
 	memset(hostname, 0, sizeof(hostname));
 	memset(cwd, 0, sizeof(cwd));
-	getcwd(cwd, sizeof(cwd) - 1);
+	ret_ignored = getcwd(cwd, sizeof(cwd) - 1);
 	gethostname(hostname, sizeof(hostname) - 1);
 	snprintf(buffer, sizeof(buffer) - 1, "[%s@%s %s (SHLVL=%d)]# ",
 		 pw ? pw->pw_name : "I have no name!", hostname, cwd,

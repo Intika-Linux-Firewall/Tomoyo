@@ -1006,6 +1006,7 @@ void ccs_read_process_list(_Bool show_all)
 			char *name;
 			char *domain;
 			int profile = -1;
+			int ret_ignored;
 			unsigned int pid = 0;
 			char buffer[128];
 			char test[16];
@@ -1028,9 +1029,9 @@ void ccs_read_process_list(_Bool show_all)
 			if (!name)
 				ccs_out_of_memory();
 			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
-			write(status_fd, buffer, strlen(buffer));
+			ret_ignored = write(status_fd, buffer, strlen(buffer));
 			memset(line, 0, line_len);
-			read(status_fd, line, line_len - 1);
+			ret_ignored = read(status_fd, line, line_len - 1);
 			if (sscanf(line, "%u %u", &pid, &profile) != 2) {
 				free(name);
 				continue;
@@ -1254,23 +1255,24 @@ int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
 		const struct ccs_path_info **string_ptr
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
-		write(fd, dp->list[i].domainname->name,
-		      dp->list[i].domainname->total_len);
-		write(fd, "\n", 1);
+		int ret_ignored;
+		ret_ignored = write(fd, dp->list[i].domainname->name,
+				    dp->list[i].domainname->total_len);
+		ret_ignored = write(fd, "\n", 1);
 		if (dp->list[i].profile_assigned) {
 			char buf[128];
 			memset(buf, 0, sizeof(buf));
 			snprintf(buf, sizeof(buf) - 1, "use_profile %u\n\n",
 				 dp->list[i].profile);
-			write(fd, buf, strlen(buf));
+			ret_ignored = write(fd, buf, strlen(buf));
 		} else
-			write(fd, "\n", 1);
+			ret_ignored = write(fd, "\n", 1);
 		for (j = 0; j < string_count; j++) {
-			write(fd, string_ptr[j]->name,
-			      string_ptr[j]->total_len);
-			write(fd, "\n", 1);
+			ret_ignored = write(fd, string_ptr[j]->name,
+					    string_ptr[j]->total_len);
+			ret_ignored = write(fd, "\n", 1);
 		}
-		write(fd, "\n", 1);
+		ret_ignored = write(fd, "\n", 1);
 	}
 	return 0;
 }

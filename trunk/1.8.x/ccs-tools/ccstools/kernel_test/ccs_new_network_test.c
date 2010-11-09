@@ -437,7 +437,7 @@ static void do_unix_bind_test(int i, int protocol, const char *proto_str,
 	}
 }
 
-static void do_unix_recv_test(int should_success)
+static void do_unix_recv_test(int named, int should_success)
 {
 	struct {
 		unsigned short int family;
@@ -458,6 +458,17 @@ static void do_unix_recv_test(int should_success)
 	if (ret) {
 		printf("Failed to bind(). %s\n", strerror(err));
 		goto out;
+	}
+	if (named) {
+		buf.address[0] = '\0';
+		snprintf(buf.address + 1, sizeof(buf.address) - 2,
+			 "named_unix_domain_socket");
+		ret = bind(fd2, (struct sockaddr *) &buf, 27);
+		err = errno;
+		if (ret) {
+			printf("Failed to bind(). %s\n", strerror(err));
+			goto out;
+		}
 	}
 	ret = getsockname(fd1, (struct sockaddr *) &buf, &size);
 	err = errno;
@@ -555,24 +566,29 @@ static void stage_unix_network_test(void)
 		}
 		set_profile(0, profile_str);
 	}
-	profile_str = "network::unix_dgram_recv";
-	set_profile(0, profile_str);
-	do_unix_recv_test(1);
-	set_profile(3, profile_str);
-	do_unix_recv_test(0);
-	set_profile(2, profile_str);
-	do_unix_recv_test(1);
-	set_profile(1, profile_str);
-	do_unix_recv_test(1);
-	set_profile(3, profile_str);
-	do_unix_recv_test(1);
-	fprintf(domain_fp, "delete ");
-	fprintf(domain_fp, "network unix dgram recv anonymous\n");
-	do_unix_recv_test(0);
-	fprintf(domain_fp, "network unix dgram recv anonymous\n");
-	do_unix_recv_test(1);
-	fprintf(domain_fp, "delete ");
-	fprintf(domain_fp, "network unix dgram recv anonymous\n");
+	for (j = 0; j < 2; j++) {
+		profile_str = "network::unix_dgram_recv";
+		set_profile(0, profile_str);
+		do_unix_recv_test(j, 1);
+		set_profile(3, profile_str);
+		do_unix_recv_test(j, 0);
+		set_profile(2, profile_str);
+		do_unix_recv_test(j, 1);
+		set_profile(1, profile_str);
+		do_unix_recv_test(j, 1);
+		set_profile(3, profile_str);
+		do_unix_recv_test(j, 1);
+		fprintf(domain_fp, "delete ");
+		fprintf(domain_fp, "network unix dgram recv %s\n",
+			j ? "\\000named_unix_domain_socket" : "anonymous");
+		do_unix_recv_test(j, 0);
+		fprintf(domain_fp, "network unix dgram recv %s\n",
+			j ? "\\000named_unix_domain_socket" : "anonymous");
+		do_unix_recv_test(j, 1);
+		fprintf(domain_fp, "delete ");
+		fprintf(domain_fp, "network unix dgram recv %s\n",
+			j ? "\\000named_unix_domain_socket" : "anonymous");
+	}
 	set_profile(0, profile_str);
 }
 
