@@ -54,6 +54,7 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 	}
 	fputc(0, fp);
 	while (1) {
+		int ret_ignored;
 		FILE *status_fp;
 		pid_t ppid = 1;
 		char *name = NULL;
@@ -92,9 +93,9 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 			fclose(status_fp);
 		}
 		snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
-		write(status_fd, buffer, strlen(buffer));
+		ret_ignored = write(status_fd, buffer, strlen(buffer));
 		memset(buffer, 0, sizeof(buffer));
-		read(status_fd, buffer, sizeof(buffer));
+		ret_ignored = read(status_fd, buffer, sizeof(buffer));
 		if (!buffer[0])
 			continue;
 		fprintf(fp, "PID=%u PPID=%u NAME=", pid, ppid);
@@ -143,11 +144,12 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 
 static void handle_stream(const int client, const char *filename)
 {
+	int ret_ignored;
 	const int fd = open(filename, O_RDONLY);
 	if (fd == EOF)
 		return;
 	/* Return \0 to indicate success. */
-	write(client, "", 1);
+	ret_ignored = write(client, "", 1);
 	while (wait_data(fd)) {
 		char buffer[4096];
 		const int len = read(fd, buffer, sizeof(buffer));
@@ -161,11 +163,12 @@ static void handle_stream(const int client, const char *filename)
 
 static void handle_query(const int client)
 {
+	int ret_ignored;
 	const int fd = open("query", O_RDWR);
 	if (fd == EOF)
 		return;
 	/* Return \0 to indicate success. */
-	write(client, "", 1);
+	ret_ignored = write(client, "", 1);
 	while (wait_data(client)) {
 		char buffer[4096];
 		int len = recv(client, buffer, sizeof(buffer), MSG_DONTWAIT);
@@ -208,6 +211,7 @@ static _Bool verbose = 0;
 
 static void handle_policy(const int client, const char *filename)
 {
+	int ret_ignored;
 	char *cp = strrchr(filename, '/');
 	int fd = open(cp ? cp + 1 : filename, O_RDWR);
 	if (fd == EOF)
@@ -216,9 +220,9 @@ static void handle_policy(const int client, const char *filename)
 	if (write(client, "", 1) != 1)
 		goto out;
 	if (verbose) {
-		write(2, "opened ", 7);
-		write(2, filename, strlen(filename));
-		write(2, "\n", 1);
+		ret_ignored = write(2, "opened ", 7);
+		ret_ignored = write(2, filename, strlen(filename));
+		ret_ignored = write(2, "\n", 1);
 	}
 	while (wait_data(client)) {
 		char buffer[4096];
@@ -234,7 +238,7 @@ restart:
 			if (write(fd, buffer, nonzero_len) != nonzero_len)
 				break;
 			if (verbose)
-				write(1, buffer, nonzero_len);
+				ret_ignored = write(1, buffer, nonzero_len);
 		} else {
 			while (1) {
 				char buffer2[4096];
@@ -259,7 +263,7 @@ restart:
 	}
  out:
 	if (verbose)
-		write(2, "disconnected\n", 13);
+		ret_ignored = write(2, "disconnected\n", 13);
 }
 
 static void do_child(const int client)

@@ -145,8 +145,9 @@ int main(int argc, char *argv[])
 		break;
 	default:
 		while (time_to_wait-- > 0) {
+			int ret_ignored;
 			sleep(1);
-			write(query_fd, "\n", 1);
+			ret_ignored = write(query_fd, "\n", 1);
 		}
 	}
 	close(query_fd);

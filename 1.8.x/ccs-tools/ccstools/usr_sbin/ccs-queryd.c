@@ -148,8 +148,9 @@ static void ccs_send_keepalive(void)
 	static time_t previous = 0;
 	time_t now = time(NULL);
 	if (previous != now || !previous) {
+		int ret_ignored;
 		previous = now;
-		write(ccs_query_fd, "\n", 1);
+		ret_ignored = write(ccs_query_fd, "\n", 1);
 	}
 }
 
@@ -172,6 +173,7 @@ static _Bool ccs_handle_query(unsigned int serial)
 	int c = 0;
 	int y;
 	int x;
+	int ret_ignored;
 	char *line = NULL;
 	static unsigned int prev_pid = 0;
 	unsigned int pid;
@@ -230,7 +232,8 @@ static _Bool ccs_handle_query(unsigned int serial)
 				ccs_send_keepalive();
 			}
 		} else {
-			write(ccs_domain_policy_fd, pidbuf, strlen(pidbuf));
+			ret_ignored = write(ccs_domain_policy_fd, pidbuf,
+					    strlen(pidbuf));
 			while (1) {
 				int i;
 				int len = read(ccs_domain_policy_fd, ccs_buffer,
@@ -275,9 +278,10 @@ static _Bool ccs_handle_query(unsigned int serial)
 		fprintf(ccs_domain_fp, "%s%s\n", pidbuf, line);
 		fflush(ccs_domain_fp);
 	} else {
-		write(ccs_domain_policy_fd, pidbuf, strlen(pidbuf));
-		write(ccs_domain_policy_fd, line, strlen(line));
-		write(ccs_domain_policy_fd, "\n", 1);
+		ret_ignored = write(ccs_domain_policy_fd, pidbuf,
+				    strlen(pidbuf));
+		ret_ignored = write(ccs_domain_policy_fd, line, strlen(line));
+		ret_ignored = write(ccs_domain_policy_fd, "\n", 1);
 	}
 	ccs_printw("Added '%s'.\n", line);
 not_append:
@@ -291,7 +295,7 @@ write_answer:
 	else
 		c = 2;
 	snprintf(ccs_buffer, ccs_buffer_len - 1, "A%u=%u\n", serial, c);
-	write(ccs_query_fd, ccs_buffer, strlen(ccs_buffer));
+	ret_ignored = write(ccs_query_fd, ccs_buffer, strlen(ccs_buffer));
 	ccs_printw("\n");
 	return true;
 not_domain_query:
@@ -387,7 +391,8 @@ int main(int argc, char *argv[])
 		/* Wait for query. */
 		if (ccs_network_mode) {
 			int i;
-			write(ccs_query_fd, "", 1);
+			int ret_ignored;
+			ret_ignored = write(ccs_query_fd, "", 1);
 			memset(ccs_buffer, 0, ccs_buffer_len);
 			for (i = 0; i < ccs_buffer_len - 1; i++) {
 				if (read(ccs_query_fd, ccs_buffer + i, 1) != 1)

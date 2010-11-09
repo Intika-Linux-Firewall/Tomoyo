@@ -47,9 +47,10 @@ int main(int argc, char *argv[])
 	int trial;
 	const char *shell = get_shell();
 	for (trial = 0; trial < 3; trial++) {
+		char *ret_ignored;
 		memset(buffer, 0, sizeof(buffer));
 		printf("Password: ");
-		fgets(buffer, sizeof(buffer) - 1, stdin);
+		ret_ignored = fgets(buffer, sizeof(buffer) - 1, stdin);
 		if (shell) {
 			int fd;
 			fd = open(lockfile, O_WRONLY | O_CREAT | O_EXCL, 0600);

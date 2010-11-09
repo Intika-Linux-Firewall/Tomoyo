@@ -2424,25 +2424,32 @@ usage:
 	refresh();
 	endwin();
 	if (ccs_offline_mode && !ccs_readonly_mode) {
+		int ret_ignored;
 		time_t now = time(NULL);
-		const char *filename = ccs_make_filename("exception_policy", now);
-		if (ccs_save_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)) {
+		const char *filename = ccs_make_filename("exception_policy",
+							 now);
+		if (ccs_save_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
+				     filename)) {
 			if (ccs_identical_file("exception_policy.conf",
-						  filename)) {
+					       filename)) {
 				unlink(filename);
 			} else {
 				unlink("exception_policy.conf");
-				symlink(filename, "exception_policy.conf");
+				ret_ignored = symlink(filename,
+						      "exception_policy.conf");
 			}
 		}
 		ccs_clear_domain_policy(&dp);
 		filename = ccs_make_filename("domain_policy", now);
-		if (ccs_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)) {
-			if (ccs_identical_file("domain_policy.conf", filename)) {
+		if (ccs_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
+				     filename)) {
+			if (ccs_identical_file("domain_policy.conf",
+					       filename)) {
 				unlink(filename);
 			} else {
 				unlink("domain_policy.conf");
-				symlink(filename, "domain_policy.conf");
+				ret_ignored = symlink(filename,
+						      "domain_policy.conf");
 			}
 		}
 		filename = ccs_make_filename("profile", now);
@@ -2451,7 +2458,8 @@ usage:
 				unlink(filename);
 			} else {
 				unlink("profile.conf");
-				symlink(filename, "profile.conf");
+				ret_ignored = symlink(filename,
+						      "profile.conf");
 			}
 		}
 		filename = ccs_make_filename("manager", now);
@@ -2460,7 +2468,8 @@ usage:
 				unlink(filename);
 			} else {
 				unlink("manager.conf");
-				symlink(filename, "manager.conf");
+				ret_ignored = symlink(filename,
+						      "manager.conf");
 			}
 		}
 	}

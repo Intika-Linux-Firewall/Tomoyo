@@ -86,6 +86,7 @@ static void ask_profile(void)
 {
 	static char input[128];
 	while (1) {
+		char *ret_ignored;
 		printf("CCSecurity: Select a profile from "
 		       "the following list.\n");
 		if (chdir_ok) {
@@ -120,7 +121,7 @@ static void ask_profile(void)
 		profile_name = "";
 		printf("> ");
 		memset(input, 0, sizeof(input));
-		fgets(input, sizeof(input) - 1, stdin);
+		ret_ignored = fgets(input, sizeof(input) - 1, stdin);
 		{
 			char *cp = strchr(input, '\n');
 			if (cp)
@@ -165,10 +166,11 @@ static void copy_files(const char *src, const char *dest)
 	sfd = open(src, O_RDONLY);
 	if (sfd != EOF) {
 		while (1) {
+			int ret_ignored;
 			int len = read(sfd, buffer, sizeof(buffer));
 			if (len <= 0)
 				break;
-			write(dfd, buffer, len);
+			ret_ignored = write(dfd, buffer, len);
 		}
 		close(sfd);
 	}
@@ -339,9 +341,10 @@ int main(int argc, char *argv[])
 	{
 		char *cp;
 		int i;
+		int ret_ignored;
 		int fd = open("/proc/cmdline", O_RDONLY);
 		memset(buffer, 0, sizeof(buffer));
-		read(fd, buffer, sizeof(buffer) - 1);
+		ret_ignored = read(fd, buffer, sizeof(buffer) - 1);
 		close(fd);
 		cp = strchr(buffer, '\n');
 		if (cp)

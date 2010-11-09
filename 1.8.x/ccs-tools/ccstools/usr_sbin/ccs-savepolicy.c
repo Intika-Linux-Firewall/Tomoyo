@@ -156,35 +156,44 @@ int main(int argc, char *argv[])
 		goto done;
 	}
 	if (save_profile)
-		ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, CCS_DISK_POLICY_PROFILE);
+		ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE,
+				      CCS_DISK_POLICY_PROFILE);
 	if (save_manager)
-		ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, CCS_DISK_POLICY_MANAGER);
+		ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER,
+				      CCS_DISK_POLICY_MANAGER);
 
 	if (save_exception_policy) {
 		filename = ccs_make_filename("exception_policy", now);
-		if (ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
+					  filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
 			    ccs_identical_file("exception_policy.conf",
 					      filename)) {
 				unlink(filename);
 			} else {
+				int ret_ignored;
 				unlink("exception_policy.conf");
-				symlink(filename, "exception_policy.conf");
+				ret_ignored = symlink(filename,
+						      "exception_policy.conf");
 			}
 		}
 	}
 
 	if (save_domain_policy) {
 		filename = ccs_make_filename("domain_policy", now);
-		if (ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
+					  filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
-			    ccs_identical_file("domain_policy.conf", filename)) {
+			    ccs_identical_file("domain_policy.conf",
+					       filename)) {
 				unlink(filename);
 			} else {
+				int ret_ignored;
 				unlink("domain_policy.conf");
-				symlink(filename, "domain_policy.conf");
+				ret_ignored = symlink(filename,
+						      "domain_policy.conf");
 			}
 		}
 	}

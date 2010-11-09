@@ -51,9 +51,10 @@ int main(int argc, char *argv[])
 		seed[i] = (rand() % 64) + 33;
 	for (trial = 0; trial < 3; trial++) {
 		char *dp;
+		char *ret_ignored;
 		memset(buffer, 0, sizeof(buffer));
 		printf("Password: ");
-		fgets(buffer, sizeof(buffer) - 1, stdin);
+		ret_ignored = fgets(buffer, sizeof(buffer) - 1, stdin);
 		dp = strchr(buffer, '\n');
 		if (dp)
 			*dp = '\0';
