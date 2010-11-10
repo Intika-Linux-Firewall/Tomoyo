@@ -2672,8 +2672,8 @@ Fix 2010/10/28
         task manual_domain_transition <kernel> //./non-root task.uid!=0
 
       will jump to "<kernel> //./non-root" domain if current process's UID is
-      not 0 and current process wrote "<kernel> //./non-root" + '\n' to
-      /proc/ccs/.transition interface.
+      not 0 and current process wrote "<kernel> //./non-root" to
+      /proc/ccs/self_domain interface.
 
       If domain transition failed, current process will be killed by SIGKILL
       signal.
