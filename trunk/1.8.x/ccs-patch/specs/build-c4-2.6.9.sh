@@ -20,7 +20,7 @@ rpm -ivh kernel-2.6.9-89.31.1.EL.src.rpm || die "Can't install source package."
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20101111.tar.gz ]
 then
-    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/?????/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."

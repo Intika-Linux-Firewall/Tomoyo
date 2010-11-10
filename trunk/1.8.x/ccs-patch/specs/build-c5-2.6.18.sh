@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-194.17.4.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-194.26.1.el5.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/5.5/updates/SRPMS/kernel-2.6.18-194.17.4.el5.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/5.5/updates/SRPMS/kernel-2.6.18-194.26.1.el5.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-194.17.4.el5.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-194.17.4.el5.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-194.26.1.el5.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-194.26.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20101111.tar.gz ]
 then
-    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/?????/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -10101,6 +10104,10 @@
+@@ -10175,6 +10178,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -10168,6 +10175,9 @@
+@@ -10242,6 +10249,9 @@
  for i in *.config
  do
    mv $i .config

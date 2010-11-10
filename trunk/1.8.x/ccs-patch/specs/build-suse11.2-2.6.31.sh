@@ -77,7 +77,7 @@ rpm -ivh kernel-default-2.6.31.14-0.4.1.nosrc.rpm || die "Can't install source p
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20101111.tar.gz ]
 then
-    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/?????/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
