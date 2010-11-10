@@ -46,20 +46,22 @@ debian/rules debian/control || die "Can't update control."
 patch -p0 << "EOF" || die "Can't patch link-headers."
 --- debian/scripts/link-headers
 +++ debian/scripts/link-headers
-@@ -39,4 +39,17 @@
+@@ -39,4 +39,19 @@
  done
  )
  
 +if [ $flavour == "NEW_FLAVOUR" ]
 +then
 +    cd $hdrdir/../../../../$symdir/usr/src/$symdir/include/linux/
-+    for i in sched.h init_task.h security.h ../net/ip.h ccsecurity.h
++    for i in sched.h init_task.h security.h ccsecurity.h
 +    do
 +	rm -f $hdrdir/include/linux/$i
 +	cp -p $i $hdrdir/include/linux/$i
 +    done
-+    rm -f $hdrdir/security
-+    cd ../../
++    rm -f $hdrdir/include/net $hdrdir/security
++    cd ../
++    tar -cf - net | ( cd $hdrdir/include/ ; tar -xf - )
++    cd ../
 +    tar -cf - security | ( cd $hdrdir ; tar -xf - )
 +fi
 +
