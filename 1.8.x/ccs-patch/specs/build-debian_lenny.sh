@@ -28,7 +28,7 @@ mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20101111.tar.gz ]
 then
-    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/?????/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
