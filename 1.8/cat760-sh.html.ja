@@ -114,8 +114,8 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>TOMOYO Linux パッチをダウンロードして適用します。</p>
 
 <pre>
-# wget -O ccs-patch.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'
-# tar -zxf ccs-patch.tar.gz --strip 1
+# wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz'
+# tar -zxf ccs-patch-1.8.0-20101111.tar.gz
 # patch -p1 &lt; patches/ccs-patch-2.6.15-cat-760.diff
 </pre>
 
@@ -145,7 +145,8 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <pre>
 # cd
-# wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar' | tar -zxf -
+# wget -O ccs-tools-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101111.tar.gz'
+# tar -zxf ccs-tools-1.8.0-20101111.tar.gz
 </pre>
 
 <p>CAT760 向けにクロスコンパイルを行います。クロスコンパイルされたツールは /home/ebihara/tmp/sbin/ および /home/ebihara/tmp/usr/ 以下にインストールされます。</p>
