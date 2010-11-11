@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/08/01
+ * Version: 1.8.0   2010/11/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -544,6 +544,7 @@ static void make_getattr(void)
 	fprintf(filp, "acl_group 0 file getattr \\*:/\\*\n");
 	fprintf(filp, "acl_group 0 file getattr \\*:/\\{\\*\\}/\n");
 	fprintf(filp, "acl_group 0 file getattr \\*:/\\{\\*\\}/\\*\n");
+	fprintf(filp, "acl_group 0 file getattr \\*:[\\$]\n");
 }
 
 static void make_readdir(void)
