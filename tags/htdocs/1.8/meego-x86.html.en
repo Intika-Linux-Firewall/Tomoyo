@@ -306,8 +306,8 @@ $ sed -i -e 's/CONFIG_DEBUG_INFO=y/# CONFIG_DEBUG_INFO is not set/' -- .config
 <p>Next, download and apply TOMOYO Linux kernel patch.</p>
 
 <pre>
-$ wget -O ccs-patch.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'
-$ tar -zxf ccs-patch.tar.gz --strip 1
+$ wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz'
+$ tar -zxf ccs-patch-1.8.0-20101111.tar.gz
 $ patch -p1 &lt; patches/ccs-patch-2.6.35.diff
 $ cat config.ccs &gt;&gt; .config
 </pre>
@@ -322,7 +322,8 @@ $ make -s
 
 <pre>
 $ cd ~/rpmbuild/BUILD/
-$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+$ wget -O ccs-tools-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101111.tar.gz'
+$ tar -zxf ccs-tools-1.8.0-20101111.tar.gz
 $ make -sC ccstools/
 </pre>
 
