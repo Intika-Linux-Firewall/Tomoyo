@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0-pre   2010/08/20
+ * Version: 1.8.0   2010/11/11
  *
  * Usage: Run this program using init= boot option.
  *
