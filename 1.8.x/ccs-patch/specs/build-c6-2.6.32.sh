@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-37.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-71.el6.src.rpm ]
 then
-    wget ftp://ftp.redhat.com/pub/redhat/rhel/beta/6Server-beta2/source/SRPMS/kernel-2.6.32-37.el6.src.rpm || die "Can't download source package."
+    wget http://ftp.redhat.com/pub/redhat/linux/enterprise/6/en/source/SRPMS/kernel-2.6.32-71.el6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32-37.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-37.el6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32-71.el6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-71.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20101111.tar.gz ]
@@ -37,16 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  %define rhel 1
  %if %{rhel}
-@@ -454,7 +454,7 @@
- # Packages that need to be installed before the kernel is, because the %post
- # scripts use them.
- #
--%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, kernel-firmware >= %{rpmversion}-%{pkg_release}, grubby >= 7.0.4-1
-+%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, grubby >= 7.0.4-1
- %if %{with_dracut}
- %define initrd_prereq  dracut-kernel >= 002-18.git413bcf78
- %else
-@@ -490,7 +490,7 @@
+@@ -488,7 +488,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -55,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -3332,7 +3332,7 @@
+@@ -712,7 +712,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -64,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -6123,6 +6123,10 @@
+@@ -878,6 +878,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
@@ -75,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -6147,6 +6151,9 @@
+@@ -902,6 +906,9 @@
  for i in *.config
  do
    mv $i .config
