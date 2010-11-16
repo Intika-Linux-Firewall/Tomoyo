@@ -18,7 +18,7 @@
 
 <h3>mod_ccs のインストール</h3>
 
-<p>mod_ccs は Apache 2.x 向けのモジュールです． TOMOYO Linux 1.7.2 以降で利用可能な「プログラムの実行を伴わないドメイン遷移」機能を利用して，バーチャルホスト単位でドメインを分割したり， mod_perl などにより Apache プロセス内で動作するＣＧＩプログラムを別のドメインで動作させたりすることができるようになります． mod_ccs はカーネル 2.4 では動作しませんのでご注意ください．</p>
+<p>mod_ccs は Apache 2.x 向けのモジュールです． TOMOYO Linux 1.8.0 以降で利用可能な「プログラムの実行を伴わないドメイン遷移」機能を利用して，バーチャルホスト単位でドメインを分割したり， mod_perl などにより Apache プロセス内で動作するＣＧＩプログラムを別のドメインで動作させたりすることができるようになります． mod_ccs はカーネル 2.4 では動作しませんのでご注意ください．</p>
 
 <p>まず， Apache 向けのモジュールをコンパイルする準備を行います． RedHat 系の場合は httpd-devel パッケージを， Debian 系の場合は apache2-threaded-dev または apache2-prefork-dev パッケージをインストールします． root ユーザとしてログインし，図１のコマンドを実行してください．</p>
 
@@ -114,14 +114,14 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 
 <p>ここから先は TOMOYO Linux カーネルで起動している必要があります．</p>
 
-<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では /proc/ccs/.transition への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /proc/ccs/.transition への書き込みを認めるようにしてください．（ SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．図７は CentOS 5.5 では使えますが，それより古いバージョンでは使えないことがあります．）</p>
+<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では /proc/ccs/self_domain への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /proc/ccs/self_domain への書き込みを認めるようにしてください．（ SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．図７は CentOS 5.5 では使えますが，それより古いバージョンでは使えないことがあります．）</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図７　Apache に対して /proc/ccs/.transition への書き込みを認める
+■図７　Apache に対して /proc/ccs/self_domain への書き込みを認める
 <pre>
 # cd /etc/selinux/
-# echo 'type=AVC msg=audit(1277948886.369:106): avc:  denied  { write } for pid=32078 comm="httpd" name=".transition" dev=proc ino=-268435010 scontext=root:system_r:httpd_t:s0 tcontext=system_u:object_r:proc_t:s0 tclass=file' | audit2allow -M ccsecurity
+# echo 'type=AVC msg=audit(1277948886.369:106): avc:  denied  { write } for pid=32078 comm="httpd" name="self_domain" dev=proc ino=-268435010 scontext=root:system_r:httpd_t:s0 tcontext=system_u:object_r:proc_t:s0 tclass=file' | audit2allow -M ccsecurity
 # semodule -i ccsecurity.pp
 </pre>
 </td></tr>
@@ -138,13 +138,13 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 </td></tr>
 </table>
 
-<p>/proc/ccs/.transition への書き込みができなかった場合，図９（ CCS_TransitionMap キーワードを指定した場合）または図１０（ CCS_TransitionMap キーワードを指定しない場合）のようなメッセージが表示されます．</p>
+<p>/proc/ccs/self_domain への書き込みができなかった場合，図９（ CCS_TransitionMap キーワードを指定した場合）または図１０（ CCS_TransitionMap キーワードを指定しない場合）のようなメッセージが表示されます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図９　Apache の起動時のエラーメッセージ
 <pre>
-mod_ccs: Unable to open /proc/ccs/.transition for writing. (errno = 13)
+mod_ccs: Unable to open /proc/ccs/self_domain for writing. (errno = 13)
 </pre>
 </td></tr>
 </table>
@@ -153,7 +153,7 @@ mod_ccs: Unable to open /proc/ccs/.transition for writing. (errno = 13)
 <tr><td>
 ■図１０　Apache のエラーログ（ /var/log/httpd/error_log ）
 <pre>
-[Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_ccs: Unable to open /proc/ccs/.transition for writing.
+[Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_ccs: Unable to open /proc/ccs/self_domain for writing.
 </pre>
 </td></tr>
 </table>
@@ -193,38 +193,11 @@ EOF
 </td></tr>
 </table>
 
-<p>/proc/ccs/self_domain はデフォルトでは root しかアクセスできないので，図１１のプログラムからアクセスできるようにするためにパーミッションを緩めます．（図１２）</p>
+<p>curl コマンド（またはＷｅｂブラウザ）を使ってサンプルプログラムを表示し，ドメイン遷移が行われていることを確認します．（図１２）</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１２　ＣＧＩプログラムから /proc/ccs/self_domain へのアクセスを認める
-<pre>
-# chmod 444 /proc/ccs/self_domain
-</pre>
-</td></tr>
-</table>
-
-<p>システム起動時に自動的に緩めるようにするには図１３のようにします．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１３　起動時にパーミッションを設定する
-<pre>
-# cat &gt; /etc/ccs/ccs-post-init &lt;&lt; EOF
-#! /bin/sh
-chmod 444 /proc/ccs/self_domain
-exit 0
-EOF
-# chmod 700 /etc/ccs/ccs-post-init
-</pre>
-</td></tr>
-</table>
-
-<p>curl コマンド（またはＷｅｂブラウザ）を使ってサンプルプログラムを表示し，ドメイン遷移が行われていることを確認します．（図１４）</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１４　ドメイン遷移が行われていることを確認する
+■図１２　ドメイン遷移が行われていることを確認する
 <pre>
 [root@tomoyo ~]# curl http://www.tomoyo00.com/cgi-bin/test.cgi
 &lt;HTML&gt;
