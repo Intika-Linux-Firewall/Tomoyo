@@ -152,6 +152,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>CAT760 向けにクロスコンパイルを行います。クロスコンパイルされたツールは /home/ebihara/tmp/sbin/ および /home/ebihara/tmp/usr/ 以下にインストールされます。</p>
 
 <pre>
+# sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' ccstools/usr_sbin/ccs-patternize.c
 # make -C ccstools/ CC=sh4-linux-gcc INSTALLDIR=/home/ebihara/tmp/ install clean
 </pre>
 

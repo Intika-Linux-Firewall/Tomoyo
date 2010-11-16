@@ -324,6 +324,7 @@ $ make -s
 $ cd ~/rpmbuild/BUILD/
 $ wget -O ccs-tools-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101111.tar.gz'
 $ tar -zxf ccs-tools-1.8.0-20101111.tar.gz
+$ sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' ccstools/usr_sbin/ccs-patternize.c
 $ make -sC ccstools/
 </pre>
 

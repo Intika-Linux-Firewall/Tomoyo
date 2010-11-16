@@ -152,6 +152,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>Do cross compilation for CAT760. Cross compiled programs are installed under /home/ebihara/tmp/sbin/ directory and /home/ebihara/tmp/usr/ directory.</p>
 
 <pre>
+# sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' ccstools/usr_sbin/ccs-patternize.c
 # make -C ccstools/ CC=sh4-linux-gcc INSTALLDIR=/home/ebihara/tmp/ install clean
 </pre>
 
