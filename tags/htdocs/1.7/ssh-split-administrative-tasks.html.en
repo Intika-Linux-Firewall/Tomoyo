@@ -47,7 +47,7 @@ int main(int raw_argc, char *raw_argv[])
 	char **argv;
 	char **envp;
 	{ /* Check that I'm an execute handler process.  */
-		int fd = open("/proc/ccs/.execute_handler", 0);
+		int fd = open("/proc/ccs/.execute_handler", O_RDONLY);
 		close(fd);
 		if (fd == EOF) {
 			fprintf(stderr, "FATAL: I'm not execute_handler.\n");

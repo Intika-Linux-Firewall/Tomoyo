@@ -15,6 +15,28 @@
 
 <hr>
 
+<p>カーネルとツールのコンパイルに必要なパッケージをインストールしてください。</p>
+
+<table border="1">
+<tr><td>RedHat 系の場合</td><td>
+# yum -y install gcc ncurses-devel wget make
+</td></tr>
+<tr><td>Debian 系の場合</td><td>
+# apt-get -y install gcc libncurses-dev wget make
+</td></tr>
+</table>
+
+<p>ツールのコンパイル時に利用可能であることが望ましいパッケージをインストールしてください。（インストールできなくてもそのまま続行して構いません。）</p>
+
+<table border="1">
+<tr><td>RedHat 系の場合</td><td>
+# yum -y install readline-devel help2man
+</td></tr>
+<tr><td>Debian 系の場合</td><td>
+# apt-get -y install libreadline-dev help2man
+</td></tr>
+</table>
+
 <p>カーネルのソースを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> からダウンロードして展開して、そのディレクトリに移動してください。<br>
 linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 については linux-2.6.11.12.tar.bz2 以降に対応しています。例えばカーネル 2.6.36 を使う場合、以下の 2.$PATCHLEVEL.$SUBLEVEL を 2.6.36 に置き換えてください。</p>
 
