@@ -230,6 +230,7 @@ int main(int argc, char *argv[])
 				break;
 			if (first) {
 				if (!strcmp(cp, "network")) {
+					printf("network ");
 					cp = strsep(&sp, " ");
 					if (!cp)
 						break;
