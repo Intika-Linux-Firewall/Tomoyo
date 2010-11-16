@@ -15,6 +15,28 @@
 
 <hr>
 
+<p>Install packages needed for compiling kernel and tools.</p>
+
+<table border="1">
+<tr><td>RedHat distributions</td><td>
+[root@tomoyo ~]# yum -y install gcc ncurses-devel wget make
+</td></tr>
+<tr><td>Debian distributions</td><td>
+[root@tomoyo ~]# apt-get -y install gcc libncurses-dev wget make
+</td></tr>
+</table>
+
+<p>Install packages which should be available for compiling tools. (You can continue even if you can't install these packages.)</p>
+
+<table border="1">
+<tr><td>RedHat distributions</td><td>
+[root@tomoyo ~]# yum -y install readline-devel help2man
+</td></tr>
+<tr><td>Debian distributions</td><td>
+[root@tomoyo ~]# apt-get -y install libreadline-dev help2man
+</td></tr>
+</table>
+
 <p>Download kernel's source code from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> and extract it and goto the extracted directory.<br>
 Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.36 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.36 in the below operations.</p>
 
@@ -46,7 +68,7 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 
 <p>If you choose "Disable by default", TOMOYO Linux is enabled only when ccsecurity=on is passed to the kernel's command line options. If you don't choose this option, TOMOYO Linux is disabled only when ccsecurity=off is passed to the kernel's command line options.</p>
 
-<p>If you choose "Do not modify 'struct task_struct' in order to keep KABI" (available for 2.6 kernels only), TOMOYO Linux will manage per "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel ABI breakage due to changes in "struct task_struct". You can choose this option when you want to apply TOMOYO Linux patch against distributor's kernels without breaking Kernel ABI. But please tolerate that since we have to export "struct ccsecurity_operations" to loadable kernel modules in order to allow loadable kernel modules to call TOMOYO's functions, we can't prevent kernel build scripts from printing warning messages.</p>
+<p>If you choose "Do not modify 'struct task_struct' in order to keep KABI" (available for 2.6 kernels only), TOMOYO Linux will manage per "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel ABI breakage due to changes in "struct task_struct". You can choose this option when you want to apply TOMOYO Linux patch against distributor's kernels without breaking Kernel ABI. But please tolerate that we can't prevent kernel build scripts from printing warning messages because we have to export "struct ccsecurity_operations" to loadable kernel modules in order to allow loadable kernel modules to call TOMOYO's functions.</p>
 
 <p>After creating a kernel config, compile the kernel.</p>
 
