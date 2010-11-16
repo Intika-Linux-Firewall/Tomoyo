@@ -91,7 +91,7 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 [user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101111.tar.gz'<br>
 [user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101111.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
-[user@tomoyo ~]$ sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' usr_sbin/ccs-patternize.c
+[user@tomoyo ~]$ sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' usr_sbin/ccs-patternize.c<br>
 [user@tomoyo ~]$ make -s<br>
 [user@tomoyo ~]$ su<br>
 [root@tomoyo ~]# make -s install
