@@ -127,15 +127,6 @@ But if you want to convert temporary files into patterns non-interactively, you 
 
 <p>We can consider that "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" are temporary files, thus we make patterns for these pathnames. First, we need to consider what patterns to use. In these examples, numeric seems decimal digits. Thus, we use \$ pattern which matches one or more repetitions of decimal digits.</p>
 
-<p>Append patterns to the exception policy.</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/ccs-loadpolicy -e<br>
-[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -e
-</td></tr>
-</table>
-
 <p>Replace "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$'</p>
 
 <table border="1">
@@ -265,7 +256,8 @@ path_group HOME-SMB-DIR  /home/\*/samba/\{\*\}/
 <tr><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 <br>
-file read/write @HOME-FTP-FILE<br>
+file read @HOME-FTP-FILE<br>
+file write @HOME-FTP-FILE<br>
 file mkdir @HOME-FTP-DIR 0755<br>
 file rmdir @HOME-FTP-DIR<br>
 file create @HOME-FTP-FILE 0644<br>
@@ -276,7 +268,8 @@ file rename @HOME-FTP-DIR @HOME-FTP-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 <br>
-file read/write @HOME-FTP-FILE task.uid=path1.uid<br>
+file read @HOME-FTP-FILE task.uid=path1.uid<br>
+file write @HOME-FTP-FILE task.uid=path1.uid<br>
 file mkdir @HOME-FTP-DIR 0755 task.uid=path1.parent.uid<br>
 file rmdir @HOME-FTP-DIR task.uid=path1.uid<br>
 file create @HOME-FTP-FILE 0644 task.uid=path1.parent.uid<br>
@@ -294,7 +287,8 @@ file rename @HOME-FTP-DIR @HOME-FTP-DIR task.uid=path1.parent.uid task.uid=path2
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 <br>
-file read/write @HOME-SMB-FILE<br>
+file read @HOME-SMB-FILE<br>
+file write @HOME-SMB-FILE<br>
 file mkdir @HOME-SMB-DIR 0755<br>
 file rmdir @HOME-SMB-DIR<br>
 file create @HOME-SMB-FILE 0644<br>
@@ -305,7 +299,8 @@ file rename @HOME-SMB-DIR @HOME-SMB-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 <br>
-file read/write @HOME-SMB-FILE task.euid=path1.uid<br>
+file read @HOME-SMB-FILE task.euid=path1.uid<br>
+file write @HOME-SMB-FILE task.euid=path1.uid<br>
 file mkdir @HOME-SMB-DIR 0755 task.euid=path1.parent.uid<br>
 file rmdir @HOME-SMB-DIR task.euid=path1.uid<br>
 file create @HOME-SMB-FILE 0644 task.euid=path1.parent.uid<br>
