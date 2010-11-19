@@ -1938,7 +1938,7 @@ static inline struct ccs_security *ccs_current_security(void)
 }
 
 /**
- * ccs_task_security - Get "struct ccs_security" for specified thread.
+ * ccs_task_domain - Get "struct ccs_domain_info" for specified thread.
  *
  * @task: Pointer to "struct task_struct".
  *
@@ -1980,7 +1980,7 @@ static inline u32 ccs_task_flags(struct task_struct *task)
 }
 
 /**
- * ccs_task_flags - Get flags for current thread.
+ * ccs_current_flags - Get flags for current thread.
  *
  * Returns flags for current thread.
  */
@@ -2023,7 +2023,7 @@ static inline struct ccs_security *ccs_current_security(void)
 }
 
 /**
- * ccs_task_security - Get "struct ccs_security" for specified thread.
+ * ccs_task_domain - Get "struct ccs_domain_info" for specified thread.
  *
  * @task: Pointer to "struct task_struct".
  *
@@ -2065,7 +2065,7 @@ static inline u32 ccs_task_flags(struct task_struct *task)
 }
 
 /**
- * ccs_task_flags - Get flags for current thread.
+ * ccs_current_flags - Get flags for current thread.
  *
  * Returns flags for current thread.
  */
