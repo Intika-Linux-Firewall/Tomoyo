@@ -15,6 +15,8 @@
 
 <hr>
 
+<h2>ステップ１：カーネルのインストール</h2>
+
 <p>カーネルとツールのコンパイルに必要なパッケージをインストールしてください。</p>
 
 <table border="1">
@@ -84,6 +86,10 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 
 <p>必要であれば initrd を作成してください。</p>
 
+<hr>
+
+<h2>ステップ２：ツールのインストール</h2>
+
 <p>ツールパッケージをコンパイルするには以下のコマンドを実行してください。</p>
 
 <table border="1">
@@ -94,7 +100,8 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 [user@tomoyo ~]$ sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' usr_sbin/ccs-patternize.c<br>
 [user@tomoyo ~]$ make -s<br>
 [user@tomoyo ~]$ su<br>
-[root@tomoyo ~]# make -s install
+[root@tomoyo ~]# make -s install<br>
+[root@tomoyo ~]# ldconfig
 </td></tr>
 </table>
 
