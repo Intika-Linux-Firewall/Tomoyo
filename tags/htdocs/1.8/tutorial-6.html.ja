@@ -229,8 +229,10 @@ file create /home/\*/scp/\* 0-0666
 file create /home/\*/scp/\{\*\}/\* 0-0666
 file unlink /home/\*/scp/\*
 file unlink /home/\*/scp/\{\*\}/\*
-file read/write /home/\*/scp/\*
-file read/write /home/\*/scp/\{\*\}/\*
+file read /home/\*/scp/\*
+file write /home/\*/scp/\*
+file read /home/\*/scp/\{\*\}/\*
+file write /home/\*/scp/\{\*\}/\*
 </pre>
 </td></tr>
 </table>
@@ -255,12 +257,13 @@ path_group SCP_FILE /home/\*/scp/\{\*\}/\*
 use_profile 3
 file create @SCP_FILE 0-0666
 file unlink @SCP_FILE
-file read/write @SCP_FILE
+file read @SCP_FILE
+file write @SCP_FILE
 </pre>
 </td></tr>
 </table>
 
-<p>必要に応じて、 path1.uid=task.uid などの条件を付与することができます．</p>
+<p>必要に応じて， path1.uid=task.uid などの条件を付与することができます．</p>
 
 <p>ＳＳＨは通信内容を暗号化しますが，ファイル自体を暗号化してくれるわけではありません．より安全を求める場合は， scp や sftp で送受信するファイルをあらかじめ gpg などで暗号化しておけば， scp や sftp がアクセス可能なディレクトリに置かれているファイルを保護することができます．</p>
 

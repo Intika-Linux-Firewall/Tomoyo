@@ -214,7 +214,8 @@ $ ls .bashrc | xargs /bin/cat &gt; /dev/null
 ■図１６　あらかじめ与えておいたアクセス許可
 <pre>
 file execute @COMMANDS_FOR_LOGIN
-file read/write @HOME_FILE task.uid=path1.uid
+file read @HOME_FILE task.uid=path1.uid
+file write @HOME_FILE task.uid=path1.uid
 file create @HOME_FILE task.uid=path1.parent.uid
 file unlink @HOME_FILE task.uid=path1.uid
 file symlink @HOME_FILE task.uid=path1.parent.uid
@@ -316,13 +317,7 @@ path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/xargs
 <tr><td>
 ■図２３　学習されたケイパビリティの例
 <pre>
-capability SYS_CHMOD
-capability SYS_IOCTL
-capability SYS_KILL
-capability SYS_LINK
-capability SYS_RENAME
-capability SYS_SYMLINK
-capability SYS_UNLINK
+capability STS_TIME
 </pre>
 </td></tr>
 </table>

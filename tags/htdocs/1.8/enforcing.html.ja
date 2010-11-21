@@ -140,9 +140,10 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s<br>
 use_profile 3<br>
 <br>
 file read /bin/bash<br>
-file read/write /dev/tty<br>
-capability SYS_IOCTL<br>
-file read/write /dev/pts/\$<br>
+file read /dev/tty<br>
+file write /dev/tty<br>
+file read /dev/pts/\$<br>
+file write /dev/pts/\$<br>
 file read /usr/lib/locale/locale-archive<br>
 file read /etc/nsswitch.conf<br>
 file read /etc/passwd<br>
@@ -156,11 +157,11 @@ file execute /sbin/runlevel exec.realpath="/sbin/runlevel" exec.argv[0]="runleve
 file execute /bin/cp exec.realpath="/bin/cp" exec.argv[0]="cp"<br>
 file execute /usr/sbin/sshd exec.realpath="/usr/sbin/sshd" exec.argv[0]="/usr/sbin/sshd"<br>
 file execute /bin/touch exec.realpath="/bin/touch" exec.argv[0]="touch"<br>
-file read/write /dev/console<br>
+file read /dev/console<br>
+file write /dev/console<br>
 file execute /bin/unicode_start exec.realpath="/bin/unicode_start" exec.argv[0]="/bin/unicode_start"<br>
 file read /var/run/sshd.pid<br>
 file write /dev/null<br>
-capability SYS_KILL<br>
 ipc signal 15 &lt;kernel&gt; /usr/sbin/sshd<br>
 file execute /bin/usleep exec.realpath="/bin/usleep" exec.argv[0]="usleep"<br>
 file execute /bin/rm exec.realpath="/bin/rm" exec.argv[0]="rm"<br>

@@ -336,14 +336,14 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
-<p>ここではマウント操作を行う権限（ SYS_MOUNT ）を例に説明します． TOMOYO Linux はパス名を用いてアクセス制御を行うため，管理者が期待したとおりにファイルシステムがマウントされていることは絶対の前提となります． root 権限で動作しているすべてのプロセスが好き勝手にマウントをしてしまうようでは困ります．そのため，ケイパビリティを用いることでマウント操作を許可するドメインを制限します．ケイパビリティのアクセス制御の手順はネットワークに関するアクセス制御のときと同様です．まず，制限したいケイパビリティをプロファイルで指定します． /etc/ccs/profile.conf の末尾に図２５の内容を追加してください．</p>
+<p>ここではシステムの時計を設定する権限（ SYS_TIME ）を例に説明します．ケイパビリティのアクセス制御の手順はネットワークに関するアクセス制御のときと同様です．まず，制限したいケイパビリティをプロファイルで指定します． /etc/ccs/profile.conf の末尾に図２５の内容を追加してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図２５　/etc/ccs/profile.conf の末尾に追加する内容（ケイパビリティに対するアクセス制御）
 <pre>
-9-CONFIG::capability::SYS_MOUNT={ mode=learning }
-10-CONFIG::capability::SYS_MOUNT={ mode=enforcing }
+9-CONFIG::capability::SYS_TIME={ mode=learning }
+10-CONFIG::capability::SYS_TIME={ mode=enforcing }
 </pre>
 </td></tr>
 </table>
@@ -361,19 +361,20 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
-<p>その後，適当なディレクトリに tmpfs をマウントします（図２７）．</p>
+<p>その後，システムの時計を設定します（図２７）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２７　tmpfs をマウントする
+■図２７　システムの時計を設定する
 <pre>
-# mount -t tmpfs none /tmp/
-mount: permission denied
+# date 112200002010.00
+date: cannot set date: Operation not permitted
+Mon Nov 22 00:00:00 JST 2010
 </pre>
 </td></tr>
 </table>
 
-<p>拒否されました．これは， mount コマンドを実行したドメインに対して，マウント操作を行う権限が与えられていないためです．次に，学習モード用のプロファイルを割り当てます（図２８）．</p>
+<p>拒否されました．これは， date コマンドを実行したドメインに対して，システムの時計を変更する権限が与えられていないためです．次に，学習モード用のプロファイルを割り当てます（図２８）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -384,29 +385,28 @@ mount: permission denied
 </td></tr>
 </table>
 
-<p>再度，適当なディレクトリに tmpfs をマウントします（図２９）．</p>
+<p>再度，システムの時計を設定します（図２９）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２９　tmpfs をマウントする
+■図２９　システムの時計を設定する
 <pre>
-# mount -t tmpfs none /tmp/
+# date 112200002010.00
+Mon Nov 22 00:00:00 JST 2010
 </pre>
 </td></tr>
 </table>
 
-<p>今度は正常に動作しました．ポリシーエディタを起動して mount コマンドを実行したドメインを探し，アクセス許可を確認してください（図３０）．</p>
+<p>今度は正常に動作しました．ポリシーエディタを起動して date コマンドを実行したドメインを探し，アクセス許可を確認してください（図３０）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図３０　capability SYS_MOUNT というアクセス許可が学習されている<br>
+■図３０　capability SYS_TIME というアクセス許可が学習されている<br>
 <img src="tutorial/fig-7-30.png" alt="fig-7-30.png" width="492" height="130">
 </td></tr>
 </table>
 
-<p>capability SYS_MOUNT というアクセス許可が学習されていることを確認できます．この状態で強制モード用のプロファイルを割り当てれば，許可されていないドメインからマウント操作を行うことを禁止できるようになります．</p>
-
-<p>マウント操作の可否だけを制限しても，マウント操作が許可されていれば任意のディレクトリにマウントできてしまうので，不十分だと思われる方がいるかもしれません．実際そのとおりであり， TOMOYO Linux ではマウントを許可するパーティションとマウントポイントの組み合わせを制限する機能も備えています．ファイルに対するアクセス制御も学習モードに設定して図２９の操作を行うと，図３０には file mount none /tmp/ tmpfs 0 という結果が学習されるはずです．</p>
+<p>capability SYS_TIME というアクセス許可が学習されていることを確認できます．この状態で強制モード用のプロファイルを割り当てれば，許可されていないドメインからシステムの時計を設定することを禁止できるようになります．</p>
 
 <h2>シグナルに対するアクセス制御機能について</h2>
 

@@ -336,14 +336,14 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
-<p>In this section, I explain about privilege for doing mount operation (i.e. SYS_MOUNT ) as an example. Since TOMOYO Linux performs access control using pathnames, it is an absolutely important assumption that filesystems are mounted as the administrator intended. It is annoying thing if any processes running as "root" user can freely mount filesystems. Thus, by using capabilities, you can restrict domains which can do mount operations. Steps for doing access control on capabilities are the same with doing access control on networks. Firstly, specify capabilities you want to control in the profiles. Append lines listed in Fig. 25 to the bottom of /etc/ccs/profile.conf .</p>
+<p>In this section, I explain about privilege for changing system clock (i.e. SYS_TIME ) as an example. Steps for doing access control on capabilities are the same with doing access control on networks. Firstly, specify capabilities you want to control in the profiles. Append lines listed in Fig. 25 to the bottom of /etc/ccs/profile.conf .</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 25&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
 <pre>
-9-CONFIG::capability::SYS_MOUNT={ mode=learning }
-10-CONFIG::capability::SYS_MOUNT={ mode=enforcing }
+9-CONFIG::capability::SYS_TIME={ mode=learning }
+10-CONFIG::capability::SYS_TIME={ mode=enforcing }
 </pre>
 </td></tr>
 </table>
@@ -361,19 +361,20 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
-<p>Then, mount tmpfs somewhere. (Fig. 27)</p>
+<p>Then, change system clock. (Fig. 27)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 27&nbsp;&nbsp;Mounting tmpfs
+&diams; Fig. 27&nbsp;&nbsp;Change system clock
 <pre>
-# mount -t tmpfs none /tmp/
-mount: permission denied
+# date 112200002010.00
+date: cannot set date: Operation not permitted
+Mon Nov 22 00:00:00 JST 2010
 </pre>
 </td></tr>
 </table>
 
-<p>The mount operation was rejected. This is because the domain which mount command belongs to was not given a capability for doing mount operation. Next, assign a profile for learning mode. (Fig. 28)</p>
+<p>The operation was rejected. This is because the domain which date command belongs to was not given a capability for changing system clock. Next, assign a profile for learning mode. (Fig. 28)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -384,29 +385,28 @@ mount: permission denied
 </td></tr>
 </table>
 
-<p>Again, mount tmpfs somewhere. (Fig. 29)</p>
+<p>Again, change system clock. (Fig. 29)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 29&nbsp;&nbsp;Mounting tmpfs
+&diams; Fig. 29&nbsp;&nbsp;Change system clock
 <pre>
-# mount -t tmpfs none /tmp/
+# date 112200002010.00
+Mon Nov 22 00:00:00 JST 2010
 </pre>
 </td></tr>
 </table>
 
-<p>This time, the mount operation succeeded. Run the policy editor and find the domain for mount command and browse permissions for that domain. (Fig. 30)</p>
+<p>This time, the operation succeeded. Run the policy editor and find the domain for date command and browse permissions for that domain. (Fig. 30)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 30&nbsp;&nbsp;Permission "capability SYS_MOUNT" was learned<br>
+&diams; Fig. 30&nbsp;&nbsp;Permission "capability SYS_TIME" was learned<br>
 <img src="tutorial/fig-7-30.png" alt="fig-7-30.png" width="492" height="130">
 </td></tr>
 </table>
 
-<p>You can find that a permission "capability SYS_MOUNT" was learned. Now, you can forbid mount operations from domains without SYS_MOUNT capability by assigning a profile for enforcing mode.</p>
-
-<p>You might notice that it is not sufficient to restrict whether mount operation is permitted or not , for the process can do arbitrary mount operations if mount operation is permitted. In fact, that is true. TOMOYO Linux's access control on files includes ability to restrict the combination of mount device and mount point and filesystem type and mount flags. Thus, if you do operations listed in Fig. 29 with a profile for learning mode for access control on files, "file mount none /tmp/ tmpfs 0" will appear in Fig. 30.</p>
+<p>You can find that a permission "capability SYS_TIME" was learned. Now, you can forbid changing system clock from domains without SYS_TIME capability by assigning a profile for enforcing mode.</p>
 
 <h2>About access control on signals</h2>
 
