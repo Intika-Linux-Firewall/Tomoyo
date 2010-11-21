@@ -229,8 +229,10 @@ file create /home/\*/scp/\* 0-0666
 file create /home/\*/scp/\{\*\}/\* 0-0666
 file unlink /home/\*/scp/\*
 file unlink /home/\*/scp/\{\*\}/\*
-file read/write /home/\*/scp/\*
-file read/write /home/\*/scp/\{\*\}/\*
+file read /home/\*/scp/\*
+file write /home/\*/scp/\*
+file read /home/\*/scp/\{\*\}/\*
+file write /home/\*/scp/\{\*\}/\*
 </pre>
 </td></tr>
 </table>
@@ -255,7 +257,8 @@ path_group SCP_FILE /home/\*/scp/\{\*\}/\*
 use_profile 3
 file create @SCP_FILE 0-0666
 file unlink @SCP_FILE
-file read/write @SCP_FILE
+file read @SCP_FILE
+file write @SCP_FILE
 </pre>
 </td></tr>
 </table>
@@ -272,7 +275,7 @@ file read/write @SCP_FILE
 
 <h3>New approach based on secure OS</h3>
 
-<p>Many of secure OSes are equipped with RBAC ( Role Based Access Control ) functionality. By using RBAC, you can restrict execution of programs and read/write of files based on the role. RBAC is a useful feature for actual operations.</p>
+<p>Many of secure OSes are equipped with RBAC ( Role Based Access Control ) functionality. By using RBAC, you can restrict executable programs and readable/writable files based on the role. RBAC is a useful feature for actual operations.</p>
 
 <h3>Dividing privileges using TOMOYO Linux</h3>
 

@@ -207,7 +207,8 @@ path_group HOME_DIR /home/\{\*\-.ssh\}/
 &diams; Fig. 12&nbsp;&nbsp;Give permissions beforehand
 <pre>
 file execute @COMMANDS_FOR_LOGIN
-file read/write @HOME_FILE
+file read @HOME_FILE
+file write @HOME_FILE
 file create @HOME_FILE 00-0666
 file unlink @HOME_FILE
 file symlink @HOME_FILE
@@ -250,7 +251,8 @@ file rename @HOME_DIR @HOME_DIR
 &diams; Fig. 13&nbsp;&nbsp;Allowing accessing files owned by the user
 <pre>
 file execute @COMMANDS_FOR_LOGIN
-file read/write @HOME_FILE task.uid=path1.uid
+file read @HOME_FILE task.uid=path1.uid
+file write @HOME_FILE task.uid=path1.uid
 file create @HOME_FILE 00-0666 task.uid=path1.parent.uid
 file unlink @HOME_FILE task.uid=path1.uid
 file symlink @HOME_FILE task.uid=path1.parent.uid
@@ -265,7 +267,7 @@ file rename @HOME_DIR @HOME_DIR task.uid=path1.uid task.uid=path1.parent.uid tas
 </td></tr>
 </table>
 
-<p>"task.uid" is the user ID of the process requesting this access (i.e. the user ID of user who logged in the system), "path1.uid" is the owner ID of the first pathname (for example, /dev/null for "file read/write /dev/null" and /tmp/source for "file link /tmp/source /tmp/dest"). "path1.parent.uid" is the owner ID of the first pathname's parent directory (for example, /dev/ for "file read/write /dev/null"). "path2.uid" is the owner ID of the second pathname (for example, /home/ for "file mount /dev/sda2 /home/ ext3 0". But you cannot specify "path2.uid" for "file rename" keyword and "file link" keyword because the second pathname is not accessible as of permission checks. "path2.parent.uid" is the owner ID of the second pathname's parent directory (for example, /tmp/ for "file link /tmp/source /tmp/dest").</p>
+<p>"task.uid" is the user ID of the process requesting this access (i.e. the user ID of user who logged in the system), "path1.uid" is the owner ID of the first pathname (for example, /dev/null for "file write /dev/null" and /tmp/source for "file link /tmp/source /tmp/dest"). "path1.parent.uid" is the owner ID of the first pathname's parent directory (for example, /dev/ for "file write /dev/null"). "path2.uid" is the owner ID of the second pathname (for example, /home/ for "file mount /dev/sda2 /home/ ext3 0". But you cannot specify "path2.uid" for "file rename" keyword and "file link" keyword because the second pathname is not accessible as of permission checks. "path2.parent.uid" is the owner ID of the second pathname's parent directory (for example, /tmp/ for "file link /tmp/source /tmp/dest").</p>
 
 <h2>Trailer</h2>
 

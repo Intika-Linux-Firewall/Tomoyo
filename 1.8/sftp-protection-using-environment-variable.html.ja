@@ -115,7 +115,8 @@ path_group SFTP_FILES /var/sftp/\*
 file read @SFTP_FILES<br>
 <br>
 &lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server<br>
-file read/write @SFTP_FILES<br>
+file read @SFTP_FILES<br>
+file write @SFTP_FILES<br>
 file create @SFTP_FILES 0644<br>
 file unlink @SFTP_FILES<br>
 file mkdir @SFTP_DIRS 0755<br>
