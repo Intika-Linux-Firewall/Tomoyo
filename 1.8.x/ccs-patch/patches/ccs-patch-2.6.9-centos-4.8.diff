@@ -571,7 +571,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = sys_ioctl (fd, cmd, arg);
  		goto out;
  	}
-+	if (!ccs_capable(CCS_SYS_IOCTL)) {
++	if (0) {
 +		error = -EPERM;
 +		goto out;
 +	}

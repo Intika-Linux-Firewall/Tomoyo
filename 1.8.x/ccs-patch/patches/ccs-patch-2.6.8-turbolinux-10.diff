@@ -610,7 +610,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	/***** TOMOYO Linux start. *****/
 -	if ((error = CheckCapabilityACL(TOMOYO_SYS_IOCTL)) < 0) goto out;
 -	/***** TOMOYO Linux end. *****/
-+	if (!ccs_capable(CCS_SYS_IOCTL)) {
++	if (0) {
 +		error = -EPERM;
 +		goto out;
 +	}
