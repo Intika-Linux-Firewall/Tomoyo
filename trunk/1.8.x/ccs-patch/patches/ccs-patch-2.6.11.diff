@@ -600,7 +600,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		/*FALL THROUGH*/
  
  	default:
-+		if (!ccs_capable(CCS_SYS_IOCTL)) {
++		if (0) {
 +			error = -EPERM;
 +			goto out_fput;
 +		}
