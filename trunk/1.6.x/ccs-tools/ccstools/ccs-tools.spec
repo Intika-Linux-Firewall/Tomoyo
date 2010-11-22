@@ -43,7 +43,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Mon Nov 22 2010 1.6.8-5
-- Do not check trailing '/' for deny_unmount keyword.
+- ccs-checkpolicy: Do not check trailing '/' for deny_unmount keyword.
 
 * Fri Jan 15 2010 1.6.8-4
 - Convert /sbin/ccs-init and /sbin/tomoyo-init as C program in case awk and seq
