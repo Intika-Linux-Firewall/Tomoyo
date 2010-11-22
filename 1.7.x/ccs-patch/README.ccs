@@ -2452,3 +2452,17 @@ Fix 2010/09/18
       environment variable PATH), not doing DAC checks before MAC checks won't
       trigger MAC's permission error flooding. Thus, I removed DAC checks which
       are done before MAC checks.
+
+Fix 2010/11/22
+
+    @ Fix umount() pathname calculation.
+
+      "mount --bind /path/to/file1 /path/to/file2" is legal.
+      Therefore, "umount /path/to/file2" is also legal.
+      Do not automatically append trailing '/' if pathname to be unmounted
+      does not end with '/'.
+
+    @ Change export level of ccsecurity_ops structure.
+
+      Non-GPL modules might need to access ccsecurity_ops via inlined functions
+      embedded into include/linux/security.h and include/net/ip.h .

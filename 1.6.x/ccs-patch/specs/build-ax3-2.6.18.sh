@@ -18,14 +18,9 @@ rpm --checksig kernel-2.6.18-194.8.AXS3.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.18-194.8.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.8-20100923.tar.gz ]
+if [ ! -r ccs-patch-1.6.8-20101122.tar.gz ]
 then
-    wget -O ccs-patch-1.6.8-20100923.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100923.tar.gz' || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.6.8-20100929.diff ]
-then
-    wget -O ccs-patch-1.6.8-20100929.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?revision=4021&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-1.6.8-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -38,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define rpmversion 2.6.%{sublevel}
  # %dist is defined in Asianux VPBS
 -%define release 194.8%{?dist}
-+%define release 194.8%{?dist}_tomoyo_1.6.8p3
++%define release 194.8%{?dist}_tomoyo_1.6.8p4
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
@@ -66,8 +61,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100923.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.6.8-20100929.diff
++tar -zxf %_sourcedir/ccs-patch-1.6.8-20101122.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
 +
  cp %{SOURCE10} Documentation/
  

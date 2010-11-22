@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.6.8+   2010/11/22
  *
  */
 #include "ccstools.h"
@@ -980,7 +980,7 @@ static void check_system_policy(void)
 	if (str_starts(shared_buffer, KEYWORD_ALLOW_MOUNT)) {
 		check_mount_policy(shared_buffer);
 	} else if (str_starts(shared_buffer, KEYWORD_DENY_UNMOUNT)) {
-		if (!is_correct_path(shared_buffer, 1, 0, 1)) {
+		if (!is_correct_path(shared_buffer, 1, 0, 0)) {
 			printf("%u: ERROR: '%s' is a bad pattern.\n",
 			       line, shared_buffer);
 			errors++;

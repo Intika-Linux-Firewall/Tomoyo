@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.6.8
-Release: 4
+Release: 5
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.6.8-4
+Conflicts: ccs-tools < 1.6.8-5
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.8-20100115.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.8-20101122.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -42,6 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Mon Nov 22 2010 1.6.8-5
+- Do not check trailing '/' for deny_unmount keyword.
+
 * Fri Jan 15 2010 1.6.8-4
 - Convert /sbin/ccs-init and /sbin/tomoyo-init as C program in case awk and seq
   are not available by the time /sbin/init starts.

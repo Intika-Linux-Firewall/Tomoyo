@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.8.0
-Release: 1
+Release: 2
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.8.0-1
+Conflicts: ccs-tools < 1.8.0-2
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101111.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Mon Nov 22 2010 1.8.0-2
+- ccs-patternize must print "network " keyword.
+
 * Thu Nov 11 2010 1.8.0-1
 - Fifth anniversary release.
 

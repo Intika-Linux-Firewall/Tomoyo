@@ -537,3 +537,20 @@ Version 1.7.2 2010/04/01   Minor update release.
     domains listed in audit logs, passing audit logs to this program and
     piping the output to /usr/sbin/ccs-loadpolicy is no longer recommended.
     Please review before using the output of /usr/sbin/ccs-sortpolicy .
+
+Version 1.7.2p1 2010/11/22   Bug fix release.
+
+  /sbin/ccs-init
+    Ignore EINTR when waiting for child programs to finish.
+
+  /usr/sbin/ccsdiffpolicy
+    Fix old/new inversion bug.
+
+  /usr/lib/ccs/init_policy
+    Fix error message.
+
+  /etc/ccs/ccs-load-module
+    Search /sbin and /bin in addition to $PATH.
+
+  man ccs-pathmatch
+    Use \e for representing \.

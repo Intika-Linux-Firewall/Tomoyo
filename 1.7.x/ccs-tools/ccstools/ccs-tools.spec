@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.7.2
-Release: 1
+Release: 2
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.2-1
+Conflicts: ccs-tools < 1.7.2-2
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20100401.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20101122.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,6 +41,13 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Mon Nov 22 2010 1.7.2-2
+- ccs-init should ignore EINTR when waiting for child programs to finish.
+- Fix ccs-diffpolicy old/new inversion bug.
+- Fix init_policy's error message.
+- ccs-load-module should search /sbin and /bin in addition to $PATH.
+- Use \e for representing \ in manpage of ccs-pathmatch.
+
 * Thu Apr 01 2010 1.7.2-1
 - ccs-sortpolicy should not remove use_profile lines.
 - ccs-init calls /etc/ccs/ccs-load-module for loading TOMOYO which was built as a loadable kernel module.
