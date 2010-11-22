@@ -44,8 +44,8 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz'<br>
-[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101111.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101122.tar.gz<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
 [user@tomoyo ~]$ make -s menuconfig
 </td></tr>
@@ -94,10 +94,9 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101111.tar.gz'<br>
-[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101111.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101122.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
-[user@tomoyo ~]$ sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' usr_sbin/ccs-patternize.c<br>
 [user@tomoyo ~]$ make -s<br>
 [user@tomoyo ~]$ su<br>
 [root@tomoyo ~]# make -s install<br>
