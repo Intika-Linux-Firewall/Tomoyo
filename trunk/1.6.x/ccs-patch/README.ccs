@@ -2021,3 +2021,11 @@ Fix 2010/01/20
       uses RCU primitives but spinlock does not prevent RCU callback if
       preemptive RCU ( CONFIG_PREEMPT_RCU or CONFIG_TREE_PREEMPT_RCU ) is
       enabled.
+
+Fix 2010/11/22
+
+    @ Do not check trailing '/' for deny_unmount keyword.
+
+      "mount --bind /path/to/file1 /path/to/file2" is legal.
+      Therefore, "umount /path/to/file2" is also legal.
+      Do not reject if pathname to be unmounted does not end with '/'.

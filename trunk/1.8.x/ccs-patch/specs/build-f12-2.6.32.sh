@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.32.23-170.fc12.src.rpm || die "Can't verify signature.
 rpm -ivh kernel-2.6.32.23-170.fc12.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.0-20101111.tar.gz ]
+if [ ! -r ccs-patch-1.8.0-20101122.tar.gz ]
 then
-    wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -81,7 +81,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.0-20101111.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.0-20101122.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.32-fedora-12.diff
 +
  # Any further pre-build tree manipulations happen here.
