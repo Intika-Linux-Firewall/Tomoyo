@@ -29,7 +29,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  arch/v850/kernel/ptrace.c          |    3 +++
  arch/x86_64/ia32/ptrace32.c        |    3 +++
  arch/x86_64/kernel/ptrace.c        |    3 +++
- fs/compat.c                        |    9 ++++++++-
+ fs/compat.c                        |    5 ++++-
  fs/exec.c                          |   12 +++++++++++-
  fs/fcntl.c                         |    5 +++++
  fs/ioctl.c                         |    3 +++
@@ -58,7 +58,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/unix/af_unix.c                 |    8 ++++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 56 files changed, 326 insertions(+), 10 deletions(-)
+ 56 files changed, 322 insertions(+), 10 deletions(-)
 
 --- linux-2.6.12.3-a9-17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/alpha/kernel/ptrace.c
@@ -596,18 +596,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (error)
  		goto out_fput;
  
-@@ -466,6 +469,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (0) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
-@@ -1557,7 +1564,7 @@ int compat_do_execve(char * filename,
+@@ -1557,7 +1560,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -966,7 +955,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2010/10/28\n");
++	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2010/11/22\n");
  }
 --- linux-2.6.12.3-a9-17.orig/fs/stat.c
 +++ linux-2.6.12.3-a9-17/fs/stat.c

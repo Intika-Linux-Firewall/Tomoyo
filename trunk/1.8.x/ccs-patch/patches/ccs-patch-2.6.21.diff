@@ -12,7 +12,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/sparc/kernel/ptrace.c      |    5 +++++
  arch/sparc64/kernel/ptrace.c    |    5 +++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
- fs/compat.c                     |    9 ++++++++-
+ fs/compat.c                     |    5 ++++-
  fs/exec.c                       |   11 ++++++++++-
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    3 +++
@@ -45,7 +45,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 265 insertions(+), 3 deletions(-)
+ 43 files changed, 261 insertions(+), 3 deletions(-)
 
 --- linux-2.6.21.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.21.7/arch/alpha/kernel/ptrace.c
@@ -260,18 +260,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_fput;
  
-@@ -422,6 +425,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (0) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
-@@ -1552,7 +1559,7 @@ int compat_do_execve(char * filename,
+@@ -1552,7 +1555,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -635,7 +624,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.21.7 2010/10/28\n");
++	printk(KERN_INFO "Hook version: 2.6.21.7 2010/11/22\n");
  }
 --- linux-2.6.21.7.orig/fs/stat.c
 +++ linux-2.6.21.7/fs/stat.c

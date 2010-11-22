@@ -12,7 +12,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  arch/sparc/kernel/ptrace.c      |    5 +++++
  arch/sparc64/kernel/ptrace.c    |    5 +++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
- fs/compat.c                     |    9 ++++++++-
+ fs/compat.c                     |    5 ++++-
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    3 +++
@@ -44,7 +44,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 282 insertions(+), 10 deletions(-)
+ 42 files changed, 278 insertions(+), 10 deletions(-)
 
 --- linux-2.6.16-76.55vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.55vl4/arch/alpha/kernel/ptrace.c
@@ -259,18 +259,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (error)
  		goto out_fput;
  
-@@ -405,6 +408,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (0) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
-@@ -1532,7 +1539,7 @@ int compat_do_execve(char * filename,
+@@ -1532,7 +1535,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -641,7 +630,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.16-76.55vl4 2010/10/28\n");
++	printk(KERN_INFO "Hook version: 2.6.16-76.55vl4 2010/11/22\n");
  }
 --- linux-2.6.16-76.55vl4.orig/fs/stat.c
 +++ linux-2.6.16-76.55vl4/fs/stat.c
