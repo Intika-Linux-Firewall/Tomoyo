@@ -28,7 +28,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  arch/v850/kernel/ptrace.c          |    3 +++
  arch/x86_64/ia32/ptrace32.c        |    3 +++
  arch/x86_64/kernel/ptrace.c        |    3 +++
- fs/compat.c                        |   12 ++++++++++--
+ fs/compat.c                        |    8 ++++++--
  fs/exec.c                          |   17 +++++++++++++++--
  fs/fcntl.c                         |    5 +++++
  fs/ioctl.c                         |    3 +++
@@ -57,7 +57,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/unix/af_unix.c                 |    8 ++++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 55 files changed, 325 insertions(+), 11 deletions(-)
+ 55 files changed, 321 insertions(+), 11 deletions(-)
 
 --- linux-2.6.9-89.16.AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.16.AXS2/arch/alpha/kernel/ptrace.c
@@ -567,18 +567,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  /*
   * Not all architectures have sys_utime, so implement this in terms
-@@ -383,6 +384,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		error = sys_ioctl (fd, cmd, arg);
- 		goto out;
- 	}
-+	if (0) {
-+		error = -EPERM;
-+		goto out;
-+	}
- 
- 	down_read(&ioctl32_sem);
- 
-@@ -1447,8 +1452,11 @@ int compat_do_execve(char * filename,
+@@ -1447,8 +1448,11 @@ int compat_do_execve(char * filename,
  
  	retval = -ENOMEM;
  	bprm = kmalloc(sizeof(*bprm), GFP_KERNEL);
@@ -591,7 +580,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	memset(bprm, 0, sizeof(*bprm));
  
  	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
-@@ -1492,7 +1500,7 @@ int compat_do_execve(char * filename,
+@@ -1492,7 +1496,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -963,7 +952,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-89.16.AXS2 2010/11/16\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.16.AXS2 2010/11/22\n");
  }
 --- linux-2.6.9-89.16.AXS2.orig/fs/stat.c
 +++ linux-2.6.9-89.16.AXS2/fs/stat.c

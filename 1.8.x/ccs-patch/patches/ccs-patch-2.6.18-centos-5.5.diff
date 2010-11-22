@@ -7,7 +7,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  arch/m32r/kernel/ptrace.c       |    3 +++
  arch/mips/kernel/ptrace32.c     |    3 +++
  arch/sparc/kernel/ptrace.c      |    5 +++++
- fs/compat.c                     |    9 ++++++++-
+ fs/compat.c                     |    5 ++++-
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    3 +++
@@ -39,7 +39,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 37 files changed, 263 insertions(+), 5 deletions(-)
+ 37 files changed, 259 insertions(+), 5 deletions(-)
 
 --- linux-2.6.18-194.26.1.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.26.1.el5/arch/alpha/kernel/ptrace.c
@@ -157,18 +157,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  	if (error)
  		goto out_fput;
  
-@@ -421,6 +424,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (0) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
-@@ -1590,7 +1597,7 @@ int compat_do_execve(char * filename,
+@@ -1590,7 +1593,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -535,7 +524,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-194.26.1.el5 2010/11/10\n");
++	printk(KERN_INFO "Hook version: 2.6.18-194.26.1.el5 2010/11/22\n");
  }
 --- linux-2.6.18-194.26.1.el5.orig/fs/stat.c
 +++ linux-2.6.18-194.26.1.el5/fs/stat.c
