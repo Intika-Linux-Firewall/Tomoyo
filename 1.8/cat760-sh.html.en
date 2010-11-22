@@ -114,8 +114,8 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>Download and apply TOMOYO Linux patch.</p>
 
 <pre>
-# wget -O ccs-patch-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101111.tar.gz'
-# tar -zxf ccs-patch-1.8.0-20101111.tar.gz
+# wget -O ccs-patch-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz'
+# tar -zxf ccs-patch-1.8.0-20101122.tar.gz
 # patch -p1 &lt; patches/ccs-patch-2.6.15-cat-760.diff
 </pre>
 
@@ -145,14 +145,13 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <pre>
 # cd
-# wget -O ccs-tools-1.8.0-20101111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101111.tar.gz'
-# tar -zxf ccs-tools-1.8.0-20101111.tar.gz
+# wget -O ccs-tools-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz'
+# tar -zxf ccs-tools-1.8.0-20101122.tar.gz
 </pre>
 
 <p>Do cross compilation for CAT760. Cross compiled programs are installed under /home/ebihara/tmp/sbin/ directory and /home/ebihara/tmp/usr/ directory.</p>
 
 <pre>
-# sed -i -e 's/if (!strcmp(cp, "network")) {$/if (!strcmp(cp, "network")) { printf("network ");/' ccstools/usr_sbin/ccs-patternize.c
 # make -C ccstools/ CC=sh4-linux-gcc INSTALLDIR=/home/ebihara/tmp/ install clean
 </pre>
 
