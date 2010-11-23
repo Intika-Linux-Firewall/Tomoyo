@@ -29,7 +29,7 @@
 <ul>
 <li>Fedora 11/12/13</li>
 <li>CentOS 3.9/4.8/5.5</li>
-<li>RHEL 6 beta</li>
+<li>RHEL 6</li>
 <li>OpenSUSE 11.0/11.1/11.2/11.3</li>
 <li>Vine Linux 4.2/5.1</li>
 <li>Asianux 2.0/3.0</li>
@@ -83,8 +83,8 @@ CentOS 5.5 (for i686 and later)</td><td>
 [root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo<br>
 [root@tomoyo ~]# yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
-RHEL 6 beta (for i686 and later)</td><td>
-[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/RHEL6beta/ccs.repo<br>
+RHEL 6 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/RHEL6/ccs.repo<br>
 [root@tomoyo ~]# yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
 Asianux 2.0 (for i686 and later)</td><td>
@@ -183,7 +183,7 @@ Ubuntu 10.10 (for generic-pae flavour)</td><td>
 </ul>
 
 <p>カーネルのソースを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> からダウンロードして展開して、そのディレクトリに移動してください。<br>
-linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 については linux-2.6.11.12.tar.bz2 以降に対応しています。例えばカーネル 2.6.36 を使う場合、以下の 2.$PATCHLEVEL.$SUBLEVEL を 2.6.36 に置き換えてください。</p>
+linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 については linux-2.6.11.12.tar.bz2 以降に対応しています。例えばカーネル 2.6.36.1 を使う場合、以下の 2.$PATCHLEVEL.$SUBLEVEL を 2.6.36 に置き換えてください。</p>
 
 <table border="1">
 <tr><td>
@@ -419,6 +419,8 @@ emerge ccs-tools
 <table border="1">
 <tr><td>
 [user@tomoyo ~]$ wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43376/ccs-tools-1.7.2-20101122.tar.gz<br>
+[user@tomoyo ~]$ wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43376/ccs-tools-1.7.2-20101122.tar.gz.asc<br>
+[user@tomoyo ~]$ gpg ccs-tools-1.7.2-20101122.tar.gz.asc<br>
 [user@tomoyo ~]$ tar -zxf ccs-tools-1.7.2-20101122.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
 [user@tomoyo ~]$ make -s<br>

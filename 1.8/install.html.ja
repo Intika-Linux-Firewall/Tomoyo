@@ -40,11 +40,13 @@
 </table>
 
 <p>カーネルのソースを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> からダウンロードして展開して、そのディレクトリに移動してください。<br>
-linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 については linux-2.6.11.12.tar.bz2 以降に対応しています。例えばカーネル 2.6.36 を使う場合、以下の 2.$PATCHLEVEL.$SUBLEVEL を 2.6.36 に置き換えてください。</p>
+linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 については linux-2.6.11.12.tar.bz2 以降に対応しています。例えばカーネル 2.6.36.1 を使う場合、以下の 2.$PATCHLEVEL.$SUBLEVEL を 2.6.36 に置き換えてください。</p>
 
 <table border="1">
 <tr><td>
 [user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-patch-1.8.0-20101122.tar.gz.asc<br>
 [user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101122.tar.gz<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
 [user@tomoyo ~]$ make -s menuconfig
@@ -95,6 +97,8 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 <table border="1">
 <tr><td>
 [user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-tools-1.8.0-20101122.tar.gz.asc<br>
 [user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101122.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
 [user@tomoyo ~]$ make -s<br>
