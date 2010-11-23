@@ -114,8 +114,8 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>TOMOYO Linux パッチをダウンロードして適用します。</p>
 
 <pre>
-# wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20101122.tar.gz
-# wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20101122.tar.gz.asc
+# wget -O ccs-patch-1.7.2-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20101122.tar.gz'
+# wget -O ccs-patch-1.7.2-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20101122.tar.gz.asc'
 # gpg ccs-patch-1.7.2-20101122.tar.gz.asc
 # tar -zxf ccs-patch-1.7.2-20101122.tar.gz
 # patch -p1 &lt; patches/ccs-patch-2.6.15-cat-760.diff
