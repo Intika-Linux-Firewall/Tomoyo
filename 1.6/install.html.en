@@ -181,7 +181,7 @@ http://sourceforge.jp/frs/redir.php?f=/tomoyo/38843/ccs-tools_1.6.8-4_i386.deb
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30298/ccs-tools-1.6.8-20101122.tar.gz<br>
+[root@tomoyo ~]# wget -O ccs-tools-1.6.8-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30298/ccs-tools-1.6.8-20101122.tar.gz'<br>
 [root@tomoyo ~]# tar -zxf ccs-tools-1.6.8-20101122.tar.gz<br>
 [root@tomoyo ~]# make -C ccstools/ install
 </td></tr>
@@ -235,9 +235,9 @@ cd linux-2.6.31.14<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz<br>
+wget -O ccs-patch-1.6.8-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz'<br>
 # Check signature.<br>
-wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz.asc<br>
+wget -O ccs-patch-1.6.8-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz.asc'<br>
 gpg ccs-patch-1.6.8-20101122.tar.gz.asc<br>
 # Extract.<br>
 tar -zxf ccs-patch-1.6.8-20101122.tar.gz<br>
@@ -263,9 +263,9 @@ cd linux-2.4.37.10<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz<br>
+wget -O ccs-patch-1.6.8-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz'<br>
 # Check signature.<br>
-wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz.asc<br>
+wget -O ccs-patch-1.6.8-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20101122.tar.gz.asc'<br>
 gpg ccs-patch-1.6.8-20101122.tar.gz.asc<br>
 # Extract.<br>
 tar -zxf ccs-patch-1.6.8-20101122.tar.gz<br>
