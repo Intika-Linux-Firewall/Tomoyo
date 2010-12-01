@@ -87,26 +87,13 @@ config CCSECURITY_BUILTIN_INITIALIZERS
 	  domain so that you won't give the <kernel> domain permission to
 	  execute /bin/sh .
 
-config CCSECURITY_MAX_GRANT_LOG
-	int "Default maximal count for grant log"
+config CCSECURITY_MAX_AUDIT_LOG
+	int "Default maximal count for audit log"
 	default 1024
 	range 0 2147483647
 	depends on CCSECURITY
 	help
 	  This is the default value for maximal entries for
-	  access grant logs that the kernel can hold on memory.
-	  You can read the log via /proc/ccs/grant_log.
-	  If you don't need access grant logs,
-	  you may set this value to 0.
-
-config CCSECURITY_MAX_REJECT_LOG
-	int "Default maximal count for reject log"
-	default 1024
-	range 0 2147483647
-	depends on CCSECURITY
-	help
-	  This is the default value for maximal entries for
-	  access reject logs that the kernel can hold on memory.
-	  You can read the log via /proc/ccs/reject_log.
-	  If you don't need access reject logs,
-	  you may set this value to 0.
+	  audit logs that the kernel can hold on memory.
+	  You can read the log via /proc/ccs/audit.
+	  If you don't need audit logs, you may set this value to 0.
