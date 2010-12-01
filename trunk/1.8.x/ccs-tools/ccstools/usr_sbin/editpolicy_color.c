@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/01
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -60,7 +60,7 @@ void ccs_editpolicy_color_init(void)
 		{ CCS_NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
-	FILE *fp = fopen(CCS_CONFIG_FILE, "r");
+	FILE *fp = fopen(CCS_EDITPOLICY_CONF, "r");
 	int i;
 	if (!fp)
 		goto use_default;
@@ -70,7 +70,7 @@ void ccs_editpolicy_color_init(void)
 		char *cp;
 		if (!line)
 			break;
-		if (!ccs_str_starts(line, "editpolicy.line_color "))
+		if (!ccs_str_starts(line, "line_color "))
 			continue;
 		cp = strchr(line, '=');
 		if (!cp)

@@ -27,8 +27,7 @@
 
 int main(int argc0, char *argv0[])
 {
-	int fd1 = open("/proc/ccs/grant_log", O_RDONLY);
-	int fd2 = open("/proc/ccs/reject_log", O_RDONLY);
+	int fd = open("/proc/ccs/audit", O_RDONLY);
 	char *argv[12];
 	char *envp[12];
 	int j;
@@ -56,14 +55,11 @@ int main(int argc0, char *argv0[])
 				execve("/bin/true", argv, envp);
 				_exit(0);
 			}
-			while ((len = read(fd1, buffer, sizeof(buffer))) > 0)
-				write(1, buffer, len);
-			while ((len = read(fd2, buffer, sizeof(buffer))) > 0)
+			while ((len = read(fd, buffer, sizeof(buffer))) > 0)
 				write(1, buffer, len);
 			wait(NULL);
 		}
 	}
-	close(fd1);
-	close(fd2);
+	close(fd);
 	return 0;
 }

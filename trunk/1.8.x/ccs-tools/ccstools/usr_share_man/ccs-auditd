@@ -13,19 +13,23 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-auditd location_to_save_grant_log location_to_save_reject_log [remote_ip:remote_port] 
+Usage: ccs-auditd [remote_ip:remote_port]
 
 This program reads access request logs from kernel and writes to specified location.
 
-By running this program upon startup, you can save access logs which violated domain_policy (reject_log) and access logs which didn't violate domain_policy (grant_log) in domain_policy file's format.
+By running this program upon startup, you can save access logs in domain_policy file's format.
 
-You may specify /dev/null as location to save logs. But in that case, you should set PREFERENCE::audit={ max_grant_log=0 } and/or PREFERENCE::audit={ max_reject_log=0 } in profile configuration ( /etc/ccs/profile.conf or /proc/ccs/profile ).
+ remote_ip:remote_port  Get audit logs via agent listening at specified IP address and port number.
 
- remote_ip:remote_port     Get process information via agent listening at specified IP address and port number. 
+Rules are defined in /etc/ccs/tools/ccs-auditd.conf . Only first matching rule is used. If none matched, the audit log will be discarded.
 
 Examples:
 
-# ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+ # discard all granted logs.
+ rule granted=yes | * | * | /dev/null
+
+ # write audit logs from Apache and its descendent domains to  /var/log/tomoyo/apache.log .
+ rule * | <kernel> /usr/sbin/httpd | * | /var/log/tomoyo/apache.log
 
 EOF
 else
