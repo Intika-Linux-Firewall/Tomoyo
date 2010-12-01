@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/01
  */
 
 #ifndef _SECURITY_CCSECURITY_INTERNAL_H
@@ -652,8 +652,7 @@ enum ccs_policy_stat_type {
 
 /* Index numbers for profile's PREFERENCE values. */
 enum ccs_pref_index {
-	CCS_PREF_MAX_GRANT_LOG,
-	CCS_PREF_MAX_REJECT_LOG,
+	CCS_PREF_MAX_AUDIT_LOG,
 	CCS_PREF_MAX_LEARNING_ENTRY,
 	CCS_PREF_ENFORCING_PENALTY,
 	CCS_MAX_PREF
@@ -667,8 +666,7 @@ enum ccs_proc_interface_index {
 	CCS_PROCESS_STATUS,
 	CCS_MEMINFO,
 	CCS_STAT,
-	CCS_GRANTLOG,
-	CCS_REJECTLOG,
+	CCS_AUDIT,
 	CCS_VERSION,
 	CCS_PROFILE,
 	CCS_QUERY,
@@ -1422,6 +1420,7 @@ char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
 		   va_list args);
 char *ccs_read_token(struct ccs_acl_param *param);
 char *ccs_realpath_from_path(struct path *path);
+const char *ccs_yesno(const unsigned int value);
 const char *ccs_get_exe(void);
 const struct ccs_path_info *ccs_compare_name_union
 (const struct ccs_path_info *name, const struct ccs_name_union *ptr);
