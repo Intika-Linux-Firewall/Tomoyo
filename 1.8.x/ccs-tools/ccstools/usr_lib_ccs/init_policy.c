@@ -506,13 +506,15 @@ static void make_initializers(void)
 	}
 }
 
+#define CCSTOOLS_CONFDIR "tools"
+
 static char *policy_dir = NULL;
 
 static void make_policy_dir(void)
 {
 	char *dir = policy_dir;
 	if (!chdir(policy_dir))
-		return;
+		goto tools_dir;
 	fprintf(stderr, "Creating policy directory... ");
 	while (1) {
 		const char c = *dir++;
@@ -526,6 +528,17 @@ static void make_policy_dir(void)
 	}
 	mkdir(policy_dir, 0700);
 	if (!chdir(policy_dir))
+		fprintf(stderr, "OK\n");
+	else {
+		fprintf(stderr, "failed.\n");
+		exit(1);
+	}
+tools_dir:
+	if (!chdir(CCSTOOLS_CONFDIR))
+		return;
+	fprintf(stderr, "Creating configuration directory... ");
+	mkdir(CCSTOOLS_CONFDIR, 0700);
+	if (!chdir(CCSTOOLS_CONFDIR))
 		fprintf(stderr, "OK\n");
 	else {
 		fprintf(stderr, "failed.\n");
@@ -612,8 +625,7 @@ static void make_manager(void)
 
 static const char *grant_log = "no";
 static const char *reject_log = "yes";
-static unsigned int max_grant_log = 1024;
-static unsigned int max_reject_log = 1024;
+static unsigned int max_audit_log = 1024;
 static unsigned int max_learning_entry = 2048;
 static unsigned int enforcing_penalty = 0;
 
@@ -633,29 +645,29 @@ static void make_profile(void)
 		file_only = "::file";
 	fprintf(fp, "PROFILE_VERSION=20100903\n");
 	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
-		"0-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
-		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+		"enforcing_penalty=%u }\n"
 		"0-CONFIG%s={ mode=disabled grant_log=%s reject_log=%s }\n",
-		max_grant_log, max_reject_log, max_learning_entry,
-		enforcing_penalty, file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, enforcing_penalty,
+		file_only, grant_log, reject_log);
 	fprintf(fp, "1-COMMENT=-----Learning Mode-----\n"
-		"1-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
-		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"1-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+		"enforcing_penalty=%u }\n"
 		"1-CONFIG%s={ mode=learning grant_log=%s reject_log=%s }\n",
-		max_grant_log, max_reject_log, max_learning_entry,
-		enforcing_penalty, file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, enforcing_penalty,
+		file_only, grant_log, reject_log);
 	fprintf(fp, "2-COMMENT=-----Permissive Mode-----\n"
-		"2-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
-		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"2-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+		"enforcing_penalty=%u }\n"
 		"2-CONFIG%s={ mode=permissive grant_log=%s reject_log=%s }\n",
-		max_grant_log, max_reject_log, max_learning_entry,
-		enforcing_penalty, file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, enforcing_penalty,
+		file_only, grant_log, reject_log);
 	fprintf(fp, "3-COMMENT=-----Enforcing Mode-----\n"
-		"3-PREFERENCE={ max_grant_log=%u max_reject_log=%u "
-		"max_learning_entry=%u enforcing_penalty=%u }\n"
+		"3-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+		"enforcing_penalty=%u }\n"
 		"3-CONFIG%s={ mode=enforcing grant_log=%s reject_log=%s }\n",
-		max_grant_log, max_reject_log, max_learning_entry,
-		enforcing_penalty, file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, enforcing_penalty,
+		file_only, grant_log, reject_log);
 	fclose(fp);
 	if (!chdir(policy_dir) && !rename("profile.tmp", "profile.conf"))
 		fprintf(stderr, "OK\n");
@@ -736,6 +748,385 @@ static void make_module_loader(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static void make_editpolicy_conf(void)
+{
+	FILE *fp;
+	if (chdir(policy_dir) || chdir(CCSTOOLS_CONFDIR) ||
+	    !access("editpolicy.conf", R_OK))
+		return;
+	fp = fopen("editpolicy.tmp", "w");
+	if (!fp) {
+		fprintf(stderr, "ERROR: Can't create configuration file.\n");
+		return;
+	}
+	static const char data[] =
+		"# Keyword alias. ( directive-name = display-name )\n"
+		"keyword_alias acl_group   0                 = acl_group   0\n"
+		"keyword_alias acl_group   1                 = acl_group   1\n"
+		"keyword_alias acl_group   2                 = acl_group   2\n"
+		"keyword_alias acl_group   3                 = acl_group   3\n"
+		"keyword_alias acl_group   4                 = acl_group   4\n"
+		"keyword_alias acl_group   5                 = acl_group   5\n"
+		"keyword_alias acl_group   6                 = acl_group   6\n"
+		"keyword_alias acl_group   7                 = acl_group   7\n"
+		"keyword_alias acl_group   8                 = acl_group   8\n"
+		"keyword_alias acl_group   9                 = acl_group   9\n"
+		"keyword_alias acl_group  10                 = acl_group  10\n"
+		"keyword_alias acl_group  11                 = acl_group  11\n"
+		"keyword_alias acl_group  12                 = acl_group  12\n"
+		"keyword_alias acl_group  13                 = acl_group  13\n"
+		"keyword_alias acl_group  14                 = acl_group  14\n"
+		"keyword_alias acl_group  15                 = acl_group  15\n"
+		"keyword_alias acl_group  16                 = acl_group  16\n"
+		"keyword_alias acl_group  17                 = acl_group  17\n"
+		"keyword_alias acl_group  18                 = acl_group  18\n"
+		"keyword_alias acl_group  19                 = acl_group  19\n"
+		"keyword_alias acl_group  20                 = acl_group  20\n"
+		"keyword_alias acl_group  21                 = acl_group  21\n"
+		"keyword_alias acl_group  22                 = acl_group  22\n"
+		"keyword_alias acl_group  23                 = acl_group  23\n"
+		"keyword_alias acl_group  24                 = acl_group  24\n"
+		"keyword_alias acl_group  25                 = acl_group  25\n"
+		"keyword_alias acl_group  26                 = acl_group  26\n"
+		"keyword_alias acl_group  27                 = acl_group  27\n"
+		"keyword_alias acl_group  28                 = acl_group  28\n"
+		"keyword_alias acl_group  29                 = acl_group  29\n"
+		"keyword_alias acl_group  30                 = acl_group  30\n"
+		"keyword_alias acl_group  31                 = acl_group  31\n"
+		"keyword_alias acl_group  32                 = acl_group  32\n"
+		"keyword_alias acl_group  33                 = acl_group  33\n"
+		"keyword_alias acl_group  34                 = acl_group  34\n"
+		"keyword_alias acl_group  35                 = acl_group  35\n"
+		"keyword_alias acl_group  36                 = acl_group  36\n"
+		"keyword_alias acl_group  37                 = acl_group  37\n"
+		"keyword_alias acl_group  38                 = acl_group  38\n"
+		"keyword_alias acl_group  39                 = acl_group  39\n"
+		"keyword_alias acl_group  40                 = acl_group  40\n"
+		"keyword_alias acl_group  41                 = acl_group  41\n"
+		"keyword_alias acl_group  42                 = acl_group  42\n"
+		"keyword_alias acl_group  43                 = acl_group  43\n"
+		"keyword_alias acl_group  44                 = acl_group  44\n"
+		"keyword_alias acl_group  45                 = acl_group  45\n"
+		"keyword_alias acl_group  46                 = acl_group  46\n"
+		"keyword_alias acl_group  47                 = acl_group  47\n"
+		"keyword_alias acl_group  48                 = acl_group  48\n"
+		"keyword_alias acl_group  49                 = acl_group  49\n"
+		"keyword_alias acl_group  50                 = acl_group  50\n"
+		"keyword_alias acl_group  51                 = acl_group  51\n"
+		"keyword_alias acl_group  52                 = acl_group  52\n"
+		"keyword_alias acl_group  53                 = acl_group  53\n"
+		"keyword_alias acl_group  54                 = acl_group  54\n"
+		"keyword_alias acl_group  55                 = acl_group  55\n"
+		"keyword_alias acl_group  56                 = acl_group  56\n"
+		"keyword_alias acl_group  57                 = acl_group  57\n"
+		"keyword_alias acl_group  58                 = acl_group  58\n"
+		"keyword_alias acl_group  59                 = acl_group  59\n"
+		"keyword_alias acl_group  60                 = acl_group  60\n"
+		"keyword_alias acl_group  61                 = acl_group  61\n"
+		"keyword_alias acl_group  62                 = acl_group  62\n"
+		"keyword_alias acl_group  63                 = acl_group  63\n"
+		"keyword_alias acl_group  64                 = acl_group  64\n"
+		"keyword_alias acl_group  65                 = acl_group  65\n"
+		"keyword_alias acl_group  66                 = acl_group  66\n"
+		"keyword_alias acl_group  67                 = acl_group  67\n"
+		"keyword_alias acl_group  68                 = acl_group  68\n"
+		"keyword_alias acl_group  69                 = acl_group  69\n"
+		"keyword_alias acl_group  70                 = acl_group  70\n"
+		"keyword_alias acl_group  71                 = acl_group  71\n"
+		"keyword_alias acl_group  72                 = acl_group  72\n"
+		"keyword_alias acl_group  73                 = acl_group  73\n"
+		"keyword_alias acl_group  74                 = acl_group  74\n"
+		"keyword_alias acl_group  75                 = acl_group  75\n"
+		"keyword_alias acl_group  76                 = acl_group  76\n"
+		"keyword_alias acl_group  77                 = acl_group  77\n"
+		"keyword_alias acl_group  78                 = acl_group  78\n"
+		"keyword_alias acl_group  79                 = acl_group  79\n"
+		"keyword_alias acl_group  80                 = acl_group  80\n"
+		"keyword_alias acl_group  81                 = acl_group  81\n"
+		"keyword_alias acl_group  82                 = acl_group  82\n"
+		"keyword_alias acl_group  83                 = acl_group  83\n"
+		"keyword_alias acl_group  84                 = acl_group  84\n"
+		"keyword_alias acl_group  85                 = acl_group  85\n"
+		"keyword_alias acl_group  86                 = acl_group  86\n"
+		"keyword_alias acl_group  87                 = acl_group  87\n"
+		"keyword_alias acl_group  88                 = acl_group  88\n"
+		"keyword_alias acl_group  89                 = acl_group  89\n"
+		"keyword_alias acl_group  90                 = acl_group  90\n"
+		"keyword_alias acl_group  91                 = acl_group  91\n"
+		"keyword_alias acl_group  92                 = acl_group  92\n"
+		"keyword_alias acl_group  93                 = acl_group  93\n"
+		"keyword_alias acl_group  94                 = acl_group  94\n"
+		"keyword_alias acl_group  95                 = acl_group  95\n"
+		"keyword_alias acl_group  96                 = acl_group  96\n"
+		"keyword_alias acl_group  97                 = acl_group  97\n"
+		"keyword_alias acl_group  98                 = acl_group  98\n"
+		"keyword_alias acl_group  99                 = acl_group  99\n"
+		"keyword_alias acl_group 100                 = acl_group 100\n"
+		"keyword_alias acl_group 101                 = acl_group 101\n"
+		"keyword_alias acl_group 102                 = acl_group 102\n"
+		"keyword_alias acl_group 103                 = acl_group 103\n"
+		"keyword_alias acl_group 104                 = acl_group 104\n"
+		"keyword_alias acl_group 105                 = acl_group 105\n"
+		"keyword_alias acl_group 106                 = acl_group 106\n"
+		"keyword_alias acl_group 107                 = acl_group 107\n"
+		"keyword_alias acl_group 108                 = acl_group 108\n"
+		"keyword_alias acl_group 109                 = acl_group 109\n"
+		"keyword_alias acl_group 110                 = acl_group 110\n"
+		"keyword_alias acl_group 111                 = acl_group 111\n"
+		"keyword_alias acl_group 112                 = acl_group 112\n"
+		"keyword_alias acl_group 113                 = acl_group 113\n"
+		"keyword_alias acl_group 114                 = acl_group 114\n"
+		"keyword_alias acl_group 115                 = acl_group 115\n"
+		"keyword_alias acl_group 116                 = acl_group 116\n"
+		"keyword_alias acl_group 117                 = acl_group 117\n"
+		"keyword_alias acl_group 118                 = acl_group 118\n"
+		"keyword_alias acl_group 119                 = acl_group 119\n"
+		"keyword_alias acl_group 120                 = acl_group 120\n"
+		"keyword_alias acl_group 121                 = acl_group 121\n"
+		"keyword_alias acl_group 122                 = acl_group 122\n"
+		"keyword_alias acl_group 123                 = acl_group 123\n"
+		"keyword_alias acl_group 124                 = acl_group 124\n"
+		"keyword_alias acl_group 125                 = acl_group 125\n"
+		"keyword_alias acl_group 126                 = acl_group 126\n"
+		"keyword_alias acl_group 127                 = acl_group 127\n"
+		"keyword_alias acl_group 128                 = acl_group 128\n"
+		"keyword_alias acl_group 129                 = acl_group 129\n"
+		"keyword_alias acl_group 130                 = acl_group 130\n"
+		"keyword_alias acl_group 131                 = acl_group 131\n"
+		"keyword_alias acl_group 132                 = acl_group 132\n"
+		"keyword_alias acl_group 133                 = acl_group 133\n"
+		"keyword_alias acl_group 134                 = acl_group 134\n"
+		"keyword_alias acl_group 135                 = acl_group 135\n"
+		"keyword_alias acl_group 136                 = acl_group 136\n"
+		"keyword_alias acl_group 137                 = acl_group 137\n"
+		"keyword_alias acl_group 138                 = acl_group 138\n"
+		"keyword_alias acl_group 139                 = acl_group 139\n"
+		"keyword_alias acl_group 140                 = acl_group 140\n"
+		"keyword_alias acl_group 141                 = acl_group 141\n"
+		"keyword_alias acl_group 142                 = acl_group 142\n"
+		"keyword_alias acl_group 143                 = acl_group 143\n"
+		"keyword_alias acl_group 144                 = acl_group 144\n"
+		"keyword_alias acl_group 145                 = acl_group 145\n"
+		"keyword_alias acl_group 146                 = acl_group 146\n"
+		"keyword_alias acl_group 147                 = acl_group 147\n"
+		"keyword_alias acl_group 148                 = acl_group 148\n"
+		"keyword_alias acl_group 149                 = acl_group 149\n"
+		"keyword_alias acl_group 150                 = acl_group 150\n"
+		"keyword_alias acl_group 151                 = acl_group 151\n"
+		"keyword_alias acl_group 152                 = acl_group 152\n"
+		"keyword_alias acl_group 153                 = acl_group 153\n"
+		"keyword_alias acl_group 154                 = acl_group 154\n"
+		"keyword_alias acl_group 155                 = acl_group 155\n"
+		"keyword_alias acl_group 156                 = acl_group 156\n"
+		"keyword_alias acl_group 157                 = acl_group 157\n"
+		"keyword_alias acl_group 158                 = acl_group 158\n"
+		"keyword_alias acl_group 159                 = acl_group 159\n"
+		"keyword_alias acl_group 160                 = acl_group 160\n"
+		"keyword_alias acl_group 161                 = acl_group 161\n"
+		"keyword_alias acl_group 162                 = acl_group 162\n"
+		"keyword_alias acl_group 163                 = acl_group 163\n"
+		"keyword_alias acl_group 164                 = acl_group 164\n"
+		"keyword_alias acl_group 165                 = acl_group 165\n"
+		"keyword_alias acl_group 166                 = acl_group 166\n"
+		"keyword_alias acl_group 167                 = acl_group 167\n"
+		"keyword_alias acl_group 168                 = acl_group 168\n"
+		"keyword_alias acl_group 169                 = acl_group 169\n"
+		"keyword_alias acl_group 170                 = acl_group 170\n"
+		"keyword_alias acl_group 171                 = acl_group 171\n"
+		"keyword_alias acl_group 172                 = acl_group 172\n"
+		"keyword_alias acl_group 173                 = acl_group 173\n"
+		"keyword_alias acl_group 174                 = acl_group 174\n"
+		"keyword_alias acl_group 175                 = acl_group 175\n"
+		"keyword_alias acl_group 176                 = acl_group 176\n"
+		"keyword_alias acl_group 177                 = acl_group 177\n"
+		"keyword_alias acl_group 178                 = acl_group 178\n"
+		"keyword_alias acl_group 179                 = acl_group 179\n"
+		"keyword_alias acl_group 180                 = acl_group 180\n"
+		"keyword_alias acl_group 181                 = acl_group 181\n"
+		"keyword_alias acl_group 182                 = acl_group 182\n"
+		"keyword_alias acl_group 183                 = acl_group 183\n"
+		"keyword_alias acl_group 184                 = acl_group 184\n"
+		"keyword_alias acl_group 185                 = acl_group 185\n"
+		"keyword_alias acl_group 186                 = acl_group 186\n"
+		"keyword_alias acl_group 187                 = acl_group 187\n"
+		"keyword_alias acl_group 188                 = acl_group 188\n"
+		"keyword_alias acl_group 189                 = acl_group 189\n"
+		"keyword_alias acl_group 190                 = acl_group 190\n"
+		"keyword_alias acl_group 191                 = acl_group 191\n"
+		"keyword_alias acl_group 192                 = acl_group 192\n"
+		"keyword_alias acl_group 193                 = acl_group 193\n"
+		"keyword_alias acl_group 194                 = acl_group 194\n"
+		"keyword_alias acl_group 195                 = acl_group 195\n"
+		"keyword_alias acl_group 196                 = acl_group 196\n"
+		"keyword_alias acl_group 197                 = acl_group 197\n"
+		"keyword_alias acl_group 198                 = acl_group 198\n"
+		"keyword_alias acl_group 199                 = acl_group 199\n"
+		"keyword_alias acl_group 200                 = acl_group 200\n"
+		"keyword_alias acl_group 201                 = acl_group 201\n"
+		"keyword_alias acl_group 202                 = acl_group 202\n"
+		"keyword_alias acl_group 203                 = acl_group 203\n"
+		"keyword_alias acl_group 204                 = acl_group 204\n"
+		"keyword_alias acl_group 205                 = acl_group 205\n"
+		"keyword_alias acl_group 206                 = acl_group 206\n"
+		"keyword_alias acl_group 207                 = acl_group 207\n"
+		"keyword_alias acl_group 208                 = acl_group 208\n"
+		"keyword_alias acl_group 209                 = acl_group 209\n"
+		"keyword_alias acl_group 210                 = acl_group 210\n"
+		"keyword_alias acl_group 211                 = acl_group 211\n"
+		"keyword_alias acl_group 212                 = acl_group 212\n"
+		"keyword_alias acl_group 213                 = acl_group 213\n"
+		"keyword_alias acl_group 214                 = acl_group 214\n"
+		"keyword_alias acl_group 215                 = acl_group 215\n"
+		"keyword_alias acl_group 216                 = acl_group 216\n"
+		"keyword_alias acl_group 217                 = acl_group 217\n"
+		"keyword_alias acl_group 218                 = acl_group 218\n"
+		"keyword_alias acl_group 219                 = acl_group 219\n"
+		"keyword_alias acl_group 220                 = acl_group 220\n"
+		"keyword_alias acl_group 221                 = acl_group 221\n"
+		"keyword_alias acl_group 222                 = acl_group 222\n"
+		"keyword_alias acl_group 223                 = acl_group 223\n"
+		"keyword_alias acl_group 224                 = acl_group 224\n"
+		"keyword_alias acl_group 225                 = acl_group 225\n"
+		"keyword_alias acl_group 226                 = acl_group 226\n"
+		"keyword_alias acl_group 227                 = acl_group 227\n"
+		"keyword_alias acl_group 228                 = acl_group 228\n"
+		"keyword_alias acl_group 229                 = acl_group 229\n"
+		"keyword_alias acl_group 230                 = acl_group 230\n"
+		"keyword_alias acl_group 231                 = acl_group 231\n"
+		"keyword_alias acl_group 232                 = acl_group 232\n"
+		"keyword_alias acl_group 233                 = acl_group 233\n"
+		"keyword_alias acl_group 234                 = acl_group 234\n"
+		"keyword_alias acl_group 235                 = acl_group 235\n"
+		"keyword_alias acl_group 236                 = acl_group 236\n"
+		"keyword_alias acl_group 237                 = acl_group 237\n"
+		"keyword_alias acl_group 238                 = acl_group 238\n"
+		"keyword_alias acl_group 239                 = acl_group 239\n"
+		"keyword_alias acl_group 240                 = acl_group 240\n"
+		"keyword_alias acl_group 241                 = acl_group 241\n"
+		"keyword_alias acl_group 242                 = acl_group 242\n"
+		"keyword_alias acl_group 243                 = acl_group 243\n"
+		"keyword_alias acl_group 244                 = acl_group 244\n"
+		"keyword_alias acl_group 245                 = acl_group 245\n"
+		"keyword_alias acl_group 246                 = acl_group 246\n"
+		"keyword_alias acl_group 247                 = acl_group 247\n"
+		"keyword_alias acl_group 248                 = acl_group 248\n"
+		"keyword_alias acl_group 249                 = acl_group 249\n"
+		"keyword_alias acl_group 250                 = acl_group 250\n"
+		"keyword_alias acl_group 251                 = acl_group 251\n"
+		"keyword_alias acl_group 252                 = acl_group 252\n"
+		"keyword_alias acl_group 253                 = acl_group 253\n"
+		"keyword_alias acl_group 254                 = acl_group 254\n"
+		"keyword_alias acl_group 255                 = acl_group 255\n"
+		"keyword_alias address_group                 = address_group\n"
+		"keyword_alias aggregator                    = aggregator\n"
+		"keyword_alias capability                    = capability\n"
+		"keyword_alias deny_autobind                 = deny_autobind\n"
+		"keyword_alias file append                   = file append\n"
+		"keyword_alias file chgrp                    = file chgrp\n"
+		"keyword_alias file chmod                    = file chmod\n"
+		"keyword_alias file chown                    = file chown\n"
+		"keyword_alias file chroot                   = file chroot\n"
+		"keyword_alias file create                   = file create\n"
+		"keyword_alias file execute                  = file execute\n"
+		"keyword_alias file getattr                  = file getattr\n"
+		"keyword_alias file ioctl                    = file ioctl\n"
+		"keyword_alias file link                     = file link\n"
+		"keyword_alias file mkblock                  = file mkblock\n"
+		"keyword_alias file mkchar                   = file mkchar\n"
+		"keyword_alias file mkdir                    = file mkdir\n"
+		"keyword_alias file mkfifo                   = file mkfifo\n"
+		"keyword_alias file mksock                   = file mksock\n"
+		"keyword_alias file mount                    = file mount\n"
+		"keyword_alias file pivot_root               = "
+		"file pivot_root\n"
+		"keyword_alias file read                     = file read\n"
+		"keyword_alias file rename                   = file rename\n"
+		"keyword_alias file rmdir                    = file rmdir\n"
+		"keyword_alias file symlink                  = file symlink\n"
+		"keyword_alias file truncate                 = file truncate\n"
+		"keyword_alias file unlink                   = file unlink\n"
+		"keyword_alias file unmount                  = file unmount\n"
+		"keyword_alias file write                    = file write\n"
+		"keyword_alias initialize_domain             = "
+		"initialize_domain\n"
+		"keyword_alias ipc signal                    = ipc signal\n"
+		"keyword_alias keep_domain                   = keep_domain\n"
+		"keyword_alias misc env                      = misc env\n"
+		"keyword_alias network inet                  = network inet\n"
+		"keyword_alias network unix                  = network unix\n"
+		"keyword_alias no_initialize_domain          = "
+		"no_initialize_domain\n"
+		"keyword_alias no_keep_domain                = "
+		"no_keep_domain\n"
+		"keyword_alias number_group                  = number_group\n"
+		"keyword_alias path_group                    = path_group\n"
+		"keyword_alias quota_exceeded                = "
+		"quota_exceeded\n"
+		"keyword_alias task auto_domain_transition   = "
+		"task auto_domain_transition\n"
+		"keyword_alias task auto_execute_handler     = "
+		"task auto_execute_handler\n"
+		"keyword_alias task denied_execute_handler   = "
+		"task denied_execute_handler\n"
+		"keyword_alias task manual_domain_transition = "
+		"task manual_domain_transition\n"
+		"keyword_alias transition_failed             = "
+		"transition_failed\n"
+		"keyword_alias use_group                     = use_group\n"
+		"keyword_alias use_profile                   = use_profile\n"
+		"\n"
+		"# Line color. 0 = BLACK, 1 = RED, 2 = GREEN, 3 = YELLOW, "
+		"4 = BLUE, 5 = MAGENTA, 6 = CYAN, 7 = WHITE\n"
+		"line_color ACL_CURSOR       = 03\n"
+		"line_color ACL_HEAD         = 03\n"
+		"line_color DOMAIN_CURSOR    = 02\n"
+		"line_color DOMAIN_HEAD      = 02\n"
+		"line_color EXCEPTION_CURSOR = 06\n"
+		"line_color EXCEPTION_HEAD   = 06\n"
+		"line_color MANAGER_CURSOR   = 72\n"
+		"line_color MANAGER_HEAD     = 72\n"
+		"line_color MEMORY_CURSOR    = 03\n"
+		"line_color MEMORY_HEAD      = 03\n"
+		"line_color PROFILE_CURSOR   = 71\n"
+		"line_color PROFILE_HEAD     = 71\n";
+	fprintf(stderr, "Creating configuration file for ccs-editpolicy ... ");
+	fprintf(fp, "%s", data);
+	fclose(fp);
+	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR) &&
+	    !chmod("editpolicy.tmp", 0644) &&
+	    !rename("editpolicy.tmp", "editpolicy.conf"))
+		fprintf(stderr, "OK\n");
+	else
+		fprintf(stderr, "failed.\n");
+}
+
+static void make_auditd_conf(void)
+{
+	FILE *fp;
+	if (chdir(policy_dir) || chdir(CCSTOOLS_CONFDIR) ||
+	    !access("auditd.conf", R_OK))
+		return;
+	fp = fopen("auditd.tmp", "w");
+	if (!fp) {
+		fprintf(stderr, "ERROR: Can't create configuration file.\n");
+		return;
+	}
+	static const char data[] =
+		"rule granted=yes | * | * | /dev/null\n"
+		"rule profile=0 | * | * | /var/log/tomoyo/reject_000.log\n"
+		"rule profile=1 | * | * | /var/log/tomoyo/reject_001.log\n"
+		"rule profile=2 | * | * | /var/log/tomoyo/reject_002.log\n"
+		"rule profile=3 | * | * | /var/log/tomoyo/reject_003.log\n";
+	fprintf(stderr, "Creating configuration file for ccs-auditd ... ");
+	fprintf(fp, "%s", data);
+	fclose(fp);
+	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR) &&
+	    !chmod("auditd.tmp", 0644) && !rename("auditd.tmp", "auditd.conf"))
+		fprintf(stderr, "OK\n");
+	else
+		fprintf(stderr, "failed.\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -766,10 +1157,7 @@ int main(int argc, char *argv[])
 			grant_log = arg + 10;
 		} else if (!strncmp(arg, "reject_log=", 11)) {
 			reject_log = arg + 11;
-		} else if (!sscanf(arg, "max_grant_log=%u",
-				   &max_grant_log) &&
-			   !sscanf(arg, "max_reject_log=%u",
-				   &max_reject_log) &&
+		} else if (!sscanf(arg, "max_audit_log=%u", &max_audit_log) &&
 			   !sscanf(arg, "max_learning_entry=%u",
 				   &max_learning_entry) &&
 			   !sscanf(arg, "enforcing_penalty=%u",
@@ -789,5 +1177,7 @@ int main(int argc, char *argv[])
 	make_profile();
 	make_meminfo();
 	make_module_loader();
+	make_editpolicy_conf();
+	make_auditd_conf();
 	return 0;
 }

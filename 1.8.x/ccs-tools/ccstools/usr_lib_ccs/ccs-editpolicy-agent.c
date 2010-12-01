@@ -142,10 +142,10 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 	fflush(fp);
 }
 
-static void handle_stream(const int client, const char *filename)
+static void handle_audit(const int client)
 {
 	int ret_ignored;
-	const int fd = open(filename, O_RDONLY);
+	const int fd = open("audit", O_RDONLY);
 	if (fd == EOF)
 		return;
 	/* Return \0 to indicate success. */
@@ -281,9 +281,8 @@ static void do_child(const int client)
 		goto out;
 	if (!strcmp(buffer, "proc:query"))
 		handle_query(client);
-	else if (!strcmp(buffer, "proc:grant_log") ||
-		 !strcmp(buffer, "proc:reject_log"))
-		handle_stream(client, buffer + 5);
+	else if (!strcmp(buffer, "proc:audit"))
+		handle_audit(client);
 	else if (!strncmp(buffer, "proc:", 5)) {
 		/* Open /proc/\$/ for reading. */
 		FILE *fp = fdopen(client, "w");
