@@ -28,7 +28,7 @@ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec
 +++ ccs-kernel.spec
-@@ -14,7 +14,7 @@
+@@ -15,7 +15,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
  #
@@ -37,7 +37,16 @@ patch << "EOF" || die "Can't patch spec file."
  
  %define rhel 1
  %if %{rhel}
-@@ -488,7 +488,7 @@
+@@ -453,7 +453,7 @@
+ # Packages that need to be installed before the kernel is, because the %post
+ # scripts use them.
+ #
+-%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, kernel-firmware >= %{rpmversion}-%{pkg_release}, grubby >= 7.0.4-1
++%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, grubby >= 7.0.4-1
+ %if %{with_dracut}
+ %define initrd_prereq  dracut-kernel >= 002-18.git413bcf78
+ %else
+@@ -489,7 +489,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -46,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -712,7 +712,7 @@
+@@ -713,7 +713,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -55,7 +64,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -878,6 +878,10 @@
+@@ -879,6 +879,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
@@ -66,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -902,6 +906,9 @@
+@@ -903,6 +907,9 @@
  for i in *.config
  do
    mv $i .config
