@@ -37,7 +37,6 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/
 /usr/sbin/
 /usr/share/man/
-%config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
 * Mon Nov 22 2010 1.8.0-2
