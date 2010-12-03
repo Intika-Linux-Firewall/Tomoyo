@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/01
+ * Version: 1.8.0+   2010/12/03
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -91,7 +91,7 @@ static void ccs_auditd_init_rules(void)
 	}
 	return;
 invalid_rule:
-	fprintf(stderr, "Invalid rule at line %u in %s.\n", line_no,
+	fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
 		CCS_AUDITD_CONF);
 	exit(1);
 }

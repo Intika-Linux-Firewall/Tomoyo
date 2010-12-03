@@ -21,14 +21,16 @@ By running this program upon startup, you can save access logs in domain_policy 
 
  remote_ip:remote_port  Get audit logs via agent listening at specified IP address and port number.
 
-Rules are defined in /etc/ccs/tools/ccs-auditd.conf . Only first matching rule is used. If none matched, the audit log will be discarded.
+Rules are defined in /etc/ccs/tools/auditd.conf . Only first matching rule is used. If none matched, the audit log will be discarded.
 
 Examples:
 
  # discard all granted logs.
+
  rule granted=yes | * | * | /dev/null
 
- # write audit logs from Apache and its descendent domains to  /var/log/tomoyo/apache.log .
+ # write audit logs from Apache and its descendent domains to /var/log/tomoyo/apache.log .
+
  rule * | <kernel> /usr/sbin/httpd | * | /var/log/tomoyo/apache.log
 
 EOF
