@@ -25,21 +25,21 @@ Rules are defined in configfile. Only first matching rule is used. If none match
 
 Examples:
 
- # Replace (e.g.) proc:/self/fd/0 with proc:/self/fd/\$ .
+ # Replace (e.g.) proc:/self/fd/0 with proc:/self/fd/\\$ .
 
- file_pattern proc:/self/fd/\$
+ file_pattern proc:/self/fd/\\$
 
- # Replace (e.g.) proc:/123/status with proc:/\$/status .
+ # Replace (e.g.) proc:/123/status with proc:/\\$/status .
 
- head_pattern proc:/\$/
+ head_pattern proc:/\\$/
 
- # Replace (e.g.) dev(8,1):/etc/mtab~456 with dev(8,1):/etc/mtab~\$ .
+ # Replace (e.g.) dev(8,1):/etc/mtab~456 with dev(8,1):/etc/mtab~\\$ .
 
- tail_pattern /etc/mtab~$
+ tail_pattern /etc/mtab~\\$
 
  # Replace (e.g.) /tmp/phpZjk1k3 with @GROUP1 .
 
- path_group GROUP1 /tmp/php\?\?\?\?\?\?
+ path_group GROUP1 /tmp/php\\?\\?\\?\\?\\?\\?
 
  # Replace integers between 0-100 or 100-200 with @GROUP2 .
 
