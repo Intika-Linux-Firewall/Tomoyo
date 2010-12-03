@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/11/22
+ * Version: 1.7.2+   2010/12/03
  *
  */
 #include "ccstools.h"
@@ -144,7 +144,7 @@ usage:
 			if (first)
 				printf("%s\n\n", domainname->name);
 			first = false;
-			printf("delete %s\n", new_string_ptr[i]->name);
+			printf("%s\n", new_string_ptr[i]->name);
 		}
 		for (i = 0; i < old_string_count; i++) {
 			if (!old_string_ptr[i])
@@ -152,16 +152,16 @@ usage:
 			if (first)
 				printf("%s\n\n", domainname->name);
 			first = false;
-			printf("%s\n", old_string_ptr[i]->name);
+			printf("delete %s\n", old_string_ptr[i]->name);
 		}
 		if (old_policy.list[old_index].profile !=
 		    new_policy.list[new_index].profile) {
 			if (first)
 				printf("%s\n\n", domainname->name);
 			first = false;
-			if (old_policy.list[old_index].profile_assigned)
+			if (new_policy.list[new_index].profile_assigned)
 				printf(KEYWORD_USE_PROFILE "%u\n",
-				       old_policy.list[old_index].profile);
+				       new_policy.list[new_index].profile);
 		}
 		if (!first)
 			printf("\n");
