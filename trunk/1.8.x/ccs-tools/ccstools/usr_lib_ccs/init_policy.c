@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/03
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1127,6 +1127,84 @@ static void make_auditd_conf(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static void make_patternize_conf(void)
+{
+	FILE *fp;
+	if (chdir(policy_dir) || chdir(CCSTOOLS_CONFDIR) ||
+	    !access("patternize.conf", R_OK))
+		return;
+	fp = fopen("patternize.tmp", "w");
+	if (!fp) {
+		fprintf(stderr, "ERROR: Can't create configuration file.\n");
+		return;
+	}
+	static const char data[] =
+		"# Files on proc filesystem.\n"
+		"file_pattern proc:/self/task/\\$/fdinfo/\\$\n"
+		"file_pattern proc:/self/task/\\$/fd/\\$\n"
+		"head_pattern proc:/self/task/\\$/\n"
+		"file_pattern proc:/self/fdinfo/\\$\n"
+		"file_pattern proc:/self/fd/\\$\n"
+		"head_pattern proc:/self/\n"
+		"file_pattern proc:/\\$/task/\\$/fdinfo/\\$\n"
+		"file_pattern proc:/\\$/task/\\$/fd/\\$\n"
+		"head_pattern proc:/\\$/task/\\$/\n"
+		"file_pattern proc:/\\$/fdinfo/\\$\n"
+		"file_pattern proc:/\\$/fd/\\$\n"
+		"head_pattern proc:/\\$/\n"
+		"\n"
+		"# Files on devpts filesystem.\n"
+		"file_pattern devpts:/\\$\n"
+		"\n"
+		"# Files on pipe filesystem.\n"
+		"file_pattern pipe:[\\$]\n"
+		"\n"
+		"# Files on / partition.\n"
+		"tail_pattern /etc/mtab~\\$\n"
+		"tail_pattern /etc/ccs/domain_policy.\\*.conf\n"
+		"tail_pattern /etc/ccs/exception_policy.\\*.conf\n"
+		"\n"
+		"# Files on /tmp/ partition.\n"
+		"tail_pattern /vte\\?\\?\\?\\?\\?\\?\n"
+		"tail_pattern /.ICE-unix/\\$\n"
+		"tail_pattern /keyring-\\?\\?\\?\\?\\?\\?/socket.ssh\n"
+		"tail_pattern /orbit-\\*/bonobo-activation-register-\\X.lock\n"
+		"tail_pattern /orbit-\\*/bonobo-activation-server-\\X-ior\n"
+		"tail_pattern /orbit-\\*/linc-\\*\n"
+		"tail_pattern /orbit-\\*/\n"
+		"tail_pattern /sh-thd-\\$\n"
+		"tail_pattern /zman\\?\\?\\?\\?\\?\\?\n"
+		"\n"
+		"# Files on home directory.\n"
+		"tail_pattern /.ICEauthority-\\?\n"
+		"tail_pattern /.xauth\\?\\?\\?\\?\\?\\?\n"
+		"tail_pattern /.xauth\\?\\?\\?\\?\\?\\?-\?\n"
+		"tail_pattern /.local/share/applications/preferred-mail-reader"
+		".desktop.\\?\\?\\?\\?\\?\\?\n"
+		"tail_pattern /.local/share/applications/preferred-web-browser"
+		".desktop.\\?\\?\\?\\?\\?\\?\n"
+		"\n"
+		"# Files on /var/ partition.\n"
+		"tail_pattern /cache/fontconfig/\\X-le64.cache-3\n"
+		"tail_pattern /lib/gdm/.pulse/\\X-default-source\n"
+		"tail_pattern /lib/gdm/.pulse/\\X-default-sink\n"
+		"tail_pattern /lib/gdm/.dbus/session-bus/\\X-\\X\n"
+		"tail_pattern /run/gdm/auth-for-\\*/database-\\?\n"
+		"tail_pattern /run/gdm/auth-for-\\*/database\n"
+		"tail_pattern /run/gdm/auth-for-\\*/\n"
+		"tail_pattern /spool/abrt/pyhook-\\*/\\{\\*\\}/\\*\n"
+		"tail_pattern /spool/abrt/pyhook-\\*/\\{\\*\\}/\n"
+		"\n";
+	fprintf(stderr, "Creating configuration file for ccs-patternize ... ");
+	fprintf(fp, "%s", data);
+	fclose(fp);
+	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR) &&
+	    !chmod("patternize.tmp", 0644) && !rename("patternize.tmp", "patternize.conf"))
+		fprintf(stderr, "OK\n");
+	else
+		fprintf(stderr, "failed.\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -1179,5 +1257,6 @@ int main(int argc, char *argv[])
 	make_module_loader();
 	make_editpolicy_conf();
 	make_auditd_conf();
+	make_patternize_conf();
 	return 0;
 }
