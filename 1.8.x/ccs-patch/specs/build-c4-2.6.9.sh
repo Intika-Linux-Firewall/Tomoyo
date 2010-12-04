@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-89.31.1.EL.src.rpm ]
+if [ ! -r kernel-2.6.9-89.33.1.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.31.1.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.33.1.EL.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.9-89.31.1.EL.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.9-89.31.1.EL.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.9-89.33.1.EL.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.9-89.33.1.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20101122.tar.gz ]
@@ -32,8 +32,8 @@ patch << "EOF" || die "Can't patch spec file."
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 89.31.1.EL
-+%define release 89.31.1.EL_tomoyo_1.8.0
+-%define release 89.33.1.EL
++%define release 89.33.1.EL_tomoyo_1.8.0
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -5695,6 +5698,10 @@
+@@ -5729,6 +5732,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -5706,6 +5713,9 @@
+@@ -5740,6 +5747,9 @@
  for i in *.config 
  do 
  	mv $i .config 
@@ -92,7 +92,7 @@ sleep 30
 patch << "EOF" || die "Can't patch spec file."
 --- /tmp/ccs-kernel.spec
 +++ /tmp/ccs-kernel.spec
-@@ -4,14 +4,14 @@
+@@ -4,13 +4,13 @@
  # What parts do we want to build?  We must build at least one kernel.
  # These are the kernels that are built IF the architecture allows it.
  
@@ -106,12 +106,10 @@ patch << "EOF" || die "Can't patch spec file."
 +%define buildlargesmp 0
  %define builddoc 0
 -%define buildxen 1
--%define kabi 1
 +%define buildxen 0
-+%define kabi 1
+ %define kabi 1
  
  %define FC2 0
- %define FC3 0
 EOF
 exec rpmbuild -bb --target $ARCH /tmp/ccs-kernel.spec
 exit 0
