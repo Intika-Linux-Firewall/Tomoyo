@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-89.31.1.EL.src.rpm ]
+if [ ! -r kernel-2.6.9-89.33.1.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.31.1.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.33.1.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-89.31.1.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-89.33.1.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20101122.tar.gz ]
@@ -31,8 +31,8 @@ patch << "EOF" || die "Can't patch spec file."
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 89.31.1.EL
-+%define release 89.31.1.EL_tomoyo_1.6.8p4
+-%define release 89.33.1.EL
++%define release 89.33.1.EL_tomoyo_1.6.8p4
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -5695,6 +5698,10 @@
+@@ -5729,6 +5732,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -5706,6 +5713,9 @@
+@@ -5740,6 +5747,9 @@
  for i in *.config 
  do 
  	mv $i .config 
