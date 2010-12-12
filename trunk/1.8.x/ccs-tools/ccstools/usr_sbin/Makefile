@@ -25,6 +25,7 @@ install: all
 	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/usr/sbin/
 	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/
 	ln -sf libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/libccstools.so.1
+	ldconfig || true
 
 clean:
 	rm -f -- $(BUILD_FILES) libccstools.so*
