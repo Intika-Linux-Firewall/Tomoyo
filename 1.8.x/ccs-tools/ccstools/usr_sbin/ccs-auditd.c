@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/03
+ * Version: 1.8.0+   2010/12/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -26,14 +26,37 @@
 
 #define CCS_AUDITD_CONF "/etc/ccs/tools/auditd.conf"
 
-struct ccs_sort_rules {
-	const char *rule[3];
+struct ccs_destination {
 	const char *pathname;
 	int fd;
 };
 
+static struct ccs_destination *destination_list = NULL;
+static unsigned int destination_list_len = 0;
+
+enum ccs_rule_types {
+	CCS_SORT_RULE_HEADER,
+	CCS_SORT_RULE_DOMAIN,
+	CCS_SORT_RULE_ACL,
+	CCS_SORT_RULE_DESTINATION,
+};
+
+enum ccs_operator_types {
+	CCS_SORT_OPERATOR_CONTAINS,
+	CCS_SORT_OPERATOR_EQUALS,
+	CCS_SORT_OPERATOR_STARTS,
+};
+
+struct ccs_sort_rules {
+	enum ccs_rule_types type;
+	enum ccs_operator_types operation;
+	unsigned int index;
+	const char *string;
+	unsigned int string_len; /* strlen(string). */
+};
+
 static struct ccs_sort_rules *rules = NULL;
-static int rules_len = 0;
+static unsigned int rules_len = 0;
 
 static void ccs_auditd_init_rules(void)
 {
@@ -47,41 +70,84 @@ static void ccs_auditd_init_rules(void)
 	ccs_get();
 	while (true) {
 		char *line = ccs_freadline(fp);
-		u8 i;
+		struct ccs_sort_rules *ptr;
+		unsigned int i;
+		unsigned char c;
 		if (!line)
 			break;
 		line_no++;
-		if (!ccs_str_starts(line, "rule "))
+		ccs_normalize_line(line);
+		if (*line == '#' || !*line)
 			continue;
 		rules = realloc(rules, sizeof(struct ccs_sort_rules) *
 				(rules_len + 1));
 		if (!rules)
 			ccs_out_of_memory();
-		for (i = 0; i < 3; i++) {
-			char *cp = strstr(line, " | ");
-			if (!cp)
+		ptr = &rules[rules_len++];
+		memset(ptr, 0, sizeof(*ptr));
+		if (ccs_str_starts(line, "Destination:")) {
+			while (*line == ' ')
+				line++;
+			if (*line != '/')
 				goto invalid_rule;
-			*cp = '\0';
-			ccs_normalize_line(line);
-			if (!*line)
-				goto invalid_rule;
-			if (strcmp(line, "*")) {
-				line = strdup(line);
-				if (!line)
-					ccs_out_of_memory();
-			} else {
-				line = NULL;
-			}
-			rules[rules_len].rule[i] = line;
-			line = cp + 2;
+			for (i = 0; i < destination_list_len; i++)
+				if (!strcmp(destination_list[i].pathname,
+					    line))
+					break;
+			if (i < destination_list_len)
+				goto store_destination;
+			destination_list =
+				realloc(destination_list,
+					++destination_list_len *
+					sizeof(struct ccs_destination));
+			if (!destination_list)
+				ccs_out_of_memory();
+			destination_list[i].pathname = strdup(line);
+			if (!destination_list[i].pathname)
+				ccs_out_of_memory();
+			destination_list[i].fd = EOF;
+store_destination:
+			ptr->type = CCS_SORT_RULE_DESTINATION;
+			ptr->index = i;
+			continue;
 		}
-		ccs_normalize_line(line);
-		if (*line != '/')
+		if (ccs_str_starts(line, "Header"))
+			ptr->type = CCS_SORT_RULE_HEADER;
+		else if (ccs_str_starts(line, "Domain"))
+			ptr->type = CCS_SORT_RULE_DOMAIN;
+		else if (ccs_str_starts(line, "ACL"))
+			ptr->type = CCS_SORT_RULE_ACL;
+		else
+			goto invalid_rule;
+		switch (sscanf(line, "[%u%c", &ptr->index, &c)) {
+		case 0:
+			break;
+		case 2:
+			if (c == ']') {
+				char *cp = strchr(line, ']') + 1;
+				memmove(line, cp, strlen(cp) + 1);
+				break;
+			}
+		default:
+			goto invalid_rule;
+		}
+		if (ccs_str_starts(line, ".contains:"))
+			ptr->operation = CCS_SORT_OPERATOR_CONTAINS;
+		else if (ccs_str_starts(line, ".equals:"))
+			ptr->operation = CCS_SORT_OPERATOR_EQUALS;
+		else if (ccs_str_starts(line, ".starts:"))
+			ptr->operation = CCS_SORT_OPERATOR_STARTS;
+		else
+			goto invalid_rule;
+		while (*line == ' ')
+			line++;
+		if (!*line)
 			goto invalid_rule;
 		line = strdup(line);
 		if (!line)
 			ccs_out_of_memory();
-		rules[rules_len++].pathname = line;
+		ptr->string = line;
+		ptr->string_len = strlen(line);
 	}
 	ccs_put();
 	fclose(fp);
@@ -96,50 +162,104 @@ invalid_rule:
 	exit(1);
 }
 
-static int ccs_check_rules(char *buffer)
+static int ccs_check_rules(char *header, char *domain, char *acl)
 {
-	char *cp1 = strchr(buffer, '\n');
-	char *cp2;
-	int i;
-	if (!cp1)
-		return rules_len;
-	*cp1++ = '\0';
-	cp2 = strchr(cp1, '\n');
-	if (!cp2)
-		return rules_len;
-	*cp2++ = '\0';
+	unsigned int i;
+	_Bool matched = true;
 	for (i = 0; i < rules_len; i++) {
-		const char *match = rules[i].rule[0];
-		if (match && !strstr(buffer, match))
+		const struct ccs_sort_rules *ptr = &rules[i];
+		char *line;
+		unsigned int index = ptr->index;
+		const char *find = ptr->string;
+		unsigned int find_len = ptr->string_len;
+		switch (ptr->type) {
+		case CCS_SORT_RULE_HEADER:
+			line = header;
+			break;
+		case CCS_SORT_RULE_DOMAIN:
+			line = domain;
+			break;
+		case CCS_SORT_RULE_ACL:
+			line = acl;
+			break;
+		default: /* CCS_SORT_RULE_DESTINATION */
+			if (matched)
+				return ptr->index;
+			matched = true;
 			continue;
-		match = rules[i].rule[1];
-		if (match) {
-			const int len = strlen(match);
-			if (strncmp(cp1, match, len) ||
-			    (cp1[len] && cp1[len] != ' '))
-				continue;
 		}
-		match = rules[i].rule[2];
-		if (match && !strstr(cp2, match))
+		if (!matched)
 			continue;
-		break;
+		if (!index) {
+			switch (ptr->operation) {
+			case CCS_SORT_OPERATOR_CONTAINS:
+				while (1) {
+					char *cp = strstr(line, find);
+					if (!cp) {
+						matched = false;
+						break;
+					}
+					if ((cp == line || *(cp - 1) == ' ') &&
+					    (!cp[find_len] ||
+					     cp[find_len] == ' '))
+						break;
+					line = cp + 1;
+				}
+				break;
+			case CCS_SORT_OPERATOR_EQUALS:
+				matched = !strcmp(line, find);
+				break;
+			default: /* CCS_SORT_OPERATOR_STARTS */
+				matched = !strncmp(line, find, find_len) &&
+					(!line[find_len] ||
+					 line[find_len] == ' ');
+			}
+		} else {
+			char *word = line;
+			char *word_end;
+			while (--index) {
+				char *cp = strchr(word, ' ');
+				if (!cp) {
+					matched = false;
+					break;
+				}
+				word = cp + 1;
+			}
+			if (!matched)
+				continue;
+			word_end = strchr(word, ' ');
+			if (word_end)
+				*word_end = '\0';
+			switch (ptr->operation) {
+			case CCS_SORT_OPERATOR_CONTAINS:
+				matched = strstr(word, find) != NULL;
+				break;
+			case CCS_SORT_OPERATOR_EQUALS:
+				matched = !strcmp(word, find);
+				break;
+			default: /* CCS_SORT_OPERATOR_STARTS */
+				matched = !strncmp(word, find, find_len);
+				break;
+			}
+			if (word_end)
+				*word_end = ' ';
+		}
 	}
-	*--cp2 = '\n';
-	*--cp1 = '\n';
-	return i;
+	return EOF;
 }
 
 static _Bool ccs_write_log(const int i, char *buffer)
 {
 	int len = strlen(buffer);
+	struct ccs_destination *ptr = &destination_list[i];
 	/* Create destination file if needed. */
-	if (access(rules[i].pathname, F_OK)) {
-		close(rules[i].fd);
-		rules[i].fd = open(rules[i].pathname,
-				   O_WRONLY | O_APPEND | O_CREAT, 0600);
-		if (rules[i].fd == EOF) {
+	if (access(ptr->pathname, F_OK)) {
+		close(ptr->fd);
+		ptr->fd = open(ptr->pathname, O_WRONLY | O_APPEND | O_CREAT,
+			       0600);
+		if (ptr->fd == EOF) {
 			syslog(LOG_WARNING, "Can't open %s for writing.\n",
-			       rules[i].pathname);
+			       ptr->pathname);
 			return 0;
 		}
 	}
@@ -147,15 +267,15 @@ static _Bool ccs_write_log(const int i, char *buffer)
 	 * This is OK because we read only up to sizeof(buffer) - 1 is bytes.
 	 */
 	buffer[len++] = '\n';
-	if (write(rules[i].fd, buffer, len) == len)
+	if (write(ptr->fd, buffer, len) == len)
 		return 1;
-	syslog(LOG_WARNING, "Can't write to %s .\n", rules[i].pathname);
+	syslog(LOG_WARNING, "Can't write to %s .\n", ptr->pathname);
 	return 0;
 }
 
 int main(int argc, char *argv[])
 {
-	int i;
+	unsigned int i;
 	int fd_in;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
@@ -194,12 +314,13 @@ int main(int argc, char *argv[])
 			CCS_PROC_POLICY_AUDIT);
 		return 1;
 	}
-	for (i = 0; i < rules_len; i++) {
-		rules[i].fd = open(rules[i].pathname,
-				   O_WRONLY | O_APPEND | O_CREAT, 0600);
-		if (rules[i].fd == EOF) {
+	for (i = 0; i < destination_list_len; i++) {
+		struct ccs_destination *ptr = &destination_list[i];
+		ptr->fd = open(ptr->pathname, O_WRONLY | O_APPEND | O_CREAT,
+			       0600);
+		if (ptr->fd == EOF) {
 			fprintf(stderr, "Can't open %s for writing.\n",
-				rules[i].pathname);
+				ptr->pathname);
 			return 1;
 		}
 	}
@@ -236,6 +357,9 @@ int main(int argc, char *argv[])
 	syslog(LOG_WARNING, "Started.\n");
 	while (true) {
 		static char buffer[32768];
+		char *domain;
+		char *acl;
+		char *tail;
 		memset(buffer, 0, sizeof(buffer));
 		if (ccs_network_mode) {
 			int j;
@@ -258,10 +382,26 @@ int main(int argc, char *argv[])
 					goto out;
 			}
 		}
-		/* Check for filtering rules. */
-		i = ccs_check_rules(buffer);
-		if (i == rules_len)
+		/* Split into three lines. */
+		domain = strchr(buffer, '\n');
+		if (!domain)
 			continue;
+		*domain++ = '\0';
+		acl = strchr(domain, '\n');
+		if (!acl)
+			continue;
+		*acl++ = '\0';
+		tail = strchr(acl, '\n');
+		if (!tail)
+			continue;
+		*tail = '\0';
+		/* Check for filtering rules. */
+		i = ccs_check_rules(buffer, domain, acl);
+		if (i == EOF)
+			continue;
+		*tail = '\n';
+		*--acl = '\n';
+		*--domain = '\n';
 		/* Write the audit log. */
 		if (!ccs_write_log(i, buffer))
 			break;
@@ -272,7 +412,6 @@ out:
 	return 0;
 usage:
 	fprintf(stderr, "%s [remote_ip:remote_port]\n"
-		"  See %s for filsorting rules and destination pathnames.\n",
-		argv[0], CCS_AUDITD_CONF);
+		"  See %s for configuration.\n", argv[0], CCS_AUDITD_CONF);
 	return 0;
 }
