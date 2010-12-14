@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/13
+ * Version: 1.8.0+   2010/12/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -85,9 +85,7 @@ static void ccs_auditd_init_rules(void)
 			ccs_out_of_memory();
 		ptr = &rules[rules_len++];
 		memset(ptr, 0, sizeof(*ptr));
-		if (ccs_str_starts(line, "Destination:")) {
-			while (*line == ' ')
-				line++;
+		if (ccs_str_starts(line, "destination ")) {
 			if (*line != '/')
 				goto invalid_rule;
 			for (i = 0; i < destination_list_len; i++)
@@ -111,11 +109,11 @@ store_destination:
 			ptr->index = i;
 			continue;
 		}
-		if (ccs_str_starts(line, "Header"))
+		if (ccs_str_starts(line, "header"))
 			ptr->type = CCS_SORT_RULE_HEADER;
-		else if (ccs_str_starts(line, "Domain"))
+		else if (ccs_str_starts(line, "domain"))
 			ptr->type = CCS_SORT_RULE_DOMAIN;
-		else if (ccs_str_starts(line, "ACL"))
+		else if (ccs_str_starts(line, "acl"))
 			ptr->type = CCS_SORT_RULE_ACL;
 		else
 			goto invalid_rule;
@@ -131,16 +129,14 @@ store_destination:
 		default:
 			goto invalid_rule;
 		}
-		if (ccs_str_starts(line, ".contains:"))
+		if (ccs_str_starts(line, ".contains "))
 			ptr->operation = CCS_SORT_OPERATOR_CONTAINS;
-		else if (ccs_str_starts(line, ".equals:"))
+		else if (ccs_str_starts(line, ".equals "))
 			ptr->operation = CCS_SORT_OPERATOR_EQUALS;
-		else if (ccs_str_starts(line, ".starts:"))
+		else if (ccs_str_starts(line, ".starts "))
 			ptr->operation = CCS_SORT_OPERATOR_STARTS;
 		else
 			goto invalid_rule;
-		while (*line == ' ')
-			line++;
 		if (!*line)
 			goto invalid_rule;
 		line = strdup(line);
