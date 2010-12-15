@@ -218,7 +218,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 				" path1.parent={ uid=%u gid=%u ino=%lu"
 				" perm=0%o }", obj->path1_parent_stat.uid,
 				obj->path1_parent_stat.gid,
-				obj->path1_parent_stat.ino,
+				(unsigned long) obj->path1_parent_stat.ino,
 				obj->path1_parent_stat.mode & S_IALLUGO);
 	}
 	if (obj->path2_valid) {
@@ -244,7 +244,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 				" path2.parent={ uid=%u gid=%u ino=%lu"
 				" perm=0%o }", obj->path2_parent_stat.uid,
 				obj->path2_parent_stat.gid,
-				obj->path2_parent_stat.ino,
+				(unsigned long) obj->path2_parent_stat.ino,
 				obj->path2_parent_stat.mode & S_IALLUGO);
 	}
  no_obj_info:

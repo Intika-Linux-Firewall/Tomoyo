@@ -195,7 +195,11 @@ static inline struct socket *SOCKET_I(struct inode *inode)
 		((unsigned char *)&addr)[1],	\
 		((unsigned char *)&addr)[0]
 #elif defined(__BIG_ENDIAN)
-#define HIPQUAD NIPQUAD
+#define HIPQUAD(addr)				\
+	((unsigned char *)&addr)[0],		\
+		((unsigned char *)&addr)[1],	\
+		((unsigned char *)&addr)[2],	\
+		((unsigned char *)&addr)[3]
 #else
 #error "Please fix asm/byteorder.h"
 #endif /* __LITTLE_ENDIAN */
