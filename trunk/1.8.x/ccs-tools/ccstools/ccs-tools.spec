@@ -31,6 +31,9 @@ make -s install INSTALLDIR=%{buildroot}
 
 rm -rf $RPM_BUILD_ROOT
 
+%post
+ldconfig || true
+
 %files
 %defattr(-,root,root)
 /sbin/ccs-init
