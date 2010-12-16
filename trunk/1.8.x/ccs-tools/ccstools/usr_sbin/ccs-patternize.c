@@ -313,6 +313,7 @@ int main(int argc, char *argv[])
 						break;
 					if (strstr(cp, "execute")  ||
 					    strstr(cp, "read")     ||
+					    strstr(cp, "getattr")  ||
 					    strstr(cp, "write")    ||
 					    strstr(cp, "append")   ||
 					    strstr(cp, "unlink")   ||
