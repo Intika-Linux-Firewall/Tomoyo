@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/14
+ * Version: 1.8.0+   2010/12/16
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1156,24 +1156,24 @@ static void make_auditd_conf(void)
 
 static const char patternize_data[] =
 "# Files on proc filesystem.\n"
-"file_pattern proc:/self/task/\\$/fdinfo/\\$\n"
-"file_pattern proc:/self/task/\\$/fd/\\$\n"
+"path_pattern proc:/self/task/\\$/fdinfo/\\$\n"
+"path_pattern proc:/self/task/\\$/fd/\\$\n"
 "head_pattern proc:/self/task/\\$/\n"
-"file_pattern proc:/self/fdinfo/\\$\n"
-"file_pattern proc:/self/fd/\\$\n"
+"path_pattern proc:/self/fdinfo/\\$\n"
+"path_pattern proc:/self/fd/\\$\n"
 "head_pattern proc:/self/\n"
-"file_pattern proc:/\\$/task/\\$/fdinfo/\\$\n"
-"file_pattern proc:/\\$/task/\\$/fd/\\$\n"
+"path_pattern proc:/\\$/task/\\$/fdinfo/\\$\n"
+"path_pattern proc:/\\$/task/\\$/fd/\\$\n"
 "head_pattern proc:/\\$/task/\\$/\n"
-"file_pattern proc:/\\$/fdinfo/\\$\n"
-"file_pattern proc:/\\$/fd/\\$\n"
+"path_pattern proc:/\\$/fdinfo/\\$\n"
+"path_pattern proc:/\\$/fd/\\$\n"
 "head_pattern proc:/\\$/\n"
 "\n"
 "# Files on devpts filesystem.\n"
-"file_pattern devpts:/\\$\n"
+"path_pattern devpts:/\\$\n"
 "\n"
 "# Files on pipe filesystem.\n"
-"file_pattern pipe:[\\$]\n"
+"path_pattern pipe:[\\$]\n"
 "\n"
 "# Files on / partition.\n"
 "tail_pattern /etc/mtab~\\$\n"

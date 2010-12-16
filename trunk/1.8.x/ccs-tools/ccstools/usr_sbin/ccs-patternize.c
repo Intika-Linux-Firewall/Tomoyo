@@ -62,83 +62,195 @@ static _Bool ccs_path_contains_pattern(const char *filename)
 
 #define CCS_PATTERNIZE_CONF "/etc/ccs/tools/patternize.conf"
 
+enum ccs_target_types {
+	CCS_TARGET_DOMAIN,
+	CCS_TARGET_ACL,
+};
+
+enum ccs_operator_types {
+	CCS_TARGET_CONTAINS,
+	CCS_TARGET_EQUALS,
+	CCS_TARGET_STARTS,
+};
+
+struct ccs_preconditions {
+	enum ccs_target_types type;
+	enum ccs_operator_types operation;
+	unsigned int index;
+	const char *string;
+	unsigned int string_len; /* strlen(string). */
+};
+
 enum ccs_pattern_type {
-	CCS_PATTERN_FILE_PATTERN,
+	CCS_PATTERN_PATH_PATTERN,
 	CCS_PATTERN_HEAD_PATTERN,
 	CCS_PATTERN_TAIL_PATTERN,
-	CCS_PATTERN_PATH_GROUP,
-	CCS_PATTERN_NUMBER_GROUP,
-	CCS_PATTERN_ADDRESS_GROUP,
+	CCS_PATTERN_NUMBER_PATTERN,
+	CCS_PATTERN_ADDRESS_PATTERN,
 };
 
-struct ccs_patternize_entry {
-	const char *group_name;
-	struct ccs_path_info path;
-	struct ccs_number_entry number;
-	struct ccs_ip_address_entry ip;
+struct ccs_replace_rules {
 	enum ccs_pattern_type type;
+	const char *new_value;
+	union {
+		struct ccs_path_info path;
+		struct ccs_number_entry number;
+		struct ccs_ip_address_entry ip;
+	} old;
+	struct ccs_preconditions *rules;
+	unsigned int rules_len;
 };
 
-static struct ccs_patternize_entry *rules = NULL;
-static int rules_len = 0;
+static struct ccs_replace_rules *ccs_rules_list = NULL;
+static unsigned int ccs_rules_list_len = 0;
+
+static char *ccs_current_domainname = NULL;
+static char *ccs_current_acl = NULL;
+
+static _Bool ccs_check_preconditions(const struct ccs_replace_rules *entry)
+{
+	unsigned int i;
+	_Bool matched = true;
+	for (i = 0; matched && i < entry->rules_len; i++) {
+		const struct ccs_preconditions *ptr = &entry->rules[i];
+		char *line;
+		unsigned int index = ptr->index;
+		const char *find = ptr->string;
+		unsigned int find_len = ptr->string_len;
+		if (ptr->type == CCS_TARGET_DOMAIN)
+			line = ccs_current_domainname;
+		else /* CCS_TARGET_ACL */
+			line = ccs_current_acl;
+		if (!index) {
+			switch (ptr->operation) {
+			case CCS_TARGET_CONTAINS:
+				while (1) {
+					char *cp = strstr(line, find);
+					if (!cp) {
+						matched = false;
+						break;
+					}
+					if ((cp == line || *(cp - 1) == ' ') &&
+					    (!cp[find_len] ||
+					     cp[find_len] == ' '))
+						break;
+					line = cp + 1;
+				}
+				break;
+			case CCS_TARGET_EQUALS:
+				matched = !strcmp(line, find);
+				break;
+			default: /* CCS_TARGET_STARTS */
+				matched = !strncmp(line, find, find_len) &&
+					(!line[find_len] ||
+					 line[find_len] == ' ');
+			}
+		} else {
+			char *word = line;
+			char *word_end;
+			while (--index) {
+				char *cp = strchr(word, ' ');
+				if (!cp) {
+					matched = false;
+					break;
+				}
+				word = cp + 1;
+			}
+			if (!matched)
+				break;
+			word_end = strchr(word, ' ');
+			if (word_end)
+				*word_end = '\0';
+			switch (ptr->operation) {
+			case CCS_TARGET_CONTAINS:
+				matched = strstr(word, find) != NULL;
+				break;
+			case CCS_TARGET_EQUALS:
+				matched = !strcmp(word, find);
+				break;
+			default: /* CCS_TARGET_STARTS */
+				matched = !strncmp(word, find, find_len);
+				break;
+			}
+			if (word_end)
+				*word_end = ' ';
+		}
+	}
+	return matched;
+}
+
+static _Bool ccs_head_patternize(char *string,
+				 const struct ccs_replace_rules *ptr)
+{
+	char *pos;
+	struct ccs_path_info subword;
+	subword.name = string;
+	for (pos = strrchr(string, '/'); pos >= string; pos--) {
+		char c;
+		if (*pos != '/')
+			continue;
+		c = *(pos + 1);
+		*(pos + 1) = '\0';
+		ccs_fill_path_info(&subword);
+		if (!ccs_path_matches_pattern(&subword, &ptr->old.path) ||
+		    !ccs_check_preconditions(ptr)) {
+			*(pos + 1) = c;
+			continue;
+		}
+		printf("%s", ptr->new_value);
+		if (c)
+			printf("%c%s", c, pos + 2);
+		*(pos + 1) = c;
+		return true;
+	}
+	return false;
+}
+
+static _Bool ccs_tail_patternize(char *string,
+				 const struct ccs_replace_rules *ptr)
+{
+	char *pos;
+	struct ccs_path_info subword;
+	for (pos = string; *pos; pos++) {
+		if (*pos != '/')
+			continue;
+		subword.name = pos;
+		ccs_fill_path_info(&subword);
+		if (!ccs_path_matches_pattern(&subword, &ptr->old.path) ||
+		    !ccs_check_preconditions(ptr))
+			continue;
+		*pos = '\0';
+		printf("%s%s", string, ptr->new_value);
+		*pos = '/';
+		return true;
+	}
+	return false;
+}
 
 static void ccs_path_patternize(char *string)
 {
+	_Bool first = true;
 	int i;
 	struct ccs_path_info word;
-	word.name = string;
-	ccs_fill_path_info(&word);
-	for (i = 0; i < rules_len; i++) {
-		struct ccs_path_info *path = &rules[i].path;
-		struct ccs_path_info subword;
-		char *pos;
-		switch (rules[i].type) {
-		case CCS_PATTERN_HEAD_PATTERN:
-			subword.name = string;
-			for (pos = strrchr(string, '/'); pos >= string;
-			     pos--) {
-				char c;
-				if (*pos != '/')
-					continue;
-				c = *(pos + 1);
-				*(pos + 1) = '\0';
-				ccs_fill_path_info(&subword);
-				if (ccs_path_matches_pattern(&subword, path)) {
-					printf("%s", path->name);
-					if (c)
-						printf("%c%s", c, pos + 2);
-					*(pos + 1) = c;
-					return;
-				}
-				*(pos + 1) = c;
+	for (i = 0; i < ccs_rules_list_len; i++) {
+		const struct ccs_replace_rules *ptr = &ccs_rules_list[i];
+		if (ptr->type == CCS_PATTERN_PATH_PATTERN) {
+			if (first) {
+				word.name = string;
+				ccs_fill_path_info(&word);
+				first = false;
 			}
-			continue;
-		case CCS_PATTERN_TAIL_PATTERN:
-			for (pos = string; *pos; pos++) {
-				if (*pos != '/')
-					continue;
-				subword.name = pos;
-				ccs_fill_path_info(&subword);
-				if (ccs_path_matches_pattern(&subword, path)) {
-					*pos = '\0';
-					printf("%s%s", string, path->name);
-					*pos = '/';
-					return;
-				}
-			}
-			continue;
-		case CCS_PATTERN_FILE_PATTERN:
-			if (!ccs_path_matches_pattern(&word, path))
+			if (!ccs_path_matches_pattern(&word, &ptr->old.path) ||
+			    !ccs_check_preconditions(ptr))
 				continue;
-			printf("%s", rules[i].path.name);
+			printf("%s", ptr->new_value);
 			return;
-		case CCS_PATTERN_PATH_GROUP:
-			if (!ccs_path_matches_pattern(&word, path))
-				continue;
-			printf("%s", rules[i].group_name);
-			return;
-		default:
-			break;
+		} else if (ptr->type == CCS_PATTERN_HEAD_PATTERN) {
+			if (ccs_head_patternize(string, ptr))
+				return;
+		} else if (ptr->type == CCS_PATTERN_TAIL_PATTERN) {
+			if (ccs_tail_patternize(string, ptr))
+				return;
 		}
 	}
 	printf("%s", string);
@@ -150,14 +262,15 @@ static void ccs_number_patternize(const char *cp)
 	struct ccs_number_entry entry;
 	if (!ccs_parse_number(cp, &entry))
 		goto out;
-	for (i = 0; i < rules_len; i++) {
-		if (rules[i].type != CCS_PATTERN_NUMBER_GROUP)
+	for (i = 0; i < ccs_rules_list_len; i++) {
+		const struct ccs_replace_rules *ptr = &ccs_rules_list[i];
+		if (ptr->type != CCS_PATTERN_NUMBER_PATTERN)
 			continue;
-		if (rules[i].number.min > entry.min ||
-		    rules[i].number.max < entry.max)
+		if (ptr->old.number.min > entry.min ||
+		    ptr->old.number.max < entry.max ||
+		    !ccs_check_preconditions(ptr))
 			continue;
-		cp = rules[i].group_name;
-		break;
+		cp = ptr->new_value;
 	}
 out:
 	printf("%s", cp);
@@ -169,14 +282,16 @@ static void ccs_address_patternize(const char *cp)
 	struct ccs_ip_address_entry entry;
 	if (ccs_parse_ip(cp, &entry))
 		goto out;
-	for (i = 0; i < rules_len; i++) {
-		if (rules[i].type != CCS_PATTERN_ADDRESS_GROUP)
+	for (i = 0; i < ccs_rules_list_len; i++) {
+		const struct ccs_replace_rules *ptr = &ccs_rules_list[i];
+		if (ptr->type != CCS_PATTERN_ADDRESS_PATTERN)
 			continue;
-		if (rules[i].ip.is_ipv6 != entry.is_ipv6 ||
-		    memcmp(entry.min, rules[i].ip.min, 16) < 0 ||
-		    memcmp(rules[i].ip.max, entry.max, 16) < 0)
+		if (ptr->old.ip.is_ipv6 != entry.is_ipv6 ||
+		    memcmp(entry.min, ptr->old.ip.min, 16) < 0 ||
+		    memcmp(ptr->old.ip.max, entry.max, 16) < 0 ||
+		    !ccs_check_preconditions(ptr))
 			continue;
-		cp = rules[i].group_name;
+		cp = ptr->new_value;
 		break;
 	}
 out:
@@ -186,6 +301,7 @@ out:
 static void ccs_patternize_init_rules(const char *filename)
 {
 	FILE *fp = fopen(filename, "r");
+	struct ccs_replace_rules entry = { };
 	unsigned int line_no = 0;
 	if (!fp) {
 		fprintf(stderr, "Can't open %s for reading.\n", filename);
@@ -193,82 +309,115 @@ static void ccs_patternize_init_rules(const char *filename)
 	}
 	ccs_get();
 	while (true) {
-		struct ccs_patternize_entry *ptr;
 		char *line = ccs_freadline(fp);
+		unsigned char c;
+		char *cp;
 		if (!line)
 			break;
 		line_no++;
 		ccs_normalize_line(line);
+		if (*line == '#' || !*line)
+			continue;
+		if (ccs_str_starts(line, "path_pattern "))
+			entry.type = CCS_PATTERN_PATH_PATTERN;
+		else if (ccs_str_starts(line, "head_pattern "))
+			entry.type = CCS_PATTERN_HEAD_PATTERN;
+		else if (ccs_str_starts(line, "tail_pattern "))
+			entry.type = CCS_PATTERN_TAIL_PATTERN;
+		else if (ccs_str_starts(line, "number_pattern "))
+			entry.type = CCS_PATTERN_NUMBER_PATTERN;
+		else if (ccs_str_starts(line, "address_pattern "))
+			entry.type = CCS_PATTERN_ADDRESS_PATTERN;
+		else {
+			struct ccs_preconditions *ptr;
+			entry.rules = realloc(entry.rules,
+					      (entry.rules_len + 1) *
+					      sizeof(*ptr));
+			if (!entry.rules)
+				ccs_out_of_memory();
+			ptr = &entry.rules[entry.rules_len++];
+			memset(ptr, 0, sizeof(*ptr));
+			if (ccs_str_starts(line, "domain"))
+				ptr->type = CCS_TARGET_DOMAIN;
+			else if (ccs_str_starts(line, "acl"))
+				ptr->type = CCS_TARGET_ACL;
+			else
+				goto invalid_rule;
+			switch (sscanf(line, "[%u%c", &ptr->index, &c)) {
+			case 0:
+				break;
+			case 2:
+				if (c == ']') {
+					char *cp = strchr(line, ']') + 1;
+					memmove(line, cp, strlen(cp) + 1);
+					break;
+				}
+			default:
+				goto invalid_rule;
+			}
+			if (ccs_str_starts(line, ".contains "))
+				ptr->operation = CCS_TARGET_CONTAINS;
+			else if (ccs_str_starts(line, ".equals "))
+				ptr->operation = CCS_TARGET_EQUALS;
+			else if (ccs_str_starts(line, ".starts "))
+				ptr->operation = CCS_TARGET_STARTS;
+			else
+				goto invalid_rule;
+			if (!*line)
+				goto invalid_rule;
+			line = strdup(line);
+			if (!line)
+				ccs_out_of_memory();
+			ptr->string = line;
+			ptr->string_len = strlen(line);
+			continue;
+		}
 		line = strdup(line);
 		if (!line)
 			ccs_out_of_memory();
-		rules = realloc(rules, (rules_len + 1) * sizeof(*ptr));
-		if (!rules)
-			ccs_out_of_memory();
-		ptr = &rules[rules_len++];
-		memset(ptr, 0, sizeof(*ptr));
-		if (ccs_str_starts(line, "file_pattern ")) {
-			if (!ccs_correct_word(line))
-				goto invalid_pattern;
-			ptr->path.name = line;
-			ptr->type = CCS_PATTERN_FILE_PATTERN;
-		} else if (ccs_str_starts(line, "head_pattern ")) {
-			if (!ccs_correct_word(line))
-				goto invalid_pattern;
-			ptr->path.name = line;
-			ptr->type = CCS_PATTERN_HEAD_PATTERN;
-		} else if (ccs_str_starts(line, "tail_pattern ")) {
-			if (!ccs_correct_word(line))
-				goto invalid_pattern;
-			ptr->path.name = line;
-			ptr->type = CCS_PATTERN_TAIL_PATTERN;
-		} else if (ccs_str_starts(line, "path_group")) {
-			char *cp = strchr(line + 1, ' ');
-			if (!cp)
-				goto invalid_pattern;
+		cp = strchr(line, ' ');
+		if (cp)
 			*cp++ = '\0';
-			if (*line != ' ' || !ccs_correct_word(line + 1) ||
-			    !ccs_correct_word(cp))
-				goto invalid_pattern;
-			*line = '@';
-			ptr->group_name = line;
-			ptr->path.name = cp;
-			ptr->type = CCS_PATTERN_PATH_GROUP;
-		} else if (ccs_str_starts(line, "number_group")) {
-			char *cp = strchr(line + 1, ' ');
-			if (!cp)
-				goto invalid_pattern;
-			*cp++ = '\0';
-			if (*line != ' ' || !ccs_correct_word(line + 1) ||
-			    ccs_parse_number(cp, &ptr->number))
-				goto invalid_pattern;
-			*line = '@';
-			ptr->group_name = line;
-			ptr->type = CCS_PATTERN_NUMBER_GROUP;
-		} else if (ccs_str_starts(line, "address_group")) {
-			char *cp = strchr(line + 1, ' ');
-			if (!cp)
-				goto invalid_pattern;
-			*cp++ = '\0';
-			if (*line != ' ' || !ccs_correct_word(line + 1) ||
-			    ccs_parse_ip(cp, &ptr->ip))
-				goto invalid_pattern;
-			*line = '@';
-			ptr->group_name = line;
-			ptr->type = CCS_PATTERN_ADDRESS_GROUP;
+		else
+			cp = line;
+		if (!ccs_correct_word(line) ||
+		    (line != cp && !ccs_correct_word(cp)))
+			goto invalid_rule;
+		entry.new_value = cp;
+		entry.old.path.name = line;
+		ccs_fill_path_info(&entry.old.path);
+		if (entry.type == CCS_PATTERN_NUMBER_PATTERN) {
+			struct ccs_number_entry dummy;
+			if (ccs_parse_number(line, &entry.old.number))
+				goto invalid_rule;
+			if (line != cp && *cp != '@' &&
+			    ccs_parse_number(cp, &dummy))
+				goto invalid_rule;
+		} else if (entry.type == CCS_PATTERN_ADDRESS_PATTERN) {
+			struct ccs_ip_address_entry dummy;
+			if (ccs_parse_ip(line, &entry.old.ip))
+				goto invalid_rule;
+			if (line != cp && *cp != '@' &&
+			    ccs_parse_ip(cp, &dummy))
+				goto invalid_rule;
 		}
-		if (ptr->path.name)
-			ccs_fill_path_info(&ptr->path);
+		ccs_rules_list = realloc(ccs_rules_list,
+					  (ccs_rules_list_len + 1) *
+					  sizeof(entry));
+		if (!ccs_rules_list)
+			ccs_out_of_memory();
+		ccs_rules_list[ccs_rules_list_len++] = entry;
+		memset(&entry, 0, sizeof(entry));
 	}
 	ccs_put();
 	fclose(fp);
-	if (!rules_len) {
-		fprintf(stderr, "No patterns defined in %s .\n", filename);
+	if (!ccs_rules_list_len) {
+		fprintf(stderr, "No rules defined in %s .\n", filename);
 		exit(1);
 	}
 	return;
-invalid_pattern:
-	fprintf(stderr, "Invalid pattern at line %u in %s .\n", line_no,
+invalid_rule:
+	fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
 		filename);
 	exit(1);
 }
@@ -287,6 +436,19 @@ int main(int argc, char *argv[])
 		u8 skip_count = 0;
 		if (!sp)
 			break;
+		if (!strncmp(sp, "<kernel>", 8) && (!sp[8] || sp[8] == ' ')) {
+			free(ccs_current_domainname);
+			ccs_current_domainname = strdup(sp);
+			printf("%s\n", sp);
+			continue;
+		}
+		free(ccs_current_acl);
+		ccs_current_acl = strdup(sp);
+		if (!ccs_current_domainname || !ccs_current_acl) {
+			/* Continue without conversion. */
+			printf("%s\n", sp);
+			continue;
+		}
 		while (true) {
 			cp = strsep(&sp, " ");
 			if (!cp)
