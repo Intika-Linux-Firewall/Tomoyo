@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/03
+ * Version: 1.8.0+   2010/12/16
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -88,7 +88,7 @@ static void ccs_path_patternize(char *string)
 	struct ccs_path_info word;
 	word.name = string;
 	ccs_fill_path_info(&word);
-	for (i = 1; i < rules_len; i++) {
+	for (i = 0; i < rules_len; i++) {
 		struct ccs_path_info *path = &rules[i].path;
 		struct ccs_path_info subword;
 		char *pos;
@@ -150,7 +150,7 @@ static void ccs_number_patternize(const char *cp)
 	struct ccs_number_entry entry;
 	if (!ccs_parse_number(cp, &entry))
 		goto out;
-	for (i = 1; i < rules_len; i++) {
+	for (i = 0; i < rules_len; i++) {
 		if (rules[i].type != CCS_PATTERN_NUMBER_GROUP)
 			continue;
 		if (rules[i].number.min > entry.min ||
@@ -169,7 +169,7 @@ static void ccs_address_patternize(const char *cp)
 	struct ccs_ip_address_entry entry;
 	if (ccs_parse_ip(cp, &entry))
 		goto out;
-	for (i = 1; i < rules_len; i++) {
+	for (i = 0; i < rules_len; i++) {
 		if (rules[i].type != CCS_PATTERN_ADDRESS_GROUP)
 			continue;
 		if (rules[i].ip.is_ipv6 != entry.is_ipv6 ||
