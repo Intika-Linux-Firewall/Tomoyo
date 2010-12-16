@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/14
+ * Version: 1.8.0+   2010/12/16
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -58,13 +58,12 @@ struct ccs_sort_rules {
 static struct ccs_sort_rules *rules = NULL;
 static unsigned int rules_len = 0;
 
-static void ccs_auditd_init_rules(void)
+static void ccs_auditd_init_rules(const char *filename)
 {
-	FILE *fp = fopen(CCS_AUDITD_CONF, "r");
+	FILE *fp = fopen(filename, "r");
 	unsigned int line_no = 0;
 	if (!fp) {
-		fprintf(stderr, "Can't open %s for reading.\n",
-			CCS_AUDITD_CONF);
+		fprintf(stderr, "Can't open %s for reading.\n", filename);
 		exit(1);
 	}
 	ccs_get();
@@ -148,13 +147,13 @@ store_destination:
 	ccs_put();
 	fclose(fp);
 	if (!rules_len) {
-		fprintf(stderr, "No rules defined in %s .\n", CCS_AUDITD_CONF);
+		fprintf(stderr, "No rules defined in %s .\n", filename);
 		exit(1);
 	}
 	return;
 invalid_rule:
 	fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
-		CCS_AUDITD_CONF);
+		filename);
 	exit(1);
 }
 
@@ -287,7 +286,7 @@ int main(int argc, char *argv[])
 		if (!ccs_check_remote_host())
 			return 1;
 	}
-	ccs_auditd_init_rules();
+	ccs_auditd_init_rules(CCS_AUDITD_CONF);
 	if (ccs_network_mode)
 		goto start;
 	if (access(CCS_PROC_POLICY_AUDIT, R_OK)) {
