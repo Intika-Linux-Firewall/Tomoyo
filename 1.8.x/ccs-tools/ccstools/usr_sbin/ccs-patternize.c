@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/16
+ * Version: 1.8.0+   2010/12/17
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -65,6 +65,16 @@ static _Bool ccs_path_contains_pattern(const char *filename)
 enum ccs_target_types {
 	CCS_TARGET_DOMAIN,
 	CCS_TARGET_ACL,
+	CCS_OLD_PATH,
+	CCS_OLD_HEAD,
+	CCS_OLD_TAIL,
+	CCS_OLD_NUMBER,
+	CCS_OLD_ADDRESS,
+	CCS_NEW_PATH,
+	CCS_NEW_HEAD,
+	CCS_NEW_TAIL,
+	CCS_NEW_NUMBER,
+	CCS_NEW_ADDRESS,
 };
 
 enum ccs_operator_types {
@@ -73,56 +83,199 @@ enum ccs_operator_types {
 	CCS_TARGET_STARTS,
 };
 
-struct ccs_preconditions {
-	enum ccs_target_types type;
-	enum ccs_operator_types operation;
-	unsigned int index;
-	const char *string;
-	unsigned int string_len; /* strlen(string). */
-};
-
-enum ccs_pattern_type {
-	CCS_PATTERN_PATH_PATTERN,
-	CCS_PATTERN_HEAD_PATTERN,
-	CCS_PATTERN_TAIL_PATTERN,
-	CCS_PATTERN_NUMBER_PATTERN,
-	CCS_PATTERN_ADDRESS_PATTERN,
-};
-
 struct ccs_replace_rules {
-	enum ccs_pattern_type type;
-	const char *new_value;
+	enum ccs_target_types type;
 	union {
-		struct ccs_path_info path;
+		/* Used by CCS_TARGET_DOMAIN and CCS_TARGET_ACL */
+		struct {
+			enum ccs_operator_types operation;
+			unsigned int index;
+			const char *string;
+			unsigned int string_len; /* strlen(string). */
+		} c;
+		/* Used by CCS_OLD_NUMBER */
 		struct ccs_number_entry number;
+		/* Used by CCS_OLD_ADDRESS */
 		struct ccs_ip_address_entry ip;
-	} old;
-	struct ccs_preconditions *rules;
-	unsigned int rules_len;
+		/* Used by other values */
+		struct ccs_path_info path;
+	} u;
 };
 
-static struct ccs_replace_rules *ccs_rules_list = NULL;
-static unsigned int ccs_rules_list_len = 0;
+static struct ccs_replace_rules *rules = NULL;
+static unsigned int rules_len = 0;
 
 static char *ccs_current_domainname = NULL;
 static char *ccs_current_acl = NULL;
 
-static _Bool ccs_check_preconditions(const struct ccs_replace_rules *entry)
+static unsigned int ccs_matched_prefix_len = 0;
+static const char *ccs_matched_suffix = "";
+
+static _Bool ccs_head_pattern(char *string,
+			      const struct ccs_replace_rules *ptr)
+{
+	char *pos;
+	struct ccs_path_info subword;
+	subword.name = string;
+	for (pos = strrchr(string, '/'); pos >= string; pos--) {
+		_Bool matched;
+		char c;
+		if (*pos != '/')
+			continue;
+		c = *(pos + 1);
+		*(pos + 1) = '\0';
+		ccs_fill_path_info(&subword);
+		matched = ccs_path_matches_pattern(&subword, &ptr->u.path);
+		*(pos + 1) = c;
+		if (!matched)
+			continue;
+		ccs_matched_prefix_len = 0;
+		ccs_matched_suffix = pos + 1;
+		return true;
+	}
+	return false;
+}
+
+static _Bool ccs_tail_pattern(const char *string,
+			      const struct ccs_replace_rules *ptr)
+{
+	const char *pos;
+	struct ccs_path_info subword;
+	for (pos = string; *pos; pos++) {
+		if (*pos != '/')
+			continue;
+		subword.name = pos;
+		ccs_fill_path_info(&subword);
+		if (!ccs_path_matches_pattern(&subword, &ptr->u.path))
+			continue;
+		ccs_matched_prefix_len = pos - string;
+		ccs_matched_suffix = "";
+		return true;
+	}
+	return false;
+}
+
+static _Bool ccs_path_pattern(const char *string,
+			      const struct ccs_replace_rules *ptr)
+{
+	struct ccs_path_info word;
+	word.name = string;
+	ccs_fill_path_info(&word);
+	if (ccs_path_matches_pattern(&word, &ptr->u.path)) {
+		ccs_matched_prefix_len = 0;
+		ccs_matched_suffix = "";
+		return true;
+	}
+	return false;
+}
+
+static _Bool ccs_number_pattern(const char *string,
+				const struct ccs_replace_rules *ptr)
+{
+	struct ccs_number_entry entry;
+	if (ccs_parse_number(string, &entry) &&
+	    ptr->u.number.min <= entry.min && ptr->u.number.max >= entry.max) {
+		ccs_matched_prefix_len = 0;
+		ccs_matched_suffix = "";
+		return true;
+	}
+	return false;
+}
+
+static _Bool ccs_address_pattern(const char *string,
+				 const struct ccs_replace_rules *ptr)
+{
+	struct ccs_ip_address_entry entry;
+	if (ccs_parse_ip(string, &entry) && ptr->u.ip.is_ipv6 == entry.is_ipv6
+	    && memcmp(entry.min, ptr->u.ip.min, 16) >= 0 &&
+	    memcmp(ptr->u.ip.max, entry.max, 16) >= 0) {
+		ccs_matched_prefix_len = 0;
+		ccs_matched_suffix = "";
+		return true;
+	}
+	return false;
+}
+
+static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 {
 	unsigned int i;
 	_Bool matched = true;
-	for (i = 0; matched && i < entry->rules_len; i++) {
-		const struct ccs_preconditions *ptr = &entry->rules[i];
-		char *line;
-		unsigned int index = ptr->index;
-		const char *find = ptr->string;
-		unsigned int find_len = ptr->string_len;
-		if (ptr->type == CCS_TARGET_DOMAIN)
+	if (*string == '@')
+		return false;
+	for (i = 0; i < rules_len; i++) {
+		const struct ccs_replace_rules *ptr = &rules[i];
+		char *line = NULL;
+		unsigned int index = ptr->u.c.index;
+		const char *find = ptr->u.c.string;
+		unsigned int find_len = ptr->u.c.string_len;
+		switch (ptr->type) {
+		case CCS_TARGET_DOMAIN:
 			line = ccs_current_domainname;
-		else /* CCS_TARGET_ACL */
+			break;
+		case CCS_TARGET_ACL:
 			line = ccs_current_acl;
+			break;
+		case CCS_OLD_PATH:
+			if (type == CCS_OLD_PATH)
+				matched = ccs_path_pattern(string, ptr);
+			else
+				matched = false;
+			break;
+		case CCS_OLD_HEAD:
+			if (type == CCS_OLD_PATH)
+				matched = ccs_head_pattern(string, ptr);
+			else
+				matched = false;
+			break;
+		case CCS_OLD_TAIL:
+			if (type == CCS_OLD_PATH)
+				matched = ccs_tail_pattern(string, ptr);
+			else
+				matched = false;
+			break;
+		case CCS_OLD_NUMBER:
+			if (type == CCS_OLD_NUMBER)
+				matched = ccs_number_pattern(string, ptr);
+			else
+				matched = false;
+			break;
+		case CCS_OLD_ADDRESS:
+			if (type == CCS_OLD_ADDRESS)
+				matched = ccs_address_pattern(string, ptr);
+			else
+				matched = false;
+			break;
+		case CCS_NEW_PATH:
+		case CCS_NEW_NUMBER:
+		case CCS_NEW_ADDRESS:
+			if (matched) {
+				printf("%s", ptr->u.path.name);
+				return true;
+			}
+			matched = true;
+			continue;
+		case CCS_NEW_HEAD:
+			if (matched) {
+				printf("%s%s", ptr->u.path.name,
+				       ccs_matched_suffix);
+				return true;
+			}
+			matched = true;
+			continue;
+		case CCS_NEW_TAIL:
+			if (matched) {
+				fwrite(string, 1, ccs_matched_prefix_len,
+				       stdout);
+				printf("%s", ptr->u.path.name);
+				return true;
+			}
+			matched = true;
+			continue;
+		}
+		if (!matched || !line)
+			continue;
 		if (!index) {
-			switch (ptr->operation) {
+			switch (ptr->u.c.operation) {
 			case CCS_TARGET_CONTAINS:
 				while (1) {
 					char *cp = strstr(line, find);
@@ -140,7 +293,7 @@ static _Bool ccs_check_preconditions(const struct ccs_replace_rules *entry)
 			case CCS_TARGET_EQUALS:
 				matched = !strcmp(line, find);
 				break;
-			default: /* CCS_TARGET_STARTS */
+			case CCS_TARGET_STARTS:
 				matched = !strncmp(line, find, find_len) &&
 					(!line[find_len] ||
 					 line[find_len] == ' ');
@@ -157,18 +310,18 @@ static _Bool ccs_check_preconditions(const struct ccs_replace_rules *entry)
 				word = cp + 1;
 			}
 			if (!matched)
-				break;
+				continue;
 			word_end = strchr(word, ' ');
 			if (word_end)
 				*word_end = '\0';
-			switch (ptr->operation) {
+			switch (ptr->u.c.operation) {
 			case CCS_TARGET_CONTAINS:
 				matched = strstr(word, find) != NULL;
 				break;
 			case CCS_TARGET_EQUALS:
 				matched = !strcmp(word, find);
 				break;
-			default: /* CCS_TARGET_STARTS */
+			case CCS_TARGET_STARTS:
 				matched = !strncmp(word, find, find_len);
 				break;
 			}
@@ -176,132 +329,12 @@ static _Bool ccs_check_preconditions(const struct ccs_replace_rules *entry)
 				*word_end = ' ';
 		}
 	}
-	return matched;
-}
-
-static _Bool ccs_head_patternize(char *string,
-				 const struct ccs_replace_rules *ptr)
-{
-	char *pos;
-	struct ccs_path_info subword;
-	subword.name = string;
-	for (pos = strrchr(string, '/'); pos >= string; pos--) {
-		char c;
-		if (*pos != '/')
-			continue;
-		c = *(pos + 1);
-		*(pos + 1) = '\0';
-		ccs_fill_path_info(&subword);
-		if (!ccs_path_matches_pattern(&subword, &ptr->old.path) ||
-		    !ccs_check_preconditions(ptr)) {
-			*(pos + 1) = c;
-			continue;
-		}
-		printf("%s", ptr->new_value);
-		if (c)
-			printf("%c%s", c, pos + 2);
-		*(pos + 1) = c;
-		return true;
-	}
 	return false;
-}
-
-static _Bool ccs_tail_patternize(char *string,
-				 const struct ccs_replace_rules *ptr)
-{
-	char *pos;
-	struct ccs_path_info subword;
-	for (pos = string; *pos; pos++) {
-		if (*pos != '/')
-			continue;
-		subword.name = pos;
-		ccs_fill_path_info(&subword);
-		if (!ccs_path_matches_pattern(&subword, &ptr->old.path) ||
-		    !ccs_check_preconditions(ptr))
-			continue;
-		*pos = '\0';
-		printf("%s%s", string, ptr->new_value);
-		*pos = '/';
-		return true;
-	}
-	return false;
-}
-
-static void ccs_path_patternize(char *string)
-{
-	_Bool first = true;
-	int i;
-	struct ccs_path_info word;
-	for (i = 0; i < ccs_rules_list_len; i++) {
-		const struct ccs_replace_rules *ptr = &ccs_rules_list[i];
-		if (ptr->type == CCS_PATTERN_PATH_PATTERN) {
-			if (first) {
-				word.name = string;
-				ccs_fill_path_info(&word);
-				first = false;
-			}
-			if (!ccs_path_matches_pattern(&word, &ptr->old.path) ||
-			    !ccs_check_preconditions(ptr))
-				continue;
-			printf("%s", ptr->new_value);
-			return;
-		} else if (ptr->type == CCS_PATTERN_HEAD_PATTERN) {
-			if (ccs_head_patternize(string, ptr))
-				return;
-		} else if (ptr->type == CCS_PATTERN_TAIL_PATTERN) {
-			if (ccs_tail_patternize(string, ptr))
-				return;
-		}
-	}
-	printf("%s", string);
-}
-
-static void ccs_number_patternize(const char *cp)
-{
-	int i;
-	struct ccs_number_entry entry;
-	if (!ccs_parse_number(cp, &entry))
-		goto out;
-	for (i = 0; i < ccs_rules_list_len; i++) {
-		const struct ccs_replace_rules *ptr = &ccs_rules_list[i];
-		if (ptr->type != CCS_PATTERN_NUMBER_PATTERN)
-			continue;
-		if (ptr->old.number.min > entry.min ||
-		    ptr->old.number.max < entry.max ||
-		    !ccs_check_preconditions(ptr))
-			continue;
-		cp = ptr->new_value;
-	}
-out:
-	printf("%s", cp);
-}
-
-static void ccs_address_patternize(const char *cp)
-{
-	int i;
-	struct ccs_ip_address_entry entry;
-	if (ccs_parse_ip(cp, &entry))
-		goto out;
-	for (i = 0; i < ccs_rules_list_len; i++) {
-		const struct ccs_replace_rules *ptr = &ccs_rules_list[i];
-		if (ptr->type != CCS_PATTERN_ADDRESS_PATTERN)
-			continue;
-		if (ptr->old.ip.is_ipv6 != entry.is_ipv6 ||
-		    memcmp(entry.min, ptr->old.ip.min, 16) < 0 ||
-		    memcmp(ptr->old.ip.max, entry.max, 16) < 0 ||
-		    !ccs_check_preconditions(ptr))
-			continue;
-		cp = ptr->new_value;
-		break;
-	}
-out:
-	printf("%s", cp);
 }
 
 static void ccs_patternize_init_rules(const char *filename)
 {
 	FILE *fp = fopen(filename, "r");
-	struct ccs_replace_rules entry = { };
 	unsigned int line_no = 0;
 	if (!fp) {
 		fprintf(stderr, "Can't open %s for reading.\n", filename);
@@ -309,41 +342,54 @@ static void ccs_patternize_init_rules(const char *filename)
 	}
 	ccs_get();
 	while (true) {
+		struct ccs_replace_rules *ptr;
 		char *line = ccs_freadline(fp);
-		unsigned char c;
-		char *cp;
 		if (!line)
 			break;
 		line_no++;
 		ccs_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
-		if (ccs_str_starts(line, "path_pattern "))
-			entry.type = CCS_PATTERN_PATH_PATTERN;
-		else if (ccs_str_starts(line, "head_pattern "))
-			entry.type = CCS_PATTERN_HEAD_PATTERN;
-		else if (ccs_str_starts(line, "tail_pattern "))
-			entry.type = CCS_PATTERN_TAIL_PATTERN;
-		else if (ccs_str_starts(line, "number_pattern "))
-			entry.type = CCS_PATTERN_NUMBER_PATTERN;
-		else if (ccs_str_starts(line, "address_pattern "))
-			entry.type = CCS_PATTERN_ADDRESS_PATTERN;
-		else {
-			struct ccs_preconditions *ptr;
-			entry.rules = realloc(entry.rules,
-					      (entry.rules_len + 1) *
-					      sizeof(*ptr));
-			if (!entry.rules)
-				ccs_out_of_memory();
-			ptr = &entry.rules[entry.rules_len++];
-			memset(ptr, 0, sizeof(*ptr));
+		rules = realloc(rules, (rules_len + 1) * sizeof(*ptr));
+		if (!rules)
+			ccs_out_of_memory();
+		ptr = &rules[rules_len++];
+		memset(ptr, 0, sizeof(*ptr));
+		if (ccs_str_starts(line, "new_path_pattern ")) {
+			ptr->type = CCS_NEW_PATH;
+		} else if (ccs_str_starts(line, "new_head_pattern ")) {
+			ptr->type = CCS_NEW_HEAD;
+		} else if (ccs_str_starts(line, "new_tail_pattern ")) {
+			ptr->type = CCS_NEW_TAIL;
+		} else if (ccs_str_starts(line, "new_number_pattern ")) {
+			ptr->type = CCS_NEW_NUMBER;
+		} else if (ccs_str_starts(line, "new_address_pattern ")) {
+			ptr->type = CCS_NEW_ADDRESS;
+		} else if (ccs_str_starts(line, "old_path_pattern ")) {
+			ptr->type = CCS_OLD_PATH;
+		} else if (ccs_str_starts(line, "old_head_pattern ")) {
+			ptr->type = CCS_OLD_HEAD;
+		} else if (ccs_str_starts(line, "old_tail_pattern ")) {
+			ptr->type = CCS_OLD_TAIL;
+		} else if (ccs_str_starts(line, "old_number_pattern ")) {
+			if (ccs_parse_number(line, &ptr->u.number))
+				goto invalid_rule;
+			ptr->type = CCS_OLD_NUMBER;
+			continue;
+		} else if (ccs_str_starts(line, "old_address_pattern ")) {
+			if (ccs_parse_ip(line, &ptr->u.ip))
+				goto invalid_rule;
+			ptr->type = CCS_OLD_ADDRESS;
+			continue;
+		} else {
+			unsigned char c;
 			if (ccs_str_starts(line, "domain"))
 				ptr->type = CCS_TARGET_DOMAIN;
 			else if (ccs_str_starts(line, "acl"))
 				ptr->type = CCS_TARGET_ACL;
 			else
 				goto invalid_rule;
-			switch (sscanf(line, "[%u%c", &ptr->index, &c)) {
+			switch (sscanf(line, "[%u%c", &ptr->u.c.index, &c)) {
 			case 0:
 				break;
 			case 2:
@@ -356,11 +402,11 @@ static void ccs_patternize_init_rules(const char *filename)
 				goto invalid_rule;
 			}
 			if (ccs_str_starts(line, ".contains "))
-				ptr->operation = CCS_TARGET_CONTAINS;
+				ptr->u.c.operation = CCS_TARGET_CONTAINS;
 			else if (ccs_str_starts(line, ".equals "))
-				ptr->operation = CCS_TARGET_EQUALS;
+				ptr->u.c.operation = CCS_TARGET_EQUALS;
 			else if (ccs_str_starts(line, ".starts "))
-				ptr->operation = CCS_TARGET_STARTS;
+				ptr->u.c.operation = CCS_TARGET_STARTS;
 			else
 				goto invalid_rule;
 			if (!*line)
@@ -368,50 +414,21 @@ static void ccs_patternize_init_rules(const char *filename)
 			line = strdup(line);
 			if (!line)
 				ccs_out_of_memory();
-			ptr->string = line;
-			ptr->string_len = strlen(line);
+			ptr->u.c.string = line;
+			ptr->u.c.string_len = strlen(line);
 			continue;
 		}
+		if (!ccs_correct_word(line))
+			goto invalid_rule;
 		line = strdup(line);
 		if (!line)
 			ccs_out_of_memory();
-		cp = strchr(line, ' ');
-		if (cp)
-			*cp++ = '\0';
-		else
-			cp = line;
-		if (!ccs_correct_word(line) ||
-		    (line != cp && !ccs_correct_word(cp)))
-			goto invalid_rule;
-		entry.new_value = cp;
-		entry.old.path.name = line;
-		ccs_fill_path_info(&entry.old.path);
-		if (entry.type == CCS_PATTERN_NUMBER_PATTERN) {
-			struct ccs_number_entry dummy;
-			if (ccs_parse_number(line, &entry.old.number))
-				goto invalid_rule;
-			if (line != cp && *cp != '@' &&
-			    ccs_parse_number(cp, &dummy))
-				goto invalid_rule;
-		} else if (entry.type == CCS_PATTERN_ADDRESS_PATTERN) {
-			struct ccs_ip_address_entry dummy;
-			if (ccs_parse_ip(line, &entry.old.ip))
-				goto invalid_rule;
-			if (line != cp && *cp != '@' &&
-			    ccs_parse_ip(cp, &dummy))
-				goto invalid_rule;
-		}
-		ccs_rules_list = realloc(ccs_rules_list,
-					  (ccs_rules_list_len + 1) *
-					  sizeof(entry));
-		if (!ccs_rules_list)
-			ccs_out_of_memory();
-		ccs_rules_list[ccs_rules_list_len++] = entry;
-		memset(&entry, 0, sizeof(entry));
+		ptr->u.path.name = line;
+		ccs_fill_path_info(&ptr->u.path);
 	}
 	ccs_put();
 	fclose(fp);
-	if (!ccs_rules_list_len) {
+	if (!rules_len) {
 		fprintf(stderr, "No rules defined in %s .\n", filename);
 		exit(1);
 	}
@@ -422,18 +439,105 @@ invalid_rule:
 	exit(1);
 }
 
+static void ccs_process_line(char *sp)
+{
+	char *cp;
+	_Bool first = true;
+	u8 path_count = 0;
+	u8 number_count = 0;
+	u8 address_count = 0;
+	u8 skip_count = 0;
+	while (true) {
+		cp = strsep(&sp, " ");
+		if (!cp)
+			break;
+		if (first) {
+			if (!strcmp(cp, "network")) {
+				printf("network ");
+				cp = strsep(&sp, " ");
+				if (!cp)
+					break;
+				if (strstr(cp, "unix")) {
+					path_count = 1;
+				} else if (strstr(cp, "inet")) {
+					address_count = 1;
+					number_count = 1;
+				} else {
+					break;
+				}
+				skip_count = 2;
+			} else if (!strcmp(cp, "file")) {
+				printf("file ");
+				cp = strsep(&sp, " ");
+				if (!cp)
+					break;
+				if (strstr(cp, "execute")  ||
+				    strstr(cp, "read")     ||
+				    strstr(cp, "getattr")  ||
+				    strstr(cp, "write")    ||
+				    strstr(cp, "append")   ||
+				    strstr(cp, "unlink")   ||
+				    strstr(cp, "rmdir")    ||
+				    strstr(cp, "truncate") ||
+				    strstr(cp, "symlink")  ||
+				    strstr(cp, "chroot")   ||
+				    strstr(cp, "unmount")) {
+					path_count = 1;
+				} else if (strstr(cp, "link")   ||
+					   strstr(cp, "rename") ||
+					   strstr(cp, "pivot_root")) {
+					path_count = 2;
+				} else if (strstr(cp, "create") ||
+					   strstr(cp, "mkdir")  ||
+					   strstr(cp, "mkfifo") ||
+					   strstr(cp, "mksock") ||
+					   strstr(cp, "ioctl")  ||
+					   strstr(cp, "chmod")  ||
+					   strstr(cp, "chown")  ||
+					   strstr(cp, "chgrp")) {
+					path_count = 1;
+					number_count = 1;
+				} else if (strstr(cp, "mkblock") ||
+					   strstr(cp, "mkchar")) {
+					path_count = 1;
+					number_count = 3;
+				} else if (!strcmp(cp, "mount")) {
+					path_count = 3;
+					number_count = 1;
+				}
+			}
+			printf("%s", cp);
+			first = false;
+			continue;
+		}
+		putchar(' ');
+		if (skip_count) {
+			skip_count--;
+		} else if (path_count) {
+			path_count--;
+			if (!ccs_path_contains_pattern(cp) &&
+			    ccs_check_rule(cp, CCS_OLD_PATH))
+				continue;
+		} else if (address_count) {
+			address_count--;
+			if (ccs_check_rule(cp, CCS_OLD_ADDRESS))
+				continue;
+		} else if (number_count) {
+			number_count--;
+			if (ccs_check_rule(cp, CCS_OLD_NUMBER))
+				continue;
+		}
+		printf("%s", cp);
+	}
+	putchar('\n');
+}
+
 int main(int argc, char *argv[])
 {
 	ccs_patternize_init_rules(argc == 2 ? argv[2] : CCS_PATTERNIZE_CONF);
 	ccs_get();
 	while (true) {
 		char *sp = ccs_freadline(stdin);
-		const char *cp;
-		_Bool first = true;
-		u8 path_count = 0;
-		u8 number_count = 0;
-		u8 address_count = 0;
-		u8 skip_count = 0;
 		if (!sp)
 			break;
 		if (!strncmp(sp, "<kernel>", 8) && (!sp[8] || sp[8] == ' ')) {
@@ -449,92 +553,7 @@ int main(int argc, char *argv[])
 			printf("%s\n", sp);
 			continue;
 		}
-		while (true) {
-			cp = strsep(&sp, " ");
-			if (!cp)
-				break;
-			if (first) {
-				if (!strcmp(cp, "network")) {
-					printf("network ");
-					cp = strsep(&sp, " ");
-					if (!cp)
-						break;
-					if (strstr(cp, "unix")) {
-						path_count = 1;
-					} else if (strstr(cp, "inet")) {
-						address_count = 1;
-						number_count = 1;
-					} else {
-						break;
-					}
-					skip_count = 2;
-				} else if (!strcmp(cp, "file")) {
-					printf("file ");
-					cp = strsep(&sp, " ");
-					if (!cp)
-						break;
-					if (strstr(cp, "execute")  ||
-					    strstr(cp, "read")     ||
-					    strstr(cp, "getattr")  ||
-					    strstr(cp, "write")    ||
-					    strstr(cp, "append")   ||
-					    strstr(cp, "unlink")   ||
-					    strstr(cp, "rmdir")    ||
-					    strstr(cp, "truncate") ||
-					    strstr(cp, "symlink")  ||
-					    strstr(cp, "chroot")   ||
-					    strstr(cp, "unmount")) {
-						path_count = 1;
-					} else if (strstr(cp, "link")   ||
-						   strstr(cp, "rename") ||
-						   strstr(cp, "pivot_root")) {
-						path_count = 2;
-					} else if (strstr(cp, "create") ||
-						   strstr(cp, "mkdir")  ||
-						   strstr(cp, "mkfifo") ||
-						   strstr(cp, "mksock") ||
-						   strstr(cp, "ioctl")  ||
-						   strstr(cp, "chmod")  ||
-						   strstr(cp, "chown")  ||
-						   strstr(cp, "chgrp")) {
-						path_count = 1;
-						number_count = 1;
-					} else if (strstr(cp, "mkblock") ||
-						   strstr(cp, "mkchar")) {
-						path_count = 1;
-						number_count = 3;
-					} else if (!strcmp(cp, "mount")) {
-						path_count = 3;
-						number_count = 1;
-					}
-				}
-				printf("%s", cp);
-				first = false;
-				continue;
-			}
-			putchar(' ');
-			if (skip_count) {
-				skip_count--;
-			} else if (path_count) {
-				if (path_count-- && *cp != '@' &&
-				    !ccs_path_contains_pattern(cp)) {
-					ccs_path_patternize((char *) cp);
-					cp = "";
-				}
-			} else if (address_count) {
-				if (address_count-- && *cp != '@') {
-					ccs_address_patternize(cp);
-					cp = "";
-				}
-			} else if (number_count) {
-				if (number_count-- && *cp != '@') {
-					ccs_number_patternize(cp);
-					cp = "";
-				}
-			}
-			printf("%s", cp);
-		}
-		putchar('\n');
+		ccs_process_line(sp);
 	}
 	ccs_put();
 	return 0;
