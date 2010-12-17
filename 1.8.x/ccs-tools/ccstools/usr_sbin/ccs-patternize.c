@@ -216,31 +216,31 @@ static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 			line = ccs_current_acl;
 			break;
 		case CCS_OLD_PATH:
-			if (type == CCS_OLD_PATH)
+			if (type == CCS_OLD_PATH && matched)
 				matched = ccs_path_pattern(string, ptr);
 			else
 				matched = false;
 			break;
 		case CCS_OLD_HEAD:
-			if (type == CCS_OLD_PATH)
+			if (type == CCS_OLD_PATH && matched)
 				matched = ccs_head_pattern(string, ptr);
 			else
 				matched = false;
 			break;
 		case CCS_OLD_TAIL:
-			if (type == CCS_OLD_PATH)
+			if (type == CCS_OLD_PATH && matched)
 				matched = ccs_tail_pattern(string, ptr);
 			else
 				matched = false;
 			break;
 		case CCS_OLD_NUMBER:
-			if (type == CCS_OLD_NUMBER)
+			if (type == CCS_OLD_NUMBER && matched)
 				matched = ccs_number_pattern(string, ptr);
 			else
 				matched = false;
 			break;
 		case CCS_OLD_ADDRESS:
-			if (type == CCS_OLD_ADDRESS)
+			if (type == CCS_OLD_ADDRESS && matched)
 				matched = ccs_address_pattern(string, ptr);
 			else
 				matched = false;
