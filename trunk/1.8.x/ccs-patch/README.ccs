@@ -2691,3 +2691,25 @@ Fix 2010/12/01
       To be able to perform fine grained filtering by /usr/sbin/ccs-auditd ,
       I merged /proc/ccs/grant_log and /proc/ccs/reject_log as
       /proc/ccs/audit and added granted=yes or granted=no to audit logs.
+
+Fix 2010/12/17
+
+    @ Split ccs_null_security into ccs_default_security and ccs_oom_security.
+
+      ccs_null_security is used by preserve KABI compatibility option and is
+      used for providing default values against threads which have not yet
+      allocated memory for their security contexts.
+
+      If current thread failed to allocate memory for current thread's security
+      context, current thread uses ccs_null_security. Since current thread is
+      allowed to modify current thread's security context, current thread might
+      modify ccs_null_security which should not be modified for any reason.
+
+      Therefore, I split ccs_null_security into ccs_default_security and
+      ccs_oom_security and use ccs_oom_security when current thread failed to
+      allocate memory for current thread's security context.
+
+      Threads which do not share ccs_oom_security are not affected by threads
+      which share ccs_oom_security. Threads which share ccs_oom_security will
+      experience temporary inconsistency, but such threads are about to be
+      killed by SIGKILL.
