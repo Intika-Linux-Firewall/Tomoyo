@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/19
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -220,6 +220,11 @@ int main(int argc, char *argv[])
 			read_from_stdin = true;
 		if (strcspn(ptr, "edafpmu-"))
 			goto usage;
+	}
+	if (!ccs_network_mode && access(CCS_PROC_POLICY_DIR, F_OK)) {
+		fprintf(stderr,
+			"You can't run this program for this kernel.\n");
+		return 0;
 	}
 	if (!read_from_stdin && !ccs_policy_dir)
 		goto usage;

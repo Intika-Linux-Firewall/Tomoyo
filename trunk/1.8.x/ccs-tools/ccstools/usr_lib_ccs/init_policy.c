@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/18
+ * Version: 1.8.0+   2010/12/19
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -32,6 +32,8 @@
 #include <dirent.h>
 #include <limits.h>
 #include <sys/vfs.h>
+#include <time.h>
+#include <errno.h>
 
 #if defined(__GLIBC__)
 static inline char *get_realpath(const char *path)
@@ -513,7 +515,13 @@ static char *policy_dir = NULL;
 static void make_policy_dir(void)
 {
 	char *dir = policy_dir;
-	if (!chdir(policy_dir))
+	const time_t now = time(NULL);
+	struct tm *tm = localtime(&now);
+	char stamp[20] = { };
+	snprintf(stamp, sizeof(stamp) - 1, "%02d-%02d-%02d.%02d:%02d:%02d",
+		 tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour,
+		 tm->tm_min, tm->tm_sec);
+	if (!chdir(policy_dir) && !chdir("policy/current/"))
 		goto tools_dir;
 	fprintf(stderr, "Creating policy directory... ");
 	while (1) {
@@ -526,15 +534,28 @@ static void make_policy_dir(void)
 		mkdir(policy_dir, 0700);
 		*(dir - 1) = '/';
 	}
-	mkdir(policy_dir, 0700);
-	if (!chdir(policy_dir))
-		fprintf(stderr, "OK\n");
-	else {
+	if ((mkdir(policy_dir, 0700) && errno != EEXIST) ||
+	    chdir(policy_dir) ||
+	    (symlink("policy/current/exception_policy.conf",
+		     "exception_policy.conf") && errno != EEXIST) ||
+	    (symlink("policy/current/domain_policy.conf",
+		     "domain_policy.conf") && errno != EEXIST) ||
+	    (symlink("policy/current/profile.conf", "profile.conf") &&
+	     errno != EEXIST) ||
+	    (symlink("policy/current/manager.conf", "manager.conf") &&
+	     errno != EEXIST) ||
+	    (mkdir("policy", 0700) && errno != EEXIST) || chdir("policy") ||
+	    (mkdir(stamp, 0700) && errno != EEXIST) ||
+	    (symlink(stamp, "previous") && errno != EEXIST) ||
+	    (symlink(stamp, "current") && errno != EEXIST) ||
+	    chdir(policy_dir) || chdir("policy/current/")) {
 		fprintf(stderr, "failed.\n");
 		exit(1);
+	} else {
+		fprintf(stderr, "OK\n");
 	}
 tools_dir:
-	if (!chdir(CCSTOOLS_CONFDIR))
+	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR))
 		return;
 	fprintf(stderr, "Creating configuration directory... ");
 	mkdir(CCSTOOLS_CONFDIR, 0700);
@@ -569,9 +590,21 @@ static void make_readdir(void)
 	fprintf(filp, "acl_group 0 file read \\*:/\\{\\*\\}/\n");
 }
 
+static _Bool chdir_policy(void)
+{
+	if (chdir(policy_dir) || chdir("policy/current/")) {
+		fprintf(stderr, "ERROR: Can't chdir to %s/policy/current/ "
+			"directory.\n", policy_dir);
+		return 0;
+	}
+	return 1;
+}
+
 static void make_exception_policy(void)
 {
-	if (chdir(policy_dir) || !access("exception_policy.conf", R_OK))
+	if (!chdir_policy())
+		return;
+	if (!access("exception_policy.conf", R_OK))
 		return;
 	filp = fopen("exception_policy.tmp", "w");
 	if (!filp) {
@@ -590,7 +623,7 @@ static void make_exception_policy(void)
 	make_init_scripts_as_aggregators();
 	fclose(filp);
 	filp = NULL;
-	if (!chdir(policy_dir) &&
+	if (!chdir(policy_dir) && !chdir("policy/current/") &&
 	    !rename("exception_policy.tmp", "exception_policy.conf"))
 		fprintf(stderr, "OK\n");
 	else
@@ -601,7 +634,9 @@ static void make_manager(void)
 {
 	char *tools_dir;
 	FILE *fp;
-	if (chdir(policy_dir) || !access("manager.conf", R_OK))
+	if (!chdir_policy())
+		return;
+	if (!access("manager.conf", R_OK))
 		return;
 	fp = fopen("manager.tmp", "w");
 	if (!fp) {
@@ -616,7 +651,7 @@ static void make_manager(void)
 	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
 	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
 	fclose(fp);
-	if (!chdir(policy_dir) &&
+	if (!chdir(policy_dir) && !chdir("policy/current/") &&
 	    !rename("manager.tmp", "manager.conf"))
 		fprintf(stderr, "OK\n");
 	else
@@ -633,7 +668,9 @@ static void make_profile(void)
 {
 	static const char *file_only = "";
 	FILE *fp;
-	if (chdir(policy_dir) || !access("profile.conf", R_OK))
+	if (!chdir_policy())
+		return;
+	if (!access("profile.conf", R_OK))
 		return;
 	fp = fopen("profile.tmp", "w");
 	if (!fp) {
@@ -669,7 +706,8 @@ static void make_profile(void)
 		max_audit_log, max_learning_entry, enforcing_penalty,
 		file_only, grant_log, reject_log);
 	fclose(fp);
-	if (!chdir(policy_dir) && !rename("profile.tmp", "profile.conf"))
+	if (!chdir(policy_dir) && !chdir("policy/current/") &&
+	    !rename("profile.tmp", "profile.conf"))
 		fprintf(stderr, "OK\n");
 	else
 		fprintf(stderr, "failed.\n");
@@ -681,7 +719,9 @@ static unsigned char default_group = 0;
 static void make_domain_policy(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || !access("domain_policy.conf", R_OK))
+	if (!chdir_policy())
+		return;
+	if (!access("domain_policy.conf", R_OK))
 		return;
 	fp = fopen("domain_policy.tmp", "w");
 	if (!fp) {
@@ -692,7 +732,7 @@ static void make_domain_policy(void)
 	fprintf(fp, "<kernel>\nuse_profile %u\nuse_group %u\n",
 		default_profile, default_group);
 	fclose(fp);
-	if (!chdir(policy_dir) &&
+	if (!chdir(policy_dir) && !chdir("policy/current/") &&
 	    !rename("domain_policy.tmp", "domain_policy.conf"))
 		fprintf(stderr, "OK\n");
 	else
@@ -1192,9 +1232,15 @@ static const char patternize_data[] =
 "# Files on / partition.\n"
 "tail_pattern /etc/mtab~\\$\n"
 "rewrite\n"
-"tail_pattern /etc/ccs/domain_policy.\\*.conf\n"
+"tail_pattern /etc/ccs/policy/\\*/domain_policy.conf\n"
 "rewrite\n"
-"tail_pattern /etc/ccs/exception_policy.\\*.conf\n"
+"tail_pattern /etc/ccs/policy/\\*/exception_policy.conf\n"
+"rewrite\n"
+"tail_pattern /etc/ccs/policy/\\*/manager.conf\n"
+"rewrite\n"
+"tail_pattern /etc/ccs/policy/\\*/profile.conf\n"
+"rewrite\n"
+"tail_pattern /etc/ccs/policy/\\*/\n"
 "rewrite\n"
 "\n"
 "# Files on /tmp/ partition.\n"

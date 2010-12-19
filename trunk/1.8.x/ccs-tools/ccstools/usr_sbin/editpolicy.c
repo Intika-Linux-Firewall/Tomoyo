@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/19
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -2299,6 +2299,135 @@ static _Bool ccs_save_to_file(const char *src, const char *dest)
 	return true;
 }
 
+static void parse_args(int argc, char *argv[])
+{
+	int i;
+	for (i = 1; i < argc; i++) {
+		char *ptr = argv[i];
+		char *cp = strchr(ptr, ':');
+		if (*ptr == '/') {
+			if (ccs_network_mode || ccs_offline_mode)
+				goto usage;
+			ccs_policy_dir = ptr;
+			ccs_offline_mode = true;
+		} else if (cp) {
+			*cp++ = '\0';
+			if (ccs_network_mode || ccs_offline_mode)
+				goto usage;
+			ccs_network_ip = inet_addr(ptr);
+			ccs_network_port = htons(atoi(cp));
+			ccs_network_mode = true;
+			if (!ccs_check_remote_host())
+				exit(1);
+		} else if (!strcmp(ptr, "e"))
+			ccs_current_screen = CCS_SCREEN_EXCEPTION_LIST;
+		else if (!strcmp(ptr, "d"))
+			ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+		else if (!strcmp(ptr, "p"))
+			ccs_current_screen = CCS_SCREEN_PROFILE_LIST;
+		else if (!strcmp(ptr, "m"))
+			ccs_current_screen = CCS_SCREEN_MANAGER_LIST;
+		else if (!strcmp(ptr, "u"))
+			ccs_current_screen = CCS_SCREEN_MEMINFO_LIST;
+		else if (!strcmp(ptr, "readonly"))
+			ccs_readonly_mode = true;
+		else if (sscanf(ptr, "refresh=%u", &ccs_refresh_interval)
+			 != 1) {
+usage:
+			printf("Usage: %s [e|d|p|m|u] [readonly] "
+			       "[refresh=interval] "
+			       "[{policy_dir|remote_ip:remote_port}]\n",
+			       argv[0]);
+			exit(1);
+		}
+	}
+}
+
+static void load_offline(void)
+{
+	int fd[2] = { EOF, EOF };
+	if (chdir(ccs_policy_dir) || chdir("policy/current/")) {
+		fprintf(stderr, "Directory %s/policy/current/ doesn't "
+			"exist.\n", ccs_policy_dir);
+		exit(1);
+	}
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
+		fprintf(stderr, "socketpair()\n");
+		exit(1);
+	}
+	switch (fork()) {
+	case 0:
+		close(fd[0]);
+		ccs_persistent_fd = fd[1];
+		ccs_editpolicy_offline_daemon();
+		_exit(0);
+	case -1:
+		fprintf(stderr, "fork()\n");
+		exit(1);
+	}
+	close(fd[1]);
+	ccs_persistent_fd = fd[0];
+	ccs_copy_file("exception_policy.conf",
+		      CCS_PROC_POLICY_EXCEPTION_POLICY);
+	ccs_copy_file("domain_policy.conf", CCS_PROC_POLICY_DOMAIN_POLICY);
+	ccs_copy_file("profile.conf", CCS_PROC_POLICY_PROFILE);
+	ccs_copy_file("manager.conf", CCS_PROC_POLICY_MANAGER);
+	if (chdir("..")) {
+		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
+			ccs_policy_dir);
+		exit(1);
+	}
+		
+}
+
+static void load_readwrite(void)
+{
+	const int fd1 = ccs_open2(CCS_PROC_POLICY_EXCEPTION_POLICY, O_RDWR);
+	const int fd2 = ccs_open2(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
+	if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
+	    (fd2 != EOF && write(fd2, "", 0) != 0)) {
+		fprintf(stderr, "You need to register this program to "
+			"%s to run this program.\n", CCS_PROC_POLICY_MANAGER);
+		exit(1);
+	}
+	close(fd1);
+	close(fd2);
+}
+
+static void save_offline(void)
+{
+	time_t now = time(NULL);
+	static char stamp[32] = { };
+	while (1) {
+		struct tm *tm = localtime(&now);
+		snprintf(stamp, sizeof(stamp) - 1,
+			 "%02d-%02d-%02d.%02d:%02d:%02d/",
+			 tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday,
+			 tm->tm_hour, tm->tm_min, tm->tm_sec);
+		if (!mkdir(stamp, 0700))
+			break;
+		else if (errno == EEXIST)
+			now++;
+		else {
+			fprintf(stderr, "Can't create %s/%s .\n",
+				ccs_policy_dir, stamp);
+			exit(1);
+		}
+	}
+	if (chdir(stamp) ||
+	    !ccs_save_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
+	    !ccs_save_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
+	    !ccs_save_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
+			      "exception_policy.conf") ||
+	    !ccs_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
+			      "domain_policy.conf") ||
+	    chdir("..") || rename("current", "previous") ||
+	    symlink(stamp, "current")) {
+		fprintf(stderr, "Failed to save policy.\n");
+		exit(1);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	struct ccs_domain_policy dp = { NULL, 0, NULL };
@@ -2307,100 +2436,22 @@ int main(int argc, char *argv[])
 	memset(ccs_current_item_index, 0, sizeof(ccs_current_item_index));
 	memset(ccs_list_item_count, 0, sizeof(ccs_list_item_count));
 	memset(ccs_max_eat_col, 0, sizeof(ccs_max_eat_col));
-	if (argc > 1) {
-		int i;
-		for (i = 1; i < argc; i++) {
-			char *ptr = argv[i];
-			char *cp = strchr(ptr, ':');
-			if (*ptr == '/') {
-				if (ccs_network_mode || ccs_offline_mode)
-					goto usage;
-				ccs_policy_dir = ptr;
-				ccs_offline_mode = true;
-			} else if (cp) {
-				*cp++ = '\0';
-				if (ccs_network_mode || ccs_offline_mode)
-					goto usage;
-				ccs_network_ip = inet_addr(ptr);
-				ccs_network_port = htons(atoi(cp));
-				ccs_network_mode = true;
-				if (!ccs_check_remote_host())
-					return 1;
-			} else if (!strcmp(ptr, "e"))
-				ccs_current_screen = CCS_SCREEN_EXCEPTION_LIST;
-			else if (!strcmp(ptr, "d"))
-				ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
-			else if (!strcmp(ptr, "p"))
-				ccs_current_screen = CCS_SCREEN_PROFILE_LIST;
-			else if (!strcmp(ptr, "m"))
-				ccs_current_screen = CCS_SCREEN_MANAGER_LIST;
-			else if (!strcmp(ptr, "u"))
-				ccs_current_screen = CCS_SCREEN_MEMINFO_LIST;
-			else if (!strcmp(ptr, "readonly"))
-				ccs_readonly_mode = true;
-			else if (sscanf(ptr, "refresh=%u", &ccs_refresh_interval)
-				 != 1) {
-usage:
-				printf("Usage: %s [e|d|p|m|u] [readonly] "
-				       "[refresh=interval] "
-				       "[{policy_dir|remote_ip:remote_port}]\n",
-				       argv[0]);
-				return 1;
-			}
-		}
-	}
+	parse_args(argc, argv);
 	ccs_editpolicy_init_keyword_map();
 	if (ccs_offline_mode) {
-		int fd[2] = { EOF, EOF };
-		if (chdir(ccs_policy_dir)) {
-			printf("Directory %s doesn't exist.\n",
-			       ccs_policy_dir);
-			return 1;
-		}
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-			fprintf(stderr, "socketpair()\n");
-			exit(1);
-		}
-		switch (fork()) {
-		case 0:
-			close(fd[0]);
-			ccs_persistent_fd = fd[1];
-			ccs_editpolicy_offline_daemon();
-			_exit(0);
-		case -1:
-			fprintf(stderr, "fork()\n");
-			exit(1);
-		}
-		close(fd[1]);
-		ccs_persistent_fd = fd[0];
-		ccs_copy_file(CCS_DISK_POLICY_EXCEPTION_POLICY,
-			      CCS_PROC_POLICY_EXCEPTION_POLICY);
-		ccs_copy_file(CCS_DISK_POLICY_DOMAIN_POLICY, CCS_PROC_POLICY_DOMAIN_POLICY);
-		ccs_copy_file(CCS_DISK_POLICY_PROFILE, CCS_PROC_POLICY_PROFILE);
-		ccs_copy_file(CCS_DISK_POLICY_MANAGER, CCS_PROC_POLICY_MANAGER);
-	} else if (!ccs_network_mode) {
-		if (chdir(CCS_PROC_POLICY_DIR)) {
-			fprintf(stderr,
-				"You can't use this editor for this kernel.\n");
-			return 1;
-		}
-		if (!ccs_readonly_mode) {
-			const int fd1 = ccs_open2(CCS_PROC_POLICY_EXCEPTION_POLICY,
-						  O_RDWR);
-			const int fd2 = ccs_open2(CCS_PROC_POLICY_DOMAIN_POLICY,
-						  O_RDWR);
-			if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
-			    (fd2 != EOF && write(fd2, "", 0) != 0)) {
-				fprintf(stderr,
-					"You need to register this program to "
-					"%s to run this program.\n",
-					CCS_PROC_POLICY_MANAGER);
-				return 1;
-			}
-			close(fd1);
-			close(fd2);
-		}
+		load_offline();
+		goto start;
 	}
+	if (ccs_network_mode)
+		goto start;
+	if (chdir(CCS_PROC_POLICY_DIR)) {
+		fprintf(stderr,
+			"You can't use this editor for this kernel.\n");
+		return 1;
+	}
+	if (!ccs_readonly_mode)
+		load_readwrite();
+start:
 	initscr();
 	ccs_editpolicy_color_init();
 	cbreak();
@@ -2423,56 +2474,8 @@ usage:
 	move(0, 0);
 	refresh();
 	endwin();
-	if (ccs_offline_mode && !ccs_readonly_mode) {
-		int ret_ignored;
-		time_t now = time(NULL);
-		const char *filename = ccs_make_filename("exception_policy",
-							 now);
-		if (ccs_save_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
-				     filename)) {
-			if (ccs_identical_file("exception_policy.conf",
-					       filename)) {
-				unlink(filename);
-			} else {
-				unlink("exception_policy.conf");
-				ret_ignored = symlink(filename,
-						      "exception_policy.conf");
-			}
-		}
-		ccs_clear_domain_policy(&dp);
-		filename = ccs_make_filename("domain_policy", now);
-		if (ccs_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
-				     filename)) {
-			if (ccs_identical_file("domain_policy.conf",
-					       filename)) {
-				unlink(filename);
-			} else {
-				unlink("domain_policy.conf");
-				ret_ignored = symlink(filename,
-						      "domain_policy.conf");
-			}
-		}
-		filename = ccs_make_filename("profile", now);
-		if (ccs_save_to_file(CCS_PROC_POLICY_PROFILE, filename)) {
-			if (ccs_identical_file("profile.conf", filename)) {
-				unlink(filename);
-			} else {
-				unlink("profile.conf");
-				ret_ignored = symlink(filename,
-						      "profile.conf");
-			}
-		}
-		filename = ccs_make_filename("manager", now);
-		if (ccs_save_to_file(CCS_PROC_POLICY_MANAGER, filename)) {
-			if (ccs_identical_file("manager.conf", filename)) {
-				unlink(filename);
-			} else {
-				unlink("manager.conf");
-				ret_ignored = symlink(filename,
-						      "manager.conf");
-			}
-		}
-	}
+	if (ccs_offline_mode && !ccs_readonly_mode)
+		save_offline();
 	ccs_clear_domain_policy(&bp);
 	ccs_clear_domain_policy(&dp);
 	return 0;
