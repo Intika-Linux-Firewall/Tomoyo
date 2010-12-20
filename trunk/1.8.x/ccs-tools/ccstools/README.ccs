@@ -539,9 +539,53 @@ Version 1.7.2 2010/04/01   Minor update release.
 
 Version 1.8.0 2010/11/11   Fifth anniversary release.
 
-    Updated to handle TOMOYO 1.8's syntax.
+  Updated to handle TOMOYO 1.8's syntax.
 
 Version 1.8.0p1 2010/11/22   Bug fix release.
 
   /usr/sbin/ccs-patternize
     The "network " keyword was not printed by error.
+
+Version 1.8.0p2 2010/12/XX   Usability enhancement release.
+
+  Policy file's location has moved from /etc/ccs/ directory to
+  /etc/ccs/policy/YY-MM-DD.hh:mm:ss/ directory. A symlink named "current" which
+  points to YY-MM-DD.hh:mm:ss/ directory is created under /etc/ccs/policy/
+  directory so that users can switch policy files by manipulating only one
+  symlink. Also, a symlink named "previous" which points to previous
+  YY-MM-DD.hh:mm:ss/ directory is created under /etc/ccs/policy/ directory
+  so that users can easily find previous back up. For compatibility and user's
+  convenience, symlinks which point to policy/current/ are created in
+  /etc/ccs/ directory.
+
+  Configuration file for userland programs has moved from
+  /usr/lib/ccs/ccstools.conf to /etc/ccs/tools/ directory.
+
+  /usr/sbin/ccs-patternize
+    Changed syntax and keywords.
+    Added conditional rewriting support.
+    Added leading pathname matching and trailing pathname matching support.
+    Use /etc/ccs/tools/patternize.conf rather than command line arguments.
+    First command line argument was not used by error.
+    The "file getattr" permission was not handled by error.
+
+  /usr/sbin/ccs-auditd
+    Use /proc/ccs/audit rather than /proc/ccs/grant_log and
+    /proc/ccs/reject_log (this change requires updated ccs-patch ).
+    Added conditional auditing support.
+    Use /etc/ccs/tools/auditd.conf rather than command line arguments.
+
+  /usr/sbin/ccs-editpolicy
+    Use /etc/ccs/tools/editpolicy.conf rather than /usr/lib/ccs/ccstools.conf .
+
+  /usr/sbin/ccs-diffpolicy
+    The first argument and the second argument were reversed by error.
+
+  /usr/sbin/ccs-savepolicy
+    Always save domain_policy.conf exception_policy.conf manager.conf and
+    profile.conf under /etc/ccs/policy/YY-MM-DD.hh:mm:ss/ directory.
+    Require one of '-e' '-d' '-p' '-m' '-u' for printing to stdout.
+
+  /usr/lib/ccs/init_policy
+    Create initial policy under /etc/ccs/policy/YY-MM-DD.hh:mm:ss/ directory.
+    Create initial userland configuration under /etc/ccs/tools/ directory.

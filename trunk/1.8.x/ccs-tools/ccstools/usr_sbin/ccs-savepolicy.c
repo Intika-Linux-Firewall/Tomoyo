@@ -63,14 +63,23 @@ static void save_policy(void)
 			exit(1);
 		}
 	}
-	if (chdir(stamp) ||
+	if ((symlink("policy/current/profile.conf", "../profile.conf") &&
+	     errno != EEXIST) ||
+	    (symlink("policy/current/manager.conf", "../manager.conf") &&
+	     errno != EEXIST) ||
+	    (symlink("policy/current/exception_policy.conf",
+		     "../exception_policy.conf") && errno != EEXIST) ||
+	    (symlink("policy/current/domain_policy.conf",
+		     "../domain_policy.conf") && errno != EEXIST) ||
+	    chdir(stamp) ||
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
 				   "exception_policy.conf") ||
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
 				   "domain_policy.conf") ||
-	    chdir("..") || (rename("current", "previous") && errno != ENOENT) ||
+	    chdir("..") ||
+	    (rename("current", "previous") && errno != ENOENT) ||
 	    symlink(stamp, "current")) {
 		fprintf(stderr, "Failed to save policy.\n");
 		exit(1);

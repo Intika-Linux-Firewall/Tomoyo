@@ -508,8 +508,6 @@ static void make_initializers(void)
 	}
 }
 
-#define CCSTOOLS_CONFDIR "tools"
-
 static char *policy_dir = NULL;
 
 static void make_policy_dir(void)
@@ -555,11 +553,11 @@ static void make_policy_dir(void)
 		fprintf(stderr, "OK\n");
 	}
 tools_dir:
-	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR))
+	if (!chdir(policy_dir) && !chdir("tools"))
 		return;
 	fprintf(stderr, "Creating configuration directory... ");
-	mkdir(CCSTOOLS_CONFDIR, 0700);
-	if (!chdir(CCSTOOLS_CONFDIR))
+	mkdir("tools", 0700);
+	if (!chdir("tools"))
 		fprintf(stderr, "OK\n");
 	else {
 		fprintf(stderr, "failed.\n");
@@ -1114,7 +1112,7 @@ static const char editpolicy_data[] =
 static void make_editpolicy_conf(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || chdir(CCSTOOLS_CONFDIR) ||
+	if (chdir(policy_dir) || chdir("tools") ||
 	    !access("editpolicy.conf", R_OK))
 		return;
 	fp = fopen("editpolicy.tmp", "w");
@@ -1125,7 +1123,7 @@ static void make_editpolicy_conf(void)
 	fprintf(stderr, "Creating configuration file for ccs-editpolicy ... ");
 	fprintf(fp, "%s", editpolicy_data);
 	fclose(fp);
-	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR) &&
+	if (!chdir(policy_dir) && !chdir("tools") &&
 	    !chmod("editpolicy.tmp", 0644) &&
 	    !rename("editpolicy.tmp", "editpolicy.conf"))
 		fprintf(stderr, "OK\n");
@@ -1181,7 +1179,7 @@ static const char auditd_data[] =
 static void make_auditd_conf(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || chdir(CCSTOOLS_CONFDIR) ||
+	if (chdir(policy_dir) || chdir("tools") ||
 	    !access("auditd.conf", R_OK))
 		return;
 	fp = fopen("auditd.tmp", "w");
@@ -1192,7 +1190,7 @@ static void make_auditd_conf(void)
 	fprintf(stderr, "Creating configuration file for ccs-auditd ... ");
 	fprintf(fp, "%s", auditd_data);
 	fclose(fp);
-	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR) &&
+	if (!chdir(policy_dir) && !chdir("tools") &&
 	    !chmod("auditd.tmp", 0644) && !rename("auditd.tmp", "auditd.conf"))
 		fprintf(stderr, "OK\n");
 	else
@@ -1295,7 +1293,7 @@ static const char patternize_data[] =
 static void make_patternize_conf(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || chdir(CCSTOOLS_CONFDIR) ||
+	if (chdir(policy_dir) || chdir("tools") ||
 	    !access("patternize.conf", R_OK))
 		return;
 	fp = fopen("patternize.tmp", "w");
@@ -1306,8 +1304,9 @@ static void make_patternize_conf(void)
 	fprintf(stderr, "Creating configuration file for ccs-patternize ... ");
 	fprintf(fp, "%s", patternize_data);
 	fclose(fp);
-	if (!chdir(policy_dir) && !chdir(CCSTOOLS_CONFDIR) &&
-	    !chmod("patternize.tmp", 0644) && !rename("patternize.tmp", "patternize.conf"))
+	if (!chdir(policy_dir) && !chdir("tools") &&
+	    !chmod("patternize.tmp", 0644) &&
+	    !rename("patternize.tmp", "patternize.conf"))
 		fprintf(stderr, "OK\n");
 	else
 		fprintf(stderr, "failed.\n");
