@@ -2421,7 +2421,7 @@ static void save_offline(void)
 			      "exception_policy.conf") ||
 	    !ccs_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
 			      "domain_policy.conf") ||
-	    chdir("..") || rename("current", "previous") ||
+	    chdir("..") || (rename("current", "previous") && errno != ENOENT) ||
 	    symlink(stamp, "current")) {
 		fprintf(stderr, "Failed to save policy.\n");
 		exit(1);

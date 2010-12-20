@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/19
+ * Version: 1.8.0+   2010/12/20
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -192,8 +192,14 @@ int main(int argc, char *argv[])
 			argv[i] = "";
 		}
 	}
-	if (!ccs_network_mode && !ccs_policy_dir)
+	if (!ccs_policy_dir) {
+		if (ccs_network_mode) {
+			fprintf(stderr, "You must specify policy directory "
+				"when using network mode.\n");
+			return 1;
+		}
 		ccs_policy_dir = CCS_DISK_POLICY_DIR;
+	}
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *e = strchr(ptr, 'e');

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/19
+ * Version: 1.8.0+   2010/12/20
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -70,7 +70,7 @@ static void save_policy(void)
 				   "exception_policy.conf") ||
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
 				   "domain_policy.conf") ||
-	    chdir("..") || rename("current", "previous") ||
+	    chdir("..") || (rename("current", "previous") && errno != ENOENT) ||
 	    symlink(stamp, "current")) {
 		fprintf(stderr, "Failed to save policy.\n");
 		exit(1);
@@ -141,8 +141,14 @@ int main(int argc, char *argv[])
 			ccs_cat_file(CCS_PROC_POLICY_MEMINFO);
 		return 0;
 	}
-	if (!ccs_policy_dir)
+	if (!ccs_policy_dir) {
+		if (ccs_network_mode) {
+			fprintf(stderr, "You must specify policy directory "
+				"when using network mode.\n");
+			return 1;
+		}
 		ccs_policy_dir = "/etc/ccs/";
+	}
 	if (chdir(ccs_policy_dir) || chdir("policy/")) {
 		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
 			ccs_policy_dir);
