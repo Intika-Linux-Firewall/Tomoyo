@@ -27,31 +27,31 @@ Examples:
 
  # Replace (e.g.) proc:/self/fd/0 with proc:/self/fd/\\$ .
 
- file_pattern proc:/self/fd/\\$
+ rewrite path_pattern proc:/self/fd/\\$
 
  # Replace (e.g.) proc:/123/status with proc:/\\$/status .
 
- head_pattern proc:/\\$/
+ rewrite head_pattern proc:/\\$/
 
  # Replace (e.g.) dev(8,1):/etc/mtab~456 with dev(8,1):/etc/mtab~\\$ .
 
- tail_pattern /etc/mtab~\\$
+ rewrite tail_pattern /etc/mtab~\\$
 
  # Replace (e.g.) /tmp/phpZjk1k3 with @GROUP1 .
 
- path_group GROUP1 /tmp/php\\?\\?\\?\\?\\?\\?
+ rewrite path_pattern /tmp/php\\?\\?\\?\\?\\?\\? @GROUP1
 
  # Replace integers between 0-100 or 100-200 with @GROUP2 .
 
- number_group GROUP2 0-100
+ rewrite number_pattern 0-100 @GROUP2
 
- number_group GROUP2 100-200
+ rewrite number_pattern 100-200 @GROUP2
 
  # Replace ip addresses 127.0.0.1 or 0:0:0:0:0:0:0:1 with @LOCALHOST .
 
- address_group LOCALHOST 127.0.0.1
+ rewrite address_pattern 127.0.0.1 @LOCALHOST
 
- address_group LOCALHOST 0:0:0:0:0:0:0:1
+ rewrite address_pattern 0:0:0:0:0:0:0:1 @LOCALHOST
 
 EOF
 else

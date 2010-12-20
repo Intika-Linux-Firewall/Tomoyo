@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/19
+ * Version: 1.8.0+   2010/12/20
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -789,6 +789,8 @@ static void make_module_loader(void)
 }
 
 static const char editpolicy_data[] =
+"# This file contains configuration used by ccs-editpolicy command.\n"
+"\n"
 "# Keyword alias. ( directive-name = display-name )\n"
 "keyword_alias acl_group   0                 = acl_group   0\n"
 "keyword_alias acl_group   1                 = acl_group   1\n"
@@ -1132,6 +1134,8 @@ static void make_editpolicy_conf(void)
 }
 
 static const char auditd_data[] =
+"# This file contains sorting rules used by ccs-auditd command.\n"
+"\n"
 "# An audit log consists with three lines. You can refer the first line\n"
 "# using 'header' keyword, the second line using 'domain' keyword, and the\n"
 "# third line using 'acl' keyword.\n"
@@ -1141,16 +1145,17 @@ static const char auditd_data[] =
 "# word of the line. The index starts from 1, and 0 refers the whole line\n"
 "# (i.e. 'header[0]' = 'header', 'domain[0]' = 'domain', 'acl[0]' = 'acl').\n"
 "#\n"
-"# Sorting rules are defined using multi-lined chunks. A chunk is terminated\n"
-"# by a 'destination' line which specifies the pathname to write the audit\n"
-"# log when all preceding conditions in that chunk have matched.\n"
-"# Note that an audit log is written to only first chunk which all\n"
-"# conditions in that chunk have matched.\n"
-"#\n"
 "# Three operators are provided for conditional sorting.\n"
 "# '.contains' is for 'fgrep keyword' match.\n"
 "# '.equals' is for 'grep ^keyword$' match.\n"
 "# '.starts' is for 'grep ^keyword' match.\n"
+"#\n"
+"# Sorting rules are defined using multi-lined chunks. A chunk is terminated\n"
+"# by a 'destination' line which specifies the pathname to write the audit\n"
+"# log. A 'destination' line is processed only when all preceding 'header',\n"
+"# 'domain' and 'acl' lines in that chunk have matched.\n"
+"# Evaluation stops at the first processed 'destination' line.\n"
+"# Therefore, no audit logs are written more than once.\n"
 "\n"
 "# Discard all granted logs.\n"
 "header.contains granted=yes\n"
@@ -1195,6 +1200,38 @@ static void make_auditd_conf(void)
 }
 
 static const char patternize_data[] =
+"# This file contains rewriting rules used by ccs-patternize command.\n"
+"\n"
+"# Domain policy consists with domain declaration lines (which start with\n"
+"# <kernel> ) and acl declaration lines (which do not start with <kernel> ).\n"
+"# You can refer the former using 'domain' keyword and the latter using 'acl'"
+"\n"
+"# keyword.\n"
+"#\n"
+"# Words in each line are separated by a space character. Therefore, you can\n"
+"# use 'domain[index]', 'acl[index]' for referring index'th word of the line."
+"\n"
+"# The index starts from 1, and 0 refers the whole line (i.e.\n"
+"# 'domain[0]' = 'domain', 'acl[0]' = 'acl').\n"
+"#\n"
+"# Three operators are provided for conditional rewriting.\n"
+"# '.contains' is for 'fgrep keyword' match.\n"
+"# '.equals' is for 'grep ^keyword$' match.\n"
+"# '.starts' is for 'grep ^keyword' match.\n"
+"#\n"
+"# Rewriting rules are defined using multi-lined chunks. A chunk is terminated"
+"\n"
+"# by a 'rewrite' line which specifies old pattern and new pattern.\n"
+"# A 'rewrite' line is evaluated only when all preceding 'domain' and 'acl'\n"
+"# lines in that chunk have matched.\n"
+"# Evaluation stops at first 'rewrite' line where a word matched old pattern."
+"\n"
+"# Therefore, no words are rewritten more than once.\n"
+"#\n"
+"# For user's convenience, new pattern can be omitted if old pattern is reused"
+"\n"
+"# for new pattern.\n"
+"\n"
 "# Files on proc filesystem.\n"
 "rewrite path_pattern proc:/self/task/\\$/fdinfo/\\$\n"
 "rewrite path_pattern proc:/self/task/\\$/fd/\\$\n"
