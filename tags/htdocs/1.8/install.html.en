@@ -11,13 +11,15 @@
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 1: Installing TOMOYO Linux kernels and tools.</h1>
 
-<p>This page describes how to install TOMOYO Linux's kernel and userland tools.</p>
+<p>This page describes how to install the TOMOYO Linux kernel and userland tools.</p>
 
 <hr>
 
 <h2>Step 1: Installing kernel</h2>
 
-<p>Install packages needed for compiling kernel and tools.</p>
+<h3>Build requirements</h3>
+
+<p>Install packages required for compiling the kernel and tools:</p>
 
 <table border="1">
 <tr><td>RedHat distributions</td><td>
@@ -28,19 +30,13 @@
 </td></tr>
 </table>
 
-<p>Install packages which should be available for compiling tools. (You can continue even if you can't install these packages.)</p>
+<h3>Obtain Linux kernel source and patch with TOMOYO Linux</h3>
 
-<table border="1">
-<tr><td>RedHat distributions</td><td>
-[root@tomoyo ~]# yum -y install readline-devel help2man
-</td></tr>
-<tr><td>Debian distributions</td><td>
-[root@tomoyo ~]# apt-get -y install libreadline-dev help2man
-</td></tr>
-</table>
-
-<p>Download kernel's source code from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> and extract it and goto the extracted directory.<br>
-Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.36.2 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.36 in the below operations.</p>
+<p>Download kernel source from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>.<br>
+Linux kernel 2.4.30 and later are supported from the linux-2.4 tree.<br>
+Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.<br><br>
+Extract the kernel source and go to the extracted directory.<br>
+In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be replaced with "2.6.36.diff" if using Linux kernel 2.6.36.2</p>
 
 <table border="1">
 <tr><td>
@@ -49,6 +45,13 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 [user@tomoyo ~]$ gpg ccs-patch-1.8.0-20101122.tar.gz.asc<br>
 [user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101122.tar.gz<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
+</td></tr>
+</table>
+
+<h3>Configure kernel</h3>
+
+<table border="1">
+<tr><td>
 [user@tomoyo ~]$ make -s menuconfig
 </td></tr>
 </table>
@@ -68,13 +71,15 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 <li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
 </ul>
 
-<p>If you choose "Compile as loadable kernel module" option, you can minimize file size increment of vmlinux because most part of TOMOYO Linux is compiled as a loadable kernel module. You can choose this option when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
+<p><i>"Compile as loadable kernel module"</i> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
 
-<p>If you choose "Disable by default", TOMOYO Linux is enabled only when ccsecurity=on is passed to the kernel's command line options. If you don't choose this option, TOMOYO Linux is disabled only when ccsecurity=off is passed to the kernel's command line options.</p>
+<p><i>"Disable by default"</i> will enable TOMOYO Linux only when ccsecurity=on is passed to the kernel's command line options. If this option is not selected, ccsecurity=off will disable TOMOYO Linux.</p>
 
-<p>If you choose "Do not modify 'struct task_struct' in order to keep KABI" (available for 2.6 kernels only), TOMOYO Linux will manage per "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel ABI breakage due to changes in "struct task_struct". You can choose this option when you want to apply TOMOYO Linux patch against distributor's kernels without breaking Kernel ABI. But please tolerate that we can't prevent kernel build scripts from printing warning messages because we have to export "struct ccsecurity_operations" to loadable kernel modules in order to allow loadable kernel modules to call TOMOYO's functions.</p>
+<p><i>"Do not modify 'struct task_struct' in order to keep KABI"</i> is available to 2.6 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
 
-<p>After creating a kernel config, compile the kernel.</p>
+<h3>Compile and install kernel</h3>
+
+<p>Once the kernel has been configured, compile and install:</p>
 
 <table border="1">
 <tr><td>
@@ -86,13 +91,24 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 </td></tr>
 </table>
 
-<p>Create initrd if you need.</p>
+<p>Create initrd if required.</p>
 
 <hr>
 
 <h2>Step 2: Installing tools</h2>
 
-<p>To compile tool, run the following commands.</p>
+<p>Install packages recommended (but not required) for compiling the tools:</p>
+
+<table border="1">
+<tr><td>RedHat distributions</td><td>
+[root@tomoyo ~]# yum -y install readline-devel help2man
+</td></tr>
+<tr><td>Debian distributions</td><td>
+[root@tomoyo ~]# apt-get -y install libreadline-dev help2man
+</td></tr>
+</table>
+
+<p>Compile and install the tools:</p>
 
 <table border="1">
 <tr><td>
