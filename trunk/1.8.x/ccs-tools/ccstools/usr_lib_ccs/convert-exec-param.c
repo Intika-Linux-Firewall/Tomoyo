@@ -178,7 +178,7 @@ bad_env:
 		printf("\n\n");
 	}
 	return 0;
- out:
+out:
 	fprintf(stderr, "%d: Broken log entry. Aborted.\n", line);
 	return 1;
 }

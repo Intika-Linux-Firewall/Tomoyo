@@ -402,7 +402,7 @@ static void ccs_check_inet_network_policy(char *data)
 		goto next;
 	if (*data != '@') /* Don't reject address_group. */
 		goto out;
- next:
+next:
 	data = strchr(data, ' ');
 	if (!data)
 		goto out;
@@ -865,7 +865,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
- out:
+out:
 	free(policy);
 	policy = NULL;
 	ccs_line--;

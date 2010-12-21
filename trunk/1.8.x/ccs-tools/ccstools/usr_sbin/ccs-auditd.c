@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 		if (flock(fd, LOCK_EX | LOCK_NB) == EOF)
 			return 0;
 	}
- start:
+start:
 	if (ccs_network_mode)
 		fd_in = ccs_open_stream("proc:audit");
 	else

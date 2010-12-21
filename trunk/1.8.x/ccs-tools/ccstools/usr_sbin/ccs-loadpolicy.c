@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -22,31 +22,36 @@
  */
 #include "ccstools.h"
 
-static void ccs_close_write(FILE *fp)
+static _Bool ccs_close_write(FILE *fp)
 {
+	_Bool result = true;
 	if (ccs_network_mode) {
-		fputc(0, fp);
-		fflush(fp);
-		fgetc(fp);
+		if (fputc(0, fp) == EOF)
+			result = false;
+		if (fflush(fp) == EOF)
+			result = false;
+		if (fgetc(fp) == EOF)
+			result = false;
 	}
-	fclose(fp);
+	if (fclose(fp) == EOF)
+		result = false;
+	return result;
 }
 
-static void ccs_move_file_to_proc(const char *src, const char *dest)
+static _Bool ccs_move_file_to_proc(const char *src, const char *dest)
 {
-	FILE *file_fp = stdin;
+	FILE *file_fp;
 	FILE *proc_fp = ccs_open_write(dest);
+	_Bool result = true;
 	if (!proc_fp) {
-		fprintf(stderr, "Can't open %s\n", dest);
-		return;
+		fprintf(stderr, "Can't open %s for writing.\n", dest);
+		return false;
 	}
-	if (src) {
-		file_fp = fopen(src, "r");
-		if (!file_fp) {
-			fprintf(stderr, "Can't open %s\n", src);
-			fclose(proc_fp);
-			return;
-		}
+	file_fp = src ? fopen(src, "r") : stdin;
+	if (!file_fp) {
+		fprintf(stderr, "Can't open %s for reading.\n", src);
+		fclose(proc_fp);
+		return false;
 	}
 	ccs_get();
 	while (true) {
@@ -54,18 +59,22 @@ static void ccs_move_file_to_proc(const char *src, const char *dest)
 		if (!line)
 			break;
 		if (line[0])
-			fprintf(proc_fp, "%s\n", line);
+			if (fprintf(proc_fp, "%s\n", line) < 0)
+				result = false;
 	}
 	ccs_put();
-	ccs_close_write(proc_fp);
+	if (!ccs_close_write(proc_fp))
+		result = false;
 	if (file_fp != stdin)
 		fclose(file_fp);
+	return result;
 }
 
-static void ccs_delete_proc_policy(const char *name)
+static _Bool ccs_delete_proc_policy(const char *name)
 {
 	FILE *fp_in;
 	FILE *fp_out;
+	_Bool result = false;
 	if (ccs_network_mode) {
 		fp_in = ccs_open_read(name);
 		fp_out = ccs_open_write(name);
@@ -74,32 +83,38 @@ static void ccs_delete_proc_policy(const char *name)
 		fp_out = fopen(name, "w");
 	}
 	if (!fp_in || !fp_out) {
-		fprintf(stderr, "Can't open %s\n", name);
+		fprintf(stderr, "Can't open %s for reading and writing.\n",
+			name);
 		if (fp_in)
 			fclose(fp_in);
 		if (fp_out)
 			fclose(fp_out);
-		return;
+		return false;
 	}
 	ccs_get();
 	while (true) {
 		char *line = ccs_freadline(fp_in);
 		if (!line)
 			break;
-		fprintf(fp_out, "delete %s\n", line);
+		if (fprintf(fp_out, "delete %s\n", line) < 0)
+			result = false;
 	}
 	ccs_put();
-	fclose(fp_in);
-	ccs_close_write(fp_out);
+	if (fclose(fp_in))
+		result = false;
+	if (!ccs_close_write(fp_out))
+		result = false;
+	return result;
 }
 
-static void ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
-				     struct ccs_domain_policy *file_policy,
-				     const char *src, const char *dest)
+static _Bool ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
+				      struct ccs_domain_policy *file_policy,
+				      const char *src, const char *dest)
 {
 	int file_index;
 	int proc_index;
 	FILE *proc_fp;
+	_Bool result = true;
 	_Bool nm = ccs_network_mode;
 	/* Load disk policy to file_policy->list. */
 	ccs_network_mode = false;
@@ -109,10 +124,11 @@ static void ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 	ccs_read_domain_policy(proc_policy, dest);
 	proc_fp = ccs_open_write(dest);
 	if (!proc_fp) {
-		fprintf(stderr, "Can't open %s\n", dest);
-		return;
+		fprintf(stderr, "Can't open %s for writing.\n", dest);
+		return false;
 	}
-	for (file_index = 0; file_index < file_policy->list_len; file_index++) {
+	for (file_index = 0; file_index < file_policy->list_len;
+	     file_index++) {
 		int i;
 		int j;
 		const struct ccs_path_info *domainname
@@ -124,7 +140,8 @@ static void ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 		const struct ccs_path_info **proc_string_ptr;
 		int proc_string_count;
 		proc_index = ccs_find_domain_by_ptr(proc_policy, domainname);
-		fprintf(proc_fp, "%s\n", domainname->name);
+		if (fprintf(proc_fp, "%s\n", domainname->name) < 0)
+			result = false;
 		if (proc_index == EOF)
 			goto not_found;
 
@@ -139,24 +156,33 @@ static void ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 			/* Delete this entry from proc policy if not found
 			   in disk policy. */
 			if (i == file_string_count)
-				fprintf(proc_fp, "delete %s\n",
-					proc_string_ptr[j]->name);
+				if (fprintf(proc_fp, "delete %s\n",
+					    proc_string_ptr[j]->name) < 0)
+					result = false;
 		}
 		ccs_delete_domain(proc_policy, proc_index);
 not_found:
 		/* Append entries defined in disk policy. */
 		for (i = 0; i < file_string_count; i++)
-			fprintf(proc_fp, "%s\n", file_string_ptr[i]->name);
+			if (fprintf(proc_fp, "%s\n", file_string_ptr[i]->name)
+			    < 0)
+				result = false;
 		if (file_policy->list[file_index].profile_assigned)
-			fprintf(proc_fp, "use_profile %u\n",
-				file_policy->list[file_index].profile);
+			if (fprintf(proc_fp, "use_profile %u\n",
+				    file_policy->list[file_index].profile)
+			    < 0)
+				result = false;
 	}
 	/* Delete all domains that are not defined in disk policy. */
-	for (proc_index = 0; proc_index < proc_policy->list_len; proc_index++) {
-		fprintf(proc_fp, "delete %s\n",
-			proc_policy->list[proc_index].domainname->name);
-	}
-	ccs_close_write(proc_fp);
+	for (proc_index = 0; proc_index < proc_policy->list_len;
+	     proc_index++)
+		if (fprintf(proc_fp, "delete %s\n",
+			    proc_policy->list[proc_index].domainname->name)
+		    < 0)
+			result = false;
+	if (!ccs_close_write(proc_fp))
+		result = false;
+	return result;
 }
 
 int main(int argc, char *argv[])
@@ -164,158 +190,153 @@ int main(int argc, char *argv[])
 	struct ccs_domain_policy proc_policy = { NULL, 0, NULL };
 	struct ccs_domain_policy file_policy = { NULL, 0, NULL };
 	_Bool read_from_stdin = false;
-	int load_profile = 0;
-	int load_manager = 0;
-	int load_exception_policy = 0;
-	int load_domain_policy = 0;
-	int load_meminfo = 0;
 	_Bool refresh_policy = false;
+	_Bool result = true;
+	char target = 0;
 	int i;
 	const char *ccs_policy_dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
 		if (*ptr == '/') {
-			if (ccs_policy_dir)
+			if (ccs_policy_dir) {
+				fprintf(stderr, "You cannot specify multiple "
+					"%s at the same time.\n\n",
+					"policy directories");
 				goto usage;
+			}
 			ccs_policy_dir = ptr;
-			argv[i] = "";
 		} else if (cp) {
 			*cp++ = '\0';
 			ccs_network_ip = inet_addr(ptr);
 			ccs_network_port = htons(atoi(cp));
-			if (ccs_network_mode)
+			if (ccs_network_mode) {
+				fprintf(stderr, "You cannot specify multiple "
+					"%s at the same time.\n\n",
+					"remote agents");
 				goto usage;
+			}
 			ccs_network_mode = true;
-			if (!ccs_check_remote_host())
-				return 1;
-			argv[i] = "";
+		} else {
+			if (target) {
+				fprintf(stderr, "You cannot specify multiple "
+					"%s at the same time.\n\n",
+					"policies");
+				goto usage;
+			}
+			if (*ptr == '-') {
+				ptr++;
+				read_from_stdin = true;
+			}
+			target = *ptr++;
+			if (target != 'e' && target != 'd' && target != 'p' &&
+			    target != 'm' && target != 'u')
+				goto usage;
+			if (*ptr) {
+				if ((target != 'e' && target != 'd') ||
+				    strcmp(ptr, "f"))
+					goto usage;
+				refresh_policy = true;
+			}
 		}
+	}
+	if (!target) {
+		fprintf(stderr, "You need to specify %s.\n\n",
+			"policy to load");
+		goto usage;
 	}
 	if (!ccs_policy_dir) {
-		if (ccs_network_mode) {
-			fprintf(stderr, "You must specify policy directory "
-				"when using network mode.\n");
-			return 1;
-		}
-		ccs_policy_dir = CCS_DISK_POLICY_DIR;
-	}
-	for (i = 1; i < argc; i++) {
-		char *ptr = argv[i];
-		char *e = strchr(ptr, 'e');
-		char *d = strchr(ptr, 'd');
-		char *a = strchr(ptr, 'a');
-		char *f = strchr(ptr, 'f');
-		char *p = strchr(ptr, 'p');
-		char *m = strchr(ptr, 'm');
-		char *u = strchr(ptr, 'u');
-		char *i = strchr(ptr, '-');
-		if (e || a)
-			load_exception_policy = 1;
-		if (d || a)
-			load_domain_policy = 1;
-		if (p)
-			load_profile = 1;
-		if (m)
-			load_manager = 1;
-		if (u)
-			load_meminfo = 1;
-		if (f)
-			refresh_policy = true;
-		if (i)
-			read_from_stdin = true;
-		if (strcspn(ptr, "edafpmu-"))
+		if (ccs_network_mode && !read_from_stdin) {
+			fprintf(stderr, "You need to specify %s.\n\n",
+				"policy directory");
 			goto usage;
+		}
+		ccs_policy_dir = "/etc/ccs/";
 	}
-	if (!ccs_network_mode && access(CCS_PROC_POLICY_DIR, F_OK)) {
+	if (ccs_network_mode) {
+		if (!ccs_check_remote_host())
+			return 1;
+	} else if (access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
-		return 0;
-	}
-	if (!read_from_stdin && !ccs_policy_dir)
-		goto usage;
-	if (read_from_stdin &&
-	    load_exception_policy + load_domain_policy +
-	    load_profile + load_manager + load_meminfo != 1)
-		goto usage;
-	if (load_exception_policy +
-	    load_domain_policy + load_profile + load_manager +
-	    load_meminfo == 0)
-		goto usage;
-	if (!read_from_stdin && chdir(ccs_policy_dir)) {
-		printf("Directory %s doesn't exist.\n", ccs_policy_dir);
 		return 1;
 	}
-
-	if (load_profile) {
-		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_PROFILE);
-		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_PROFILE,
-					      CCS_PROC_POLICY_PROFILE);
+	if (!read_from_stdin && chdir(ccs_policy_dir)) {
+		fprintf(stderr, "Directory %s doesn't exist.\n",
+			ccs_policy_dir);
+		return 1;
 	}
-	
-	if (load_manager) {
-		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_MANAGER);
-		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_MANAGER,
-					      CCS_PROC_POLICY_MANAGER);
-	}
-	
-	if (load_meminfo) {
-		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_MEMINFO);
-		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_MEMINFO,
-					      CCS_PROC_POLICY_MEMINFO);
-	}
-
-	if (load_exception_policy) {
+	switch (target) {
+	case 'p':
+		result = ccs_move_file_to_proc
+			(read_from_stdin ? NULL : "profile.conf",
+			 CCS_PROC_POLICY_PROFILE);
+		break;
+	case 'm':
+		result = ccs_move_file_to_proc
+			(read_from_stdin ? NULL : "manager.conf",
+			 CCS_PROC_POLICY_MANAGER);
+		break;
+	case 'u':
+		result = ccs_move_file_to_proc
+			(read_from_stdin ? NULL : "meminfo.conf",
+			 CCS_PROC_POLICY_MEMINFO);
+		break;
+	case 'e':
 		if (refresh_policy)
-			ccs_delete_proc_policy(CCS_PROC_POLICY_EXCEPTION_POLICY);
-		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_EXCEPTION_POLICY);
-		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_EXCEPTION_POLICY,
-					      CCS_PROC_POLICY_EXCEPTION_POLICY);
-	}
-	
-	if (load_domain_policy) {
-		if (refresh_policy) {
-			if (read_from_stdin)
-				ccs_update_domain_policy(&proc_policy, &file_policy,
-							 NULL,
-							 CCS_PROC_POLICY_DOMAIN_POLICY);
-			else
-				ccs_update_domain_policy(&proc_policy, &file_policy,
-							 CCS_DISK_POLICY_DOMAIN_POLICY,
-							 CCS_PROC_POLICY_DOMAIN_POLICY);
-			ccs_clear_domain_policy(&proc_policy);
-			ccs_clear_domain_policy(&file_policy);
-		} else {
-			if (read_from_stdin)
-				ccs_move_file_to_proc(NULL,
-						      CCS_PROC_POLICY_DOMAIN_POLICY);
-			else
-				ccs_move_file_to_proc(CCS_DISK_POLICY_DOMAIN_POLICY,
-						      CCS_PROC_POLICY_DOMAIN_POLICY);
+			result = ccs_delete_proc_policy
+				(CCS_PROC_POLICY_EXCEPTION_POLICY);
+		result = ccs_move_file_to_proc
+			(read_from_stdin ? NULL : "exception_policy.conf",
+			 CCS_PROC_POLICY_EXCEPTION_POLICY);
+		break;
+	case 'd':
+		if (!refresh_policy) {
+			result = ccs_move_file_to_proc
+				(read_from_stdin ? NULL : "domain_policy.conf",
+				 CCS_PROC_POLICY_DOMAIN_POLICY);
+			break;
 		}
+		result = ccs_update_domain_policy
+			(&proc_policy, &file_policy, read_from_stdin ? NULL :
+			 "domain_policy.conf", CCS_PROC_POLICY_DOMAIN_POLICY);
+		ccs_clear_domain_policy(&proc_policy);
+		ccs_clear_domain_policy(&file_policy);
+		break;
 	}
-	return 0;
+	return !result;
 usage:
-	printf("%s [e][d][a][f][p][m][u] [{-|policy_dir} "
-	       "[remote_ip:remote_port]]\n"
-	       "e : Load exception_policy.\n"
-	       "d : Load domain_policy.\n"
-	       "a : Load exception_policy,domain_policy.\n"
-	       "p : Load profile.\n"
-	       "m : Load manager.\n"
-	       "u : Load meminfo.\n"
-	       "- : Read policy from stdin. "
-	       "(Only one of 'edpmu' is possible when using '-'.)\n"
-	       "f : Delete on-memory policy before loading on-disk policy. "
-	       "(Valid for 'ed'.)\n\n",
-	       argv[0]);
-	return 0;
+	printf("%s {e|ef|d|df|p|m|u} [policy_dir [remote_ip:remote_port]]\n"
+	       "%s {-e|-ef|-d|-df|-p|-m|-u} [remote_ip:remote_port]\n\n"
+	       " e  : Read from policy_dir/exception_policy.conf and append "
+	       "to /proc/ccs/exception_policy .\n"
+	       " ef : Read from policy_dir/exception_policy.conf and "
+	       "overwrite /proc/ccs/exception_policy .\n"
+	       " d  : Read from policy_dir/domain_policy.conf and append to "
+	       "/proc/ccs/domain_policy .\n"
+	       " df : Read from policy_dir/domain_policy.conf and overwrite "
+	       "/proc/ccs/domain_policy .\n"
+	       " p  : Read from policy_dir/profile.conf and append to "
+	       "/proc/ccs/profile .\n"
+	       " m  : Read from policy_dir/manager.conf and append to "
+	       "/proc/ccs/manager .\n"
+	       " u  : Read from policy_dir/meminfo.conf and append to "
+	       "/proc/ccs/meminfo .\n"
+	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
+	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
+	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+	       "directory.\n"
+	       "-e  : Read from stdin and append to "
+	       "/proc/ccs/exception_policy .\n"
+	       "-ef : Read from stdin and overwrite "
+	       "/proc/ccs/exception_policy .\n"
+	       "-d  : Read from stdin and append to /proc/ccs/domain_policy "
+	       ".\n"
+	       "-df : Read from stdin and overwrite /proc/ccs/domain_policy "
+	       ".\n"
+	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
+	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
+	       "-u  : Read from stdin and append to /proc/ccs/meminfo .\n",
+	       argv[0], argv[0]);
+	return 1;
 }

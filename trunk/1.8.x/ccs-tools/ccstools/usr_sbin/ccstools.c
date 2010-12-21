@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -49,8 +49,6 @@ static _Bool ccs_decimal(const char c);
 static _Bool ccs_hexadecimal(const char c);
 static _Bool ccs_alphabet_char(const char c);
 static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
-static inline unsigned long ccs_partial_name_hash(unsigned long c, unsigned long prevhash);
-static inline unsigned int ccs_full_name_hash(const unsigned char *name, unsigned int len);
 static void *ccs_alloc_element(const unsigned int size);
 static int ccs_const_part_length(const char *filename);
 static int ccs_domainname_compare(const void *a, const void *b);
@@ -122,6 +120,7 @@ void ccs_normalize_line(unsigned char *line)
 	*dp = '\0';
 }
 
+/* No longer used. */
 char *ccs_make_filename(const char *prefix, const time_t time)
 {
 	struct tm *tm = localtime(&time);
@@ -344,7 +343,7 @@ static _Bool ccs_correct_word2(const char *string, size_t len)
 	if (in_repetition)
 		goto out;
 	return true;
- out:
+out:
 	return false;
 }
 
@@ -378,13 +377,14 @@ _Bool ccs_correct_domain(const unsigned char *domainname)
 		domainname = cp + 1;
 	}
 	return ccs_correct_path(domainname);
- out:
+out:
 	return false;
 }
 
 static _Bool ccs_file_matches_pattern2(const char *filename,
 				       const char *filename_end,
-				       const char *pattern, const char *pattern_end)
+				       const char *pattern,
+				       const char *pattern_end)
 {
 	while (filename < filename_end && pattern < pattern_end) {
 		char c;
@@ -493,7 +493,8 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 
 static _Bool ccs_file_matches_pattern(const char *filename,
 				      const char *filename_end,
-				      const char *pattern, const char *pattern_end)
+				      const char *pattern,
+				      const char *pattern_end)
 {
 	const char *pattern_start = pattern;
 	_Bool first = true;
@@ -543,7 +544,7 @@ static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
 	       (*(p + 1) == '*' || *(p + 1) == '@'))
 		p += 2;
 	return !*f && !*p;
- recursive:
+recursive:
 	/*
 	 * The "\{" pattern is permitted only after '/' character.
 	 * This guarantees that below "*(p - 1)" is safe.
@@ -936,7 +937,8 @@ void ccs_read_process_list(_Bool show_all)
 	}
 	ccs_dump_index = 0;
 	if (ccs_network_mode) {
-		FILE *fp = ccs_open_write(show_all ? "proc:all_process_status" :
+		FILE *fp = ccs_open_write(show_all ?
+					  "proc:all_process_status" :
 					  "proc:process_status");
 		if (!fp)
 			return;
@@ -1043,14 +1045,16 @@ void ccs_read_process_list(_Bool show_all)
 				domain = strdup("<UNKNOWN>");
 			if (!domain)
 				ccs_out_of_memory();
-			ccs_task_list = realloc(ccs_task_list, (ccs_task_list_len + 1) *
+			ccs_task_list = realloc(ccs_task_list,
+						(ccs_task_list_len + 1) *
 						sizeof(struct ccs_task_entry));
 			if (!ccs_task_list)
 				ccs_out_of_memory();
 			memset(&ccs_task_list[ccs_task_list_len], 0,
 			       sizeof(ccs_task_list[0]));
 			ccs_task_list[ccs_task_list_len].pid = pid;
-			ccs_task_list[ccs_task_list_len].ppid = ccs_get_ppid(pid);
+			ccs_task_list[ccs_task_list_len].ppid =
+				ccs_get_ppid(pid);
 			ccs_task_list[ccs_task_list_len].profile = profile;
 			ccs_task_list[ccs_task_list_len].name = name;
 			ccs_task_list[ccs_task_list_len].domain = domain;
@@ -1118,35 +1122,36 @@ FILE *ccs_open_read(const char *filename)
 
 _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 {
-	FILE *proc_fp;
-	FILE *file_fp = stdout;
-	proc_fp = ccs_open_read(src);
+	FILE *proc_fp = ccs_open_read(src);
+	FILE *file_fp;
+	_Bool result = true;
 	if (!proc_fp) {
-		fprintf(stderr, "Can't open %s\n", src);
+		fprintf(stderr, "Can't open %s for reading.\n", src);
 		return false;
 	}
-	if (dest) {
-		file_fp = fopen(dest, "w");
-		if (!file_fp) {
-			fprintf(stderr, "Can't open %s\n", dest);
-			fclose(proc_fp);
-			return false;
-		}
+	file_fp = dest ? fopen(dest, "w") : stdout;
+	if (!file_fp) {
+		fprintf(stderr, "Can't open %s for writing.\n", dest);
+		fclose(proc_fp);
+		return false;
 	}
 	while (true) {
-		int c = fgetc(proc_fp);
+		const int c = fgetc(proc_fp);
 		if (ccs_network_mode && !c)
 			break;
 		if (c == EOF)
 			break;
-		fputc(c, file_fp);
+		if (fputc(c, file_fp) == EOF)
+			result = false;
 	}
 	fclose(proc_fp);
 	if (file_fp != stdout)
-		fclose(file_fp);
-	return true;
+		if (fclose(file_fp) == EOF)
+			result = false;
+	return result;
 }
 
+/* No longer used. */
 _Bool ccs_identical_file(const char *file1, const char *file2)
 {
 	char buffer1[4096];
@@ -1201,7 +1206,8 @@ int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
 	return EOF;
 }
 
-const char *ccs_domain_name(const struct ccs_domain_policy *dp, const int index)
+const char *ccs_domain_name(const struct ccs_domain_policy *dp,
+			    const int index)
 {
 	return dp->list[index].domainname->name;
 }
@@ -1357,7 +1363,8 @@ int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	return -ENOENT;
 }
 
-void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_write)
+void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
+			      _Bool is_write)
 {
 	int i;
 	int index = EOF;
@@ -1377,14 +1384,16 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_w
 		ccs_str_starts(line, "domain=");
 		if (ccs_domain_def(line)) {
 			if (is_delete) {
-				index = ccs_find_domain(dp, line, false, false);
+				index = ccs_find_domain(dp, line, false,
+							false);
 				if (index >= 0)
 					ccs_delete_domain(dp, index);
 				index = EOF;
 				continue;
 			}
 			if (is_select) {
-				index = ccs_find_domain(dp, line, false, false);
+				index = ccs_find_domain(dp, line, false,
+							false);
 				continue;
 			}
 			index = ccs_assign_domain(dp, line, false, false);

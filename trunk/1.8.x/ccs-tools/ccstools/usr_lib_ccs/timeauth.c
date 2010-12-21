@@ -210,11 +210,11 @@ static void make_mode(const char *argv0)
 		"If you typed the same password for three times with "
 		"appropriate interval, the script will be printed to "
 		"stdout.\n\n");
- retry3:
+retry3:
 	fprintf(stderr, "Press Enter to start.");
 	getchar();
 	trial = 0;
- retry:
+retry:
 	switch (trial) {
 	case 0:
 		fprintf(stderr, "RECORD %d: Enter password with acceptable "
@@ -337,12 +337,13 @@ static void make_mode(const char *argv0)
 				printf("\\%03o ", c);
 		}
 		printf("\n");
-		printf(SINGLE_FAILURE_MESSAGE   "%s\n", single_failure_message);
+		printf(SINGLE_FAILURE_MESSAGE   "%s\n",
+		       single_failure_message);
 		printf(COMPLETE_FAILURE_MESSAGE "%s\n",
 		       complete_failure_message);
 	}
 	return;
- out:
+out:
 	tcsetattr(0, TCSANOW, &tp0);
 	fprintf(stderr, "Oops! You didn't hit the same key. Restarting this "
 		"trial.\n");
@@ -510,7 +511,8 @@ static int do_auth(void)
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2 || !strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")) {
+	if (argc != 2 ||
+	    !strcmp(argv[1], "--help") || !strcmp(argv[1], "-h")) {
 		show_help(argv[0]);
 		return 1;
 	}
