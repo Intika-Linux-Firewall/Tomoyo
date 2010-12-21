@@ -39,7 +39,7 @@
 
 <h2>Step 2: Learning how to use the policy editor</h2>
 
-<p>Run TOMOYO Linux's policy editor  with "/etc/ccs/" option, and you will see a picture shown below.</p>
+<p>Run TOMOYO Linux's policy editor  with "/etc/ccs/" option to edit policy files within "/etc/ccs/":</p>
 
 <table border="1">
 <tr><td>
@@ -47,15 +47,20 @@
 </td></tr>
 </table>
 
-<p>This picture describes the domain tree. As of now, only "&lt;kernel&gt;" domain is defined:</p>
+<p>This picture describes the domain tree that should be visible after running the above command. As of now, only "&lt;kernel&gt;" domain is defined:</p>
 
 <p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
 
-<p>As the system runs, TOMOYO Linux will create domains and add them to the tree. After rebooting and loading ccs-editpolicy again, the domain tree should become populated with all domains created since startup:</p>
+<p>As the system runs, TOMOYO Linux will create domains and add them to the tree. After rebooting and running ccs-editpolicy again, the domain tree should become populated with all domains created since startup:</p>
 
 <p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
 
-<p>The access analysis/restriction in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and the process will transit to a different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history. For example, the name of domain which the kernel belongs to is "&lt;kernel&gt;", the name of domain which /sbin/init invoked by the kernel belongs to is "&lt;kernel&gt; /sbin/init", the name of domain which /etc/rc.d/rc invoked by the /sbin/init belongs to is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc". The exceptions of this transition rule are described later.</p>
+<p>The access analysis/restriction in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and the process will transit to a different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history.</p>
+
+<p>For example, the domain name that the kernel belongs to is <b>"&lt;kernel&gt;"</b>.<br>
+When the kernel invokes "/sbin/init", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init"</b>.<br>
+When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init /etc/rc.d/rc"</b>.<br>
+The exceptions to this transition rule are described later.</p>
 
 <p>Look at the numbers in the second column of each line:</p>
 
@@ -69,7 +74,7 @@
 
 <p>Press "p" key, and you will see the list of profiles.</p>
 
-<p>If "--file-only-profile" as specified when executing /usr/lib/ccs/init_policy then you will see the following entries:</p>
+<p>If "--file-only-profile" was specified when executing /usr/lib/ccs/init_policy then you will see the following entries:</p>
 
 <p><img src="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
 
@@ -171,7 +176,7 @@
 
 <p>TOMOYO Linux can record "access granted logs" (access requests that did not violate domain policy) and "access rejected logs" (access requests that violated domain policy).</p>
 
-<p>The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider you should allow the access.</p>
+<p>The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider that access should be allowed.</p>
 
 <p>The following values can be given for the grant_log= parameter of the CONFIG line:</p>
 <table border="1">
@@ -204,7 +209,7 @@
 </tr>
 </table>
 
-<p>A daemon program can be used to read from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to files. For example, run the following from /etc/rc.local:</p>
+<p>"/usr/sbin/ccs-auditd is a daemon program that can be used to read from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to files. For example, run the following from /etc/rc.local:</p>
 
 <table border="1">
 <tr><td>
