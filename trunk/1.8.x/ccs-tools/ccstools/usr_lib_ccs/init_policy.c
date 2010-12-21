@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -737,24 +737,24 @@ static void make_domain_policy(void)
 		fprintf(stderr, "failed.\n");
 }
 
-static void make_meminfo(void)
+static void make_stat(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || !access("meminfo.conf", R_OK))
+	if (chdir(policy_dir) || !access("stat.conf", R_OK))
 		return;
-	fp = fopen("meminfo.tmp", "w");
+	fp = fopen("stat.tmp", "w");
 	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create meminfo policy.\n");
+		fprintf(stderr, "ERROR: Can't create stat policy.\n");
 		return;
 	}
-	fprintf(stderr, "Creating memory quota policy... ");
+	fprintf(stderr, "Creating stat policy... ");
 	fprintf(fp, "# Memory quota (byte). 0 means no quota.\n");
-	fprintf(fp, "Policy:            0\n");
-	fprintf(fp, "Audit logs: 16777216\n");
-	fprintf(fp, "Query lists: 1048576\n");
+	fprintf(fp, "Memory used by policy:               0\n");
+	fprintf(fp, "Memory used by audit log:     16777216\n");
+	fprintf(fp, "Memory used by query message:  1048576\n");
 	fclose(fp);
 	if (!chdir(policy_dir) &&
-	    !rename("meminfo.tmp", "meminfo.conf"))
+	    !rename("stat.tmp", "stat.conf"))
 		fprintf(stderr, "OK\n");
 	else
 		fprintf(stderr, "failed.\n");
@@ -1104,8 +1104,8 @@ static const char editpolicy_data[] =
 "line_color EXCEPTION_HEAD   = 06\n"
 "line_color MANAGER_CURSOR   = 72\n"
 "line_color MANAGER_HEAD     = 72\n"
-"line_color MEMORY_CURSOR    = 03\n"
-"line_color MEMORY_HEAD      = 03\n"
+"line_color STAT_CURSOR      = 03\n"
+"line_color STAT_HEAD        = 03\n"
 "line_color PROFILE_CURSOR   = 71\n"
 "line_color PROFILE_HEAD     = 71\n";
 	
@@ -1360,7 +1360,7 @@ int main(int argc, char *argv[])
 	make_domain_policy();
 	make_manager();
 	make_profile();
-	make_meminfo();
+	make_stat();
 	make_module_loader();
 	make_editpolicy_conf();
 	make_auditd_conf();

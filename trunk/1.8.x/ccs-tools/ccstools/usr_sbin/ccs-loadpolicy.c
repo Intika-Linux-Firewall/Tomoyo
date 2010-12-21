@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 			}
 			target = *ptr++;
 			if (target != 'e' && target != 'd' && target != 'p' &&
-			    target != 'm' && target != 'u')
+			    target != 'm' && target != 's')
 				goto usage;
 			if (*ptr) {
 				if ((target != 'e' && target != 'd') ||
@@ -277,10 +277,10 @@ int main(int argc, char *argv[])
 			(read_from_stdin ? NULL : "manager.conf",
 			 CCS_PROC_POLICY_MANAGER);
 		break;
-	case 'u':
+	case 's':
 		result = ccs_move_file_to_proc
-			(read_from_stdin ? NULL : "meminfo.conf",
-			 CCS_PROC_POLICY_MEMINFO);
+			(read_from_stdin ? NULL : "stat.conf",
+			 CCS_PROC_POLICY_STAT);
 		break;
 	case 'e':
 		if (refresh_policy)
@@ -306,8 +306,8 @@ int main(int argc, char *argv[])
 	}
 	return !result;
 usage:
-	printf("%s {e|ef|d|df|p|m|u} [policy_dir [remote_ip:remote_port]]\n"
-	       "%s {-e|-ef|-d|-df|-p|-m|-u} [remote_ip:remote_port]\n\n"
+	printf("%s {e|ef|d|df|p|m|s} [policy_dir [remote_ip:remote_port]]\n"
+	       "%s {-e|-ef|-d|-df|-p|-m|-s} [remote_ip:remote_port]\n\n"
 	       " e  : Read from policy_dir/exception_policy.conf and append "
 	       "to /proc/ccs/exception_policy .\n"
 	       " ef : Read from policy_dir/exception_policy.conf and "
@@ -320,8 +320,8 @@ usage:
 	       "/proc/ccs/profile .\n"
 	       " m  : Read from policy_dir/manager.conf and append to "
 	       "/proc/ccs/manager .\n"
-	       " u  : Read from policy_dir/meminfo.conf and append to "
-	       "/proc/ccs/meminfo .\n"
+	       " s  : Read from policy_dir/stat.conf and append to "
+	       "/proc/ccs/stat .\n"
 	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
 	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
 	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
@@ -336,7 +336,7 @@ usage:
 	       ".\n"
 	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
 	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
-	       "-u  : Read from stdin and append to /proc/ccs/meminfo .\n",
+	       "-s  : Read from stdin and append to /proc/ccs/stat .\n",
 	       argv[0], argv[0]);
 	return 1;
 }

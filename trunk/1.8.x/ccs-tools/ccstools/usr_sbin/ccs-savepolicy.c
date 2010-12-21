@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 		} else if (*ptr++ == '-' && !target) {
 			target = *ptr++;
 			if (target != 'e' && target != 'd' && target != 'p' &&
-			    target != 'm' && target != 'u')
+			    target != 'm' && target != 's')
 				goto usage;
 			if (*ptr || ccs_policy_dir) {
 				fprintf(stderr, "You cannot specify multiple "
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 			file = CCS_PROC_POLICY_DOMAIN_POLICY;
 			break;
 		default:
-			file = CCS_PROC_POLICY_MEMINFO;
+			file = CCS_PROC_POLICY_STAT;
 			break;
 		}
 		return !ccs_cat_file(file);
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 	return !ccs_save_policy();
 usage:
 	printf("%s [policy_dir [remote_ip:remote_port]]\n"
-	       "%s [{-e|-d|-p|-m|-u} [remote_ip:remote_port]]\n\n"
+	       "%s [{-e|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"
 	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
 	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
 	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
@@ -183,7 +183,7 @@ usage:
 	       "-d : Print /proc/ccs/domain_policy to stdout.\n"
 	       "-p : Print /proc/ccs/profile to stdout.\n"
 	       "-m : Print /proc/ccs/manager to stdout.\n"
-	       "-u : Print /proc/ccs/meminfo to stdout.\n",
+	       "-s : Print /proc/ccs/stat to stdout.\n",
 	       argv[0], argv[0]);
 	return 1;
 }

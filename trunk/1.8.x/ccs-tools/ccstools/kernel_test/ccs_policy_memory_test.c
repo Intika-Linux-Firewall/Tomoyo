@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/21
  *
  * Usage: Run this program using init= boot option.
  *
@@ -39,9 +39,15 @@ static const char *policy = NULL;
 
 static void get_meminfo(unsigned int *policy_memory)
 {
-	FILE *fp = fopen("/proc/ccs/meminfo", "r");
-	if (!fp || fscanf(fp, "Policy: %u", policy_memory) != 1 || fclose(fp))
-		BUG("BUG: Policy read error\n");
+	static char buf[1024];
+	FILE *fp = fopen("/proc/ccs/stat", "r");
+	while (memset(buf, 0, sizeof(buf)), fp && fgets(buf, sizeof(buf) - 1, fp)) {
+		if (sscanf(buf, "Memory used by policy: %u", policy_memory) != 1)
+			continue;
+		fclose(fp);
+		return;
+	}
+	BUG("BUG: Policy read error\n");
 }
 
 static void check_policy_common(const int found_expected, const int id)

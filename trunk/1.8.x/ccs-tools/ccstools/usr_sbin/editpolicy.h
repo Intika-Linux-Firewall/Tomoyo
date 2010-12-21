@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -30,7 +30,7 @@ enum ccs_screen_type {
 	CCS_SCREEN_PROFILE_LIST,
 	CCS_SCREEN_MANAGER_LIST,
 	CCS_SCREEN_QUERY_LIST,
-	CCS_SCREEN_MEMINFO_LIST,
+	CCS_SCREEN_STAT_LIST,
 	CCS_MAXSCREEN
 };
 
@@ -401,8 +401,8 @@ enum ccs_color_pair {
 	CCS_PROFILE_CURSOR,
 	CCS_MANAGER_HEAD,
 	CCS_MANAGER_CURSOR,
-	CCS_MEMORY_HEAD,
-	CCS_MEMORY_CURSOR,
+	CCS_STAT_HEAD,
+	CCS_STAT_CURSOR,
 	CCS_DISP_ERR
 };
 

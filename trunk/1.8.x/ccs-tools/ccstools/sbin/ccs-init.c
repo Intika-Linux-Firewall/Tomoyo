@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -53,7 +53,7 @@ static void panic(void)
 #define proc_exception_policy "/proc/ccs/exception_policy"
 #define proc_domain_policy    "/proc/ccs/domain_policy"
 #define proc_profile          "/proc/ccs/profile"
-#define proc_meminfo          "/proc/ccs/meminfo"
+#define proc_stat             "/proc/ccs/stat"
 static const char *profile_name = "default";
 static _Bool ccs_noload = 0;
 static _Bool proc_unmount = 0;
@@ -254,7 +254,7 @@ static void show_domain_usage(void)
 
 static void show_memory_usage(void)
 {
-	FILE *fp = fopen(proc_meminfo, "r");
+	FILE *fp = fopen(proc_stat, "r");
 	if (!fp)
 		return;
 	while (memset(buffer, 0, sizeof(buffer)),
@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
 			copy_files("profile.conf", proc_profile);
 		else if (strcmp(profile_name, "disable"))
 			copy_files(profile_name, proc_profile);
-		copy_files("meminfo.conf", proc_meminfo);
+		copy_files("stat.conf", proc_stat);
 	}
 
 	/* Use disabled mode? */

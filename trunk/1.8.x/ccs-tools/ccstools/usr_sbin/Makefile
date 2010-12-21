@@ -14,8 +14,8 @@ ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h
 	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L. || ln -f dummy ccs-queryd
 
 libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.0
-	ln -sf libccstools.so.1.0.0 libccstools.so
+	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.1
+	ln -sf libccstools.so.1.0.1 libccstools.so
 
 .c:
 	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
@@ -23,8 +23,8 @@ libccstools.so: ccstools.c ccstools.h
 install: all
 	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
 	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/usr/sbin/
-	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/
-	ln -sf libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/libccstools.so.1
+	cp -ad --remove-destination libccstools.so.1.0.1 $(INSTALLDIR)/usr/lib/
+	ln -sf libccstools.so.1.0.1 $(INSTALLDIR)/usr/lib/libccstools.so.1
 	ldconfig || true
 
 clean:

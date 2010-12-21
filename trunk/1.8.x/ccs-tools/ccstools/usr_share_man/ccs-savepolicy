@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-savepolicy [{-e|-d|-p|-m|-u|policy_dir} [remote_ip:remote_port]]
+Usage: ccs-savepolicy [{-e|-d|-p|-m|-s|policy_dir} [remote_ip:remote_port]]
 
 This program saves TOMOYO Linux's policy from kernel into files.
 
@@ -29,7 +29,7 @@ remote_ip:remote_port : Read from ccs-editpolicy-agent listening at remote_ip:re
 
 -m : Print /proc/ccs/manager to stdout.
 
--u : Print /proc/ccs/meminfo to stdout.
+-s : Print /proc/ccs/stat to stdout.
 
 Examples:
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -53,10 +53,10 @@ void ccs_editpolicy_color_init(void)
 		  COLOR_GREEN,      "MANAGER_HEAD" },
 		{ CCS_MANAGER_CURSOR,   COLOR_WHITE,
 		  COLOR_GREEN,      "MANAGER_CURSOR" },
-		{ CCS_MEMORY_HEAD,      COLOR_BLACK,
-		  COLOR_YELLOW,     "MEMORY_HEAD" },
-		{ CCS_MEMORY_CURSOR,    COLOR_BLACK,
-		  COLOR_YELLOW,     "MEMORY_CURSOR" },
+		{ CCS_STAT_HEAD,        COLOR_BLACK,
+		  COLOR_YELLOW,     "STAT_HEAD" },
+		{ CCS_STAT_CURSOR,      COLOR_BLACK,
+		  COLOR_YELLOW,     "STAT_CURSOR" },
 		{ CCS_NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
@@ -153,8 +153,8 @@ int ccs_editpolicy_color_head(const int screen)
 		return CCS_PROFILE_HEAD;
 	case CCS_SCREEN_MANAGER_LIST:
 		return CCS_MANAGER_HEAD;
-	case CCS_SCREEN_MEMINFO_LIST:
-		return CCS_MEMORY_HEAD;
+	case CCS_SCREEN_STAT_LIST:
+		return CCS_STAT_HEAD;
 	default:
 		return CCS_ACL_HEAD;
 	}
@@ -171,8 +171,8 @@ int ccs_editpolicy_color_cursor(const int screen)
 		return CCS_PROFILE_CURSOR;
 	case CCS_SCREEN_MANAGER_LIST:
 		return CCS_MANAGER_CURSOR;
-	case CCS_SCREEN_MEMINFO_LIST:
-		return CCS_MEMORY_CURSOR;
+	case CCS_SCREEN_STAT_LIST:
+		return CCS_STAT_CURSOR;
 	default:
 		return CCS_ACL_CURSOR;
 	}
