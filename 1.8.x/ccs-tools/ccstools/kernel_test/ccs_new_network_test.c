@@ -165,9 +165,9 @@ static void stage_network_test(void)
 		close(fd2);
 		fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream connect 127.0.0.0-127.255.255.255 "
-			 "%u-%u", ntohs(saddr.sin_port) - 1,
-			 ntohs(saddr.sin_port) + 1);
+			 "network inet stream connect "
+			 "127.0.0.0-127.255.255.255 %u-%u",
+			 ntohs(saddr.sin_port) - 1, ntohs(saddr.sin_port) + 1);
 		if (write_policy()) {
 			connect(fd2, (struct sockaddr *) &saddr,
 				sizeof(saddr));
@@ -175,9 +175,9 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream accept 127.0.0.0-127.255.255.255 "
-			 "%u-%u", ntohs(caddr.sin_port) - 1,
-			 ntohs(caddr.sin_port) + 1);
+			 "network inet stream accept "
+			 "127.0.0.0-127.255.255.255 %u-%u",
+			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
 		if (write_policy()) {
 			fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 			show_result(fd3, 1);
@@ -501,7 +501,7 @@ static void do_unix_recv_test(int named, int should_success)
 		else
 			printf("OK: Permission denied.\n");
 	}
- out:
+out:
 	close(fd2);
 	close(fd1);
 }

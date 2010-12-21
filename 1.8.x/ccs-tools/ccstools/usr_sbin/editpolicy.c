@@ -659,7 +659,7 @@ static const struct ccs_transition_control_entry *ccs_transition_control
 		last_name.name = domainname->name;
 	ccs_fill_path_info(&last_name);
 	for (type = 0; type < CCS_MAX_TRANSITION_TYPE; type++) {
- next:
+next:
 		for (i = 0; i < ccs_transition_control_list_len; i++) {
 			struct ccs_transition_control_entry *ptr
 				= &ccs_transition_control_list[i];

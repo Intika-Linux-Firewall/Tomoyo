@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -27,6 +27,7 @@ static const char *ccs_policy_dir = NULL;
 static _Bool ccs_cat_file(const char *path)
 {
 	FILE *fp = ccs_open_read(path);
+	_Bool result = true;
 	if (!fp) {
 		fprintf(stderr, "Can't open %s\n", path);
 		return false;
@@ -37,13 +38,14 @@ static _Bool ccs_cat_file(const char *path)
 			break;
 		if (c == EOF)
 			break;
-		putchar(c);
+		if (putchar(c) == EOF)
+			result = false;;
 	}
 	fclose(fp);
-	return true;
+	return result;
 }
 
-static void save_policy(void)
+static _Bool ccs_save_policy(void)
 {
 	time_t now = time(NULL);
 	char stamp[32] = { };
@@ -60,7 +62,7 @@ static void save_policy(void)
 		else {
 			fprintf(stderr, "Can't create %s/%s .\n",
 				ccs_policy_dir, stamp);
-			exit(1);
+			return false;
 		}
 	}
 	if ((symlink("policy/current/profile.conf", "../profile.conf") &&
@@ -82,79 +84,85 @@ static void save_policy(void)
 	    (rename("current", "previous") && errno != ENOENT) ||
 	    symlink(stamp, "current")) {
 		fprintf(stderr, "Failed to save policy.\n");
-		exit(1);
+		return false;
 	}
+	return true;
 }
 
 int main(int argc, char *argv[])
 {
-	_Bool write_to_stdout = false;
-	u8 save_profile = 0;
-	u8 save_manager = 0;
-	u8 save_exception_policy = 0;
-	u8 save_domain_policy = 0;
-	u8 save_meminfo = 0;
+	char target = 0;
 	int i;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
 		if (*ptr == '/') {
-			if (ccs_policy_dir)
+			if (ccs_policy_dir || target) {
+				fprintf(stderr, "You cannot specify multiple "
+					"%s at the same time.\n\n",
+					"policy directories");
 				goto usage;
+			}
 			ccs_policy_dir = ptr;
-		} else if (!strcmp(ptr, "-e")) {
-			save_exception_policy = 1;
-			write_to_stdout = true;
-		} else if (!strcmp(ptr, "-d")) {
-			save_domain_policy = 1;
-			write_to_stdout = true;
-		} else if (!strcmp(ptr, "-p")) {
-			save_profile = 1;
-			write_to_stdout = true;
-		} else if (!strcmp(ptr, "-m")) {
-			save_manager = 1;
-			write_to_stdout = true;
-		} else if (!strcmp(ptr, "-u")) {
-			save_meminfo = 1;
-			write_to_stdout = true;
 		} else if (cp) {
 			*cp++ = '\0';
 			ccs_network_ip = inet_addr(ptr);
 			ccs_network_port = htons(atoi(cp));
-			if (ccs_network_mode)
+			if (ccs_network_mode) {
+				fprintf(stderr, "You cannot specify multiple "
+					"%s at the same time.\n\n",
+					"remote agents");
 				goto usage;
+			}
 			ccs_network_mode = true;
-			if (!ccs_check_remote_host())
-				return 1;
+		} else if (*ptr++ == '-' && !target) {
+			target = *ptr++;
+			if (target != 'e' && target != 'd' && target != 'p' &&
+			    target != 'm' && target != 'u')
+				goto usage;
+			if (*ptr || ccs_policy_dir) {
+				fprintf(stderr, "You cannot specify multiple "
+					"%s at the same time.\n\n",
+					"policies");
+				goto usage;
+			}
 		} else
 			goto usage;
 	}
-	if (!ccs_network_mode && access(CCS_PROC_POLICY_DIR, F_OK)) {
+	if (ccs_network_mode) {
+		if (!ccs_check_remote_host())
+			return 1;
+	} else if (access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
-		return 0;
+		return 1;
 	}
-	if (write_to_stdout) {
-		if (save_exception_policy + save_domain_policy +
-		    save_profile + save_manager + save_meminfo != 1)
-			goto usage;
-		if (save_profile)
-			ccs_cat_file(CCS_PROC_POLICY_PROFILE);
-		else if (save_manager)
-			ccs_cat_file(CCS_PROC_POLICY_MANAGER);
-		else if (save_exception_policy)
-			ccs_cat_file(CCS_PROC_POLICY_EXCEPTION_POLICY);
-		else if (save_domain_policy)
-			ccs_cat_file(CCS_PROC_POLICY_DOMAIN_POLICY);
-		else if (save_meminfo)
-			ccs_cat_file(CCS_PROC_POLICY_MEMINFO);
-		return 0;
+	if (target) {
+		const char *file;
+		switch (target) {
+		case 'p':
+			file = CCS_PROC_POLICY_PROFILE;
+			break;
+		case 'm':
+			file = CCS_PROC_POLICY_MANAGER;
+			break;
+		case 'e':
+			file = CCS_PROC_POLICY_EXCEPTION_POLICY;
+			break;
+		case 'd':
+			file = CCS_PROC_POLICY_DOMAIN_POLICY;
+			break;
+		default:
+			file = CCS_PROC_POLICY_MEMINFO;
+			break;
+		}
+		return !ccs_cat_file(file);
 	}
 	if (!ccs_policy_dir) {
-		if (ccs_network_mode) {
-			fprintf(stderr, "You must specify policy directory "
-				"when using network mode.\n");
-			return 1;
+		if (ccs_network_mode && !target) {
+			fprintf(stderr, "You need to specify %s.\n\n",
+				"policy directory");
+			goto usage;
 		}
 		ccs_policy_dir = "/etc/ccs/";
 	}
@@ -163,18 +171,19 @@ int main(int argc, char *argv[])
 			ccs_policy_dir);
 		return 1;
 	}
-	save_policy();
-	return 0;
+	return !ccs_save_policy();
 usage:
-	printf("%s [{-e|-d|-p|-m|-u|policy_dir}] [remote_ip:remote_port]\n"
+	printf("%s [policy_dir [remote_ip:remote_port]]\n"
+	       "%s [{-e|-d|-p|-m|-u} [remote_ip:remote_port]]\n\n"
+	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
+	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
+	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+	       "directory.\n"
 	       "-e : Print /proc/ccs/exception_policy to stdout.\n"
 	       "-d : Print /proc/ccs/domain_policy to stdout.\n"
 	       "-p : Print /proc/ccs/profile to stdout.\n"
 	       "-m : Print /proc/ccs/manager to stdout.\n"
-	       "-u : Print /proc/ccs/meminfo to stdout.\n"
-	       "policy_dir : Save to policy_dir rather than /etc/ccs/ .\n"
-	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
-	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
-	       "directory.\n", argv[0]);
-	return 0;
+	       "-u : Print /proc/ccs/meminfo to stdout.\n",
+	       argv[0], argv[0]);
+	return 1;
 }

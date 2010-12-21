@@ -95,7 +95,7 @@ static char *get_realpath(const char *path)
 	snprintf(pwd + len, pwd_len - len - 1, "/%s", basename);
 	free(dir);
 	return pwd;
- out:
+out:
 	free(dir);
 	free(pwd);
 	return NULL;

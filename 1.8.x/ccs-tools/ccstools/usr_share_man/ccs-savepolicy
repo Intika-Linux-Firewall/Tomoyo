@@ -13,32 +13,31 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-savepolicy [{-e|-d|-p|-m|-u|policy_dir}] [remote_ip:remote_port]
+Usage: ccs-savepolicy [{-e|-d|-p|-m|-u|policy_dir} [remote_ip:remote_port]]
 
 This program saves TOMOYO Linux's policy from kernel into files.
 
- -e     Print /proc/ccs/exception_policy to stdout.
+policy_dir : Use policy_dir rather than /etc/ccs/ directory.
 
- -d     Print /proc/ccs/domain_policy to stdout.
+remote_ip:remote_port : Read from ccs-editpolicy-agent listening at remote_ip:remote_port rather than /proc/ccs/ directory.
 
- -p     Print /proc/ccs/profile to stdout.
+-e : Print /proc/ccs/exception_policy to stdout.
 
- -m     Print /proc/ccs/manager to stdout.
+-d : Print /proc/ccs/domain_policy to stdout.
 
- -u     Print /proc/ccs/meminfo to stdout.
+-p : Print /proc/ccs/profile to stdout.
 
- policy_dir     Save to policy_dir . Must starts with / .
-                Default is none if remote_ip:remote_port is specified, /etc/ccs/ otherwise.
+-m : Print /proc/ccs/manager to stdout.
 
- remote_ip:remote_port     Read from ccs-editpolicy-agent listening at specified IP address and port number. 
+-u : Print /proc/ccs/meminfo to stdout.
 
 Examples:
 
 # ccs-savepolicy
- Save exception_policy domain_policy profile and manager .
+ Save exception_policy.conf domain_policy.conf profile.conf and manager.conf .
 
 # ccs-savepolicy -e
- Print exception_policy .
+ Print /proc/ccs/exception_policy .
 
 # ccs-savepolicy /etc/ccs/192.168.1.1/ 192.168.1.1:10000
  Receive policy from 192.168.1.1:10000 and save into /etc/ccs/192.168.1.1/ directory.

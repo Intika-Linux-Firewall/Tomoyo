@@ -13,31 +13,41 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-loadpolicy [e][d][a][f][p][m][u] [{-|policy_dir} [remote_ip:remote_port]]
+Usage: ccs-loadpolicy {{e|ef|d|df|p|m|u} [policy_dir [remote_ip:remote_port]] | {-e|-ef|-d|-df|-p|-m|-u} [remote_ip:remote_port]}
 
 This program loads TOMOYO Linux's policy from files or standard input into kernel.
 
- e     Load exception policy. ( policy_dir/exception_policy.conf => /proc/ccs/exception_policy )
+e  : Read from policy_dir/exception_policy.conf and append to /proc/ccs/exception_policy .
 
- d     Load domain policy. ( policy_dir/domain_policy.conf => /proc/ccs/domain_policy )
+ef : Read from policy_dir/exception_policy.conf and overwrite /proc/ccs/exception_policy .
 
- a     Load exception policy and domain policy.
+d  : Read from policy_dir/domain_policy.conf and append to /proc/ccs/domain_policy .
 
- p     Load profile. ( policy_dir/profile.conf => /proc/ccs/profile )
+df : Read from policy_dir/domain_policy.conf and overwrite /proc/ccs/domain_policy .
 
- m     Load manager. ( policy_dir/manager.conf => /proc/ccs/manager )
+p  : Read from policy_dir/profile.conf and append to /proc/ccs/profile .
 
- u     Load meminfo. ( policy_dir/meminfo.conf => /proc/ccs/meminfo )
+m  : Read from policy_dir/manager.conf and append to /proc/ccs/manager .
 
- f     Erase on-memory policy before loading on-disk policy. If not specified, on-disk policy is appended to on-memory policy.
-       This option is valid for "eda" options.
+u  : Read from policy_dir/meminfo.conf and append to /proc/ccs/meminfo .
 
- -     Read policy from stdin. Specify only one of "edpmu" option when you use this option.
+policy_dir : Use policy_dir rather than /etc/ccs/ directory.
 
- policy_dir     Load policy files from policy_dir directory. Must starts with / .
-                Default is none if remote_ip:remote_port is specified, /etc/ccs/ otherwise.
+remote_ip:remote_port : Write to ccs-editpolicy-agent listening at remote_ip:remote_port rather than /proc/ccs/ directory.
 
- remote_ip:remote_port     Send policy to agent listening at specified IP address and port number.
+-e  : Read from stdin and append to /proc/ccs/exception_policy .
+
+-ef : Read from stdin and overwrite /proc/ccs/exception_policy .
+
+-d  : Read from stdin and append to /proc/ccs/domain_policy .
+
+-df : Read from stdin and overwrite /proc/ccs/domain_policy .
+
+-p  : Read from stdin and append to /proc/ccs/profile .
+
+-m  : Read from stdin and append to /proc/ccs/manager .
+
+-u  : Read from stdin and append to /proc/ccs/meminfo .
 
 Examples:
 

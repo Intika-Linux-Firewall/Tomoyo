@@ -261,7 +261,7 @@ restart:
 		if (len)
 			goto restart;
 	}
- out:
+out:
 	if (verbose)
 		ret_ignored = write(2, "disconnected\n", 13);
 }
@@ -293,7 +293,7 @@ static void do_child(const int client)
 		}
 	} else
 		handle_policy(client, buffer);
- out:
+out:
 	close(client);
 }
 

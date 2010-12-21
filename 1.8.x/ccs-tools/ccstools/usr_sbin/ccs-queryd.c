@@ -25,9 +25,11 @@
 
 /* Prototypes */
 
-static void ccs_printw(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+static void ccs_printw(const char *fmt, ...)
+     __attribute__ ((format(printf, 1, 2)));
 /*
-static _Bool ccs_convert_path_info(FILE *fp, const struct ccs_path_info *pattern, const char *new);
+static _Bool ccs_convert_path_info(FILE *fp,
+const struct ccs_path_info *pattern, const char *new);
 */
 static _Bool ccs_handle_query(unsigned int serial);
 
@@ -98,7 +100,8 @@ static _Bool ccs_check_path_info(const char *buffer)
 #endif
 
 #if 0
-static _Bool ccs_convert_path_info(FILE *fp, const struct ccs_path_info *pattern,
+static _Bool ccs_convert_path_info(FILE *fp,
+				   const struct ccs_path_info *pattern,
 				   const char *new)
 {
 	_Bool modified = false;
@@ -197,7 +200,8 @@ static _Bool ccs_handle_query(unsigned int serial)
 	*/
 	if (pid != prev_pid) {
 		if (prev_pid)
-			ccs_printw("----------------------------------------\n");
+			ccs_printw("----------------------------------------"
+				   "\n");
 		prev_pid = pid;
 	}
 	ccs_printw("%s\n", ccs_buffer);
@@ -236,7 +240,8 @@ static _Bool ccs_handle_query(unsigned int serial)
 					    strlen(pidbuf));
 			while (1) {
 				int i;
-				int len = read(ccs_domain_policy_fd, ccs_buffer,
+				int len = read(ccs_domain_policy_fd,
+					       ccs_buffer,
 					       ccs_buffer_len - 1);
 				if (len <= 0)
 					break;
@@ -260,9 +265,10 @@ static _Bool ccs_handle_query(unsigned int serial)
 		return false;
 	*cp++ = '\0';
 	ccs_initial_readline_data = cp;
-	ccs_readline_history_count = ccs_add_history(cp, ccs_readline_history,
-						     ccs_readline_history_count,
-						     CCS_MAX_READLINE_HISTORY);
+	ccs_readline_history_count =
+		ccs_add_history(cp, ccs_readline_history,
+				ccs_readline_history_count,
+				CCS_MAX_READLINE_HISTORY);
 	line = ccs_readline(y, 0, "Enter new entry> ", ccs_readline_history,
 			    ccs_readline_history_count, 128000, 8);
 	scrollok(stdscr, TRUE);
@@ -271,9 +277,10 @@ static _Bool ccs_handle_query(unsigned int serial)
 		ccs_printw("None added.\n");
 		goto not_append;
 	}
-	ccs_readline_history_count = ccs_add_history(line, ccs_readline_history,
-						     ccs_readline_history_count,
-						     CCS_MAX_READLINE_HISTORY);
+	ccs_readline_history_count =
+		ccs_add_history(line, ccs_readline_history,
+				ccs_readline_history_count,
+				CCS_MAX_READLINE_HISTORY);
 	if (ccs_network_mode) {
 		fprintf(ccs_domain_fp, "%s%s\n", pidbuf, line);
 		fflush(ccs_domain_fp);
@@ -327,9 +334,9 @@ int main(int argc, char *argv[])
 			goto ok;
 		}
 	}
-	printf("Usage: %s [remote_ip:remote_port]\n\n",
-	       argv[0]);
-	printf("This program is used for granting access requests manually.\n");
+	printf("Usage: %s [remote_ip:remote_port]\n\n", argv[0]);
+	printf("This program is used for granting access requests manually."
+	       "\n");
 	printf("This program shows access requests that are about to rejected "
 	       "by the kernel's decision.\n");
 	printf("If you answer before the kernel's decision taken effect, your "
@@ -339,13 +346,14 @@ int main(int argc, char *argv[])
 	       "daemons after updating).\n");
 	printf("To terminate this program, use 'Ctrl-C'.\n");
 	return 0;
- ok:
+ok:
 	if (ccs_network_mode) {
 		ccs_query_fd = ccs_open_stream("proc:query");
 		ccs_domain_fp = ccs_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
 	} else {
 		ccs_query_fd = open(CCS_PROC_POLICY_QUERY, O_RDWR);
-		ccs_domain_policy_fd = open(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
+		ccs_domain_policy_fd = open(CCS_PROC_POLICY_DOMAIN_POLICY,
+					    O_RDWR);
 	}
 	if (ccs_query_fd == EOF) {
 		fprintf(stderr,
@@ -356,7 +364,8 @@ int main(int argc, char *argv[])
 			"run this program.\n", CCS_PROC_POLICY_MANAGER);
 		return 1;
 	}
-	ccs_readline_history = malloc(CCS_MAX_READLINE_HISTORY * sizeof(const char *));
+	ccs_readline_history = malloc(CCS_MAX_READLINE_HISTORY *
+				      sizeof(const char *));
 	if (!ccs_readline_history)
 		ccs_out_of_memory();
 	ccs_send_keepalive();

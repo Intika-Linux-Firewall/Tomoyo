@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -64,13 +64,6 @@
 #define CCS_PROC_POLICY_PROCESS_STATUS   "/proc/ccs/.process_status"
 #define CCS_PROC_POLICY_PROFILE          "/proc/ccs/profile"
 #define CCS_PROC_POLICY_QUERY            "/proc/ccs/query"
-
-#define CCS_DISK_POLICY_DIR              "/etc/ccs/"
-#define CCS_DISK_POLICY_DOMAIN_POLICY    "domain_policy.conf"
-#define CCS_DISK_POLICY_EXCEPTION_POLICY "exception_policy.conf"
-#define CCS_DISK_POLICY_MANAGER          "manager.conf"
-#define CCS_DISK_POLICY_MEMINFO          "meminfo.conf"
-#define CCS_DISK_POLICY_PROFILE          "profile.conf"
 
 /***** CONSTANTS DEFINITION END *****/
 

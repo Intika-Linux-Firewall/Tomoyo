@@ -185,7 +185,7 @@ static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 	if (in_repetition)
 		goto out;
 	return true;
- out:
+out:
 	return false;
 }
 
@@ -388,7 +388,7 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 	       (*(p + 1) == '*' || *(p + 1) == '@'))
 		p += 2;
 	return !*f && !*p;
- recursive:
+recursive:
 	/*
 	 * The "\{" pattern is permitted only after '/' character.
 	 * This guarantees that below "*(p - 1)" is safe.
