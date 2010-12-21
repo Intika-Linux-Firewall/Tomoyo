@@ -41,6 +41,7 @@ u32 ccs_network_ip = INADDR_NONE;
 u16 ccs_network_port = 0;
 struct ccs_task_entry *ccs_task_list = NULL;
 int ccs_task_list_len = 0;
+_Bool ccs_freadline_raw = false;
 
 /* Prototypes */
 
@@ -1497,7 +1498,8 @@ char *ccs_freadline(FILE *fp)
 			break;
 		}
 	}
-	ccs_normalize_line(policy);
+	if (!ccs_freadline_raw)
+		ccs_normalize_line(policy);
 	return policy;
 }
 

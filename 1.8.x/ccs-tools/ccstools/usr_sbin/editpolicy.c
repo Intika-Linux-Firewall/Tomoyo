@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -88,7 +88,7 @@ static int ccs_show_domain_line(struct ccs_domain_policy *dp, const int index);
 static int ccs_show_acl_line(const int index, const int list_indent);
 static int ccs_show_profile_line(const int index);
 static int ccs_show_literal_line(const int index);
-static int ccs_show_meminfo_line(const int index);
+static int ccs_show_stat_line(const int index);
 static void ccs_show_list(struct ccs_domain_policy *dp);
 static void ccs_resize_window(void);
 static void ccs_up_arrow_key(struct ccs_domain_policy *dp);
@@ -395,36 +395,12 @@ static int ccs_show_literal_line(const int index)
 	return strlen(cp) + 8;
 }
 
-static int ccs_show_meminfo_line(const int index)
+static int ccs_show_stat_line(const int index)
 {
 	char *line;
-	unsigned int now = 0;
-	unsigned int quota = -1;
-	const char *data = ccs_generic_acl_list[index].operand;
+	unsigned int now;
 	ccs_get();
-	if (sscanf(data, "Policy: %u (Quota: %u)", &now, &quota) >= 1)
-		line = ccs_shprintf("Memory used for policy      = %10u bytes   "
-				    "(Quota: %10u bytes)", now, quota);
-	else if (sscanf(data, "Audit logs: %u (Quota: %u)", &now, &quota) >= 1)
-		line = ccs_shprintf("Memory used for audit logs  = %10u bytes   "
-				    "(Quota: %10u bytes)", now, quota);
-	else if (sscanf(data, "Query lists: %u (Quota: %u)", &now, &quota) >= 1)
-		line = ccs_shprintf("Memory used for query lists = %10u bytes   "
-				    "(Quota: %10u bytes)", now, quota);
-	else if (sscanf(data, "Total: %u", &now) == 1)
-		line = ccs_shprintf("Total memory in use         = %10u bytes",
-				    now);
-	else if (sscanf(data, "Shared: %u (Quota: %u)", &now, &quota) >= 1)
-		line = ccs_shprintf("Memory for string data      = %10u bytes    "
-				    "Quota = %10u bytes", now, quota);
-	else if (sscanf(data, "Private: %u (Quota: %u)", &now, &quota) >= 1)
-		line = ccs_shprintf("Memory for numeric data     = %10u bytes    "
-				    "Quota = %10u bytes", now, quota);
-	else if (sscanf(data, "Dynamic: %u (Quota: %u)", &now, &quota) >= 1)
-		line = ccs_shprintf("Memory for temporary data   = %10u bytes    "
-				    "Quota = %10u bytes", now, quota);
-	else
-		line = ccs_shprintf("%s", data);
+	line = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
 	if (line[0])
 		printw("%s", ccs_eat(line));
 	now = strlen(line);
@@ -442,7 +418,7 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 	printw("Q/q        Quit this editor.\n");
 	printw("R/r        Refresh to the latest information.\n");
 	switch (screen) {
-	case CCS_SCREEN_MEMINFO_LIST:
+	case CCS_SCREEN_STAT_LIST:
 		break;
 	default:
 		printw("F/f        Find first.\n");
@@ -452,7 +428,7 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 	printw("W/w        Switch to selected screen.\n");
 	/* printw("Tab        Switch to next screen.\n"); */
 	switch (screen) {
-	case CCS_SCREEN_MEMINFO_LIST:
+	case CCS_SCREEN_STAT_LIST:
 		break;
 	default:
 		printw("Insert     Copy an entry at the cursor position to "
@@ -481,7 +457,7 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 			       "cursor position.\n");
 		}
 		break;
-	case CCS_SCREEN_MEMINFO_LIST:
+	case CCS_SCREEN_STAT_LIST:
 		if (!readonly)
 			printw("S/s        Set memory quota of selected "
 			       "items.\n");
@@ -769,6 +745,7 @@ static void ccs_read_generic_policy(void)
 		ccs_set_error(ccs_policy_file);
 		return;
 	}
+	ccs_freadline_raw = ccs_current_screen == CCS_SCREEN_STAT_LIST;
 	ccs_get();
 	while (true) {
 		char *line = ccs_freadline(fp);
@@ -821,6 +798,7 @@ static void ccs_read_generic_policy(void)
 		ccs_generic_acl_list[ccs_generic_acl_list_count++].operand = cp;
 	}
 	ccs_put();
+	ccs_freadline_raw = false;
 	fclose(fp);
 	switch (ccs_current_screen) {
 	case CCS_SCREEN_ACL_LIST:
@@ -834,6 +812,8 @@ static void ccs_read_generic_policy(void)
 	case CCS_SCREEN_PROFILE_LIST:
 		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
 		      sizeof(struct ccs_generic_acl), ccs_profile_entry_compare);
+		break;
+	case CCS_SCREEN_STAT_LIST:
 		break;
 	default:
 		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
@@ -1360,8 +1340,8 @@ static void ccs_show_list(struct ccs_domain_policy *dp)
 		case CCS_SCREEN_PROFILE_LIST:
 			tmp_col = ccs_show_profile_line(index);
 			break;
-		case CCS_SCREEN_MEMINFO_LIST:
-			tmp_col = ccs_show_meminfo_line(index);
+		case CCS_SCREEN_STAT_LIST:
+			tmp_col = ccs_show_stat_line(index);
 			break;
 		default:
 			tmp_col = ccs_show_literal_line(index);
@@ -1878,7 +1858,7 @@ static void ccs_set_quota(struct ccs_domain_policy *dp, const int current)
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_MEMINFO);
+	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_STAT);
 	if (!fp)
 		goto out;
 	for (index = 0; index < ccs_generic_acl_list_count; index++) {
@@ -1949,7 +1929,7 @@ static int ccs_select_window(struct ccs_domain_policy *dp, const int current)
 	printw("m     <<< Manager Policy Editor >>>\n");
 	if (!ccs_offline_mode) {
 		/* printw("i     <<< Interactive Enforcing Mode >>>\n"); */
-		printw("u     <<< Memory Usage >>>\n");
+		printw("s     <<< Statistics >>>\n");
 	}
 	printw("q     Quit this editor.\n");
 	clrtobot();
@@ -1972,8 +1952,8 @@ static int ccs_select_window(struct ccs_domain_policy *dp, const int current)
 			if (c == 'I' || c == 'i')
 				return CCS_SCREEN_QUERY_LIST;
 			*/
-			if (c == 'U' || c == 'u')
-				return CCS_SCREEN_MEMINFO_LIST;
+			if (c == 'S' || c == 's')
+				return CCS_SCREEN_STAT_LIST;
 		}
 		if (c == 'Q' || c == 'q')
 			return CCS_MAXSCREEN;
@@ -2029,7 +2009,7 @@ static void ccs_copy_to_history(struct ccs_domain_policy *dp, const int current,
 		line = ccs_shprintf("%s %s", ccs_directives[directive].alias,
 				ccs_generic_acl_list[current].operand);
 		break;
-	case CCS_SCREEN_MEMINFO_LIST:
+	case CCS_SCREEN_STAT_LIST:
 		line = NULL;
 		break;
 	default:
@@ -2069,9 +2049,9 @@ static int ccs_generic_list_loop(struct ccs_domain_policy *dp)
 	} else if (ccs_current_screen == CCS_SCREEN_MANAGER_LIST) {
 		ccs_policy_file = CCS_PROC_POLICY_MANAGER;
 		ccs_list_caption = "Manager Policy Editor";
-	} else if (ccs_current_screen == CCS_SCREEN_MEMINFO_LIST) {
-		ccs_policy_file = CCS_PROC_POLICY_MEMINFO;
-		ccs_list_caption = "Memory Usage";
+	} else if (ccs_current_screen == CCS_SCREEN_STAT_LIST) {
+		ccs_policy_file = CCS_PROC_POLICY_STAT;
+		ccs_list_caption = "Statistics";
 	} else {
 		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
 		/* ccs_list_caption = "Domain Transition Editor"; */
@@ -2154,12 +2134,12 @@ start2:
 			break;
 		case 'f':
 		case 'F':
-			if (ccs_current_screen != CCS_SCREEN_MEMINFO_LIST)
+			if (ccs_current_screen != CCS_SCREEN_STAT_LIST)
 				ccs_find_entry(dp, true, true, current, &rl);
 			break;
 		case 'p':
 		case 'P':
-			if (ccs_current_screen == CCS_SCREEN_MEMINFO_LIST)
+			if (ccs_current_screen == CCS_SCREEN_STAT_LIST)
 				break;
 			if (!rl.search_buffer[ccs_current_screen])
 				ccs_find_entry(dp, true, false, current, &rl);
@@ -2168,7 +2148,7 @@ start2:
 			break;
 		case 'n':
 		case 'N':
-			if (ccs_current_screen == CCS_SCREEN_MEMINFO_LIST)
+			if (ccs_current_screen == CCS_SCREEN_STAT_LIST)
 				break;
 			if (!rl.search_buffer[ccs_current_screen])
 				ccs_find_entry(dp, true, true, current, &rl);
@@ -2222,7 +2202,7 @@ start2:
 			case CCS_SCREEN_PROFILE_LIST:
 				ccs_set_level(dp, current);
 				goto start;
-			case CCS_SCREEN_MEMINFO_LIST:
+			case CCS_SCREEN_STAT_LIST:
 				ccs_set_quota(dp, current);
 				goto start;
 			}
@@ -2327,14 +2307,14 @@ static void parse_args(int argc, char *argv[])
 			ccs_current_screen = CCS_SCREEN_PROFILE_LIST;
 		else if (!strcmp(ptr, "m"))
 			ccs_current_screen = CCS_SCREEN_MANAGER_LIST;
-		else if (!strcmp(ptr, "u"))
-			ccs_current_screen = CCS_SCREEN_MEMINFO_LIST;
+		else if (!strcmp(ptr, "s"))
+			ccs_current_screen = CCS_SCREEN_STAT_LIST;
 		else if (!strcmp(ptr, "readonly"))
 			ccs_readonly_mode = true;
 		else if (sscanf(ptr, "refresh=%u", &ccs_refresh_interval)
 			 != 1) {
 usage:
-			printf("Usage: %s [e|d|p|m|u] [readonly] "
+			printf("Usage: %s [e|d|p|m|s] [readonly] "
 			       "[refresh=interval] "
 			       "[{policy_dir|remote_ip:remote_port}]\n",
 			       argv[0]);

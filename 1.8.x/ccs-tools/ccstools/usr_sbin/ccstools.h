@@ -60,7 +60,7 @@
 #define CCS_PROC_POLICY_EXCEPTION_POLICY "/proc/ccs/exception_policy"
 #define CCS_PROC_POLICY_AUDIT            "/proc/ccs/audit"
 #define CCS_PROC_POLICY_MANAGER          "/proc/ccs/manager"
-#define CCS_PROC_POLICY_MEMINFO          "/proc/ccs/meminfo"
+#define CCS_PROC_POLICY_STAT             "/proc/ccs/stat"
 #define CCS_PROC_POLICY_PROCESS_STATUS   "/proc/ccs/.process_status"
 #define CCS_PROC_POLICY_PROFILE          "/proc/ccs/profile"
 #define CCS_PROC_POLICY_QUERY            "/proc/ccs/query"
@@ -174,5 +174,6 @@ extern u32 ccs_network_ip;
 extern u16 ccs_network_port;
 extern struct ccs_task_entry *ccs_task_list;
 extern int ccs_task_list_len;
+extern _Bool ccs_freadline_raw;
 
 /***** PROTOTYPES DEFINITION END *****/

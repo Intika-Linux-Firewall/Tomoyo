@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-loadpolicy {{e|ef|d|df|p|m|u} [policy_dir [remote_ip:remote_port]] | {-e|-ef|-d|-df|-p|-m|-u} [remote_ip:remote_port]}
+Usage: ccs-loadpolicy {{e|ef|d|df|p|m|s} [policy_dir [remote_ip:remote_port]] | {-e|-ef|-d|-df|-p|-m|-s} [remote_ip:remote_port]}
 
 This program loads TOMOYO Linux's policy from files or standard input into kernel.
 
@@ -29,7 +29,7 @@ p  : Read from policy_dir/profile.conf and append to /proc/ccs/profile .
 
 m  : Read from policy_dir/manager.conf and append to /proc/ccs/manager .
 
-u  : Read from policy_dir/meminfo.conf and append to /proc/ccs/meminfo .
+s  : Read from policy_dir/stat.conf and append to /proc/ccs/stat .
 
 policy_dir : Use policy_dir rather than /etc/ccs/ directory.
 
@@ -47,7 +47,7 @@ remote_ip:remote_port : Write to ccs-editpolicy-agent listening at remote_ip:rem
 
 -m  : Read from stdin and append to /proc/ccs/manager .
 
--u  : Read from stdin and append to /proc/ccs/meminfo .
+-s  : Read from stdin and append to /proc/ccs/stat .
 
 Examples:
 
