@@ -17,7 +17,7 @@
 
 <h2>Step 1: Patterning File Access Permissions</h2>
 
-<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service.</p>
+<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in the learning mode. For example, the domain policy can be changed to accommodate for WWW contents:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -68,7 +68,7 @@ file read /var/www/html/\{\*\}/\*.jpg<br>
 </td></tr>
 </table>
 
-<p>If you define</p>
+<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
 <table border="1">
 <tr><td>
@@ -78,7 +78,7 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg<br>
 </td></tr>
 </table>
 
-<p>in the exception policy, you can simplify like</p>
+<p>The following can then be defined in domain policy:</p>
 
 <table border="1">
 <tr><td>
@@ -88,16 +88,15 @@ file read @WEB-CONTENTS
 </td></tr>
 </table>
 
-<p>in the domain policy.</p>
-
 <hr>
 
 <h2>Step 2: Handling temporary files</h2>
 
-<p>You can not handle temporary files by simply using "learning mode" and "permissive mode". You need to interactively handle temporary files using <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.<br>
-But if you want to convert temporary files into patterns non-interactively, you can do it as shown below.</p>
+<p>Usually, temporary files cannot be handled by simply using "learning mode" and "permissive mode" due to the variety of single-use pathnames involved. They must instead be interactively handled. See: <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.</p>
 
-<p>List up pathnames that can be temporary files.</p>
+<p>Alternatively, temporary files can be converted into patterns non-interactively using the method shown below:</p>
+
+<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
 
 <table border="1">
 <tr><td>
@@ -125,9 +124,11 @@ But if you want to convert temporary files into patterns non-interactively, you 
 </td></tr>
 </table>
 
-<p>We can consider that "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" are temporary files, thus we make patterns for these pathnames. First, we need to consider what patterns to use. In these examples, numeric seems decimal digits. Thus, we use \$ pattern which matches one or more repetitions of decimal digits.</p>
+<p>In this example, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
 
-<p>Replace "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$'</p>
+<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the \$ pattern can be used to match one or more repetitions of decimal digits.</p>
+
+<p>Use "/usr/sbin/ccs-patternize" to replace all occurrences of "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$' respectively:</p>
 
 <table border="1">
 <tr><td>
@@ -135,12 +136,15 @@ But if you want to convert temporary files into patterns non-interactively, you 
 </td></tr>
 </table>
 
+<p>See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+
 <hr>
 
 <h2>Step 3: Patterning Numeric Permissions</h2>
 
-<p>Make patterns for numeric parameters such as file's create mode and network's port numbers.<br>
-The following example permits /usr/sbin/httpd to accept connections from client's port 1024-65535.</a>
+<p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
+
+<p>The following domain policy example permits "/usr/sbin/httpd" to accepts connections from port numbers between 1024 and 65535:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -159,7 +163,7 @@ network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
 </td></tr>
 </table>
 
-<p>If you define</p>
+<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
 <table border="1">
 <tr><td>
@@ -167,7 +171,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 </td></tr>
 </table>
 
-<p>in the exception policy, you can simplify like</p>
+<p>The following can then be defined in domain policy:</p>
 
 <table border="1">
 <tr><td>
@@ -177,13 +181,11 @@ network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 </td></tr>
 </table>
 
-<p>in the domain policy.</p>
-
 <hr>
 
 <h2>Step 4: Patterning Network Access Permissions</h2>
 
-<p>Similarly, make patterns for IP addresses. Don't copy the following permissions.</a>
+<p>Patterns can be made for IP addresses in domain policy, for example:</a>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -206,7 +208,7 @@ network inet stream accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
 </td></tr>
 </table>
 
-<p>If you define</p>
+<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
 <table border="1">
 <tr><td>
@@ -216,7 +218,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 </td></tr>
 </table>
 
-<p>in the exception policy, you can simplify like</p>
+<p>The following can then be defined in domain policy:</p>
 
 <table border="1">
 <tr><td>
@@ -226,15 +228,13 @@ network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </td></tr>
 </table>
 
-<p>in the domain policy.</p>
-
 <hr>
 
 <h2>Step 5: Adding conditions to ACLs (Optional)</h2>
 
-<p>You can add conditions to individual ACLs if necessary. By using this feature, you can enforce system's user ID based access control.</p>
+<p>Conditions can be added to individual ACLs if necessary, allowing the enforcement of system user ID based access control.</p>
 
-<p>You can define the following path_group in the exception policy.</p>
+<p>Suppose the following are defined in the exception policy:</p>
 
 <table border="1">
 <tr><td>
@@ -249,7 +249,7 @@ path_group HOME-SMB-DIR  /home/\*/samba/\{\*\}/
 </td></tr>
 </table>
 
-<p>If you want to protect non-anonymous FTP service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "ftp") directory rather than exposing whole of home directories. If you use vsftpd, you can give like the following way.</p>
+<p>If a non-anonymous FTP service needs to be protected, conditions can be added to forbid access to directories outside the user's home directory. It is recommended to expose only directories under a specific directory rather than the whole home directory to limit damage if the service is compromised. For example, if vsftpd is used, the following may be added to domain policy:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -280,7 +280,7 @@ file rename @HOME-FTP-DIR @HOME-FTP-DIR task.uid=path1.parent.uid task.uid=path2
 </td></tr>
 </table>
 
-<p>If you want to protect Samba service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "samba") directory rather than exposing whole of home directories.</p>
+<p>If a Samba service needs to be protected, the following may be added to domain policy. Again, a minimum of directories should be exposed rather than the whole home directory:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -311,7 +311,7 @@ file rename @HOME-SMB-DIR @HOME-SMB-DIR task.euid=path1.parent.uid task.euid=pat
 </td></tr>
 </table>
 
-<p>If you want to protect SSH service, by adding conditions in the following manner, you can forbid login as user "root".</p>
+<p>If an SSH service needs to be protected, the following may be added to domain policy to forbid login as "root" user:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -326,7 +326,7 @@ file execute /bin/bash exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=
 </td></tr>
 </table>
 
-<p>Various conditions are supported. Please see <a href="policy-reference.html.en#conditional_acl">Using conditional ACL.</a> for details.</p>
+<p>See <a href="policy-reference.html.en#conditional_acl">Using conditional ACL</a> for details on the conditionals supported.</p>
 
 <hr>
 
