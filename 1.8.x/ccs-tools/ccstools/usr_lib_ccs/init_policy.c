@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/21
+ * Version: 1.8.0+   2010/12/22
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -565,27 +565,44 @@ tools_dir:
 	}
 }
 
+static void make_path_group(void)
+{
+	fprintf(filp, "path_group ANY_PATHNAME /\n");
+	fprintf(filp, "path_group ANY_PATHNAME /\\*\n");
+	fprintf(filp, "path_group ANY_PATHNAME /\\{\\*\\}/\n");
+	fprintf(filp, "path_group ANY_PATHNAME /\\{\\*\\}/\\*\n");
+	fprintf(filp, "path_group ANY_PATHNAME \\*:/\n");
+	fprintf(filp, "path_group ANY_PATHNAME \\*:/\\*\n");
+	fprintf(filp, "path_group ANY_PATHNAME \\*:/\\{\\*\\}/\n");
+	fprintf(filp, "path_group ANY_PATHNAME \\*:/\\{\\*\\}/\\*\n");
+	fprintf(filp, "path_group ANY_PATHNAME \\*:[\\$]\n");
+	fprintf(filp, "path_group ANY_DIRECTORY /\n");
+	fprintf(filp, "path_group ANY_DIRECTORY /\\{\\*\\}/\n");
+	fprintf(filp, "path_group ANY_DIRECTORY \\*:/\n");
+	fprintf(filp, "path_group ANY_DIRECTORY \\*:/\\{\\*\\}/\n");
+}
+
+static void make_number_group(void)
+{
+	fprintf(filp, "number_group COMMON_IOCTL_CMDS 0x5401\n");
+}
+
+static void make_ioctl(void)
+{
+	/* Allow ioctl with common ioctl numbers. */
+	fprintf(filp, "acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS\n");
+}
+
 static void make_getattr(void)
 {
 	/* Allow getting attributes. */
-	fprintf(filp, "acl_group 0 file getattr /\n");
-	fprintf(filp, "acl_group 0 file getattr /\\*\n");
-	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\n");
-	fprintf(filp, "acl_group 0 file getattr /\\{\\*\\}/\\*\n");
-	fprintf(filp, "acl_group 0 file getattr \\*:/\n");
-	fprintf(filp, "acl_group 0 file getattr \\*:/\\*\n");
-	fprintf(filp, "acl_group 0 file getattr \\*:/\\{\\*\\}/\n");
-	fprintf(filp, "acl_group 0 file getattr \\*:/\\{\\*\\}/\\*\n");
-	fprintf(filp, "acl_group 0 file getattr \\*:[\\$]\n");
+	fprintf(filp, "acl_group 0 file getattr @ANY_PATHNAME\n");
 }
 
 static void make_readdir(void)
 {
 	/* Allow reading directories. */
-	fprintf(filp, "acl_group 0 file read /\n");
-	fprintf(filp, "acl_group 0 file read /\\{\\*\\}/\n");
-	fprintf(filp, "acl_group 0 file read \\*:/\n");
-	fprintf(filp, "acl_group 0 file read \\*:/\\{\\*\\}/\n");
+	fprintf(filp, "acl_group 0 file read @ANY_DIRECTORY\n");
 }
 
 static _Bool chdir_policy(void)
@@ -613,6 +630,9 @@ static void make_exception_policy(void)
 	make_globally_readable_files();
 	make_self_readable_files();
 	make_ldconfig_readable_files();
+	make_path_group();
+	make_number_group();
+	make_ioctl();
 	make_readdir();
 	make_getattr();
 	scan_modprobe_and_hotplug();

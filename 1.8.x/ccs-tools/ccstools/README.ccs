@@ -577,19 +577,21 @@ Version 1.8.0p2 2010/12/XX   Usability enhancement release.
 
   /usr/sbin/ccs-editpolicy
     Use /etc/ccs/tools/editpolicy.conf rather than /usr/lib/ccs/ccstools.conf .
+    Use /proc/ccs/stat rather than /proc/ccs/meminfo .
 
   /usr/sbin/ccs-diffpolicy
     The first argument and the second argument were reversed by error.
 
   /usr/sbin/ccs-loadpolicy
     Do not allow loading multiple policies at the same time.
-    Require one of '-e' '-d' '-p' '-m' '-u' for reading from stdin.
+    Require one of '-e' '-d' '-p' '-m' '-s' for reading from stdin.
 
   /usr/sbin/ccs-savepolicy
     Always save domain_policy.conf exception_policy.conf manager.conf and
     profile.conf under /etc/ccs/policy/YY-MM-DD.hh:mm:ss/ directory.
-    Require one of '-e' '-d' '-p' '-m' '-u' for printing to stdout.
+    Require one of '-e' '-d' '-p' '-m' '-s' for printing to stdout.
 
   /usr/lib/ccs/init_policy
     Create initial policy under /etc/ccs/policy/YY-MM-DD.hh:mm:ss/ directory.
     Create initial userland configuration under /etc/ccs/tools/ directory.
+    Reserve ANY_PATHNAME ANY_DIRECTORY and COMMON_IOCTL_CMDS groups.
