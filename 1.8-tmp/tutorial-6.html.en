@@ -79,7 +79,7 @@ echo 'Incorrect password.'
 
 <p>Firstly, make sure that "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain is not specified using keep_domain keyword. ( keep_domain keyword is explained in the third installment of this series.) If "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, delete the entry using policy editor.</p>
 
-<p>Also, if you don't apply mandatory access control on "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain (a domain for shell after passing additional authentication) and its descendent domains, you can add "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" using policy editor because you don't need to transit domains. (Fig. 2)</p>
+<p>Also, if you don't apply mandatory access control on "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain (a domain for shell after passing additional authentication) and its descendant domains, you can add "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" using policy editor because you don't need to transit domains. (Fig. 2)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -107,7 +107,7 @@ PROFILE_VERSION=20100903
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 4&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendent domains to learning mode
+&diams; Fig. 4&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to learning mode
 <pre>
 # /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
 </pre>
@@ -131,11 +131,11 @@ Password: SAKURA
 
 <h4>&diams;Verify and enforce</h4>
 
-<p>Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendent domains to permissive mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendent domains to disabled mode. Run commands listed in Fig. 6 from console.</p>
+<p>Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to permissive mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode. Run commands listed in Fig. 6 from console.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 6&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendent domains to permissive mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendent domains to disabled mode
+&diams; Fig. 6&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to permissive mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode
 <pre>
 # /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
 # /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
@@ -143,11 +143,11 @@ Password: SAKURA
 </td></tr>
 </table>
 
-<p>At this state, login via /usr/sbin/sshd and execute /bin/auth1 . Check that error messages are not printed. Then, change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendent domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendent domains to disabled mode. Run commands listed in Fig. 7 from console.</p>
+<p>At this state, login via /usr/sbin/sshd and execute /bin/auth1 . Check that error messages are not printed. Then, change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode. Run commands listed in Fig. 7 from console.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 7&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendent domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendent domains to disabled mode
+&diams; Fig. 7&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode
 <pre>
 # /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
 # /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
@@ -321,7 +321,7 @@ file write @SCP_FILE
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 15&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" and its descendent domains to learning mode
+&diams; Fig. 15&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" and its descendant domains to learning mode
 <pre>
 # /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
 </pre>
@@ -330,11 +330,11 @@ file write @SCP_FILE
 
 <p>At this state, login via /usr/sbin/sshd and execute /bin/auth1 and /bin/auth2 respectively. When you pass the authentication, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" are created and necessary permissions are learned.</p>
 
-<p>Then, change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendent domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendent domains to disabled mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain and its descendent domains to learning mode. Run commands listed in Fig. 16 from console.</p>
+<p>Then, change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain and its descendant domains to learning mode. Run commands listed in Fig. 16 from console.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 16&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" and its descendent domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" and its descendent domains to disabled mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendent domains to learning mode
+&diams; Fig. 16&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" and its descendant domains to disabled mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendant domains to learning mode
 <pre>
 # /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
 # /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
@@ -343,7 +343,7 @@ file write @SCP_FILE
 </td></tr>
 </table>
 
-<p>At this state, login via /usr/sbin/sshd and execute /bin/auth2 . When you pass the authentication, you will reach "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain. This domain does not create descendent domains because this domain is specified using "keep_domain" keyword.</p>
+<p>At this state, login via /usr/sbin/sshd and execute /bin/auth2 . When you pass the authentication, you will reach "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain. This domain does not create descendant domains because this domain is specified using "keep_domain" keyword.</p>
 
 <p>Now, let TOMOYO Linux learn permissions needed for restarting WWW server. (Fig. 17)</p>
 
@@ -389,7 +389,7 @@ file write @SCP_FILE
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 20&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendent domains to permissive mode
+&diams; Fig. 20&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendant domains to permissive mode
 <pre>
 # /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
 </pre>
@@ -400,7 +400,7 @@ file write @SCP_FILE
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 21&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendent domains to enforcing mode
+&diams; Fig. 21&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendant domains to enforcing mode
 <pre>
 # /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
 </pre>

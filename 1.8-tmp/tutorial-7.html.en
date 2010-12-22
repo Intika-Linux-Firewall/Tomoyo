@@ -78,10 +78,10 @@ Port number (for TCP and UDP) / Protocol number (for IP)
 
 <h4>(1) Examples for client applications</h4>
 
-<p>Change a domain which current process belongs to and its descendent domains to learning mode by doing commands listed in Fig. 4. (You may specify actual domainname as string parameter instead of redirection.)</p>
+<p>Change a domain which current process belongs to and its descendant domains to learning mode by doing commands listed in Fig. 4. (You may specify actual domainname as string parameter instead of redirection.)</p>
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 4&nbsp;&nbsp;Change a domain which current process belongs to and its descendent domains to learning mode
+&diams; Fig. 4&nbsp;&nbsp;Change a domain which current process belongs to and its descendant domains to learning mode
 <pre>
 # xargs -0 /usr/sbin/ccs-setprofile -r 5 &lt; /proc/ccs/self_domain
 </pre>
@@ -489,7 +489,7 @@ kill 4649: Operation not permitted
 </td></tr>
 </table>
 
-<p>You can find a permission "ipc signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" was learned. This permission allows sending signal 15 (i.e. SIGTERM) to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" domain and its descendent domains. Since TOMOYO Linux's domains forms hierarchal structure starting with "&lt;kernel&gt;", "ipc signal 15 &lt;kernel&gt;" will allow sending signal 15 to any processes. Also, as exceptions, sending signals to the same domain (e.g. threads in current process) is always permitted, and sending signal 0 is always permitted.</p>
+<p>You can find a permission "ipc signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" was learned. This permission allows sending signal 15 (i.e. SIGTERM) to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" domain and its descendant domains. Since TOMOYO Linux's domains forms hierarchal structure starting with "&lt;kernel&gt;", "ipc signal 15 &lt;kernel&gt;" will allow sending signal 15 to any processes. Also, as exceptions, sending signals to the same domain (e.g. threads in current process) is always permitted, and sending signal 0 is always permitted.</p>
 
 <h2>Trailer</h2>
 
