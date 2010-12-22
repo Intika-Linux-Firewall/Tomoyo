@@ -107,6 +107,16 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>The "df" option means overwrite /proc/ccs/domain_policy with "domain_policy.conf". The "ef" option means overwrite /proc/ccs/exception_policy with "exception_policy.conf". The "p" option means append "profile.conf" to /proc/ccs/profile . The "m" option means append "manager.conf" to /proc/ccs/manager . Of course, you can load only you want to load. Also, if "-" option is used (e.g. "-d"), policy is read from standard input rather than files.</p>
 
+<p>You might see warning messages like below printed on the console.</p>
+
+<table border="1">
+<tr><td>
+WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has so many ACLs to hold. Stopped learning mode.
+</td></tr>
+</table>
+
+<p>This is a safeguard for protecting your system from consuming all memory for learning mode and becoming unusably slow due to comparison with already learned permissions. You may increase max_learning_entry= values in profiles. But blindly increasing max_learning_entry= values will consume more memory and slows down your system. Therefore, you should try tuning policy before increasing max_learning_entry= values. Steps for tuning policy is described at <a href="tuning.html.en">Phase 4: Tuning policy for your system.</a>.</p>
+
 <hr>
 
 <h2>Step 3: Reviewing gathered permissions</h2>
