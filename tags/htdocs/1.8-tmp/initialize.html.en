@@ -134,10 +134,12 @@ The exceptions to this transition rule are described later.</p>
 (1) Pathname group
 </td><td>
 <p>You can specify pathname groups using "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names.</p>
+<p>By default, ANY_PATHNAME which matches arbitrary pathnames and ANY_DIRECTORY which matches arbitrary directories are defined.</p>
 </td></tr><tr><td>
 (2) Number group
 </td><td>
 <p>You can specify number groups using "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names.</p>
+<p>By default, COMMON_IOCTL_CMDS which matches 0x5401 is defined.</p>
 </td></tr><tr><td>
 (3) Address group
 </td><td>
@@ -146,6 +148,8 @@ The exceptions to this transition rule are described later.</p>
 (4) ACL group
 </td><td>
 <p>You can specify permissions using "acl_group" directive followed by group number and permissions for that group. The ACL group is referenced by "use_group" directive in the domain policy. This is a macro to reduce the amount of domain policy by grouping commonly granted permissions.</p>
+<p>For example, "acl_group 0 file read @ANY_DIRECTORY" grants any domains with "use_group 0" to issue read requests on pathnames in ANY_DIRECTORY path_group (i.e. open arbitrary directory for reading).</p>
+<p>For example, "acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS" grants any domains with "use_group 0" to issue ioctl requests with COMMON_IOCTL_CMDS number_group on pathnames in ANY_PATHNAME path_group (i.e. ioctl requests with 0x5401 on arbitrary pathnames).</p>
 </td></tr><tr><td>
 (5) Program aggregations
 </td><td>
