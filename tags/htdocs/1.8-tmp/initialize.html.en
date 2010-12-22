@@ -264,14 +264,6 @@ destination     /var/log/tomoyo/reject_003.log
 
 <p>WARNING: Be careful with disk space if "access granted logs" are required as this file can grow extremely quickly.</p>
 
-<p>Create directories manually for storing access logs. In the default configuration above, they are saved in /var/log/tomoyo/ directory.</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# mkdir -p /var/log/tomoyo
-</td></tr>
-</table>
-
 <p>To manage logs with "logrotate", create /etc/logrotate.d/tomoyo with the following content (give "nocreate" option or logs after the first rotation will not be saved):</p>
 
 <table border="1">
