@@ -1,0 +1,481 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The fifth installment: "Let's add conditions to policy."</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-5.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The fifth installment: "Let's add conditions to policy."</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>In this installment, I explain "conditional ACL" which utilizes TOMOYO Linux's powerful parameter checking functionality.</p>
+
+<h2>Adding conditions to ACL entries</h2>
+
+<h3>About conditional ACL</h3>
+
+<p>TOMOYO Linux does not support RBAC ( Role Based Access Control ). But you can specify conditions based on user ID in the policy configuration. Therefore, you can use access control based on system account's user ID. Conditions are appended at the tail of individual permissions. Available conditions are listed in Fig. 1 and usage examples are listed in Fig. 2.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 1&nbsp;&nbsp;Parameters which can be used as conditions<br>
+<table border="1" summary="fig">
+<tr><td>Variable</td><td>Meaning</td></tr>
+<tr><td>task.uid</td><td>UID of current process</td></tr>
+<tr><td>task.euid</td><td>Effective UID of current process</td></tr>
+<tr><td>task.suid</td><td>Saved UID of current process</td></tr>
+<tr><td>task.fsuid</td><td>File System UID of current process</td></tr>
+<tr><td>task.gid</td><td>GID of current process</td></tr>
+<tr><td>task.egid</td><td>Effective GID of current process</td></tr>
+<tr><td>task.sgid</td><td>Saved GID of current process</td></tr>
+<tr><td>task.fsgid</td><td>File System GID of current process</td></tr>
+<tr><td>task.pid</td><td>PID of current process</td></tr>
+<tr><td>task.ppid</td><td>PID of parent process</td></tr>
+<tr><td>task.type</td><td>Type of current process (execute_handler or not)</td></tr>
+<tr><td>path1.uid</td><td>UID of first object</td></tr>
+<tr><td>path1.gid</td><td>GID of first object</td></tr>
+<tr><td>path1.ino</td><td>i-node number of first object</td></tr>
+<tr><td>path1.type</td><td>Type of first object (e.g. file, directory, socket)</td></tr>
+<tr><td>path1.perm</td><td>DAC's permission of first object</td></tr>
+<tr><td>path1.major</td><td>Device major number of a device file which first object resides</td></tr>
+<tr><td>path1.minor</td><td>Device minor number of a device file which first object resides</td></tr>
+<tr><td>path1.dev_major</td><td>Device major number of first object (assuming that first object is a device file)</td></tr>
+<tr><td>path1.dev_minor</td><td>Device minor number of first object (assuming that first object is a device file)</td></tr>
+<tr><td>path1.parent.uid</td><td>UID of first object's parent directory</td></tr>
+<tr><td>path1.parent.gid</td><td>GID of first object's parent directory</td></tr>
+<tr><td>path1.parent.ino</td><td>i-node number of first object's parent directory</td></tr>
+<tr><td>path1.parent.perm</td><td>DAC's permission of first object's parent directory</td></tr>
+<tr><td>path2.uid</td><td>UID of second object</td></tr>
+<tr><td>path2.gid</td><td>GID of second object</td></tr>
+<tr><td>path2.ino</td><td>i-node number of second object</td></tr>
+<tr><td>path2.type</td><td>Type of second object (e.g. file, directory, socket)</td></tr>
+<tr><td>path2.perm</td><td>DAC's permission of second object</td></tr>
+<tr><td>path2.major</td><td>Device major number of a device file which second object resides</td></tr>
+<tr><td>path2.minor</td><td>Device minor number of a device file which second object resides</td></tr>
+<tr><td>path2.dev_major</td><td>Device major number of second object (assuming that second object is a device file)</td></tr>
+<tr><td>path2.dev_minor</td><td>Device minor number of second object (assuming that second object is a device file)</td></tr>
+<tr><td>path2.parent.uid</td><td>UID of second object's parent directory</td></tr>
+<tr><td>path2.parent.gid</td><td>GID of second object's parent directory</td></tr>
+<tr><td>path2.parent.ino</td><td>i-node number of second object's parent directory</td></tr>
+<tr><td>path2.parent.perm</td><td>DAC's permission of second object's parent directory</td></tr>
+<tr><td>exec.argc</td><td>Number of argv[] passed for execute request</td></tr>
+<tr><td>exec.envc</td><td>Number of envp[] passed for execute request</td></tr>
+<tr><td>exec.argv[index]</td><td>index-th argument for execute request</td></tr>
+<tr><td>exec.envp["name"]</td><td>value of environment variable "name" for execute request</td></tr>
+<tr><td>exec.realpath</td><td>Dereferenced pathname of the requested program</td></tr>
+<tr><td>symlink.target</td><td>The content of a symlink to be created</td></tr>
+</table>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 2&nbsp;&nbsp;Example of conditions<br>
+<table border="1" summary="fig">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>task.uid=0</td><td>if process's user ID is 0 (i.e. "root" user)</td></tr>
+<tr><td>task.uid!=0</td><td>if process's user ID is not 0 (i.e. not "root" user)</td></tr>
+<tr><td>task.uid=100-500</td><td>if process's user ID is between 100 and 500</td></tr>
+<tr><td>task.uid=0 task.gid=0</td><td>if both process's user ID is 0 and group ID is 0 (i.e. "root")</td></tr>
+<tr><td>task.uid!=0 task.gid!=0</td><td>if both process's user ID is not 0 and group ID is not 0 (i.e. not "root")</td></tr>
+<tr><td>task.uid=100-500 task.gid!=0</td><td>if process's user ID is between 100 and 500 and process's group ID is not 0</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value matches "value"</td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value does not match "value"</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>if environment variable "name" is defined and its value matches "value"</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>if environment variable "name" is  not defined or its value does not match "value"</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>if environment variable "name" is defined</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>if environment variable "name" is not defined</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h3>Let's add conditions</h3>
+
+<p>I explain steps for allowing browsing user's own files only for users logged in from console using /bin/cat command as an example. I use "user1" user and "user2" user for this purpose. Login from console and do below operations. Firstly, create 2 accounts. (Fig. 3)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Create 2 accounts
+<pre>
+# useradd -s /bin/bash user1
+# useradd -s /bin/bash user2
+</pre>
+</td></tr>
+</table>
+
+<p>Set some passwords for these accounts. (Fig. 4)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Set passwords for created accounts
+<pre>
+# passwd user1
+# passwd user2
+</pre>
+</td></tr>
+</table>
+
+<p>Run /bin/cat command in order to create domain for cat command. In addition, let's print the domain of cat command. (Fig. 5)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;Print domain which cat command belongs to
+<pre>
+# cat /proc/ccs/self_domain
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+</pre>
+</td></tr>
+</table>
+
+<p>Assign a profile for learning mode to /bin/cat command's domain. In this series, the profile for learning mode is profile 1, thus do like Fig. 6.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;Assign a profile for learning mode to the domain which cat command belongs to
+<pre>
+# /usr/sbin/ccs-setprofile 1 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user1" user. Then, do operations listed in Fig. 7.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Login as "user1" user and create /tmp/testfile1
+<pre>
+$ echo "This file was created by user1" &gt; /tmp/testfile1
+$ cat /tmp/testfile1
+This file was created by user1
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user2" user. Then, do operations listed in Fig. 8.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Login as "user2" and create /tmp/testfile2
+<pre>
+$ echo "This file was created by user2" &gt; /tmp/testfile2
+$ cat /tmp/testfile2
+This file was created by user2
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "root" user. Run ccs-editpolicy command and check "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat" domain's permissions. There should be entries listed in Fig. 9.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Permissions given to "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat" domain
+<pre>
+file read /tmp/testfile1
+file read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
+
+<p>As of now, everyone can read these files if granted by DAC (Discretionary Access Control) permission. Press "A" key on the keyboard and enter lines listed in Fig. 10.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;Adding permissions with conditions<br>(&diams; You may specify "file read /tmp/testfile\+ task.uid=path1.uid" instead for these lines.)
+<pre>
+file read /tmp/testfile1 task.uid=path1.uid
+file read /tmp/testfile2 task.uid=path1.uid
+</pre>
+</td></tr>
+</table>
+
+<p>Then, delete entries listed in Fig. 11 using "D" key on the keyboard.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;Deleting permissions without conditions
+<pre>
+file read /tmp/testfile1
+file read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
+
+<p>Press "Q" key on the keyboard to quit ccs-editpolicy command. Then, assign a profile for enforcing mode to /bin/cat command's domain. In this series, the profile for enforcing mode is profile 3, thus do like Fig. 12.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;Assign a profile for enforcing mode to the domain which cat command belongs to
+<pre>
+# /usr/sbin/ccs-setprofile 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user1" user. Then, try to print /tmp/testfile1 and /tmp/testfile2 using /bin/cat command. You can see that access to /tmp/testfile2 is forbidden. (Fig. 13)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Access to /tmp/testfile2 is forbidden
+<pre>
+$ cat /tmp/testfile1
+This file was created by user1
+$ cat /tmp/testfile2
+cat: /tmp/testfile2: Operation not permitted
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user2" user. Do the same operations like "user1" user. You can see that access to /tmp/testfile1 is forbidden. You may specify constant user ID instead of variables. For example, you can forbid "root" user's login if you change like Fig. 14 in the "&lt;kernel&gt; /sbin/mingetty /bin/login" domain (which authenticates user and executes login shell).</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 14&nbsp;&nbsp;Deny login as "root" user
+<pre>
+[Before modification]
+file execute /bin/bash
+[After modification]
+file execute /bin/bash task.uid!=0
+</pre>
+</td></tr>
+</table>
+
+<p>You can allow login of users with user ID between 500 and 1000 if you change like Fig. 15. You can use it for restricting logins via SSH.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 15&nbsp;&nbsp;Allow login of users with user ID between 500 and 1000
+<pre>
+[Before modification]
+file execute /bin/bash
+[After modification]
+file execute /bin/bash task.uid=500-1000
+</pre>
+</td></tr>
+</table>
+
+<p>Now, I've finished explanation of conditional permissions. Delete accounts created for this explanation. (Fig. 16)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 16&nbsp;&nbsp;Delete accounts created at Fig. 3
+<pre>
+# userdel user1
+# userdel user2
+</pre>
+</td></tr>
+</table>
+
+<h3>Change of behavior by how the program is executed</h3>
+
+<p>Getting sidetracked a bit. I'd like to show you change of behavior by how the program is executed which can become a pitfall when doing access control. Login to a system (needn't to use TOMOYO Linux kernel) and save the program listed in Fig. 17 as /tmp/argv0.c .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 17&nbsp;&nbsp;A C program which prints the invocation name
+<pre>
+#include &lt;stdio.h&gt;
+int main(int argc, char *argv[])
+{
+        printf("I am running as %s\n", argv[0]);
+        return 0;
+}
+</pre>
+</td></tr>
+</table>
+
+<p>Then, compile and create symbolic links (or hard links) like Fig. 18.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 18&nbsp;&nbsp;Compile and create symbolic links
+<pre>
+# gcc -o /tmp/argv0 /tmp/argv0.c
+# ln -s /tmp/argv0 /tmp/cat
+# ln -s /tmp/argv0 /tmp/passwd
+</pre>
+</td></tr>
+</table>
+
+<p>Then, execute these symbolic links (or hard links), and you will see the name of symbolic links (or hard links) are printed. (Fig. 19).</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 19&nbsp;&nbsp;Execute via symbolic links
+<pre>
+# /tmp/cat
+I am running as /tmp/cat
+# /tmp/passwd
+I am running as /tmp/passwd
+</pre>
+</td></tr>
+</table>
+
+<p>Some programs are designed to behave differently depending on the invocation name (called argv[0]). For example, in CentOS 5.5, /sbin/pidof is a symbolic link to /sbin/killall5 . If /sbin/killall5 is executed as "pidof", the program prints process ID of specified program. If /sbin/killall5 is executed as "killall5", the program sends signals to all processes except processes running in the same session.</p>
+
+<p>In TOMOYO Linux, the process runs in "/tmp/cat" domain if the program is executed as "/tmp/cat" and the process runs in "/tmp/passwd" domain if the program is executed as "/tmp/passwd". Then, what will happen if /tmp/passwd is executed as /tmp/cat like Fig. 20? (Guess the result.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 20&nbsp;&nbsp;Executing "passwd" command as "cat"
+<pre>
+# sh -c 'exec -a /tmp/cat /tmp/passwd'
+</pre>
+</td></tr>
+</table>
+
+<p>The result of Fig. 20 is Fig. 21. This means that allowing Fig. 20 is equal to allowing Fig. 22. However, note that Fig. 22 allows running as /tmp/cat in the /tmp/cat domain whereas Fig. 20 allows running as /tmp/cat in the /tmp/passwd domain.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 21&nbsp;&nbsp;Behave as "cat" command
+<pre>
+I am running as /tmp/cat
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 22&nbsp;&nbsp;Consequence of Fig. 20
+<pre>
+# sh -c 'exec /tmp/cat'
+</pre>
+</td></tr>
+</table>
+
+<p>Suppose /usr/bin/passwd command and /bin/cat command are provided using symbolic links (or hard links) to /sbin/busybox command. In this case, TOMOYO Linux transits to /bin/cat domain if /bin/cat is executed and transits to /usr/bin/passwd domain if /usr/bin/passwd is executed. To allow changing password, you need to allow access to /etc/shadow to the /usr/bin/passwd domain. But you don't want to allow access to /etc/shadow to the /bin/cat domain to print the password file. Then, what will happen if /usr/bin/passwd is executed as "/bin/cat" like Fig. 23?</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 23&nbsp;&nbsp;Executing "passwd" command as "cat"
+<pre>
+# sh -c 'exec -a /bin/cat /usr/bin/passwd /etc/shadow'
+</pre>
+</td></tr>
+</table>
+
+<p>By doing Fig. 23, /usr/bin/passwd will run in the /usr/bin/passwd domain. But since the invocation name was /bin/cat , /usr/bin/passwd behaves like /bin/cat . As a result, you allowed behavior like Fig. 24.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 24&nbsp;&nbsp;Allowing "cat" to read password file
+<pre>
+# sh -c 'exec /bin/cat /etc/shadow'
+</pre>
+</td></tr>
+</table>
+
+<p>To avoid such threat, TOMOYO Linux provides ability to check combination of program's pathname and argv[0] , and the dereferenced pathname ( exec.realpath ) and invocation name ( exec.argv[0] ) are automatically checked against the execute permission. Thus, you can avoid threat like Fig. 23 by forbidding execution of /usr/bin/passwd command as /bin/cat .</p>
+
+<h2>Generating policy from access logs (for advanced users)</h2>
+
+<p>Permissions generated using learning mode contains only exec.realpath and exec.argv[0] and symlink.target as conditions. But access logs contain all variables listed in Fig. 1. Thus, by generating policy from access logs rather than using learning mode, you can define permissions with strictest conditions.</p>
+
+<h3>Configure not to automatically append permissions.</h3>
+
+<p>In learning mode, once a policy violation occurs, permissions needed for avoiding that violation are automatically appended to the policy configuration in order to avoid future policy violation. But permissions automatically appended do not contain all information listed in Fig. 1. Thus, configure profile not to automatically append permissions. (Fig. 25)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 25&nbsp;&nbsp;Changes in /etc/ccs/profile.conf
+<pre>
+[Before modification]
+PREFERENCE={ max_learning_entry=2048 }
+[After modification]
+PREFERENCE={ max_learning_entry=0 }
+</pre>
+</td></tr>
+</table>
+
+<p>Save the profile, and then run the command in Fig. 26 in order to reflect the changes.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 26&nbsp;&nbsp;Reflect the changes
+<pre>
+# /usr/sbin/ccs-loadpolicy p
+</pre>
+</td></tr>
+</table>
+
+<h3>Run the programs you want to generate policy</h3>
+
+<p>Run the programs. All policy violations are saved as "access rejected logs".</p>
+
+<p>A lot of messages like Fig. 27 will be printed since you specified max_learning_entry=0 in Fig. 25, but you can ignore these messages.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 27&nbsp;&nbsp;Message when reached the upper limit for learning mode
+<pre>
+WARNING: Domain 'domainname' has so many ACLs to hold. Stopped learning mode.
+</pre>
+</td></tr>
+</table>
+
+<h3>Picking up necessary part from access rejected logs</h3>
+
+<p>Pick up lines containing " mode=learning " using grep command. (Fig. 28) Note the leading and trailing spaces. If you forget to specify these spaces, it might match the filename (e.g. "file read /path/to/file/mode=learning/and/so/on ).</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 28&nbsp;&nbsp;Pick up only learning mode's access logs
+<pre>
+# grep -F -A 2 " mode=learning " /var/log/tomoyo/reject_log.conf &gt; /var/log/tomoyo/learning_log.txt
+</pre>
+</td></tr>
+</table>
+
+<p>Then, convert to conditional permissions. (Fig. 29)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 29&nbsp;&nbsp;Convert to permissions with conditions
+<pre>
+# /usr/lib/ccs/convert-audit-log &lt; /var/log/tomoyo/learning_log.txt &gt; /var/log/tomoyo/policy.tmp
+</pre>
+</td></tr>
+</table>
+
+<p>Then, compress by sorting by domainnames. (Fig. 30)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 30&nbsp;&nbsp;Sort by domainnames
+<pre>
+# /usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/policy.tmp &gt; /var/log/tomoyo/policy.txt
+</pre>
+</td></tr>
+</table>
+
+<h3>Edit and append to policy configuration</h3>
+
+<p>You may append the contents of /var/log/tomoyo/policy.txt to /etc/ccs/domain_policy.conf as domain policy. But the contents of /var/log/tomoyo/policy.txt will be too strict to use as policy configuration (like Fig. 31). For example, you should not specify process ID and i-node number because they will change every time. Thus, prune unnecessary conditions using text editor before appending to /etc/ccs/domain_policy.conf .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 31&nbsp;&nbsp;Permission which is too strict to apply
+<pre>
+file execute /usr/bin/id task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
+</pre>
+</td></tr>
+</table>
+
+<h2>Trailer</h2>
+
+<p>In this installment, I explained conditional permissions. In the next installment, I explain countermeasure for SSH bruteforce attacks which is recently burgeoning and steps to splitting administrative operations, using TOMOYO Linux's characteristic hierarchized domain transitions. Don't miss it!</p>
+
+<p><a href="tutorial-4.html.en">Go back to the fourth installment.</a>&nbsp;&nbsp;<a href="tutorial-6.html.en">Proceed to the sixth installment.</a></p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

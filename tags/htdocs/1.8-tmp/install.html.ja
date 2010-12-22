@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="install.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第１章： TOMOYO Linux 対応カーネルとツールのインストール</h1>
+
+<p>このページでは、 TOMOYO Linux 対応カーネルとツールをインストールする手順について説明します。</p>
+
+<hr>
+
+<h2>ステップ１：カーネルのインストール</h2>
+
+<p>カーネルとツールのコンパイルに必要なパッケージをインストールしてください。</p>
+
+<table border="1">
+<tr><td>RedHat 系の場合</td><td>
+# yum -y install gcc ncurses-devel wget make
+</td></tr>
+<tr><td>Debian 系の場合</td><td>
+# apt-get -y install gcc libncurses-dev wget make
+</td></tr>
+</table>
+
+<p>ツールのコンパイル時に利用可能であることが望ましいパッケージをインストールしてください。（インストールできなくてもそのまま続行して構いません。）</p>
+
+<table border="1">
+<tr><td>RedHat 系の場合</td><td>
+# yum -y install readline-devel help2man
+</td></tr>
+<tr><td>Debian 系の場合</td><td>
+# apt-get -y install libreadline-dev help2man
+</td></tr>
+</table>
+
+<p>カーネルのソースを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> からダウンロードして展開して、そのディレクトリに移動してください。<br>
+linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 については linux-2.6.11.12.tar.bz2 以降に対応しています。例えばカーネル 2.6.36.2 を使う場合、以下の 2.$PATCHLEVEL.$SUBLEVEL を 2.6.36 に置き換えてください。</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-patch-1.8.0-20101122.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101122.tar.gz<br>
+[user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
+[user@tomoyo ~]$ make -s menuconfig
+</td></tr>
+</table>
+
+<p>「Security options」画面に表示される以下の項目を選択してください。</p>
+
+<ul>
+<li>[*] CCSecurity support</li>
+<li>[ ]   Compile as loadable kernel module</li>
+<li>[ ]   Disable by default</li>
+<li>[ ]   Do not modify 'struct task_struct' in order to keep KABI</li>
+<li>(2048) Default maximal count for learning mode</li>
+<li>(/sbin/ccs-init) Default policy loader</li>
+<li>(/sbin/ccs-start) Alternative activation trigger</li>
+<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for grant log</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
+</ul>
+
+<p>Compile as loadable kernel module を選択した場合、処理の大部分がカーネルモジュールとして切り出されるため、 vmlinux のサイズの増加を抑えることができます。組込み環境などで、 vmlinux のサイズに上限がある場合に選択してください。</p>
+
+<p>Disable by default を選択した場合、カーネルのコマンドラインで ccsecurity=on という指定を行った場合だけ有効化されます。選択しなかった場合、カーネルのコマンドラインで ccsecurity=off という指定を行った場合だけ無効化されます。</p>
+
+<p>（カーネル 2.6 でのみ選択可能な） Do not modify 'struct task_struct' in order to keep KABI を選択した場合、 TOMOYO が利用する変数をタスク構造体の外部で管理することにより、タスク構造体に変更を加えることにより生じる Kernel ABI の変化を回避することができます。ディストリビュータのカーネルに対して適用する際に Kernel ABI の変化を避けたい場合に選択してください。ただし、カーネルモジュールに対して TOMOYO の機能を呼び出すための構造体へのアクセスを認める（エクスポートする）必要があるため、カーネルパッケージを作成するスクリプトが警告を出力することは避けられない点については了承ください。</p>
+
+<p>カーネルコンフィグの作成が終わったら、カーネルをコンパイルしてください。</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ make -s dep<br>
+[user@tomoyo ~]$ make -s<br>
+[user@tomoyo ~]$ make -s modules<br>
+[user@tomoyo ~]$ su<br>
+[root@tomoyo ~]# make -s modules_install install
+</td></tr>
+</table>
+
+<p>必要であれば initrd を作成してください。</p>
+
+<hr>
+
+<h2>ステップ２：ツールのインストール</h2>
+
+<p>ツールパッケージをコンパイルするには以下のコマンドを実行してください。</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-tools-1.8.0-20101122.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101122.tar.gz<br>
+[user@tomoyo ~]$ cd ccstools/<br>
+[user@tomoyo ~]$ make -s<br>
+[user@tomoyo ~]$ su<br>
+[root@tomoyo ~]# make -s install<br>
+[root@tomoyo ~]# ldconfig
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.ja">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
