@@ -92,17 +92,20 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>By executing "ccs-savepolicy", two files ("exception_policy.conf", "domain_policy.conf") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose filenames contain the creation time.</p>
+<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose pathnames contain the creation time.</p>
 
 <p>To load the policy currently on the disk into the kernel, use "ccs-loadpolicy" command.</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy af
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy df<br>
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy ef<br>
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy p<br>
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy m<br>
 </td></tr>
 </table>
 
-<p>The "a" option means load two files ("exception_policy.conf", "domain_policy.conf"). The "f" option means erase the policy currently in the kernel before loading the policy currently on the disk. If "f" is not given, the policy currently on the disk will be added to the policy currently in the kernel.</p>
+<p>The "df" option means overwrite /proc/ccs/domain_policy with "domain_policy.conf". The "ef" option means overwrite /proc/ccs/exception_policy with "exception_policy.conf". The "p" option means append "profile.conf" to /proc/ccs/profile . The "m" option means append "manager.conf" to /proc/ccs/manager . Of course, you can load only you want to load. Also, if "-" option is used (e.g. "-d"), policy is read from standard input rather than files.</p>
 
 <hr>
 
@@ -124,11 +127,11 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="operation-permissive.png" width="891" height="560"></p>
 
-<p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration.</a>, you can pick up necessary permissions from audit logs using "grep" command.</p>
+<p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration.</a>, you can pick up necessary permissions from /var/log/tomoyo/reject_002.log .</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf<br>
+[root@tomoyo ~]# cat /var/log/tomoyo/reject_002.log<br>
 #2010-09-09 14:27:28# profile=2 mode=permissive (global-pid=3057) task={ pid=3057 ppid=3049 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 network inet stream accept 0:0:0:0:0:ffff:c0a8:103 3878<br>
@@ -231,7 +234,7 @@ file read /etc/group
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/sbin/ccs-sortpolicy<br>
+[root@tomoyo ~]# cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
 #2010-09-09 14:27:28# profile=2 mode=permissive (global-pid=3392) task={ pid=3392 ppid=3388 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1676438 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1676072 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
@@ -277,7 +280,7 @@ network unix stream connect /var/run/setrans/.setrans-unix
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/lib/ccs/convert-audit-log | /usr/sbin/ccs-sortpolicy<br>
+[root@tomoyo ~]# cat /var/log/tomoyo/reject_002.log | /usr/lib/ccs/convert-audit-log | /usr/sbin/ccs-sortpolicy<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
 network inet stream accept 0:0:0:0:0:ffff:c0a8:103 3878 task.pid=3057 task.ppid=3049 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler<br>
@@ -311,17 +314,17 @@ network unix stream connect /var/run/setrans/.setrans-unix task.pid=3392 task.pp
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/sbin/ccs-sortpolicy &gt; ~/rejected.log<br>
+[root@tomoyo ~]# cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy &gt; ~/rejected.log<br>
 [root@tomoyo ~]# emacs ~/rejected.log<br>
 [root@tomoyo ~]# /usr/sbin/ccs-loadpolicy -d &lt; ~/rejected.log
 </td></tr>
 </table>
 
-<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save exception_policy.conf and domain_poilicy.conf using "ccs-savepolicy" command.</p>
+<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save exception_policy.conf , domain_poilicy.conf , profile.conf and manager.conf using "ccs-savepolicy" command.</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-savepolicy a
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
 

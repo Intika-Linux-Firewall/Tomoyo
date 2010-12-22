@@ -15,7 +15,178 @@
 
 <hr>
 
-<h2>Step 1: Patterning File Access Permissions</h2>
+<h2>Step 1: Handling temporary files</h2>
+
+<p>Usually, temporary files cannot be handled by simply using "learning mode" and "permissive mode" due to the variety of single-use pathnames involved. They must instead be interactively handled. See: <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.</p>
+
+<p>Alternatively, temporary files can be converted into patterns non-interactively using the method shown below:</p>
+
+<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<p>In this example, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
+
+<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the \$ pattern can be used to match one or more repetitions of decimal digits. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+
+<p>Use "/usr/sbin/ccs-patternize" to convert into patterns non-interactively. Rewriting rules are specified in /etc/ccs/tools/patternize.conf file, as shown below:</p>
+
+<pre>
+# This file contains rewriting rules used by ccs-patternize command.
+
+# Domain policy consists with domain declaration lines (which start with
+# <kernel> ) and acl declaration lines (which do not start with <kernel> ).
+# You can refer the former using 'domain' keyword and the latter using 'acl'
+# keyword.
+#
+# Words in each line are separated by a space character. Therefore, you can
+# use 'domain[index]', 'acl[index]' for referring index'th word of the line.
+# The index starts from 1, and 0 refers the whole line (i.e.
+# 'domain[0]' = 'domain', 'acl[0]' = 'acl').
+#
+# Three operators are provided for conditional rewriting.
+# '.contains' is for 'fgrep keyword' match.
+# '.equals' is for 'grep ^keyword$' match.
+# '.starts' is for 'grep ^keyword' match.
+#
+# Rewriting rules are defined using multi-lined chunks. A chunk is terminated
+# by a 'rewrite' line which specifies old pattern and new pattern.
+# A 'rewrite' line is evaluated only when all preceding 'domain' and 'acl'
+# lines in that chunk have matched.
+# Evaluation stops at first 'rewrite' line where a word matched old pattern.
+# Therefore, no words are rewritten more than once.
+#
+# For user's convenience, new pattern can be omitted if old pattern is reused
+# for new pattern.
+
+# Files on proc filesystem.
+rewrite path_pattern proc:/self/task/\$/fdinfo/\$
+rewrite path_pattern proc:/self/task/\$/fd/\$
+rewrite head_pattern proc:/self/task/\$/
+rewrite path_pattern proc:/self/fdinfo/\$
+rewrite path_pattern proc:/self/fd/\$
+rewrite head_pattern proc:/self/
+rewrite path_pattern proc:/\$/task/\$/fdinfo/\$
+rewrite path_pattern proc:/\$/task/\$/fd/\$
+rewrite head_pattern proc:/\$/task/\$/
+rewrite path_pattern proc:/\$/fdinfo/\$
+rewrite path_pattern proc:/\$/fd/\$
+rewrite head_pattern proc:/\$/
+
+# Files on devpts filesystem.
+rewrite path_pattern devpts:/\$
+
+# Files on pipe filesystem.
+rewrite path_pattern pipe:[\$]
+
+# Files on / partition.
+rewrite tail_pattern /etc/mtab~\$
+rewrite tail_pattern /etc/ccs/policy/\*/domain_policy.conf
+rewrite tail_pattern /etc/ccs/policy/\*/exception_policy.conf
+rewrite tail_pattern /etc/ccs/policy/\*/manager.conf
+rewrite tail_pattern /etc/ccs/policy/\*/profile.conf
+rewrite tail_pattern /etc/ccs/policy/\*/
+
+# Files on /tmp/ partition.
+rewrite tail_pattern /vte\?\?\?\?\?\?
+rewrite tail_pattern /.ICE-unix/\$
+rewrite tail_pattern /keyring-\?\?\?\?\?\?/socket.ssh
+rewrite tail_pattern /orbit-\*/bonobo-activation-register-\X.lock
+rewrite tail_pattern /orbit-\*/bonobo-activation-server-\X-ior
+rewrite tail_pattern /orbit-\*/linc-\*
+rewrite tail_pattern /orbit-\*/
+rewrite tail_pattern /sh-thd-\$
+rewrite tail_pattern /zman\?\?\?\?\?\?
+
+# Files on home directory.
+rewrite tail_pattern /.ICEauthority-\?
+rewrite tail_pattern /.xauth\?\?\?\?\?\?
+rewrite tail_pattern /.xauth\?\?\?\?\?\?-?
+rewrite tail_pattern /.local/share/applications/preferred-mail-reader.desktop.\?\?\?\?\?\?
+rewrite tail_pattern /.local/share/applications/preferred-web-browser.desktop.\?\?\?\?\?\?
+
+# Files on /var/ partition.
+rewrite tail_pattern /cache/fontconfig/\X-le64.cache-3
+rewrite tail_pattern /lib/gdm/.pulse/\X-default-source
+rewrite tail_pattern /lib/gdm/.pulse/\X-default-sink
+rewrite tail_pattern /lib/gdm/.dbus/session-bus/\X-\X
+rewrite tail_pattern /run/gdm/auth-for-\*/database-\?
+rewrite tail_pattern /run/gdm/auth-for-\*/database
+rewrite tail_pattern /run/gdm/auth-for-\*/
+rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/\*
+rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/
+</pre>
+
+<p>"path_pattern" matches whole pathname, "head_pattern" matches leading pathname and "tail_pattern" matches trailing pathname.</p>
+
+<p>Since "rewrite tail_pattern /etc/mtab~\$" and "rewrite tail_pattern /sh-thd-\$" are already defined in default /etc/ccs/tools/patternize.conf file, you can simply convert and compare how it was changed:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# ccs-savepolicy -d &gt; /tmp/old<br>
+[root@tomoyo ~]# ccs-patternize &lt; /tmp/old &gt; /tmp/new<br>
+[root@tomoyo ~]# ccs-diffpolicy /tmp/old /tmp/new
+
+</td></tr>
+</table>
+
+<p>In case the conversion was not done as you meant, you may directly edit /tmp/new using text editor or retry conversion after editing /etc/ccs/tools/patternize.conf file.</p>
+
+<p>If you think conversion is done as you meant, you can apply these changes by loading the difference:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# ccs-diffpolicy /tmp/old /tmp/new | /usr/sbin/ccs-loadpolicy -d
+</td></tr>
+</table>
+
+<p>For your information, if you want to convert only specific domains, you can pick up domains using "/usr/sbin/ccs-selectpolicy" command. For example:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' &lt; /proc/ccs/domain_policy &gt; /tmp/old-httpd<br>
+[root@tomoyo ~]# ccs-patternize &lt; /tmp/old-httpd &gt; /tmp/new-httpd<br>
+[root@tomoyo ~]# ccs-diffpolicy /tmp/old-httpd /tmp/new-httpd | ccs-loadpolicy -d
+</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>will update only "&lt;kernel&gt; /usr/sbin/httpd" and its descendent domains. Also, you may insert a line</p>
+
+<pre>
+domain.starts &lt;kernel&gt; /usr/sbin/httpd
+</pre>
+
+<p>prior to each "rewrite" line so that the conversion is done against only "&lt;kernel&gt; /usr/sbin/httpd" and its descendent domains.</p>
+
+<hr>
+
+<h2>Step 2: Patterning File Access Permissions</h2>
 
 <p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in the learning mode. For example, the domain policy can be changed to accommodate for WWW contents:</p>
 
@@ -88,55 +259,17 @@ file read @WEB-CONTENTS
 </td></tr>
 </table>
 
-<hr>
+<p>You can do above conversion using /usr/sbin/ccs-editpolicy , but you may do this conversion using /usr/sbin/ccs-patternize . You can append</p>
 
-<h2>Step 2: Handling temporary files</h2>
+<pre>
+domain.equals &lt;kernel&gt; /usr/sbin/httpd
+acl.starts file read
+rewrite path_pattern /var/www/html/\*.html @WEB-CONTENTS
+rewrite path_pattern /var/www/html/\{\*\}/\*.html @WEB-CONTENTS
+rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
+</pre>
 
-<p>Usually, temporary files cannot be handled by simply using "learning mode" and "permissive mode" due to the variety of single-use pathnames involved. They must instead be interactively handled. See: <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.</p>
-
-<p>Alternatively, temporary files can be converted into patterns non-interactively using the method shown below:</p>
-
-<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
-/etc/mtab.tmp<br>
-/etc/mtab~<br>
-/etc/mtab~2302<br>
-/etc/mtab~2328<br>
-/etc/mtab~2329<br>
-/etc/mtab~2330<br>
-/etc/mtab~2331<br>
-/etc/mtab~2332<br>
-/etc/mtab~2339<br>
-/etc/mtab~2383<br>
-/halt<br>
-/selinux/disable<br>
-/selinux/enforce<br>
-/selinux/policyvers<br>
-/tmp/sh-thd-1163110572<br>
-/tmp/sh-thd-1163113704<br>
-/var/cache/samba/browse.dat.<br>
-/var/lib/nfs/etab.tmp<br>
-/var/lib/nfs/xtab.tmp<br>
-/var/lock/mrtg/mrtg_l<br>
-</td></tr>
-</table>
-
-<p>In this example, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
-
-<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the \$ pattern can be used to match one or more repetitions of decimal digits.</p>
-
-<p>Use "/usr/sbin/ccs-patternize" to replace all occurrences of "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$' respectively:</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-savepolicy -d | /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/ccs-loadpolicy -d
-</td></tr>
-</table>
-
-<p>See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+<p>to /etc/ccs/tools/patternize.conf and do like Step 1. But be sure to add path_group to the exception policy because /usr/sbin/ccs-patternize deals only the domain policy.</p>
 
 <hr>
 
@@ -180,6 +313,17 @@ number_group WEB-CLIENT-PORTS 1024-65535
 network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 </td></tr>
 </table>
+
+<p>You can do above conversion using /usr/sbin/ccs-editpolicy , but you may do this conversion using /usr/sbin/ccs-patternize . You can append</p>
+
+<pre>
+domain.equals &lt;kernel&gt; /usr/sbin/httpd
+acl.starts network inet stream accept
+rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS<br>
+</pre>
+
+<p>to /etc/ccs/tools/patternize.conf and do like Step 1. But be sure to add number_group to the exception policy.</p>
+
 
 <hr>
 
@@ -227,6 +371,18 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </td></tr>
 </table>
+
+<p>You can do above conversion using /usr/sbin/ccs-editpolicy , but you may do this conversion using /usr/sbin/ccs-patternize . You can append</p>
+
+<pre>
+domain.equals &lt;kernel&gt; /usr/sbin/httpd
+acl.starts network inet stream accept
+rewrite address_pattern 0:0:0:0:0:0:0:1 @WEB-CLIENT-ADDRESS
+rewrite address_pattern 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-ADDRESS
+rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
+</pre>
+
+<p>to /etc/ccs/tools/patternize.conf and do like Step 1. But be sure to add address_group to the exception policy.</p>
 
 <hr>
 

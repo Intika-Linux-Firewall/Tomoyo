@@ -51,11 +51,11 @@
 
 <p><img src="unix-penguin-rejected.png" width="684" height="597"></p>
 
-<p>If audit logs were configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration</a>, rejected requests can be picked up from audit logs using "grep":</p>
+<p>If audit logs were configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration</a>, you can pick up rejected requests from /var/log/tomoyo/reject_003.log .</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# grep -A 3 -F 'profile=3 mode=enforcing' /var/log/tomoyo/reject_log.conf<br>
+[root@tomoyo ~]# cat /var/log/tomoyo/reject_003.log<br>
 #2010-09-09 20:43:43# profile=3 mode=enforcing (global-pid=3176) task={ pid=3176 ppid=3175 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=852009 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=851969 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=15 argv[]={ "cat" "/etc/passwd" } envp[]={ "SELINUX_INIT=YES" "CONSOLE=/dev/console" "TERM=linux" "INIT_VERSION=sysvinit-2.86" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "RUNLEVEL=3" "runlevel=3" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "PREVLEVEL=N" "previous=N" "HOME=/" "SHLVL=4" "LANGUAGE=en_US.UTF-8" } }<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 file execute /bin/cat<br>

@@ -40,10 +40,8 @@ In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be re
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz'<br>
-[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz.asc'<br>
-[user@tomoyo ~]$ gpg ccs-patch-1.8.0-20101122.tar.gz.asc<br>
-[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101122.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-patch.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch.tar.gz --strip 1<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
 </td></tr>
 </table>
@@ -67,8 +65,7 @@ In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be re
 <li>(/sbin/ccs-init) Default policy loader</li>
 <li>(/sbin/ccs-start) Alternative activation trigger</li>
 <li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
-<li>(1024)&nbsp;&nbsp;Default maximal count for grant log</li>
-<li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
 </ul>
 
 <p><i>"Compile as loadable kernel module"</i> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
@@ -112,15 +109,12 @@ In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be re
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz'<br>
-[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz.asc'<br>
-[user@tomoyo ~]$ gpg ccs-tools-1.8.0-20101122.tar.gz.asc<br>
-[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101122.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
 [user@tomoyo ~]$ make -s<br>
 [user@tomoyo ~]$ su<br>
 [root@tomoyo ~]# make -s install<br>
-[root@tomoyo ~]# ldconfig
 </td></tr>
 </table>
 
