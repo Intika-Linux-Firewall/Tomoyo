@@ -11,7 +11,7 @@
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 4: Tuning policy for your system.</h1>
 
-<p>This page describes how to tune TOMOYO Linux's policy.</p>
+<p>This page describes how to use TOMOYO Linux's permissive mode and how to use more fine grained permissions.</p>
 
 <hr>
 
@@ -304,7 +304,7 @@ file execute /bin/bash exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=
 
 <p>See <a href="policy-reference.html.en#conditional_acl">Using conditional ACL</a> for details on the conditionals supported.</p>
 
-<p>You can generate finest grained access logs by applying "convert-audit-log" command before applying "ccs-sortpolicy" command.</p>
+<p>For your information, you can generate finest grained access logs by applying "convert-audit-log" command before applying "ccs-sortpolicy" command. However, access logs converted by "convert-audit-log" command are not suitable for appending to domain policy because they are too strict to use. You will have to loosen conditions as needed if you want to append access logs converted by "convert-audit-log" command to domain policy.</p>
 
 <table border="1">
 <tr><td>
