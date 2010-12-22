@@ -1269,6 +1269,7 @@ static const char patternize_data[] =
 "\n"
 "# Files on pipe filesystem.\n"
 "rewrite path_pattern pipe:[\\$]\n"
+"rewrite path_pattern pipefs:[\\$]\n"
 "\n"
 "# Files on / partition.\n"
 "rewrite tail_pattern /etc/mtab~\\$\n"
