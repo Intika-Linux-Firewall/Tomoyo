@@ -265,7 +265,13 @@ file read @WEB-CONTENTS
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
 acl.starts file read
 rewrite path_pattern /var/www/html/\*.html @WEB-CONTENTS
+
+domain.equals &lt;kernel&gt; /usr/sbin/httpd
+acl.starts file read
 rewrite path_pattern /var/www/html/\{\*\}/\*.html @WEB-CONTENTS
+
+domain.equals &lt;kernel&gt; /usr/sbin/httpd
+acl.starts file read
 rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 </pre>
 
@@ -319,11 +325,10 @@ network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
 acl.starts network inet stream accept
-rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS<br>
+rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 </pre>
 
 <p>to /etc/ccs/tools/patternize.conf and do like Step 1. But be sure to add number_group to the exception policy.</p>
-
 
 <hr>
 
@@ -378,7 +383,13 @@ network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
 acl.starts network inet stream accept
 rewrite address_pattern 0:0:0:0:0:0:0:1 @WEB-CLIENT-ADDRESS
+
+domain.equals &lt;kernel&gt; /usr/sbin/httpd
+acl.starts network inet stream accept
 rewrite address_pattern 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-ADDRESS
+
+domain.equals &lt;kernel&gt; /usr/sbin/httpd
+acl.starts network inet stream accept
 rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 </pre>
 
