@@ -1,0 +1,213 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux の世界　第３回：「ドメイン遷移をマスターしよう」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-3.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>TOMOYO Linux の世界<br>第３回：「ドメイン遷移をマスターしよう」</h1>
+
+<h2>今回の内容</h2>
+
+<p>第２回は， TOMOYO Linux における制御モードとプロファイルについて紹介し，それらを組み合わせて実際に強制アクセス制御を行う手順について紹介しました．やや駆け足でしたが，実はこれまでの部分で TOMOYO Linux の基本部分の説明は終わっています．今回からは必要に応じて説明を補足しながら，詳細，応用的な使い方について紹介していくことにします．どうぞおつきあいください．今回のテーマは，ドメイン遷移についてです．</p>
+
+<h2>ドメイン遷移をマスターする</h2>
+
+<h3>TOMOYO Linux におけるドメイン遷移の原則</h3>
+
+<p>第１回で説明したように， TOMOYO Linux では原則としてプログラムを実行するたびにドメイン遷移が発生します（図１）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１　TOMOYO Linux におけるドメイン遷移<br>（プログラムの実行により新たなドメインに遷移する．）<br>
+<img src="tutorial/fig-3-1.png" alt="fig-3-1.png" width="800" height="600">
+</td></tr>
+</table>
+
+<p>つまりすべてのプログラムはそれぞれが独立なドメインになります．ドメインの名称は，基点である &lt;kernel&gt; から現在に至るまでに実行された全てのプログラムのパス名を結合したものになります．これに対して， SELinux におけるドメインは，階層的な構造を持っておらずフラットに並んでいます．プログラムとドメインの対応はポリシー策定者が定めますが，通常はドメインには複数のプログラムが含まれます．各ドメインであらかじめ定義されたプログラムを実行することにより定められたドメインに遷移します（図２．その結果アクセス制御の内容が変わります）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２　SELinuxにおけるドメイン遷移<br>
+<img src="tutorial/fig-3-2.png" alt="fig-3-2.png" width="720" height="270">
+</td></tr>
+</table>
+
+<h3>TOMOYO Linux におけるドメイン遷移の例外</h3>
+
+<p>TOMOYO Linux におけるドメインの遷移は，必要に応じて初期化したり抑制したりすることができます．</p>
+
+<h4>●無条件にドメイン遷移を初期化させる</h4>
+
+<p>「 initialize_domain プログラム名」という構文により指定されたプログラムが実行された場合， &lt;kernel&gt; 直下のドメインへ無条件に遷移します（図３）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３　initialize_domain の効果<br>（ /some/where/baz が実行されると無条件に &lt;kernel&gt; 直下の /some/where/baz ドメインに遷移する．）<br>
+<img src="tutorial/fig-3-3.png" alt="fig-3-3.png" width="800" height="500">
+</td></tr>
+</table>
+
+<h4>●条件付きでドメイン遷移を初期化させる</h4>
+
+<p>前述したように，「 initialize_domain プログラム名」と指定しておくと， 「プログラム名」で指定されたプログラムが実行された場合，「 &lt;kernel&gt; プログラム名」というドメインへ遷移します．（図４）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図４　無条件にドメイン遷移を初期化する<br>
+<img src="tutorial/fig-3-4.png" alt="fig-3-4.png" width="800" height="420">
+</td></tr>
+</table>
+
+<p>しかし，「 initialize_domain プログラム名 from ドメイン名」のように「ドメイン名」と一緒に指定しておくと，「プログラム名」で指定されたプログラムが「ドメイン名」で指定されたドメインから実行された場合に限り「 &lt;kernel&gt; プログラム名」というドメインへ遷移します（図５）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図５　特定のドメインから実行された場合のみドメイン遷移を初期化する<br>
+（ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd という指定により， &lt;kernel&gt; /etc/rc.d/init.d/sshd ドメインから /usr/sbin/sshd が実行された場合に限り， &lt;kernel&gt; /usr/sbin/sshd ドメインへ遷移する．）<br>
+<img src="tutorial/fig-3-5.png" alt="fig-3-5.png" width="800" height="480">
+</td></tr>
+</table>
+
+<p>「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけでもかまいません．</p>
+
+<h4>●条件付きでドメイン遷移を初期化させない</h4>
+
+<p>「 no_initialize_domain プログラム名 from ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインから「プログラム名」が実行される場合には initialize_domain キーワードによる指定を無視します．</p>
+
+<p>たとえば，メールを送信するための「 /bin/mail 」は「 /usr/sbin/sendmail.sendmail 」を実行しますが，メールを受信するために「 /usr/sbin/sendmail.sendmail 」を実行するのとは別の権限を与えたい場合には，「 no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail 」と指定しておくことで「 &lt;kernel&gt; /usr/sbin/sendmail.sendmail 」ドメインへ遷移させないようにすることができます（図６）．（ドメイン名が /bin/mail で終わる場合のみ機能します． /bin/mail が keep_domain に指定されたシェルのドメインから呼ばれる場合には /bin/mail の代わりにシェルのドメインを指定する必要があります．）</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図６　no_initialize_domain との組み合わせ<br>
+<img src="tutorial/fig-3-6.png" alt="fig-3-6.png" width="800" height="500">
+</td></tr>
+</table>
+
+<h4>●無条件にドメイン遷移を抑制させる</h4>
+
+<p>「 keep_domain ドメイン名」という構文により指定されたドメインに属しているプロセスは， initialize_domain に指定されたプログラムが実行されない限り，そのドメインに留まります（図７）．複数のプログラムが同一ドメインに所属するという意味では SELinux のドメインに近い部分があります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図７　keep_domain の効果<br>（ &lt;kernel&gt; /sbin/init ・・・ foo bar ドメインは keep_domain 指定されているため，プログラムを実行してもドメイン遷移は起こらない． initialize_domain 指定されている /some/where/baz が実行されることにより &lt;kernel&gt; /some/where/baz に遷移している．）<br>
+<img src="tutorial/fig-3-7.png" alt="fig-3-7.png" width="800" height="600">
+</td></tr>
+</table>
+
+<p>「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけを指定することも可能です．たとえば， 「ドメイン名」として /bin/bash を指定した場合，ドメイン名が /bin/bash で終わるすべてのドメインに対してkeep_domainが指定されたものとして扱われます（図８）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図８　keep_domain の効果<br>
+<img src="tutorial/fig-3-8.png" alt="fig-3-8.png" width="800" height="420">
+</td></tr>
+</table>
+
+<h4>●条件付きでドメイン遷移を抑制させる</h4>
+
+<p>前述したように，「 keep_domain ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインに到達した場合には， initialize_domain で指定されたプログラムが実行されない限りドメイン遷移が行われなくなります（図９）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図９　無条件にドメイン遷移を抑制する<br>
+<img src="tutorial/fig-3-9.png" alt="fig-3-9.png" width="800" height="350">
+</td></tr>
+</table>
+
+<p>しかし，「 keep_domain プログラム名 from ドメイン名」のように指定した場合， 「ドメイン名」で指定されたドメインから「プログラム名」で指定されたプログラムが実行された場合に限り，ドメイン遷移が発生しなくなります（図１０）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１０　特定のプログラムが実行された場合だけドメイン遷移を抑制する<br>
+<img src="tutorial/fig-3-10.png" alt="fig-3-10.png" width="800" height="430">
+</td></tr>
+</table>
+
+<h4>●条件付きでドメイン遷移を再開させる</h4>
+
+<p>ログイン後にはどのようなコマンドをどのような順序で実行するかを事前に知ることはできないため， keep_domain というキーワードを指定してドメイン遷移を行わせないようにすることができます．しかし，パスワードの変更のためにパスワードファイルへのアクセスを必要とする場合や，デーモンとして動作するサービスを再スタートさせる場合などはドメイン遷移を再開させたい場合があります．</p>
+
+<p>「 no_keep_domain プログラム名 from ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインから「プログラム名」が実行される場合には keep_domain キーワードによる指定を無視します．</p>
+
+<p>たとえば，「 keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定がされている場合に「 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定を行うことで，デフォルトではドメイン遷移をさせないようにしながら「 /bin/cat 」を実行する場合には「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat 」ドメインへ遷移させるようにすることができます（図１１）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１１　no_keep_domain との組み合わせ<br>
+<img src="tutorial/fig-3-11.png" alt="fig-3-11.png" width="800" height="400">
+</td></tr>
+</table>
+
+<h4>●プログラムの実行を伴わないでドメイン遷移を行う</h4>
+
+<p>ドメイン遷移は原則としてプログラムの実行時に発生しますが，プログラムの中からドメイン遷移を行うための処理を呼び出すことにより，プログラムの実行を伴わずにドメイン遷移を行うことが可能です．</p>
+
+<p>例えば， Apache はＣＧＩをサポートしていますが， Apache とは別プロセスとして動作する（プログラムの実行を必要とする）ＣＧＩと Apache プロセス内で動作する（プログラムの実行を必要としない）ＣＧＩがあります． Apache がリクエストを処理する前にバーチャルホスト名や実行されるＣＧＩの名前などに基づいてドメイン遷移を行うことにより， Apache プロセス内で動作するＣＧＩに対しても権限の分割を行うことができます．手順については第１０回で紹介します．</p>
+
+<h3>一連の操作をグループ化する</h3>
+
+<p>initialize_domain と keep_domain という２つの例外を組み合わせることにより，柔軟なアクセス制御の指定が可能になります．以下，例を挙げて説明します．ログインして ccs-editpolicy を実行してください．そして， /etc/rc.d/init.d/network の実行されるドメイン（ &lt;kernel&gt; /etc/rc.d/init.d/network ）を探してください． /etc/rc.d/init.d/network から /etc/sysconfig/network-scripts/ifup や /bin/touch など，たくさんのプログラムが実行されているのがおわかりだと思います（図１２）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１２　keep_domain 指定前のドメイン遷移<br>
+<img src="tutorial/fig-3-12.png" alt="fig-3-12.png" width="931" height="1636">
+</td></tr>
+</table>
+
+<p>ここで，「 Tab 」を押してください．「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」から「 &lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; 」という画面に切り替わったと思います．この画面をスクロールしていくと， initialize_domain で始まる行が現れます．一番下までスクロールしてください．この位置で，「 A 」を押してから keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network と入力して「 Enter 」を押してください．すると，入力した内容が現れるはずです（図１３）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１３　keep_domain を指定<br>
+<img src="tutorial/fig-3-13.png" alt="fig-3-13.png" width="548" height="370">
+</td></tr>
+</table>
+
+<p>再度，「 Tab 」を押してください．「 &lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; 」から「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」という画面に切り替わったと思います．そこから，「 &lt;kernel&gt; /etc/rc.d/init.d/network 」ドメインを探してください（図１４）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１４　keep_domain 指定直後のドメイン遷移<br>
+<img src="tutorial/fig-3-14.png" alt="fig-3-14.png" width="931" height="1636">
+</td></tr>
+</table>
+
+<p>「 * 」という表示が「 #* 」に変化しました．「 # 」は「このドメインは keep_domain に指定されているので複数のプログラムがこのドメインで動作する可能性がある」ことを，「 * 」は「このドメインは initialize_domain に指定されているので複数のドメインからこのドメインへ遷移する可能性がある」ことを意味します．ここで， /etc/rc.d/init.d/network の実行されるドメインを keep_domain に指定したことで，そのドメインのアクセス許可を学習し直す必要が生じます．「 ! 」という表示が付いている行（図１４の８６～１８９行）へは「 keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network 」という指定が行われたことにより到達できなくなったので削除します．カーソルを合わせて「スペース」キーを押すと，行頭に &amp; マークが表示されます．最後に「 D 」を押すと図１５のように聞かれるので「 Y 」を押します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１５　ドメインを削除するかどうかの確認メッセージ<br>
+<img src="tutorial/fig-3-15.png" alt="fig-3-15.png" width="931" height="1636">
+</td></tr>
+</table>
+
+<p>すると，行頭に &amp; マークが表示されているドメインが削除されます．「 Q 」を押して ccs-editpolicy を終了し， /etc/rc.d/init.d/network restart を実行します．再度 ccs-editpolicy を実行して &lt;kernel&gt; /etc/rc.d/init.d/network ドメインを探してみてください．今度は /etc/sysconfig/network-scripts/ifup や /bin/touch などは現れなくなります（図１６）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１６　再学習後のドメイン遷移<br>
+<img src="tutorial/fig-3-16.png" alt="fig-3-16.png" width="556" height="338">
+</td></tr>
+</table>
+
+<p>TOMOYO Linux の自動ドメイン定義機能は強力です．しかし，実行するプログラムの限定とそのアクセス制御は行いたいけれども，プログラムの実行順序が特定できないような場合（典型的なものとしてはログイン後の作業）はポリシーの策定が大変です．グループ化を行うことで，ログイン後のドメインをグループ化してから，そのドメインに強制モード用のプロファイルを割り当てれば，コマンドの実行順序は制限せずにアクセス可能な資源だけを制限することができます．また，強制モード用以外のプロファイルを割り当てれば，従来の Linux と同様に自由に振る舞うことができるようになります．</p>
+
+<h2>次回予告</h2>
+
+<p>今回はドメイン遷移について紹介しました．次回は，ポリシーのチューニングについて紹介していきます．どうぞお楽しみに．</p>
+
+<p><a href="tutorial-2.html.ja">第２回へ戻る</a>　<a href="tutorial-4.html.ja">第４回へ進む</a></p>
+
+<hr>
+
+<p><a href="index.html.ja#tutorial">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

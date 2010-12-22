@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="initialize.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>Phase 2: Initializing configuration.</h1>
+
+<p>This page describes basic operations needed for using TOMOYO Linux.</p>
+
+<hr>
+
+<h2>Step 1: Initializing policy</h2>
+
+<p>To analyze or restrict only file related operations (e.g. read, write, execute), run the following:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/lib/ccs/init_policy --file-only-profile
+</td></tr>
+</table>
+
+<p>To analyze or restrict all operations (e.g. files, networks, capabilities, environment variables, signal transmissions), run the following:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/lib/ccs/init_policy
+</td></tr>
+</table>
+
+<p>All policy files will be saved in /etc/ccs/ directory.</p>
+
+<hr>
+
+<h2>Step 2: Learning how to use the policy editor</h2>
+
+<p>Run TOMOYO Linux's policy editor  with "/etc/ccs/" option to edit policy files within "/etc/ccs/":</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-editpolicy /etc/ccs/
+</td></tr>
+</table>
+
+<p>This picture describes the domain tree that should be visible after running the above command. As of now, only "&lt;kernel&gt;" domain is defined:</p>
+
+<p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
+
+<p>As the system runs, TOMOYO Linux will create domains and add them to the tree. After rebooting and running ccs-editpolicy again, the domain tree should become populated with all domains created since startup:</p>
+
+<p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
+
+<p>The access analysis/restriction in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and the process will transit to a different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history.</p>
+
+<p>For example, the domain name that the kernel belongs to is <b>"&lt;kernel&gt;"</b>.<br>
+When the kernel invokes "/sbin/init", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init"</b>.<br>
+When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init /etc/rc.d/rc"</b>.<br>
+The exceptions to this transition rule are described later.</p>
+
+<p>Look at the numbers in the second column of each line:</p>
+
+<p><img src="editpolicy-domain-profile-number.png" width="720" height="400"></p>
+
+<p>This number is called the "profile number". A profile number is an integer value which takes between 0 and 255.</p>
+
+<p>Press "w" key, and you will see some choices:</p>
+
+<p><img src="editpolicy-window-list.png" width="720" height="400"></p>
+
+<p>Press "p" key, and you will see the list of profiles.</p>
+
+<p>If "--file-only-profile" was specified when executing /usr/lib/ccs/init_policy then you will see the following entries:</p>
+
+<p><img src="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
+
+<p>If "--file-only-profile" was not specified when executing /usr/lib/ccs/init_policy then you will see the following entries:</p>
+
+<p><img src="editpolicy-profile-list.png" width="720" height="400"></p>
+
+<table border="1">
+<tr><td>Name</td><td>Control</td></tr>
+<tr>
+<td>COMMENT</td>
+<td>Description of profile.</td>
+</tr>
+<tr>
+<td>CONFIG</td>
+<td>Configuration of operation mode.</td>
+</tr>
+<tr>
+<td>PREFERENCE</td>
+<td>Configuration of various options.</td>
+</tr>
+</table>
+<p>The mode= parameter of the CONFIG line can contain one of the following values:</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>disabled</td>
+<td>Works as if a regular kernel.</td>
+</tr>
+<tr>
+<td>learning</td>
+<td>Do not reject an access request if the request violates policy. Append the request to policy.</td>
+</tr>
+<tr>
+<td>permissive</td>
+<td>Do not reject an access request if the request violates policy. Do not append the request to policy.</td>
+</tr>
+<tr>
+<td>enforcing</td>
+<td>Reject an access request if the request violates policy. Do not append the request to policy.</td>
+</tr>
+</table>
+
+<p>Press "w" key, then press "e" key, and you will see the picture shown below.</p>
+
+<p><a href="editpolicy-exception-full.png">(Click to view complete screen.)<br><img src="editpolicy-exception-list1.png" width="720" height="400"></a></p>
+
+<p>You can scroll this window using the arrow keys and/or Home/End/PageUp/PageDown keys.</p>
+
+<p>This screen contains the following types of macros and exceptions.</p>
+
+<table border="1">
+<tr><td>
+(1) Pathname group
+</td><td>
+<p>You can specify pathname groups using "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names.</p>
+</td></tr><tr><td>
+(2) Number group
+</td><td>
+<p>You can specify number groups using "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names.</p>
+</td></tr><tr><td>
+(3) Address group
+</td><td>
+<p>You can specify IPv4 or IPv6 address groups using "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names.<br>
+</td></tr><tr><td>
+(4) ACL group
+</td><td>
+<p>You can specify permissions using "acl_group" directive followed by group number and permissions for that group. The ACL group is referenced by "use_group" directive in the domain policy. This is a macro to reduce the amount of domain policy by grouping commonly granted permissions.</p>
+</td></tr><tr><td>
+(5) Program aggregations
+</td><td>
+<p>Each program's pathname is used for domain transition, but you can aggregate multiple program's pathnames into a single program's pathname as needed using "aggregator" directive.</p>
+</td></tr><tr><td>
+(6) Domain transition exceptions
+</td><td>
+<p>Domain transition occurs whenever a program is executed, but you can suppress or initialize domain transitions as needed.</p>
+<p>You can specify programs that initialize the domain transition history using "initialize_domain" directive. For example, if "initialize_domain /usr/sbin/sshd" is specified, /usr/sbin/sshd will run under "&lt;kernel&gt; /usr/sbin/sshd" domain.</p>
+<p>You can deny the effect of "initialize_domain" directive using "no_initialize_domain" directive. Use this when you don't want to initialize domain transition history under specific conditions.</p>
+<p>You can specify domains that suppress domain transition using "keep_domain" directive. For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is specified, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless programs specified using "initialize_domain" directive are executed.</p>
+<p>You can deny the effect of "keep_domain" directive using "no_keep_domain" directive. Use this when you don't want to suppress domain transition under specific conditions.</p>
+</td></tr><tr><td>
+(7) Reserved local ports
+</td><td>
+<p>You can specify reserved local ports using "deny_autobind" directive. This is similar to /proc/sys/net/ipv4/ip_local_reserved_ports which is available since Linux 2.6.35 kernels.</p>
+</td></tr>
+</table>
+
+<p>Press "q" key to finish the policy editor.</p>
+
+<p>For more information on usage of the policy editor, see <a href="tool-editpolicy.html.en">How to use Policy Editor</a>.</p>
+<p>For more information on the directives, see <a href="policy-reference.html.en">Policy Specifications of TOMOYO Linux</a>.</p>
+
+<hr>
+
+<h2><a name="configure_audit_daemon">Step 3: Save audit logs (Optional)</a></h2>
+
+<p>TOMOYO Linux can record "access granted logs" (access requests that did not violate domain policy) and "access rejected logs" (access requests that violated domain policy).</p>
+
+<p>The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider that access should be allowed.</p>
+
+<p>The following values can be given for the grant_log= parameter of the CONFIG line:</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>no</td>
+<td>Don't record "access granted logs" unless "grant_log=yes" is explicitly specified in the individual ACL entry.</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>Record "access granted logs" unless "grant_log=no" is explicitly specified in the individual ACL entry.</td>
+</tr>
+</table>
+<p>The following values can be given for the reject_log= parameter of the CONFIG line:</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>no</td>
+<td>Don't record "access rejected logs".</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>Record "access rejected logs".</td>
+</tr>
+</table>
+
+<p>"/usr/sbin/ccs-auditd is a daemon program that can be used to read from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to files. For example, run the following from /etc/rc.local:</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-auditd $grant_log_location $reject_log_location
+</td></tr>
+</table>
+
+<p>WARNING: Be careful with disk space if "access granted logs" are required as this file can grow extremely quickly.</p>
+
+<p>If "access granted logs" are not required, specify PREFERENCE={ max_grant_log=0 } for profiles and /dev/null for $grant_log_location.</p>
+
+<p>If "access rejected logs" are not required, specify PREFERENCE={ max_reject_log=0 } for profiles and /dev/null for $reject_log_location. However, it is recommended to store "access rejected logs".</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
+</td></tr>
+</table>
+
+<p>Create directories manually for storing access logs.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# mkdir -p /var/log/tomoyo
+</td></tr>
+</table>
+
+<p>To manage logs with "logrotate", create /etc/logrotate.d/tomoyo with the following content (give "nocreate" option or logs after the first rotation will not be saved):</p>
+
+<table border="1">
+<tr><td>
+/var/log/tomoyo/reject_log.conf {<br>
+&nbsp;&nbsp;weekly<br>
+&nbsp;&nbsp;rotate 9<br>
+&nbsp;&nbsp;missingok<br>
+&nbsp;&nbsp;notifempty<br>
+&nbsp;&nbsp;nocreate<br>
+}
+</td></tr>
+</table>
+
+<p>If access logs are not required, ccs-auditd need not be run. In this case, give PREFERENCE={ max_grant_log=0 max_reject_log=0 } for profiles to save memory and improve performance.</p>
+
+<hr>
+
+<h2>Step 4: Reboot the system</h2>
+
+<p>Now reboot with TOMOYO Linux kernel.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# reboot
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

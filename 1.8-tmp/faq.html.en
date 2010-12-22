@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux FAQ</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="faq.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>TOMOYO Linux FAQ</h1>
+<hr>
+<h2><a name="general">General</a></h2>
+<p><b>Q1: What is TOMOYO Linux?</b></p>
+<p>A1: A Linux kernel that can both automatically and interactively generate policies for Mandatory Access Control.</p>
+<p><b>Q2: Who are the target users?</b></p>
+<p>A2: Administrators that do not have the time and energy for more complex server security management.</p>
+<p><b>Q3: How much extra memory is consumed?</b></p>
+<p>A3: Fixed part (code and data in the kernel) is about 100 KB, variant part (access permissions) is a few hundred KB.</p>
+<p><b>Q4: How large is the performance loss?</b></p>
+<p>A4: Not formally tested, but it should be negligible for the regular user.</p>
+<p><b>Q5: Which kernel versions are supported?</b></p>
+<p>A5: Linux kernel 2.4.30 and later are supported from the 2.4 tree, and Linux kernel 2.6.11 and later are supported from the 2.6 tree. These are available from <a href="http://www.kernel.org/">http://www.kernel.org/</a>.</p>
+<p><b>Q6: Is it possible to support patched kernels from distributors?</b></p>
+<p>A6: Yes, if you manually inserts hooks.</p>
+<p><b>Q7: What is TOMOYO Linux licensed under?</b></p>
+<p>A7: TOMOYO Linux is licensed under the GNU General Public License (GPL).</p>
+<p><b>Q8: Does TOMOYO Linux have any usage other than for Mandatory Access Control?</b></p>
+<p>A8: Yes, you can use it as a system analysis tool or to create custom filesystem images with minimum files.</p>
+<hr>
+<h2><a name="management">Policy Management</a></h2>
+<p><b>Q1: Is the policy syntax easy?</b></p>
+<p>A1: Yes, the syntax has been designed to be easily managed.</p>
+<p><b>Q2: What is a domain?</b></p>
+<p>A2: The domain in TOMOYO Linux is a history of process execution determined by the sequence in which they are executed.</p>
+<p><b>Q3: What is a profile?</b></p>
+<p>A3: The profile in TOMOYO Linux is a configuration that defines what level and type of MAC is used for a particular domain.</p>
+<p><b>Q4: Can I update policies dynamically?</b></p>
+<p>A4: Yes.</p>
+<p><b>Q5: Do I need to restart processes after updating policies?</b></p>
+<p>A5: No, unless you delete a domain and recreate it.</p>
+<p><b>Q6: Will processes referring old policies crash by updating policies?</b></p>
+<p>A6: No, processes will not crash because the old policies remain in the kernel.</p>
+<p><b>Q7: What measures against tampering policies are there?</b></p>
+<p>A7: Programs or domains can be restricted from modifying policy.</p>
+<p><b>Q8: How can I edit policies?</b></p>
+<p>A8: An ncurses based CUI editor is included to modify policies. You may also use any text editors.</p>
+<p><b>Q9: What is "LEARNING mode"?</b></p>
+<p>A9: A mode in which access permissions are appended automatically in order to determine safe behaviours and resources that are required by a program for normal operation.</p>
+<p><b>Q10: Are there problems appending access permissions automatically?</b></p>
+<p>A10: There should be no problems, as TOMOYO Linux uses absolute pathnames and fine-grained domain divisions.</p>
+<p><b>Q11: Can I update packages while the Mandatory Access Control is enabled?</b></p>
+<p>A11: Yes, by assigning different profiles to domains, or by using tools provided with TOMOYO Linux (e.g. /usr/sbin/ccs-queryd).</p>
+<p><b>Q12: Can I protect only daemon processes like SELinux's Targeted Policy?</b></p>
+<p>A12: Yes, by assigning different profiles to domains.</p>
+<hr>
+<h2><a name="implementation">Implementation</a></h2>
+<p><b>Q1: What is the security model of TOMOYO Linux?</b></p>
+<p>A1: Domain and Type Enforcement (DTE) only.</p>
+<p><b>Q2: Are there concepts of users and roles?</b></p>
+<p>A2: No, but it is possible to delegate a part of administration tasks.</p>
+<p><b>Q3: Do userland applications need to be patched?</b></p>
+<p>A3: No.</p>
+<p><b>Q4: Can TOMOYO Linux protect sshd from exploit codes?</b></p>
+<p>A4: No, but it is possible to countermeasure illegal logins by enforcing additional authentication.</p>
+<p><b>Q5: Which division is TOMOYO Linux categorized in TCSEC?</b></p>
+<p>A5: Unknown.</p>
+<p><b>Q6: What security labels does TOMOYO Linux use?</b></p>
+<p>A6: TOMOYO Linux uses absolute pathnames as security labels.</p>
+<p><b>Q7: Can I use wildcards for pathnames?</b></p>
+<p>A7: Yes.</p>
+<p><b>Q8: Is multi-level security (MLS) supported?</b></p>
+<p>A8: No. Save in the different directories according to sensitivity level of the file.</p>
+<p><b>Q9: Are there functions like Linux Intrustion Detection System's (LIDS) stateful ACL?</b></p>
+<p>A9: No.</p>
+<p><b>Q10: Are the correctness of security labels guaranteed?</b></p>
+<p>A10: Since pathnames are used as security labels, the correctness of security labels is guaranteed unless the directory entry get corrupted.</p>
+<p><b>Q11: Are resources other than files protected?</b></p>
+<p>A11: Yes, TOMOYO Linux supports many resources (e.g. network ports, signal transmissions, capabilities, environment variables). See <a href="http://tomoyo.sourceforge.jp/comparison.html.en">Functionality comparison table</a> for a list of all the resources that can be restricted.</p>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

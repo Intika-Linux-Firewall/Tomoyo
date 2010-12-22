@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux の世界　第８回：「ログインセッションを制限してみよう（前編）」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-8.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>TOMOYO Linux の世界<br>第８回：「ログインセッションを制限してみよう（前編）」</h1>
+
+<h2>今回の内容</h2>
+
+<p>今回はシステムにログイン後行う操作を制限する方法について解説します．</p>
+
+<p>SELinux では現在 reference policy への移行が進行中ですが，これまではログインセッションを含めてすべてのプロセスに対して強制アクセス制御を適用する strict ポリシーと，攻撃を受けやすいサービスに対してだけ強制アクセス制御を適用する targeted ポリシーの２種類がデフォルトポリシーとして提供されていました．「セキュリティの強化」という観点からは，文字通り厳格な strict ポリシーのほうが効果が高いわけですが，制限の内容を間違えるとログインすらできなくなるなどの問題もあり， SELinux を有効にしているユーザの多くは targeted ポリシーをベースにカスタマイズしているケースが多いのではないかと思われます． Russell Coker 氏やＬＫＭＬでの SELinux 関係者の発言によると， SELinux 陣営には，「 SELinux のポリシーの内容を理解できないシステム管理者はポリシーを修正すべきではない．我々プロが作成したポリシーをそのまま使いなさい」という考え方があります．これに対して，「システム管理者自身がポリシーを作成する」 TOMOYO Linux は，まっこうから考え方が異なっています．これに関連した議論の一部は， <a href="http://slashdot.jp/linux/article.pl?sid=07/06/07/1211201">http://slashdot.jp/linux/article.pl?sid=07/06/07/1211201</a> から辿ることができます．読者のみなさんはどのように考えられますでしょうか．</p>
+
+<p>さて，この連載は TOMOYO Linux の連載なので，ポリシーを自分で作ることができる TOMOYO Linux を使って，ログインして行う操作の制限を行ってみることにしましょう．</p>
+
+<h2>ログインセッションを制御してみよう</h2>
+
+<h3>ログインセッションを制御する理由</h3>
+
+<p>Linux をサーバとして利用する場合，ユーザがシステムにログインしてからの操作を制限したいと思う場合があるでしょう．たとえば， 「システム管理者が顧客情報の格納されたデータベースファイルを持ち出すのを禁止したい」とか「システムにログインしたユーザに対してパスワードの変更だけを許可したい」とか「Ｗｅｂサーバの再起動とＷｅｂコンテンツの更新だけを社外に委託したい（それ以外の操作は行えないようにしたい） 」などなど．他にも， 「システムにログインしたユーザが他人のパスワードを盗聴するためのバックドアを仕掛けるのを阻止したい」とか「インターネットから社内ネットワークにアクセスするためのゲートウェイサーバとして使いたい」という要求もあるかもしれません．プロセスの起動履歴ごとにドメインを管理する TOMOYO Linux を使えば，このような要求に対応するのは簡単です．</p>
+
+<h3>基本手順</h3>
+
+<p>ログインセッションを保護するための手順は大きく分けて４つあります．</p>
+
+<ol>
+<li>まず，ログインセッションで実行を許可するコマンドを決定します（たとえば，ファイルの内容を閲覧するために /bin/cat の実行を許可したり，パスワードの変更を行うために /usr/bin/passwd の実行を許可したりするなど）．</li>
+<li>次に，ログインセッションでアクセスを許可したいファイルを決定します（たとえば，原則としてホームディレクトリ以下のファイルのみ読み書きを許可するなど）．</li>
+<li>次に，ログインセッションで通信を許可したいネットワークを決定します（たとえば，ＤＮＳサーバ，ＨＴＴＰサーバ，ＦＴＰサーバ，ＳＳＨサーバとだけ通信を許可するなど）．</li>
+<li>以上の作業で決定したアクセス許可をあらかじめ与えたうえで，実際に学習モードを用いて不足しているアクセス許可を追加していきます．</li>
+</ol>
+
+<p>以上の手順で登場するキーワードを図１に示します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１　使用するキーワード<br>
+<table border="1" summary="fig">
+<tr><td>キーワード</td><td>意味</td></tr>
+<tr><td>path_group</td><td>プログラムファイルやホームディレクトリ以下のファイルをグループ化する</td></tr>
+<tr><td>keep_domain</td><td>ドメイン遷移を抑制する</td></tr>
+<tr><td>no_keep_domain</td><td>ドメイン遷移を再開する</td></tr>
+<tr><td>exec.argv[0]</td><td>シンボリックリンク経由の不正アクセスを防ぐ</td></tr>
+<tr><td>address_group</td><td>ネットワークアドレスをグループ化する</td></tr>
+<tr><td>if</td><td>自分が所有しているファイルへのアクセスのみを認める</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h2>ステップ１：実行可能なコマンドの決定</h2>
+
+<h3>実行を許可するプログラムの決定</h3>
+
+<p>システムにログインしたユーザが悪意あるプログラムを実行できないようにするには，あらかじめシステムにインストールされているプログラム以外の実行を禁止するのが効果的です．この連載では，システムにすでにインストールされているプログラムの内，ログインセッションにおいて図２のコマンドの実行だけを許可するものとします．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２　実行を許可するコマンド<br>
+<table border="1" summary="fig">
+<tr><td>/bin/basename /bin/bash /bin/cat /bin/egrep /bin/grep /bin/hostname /bin/ln /bin/ls /bin/mkdir /bin/mv /bin/rm /bin/rmdir /bin/sed /bin/touch /sbin/consoletype /usr/bin/clear /usr/bin/dircolors /usr/bin/emacs /usr/bin/id /usr/bin/passwd /usr/bin/perl /usr/bin/ssh /usr/bin/ssh-keygen /usr/bin/wget /usr/bin/which</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>これらのコマンドを path_group として例外ポリシーに登録しておきましょう（図３）．ただし，図２の中に起動時の名前（ argv[0] ）によって異なる動作をするようなプログラムがある場合には，そのプログラムは path_group から除外し， file execute /usr/bin/passwd exec.argv[0]="passwd" のように個別に指定するようにしてください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３　実行を許可するコマンドをグループ化
+<pre>
+path_group COMMANDS_FOR_LOGIN_SESSION /bin/basename
+path_group COMMANDS_FOR_LOGIN_SESSION /bin/bash
+（中略）
+path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/wget
+path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/which
+</pre>
+</td></tr>
+</table>
+
+<p>コマンドの所在（パス）を確認するには which や type などのコマンドを使います（図４）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図４　コマンドの所在を確認する
+<pre>
+# which perl sed grep
+/usr/bin/perl
+/bin/sed
+/bin/grep
+</pre>
+</td></tr>
+</table>
+
+<p>「 /sbin/consoletype や /usr/bin/dircolors なども許可する必要があるの？」と思われるかも知れませんが，シェルを起動したときに自動実行されるスクリプト（ /bin/bash の場合は ~/.bashrc ）によって利用者が意識していない場所で多くのコマンドが実行されています．それらの内容を知るためには， TOMOYO Linux カーネルで動作しているシステムで「ログイン」してすぐに「ログアウト」してください．そうすることで，ログインシェルの子ドメインという形でどのようなコマンドが実行されたのかを知ることができます．さらに， CONFIG::file={ mode=learning } （学習モード）が指定されたプロファイルをログインシェルのドメインに割り当てた状態で実行すれば，プログラムの実行だけでなくアクセスされたファイルも知ることができます．</p>
+
+<h3>ドメイン遷移の設計</h3>
+
+<p>これまでの連載で説明してきたように TOMOYO Linux では，原則としてコマンドを実行するたびにドメイン遷移を行う仕様となっています．そのため，たとえば図５の場合は /bin/cat はシェルの子ドメインとして動作しますが，図６の場合は /bin/cat は /usr/bin/xargs の子ドメインとして動作します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図５　シェルから /bin/cat を実行
+<pre>
+# /bin/cat /etc/*.conf
+</pre>
+</td><td>
+■図６　xargs から /bin/cat を実行
+<pre>
+# echo /etc/*.conf | xargs /bin/cat --
+</pre>
+</td></tr>
+</table>
+
+<p>しかし，この場合はどちらも同じドメインで動作してくれたほうがユーザとしては使い勝手が良く，まとめたとしてもとくにセキュリティ上の問題はなさそうですね．ログインセッションでは，どのようなコマンドをどのような順序で実行するかを予測することが困難であるため，原則としてドメイン遷移は行いません．ログインシェルを /bin/bash と仮定した場合， /usr/sbin/sshd からログインしたシェルのドメインは &lt;kernel&gt; /usr/sbin/sshd /bin/bash となるので，例外ポリシーに「 keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定を行うことでドメイン遷移を抑制します．しかし，パスワードを格納している /etc/shadow のように， /bin/cat コマンドなどで閲覧されるのは困るが，パスワードを変更する /usr/bin/passwd コマンドがアクセスできないのも困るという場合があります．そのような場合は，例外ポリシーに「 no_keep_domain /usr/bin/passwd from &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定を行うことで， /usr/bin/passwd コマンドを &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd ドメインで実行させることができます．同様に，ＳＳＨの秘密鍵などを格納している ~/.ssh/ ディレクトリのファイルのように， /bin/cat コマンドなどで閲覧されては困るが，ＳＳＨ接続を行う /usr/bin/ssh コマンドがアクセスできないのも困るので，例外ポリシーに「 no_keep_domain /usr/bin/ssh from &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定を行うことで， /usr/bin/ssh コマンドを別のドメインで実行させることができます．</p>
+
+<h2>ステップ2：読み書きを許可するファイルの決定</h2>
+
+<h3>ハードリンクの脅威と対策</h3>
+
+<p>TOMOYO Linux ではハードリンクの作成時には「リンク元のパス名／リンク先のパス名」をペアにして，名前の変更時には「変更前のパス名／変更後のパス名」をペアにしてアクセス許可のチェックを行っています．その理由について触れておきます．システム（ TOMOYO Linux カーネルで動作しているシステムである必要はありません）にログインして，図７の操作を試してみてください（ /etc/ ディレクトリと /tmp/ ディレクトリが別のパーティションになっているシステムでは失敗します．その場合， /etc/ ディレクトリと同じパーティションにある /root/ ディレクトリなどに読み替えてください）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図７　ハードリンク経由でパスワードファイルにアクセスする
+<pre>
+# ln /etc/shadow /tmp/shadow
+# cat /tmp/shadow
+</pre>
+</td></tr>
+</table>
+
+<p>これは，ログインパスワードを格納している /etc/shadow というファイルを /tmp/ ディレクトリの下にハードリンクすることで， /tmp/shadow というパス名を用いてログインパスワードを格納しているファイルにアクセスできることを示しています．「 /etc/shadow を /tmp/shadow にハードリンクしてしまうシステム管理者なんていないよ」と思われるかもしれませんが，実は， /etc/shadow のハードリンクの作成は root ユーザでなくても可能です．一般ユーザが /etc/shadow のハードリンクを一般ユーザが書き込めるディレクトリである /tmp/ ディレクトリに作成し，実行を許可されているコマンド（たとえば /usr/bin/sudo ）を利用して root 権限を手に入れてから， /tmp/ ディレクトリにハードリンクされたパスワードファイルにアクセスできてしまう危険性があるのです．だから TOMOYO Linux では，ハードリンクを作成する際に，リンク元とリンク先の両方をチェックすることでその危険性を最小限に抑えられるようにしているわけです．（実際に /tmp/shadow を作成した方は，この先を読み続ける前に，忘れないうちに /tmp/shadow を削除しておくように！） /etc/shadow のリンク数が２以上であれば，どこかにハードリンクが残っています（図８）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図８　/etc/shadow のハードリンクを削除する
+<pre>
+# ls -l /etc/shadow
+-r-------- 2 root root 946 May 29 18:14 /etc/shadow
+# unlink /tmp/shadow
+# ls -l /etc/shadow
+-r-------- 1 root root 946 May 29 18:14 /etc/shadow
+</pre>
+</td></tr>
+</table>
+
+<p>名前の変更についても同様です． /etc/shadow の読み書きは厳しく制限できますが， /tmp/ ディレクトリ内のファイルの読み書きを厳しく制限することは困難です．しかし，図９のような操作ができてしまうようでは困ります（ /etc/ ディレクトリと /tmp/ ディレクトリが別のパーティションになっているシステムでは，パーティションを跨ぐ名前の変更はできないので， /etc/shadow の読み書きを禁止することで /tmp/ ディレクトリに移動されることを防止できます）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図９　名前を変更してからパスワードファイルにアクセスする
+<pre>
+# mv /etc/shadow /tmp/shadow
+# cat /tmp/shadow
+# mv /tmp/shadow /etc/shadow
+</pre>
+</td></tr>
+</table>
+
+<p>そのため， TOMOYO Linux ではファイル名を変更する際に，変更前のパス名と変更後のパス名の両方をチェックすることで，その危険性を最小限に抑えられるようにしています．パス名でアクセスを制限する方式では，ちょっとした油断で想定外のアクセスを認めてしまうことになります． TOMOYO Linux を用いてハードリンクや名前の変更の許可を与える際には，必要以上の範囲にアクセスさせないように注意してください．</p>
+
+<h3>アクセスをホームディレクトリ以下に限定する</h3>
+
+<p>ドメインを遷移させるのは，アクセス権限を切り替えるためです．ログインセッションでは原則としてドメイン遷移を行わないということは，ログインセッションで読み書きを許可するファイルを区別しないことを意味します．基本的に，ログインセッションでは，プログラムファイルを作成したり書き換えたりする必要はありません．そのため，ホームディレクトリ以下のファイルの読み書きを中心に許可すれば良いでしょう．ホームディレクトリ以下のファイルをグループ化するために，例外ポリシーで図１０のグループを定義します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１０　ホームディレクトリのファイルをグループ化
+<pre>
+path_group HOME_FILE /home/\{\*\}/\*
+path_group HOME_DIR /home/\{\*\}/\*/
+</pre>
+</td></tr>
+</table>
+
+<p>このように定義すると，ホームディレクトリ以下のファイルを区別しないで扱うことになります．</p>
+
+<h3>特定のパス名を除外する</h3>
+
+<p>しかし，ホームディレクトリ以下のファイルでも， ~/.ssh/ ディレクトリのファイルのように， /bin/cat などでの閲覧を禁止させたいファイルがあるはずです．そこで， \*\-.ssh という指定を行うことで， .ssh ディレクトリ内のパス名を除外することができるようになっています．具体的には，図１１のように修正します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１１　.ssh ディレクトリをグループから除外する
+<pre>
+path_group HOME_FILE /home/\{\*\-.ssh\}/\*
+path_group HOME_DIR /home/\{\*\-.ssh\}/
+</pre>
+</td></tr>
+</table>
+
+<p>これで， /bin/cat コマンドなどで /home/\*/.ssh/\* にアクセスしたり， /bin/mv コマンドなどで /home/\*/.ssh/ を /home/\*/ssh/ にリネームしたりするのを阻止することができます．</p>
+
+<h3>アクセス許可をあらかじめ与えておく</h3>
+
+<p>ログインセッションである &lt;kernel&gt; /usr/sbin/sshd /bin/bash ドメインに対しては，図１２のようなアクセスを認めます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１２　あらかじめアクセス許可を与えておく
+<pre>
+file execute @COMMANDS_FOR_LOGIN
+file read @HOME_FILE
+file write @HOME_FILE
+file create @HOME_FILE 00-0666
+file unlink @HOME_FILE
+file symlink @HOME_FILE
+file link @HOME_FILE @HOME_FILE
+file rename @HOME_FILE @HOME_FILE
+file truncate @HOME_FILE
+file append @HOME_FILE
+file mkdir @HOME_DIR 00-0777
+file rmdir @HOME_DIR
+file rename @HOME_DIR @HOME_DIR
+</pre>
+</td></tr>
+</table>
+
+<p>上から順番に，</p>
+
+<ul>
+<li>COMMANDS_FOR_LOGIN というグループに指定されているプログラムの実行を許可</li>
+<li>ホームディレクトリ内のファイルを読み書きモードでオープンすることを許可</li>
+<li>ホームディレクトリ内のファイル作成を許可</li>
+<li>ホームディレクトリ内のファイル削除を許可</li>
+<li>ホームディレクトリ内でのシンボリックリンク作成を許可</li>
+<li>ホームディレクトリ内であればハードリンクの作成を許可</li>
+<li>ホームディレクトリ内であればファイルの名前の変更を許可</li>
+<li>ホームディレクトリ内のファイル切り詰めを許可</li>
+<li>ホームディレクトリ内のファイルを追記モードでオープンすることを許可</li>
+<li>ホームディレクトリ内のディレクトリ作成を許可</li>
+<li>ホームディレクトリ内のディレクトリ削除を許可</li>
+<li>ホームディレクトリであればディレクトリ名変更を許可</li>
+</ul>
+
+<p>という意味です．なお，図１１の修正により，上記のホームディレクトリには ~/.ssh/ および ~/.ssh/\* に一致するものは含まれません．上記では，ホームディレクトリ内では自由にシンボリックリンクを作成できるようにしています． TOMOYO Linux はシンボリックリンクを解決したパス名を用いてファイルの読み書きを制限しているので，どのようにシンボリックリンクを作成しようとも関係ありません．プログラムの実行時にはシンボリックリンクを経由することで argv[0] の内容を自由に指定できてしまいますが， exec.argv[0] のチェックを有効にしているので， busybox のハードリンクへのシンボリックリンクを作成して任意のコマンドを実行されるという危険性はありません．ホームディレクトリ内でのみハードリンクの作成を認めています．そのため， /etc/shadow のハードリンクをホームディレクトリ内に作成して，ホームディレクトリを経由してパスワードファイルにアクセスされるという危険性はありません．名前の変更についても同様です．</p>
+
+<h3>所有者によるアクセスのみを認める</h3>
+
+<p>他人が自分のホームディレクトリ内にアクセスしてくるのを阻止するには，ホームディレクトリのパーミッションを 0700 に設定することで実現できます．しかし，たとえば Apache に対して ~/public_html/ ディレクトリへのアクセスを認めるためにホームディレクトリのパーミッションを緩くしておかざるを得ない場合もあります．そんな場合，個々のアクセス許可に対して task.uid=path1.uid のように条件を付与することで，ホームディレクトリのパーミッションでは防げないアクセスを防げるようになります．具体的には，図１２を図１３のように置き換えます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１３　所有者によるアクセスのみを認める
+<pre>
+file execute @COMMANDS_FOR_LOGIN
+file read @HOME_FILE task.uid=path1.uid
+file write @HOME_FILE task.uid=path1.uid
+file create @HOME_FILE 00-0666 task.uid=path1.parent.uid
+file unlink @HOME_FILE task.uid=path1.uid
+file symlink @HOME_FILE task.uid=path1.parent.uid
+file link @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file rename @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file truncate @HOME_FILE task.uid=path1.uid
+file append @HOME_FILE task.uid=path1.uid
+file mkdir @HOME_DIR 00-0777 task.uid=path1.parent.uid
+file rmdir @HOME_DIR task.uid=path1.uid
+file rename @HOME_DIR @HOME_DIR task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+</pre>
+</td></tr>
+</table>
+
+<p>task.uid はアクセスを要求しているプロセスのユーザＩＤ（つまり，ログインしているユーザのユーザＩＤ）， path1.uid は１つ目のパス名（たとえば「 file write /dev/null 」であれば /dev/null ， file link /tmp/source /tmp/dest であれば /tmp/source ）の所有者ＩＤです． path1.parent.uid は path1 の親ディレクトリ（たとえば「 file write /dev/null 」であれば /dev/ ）の所有者ＩＤです． path2.uid は２つめのパス名（たとえば「 file mount /dev/sda2 /home/ ext3 0 」であれば /home/ ）の所有者ＩＤです．ただし， file rename や file link で指定する２つめのパス名は，アクセス許可のチェックの時点ではアクセスできないパス名であるため， path2.uid という指定はできません． path2.parent.uid は２つ目のパス名（たとえば「 file link /tmp/source /tmp/dest 」であれば /tmp/dest ）の親ディレクトリの所有者ＩＤです．</p>
+
+<h2>次回予告</h2>
+
+<p>今回は，システムにログインして行う操作を制限する手順のうち，ファイルアクセスに関する部分について解説しました．次回は，残りのステップと実際の操作手順を説明します．</p>
+
+<p><a href="tutorial-7.html.ja">第７回へ戻る</a>　<a href="tutorial-9.html.ja">第９回へ進む</a></p>
+
+<hr>
+
+<p><a href="index.html.ja#tutorial">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

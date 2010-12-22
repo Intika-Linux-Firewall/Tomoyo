@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="install.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>Phase 1: Installing TOMOYO Linux kernels and tools.</h1>
+
+<p>This page describes how to install the TOMOYO Linux kernel and userland tools.</p>
+
+<hr>
+
+<h2>Step 1: Installing kernel</h2>
+
+<h3>Build requirements</h3>
+
+<p>Install packages required for compiling the kernel and tools:</p>
+
+<table border="1">
+<tr><td>RedHat distributions</td><td>
+[root@tomoyo ~]# yum -y install gcc ncurses-devel wget make
+</td></tr>
+<tr><td>Debian distributions</td><td>
+[root@tomoyo ~]# apt-get -y install gcc libncurses-dev wget make
+</td></tr>
+</table>
+
+<h3>Obtain Linux kernel source and patch with TOMOYO Linux</h3>
+
+<p>Download kernel source from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>.<br>
+Linux kernel 2.4.30 and later are supported from the linux-2.4 tree.<br>
+Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.<br><br>
+Extract the kernel source and go to the extracted directory.<br>
+In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be replaced with "2.6.36.diff" if using Linux kernel 2.6.36.2 :</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101122.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-patch-1.8.0-20101122.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101122.tar.gz<br>
+[user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
+</td></tr>
+</table>
+
+<h3>Configure kernel</h3>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ make -s menuconfig
+</td></tr>
+</table>
+
+<p>Choose the following options in "Security options" section.</p>
+
+<ul>
+<li>[*] CCSecurity support</li>
+<li>[ ]   Compile as loadable kernel module</li>
+<li>[ ]   Disable by default</li>
+<li>[ ]   Do not modify 'struct task_struct' in order to keep KABI</li>
+<li>(2048) Default maximal count for learning mode</li>
+<li>(/sbin/ccs-init) Default policy loader</li>
+<li>(/sbin/ccs-start) Alternative activation trigger</li>
+<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for grant log</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
+</ul>
+
+<p><i>"Compile as loadable kernel module"</i> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
+
+<p><i>"Disable by default"</i> will enable TOMOYO Linux only when ccsecurity=on is passed to the kernel's command line options. If this option is not selected, ccsecurity=off will disable TOMOYO Linux.</p>
+
+<p><i>"Do not modify 'struct task_struct' in order to keep KABI"</i> is available to 2.6 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
+
+<h3>Compile and install kernel</h3>
+
+<p>Once the kernel has been configured, compile and install:</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ make -s dep<br>
+[user@tomoyo ~]$ make -s<br>
+[user@tomoyo ~]$ make -s modules<br>
+[user@tomoyo ~]$ su<br>
+[root@tomoyo ~]# make -s modules_install install
+</td></tr>
+</table>
+
+<p>Create initrd if required.</p>
+
+<hr>
+
+<h2>Step 2: Installing tools</h2>
+
+<p>Install packages recommended (but not required) for compiling the tools:</p>
+
+<table border="1">
+<tr><td>RedHat distributions</td><td>
+[root@tomoyo ~]# yum -y install readline-devel help2man
+</td></tr>
+<tr><td>Debian distributions</td><td>
+[root@tomoyo ~]# apt-get -y install libreadline-dev help2man
+</td></tr>
+</table>
+
+<p>Compile and install the tools:</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101122.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-tools-1.8.0-20101122.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101122.tar.gz<br>
+[user@tomoyo ~]$ cd ccstools/<br>
+[user@tomoyo ~]$ make -s<br>
+[user@tomoyo ~]$ su<br>
+[root@tomoyo ~]# make -s install<br>
+[root@tomoyo ~]# ldconfig
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

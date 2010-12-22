@@ -1,0 +1,354 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux の世界　第９回：「ログインセッションを制限してみよう（後編）」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-9.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>TOMOYO Linux の世界<br>第９回：「ログインセッションを制限してみよう（後編）」</h1>
+
+<h2>今回の内容</h2>
+
+<p>前回は，システムにログインして行う操作を制限する手順のうち，ドメイン遷移とファイルアクセスに関する制限について解説しました．今回は，ネットワーク（通信）の制限と実際の操作手順を説明します．</p>
+
+<h2>ステップ３：通信を許可したいネットワークの決定</h2>
+
+<h3>ネットワークのアクセス制限</h3>
+
+<p>システムにログインしたユーザはファイルへのアクセスだけでなくネットワークにもアクセスすることでしょう．そこで，ログインしたユーザに対してどのサーバへのアクセスを許可するかを設計します．ネットワークに関するアクセス許可の構文は，「 network プロトコル ＩＰアドレス ポート番号」となっています．プロトコルは TCP または UDP または RAW のいずれか，ＩＰアドレスはＩＰｖ４またはＩＰｖ６アドレスを指定します．ＩＰアドレスの部分は前回の記事で説明したファイルのグループ化と同様にグループ化が可能です．ここではＨＴＴＰ，ＤＮＳ，ＦＴＰ，ＳＳＨの設定について説明します．</p>
+
+<h4>●ＨＴＴＰ</h4>
+
+<p>最初に，ＨＴＴＰサーバのＩＰアドレスを HTTP_SERVERS という名前でグループ化することにします．グループ化することにより，ポリシーファイルを読みやすくすることができ，また，サーバのＩＰアドレスの変更や追加や削除が発生した場合にも修正個所が１ヵ所で済みます．ＩＰアドレスをグループ化するには， address_group というキーワードを使います．ＨＴＴＰサーバのアドレスが 192.168.1.100 と 192.168.1.200 の場合，例外ポリシーで図１のように定義してから，ログインシェルのドメイン（ &lt;kernel&gt; /usr/sbin/sshd /bin/bash ）に対して図２という許可を与えます（以降に登場する DNS_SERVERS や FTP_SERVERS や SSH_SERVERS も， HTTP_SERVERS と同様に定義してください）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１　アドレスをグループ化する
+<pre>
+address_group HTTP_SERVERS 192.168.1.100
+address_group HTTP_SERVERS 192.168.1.20
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２　ＨＴＴＰサーバと通信するためのアクセス許可
+<pre>
+network inet stream connect @HTTP_SERVERS 80
+</pre>
+</td></tr>
+</table>
+
+<h4>●ＤＮＳ</h4>
+
+<p>ＤＮＳサーバとの通信ではＵＤＰプロトコルのポート 53 を使うので，ログインシェルのドメインに対して図３という許可を与えます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３　ＤＮＳサーバと通信するためのアクセス許可
+<pre>
+network inet dgram connect @DNS_SERVERS 53
+</pre>
+</td></tr>
+</table>
+
+<h4>●ＦＴＰ</h4>
+
+<p>ＦＴＰサーバとの通信ではＴＣＰプロトコルのポート 21 を使うので，図４という許可を与えます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図４　ＦＴＰ制御用のアクセス許可
+<pre>
+network inet stream connect @FTP_SERVERS 21
+</pre>
+</td></tr>
+</table>
+
+<p>ＦＴＰプロトコルではサーバ側からクライアント側へ向けてＴＣＰコネクションを張る場合があるので，図５の許可が必要になる場合があります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図５　ＦＴＰデータ（アクティブモード）用のアクセス許可
+<pre>
+network inet stream accept @FTP_SERVERS 20
+</pre>
+</td></tr>
+</table>
+
+<p>ファイアウォールの内側にいる場合など，サーバ側からクライアント側へ向けてＴＣＰコネクションを張ることができない場合にはパッシブモードを使うので，図５の代わりに図６という許可を与えることになるでしょう．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図６　ＦＴＰデータ（パッシブモード）用のアクセス許可
+<pre>
+network inet stream connect @FTP_SERVERS 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<h4>●ＳＳＨ</h4>
+
+<p>ＳＳＨサーバとの通信ではＴＣＰプロトコルでポート 22 へコネクションを張るので，図７という許可を与えることになります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図７　ＳＳＨサーバと通信するためのアクセス許可
+<pre>
+network inet stream connect @SSH_SERVERS 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<p>ただし，前回のドメイン遷移の設計では，ＳＳＨの秘密鍵へのアクセスを認める必要がある /usr/bin/ssh コマンドはログインシェルとは別のドメインで動作させるように指定している（図８）ので，このアクセス許可はログインシェルのドメインにではなく， /usr/bin/ssh のドメイン（図９）に対して与えることに注意してください．ポリシーエディタを実行して，「 A 」を押してからリスト９の内容を入力して「 Enter 」を押すことで /usr/bin/ssh のドメインを作成できます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図８　ログインシェルとは別のドメインで実行する
+<pre>
+no_keep_domain /usr/bin/ssh from &lt;kernel&gt; /usr/bin/sshd /bin/bash
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図９　/usr/bin/ssh 用のドメイン
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/ssh
+</pre>
+</td></tr>
+</table>
+
+<h2>ステップ４：学習の開始</h2>
+
+<p>さて，これまでの作業でアクセス許可の基本的な設定が完了しました．しかし，これだけではまだアクセス許可が不足していますから，学習モードを用いて不足しているアクセス許可を追加していくことにします．ポリシーエディタを用いてログインシェルのドメインとその子孫ドメインに対してプロファイル１を割り当てます（ポリシーエディタを使わずに， root ユーザで図１０のコマンドラインを実行しても結構です）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１０　学習モード用プロファイルを割り当てる
+<pre>
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>そして，許可したい操作（具体的には，前回定義した COMMANDS_FOR_LOGIN_SESSION に含まれているコマンドを実行したり， HOME_FILE に該当するファイルを編集したり，ネットワークへアクセスしたりなど）を行ってください．操作例として，図１１～図１５の内容を参考にしてください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１１　ＳＳＨの鍵ペアを作成する
+<pre>
+$ ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/example/.ssh/id_rsa):
+Created directory '/home/example/.ssh'.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/example/.ssh/id_rsa.
+Your public key has been saved in /home/example/.ssh/id_rsa.pub.
+The key fingerprint is:
+c7:4f:53:39:6f:7e:17:fb:ec:94:0d:02:09:84:d5:67 example@tomoyo
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１２　ＳＳＨで接続する
+<pre>
+$ ssh 192.168.99.138 id
+example@192.168.99.138's password:
+uid=500(example) gid=500(example) groups=500(example)
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１３　パスワードを変更する
+<pre>
+$ passwd
+Changing password for user example.
+Changing password for example
+(current) UNIX password:
+New UNIX password:
+Retype new UNIX password:
+passwd: all authentication tokens updated successfully.
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１４　ＨＴＴＰサーバにアクセスする
+<pre>
+$ wget http://192.168.1.100/
+Length: unspecified [text/html]
+Saving to: `index.html'
+[ &lt;=&gt;     ] 2,997       --.-K/s   in 0s
+14:22:14 (286 MB/s) - `index.html' saved [2997]
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１５　ホームディレクトリ内のファイルにアクセスする
+<pre>
+$ ls .bashrc | xargs /bin/cat &gt; /dev/null
+</pre>
+</td></tr>
+</table>
+
+<p>ここでは，一般ユーザとして example ユーザを使用しています．前回の手順で図１６のようにホームディレクトリ以下のファイルの読み書きに関するアクセス許可をあらかじめ与えているため，図１６に含まれるアクセス要求は学習されません．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１６　あらかじめ与えておいたアクセス許可
+<pre>
+file execute @COMMANDS_FOR_LOGIN
+file read @HOME_FILE task.uid=path1.uid
+file write @HOME_FILE task.uid=path1.uid
+file create @HOME_FILE task.uid=path1.parent.uid
+file unlink @HOME_FILE task.uid=path1.uid
+file symlink @HOME_FILE task.uid=path1.parent.uid
+file link @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file rename @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file truncate @HOME_FILE task.uid=path1.uid
+file append @HOME_FILE task.uid=path1.uid
+file mkdir @HOME_DIR task.uid=path1.parent.uid
+file rmdir @HOME_DIR task.uid=path1.uid
+file rename @HOME_DIR @HOME_DIR task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+</pre>
+</td></tr>
+</table>
+
+<p>ただし，図１７に示したようにＳＳＨの秘密鍵を保存するディレクトリは HOME_FILE から除外してあるので，図１１の操作を行うと /home/example/.ssh/id_rsa のように個別に学習されます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１７　ホームディレクトリに含まれる範囲
+<pre>
+path_group HOME_FILE /home/\{\*\-.ssh\}/\*
+path_group HOME_DIR /home/\{\*\-.ssh\}/
+</pre>
+</td></tr>
+</table>
+
+<h2>ポリシーのチューニング</h2>
+
+<h3>確認モードに切り替える</h3>
+
+<p>ポリシーエディタを用いてログインシェルのドメインとその子孫ドメインに対してプロファイル２を割り当てます．ここから先は必要に応じて学習モード（プロファイル１）と確認モード（プロファイル２）を切り替えながら使います．ポリシーエディタを起動して，ログインシェルのドメインに対して与えられたアクセス許可の内容を確認してください．実は，前回の連載の手順では解説を行うために意図的にいくつかの設定を不完全なものにしています．この後，順に内容を見ながら修正していきますので，読みながら一緒に考えてみてください．</p>
+
+<h3>ドメイン遷移の見直し</h3>
+
+<p>前回， /usr/bin/ssh をログインシェルとは別のドメインで実行するように指定しました．しかし，よくよく考えてみると，ＳＳＨの秘密鍵へのアクセスを認めなければいけないのは /usr/bin/ssh-keygen も同じです．せっかく /usr/bin/ssh をログインシェルとは別のドメインで動作させることで /bin/cat などでアクセスできないようにしようとしているのに， /usr/bin/ssh-keygen がログインシェルのドメインで動作してしまうと，ログインシェルのドメインからもＳＳＨの秘密鍵へアクセスできるようになってしまいます．そこで， /usr/bin/ssh-keygen も /usr/bin/ssh と同様にログインシェルとは別のドメインで実行させるように修正します．単純に図１８の指定を追加するだけでも可能ですが，「ＳＳＨの秘密鍵へのアクセスを認めなければいけないプログラム」という意味で /usr/bin/ssh と /usr/bin/ssh-keygen を同じようにまとめて扱うという考え方もあります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１８　ログインシェルとは別のドメインで実行する
+<pre>
+no_keep_domain /usr/bin/ssh-keygen from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+</pre>
+</td></tr>
+</table>
+
+<p>そのような目的のために TOMOYO Linux では， aggregator というキーワードが利用できます．構文は「 aggregator 集約前のプログラム名 集約後のプログラム名」で，このように指定すると「集約前のプログラム」は「集約後のプログラム名」と同様に扱われます．図１９のように指定すると， /usr/bin/ssh-keygen の実行が要求された場合，実行許可のチェックとドメイン遷移処理は /usr/bin/ssh の実行が要求されたものとして行われるようになります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１９　/usr/bin/ssh-keygen を /usr/bin/ssh と同様に扱う
+<pre>
+aggregator /usr/bin/ssh-keygen /usr/bin/ssh
+</pre>
+</td></tr>
+</table>
+
+<p>そのため，図２０のようなドメインを作成したり，図１８という指定を追加したりする必要がなくなります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２０　/usr/bin/ssh-keygen 用のドメイン
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/ssh-keygen
+</pre>
+</td></tr>
+</table>
+
+<p>今回は aggregator を使うことにしますので，図１９の内容を例外ポリシーに追加してください．その後，ログインシェルのドメインからＳＳＨ関連ファイルへのアクセス許可を削除しておいてください．</p>
+
+<h3>path_group の更新</h3>
+
+<p>ログインシェルのドメインに与えられたプログラムの実行許可を見ると，図２１の内容も学習されていることがわかります．これは前回，実行を許可するコマンドを定義したときに想定していなかったものです． /usr/bin/xargs は複数のファイルに対して一括操作を行うときに便利なコマンドですので，ログインセッションでの実行を許可することにします．このまま図２１の内容を残しておいてもかまいませんが， xargs コマンドは argv[0] をチェックしなくても問題にならないので COMMANDS_FOR_LOGIN_SESSION グループに追加してみましょう．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２１　想定していなかったコマンドの実行許可
+<pre>
+file execute /usr/bin/xargs
+</pre>
+</td></tr>
+</table>
+
+<p>例外ポリシーの画面に移動して，図２２のエントリを追加してから，ログインシェルのドメインに戻って図２１の内容を削除します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２２　想定していなかったコマンドの実行許可
+<pre>
+path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/xargs
+</pre>
+</td></tr>
+</table>
+
+<h3>ケイパビリティについて</h3>
+
+<p>学習モードで操作を行うと，図２３のように capability で始まる行が学習されたと思います．ケイパビリティは許可する操作種別を指定するだけであるため，操作対象を指定する必要はありません．学習モードで必要だったものは運用中にも必要になるのでそのまま残しておきます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２３　学習されたケイパビリティの例
+<pre>
+capability STS_TIME
+</pre>
+</td></tr>
+</table>
+
+<p>なお， TOMOYO Linux で扱うケイパビリティは，普通の Linux が扱うＰＯＳＩＸケイパビリティとは異なり，独自に定義したものですのでご注意ください．</p>
+
+<h3>シグナルについて</h3>
+
+<p>学習モードで操作中に， ipc signal で始まる行が学習されたかもしれません． TOMOYO Linux ではシグナルの送信先を制限することもできます．シグナルを送信する場合には /bin/kill というコマンドを使用します．しかし， /bin/bash などのシェルは，内部コマンドとして kill というコマンドを提供しているため，実際には /bin/bash から /bin/kill を実行することなくシグナルを送信することができます．そのため，シグナルの送信を制限しない場合， COMMANDS_FOR_LOGIN_SESSION に /bin/kill が含まれていないにもかかわらず， root ユーザとしてログインして /bin/bash の内部コマンドとしての kill コマンドを使用することで任意のプロセスを強制終了させてしまうことができてしまいます．シグナルのアクセス制御を行うにはプロファイル中で CONFIG::ipc::signal を有効にします．今回使用しているプロファイルでは有効になっているので，シグナルの送信要求を制限することができます．シグナルに関するアクセス許可の構文は，「 ipc signal シグナル番号 送信先ドメイン名」となっています．シグナルの送信先となるプロセスが属しているドメインのドメイン名が「送信先ドメイン名」で始まる場合に，「シグナル番号」の種類のシグナルを送信できます（いくつか例外がありますが，通常は気にする必要はありません．詳細についてはプロジェクトのＷｅｂページのポリシー仕様書を参照ください）．</p>
+
+<h2>仕上げ</h2>
+
+<h3>学習モードと確認モードを繰り返す</h3>
+
+<p>再度学習モードで学習を行い，確認モードで許可したい操作を行ってください．警告メッセージが表示されないようになれば学習は完了です．確認モードでポリシーエディタを実行し，ログインシェルのドメインに対して不適切なアクセス許可（たとえば /etc/shadow へのアクセス許可やＳＳＨ秘密鍵へのアクセス許可など）がないことを確認してください．</p>
+
+<h3>強制モードに切り替える</h3>
+
+<p>ポリシーエディタを用いてログインシェルのドメインとその子孫ドメインに対してプロファイル３を割り当てます．ポリシーエディタなどを用いてポリシーを変更できるのは（設定により一般ユーザによる変更を認めるようにもできますが，デフォルトでは） root ユーザだけです． root ユーザの操作を制限するつもりがないのならこのままでもかまいませんが， root ユーザで行う作業の一部を委託する場合，ＳＳＨログインしたログインシェルからポリシーエディタを用いてアクセス制御を無効化されてしまっては困ります．そのため，自分以外に root ユーザとしてＳＳＨログインさせる場合には，ログインシェルのドメイン（ &lt;kernel&gt; /usr/sbin/sshd /bin/bash ）からポリシーエディタ（ ccs-editpolicy や ccs-setprofile など）の実行許可および /proc/ccs/\* へのアクセス許可を削除しておくのを忘れないでください．</p>
+
+<p>以上で TOMOYO Linux を用いてログインセッションを制限する方法の説明は終わりです．</p>
+
+<h2>次回予告</h2>
+
+<p>次回は Apache の権限をより詳細に分割する方法について紹介します．</p>
+
+<p><a href="tutorial-8.html.ja">第８回へ戻る</a>　<a href="tutorial-10.html.ja">第１０回へ進む</a></p>
+
+<hr>
+
+<p><a href="index.html.ja#tutorial">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
