@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/20
+ * Version: 1.8.0+   2010/12/22
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -311,11 +311,20 @@ start:
 	}
 	for (i = 0; i < destination_list_len; i++) {
 		struct ccs_destination *ptr = &destination_list[i];
-		ptr->fd = open(ptr->pathname, O_WRONLY | O_APPEND | O_CREAT,
-			       0600);
+		const char *path = ptr->pathname;
+		/* This is OK because path is a strdup()ed string. */
+		char *pos = (char *) path;
+		while (*pos) {
+			int ret_ignored;
+			if (*pos++ != '/')
+				continue;
+			*(pos - 1)= '\0';
+			ret_ignored = mkdir(path, 0700);
+			*(pos - 1)= '/';
+		}
+		ptr->fd = open(path, O_WRONLY | O_APPEND | O_CREAT, 0600);
 		if (ptr->fd == EOF) {
-			fprintf(stderr, "Can't open %s for writing.\n",
-				ptr->pathname);
+			fprintf(stderr, "Can't open %s for writing.\n", path);
 			return 1;
 		}
 	}
