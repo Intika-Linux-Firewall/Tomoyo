@@ -2366,8 +2366,9 @@ static void load_readwrite(void)
 	const int fd2 = ccs_open2(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
 	if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
 	    (fd2 != EOF && write(fd2, "", 0) != 0)) {
-		fprintf(stderr, "You need to register this program to "
-			"%s to run this program.\n", CCS_PROC_POLICY_MANAGER);
+		fprintf(stderr, "In order to run this program, it must be "
+			"registered to %s . "
+			"Please reboot.\n", CCS_PROC_POLICY_MANAGER);
 		exit(1);
 	}
 	close(fd1);

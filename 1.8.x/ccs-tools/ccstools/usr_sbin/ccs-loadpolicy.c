@@ -306,8 +306,8 @@ int main(int argc, char *argv[])
 	}
 	return !result;
 usage:
-	printf("%s {e|ef|d|df|p|m|s} [policy_dir [remote_ip:remote_port]]\n"
-	       "%s {-e|-ef|-d|-df|-p|-m|-s} [remote_ip:remote_port]\n\n"
+	printf("%s {e|ef|d|df|m|p|s} [policy_dir [remote_ip:remote_port]]\n"
+	       "%s {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
 	       " e  : Read from policy_dir/exception_policy.conf and append "
 	       "to /proc/ccs/exception_policy .\n"
 	       " ef : Read from policy_dir/exception_policy.conf and "
@@ -316,11 +316,11 @@ usage:
 	       "/proc/ccs/domain_policy .\n"
 	       " df : Read from policy_dir/domain_policy.conf and overwrite "
 	       "/proc/ccs/domain_policy .\n"
-	       " p  : Read from policy_dir/profile.conf and append to "
-	       "/proc/ccs/profile .\n"
-	       " m  : Read from policy_dir/manager.conf and append to "
+	       " m  : Read from policy_dir/manager.conf and overwrite "
 	       "/proc/ccs/manager .\n"
-	       " s  : Read from policy_dir/stat.conf and append to "
+	       " p  : Read from policy_dir/profile.conf and overwrite "
+	       "/proc/ccs/profile .\n"
+	       " s  : Read from policy_dir/stat.conf and overwrite "
 	       "/proc/ccs/stat .\n"
 	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
 	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
@@ -334,9 +334,9 @@ usage:
 	       ".\n"
 	       "-df : Read from stdin and overwrite /proc/ccs/domain_policy "
 	       ".\n"
-	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
-	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
-	       "-s  : Read from stdin and append to /proc/ccs/stat .\n",
+	       "-m  : Read from stdin and overwrite /proc/ccs/manager .\n"
+	       "-p  : Read from stdin and overwrite /proc/ccs/profile .\n"
+	       "-s  : Read from stdin and overwrite /proc/ccs/stat .\n",
 	       argv[0], argv[0]);
 	return 1;
 }
