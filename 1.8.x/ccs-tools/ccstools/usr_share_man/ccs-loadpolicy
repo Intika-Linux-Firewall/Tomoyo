@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-loadpolicy {{e|ef|d|df|p|m|s} [policy_dir [remote_ip:remote_port]] | {-e|-ef|-d|-df|-p|-m|-s} [remote_ip:remote_port]}
+Usage: ccs-loadpolicy {{e|ef|d|df|m|p|s} [policy_dir [remote_ip:remote_port]] | {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]}
 
 This program loads TOMOYO Linux's policy from files or standard input into kernel.
 
@@ -25,9 +25,9 @@ d  : Read from policy_dir/domain_policy.conf and append to /proc/ccs/domain_poli
 
 df : Read from policy_dir/domain_policy.conf and overwrite /proc/ccs/domain_policy .
 
-p  : Read from policy_dir/profile.conf and append to /proc/ccs/profile .
-
 m  : Read from policy_dir/manager.conf and append to /proc/ccs/manager .
+
+p  : Read from policy_dir/profile.conf and append to /proc/ccs/profile .
 
 s  : Read from policy_dir/stat.conf and append to /proc/ccs/stat .
 
@@ -43,9 +43,9 @@ remote_ip:remote_port : Write to ccs-editpolicy-agent listening at remote_ip:rem
 
 -df : Read from stdin and overwrite /proc/ccs/domain_policy .
 
--p  : Read from stdin and append to /proc/ccs/profile .
-
 -m  : Read from stdin and append to /proc/ccs/manager .
+
+-p  : Read from stdin and append to /proc/ccs/profile .
 
 -s  : Read from stdin and append to /proc/ccs/stat .
 
@@ -68,6 +68,9 @@ Examples:
 
 # ccs-loadpolicy d /etc/ccs/192.168.1.1/ 192.168.1.1:10000
  Append /etc/ccs/192.168.1.1/domain_policy.conf to 192.168.11.1:10000 .
+
+# echo "delete /usr/sbin/ccs-queryd" | ccs-loadpolicy -m
+ Remove "/usr/sbin/ccs-queryd" from /proc/ccs/manager
 
 EOF
 else
