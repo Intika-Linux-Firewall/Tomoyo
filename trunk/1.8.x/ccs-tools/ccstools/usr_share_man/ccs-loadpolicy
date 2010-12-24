@@ -13,41 +13,25 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-loadpolicy {{e|ef|d|df|m|p|s} [policy_dir [remote_ip:remote_port]] | {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]}
+Usage: ccs-loadpolicy {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]
 
-This program loads TOMOYO Linux's policy from files or standard input into kernel.
+This program loads TOMOYO Linux's policy from standard input into kernel.
 
-e  : Read from policy_dir/exception_policy.conf and append to /proc/ccs/exception_policy .
+-e  : Append to /proc/ccs/exception_policy .
 
-ef : Read from policy_dir/exception_policy.conf and overwrite /proc/ccs/exception_policy .
+-ef : Overwrite /proc/ccs/exception_policy .
 
-d  : Read from policy_dir/domain_policy.conf and append to /proc/ccs/domain_policy .
+-d  : Append to /proc/ccs/domain_policy .
 
-df : Read from policy_dir/domain_policy.conf and overwrite /proc/ccs/domain_policy .
+-df : Overwrite /proc/ccs/domain_policy .
 
-m  : Read from policy_dir/manager.conf and append to /proc/ccs/manager .
+-m  : Append to /proc/ccs/manager .
 
-p  : Read from policy_dir/profile.conf and append to /proc/ccs/profile .
+-p  : Append to /proc/ccs/profile .
 
-s  : Read from policy_dir/stat.conf and append to /proc/ccs/stat .
-
-policy_dir : Use policy_dir rather than /etc/ccs/ directory.
+-s  : Append to /proc/ccs/stat .
 
 remote_ip:remote_port : Write to ccs-editpolicy-agent listening at remote_ip:remote_port rather than /proc/ccs/ directory.
-
--e  : Read from stdin and append to /proc/ccs/exception_policy .
-
--ef : Read from stdin and overwrite /proc/ccs/exception_policy .
-
--d  : Read from stdin and append to /proc/ccs/domain_policy .
-
--df : Read from stdin and overwrite /proc/ccs/domain_policy .
-
--m  : Read from stdin and append to /proc/ccs/manager .
-
--p  : Read from stdin and append to /proc/ccs/profile .
-
--s  : Read from stdin and append to /proc/ccs/stat .
 
 Examples:
 
@@ -60,13 +44,13 @@ Examples:
 # ( echo "<kernel>"; echo "file execute /sbin/init" ) | ccs-loadpolicy -d
  Add "file execute /sbin/init" to "<kernel>" domain.
 
-# ccs-loadpolicy df
- Replace currently loaded domain policy with policy_dir/domain_policy.conf .
+# ccs-loadpolicy -df < /etc/ccs/domain_policy.conf
+ Replace currently loaded domain policy with /etc/ccs/domain_policy.conf .
 
-# ccs-loadpolicy d
- Append policy_dir/domain_policy.conf into currently loaded domain policy.
+# ccs-loadpolicy -d < /etc/ccs/domain_policy.conf
+ Append /etc/ccs/domain_policy.conf into currently loaded domain policy.
 
-# ccs-loadpolicy d /etc/ccs/192.168.1.1/ 192.168.1.1:10000
+# ccs-loadpolicy -d 192.168.1.1:10000 < /etc/ccs/192.168.1.1/domain_policy.conf
  Append /etc/ccs/192.168.1.1/domain_policy.conf to 192.168.11.1:10000 .
 
 # echo "delete /usr/sbin/ccs-queryd" | ccs-loadpolicy -m

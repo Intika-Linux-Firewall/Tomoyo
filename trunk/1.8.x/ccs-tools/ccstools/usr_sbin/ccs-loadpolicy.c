@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/21
+ * Version: 1.8.0+   2010/12/24
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -38,24 +38,17 @@ static _Bool ccs_close_write(FILE *fp)
 	return result;
 }
 
-static _Bool ccs_move_file_to_proc(const char *src, const char *dest)
+static _Bool ccs_move_file_to_proc(const char *dest)
 {
-	FILE *file_fp;
 	FILE *proc_fp = ccs_open_write(dest);
 	_Bool result = true;
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s for writing.\n", dest);
 		return false;
 	}
-	file_fp = src ? fopen(src, "r") : stdin;
-	if (!file_fp) {
-		fprintf(stderr, "Can't open %s for reading.\n", src);
-		fclose(proc_fp);
-		return false;
-	}
 	ccs_get();
 	while (true) {
-		char *line = ccs_freadline(file_fp);
+		char *line = ccs_freadline(stdin);
 		if (!line)
 			break;
 		if (line[0])
@@ -65,8 +58,6 @@ static _Bool ccs_move_file_to_proc(const char *src, const char *dest)
 	ccs_put();
 	if (!ccs_close_write(proc_fp))
 		result = false;
-	if (file_fp != stdin)
-		fclose(file_fp);
 	return result;
 }
 
@@ -189,24 +180,14 @@ int main(int argc, char *argv[])
 {
 	struct ccs_domain_policy proc_policy = { NULL, 0, NULL };
 	struct ccs_domain_policy file_policy = { NULL, 0, NULL };
-	_Bool read_from_stdin = false;
 	_Bool refresh_policy = false;
 	_Bool result = true;
 	char target = 0;
 	int i;
-	const char *ccs_policy_dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
-		if (*ptr == '/') {
-			if (ccs_policy_dir) {
-				fprintf(stderr, "You cannot specify multiple "
-					"%s at the same time.\n\n",
-					"policy directories");
-				goto usage;
-			}
-			ccs_policy_dir = ptr;
-		} else if (cp) {
+		if (cp) {
 			*cp++ = '\0';
 			ccs_network_ip = inet_addr(ptr);
 			ccs_network_port = htons(atoi(cp));
@@ -224,10 +205,8 @@ int main(int argc, char *argv[])
 					"policies");
 				goto usage;
 			}
-			if (*ptr == '-') {
-				ptr++;
-				read_from_stdin = true;
-			}
+			if (*ptr++ != '-')
+				goto usage;
 			target = *ptr++;
 			if (target != 'e' && target != 'd' && target != 'p' &&
 			    target != 'm' && target != 's')
@@ -245,14 +224,6 @@ int main(int argc, char *argv[])
 			"policy to load");
 		goto usage;
 	}
-	if (!ccs_policy_dir) {
-		if (ccs_network_mode && !read_from_stdin) {
-			fprintf(stderr, "You need to specify %s.\n\n",
-				"policy directory");
-			goto usage;
-		}
-		ccs_policy_dir = "/etc/ccs/";
-	}
 	if (ccs_network_mode) {
 		if (!ccs_check_remote_host())
 			return 1;
@@ -261,71 +232,39 @@ int main(int argc, char *argv[])
 			"You can't run this program for this kernel.\n");
 		return 1;
 	}
-	if (!read_from_stdin && chdir(ccs_policy_dir)) {
-		fprintf(stderr, "Directory %s doesn't exist.\n",
-			ccs_policy_dir);
-		return 1;
-	}
 	switch (target) {
 	case 'p':
-		result = ccs_move_file_to_proc
-			(read_from_stdin ? NULL : "profile.conf",
-			 CCS_PROC_POLICY_PROFILE);
+		result = ccs_move_file_to_proc(CCS_PROC_POLICY_PROFILE);
 		break;
 	case 'm':
-		result = ccs_move_file_to_proc
-			(read_from_stdin ? NULL : "manager.conf",
-			 CCS_PROC_POLICY_MANAGER);
+		result = ccs_move_file_to_proc(CCS_PROC_POLICY_MANAGER);
 		break;
 	case 's':
-		result = ccs_move_file_to_proc
-			(read_from_stdin ? NULL : "stat.conf",
-			 CCS_PROC_POLICY_STAT);
+		result = ccs_move_file_to_proc(CCS_PROC_POLICY_STAT);
 		break;
 	case 'e':
 		if (refresh_policy)
 			result = ccs_delete_proc_policy
 				(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		result = ccs_move_file_to_proc
-			(read_from_stdin ? NULL : "exception_policy.conf",
-			 CCS_PROC_POLICY_EXCEPTION_POLICY);
+			(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		break;
 	case 'd':
 		if (!refresh_policy) {
 			result = ccs_move_file_to_proc
-				(read_from_stdin ? NULL : "domain_policy.conf",
-				 CCS_PROC_POLICY_DOMAIN_POLICY);
+				(CCS_PROC_POLICY_DOMAIN_POLICY);
 			break;
 		}
 		result = ccs_update_domain_policy
-			(&proc_policy, &file_policy, read_from_stdin ? NULL :
-			 "domain_policy.conf", CCS_PROC_POLICY_DOMAIN_POLICY);
+			(&proc_policy, &file_policy, NULL,
+			 CCS_PROC_POLICY_DOMAIN_POLICY);
 		ccs_clear_domain_policy(&proc_policy);
 		ccs_clear_domain_policy(&file_policy);
 		break;
 	}
 	return !result;
 usage:
-	printf("%s {e|ef|d|df|m|p|s} [policy_dir [remote_ip:remote_port]]\n"
-	       "%s {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
-	       " e  : Read from policy_dir/exception_policy.conf and append "
-	       "to /proc/ccs/exception_policy .\n"
-	       " ef : Read from policy_dir/exception_policy.conf and "
-	       "overwrite /proc/ccs/exception_policy .\n"
-	       " d  : Read from policy_dir/domain_policy.conf and append to "
-	       "/proc/ccs/domain_policy .\n"
-	       " df : Read from policy_dir/domain_policy.conf and overwrite "
-	       "/proc/ccs/domain_policy .\n"
-	       " m  : Read from policy_dir/manager.conf and append to "
-	       "/proc/ccs/manager .\n"
-	       " p  : Read from policy_dir/profile.conf and append to "
-	       "/proc/ccs/profile .\n"
-	       " s  : Read from policy_dir/stat.conf and append to "
-	       "/proc/ccs/stat .\n"
-	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
-	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
-	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
-	       "directory.\n"
+	printf("%s {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
 	       "-e  : Read from stdin and append to "
 	       "/proc/ccs/exception_policy .\n"
 	       "-ef : Read from stdin and overwrite "
@@ -336,7 +275,9 @@ usage:
 	       ".\n"
 	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
 	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
-	       "-s  : Read from stdin and append to /proc/ccs/stat .\n",
-	       argv[0], argv[0]);
+	       "-s  : Read from stdin and append to /proc/ccs/stat .\n"
+	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
+	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+	       "directory.\n", argv[0]);
 	return 1;
 }
