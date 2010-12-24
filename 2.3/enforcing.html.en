@@ -12,51 +12,51 @@
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 5: Restricting your system's behavior.</h1>
 
-<p>This page describes how to use TOMOYO Linux's enforcing mode and how to handle policy violations which arises in enforcing mode.</p>
+<p>This page describes how to use TOMOYO Linux's enforcing mode and how to handle policy violations which may arise.</p>
 
 <hr>
 
 <h2><a name="using_enforcing_mode">Step 1: Enabling enforcing mode</a></h2>
 
-<p>After you came to think you have done everything, run the policy editor and change the profile number to 3.</p>
+<p>Once domain and exception policy have been sufficiently modified, the domain can be set to enforcing mode.</p>
 
-<p>Run the policy editor. Choose target domains and press 's' key and enter '3' and press 'Enter' key.</p>
+<p>Run the policy editor. Select target domains with 'Space' key, press 's' key, enter '3', and press 'Enter':</p>
 
 <p><img src="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
 
-<p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 3.</p>
+<p>The profile numbers of the selected domains have now been changed to 3:</p>
 
 <p><img src="editpolicy-httpd-profile3.png" width="720" height="400"></p>
 
-<p>Press '@' key to switch to process list. Verify that /usr/sbin/httpd processes and descendant are assigned profile number 3.</p>
+<p>Press '@' key to switch to the process list. Verify that the "/usr/sbin/httpd" process and descendants are assigned profile number 3:</p>
 
 <p><img src="editpolicy-httpd-process3.png" width="720" height="400"></p>
 
-<p>And now, /usr/sbin/httpd processes and descendant are protected by MAC, for the profile 3 was configured for enforcing mode.</p>
+<p>Now "/usr/sbin/httpd" processes and descendants are protected, as profile 3 was configured for enforcing mode:</p>
 
 <p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
 
 <p>Press 'q' key to quit the policy editor.</p>
 
-<p>Let's try an operation which is permitted by policy.</p>
+<p>Let's try an operation which is permitted by policy:</p>
 
 <p><img src="operation-permitted.png" width="688" height="933"></p>
 
-<p>The operation was successfully completed, for sending mail is permitted by policy.</p>
+<p>The operation was successfully completed, as sending mail is permitted by policy.</p>
 
-<p>Let's try an operation which is not permitted by policy.</p>
+<p>Let's try an operation which is not permitted by policy:</p>
 
 <p><img src="unix-penguin.png" width="688" height="933"></p>
 
-<p>The operation was rejected. (Seemingly, it looks like it was successfully completed. But actually, the execution of /bin/cat was rejected as you can see warning message by /bin/mail that the input was empty.)</p>
+<p>Although it appears to be have been completed successfully, the warning message by /bin/mail shows that the input was empty and so the execution of "/bin/cat" was rejected.</p>
 
 <p><img src="unix-penguin-rejected.png" width="688" height="623"></p>
 
-<p>If the profile is configured as "PREFERENCE::enforcing={ verbose=yes }" (this is default), the "ERROR:" messages will be printed to the console when policy violation occurs.</p>
+<p>If the profile is configured as "PREFERENCE::enforcing={ verbose=yes }" (this is default), the "ERROR:" messages will be printed to the console when policy violations occur.</p>
 
 <p><img src="enforcing-error.png" width="720" height="400"></p>
 
-<p>If you have configured notification daemon at <a href="initialize.html.en#configure_notify_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you will receive mails sent by "tomoyo-notifyd" program.</p>
+<p>If audit logs were configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration</a>, rejected requests can be picked up from audit logs using "grep":</p>
 
 <table border="1">
 <tr><td>
@@ -82,30 +82,102 @@ allow_execute /bin/cat
 
 <h2><a name="using_interactive_mode">Step 2: Handling policy violation arising in during software updates</a></h2>
 
-<p>Since the behavior of the system is restricted by policy, you may need to update policy when you update packages.</p>
-
-<p>You need to update policy in the following cases.</p>
+<p>When packages are updated, policy may need to be updated if any of the following occur:
 
 <ul>
-<li>The pathname of files has changed.
-<li>The dependency of files has changed.
-<li>The access permissions required has increased.
+<li>The pathnames of files have changed.
+<li>The dependencies of files have changed.
+<li>The access permissions required have changed or increased.
 </ul>
 
-<p>The ideal way to update policy is to rebuild from the scratch using learning mode. But it is not desirable to change from enforcing mode to other mode if the system has once entered in production state. Suppose MAC could support per-application enforcing mode, the MAC becomes useless if an application that is not running in enforcing mode was cracked. For example, the whole system becomes vulnerable if only HTTP server application is running in learning mode to rebuild policy for the application. So, in TOMOYO Linux, updating policy is done while the system is running in enforcing mode.</p>
+<p>The ideal way to update policy is to rebuild from scratch using learning mode as has been described. However, it is not desirable to change a domain from enforcing mode to learning mode once the system has entered into a production state as this will cause the system to become vulnerable to attack through this unrestricted domain.</p>
 
-<p>TOMOYO Linux includes tools that help administrators update policy while the system is running in enforcing mode. By using these tools, you can continue running the system without rebuilding from the scratch using learning mode if the modification is trivial. But note that these tools cannot always support every cases and the result of updated policy is not always the optimized.</p>
+<p>Fortunately, TOMOYO Linux provides tools that help administrators update policy while running in enforcing mode. Please note that these tools cannot always support every case and the resulting policy may not be fully optimized.</p>
 
-<h3>Operation example</h3>
+<h3>Example usage of "tomoyo-queryd"</h3>
 
-<p>Below video demonstrates operation example.<br>
+<p>The video below demonstrates example usage of "tomoyo-queryd", which is summarised in the text below:</p>
 <object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
+
+<p>Use "/usr/sbin/tomoyo-queryd" to view (in realtime) access requests that have been rejected by policy:
 
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/tomoyo-queryd<br>
-Monitoring /sys/kernel/security/tomoyo/query and /etc/ld.so.cache . Press Ctrl-C to terminate.<br>
+Monitoring /sys/kernel/security/tomoyo/query and /etc/ld.so.cache . Press Ctrl-C to terminate.</p>
+</td></tr>
+</table>
+
+<p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the "tomoyo-queryd" console:
+
+<table border="1">
+<tr><td>
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+allow_execute /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</td></tr>
+</table>
+
+<p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/cups" attempted to execute "/bin/sleep" in order to process the command "sleep 1". Usually this would be instantly denied, but since "tomoyo-queryd" is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
+
+<p>Press "Y" to grant the request.<br>
+Press "N" to reject the request.<br>
+Press "R" to retry the request (for example after editing domain policy manually).<br>
+Press "S" to show domain policy for the process.<br>
+Press "A" to append the request to domain policy and retry (a chance to edit the request is given first).</p>
+
+<p>Do not grant access requests unconditionally. Policy violations are not always due to updating packages, but may be malicious requests by attackers.</p>
+
+<p>Do not logout while "tomoyo-queryd" is running. Access requests that violated policy are kept pending and may otherwise sleep forever.</p>
+
+<p>Monitor "tomoyo-queryd" to make sure programs have the minimum permissions to run properly. If permissions are missing, they will be printed to "tomoyo-queryd".</p>
+
+<table border="1">
+<tr><td>
+#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /usr/sbin/acpid<br>
+allow_unlink /var/run/acpid.socket<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_unlink /var/run/acpid.socket if path1.type=socket<br>
+Added 'allow_unlink /var/run/acpid.socket if path1.type=socket'.<br>
 <br>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
+</td></tr>
+</table>
+
+<p>When the location of shared libraries in "/etc/ld.so.cache" has changed, "tomoyo-queryd" automatically appends shared libraries to exception policy using "allow_read" directive. The following line indicates that the pathname "/usr/lib/libpurple.so.0.6.3" was appended to exception policy as it was registered to "/etc/ld.so.cache":</p>
+
+<table border="1">
+<tr><td>
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
+</td></tr>
+</table>
+
+<p>In addition, "tomoyo-queryd" automatically removes the pathname from exception policy when it is unregistered from "/etc/ld.so.cache":
+
+<table border="1">
+<tr><td>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
+</td></tr>
+</table>
+
+<p>Note that "tomoyo-queryd" directly edits policy currently loaded into the kernel, so run "tomoyo-savepolicy" to save policy to disk, otherwise policy is lost on shutdown.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy
+</td></tr>
+</table>
+
+<p>Once policy has been updated, "tomoyo-queryd" can be stopped with 'Ctrl-C'.</p>
+
+<h3>Example output from "tomoyo-queryd"</h3>
+
+<table border="1">
+<tr><td>
 #2010-01-10 12:27:10# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
 &lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
 allow_ioctl /dev/null 0x5401<br>
@@ -190,56 +262,6 @@ The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally read
 The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
 </td></tr>
 </table>
-
-<p>The "tomoyo-queryd" automatically appends shared libraries to exception policy using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed. The line</p>
-
-<table border="1">
-<tr><td>
-The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
-</td></tr>
-</table>
-
-<p>indicates that the pathname /usr/lib/libpurple.so.0.6.3 was appended to exception policy because it was created and was registered to /etc/ld.so.cache .</p>
-
-<p>Also, the "tomoyo-queryd" automatically removes the pathname registered as globally readable files in exception policy when it was deleted. The line</p>
-
-<table border="1">
-<tr><td>
-The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
-</td></tr>
-</table>
-
-<p>indicates that the pathname /usr/lib/libpurple.so.0.5.9 was removed from exception policy because it was deleted.</p>
-
-<p>Policy violation might occur while updating packages due to unusual behavior such as restarting daemons. When a policy violation occurs, a prompt appears in the "tomoyo-queryd". The lines</p>
-
-<table border="1">
-<tr><td>
-#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
-&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
-allow_execute /bin/sleep<br>
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
-</td></tr>
-</table>
-
-<p>indicates that a process which belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/cups" attempted to execute /bin/sleep in order to process the commandline "sleep 1" but the attempt was denied by policy, and the kernel is asking for your decision.
-Validate whether or not to permit the request and tell the kernel your decision. You can press "Y" to grant the request. You can press "N" to reject the request. You can press "R" to retry the request. You can press "S" to show domain policy for the process. You can press "A" to edit and append to domain policy and then retry the request.</p>
-
-<p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may be malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
-
-<p>If "tomoyo-queryd" is running, the access requests that violated policy are kept pending. To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) while "tomoyo-queryd" is running.</p>
-
-<p>Do a series of operations to confirm that programs that are protected by MAC can run properly. If some access permissions are missing, the messages will be printed to "tomoyo-queryd", so don't forget to monitor "tomoyo-queryd".</p>
-
-<p>Note that "tomoyo-queryd" directly edits the policy currently loaded into the kernel. Thus, the changes made by "tomoyo-queryd" are lost by the system's shutdown. Be sure to run "tomoyo-savepolicy" to save the latest policy.</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy
-</td></tr>
-</table>
-
-<p>You have finished updating policies. Close the console or terminal you executed "tomoyo-queryd".</p>
 
 <hr>
 
