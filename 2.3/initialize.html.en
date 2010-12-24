@@ -28,13 +28,13 @@
 
 <p>All policy files will be saved in "/etc/tomoyo/" directory.</p>
 
-<p>Note that there is no compatibility between policy configuration for TOMOYO 2.2 and policy configuration for TOMOYO 2.3. Therefore, you need to delete (or rename) /etc/tomoyo/ directory and run above command even if you already have policy configuration for TOMOYO 2.2 developed for your system. Otherwise, you will encounter kernel panic upon boot.</p>
+<p>Note that the policy configuration is not compatible between TOMOYO 2.2 and TOMOYO 2.3. If policy has been developed for TOMOYO 2.2 then the "/etc/tomoyo" directory needs to be deleted or renamed, otherwise there will be a kernel panic on the next boot.</p>
 
 <hr>
 
 <h2>Step 2: Learning how to use the policy editor</h2>
 
-<p>Run the policy editor "tomoyo-editpolicy" with "/etc/tomoyo/" option, and you will see a picture shown below.</p>
+<p>Run the policy editor  with "/etc/tomoyo/" option to edit policy files within "/etc/tomoyo/":</p>
 
 <table border="1">
 <tr><td>
@@ -46,7 +46,7 @@
 
 <p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
 
-<p>As the system runs, TOMOYO Linux will create domains and add them to the tree. After rebooting and running ccs-editpolicy again, the domain tree should become populated with all domains created since startup:</p>
+<p>As the system runs, TOMOYO Linux will create domains and add them to the tree. After rebooting and running tomoyo-editpolicy again, the domain tree should become populated with all domains created since startup:</p>
 
 <p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
 
