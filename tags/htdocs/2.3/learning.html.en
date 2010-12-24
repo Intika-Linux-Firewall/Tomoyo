@@ -10,7 +10,7 @@
 <p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
 <p style="text-align:right;"><a href="learning.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>Phase 3: Learning your system's behavior.</h1>
+<h1>Phase 3: Analyzing your system's behavior.</h1>
 
 <p>This page describes how to use TOMOYO Linux's learning mode.</p>
 
@@ -18,13 +18,13 @@
 
 <h2>Step 1: Creating domains</h2>
 
-<p>After you rebooted the system with TOMOYO Linux kernels, login as root.</p>
+<p>After rebooting the system with the TOMOYO Linux kernel, login as root.</p>
 
 <p>Decide what application to analyze/protect.</p>
 
-<p>Below procedure is a case of Apache in CentOS 5.5 environment.</p>
+<p>The procedure below takes the use of Apache in a CentOS 5.5 as an example.</p>
 
-<p>Start the target application.</p>
+<p>Start the target application:</p>
 
 <table border="1">
 <tr><td>
@@ -32,24 +32,30 @@
 </td></tr>
 </table>
 
-<p>Let's start TOMOYO Linux's policy editor. Please note that this time, you don't need to pass /etc/tomoyo/ to the command line, for we directly edits TOMOYO Linux's policy currently used by the kernel.</p>
+<p>Let's start TOMOYO Linux's policy editor. "/etc/ccs/" need not be passed to the command line so that the policy loaded by the kernel can be edited directly:</p>
 
-<p>In the CentOS 5.5 , Apache's program's location is /usr/sbin/httpd .<br>
-Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line /usr/sbin/httpd . In this picture, it is line 419.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-editpolicy
+</td></tr>
+</table>
+
+<p>In CentOS 5.5, the location of Apache is "/usr/sbin/httpd".<br>
+Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line "/usr/sbin/httpd". In this picture, it is line 419:</p>
 
 <p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
-<p>If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
+<p>If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain". See <a href="tool-editpolicy.html.en#Initialize_domain_transition">Initialize domain transition</a> for more information.</p>
 
-<p>Press 's' key and enter '1' and press 'Enter' key.</p>
+<p>Press 's' key and enter '1' and press 'Enter' key:</p>
 
 <p><img src="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
 
-<p>Now the profile number of the /usr/sbin/httpd has changed to 1.</p>
+<p>Now the profile number of the /usr/sbin/httpd has changed to 1:</p>
 
 <p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
 
-<p>Press '@' key to switch to process list. Verify that /usr/sbin/httpd processes are assigned profile number 1.</p>
+<p>Press '@' key to switch to process list. Verify that /usr/sbin/httpd processes are assigned profile number 1:</p>
 
 <p><img src="editpolicy-httpd-process1.png" width="720" height="400"></p>
 
@@ -59,7 +65,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <h2>Step 2: Gathering necessary permissions</h2>
 
-<p>Restart the Apache in order to learn necessary permissions for starting/finishing the Apache.</p>
+<p>Restart "httpd" in order to learn necessary permissions required for starting/stopping this service:</p>
 
 <table border="1">
 <tr><td>
@@ -67,19 +73,21 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>Run TOMOYO Linux's policy editor again and go to the /usr/sbin/httpd line. (Line number may be changed because new domains are added by programs executed by you and the system.)</p>
+<p>Run the policy editor again and go to the "/usr/sbin/httpd" line. The line number have be changed due to the creation of new domains from executed programs.</p>
 
 <p>Press 'Enter' key to browse the permissions gathered by now.</p>
 
 <p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
 
-<p>Press 'q' key to quit the policy editor. Do whatever you want to allow Apache.</p>
+<p>Press 'q' key to quit the policy editor.</p>
+
+<p>Apache should now be used to generate the necessary permissions for normal usage:</p>
 
 <p><img src="operation-learning.png" width="688" height="933"></p>
 
-<p>Be sure to sometimes save policy, for necessary permissions are accumulated on only kernel memory. If you reboot the system, all gathered permissions will be lost.</p>
+<p>Remember to save policy, as permissions are accumulated only in kernel memory. If the system is rebooted, the gathered permissions will be lost.</p>
 
-<p>To save the policy currently in the kernel onto the disk, use "tomoyo-savepolicy" command.</p>
+<p>To save policy to disk, use the following command:
 
 <table border="1">
 <tr><td>
@@ -103,25 +111,29 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <h2>Step 3: Reviewing gathered permissions</h2>
 
-<p>After you came to think you have done roughly everything you want to allow Apache to do, run the policy editor and change the profile number to 2. Note that Apache may have executed some external programs (e.g. /bin/sh , /usr/bin/perl , /usr/lib/sendmail) and thus has descendant domains. Be sure to change the profile number for descendant domains if any as well as the /usr/sbin/httpd domain.</p>
+<p>Once Apache has been stretched to cover all possible uses, run the policy editor to change the profile number to 2. If Apache has executed external programs (e.g. /bin/sh, /usr/bin/sendmail), then there will be descendent domains. The profile number of all descendent domains must also be changed to 2.
 
-<p>Choose target domains and press 's' key and enter '2' and press 'Enter' key.</p>
+<p>Choose target domains and press 's' key and enter '2' and press 'Enter' key:</p>
 
 <p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
 
-<p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 2.</p>
+<p>Now the profile number of the "/usr/sbin/httpd" domain and all descendants have changed to 2:</p>
 
 <p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
 
-<p>Press 'q' key to quit the policy editor. Redo whatever you want to allow Apache to do.</p>
+<p>Press 'q' key to quit the policy editor.</p>
 
-<p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violation occurs.</p>
+<p>Continue using Apache. The counter in /proc/ccs/stat will be incremented every time a policy violation occurs.</p>
+
+<p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violation occur.</p>
 
 <p><img src="operation-permissive.png" width="688" height="622"></p>
 
 <p><img src="permissive-warning.png" width="720" height="400"></p>
 
-<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save exception_policy.conf and domain_poilicy.conf using "tomoyo-savepolicy" command.</p>
+<p>Remember to save policy, as permissions are accumulated only in kernel memory. If the system is rebooted, the gathered permissions will be lost.</p>
+
+<p>Use the following command to save the policy to disk into exception_policy.conf and domain_policy.conf :</p>
 
 <table border="1">
 <tr><td>
@@ -131,7 +143,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this procedure.</p>
 
-<p>If your purpose of using TOMOYO Linux is for protection, proceed to next phase.</p>
+<p>If your purpose of using TOMOYO Linux is for protection, proceed to the next phase.</p>
 
 <hr>
 

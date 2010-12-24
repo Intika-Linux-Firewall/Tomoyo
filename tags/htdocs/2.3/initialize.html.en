@@ -10,7 +10,7 @@
 <p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
 <p style="text-align:right;"><a href="initialize.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>Phase 2: Initializing TOMOYO Linux.</h1>
+<h1>Phase 2: Initializing configuration.</h1>
 
 <p>This page describes basic operations needed for using TOMOYO Linux.</p>
 
@@ -18,7 +18,7 @@
 
 <h2>Step 1: Initializing Policy</h2>
 
-<p>Run below command in order to initialize policy.</p>
+<p>To initialize policy, run the following:</p>
 
 <table border="1">
 <tr><td>
@@ -26,15 +26,15 @@
 </td></tr>
 </table>
 
-<p>TOMOYO Linux's policy files will be saved in /etc/tomoyo/ directory.</p>
+<p>All policy files will be saved in "/etc/tomoyo/" directory.</p>
 
 <p>Note that there is no compatibility between policy configuration for TOMOYO 2.2 and policy configuration for TOMOYO 2.3. Therefore, you need to delete (or rename) /etc/tomoyo/ directory and run above command even if you already have policy configuration for TOMOYO 2.2 developed for your system. Otherwise, you will encounter kernel panic upon boot.</p>
 
 <hr>
 
-<h2>Step 2: Learning how to use TOMOYO Linux's policy editor</h2>
+<h2>Step 2: Learning how to use the policy editor</h2>
 
-<p>Run TOMOYO Linux's policy editor "tomoyo-editpolicy" with "/etc/tomoyo/" option, and you will see a picture shown below.</p>
+<p>Run the policy editor "tomoyo-editpolicy" with "/etc/tomoyo/" option, and you will see a picture shown below.</p>
 
 <table border="1">
 <tr><td>
@@ -42,25 +42,32 @@
 </td></tr>
 </table>
 
+<p>This picture describes the domain tree that should be visible after running the above command. As of now, only "&lt;kernel&gt;" domain is defined:</p>
+
 <p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
 
-<p>This picture describes the domain tree. As of now, only "&lt;kernel&gt;" domain is defined. But as the system runs, TOMOYO Linux will create domains and add them to the tree. The example picture shown below has many domains.</p>
+<p>As the system runs, TOMOYO Linux will create domains and add them to the tree. After rebooting and running ccs-editpolicy again, the domain tree should become populated with all domains created since startup:</p>
 
 <p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
 
-<p>The MAC in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and basically the process will transit to different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history. For example, the name of domain which the kernel belongs to is "&lt;kernel&gt;", the name of domain which /sbin/init invoked by the kernel belongs to is "&lt;kernel&gt; /sbin/init", the name of domain which /etc/rc.d/rc invoked by the /sbin/init belongs to is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc". The exceptions of this transition rule are described later.</p>
+<p>The access analysis/restriction in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and the process will transit to a different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history.</p>
 
-<p>Look at the number which are the second column of each line.</p>
+<p>For example, the domain name that the kernel belongs to is <b>"&lt;kernel&gt;"</b>.<br>
+When the kernel invokes "/sbin/init", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init"</b>.<br>
+When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init /etc/rc.d/rc"</b>.<br>
+The exceptions to this transition rule are described later.</p>
+
+<p>Look at the numbers in the second column of each line:</p>
 
 <p><img src="editpolicy-domain-profile-number.png" width="720" height="400"></p>
 
 <p>This number is called "profile number". A profile number is an integer value which takes between 0 and 255.</p>
 
-<p>Press "w" key, and you will see some choices.</p>
+<p>Press "w" key, and you will see some choices:</p>
 
 <p><img src="editpolicy-window-list.png" width="720" height="400"></p>
 
-<p>Press "p" key, and you will see the list of profiles.</p>
+<p>Press "p" key, and you will see the following list of profiles:</p>
 
 <p><img src="editpolicy-profile-list.png" width="720" height="400"></p>
 
@@ -80,14 +87,14 @@
 </tr>
 <tr>
 <td>COMMENT</td>
-<td>A line of text that describes the content of the profile.</td>
+<td>Description of profile.</td>
 </tr>
 <tr>
 <td>CONFIG</td>
-<td>Configuration of Mandatory Access Control(MAC) level.</td>
+<td>Configuration of operation mode.</td>
 </tr>
 </table>
-<p>You can give the following values for verbose= parameter of PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing .</p>
+<p>The "verbose=" parameter from the PREFERENCE lines can contain one of the following values:</p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -95,14 +102,14 @@
 </tr>
 <tr>
 <td>no</td>
-<td>Don't dump policy violation messages.</td>
+<td>Do not dump policy violation messages.</td>
 </tr>
 <tr>
 <td>yes</td>
 <td>Dump policy violation messages.</td>
 </tr>
 </table>
-<p>You can give the following values for mode= parameter of CONFIG line.</p>
+<p>The "mode=" parameter of the CONFIG line can contain one of the following values:</p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -110,19 +117,19 @@
 </tr>
 <tr>
 <td>disabled</td>
-<td>Disabled. Works as if regular kernel.</td>
+<td>Works as if a regular kernel.</td>
 </tr>
 <tr>
 <td>learning</td>
-<td>Learning mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
+<td>Do not reject an access request if the request violates policy. Append the request to policy.</td>
 </tr>
 <tr>
 <td>permissive</td>
-<td>Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</td>
+<td>Do not reject an access request if the request violates policy. Do not append the request to policy.</td>
 </tr>
 <tr>
 <td>enforcing</td>
-<td>Enforcing mode. Rejected if the request violates policy.</td>
+<td>Reject an access request if the request violates policy. Do not append the request to policy.</td>
 </tr>
 </table>
 
@@ -257,15 +264,16 @@ For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, 
 
 <p>Press "q" key to finish the policy editor.</p>
 
-<p>Please see the policy editor's tutorial page <a href="tool-editpolicy.html.en">How to use Policy Editor</a> as needed.</p>
+<p>For more information on usage of the policy editor, see <a href="tool-editpolicy.html.en">How to use Policy Editor</a>.</p>
+<p>For more information on the directives, see <a href="policy-reference.html.en">Policy Specifications of TOMOYO Linux</a>.</p>
 
 <hr>
 
 <h2><a name="configure_notify_daemon">Step 3: Configure to mail TOMOYO Linux's policy violation events (Optional)</a></h2>
 
-<p>TOMOYO Linux can report the occurrence of policy violation in enforcing mode, if you have set up a mean to notify (e.g. mail).</p>
+<p>The occurrence of a policy violation can be reported if a means for notification is set up. The cron daemon can be used. For example, to notify "root@example.com" via mail, once every hour, add the following to "/etc/crontab":
 
-<p>You can use cron daemon for notifying. For example, to notify root@example.com via mail, once per an hour, add</p>
+<p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):
 
 <table border="1">
 <tr><td>
@@ -279,7 +287,7 @@ For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, 
 
 <h2>Step 4: Reboot the system</h2>
 
-<p>Now, reboot with TOMOYO Linux kernel.</p>
+<p>Now reboot with the TOMOYO Linux kernel.</p>
 
 <table border="1">
 <tr><td>

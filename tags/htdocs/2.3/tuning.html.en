@@ -18,7 +18,7 @@
 
 <h2>Step 1: Patterning File Access Permissions</h2>
 
-<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service.</p>
+<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in the learning mode. For example, the domain policy can be changed to accommodate for WWW contents:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -45,7 +45,7 @@ allow_read /var/www/html/\{\*\}/\*.jpg<br>
 </td></tr>
 </table>
 
-<p>If you define</p>
+<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
 <table border="1">
 <tr><td>
@@ -55,7 +55,7 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg<br>
 </td></tr>
 </table>
 
-<p>in the exception policy, you can simplify like</p>
+<p>The following can then be defined in domain policy:</p>
 
 <table border="1">
 <tr><td>
@@ -65,16 +65,15 @@ allow_read @WEB-CONTENTS
 </td></tr>
 </table>
 
-<p>in the domain policy.</p>
-
 <hr>
 
 <h2>Step 2: Handling temporary files</h2>
 
-<p>You can not handle temporary files by simply using "learning mode" and "permissive mode". You need to interactively handle temporary files according to <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.<br>
-But if you want to convert temporary files into patterns non-interactively, you can do it as shown below.</p>
+<p>Usually, temporary files cannot be handled by simply using "learning mode" and "permissive mode" due to the variety of single-use pathnames involved. They must instead be interactively handled. See: <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.</p>
 
-<p>List up pathnames that can be temporary files.</p>
+<p>Alternatively, temporary files can be converted into patterns non-interactively using the method shown below:</p>
+
+<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
 
 <table border="1">
 <tr><td>
@@ -102,9 +101,19 @@ But if you want to convert temporary files into patterns non-interactively, you 
 </td></tr>
 </table>
 
-<p>We can consider that "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" are temporary files, thus we make patterns for these pathnames. First, we need to consider what patterns to use. In these examples, numeric seems decimal digits. Thus, we use \$ pattern which matches one or more repetitions of decimal digits.</p>
+<p>In this example, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
 
-<p>Append patterns to the exception policy.</p>
+<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the \$ pattern can be used to match one or more repetitions of decimal digits.</p>
+
+<p>Use "/usr/sbin/tomoyo-patternize" to replace all occurrences of "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$' respectively:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -d
+</td></tr>
+</table>
+
+If preferred, these patterns can instead be managed in exception policy:
 
 <table border="1">
 <tr><td>
@@ -113,13 +122,7 @@ But if you want to convert temporary files into patterns non-interactively, you 
 </td></tr>
 </table>
 
-<p>Replace "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$'</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -d
-</td></tr>
-</table>
+<p>See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
 
 <hr>
 
