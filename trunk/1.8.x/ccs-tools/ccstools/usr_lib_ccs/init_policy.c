@@ -1176,7 +1176,7 @@ static const char auditd_data[] =
 "# Therefore, no audit logs are written more than once.\n"
 "#\n"
 "# More specific matches should be placed before less specific matches.\n"
-"# For example:
+"# For example:\n"
 "#\n"
 "# header.contains profile=3\n"
 "# domain.contains /usr/sbin/httpd\n"
