@@ -32,11 +32,11 @@
 </td></tr>
 </table>
 
-<p>Let's start TOMOYO Linux's policy editor. "/etc/ccs/" need not be passed to the command line so that the policy loaded by the kernel can be edited directly:</p>
+<p>Let's start TOMOYO Linux's policy editor. "/etc/tomoyo/" need not be passed to the command line so that the policy loaded by the kernel can be edited directly:</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-editpolicy
+[root@tomoyo ~]# /usr/sbin/tomoyo-editpolicy
 </td></tr>
 </table>
 
@@ -55,7 +55,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
 
-<p>Press '@' key to switch to process list. Verify that /usr/sbin/httpd processes are assigned profile number 1:</p>
+<p>Press '@' key to switch to the process list. Verify that /usr/sbin/httpd processes are assigned profile number 1:</p>
 
 <p><img src="editpolicy-httpd-process1.png" width="720" height="400"></p>
 
@@ -73,15 +73,15 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>Run the policy editor again and go to the "/usr/sbin/httpd" line. The line number have be changed due to the creation of new domains from executed programs.</p>
+<p>Run the policy editor again and go to the "/usr/sbin/httpd" line. The line number may have changed due to the creation of new domains from executed programs.</p>
 
-<p>Press 'Enter' key to browse the permissions gathered by now.</p>
+<p>Press 'Enter' key to browse the permissions that have been gathered:</p>
 
 <p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
 
 <p>Press 'q' key to quit the policy editor.</p>
 
-<p>Apache should now be used to generate the necessary permissions for normal usage:</p>
+<p>Apache should now be used to generate the necessary permissions for normal usage. All actions should be performed that you wish to allow:</p>
 
 <p><img src="operation-learning.png" width="688" height="933"></p>
 
@@ -123,7 +123,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>Press 'q' key to quit the policy editor.</p>
 
-<p>Continue using Apache. The counter in /proc/ccs/stat will be incremented every time a policy violation occurs.</p>
+<p>Continue using Apache. The counter in /proc/tomoyo/stat will be incremented every time a policy violation occurs.</p>
 
 <p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violation occur.</p>
 
@@ -141,9 +141,9 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this procedure.</p>
+<p>If you are using TOMOYO Linux for system analysis, this point is the goal of this procedure.</p>
 
-<p>If your purpose of using TOMOYO Linux is for protection, proceed to the next phase.</p>
+<p>If you are using TOMOYO Linux for protection, proceed to the next phase to continue tuning policy.</p>
 
 <hr>
 
