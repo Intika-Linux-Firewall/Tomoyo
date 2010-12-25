@@ -132,32 +132,22 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
-/etc/mtab.tmp<br>
-/etc/mtab~<br>
-/etc/mtab~2302<br>
-/etc/mtab~2328<br>
-/etc/mtab~2329<br>
-/etc/mtab~2330<br>
-/etc/mtab~2331<br>
-/etc/mtab~2332<br>
-/etc/mtab~2339<br>
-/etc/mtab~2383<br>
-/halt<br>
-/selinux/disable<br>
-/selinux/enforce<br>
-/selinux/policyvers<br>
-/tmp/sh-thd-1163110572<br>
-/tmp/sh-thd-1163113704<br>
-/var/cache/samba/browse.dat.<br>
-/var/lib/nfs/etab.tmp<br>
-/var/lib/nfs/xtab.tmp<br>
-/var/lock/mrtg/mrtg_l<br>
+/tmp/RsACr8YD<br>
+/tmp/RsXg3Aav<br>
+/var/run/nscd/socket<br>
+/var/spool/clientmqueue/dfoBPETPpH002933<br>
+/var/spool/clientmqueue/dfoBPETf92002944<br>
+/var/spool/clientmqueue/qfoBPETPpH002933<br>
+/var/spool/clientmqueue/qfoBPETf92002944<br>
+/var/spool/clientmqueue/xfoBPETPpH002933<br>
+/var/spool/clientmqueue/xfoBPETf92002944
 </td></tr>
 </table>
 
-<p>In this example, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
+<p>In this example, "/tmp/RsACr8YD", "/tmp/RsXg3Aav", "/var/spool/clientmqueue/dfoBPETPpH002933", "/var/spool/clientmqueue/dfoBPETf92002944", "/var/spool/clientmqueue/qfoBPETPpH002933", "/var/spool/clientmqueue/qfoBPETf92002944", "/var/spool/clientmqueue/xfoBPETPpH002933" and "/var/spool/clientmqueue/xfoBPETf92002944"
+can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
 
-<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the \$ pattern can be used to match one or more repetitions of decimal digits. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+<p>First, the type of pattern must be considered. The strings here appear to be random letters. Thus, the \? pattern which matches any one letter and \* pattern which matches zero or more repetition of any letters can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
 
 <p>Use "/usr/sbin/ccs-patternize" to convert into patterns non-interactively. Rewriting rules are specified in /etc/ccs/tools/patternize.conf file, as shown below:</p>
 
@@ -208,7 +198,7 @@ rewrite path_pattern devpts:/\$
 
 # Files on pipe filesystem.
 rewrite path_pattern pipe:[\$]
-rewrite path_pattern pipefs:[\$]
+rewrite path_pattern pipefs:/[\$]
 
 # Files on / partition.
 rewrite tail_pattern /etc/mtab~\$
@@ -250,14 +240,75 @@ rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/
 
 <p>"path_pattern" matches whole pathname, "head_pattern" matches leading pathname and "tail_pattern" matches trailing pathname.</p>
 
-<p>Since "rewrite tail_pattern /etc/mtab~\$" and "rewrite tail_pattern /sh-thd-\$" are already defined in default /etc/ccs/tools/patternize.conf file, you can simply convert and compare how it was changed:</p>
+<p>Append patterns for "/tmp/Rs\?\?\?\?\?\?" and "/var/spool/clientmqueue/\*" to /etc/ccs/tools/patternize.conf file:</p>
+
+<table border="1">
+<tr><td>
+rewrite tail_pattern /tmp/Rs\?\?\?\?\?\?<br>
+rewrite tail_pattern /var/spool/clientmqueue/\*
+</td></tr>
+</table>
+
+<p>Then, convert and compare how it was changed:</p>
 
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# ccs-savepolicy -d &gt; /tmp/old<br>
 [root@tomoyo ~]# ccs-patternize &lt; /tmp/old &gt; /tmp/new<br>
-[root@tomoyo ~]# ccs-diffpolicy /tmp/old /tmp/new
-
+[root@tomoyo ~]# ccs-diffpolicy /tmp/old /tmp/new<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+file write proc:/self/task/\$/attr/fscreate<br>
+delete file write proc:/self/task/2766/attr/fscreate<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail<br>
+<br>
+file create /tmp/Rs\?\?\?\?\?\? 0666<br>
+file read /tmp/Rs\?\?\?\?\?\?<br>
+file unlink /tmp/Rs\?\?\?\?\?\?<br>
+file write /tmp/Rs\?\?\?\?\?\?<br>
+delete file create /tmp/RsACr8YD 0666<br>
+delete file create /tmp/RsXg3Aav 0666<br>
+delete file read /tmp/RsACr8YD<br>
+delete file read /tmp/RsXg3Aav<br>
+delete file unlink /tmp/RsACr8YD<br>
+delete file unlink /tmp/RsXg3Aav<br>
+delete file write /tmp/RsACr8YD<br>
+delete file write /tmp/RsXg3Aav<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail<br>
+<br>
+file ioctl pipefs:/[\$] 0x5413<br>
+delete file ioctl pipefs:/[11895] 0x5413<br>
+delete file ioctl pipefs:/[11965] 0x5413<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail /usr/sbin/sendmail<br>
+<br>
+file create /var/spool/clientmqueue/\* 0660<br>
+file read /var/spool/clientmqueue/\*<br>
+file unlink /var/spool/clientmqueue/\*<br>
+file write /var/spool/clientmqueue/\*<br>
+delete file create /var/spool/clientmqueue/dfoBPETPpH002933 0660<br>
+delete file create /var/spool/clientmqueue/dfoBPETf92002944 0660<br>
+delete file create /var/spool/clientmqueue/qfoBPETPpH002933 0660<br>
+delete file create /var/spool/clientmqueue/qfoBPETf92002944 0660<br>
+delete file read /var/spool/clientmqueue/dfoBPETPpH002933<br>
+delete file read /var/spool/clientmqueue/dfoBPETf92002944<br>
+delete file unlink /var/spool/clientmqueue/dfoBPETPpH002933<br>
+delete file unlink /var/spool/clientmqueue/dfoBPETf92002944<br>
+delete file unlink /var/spool/clientmqueue/qfoBPETPpH002933<br>
+delete file unlink /var/spool/clientmqueue/qfoBPETf92002944<br>
+delete file unlink /var/spool/clientmqueue/xfoBPETPpH002933<br>
+delete file unlink /var/spool/clientmqueue/xfoBPETf92002944<br>
+delete file write /var/spool/clientmqueue/dfoBPETPpH002933<br>
+delete file write /var/spool/clientmqueue/dfoBPETf92002944<br>
+delete file write /var/spool/clientmqueue/qfoBPETPpH002933<br>
+delete file write /var/spool/clientmqueue/qfoBPETf92002944<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/ls<br>
+<br>
+file ioctl pipefs:/[\$] 0x5413<br>
+delete file ioctl pipefs:/[11965] 0x5413<br>
 </td></tr>
 </table>
 

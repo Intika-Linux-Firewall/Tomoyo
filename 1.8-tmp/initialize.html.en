@@ -240,6 +240,17 @@ The exceptions to this transition rule are described later.</p>
 # 'domain' and 'acl' lines in that chunk have matched.
 # Evaluation stops at the first processed 'destination' line.
 # Therefore, no audit logs are written more than once.
+#
+# More specific matches should be placed before less specific matches.
+# For example:
+#
+# header.contains profile=3
+# domain.contains /usr/sbin/httpd
+# destination     /var/log/tomoyo/reject_003_httpd.log
+#
+# This chunk should be placed before the chunk that matches logs with
+# profile=3. If placed after, the audit logs for /usr/sbin/httpd will be
+# sent to /var/log/tomoyo/reject_003.log .
 
 # Discard all granted logs.
 header.contains granted=yes
