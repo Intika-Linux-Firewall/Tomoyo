@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 				break;
 			*cp = '\0';
 			if (!strncmp(buffer, "use_profile ", 12) ||
-			    !strncmp(buffer, "use_group ", 11)) {
+			    !strncmp(buffer, "use_group ", 10)) {
 				cond_len = 0;
 				continue;
 			}
