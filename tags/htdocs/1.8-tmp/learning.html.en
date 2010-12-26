@@ -40,7 +40,7 @@
 </table>
 
 <p>In CentOS 5.5, the location of Apache is "/usr/sbin/httpd".<br>
-Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line "/usr/sbin/httpd". In this picture, it is line 398:</p>
+Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line "/usr/sbin/httpd". In this picture, it is line 386:</p>
 
 <p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
@@ -147,7 +147,7 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 <p>In this example, "/tmp/RsACr8YD", "/tmp/RsXg3Aav", "/var/spool/clientmqueue/dfoBPETPpH002933", "/var/spool/clientmqueue/dfoBPETf92002944", "/var/spool/clientmqueue/qfoBPETPpH002933", "/var/spool/clientmqueue/qfoBPETf92002944", "/var/spool/clientmqueue/xfoBPETPpH002933" and "/var/spool/clientmqueue/xfoBPETf92002944"
 can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
 
-<p>First, the type of pattern must be considered. The strings here appear to be random letters. Thus, the \? pattern which matches any one letter and \* pattern which matches zero or more repetition of any letters can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+<p>First, the type of pattern must be considered. The strings here appear to be random letters. Thus, the \? pattern which matches any one letter (other than '/') and \* pattern which matches zero or more repetition of any letters (other than '/') can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
 
 <p>Use "/usr/sbin/ccs-patternize" to convert into patterns non-interactively. Rewriting rules are specified in /etc/ccs/tools/patternize.conf file, as shown below:</p>
 
