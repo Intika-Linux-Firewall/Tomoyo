@@ -1,4 +1,4 @@
-BUILD_FILES = ccs-auditd ccs-domainmatch ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
+BUILD_FILES = ccs-auditd ccs-domainmatch ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy ccs-notifyd
 
 all: libccstools.so $(BUILD_FILES)
 
