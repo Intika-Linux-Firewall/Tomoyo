@@ -101,8 +101,9 @@ static void main_loop(void)
 		if (pid == -1) {
 			syslog(LOG_WARNING, "Can't execute %s\n",
 			       action_to_take);
-			break;
-		} else if (!pid) {
+			return;
+		}
+		if (!pid) {
 			FILE *fp;
 			close(query_fd);
 			fp = popen(action_to_take, "w");
@@ -122,8 +123,8 @@ static void main_loop(void)
 			ret_ignored = write(query_fd, "\n", 1);
 		}
 		close(query_fd);
-		sleep(minimal_interval);
 		while (waitpid(pid, NULL, __WALL) == EOF && errno == EINTR);
+		sleep(minimal_interval);
 		query_fd = open(proc_policy_query, O_RDWR);
 	}
 }
