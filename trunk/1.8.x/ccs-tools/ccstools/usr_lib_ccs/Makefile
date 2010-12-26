@@ -1,4 +1,4 @@
-BUILD_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd audit-exec-param convert-exec-param convert-audit-log ccs-editpolicy-agent init_policy
+BUILD_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh audit-exec-param convert-exec-param convert-audit-log ccs-editpolicy-agent init_policy
 
 all: $(BUILD_FILES)
 
