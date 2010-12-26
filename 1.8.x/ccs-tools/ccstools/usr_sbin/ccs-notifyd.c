@@ -67,7 +67,7 @@ static void ccs_notifyd_init_rules(const char *filename)
 	ccs_put();
 	fclose(fp);
 	if (!action_to_take) {
-		fprintf(stderr, "No rules defined in %s .\n", filename);
+		fprintf(stderr, "No actions defined in %s .\n", filename);
 		exit(1);
 	}
 	return;

@@ -1389,7 +1389,7 @@ static const char notifyd_data[] =
 "#    The occurrence is notified by executing curl command.\n"
 "#\n"
 "time_to_wait 0\n"
-"actiopn_to_take mail root@localhost\n"
+"action_to_take mail root@localhost\n"
 "minimal_interval 60\n"
 "\n";
 
