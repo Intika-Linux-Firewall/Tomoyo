@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/22
+ * Version: 1.8.0+   2010/12/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1344,6 +1344,77 @@ static void make_patternize_conf(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static const char notifyd_data[] =
+"# This file contains configuration used by ccs-notifyd command.\n"
+"\n"
+"# ccs-notifyd is a daemon that notifies the occurrence of policy violation\n"
+"# in enforcing mode.\n"
+"#\n"
+"# time_to_wait is grace time in second before rejecting the request that\n"
+"# caused policy violation in enforcing mode. For example, if you specify\n"
+"# 30, you will be given 30 seconds for starting ccs-queryd command and\n"
+"# responding to the policy violation event.\n"
+"# If you specify non 0 value, you need to register ccs-notifyd command to\n"
+"# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to\n"
+"# behave as if ccs-queryd command is running.\n"
+"# Also, you should avoid specifying too large value (e.g. 3600) because\n"
+"# the request will remain pending for that period if you can't respond.\n"
+"#\n"
+"# action_to_take is a command line you want to use for notification.\n"
+"# The command specified by this parameter must read the policy violation\n"
+"# notifycation from standard input. For example, mail, curl and xmessage\n"
+"# commands can read from standard input.\n"
+"# This parameter is passed to system(), so escape appropriately as needed.\n"
+"#\n"
+"# minimal_interval is grace time in second before re-notifying the next\n"
+"# occurrence of policy violation. You can specify 60 to limit notifycation\n"
+"# to once per a minute, 3600 to limit notifycation to once per an hour.\n"
+"# You can specify 0 to unlimit, but notifying of every policy violation\n"
+"# events (e.g. sending a mail) might annoy you because policy violation\n"
+"# can occur in clusters if once occurred.\n"
+"#\n"
+"# Examples:\n"
+"#\n"
+"# time_to_wait 180\n"
+"# action_to_take mail admin@example.com\n"
+"#\n"
+"#    Wait for 180 seconds before rejecting the request.\n"
+"#    The occurrence is notified by sending mail to admin@example.com\n"
+"#    (if SMTP service is available).\n"
+"#\n"
+"# time_to_wait 0\n"
+"# action_to_take curl --data-binary @- 'https://your.server/path_to_cgi'\n"
+"#\n"
+"#    Reject the request immediately.\n"
+"#    The occurrence is notified by executing curl command.\n"
+"#\n"
+"time_to_wait 0\n"
+"actiopn_to_take mail root@localhost\n"
+"minimal_interval 60\n"
+"\n";
+
+static void make_notifyd_conf(void)
+{
+	FILE *fp;
+	if (chdir(policy_dir) || chdir("tools") ||
+	    !access("notifyd.conf", R_OK))
+		return;
+	fp = fopen("notifyd.tmp", "w");
+	if (!fp) {
+		fprintf(stderr, "ERROR: Can't create configuration file.\n");
+		return;
+	}
+	fprintf(stderr, "Creating configuration file for ccs-notifyd ... ");
+	fprintf(fp, "%s", notifyd_data);
+	fclose(fp);
+	if (!chdir(policy_dir) && !chdir("tools") &&
+	    !chmod("notifyd.tmp", 0644) &&
+	    !rename("notifyd.tmp", "notifyd.conf"))
+		fprintf(stderr, "OK\n");
+	else
+		fprintf(stderr, "failed.\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -1397,5 +1468,6 @@ int main(int argc, char *argv[])
 	make_editpolicy_conf();
 	make_auditd_conf();
 	make_patternize_conf();
+	make_notifyd_conf();
 	return 0;
 }
