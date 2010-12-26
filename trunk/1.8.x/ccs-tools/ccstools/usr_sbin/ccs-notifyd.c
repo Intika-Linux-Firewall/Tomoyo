@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2010/12/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -20,50 +20,120 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
+#include "ccstools.h"
+#include <sys/wait.h>
 #include <syslog.h>
 #include <time.h>
 
+#define CCS_NOTIFYD_CONF "/etc/ccs/tools/notifyd.conf"
+
+static const char *proc_policy_query = "/proc/ccs/query";
+static int query_fd = EOF;
+static int time_to_wait = 0;
+static const char *action_to_take = NULL;
+static int minimal_interval = 0;
+
+static void ccs_notifyd_init_rules(const char *filename)
+{
+	FILE *fp = fopen(filename, "r");
+	unsigned int line_no = 0;
+	if (!fp) {
+		fprintf(stderr, "Can't open %s for reading.\n", filename);
+		exit(1);
+	}
+	ccs_get();
+	while (true) {
+		char *line = ccs_freadline(fp);
+		if (!line)
+			break;
+		line_no++;
+		ccs_normalize_line(line);
+		if (*line == '#' || !*line)
+			continue;
+		if (sscanf(line, "time_to_wait %u", &time_to_wait) == 1 ||
+		    sscanf(line, "minimal_interval %u", &minimal_interval)
+		    == 1)
+			continue;
+		if (!ccs_str_starts(line, "action_to_take "))
+			continue;
+		if (!*line)
+			goto invalid_rule;
+		if (action_to_take)
+			goto invalid_rule;
+		action_to_take = strdup(line);
+		if (!action_to_take)
+			ccs_out_of_memory();
+	}
+	ccs_put();
+	fclose(fp);
+	if (!action_to_take) {
+		fprintf(stderr, "No rules defined in %s .\n", filename);
+		exit(1);
+	}
+	return;
+invalid_rule:
+	fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
+		filename);
+	exit(1);
+}
+
+static void main_loop(void)
+{
+	static char buffer[32768];
+	while (1) {
+		pid_t pid;
+		while (1) {
+			fd_set rfds;
+			sleep(1);
+			/* Wait for query. */
+			FD_ZERO(&rfds);
+			FD_SET(query_fd, &rfds);
+			select(query_fd + 1, &rfds, NULL, NULL, NULL);
+			if (!FD_ISSET(query_fd, &rfds))
+				continue;
+			/* Read query. */
+			memset(buffer, 0, sizeof(buffer));
+			if (read(query_fd, buffer, sizeof(buffer) - 1) <= 0)
+				continue;
+			break;
+		}
+		pid = fork();
+		if (pid == -1) {
+			syslog(LOG_WARNING, "Can't execute %s\n",
+			       action_to_take);
+			break;
+		} else if (!pid) {
+			FILE *fp;
+			close(query_fd);
+			fp = popen(action_to_take, "w");
+			if (!fp) {
+				syslog(LOG_WARNING, "Can't execute %s\n",
+				       action_to_take);
+				closelog();
+				_exit(1);
+			}
+			fprintf(fp, "%s\n", buffer);
+			pclose(fp);
+			_exit(0);
+		}
+		while (time_to_wait-- > 0) {
+			int ret_ignored;
+			sleep(1);
+			ret_ignored = write(query_fd, "\n", 1);
+		}
+		close(query_fd);
+		sleep(minimal_interval);
+		while (waitpid(pid, NULL, __WALL) == EOF && errno == EINTR);
+		query_fd = open(proc_policy_query, O_RDWR);
+	}
+}
+
 int main(int argc, char *argv[])
 {
-	const char *proc_policy_query = "/proc/ccs/query";
-	int time_to_wait;
-	const char *action_to_take;
-	char buffer[32768];
-	FILE *fp;
-	int query_fd;
 	unsetenv("SHELLOPTS"); /* Make sure popen() executes commands. */
-	if (argc != 3) {
-		printf("Usage: %s time-to-wait action-to-take\n\n", argv[0]);
-		printf("This program is used for notifying the first "
-		       "occurrence of policy violation in enforcing mode.\n"
-		       "The time-to-wait parameter is grace time in second "
-		       "before rejecting the request that caused policy "
-		       "violation.\n"
-		       "The action-to-take parameter is action you want to use "
-		       "for notification. "
-		       "This parameter is passed to system(), so escape "
-		       "appropriately as needed.\n\n");
-		printf("Examples:\n\n");
-		printf("  %s 180 'mail admin@example.com'\n", argv[0]);
-		printf("        Wait for 180 seconds before rejecting the "
-		       "request. The occurrence is notified by sending mail to "
-		       "admin@example.com (if SMTP service is available)."
-		       "\n\n");
-		printf("  %s 0 'curl --data-binary @- "
-		       "https://your.server/path_to_cgi'\n", argv[0]);
-		printf("        Reject the request immediately. The occurrence "
-		       "is notified by executing curl command.\n\n");
-		return 0;
-	}
-	time_to_wait = atoi(argv[1]);
-	action_to_take = argv[2];
+	if (argc != 1)
+		goto usage;
+	ccs_notifyd_init_rules(CCS_NOTIFYD_CONF);
 	umask(0);
 	switch (fork()) {
 	case 0:
@@ -112,46 +182,12 @@ int main(int argc, char *argv[])
 	openlog("ccs-notifyd", 0,  LOG_USER);
 	syslog(LOG_WARNING, "Started. (%d, %s)\n", time_to_wait,
 	       action_to_take);
-	while (1) {
-		fd_set rfds;
-		sleep(1);
-		/* Wait for query. */
-		FD_ZERO(&rfds);
-		FD_SET(query_fd, &rfds);
-		select(query_fd + 1, &rfds, NULL, NULL, NULL);
-		if (!FD_ISSET(query_fd, &rfds))
-			continue;
-		/* Read query. */
-		memset(buffer, 0, sizeof(buffer));
-		if (read(query_fd, buffer, sizeof(buffer) - 1) <= 0)
-			continue;
-		break;
-	}
-	switch (fork()) {
-	case 0:
-		close(query_fd);
-		fp = popen(action_to_take, "w");
-		if (!fp) {
-			syslog(LOG_WARNING, "Can't execute %s\n",
-			       action_to_take);
-			closelog();
-			_exit(1);
-		}
-		fprintf(fp, "%s\n", buffer);
-		pclose(fp);
-		_exit(0);
-	case -1:
-		syslog(LOG_WARNING, "Can't execute %s\n", action_to_take);
-		break;
-	default:
-		while (time_to_wait-- > 0) {
-			int ret_ignored;
-			sleep(1);
-			ret_ignored = write(query_fd, "\n", 1);
-		}
-	}
-	close(query_fd);
+	main_loop();
 	syslog(LOG_WARNING, "Terminated.\n");
 	closelog();
 	return 0;
+usage:
+	fprintf(stderr, "%s\n  See %s for configuration.\n", argv[0],
+		CCS_NOTIFYD_CONF);
+	return 1;
 }

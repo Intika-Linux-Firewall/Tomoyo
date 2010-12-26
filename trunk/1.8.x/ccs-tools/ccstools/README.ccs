@@ -592,6 +592,12 @@ Version 1.8.0p2 2010/12/XX   Usability enhancement release.
     profile.conf under /etc/ccs/policy/YY-MM-DD.hh:mm:ss/ directory.
     Require one of '-e' '-d' '-p' '-m' '-s' for printing to stdout.
 
+  /usr/sbin/ccs-notifyd
+    Do not terminate upon first occurrence (this means we no longer need to
+    start periodically from cron daemon).
+    Moved from /usr/lib/ccs/ to /usr/sbin/ .
+    Use /etc/ccs/tools/notifyd.conf rather than command line arguments.
+
   /usr/lib/ccs/init_policy
     Create initial policy under /etc/ccs/policy/YY-MM-DD.hh:mm:ss/ directory.
     Create initial userland configuration under /etc/ccs/tools/ directory.
