@@ -80,7 +80,7 @@ file read /bin/cat
 </td></tr>
 </table>
 
-<p>The first log reports that execution of "/bin/cat" was requested by "/bin/sh", which was invoked by "/usr/sbin/httpd". The command line argument was "cat /etc/passwd". As its first line has "mode=enforcing", this request was rejected.</p>
+<p>The first log reports that execution of "/bin/cat" was requested by "/bin/sh", which was invoked by "/usr/sbin/httpd". The command line argument was "cat /etc/passwd". As its first line has "mode=enforcing" and "granted=no", this request was rejected.</p>
 
 <p>The second log reports that opening "/bin/cat" for reading requested by "/bin/sh" which was invoked by "/usr/sbin/httpd". This was rejected because "/bin/sh" tried to open the requested program for reading when that program was not executed.</p>
 
