@@ -22,7 +22,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  kernel/compat.c                 |    2 ++
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
- kernel/module.c                 |    7 +++++--
+ kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    4 ++++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
@@ -36,11 +36,11 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    9 +++++++++
- net/socket.c                    |   19 ++++++++++++++++++-
+ net/socket.c                    |   18 ++++++++++++++++++
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 38 files changed, 237 insertions(+), 5 deletions(-)
+ 38 files changed, 237 insertions(+), 2 deletions(-)
 
 --- linux-2.6.18-194.9AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.9AXS3/arch/alpha/kernel/ptrace.c
@@ -596,26 +596,24 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  #if 0
  #define DEBUGP printk
-@@ -784,7 +785,8 @@ sys_delete_module(const char __user *nam
+@@ -784,6 +785,8 @@ sys_delete_module(const char __user *nam
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
- 	name[MODULE_NAME_LEN-1] = '\0';
-@@ -2099,7 +2101,8 @@ sys_init_module(void __user *umod,
+@@ -2099,6 +2102,8 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
- 		return -EINTR;
 --- linux-2.6.18-194.9AXS3.orig/kernel/ptrace.c
 +++ linux-2.6.18-194.9AXS3/kernel/ptrace.c
 @@ -1108,6 +1108,8 @@ asmlinkage long sys_ptrace(long request,
@@ -1023,7 +1021,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1543,9 +1558,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1543,6 +1558,9 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1032,10 +1030,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
 +						    address, addrlen);
  	if (err)
  		goto out_put;
--
- 	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
- 				 sock->file->f_flags);
- out_put:
+ 
 --- linux-2.6.18-194.9AXS3.orig/net/unix/af_unix.c
 +++ linux-2.6.18-194.9AXS3/net/unix/af_unix.c
 @@ -808,6 +808,9 @@ static int unix_bind(struct socket *sock
