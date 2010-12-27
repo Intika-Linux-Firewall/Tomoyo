@@ -13,12 +13,12 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  arch/sparc64/kernel/ptrace.c    |    4 ++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
  fs/compat.c                     |    5 ++++-
- fs/exec.c                       |   10 +++++++++-
+ fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
  fs/namei.c                      |   30 ++++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
- fs/open.c                       |   26 +++++++++++++++++++++++++-
+ fs/open.c                       |   25 ++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  fs/stat.c                       |    2 ++
  include/linux/init_task.h       |    9 +++++++++
@@ -41,11 +41,11 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/tcp_ipv6.c             |    5 +++++
  net/ipv6/udp.c                  |    9 +++++++++
- net/socket.c                    |   20 +++++++++++++++++---
+ net/socket.c                    |   20 ++++++++++++++++++--
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 250 insertions(+), 9 deletions(-)
+ 43 files changed, 249 insertions(+), 8 deletions(-)
 
 --- linux-2.6.15-55.90.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-55.90/arch/alpha/kernel/ptrace.c
@@ -236,13 +236,12 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1204,7 +1211,8 @@ int do_execve(char * filename,
+@@ -1204,7 +1211,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
-+
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
@@ -419,15 +418,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		goto out1;
 --- linux-2.6.15-55.90.orig/fs/open.c
 +++ linux-2.6.15-55.90/fs/open.c
-@@ -28,6 +28,7 @@
- 
- #include <asm/unistd.h>
- 
-+
- int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
- {
- 	int retval = -ENODEV;
-@@ -287,6 +288,8 @@ static inline long do_sys_truncate(const
+@@ -287,6 +287,8 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -436,7 +427,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -339,7 +342,9 @@ static inline long do_sys_ftruncate(unsi
+@@ -339,7 +341,9 @@ static inline long do_sys_ftruncate(unsi
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
@@ -447,7 +438,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, file);
-@@ -627,6 +632,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -627,6 +631,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -456,7 +447,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -658,6 +665,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -658,6 +664,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -466,7 +457,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -691,6 +701,9 @@ SYSCALL_DEFINE2(chmod, const char __user
+@@ -691,6 +700,9 @@ SYSCALL_DEFINE2(chmod, const char __user
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -476,7 +467,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -748,6 +761,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -748,6 +760,8 @@ SYSCALL_DEFINE3(chown, const char __user
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -485,7 +476,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -762,6 +777,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -762,6 +776,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -494,7 +485,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -776,6 +793,9 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -776,6 +792,9 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  
  	file = fget(fd);
  	if (file) {
@@ -504,7 +495,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -867,7 +887,9 @@ struct file *filp_open(const char * file
+@@ -867,7 +886,9 @@ struct file *filp_open(const char * file
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -514,7 +505,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1159,6 +1181,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1159,6 +1180,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -1053,10 +1044,11 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (err)
  		return err;
  		
-@@ -1300,6 +1303,10 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1300,6 +1303,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  				sockfd_put(sock);
  				return err;
  			}
++
 +			err = ccs_socket_bind_permission(sock,
 +							 (struct sockaddr *)
 +							 address, addrlen);
@@ -1064,17 +1056,16 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1330,7 +1337,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
- 			sockfd_put(sock);
+@@ -1331,6 +1339,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  			return err;
  		}
--
+ 
 +		err = ccs_socket_listen_permission(sock);
 +		if (!err)
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1382,6 +1390,10 @@ SYSCALL_DEFINE3(accept, int, fd, struct 
+@@ -1382,6 +1392,10 @@ SYSCALL_DEFINE3(accept, int, fd, struct 
  	if (err < 0)
  		goto out_release;
  
@@ -1085,7 +1076,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1436,9 +1448,11 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1436,9 +1450,11 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);

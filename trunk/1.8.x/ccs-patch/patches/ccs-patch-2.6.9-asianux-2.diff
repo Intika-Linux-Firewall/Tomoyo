@@ -29,12 +29,12 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  arch/x86_64/ia32/ptrace32.c        |    3 +++
  arch/x86_64/kernel/ptrace.c        |    2 ++
  fs/compat.c                        |    8 ++++++--
- fs/exec.c                          |   15 +++++++++++++--
+ fs/exec.c                          |   14 ++++++++++++--
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    2 ++
  fs/namei.c                         |   30 ++++++++++++++++++++++++++++++
  fs/namespace.c                     |    8 ++++++++
- fs/open.c                          |   25 +++++++++++++++++++++++++
+ fs/open.c                          |   24 ++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  fs/stat.c                          |    2 ++
  include/linux/init_task.h          |    9 +++++++++
@@ -54,11 +54,11 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/ipv6/raw.c                     |    5 +++++
  net/ipv6/tcp_ipv6.c                |    3 +++
  net/ipv6/udp.c                     |    9 +++++++++
- net/socket.c                       |   20 +++++++++++++++++---
+ net/socket.c                       |   19 ++++++++++++++++++-
  net/unix/af_unix.c                 |    7 +++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 56 files changed, 288 insertions(+), 11 deletions(-)
+ 56 files changed, 287 insertions(+), 9 deletions(-)
 
 --- linux-2.6.9-89.16.AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.16.AXS2/arch/alpha/kernel/ptrace.c
@@ -490,13 +490,12 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	memset(bprm, 0, sizeof(*bprm));
  
  	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
-@@ -1251,7 +1261,8 @@ int do_execve(char * filename,
+@@ -1251,7 +1261,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
-+
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
@@ -673,15 +672,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		goto out1;
 --- linux-2.6.9-89.16.AXS2.orig/fs/open.c
 +++ linux-2.6.9-89.16.AXS2/fs/open.c
-@@ -29,6 +29,7 @@
- 
- #include <asm/unistd.h>
- 
-+
- int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
- {
- 	int retval = -ENODEV;
-@@ -274,6 +275,8 @@ static inline long do_sys_truncate(const
+@@ -274,6 +274,8 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -690,7 +681,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -330,6 +333,9 @@ static inline long do_sys_ftruncate(unsi
+@@ -330,6 +332,9 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -700,7 +691,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME);
-@@ -622,6 +628,8 @@ asmlinkage long sys_chroot(const char __
+@@ -622,6 +627,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -709,7 +700,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -655,6 +663,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -655,6 +662,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -719,7 +710,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -691,6 +702,9 @@ asmlinkage long sys_chmod(const char __u
+@@ -691,6 +701,9 @@ asmlinkage long sys_chmod(const char __u
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -729,7 +720,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -754,6 +768,8 @@ asmlinkage long sys_chown(const char __u
+@@ -754,6 +767,8 @@ asmlinkage long sys_chown(const char __u
  #endif /* CONFIG_FUMOUNT */
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -738,7 +729,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -773,6 +789,8 @@ asmlinkage long sys_lchown(const char __
+@@ -773,6 +788,8 @@ asmlinkage long sys_lchown(const char __
  #endif /* CONFIG_FUMOUNT */
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -747,7 +738,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -790,6 +808,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -790,6 +807,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -757,7 +748,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -827,7 +848,9 @@ struct file *filp_open(const char * file
+@@ -827,7 +847,9 @@ struct file *filp_open(const char * file
  	if (f == NULL)
  		return ERR_PTR(error);
  
@@ -767,7 +758,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (!error)
  		return __dentry_open(nd.dentry, nd.mnt, flags, f);
  
-@@ -1228,6 +1251,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1228,6 +1250,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1267,7 +1258,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
    	if (copied > len) {
 --- linux-2.6.9-89.16.AXS2.orig/net/socket.c
 +++ linux-2.6.9-89.16.AXS2/net/socket.c
-@@ -552,9 +552,10 @@ static inline int __sock_sendmsg(struct 
+@@ -552,6 +552,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1275,11 +1266,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
 +		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
--
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
  
-@@ -1118,6 +1119,8 @@ static int __sock_create(int family, int
+@@ -1118,6 +1120,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1288,10 +1276,11 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (err)
  		return err;
  		
-@@ -1314,6 +1317,10 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1314,6 +1318,11 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
++
 +			err = ccs_socket_bind_permission(sock,
 +							 (struct sockaddr *)
 +							 address, addrlen);
@@ -1299,17 +1288,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1344,7 +1351,8 @@ asmlinkage long sys_listen(int fd, int b
- 			sockfd_put(sock);
+@@ -1345,6 +1354,8 @@ asmlinkage long sys_listen(int fd, int b
  			return err;
  		}
--
+ 
 +		err = ccs_socket_listen_permission(sock);
 +		if (!err)
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1395,6 +1403,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1395,6 +1406,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1320,7 +1308,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1448,9 +1460,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1448,9 +1463,11 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);

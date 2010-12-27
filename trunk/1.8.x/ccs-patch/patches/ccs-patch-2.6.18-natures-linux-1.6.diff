@@ -13,7 +13,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  arch/sparc64/kernel/ptrace.c    |    4 ++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
  fs/compat.c                     |    5 ++++-
- fs/exec.c                       |   10 +++++++++-
+ fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
  fs/namei.c                      |   30 ++++++++++++++++++++++++++++++
@@ -45,7 +45,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 251 insertions(+), 7 deletions(-)
+ 43 files changed, 250 insertions(+), 7 deletions(-)
 
 --- linux-2.6.18.8p9.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/alpha/kernel/ptrace.c
@@ -236,13 +236,12 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1193,7 +1200,8 @@ int do_execve(char * filename,
+@@ -1193,7 +1200,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
-+
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
