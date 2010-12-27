@@ -8,7 +8,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  arch/mips/kernel/ptrace32.c     |    2 ++
  arch/sparc/kernel/ptrace.c      |    4 ++++
  fs/compat.c                     |    5 ++++-
- fs/exec.c                       |   10 +++++++++-
+ fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
  fs/namei.c                      |   30 ++++++++++++++++++++++++++++++
@@ -40,7 +40,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 38 files changed, 238 insertions(+), 5 deletions(-)
+ 38 files changed, 237 insertions(+), 5 deletions(-)
 
 --- linux-2.6.18-194.26.1.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.26.1.el5/arch/alpha/kernel/ptrace.c
@@ -166,13 +166,12 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, force_o_largefile() ?
-@@ -1403,7 +1410,8 @@ int do_execve(char * filename,
+@@ -1403,7 +1410,7 @@ int do_execve(char * filename,
  		goto out;
  	bprm->argv_len = env_p - bprm->p;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
-+
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);

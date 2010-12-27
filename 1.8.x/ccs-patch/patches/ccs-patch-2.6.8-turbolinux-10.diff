@@ -34,7 +34,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/ioctl.c                         |    8 --
  fs/namei.c                         |  107 ++++++++++---------------------------
  fs/namespace.c                     |   53 +++---------------
- fs/open.c                          |   67 ++++++++---------------
+ fs/open.c                          |   68 ++++++++---------------
  fs/proc/Makefile                   |    3 -
  fs/proc/proc_misc.c                |   10 ---
  fs/stat.c                          |    2 
@@ -55,11 +55,11 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/ipv6/raw.c                     |    5 +
  net/ipv6/tcp_ipv6.c                |    9 +--
  net/ipv6/udp.c                     |   18 +++---
- net/socket.c                       |   45 +++++----------
+ net/socket.c                       |   47 +++++-----------
  net/unix/af_unix.c                 |   21 ++-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 59 files changed, 268 insertions(+), 515 deletions(-)
+ 59 files changed, 270 insertions(+), 516 deletions(-)
 
 --- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
@@ -1084,7 +1084,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		goto out1;
 --- linux-2.6.8-20.orig/fs/open.c
 +++ linux-2.6.8-20/fs/open.c
-@@ -25,12 +25,6 @@
+@@ -25,13 +25,6 @@
  
  #include <asm/unistd.h>
  
@@ -1094,10 +1094,11 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
- 
+-
  int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
  {
-@@ -264,9 +258,8 @@ static inline long do_sys_truncate(const
+ 	int retval = -ENODEV;
+@@ -264,9 +257,8 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -1109,7 +1110,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -275,7 +268,6 @@ static inline long do_sys_truncate(const
+@@ -275,7 +267,6 @@ static inline long do_sys_truncate(const
  	put_write_access(inode);
  
  dput_and_out:
@@ -1117,7 +1118,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	path_release(&nd);
  out:
  	return error;
-@@ -321,14 +313,13 @@ static inline long do_sys_ftruncate(unsi
+@@ -321,14 +312,13 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -1135,7 +1136,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	fput(file);
  out:
  	return error;
-@@ -410,7 +401,6 @@ asmlinkage long sys_utime(char __user * 
+@@ -410,7 +400,6 @@ asmlinkage long sys_utime(char __user * 
  	error = notify_change(nd.dentry, &newattrs);
  	up(&inode->i_sem);
  dput_and_out:
@@ -1143,7 +1144,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	path_release(&nd);
  out:
  	return error;
-@@ -464,7 +454,6 @@ long do_utimes(char __user * filename, s
+@@ -464,7 +453,6 @@ long do_utimes(char __user * filename, s
  	error = notify_change(nd.dentry, &newattrs);
  	up(&inode->i_sem);
  dput_and_out:
@@ -1151,7 +1152,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	path_release(&nd);
  out:
  	return error;
-@@ -522,9 +511,6 @@ asmlinkage long sys_access(const char __
+@@ -522,9 +510,6 @@ asmlinkage long sys_access(const char __
  		if(!res && (mode & S_IWOTH) && IS_RDONLY(nd.dentry->d_inode)
  		   && !special_file(nd.dentry->d_inode->i_mode))
  			res = -EROFS;
@@ -1161,7 +1162,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		path_release(&nd);
  	}
  
-@@ -590,9 +576,6 @@ asmlinkage long sys_chroot(const char __
+@@ -590,9 +575,6 @@ asmlinkage long sys_chroot(const char __
  {
  	struct nameidata nd;
  	int error;
@@ -1171,7 +1172,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	error = __user_walk(filename, LOOKUP_FOLLOW | LOOKUP_DIRECTORY | LOOKUP_NOALT, &nd);
  	if (error)
-@@ -605,19 +588,8 @@ asmlinkage long sys_chroot(const char __
+@@ -605,19 +587,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -1193,7 +1194,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -649,6 +621,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -649,6 +620,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -1203,7 +1204,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -658,7 +633,6 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -658,7 +632,6 @@ asmlinkage long sys_fchmod(unsigned int 
  	up(&inode->i_sem);
  
  out_putf:
@@ -1211,7 +1212,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	fput(file);
  out:
  	return err;
-@@ -683,6 +657,9 @@ asmlinkage long sys_chmod(const char __u
+@@ -683,6 +656,9 @@ asmlinkage long sys_chmod(const char __u
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -1221,7 +1222,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -693,7 +670,6 @@ asmlinkage long sys_chmod(const char __u
+@@ -693,7 +669,6 @@ asmlinkage long sys_chmod(const char __u
  	up(&inode->i_sem);
  
  dput_and_out:
@@ -1229,7 +1230,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	path_release(&nd);
  out:
  	return error;
-@@ -741,8 +717,9 @@ asmlinkage long sys_chown(const char __u
+@@ -741,8 +716,9 @@ asmlinkage long sys_chown(const char __u
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -1240,7 +1241,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		path_release(&nd);
  	}
  	return error;
-@@ -755,8 +732,9 @@ asmlinkage long sys_lchown(const char __
+@@ -755,8 +731,9 @@ asmlinkage long sys_lchown(const char __
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -1251,7 +1252,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		path_release(&nd);
  	}
  	return error;
-@@ -770,8 +748,10 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -770,8 +747,10 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -1263,7 +1264,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		fput(file);
  	}
  	return error;
-@@ -802,7 +782,9 @@ struct file *filp_open(const char * file
+@@ -802,7 +781,9 @@ struct file *filp_open(const char * file
  	if (namei_flags & O_TRUNC)
  		namei_flags |= 2;
  
@@ -1273,7 +1274,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (!error)
  		return dentry_open(nd.dentry, nd.mnt, flags);
  
-@@ -1090,9 +1072,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1090,9 +1071,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -2084,13 +2085,14 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (err)
  		return err;
  		
-@@ -1329,9 +1316,10 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1329,9 +1316,11 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
 -			/***** TOMOYO Linux start. *****/
 -			if ((err = CheckSocketBindPermission(sock, (struct sockaddr *) address, addrlen)) == 0)
 -			/***** TOMOYO Linux end. *****/
++
 +			err = ccs_socket_bind_permission(sock,
 +							 (struct sockaddr *)
 +							 address, addrlen);
@@ -2098,19 +2100,20 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1362,9 +1350,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1362,9 +1351,9 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
 -		/***** TOMOYO Linux start. *****/
 -		if ((err = CheckSocketListenPermission(sock)) == 0)
 -		/***** TOMOYO Linux end. *****/
++
 +		err = ccs_socket_listen_permission(sock);
 +		if (!err)
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1415,12 +1402,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1415,12 +1404,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -2125,7 +2128,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1474,11 +1459,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1474,11 +1461,11 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);

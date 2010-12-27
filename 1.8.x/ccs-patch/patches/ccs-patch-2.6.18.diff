@@ -13,7 +13,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/sparc64/kernel/ptrace.c    |    4 ++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
  fs/compat.c                     |    5 ++++-
- fs/exec.c                       |   10 +++++++++-
+ fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
  fs/namei.c                      |   30 ++++++++++++++++++++++++++++++
@@ -27,7 +27,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/compat.c                 |    2 ++
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
- kernel/module.c                 |    7 +++++--
+ kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    2 ++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
@@ -41,11 +41,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/inet6_hashtables.c     |    5 ++++-
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    9 +++++++++
- net/socket.c                    |   20 ++++++++++++++++++--
+ net/socket.c                    |   18 ++++++++++++++++++
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 250 insertions(+), 7 deletions(-)
+ 43 files changed, 249 insertions(+), 3 deletions(-)
 
 --- linux-2.6.18.8.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18.8/arch/alpha/kernel/ptrace.c
@@ -236,13 +236,12 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1188,7 +1195,8 @@ int do_execve(char * filename,
+@@ -1188,7 +1195,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
-+
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
@@ -667,26 +666,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #if 0
  #define DEBUGP printk
-@@ -652,7 +653,8 @@ sys_delete_module(const char __user *nam
+@@ -652,6 +653,8 @@ sys_delete_module(const char __user *nam
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
- 	name[MODULE_NAME_LEN-1] = '\0';
-@@ -1890,7 +1892,8 @@ sys_init_module(void __user *umod,
+@@ -1890,6 +1893,8 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
- 		return -EINTR;
 --- linux-2.6.18.8.orig/kernel/ptrace.c
 +++ linux-2.6.18.8/kernel/ptrace.c
 @@ -509,6 +509,8 @@ asmlinkage long sys_ptrace(long request,
@@ -1030,7 +1027,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
    	if (copied > len) {
 --- linux-2.6.18.8.orig/net/socket.c
 +++ linux-2.6.18.8/net/socket.c
-@@ -590,9 +590,10 @@ static inline int __sock_sendmsg(struct 
+@@ -590,6 +590,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1038,11 +1035,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
--
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
  
-@@ -1149,6 +1150,8 @@ static int __sock_create(int family, int
+@@ -1149,6 +1151,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1051,7 +1045,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
  		
-@@ -1343,6 +1346,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1343,6 +1347,11 @@ asmlinkage long sys_bind(int fd, struct 
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
  			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
  			if (!err)
@@ -1063,7 +1057,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				err = sock->ops->bind(sock,
  					(struct sockaddr *)address, addrlen);
  		}
-@@ -1371,6 +1379,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1371,6 +1380,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1072,7 +1066,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1434,6 +1444,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1434,6 +1445,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1083,7 +1077,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1488,9 +1502,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1488,6 +1503,9 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1092,10 +1086,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +						    address, addrlen);
  	if (err)
  		goto out_put;
--
- 	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
- 				 sock->file->f_flags);
- out_put:
+ 
 --- linux-2.6.18.8.orig/net/unix/af_unix.c
 +++ linux-2.6.18.8/net/unix/af_unix.c
 @@ -807,6 +807,9 @@ static int unix_bind(struct socket *sock

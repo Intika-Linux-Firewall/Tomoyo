@@ -13,12 +13,12 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  arch/sparc64/kernel/ptrace.c    |    4 ++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
  fs/compat.c                     |    5 ++++-
- fs/exec.c                       |   10 +++++++++-
+ fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
  fs/namei.c                      |   30 ++++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
- fs/open.c                       |   26 +++++++++++++++++++++++++-
+ fs/open.c                       |   25 ++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  fs/stat.c                       |    2 ++
  include/linux/init_task.h       |    9 +++++++++
@@ -41,11 +41,11 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/tcp_ipv6.c             |    5 +++++
  net/ipv6/udp.c                  |    9 +++++++++
- net/socket.c                    |   20 +++++++++++++++++---
+ net/socket.c                    |   19 ++++++++++++++++++-
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 249 insertions(+), 8 deletions(-)
+ 43 files changed, 248 insertions(+), 6 deletions(-)
 
 --- linux-2.6.15-cat.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-cat/arch/alpha/kernel/ptrace.c
@@ -236,13 +236,12 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1192,7 +1199,8 @@ int do_execve(char * filename,
+@@ -1192,7 +1199,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
-+
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
@@ -419,15 +418,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  		goto out1;
 --- linux-2.6.15-cat.orig/fs/open.c
 +++ linux-2.6.15-cat/fs/open.c
-@@ -28,6 +28,7 @@
- 
- #include <asm/unistd.h>
- 
-+
- int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
- {
- 	int retval = -ENODEV;
-@@ -263,6 +264,8 @@ static inline long do_sys_truncate(const
+@@ -263,6 +263,8 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -436,7 +427,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -315,7 +318,9 @@ static inline long do_sys_ftruncate(unsi
+@@ -315,7 +317,9 @@ static inline long do_sys_ftruncate(unsi
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
@@ -447,7 +438,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, file);
-@@ -588,6 +593,8 @@ asmlinkage long sys_chroot(const char __
+@@ -588,6 +592,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -456,7 +447,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -619,6 +626,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -619,6 +625,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -466,7 +457,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -652,6 +662,9 @@ asmlinkage long sys_chmod(const char __u
+@@ -652,6 +661,9 @@ asmlinkage long sys_chmod(const char __u
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -476,7 +467,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -709,6 +722,8 @@ asmlinkage long sys_chown(const char __u
+@@ -709,6 +721,8 @@ asmlinkage long sys_chown(const char __u
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -485,7 +476,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -722,6 +737,8 @@ asmlinkage long sys_lchown(const char __
+@@ -722,6 +736,8 @@ asmlinkage long sys_lchown(const char __
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -494,7 +485,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -736,6 +753,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -736,6 +752,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -504,7 +495,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -827,7 +847,9 @@ struct file *filp_open(const char * file
+@@ -827,7 +846,9 @@ struct file *filp_open(const char * file
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -514,7 +505,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1119,6 +1141,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1119,6 +1140,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1030,7 +1021,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
    	if (copied > len) {
 --- linux-2.6.15-cat.orig/net/socket.c
 +++ linux-2.6.15-cat/net/socket.c
-@@ -544,9 +544,10 @@ static inline int __sock_sendmsg(struct 
+@@ -544,6 +544,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1038,11 +1029,8 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
 +		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
--
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
  
-@@ -1100,6 +1101,8 @@ static int __sock_create(int family, int
+@@ -1100,6 +1102,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1051,10 +1039,11 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	if (err)
  		return err;
  		
-@@ -1296,6 +1299,10 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1296,6 +1300,11 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
++
 +			err = ccs_socket_bind_permission(sock,
 +							 (struct sockaddr *)
 +							 address, addrlen);
@@ -1062,17 +1051,16 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1326,7 +1333,8 @@ asmlinkage long sys_listen(int fd, int b
- 			sockfd_put(sock);
+@@ -1327,6 +1336,8 @@ asmlinkage long sys_listen(int fd, int b
  			return err;
  		}
--
+ 
 +		err = ccs_socket_listen_permission(sock);
 +		if (!err)
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1377,6 +1385,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1377,6 +1388,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1083,7 +1071,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1430,9 +1442,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1430,9 +1445,11 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);

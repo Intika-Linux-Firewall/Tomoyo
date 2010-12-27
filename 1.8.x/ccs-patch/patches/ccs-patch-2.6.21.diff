@@ -16,7 +16,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   29 ++++++++++++++++++++++++++++-
+ fs/namei.c                      |   28 ++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -46,7 +46,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 44 files changed, 236 insertions(+), 3 deletions(-)
+ 44 files changed, 236 insertions(+), 2 deletions(-)
 
 --- linux-2.6.21.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.21.7/arch/alpha/kernel/ptrace.c
@@ -367,11 +367,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2547,7 +2572,9 @@ static int do_rename(int olddfd, const c
- 	error = -ENOTEMPTY;
+@@ -2548,6 +2573,9 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
--
+ 
 +	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
 +				      new_dir->d_inode, new_dentry, newnd.mnt);
 +	if (!error)

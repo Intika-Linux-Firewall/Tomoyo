@@ -13,10 +13,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/sparc64/kernel/ptrace.c    |    4 ++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
  fs/compat.c                     |    5 ++++-
- fs/exec.c                       |   10 +++++++++-
+ fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   29 ++++++++++++++++++++++++++++-
+ fs/namei.c                      |   28 ++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -27,7 +27,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/compat.c                 |    2 ++
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
- kernel/module.c                 |    7 +++++--
+ kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    2 ++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
@@ -42,11 +42,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    5 +++++
- net/socket.c                    |   19 ++++++++++++++++++-
+ net/socket.c                    |   18 ++++++++++++++++++
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 44 files changed, 244 insertions(+), 6 deletions(-)
+ 44 files changed, 243 insertions(+), 2 deletions(-)
 
 --- linux-2.6.20.21.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.20.21/arch/alpha/kernel/ptrace.c
@@ -237,13 +237,12 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1190,7 +1197,8 @@ int do_execve(char * filename,
+@@ -1190,7 +1197,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
-+
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
@@ -368,11 +367,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2547,7 +2572,9 @@ static int do_rename(int olddfd, const c
- 	error = -ENOTEMPTY;
+@@ -2548,6 +2573,9 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
--
+ 
 +	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
 +				      new_dir->d_inode, new_dentry, newnd.mnt);
 +	if (!error)
@@ -666,26 +664,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #if 0
  #define DEBUGP printk
-@@ -658,7 +659,8 @@ sys_delete_module(const char __user *nam
+@@ -658,6 +659,8 @@ sys_delete_module(const char __user *nam
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
- 	name[MODULE_NAME_LEN-1] = '\0';
-@@ -1964,7 +1966,8 @@ sys_init_module(void __user *umod,
+@@ -1964,6 +1967,8 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
- 		return -EINTR;
 --- linux-2.6.20.21.orig/kernel/ptrace.c
 +++ linux-2.6.20.21/kernel/ptrace.c
 @@ -456,6 +456,8 @@ asmlinkage long sys_ptrace(long request,
@@ -1020,7 +1016,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
    	if (copied > len) {
 --- linux-2.6.20.21.orig/net/socket.c
 +++ linux-2.6.20.21/net/socket.c
-@@ -560,9 +560,10 @@ static inline int __sock_sendmsg(struct 
+@@ -560,6 +560,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1028,11 +1024,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
--
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
  
-@@ -1084,6 +1085,8 @@ static int __sock_create(int family, int
+@@ -1084,6 +1086,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1041,7 +1034,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
  
-@@ -1286,6 +1289,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1286,6 +1290,11 @@ asmlinkage long sys_bind(int fd, struct 
  						   (struct sockaddr *)address,
  						   addrlen);
  			if (!err)
@@ -1053,7 +1046,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      address, addrlen);
-@@ -1315,6 +1323,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1315,6 +1324,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1062,7 +1055,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1378,6 +1388,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1378,6 +1389,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1073,7 +1066,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1440,6 +1454,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1440,6 +1455,9 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
