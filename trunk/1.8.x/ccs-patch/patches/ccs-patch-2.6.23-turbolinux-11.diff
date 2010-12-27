@@ -1,43 +1,44 @@
 This is TOMOYO Linux patch for Turbolinux 11 Server.
 ---
- arch/alpha/kernel/ptrace.c      |   11 +----
+ arch/alpha/kernel/ptrace.c      |   10 ----
  arch/ia64/ia32/sys_ia32.c       |   11 +----
- arch/ia64/kernel/ptrace.c       |   11 +----
+ arch/ia64/kernel/ptrace.c       |   10 ----
  arch/m32r/kernel/ptrace.c       |   11 +----
- arch/mips/kernel/ptrace32.c     |   11 +----
- arch/powerpc/kernel/ptrace32.c  |   11 +----
- arch/s390/kernel/ptrace.c       |   11 +----
+ arch/mips/kernel/ptrace32.c     |   10 ----
+ arch/powerpc/kernel/ptrace32.c  |   10 ----
+ arch/s390/kernel/ptrace.c       |   10 ----
  arch/sh64/kernel/ptrace.c       |    8 ---
- arch/sparc/kernel/ptrace.c      |   10 ----
- arch/sparc64/kernel/ptrace.c    |   10 ----
+ arch/sparc/kernel/ptrace.c      |    9 ----
+ arch/sparc64/kernel/ptrace.c    |    9 ----
  arch/x86_64/ia32/ptrace32.c     |   11 +----
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 -----
- fs/compat.c                     |    6 --
+ fs/compat.c                     |    5 --
  fs/compat_ioctl.c               |    9 +---
  fs/exec.c                       |   19 +++-----
- fs/fcntl.c                      |   12 ++---
- fs/ioctl.c                      |    9 +---
- fs/namei.c                      |   86 ++++++++++++----------------------------
- fs/namespace.c                  |   47 ++++-----------------
- fs/open.c                       |   48 ++++++++++++----------
+ fs/fcntl.c                      |   11 +----
+ fs/ioctl.c                      |    8 ---
+ fs/namei.c                      |   85 ++++++++++++----------------------------
+ fs/namespace.c                  |   46 +++------------------
+ fs/open.c                       |   47 ++++++++++++----------
  fs/proc/Makefile                |    3 -
  fs/proc/proc_misc.c             |   10 ----
- fs/stat.c                       |    3 +
+ fs/stat.c                       |    2 
  include/linux/init_task.h       |   13 ++++--
- include/linux/sched.h           |   15 ++----
- kernel/compat.c                 |    9 +---
- kernel/fork.c                   |    6 ++
+ include/linux/sched.h           |   15 ++-----
+ include/linux/security.h        |    1 
+ kernel/compat.c                 |    8 ---
+ kernel/fork.c                   |    5 ++
  kernel/kexec.c                  |    9 +---
  kernel/kmod.c                   |    5 --
  kernel/module.c                 |   14 ++----
- kernel/ptrace.c                 |   11 +----
- kernel/sched.c                  |    9 +---
- kernel/signal.c                 |   24 ++++-------
- kernel/sys.c                    |   26 +++++-------
- kernel/sysctl.c                 |   84 +--------------------------------------
- kernel/time.c                   |   14 ++----
+ kernel/ptrace.c                 |   10 ----
+ kernel/sched.c                  |    8 ---
+ kernel/signal.c                 |   23 +++-------
+ kernel/sys.c                    |   25 ++++-------
+ kernel/sysctl.c                 |   83 +--------------------------------------
+ kernel/time.c                   |   13 +-----
  kernel/time/ntp.c               |    9 +---
  net/core/datagram.c             |    9 ----
  net/ipv4/inet_connection_sock.c |    9 +---
@@ -48,25 +49,24 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  net/ipv6/raw.c                  |    5 ++
  net/ipv6/udp.c                  |    5 ++
  net/socket.c                    |   42 +++++++------------
- net/unix/af_unix.c              |   18 +++-----
+ net/unix/af_unix.c              |   17 +++-----
  security/Kconfig                |    2 
  security/Makefile               |    3 +
- 51 files changed, 249 insertions(+), 516 deletions(-)
+ 52 files changed, 225 insertions(+), 518 deletions(-)
 
 --- linux-2.6.23-12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/alpha/kernel/ptrace.c
-@@ -20,9 +20,7 @@
+@@ -20,9 +20,6 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/fpu.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  #include "proto.h"
  
-@@ -271,11 +269,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -271,11 +268,8 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
@@ -109,18 +109,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.23-12.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/ia64/kernel/ptrace.c
-@@ -28,9 +28,7 @@
+@@ -28,9 +28,6 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
  #endif
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  #include "entry.h"
  
-@@ -1425,11 +1423,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1425,11 +1422,8 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
@@ -163,18 +162,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.23-12.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.23-12/arch/mips/kernel/ptrace32.c
-@@ -35,9 +35,7 @@
+@@ -35,9 +35,6 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
  #include <asm/bootinfo.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  int ptrace_getregs (struct task_struct *child, __s64 __user *data);
  int ptrace_setregs (struct task_struct *child, __s64 __user *data);
-@@ -53,11 +51,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -53,11 +50,8 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
@@ -190,18 +188,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.23-12.orig/arch/powerpc/kernel/ptrace32.c
 +++ linux-2.6.23-12/arch/powerpc/kernel/ptrace32.c
-@@ -32,9 +32,7 @@
+@@ -32,9 +32,6 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -90,11 +88,8 @@ long compat_sys_ptrace(int request, int 
+@@ -90,11 +87,8 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
@@ -217,18 +214,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.23-12.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/s390/kernel/ptrace.c
-@@ -41,9 +41,7 @@
+@@ -41,9 +41,6 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  #ifdef CONFIG_COMPAT
  #include "compat_ptrace.h"
-@@ -709,11 +707,8 @@ sys_ptrace(long request, long pid, long 
+@@ -709,11 +706,8 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  
@@ -268,18 +264,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (first_call) {
 --- linux-2.6.23-12.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/sparc/kernel/ptrace.c
-@@ -23,9 +23,7 @@
+@@ -23,9 +23,6 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/uaccess.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -270,14 +268,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -270,14 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
@@ -297,18 +292,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  #ifdef DEBUG_PTRACE
 --- linux-2.6.23-12.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/sparc64/kernel/ptrace.c
-@@ -32,9 +32,7 @@
+@@ -32,9 +32,6 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
  #include <asm/cpudata.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -179,14 +177,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -179,14 +176,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
@@ -404,18 +398,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 --- linux-2.6.23-12.orig/fs/compat.c
 +++ linux-2.6.23-12/fs/compat.c
-@@ -55,9 +55,7 @@
+@@ -55,9 +55,6 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
  #include "internal.h"
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  int compat_log = 1;
  
-@@ -1409,7 +1407,7 @@ int compat_do_execve(char * filename,
+@@ -1409,7 +1406,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -458,18 +451,18 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  			if (error != -ENOIOCTLCMD)
 --- linux-2.6.23-12.orig/fs/exec.c
 +++ linux-2.6.23-12/fs/exec.c
-@@ -59,9 +59,7 @@
+@@ -59,10 +59,6 @@
  #include <linux/kmod.h>
  #endif
  
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
- 
+-
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
-@@ -149,10 +147,9 @@ asmlinkage long sys_uselib(const char __
+ int suid_dumpable = 0;
+@@ -149,10 +145,9 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
@@ -483,7 +476,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
-@@ -692,9 +689,9 @@ struct file *open_exec(const char *name)
+@@ -692,9 +687,9 @@ struct file *open_exec(const char *name)
  		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
  		    S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
@@ -496,7 +489,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1407,7 +1404,7 @@ int do_execve(char * filename,
+@@ -1407,7 +1402,7 @@ int do_execve(char * filename,
  		goto out;
  	bprm->argv_len = env_p - bprm->p;
  
@@ -507,18 +500,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		free_arg_pages(bprm);
 --- linux-2.6.23-12.orig/fs/fcntl.c
 +++ linux-2.6.23-12/fs/fcntl.c
-@@ -22,9 +22,7 @@
+@@ -22,9 +22,6 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
  #include <asm/uaccess.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  void fastcall set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -216,10 +214,6 @@ static int setfl(int fd, struct file * f
+@@ -216,10 +213,6 @@ static int setfl(int fd, struct file * f
  	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
@@ -529,7 +521,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
-@@ -399,6 +393,8 @@ asmlinkage long sys_fcntl(unsigned int f
+@@ -399,6 +392,8 @@ asmlinkage long sys_fcntl(unsigned int f
  		goto out;
  
  	err = security_file_fcntl(filp, cmd, arg);
@@ -538,7 +530,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (err) {
  		fput(filp);
  		return err;
-@@ -423,6 +419,8 @@ asmlinkage long sys_fcntl64(unsigned int
+@@ -423,6 +418,8 @@ asmlinkage long sys_fcntl64(unsigned int
  		goto out;
  
  	err = security_file_fcntl(filp, cmd, arg);
@@ -549,18 +541,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		return err;
 --- linux-2.6.23-12.orig/fs/ioctl.c
 +++ linux-2.6.23-12/fs/ioctl.c
-@@ -15,9 +15,7 @@
+@@ -15,9 +15,6 @@
  
  #include <asm/uaccess.h>
  #include <asm/ioctls.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  static long do_ioctl(struct file *filp, unsigned int cmd,
  		unsigned long arg)
-@@ -26,9 +24,6 @@ static long do_ioctl(struct file *filp, 
+@@ -26,9 +23,6 @@ static long do_ioctl(struct file *filp, 
  
  	if (!filp->f_op)
  		goto out;
@@ -570,7 +561,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -171,6 +166,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -171,6 +165,8 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -581,18 +572,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
 --- linux-2.6.23-12.orig/fs/namei.c
 +++ linux-2.6.23-12/fs/namei.c
-@@ -36,9 +36,7 @@
+@@ -36,9 +36,6 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
-@@ -1562,9 +1560,6 @@ int vfs_create(struct inode *dir, struct
+@@ -1562,9 +1559,6 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -602,7 +592,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error)
-@@ -1620,10 +1615,10 @@ int may_open(struct nameidata *nd, int a
+@@ -1620,10 +1614,10 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -617,7 +607,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	/*
  	 * Ensure there are no outstanding leases on the file.
-@@ -1664,6 +1659,9 @@ static int open_namei_create(struct name
+@@ -1664,6 +1658,9 @@ static int open_namei_create(struct name
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -627,7 +617,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->dentry);
-@@ -1674,9 +1672,6 @@ static int open_namei_create(struct name
+@@ -1674,9 +1671,6 @@ static int open_namei_create(struct name
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -637,7 +627,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  /*
   *	open_namei()
   *
-@@ -1937,12 +1932,6 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1937,12 +1931,6 @@ asmlinkage long sys_mknodat(int dfd, con
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -650,7 +640,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1956,21 +1945,18 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1956,21 +1944,18 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -675,7 +665,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -2038,9 +2024,8 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2038,9 +2023,8 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
@@ -687,7 +677,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  	dput(dentry);
  out_unlock:
-@@ -2148,9 +2133,8 @@ static long do_rmdir(int dfd, const char
+@@ -2148,9 +2132,8 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
@@ -699,7 +689,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
  	dput(dentry);
  exit2:
-@@ -2210,9 +2194,6 @@ static long do_unlinkat(int dfd, const c
+@@ -2210,9 +2193,6 @@ static long do_unlinkat(int dfd, const c
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -709,7 +699,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -2234,9 +2215,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2234,9 +2214,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -722,7 +712,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2301,9 +2282,6 @@ asmlinkage long sys_symlinkat(const char
+@@ -2301,9 +2281,6 @@ asmlinkage long sys_symlinkat(const char
  	char * to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -732,7 +722,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -2321,9 +2299,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2321,9 +2298,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
@@ -745,7 +735,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  	dput(dentry);
  out_unlock:
-@@ -2396,9 +2374,6 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2396,9 +2373,6 @@ asmlinkage long sys_linkat(int olddfd, c
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -755,7 +745,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
-@@ -2422,9 +2397,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2422,9 +2396,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
@@ -768,7 +758,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2650,13 +2625,9 @@ static int do_rename(int olddfd, const c
+@@ -2650,13 +2624,9 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -785,7 +775,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2679,9 +2650,6 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2679,9 +2649,6 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;
@@ -797,7 +787,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if(IS_ERR(from))
 --- linux-2.6.23-12.orig/fs/namespace.c
 +++ linux-2.6.23-12/fs/namespace.c
-@@ -29,12 +29,7 @@
+@@ -29,12 +29,6 @@
  #include <asm/unistd.h>
  #include "pnode.h"
  #include "internal.h"
@@ -807,11 +797,10 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /* spinlock for vfsmount related operations, inplace of dcache_lock */
  __cacheline_aligned_in_smp DEFINE_SPINLOCK(vfsmount_lock);
-@@ -547,13 +542,11 @@ static int do_umount(struct vfsmount *mn
+@@ -547,13 +541,11 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
  	retval = security_sb_umount(mnt, flags);
@@ -827,7 +816,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -642,9 +635,6 @@ asmlinkage long sys_umount(char __user *
+@@ -642,9 +634,6 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -837,7 +826,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -932,10 +922,6 @@ static int do_loopback(struct nameidata 
+@@ -932,10 +921,6 @@ static int do_loopback(struct nameidata 
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -848,7 +837,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1021,10 +1007,6 @@ static int do_move_mount(struct nameidat
+@@ -1021,10 +1006,6 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
@@ -859,7 +848,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1126,10 +1108,6 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1126,10 +1107,6 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -870,7 +859,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1403,6 +1381,7 @@ int copy_mount_options(const void __user
+@@ -1403,6 +1380,7 @@ int copy_mount_options(const void __user
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -878,7 +867,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1421,13 +1400,6 @@ long do_mount(char *dev_name, char *dir_
+@@ -1421,13 +1399,6 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -892,7 +881,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1451,6 +1423,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1451,6 +1422,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -902,7 +891,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (retval)
  		goto dput_out;
  
-@@ -1704,9 +1679,6 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1704,9 +1678,6 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -912,7 +901,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	lock_kernel();
  
-@@ -1723,9 +1695,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1723,9 +1694,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -926,7 +915,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		goto out1;
 --- linux-2.6.23-12.orig/fs/open.c
 +++ linux-2.6.23-12/fs/open.c
-@@ -27,12 +27,7 @@
+@@ -27,12 +27,6 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
  #include <linux/falloc.h>
@@ -936,11 +925,10 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -274,9 +269,9 @@ static long do_sys_truncate(const char _
+@@ -274,9 +268,9 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
@@ -953,7 +941,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -331,9 +326,9 @@ static long do_sys_ftruncate(unsigned in
+@@ -331,9 +325,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -966,7 +954,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -556,12 +551,8 @@ asmlinkage long sys_chroot(const char __
+@@ -556,12 +550,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -981,7 +969,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -595,6 +586,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -595,6 +585,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -991,7 +979,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -629,6 +623,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -629,6 +622,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -1001,7 +989,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -692,6 +689,8 @@ asmlinkage long sys_chown(const char __u
+@@ -692,6 +688,8 @@ asmlinkage long sys_chown(const char __u
  	error = user_path_walk(filename, &nd);
  	if (error)
  		goto out;
@@ -1010,7 +998,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = chown_common(nd.dentry, user, group);
  	path_release(&nd);
  out:
-@@ -712,6 +711,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -712,6 +710,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (error)
  		goto out;
@@ -1019,7 +1007,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = chown_common(nd.dentry, user, group);
  	path_release(&nd);
  out:
-@@ -726,6 +727,8 @@ asmlinkage long sys_lchown(const char __
+@@ -726,6 +726,8 @@ asmlinkage long sys_lchown(const char __
  	error = user_path_walk_link(filename, &nd);
  	if (error)
  		goto out;
@@ -1028,7 +1016,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = chown_common(nd.dentry, user, group);
  	path_release(&nd);
  out:
-@@ -745,6 +748,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -745,6 +747,8 @@ asmlinkage long sys_fchown(unsigned int 
  
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry->d_inode);
@@ -1037,7 +1025,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = chown_common(dentry, user, group);
  	fput(file);
  out:
-@@ -837,7 +842,9 @@ static struct file *do_filp_open(int dfd
+@@ -837,7 +841,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -1047,7 +1035,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1174,9 +1181,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1174,9 +1180,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1087,15 +1075,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  }
 --- linux-2.6.23-12.orig/fs/stat.c
 +++ linux-2.6.23-12/fs/stat.c
-@@ -17,6 +17,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- void generic_fillattr(struct inode *inode, struct kstat *stat)
- {
-@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+@@ -43,6 +43,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
  	retval = security_inode_getattr(mnt, dentry);
@@ -1173,20 +1153,29 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  };
  
  /*
+--- linux-2.6.23-12.orig/include/linux/security.h
++++ linux-2.6.23-12/include/linux/security.h
+@@ -33,6 +33,7 @@
+ #include <linux/key.h>
+ #include <linux/xfrm.h>
+ #include <net/flow.h>
++#include <linux/ccsecurity.h>
+ 
+ struct ctl_table;
+ 
 --- linux-2.6.23-12.orig/kernel/compat.c
 +++ linux-2.6.23-12/kernel/compat.c
-@@ -25,9 +25,7 @@
+@@ -25,9 +25,6 @@
  #include <linux/posix-timers.h>
  
  #include <asm/uaccess.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
  {
-@@ -872,9 +870,8 @@ asmlinkage long compat_sys_stime(compat_
+@@ -872,9 +869,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1200,15 +1189,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	return 0;
 --- linux-2.6.23-12.orig/kernel/fork.c
 +++ linux-2.6.23-12/kernel/fork.c
-@@ -57,6 +57,7 @@
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * Protected counters by write_lock_irq(&tasklist_lock)
-@@ -124,6 +125,7 @@ void __put_task_struct(struct task_struc
+@@ -124,6 +124,7 @@ void __put_task_struct(struct task_struc
  	put_group_info(tsk->group_info);
  	delayacct_tsk_free(tsk);
  
@@ -1216,7 +1197,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1119,6 +1121,9 @@ static struct task_struct *copy_process(
+@@ -1119,6 +1120,9 @@ static struct task_struct *copy_process(
  		goto bad_fork_cleanup_policy;
  	if ((retval = audit_alloc(p)))
  		goto bad_fork_cleanup_security;
@@ -1226,7 +1207,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1297,6 +1302,7 @@ bad_fork_cleanup_semundo:
+@@ -1297,6 +1301,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -1312,18 +1293,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.23-12.orig/kernel/ptrace.c
 +++ linux-2.6.23-12/kernel/ptrace.c
-@@ -22,9 +22,7 @@
+@@ -22,9 +22,6 @@
  
  #include <asm/pgtable.h>
  #include <asm/uaccess.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -462,11 +460,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -462,11 +459,8 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -1339,18 +1319,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		ret = ptrace_traceme();
 --- linux-2.6.23-12.orig/kernel/sched.c
 +++ linux-2.6.23-12/kernel/sched.c
-@@ -63,9 +63,7 @@
+@@ -63,9 +63,6 @@
  #include <linux/unistd.h>
  
  #include <asm/tlb.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /*
   * Scheduler clock - returns current time in nanosec units.
-@@ -4066,9 +4064,8 @@ int can_nice(const struct task_struct *p
+@@ -4066,9 +4063,8 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -1364,18 +1343,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	 * Setpriority might change our priority at the same moment.
 --- linux-2.6.23-12.orig/kernel/signal.c
 +++ linux-2.6.23-12/kernel/signal.c
-@@ -32,9 +32,7 @@
+@@ -32,9 +32,6 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
  #include "audit.h"	/* audit_signal_info() */
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /*
   * SLAB caches for signal bits.
-@@ -2199,10 +2197,8 @@ asmlinkage long
+@@ -2199,10 +2196,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -1388,7 +1366,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2261,10 +2257,8 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2261,10 +2256,8 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -1401,7 +1379,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2278,10 +2272,8 @@ sys_tkill(int pid, int sig)
+@@ -2278,10 +2271,8 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -1414,7 +1392,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2299,6 +2291,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+@@ -2299,6 +2290,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -1425,18 +1403,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.23-12.orig/kernel/sys.c
 +++ linux-2.6.23-12/kernel/sys.c
-@@ -42,9 +42,7 @@
+@@ -42,9 +42,6 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/unistd.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -675,9 +673,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -675,9 +672,10 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -1450,7 +1427,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -915,9 +914,8 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -915,9 +913,8 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -1462,7 +1439,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1893,9 +1891,8 @@ asmlinkage long sys_sethostname(char __u
+@@ -1893,9 +1890,8 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1474,7 +1451,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1941,9 +1938,8 @@ asmlinkage long sys_setdomainname(char _
+@@ -1941,9 +1937,8 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1488,18 +1465,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	errno = -EFAULT;
 --- linux-2.6.23-12.orig/kernel/sysctl.c
 +++ linux-2.6.23-12/kernel/sysctl.c
-@@ -49,9 +49,7 @@
+@@ -49,9 +49,6 @@
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1320,80 +1318,6 @@ struct ctl_table_header *sysctl_head_nex
+@@ -1320,80 +1317,6 @@ struct ctl_table_header *sysctl_head_nex
  
  #ifdef CONFIG_SYSCTL_SYSCALL
  
@@ -1580,7 +1556,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1410,9 +1334,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1410,9 +1333,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1595,18 +1571,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		if (error != -ENOTDIR) {
 --- linux-2.6.23-12.orig/kernel/time.c
 +++ linux-2.6.23-12/kernel/time.c
-@@ -38,9 +38,7 @@
+@@ -38,9 +38,6 @@
  
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  /* 
   * The timezone where the local system is located.  Used as a default by some
-@@ -93,9 +91,8 @@ asmlinkage long sys_stime(time_t __user 
+@@ -93,9 +90,8 @@ asmlinkage long sys_stime(time_t __user 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1618,7 +1593,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -165,9 +162,8 @@ int do_sys_settimeofday(struct timespec 
+@@ -165,9 +161,8 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -1868,7 +1843,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	copied = len;
 --- linux-2.6.23-12.orig/net/socket.c
 +++ linux-2.6.23-12/net/socket.c
-@@ -93,10 +93,7 @@
+@@ -93,11 +93,6 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
  
@@ -1876,11 +1851,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -#include <linux/tomoyo.h>
 -#include <linux/tomoyo_socket.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
- 
+-
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
-@@ -555,11 +552,10 @@ static inline int __sock_sendmsg(struct 
+ 			 unsigned long nr_segs, loff_t pos);
+@@ -555,11 +550,10 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1894,7 +1869,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
-@@ -1109,11 +1105,9 @@ static int __sock_create(int family, int
+@@ -1109,11 +1103,9 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1908,7 +1883,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (err)
  		return err;
  
-@@ -1344,9 +1338,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1344,9 +1336,11 @@ asmlinkage long sys_bind(int fd, struct 
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)address,
  						   addrlen);
@@ -1923,7 +1898,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1376,9 +1372,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1376,9 +1370,8 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = sysctl_somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1935,7 +1910,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1443,12 +1438,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1443,12 +1436,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1950,7 +1925,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1511,12 +1504,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1511,12 +1502,11 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1968,18 +1943,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  				 sock->file->f_flags);
 --- linux-2.6.23-12.orig/net/unix/af_unix.c
 +++ linux-2.6.23-12/net/unix/af_unix.c
-@@ -115,9 +115,7 @@
+@@ -115,9 +115,6 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
  #include <linux/security.h>
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity.h>
  
  int sysctl_unix_max_dgram_qlen __read_mostly = 10;
  
-@@ -794,10 +792,6 @@ static int unix_bind(struct socket *sock
+@@ -794,10 +791,6 @@ static int unix_bind(struct socket *sock
  		err = unix_autobind(sock);
  		goto out;
  	}
@@ -1990,7 +1964,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -841,9 +835,9 @@ static int unix_bind(struct socket *sock
+@@ -841,9 +834,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
@@ -2003,7 +1977,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1673,6 +1667,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1673,6 +1666,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible(&u->peer_wait);
  

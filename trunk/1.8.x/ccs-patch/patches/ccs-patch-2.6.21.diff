@@ -2,37 +2,38 @@ This is TOMOYO Linux patch for kernel 2.6.21.7.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.21.7.tar.bz2
 ---
- arch/alpha/kernel/ptrace.c      |    3 +++
+ arch/alpha/kernel/ptrace.c      |    2 ++
  arch/ia64/ia32/sys_ia32.c       |    3 +++
- arch/ia64/kernel/ptrace.c       |    3 +++
+ arch/ia64/kernel/ptrace.c       |    2 ++
  arch/m32r/kernel/ptrace.c       |    3 +++
- arch/mips/kernel/ptrace32.c     |    3 +++
- arch/powerpc/kernel/ptrace32.c  |    3 +++
- arch/s390/kernel/ptrace.c       |    3 +++
- arch/sparc/kernel/ptrace.c      |    5 +++++
- arch/sparc64/kernel/ptrace.c    |    5 +++++
+ arch/mips/kernel/ptrace32.c     |    2 ++
+ arch/powerpc/kernel/ptrace32.c  |    2 ++
+ arch/s390/kernel/ptrace.c       |    2 ++
+ arch/sparc/kernel/ptrace.c      |    4 ++++
+ arch/sparc64/kernel/ptrace.c    |    4 ++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
  fs/compat.c                     |    5 ++++-
- fs/exec.c                       |   11 ++++++++++-
- fs/fcntl.c                      |    5 +++++
- fs/ioctl.c                      |    3 +++
- fs/namei.c                      |   30 +++++++++++++++++++++++++++++-
- fs/namespace.c                  |    9 +++++++++
- fs/open.c                       |   26 ++++++++++++++++++++++++++
+ fs/exec.c                       |    9 ++++++++-
+ fs/fcntl.c                      |    4 ++++
+ fs/ioctl.c                      |    2 ++
+ fs/namei.c                      |   29 ++++++++++++++++++++++++++++-
+ fs/namespace.c                  |    8 ++++++++
+ fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
- fs/stat.c                       |    3 +++
+ fs/stat.c                       |    2 ++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
- kernel/compat.c                 |    3 +++
- kernel/fork.c                   |    6 ++++++
+ include/linux/security.h        |    1 +
+ kernel/compat.c                 |    2 ++
+ kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |    3 +++
- kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    9 +++++++++
- kernel/sys.c                    |   11 +++++++++++
- kernel/sysctl.c                 |    5 +++++
- kernel/time.c                   |    5 +++++
+ kernel/ptrace.c                 |    2 ++
+ kernel/sched.c                  |    2 ++
+ kernel/signal.c                 |    8 ++++++++
+ kernel/sys.c                    |   10 ++++++++++
+ kernel/sysctl.c                 |    4 ++++
+ kernel/time.c                   |    4 ++++
  kernel/time/ntp.c               |    3 +++
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
@@ -41,23 +42,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    5 +++++
- net/socket.c                    |   20 ++++++++++++++++++++
- net/unix/af_unix.c              |    8 ++++++++
+ net/socket.c                    |   18 ++++++++++++++++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 261 insertions(+), 3 deletions(-)
+ 44 files changed, 236 insertions(+), 3 deletions(-)
 
 --- linux-2.6.21.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.21.7/arch/alpha/kernel/ptrace.c
-@@ -20,6 +20,7 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/fpu.h>
-+#include <linux/ccsecurity.h>
- 
- #include "proto.h"
- 
-@@ -268,6 +269,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -268,6 +268,8 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
@@ -87,15 +80,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.21.7.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.21.7/arch/ia64/kernel/ptrace.c
-@@ -28,6 +28,7 @@
- #ifdef CONFIG_PERFMON
- #include <asm/perfmon.h>
- #endif
-+#include <linux/ccsecurity.h>
- 
- #include "entry.h"
- 
-@@ -1418,6 +1419,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1418,6 +1418,8 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
@@ -125,15 +110,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.21.7.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.21.7/arch/mips/kernel/ptrace32.c
-@@ -35,6 +35,7 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/bootinfo.h>
-+#include <linux/ccsecurity.h>
- 
- int ptrace_getregs (struct task_struct *child, __s64 __user *data);
- int ptrace_setregs (struct task_struct *child, __s64 __user *data);
-@@ -50,6 +51,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
@@ -144,15 +121,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.21.7.orig/arch/powerpc/kernel/ptrace32.c
 +++ linux-2.6.21.7/arch/powerpc/kernel/ptrace32.c
-@@ -32,6 +32,7 @@
- #include <asm/page.h>
- #include <asm/pgtable.h>
- #include <asm/system.h>
-+#include <linux/ccsecurity.h>
- 
- #include "ptrace-common.h"
- 
-@@ -45,6 +46,8 @@ long compat_sys_ptrace(int request, int 
+@@ -45,6 +45,8 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
@@ -163,15 +132,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.21.7.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.21.7/arch/s390/kernel/ptrace.c
-@@ -41,6 +41,7 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- #ifdef CONFIG_COMPAT
- #include "compat_ptrace.h"
-@@ -713,6 +714,8 @@ sys_ptrace(long request, long pid, long 
+@@ -713,6 +713,8 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  
@@ -182,15 +143,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		 ret = ptrace_traceme();
 --- linux-2.6.21.7.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.21.7/arch/sparc/kernel/ptrace.c
-@@ -23,6 +23,7 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/uaccess.h>
-+#include <linux/ccsecurity.h>
- 
- #define MAGIC_CONSTANT 0x80000000
- 
-@@ -267,6 +268,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
@@ -203,15 +156,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #ifdef DEBUG_PTRACE
 --- linux-2.6.21.7.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.21.7/arch/sparc64/kernel/ptrace.c
-@@ -32,6 +32,7 @@
- #include <asm/spitfire.h>
- #include <asm/page.h>
- #include <asm/cpudata.h>
-+#include <linux/ccsecurity.h>
- 
- /* Returning from ptrace is a bit tricky because the syscall return
-  * low level code assumes any value returned which is negative and
-@@ -176,6 +177,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -176,6 +176,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
@@ -271,16 +216,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.21.7.orig/fs/exec.c
 +++ linux-2.6.21.7/fs/exec.c
-@@ -58,6 +58,8 @@
- #include <linux/kmod.h>
- #endif
- 
-+#include <linux/ccsecurity.h>
-+
- int core_uses_pid;
- char core_pattern[128] = "core";
- int suid_dumpable = 0;
-@@ -140,6 +142,10 @@ asmlinkage long sys_uselib(const char __
+@@ -140,6 +140,10 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
@@ -291,7 +227,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -485,6 +491,9 @@ struct file *open_exec(const char *name)
+@@ -485,6 +489,9 @@ struct file *open_exec(const char *name)
  		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
  		    S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
@@ -301,7 +237,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1183,7 +1192,7 @@ int do_execve(char * filename,
+@@ -1183,7 +1190,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -312,15 +248,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.21.7.orig/fs/fcntl.c
 +++ linux-2.6.21.7/fs/fcntl.c
-@@ -22,6 +22,7 @@
- #include <asm/poll.h>
- #include <asm/siginfo.h>
- #include <asm/uaccess.h>
-+#include <linux/ccsecurity.h>
- 
- void fastcall set_close_on_exec(unsigned int fd, int flag)
- {
-@@ -392,6 +393,8 @@ asmlinkage long sys_fcntl(unsigned int f
+@@ -392,6 +392,8 @@ asmlinkage long sys_fcntl(unsigned int f
  		goto out;
  
  	err = security_file_fcntl(filp, cmd, arg);
@@ -329,7 +257,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err) {
  		fput(filp);
  		return err;
-@@ -416,6 +419,8 @@ asmlinkage long sys_fcntl64(unsigned int
+@@ -416,6 +418,8 @@ asmlinkage long sys_fcntl64(unsigned int
  		goto out;
  
  	err = security_file_fcntl(filp, cmd, arg);
@@ -340,15 +268,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		return err;
 --- linux-2.6.21.7.orig/fs/ioctl.c
 +++ linux-2.6.21.7/fs/ioctl.c
-@@ -15,6 +15,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/ioctls.h>
-+#include <linux/ccsecurity.h>
- 
- static long do_ioctl(struct file *filp, unsigned int cmd,
- 		unsigned long arg)
-@@ -167,6 +168,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -167,6 +167,8 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -359,16 +279,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.21.7.orig/fs/namei.c
 +++ linux-2.6.21.7/fs/namei.c
-@@ -37,6 +37,8 @@
+@@ -37,6 +37,7 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
-+#include <linux/ccsecurity.h>
 +
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1561,6 +1563,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1561,6 +1562,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -380,7 +299,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1600,6 +1607,9 @@ static int open_namei_create(struct name
+@@ -1600,6 +1606,9 @@ static int open_namei_create(struct name
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -390,7 +309,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->dentry);
-@@ -1883,6 +1893,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1883,6 +1892,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -400,7 +319,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1959,6 +1972,8 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1959,6 +1971,8 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
@@ -409,7 +328,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  	dput(dentry);
  out_unlock:
-@@ -2066,6 +2081,8 @@ static long do_rmdir(int dfd, const char
+@@ -2066,6 +2080,8 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
@@ -418,7 +337,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
  	dput(dentry);
  exit2:
-@@ -2146,6 +2163,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2146,6 +2162,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -428,7 +347,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2227,6 +2247,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2227,6 +2246,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
@@ -438,7 +357,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  	dput(dentry);
  out_unlock:
-@@ -2322,6 +2345,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2322,6 +2344,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
@@ -448,7 +367,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2547,7 +2573,9 @@ static int do_rename(int olddfd, const c
+@@ -2547,7 +2572,9 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -461,15 +380,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  exit5:
 --- linux-2.6.21.7.orig/fs/namespace.c
 +++ linux-2.6.21.7/fs/namespace.c
-@@ -28,6 +28,7 @@
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
- #include "pnode.h"
-+#include <linux/ccsecurity.h>
- 
- /* spinlock for vfsmount related operations, inplace of dcache_lock */
- __cacheline_aligned_in_smp DEFINE_SPINLOCK(vfsmount_lock);
-@@ -542,6 +543,8 @@ static int do_umount(struct vfsmount *mn
+@@ -542,6 +542,8 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
  	retval = security_sb_umount(mnt, flags);
@@ -478,7 +389,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		return retval;
  
-@@ -1376,6 +1379,7 @@ int copy_mount_options(const void __user
+@@ -1376,6 +1378,7 @@ int copy_mount_options(const void __user
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -486,7 +397,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1417,6 +1421,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1417,6 +1420,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -496,7 +407,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		goto dput_out;
  
-@@ -1702,6 +1709,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1702,6 +1708,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -507,15 +418,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out1;
 --- linux-2.6.21.7.orig/fs/open.c
 +++ linux-2.6.21.7/fs/open.c
-@@ -27,6 +27,7 @@
- #include <linux/syscalls.h>
- #include <linux/rcupdate.h>
- #include <linux/audit.h>
-+#include <linux/ccsecurity.h>
- 
- int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
- {
-@@ -264,6 +265,8 @@ static long do_sys_truncate(const char _
+@@ -264,6 +264,8 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto dput_and_out;
  
@@ -524,7 +427,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -317,6 +320,9 @@ static long do_sys_ftruncate(unsigned in
+@@ -317,6 +319,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -534,7 +437,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -481,6 +487,8 @@ asmlinkage long sys_chroot(const char __
+@@ -481,6 +486,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -543,7 +446,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -514,6 +522,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -514,6 +521,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -553,7 +456,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -548,6 +559,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -548,6 +558,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -563,7 +466,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -611,6 +625,8 @@ asmlinkage long sys_chown(const char __u
+@@ -611,6 +624,8 @@ asmlinkage long sys_chown(const char __u
  	error = user_path_walk(filename, &nd);
  	if (error)
  		goto out;
@@ -572,7 +475,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.dentry, user, group);
  	path_release(&nd);
  out:
-@@ -631,6 +647,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -631,6 +646,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (error)
  		goto out;
@@ -581,7 +484,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.dentry, user, group);
  	path_release(&nd);
  out:
-@@ -645,6 +663,8 @@ asmlinkage long sys_lchown(const char __
+@@ -645,6 +662,8 @@ asmlinkage long sys_lchown(const char __
  	error = user_path_walk_link(filename, &nd);
  	if (error)
  		goto out;
@@ -590,7 +493,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.dentry, user, group);
  	path_release(&nd);
  out:
-@@ -664,6 +684,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -664,6 +683,8 @@ asmlinkage long sys_fchown(unsigned int 
  
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry->d_inode);
@@ -599,7 +502,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(dentry, user, group);
  	fput(file);
  out:
-@@ -756,7 +778,9 @@ static struct file *do_filp_open(int dfd
+@@ -756,7 +777,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -609,7 +512,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1085,6 +1109,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1085,6 +1108,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -628,15 +531,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
 --- linux-2.6.21.7.orig/fs/stat.c
 +++ linux-2.6.21.7/fs/stat.c
-@@ -18,6 +18,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- void generic_fillattr(struct inode *inode, struct kstat *stat)
- {
-@@ -44,6 +45,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+@@ -44,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
  	retval = security_inode_getattr(mnt, dentry);
@@ -692,17 +587,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.21.7.orig/kernel/compat.c
-+++ linux-2.6.21.7/kernel/compat.c
-@@ -25,6 +25,7 @@
- #include <linux/posix-timers.h>
- 
- #include <asm/uaccess.h>
+--- linux-2.6.21.7.orig/include/linux/security.h
++++ linux-2.6.21.7/include/linux/security.h
+@@ -33,6 +33,7 @@
+ #include <linux/key.h>
+ #include <linux/xfrm.h>
+ #include <net/flow.h>
 +#include <linux/ccsecurity.h>
  
- int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
- {
-@@ -869,6 +870,8 @@ asmlinkage long compat_sys_stime(compat_
+ struct ctl_table;
+ 
+--- linux-2.6.21.7.orig/kernel/compat.c
++++ linux-2.6.21.7/kernel/compat.c
+@@ -869,6 +869,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -713,15 +610,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	return 0;
 --- linux-2.6.21.7.orig/kernel/fork.c
 +++ linux-2.6.21.7/kernel/fork.c
-@@ -56,6 +56,7 @@
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * Protected counters by write_lock_irq(&tasklist_lock)
-@@ -123,6 +124,7 @@ void __put_task_struct(struct task_struc
+@@ -123,6 +123,7 @@ void __put_task_struct(struct task_struc
  	put_group_info(tsk->group_info);
  	delayacct_tsk_free(tsk);
  
@@ -729,7 +618,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1107,6 +1109,9 @@ static struct task_struct *copy_process(
+@@ -1107,6 +1108,9 @@ static struct task_struct *copy_process(
  		goto bad_fork_cleanup_policy;
  	if ((retval = audit_alloc(p)))
  		goto bad_fork_cleanup_security;
@@ -739,7 +628,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1285,6 +1290,7 @@ bad_fork_cleanup_semundo:
+@@ -1285,6 +1289,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -796,15 +685,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.21.7.orig/kernel/ptrace.c
 +++ linux-2.6.21.7/kernel/ptrace.c
-@@ -21,6 +21,7 @@
- 
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * ptrace a task: make the debugger its new parent and
-@@ -456,6 +457,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -456,6 +456,8 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -815,15 +696,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		ret = ptrace_traceme();
 --- linux-2.6.21.7.orig/kernel/sched.c
 +++ linux-2.6.21.7/kernel/sched.c
-@@ -55,6 +55,7 @@
- #include <asm/tlb.h>
- 
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * Scheduler clock - returns current time in nanosec units.
-@@ -3964,6 +3965,8 @@ int can_nice(const struct task_struct *p
+@@ -3964,6 +3964,8 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -834,15 +707,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	 * Setpriority might change our priority at the same moment.
 --- linux-2.6.21.7.orig/kernel/signal.c
 +++ linux-2.6.21.7/kernel/signal.c
-@@ -32,6 +32,7 @@
- #include <asm/unistd.h>
- #include <asm/siginfo.h>
- #include "audit.h"	/* audit_signal_info() */
-+#include <linux/ccsecurity.h>
- 
- /*
-  * SLAB caches for signal bits.
-@@ -2235,6 +2236,8 @@ asmlinkage long
+@@ -2235,6 +2235,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -851,7 +716,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2293,6 +2296,8 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2293,6 +2295,8 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -860,7 +725,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2306,6 +2311,8 @@ sys_tkill(int pid, int sig)
+@@ -2306,6 +2310,8 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -869,7 +734,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2323,6 +2330,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+@@ -2323,6 +2329,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -880,15 +745,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.21.7.orig/kernel/sys.c
 +++ linux-2.6.21.7/kernel/sys.c
-@@ -37,6 +37,7 @@
- #include <asm/uaccess.h>
- #include <asm/io.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- #ifndef SET_UNALIGN_CTL
- # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -600,6 +601,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -600,6 +600,10 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > 2 || which < 0)
  		goto out;
@@ -899,7 +756,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -830,6 +835,8 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -830,6 +834,8 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -908,7 +765,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1806,6 +1813,8 @@ asmlinkage long sys_sethostname(char __u
+@@ -1806,6 +1812,8 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -917,7 +774,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1851,6 +1860,8 @@ asmlinkage long sys_setdomainname(char _
+@@ -1851,6 +1859,8 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -928,15 +785,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	errno = -EFAULT;
 --- linux-2.6.21.7.orig/kernel/sysctl.c
 +++ linux-2.6.21.7/kernel/sysctl.c
-@@ -48,6 +48,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/processor.h>
-+#include <linux/ccsecurity.h>
- 
- extern int proc_nr_files(ctl_table *table, int write, struct file *filp,
-                      void __user *buffer, size_t *lenp, loff_t *ppos);
-@@ -1088,6 +1089,7 @@ struct ctl_table_header *sysctl_head_nex
+@@ -1088,6 +1088,7 @@ struct ctl_table_header *sysctl_head_nex
  }
  
  #ifdef CONFIG_SYSCTL_SYSCALL
@@ -944,7 +793,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1104,6 +1106,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1104,6 +1105,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -956,15 +805,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error != -ENOTDIR) {
 --- linux-2.6.21.7.orig/kernel/time.c
 +++ linux-2.6.21.7/kernel/time.c
-@@ -39,6 +39,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- /* 
-  * The timezone where the local system is located.  Used as a default by some
-@@ -91,6 +92,8 @@ asmlinkage long sys_stime(time_t __user 
+@@ -91,6 +91,8 @@ asmlinkage long sys_stime(time_t __user 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -973,7 +814,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -161,6 +164,8 @@ int do_sys_settimeofday(struct timespec 
+@@ -161,6 +163,8 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -1162,16 +1003,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (copied > len) {
 --- linux-2.6.21.7.orig/net/socket.c
 +++ linux-2.6.21.7/net/socket.c
-@@ -93,6 +93,8 @@
- #include <net/sock.h>
- #include <linux/netfilter.h>
- 
-+#include <linux/ccsecurity.h>
-+
- static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
- static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
- 			 unsigned long nr_segs, loff_t pos);
-@@ -547,6 +549,8 @@ static inline int __sock_sendmsg(struct 
+@@ -547,6 +547,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1180,7 +1012,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
  
-@@ -1071,6 +1075,8 @@ static int __sock_create(int family, int
+@@ -1071,6 +1073,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1189,7 +1021,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
  
-@@ -1299,6 +1305,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1299,6 +1303,11 @@ asmlinkage long sys_bind(int fd, struct 
  						   (struct sockaddr *)address,
  						   addrlen);
  			if (!err)
@@ -1201,7 +1033,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      address, addrlen);
-@@ -1328,6 +1339,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1328,6 +1337,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1210,7 +1042,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1391,6 +1404,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1391,6 +1402,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1221,7 +1053,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1453,6 +1470,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1453,6 +1468,9 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1233,15 +1065,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.21.7.orig/net/unix/af_unix.c
 +++ linux-2.6.21.7/net/unix/af_unix.c
-@@ -116,6 +116,7 @@
- #include <linux/mount.h>
- #include <net/checksum.h>
- #include <linux/security.h>
-+#include <linux/ccsecurity.h>
- 
- int sysctl_unix_max_dgram_qlen __read_mostly = 10;
- 
-@@ -808,6 +809,9 @@ static int unix_bind(struct socket *sock
+@@ -808,6 +808,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
@@ -1251,7 +1075,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1614,6 +1618,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1614,6 +1617,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible(&u->peer_wait);
  
