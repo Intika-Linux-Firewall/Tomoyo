@@ -54,7 +54,7 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +if [ $flavour == "ccs" ]
 +then
 +    cd $hdrdir/../../../../$symdir/usr/src/$symdir/include/linux/
-+    for i in sched.h init_task.h ccsecurity.h
++    for i in sched.h init_task.h security.h ccsecurity.h
 +    do
 +	rm -f $hdrdir/include/linux/$i
 +	cp -p $i $hdrdir/include/linux/
