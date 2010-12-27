@@ -36,7 +36,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/exec.c                       |   11 ++++++++++-
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    6 ++++++
- fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   36 ++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   17 +++++++++++++++++
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -56,7 +56,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   14 +++++++++++++-
  net/socket.c                    |   21 ++++++++++++++++++++-
  net/unix/af_unix.c              |    8 ++++++++
- 54 files changed, 358 insertions(+), 6 deletions(-)
+ 54 files changed, 357 insertions(+), 6 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/Makefile
 +++ linux-2.4.31-a9-3/Makefile
@@ -776,15 +776,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1279,6 +1290,7 @@ asmlinkage long sys_mknod(const char * f
- 
- 	if (S_ISDIR(mode))
- 		return -EPERM;
-+
- 	tmp = getname(filename);
- 	if (IS_ERR(tmp))
- 		return PTR_ERR(tmp);
-@@ -1291,6 +1303,9 @@ asmlinkage long sys_mknod(const char * f
+@@ -1291,6 +1302,9 @@ asmlinkage long sys_mknod(const char * f
  
  	mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -794,7 +786,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
-@@ -1357,6 +1372,10 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1357,6 +1371,10 @@ asmlinkage long sys_mkdir(const char * p
  		dentry = lookup_create(&nd, 1);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -805,7 +797,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			error = vfs_mkdir(nd.dentry->d_inode, dentry,
  					  mode & ~current->fs->umask);
  			dput(dentry);
-@@ -1466,6 +1485,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1466,6 +1484,9 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -815,7 +807,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1528,6 +1550,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1528,6 +1549,9 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
@@ -825,7 +817,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1592,6 +1617,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1592,6 +1616,9 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -835,7 +827,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1676,6 +1704,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1676,6 +1703,10 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
@@ -846,7 +838,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1906,12 +1938,17 @@ static inline int do_rename(const char *
+@@ -1906,12 +1937,17 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;

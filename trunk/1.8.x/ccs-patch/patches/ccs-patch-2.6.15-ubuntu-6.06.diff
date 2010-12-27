@@ -16,7 +16,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   30 ++++++++++++++++++++++++++++++
+ fs/namei.c                      |   29 +++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   24 ++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -45,7 +45,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 249 insertions(+), 3 deletions(-)
+ 43 files changed, 248 insertions(+), 3 deletions(-)
 
 --- linux-2.6.15-55.90.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-55.90/arch/alpha/kernel/ptrace.c
@@ -278,15 +278,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
 --- linux-2.6.15-55.90.orig/fs/namei.c
 +++ linux-2.6.15-55.90/fs/namei.c
-@@ -34,6 +34,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1488,6 +1489,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1488,6 +1488,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -298,7 +290,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1594,6 +1600,9 @@ do_last:
+@@ -1594,6 +1599,9 @@ do_last:
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -308,7 +300,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1781,6 +1790,9 @@ SYSCALL_DEFINE3(mknod, const char __user
+@@ -1781,6 +1789,9 @@ SYSCALL_DEFINE3(mknod, const char __user
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -318,7 +310,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1849,6 +1861,9 @@ SYSCALL_DEFINE2(mkdir, const char __user
+@@ -1849,6 +1860,9 @@ SYSCALL_DEFINE2(mkdir, const char __user
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -328,7 +320,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1952,6 +1967,9 @@ SYSCALL_DEFINE1(rmdir, const char __user
+@@ -1952,6 +1966,9 @@ SYSCALL_DEFINE1(rmdir, const char __user
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -338,7 +330,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2027,6 +2045,9 @@ SYSCALL_DEFINE1(unlink, const char __use
+@@ -2027,6 +2044,9 @@ SYSCALL_DEFINE1(unlink, const char __use
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -348,7 +340,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2089,6 +2110,9 @@ SYSCALL_DEFINE2(symlink, const char __us
+@@ -2089,6 +2109,9 @@ SYSCALL_DEFINE2(symlink, const char __us
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -358,7 +350,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2172,6 +2196,9 @@ SYSCALL_DEFINE2(link, const char __user 
+@@ -2172,6 +2195,9 @@ SYSCALL_DEFINE2(link, const char __user 
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -368,7 +360,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2392,6 +2419,9 @@ static inline int do_rename(const char *
+@@ -2392,6 +2418,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  

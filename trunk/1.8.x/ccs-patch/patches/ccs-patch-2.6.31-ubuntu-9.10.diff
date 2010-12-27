@@ -7,7 +7,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  fs/exec.c                       |    2 +-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   36 ++++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   24 ++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
@@ -36,7 +36,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 217 insertions(+), 3 deletions(-)
+ 34 files changed, 216 insertions(+), 3 deletions(-)
 
 --- linux-2.6.31-22.69.orig/fs/compat.c
 +++ linux-2.6.31-22.69/fs/compat.c
@@ -112,15 +112,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  
 --- linux-2.6.31-22.69.orig/fs/namei.c
 +++ linux-2.6.31-22.69/fs/namei.c
-@@ -37,6 +37,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1572,6 +1573,11 @@ int may_open(struct path *path, int acc_
+@@ -1572,6 +1572,11 @@ int may_open(struct path *path, int acc_
  			goto err_out;
  		}
  
@@ -132,7 +124,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1627,6 +1633,9 @@ static int __open_namei_create(struct na
+@@ -1627,6 +1632,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -142,7 +134,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1779,7 +1788,9 @@ do_last:
+@@ -1779,7 +1787,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -152,7 +144,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1838,7 +1849,9 @@ ok:
+@@ -1838,7 +1848,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -162,7 +154,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2068,6 +2081,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2068,6 +2080,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -172,7 +164,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2143,6 +2159,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2143,6 +2158,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -182,7 +174,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2257,6 +2276,9 @@ static long do_rmdir(int dfd, const char
+@@ -2257,6 +2275,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -192,7 +184,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2346,6 +2368,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2346,6 +2367,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -202,7 +194,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2431,6 +2456,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2431,6 +2455,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -212,7 +204,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2531,6 +2559,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2531,6 +2558,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -223,7 +215,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2772,6 +2804,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2772,6 +2803,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);

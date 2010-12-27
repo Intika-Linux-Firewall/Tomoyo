@@ -32,7 +32,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  fs/exec.c                          |   14 ++++++++++++--
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    2 ++
- fs/namei.c                         |   30 ++++++++++++++++++++++++++++++
+ fs/namei.c                         |   29 +++++++++++++++++++++++++++++
  fs/namespace.c                     |    8 ++++++++
  fs/open.c                          |   24 ++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
@@ -58,7 +58,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  net/unix/af_unix.c                 |    7 +++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 56 files changed, 287 insertions(+), 6 deletions(-)
+ 56 files changed, 286 insertions(+), 6 deletions(-)
 
 --- linux-2.6.9-89.33.1.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.33.1.EL/arch/alpha/kernel/ptrace.c
@@ -532,15 +532,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
                  goto out;
 --- linux-2.6.9-89.33.1.EL.orig/fs/namei.c
 +++ linux-2.6.9-89.33.1.EL/fs/namei.c
-@@ -32,6 +32,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1429,6 +1430,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1429,6 +1429,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -552,7 +544,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1552,6 +1558,9 @@ do_last:
+@@ -1552,6 +1557,9 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -562,7 +554,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1742,6 +1751,9 @@ asmlinkage long sys_mknod(const char __u
+@@ -1742,6 +1750,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -572,7 +564,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1813,6 +1825,9 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1813,6 +1824,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -582,7 +574,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1921,6 +1936,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1921,6 +1935,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -592,7 +584,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1996,6 +2014,9 @@ asmlinkage long sys_unlink(const char __
+@@ -1996,6 +2013,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -602,7 +594,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2060,6 +2081,9 @@ asmlinkage long sys_symlink(const char _
+@@ -2060,6 +2080,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -612,7 +604,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2145,6 +2169,9 @@ asmlinkage long sys_link(const char __us
+@@ -2145,6 +2168,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -622,7 +614,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2369,6 +2396,9 @@ static inline int do_rename(const char *
+@@ -2369,6 +2395,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  

@@ -29,10 +29,10 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/Makefile                        |    2 
  fs/attr.c                          |   11 ---
  fs/compat.c                        |    9 ---
- fs/exec.c                          |   58 ++------------------
+ fs/exec.c                          |   58 ++-----------------
  fs/fcntl.c                         |   11 +--
  fs/ioctl.c                         |    8 --
- fs/namei.c                         |  107 ++++++++++---------------------------
+ fs/namei.c                         |  108 +++++++++----------------------------
  fs/namespace.c                     |   53 +++---------------
  fs/open.c                          |   68 ++++++++---------------
  fs/proc/Makefile                   |    3 -
@@ -59,7 +59,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |   21 ++-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 59 files changed, 270 insertions(+), 516 deletions(-)
+ 59 files changed, 270 insertions(+), 517 deletions(-)
 
 --- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
@@ -658,7 +658,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
                  goto out;
 --- linux-2.6.8-20.orig/fs/namei.c
 +++ linux-2.6.8-20/fs/namei.c
-@@ -32,12 +32,6 @@
+@@ -32,13 +32,6 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
@@ -668,10 +668,11 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo.h>
 -/***** TOMOYO Linux end. *****/
- 
+-
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
-@@ -670,13 +664,6 @@ int fastcall link_path_walk(const char *
+  * were necessary because of omirr.  The reason is that omirr needs
+@@ -670,13 +663,6 @@ int fastcall link_path_walk(const char *
  
  	atomic = (lookup_flags & LOOKUP_ATOMIC);
  
@@ -685,7 +686,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	while (*name=='/')
  		name++;
  	if (!*name)
-@@ -1245,9 +1232,6 @@ int vfs_create(struct inode *dir, struct
+@@ -1245,9 +1231,6 @@ int vfs_create(struct inode *dir, struct
  	error = security_inode_create(dir, dentry, mode);
  	if (error)
  		return error;
@@ -695,7 +696,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	DQUOT_INIT(dir);
  	error = dir->i_op->create(dir, dentry, mode, nd);
  	if (!error) {
-@@ -1289,7 +1273,7 @@ int may_open(struct nameidata *nd, int a
+@@ -1289,7 +1272,7 @@ int may_open(struct nameidata *nd, int a
  
  		flag &= ~O_TRUNC;
  	} else if (IS_RDONLY(inode) && (flag & FMODE_WRITE))
@@ -704,7 +705,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	/*
  	 * An append-only file must be opened in append mode for writing.
  	 */
-@@ -1305,10 +1289,10 @@ int may_open(struct nameidata *nd, int a
+@@ -1305,10 +1288,10 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -719,7 +720,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	/*
  	 * Ensure there are no outstanding leases on the file.
-@@ -1341,9 +1325,6 @@ int may_open(struct nameidata *nd, int a
+@@ -1341,9 +1324,6 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -729,7 +730,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  /*
   *	open_namei()
   *
-@@ -1418,6 +1399,9 @@ do_last:
+@@ -1418,6 +1398,9 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -739,7 +740,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1465,7 +1449,6 @@ ok:
+@@ -1465,7 +1448,6 @@ ok:
  exit_dput:
  	dput(dentry);
  exit:
@@ -747,7 +748,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	path_release(nd);
  	return error;
  
-@@ -1589,12 +1572,6 @@ asmlinkage long sys_mknod(const char __u
+@@ -1589,12 +1571,6 @@ asmlinkage long sys_mknod(const char __u
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -760,7 +761,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1608,21 +1585,18 @@ asmlinkage long sys_mknod(const char __u
+@@ -1608,21 +1584,18 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -785,7 +786,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1631,7 +1605,6 @@ asmlinkage long sys_mknod(const char __u
+@@ -1631,7 +1604,6 @@ asmlinkage long sys_mknod(const char __u
  		default:
  			error = -EINVAL;
  		}
@@ -793,7 +794,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		dput(dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -1685,11 +1658,10 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1685,11 +1657,10 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -808,7 +809,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			dput(dentry);
  		}
  		up(&nd.dentry->d_inode->i_sem);
-@@ -1797,11 +1769,10 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1797,11 +1768,10 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -823,7 +824,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		dput(dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -1855,9 +1826,6 @@ asmlinkage long sys_unlink(const char __
+@@ -1855,9 +1825,6 @@ asmlinkage long sys_unlink(const char __
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -833,7 +834,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -1879,11 +1847,10 @@ asmlinkage long sys_unlink(const char __
+@@ -1879,11 +1846,10 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -848,7 +849,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	exit2:
  		dput(dentry);
  	}
-@@ -1931,9 +1898,6 @@ asmlinkage long sys_symlink(const char _
+@@ -1931,9 +1897,6 @@ asmlinkage long sys_symlink(const char _
  	int error = 0;
  	char * from;
  	char * to;
@@ -858,7 +859,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -1950,11 +1914,10 @@ asmlinkage long sys_symlink(const char _
+@@ -1950,11 +1913,10 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -873,7 +874,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			dput(dentry);
  		}
  		up(&nd.dentry->d_inode->i_sem);
-@@ -2021,9 +1984,6 @@ asmlinkage long sys_link(const char __us
+@@ -2021,9 +1983,6 @@ asmlinkage long sys_link(const char __us
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -883,7 +884,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	to = getname(newname);
  	if (IS_ERR(to))
-@@ -2041,11 +2001,10 @@ asmlinkage long sys_link(const char __us
+@@ -2041,11 +2000,10 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -898,7 +899,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		dput(new_dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -2267,13 +2226,9 @@ static inline int do_rename(const char *
+@@ -2267,13 +2225,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -915,7 +916,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2287,7 +2242,6 @@ exit2:
+@@ -2287,7 +2241,6 @@ exit2:
  exit1:
  	path_release(&oldnd);
  exit:
@@ -923,7 +924,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	return error;
  }
  
-@@ -2296,9 +2250,6 @@ asmlinkage long sys_rename(const char __
+@@ -2296,9 +2249,6 @@ asmlinkage long sys_rename(const char __
  	int error;
  	char * from;
  	char * to;

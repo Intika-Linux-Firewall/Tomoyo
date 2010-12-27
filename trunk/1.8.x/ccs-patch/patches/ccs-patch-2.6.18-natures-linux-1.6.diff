@@ -16,7 +16,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   30 ++++++++++++++++++++++++++++++
+ fs/namei.c                      |   29 +++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -45,7 +45,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 250 insertions(+), 4 deletions(-)
+ 43 files changed, 249 insertions(+), 4 deletions(-)
 
 --- linux-2.6.18.8p9.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/alpha/kernel/ptrace.c
@@ -278,15 +278,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
 --- linux-2.6.18.8p9.orig/fs/namei.c
 +++ linux-2.6.18.8p9/fs/namei.c
-@@ -38,6 +38,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1552,6 +1553,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1552,6 +1552,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -298,7 +290,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1677,6 +1683,9 @@ do_last:
+@@ -1677,6 +1682,9 @@ do_last:
  		}
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -308,7 +300,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		mutex_unlock(&dir->d_inode->i_mutex);
  		dput(nd->dentry);
-@@ -1886,6 +1895,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1886,6 +1894,9 @@ asmlinkage long sys_mknodat(int dfd, con
  			dput(dentry);
  			goto out_dput;
  		}
@@ -318,7 +310,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1960,6 +1972,9 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1960,6 +1971,9 @@ asmlinkage long sys_mkdirat(int dfd, con
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -328,7 +320,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2068,6 +2083,9 @@ static long do_rmdir(int dfd, const char
+@@ -2068,6 +2082,9 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -338,7 +330,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2148,6 +2166,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2148,6 +2165,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -348,7 +340,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2226,6 +2247,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2226,6 +2246,9 @@ asmlinkage long sys_symlinkat(const char
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -358,7 +350,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2320,6 +2344,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2320,6 +2343,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -368,7 +360,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2546,6 +2573,9 @@ static int do_rename(int olddfd, const c
+@@ -2546,6 +2572,9 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  

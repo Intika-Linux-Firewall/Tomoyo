@@ -5,7 +5,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  fs/exec.c                 |    2 +-
  fs/fcntl.c                |    4 ++++
  fs/ioctl.c                |    2 ++
- fs/namei.c                |   36 ++++++++++++++++++++++++++++++++++++
+ fs/namei.c                |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c            |    8 ++++++++
  fs/open.c                 |   24 ++++++++++++++++++++++++
  fs/proc/version.c         |    7 +++++++
@@ -33,7 +33,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  net/unix/af_unix.c        |    8 ++++++++
  security/Kconfig          |    2 ++
  security/Makefile         |    3 +++
- 33 files changed, 212 insertions(+), 2 deletions(-)
+ 33 files changed, 211 insertions(+), 2 deletions(-)
 
 --- linux-2.6.32-71.7.1.el6.orig/fs/compat.c
 +++ linux-2.6.32-71.7.1.el6/fs/compat.c
@@ -109,15 +109,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
 --- linux-2.6.32-71.7.1.el6.orig/fs/namei.c
 +++ linux-2.6.32-71.7.1.el6/fs/namei.c
-@@ -39,6 +39,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1605,6 +1606,11 @@ int may_open(struct path *path, int acc_
+@@ -1605,6 +1605,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
  
@@ -129,7 +121,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1648,6 +1654,9 @@ static int __open_namei_create(struct na
+@@ -1648,6 +1653,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -139,7 +131,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1800,7 +1809,9 @@ do_last:
+@@ -1800,7 +1808,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -149,7 +141,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1862,7 +1873,9 @@ ok:
+@@ -1862,7 +1872,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -159,7 +151,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error) {
  		if (will_truncate)
  			mnt_drop_write(nd.path.mnt);
-@@ -2108,6 +2121,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2108,6 +2120,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -169,7 +161,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2183,6 +2199,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2183,6 +2198,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -179,7 +171,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2297,6 +2316,9 @@ static long do_rmdir(int dfd, const char
+@@ -2297,6 +2315,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -189,7 +181,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2386,6 +2408,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2386,6 +2407,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -199,7 +191,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2471,6 +2496,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2471,6 +2495,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -209,7 +201,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2571,6 +2599,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2571,6 +2598,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -220,7 +212,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2812,6 +2844,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2812,6 +2843,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);

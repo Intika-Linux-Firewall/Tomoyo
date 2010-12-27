@@ -17,7 +17,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   28 ++++++++++++++++++++++++++++
+ fs/namei.c                      |   27 +++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -33,7 +33,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
  kernel/sys.c                    |   10 ++++++++++
- kernel/sysctl.c                 |    4 ++++
+ kernel/sysctl.c                 |    3 +++
  kernel/time.c                   |    4 ++++
  kernel/time/ntp.c               |    3 +++
  net/ipv4/inet_connection_sock.c |    3 +++
@@ -47,7 +47,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 45 files changed, 236 insertions(+), 2 deletions(-)
+ 45 files changed, 234 insertions(+), 2 deletions(-)
 
 --- linux-2.6.22.19.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.22.19/arch/alpha/kernel/ptrace.c
@@ -282,15 +282,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.22.19.orig/fs/namei.c
 +++ linux-2.6.22.19/fs/namei.c
-@@ -36,6 +36,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1579,6 +1580,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1579,6 +1579,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -302,7 +294,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1618,6 +1624,9 @@ static int open_namei_create(struct name
+@@ -1618,6 +1623,9 @@ static int open_namei_create(struct name
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -312,7 +304,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->dentry);
-@@ -1901,6 +1910,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1901,6 +1909,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -322,7 +314,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1977,6 +1989,8 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1977,6 +1988,8 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
@@ -331,7 +323,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  	dput(dentry);
  out_unlock:
-@@ -2084,6 +2098,8 @@ static long do_rmdir(int dfd, const char
+@@ -2084,6 +2097,8 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
@@ -340,7 +332,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
  	dput(dentry);
  exit2:
-@@ -2164,6 +2180,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2164,6 +2179,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -350,7 +342,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2245,6 +2264,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2245,6 +2263,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
@@ -360,7 +352,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  	dput(dentry);
  out_unlock:
-@@ -2340,6 +2362,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2340,6 +2361,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
@@ -370,7 +362,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2566,6 +2591,9 @@ static int do_rename(int olddfd, const c
+@@ -2566,6 +2590,9 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -787,15 +779,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	errno = -EFAULT;
 --- linux-2.6.22.19.orig/kernel/sysctl.c
 +++ linux-2.6.22.19/kernel/sysctl.c
-@@ -1111,6 +1111,7 @@ struct ctl_table_header *sysctl_head_nex
- }
- 
- #ifdef CONFIG_SYSCTL_SYSCALL
-+
- int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
- 	       void __user *newval, size_t newlen)
- {
-@@ -1127,6 +1128,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1127,6 +1127,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
