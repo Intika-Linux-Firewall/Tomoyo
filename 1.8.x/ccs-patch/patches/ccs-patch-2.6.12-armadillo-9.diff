@@ -51,15 +51,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  kernel/time.c                      |    6 ++++++
  net/ipv4/raw.c                     |    5 +++++
  net/ipv4/tcp_ipv4.c                |    5 +++++
- net/ipv4/udp.c                     |   11 ++++++++++-
+ net/ipv4/udp.c                     |    9 +++++++++
  net/ipv6/raw.c                     |    5 +++++
  net/ipv6/tcp_ipv6.c                |    5 +++++
  net/ipv6/udp.c                     |    9 +++++++++
- net/socket.c                       |   19 ++++++++++++++++++-
+ net/socket.c                       |   18 ++++++++++++++++++
  net/unix/af_unix.c                 |    7 +++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 57 files changed, 286 insertions(+), 6 deletions(-)
+ 57 files changed, 285 insertions(+), 4 deletions(-)
 
 --- linux-2.6.12.3-a9-17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/alpha/kernel/ptrace.c
@@ -1138,19 +1138,17 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			if (!udp_lport_inuse(result))
  				break;
  		}
-@@ -795,7 +800,11 @@ try_again:
+@@ -795,6 +800,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
--  
 +	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
 +		err = -EAGAIN; /* Hope less harmful than -EPERM. */
 +		goto out;
 +	}
-+
+   
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
- 		copied = len;
 --- linux-2.6.12.3-a9-17.orig/net/ipv6/raw.c
 +++ linux-2.6.12.3-a9-17/net/ipv6/raw.c
 @@ -63,6 +63,7 @@
@@ -1291,7 +1289,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1421,9 +1436,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1421,6 +1436,9 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1300,10 +1298,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
 +						    address, addrlen);
  	if (err)
  		goto out_put;
--
- 	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
- 				 sock->file->f_flags);
- out_put:
+ 
 --- linux-2.6.12.3-a9-17.orig/net/unix/af_unix.c
 +++ linux-2.6.12.3-a9-17/net/unix/af_unix.c
 @@ -781,6 +781,9 @@ static int unix_bind(struct socket *sock

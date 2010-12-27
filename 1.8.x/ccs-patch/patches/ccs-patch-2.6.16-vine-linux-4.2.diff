@@ -18,7 +18,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  fs/ioctl.c                      |    2 ++
  fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
- fs/open.c                       |   27 ++++++++++++++++++++++++++-
+ fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  fs/stat.c                       |    2 ++
  include/linux/init_task.h       |    9 +++++++++
@@ -27,7 +27,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  kernel/compat.c                 |    2 ++
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
- kernel/module.c                 |    7 +++++--
+ kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    2 ++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
@@ -37,15 +37,15 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
  net/ipv4/raw.c                  |    5 +++++
- net/ipv4/udp.c                  |   11 ++++++++++-
+ net/ipv4/udp.c                  |    9 +++++++++
  net/ipv6/inet6_hashtables.c     |    5 ++++-
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    9 +++++++++
- net/socket.c                    |   19 ++++++++++++++++++-
+ net/socket.c                    |   18 ++++++++++++++++++
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 252 insertions(+), 8 deletions(-)
+ 43 files changed, 251 insertions(+), 3 deletions(-)
 
 --- linux-2.6.16-76.55vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.55vl4/arch/alpha/kernel/ptrace.c
@@ -429,18 +429,17 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -321,7 +323,9 @@ static long do_sys_ftruncate(unsigned in
+@@ -321,6 +323,9 @@ static long do_sys_ftruncate(unsigned in
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
--
 +	error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (error)
 +		goto out_putf;
+ 
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
- 		error = do_truncate(dentry, length, 0, file);
-@@ -610,6 +614,8 @@ asmlinkage long sys_chroot(const char __
+@@ -610,6 +615,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -449,7 +448,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -641,6 +647,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -641,6 +648,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -459,7 +458,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -675,6 +684,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -675,6 +685,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -469,7 +468,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -737,6 +749,8 @@ asmlinkage long sys_chown(const char __u
+@@ -737,6 +750,8 @@ asmlinkage long sys_chown(const char __u
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -478,7 +477,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -756,6 +770,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -756,6 +771,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	follow = (flag & AT_SYMLINK_NOFOLLOW) ? 0 : LOOKUP_FOLLOW;
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (!error) {
@@ -487,7 +486,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -770,6 +786,8 @@ asmlinkage long sys_lchown(const char __
+@@ -770,6 +787,8 @@ asmlinkage long sys_lchown(const char __
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -496,7 +495,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -784,6 +802,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -784,6 +803,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -506,7 +505,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -876,7 +897,9 @@ static struct file *do_filp_open(int dfd
+@@ -876,7 +898,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -516,7 +515,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1192,6 +1215,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1192,6 +1216,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -669,26 +668,24 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  #if 0
  #define DEBUGP printk
-@@ -578,7 +579,8 @@ sys_delete_module(const char __user *nam
+@@ -578,6 +579,8 @@ sys_delete_module(const char __user *nam
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
- 	name[MODULE_NAME_LEN-1] = '\0';
-@@ -1931,7 +1933,8 @@ sys_init_module(void __user *umod,
+@@ -1931,6 +1934,8 @@ sys_init_module(void __user *umod,
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
--
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
+ 
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
- 		return -EINTR;
 --- linux-2.6.16-76.55vl4.orig/kernel/ptrace.c
 +++ linux-2.6.16-76.55vl4/kernel/ptrace.c
 @@ -495,6 +495,8 @@ asmlinkage long sys_ptrace(long request,
@@ -931,19 +928,17 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			if (!udp_lport_inuse(result))
  				break;
  		}
-@@ -799,7 +804,11 @@ try_again:
+@@ -799,6 +804,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
--  
 +	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
 +		err = -EAGAIN; /* Hope less harmful than -EPERM. */
 +		goto out;
 +	}
-+
+   
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
- 		copied = len;
 --- linux-2.6.16-76.55vl4.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.16-76.55vl4/net/ipv6/inet6_hashtables.c
 @@ -22,6 +22,7 @@
@@ -1084,7 +1079,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1436,9 +1451,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1436,6 +1451,9 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1093,10 +1088,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
 +						    address, addrlen);
  	if (err)
  		goto out_put;
--
- 	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
- 				 sock->file->f_flags);
- out_put:
+ 
 --- linux-2.6.16-76.55vl4.orig/net/unix/af_unix.c
 +++ linux-2.6.16-76.55vl4/net/unix/af_unix.c
 @@ -782,6 +782,9 @@ static int unix_bind(struct socket *sock

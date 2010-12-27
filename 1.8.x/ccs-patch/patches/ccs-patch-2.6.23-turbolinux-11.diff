@@ -16,10 +16,10 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  fs/attr.c                       |   11 -----
  fs/compat.c                     |    5 --
  fs/compat_ioctl.c               |    9 +---
- fs/exec.c                       |   19 +++-----
+ fs/exec.c                       |   19 +++------
  fs/fcntl.c                      |   11 +----
  fs/ioctl.c                      |    8 ---
- fs/namei.c                      |   85 ++++++++++++----------------------------
+ fs/namei.c                      |   84 ++++++++++++----------------------------
  fs/namespace.c                  |   46 +++------------------
  fs/open.c                       |   47 ++++++++++++----------
  fs/proc/Makefile                |    3 -
@@ -48,11 +48,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  net/ipv6/inet6_hashtables.c     |    9 +---
  net/ipv6/raw.c                  |    5 ++
  net/ipv6/udp.c                  |    5 ++
- net/socket.c                    |   42 +++++++------------
+ net/socket.c                    |   42 +++++++-------------
  net/unix/af_unix.c              |   17 +++-----
  security/Kconfig                |    2 
  security/Makefile               |    3 +
- 52 files changed, 225 insertions(+), 518 deletions(-)
+ 52 files changed, 225 insertions(+), 517 deletions(-)
 
 --- linux-2.6.23-12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/alpha/kernel/ptrace.c
@@ -758,7 +758,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2650,13 +2624,9 @@ static int do_rename(int olddfd, const c
+@@ -2650,13 +2624,10 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -768,14 +768,14 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -		goto exit5;
 -	}
 -	/***** TOMOYO Linux end. *****/
--
+ 
 +	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
 +				      new_dir->d_inode, new_dentry, newnd.mnt);
 +	if (!error)
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2679,9 +2649,6 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2679,9 +2650,6 @@ asmlinkage long sys_renameat(int olddfd,
  	int error;
  	char * from;
  	char * to;

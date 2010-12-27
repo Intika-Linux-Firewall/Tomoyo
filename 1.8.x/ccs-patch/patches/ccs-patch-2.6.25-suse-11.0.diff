@@ -11,7 +11,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  fs/exec.c                       |   10 +++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   33 ++++++++++++++++++++++++++++++++-
+ fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -40,7 +40,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 38 files changed, 222 insertions(+), 3 deletions(-)
+ 38 files changed, 222 insertions(+), 2 deletions(-)
 
 --- linux-2.6.25.20-0.7.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20-0.7/arch/ia64/ia32/sys_ia32.c
@@ -281,11 +281,10 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	error = vfs_link(old_nd.path.dentry, old_nd.path.mnt, nd.path.dentry->d_inode,
  			 new_dentry, nd.path.mnt);
  	dput(new_dentry);
-@@ -2698,7 +2726,10 @@ static int do_rename(int olddfd, const c
- 	error = -ENOTEMPTY;
+@@ -2699,6 +2727,10 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
--
+ 
 +	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
 +				      new_dir->d_inode, new_dentry,
 +				      newnd.path.mnt);
