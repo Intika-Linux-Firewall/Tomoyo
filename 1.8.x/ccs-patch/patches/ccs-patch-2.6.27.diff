@@ -9,7 +9,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |    8 +++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   34 ++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -38,7 +38,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 218 insertions(+), 2 deletions(-)
+ 36 files changed, 217 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.57.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.57/arch/ia64/ia32/sys_ia32.c
@@ -164,15 +164,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.27.57.orig/fs/namei.c
 +++ linux-2.6.27.57/fs/namei.c
-@@ -35,6 +35,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1580,6 +1581,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1580,6 +1580,11 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -184,7 +176,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1626,6 +1632,9 @@ static int __open_namei_create(struct na
+@@ -1626,6 +1631,9 @@ static int __open_namei_create(struct na
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -194,7 +186,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
-@@ -1757,7 +1766,9 @@ do_last:
+@@ -1757,7 +1765,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -204,7 +196,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1810,7 +1821,9 @@ ok:
+@@ -1810,7 +1820,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -214,7 +206,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2029,6 +2042,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2029,6 +2041,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -224,7 +216,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2100,6 +2116,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2100,6 +2115,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -234,7 +226,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2207,6 +2226,9 @@ static long do_rmdir(int dfd, const char
+@@ -2207,6 +2225,9 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -244,7 +236,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
  	mnt_drop_write(nd.path.mnt);
  exit3:
-@@ -2289,6 +2311,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2289,6 +2310,9 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -254,7 +246,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
  		mnt_drop_write(nd.path.mnt);
  	exit2:
-@@ -2370,6 +2395,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2370,6 +2394,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -264,7 +256,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2466,6 +2494,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2466,6 +2493,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -274,7 +266,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2698,6 +2729,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2698,6 +2728,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;

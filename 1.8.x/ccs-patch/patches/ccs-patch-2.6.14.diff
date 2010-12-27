@@ -35,7 +35,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                          |    9 ++++++++-
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    2 ++
- fs/namei.c                         |   30 ++++++++++++++++++++++++++++++
+ fs/namei.c                         |   29 +++++++++++++++++++++++++++++
  fs/namespace.c                     |    8 ++++++++
  fs/open.c                          |   24 ++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
@@ -63,7 +63,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c                 |    7 +++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 61 files changed, 288 insertions(+), 2 deletions(-)
+ 61 files changed, 287 insertions(+), 2 deletions(-)
 
 --- linux-2.6.14.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.14.7/arch/alpha/kernel/ptrace.c
@@ -545,15 +545,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.14.7.orig/fs/namei.c
 +++ linux-2.6.14.7/fs/namei.c
-@@ -33,6 +33,7 @@
- 
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
-+
- /* [Feb-1997 T. Schoebel-Theuer]
-  * Fundamental changes in the pathname lookup mechanisms (namei)
-  * were necessary because of omirr.  The reason is that omirr needs
-@@ -1369,6 +1370,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1369,6 +1369,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -565,7 +557,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1475,6 +1481,9 @@ do_last:
+@@ -1475,6 +1480,9 @@ do_last:
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -575,7 +567,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1660,6 +1669,9 @@ asmlinkage long sys_mknod(const char __u
+@@ -1660,6 +1668,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -585,7 +577,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1728,6 +1740,9 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1728,6 +1739,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -595,7 +587,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1831,6 +1846,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1831,6 +1845,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -605,7 +597,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1906,6 +1924,9 @@ asmlinkage long sys_unlink(const char __
+@@ -1906,6 +1923,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -615,7 +607,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1967,6 +1988,9 @@ asmlinkage long sys_symlink(const char _
+@@ -1967,6 +1987,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -625,7 +617,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2049,6 +2073,9 @@ asmlinkage long sys_link(const char __us
+@@ -2049,6 +2072,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -635,7 +627,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2269,6 +2296,9 @@ static inline int do_rename(const char *
+@@ -2269,6 +2295,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  

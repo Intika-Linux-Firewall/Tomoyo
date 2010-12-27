@@ -28,7 +28,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/exec.c                    |   11 ++++++++++-
  fs/fcntl.c                   |    5 +++++
  fs/ioctl.c                   |    6 ++++++
- fs/namei.c                   |   39 +++++++++++++++++++++++++++++++++++++++
+ fs/namei.c                   |   38 ++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   17 +++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
@@ -48,7 +48,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    9 +++++++++
  net/socket.c                 |   22 +++++++++++++++++++++-
  net/unix/af_unix.c           |    8 ++++++++
- 46 files changed, 328 insertions(+), 3 deletions(-)
+ 46 files changed, 327 insertions(+), 3 deletions(-)
 
 --- linux-2.4.37.11.orig/Makefile
 +++ linux-2.4.37.11/Makefile
@@ -614,15 +614,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1292,6 +1303,7 @@ asmlinkage long sys_mknod(const char * f
- 
- 	if (S_ISDIR(mode))
- 		return -EPERM;
-+
- 	tmp = getname(filename);
- 	if (IS_ERR(tmp))
- 		return PTR_ERR(tmp);
-@@ -1304,6 +1316,10 @@ asmlinkage long sys_mknod(const char * f
+@@ -1304,6 +1315,10 @@ asmlinkage long sys_mknod(const char * f
  
  	mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -633,7 +625,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
-@@ -1317,6 +1333,7 @@ asmlinkage long sys_mknod(const char * f
+@@ -1317,6 +1332,7 @@ asmlinkage long sys_mknod(const char * f
  		default:
  			error = -EINVAL;
  		}
@@ -641,7 +633,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		dput(dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -1370,6 +1387,9 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1370,6 +1386,9 @@ asmlinkage long sys_mkdir(const char * p
  		dentry = lookup_create(&nd, 1);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -651,7 +643,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			error = vfs_mkdir(nd.dentry->d_inode, dentry,
  					  mode & ~current->fs->umask);
  			dput(dentry);
-@@ -1479,6 +1499,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1479,6 +1498,9 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -661,7 +653,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1548,6 +1571,10 @@ asmlinkage long sys_unlink(const char * 
+@@ -1548,6 +1570,10 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
@@ -672,7 +664,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1612,6 +1639,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1612,6 +1638,9 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -682,7 +674,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1698,6 +1728,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1698,6 +1727,10 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
@@ -693,7 +685,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1928,12 +1962,17 @@ static inline int do_rename(const char *
+@@ -1928,12 +1961,17 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;

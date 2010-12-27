@@ -27,7 +27,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  fs/exec.c                    |   10 +++++++++-
  fs/fcntl.c                   |    5 +++++
  fs/ioctl.c                   |    6 ++++++
- fs/namei.c                   |   36 ++++++++++++++++++++++++++++++++++++
+ fs/namei.c                   |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   17 +++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
@@ -47,7 +47,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/udp.c               |    9 +++++++++
  net/socket.c                 |   20 ++++++++++++++++++++
  net/unix/af_unix.c           |    8 ++++++++
- 45 files changed, 323 insertions(+), 3 deletions(-)
+ 45 files changed, 322 insertions(+), 3 deletions(-)
 
 --- linux-2.4.21-63.EL.orig/Makefile
 +++ linux-2.4.21-63.EL/Makefile
@@ -593,15 +593,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1303,6 +1314,7 @@ asmlinkage long sys_mknod(const char * f
- 
- 	if (S_ISDIR(mode))
- 		return -EPERM;
-+
- 	tmp = getname(filename);
- 	if (IS_ERR(tmp))
- 		return PTR_ERR(tmp);
-@@ -1316,6 +1328,9 @@ asmlinkage long sys_mknod(const char * f
+@@ -1316,6 +1327,9 @@ asmlinkage long sys_mknod(const char * f
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -611,7 +603,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
-@@ -1384,6 +1399,9 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1384,6 +1398,9 @@ asmlinkage long sys_mkdir(const char * p
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -621,7 +613,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1492,6 +1510,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1492,6 +1509,9 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -631,7 +623,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1554,6 +1575,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1554,6 +1574,9 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
@@ -641,7 +633,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1618,6 +1642,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1618,6 +1641,9 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -651,7 +643,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1702,6 +1729,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1702,6 +1728,10 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
@@ -662,7 +654,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1932,12 +1963,17 @@ static inline int do_rename(const char *
+@@ -1932,12 +1962,17 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;
