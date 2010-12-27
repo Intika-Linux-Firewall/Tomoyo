@@ -3,35 +3,36 @@ This is TOMOYO Linux patch for Ubuntu 8.04.
 Source code for this patch is "apt-get install linux-source-2.6.24"
 ---
  arch/ia64/ia32/sys_ia32.c       |    3 +++
- arch/ia64/kernel/ptrace.c       |    3 +++
- arch/mips/kernel/ptrace32.c     |    3 +++
- arch/powerpc/kernel/ptrace32.c  |    3 +++
- arch/s390/kernel/ptrace.c       |    3 +++
- arch/sparc/kernel/ptrace.c      |    5 +++++
- arch/sparc64/kernel/ptrace.c    |    5 +++++
+ arch/ia64/kernel/ptrace.c       |    2 ++
+ arch/mips/kernel/ptrace32.c     |    2 ++
+ arch/powerpc/kernel/ptrace32.c  |    2 ++
+ arch/s390/kernel/ptrace.c       |    2 ++
+ arch/sparc/kernel/ptrace.c      |    4 ++++
+ arch/sparc64/kernel/ptrace.c    |    4 ++++
  arch/x86/ia32/ptrace32.c        |    3 +++
- fs/compat.c                     |    3 ++-
+ fs/compat.c                     |    2 +-
  fs/compat_ioctl.c               |    3 +++
- fs/exec.c                       |   11 ++++++++++-
- fs/fcntl.c                      |    5 +++++
- fs/ioctl.c                      |    3 +++
- fs/namei.c                      |   31 ++++++++++++++++++++++++++++++-
- fs/namespace.c                  |    9 +++++++++
- fs/open.c                       |   27 +++++++++++++++++++++++++++
+ fs/exec.c                       |    9 ++++++++-
+ fs/fcntl.c                      |    4 ++++
+ fs/ioctl.c                      |    2 ++
+ fs/namei.c                      |   30 +++++++++++++++++++++++++++++-
+ fs/namespace.c                  |    8 ++++++++
+ fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
- fs/stat.c                       |    3 +++
+ fs/stat.c                       |    2 ++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
- kernel/compat.c                 |    3 +++
- kernel/fork.c                   |    6 ++++++
+ include/linux/security.h        |    1 +
+ kernel/compat.c                 |    2 ++
+ kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |    3 +++
- kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    9 +++++++++
- kernel/sys.c                    |   11 +++++++++++
- kernel/sysctl.c                 |    5 +++++
- kernel/time.c                   |    5 +++++
+ kernel/ptrace.c                 |    2 ++
+ kernel/sched.c                  |    2 ++
+ kernel/signal.c                 |    8 ++++++++
+ kernel/sys.c                    |   10 ++++++++++
+ kernel/sysctl.c                 |    4 ++++
+ kernel/time.c                   |    4 ++++
  kernel/time/ntp.c               |    3 +++
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
@@ -40,11 +41,11 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    5 +++++
- net/socket.c                    |   20 ++++++++++++++++++++
- net/unix/af_unix.c              |    8 ++++++++
+ net/socket.c                    |   18 ++++++++++++++++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 257 insertions(+), 3 deletions(-)
+ 43 files changed, 232 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24-28.81.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-28.81/arch/ia64/ia32/sys_ia32.c
@@ -67,15 +68,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.24-28.81.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.24-28.81/arch/ia64/kernel/ptrace.c
-@@ -28,6 +28,7 @@
- #ifdef CONFIG_PERFMON
- #include <asm/perfmon.h>
- #endif
-+#include <linux/ccsecurity.h>
- 
- #include "entry.h"
- 
-@@ -1422,6 +1423,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1422,6 +1422,8 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
@@ -86,15 +79,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	ret = -EPERM;
 --- linux-2.6.24-28.81.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.24-28.81/arch/mips/kernel/ptrace32.c
-@@ -35,6 +35,7 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/bootinfo.h>
-+#include <linux/ccsecurity.h>
- 
- int ptrace_getregs(struct task_struct *child, __s64 __user *data);
- int ptrace_setregs(struct task_struct *child, __s64 __user *data);
-@@ -50,6 +51,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
@@ -105,15 +90,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.24-28.81.orig/arch/powerpc/kernel/ptrace32.c
 +++ linux-2.6.24-28.81/arch/powerpc/kernel/ptrace32.c
-@@ -32,6 +32,7 @@
- #include <asm/page.h>
- #include <asm/pgtable.h>
- #include <asm/system.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * does not yet catch signals sent when the child dies.
-@@ -89,6 +90,8 @@ long compat_sys_ptrace(int request, int 
+@@ -89,6 +89,8 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
@@ -124,15 +101,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.24-28.81.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.24-28.81/arch/s390/kernel/ptrace.c
-@@ -41,6 +41,7 @@
- #include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- #ifdef CONFIG_COMPAT
- #include "compat_ptrace.h"
-@@ -701,6 +702,8 @@ sys_ptrace(long request, long pid, long 
+@@ -701,6 +701,8 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  
@@ -143,15 +112,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		 ret = ptrace_traceme();
 --- linux-2.6.24-28.81.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.24-28.81/arch/sparc/kernel/ptrace.c
-@@ -23,6 +23,7 @@
- #include <asm/pgtable.h>
- #include <asm/system.h>
- #include <asm/uaccess.h>
-+#include <linux/ccsecurity.h>
- 
- #define MAGIC_CONSTANT 0x80000000
- 
-@@ -267,6 +268,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
@@ -164,15 +125,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  #ifdef DEBUG_PTRACE
 --- linux-2.6.24-28.81.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.24-28.81/arch/sparc64/kernel/ptrace.c
-@@ -32,6 +32,7 @@
- #include <asm/spitfire.h>
- #include <asm/page.h>
- #include <asm/cpudata.h>
-+#include <linux/ccsecurity.h>
- 
- /* Returning from ptrace is a bit tricky because the syscall return
-  * low level code assumes any value returned which is negative and
-@@ -180,6 +181,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -180,6 +180,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
@@ -204,15 +157,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	case PTRACE_TRACEME:
 --- linux-2.6.24-28.81.orig/fs/compat.c
 +++ linux-2.6.24-28.81/fs/compat.c
-@@ -55,6 +55,7 @@
- #include <asm/mmu_context.h>
- #include <asm/ioctls.h>
- #include "internal.h"
-+#include <linux/ccsecurity.h>
- 
- int compat_log = 1;
- 
-@@ -1406,7 +1407,7 @@ int compat_do_execve(char * filename,
+@@ -1406,7 +1406,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -242,16 +187,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
 --- linux-2.6.24-28.81.orig/fs/exec.c
 +++ linux-2.6.24-28.81/fs/exec.c
-@@ -60,6 +60,8 @@
- #include <linux/kmod.h>
- #endif
- 
-+#include <linux/ccsecurity.h>
-+
- int core_uses_pid;
- char core_pattern[CORENAME_MAX_SIZE] = "core";
- int suid_dumpable = 0;
-@@ -119,6 +121,10 @@ asmlinkage long sys_uselib(const char __
+@@ -119,6 +119,10 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
@@ -262,7 +198,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -656,6 +662,9 @@ struct file *open_exec(const char *name)
+@@ -656,6 +660,9 @@ struct file *open_exec(const char *name)
  		file = ERR_PTR(-EACCES);
  		if (S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
@@ -272,7 +208,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1355,7 +1364,7 @@ int do_execve(char * filename,
+@@ -1355,7 +1362,7 @@ int do_execve(char * filename,
  		goto out;
  	bprm->argv_len = env_p - bprm->p;
  
@@ -283,15 +219,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		free_arg_pages(bprm);
 --- linux-2.6.24-28.81.orig/fs/fcntl.c
 +++ linux-2.6.24-28.81/fs/fcntl.c
-@@ -23,6 +23,7 @@
- #include <asm/poll.h>
- #include <asm/siginfo.h>
- #include <asm/uaccess.h>
-+#include <linux/ccsecurity.h>
- 
- void fastcall set_close_on_exec(unsigned int fd, int flag)
- {
-@@ -397,6 +398,8 @@ asmlinkage long sys_fcntl(unsigned int f
+@@ -397,6 +397,8 @@ asmlinkage long sys_fcntl(unsigned int f
  		goto out;
  
  	err = security_file_fcntl(filp, cmd, arg);
@@ -300,7 +228,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (err) {
  		fput(filp);
  		return err;
-@@ -421,6 +424,8 @@ asmlinkage long sys_fcntl64(unsigned int
+@@ -421,6 +423,8 @@ asmlinkage long sys_fcntl64(unsigned int
  		goto out;
  
  	err = security_file_fcntl(filp, cmd, arg);
@@ -311,15 +239,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		return err;
 --- linux-2.6.24-28.81.orig/fs/ioctl.c
 +++ linux-2.6.24-28.81/fs/ioctl.c
-@@ -15,6 +15,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/ioctls.h>
-+#include <linux/ccsecurity.h>
- 
- static long do_ioctl(struct file *filp, unsigned int cmd,
- 		unsigned long arg)
-@@ -165,6 +166,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -165,6 +165,8 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -330,16 +250,15 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
 --- linux-2.6.24-28.81.orig/fs/namei.c
 +++ linux-2.6.24-28.81/fs/namei.c
-@@ -35,6 +35,8 @@
+@@ -35,6 +35,7 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
-+#include <linux/ccsecurity.h>
 +
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1672,6 +1674,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1672,6 +1673,11 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -351,7 +270,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1713,6 +1720,9 @@ static int open_namei_create(struct name
+@@ -1713,6 +1719,9 @@ static int open_namei_create(struct name
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -361,7 +280,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->dentry);
-@@ -1997,6 +2007,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1997,6 +2006,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -371,7 +290,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -2075,6 +2088,8 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2075,6 +2087,8 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
@@ -380,7 +299,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, nd.mnt, mode);
  	dput(dentry);
  out_unlock:
-@@ -2183,6 +2198,8 @@ static long do_rmdir(int dfd, const char
+@@ -2183,6 +2197,8 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
@@ -389,7 +308,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = vfs_rmdir(nd.dentry->d_inode, dentry, nd.mnt);
  	dput(dentry);
  exit2:
-@@ -2263,6 +2280,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2263,6 +2279,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -399,7 +318,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		error = vfs_unlink(nd.dentry->d_inode, dentry, nd.mnt);
  	exit2:
  		dput(dentry);
-@@ -2345,6 +2365,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2345,6 +2364,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
@@ -409,7 +328,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = vfs_symlink(nd.dentry->d_inode, dentry, nd.mnt, from,
  			    S_IALLUGO);
  	dput(dentry);
-@@ -2442,6 +2465,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2442,6 +2464,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
@@ -419,7 +338,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = vfs_link(old_nd.dentry, old_nd.mnt, nd.dentry->d_inode,
  			 new_dentry, nd.mnt);
  	dput(new_dentry);
-@@ -2675,7 +2701,10 @@ static int do_rename(int olddfd, const c
+@@ -2675,7 +2700,10 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -433,15 +352,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  exit5:
 --- linux-2.6.24-28.81.orig/fs/namespace.c
 +++ linux-2.6.24-28.81/fs/namespace.c
-@@ -29,6 +29,7 @@
- #include <asm/unistd.h>
- #include "pnode.h"
- #include "internal.h"
-+#include <linux/ccsecurity.h>
- 
- /* spinlock for vfsmount related operations, inplace of dcache_lock */
- __cacheline_aligned_in_smp DEFINE_SPINLOCK(vfsmount_lock);
-@@ -542,6 +543,8 @@ static int do_umount(struct vfsmount *mn
+@@ -542,6 +542,8 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
  	retval = security_sb_umount(mnt, flags);
@@ -450,7 +361,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (retval)
  		return retval;
  
-@@ -1418,6 +1421,7 @@ __setup("default_relatime=", set_default
+@@ -1418,6 +1420,7 @@ __setup("default_relatime=", set_default
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -458,7 +369,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1464,6 +1468,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1464,6 +1467,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -468,7 +379,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (retval)
  		goto dput_out;
  
-@@ -1733,6 +1740,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1733,6 +1739,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -479,15 +390,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		goto out1;
 --- linux-2.6.24-28.81.orig/fs/open.c
 +++ linux-2.6.24-28.81/fs/open.c
-@@ -27,6 +27,7 @@
- #include <linux/rcupdate.h>
- #include <linux/audit.h>
- #include <linux/falloc.h>
-+#include <linux/ccsecurity.h>
- 
- int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
- {
-@@ -267,6 +268,9 @@ static long do_sys_truncate(const char _
+@@ -267,6 +267,9 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
@@ -497,7 +400,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -321,6 +325,9 @@ static long do_sys_ftruncate(unsigned in
+@@ -321,6 +324,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -507,7 +410,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -542,6 +549,8 @@ asmlinkage long sys_chroot(const char __
+@@ -542,6 +548,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -516,7 +419,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -575,6 +584,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -575,6 +583,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -526,7 +429,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -609,6 +621,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -609,6 +620,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -536,7 +439,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -676,6 +691,8 @@ asmlinkage long sys_chown(const char __u
+@@ -676,6 +690,8 @@ asmlinkage long sys_chown(const char __u
  	error = user_path_walk(filename, &nd);
  	if (error)
  		goto out;
@@ -545,7 +448,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -696,6 +713,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -696,6 +712,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (error)
  		goto out;
@@ -554,7 +457,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -710,6 +729,8 @@ asmlinkage long sys_lchown(const char __
+@@ -710,6 +728,8 @@ asmlinkage long sys_lchown(const char __
  	error = user_path_walk_link(filename, &nd);
  	if (error)
  		goto out;
@@ -563,7 +466,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -729,6 +750,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -729,6 +749,8 @@ asmlinkage long sys_fchown(unsigned int 
  
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -572,7 +475,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(dentry, file->f_path.mnt, user, group, file);
  	fput(file);
  out:
-@@ -825,7 +848,9 @@ static struct file *do_filp_open(int dfd
+@@ -825,7 +847,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -582,7 +485,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1162,6 +1187,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1162,6 +1186,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -601,15 +504,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  }
 --- linux-2.6.24-28.81.orig/fs/stat.c
 +++ linux-2.6.24-28.81/fs/stat.c
-@@ -17,6 +17,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- void generic_fillattr(struct inode *inode, struct kstat *stat)
- {
-@@ -43,6 +44,8 @@ int vfs_getattr(struct vfsmount *mnt, st
+@@ -43,6 +43,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
  	retval = security_inode_getattr(mnt, dentry);
@@ -665,17 +560,19 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  };
  
  /*
---- linux-2.6.24-28.81.orig/kernel/compat.c
-+++ linux-2.6.24-28.81/kernel/compat.c
-@@ -26,6 +26,7 @@
- #include <linux/module.h>
- 
- #include <asm/uaccess.h>
+--- linux-2.6.24-28.81.orig/include/linux/security.h
++++ linux-2.6.24-28.81/include/linux/security.h
+@@ -34,6 +34,7 @@
+ #include <linux/key.h>
+ #include <linux/xfrm.h>
+ #include <net/flow.h>
 +#include <linux/ccsecurity.h>
  
- int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
- {
-@@ -871,6 +872,8 @@ asmlinkage long compat_sys_stime(compat_
+ /*
+  * Bounding set
+--- linux-2.6.24-28.81.orig/kernel/compat.c
++++ linux-2.6.24-28.81/kernel/compat.c
+@@ -871,6 +871,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -686,15 +583,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	return 0;
 --- linux-2.6.24-28.81.orig/kernel/fork.c
 +++ linux-2.6.24-28.81/kernel/fork.c
-@@ -58,6 +58,7 @@
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * Protected counters by write_lock_irq(&tasklist_lock)
-@@ -126,6 +127,7 @@ void __put_task_struct(struct task_struc
+@@ -126,6 +126,7 @@ void __put_task_struct(struct task_struc
  	put_group_info(tsk->group_info);
  	delayacct_tsk_free(tsk);
  
@@ -702,7 +591,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1131,6 +1133,9 @@ static struct task_struct *copy_process(
+@@ -1131,6 +1132,9 @@ static struct task_struct *copy_process(
  		goto bad_fork_cleanup_policy;
  	if ((retval = audit_alloc(p)))
  		goto bad_fork_cleanup_security;
@@ -712,7 +601,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1337,6 +1342,7 @@ bad_fork_cleanup_semundo:
+@@ -1337,6 +1341,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -769,15 +658,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.24-28.81.orig/kernel/ptrace.c
 +++ linux-2.6.24-28.81/kernel/ptrace.c
-@@ -23,6 +23,7 @@
- 
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * ptrace a task: make the debugger its new parent and
-@@ -467,6 +468,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -467,6 +467,8 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -788,15 +669,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		ret = ptrace_traceme();
 --- linux-2.6.24-28.81.orig/kernel/sched.c
 +++ linux-2.6.24-28.81/kernel/sched.c
-@@ -66,6 +66,7 @@
- 
- #include <asm/tlb.h>
- #include <asm/irq_regs.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * Scheduler clock - returns current time in nanosec units.
-@@ -4181,6 +4182,8 @@ int can_nice(const struct task_struct *p
+@@ -4181,6 +4181,8 @@ int can_nice(const struct task_struct *p
  asmlinkage long sys_nice(int increment)
  {
  	long nice, retval;
@@ -807,15 +680,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	 * Setpriority might change our priority at the same moment.
 --- linux-2.6.24-28.81.orig/kernel/signal.c
 +++ linux-2.6.24-28.81/kernel/signal.c
-@@ -32,6 +32,7 @@
- #include <asm/unistd.h>
- #include <asm/siginfo.h>
- #include "audit.h"	/* audit_signal_info() */
-+#include <linux/ccsecurity.h>
- 
- /*
-  * SLAB caches for signal bits.
-@@ -2215,6 +2216,8 @@ asmlinkage long
+@@ -2215,6 +2215,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
@@ -824,7 +689,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2273,6 +2276,8 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2273,6 +2275,8 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -833,7 +698,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2286,6 +2291,8 @@ sys_tkill(int pid, int sig)
+@@ -2286,6 +2290,8 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -842,7 +707,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2303,6 +2310,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+@@ -2303,6 +2309,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -853,15 +718,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.24-28.81.orig/kernel/sys.c
 +++ linux-2.6.24-28.81/kernel/sys.c
-@@ -42,6 +42,7 @@
- #include <asm/uaccess.h>
- #include <asm/io.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- #ifndef SET_UNALIGN_CTL
- # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -140,6 +141,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -140,6 +140,10 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -872,7 +729,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -376,6 +381,8 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -376,6 +380,8 @@ asmlinkage long sys_reboot(int magic1, i
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -881,7 +738,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1362,6 +1369,8 @@ asmlinkage long sys_sethostname(char __u
+@@ -1362,6 +1368,8 @@ asmlinkage long sys_sethostname(char __u
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -890,7 +747,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1407,6 +1416,8 @@ asmlinkage long sys_setdomainname(char _
+@@ -1407,6 +1415,8 @@ asmlinkage long sys_setdomainname(char _
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -901,15 +758,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	errno = -EFAULT;
 --- linux-2.6.24-28.81.orig/kernel/sysctl.c
 +++ linux-2.6.24-28.81/kernel/sysctl.c
-@@ -50,6 +50,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/processor.h>
-+#include <linux/ccsecurity.h>
- 
- #ifdef CONFIG_X86
- #include <asm/nmi.h>
-@@ -1391,6 +1392,7 @@ char *sysctl_pathname(ctl_table *table, 
+@@ -1391,6 +1391,7 @@ char *sysctl_pathname(ctl_table *table, 
  EXPORT_SYMBOL(sysctl_pathname);
  
  #ifdef CONFIG_SYSCTL_SYSCALL
@@ -917,7 +766,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1407,6 +1409,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1407,6 +1408,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -929,15 +778,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		if (error != -ENOTDIR) {
 --- linux-2.6.24-28.81.orig/kernel/time.c
 +++ linux-2.6.24-28.81/kernel/time.c
-@@ -38,6 +38,7 @@
- 
- #include <asm/uaccess.h>
- #include <asm/unistd.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * The timezone where the local system is located.  Used as a default by some
-@@ -86,6 +87,8 @@ asmlinkage long sys_stime(time_t __user 
+@@ -86,6 +86,8 @@ asmlinkage long sys_stime(time_t __user 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -946,7 +787,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -155,6 +158,8 @@ int do_sys_settimeofday(struct timespec 
+@@ -155,6 +157,8 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -1134,16 +975,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	copied = len;
 --- linux-2.6.24-28.81.orig/net/socket.c
 +++ linux-2.6.24-28.81/net/socket.c
-@@ -94,6 +94,8 @@
- #include <net/sock.h>
- #include <linux/netfilter.h>
- 
-+#include <linux/ccsecurity.h>
-+
- static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
- static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
- 			 unsigned long nr_segs, loff_t pos);
-@@ -551,6 +553,8 @@ static inline int __sock_sendmsg(struct 
+@@ -551,6 +551,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1152,7 +984,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (err)
  		return err;
  
-@@ -1107,6 +1111,8 @@ static int __sock_create(struct net *net
+@@ -1107,6 +1109,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1161,7 +993,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (err)
  		return err;
  
-@@ -1338,6 +1344,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1338,6 +1342,11 @@ asmlinkage long sys_bind(int fd, struct 
  						   (struct sockaddr *)address,
  						   addrlen);
  			if (!err)
@@ -1173,7 +1005,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      address, addrlen);
-@@ -1367,6 +1378,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1367,6 +1376,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1182,7 +1014,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1430,6 +1443,10 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1430,6 +1441,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1193,7 +1025,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1492,6 +1509,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1492,6 +1507,9 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1205,15 +1037,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
 --- linux-2.6.24-28.81.orig/net/unix/af_unix.c
 +++ linux-2.6.24-28.81/net/unix/af_unix.c
-@@ -116,6 +116,7 @@
- #include <linux/mount.h>
- #include <net/checksum.h>
- #include <linux/security.h>
-+#include <linux/ccsecurity.h>
- 
- int sysctl_unix_max_dgram_qlen __read_mostly = 10;
- 
-@@ -839,6 +840,9 @@ static int unix_bind(struct socket *sock
+@@ -839,6 +839,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
@@ -1223,7 +1047,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, nd.mnt, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1670,6 +1674,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1670,6 +1673,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible_sync(&u->peer_wait);
  
