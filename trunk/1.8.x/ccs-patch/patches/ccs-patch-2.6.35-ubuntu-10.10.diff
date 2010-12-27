@@ -10,7 +10,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  include/linux/sched.h     |    6 +
  include/linux/security.h  |   58 ++++++++++--------
  include/net/ip.h          |    2 
- kernel/fork.c             |    6 +
+ kernel/fork.c             |    5 +
  kernel/kexec.c            |    3 
  kernel/module.c           |    5 +
  kernel/ptrace.c           |    4 +
@@ -27,7 +27,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  security/Kconfig          |    2 
  security/Makefile         |    3 
  security/security.c       |  144 ++++++++++++++++++++++++++++++++++++++--------
- 25 files changed, 256 insertions(+), 51 deletions(-)
+ 25 files changed, 255 insertions(+), 51 deletions(-)
 
 --- linux-2.6.35-23.41.orig/fs/compat.c
 +++ linux-2.6.35-23.41/fs/compat.c
@@ -342,15 +342,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
 --- linux-2.6.35-23.41.orig/kernel/fork.c
 +++ linux-2.6.35-23.41/kernel/fork.c
-@@ -72,6 +72,7 @@
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
-+#include <linux/ccsecurity.h>
- 
- #include <trace/events/sched.h>
- 
-@@ -188,6 +189,7 @@ void __put_task_struct(struct task_struc
+@@ -188,6 +188,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -358,7 +350,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1132,6 +1134,9 @@ static struct task_struct *copy_process(
+@@ -1132,6 +1133,9 @@ static struct task_struct *copy_process(
  
  	if ((retval = audit_alloc(p)))
  		goto bad_fork_cleanup_policy;
@@ -368,7 +360,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1314,6 +1319,7 @@ bad_fork_cleanup_semundo:
+@@ -1314,6 +1318,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
