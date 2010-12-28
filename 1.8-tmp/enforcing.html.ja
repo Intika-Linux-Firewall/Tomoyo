@@ -217,7 +217,7 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <p>Y を押すと許可します。<br>
 N を押すと拒否します。<br>
-R を押すと再試行します。（手作業でドメインポリシーを変更した後などに利用します。）
+R を押すと再試行します。（手作業でドメインポリシーを変更した後などに利用します。）<br>
 S を押すとそのプロセスのドメインポリシーが表示します。<br>
 A を押すと編集した上でドメイン用ポリシーに追加後、再試行します。（先にドメインポリシーを編集することができます。）</p>
 
@@ -227,6 +227,8 @@ A を押すと編集した上でドメイン用ポリシーに追加後、再試
 
 <p>プログラムが必要とするアクセス許可が与えられるようにするために、 ccs-queryd の監視を忘れないようにしてください。もし、アクセス許可の不足が検出された場合には ccs-queryd に表示されます。</p>
 
+<p>ccs-queryd を終了させるには Ctrl-C を入力してください。</p>
+
 <p>なお、 ccs-queryd はメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずに ccs-savepolicy を実行してポリシーを保存してください。</p>
 
 <table border="1">
@@ -234,8 +236,6 @@ A を押すと編集した上でドメイン用ポリシーに追加後、再試
 [root@tomoyo ~]# /usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
-
-<p>Once policy has been updated, "ccs-queryd" can be stopped with 'Ctrl-C'.</p>
 
 <h3>ccs-queryd の操作例</h3>
 
