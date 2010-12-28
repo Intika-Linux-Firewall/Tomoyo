@@ -144,8 +144,7 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 </td></tr>
 </table>
 
-<p>In this example, "/tmp/RsACr8YD", "/tmp/RsXg3Aav", "/var/spool/clientmqueue/dfoBPETPpH002933", "/var/spool/clientmqueue/dfoBPETf92002944", "/var/spool/clientmqueue/qfoBPETPpH002933", "/var/spool/clientmqueue/qfoBPETf92002944", "/var/spool/clientmqueue/xfoBPETPpH002933" and "/var/spool/clientmqueue/xfoBPETf92002944"
-can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
+<p>In this example, "/tmp/RsACr8YD", "/tmp/RsXg3Aav", "/var/spool/clientmqueue/dfoBPETPpH002933", "/var/spool/clientmqueue/dfoBPETf92002944", "/var/spool/clientmqueue/qfoBPETPpH002933", "/var/spool/clientmqueue/qfoBPETf92002944", "/var/spool/clientmqueue/xfoBPETPpH002933" and "/var/spool/clientmqueue/xfoBPETf92002944" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
 
 <p>First, the type of pattern must be considered. The strings here appear to be random letters. Thus, the \? pattern which matches any one letter (other than '/') and \* pattern which matches zero or more repetition of any letters (other than '/') can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
 
@@ -252,7 +251,7 @@ rewrite tail_pattern /var/spool/clientmqueue/\*
 </td></tr>
 </table>
 
-<p>Then, convert and compare how it was changed:</p>
+<p>Then, convert using "ccs-patternize" command and compare how it was changed using "ccs-diffpolicy" command:</p>
 
 <table border="1">
 <tr><td>
@@ -334,8 +333,6 @@ delete file ioctl pipefs:/[11965] 0x5413<br>
 [root@tomoyo ~]# ccs-diffpolicy /tmp/old-httpd /tmp/new-httpd | ccs-loadpolicy -d
 </td></tr>
 </table>
-</td></tr>
-</table>
 
 <p>will update only "&lt;kernel&gt; /usr/sbin/httpd" and its descendant domains. Also, you may insert a line</p>
 
@@ -343,7 +340,7 @@ delete file ioctl pipefs:/[11965] 0x5413<br>
 domain.starts &lt;kernel&gt; /usr/sbin/httpd
 </pre>
 
-<p>prior to each "rewrite" line so that the conversion is done against only "&lt;kernel&gt; /usr/sbin/httpd" and its descendant domains.</p>
+<p>prior to each "rewrite" line in /etc/ccs/tools/patternize.conf so that the conversion is done against only "&lt;kernel&gt; /usr/sbin/httpd" and its descendant domains.</p>
 
 <hr>
 
