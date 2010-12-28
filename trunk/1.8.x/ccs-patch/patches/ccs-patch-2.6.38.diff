@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.37-rc5.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.37-rc5-next-20101214.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.37-rc7.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.37-rc7-next-20101227.bz2
 ---
  fs/compat.c               |    2 
  fs/exec.c                 |    2 
@@ -42,7 +42,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
-@@ -1438,7 +1438,7 @@ int do_execve(const char * filename,
+@@ -1443,7 +1443,7 @@ int do_execve(const char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -71,7 +71,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.37-rc5-next-20101214 2010/12/15\n");
++	printk(KERN_INFO "Hook version: 2.6.37-rc7-next-20101227 2010/12/28\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -405,7 +405,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2879,6 +2882,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2867,6 +2870,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -436,7 +436,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		ret = ptrace_traceme();
 --- linux-next.orig/kernel/sched.c
 +++ linux-next/kernel/sched.c
-@@ -4600,6 +4600,8 @@ int can_nice(const struct task_struct *p
+@@ -4655,6 +4655,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
