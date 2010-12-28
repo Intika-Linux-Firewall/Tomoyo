@@ -179,6 +179,9 @@ can be considered to be temporary files, thus patterns can be made for these pat
 # For user's convenience, new pattern can be omitted if old pattern is reused
 # for new pattern.
 
+# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
+# representing a ' ' in a word).
+
 # Files on proc filesystem.
 rewrite path_pattern proc:/self/task/\$/fdinfo/\$
 rewrite path_pattern proc:/self/task/\$/fd/\$
