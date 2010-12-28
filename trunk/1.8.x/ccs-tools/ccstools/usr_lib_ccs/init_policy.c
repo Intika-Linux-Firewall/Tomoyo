@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/26
+ * Version: 1.8.0+   2010/12/28
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1186,6 +1186,9 @@ static const char auditd_data[] =
 "# profile=3. If placed after, the audit logs for /usr/sbin/httpd will be\n"
 "# sent to /var/log/tomoyo/reject_003.log .\n"
 "\n"
+"# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
+"# representing a ' ' in a word).\n"
+"\n"
 "# Discard all granted logs.\n"
 "header.contains granted=yes\n"
 "destination     /dev/null\n"
@@ -1260,6 +1263,9 @@ static const char patternize_data[] =
 "# For user's convenience, new pattern can be omitted if old pattern is reused"
 "\n"
 "# for new pattern.\n"
+"\n"
+"# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
+"# representing a ' ' in a word).\n"
 "\n"
 "# Files on proc filesystem.\n"
 "rewrite path_pattern proc:/self/task/\\$/fdinfo/\\$\n"
@@ -1364,7 +1370,9 @@ static const char notifyd_data[] =
 "# The command specified by this parameter must read the policy violation\n"
 "# notifycation from standard input. For example, mail, curl and xmessage\n"
 "# commands can read from standard input.\n"
-"# This parameter is passed to system(), so escape appropriately as needed.\n"
+"# This parameter is passed to execve(). Thus, please use a wrapper program\n"
+"# if you need shell processing (e.g. wildcard expansion, environment\n"
+"# variables).\n"
 "#\n"
 "# minimal_interval is grace time in second before re-notifying the next\n"
 "# occurrence of policy violation. You can specify 60 to limit notifycation\n"
@@ -1372,7 +1380,10 @@ static const char notifyd_data[] =
 "# You can specify 0 to unlimit, but notifying of every policy violation\n"
 "# events (e.g. sending a mail) might annoy you because policy violation\n"
 "# can occur in clusters if once occurred.\n"
-"#\n"
+"\n"
+"# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
+"# representing a ' ' in a word).\n"
+"\n"
 "# Examples:\n"
 "#\n"
 "# time_to_wait 180\n"
@@ -1383,13 +1394,13 @@ static const char notifyd_data[] =
 "#    (if SMTP service is available).\n"
 "#\n"
 "# time_to_wait 0\n"
-"# action_to_take curl --data-binary @- 'https://your.server/path_to_cgi'\n"
+"# action_to_take curl --data-binary @- https://your.server/path_to_cgi\n"
 "#\n"
 "#    Reject the request immediately.\n"
 "#    The occurrence is notified by executing curl command.\n"
 "#\n"
 "time_to_wait 0\n"
-"action_to_take mail root@localhost\n"
+"action_to_take mail -s Notification\\040from\\040ccs-notifyd root@localhost\n"
 "minimal_interval 60\n"
 "\n";
 

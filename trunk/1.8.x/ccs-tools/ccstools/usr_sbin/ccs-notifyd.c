@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/26
+ * Version: 1.8.0+   2010/12/28
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -23,20 +23,21 @@
 #include "ccstools.h"
 #include <sys/wait.h>
 #include <syslog.h>
-#include <time.h>
+#include <poll.h>
 
 #define CCS_NOTIFYD_CONF "/etc/ccs/tools/notifyd.conf"
 
 static const char *proc_policy_query = "/proc/ccs/query";
 static int query_fd = EOF;
 static int time_to_wait = 0;
-static const char *action_to_take = NULL;
+static char **action_to_take = NULL;
 static int minimal_interval = 0;
 
 static void ccs_notifyd_init_rules(const char *filename)
 {
 	FILE *fp = fopen(filename, "r");
 	unsigned int line_no = 0;
+	char *action = NULL;
 	if (!fp) {
 		fprintf(stderr, "Can't open %s for reading.\n", filename);
 		exit(1);
@@ -58,17 +59,33 @@ static void ccs_notifyd_init_rules(const char *filename)
 			continue;
 		if (!*line)
 			goto invalid_rule;
-		if (action_to_take)
+		if (action)
 			goto invalid_rule;
-		action_to_take = strdup(line);
-		if (!action_to_take)
+		action = strdup(line);
+		if (!action)
 			ccs_out_of_memory();
 	}
 	ccs_put();
 	fclose(fp);
-	if (!action_to_take) {
+	if (!action) {
 		fprintf(stderr, "No actions defined in %s .\n", filename);
 		exit(1);
+	}
+	{
+		int count = 0;
+		char *sp = action;
+		while (true) {
+			char *cp = strsep(&sp, " ");
+			action_to_take = realloc(action_to_take,
+						 sizeof(char *) * ++count);
+			if (!action_to_take)
+				ccs_out_of_memory();
+			action_to_take[count - 1] = cp;
+			if (!cp)
+				break;
+			if (!ccs_decode(cp, cp))
+				goto invalid_rule;
+		}
 	}
 	return;
 invalid_rule:
@@ -80,42 +97,48 @@ invalid_rule:
 static void main_loop(void)
 {
 	static char buffer[32768];
-	while (1) {
+	while (query_fd != EOF) {
+		int pipe_fd[2];
 		pid_t pid;
-		while (1) {
-			fd_set rfds;
-			sleep(1);
-			/* Wait for query. */
-			FD_ZERO(&rfds);
-			FD_SET(query_fd, &rfds);
-			select(query_fd + 1, &rfds, NULL, NULL, NULL);
-			if (!FD_ISSET(query_fd, &rfds))
-				continue;
-			/* Read query. */
-			memset(buffer, 0, sizeof(buffer));
-			if (read(query_fd, buffer, sizeof(buffer) - 1) <= 0)
-				continue;
-			break;
+		memset(buffer, 0, sizeof(buffer));
+		while (read(query_fd, buffer, sizeof(buffer) - 1) <= 0) {
+			/* Wait for data. */
+			struct pollfd pfd = {
+				.fd = query_fd,
+				.events = POLLIN,
+			};
+			if (poll(&pfd, 1, -1) == EOF)
+				return;
+		}
+		if (pipe(pipe_fd) == EOF) {
+			syslog(LOG_WARNING, "Can't create pipe.\n");
+			return;
 		}
 		pid = fork();
 		if (pid == -1) {
-			syslog(LOG_WARNING, "Can't execute %s\n",
-			       action_to_take);
+			syslog(LOG_WARNING, "Can't fork().\n");
 			return;
 		}
 		if (!pid) {
-			FILE *fp;
+			int ret_ignored;
 			close(query_fd);
-			fp = popen(action_to_take, "w");
-			if (!fp) {
-				syslog(LOG_WARNING, "Can't execute %s\n",
-				       action_to_take);
-				closelog();
-				_exit(1);
-			}
-			fprintf(fp, "%s\n", buffer);
-			pclose(fp);
-			_exit(0);
+			close(pipe_fd[1]);
+			ret_ignored = close(0);
+			ret_ignored = dup2(pipe_fd[0], 0);
+			close(pipe_fd[0]);
+			execvp(action_to_take[0], action_to_take);
+			syslog(LOG_WARNING, "Can't execute %s\n",
+			       action_to_take[0]);
+			closelog();
+			_exit(1);
+		} else {
+			int ret_ignored;
+			int len = strlen(buffer);
+			close(pipe_fd[0]);
+			/* This is OK because read() < sizeof(buffer). */
+			buffer[len++] = '\n';
+			ret_ignored = write(pipe_fd[1], buffer, len);
+			close(pipe_fd[1]);
 		}
 		while (time_to_wait-- > 0) {
 			int ret_ignored;
@@ -181,8 +204,7 @@ int main(int argc, char *argv[])
 	close(1);
 	close(2);
 	openlog("ccs-notifyd", 0,  LOG_USER);
-	syslog(LOG_WARNING, "Started. (%d, %s)\n", time_to_wait,
-	       action_to_take);
+	syslog(LOG_WARNING, "Started.\n");
 	main_loop();
 	syslog(LOG_WARNING, "Terminated.\n");
 	closelog();
