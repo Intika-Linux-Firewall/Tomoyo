@@ -227,6 +227,8 @@ Press "A" to append the request to domain policy and retry (a chance to edit the
 
 <p>Monitor "ccs-queryd" to make sure programs have the minimum permissions to run properly. If permissions are missing, they will be printed to "ccs-queryd".</p>
 
+<p>Once policy has been updated, "ccs-queryd" can be stopped with 'Ctrl-C'.</p>
+
 <p>Note that "ccs-queryd" directly edits policy currently loaded into the kernel, so run "ccs-savepolicy" to save policy to disk, otherwise policy is lost on shutdown.</p>
 
 <table border="1">
@@ -234,8 +236,6 @@ Press "A" to append the request to domain policy and retry (a chance to edit the
 [root@tomoyo ~]# /usr/sbin/ccs-savepolicy
 </td></tr>
 </table>
-
-<p>Once policy has been updated, "ccs-queryd" can be stopped with 'Ctrl-C'.</p>
 
 <h3>Example output from "ccs-queryd":</h3>
 
