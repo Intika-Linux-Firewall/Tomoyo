@@ -51,7 +51,7 @@
 
 <p><img src="unix-penguin-rejected.png" width="684" height="597"></p>
 
-<p>You can check /proc/ccs/stat for how many times policy violation has occurred and last time policy violation occurred:</p>
+<p>You can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
 <pre>
 [root@tomoyo ~]# cat /proc/ccs/stat
@@ -65,7 +65,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<p>If audit logs were configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration</a>, you can pick up rejected requests from /var/log/tomoyo/reject_003.log .</p>
+<p>If audit logs have been configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration.</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
 
 <table border="1">
 <tr><td>
@@ -84,9 +84,9 @@ file read /bin/cat
 
 <p>The second log reports that opening "/bin/cat" for reading requested by "/bin/sh" which was invoked by "/usr/sbin/httpd". This was rejected because "/bin/sh" tried to open the requested program for reading when that program was not executed.</p>
 
-<p>/usr/sbin/ccs-notifyd is a daemon program that can be used to report the occurrence of a policy violation. For example, run /usr/sbin/ccs-notifyd from /etc/rc.local .</p>
+<p>"/usr/sbin/ccs-notifyd" is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
 
-<p>Configuration is specified in /etc/ccs/tools/notifyd.conf file, as shown below:</p>
+<p>Configuration is specified in the "/etc/ccs/tools/notifyd.conf" file, as shown below:</p>
 
 <pre>
 # This file contains configuration used by ccs-notifyd command.
@@ -142,7 +142,7 @@ action_to_take mail -s Notification\040from\040ccs-notifyd root@localhost
 minimal_interval 60
 </pre>
 
-<p>Modify action_to_take line as you want and start /usr/sbin/ccs-notifyd .</p>
+<p>Modify the "action_to_take" line as required and start "/usr/sbin/ccs-notifyd".</p>
 
 <p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):</p>
 
@@ -215,11 +215,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/cups" attempted to execute "/bin/sleep" in order to process the command "sleep 1". Usually this would be instantly denied, but since "ccs-queryd" is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
 
-<p>Press "Y" to grant the request.<br>
-Press "N" to reject the request.<br>
-Press "R" to retry the request (for example after editing domain policy manually).<br>
-Press "S" to show domain policy for the process.<br>
-Press "A" to append the request to domain policy and retry (a chance to edit the request is given first).</p>
+<p>Press <b>"Y"</b> to grant the request.<br>
+Press <b>"N"</b> to reject the request.<br>
+Press <b>"R"</b> to retry the request (for example after editing domain policy manually).<br>
+Press <b>"S"</b> to show domain policy for the process.<br>
+Press <b>"A"</b> to append the request to domain policy and retry (a chance to edit the request is given first).</p>
 
 <p>Do not grant access requests unconditionally. Policy violations are not always due to updating packages, but may be malicious requests by attackers.</p>
 
