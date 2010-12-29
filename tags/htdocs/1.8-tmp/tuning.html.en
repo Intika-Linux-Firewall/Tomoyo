@@ -17,21 +17,23 @@
 
 <h2>Step 1: Reviewing gathered permissions</h2>
 
-<p>After you came to think you have done roughly everything you want to allow Apache to do, run the policy editor and change the profile number to 2. Note that Apache may have executed some external programs (e.g. /bin/sh , /usr/bin/perl , /usr/lib/sendmail) and thus has descendant domains. Be sure to change the profile number for descendant domains if any as well as the /usr/sbin/httpd domain.</p>
+<p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.<p>
 
-<p>Choose target domains and press 's' key and enter '2' and press 'Enter' key.</p>
+<p>Note that Apache may have executed some external programs (e.g. "/bin/sh", "/usr/bin/perl", "/usr/lib/sendmail") and thus has some descendent domains. Be sure to change the profile number fo all descendent domains as well.</p>
+
+<p>Choose target domains and press 's' key and enter '2' and press 'Enter' key:</p>
 
 <p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
 
-<p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 2.</p>
+<p>Now the profile number of the "/usr/sbin/httpd" domain and its descendants have changed to 2:</p>
 
 <p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
 
-<p>Press 'q' key to quit the policy editor. Redo whatever you want to allow Apache to do.</p>
+<p>Press 'q' key to quit the policy editor. Redo whatever you want to allow Apache to do:</p>
 
 <p><img src="operation-permissive.png" width="723" height="561"></p>
 
-<p>You can check /proc/ccs/stat for how many times policy violation has occurred and last time policy violation occurred:</p>
+<p>You can check "/proc/ccs/stat" for how many times policy violation has occurred and the last time a policy violation occurred:</p>
 
 <pre>
 [root@tomoyo ~]# cat /proc/ccs/stat
@@ -45,7 +47,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration.</a>, you can pick up necessary permissions from /var/log/tomoyo/reject_002.log .</p>
+<p>If audit logs have been configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration.</a>, necessary permissions can be picked up from "/var/log/tomoyo/reject_002.log":</p>
 
 <table border="1">
 <tr><td>
@@ -148,7 +150,7 @@ file read /etc/group
 </td></tr>
 </table>
 
-<p>You can compress these logs using "ccs-sortpolicy" command.</p>
+<p>These can be compressed with the "ccs-sortpolicy" command:</p>
 
 <table border="1">
 <tr><td>
@@ -190,7 +192,7 @@ use_group 0
 </td></tr>
 </table>
 
-<p>You can save the compressed logs into a temporary file. Then, you can edit as you need and append to currently used policy in the kernel using "ccs-loadpolicy" command.</p>
+<p>These compressed logs can be saved into a temporary file. These can then be edited as required and appended to current policy using the "ccs-loadpolicy" command:</p>
 
 <table border="1">
 <tr><td>
@@ -200,7 +202,7 @@ use_group 0
 </td></tr>
 </table>
 
-<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save exception_policy.conf , domain_poilicy.conf , profile.conf and manager.conf using "ccs-savepolicy" command.</p>
+<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save "exception_policy.conf", "domain_poilicy.conf", "profile.conf" and "manager.conf" using this command:</p>
 
 <table border="1">
 <tr><td>
@@ -233,7 +235,7 @@ path_group HOME-SMB-DIR  /home/\*/samba/\{\*\}/
 </td></tr>
 </table>
 
-<p>If a non-anonymous FTP service needs to be protected, conditions can be added to forbid access to directories outside the user's home directory. It is recommended to expose only directories under a specific directory rather than the whole home directory to limit damage if the service is compromised. For example, if vsftpd is used, the following may be added to domain policy:</p>
+<p>If a non-anonymous FTP service needs to be protected, conditions can be added to forbid access to directories outside the user's home directory. It is recommended to expose only directories under a specific directory rather than the whole home directory to limit damage if the service is compromised. For example, if "/usr/sbin/vsftpd" is used, the following may be added to domain policy:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -312,7 +314,7 @@ file execute /bin/bash exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=
 
 <p>See <a href="policy-reference.html.en#conditional_acl">Using conditional ACL</a> for details on the conditionals supported.</p>
 
-<p>For your information, you can generate finest grained access logs by applying "convert-audit-log" command before applying "ccs-sortpolicy" command. However, access logs converted by "convert-audit-log" command are not suitable for appending to domain policy because they are too strict to use. You will have to loosen conditions as needed if you want to append access logs converted by "convert-audit-log" command to domain policy.</p>
+<p>Please note that very fine grained access logs can be generated by running "convert-audit-log" before running "ccs-sortpolicy". However, the access logs created with this method are too strict for appending to domain policy. If you wish to do so, the conditions must first be loosened. This shows example output:</p>
 
 <table border="1">
 <tr><td>
