@@ -44,7 +44,9 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
-<p>If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain". See <a href="tool-editpolicy.html.en#Initialize_domain_transition">Initialize domain transition</a> for more information.</p>
+<p>If "/usr/sbin/httpd" is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <b>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</b></p>
+
+<p>If "/usr/sbin/httpd" has been registered with the "initialize_domain" directive, then execution of "/usr/sbin/httpd" will always have the domain <b>"&lt;kernel&gt; /usr/sbin/httpd"</b> regardless of which domain invoked it. This manual assumes that "/usr/sbin/httpd" has been registered with the "initialize_domain" directive. See <a href="tool-editpolicy.html.en#Initialize_domain_transition">Initialize domain transition</a> for more information.</p>
 
 <p>Press 's' key and enter '1' and press 'Enter' key:</p>
 
@@ -72,7 +74,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>Run the policy editor again and go to the /usr/sbin/httpd line. The line number may have changed due to the creation of new domains from executed programs.</p>
+<p>Run the policy editor again and go to the "/usr/sbin/httpd" line. The line number may have changed due to the creation of new domains from executed programs.</p>
 
 <p>Press 'Enter' key to browse the permissions that have been gathered:</p>
 
@@ -84,9 +86,9 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="operation-learning.png" width="689" height="907"></p>
 
-<p>Be sure to sometimes save policy, for necessary permissions are accumulated on only kernel memory. If you reboot the system, all gathered permissions will be lost.</p>
+<p>Remember to save policy, as permissions are accumulated only in kernel memory. If the system is rebooted, the gathered permissions will be lost.</p>
 
-<p>To save the policy currently in the kernel onto the disk, use "ccs-savepolicy" command.</p>
+<p>To save policy to disk, use the following command:</p>
 
 <table border="1">
 <tr><td>
@@ -94,9 +96,9 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose pathnames contain the creation time.</p>
+<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/ccs/" directory. To be accurate, they are symbolic links to text files whose pathnames contain the creation time.</p>
 
-<p>To load the policy currently on the disk into the kernel, use "ccs-loadpolicy" command.</p>
+<p>To load the policy currently on the disk into the kernel, use the "ccs-loadpolicy" command:</p>
 
 <table border="1">
 <tr><td>
@@ -107,9 +109,14 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>The "-df" option means overwrite /proc/ccs/domain_policy . The "-ef" option means overwrite /proc/ccs/exception_policy . The "-p" option means append to /proc/ccs/profile . The "-m" option means append to /proc/ccs/manager . Of course, you can load only you want to load. For avoiding fatal mistakes, "-pf" and "-mf" are not supported.</p>
+<p>The <b>"-df" option means overwrite "/proc/ccs/domain_policy".<br>
+The <b>"-ef"</b> option means overwrite "/proc/ccs/exception_policy".<br>
+The <b>"-p"</b> option means append to "/proc/ccs/profile".<br>
+The <b>"-m"</b> option means append to "/proc/ccs/manager".</p>
 
-<p>You might see warning messages like below printed on the console.</p>
+<p>For avoiding fatal mistakes, "-pf" and "-mf" are not supported.</p>
+
+<p>You might see warning messages like below printed on the console:</p>
 
 <table border="1">
 <tr><td>
@@ -117,7 +124,9 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 </td></tr>
 </table>
 
-<p>This is a safeguard for protecting your system from consuming all memory for learning mode and becoming unusably slow due to comparison with already learned permissions. You may increase max_learning_entry= values in profiles. But blindly increasing max_learning_entry= values will consume more memory and slows down your system. Therefore, you should try tuning policy before increasing max_learning_entry= values. Steps for tuning policy are described below.</p>
+<p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If Learning Mode did not have a limit, the system may become unusably slow due to comparison with already learned permissions.</p>
+
+<p>This limit can be increased with the "max_learning_entry=" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described below, and doing so can reduce the size of domain policy to become more manageable and thus negating the need to increase the "max_learning_entry=" value.</p>
 
 <hr>
 
@@ -314,9 +323,9 @@ delete file ioctl pipefs:/[11965] 0x5413<br>
 </td></tr>
 </table>
 
-<p>In case the conversion was not done as you meant, you may directly edit /tmp/new using text editor or retry conversion after editing /etc/ccs/tools/patternize.conf file.</p>
+<p>In case the conversion did not achieve the desired result, "/tmp/new" can be edited with a text editor manually, or conversion can be retried after editing "/etc/ccs/tools/patternize.conf".</p>
 
-<p>If you think conversion is done as you meant, you can apply these changes by loading the difference:</p>
+<p>If the conversion has achieved the desired result, the changes can be applied to existing policy by loading the difference between the two:</p>
 
 <table border="1">
 <tr><td>
@@ -324,7 +333,7 @@ delete file ioctl pipefs:/[11965] 0x5413<br>
 </td></tr>
 </table>
 
-<p>For your information, if you want to convert only specific domains, you can pick up domains using "/usr/sbin/ccs-selectpolicy" command. For example:</p>
+<p>To convert only specific domains, the "/usr/sbin/ccs-selectpolicy" command can be used. For example, to update only "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains, do the following:</p>
 
 <table border="1">
 <tr><td>
@@ -334,13 +343,11 @@ delete file ioctl pipefs:/[11965] 0x5413<br>
 </td></tr>
 </table>
 
-<p>will update only "&lt;kernel&gt; /usr/sbin/httpd" and its descendant domains. Also, you may insert a line</p>
+<p>Conversion of a specific domain can also be managed by editing "/etc/ccs/tools/patternize.conf". The following line can be inserted before the "rewrite" line so that conversion is only done against "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains:</p>
 
 <pre>
 domain.starts &lt;kernel&gt; /usr/sbin/httpd
 </pre>
-
-<p>prior to each "rewrite" line in /etc/ccs/tools/patternize.conf so that the conversion is done against only "&lt;kernel&gt; /usr/sbin/httpd" and its descendant domains.</p>
 
 <hr>
 
@@ -417,7 +424,7 @@ file read @WEB-CONTENTS
 </td></tr>
 </table>
 
-<p>You can do above conversion using /usr/sbin/ccs-editpolicy , but you may do this conversion using /usr/sbin/ccs-patternize . You can append</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "path_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to Step 3:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -432,8 +439,6 @@ domain.equals &lt;kernel&gt; /usr/sbin/httpd
 acl.starts file read
 rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 </pre>
-
-<p>to /etc/ccs/tools/patternize.conf and do like Step 3. But be sure to add path_group to the exception policy because /usr/sbin/ccs-patternize deals only the domain policy.</p>
 
 <hr>
 
@@ -478,15 +483,13 @@ network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 </td></tr>
 </table>
 
-<p>You can do above conversion using /usr/sbin/ccs-editpolicy , but you may do this conversion using /usr/sbin/ccs-patternize . You can append</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "number_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to Step 3:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
 acl.starts network inet stream accept
 rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 </pre>
-
-<p>to /etc/ccs/tools/patternize.conf and do like Step 3. But be sure to add number_group to the exception policy.</p>
 
 <hr>
 
@@ -535,7 +538,7 @@ network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </td></tr>
 </table>
 
-<p>You can do above conversion using /usr/sbin/ccs-editpolicy , but you may do this conversion using /usr/sbin/ccs-patternize . You can append</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "address_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to Step 3:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -550,8 +553,6 @@ domain.equals &lt;kernel&gt; /usr/sbin/httpd
 acl.starts network inet stream accept
 rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 </pre>
-
-<p>to /etc/ccs/tools/patternize.conf and do like Step 3. But be sure to add address_group to the exception policy.</p>
 
 <hr>
 
