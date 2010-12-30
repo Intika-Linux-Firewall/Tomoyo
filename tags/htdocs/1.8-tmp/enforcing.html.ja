@@ -191,7 +191,7 @@ file execute /bin/cat
 
 <p>実際の操作手順について以下のムービーで紹介しています。</p>
 
-<p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
+<p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
 <p>ポリシーに違反したアクセス要求を処理するために /usr/sbin/ccs-queryd コマンドを利用します。</p>
 
@@ -206,14 +206,14 @@ Monitoring /proc/ccs/query . Press Ctrl-C to terminate.<br>
 
 <table border="1">
 <tr><td>
-#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
-&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
 file execute /bin/sleep<br>
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
-<p>上記の例は、 &lt;kernel&gt; /etc/rc.d/init.d/cups というドメインに属しているプロセスが sleep 1 というコマンドラインを処理するために /bin/sleep の実行を要求したが、ポリシーによって拒否されたことを示しています。通常であればポリシーに違反したアクセス要求は直ちに拒否されますが、 ccs-queryd が動作しているため、カーネルはあなたの判断を仰いでいることを示しています。</p>
+<p>上記の例は、 &lt;kernel&gt; /etc/rc.d/init.d/sshd というドメインに属しているプロセスが sleep 1 というコマンドラインを処理するために /bin/sleep の実行を要求したが、ポリシーによって拒否されたことを示しています。通常であればポリシーに違反したアクセス要求は直ちに拒否されますが、 ccs-queryd が動作しているため、カーネルはあなたの判断を仰いでいることを示しています。</p>
 
 <p>Y を押すと許可します。<br>
 N を押すと拒否します。<br>
@@ -241,79 +241,117 @@ A を押すと編集した上でドメイン用ポリシーに追加後、再試
 
 <table border="1">
 <tr><td>
-#2010-01-10 12:27:10# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1766 major=0 minor=17 perm=0666 type=char dev_major=1 dev_minor=3 } path1.parent={ uid=0 gid=0 ino=962 perm=0755 }<br>
+#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
 &lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
-file ioctl /dev/null 0x5401<br>
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s<br>
-# select global-pid=4210<br>
-&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
-use_profile 3<br>
-<br>
-file read /bin/bash<br>
-file read /dev/tty<br>
-file write /dev/tty<br>
-file read /dev/pts/\$<br>
-file write /dev/pts/\$<br>
-file read /usr/lib/locale/locale-archive<br>
-file read /etc/nsswitch.conf<br>
-file read /etc/passwd<br>
-file read /etc/rc.d/init.d/sshd<br>
-file read /etc/rc.d/init.d/functions<br>
-file execute /sbin/consoletype exec.realpath="/sbin/consoletype" exec.argv[0]="/sbin/consoletype"<br>
-file read /etc/profile.d/lang.sh<br>
-file read /etc/sysconfig/i18n<br>
-file read /etc/sysconfig/init<br>
-file execute /sbin/runlevel exec.realpath="/sbin/runlevel" exec.argv[0]="runlevel"<br>
-file execute /bin/cp exec.realpath="/bin/cp" exec.argv[0]="cp"<br>
-file execute /usr/sbin/sshd exec.realpath="/usr/sbin/sshd" exec.argv[0]="/usr/sbin/sshd"<br>
-file execute /bin/touch exec.realpath="/bin/touch" exec.argv[0]="touch"<br>
-file read /dev/console<br>
-file write /dev/console<br>
-file execute /bin/unicode_start exec.realpath="/bin/unicode_start" exec.argv[0]="/bin/unicode_start"<br>
-file read /var/run/sshd.pid<br>
-file write /dev/null<br>
-ipc signal 15 &lt;kernel&gt; /usr/sbin/sshd<br>
-file execute /bin/usleep exec.realpath="/bin/usleep" exec.argv[0]="usleep"<br>
-file execute /bin/rm exec.realpath="/bin/rm" exec.argv[0]="rm"<br>
-file execute /usr/bin/killall exec.realpath="/usr/bin/killall" exec.argv[0]="killall"<br>
-file execute /usr/bin/rhgb-client exec.realpath="/usr/bin/rhgb-client" exec.argv[0]="/usr/bin/rhgb-client"<br>
-file execute /bin/sleep exec.realpath="/bin/sleep" exec.argv[0]="sleep"<br>
-ipc signal 1 &lt;kernel&gt; /usr/sbin/sshd<br>
-file ioctl /dev/console 0x5401<br>
-file ioctl /etc/rc.d/init.d/sshd 0x5401<br>
-file ioctl /var/run/sshd.pid 0x5401<br>
-file ioctl /dev/pts/\$ 0x5401<br>
-<br>
-<br>
-#2010-01-10 12:27:20# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1766 major=0 minor=17 perm=0666 type=char dev_major=1 dev_minor=3 } path1.parent={ uid=0 gid=0 ino=962 perm=0755 }<br>
-&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
-file ioctl /dev/null 0x5401<br>
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
-Enter new entry&gt; file ioctl /dev/null 0x5401<br>
-Added 'file ioctl /dev/null 0x5401'.<br>
-<br>
-----------------------------------------<br>
-#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
-&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
 file execute /bin/sleep<br>
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
-Enter new entry&gt; file execute /bin/sleep exec.argc=2 exec.argv[1]="1"<br>
-Added 'file execute /bin/sleep exec.argc=2 exec.argv[1]="1"'.<br>
-<br>
-#2010-01-10 12:29:58# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=707247 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=688142 perm=0755 }<br>
-&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep<br>
-file read /usr/lib/locale/locale-archive<br>
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
-Enter new entry&gt; file read /usr/lib/locale/locale-archive<br>
-Added 'file read /usr/lib/locale/locale-archive'.<br>
+Enter new entry&gt; file execute /bin/sleep<br>
+Added 'file execute /bin/sleep'.<br>
 <br>
 ----------------------------------------<br>
-#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=955698 major=8 minor=1 perm=0666 type=socket } path1.parent={ uid=0 gid=0 ino=950312 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/acpid<br>
-file unlink /var/run/acpid.socket<br>
+#2010/12/30 00:22:12# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster<br>
+file read /usr/share/zoneinfo/posix/Pacific/Pohnpei<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s<br>
+# select global-pid=11937<br>
+&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster<br>
+use_profile 3<br>
+use_group 0<br>
+<br>
+network unix stream connect /var/run/nscd/socket<br>
+file read /usr/lib/locale/locale-archive<br>
+file read /var/lib/pgsql/data/postgresql.conf<br>
+file read /var/lib/pgsql/data/PG_VERSION<br>
+file read /var/lib/pgsql/data/global/pg_control<br>
+file write /var/lib/pgsql/data/global/pg_control<br>
+file create /var/lib/pgsql/data/postmaster.pid 0600<br>
+file read /var/lib/pgsql/data/postmaster.pid<br>
+file write /var/lib/pgsql/data/postmaster.pid<br>
+file unlink /var/lib/pgsql/data/postmaster.pid<br>
+file read /usr/share/zoneinfo/MST7MDT<br>
+(...snipped...)<br>
+file read /usr/share/zoneinfo/EST5EDT<br>
+network inet stream bind 127.0.0.1 5432<br>
+network inet stream listen 127.0.0.1 5432<br>
+file create /tmp/.s.PGSQL.5432.lock 0600<br>
+file read /tmp/.s.PGSQL.5432.lock<br>
+file write /tmp/.s.PGSQL.5432.lock<br>
+file unlink /tmp/.s.PGSQL.5432.lock<br>
+file unlink /tmp/.s.PGSQL.5432<br>
+network unix stream bind /tmp/.s.PGSQL.5432<br>
+network unix stream listen /tmp/.s.PGSQL.5432<br>
+file mksock /tmp/.s.PGSQL.5432 0700<br>
+file chmod /tmp/.s.PGSQL.5432 0777<br>
+file write /var/lib/pgsql/data/postmaster.opts<br>
+file truncate /var/lib/pgsql/data/postmaster.opts<br>
+file mkdir /var/lib/pgsql/data/pg_log/ 0700<br>
+file append /var/lib/pgsql/data/pg_log/postgresql-Wed.log<br>
+network inet dgram bind 127.0.0.1 0<br>
+file read /var/lib/pgsql/data/pg_hba.conf<br>
+file read /var/lib/pgsql/data/pg_ident.conf<br>
+file read /var/lib/pgsql/data/pg_xlog/000000010000000000000000<br>
+file write /var/lib/pgsql/data/pg_xlog/000000010000000000000000<br>
+file read /var/lib/pgsql/data/pg_clog/0000<br>
+file write /var/lib/pgsql/data/pg_clog/0000<br>
+file read /var/lib/pgsql/data/pg_multixact/offsets/0000<br>
+file write /var/lib/pgsql/data/pg_multixact/offsets/0000<br>
+file read /var/lib/pgsql/data/global/pg_fsm.cache<br>
+file write /var/lib/pgsql/data/global/pg_fsm.cache<br>
+file unlink /var/lib/pgsql/data/global/pg_fsm.cache<br>
+file read /var/lib/pgsql/data/global/1262<br>
+file write /var/lib/pgsql/data/global/1262<br>
+file read /var/lib/pgsql/data/global/1260<br>
+file write /var/lib/pgsql/data/global/1260<br>
+file read /var/lib/pgsql/data/global/1261<br>
+file write /var/lib/pgsql/data/global/1261<br>
+file read /var/lib/pgsql/data/global/pg_auth<br>
+file read /var/lib/pgsql/data/global/pgstat.stat<br>
+file create /var/lib/pgsql/data/global/pgstat.tmp 0666<br>
+file write /var/lib/pgsql/data/global/pgstat.tmp<br>
+file rename /var/lib/pgsql/data/global/pgstat.tmp /var/lib/pgsql/data/global/pgstat.stat<br>
+file read /var/lib/pgsql/data/pg_subtrans/0000<br>
+file write /var/lib/pgsql/data/pg_subtrans/0000<br>
+file create /var/lib/pgsql/data/global/pg_fsm.cache 0666<br>
+file create /var/lib/pgsql/data/global/pg_auth.\$ 0666<br>
+file create /var/lib/pgsql/data/global/pg_database.\$ 0666<br>
+file rename /var/lib/pgsql/data/global/pg_auth.\$ /var/lib/pgsql/data/global/pg_auth<br>
+file rename /var/lib/pgsql/data/global/pg_database.\$ /var/lib/pgsql/data/global/pg_database<br>
+file unlink /var/lib/pgsql/data/base/\$/pg_internal.init<br>
+file write /var/lib/pgsql/data/global/pg_auth.\$<br>
+file write /var/lib/pgsql/data/global/pg_database.\$<br>
+network inet dgram send 127.0.0.1 1024-65535<br>
+network inet dgram recv 127.0.0.1 1024-65535<br>
+<br>
+<br>
+#2010/12/30 00:22:26# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster<br>
+file read /usr/share/zoneinfo/posix/Pacific/Pohnpei<br>
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
-Enter new entry&gt; file unlink /var/run/acpid.socket path1.type=socket<br>
-Added 'file unlink /var/run/acpid.socket path1.type=socket'.
+Enter new entry&gt; file read /usr/share/zoneinfo/\{\*\}/\*<br>
+Added 'file read /usr/share/zoneinfo/\{\*\}/\*'.<br>
+<br>
+----------------------------------------<br>
+#2010/12/30 00:22:23# profile=3 mode=enforcing granted=no (global-pid=11974) task={ pid=11974 ppid=11968 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=524564 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=524555 perm=0755 }<br>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+file read /etc/pki/tls/openssl.cnf<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; file read /etc/pki/tls/openssl.cnf<br>
+Added 'file read /etc/pki/tls/openssl.cnf'.<br>
+<br>
+----------------------------------------<br>
+#2010/12/30 00:22:53# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster<br>
+file create /var/lib/pgsql/data/pg_log/postgresql-Thu.log 0666<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; file create /var/lib/pgsql/data/pg_log/postgresql-\*<br>
+Added 'file create /var/lib/pgsql/data/pg_log/postgresql-\*.log 0666'.<br>
+<br>
+#2010/12/30 00:23:04# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=26 gid=26 ino=426434 major=253 minor=0 perm=0600 type=file } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster<br>
+file append /var/lib/pgsql/data/pg_log/postgresql-Thu.log<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; file append /var/lib/pgsql/data/pg_log/postgresql-\*<br>
+Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.<br>
 </td></tr>
 </table>
 
