@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/28
+ * Version: 1.8.0+   2010/12/31
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -261,7 +261,7 @@ static _Bool ccs_write_log(const int i, char *buffer)
 		}
 	}
 	/*
-	 * This is OK because we read only up to sizeof(buffer) - 1 is bytes.
+	 * This is OK because we read only up to sizeof(buffer) - 1 bytes.
 	 */
 	buffer[len++] = '\n';
 	if (write(ptr->fd, buffer, len) == len)
