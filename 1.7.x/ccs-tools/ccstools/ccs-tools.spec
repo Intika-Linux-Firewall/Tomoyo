@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.7.2
-Release: 2
+Release: 3
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.2-2
+Conflicts: ccs-tools < 1.7.2-3
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20101122.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20101231.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Fri Dec 31 2010 1.7.2-3
+- Fix regression introduced when fixing old/new inversion bug.
+
 * Mon Nov 22 2010 1.7.2-2
 - ccs-init should ignore EINTR when waiting for child programs to finish.
 - Fix ccs-diffpolicy old/new inversion bug.
