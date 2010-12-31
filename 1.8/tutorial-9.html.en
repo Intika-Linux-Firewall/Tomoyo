@@ -128,7 +128,7 @@ no_keep_domain /usr/bin/ssh from &lt;kernel&gt; /usr/bin/sshd /bin/bash
 
 <h2>Step 4: Start learning mode</h2>
 
-<p>By now, you have finished basic policy configuration. But some of permissions are missing. Thus, let's start learning mode in order to append missing permissions. Run the policy editor and assign profile 1 to the domain for login shell and its descendent domains.  (You may run command listed in Fig. 10 as "root" user instead of running policy editor.)</p>
+<p>By now, you have finished basic policy configuration. But some of permissions are missing. Thus, let's start learning mode in order to append missing permissions. Run the policy editor and assign profile 1 to the domain for login shell and its descendant domains.  (You may run command listed in Fig. 10 as "root" user instead of running policy editor.)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -246,7 +246,7 @@ path_group HOME_DIR /home/\{\*\-.ssh\}/
 
 <h3>Change to permissive mode</h3>
 
-<p>Assign profile 2 to the domain for login shell and its descendent domains using the policy editor. From now on, toggle learning mode (i.e. profile 1) and permissive mode (i.e. profile 2) as needed. Run the policy editor and browse permissions given to the domain for login shell. To be honest, I suggested you incomplete exception policy in the previous installment on purpose in order to explain how to adjust exception policy. Hereafter, you correct policy configuration. Thus, think together while reading on.</p>
+<p>Assign profile 2 to the domain for login shell and its descendant domains using the policy editor. From now on, toggle learning mode (i.e. profile 1) and permissive mode (i.e. profile 2) as needed. Run the policy editor and browse permissions given to the domain for login shell. To be honest, I suggested you incomplete exception policy in the previous installment on purpose in order to explain how to adjust exception policy. Hereafter, you correct policy configuration. Thus, think together while reading on.</p>
 
 <h3>Review domain transition tree</h3>
 
@@ -336,7 +336,7 @@ capability STS_TIME
 
 <h3>Change to enforcing mode</h3>
 
-<p>Assign profile 3 to the domain for login shell and its descendent domains using the policy editor. By default, only "root" user can modify policy configuration. (You can configure to allow non "root" user to modify policy configuration.) If you don't mean to restrict operations by "root" user, you have nothing more to do. But if you want to delegate some of "root" user's operations, it is annoying that the delegated "root" user logs in via SSH and execute the policy editor from the domain for login shell and disable access control. Thus, if you want to allow somebody to login via SSH as "root" user, be sure to delete permissions for executing the policy editor (e.g. ccs-editpolicy and ccs-setprofile ) and permissions for accessing /proc/ccs/\* from the domain for login shell (i.e. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash").</p>
+<p>Assign profile 3 to the domain for login shell and its descendant domains using the policy editor. By default, only "root" user can modify policy configuration. (You can configure to allow non "root" user to modify policy configuration.) If you don't mean to restrict operations by "root" user, you have nothing more to do. But if you want to delegate some of "root" user's operations, it is annoying that the delegated "root" user logs in via SSH and execute the policy editor from the domain for login shell and disable access control. Thus, if you want to allow somebody to login via SSH as "root" user, be sure to delete permissions for executing the policy editor (e.g. ccs-editpolicy and ccs-setprofile ) and permissions for accessing /proc/ccs/\* from the domain for login shell (i.e. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash").</p>
 
 <p>With that, I finish steps for restricting login sessions using TOMOYO Linux.</p>
 

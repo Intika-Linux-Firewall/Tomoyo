@@ -134,10 +134,12 @@ The exceptions to this transition rule are described later.</p>
 (1) Pathname group
 </td><td>
 <p>You can specify pathname groups using "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names.</p>
+<p>By default, ANY_PATHNAME which matches arbitrary pathnames and ANY_DIRECTORY which matches arbitrary directories are defined.</p>
 </td></tr><tr><td>
 (2) Number group
 </td><td>
 <p>You can specify number groups using "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names.</p>
+<p>By default, COMMON_IOCTL_CMDS which matches 0x5401 is defined.</p>
 </td></tr><tr><td>
 (3) Address group
 </td><td>
@@ -146,6 +148,8 @@ The exceptions to this transition rule are described later.</p>
 (4) ACL group
 </td><td>
 <p>You can specify permissions using "acl_group" directive followed by group number and permissions for that group. The ACL group is referenced by "use_group" directive in the domain policy. This is a macro to reduce the amount of domain policy by grouping commonly granted permissions.</p>
+<p>For example, "acl_group 0 file read @ANY_DIRECTORY" grants any domains with "use_group 0" to issue read requests on pathnames in ANY_DIRECTORY path_group (i.e. open arbitrary directory for reading).</p>
+<p>For example, "acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS" grants any domains with "use_group 0" to issue ioctl requests with COMMON_IOCTL_CMDS number_group on pathnames in ANY_PATHNAME path_group (i.e. ioctl requests with 0x5401 on arbitrary pathnames).</p>
 </td></tr><tr><td>
 (5) Program aggregations
 </td><td>
@@ -168,6 +172,7 @@ The exceptions to this transition rule are described later.</p>
 <p>Press "q" key to finish the policy editor.</p>
 
 <p>For more information on usage of the policy editor, see <a href="tool-editpolicy.html.en">How to use Policy Editor</a>.</p>
+
 <p>For more information on the directives, see <a href="policy-reference.html.en">Policy Specifications of TOMOYO Linux</a>.</p>
 
 <hr>
@@ -209,39 +214,76 @@ The exceptions to this transition rule are described later.</p>
 </tr>
 </table>
 
-<p>"/usr/sbin/ccs-auditd is a daemon program that can be used to read from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to files. For example, run the following from /etc/rc.local:</p>
+<p>/usr/sbin/ccs-auditd is a daemon program that can be used to read from /proc/ccs/audit and writes to files. For example, run /usr/sbin/ccs-auditd from /etc/rc.local .</p>
 
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-auditd $grant_log_location $reject_log_location
-</td></tr>
-</table>
+<p>Sorting rules are specified in /etc/ccs/tools/auditd.conf file, as shown below:</p>
+
+<pre>
+# This file contains sorting rules used by ccs-auditd command.
+
+# An audit log consists with three lines. You can refer the first line
+# using 'header' keyword, the second line using 'domain' keyword, and the
+# third line using 'acl' keyword.
+#
+# Words in each line are separated by a space character. Therefore, you can
+# use 'header[index]', 'domain[index]', 'acl[index]' for referring index'th
+# word of the line. The index starts from 1, and 0 refers the whole line
+# (i.e. 'header[0]' = 'header', 'domain[0]' = 'domain', 'acl[0]' = 'acl').
+#
+# Three operators are provided for conditional sorting.
+# '.contains' is for 'fgrep keyword' match.
+# '.equals' is for 'grep ^keyword$' match.
+# '.starts' is for 'grep ^keyword' match.
+#
+# Sorting rules are defined using multi-lined chunks. A chunk is terminated
+# by a 'destination' line which specifies the pathname to write the audit
+# log. A 'destination' line is processed only when all preceding 'header',
+# 'domain' and 'acl' lines in that chunk have matched.
+# Evaluation stops at the first processed 'destination' line.
+# Therefore, no audit logs are written more than once.
+#
+# More specific matches should be placed before less specific matches.
+# For example:
+#
+# header.contains profile=3
+# domain.contains /usr/sbin/httpd
+# destination     /var/log/tomoyo/reject_003_httpd.log
+#
+# This chunk should be placed before the chunk that matches logs with
+# profile=3. If placed after, the audit logs for /usr/sbin/httpd will be
+# sent to /var/log/tomoyo/reject_003.log .
+
+# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
+# representing a ' ' in a word).
+
+# Discard all granted logs.
+header.contains granted=yes
+destination     /dev/null
+
+# Save rejected logs with profile=0 to /var/log/tomoyo/reject_000.log
+header.contains profile=0
+destination     /var/log/tomoyo/reject_000.log
+
+# Save rejected logs with profile=1 to /var/log/tomoyo/reject_001.log
+header.contains profile=1
+destination     /var/log/tomoyo/reject_001.log
+
+# Save rejected logs with profile=2 to /var/log/tomoyo/reject_002.log
+header.contains profile=2
+destination     /var/log/tomoyo/reject_002.log
+
+# Save rejected logs with profile=3 to /var/log/tomoyo/reject_003.log
+header.contains profile=3
+destination     /var/log/tomoyo/reject_003.log
+</pre>
 
 <p>WARNING: Be careful with disk space if "access granted logs" are required as this file can grow extremely quickly.</p>
-
-<p>If "access granted logs" are not required, specify PREFERENCE={ max_grant_log=0 } for profiles and /dev/null for $grant_log_location.</p>
-
-<p>If "access rejected logs" are not required, specify PREFERENCE={ max_reject_log=0 } for profiles and /dev/null for $reject_log_location. However, it is recommended to store "access rejected logs".</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
-</td></tr>
-</table>
-
-<p>Create directories manually for storing access logs.</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# mkdir -p /var/log/tomoyo
-</td></tr>
-</table>
 
 <p>To manage logs with "logrotate", create /etc/logrotate.d/tomoyo with the following content (give "nocreate" option or logs after the first rotation will not be saved):</p>
 
 <table border="1">
 <tr><td>
-/var/log/tomoyo/reject_log.conf {<br>
+/var/log/tomoyo/*.log {<br>
 &nbsp;&nbsp;weekly<br>
 &nbsp;&nbsp;rotate 9<br>
 &nbsp;&nbsp;missingok<br>
@@ -251,7 +293,7 @@ The exceptions to this transition rule are described later.</p>
 </td></tr>
 </table>
 
-<p>If access logs are not required, ccs-auditd need not be run. In this case, give PREFERENCE={ max_grant_log=0 max_reject_log=0 } for profiles to save memory and improve performance.</p>
+<p>If access logs are not required, ccs-auditd need not be run. In this case, give PREFERENCE={ max_audit_log=0 } for profiles to save memory and improve performance. However, it is recommended to store "access rejected logs" because you can utilize "access rejected logs" as source for creating fine grained domain policy.</p>
 
 <hr>
 
