@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.8.0
-Release: 2
+Release: 3
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.8.0-2
+Conflicts: ccs-tools < 1.8.0-3
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101122.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -42,6 +42,12 @@ ldconfig || true
 /usr/share/man/
 
 %changelog
+* Fri Dec 31 2010 1.8.0-3
+- Usability enhancement release.
+- Not compatible with 1.8.0-2 and earlier.
+- Needs ccs-patch 1.8.0-20101231 due to pathname changes in audit interface.
+- Various bugs were fixed and configuration files are introduced.
+
 * Mon Nov 22 2010 1.8.0-2
 - ccs-patternize must print "network " keyword.
 
