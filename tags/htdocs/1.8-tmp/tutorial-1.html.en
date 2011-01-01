@@ -309,7 +309,7 @@ PROFILE_VERSION=20100903
 
 <h3>Saving and loading policy files</h3>
 
-<p>To save policy currently in kernel memory onto disk, run ccs-savepolicy command. (Fig. 21) Two files named exception_policy.conf and domain_policy.conf will be created in /etc/ccs/ directory by executing ccs-savepolicy command.</p>
+<p>To save policy currently in kernel memory onto disk, run ccs-savepolicy command. (Fig. 21) Four files ( exception_policy.conf domain_policy.conf profile.conf manager.conf ) will be created in /etc/ccs/policy/YYYY-MM-DD.hh:mm:ss/ directory by executing ccs-savepolicy command.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -326,12 +326,13 @@ PROFILE_VERSION=20100903
 <tr><td>
 &diams; Fig. 22&nbsp;&nbsp;Loading policy files on disk into kernel memory
 <pre>
-# /usr/sbin/ccs-loadpolicy af
+# /usr/sbin/ccs-loadpolicy -df &lt; /etc/ccs/domain_policy.conf
+# /usr/sbin/ccs-loadpolicy -ef &lt; /etc/ccs/exception_policy.conf
 </pre>
 </td></tr>
 </table>
 
-<p>The "a" option means both exception_policy.conf and domain_policy.conf explained above, and "f" option means "freshen (overwrite)". If you didn't give "f" option, policy files in /etc/ccs/ directory will be appended to current policy in the kernel memory.</p>
+<p>The "f" option means "freshen (overwrite)". If you didn't give "f" option, policy will be appended to current policy in the kernel memory.</p>
 
 <h3>Trailer</h3>
 

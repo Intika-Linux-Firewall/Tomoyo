@@ -236,24 +236,13 @@ file unlink /tmp/abc12345
 
 <h3>アクセスログを保存してみよう</h3>
 
-<p>まず，アクセスログを保存するディレクトリを作成します（図１５）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１５　アクセスログ保存用のディレクトリを作成
-<pre>
-# mkdir -p /var/log/tomoyo
-</pre>
-</td></tr>
-</table>
-
-<p>次に， /etc/rc.d/rc.local に図１６の行を追加します．１番目の引数が「アクセス許可ログ」の保存場所で，２番目の引数が「アクセス拒否ログ」の保存場所です．</p>
+<p>次に， /etc/rc.d/rc.local に図１６の行を追加します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図１６　/etc/rc.d/rc.local を修正
 <pre>
-/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.conf
+/usr/sbin/ccs-auditd
 </pre>
 </td></tr>
 </table>
@@ -264,7 +253,7 @@ file unlink /tmp/abc12345
 <tr><td>
 ■図１７　logrotate によるローテーションの設定（ /etc/logrotate.d/tomoyo ）
 <pre>
-/var/log/tomoyo/reject_log.conf {
+/var/log/tomoyo/*.log {
     weekly
     rotate 9
     missingok
@@ -275,7 +264,7 @@ file unlink /tmp/abc12345
 </td></tr>
 </table>
 
-<p>アクセス許可ログを保存する必要がない場合は，プロファイルで「 PREFERENCE={ max_grant_log=0 } 」という指定をして，アクセス許可ログの保存場所として /dev/null を指定することができます． ccs-auditd にはフィルタリング機能がありませんので，アクセス許可ログを保存する場合はディスク容量に注意してください．アクセス拒否ログを保存する必要がない場合は，プロファイルで「 PREFERENCE={ max_reject_log=0 } 」という指定をして，アクセス拒否ログの保存場所として /dev/null を指定することができます．アクセス拒否ログは保存しておくことを推奨します．アクセス許可ログ／アクセス拒否ログのどちらも保存しない場合には ccs-auditd を実行する必要はありません．また，プロファイルで「 PREFERENCE={ max_grant_log=0 max_reject_log=0 } 」を指定しておくことで，消費メモリの節約と応答速度の向上が期待できます．</p>
+<p>アクセスログを保存する必要がない場合は，プロファイルで「 PREFERENCE={ max_audit_log=0 } 」という指定することができ， ccs-auditd を実行する必要もありません．</p>
 
 <h3>アクセスログを閲覧してみよう</h3>
 

@@ -309,7 +309,7 @@ PROFILE_VERSION=20100903
 
 <h3>ポリシーファイルの保存と読み込み</h3>
 
-<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを実行してください（図２１）． ccs-savepolicy を実行することで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます．</p>
+<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを実行してください（図２１）． ccs-savepolicy を実行することで， /etc/ccs/policy/YYYY-MM-DD.hh:mm:ss/ ディレクトリに exception_policy.conf domain_policy.conf profile.conf manager.conf という４つのファイルが作成されます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -326,12 +326,13 @@ PROFILE_VERSION=20100903
 <tr><td>
 ■図２２　ディスク上のポリシーファイルをカーネルに読み込ませる
 <pre>
-# /usr/sbin/ccs-loadpolicy af
+# /usr/sbin/ccs-loadpolicy -df &lt; /etc/ccs/domain_policy.conf
+# /usr/sbin/ccs-loadpolicy -ef &lt; /etc/ccs/exception_policy.conf
 </pre>
 </td></tr>
 </table>
 
-<p>オプションの a は前述の exception_policy.conf と domain_policy.conf の両方を， f は上書き，を意味しています． f を指定しなかった場合，現在のカーネル内のポリシーにディスク上のポリシーが追加されます．</p>
+<p>オプションの f は上書きを意味しています． f を指定しなかった場合，現在のカーネル内のポリシーに追加されます．</p>
 
 <h3>次回予告</h3>
 

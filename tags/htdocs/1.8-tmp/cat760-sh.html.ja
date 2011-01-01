@@ -459,19 +459,19 @@ boot
 <p>のように実行することにより、ホスト側からポリシーの編集を行うことができます。同様に、ホスト側から</p>
 
 <pre>
-# ccs-auditd xxx.xxx.xxx.xxx:10000 /tmp/grant_log.conf /tmp/reject_log.conf
+# ccs-auditd xxx.xxx.xxx.xxx:10000
 </pre>
 
 <p>のように実行することにより、CAT760 で生成されたアクセスログをホスト側に保存することができます。その他にも、</p>
 
 <pre>
-# ccs-savepolicy xxx.xxx.xxx.xxx:10000 /tmp/ d
+# ccs-savepolicy xxx.xxx.xxx.xxx:10000 -d &gt; /tmp/domain_policy.conf
 </pre>
 
 <p>のように実行することにより、CAT760 側の /proc/ccs/domain_policy の内容をホスト側の /tmp/domain_policy.conf に保存することができ、</p>
 
 <pre>
-# ccs-loadpolicy xxx.xxx.xxx.xxx:10000 /tmp/ d
+# ccs-loadpolicy xxx.xxx.xxx.xxx:10000 -d &lt; /tmp/domain_policy.conf
 </pre>
 
 <p>のように実行することにより、ホスト側の /tmp/domain_policy.conf の内容を CAT760 側の /proc/ccs/domain_policy に追加することができます。</p>
