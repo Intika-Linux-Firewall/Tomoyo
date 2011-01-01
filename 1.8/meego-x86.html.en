@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--<p style="text-align:right;"><a href="meego-x86.html.ja">Japanese Page</a></p>-->
+<p style="text-align:right;"><a href="meego-x86.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 
 <h1>TOMOYO Linux on MeeGo 1.1</h1>
@@ -272,8 +272,7 @@ $ wget http://meego.gitorious.org/meego-developer-tools/meego-emulator-virtiogl-
 $ patch -p1 &lt; linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
 </pre>
 
-<p>Next, create a kernel config file. You can pull it from the MeeGo environment on QEMU
-by doing</p>
+<p>Next, create a kernel config file. You can pull it from the MeeGo environment on QEMU by doing</p>
 
 <pre>
 $ scp -p -P 6666 root@127.0.0.1:/boot/config-\* .config
@@ -364,8 +363,7 @@ $ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
 <p>Initialize TOMOYO Linux's configuration.</p>
 
 <pre>
-# /usr/lib/ccs/init_policy
-# echo "use_profile 1" &gt;&gt; /etc/ccs/domain_policy.conf
+# /usr/lib/ccs/init_policy --use_profile=1
 </pre>
 
 <p>Change bootloader configuration.</p>
