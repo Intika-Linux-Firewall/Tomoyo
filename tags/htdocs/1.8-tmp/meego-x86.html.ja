@@ -1,31 +1,31 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="en-US">
+<html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux Install manual</title>
+<title>TOMOYO Linux 導入手順書</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="meego-x86.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
+<p style="text-align:right;"><a href="meego-x86.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date: 2010-12-28 15:21:03 +0900 (Tue, 28 Dec 2010) $</p>
 
 <h1>TOMOYO Linux on MeeGo 1.1</h1>
 
-<p>This page describes how to run TOMOYO Linux on <a href="http://meego.com/">MeeGo</a>.</p>
+<p>このページでは、 TOMOYO Linux を <a href="http://meego.com/">MeeGo</a> で使う方法について説明します。</p>
 
 <hr>
 
 <ul>
-<li><a href="#step_1">Step 1: Setting up environment for emulator</a></li>
-<li><a href="#step_2">Step 2: Compiling kernel and tools</a></li>
-<li><a href="#step_3">Step 3: Initializing TOMOYO Linux</a></li>
-<li><a href="#step_4">Step 4: Analyzing MeeGo environment</a></li>
+<li><a href="#step_1">ステップ１：エミュレータ環境の構築</a></li>
+<li><a href="#step_2">ステップ２：カーネルおよびツールの構築</a></li>
+<li><a href="#step_3">ステップ３： TOMOYO Linux の初期化</a></li>
+<li><a href="#step_4">ステップ４： MeeGo 環境の解析</a></li>
 </ul>
 
-<h2><a name="step_1">Step 1: Setting up environment for emulator</a></h2>
+<h2><a name="step_1">ステップ１：エミュレータ環境の構築</a></h2>
 
-<p>Download and extract a MeeGo handset UI image file.</p>
+<p>MeeGo handset UI イメージファイルをダウンロードして展開してください。</p>
 
 <pre>
 $ cd
@@ -33,9 +33,9 @@ $ wget http://download3.meego.com/sep03/meego-handset-ia32-1.0.80.9.20100706.1-s
 $ tar -jxf meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0901.tar.bz2 --strip 1
 </pre>
 
-<p>"root" user's password for this image file is "meego".</p>
+<p>このイメージファイルに含まれている root ユーザのパスワードは meego です。</p>
 
-<p>If you are going to use this image file on QEMU, download and install qemu-gl package as shown in <a href="http://wiki.meego.com/MeeGo_SDK_with_QEMU">http://wiki.meego.com/MeeGo_SDK_with_QEMU</a> .</p>
+<p>このイメージファイルを QEMU 上で利用する場合には、 <a href="http://wiki.meego.com/MeeGo_SDK_with_QEMU">http://wiki.meego.com/MeeGo_SDK_with_QEMU</a> の指示に従って qemu-gl パッケージをダウンロードしてインストールしてください。</p>
 
 <pre>
 $ wget http://download3.meego.com/qemu-gl_0.12.4-3_i386.deb
@@ -44,25 +44,25 @@ $ wget http://download3.meego.com/qemugl_cmd.sh
 $ chmod 755 qemugl_cmd.sh
 </pre>
 
-<p>You can boot QEMU like below.</p>
+<p>以下のようにして QEMU を実行してください。</p>
 
 <pre>
 $ ./qemugl_cmd.sh meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0901.raw
 </pre>
 
-<p>If the MeeGo environment shows up correctly, you can proceed to <a href="#step_2">step 2</a>.</p>
+<p>MeeGo 環境が正常に開始された場合、<a href="#step_2">ステップ２</a>へと進んでください。</p>
 
-<p>If you are going to use this image file on VMware, you need to modify this image file a bit.</p>
+<p>このイメージファイルを VMware 上で利用する場合には、若干の修正を行う必要があります。</p>
 
-<p>First, create a VMware virtual machine with 4GB of virtual hard disk.</p>
+<p>まず、４ＧＢの仮想ハードディスクを持った VMware 仮想マシンをさくせいしてください。</p>
 
-<p>Next, boot the virtual machine using LiveCD. For example, you can use <a href="http://releases.ubuntu.com/lucid/ubuntu-10.04.1-desktop-i386.iso">http://releases.ubuntu.com/lucid/ubuntu-10.04.1-desktop-i386.iso</a> (MD5: 9a95ed6f6ec38fb58c446dba1add6a08). If you booted using this ISO file, start the gnome terminal and become "root".</p>
+<p>次に、 <a href="http://releases.ubuntu.com/lucid/ubuntu-10.04.1-desktop-i386.iso">http://releases.ubuntu.com/lucid/ubuntu-10.04.1-desktop-i386.iso</a> (MD5: 9a95ed6f6ec38fb58c446dba1add6a08) などの LiveCD を利用して仮想マシンを起動してください。この ISO ファイルから起動した場合には、 gnome 端末を起動して root ユーザになってください。</p>
 
 <pre>
 $ sudo bash
 </pre>
 
-<p>Check the virtual hard disk's device name. Below case shows that /dev/sda is the virtual hard disk.</p>
+<p>仮想ハードディスクのデバイス名を確認してください。以下の例では /dev/sda が仮想ハードディスクです。</p>
 
 <pre>
 # fdisk -l
@@ -77,7 +77,7 @@ Disk identifier: 0x00000000
 Disk /dev/sda doesn't contain a valid partition table
 </pre>
 
-<p>Retrieve this image file using ssh (or curl or wget or whatever) and write to virtual hard disk. Substitute below vmwarehost with VMware host's IP address.</p>
+<p>ＳＳＨや curl や wget などを利用してこのイメージファイルを取得して、仮想ハードディスクに書き出してください。以下の vmwarehost という文字列は VMware を動作させているホスト側のＩＰアドレスに置き換えてください。</p>
 
 <pre>
 # ssh root@vmwarehost 'cat ~/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0901.raw' &gt; /dev/sda
@@ -94,7 +94,7 @@ Calling ioctl() to re-read partition table.
 Syncing disks.
 </pre>
 
-<p>Then, mount the first partition of the virtual hard disk on /mnt/ .</p>
+<p>次に、その仮想ハードディスクの最初のパーティションを /mnt/ にマウントしてください。</p>
 
 <pre>
 # fdisk -l
@@ -113,13 +113,13 @@ Partition 1 has different physical/logical endings:
 # mount /dev/sda1 /mnt/
 </pre>
 
-<p>Open /etc/X11/xorg.conf-handset in that partition using a text editor.</p>
+<p>マウントしたパーティション内にある /etc/X11/xorg.conf-handset をテキストエディタで開いてください。</p>
 
 <pre>
 # gedit /mnt/etc/X11/xorg.conf-handset
 </pre>
 
-<p>Comment out Driver and BusID lines in the Device section. A diff output is shown below.</p>
+<p>Device セクションにある Driver および BusID 行をコメントアウトしてください。以下に diff 形式の差分を示します。</p>
 
 <pre>
 --- a/etc/X11/xorg.conf-handset
@@ -139,13 +139,13 @@ Partition 1 has different physical/logical endings:
  Section "Screen"
 </pre>
 
-<p>Save the file and quit the text editor. Then, unmount the partition.</p>
+<p>ファイルを保存してエディタを終了してください。そして、パーティションをアンマウントしてください。</p>
 
 <pre>
 # umount /mnt/
 </pre>
 
-<p>Check your IP address. You will need this IP address when logging into MeeGo environment via SSH. Hereafter, I use "meegohost" for referring this IP address.</p>
+<p>ＩＰアドレスを確認してください。このＩＰアドレスはＳＳＨを用いて MeeGo 環境にログインするときに使用します。このページでは以後、このＩＰアドレスを参照するために meegohost という文字列を使用します。</p>
 
 <pre>
 # ifconfig eth0
@@ -161,21 +161,21 @@ eth0      Link encap:Ethernet  HWaddr 00:0c:29:99:19:08
           Interrupt:19 Base address:0x2000
 </pre>
 
-<p>Reboot the system.</p>
+<p>システムを再起動します。</p>
 
 <pre>
 # reboot
 </pre>
 
-<p>If the MeeGo environment shows up correctly, you can proceed to <a href="#step_2">step 2</a>. If it doesn't, check below things.</p>
+<p>MeeGo 環境が正常に開始された場合、<a href="#step_2">ステップ２</a> へと進んでください。問題が生じた場合、以下の内容を確認してください。</p>
 
-<p>Login to the MeeGo environment via SSH using password "meego".</p>
+<p>ＳＳＨを使って MeeGo 環境にログインしてください。パスワードは meego です。</p>
 
 <pre>
 $ ssh root@meegohost
 </pre>
 
-<p>Then, check /var/log/Xorg.log.0 for (EE) lines. If you found "ioctl EVIOCGNAME failed: Inappropriate ioctl for device" line like below, you might need to let X ignore that device.</p>
+<p>次に、 /var/log/Xorg.log.0 に含まれている (EE) という文字列を含む行を確認してください。例えば、以下のように ioctl EVIOCGNAME failed: Inappropriate ioctl for device というエラーが記録されている場合、 X に対してそのデバイスを無視するように伝える必要があるかもしれません。</p>
 
 <pre>
 [    35.030] (II) XKB: reuse xkmfile /var/lib/xkb/server-D378AD8F86E560F712A83EE36E4E5E92C595B9BD.xkm
@@ -215,7 +215,7 @@ $ ssh root@meegohost
 [    35.100] (EE) PreInit returned NULL for "ImPS/2 Generic Wheel Mouse"
 </pre>
 
-<p>To let X ignore a device ("ImPS/2 Generic Wheel Mouse (/dev/input/mouse0)" in above case), add a section like below and reboot the system.</p>
+<p>X に特定のデバイス（上記の例の場合は ImPS/2 Generic Wheel Mouse (/dev/input/mouse0) ）を無視するように指示するには、以下のようなセクションを追加してシステムを再起動してください。</p>
 
 <pre>
 --- a/etc/X11/xorg.conf-handset
@@ -236,13 +236,13 @@ $ ssh root@meegohost
          ### Values: &lt;i&gt;: integer, &lt;f&gt;: float, &lt;bool&gt;: "True"/"False",
 </pre>
 
-<p>Do troubleshooting now before proceeding to next step.</p>
+<p>次のステップに進む前に、現時点までで起きている問題を解決しておいてください。</p>
 
-<h2><a name="step_2">Step 2: Compiling kernel and tools</a></h2>
+<h2><a name="step_2">ステップ２：カーネルおよびツールの構築</a></h2>
 
-<p>Set up environment for compiling kernel and tools. This section assumes Fedora 13 in order to use "rpmbuild" command.</p>
+<p>カーネルおよびツールのコンパイルに必要な環境を用意してください。このセクションでは rpmbuild コマンドを利用できるようにするために Fedora 13 を利用しています。</p>
 
-<p>First, install packages needed for compiling.</p>
+<p>まず、コンパイルに必要なパッケージをインストールします。</p>
 
 <pre>
 $ su -
@@ -250,14 +250,14 @@ $ su -
 # exit
 </pre>
 
-<p>Next, download a kernel source package.</p>
+<p>次に、カーネルのソースパッケージをダウンロードします。</p>
 
 <pre>
 $ cd
 $ wget http://repo.meego.com/MeeGo/builds/1.0.99/1.0.99.2.20101019.1/core/repos/source/kernel-2.6.35.3-10.3.src.rpm
 </pre>
 
-<p>Next, install the package and run preparation stage.</p>
+<p>次に、ソースパッケージをインストールして、準備段階の処理を実行します。</p>
 
 <pre>
 $ rpm -ivh kernel-2.6.35.3-10.3.src.rpm
@@ -265,44 +265,46 @@ $ rpmbuild -bp ~/rpmbuild/SPECS/kernel.spec
 $ cd ~/rpmbuild/BUILD/kernel-2.6.35.3/linux-2.6.35/
 </pre>
 
-<p>If you are going to use this kernel on QEMU, download and apply kernel patch. If you are going to use this kernel on VMware, you don't need to do this.</p>
+<p>このカーネルを QEMU 上で動作させようとしている場合、カーネルパッチをダウンロードして適用してください。このカーネルを VMware 上で動作させようとしている場合にはパッチを当てる必要はありません。</p>
 
 <pre>
 $ wget http://meego.gitorious.org/meego-developer-tools/meego-emulator-virtiogl-x86/blobs/raw/master/linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
 $ patch -p1 &lt; linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
 </pre>
 
-<p>Next, create a kernel config file. You can pull it from the MeeGo environment on QEMU by doing</p>
+<p>次に、カーネルコンフィグを作成します。 QEMU 上で動作している MeeGo 環境から取得するには</p>
 
 <pre>
 $ scp -p -P 6666 root@127.0.0.1:/boot/config-\* .config
 </pre>
 
-<p>or from the MeeGo environment on VMware by doing</p>
+<p>のように、 VMware 上で動作している MeeGo 環境から取得するには</p>
 
 <pre>
 $ scp -p root@meegohost:/boot/config-\* .config
 </pre>
 
-<p>Now, update the kernel config file. If you are going to use this kernel on QEMU, be sure to answer "y" or "m" to "Virtio userspace memory transport".</p>
+<p>のようにしてコピーできます。</p>
+
+<p>次に、カーネルコンフィグをアップデートします。このカーネルを QEMU 上で動作させようとしている場合には、 Virtio userspace memory transport という項目に対して y または m と回答することを忘れないでください。</p>
 
 <pre>
 $ make -s oldconfig
 </pre>
 
-<p>MeeGo kernel is using writeback mode for mounting ext3 filesystem image. But use of writeback mode will corrupt files (e.g. data from deleted files is implicitly imported to previously written files) when QEMU or VMware is suddenly terminated. Change kernel config like below if you want to use ordered mode for mounting ext3 filesystem image.</p>
+<p>MeeGo カーネルは ext3 ファイルシステムイメージをマウントする際に writeback モードを使用しています。しかし、 writeback モードを使用した場合、 QEMU や VMware が突然終了してしまった場合にファイルが損傷（例えば既に削除されたファイルに含まれていたデータが暗黙のうちに直前に書き込まれたファイルの中に取り込まれる）する可能性があります。 ext3 ファイルシステムイメージをマウントする際に ordered モードを使用したい場合には以下のようにカーネルコンフィグを変更してください。</p>
 
 <pre>
 $ sed -i -e 's/# CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set/CONFIG_EXT3_DEFAULTS_TO_ORDERED=y/' -- .config
 </pre>
 
-<p>If you don't mean to debug kernel, you can save compilation time and disk space. Change kernel config like below if you don't mean to debug kernel.</p>
+<p>カーネルのデバッグを行うつもりが無いのであれば、コンパイルに要する時間とディスクスペースを節約することができます。カーネルのデバッグを行うつもりが無いのであれば、以下のようにカーネルコンフィグを変更してください。</p>
 
 <pre>
 $ sed -i -e 's/CONFIG_DEBUG_INFO=y/# CONFIG_DEBUG_INFO is not set/' -- .config
 </pre>
 
-<p>Next, download and apply TOMOYO Linux kernel patch.</p>
+<p>次に、 TOMOYO Linux パッチをダウンロードして適用してください。</p>
 
 <pre>
 $ wget -O ccs-patch-1.8.0-20101231.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101231.tar.gz'
@@ -313,13 +315,13 @@ $ patch -p1 &lt; patches/ccs-patch-2.6.35.diff
 $ cat config.ccs &gt;&gt; .config
 </pre>
 
-<p>Now, build the kernel.</p>
+<p>次に、カーネルをコンパイルしてください。</p>
 
 <pre>
 $ make -s
 </pre>
 
-<p>Download and build the tools.</p>
+<p>ツールをダウンロードしてコンパイルしてください。</p>
 
 <pre>
 $ cd ~/rpmbuild/BUILD/
@@ -328,7 +330,7 @@ $ tar -zxf ccs-tools-1.8.0-20101231.tar.gz
 $ make -sC ccstools/
 </pre>
 
-<p>Create a directory for temporarily holding kernel and tools and copy them.</p>
+<p>一時的にカーネルおよびツールを保持しておくためのディレクトリを作成して、そこにコピーしてください。</p>
 
 <pre>
 $ su
@@ -342,37 +344,39 @@ $ su
 # exit
 </pre>
 
-<p>Copy the kernel and tools. You can push them to the MeeGo environment on QEMU by doing</p>
+<p>カーネルおよびツールをコピーしてください。 QEMU 上で動作している MeeGo 環境へコピーするには</p>
 
 <pre>
 $ cd /tmp/meego/
 $ tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / && tar -zxf -'
 </pre>
 
-<p>or to the MeeGo environment on VMware by doing</p>
+<p>のように、 VMware 上で動作している MeeGo 環境へコピーするには</p>
 
 <pre>
 $ cd /tmp/meego/
 $ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
 </pre>
 
-<h2><a name="step_3">Step 3: Initializing TOMOYO Linux</a></h2>
+<p>のようにしてコピーできます。</p>
 
-<p>Log in to the MeeGo environment via SSH.</p>
+<h2><a name="step_3">ステップ３： TOMOYO Linux の初期化</a></h2>
 
-<p>Initialize TOMOYO Linux's configuration.</p>
+<p>ＳＳＨ経由で MeeGo 環境にログインしてください。</p>
+
+<p>TOMOYO Linux の初期設定を行います。</p>
 
 <pre>
-# /usr/lib/ccs/init_policy --use_profile=1
+# /usr/lib/ccs/init_policy --use_profiel=1
 </pre>
 
-<p>Change bootloader configuration.</p>
+<p>ブートローダの設定を変更します。</p>
 
 <pre>
 # vi /boot/extlinux/extlinux.conf
 </pre>
 
-<p>Edit extlinux.conf like below.</p>
+<p>extlinux.conf を以下のように編集してください。</p>
 
 <pre>
 --- extlinux.conf
@@ -390,32 +394,32 @@ $ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
  	menu default
 </pre>
 
-<p>Save the file and reboot the MeeGo environment.</p>
+<p>ファイルを保存して MeeGo 環境を再起動してください。</p>
 
 <pre>
 # reboot
 </pre>
 
-<h2><a name="step_4">Step 4: Analyzing MeeGo environment</a></h2>
+<h2><a name="step_4">ステップ４： MeeGo 環境の解析</a></h2>
 
-<p>You can operate from SSH session. You can switch to console screen by pressing Alt+F1 key and switch back to graphical screen by Alt+F2 key if you removed "quiet" options from /boot/extlinux/extlinux.conf . Also, you may locate xterm window on graphical screen by doing</p>
+<p>ＳＳＨセッションから操作することができます。 /boot/extlinux/extlinux.conf から quiet オプションを削除すると、 ALT + F1 キーを押すとコンソール画面に、 ALT + F2 キーを押すとグラフィカル画面に切り替えることができるようになります。また、以下のようにするとグラフィカル画面上に xterm を配置することもできます。</p>
 
 <pre>
 # export DISPLAY=:0
 # xterm -into `xwininfo -root -tree -int | awk ' { if ( index($2, "duihome") > 0) print $1; } '`
 </pre>
 
-<p>Below movie demonstrates how you can use TOMOYO Linux for analyzing the MeeGo environment.</p>
+<p>以下の動画では TOMOYO Linux を用いて MeeGo 環境の振る舞いを解析しています。</p>
 
 <object width="640" height="385"><param name="movie" value="http://www.youtube.com/v/H9aZv49d2iw?fs=1&amp;hl=en_US&amp;rel=0"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/H9aZv49d2iw?fs=1&amp;hl=en_US&amp;rel=0" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="640" height="385"></embed></object>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.en">How to use Policy Editor</a>: detailed usage of policy editor</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>：ポリシーエディタの詳細な使い方</li>
 </ul>
 
 <hr>
 
-<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="index.html.ja">目次へ戻る</a></p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
