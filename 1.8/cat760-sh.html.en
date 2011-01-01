@@ -459,19 +459,19 @@ boot
 <p>from the host environment in order to edit policy from the host environment. Similarly, you can run</p>
 
 <pre>
-# ccs-auditd xxx.xxx.xxx.xxx:10000 /tmp/grant_log.conf /tmp/reject_log.conf
+# ccs-auditd xxx.xxx.xxx.xxx:10000
 </pre>
 
 <p>from the host environment in order to save access logs generated on CAT760 in the host environment. Also, you can run</p>
 
 <pre>
-# ccs-savepolicy xxx.xxx.xxx.xxx:10000 /tmp/ d
+# ccs-savepolicy xxx.xxx.xxx.xxx:10000 -d &gt; /tmp/domain_policy.conf
 </pre>
 
 <p>from the host environment in order to save the content of /proc/ccs/domain_policy on CAT760 into /tmp/domain_policy.conf on the host environment, you can run</p>
 
 <pre>
-# ccs-loadpolicy xxx.xxx.xxx.xxx:10000 /tmp/ d
+# ccs-loadpolicy xxx.xxx.xxx.xxx:10000 -d &lt; /tmp/domain_policy.conf
 </pre>
 
 <p>from the host environment in order to append the content of /tmp/domain_policy.conf on the host environment to /proc/ccs/domain_policy on the CAT760 .</p>
