@@ -177,8 +177,8 @@ chmod 755 system/bin/linker lib/libc.so lib/libm.so<br>
 mkdir -p $ANDROID_IMG/tmp/ccs/<br>
 adb shell /sbin/init_policy policy_dir=/data/ccs/<br>
 adb pull /data/ccs/ $ANDROID_IMG/tmp/ccs/<br>
-adb shell rm /data/ccs/\*<br>
-adb shell rmdir /data/ccs/<br>
+rm -fR $ANDROID_IMG/tmp/ccs/tools/ $ANDROID_IMG/tmp/ccs/policy/ $ANDROID_IMG/tmp/ccs/ccs-load-module<br>
+adb shell rm -R /data/ccs/<br>
 adb emu kill
 </td></tr>
 </table>
@@ -201,15 +201,15 @@ echo 'acl_group 0 file read /system/fonts/\*.ttf'<br>
 <br>
 echo 'path_group SYSTEM_APK /system/app/\@.apk'<br>
 <br>
-echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_wmem_min'<br>
-echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_wmem_def'<br>
-echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_wmem_max'<br>
-echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_rmem_min'<br>
-echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_rmem_def'<br>
-echo 'path_group SYS_FILES sys:kernel/ipv4/tcp_rmem_max'<br>
+echo 'path_group SYS_FILES sysfs:/kernel/ipv4/tcp_wmem_min'<br>
+echo 'path_group SYS_FILES sysfs:/kernel/ipv4/tcp_wmem_def'<br>
+echo 'path_group SYS_FILES sysfs:/kernel/ipv4/tcp_wmem_max'<br>
+echo 'path_group SYS_FILES sysfs:/kernel/ipv4/tcp_rmem_min'<br>
+echo 'path_group SYS_FILES sysfs:/kernel/ipv4/tcp_rmem_def'<br>
+echo 'path_group SYS_FILES sysfs:/kernel/ipv4/tcp_rmem_max'<br>
 <br>
-echo 'acl_group 0 file read sys:devices/platform/\*battery\*/power_supply/ac/online'<br>
-echo 'acl_group 0 file read sys:devices/platform/\*battery\*/power_supply/battery/\@'<br>
+echo 'acl_group 0 file read sysfs:/devices/platform/\*battery\*/power_supply/ac/online'<br>
+echo 'acl_group 0 file read sysfs:/devices/platform/\*battery\*/power_supply/battery/\@'<br>
 <br>
 #App. specific data files<br>
 ) &gt;&gt; ccs/exception_policy.conf<br>
