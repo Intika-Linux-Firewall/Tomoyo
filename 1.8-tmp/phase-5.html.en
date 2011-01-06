@@ -9,17 +9,17 @@
 <body>
 <p style="text-align:right;"><a href="enforcing.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>Phase 5: Restricting your system's behavior.</h1>
+<h1>Phase 5: Enforce policy</h1>
 
-<p>This page describes how to use TOMOYO Linux's enforcing mode and how to handle policy violations which may arise.</p>
+<p style="text-align:center;">Aim: to learn how to use "Enforcing Mode" and handle policy violations that may arise.</p>
 
 <hr>
 
-<h2><a name="using_enforcing_mode">Step 1: Enabling enforcing mode</a></h2>
+<h2><a name="#5.1">Step 5.1: Enabling enforcing mode</a></h2>
 
 <p>Once domain and exception policy have been sufficiently modified, the domain can be set to enforcing mode.</p>
 
-<p>Run the policy editor. Select target domains with 'Space' key, press 's' key, enter '3', and press 'Enter':</p>
+<p>Run the policy editor. Select target domains with the "Space" key, press the "s" key, enter "3", and press "Enter":</p>
 
 <p><img src="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
 
@@ -27,7 +27,7 @@
 
 <p><img src="editpolicy-httpd-profile3.png" width="720" height="400"></p>
 
-<p>Press '@' key to switch to the process list. Verify that the "/usr/sbin/httpd" process and descendants are assigned profile number 3:</p>
+<p>Press the "@" key to switch to the process list. Verify that the "/usr/sbin/httpd" process and descendants are assigned profile number 3:</p>
 
 <p><img src="editpolicy-httpd-process3.png" width="720" height="400"></p>
 
@@ -35,9 +35,7 @@
 
 <p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
 
-<p>Press 'q' key to quit the policy editor.</p>
-
-<p>Let's try an operation which is permitted by policy:</p>
+<p>Quit the policy editor and try an operation which is permitted by policy:</p>
 
 <p><img src="operation-permitted.png" width="684" height="912"></p>
 
@@ -51,7 +49,7 @@
 
 <p><img src="unix-penguin-rejected.png" width="684" height="597"></p>
 
-<p>You can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
+<p>Just like in "Permissive Mode", you can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
 <pre>
 [root@tomoyo ~]# cat /proc/ccs/stat
@@ -65,7 +63,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<p>If audit logs have been configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration.</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
+<p>If audit logs have been configured at <a href="phase-2.html.en#2.6">Step 2.6: Save audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
 
 <table border="1">
 <tr><td>
@@ -84,98 +82,17 @@ file read /bin/cat
 
 <p>The second log reports that opening "/bin/cat" for reading requested by "/bin/sh" which was invoked by "/usr/sbin/httpd". This was rejected because "/bin/sh" tried to open the requested program for reading when that program was not executed.</p>
 
-<p>"/usr/sbin/ccs-notifyd" is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
-
-<p>Configuration is specified in the "/etc/ccs/tools/notifyd.conf" file, as shown below:</p>
-
-<pre>
-# This file contains configuration used by ccs-notifyd command.
-
-# ccs-notifyd is a daemon that notifies the occurrence of policy violation
-# in enforcing mode.
-#
-# time_to_wait is grace time in second before rejecting the request that
-# caused policy violation in enforcing mode. For example, if you specify
-# 30, you will be given 30 seconds for starting ccs-queryd command and
-# responding to the policy violation event.
-# If you specify non 0 value, you need to register ccs-notifyd command to
-# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to
-# behave as if ccs-queryd command is running.
-# Also, you should avoid specifying too large value (e.g. 3600) because
-# the request will remain pending for that period if you can't respond.
-#
-# action_to_take is a command line you want to use for notification.
-# The command specified by this parameter must read the policy violation
-# notifycation from standard input. For example, mail, curl and xmessage
-# commands can read from standard input.
-# This parameter is passed to execve(). Thus, please use a wrapper program
-# if you need shell processing (e.g. wildcard expansion, environment
-# variables).
-#
-# minimal_interval is grace time in second before re-notifying the next
-# occurrence of policy violation. You can specify 60 to limit notifycation
-# to once per a minute, 3600 to limit notifycation to once per an hour.
-# You can specify 0 to unlimit, but notifying of every policy violation
-# events (e.g. sending a mail) might annoy you because policy violation
-# can occur in clusters if once occurred.
-
-# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
-# representing a ' ' in a word).
-
-# Examples:
-#
-# time_to_wait 180
-# action_to_take mail admin@example.com
-#
-#    Wait for 180 seconds before rejecting the request.
-#    The occurrence is notified by sending mail to admin@example.com
-#    (if SMTP service is available).
-#
-# time_to_wait 0
-# action_to_take curl --data-binary @- https://your.server/path_to_cgi
-#
-#    Reject the request immediately.
-#    The occurrence is notified by executing curl command.
-#
-time_to_wait 0
-action_to_take mail -s Notification\040from\040ccs-notifyd root@localhost
-minimal_interval 60
-</pre>
-
-<p>Modify the "action_to_take" line as required and start "/usr/sbin/ccs-notifyd".</p>
-
-<p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# mail<br>
-Mail version 8.1 6/6/93.  Type ? for help.<br>
-"/var/spool/mail/root": 1 messages 1 new<br>
-&gt;N  1 root@localhost.local  Sun Dec 26 01:08  18/1211 "Notification from ccs-notifyd"<br>
-&amp;<br>
-Message 1:<br>
-From root@localhost.localdomain  Sun Dec 26 01:08:35 2010<br>
-Date: Sun, 26 Dec 2010 01:08:35 +0900<br>
-From: root &lt;root@localhost.localdomain&gt;<br>
-To: root@localhost.localdomain<br>
-Subject: Notification from ccs-notifyd<br>
-<br>
-Q0-0<br>
-#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
-file execute /bin/cat
-</td></tr>
-</table>
-
-<p>If the enforcing mode profile is configured with "PREFERENCE={ enforcing_penalty=1 }", domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
+<p>If the "Enforcing Mode" profile is configured with "PREFERENCE={ enforcing_penalty=1 }", domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
 
 <p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
+<br>
+
 <hr>
 
-<h2><a name="using_interactive_mode">Step 2: Handling policy violation arising in during software updates</a></h2>
+<h2><a name="#5.2">Step 5.2: Handling policy violations in real-time</a></h2>
 
-<p>When packages are updated, policy may need to be updated if any of the following occur:
+<p>Policy violations can be handled in real time using "/usr/sbin/ccs-queryd". This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:
 
 <ul>
 <li>The pathnames of files have changed.
@@ -185,7 +102,7 @@ file execute /bin/cat
 
 <p>The ideal way to update policy is to rebuild from scratch using learning mode as has been described. However, it is not desirable to change a domain from enforcing mode to learning mode once the system has entered into a production state as this will cause the system to become vulnerable to attack through this unrestricted domain.</p>
 
-<p>Fortunately, TOMOYO Linux provides tools that help administrators update policy while running in enforcing mode. Please note that these tools cannot always support every case and the resulting policy may not be fully optimized.</p>
+<p>Fortunately, "ccs-queryd" can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
 
 <h3>Example usage of "ccs-queryd"</h3>
 
@@ -355,9 +272,123 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.<br>
 </td></tr>
 </table>
 
+<br>
+
 <hr>
 
-<p><a href="index.html.en">Return to index page.</a></p>
+<h2><a name="#5.3">Step 5.3: Notification daemon</a></h2>
+
+<p>"/usr/sbin/ccs-notifyd" is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
+
+<p>Configuration is specified in the "/etc/ccs/tools/notifyd.conf" file, as shown below:</p>
+
+<pre>
+# This file contains configuration used by ccs-notifyd command.
+
+# ccs-notifyd is a daemon that notifies the occurrence of policy violation
+# in enforcing mode.
+#
+# time_to_wait is grace time in second before rejecting the request that
+# caused policy violation in enforcing mode. For example, if you specify
+# 30, you will be given 30 seconds for starting ccs-queryd command and
+# responding to the policy violation event.
+# If you specify non 0 value, you need to register ccs-notifyd command to
+# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to
+# behave as if ccs-queryd command is running.
+# Also, you should avoid specifying too large value (e.g. 3600) because
+# the request will remain pending for that period if you can't respond.
+#
+# action_to_take is a command line you want to use for notification.
+# The command specified by this parameter must read the policy violation
+# notifycation from standard input. For example, mail, curl and xmessage
+# commands can read from standard input.
+# This parameter is passed to execve(). Thus, please use a wrapper program
+# if you need shell processing (e.g. wildcard expansion, environment
+# variables).
+#
+# minimal_interval is grace time in second before re-notifying the next
+# occurrence of policy violation. You can specify 60 to limit notifycation
+# to once per a minute, 3600 to limit notifycation to once per an hour.
+# You can specify 0 to unlimit, but notifying of every policy violation
+# events (e.g. sending a mail) might annoy you because policy violation
+# can occur in clusters if once occurred.
+
+# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
+# representing a ' ' in a word).
+
+# Examples:
+#
+# time_to_wait 180
+# action_to_take mail admin@example.com
+#
+#    Wait for 180 seconds before rejecting the request.
+#    The occurrence is notified by sending mail to admin@example.com
+#    (if SMTP service is available).
+#
+# time_to_wait 0
+# action_to_take curl --data-binary @- https://your.server/path_to_cgi
+#
+#    Reject the request immediately.
+#    The occurrence is notified by executing curl command.
+#
+time_to_wait 0
+action_to_take mail -s Notification\040from\040ccs-notifyd root@localhost
+minimal_interval 60
+</pre>
+
+<p>Modify the "action_to_take" line as required and start "/usr/sbin/ccs-notifyd".</p>
+
+<p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# mail<br>
+Mail version 8.1 6/6/93.  Type ? for help.<br>
+"/var/spool/mail/root": 1 messages 1 new<br>
+&gt;N  1 root@localhost.local  Sun Dec 26 01:08  18/1211 "Notification from ccs-notifyd"<br>
+&amp;<br>
+Message 1:<br>
+From root@localhost.localdomain  Sun Dec 26 01:08:35 2010<br>
+Date: Sun, 26 Dec 2010 01:08:35 +0900<br>
+From: root &lt;root@localhost.localdomain&gt;<br>
+To: root@localhost.localdomain<br>
+Subject: Notification from ccs-notifyd<br>
+<br>
+Q0-0<br>
+#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+file execute /bin/cat
+</td></tr>
+</table>
+
+<br>
+
+<div class=navfooter>
+<hr align="left" width="100%">
+<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="top">
+<a href="phase-4.html.en">Prev</a>
+</td>
+<td width="34%" align="center" valign="top">
+<a href="index.html.en">Index</a>
+</td>
+<td width="33%" align="right" valign="top">
+<a href="phase-6.html.en">Next</a>
+</td></tr>
+<tr><td width="33%" align="left" valign="top">
+Phase 4: Develop policy
+</td>
+<td width="34%" align="center" valign="top">
+<a href="http://tomoyo.sourceforge.jp/">Home</a>
+</td>
+<td width="33%" align="right" valign="top">
+Phase 6: Beyond this guide
+</td>
+</tr>
+</table>
+</div>
+
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
