@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="learning.html.ja">Japanese Page</a></p>
+<!--<p style="text-align:right;"><a href="phase-3.html.ja">Japanese Page</a></p>-->
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 3: Analyze a domain</h1>
 
@@ -15,7 +15,7 @@
 
 <hr>
 
-<h2><a name="#3.1">Step 3.1: Domain creation</a></h2>
+<h2><a name="3.1">Step 3.1: Domain creation</a></h2>
 
 <p>Each domain will behave differently and require a unique set of permissions. Their behaviour must therefore be analyzed to determine which actions you wish to permit in domain policy. TOMOYO Linux can be used to restrict only a subset of the domains in a system, but the most secure system would restrict every domain in order to make sure there are no points of vulnerability.</p>
 
@@ -57,7 +57,7 @@
 
 <hr>
 
-<h2><a name="#3.2">Step 3.2: Gathering necessary permissions</a></h2>
+<h2><a name="3.2">Step 3.2: Gathering necessary permissions</a></h2>
 
 <p>Restart the Apache in order to learn what permissions are required for starting/finishing the Apache:</p>
 
@@ -117,7 +117,7 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 
 <p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If Learning Mode did not have a limit, the system may become unusably slow due to comparison with already learned permissions.</p>
 
-<p>This limit can be increased with the "max_learning_entry=" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described below, and doing so can reduce the size of domain policy to become more manageable and thus negating the need to increase the "max_learning_entry=" value.</p>
+<p>This limit can be increased with the "max_learning_entry=" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next phase, and doing so can reduce the size of domain policy to become more manageable and thus negating the need to increase the "max_learning_entry=" value.</p>
 
 <br>
 

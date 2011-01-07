@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="initialize.html.ja">Japanese Page</a></p>
+<!--<p style="text-align:right;"><a href="phase-2.html.ja">Japanese Page</a></p>-->
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 2: Understanding TOMOYO Linux</h1>
 
@@ -15,7 +15,7 @@
 
 <hr>
 
-<h2><a name="#2.1">Step 2.1: Run the policy editor</a></h2>
+<h2><a name="2.1">Step 2.1: Run the policy editor</a></h2>
 
 <p>The main tool used for TOMOYO Linux is the policy editor. The instructions on this page provide a "quick-start guide" on using the policy editor and should be sufficient to get started. For more in depth instructions, see <a href="tool-editpolicy.html.en">How to use the Policy Editor</a>.</p>
 
@@ -31,13 +31,13 @@
 
 <hr>
 
-<h2><a name="#2.2">Step 2.2: Understanding domains</a></h2>
+<h2><a name="2.2">Step 2.2: Understanding domains</a></h2>
 
 <p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the "Domain Transition Editor". The picture below describes the domain tree that should be visible after running the above command. As of now, only "&lt;kernel&gt;" domain is defined:</p>
 
 <p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
 
-<p>Since this is a newly initialized policy, the policy files in "/etc/ccs" are empty. There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs". Many sets of policies can be saved to "/etc/ccs" and can be loaded into the kernel at boot or on deman. Saving policy to disk will be discussed in Phase 3. Now run the policy editor again without the "/etc/ccs" option in order to view the policy that is loaded in the kernel:
+<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/". Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in Phase 3. Now run the policy editor again without the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:
 
 <table border="1">
 <tr><td>
@@ -57,7 +57,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 <p>The exceptions to this transition rule are described later.</p>
 
 <hr>
-<h2><a name="#2.3">Step 2.3: Understanding profiles</a></h2>
+<h2><a name="2.3">Step 2.3: Understanding profiles</a></h2>
 
 <p>Each domain can be restricted using TOMOYO Linux by assigning a "profile".</p>
 
@@ -136,7 +136,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 
 <hr>
 
-<h2><a name="#2.5">Step 2.5: Understanding exception policy</a></h2>
+<h2><a name="2.5">Step 2.5: Understanding exception policy</a></h2>
 
 <p>Press the "w" key, then press the "e" key, and you will see the picture shown below:</p>
 
@@ -192,7 +192,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 
 <hr>
 
-<h2><a name="#2.6">Step 2.6: Save audit logs (Optional)</a></h2>
+<h2><a name="2.6">Step 2.6: Save audit logs (Optional)</a></h2>
 
 <p>When a domain tries to perform an action that has been permitted in domain/exception policy, this action is granted. If the action has not been permitted in policy, then the action is rejected, assuming the domain is in "Enforcing Mode".</p>
 

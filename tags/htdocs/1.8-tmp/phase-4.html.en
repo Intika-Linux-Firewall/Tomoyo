@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tuning.html.ja">Japanese Page</a></p>
+<!--<p style="text-align:right;"><a href="phase-4.html.ja">Japanese Page</a></p>-->
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 4: Develop policy</h1>
 
@@ -15,7 +15,7 @@
 
 <hr>
 
-<h2><a name="#4.1">Step 4.1: Patterning temporary files</a></h2>
+<h2><a name="4.1">Step 4.1: Patterning temporary files</a></h2>
 
 <p>A particular domain may require many different access permissions to many different resources. Since "Learning Mode" has a limit to how many entries can exist in domain policy, it is important to shorten and simplify domain policy. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
 
@@ -238,7 +238,7 @@ domain.starts &lt;kernel&gt; /usr/sbin/httpd
 
 <hr>
 
-<h2><a name="#4.2">Step 4.2: Patterning file access permissions</a></h2>
+<h2><a name="4.2">Step 4.2: Patterning file access permissions</a></h2>
 
 <p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in the learning mode. For example, the domain policy can be changed to accommodate for WWW contents:</p>
 
@@ -331,7 +331,7 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 
 <hr>
 
-<h2><a name="#4.3">Step 4.3: Patterning numeric permissions</a></h2>
+<h2><a name="4.3">Step 4.3: Patterning numeric permissions</a></h2>
 
 <p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
 
@@ -384,7 +384,7 @@ rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 
 <hr>
 
-<h2><a name="#4.4">Step 4.4: Patterning network access permissions</a></h2>
+<h2><a name="4.4">Step 4.4: Patterning network access permissions</a></h2>
 
 <p>Patterns can be made for IP addresses in domain policy, for example:</a>
 
@@ -446,7 +446,7 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 </pre>
 
 
-<h2><a name="#4.5">Step 4.5: Review gathered permissions</a></h2>
+<h2><a name="4.5">Step 4.5: Review gathered permissions</a></h2>
 
 <p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.<p>
 
@@ -648,7 +648,7 @@ use_group 0
 
 <hr>
 
-<h2><a name="#4.6">Step 4.6: Adding conditions to ACLs (optional)</a></h2>
+<h2><a name="4.6">Step 4.6: Adding conditions to ACLs (optional)</a></h2>
 
 <p>Conditions can be added to individual ACLs if necessary, allowing the enforcement of system user ID based access control.</p>
 
