@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--<p style="text-align:right;"><a href="phase-2.html.ja">Japanese Page</a></p>-->
+<p style="text-align:right;"><a href="phase-2.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 2: Understanding TOMOYO Linux</h1>
 
@@ -37,7 +37,9 @@
 
 <p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
 
-<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/". Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in Phase 3. Now run the policy editor again without the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:
+<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/". Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in Phase 3. Press the "q" key to quit the policy editor.</p>
+
+<p>Now run the policy editor again without the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:</p>
 
 <table border="1">
 <tr><td>
@@ -53,7 +55,8 @@
 
 <p>For example, the domain name that the kernel belongs to is <b>"&lt;kernel&gt;"</b>.<br>
 When the kernel invokes "/sbin/init", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init"</b>.<br>
-When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init /etc/rc.d/rc"</b>.<p>
+When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the domain name that this process belongs to is <b>"&lt;kernel&gt; /sbin/init /etc/rc.d/rc"</b>.</p>
+
 <p>The exceptions to this transition rule are described later.</p>
 
 <hr>
