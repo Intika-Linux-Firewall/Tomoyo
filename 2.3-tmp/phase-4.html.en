@@ -10,15 +10,70 @@
 <p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
 <p style="text-align:right;"><a href="tuning.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>Phase 4: Tuning policy for your system.</h1>
+<h1>Phase 4: Develop policy</h1>
 
-<p>This page describes how to tune TOMOYO Linux's policy.</p>
+<p style="text-align:center;">Aim: to simplify and shorten domain policy in order to accommodate for temporary files and other permissions.</p>
 
 <hr>
 
-<h2>Step 1: Patterning File Access Permissions</h2>
+<h2><a name="4.1">Step 4.1: Patterning temporary files</a></h2>
 
-<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in the learning mode. For example, the domain policy can be changed to accommodate for WWW contents:</p>
+<p>A particular domain may require many different access permissions to many different resources. Since "Learning Mode" has a limit to how many entries can exist in domain policy, it is important to shorten and simplify domain policy. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
+
+<p>This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see <a href="tool-editpolicy.html.en#acl_editor">how to remove redundant ACL entries</a>.</p>
+
+<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /sys/kernel/security/tomoyo/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<p>In this example, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
+
+<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the \$ pattern which matches one or more repetitions of decimal digits can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+
+<p>Use the "/usr/sbin/tomoyo-patternize" command to replace all occurrences of "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with "/etc/mtab~\$" and "/tmp/sh-thd-\$" respectively:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -d
+</td></tr>
+</table>
+
+<p>If preferred, these patterns can instead be managed in exception policy:</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/tomoyo-loadpolicy -e<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -e
+</td></tr>
+</table>
+
+<h2><a name="4.2">Step 4.2: Patterning file access permissions</a></h2>
+
+<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in "Learning Mode". For example, the domain policy can be changed to accommodate for WWW contents:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -65,68 +120,62 @@ allow_read @WEB-CONTENTS
 </td></tr>
 </table>
 
-<hr>
+<h2><a name="4.3">Step 4.3: Review gathered permissions</a></h2>
 
-<h2>Step 2: Handling temporary files</h2>
+<p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.<p>
 
-<p>Usually, temporary files cannot be handled by simply using "learning mode" and "permissive mode" due to the variety of single-use pathnames involved. They must instead be interactively handled. See: <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.</p>
+<p>Note that Apache may have executed some external programs (e.g. "/bin/sh", "/usr/bin/perl", "/usr/lib/sendmail") and thus has some descendent domains. Be sure to change the profile number fo all descendent domains as well.</p>
 
-<p>Alternatively, temporary files can be converted into patterns non-interactively using the method shown below:</p>
+<p>Choose target domains, press the "s" key, enter "2" and press the "Enter" key:</p>
 
-<p>Use "/usr/sbin/tomoyo-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
+<p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
 
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /sys/kernel/security/tomoyo/domain_policy<br>
-/etc/mtab.tmp<br>
-/etc/mtab~<br>
-/etc/mtab~2302<br>
-/etc/mtab~2328<br>
-/etc/mtab~2329<br>
-/etc/mtab~2330<br>
-/etc/mtab~2331<br>
-/etc/mtab~2332<br>
-/etc/mtab~2339<br>
-/etc/mtab~2383<br>
-/halt<br>
-/selinux/disable<br>
-/selinux/enforce<br>
-/selinux/policyvers<br>
-/tmp/sh-thd-1163110572<br>
-/tmp/sh-thd-1163113704<br>
-/var/cache/samba/browse.dat.<br>
-/var/lib/nfs/etab.tmp<br>
-/var/lib/nfs/xtab.tmp<br>
-/var/lock/mrtg/mrtg_l<br>
-</td></tr>
-</table>
+<p>Now the profile number of the "/usr/sbin/httpd" domain and all descendants have changed to 2:</p>
 
-<p>In this example, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
+<p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
 
-<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the \$ pattern can be used to match one or more repetitions of decimal digits.</p>
+<p><img src="permissive-warning.png" width="720" height="400"></p>
 
-<p>Use "/usr/sbin/tomoyo-patternize" to replace all occurrences of "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$' respectively:</p>
+<p>Remember to save policy, as permissions are accumulated only in kernel memory. If the system is rebooted, the gathered permissions will be lost.</p>
+
+<p>Use the following command to save the policy to disk into "/etc/tomoyo/exception_policy.conf" and "/etc/tomoyo/domain_policy.conf":</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -d
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy a
 </td></tr>
 </table>
 
-<p>If preferred, these patterns can instead be managed in exception policy:</p>
+<p>If you are using TOMOYO Linux for system analysis, this point is the goal of this procedure.</p>
 
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/tomoyo-loadpolicy -e<br>
-[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -e
+<p>If you are using TOMOYO Linux for protection, proceed to the next phase.</p>
+
+<div class=navfooter>
+<hr align="left" width="100%">
+<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="top">
+<a href="phase-3.html.en">Prev</a>
+</td>
+<td width="34%" align="center" valign="top">
+<a href="index.html.en">Index</a>
+</td>
+<td width="33%" align="right" valign="top">
+<a href="phase-5.html.en">Next</a>
 </td></tr>
+<tr><td width="33%" align="left" valign="top">
+Phase 3: Analyze a domain
+</td>
+<td width="34%" align="center" valign="top">
+<a href="http://tomoyo.sourceforge.jp/">Home</a>
+</td>
+<td width="33%" align="right" valign="top">
+Phase 5: Enforce policy
+</td>
+</tr>
 </table>
+</div>
 
-<p>See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
-
-<hr>
-
-<p><a href="index.html.en">Return to index page.</a></p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>

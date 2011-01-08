@@ -29,7 +29,7 @@
 </td></tr>
 </table>
 
-<p>Run the policy editor again without the "/etc/ccs" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
+<p>Run the policy editor again <b>without</b> the "/etc/ccs" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
 
 <p>In CentOS 5.5, the location of Apache is "/usr/sbin/httpd".</p>
 
@@ -45,7 +45,7 @@
 
 <p><img src="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
 
-<p>Now the profile number of the /usr/sbin/httpd has changed to 1:</p>
+<p>Now the profile number of the "/usr/sbin/httpd" domain has changed to 1:</p>
 
 <p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
 
@@ -87,7 +87,7 @@
 </td></tr>
 </table>
 
-<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/ccs/" directory. To be accurate, they are symbolic links to text files whose pathnames contain the creation time.</p>
+<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/ccs/" directory. More precisely, they are symbolic links to text files whose pathnames contain the creation time.</p>
 
 <p>To load the policy currently on the disk into the kernel, use the "ccs-loadpolicy" command:</p>
 
@@ -115,9 +115,13 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 </td></tr>
 </table>
 
-<p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If Learning Mode did not have a limit, the system may become unusably slow due to comparison with already learned permissions.</p>
+<p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If "Learning Mode" did not have a limit, the system may become unusably slow due to comparison with already learned permissions.</p>
 
 <p>This limit can be increased with the "max_learning_entry=" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next phase, and doing so can reduce the size of domain policy to become more manageable and thus negating the need to increase the "max_learning_entry=" value.</p>
+
+<p>If you are using TOMOYO Linux for system analysis, this point is the goal of this procedure.</p>
+
+<p>If you are using TOMOYO Linux for protection, proceed to the next phase to continue tuning policy.</p>
 
 <br>
 

@@ -19,7 +19,7 @@
 
 <p>A particular domain may require many different access permissions to many different resources. Since "Learning Mode" has a limit to how many entries can exist in domain policy, it is important to shorten and simplify domain policy. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
 
-<p>This is especially useful for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see <a href="tool-editpolicy.html.en#acl_editor">how to remove redundant ACL entries</a>.</p>
+<p>This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see <a href="tool-editpolicy.html.en#acl_editor">How to remove redundant ACL entries</a>.</p>
 
 <p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
 
@@ -240,7 +240,7 @@ domain.starts &lt;kernel&gt; /usr/sbin/httpd
 
 <h2><a name="4.2">Step 4.2: Patterning file access permissions</a></h2>
 
-<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in the learning mode. For example, the domain policy can be changed to accommodate for WWW contents:</p>
+<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in "Learning Mode". For example, the domain policy can be changed to accommodate for WWW contents:</p>
 
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
@@ -445,7 +445,6 @@ acl.starts network inet stream accept
 rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 </pre>
 
-
 <h2><a name="4.5">Step 4.5: Review gathered permissions</a></h2>
 
 <p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.<p>
@@ -460,7 +459,7 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 
 <p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
 
-<p>Quit the policy editor and redo whatever you want to allow Apache to do:</p>
+<p>Quit the policy editor and continue using Apache:</p>
 
 <p><img src="operation-permissive.png" width="723" height="561"></p>
 
@@ -478,7 +477,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<p>If audit logs have been configured at <a href="phase-2.html.en#2.6">Step 2.6: Save audit logs (optional)</a>, necessary permissions can be picked up from "/var/log/tomoyo/reject_002.log":</p>
+<p>If audit logs have been configured at <a href="phase-2.html.en#2.5">Step 2.5: Save audit logs (optional)</a>, necessary permissions can be picked up from "/var/log/tomoyo/reject_002.log":</p>
 
 <table border="1">
 <tr><td>
