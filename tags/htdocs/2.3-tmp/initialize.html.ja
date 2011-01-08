@@ -1,0 +1,295 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
+<p style="text-align:right;"><a href="initialize.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第２章： TOMOYO Linux の初期化</h1>
+
+<p>このページでは、 TOMOYO Linux を使うために必要となる基本操作について説明します。</p>
+
+<hr>
+
+<h2>ステップ１：ポリシーの初期化</h2>
+
+<p>ポリシーを初期化するために以下のコマンドを実行してください。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/lib/tomoyo/init_policy
+</td></tr>
+</table>
+
+<p>TOMOYO Linux のポリシーファイルが /etc/tomoyo/ ディレクトリの中に作成されます。</p>
+
+<p>TOMOYO 2.2 用のポリシーと TOMOYO 2.3 用のポリシーとの間には互換性がありません。既に TOMOYO 2.2 用のポリシーを策定済みであっても、 /etc/tomoyo/ ディレクトリを削除（またはリネーム）してから上記のコマンドを実行する必要があります。さもないと、起動時にカーネルパニックに遭遇します。</p>
+
+<hr>
+
+<h2>ステップ２：ポリシーエディタの使い方を学習する</h2>
+
+<p>/etc/tomoyo/ というオプションと一緒に、 TOMOYO Linux のポリシーエディタである tomoyo-editpolicy を実行すると、以下のような画面が表示されます。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-editpolicy /etc/tomoyo/
+</td></tr>
+</table>
+
+<p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
+
+<p>この画面には、ドメインツリーが表示されています。現時点では、 &lt;kernel&gt; ドメインだけが定義されています。しかし、システムが動作するにつれて、 TOMOYO Linux は新しいドメインを作成してこのツリーに追加していきます。以下の画面ではたくさんのドメインが定義されています。</p>
+
+<p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
+
+<p>TOMOYO Linux における強制アクセス制御はドメインを単位として適用されます。全てのプロセスは１個のドメインに属しており、原則としてプログラムが実行される度に異なるドメインへと遷移します。ドメインの名前はプロセスの実行履歴として連結された文字列です。例えば、カーネルが属するドメインの名前は &lt;kernel&gt; 、カーネルから起動された /sbin/init が属するドメインの名前は &lt;kernel&gt; /sbin/init 、 /sbin/init から起動された /etc/rc.d/rc が属するドメインの名前は &lt;kernel&gt; /sbin/init /etc/rc.d/rc となります。この遷移規則の例外については後述します。</p>
+
+<p>各行の２番目の数字に注目してください。</p>
+
+<p><img src="editpolicy-domain-profile-number.png" width="720" height="400"></p>
+
+<p>この数字はプロファイル番号と呼ばれるものです。プロファイル番号は０～２５５の整数値をとります。</p>
+
+<p>w キーを押すと、選択肢が表示されます。</p>
+
+<p><img src="editpolicy-window-list.png" width="720" height="400"></p>
+
+<p>p キーを押すと、プロファイルの一覧が表示されます。</p>
+
+<p><img src="editpolicy-profile-list.png" width="720" height="400"></p>
+
+<table border="1">
+<tr><td>項目</td><td>内容</td></tr>
+<tr>
+<td>PREFERENCE::learning</td>
+<td>学習モードに関する設定。</td>
+</tr>
+<tr>
+<td>PREFERENCE::permissive</td>
+<td>確認モードに関する設定。</td>
+</tr>
+<tr>
+<td>PREFERENCE::enforcing</td>
+<td>強制モードに関する設定。</td>
+</tr>
+<tr>
+<td>COMMENT</td>
+<td>プロファイルの内容を説明するための１行コメント。</td>
+</tr>
+<tr>
+<td>CONFIG</td>
+<td>強制アクセス制御のモード設定。</td>
+</tr>
+</table>
+<p>PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing の verbose については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>no</td>
+<td>ポリシー違反のメッセージを表示しない。</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>ポリシー違反のメッセージを表示する。</td>
+</tr>
+</table>
+<p>CONFIG 行で指定されている mode については以下の値を指定できます。</p>
+<table border="1">
+<tr>
+<td>値</td>
+<td>内容</td>
+</tr>
+<tr>
+<td>disabled</td>
+<td>無効。通常のカーネルと同様に動作する。</td>
+</tr>
+<tr>
+<td>learning</td>
+<td>学習モード。ポリシーに違反してもエラーにせず、ポリシーへの自動追加を行う。</td>
+</tr>
+<tr>
+<td>permissive</td>
+<td>確認モード。ポリシーに違反してもエラーにせず、ポリシーへの自動追加も行わない。</td>
+</tr>
+<tr>
+<td>enforcing</td>
+<td>強制モード。ポリシーに違反したらエラーとする。</td>
+</tr>
+</table>
+
+<p>w キー、 e キーの順に押すことで、以下の画面が表示されます。</p>
+
+<p><img src="editpolicy-exception-list1.png" width="720" height="400"></p>
+
+<p>矢印キーや Home/End/PageUp/PageDown キーを使ってスクロールすることができます。</p>
+
+<p>この画面には以下の例外設定が表示されます。</p>
+
+<table border="1">
+<tr><td>
+(1) パス名のパターン
+</td><td>
+<p>file_pattern というキーワードを使用して、パス名のパターンを登録します。アクセス許可を学習する際に、要求されたパス名が file_pattern というキーワードを使用して登録されたパス名のパターンと一致した場合、パターン化されたパス名でアクセス許可が学習されます。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li>/proc/PID/ ディレクトリ以下に存在するファイルのパス名 </li>
+<li>/sys/ ディレクトリ以下に存在するファイルのパス名（カーネル 2.6 系の場合のみ）</li>
+<li>/dev/ ディレクトリ以下の一部のパス名</li>
+<li>/etc/tomoyo/ ディレクトリ以下のポリシーファイルのパス名</li>
+<li>マニュアルページのパス名</li>
+<li>スプールディレクトリのパス名</li>
+<li>メールの送受信時に作成されるテンポラリファイルのパス名</li>
+<li>man コマンドが作成するテンポラリファイルのパス名</li>
+<li>mount コマンドが作成するテンポラリファイルのパス名</li>
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にもパターン化されたパス名が必要になります。不足しているパターンは、実際にどのようなアクセスが行われるかを観察してから、適切にパターン化して追加します。</p>
+</td></tr><tr><td>
+(2) パス名のグループ
+</td><td>
+<p>path_group というキーワードを使用して、パス名のパターンを登録します。これは、複数のパス名を集約することでポリシーの記述量を減らすためのマクロです。使い方は後述します。</p>
+</td></tr><tr><td>
+(3) 数値のグループ
+</td><td>
+<p>number_group というキーワードを使用して、数値のパターンを登録します。これは、複数の数値を集約することでポリシーの記述量を減らすためのマクロです。使い方は後述します。</p>
+</td></tr><tr><td>
+(4) 無条件に読み込みを許可するファイル
+</td><td>
+<p>allow_read というキーワードを使用して、全てのプログラムへの読み込みアクセスを許可するファイルのパス名を登録します。パターンも使用できます。読み込みモードで要求されたパス名が allow_read というキーワードを使用して登録されたパス名と一致した場合、ドメインポリシーで明示的に許可が与えられていなかった場合でも読み込みアクセスが許可されます。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li>ldconfig に登録されている共有ライブラリ</li>
+<li>/proc/ ディレクトリ以下に存在するファイルの一部</li>
+<li>/usr/share/locale/ ディレクトリ以下に存在するロケールデータの一部</li>
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にも常に読み込みアクセスを許可したいファイルがあるかもしれません。不足しているファイルは、実際にどのようなファイルを読み込むかを観察してから、必要に応じてその都度追加していきます。</p>
+
+</td></tr><tr><td>
+(5) 書き換えを禁止するファイル
+</td><td>
+<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、後述するドメインポリシーの中で明示的に allow_rewrite というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li>/var/log/ ディレクトリ以下のファイル</li>
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にも書き換えを禁止したいファイルがあるかもしれません。不足しているファイルは、実際にどのようなファイルが追記専用で使われているかを観察してから、必要に応じてその都度追加していきます。</p>
+
+</td></tr><tr><td>
+(6) プログラム名の集約
+</td><td>
+<p>複数のプログラムを単一のプログラム名で扱うには、 aggregator というキーワードに続けて集約前のプログラム名と集約後のプログラム名を指定します。集約前のプログラム名にはパターンを使用できます。<br>
+例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになります。</p>
+</td></tr><tr><td>
+(7) ドメイン遷移を初期化するプログラム
+</td><td>
+<p>initialize_domain というキーワードを使用して、ドメイン遷移履歴をリセットするプログラムのパス名を登録します。パターンは使用できません。 initialize_domain というキーワードを使用して登録されたパス名のプログラムが実行された場合、そのプログラムは &lt;kernel&gt; 直下のドメインで動作します。<br>
+目安としては以下のものが挙げられます。</p>
+
+<ul>
+<li>/etc/init.d/ ディレクトリ以下にあるデーモンプログラム等を起動・終了させるためのスクリプト</li>
+<li>上記スクリプトから起動されるデーモンプログラムの内、ドメイン名を短くしたいもの（httpd や sshd など）</li>
+</ul>
+
+<p>システムにインストールされているアプリケーションやその設定により、上記以外にもドメイン遷移履歴をリセットさせたいプログラムがあるかもしれません。最初にドメイン遷移履歴を作成して、実際にどのようなプログラムを指定したらよいかを考慮しながら、必要に応じてその都度追加していきます。その際、他のドメインへの影響に注意してください。例えば、ドメインポリシーとして</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ... /bin/bash<br>
+use_profile 3<br>
+allow_execute /bin/tcsh<br>
+<br>
+&lt;kernel&gt; ... /bin/bash /bin/tcsh<br>
+use_profile 3<br>
+allow_execute /bin/cat<br>
+<br>
+&lt;kernel&gt; ... /bin/bash /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+allow_read /etc/fstab
+</td></tr>
+</table>
+
+<p>というポリシーが既に存在している状態で /bin/tcsh を initialize_domain として追加した場合、 /bin/tcsh は &lt;kernel&gt; /bin/tcsh というドメインへ遷移することになるため、 &lt;kernel&gt; ・・・ /bin/bash /bin/tcsh というドメインへは遷移できなくなってしまいます。そのような場合は、以下のように、 &lt;kernel&gt; ・・・ /bin/bash /bin/tcsh で始まる部分を &lt;kernel&gt; /bin/tcsh で始まるようにドメインポリシーを変更してやる必要があります。</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ... /bin/bash<br>
+use_profile 3<br>
+allow_execute /bin/tcsh<br>
+<br>
+&lt;kernel&gt; /bin/tcsh<br>
+use_profile 3<br>
+allow_execute /bin/cat<br>
+<br>
+&lt;kernel&gt; /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+allow_read /etc/fstab
+</td></tr>
+</table>
+</td></tr><tr><td>
+(8) ドメイン遷移を初期化させないプログラム
+</td><td>
+<p>no_initialize_domain というキーワードを使うことで、 initialize_domain キーワードの効果を打ち消すことができます。特定の条件下ではドメイン遷移を初期化させたくない場合に使用します。</p>
+</td></tr><tr><td>
+(9) ドメイン遷移を行わないドメイン
+</td><td>
+<p>keep_domain というキーワードを使用して、ドメイン遷移を行わないドメインを指定することができます。<br>
+例えば、 keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh という行が含まれている場合、 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh というドメインに属しているプロセスは、 initialize_domain というキーワードで指定されたプログラムが実行されない限り、そのドメインに留まります。</p>
+</td></tr><tr><td>
+(10) ドメイン遷移を行うドメイン
+</td><td>
+<p>no_keep_domain というキーワードを使うことで、 keep_domain キーワードの効果を打ち消すことができます。特定の条件下でドメイン遷移を行わせたい場合に使用します。</p>
+</td></tr>
+</table>
+
+<p>q キーを押してポリシーエディタを終了してください。</p>
+
+<p>以後、必要に応じてポリシーエディタのチュートリアルページである<a href="tool-editpolicy.html.ja">ポリシーエディタの使い方</a>を参照してください。</p>
+
+<hr>
+
+<h2><a name="configure_notify_daemon">ステップ３：ポリシー違反の発生をメールで通知するよう設定（省略可）</a></h2>
+
+<p>TOMOYO Linux では、メールなどの通知手段を予め設定しておくことにより、強制モードにおけるポリシー違反の発生を報告することができます。</p>
+
+<p>通知のために cron デーモンを使うことができます。例えば、１時間に１回まで root@example.com 宛のメールで通知するには</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
+
+<p>という行を /etc/crontab に追加してください。</p>
+
+<hr>
+
+<h2>ステップ４：システムの再起動</h2>
+
+<p>システムを再起動して、起動時に TOMOYO Linux 対応カーネルを選択してください。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# reboot
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.ja">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
