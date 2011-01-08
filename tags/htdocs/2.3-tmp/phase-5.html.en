@@ -10,17 +10,17 @@
 <p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
 <p style="text-align:right;"><a href="enforcing.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>Phase 5: Restricting your system's behavior.</h1>
+<h1>Phase 5: Enforce policy</h1>
 
-<p>This page describes how to use TOMOYO Linux's enforcing mode and how to handle policy violations which may arise.</p>
+<p style="text-align:center;">Aim: to learn how to use "Enforcing Mode" and handle policy violations that may arise.</p>
 
 <hr>
 
-<h2><a name="using_enforcing_mode">Step 1: Enabling enforcing mode</a></h2>
+<h2><a name="5.1">Step 5.1: Enabling enforcing mode</a></h2>
 
 <p>Once domain and exception policy have been sufficiently modified, the domain can be set to enforcing mode.</p>
 
-<p>Run the policy editor. Select target domains with 'Space' key, press 's' key, enter '3', and press 'Enter':</p>
+<p>Run the policy editor. Select target domains with the "Space" key, press the "s" key, enter "3", and press "Enter":</p>
 
 <p><img src="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
 
@@ -28,7 +28,7 @@
 
 <p><img src="editpolicy-httpd-profile3.png" width="720" height="400"></p>
 
-<p>Press '@' key to switch to the process list. Verify that the "/usr/sbin/httpd" process and descendants are assigned profile number 3:</p>
+<p>Press the "@" key to switch to the process list. Verify that the "/usr/sbin/httpd" process and descendants are assigned profile number 3:</p>
 
 <p><img src="editpolicy-httpd-process3.png" width="720" height="400"></p>
 
@@ -36,9 +36,7 @@
 
 <p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
 
-<p>Press 'q' key to quit the policy editor.</p>
-
-<p>Let's try an operation which is permitted by policy:</p>
+<p>Quit the policy editor and try an operation which is permitted by policy:</p>
 
 <p><img src="operation-permitted.png" width="688" height="933"></p>
 
@@ -56,7 +54,9 @@
 
 <p><img src="enforcing-error.png" width="720" height="400"></p>
 
-<p>If audit logs were configured at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing configuration</a>, rejected requests can be picked up from audit logs using "grep":</p>
+<p>Just like in "Permissive Mode", you can check "/proc/tomoyo/stat" for how many times policy violations have occurred.</p>
+
+<p>If audit logs were configured at <a href="phase-2.html.en#2.5">Step 2.5: Sending policy violation notifications</a>, rejected requests can be picked up from audit logs using "grep":</p>
 
 <table border="1">
 <tr><td>
@@ -78,11 +78,13 @@ allow_execute /bin/cat
 </td></tr>
 </table>
 
+<br>
+
 <hr>
 
-<h2><a name="using_interactive_mode">Step 2: Handling policy violation arising in during software updates</a></h2>
+<h2><a name="5.2">Step 5.2: Handling policy violations in real-time</a></h2>
 
-<p>When packages are updated, policy may need to be updated if any of the following occur:
+<p>Policy violations can be handled in real time using "/usr/sbin/tomoyo-queryd". This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:
 
 <ul>
 <li>The pathnames of files have changed.
@@ -92,12 +94,12 @@ allow_execute /bin/cat
 
 <p>The ideal way to update policy is to rebuild from scratch using learning mode as has been described. However, it is not desirable to change a domain from enforcing mode to learning mode once the system has entered into a production state as this will cause the system to become vulnerable to attack through this unrestricted domain.</p>
 
-<p>Fortunately, TOMOYO Linux provides tools that help administrators update policy while running in enforcing mode. Please note that these tools cannot always support every case and the resulting policy may not be fully optimized.</p>
+<p>Fortunately, "tomoyo-queryd" can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
 
 <h3>Example usage of "tomoyo-queryd"</h3>
 
 <p>The video below demonstrates example usage of "tomoyo-queryd", which is summarised in the text below:</p>
-<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
+<p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
 <p>Use "/usr/sbin/tomoyo-queryd" to view (in realtime) access requests that have been rejected by policy:
 
@@ -121,11 +123,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/cups" attempted to execute "/bin/sleep" in order to process the command "sleep 1". Usually this would be instantly denied, but since "tomoyo-queryd" is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
 
-<p>Press "Y" to grant the request.<br>
-Press "N" to reject the request.<br>
-Press "R" to retry the request (for example after editing domain policy manually).<br>
-Press "S" to show domain policy for the process.<br>
-Press "A" to append the request to domain policy and retry (a chance to edit the request is given first).</p>
+<p>Press <b>"Y"</b> to grant the request.<br>
+Press <b>"N"</b> to reject the request.<br>
+Press <b>"R"</b> to retry the request (for example after editing domain policy manually).<br>
+Press <b>"S"</b> to show domain policy for the process.<br>
+Press <b>"A"</b> to append the request to domain policy and retry (a chance to edit the request is given first).</p>
 
 <p>Do not grant access requests unconditionally. Policy violations are not always due to updating packages, but may be malicious requests by attackers.</p>
 
@@ -164,7 +166,7 @@ The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally read
 </td></tr>
 </table>
 
-<p>Note that "tomoyo-queryd" directly edits policy currently loaded into the kernel, so run "tomoyo-savepolicy" to save policy to disk, otherwise policy is lost on shutdown.</p>
+<p>Note that "tomoyo-queryd" directly edits policy currently loaded into the kernel, so run "tomoyo-savepolicy" to save policy to disk, otherwise policy will be lost on shutdown.</p>
 
 <table border="1">
 <tr><td>
@@ -263,9 +265,34 @@ The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from global
 </td></tr>
 </table>
 
-<hr>
+<br>
 
-<p><a href="index.html.en">Return to index page.</a></p>
+<div class=navfooter>
+<hr align="left" width="100%">
+<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="top">
+<a href="phase-4.html.en">Prev</a>
+</td>
+<td width="34%" align="center" valign="top">
+<a href="index.html.en">Index</a>
+</td>
+<td width="33%" align="right" valign="top">
+<a href="phase-6.html.en">Next</a>
+</td></tr>
+<tr><td width="33%" align="left" valign="top">
+Phase 4: Develop policy
+</td>
+<td width="34%" align="center" valign="top">
+<a href="http://tomoyo.sourceforge.jp/">Home</a>
+</td>
+<td width="33%" align="right" valign="top">
+Phase 6: Beyond this guide
+</td>
+</tr>
+</table>
+</div>
+
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
