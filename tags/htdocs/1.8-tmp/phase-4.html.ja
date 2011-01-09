@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="ja-JP">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -48,7 +48,7 @@
 # This file contains rewriting rules used by ccs-patternize command.
 
 # Domain policy consists with domain declaration lines (which start with
-# <kernel> ) and acl declaration lines (which do not start with <kernel> ).
+# &lt;kernel&gt; ) and acl declaration lines (which do not start with &lt;kernel&gt; ).
 # You can refer the former using 'domain' keyword and the latter using 'acl'
 # keyword.
 #
@@ -386,7 +386,7 @@ rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 
 <h2><a name="4.4">ステップ４．４：ネットワークのアドレスをパターン化する</a></h2>
 
-<p>同様にＩＰアドレスについてもパターン化を行います。</a>
+<p>同様にＩＰアドレスについてもパターン化を行います。</p>
 
 <table border="1">
 <tr><td>修正前</td><td>修正後</td></tr>
@@ -429,7 +429,7 @@ network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </td></tr>
 </table>
 
-<p>上記の変換処理は /usr/sbin/ccs-editpolicy を利用して行うことができますが、 /usr/sbin/ccs-patternize を利用して行うこともできます。上記のように address_group を例外ポリシーに追加し、以下の内容を /etc/ccs/tools/patternize.conf に追加後、<a href="#4.1">ステップ４．１：テンポラリファイルに対処する</a>と同様の手順を行ってください。</p></p>
+<p>上記の変換処理は /usr/sbin/ccs-editpolicy を利用して行うことができますが、 /usr/sbin/ccs-patternize を利用して行うこともできます。上記のように address_group を例外ポリシーに追加し、以下の内容を /etc/ccs/tools/patternize.conf に追加後、<a href="#4.1">ステップ４．１：テンポラリファイルに対処する</a>と同様の手順を行ってください。</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -445,10 +445,9 @@ acl.starts network inet stream accept
 rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 </pre>
 
-
 <h2><a name="4.5">ステップ４．５：収集されたアクセス許可を確認する</a></h2>
 
-<p>Apache に許可したい操作を一通り行ったと判断したら、ポリシーエディタを実行してプロファイル番号を 2 に変更します。<p>
+<p>Apache に許可したい操作を一通り行ったと判断したら、ポリシーエディタを実行してプロファイル番号を 2 に変更します。</p>
 
 <p> Apache は（例えば /bin/sh /usr/bin/perl /usr/lib/sendmail のような）外部のプログラムを実行したことにより、 Apache に子ドメインや孫ドメインが作成されているかもしれません。 /usr/sbin/httpd のドメインだけでなくその子孫ドメインのプロファイル番号も変更するのを忘れないようにしてください。</p>
 
