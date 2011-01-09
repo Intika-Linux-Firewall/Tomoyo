@@ -30,7 +30,7 @@
 </td></tr>
 </table>
 
-<p>Run the policy editor again <b>without</b> the "/etc/tomoyo" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
+<p>Run the policy editor again <b>without</b> the "/etc/tomoyo/" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
 
 <p>In CentOS 5.5, the location of Apache is "/usr/sbin/httpd".</p>
 
@@ -38,7 +38,7 @@
 
 <p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
-<p>If "/usr/sbin/httpd" is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <b>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</b></p>
+<p>If "/usr/sbin/httpd" is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <b>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</b>.</p>
 
 <p>If "/usr/sbin/httpd" has been registered with the "initialize_domain" directive, then execution of "/usr/sbin/httpd" will always have the domain <b>"&lt;kernel&gt; /usr/sbin/httpd"</b> regardless of which domain invoked it. This manual assumes that "/usr/sbin/httpd" has been registered with the "initialize_domain" directive. See <a href="tool-editpolicy.html.en#Initialize_domain_transition">Initialize domain transition</a> for more information.</p>
 
@@ -117,7 +117,7 @@ The <b>"f"</b> option means erase the policy currently in the kernel before load
 
 <p>Press 'q' key to quit the policy editor.</p>
 
-<p>Continue using Apache. The counter in /proc/tomoyo/stat will be incremented every time a policy violation occurs.</p>
+<p>Continue using Apache.</p>
 
 <p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violations occur:</p>
 

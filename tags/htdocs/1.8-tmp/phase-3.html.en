@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--<p style="text-align:right;"><a href="phase-3.html.ja">Japanese Page</a></p>-->
+<p style="text-align:right;"><a href="phase-3.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 3: Analyze a domain</h1>
 
@@ -29,7 +29,7 @@
 </td></tr>
 </table>
 
-<p>Run the policy editor again <b>without</b> the "/etc/ccs" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
+<p>Run the policy editor again <b>without</b> the "/etc/ccs/" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
 
 <p>In CentOS 5.5, the location of Apache is "/usr/sbin/httpd".</p>
 
@@ -37,7 +37,7 @@
 
 <p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
-<p>If "/usr/sbin/httpd" is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <b>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</b></p>
+<p>If "/usr/sbin/httpd" is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <b>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</b>.</p>
 
 <p>If "/usr/sbin/httpd" has been registered with the "initialize_domain" directive, then execution of "/usr/sbin/httpd" will always have the domain <b>"&lt;kernel&gt; /usr/sbin/httpd"</b> regardless of which domain invoked it. This manual assumes that "/usr/sbin/httpd" has been registered with the "initialize_domain" directive. See <a href="tool-editpolicy.html.en#Initialize_domain_transition">Initialize domain transition</a> for more information.</p>
 

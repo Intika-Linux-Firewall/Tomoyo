@@ -18,11 +18,11 @@
 
 <h2><a name="4.1">Step 4.1: Patterning temporary files</a></h2>
 
-<p>A particular domain may require many different access permissions to many different resources. Since "Learning Mode" has a limit to how many entries can exist in domain policy, it is important to shorten and simplify domain policy. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
+<p>A particular domain may require many different access permissions to many different resources. Since "Enforcing Mode" allows access to only resources explicitly defined, it is important to cover all necessary resources. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
 
 <p>This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see <a href="tool-editpolicy.html.en#acl_editor">how to remove redundant ACL entries</a>.</p>
 
-<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
+<p>Use "/usr/sbin/tomoyo-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
 
 <table border="1">
 <tr><td>
@@ -124,7 +124,7 @@ allow_read @WEB-CONTENTS
 
 <p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.<p>
 
-<p>Note that Apache may have executed some external programs (e.g. "/bin/sh", "/usr/bin/perl", "/usr/lib/sendmail") and thus has some descendent domains. Be sure to change the profile number fo all descendent domains as well.</p>
+<p>Note that Apache may have executed some external programs (e.g. "/bin/sh", "/usr/bin/perl", "/usr/lib/sendmail") and thus has some descendent domains. Be sure to change the profile number for all descendent domains as well.</p>
 
 <p>Choose target domains, press the "s" key, enter "2" and press the "Enter" key:</p>
 
