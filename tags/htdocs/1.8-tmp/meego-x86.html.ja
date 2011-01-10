@@ -125,8 +125,8 @@ Partition 1 has different physical/logical endings:
 --- a/etc/X11/xorg.conf-handset
 +++ b/etc/X11/xorg.conf-handset
 @@ -32,10 +32,10 @@
-         #Option     "DefaultRefresh"     	# [<bool>]
-         #Option     "ModeSetClearScreen" 	# [<bool>]
+         #Option     "DefaultRefresh"     	# [&lt;bool&gt;]
+         #Option     "ModeSetClearScreen" 	# [&lt;bool&gt;]
  	Identifier  "Card0"
 -	Driver      "vesa"
 +	#Driver      "vesa"
@@ -348,14 +348,14 @@ $ su
 
 <pre>
 $ cd /tmp/meego/
-$ tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / && tar -zxf -'
+$ tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / &amp;&amp; tar -zxf -'
 </pre>
 
 <p>のように、 VMware 上で動作している MeeGo 環境へコピーするには</p>
 
 <pre>
 $ cd /tmp/meego/
-$ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
+$ tar -zcf - | ssh root@meegohost 'cd / &amp;&amp; tar -zxf -'
 </pre>
 
 <p>のようにしてコピーできます。</p>
@@ -406,7 +406,7 @@ $ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
 
 <pre>
 # export DISPLAY=:0
-# xterm -into `xwininfo -root -tree -int | awk ' { if ( index($2, "duihome") > 0) print $1; } '`
+# xterm -into `xwininfo -root -tree -int | awk ' { if ( index($2, "duihome") &gt; 0) print $1; } '`
 </pre>
 
 <p>以下の動画では TOMOYO Linux を用いて MeeGo 環境の振る舞いを解析しています。</p>

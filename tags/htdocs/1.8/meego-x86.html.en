@@ -125,8 +125,8 @@ Partition 1 has different physical/logical endings:
 --- a/etc/X11/xorg.conf-handset
 +++ b/etc/X11/xorg.conf-handset
 @@ -32,10 +32,10 @@
-         #Option     "DefaultRefresh"     	# [<bool>]
-         #Option     "ModeSetClearScreen" 	# [<bool>]
+         #Option     "DefaultRefresh"     	# [&lt;bool&gt;]
+         #Option     "ModeSetClearScreen" 	# [&lt;bool&gt;]
  	Identifier  "Card0"
 -	Driver      "vesa"
 +	#Driver      "vesa"
@@ -346,14 +346,14 @@ $ su
 
 <pre>
 $ cd /tmp/meego/
-$ tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / && tar -zxf -'
+$ tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / &amp;&amp; tar -zxf -'
 </pre>
 
 <p>or to the MeeGo environment on VMware by doing</p>
 
 <pre>
 $ cd /tmp/meego/
-$ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
+$ tar -zcf - | ssh root@meegohost 'cd / &amp;&amp; tar -zxf -'
 </pre>
 
 <h2><a name="step_3">Step 3: Initializing TOMOYO Linux</a></h2>
@@ -402,7 +402,7 @@ $ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
 
 <pre>
 # export DISPLAY=:0
-# xterm -into `xwininfo -root -tree -int | awk ' { if ( index($2, "duihome") > 0) print $1; } '`
+# xterm -into `xwininfo -root -tree -int | awk ' { if ( index($2, "duihome") &gt; 0) print $1; } '`
 </pre>
 
 <p>Below movie demonstrates how you can use TOMOYO Linux for analyzing the MeeGo environment.</p>
