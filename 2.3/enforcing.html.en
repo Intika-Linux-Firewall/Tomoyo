@@ -82,7 +82,7 @@ allow_execute /bin/cat
 
 <h2><a name="using_interactive_mode">Step 2: Handling policy violation arising in during software updates</a></h2>
 
-<p>When packages are updated, policy may need to be updated if any of the following occur:
+<p>When packages are updated, policy may need to be updated if any of the following occur:</p>
 
 <ul>
 <li>The pathnames of files have changed.
@@ -96,19 +96,19 @@ allow_execute /bin/cat
 
 <h3>Example usage of "tomoyo-queryd"</h3>
 
-<p>The video below demonstrates example usage of "tomoyo-queryd", which is summarised in the text below:</p>
+<p>The video below demonstrates example usage of "tomoyo-queryd", which is summarised in the text below:<br>
 <object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
-<p>Use "/usr/sbin/tomoyo-queryd" to view (in realtime) access requests that have been rejected by policy:
+<p>Use "/usr/sbin/tomoyo-queryd" to view (in realtime) access requests that have been rejected by policy:</p>
 
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/tomoyo-queryd<br>
-Monitoring /sys/kernel/security/tomoyo/query and /etc/ld.so.cache . Press Ctrl-C to terminate.</p>
+Monitoring /sys/kernel/security/tomoyo/query and /etc/ld.so.cache . Press Ctrl-C to terminate.
 </td></tr>
 </table>
 
-<p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the "tomoyo-queryd" console:
+<p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the "tomoyo-queryd" console:</p>
 
 <table border="1">
 <tr><td>
@@ -156,7 +156,7 @@ The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally reada
 </td></tr>
 </table>
 
-<p>In addition, "tomoyo-queryd" automatically removes the pathname from exception policy when it is unregistered from "/etc/ld.so.cache":
+<p>In addition, "tomoyo-queryd" automatically removes the pathname from exception policy when it is unregistered from "/etc/ld.so.cache":</p>
 
 <table border="1">
 <tr><td>
