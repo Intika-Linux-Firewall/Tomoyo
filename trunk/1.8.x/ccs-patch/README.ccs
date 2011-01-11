@@ -2713,3 +2713,15 @@ Fix 2010/12/17
       which share ccs_oom_security. Threads which share ccs_oom_security will
       experience temporary inconsistency, but such threads are about to be
       killed by SIGKILL signal.
+
+Fix 2010/01/11
+
+   @ Use filesystem name for unnamed devices when vfsmount is missing.
+
+     "Change pathname for non-rename()able filesystems." changed to use
+     "$fsname:" if the filesystem does not support rename() operation and
+     "dev($major,$minor):" otherwise when vfsmount is missing. But it turned
+     out that it is useless to use "dev($major,$minor):" for unnamed devices
+     (filesystems with $major == 0). Thus, I changed to use "$fsname:" rather
+     than "dev($major,$minor):" for filesystems with $major == 0 when vfsmount
+     is missing.
