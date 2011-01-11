@@ -1,0 +1,188 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="phase-1.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第１節：導入と初期化</h1>
+
+<p style="text-align:center;">目的： TOMOYO Linux 対応カーネルおよび管理ツールをインストールし、システムの解析および保護を行うための準備をします。</p>
+
+<hr>
+
+<h2><a name="1.1">ステップ１．１：依存するパッケージのインストール</a></h2>
+
+<p>カーネルおよびツールをコンパイルするためには以下のパッケージが必要になります。</p>
+<ul>
+<li><b>wget</b>：ファイルをダウンロードするために必要です。</li>
+<li><b>patch</b>：パッチを適用するために必要です。</li>
+<li><b>gcc</b>：コンパイルを行うために必要です。</li>
+<li><b>make</b>： Makefile を利用するために必要です。</li>
+<li><b>ncurses</b>：ツールのユーザインタフェースを利用するために必要です。</li>
+<li><b>readline</b>：ツールのユーザインタフェースが利用します。（利用不可能でも致命的な問題にはなりません。）</li>
+<li><b>help2man</b>：ツールの man ページを作成するために利用します。（利用不可能でも致命的な問題にはなりません。）</li>
+</ul>
+
+<p>これらのパッケージは以下のコマンドを実行することによりインストールできます。</p>
+
+<table border="1">
+<tr><td>RedHat 系の場合</td><td>
+[root@tomoyo ~]# yum -y install wget patch gcc make ncurses-devel readline-devel help2man
+</td></tr>
+<tr><td>Debian 系の場合</td><td>
+[root@tomoyo ~]# apt-get -y install wget patch gcc make libncurses-dev libreadline-dev help2man
+</td></tr>
+</table>
+
+<br>
+
+<hr>
+
+<h2><a name="1.2">ステップ１．２：カーネルのインストール</a></h2>
+
+<h3>カーネルソースの入手と TOMOYO Linux パッチの適用</h3>
+
+<p>カーネルのソースコードを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> からダウンロードしてください。<br>
+linux-2.4 についてはカーネル 2.4.30 以降に対応しています。<br>
+linux-2.6 についてはカーネル 2.6.11.12 以降に対応しています。</p>
+
+<p>カーネルのソースを展開して、そのディレクトリに移動してください。<br>
+以下の操作において、例えばカーネル 2.6.37 を使う場合、 2.$PATCHLEVEL.$SUBLEVEL.diff を 2.6.37.diff に置き換えてください。</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101231.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101231.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.0-20101231.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20101231.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-patch-1.8.0-20101231.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.0-20101231.tar.gz<br>
+[user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
+</td></tr>
+</table>
+
+<h3>カーネルコンパイルオプションの変更</h3>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ make -s menuconfig
+</td></tr>
+</table>
+
+<p>「Security options」画面に表示される以下の項目を選択してください。</p>
+
+<ul>
+<li>[*] CCSecurity support</li>
+<li>[ ]   Compile as loadable kernel module</li>
+<li>[ ]   Disable by default</li>
+<li>[ ]   Do not modify 'struct task_struct' in order to keep KABI</li>
+<li>(2048) Default maximal count for learning mode</li>
+<li>(/sbin/ccs-init) Default policy loader</li>
+<li>(/sbin/ccs-start) Alternative activation trigger</li>
+<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
+</ul>
+
+<p><i>"Compile as loadable kernel module"</i> オプションを選択した場合、処理の大部分がカーネルモジュールとして切り出されるため、 vmlinux のサイズの増加を抑えることができます。組込み環境などで、 vmlinux のサイズに上限がある場合に選択してください。</p>
+
+<p><i>"Disable by default"</i> オプションを選択した場合、カーネルのコマンドラインで ccsecurity=on という指定を行った場合だけ有効化されます。選択しなかった場合、カーネルのコマンドラインで ccsecurity=off という指定を行った場合だけ無効化されます。</p>
+
+<p><i>"Do not modify 'struct task_struct' in order to keep KABI"</i> オプションはカーネル 2.6 でのみ選択可能です。このオプションを選択した場合、 TOMOYO が利用する変数をタスク構造体の外部で管理することにより、タスク構造体に変更を加えることにより生じる Kernel ABI の変化を回避することができます。ディストリビュータのカーネルに対して適用する際に Kernel ABI の変化を避けたい場合に選択してください。ただし、カーネルモジュールに対して TOMOYO の機能を呼び出すために ccsecurity_operations 構造体へのアクセスを認める（エクスポートする）必要があるため、カーネルパッケージを作成するスクリプトが警告を出力することは避けられない点については了承ください。</p>
+
+<h3>カーネルのコンパイルとインストール</h3>
+
+<p>カーネルコンパイルオプションの変更が終わったら、カーネルをコンパイルしてください。</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ make -s dep<br>
+[user@tomoyo ~]$ make -s<br>
+[user@tomoyo ~]$ make -s modules<br>
+[user@tomoyo ~]$ su<br>
+[root@tomoyo ~]# make -s modules_install install
+</td></tr>
+</table>
+
+<p>必要であれば initrd/initramfs の作成およびブートローダ設定の更新を行ってください。</p>
+
+<hr>
+
+<h2><a name="1.3">ステップ１．３：管理ツールのインストール</a></h2>
+
+<p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます。</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101231.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101231.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-tools-1.8.0-20101231.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101231.tar.gz<br>
+[user@tomoyo ~]$ cd ccstools/<br>
+[user@tomoyo ~]$ make -s<br>
+[user@tomoyo ~]$ su<br>
+[root@tomoyo ~]# make -s install
+</td></tr>
+</table>
+
+<br>
+
+<hr>
+
+<h2><a name="1.4">ステップ１．４：設定の初期化</a></h2>
+
+<p>TOMOYO Linux を利用するために、ポリシーの初期化を行う必要があります。解析および制限したい範囲に応じて、以下の２つの操作の内どちらかの操作を行ってください。</p>
+
+<p>ファイルに対するアクセス解析／制御（読み書き実行など）だけを有効にしたい場合には以下の操作を行ってください。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/lib/ccs/init_policy --file-only-profile
+</td></tr>
+</table>
+
+<p>全て（ファイル、ネットワーク、ケイパビリティ、環境変数名、シグナルの送信）に対するアクセス解析／制御を有効にしたい場合には、以下の操作を行ってください。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/lib/ccs/init_policy
+</td></tr>
+</table>
+
+<p>ポリシーファイルが /etc/ccs/ ディレクトリの中に作成されます。</p>
+
+<hr>
+
+<h2><a name="1.5">ステップ１．５：ブートローダの設定および再起動</a></h2>
+
+<p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、 <i>"Disable by default"</i> オプションを選択した場合、 ccsecurity=on という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。その後、再起動を行い、インストールされたカーネルを選択して起動してください。（第２節からは TOMOYO Linux 対応カーネルで起動されていることを前提として話を進めます。）</p>
+
+<div class=navfooter>
+<hr align="left" width="100%">
+<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="top">
+</td>
+<td width="34%" align="center" valign="top">
+<a href="index.html.ja">目次</a>
+</td>
+<td width="33%" align="right" valign="top">
+<a href="phase-2.html.ja">次節</a>
+</td></tr>
+<tr><td width="33%" align="left" valign="top">
+</td>
+<td width="34%" align="center" valign="top">
+<a href="http://tomoyo.sourceforge.jp/">ホームへ</a>
+</td>
+<td width="33%" align="right" valign="top">
+第２節： TOMOYO Linux を理解する
+</td>
+</tr>
+</table>
+</div>
+
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
