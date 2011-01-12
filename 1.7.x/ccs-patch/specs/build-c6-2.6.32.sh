@@ -23,6 +23,11 @@ then
     wget -O ccs-patch-1.7.2-20101122.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20101122.tar.gz' || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.32-centos-6.0-20110112.diff ]
+then
+    wget -O ccs-patch-2.6.32-centos-6.0-20110112.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?root=tomoyo&revision=4342&content-type=text%2Fplain'
+fi
+
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
@@ -70,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20101122.tar.gz
-+sed -e 's/, flag, mode);/, open_flag, mode);/' -e 's/acc_mode, flag);/acc_mode, open_flag);/' -- patches/ccs-patch-2.6.32-centos-6.0.diff | patch -sp1
++patch -sp1 < %_sourcedir/ccs-patch-2.6.32-centos-6.0-20110112.diff
 +
  # Any further pre-build tree manipulations happen here.
  
