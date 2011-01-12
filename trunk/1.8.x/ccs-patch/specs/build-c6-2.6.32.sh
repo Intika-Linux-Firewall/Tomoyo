@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-71.7.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-71.14.1.el6.src.rpm ]
 then
-    wget http://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/kernel-2.6.32-71.7.1.el6.src.rpm || die "Can't download source package."
+    wget http://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/kernel-2.6.32-71.14.1.el6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32-71.7.1.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-71.7.1.el6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32-71.14.1.el6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-71.14.1.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20101231.tar.gz ]
@@ -70,7 +70,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.0-20101231.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.32-centos-6.0.diff
++sed -e 's/, flag, mode);/, open_flag, mode);/' -e 's/acc_mode, flag);/acc_mode, open_flag);/' -- patches/ccs-patch-2.6.32-centos-6.0.diff | patch -sp1
 +
  # Any further pre-build tree manipulations happen here.
  
