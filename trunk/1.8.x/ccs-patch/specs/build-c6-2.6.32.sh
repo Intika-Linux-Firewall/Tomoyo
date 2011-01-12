@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.0-20101231.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.32-centos-6.0-1.8.0-20100112.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.32-centos-6.0-1.8.0-20110112.diff
 +
  # Any further pre-build tree manipulations happen here.
  
