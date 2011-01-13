@@ -284,15 +284,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
-@@ -599,6 +603,8 @@ SYSCALL_DEFINE1(chroot, const char __use
- 	error = inode_permission(path.dentry->d_inode, MAY_EXEC | MAY_ACCESS);
- 	if (error)
+@@ -603,6 +607,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+ 	error = -EPERM;
+ 	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (ccs_chroot_permission(&path))
 +		goto dput_and_out;
  
- 	error = -EPERM;
- 	if (!capable(CAP_SYS_CHROOT))
+ 	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
+ 		goto dput_and_out;
 @@ -643,6 +649,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write_file(file);
  	if (err)
