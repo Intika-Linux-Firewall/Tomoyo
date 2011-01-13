@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.32.15 + grsecurity-2.1.14-2.6.32.15.
+This is TOMOYO Linux patch for kernel 2.6.32.28 + grsecurity-2.2.1-2.6.32.28.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.32.15.tar.bz2 + http://www.grsecurity.net/stable/grsecurity-2.1.14-2.6.32.15-201006011506.patch
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.32/linux-2.6.32.28.tar.bz2 + http://www.grsecurity.net/stable/grsecurity-2.2.1-2.6.32.28-201101120010.patch
 ---
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
@@ -9,7 +9,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   20 ++++++++++++++++++++
- fs/open.c                       |   20 ++++++++++++++++++++
+ fs/open.c                       |   22 ++++++++++++++++++++++
  fs/proc/version.c               |    8 ++++++++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -34,10 +34,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 236 insertions(+), 3 deletions(-)
+ 32 files changed, 238 insertions(+), 3 deletions(-)
 
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/compat.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/compat.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/compat.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/compat.c
 @@ -56,6 +56,7 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -46,7 +46,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int compat_log = 1;
  
-@@ -1566,7 +1567,7 @@ int compat_do_execve(char * filename,
+@@ -1587,7 +1588,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out_fail;
  
@@ -55,8 +55,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval < 0)
  		goto out_fail;
  #ifdef CONFIG_GRKERNSEC
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/compat_ioctl.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/compat_ioctl.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/compat_ioctl.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -65,7 +65,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2778,6 +2779,8 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2780,6 +2781,8 @@ asmlinkage long compat_sys_ioctl(unsigne
  
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
@@ -74,7 +74,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_fput;
  
-@@ -2814,6 +2817,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2816,6 +2819,10 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -85,8 +85,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/exec.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/exec.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/exec.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/exec.c
 @@ -68,6 +68,7 @@
  #include <asm/mmu_context.h>
  #include <asm/tlb.h>
@@ -95,7 +95,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifdef CONFIG_PAX_HOOK_ACL_FLAGS
  void (*pax_set_initial_flags_func)(struct linux_binprm *bprm);
-@@ -1452,7 +1453,7 @@ int do_execve(char * filename,
+@@ -1486,7 +1487,7 @@ int do_execve(char * filename,
  		goto out_fail;
  
  	current->flags &= ~PF_KTHREAD;
@@ -104,8 +104,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval < 0)
  		goto out_fail;
  #ifdef CONFIG_GRKERNSEC
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/fcntl.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/fcntl.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/fcntl.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/fcntl.c
 @@ -23,6 +23,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -124,8 +124,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/ioctl.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/ioctl.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/ioctl.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/ioctl.c
 @@ -18,6 +18,7 @@
  #include <linux/falloc.h>
  
@@ -152,8 +152,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/namei.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/namei.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/namei.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/namei.c
 @@ -37,6 +37,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -163,7 +163,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1583,6 +1585,11 @@ int may_open(struct path *path, int acc_
+@@ -1584,6 +1586,11 @@ int may_open(struct path *path, int acc_
  			goto err_out;
  		}
  
@@ -175,7 +175,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1643,6 +1650,9 @@ static int __open_namei_create(struct na
+@@ -1658,6 +1665,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -185,7 +185,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1813,7 +1823,9 @@ do_last:
+@@ -1828,7 +1838,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -195,7 +195,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1890,7 +1902,9 @@ ok:
+@@ -1895,7 +1907,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -205,7 +205,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2138,6 +2152,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2143,6 +2157,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -215,7 +215,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2221,6 +2238,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2226,6 +2243,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -225,7 +225,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2354,6 +2374,9 @@ static long do_rmdir(int dfd, const char
+@@ -2359,6 +2379,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -235,7 +235,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2458,6 +2481,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2463,6 +2486,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -245,7 +245,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2550,6 +2576,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2555,6 +2581,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -255,7 +255,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2666,6 +2695,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2671,6 +2700,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -266,7 +266,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2915,6 +2948,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2920,6 +2953,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
@@ -277,8 +277,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/namespace.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/namespace.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/namespace.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/namespace.c
 @@ -33,6 +33,7 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -296,16 +296,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		return retval;
  
-@@ -1125,6 +1128,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
- {
- 	struct path path;
- 	int retval;
+@@ -1133,6 +1136,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
+ 	if (!(flags & UMOUNT_NOFOLLOW))
+ 		lookup_flags |= LOOKUP_FOLLOW;
+ 
 +	if (!ccs_capable(CCS_SYS_UMOUNT))
 +		return -EPERM;
- 
- 	retval = user_path(name, &path);
+ 	retval = user_path_at(AT_FDCWD, name, lookup_flags, &path);
  	if (retval)
-@@ -1473,6 +1478,9 @@ static int do_loopback(struct path *path
+ 		goto out;
+@@ -1480,6 +1485,9 @@ static int do_loopback(struct path *path
  
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
@@ -315,7 +315,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1584,6 +1592,9 @@ static int do_move_mount(struct path *pa
+@@ -1591,6 +1599,9 @@ static int do_move_mount(struct path *pa
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
  
@@ -325,7 +325,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(path->dentry->d_inode))
-@@ -1689,6 +1700,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1696,6 +1707,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -335,7 +335,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1911,6 +1925,7 @@ int copy_mount_string(const void __user 
+@@ -1918,6 +1932,7 @@ int copy_mount_string(const void __user 
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -343,7 +343,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct path path;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1958,6 +1973,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1965,6 +1980,9 @@ long do_mount(char *dev_name, char *dir_
  
  	retval = security_sb_mount(dev_name, &path,
  				   type_page, flags, data_page);
@@ -353,7 +353,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		goto dput_out;
  
-@@ -2189,6 +2207,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2196,6 +2214,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -362,8 +362,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/open.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/open.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/open.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/open.c
 @@ -30,6 +30,7 @@
  #include <linux/audit.h>
  #include <linux/falloc.h>
@@ -372,17 +372,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -278,6 +279,9 @@ static long do_sys_truncate(const char _
+@@ -275,6 +276,9 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error)
  		error = security_path_truncate(&path, length, 0);
 +	if (!error)
 +		error = ccs_truncate_permission(path.dentry, path.mnt, length,
 +						0);
- 	if (!error) {
- 		vfs_dq_init(inode);
- 		error = do_truncate(path.dentry, length, 0, NULL);
-@@ -337,6 +341,9 @@ static long do_sys_ftruncate(unsigned in
+ 
+ 	if (!error && !gr_acl_handle_truncate(path.dentry, path.mnt))
+ 		error = -EACCES;
+@@ -338,6 +342,9 @@ static long do_sys_ftruncate(unsigned in
  		error = security_path_truncate(&file->f_path, length,
  					       ATTR_MTIME|ATTR_CTIME);
  	if (!error)
@@ -392,7 +392,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
-@@ -598,6 +605,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -599,6 +606,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = inode_permission(path.dentry->d_inode, MAY_EXEC | MAY_ACCESS);
  	if (error)
  		goto dput_and_out;
@@ -401,7 +401,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
-@@ -642,6 +651,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -643,6 +652,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write_file(file);
  	if (err)
  		goto out_putf;
@@ -409,9 +409,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +	if (err)
 +		goto out_drop_write;
  
- 	if (!gr_acl_handle_fchmod(dentry, file->f_path.mnt, mode)) {
- 		err = -EACCES;
-@@ -686,6 +698,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	mutex_lock(&inode->i_mutex);
+ 
+@@ -665,6 +677,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 
+ out_unlock:
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -687,6 +700,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -419,9 +427,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +	if (error)
 +		goto out_drop_write;
  
- 	if (!gr_acl_handle_chmod(path.dentry, path.mnt, mode)) {
- 		error = -EACCES;
-@@ -726,6 +741,9 @@ static int chown_common(struct dentry * 
+ 	mutex_lock(&inode->i_mutex);
+ 
+@@ -709,6 +725,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 
+ out_unlock:
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(path.mnt);
+ dput_and_out:
+ 	path_put(&path);
+@@ -727,6 +744,9 @@ static int chown_common(struct dentry * 
  	int error;
  	struct iattr newattrs;
  
@@ -431,7 +447,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!gr_acl_handle_chown(dentry, mnt))
  		return -EACCES;
  
-@@ -1219,6 +1237,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1220,6 +1240,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -440,8 +456,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/fs/proc/version.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/fs/proc/version.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/fs/proc/version.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/fs/proc/version.c
 @@ -32,3 +32,11 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -449,15 +465,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32.15+grsecurity-2.1.14-2.6.32.15 "
-+	       "2010/09/21\n");
++	printk(KERN_INFO "Hook version: 2.6.32.28+grsecurity-2.2.1-2.6.32.28 "
++	       "2011/01/13\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/include/linux/init_task.h
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/include/linux/init_task.h
-@@ -122,6 +122,14 @@ extern struct cred init_cred;
- # define INIT_GR_FS_LOCK
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/include/linux/init_task.h
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/include/linux/init_task.h
+@@ -115,6 +115,14 @@ extern struct cred init_cred;
+ # define INIT_PERF_EVENTS(tsk)
  #endif
  
 +#ifdef CONFIG_CCSECURITY
@@ -471,16 +487,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -192,6 +200,7 @@ extern struct cred init_cred;
+@@ -184,6 +192,7 @@ extern struct cred init_cred;
+ 	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
  	INIT_TASK_RCU_PREEMPT(tsk)					\
- 	INIT_GR_FS_LOCK							\
 +	INIT_CCSECURITY                                                 \
  }
  
  
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/include/linux/sched.h
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/include/linux/sched.h
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/include/linux/sched.h
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -490,7 +506,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  struct sched_param {
  	int sched_priority;
  };
-@@ -1566,6 +1568,10 @@ struct task_struct {
+@@ -1576,6 +1578,10 @@ struct task_struct {
  	/* bitmask of trace recursion */
  	unsigned long trace_recursion;
  #endif /* CONFIG_TRACING */
@@ -501,17 +517,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  };
  
  #define MF_PAX_PAGEEXEC		0x01000000	/* Paging based non-executable pages */
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/compat.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/compat.c
-@@ -27,6 +27,7 @@
- #include <linux/ptrace.h>
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/compat.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/compat.c
+@@ -28,6 +28,7 @@
+ #include <linux/module.h>
  
  #include <asm/uaccess.h>
 +#include <linux/ccsecurity.h>
  
  /*
   * Note that the native side is already converted to a timespec, because
-@@ -926,6 +927,8 @@ asmlinkage long compat_sys_stime(compat_
+@@ -924,6 +925,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -520,8 +536,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/kexec.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/kexec.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/kexec.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -539,8 +555,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/kmod.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/kmod.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/kmod.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/kmod.c
 @@ -196,6 +196,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -553,8 +569,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/module.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/module.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/module.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/module.c
 @@ -55,6 +55,7 @@
  #include <linux/async.h>
  #include <linux/percpu.h>
@@ -572,7 +588,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2667,6 +2670,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2673,6 +2676,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -581,8 +597,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/ptrace.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/ptrace.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/ptrace.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/ptrace.c
 @@ -22,6 +22,7 @@
  #include <linux/pid_namespace.h>
  #include <linux/syscalls.h>
@@ -609,8 +625,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/sched.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/sched.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/sched.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/sched.c
 @@ -74,6 +74,7 @@
  
  #include <asm/tlb.h>
@@ -619,7 +635,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #include "sched_cpupri.h"
  
-@@ -6128,6 +6129,8 @@ int can_nice(const struct task_struct *p
+@@ -6238,6 +6239,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -628,8 +644,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/signal.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/signal.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/signal.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/signal.c
 @@ -34,6 +34,7 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -638,7 +654,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * SLAB caches for signal bits.
-@@ -2268,6 +2269,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2270,6 +2271,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -647,7 +663,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2336,6 +2339,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2338,6 +2341,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -656,7 +672,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2348,6 +2353,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2350,6 +2355,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -665,7 +681,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2365,6 +2372,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2367,6 +2374,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -674,7 +690,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2381,6 +2390,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2383,6 +2392,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  	if (info->si_code >= 0)
  		return -EPERM;
  	info->si_signo = sig;
@@ -683,8 +699,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/sys.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/sys.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/sys.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/sys.c
 @@ -45,6 +45,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -713,7 +729,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1171,6 +1178,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1172,6 +1179,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -722,7 +738,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1220,6 +1229,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1221,6 +1230,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -731,8 +747,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/sysctl.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/sysctl.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/sysctl.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/sysctl.c
 @@ -53,6 +53,7 @@
  
  #include <asm/uaccess.h>
@@ -741,7 +757,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1896,6 +1897,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1903,6 +1904,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -751,8 +767,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/time.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/time.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/time.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/time.c
 @@ -41,6 +41,7 @@
  
  #include <asm/uaccess.h>
@@ -769,8 +785,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +		return -EPERM;
  
  	do_settimeofday(&tv);
- 
-@@ -166,6 +169,8 @@ int do_sys_settimeofday(struct timespec 
+ 	return 0;
+@@ -163,6 +166,8 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -778,9 +794,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +		return -EPERM;
  
  	if (tz) {
- 		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/kernel/time/ntp.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/kernel/time/ntp.c
+ 		/* we log in do_settimeofday called below, so don't log twice
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/kernel/time/ntp.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -805,8 +821,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/ipv4/inet_connection_sock.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,7 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -824,8 +840,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover) {
  					if (tb->fastreuse > 0 &&
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/ipv4/inet_hashtables.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/ipv4/inet_hashtables.c
 @@ -23,6 +23,7 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -843,8 +859,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/ipv4/raw.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/ipv4/raw.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/ipv4/raw.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -863,8 +879,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/ipv4/udp.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/ipv4/udp.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/ipv4/udp.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/ipv4/udp.c
 @@ -106,6 +106,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -893,8 +909,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	err = gr_search_udp_recvmsg(sk, skb);
  	if (err)
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/ipv6/raw.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/ipv6/raw.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/ipv6/raw.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -913,17 +929,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/ipv6/udp.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/ipv6/udp.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/ipv6/udp.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
  #include "udp_impl.h"
 +#include <linux/ccsecurity.h>
  
- int ipv6_rcv_saddr_equal(const struct sock *sk, const struct sock *sk2)
- {
-@@ -211,6 +212,9 @@ try_again:
+ #ifdef CONFIG_GRKERNSEC_BLACKHOLE
+ extern int grsec_enable_blackhole;
+@@ -215,6 +216,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -933,8 +949,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/socket.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/socket.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/socket.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/socket.c
 @@ -113,6 +113,8 @@ extern int gr_search_accept(struct socke
  extern int gr_search_socket(const int domain, const int type,
  			    const int protocol);
@@ -953,7 +969,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
  
-@@ -1187,6 +1191,8 @@ static int __sock_create(struct net *net
+@@ -1189,6 +1193,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -962,7 +978,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		return err;
  
-@@ -1453,6 +1459,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1455,6 +1461,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -974,7 +990,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1492,6 +1503,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1494,6 +1505,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -983,7 +999,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			err = sock->ops->listen(sock, backlog);
  
  error:
-@@ -1574,6 +1587,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1576,6 +1589,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -995,7 +1011,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1654,6 +1672,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1656,6 +1674,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
@@ -1005,8 +1021,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (err)
  		goto out_put;
  
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/net/unix/af_unix.c
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/net/unix/af_unix.c
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/net/unix/af_unix.c
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1015,7 +1031,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  static struct hlist_head unix_socket_table[UNIX_HASH_SIZE + 1];
  static DEFINE_SPINLOCK(unix_table_lock);
-@@ -850,6 +851,10 @@ static int unix_bind(struct socket *sock
+@@ -859,6 +860,10 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_dput;
  		err = security_path_mknod(&nd.path, dentry, mode, 0);
@@ -1026,9 +1042,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (err)
  			goto out_mknod_drop_write;
  		if (!gr_acl_handle_mknod(dentry, nd.path.dentry, nd.path.mnt, mode)) {
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/security/Kconfig
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/security/Kconfig
-@@ -658,5 +658,7 @@ source security/tomoyo/Kconfig
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/security/Kconfig
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/security/Kconfig
+@@ -668,5 +668,7 @@ source security/tomoyo/Kconfig
  
  source security/integrity/ima/Kconfig
  
@@ -1036,8 +1052,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
  endmenu
  
---- linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506.orig/security/Makefile
-+++ linux-2.6.32.15+grsecurity-2.1.14-2.6.32.15-201006011506/security/Makefile
+--- linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010.orig/security/Makefile
++++ linux-2.6.32+grsecurity-2.2.1-2.6.32.28-201101120010/security/Makefile
 @@ -25,3 +25,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
