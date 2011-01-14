@@ -25,7 +25,7 @@ fi
 
 if [ ! -r ccs-patch-2.6.18-centos-5.6-1.7.2-20110114.diff ]
 then
-    wget -O ccs-patch-2.6.18-centos-5.6-1.7.2-20110114.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-centos-5.6.diff?root=tomoyo&revision=4359&content-type=text%2Fplain'
+    wget -O ccs-patch-2.6.18-centos-5.6-1.7.2-20110114.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-centos-5.6.diff?root=tomoyo&revision=4362&content-type=text%2Fplain'
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."

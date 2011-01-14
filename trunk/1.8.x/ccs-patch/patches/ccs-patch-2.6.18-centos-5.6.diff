@@ -968,3 +968,51 @@ This is TOMOYO Linux patch for CentOS 5.6.
 +
 +subdir-$(CONFIG_CCSECURITY)+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o
+---
+ net/ipv6/inet6_hashtables.c |    2 ++
+ net/ipv6/udp.c              |    9 ++++++---
+ 2 files changed, 8 insertions(+), 3 deletions(-)
+
+--- linux-2.6.18-238.el5.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.18-238.el5/net/ipv6/inet6_hashtables.c
+@@ -266,6 +266,8 @@ int inet6_hash_connect(struct inet_timew
+  		local_bh_disable();
+ 		for (i = 1; i <= remaining; i++) {
+ 			port = low + (i + offset) % remaining;
++			if (inet_is_reserved_local_port(port))
++				continue;
+  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
+  			spin_lock(&head->lock);
+ 
+--- linux-2.6.18-238.el5.orig/net/ipv6/udp.c
++++ linux-2.6.18-238.el5/net/ipv6/udp.c
+@@ -81,7 +81,8 @@ static int udp_v6_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
+-		if (!udp_lport_inuse(rover))
++		if (!udp_lport_inuse(rover) &&
++		    !inet_is_reserved_local_port(rover))
+ 			goto gotit;
+ 
+ 		/* 1st pass: look for empty (or shortest) hash chain */
+@@ -90,7 +91,8 @@ static int udp_v6_get_port(struct sock *
+ 			struct hlist_head *list;
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+-			if (hlist_empty(list))
++			if (hlist_empty(list) &&
++			    !inet_is_reserved_local_port(rover))
+ 				goto gotit;
+ 
+ 			sk_for_each(sk2, node, list)
+@@ -107,7 +109,8 @@ static int udp_v6_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
+-			if (!udp_lport_inuse(rover))
++			if (!udp_lport_inuse(rover) &&
++			    !inet_is_reserved_local_port(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+ 			if (rover > high)
