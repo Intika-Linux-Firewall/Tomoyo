@@ -3,9 +3,9 @@
  *
  * Testing program for policy parser.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.6.8+   2011/01/14
  *
  */
 #include "include.h"
@@ -86,11 +86,11 @@ static void stage_policy_io_test(void)
 		try_io("deny_autobind 500", 1);
 		try_io("deny_autobind 0-65535", 1);
 		try_io("deny_unmount /", 1);
-		try_io("deny_unmount /proc0", 0);
+		try_io("deny_unmount /proc0", 1);
 		try_io("deny_unmount /sys1/", 1);
 		try_io("deny_unmount /initrd2/", 1);
 		try_io("deny_unmount /initrd/dev3/", 1);
-		try_io("deny_unmount /initrd4/root", 0);
+		try_io("deny_unmount /initrd4/root", 1);
 		try_io("deny_unmount foo5/", 0);
 		try_io("deny_unmount bar6", 0);
 		try_io("deny_unmount /initrd/\\*\\+/", 1);
