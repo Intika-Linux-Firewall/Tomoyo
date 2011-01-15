@@ -42,42 +42,19 @@
 
 <hr>
 
-<h2><a name="1.2">ステップ１．２：既に TOMOYO Linux 対応カーネルであるかどうか判断する</a></h2>
+<h2><a name="1.2">ステップ１．２：カーネルのインストール</a></h2>
+
+<h3>既に TOMOYO Linux 対応カーネルであるかどうか判断する</h3>
 
 <p>TOMOYO Linux 2.3 はメインラインカーネルのソースに既に含まれていますが、特定のカーネルコンフィグオプションを有効にしないと利用できません。以下の手順により利用中のカーネルで TOMOYO Linux を利用できるかどうかを判断することができます。</p>
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ zcat /proc/config.gz | grep CONFIG_SECURITY_TOMOYO=y
+[root@tomoyo ~]$ grep tomoyo_supervisor /proc/kallsyms
 </td></tr>
 </table>
 
-<p>/proc/config.gz は CONFIG_IKCONFIG_PROC=y が有効な状態でコンパイルされたカーネルのみ存在します。もし、 /proc/config.gz  が存在しない場合、おそらく /boot/config-`uname -r` というファイル名でインストールされているであろうカーネルコンフィグファイルをチェックすることができます。</p>
-
-<table border="1">
-<tr><td>
-[user@tomoyo ~]$ grep CONFIG_SECURITY_TOMOYO=y /boot/config-`uname -r`
-</td></tr>
-</table>
-
-<p>もし /proc/config.gz または /boot/config-`uname -r` の中に CONFIG_SECURITY_TOMOYO=y という行が含まれていた場合、既に TOMOYO Linux 対応カーネルですので、<a href="#1.4">ステップ１．４：管理ツールのインストール</a>へと進んでください。</p>
-
-<p>もし /proc/config.gz または /boot/config-`uname -r` の中に CONFIG_SECURITY_TOMOYO=y という行が含まれていない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、<a href="#1.3">ステップ１．３：カーネルのインストール</a>へと進んでください。</p>
-
-<p>もし /proc/config.gz も /boot/config-`uname -r` も存在しない場合、代わりに /proc/kallsyms をチェックすることができます。</p>
-
-<table border="1">
-<tr><td>
-[user@tomoyo ~]$ su -<br>
-[root@tomoyo ~]$ grep tomoyo_ /proc/kallsyms
-</td></tr>
-</table>
-
-<p>/proc/kallsyms の中に tomoyo_ を含む行が存在していた場合、<a href="#1.4">ステップ１．４：管理ツールのインストール</a>へと進んでください。存在しない場合、<a href="#1.3">ステップ１．３：カーネルのインストール</a>へと進んでください。</p>
-
-<hr>
-
-<h2><a name="1.3">ステップ１．３：カーネルのインストール</a></h2>
+<p>/proc/kallsyms の中に tomoyo_supervisor を含む行が存在していた場合、既に TOMOYO Linux 対応カーネルですので、<a href="#1.3">ステップ１．３：管理ツールのインストール</a>へと進んでください。存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。</p>
 
 <h3>カーネルソースの入手</h3>
 
@@ -120,7 +97,7 @@
 
 <hr>
 
-<h2><a name="1.4">ステップ１．４：管理ツールのインストール</a></h2>
+<h2><a name="1.3">ステップ１．３：管理ツールのインストール</a></h2>
 
 <p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます。</p>
 
@@ -141,7 +118,7 @@
 
 <hr>
 
-<h2><a name="1.5">ステップ１．５：設定の初期化</a></h2>
+<h2><a name="1.4">ステップ１．４：設定の初期化</a></h2>
 
 <p>TOMOYO Linux を利用するために、ポリシーの初期化を行う必要があります。以下の操作を行ってください。</p>
 
@@ -157,10 +134,9 @@
 
 <hr>
 
-<h2><a name="1.6">ステップ１．６：ブートローダの設定および再起動</a></h2>
+<h2><a name="1.5">ステップ１．５：ブートローダの設定および再起動</a></h2>
 
-<p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合、 security=tomoyo という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。
-ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg であると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
+<p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合、 security=tomoyo という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg であると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
 
 <p>その後、再起動を行い、インストールされたカーネルを選択して起動してください。（第２節からは TOMOYO Linux 対応カーネルで起動されていることを前提として話を進めます。）</p>
 
