@@ -36,21 +36,21 @@
 <p>In the CentOS 5.5 , Apache's program's location is /usr/sbin/httpd .<br>
 Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line /usr/sbin/httpd . In this picture, it is line 419.</p>
 
-<p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
+<p><img src="editpolicy-httpd-profile0.png" alt="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
 <p>If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
 
 <p>Press 's' key and enter '1' and press 'Enter' key.</p>
 
-<p><img src="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
+<p><img src="editpolicy-httpd-set-profile1.png" alt="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
 
 <p>Now the profile number of the /usr/sbin/httpd has changed to 1.</p>
 
-<p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
+<p><img src="editpolicy-httpd-profile1.png" alt="editpolicy-httpd-profile1.png" width="720" height="400"></p>
 
 <p>Press '@' key to switch to process list. Verify that /usr/sbin/httpd processes are assigned profile number 1.</p>
 
-<p><img src="editpolicy-httpd-process1.png" width="720" height="400"></p>
+<p><img src="editpolicy-httpd-process1.png" alt="editpolicy-httpd-process1.png" width="720" height="400"></p>
 
 <p>Press 'q' key to quit the policy editor.</p>
 
@@ -70,11 +70,11 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>Press 'Enter' key to browse the permissions gathered by now.</p>
 
-<p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
+<p><img src="editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="720" height="400"></p>
 
 <p>Press 'q' key to quit the policy editor. Do whatever you want to allow Apache.</p>
 
-<p><img src="operation-learning.png" width="688" height="933"></p>
+<p><img src="operation-learning.png" alt="operation-learning.png" width="688" height="933"></p>
 
 <p>Be sure to sometimes save policy, for necessary permissions are accumulated on only kernel memory. If you reboot the system, all gathered permissions will be lost.</p>
 
@@ -106,19 +106,19 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>Choose target domains and press 's' key and enter '2' and press 'Enter' key.</p>
 
-<p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
+<p><img src="editpolicy-httpd-set-profile2.png" alt="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
 
 <p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 2.</p>
 
-<p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
+<p><img src="editpolicy-httpd-profile2.png" alt="editpolicy-httpd-profile2.png" width="720" height="400"></p>
 
 <p>Press 'q' key to quit the policy editor. Redo whatever you want to allow Apache to do.</p>
 
 <p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violation occurs.</p>
 
-<p><img src="operation-permissive.png" width="688" height="622"></p>
+<p><img src="operation-permissive.png" alt="operation-permissive.png" width="688" height="622"></p>
 
-<p><img src="permissive-warning.png" width="720" height="400"></p>
+<p><img src="permissive-warning.png" alt="permissive-warning.png" width="720" height="400"></p>
 
 <p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up necessary permissions from audit logs using "grep".</p>
 

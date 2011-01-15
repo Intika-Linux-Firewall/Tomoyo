@@ -29,7 +29,7 @@
 
 <p>ポリシーエディタは役割の異なる幾つかの画面を提供しています。デフォルトで表示される画面は Domain Transition Editor です。以下の写真は上記のコマンドを実行後のドメインツリーが表示されています。現時点では &lt;kernel&gt; ドメインだけが定義されています。</p>
 
-<p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
+<p><img src="editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" width="720" height="400"></p>
 
 <p>ポリシーを初期化した直後であるため、 /etc/ccs/ ディレクトリに存在するポリシーファイルは空っぽです。 TOMOYO Linux には２つのタイプのポリシーが存在します。１つは現在カーネル内に存在しているポリシーです。もうひとつは /etc/ccs/ ディレクトリ内に存在しているポリシーです。複数の版を /etc/ccs/ ディレクトリ内に保存することができ、起動時または必要に応じてカーネル内へと読み込むことができます。カーネル内に存在しているポリシーを /etc/ccs/ ディレクトリ内に保存する方法については第３節で紹介します。 q キーを押してポリシーエディタを終了してください。</p>
 
@@ -43,7 +43,7 @@
 
 <p>システムが動作するにつれて、 TOMOYO Linux は新しいドメインを作成してこのツリーに追加していきます。上記のコマンドを実行することにより、起動時から現時点までに作成された全てのドメインがドメインツリーとして表示される筈です。</p>
 
-<p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
+<p><img src="editpolicy-domain-list2.png" alt="editpolicy-domain-list2.png" width="720" height="400"></p>
 
 <p>TOMOYO Linux における解析／制限はドメインを単位として適用されます。全てのプロセスは１個のドメインに属しており、原則としてプログラムが実行される度に異なるドメインへと遷移します。ドメインの名前はプロセスの実行履歴として連結された文字列です。</p>
 
@@ -60,7 +60,7 @@
 
 <p>各行の２番目の数字に注目してください。</p>
 
-<p><img src="editpolicy-domain-profile-number.png" width="720" height="400"></p>
+<p><img src="editpolicy-domain-profile-number.png" alt="editpolicy-domain-profile-number.png" width="720" height="400"></p>
 
 <p>この数字はプロファイル番号と呼ばれるものです。プロファイル番号は０～２５５の整数値をとります。デフォルトのプロファイル番号は０です。プロファイル０は「無効モード」と呼ばれ、ドメインに対する解析／制限は行われません。</p>
 
@@ -68,17 +68,17 @@
 
 <p>w キーを押すと、ポリシーエディタで選択可能な画面を一覧から選択するための画面が表示されます。</p>
 
-<p><img src="editpolicy-window-list.png" width="720" height="400"></p>
+<p><img src="editpolicy-window-list.png" alt="editpolicy-window-list.png" width="720" height="400"></p>
 
 <p>p キーを押すと、 Profile Editor 画面に切り替わり、プロファイルの一覧を見ることができます。</p>
 
 <p>もし、第１節で /usr/lib/ccs/init_policy を実行する際に --file-only-profile というオプションを指定していた場合、以下のエントリが表示されます。</p>
 
-<p><img src="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
+<p><img src="editpolicy-profile-list-file-only.png" alt="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
 
 <p>もし、第１節で /usr/lib/ccs/init_policy を実行する際に --file-only-profile というオプションを指定しなかった場合、以下のエントリが表示されます。</p>
 
-<p><img src="editpolicy-profile-list.png" width="720" height="400"></p>
+<p><img src="editpolicy-profile-list.png" alt="editpolicy-profile-list.png" width="720" height="400"></p>
 
 <table border="1">
 <tr><td>項目</td><td>内容</td></tr>
@@ -127,7 +127,7 @@
 
 <p>それぞれのドメインに対する解析／制限の内容については、 Domain Policy 画面で確認することができます。この画面は、 Domain Transition 画面でドメインを選択後、 Enter キーを押すことにより表示されます。まだポリシーを作成していない（ポリシーの作成については第３節で説明します）ため、画面は空っぽです。以下の画面は Apache に対するポリシーの例です。</p>
 
-<p><a href="editpolicy-httpd-full.png">（クリックすると全体を表示します。）<br><img src="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
+<p><a href="editpolicy-httpd-full.png">（クリックすると全体を表示します。）<br><img src="editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
 
 <p>ドメインに対する解析／制限の内容が file read や file write のようなディレクティブと一緒に表示されています。ドメインに対して「強制モード」が割り当てられると、ここで表示されているアクセス許可（および次のステップで説明する例外ポリシーで定義されているアクセス許可）だけが認められるようになります。通常の利用方法だけを許可するような必要最小限の権限を持ったドメインポリシーを作成するために、「学習モード」および「確認モード」を利用することができます。利用可能なディレクティブの詳細については<a href="policy-reference.html.ja#domain_policy">ドメインポリシーの仕様</a>を参照してください。</p>
 
@@ -137,7 +137,7 @@
 
 <p>w キーを押してから e キーを押すと、以下の画面が表示されます。</p>
 
-<p><a href="editpolicy-exception-full.png">（クリックすると全体を表示します。）<br><img src="editpolicy-exception-list1.png" width="720" height="400"></a></p>
+<p><a href="editpolicy-exception-full.png">（クリックすると全体を表示します。）<br><img src="editpolicy-exception-list1.png" alt="editpolicy-exception-list1.png" width="720" height="400"></a></p>
 
 <p>矢印キーや Home/End/PageUp/PageDown キーを使ってスクロールすることができます。</p>
 

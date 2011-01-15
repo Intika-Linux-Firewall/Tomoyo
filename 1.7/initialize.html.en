@@ -49,33 +49,33 @@
 </td></tr>
 </table>
 
-<p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
+<p><img src="editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" width="720" height="400"></p>
 
 <p>This picture describes the domain tree. As of now, only "&lt;kernel&gt;" domain is defined. But as the system runs, TOMOYO Linux will create domains and add them to the tree. The example picture shown below has many domains.</p>
 
-<p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
+<p><img src="editpolicy-domain-list2.png" alt="editpolicy-domain-list2.png" width="720" height="400"></p>
 
 <p>The MAC in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and basically the process will transit to different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history. For example, the name of domain which the kernel belongs to is "&lt;kernel&gt;", the name of domain which /sbin/init invoked by the kernel belongs to is "&lt;kernel&gt; /sbin/init", the name of domain which /etc/rc.d/rc invoked by the /sbin/init belongs to is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc". The exceptions of this transition rule are described later.</p>
 
 <p>Look at the number which are the second column of each line.</p>
 
-<p><img src="editpolicy-domain-profile-number.png" width="720" height="400"></p>
+<p><img src="editpolicy-domain-profile-number.png" alt="editpolicy-domain-profile-number.png" width="720" height="400"></p>
 
 <p>This number is called "profile number". A profile number is an integer value which takes between 0 and 255.</p>
 
 <p>Press "w" key, and you will see some choices.</p>
 
-<p><img src="editpolicy-window-list.png" width="720" height="400"></p>
+<p><img src="editpolicy-window-list.png" alt="editpolicy-window-list.png" width="720" height="400"></p>
 
 <p>Press "p" key, and you will see the list of profiles.</p>
 
 <p>If you gave "--file-only-profile" option when executing /usr/lib/ccs/init_policy , you will see entries shown in below picture.</p>
 
-<p><img src="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
+<p><img src="editpolicy-profile-list-file-only.png" alt="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
 
 <p>If you didn't give "--file-only-profile" option when executing /usr/lib/ccs/init_policy , you will see entries shown in below picture.</p>
 
-<p><img src="editpolicy-profile-list.png" width="720" height="400"></p>
+<p><img src="editpolicy-profile-list.png" alt="editpolicy-profile-list.png" width="720" height="400"></p>
 
 <table border="1">
 <tr><td>Name</td><td>Control</td></tr>
@@ -145,7 +145,7 @@
 
 <p>Press "w" key, then press "e" key, and you will see the picture shown below.</p>
 
-<p><img src="editpolicy-exception-list1.png" width="720" height="400"></p>
+<p><img src="editpolicy-exception-list1.png" alt="editpolicy-exception-list1.png" width="720" height="400"></p>
 
 <p>You can scroll this window using arrow keys and/or Home/End/PageUp/PageDown keys.</p>
 
