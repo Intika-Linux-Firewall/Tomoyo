@@ -101,40 +101,6 @@
 <p>The <b>"a"</b> option means load two files ("exception_policy.conf", "domain_policy.conf").<br>
 The <b>"f"</b> option means erase the policy currently in the kernel before loading the policy currently on the disk. If "f" is not given, the policy currently on the disk will be added to the policy currently in the kernel.</p>
 
-<hr>
-
-<h2>Step 3: Reviewing gathered permissions</h2>
-
-<p>Once Apache has been stretched to cover all possible uses, run the policy editor to change the profile number to 2. If Apache has executed external programs (e.g. /bin/sh, /usr/bin/sendmail), then there will be descendent domains. The profile number of all descendent domains must also be changed to 2.
-
-<p>Choose target domains and press 's' key and enter '2' and press 'Enter' key:</p>
-
-<p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
-
-<p>Now the profile number of the "/usr/sbin/httpd" domain and all descendants have changed to 2:</p>
-
-<p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
-
-<p>Press 'q' key to quit the policy editor.</p>
-
-<p>Continue using Apache.</p>
-
-<p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violations occur:</p>
-
-<p><img src="operation-permissive.png" width="688" height="622"></p>
-
-<p><img src="permissive-warning.png" width="720" height="400"></p>
-
-<p>Remember to save policy, as permissions are accumulated only in kernel memory. If the system is rebooted, the gathered permissions will be lost.</p>
-
-<p>Use the following command to save the policy to disk into exception_policy.conf and domain_policy.conf :</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy a
-</td></tr>
-</table>
-
 <br>
 
 <div class=navfooter>
