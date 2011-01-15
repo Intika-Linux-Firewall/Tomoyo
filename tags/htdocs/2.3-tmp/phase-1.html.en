@@ -8,7 +8,7 @@
 </head>
 <body>
 <p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
-<p style="text-align:right;"><a href="install.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="phase-1.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 1: Installation and initialization</h1>
 
@@ -20,11 +20,10 @@
 
 <p>These packages are required for compiling the kernel and the userspace tools:</p>
 <ul>
+<li><b>wget</b>: to download tools source package</li>
 <li><b>gcc</b>: to build the kernel and tools</li>
 <li><b>make</b>: to build the kernel and tools</li>
 <li><b>ncurses</b>: for the tools user interface</li>
-<li><b>wget</b>: to download tools source package</li>
-<li><b>readline</b>: for the tools user interface (optional but recommended)</li>
 <li><b>help2man</b>: for the tools man pages (optional but recommended)</li>
 </ul>
 
@@ -32,10 +31,10 @@
 
 <table border="1">
 <tr><td>RedHat distributions</td><td>
-[root@tomoyo ~]# yum -y install gcc make ncurses-devel wget readline-devel help2man
+[root@tomoyo ~]# yum -y install gcc make ncurses-devel wget help2man
 </td></tr>
 <tr><td>Debian distributions</td><td>
-[root@tomoyo ~]# apt-get -y install gcc make libncurses-dev wget libreadline-dev help2man
+[root@tomoyo ~]# apt-get -y install gcc make libncurses-dev wget help2man
 </td></tr>
 </table>
 
@@ -45,7 +44,7 @@
 
 <h2><a name="1.2">Step 1.2: Determine if your kernel has TOMOYO Linux enabled</a></h2>
 
-<p>TOMOYO Linux 2.3.x is integrated with the upstream kernel source, but is only enabled when certain kernel configuration options are set. If you are using a kernel provided by your distribution, then the kernel configuration can usually be checked by running the following command:</p>
+<p>TOMOYO Linux 2.3.x is integrated with the upstream kernel source, but is only enabled when certain kernel configuration options are set. You can determine if your kernel has TOMOYO Linux enabled by running the following command:</p>
 
 <table border="1">
 <tr><td>
@@ -53,7 +52,7 @@
 </td></tr>
 </table>
 
-<p>"/proc/config.gz" exists only if your kernel was built with CONFIG_IKCONFIG_PROC=y . If your kernel does not have it, you can check kernel configuration options which likely be installed as "/boot/config-`uname -r`".</p>
+<p>"/proc/config.gz" exists only if your kernel was built with CONFIG_IKCONFIG_PROC=y . If your kernel does not have it, you can check kernel configuration options which likely be installed as "/boot/config-`uname -r`":</p>
 
 <table border="1">
 <tr><td>
@@ -61,11 +60,11 @@
 </td></tr>
 </table>
 
-<p>If you found CONFIG_SECURITY_TOMOYO=y within "/proc/config.gz" or "/boot/config-`uname -r`", proceed to <a href="phase-1.html.en#1.4">Step 1.4: Install the userspace tools</a>.</p>
+<p>If you found CONFIG_SECURITY_TOMOYO=y within "/proc/config.gz" or "/boot/config-`uname -r`", proceed to <a href="#1.4">Step 1.4: Install the userspace tools</a>.</p>
 
-<p>If you couldn't find CONFIG_SECURITY_TOMOYO=y within "/proc/config.gz" nor "/boot/config-`uname -r`", proceed to <a href="phase-1.html.en#1.3">Step 1.3: Install the kernel</a>.</p>
+<p>If you couldn't find CONFIG_SECURITY_TOMOYO=y within "/proc/config.gz" nor "/boot/config-`uname -r`", proceed to <a href="#1.3">Step 1.3: Install the kernel</a>.</p>
 
-<p>If you can't find "/proc/config.gz" nor "/boot/config-`uname -r`", you can examine "/proc/kallsyms" instead.</p>
+<p>If you can't find "/proc/config.gz" nor "/boot/config-`uname -r`", you can examine "/proc/kallsyms" instead:</p>
 
 <table border="1">
 <tr><td>
@@ -74,7 +73,7 @@
 </td></tr>
 </table>
 
-<p>If you found lines containing tomoyo_ in "/proc/kallsyms", proceed to <a href="phase-1.html.en#1.4">Step 1.4: Install the userspace tools</a>. If not, proceed to <a href="phase-1.html.en#1.3">Step 1.3: Install the kernel</a>.</p>
+<p>If you found lines containing tomoyo_ in "/proc/kallsyms", proceed to <a href="#1.4">Step 1.4: Install the userspace tools</a>. If not, proceed to <a href="#1.3">Step 1.3: Install the kernel</a>.</p>
 
 <hr>
 
@@ -83,7 +82,7 @@
 <h3>Download the kernel</h3>
 
 <p>Download the kernel source from "<a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>" or "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=summary">linux-2.6 git tree</a>".<br>
-Linux kernel 2.6.36 and later are supported from the linux-2.6 tree.</p>
+Linux kernel 2.6.36 and later are supported.</p>
 
 <p>Extract the kernel source and go to the extracted directory.</p>
 
