@@ -1,0 +1,304 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
+<p style="text-align:right;"><a href="phase-5.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第５節：ポリシーを適用する</h1>
+
+<p style="text-align:center;">目的：「強制モード」の使い方を習得し、ポリシー違反が発生した場合への対処を行います。</p>
+
+<hr>
+
+<h2><a name="5.1">ステップ５．１：強制モードを有効にする</a></h2>
+
+<p>ドメインポリシーと例外ポリシーの調整が完了したら、ドメインに対して強制モードを割り当てることができます。</p>
+
+<p>ポリシーエディタを実行してください。スペースキーを用いて対象となるドメインを選択し、 s キーを押して 3 と入力してから Enter キーを押します。</p>
+
+<p><img src="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
+
+<p>選択されたドメインのプロファイル番号が 3 に変化しました。</p>
+
+<p><img src="editpolicy-httpd-profile3.png" width="720" height="400"></p>
+
+<p>@ キーを押してプロセス一覧表示に切り替えてください。そして、 /usr/sbin/httpd プロセスとその子孫に対してプロファイル 3 が割り当てられていることを確認してください。</p>
+
+<p><img src="editpolicy-httpd-process3.png" width="720" height="400"></p>
+
+<p>プロファイル 3 は強制モードが指定されているため、これにより /usr/sbin/httpd プロセスおよびその子孫は保護された状態になりました。</p>
+
+<p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
+
+<p>q キーを押してポリシーエディタを終了してください。ポリシーで許可されている操作をしてみましょう。</p>
+
+<p><img src="operation-permitted.png" width="688" height="933"></p>
+
+<p>メールの送信はポリシーで許可されているので、操作は正常に終了しました。</p>
+
+<p>ポリシーで許可されていない操作をしてみましょう。</p>
+
+<p><img src="unix-penguin.png" width="688" height="933"></p>
+
+<p>操作は拒否されました。（一見すると正常に終了したように見えますが、実際には /bin/mail が「入力が空っぽです」と警告しているとおり、 /bin/cat の実行が拒否されています。）</p>
+
+<p><img src="unix-penguin-rejected.png" width="688" height="623"></p>
+
+<p>もしプロファイルで PREFERENCE::enforcing={ verbose=yes } と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと ERROR: というメッセージがコンソールに表示されます。</p>
+
+<p><img src="enforcing-error.png" width="720" height="400"></p>
+
+<p>メールなどの通知手段を予め設定しておくことにより、強制モードにおけるポリシー違反の発生を報告することができます。通知のために cron デーモンを使うことができます。例えば、１時間に１回まで root@example.com 宛のメールで通知するには以下の行を /etc/crontab に追加してください。</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
+
+<p>上記のように設定した場合、アクセス要求の内容がメールで通知されます。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# mail<br>
+Mail version 8.1 6/6/93.  Type ? for help.<br>
+"/var/spool/mail/root": 1 message 1 unread<br>
+&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234<br>
+&amp;<br>
+Message 1:<br>
+From root@localhost.localdomain  Tue Jan 12 16:19:17 2010<br>
+Date: Tue, 12 Jan 2010 16:19:17 +0900<br>
+From: root &lt;root@localhost.localdomain&gt;<br>
+To: root@localhost.localdomain<br>
+<br>
+Q0-0<br>
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_execute /bin/cat
+</td></tr>
+</table>
+
+<br>
+
+<hr>
+
+<h2><a name="5.2">ステップ５．２：ポリシー違反を対話的に処理する</a></h2>
+
+<p>強制モードで発生したポリシー違反は、 /usr/sbin/tomoyo-queryd を用いることで対話的に処理することができます。この機能は、ソフトウェアアップデート時に便利です。なぜなら、ソフトウェアのアップデートにより、以下の何れかの状況が発生した場合にポリシーを修正する必要が生じる場合があるからです。</p>
+
+<ul>
+<li>ファイルのパス名が変化した場合
+<li>ファイルの依存関係が変化した場合 
+<li>必要なアクセス許可が変化したり増えたりした場合 
+</ul>
+
+<p>学習モードを使ってポリシーを最初から再取得するのが理想です。しかし、現実には、一度強制モードでの運用を開始したシステムを強制モード以外に変更することは困難です。ドメイン単位で強制モードにするかどうかを指定できますが、強制モードではないドメインに属しているアプリケーションの制御を奪われたら意味がありません。例えば、 http サーバのアクセス許可を再取得するために http サーバだけを学習モードにするだけでも、システム全体が無防備になってしまうわけです。</p>
+
+<p>幸いなことに、 tomoyo-queryd を使うことで、管理者は強制モードでシステムを稼働させた状態のままポリシーの修正を行うことができます。ただし、この方法は、全てのケースに対応できるとは限らず、最適なポリシーであることを保証するものではありません。</p>
+
+<h3>tomoyo-queryd  の操作例</h3>
+
+<p>実際の tomoyo-queryd の操作手順について以下のムービーで紹介しています。</p>
+<p><object data="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+
+<p>ポリシーに違反したアクセス要求を処理するために /usr/sbin/tomoyo-queryd コマンドを利用します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-queryd<br>
+Monitoring /sys/kernel/security/tomoyo/query and /etc/ld.so.cache . Press Ctrl-C to terminate.
+</td></tr>
+</table>
+
+<p>デーモンの再起動などのように普段行われない動作によりポリシー違反が発生するかもしれません。ポリシー違反が発生した場合、 tomoyo-queryd にプロンプトが表示されます。</p>
+
+<table border="1">
+<tr><td>
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+allow_execute /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</td></tr>
+</table>
+
+<p>上記の例は、 &lt;kernel&gt; /etc/rc.d/init.d/cups というドメインに属しているプロセスが sleep 1 というコマンドラインを処理するために /bin/sleep の実行を要求したが、ポリシーによって拒否されたことを示しています。通常であればポリシーに違反したアクセス要求は直ちに拒否されますが、 tomoyo-queryd が動作しているため、カーネルはあなたの判断を仰いでいることを示しています。</p>
+
+<p><b>Y</b> を押すと許可します。<br>
+<b>N</b> を押すと拒否します。<br>
+<b>R</b> を押すと再試行します。（手作業でドメインポリシーを変更した後などに利用します。）<br>
+<b>S</b> を押すとそのプロセスのドメインポリシーが表示します。<br>
+<b>A</b> を押すと編集した上でドメイン用ポリシーに追加後、再試行します。（先にドメインポリシーを編集することができます。）</p>
+
+<p>無条件にアクセス要求を許可しないようにしてください。ポリシー違反の原因がパッケージのアップデートによるものとは限らず、侵入者の攻撃によるものである可能性があるからです。</p>
+
+<p>tomoyo-queryd が動作している場合、ポリシーによって拒否されたアクセス要求は、あなたが応答するまで保留状態となります。そのため、 tomoyo-queryd を動作させたままログアウトしないでください。</p>
+
+<p>プログラムが必要とするアクセス許可が与えられるようにするために、 tomoyo-queryd の監視を忘れないようにしてください。もし、アクセス許可の不足が検出された場合には tomoyo-queryd に表示されます。</p>
+
+<table border="1">
+<tr><td>
+#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /usr/sbin/acpid<br>
+allow_unlink /var/run/acpid.socket<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_unlink /var/run/acpid.socket if path1.type=socket<br>
+Added 'allow_unlink /var/run/acpid.socket if path1.type=socket'.<br>
+<br>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
+</td></tr>
+</table>
+
+<p>/etc/ld.so.cache に登録されている共有ライブラリファイルの情報が変更された場合に、 tomoyo-queryd は共有ライブラリのパス名を「無条件に読み込み可能なファイル」として例外ポリシーに追加します。例えば、以下のメッセージは /usr/lib/libpurple.so.0.6.3 というパス名が作成されて /etc/ld.so.cache に登録されたので例外ポリシーに追加したことを示しています。</p>
+
+<table border="1">
+<tr><td>
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
+</td></tr>
+</table>
+
+<p>また、「無条件に読み込み可能なファイル」として例外ポリシーに登録されているパス名が消滅した場合、tomoyo-queryd はそのパス名を例外ポリシーから削除します。</p>
+
+<table border="1">
+<tr><td>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
+</td></tr>
+</table>
+
+<p>なお、 tomoyo-queryd はメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずに tomoyo-savepolicy を実行してポリシーを保存してください。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy
+</td></tr>
+</table>
+
+<p>ポリシーのアップデートが終了したら、 Ctrl-C を入力して tomoyo-queryd を終了させてください。</p>
+
+<h3>tomoyo-queryd の出力例</h3>
+
+<table border="1">
+<tr><td>
+#2010-01-10 12:27:10# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+allow_ioctl /dev/null 0x5401<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s<br>
+# select global-pid=4210<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+use_profile 3<br>
+<br>
+allow_read /bin/bash<br>
+allow_read/write /dev/tty<br>
+allow_read/write /dev/pts/\$<br>
+allow_read /usr/lib/locale/locale-archive<br>
+allow_read /etc/nsswitch.conf<br>
+allow_read /etc/passwd<br>
+allow_read /etc/rc.d/init.d/sshd<br>
+allow_read /etc/rc.d/init.d/functions<br>
+allow_execute /sbin/consoletype<br>
+allow_read /etc/profile.d/lang.sh<br>
+allow_read /etc/sysconfig/i18n<br>
+allow_read /etc/sysconfig/init<br>
+allow_execute /sbin/runlevel<br>
+allow_execute /bin/cp<br>
+allow_execute /usr/sbin/sshd<br>
+allow_execute /bin/touch<br>
+allow_read/write /dev/console<br>
+allow_execute /bin/unicode_start<br>
+allow_read /var/run/sshd.pid<br>
+allow_write /dev/null<br>
+allow_execute /bin/usleep<br>
+allow_execute /bin/rm<br>
+allow_execute /usr/bin/killall<br>
+allow_execute /usr/bin/rhgb-client<br>
+allow_execute /bin/sleep<br>
+allow_ioctl /dev/console 0x5401<br>
+allow_ioctl /etc/rc.d/init.d/sshd 0x5401<br>
+allow_ioctl /var/run/sshd.pid 0x5401<br>
+allow_ioctl /dev/pts/\$ 0x5401<br>
+<br>
+<br>
+#2010-01-10 12:27:20# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+allow_ioctl /dev/null 0x5401<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_ioctl /dev/null 0x5401<br>
+Added 'allow_ioctl /dev/null 0x5401'.<br>
+<br>
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.6.3 was created. Appended to globally readable file.<br>
+<br>
+----------------------------------------<br>
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+allow_execute /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"<br>
+Added 'allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"'.<br>
+<br>
+#2010-01-10 12:29:55# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+# wants to create domain<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry):y<br>
+<br>
+#2010-01-10 12:29:58# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep<br>
+allow_read /usr/lib/locale/locale-archive<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_read /usr/lib/locale/locale-archive<br>
+Added 'allow_read /usr/lib/locale/locale-archive'.<br>
+<br>
+----------------------------------------<br>
+#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }<br>
+&lt;kernel&gt; /usr/sbin/acpid<br>
+allow_unlink /var/run/acpid.socket<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_unlink /var/run/acpid.socket if path1.type=socket<br>
+Added 'allow_unlink /var/run/acpid.socket if path1.type=socket'.<br>
+<br>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
+</td></tr>
+</table>
+
+<br>
+
+<div class=navfooter>
+<hr align="left" width="100%">
+<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="top">
+<a href="phase-4.html.ja">前節</a>
+</td>
+<td width="34%" align="center" valign="top">
+<a href="index.html.ja">目次</a>
+</td>
+<td width="33%" align="right" valign="top">
+<a href="phase-6.html.ja">次節</a>
+</td></tr>
+<tr><td width="33%" align="left" valign="top">
+第４節：ポリシーを作成する
+</td>
+<td width="34%" align="center" valign="top">
+<a href="http://tomoyo.sourceforge.jp/">ホーム</a>
+</td>
+<td width="33%" align="right" valign="top">
+第６節：もっと使いこなす
+</td>
+</tr>
+</table>
+</div>
+
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
