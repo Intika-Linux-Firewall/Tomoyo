@@ -54,7 +54,15 @@
 
 <p><img src="enforcing-error.png" width="720" height="400"></p>
 
-<p>If tomoyo-notifyd was configured at <a href="phase-2.html.en#2.5">Step 2.5: Send policy violation notifications</a>, rejected requests can be notified via mail:</p>
+<p>The occurrence of a policy violation can be reported if a means for notification is set up. The cron daemon can be used. For example, to notify "root@example.com" via mail, up to once per an hour, add the following to "/etc/crontab":</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
+
+<p>Rejected requests will be notified via mail:</p>
 
 <table border="1">
 <tr><td>

@@ -54,7 +54,15 @@
 
 <p><img src="enforcing-error.png" width="720" height="400"></p>
 
-<p>もし、 tomoyo-notifyd の設定を<a href="phase-2.html.en#2.5">２．５：ポリシー違反を通知する（任意）</a>で行っていた場合は、アクセス要求の内容がメールで通知されます。</p>
+<p>メールなどの通知手段を予め設定しておくことにより、強制モードにおけるポリシー違反の発生を報告することができます。通知のために cron デーモンを使うことができます。例えば、１時間に１回まで root@example.com 宛のメールで通知するには以下の行を /etc/crontab に追加してください。</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
+
+<p>上記のように設定した場合、アクセス要求の内容がメールで通知されます。</p>
 
 <table border="1">
 <tr><td>
