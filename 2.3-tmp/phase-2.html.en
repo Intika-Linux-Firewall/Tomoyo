@@ -8,7 +8,7 @@
 </head>
 <body>
 <p>This page is for TOMOYO 2.3 (for Linux 2.6.36 and later kernels). Please jump to <a href="../2.2/">this page</a> for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels).</p>
-<p style="text-align:right;"><a href="initialize.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="phase-2.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 2: Understanding TOMOYO Linux</h1>
 
@@ -148,7 +148,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 
 <p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
 
-<p>The permissions in domain policy are represented here with directives such as "allow_read" and "allow_ioctl". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="phase-2.html.en#2.4">Step 2.4: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>.</p>
+<p>The permissions in domain policy are represented here with directives such as "allow_read" and "allow_ioctl". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="#2.4">Step 2.4: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>.</p>
 
 <hr>
 
@@ -285,13 +285,15 @@ For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, 
 </td></tr>
 </table>
 
+<p>Press the "q" key to quit the policy editor.</p>
+
 <br>
 
 <hr>
 
 <h2><a name="2.5">Step 2.5: Send policy violation notifications (optional)</a></h2>
 
-<p>The occurrence of a policy violation can be reported if a means for notification is set up. The cron daemon can be used. For example, to notify "root@example.com" via mail, once every hour, add the following to "/etc/crontab":</p>
+<p>The occurrence of a policy violation can be reported if a means for notification is set up. The cron daemon can be used. For example, to notify "root@example.com" via mail, up to once per an hour, add the following to "/etc/crontab":</p>
 
 <table border="1">
 <tr><td>
