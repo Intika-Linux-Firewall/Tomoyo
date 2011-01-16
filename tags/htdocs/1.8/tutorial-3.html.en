@@ -157,16 +157,16 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 12&nbsp;&nbsp;Domain transition before specifying keep_domain keyword<br>
-<img src="tutorial/fig-3-12.png" alt="fig-3-12.png" width="931" height="1636">
+<img src="tutorial/fig-3-12.png" alt="fig-3-12.png" width="850" height="998">
 </td></tr>
 </table>
 
-<p>Press "Tab" key. You will see that the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You can find lines starting with "initialize_domain" keyword by scrolling the screen. Scroll down to the bottom, and press "A" key and enter "keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network" and press "Enter" key. Then, you will see what you entered. (Fig. 13)</p>
+<p>Press "Tab" key. You will see that the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You can find lines starting with "initialize_domain" keyword by scrolling the screen. Scroll down to the bottom, and press "A" key and enter "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network" and press "Enter" key. Then, you will see what you entered. (Fig. 13)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 13&nbsp;&nbsp;Specify keep_domain keyword<br>
-<img src="tutorial/fig-3-13.png" alt="fig-3-13.png" width="548" height="370">
+<img src="tutorial/fig-3-13.png" alt="fig-3-13.png" width="572" height="322">
 </td></tr>
 </table>
 
@@ -175,16 +175,16 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 14&nbsp;&nbsp;Domain transition after specifying keep_domain keyword<br>
-<img src="tutorial/fig-3-14.png" alt="fig-3-14.png" width="931" height="1636">
+<img src="tutorial/fig-3-14.png" alt="fig-3-14.png" width="850" height="998">
 </td></tr>
 </table>
 
-<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using "keep_domain" keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 86 to 189 in Fig. 14) indicates that these domains became unreachable due to "keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "Space" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
+<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using "keep_domain" keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 86 to 189 in Fig. 14) indicates that these domains became unreachable due to "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "Space" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 15&nbsp;&nbsp;Confirmation message for deleting domains<br>
-<img src="tutorial/fig-3-15.png" alt="fig-3-15.png" width="931" height="1636">
+<img src="tutorial/fig-3-15.png" alt="fig-3-15.png" width="850" height="998">
 </td></tr>
 </table>
 
@@ -193,7 +193,7 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 16&nbsp;&nbsp;Domain transition after re-learning<br>
-<img src="tutorial/fig-3-16.png" alt="fig-3-16.png" width="556" height="338">
+<img src="tutorial/fig-3-16.png" alt="fig-3-16.png" width="556" height="332">
 </td></tr>
 </table>
 
