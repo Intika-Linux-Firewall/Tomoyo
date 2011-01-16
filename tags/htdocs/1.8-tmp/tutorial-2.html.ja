@@ -155,9 +155,9 @@ PROFILE_VERSION=20100903
 </td></tr>
 </table>
 
-<p>連載第１回の手順を実行していれば，その中に「 initialize_domain /usr/sbin/httpd 」という行が存在しているはずです．もし存在していない場合は，次の手順により追加してください．</p>
+<p>連載第１回の手順を実行していれば，その中に「 initialize_domain /usr/sbin/httpd from any 」という行が存在しているはずです．もし存在していない場合は，次の手順により追加してください．</p>
 
-<p>まず最初に，キーボードの「 A 」を押してください．「 Enter new entry&gt; 」というプロンプトが画面の最下行に表示されます．続けて「 initialize_domain /usr/sbin/httpd 」と入力して，「 Enter 」を押してください．入力した内容が追加されるはずです．反対に削除する場合は，まず「↑」「↓」を使って「 initialize_domain /usr/sbin/httpd 」という行にカーソルを合わせてください．そこでキーボードの「 D 」を押すと「 Delete selected entry? ('Y'es/'N'o) 」と尋ねられるので，「 Y 」を押すとその行の内容が削除されます．</p>
+<p>まず最初に，キーボードの「 A 」を押してください．「 Enter new entry&gt; 」というプロンプトが画面の最下行に表示されます．続けて「 initialize_domain /usr/sbin/httpd from any 」と入力して，「 Enter 」を押してください．入力した内容が追加されるはずです．反対に削除する場合は，まず「↑」「↓」を使って「 initialize_domain /usr/sbin/httpd from any 」という行にカーソルを合わせてください．そこでキーボードの「 D 」を押すと「 Delete selected entry? ('Y'es/'N'o) 」と尋ねられるので，「 Y 」を押すとその行の内容が削除されます．</p>
 
 <p>TOMOYO Linux では，同一のプログラムであったとしてもそれを起動した経緯によって異なるドメインが割り当てられます．これは状況に応じて異なるアクセス許可を与えたい場合には便利ですが，デーモンプロセスのように状況に依らず同じアクセス許可を与えたいという場合もあります．それを解決するために TOMOYO Linux では initialize_domain と呼ばれる機能を実現しています．</p>
 
@@ -320,7 +320,17 @@ file write /tmp/php3lo7ab
 
 <h3>ポリシーの新規作成について</h3>
 
-<p>学習モードではポリシーは既存の内容に追加されますが，作成済みのポリシーを使用せず新規に学習を行いたい場合は， /etc/ccs/domain_policy.conf という名前のシンボリックリンクを削除して再起動します．</p>
+<p>学習モードではポリシーは既存の内容に追加されますが，作成済みのポリシーを使用せず新規に学習を行いたい場合は，図２１のように操作して初期化後、再起動してください（ /etc/ccs/policy/current や /etc/ccs/policy/previous の末尾に / が付いていないことに注意してください）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２１　ポリシーを再初期化する
+<pre>
+# mv /etc/ccs/policy/current /etc/ccs/policy/previous
+# /usr/lib/ccs/init_policy
+</pre>
+</td></tr>
+</table>
 
 <h2>次回予告</h2>
 
