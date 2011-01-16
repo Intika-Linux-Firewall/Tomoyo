@@ -155,9 +155,9 @@ PROFILE_VERSION=20100903
 </td></tr>
 </table>
 
-<p>If you have followed steps in the first installment, there should already be a line "initialize_domain /usr/sbin/httpd". But if you can't find the line, append by following steps.</p>
+<p>If you have followed steps in the first installment, there should already be a line "initialize_domain /usr/sbin/httpd from any". But if you can't find the line, append by following steps.</p>
 
-<p>First, press "A" key on the keyboard, and a prompt "Enter new entry&gt;" is printed at the bottom line of the screen. Then, enter "initialize_domain /usr/sbin/httpd" and press "Enter" key, and the line you entered will be added. On the contrary, to delete this entry, move the cursor to "initialize_domain /usr/sbin/httpd" line by using up-arrow and down-arrow keys. Press "D" key on the keyboard, and a prompt "Delete selected entry? ('Y'es/'N'o)" is printed. Then press "Y" key to delete the line.</p>
+<p>First, press "A" key on the keyboard, and a prompt "Enter new entry&gt;" is printed at the bottom line of the screen. Then, enter "initialize_domain /usr/sbin/httpd from any" and press "Enter" key, and the line you entered will be added. On the contrary, to delete this entry, move the cursor to "initialize_domain /usr/sbin/httpd from any" line by using up-arrow and down-arrow keys. Press "D" key on the keyboard, and a prompt "Delete selected entry? ('Y'es/'N'o)" is printed. Then press "Y" key to delete the line.</p>
 
 <p>In TOMOYO Linux, different domains are assigned to the same program if the program was executed from different domains. This distinction is useful for giving different set of permissions depending on situation. But sometimes, like daemon processes, we want to give same set of permissions independent of situation. To be able to give same set of permissions independent of situation, TOMOYO Linux provides "initialize_domain" keyword.</p>
 
@@ -320,7 +320,17 @@ file write /tmp/php3lo7ab
 
 <h3>How to recreate policy from scratch?</h3>
 
-<p>The learning mode automatically appends entries to existing policy. But if you want to restart learning mode from the scratch rather than starting from existing policy, reboot the system after deleting a symbolic link named /etc/ccs/domain_policy.conf .</p>
+<p>The learning mode automatically appends entries to existing policy. But if you want to restart learning mode from the scratch rather than starting from existing policy, reboot the system after doing Fig.21 (note that you must not append trailing / to /etc/ccs/policy/current nor /etc/ccs/policy/previous).</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 21&nbsp;&nbsp;Reinitializing policy
+<pre>
+# mv /etc/ccs/policy/current /etc/ccs/policy/previous
+# /usr/lib/ccs/init_policy
+</pre>
+</td></tr>
+</table>
 
 <h2>Trailer</h2>
 
