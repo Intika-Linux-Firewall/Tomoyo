@@ -44,7 +44,7 @@
 
 <h4>&diams;Unconditionally reinitialize domain transition</h4>
 
-<p>When "program" specified by "initialize_domain program" is executed, the process unconditionally transits to the child domain of "&lt;kernel&gt;" domain. (Fig. 3)</p>
+<p>When "program" specified by "initialize_domain program from any" is executed, the process unconditionally transits to the child domain of "&lt;kernel&gt;" domain. (Fig. 3)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -55,7 +55,7 @@
 
 <h4>&diams;Conditionally reinitialize domain transition</h4>
 
-<p>As I noted above, if a "program" specified as "initialize_domain program" is executed, the process transits to "&lt;kernel&gt; program" domain. (Fig. 4)</p>
+<p>As I noted above, if a "program" specified as "initialize_domain program from any" is executed, the process transits to "&lt;kernel&gt; program" domain. (Fig. 4)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -91,7 +91,7 @@
 
 <h4>&diams;Unconditionally suppress domain transition</h4>
 
-<p>Any processes which belong to "domainname" specified by "keep_domain domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 7) This resembles SELinux's domain because multiple programs belong to the same domain.</p>
+<p>Any processes which belong to "domainname" specified by "keep_domain any from domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 7) This resembles SELinux's domain because multiple programs belong to the same domain.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -111,7 +111,7 @@
 
 <h4>&diams;Conditionally suppress domain transition</h4>
 
-<p>As I noted above, if a "domainname" is specified as "keep_domain domainname" , the process once reached to "domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 9)</p>
+<p>As I noted above, if a "domainname" is specified as "keep_domain any from domainname" , the process once reached to "domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 9)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -135,7 +135,7 @@
 
 <p>By specifying "no_keep_domain program from domainname", "keep_domain" keyword is ignored when "program" is executed from "domainname" domain.</p>
 
-<p>For example, by specifying "no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" when "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, the process transits to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat" domain when /bin/cat is executed from "/usr/sbin/sshd /bin/bash" domain while the process remains in the same domain when other programs are executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain. (Fig. 11)</p>
+<p>For example, by specifying "no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" when "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, the process transits to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat" domain when /bin/cat is executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain while the process remains in the same domain when other programs are executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain. (Fig. 11)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -179,7 +179,7 @@
 </td></tr>
 </table>
 
-<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using "keep_domain" keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 86 to 189 in Fig. 14) indicates that these domains became unreachable due to "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "Space" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
+<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using "keep_domain" keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 95 to 156 in Fig. 14) indicates that these domains became unreachable due to "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "Space" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
 
 <table border="1" summary="fig">
 <tr><td>

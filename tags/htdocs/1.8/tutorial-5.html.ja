@@ -421,18 +421,18 @@ WARNING: Domain 'ドメイン名' has so many ACLs to hold. Stopped learning mod
 
 <h3>アクセスログから必要な部分を抽出する</h3>
 
-<p>デフォルトでは、学習モードでのポリシー違反ログは /var/log/tomoyo/reject_001.log に保存されます．（ /etc/ccs/tools/auditd.conf で設定できます．）</p>
+<p>デフォルトでは、学習モードでのポリシー違反ログは /var/log/tomoyo/reject_001.log に保存されます．（ /etc/ccs/tools/auditd.conf で設定できます．）リネームすることでスナップショットとして取り出します（図２８）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２８　学習モードのアクセスログだけを抽出する
+■図２８　学習モードのアクセスログのスナップショットを取得する
 <pre>
 # mv /var/log/tomoyo/reject_001.log /var/log/tomoyo/learning_log.txt
 </pre>
 </td></tr>
 </table>
 
-<p>抽出したら，条件付きのアクセス許可に変換します（図２９）．</p>
+<p>条件付きのアクセス許可に変換します（図２９）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -443,7 +443,7 @@ WARNING: Domain 'ドメイン名' has so many ACLs to hold. Stopped learning mod
 </td></tr>
 </table>
 
-<p>変換したら，ドメイン単位でソートすることにより圧縮します（図３０）．</p>
+<p>ドメイン単位でソートすることにより圧縮します（図３０）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
