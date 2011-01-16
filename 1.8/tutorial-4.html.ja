@@ -161,12 +161,6 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <p>ccs-queryd を利用するうえで注意すべき点が２つあります．１つは，無条件にアクセス要求を許可してはいけない点です．ポリシー違反の原因が悪意あるユーザによる攻撃である可能性があるからです．もし，悪意あるユーザによる攻撃によって発生したアクセス要求に対してアクセスを許可してしまった場合，強制アクセス制御による保護が無意味になってしまいます．もう１つは， ccs-queryd が動作している間は，ポリシー違反が発生しても管理者が応答するまでそのアクセス要求は保留状態となる点です．そのため， ccs-queryd を動作させたまま席を外したりログアウトしたりしないでください．</p>
 
-<h3>共有ライブラリの扱い</h3>
-
-<p>TOMOYO Linux のインストール時に実行した init_policy により， /etc/ld.so.cache に登録されている共有ライブラリ（ /sbin/ldconfig -NXp により確認できます）に関しては例外ポリシーで file read （無条件に参照を許す）という指定が行われているため，ドメイン用ポリシーで個別に読み込みアクセスの許可を与える必要はありません．しかし，ソフトウェアのアップデートに伴い，共有ライブラリのファイル名が変化した場合，そのままではサービスの再起動に失敗してしまう可能性があります．新しくインストールされたライブラリファイルに関しては，例外ポリシーに file read という指定が行われるよりも前に要求された場合，例外ポリシーにもドメイン用ポリシーにも指定されていないのでポリシー違反と判断されます．</p>
-
-<p>先に説明した ccs-queryd により検出してポリシーに追加していくことは可能ですが，このような場合に限っては，自動的に file read という指定を更新してくれたほうが便利でしょう．そのため， ccs-queryd はポリシー違反の発生を監視するだけではなく，ライブラリファイルの情報を集めたファイルである /etc/ld.so.cache の変化を監視し，自動的に file read を例外ポリシーに追加するようになっています．</p>
-
 <h3>実際のサービスに対する操作例</h3>
 
 <p><a href="http://tomoyo.sourceforge.jp/1.8/phase-5.html.ja#5.2">ポリシー違反を対話的に処理する</a>を参照してください．</p>
@@ -272,9 +266,9 @@ file unlink /tmp/abc12345
 
 <table border="1" summary="fig">
 <tr><td>
-■図１８　アクセスログの内容例（ /var/log/tomoyo/reject_log.conf ）
+■図１８　アクセスログの内容例（ /var/log/tomoyo/reject_003.log ）
 <pre>
-# cat /var/log/tomoyo/reject_log.conf
+# cat /var/log/tomoyo/reject_003.log
 #2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
 file read /tmp/testfile2
