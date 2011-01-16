@@ -183,7 +183,7 @@ PROFILE_VERSION=20100903
 </td></tr>
 </table>
 
-<p>これにより， /etc/rc.d/init.d/httpd が実行され，その中から /usr/sbin/httpd が実行されますが， /usr/sbin/httpd が initialize_domain として登録されていると，「 &lt;kernel&gt; /usr/sbin/httpd 」というドメインが作成されます（もし，例外ポリシーで「 initialize_domain /usr/sbin/httpd 」という指定がされていなかった場合， /usr/sbin/httpd が動作するためのドメインは /usr/sbin/httpd を実行したプロセスの属しているドメインの子ドメインとして作成されます）．</p>
+<p>これにより， /etc/rc.d/init.d/httpd が実行され，その中から /usr/sbin/httpd が実行されますが， /usr/sbin/httpd が initialize_domain として登録されていると，「 &lt;kernel&gt; /usr/sbin/httpd 」というドメインが作成されます（もし，例外ポリシーで「 initialize_domain /usr/sbin/httpd from any 」という指定がされていなかった場合， /usr/sbin/httpd が動作するためのドメインは /usr/sbin/httpd を実行したプロセスの属しているドメインの子ドメインとして作成されます）．</p>
 
 <h3>学習モード</h3>
 
