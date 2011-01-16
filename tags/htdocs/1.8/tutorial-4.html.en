@@ -161,12 +161,6 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <p>You have to be aware two things when using ccs-queryd command. One is that you must not unconditionally grant the request. The cause of policy violation may be attacks by malicious users. If you grant access requests caused by attacks by malicious users, the protection by mandatory access control becomes invalid. The other is that if "ccs-queryd" is running, the access requests that violated policy are kept pending until administrator answers. Thus, never leave or logout while "ccs-queryd" is running.</p>
 
-<h3>About shared libraries</h3>
-
-<p>Regarding shared libraries which are registered in /etc/ld.so.cache (which you can view by "/sbin/ldconfig -NXp") are specified using "file read" keyword in exception policy (i.e. allow read access by any domain) by init_policy command executed upon installing TOMOYO Linux. Therefore, you don't need to specify "file read" keyword in each domain in domain policy. But restarting daemon programs after updating software might fail if the filename of shared libraries was changed and the change is not reflected to exception policy. Regarding shared libraries newly installed, read access to these files will be rejected (i.e. policy violated) if these files are requested before reflecting to exception policy or domain policy.</p>
-
-<p>It is possible to let ccs-queryd command detect read access to shared libraries and append permissions to policy configuration. But in this case, it will be convenient for you to automatically reflect change of shared libraries to exception policy. Therefore, ccs-queryd command monitors not only policy violations but also changes in /etc/ld.so.cache (which contains the list of shared libraries) and reflects to exception policy.</p>
-
 <h3>An operation example for actual service</h3>
 
 <p>Please see <a href="http://tomoyo.sourceforge.jp/1.8/phase-5.html.en#5.2">Handling policy violation in real-time</a>.</p>
@@ -272,9 +266,9 @@ file unlink /tmp/abc12345
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 18&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_log.conf )
+&diams; Fig. 18&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_003.log )
 <pre>
-# cat /var/log/tomoyo/reject_log.conf
+# cat /var/log/tomoyo/reject_003.log
 #2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
 file read /tmp/testfile2

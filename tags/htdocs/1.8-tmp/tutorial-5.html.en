@@ -421,13 +421,13 @@ WARNING: Domain 'domainname' has so many ACLs to hold. Stopped learning mode.
 
 <h3>Picking up necessary part from access rejected logs</h3>
 
-<p>Pick up lines containing " mode=learning " using grep command. (Fig. 28) Note the leading and trailing spaces. If you forget to specify these spaces, it might match the filename (e.g. "file read /path/to/file/mode=learning/and/so/on ).</p>
+<p>By default, access rejected logs for learning mode are saved in /var/log/tomoyo/reject_001.log . ( You can configure via /etc/ccs/tools/auditd.conf .)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 28&nbsp;&nbsp;Pick up only learning mode's access logs
 <pre>
-# grep -F -A 2 " mode=learning " /var/log/tomoyo/reject_log.conf &gt; /var/log/tomoyo/learning_log.txt
+# mv /var/log/tomoyo/reject_001.log /var/log/tomoyo/learning_log.txt
 </pre>
 </td></tr>
 </table>
