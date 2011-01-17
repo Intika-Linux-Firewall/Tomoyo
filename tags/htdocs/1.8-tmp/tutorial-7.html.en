@@ -125,11 +125,11 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 7&nbsp;&nbsp;Policy configuration for a domain for /usr/bin/curl command<br>
-<img src="tutorial/fig-7-6.png" alt="fig-7-6.png" width="508" height="146">
+<img src="tutorial/fig-7-7.png" alt="fig-7-7.png" width="556" height="210">
 </td></tr>
 </table>
 
-<p>Lines starting with "network" keyword are permissions for access control on networks. "network inet dgram connect 192.168.1.2 53" allows communicating with port 53 (i.e. DNS service) on host 192.168.1.2 using UDP protocol. Also, "network inet stream connect 202.221.179.21 80" allows communicating with port 80 (i.e. HTTP service) on host 202.221.179.21 (this is IP address for www.sourceforge.jp as of this writing) using TCP protocol.</p>
+<p>Lines starting with "network" keyword are permissions for access control on networks. "network inet dgram send 192.168.1.2 53" and "network inet dgram recv 192.168.1.2 53" allow communicating with port 53 (i.e. DNS service) on host 192.168.1.2 using UDP protocol. Also, "network inet stream connect 202.221.179.21 80" allows communicating with port 80 (i.e. HTTP service) on host 202.221.179.21 (this is IP address for www.sourceforge.jp as of this writing) using TCP protocol.</p>
 
 <h4>(2) Examples for server applications</h4>
 
@@ -158,11 +158,11 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 10&nbsp;&nbsp;Policy configuration for "&lt;kernel&gt; /usr/sbin/sshd" domain<br>
-<img src="tutorial/fig-7-9.png" alt="fig-7-9.png" width="508" height="226">
+<img src="tutorial/fig-7-10.png" alt="fig-7-10.png" width="556" height="274">
 </td></tr>
 </table>
 
-<p>"network inet stream accept 0:0:0:0:0:ffff:7f00:1 34561" allows accepting TCP connections from port 34561 on host (IPv6 address) 0:0:0:0:0:ffff:7f00:1.</p>
+<p>"network inet stream accept 0:0:0:0:0:ffff:7f00:1 39044" allows accepting TCP connections from port 39044 on host (IPv6 address) 0:0:0:0:0:ffff:7f00:1.</p>
 
 <p>You can apply conditions to permissions for access control on networks as well as permissions for access control on files. For example, you can restrict remote server's IP addresses based on user ID by using process's user ID as conditions. (Fig. 11)</p>
 
@@ -190,11 +190,11 @@ network inet stream connect 66.35.250.203 80 task.uid=501
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 13&nbsp;&nbsp;Policy configuration for the domain for ping command<br>
-<img src="tutorial/fig-7-12.png" alt="fig-7-12.png" width="508" height="162">
+<img src="tutorial/fig-7-13.png" alt="fig-7-13.png" width="508" height="226">
 </td></tr>
 </table>
 
-<p>You can see a line "network inet raw connect 202.221.179.21 1". Fig 12 shows that the domain which ping command is running is allowed to communicate with host 202.21.179.21 using IP sockets with protocol number 1 (i.e. ICOMP).</p>
+<p>You can see a line "network inet raw send 202.221.179.21 1" and a line "network inet raw recv 202.221.179.21 1". Fig. 12 shows that the domain which ping command is running is allowed to communicate with host 202.21.179.21 using IP sockets with protocol number 1 (i.e. ICOMP).</p>
 
 <h3>Let's tune policy</h3>
 
@@ -423,7 +423,7 @@ Mon Nov 22 00:00:00 JST 2010
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 31&nbsp;&nbsp;Permission "capability SYS_TIME" was learned<br>
-<img src="tutorial/fig-7-30.png" alt="fig-7-30.png" width="492" height="130">
+<img src="tutorial/fig-7-31.png" alt="fig-7-31.png" width="508" height="146">
 </td></tr>
 </table>
 
@@ -506,7 +506,7 @@ kill 4649: Operation not permitted
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 38&nbsp;&nbsp;Permissions given to the domain for kill command<br>
-<img src="tutorial/fig-7-37.png" alt="fig-7-37.png" width="572" height="130">
+<img src="tutorial/fig-7-38.png" alt="fig-7-38.png" width="556" height="146">
 </td></tr>
 </table>
 
