@@ -264,11 +264,11 @@ file unlink /tmp/abc12345
 &diams; Fig. 16&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_003.log )
 <pre>
 # cat /var/log/tomoyo/reject_003.log
-#2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+#2011/01/17 04:23:43# profile=3 mode=enforcing granted=no (global-pid=4793) task={ pid=4793 ppid=4759 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=786913 major=8 minor=1 perm=0664 type=file } path1.parent={ uid=0 gid=0 ino=786433 perm=01777 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
 file read /tmp/testfile2
 
-#2010-05-13 15:36:36# profile=3 mode=enforcing (global-pid=4518) task={ pid=4518 ppid=4480 uid=501 gid=501 euid=501 egid=501 suid=501 sgid=501 fsuid=501 fsgid=501 type!=execute_handler } path1={ uid=500 gid=500 ino=393250 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+#2011/01/17 04:23:51# profile=3 mode=enforcing granted=no (global-pid=4847) task={ pid=4847 ppid=4814 uid=501 gid=501 euid=501 egid=501 suid=501 sgid=501 fsuid=501 fsgid=501 type!=execute_handler } path1={ uid=500 gid=500 ino=786912 major=8 minor=1 perm=0664 type=file } path1.parent={ uid=0 gid=0 ino=786433 perm=01777 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
 file read /tmp/testfile1
 </pre>
