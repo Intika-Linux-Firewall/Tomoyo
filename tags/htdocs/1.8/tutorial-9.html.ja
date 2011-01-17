@@ -53,7 +53,8 @@ network inet stream connect @HTTP_SERVERS 80
 <tr><td>
 ■図３　ＤＮＳサーバと通信するためのアクセス許可
 <pre>
-network inet dgram connect @DNS_SERVERS 53
+network inet dgram send @DNS_SERVERS 53
+network inet dgram recv @DNS_SERVERS 53
 </pre>
 </td></tr>
 </table>
