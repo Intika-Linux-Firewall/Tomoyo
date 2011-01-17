@@ -53,7 +53,8 @@ network inet stream connect @HTTP_SERVERS 80
 <tr><td>
 &diams; Fig. 3&nbsp;&nbsp;Permissions for communicating with DNS server
 <pre>
-network inet dgram connect @DNS_SERVERS 53
+network inet dgram send @DNS_SERVERS 53
+network inet dgram recv @DNS_SERVERS 53
 </pre>
 </td></tr>
 </table>
