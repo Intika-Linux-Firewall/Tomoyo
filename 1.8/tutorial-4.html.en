@@ -116,7 +116,15 @@ $ /bin/ls
 <tr><td>
 &diams; Fig. 9&nbsp;&nbsp;Prompt shown on window 1 after executing Fig. 8
 <pre>
-#2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
+#2011/01/17 03:51:10# profile=3 mode=enforcing granted=no (global-pid=3523) task={ pid=3523 ppid=3468 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsu
+id=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=951094 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755
+ } exec={ realpath="/bin/ls" argc=1 envc=21 argv[]={ "/bin/ls" } envp[]={ "HOME=/home/example" "PATH=/usr/kerberos/bin:/usr/local/bin:/bin:/usr/bin:/usr/X11R
+6/bin" "SHELL=/bin/tcsh" "TERM=linux" "MAIL=/var/spool/mail/example" "LOGNAME=example" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "S
+HLVL=1" "PWD=/home/example" "USER=example" "GROUP=example" "HOST=tomoyo" "HOSTNAME=tomoyo" "INPUTRC=/etc/inputrc" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi
+=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=0
+1;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.c
+pio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "G_BROKEN_FILENAMES=1" "LANG=en_US.UTF-8" "LESSOPEN=|/usr/bin
+/lesspipe.sh\040%s" } }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
 file execute /bin/ls
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
@@ -124,28 +132,15 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
-<p>The first line shows information about the process which requested an access that violated policy and about the file the process is requesting. The second line shows domainname of domain which the process which requested an access that violated policy belongs to. The third line shows the access that violated policy. This way the request is displayed in the same syntax with domain policy. If you press "Y" key here, the access is granted. If you press "N" key here, the access is rejected. If you pressed "Y" key, the execution of /bin/ls is granted, but since domain policy does not contain domain for executing /bin/ls , and prompt like Fig. 10 will be printed.</p>
+<p>The first line shows information about the process which requested an access that violated policy and about the file the process is requesting. The second line shows domainname of domain which the process which requested an access that violated policy belongs to. The third line shows the access that violated policy. This way the request is displayed in the same syntax with domain policy. If you press "Y" key here, the access is granted and you will see prompt like Fig. 10. If you press "N" key here, the access is rejected.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 10&nbsp;&nbsp;Prompt for asking for permission to create a domain
+&diams; Fig. 10&nbsp;&nbsp;Prompt for next policy violation event
 <pre>
-#2010-05-13 15:29:40# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
-# wants to create domain
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
-Allow? ('Y'es/'N'o/'R'etry):
-</pre>
-</td></tr>
-</table>
-
-<p>If you pressed "Y" key here, the domain for /bin/ls is created and the process can execute /bin/ls . If you pressed "N" key here, execution of /bin/ls is rejected because the process cannot find domain for /bin/ls . If you granted creation of domain for /bin/ls , you will see prompt like Fig. 11.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 11&nbsp;&nbsp;Prompt after allowing domain creation
-<pre>
-#2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
+#2011/01/17 03:51:50# profile=3 mode=enforcing granted=no (global-pid=3523) task={ pid=3523 ppid=3468 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsu
+id=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=328251 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=327965 perm=0755
+ }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
 file read /etc/selinux/config
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
@@ -169,11 +164,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>Tools for using this functionality</h3>
 
-<p>TOMOYO Linux provides programs listed in Fig. 12 for assisting removing unnecessary permissions from policy configuration.</p>
+<p>TOMOYO Linux provides programs listed in Fig. 11 for assisting removing unnecessary permissions from policy configuration.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 12&nbsp;&nbsp;Programs for managing TOMOYO Linux<br>
+&diams; Fig. 11&nbsp;&nbsp;Programs for managing TOMOYO Linux<br>
 <table border="1" summary="fig">
 <tr><td>Name of program</td><td>Role of program</td></tr>
 <tr><td>ccs-findtemp</td><td>Detect nonexistent pathnames</td></tr>
@@ -186,11 +181,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>An operation example on console session</h3>
 
-<p>To handily try this functionality, I explain using console session. Do operations listed in Fig. 13 in learning mode.</p>
+<p>To handily try this functionality, I explain using console session. Do operations listed in Fig. 12 in learning mode.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 13&nbsp;&nbsp;Operations for learning mode
+&diams; Fig. 12&nbsp;&nbsp;Operations for learning mode
 <pre>
 # touch /tmp/abc12345
 # rm -f /tmp/abc12345
@@ -198,11 +193,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
-<p>By doing these operations, touch command and rm command learned access to /tmp/abc12345 but the file /tmp/abc12345 no longer exists. If these operations were redundant, redundant permissions (or garbage) which won't be used are left. Pathnames which exists in policy configuration but do not exist are likely either used as temporary files or deleted by software updates. By using ccs-findtemp command, pathnames which exists in policy configuration but do not exist are printed. Note that Fig. 14 shows only /tmp/abc12345 but other pathnames will be also printed for actual systems.</p>
+<p>By doing these operations, touch command and rm command learned access to /tmp/abc12345 but the file /tmp/abc12345 no longer exists. If these operations were redundant, redundant permissions (or garbage) which won't be used are left. Pathnames which exists in policy configuration but do not exist are likely either used as temporary files or deleted by software updates. By using ccs-findtemp command, pathnames which exists in policy configuration but do not exist are printed. Note that Fig. 13 shows only /tmp/abc12345 but other pathnames will be also printed for actual systems.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 14&nbsp;&nbsp;Executing ccs-findtemp command
+&diams; Fig. 13&nbsp;&nbsp;Executing ccs-findtemp command
 <pre>
 # /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
 /tmp/abc12345
@@ -214,7 +209,7 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 /tmp/abc12345
 # /usr/sbin/ccs-domainmatch /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-file create /tmp/abc12345
+file create /tmp/abc12345 0666
 file write /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
 file unlink /tmp/abc12345
@@ -230,22 +225,22 @@ file unlink /tmp/abc12345
 
 <h3>Let's save access logs</h3>
 
-<p>Next, append a line in Fig. 16 to /etc/rc.d/rc.local .</p>
+<p>Next, append a line in Fig. 14 to /etc/rc.d/rc.local .</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 16&nbsp;&nbsp;Contents to append to /etc/rc.d/rc.local
+&diams; Fig. 14&nbsp;&nbsp;Contents to append to /etc/rc.d/rc.local
 <pre>
 /usr/sbin/ccs-auditd
 </pre>
 </td></tr>
 </table>
 
-<p>Then, create /etc/logrotate.d/tomoyo with the contents in Fig. 17 in order to let logrotate command rotate automatically. Be sure to specify "nocreate" option, or access logs won't be saved after the first rotation.</p>
+<p>Then, create /etc/logrotate.d/tomoyo with the contents in Fig. 15 in order to let logrotate command rotate automatically. Be sure to specify "nocreate" option, or access logs won't be saved after the first rotation.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 17&nbsp;&nbsp;Configure logrotate to rotate access logs ( /etc/logrotate.d/tomoyo )
+&diams; Fig. 15&nbsp;&nbsp;Configure logrotate to rotate access logs ( /etc/logrotate.d/tomoyo )
 <pre>
 /var/log/tomoyo/*.log {
     weekly
@@ -262,11 +257,11 @@ file unlink /tmp/abc12345
 
 <h3>Let's browse access logs</h3>
 
-<p>Access logs are in the form of domain policy (Fig. 18). Therefore you can append access logs to /etc/ccs/domain_policy.conf .</p>
+<p>Access logs are in the form of domain policy (Fig. 16). Therefore you can append access logs to /etc/ccs/domain_policy.conf .</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 18&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_003.log )
+&diams; Fig. 16&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_003.log )
 <pre>
 # cat /var/log/tomoyo/reject_003.log
 #2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }

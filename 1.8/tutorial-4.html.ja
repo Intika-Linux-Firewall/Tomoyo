@@ -116,7 +116,15 @@ $ /bin/ls
 <tr><td>
 ■図９　図８実行後，ウィンドウ１に表示されるプロンプト
 <pre>
-#2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
+#2011/01/17 03:51:10# profile=3 mode=enforcing granted=no (global-pid=3523) task={ pid=3523 ppid=3468 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsu
+id=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=951094 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755
+ } exec={ realpath="/bin/ls" argc=1 envc=21 argv[]={ "/bin/ls" } envp[]={ "HOME=/home/example" "PATH=/usr/kerberos/bin:/usr/local/bin:/bin:/usr/bin:/usr/X11R
+6/bin" "SHELL=/bin/tcsh" "TERM=linux" "MAIL=/var/spool/mail/example" "LOGNAME=example" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "S
+HLVL=1" "PWD=/home/example" "USER=example" "GROUP=example" "HOST=tomoyo" "HOSTNAME=tomoyo" "INPUTRC=/etc/inputrc" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi
+=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=0
+1;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.c
+pio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "G_BROKEN_FILENAMES=1" "LANG=en_US.UTF-8" "LESSOPEN=|/usr/bin
+/lesspipe.sh\040%s" } }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
 file execute /bin/ls
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
@@ -124,28 +132,15 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
-<p>１行目にはポリシーに違反するアクセス要求を行ったプロセスの情報とアクセスしようとしているファイルの情報が，２行目にはポリシーに違反するアクセス要求を行ったプロセスが属しているドメインのドメイン名が，３行目にはアクセス要求の内容が表示されています．このように，ドメイン用ポリシーと同じ構文で要求内容が表示されます．ここで，「 Y 」を押すと，そのアクセス要求を許可することができます．また，「 N 」を押すと，そのアクセス要求を拒否することができます．「 Y 」キーを押した場合， /bin/ls の実行が許可されますが，ドメイン用ポリシーの中には /bin/ls を実行するためのドメインがまだ作成されていません．そのため，図１０のようなプロンプトが表示されます．</p>
+<p>１行目にはポリシーに違反するアクセス要求を行ったプロセスの情報とアクセスしようとしているファイルの情報が，２行目にはポリシーに違反するアクセス要求を行ったプロセスが属しているドメインのドメイン名が，３行目にはアクセス要求の内容が表示されています．このように，ドメイン用ポリシーと同じ構文で要求内容が表示されます．ここで，「 Y 」を押すと，そのアクセス要求を許可することができます．また，「 N 」を押すと，そのアクセス要求を拒否することができます．「 Y 」キーを押した場合， /bin/ls の実行が許可され，図１０のように聞かれます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１０　ドメイン作成の許可を求めるプロンプト
+■図１０　次のポリシー違反が発生した際のプロンプト
 <pre>
-#2010-05-13 15:29:40# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
-# wants to create domain
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
-Allow? ('Y'es/'N'o/'R'etry):
-</pre>
-</td></tr>
-</table>
-
-<p>「 Y 」を押した場合， /bin/ls 用のドメインが作成されるので， /bin/ls は先に進むことができます．「 N 」を押した場合，ドメインが見つからないという理由で /bin/ls の実行要求は拒否されます． /bin/ls のドメインの作成を許可すると，図１１のように聞かれます．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１１　ドメイン作成を許可した際のプロンプト
-<pre>
-#2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
+#2011/01/17 03:51:50# profile=3 mode=enforcing granted=no (global-pid=3523) task={ pid=3523 ppid=3468 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsu
+id=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=328251 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=327965 perm=0755
+ }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
 file read /etc/selinux/config
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
@@ -169,11 +164,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>使用するプログラム</h3>
 
-<p>TOMOYO Linux では，ポリシーに含まれる不要なアクセス許可の削除を支援するためのツールとして，図１２のプログラムを提供しています．</p>
+<p>TOMOYO Linux では，ポリシーに含まれる不要なアクセス許可の削除を支援するためのツールとして，図１１のプログラムを提供しています．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１２　TOMOYO Linux の管理を行うためのプログラム<br>
+■図１１　TOMOYO Linux の管理を行うためのプログラム<br>
 <table border="1" summary="fig">
 <tr><td>プログラム名</td><td>役割</td></tr>
 <tr><td>ccs-findtemp</td><td>存在しないパス名を検出する</td></tr>
@@ -186,11 +181,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>コンソールでの操作例</h3>
 
-<p>簡単に試してもらうために，コンソールで説明することにします．学習モードの状態で図１３の操作を行ってみてください．</p>
+<p>簡単に試してもらうために，コンソールで説明することにします．学習モードの状態で図１２の操作を行ってみてください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１３　学習モードで行う操作
+■図１２　学習モードで行う操作
 <pre>
 # touch /tmp/abc12345
 # rm -f /tmp/abc12345
@@ -198,11 +193,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
-<p>この操作により touch と rm の /tmp/abc12345 に対するアクセスが学習されましたが， /tmp/abc12345 というファイル自体はもう存在しません．この操作が本来不要なものであればポリシーに使われないアクセス許可が残されたことになります．このように，ポリシーには記録されていても存在しないパス名は，テンポラリファイルとして使用されていたか，アップデートにより削除された可能性が高いと言えます． ccs-findtemp コマンドを実行すると，ポリシーには記録されていても存在しないパス名を表示することができます．なお，図１４の実行例では /tmp/abc12345 というパス名しか表示されていませんが，実際には他のパス名も表示されるはずです．</p>
+<p>この操作により touch と rm の /tmp/abc12345 に対するアクセスが学習されましたが， /tmp/abc12345 というファイル自体はもう存在しません．この操作が本来不要なものであればポリシーに使われないアクセス許可が残されたことになります．このように，ポリシーには記録されていても存在しないパス名は，テンポラリファイルとして使用されていたか，アップデートにより削除された可能性が高いと言えます． ccs-findtemp コマンドを実行すると，ポリシーには記録されていても存在しないパス名を表示することができます．なお，図１３の実行例では /tmp/abc12345 というパス名しか表示されていませんが，実際には他のパス名も表示されるはずです．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１４　ccs-findtemp の実行例
+■図１３　ccs-findtemp の実行例
 <pre>
 # /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
 /tmp/abc12345
@@ -214,7 +209,7 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 /tmp/abc12345
 # /usr/sbin/ccs-domainmatch /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-file create /tmp/abc12345
+file create /tmp/abc12345 0666
 file write /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
 file unlink /tmp/abc12345
@@ -230,22 +225,22 @@ file unlink /tmp/abc12345
 
 <h3>アクセスログを保存してみよう</h3>
 
-<p>次に， /etc/rc.d/rc.local に図１６の行を追加します．</p>
+<p>次に， /etc/rc.d/rc.local に図１４の行を追加します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１６　/etc/rc.d/rc.local を修正
+■図１４　/etc/rc.d/rc.local を修正
 <pre>
 /usr/sbin/ccs-auditd
 </pre>
 </td></tr>
 </table>
 
-<p>次に， logrotate によるローテーションを行わせるために，図１７のような内容のファイルを /etc/logrotate.d/tomoyo として作成してください．なお， nocreate オプションを必ず指定してください． nocreate オプションを忘れると，最初のローテーションが実行されて以降のログが保存されなくなってしまいます．</p>
+<p>次に， logrotate によるローテーションを行わせるために，図１５のような内容のファイルを /etc/logrotate.d/tomoyo として作成してください．なお， nocreate オプションを必ず指定してください． nocreate オプションを忘れると，最初のローテーションが実行されて以降のログが保存されなくなってしまいます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１７　logrotate によるローテーションの設定（ /etc/logrotate.d/tomoyo ）
+■図１５　logrotate によるローテーションの設定（ /etc/logrotate.d/tomoyo ）
 <pre>
 /var/log/tomoyo/*.log {
     weekly
@@ -262,11 +257,11 @@ file unlink /tmp/abc12345
 
 <h3>アクセスログを閲覧してみよう</h3>
 
-<p>アクセスログは，そのまま /etc/ccs/domain_policy.conf に追記可能な形式になっています（図１８）．</p>
+<p>アクセスログは，そのまま /etc/ccs/domain_policy.conf に追記可能な形式になっています（図１６）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１８　アクセスログの内容例（ /var/log/tomoyo/reject_003.log ）
+■図１６　アクセスログの内容例（ /var/log/tomoyo/reject_003.log ）
 <pre>
 # cat /var/log/tomoyo/reject_003.log
 #2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
