@@ -215,14 +215,14 @@ $ ls .bashrc | xargs /bin/cat &gt; /dev/null
 <pre>
 allow_execute @COMMANDS_FOR_LOGIN
 allow_read/write @HOME_FILE if task.uid=path1.uid
-allow_create @HOME_FILE if task.uid=path1.parent.uid
+allow_create @HOME_FILE 00-0666 if task.uid=path1.parent.uid
 allow_unlink @HOME_FILE if task.uid=path1.uid
 allow_symlink @HOME_FILE if task.uid=path1.parent.uid
 allow_link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 allow_rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 allow_truncate @HOME_FILE if task.uid=path1.uid
 allow_rewrite @HOME_FILE if task.uid=path1.uid
-allow_mkdir @HOME_DIR if task.uid=path1.parent.uid
+allow_mkdir @HOME_DIR 00-0777 if task.uid=path1.parent.uid
 allow_rmdir @HOME_DIR if task.uid=path1.uid
 allow_rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 </pre>
