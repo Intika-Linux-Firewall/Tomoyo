@@ -2659,6 +2659,11 @@ Fix 2010/10/28
 
       This change allows you to jump to arbitrary domain.
 
+      Note that this change also reverts "Change /proc/ccs/info/self_domain ."
+      made on 2006/10/24. Now, 'cat < /proc/ccs/info/self_domain' will act like
+      'cat /proc/ccs/info/self_domain'. Programs depending on old assumption
+      need to be updated.
+
     @ Add "task auto_domain_transition".
 
       This is similar to "task manual_domain_transition", but is automatically
