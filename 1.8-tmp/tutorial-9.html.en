@@ -216,14 +216,14 @@ $ ls .bashrc | xargs /bin/cat &gt; /dev/null
 file execute @COMMANDS_FOR_LOGIN
 file read @HOME_FILE task.uid=path1.uid
 file write @HOME_FILE task.uid=path1.uid
-file create @HOME_FILE task.uid=path1.parent.uid
+file create @HOME_FILE 00-0666 task.uid=path1.parent.uid
 file unlink @HOME_FILE task.uid=path1.uid
 file symlink @HOME_FILE task.uid=path1.parent.uid
 file link @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 file rename @HOME_FILE @HOME_FILE task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 file truncate @HOME_FILE task.uid=path1.uid
 file append @HOME_FILE task.uid=path1.uid
-file mkdir @HOME_DIR task.uid=path1.parent.uid
+file mkdir @HOME_DIR 00-0777 task.uid=path1.parent.uid
 file rmdir @HOME_DIR task.uid=path1.uid
 file rename @HOME_DIR @HOME_DIR task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 </pre>
