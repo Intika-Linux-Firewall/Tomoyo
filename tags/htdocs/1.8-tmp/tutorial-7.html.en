@@ -78,38 +78,53 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 
 <h4>(2) Determining target domains</h4>
 
-<p>Target domains for applying access control on network are arbitrary. In this installment, I choose domains under currently operating shell sessions as target domains. You can see the domain which current process belongs to by doing "/bin/cat &lt; /proc/ccs/self_domain". If the domain which currently operating shell sessions belong is specified using "keep_domain" keyword, delete the "keep_domain" keyword for this section using policy editor. (This is just for making it easier for you to understand. You don't need to delete "keep_domain" keyword when you apply on actual environment.) Note that the IP addresses and port numbers learned may differ depending on your environment.</p>
+<p>Target domains for applying access control on network are arbitrary. In this installment, I choose domains under currently operating shell sessions as target domains. If you are usingh /bin/bash , you can see the domain which /bin/bash process belongs to by doing commands in Fig. 4.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Assign the domainname of currently executing /bin/bash process to environment variable SELF_DOMAIN.
+<pre>
+# exec 1023&lt;/proc/ccs/self_domain
+# read -u 1023 SELF_DOMAIN
+# echo "$SELF_DOMAIN"
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash
+</pre>
+</td></tr>
+</table>
+
+<p>If the domain which currently operating shell sessions belong is specified using "keep_domain" keyword, delete the "keep_domain" keyword for this section using policy editor. (This is just for making it easier for you to understand. You don't need to delete "keep_domain" keyword when you apply on actual environment.) Note that the IP addresses and port numbers learned may differ depending on your environment.</p>
 
 <h3>Let TOMOYO Linux learn the permissions</h3>
 
 <h4>(1) Examples for client applications</h4>
 
-<p>Change a domain which current process belongs to and its descendant domains to learning mode by doing commands listed in Fig. 4. (You may specify actual domainname as string parameter instead of redirection.)</p>
+<p>Change a domain which current process belongs to and its descendant domains to learning mode by doing commands listed in Fig. 5.</p>
+
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 4&nbsp;&nbsp;Change a domain which current process belongs to and its descendant domains to learning mode
+&diams; Fig. 5&nbsp;&nbsp;Change a domain which current process belongs to and its descendant domains to learning mode
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 5 &lt; /proc/ccs/self_domain
+# /usr/sbin/ccs-setprofile -r 5 "$SELF_DOMAIN"
 </pre>
 </td></tr>
 </table>
 
-<p>As an example command that uses networks, let's access http://www.sourceforge.jp/ using /usr/bin/curl command. (Fig. 5)</p>
+<p>As an example command that uses networks, let's access http://www.sourceforge.jp/ using /usr/bin/curl command. (Fig. 6)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 5&nbsp;&nbsp;Execute /usr/bin/curl command
+&diams; Fig. 6&nbsp;&nbsp;Execute /usr/bin/curl command
 <pre>
 # curl http://www.sourceforge.jp/ &gt; /dev/null
 </pre>
 </td></tr>
 </table>
 
-<p>If /usr/bin/curl command is not available, you can use other commands like /usr/bin/wget command or /usr/kerberos/bin/telnet command. Run the policy editor and browse permissions for the domain for /usr/bin/curl command. (Fig. 6)</p>
+<p>If /usr/bin/curl command is not available, you can use other commands like /usr/bin/wget command or /usr/kerberos/bin/telnet command. Run the policy editor and browse permissions for the domain for /usr/bin/curl command. (Fig. 7)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 6&nbsp;&nbsp;Policy configuration for a domain for /usr/bin/curl command<br>
+&diams; Fig. 7&nbsp;&nbsp;Policy configuration for a domain for /usr/bin/curl command<br>
 <img src="tutorial/fig-7-6.png" alt="fig-7-6.png" width="508" height="146">
 </td></tr>
 </table>
@@ -118,22 +133,22 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 
 <h4>(2) Examples for server applications</h4>
 
-<p>In this section, let's login to SSH service using /usr/bin/ssh command. (If you don't have SSH service, you can use other services like HTTP.) If "initialize_domain /usr/sbin/sshd" is specified in the exception policy (it should be specified by init_policy command which I executed in the first installment of this series), /usr/sbin/sshd runs in the "&lt;kernel&gt; /usr/sbin/sshd" domain. Thus, assign a profile for learning mode to the "&lt;kernel&gt; /usr/sbin/sshd" domain. (Fig. 7)</p>
+<p>In this section, let's login to SSH service using /usr/bin/ssh command. (If you don't have SSH service, you can use other services like HTTP.) If "initialize_domain /usr/sbin/sshd" is specified in the exception policy (it should be specified by init_policy command which I executed in the first installment of this series), /usr/sbin/sshd runs in the "&lt;kernel&gt; /usr/sbin/sshd" domain. Thus, assign a profile for learning mode to the "&lt;kernel&gt; /usr/sbin/sshd" domain. (Fig. 8)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 7&nbsp;&nbsp;Assign a profile for learning mode to "&lt;kernel&gt; /usr/sbin/sshd" domain
+&diams; Fig. 8&nbsp;&nbsp;Assign a profile for learning mode to "&lt;kernel&gt; /usr/sbin/sshd" domain
 <pre>
 # /usr/sbin/ccs-setprofile 5 '&lt;kernel&gt; /usr/sbin/sshd'
 </pre>
 </td></tr>
 </table>
 
-<p>Then, login to localhost using ssh command (Fig. 8) and run the policy editor and browse permissions for "&lt;kernel&gt; /usr/sbin/sshd" domain. (Fig. 9)</p>
+<p>Then, login to localhost using ssh command (Fig. 9) and run the policy editor and browse permissions for "&lt;kernel&gt; /usr/sbin/sshd" domain. (Fig. 10)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 8&nbsp;&nbsp;Login to localhost using ssh command
+&diams; Fig. 9&nbsp;&nbsp;Login to localhost using ssh command
 <pre>
 # ssh localhost
 </pre>
@@ -142,18 +157,18 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 9&nbsp;&nbsp;Policy configuration for "&lt;kernel&gt; /usr/sbin/sshd" domain<br>
+&diams; Fig. 10&nbsp;&nbsp;Policy configuration for "&lt;kernel&gt; /usr/sbin/sshd" domain<br>
 <img src="tutorial/fig-7-9.png" alt="fig-7-9.png" width="508" height="226">
 </td></tr>
 </table>
 
 <p>"network inet stream accept 0:0:0:0:0:ffff:7f00:1 34561" allows accepting TCP connections from port 34561 on host (IPv6 address) 0:0:0:0:0:ffff:7f00:1.</p>
 
-<p>You can apply conditions to permissions for access control on networks as well as permissions for access control on files. For example, you can restrict remote server's IP addresses based on user ID by using process's user ID as conditions. (Fig. 10)</p>
+<p>You can apply conditions to permissions for access control on networks as well as permissions for access control on files. For example, you can restrict remote server's IP addresses based on user ID by using process's user ID as conditions. (Fig. 11)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 10&nbsp;&nbsp;Restricting remote servers based on user ID
+&diams; Fig. 11&nbsp;&nbsp;Restricting remote servers based on user ID
 <pre>
 network inet stream connect 202.221.179.21 80 task.uid=500
 network inet stream connect 66.35.250.203 80 task.uid=501
@@ -161,11 +176,11 @@ network inet stream connect 66.35.250.203 80 task.uid=501
 </td></tr>
 </table>
 
-<p>Regarding IP sockets, you specify protocol number instead of port number. I explain using ping command as an example. Execute command in Fig. 11 and then execute the policy editor and browse permissions for the domain for ping command. (Fig. 12)</p>
+<p>Regarding IP sockets, you specify protocol number instead of port number. I explain using ping command as an example. Execute command in Fig. 12 and then execute the policy editor and browse permissions for the domain for ping command. (Fig. 13)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 11&nbsp;&nbsp;Executing ping command
+&diams; Fig. 12&nbsp;&nbsp;Executing ping command
 <pre>
 # ping -c 4 www.sourceforge.jp
 </pre>
@@ -174,7 +189,7 @@ network inet stream connect 66.35.250.203 80 task.uid=501
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 12&nbsp;&nbsp;Policy configuration for the domain for ping command<br>
+&diams; Fig. 13&nbsp;&nbsp;Policy configuration for the domain for ping command<br>
 <img src="tutorial/fig-7-12.png" alt="fig-7-12.png" width="508" height="162">
 </td></tr>
 </table>
@@ -183,35 +198,35 @@ network inet stream connect 66.35.250.203 80 task.uid=501
 
 <h3>Let's tune policy</h3>
 
-<p>After you let TOMOYO Linux learn permissions, verify the permissions using permissive mode. Assign profile 6 to change to permissive mode. (Fig. 13)</p>
+<p>After you let TOMOYO Linux learn permissions, verify the permissions using permissive mode. Assign profile 6 to change to permissive mode. (Fig. 14)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 13&nbsp;&nbsp;Change to permissive mode by assigning profile 6
+&diams; Fig. 14&nbsp;&nbsp;Change to permissive mode by assigning profile 6
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 6 &lt; /proc/ccs/self_domain
+# /usr/sbin/ccs-setprofile -r 6 "$SELF_DOMAIN"
 </pre>
 </td></tr>
 </table>
 
 <h4>(1) Patternizing IP addresses</h4>
 
-<p>You need to patternize IP address ranges for doing access control on networks as well as you patternized file's pathnames for doing access control on files. To patternize IP addresses, specify address ranges using "StartAddress-EndAddress" format like Fig. 14. No space is permitted around "-".</p>
+<p>You need to patternize IP address ranges for doing access control on networks as well as you patternized file's pathnames for doing access control on files. To patternize IP addresses, specify address ranges using "StartAddress-EndAddress" format like Fig. 15. No space is permitted around "-".</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 14&nbsp;&nbsp;Specifying IPv4 address ranges
+&diams; Fig. 15&nbsp;&nbsp;Specifying IPv4 address ranges
 <pre>
 xxx.xxx.xxx.xxx-yyy.yyy.yyy.yyy
 </pre>
 </td></tr>
 </table>
 
-<p>You can specify IPv6 address as well as IPv4 address. But "::" and "." are not supported for IPv6 address. You need to specify IPv6 address using format like Fig. 15. Also, be sure to specify all possible IP addresses if target servers has multiple IP addresses (e.g. load balancing).</p>
+<p>You can specify IPv6 address as well as IPv4 address. But "::" and "." are not supported for IPv6 address. You need to specify IPv6 address using format like Fig. 16. Also, be sure to specify all possible IP addresses if target servers has multiple IP addresses (e.g. load balancing).</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 15&nbsp;&nbsp;Specifying IPv6 address
+&diams; Fig. 16&nbsp;&nbsp;Specifying IPv6 address
 <pre>
 xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx
 </pre>
@@ -220,11 +235,11 @@ xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx
 
 <h4>(2) Patternizing port numbers</h4>
 
-<p>Generally, the port number which servers use for accepting connections from  clients are fixed, but the port number which clients use for establishing connections with servers are not fixed. Therefore, you need to specify possible port number ranges which clients might use when giving permissions to server side programs. To patternize, specify port number ranges using "StartPort-Endport" format like Fig. 16. No space is permitted around "-". Three patterns listed in Fig. 17 are port number ranges frequently used.</p>
+<p>Generally, the port number which servers use for accepting connections from  clients are fixed, but the port number which clients use for establishing connections with servers are not fixed. Therefore, you need to specify possible port number ranges which clients might use when giving permissions to server side programs. To patternize, specify port number ranges using "StartPort-Endport" format like Fig. 17. No space is permitted around "-". Three patterns listed in Fig. 18 are port number ranges frequently used.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 16&nbsp;&nbsp;Specifying port number ranges
+&diams; Fig. 17&nbsp;&nbsp;Specifying port number ranges
 <pre>
 xxxxx-yyyyy
 </pre>
@@ -233,7 +248,7 @@ xxxxx-yyyyy
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 17&nbsp;&nbsp;Frequently used port number ranges
+&diams; Fig. 18&nbsp;&nbsp;Frequently used port number ranges
 <pre>
 1024-65535
 32768-61000
@@ -244,11 +259,11 @@ xxxxx-yyyyy
 
 <p>The first pattern is for port numbers which normal client programs choose when establishing connections with server programs, and you likely specify this range for server programs. The second pattern is for port numbers which are specified in /proc/sys/net/ipv4/ip_local_port_range . Normal client programs choose an unused port from this range when establishing connections with server programs, and you likely specify this range for client programs. Check /proc/sys/net/ipv4/ip_local_port_range when determining the second pattern.</p>
 
-<p>The last pattern is for port numbers used by programs like portmap command which require privileged port numbers (port numbers smaller than 1024) for communication. The actual port numbers required by such programs may be different. The easy way for determining whether patternizing port numbers are necessary or not is to execute programs for several times. For example, permissions with contiguous port numbers like Fig. 18 will be appended by learning mode. Thus, guess required port number ranges from the result of learning mode.</p>
+<p>The last pattern is for port numbers used by programs like portmap command which require privileged port numbers (port numbers smaller than 1024) for communication. The actual port numbers required by such programs may be different. The easy way for determining whether patternizing port numbers are necessary or not is to execute programs for several times. For example, permissions with contiguous port numbers like Fig. 19 will be appended by learning mode. Thus, guess required port number ranges from the result of learning mode.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 18&nbsp;&nbsp;Example of permissions with contiguous port numbers
+&diams; Fig. 19&nbsp;&nbsp;Example of permissions with contiguous port numbers
 <pre>
 network inet stream bind 127.0.0.1 610
 network inet stream bind 127.0.0.1 611
@@ -258,22 +273,22 @@ network inet stream bind 127.0.0.1 613
 </td></tr>
 </table>
 
-<p>If you find permissions in Fig. 18, you likely need permissions in Fig. 19.</p>
+<p>If you find permissions in Fig. 19, you likely need permissions in Fig. 20.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 19&nbsp;&nbsp;Patternized permissions based on Fig. 18
+&diams; Fig. 20&nbsp;&nbsp;Patternized permissions based on Fig. 19
 <pre>
 network inet stream bind 127.0.0.1 600-1023
 </pre>
 </td></tr>
 </table>
 
-<p>If you find permissions in Fig. 20, you likely need permissions in Fig. 21 or Fig. 22.</p>
+<p>If you find permissions in Fig. 21, you likely need permissions in Fig. 22 or Fig. 23.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 20&nbsp;&nbsp;Example of permissions with contiguous port numbers
+&diams; Fig. 21&nbsp;&nbsp;Example of permissions with contiguous port numbers
 <pre>
 network inet stream accept 127.0.0.1 32780
 network inet stream accept 127.0.0.1 32781
@@ -286,7 +301,7 @@ network inet stream accept 127.0.0.1 32784
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 21&nbsp;&nbsp;Patternized permissions based on Fig. 20
+&diams; Fig. 22&nbsp;&nbsp;Patternized permissions based on Fig. 21
 <pre>
 network inet stream accept 127.0.0.1 1024-65535
 </pre>
@@ -295,7 +310,7 @@ network inet stream accept 127.0.0.1 1024-65535
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 22&nbsp;&nbsp;Patternized permissions based on Fig. 20
+&diams; Fig. 23&nbsp;&nbsp;Patternized permissions based on Fig. 21
 <pre>
 network inet stream accept 127.0.0.1 32768-61000
 </pre>
@@ -304,13 +319,13 @@ network inet stream accept 127.0.0.1 32768-61000
 
 <h3>Let's enforce access control on networks</h3>
 
-<p>When you became sure that you gave enough permission, let's enforce access control on networks. Assign profile 7 to change to enforcing mode. (Fig. 23)</p>
+<p>When you became sure that you gave enough permission, let's enforce access control on networks. Assign profile 7 to change to enforcing mode. (Fig. 24)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 23&nbsp;&nbsp;Change to enforcing mode by assigning profile 7
+&diams; Fig. 24&nbsp;&nbsp;Change to enforcing mode by assigning profile 7
 <pre>
-xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
+# /usr/sbin/ccs-setprofile -r 7 "$SELF_DOMAIN"
 </pre>
 </td></tr>
 </table>
@@ -321,11 +336,11 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 
 <p>Linux kernel 2.2 and later supports POSIX capabilities. Capabilities realize secure OS's basic concept "least privileges" and are used for restricting use of various privileged operations for per a process basis. You can find list of capabilities which Linux supports in /usr/include/linux/capability.h . However, since CAP_SYS_ADMIN privilege is used for various purposes, we cannot expect fine grained restriction. Therefore, TOMOYO Linux defined and uses original capabilities. (Hereafter, capabilities refers to TOMOYO Linux's capabilities rather than POSIX's capabilities.)</p>
 
-<p>While TOMOYO Linux uses original capabilities that are not compatible with POSIX capabilities, TOMOYO Linux's capabilities are not visible from userland applications. Thus, you don't need to modify userland programs. TOMOYO Linux 1.8.0 uses capabilities listed in Fig. 24.</p>
+<p>While TOMOYO Linux uses original capabilities that are not compatible with POSIX capabilities, TOMOYO Linux's capabilities are not visible from userland applications. Thus, you don't need to modify userland programs. TOMOYO Linux 1.8.0 uses capabilities listed in Fig. 25.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 24&nbsp;&nbsp;Capabilities defined in TOMOYO Linux 1.8.0<br>
+&diams; Fig. 25&nbsp;&nbsp;Capabilities defined in TOMOYO Linux 1.8.0<br>
 <table border="1" summary="fig">
 <tr><td>Type</td><td>Meaning</td></tr>
 <tr><td>use_route</td><td>Permit use of ROUTE sockets.</td></tr>
@@ -342,11 +357,11 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
-<p>In this section, I explain about privilege for changing system clock (i.e. SYS_TIME ) as an example. Steps for doing access control on capabilities are the same with doing access control on networks. Firstly, specify capabilities you want to control in the profiles. Append lines listed in Fig. 25 to the bottom of /etc/ccs/profile.conf .</p>
+<p>In this section, I explain about privilege for changing system clock (i.e. SYS_TIME ) as an example. Steps for doing access control on capabilities are the same with doing access control on networks. Firstly, specify capabilities you want to control in the profiles. Append lines listed in Fig. 26 to the bottom of /etc/ccs/profile.conf .</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 25&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
+&diams; Fig. 26&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
 <pre>
 9-CONFIG::capability::SYS_TIME={ mode=learning }
 10-CONFIG::capability::SYS_TIME={ mode=enforcing }
@@ -354,24 +369,24 @@ xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
 </td></tr>
 </table>
 
-<p>Unlike files and networks, capabilities do not have operands. All necessary capabilities are given by simply using learning mode. Thus, a profile for permissive mode is omitted in Fig. 25. Save the file and then reflect the changes by doing command in Fig. 3.</p>
+<p>Unlike files and networks, capabilities do not have operands. All necessary capabilities are given by simply using learning mode. Thus, a profile for permissive mode is omitted in Fig. 26. Save the file and then reflect the changes by doing command in Fig. 3.</p>
 
-<p>For explanation, I firstly use a profile for enforcing mode. (Fig. 26)</p>
+<p>For explanation, I firstly use a profile for enforcing mode. (Fig. 27)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 26&nbsp;&nbsp;Assign a profile for enforcing mode
+&diams; Fig. 27&nbsp;&nbsp;Assign a profile for enforcing mode
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 10 &lt; /proc/ccs/self_domain
+# /usr/sbin/ccs-setprofile -r 10 "$SELF_DOMAIN"
 </pre>
 </td></tr>
 </table>
 
-<p>Then, change system clock. (Fig. 27)</p>
+<p>Then, change system clock. (Fig. 28)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 27&nbsp;&nbsp;Change system clock
+&diams; Fig. 28&nbsp;&nbsp;Change system clock
 <pre>
 # date 112200002010.00
 date: cannot set date: Operation not permitted
@@ -380,22 +395,22 @@ Mon Nov 22 00:00:00 JST 2010
 </td></tr>
 </table>
 
-<p>The operation was rejected. This is because the domain which date command belongs to was not given a capability for changing system clock. Next, assign a profile for learning mode. (Fig. 28)</p>
+<p>The operation was rejected. This is because the domain which date command belongs to was not given a capability for changing system clock. Next, assign a profile for learning mode. (Fig. 29)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 28&nbsp;&nbsp;Assign a profile for learning mode
+&diams; Fig. 29&nbsp;&nbsp;Assign a profile for learning mode
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 9 &lt; /proc/ccs/self_domain
+# /usr/sbin/ccs-setprofile -r 9 "$SELF_DOMAIN"
 </pre>
 </td></tr>
 </table>
 
-<p>Again, change system clock. (Fig. 29)</p>
+<p>Again, change system clock. (Fig. 30)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 29&nbsp;&nbsp;Change system clock
+&diams; Fig. 30&nbsp;&nbsp;Change system clock
 <pre>
 # date 112200002010.00
 Mon Nov 22 00:00:00 JST 2010
@@ -403,11 +418,11 @@ Mon Nov 22 00:00:00 JST 2010
 </td></tr>
 </table>
 
-<p>This time, the operation succeeded. Run the policy editor and find the domain for date command and browse permissions for that domain. (Fig. 30)</p>
+<p>This time, the operation succeeded. Run the policy editor and find the domain for date command and browse permissions for that domain. (Fig. 31)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 30&nbsp;&nbsp;Permission "capability SYS_TIME" was learned<br>
+&diams; Fig. 31&nbsp;&nbsp;Permission "capability SYS_TIME" was learned<br>
 <img src="tutorial/fig-7-30.png" alt="fig-7-30.png" width="492" height="130">
 </td></tr>
 </table>
@@ -416,11 +431,11 @@ Mon Nov 22 00:00:00 JST 2010
 
 <h2>About access control on signals</h2>
 
-<p>TOMOYO Linux can do access control on signal numbers and signal targets. Steps for doing access control on signals are the same with doing access control on networks. Append lines listed in Fig. 31 to the bottom of /etc/ccs/profile.conf .</p>
+<p>TOMOYO Linux can do access control on signal numbers and signal targets. Steps for doing access control on signals are the same with doing access control on networks. Append lines listed in Fig. 32 to the bottom of /etc/ccs/profile.conf .</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 31&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
+&diams; Fig. 32&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
 <pre>
 11-CONFIG::ipc::signal={ mode=learning }
 12-CONFIG::ipc::signal={ mode=enforcing }
@@ -430,33 +445,33 @@ Mon Nov 22 00:00:00 JST 2010
 
 <p>Save the file and then reflect the changes by doing command in Fig. 3.</p>
 
-<p>I assume below operations are done from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain (i.e. login shell executed by /usr/sbin/sshd ). Make sure that "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is not specified in the exception policy. Firstly, execute /bin/sleep command. (Fig. 32)</p>
+<p>I assume below operations are done from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain (i.e. login shell executed by /usr/sbin/sshd ). Make sure that "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is not specified in the exception policy. Firstly, execute /bin/sleep command. (Fig. 33)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 32&nbsp;&nbsp;Execute /bin/sleep
+&diams; Fig. 33&nbsp;&nbsp;Execute /bin/sleep
 <pre>
 # sleep 100
 </pre>
 </td></tr>
 </table>
 
-<p>At this state, open another window and login to the system. For explanation, I firstly use a profile for enforcing mode. (Fig. 33)</p>
+<p>At this state, open another window and login to the system. For explanation, I firstly use a profile for enforcing mode. (Fig. 34)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 33&nbsp;&nbsp;Assign a profile for enforcing mode
+&diams; Fig. 34&nbsp;&nbsp;Assign a profile for enforcing mode
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 12 &lt; /proc/ccs/self_domain
+# /usr/sbin/ccs-setprofile -r 12 "$SELF_DOMAIN"
 </pre>
 </td></tr>
 </table>
 
-<p>Then, get the process ID of running /bin/sleep command and send a signal to that process ID. (Fig. 34. Use external /bin/kill command rather than shell's built-in kill command.)</p>
+<p>Then, get the process ID of running /bin/sleep command and send a signal to that process ID. (Fig. 35. Use external /bin/kill command rather than shell's built-in kill command.)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 34&nbsp;&nbsp;Send signal to process ID of /bin/sleep command
+&diams; Fig. 35&nbsp;&nbsp;Send signal to process ID of /bin/sleep command
 <pre>
 # pidof sleep
 4649
@@ -466,31 +481,31 @@ kill 4649: Operation not permitted
 </td></tr>
 </table>
 
-<p>The kill operation was rejected. This is because the domain which /bin/kill command belongs to was not given permission for sending signals. Next, assign a profile for learning mode (Fig. 35) and resend the signal. (Fig. 36)</p>
+<p>The kill operation was rejected. This is because the domain which /bin/kill command belongs to was not given permission for sending signals. Next, assign a profile for learning mode (Fig. 36) and resend the signal. (Fig. 37)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 35&nbsp;&nbsp;Assign a profile for learning mode
+&diams; Fig. 36&nbsp;&nbsp;Assign a profile for learning mode
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 11 &lt; /proc/ccs/self_domain
+# /usr/sbin/ccs-setprofile -r 11 "$SELF_DOMAIN"
 </pre>
 </td></tr>
 </table>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 36&nbsp;&nbsp;Send signal to process ID of /bin/sleep command again
+&diams; Fig. 37&nbsp;&nbsp;Send signal to process ID of /bin/sleep command again
 <pre>
 # /bin/kill -15 4649
 </pre>
 </td></tr>
 </table>
 
-<p>This time, signal operation succeeded. Run the policy editor and find the domain for kill command and browse permissions for that domain. (Fig. 37)</p>
+<p>This time, signal operation succeeded. Run the policy editor and find the domain for kill command and browse permissions for that domain. (Fig. 38)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 37&nbsp;&nbsp;Permissions given to the domain for kill command<br>
+&diams; Fig. 38&nbsp;&nbsp;Permissions given to the domain for kill command<br>
 <img src="tutorial/fig-7-37.png" alt="fig-7-37.png" width="572" height="130">
 </td></tr>
 </table>
