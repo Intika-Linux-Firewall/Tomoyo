@@ -632,7 +632,7 @@ static bool ccs_correct_path(const char *filename)
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
  */
-static bool ccs_correct_domain(const unsigned char *domainname)
+static bool ccs_correct_domain(const char *domainname)
 {
 	if (!domainname || strncmp(domainname, "<kernel>", 8))
 		goto out;
@@ -642,7 +642,7 @@ static bool ccs_correct_domain(const unsigned char *domainname)
 	if (*domainname++ != ' ')
 		goto out;
 	while (1) {
-		const unsigned char *cp = strchr(domainname, ' ');
+		const char *cp = strchr(domainname, ' ');
 		if (!cp)
 			break;
 		if (*domainname != '/' ||
@@ -706,8 +706,12 @@ static _Bool ccs_set_context(request_rec *r)
 	int i;
 	/* Transit domain by requested pathname. */
 	const char *name = ccs_encode_string(r->filename);
-	if (!name)
+	if (!name) {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
+			      "Unable to set security context. "
+			      "Out of memory.");
 		return 0;
+	}
 	for (i = 0; i < ptr->len; i++) {
 		int len;
 		if (!ccs_path_matches_pattern(name, ptr->entry[i].pathname))
@@ -715,8 +719,16 @@ static _Bool ccs_set_context(request_rec *r)
 		free((void *) name);
 		name = ptr->entry[i].domainname;
 		len = strlen(name) + 1;
-		return write(ccs_transition_fd, name, len) == len;
+		if (write(ccs_transition_fd, name, len) == len)
+			return 1;
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
+			      "Unable to set security context. "
+			      "Can't transit to %s", name);
+		return 0;
 	}
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
+		      "Unable to set security context. "
+		      "No matching entry for %s", name);
 	free((void *) name);
 	return 0;
 }
@@ -740,9 +752,6 @@ static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
 		result = ap_run_handler(r);
 		if (result == DECLINED)
 			result = HTTP_INTERNAL_SERVER_ERROR;
-	} else {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
-			      "Unable to set security context.");
 	}
 	apr_thread_exit(thread, result);
 	return NULL;

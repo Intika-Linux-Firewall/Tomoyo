@@ -37,7 +37,7 @@
 <tr><td>
 ■図２　mod_ccs のソースをダウンロード
 <pre>
-# wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=4391&amp;root=tomoyo'
+# wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=4393&amp;root=tomoyo'
 </pre>
 </td></tr>
 </table>
@@ -105,9 +105,10 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 <tr><td>
 ■図６　パス名とドメイン名の対応表の記述例
 <pre>
-/var/www/cgi-bin/\*         &lt;kernel&gt; //apache /cgi-programs
-/usr/share/horde/\{\*\}/\*  &lt;kernel&gt; //apache /horde
-/var/www/html/\{\*\}/\*     &lt;kernel&gt; //apache /static-files
+/var/www/cgi-bin/\*         &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-programs
+/usr/share/horde/\{\*\}/\*  &lt;kernel&gt; //apache /www.tomoyo00.com /horde
+/var/www/html/\{\*\}/\*     &lt;kernel&gt; //apache /www.tomoyo00.com /static-files
+/\{\*\}/\*                  &lt;kernel&gt; //apache /www.tomoyo00.com /default
 </pre>
 </td></tr>
 </table>
@@ -122,9 +123,10 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 <pre>
 &lt;kernel&gt; /usr/sbin/httpd
 
-task manual_domain_transition &lt;kernel&gt; //apache /cgi-programs
-task manual_domain_transition &lt;kernel&gt; //apache /horde
-task manual_domain_transition &lt;kernel&gt; //apache /static-files
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-programs
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /horde
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /static-files
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
 </pre>
 </td></tr>
 </table>
@@ -181,7 +183,7 @@ mod_ccs: Unable to open /proc/ccs/self_domain for writing. (errno = 13)
 <tr><td>
 ■図１２　ドメイン遷移が行われていることを確認するためのＣＧＩプログラム
 <pre>
-# cat &gt; /var/www/cgi-bin/test.cgi &lt;&lt; EOF
+# cat &gt; /var/www/cgi-bin/test.cgi &lt;&lt; "EOF"
 #!/usr/bin/perl
 
 print "Content-type:text/html\r\n\r\n";
@@ -220,7 +222,7 @@ EOF
 &lt;TITLE&gt;test&lt;/TITLE&gt;
 &lt;/HEAD&gt;
 &lt;BODY&gt;
-&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo00.com //default /var/www/cgi-bin/test.cgi
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo00.com /cgi-programs /var/www/cgi-bin/test.cgi
 &lt;/BODY&gt;
 &lt;/HTML&gt;
 [root@tomoyo ~]# curl http://www.tomoyo01.com/cgi-bin/test.cgi
@@ -229,7 +231,7 @@ EOF
 &lt;TITLE&gt;test&lt;/TITLE&gt;
 &lt;/HEAD&gt;
 &lt;BODY&gt;
-&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo01.com //default /var/www/cgi-bin/test.cgi
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo01.com /cgi-programs /var/www/cgi-bin/test.cgi
 &lt;/BODY&gt;
 &lt;/HTML&gt;
 [root@tomoyo ~]# curl http://www.tomoyo02.com/cgi-bin/test.cgi
@@ -238,7 +240,7 @@ EOF
 &lt;TITLE&gt;test&lt;/TITLE&gt;
 &lt;/HEAD&gt;
 &lt;BODY&gt;
-&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo02.com //default /var/www/cgi-bin/test.cgi
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo02.com /cgi-programs /var/www/cgi-bin/test.cgi
 &lt;/BODY&gt;
 &lt;/HTML&gt;
 [root@tomoyo ~]# curl http://www.tomoyo03.com/cgi-bin/test.cgi
@@ -247,7 +249,7 @@ EOF
 &lt;TITLE&gt;test&lt;/TITLE&gt;
 &lt;/HEAD&gt;
 &lt;BODY&gt;
-&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo03.com //default /var/www/cgi-bin/test.cgi
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo03.com /cgi-programs /var/www/cgi-bin/test.cgi
 &lt;/BODY&gt;
 &lt;/HTML&gt;
 [root@tomoyo ~]#
