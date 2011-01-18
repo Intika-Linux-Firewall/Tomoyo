@@ -15,7 +15,7 @@
  *
  * Runtime dependency:
  *
- *   TOMOYO Linux 1.7.2 (or later) running on Linux 2.6 kernels.
+ *   TOMOYO Linux 1.8.0 (or later) running on Linux 2.6 kernels.
  *
  * How to build and install:
  *
@@ -26,12 +26,9 @@
  *
  * How to configure:
  *
- *   Domain transition based on server's name is automatically performed by
- *   this module.
- *
  *   CCS_TransitionMap directive is provided by this module.
  *   You may perform domain transition based on requested resource's pathname
- *   using this directive after the domain transition based on server's name.
+ *   using this directive.
  *
  *   This directive can appear in the server-wide configuration files
  *   (e.g., httpd.conf) outside <Directory> or <Location> containers.
@@ -55,11 +52,59 @@
  *   This directive takes one parameter which specifies pathname to mapping
  *   table file. The mapping table file contains list of "pathname patterns"
  *   and "domainname" pairs, written in accordance with TOMOYO Linux's pathname
- *   representation rule and wildcard characters.
+ *   representation rule and wildcard characters. For example,
  *
- *     /var/www/cgi-bin/\*         cgi-programs
- *     /usr/share/horde/\{\*\}/\*  horde
- *     /var/www/html/\{\*\}/\*     static-files
+ *     /var/www/cgi-bin/\*        <kernel> //apache /www.example.com /cgi-programs
+ *     /usr/share/horde/\{\*\}/\* <kernel> //apache /www.example.com /horde
+ *     /var/www/html/\{\*\}/\*    <kernel> //apache /www.example.com /static-files
+ *
+ *   in /etc/ccs/apache2_transition_table.conf and
+ *
+ *     /home/cat/html/\*          <kernel> //apache /cat.example.com
+ *     /home/cat/html/\{\*\}/\*   <kernel> //apache /cat.example.com
+ *
+ *   in /home/cat/apache2_transition_table.conf and
+ *
+ *     /home/dog/html/\*          <kernel> //apache /dog.example.com
+ *     /home/dog/html/\{\*\}/\*   <kernel> //apache /dog.example.com
+ *
+ *   in /home/dog/apache2_transition_table.conf .
+ *
+ *   You need to beforehand specify domainnames in the mapping table to
+ *   /proc/ccs/domain_policy using "task manual_domain_transition" directive
+ *   (e.g.
+ *
+ *     <kernel> /usr/sbin/httpd
+ *     task manual_domain_transition <kernel> //apache /www.example.com /cgi-programs
+ *     task manual_domain_transition <kernel> //apache /www.example.com /horde
+ *     task manual_domain_transition <kernel> //apache /www.example.com /static-files
+ *     task manual_domain_transition <kernel> //apache /cat.example.com
+ *     task manual_domain_transition <kernel> //apache /dog.example.com
+ *
+ *   ).
+ *
+ *   If the requested pathname did not match the pathname patterns listed in
+ *   the mapping table file, the request will fail with internal error.
+ *   Be sure to cover all possible pathnames you want to allow access.
+ *
+ *   If you want to use this module for separating virtual hosts and not for
+ *   separating permissions within a virtual host, you can specify like
+ *
+ *     /var/www/cgi-bin/\*        <kernel> //apache /www.example.com
+ *     /usr/share/horde/\{\*\}/\* <kernel> //apache /www.example.com
+ *     /var/www/html/\{\*\}/\*    <kernel> //apache /www.example.com
+ *
+ *   in /etc/ccs/apache2_transition_table.conf and
+ *
+ *     /home/cat/html/\*          <kernel> //apache /cat.example.com
+ *     /home/cat/html/\{\*\}/\*   <kernel> //apache /cat.example.com
+ *
+ *   in /home/cat/apache2_transition_table.conf and
+ *
+ *     /home/dog/html/\*          <kernel> //apache /dog.example.com
+ *     /home/dog/html/\{\*\}/\*   <kernel> //apache /dog.example.com
+ *
+ *   in /home/dog/apache2_transition_table.conf .
  *
  * Author:
  *
@@ -480,53 +525,28 @@ static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
 }
 
 /**
- * ccs_is_correct_path - Validate a pathname.
+ * ccs_correct_word2 - Check whether the given string follows the naming rules.
  *
- * @filename:     The pathname to check.
- * @start_type:   Should the pathname start with '/'?
- *                1 = must / -1 = must not / 0 = don't care
- * @pattern_type: Can the pathname contain a wildcard?
- *                1 = must / -1 = must not / 0 = don't care
- * @end_type:     Should the pathname end with '/'?
- *                1 = must / -1 = must not / 0 = don't care
+ * @string: The byte sequence to check. Not '\0'-terminated.
+ * @len:    Length of @string.
  *
- * Check whether the given filename follows the naming rules.
- * Returns true if @filename follows the naming rules, false otherwise.
+ * Returns true if @string follows the naming rules, false otherwise.
  */
-static bool ccs_is_correct_path(const char *filename, const s8 start_type,
-				const s8 pattern_type, const s8 end_type)
+static bool ccs_correct_word2(const char *string, size_t len)
 {
-	const char *const start = filename;
+	const char *const start = string;
 	bool in_repetition = false;
-	bool contains_pattern = false;
 	unsigned char c;
 	unsigned char d;
 	unsigned char e;
-	if (!filename)
+	if (!len)
 		goto out;
-	c = *filename;
-	if (start_type == 1) { /* Must start with '/' */
-		if (c != '/')
-			goto out;
-	} else if (start_type == -1) { /* Must not start with '/' */
-		if (c == '/')
-			goto out;
-	}
-	if (c)
-		c = *(filename + strlen(filename) - 1);
-	if (end_type == 1) { /* Must end with '/' */
-		if (c != '/')
-			goto out;
-	} else if (end_type == -1) { /* Must not end with '/' */
-		if (c == '/')
-			goto out;
-	}
-	while (1) {
-		c = *filename++;
-		if (!c)
-			break;
+	while (len--) {
+		c = *string++;
 		if (c == '\\') {
-			c = *filename++;
+			if (!len--)
+				goto out;
+			c = *string++;
 			switch (c) {
 			case '\\':  /* "\\" */
 				continue;
@@ -540,21 +560,14 @@ static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			case 'a':   /* "\a" */
 			case 'A':   /* "\A" */
 			case '-':   /* "\-" */
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
 				continue;
 			case '{':   /* "/\{" */
-				if (filename - 3 < start ||
-				    *(filename - 3) != '/')
+				if (string - 3 < start || *(string - 3) != '/')
 					break;
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
 				in_repetition = true;
 				continue;
 			case '}':   /* "\}/" */
-				if (*filename != '/')
+				if (*string != '/')
 					break;
 				if (!in_repetition)
 					break;
@@ -564,15 +577,15 @@ static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			case '1':
 			case '2':
 			case '3':
-				d = *filename++;
-				if (d < '0' || d > '7')
+				if (!len-- || !len--)
 					break;
-				e = *filename++;
-				if (e < '0' || e > '7')
+				d = *string++;
+				e = *string++;
+				if (d < '0' || d > '7' || e < '0' || e > '7')
 					break;
 				c = ccs_make_byte(c, d, e);
-				if (c && (c <= ' ' || c >= 127))
-					continue; /* pattern is not \000 */
+				if (c <= ' ' || c >= 127)
+					continue;
 			}
 			goto out;
 		} else if (in_repetition && c == '/') {
@@ -581,14 +594,64 @@ static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			goto out;
 		}
 	}
-	if (pattern_type == 1) { /* Must contain pattern */
-		if (!contains_pattern)
-			goto out;
-	}
 	if (in_repetition)
 		goto out;
 	return true;
- out:
+out:
+	return false;
+}
+
+/**
+ * ccs_correct_word - Check whether the given string follows the naming rules.
+ *
+ * @string: The string to check.
+ *
+ * Returns true if @string follows the naming rules, false otherwise.
+ */
+static bool ccs_correct_word(const char *string)
+{
+	return ccs_correct_word2(string, strlen(string));
+}
+
+/**
+ * ccs_correct_path - Check whether the given pathname follows the naming rules.
+ *
+ * @filename: The pathname to check.
+ *
+ * Returns true if @filename follows the naming rules, false otherwise.
+ */
+static bool ccs_correct_path(const char *filename)
+{
+	return *filename == '/' && ccs_correct_word(filename);
+}
+
+/**
+ * ccs_correct_domain - Check whether the given domainname follows the naming rules.
+ *
+ * @domainname: The domainname to check.
+ *
+ * Returns true if @domainname follows the naming rules, false otherwise.
+ */
+static bool ccs_correct_domain(const unsigned char *domainname)
+{
+	if (!domainname || strncmp(domainname, "<kernel>", 8))
+		goto out;
+	domainname += 8;
+	if (!*domainname)
+		return true;
+	if (*domainname++ != ' ')
+		goto out;
+	while (1) {
+		const unsigned char *cp = strchr(domainname, ' ');
+		if (!cp)
+			break;
+		if (*domainname != '/' ||
+		    !ccs_correct_word2(domainname, cp - domainname - 1))
+			goto out;
+		domainname = cp + 1;
+	}
+	return ccs_correct_path(domainname);
+out:
 	return false;
 }
 
@@ -641,17 +704,12 @@ static _Bool ccs_set_context(request_rec *r)
 	struct ccs_map_table *ptr =
 		ap_get_module_config(r->server->module_config, &ccs_module);
 	int i;
-	int len;
-	/* Transit domain by virtual host's name. */
-	const char *name = r->server->server_hostname;
-	len = strlen(name) + 1;
-	if (write(ccs_transition_fd, name, len) != len)
-		return 0;
 	/* Transit domain by requested pathname. */
-	name = ccs_encode_string(r->filename);
+	const char *name = ccs_encode_string(r->filename);
 	if (!name)
 		return 0;
 	for (i = 0; i < ptr->len; i++) {
+		int len;
 		if (!ccs_path_matches_pattern(name, ptr->entry[i].pathname))
 			continue;
 		free((void *) name);
@@ -660,7 +718,7 @@ static _Bool ccs_set_context(request_rec *r)
 		return write(ccs_transition_fd, name, len) == len;
 	}
 	free((void *) name);
-	return i ? write(ccs_transition_fd, "default", 8) == 8 : 1;
+	return 0;
 }
 
 /* This "__thread" keyword does not work on Linux 2.4 kernels. */
@@ -700,7 +758,7 @@ static int ccs_handler(request_rec *r)
 		return DECLINED;
 	if (ccs_open_error) {
 		ap_log_rerror(APLOG_MARK, APLOG_ERR, ccs_open_error, r,
-			      "mod_ccs: Unable to open /proc/ccs/.transition "
+			      "mod_ccs: Unable to open /proc/ccs/self_domain "
 			      "for writing.");
 		return HTTP_INTERNAL_SERVER_ERROR;
 	}
@@ -735,12 +793,12 @@ static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 	void *ptr = apr_palloc(p, sizeof(struct ccs_map_table));
 	if (ptr)
 		memset(ptr, 0, sizeof(struct ccs_map_table));
-	/* We can share because /proc/ccs/.transition interface has no data. */
+	/* We can share because /proc/ccs/self_domain interface has no data. */
 	if (ccs_transition_fd == EOF) {
-		ccs_transition_fd = open("/proc/ccs/.transition", O_WRONLY);
+		ccs_transition_fd = open("/proc/ccs/self_domain", O_WRONLY);
 		/*
 		 * Some access control mechanisms might reject opening
-		 * /proc/ccs/.transition for writing.
+		 * /proc/ccs/self_domain for writing.
 		 * This failure is reported by ccs_parse_table() if
 		 * CCS_TransitionMap keyword is specified, by ccs_handler()
 		 * otherwise.
@@ -802,14 +860,14 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 		if (!cp)
 			goto invalid_line;
 		*cp++ = '\0';
-		if (!ccs_is_correct_path(buffer, 1, 0, -1)) {
+		if (!ccs_correct_path(buffer)) {
 			fclose(fp);
 			snprintf(buffer, buffer_len - 1, "mod_ccs: "
 				 "Line %u of %s : Bad pathname.", line + 1,
 				 args);
 			return buffer;
 		}
-		if (!ccs_is_correct_path(cp, 0, 0, -1)) {
+		if (!ccs_correct_domain(cp)) {
 			fclose(fp);
 			snprintf(buffer, buffer_len - 1, "mod_ccs: "
 				 "Line %u of %s : Bad domainname.", line + 1,
@@ -833,7 +891,7 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 	return "mod_ccs: Out of memory.";
  no_interface:
 	snprintf(buffer, buffer_len - 1,
-		 "mod_ccs: Unable to open /proc/ccs/.transition for writing. "
+		 "mod_ccs: Unable to open /proc/ccs/self_domain for writing. "
 		 "(errno = %d)", ccs_open_error);
 	return buffer;
  no_file:
