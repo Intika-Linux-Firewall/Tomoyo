@@ -37,7 +37,7 @@
 <tr><td>
 &diams; Fig. 2&nbsp;&nbsp;Downloading source code for mod_ccs
 <pre>
-# wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=3787&amp;root=tomoyo'
+# wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=4391&amp;root=tomoyo'
 </pre>
 </td></tr>
 </table>
@@ -66,7 +66,7 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 
 <h3>Configuring mod_ccs</h3>
 
-<p>mod_ccs by default performs domain transition based on ServerName. If you specify the mapping table of pathnames and domainnames using CCS_TransitionMap keyword in the Apache's configuration files like Fig. 5, mod_ccs performs domain transition based on requested file's pathname in addition to domain transition based on ServerName. Fig. 5 assumes that IP address for www.tomoyo00.com www.tomoyo01.com www.tomoyo02.com www.tomoyo03.com are specified in /etc/hosts .</p>
+<p>mod_ccs performs domain transition based on requested file's pathname by specifying the mapping table of pathnames and domainnames using CCS_TransitionMap keyword in the Apache's configuration files. (Fig. 5) Fig. 5 assumes that IP address for www.tomoyo00.com www.tomoyo01.com www.tomoyo02.com www.tomoyo03.com are specified in /etc/hosts .</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -105,20 +105,35 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 <tr><td>
 &diams; Fig. 6&nbsp;&nbsp;An example of pathnames and domainnames mapping
 <pre>
-/var/www/cgi-bin/\*         cgi-programs
-/usr/share/horde/\{\*\}/\*  horde
-/var/www/html/\{\*\}/\*     static-files
+/var/www/cgi-bin/\*         &lt;kernel&gt; //apache /cgi-programs
+/usr/share/horde/\{\*\}/\*  &lt;kernel&gt; //apache /horde
+/var/www/html/\{\*\}/\*     &lt;kernel&gt; //apache /static-files
 </pre>
 </td></tr>
 </table>
 
 <p>From now on, you need to use TOMOYO Linux kernel.</p>
 
-<p>TOMOYO Linux can be used with SELinux. But SELinux's default policy configuration does not allow Apache to write to /proc/ccs/self_domain . If SELinux is enabled, modify SELinux's policy configuration to allow Apache to write to /proc/ccs/self_domain . (Steps for modifying SELinux's policy configuration depend on distributions and versions. Fig.7 should work for CentOS 5.5 but may not work for older versions.)</p>
+<p>Specify domain transition permissions to Apache's domain beforehand. (Fig. 7) If you forgot to do this, Apache will fail with Internal Server Error.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 7&nbsp;&nbsp;Allow Apache to write to /proc/ccs/self_domain
+&diams; Fig. 7&nbsp;&nbsp;An example of domain transition permissions
+<pre>
+&lt;kernel&gt; /usr/sbin/httpd
+
+task manual_domain_transition &lt;kernel&gt; //apache /cgi-programs
+task manual_domain_transition &lt;kernel&gt; //apache /horde
+task manual_domain_transition &lt;kernel&gt; //apache /static-files
+</pre>
+</td></tr>
+</table>
+
+<p>TOMOYO Linux can be used with SELinux. But SELinux's default policy configuration does not allow Apache to write to /proc/ccs/self_domain . If SELinux is enabled, modify SELinux's policy configuration to allow Apache to write to /proc/ccs/self_domain . (Steps for modifying SELinux's policy configuration depend on distributions and versions. Fig. 8 should work for CentOS 5.5 but may not work for older versions.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Allow Apache to write to /proc/ccs/self_domain
 <pre>
 # cd /etc/selinux/
 # echo 'type=AVC msg=audit(1277948886.369:106): avc:  denied  { write } for pid=32078 comm="httpd" name="self_domain" dev=proc ino=-268435010 scontext=root:system_r:httpd_t:s0 tcontext=system_u:object_r:proc_t:s0 tclass=file' | audit2allow -M ccsecurity
@@ -127,22 +142,22 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 </td></tr>
 </table>
 
-<p>Restart Apache by doing Fig. 8.</p>
+<p>Restart Apache by doing Fig. 9.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 8&nbsp;&nbsp;Restarting Apache
+&diams; Fig. 9&nbsp;&nbsp;Restarting Apache
 <pre>
 # service httpd restart
 </pre>
 </td></tr>
 </table>
 
-<p>Errors like Fig. 9 (if you specified CCS_TransitionMap keyword) or Fig. 10 (if you didn't specify CCS_TransitionMap keyword) are reported if write access to /proc/ccs/self_domain failed.</p>
+<p>Errors like Fig. 10 (if you specified CCS_TransitionMap keyword) or Fig. 11 (if you didn't specify CCS_TransitionMap keyword) are reported if write access to /proc/ccs/self_domain failed.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 9&nbsp;&nbsp;Apache's error message upon startup
+&diams; Fig. 10&nbsp;&nbsp;Apache's error message upon startup
 <pre>
 mod_ccs: Unable to open /proc/ccs/self_domain for writing. (errno = 13)
 </pre>
@@ -151,20 +166,20 @@ mod_ccs: Unable to open /proc/ccs/self_domain for writing. (errno = 13)
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 10&nbsp;&nbsp;Apache's error log ( /var/log/httpd/error_log )
+&diams; Fig. 11&nbsp;&nbsp;Apache's error log ( /var/log/httpd/error_log )
 <pre>
 [Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_ccs: Unable to open /proc/ccs/self_domain for writing.
 </pre>
 </td></tr>
 </table>
 
-<p>If there is a problem in the file specified by CCS_TransitionMap keyword, errors are reported when doing Fig. 8.</p>
+<p>If there is a problem in the file specified by CCS_TransitionMap keyword, errors are reported when doing Fig. 9.</p>
 
-<p>To be able to confirm that domain transitions are performed, create a simple CGI program. (Fig. 11)</p>
+<p>To be able to confirm that domain transitions are performed, create a simple CGI program. (Fig. 12)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 11&nbsp;&nbsp;A CGI program for printing current domain
+&diams; Fig. 12&nbsp;&nbsp;A CGI program for printing current domain
 <pre>
 # cat &gt; /var/www/cgi-bin/test.cgi &lt;&lt; EOF
 #!/usr/bin/perl
@@ -193,11 +208,11 @@ EOF
 </td></tr>
 </table>
 
-<p>Run the CGI programs using curl command (or web browsers) and confirm that domain transitions are performed. (Fig. 12)</p>
+<p>Run the CGI programs using curl command (or web browsers) and confirm that domain transitions are performed. (Fig. 13)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 12&nbsp;&nbsp;Verify that domain transitions are performed
+&diams; Fig. 13&nbsp;&nbsp;Verify that domain transitions are performed
 <pre>
 [root@tomoyo ~]# curl http://www.tomoyo00.com/cgi-bin/test.cgi
 &lt;HTML&gt;
