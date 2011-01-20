@@ -3,481 +3,475 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>The world of TOMOYO Linux&nbsp;&nbsp;The sixth installment: "Let's eradicate illegal logins."</title>
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The fifth installment: "Let's add conditions to policy."</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-6.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="tutorial-5.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>The world of TOMOYO Linux<br>The sixth installment: "Let's eradicate illegal logins."</h1>
+<h1>The world of TOMOYO Linux<br>The fifth installment: "Let's add conditions to policy."</h1>
 
 <h2>Contents of this installment.</h2>
 
-<p>By using secure OS, you can forbid accessing to resources which are not needed for providing services. Therefore, you can reduce damages when control of process was hijacked by exploiting buffer overflow vulnerability.</p>
+<p>In this installment, I explain "conditional ACL" which utilizes TOMOYO Linux's powerful parameter checking functionality.</p>
 
-<p>Then, what about login sessions of users who passed proper procedure (login authentication)? Needless to say, proper administrators have to be able to administrate the system as they intend. Then, secure OS cannot reduce damage if intruder passed login authentication. Therefore, the question is, how to reinforce login authentication while allowing proper administrators to operate what they need to do.</p>
+<h2>Adding conditions to ACL entries</h2>
 
-<p>In TOMOYO Linux, you can reduce damages even if intruder passed login authentication, by utilizing TOMOYO Linux's domain authentication. In this installment, I explain steps for deploying illegal login buster system at no fee and steps for splitting administrator's jobs.</p>
+<h3>About conditional ACL</h3>
 
-<h2>About illegal login buster system</h2>
-
-<h3>I want to prevent my systems from being used as steppingstone!</h3>
-
-<p>Illegal logins against SSH services by password brute force attacks are increasing. As a result of illegal logins, systems are used as phishing sites or are installed malicious programs for attacking other hosts.</p>
-
-<p>It is possible to install and execute malicious programs without administrator's privileges. You cannot say that "I don't care illegal logins to this server because there is no secret information on this server" or "No problem unless logged in as "root" user". When you become a victim, servers connected to the Internet make you of the victimizer at the same time. Thus, it is important to take precautions.</p>
-
-<h3>I want to protect sensitive information!</h3>
-
-<p>All Linux/UNIX systems support login authentication. There are means to reinforce login authentication such as PAM ( Pluggable Authentication Modules ) or public key authentication, but the concept of login authentication are basically identical. It is a question that it is appropriate thing to apply same authentication for personal-use servers and enterprise-use servers.</p>
-
-<p>Don't you wish that you can apply login authentication depending on the intended use with appropriate level for that use? Hopefully without paying additional fee? TOMOYO Linux will provide a solution.</p>
-
-<h3>Is it possible to enforce login authentication for multiple times?</h3>
-
-<p>Regarding conventional countermeasure for illegal logins assumed that "We can do login authentication for only once. Thus, give up if ran through." Therefore, to realize as-safe-as-possible login authentication in the only one chance, public key authentications and biometrics authentications are getting introduced. Secure OS cannot solve this limitation.</p>
-
-<p>However, TOMOYO Linux can solve this limitation. TOMOYO Linux realizes "We can do login authentication for as many times as we want. Thus, no need to worry for being run through." Therefore, you can use conventional login authentication  for preventing illegal logins.</p>
-
-<h3>Why it is possible to enforce for multiple times?</h3>
-
-<p>TOMOYO Linux is not equipped with dedicated login authentication mechanisms. But you can reinforce login authentication by utilizing mandatory access control based on domain transition tree which I explained by now in this series.</p>
-
-<p>By using TOMOYO Linux, you can very easily limit operations after login authentication to only "execute a program which performs additional user authentication". What is wonderful with this approach is that there is no limitation for available algorithm for the program which performs additional user authentication and is no need to follow internationally authorized standards, for the program is running on SSH server and protocol is handled by SSH service.</p>
-
-<p>The only requirement for the program which performs additional user authentication is that the program executes next program (usually a shell program) when all conditions are met. The program cannot be bypassed because access to resources which are not permitted by policy is forbidden by mandatory access control.</p>
-
-<p>For example, you can use a simple script like Fig. 1. You might think that "It makes no sense to embed password into the script file because everyone can read the script file.", but by using mandatory access control, you can make the contents of the script file unreadable. (If you are still worried, you can cut password out to external files or write the program using C language.)</p>
-
-<p>I explain using a script program listed in Fig.1 as an example of reinforcement. Save the program listed in Fig. 1 as /bin/auth1 and make it executable by "chmod 755 /bin/auth1". Note that this program is just an example. When you apply on the real systems, please make programs using your favorite algorithms. More alien authentication methods, more difficult to run through the protection.</p>
+<p>TOMOYO Linux does not support RBAC ( Role Based Access Control ). But you can specify conditions based on user ID in the policy configuration. Therefore, you can use access control based on system account's user ID. Conditions are appended at the tail of individual permissions. Available conditions are listed in Fig. 1 and usage examples are listed in Fig. 2.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 1&nbsp;&nbsp;A sample script for additional authentication<br>
+&diams; Fig. 1&nbsp;&nbsp;Parameters which can be used as conditions<br>
+<table border="1" summary="fig">
+<tr><td>Variable</td><td>Meaning</td></tr>
+<tr><td>task.uid</td><td>UID of current process</td></tr>
+<tr><td>task.euid</td><td>Effective UID of current process</td></tr>
+<tr><td>task.suid</td><td>Saved UID of current process</td></tr>
+<tr><td>task.fsuid</td><td>File System UID of current process</td></tr>
+<tr><td>task.gid</td><td>GID of current process</td></tr>
+<tr><td>task.egid</td><td>Effective GID of current process</td></tr>
+<tr><td>task.sgid</td><td>Saved GID of current process</td></tr>
+<tr><td>task.fsgid</td><td>File System GID of current process</td></tr>
+<tr><td>task.pid</td><td>PID of current process</td></tr>
+<tr><td>task.ppid</td><td>PID of parent process</td></tr>
+<tr><td>task.type</td><td>Type of current process (execute_handler or not)</td></tr>
+<tr><td>path1.uid</td><td>UID of first object</td></tr>
+<tr><td>path1.gid</td><td>GID of first object</td></tr>
+<tr><td>path1.ino</td><td>i-node number of first object</td></tr>
+<tr><td>path1.type</td><td>Type of first object (e.g. file, directory, socket)</td></tr>
+<tr><td>path1.perm</td><td>DAC's permission of first object</td></tr>
+<tr><td>path1.major</td><td>Device major number of a device file which first object resides</td></tr>
+<tr><td>path1.minor</td><td>Device minor number of a device file which first object resides</td></tr>
+<tr><td>path1.dev_major</td><td>Device major number of first object (assuming that first object is a device file)</td></tr>
+<tr><td>path1.dev_minor</td><td>Device minor number of first object (assuming that first object is a device file)</td></tr>
+<tr><td>path1.parent.uid</td><td>UID of first object's parent directory</td></tr>
+<tr><td>path1.parent.gid</td><td>GID of first object's parent directory</td></tr>
+<tr><td>path1.parent.ino</td><td>i-node number of first object's parent directory</td></tr>
+<tr><td>path1.parent.perm</td><td>DAC's permission of first object's parent directory</td></tr>
+<tr><td>path2.uid</td><td>UID of second object</td></tr>
+<tr><td>path2.gid</td><td>GID of second object</td></tr>
+<tr><td>path2.ino</td><td>i-node number of second object</td></tr>
+<tr><td>path2.type</td><td>Type of second object (e.g. file, directory, socket)</td></tr>
+<tr><td>path2.perm</td><td>DAC's permission of second object</td></tr>
+<tr><td>path2.major</td><td>Device major number of a device file which second object resides</td></tr>
+<tr><td>path2.minor</td><td>Device minor number of a device file which second object resides</td></tr>
+<tr><td>path2.dev_major</td><td>Device major number of second object (assuming that second object is a device file)</td></tr>
+<tr><td>path2.dev_minor</td><td>Device minor number of second object (assuming that second object is a device file)</td></tr>
+<tr><td>path2.parent.uid</td><td>UID of second object's parent directory</td></tr>
+<tr><td>path2.parent.gid</td><td>GID of second object's parent directory</td></tr>
+<tr><td>path2.parent.ino</td><td>i-node number of second object's parent directory</td></tr>
+<tr><td>path2.parent.perm</td><td>DAC's permission of second object's parent directory</td></tr>
+<tr><td>exec.argc</td><td>Number of argv[] passed for execute request</td></tr>
+<tr><td>exec.envc</td><td>Number of envp[] passed for execute request</td></tr>
+<tr><td>exec.argv[index]</td><td>index-th argument for execute request</td></tr>
+<tr><td>exec.envp["name"]</td><td>value of environment variable "name" for execute request</td></tr>
+<tr><td>exec.realpath</td><td>Dereferenced pathname of the requested program</td></tr>
+<tr><td>symlink.target</td><td>The content of a symlink to be created</td></tr>
+</table>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 2&nbsp;&nbsp;Example of conditions<br>
+<table border="1" summary="fig">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>task.uid=0</td><td>if process's user ID is 0 (i.e. "root" user)</td></tr>
+<tr><td>task.uid!=0</td><td>if process's user ID is not 0 (i.e. not "root" user)</td></tr>
+<tr><td>task.uid=100-500</td><td>if process's user ID is between 100 and 500</td></tr>
+<tr><td>task.uid=0 task.gid=0</td><td>if both process's user ID is 0 and group ID is 0 (i.e. "root")</td></tr>
+<tr><td>task.uid!=0 task.gid!=0</td><td>if both process's user ID is not 0 and group ID is not 0 (i.e. not "root")</td></tr>
+<tr><td>task.uid=100-500 task.gid!=0</td><td>if process's user ID is between 100 and 500 and process's group ID is not 0</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value matches "value"</td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>if index-th ( 0&lt;=index&lt;exec.argc ) argument's value does not match "value"</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>if environment variable "name" is defined and its value matches "value"</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>if environment variable "name" is  not defined or its value does not match "value"</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>if environment variable "name" is defined</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>if environment variable "name" is not defined</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h3>Let's add conditions</h3>
+
+<p>I explain steps for allowing browsing user's own files only for users logged in from console using /bin/cat command as an example. I use "user1" user and "user2" user for this purpose. Login from console and do below operations. Firstly, create 2 accounts. (Fig. 3)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Create 2 accounts
 <pre>
-#! /bin/sh -p
-for i in 1 2 3
-do
-  echo -n 'Password: '
-  read -r -s passwd
-  echo
-  [ "$passwd" = "SAKURA" ] &amp;&amp; exec $SHELL
-done
-echo 'Incorrect password.'
+# useradd -s /bin/bash user1
+# useradd -s /bin/bash user2
 </pre>
 </td></tr>
 </table>
 
-<h3>Let's install</h3>
-
-<p>I explain how to protect servers which provide SSH logins as an example. I assume /bin/bash is specified as login shells.</p>
-
-<h4>&diams;Preparation</h4>
-
-<p>Apply mandatory access control on "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain (a domain for login shell logged in via /usr/sbin/sshd ) and make the domain to allow only execution of programs permitted by policy configuration. (Note that if you don't apply mandatory access control on "&lt;kernel&gt; /usr/sbin/sshd" domain (a domain for /usr/sbin/sshd ), this restriction will be bypassed by executing other programs (e.g. /bin/tcsh ) from /usr/sbin/sshd .)</p>
-
-<p>Firstly, make sure that "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain is not specified using keep_domain keyword. ( keep_domain keyword is explained in the third installment of this series.) If "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, delete the entry using policy editor.</p>
-
-<p>Also, if you don't apply mandatory access control on "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain (a domain for shell after passing additional authentication) and its descendant domains, you can add "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" using policy editor because you don't need to transit domains. (Fig. 2)</p>
+<p>Set some passwords for these accounts. (Fig. 4)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 2&nbsp;&nbsp;Domain transition tree for reinforcing authentication<br>
-<img src="tutorial/fig-6-2.png" alt="fig-6-2.png" width="800" height="600">
+&diams; Fig. 4&nbsp;&nbsp;Set passwords for created accounts
+<pre>
+# passwd user1
+# passwd user2
+</pre>
 </td></tr>
 </table>
 
-<h4>&diams;Learning</h4>
-
-<p>In the second installment of this series, we defined profiles listed in Fig. 3. Thus, I use these profiles for this installment. Change domains for login shells logged via /usr/sbin/sshd to learning mode. Run commands listed in Fig. 4 from console.</p>
+<p>Run /bin/cat command in order to create domain for cat command. In addition, let's print the domain of cat command. (Fig. 5)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 3&nbsp;&nbsp;Profile for this installment<br>
+&diams; Fig. 5&nbsp;&nbsp;Print domain which cat command belongs to
 <pre>
-PROFILE_VERSION=20100903
-0-CONFIG::file={ mode=disabled }
-1-CONFIG::file={ mode=learning }
-2-CONFIG::file={ mode=permissive }
-3-CONFIG::file={ mode=enforcing }
+# cat /proc/ccs/self_domain
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+</pre>
+</td></tr>
+</table>
+
+<p>Assign a profile for learning mode to /bin/cat command's domain. In this series, the profile for learning mode is profile 1, thus do like Fig. 6.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;Assign a profile for learning mode to the domain which cat command belongs to
+<pre>
+# /usr/sbin/ccs-setprofile 1 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user1" user. Then, do operations listed in Fig. 7.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Login as "user1" user and create /tmp/testfile1
+<pre>
+$ echo "This file was created by user1" &gt; /tmp/testfile1
+$ cat /tmp/testfile1
+This file was created by user1
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user2" user. Then, do operations listed in Fig. 8.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Login as "user2" and create /tmp/testfile2
+<pre>
+$ echo "This file was created by user2" &gt; /tmp/testfile2
+$ cat /tmp/testfile2
+This file was created by user2
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "root" user. Run ccs-editpolicy command and check "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat" domain's permissions. There should be entries listed in Fig. 9.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Permissions given to "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat" domain
+<pre>
+file read /tmp/testfile1
+file read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
+
+<p>As of now, everyone can read these files if granted by DAC (Discretionary Access Control) permission. Press "A" key on the keyboard and enter lines listed in Fig. 10.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;Adding permissions with conditions<br>(&diams; You may specify "file read /tmp/testfile\+ task.uid=path1.uid" instead for these lines.)
+<pre>
+file read /tmp/testfile1 task.uid=path1.uid
+file read /tmp/testfile2 task.uid=path1.uid
+</pre>
+</td></tr>
+</table>
+
+<p>Then, delete entries listed in Fig. 11 using "D" key on the keyboard.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;Deleting permissions without conditions
+<pre>
+file read /tmp/testfile1
+file read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
+
+<p>Press "Q" key on the keyboard to quit ccs-editpolicy command. Then, assign a profile for enforcing mode to /bin/cat command's domain. In this series, the profile for enforcing mode is profile 3, thus do like Fig. 12.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;Assign a profile for enforcing mode to the domain which cat command belongs to
+<pre>
+# /usr/sbin/ccs-setprofile 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user1" user. Then, try to print /tmp/testfile1 and /tmp/testfile2 using /bin/cat command. You can see that access to /tmp/testfile2 is forbidden. (Fig. 13)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Access to /tmp/testfile2 is forbidden
+<pre>
+$ cat /tmp/testfile1
+This file was created by user1
+$ cat /tmp/testfile2
+cat: /tmp/testfile2: Operation not permitted
+</pre>
+</td></tr>
+</table>
+
+<p>Logout and re-login as "user2" user. Do the same operations like "user1" user. You can see that access to /tmp/testfile1 is forbidden. You may specify constant user ID instead of variables. For example, you can forbid "root" user's login if you change like Fig. 14 in the "&lt;kernel&gt; /sbin/mingetty /bin/login" domain (which authenticates user and executes login shell).</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 14&nbsp;&nbsp;Deny login as "root" user
+<pre>
+[Before modification]
+file execute /bin/bash
+[After modification]
+file execute /bin/bash task.uid!=0
+</pre>
+</td></tr>
+</table>
+
+<p>You can allow login of users with user ID between 500 and 1000 if you change like Fig. 15. You can use it for restricting logins via SSH.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 15&nbsp;&nbsp;Allow login of users with user ID between 500 and 1000
+<pre>
+[Before modification]
+file execute /bin/bash
+[After modification]
+file execute /bin/bash task.uid=500-1000
+</pre>
+</td></tr>
+</table>
+
+<p>Now, I've finished explanation of conditional permissions. Delete accounts created for this explanation. (Fig. 16)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 16&nbsp;&nbsp;Delete accounts created at Fig. 3
+<pre>
+# userdel user1
+# userdel user2
+</pre>
+</td></tr>
+</table>
+
+<h3>Change of behavior by how the program is executed</h3>
+
+<p>Getting sidetracked a bit. I'd like to show you change of behavior by how the program is executed which can become a pitfall when doing access control. Login to a system (needn't to use TOMOYO Linux kernel) and save the program listed in Fig. 17 as /tmp/argv0.c .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 17&nbsp;&nbsp;A C program which prints the invocation name
+<pre>
+#include &lt;stdio.h&gt;
+int main(int argc, char *argv[])
+{
+        printf("I am running as %s\n", argv[0]);
+        return 0;
+}
+</pre>
+</td></tr>
+</table>
+
+<p>Then, compile and create symbolic links (or hard links) like Fig. 18.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 18&nbsp;&nbsp;Compile and create symbolic links
+<pre>
+# gcc -o /tmp/argv0 /tmp/argv0.c
+# ln -s /tmp/argv0 /tmp/cat
+# ln -s /tmp/argv0 /tmp/passwd
+</pre>
+</td></tr>
+</table>
+
+<p>Then, execute these symbolic links (or hard links), and you will see the name of symbolic links (or hard links) are printed. (Fig. 19).</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 19&nbsp;&nbsp;Execute via symbolic links
+<pre>
+# /tmp/cat
+I am running as /tmp/cat
+# /tmp/passwd
+I am running as /tmp/passwd
+</pre>
+</td></tr>
+</table>
+
+<p>Some programs are designed to behave differently depending on the invocation name (called argv[0]). For example, in CentOS 5.5, /sbin/pidof is a symbolic link to /sbin/killall5 . If /sbin/killall5 is executed as "pidof", the program prints process ID of specified program. If /sbin/killall5 is executed as "killall5", the program sends signals to all processes except processes running in the same session.</p>
+
+<p>In TOMOYO Linux, the process runs in "/tmp/cat" domain if the program is executed as "/tmp/cat" and the process runs in "/tmp/passwd" domain if the program is executed as "/tmp/passwd". Then, what will happen if /tmp/passwd is executed as /tmp/cat like Fig. 20? (Guess the result.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 20&nbsp;&nbsp;Executing "passwd" command as "cat"
+<pre>
+# sh -c 'exec -a /tmp/cat /tmp/passwd'
+</pre>
+</td></tr>
+</table>
+
+<p>The result of Fig. 20 is Fig. 21. This means that allowing Fig. 20 is equal to allowing Fig. 22. However, note that Fig. 22 allows running as /tmp/cat in the /tmp/cat domain whereas Fig. 20 allows running as /tmp/cat in the /tmp/passwd domain.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 21&nbsp;&nbsp;Behave as "cat" command
+<pre>
+I am running as /tmp/cat
 </pre>
 </td></tr>
 </table>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 4&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to learning mode
+&diams; Fig. 22&nbsp;&nbsp;Consequence of Fig. 20
 <pre>
-# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+# sh -c 'exec /tmp/cat'
 </pre>
 </td></tr>
 </table>
 
-<p>Login via /usr/sbin/sshd and execute /bin/auth1 . You are prompted for a password. Thus, enter "SAKURA" and press "Enter" key. The authentication will succeed and /bin/bash (which is set to environment variable SHELL ) is executed. (Fig. 5)</p>
+<p>Suppose /usr/bin/passwd command and /bin/cat command are provided using symbolic links (or hard links) to /sbin/busybox command. In this case, TOMOYO Linux transits to /bin/cat domain if /bin/cat is executed and transits to /usr/bin/passwd domain if /usr/bin/passwd is executed. To allow changing password, you need to allow access to /etc/shadow to the /usr/bin/passwd domain. But you don't want to allow access to /etc/shadow to the /bin/cat domain to print the password file. Then, what will happen if /usr/bin/passwd is executed as "/bin/cat" like Fig. 23?</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 5&nbsp;&nbsp;Let TOMOYO Linux learn /bin/bash is executed after passing authentication by /bin/auth1
+&diams; Fig. 23&nbsp;&nbsp;Executing "passwd" command as "cat"
 <pre>
-# /bin/auth1
-Password: SAKURA
-#
+# sh -c 'exec -a /bin/cat /usr/bin/passwd /etc/shadow'
 </pre>
 </td></tr>
 </table>
 
-<p>Now, permissions for performing additional authentication were learned. Type "exit" for twice to logout from /usr/sbin/sshd .</p>
-
-<h4>&diams;Verify and enforce</h4>
-
-<p>Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to permissive mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode. Run commands listed in Fig. 6 from console.</p>
+<p>By doing Fig. 23, /usr/bin/passwd will run in the /usr/bin/passwd domain. But since the invocation name was /bin/cat , /usr/bin/passwd behaves like /bin/cat . As a result, you allowed behavior like Fig. 24.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 6&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to permissive mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode
+&diams; Fig. 24&nbsp;&nbsp;Allowing "cat" to read password file
 <pre>
-# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
-# /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
+# sh -c 'exec /bin/cat /etc/shadow'
 </pre>
 </td></tr>
 </table>
 
-<p>At this state, login via /usr/sbin/sshd and execute /bin/auth1 . Check that error messages are not printed. Then, change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode. Run commands listed in Fig. 7 from console.</p>
+<p>To avoid such threat, TOMOYO Linux provides ability to check combination of program's pathname and argv[0] , and the dereferenced pathname ( exec.realpath ) and invocation name ( exec.argv[0] ) are automatically checked against the execute permission. Thus, you can avoid threat like Fig. 23 by forbidding execution of /usr/bin/passwd command as /bin/cat .</p>
+
+<h2>Generating policy from access logs (for advanced users)</h2>
+
+<p>Permissions generated using learning mode contains only exec.realpath and exec.argv[0] and symlink.target as conditions. But access logs contain all variables listed in Fig. 1. Thus, by generating policy from access logs rather than using learning mode, you can define permissions with strictest conditions.</p>
+
+<h3>Configure not to automatically append permissions.</h3>
+
+<p>In learning mode, once a policy violation occurs, permissions needed for avoiding that violation are automatically appended to the policy configuration in order to avoid future policy violation. But permissions automatically appended do not contain all information listed in Fig. 1. Thus, configure profile not to automatically append permissions. (Fig. 25)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 7&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode
+&diams; Fig. 25&nbsp;&nbsp;Changes in /etc/ccs/profile.conf
 <pre>
-# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
-# /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
+[Before modification]
+PREFERENCE={ max_learning_entry=2048 }
+[After modification]
+PREFERENCE={ max_learning_entry=0 }
 </pre>
 </td></tr>
 </table>
 
-<p>You've finished installation. Don't you think it is easy?</p>
-
-<h4>&diams;Let's pretend an attacker</h4>
-
-<p>Let's test the power of this system by assuming that an intruder succeeded to login by password brute force attack or without login authentication by attacking buffer overflow vulnerability. (Fig. 8)</p>
+<p>Save the profile, and then run the command in Fig. 26 in order to reflect the changes.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 8&nbsp;&nbsp;All commands except auth1 command are rejected
+&diams; Fig. 26&nbsp;&nbsp;Reflect the changes
 <pre>
-Last login: Tue Feb 27 17:12:10 2007
-# whoami
--bash: /usr/bin/whoami: Operation not permitted
-# /bin/auth1
-Password: password
-Password: root
-Password: guest
-Incorrect password.
-# exec 4&lt;/bin/auth1; while read -u 4; do echo $REPLY; done
--bash: /bin/auth1: Operation not permitted
--bash: read: 4: invalid file descriptor: Bad file descriptor
-# exit
+# /usr/sbin/ccs-loadpolicy -p &lt; /etc/ccs/profile.conf
 </pre>
 </td></tr>
 </table>
 
-<p>The intruder succeeded to login via /usr/sbin/sshd , but the intruder does not know what operations are permitted (because the intruder cannot execute commands for reading the policy configuration). Any commands the intruder attempted to execute randomly are denied, except the auth1 command. If the intruder did not know about secure OS, the intruder will be surprised.</p>
+<h3>Run the programs you want to generate policy</h3>
 
-<p>The intruder after all goes away. Even if the intruder found that the intruder can execute /bin/auth1 command, the intruder cannot know what the /bin/auth1 is doing because the intruder cannot read the script. (WARNING: Note that regarding shell script programs, if environment variable "SHELLOPS" is set to "verbose:noexec", the contents of the script file will be printed by executing /bin/auth1 command. Thus, when you install this system on real systems, I recommend you to write programs using programming languages that won't be affected by environment variables.) Therefore, the intruder has to go away.</p>
+<p>Run the programs. All policy violations are saved as "access rejected logs".</p>
 
-<p>The legal user knows what operations are permitted. Thus, the legal user immediately executes /bin/auth1 command and proceeds by entering correct password. (Fig. 9)</p>
+<p>A lot of messages like Fig. 27 will be printed since you specified max_learning_entry=0 in Fig. 25, but you can ignore these messages.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 9&nbsp;&nbsp;Execute /bin/auth1 and enter correct password
+&diams; Fig. 27&nbsp;&nbsp;Message when reached the upper limit for learning mode
 <pre>
-Last login: Tue Feb 27 17:14:10 2007
-# /bin/auth1
-Password: SAKURA
-# whoami
-root
-# exec 4&lt;/bin/auth1; while read -u 4; do echo $REPLY; done
-#! /bin/sh
-for i in 1 2 3
-do
-  echo -n 'Password: '
-  read -r -s passwd
-  echo
-  [ "$passwd" = "SAKURA" ] &amp;&amp; exec $SHELL
-done
-echo 'Incorrect password.'
-#
+WARNING: Domain 'domainname' has too many ACLs to hold. Stopped learning mode.
 </pre>
 </td></tr>
 </table>
 
-<p>If you think it is insufficient to use only /bin/auth1 , you can create /bin/auth2 and /bin/auth3 , and install these programs in serial direction. And you can assign a profile for disabled mode to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash /bin/auth2 /bin/bash /bin/auth3 /bin/bash" domain. TOMOYO Linux's domain transition is useful when describing hierarchical processing procedure.</p>
+<h3>Picking up necessary part from access rejected logs</h3>
 
-<h3>Cases where this approach cannot be applied</h3>
-
-<p>The protection I explained above are applicable for cases like SSH login or Telnet login (where mapping of process and user is persistent and a shell program which allows execution of arbitrary commands are provided). The protection is not applicable for cases like HTTP login (where TCP connections are disconnected every time) or FTP login (where a shell program is not provided).</p>
-
-<p>To apply this approach to the programs which are directly executed from login shell (e.g. scp command and sftp command), you can use execute_handler feature which TOMOYO Linux provides. (I explain about execute_handler at the bottom of this installment.) Also, you can restrict accessible resources by these programs by using mandatory access control which secure OS provides. For example, you can allow these programs to access files under "scp" directory of user's home directory. Since scp command and sftp command are directly executed from login shells, domains for these programs will be "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp" and "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/libexec/openssh/sftp-server". The roughly written policy configuration for these domains will look like Fig. 10. (Files like library files are omitted in Fig. 10.)</p>
+<p>By default, access rejected logs for learning mode are saved in /var/log/tomoyo/reject_001.log . ( You can configure via /etc/ccs/tools/auditd.conf .) Get a snapshot by renaming the file. (Fig. 28)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 10&nbsp;&nbsp;Policy configuration for scp command<br>
+&diams; Fig. 28&nbsp;&nbsp;Get a snapshot of learning mode's access logs
 <pre>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
-use_profile 3
-file create /home/\*/scp/\* 0-0666
-file create /home/\*/scp/\{\*\}/\* 0-0666
-file unlink /home/\*/scp/\*
-file unlink /home/\*/scp/\{\*\}/\*
-file read /home/\*/scp/\*
-file write /home/\*/scp/\*
-file read /home/\*/scp/\{\*\}/\*
-file write /home/\*/scp/\{\*\}/\*
+# mv /var/log/tomoyo/reject_001.log /var/log/tomoyo/learning_log.txt
 </pre>
 </td></tr>
 </table>
 
-<p>By defining pathname groups using "path_group" keyword in exception policy like Fig. 11, you can simply describe in domain policy like Fig. 12.</p>
+<p>Then, convert to conditional permissions. (Fig. 29)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 11&nbsp;&nbsp;Grouping files for scp command<br>
+&diams; Fig. 29&nbsp;&nbsp;Convert to permissions with conditions
 <pre>
-path_group SCP_FILE /home/\*/scp/\*
-path_group SCP_FILE /home/\*/scp/\{\*\}/\*
+# /usr/lib/ccs/convert-audit-log &lt; /var/log/tomoyo/learning_log.txt &gt; /var/log/tomoyo/policy.tmp
 </pre>
 </td></tr>
 </table>
 
+<p>Then, compress by sorting by domainnames. (Fig. 30)</p>
+
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 12&nbsp;&nbsp;Policy configuration using Fig. 11<br>
+&diams; Fig. 30&nbsp;&nbsp;Sort by domainnames
 <pre>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
-use_profile 3
-file create @SCP_FILE 0-0666
-file unlink @SCP_FILE
-file read @SCP_FILE
-file write @SCP_FILE
+# /usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/policy.tmp &gt; /var/log/tomoyo/policy.txt
 </pre>
 </td></tr>
 </table>
 
-<p>You can add conditions like path1.uid=task.uid as needed.</p>
+<h3>Edit and append to policy configuration</h3>
 
-<p>SSH encrypts data on communication channel, but SSH does not encrypt files on filesystems. For more security, by encrypting files to be transferred via scp command or sftp command using gpg command, you can protect files on directories accessed by scp command or sftp command even if SSH login authentication was run through.</p>
-
-<h2>About dividing administrator's privileges</h2>
-
-<h3>Conventional approach</h3>
-
-<p>Conventional approach is implemented in the application layer (e.g. restricting commands to be executed using sudo command). But implementation on application layer has been annoying administrators because sometimes bypassed by e.g. OS command injection vulnerability.</p>
-
-<h3>New approach based on secure OS</h3>
-
-<p>Many of secure OSes are equipped with RBAC ( Role Based Access Control ) functionality. By using RBAC, you can restrict executable programs and readable/writable files based on the role. RBAC is a useful feature for actual operations.</p>
-
-<h3>Dividing privileges using TOMOYO Linux</h3>
-
-<p>TOMOYO Linux is not equipped with dedicated RBAC mechanisms. But you can do access control similar to RBAC by utilizing mandatory access control based on domain transition tree.</p>
-
-<p>In SELinux, roles are defined by grouping multiple domains and users are assigned roles. When a user needs to transit to different domain which is not included in the current role, the user changes roles which contain domains which the user wants to belong to.</p>
-
-<p>TOMOYO Linux does not have the concept of "role". However, the "domain" itself corresponds with "role" of the moment. (Thus, you don't need to aware "role" in TOMOYO Linux.) Assigning a domain means assigning a role at the same time.</p>
-
-<h3>Let's install</h3>
-
-<p>I explain how to delegate only management of WWW servers (e.g. restarting WWW server and updating WWW contents) to somebody else as an example. I assume /bin/bash is specified as login shells.</p>
-
-<p>Steps for actually installing are already explained by now. Regarding illegal login buster system, you enforce additional authentication in serial direction. (Fig. 13) Regarding dividing administrator's privileges, you enforce additional authentication in parallel direction. (Fig. 14)</p>
+<p>You may append the contents of /var/log/tomoyo/policy.txt to /etc/ccs/domain_policy.conf as domain policy. But the contents of /var/log/tomoyo/policy.txt will be too strict to use as policy configuration (like Fig. 31). For example, you should not specify process ID and i-node number because they will change every time. Thus, prune unnecessary conditions using text editor before appending to /etc/ccs/domain_policy.conf .</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 13&nbsp;&nbsp;Domain transition tree before dividing administrator's privileges<br>
-<img src="tutorial/fig-6-13-en.png" alt="fig-6-13-en.png" width="800" height="600">
-</td></tr>
-</table>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 14&nbsp;&nbsp;Domain transition tree after dividing administrator's privileges<br>
-<img src="tutorial/fig-6-14-en.png" alt="fig-6-14-en.png" width="800" height="600">
-</td></tr>
-</table>
-
-<p>Note that you need to assign a profile for enforcing mode (in this series, profile 3) to domains after additional authentication. If a user once reached a domain where a profile for non-enforcing mode is assigned, you can no longer restrict the user (i.e. you can no longer divide administrator's privileges).</p>
-
-<h4>&diams;Preparation</h4>
-
-<p>First, make sure that "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain is not specified using "keep_domain" keyword. Also, specify "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain (a domain after passing additional authentication by /bin/auth1 ) and "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain (a domain after passing additional authentication by /bin/auth2 ) using "keep_domain" keyword.</p>
-
-<p>I assume /bin/auth1 for being used for authenticating yourself with full privileges and /bin/auth2 for being used for authenticating someone with only privileges for managing WWW servers.</p>
-
-<h4>&diams;Learning</h4>
-
-<p>Steps for learning are the same with illegal login buster system.</p>
-
-<p>Run commands listed in Fig. 15 from console.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 15&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" and its descendant domains to learning mode
+&diams; Fig. 31&nbsp;&nbsp;Permission which is too strict to apply
 <pre>
-# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+file execute /usr/bin/id task.pid=5099 task.ppid=3275 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=599016 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=15 exec.argv[0]="id" exec.envp["SELINUX_INIT"]="YES" exec.envp["CONSOLE"]="/dev/console" exec.envp["TERM"]="linux" exec.envp["INIT_VERSION"]="sysvinit-2.86" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["_"]="/usr/bin/id" exec.envp["RUNLEVEL"]="3" exec.envp["runlevel"]="3" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["PREVLEVEL"]="N" exec.envp["previous"]="N" exec.envp["HOME"]="/" exec.envp["SHLVL"]="4" exec.envp["LANGUAGE"]="en_US.UTF-8"
 </pre>
 </td></tr>
 </table>
-
-<p>At this state, login via /usr/sbin/sshd and execute /bin/auth1 and /bin/auth2 respectively. When you pass the authentication, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" are created and necessary permissions are learned.</p>
-
-<p>Then, change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" domain and its descendant domains to disabled mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain and its descendant domains to learning mode. Run commands listed in Fig. 16 from console.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 16&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" and its descendant domains to enforcing mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash" and its descendant domains to disabled mode, "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendant domains to learning mode
-<pre>
-# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
-# /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
-# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
-</pre>
-</td></tr>
-</table>
-
-<p>At this state, login via /usr/sbin/sshd and execute /bin/auth2 . When you pass the authentication, you will reach "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain. This domain does not create descendant domains because this domain is specified using "keep_domain" keyword.</p>
-
-<p>Now, let TOMOYO Linux learn permissions needed for restarting WWW server. (Fig. 17)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 17&nbsp;&nbsp;Let TOMOYO Linux learn permissions for restarting WWW server
-<pre>
-# service httpd start
-# service httpd stop
-# service httpd restart
-</pre>
-</td></tr>
-</table>
-
-<p>You may want to extract WWW contents uploaded using scp command or sftp command to under /var/www/html/ directory. Let TOMOYO Linux learn permissions for that operation. (Fig. 18)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 18&nbsp;&nbsp;Let TOMOYO Linux learn permissions for extracting uploaded contents
-<pre>
-# cd /var/www/html/
-# tar -zxf /home/demo/scp/web-contents.tar.gz
-</pre>
-</td></tr>
-</table>
-
-<p>You may want to execute text editor for updating WWW contents. Let TOMOYO Linux learn permissions for editor programs. (Fig. 19)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 19&nbsp;&nbsp;Execute editor and let TOMOYO Linux learn the permissions
-<pre>
-# emacs
-</pre>
-</td></tr>
-</table>
-
-<p>You may want more. Also, you may want to patternize pathnames. Steps for patternizing pathnames are explained in the second installment of this series.</p>
-
-<h4>&diams;Verify and enforce</h4>
-
-<p>Make sure that you have enough permission for doing operations you want to allow. Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" domain to permissive mode. Run commands listed in Fig. 20 from console.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 20&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendant domains to permissive mode
-<pre>
-# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
-</pre>
-</td></tr>
-</table>
-
-<p>After you verified that all necessary permissions are given, change to enforcing mode.  Run commands listed in Fig. 21 from console.  You've finished installation. Although you need to let TOMOYO Linux learn permissions needed for operations, it does not need so much time. It is powerful.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 21&nbsp;&nbsp;Change "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash" and its descendant domains to enforcing mode
-<pre>
-# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
-</pre>
-</td></tr>
-</table>
-
-<h2>Advanced usage</h2>
-
-<p>In the last of this installment, I introduce some Tips.</p>
-
-<h3>Login shell</h3>
-
-<p>Shell programs which are used as login shell (e.g. /bin/bash ) have a plenty set of built-in commands. For example, administrator can do evil things like forcibly terminating arbitrary processes using built-in "kill" command (if you don't enable restriction by CONFIG::ipc::signal , I explain CONFIG::ipc::signal in the next installment).</p>
-
-<p>To prevent administrator from doing evil things, you can use falsh command which in included in TOMOYO Linux's tools package for login shells. (Fig. 22)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 22&nbsp;&nbsp;Move falsh command to under /bin/ directory
-<pre>
-# mv /usr/lib/ccs/misc/falsh /bin/
-</pre>
-</td></tr>
-</table>
-
-<p>To change login shell to /bin/falsh , run commands listed in Fig. 23.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 23&nbsp;&nbsp;Changing login shell to /bin/falsh
-<pre>
-# usermod -s /bin/falsh root
-</pre>
-</td></tr>
-</table>
-
-<h3>Restricting networking for server process</h3>
-
-<p>/usr/sbin/sshd has an ability to relay TCP connections (e.g. port forwarding). By enabling restriction by CONFIG::network (which I explain in the next installment) to "&lt;kernel&gt; /usr/sbin/sshd" domain (a domain for /usr/sbin/sshd program), you can do stronger protection.</p>
-
-<p>If a server program need not to establish TCP connections from server to client, by enabling restriction by CONFIG::network , you can prevent such program from being abused by worms and viruses as steppingstone for attacking other servers.</p>
-
-<p>If you are sure that specific functionality is not needed for specific service, it worth to explicitly deny use of such functionality using mandatory access control's policy configuration.</p>
-
-<h3>Batched processing using public key authentication</h3>
-
-<p>If you are using batched processing which will automatically login via /usr/sbin/sshd using public key authentication, the approach I explained in this installment is useful.</p>
-
-<p>You can divide domains like "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain and "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain by simply assigning different login shells for the account for batched processing (for example, /bin/tcsh ) and the account for interactive processing (in this series, /bin/bash ). (Fig. 24)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 24&nbsp;&nbsp;Dividing domains<br>
-<img src="tutorial/fig-6-24-en.png" alt="fig-6-24-en.png" width="800" height="340">
-</td></tr>
-</table>
-
-<h2>Reference information</h2>
-
-<p>For more information, please read below paper.</p>
-
-<p><a href="http://sourceforge.jp/projects/tomoyo/docs/winf2005-en.pdf">Chained Enforceable Re-authentication Barrier Ensures Really Unbreakable Security</a></p>
-
-<p>See below tutorials for examples of execute_handler usage.</p>
-
-<ul>
-<li><a href="ssh-split-administrative-tasks.html.en">Restricting administrative operations in SSH service.</a></li>
-<li><a href="ssh-protection-using-environment.html.en">Anti SSH brute force attacks using environment variables.</a></li>
-<li><a href="sftp-protection-using-environment-variable.html.en">Providing download-only / uploadable SFTP service with single user account using environment variable.</a></li>
-<li><a href="ssh-recording-cmdline.html.en">Recording commandline for shell sessions.</a></li>
-</ul>
 
 <h2>Trailer</h2>
 
-<p>In the next installment, I explain access control other than files.</p>
+<p>In this installment, I explained conditional permissions. In the next installment, I explain countermeasure for SSH bruteforce attacks which is recently burgeoning and steps to splitting administrative operations, using TOMOYO Linux's characteristic hierarchized domain transitions. Don't miss it!</p>
 
-<p><a href="tutorial-5.html.en">Go back to the fifth installment.</a>&nbsp;&nbsp;<a href="tutorial-7.html.en">Proceed to the seventh installment.</a></p>
+<p><a href="tutorial-4.html.en">Go back to the fourth installment.</a>&nbsp;&nbsp;<a href="tutorial-6.html.en">Proceed to the sixth installment.</a></p>
 
 <hr>
 

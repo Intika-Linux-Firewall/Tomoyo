@@ -3,285 +3,207 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>The world of TOMOYO Linux&nbsp;&nbsp;The fourth installment: "Let's tune policy."</title>
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The third installment: "Let's master domain transitions."</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-4.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="tutorial-3.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>The world of TOMOYO Linux<br>The fourth installment: "Let's tune policy."</h1>
+<h1>The world of TOMOYO Linux<br>The third installment: "Let's master domain transitions."</h1>
 
 <h2>Contents of this installment.</h2>
 
-<p>In this installment, I explain how to tune policy which is essential for fully mastering TOMOYO Linux and functionality for assisting policy tuning.</p>
+<p>In the second installment, I explained access control modes and profiles in TOMOYO Linux and steps for restricting access using access control modes and profiles. You might felt that too quick to catch up on, but to your surprise, all basic usage of TOMOYO Linux is covered by now. From now on, I explain detailed and applicable usage of TOMOYO Linux with expanded information. Please stay with me. In this installment, I explain TOMOYO Linux's domain transitions.</p>
 
-<h2>About functionality for assisting policy modification</h2>
+<h2>Mastering domain transitions</h2>
 
-<p>If you are using secure OS, processes being hijacked or administrator's privileges being stolen won't immediately cause fatal damage. Thus, you may feel easier than normal OS for instantly updating systems, but there is no justification for overconfidence. You should apply updates and keep your systems at the best condition. Regarding OS with mandatory access control functionality, the system's behavior is restricted by policy configuration defined by administrator. Therefore, you may need to adjust policy configuration in order to keep software work properly when program's dependency has changed due to software updates. In TOMOYO Linux, administrators define policy configuration by themselves. Thus, administrators modify policy configuration by themselves. In this installment, I explain functionality for assisting adjusting policy configuration which will be needed by updating softwares.</p>
+<h3>General rule on TOMOYO Linux's domain transitions</h3>
 
-<p>TOMOYO Linux provides two types of enforcing mode. The former (Fig. 1) type is that access requests that violated policy in enforcing mode are immediately rejected. The latter (Fig. 2) type is that access requests that violated policy in enforcing mode are judged by administrator's interactive operation. The latter type is useful when policy violation occurred in enforcing mode or when you need to adjust policy by software updates.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 1&nbsp;&nbsp;Reject immediately requests which violate policy<br>
-<img src="tutorial/fig-4-1-en.png" alt="fig-4-1-en.png" width="800" height="480">
-</td></tr>
-</table>
+<p>As I explained in the first installment, TOMOYO Linux performs domain transition whenever a program is executed as a rule. (Fig. 1)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 2&nbsp;&nbsp;Interactively judge requests which violate policy<br>
-<img src="tutorial/fig-4-2-en.png" alt="fig-4-2-en.png" width="800" height="480">
+&diams; Fig. 1&nbsp;&nbsp;Domain transitions in TOMOYO Linux<br>(Transits to new domain by program execution)<br>
+<img src="tutorial/fig-3-1.png" alt="fig-3-1.png" width="800" height="600">
 </td></tr>
 </table>
 
-<h3>Tools for using this functionality</h3>
-
-<p>TOMOYO Linux provides programs listed in Fig. 3 for assisting adjusting policy configuration.</p>
+<p>Thereby, each program has mutually independent domains. The name of domain is a string representation of concatenation of all program's pathnames ever executed by now starting from &lt;kernel&gt;. On the contrary, domains in SELinux do not have hierarchical structure and distributed in a flat manner. The relationship between programs and domains are defined by policy developer, but usually several programs corresponds to one domain. SELinux performs domain transition only if predefined programs are executed from specific domains. (Fig. 2. As a result, access control rules changes.)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 3&nbsp;&nbsp;Programs for managing TOMOYO Linux<br>
-<table border="1" summary="fig">
-<tr><td>Name of program</td><td>Role of program</td></tr>
-<tr><td>ccs-queryd</td><td>Interactively grant access requests</td></tr>
-</table>
+&diams; Fig. 2&nbsp;&nbsp;Domain transitions in SELinux<br>
+<img src="tutorial/fig-3-2.png" alt="fig-3-2.png" width="720" height="270">
 </td></tr>
 </table>
 
-<h3>Operation example on console login session</h3>
+<h3>Exceptions for TOMOYO Linux's domain transition rules</h3>
 
-<p>I explain using restricting login session as an example. To avoid being locked out by operation errors, I use "example" user account. Also, I switch "root" user and "example" user by switching console windows. You can switch console windows using "ALT" + one of "F1"&sdot;&sdot;&sdot;"F6" keys. Open "window 1" by pressing "ALT" + "F1" keys, and login as "root" user. Assign different shells for "root" user and "example" user. This is for creating different domains for these users by using different login shells, and for applying restriction against specific login shell's domains. In this series, I'm using /bin/bash for "root" user's shell. Thus, I assign /bin/tcsh for "example" user's shell. (Fig. 4)</p>
+<p>You can reinitialize or suppress TOMOYO Linux's domain transition as you need.</p>
+
+<h4>&diams;Unconditionally reinitialize domain transition</h4>
+
+<p>When "program" specified by "initialize_domain program from any" is executed, the process unconditionally transits to the child domain of "&lt;kernel&gt;" domain. (Fig. 3)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 4&nbsp;&nbsp;Assign /bin/tcsh to "example" user
-<pre>
-# usermod -s /bin/tcsh example
-</pre>
+&diams; Fig. 3&nbsp;&nbsp;Effect of initialize_domain keyword<br>(Unconditionally transits to "&lt;kernel&gt; /some/where/baz" domain when /some/where/baz is executed.)<br>
+<img src="tutorial/fig-3-3.png" alt="fig-3-3.png" width="800" height="500">
 </td></tr>
 </table>
 
-<p>Next, open "window 2" by pressing "ALT" + "F2" keys, and login as "example" user. If you are using CentOS 5.5, the domain for console login will be "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh". (If you login via /usr/sbin/sshd , the domain will be "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh".) Switch to "window1" and assign a profile for enforcing mode (i.e. profile 3) to domains for "example" user's login shell. (Fig. 5)</p>
+<h4>&diams;Conditionally reinitialize domain transition</h4>
+
+<p>As I noted above, if a "program" specified as "initialize_domain program from any" is executed, the process transits to "&lt;kernel&gt; program" domain. (Fig. 4)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 5&nbsp;&nbsp;Assign a profile for enforcing mode example to "example" user's shell domain (window 2)
-<pre>
-# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh'
-</pre>
+&diams; Fig. 4&nbsp;&nbsp;Unconditionally reinitialize domain transition<br>
+<img src="tutorial/fig-3-4.png" alt="fig-3-4.png" width="800" height="420">
 </td></tr>
 </table>
 
-<p>Now, almost everything is forbidden for "example" user's shell (i.e. "window 2"). (Fig. 6)</p>
+<p>But if a "program" specified with a "domainname" as "initialize_domain program from domainname" is executed, the process transits to "&lt;kernel&gt; program" domain only when "program" is executed from "domainname" domain. (Fig. 5)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 6&nbsp;&nbsp;Verify the result of applying Fig. 5
-<pre>
-$ ls
-/bin/ls: Operation not permitted.
-$ cat /etc/passwd
-/bin/cat: Operation not permitted.
-</pre>
+&diams; Fig. 5&nbsp;&nbsp;Reinitialize domain transition only when executed from specific domain<br>
+( The process transits to "&lt;kernel&gt; /usr/sbin/sshd" domain only when /usr/sbin/sshd is executed from "&lt;kernel&gt; /etc/rc.d/init.d/sshd" domain because of "initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd".)<br>
+<img src="tutorial/fig-3-5.png" alt="fig-3-5.png" width="800" height="480">
 </td></tr>
 </table>
 
-<p>By using ccs-queryd command (Fig. 7), you can ask for administrator's decision when a process which belongs to domains with a profile for enforcing mode requested an access that violated policy instead of immediately reject the access. This feature is specific to TOMOYO Linux, not available in SELinux or AppArmor.</p>
+<p>You may specify only the last part of domainname (e.g. /bin/bash ) instead of a complete domainname (e.g. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash").</p>
+
+<h4>&diams;Conditionally not reinitialize domain transition</h4>
+
+<p>If a "program" specified with a "domainname" as "no_initialize_domain program from domainname" is executed, the process ignores "initialize_domain" keyword when "program" is executed from "domainname" domain.</p>
+
+<p>For example, /bin/mail (which is used for sending mails) executes /usr/sbin/sendmail.sendmail for sending mails. But if you want to give different permissions to "/usr/sbin/sendmail.sendmail for sending mails" and "/usr/sbin/sendmail.sendmail for receiving mails", you can specify "no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail" so that /usr/sbin/sendmail.sendmail executed by /bin/mail won't transit to "&lt;kernel&gt; /usr/sbin/sendmail.sendmail" domain. (Fig. 6) (Note that this works for only domains which domainname ends with /bin/mail . If /bin/mail is executed from a shell domain specified with "keep_domain" keyword, you need to specify domain of the shell rather than /bin/mail .)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 7&nbsp;&nbsp;Executing ccs-queryd command
-<pre>
-# /usr/sbin/ccs-queryd
-</pre>
+&diams; Fig. 6&nbsp;&nbsp;Combination with no_initialize_domain keyword<br>
+<img src="tutorial/fig-3-6.png" alt="fig-3-6.png" width="800" height="500">
 </td></tr>
 </table>
 
-<p>Switch to "window 2" and request for execution of /bin/ls command. (Fig. 8)</p>
+<h4>&diams;Unconditionally suppress domain transition</h4>
+
+<p>Any processes which belong to "domainname" specified by "keep_domain any from domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 7) This resembles SELinux's domain because multiple programs belong to the same domain.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 8&nbsp;&nbsp;Executing ls command
-<pre>
-$ /bin/ls
-</pre>
+&diams; Fig. 7&nbsp;&nbsp;Effect of keep_domain keyword<br>(Since "&lt;kernel&gt; /sbin/init &sdot;&sdot;&sdot; foo bar" domain is specified using "keep_domain" keyword, domain transition does not occur when programs are executed. Domain transition to "&lt;kernel&gt; /some/where/baz" occurs when /some/where/baz (which is specified using "initialize_domain" keyword) is executed.)<br>
+<img src="tutorial/fig-3-7.png" alt="fig-3-7.png" width="800" height="600">
 </td></tr>
 </table>
 
-<p>Last time, the request was rejected immediately. But this time, it is stopped instead of rejected. Switch to "window 1" while keeping this state, and you will see prompt like Fig. 9.</p>
+<p>You may specify only the last part of domainname (e.g. /bin/bash ) instead of a complete domainname (e.g. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash"). For example, if you specify /bin/bash as a "domainname", "keep_domain" is applied to all domains which domainname ends with /bin/bash . (Fig. 8)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 9&nbsp;&nbsp;Prompt shown on window 1 after executing Fig. 8
-<pre>
-#2011/01/17 03:51:10# profile=3 mode=enforcing granted=no (global-pid=3523) task={ pid=3523 ppid=3468 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsu
-id=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=951094 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755
- } exec={ realpath="/bin/ls" argc=1 envc=21 argv[]={ "/bin/ls" } envp[]={ "HOME=/home/example" "PATH=/usr/kerberos/bin:/usr/local/bin:/bin:/usr/bin:/usr/X11R
-6/bin" "SHELL=/bin/tcsh" "TERM=linux" "MAIL=/var/spool/mail/example" "LOGNAME=example" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "S
-HLVL=1" "PWD=/home/example" "USER=example" "GROUP=example" "HOST=tomoyo" "HOSTNAME=tomoyo" "INPUTRC=/etc/inputrc" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi
-=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=0
-1;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.c
-pio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "G_BROKEN_FILENAMES=1" "LANG=en_US.UTF-8" "LESSOPEN=|/usr/bin
-/lesspipe.sh\040%s" } }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
-file execute /bin/ls
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
-</pre>
+&diams; Fig. 8&nbsp;&nbsp;Effect of keep_domain keyword<br>
+<img src="tutorial/fig-3-8.png" alt="fig-3-8.png" width="800" height="420">
 </td></tr>
 </table>
 
-<p>The first line shows information about the process which requested an access that violated policy and about the file the process is requesting. The second line shows domainname of domain which the process which requested an access that violated policy belongs to. The third line shows the access that violated policy. This way the request is displayed in the same syntax with domain policy. If you press "Y" key here, the access is granted and you will see prompt like Fig. 10. If you press "N" key here, the access is rejected.</p>
+<h4>&diams;Conditionally suppress domain transition</h4>
+
+<p>As I noted above, if a "domainname" is specified as "keep_domain any from domainname" , the process once reached to "domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 9)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 10&nbsp;&nbsp;Prompt for next policy violation event
-<pre>
-#2011/01/17 03:51:50# profile=3 mode=enforcing granted=no (global-pid=3523) task={ pid=3523 ppid=3468 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsu
-id=502 fsgid=502 type!=execute_handler } path1={ uid=0 gid=0 ino=328251 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=327965 perm=0755
- }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
-file read /etc/selinux/config
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
-</pre>
+&diams; Fig. 9&nbsp;&nbsp;Unconditionally suppress domain transition<br>
+<img src="tutorial/fig-3-9.png" alt="fig-3-9.png" width="800" height="350">
 </td></tr>
 </table>
 
-<p>Since the domain for /bin/ls was just created, no permissions are given to this domain. Read the prompt and carefully judge whether the access should be granted or not and answer. If you press "A" key, you can add permission to domain policy (after editing the permission if you needed) and retry the request. For example, if you want to allow not only /etc/passwd but also all /etc/\* except /etc/\*shadow\* , change /etc/passwd to /etc/\*\-\*shadow\* and then press "Enter" key.</p>
-
-<p>To terminate ccs-queryd program, press "CTRL" + "C" keys.</p>
-
-<h3>Precautions when using ccs-queryd command</h3>
-
-<p>You have to be aware two things when using ccs-queryd command. One is that you must not unconditionally grant the request. The cause of policy violation may be attacks by malicious users. If you grant access requests caused by attacks by malicious users, the protection by mandatory access control becomes invalid. The other is that if "ccs-queryd" is running, the access requests that violated policy are kept pending until administrator answers. Thus, never leave or logout while "ccs-queryd" is running.</p>
-
-<h3>An operation example for actual service</h3>
-
-<p>Please see <a href="http://tomoyo.sourceforge.jp/1.8/phase-5.html.en#5.2">Handling policy violation in real-time</a>.</p>
-
-<h2>About removing garbage from policy configuration</h2>
-
-<h3>Tools for using this functionality</h3>
-
-<p>TOMOYO Linux provides programs listed in Fig. 11 for assisting removing unnecessary permissions from policy configuration.</p>
+<p>But if a "domainname" is specified with a "program" as "keep_domain program from domainname", the process remains in the same domain only when "program" is executed from "domainname" domain. (Fig. 10)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 11&nbsp;&nbsp;Programs for managing TOMOYO Linux<br>
-<table border="1" summary="fig">
-<tr><td>Name of program</td><td>Role of program</td></tr>
-<tr><td>ccs-findtemp</td><td>Detect nonexistent pathnames</td></tr>
-<tr><td>ccs-domainmatch</td><td>Find domains which contain specified permissions</td></tr>
-</table>
+&diams; Fig. 10&nbsp;&nbsp;Suppress domain transition only when specific programs are executed<br>
+<img src="tutorial/fig-3-10.png" alt="fig-3-10.png" width="800" height="430">
 </td></tr>
 </table>
 
-<p>By using these programs, you can detect and remove redundant pathnames (e.g. not yet patternized temporary files and library files deleted by software updates).</p>
+<h4>&diams;Conditionally resume domain transition</h4>
 
-<h3>An operation example on console session</h3>
+<p>You can suppress domain transition for login session using "keep_domain" keyword because it is unlikely possible to understand what commands in what order users will execute from login session beforehand. But there are cases you want to resume domain transition, such as allowing access to password files for changing passwords and restarting applications that run as daemon processes.</p>
 
-<p>To handily try this functionality, I explain using console session. Do operations listed in Fig. 12 in learning mode.</p>
+<p>By specifying "no_keep_domain program from domainname", "keep_domain" keyword is ignored when "program" is executed from "domainname" domain.</p>
+
+<p>For example, by specifying "no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" when "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, the process transits to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat" domain when /bin/cat is executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain while the process remains in the same domain when other programs are executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain. (Fig. 11)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 12&nbsp;&nbsp;Operations for learning mode
-<pre>
-# touch /tmp/abc12345
-# rm -f /tmp/abc12345
-</pre>
+&diams; Fig. 11&nbsp;&nbsp;Combination with no_keep_domain keyword<br>
+<img src="tutorial/fig-3-11.png" alt="fig-3-11.png" width="800" height="400">
 </td></tr>
 </table>
 
-<p>By doing these operations, touch command and rm command learned access to /tmp/abc12345 but the file /tmp/abc12345 no longer exists. If these operations were redundant, redundant permissions (or garbage) which won't be used are left. Pathnames which exists in policy configuration but do not exist are likely either used as temporary files or deleted by software updates. By using ccs-findtemp command, pathnames which exists in policy configuration but do not exist are printed. Note that Fig. 13 shows only /tmp/abc12345 but other pathnames will be also printed for actual systems.</p>
+<h4>&diams;Do domain transition without program execution</h4>
+
+<p>As a rule, domain transition is performed when a program is executed. But by calling procedure for domain transition from programs, you can perform domain transition without executing a program.</p>
+
+<p>For example, Apache supports CGI programs. Some CGI programs are processed outside Apache (i.e. need program execution) and others are processed inside Apache (i.e. don't need program execution). By performing domain transition based on virtual host's name and requested CGI's pathnames before Apache processes the request, you can give different permissions for CGI programs which are processed inside Apache. Steps for doing this are explained in the tenth installment.</p>
+
+<h3>Grouping a series of operations</h3>
+
+<p>You can flexibly specify access control using "initialize_domain" keyword and "keep_domain" keyword. I explain how to use them using an example. Login as root user and run ccs-editpolicy command. Then, find the domain for /etc/rc.d/init.d/network (i.e. "&lt;kernel&gt; /etc/rc.d/init.d/network" domain). You will see that many programs such as /etc/sysconfig/network-scripts/ifup and /bin/touch are executed from /etc/rc.d/init.d/network . (Fig. 12)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 13&nbsp;&nbsp;Executing ccs-findtemp command
-<pre>
-# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
-/tmp/abc12345
-# /usr/sbin/ccs-findtemp --with-domainname &lt; /proc/ccs/domain_policy
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-/tmp/abc12345
-/tmp/abc12345
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
-/tmp/abc12345
-# /usr/sbin/ccs-domainmatch /tmp/abc12345
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-file create /tmp/abc12345 0666
-file write /tmp/abc12345
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
-file unlink /tmp/abc12345
-</pre>
+&diams; Fig. 12&nbsp;&nbsp;Domain transition before specifying keep_domain keyword<br>
+<img src="tutorial/fig-3-12.png" alt="fig-3-12.png" width="850" height="998">
 </td></tr>
 </table>
 
-<p>By executing ccs-domainmatch command with pathnames printed by ccs-findtemp command as command line arguments, domainnames which contains permission against command line arguments are printed. If you think the permission is redundant, you can execute ccs-editpolicy command and go to appropriate domains and delete the permission.</p>
-
-<h2>Saving access logs</h2>
-
-<p>TOMOYO Linux can generate "Log of access requests which did not violate policy" (in short, "access granted log") and "Log of access requests which violated policy" (in short, "access rejected log"). You can use a daemon program ccs-auditd for reading "access granted log" and "access rejected log" from kernel and writing to files on disk.</p>
-
-<h3>Let's save access logs</h3>
-
-<p>Next, append a line in Fig. 14 to /etc/rc.d/rc.local .</p>
+<p>Press "Tab" key. You will see that the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You can find lines starting with "initialize_domain" keyword by scrolling the screen. Scroll down to the bottom, and press "A" key and enter "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network" and press "Enter" key. Then, you will see what you entered. (Fig. 13)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 14&nbsp;&nbsp;Contents to append to /etc/rc.d/rc.local
-<pre>
-/usr/sbin/ccs-auditd
-</pre>
+&diams; Fig. 13&nbsp;&nbsp;Specify keep_domain keyword<br>
+<img src="tutorial/fig-3-13.png" alt="fig-3-13.png" width="572" height="322">
 </td></tr>
 </table>
 
-<p>Then, create /etc/logrotate.d/tomoyo with the contents in Fig. 15 in order to let logrotate command rotate automatically. Be sure to specify "nocreate" option, or access logs won't be saved after the first rotation.</p>
+<p>Press "Tab" key again. You will see that the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;". Find "&lt;kernel&gt; /etc/rc.d/init.d/network" domain by scrolling the screen. (Fig. 14)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 15&nbsp;&nbsp;Configure logrotate to rotate access logs ( /etc/logrotate.d/tomoyo )
-<pre>
-/var/log/tomoyo/*.log {
-    weekly
-    rotate 9
-    missingok
-    notifempty
-    nocreate
-}
-</pre>
+&diams; Fig. 14&nbsp;&nbsp;Domain transition after specifying keep_domain keyword<br>
+<img src="tutorial/fig-3-14.png" alt="fig-3-14.png" width="850" height="998">
 </td></tr>
 </table>
 
-<p>If you don't want to save access logs, you can specify "PREFERENCE={ max_audit_log=0 }" in the profiles and you don't need to run ccs-auditd command.</p>
-
-<h3>Let's browse access logs</h3>
-
-<p>Access logs are in the form of domain policy (Fig. 16). Therefore you can append access logs to /etc/ccs/domain_policy.conf .</p>
+<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using "keep_domain" keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 95 to 156 in Fig. 14) indicates that these domains became unreachable due to "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "Space" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 16&nbsp;&nbsp;Contents of access logs ( /var/log/tomoyo/reject_003.log )
-<pre>
-# cat /var/log/tomoyo/reject_003.log
-#2011/01/17 04:23:43# profile=3 mode=enforcing granted=no (global-pid=4793) task={ pid=4793 ppid=4759 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 type!=execute_handler } path1={ uid=501 gid=501 ino=786913 major=8 minor=1 perm=0664 type=file } path1.parent={ uid=0 gid=0 ino=786433 perm=01777 }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
-file read /tmp/testfile2
-
-#2011/01/17 04:23:51# profile=3 mode=enforcing granted=no (global-pid=4847) task={ pid=4847 ppid=4814 uid=501 gid=501 euid=501 egid=501 suid=501 sgid=501 fsuid=501 fsgid=501 type!=execute_handler } path1={ uid=500 gid=500 ino=786912 major=8 minor=1 perm=0664 type=file } path1.parent={ uid=0 gid=0 ino=786433 perm=01777 }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
-file read /tmp/testfile1
-</pre>
+&diams; Fig. 15&nbsp;&nbsp;Confirmation message for deleting domains<br>
+<img src="tutorial/fig-3-15.png" alt="fig-3-15.png" width="850" height="998">
 </td></tr>
 </table>
 
-<p>Access logs contain information such as process's credentials (e.g. UID) in addition to requested pathnames. This information can be used for specifying conditional access control list which I explain in the next installment.</p>
+<p>Then, domains marked with "&amp;" are deleted. Press "Q" key to quit ccs-editpolicy command. Execute "/etc/rc.d/init.d/network restart" to re-learn. Execute ccs-editpolicy command again and find "&lt;kernel&gt; /etc/rc.d/init.d/network" domain. This time, you won't see programs like /etc/sysconfig/network-scripts/ifup and  /bin/touch . (Fig. 16)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 16&nbsp;&nbsp;Domain transition after re-learning<br>
+<img src="tutorial/fig-3-16.png" alt="fig-3-16.png" width="556" height="332">
+</td></tr>
+</table>
+
+<p>TOMOYO Linux's automatic domain dividing feature is powerful. But if you want to restrict execution of programs and access by these programs but you don't know the order of program execution (login session is a typical case), it is difficult to define domains. By grouping domains for login session using keywords explained in this installment and assign profiles for enforcing mode, you can restrict execution of programs and access by these programs while you don't restrict the order of program execution. Also, by not assigning profiles for enforcing mode, you can let login session behave freely like normal Linux.</p>
 
 <h2>Trailer</h2>
 
-<p>In this installment, I explained how to tune policy. In the next installment, I explain conditional access control list. Don't miss it!</p>
+<p>In this installment, I explained TOMOYO Linux's domain transitions. In the next installment, I explain tuning TOMOYO Linux's policy. Don't miss it!</p>
 
-<p><a href="tutorial-3.html.en">Go back to the third installment.</a>&nbsp;&nbsp;<a href="tutorial-5.html.en">Proceed to the fifth installment.</a></p>
+<p><a href="tutorial-2.html.en">Go back to the second installment.</a>&nbsp;&nbsp;<a href="tutorial-4.html.en">Proceed to the fourth installment.</a></p>
 
 <hr>
 
