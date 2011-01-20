@@ -3,207 +3,342 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>The world of TOMOYO Linux&nbsp;&nbsp;The third installment: "Let's master domain transitions."</title>
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The second installment: "Let's experience access control."</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-3.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="tutorial-2.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>The world of TOMOYO Linux<br>The third installment: "Let's master domain transitions."</h1>
+<h1>The world of TOMOYO Linux<br>The second installment: "Let's experience access control."</h1>
 
 <h2>Contents of this installment.</h2>
 
-<p>In the second installment, I explained access control modes and profiles in TOMOYO Linux and steps for restricting access using access control modes and profiles. You might felt that too quick to catch up on, but to your surprise, all basic usage of TOMOYO Linux is covered by now. From now on, I explain detailed and applicable usage of TOMOYO Linux with expanded information. Please stay with me. In this installment, I explain TOMOYO Linux's domain transitions.</p>
+<p>In the previous installment, I explained steps for installing TOMOYO Linux and steps for using automatic learning mode on files and steps for saving the learned result. In this installment, I explain enforcing mode and profiles in TOMOYO Linux and steps for restricting access using enforcing mode and profiles.</p>
 
-<h2>Mastering domain transitions</h2>
+<h2>Access control modes and profiles</h2>
 
-<h3>General rule on TOMOYO Linux's domain transitions</h3>
+<h3>About access control modes</h3>
 
-<p>As I explained in the first installment, TOMOYO Linux performs domain transition whenever a program is executed as a rule. (Fig. 1)</p>
+<p>In the previous installment, /etc/ccs/profile.conf has contents listed in Fig. 1. In Fig.1, string specified in "mode=" parameter is called access control mode. Access control mode takes one of disabled / learning / permissive / enforcing , and their meaning is described in Fig. 2.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 1&nbsp;&nbsp;Domain transitions in TOMOYO Linux<br>(Transits to new domain by program execution)<br>
-<img src="tutorial/fig-3-1.png" alt="fig-3-1.png" width="800" height="600">
+&diams; Fig. 1&nbsp;&nbsp;Profile used by previous installment
+<pre>
+PROFILE_VERSION=20100903
+0-CONFIG::file={ mode=learning }
+</pre>
 </td></tr>
 </table>
 
-<p>Thereby, each program has mutually independent domains. The name of domain is a string representation of concatenation of all program's pathnames ever executed by now starting from &lt;kernel&gt;. On the contrary, domains in SELinux do not have hierarchical structure and distributed in a flat manner. The relationship between programs and domains are defined by policy developer, but usually several programs corresponds to one domain. SELinux performs domain transition only if predefined programs are executed from specific domains. (Fig. 2. As a result, access control rules changes.)</p>
-
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 2&nbsp;&nbsp;Domain transitions in SELinux<br>
-<img src="tutorial/fig-3-2.png" alt="fig-3-2.png" width="720" height="270">
+&diams; Fig. 2&nbsp;&nbsp;Access control modes<br>
+<table border="1" summary="fig">
+<tr><td>Mode</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>An access request is not rejected even if the request violates policy.<br>The permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>An access request is not rejected even if the request violates policy.</td></tr>
+<tr><td>enforcing</td><td>An access request is rejected if the request violates policy.</td></tr>
+</table>
 </td></tr>
 </table>
 
-<h3>Exceptions for TOMOYO Linux's domain transition rules</h3>
+<p>In the previous installment, TOMOYO Linux was running in learning mode because "learning" is specified. As a result, all accesses on files were granted and permissions were automatically appended to policy which was loaded upon boot.</p>
 
-<p>You can reinitialize or suppress TOMOYO Linux's domain transition as you need.</p>
+<p>The basic procedure of defining policy is shown below.</p>
 
-<h4>&diams;Unconditionally reinitialize domain transition</h4>
+<ol>
+<li>Assign learning mode&sdot;&sdot;&sdot;Decide domains to restrict access. Generate policy by doing operations you want to allow.</li>
+<li>Assign permissive mode&sdot;&sdot;&sdot;Make sure that all permissions for doing operations you want to allow are included in policy. Tune policy as needed.</li>
+<li>Assign enforcing mode&sdot;&sdot;&sdot;Enable access restrictions.</li>
+</ol>
 
-<p>When "program" specified by "initialize_domain program from any" is executed, the process unconditionally transits to the child domain of "&lt;kernel&gt;" domain. (Fig. 3)</p>
+<p>In this installment, let's use permissive mode and enforcing mode in accordance with this procedure.</p>
+
+<p>To change access control mode upon boot, edit /etc/ccs/profile.conf . To change access control mode after boot, use ccs-setlevel command or ccs-editpolicy command. For example, Fig. 3 changes to permissive mode, Fig. 4 changes to enforcing mode. (TOMOYO Linux's permissive mode corresponds with SELinux's permissive mode, TOMOYO Linux's enforcing mode corresponds with SELinux's enforcing mode.)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 3&nbsp;&nbsp;Effect of initialize_domain keyword<br>(Unconditionally transits to "&lt;kernel&gt; /some/where/baz" domain when /some/where/baz is executed.)<br>
+&diams; Fig. 3&nbsp;&nbsp;Changing to permissive mode
+<pre>
+# /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=permissive }'
+0-CONFIG::file={ mode=permissive grant_log=yes reject_log=yes }
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Changing to enforcing mode
+<pre>
+# /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=enforcing }'
+0-CONFIG::file={ mode=enforcing grant_log=yes reject_log=yes }
+</pre>
+</td></tr>
+</table>
+
+<p>TOMOYO Linux can perform access control on not only files but also networks and capabilities and more. You can know current coverage from /proc/ccs/profile . But enabling many access controls from the beginning would confuse you. Thus, I enable only access control on files in this installment. You can try enabling other access controls as you get understand how to use.</p>
+
+<h3>About profiles</h3>
+
+<p>In TOMOYO Linux, you can specify access control modes for per a domain basis. You can change access control modes of arbitrary domains independent of the rest of domains. To specify access control modes independently, TOMOYO Linux uses definition of access control modes called "profile" (Fig. 5) and assigns profiles using ccs-setprofile command or ccs-editpolicy command. (Fig. 6) I explain usage of ccs-setprofile command later.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;Create profiles<br>
+<img src="tutorial/fig-2-5-en.png" alt="fig-2-5-en.png" width="640" height="320">
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;Assign profiles to domains<br>
+<img src="tutorial/fig-2-6.png" alt="fig-2-6.png" width="800" height="600">
+</td></tr>
+</table>
+
+<h4>&diams;Creating profiles</h4>
+
+<p>In this series, I use 4 profiles. Please overwrite /etc/ccs/profile.conf with the contents listed in Fig. 7.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Profiles used in this series
+<pre>
+PROFILE_VERSION=20100903
+0-CONFIG::file={ mode=disabled }
+1-CONFIG::file={ mode=learning }
+2-CONFIG::file={ mode=permissive }
+3-CONFIG::file={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<p>The leading integer is the profile number (which can take from 0 to 255) and lines with the same profile number belong to the same profile. The assignment of profile numbers is arbitrary. But to make it easier to associate access control modes with profile numbers, this series uses profile 0 as a profile with disabled mode, profile 1 as a profile with learning mode for appending permissions, profile 2 as a profile with permissive mode for verifying permissions, profile 3 as a profile with enforcing mode for access restriction.</p>
+
+<p>Overwrite /etc/ccs/profile.conf with the contents listed in Fig. 7 and reboot the system with TOMOYO Linux kernel or run command in Fig. 8 in order to reflect profile changes.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Reloading profiles
+<pre>
+# /usr/sbin/ccs-loadpolicy -p &lt; /etc/ccs/profile.conf
+</pre>
+</td></tr>
+</table>
+
+<h2>Let's protect WWW services</h2>
+
+<p>I explain steps for creating policy for Apache as an example of mandatory access control. The pathname of Apache's main program depends on your distribution. For example, /usr/sbin/httpd for CentOS, /usr/sbin/apache2 for Debian.</p>
+
+<h3>Updating exception policy</h3>
+
+<p>Firstly, specify the pathname of Apache's main program using "initialize_domain" keyword. Run ccs-editpolicy with "e" option. (Fig. 9)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Executing policy editor
+<pre>
+# /usr/sbin/ccs-editpolicy e
+</pre>
+</td></tr>
+</table>
+
+<p>Then, you will see a screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You will find lines starting with "initialize_domain" keyword by scrolling the screen. (Fig. 10. The contents depend on your environment.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;initialize_domain keyword in exception policy<br>
+<img src="tutorial/fig-2-10.png" alt="fig-2-10.png" width="720" height="400">
+</td></tr>
+</table>
+
+<p>If you have followed steps in the first installment, there should already be a line "initialize_domain /usr/sbin/httpd from any". But if you can't find the line, append by following steps.</p>
+
+<p>First, press "A" key on the keyboard, and a prompt "Enter new entry&gt;" is printed at the bottom line of the screen. Then, enter "initialize_domain /usr/sbin/httpd from any" and press "Enter" key, and the line you entered will be added. On the contrary, to delete this entry, move the cursor to "initialize_domain /usr/sbin/httpd from any" line by using up-arrow and down-arrow keys. Press "D" key on the keyboard, and a prompt "Delete selected entry? ('Y'es/'N'o)" is printed. Then press "Y" key to delete the line.</p>
+
+<p>In TOMOYO Linux, different domains are assigned to the same program if the program was executed from different domains. This distinction is useful for giving different set of permissions depending on situation. But sometimes, like daemon processes, we want to give same set of permissions independent of situation. To be able to give same set of permissions independent of situation, TOMOYO Linux provides "initialize_domain" keyword.</p>
+
+<p>To let a program run in the same domain no matter how the program is executed, specify the program using "initialize_domain" keyword. Programs specified using "initialize_domain" keyword runs in the child of "&lt;kernel&gt;" domain for both automatically executed upon startup scripts and manually restarted by administrator's login session. (Fig. 11)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;The effect of initialize_domain keyword<br>
 <img src="tutorial/fig-3-3.png" alt="fig-3-3.png" width="800" height="500">
 </td></tr>
 </table>
 
-<h4>&diams;Conditionally reinitialize domain transition</h4>
+<h3>Starting the program</h3>
 
-<p>As I noted above, if a "program" specified as "initialize_domain program from any" is executed, the process transits to "&lt;kernel&gt; program" domain. (Fig. 4)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 4&nbsp;&nbsp;Unconditionally reinitialize domain transition<br>
-<img src="tutorial/fig-3-4.png" alt="fig-3-4.png" width="800" height="420">
-</td></tr>
-</table>
-
-<p>But if a "program" specified with a "domainname" as "initialize_domain program from domainname" is executed, the process transits to "&lt;kernel&gt; program" domain only when "program" is executed from "domainname" domain. (Fig. 5)</p>
+<p>First, create a domain for running Apache. (Fig. 12)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 5&nbsp;&nbsp;Reinitialize domain transition only when executed from specific domain<br>
-( The process transits to "&lt;kernel&gt; /usr/sbin/sshd" domain only when /usr/sbin/sshd is executed from "&lt;kernel&gt; /etc/rc.d/init.d/sshd" domain because of "initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd".)<br>
-<img src="tutorial/fig-3-5.png" alt="fig-3-5.png" width="800" height="480">
+&diams; Fig. 12&nbsp;&nbsp;Starting Apache server
+<pre>
+# service httpd restart
+</pre>
 </td></tr>
 </table>
 
-<p>You may specify only the last part of domainname (e.g. /bin/bash ) instead of a complete domainname (e.g. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash").</p>
+<p>By executing Fig. 12, /etc/rc.d/init.d/httpd is executed and /usr/sbin/httpd is executed from /etc/rc.d/init.d/httpd . But if /usr/sbin/httpd is specified using "initialize_domain" keyword, "&lt;kernel&gt; /usr/sbin/httpd" domain is created. (If "initialize_domain /usr/sbin/httpd from any" is not specified in the exception policy, /usr/sbin/httpd will run in a child domain of program that executed /usr/sbin/httpd .)</p>
 
-<h4>&diams;Conditionally not reinitialize domain transition</h4>
+<h3>Learning mode</h3>
 
-<p>If a "program" specified with a "domainname" as "no_initialize_domain program from domainname" is executed, the process ignores "initialize_domain" keyword when "program" is executed from "domainname" domain.</p>
-
-<p>For example, /bin/mail (which is used for sending mails) executes /usr/sbin/sendmail.sendmail for sending mails. But if you want to give different permissions to "/usr/sbin/sendmail.sendmail for sending mails" and "/usr/sbin/sendmail.sendmail for receiving mails", you can specify "no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail" so that /usr/sbin/sendmail.sendmail executed by /bin/mail won't transit to "&lt;kernel&gt; /usr/sbin/sendmail.sendmail" domain. (Fig. 6) (Note that this works for only domains which domainname ends with /bin/mail . If /bin/mail is executed from a shell domain specified with "keep_domain" keyword, you need to specify domain of the shell rather than /bin/mail .)</p>
+<p>Let's assign a profile for learning mode from profiles previously created. (Fig. 13) The "-r" option means apply recursively, which results in any domain which domainname starts with "&lt;kernel&gt; /usr/sbin/httpd" are assigned the specified profile. Be sure to quote appropriately when using ccs-setprofile command, or &lt; and &gt; will be interpreted as shell's redirection characters.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 6&nbsp;&nbsp;Combination with no_initialize_domain keyword<br>
-<img src="tutorial/fig-3-6.png" alt="fig-3-6.png" width="800" height="500">
+&diams; Fig. 13&nbsp;&nbsp;Assign profile for learning mode
+<pre>
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
+1 &lt;kernel&gt; /usr/sbin/httpd
+</pre>
 </td></tr>
 </table>
 
-<h4>&diams;Unconditionally suppress domain transition</h4>
+<p>Do operations you want to allow (such as browsing pages and using Wiki) after running the command in Fig. 13.</p>
 
-<p>Any processes which belong to "domainname" specified by "keep_domain any from domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 7) This resembles SELinux's domain because multiple programs belong to the same domain.</p>
+<h3>Permissive mode</h3>
+
+<p>When you have finished doing a series of operations you want to allow, assign a profile for permissive mode. (Fig. 14) Statistic counter /proc/ccs/stat is incremented whenever policy violation occurs. You can consider that all necessary permissions are appended into the policy if /proc/ccs/stat is no longer incremented when you do operations you want to allow.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 7&nbsp;&nbsp;Effect of keep_domain keyword<br>(Since "&lt;kernel&gt; /sbin/init &sdot;&sdot;&sdot; foo bar" domain is specified using "keep_domain" keyword, domain transition does not occur when programs are executed. Domain transition to "&lt;kernel&gt; /some/where/baz" occurs when /some/where/baz (which is specified using "initialize_domain" keyword) is executed.)<br>
-<img src="tutorial/fig-3-7.png" alt="fig-3-7.png" width="800" height="600">
+&diams; Fig. 14&nbsp;&nbsp;Assign profile for permissive mode
+<pre>
+# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+2 &lt;kernel&gt; /usr/sbin/httpd
+</pre>
 </td></tr>
 </table>
 
-<p>You may specify only the last part of domainname (e.g. /bin/bash ) instead of a complete domainname (e.g. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash"). For example, if you specify /bin/bash as a "domainname", "keep_domain" is applied to all domains which domainname ends with /bin/bash . (Fig. 8)</p>
+<p>Also, tune policy at this stage. Steps for tuning policy are described later in this installment.</p>
+
+<h3>Enforcing mode</h3>
+
+<p>If you consider that creating policy is completed, assign a profile for enforcing mode. (Fig. 15)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 8&nbsp;&nbsp;Effect of keep_domain keyword<br>
-<img src="tutorial/fig-3-8.png" alt="fig-3-8.png" width="800" height="420">
+&diams; Fig. 15&nbsp;&nbsp;Assign profile for enforcing mode
+<pre>
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+3 &lt;kernel&gt; /usr/sbin/httpd
+</pre>
 </td></tr>
 </table>
 
-<h4>&diams;Conditionally suppress domain transition</h4>
+<p>By doing Fig.15, mandatory access control is applied to domains which domainname starts with "&lt;kernel&gt; /usr/sbin/httpd".</p>
 
-<p>As I noted above, if a "domainname" is specified as "keep_domain any from domainname" , the process once reached to "domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 9)</p>
+<p>To check status, you can use ccs-pstree command explained in the previous installment. The first column of each line by ccs-pstree command is the profile number. Make sure that profiles you intended are assigned to applications you want to protect using mandatory access control (in this example, /usr/sbin/httpd ).</p>
+
+<p>Note that the system is protected by mandatory access control only if you assigned profile for enforcing mode.</p>
+
+<h2>Tuning policy</h2>
+
+<h3>Patternizing pathnames</h3>
+
+<p>You need to specify all pathnames which applications can access, but some programs create files dynamically under /tmp/ directory with random alphabets and process ID numbers in their filenames. Such programs won't work with pathnames appended by learning mode only.</p>
+
+<p>In TOMOYO Linux, some wildcards are defined for handling dynamically created files. (Fig. 16) By using wildcards appropriately, you can reduce number of entries in policy and save memory usage.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 9&nbsp;&nbsp;Unconditionally suppress domain transition<br>
-<img src="tutorial/fig-3-9.png" alt="fig-3-9.png" width="800" height="350">
+&diams; Fig. 16&nbsp;&nbsp;Wildcard expressions in TOMOYO Linux<br>
+<table border="1" summary="fig">
+<tr><td>Wildcard</td><td>Meaning</td></tr>
+<tr><td>\*</td><td>Zero or more repetitions of characters other than '/'.</td></tr>
+<tr><td>\@</td><td>Zero or more repetitions of characters other than '/' or '.'.</td></tr>
+<tr><td>\?</td><td>1 byte character other than '/'.</td></tr>
+<tr><td>\$</td><td>One or more repetitions of decimal digits.</td></tr>
+<tr><td>\+</td><td>1 decimal digit.</td></tr>
+<tr><td>\X</td><td>One or more repetitions of hexadecimal digits.</td></tr>
+<tr><td>\x</td><td>1 hexadecimal digit.</td></tr>
+<tr><td>\A</td><td>One or more repetitions of alphabet characters.</td></tr>
+<tr><td>\a</td><td>1 alphabet character.</td></tr>
+<tr><td>\-</td><td>Pathname subtraction operator.</td></tr>
+<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'.</td></tr>
+</table>
 </td></tr>
 </table>
 
-<p>But if a "domainname" is specified with a "program" as "keep_domain program from domainname", the process remains in the same domain only when "program" is executed from "domainname" domain. (Fig. 10)</p>
+<p>Since '\' is used for escape character for representing wildcard, use '\\' for representing '\' itself. Also, use '\ooo' style octal representation for non-printable characters (e.g. ASCII's control codes and Japanese characters).</p>
+
+<h3>Let's patternize pathnames</h3>
+
+<p>You can patternize pathnames from policy editor. When you start ccs-editpolicy , a screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" will appear. Then, find "&lt;kernel&gt; /usr/sbin/httpd" domain. You will see a screen titled "&lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;" (Fig. 17. The entries depend on your environment) by pressing "Enter" key after moving cursor to "&lt;kernel&gt; /usr/sbin/httpd" domain.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 10&nbsp;&nbsp;Suppress domain transition only when specific programs are executed<br>
-<img src="tutorial/fig-3-10.png" alt="fig-3-10.png" width="800" height="430">
+&diams; Fig. 17&nbsp;&nbsp;Policy for Apache<br>
+<img src="tutorial/fig-2-17.png" alt="fig-2-17.png" width="720" height="400">
 </td></tr>
 </table>
 
-<h4>&diams;Conditionally resume domain transition</h4>
-
-<p>You can suppress domain transition for login session using "keep_domain" keyword because it is unlikely possible to understand what commands in what order users will execute from login session beforehand. But there are cases you want to resume domain transition, such as allowing access to password files for changing passwords and restarting applications that run as daemon processes.</p>
-
-<p>By specifying "no_keep_domain program from domainname", "keep_domain" keyword is ignored when "program" is executed from "domainname" domain.</p>
-
-<p>For example, by specifying "no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" when "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, the process transits to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat" domain when /bin/cat is executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain while the process remains in the same domain when other programs are executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain. (Fig. 11)</p>
+<p>WWW servers access files under /var/www/ directory. Thus, specify like Fig. 18 for granting read access on files under /var/www/html/ directory. For each line in Fig. 18, press "A" key and enter the line and press "Enter" key. (Fig. 19)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 11&nbsp;&nbsp;Combination with no_keep_domain keyword<br>
-<img src="tutorial/fig-3-11.png" alt="fig-3-11.png" width="800" height="400">
+&diams; Fig. 18&nbsp;&nbsp;An example for allowing reading under /var/www/html/  directory.
+<pre>
+file read /var/www/html/\*
+file read /var/www/html/\{\*\}/\*
+</pre>
 </td></tr>
 </table>
-
-<h4>&diams;Do domain transition without program execution</h4>
-
-<p>As a rule, domain transition is performed when a program is executed. But by calling procedure for domain transition from programs, you can perform domain transition without executing a program.</p>
-
-<p>For example, Apache supports CGI programs. Some CGI programs are processed outside Apache (i.e. need program execution) and others are processed inside Apache (i.e. don't need program execution). By performing domain transition based on virtual host's name and requested CGI's pathnames before Apache processes the request, you can give different permissions for CGI programs which are processed inside Apache. Steps for doing this are explained in the tenth installment.</p>
-
-<h3>Grouping a series of operations</h3>
-
-<p>You can flexibly specify access control using "initialize_domain" keyword and "keep_domain" keyword. I explain how to use them using an example. Login as root user and run ccs-editpolicy command. Then, find the domain for /etc/rc.d/init.d/network (i.e. "&lt;kernel&gt; /etc/rc.d/init.d/network" domain). You will see that many programs such as /etc/sysconfig/network-scripts/ifup and /bin/touch are executed from /etc/rc.d/init.d/network . (Fig. 12)</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 12&nbsp;&nbsp;Domain transition before specifying keep_domain keyword<br>
-<img src="tutorial/fig-3-12.png" alt="fig-3-12.png" width="850" height="998">
+&diams; Fig. 19&nbsp;&nbsp;Allow Apache to read under /var/www/html/ directory.<br>
+<img src="tutorial/fig-2-19.png" alt="fig-2-19.png" width="720" height="400">
 </td></tr>
 </table>
 
-<p>Press "Tab" key. You will see that the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You can find lines starting with "initialize_domain" keyword by scrolling the screen. Scroll down to the bottom, and press "A" key and enter "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network" and press "Enter" key. Then, you will see what you entered. (Fig. 13)</p>
+<p>Some applications use temporary files. For example, if entries listed in Fig. 20 exist, these are likely temporary files created in /tmp/phpXXXXXX pattern. Therefore, you need to replace these entries using /tmp/php\?\?\?\?\?\? (this is TOMOYO Linux's wildcard representation for /tmp/phpXXXXXX pattern). Steps are shown below.</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 13&nbsp;&nbsp;Specify keep_domain keyword<br>
-<img src="tutorial/fig-3-13.png" alt="fig-3-13.png" width="572" height="322">
+&diams; Fig. 20&nbsp;&nbsp;Temporary files
+<pre>
+file write /tmp/phpAb9fD1
+file write /tmp/phpkzqf5p
+file write /tmp/php3lo7ab
+</pre>
 </td></tr>
 </table>
 
-<p>Press "Tab" key again. You will see that the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;". Find "&lt;kernel&gt; /etc/rc.d/init.d/network" domain by scrolling the screen. (Fig. 14)</p>
+<p>First, press "A" key on the keyboard, and enter "file write /tmp/php\?\?\?\?\?\?" (this is a patternized entry for entries in Fig. 20). Next, move the cursor to the "file write /tmp/php\?\?\?\?\?\?" line and press "O" key, and you will see entries included in this entry are marked with "&amp;". Verify that entries listed in Fig. 20 are marked with "&amp;" and press "D" key on the keyboard, and a prompt "Delete selected entries? ('Y'es/'N'o)" is printed, and press "Y" key on the keyboard.</p>
+
+<p>Continue policy tuning using permissive mode until all necessary permissions are given.</p>
+
+<h3>How to save policy?</h3>
+
+<p>Upon boot, /sbin/ccs-init automatically loads policy from files on disk to kernel memory. But upon shutdown, nothing automatically saves policy from kernel memory to files on disk. Therefore, be sure to run ccs-savepolicy command before shutdown if you modified policy or changed profile assignment.</p>
+
+<h3>How to recreate policy from scratch?</h3>
+
+<p>The learning mode automatically appends entries to existing policy. But if you want to restart learning mode from the scratch rather than starting from existing policy, reboot the system after doing Fig.21 (note that you must not append trailing / to /etc/ccs/policy/current nor /etc/ccs/policy/previous).</p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 14&nbsp;&nbsp;Domain transition after specifying keep_domain keyword<br>
-<img src="tutorial/fig-3-14.png" alt="fig-3-14.png" width="850" height="998">
+&diams; Fig. 21&nbsp;&nbsp;Reinitializing policy
+<pre>
+# mv /etc/ccs/policy/current /etc/ccs/policy/previous
+# /usr/lib/ccs/init_policy
+</pre>
 </td></tr>
 </table>
-
-<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using "keep_domain" keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 95 to 156 in Fig. 14) indicates that these domains became unreachable due to "keep_domain any from &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "Space" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 15&nbsp;&nbsp;Confirmation message for deleting domains<br>
-<img src="tutorial/fig-3-15.png" alt="fig-3-15.png" width="850" height="998">
-</td></tr>
-</table>
-
-<p>Then, domains marked with "&amp;" are deleted. Press "Q" key to quit ccs-editpolicy command. Execute "/etc/rc.d/init.d/network restart" to re-learn. Execute ccs-editpolicy command again and find "&lt;kernel&gt; /etc/rc.d/init.d/network" domain. This time, you won't see programs like /etc/sysconfig/network-scripts/ifup and  /bin/touch . (Fig. 16)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 16&nbsp;&nbsp;Domain transition after re-learning<br>
-<img src="tutorial/fig-3-16.png" alt="fig-3-16.png" width="556" height="332">
-</td></tr>
-</table>
-
-<p>TOMOYO Linux's automatic domain dividing feature is powerful. But if you want to restrict execution of programs and access by these programs but you don't know the order of program execution (login session is a typical case), it is difficult to define domains. By grouping domains for login session using keywords explained in this installment and assign profiles for enforcing mode, you can restrict execution of programs and access by these programs while you don't restrict the order of program execution. Also, by not assigning profiles for enforcing mode, you can let login session behave freely like normal Linux.</p>
 
 <h2>Trailer</h2>
 
-<p>In this installment, I explained TOMOYO Linux's domain transitions. In the next installment, I explain tuning TOMOYO Linux's policy. Don't miss it!</p>
+<p>In this installment, I explained steps for actually performing access control and steps for protecting WWW services. All basic operations for TOMOYO Linux were explained in previous installment and this installment. Thus, you can say "I can use TOMOYO Linux" if you understood steps written in this installment.</p>
 
-<p><a href="tutorial-2.html.en">Go back to the second installment.</a>&nbsp;&nbsp;<a href="tutorial-4.html.en">Proceed to the fourth installment.</a></p>
+<p>In the next installment, I explain TOMOYO Linux's domain transitions. Don't miss it!</p>
+
+<p><a href="tutorial-1.html.en">Go back to the first installment.</a>&nbsp;&nbsp;<a href="tutorial-3.html.en">Proceed to the third installment.</a></p>
 
 <hr>
 

@@ -23,17 +23,21 @@
 
 <p>2010/10/21 Various enhancements were added to TOMOYO for Linux 2.6.36.</p>
 
-<h1>What can TOMOYO Linux do?</h1>
+<h1>What is TOMOYO Linux?</h1>
 
-<h2>Analyze your system's behavior.</h2>
+<p>TOMOYO Linux is a <b>Mandatory Access Control (MAC)</b> implementation for Linux that can be used to increase the security of a system. The project was launched in March 2003 and is sponsored by NTT DATA Corporation, Japan.</p>
+
+<p>TOMOYO Linux can be used as a system analysis tool, or to restrict and protect your system:
+
+<h2>Analyze your system's behavior</h2>
 
 <ul>
 <li>Debugging applications</li>
-<li>Understanding system's behavior</li>
-<li>Writing textbooks and documentations</li>
+<li>Understanding the system's behavior</li>
+<li>Writing textbooks and documentation</li>
 </ul>
 
-<h2>Protect your system.</h2>
+<h2>Protect your system</h2>
 
 <ul>
 <li>Restricting SSH based services</li>
@@ -45,15 +49,17 @@
 <li>Suited well to Linux based PCs, servers, embedded systems</li>
 </ul>
 
-<h1>How can I try it?</h1>
+<h1>How can I try TOMOYO Linux?</h1>
 
-<p>We maintain and provide two versions. See the <a href="http://tomoyo.sourceforge.jp/comparison.html.en">Functionality comparison table</a> to determine which version is required.</p>
+<p><a href="http://tomoyo.sourceforge.jp/1.8/index.html.en">TOMOYO Linux 1.x</a> is the original branch of development, which was first released on 11th November 2005 under the GPL. It was implemented as a patch that can be applied to the Linux kernel and is still in active development.</p>
+
+<p><a href="http://tomoyo.sourceforge.jp/2.3/index.html.en">TOMOYO Linux 2.x</a> is the Linux mainline kernel branch of development. In June 2009, a subset of TOMOYO functionality was merged into the Linux kernel 2.6.30 and makes use of standard Linux Security Module (LSM) hooks. However, the LSM hooks must be extended further in order to port the full MAC functionality of TOMOYO Linux 1.x into the Linux kernel. Thus, it does not yet provide equal functionality with the 1.x branch of development. This <a href="http://tomoyo.sourceforge.jp/comparison.html.en">feature comparison chart</a> compares the differences between each branch.</p>
+
+<p>Once you have decided which version of TOMOYO Linux you require, see the sections below for further information</p>
 
 <h2><a href="http://tomoyo.sourceforge.jp/2.3/index.html.en">Mainlined version (2.x series)</a></h2>
 
-<p>This version supports only Linux kernel 2.6.30 and later. It is integrated into the upstream kernel and uses hooks provided by Linux Security Modules (LSM). Although it is available without applying kernel patches, it currently only offers a subset of MAC (Mandatory Access Control) for files.</p>
-
-<p>Use this version if your priority is to use TOMOYO Linux without modifying the kernel.</p>
+<p>Use this version if your priority is to use TOMOYO Linux without modifying the kernel, and you do not require all of the features of the 1.x branch.</p>
 
 <p>The video below demonstrates how to initialize, configure and enforce TOMOYO Linux on a Ubuntu 10.04 system. Experience TOMOYO Linux in only 10 minutes!</p>
 
@@ -64,7 +70,7 @@
 <p><a href="http://tomoyo.sourceforge.jp/1.7/index.html.en">1.7.x documentation</a> (old stable)</p>
 <p><a href="http://tomoyo.sourceforge.jp/1.8/index.html.en">1.8.x documentation</a> (current)</p>
 
-<p>This version supports many distributions using 2.4 and 2.6 kernels. It exists as a patch that can be applied to the Linux kernel that inserts original hooks. Although it requires compilation of the kernel, it offers full MAC functionality (for files, network, capabilities, environment variables etc.). It can also be used alongside other MAC implementations (e.g. SELinux, SMACK, AppArmor).</p>
+<p>This version supports many distributions using 2.4 and 2.6 kernels. Although it requires compilation of a patched kernel, it offers full MAC functionality (for files, network, capabilities, environment variables etc.). It can also be used alongside other MAC implementations (e.g. SELinux, SMACK, AppArmor).</p>
 
 <p>Use this version if your priority is to obtain the most out of TOMOYO Linux and the MAC functionality available.</p>
 
@@ -77,7 +83,6 @@
 <li><a href="http://tomoyo.sourceforge.jp/1.7/1st-step/centos5-live/index.html.en">CentOS 5.5 LiveCD</a></li>
 <li><a href="http://tomoyo.sourceforge.jp/1.7/1st-step/ubuntu10.04-live/index.html.en">Ubuntu 10.04 LiveCD</a></li>
 </ul>
-
 
 <h1>Links</h1>
 
