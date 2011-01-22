@@ -17,7 +17,7 @@
 
 <h2><a name="2.1">Step 2.1: Understanding domains</a></h2>
 
-<p>The main tool used for TOMOYO Linux is the policy editor. The instructions on this page provide a "quick-start guide" on using the policy editor and should be sufficient to get started. For more in depth instructions, see <a href="tool-editpolicy.html.en">How to use the Policy Editor</a>.</p>
+<p>The main tool used for TOMOYO Linux is the policy editor. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">How to use the Policy Editor</a>.</p>
 
 <p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with "/etc/ccs/" option to edit policy files within "/etc/ccs/":</p>
 
@@ -27,7 +27,7 @@
 </td></tr>
 </table>
 
-<p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the "Domain Transition Editor". The picture below describes the domain tree that should be visible after running the above command. As of now, only "&lt;kernel&gt;" domain is defined:</p>
+<p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the "Domain Transition Editor". The picture below describes the domain tree that should be visible after running the above command. As of now, only the "&lt;kernel&gt;" domain is defined:</p>
 
 <p><img src="editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" width="720" height="400"></p>
 
@@ -41,7 +41,7 @@
 </td></tr>
 </table>
 
-<p>As the system runs, TOMOYO Linux will create domains and add them to the tree. After running the above command, the domain tree should appear populated with all domains created since startup:</p>
+<p>As the system runs, TOMOYO Linux will record the creation of new domains and add them to the tree. After running the above command, the domain tree should appear populated with all domains created since startup:</p>
 
 <p><img src="editpolicy-domain-list2.png" alt="editpolicy-domain-list2.png" width="720" height="400"></p>
 
@@ -63,7 +63,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 
 <p><img src="editpolicy-domain-profile-number.png" alt="editpolicy-domain-profile-number.png" width="720" height="400"></p>
 
-<p>This number is called the "profile number". A profile number is an integer value which takes between 0 and 255. The default profile number is "0", also known as "Disabled Mode", in which the domain is completely unrestricted.</p>
+<p>This number is called the <b>"profile number"</b>. A profile number is an integer value which takes between 0 and 255. The default profile number is "0", also known as "Disabled Mode", in which the domain is completely unrestricted.</p>
 
 <p>Press the "?" key to view the available commands. Press the "?" again to go back to the previous screen.</p>
 
@@ -71,7 +71,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 
 <p><img src="editpolicy-window-list.png" alt="editpolicy-window-list.png" width="720" height="400"></p>
 
-<p>Press the "p" key to select the "Profile Editor", and you will see the list of profiles.</p>
+<p>Press the "p" key to select the <b>"Profile Editor"</b>, and you will see the list of profiles.</p>
 
 <p>If "--file-only-profile" was specified when executing "/usr/lib/ccs/init_policy" in Phase 1, then you will see the following entries:</p>
 
@@ -126,7 +126,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 
 <h2><a name="2.3">Step 2.3: Understanding domain policy</a></h2>
 
-<p>The restrictions of each domain can be viewed using the "Domain Policy" screen, which can be accessed by selecting a domain in the "Domain Transition" screen, and then pressing the "Enter" key. Since no policy has been developed yet (that is saved for Phase 3), the screen is empty. This is an example of domain policy for Apache:</p>
+<p>The restrictions of each domain can be viewed using the <b>"Domain Policy Editor"</b> screen, which can be accessed by selecting a domain in the "Domain Transition" screen, and then pressing the "Enter" key. Since no policy has been developed yet (that is saved for Phase 3), the screen is empty. This is an example of domain policy for Apache:</p>
 
 <p><a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
 
@@ -136,7 +136,7 @@ When the kernel invokes "/sbin/init", which then invokes "/etc/rc.d/rc", the dom
 
 <h2><a name="2.4">Step 2.4: Understanding exception policy</a></h2>
 
-<p>Press the "w" key, then press the "e" key, and you will see the picture shown below:</p>
+<p>Press the "w" key, then press the "e" key, and you will see the <b>"Exception Policy Editor"</b> screen:</p>
 
 <p><a href="editpolicy-exception-full.png">(Click to view complete screen.)<br><img src="editpolicy-exception-list1.png" alt="editpolicy-exception-list1.png" width="720" height="400"></a></p>
 

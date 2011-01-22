@@ -58,7 +58,6 @@
 
 <p>The binary packages provided by this project can be manually downloaded from <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=10270" target="_blank">this SourceForge page</a>. A package for the kernel and a package for the userspace tools are required. Alternatively, packages can be installed very easily straight from the repository using commands from the following table:</p>
 
-<p>&diams; <i>Fig. 4&nbsp;&nbsp;Commands to install binary packages.</i></p>
 <table border="1">
 <tr><td>
 Fedora 13 (for i686 and later)</td><td>
@@ -111,6 +110,14 @@ Ubuntu 10.10 (for generic-pae flavour)</td><td>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr>
 </table>
+
+<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using /bin/bash, append the following line to ~/.bashrc:</p>
+
+<pre>
+export PATH=$PATH:/usr/sbin
+</pre>
+
+<br>
 
 <p>You can now proceed to <a href="tutorial-2.html.en#2.3">Section 2.3</a></p>.
 
@@ -225,7 +232,15 @@ In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be re
 </td></tr>
 </table>
 
+<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using /bin/bash, append the following line to ~/.bashrc:</p>
+
+<pre>
+export PATH=$PATH:/usr/sbin
+</pre>
+
 <br>
+
+<p>You can now proceed to <a href="tutorial-2.html.en#2.3">Section 2.3</a></p>.
 
 <hr>
 
@@ -303,7 +318,9 @@ Creating configuration file for ccs-notifyd ... OK
 
 <p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. rpm or apt). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
 
-<p>Proceed to the <a href="tutorial-3.html.en">third installment</a>, where the main concepts behind TOMOYO Linux are discussed!</p>
+<br>
+
+<p>Proceed to the <a href="tutorial-3.html.en">Chapter 3</a>, where the main concepts behind TOMOYO Linux are discussed!</p>
 
 <div class=navfooter>
 <hr align="left" width="100%">
@@ -325,7 +342,7 @@ Chapter 1: Why do I need TOMOYO Linux?
 <a href="http://tomoyo.sourceforge.jp/">Home</a>
 </td>
 <td width="33%" align="right" valign="top">
-Chapter 3: Understanding access control
+Chapter 3: How does TOMOYO Linux work?
 </td>
 </tr>
 </table>
