@@ -30,14 +30,14 @@
 
 <h2><a name="1.2">1.2: What is Mandatory Access Control?</a></h2>
 
-<p>In an operating system (OS), <b>each program or process is mostly unrestricted</b> in the tasks that they are able to perform (see Figure 1). A security focused OS should implement some form of restriction that prevents a process from performing tasks that they should not perform, or that the administrator specifically wants to prevent them from performing. For example, a WWW server such as Apache should be allowed to provide only WWW services. It should not have access to areas of the filesystem that it does not need, and it should not be allowed to start or interact with other unrelated processes. Access Control Lists (ACLs) provide little protection. MAC on the other hand can take this protection much further, allowing very precise control over what each process is allowed to do (see Figure 2). This is important in the event that a process is compromised. <b>Without MAC, a compromised process would be free to do what it wants!</b></p>
+<p>In an operating system (OS), <b>each program or process is mostly unrestricted</b> in the tasks that they are able to perform (the left-hand picture). A security focused OS should implement some form of restriction that prevents a process from performing tasks that they should not perform, or that the administrator specifically wants to prevent them from performing. For example, a WWW server such as Apache should be allowed to provide only WWW services. It should not have access to areas of the filesystem that it does not need, and it should not be allowed to start or interact with other unrelated processes. Access Control Lists (ACLs) provide little protection, especially as many services are run as the root user. MAC on the other hand can take this protection much further, allowing very precise control over what each process is allowed to do, even for processes running as root (the right-hand picture). This is important in the event that a process is compromised. <b>Without MAC, a compromised process would be free to do what it wants!</b></p>
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 1&nbsp;&nbsp;Unrestricted access on a normal OS<br>
+Unrestricted access on a normal OS<br>
 <img src="tutorial/fig-1-1.jpg" alt="fig-1-1.jpg" width="500" height="350">
 </td><td>
-&diams; Fig. 2&nbsp;&nbsp;Restricted access on an OS using MAC<br>
+Restricted access on an OS using MAC<br>
 <img src="tutorial/fig-1-2.jpg" alt="fig-1-2.jpg" width="500" height="350">
 </td></tr>
 </table>

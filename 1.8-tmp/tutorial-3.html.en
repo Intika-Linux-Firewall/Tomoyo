@@ -18,7 +18,7 @@
 
 <h2><a name="3.1">3.1: Understanding domains</a></h2>
 
-<p>In TOMOYO Linux, the technique used to enforce MAC makes use of something called <b>"domains"</b>. This is an important concept. Every process in a system belongs to a domain, which is determined by its execution history. Broadly speaking, every time a process is executed, a new domain is created. This creation of a new domain can also be called a "domain transition". Have a look at this diagram:</p>
+<p>In TOMOYO Linux, the technique used to enforce MAC makes use of something called <b>"domains"</b>. This is an important concept. Every process in a system belongs to a domain, which is determined by its execution history. Broadly speaking, every time a process is executed, a new domain is created. This creation of a new domain can also be called a <b>"domain transition"</b>. Have a look at this diagram:</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -33,11 +33,11 @@
 <p>&lt;kernel&gt; /sbin/init <b>/etc/rc.d/rc</b><br>
 &lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit <b>/etc/rc.d/rc</b><p>
 
-<p>In both cases, the script "/etc/rc.d/rc" is the process causing a new domain to be created. However, <b>because the process execution history is different, they are considered to be two separate domains</b>. This allows you to control what can be executed by any particular domain. This also allows policy to be more flexible, as you can apply different levels of restriction to a process depending on how it was executed. There is also the possibility to manage domain transition very precisely and for example apply the same restriction to a process without regard to how it was executed. This topic will be discussed later.</p>
+<p>In both cases, the script "/etc/rc.d/rc" is the process causing a new domain to be created. However, <b>because the process execution history is different, they are considered to be two separate domains</b>. This allows you to control what can be executed by any particular domain, and allows policy to be more flexible as you can apply different levels of restriction to a process depending on how it was executed. There is also the possibility to manage domain transition very precisely and for example apply the same restriction to a process without regard to how it was executed. This topic will be discussed later.</p>
 
 <h3>View domains with the policy editor</h3>
 
-<p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">How to use the Policy Editor</a>.</p>
+<p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">how to use the Policy Editor</a>.</p>
 
 <p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with "/etc/ccs/" option to edit policy files within "/etc/ccs/":</p>
 
@@ -83,7 +83,7 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <h2><a name="3.2">3.2: Understanding profiles</a></h2>
 
-<p>Each domain can be restricted using TOMOYO Linux by assigning a "profile". These profiles can be assigned to any domain independently of others, which allows you to slowly build up the security in your system one domain at a time. This also allows you to create custom profiles for specific domains, but this is a more advanced topic for later on.</p>
+<p>Each domain can be restricted using TOMOYO Linux by assigning a <b>"profile"</b>. These profiles can be assigned to any domain independently of others, which allows you to slowly build up the security in your system one domain at a time. This also allows you to create custom profiles for specific domains, but this is a more advanced topic for later on.</p>
 
 <p>In the policy editor, look at the numbers in the second column of each line:</p>
 
