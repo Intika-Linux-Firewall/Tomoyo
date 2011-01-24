@@ -1,15 +1,28 @@
-TOMOYO: Use external hashtable for maintaining per task_struct variables.
+From b8939dcdbcf858d89a80596f6efe1809bfc3f6f2 Mon Sep 17 00:00:00 2001
+From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Date: Mon, 24 Jan 2011 14:44:20 +0900
+Subject: [PATCH 2/2] TOMOYO: Use external hashtable for maintaining per task_struct variables.
 
 Currently, TOMOYO's interactive enforcing mode cannot deal interpreter's
 permission checks because variables the interactive enforcing mode wants to
 read are stored in "struct linux_binprm"->"struct cred"->security but
-"struct linux_binprm"->"struct cred"->security is not visible to other threads.
+"struct linux_binprm"->"struct cred" is not visible to other threads.
 
 This patch changes TOMOYO to use external hashtable for maintaining security
 context in order to make the interactive enforcing mode work.
 
 By applying this patch, TOMOYO no longer requires "void *security" of various
 kernel objects, making it easier to run multiple LSM modules in parallel.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.h        |   82 +++++++++++-
+ security/tomoyo/domain.c        |   27 ++++-
+ security/tomoyo/gc.c            |   54 +++++++-
+ security/tomoyo/memory.c        |    2 +
+ security/tomoyo/securityfs_if.c |    2 +-
+ security/tomoyo/tomoyo.c        |  268 +++++++++++++++++++++++++-------------
+ 6 files changed, 324 insertions(+), 111 deletions(-)
 
 diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
 index 7c66bd8..b231d5d 100644
@@ -183,10 +196,10 @@ index 3538840..a138145 100644
  		kfree(rn.name);
  	kfree(tmp);
 diff --git a/security/tomoyo/gc.c b/security/tomoyo/gc.c
-index a877e4c..2035203 100644
+index a877e4c..620d534 100644
 --- a/security/tomoyo/gc.c
 +++ b/security/tomoyo/gc.c
-@@ -127,6 +127,39 @@ static void tomoyo_del_acl(struct list_head *element)
+@@ -127,6 +127,44 @@ static void tomoyo_del_acl(struct list_head *element)
  	}
  }
  
@@ -200,22 +213,27 @@ index a877e4c..2035203 100644
 +static bool tomoyo_used_by_task(struct tomoyo_domain_info *domain)
 +{
 +	bool in_use = false;
++	/*
++	 * Don't delete this domain if somebody is doing execve().
++	 *
++	 * Since tomoyo_find_task_security() first reverts tomoyo_domain_info
++	 * and then clears previous_domain_info, we need smp_rmb() to make sure
++	 * that GC first checks previous_domain_info and then checks
++	 * tomoyo_domain_info.
++	 */
 +	int idx;
 +	rcu_read_lock();
 +	for (idx = 0; idx < TOMOYO_MAX_TASK_SECURITY_HASH; idx++) {
 +		struct tomoyo_security *ptr;
 +		struct list_head *list = &tomoyo_task_security_list[idx];
 +		list_for_each_entry_rcu(ptr, list, list) {
-+			if (ptr->previous_domain_info == domain) {
-+				in_use = true;
-+				goto out;
++			if (ptr->previous_domain_info != domain) {
++				smp_rmb(); /* Avoid out of order execution. */
++				if (ptr->tomoyo_domain_info != domain)
++					continue;
 +			}
-+			/* Avoid race with tomoyo_find_task_security(). */
-+			smp_rmb();
-+			if (ptr->tomoyo_domain_info == domain) {
-+				in_use = true;
-+				goto out;
-+			}
++			in_use = true;
++			goto out;
 +		}
 +	}
 +out:
@@ -226,7 +244,7 @@ index a877e4c..2035203 100644
  static bool tomoyo_del_domain(struct list_head *element)
  {
  	struct tomoyo_domain_info *domain =
-@@ -135,7 +168,7 @@ static bool tomoyo_del_domain(struct list_head *element)
+@@ -135,7 +173,7 @@ static bool tomoyo_del_domain(struct list_head *element)
  	struct tomoyo_acl_info *tmp;
  	/*
  	 * Since we don't protect whole execve() operation using SRCU,
@@ -235,7 +253,7 @@ index a877e4c..2035203 100644
  	 *
  	 * (1) Reader starts SRCU section upon execve().
  	 * (2) Reader traverses tomoyo_domain_list and finds this domain.
-@@ -143,19 +176,19 @@ static bool tomoyo_del_domain(struct list_head *element)
+@@ -143,19 +181,19 @@ static bool tomoyo_del_domain(struct list_head *element)
  	 * (4) Garbage collector removes this domain from tomoyo_domain_list
  	 *     because this domain is marked as deleted and used by nobody.
  	 * (5) Reader saves reference to this domain into
@@ -260,7 +278,7 @@ index a877e4c..2035203 100644
  		return false;
  	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
  		tomoyo_del_acl(&acl->list);
-@@ -230,12 +263,12 @@ static void tomoyo_collect_entry(void)
+@@ -230,12 +268,12 @@ static void tomoyo_collect_entry(void)
  		list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
  			if (!tomoyo_collect_acl(domain))
  				goto unlock;
@@ -609,3 +627,6 @@ index 95d3f95..1e887ce 100644
  	tomoyo_mm_init();
  	return 0;
  }
+-- 
+1.7.1
+
