@@ -20,7 +20,7 @@
 
 <p>Each domain will behave differently and require a unique set of permissions. Their behaviour must therefore be analyzed to determine which actions you wish to permit in domain policy. TOMOYO Linux can be used to restrict only a subset of the domains in a system, but the most secure system would restrict every domain in order to make sure there are no points of vulnerability.</p>
 
-<p>First, choose an application that you wish to analyze/protect. To demonstrate the procedure, this tutorial will use Apache in CentOS 5.5 as an example.</p>
+<p>First, choose an application that you wish to analyze/protect. To demonstrate the procedure, this tutorial will use Apache in CentOS 5.5.</p>
 
 <p>Start the target application:</p>
 
@@ -46,7 +46,7 @@
 
 <h2><a name="4.2">4.2: Management of domain transitions</a></h2>
 
-<p>Advanced control of domain transition is possible with TOMOYO Linux, and involves the modification of exception policy. The instructions in this section require use of the policy editor tool. To edit exception policy, run the policy editor and <a href="tutorial-3.html.en#3.4">switch to the exception policy editor screen</a>. To add an entry, press the "a" key, type out the new entry you wish to add and press "Enter". To see what other commands are available, press the "?" key.</p>
+<p>Advanced control of domain transition is possible with TOMOYO Linux, and involves changes to exception policy. The instructions in this section require use of the policy editor tool. To edit exception policy, run the policy editor and <a href="tutorial-3.html.en#3.4">switch to the exception policy editor screen</a>. To add an entry, press the "a" key, type out the new entry you wish to add and press "Enter". To see what other commands are available, press the "?" key.</p>
 
 <h3>initialize_domain</h3>
 
@@ -66,7 +66,7 @@ initialize_domain /usr/sbin/sshd from any
 </td></tr>
 </table>
 
-<p>The text "from any" included in the above command signifies that the application domain should be reinitialized when invoked by any domain. It is possible to cause reinitialization to happen only when the application domain is invoked by a single specified domain. This is achieved by adding the following to exception policy:</p>
+<p>The text "from any" included in the above command signifies that the application domain should be reinitialized when invoked by <b>any domain</b>. It is possible to cause reinitialization to happen only when the application domain is invoked by <b>a single specified domain</b>. This is achieved by adding the following to exception policy:</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
@@ -78,9 +78,11 @@ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 </td></tr>
 </table>
 
-<p>It is also allowable to specify only the last part of the domain name instead of the whole domain name. For example, just "from /bin/bash" instead of "from &lt;kernel&gt; /usr/sbin/sshd /bin/bash". This would of course be less specific a rule.</p>
+<p>It is also allowable to specify only the last part of the domain name instead of the whole domain name. For example, just <b>"from /etc/rc.d/init.d/sshd"</b> instead of <b>"from &lt;kernel&gt; /etc/rc.d/init.d/sshd"</b>. This would of course be less specific a rule, and would for example still apply to the sshd daemon being run from a terminal.</p>
 
 <p>If you switch back to the "Domain Transition Editor" screen, you may see domains with a "!" mark in the third column. This means that the domain is unreachable and can safely be deleted. The domain you have chosen to initialize to will appear with a "*" mark.</p>
+
+<p>Note that any policy specified in the unreachable domains will not automatically carry over into the initialized domain. For now, we have not developed any policy yet so this is not a problem. If you use this directive later on for domains that you have already developed policy for, you will need to either re-learn policy or copy over policy to the initialized domain.</p>
 
 <h3>no_initialize_domain</h3>
 
@@ -104,7 +106,7 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 
 <h3>keep_domain</h3>
 
-<p>It may be preferable that any executed applications from a particular domain are suppressed from undergoing a domain transition. They therefore act within the permissions of the domain that has invoked it. For example, suppose you wish apply the same policy to all applications run within an ssh shell, you would add the following to exception policy:</p>
+<p>It may be preferable that any executed applications from a particular domain are <b>suppressed from undergoing a domain transition</b>. They therefore act within the permissions of the domain that has invoked it. For example, suppose you wish apply the same policy to all applications run within an ssh shell, you would add the following to exception policy:</p>
 
 <pre>
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
@@ -115,6 +117,8 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <img src="tutorial/fig-3-9.png" alt="fig-3-9.png" width="800" height="350">
 </td></tr>
 </table>
+
+<p>Now the execution of any application, such as "/bin/ls" or "/bin/cat" will not result in the creation of a new domain. It will instead remain in the domain specified above and thus act within the permissions of that domain.</p>
 
 <p>This could also be done for any shell instance by adding the following to exception policy:</p>
 
@@ -140,9 +144,11 @@ keep_domain /usr/bin/xargs from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </td></tr>
 </table>
 
-<p>The "keep_domain" directive does not take precendence over the "initialize_domain" directive. If the "initialize_domain" directive has been specified for a particular application, that application will leave any domain with the "keep_domain" directive and reinitialize into its own domain.</p>
+<p>The "keep_domain" directive does not take precedence over the "initialize_domain" directive. If the "initialize_domain" directive has been specified for a particular application, that application will leave any domain with the "keep_domain" directive and reinitialize into its own domain.</p>
 
 <p>If you switch back to the "Domain Transition Editor" screen, you may see domains with a "!" mark in the third column. This means that the domain is unreachable and can safely be deleted. The domain that you have chosen to suppress domain transition from will appear with a "#*" mark.</p>
+
+<p>Note that any policy specified in the unreachable domains will not automatically be added to the parent domain (from which domain transition has been suppressed). For now, we have not developed any policy yet so this is not a problem. If you use this directive later on for domains that you have already developed policy for, you will need to either re-learn policy or copy over policy to the parent domain.</p>
 
 <h3>no_keep_domain</h3>
 
@@ -173,7 +179,7 @@ no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 initialize_domain /usr/sbin/httpd from any
 </pre>
 
-<p>Now we can manage all instances of Apache from the "&lt;kernel&gt; /usr/sbin/httpd" domain. To start developing policy for this domain, we need to switch it to "Learning Mode".</p>
+<p>Now we can manage all instances of Apache from the "&lt;kernel&gt; /usr/sbin/httpd" domain. Any domains that appear with a "!" mark can be safely deleted as they are unreachable. To start developing policy for this domain, we need to switch it to "Learning Mode".</p>
 
 <p>Press the "s" key, enter '1' and press the "Enter" key:</p>
 
@@ -207,11 +213,13 @@ initialize_domain /usr/sbin/httpd from any
 
 <p><a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
 
+<p>This list was previously empty, but because the domain is in "Learning Mode", any new actions that occurred were appended to domain policy. This will continue until the domain is no longer placed in "Learning Mode". You can press the "r" key to refresh the screen.</p>
+
 <p>Quit the editor and use Apache to generate necessary permissions for normal usage. All actions should be performed that you wish to allow:</p>
 
 <p><img src="operation-learning.png" alt="operation-learning.png" width="689" height="907"></p>
 
-<p>Remember to save policy, as permissions are accumulated only in kernel memory. If the system is rebooted, the gathered permissions will be lost.</p>
+<p>Remember to save policy, as permissions are accumulated only in kernel memory. <b>If the system is rebooted, the gathered permissions will be lost.</b></p>
 
 <p>To save policy to disk, use the following command:</p>
 
@@ -221,7 +229,7 @@ initialize_domain /usr/sbin/httpd from any
 </td></tr>
 </table>
 
-<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/ccs/" directory. More precisely, they are symbolic links to text files whose pathnames contain the creation time.</p>
+<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/ccs/" directory. More precisely, they are symbolic links to files whose pathnames contain the creation time.</p>
 
 <p>To load the policy currently on the disk into the kernel, use the "ccs-loadpolicy" command:</p>
 
@@ -243,15 +251,13 @@ The <b>"-m"</b> option means append to "/proc/ccs/manager".</p>
 
 <p>You might see warning messages like below printed on the console:</p>
 
-<table border="1">
-<tr><td>
+<pre>
 WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stopped learning mode.
-</td></tr>
-</table>
+</pre>
 
 <p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If "Learning Mode" did not have a limit, the system may become unusably slow due to comparison with already learned permissions.</p>
 
-<p>This limit can be increased with the "max_learning_entry=" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next phase, and doing so can reduce the size of domain policy to become more manageable and thus negating the need to increase the "max_learning_entry=" value.</p>
+<p>This limit can be increased with the "max_learning_entry=" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next chapter, and doing so can reduce the size of domain policy to become more manageable. You would then no longer need to increase the "max_learning_entry=" value.</p>
 
 <p>If you are using TOMOYO Linux for system analysis, this point is the goal of this procedure.</p>
 
