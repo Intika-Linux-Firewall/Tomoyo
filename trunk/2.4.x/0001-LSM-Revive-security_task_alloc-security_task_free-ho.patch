@@ -1,7 +1,7 @@
-From 273eae691eb0f53bb9045ce067d08551d3be8191 Mon Sep 17 00:00:00 2001
+From 0910f20644b57198c8e6607ae06e08d9d9855da0 Mon Sep 17 00:00:00 2001
 From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 23 Jan 2011 12:26:50 +0900
-Subject: [PATCH] LSM: Revive security_task_alloc()/security_task_free() hooks.
+Date: Mon, 24 Jan 2011 13:11:56 +0900
+Subject: [PATCH 1/2] LSM: Revive security_task_alloc()/security_task_free() hooks.
 
 If a task is doing do_execve(), the kernel does not allow other threads to
 access the task's new "struct cred" which will be used if do_execve() succeeds.
@@ -171,10 +171,10 @@ index 2a5df2b..6d34770 100644
  	set_to_cap_if_null(ops, cred_free);
  	set_to_cap_if_null(ops, cred_prepare);
 diff --git a/security/security.c b/security/security.c
-index 739e403..f96c436 100644
+index b84a89d..b8c2e5d 100644
 --- a/security/security.c
 +++ b/security/security.c
-@@ -696,6 +696,16 @@ int security_task_create(unsigned long clone_flags)
+@@ -699,6 +699,16 @@ int security_task_create(unsigned long clone_flags)
  	return security_ops->task_create(clone_flags);
  }
  
@@ -192,5 +192,5 @@ index 739e403..f96c436 100644
  {
  	return security_ops->cred_alloc_blank(cred, gfp);
 -- 
-1.6.1
+1.7.1
 
