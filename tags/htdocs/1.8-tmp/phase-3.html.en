@@ -79,6 +79,12 @@
 
 <p><img src="operation-learning.png" alt="operation-learning.png" width="689" height="907"></p>
 
+<br>
+
+<hr>
+
+<h2><a name="3.3">3.3: Saving permissions to disk</a></h2>
+
 <p>Remember to save policy, as permissions are accumulated only in kernel memory. <b>If the system is rebooted, the gathered permissions will be lost.</b></p>
 
 <p>To save policy to disk, use the following command:</p>
@@ -117,9 +123,13 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 
 <p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If "Learning Mode" did not have a limit, the system may become unusably slow due to comparison with already learned permissions.</p>
 
-<p>This limit can be increased with the "max_learning_entry=" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next phase, and doing so can reduce the size of domain policy to become more manageable. You would then no longer need to increase the "max_learning_entry=" value.</p>
+<p>This limit can be increased with the "max_learning_entry" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next chapter, and doing so can reduce the size of domain policy to become more manageable. You would then no longer need to increase the "max_learning_entry" value.</p>
 
-<p>If you are using TOMOYO Linux for system analysis, this point is the goal of this procedure.</p>
+<p>You may also see the entry <b>"quota_exceeded"</b> in domain policy. This indicates that no new entries will be learnt until domain policy is shortened or the "max_learning_entry" value is increased.</p>
+
+<hr>
+
+<p>If you are using TOMOYO Linux for system analysis, you have reached your goal. The steps outlined in this phase can be repeated for any domain you wish to analyze. It is possible to stop here, but you may wish to also read the next phase in order to tune and shorten domain policy. Some domains may make so many different actions that the domain policy limit is exceed. You may see a <b>"quota_exceeded"</b> message in domain policy. Learning cannot continue until domain policy is shorted or the "max_learning_entry" value is increased. Proceed to the next phase if this occurs.</p>
 
 <p>If you are using TOMOYO Linux for protection, proceed to the next phase to continue tuning policy.</p>
 
