@@ -408,6 +408,8 @@ static void do_unix_bind_test(int i, int protocol, const char *proto_str,
 	int fd = socket(PF_UNIX, protocol, 0);
 	int ret;
 	int err;
+	if (fd == EOF && errno == ESOCKTNOSUPPORT)
+		return;
 	printf("Testing network unix %s bind with %d bytes (%s): ", proto_str,
 	       i, should_success ? "should success" : "must fail");
 	if (i > 2) {
