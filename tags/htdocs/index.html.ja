@@ -12,7 +12,7 @@
 <h1>TOMOYO Linux ：振る舞い志向のシステム解析および保護ツール</h1>
 
 <table border="0" summary="What is TOMOYO Linux?">
-<tr><td><img width=115 height=150 alt="" src="tomoyo.png"></td><td>TOMOYO Linux はシステムの振る舞いに注目したセキュリティモジュールです。プロセスは何かの目的を達成するために生成されます。 TOMOYO Linux は（出入国審査官のように）それぞれのプロセスに対して目的を達成するのに必要な振る舞いや資源について報告させ、（運用監視人のように）申告された振る舞いと資源へのアクセスのみを許可します。このアプローチにより、 Linux システムがどのように機能するのかを理解することが可能になります。 TOMOYO Linux はアクセスを制限するツールとしても、システムを解析するためのツールとしても使うことができます。</td></tr>
+<tr><td><img src="tomoyo.png" alt="" width="115" height="150"></td><td>TOMOYO Linux はシステムの振る舞いに注目したセキュリティモジュールです。プロセスは何かの目的を達成するために生成されます。 TOMOYO Linux は（出入国審査官のように）それぞれのプロセスに対して目的を達成するのに必要な振る舞いや資源について報告させ、（運用監視人のように）申告された振る舞いと資源へのアクセスのみを許可します。このアプローチにより、 Linux システムがどのように機能するのかを理解することが可能になります。 TOMOYO Linux はアクセスを制限するツールとしても、システムを解析するためのツールとしても使うことができます。</td></tr>
 </table>
 
 <h1>お知らせ</h1>
@@ -24,6 +24,10 @@
 <p>2010/10/21 様々な機能強化が Linux 2.6.36 の TOMOYO に追加されました。</p>
 
 <h1>何ができるの？</h1>
+
+<p>TOMOYO Linux とは Linux システムのセキュリティを強化するための<b>強制アクセス制御（ Mandatory Access Control , MAC ）</b>の実装です。このプロジェクトは２００３年３月に始まり、株式会社ＮＴＴデータがスポンサーとなって開発されています。</p>
+
+<p>TOMOYO Linux はシステムの振る舞いを解析するためのツールとしても、アクセスを制限することでシステムを保護するためのツールとしても使うことができます。</p>
 
 <h2>システムの振る舞いを解析する</h2>
 
@@ -47,7 +51,15 @@
 
 <h1>どうやって使うの？</h1>
 
-<p>２つのバージョンを提供しています。<a href="http://tomoyo.sourceforge.jp/comparison.html.ja">機能比較表</a>があります。</p>
+<p><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja">TOMOYO Linux １系</a> は、２００５年１１月１１日にＧＰＬライセンスで公開されたオリジナルの実装です。 Linux カーネルに対して適用可能なパッチの形式で実装されており、現在でも活発に開発が行われています。</p>
+
+<p><a href="http://tomoyo.sourceforge.jp/2.3/index.html.ja">TOMOYO Linux ２系</a> は、 Linux カーネルに統合されている実装です。２００９年６月に公開されたカーネル 2.6.30 に TOMOYO Linux １系の機能の一部が統合されました。 Linux カーネルが提供しているＬＳＭ（ Linux Security Module ）フックを利用しています。しかし、 TOMOYO Linux １系が提供している全ての機能を実装するためにはＬＳＭフックを拡張する必要があります。そのため、現時点では TOMOYO Linux １系が提供している全ての機能を TOMOYO Linux ２系で提供できているわけではありません。<a href="http://tomoyo.sourceforge.jp/comparison.html.ja">機能比較表</a>に、１系と２系との違いが説明されています。</p>
+
+<p>どちらの系列を利用するかを決めたら、以下の対応するセクションへと進んでください。</p>
+
+<br>
+
+<hr>
 
 <h2><a href="http://tomoyo.sourceforge.jp/2.3/index.html.ja">メインライン版（２系）</a></h2>
 
