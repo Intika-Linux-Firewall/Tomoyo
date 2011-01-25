@@ -1,0 +1,269 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The tenth installment: "Let's split Apache's permissions."</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-10.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The tenth installment: "Let's split Apache's permissions."</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>In this installment, I explain steps for splitting domains based on Apache's VirtualHost configuration. I use CentOS 5.5 for this installment.</p>
+
+<h3>Installing mod_ccs</h3>
+
+<p>mod_ccs is an Apache 2.x module. mod_ccs allows Apache to perform TOMOYO Linux's domain transitions based on Apache's virtual host's names and based on CGI (processed inside Apache's process using mod_perl etc.) program's pathnames, using "domain transition without program execution" which is available in TOMOYO Linux 1.8.0 and later. Note that mod_ccs does not work with Linux 2.4 kernels.</p>
+
+<p>First, prepare for compiling Apache's modules. If you are using RedHat, install "httpd-devel" package. If you are using Debian, install "apache2-threaded-dev" package or "apache2-prefork-dev" package. Login as "root" user and run command listed in Fig. 1.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 1&nbsp;&nbsp;Installing packages for compiling Apache modules
+<pre>
+# yum install httpd-devel
+</pre>
+</td></tr>
+</table>
+
+<p>Next, download the source code. Do command listed in Fig. 2.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 2&nbsp;&nbsp;Downloading source code for mod_ccs
+<pre>
+# wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=4393&amp;root=tomoyo'
+</pre>
+</td></tr>
+</table>
+
+<p>Compile and install and activate the mod_ccs module. Run command listed in Fig. 3. If you are using RedHat, the command name is "apxs". If you are using Debian, the command name is "apxs2".</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Compiling mod_ccs
+<pre>
+# apxs -i -a -c mod_ccs.c
+</pre>
+</td></tr>
+</table>
+
+<p>You will find a line like Fig. 4 in the Apache's configuration files if Fig.3 finished successfully.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Configuration for loading mod_ccs
+<pre>
+LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
+</pre>
+</td></tr>
+</table>
+
+<h3>Configuring mod_ccs</h3>
+
+<p>mod_ccs performs domain transition based on requested file's pathname by specifying the mapping table of pathnames and domainnames using CCS_TransitionMap keyword in the Apache's configuration files. (Fig. 5) Fig. 5 assumes that IP address for www.tomoyo00.com www.tomoyo01.com www.tomoyo02.com www.tomoyo03.com are specified in /etc/hosts .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;An example of specifying CCS_TransitionMap keyword
+<pre>
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-00
+    ServerName www.tomoyo00.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo00.conf
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-01
+    ServerName www.tomoyo01.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo01.conf
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-02
+    ServerName www.tomoyo02.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo02.conf
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-03
+    ServerName www.tomoyo03.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo03.conf
+&lt;/VirtualHost&gt;
+</pre>
+</td></tr>
+</table>
+
+<p>Define mapping table of requested file on the filesystem and domainname to transit to in the file specified by CCS_TransitionMap keyword. (Fig. 6)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;An example of pathnames and domainnames mapping
+<pre>
+/var/www/cgi-bin/\*         &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-programs
+/usr/share/horde/\{\*\}/\*  &lt;kernel&gt; //apache /www.tomoyo00.com /horde
+/var/www/html/\{\*\}/\*     &lt;kernel&gt; //apache /www.tomoyo00.com /static-files
+/\{\*\}/\*                  &lt;kernel&gt; //apache /www.tomoyo00.com /default
+</pre>
+</td></tr>
+</table>
+
+<p>From now on, you need to use TOMOYO Linux kernel.</p>
+
+<p>Specify domain transition permissions to Apache's domain beforehand. (Fig. 7) If you forgot to do this, Apache will fail with Internal Server Error.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;An example of domain transition permissions
+<pre>
+&lt;kernel&gt; /usr/sbin/httpd
+
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-programs
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /horde
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /static-files
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
+</pre>
+</td></tr>
+</table>
+
+<p>TOMOYO Linux can be used with SELinux. But SELinux's default policy configuration does not allow Apache to write to /proc/ccs/self_domain . If SELinux is enabled, modify SELinux's policy configuration to allow Apache to write to /proc/ccs/self_domain . (Steps for modifying SELinux's policy configuration depend on distributions and versions. Fig. 8 should work for CentOS 5.5 but may not work for older versions.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Allow Apache to write to /proc/ccs/self_domain
+<pre>
+# cd /etc/selinux/
+# echo 'type=AVC msg=audit(1277948886.369:106): avc:  denied  { write } for pid=32078 comm="httpd" name="self_domain" dev=proc ino=-268435010 scontext=root:system_r:httpd_t:s0 tcontext=system_u:object_r:proc_t:s0 tclass=file' | audit2allow -M ccsecurity
+# semodule -i ccsecurity.pp
+</pre>
+</td></tr>
+</table>
+
+<p>Restart Apache by doing Fig. 9.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Restarting Apache
+<pre>
+# service httpd restart
+</pre>
+</td></tr>
+</table>
+
+<p>Errors like Fig. 10 (if you specified CCS_TransitionMap keyword) or Fig. 11 (if you didn't specify CCS_TransitionMap keyword) are reported if write access to /proc/ccs/self_domain failed.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;Apache's error message upon startup
+<pre>
+mod_ccs: Unable to open /proc/ccs/self_domain for writing. (errno = 13)
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;Apache's error log ( /var/log/httpd/error_log )
+<pre>
+[Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_ccs: Unable to open /proc/ccs/self_domain for writing.
+</pre>
+</td></tr>
+</table>
+
+<p>If there is a problem in the file specified by CCS_TransitionMap keyword, errors are reported when doing Fig. 9.</p>
+
+<p>To be able to confirm that domain transitions are performed, create a simple CGI program. (Fig. 12)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;A CGI program for printing current domain
+<pre>
+# cat &gt; /var/www/cgi-bin/test.cgi &lt;&lt; "EOF"
+#!/usr/bin/perl
+
+print "Content-type:text/html\r\n\r\n";
+print "&lt;HTML&gt;\n";
+print "&lt;HEAD&gt;\n";
+print "&lt;TITLE&gt;test&lt;/TITLE&gt;\n";
+print "&lt;/HEAD&gt;\n";
+print "&lt;BODY&gt;\n";
+
+open(IN, "/proc/ccs/self_domain") || print "error";
+$domain = &lt;IN&gt;;
+$domain =~ s/&amp;/&amp;amp;/g;
+$domain =~ s/&lt;/&amp;lt;/g;
+$domain =~ s/&gt;/&amp;gt;/g;
+close(IN);
+print $domain;
+print "\n";
+
+print "&lt;/BODY&gt;\n";
+print "&lt;/HTML&gt;\n";
+EOF
+# chmod 755 /var/www/cgi-bin/test.cgi
+</pre>
+</td></tr>
+</table>
+
+<p>Run the CGI programs using curl command (or web browsers) and confirm that domain transitions are performed. (Fig. 13)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Verify that domain transitions are performed
+<pre>
+[root@tomoyo ~]# curl http://www.tomoyo00.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo00.com /cgi-programs /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]# curl http://www.tomoyo01.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo01.com /cgi-programs /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]# curl http://www.tomoyo02.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo02.com /cgi-programs /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]# curl http://www.tomoyo03.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; //apache /www.tomoyo03.com /cgi-programs /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]#
+</pre>
+</td></tr>
+</table>
+
+<p>The rest steps are the same as creating policy configuration for Apache. Collect permissions using learning mode, check that all permissions are given and tune policy configuration using permissive mode, and protect using enforcing mode.</p>
+
+<p><a href="tutorial-9.html.en">Go back to the ninth installment.</a></p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
