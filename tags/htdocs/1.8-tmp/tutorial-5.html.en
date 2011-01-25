@@ -7,650 +7,161 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-4.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="tutorial-3.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>Chapter 5: How do I develop policy?</h1>
+<h1>Chapter 5: How do I manage domains?</h1>
 
-<p style="text-align:center;">Aim: to simplify and shorten domain policy in order to accommodate for temporary files and other permissions.</p>
+<p style="text-align:center;">Aim: to become familiar with "Learning Mode" and use it to analyze the behaviour of a domain.</p>
 
 <hr>
 
-<h2><a name="5.1">5.1: Patterning temporary files</a></h2>
+<h2><a name="5.1">5.1. Domain creation</a></h2>
 
-<p>A particular domain may require many different access permissions to many different resources. Since "Enforcing Mode" allows access to only resources explicitly defined, it is important to cover all necessary resources. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
+<p>Each domain will behave differently and require a unique set of permissions. Their behaviour must therefore be analyzed to determine which actions you wish to permit in domain policy. TOMOYO Linux can be used to restrict only a subset of the domains in a system, but the most secure system would restrict every domain in order to make sure there are no points of vulnerability.</p>
 
-<p>As mentioned in the previous chapter, there is a limit on the number of entries domain policy can contain. This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see <a href="tool-editpolicy.html.en#acl_editor">How to remove redundant ACL entries</a>.</p>
+<p>First, choose an application that you wish to analyze/protect. To demonstrate the procedure, this tutorial will use Apache in CentOS 5.5.</p>
 
-<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
+<p>Start the target application:</p>
 
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
-/tmp/RsACr8YD<br>
-/tmp/RsXg3Aav<br>
-/var/run/nscd/socket<br>
-/var/spool/clientmqueue/dfoBPETPpH002933<br>
-/var/spool/clientmqueue/dfoBPETf92002944<br>
-/var/spool/clientmqueue/qfoBPETPpH002933<br>
-/var/spool/clientmqueue/qfoBPETf92002944<br>
-/var/spool/clientmqueue/xfoBPETPpH002933<br>
-/var/spool/clientmqueue/xfoBPETf92002944
-</td></tr>
-</table>
-
-<p>In this example, "/tmp/RsACr8YD", "/tmp/RsXg3Aav", "/var/spool/clientmqueue/dfoBPETPpH002933", "/var/spool/clientmqueue/dfoBPETf92002944", "/var/spool/clientmqueue/qfoBPETPpH002933", "/var/spool/clientmqueue/qfoBPETf92002944", "/var/spool/clientmqueue/xfoBPETPpH002933" and "/var/spool/clientmqueue/xfoBPETf92002944" can be considered to be temporary files, thus patterns can be made for these pathnames.</p>
-
-<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the \? pattern which matches any one letter (other than '/') and \* pattern which matches zero or more repetition of any characters (other than '/') can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
-
-<p>Use "/usr/sbin/ccs-patternize" to convert into patterns non-interactively. Rewriting rules are specified in /etc/ccs/tools/patternize.conf file, as shown below:</p>
-
-<pre>
-# This file contains rewriting rules used by ccs-patternize command.
-
-# Domain policy consists with domain declaration lines (which start with
-# &lt;kernel&gt; ) and acl declaration lines (which do not start with &lt;kernel&gt; ).
-# You can refer the former using 'domain' keyword and the latter using 'acl'
-# keyword.
-#
-# Words in each line are separated by a space character. Therefore, you can
-# use 'domain[index]', 'acl[index]' for referring index'th word of the line.
-# The index starts from 1, and 0 refers the whole line (i.e.
-# 'domain[0]' = 'domain', 'acl[0]' = 'acl').
-#
-# Three operators are provided for conditional rewriting.
-# '.contains' is for 'fgrep keyword' match.
-# '.equals' is for 'grep ^keyword$' match.
-# '.starts' is for 'grep ^keyword' match.
-#
-# Rewriting rules are defined using multi-lined chunks. A chunk is terminated
-# by a 'rewrite' line which specifies old pattern and new pattern.
-# A 'rewrite' line is evaluated only when all preceding 'domain' and 'acl'
-# lines in that chunk have matched.
-# Evaluation stops at first 'rewrite' line where a word matched old pattern.
-# Therefore, no words are rewritten more than once.
-#
-# For user's convenience, new pattern can be omitted if old pattern is reused
-# for new pattern.
-
-# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
-# representing a ' ' in a word).
-
-# Files on proc filesystem.
-rewrite path_pattern proc:/self/task/\$/fdinfo/\$
-rewrite path_pattern proc:/self/task/\$/fd/\$
-rewrite head_pattern proc:/self/task/\$/
-rewrite path_pattern proc:/self/fdinfo/\$
-rewrite path_pattern proc:/self/fd/\$
-rewrite head_pattern proc:/self/
-rewrite path_pattern proc:/\$/task/\$/fdinfo/\$
-rewrite path_pattern proc:/\$/task/\$/fd/\$
-rewrite head_pattern proc:/\$/task/\$/
-rewrite path_pattern proc:/\$/fdinfo/\$
-rewrite path_pattern proc:/\$/fd/\$
-rewrite head_pattern proc:/\$/
-
-# Files on devpts filesystem.
-rewrite path_pattern devpts:/\$
-
-# Files on pipe filesystem.
-rewrite path_pattern pipe:[\$]
-rewrite path_pattern pipefs:/[\$]
-
-# Files on / partition.
-rewrite tail_pattern /etc/mtab~\$
-rewrite tail_pattern /etc/ccs/policy/\*/domain_policy.conf
-rewrite tail_pattern /etc/ccs/policy/\*/exception_policy.conf
-rewrite tail_pattern /etc/ccs/policy/\*/manager.conf
-rewrite tail_pattern /etc/ccs/policy/\*/profile.conf
-rewrite tail_pattern /etc/ccs/policy/\*/
-
-# Files on /tmp/ partition.
-rewrite tail_pattern /vte\?\?\?\?\?\?
-rewrite tail_pattern /.ICE-unix/\$
-rewrite tail_pattern /keyring-\?\?\?\?\?\?/socket.ssh
-rewrite tail_pattern /orbit-\*/bonobo-activation-register-\X.lock
-rewrite tail_pattern /orbit-\*/bonobo-activation-server-\X-ior
-rewrite tail_pattern /orbit-\*/linc-\*
-rewrite tail_pattern /orbit-\*/
-rewrite tail_pattern /sh-thd-\$
-rewrite tail_pattern /zman\?\?\?\?\?\?
-
-# Files on home directory.
-rewrite tail_pattern /.ICEauthority-\?
-rewrite tail_pattern /.xauth\?\?\?\?\?\?
-rewrite tail_pattern /.xauth\?\?\?\?\?\?-?
-rewrite tail_pattern /.local/share/applications/preferred-mail-reader.desktop.\?\?\?\?\?\?
-rewrite tail_pattern /.local/share/applications/preferred-web-browser.desktop.\?\?\?\?\?\?
-
-# Files on /var/ partition.
-rewrite tail_pattern /cache/fontconfig/\X-le64.cache-3
-rewrite tail_pattern /lib/gdm/.pulse/\X-default-source
-rewrite tail_pattern /lib/gdm/.pulse/\X-default-sink
-rewrite tail_pattern /lib/gdm/.dbus/session-bus/\X-\X
-rewrite tail_pattern /run/gdm/auth-for-\*/database-\?
-rewrite tail_pattern /run/gdm/auth-for-\*/database
-rewrite tail_pattern /run/gdm/auth-for-\*/
-rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/\*
-rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/
+<pre class="command">
+# service httpd start
 </pre>
 
-<p>The <b>"path_pattern"</b> directive matches the whole pathname.<br>
-The <b>"head_pattern"</b> directive matches leading pathname.<br>
-The <b>"tail_pattern"</b> directive matches trailing pathname.</p>
+<p>Run the policy editor again <b>without</b> the "/etc/ccs/" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
 
-<p>Append patterns for "/tmp/Rs\?\?\?\?\?\?" and "/var/spool/clientmqueue/\*" to /etc/ccs/tools/patternize.conf file:</p>
+<p>In CentOS 5.5, the location of Apache is "/usr/sbin/httpd".</p>
 
-<table border="1">
-<tr><td>
-rewrite tail_pattern /tmp/Rs\?\?\?\?\?\?<br>
-rewrite tail_pattern /var/spool/clientmqueue/\*
-</td></tr>
-</table>
+<p>Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line "/usr/sbin/httpd". In this picture, it is line 386:</p>
 
-<p>Then, convert using "ccs-patternize" command and compare how it was changed using "ccs-diffpolicy" command:</p>
+<p><img src="editpolicy-httpd-profile0.png" alt="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# ccs-savepolicy -d &gt; /tmp/old<br>
-[root@tomoyo ~]# ccs-patternize &lt; /tmp/old &gt; /tmp/new<br>
-[root@tomoyo ~]# ccs-diffpolicy /tmp/old /tmp/new<br>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-file write proc:/self/task/\$/attr/fscreate<br>
-delete file write proc:/self/task/2766/attr/fscreate<br>
-<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail<br>
-<br>
-file create /tmp/Rs\?\?\?\?\?\? 0666<br>
-file read /tmp/Rs\?\?\?\?\?\?<br>
-file unlink /tmp/Rs\?\?\?\?\?\?<br>
-file write /tmp/Rs\?\?\?\?\?\?<br>
-delete file create /tmp/RsACr8YD 0666<br>
-delete file create /tmp/RsXg3Aav 0666<br>
-delete file read /tmp/RsACr8YD<br>
-delete file read /tmp/RsXg3Aav<br>
-delete file unlink /tmp/RsACr8YD<br>
-delete file unlink /tmp/RsXg3Aav<br>
-delete file write /tmp/RsACr8YD<br>
-delete file write /tmp/RsXg3Aav<br>
-<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail<br>
-<br>
-file ioctl pipefs:/[\$] 0x5413<br>
-delete file ioctl pipefs:/[11895] 0x5413<br>
-delete file ioctl pipefs:/[11965] 0x5413<br>
-<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail /usr/sbin/sendmail<br>
-<br>
-file create /var/spool/clientmqueue/\* 0660<br>
-file read /var/spool/clientmqueue/\*<br>
-file unlink /var/spool/clientmqueue/\*<br>
-file write /var/spool/clientmqueue/\*<br>
-delete file create /var/spool/clientmqueue/dfoBPETPpH002933 0660<br>
-delete file create /var/spool/clientmqueue/dfoBPETf92002944 0660<br>
-delete file create /var/spool/clientmqueue/qfoBPETPpH002933 0660<br>
-delete file create /var/spool/clientmqueue/qfoBPETf92002944 0660<br>
-delete file read /var/spool/clientmqueue/dfoBPETPpH002933<br>
-delete file read /var/spool/clientmqueue/dfoBPETf92002944<br>
-delete file unlink /var/spool/clientmqueue/dfoBPETPpH002933<br>
-delete file unlink /var/spool/clientmqueue/dfoBPETf92002944<br>
-delete file unlink /var/spool/clientmqueue/qfoBPETPpH002933<br>
-delete file unlink /var/spool/clientmqueue/qfoBPETf92002944<br>
-delete file unlink /var/spool/clientmqueue/xfoBPETPpH002933<br>
-delete file unlink /var/spool/clientmqueue/xfoBPETf92002944<br>
-delete file write /var/spool/clientmqueue/dfoBPETPpH002933<br>
-delete file write /var/spool/clientmqueue/dfoBPETf92002944<br>
-delete file write /var/spool/clientmqueue/qfoBPETPpH002933<br>
-delete file write /var/spool/clientmqueue/qfoBPETf92002944<br>
-<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/ls<br>
-<br>
-file ioctl pipefs:/[\$] 0x5413<br>
-delete file ioctl pipefs:/[11965] 0x5413<br>
-</td></tr>
-</table>
+<p>If "/usr/sbin/httpd" is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <b>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</b>.</p>
 
-<p>In case the conversion did not achieve the desired result, "/tmp/new" can be edited with a text editor manually, or conversion can be retried after editing "/etc/ccs/tools/patternize.conf".</p>
+<p>You will notice that the picture above may look a little different to what you can see on your own screen. This is because the domain "/usr/sbin/httpd" has been registered with the "initialize_domain" directive. Let's spend some time exploring the management of domains before we continue.</p>
 
-<p>If the conversion has achieved the desired result, the changes can be applied to existing policy by loading the difference between the two:</p>
+<hr>
 
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# ccs-diffpolicy /tmp/old /tmp/new | /usr/sbin/ccs-loadpolicy -d
-</td></tr>
-</table>
+<h2><a name="5.2">5.2. Management of domain transitions</a></h2>
 
-<p>To convert only specific domains, the "/usr/sbin/ccs-selectpolicy" command can be used. For example, to update only "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains, do the following:</p>
+<p>Advanced control of domain transition is possible with TOMOYO Linux, and involves changes to exception policy. The instructions in this section require use of the policy editor tool. To edit exception policy, run the policy editor and <a href="tutorial-3.html.en#3.4">switch to the exception policy editor screen</a>. To add an entry, press the "a" key, type out the new entry you wish to add and press "Enter". To see what other commands are available, press the "?" key.</p>
 
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' &lt; /proc/ccs/domain_policy &gt; /tmp/old-httpd<br>
-[root@tomoyo ~]# ccs-patternize &lt; /tmp/old-httpd &gt; /tmp/new-httpd<br>
-[root@tomoyo ~]# ccs-diffpolicy /tmp/old-httpd /tmp/new-httpd | ccs-loadpolicy -d
-</td></tr>
-</table>
+<h3>initialize_domain</h3>
 
-<p>Conversion of a specific domain can also be managed by editing "/etc/ccs/tools/patternize.conf". The following line can be inserted before the "rewrite" line so that conversion is only done against "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains:</p>
+<p>When a unique execution occurs for application, a new domain is created. This allows for an application to receive different permissions depending on how it was executed (e.g. from an Xterm). However, it may be desirable to give the same permissions to an application without regard to how it was executed. This can simplify policy and make it easier to manage.</p>
+
+<p>To do this, we need to enter a new entry into the exception policy. For example, you might add the following to exception policy:</p>
 
 <pre>
-domain.starts &lt;kernel&gt; /usr/sbin/httpd
+initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<br>
+<p>Of course, "/usr/sbin/sshd" can be the full pathname of any application you wish to control domain transitions for. Having added this to exception policy, the application will now not create a new domain every time a unique execution occurs. Instead, it will reinitialize the domain to <b>"&lt;kernel&gt; /usr/sbin/sshd"</b>:</p>
 
-<hr>
-
-<h2><a name="5.2">5.2: Patterning file access permissions</a></h2>
-
-<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in "Learning Mode". For example, the domain policy can be changed to accommodate for web server contents:</p>
-
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
+<table border="1" summary="fig">
 <tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-file read /var/www/html/index.html<br>
-file read /var/www/html/alice/index.html<br>
-file read /var/www/html/alice/page1.html<br>
-file read /var/www/html/alice/page2.html<br>
-file read /var/www/html/alice/image1.jpg<br>
-file read /var/www/html/alice/image2.jpg<br>
-file read /var/www/html/alice/archive/page1.html<br>
-file read /var/www/html/alice/archive/image1.jpg<br>
-file read /var/www/html/alice/archive/page2.html<br>
-file read /var/www/html/alice/archive/image2.jpg<br>
-file read /var/www/html/bob/index.html<br>
-file read /var/www/html/bob/page1.html<br>
-file read /var/www/html/bob/page2.html<br>
-file read /var/www/html/bob/image1.jpg<br>
-file read /var/www/html/bob/image2.jpg<br>
-file read /var/www/html/bob/archive/page1.html<br>
-file read /var/www/html/bob/archive/image1.jpg<br>
-file read /var/www/html/bob/archive/page2.html<br>
-file read /var/www/html/bob/archive/image2.jpg
-</td><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-file read /var/www/html/\*.html<br>
-file read /var/www/html/\{\*\}/\*.html<br>
-file read /var/www/html/\{\*\}/\*.jpg<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
+<img src="tutorial/fig-3-4.png" alt="fig-3-4.png" width="800" height="420">
 </td></tr>
 </table>
 
-<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
-
-<table border="1">
-<tr><td>
-path_group WEB-CONTENTS /var/www/html/\*.html<br>
-path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.html<br>
-path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg<br>
-</td></tr>
-</table>
-
-<p>The following can then be defined in domain policy:</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-file read @WEB-CONTENTS
-</td></tr>
-</table>
-
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "path_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#5.1">5.1: Patterning temporary files</a>:</p>
+<p>The text "from any" included in the above command signifies that the application domain should be reinitialized when invoked by <b>any domain</b>. It is possible to cause reinitialization to happen only when the application domain is invoked by <b>a single specified domain</b>. This is achieved by adding the following to exception policy:</p>
 
 <pre>
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts file read
-rewrite path_pattern /var/www/html/\*.html @WEB-CONTENTS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts file read
-rewrite path_pattern /var/www/html/\{\*\}/\*.html @WEB-CONTENTS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts file read
-rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
+initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 </pre>
 
-<br>
-
-<hr>
-
-<h2><a name="5.3">5.3: Patterning numeric permissions</a></h2>
-
-<p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
-
-<p>The following domain policy example permits "/usr/sbin/httpd" to accept connections from port numbers between 1024 and 65535:</p>
-
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
+<table border="1" summary="fig">
 <tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829
-</td><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
-<br>
-<br>
+<img src="tutorial/fig-3-5.png" alt="fig-3-5.png" width="800" height="480">
 </td></tr>
 </table>
 
-<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
+<p>It is also allowable to specify only the last part of the domain name instead of the whole domain name. For example, just <b>"from /etc/rc.d/init.d/sshd"</b> instead of <b>"from &lt;kernel&gt; /etc/rc.d/init.d/sshd"</b>. This would of course be less specific a rule, and would for example still apply to the sshd daemon being run from a terminal.</p>
 
-<table border="1">
-<tr><td>
-number_group WEB-CLIENT-PORTS 1024-65535
-</td></tr>
-</table>
+<p>If you switch back to the "Domain Transition Editor" screen, you may see domains with a "!" mark in the third column. This means that the domain is unreachable and can safely be deleted. The domain you have chosen to initialize to will appear with a "*" mark.</p>
 
-<p>The following can then be defined in domain policy:</p>
+<p>Note that any policy specified in the unreachable domains will not automatically carry over into the initialized domain. For now, we have not developed any policy yet so this is not a problem. If you use this directive later on for domains that you have already developed policy for, you will need to either re-learn policy or copy over policy to the initialized domain.</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
-</td></tr>
-</table>
+<h3>no_initialize_domain</h3>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "number_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#5.1">5.1: Patterning temporary files</a>:</p>
+<p>After using the initialize_domain rule, a situation may arise where you do not want an application to be reinitialized from a particular domain. For example, the application "/bin/mail" executes "/usr/sbin/sendmail.sendmail" in order to send mails. Consider that the following has been added to exception policy:</p>
 
 <pre>
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
+initialize_domain /usr/sbin/sendmail.sendmail from any
 </pre>
 
-<br>
-
-<hr>
-
-<h2><a name="5.4">5.4: Patterning network access permissions</a></h2>
-
-<p>Patterns can be made for IP addresses in domain policy, for example:</p>
-
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 10.0.0.10 @WEB-CLIENT-PORTS<br>
-network inet stream accept 10.0.0.200 @WEB-CLIENT-PORTS
-</td><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS<br>
-network inet stream accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
-<br>
-<br>
-</td></tr>
-</table>
-
-<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
-
-<table border="1">
-<tr><td>
-address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
-address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
-address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
-</td></tr>
-</table>
-
-<p>The following can then be defined in domain policy:</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-<br>
-network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
-</td></tr>
-</table>
-
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "address_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#5.1">5.1: Patterning temporary files</a>:</p>
+<p>For example, if you wish to have separate permissions for sending mail and receiving mail, you can add the following to exception policy:</p>
 
 <pre>
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite address_pattern 0:0:0:0:0:0:0:1 @WEB-CLIENT-ADDRESS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite address_pattern 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-ADDRESS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
+no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 </pre>
 
-<br>
+<table border="1" summary="fig">
+<tr><td>
+<img src="tutorial/fig-3-6.png" alt="fig-3-6.png" width="800" height="500">
+</td></tr>
+</table>
 
-<hr>
+<h3>keep_domain</h3>
 
-<h2><a name="5.5">5.5: Review gathered permissions</a></h2>
-
-<p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.</p>
-
-<p>Note that Apache may have executed some external programs (e.g. "/bin/sh", "/usr/bin/perl", "/usr/lib/sendmail") and thus has some descendent domains. Be sure to change the profile number for all descendent domains as well.</p>
-
-<p>Choose target domains, press the "s" key, enter "2" and press the "Enter" key:</p>
-
-<p><img src="editpolicy-httpd-set-profile2.png" alt="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
-
-<p>Now the profile number of the "/usr/sbin/httpd" domain and its descendants have changed to 2:</p>
-
-<p><img src="editpolicy-httpd-profile2.png" alt="editpolicy-httpd-profile2.png" width="720" height="400"></p>
-
-<p>Quit the policy editor and continue using Apache:</p>
-
-<p><img src="operation-permissive.png" alt="operation-permissive.png" width="723" height="561"></p>
-
-<p>You can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
+<p>It may be preferable that any executed applications from a particular domain are <b>suppressed from undergoing a domain transition</b>. They therefore act within the permissions of the domain that has invoked it. For example, suppose you wish apply the same policy to all applications run within an ssh shell, you would add the following to exception policy:</p>
 
 <pre>
-[root@tomoyo ~]# cat /proc/ccs/stat
-Policy update:                              1571 (Last: 2010/12/25 16:10:48)
-Policy violation in learning mode:           453 (Last: 2010/12/25 15:33:21)
-Policy violation in permissive mode:          22 (Last: 2010/12/25 15:47:10)
-Policy violation in enforcing mode:            0
-Memory used by policy:                    165728
-Memory used by audit log:                      0 (Quota:   16777216)
-Memory used by query message:                  0 (Quota:    1048576)
-Total memory used:                        165728
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
-<br>
-
-<hr>
-
-<h2><a name="5.6">5.6: Using audit logs to develop policy</a></h2>
-
-<p>If audit logs have been configured at <a href="tutorial-3.html.en#3.5">3.5: Save audit logs (optional)</a>, necessary permissions can be picked up from "/var/log/tomoyo/reject_002.log":</p>
-
-<table border="1">
+<table border="1" summary="fig">
 <tr><td>
-[root@tomoyo ~]# cat /var/log/tomoyo/reject_002.log<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
-file execute /usr/bin/id<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-use_profile 2<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-use_group 0<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-misc env TERM<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-misc env PATH<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-misc env PWD<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-misc env LANG<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-misc env SHLVL<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-misc env LANGUAGE<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-misc env _<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245682 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245419 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read /etc/selinux/config<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=12 major=0 minor=15 perm=0444 type=file } path1.parent={ uid=0 gid=0 ino=496 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read selinuxfs:/mls<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-network unix stream connect /var/run/setrans/.setrans-unix<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=4026531844 major=0 minor=3 perm=0444 type=file } path1.parent={ uid=0 gid=0 ino=1 perm=0555 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read proc:/filesystems<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1547485 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1540124 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read /usr/lib/locale/locale-archive<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-network unix stream connect /var/run/setrans/.setrans-unix<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-network unix stream connect /var/run/nscd/socket<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-network unix stream connect /var/run/nscd/socket<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245231 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read /etc/nsswitch.conf<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245924 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read /etc/passwd<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-network unix stream connect /var/run/nscd/socket<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-network unix stream connect /var/run/nscd/socket<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245902 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read /etc/group<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245902 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-file read /etc/group
+<img src="tutorial/fig-3-9.png" alt="fig-3-9.png" width="800" height="350">
 </td></tr>
 </table>
 
-<br>
-<p>These can be compressed with the "ccs-sortpolicy" command:</p>
+<p>Now the execution of any application, such as "/bin/ls" or "/bin/cat" will not result in the creation of a new domain. It will instead remain in the domain specified above and thus act within the permissions of that domain.</p>
 
-<table border="1">
+<p>This could also be done for any shell instance by adding the following to exception policy:</p>
+
+<pre>
+keep_domain any from /bin/bash
+</pre>
+
+<table border="1" summary="fig">
 <tr><td>
-[root@tomoyo ~]# cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-file execute /usr/bin/id<br>
-<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
-use_profile 2<br>
-<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=12 major=0 minor=15 perm=0444 type=file } path1.parent={ uid=0 gid=0 ino=496 perm=0755 }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245231 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245682 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245419 perm=0755 }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245902 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245924 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1547485 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1540124 perm=0755 }<br>
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=4026531844 major=0 minor=3 perm=0444 type=file } path1.parent={ uid=0 gid=0 ino=1 perm=0555 }<br>
-file read /etc/group<br>
-file read /etc/nsswitch.conf<br>
-file read /etc/passwd<br>
-file read /etc/selinux/config<br>
-file read /usr/lib/locale/locale-archive<br>
-file read proc:/filesystems<br>
-file read selinuxfs:/mls<br>
-misc env LANG<br>
-misc env LANGUAGE<br>
-misc env PATH<br>
-misc env PWD<br>
-misc env SHLVL<br>
-misc env TERM<br>
-misc env _<br>
-network unix stream connect /var/run/nscd/socket<br>
-network unix stream connect /var/run/setrans/.setrans-unix<br>
-use_group 0
+<img src="tutorial/fig-3-8.png" alt="fig-3-8.png" width="800" height="420">
 </td></tr>
 </table>
 
-<p>These compressed logs can be saved into a temporary file. These can then be edited as required and appended to current policy using the "ccs-loadpolicy" command:</p>
+<p>This can be made even more specific, causing the suppression of domain transition only to occur when a specific application is executed from a specific domain. To do this, you could add the following to exception policy:</p>
 
-<table border="1">
+<pre>
+keep_domain /usr/bin/xargs from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+</pre>
+
+<table border="1" summary="fig">
 <tr><td>
-[root@tomoyo ~]# cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy &gt; ~/rejected.log<br>
-[root@tomoyo ~]# emacs ~/rejected.log<br>
-[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy -d &lt; ~/rejected.log
+<img src="tutorial/fig-3-10.png" alt="fig-3-10.png" width="800" height="430">
 </td></tr>
 </table>
 
-<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save "exception_policy.conf", "domain_poilicy.conf", "profile.conf" and "manager.conf" using this command:</p>
+<p>The "keep_domain" directive does not take precedence over the "initialize_domain" directive. If the "initialize_domain" directive has been specified for a particular application, that application will leave any domain with the "keep_domain" directive and reinitialize into its own domain.</p>
 
-<table border="1">
+<p>If you switch back to the "Domain Transition Editor" screen, you may see domains with a "!" mark in the third column. This means that the domain is unreachable and can safely be deleted. The domain that you have chosen to suppress domain transition from will appear with a "#*" mark.</p>
+
+<p>Note that any policy specified in the unreachable domains will not automatically be added to the parent domain (from which domain transition has been suppressed). For now, we have not developed any policy yet so this is not a problem. If you use this directive later on for domains that you have already developed policy for, you will need to either re-learn policy or copy over policy to the parent domain.</p>
+
+<h3>no_keep_domain</h3>
+
+<p>The "keep_domain" directive is useful in managing ssh login sessions as you cannot predict the commands the user will run and the order in which they will do so. However, there may be cases where you wish to resume domain transition, such as allowing access to password files when changing passwords or for restarting daemon services.</p>
+
+<p>For example, if you wish to resume domain transition only for "/bin/cat", you could add the following to exception policy:</p>
+
+<pre>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+</pre>
+
+<table border="1" summary="fig">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-savepolicy
+<img src="tutorial/fig-3-11.png" alt="fig-3-11.png" width="800" height="400">
 </td></tr>
 </table>
 
@@ -658,31 +169,125 @@ use_group 0
 
 <hr>
 
-<p>If you are using TOMOYO Linux for system analysis, you have reached your goal. The steps outlined in the chapters so far can be repeated for all domains which you wish to analyze.</p>
+<h2><a name="5.3">5.3. Switch to learning mode</a></h2>
 
-<p>If you are using TOMOYO Linux for protection, proceed to <a href="tutorial-6.html.en">Chapter 6</a> where we discuss how to enforce policy!</p>
+<p>To continue with our target application, Apache, let's register it with the "initialize_domain directive:</p>
+
+<pre>
+initialize_domain /usr/sbin/httpd from any
+</pre>
+
+<p>Now we can manage all instances of Apache from the "&lt;kernel&gt; /usr/sbin/httpd" domain. Any domains that appear with a "!" mark can be safely deleted as they are unreachable. To start developing policy for this domain, we need to switch it to "Learning Mode".</p>
+
+<p>Press the "s" key, enter '1' and press the "Enter" key:</p>
+
+<p><img src="editpolicy-httpd-set-profile1.png" alt="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
+
+<br>
+
+<p>Now the profile number of the "/usr/sbin/httpd" domain has changed to 1:</p>
+
+<p><img src="editpolicy-httpd-profile1.png" alt="editpolicy-httpd-profile1.png" width="720" height="400"></p>
+
+<br>
+
+<p>Press the "@" key to switch to the process list. Verify that "/usr/sbin/httpd" processes are assigned profile number 1:</p>
+
+<p><img src="editpolicy-httpd-process1.png" alt="editpolicy-httpd-process1.png" width="720" height="400"></p>
+
+<br>
+
+<hr>
+
+<h2><a name="5.4">5.4. Gathering necessary permissions</a></h2>
+
+<p>Restart the Apache in order to learn what permissions are required for starting/finishing the Apache:</p>
+
+<pre class="command">
+# service httpd restart
+</pre>
+
+<p>Run the policy editor again and go to the "/usr/sbin/httpd" line. The line number may have changed due to the creation of new domains from executed programs.</p>
+
+<p>Press the "Enter" key to browse the permissions that have been gathered:</p>
+
+<p><a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
+
+<p>This list was previously empty, but because the domain is in "Learning Mode", any new actions that occurred were appended to domain policy. This will continue until the domain is no longer placed in "Learning Mode". You can press the "r" key to refresh the screen.</p>
+
+<p>Quit the editor and use Apache to generate necessary permissions for normal usage. All actions should be performed that you wish to allow:</p>
+
+<p><img src="operation-learning.png" alt="operation-learning.png" width="689" height="907"></p>
+
+<br>
+
+<hr>
+
+<h2><a name="5.5">5.5. Saving permissions to disk</a></h2>
+
+<p>Remember to save policy, as permissions are accumulated only in kernel memory. <b>If the system is rebooted, the gathered permissions will be lost.</b></p>
+
+<p>To save policy to disk, use the following command:</p>
+
+<pre class="command">
+# /usr/sbin/ccs-savepolicy
+</pre>
+
+<p>By executing "ccs-savepolicy", four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/ccs/" directory. More precisely, they are symbolic links to files whose pathnames contain the creation time.</p>
+
+<p>To load the policy currently on the disk into the kernel, use the "ccs-loadpolicy" command:</p>
+
+<pre class="command">
+# /usr/sbin/ccs-loadpolicy -df &lt; /etc/ccs/domain_policy.conf
+# /usr/sbin/ccs-loadpolicy -ef &lt; /etc/ccs/exception_policy.conf
+# /usr/sbin/ccs-loadpolicy -p &lt; /etc/ccs/profile.conf
+# /usr/sbin/ccs-loadpolicy -m &lt; /etc/ccs/manager.conf
+</pre>
+
+<p>The <b>"-df"</b> option means overwrite "/proc/ccs/domain_policy".<br>
+The <b>"-ef"</b> option means overwrite "/proc/ccs/exception_policy".<br>
+The <b>"-p"</b> option means append to "/proc/ccs/profile".<br>
+The <b>"-m"</b> option means append to "/proc/ccs/manager".</p>
+
+<p>To make it harder for fatal mistakes to happen, "-pf" and "-mf" are not supported.</p>
+
+<p>You might see warning messages like below printed on the console:</p>
+
+<pre class="command">
+WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stopped learning mode.
+</pre>
+
+<p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If "Learning Mode" did not have a limit, the system may become unusably slow due to comparison with already learned permissions.</p>
+
+<p>This limit can be increased with the "max_learning_entry" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next chapter, and doing so can reduce the size of domain policy to become more manageable. You would then no longer need to increase the "max_learning_entry" value.</p>
+
+<p>You may also see the entry <b>"quota_exceeded"</b> in domain policy. This indicates that no new entries will be learnt until domain policy is shortened or the "max_learning_entry" value is increased.</p>
+
+<br>
+
+<p>Proceed to the <a href="tutorial-6.html.en">Chapter 6</a> where we talk about how to develop policy!</p>
 
 <div class=navfooter>
 <hr align="left" width="100%">
 <table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
 <tr>
 <td width="33%" align="left" valign="top">
-<a href="tutorial-3.html.en">Prev</a>
+<a href="tutorial-4.html.en">Prev</a>
 </td>
 <td width="34%" align="center" valign="top">
 <a href="tutorial-index.html.en">Index</a>
 </td>
 <td width="33%" align="right" valign="top">
-<a href="tutorial-5.html.en">Next</a>
+<a href="tutorial-6.html.en">Next</a>
 </td></tr>
 <tr><td width="33%" align="left" valign="top">
-Chapter 4: How do I manage domains?
+Chapter 4: How does TOMOYO Linux work?
 </td>
 <td width="34%" align="center" valign="top">
 <a href="http://tomoyo.sourceforge.jp/">Home</a>
 </td>
 <td width="33%" align="right" valign="top">
-Chapter 6: Stuff
+Chapter 6: How do I develop policy?
 </td>
 </tr>
 </table>

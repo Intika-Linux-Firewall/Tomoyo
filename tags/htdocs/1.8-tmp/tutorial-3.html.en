@@ -7,314 +7,288 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-2.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="tutorial-1.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>Chapter 3: How does TOMOYO Linux work?</h1>
+<h1>Chapter 3: How do I install TOMOYO Linux?</h1>
 
-<p style="text-align:center;">Aim: to become familiar with the concepts involved in TOMOYO Linux and usage of the associated userspace tools.</p>
-
-<hr>
-
-<h2><a name="3.1">3.1: Understanding domains</a></h2>
-
-<p>In TOMOYO Linux, the technique used to enforce MAC makes use of something called <b>"domains"</b>. This is an important concept. Every process in a system belongs to a domain, which is determined by its execution history. Broadly speaking, every time a process is executed, a new domain is created. Any particular domain is represented by a concatenation of all previously executed pathanames. This creation of a new domain can also be called a <b>"domain transition"</b>. Have a look at this diagram:</p>
-
-<table border="1" summary="fig">
-<tr><td>
-<img src="tutorial/fig-3-1.png" alt="fig-3-1.png" width="800" height="600">
-</td></tr>
-</table>
-
-<p>The kernel is always the first domain and is represented in TOMOYO Linux by <b>&lt;kernel&gt;</b>. In this example, the kernel then executes "/sbin/init". Because a process has been executed, a new domain is created which in this case is the domain <b>"&lt;kernel&gt; /sbin/init"</b>. The bootup scripts are then executed, which result in further domains being created.</p>
-
-<p>The process execution history is important. Consider the following domains:</p>
-
-<p>&lt;kernel&gt; /sbin/init <b>/etc/rc.d/rc</b><br>
-&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit <b>/etc/rc.d/rc</b><p>
-
-<p>In both cases, the script "/etc/rc.d/rc" is the process causing a new domain to be created. However, <b>because the process execution history is different, they are considered to be two separate domains</b>. This allows you to control what can be executed by any particular domain, and allows policy to be more flexible as you can apply different levels of restriction to a process depending on how it was executed. There is also the possibility to manage domain transition very precisely and for example apply the same restriction to a process without regard to how it was executed. This topic will be discussed later.</p>
-
-<h3>View domains with the policy editor</h3>
-
-<p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">how to use the Policy Editor</a>.</p>
-
-<p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with "/etc/ccs/" option to edit policy files within "/etc/ccs/":</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-editpolicy /etc/ccs/
-</td></tr>
-</table>
-
-<p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the <b>"Domain Transition Editor"</b>. The picture below describes the domain tree that should be visible after running the above command. As of now, only the "&lt;kernel&gt;" domain is defined:</p>
-
-<p><img src="editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" width="720" height="400"></p>
-
-<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. <b>There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/"</b>. Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in later. Press the "q" key to quit the policy editor.</p>
-
-<p>Now run the policy editor again <b>without</b> the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:</p>
-
-<table border="1">
-<tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-editpolicy
-</td></tr>
-</table>
-
-<p>As the system runs, TOMOYO Linux will record the creation of new domains and add them to the tree. After running the above command, the domain tree should appear populated with all domains created since startup:</p>
-
-<p><img src="editpolicy-domain-list2.png" alt="editpolicy-domain-list2.png" width="720" height="400"></p>
-
-<p>The first line shows what screen you are on and how many domains are listed.<br>
-The second line is the message area.<br>
-The third line shows the domain name currently selected by the cursor.<br>
-The fourth line and downwards are the domains currently defined.<p>
-
-<p>Try executing some commands and see where new domains are created. You can do this while you still have the policy editor running.</p>
-
-<p>You can scroll using the <b>arrow keys</b> and/or the <b>Home/End/PageUp/PageDown</b> keys.</br>
-Press the <b>"r"</b> key to refresh the contents of the screen.<br>
-Press the <b>"f"</b> key to find an entry.<br>
-Press the <b>"?"</b> key to view the available commands. Press the "?" again to go back to the previous screen.</p>
-
-<p>Note that a new domain is only created if it is unique, so executing the same command over and over again will not result in the creation of many domains.</p>
+<p style="text-align:center;">Aim: to install the TOMOYO Linux kernel and userland tools and prepare the system for analysis and/or restriction.</p>
 
 <hr>
 
-<h2><a name="3.2">3.2: Understanding profiles</a></h2>
+<h2><a name="3.1">3.1. Are binary packages available for my distribution?</a></h2>
 
-<p>Each domain can be restricted using TOMOYO Linux by assigning a <b>"profile"</b>. These profiles can be assigned to any domain independently of others, which allows you to slowly build up the security in your system one domain at a time. This also allows you to create custom profiles for specific domains, but this is a more advanced topic for later on.</p>
+<p>TOMOYO Linux requires the installation of a seperate Linux kernel from the one provided by your distribution. This can be done in one of two ways. A binary package can be installed, or the kernel can be compiled from source and manually patched. If your distribution is listed below, then you can install the binary package very easily without having to do any compilation.</p>
 
-<p>In the policy editor, look at the numbers in the second column of each line:</p>
+<p>Distributions that have binary packages provided:</p>
+<ul>
+<li>Fedora 13/14</li>
+<li>CentOS 4.8/5.5</li>
+<li>RHEL 6</li>
+<li>Debian Lenny/Squeeze</li>
+<li>OpenSUSE 11.3</li>
+<li>Asianux 3.0</li>
+<li>Ubuntu 8.04/10.04/10.10</li>
+<li>Vine Linux 5.1</li>
+</ul>
 
-<p><img src="editpolicy-domain-profile-number.png" alt="editpolicy-domain-profile-number.png" width="720" height="400"></p>
-
-<p>This number is called the <b>"profile number"</b>. A profile number is an integer value which takes between 0 and 255. The default profile number is "0", also known as "Disabled Mode", in which the domain is completely unrestricted.</p>
-
-<p>Press the <b>"w"</b> key to list the different "screens" that can be viewed using the policy editor:</p>
-
-<p><img src="editpolicy-window-list.png" alt="editpolicy-window-list.png" width="720" height="400"></p>
-
-<br>
-
-<p>Press the <b>"p"</b> key to select the <b>"Profile Editor"</b>, and you will see the list of profiles:</p>
-
-<p><img src="editpolicy-profile-list.png" alt="editpolicy-profile-list.png" width="720" height="400"></p>
-
-<br>
-
-<table border="1">
-<tr><td>Name</td><td>Control</td></tr>
-<tr>
-<td>COMMENT</td>
-<td>Description of the profile.</td>
-</tr>
-<tr>
-<td>CONFIG</td>
-<td>Configuration of operation mode.</td>
-</tr>
-<tr>
-<td>PREFERENCE</td>
-<td>Configuration of various options.</td>
-</tr>
-</table>
-<p>The "mode=" parameter of the CONFIG line can contain one of the following values:</p>
-<table border="1">
-<tr>
-<td>Value</td>
-<td>Meaning</td>
-</tr>
-<tr>
-<td>disabled</td>
-<td>Works as if a regular kernel.</td>
-</tr>
-<tr>
-<td>learning</td>
-<td>Do not reject an access request if the request violates policy. Append the request to policy.</td>
-</tr>
-<tr>
-<td>permissive</td>
-<td>Do not reject an access request if the request violates policy. Do not append the request to policy.</td>
-</tr>
-<tr>
-<td>enforcing</td>
-<td>Reject an access request if the request violates policy. Do not append the request to policy.</td>
-</tr>
-</table>
-
-<br>
-
-<p>Thus, there are four default profiles that each play a different role:</p>
-
-<table border="1">
-<tr><td>
-<img src="tutorial/fig-2-5-en.png" alt="fig-2-5-en.png" width="640" height="320">
-</td></tr>
-</table>
-
-<br>
-
-<p>Each of these profiles can be assigned to a domain:</p>
-
-<table border="1">
-<tr><td>
-<p><img src="tutorial/fig-2-6.png" alt="fig-2-6.png" width="800" height="600"></p>
-</td></tr>
-</table>
-
-<br>
-
-<p>The "Learning Mode" profile is the feature of TOMOYO Linux that makes developing policy very easy. This mode will automatically generate policy for any domain that has this profile selected. The other profiles, "Permissive Mode" and "Enforcing Mode", are for later on when a domain is ready to be restricted.</p>
+<p>If your distribution was listed above then continue to <a href="tutorial-2.html.en#2.2">Section 2.2A</a>, otherwise you will need to compile your own kernel. If this is the case then proceed to <a href="tutorial-2.html.en#2.3">Section 2.2B</a>
 
 <hr>
 
-<h2><a name="3.3">3.3: Understanding domain policy</a></h2>
+<h2><a name="3.2A">3.2. (A) Install binary packages</a></h2>
 
-<p>The restrictions of each domain can be viewed using the <b>"Domain Policy Editor"</b> screen, which can be accessed by selecting a domain in the "Domain Transition" screen, and then pressing the "Enter" key. Since no policy has been developed yet, the screen is empty. This is an example of domain policy for Apache:</p>
+<p>If your distribution uses RPM packages, import the GPG key with these commands:</p>
 
-<p><a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
-
-<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="tutorial-3.html.en#3.4">3.4: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>. However, it is recommended that you <b>continue with this tutorial rather than try to master these directives</b>. It will become clearer later on how these directives can be used.</p>
-
-<hr>
-
-<h2><a name="3.4">3.4: Understanding exception policy</a></h2>
-
-<p>Press the "w" key, then press the "e" key, and you will see the <b>"Exception Policy Editor"</b> screen:</p>
-
-<p><a href="editpolicy-exception-full.png">(Click to view complete screen.)<br><img src="editpolicy-exception-list1.png" alt="editpolicy-exception-list1.png" width="720" height="400"></a></p>
-
-<p>You can scroll this window using the arrow keys and/or the Home/End/PageUp/PageDown keys.</p>
-
-<p>The permissions here are similar to those in the domain policy, but apply to all domains. Permissions defined here will not be displayed in domain policy, and access requests from any domain that match a permission in exception policy will be automatically accepted. The exception policy can also be used to shorten and simplify domain policy for each domain by using the group directives.</p>
-
-<p>For in depth details on the directives that can be used in exception policy, see the <a href="policy-reference.html.en#exception_policy">Exception Policy Specifications</a>. However, it is recommended that you <b>continue with this tutorial rather than try to master these directives</b>. It will become clearer later on how these directives can be used.</p>
-
-<hr>
-
-<h2><a name="3.5">3.5: Save audit logs (optional)</a></h2>
-
-<p>When a domain tries to perform an action that has been permitted in domain/exception policy, this action is granted. If the action has not been permitted in policy, then the action is rejected, assuming the domain is in "Enforcing Mode".</p>
-
-<p>When developing policy, it may be useful to save logs of when domains make a request that is not defined in either domain policy or exception policy. While this is crucial for system administration once policy has been fully developed and enforced, it can also be used during the use of "Learning Mode".</p>
-
-<p>TOMOYO Linux can record <b>"access granted logs"</b> (access requests that did not violate domain policy) and <b>"access rejected logs"</b> (access requests that violated domain policy). These logs are in the form of domain policy. This is useful in the case that the user wishes to permit a domain to perform actions that are not currently permitted in policy. The "access rejected log" could then be used to append permissions to domain policy. The "Learning Mode" described in Chapter 4 mostly automates the process of appending "access rejected logs" into domain policy for domains set to that mode.</p>
-
-<p>The following values can be given for the grant_log= parameter of the CONFIG line:</p>
-<table border="1">
-<tr>
-<td>Value</td>
-<td>Meaning</td>
-</tr>
-<tr>
-<td>no</td>
-<td>Don't record "access granted logs" unless "grant_log=yes" is explicitly specified in the individual ACL entry.</td>
-</tr>
-<tr>
-<td>yes</td>
-<td>Record "access granted logs" unless "grant_log=no" is explicitly specified in the individual ACL entry.</td>
-</tr>
-</table>
-<p>The following values can be given for the reject_log= parameter of the CONFIG line:</p>
-<table border="1">
-<tr>
-<td>Value</td>
-<td>Meaning</td>
-</tr>
-<tr>
-<td>no</td>
-<td>Don't record "access rejected logs".</td>
-</tr>
-<tr>
-<td>yes</td>
-<td>Record "access rejected logs".</td>
-</tr>
-</table>
-
-<p>"/usr/sbin/ccs-auditd" is a daemon program that reads from "/proc/ccs/audit" and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
-
-<p>The configuration of this daemon is done in the "/etc/ccs/tools/auditd.conf" file. Text read from "/proc/ccs/audit" can be sorted and sent to different files. Some useful defaults exist, but an advaned user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
-
-<pre>
-# This file contains sorting rules used by ccs-auditd command.
-
-# An audit log consists with three lines. You can refer the first line
-# using 'header' keyword, the second line using 'domain' keyword, and the
-# third line using 'acl' keyword.
-#
-# Words in each line are separated by a space character. Therefore, you can
-# use 'header[index]', 'domain[index]', 'acl[index]' for referring index'th
-# word of the line. The index starts from 1, and 0 refers the whole line
-# (i.e. 'header[0]' = 'header', 'domain[0]' = 'domain', 'acl[0]' = 'acl').
-#
-# Three operators are provided for conditional sorting.
-# '.contains' is for 'fgrep keyword' match.
-# '.equals' is for 'grep ^keyword$' match.
-# '.starts' is for 'grep ^keyword' match.
-#
-# Sorting rules are defined using multi-lined chunks. A chunk is terminated
-# by a 'destination' line which specifies the pathname to write the audit
-# log. A 'destination' line is processed only when all preceding 'header',
-# 'domain' and 'acl' lines in that chunk have matched.
-# Evaluation stops at the first processed 'destination' line.
-# Therefore, no audit logs are written more than once.
-#
-# More specific matches should be placed before less specific matches.
-# For example:
-#
-# header.contains profile=3
-# domain.contains /usr/sbin/httpd
-# destination     /var/log/tomoyo/reject_003_httpd.log
-#
-# This chunk should be placed before the chunk that matches logs with
-# profile=3. If placed after, the audit logs for /usr/sbin/httpd will be
-# sent to /var/log/tomoyo/reject_003.log .
-
-# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
-# representing a ' ' in a word).
-
-# Discard all granted logs.
-header.contains granted=yes
-destination     /dev/null
-
-# Save rejected logs with profile=0 to /var/log/tomoyo/reject_000.log
-header.contains profile=0
-destination     /var/log/tomoyo/reject_000.log
-
-# Save rejected logs with profile=1 to /var/log/tomoyo/reject_001.log
-header.contains profile=1
-destination     /var/log/tomoyo/reject_001.log
-
-# Save rejected logs with profile=2 to /var/log/tomoyo/reject_002.log
-header.contains profile=2
-destination     /var/log/tomoyo/reject_002.log
-
-# Save rejected logs with profile=3 to /var/log/tomoyo/reject_003.log
-header.contains profile=3
-destination     /var/log/tomoyo/reject_003.log
+<pre class="command">
+# wget http://I-love.SAKURA.ne.jp/kumaneko-key
+# rpm --import kumaneko-key
 </pre>
 
-<p>WARNING: Be careful with disk space if "access granted logs" are saved as this file can grow extremely quickly. Do not do this unless you know what you are doing.</p>
+<p>If your distribution uses DEB packages, import the GPG key with these commands:</p>
 
-<p>To manage logs with "logrotate", create /etc/logrotate.d/tomoyo with the following content (give "nocreate" option or logs after the first rotation will not be saved):</p>
+<pre class="command">
+# wget http://I-love.SAKURA.ne.jp/kumaneko-key
+# apt-key add kumaneko-key
+</pre>
 
-<table border="1">
-<tr><td>
-/var/log/tomoyo/*.log {<br>
-&nbsp;&nbsp;weekly<br>
-&nbsp;&nbsp;rotate 9<br>
-&nbsp;&nbsp;missingok<br>
-&nbsp;&nbsp;notifempty<br>
-&nbsp;&nbsp;nocreate<br>
-}
-</td></tr>
-</table>
+<p>The binary packages provided by this project can be manually downloaded from <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=10270" target="_blank">this SourceForge page</a>. A package for the kernel and a package for the userspace tools are required. Alternatively, packages can be installed very easily straight from the repository using the following commands:</p>
 
-<p>If audit logs are not required, ccs-auditd need not be run. In this case, give PREFERENCE={ max_audit_log=0 } for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
+<p><b>Fedora 13 (for i686 and later)</b></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo \
+      http://tomoyo.sourceforge.jp/repos-1.7/Fedora13/ccs.repo
+# yum install ccs-kernel ccs-tools
+</pre>
+
+<p><b>CentOS 4.8 (for i586 and later)</b></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo \
+      http://tomoyo.sourceforge.jp/repos-1.7/CentOS4/ccs.repo
+# yum install ccs-kernel-smp ccs-tools
+</pre>
+
+<p><b>CentOS 5.5 (for i686 and later)</b></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo \
+      http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo
+# yum install ccs-kernel ccs-tools
+</pre>
+
+<p><b>RHEL 6 (for i686 and later)</b></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo \
+      http://tomoyo.sourceforge.jp/repos-1.7/RHEL6/ccs.repo
+# yum install ccs-kernel ccs-tools
+</pre>
+
+<p><b>Ubuntu 10.10 (for generic-pae flavour)</b></p>
+<pre class="command">
+# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/48987/ ./' \
+      &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-ccs ccs-tools
+</pre>
 
 <br>
 
-<p>Proceed to the <a href="tutorial-4.html.en">Chapter 4</a>, where we talk about how to manage domains!</p>
+<p>You can now proceed to section <a href="tutorial-2.html.en#2.3">2.3</a>.</p>
+
+<hr>
+
+<h2><a name="3.2B">3.2. (B) Install from source</a></h2>
+
+<h3>Install dependencies</a></h3>
+
+<p>These packages are required for compiling the kernel and the userspace tools:</p>
+<ul>
+<li><b>wget</b>: to download sources</li>
+<li><b>patch</b>: to patch the kernel</li>
+<li><b>gcc</b>: to build the kernel and tools</li>
+<li><b>make</b>: to build the kernel and tools</li>
+<li><b>ncurses</b>: for the tools user interface</li>
+<li><b>readline</b>: for the tools user interface (optional but recommended)</li>
+<li><b>help2man</b>: for the tools man pages (optional but recommended)</li>
+</ul>
+
+<p>These can be installed with the following commands:</p>
+
+<p><b>RedHat distributions</b></p>
+<pre class="command">
+# yum -y install wget patch gcc make ncurses-devel readline-devel help2man
+</pre>
+<p><b>Debian distributions</b></p>
+<pre class="command">
+# apt-get -y install wget patch gcc make libncurses-dev libreadline-dev help2man
+</pre>
+<p><b>SUSE distributions</b></p>
+<pre class="command">
+# yast -i wget patch gcc make ncurses-devel readline-devel help2man
+</pre>
+
+<h3>Download and patch the kernel</h3>
+
+<p>Download the kernel source from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>.<br>
+Linux kernel 2.4.30 and later are supported from the linux-2.4 tree.<br>
+Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.</p>
+
+<p>Extract the kernel source and go to the extracted directory.<br>
+In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be replaced with "2.6.37.diff" if using Linux kernel 2.6.37 :</p>
+
+<pre class="command">
+$ wget -O ccs-patch-1.8.0-20110121.tar.gz \
+      'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110121.tar.gz'
+$ wget -O ccs-patch-1.8.0-20110121.tar.gz.asc \
+      'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110121.tar.gz.asc'
+$ gpg ccs-patch-1.8.0-20110121.tar.gz.asc
+$ tar -zxf ccs-patch-1.8.0-20110121.tar.gz
+$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff
+</pre>
+
+<h3>Configure the kernel</h3>
+
+<pre class="command">
+$ make -s menuconfig
+</pre>
+
+<p>Choose the following options in "Security options" section:</p>
+
+<ul>
+<li>[*] CCSecurity support</li>
+<li>[ ]   Compile as loadable kernel module</li>
+<li>[ ]   Disable by default</li>
+<li>[ ]   Do not modify 'struct task_struct' in order to keep KABI</li>
+<li>(2048) Default maximal count for learning mode</li>
+<li>(/sbin/ccs-init) Default policy loader</li>
+<li>(/sbin/ccs-start) Alternative activation trigger</li>
+<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
+</ul>
+
+<p><i>"Compile as loadable kernel module"</i> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
+
+<p><i>"Disable by default"</i> will enable TOMOYO Linux only when ccsecurity=on is passed to the kernel's command line options. If this option is not selected, ccsecurity=off will disable TOMOYO Linux.</p>
+
+<p><i>"Do not modify 'struct task_struct' in order to keep KABI"</i> is available to 2.6 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
+
+<h3>Compile and install the kernel</h3>
+
+<p>Once the kernel has been configured, compile and install:</p>
+
+<pre class="command">
+$ make -s dep
+$ make -s
+$ make -s modules
+$ su
+# make -s modules_install install
+</pre>
+
+<p>Create initrd/initramfs if required.</p>
+
+<h3>Install the userspace tools</h3>
+
+<p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
+
+<pre class="command">
+$ wget -O ccs-tools-1.8.0-20101231.tar.gz \
+      'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz'
+$ wget -O ccs-tools-1.8.0-20101231.tar.gz.asc \
+      'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz.asc'
+$ gpg ccs-tools-1.8.0-20101231.tar.gz.asc
+$ tar -zxf ccs-tools-1.8.0-20101231.tar.gz
+$ cd ccstools/
+$ make -s
+$ su
+# make -s install
+</pre>
+
+<br>
+
+<p>You can now proceed to section <a href="tutorial-3.html.en#3.3">3.3</a>.</p>
+
+<hr>
+
+<h2><a name="3.3">3.3. Initialize configuration</a></h2>
+
+<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using /bin/bash, append the following line to ~/.bashrc:</p>
+
+<pre>
+export PATH=$PATH:/usr/sbin
+</pre>
+
+<p>Before you can make use of TOMOYO Linux, an initialization procedure must take place. This prepares the files in which policy information will be stored. All policy files are <b>stored in the "/etc/ccs/" directory</b>.</p>
+
+<p>One of two commands can be used to initialize configuration. The command you use depends on what operations you wish to analyze or restrict.</p>
+
+<p>Some users may wish to restrict only file related operations, such as read, write and execute. This is suitable for users wanting to keep policy simpler or do not require the full functionality of TOMOYO Linux. In this case, policy can be initialized using this command:</p>
+
+<pre class="command">
+# /usr/lib/ccs/init_policy --file-only-profile
+</pre>
+
+<p>Other users may wish to make use of all the restrictive capabilities of TOMOYO Linux, and may want to analyze or restrict all possible operations (e.g. files, networks, capabilities, environment variables, signal transmissions). This is suitable for users wanting to secure their system as much as possible. This is also what this tutorial generally assumes the reader has chosen. In this case, run the following command:</p>
+
+<pre class="command">
+# /usr/lib/ccs/init_policy
+</pre>
+
+<p>After running one of the above commands, you should see the following output:</p>
+
+<pre class="command">
+# /usr/lib/ccs/init_policy
+</pre>
+<pre class="output">
+Creating policy directory... OK
+Creating configuration directory... OK
+Creating exception policy... OK
+Creating domain policy... OK
+Creating manager policy... OK
+Creating default profile... OK
+Creating stat policy... OK
+Creating module loader... OK
+Creating configuration file for ccs-editpolicy ... OK
+Creating configuration file for ccs-auditd ... OK
+Creating configuration file for ccs-patternize ... OK
+Creating configuration file for ccs-notifyd ... OK
+</pre>
+
+<br>
+
+<hr>
+
+<h2><a name="3.4">3.4. Configure your bootloader</a></h2>
+
+<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <i>"Disable by default"</i> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options.</p>
+
+<p>Instructions go here...</p>
+
+<hr>
+
+<h2><a name="3.5">3.5. Reboot your system</a></h2>
+
+<p>Now you have finished all preparation. You can't wait any more? Now it's time to make use of your newly installed kernel. Reboot your system and choose the entry with TOMOYO Linux kernel at the GRUB screen, or at whatever other bootloader you have installed:</p>
+
+<p><img src="tutorial/fig-1-12.png" alt="fig-1-12.png" width="640" height="480"></p>
+
+<br>
+
+<p>If everything was installed properly and the bootloader was correctly configured, the kernel should boot as normal and TOMOYO Linux should be activated:</p>
+
+<p><img src="tutorial/fig-1-13.png" alt="fig-1-13.png" width="720" height="400"></p>
+
+<br>
+
+<hr>
+
+<h2><a name="3.6">3.6. How can I disable/uninstall TOMOYO Linux?</a></h2>
+
+<p>If your system becomes unable to boot during the course of this tutorial or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending ccsecurity=off at the kernel command-line parameters.</p>
+
+<p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. rpm or apt). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
+
+<br>
+
+<p>Proceed to the <a href="tutorial-4.html.en">Chapter 4</a>, where the main concepts behind TOMOYO Linux are discussed!</p>
 
 <div class=navfooter>
 <hr align="left" width="100%">
@@ -330,13 +304,13 @@ destination     /var/log/tomoyo/reject_003.log
 <a href="tutorial-4.html.en">Next</a>
 </td></tr>
 <tr><td width="33%" align="left" valign="top">
-Chapter 2: How do I install TOMOYO Linux?
+Chapter 2: Why do I need TOMOYO Linux?
 </td>
 <td width="34%" align="center" valign="top">
 <a href="http://tomoyo.sourceforge.jp/">Home</a>
 </td>
 <td width="33%" align="right" valign="top">
-Chapter 4: How do I manage domains?
+Chapter 4: How does TOMOYO Linux work?
 </td>
 </tr>
 </table>
