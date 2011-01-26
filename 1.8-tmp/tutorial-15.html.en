@@ -1,0 +1,332 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The ???th installment: "Let's master profile configuration."</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-10.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The ???th installment: "Let's master profile configuration."</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>In this installment, I explain details on TOMOYO Linux's profile configurations.</p>
+
+<h3>About policy initialization</h3>
+
+<p>Several configuration files are created by executing /usr/lib/ccs/init_policy . Supported command line options are listed below.</p>
+
+<table border="1">
+<tr><td>Option</td><td>Meaning</td></tr>
+<tr><td>--full-profile</td><td>Create profiles with all functionality enabled. This is default unless --file-only-profile is specified.</td></tr>
+<tr><td>--file-only-profile</td><td>Create profiles with only file related functionality enabled.</td></tr>
+<tr><td>--use_profile=$number</td><td>Use profile $number for &lt;kernel&gt; domain when creating /etc/ccs/domain_policy.conf . $number is an integer between 0 and 255. The default value is 0.</td></tr>
+<tr><td>--use_group=$number</td><td>Use ACL group $number for &lt;kernel&gt; domain when creating /etc/ccs/domain_policy.conf . $number is an integer between 0 and 255. The default value is 0.</td></tr>
+<tr><td>--root=$rootdir</td><td>Create files after changing root directory to $rootdir . The default value is / .<br>
+You can use this option when your / partition is mounted somewhere else.</td></tr>
+<tr><td>--policy_dir=$configdir</td><td>Create files into $configdir directory. The default value is /etc/ccs/ directory.<br>
+You can use this option when you want to create files under different directory. But if you used this option, you need to modify other programs in ccs-tools package so that programs searches $configdir rather than /etc/ccs/ directory.</td></tr>
+<tr><td>--module_name=$module</td><td>Use $module as the name of loadable kernel module when creating /etc/ccs/ccs-load-module . The default value is ccsecurity .<br>
+/etc/ccs/ccs-load-module is called by /sbin/ccs-init if TOMOYO Linux was built as a loadable kernel module (i.e. CONFIG_CCSECURITY_LKM=y ).
+</td></tr>
+<tr><td>--grant_log=$bool</td><td>Set default grant log mode to $bool. $bool is either yes or no. The default value is no.</td></tr>
+<tr><td>--reject_log=$bool</td><td>Set default reject log mode to $bool. $bool is either yes or no. The default value is yes.</td></tr>
+<tr><td>--max_audit_log=$number</td><td>Set maximum audit log (i.e. grant log and reject log) entries that the kernel will spool in the /proc/ccs/audit interface. $number is an integer. The default value is 1024.<br>
+You may set to 0 if you don't need audit logs. You can also control maximum memory used by audit log entries via /proc/ccs/stat interface.</td></tr>
+<tr><td>--max_learning_entry=$number</td><td>Set maximum ACL entries automatically added to each domain by the kernel when using learning mode. $number is an integer. The default value is 2048.<br>
+You may set to 0 if you don't want the kernel to automatically add ACL entries to each domain. You can also control maximum memory used by policy via /proc/ccs/stat interface.</td></tr>
+<tr><td>--enforcing_penalty=$period</td><td>Carry sleep penalty for $period deciseconds (decisecond = 0.1 second) against processes that violated policy in enforcing mode. $number is an integer. The default value is 0.<br>
+You may set to a small integer for avoiding CPU consumption problem.</td></tr>
+</table>
+<p></p>
+
+<h3>Choosing functionality to use</h3>
+
+<p>By executing /usr/lib/ccs/init_policy , 4 profiles are created in /etc/ccs/profile.conf .</p>
+
+<p>Each profile in /etc/ccs/profile.conf has $number-CONFIG lines. The $number-CONFIG line has hierarchical structure.</p>
+
+<table border="1">
+<tr><td>Configuration</td><td>Meaning</td><td>Overrides</td></tr>
+<tr><td>CONFIG=</td><td>Default configuration for all access requests. This mode is used unless explicitly overridden. The default value is disabled mode.</td></tr>
+<tr><td>CONFIG::file=</td><td>Default configuration for file related access requests.<br>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::file::$functionality= line.</td><td rowspan=5>CONFIG=</td></tr>
+<tr><td>CONFIG::network=</td><td>Default configuration for network related access requests.<br>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::network::$functionality= line.</td></tr>
+<tr><td>CONFIG::misc=</td><td>Default configuration for miscellaneous access requests.<br>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::misc::$functionality= line.</td></tr>
+<tr><td>CONFIG::ipc=</td><td>Default configuration for inter-process communication related access requests.<br>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::ipc::$functionality= line.</td></tr>
+<tr><td>CONFIG::capability=</td><td>Default configuration for capability related access requests.<br>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::capability::$functionality= line.</td></tr>
+</table>
+
+<p>If you executed /usr/lib/ccs/init_policy without --file-only-profile option,
+you will find CONFIG= lines in /etc/ccs/profile.conf .</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=-----Disabled Mode-----<br>
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+0-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
+1-COMMENT=-----Learning Mode-----<br>
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-CONFIG={ mode=learning grant_log=no reject_log=yes }<br>
+2-COMMENT=-----Permissive Mode-----<br>
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+2-CONFIG={ mode=permissive grant_log=no reject_log=yes }<br>
+3-COMMENT=-----Enforcing Mode-----<br>
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
+</td></tr>
+</table>
+
+<p>If you executed /usr/lib/ccs/init_policy with --file-only-profile option, you will find CONFIG::file= lines in /etc/ccs/profile.conf . Since CONFIG::file= line overrides CONFIG= line and the default value for CONFIG= line is disabled mode, /etc/ccs/profile.conf generated by --file-only-profile option will check only file related access requests.</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=-----Disabled Mode-----<br>
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }<br>
+1-COMMENT=-----Learning Mode-----<br>
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
+2-COMMENT=-----Permissive Mode-----<br>
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
+3-COMMENT=-----Enforcing Mode-----<br>
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
+</td></tr>
+</table>
+
+<p>You can override configurations generated by /usr/lib/ccs/init_policy by manually editing /etc/ccs/profile.conf .</p>
+
+<p>For example, you can enable only file and network and miscellaneous access requests by changing like below:</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=-----Disabled Mode-----<br>
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+0-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
+0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }<br>
+0-CONFIG::network={ mode=disabled grant_log=no reject_log=yes }<br>
+0-CONFIG::misc={ mode=disabled grant_log=no reject_log=yes }<br>
+1-COMMENT=-----Learning Mode-----<br>
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
+1-CONFIG::network={ mode=learning grant_log=no reject_log=yes }<br>
+1-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }<br>
+2-COMMENT=-----Permissive Mode-----<br>
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+2-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
+2-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }<br>
+2-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }<br>
+3-COMMENT=-----Enforcing Mode-----<br>
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+3-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
+3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
+3-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }<br>
+3-CONFIG::misc={ mode=enforcing grant_log=no reject_log=yes }
+</td></tr>
+</table>
+
+<p>Since the default value for CONFIG= line is disabled mode, you can remove redundant lines like below:</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=-----Disabled Mode-----<br>
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-COMMENT=-----Learning Mode-----<br>
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
+1-CONFIG::network={ mode=learning grant_log=no reject_log=yes }<br>
+1-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }<br>
+2-COMMENT=-----Permissive Mode-----<br>
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
+2-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }<br>
+2-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }<br>
+3-COMMENT=-----Enforcing Mode-----<br>
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
+3-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }<br>
+3-CONFIG::misc={ mode=enforcing grant_log=no reject_log=yes }
+</td></tr>
+</table>
+
+<p>You can mix different modes within one profile. For example, you can use enforcing mode for file access requests and learning mode for network and miscellaneous access requests by adding like below:</p>
+
+<table border="1">
+<tr><td>
+4-COMMENT=-----Learning Mode for network and misc, Enforcing for file-----<br>
+4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
+4-CONFIG::network={ mode=learning grant_log=no reject_log=yes }<br>
+4-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }<br>
+</td></tr>
+</table>
+
+<p>Since the most difficult part of developing policy is to cover all file related access requests, using profiles with mixed mode helps developing policy in incremental approach. You can add profile 5 and profile 6 in addition to profile 4.</p>
+
+<table border="1">
+<tr><td>
+5-COMMENT=-----Permissive Mode for network and misc, Enforcing for file-----<br>
+5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+5-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
+5-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }<br>
+5-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }<br>
+6-COMMENT=-----Enforcing Mode for file and network and misc-----<br>
+6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+6-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
+6-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }<br>
+6-CONFIG::misc={ mode=enforcing grant_log=no reject_log=yes }<br>
+</td></tr>
+</table>
+
+<p>You can selectively enable/disable individual access requests. Supported lines are listed below.</p>
+
+<table border="1">
+<tr><td>Configuration</td><td>Meaning</td><td>Permissions checked by enabling this configuration</td><td>Overrides</td></tr>
+<tr><td>CONFIG::file::execute=</td><td>Configuration for access requests on program execution.</td><td>file execute</td><td rowspan=24>CONFIG=<br>CONFIG::file=</td></tr>
+<tr><td>CONFIG::file::open=</td><td>Configuration for access requests on file open.</td><td>file read<br>file write<br>file append</td></tr>
+<tr><td>CONFIG::file::create=</td><td>Configuration for access requests on creating regular files.</td><td>file create</td></tr>
+<tr><td>CONFIG::file::unlink=</td><td>Configuration for access requests on deleting files.</td><td>file delete</td></tr>
+<tr><td>CONFIG::file::getattr=</td><td>Configuration for access requests on getting attributes on files and directories.</td><td>file getattr</td></tr>
+<tr><td>CONFIG::file::mkdir=</td><td>Configuration for access requests on creating directories.</td><td>file mkdir</td></tr>
+<tr><td>CONFIG::file::rmdir=</td><td>Configuration for access requests on deleting directories.</td><td>file rmdir</td></tr>
+<tr><td>CONFIG::file::mkfifo=</td><td>Configuration for access requests on creating FIFOs.</td><td>file mkfifo</td></tr>
+<tr><td>CONFIG::file::mksock=</td><td>Configuration for access requests on creating Unix domain sockets.</td><td>file create</td></tr>
+<tr><td>CONFIG::file::create=</td><td>Configuration for access requests on creating regular files.</td><td>file create</td></tr>
+<tr><td>CONFIG::file::truncate=</td><td>Configuration for access requests on truncating regular files.</td><td>file truncate</td></tr>
+<tr><td>CONFIG::file::symlink=</td><td>Configuration for access requests on creating symbolic links.</td><td>file symlink</td></tr>
+<tr><td>CONFIG::file::mkblock=</td><td>Configuration for access requests on creating block device files.</td><td>file mkblock</td></tr>
+<tr><td>CONFIG::file::mkchar=</td><td>Configuration for access requests on creating character device files.</td><td>file mkchar</td></tr>
+<tr><td>CONFIG::file::link=</td><td>Configuration for access requests on creating hard links.</td><td>file link</td></tr>
+<tr><td>CONFIG::file::rename=</td><td>Configuration for access requests on renaming files and directories.</td><td>file rename</td></tr>
+<tr><td>CONFIG::file::chmod=</td><td>Configuration for access requests on changing DAC mode of files and directories.</td><td>file chmod</td></tr>
+<tr><td>CONFIG::file::chown=</td><td>Configuration for access requests on changing owner ID of files and directories.</td><td>file chown</td></tr>
+<tr><td>CONFIG::file::chgrp=</td><td>Configuration for access requests on changing group ID of files and directories.</td><td>file chgrp</td></tr>
+<tr><td>CONFIG::file::ioctl=</td><td>Configuration for access requests on using ioctl request of files and directories.</td><td>file ioctl</td></tr>
+<tr><td>CONFIG::file::chroot=</td><td>Configuration for access requests on changing root directory.</td><td>file chroot</td></tr>
+<tr><td>CONFIG::file::mount=</td><td>Configuration for access requests on mounting filesystems.</td><td>file mount</td></tr>
+<tr><td>CONFIG::file::unmount=</td><td>Configuration for access requests on unmounting filesystems.</td><td>file unmount</td></tr>
+<tr><td>CONFIG::file::pivot_root=</td><td>Configuration for access requests on exchanging root directories.</td><td>file pivot_root</td></tr>
+<tr><td>CONFIG::network::inet_stream_bind=</td><td>Configuration for access requests on bind() for TCP/IP sockets.</td><td>network inet stream bind</td><td rowspan=21>CONFIG=<br>CONFIG::network=</td></tr>
+<tr><td>CONFIG::network::inet_stream_listen=</td><td>Configuration for access requests on listen() for TCP/IP sockets.</td><td>network inet stream listen</td></tr>
+<tr><td>CONFIG::network::inet_stream_connect=</td><td>Configuration for access requests on connect() for TCP/IP sockets.</td><td>network inet stream connect</td></tr>
+<tr><td>CONFIG::network::inet_stream_accept=</td><td>Configuration for access requests on accept() for TCP/IP sockets.</td><td>network inet stream accept</td></tr>
+<tr><td>CONFIG::network::inet_dgram_bind=</td><td>Configuration for access requests on bind() for UDP/IP sockets.</td><td>network inet dgram bind</td></tr>
+<tr><td>CONFIG::network::inet_dgram_send=</td><td>Configuration for access requests on send() for UDP/IP sockets.</td><td>network inet dgram send</td></tr>
+<tr><td>CONFIG::network::inet_dgram_recv=</td><td>Configuration for access requests on recv() for UDP/IP sockets.</td><td>network inet dgram recv</td></tr>
+<tr><td>CONFIG::network::inet_raw_bind=</td><td>Configuration for access requests on bind() for RAW/IP sockets.</td><td>network inet raw bind</td></tr>
+<tr><td>CONFIG::network::inet_raw_send=</td><td>Configuration for access requests on send() for RAW/IP sockets.</td><td>network inet raw send</td></tr>
+<tr><td>CONFIG::network::inet_raw_recv=</td><td>Configuration for access requests on recv() for RAW/IP sockets.</td><td>network inet raw recv</td></tr>
+<tr><td>CONFIG::network::unix_stream_bind=</td><td>Configuration for access requests on bind() for Unix domain's stream sockets.</td><td>network unix stream bind</td></tr>
+<tr><td>CONFIG::network::unix_stream_listen=</td><td>Configuration for access requests on listen() for Unix domain's stream sockets.</td><td>network unix stream listen</td></tr>
+<tr><td>CONFIG::network::unix_stream_connect=</td><td>Configuration for access requests on connect() for Unix domain's stream sockets.</td><td>network unix stream connect</td></tr>
+<tr><td>CONFIG::network::unix_stream_accept=</td><td>Configuration for access requests on accept() for Unix domain's stream sockets.</td><td>network unix stream accept</td></tr>
+<tr><td>CONFIG::network::unix_dgram_bind=</td><td>Configuration for access requests on bind() for Unix domain's datagram sockets.</td><td>network unix dgram bind</td></tr>
+<tr><td>CONFIG::network::unix_dgram_send=</td><td>Configuration for access requests on send() for Unix domain's datagram sockets.</td><td>network unix dgram send</td></tr>
+<tr><td>CONFIG::network::unix_dgram_recv=</td><td>Configuration for access requests on recv() for Unix domain's datagram sockets.</td><td>network unix dgram recv</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_bind=</td><td>Configuration for access requests on bind() for Unix domain's sequenced packet stream sockets.</td><td>network unix seqpacket bind</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_listen=</td><td>Configuration for access requests on listen() for Unix domain's sequenced packet stream sockets.</td><td>network unix seqpacket listen</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_connect=</td><td>Configuration for access requests on connect() for Unix domain's sequenced packet stream sockets.</td><td>network unix seqpacket connect</td></tr>
+<tr><td>CONFIG::network::unix_seqpacket_accept=</td><td>Configuration for access requests on accept() for Unix domain's sequenced packet stream sockets.</td><td>network unix seqpacket accept</td></tr>
+<tr><td>CONFIG::misc::env=</td><td>Configuration for access requests on passing environment variables upon program execution.</td><td>misc env</td><td>CONFIG=<br>CONFIG::misc=</td></tr>
+<tr><td>CONFIG::ipc::signal=</td><td>Configuration for access requests on sending signals.</td><td>ipc signal</td><td>CONFIG=<br>CONFIG::ipc=</td></tr>
+<tr><td>CONFIG::capability::use_route=</td><td>Configuration for access requests on creating PF_ROUTE sockets.</td><td>capability use_route</td><td rowspan=10>CONFIG=<br>CONFIG::capability=</td></tr>
+<tr><td>CONFIG::capability::use_packet=</td><td>Configuration for access requests on creating PF_PACKET sockets.</td><td>capability use_packet</td></tr>
+<tr><td>CONFIG::capability::SYS_REBOOT=</td><td>Configuration for access requests on calling reboot() system call.</td><td>capability SYS_REBOOT</td></tr>
+<tr><td>CONFIG::capability::SYS_VHANGUP=</td><td>Configuration for access requests on calling vhangup() system call.</td><td>capability SYS_VHANGUP</td></tr>
+<tr><td>CONFIG::capability::SYS_TIME=</td><td>Configuration for access requests on changing system's clock.</td><td>capability SYS_TIME</td></tr>
+<tr><td>CONFIG::capability::SYS_NICE=</td><td>Configuration for access requests on changing priority.</td><td>capability SYS_NICE</td></tr>
+<tr><td>CONFIG::capability::SYS_SETHOSTNAME=</td><td>Configuration for access requests on changing hostname and domainname.</td><td>capability SYS_SETHOSTNAME</td></tr>
+<tr><td>CONFIG::capability::use_kernel_module=</td><td>Configuration for access requests on loading or unloading kernel modules.</td><td>capability use_kernel_module</td></tr>
+<tr><td>CONFIG::capability::SYS_KEXEC_LOAD=</td><td>Configuration for access requests on calling kexec_load() system call.</td><td>capability SYS_KEXEC_LOAD</td></tr>
+<tr><td>CONFIG::capability::SYS_PTRACE=</td><td>Configuration for access requests on calling ptrace() system call.</td><td>capability SYS_PTRACE</td></tr>
+</table>
+
+<p>Thus, you can define profiles that restrict only program execution:</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=-----Disabled Mode-----<br>
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+0-CONFIG::file::execute={ mode=disabled grant_log=no reject_log=yes }<br>
+1-COMMENT=-----Learning Mode-----<br>
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-CONFIG::file::execute={ mode=learning grant_log=no reject_log=yes }<br>
+2-COMMENT=-----Permissive Mode-----<br>
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+2-CONFIG::file::execute={ mode=permissive grant_log=no reject_log=yes }<br>
+3-COMMENT=-----Enforcing Mode-----<br>
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+3-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
+</td></tr>
+</table>
+
+<p>or define profiles that restrict only program execution and opening files:</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=-----Disabled Mode-----<br>
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+0-CONFIG::file::execute={ mode=disabled grant_log=no reject_log=yes }<br>
+0-CONFIG::file::open={ mode=disabled grant_log=no reject_log=yes }<br>
+1-COMMENT=-----Learning Mode-----<br>
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-CONFIG::file::execute={ mode=learning grant_log=no reject_log=yes }<br>
+1-CONFIG::file::open={ mode=learning grant_log=no reject_log=yes }<br>
+2-COMMENT=-----Permissive Mode-----<br>
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+2-CONFIG::file::execute={ mode=permissive grant_log=no reject_log=yes }<br>
+2-CONFIG::file::open={ mode=permissive grant_log=no reject_log=yes }<br>
+3-COMMENT=-----Enforcing Mode-----<br>
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+3-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }<br>
+3-CONFIG::file::open={ mode=enforcing grant_log=no reject_log=yes }
+</td></tr>
+</table>
+
+<p>if your want to use minimal restrictions.</p>
+
+<p>You can define profiles like:</p>
+
+<table border="1">
+<tr><td>
+0-COMMENT=-----Disabled Mode-----<br>
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }<br>
+0-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }<br>
+1-COMMENT=-----Learning Mode except for getattr-----<br>
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
+1-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }<br>
+2-COMMENT=-----Permissive Mode for getattr-----<br>
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
+2-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }<br>
+3-COMMENT=-----Enforcing Mode for getattr-----<br>
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
+3-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
+</td></tr>
+</table>
+
+<p>if you want to disable permission checks for getting attributes of files and directories (due to performance reason) while enabling permission checks for files.</p>
+
+<p>For user's convenience, by default, permission for getting attributes of files and directories and permission for reading directories are granted in /etc/ccs/exception_policy.conf . If you want to check these permissions, you need to modify /etc/ccs/exception_policy.conf .</p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
