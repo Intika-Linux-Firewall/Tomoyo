@@ -373,7 +373,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "number_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1: Patterning temporary files</a>:</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "number_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -426,7 +426,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "address_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1: Patterning temporary files</a>:</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "address_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
