@@ -43,9 +43,9 @@
 <li>Vine Linux 5.1</li>
 </ul>
 
-<p>If your distribution was listed above then continue to section <a href="chapter-3.html.en#3.2">3.2. (A) Install binary packages</a>, otherwise you will need to compile your own kernel. If this is the case then proceed to section <a href="chapter-3.html.en#3.2">3.2. (B) Install from source</a>
+<p>If your distribution was listed above then continue to section <a href="chapter-3.html.en#3.2">3.2. (A) Installing binary packages</a>, otherwise you will need to compile your own kernel. If this is the case then proceed to section <a href="chapter-3.html.en#3.2">3.2. (B) Installing from source</a>
 
-<h2><a name="3.2A">3.2. (A) Install binary packages</a></h2>
+<h2><a name="3.2A">3.2. (A) Installing binary packages</a></h2>
 
 <p>If your distribution uses RPM packages, import the GPG key with these commands:</p>
 
@@ -101,9 +101,9 @@
 
 <br>
 
-<p>You can now proceed to section <a href="chapter-3.html.en#3.3">3.3 Initialize configuration</a>.</p>
+<p>You can now proceed to section <a href="chapter-3.html.en#3.3">3.3 Initializing configuration</a>.</p>
 
-<h2><a name="3.2B">3.2. (B) Install from source</a></h2>
+<h2><a name="3.2B">3.2. (B) Installing from source</a></h2>
 
 <h3>Install dependencies</a></h3>
 
@@ -211,9 +211,9 @@ $ su
 
 <br>
 
-<p>You can now proceed to section <a href="chapter-3.html.en#3.3">3.3. Initialize configuration</a></p>
+<p>You can now proceed to section <a href="chapter-3.html.en#3.3">3.3. Initializing configuration</a></p>
 
-<h2><a name="3.3">3.3. Initialize configuration</a></h2>
+<h2><a name="3.3">3.3. Initializing configuration</a></h2>
 
 <p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using /bin/bash, append the following line to ~/.bashrc:</p>
 
@@ -231,7 +231,7 @@ export PATH=$PATH:/usr/sbin
 # /usr/lib/ccs/init_policy --file-only-profile
 </pre>
 
-<p>Other users may wish to make use of all the restrictive capabilities of TOMOYO Linux, and may want to analyze or restrict all possible operations (e.g. files, networks, capabilities, environment variables, signal transmissions). This is suitable for users wanting to secure their system as much as possible. This is also what this tutorial generally assumes the reader has chosen. In this case, run the following command:</p>
+<p>Other users may wish to make use of all the restrictive capabilities of TOMOYO Linux, and may want to analyze or restrict all possible operations (e.g. files, networks, capabilities, environment variables, signal transmissions). This is suitable for users wanting to secure their system as much as possible. This is also what this guide generally assumes the reader has chosen. In this case, run the following command:</p>
 
 <pre class="command">
 # /usr/lib/ccs/init_policy
@@ -259,13 +259,13 @@ Creating configuration file for ccs-notifyd ... OK
 
 <br>
 
-<h2><a name="3.4">3.4. Configure your bootloader</a></h2>
+<h2><a name="3.4">3.4. Configuring your bootloader</a></h2>
 
 <p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <i>"Disable by default"</i> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options.</p>
 
 <p>Instructions go here...</p>
 
-<h2><a name="3.5">3.5. Reboot your system</a></h2>
+<h2><a name="3.5">3.5. Rebooting your system</a></h2>
 
 <p>Now you have finished all preparation. You can't wait any more? Now it's time to make use of your newly installed kernel. Reboot your system and choose the entry with TOMOYO Linux kernel at the GRUB screen, or at whatever other bootloader you have installed:</p>
 
@@ -281,7 +281,7 @@ Creating configuration file for ccs-notifyd ... OK
 
 <h2><a name="3.6">3.6. How can I disable/uninstall TOMOYO Linux?</a></h2>
 
-<p>If your system becomes unable to boot during the course of this tutorial or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending ccsecurity=off at the kernel command-line parameters.</p>
+<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending ccsecurity=off at the kernel command-line parameters.</p>
 
 <p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. rpm or apt). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
 
