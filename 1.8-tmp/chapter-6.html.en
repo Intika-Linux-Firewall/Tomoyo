@@ -3,18 +3,29 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>The world of TOMOYO Linux</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<title>The Official Guide</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-4.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
+
+<div class=navheader>
+<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="bottom">
+<a href="chapter-5.html.en">Prev</a>
+</td>
+<td width="34%" align="center" valign="bottom">
+<a href="index.html.jp">Japanese page</a>
+</td>
+<td width="33%" align="right" valign="bottom">
+<a href="chapter-7.html.en">Next</a>
+</td></tr>
+</table>
+</div>
 
 <h1>Chapter 6: How do I develop policy?</h1>
 
 <p style="text-align:center;">Aim: to simplify and shorten domain policy in order to accommodate for temporary files and other permissions.</p>
-
-<hr>
 
 <h2><a name="6.1">6.1. Patterning temporary files</a></h2>
 
@@ -234,12 +245,11 @@ domain.starts &lt;kernel&gt; /usr/sbin/httpd
 
 <br>
 
-<hr>
-
 <h2><a name="6.2">6.2. Patterning file access permissions</a></h2>
 
 <p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in "Learning Mode". For example, the domain policy can be changed to accommodate for web server contents:</p>
 
+<p>
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
 <tr><td>
@@ -288,6 +298,7 @@ file read /var/www/html/\{\*\}/\*.jpg<br>
 <br>
 </td></tr>
 </table>
+</p>
 
 <p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
@@ -305,7 +316,7 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg
 file read @WEB-CONTENTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "path_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#5.1">5.1. Patterning temporary files</a>:</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "path_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -323,14 +334,13 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 
 <br>
 
-<hr>
-
 <h2><a name="6.3">6.3. Patterning numeric permissions</a></h2>
 
 <p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
 
 <p>The following domain policy example permits "/usr/sbin/httpd" to accept connections from port numbers between 1024 and 65535:</p>
 
+<p>
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
 <tr><td>
@@ -347,6 +357,7 @@ network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
 <br>
 </td></tr>
 </table>
+</p>
 
 <p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
@@ -362,7 +373,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "number_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#5.1">5.1: Patterning temporary files</a>:</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "number_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1: Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -372,12 +383,11 @@ rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 
 <br>
 
-<hr>
-
 <h2><a name="6.4">6.4. Patterning network access permissions</a></h2>
 
 <p>Patterns can be made for IP addresses in domain policy, for example:</p>
 
+<p>
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
 <tr><td>
@@ -398,6 +408,7 @@ network inet stream accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
 <br>
 </td></tr>
 </table>
+</p>
 
 <p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
@@ -415,7 +426,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "address_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#5.1">5.1: Patterning temporary files</a>:</p>
+<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "address_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1: Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -432,8 +443,6 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 </pre>
 
 <br>
-
-<hr>
 
 <h2><a name="6.5">6.5. Review gathered permissions</a></h2>
 
@@ -477,11 +486,9 @@ Total memory used:                        165728
 
 <br>
 
-<hr>
-
 <h2><a name="6.6">6.6. Using audit logs to develop policy (optional)</a></h2>
 
-<p>If audit logs have been configured at <a href="tutorial-3.html.en#3.5">3.5. Save audit logs (optional)</a>, necessary permissions can be picked up from "/var/log/tomoyo/reject_002.log":</p>
+<p>If audit logs have been configured at <a href="chapter-4.html.en#4.5">4.5. Save audit logs (optional)</a>, necessary permissions can be picked up from "/var/log/tomoyo/reject_002.log":</p>
 
 <pre class="command">
 # cat /var/log/tomoyo/reject_002.log
@@ -647,7 +654,7 @@ use_group 0
 
 <p>If you are using TOMOYO Linux for system analysis, you have reached your goal. The steps outlined in the chapters so far can be repeated for all domains which you wish to analyze.</p>
 
-<p>If you are using TOMOYO Linux for protection, proceed to <a href="tutorial-7.html.en">Chapter 7</a> where we discuss how to enforce policy!</p>
+<p>If you are using TOMOYO Linux for protection, proceed to <a href="chapter-7.html.en">Chapter 7</a> where we discuss how to enforce policy!</p>
 
 <div class=navfooter>
 <hr align="left" width="100%">
@@ -675,6 +682,13 @@ Chapter 7: How do I enforce policy?
 </table>
 </div>
 
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr><td>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</td>
+<td>
+<p style="text-align:right;font-size:smaller;">Last modified: $Date$</p>
+</td></tr>
+</table>
 </body>
 </html>
