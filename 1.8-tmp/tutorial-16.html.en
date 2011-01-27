@@ -20,132 +20,116 @@
 
 <p>Each domain has a line "use_group $groupnumber" that allows you to include commonly granted permissions. The $groupnumber is an integer between 0 and 255.</p>
 
+<pre>
+&lt;kernel&gt;
+use_profile 0
+use_group 0
+</pre>
+
 <p>Several entries that start with "acl_group $groupnumber" are defined in the exception policy. The "acl_group $groupnumber" is referenced by the "use_group $groupnumber" line.</p>
 
 <p>For example,</p>
 
-<table border="1">
-<tr><td>
-acl_group 0 file read /etc/passwd<br>
-acl_group 0 file read /home/\{\*\-.\*}/\*<br>
-acl_group 0 file write /dev/null<br>
-acl_group 1 file read /etc/passwd<br>
-acl_group 1 file read /etc/shadow<br>
-acl_group 1 file create /etc/shadow.\$ 0600<br>
-acl_group 1 file write /etc/shadow.\$<br>
+<pre>
+acl_group 0 file read /etc/passwd
+acl_group 0 file read /home/\{\*\-.\*}/\*
+acl_group 0 file write /dev/null
+acl_group 1 file read /etc/passwd
+acl_group 1 file read /etc/shadow
+acl_group 1 file create /etc/shadow.\$ 0600
+acl_group 1 file write /etc/shadow.\$
 acl_group 1 file rename /etc/shadow.\$ /etc/shadow
-</td></tr>
-</table>
+</pre>
 
 <p>in the exception policy and</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-use_profile 3<br>
-use_group 0<br>
-file execute /bin/cat<br>
-file execute /usr/bin/passwd<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat<br>
-use_profile 3<br>
-use_group 0<br>
-file read /dev/null<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd<br>
-use_profile 3<br>
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash
+use_profile 3
+use_group 0
+file execute /bin/cat
+file execute /usr/bin/passwd
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat
+use_profile 3
+use_group 0
+file read /dev/null
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd
+use_profile 3
 use_group 1
-</td></tr>
-</table>
+</pre>
 
-<p>in the domain policy is equivalent with:</p>
+<p>in the domain policy is equivalent to:</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-use_profile 3<br>
-file execute /bin/cat<br>
-file execute /usr/bin/passwd<br>
-file read /etc/passwd<br>
-file read /home/\{\*\-.\*}/\*<br>
-file write /dev/null<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat<br>
-use_profile 3<br>
-file read /dev/null<br>
-file read /etc/passwd<br>
-file read /home/\{\*\-.\*}/\*<br>
-file write /dev/null<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd<br>
-use_profile 3<br>
-file read /etc/passwd<br>
-file read /etc/shadow<br>
-file create /etc/shadow.\$ 0600<br>
-file write /etc/shadow.\$<br>
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash
+use_profile 3
+file execute /bin/cat
+file execute /usr/bin/passwd
+file read /etc/passwd
+file read /home/\{\*\-.\*}/\*
+file write /dev/null
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat
+use_profile 3
+file read /dev/null
+file read /etc/passwd
+file read /home/\{\*\-.\*}/\*
+file write /dev/null
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd
+use_profile 3
+file read /etc/passwd
+file read /etc/shadow
+file create /etc/shadow.\$ 0600
+file write /etc/shadow.\$
 file rename /etc/shadow.\$ /etc/shadow
-</td></tr>
-</table>
+</pre>
 
+<p>in the domain policy.</p>
 
 <p>The "use_group $groupnumber" line, as well as the "use_profile $profilenumber" line, is copied to domains created by domain transition. Thus, a domain policy with only kernel domain defined:</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt;<br>
-use_profile 0<br>
+<pre>
+&lt;kernel&gt;
+use_profile 0
 use_group 0
-</td></tr>
-</table>
+</pre>
 
 <p>will copy the "use_profile 0" line and the "use_group 0" line when other domains are created by domain transition:</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt;<br>
-use_profile 0<br>
-use_group 0<br>
-<br>
-&lt;kernel&gt; /sbin/init<br>
-use_profile 0<br>
-use_group 0<br>
-<br>
-&lt;kernel&gt; /sbin/init /etc/rc.d/rc<br>
-use_profile 0<br>
-use_group 0<br>
-<br>
-&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit<br>
-use_profile 0<br>
+<pre>
+&lt;kernel&gt;
+use_profile 0
 use_group 0
-</td></tr>
-</table>
+
+&lt;kernel&gt; /sbin/init
+use_profile 0
+use_group 0
+
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc
+use_profile 0
+use_group 0
+
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit
+use_profile 0
+use_group 0
+</pre>
 
 <p>Note that the "use_group $groupnumber" line and the "use_profile $profilenumber" line will not be copied if the domain to transit to by domain transition already exists. For example, a domain policy like:</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt;<br>
-use_profile 0<br>
+<pre>
+&lt;kernel&gt;
+use_profile 0
 use_group 0
-</td></tr>
-</table>
 
-<p>will copy "use_profile 0" line and "use_group 0" line when other domains are created by domain transition. But a domain policy like:</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt;<br>
-file execute /sbin/init<br>
-use_profile 0<br>
-use_group 0<br>
-<br>
-&lt;kernel&gt; /sbin/init<br>
-use_profile 1<br>
+&lt;kernel&gt; /usr/sbin/sshd
+use_profile 1
 use_group 1
-</td></tr>
-</table>
+</pre>
 
-<p>will not overwrite the "use_profile 1" line and the "use_group 1" line (using the "use_profile 0" line and the "use_group 0" line) when the kernel (in the &lt;kernel&gt; domain) file execute /sbin/init and transits to &lt;kernel&gt; /sbin/init domain (because &lt;kernel&gt; /sbin/init domain already exists as of the domain transition).</p>
+<p>will copy the "use_profile 0" line and the "use_group 0" line when &lt;kernel&gt; /sbin/init domain is created by domain transition but will not overwrite the "use_profile 1" line and the "use_group 1" line (using the "use_profile 0" line and the "use_group 0" line) when transit to &lt;kernel&gt; /usr/sbin/sshd domain (because &lt;kernel&gt; /usr/sbin/sshd domain already exists as of the domain transition).</p>
 
 <p>By executing /usr/lib/ccs/init_policy , entries like below are appended in /etc/ccs/exception_policy.conf :</p>
 
@@ -203,9 +187,9 @@ path_group ANY_DIRECTORY \*:/\{\*\}/
 number_group COMMON_IOCTL_CMDS 0x5401
 </pre>
 
-<p>These are mainly shared library files which are registered in /etc/ld.so.cache and some of files under /proc/ directory. Also, reading arbitrary directories, reading attributes of arbitrary files and directories, and using commonly used ioctl requests on arbitrary files and directories are granted by default. These should be safe to allow against each domain.</p>
+<p>These are mainly permission for reading shared library files (which are registered in /etc/ld.so.cache ) and some of files in the proc filesystem (which is usually mounted on /proc/ directory). Also, permission for reading arbitrary directories, permission for reading attributes of arbitrary files and directories, and permission for using commonly used ioctl requests on arbitrary files and directories are included by default. These should be safe to allow against each domain.</p>
 
-<p>But if you want to restrict (e.g.) reading directory entries, you can choose from two approaches. The former is to remove "acl_group 0 file read @ANY_DIRECTORY" from the exception policy. Note that changes made in the exception policy affects all domains in the domain policy. You might need to add "file read @ANY_DIRECTORY" to some of domains with "use_group 0" line in the domain policy. The latter is to define a new ACL group for the application you want to restrict (e.g. firefox) and refer the new ACL group from the application. The latter approach is also useful when you want to restrict (e.g.) login session without using keep_domain keyword. I'll explain how to restrict login session without using keep_domain keyword in the next installment.</p>
+<p>But if you want to restrict (e.g.) permission for reading directory entries, you can choose from two approaches. The former is to remove "acl_group 0 file read @ANY_DIRECTORY" line from the exception policy. Note that changes made in the exception policy affects all domains in the domain policy. You might need to add "file read @ANY_DIRECTORY" line to some of domains with "use_group 0" line in the domain policy. The latter is to define a new ACL group for the application you want to restrict (e.g. firefox) and refer the new ACL group from the application. The latter approach is also useful when you want to restrict (e.g.) login session without using keep_domain keyword. I'll explain how to restrict login session without using keep_domain keyword in the next installment.</p>
 
 <hr>
 

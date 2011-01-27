@@ -18,11 +18,11 @@
 
 <h3>About keep_domain keyword</h3>
 
-<p>In the earlier installment of this tutorial, I explained how to use keep_domain keyword. The keep_domain keyword was originally designed for allowing users to execute programs without knowing which program calls which programs beforehand (e.g. /bin/bash calls /bin/tcsh and /bin/tcsh calls /bin/bash ).</p>
+<p>In the earlier installment of this tutorial, I explained how to use keep_domain keyword. The keep_domain keyword was originally designed for allowing users to execute programs without knowing which program calls which programs beforehand (e.g. /bin/bash calls /bin/tcsh and /bin/tcsh calls /bin/bash ) in the enforcing mode.</p>
 
-<p>Until TOMOYO 1.7.x, domains are not automatically created if access control mode for program execution (i.e. CONFIG::file::execute ) is enforcing mode. But in TOMOYO Linux 1.8.0, domains are automatically created even if access control mode for program execution is enforcing mode. Also, TOMOYO Linux 1.8.0 supports ACL groups. As a result, you can develop policies that restrict operations in login sessions (strictly speaking, not only login sessions but also arbitrary domains) without suppressing domain transition.</p>
+<p>Until TOMOYO Linux 1.7.x, domains are not automatically created if access control mode for program execution (i.e. CONFIG::file::execute ) is enforcing mode. But some users do not want to suppress domain transition in login session for auditing purpose while restricting operations in login session. Thus, in TOMOYO Linux 1.8.0, domains are automatically created even if access control mode for program execution is enforcing mode. Also, TOMOYO Linux 1.8.0 supports ACL groups. As a result, you can develop policies that restrict operations in login sessions (strictly speaking, not only login sessions but also arbitrary domains) without suppressing domain transition.</p>
 
-<p>You must be aware that creating a new domain consumes kernel memory. If you forgot to limit memory used by policy, your system will crash due to out of memory. For example, running below program can eat much memory because the domainname is represented by a concatenation of all previously executed pathnames:</p>
+<p>You must be aware that creating a new domain consumes kernel memory. If you forgot to limit memory used by policy, your system will crash due to out of memory. For example, running below program can consume much kernel memory because the domainname is represented by a concatenation of all previously executed pathnames:</p>
 
 <pre>
 $ cat &gt; /tmp/recursive.sh &lt;&lt; "EOF"
@@ -69,7 +69,13 @@ Memory used by audit log:     16777216
 Memory used by query message:  1048576
 </pre>
 
-<p>You can change the "Memory used by policy:" line in /etc/ccs/stat.conf to (e.g.) 16777216 for allowing policy to consume up to 16 megabytes of kernel memory, and then execute "ccs-loadpolicy -s &lt; /etc/ccs/stat.conf" to reflect changes.</p>
+<p>You can change the "Memory used by policy:" line in /etc/ccs/stat.conf to (e.g.) 16777216 for allowing policy to consume up to 16 megabytes of kernel memory, and then execute:</p>
+
+<pre>
+# ccs-loadpolicy -s &lt; /etc/ccs/stat.conf
+</pre>
+
+<p>to reflect changes.</p>
 
 <p>If access control mode for program execution (i.e. CONFIG::file::execute ) is enforcing mode, the execution of /tmp/recursive.sh will stop when the domainname became longer than 4000 bytes or reached the memory quota given by "Memory used by policy:" line:</p>
 
@@ -82,43 +88,37 @@ Memory used by query message:  1048576
 
 <p>All ACL entries which should be inherited to dynamically created descendants should be given using ACL groups, for a newly created domain has no ACL entries except ACL entries referenced by use_group line but the newly created domain is already in enforcing mode. Therefore, to use ACL groups, you need to firstly assign a different group number (e.g. "use_group 1") to the root domain for login session before you start collecting ACL entries using the learning mode.</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 3<br>
-use_group 0<br>
-(...snipped...)<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-use_profile 1<br>
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd
+use_profile 3
+use_group 0
+(...snipped...)
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash
+use_profile 1
 use_group 1
-</td></tr>
-</table>
+</pre>
 
 <p>After you have finished collecting ACL entries, you can summarize using awk program.</p>
 
-<table border="1">
-<tr><td>
-ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/sshd /bin/bash' | awk ' { print "acl_group 1 " $0 } ' | sort | uniq | ccs-loadpolicy -e
-</td></tr>
-</table>
+<pre>
+# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/sshd /bin/bash' | awk ' { print "acl_group 1 " $0 } ' | sort | uniq | ccs-loadpolicy -e
+</pre>
 
 <p>Above script is just for demonstration. You should review before appending to the exception policy.</p>
 
 <p>Then, you can delete descendant domains of the login session, and assign a profile for enforcing mode:</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 3<br>
-use_group 0<br>
-(...snipped...)<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-use_profile 3<br>
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd
+use_profile 3
+use_group 0
+(...snipped...)
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash
+use_profile 3
 use_group 1
-</td></tr>
-</table>
+</pre>
 
 <p>Now, the login session is protected without suppressing domain transition.</p>
 
@@ -144,7 +144,7 @@ acl_group 1 task auto_execute_handler /usr/lib/ccs/audit-exec-param
 use_group 1
 </pre>
 
-line. The parameters passed to program execution requests will be logged to syslog. ( /usr/lib/ccs/ccs-audit-param is an example program included in ccs-tools package. You can modify as you like.)</p>
+<p>line. The parameters passed to program execution requests will be logged to syslog. ( /usr/lib/ccs/ccs-audit-param is an example program included in ccs-tools package. You can modify as you like.)</p>
 
 <p>Above example used the execute handler mechanism only for auditing. But you can also use this mechanism for judging whether to execute the requested program or not and sanitizing parameters. For more information on execute handler, please see <a href="policy-reference.html.en#auto_execute_handler">Judging execute request outside the kernel.</a></p>
 
