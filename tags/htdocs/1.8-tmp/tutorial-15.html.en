@@ -27,14 +27,14 @@
 <tr><td>--use_profile=$number</td><td>Use profile $number for &lt;kernel&gt; domain when creating /etc/ccs/domain_policy.conf . $number is an integer between 0 and 255. The default value is 0.</td></tr>
 <tr><td>--use_group=$number</td><td>Use ACL group $number for &lt;kernel&gt; domain when creating /etc/ccs/domain_policy.conf . $number is an integer between 0 and 255. The default value is 0.</td></tr>
 <tr><td>--root=$rootdir</td><td>Create files after changing root directory to $rootdir . The default value is / .<br>
-You can use this option when your / partition is mounted somewhere else.</td></tr>
+You can use this option when your system's / partition is mounted on other than / directory.</td></tr>
 <tr><td>--policy_dir=$configdir</td><td>Create files into $configdir directory. The default value is /etc/ccs/ directory.<br>
-You can use this option when you want to create files under different directory. But if you used this option, you need to modify other programs in ccs-tools package so that programs searches $configdir rather than /etc/ccs/ directory.</td></tr>
+You can use this option when you want to create files under different directory. But if you used this option, you need to create a symbolic link named /etc/ccs that points to $configdir directory.</td></tr>
 <tr><td>--module_name=$module</td><td>Use $module as the name of loadable kernel module when creating /etc/ccs/ccs-load-module . The default value is ccsecurity .<br>
 /etc/ccs/ccs-load-module is called by /sbin/ccs-init if TOMOYO Linux was built as a loadable kernel module (i.e. CONFIG_CCSECURITY_LKM=y ).
 </td></tr>
-<tr><td>--grant_log=$bool</td><td>Set default grant log mode to $bool. $bool is either yes or no. The default value is no.</td></tr>
-<tr><td>--reject_log=$bool</td><td>Set default reject log mode to $bool. $bool is either yes or no. The default value is yes.</td></tr>
+<tr><td>--grant_log=$bool</td><td>Set default for auditing grant logs to $bool. $bool is either yes or no. The default value is no.</td></tr>
+<tr><td>--reject_log=$bool</td><td>Set default for auditing reject logs to $bool. $bool is either yes or no. The default value is yes.</td></tr>
 <tr><td>--max_audit_log=$number</td><td>Set maximum audit log (i.e. grant log and reject log) entries that the kernel will spool in the /proc/ccs/audit interface. $number is an integer. The default value is 1024.<br>
 You may set to 0 if you don't need audit logs. You can also control maximum memory used by audit log entries via /proc/ccs/stat interface.</td></tr>
 <tr><td>--max_learning_entry=$number</td><td>Set maximum ACL entries automatically added to each domain by the kernel when using learning mode. $number is an integer. The default value is 2048.<br>
@@ -42,7 +42,6 @@ You may set to 0 if you don't want the kernel to automatically add ACL entries t
 <tr><td>--enforcing_penalty=$period</td><td>Carry sleep penalty for $period deciseconds (decisecond = 0.1 second) against processes that violated policy in enforcing mode. $number is an integer. The default value is 0.<br>
 You may set to a small integer for avoiding CPU consumption problem.</td></tr>
 </table>
-<p></p>
 
 <h3>Choosing functionality to use</h3>
 
@@ -51,144 +50,133 @@ You may set to a small integer for avoiding CPU consumption problem.</td></tr>
 <p>Each profile in /etc/ccs/profile.conf has $number-CONFIG lines. The $number-CONFIG line has hierarchical structure.</p>
 
 <table border="1">
-<tr><td>Configuration</td><td>Meaning</td><td>Overrides</td></tr>
-<tr><td>CONFIG=</td><td>Default configuration for all access requests. This mode is used unless explicitly overridden. The default value is disabled mode.</td></tr>
+<tr><td>Configuration</td><td>Meaning</td><td>Permissions checked by enabling this configuration</td><td>Overrides</td></tr>
+<tr><td>CONFIG=</td><td>Default configuration for all access requests. The default configuration is disabled mode.<br>
+This configuration is used unless explicitly overridden.</td><td>file<br>network<br>misc<br>ipc<br>capability</td></tr>
 <tr><td>CONFIG::file=</td><td>Default configuration for file related access requests.<br>
-If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::file::$functionality= line.</td><td rowspan=5>CONFIG=</td></tr>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::file::$functionality= line.</td><td>file</td><td rowspan=5>CONFIG=</td></tr>
 <tr><td>CONFIG::network=</td><td>Default configuration for network related access requests.<br>
-If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::network::$functionality= line.</td></tr>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::network::$functionality= line.</td><td>network</td></tr>
 <tr><td>CONFIG::misc=</td><td>Default configuration for miscellaneous access requests.<br>
-If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::misc::$functionality= line.</td></tr>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::misc::$functionality= line.</td><td>misc</td></tr>
 <tr><td>CONFIG::ipc=</td><td>Default configuration for inter-process communication related access requests.<br>
-If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::ipc::$functionality= line.</td></tr>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::ipc::$functionality= line.</td><td>ipc</td></tr>
 <tr><td>CONFIG::capability=</td><td>Default configuration for capability related access requests.<br>
-If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::capability::$functionality= line.</td></tr>
+If this line exists, the configuration in this line is used unless explicitly overridden by CONFIG::capability::$functionality= line.</td><td>capability</td></tr>
 </table>
 
 <p>If you executed /usr/lib/ccs/init_policy without --file-only-profile option,
 you will find CONFIG= lines in /etc/ccs/profile.conf .</p>
 
-<table border="1">
-<tr><td>
-0-COMMENT=-----Disabled Mode-----<br>
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-0-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
-1-COMMENT=-----Learning Mode-----<br>
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-CONFIG={ mode=learning grant_log=no reject_log=yes }<br>
-2-COMMENT=-----Permissive Mode-----<br>
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-2-CONFIG={ mode=permissive grant_log=no reject_log=yes }<br>
-3-COMMENT=-----Enforcing Mode-----<br>
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+<pre>
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+1-COMMENT=-----Learning Mode-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-CONFIG={ mode=learning grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
-</td></tr>
-</table>
+</pre>
 
-<p>If you executed /usr/lib/ccs/init_policy with --file-only-profile option, you will find CONFIG::file= lines in /etc/ccs/profile.conf . Since CONFIG::file= line overrides CONFIG= line and the default value for CONFIG= line is disabled mode, /etc/ccs/profile.conf generated by --file-only-profile option will check only file related access requests.</p>
+<p>If you executed /usr/lib/ccs/init_policy with --file-only-profile option, you will find CONFIG::file= lines in /etc/ccs/profile.conf . Since CONFIG::file= line overrides CONFIG= line and the default configuration for CONFIG= line is disabled mode, /etc/ccs/profile.conf generated with --file-only-profile option will check only file related access requests.</p>
 
-<table border="1">
-<tr><td>
-0-COMMENT=-----Disabled Mode-----<br>
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }<br>
-1-COMMENT=-----Learning Mode-----<br>
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
-2-COMMENT=-----Permissive Mode-----<br>
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
-3-COMMENT=-----Enforcing Mode-----<br>
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+<pre>
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }
+1-COMMENT=-----Learning Mode-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
 3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
-</td></tr>
-</table>
+</pre>
 
 <p>You can override configurations generated by /usr/lib/ccs/init_policy by manually editing /etc/ccs/profile.conf .</p>
 
 <p>For example, you can enable only file and network and miscellaneous access requests by changing like below:</p>
 
-<table border="1">
-<tr><td>
-0-COMMENT=-----Disabled Mode-----<br>
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-0-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
-0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }<br>
-0-CONFIG::network={ mode=disabled grant_log=no reject_log=yes }<br>
-0-CONFIG::misc={ mode=disabled grant_log=no reject_log=yes }<br>
-1-COMMENT=-----Learning Mode-----<br>
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
-1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
-1-CONFIG::network={ mode=learning grant_log=no reject_log=yes }<br>
-1-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }<br>
-2-COMMENT=-----Permissive Mode-----<br>
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-2-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
-2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
-2-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }<br>
-2-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }<br>
-3-COMMENT=-----Enforcing Mode-----<br>
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-3-CONFIG={ mode=disabled grant_log=no reject_log=yes }<br>
-3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
-3-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }<br>
+<pre>
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }
+0-CONFIG::network={ mode=disabled grant_log=no reject_log=yes }
+0-CONFIG::misc={ mode=disabled grant_log=no reject_log=yes }
+1-COMMENT=-----Learning Mode-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG::network={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
+3-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 3-CONFIG::misc={ mode=enforcing grant_log=no reject_log=yes }
-</td></tr>
-</table>
+</pre>
 
-<p>Since the default value for CONFIG= line is disabled mode, you can remove redundant lines like below:</p>
+<p>Since the default configuration for CONFIG= line is disabled mode, you can remove redundant lines like below:</p>
 
-<table border="1">
-<tr><td>
-0-COMMENT=-----Disabled Mode-----<br>
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-COMMENT=-----Learning Mode-----<br>
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
-1-CONFIG::network={ mode=learning grant_log=no reject_log=yes }<br>
-1-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }<br>
-2-COMMENT=-----Permissive Mode-----<br>
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
-2-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }<br>
-2-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }<br>
-3-COMMENT=-----Enforcing Mode-----<br>
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
-3-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }<br>
+<pre>
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-COMMENT=-----Learning Mode-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG::network={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
+3-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 3-CONFIG::misc={ mode=enforcing grant_log=no reject_log=yes }
-</td></tr>
-</table>
+</pre>
 
 <p>You can mix different modes within one profile. For example, you can use enforcing mode for file access requests and learning mode for network and miscellaneous access requests by adding like below:</p>
 
-<table border="1">
-<tr><td>
-4-COMMENT=-----Learning Mode for network and misc, Enforcing for file-----<br>
-4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
-4-CONFIG::network={ mode=learning grant_log=no reject_log=yes }<br>
-4-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }<br>
-</td></tr>
-</table>
+<pre>
+4-COMMENT=-----Learning Mode for network and misc, Enforcing for file-----
+4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
+4-CONFIG::network={ mode=learning grant_log=no reject_log=yes }
+4-CONFIG::misc={ mode=learning grant_log=no reject_log=yes }
+</pre>
 
 <p>Since the most difficult part of developing policy is to cover all file related access requests, using profiles with mixed mode helps developing policy in incremental approach. You can add profile 5 and profile 6 in addition to profile 4.</p>
 
-<table border="1">
-<tr><td>
-5-COMMENT=-----Permissive Mode for network and misc, Enforcing for file-----<br>
-5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-5-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
-5-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }<br>
-5-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }<br>
-6-COMMENT=-----Enforcing Mode for file and network and misc-----<br>
-6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-6-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
-6-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }<br>
-6-CONFIG::misc={ mode=enforcing grant_log=no reject_log=yes }<br>
-</td></tr>
-</table>
+<pre>
+5-COMMENT=-----Permissive Mode for network and misc, Enforcing for file-----
+5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+5-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
+5-CONFIG::network={ mode=permissive grant_log=no reject_log=yes }
+5-CONFIG::misc={ mode=permissive grant_log=no reject_log=yes }
+6-COMMENT=-----Enforcing Mode for file and network and misc-----
+6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+6-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
+6-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
+6-CONFIG::misc={ mode=enforcing grant_log=no reject_log=yes }
+</pre>
 
 <p>You can selectively enable/disable individual access requests. Supported lines are listed below.</p>
 
@@ -255,70 +243,64 @@ you will find CONFIG= lines in /etc/ccs/profile.conf .</p>
 
 <p>Thus, you can define profiles that restrict only program execution:</p>
 
-<table border="1">
-<tr><td>
-0-COMMENT=-----Disabled Mode-----<br>
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-0-CONFIG::file::execute={ mode=disabled grant_log=no reject_log=yes }<br>
-1-COMMENT=-----Learning Mode-----<br>
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-CONFIG::file::execute={ mode=learning grant_log=no reject_log=yes }<br>
-2-COMMENT=-----Permissive Mode-----<br>
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-2-CONFIG::file::execute={ mode=permissive grant_log=no reject_log=yes }<br>
-3-COMMENT=-----Enforcing Mode-----<br>
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
+<pre>
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-CONFIG::file::execute={ mode=disabled grant_log=no reject_log=yes }
+1-COMMENT=-----Learning Mode-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-CONFIG::file::execute={ mode=learning grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-CONFIG::file::execute={ mode=permissive grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
 3-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
-</td></tr>
-</table>
+</pre>
 
 <p>or define profiles that restrict only program execution and opening files:</p>
 
-<table border="1">
-<tr><td>
-0-COMMENT=-----Disabled Mode-----<br>
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-0-CONFIG::file::execute={ mode=disabled grant_log=no reject_log=yes }<br>
-0-CONFIG::file::open={ mode=disabled grant_log=no reject_log=yes }<br>
-1-COMMENT=-----Learning Mode-----<br>
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-CONFIG::file::execute={ mode=learning grant_log=no reject_log=yes }<br>
-1-CONFIG::file::open={ mode=learning grant_log=no reject_log=yes }<br>
-2-COMMENT=-----Permissive Mode-----<br>
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-2-CONFIG::file::execute={ mode=permissive grant_log=no reject_log=yes }<br>
-2-CONFIG::file::open={ mode=permissive grant_log=no reject_log=yes }<br>
-3-COMMENT=-----Enforcing Mode-----<br>
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-3-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }<br>
+<pre>
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-CONFIG::file::execute={ mode=disabled grant_log=no reject_log=yes }
+0-CONFIG::file::open={ mode=disabled grant_log=no reject_log=yes }
+1-COMMENT=-----Learning Mode-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-CONFIG::file::execute={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG::file::open={ mode=learning grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-CONFIG::file::execute={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG::file::open={ mode=permissive grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
 3-CONFIG::file::open={ mode=enforcing grant_log=no reject_log=yes }
-</td></tr>
-</table>
+</pre>
 
 <p>if your want to use minimal restrictions.</p>
 
 <p>You can define profiles like:</p>
 
-<table border="1">
-<tr><td>
-0-COMMENT=-----Disabled Mode-----<br>
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }<br>
-0-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }<br>
-1-COMMENT=-----Learning Mode except for getattr-----<br>
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }<br>
-1-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }<br>
-2-COMMENT=-----Permissive Mode for getattr-----<br>
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }<br>
-2-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }<br>
-3-COMMENT=-----Enforcing Mode for getattr-----<br>
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }<br>
-3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }<br>
+<pre>
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }
+0-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
+1-COMMENT=-----Learning Mode except for getattr-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode for getattr-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode for getattr-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 3-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
-</td></tr>
-</table>
+</pre>
 
 <p>if you want to disable permission checks for getting attributes of files and directories (due to performance reason) while enabling permission checks for files.</p>
 
