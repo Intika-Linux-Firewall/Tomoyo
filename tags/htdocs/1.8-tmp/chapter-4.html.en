@@ -3,28 +3,41 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>The world of TOMOYO Linux</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<title>The Official Guide</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-2.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
+
+<div class=navheader>
+<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="bottom">
+<a href="chapter-3.html.en">Prev</a>
+</td>
+<td width="34%" align="center" valign="bottom">
+<a href="index.html.jp">Japanese page</a>
+</td>
+<td width="33%" align="right" valign="bottom">
+<a href="chapter-5.html.en">Next</a>
+</td></tr>
+</table>
+</div>
 
 <h1>Chapter 4: How does TOMOYO Linux work?</h1>
 
 <p style="text-align:center;">Aim: to become familiar with the concepts involved in TOMOYO Linux and usage of the associated userspace tools.</p>
 
-<hr>
-
 <h2><a name="4.1">4.1. Understanding domains</a></h2>
 
 <p>In TOMOYO Linux, the technique used to enforce MAC makes use of something called <b>"domains"</b>. This is an important concept. Every process in a system belongs to a domain, which is determined by its execution history. Broadly speaking, every time a process is executed, a new domain is created. Any particular domain is represented by a concatenation of all previously executed pathanames. This creation of a new domain can also be called a <b>"domain transition"</b>. Have a look at this diagram:</p>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-1.png" alt="fig-3-1.png" width="800" height="600">
 </td></tr>
 </table>
+</p>
 
 <p>The kernel is always the first domain and is represented in TOMOYO Linux by <b>&lt;kernel&gt;</b>. In this example, the kernel then executes "/sbin/init". Because a process has been executed, a new domain is created which in this case is the domain <b>"&lt;kernel&gt; /sbin/init"</b>. The bootup scripts are then executed, which result in further domains being created.</p>
 
@@ -37,7 +50,7 @@
 
 <h3>View domains with the policy editor</h3>
 
-<p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">how to use the Policy Editor</a>.</p>
+<p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">How to use the Policy Editor</a>.</p>
 
 <p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with "/etc/ccs/" option to edit policy files within "/etc/ccs/":</p>
 
@@ -75,8 +88,6 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <p>Note that a new domain is only created if it is unique, so executing the same command over and over again will not result in the creation of many domains.</p>
 
-<hr>
-
 <h2><a name="4.2">4.2. Understanding profiles</a></h2>
 
 <p>Each domain can be restricted using TOMOYO Linux by assigning a <b>"profile"</b>. These profiles can be assigned to any domain independently of others, which allows you to slowly build up the security in your system one domain at a time. This also allows you to create custom profiles for specific domains, but this is a more advanced topic for later on.</p>
@@ -99,6 +110,7 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <br>
 
+<p>
 <table border="1">
 <tr><td>Name</td><td>Control</td></tr>
 <tr>
@@ -114,7 +126,11 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 <td>Configuration of various options.</td>
 </tr>
 </table>
+</p>
+
 <p>The "mode=" parameter of the CONFIG line can contain one of the following values:</p>
+
+<p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -137,32 +153,35 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 <td>Reject an access request if the request violates policy. Do not append the request to policy.</td>
 </tr>
 </table>
+</p>
 
 <br>
 
 <p>Thus, there are four default profiles that each play a different role:</p>
 
+<p>
 <table border="1">
 <tr><td>
 <img src="tutorial/fig-2-5-en.png" alt="fig-2-5-en.png" width="640" height="320">
 </td></tr>
 </table>
+</p>
 
 <br>
 
 <p>Each of these profiles can be assigned to a domain:</p>
 
+<p>
 <table border="1">
 <tr><td>
 <p><img src="tutorial/fig-2-6.png" alt="fig-2-6.png" width="800" height="600"></p>
 </td></tr>
 </table>
+</p>
 
 <br>
 
 <p>The "Learning Mode" profile is the feature of TOMOYO Linux that makes developing policy very easy. This mode will automatically generate policy for any domain that has this profile selected. The other profiles, "Permissive Mode" and "Enforcing Mode", are for later on when a domain is ready to be restricted.</p>
-
-<hr>
 
 <h2><a name="4.3">4.3. Understanding domain policy</a></h2>
 
@@ -170,9 +189,7 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <p><a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="720" height="400"></a></p>
 
-<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="tutorial-3.html.en#4.4">4.4: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>. However, it is recommended that you <b>continue with this tutorial rather than try to master these directives</b>. It will become clearer later on how these directives can be used.</p>
-
-<hr>
+<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.en#4.4">4.4: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>. However, it is recommended that you <b>continue with this tutorial rather than try to master these directives</b>. It will become clearer later on how these directives can be used.</p>
 
 <h2><a name="4.4">4.4. Understanding exception policy</a></h2>
 
@@ -186,17 +203,17 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <p>For in depth details on the directives that can be used in exception policy, see the <a href="policy-reference.html.en#exception_policy">Exception Policy Specifications</a>. However, it is recommended that you <b>continue with this tutorial rather than try to master these directives</b>. It will become clearer later on how these directives can be used.</p>
 
-<hr>
-
 <h2><a name="4.5">4.5. Save audit logs (optional)</a></h2>
 
 <p>When a domain tries to perform an action that has been permitted in domain/exception policy, this action is granted. If the action has not been permitted in policy, then the action is rejected, assuming the domain is in "Enforcing Mode".</p>
 
 <p>When developing policy, it may be useful to save a log entry every time a domain makes a request that is undefined in domain/exception policy. While this is crucial for system administration once policy has been fully developed and enforced, it can also be used alongside "Learning Mode" to help develop policy.</p>
 
-<p>TOMOYO Linux can record <b>"access granted logs"</b> (access requests that did not violate domain policy) and <b>"access rejected logs"</b> (access requests that violated domain policy). These logs are in the form of domain policy. This is useful in the case that the user wishes to permit a domain to perform actions that are not currently permitted in policy. The "access rejected log" could then be used to append permissions to domain policy. The "Learning Mode" described in <a href="tutorial-5.html.en">the next chapter</a> mostly automates the process of appending "access rejected logs" into domain policy for domains set to that mode.</p>
+<p>TOMOYO Linux can record <b>"access granted logs"</b> (access requests that did not violate domain policy) and <b>"access rejected logs"</b> (access requests that violated domain policy). These logs are in the form of domain policy. This is useful in the case that the user wishes to permit a domain to perform actions that are not currently permitted in policy. The "access rejected log" could then be used to append permissions to domain policy. The "Learning Mode" described in <a href="chapter-5.html.en">the next chapter</a> mostly automates the process of appending "access rejected logs" into domain policy for domains set to that mode.</p>
 
 <p>The following values can be given for the grant_log= parameter of the CONFIG line:</p>
+
+<p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -211,7 +228,11 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 <td>Record "access granted logs" unless "grant_log=no" is explicitly specified in the individual ACL entry.</td>
 </tr>
 </table>
+</p>
+
 <p>The following values can be given for the reject_log= parameter of the CONFIG line:</p>
+
+<p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -226,6 +247,7 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 <td>Record "access rejected logs".</td>
 </tr>
 </table>
+</p>
 
 <p>"/usr/sbin/ccs-auditd" is a daemon program that reads from "/proc/ccs/audit" and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
 
@@ -308,20 +330,20 @@ destination     /var/log/tomoyo/reject_003.log
 
 <br>
 
-<p>Proceed to the <a href="tutorial-5.html.en">Chapter 5</a>, where we talk about how to manage domains!</p>
+<p>Proceed to the <a href="chapter-5.html.en">Chapter 5</a>, where we talk about how to manage domains!</p>
 
 <div class=navfooter>
 <hr align="left" width="100%">
 <table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
 <tr>
 <td width="33%" align="left" valign="top">
-<a href="tutorial-3.html.en">Prev</a>
+<a href="chapter-3.html.en">Next</a>
 </td>
 <td width="34%" align="center" valign="top">
-<a href="tutorial-index.html.en">Index</a>
+<a href="index.html.en">Index</a>
 </td>
 <td width="33%" align="right" valign="top">
-<a href="tutorial-5.html.en">Next</a>
+<a href="chapter-5.html.en">Next</a>
 </td></tr>
 <tr><td width="33%" align="left" valign="top">
 Chapter 3: How do I install TOMOYO Linux?
@@ -336,6 +358,13 @@ Chapter 5: How do I manage domains?
 </table>
 </div>
 
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr><td>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</td>
+<td>
+<p style="text-align:right;font-size:smaller;">Last modified: $Date$</p>
+</td></tr>
+</table>
 </body>
 </html>

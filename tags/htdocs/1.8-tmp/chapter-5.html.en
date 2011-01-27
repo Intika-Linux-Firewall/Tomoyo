@@ -3,18 +3,29 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>The world of TOMOYO Linux</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<title>The Official Guide</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tutorial-3.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
+
+<div class=navheader>
+<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr>
+<td width="33%" align="left" valign="bottom">
+<a href="chapter-4.html.en">Prev</a>
+</td>
+<td width="34%" align="center" valign="bottom">
+<a href="index.html.jp">Japanese page</a>
+</td>
+<td width="33%" align="right" valign="bottom">
+<a href="chapter-6.html.en">Next</a>
+</td></tr>
+</table>
+</div>
 
 <h1>Chapter 5: How do I manage domains?</h1>
 
 <p style="text-align:center;">Aim: to become familiar with "Learning Mode" and use it to analyze the behaviour of a domain.</p>
-
-<hr>
 
 <h2><a name="5.1">5.1. Domain creation</a></h2>
 
@@ -40,11 +51,9 @@
 
 <p>You will notice that the picture above may look a little different to what you can see on your own screen. This is because the domain "/usr/sbin/httpd" has been registered with the "initialize_domain" directive. Let's spend some time exploring the management of domains before we continue.</p>
 
-<hr>
-
 <h2><a name="5.2">5.2. Management of domain transitions</a></h2>
 
-<p>Advanced control of domain transition is possible with TOMOYO Linux, and involves changes to exception policy. The instructions in this section require use of the policy editor tool. To edit exception policy, run the policy editor and <a href="tutorial-3.html.en#3.4">switch to the exception policy editor screen</a>. To add an entry, press the "a" key, type out the new entry you wish to add and press "Enter". To see what other commands are available, press the "?" key.</p>
+<p>Advanced control of domain transition is possible with TOMOYO Linux, and involves changes to exception policy. The instructions in this section require use of the policy editor tool. To edit exception policy, run the policy editor and <a href="chapter-4.html.en#4.4">switch to the exception policy editor screen</a>. To add an entry, press the "a" key, type out the new entry you wish to add and press "Enter". To see what other commands are available, press the "?" key.</p>
 
 <h3>initialize_domain</h3>
 
@@ -58,11 +67,13 @@ initialize_domain /usr/sbin/sshd from any
 
 <p>Of course, "/usr/sbin/sshd" can be the full pathname of any application you wish to control domain transitions for. Having added this to exception policy, the application will now not create a new domain every time a unique execution occurs. Instead, it will reinitialize the domain to <b>"&lt;kernel&gt; /usr/sbin/sshd"</b>:</p>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-4.png" alt="fig-3-4.png" width="800" height="420">
 </td></tr>
 </table>
+</p>
 
 <p>The text "from any" included in the above command signifies that the application domain should be reinitialized when invoked by <b>any domain</b>. It is possible to cause reinitialization to happen only when the application domain is invoked by <b>a single specified domain</b>. This is achieved by adding the following to exception policy:</p>
 
@@ -70,11 +81,13 @@ initialize_domain /usr/sbin/sshd from any
 initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 </pre>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-5.png" alt="fig-3-5.png" width="800" height="480">
 </td></tr>
 </table>
+</p>
 
 <p>It is also allowable to specify only the last part of the domain name instead of the whole domain name. For example, just <b>"from /etc/rc.d/init.d/sshd"</b> instead of <b>"from &lt;kernel&gt; /etc/rc.d/init.d/sshd"</b>. This would of course be less specific a rule, and would for example still apply to the sshd daemon being run from a terminal.</p>
 
@@ -96,11 +109,13 @@ initialize_domain /usr/sbin/sendmail.sendmail from any
 no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 </pre>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-6.png" alt="fig-3-6.png" width="800" height="500">
 </td></tr>
 </table>
+</p>
 
 <h3>keep_domain</h3>
 
@@ -110,11 +125,13 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-9.png" alt="fig-3-9.png" width="800" height="350">
 </td></tr>
 </table>
+</p>
 
 <p>Now the execution of any application, such as "/bin/ls" or "/bin/cat" will not result in the creation of a new domain. It will instead remain in the domain specified above and thus act within the permissions of that domain.</p>
 
@@ -124,11 +141,13 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 keep_domain any from /bin/bash
 </pre>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-8.png" alt="fig-3-8.png" width="800" height="420">
 </td></tr>
 </table>
+</p>
 
 <p>This can be made even more specific, causing the suppression of domain transition only to occur when a specific application is executed from a specific domain. To do this, you could add the following to exception policy:</p>
 
@@ -136,11 +155,13 @@ keep_domain any from /bin/bash
 keep_domain /usr/bin/xargs from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-10.png" alt="fig-3-10.png" width="800" height="430">
 </td></tr>
 </table>
+</p>
 
 <p>The "keep_domain" directive does not take precedence over the "initialize_domain" directive. If the "initialize_domain" directive has been specified for a particular application, that application will leave any domain with the "keep_domain" directive and reinitialize into its own domain.</p>
 
@@ -159,15 +180,15 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
+<p>
 <table border="1" summary="fig">
 <tr><td>
 <img src="tutorial/fig-3-11.png" alt="fig-3-11.png" width="800" height="400">
 </td></tr>
 </table>
+</p>
 
 <br>
-
-<hr>
 
 <h2><a name="5.3">5.3. Switch to learning mode</a></h2>
 
@@ -197,8 +218,6 @@ initialize_domain /usr/sbin/httpd from any
 
 <br>
 
-<hr>
-
 <h2><a name="5.4">5.4. Gathering necessary permissions</a></h2>
 
 <p>Restart the Apache in order to learn what permissions are required for starting/finishing the Apache:</p>
@@ -220,8 +239,6 @@ initialize_domain /usr/sbin/httpd from any
 <p><img src="operation-learning.png" alt="operation-learning.png" width="689" height="907"></p>
 
 <br>
-
-<hr>
 
 <h2><a name="5.5">5.5. Saving permissions to disk</a></h2>
 
@@ -265,20 +282,20 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 
 <br>
 
-<p>Proceed to the <a href="tutorial-6.html.en">Chapter 6</a> where we talk about how to develop policy!</p>
+<p>Proceed to the <a href="chapter-6.html.en">Chapter 6</a> where we talk about how to develop policy!</p>
 
 <div class=navfooter>
 <hr align="left" width="100%">
 <table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
 <tr>
 <td width="33%" align="left" valign="top">
-<a href="tutorial-4.html.en">Prev</a>
+<a href="chapter-4.html.en">Prev</a>
 </td>
 <td width="34%" align="center" valign="top">
-<a href="tutorial-index.html.en">Index</a>
+<a href="index.html.en">Index</a>
 </td>
 <td width="33%" align="right" valign="top">
-<a href="tutorial-6.html.en">Next</a>
+<a href="chapter-6.html.en">Next</a>
 </td></tr>
 <tr><td width="33%" align="left" valign="top">
 Chapter 4: How does TOMOYO Linux work?
@@ -293,6 +310,13 @@ Chapter 6: How do I develop policy?
 </table>
 </div>
 
+<table width="100%" border="0" cellpadding="0" cellspacing="0">
+<tr><td>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</td>
+<td>
+<p style="text-align:right;font-size:smaller;">Last modified: $Date$</p>
+</td></tr>
+</table>
 </body>
 </html>
