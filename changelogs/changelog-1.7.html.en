@@ -1,0 +1,442 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>TOMOYO Linux 1.7.x ChangeLog</title>
+<meta name="author" content="Unknown" >
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<link rel="icon" type="image/x-icon" href="/media/favicon.ico">
+<link rel="shortcut icon" type="image/x-icon" href="/media/favicon.ico">
+</head>
+
+<body>
+
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td align="left">
+
+<div id="titlebar" class="tomoyo-title">
+<img src="/media/title.png" alt="" width="408" height="72" border="0" align="center">
+</div>
+
+</td>
+</tr>
+</table>
+
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td>
+
+<div id="navbar" class="tomoyo-home">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-documentation"><a href="documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-links"><a href="links.html.en" title="Useful links">Links</a></li>
+<li id="tomoyo-support"><a href="support.html.en" title="Support information">Support</a></li>
+</ul>
+</div>
+
+</td>
+</tr>
+</table>
+
+<div id="content">
+
+<div id="changelog">
+
+<h4>ChangeLog for ccs-patch 1.7.2</h4>
+
+<pre>
+Fix 2010/11/22
+
+    @ Fix umount() pathname calculation.
+
+      "mount --bind /path/to/file1 /path/to/file2" is legal.
+      Therefore, "umount /path/to/file2" is also legal.
+      Do not automatically append trailing '/' if pathname to be unmounted
+      does not end with '/'.
+
+    @ Change export level of ccsecurity_ops structure.
+
+      Non-GPL modules might need to access ccsecurity_ops via inlined functions
+      embedded into include/linux/security.h and include/net/ip.h .
+
+Fix 2010/09/18
+
+    @ Remove pre-vfs functions.
+
+      I again encountered build failure due to may_create()/may_delete()
+      changes by distributor's patches. Since directory modification syscalls
+      (e.g. mkdir()/unlink()) seldom violate DAC's permission whereas directory
+      scanning syscalls (e.g. open()/stat()) sometimes violate it (because of
+      environment variable PATH), not doing DAC checks before MAC checks won't
+      trigger MAC's permission error flooding. Thus, I removed DAC checks which
+      are done before MAC checks.
+
+Fix 2010/06/09
+
+    @ Add missing ccs_put_name() in ccs_parse_envp().
+
+      Since 1.7.0 , ccs_parse_envp() was not calling ccs_put_name() if
+      environment variable's value ('if exec.envp["name"]="value"' condition)
+      was invalid.
+
+    @ Add missing NULL check in ccs_condition().
+
+      Since 1.7.0 , if 'if symlink.target=' part was given against non-file
+      permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
+      NULL pointer dereference.
+
+Fix 2010/06/03
+
+    @ Fix missing sanity check for "file_pattern".
+
+      Since 1.7.0 , ccs_write_pattern_policy() was by error accepting
+      invalid pathname.
+
+Fix 2010/05/27
+
+    @ Add missing rcu_dereference() for ccs_find_execute_handler().
+
+      Since 1.7.0 , ccs_find_execute_handler() was by error using
+      list_for_each_entry() rather than list_for_each_entry_rcu().
+      This bug affects only Alpha architecture.
+
+Fix 2010/05/10
+
+    @ Fix incorrect out of memory warning.
+
+      Out of memory warnings were not printed in some cases by error.
+
+Fix 2010/05/05
+
+    @ Fix incorrect audit on/off control.
+
+      The grant_log= and reject_log= parameters of CONFIG::misc::env were not
+      used because I forgot to update request type. As a result, those of
+      CONFIG::file::execute were used for CONFIG::misc::env .
+
+      Those of CONFIG::file::rewrite were not used because I forgot to update
+      request type. As a result, those of CONFIG::file::truncate were used for
+      CONFIG::file::rewrite .
+
+Fix 2010/04/10
+
+    @ Fix invalid "struct nameidata" to "struct path" conversion macro.
+
+      Regarding kernels 2.6.24 and earlier, I was converting "struct nameidata"
+      to "struct path" in caller side so that I can unify the callee function's
+      parameter type. But it turned out that the macro I used did not follow C
+      standards and did not work with gcc 4.x . As a result, "allow_pivot_root"
+      keyword was not working as expected.
+</pre>
+
+<h4>ChangeLog for ccs-patch 1.7.1</h4>
+
+<pre>
+Fix 2010/03/26
+
+    @ Fix ccs_lport_reserved() bug.
+
+      Since 1.7.0 , ccs_lport_reserved() was by error checking wrong port
+      number. As a result, "deny_autobind" keyword was not working as expected.
+
+Fix 2010/03/25
+
+    @ Fix ccs_get_ipv6_address() bug.
+
+      Since 1.7.0 , ccs_get_ipv6_address() was by error returning address of
+      "struct list_head ccs_address_list" if memory allocation failed.
+      As a result, ccs_put_ipv6_address() will modify memory near
+      "struct list_head ccs_address_list" if memory allocation failed.
+
+Fix 2010/03/08
+
+    @ Allow building as loadable kernel module.
+
+      To be able to minimize filesize increment of vmlinux, I made it
+      possible to compile TOMOYO Linux as loadable kernel module.
+      Although patching the kernel source and recompiling the kernel are
+      inevitable, this change will make it easier to enable TOMOYO Linux
+      when there is a filesize limitation on vmlinux (e.g. embedded systems).
+
+Fix 2010/03/02
+
+    @ Allow domain transition without execve().
+
+      To be able to split permissions for Apache's CGI programs which are
+      executed without execve(), I added special domain transition which is
+      performed by atomically writing '\0'-terminated binary string to
+      /proc/ccs/.transition interface. For example, a process which belongs to
+      "&lt;kernel&gt; /usr/sbin/httpd" domain will transit to
+      "&lt;kernel&gt; /usr/sbin/httpd //app=cgi1\040id=10000" domain by atomically
+      writing "app=cgi1 id=10000" + '\0' to /proc/ccs/.transition using
+      Apache's ap_hook_handler() functionality.
+
+      Note that '\0'-terminated binary string is converted to TOMOYO's string
+      inside kernel and prefix "//" is automatically added to the string so
+      that domainname does not conflict with domainnames created by execve().
+      Without this prefix, if "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain is
+      allowed to open /proc/ccs/.transition for writing and
+      "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd" domain is allowed to
+      access /etc/shadow , /bin/bash will be able to access /etc/shadow by
+      atomically writing "/usr/bin/passwd" + '\0' to /proc/ccs/.transition .
+      Allowing /bin/bash to access /etc/shadow is not what people want.
+
+      Permission for this operation is checked by "allow_transit" keyword.
+      Unlike "allow_execute" keyword, the string parameter for "allow_transit"
+      keyword does not refer a real file on filesystem's namespace. Therefore,
+      you can store any combination of parameters like LDAP's DN entry in the
+      string parameter for "allow_transit" keyword.
+
+Fix 2010/01/17
+
+    @ Use current domain's name for execute_handler audit log.
+
+      Since 1.6.7 , /proc/ccs/grant_log was by error using next domain's name
+      when auditing current domain's "execute_handler" line.
+
+Fix 2009/12/19
+
+    @ Fix memory leak in ccs_environ().
+
+      When I fixed a bug that a permission like
+
+        allow_env PATH if exec.envp["PATH"]="/"
+
+      was not working (2009/11/02), I allocated two buffers but only one buffer
+      was released.
+
+      This bug will trigger OOM killer if environment variable checking is
+      enabled.
+
+Fix 2009/12/17
+
+    @ Don't check read permission in ccs_try_alt_exec().
+
+      While I was trying to remove ccs_execve_list list for GC optimization
+      between TOMOYO 1.7.0 and 1.7.1 , I made a mistake which made TOMOYO to
+      check allow_read permission of the programs specified by execute_handler
+      and denied_execute_handler keywords.
+
+    @ Don't check DAC permission if disabled mode.
+
+      I was checking DAC permissions regarding directory entry modification
+      operations (e.g. mkdir()) even if mode=disabled . It is a waste of CPU
+      resource to check DAC permissions when MAC permissions are not checked.
+      Thus, I modified to skip DAC permission checks if mode=disabled .
+
+Fix 2009/12/15
+
+    @ Allow deleting "quota_exceeded" and "transition_failed" entries.
+
+      To notify users of "this domain has too many entries to hold" and "some
+      process in this domain was not able to perform domain transition",
+      "quota_exceeded" and "transition_failed" messages are used respectively.
+      These messages were not deletable. But it is more convenient for users
+      to be notified again if such events occurred again after tuning policy.
+      Thus, I made these messages deletable.
+
+Fix 2009/12/12
+
+    @ Use rcu_read_lock() for find_task_by_pid().
+
+      Since kernel 2.6.18 , caller of find_task_by_pid() needs to call
+      rcu_read_lock() rather than read_lock(&tasklist_lock) because find_pid()
+      uses RCU primitives but spinlock does not prevent RCU callback if
+      preemptive RCU ( CONFIG_PREEMPT_RCU or CONFIG_TREE_PREEMPT_RCU ) is
+      enabled.
+
+Fix 2009/11/27
+
+    @ Use newly created domain's name for domain creation audit log.
+
+      Since 1.7.0 , /proc/ccs/reject_log was by error using existing domain's
+      name when auditing newly created domain's "use_profile" line.
+
+Fix 2009/11/18
+
+    @ Don't check "allow_write" permission for open(O_RDONLY | O_TRUNC).
+
+      Since TOMOYO checks "allow_truncate" permission rather than "allow_write"
+      permission for O_TRUNC, I need to distinguish open(O_RDONLY | O_TRUNC)
+      and open(O_RDWR | O_TRUNC). But I made a mistake between TOMOYO 1.7.0 and
+      1.7.1 which made it impossible for TOMOYO for kernels 2.6.14 and earlier
+      to distinguish them.
+
+Fix 2009/11/13
+
+    @ Don't use core_initcall() for initializing lock for GC.
+
+     Some kernels call TOMOYO's hooks before processing core_initcall().
+     Thus, I can't use core_initcall() for initializing lock for GC.
+</pre>
+
+<h4>ChangeLog for ccs-patch 1.7.0</h4>
+
+<pre>
+Fix 2009/11/09
+
+    @ Add profile version check.
+
+      To avoid upgrading from TOMOYO 1.6.x to TOMOYO 1.7.x without upgrading
+      /proc/ccs/profile (which results in not protecting the system at all),
+      I added a check for PROFILE_VERSION= .
+
+Fix 2009/11/06
+
+    @ Fix incorrect allow_mount audit log.
+
+      Audit log for allow_mount was using decimal format.
+      It needs to use hexadecimal format.
+
+Fix 2009/11/03
+
+    @ Fix memory leak in ccs_write_address_group_policy().
+
+      I forgot to call kfree() if same entry was added.
+
+    @ Reduce mutexes.
+
+      I was using mutex_lock()/mutex_unlock() so that I can use
+      atomic_dec_and_test() for removing an element from a list.
+      I moved that operation to garbage collector in order to reduce frequency
+      of mutex_lock()/mutex_unlock() calls.
+
+    @ Escape from nested loops correctly.
+
+      In ccs_read_address_group_policy(), I was escaping from nested loops
+      correctly. But in ccs_read_path_group_policy() and
+      ccs_read_number_group_policy(), I wasn't.
+
+      As a result, reading path_group and number_group caused kernel oops
+      when they were not read atomically.
+
+Fix 2009/11/02
+
+    @ Fix buffer contention.
+
+      A permission like
+
+        allow_env PATH if exec.envp["PATH"]="/"
+
+      was not working since I was using the same buffer for both environment
+      variable's name and value.
+
+Fix 2009/10/08
+
+    @ Add CONFIG_CCSECURITY_DEFAULT_LOADER option.
+
+      I made the default policy loader's pathname ( /sbin/ccs-init )
+      configurable.
+
+    @ Add CONFIG_CCSECURITY_ALTERNATIVE_TRIGGER option.
+
+      Some environments do not have /sbin/init . In such environments, we need
+      to use different program's pathname (e.g. /init or /linuxrc ) as
+      activation trigger.
+
+      Thus, I made the alternative trigger ( /sbin/ccs-start ) configurable.
+
+Fix 2009/10/05
+
+    @ Fix size truncation bug at ccs_memcmp().
+
+      ccs_memcmp() was using "u8" for size parameter by error. Therefore, when
+      size &gt;= 256 was passed to ccs_memcmp(), it was doing partial comparison
+      (incorrect result) or read overrun (CPU stall).
+
+      ccs_memcmp() should use "size_t" for size parameter because size of
+      "struct ccs_condition" may exceed 256 bytes if complicated condition was
+      given.
+
+Fix 2009/09/25
+
+    @ Embed more information into audit logs.
+
+      Until now, /proc/ccs/grant_log /proc/ccs/reject_log /proc/ccs/query were
+      not printing file's information (e.g. file's uid/gid/mode).
+
+      Recently, users who started using "if" clause expect that the learning
+      mode automatically adds various conditions like "if task.uid=path1.uid".
+
+      But the profile will become too complicated if I support all possible
+      conditions. Thus, I added all information which is enough to generate
+      "if" clause with all possible conditions from audit logs.
+
+      Now, the learning mode got different usage. Users can specify
+      "CONFIG::learning={ max_entry=0 }" in the profile. All requests which
+      are not permitted by policy will be sent to /proc/ccs/reject_log with
+      "mode=learning" header lines. Users can selectively append conditions
+      and append to the policy using "/usr/sbin/ccs-loadpolicy -d".
+      The learning mode with "CONFIG::learning={ max_entry=0 }" is almost
+      the same with the permissive mode, only difference is "mode=learning"
+      and "mode=permissive".
+
+Fix 2009/09/24
+
+    @ Don't check chmod/chown capability for requests from kernel.
+
+      Until now, ccs_setattr_permission() was inserted in notify_change().
+      But notify_change() is also called by requests from kernel (e.g. UnionFS)
+      and it made difficult to use TOMOYO on UnionFS.
+
+      Thus, I moved ccs_capable() checks from ccs_setattr_permission() to
+      ccs_chmod_permission() and ccs_chown_permission(), and removed
+      ccs_setattr_permission().
+
+Fix 2009/09/11
+
+    @ Support recursive match operators.
+
+      Until now, ccs_path_matches_pattern() did not support recursive
+      comparison. Thus, users had to repeat "/\*" when they want to specify
+      recursively.
+
+      I introduced "\{" and "\}" as repetition operator.
+      To ensure consistency with TOMOYO's '/'-tokenized pattern matching rules
+      and "\-" operator, only "/\{dir\}/" sequences (where dir does not contain
+      '/') is permitted.
+
+Fix 2009/09/10
+
+    @ Do not check umount() permission for mount(MS_MOVE) requests.
+
+      Until 1.6.x , umount() restriction was black listing. In 1.7.0 , it is
+      white listing. This change caused "mount --move old new" requests to
+      require "allow_unmount old" permission in addition to
+      "allow_mount old new --move 0" permission.
+      But we don't want to allow umount(old) requests when we want to allow
+      only mount(old, new, MS_MOVE) requests. Thus, I modified not to check
+      "allow_unmount old" permission for mount(old, new, MS_MOVE) requests.
+
+Fix 2009/09/06
+
+    @ Fix wrong error code in ccs_try_alt_exec().
+
+      ccs_try_alt_exec() was returning ENOMEM when kmalloc() failed.
+      It needs to return -ENOMEM to fail.
+
+Fix 2009/09/04
+
+    @ Fix wrong ccs_profile() calls.
+
+      I can't call ccs_profile() for profile existence test because
+      ccs_profile() never returns NULL.
+</pre>
+
+</div><!-- changelog -->
+
+<div id="footer">
+<br>
+<hr>
+<p>Linux® is a registered trademark of Linus Torvalds world-wide. TOMOYO® is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA CORPORATION</a>.</p>
+</div>
+
+</div><!-- content -->
+
+</body>
+</html>
