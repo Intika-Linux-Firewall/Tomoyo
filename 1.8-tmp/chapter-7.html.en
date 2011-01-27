@@ -27,7 +27,7 @@
 
 <p style="text-align:center;">Aim: to learn how to use "Enforcing Mode" and handle policy violations that may arise.</p>
 
-<h2><a name="7.1">7.1: Enabling enforcing mode</a></h2>
+<h2><a name="7.1">7.1. Enabling enforcing mode</a></h2>
 
 <p>Once domain and exception policy have been sufficiently modified, the domain can be set to enforcing mode.</p>
 
@@ -92,7 +92,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<p>If audit logs have been configured at <a href="chapter-4.html.en#4.5">4.5. Save audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
+<p>If audit logs have been configured at <a href="chapter-4.html.en#4.5">4.5. Saving audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
 
 <pre class="command">
 [root@tomoyo ~]# cat /var/log/tomoyo/reject_003.log
@@ -118,7 +118,7 @@ file read /bin/cat
 
 <br>
 
-<h2><a name="7.2">7.2: Handling policy violations in real-time</a></h2>
+<h2><a name="7.2">7.2. Handling policy violations in real-time</a></h2>
 
 <p>Policy violations can be handled in real time using "/usr/sbin/ccs-queryd". This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
 
@@ -301,7 +301,7 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 
 <br>
 
-<h2><a name="7.3">Step 7.3: Notification daemon</a></h2>
+<h2><a name="7.3">7.3. Notification daemon</a></h2>
 
 <p>"/usr/sbin/ccs-notifyd" is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
 
