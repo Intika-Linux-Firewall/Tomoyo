@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-<title>TOMOYO Linux Home Page</title>
+<title>TOMOYO Linux About Page</title>
 <meta name="author" content="Unknown" >
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
@@ -30,13 +30,13 @@
 
 <div id="navbar" class="tomoyo-about">
 <ul id="navbarlist">
-<li id="tomoyo-home"><a href="index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
-<li id="tomoyo-about"><a href="about.html.en" title="About TOMOYO Linux">About</a></li>
-<li id="tomoyo-download"><a href="download.html.en" title="Get TOMOYO Linux">Download</a></li>
-<li id="tomoyo-changelog"><a href="changelog.html.en" title="TOMOYO Linux ChangeLog">ChangeLog</a></li>
-<li id="tomoyo-documentation"><a href="documentation.html.en" title="Official Documentation">Documentation</a></li>
-<li id="tomoyo-links"><a href="links.html.en" title="Useful links">Links</a></li>
-<li id="tomoyo-support"><a href="support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-home"><a href="/index.new.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="/about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="/download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelog"><a href="/changelog.html.en" title="TOMOYO Linux ChangeLog">ChangeLog</a></li>
+<li id="tomoyo-documentation"><a href="/documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-links"><a href="/links.html.en" title="Useful links">Links</a></li>
+<li id="tomoyo-support"><a href="/support.html.en" title="Support information">Support</a></li>
 </ul>
 </div>
 
@@ -46,11 +46,95 @@
 
 <div id="content">
 
+<div id="about">
+
 <h3>About TOMOYO Linux</h3>
 
-<p>TOMOYO Linux is a Mandatory Access Control (MAC) implementation for Linux. It was launched in March 2003 and is sponsored by <a href="http://www.nttdata.co.jp/en/">NTT DATA CORPORATION</a>. TOMOYO Linux focuses on the behaviour of a system. Every process is created to achieve a purpose, and like an immigration officer, TOMOYO Linux allows each process to declare behaviours and resources needed to achieve their purpose. This approach makes it possible for users to understand how a Linux system works and to gain detailed information about any running application.<p>
+<p>TOMOYO Linux is a <b>Mandatory Access Control (MAC)</b> implementation for Linux that can be used to increase the security of a system. It was launched in March 2003 and is sponsored by <a href="http://www.nttdata.co.jp/en/">NTT DATA CORPORATION</a>, Japan. TOMOYO Linux focuses on the behaviour of a system. Every process is created to achieve a purpose, and like an immigration officer, TOMOYO Linux allows each process to declare behaviours and resources needed to achieve their purpose. This approach makes it possible for users to understand how a Linux system works and to gain detailed information about any running application. When protection is enabled, TOMOYO Linux acts like an operation watchdog, restricting each process to only the behaviours and resources allowed by the administrator. TOMOYO Linux can therefore be used as both a system analysis tool and an access restriction tool.</p>
 
-<p>When protection is enabled, TOMOYO Linux acts like an operation watchdog, restricting each process to only the behaviours and resources allowed by the administrator. TOMOYO Linux can therefore be used as both a system analysis tool and an access restriction tool.</p>
+<p><b>TOMOYO Linux 1.x</b> is the original branch of development, which was first released on 11th November 2005 under the GNU GPL. It was implemented as a patch that can be applied to the Linux kernel and is still in active development.</p>
+
+<p><b>TOMOYO Linux 2.x</b> is the Linux mainline kernel branch of development. In June 2009, <b>a subset of TOMOYO functionality was merged into the Linux kernel</b> 2.6.30 and makes use of standard Linux Security Module (LSM) hooks. However, the LSM hooks must be extended further in order to port the full MAC functionality of TOMOYO Linux 1.x into the Linux kernel. Thus, it does not yet provide equal functionality with the 1.x branch of development. This chart compares the differences between each branch.</p>
+
+<h3>What can TOMOYO Linux be used for?</h3>
+
+<p>In a normal operating system (OS), every application is unmonitored and it is difficult to determine what is happening in a system (Figure A). If TOMOYO Linux is introduced, each application can be monitored to determine exactly what it is doing and a policy configuration can be automatically generated (Figure B). TOMOYO Linux can therefore be used as a system analysis tool, which can aid in:</p>
+<ul>
+<li>debugging applications</li>
+<li>understanding the behaviour of a Linux system</li>
+<li>writing documentation</li>
+</ul>
+
+<p>
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td align="left">
+<img src="/media/disabled.png" alt="disabled.png" width="500" height="350" style="border:2px solid #000000">
+</td>
+</tr>
+<tr>
+<td align="left">
+<b>Figure A</b>
+</td>
+</tr>
+</table>
+</p>
+
+<p>
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td align="left">
+<img src="/media/learning.png" alt="learning.png" width="500" height="350" style="border:2px solid #000000">
+</td>
+</tr>
+<tr>
+<td align="left">
+<b>Figure B</b>
+</td>
+</tr>
+</table>
+</p>
+
+<p>Browsing this automatically generated list can allow a precise understanding of what each application is doing (Figure C). If protection is enabled, TOMOYO Linux uses Mandatory Access Control to restrict each application to do only what the administrator has allowed it to do (Figure D). TOMOYO Linux can therefore be used as a system restriction tool, which can aid in:</p>
+<ul>
+<li>restricting services such as SSH and Apache</li>
+<li>restricting system administrator operations</li>
+<li>creating per-application networking firewalls</li>
+<li>reducing damage caused by buffer overflows and other security exploits</li>
+<li>deploying a honeypot system</li>
+</ul>
+
+<p>
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td align="left">
+<img src="/media/permissive.png" alt="permissive.png" width="500" height="350" style="border:2px solid #000000">
+</td>
+</tr>
+<tr>
+<td align="left">
+<b>Figure C</b>
+</td>
+</tr>
+</table>
+</p>
+
+<p>
+<table border="0" width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td align="left">
+<img src="/media/enforcing.png" alt="enforcing.png" width="500" height="350" style="border:2px solid #000000">
+</td>
+</tr>
+<tr>
+<td align="left">
+<b>Figure D</b>
+</td>
+</tr>
+</table>
+</p>
+
+</div><!-- about -->
 
 <div id="footer">
 <br>
