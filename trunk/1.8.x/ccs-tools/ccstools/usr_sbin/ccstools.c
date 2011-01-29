@@ -58,12 +58,30 @@ static void ccs_sort_domain_policy(struct ccs_domain_policy *dp);
 
 /* Utility functions */
 
+/**
+ * ccs_out_of_memory - Print error message and abort.
+ *
+ * This function does not return.
+ */
 void ccs_out_of_memory(void)
 {
 	fprintf(stderr, "Out of memory. Aborted.\n");
 	exit(1);
 }
 
+/**
+ * ccs_str_starts - Check whether the given string starts with the given keyword.
+ *
+ * @str:   Pointer to "char *".
+ * @begin: Pointer to "const char *".
+ *
+ * Returns true if @str starts with @begin, false otherwise.
+ *
+ * Note that @begin will be removed from @str before returning true. Therefore,
+ * @str must not be "const char *".
+ *
+ * Note that this function in kernel source behaves differently.
+ */
 _Bool ccs_str_starts(char *str, const char *begin)
 {
 	const int len = strlen(begin);
@@ -73,6 +91,13 @@ _Bool ccs_str_starts(char *str, const char *begin)
 	return true;
 }
 
+/**
+ * ccs_byte_range - Check whether the string is a \ooo style octal value.
+ *
+ * @str: Pointer to the string.
+ *
+ * Returns true if @str is a \ooo style octal value, false otherwise.
+ */
 static _Bool ccs_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
@@ -80,11 +105,25 @@ static _Bool ccs_byte_range(const char *str)
 		*str >= '0' && *str <= '7';
 }
 
+/**
+ * ccs_decimal - Check whether the character is a decimal character.
+ *
+ * @c: The character to check.
+ *
+ * Returns true if @c is a decimal character, false otherwise.
+ */
 static _Bool ccs_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
 
+/**
+ * ccs_hexadecimal - Check whether the character is a hexadecimal character.
+ *
+ * @c: The character to check.
+ *
+ * Returns true if @c is a hexadecimal character, false otherwise.
+ */
 static _Bool ccs_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
@@ -92,20 +131,46 @@ static _Bool ccs_hexadecimal(const char c)
 		(c >= 'a' && c <= 'f');
 }
 
+/**
+ *  ccs_alphabet_char - Check whether the character is an alphabet.
+ *
+ * @c: The character to check.
+ *
+ * Returns true if @c is an alphabet character, false otherwise.
+ */ 
 static _Bool ccs_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
+/**
+ * ccs_make_byte - Make byte value from three octal characters.
+ *
+ * @c1: The first character.
+ * @c2: The second character.
+ * @c3: The third character.
+ *
+ * Returns byte value.
+ */
 static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
 {
 	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
 }
 
-void ccs_normalize_line(unsigned char *line)
+/**
+ * ccs_normalize_line - Format string.
+ *
+ * @buffer: The line to normalize.
+ *
+ * Returns nothing.
+ *
+ * Leading and trailing whitespaces are removed.
+ * Multiple whitespaces are packed into single space.
+ */
+void ccs_normalize_line(unsigned char *buffer)
 {
-	unsigned char *sp = line;
-	unsigned char *dp = line;
+	unsigned char *sp = buffer;
+	unsigned char *dp = buffer;
 	_Bool first = true;
 	while (*sp && (*sp <= ' ' || 127 <= *sp))
 		sp++;
@@ -121,7 +186,16 @@ void ccs_normalize_line(unsigned char *line)
 	*dp = '\0';
 }
 
-/* No longer used. */
+/**
+ * ccs_make_filename - Make filename using given prefix.
+ *
+ * @prefix: String to use as a prefix, including leading directories.
+ * @time:   A time_t value, usually return value of time(NULL).
+ *
+ * Returns pathname with timestamp embedded using static buffer.
+ *
+ * Note that this function is no longer used by anybody since 1.8.0p1.
+ */
 char *ccs_make_filename(const char *prefix, const time_t time)
 {
 	struct tm *tm = localtime(&time);
@@ -134,14 +208,32 @@ char *ccs_make_filename(const char *prefix, const time_t time)
 	return filename;
 }
 
-/* Copied from kernel source. */
+/**
+ * ccs_partial_name_hash - Hash name.
+ *
+ * @c:        A unsigned long value.
+ * @prevhash: A previous hash value.
+ *
+ * Returns new hash value.
+ *
+ * This function is copied from partial_name_hash() in the kernel source.
+ */
 static inline unsigned long ccs_partial_name_hash(unsigned long c,
 						  unsigned long prevhash)
 {
 	return (prevhash + (c << 4) + (c >> 4)) * 11;
 }
 
-/* Copied from kernel source. */
+/**
+ * ccs_full_name_hash - Hash full name.
+ *
+ * @name: Pointer to "const unsigned char".
+ * @len:  Length of @name in byte.
+ *
+ * Returns hash value.
+ *
+ * This function is copied from full_name_hash() in the kernel source.
+ */
 static inline unsigned int ccs_full_name_hash(const unsigned char *name,
 					      unsigned int len)
 {
@@ -151,6 +243,15 @@ static inline unsigned int ccs_full_name_hash(const unsigned char *name,
 	return (unsigned int) hash;
 }
 
+/**
+ * ccs_alloc_element - Allocate memory for elements.
+ *
+ * @size: Size in byte.
+ *
+ * Returns pointer to allocated memory.
+ *
+ * This function will not allocate memory larger than CCS_PAGE_SIZE bytes.
+ */
 static void *ccs_alloc_element(const unsigned int size)
 {
 	static char *buf = NULL;
@@ -177,6 +278,13 @@ static void *ccs_alloc_element(const unsigned int size)
 	return ptr;
 }
 
+/**
+ * ccs_const_part_length - Evaluate the initial length without a pattern in a token.
+ *
+ * @filename: The string to evaluate.
+ *
+ * Returns the initial length without a pattern in @filename.
+ */
 static int ccs_const_part_length(const char *filename)
 {
 	int len = 0;
@@ -213,6 +321,15 @@ static int ccs_const_part_length(const char *filename)
 	return len;
 }
 
+/**
+ * ccs_domain_def - Check whether the given token can be a domainname.
+ *
+ * @domainname: The token to check.
+ *
+ * Returns true if @domainname possibly be a domainname, false otherwise.
+ *
+ * Note that this function in kernel source checks only !strncmp() part.
+ */
 _Bool ccs_domain_def(const unsigned char *domainname)
 {
 	return !strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN) &&
@@ -220,6 +337,14 @@ _Bool ccs_domain_def(const unsigned char *domainname)
 		 || domainname[CCS_ROOT_NAME_LEN] == ' ');
 }
 
+/**
+ * ccs_fprintf_encoded - fprintf() using TOMOYO's escape rules.
+ *
+ * @fp:       Pointer to "FILE".
+ * @pathname: String to print.
+ *
+ * Returns nothing.
+ */
 void ccs_fprintf_encoded(FILE *fp, const char *pathname)
 {
 	while (true) {
@@ -238,6 +363,17 @@ void ccs_fprintf_encoded(FILE *fp, const char *pathname)
 	}
 }
 
+/**
+ * ccs_decode - Decode a string in TOMOYO's rule to a string in C.
+ *
+ * @ascii: Pointer to "const char".
+ * @bin:   Pointer to "char". Must not contain wildcards nor '\000'.
+ *
+ * Returns true if @ascii was successfully decoded, false otherwise.
+ *
+ * Note that it is legal to pass @ascii == @bin if the caller want to decode
+ * a string in a temporary buffer.
+ */
 _Bool ccs_decode(const char *ascii, char *bin)
 {
 	while (true) {
@@ -279,6 +415,14 @@ _Bool ccs_decode(const char *ascii, char *bin)
 	return true;
 }
 
+/**
+ * ccs_correct_word2 - Check whether the given string follows the naming rules.
+ *
+ * @string: The byte sequence to check. Not '\0'-terminated.
+ * @len:    Length of @string.
+ *
+ * Returns true if @string follows the naming rules, false otherwise.
+ */
 static _Bool ccs_correct_word2(const char *string, size_t len)
 {
 	const char *const start = string;
@@ -348,16 +492,36 @@ out:
 	return false;
 }
 
+/**
+ * ccs_correct_word - Check whether the given string follows the naming rules.
+ *
+ * @string: The string to check.
+ *
+ * Returns true if @string follows the naming rules, false otherwise.
+ */
 _Bool ccs_correct_word(const char *string)
 {
 	return ccs_correct_word2(string, strlen(string));
 }
-
+/**
+ * ccs_correct_path - Check whether the given pathname follows the naming rules.
+ *
+ * @filename: The pathname to check.
+ *
+ * Returns true if @filename follows the naming rules, false otherwise.
+ */
 _Bool ccs_correct_path(const char *filename)
 {
 	return *filename == '/' && ccs_correct_word(filename);
 }
 
+/**
+ * ccs_correct_domain - Check whether the given domainname follows the naming rules.
+ *
+ * @domainname: The domainname to check.
+ *
+ * Returns true if @domainname follows the naming rules, false otherwise.
+ */
 _Bool ccs_correct_domain(const unsigned char *domainname)
 {
 	if (!domainname || strncmp(domainname, CCS_ROOT_NAME,
@@ -382,6 +546,16 @@ out:
 	return false;
 }
 
+/**
+ * ccs_file_matches_pattern2 - Pattern matching without '/' character and "\-" pattern.
+ *
+ * @filename:     The start of string to check.
+ * @filename_end: The end of string to check.
+ * @pattern:      The start of pattern to compare.
+ * @pattern_end:  The end of pattern to compare.
+ *
+ * Returns true if @filename matches @pattern, false otherwise.
+ */
 static _Bool ccs_file_matches_pattern2(const char *filename,
 				       const char *filename_end,
 				       const char *pattern,
@@ -492,6 +666,16 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 	return filename == filename_end && pattern == pattern_end;
 }
 
+/**
+ * ccs_file_matches_pattern - Pattern matching without '/' character.
+ *
+ * @filename:     The start of string to check.
+ * @filename_end: The end of string to check.
+ * @pattern:      The start of pattern to compare.
+ * @pattern_end:  The end of pattern to compare.
+ *
+ * Returns true if @filename matches @pattern, false otherwise.
+ */
 static _Bool ccs_file_matches_pattern(const char *filename,
 				      const char *filename_end,
 				      const char *pattern,
@@ -518,6 +702,14 @@ static _Bool ccs_file_matches_pattern(const char *filename,
 	return first ? result : !result;
 }
 
+/**
+ * ccs_path_matches_pattern2 - Do pathname pattern matching.
+ *
+ * @f: The start of string to check.
+ * @p: The start of pattern to compare.
+ *
+ * Returns true if @f matches @p, false otherwise.
+ */
 static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
 {
 	const char *f_delimiter;
@@ -573,6 +765,32 @@ recursive:
 	return false; /* Not matched. */
 }
 
+/**
+ * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
+ *
+ * @filename: The filename to check.
+ * @pattern:  The pattern to compare.
+ *
+ * Returns true if matches, false otherwise.
+ *
+ * The following patterns are available.
+ *   \\     \ itself.
+ *   \ooo   Octal representation of a byte.
+ *   \*     Zero or more repetitions of characters other than '/'.
+ *   \@     Zero or more repetitions of characters other than '/' or '.'.
+ *   \?     1 byte character other than '/'.
+ *   \$     One or more repetitions of decimal digits.
+ *   \+     1 decimal digit.
+ *   \X     One or more repetitions of hexadecimal digits.
+ *   \x     1 hexadecimal digit.
+ *   \A     One or more repetitions of alphabet characters.
+ *   \a     1 alphabet character.
+ *
+ *   \-     Subtraction operator.
+ *
+ *   /\{dir\}/   '/' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
+ *               /dir/dir/dir/ ).
+ */
 _Bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			       const struct ccs_path_info *pattern)
 {
@@ -597,16 +815,39 @@ _Bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 	return ccs_path_matches_pattern2(f, p);
 }
 
+/**
+ * ccs_string_compare - strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
 int ccs_string_compare(const void *a, const void *b)
 {
 	return strcmp(*(char **) a, *(char **) b);
 }
 
+/**
+ * ccs_pathcmp - strcmp() for "struct ccs_path_info".
+ *
+ * @a: Pointer to "const struct ccs_path_info".
+ * @b: Pointer to "const struct ccs_path_info".
+ *
+ * Returns true if @a != @b, false otherwise.
+ */
 _Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
+/**
+ * ccs_fill_path_info - Fill in "struct ccs_path_info" members.
+ *
+ * @ptr: Pointer to "struct ccs_path_info" to fill in.
+ *
+ * The caller sets "struct ccs_path_info"->name.
+ */
 void ccs_fill_path_info(struct ccs_path_info *ptr)
 {
 	const char *name = ptr->name;
@@ -618,6 +859,15 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 	ptr->hash = ccs_full_name_hash(name, len);
 }
 
+/**
+ * ccs_memsize - Calculate memory size to allocate.
+ *
+ * @size: Size in byte.
+ *
+ * Returns memory size to allocate on success, 0 otherwise.
+ *
+ * This function will not calculate memory size larger than 1048576 bytes.
+ */
 static unsigned int ccs_memsize(const unsigned int size)
 {
 	if (size <= 1048576)
@@ -625,6 +875,15 @@ static unsigned int ccs_memsize(const unsigned int size)
 	return 0;
 }
 
+/**
+ * ccs_savename - Remember string data.
+ *
+ * @name: Pointer to "const char".
+ *
+ * Returns pointer to "const struct ccs_path_info" on success, NULL otherwise.
+ *
+ * The returned pointer refers shared string. Thus, the caller must not free().
+ */
 const struct ccs_path_info *ccs_savename(const char *name)
 {
 	static struct ccs_free_memory_block_list fmb_list = { NULL, NULL, 0 };
@@ -693,6 +952,14 @@ out:
 	return ptr ? &ptr->entry : NULL;
 }
 
+/**
+ * ccs_parse_number - Parse a ccs_number_entry.
+ *
+ * @number: Number or number range.
+ * @entry:  Pointer to "struct ccs_number_entry".
+ *
+ * Returns 0 on success, -EINVAL otherwise.
+ */
 int ccs_parse_number(const char *number, struct ccs_number_entry *entry)
 {
 	unsigned long min;
@@ -723,6 +990,14 @@ int ccs_parse_number(const char *number, struct ccs_number_entry *entry)
 	return 0;
 }
 
+/**
+ * ccs_parse_ip - Parse a ccs_ip_address_entry.
+ *
+ * @address: IP address or IP range.
+ * @entry:   Pointer to "struct ccs_address_entry".
+ *
+ * Returns 0 on success, -EINVAL otherwise.
+ */
 int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
 {
 	unsigned int min[8];
@@ -764,6 +1039,13 @@ int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
 	return -EINVAL;
 }
 
+/**
+ * ccs_open_stream - Establish IP connection.
+ *
+ * @filename: String to send to remote ccs-editpolicy-agent program.
+ *
+ * Retruns file descriptor on success, EOF otherwise.
+ */
 int ccs_open_stream(const char *filename)
 {
 	const int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -782,6 +1064,17 @@ int ccs_open_stream(const char *filename)
 	return fd;
 }
 
+/**
+ * ccs_find_domain - Find a domain by name and other attributes.
+ *
+ * @dp:          Pointer to "struct ccs_domain_policy".
+ * @domainname0: Name of domain to find.
+ * @is_dis:      True if the domain acts as domain initialize source, false
+ *               otherwise.
+ * @is_dd:       True if the domain is marked as deleted, false otherwise.
+ *
+ * Returns index number (>= 0) in the @dp array if found, EOF otherwise.
+ */
 int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0,
 		    const _Bool is_dis, const _Bool is_dd)
 {
@@ -798,6 +1091,18 @@ int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0,
 	return EOF;
 }
 
+/**
+ * ccs_assign_domain - Create a domain by name and other attributes.
+ *
+ * @dp:         Pointer to "struct ccs_domain_policy".
+ * @domainname: Name of domain to find.
+ * @is_dis:     True if the domain acts as domain initialize source, false
+ *              otherwise.
+ * @is_dd:      True if the domain is marked as deleted, false otherwise.
+ *
+ * Returns index number (>= 0) in the @dp array if created or already exists,
+ * EOF otherwise.
+ */
 int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
 		      const _Bool is_dis, const _Bool is_dd)
 {
@@ -827,6 +1132,13 @@ found:
 	return index;
 }
 
+/**
+ * ccs_get_ppid - Get PPID of the given PID.
+ *
+ * @pid: A pid_t value.
+ *
+ * Returns PPID value.
+ */
 static pid_t ccs_get_ppid(const pid_t pid)
 {
 	char buffer[1024];
@@ -846,6 +1158,15 @@ static pid_t ccs_get_ppid(const pid_t pid)
 	return ppid;
 }
 
+/**
+ * ccs_get_ppid - Get comm name of the given PID.
+ *
+ * @pid: A pid_t value.
+ *
+ * Returns comm name using on success, NULL otherwise.
+ *
+ * The caller must free() the returned pointer.
+ */
 static char *ccs_get_name(const pid_t pid)
 {
 	char buffer[1024];
@@ -904,6 +1225,14 @@ static char *ccs_get_name(const pid_t pid)
 
 static int ccs_dump_index = 0;
 
+/**
+ * ccs_sort_process_entry - Sort ccs_tasklist list.
+ *
+ * @pid:   Pid to search.
+ * @depth: Depth of the process for printing like pstree command.
+ *
+ * Returns nothing. 
+ */
 static void ccs_sort_process_entry(const pid_t pid, const int depth)
 {
 	int i;
@@ -921,6 +1250,14 @@ static void ccs_sort_process_entry(const pid_t pid, const int depth)
 	}
 }
 
+/**
+ * ccs_task_entry_comp - Compare routine for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns index diff value.
+ */
 static int ccs_task_entry_compare(const void *a, const void *b)
 {
 	const struct ccs_task_entry *a0 = (struct ccs_task_entry *) a;
@@ -928,6 +1265,13 @@ static int ccs_task_entry_compare(const void *a, const void *b)
 	return a0->index - b0->index;
 }
 
+/**
+ * ccs_read_process_list - Read all process's information.
+ *
+ * @show_all: Ture if kernel threads should be included, false otherwise.
+ *
+ * Returns nothing. 
+ */
 void ccs_read_process_list(_Bool show_all)
 {
 	int i;
@@ -1078,6 +1422,14 @@ void ccs_read_process_list(_Bool show_all)
 	      ccs_task_entry_compare);
 }
 
+/**
+ * ccs_open_write - Open a file for writing.
+ *
+ * @filename: String to send to remote ccs-editpolicy-agent program if using
+ *            network mode, file to open for writing otherwise.
+ *
+ * Returns pointer to "FILE" on success, NULL otherwise.
+ */
 FILE *ccs_open_write(const char *filename)
 {
 	if (ccs_network_mode) {
@@ -1107,6 +1459,14 @@ FILE *ccs_open_write(const char *filename)
 	}
 }
 
+/**
+ * ccs_open_read - Open a file for reading.
+ *
+ * @filename: String to send to remote ccs-editpolicy-agent program if using
+ *            network mode, file to open for reading otherwise.
+ *
+ * Returns pointer to "FILE" on success, NULL otherwise.
+ */
 FILE *ccs_open_read(const char *filename)
 {
 	if (ccs_network_mode) {
@@ -1121,6 +1481,14 @@ FILE *ccs_open_read(const char *filename)
 	}
 }
 
+/**
+ * ccs_move_proc_to_file - Save /proc/ccs/ to /etc/ccs/ .
+ *
+ * @src:  Filename to save from.
+ * @dest: Filename to save to.
+ *
+ * Returns true on success, false otherwise. 
+ */
 _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 {
 	FILE *proc_fp = ccs_open_read(src);
@@ -1152,7 +1520,17 @@ _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 	return result;
 }
 
-/* No longer used. */
+/**
+ * ccs_identical_file - Check whether two files are identical or not.
+ *
+ * @file1: Pointer to "const char ".
+ * @file2: Pointer to "const char".
+ *
+ * Returns true if both @file1 and @file2 exist and are readable and are
+ * identical, false otherwise.
+ *
+ * Note that this function is no longer used by anybody since 1.8.0p1.
+ */
 _Bool ccs_identical_file(const char *file1, const char *file2)
 {
 	char buffer1[4096];
