@@ -305,13 +305,12 @@ static _Bool ccs_compare_number(const char *sarg, const char *darg)
 /**
  * ccs_editpolicy_optimize - Try to merge entries included in other entries.
  *
- * @dp:      Pointer to "struct ccs_domain_policy".
- * @current: Index in the @dp array.
+ * @current: Index in the domain policy.
  * @screen:  Currently selected screen.
  *
  * Returns nothing.
  */
-void ccs_editpolicy_optimize(struct ccs_domain_policy *dp, const int current,
+void ccs_editpolicy_optimize(const int current,
 			     const enum ccs_screen_type screen)
 {
 	char *cp;

@@ -425,13 +425,14 @@ void ccs_editpolicy_line_draw(const enum ccs_screen_type screen);
 void ccs_editpolicy_offline_daemon(void);
 void ccs_editpolicy_sttr_restore(void);
 void ccs_editpolicy_sttr_save(void);
-void ccs_editpolicy_optimize(struct ccs_domain_policy *dp, const int current, const enum ccs_screen_type screen);
+void ccs_editpolicy_optimize(const int current, const enum ccs_screen_type screen);
 
 extern int ccs_current_y[CCS_MAXSCREEN];
 extern int ccs_generic_acl_list_count;
 extern int ccs_list_item_count[CCS_MAXSCREEN];
 extern int ccs_path_group_list_len;
 extern int ccs_persistent_fd;
+extern struct ccs_domain_policy ccs_dp;
 extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
 extern struct ccs_generic_acl *ccs_generic_acl_list;
 extern struct ccs_path_group_entry *ccs_path_group_list;
