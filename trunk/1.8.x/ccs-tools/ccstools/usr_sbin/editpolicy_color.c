@@ -25,6 +25,11 @@
 
 #ifdef COLOR_ON
 
+/**
+ * ccs_editpolicy_color_init - Initialize line coloring table.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_color_init(void)
 {
 	static struct ccs_color_env_t {
@@ -107,6 +112,13 @@ use_default:
 	init_pair(CCS_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
 }
 
+/**
+ * ccs_editpolicy_color_save - Save or load current color.
+ *
+ * @flg: True if save request, false otherwise.
+ *
+ * Returns nothing.
+ */
 static void ccs_editpolicy_color_save(const _Bool flg)
 {
 	static attr_t save_color = CCS_NORMAL;
@@ -116,6 +128,14 @@ static void ccs_editpolicy_color_save(const _Bool flg)
 		attrset(save_color);
 }
 
+/**
+ * ccs_editpolicy_color_change - Change current color.
+ *
+ * @attr: Coloe to use.
+ * @flg:  True if turn on, false otherwise.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
@@ -124,6 +144,14 @@ void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 		attroff(COLOR_PAIR(attr));
 }
 
+/**
+ * ccs_editpolicy_attr_change - Change current attribute.
+ *
+ * @attr: Coloe to use.
+ * @flg:  True if turn on, false otherwise.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
@@ -132,17 +160,35 @@ void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 		attroff(attr);
 }
 
+/**
+ * ccs_editpolicy_sttr_save - Save current color.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_sttr_save(void)
 {
 	ccs_editpolicy_color_save(true);
 }
 
+/**
+ * ccs_editpolicy_sttr_restore - Load current color.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_sttr_restore(void)
 {
 	ccs_editpolicy_color_save(false);
 }
 
-int ccs_editpolicy_color_head(const int screen)
+/**
+ * ccseditpolicy_color_head - Get color to use for header line.
+ *
+ * @screen: Current screen.
+ *
+ * Returns one of values in "enum ccs_color_pair".
+ */
+enum ccs_color_pair ccs_editpolicy_color_head
+(const enum ccs_screen_type screen)
 {
 	switch (screen) {
 	case CCS_SCREEN_DOMAIN_LIST:
@@ -160,7 +206,15 @@ int ccs_editpolicy_color_head(const int screen)
 	}
 }
 
-int ccs_editpolicy_color_cursor(const int screen)
+/**
+ * ccs_editpolicy_color_cursor - Get color to use for cursor line.
+ *
+ * @screen: Current screen.
+ *
+ * Returns one of values in "enum ccs_color_pair".
+ */
+enum ccs_color_pair ccs_editpolicy_color_cursor
+(const enum ccs_screen_type screen)
 {
 	switch (screen) {
 	case CCS_SCREEN_DOMAIN_LIST:
@@ -178,7 +232,14 @@ int ccs_editpolicy_color_cursor(const int screen)
 	}
 }
 
-void ccs_editpolicy_line_draw(const int screen)
+/**
+ * ccs_editpolicy_line_draw - Update colored line.
+ *
+ * @screen: Current screen.
+ *
+ * Returns nothing.
+ */
+void ccs_editpolicy_line_draw(const enum ccs_screen_type screen)
 {
 	static int ccs_before_current[CCS_MAXSCREEN] = { -1, -1, -1, -1,
 							 -1, -1, -1 };
@@ -208,28 +269,91 @@ void ccs_editpolicy_line_draw(const int screen)
 
 #else
 
+/**
+ * ccs_editpolicy_color_init - Initialize line coloring table.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_color_init(void)
 {
 }
+
+/**
+ * ccs_editpolicy_color_change - Change current color.
+ *
+ * @attr: Coloe to use.
+ * @flg:  True if turn on, false otherwise.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 }
+
+/**
+ * ccs_editpolicy_attr_change - Change current attribute.
+ *
+ * @attr: Coloe to use.
+ * @flg:  True if turn on, false otherwise.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 }
+
+/**
+ * ccs_editpolicy_sttr_save - Save current color.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_sttr_save(void)
 {
 }
+
+/**
+ * ccs_editpolicy_sttr_restore - Load current color.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_sttr_restore(void)
 {
 }
-int ccs_editpolicy_color_head(const int screen)
+
+/**
+ * ccseditpolicy_color_head - Get color to use for header line.
+ *
+ * @screen: Current screen.
+ *
+ * Returns one of values in "enum ccs_color_pair".
+ */
+enum ccs_color_pair ccs_editpolicy_color_head
+(const enum ccs_screen_type screen)
 {
+	return CCS_NORMAL;
 }
-int ccs_editpolicy_color_cursor(const int screen)
+
+/**
+ * ccseditpolicy_color_head - Get color to use for header line.
+ *
+ * @screen: Current screen.
+ *
+ * Returns one of values in "enum ccs_color_pair".
+ */
+enum ccs_color_pair ccs_editpolicy_color_cursor
+(const enum ccs_screen_type screen)
 {
+	return CCS_NORMAL;
 }
-void ccs_editpolicy_line_draw(const int screen)
+
+/**
+ * ccs_editpolicy_line_draw - Update colored line.
+ *
+ * @screen: Current screen.
+ *
+ * Returns nothing.
+ */
+void ccs_editpolicy_line_draw(const enum ccs_screen_type screen)
 {
 }
 

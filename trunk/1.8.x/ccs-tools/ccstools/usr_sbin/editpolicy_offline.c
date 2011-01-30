@@ -23,6 +23,18 @@
 #include "ccstools.h"
 #include "editpolicy.h"
 
+/* File descriptor for offline mode. */
+extern int ccs_persistent_fd;
+
+/**
+ * ccs_handle_misc_policy - Handle policy data other than domain policy.
+ *
+ * @mp:       Pointer to "struct ccs_misc_policy".
+ * @fp:       Pointer to "FILE".
+ * @is_write: True if write request, false otherwise.
+ *
+ * Returns nothing.
+ */
 static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp,
 				   _Bool is_write)
 {
@@ -70,32 +82,11 @@ read_policy:
 		fprintf(fp, "%s\n", mp->list[i]->name);
 }
 
-/* Variables */
-
-int ccs_persistent_fd = EOF;
-
-/* Main functions */
-
-void ccs_send_fd(char *data, int *fd)
-{
-	struct msghdr msg;
-	struct iovec iov = { data, strlen(data) };
-	char cmsg_buf[CMSG_SPACE(sizeof(int))];
-	struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_buf;
-	memset(&msg, 0, sizeof(msg));
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_control = cmsg_buf;
-	msg.msg_controllen = sizeof(cmsg_buf);
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-	msg.msg_controllen = cmsg->cmsg_len;
-	memmove(CMSG_DATA(cmsg), fd, sizeof(int));
-	sendmsg(ccs_persistent_fd, &msg, 0);
-	close(*fd);
-}
-
+/**
+ * ccs_editpolicy_offline_daemon - Emulate /proc/ccs/ interface.
+ *
+ * This function does not return.
+ */
 void ccs_editpolicy_offline_daemon(void)
 {
 	struct ccs_misc_policy mp[3];

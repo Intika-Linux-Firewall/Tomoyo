@@ -23,8 +23,7 @@
 #include "ccstools.h"
 #include "editpolicy.h"
 
-/* Variables */
-
+/* keyword array for rewriting keywords upon display. */
 struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_ACL_GROUP_000]                 = { "acl_group 0", NULL, 0, 0 },
 	[CCS_DIRECTIVE_ACL_GROUP_001]                 = { "acl_group 1", NULL, 0, 0 },
@@ -332,9 +331,15 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_USE_PROFILE]                   = { "use_profile", NULL, 0, 0 },
 };
 
-/* Main functions */
-
-u16 ccs_find_directive(const _Bool forward, char *line)
+/**
+ * ccs_find_directive - Find keyword index.
+ *
+ * @forward: True if original -> alias conversion, false otherwise.
+ * @line: A line containing keyword and operand.
+ *
+ * Returns one of values in "enum ccs_screen_type".
+ */
+enum ccs_screen_type ccs_find_directive(const _Bool forward, char *line)
 {
 	u16 i;
 	for (i = 1; i < CCS_MAX_DIRECTIVE_INDEX; i++) {
@@ -365,6 +370,11 @@ u16 ccs_find_directive(const _Bool forward, char *line)
 	return CCS_DIRECTIVE_NONE;
 }
 
+/**
+ * ccs_editpolicy_init_keyword_map - Initialize keyword mapping table.
+ *
+ * Returns nothing.
+ */
 void ccs_editpolicy_init_keyword_map(void)
 {
 	FILE *fp = fopen(CCS_EDITPOLICY_CONF, "r");

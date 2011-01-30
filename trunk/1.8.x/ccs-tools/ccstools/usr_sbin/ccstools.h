@@ -156,7 +156,6 @@ int ccs_parse_number(const char *number, struct ccs_number_entry *entry);
 int ccs_string_compare(const void *a, const void *b);
 int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd);
 struct ccs_path_group_entry *ccs_find_path_group(const char *group_name);
-u16 ccs_find_directive(const _Bool forward, char *line);
 void ccs_clear_domain_policy(struct ccs_domain_policy *dp);
 void ccs_delete_domain(struct ccs_domain_policy *dp, const int index);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
