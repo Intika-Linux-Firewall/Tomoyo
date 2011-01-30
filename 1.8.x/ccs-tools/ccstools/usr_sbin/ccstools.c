@@ -36,11 +36,17 @@ struct ccs_free_memory_block_list {
 #define CCS_SAVENAME_MAX_HASH            256
 #define CCS_PAGE_SIZE                    4096
 
+/* Use ccs-editpolicy-agent process? */
 _Bool ccs_network_mode = false;
+/* The IPv4 address of the remote host running the ccs-editpolicy-agent . */
 u32 ccs_network_ip = INADDR_NONE;
+/* The port number of the remote host running the ccs-editpolicy-agent . */
 u16 ccs_network_port = 0;
+/* The list of processes currently running. */
 struct ccs_task_entry *ccs_task_list = NULL;
+/* The length of ccs_task_list . */
 int ccs_task_list_len = 0;
+/* Read files without calling ccs_normalize_line() ? */
 _Bool ccs_freadline_raw = false;
 
 /* Prototypes */
@@ -80,7 +86,8 @@ void ccs_out_of_memory(void)
  * Note that @begin will be removed from @str before returning true. Therefore,
  * @str must not be "const char *".
  *
- * Note that this function in kernel source behaves differently.
+ * Note that this function in kernel source has different arguments and behaves
+ * differently.
  */
 _Bool ccs_str_starts(char *str, const char *begin)
 {
@@ -503,6 +510,7 @@ _Bool ccs_correct_word(const char *string)
 {
 	return ccs_correct_word2(string, strlen(string));
 }
+
 /**
  * ccs_correct_path - Check whether the given pathname follows the naming rules.
  *
@@ -1223,6 +1231,7 @@ static char *ccs_get_name(const pid_t pid)
 	return NULL;
 }
 
+/* Serial number for sorting ccs_task_list . */
 static int ccs_dump_index = 0;
 
 /**
@@ -1561,6 +1570,13 @@ out:
 	return false;
 }
 
+/**
+ * ccs_clear_domain_policy - Clean up domain policy.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing. 
+ */
 void ccs_clear_domain_policy(struct ccs_domain_policy *dp)
 {
 	int index;
@@ -1574,6 +1590,17 @@ void ccs_clear_domain_policy(struct ccs_domain_policy *dp)
 	dp->list_len = 0;
 }
 
+/**
+ * ccs_find_domain_by_ptr - Find a domain by memory address.
+ *
+ * @dp:         Pointer to "struct ccs_domain_policy".
+ * @domainname: Pointer to "const struct ccs_path_info".
+ *
+ * Returns index number (>= 0) in the @dp array if found, EOF otherwise.
+ *
+ * This function is faster than faster than ccs_find_domain() because
+ * this function searches for a domain by address (i.e. avoid strcmp()).
+ */
 int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
 			   const struct ccs_path_info *domainname)
 {
@@ -1585,18 +1612,44 @@ int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
 	return EOF;
 }
 
+/**
+ * ccs_domain_name - Return domainname.
+ *
+ * @dp:    Pointer to "const struct ccs_domain_policy".
+ * @index: Index in the @dp array.
+ *
+ * Returns domainname.
+ *
+ * Note that this function does not validate @index value.
+ */
 const char *ccs_domain_name(const struct ccs_domain_policy *dp,
 			    const int index)
 {
 	return dp->list[index].domainname->name;
 }
 
+/**
+ * ccs_domainname_compare - strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
 static int ccs_domainname_compare(const void *a, const void *b)
 {
 	return strcmp(((struct ccs_domain_info *) a)->domainname->name,
 		      ((struct ccs_domain_info *) b)->domainname->name);
 }
 
+/**
+ * ccs_path_info_compare - strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
 static int ccs_path_info_compare(const void *a, const void *b)
 {
 	const char *a0 = (*(struct ccs_path_info **) a)->name;
@@ -1604,6 +1657,13 @@ static int ccs_path_info_compare(const void *a, const void *b)
 	return strcmp(a0, b0);
 }
 
+/**
+ * ccs_sort_domain_policy - Sort domain policy.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing.
+ */
 static void ccs_sort_domain_policy(struct ccs_domain_policy *dp)
 {
 	int i;
@@ -1614,6 +1674,14 @@ static void ccs_sort_domain_policy(struct ccs_domain_policy *dp)
 		      sizeof(struct ccs_path_info *), ccs_path_info_compare);
 }
 
+/**
+ * ccs_read_domain_policy - Read domain policy from file or network or stdin.
+ *
+ * @dp:       Pointer to "struct ccs_domain_policy".
+ * @filename: Domain policy's pathname.
+ *
+ * Returns nothing. 
+ */
 void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename)
 {
 	FILE *fp = stdin;
@@ -1632,6 +1700,14 @@ void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename)
 	ccs_sort_domain_policy(dp);
 }
 
+/**
+ * ccs_write_domain_policy - Write domain policy to file descriptor.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ * @fd: File descriptor.
+ *
+ * Returns 0.
+ */
 int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
 {
 	int i;
@@ -1662,6 +1738,14 @@ int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
 	return 0;
 }
 
+/**
+ * ccs_delete_domain - Delete a domain from domain policy.
+ *
+ * @dp:    Pointer to "struct ccs_domain_policy".
+ * @index: Index in the @dp array.
+ *
+ * Returns nothing.
+ */
 void ccs_delete_domain(struct ccs_domain_policy *dp, const int index)
 {
 	if (index >= 0 && index < dp->list_len) {
@@ -1673,6 +1757,15 @@ void ccs_delete_domain(struct ccs_domain_policy *dp, const int index)
 	}
 }
 
+/**
+ * ccs_add_string_entry - Add string entry to a domain.
+ *
+ * @dp:    Pointer to "struct ccs_domain_policy".
+ * @entry: String to add.
+ * @index: Index in the @dp array.
+ *
+ * Returns 0 if successfully added or already exists, -EINVAL otherwise. 
+ */
 int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index)
 {
@@ -1710,6 +1803,16 @@ int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	return 0;
 }
 
+/**
+ * ccs_del_string_entry - Delete string entry from a domain.
+ *
+ * @dp:    Pointer to "struct ccs_domain_policy".
+ * @entry: String to remove.
+ * @index: Index in the @dp array.
+ *
+ * Returns 0 if successfully removed, -ENOENT if not found,
+ * -EINVAL otherwise. 
+ */
 int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index)
 {
@@ -1742,6 +1845,15 @@ int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	return -ENOENT;
 }
 
+/**
+ * ccs_handle_domain_policy - Parse domain policy.
+ *
+ * @dp:       Pointer to "struct ccs_domain_policy".
+ * @fp:       Pointer to "FILE".
+ * @is_write: True if input, false if output.
+ *
+ * Returns nothing.
+ */
 void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 			      _Bool is_write)
 {
@@ -1805,10 +1917,17 @@ read_policy:
 	}
 }
 
-/* Variables */
-
+/* Is the shared buffer for ccs_freadline() and ccs_shprintf() owned? */
 static _Bool ccs_buffer_locked = false;
 
+/**
+ * ccs_get - Mark the shared buffer for ccs_freadline() and ccs_shprintf() owned.
+ *
+ * Returns nothing.
+ *
+ * This is for avoiding accidental overwriting.
+ * ccs_freadline() and ccs_shprintf() have their own memory buffer. 
+ */
 void ccs_get(void)
 {
 	if (ccs_buffer_locked)
@@ -1816,6 +1935,14 @@ void ccs_get(void)
 	ccs_buffer_locked = true;
 }
 
+/**
+ * ccs_put - Mark the shared buffer for ccs_freadline() and ccs_shprintf() no longer owned.
+ *
+ * Returns nothing.
+ *
+ * This is for avoiding accidental overwriting.
+ * ccs_freadline() and ccs_shprintf() have their own memory buffer. 
+ */
 void ccs_put(void)
 {
 	if (!ccs_buffer_locked)
@@ -1823,6 +1950,15 @@ void ccs_put(void)
 	ccs_buffer_locked = false;
 }
 
+/**
+ * ccs_shprintf - sprintf() to the shared buffer.
+ *
+ * @fmt: The printf()'s format string, followed by parameters.
+ *
+ * Returns pointer to the shared buffer.
+ *
+ * The caller must not free() the returned pointer.
+ */
 char *ccs_shprintf(const char *fmt, ...)
 {
 	if (!ccs_buffer_locked)
@@ -1849,6 +1985,15 @@ char *ccs_shprintf(const char *fmt, ...)
 	}
 }
 
+/**
+ * ccs_freadline - Read a line from file to the shared buffer.
+ *
+ * @fp: Pointer to "FILE".
+ *
+ * Returns pointer to the shared buffer on success, NULL otherwise.
+ *
+ * The caller must not free() the returned pointer.
+ */
 char *ccs_freadline(FILE *fp)
 {
 	static char *policy = NULL;
@@ -1881,6 +2026,11 @@ char *ccs_freadline(FILE *fp)
 	return policy;
 }
 
+/**
+ * ccs_check_remote_host - Check whether the remote host is running with the TOMOYO 1.8 kernel or not.
+ *
+ * Returns true if running with TOMOYO 1.8 kernel, false otherwise.
+ */
 _Bool ccs_check_remote_host(void)
 {
 	int major = 0;
