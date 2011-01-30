@@ -129,7 +129,8 @@ void ccs_editpolicy_offline_daemon(void)
 		if (ccs_str_starts(buffer, "POST ")) {
 			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
 				ccs_handle_domain_policy(&ccs_dp, fp, true);
-			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
+			else if (!strcmp(buffer,
+					 CCS_PROC_POLICY_EXCEPTION_POLICY))
 				ccs_handle_misc_policy(&mp[0], fp, true);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
 				ccs_handle_misc_policy(&mp[1], fp, true);
@@ -138,7 +139,8 @@ void ccs_editpolicy_offline_daemon(void)
 		} else if (ccs_str_starts(buffer, "GET ")) {
 			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
 				ccs_handle_domain_policy(&ccs_dp, fp, false);
-			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
+			else if (!strcmp(buffer,
+					 CCS_PROC_POLICY_EXCEPTION_POLICY))
 				ccs_handle_misc_policy(&mp[0], fp, false);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
 				ccs_handle_misc_policy(&mp[1], fp, false);

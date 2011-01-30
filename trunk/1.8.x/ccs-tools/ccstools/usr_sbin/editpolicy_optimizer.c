@@ -320,10 +320,10 @@ void ccs_editpolicy_optimize(const int current,
 	char *d[5];
 	if (current < 0)
 		return;
-	s_index = ccs_generic_acl_list[current].directive;
+	s_index = ccs_gacl_list[current].directive;
 	if (s_index == CCS_DIRECTIVE_NONE)
 		return;
-	cp = strdup(ccs_generic_acl_list[current].operand);
+	cp = strdup(ccs_gacl_list[current].operand);
 	if (!cp)
 		return;
 	ccs_tokenize(cp, s, s_index);
@@ -331,18 +331,18 @@ void ccs_editpolicy_optimize(const int current,
 	for (index = 0; index < ccs_list_item_count[screen]; index++) {
 		char *line;
 		const enum ccs_editpolicy_directives d_index =
-			ccs_generic_acl_list[index].directive;
+			ccs_gacl_list[index].directive;
 		if (index == current)
 			/* Skip source. */
 			continue;
-		if (ccs_generic_acl_list[index].selected)
+		if (ccs_gacl_list[index].selected)
 			/* Dest already selected. */
 			continue;
 		else if (s_index != d_index)
 			/* Source and dest have different directive. */
 			continue;
 		/* Source and dest have same directive. */
-		line = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
+		line = ccs_shprintf("%s", ccs_gacl_list[index].operand);
 		ccs_tokenize(line, d, d_index);
 		/* Compare condition part. */
 		if (strcmp(s[4], d[4]))
@@ -445,7 +445,7 @@ void ccs_editpolicy_optimize(const int current,
 		default:
 			continue;
 		}
-		ccs_generic_acl_list[index].selected = 1;
+		ccs_gacl_list[index].selected = 1;
 	}
 	ccs_put();
 	free(cp);
