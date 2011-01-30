@@ -1,0 +1,196 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<title>TOMOYO Linux ccs-tools 1.6.x ChangeLog</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="/media/tomoyolinux.css" media="all" type="text/css">
+</head>
+
+<body>
+
+<div id="titlebar">
+<img src="/media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left">
+</div>
+
+<div id="navbar" class="tomoyo-changelog">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="/index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="/about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="/download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelog"><a href="/changelog.html.en" title="TOMOYO Linux ChangeLog">ChangeLog</a></li>
+<li id="tomoyo-documentation"><a href="/documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-links"><a href="/links.html.en" title="Useful links">Links</a></li>
+<li id="tomoyo-support"><a href="/support.html.en" title="Support information">Support</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="changelog">
+
+<h4>ChangeLog for ccs-tools 1.6.8</h4>
+
+<pre>
+Version 1.6.8p4 2010/11/22   Bug fix release.
+
+  ccs-checkpolicy:
+    Do not check trailing '/' for deny_unmount keyword.
+
+Version 1.6.8p3 2010/01/15   Bug fix release.
+
+  ccs-init:
+    Convert as C program in case awk and seq are not available by the time
+    /sbin/init starts.
+
+  tomoyo-init:
+    Convert as C program in case awk and seq are not available by the time
+    /sbin/init starts.
+
+Version 1.6.8p1 2009/06/23   Bug fix release.
+
+  ccs-auditd:
+    Print error message if auditing interface is not available.
+
+Version 1.6.8 2009/05/28   Bug fix release.
+
+  ccs-ccstree:
+    Add ability to fetch status remotely.
+
+  ccs-editpolicy-agent:
+    Add support for ccs-ccstree.
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.6.7</h4>
+
+<pre>
+Version 1.6.7 2009/04/01   Feature enhancement release.
+
+  ccs-editpolicy:
+    Add ability to edit profile and manager and meminfo.
+    Add ability to edit policy files in arbitrary location.
+    Add ability to edit policy remotely.
+    Add readonly mode option for showcase use.
+    Add automatic refresh option for showcase use.
+
+  ccs-loadpolicy:
+    Add ability to load policy remotely.
+    Add ability to load meminfo.
+
+  ccs-savepolicy:
+    Add ability to save policy remotely.
+    Add ability to print meminfo.
+
+  ccs-editpolicy-agent:
+    This program gives ccs-editpolicy and ccs-loadpolicy and ccs-savepolicy
+    ability to manage embedded systems remotely via TCP/IP networking.
+
+  ccs-editpolicy_offline:
+    This program was removed because its functionality was merged into
+    ccs-editpolicy.
+
+  ccs-setlevel:
+    This program became obsolete because its functionality was merged into
+    ccs-editpolicy and ccs-loadpolicy.
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.6.6</h4>
+
+<pre>
+Version 1.6.6 2009/02/02   Bug fix release.
+
+  The following programs were updated.
+
+    ccs-editpolicy:
+      Handle '\A' and '\a' correctly.
+
+    ccs-pathmatch:
+      Handle '\A' and '\a' correctly.
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.6.5</h4>
+
+<pre>
+Version 1.6.5 2008/11/11   Third anniversary release.
+
+  Updated coding style and fixed some bugs.
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.6.3</h4>
+
+<pre>
+Version 1.6.3 2008/07/15   Bug fix release.
+
+  The following programs were updated.
+
+    editpolicy:
+      Treat ASCII code's BS character as ncurses code's BS character.
+
+    proxy:
+      Dropped suid-root since /usr/lib/ccs/ is globally accessible
+      since 1.6.2 .
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.6.2</h4>
+
+<pre>
+Version 1.6.2 2008/06/25   Usability enhancement release.
+
+  The following programs were updated.
+
+    ccs-init:
+      Don't wait for user's input if /etc/ccs/ doesn't exist.
+
+    init_policy.sh:
+      Add some files under /usr/share/ to globally readable files.
+      Don't make patterns for /sys/ .
+      Fix some bugs.
+
+    ccs-queryd:
+      Show more information regarding pending requests.
+      Merge functionality of ld-watch .
+
+    ccs-notifyd:
+      Show more information regarding pending requests.
+
+  The following program was added.
+
+    convert-exec-param:
+      Generate "allow_execute" entry which considers argv[] values
+      from access logs.
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.6.1</h4>
+
+<pre>
+Version 1.6.1 2008/05/10   Minor update release.
+
+  The following program was updated.
+
+    init_policy.sh:
+      Check /usr/lib for symbolic link.
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.6.0</h4>
+
+<pre>
+Version 1.6.0 2008/04/01   Feature enhancement release.
+
+  The following program was updated.
+
+    editpolicy:
+      Allow keyword aliasing via configuration file.
+      Allow line coloring via configuration file.
+</pre>
+
+</div><!-- changelog -->
+
+</div><!-- content -->
+
+<div id="footer">
+<p class="timestamp">Last modified: $Date: 2011-01-25 01:12:48 +0000 (Tue, 25 Jan 2011) $</p>
+<p class="trademark">Linux® is a registered trademark of Linus Torvalds world-wide. TOMOYO® is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+</div>
+
+</body>
+</html>
