@@ -1,5 +1,5 @@
 body {
-	min-width: 650px;
+	min-width: 750px;
 	background: #f5f7f9;
 	color: #111111;
 	font: normal 100% sans-serif;
@@ -12,7 +12,13 @@ ul { margin-bottom: 1em; padding-left: 2em; list-style: square; }
 hr { border: none; border-top: 1px solid #888888; }
 img { border: 0; }
 
-#content { font-size: 0.875em; }
+/* general layout */
+div#content {
+	width: 96%;
+	margin: 0 auto;
+	font-size: 0.875em;
+	text-align: left;
+}
 
 h1 { font-size: 2em; margin-bottom: 0.5em; }
 h2 { font-size: 1.5em; margin-bottom: 0.5em; }
@@ -20,26 +26,29 @@ h3 { font-size: 1.25em; margin-top: 1em; }
 h4 { font-size: 1.15em; margin-top: 1em; }
 h5 { font-size: 1em; margin-top: 1em; }
 
-#titlebar {
-	height: 80px !important;
+div#titlebar {
+	height: 60px !important;
 	padding: 10px 15px !important;
 	background: #355568 !important;
 }
+div#titlebar img {
+	margin: 10px 0 10px 10px !important;
+}
 
 /* navigation bar */
-#navbar {
+div#navbar {
 	height: 30px !important;
 	padding: 10px 15px !important;
 	background: #333333 !important;
 }
-#navbar ul {
+div#navbar ul {
 	display: inline !important;
-	float: right !important;
+	float: left !important;
 	list-style: none !important;
 	margin: 0 !important;
 	padding: 0 !important;
 }
-#navbar ul li {
+div#navbar ul li {
 	float: left !important;
 	font-size: 14px !important;
 	font-family: sans-serif !important;
@@ -47,39 +56,36 @@ h5 { font-size: 1em; margin-top: 1em; }
 	padding-right: 15px !important;
 	padding-left: 10px !important;
 }
-#navbar ul#navbarlist li a {
+div#navbar ul#navbarlist li a {
 	color: #999999;
 	font-weight: bold !important;
 	text-decoration: none !important;
 }
-#navbar ul li a:hover {
-	color: white !important;
+div#navbar ul li a:hover {
+	color: #ec7e13 !important;
 	text-decoration: underline !important;
 }
-#navbar.tomoyo-home ul li#tomoyo-home a {
-	color: white !important;
+div#navbar.tomoyo-home ul li#tomoyo-home a {
+	color: #ec7e13 !important;
 }
-#navbar.tomoyo-about ul li#tomoyo-about a {
-	color: white !important;
+div#navbar.tomoyo-about ul li#tomoyo-about a {
+	color: #ec7e13 !important;
 }
-#navbar.tomoyo-download ul li#tomoyo-download a {
-	color: white !important;
+div#navbar.tomoyo-download ul li#tomoyo-download a {
+	color: #ec7e13 !important;
 }
-#navbar.tomoyo-changelog ul li#tomoyo-changelog a {
-	color: white !important;
+div#navbar.tomoyo-changelog ul li#tomoyo-changelog a {
+	color: #ec7e13 !important;
 }
-#navbar.tomoyo-documentation ul li#tomoyo-documentation a {
-	color: white !important;
+div#navbar.tomoyo-documentation ul li#tomoyo-documentation a {
+	color: #ec7e13 !important;
 }
-#navbar.tomoyo-links ul li#tomoyo-links a {
-	color: white !important;
+div#navbar.tomoyo-links ul li#tomoyo-links a {
+	color: #ec7e13 !important;
 }
-#navbar.tomoyo-support ul li#tomoyo-support a {
-	color: white !important;
+div#navbar.tomoyo-support ul li#tomoyo-support a {
+	color: #ec7e13 !important;
 }
-
-/* general layout */
-div#content { width: 96%; margin: 0 auto; text-align: justify; }
 
 /* home page main column */
 div#main {
@@ -97,7 +103,19 @@ div#news {
 	margin: 1.5em 0.25em 1.5em 0em;
 	padding: 0.75em;
 }
-div#news .timestamp { font-size: 0.8em; margin-top: 4em; line-height: 0%; }
+
+/* introduction */
+div#tomoyopenguin {
+	float: left;
+	height: 150px;
+	margin: 1em 30px 1em 0;
+}
+div#introduction {
+	height: 150px;
+	width: 100%;
+}
+
+div#news .timestamp { font-size: 0.8em; margin-top: 2em; line-height: 0%; }
 div#news h3 { margin-top: 0em; margin-bottom: 0em; }
 div#news h4 {
 	font-size: 1em;
@@ -106,6 +124,7 @@ div#news h4 {
 	border-bottom: 1px dotted #666666;
 }
 div#news p { margin-top: 0.5em; }
+div#news .archive { font-weight: normal; }
 
 /* news archive */
 div#news-archive {
@@ -125,11 +144,13 @@ div#news-archive h4 {
 div#news-archive p { margin-top: 0.5em; }
 
 /* copyright footer */
-div#footer { clear: both; }
-div#footer p { text-align: center; font-size: 0.8em; }
+div#footer { clear: both; margin: 2em 0 1em; border-top: 1px solid #888888; }
+div#footer { text-align: center; font-size: 0.7em; }
+div#footer .timestamp { margin: 1em 0 0 0; }
+div#footer .trademark { margin: 0; }
 
 /* about page */
-div#about { width: 90%; margin: 0 auto; text-align: justify; }
+div#about { width: 90%; margin: 0 auto; }
 div#about h3 {
 	margin-top: 1.5em;
 	margin-bottom: 0em;
@@ -142,19 +163,21 @@ div#changelog pre {
 	border: 1px solid #cbcbcb;
 	margin: 1.5em 1.5em 1.5em 1.5em;
 	padding: 0.75em;
+	overflow: auto;
 }
 
 a {	text-decoration: none; }
 a:link {color: #1366a0; }
 a:visited {	color: #6f6f6f; }
 a:hover { text-decoration: underline; color: #6f6f6f; }
-a:active { color: #f69306; }
+a:active { color: #ec7e13; }
 
 pre {
 	border: 2px solid #6699ff;
 	background: #ddffff;
-	padding: 0.5em 1em 0.5em 1em;
+	padding: 0.75em;
 	margin: 1em 2em 1em 2em;
+	overflow: auto;
 }
 pre.command {
 	border: 2px solid #444444;
@@ -182,3 +205,13 @@ blockquote {
 	padding: 0.25em 1em 0.25em 1em;
 	margin: 1em 2em 1em 2em;
 }
+
+/* table settings */
+table { width: 100%; border-collapse: collapse; }
+table .wrap { white-space: normal; }
+th, td { white-space: nowrap; text-align: left; }
+th { vertical-align: middle; font-weight: bold; }
+td { vertical-align: top; }
+
+table.noborder { width: "100%";	border: "0"; border-collapse: collapse; }
+table.noborder td { padding: 0; border: "0"; border-collapse: collapse; }
