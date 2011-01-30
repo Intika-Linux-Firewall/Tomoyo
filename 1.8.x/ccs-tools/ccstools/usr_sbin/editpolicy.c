@@ -25,7 +25,10 @@
 #include "readline.h"
 
 /* Domain policy. */
-struct ccs_domain_policy ccs_dp = { NULL, 0, NULL };
+struct ccs_domain_policy ccs_dp = { };
+
+/* Readline history. */
+static struct ccs_readline_data ccs_rl = { };
 
 /* File descriptor for offline mode. */
 int ccs_persistent_fd = EOF;
@@ -35,9 +38,9 @@ struct ccs_path_group_entry *ccs_path_group_list = NULL;
 /* Length of ccs_path_group_list array. */
 int ccs_path_group_list_len = 0;
 /* Array of string ACL entries. */
-struct ccs_generic_acl *ccs_generic_acl_list = NULL;
+struct ccs_generic_acl *ccs_gacl_list = NULL;
 /* Length of ccs_generic_list array. */
-int ccs_generic_acl_list_count = 0;
+int ccs_gacl_list_count = 0;
 
 /* Policy directory. */
 static const char *ccs_policy_dir = NULL;
@@ -112,8 +115,8 @@ static _Bool ccs_domain_unreachable(const int index);
 static _Bool ccs_deleted_domain(const int index);
 static const struct ccs_transition_control_entry *ccs_transition_control(const struct ccs_path_info *domainname, const char *program);
 static enum ccs_screen_type ccs_select_window(const int current);
-static int ccs_generic_acl_compare(const void *a, const void *b);
-static int ccs_generic_acl_compare0(const void *a, const void *b);
+static int ccs_gacl_compare(const void *a, const void *b);
+static int ccs_gacl_compare0(const void *a, const void *b);
 static int ccs_string_acl_compare(const void *a, const void *b);
 static int ccs_profile_entry_compare(const void *a, const void *b);
 static void ccs_read_generic_policy(void);
@@ -142,15 +145,15 @@ static void ccs_set_cursor_pos(const int index);
 static int ccs_count(const unsigned char *array, const int len);
 static int ccs_count2(const struct ccs_generic_acl *array, int len);
 static _Bool ccs_select_item(const int index);
-static int ccs_generic_acl_compare(const void *a, const void *b);
+static int ccs_gacl_compare(const void *a, const void *b);
 static void ccs_delete_entry(const int index);
-static void ccs_add_entry(struct ccs_readline_data *rl);
-static void ccs_find_entry(const _Bool input, const _Bool forward, const int current, struct ccs_readline_data *rl);
+static void ccs_add_entry(void);
+static void ccs_find_entry(const _Bool input, const _Bool forward, const int current);
 static void ccs_set_profile(const int current);
 static void ccs_set_level(const int current);
 static void ccs_set_quota(const int current);
 static _Bool ccs_show_command_key(const enum ccs_screen_type screen, const _Bool readonly);
-static int ccs_generic_list_loop(void);
+static enum ccs_screen_type ccs_generic_list_loop(void);
 static void ccs_copy_file(const char *source, const char *dest);
 static FILE *ccs_editpolicy_open_write(const char *filename);
 
@@ -316,14 +319,14 @@ static _Bool ccs_deleted_domain(const int index)
 }
 
 /**
- * ccs_generic_acl_compare0 - strcmp() for qsort() callback.
+ * ccs_gacl_compare0 - strcmp() for qsort() callback.
  *
  * @a: Pointer to "void".
  * @b: Pointer to "void".
  *
  * Returns return value of strcmp().
  */
-static int ccs_generic_acl_compare0(const void *a, const void *b)
+static int ccs_gacl_compare0(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
 	const struct ccs_generic_acl *b0 = (struct ccs_generic_acl *) b;
@@ -543,12 +546,12 @@ done:
 static int ccs_show_acl_line(const int index, const int list_indent)
 {
 	const enum ccs_editpolicy_directives directive =
-		ccs_generic_acl_list[index].directive;
+		ccs_gacl_list[index].directive;
 	const char *cp1 = ccs_directives[directive].alias;
-	const char *cp2 = ccs_generic_acl_list[index].operand;
+	const char *cp2 = ccs_gacl_list[index].operand;
 	int len = list_indent - ccs_directives[directive].alias_len;
 	printw("%c%4d: %s ",
-	       ccs_generic_acl_list[index].selected ? '&' : ' ',
+	       ccs_gacl_list[index].selected ? '&' : ' ',
 	       index, ccs_eat(cp1));
 	while (len-- > 0)
 		printw("%s", ccs_eat(" "));
@@ -565,12 +568,12 @@ static int ccs_show_acl_line(const int index, const int list_indent)
  */
 static int ccs_show_profile_line(const int index)
 {
-	const char *cp = ccs_generic_acl_list[index].operand;
-	const u16 profile = ccs_generic_acl_list[index].directive;
+	const char *cp = ccs_gacl_list[index].operand;
+	const u16 profile = ccs_gacl_list[index].directive;
 	char number[8] = "";
 	if (profile <= 256)
 		snprintf(number, sizeof(number) - 1, "%3u-", profile);
-	printw("%c%4d: %s", ccs_generic_acl_list[index].selected ? '&' : ' ',
+	printw("%c%4d: %s", ccs_gacl_list[index].selected ? '&' : ' ',
 	       index, ccs_eat(number));
 	printw("%s ", ccs_eat(cp));
 	return strlen(number) + strlen(cp) + 8;
@@ -585,9 +588,9 @@ static int ccs_show_profile_line(const int index)
  */
 static int ccs_show_literal_line(const int index)
 {
-	const char *cp = ccs_generic_acl_list[index].operand;
+	const char *cp = ccs_gacl_list[index].operand;
 	printw("%c%4d: %s ",
-	       ccs_generic_acl_list[index].selected ? '&' : ' ',
+	       ccs_gacl_list[index].selected ? '&' : ' ',
 	       index, ccs_eat(cp));
 	return strlen(cp) + 8;
 }
@@ -604,7 +607,7 @@ static int ccs_show_stat_line(const int index)
 	char *line;
 	unsigned int now;
 	ccs_get();
-	line = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
+	line = ccs_shprintf("%s", ccs_gacl_list[index].operand);
 	if (line[0])
 		printw("%s", ccs_eat(line));
 	now = strlen(line);
@@ -952,7 +955,8 @@ next:
 						continue;
 				}
 			}
-			if (ptr->program && strcmp(ptr->program->name, program))
+			if (ptr->program &&
+			    strcmp(ptr->program->name, program))
 				continue;
 			if (type == CCS_TRANSITION_CONTROL_NO_INITIALIZE) {
 				/*
@@ -1031,9 +1035,9 @@ static void ccs_read_generic_policy(void)
 {
 	FILE *fp = NULL;
 	_Bool flag = false;
-	while (ccs_generic_acl_list_count)
+	while (ccs_gacl_list_count)
 		free((void *)
-		     ccs_generic_acl_list[--ccs_generic_acl_list_count].
+		     ccs_gacl_list[--ccs_gacl_list_count].
 		     operand);
 	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
 		if (ccs_network_mode)
@@ -1100,19 +1104,19 @@ static void ccs_read_generic_policy(void)
 			directive = CCS_DIRECTIVE_NONE;
 			break;
 		}
-		ccs_generic_acl_list =
-			realloc(ccs_generic_acl_list,
-				(ccs_generic_acl_list_count + 1) *
+		ccs_gacl_list =
+			realloc(ccs_gacl_list,
+				(ccs_gacl_list_count + 1) *
 				sizeof(struct ccs_generic_acl));
-		if (!ccs_generic_acl_list)
+		if (!ccs_gacl_list)
 			ccs_out_of_memory();
 		cp = strdup(line);
 		if (!cp)
 			ccs_out_of_memory();
-		ccs_generic_acl_list[ccs_generic_acl_list_count].directive =
+		ccs_gacl_list[ccs_gacl_list_count].directive =
 			directive;
-		ccs_generic_acl_list[ccs_generic_acl_list_count].selected = 0;
-		ccs_generic_acl_list[ccs_generic_acl_list_count++].operand =
+		ccs_gacl_list[ccs_gacl_list_count].selected = 0;
+		ccs_gacl_list[ccs_gacl_list_count++].operand =
 			cp;
 	}
 	ccs_put();
@@ -1120,23 +1124,23 @@ static void ccs_read_generic_policy(void)
 	fclose(fp);
 	switch (ccs_current_screen) {
 	case CCS_SCREEN_ACL_LIST:
-		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
-		      sizeof(struct ccs_generic_acl), ccs_generic_acl_compare);
+		qsort(ccs_gacl_list, ccs_gacl_list_count,
+		      sizeof(struct ccs_generic_acl), ccs_gacl_compare);
 		break;
 	case CCS_SCREEN_EXCEPTION_LIST:
-		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
+		qsort(ccs_gacl_list, ccs_gacl_list_count,
 		      sizeof(struct ccs_generic_acl),
-		      ccs_generic_acl_compare0);
+		      ccs_gacl_compare0);
 		break;
 	case CCS_SCREEN_PROFILE_LIST:
-		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
+		qsort(ccs_gacl_list, ccs_gacl_list_count,
 		      sizeof(struct ccs_generic_acl),
 		      ccs_profile_entry_compare);
 		break;
 	case CCS_SCREEN_STAT_LIST:
 		break;
 	default:
-		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
+		qsort(ccs_gacl_list, ccs_gacl_list_count,
 		      sizeof(struct ccs_generic_acl), ccs_string_acl_compare);
 	}
 }
@@ -1549,9 +1553,11 @@ no_exception:
 			if (!cp)
 				break;
 			*cp = '\0';
-			if (ccs_find_domain(&ccs_dp, line, false, false) != EOF)
+			if (ccs_find_domain(&ccs_dp, line, false, false)
+			    != EOF)
 				continue;
-			if (ccs_assign_domain(&ccs_dp, line, false, true) == EOF)
+			if (ccs_assign_domain(&ccs_dp, line, false, true)
+			    == EOF)
 				ccs_out_of_memory();
 		}
 		ccs_put();
@@ -1630,7 +1636,7 @@ static void ccs_show_list(void)
 			ccs_task_list_len : ccs_dp.list_len;
 	else
 		ccs_list_item_count[ccs_current_screen] =
-			ccs_generic_acl_list_count;
+			ccs_gacl_list_count;
 	clear();
 	move(0, 0);
 	if (ccs_window_height < CCS_HEADER_LINES + 1) {
@@ -1682,7 +1688,7 @@ static void ccs_show_list(void)
 	case CCS_SCREEN_ACL_LIST:
 		for (i = 0; i < ccs_list_item_count[ccs_current_screen]; i++) {
 			const enum ccs_editpolicy_directives directive =
-				ccs_generic_acl_list[i].directive;
+				ccs_gacl_list[i].directive;
 			const int len = ccs_directives[directive].alias_len;
 			if (len > ccs_list_indent)
 				ccs_list_indent = len;
@@ -1863,6 +1869,11 @@ int ccs_editpolicy_get_current(void)
 	return p0 + p1;
 }
 
+/**
+ * ccs_show_current - Show current cursor line.
+ *
+ * Returns nothing.
+ */
 static void ccs_show_current(void)
 {
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST &&
@@ -1887,6 +1898,13 @@ static void ccs_show_current(void)
 	refresh();
 }
 
+/**
+ * ccs_adjust_cursor_pos - Adjust cursor position if needed.
+ *
+ * @item_count: Available item count in this screen.
+ *
+ * Returns nothing.
+ */
 static void ccs_adjust_cursor_pos(const int item_count)
 {
 	if (item_count == 0) {
@@ -1903,6 +1921,14 @@ static void ccs_adjust_cursor_pos(const int item_count)
 	}
 }
 
+/**
+ * ccs_set_cursor_pos - Move cursor position if needed.
+ *
+ * @index: Index in the domain policy or currently selected line in the generic
+ *         list.
+ *
+ * Returns nothing.
+ */
 static void ccs_set_cursor_pos(const int index)
 {
 	while (index < ccs_current_y[ccs_current_screen]
@@ -1947,7 +1973,7 @@ static _Bool ccs_select_item(const int index)
 			ccs_task_list[index].selected ^= 1;
 		}
 	} else {
-		ccs_generic_acl_list[index].selected ^= 1;
+		ccs_gacl_list[index].selected ^= 1;
 	}
 	getyx(stdscr, y, x);
 	ccs_editpolicy_sttr_save();    /* add color */
@@ -1957,7 +1983,15 @@ static _Bool ccs_select_item(const int index)
 	return true;
 }
 
-static int ccs_generic_acl_compare(const void *a, const void *b)
+/**
+ * ccs_gacl_compare - strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
+static int ccs_gacl_compare(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
 	const struct ccs_generic_acl *b0 = (struct ccs_generic_acl *) b;
@@ -2000,8 +2034,8 @@ static void ccs_delete_entry(const int index)
 			printw("Delete selected domain%s? ('Y'es/'N'o)",
 			       c > 1 ? "s" : "");
 	} else {
-		c = ccs_count2(ccs_generic_acl_list,
-			       ccs_generic_acl_list_count);
+		c = ccs_count2(ccs_gacl_list,
+			       ccs_gacl_list_count);
 		if (!c)
 			c = ccs_select_item(index);
 		if (!c)
@@ -2032,7 +2066,8 @@ static void ccs_delete_entry(const int index)
 		for (i = 1; i < ccs_dp.list_len; i++) {
 			if (!ccs_dp.list_selected[i])
 				continue;
-			fprintf(fp, "delete %s\n", ccs_domain_name(&ccs_dp, i));
+			fprintf(fp, "delete %s\n",
+				ccs_domain_name(&ccs_dp, i));
 		}
 		ccs_close_write(fp);
 	} else {
@@ -2048,30 +2083,36 @@ static void ccs_delete_entry(const int index)
 				fprintf(fp, "select domain=%s\n",
 					ccs_current_domain);
 		}
-		for (i = 0; i < ccs_generic_acl_list_count; i++) {
+		for (i = 0; i < ccs_gacl_list_count; i++) {
 			enum ccs_editpolicy_directives directive;
-			if (!ccs_generic_acl_list[i].selected)
+			if (!ccs_gacl_list[i].selected)
 				continue;
-			directive = ccs_generic_acl_list[i].directive;
+			directive = ccs_gacl_list[i].directive;
 			fprintf(fp, "delete %s %s\n",
 				ccs_directives[directive].original,
-				ccs_generic_acl_list[i].operand);
+				ccs_gacl_list[i].operand);
 		}
 		ccs_close_write(fp);
 	}
 }
 
-static void ccs_add_entry(struct ccs_readline_data *rl)
+/**
+ * ccs_add_entry - Add an entry.
+ *
+ * Returns nothing.
+ */
+static void ccs_add_entry(void)
 {
 	FILE *fp;
 	char *line;
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = ccs_readline(ccs_window_height - 1, 0, "Enter new entry> ",
-			    rl->history, rl->count, 128000, 8);
+			    ccs_rl.history, ccs_rl.count, 128000, 8);
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	rl->count = ccs_add_history(line, rl->history, rl->count, rl->max);
+	ccs_rl.count = ccs_add_history(line, ccs_rl.history, ccs_rl.count,
+				       ccs_rl.max);
 	fp = ccs_editpolicy_open_write(ccs_policy_file);
 	if (!fp)
 		goto out;
@@ -2114,8 +2155,17 @@ out:
 	free(line);
 }
 
+/**
+ * ccs_find_entry - Find an entry by user's key input.
+ *
+ * @input:   True if find next/previous, false if find first.
+ * @forward: True if find next, false if find previous.
+ * @current: Current position.
+ *
+ * Returns nothing.
+ */
 static void ccs_find_entry(const _Bool input, const _Bool forward,
-			   const int current, struct ccs_readline_data *rl)
+			   const int current)
 {
 	int index = current;
 	char *line = NULL;
@@ -2125,13 +2175,14 @@ static void ccs_find_entry(const _Bool input, const _Bool forward,
 		goto start_search;
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = ccs_readline(ccs_window_height - 1, 0, "Search> ",
-			    rl->history, rl->count, 128000, 8);
+			    ccs_rl.history, ccs_rl.count, 128000, 8);
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	rl->count = ccs_add_history(line, rl->history, rl->count, rl->max);
-	free(rl->search_buffer[ccs_current_screen]);
-	rl->search_buffer[ccs_current_screen] = line;
+	ccs_rl.count = ccs_add_history(line, ccs_rl.history, ccs_rl.count,
+				       ccs_rl.max);
+	free(ccs_rl.search_buffer[ccs_current_screen]);
+	ccs_rl.search_buffer[ccs_current_screen] = line;
 	line = NULL;
 	index = -1;
 start_search:
@@ -2152,16 +2203,16 @@ start_search:
 				cp = ccs_get_last_name(index);
 		} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
 			cp = ccs_shprintf("%u-%s",
-					  ccs_generic_acl_list[index].directive,
-					  ccs_generic_acl_list[index].operand);
+					  ccs_gacl_list[index].directive,
+					  ccs_gacl_list[index].operand);
 		} else {
 			const enum ccs_editpolicy_directives directive =
-				ccs_generic_acl_list[index].directive;
+				ccs_gacl_list[index].directive;
 			cp = ccs_shprintf("%s %s",
 					  ccs_directives[directive].alias,
-					  ccs_generic_acl_list[index].operand);
+					  ccs_gacl_list[index].operand);
 		}
-		if (!strstr(cp, rl->search_buffer[ccs_current_screen]))
+		if (!strstr(cp, ccs_rl.search_buffer[ccs_current_screen]))
 			continue;
 		ccs_set_cursor_pos(index);
 		break;
@@ -2244,15 +2295,15 @@ static void ccs_set_level(const int current)
 	int index;
 	FILE *fp;
 	char *line;
-	if (!ccs_count2(ccs_generic_acl_list, ccs_generic_acl_list_count))
+	if (!ccs_count2(ccs_gacl_list, ccs_gacl_list_count))
 		ccs_select_item(current);
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	ccs_initial_readline_data = NULL;
-	for (index = 0; index < ccs_generic_acl_list_count; index++) {
+	for (index = 0; index < ccs_gacl_list_count; index++) {
 		char *cp;
-		if (!ccs_generic_acl_list[index].selected)
+		if (!ccs_gacl_list[index].selected)
 			continue;
-		cp = strchr(ccs_generic_acl_list[index].operand, '=');
+		cp = strchr(ccs_gacl_list[index].operand, '=');
 		if (!cp)
 			continue;
 		ccs_initial_readline_data = cp + 1;
@@ -2267,18 +2318,18 @@ static void ccs_set_level(const int current)
 	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_PROFILE);
 	if (!fp)
 		goto out;
-	for (index = 0; index < ccs_generic_acl_list_count; index++) {
+	for (index = 0; index < ccs_gacl_list_count; index++) {
 		char *buf;
 		char *cp;
 		enum ccs_editpolicy_directives directive;
-		if (!ccs_generic_acl_list[index].selected)
+		if (!ccs_gacl_list[index].selected)
 			continue;
 		ccs_get();
-		buf = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
+		buf = ccs_shprintf("%s", ccs_gacl_list[index].operand);
 		cp = strchr(buf, '=');
 		if (cp)
 			*cp = '\0';
-		directive = ccs_generic_acl_list[index].directive;
+		directive = ccs_gacl_list[index].directive;
 		if (directive < 256)
 			fprintf(fp, "%u-", directive);
 		fprintf(fp, "%s=%s\n", buf, line);
@@ -2301,7 +2352,7 @@ static void ccs_set_quota(const int current)
 	int index;
 	FILE *fp;
 	char *line;
-	if (!ccs_count2(ccs_generic_acl_list, ccs_generic_acl_list_count))
+	if (!ccs_count2(ccs_gacl_list, ccs_gacl_list_count))
 		ccs_select_item(current);
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = ccs_readline(ccs_window_height - 1, 0, "Enter new value> ",
@@ -2312,13 +2363,13 @@ static void ccs_set_quota(const int current)
 	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_STAT);
 	if (!fp)
 		goto out;
-	for (index = 0; index < ccs_generic_acl_list_count; index++) {
+	for (index = 0; index < ccs_gacl_list_count; index++) {
 		char *buf;
 		char *cp;
-		if (!ccs_generic_acl_list[index].selected)
+		if (!ccs_gacl_list[index].selected)
 			continue;
 		ccs_get();
-		buf = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
+		buf = ccs_shprintf("%s", ccs_gacl_list[index].operand);
 		cp = strchr(buf, ':');
 		if (cp)
 			*cp = '\0';
@@ -2456,10 +2507,10 @@ static void ccs_copy_mark_state(const int current)
 			}
 		}
 	} else {
-		const u8 selected = ccs_generic_acl_list[current].selected;
-		for (index = current; index < ccs_generic_acl_list_count;
+		const u8 selected = ccs_gacl_list[current].selected;
+		for (index = current; index < ccs_gacl_list_count;
 		     index++)
-			ccs_generic_acl_list[index].selected = selected;
+			ccs_gacl_list[index].selected = selected;
 	}
 	ccs_show_list();
 }
@@ -2468,12 +2519,10 @@ static void ccs_copy_mark_state(const int current)
  * ccs_copy_to_history - Copy line to histoy buffer. 
  *
  * @current: Index in the domain policy.
- * @rl:      Pointer to "struct ccs_readline_data".
  *
  * Returns nothing.
  */
-static void ccs_copy_to_history(const int current,
-				struct ccs_readline_data *rl)
+static void ccs_copy_to_history(const int current)
 {
 	const char *line;
 	if (current == EOF)
@@ -2486,31 +2535,35 @@ static void ccs_copy_to_history(const int current,
 		break;
 	case CCS_SCREEN_EXCEPTION_LIST:
 	case CCS_SCREEN_ACL_LIST:
-		directive = ccs_generic_acl_list[current].directive;
+		directive = ccs_gacl_list[current].directive;
 		line = ccs_shprintf("%s %s", ccs_directives[directive].alias,
-				ccs_generic_acl_list[current].operand);
+				ccs_gacl_list[current].operand);
 		break;
 	case CCS_SCREEN_STAT_LIST:
 		line = NULL;
 		break;
 	default:
 		line = ccs_shprintf("%s",
-				    ccs_generic_acl_list[current].operand);
+				    ccs_gacl_list[current].operand);
 	}
-	rl->count = ccs_add_history(line, rl->history, rl->count, rl->max);
+	ccs_rl.count = ccs_add_history(line, ccs_rl.history, ccs_rl.count,
+				       ccs_rl.max);
 	ccs_put();
 }
 
-static int ccs_generic_list_loop(void)
+/**
+ * ccs_generic_list_loop - Main loop.
+ *
+ * Returns next screen to display.  
+ */
+static enum ccs_screen_type ccs_generic_list_loop(void)
 {
-	static struct ccs_readline_data rl;
 	static int saved_current_y[CCS_MAXSCREEN];
 	static int saved_current_item_index[CCS_MAXSCREEN];
 	static _Bool first = true;
 	if (first) {
-		memset(&rl, 0, sizeof(rl));
-		rl.max = 20;
-		rl.history = malloc(rl.max * sizeof(const char *));
+		ccs_rl.max = 20;
+		ccs_rl.history = malloc(ccs_rl.max * sizeof(const char *));
 		memset(saved_current_y, 0, sizeof(saved_current_y));
 		memset(saved_current_item_index, 0,
 		       sizeof(saved_current_item_index));
@@ -2553,7 +2606,7 @@ start:
 		}
 	} else {
 		ccs_read_generic_policy();
-		ccs_adjust_cursor_pos(ccs_generic_acl_list_count);
+		ccs_adjust_cursor_pos(ccs_gacl_list_count);
 	}
 start2:
 	ccs_show_list();
@@ -2619,25 +2672,25 @@ start2:
 		case 'f':
 		case 'F':
 			if (ccs_current_screen != CCS_SCREEN_STAT_LIST)
-				ccs_find_entry(true, true, current, &rl);
+				ccs_find_entry(true, true, current);
 			break;
 		case 'p':
 		case 'P':
 			if (ccs_current_screen == CCS_SCREEN_STAT_LIST)
 				break;
-			if (!rl.search_buffer[ccs_current_screen])
-				ccs_find_entry(true, false, current, &rl);
+			if (!ccs_rl.search_buffer[ccs_current_screen])
+				ccs_find_entry(true, false, current);
 			else
-				ccs_find_entry(false, false, current, &rl);
+				ccs_find_entry(false, false, current);
 			break;
 		case 'n':
 		case 'N':
 			if (ccs_current_screen == CCS_SCREEN_STAT_LIST)
 				break;
-			if (!rl.search_buffer[ccs_current_screen])
-				ccs_find_entry(true, true, current, &rl);
+			if (!ccs_rl.search_buffer[ccs_current_screen])
+				ccs_find_entry(true, true, current);
 			else
-				ccs_find_entry(false, true, current, &rl);
+				ccs_find_entry(false, true, current);
 			break;
 		case 'd':
 		case 'D':
@@ -2668,7 +2721,7 @@ start2:
 			case CCS_SCREEN_ACL_LIST:
 			case CCS_SCREEN_PROFILE_LIST:
 			case CCS_SCREEN_MANAGER_LIST:
-				ccs_add_entry(&rl);
+				ccs_add_entry();
 				goto start;
 			default:
 				break;
@@ -2715,7 +2768,7 @@ start2:
 			ccs_max_eat_col[ccs_current_screen] = ccs_max_col;
 			goto start2;
 		case KEY_IC:
-			ccs_copy_to_history(current, &rl);
+			ccs_copy_to_history(current);
 			break;
 		case 'o':
 		case 'O':
@@ -2754,6 +2807,14 @@ start2:
 	}
 }
 
+/**
+ * ccs_save_to_file - Save policy to file.
+ *
+ * @src: Filename to read from.
+ * @dest: Filename to write to.
+ *
+ * Returns true on success, false otherwise.
+ */
 static _Bool ccs_save_to_file(const char *src, const char *dest)
 {
 	FILE *proc_fp = ccs_editpolicy_open_read(src);
@@ -2774,7 +2835,15 @@ static _Bool ccs_save_to_file(const char *src, const char *dest)
 	return true;
 }
 
-static void parse_args(int argc, char *argv[])
+/**
+ * ccs_parse_args - Parse command line arguments.
+ *
+ * @argc: argc passed to main().
+ * @argv: argv passed to main().
+ *
+ * Returns nothing.
+ */
+static void ccs_parse_args(int argc, char *argv[])
 {
 	int i;
 	for (i = 1; i < argc; i++) {
@@ -2818,7 +2887,12 @@ usage:
 	}
 }
 
-static void load_offline(void)
+/**
+ * ccs_load_offline - Load policy for offline mode.
+ *
+ * Returns nothing.
+ */
+static void ccs_load_offline(void)
 {
 	int fd[2] = { EOF, EOF };
 	if (chdir(ccs_policy_dir) || chdir("policy/current/")) {
@@ -2855,7 +2929,12 @@ static void load_offline(void)
 		
 }
 
-static void load_readwrite(void)
+/**
+ * ccs_load_readwrite - Check that this program can write to /proc/ccs/ interface.
+ *
+ * Returns nothing.
+ */
+static void ccs_load_readwrite(void)
 {
 	const int fd1 = ccs_open2(CCS_PROC_POLICY_EXCEPTION_POLICY, O_RDWR);
 	const int fd2 = ccs_open2(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
@@ -2870,7 +2949,12 @@ static void load_readwrite(void)
 	close(fd2);
 }
 
-static void save_offline(void)
+/**
+ * ccs_save_offline - Save policy for offline mode.
+ *
+ * Returns nothing.
+ */
+static void ccs_save_offline(void)
 {
 	time_t now = time(NULL);
 	static char stamp[32] = { };
@@ -2919,10 +3003,10 @@ int main(int argc, char *argv[])
 	memset(ccs_current_item_index, 0, sizeof(ccs_current_item_index));
 	memset(ccs_list_item_count, 0, sizeof(ccs_list_item_count));
 	memset(ccs_max_eat_col, 0, sizeof(ccs_max_eat_col));
-	parse_args(argc, argv);
+	ccs_parse_args(argc, argv);
 	ccs_editpolicy_init_keyword_map();
 	if (ccs_offline_mode) {
-		load_offline();
+		ccs_load_offline();
 		goto start;
 	}
 	if (ccs_network_mode)
@@ -2933,7 +3017,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	if (!ccs_readonly_mode)
-		load_readwrite();
+		ccs_load_readwrite();
 start:
 	initscr();
 	ccs_editpolicy_color_init();
@@ -2958,7 +3042,7 @@ start:
 	refresh();
 	endwin();
 	if (ccs_offline_mode && !ccs_readonly_mode)
-		save_offline();
+		ccs_save_offline();
 	ccs_clear_domain_policy(&ccs_dp);
 	return 0;
 }
