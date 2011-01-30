@@ -410,22 +410,22 @@ struct ccs_readline_data {
 
 #define CCS_EDITPOLICY_CONF "/etc/ccs/tools/editpolicy.conf"
 
+enum ccs_color_pair ccs_editpolicy_color_cursor(const enum ccs_screen_type screen);
+enum ccs_color_pair ccs_editpolicy_color_head(const enum ccs_screen_type screen);
+enum ccs_screen_type ccs_find_directive(const _Bool forward, char *line);
 int ccs_add_address_group_policy(char *data, const _Bool is_delete);
 int ccs_add_number_group_policy(char *data, const _Bool is_delete);
-int ccs_editpolicy_color_cursor(const int screen);
-int ccs_editpolicy_color_head(const int screen);
 int ccs_editpolicy_get_current(void);
 void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg);
 void ccs_editpolicy_clear_groups(void);
 void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
 void ccs_editpolicy_color_init(void);
 void ccs_editpolicy_init_keyword_map(void);
-void ccs_editpolicy_line_draw(const int screen);
+void ccs_editpolicy_line_draw(const enum ccs_screen_type screen);
 void ccs_editpolicy_offline_daemon(void);
 void ccs_editpolicy_sttr_restore(void);
 void ccs_editpolicy_sttr_save(void);
 void ccs_editpolicy_optimize(struct ccs_domain_policy *dp, const int current, const enum ccs_screen_type screen);
-void ccs_send_fd(char *data, int *fd);
 
 extern int ccs_current_y[CCS_MAXSCREEN];
 extern int ccs_generic_acl_list_count;

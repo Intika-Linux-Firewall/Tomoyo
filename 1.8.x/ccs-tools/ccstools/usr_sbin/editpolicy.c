@@ -24,10 +24,8 @@
 #include "editpolicy.h"
 #include "readline.h"
 
-/* Variables */
-
 /* File descriptor for offline mode. */
-extern int ccs_persistent_fd;
+int ccs_persistent_fd = EOF;
 
 /* Array of "path_group" entries. */
 struct ccs_path_group_entry *ccs_path_group_list = NULL;
@@ -94,8 +92,6 @@ static char *ccs_last_error = NULL;
 /* Domain screen is dealing with process list rather than domain list? */
 static _Bool ccs_domain_sort_type = false;
 
-/* Prototypes */
-
 static void ccs_sigalrm_handler(int sig);
 static const char *ccs_get_last_name(const struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_keeper_domain(const struct ccs_domain_policy *dp, const int index);
@@ -104,6 +100,7 @@ static _Bool ccs_initializer_target(const struct ccs_domain_policy *dp, const in
 static _Bool ccs_domain_unreachable(const struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_deleted_domain(const struct ccs_domain_policy *dp, const int index);
 static const struct ccs_transition_control_entry *ccs_transition_control(const struct ccs_path_info *domainname, const char *program);
+static enum ccs_screen_type ccs_select_window(const struct ccs_domain_policy *dp, const int current);
 static int ccs_generic_acl_compare(const void *a, const void *b);
 static int ccs_generic_acl_compare0(const void *a, const void *b);
 static int ccs_string_acl_compare(const void *a, const void *b);
@@ -141,13 +138,10 @@ static void ccs_find_entry(const struct ccs_domain_policy *dp, const _Bool input
 static void ccs_set_profile(struct ccs_domain_policy *dp, const int current);
 static void ccs_set_level(const int current);
 static void ccs_set_quota(const int current);
-static int ccs_select_window(const struct ccs_domain_policy *dp, const int current);
 static _Bool ccs_show_command_key(const int screen, const _Bool readonly);
 static int ccs_generic_list_loop(struct ccs_domain_policy *dp);
 static void ccs_copy_file(const char *source, const char *dest);
 static FILE *ccs_editpolicy_open_write(const char *filename);
-
-/* Utility Functions */
 
 /**
  * ccs_copy_file - Copy local file to local or remote file.
@@ -677,6 +671,34 @@ static void ccs_set_error(const char *filename)
 		free(ccs_last_error);
 		ccs_last_error = NULL;
 	}
+}
+
+/**
+ * ccs_send_fd - Send file descriptor.
+ *
+ * @data: String data to send with file descriptor.
+ * @fd:   Pointer to file desciptor.
+ *
+ * Returns nothing.
+ */
+static void ccs_send_fd(char *data, int *fd)
+{
+	struct msghdr msg;
+	struct iovec iov = { data, strlen(data) };
+	char cmsg_buf[CMSG_SPACE(sizeof(int))];
+	struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_buf;
+	memset(&msg, 0, sizeof(msg));
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_control = cmsg_buf;
+	msg.msg_controllen = sizeof(cmsg_buf);
+	cmsg->cmsg_level = SOL_SOCKET;
+	cmsg->cmsg_type = SCM_RIGHTS;
+	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+	msg.msg_controllen = cmsg->cmsg_len;
+	memmove(CMSG_DATA(cmsg), fd, sizeof(int));
+	sendmsg(ccs_persistent_fd, &msg, 0);
+	close(*fd);
 }
 
 static FILE *ccs_editpolicy_open_write(const char *filename)

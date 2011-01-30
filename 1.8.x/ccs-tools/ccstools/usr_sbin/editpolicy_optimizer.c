@@ -35,7 +35,15 @@ struct ccs_number_group_entry {
 	int member_name_len;
 };
 
-/* Prototypes */
+/* Array of "address_group" entry. */
+static struct ccs_address_group_entry *ccs_address_group_list = NULL;
+/* Length of ccs_address_group_list array. */
+static int ccs_address_group_list_len = 0;
+/* Array of "number_group" entry. */
+static struct ccs_number_group_entry *ccs_number_group_list = NULL;
+/* Length of ccs_number_group_list array. */
+static int ccs_number_group_list_len = 0;
+
 static int ccs_add_address_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name);
 static int ccs_add_number_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
@@ -43,8 +51,6 @@ static struct ccs_number_group_entry *ccs_find_number_group(const char *group_na
 static _Bool ccs_compare_path(const char *sarg, const char *darg);
 static _Bool ccs_compare_number(const char *sarg, const char *darg);
 static _Bool ccs_compare_address(const char *sarg, const char *darg);
-
-/* Utility functions */
 
 /**
  * ccs_find_path_group - Find "path_group" entry.
@@ -446,13 +452,6 @@ void ccs_editpolicy_optimize(struct ccs_domain_policy *dp, const int current,
 	free(cp);
 }
 
-/* Variables */
-
-static struct ccs_address_group_entry *ccs_address_group_list = NULL;
-static int ccs_address_group_list_len = 0;
-
-/* Main functions */
-
 /**
  * ccs_add_address_group_entry - Add "address_group" entry.
  *
@@ -539,9 +538,6 @@ static struct ccs_address_group_entry *ccs_find_address_group
 	return NULL;
 }
 
-static struct ccs_number_group_entry *ccs_number_group_list = NULL;
-static int ccs_number_group_list_len = 0;
-
 /**
  * ccs_add_number_group_entry - Add "number_group" entry.
  *
@@ -608,6 +604,14 @@ static int ccs_add_number_group_entry(const char *group_name,
 	return 0;
 }
 
+/**
+ * ccs_find_number_group - Find an "number_group" by name.
+ *
+ * @group_name: Group name to find.
+ *
+ * Returns pointer to "struct ccs_number_group_entry" if found,
+ * NULL otherwise.
+ */
 static struct ccs_number_group_entry *ccs_find_number_group
 (const char *group_name)
 {
@@ -620,6 +624,11 @@ static struct ccs_number_group_entry *ccs_find_number_group
 	return NULL;
 }
 
+/**
+ * ccs_editpolicy_clear_groups - Clear path_group/number_group/address_group for reloading policy.
+ *
+ * Returns nothing. 
+ */
 void ccs_editpolicy_clear_groups(void)
 {
 	while (ccs_path_group_list_len)
