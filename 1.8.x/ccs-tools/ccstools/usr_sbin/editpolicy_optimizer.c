@@ -73,7 +73,7 @@ struct ccs_path_group_entry *ccs_find_path_group(const char *group_name)
 /**
  * ccs_add_address_group_policy - Add "address_group" entry.
  *
- * @data: Line to parse.
+ * @data:      Line to parse.
  * @is_delete: True if it is delete request, false otherwise.
  *
  * Returns 0 on success, negative value otherwise.
@@ -251,7 +251,7 @@ static void ccs_tokenize(char *buffer, char *w[5],
 /**
  * ccs_add_number_group_policy - Add "number_group" entry.
  *
- * @data: Line to parse.
+ * @data:      Line to parse.
  * @is_delete: True if it is delete request, false otherwise.
  *
  * Returns 0 on success, negative value otherwise.
@@ -303,7 +303,7 @@ static _Bool ccs_compare_number(const char *sarg, const char *darg)
 }
 
 /**
- * ccs_editpolicy_optimize -Try to merge entries included in other entries.
+ * ccs_editpolicy_optimize - Try to merge entries included in other entries.
  *
  * @dp:      Pointer to "struct ccs_domain_policy".
  * @current: Index in the @dp array.

@@ -130,6 +130,7 @@ struct ccs_task_entry {
 FILE *ccs_open_read(const char *filename);
 FILE *ccs_open_write(const char *filename);
 _Bool ccs_check_remote_host(void);
+_Bool ccs_close_write(FILE *fp);
 _Bool ccs_decode(const char *ascii, char *bin);
 _Bool ccs_correct_domain(const unsigned char *domainname);
 _Bool ccs_correct_path(const char *filename);

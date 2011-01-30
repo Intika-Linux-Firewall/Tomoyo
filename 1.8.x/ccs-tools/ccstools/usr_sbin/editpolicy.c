@@ -58,7 +58,7 @@ static unsigned int ccs_current_pid = 0;
 static enum ccs_screen_type ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
 /*
  * Array of "initialize_domain"/"no_initialize_domain"/"keep_domain"/
- *"no_keep_domain" entries.
+ * "no_keep_domain" entries.
  */
 static struct ccs_transition_control_entry *ccs_transition_control_list = NULL;
 /* Length of ccs_transition_control_list array. */
@@ -92,6 +92,14 @@ static char *ccs_last_error = NULL;
 /* Domain screen is dealing with process list rather than domain list? */
 static _Bool ccs_domain_sort_type = false;
 
+/* Domain transition coltrol keywords. */
+static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
+	[CCS_TRANSITION_CONTROL_INITIALIZE] = "initialize_domain ",
+	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
+	[CCS_TRANSITION_CONTROL_KEEP] = "keep_domain ",
+	[CCS_TRANSITION_CONTROL_NO_KEEP] = "no_keep_domain ",
+};
+
 static void ccs_sigalrm_handler(int sig);
 static const char *ccs_get_last_name(const struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_keeper_domain(const struct ccs_domain_policy *dp, const int index);
@@ -106,8 +114,8 @@ static int ccs_generic_acl_compare0(const void *a, const void *b);
 static int ccs_string_acl_compare(const void *a, const void *b);
 static int ccs_profile_entry_compare(const void *a, const void *b);
 static void ccs_read_generic_policy(void);
-static int ccs_add_transition_control_entry(const char *domainname, const char *program, const u8 type);
-static int ccs_add_transition_control_policy(char *data, const u8 type);
+static int ccs_add_transition_control_entry(const char *domainname, const char *program, const enum ccs_transition_type type);
+static int ccs_add_transition_control_policy(char *data, const enum ccs_transition_type type);
 static int ccs_add_path_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete);
 static void ccs_assign_dis(struct ccs_domain_policy *dp, const struct ccs_path_info *domainname, const char *program);
@@ -138,7 +146,7 @@ static void ccs_find_entry(const struct ccs_domain_policy *dp, const _Bool input
 static void ccs_set_profile(struct ccs_domain_policy *dp, const int current);
 static void ccs_set_level(const int current);
 static void ccs_set_quota(const int current);
-static _Bool ccs_show_command_key(const int screen, const _Bool readonly);
+static _Bool ccs_show_command_key(const enum ccs_screen_type screen, const _Bool readonly);
 static int ccs_generic_list_loop(struct ccs_domain_policy *dp);
 static void ccs_copy_file(const char *source, const char *dest);
 static FILE *ccs_editpolicy_open_write(const char *filename);
@@ -316,6 +324,14 @@ static _Bool ccs_deleted_domain(const struct ccs_domain_policy *dp,
 	return dp->list[index].is_dd;
 }
 
+/**
+ * ccs_generic_acl_compare0 - strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
 static int ccs_generic_acl_compare0(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
@@ -330,6 +346,14 @@ static int ccs_generic_acl_compare0(const void *a, const void *b)
 	return strcmp(a2, b2);
 }
 
+/**
+ * ccs_string_acl_compare - strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
 static int ccs_string_acl_compare(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
@@ -339,7 +363,16 @@ static int ccs_string_acl_compare(const void *a, const void *b)
 	return strcmp(a1, b1);
 }
 
-static int ccs_add_transition_control_policy(char *data, const u8 type)
+/**
+ * ccs_add_transition_control_policy - Add "initialize_domain"/"no_initialize_domain"/"keep_domain"/ "no_keep_domain" entries.
+ *
+ * @data: Line to parse.
+ * @type: One of values in "enum ccs_transition_type".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_add_transition_control_policy
+(char *data, const enum ccs_transition_type type)
 {
 	char *domainname = strstr(data, " from ");
 	if (domainname) {
@@ -353,6 +386,14 @@ static int ccs_add_transition_control_policy(char *data, const u8 type)
 	return ccs_add_transition_control_entry(domainname, data, type);
 }
 
+/**
+ * ccs_add_path_group_policy - Add "path_group" entry.
+ *
+ * @data:      Line to parse.
+ * @is_delete: True if it is delete request, false otherwise.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete)
 {
 	char *cp = strchr(data, ' ');
@@ -362,6 +403,13 @@ static int ccs_add_path_group_policy(char *data, const _Bool is_delete)
 	return ccs_add_path_group_entry(data, cp, is_delete);
 }
 
+/**
+ * ccs_assign_dis - Assign domain initializer source domain.
+ *
+ * @dp:         Pointer to "struct ccs_domain_policy".
+ * @domainname: Pointer to "const struct ccs_path_info".
+ * @program:    Program name.
+ */
 static void ccs_assign_dis(struct ccs_domain_policy *dp,
 			   const struct ccs_path_info *domainname,
 			   const char *program)
@@ -385,6 +433,14 @@ static void ccs_assign_dis(struct ccs_domain_policy *dp,
 	}
 }
 
+/**
+ * ccs_domainname_attribute_compare - strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
 static int ccs_domainname_attribute_compare(const void *a, const void *b)
 {
 	const struct ccs_domain_info *a0 = a;
@@ -394,13 +450,6 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 		return 1;
 	return k;
 }
-
-static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_INITIALIZE] = "initialize_domain ",
-	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
-	[CCS_TRANSITION_CONTROL_KEEP] = "keep_domain ",
-	[CCS_TRANSITION_CONTROL_NO_KEEP] = "no_keep_domain ",
-};
 
 /**
  * ccs_find_target_domain - Find the initialize_domain target domain.
@@ -498,6 +547,14 @@ done:
 	return tmp_col;
 }
 
+/**
+ * ccs_show_acl_line - Print an ACL line.
+ *
+ * @index:       Index in the generic list.
+ * @list_indent: Indent size.
+ *
+ * Returns length of the printed line.
+ */
 static int ccs_show_acl_line(const int index, const int list_indent)
 {
 	const enum ccs_editpolicy_directives directive =
@@ -514,6 +571,13 @@ static int ccs_show_acl_line(const int index, const int list_indent)
 	return strlen(cp1) + strlen(cp2) + 8 + list_indent;
 }
 
+/**
+ * ccs_show_profile_line - Print a profile line.
+ *
+ * @index: Index in the generic list.
+ *
+ * Returns length of the printed line.
+ */
 static int ccs_show_profile_line(const int index)
 {
 	const char *cp = ccs_generic_acl_list[index].operand;
@@ -527,6 +591,13 @@ static int ccs_show_profile_line(const int index)
 	return strlen(number) + strlen(cp) + 8;
 }
 
+/**
+ * ccs_show_literal_line - Print a literal line.
+ *
+ * @index: Index in the generic list.
+ *
+ * Returns length of the printed line.
+ */
 static int ccs_show_literal_line(const int index)
 {
 	const char *cp = ccs_generic_acl_list[index].operand;
@@ -536,6 +607,13 @@ static int ccs_show_literal_line(const int index)
 	return strlen(cp) + 8;
 }
 
+/**
+ * ccs_show_stat_line - Print a statistics line.
+ *
+ * @index: Index in the generic list.
+ *
+ * Returns length of the printed line.
+ */
 static int ccs_show_stat_line(const int index)
 {
 	char *line;
@@ -549,7 +627,16 @@ static int ccs_show_stat_line(const int index)
 	return now;
 }
 
-static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
+/**
+ * ccs_show_command_key - Print help screen.
+ *
+ * @screen:   Currently selected screen.
+ * @readonly: True if readonly_mopde, false otherwise.
+ *
+ * Returns true to continue, false to quit.
+ */
+static _Bool ccs_show_command_key(const enum ccs_screen_type screen,
+				  const _Bool readonly)
 {
 	int c;
 	clear();
@@ -605,6 +692,8 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 		if (!readonly)
 			printw("S/s        Set mode of selected items.\n");
 		break;
+	default:
+		break;
 	}
 	switch (screen) {
 	case CCS_SCREEN_EXCEPTION_LIST:
@@ -614,11 +703,15 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 			printw("A/a        Add a new entry.\n");
 			printw("D/d        Delete selected entries.\n");
 		}
+	default:
+		break;
 	}
 	switch (screen) {
 	case CCS_SCREEN_PROFILE_LIST:
 		if (!readonly)
 			printw("A/a        Define a new profile.\n");
+	default:
+		break;
 	}
 	switch (screen) {
 	case CCS_SCREEN_ACL_LIST:
@@ -631,6 +724,8 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 	case CCS_SCREEN_DOMAIN_LIST:
 		if (!ccs_offline_mode)
 			printw("@          Switch domain/process list.\n");
+	default:
+		break;
 	}
 	printw("Arrow-keys and PageUp/PageDown/Home/End keys "
 	       "for scroll.\n\n");
@@ -646,18 +741,13 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 	return true;
 }
 
-/* Main Functions */
-
-static void ccs_close_write(FILE *fp)
-{
-	if (ccs_network_mode) {
-		fputc(0, fp);
-		fflush(fp);
-		fgetc(fp);
-	}
-	fclose(fp);
-}
-
+/**
+ * ccs_set_error - Set error line's caption.
+ *
+ * @filename: Filename to print. Maybe NULL.
+ *
+ * Returns nothing.
+ */
 static void ccs_set_error(const char *filename)
 {
 	if (filename) {
@@ -701,6 +791,17 @@ static void ccs_send_fd(char *data, int *fd)
 	close(*fd);
 }
 
+/**
+ * ccs_editpolicy_open_write - Wrapper for ccs_open_write().
+ *
+ * @filename: File to open for writing.
+ *
+ * Returns pointer to "FILE" on success, NULL otherwise.
+ *
+ * Since CUI policy editor screen provides a line for printing error message,
+ * this function sets error line if failed. Also, this function returns NULL if
+ * readonly mode.
+ */
 static FILE *ccs_editpolicy_open_write(const char *filename)
 {
 	if (ccs_network_mode) {
@@ -736,6 +837,16 @@ out:
 	}
 }
 
+/**
+ * ccs_editpolicy_open_read - Wrapper for ccs_open_read().
+ *
+ * @filename: File to open for reading.
+ *
+ * Returns pointer to "FILE" on success, NULL otherwise.
+ *
+ * Since CUI policy editor screen provides a line for printing error message,
+ * this function sets error line if failed.
+ */
 static FILE *ccs_editpolicy_open_read(const char *filename)
 {
 	if (ccs_network_mode) {
@@ -766,6 +877,17 @@ out:
 	}
 }
 
+/**
+ * ccs_open2 - Wrapper for open().
+ *
+ * @filename: File to open.
+ * @mode:     Flags to passed to open().
+ *
+ * Returns file descriptor on success, EOF otherwise.
+ *
+ * Since CUI policy editor screen provides a line for printing error message,
+ * this function sets error line if failed.
+ */
 static int ccs_open2(const char *filename, int mode)
 {
 	const int fd = open(filename, mode);
@@ -774,12 +896,29 @@ static int ccs_open2(const char *filename, int mode)
 	return fd;
 }
 
+/**
+ * ccs_sigalrm_handler - Callback routine for timer interrupt.
+ *
+ * @sig: Signal number. Not used.
+ *
+ * Returns nothing.
+ *
+ * This function is called when ccs_refresh_interval is non-zero. This function
+ * marks current screen to reload. Also, this function reenables timer event.
+ */
 static void ccs_sigalrm_handler(int sig)
 {
 	ccs_need_reload = true;
 	alarm(ccs_refresh_interval);
 }
 
+/**
+ * ccs_eat - Shift string data before displaying.
+ *
+ * @str: String to be displayed.
+ *
+ * Returns shifted string.
+ */
 static const char *ccs_eat(const char *str)
 {
 	while (*str && ccs_eat_col) {
@@ -789,6 +928,15 @@ static const char *ccs_eat(const char *str)
 	return str;
 }
 
+/**
+ * ccs_transition_control - Find domain transition control.
+ *
+ * @domainname: Pointer to "const struct ccs_path_info".
+ * @program:    Program name.
+ *
+ * Returns pointer to "const struct ccs_transition_control_entry" if found one,
+ * NULL otherwise.
+ */
 static const struct ccs_transition_control_entry *ccs_transition_control
 (const struct ccs_path_info *domainname, const char *program)
 {
@@ -839,6 +987,14 @@ next:
 	return NULL;
 }
 
+/**
+ * ccs_profile_entry_compare -  strcmp() for qsort() callback.
+ *
+ * @a: Pointer to "void".
+ * @b: Pointer to "void".
+ *
+ * Returns return value of strcmp().
+ */
 static int ccs_profile_entry_compare(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
@@ -881,6 +1037,11 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
 	}
 }
 
+/**
+ * ccs_read_generic_policy - Read policy data other than domain policy.
+ *
+ * Returns nothing.
+ */
 static void ccs_read_generic_policy(void)
 {
 	FILE *fp = NULL;
@@ -966,7 +1127,8 @@ static void ccs_read_generic_policy(void)
 		ccs_generic_acl_list[ccs_generic_acl_list_count].directive =
 			directive;
 		ccs_generic_acl_list[ccs_generic_acl_list_count].selected = 0;
-		ccs_generic_acl_list[ccs_generic_acl_list_count++].operand = cp;
+		ccs_generic_acl_list[ccs_generic_acl_list_count++].operand =
+			cp;
 	}
 	ccs_put();
 	ccs_freadline_raw = false;
@@ -978,11 +1140,13 @@ static void ccs_read_generic_policy(void)
 		break;
 	case CCS_SCREEN_EXCEPTION_LIST:
 		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
-		      sizeof(struct ccs_generic_acl), ccs_generic_acl_compare0);
+		      sizeof(struct ccs_generic_acl),
+		      ccs_generic_acl_compare0);
 		break;
 	case CCS_SCREEN_PROFILE_LIST:
 		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
-		      sizeof(struct ccs_generic_acl), ccs_profile_entry_compare);
+		      sizeof(struct ccs_generic_acl),
+		      ccs_profile_entry_compare);
 		break;
 	case CCS_SCREEN_STAT_LIST:
 		break;
@@ -992,9 +1156,18 @@ static void ccs_read_generic_policy(void)
 	}
 }
 
-static int ccs_add_transition_control_entry(const char *domainname,
-					    const char *program,
-					    const u8 type)
+/**
+ * ccs_add_transition_control_entry - Add "initialize_domain"/"no_initialize_domain"/"keep_domain"/ "no_keep_domain" entries.
+ *
+ * @domainname: Domainname.
+ * @program:    Program name.
+ * @type: One of values in "enum ccs_transition_type".
+ *
+ * Returns 0 on success, -EINVAL otherwise.
+ */
+static int ccs_add_transition_control_entry
+(const char *domainname, const char *program,
+ const enum ccs_transition_type type)
 {
 	void *vp;
 	struct ccs_transition_control_entry *ptr;
@@ -1033,8 +1206,18 @@ static int ccs_add_transition_control_entry(const char *domainname,
 	return 0;
 }
 
-static int ccs_add_path_group_entry(const char *group_name, const char *member_name,
-				const _Bool is_delete)
+/**
+ * ccs_add_path_group_entry - Add "path_group" entry.
+ *
+ * @group_name:  Name of address group.
+ * @member_name: Address string.
+ * @is_delete:   True if it is delete request, false otherwise.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_add_path_group_entry(const char *group_name,
+				    const char *member_name,
+				    const _Bool is_delete)
 {
 	const struct ccs_path_info *saved_group_name;
 	const struct ccs_path_info *saved_member_name;
@@ -1085,6 +1268,17 @@ static int ccs_add_path_group_entry(const char *group_name, const char *member_n
 	return 0;
 }
 
+/**
+ * ccs_read_domain_and_exception_policy - Read domain policy and exception policy.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing.
+ *
+ * Since CUI policy editor screen shows domain initializer source domains and
+ * unreachable domains, we need to read not only the domain policy but also
+ * the exception policy for printing the domain transition tree.
+ */
 static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 {
 	FILE *fp;
@@ -1175,7 +1369,8 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 				 ccs_domain_name(dp, index), m);
 			domainname[sizeof(domainname) - 1] = '\0';
 			ccs_normalize_line(domainname);
-			source = ccs_assign_domain(dp, domainname, true, false);
+			source = ccs_assign_domain(dp, domainname, true,
+						   false);
 			if (source == EOF)
 				ccs_out_of_memory();
 			dp->list[source].target_domainname = strdup(line);
@@ -1207,13 +1402,17 @@ no_domain:
 		if (!line)
 			break;
 		if (ccs_str_starts(line, "initialize_domain "))
-			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_INITIALIZE);
+			ccs_add_transition_control_policy
+				(line, CCS_TRANSITION_CONTROL_INITIALIZE);
 		else if (ccs_str_starts(line, "no_initialize_domain "))
-			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_NO_INITIALIZE);
+			ccs_add_transition_control_policy
+				(line, CCS_TRANSITION_CONTROL_NO_INITIALIZE);
 		else if (ccs_str_starts(line, "keep_domain "))
-			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_KEEP);
+			ccs_add_transition_control_policy
+				(line, CCS_TRANSITION_CONTROL_KEEP);
 		else if (ccs_str_starts(line, "no_keep_domain "))
-			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_NO_KEEP);
+			ccs_add_transition_control_policy
+				(line, CCS_TRANSITION_CONTROL_NO_KEEP);
 		else if (ccs_str_starts(line, "path_group "))
 			ccs_add_path_group_policy(line, false);
 		else if (ccs_str_starts(line, "address_group "))
@@ -1238,7 +1437,9 @@ no_domain:
 					     index++)
 						if (dp->list[index].group
 						    == group)
-							ccs_add_string_entry(dp, line, index);
+							ccs_add_string_entry
+								(dp, line,
+								 index);
 				}
 			}
 		}
@@ -1399,6 +1600,13 @@ no_exception:
 	memset(dp->list_selected, 0, dp->list_len);
 }
 
+/**
+ * ccs_show_process_line - Print a process line.
+ *
+ * @index: Index in the ccs_task_list array.
+ *
+ * Returns length of the printed line.
+ */
 static int ccs_show_process_line(const int index)
 {
 	char *line;
@@ -1414,13 +1622,21 @@ static int ccs_show_process_line(const int index)
 	ccs_get();
 	line = ccs_shprintf("%s%s (%u) %s", ccs_task_list[index].depth ?
 			    " +- " : "", ccs_task_list[index].name,
-			    ccs_task_list[index].pid, ccs_task_list[index].domain);
+			    ccs_task_list[index].pid,
+			    ccs_task_list[index].domain);
 	printw("%s", ccs_eat(line));
 	tmp_col += strlen(line);
 	ccs_put();
 	return tmp_col;
 }
 
+/**
+ * ccs_show_list - Print list on the screen.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing. 
+ */
 static void ccs_show_list(const struct ccs_domain_policy *dp)
 {
 	int ccs_list_indent;
@@ -1529,6 +1745,11 @@ static void ccs_show_list(const struct ccs_domain_policy *dp)
 	ccs_show_current(dp);
 }
 
+/**
+ * ccs_resize_window - Callback for resize event.
+ *
+ * Returns nothing.
+ */
 static void ccs_resize_window(void)
 {
 	getmaxyx(stdscr, ccs_window_height, ccs_window_width);
@@ -1539,6 +1760,13 @@ static void ccs_resize_window(void)
 		ccs_current_y[ccs_current_screen] = 0;
 }
 
+/**
+ * ccs_up_arrow_key - Callback event for pressing up-arrow key.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing.
+ */
 static void ccs_up_arrow_key(const struct ccs_domain_policy *dp)
 {
 	if (ccs_current_y[ccs_current_screen] > 0) {
@@ -1550,6 +1778,13 @@ static void ccs_up_arrow_key(const struct ccs_domain_policy *dp)
 	}
 }
 
+/**
+ * ccs_down_arrow_key - Callback event for pressing down-arrow key.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing.
+ */
 static void ccs_down_arrow_key(const struct ccs_domain_policy *dp)
 {
 	if (ccs_current_y[ccs_current_screen] < ccs_body_lines - 1) {
@@ -1567,6 +1802,13 @@ static void ccs_down_arrow_key(const struct ccs_domain_policy *dp)
 	}
 }
 
+/**
+ * ccs_page_up_key - Callback event for pressing page-up key.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing.
+ */
 static void ccs_page_up_key(const struct ccs_domain_policy *dp)
 {
 	int p0 = ccs_current_item_index[ccs_current_screen];
@@ -1591,6 +1833,13 @@ static void ccs_page_up_key(const struct ccs_domain_policy *dp)
 		ccs_show_current(dp);
 }
 
+/**
+ * ccs_page_down_key - Callback event for pressing page-down key.
+ *
+ * @dp: Pointer to "struct ccs_domain_policy".
+ *
+ * Returns nothing.
+ */
 static void ccs_page_down_key(const struct ccs_domain_policy *dp)
 {
 	int ccs_count = ccs_list_item_count[ccs_current_screen] - 1;
@@ -1618,6 +1867,13 @@ static void ccs_page_down_key(const struct ccs_domain_policy *dp)
 		ccs_show_current(dp);
 }
 
+/**
+ * ccs_editpolicy_get_current - Get currently selected line's index.
+ *
+ * Returns index for currently selected line on success, EOF otherwise.
+ *
+ * If current screen has no entry, this function returns EOF.
+ */
 int ccs_editpolicy_get_current(void)
 {
 	int ccs_count = ccs_list_item_count[ccs_current_screen];
@@ -1626,7 +1882,8 @@ int ccs_editpolicy_get_current(void)
 	if (!ccs_count)
 		return EOF;
 	if (p0 + p1 < 0 || p0 + p1 >= ccs_count) {
-		fprintf(stderr, "ERROR: ccs_current_item_index=%d ccs_current_y=%d\n",
+		fprintf(stderr,
+			"ERROR: ccs_current_item_index=%d ccs_current_y=%d\n",
 			p0, p1);
 		exit(127);
 	}
@@ -2695,7 +2952,6 @@ static void save_offline(void)
 int main(int argc, char *argv[])
 {
 	struct ccs_domain_policy dp = { NULL, 0, NULL };
-	struct ccs_domain_policy bp = { NULL, 0, NULL };
 	memset(ccs_current_y, 0, sizeof(ccs_current_y));
 	memset(ccs_current_item_index, 0, sizeof(ccs_current_item_index));
 	memset(ccs_list_item_count, 0, sizeof(ccs_list_item_count));
@@ -2740,7 +2996,6 @@ start:
 	endwin();
 	if (ccs_offline_mode && !ccs_readonly_mode)
 		save_offline();
-	ccs_clear_domain_policy(&bp);
 	ccs_clear_domain_policy(&dp);
 	return 0;
 }
