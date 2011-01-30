@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<title>TOMOYO Linux ccs-tools 1.7.x ChangeLog</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="/media/tomoyolinux.css" media="all" type="text/css">
+</head>
+
+<body>
+
+<div id="titlebar">
+<img src="/media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left">
+</div>
+
+<div id="navbar" class="tomoyo-changelog">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="/index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="/about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="/download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelog"><a href="/changelog.html.en" title="TOMOYO Linux ChangeLog">ChangeLog</a></li>
+<li id="tomoyo-documentation"><a href="/documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-links"><a href="/links.html.en" title="Useful links">Links</a></li>
+<li id="tomoyo-support"><a href="/support.html.en" title="Support information">Support</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="changelog">
+
+<h4>ChangeLog for ccs-tools 1.7.2</h4>
+
+<pre>
+Version 1.7.2p2 2010/12/31   Bug fix release.
+
+  /usr/sbin/ccs-diffpolicy
+    Fix regression introduced when fixing old/new inversion bug.
+
+Version 1.7.2p1 2010/11/22   Bug fix release.
+
+  /sbin/ccs-init
+    Ignore EINTR when waiting for child programs to finish.
+
+  /usr/sbin/ccs-diffpolicy
+    Fix old/new inversion bug.
+
+  /usr/lib/ccs/init_policy
+    Fix error message.
+
+  /etc/ccs/ccs-load-module
+    Search /sbin and /bin in addition to $PATH.
+
+  man ccs-pathmatch
+    Use \e for representing \.
+
+Version 1.7.2 2010/04/01   Minor update release.
+
+  /sbin/ccs-init
+    Call /etc/ccs/ccs-load-module if TOMOYO is built as a loadable kernel
+    module and the module is not yet loaded into kernel.
+
+  /usr/sbin/ccs-sortpolicy
+    Do not remove "use_profile" lines so that we can use this program for not
+    only compressing audit logs saved by /usr/sbin/ccs-auditd but also sorting
+    /etc/ccs/domain_policy.conf and /proc/ccs/domain_policy .
+    With this change, since the output of this program may contain
+    "use_profile" lines which will unexpectedly change access control mode of
+    domains listed in audit logs, passing audit logs to this program and
+    piping the output to /usr/sbin/ccs-loadpolicy is no longer recommended.
+    Please review before using the output of /usr/sbin/ccs-sortpolicy .
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.7.1</h4>
+
+<pre>
+Version 1.7.1p1 2010/01/10   Bug fix release.
+
+  Use dynamic buffer allocation for supporting longer lines.
+
+  /usr/sbin/ccs-auditd
+    Call fflush() immediately after fprintf() rather than calling fflush()
+    only when new logs are not available for a second. Omitting write() unless
+    needed should improve performance if there are many logs to fetch. But
+    it turned out that omitting fflush() causes audit logs more likely to be
+    written partially in some environments.
+
+  /usr/sbin/ccs-queryd
+    ccs-queryd was not monitoring /etc/ld.so.cache updates since 1.7.1
+    because of segmentation fault caused by fclose(NULL).
+
+  /usr/sbin/ccs-checkpolicy
+    Some of TOMOYO 1.7's syntaxes were not handled correctly.
+
+  /usr/sbin/ccs-editpolicy
+    Ignore /proc/0 which is an invalid proc entry.
+
+  /usr/sbin/ccs-pstree
+    Ignore /proc/0 which is an invalid proc entry.
+
+  /usr/lib/ccs/ccs-editpolicy-agent
+    Ignore /proc/0 which is an invalid proc entry.
+
+Version 1.7.1 2009/11/11   Fourth anniversary release.
+
+  /usr/sbin/ccs-queryd
+    Add ability to handle query remotely.
+
+  /usr/sbin/ccs-auditd
+    Add ability to fetch logs remotely.
+
+  /usr/lib/ccs/ccs-editpolicy-agent
+    Add support for ccs-queryd and ccs-auditd .
+
+  /usr/sbin/ccs-savepolicy
+    Removed \*.base support.
+
+  /usr/sbin/ccs-loadpolicy
+    Removed \*.base support.
+
+  /usr/sbin/ccs-init
+    Removed \*.base support.
+
+  /usr/sbin/ccs-diffpolicy
+    Program for generating diff of domain policy.
+
+  /usr/sbin/ccs-selectpolicy
+    Program for picking up specific domain's policy.
+
+  /usr/lib/ccs/convert-audit-log
+    Program for generating domain policy from audit logs.
+
+  /usr/sbin/ccs-checkpolicy
+    Updated to handle TOMOYO 1.7's syntax.
+
+  /usr/sbin/ccs-patternize
+    Updated to handle TOMOYO 1.7's syntax.
+    Add support for "path_group" "number_group" "address_group" in addition to "file_pattern".
+    Add "--file" option for passing the whole exception policy.
+</pre>
+
+<h4>ChangeLog for ccs-tools 1.7.1</h4>
+
+<pre>
+Version 1.7.0 2009/09/03   Feature enhancement release.
+
+  Removed programs for TOMOYO 2.2.0 from this package.
+  Please use tomoyo-tools-2.2.0 package for TOMOYO 2.2.0 .
+
+  Installation directory changed.
+  Renamed from "ccs-ccstree" to "ccs-pstree".
+  Removed "realpath", "make_alias", "makesyaoranconf".
+
+  /sbin/ccs-init:
+    Converted to binary program.
+
+  /usr/lib/ccs/init_policy:
+    Converted to binary program.
+
+  /usr/sbin/ccs-findtenp:
+    Add "--with-domainname" option.
+
+  /usr/sbin/ccs-queryd:
+    Use global PID for reaching the target domain.
+    Add 'Show policy' command.
+    Change 'Yes and append to policy' to 'Append to policy and retry'.
+
+  /usr/sbin/ccs-auditd:
+    Reduce fsync() requests.
+
+  /usr/sbin/ccs-editpolicy:
+    Removed system policy editor.
+    Changed profile editor.
+</pre>
+
+</div><!-- changelog -->
+
+</div><!-- content -->
+
+<div id="footer">
+<p class="timestamp">Last modified: $Date: 2011-01-25 01:12:48 +0000 (Tue, 25 Jan 2011) $</p>
+<p class="trademark">Linux® is a registered trademark of Linus Torvalds world-wide. TOMOYO® is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+</div>
+
+</body>
+</html>
