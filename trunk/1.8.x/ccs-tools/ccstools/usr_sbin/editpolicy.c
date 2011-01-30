@@ -24,6 +24,9 @@
 #include "editpolicy.h"
 #include "readline.h"
 
+/* Domain policy. */
+struct ccs_domain_policy ccs_dp = { NULL, 0, NULL };
+
 /* File descriptor for offline mode. */
 int ccs_persistent_fd = EOF;
 
@@ -101,14 +104,14 @@ static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
 };
 
 static void ccs_sigalrm_handler(int sig);
-static const char *ccs_get_last_name(const struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_keeper_domain(const struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_initializer_source(const struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_initializer_target(const struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_domain_unreachable(const struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_deleted_domain(const struct ccs_domain_policy *dp, const int index);
+static const char *ccs_get_last_name(const int index);
+static _Bool ccs_keeper_domain(const int index);
+static _Bool ccs_initializer_source(const int index);
+static _Bool ccs_initializer_target(const int index);
+static _Bool ccs_domain_unreachable(const int index);
+static _Bool ccs_deleted_domain(const int index);
 static const struct ccs_transition_control_entry *ccs_transition_control(const struct ccs_path_info *domainname, const char *program);
-static enum ccs_screen_type ccs_select_window(const struct ccs_domain_policy *dp, const int current);
+static enum ccs_screen_type ccs_select_window(const int current);
 static int ccs_generic_acl_compare(const void *a, const void *b);
 static int ccs_generic_acl_compare0(const void *a, const void *b);
 static int ccs_string_acl_compare(const void *a, const void *b);
@@ -118,36 +121,36 @@ static int ccs_add_transition_control_entry(const char *domainname, const char *
 static int ccs_add_transition_control_policy(char *data, const enum ccs_transition_type type);
 static int ccs_add_path_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete);
-static void ccs_assign_dis(struct ccs_domain_policy *dp, const struct ccs_path_info *domainname, const char *program);
+static void ccs_assign_dis(const struct ccs_path_info *domainname, const char *program);
 static int ccs_domainname_attribute_compare(const void *a, const void *b);
-static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp);
-static void ccs_show_current(const struct ccs_domain_policy *dp);
+static void ccs_read_domain_and_exception_policy(void);
+static void ccs_show_current(void);
 static const char *ccs_eat(const char *str);
-static int ccs_show_domain_line(const struct ccs_domain_policy *dp, const int index);
+static int ccs_show_domain_line(const int index);
 static int ccs_show_acl_line(const int index, const int list_indent);
 static int ccs_show_profile_line(const int index);
 static int ccs_show_literal_line(const int index);
 static int ccs_show_stat_line(const int index);
-static void ccs_show_list(const struct ccs_domain_policy *dp);
+static void ccs_show_list(void);
 static void ccs_resize_window(void);
-static void ccs_up_arrow_key(const struct ccs_domain_policy *dp);
-static void ccs_down_arrow_key(const struct ccs_domain_policy *dp);
-static void ccs_page_up_key(const struct ccs_domain_policy *dp);
-static void ccs_page_down_key(const struct ccs_domain_policy *dp);
+static void ccs_up_arrow_key(void);
+static void ccs_down_arrow_key(void);
+static void ccs_page_up_key(void);
+static void ccs_page_down_key(void);
 static void ccs_adjust_cursor_pos(const int item_count);
 static void ccs_set_cursor_pos(const int index);
 static int ccs_count(const unsigned char *array, const int len);
 static int ccs_count2(const struct ccs_generic_acl *array, int len);
-static _Bool ccs_select_item(struct ccs_domain_policy *dp, const int index);
+static _Bool ccs_select_item(const int index);
 static int ccs_generic_acl_compare(const void *a, const void *b);
-static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index);
+static void ccs_delete_entry(const int index);
 static void ccs_add_entry(struct ccs_readline_data *rl);
-static void ccs_find_entry(const struct ccs_domain_policy *dp, const _Bool input, const _Bool forward, const int current, struct ccs_readline_data *rl);
-static void ccs_set_profile(struct ccs_domain_policy *dp, const int current);
+static void ccs_find_entry(const _Bool input, const _Bool forward, const int current, struct ccs_readline_data *rl);
+static void ccs_set_profile(const int current);
 static void ccs_set_level(const int current);
 static void ccs_set_quota(const int current);
 static _Bool ccs_show_command_key(const enum ccs_screen_type screen, const _Bool readonly);
-static int ccs_generic_list_loop(struct ccs_domain_policy *dp);
+static int ccs_generic_list_loop(void);
 static void ccs_copy_file(const char *source, const char *dest);
 static FILE *ccs_editpolicy_open_write(const char *filename);
 
@@ -178,15 +181,13 @@ static void ccs_copy_file(const char *source, const char *dest)
 /**
  * ccs_get_last_name - Get last component of a domainname.
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns the last componet of the domainname.
  */
-static const char *ccs_get_last_name(const struct ccs_domain_policy *dp,
-				     const int index)
+static const char *ccs_get_last_name(const int index)
 {
-	const char *cp0 = ccs_domain_name(dp, index);
+	const char *cp0 = ccs_domain_name(&ccs_dp, index);
 	const char *cp1 = strrchr(cp0, ' ');
 	if (cp1)
 		return cp1 + 1;
@@ -250,53 +251,46 @@ static int ccs_count3(const struct ccs_task_entry *array, int len)
 /**
  * ccs_keeper_domain - Check whether the given domain is marked as "keep_domain".
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns true if the given domain is marked as "keep_domain",
  * false otherwise.
  */
-static _Bool ccs_keeper_domain(const struct ccs_domain_policy *dp,
-			       const int index)
+static _Bool ccs_keeper_domain(const int index)
 {
-	return dp->list[index].is_dk;
+	return ccs_dp.list[index].is_dk;
 }
 
 /**
  * ccs_initializer_source - Check whether the given domain is marked as "initialize_domain".
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns true if the given domain is marked as "initialize_domain",
  * false otherwise.
  */
-static _Bool ccs_initializer_source(const struct ccs_domain_policy *dp,
-				    const int index)
+static _Bool ccs_initializer_source(const int index)
 {
-	return dp->list[index].is_dis;
+	return ccs_dp.list[index].is_dis;
 }
 
 /**
  * ccs_initializer_target - Check whether the given domain is a target of "initialize_domain".
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns true if the given domain is a target of "initialize_domain",
  * false otherwise.
  */
-static _Bool ccs_initializer_target(const struct ccs_domain_policy *dp,
-				    const int index)
+static _Bool ccs_initializer_target(const int index)
 {
-	return dp->list[index].is_dit;
+	return ccs_dp.list[index].is_dit;
 }
 
 /**
  * ccs_domain_unreachable - Check whether the given domain is unreachable or not.
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns true if the given domain is unreachable, false otherwise.
  *
@@ -304,24 +298,21 @@ static _Bool ccs_initializer_target(const struct ccs_domain_policy *dp,
  * "task manual_domain_transition" which allow other domains to reach
  * the given domain.
  */
-static _Bool ccs_domain_unreachable(const struct ccs_domain_policy *dp,
-				    const int index)
+static _Bool ccs_domain_unreachable(const int index)
 {
-	return dp->list[index].is_du;
+	return ccs_dp.list[index].is_du;
 }
 
 /**
  * ccs_deleted_domain - Check whether the given domain is marked as deleted or not.
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns true if the given domain is marked as deleted, false otherwise.
  */
-static _Bool ccs_deleted_domain(const struct ccs_domain_policy *dp,
-				const int index)
+static _Bool ccs_deleted_domain(const int index)
 {
-	return dp->list[index].is_dd;
+	return ccs_dp.list[index].is_dd;
 }
 
 /**
@@ -406,12 +397,10 @@ static int ccs_add_path_group_policy(char *data, const _Bool is_delete)
 /**
  * ccs_assign_dis - Assign domain initializer source domain.
  *
- * @dp:         Pointer to "struct ccs_domain_policy".
  * @domainname: Pointer to "const struct ccs_path_info".
  * @program:    Program name.
  */
-static void ccs_assign_dis(struct ccs_domain_policy *dp,
-			   const struct ccs_path_info *domainname,
+static void ccs_assign_dis(const struct ccs_path_info *domainname,
 			   const char *program)
 {
 	const struct ccs_transition_control_entry *d_t =
@@ -422,12 +411,12 @@ static void ccs_assign_dis(struct ccs_domain_policy *dp,
 		ccs_get();
 		line = ccs_shprintf("%s %s", domainname->name, program);
 		ccs_normalize_line(line);
-		source = ccs_assign_domain(dp, line, true, false);
+		source = ccs_assign_domain(&ccs_dp, line, true, false);
 		if (source == EOF)
 			ccs_out_of_memory();
 		line = ccs_shprintf(CCS_ROOT_NAME " %s", program);
-		dp->list[source].target_domainname = strdup(line);
-		if (!dp->list[source].target_domainname)
+		ccs_dp.list[source].target_domainname = strdup(line);
+		if (!ccs_dp.list[source].target_domainname)
 			ccs_out_of_memory();
 		ccs_put();
 	}
@@ -454,50 +443,46 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 /**
  * ccs_find_target_domain - Find the initialize_domain target domain.
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
- * Returns index in the @dp array if found, EOF otherwise.
+ * Returns index in the domain policy if found, EOF otherwise.
  */
-static int ccs_find_target_domain(const struct ccs_domain_policy *dp,
-				  const int index)
+static int ccs_find_target_domain(const int index)
 {
-	return ccs_find_domain(dp, dp->list[index].target_domainname, false,
+	return ccs_find_domain(&ccs_dp, ccs_dp.list[index].target_domainname, false,
 			       false);
 }
 
 /**
  * ccs_show_domain_line - Show a line of the domain transition tree. 
  *
- * @dp:    Pointer to "const struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns length of the printed line.
  */
-static int ccs_show_domain_line(const struct ccs_domain_policy *dp,
-				const int index)
+static int ccs_show_domain_line(const int index)
 {
 	int tmp_col = 0;
 	const struct ccs_transition_control_entry *transition_control;
 	char *line;
 	const char *sp;
-	const int number = dp->list[index].number;
+	const int number = ccs_dp.list[index].number;
 	int redirect_index;
-	const bool is_dis = ccs_initializer_source(dp, index);
-	const bool is_deleted = ccs_deleted_domain(dp, index);
+	const bool is_dis = ccs_initializer_source(index);
+	const bool is_deleted = ccs_deleted_domain(index);
 	if (number >= 0) {
-		printw("%c%4d:", dp->list_selected[index] ? '&' : ' ', number);
-		if (dp->list[index].profile_assigned)
-			printw("%3u", dp->list[index].profile);
+		printw("%c%4d:", ccs_dp.list_selected[index] ? '&' : ' ', number);
+		if (ccs_dp.list[index].profile_assigned)
+			printw("%3u", ccs_dp.list[index].profile);
 		else
 			printw("???");
-		printw(" %c%c%c ", ccs_keeper_domain(dp, index) ? '#' : ' ',
-		       ccs_initializer_target(dp, index) ? '*' : ' ',
-		       ccs_domain_unreachable(dp, index) ? '!' : ' ');
+		printw(" %c%c%c ", ccs_keeper_domain(index) ? '#' : ' ',
+		       ccs_initializer_target(index) ? '*' : ' ',
+		       ccs_domain_unreachable(index) ? '!' : ' ');
 	} else
 		printw("              ");
 	tmp_col += 14;
-	sp = ccs_domain_name(dp, index);
+	sp = ccs_domain_name(&ccs_dp, index);
 	while (true) {
 		const char *cp = strchr(sp, ' ');
 		if (!cp)
@@ -516,7 +501,7 @@ static int ccs_show_domain_line(const struct ccs_domain_policy *dp,
 		printw("%s", ccs_eat(" )"));
 		tmp_col += 2;
 	}
-	transition_control = dp->list[index].d_t;
+	transition_control = ccs_dp.list[index].d_t;
 	if (!transition_control || is_dis)
 		goto no_transition_control;
 	ccs_get();
@@ -534,10 +519,10 @@ no_transition_control:
 	if (!is_dis)
 		goto done;
 	ccs_get();
-	redirect_index = ccs_find_target_domain(dp, index);
+	redirect_index = ccs_find_target_domain(index);
 	if (redirect_index >= 0)
 		line = ccs_shprintf(" ( -> %d )",
-				    dp->list[redirect_index].number);
+				    ccs_dp.list[redirect_index].number);
 	else
 		line = ccs_shprintf(" ( -> Not Found )");
 	printw("%s", ccs_eat(line));
@@ -1271,15 +1256,13 @@ static int ccs_add_path_group_entry(const char *group_name,
 /**
  * ccs_read_domain_and_exception_policy - Read domain policy and exception policy.
  *
- * @dp: Pointer to "struct ccs_domain_policy".
- *
  * Returns nothing.
  *
  * Since CUI policy editor screen shows domain initializer source domains and
  * unreachable domains, we need to read not only the domain policy but also
  * the exception policy for printing the domain transition tree.
  */
-static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
+static void ccs_read_domain_and_exception_policy(void)
 {
 	FILE *fp;
 	int i;
@@ -1290,10 +1273,10 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 	static int ccs_jump_list_len = 0;
 	while (ccs_jump_list_len)
 		free(ccs_jump_list[--ccs_jump_list_len]);
-	ccs_clear_domain_policy(dp);
+	ccs_clear_domain_policy(&ccs_dp);
 	ccs_transition_control_list_len = 0;
 	ccs_editpolicy_clear_groups();
-	ccs_assign_domain(dp, CCS_ROOT_NAME, false, false);
+	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
 
 	/* Load all domain list. */
 	fp = NULL;
@@ -1323,7 +1306,7 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 		if (!line)
 			break;
 		if (ccs_domain_def(line)) {
-			index = ccs_assign_domain(dp, line, false, false);
+			index = ccs_assign_domain(&ccs_dp, line, false, false);
 			continue;
 		} else if (index == EOF) {
 			continue;
@@ -1335,7 +1318,7 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 			if (cp)
 				*cp = '\0';
 			if (*line == '@' || ccs_correct_path(line))
-				ccs_add_string_entry(dp, line, index);
+				ccs_add_string_entry(&ccs_dp, line, index);
 		} else if (ccs_str_starts(line,
 					  "task auto_domain_transition ") ||
 			   ccs_str_starts(line,
@@ -1366,28 +1349,28 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 			else
 				m = line;
 			snprintf(domainname, sizeof(domainname) - 1, "%s %s",
-				 ccs_domain_name(dp, index), m);
+				 ccs_domain_name(&ccs_dp, index), m);
 			domainname[sizeof(domainname) - 1] = '\0';
 			ccs_normalize_line(domainname);
-			source = ccs_assign_domain(dp, domainname, true,
+			source = ccs_assign_domain(&ccs_dp, domainname, true,
 						   false);
 			if (source == EOF)
 				ccs_out_of_memory();
-			dp->list[source].target_domainname = strdup(line);
-			if (!dp->list[source].target_domainname)
+			ccs_dp.list[source].target_domainname = strdup(line);
+			if (!ccs_dp.list[source].target_domainname)
 				ccs_out_of_memory();
 		} else if (sscanf(line, "use_profile %u", &profile) == 1) {
-			dp->list[index].profile = (u8) profile;
-			dp->list[index].profile_assigned = 1;
+			ccs_dp.list[index].profile = (u8) profile;
+			ccs_dp.list[index].profile_assigned = 1;
 		} else if (sscanf(line, "use_group %u", &profile) == 1) {
-			dp->list[index].group = (u8) profile;
+			ccs_dp.list[index].group = (u8) profile;
 		}
 	}
 	ccs_put();
 	fclose(fp);
 no_domain:
 
-	max_index = dp->list_len;
+	max_index = ccs_dp.list_len;
 
 	/* Load domain_initializer list, domain_keeper list. */
 	fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_EXCEPTION_POLICY);
@@ -1435,10 +1418,10 @@ no_domain:
 				if (*line == '@' || ccs_correct_path(line)) {
 					for (index = 0; index < max_index;
 					     index++)
-						if (dp->list[index].group
+						if (ccs_dp.list[index].group
 						    == group)
 							ccs_add_string_entry
-								(dp, line,
+								(&ccs_dp, line,
 								 index);
 				}
 			}
@@ -1452,7 +1435,7 @@ no_exception:
 	for (index = 0; index < max_index; index++) {
 		char *line;
 		ccs_get();
-		line = ccs_shprintf("%s", ccs_domain_name(dp, index));
+		line = ccs_shprintf("%s", ccs_domain_name(&ccs_dp, index));
 		while (true) {
 			const struct ccs_transition_control_entry *d_t;
 			struct ccs_path_info parent;
@@ -1469,17 +1452,17 @@ no_exception:
 			if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE &&
 			    parent.total_len == CCS_ROOT_NAME_LEN)
 				break;
-			dp->list[index].d_t = d_t;
+			ccs_dp.list[index].d_t = d_t;
 			continue;
 		}
 		ccs_put();
-		if (dp->list[index].d_t)
-			dp->list[index].is_du = true;
+		if (ccs_dp.list[index].d_t)
+			ccs_dp.list[index].is_du = true;
 	}
 
 	/* Find domain initializer target domains. */
 	for (index = 0; index < max_index; index++) {
-		char *cp = strchr(ccs_domain_name(dp, index), ' ');
+		char *cp = strchr(ccs_domain_name(&ccs_dp, index), ' ');
 		if (!cp || strchr(cp + 1, ' '))
 			continue;
 		for (i = 0; i < ccs_transition_control_list_len; i++) {
@@ -1489,7 +1472,7 @@ no_exception:
 				continue;
 			if (ptr->program && strcmp(ptr->program->name, cp + 1))
 				continue;
-			dp->list[index].is_dit = true;
+			ccs_dp.list[index].is_dit = true;
 		}
 	}
 
@@ -1504,27 +1487,27 @@ no_exception:
 			if (!ptr->is_last_name) {
 				if (ptr->domainname &&
 				    ccs_pathcmp(ptr->domainname,
-						dp->list[index].domainname))
+						ccs_dp.list[index].domainname))
 					continue;
-				dp->list[index].is_dk = true;
+				ccs_dp.list[index].is_dk = true;
 				continue;
 			}
-			cp = strrchr(dp->list[index].domainname->name,
+			cp = strrchr(ccs_dp.list[index].domainname->name,
 				     ' ');
 			if (!cp || (ptr->domainname->name &&
 				    strcmp(ptr->domainname->name, cp + 1)))
 				continue;
-			dp->list[index].is_dk = true;
+			ccs_dp.list[index].is_dk = true;
 		}
 	}
 
 	/* Create domain initializer source domains. */
 	for (index = 0; index < max_index; index++) {
 		const struct ccs_path_info *domainname
-			= dp->list[index].domainname;
+			= ccs_dp.list[index].domainname;
 		const struct ccs_path_info **string_ptr
-			= dp->list[index].string_ptr;
-		const int max_count = dp->list[index].string_count;
+			= ccs_dp.list[index].string_ptr;
+		const int max_count = ccs_dp.list[index].string_count;
 		/* Don't create source domain under <kernel> because
 		   they will become ccs_target domains. */
 		if (domainname->total_len == CCS_ROOT_NAME_LEN)
@@ -1533,7 +1516,7 @@ no_exception:
 			const struct ccs_path_info *cp = string_ptr[i];
 			struct ccs_path_group_entry *group;
 			if (cp->name[0] != '@') {
-				ccs_assign_dis(dp, domainname, cp->name);
+				ccs_assign_dis(domainname, cp->name);
 				continue;
 			}
 			group = ccs_find_path_group(cp->name + 1);
@@ -1541,41 +1524,41 @@ no_exception:
 				continue;
 			for (j = 0; j < group->member_name_len; j++) {
 				cp = group->member_name[j];
-				ccs_assign_dis(dp, domainname, cp->name);
+				ccs_assign_dis(domainname, cp->name);
 			}
 		}
 	}
 
 	/* Create domain jump target domains. */
 	for (i = 0; i < ccs_jump_list_len; i++) {
-		int index = ccs_find_domain(dp, ccs_jump_list[i], false,
+		int index = ccs_find_domain(&ccs_dp, ccs_jump_list[i], false,
 					    false);
 		if (index != EOF)
-			dp->list[index].is_dit = true;
+			ccs_dp.list[index].is_dit = true;
 	}
 
-	//max_index = dp->list_len;
+	//max_index = ccs_dp.list_len;
 
 	/* Create missing parent domains. */
 	for (index = 0; index < max_index; index++) {
 		char *line;
 		ccs_get();
-		line = ccs_shprintf("%s", ccs_domain_name(dp, index));
+		line = ccs_shprintf("%s", ccs_domain_name(&ccs_dp, index));
 		while (true) {
 			char *cp = strrchr(line, ' ');
 			if (!cp)
 				break;
 			*cp = '\0';
-			if (ccs_find_domain(dp, line, false, false) != EOF)
+			if (ccs_find_domain(&ccs_dp, line, false, false) != EOF)
 				continue;
-			if (ccs_assign_domain(dp, line, false, true) == EOF)
+			if (ccs_assign_domain(&ccs_dp, line, false, true) == EOF)
 				ccs_out_of_memory();
 		}
 		ccs_put();
 	}
 
 	/* Sort by domain name. */
-	qsort(dp->list, dp->list_len, sizeof(struct ccs_domain_info),
+	qsort(ccs_dp.list, ccs_dp.list_len, sizeof(struct ccs_domain_info),
 	      ccs_domainname_attribute_compare);
 
 	/* Assign domain numbers. */
@@ -1583,21 +1566,21 @@ no_exception:
 		int number = 0;
 		int index;
 		ccs_unnumbered_domain_count = 0;
-		for (index = 0; index < dp->list_len; index++) {
-			if (ccs_deleted_domain(dp, index) ||
-			    ccs_initializer_source(dp, index)) {
-				dp->list[index].number = -1;
+		for (index = 0; index < ccs_dp.list_len; index++) {
+			if (ccs_deleted_domain(index) ||
+			    ccs_initializer_source(index)) {
+				ccs_dp.list[index].number = -1;
 				ccs_unnumbered_domain_count++;
 			} else {
-				dp->list[index].number = number++;
+				ccs_dp.list[index].number = number++;
 			}
 		}
 	}
 
-	dp->list_selected = realloc(dp->list_selected, dp->list_len);
-	if (dp->list_len && !dp->list_selected)
+	ccs_dp.list_selected = realloc(ccs_dp.list_selected, ccs_dp.list_len);
+	if (ccs_dp.list_len && !ccs_dp.list_selected)
 		ccs_out_of_memory();
-	memset(dp->list_selected, 0, dp->list_len);
+	memset(ccs_dp.list_selected, 0, ccs_dp.list_len);
 }
 
 /**
@@ -1633,11 +1616,9 @@ static int ccs_show_process_line(const int index)
 /**
  * ccs_show_list - Print list on the screen.
  *
- * @dp: Pointer to "struct ccs_domain_policy".
- *
  * Returns nothing. 
  */
-static void ccs_show_list(const struct ccs_domain_policy *dp)
+static void ccs_show_list(void)
 {
 	int ccs_list_indent;
 	const int offset = ccs_current_item_index[ccs_current_screen];
@@ -1646,7 +1627,7 @@ static void ccs_show_list(const struct ccs_domain_policy *dp)
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST)
 		ccs_list_item_count[CCS_SCREEN_DOMAIN_LIST] =
 			ccs_domain_sort_type ?
-			ccs_task_list_len : dp->list_len;
+			ccs_task_list_len : ccs_dp.list_len;
 	else
 		ccs_list_item_count[ccs_current_screen] =
 			ccs_generic_acl_list_count;
@@ -1719,7 +1700,7 @@ static void ccs_show_list(const struct ccs_domain_policy *dp)
 		switch (ccs_current_screen) {
 		case CCS_SCREEN_DOMAIN_LIST:
 			if (!ccs_domain_sort_type)
-				tmp_col = ccs_show_domain_line(dp, index);
+				tmp_col = ccs_show_domain_line(index);
 			else
 				tmp_col = ccs_show_process_line(index);
 			break;
@@ -1742,7 +1723,7 @@ static void ccs_show_list(const struct ccs_domain_policy *dp)
 		if (tmp_col > ccs_max_col)
 			ccs_max_col = tmp_col;
 	}
-	ccs_show_current(dp);
+	ccs_show_current();
 }
 
 /**
@@ -1763,53 +1744,47 @@ static void ccs_resize_window(void)
 /**
  * ccs_up_arrow_key - Callback event for pressing up-arrow key.
  *
- * @dp: Pointer to "struct ccs_domain_policy".
- *
  * Returns nothing.
  */
-static void ccs_up_arrow_key(const struct ccs_domain_policy *dp)
+static void ccs_up_arrow_key(void)
 {
 	if (ccs_current_y[ccs_current_screen] > 0) {
 		ccs_current_y[ccs_current_screen]--;
-		ccs_show_current(dp);
+		ccs_show_current();
 	} else if (ccs_current_item_index[ccs_current_screen] > 0) {
 		ccs_current_item_index[ccs_current_screen]--;
-		ccs_show_list(dp);
+		ccs_show_list();
 	}
 }
 
 /**
  * ccs_down_arrow_key - Callback event for pressing down-arrow key.
  *
- * @dp: Pointer to "struct ccs_domain_policy".
- *
  * Returns nothing.
  */
-static void ccs_down_arrow_key(const struct ccs_domain_policy *dp)
+static void ccs_down_arrow_key(void)
 {
 	if (ccs_current_y[ccs_current_screen] < ccs_body_lines - 1) {
 		if (ccs_current_item_index[ccs_current_screen]
 		    + ccs_current_y[ccs_current_screen]
 		    < ccs_list_item_count[ccs_current_screen] - 1) {
 			ccs_current_y[ccs_current_screen]++;
-			ccs_show_current(dp);
+			ccs_show_current();
 		}
 	} else if (ccs_current_item_index[ccs_current_screen]
 		   + ccs_current_y[ccs_current_screen]
 		   < ccs_list_item_count[ccs_current_screen] - 1) {
 		ccs_current_item_index[ccs_current_screen]++;
-		ccs_show_list(dp);
+		ccs_show_list();
 	}
 }
 
 /**
  * ccs_page_up_key - Callback event for pressing page-up key.
  *
- * @dp: Pointer to "struct ccs_domain_policy".
- *
  * Returns nothing.
  */
-static void ccs_page_up_key(const struct ccs_domain_policy *dp)
+static void ccs_page_up_key(void)
 {
 	int p0 = ccs_current_item_index[ccs_current_screen];
 	int p1 = ccs_current_y[ccs_current_screen];
@@ -1828,19 +1803,17 @@ static void ccs_page_up_key(const struct ccs_domain_policy *dp)
 	ccs_current_item_index[ccs_current_screen] = p0;
 	ccs_current_y[ccs_current_screen] = p1;
 	if (refresh)
-		ccs_show_list(dp);
+		ccs_show_list();
 	else
-		ccs_show_current(dp);
+		ccs_show_current();
 }
 
 /**
  * ccs_page_down_key - Callback event for pressing page-down key.
  *
- * @dp: Pointer to "struct ccs_domain_policy".
- *
  * Returns nothing.
  */
-static void ccs_page_down_key(const struct ccs_domain_policy *dp)
+static void ccs_page_down_key(void)
 {
 	int ccs_count = ccs_list_item_count[ccs_current_screen] - 1;
 	int p0 = ccs_current_item_index[ccs_current_screen];
@@ -1862,9 +1835,9 @@ static void ccs_page_down_key(const struct ccs_domain_policy *dp)
 	ccs_current_item_index[ccs_current_screen] = p0;
 	ccs_current_y[ccs_current_screen] = p1;
 	if (refresh)
-		ccs_show_list(dp);
+		ccs_show_list();
 	else
-		ccs_show_current(dp);
+		ccs_show_current();
 }
 
 /**
@@ -1890,7 +1863,7 @@ int ccs_editpolicy_get_current(void)
 	return p0 + p1;
 }
 
-static void ccs_show_current(const struct ccs_domain_policy *dp)
+static void ccs_show_current(void)
 {
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST &&
 	    !ccs_domain_sort_type) {
@@ -1898,7 +1871,8 @@ static void ccs_show_current(const struct ccs_domain_policy *dp)
 		const int index = ccs_editpolicy_get_current();
 		ccs_get();
 		ccs_eat_col = ccs_max_eat_col[ccs_current_screen];
-		line = ccs_shprintf("%s", ccs_eat(ccs_domain_name(dp, index)));
+		line = ccs_shprintf("%s",
+				    ccs_eat(ccs_domain_name(&ccs_dp, index)));
 		if (ccs_window_width < strlen(line))
 			line[ccs_window_width] = '\0';
 		move(2, 0);
@@ -1950,15 +1924,14 @@ static void ccs_set_cursor_pos(const int index)
 /**
  * ccs_select_item - Select an item.
  *
- * @dp:    Pointer to "struct ccs_domain_policy". Maybe NULL.
- * @index: Index in the @dp array if @dp != NULL, currently selected line
- *         in the generic list otherwise.
+ * @index: Index in the domain policy or currently selected line in the generic
+ *         list.
  *
  * Returns true if selected, false otherwise.
  *
  * Domain transition source and deleted domains are not selectable.
  */
-static _Bool ccs_select_item(struct ccs_domain_policy *dp, const int index)
+static _Bool ccs_select_item(const int index)
 {
 	int x;
 	int y;
@@ -1966,10 +1939,10 @@ static _Bool ccs_select_item(struct ccs_domain_policy *dp, const int index)
 		return false;
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (!ccs_domain_sort_type) {
-			if (ccs_deleted_domain(dp, index) ||
-			    ccs_initializer_source(dp, index))
+			if (ccs_deleted_domain(index) ||
+			    ccs_initializer_source(index))
 				return false;
-			dp->list_selected[index] ^= 1;
+			ccs_dp.list_selected[index] ^= 1;
 		} else {
 			ccs_task_list[index].selected ^= 1;
 		}
@@ -1978,7 +1951,7 @@ static _Bool ccs_select_item(struct ccs_domain_policy *dp, const int index)
 	}
 	getyx(stdscr, y, x);
 	ccs_editpolicy_sttr_save();    /* add color */
-	ccs_show_list(dp);
+	ccs_show_list();
 	ccs_editpolicy_sttr_restore(); /* add color */
 	move(y, x);
 	return true;
@@ -2008,20 +1981,19 @@ static int ccs_generic_acl_compare(const void *a, const void *b)
 /**
  * ccs_delete_entry - Delete an entry.
  *
- * @dp:    Pointer to "struct ccs_domain_policy".
- * @index: Index in the @dp array.
+ * @index: Index in the domain policy.
  *
  * Returns nothing.
  */
-static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
+static void ccs_delete_entry(const int index)
 {
 	int c;
 	move(1, 0);
 	ccs_editpolicy_color_change(CCS_DISP_ERR, true);	/* add color */
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
-		c = ccs_count(dp->list_selected, dp->list_len);
-		if (!c && index < dp->list_len)
-			c = ccs_select_item(dp, index);
+		c = ccs_count(ccs_dp.list_selected, ccs_dp.list_len);
+		if (!c && index < ccs_dp.list_len)
+			c = ccs_select_item(index);
 		if (!c)
 			printw("Select domain using Space key first.");
 		else
@@ -2031,7 +2003,7 @@ static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
 		c = ccs_count2(ccs_generic_acl_list,
 			       ccs_generic_acl_list_count);
 		if (!c)
-			c = ccs_select_item(NULL, index);
+			c = ccs_select_item(index);
 		if (!c)
 			printw("Select entry using Space key first.");
 		else
@@ -2048,7 +2020,7 @@ static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
 	} while (!(c == 'Y' || c == 'y' || c == 'N' || c == 'n' || c == EOF));
 	ccs_resize_window();
 	if (c != 'Y' && c != 'y') {
-		ccs_show_list(dp);
+		ccs_show_list();
 		return;
 	}
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
@@ -2057,10 +2029,10 @@ static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
 			(CCS_PROC_POLICY_DOMAIN_POLICY);
 		if (!fp)
 			return;
-		for (i = 1; i < dp->list_len; i++) {
-			if (!dp->list_selected[i])
+		for (i = 1; i < ccs_dp.list_len; i++) {
+			if (!ccs_dp.list_selected[i])
 				continue;
-			fprintf(fp, "delete %s\n", ccs_domain_name(dp, i));
+			fprintf(fp, "delete %s\n", ccs_domain_name(&ccs_dp, i));
 		}
 		ccs_close_write(fp);
 	} else {
@@ -2142,8 +2114,7 @@ out:
 	free(line);
 }
 
-static void ccs_find_entry(const struct ccs_domain_policy *dp,
-			   const _Bool input, const _Bool forward,
+static void ccs_find_entry(const _Bool input, const _Bool forward,
 			   const int current, struct ccs_readline_data *rl)
 {
 	int index = current;
@@ -2178,7 +2149,7 @@ start_search:
 			if (ccs_domain_sort_type)
 				cp = ccs_task_list[index].name;
 			else
-				cp = ccs_get_last_name(dp, index);
+				cp = ccs_get_last_name(index);
 		} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
 			cp = ccs_shprintf("%u-%s",
 					  ccs_generic_acl_list[index].directive,
@@ -2198,7 +2169,7 @@ start_search:
 	ccs_put();
 out:
 	free(line);
-	ccs_show_list(dp);
+	ccs_show_list();
 }
 
 /**
@@ -2208,14 +2179,14 @@ out:
  *
  * Returns nothing.
  */
-static void ccs_set_profile(struct ccs_domain_policy *dp, const int current)
+static void ccs_set_profile(const int current)
 {
 	int index;
 	FILE *fp;
 	char *line;
 	if (!ccs_domain_sort_type) {
-		if (!ccs_count(dp->list_selected, dp->list_len) &&
-		    !ccs_select_item(NULL, current)) {
+		if (!ccs_count(ccs_dp.list_selected, ccs_dp.list_len) &&
+		    !ccs_select_item(current)) {
 			move(1, 0);
 			printw("Select domain using Space key first.");
 			clrtoeol();
@@ -2224,7 +2195,7 @@ static void ccs_set_profile(struct ccs_domain_policy *dp, const int current)
 		}
 	} else {
 		if (!ccs_count3(ccs_task_list, ccs_task_list_len) &&
-		    !ccs_select_item(NULL, current)) {
+		    !ccs_select_item(current)) {
 			move(1, 0);
 			printw("Select processes using Space key first.");
 			clrtoeol();
@@ -2242,11 +2213,11 @@ static void ccs_set_profile(struct ccs_domain_policy *dp, const int current)
 	if (!fp)
 		goto out;
 	if (!ccs_domain_sort_type) {
-		for (index = 0; index < dp->list_len; index++) {
-			if (!dp->list_selected[index])
+		for (index = 0; index < ccs_dp.list_len; index++) {
+			if (!ccs_dp.list_selected[index])
 				continue;
 			fprintf(fp, "select domain=%s\n" "use_profile %s\n",
-				ccs_domain_name(dp, index), line);
+				ccs_domain_name(&ccs_dp, index), line);
 		}
 	} else {
 		for (index = 0; index < ccs_task_list_len; index++) {
@@ -2274,7 +2245,7 @@ static void ccs_set_level(const int current)
 	FILE *fp;
 	char *line;
 	if (!ccs_count2(ccs_generic_acl_list, ccs_generic_acl_list_count))
-		ccs_select_item(NULL, current);
+		ccs_select_item(current);
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	ccs_initial_readline_data = NULL;
 	for (index = 0; index < ccs_generic_acl_list_count; index++) {
@@ -2331,7 +2302,7 @@ static void ccs_set_quota(const int current)
 	FILE *fp;
 	char *line;
 	if (!ccs_count2(ccs_generic_acl_list, ccs_generic_acl_list_count))
-		ccs_select_item(NULL, current);
+		ccs_select_item(current);
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = ccs_readline(ccs_window_height - 1, 0, "Enter new value> ",
 			    NULL, 0, 20, 1);
@@ -2362,25 +2333,23 @@ out:
 /**
  * ccs_select_acl_window - Check whether to switch to ACL list or not. 
  *
- * @dp:          Pointer to "const struct ccs_domain_policy".
- * @current:     Index in the @dp array.
+ * @current:     Index in the domain policy.
  * @may_refresh: ???
  *
  * Returns true if next window is ACL list, false otherwise.
  */
-static _Bool ccs_select_acl_window(const struct ccs_domain_policy *dp,
-				   const int current, const _Bool may_refresh)
+static _Bool ccs_select_acl_window(const int current, const _Bool may_refresh)
 {
 	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST || current == EOF)
 		return false;
 	ccs_current_pid = 0;
 	if (ccs_domain_sort_type) {
 		ccs_current_pid = ccs_task_list[current].pid;
-	} else if (ccs_initializer_source(dp, current)) {
+	} else if (ccs_initializer_source(current)) {
 		int redirect_index;
 		if (!may_refresh)
 			return false;
-		redirect_index = ccs_find_target_domain(dp, current);
+		redirect_index = ccs_find_target_domain(current);
 		if (redirect_index == EOF)
 			return false;
 		ccs_current_item_index[ccs_current_screen]
@@ -2389,16 +2358,16 @@ static _Bool ccs_select_acl_window(const struct ccs_domain_policy *dp,
 			ccs_current_item_index[ccs_current_screen]++;
 			ccs_current_y[ccs_current_screen]--;
 		}
-		ccs_show_list(dp);
+		ccs_show_list();
 		return false;
-	} else if (ccs_deleted_domain(dp, current)) {
+	} else if (ccs_deleted_domain(current)) {
 		return false;
 	}
 	free(ccs_current_domain);
 	if (ccs_domain_sort_type)
 		ccs_current_domain = strdup(ccs_task_list[current].domain);
 	else
-		ccs_current_domain = strdup(ccs_domain_name(dp, current));
+		ccs_current_domain = strdup(ccs_domain_name(&ccs_dp, current));
 	if (!ccs_current_domain)
 		ccs_out_of_memory();
 	return true;
@@ -2407,21 +2376,19 @@ static _Bool ccs_select_acl_window(const struct ccs_domain_policy *dp,
 /**
  * ccs_select_window - Switch window.
  *
- * @dp:      Pointer to "const struct ccs_domain_policy".
- * @current: Index in the @dp array.
+ * @current: Index in the domain policy.
  *
  * Returns next window to display.
  */
-static enum ccs_screen_type ccs_select_window
-(const struct ccs_domain_policy *dp, const int current)
+static enum ccs_screen_type ccs_select_window(const int current)
 {
 	move(0, 0);
 	printw("Press one of below keys to switch window.\n\n");
 	printw("e     <<< Exception Policy Editor >>>\n");
 	printw("d     <<< Domain Transition Editor >>>\n");
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST && current != EOF &&
-	    !ccs_initializer_source(dp, current) &&
-	    !ccs_deleted_domain(dp, current))
+	    !ccs_initializer_source(current) &&
+	    !ccs_deleted_domain(current))
 		printw("a     <<< Domain Policy Editor >>>\n");
 	printw("p     <<< Profile Editor >>>\n");
 	printw("m     <<< Manager Policy Editor >>>\n");
@@ -2439,7 +2406,7 @@ static enum ccs_screen_type ccs_select_window
 		if (c == 'D' || c == 'd')
 			return CCS_SCREEN_DOMAIN_LIST;
 		if (c == 'A' || c == 'a')
-			if (ccs_select_acl_window(dp, current, false))
+			if (ccs_select_acl_window(current, false))
 				return CCS_SCREEN_ACL_LIST;
 		if (c == 'P' || c == 'p')
 			return CCS_SCREEN_PROFILE_LIST;
@@ -2463,13 +2430,11 @@ static enum ccs_screen_type ccs_select_window
 /**
  * ccs_copy_mark_state - Copy selected state to lines under the current line.
  *
- * @dp:      Pointer to "struct ccs_domain_policy".
- * @current: Index in the @dp array.
+ * @current: Index in the domain policy.
  *
  * Returns nothing.
  */
-static void ccs_copy_mark_state(struct ccs_domain_policy *dp,
-				const int current)
+static void ccs_copy_mark_state(const int current)
 {
 	int index;
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
@@ -2479,16 +2444,15 @@ static void ccs_copy_mark_state(struct ccs_domain_policy *dp,
 			     index++)
 				ccs_task_list[index].selected = selected;
 		} else {
-			const u8 selected = dp->list_selected[current];
-			if (ccs_deleted_domain(dp, current) ||
-			    ccs_initializer_source(dp, current))
+			const u8 selected = ccs_dp.list_selected[current];
+			if (ccs_deleted_domain(current) ||
+			    ccs_initializer_source(current))
 				return;
-			for (index = current;
-			     index < dp->list_len; index++) {
-				if (ccs_deleted_domain(dp, index) ||
-				    ccs_initializer_source(dp, index))
+			for (index = current; index < ccs_dp.list_len; index++) {
+				if (ccs_deleted_domain(index) ||
+				    ccs_initializer_source(index))
 					continue;
-				dp->list_selected[index] = selected;
+				ccs_dp.list_selected[index] = selected;
 			}
 		}
 	} else {
@@ -2497,20 +2461,18 @@ static void ccs_copy_mark_state(struct ccs_domain_policy *dp,
 		     index++)
 			ccs_generic_acl_list[index].selected = selected;
 	}
-	ccs_show_list(dp);
+	ccs_show_list();
 }
 
 /**
  * ccs_copy_to_history - Copy line to histoy buffer. 
  *
- * @dp:      Pointer to "const struct ccs_domain_policy".
- * @current: Index in the @dp array.
+ * @current: Index in the domain policy.
  * @rl:      Pointer to "struct ccs_readline_data".
  *
  * Returns nothing.
  */
-static void ccs_copy_to_history(const struct ccs_domain_policy *dp,
-				const int current,
+static void ccs_copy_to_history(const int current,
 				struct ccs_readline_data *rl)
 {
 	const char *line;
@@ -2520,7 +2482,7 @@ static void ccs_copy_to_history(const struct ccs_domain_policy *dp,
 	switch (ccs_current_screen) {
 		enum ccs_editpolicy_directives directive;
 	case CCS_SCREEN_DOMAIN_LIST:
-		line = ccs_domain_name(dp, current);
+		line = ccs_domain_name(&ccs_dp, current);
 		break;
 	case CCS_SCREEN_EXCEPTION_LIST:
 	case CCS_SCREEN_ACL_LIST:
@@ -2539,7 +2501,7 @@ static void ccs_copy_to_history(const struct ccs_domain_policy *dp,
 	ccs_put();
 }
 
-static int ccs_generic_list_loop(struct ccs_domain_policy *dp)
+static int ccs_generic_list_loop(void)
 {
 	static struct ccs_readline_data rl;
 	static int saved_current_y[CCS_MAXSCREEN];
@@ -2578,12 +2540,13 @@ static int ccs_generic_list_loop(struct ccs_domain_policy *dp)
 	}
 	ccs_current_item_index[ccs_current_screen]
 		= saved_current_item_index[ccs_current_screen];
-	ccs_current_y[ccs_current_screen] = saved_current_y[ccs_current_screen];
+	ccs_current_y[ccs_current_screen]
+		= saved_current_y[ccs_current_screen];
 start:
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (!ccs_domain_sort_type) {
-			ccs_read_domain_and_exception_policy(dp);
-			ccs_adjust_cursor_pos(dp->list_len);
+			ccs_read_domain_and_exception_policy();
+			ccs_adjust_cursor_pos(ccs_dp.list_len);
 		} else {
 			ccs_read_process_list(true);
 			ccs_adjust_cursor_pos(ccs_task_list_len);
@@ -2593,7 +2556,7 @@ start:
 		ccs_adjust_cursor_pos(ccs_generic_acl_list_count);
 	}
 start2:
-	ccs_show_list(dp);
+	ccs_show_list();
 	if (ccs_last_error) {
 		move(1, 0);
 		printw("ERROR: %s", ccs_last_error);
@@ -2607,7 +2570,8 @@ start2:
 		const int c = ccs_getch2();
 		saved_current_item_index[ccs_current_screen]
 			= ccs_current_item_index[ccs_current_screen];
-		saved_current_y[ccs_current_screen] = ccs_current_y[ccs_current_screen];
+		saved_current_y[ccs_current_screen] =
+			ccs_current_y[ccs_current_screen];
 		if (c == 'q' || c == 'Q')
 			return CCS_MAXSCREEN;
 		if ((c == '\r' || c == '\n') &&
@@ -2628,52 +2592,52 @@ start2:
 		switch (c) {
 		case KEY_RESIZE:
 			ccs_resize_window();
-			ccs_show_list(dp);
+			ccs_show_list();
 			break;
 		case KEY_UP:
-			ccs_up_arrow_key(dp);
+			ccs_up_arrow_key();
 			break;
 		case KEY_DOWN:
-			ccs_down_arrow_key(dp);
+			ccs_down_arrow_key();
 			break;
 		case KEY_PPAGE:
-			ccs_page_up_key(dp);
+			ccs_page_up_key();
 			break;
 		case KEY_NPAGE:
-			ccs_page_down_key(dp);
+			ccs_page_down_key();
 			break;
 		case ' ':
-			ccs_select_item(dp, current);
+			ccs_select_item(current);
 			break;
 		case 'c':
 		case 'C':
 			if (current == EOF)
 				break;
-			ccs_copy_mark_state(dp, current);
-			ccs_show_list(dp);
+			ccs_copy_mark_state(current);
+			ccs_show_list();
 			break;
 		case 'f':
 		case 'F':
 			if (ccs_current_screen != CCS_SCREEN_STAT_LIST)
-				ccs_find_entry(dp, true, true, current, &rl);
+				ccs_find_entry(true, true, current, &rl);
 			break;
 		case 'p':
 		case 'P':
 			if (ccs_current_screen == CCS_SCREEN_STAT_LIST)
 				break;
 			if (!rl.search_buffer[ccs_current_screen])
-				ccs_find_entry(dp, true, false, current, &rl);
+				ccs_find_entry(true, false, current, &rl);
 			else
-				ccs_find_entry(dp, false, false, current, &rl);
+				ccs_find_entry(false, false, current, &rl);
 			break;
 		case 'n':
 		case 'N':
 			if (ccs_current_screen == CCS_SCREEN_STAT_LIST)
 				break;
 			if (!rl.search_buffer[ccs_current_screen])
-				ccs_find_entry(dp, true, true, current, &rl);
+				ccs_find_entry(true, true, current, &rl);
 			else
-				ccs_find_entry(dp, false, true, current, &rl);
+				ccs_find_entry(false, true, current, &rl);
 			break;
 		case 'd':
 		case 'D':
@@ -2686,7 +2650,7 @@ start2:
 			case CCS_SCREEN_EXCEPTION_LIST:
 			case CCS_SCREEN_ACL_LIST:
 			case CCS_SCREEN_MANAGER_LIST:
-				ccs_delete_entry(dp, current);
+				ccs_delete_entry(current);
 				goto start;
 			default:
 				break;
@@ -2712,7 +2676,7 @@ start2:
 			break;
 		case '\r':
 		case '\n':
-			if (ccs_select_acl_window(dp, current, true))
+			if (ccs_select_acl_window(current, true))
 				return CCS_SCREEN_ACL_LIST;
 			break;
 		case 's':
@@ -2721,7 +2685,7 @@ start2:
 				break;
 			switch (ccs_current_screen) {
 			case CCS_SCREEN_DOMAIN_LIST:
-				ccs_set_profile(dp, current);
+				ccs_set_profile(current);
 				goto start;
 			case CCS_SCREEN_PROFILE_LIST:
 				ccs_set_level(current);
@@ -2751,14 +2715,14 @@ start2:
 			ccs_max_eat_col[ccs_current_screen] = ccs_max_col;
 			goto start2;
 		case KEY_IC:
-			ccs_copy_to_history(dp, current, &rl);
+			ccs_copy_to_history(current, &rl);
 			break;
 		case 'o':
 		case 'O':
 			if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
-				ccs_editpolicy_optimize(dp, current,
+				ccs_editpolicy_optimize(current,
 							ccs_current_screen);
-				ccs_show_list(dp);
+				ccs_show_list();
 			}
 			break;
 		case '@':
@@ -2780,7 +2744,7 @@ start2:
 			break;
 		case 'w':
 		case 'W':
-			return ccs_select_window(dp, current);
+			return ccs_select_window(current);
 		case '?':
 			if (ccs_show_command_key(ccs_current_screen,
 						 ccs_readonly_mode))
@@ -2951,7 +2915,6 @@ static void save_offline(void)
 
 int main(int argc, char *argv[])
 {
-	struct ccs_domain_policy dp = { NULL, 0, NULL };
 	memset(ccs_current_y, 0, sizeof(ccs_current_y));
 	memset(ccs_current_item_index, 0, sizeof(ccs_current_item_index));
 	memset(ccs_list_item_count, 0, sizeof(ccs_list_item_count));
@@ -2987,7 +2950,7 @@ start:
 	}
 	while (ccs_current_screen < CCS_MAXSCREEN) {
 		ccs_resize_window();
-		ccs_current_screen = ccs_generic_list_loop(&dp);
+		ccs_current_screen = ccs_generic_list_loop();
 	}
 	alarm(0);
 	clear();
@@ -2996,6 +2959,6 @@ start:
 	endwin();
 	if (ccs_offline_mode && !ccs_readonly_mode)
 		save_offline();
-	ccs_clear_domain_policy(&dp);
+	ccs_clear_domain_policy(&ccs_dp);
 	return 0;
 }

@@ -23,9 +23,6 @@
 #include "ccstools.h"
 #include "editpolicy.h"
 
-/* File descriptor for offline mode. */
-extern int ccs_persistent_fd;
-
 /**
  * ccs_handle_misc_policy - Handle policy data other than domain policy.
  *
@@ -90,15 +87,14 @@ read_policy:
 void ccs_editpolicy_offline_daemon(void)
 {
 	struct ccs_misc_policy mp[3];
-	struct ccs_domain_policy dp;
 	static const int buffer_len = 8192;
 	char *buffer = malloc(buffer_len);
 	if (!buffer)
 		ccs_out_of_memory();
-	memset(&dp, 0, sizeof(dp));
+	memset(&ccs_dp, 0, sizeof(ccs_dp));
 	memset(&mp, 0, sizeof(mp));
 	ccs_get();
-	ccs_assign_domain(&dp, CCS_ROOT_NAME, false, false);
+	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
 	while (true) {
 		FILE *fp;
 		struct msghdr msg;
@@ -132,7 +128,7 @@ void ccs_editpolicy_offline_daemon(void)
 		}
 		if (ccs_str_starts(buffer, "POST ")) {
 			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
-				ccs_handle_domain_policy(&dp, fp, true);
+				ccs_handle_domain_policy(&ccs_dp, fp, true);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
 				ccs_handle_misc_policy(&mp[0], fp, true);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
@@ -141,7 +137,7 @@ void ccs_editpolicy_offline_daemon(void)
 				ccs_handle_misc_policy(&mp[2], fp, true);
 		} else if (ccs_str_starts(buffer, "GET ")) {
 			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
-				ccs_handle_domain_policy(&dp, fp, false);
+				ccs_handle_domain_policy(&ccs_dp, fp, false);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
 				ccs_handle_misc_policy(&mp[0], fp, false);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
@@ -152,7 +148,7 @@ void ccs_editpolicy_offline_daemon(void)
 		fclose(fp);
 	}
 	ccs_put();
-	ccs_clear_domain_policy(&dp);
+	ccs_clear_domain_policy(&ccs_dp);
 	{
 		int i;
 		for (i = 0; i < 3; i++) {
