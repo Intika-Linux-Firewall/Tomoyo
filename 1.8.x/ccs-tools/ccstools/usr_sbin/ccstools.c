@@ -1075,7 +1075,7 @@ int ccs_open_stream(const char *filename)
 /**
  * ccs_find_domain - Find a domain by name and other attributes.
  *
- * @dp:          Pointer to "struct ccs_domain_policy".
+ * @dp:          Pointer to "const struct ccs_domain_policy".
  * @domainname0: Name of domain to find.
  * @is_dis:      True if the domain acts as domain initialize source, false
  *               otherwise.
@@ -1083,8 +1083,9 @@ int ccs_open_stream(const char *filename)
  *
  * Returns index number (>= 0) in the @dp array if found, EOF otherwise.
  */
-int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0,
-		    const _Bool is_dis, const _Bool is_dd)
+int ccs_find_domain(const struct ccs_domain_policy *dp,
+		    const char *domainname0, const _Bool is_dis,
+		    const _Bool is_dd)
 {
 	int i;
 	struct ccs_path_info domainname;

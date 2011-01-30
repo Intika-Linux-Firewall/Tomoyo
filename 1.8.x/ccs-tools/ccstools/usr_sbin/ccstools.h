@@ -147,7 +147,7 @@ const char *ccs_domain_name(const struct ccs_domain_policy *dp, const int index)
 const struct ccs_path_info *ccs_savename(const char *name);
 int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry, const int index);
 int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry, const int index);
-int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0, const _Bool is_dis, const _Bool is_dd);
+int ccs_find_domain(const struct ccs_domain_policy *dp, const char *domainname0, const _Bool is_dis, const _Bool is_dd);
 int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp, const struct ccs_path_info *domainname);
 int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname, const _Bool is_dis, const _Bool is_dd);
 int ccs_open_stream(const char *filename);
