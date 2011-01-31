@@ -23,10 +23,10 @@ then
     wget -O ccs-patch-1.8.0-20110121.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110121.tar.gz' || die "Can't download patch."
 fi
 
-#if [ ! -r ccs-patch-2.6.18-centos-5.3-20110131.diff ]
-#then
-#    wget -O ccs-patch-2.6.18-centos-5.3-20110131.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.18-centos-5.3.diff?revision=4489&root=tomoyo' || die "Can't download patch."
-#fi
+if [ ! -r ccs-patch-2.6.18-centos-5.3-20110131.diff ]
+then
+    wget -O ccs-patch-2.6.18-centos-5.3-20110131.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.18-centos-5.3.diff?revision=4489&root=tomoyo' || die "Can't download patch."
+fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
