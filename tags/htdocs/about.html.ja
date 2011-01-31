@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 詳細</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="index.html.ja"><img src="media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-home">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="links.html.ja" title="Links">リンク</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<h3><a name="about">TOMOYO Linux 詳細</a></h3>
+
+<p>
+TOMOYO Linux は Linux 向けの強制アクセス制御（ MAC ）の実装で、システムのセキュリティを高める用途は勿論、システムの解析を行う用途でも使えるツールです。このプロジェクトは２００３年３月に始まり、<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>がスポンサーとなって開発されています。</p>
+
+<p>TOMOYO Linux はシステムの振る舞いに注目します。プロセスは何かの目的を達成するために生成されます。 TOMOYO Linux は（出入国審査官のように）それぞれのプロセスに対して目的を達成するのに必要な振る舞いや資源について報告させることができます。また、保護モードを有効にすることにより、（運用監視人のように）システム管理者により承認された振る舞いと資源へのアクセスのみを許可することもできます。</p>
+
+<p><strong>TOMOYO Linux １系</strong>は、２００５年１１月１１日にＧＰＬライセンスで公開されたオリジナルの実装です。 Linux カーネルに対して適用可能なパッチの形式で実装されており、現在でも活発に開発が行われています。</p>
+
+<p><strong>TOMOYO Linux ２系</strong>は、 Linux カーネルに統合されている実装です。２００９年６月に公開されたカーネル 2.6.30 に TOMOYO Linux １系の機能の一部が統合されました。 Linux カーネルが提供しているＬＳＭ（ Linux Security Module ）フックを利用しています。しかし、 TOMOYO Linux １系が提供している全ての機能を実装するためにはＬＳＭフックを拡張する必要があります。そのため、現時点では TOMOYO Linux １系が提供している全ての機能を TOMOYO Linux ２系で提供できているわけではありません。<a href="comparison.html.ja">機能比較表</a>に、１系と２系との違いが説明されています。</p>
+
+<h3><a name="which">どちらのバージョンを利用すべきですか？</a></h3>
+
+<p>前述したように、２つのバージョンが存在しています。アクセス制御機能の豊富さよりもパッチを適用せずに使えることを重視する場合、あるいは１系にしか存在しない機能を必要としない場合には、２系をご利用ください。２系は既に標準の Linux カーネルのソースの中に含まれてはいますが、 TOMOYO Linux が組み込まれていない状態でカーネルを提供しているディストリビューションも存在します。 TOMOYO Linux が組み込まれていないカーネルの場合、 TOMOYO Linux を組み込むためにカーネルをコンパイルする必要があります。</p>
+
+<p>TOMOYO Linux が提供している全ての機能を利用したい場合、１系をご利用ください。１系はカーネルのソースに対してパッチを適用してコンパイルする必要があります。ただし、幾つかのディストリビューションについてはコンパイル済みカーネルをダウンロードすることができます。</p>
+
+<p>詳しくは<a href="download.html.ja">ダウンロード</a>のページを参照してください。</p>
+
+<h3><a name="what">TOMOYO Linux は何に使えるのですか？</a></h3>
+
+<p>通常のオペレーティングシステム（ OS ）では、プロセスは監視されておらず、システムの中で何が行われているのかを把握することは困難です。</p>
+<p><img src="media/disabled.png" alt="disabled.png" width="500" height="350" style="border:2px solid #000000"></p>
+
+<p>TOMOYO Linux を導入することにより、個々のアプリケーションを監視することができるようになり、何をしているのかを逐一観測することができます。また、観測された結果をポリシー設定として自動的に生成することができます。アプリケーションが行った動作は自動的にアクセス許可リスト（ ACL ）へと追加されます。アクセス許可リストを確認することにより、アプリケーションが何をしているのかを知ることができるようになります。</p>
+<p><img src="media/permissive.png" alt="permissive.png" width="500" height="350" style="border:2px solid #000000"></p>
+
+<p>そのため、 TOMOYO Linux は以下のようにシステムを解析する際の手助けをすることができます。</p>
+<ul>
+<li>アプリケーションのデバッグ</li>
+<li>システムの振る舞いを理解</li>
+<li>アプリケーションの動作のドキュメント化</li>
+</ul>
+
+<p>また、保護モードを有効にすることにより、 TOMOYO Linux は強制アクセス制御を用いてシステム管理者が許可した動作だけをアプリケーションに対して許可することができるようになります。</p>
+
+<p><img src="media/enforcing.png" alt="enforcing.png" width="500" height="350" style="border:2px solid #000000"></p>
+
+<p>TOMOYO Linux はシステムの振る舞いを制限するツールとしても利用できます。例えば、以下のような用途に利用できます。</p>
+<ul>
+<li>ＳＳＨを使ったサービスの制限</li>
+<li>システム管理者の操作の制限</li>
+<li>アプリケーション／ユーザ単位のネットワークファイアウォール</li>
+<li>バッファオーバーフローやＯＳコマンドインジェクション脆弱性による被害の軽減</li>
+<li>ハニーポットシステムの構築</li>
+</ul>
+
+<h3><a name="videos">チュートリアル動画</a></h3>
+
+<p>以下のビデオは、 Ubuntu 10.04 システムで TOMOYO Linux を初期化／設定／適用する手順について紹介しています。僅か１０分で TOMOYO Linux を経験することができます。</p>
+
+<p><object data="http://www.youtube.com/v/5cgqbQI9bEM&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/5cgqbQI9bEM&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+
+<p>以下のビデオは、 CentOS 5 および Ubuntu 10.04 システムで TOMOYO Linux をインストール／初期化／設定／適用する手順について紹介しています。僅か１０分で TOMOYO Linux を経験することができます。</p>
+
+<p><object data="http://www.youtube.com/v/kvmWLRddzaM&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/kvmWLRddzaM&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+
+<p><object data="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+
+</div><!-- regular-content -->
+
+</div><!-- content -->
+
+<div id="footer">
+<p class="english">Go to <a href="index.html.en">English page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
+</div>
+
+</body>
+</html>

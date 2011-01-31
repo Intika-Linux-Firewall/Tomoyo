@@ -1,206 +1,109 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux プロジェクト</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux ホーム</title>
 </head>
+
 <body>
-<p style="text-align:right;"><a href="index.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1>TOMOYO Linux ：振る舞い志向のシステム解析および保護ツール</h1>
 
-<table border="0" summary="What is TOMOYO Linux?">
-<tr><td><img src="tomoyo.png" alt="" width="115" height="150"></td><td>TOMOYO Linux はシステムの振る舞いに注目したセキュリティモジュールです。プロセスは何かの目的を達成するために生成されます。 TOMOYO Linux は（出入国審査官のように）それぞれのプロセスに対して目的を達成するのに必要な振る舞いや資源について報告させ、（運用監視人のように）申告された振る舞いと資源へのアクセスのみを許可します。このアプローチにより、 Linux システムがどのように機能するのかを理解することが可能になります。 TOMOYO Linux はアクセスを制限するツールとしても、システムを解析するためのツールとしても使うことができます。</td></tr>
-</table>
+<div id="titlebar">
+<a href="index.html.ja"><img src="media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
 
-<h1>お知らせ</h1>
+<div id="navbar" class="tomoyo-home">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="links.html.ja" title="Links">リンク</a></li>
+</ul>
+</div>
 
-<p>2011/01/21 TOMOYO Linux 1.8.0p2 が利用可能です。</p>
+<div id="content">
 
-<p>2010/11/22 TOMOYO Linux 1.6.8p4/1.7.2p4 が利用可能です。</p>
+<div id="main">
 
-<p>2010/10/21 様々な機能強化が Linux 2.6.36 の TOMOYO に追加されました。</p>
+<div id="tomoyopenguin">
+<img src="media/tomoyopenguin.png" alt="tomoyopenguin.png" width="115" height="150">
+</div>
 
-<h1>何ができるの？</h1>
+<div id="introduction">
+<h3>システムを解析および保護するためのセキュリティモジュール</h3>
 
-<p>TOMOYO Linux とは Linux システムのセキュリティを強化するための<b>強制アクセス制御（ Mandatory Access Control , MAC ）</b>の実装です。このプロジェクトは２００３年３月に始まり、株式会社ＮＴＴデータがスポンサーとなって開発されています。</p>
+<p>TOMOYO Linux は Linux 向けの強制アクセス制御（ MAC ）の実装で、システムのセキュリティを高める用途は勿論、システムの解析を行う用途でも使えるツールです。このプロジェクトは２００３年３月に始まり、<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>がスポンサーとなって開発されています。</p>
 
-<p>TOMOYO Linux はシステムの振る舞いを解析するためのツールとしても、アクセスを制限することでシステムを保護するためのツールとしても使うことができます。</p>
+<p>TOMOYO Linux はシステムの振る舞いに注目します。プロセスは何かの目的を達成するために生成されます。 TOMOYO Linux は（出入国審査官のように）それぞれのプロセスに対して目的を達成するのに必要な振る舞いや資源について報告させることができます。また、保護モードを有効にすることにより、（運用監視人のように）システム管理者により承認された振る舞いと資源へのアクセスのみを許可することもできます。</p>
 
-<h2>システムの振る舞いを解析する</h2>
-
+<p>TOMOYO Linux には以下のような特徴があります。</p>
 <ul>
-<li>アプリケーションのデバッグ</li>
-<li>システムの振る舞いを理解</li>
-<li>アプリケーションの動作のドキュメント化</li>
+<li>システムの解析</li>
+<li>強制アクセス制御によるシステムのセキュリティ強化</li>
+<li>自動ポリシー生成</li>
+<li>簡単な構文</li>
+<li>使いやすさ</li>
 </ul>
 
-<h2>システムを保護する</h2>
+<p>もっと詳しい情報については<a href="about.html.ja">詳細</a>を参照してください。１０分で TOMOYO Linux を体験できる<a href="about.html.ja#videos">チュートリアル動画</a>もあります。</p>
 
-<ul>
-<li>ＳＳＨを使ったサービスの制限</li>
-<li>システム管理者の操作の制限</li>
-<li>アプリケーション／ユーザ単位のネットワークファイアウォール</li>
-<li>ＷｅｂサーバのＣＧＩなどを含む全てのアプリケーションに対するベースラインとしてのパラメータチェック機能</li>
-<li>バッファオーバーフローやＯＳコマンドインジェクション脆弱性による被害の軽減</li>
-<li>ハニーポットシステムの構築</li>
-<li>ＰＣ／サーバ／組込みシステムの保護</li>
-</ul>
+</div>
 
-<h1>どうやって使うの？</h1>
+</div> <!-- main -->
 
-<p><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja">TOMOYO Linux １系</a> は、２００５年１１月１１日にＧＰＬライセンスで公開されたオリジナルの実装です。 Linux カーネルに対して適用可能なパッチの形式で実装されており、現在でも活発に開発が行われています。</p>
+<div id="news">
 
-<p><a href="http://tomoyo.sourceforge.jp/2.3/index.html.ja">TOMOYO Linux ２系</a> は、 Linux カーネルに統合されている実装です。２００９年６月に公開されたカーネル 2.6.30 に TOMOYO Linux １系の機能の一部が統合されました。 Linux カーネルが提供しているＬＳＭ（ Linux Security Module ）フックを利用しています。しかし、 TOMOYO Linux １系が提供している全ての機能を実装するためにはＬＳＭフックを拡張する必要があります。そのため、現時点では TOMOYO Linux １系が提供している全ての機能を TOMOYO Linux ２系で提供できているわけではありません。<a href="http://tomoyo.sourceforge.jp/comparison.html.ja">機能比較表</a>に、１系と２系との違いが説明されています。</p>
+<h3>News <span class="archive">(<a href="news.html.ja" title="過去のニュース">過去のニュース</a>)</span>
+<!--
+<a href="feeds/news" title="TOMOYO Linux ニュースの RSS フィード" class="rss-icon">
+<img src="media/rss.png" alt="RSS フィード"></a>
+-->
+</h3>
+<hr>
 
-<p>どちらの系列を利用するかを決めたら、以下の対応するセクションへと進んでください。</p>
+<p class="timestamp">２０１１年１月３１日</p>
+<h4><a href="news/20110131-website-update.html.ja" title="全て読む">ウェブサイトがリニューアルされました。</a></h4>
+<p class="article">TOMOYO Linux のウェブサイトが大きくリニューアルされました。気に入っていただけると嬉しいです。お気づきの点がありましたら、<a href="mailto:tomoyo-users@lists.sourceforge.jp">メーリングリスト</a>宛にお知らせください。導入手順書はここ数ヶ月にわたり、注目されてきています。 1.8.x の手順書はほぼ完全に書き直しを行っている最中です。そして、 2.3.x の手順書についても同様に書き直しが行われるでしょう。どうぞ注目してください。</p>
 
 <br>
 
-<hr>
+<p class="timestamp">２０１１年１月２１日</p>
+<h4><a href="news/20110121-ccs-patch-1.8.0p2-released.html.ja" title="全て読む">ccs-patch 1.8.0p2 がリリースされました。</a></h4>
+<p class="article">1.8.x 用の新しいカーネルパッチがリリースされました。（<a href="changelogs/ccs-patch-1.8.html.ja">変更履歴</a>）</p>
+<p>1.6.8p4 および 1.7.2p4 用のカーネルパッチもアップデートされ、それぞれ RHEL5.6 および RHEL5.6/6.0 向けの対応が追加されています。</p>
 
-<h2><a href="http://tomoyo.sourceforge.jp/2.3/index.html.ja">メインライン版（２系）</a></h2>
+<br>
 
-<p>このバージョンは、 Linux カーネル 2.6.30 以降でのみ利用できます。 Linux Security Modules （ＬＳＭ）が提供するフックを使用しており、現時点ではファイルに対する強制アクセス制御（ＭＡＣ）機能の一部しか使えません。しかし、カーネルにパッチを適用することなく使うことができます。</p>
+<p class="timestamp">２０１０年１２月３１日</p>
+<h4><a href="news/20101231-ccs-tools-1.7.2p2-1.8.0p2-released.html.ja" title="全て読む">ccs-tools 1.7.2p2 および 1.8.0p2 がリリースされました。</a></h4>
+<p class="article">1.7.x （<a href="changelogs/ccs-tools-1.7.html.ja">変更履歴</a>）および 1.8.x （<a href="changelogs/ccs-tools-1.8.html.ja">変更履歴</a>）用の新しいツールがリリースされました。</p>
 
-<p>アクセス制御機能の豊富さよりもパッチを適用せずに使えることを重視する場合には、こちらのバージョンを利用ください。</p>
+<br>
 
-<p>以下のビデオは、 Ubuntu 10.04 システムで TOMOYO Linux を初期化／設定／適用する手順について紹介しています。僅か１０分で TOMOYO Linux を経験することができます。<br>
-<object data="http://www.youtube.com/v/5cgqbQI9bEM&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/5cgqbQI9bEM&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+<p class="timestamp">２０１０年１１月２２日</p>
+<h4><a href="news/20101122-ccs-patch-1.6.8p4-1.7.2p4-released.html.ja" title="全て読む">ccs-patch 1.6.8p4 および 1.7.2p4 がリリースされました。</a></h4>
+<p class="article">1.6.x （<a href="changelogs/ccs-patch-1.6.html.ja">変更履歴</a>）および 1.7.x （<a href="changelogs/ccs-patch-1.7.html.ja">変更履歴</a>）用の新しいカーネルパッチがリリースされました。</p>
 
-<h2><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja">フル機能版（１系）</a></h2>
+<br>
 
-<p><a href="http://tomoyo.sourceforge.jp/1.7/index.html.ja">1.7.x documentation</a> (old stable)</p>
-<p><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja">1.8.x documentation</a> (current)</p>
+<p class="timestamp">２０１０年１０月２０日</p>
+<h4><a href="news/20101022-tomoyo-2.3.html.ja" title="全て読む">TOMOYO Linux 2.3 がリリースされました。</a></h4>
+<p class="article">多くの機能強化がカーネル 2.6.36 に含まれている TOMOYO Linux に追加されました。利用するためには tomoyo-tools 2.3.x をインストールする必要があります。</p>
 
-<p>このバージョンは、 Linux カーネル 2.4 および 2.6 で利用できます。 SELinux や SMACK や AppArmor などの他のＭＡＣの実装と一緒に利用できるようにするために、ＬＳＭのフックを使わずに独自にフックを挿入しています。</p>
+</div><!-- news -->
 
-<p>パッチを適用せずに使えることよりもアクセス制御機能の豊富さ（ファイル／ネットワーク／ケイパビリティ／環境変数など）を重視する場合には、こちらのバージョンを利用ください。</p>
+</div><!-- content -->
 
-<p>以下のビデオは、 CentOS 5 および Ubuntu 10.04 システムで TOMOYO Linux をインストール／初期化／設定／適用する手順について紹介しています。僅か１０分で TOMOYO Linux を経験することができます。<br>
-<object data="http://www.youtube.com/v/kvmWLRddzaM&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/kvmWLRddzaM&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object><object data="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+<div id="footer">
+<p class="english">Go to <a href="index.html.en">English page</a>.</p>
+<p class="counter"><!--#include virtual="/cgi-bin/counter.pl" --></p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
+</div>
 
-<p>ハードディスクにインストールせずに試したい／評価したいという方は、 TOMOYO Linux が導入済みの <a href="http://tomoyo.sourceforge.jp/1.7/1st-step/centos5-live/index.html.ja">CentOS 5.5 LiveCD</a> および <a href="http://tomoyo.sourceforge.jp/1.7/1st-step/ubuntu10.04-live/index.html.ja">Ubuntu 10.04 LiveCD</a> を利用することができます。</p>
-
-<h1>リンク</h1>
-
-<h2>Official</h2>
-
-<p>プロジェクトメンバーによる記事</p>
-<ul>
-<li><a href="http://tomoyo.sourceforge.jp/wiki/?WorldOfTomoyoLinux">「TOMOYO Linuxの世界」（Software Design誌連載記事をWiki化）</a></li>
-<li><a href="http://tomoyo.sourceforge.jp/ja/1.5.x/1st-step/tl11s/">Turbolinux 11 Server導入手順書</a></li>
-<li><a href="http://tomoyo.sourceforge.jp/ja/1.6.x/armadillo-9.html">TOMOYO Linux on Armadillo-9 導入手順書</a></li>
-<li><a href="http://sourceforge.jp/projects/tomoyo/">SourceForge.jp: Project Info - TOMOYO</a></li>
-<li><a href="http://www.nttdata.co.jp/services/s090309.html">TOMOYO Linux | サービス&amp;ソリューション | NTTデータ</a></li>
-<li><a href="http://www.thinkit.co.jp/free/article/0706/17/1/">初体験　TOMOYO Linux！</a></li>
-<li><a href="http://www.nttdata.co.jp/release/2006/101300.html">2006年10月13日　セキュアOS「TOMOYO(R) Linux」を用いた柔軟かつ強固な利用者認証方式のプロトタイプを開発 | ニュースリリース | NTTデータ</a></li>
-</ul>
-
-<h2>Web Pages</h2>
-
-<ul>
-<li><a href="http://lwn.net/Articles/277833/">"TOMOYO Linux and pathname-based security"</a> LWN.net記事</li>
-<li><a href="http://www.thinkit.co.jp/free/news/0709/25/index.html?fr=rdf">TOMOYO Linuxプロジェクト、TOMOYO Linuxのバージョン1.5を公開</a></li>
-<li><a href="http://sourceforge.jp/projects/sourceforge/wiki/potm_0707_tomoyolinux">SourceForge.jp 今月のプロジェクト "TOMOYO Linux"</a></li>
-<li><a href="http://www.thinkit.co.jp/free/article/0709/8/1/">「TOMOYO Linux メインラインへの挑戦」(ThinkIT)</a></li>
-<li><a href="http://journal.mycom.co.jp/news/2007/06/11/004/index.html">国産Linuxセキュア技術「TOMOYO Linux 2.0」がリリース - LSMに対応</a></li>
-<li><a href="http://journal.mycom.co.jp/news/2007/04/03/001/index.html">日本発のLinuxセキュア技術「TOMOYO Linux 1.4」がリリース</a></li>
-<li><a href="http://blog.miraclelinux.com/yume/2007/02/tomoyo_linux.html">ユメのチカラ: TOMOYO Linux</a></li>
-<li><a href="http://blog.miraclelinux.com/yume/2007/06/ols_2007_3_tomo.html">ユメのチカラ: OLS 2007 (3) -- TOMOYO Linux BOF</a></li>
-<li><a href="http://www.asahi-net.or.jp/~jg3h-snj/bb_uclibc_tomoyo.html">DiskレスのTOMOYO Linux環境構築 (OpenBlockS266)</a></li>
-<li><a href="http://www.kozupon.com/">技術屋が作った技術屋のためのスキルアップサイト Kozupon.com</a>
-<ul>
-<li><a href="http://www.kozupon.com/security/tomoyo.html">Kozupon.com - TOMOYO Linuxでガチガチのセキュリティ！</a></li>
-<li><a href="http://www.kozupon.com/security/tomoyo2.html">Kozupon.com - SlackwareでTOMOYOLinux！</a></li>
-</ul></li>
-<li><a href="http://www.n-linux.org/pukiwiki/index.php?%A5%D7%A5%ED%A5%B8%A5%A7%A5%AF%A5%C8%2FTOMOYO%20Linux">プロジェクト/TOMOYO Linux - Nature's Linux Users Group</a></li>
-<li><a href="http://slashdot.jp/security/article.pl?sid=05/11/13/0816212&amp;from=rss">スラッシュドット ジャパン | TOMOYO Linux Ver.1.0 Released</a></li>
-<li><a href="http://slashdot.jp/security/article.pl?sid=06/09/04/0743229">スラッシュドット ジャパン  | TOMOYO Linux Ver.1.2 リリース</a></li>
-<li><a href="http://b.hatena.ne.jp/entry/http://itpro.nikkeibp.co.jp/article/NEWS/20051111/224444/">はてなブックマーク - NTTデータが独自開発オープンソース・セキュアOS「TOMOYO Linux」を公開，ポリシーの自動学習機能を備える：IT Pro</a></li>
-<li><a href="http://tree.celinuxforum.org/CelfPubWiki/SecurityResources">SecurityResources - CE Linux Public</a></li>
-<li><a href="http://www11.plala.or.jp/tsh/ss2004.html">Snowy Night/セキュスタ2004</a></li>
-<li><a href="http://pc11.2ch.net/test/read.cgi/linux/1239030346/">【本家まで】TOMOYO Linux 0.0.3【もう一息】</a> (2ch)</li>
-<li><a href="http://tomoyo.sourceforge.jp/2ch/thread-1.txt">まとめスレ1</a></li>
-<li><a href="http://tomoyo.sourceforge.jp/2ch/thread-2.txt">まとめスレ2</a></li>
-<li><a href="http://ja.wikipedia.org/wiki/TOMOYO_Linux">TOMOYO Linux - Wikipedia -</a></li>
-<li><a href="http://slashdot.jp/security/article.pl?sid=06/10/17/0717203">スラッシュドット ジャパン  | TOMOYO LinuxでSSH総当たりアタックから防御するユーザー認証</a></li>
-</ul>
-
-<h2>Blog</h2>
-
-<ul>
-<li><a href="http://esashi.mobi/~matthew/wordpress/archives/category/it/open-source/tomoyo-linux-open-source-it">TOMOYO Linux @ Matthew's Blog</a></li>
-<li><a href="http://kumaneko-sakura.sblo.jp/category/32354.html">熊猫さくらのブログ: TOMOYO Linux</a></li>
-<li><a href="http://www.srchack.org/index.php?topic=TOMOYO">srchack.org - TOMOYO Linux</a>
-<ul>
-<li><a href="http://www.srchack.org/article.php?story=20060701010224896">ccstools for CentOS 4.3</a></li>
-</ul></li>
-<li><a href="http://scriptlife.hacca.jp/" title="ねーこねこ　ねーこねこロケンロール All Right?">Script Life 千夜一夜</a>
-<ul>
-<li><a href="http://scriptlife.hacca.jp/MT/archives/2005/11/tomoyo_linux_1.html">Script Life 千夜一夜: 真面目にTOMOYO Linux</a></li>
-<li><a href="http://scriptlife.hacca.jp/MT/archives/2006/07/tomoyo_linux_ii.html">Script Life 千夜一夜: せっかくだからTOMOYO Linux II</a></li>
-<li><a href="http://scriptlife.hacca.jp/MT/archives/2006/07/tomoyo_linux_ii_2.html">Script Life 千夜一夜: せっかくだからTOMOYO Linux III</a></li>
-</ul>
-<li><a href="http://d.hatena.ne.jp/hshinji/20060520#1148129884">TOMOYO Linux on OpenBlocks</a></li>
-<li><a href="http://d.hatena.ne.jp/hshinji/searchdiary?word=%2a%5b%a5%bb%a5%ad%a5%e5%a5%a2OS%5d">hshinjiの日記 - [セキュアOS]</a></li>
-<li><a href="http://layla.aerg.jp/~shin/cgi-bin/diary/">へたれ技術者の駄目日記(諸君、私は大原さやか様の声が好きだ!という人の日記) </a>
-<ul>
-<li><a href="http://layla.aerg.jp/~shin/cgi-bin/diary/?200607a#200607022">GLAN TANKでTOMOYO Linux</a></li>
-</ul>
-<li><a href="http://details.exblog.jp/2346919/">OpenZaurusでTOMOYOーLinuxを使ってみる</a></li>
-<li><a href="http://danwalsh.livejournal.com/424.html">danwalsh: Linux fragmentation - a view from the Security community</a></li>
-<li><a href="http://blog.miraclelinux.com/yume/2007/02/tomoyo_linux.html">ユメのチカラ: TOMOYO Linux</a></li>
-<li><a href="http://blog.miraclelinux.com/yume/2007/02/oss_446d.html">ユメのチカラ: 企業発OSSのコミュニティアライアンス戦略</a></li>
-</ul>
-
-<h2>TOMOYO Linux on News</h2>
-
-<ul>
-<li>2005.11.11 <a href="http://itpro.nikkeibp.co.jp/article/NEWS/20051111/224444/"> NTTデータが独自開発オープンソース・セキュアOS「TOMOYO Linux」を公開，ポリシーの自動学習機能を備える</a></li>
-<li>2006.05.10 <a href="http://itpro.nikkeibp.co.jp/article/NEWS/20060510/237230/">「国産セキュアOSのTOMOYO LinuxはSELinuxより簡単」---NTTデータオープンソース開発センタ岩田浩氏:ITpro</a></li>
-<li>2006.05.16 <a href="http://itpro.nikkeibp.co.jp/article/NEWS/20060516/238104/">【Open Source Revolution!】企業，行政，コミュニティ---様々な視点から語られたオープンソースの「現在」と「これから」:ITpro</a></li>
-<li>2007.02.08 <a href="http://www.thinkit.co.jp/free/news/0702/9/4.html">[ThinkIT] 横浜Linux Users Group、「TOMOYO Linux Night（開発者が語るTOMOYO Linux）」を開催</a></li>
-</ul>
-
-<h2>Diary</h2>
-
-<ul>
-<li><a href="http://d.hatena.ne.jp/keyworddiary/TOMOYO%20Linux">「TOMOYO Linux」を含む日記 - はてな</a></li>
-</ul>
-
-<h2>TOMOYO Linux 固有のもの</h2>
-
-<ul>
-<li><a href="http://tomoyo.sourceforge.jp/wiki/">TOMOYO Linux Wiki</a></li>
-<li><a href="http://elinux.org/TomoyoLinux">eLinux wiki (TOMOYO Linux for embedded purposes)</a></li>
-<li><a href="http://www.celinuxforum.org/CelfPubWiki/TomoyoLinux">Tomoyo Linux - CE Linux Public</a></li>
-<li><a href="http://cblfs.cross-lfs.org/index.php/TOMOYO">CBLFS</a></li>
-<li><a href="http://freshmeat.net/projects/tomoyo/">Freshmeat</a></li>
-<li><a href="http://sourceforge.jp/projects/tomoyo/">Project page</a></li>
-<li><a href="http://lists.sourceforge.jp/mailman/listinfo/tomoyo-users">TOMOYO users メーリングリスト</a></li>
-<li><a href="http://tomoyo.sourceforge.jp/cgi-bin/lxr/source">ソースコードのクロスリファレンス</a></li>
-<li><a href="http://sourceforge.jp/projects/tomoyo/docs/?category_id=532">講演資料</a></li>
-<li><a href="mailto:haradats@gmail.com">Contacts</a></li>
-</ul>
-
-<h2>その他</h2>
-
-<ul>
-<li><a href="http://www.kernel.org/">The Linux Kernel Archives</a></li>
-<li><a href="http://lkml.org/">The linux-kernel mailing list (LKML)</a></li>
-<li><a href="http://kernelnewbies.org/">Linux Kernel Newbies</a></li>
-<li><a href="http://lwn.net/">Linux Weekly News</a></li>
-</ul>
-
-<hr>
-
-<p><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/index.html">NTT DATA CORPORATION</a><br>
-<!--#include virtual="/cgi-bin/counter.pl" -->
-</p>
-
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
