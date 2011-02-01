@@ -1,0 +1,92 @@
+Index: tags/htdocs/about.html.ja
+===================================================================
+--- tags/htdocs/about.html.ja	(revision 4505)
++++ tags/htdocs/about.html.ja	(working copy)
+@@ -78,18 +78,6 @@
+ 
+ <p><object data="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+ 
+-<h3><a name="which">どちらのバージョンを利用すべきですか？</a></h3>
+-
+-<p><strong>TOMOYO Linux １系</strong>は、２００５年１１月１１日にＧＰＬライセンスで公開されたオリジナルの実装です。 Linux カーネルに対して適用可能なパッチの形式で実装されており、現在でも活発に開発が行われています。</p>
+-
+-<p><strong>TOMOYO Linux ２系</strong>は、 Linux カーネルに統合されている実装です。２００９年６月に公開されたカーネル 2.6.30 に TOMOYO Linux １系の機能の一部が統合されました。 Linux カーネルが提供しているＬＳＭ（ Linux Security Module ）フックを利用しています。しかし、 TOMOYO Linux １系が提供している全ての機能を実装するためにはＬＳＭフックを拡張する必要があります。そのため、現時点では TOMOYO Linux １系が提供している全ての機能を TOMOYO Linux ２系で提供できているわけではありません。<a href="comparison.html.ja">機能比較表</a>に、１系と２系との違いが説明されています。</p>
+-
+-<p>アクセス制御機能の豊富さよりもパッチを適用せずに使えることを重視する場合、あるいは１系にしか存在しない機能を必要としない場合には、２系をご利用ください。２系は既に標準の Linux カーネルのソースの中に含まれてはいますが、 TOMOYO Linux が組み込まれていない状態でカーネルを提供しているディストリビューションも存在します。 TOMOYO Linux が組み込まれていないカーネルの場合、 TOMOYO Linux を組み込むためにカーネルをコンパイルする必要があります。</p>
+-
+-<p>TOMOYO Linux が提供している全ての機能を利用したい場合、１系をご利用ください。１系はカーネルのソースに対してパッチを適用してコンパイルする必要があります。ただし、幾つかのディストリビューションについてはコンパイル済みカーネルをダウンロードすることができます。</p>
+-
+-<p>詳しくは<a href="download.html.ja">ダウンロード</a>のページを参照してください。</p>
+-
+ </div><!-- regular-content -->
+ 
+ </div><!-- content -->
+Index: tags/htdocs/download.html.en
+===================================================================
+--- tags/htdocs/download.html.en	(revision 4505)
++++ tags/htdocs/download.html.en	(working copy)
+@@ -32,9 +32,16 @@
+ 
+ <div id="regular-content">
+ 
+-<h3>Which version should I use?</h3>
+-<p>See <a href="about.html.en#which">this section</a> on the About Page for information on which version you should download.</p>
++<h3><a name="which">Which version should I use?</a></h3>
+ 
++<p><strong>TOMOYO Linux 1.x</strong> is the original branch of development, which was first released on 11th November 2005 under the GNU GPL. It was implemented as a patch that can be applied to the Linux kernel and is still in active development.</p>
++
++<p><strong>TOMOYO Linux 2.x</strong> is the Linux mainline kernel branch of development. In June 2009, a subset of TOMOYO functionality was merged into the Linux kernel 2.6.30 and makes use of standard Linux Security Module (LSM) hooks. However, the LSM hooks must be extended further in order to port the full MAC functionality of TOMOYO Linux 1.x into the Linux kernel. Thus, it does not yet provide equal functionality with the 1.x branch of development. <a href="comparison.html.en">This chart</a> compares the differences between each branch.</p>
++
++<p>Use the 2.x branch if your priority is to use TOMOYO Linux without modifying the kernel, and you do not require any of the missing features. Although this branch is already integrated into the upstream Linux kernel, some distributions may not set certain kernel configuration options that TOMOYO Linux depends on. In this case, you may still need to compile your own kernel.</p>
++
++<p>Use the 1.x branch if your priority is to obtain the most of TOMOYO Linux and the MAC functionality available. Although this branch requires the kernel to be patched and recompiled, binary packages for the 1.x branch are provided for some distributions.</p>
++
+ <h3>Download instructions for 2.x branch</h3>
+ <ul>
+ <li><a href="http://tomoyo.sourceforge.jp/2.3/phase-1.html.en">2.3 download instructions</a> (Linux 2.6.36 and later)</li>
+Index: tags/htdocs/download.html.ja
+===================================================================
+--- tags/htdocs/download.html.ja	(revision 4505)
++++ tags/htdocs/download.html.ja	(working copy)
+@@ -32,9 +32,16 @@
+ 
+ <div id="regular-content">
+ 
+-<h3>どちらのバージョンを利用すべきですか？</h3>
+-<p>どちらをダウンロードすべきかのヒントについては<a href="about.html.ja#which">こちら</a>を参照してください。</p>
++<h3><a name="which">どちらのバージョンを利用すべきですか？</a></h3>
+ 
++<p><strong>TOMOYO Linux １系</strong>は、２００５年１１月１１日にＧＰＬライセンスで公開されたオリジナルの実装です。 Linux カーネルに対して適用可能なパッチの形式で実装されており、現在でも活発に開発が行われています。</p>
++
++<p><strong>TOMOYO Linux ２系</strong>は、 Linux カーネルに統合されている実装です。２００９年６月に公開されたカーネル 2.6.30 に TOMOYO Linux １系の機能の一部が統合されました。 Linux カーネルが提供しているＬＳＭ（ Linux Security Module ）フックを利用しています。しかし、 TOMOYO Linux １系が提供している全ての機能を実装するためにはＬＳＭフックを拡張する必要があります。そのため、現時点では TOMOYO Linux １系が提供している全ての機能を TOMOYO Linux ２系で提供できているわけではありません。<a href="comparison.html.ja">機能比較表</a>に、１系と２系との違いが説明されています。</p>
++
++<p>アクセス制御機能の豊富さよりもパッチを適用せずに使えることを重視する場合、あるいは１系にしか存在しない機能を必要としない場合には、２系をご利用ください。２系は既に標準の Linux カーネルのソースの中に含まれてはいますが、 TOMOYO Linux が組み込まれていない状態でカーネルを提供しているディストリビューションも存在します。 TOMOYO Linux が組み込まれていないカーネルの場合、 TOMOYO Linux を組み込むためにカーネルをコンパイルする必要があります。</p>
++
++<p>TOMOYO Linux が提供している全ての機能を利用したい場合、１系をご利用ください。１系はカーネルのソースに対してパッチを適用してコンパイルする必要があります。ただし、幾つかのディストリビューションについてはコンパイル済みカーネルをダウンロードすることができます。</p>
++
+ <h3>２系の導入手順書</h3>
+ <ul>
+ <li><a href="http://tomoyo.sourceforge.jp/2.3/phase-1.html.ja">2.3 導入手順書</a>（ Linux 2.6.36 以降用）</li>
+Index: tags/htdocs/about.html.en
+===================================================================
+--- tags/htdocs/about.html.en	(revision 4505)
++++ tags/htdocs/about.html.en	(working copy)
+@@ -78,18 +78,6 @@
+ 
+ <p><object data="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/siL9-nNa-24&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+ 
+-<h3><a name="which">Which version should I use?</a></h3>
+-
+-<p><strong>TOMOYO Linux 1.x</strong> is the original branch of development, which was first released on 11th November 2005 under the GNU GPL. It was implemented as a patch that can be applied to the Linux kernel and is still in active development.</p>
+-
+-<p><strong>TOMOYO Linux 2.x</strong> is the Linux mainline kernel branch of development. In June 2009, a subset of TOMOYO functionality was merged into the Linux kernel 2.6.30 and makes use of standard Linux Security Module (LSM) hooks. However, the LSM hooks must be extended further in order to port the full MAC functionality of TOMOYO Linux 1.x into the Linux kernel. Thus, it does not yet provide equal functionality with the 1.x branch of development. <a href="comparison.html.en">This chart</a> compares the differences between each branch.</p>
+-
+-<p>Use the 2.x branch if your priority is to use TOMOYO Linux without modifying the kernel, and you do not require any of the missing features. Although this branch is already integrated into the upstream Linux kernel, some distributions may not set certain kernel configuration options that TOMOYO Linux depends on. In this case, you may still need to compile your own kernel.</p>
+-
+-<p>Use the 1.x branch if your priority is to obtain the most of TOMOYO Linux and the MAC functionality available. Although this branch requires the kernel to be patched and recompiled, binary packages for the 1.x branch are provided for some distributions.</p>
+-
+-<p>See the <a href="download.html.en">Download</a> page for more information.</p>
+-
+ </div><!-- regular-content -->
+ 
+ </div><!-- content -->
