@@ -1,33 +1,40 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>The Official Guide</title>
-<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 2</title>
 </head>
+
 <body>
 
-<div class=navheader>
-<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
-<tr>
-<td width="33%" align="left" valign="bottom">
-<a href="chapter-1.html.en">Prev</a>
-</td>
-<td width="34%" align="center" valign="bottom">
-<a href="index.html.jp">Japanese page</a>
-</td>
-<td width="33%" align="right" valign="bottom">
-<a href="chapter-3.html.en">Next</a>
-</td></tr>
-</table>
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
 </div>
 
-<h1>Chapter 2: Why do I need TOMOYO Linux?</h1>
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
 
-<p style="text-align:center;">Aim: to understand Mandatory Access Control and the role that TOMOYO Linux can play in system security.</p>
+<div id="content">
 
-<h2><a name="2.1">2.1. What is TOMOYO Linux?</a></h2>
+<div id="regular-content">
+
+<h2>Chapter 2: Why do I need TOMOYO Linux?</h2>
+
+<h3><a name="2.1">2.1. What is TOMOYO Linux?</a></h3>
 
 <p>TOMOYO Linux is a <b>Mandatory Access Control (MAC)</b> implementation for Linux that can be used to increase the security of a system. The project was launched in March 2003 and is sponsored by NTT DATA Corporation, Japan. For further technical information, see the <a href="http://tomoyo.sourceforge.jp/">SourceForge project page</a>.</p>
 
@@ -37,7 +44,7 @@
 
 <p>This guide is specifically intended for the TOMOYO Linux 1.8.x branch.</p>
 
-<h2><a name="2.2">2.2. What is Mandatory Access Control?</a></h2>
+<h3><a name="2.2">2.2. What is Mandatory Access Control?</a></h3>
 
 <p>In an operating system (OS), <b>each program or process is mostly unrestricted</b> in the tasks that they are able to perform (the left-hand picture). A security focused OS should implement some form of restriction that prevents a process from performing tasks that they should not perform, or that the administrator specifically wants to prevent them from performing. For example, a WWW server such as Apache should be allowed to provide only WWW services. It should not have access to areas of the filesystem that it does not need, and it should not be allowed to start or interact with other unrelated processes. Access Control Lists (ACLs) provide little protection, especially as many services are run as the root user. MAC on the other hand can take this protection much further, allowing very precise control over what each process is allowed to do, even for processes running as root (the right-hand picture). This is important in the event that a process is compromised. <b>Without MAC, a compromised process would be free to do what it wants!</b></p>
 
@@ -54,7 +61,7 @@ Restricted access on an OS using MAC<br>
 
 <p>MAC therefore provides a way to create a <b>"policy of least privilege"</b>. This is where each process has a definition of what they are allowed to do, which is called the "policy". <b>This policy allows as little as possible for the process to function normally.</b> If a process or application tries to perform a task that is not allowed by this policy, it is denied the ability to perform this task. This prevents any unwanted activity from occurring.</p>
 
-<h2><a name="2.3">2.3. How can TOMOYO Linux help me?</a></h2>
+<h3><a name="2.3">2.3. How can TOMOYO Linux help me?</a></h3>
 
 <p>An important part of MAC is the creation and management of this policy for every process in a system, which requires knowledge of precisely what each process should be allowed to do. This may sound like a fiendishly difficult task and it requires a high degree of understanding and skill. However, <b>TOMOYO Linux provides the ability to generate policy automatically</b> and can make securing a system very easy. Any experienced Linux administrator can set up and use TOMOYO Linux within a day!</p>
 
@@ -64,39 +71,43 @@ Restricted access on an OS using MAC<br>
 
 <p>Proceed to <a href="chapter-3.html.en">Chapter 3</a>, where installation of TOMOYO Linux will be discussed!</p>
 
-<div class=navfooter>
-<hr align="left" width="100%">
-<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+</div><!-- regular-content -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
 <tr>
-<td width="33%" align="left" valign="top">
-<a href="chapter-1.html.en">Next</a>
+<td class="docs-previous">
+<a href="chapter-1.html.en">Prev</a>
 </td>
-<td width="34%" align="center" valign="top">
+<td class="docs-index">
 <a href="index.html.en">Index</a>
 </td>
-<td width="33%" align="right" valign="top">
+<td class="docs-next">
 <a href="chapter-3.html.en">Next</a>
-</td></tr>
-<tr><td width="33%" align="left" valign="top">
-Chapter 1: Introduction
 </td>
-<td width="34%" align="center" valign="top">
-<a href="http://tomoyo.sourceforge.jp/">Home</a>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>Chapter 1: Introduction</p>
 </td>
-<td width="33%" align="right" valign="top">
-Chapter 3: How do I install TOMOYO Linux?
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+<p>Chapter 3: How do I install TOMOYO Linux?</p>
 </td>
 </tr>
 </table>
 </div>
 
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
-<tr><td>
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
-</td>
-<td>
-<p style="text-align:right;font-size:smaller;">Last modified: $Date$</p>
-</td></tr>
-</table>
+</div>
+
 </body>
 </html>
