@@ -1,33 +1,40 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>The Official Guide</title>
-<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 7</title>
 </head>
+
 <body>
 
-<div class=navheader>
-<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
-<tr>
-<td width="33%" align="left" valign="bottom">
-<a href="chapter-6.html.en">Prev</a>
-</td>
-<td width="34%" align="center" valign="bottom">
-<a href="index.html.jp">Japanese page</a>
-</td>
-<td width="33%" align="right" valign="bottom">
-<a href="chapter-8.html.en">Next</a>
-</td></tr>
-</table>
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
 </div>
 
-<h1>Chapter 7: How do I enforce policy?</h1>
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
 
-<p style="text-align:center;">Aim: to learn how to use "Enforcing Mode" and handle policy violations that may arise.</p>
+<div id="content">
 
-<h2><a name="7.1">7.1. Enabling enforcing mode</a></h2>
+<div id="regular-content">
+
+<h2>Chapter 7: How do I enforce policy?</h2>
+
+<h3><a name="7.1">7.1. Enabling enforcing mode</a></h3>
 
 <p>Once domain and exception policy have been sufficiently modified, the domain can be set to enforcing mode.</p>
 
@@ -118,7 +125,7 @@ file read /bin/cat
 
 <br>
 
-<h2><a name="7.2">7.2. Handling policy violations in real-time</a></h2>
+<h3><a name="7.2">7.2. Handling policy violations in real-time</a></h3>
 
 <p>Policy violations can be handled in real time using "/usr/sbin/ccs-queryd". This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
 
@@ -301,7 +308,7 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 
 <br>
 
-<h2><a name="7.3">7.3. Notification daemon</a></h2>
+<h3><a name="7.3">7.3. Notification daemon</a></h3>
 
 <p>"/usr/sbin/ccs-notifyd" is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
 
@@ -387,41 +394,41 @@ Q0-0
 file execute /bin/cat
 </pre>
 
-<br>
+</div><!-- regular-content -->
 
-<div class=navfooter>
-<hr align="left" width="100%">
-<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
 <tr>
-<td width="33%" align="left" valign="top">
+<td class="docs-previous">
 <a href="chapter-6.html.en">Prev</a>
 </td>
-<td width="34%" align="center" valign="top">
+<td class="docs-index">
 <a href="index.html.en">Index</a>
 </td>
-<td width="33%" align="right" valign="top">
-<a href="chapter-8.html.en">Next</a>
-</td></tr>
-<tr><td width="33%" align="left" valign="top">
-Chapter 6: How do I develop policy?
+<td class="docs-next">
 </td>
-<td width="34%" align="center" valign="top">
-<a href="http://tomoyo.sourceforge.jp/">Home</a>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>Chapter 6: How do I develop Policy</p>
 </td>
-<td width="33%" align="right" valign="top">
-Chapter 8: Stuff
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
 </td>
 </tr>
 </table>
 </div>
 
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
-<tr><td>
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
-</td>
-<td>
-<p style="text-align:right;font-size:smaller;">Last modified: $Date$</p>
-</td></tr>
-</table>
+</div>
+
 </body>
 </html>

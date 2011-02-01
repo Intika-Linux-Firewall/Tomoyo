@@ -1,33 +1,40 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>The Official Guide</title>
-<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 5</title>
 </head>
+
 <body>
 
-<div class=navheader>
-<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
-<tr>
-<td width="33%" align="left" valign="bottom">
-<a href="chapter-4.html.en">Prev</a>
-</td>
-<td width="34%" align="center" valign="bottom">
-<a href="index.html.jp">Japanese page</a>
-</td>
-<td width="33%" align="right" valign="bottom">
-<a href="chapter-6.html.en">Next</a>
-</td></tr>
-</table>
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
 </div>
 
-<h1>Chapter 5: How do I manage domains?</h1>
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
 
-<p style="text-align:center;">Aim: to become familiar with "Learning Mode" and use it to analyze the behaviour of a domain.</p>
+<div id="content">
 
-<h2><a name="5.1">5.1. Domain creation</a></h2>
+<div id="regular-content">
+
+<h2>Chapter 5: How do I manage domains?</h2>
+
+<h3><a name="5.1">5.1. Domain creation</a></h3>
 
 <p>Each domain will behave differently and require a unique set of permissions. Their behaviour must therefore be analyzed to determine which actions you wish to permit in domain policy. TOMOYO Linux can be used to restrict only a subset of the domains in a system, but the most secure system would restrict every domain in order to make sure there are no points of vulnerability.</p>
 
@@ -51,11 +58,11 @@
 
 <p>You will notice that the picture above may look a little different to what you can see on your own screen. This is because the domain "/usr/sbin/httpd" has been registered with the "initialize_domain" directive. Let's spend some time exploring the management of domains before we continue.</p>
 
-<h2><a name="5.2">5.2. Management of domain transitions</a></h2>
+<h3><a name="5.2">5.2. Management of domain transitions</a></h3>
 
 <p>Advanced control of domain transition is possible with TOMOYO Linux, and involves changes to exception policy. The instructions in this section require use of the policy editor tool. To edit exception policy, run the policy editor and <a href="chapter-4.html.en#4.4">switch to the exception policy editor screen</a>. To add an entry, press the "a" key, type out the new entry you wish to add and press "Enter". To see what other commands are available, press the "?" key.</p>
 
-<h3>initialize_domain</h3>
+<h4><a name="5.2.1">5.2.1. initialize_domain</a></h4>
 
 <p>When a unique execution occurs for application, a new domain is created. This allows for an application to receive different permissions depending on how it was executed (e.g. from an Xterm). However, it may be desirable to give the same permissions to an application without regard to how it was executed. This can simplify policy and make it easier to manage.</p>
 
@@ -95,7 +102,7 @@ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 
 <p>Note that any policy specified in the unreachable domains will not automatically carry over into the initialized domain. For now, we have not developed any policy yet so this is not a problem. If you use this directive later on for domains that you have already developed policy for, you will need to either re-learn policy or copy over policy to the initialized domain.</p>
 
-<h3>no_initialize_domain</h3>
+<h4><a name="5.2.2">5.2.2. no_initialize_domain</a></h4>
 
 <p>After using the initialize_domain rule, a situation may arise where you do not want an application to be reinitialized from a particular domain. For example, the application "/bin/mail" executes "/usr/sbin/sendmail.sendmail" in order to send mails. Consider that the following has been added to exception policy:</p>
 
@@ -117,7 +124,7 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 </table>
 </p>
 
-<h3>keep_domain</h3>
+<h4><a name="5.2.3">5.2.3. keep_domain</a></h4>
 
 <p>It may be preferable that any executed applications from a particular domain are <b>suppressed from undergoing a domain transition</b>. They therefore act within the permissions of the domain that has invoked it. For example, suppose you wish apply the same policy to all applications run within an ssh shell, you would add the following to exception policy:</p>
 
@@ -169,7 +176,7 @@ keep_domain /usr/bin/xargs from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 
 <p>Note that any policy specified in the unreachable domains will not automatically be added to the parent domain (from which domain transition has been suppressed). For now, we have not developed any policy yet so this is not a problem. If you use this directive later on for domains that you have already developed policy for, you will need to either re-learn policy or copy over policy to the parent domain.</p>
 
-<h3>no_keep_domain</h3>
+<h4><a name="5.2.4">5.2.4. no_keep_domain</a></h4>
 
 <p>The "keep_domain" directive is useful in managing ssh login sessions as you cannot predict the commands the user will run and the order in which they will do so. However, there may be cases where you wish to resume domain transition, such as allowing access to password files when changing passwords or for restarting daemon services.</p>
 
@@ -190,7 +197,7 @@ no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 
 <br>
 
-<h2><a name="5.3">5.3. Switching to learning mode</a></h2>
+<h3><a name="5.3">5.3. Switching to learning mode</a></h3>
 
 <p>To continue with our target application, Apache, let's register it with the "initialize_domain directive:</p>
 
@@ -218,7 +225,7 @@ initialize_domain /usr/sbin/httpd from any
 
 <br>
 
-<h2><a name="5.4">5.4. Gathering necessary permissions</a></h2>
+<h3><a name="5.4">5.4. Gathering necessary permissions</a></h3>
 
 <p>Restart the Apache in order to learn what permissions are required for starting/finishing the Apache:</p>
 
@@ -240,7 +247,7 @@ initialize_domain /usr/sbin/httpd from any
 
 <br>
 
-<h2><a name="5.5">5.5. Saving permissions to disk</a></h2>
+<h3><a name="5.5">5.5. Saving permissions to disk</a></h3>
 
 <p>Remember to save policy, as permissions are accumulated only in kernel memory. <b>If the system is rebooted, the gathered permissions will be lost.</b></p>
 
@@ -284,39 +291,43 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 
 <p>Proceed to the <a href="chapter-6.html.en">Chapter 6</a> where we talk about how to develop policy!</p>
 
-<div class=navfooter>
-<hr align="left" width="100%">
-<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+</div><!-- regular-content -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
 <tr>
-<td width="33%" align="left" valign="top">
+<td class="docs-previous">
 <a href="chapter-4.html.en">Prev</a>
 </td>
-<td width="34%" align="center" valign="top">
+<td class="docs-index">
 <a href="index.html.en">Index</a>
 </td>
-<td width="33%" align="right" valign="top">
+<td class="docs-next">
 <a href="chapter-6.html.en">Next</a>
-</td></tr>
-<tr><td width="33%" align="left" valign="top">
-Chapter 4: How does TOMOYO Linux work?
 </td>
-<td width="34%" align="center" valign="top">
-<a href="http://tomoyo.sourceforge.jp/">Home</a>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>Chapter 4: How does TOMOYO Linux work?</p>
 </td>
-<td width="33%" align="right" valign="top">
-Chapter 6: How do I develop policy?
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+<p>Chapter 6: How do I develop policy?</p>
 </td>
 </tr>
 </table>
 </div>
 
-<table width="100%" border="0" cellpadding="0" cellspacing="0">
-<tr><td>
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
-</td>
-<td>
-<p style="text-align:right;font-size:smaller;">Last modified: $Date$</p>
-</td></tr>
-</table>
+</div>
+
 </body>
 </html>
