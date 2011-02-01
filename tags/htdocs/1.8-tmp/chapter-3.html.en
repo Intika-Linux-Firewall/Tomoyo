@@ -38,7 +38,7 @@
 
 <p>TOMOYO Linux requires the installation of a seperate Linux kernel from the one provided by your distribution. This can be done in one of two ways. A binary package can be installed, or the kernel can be compiled from source and manually patched. If your distribution is listed below, then you can install the binary package very easily without having to do any compilation.</p>
 
-<p>Distributions that have binary packages provided:</p>
+<p>The distributions that we provide binary packages for are:
 <ul>
 <li>Fedora 13/14</li>
 <li>CentOS 4.8/5.5</li>
@@ -112,7 +112,9 @@
 
 <h3><a name="3.3">3.3. Installing from source</a></h3>
 
-<h3>Install dependencies</a></h3>
+<p>If we do not provide binary packages for your distribution, then you will have to compile your own kernel.</p>
+
+<h4><a name="3.3.1">3.3.1. Install dependencies</a></h4>
 
 <p>These packages are required for compiling the kernel and the userspace tools:</p>
 <ul>
@@ -140,7 +142,7 @@
 # yast -i wget patch gcc make ncurses-devel readline-devel help2man
 </pre>
 
-<h3>Download and patch the kernel</h3>
+<h4><a name="3.3.2">3.3.2. Download and patch the kernel</a></h4>
 
 <p>Download the kernel source from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>.<br>
 Linux kernel 2.4.30 and later are supported from the linux-2.4 tree.<br>
@@ -159,7 +161,7 @@ $ tar -zxf ccs-patch-1.8.0-20110121.tar.gz
 $ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff
 </pre>
 
-<h3>Configure the kernel</h3>
+<h4><a name="3.3.3">3.3.3. Configure the kernel</a></h4>
 
 <pre class="command">
 $ make -s menuconfig
@@ -185,7 +187,7 @@ $ make -s menuconfig
 
 <p><i>"Do not modify 'struct task_struct' in order to keep KABI"</i> is available to 2.6 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
 
-<h3>Compile and install the kernel</h3>
+<h4><a name="3.3.4">3.3.4. Compile and install the kernel</a></h4>
 
 <p>Once the kernel has been configured, compile and install:</p>
 
@@ -199,7 +201,7 @@ $ su
 
 <p>Create initrd/initramfs if required.</p>
 
-<h3>Install the userspace tools</h3>
+<h4><a name="3.3.5">3.3.5. Install the userspace tools</a></h4>
 
 <p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
 
@@ -264,8 +266,6 @@ Creating configuration file for ccs-patternize ... OK
 Creating configuration file for ccs-notifyd ... OK
 </pre>
 
-<br>
-
 <h3><a name="3.5">3.5. Configuring your bootloader</a></h3>
 
 <p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <i>"Disable by default"</i> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options.</p>
@@ -276,25 +276,17 @@ Creating configuration file for ccs-notifyd ... OK
 
 <p>Now you have finished all preparation. You can't wait any more? Now it's time to make use of your newly installed kernel. Reboot your system and choose the entry with TOMOYO Linux kernel at the GRUB screen, or at whatever other bootloader you have installed:</p>
 
-<p><img src="tutorial/fig-1-12.png" alt="fig-1-12.png" width="640" height="480"></p>
-
-<br>
+<p><img class="with-border" src="tutorial/fig-1-12.png" alt="fig-1-12.png" width="500" height="375"></p>
 
 <p>If everything was installed properly and the bootloader was correctly configured, the kernel should boot as normal and TOMOYO Linux should be activated:</p>
 
-<p><img src="tutorial/fig-1-13.png" alt="fig-1-13.png" width="720" height="400"></p>
-
-<br>
+<p><img class="with-border" src="tutorial/fig-1-13.png" alt="fig-1-13.png" width="675" height="375"></p>
 
 <h3><a name="3.7">3.7. How can I disable/uninstall TOMOYO Linux?</a></h3>
 
 <p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending ccsecurity=off at the kernel command-line parameters.</p>
 
 <p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. rpm or apt). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
-
-<br>
-
-<p>Proceed to the <a href="chapter-4.html.en">Chapter 4</a>, where the main concepts behind TOMOYO Linux are discussed!</p>
 
 </div><!-- regular-content -->
 
