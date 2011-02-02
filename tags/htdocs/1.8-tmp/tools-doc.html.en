@@ -1,67 +1,171 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>Tools Documentation</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 1</title>
 </head>
+
 <body>
-<p style="text-align:right;"><a href="tools-doc.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1>Tools Documentation</h1>
 
-<hr>
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
 
-<h2><a name="administration_tool">&lt;&lt;Tools for system administrators&gt;&gt;</a></h2>
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
 
-<h3><a name="ccs-editpolicy">&lt;Policy Editor "ccs-editpolicy"&gt;</a></h3>
+<div id="content">
+
+<div id="documentation">
+
+<h2>Tools Documentation</h2>
+
+<h3><a name="administration_tool">Tools for system administrators</a></h3>
+
+<h4><a name="ccs-editpolicy">Policy Editor "ccs-editpolicy"</a></h4>
 <p>Edits the current policy in /proc/ccs/ directory.</p>
 <p>You may give one of 'e' 'd' 'p' 'm' 's' to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
 <p>You can use keys listed below.</p>
 
-<p>&lt;Scroll&gt;</p>
-<table border="1">
-<tr><td>Up-arrow</td><td>Scroll 1 line up.</td></tr>
-<tr><td>Down-arrow</td><td>Scroll 1 line down.</td></tr>
-<tr><td>PageUp</td><td>Scroll 1 page up.</td></tr>
-<tr><td>PageDown</td><td>Scroll 1 page down.</td></tr>
-<tr><td>Right-arrow</td><td>Scroll 1 column right.</td></tr>
-<tr><td>Left-arrow</td><td>Scroll 1 column left.</td></tr>
-<tr><td>Home</td><td>Move to the top of line.</td></tr>
-<tr><td>End</td><td>Move to the bottom of line.</td></tr>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Scroll action</p></th>
+</tr>
+<tr>
+<td><p>Up-arrow</p></td>
+<td><p>Scroll 1 line up.</p></td>
+</tr>
+<tr>
+<td><p>Down-arrow</p></td>
+<td><p>Scroll 1 line down.</p></td>
+</tr>
+<tr>
+<td><p>PageUp</p></td>
+<td><p>Scroll 1 page up.</p></td>
+</tr>
+<tr>
+<td><p>PageDown</p></td>
+<td><p>Scroll 1 page down.</p></td>
+</tr>
+<tr>
+<td><p>Right-arrow</p></td>
+<td><p>Scroll 1 column right.</p></td>
+</tr>
+<tr>
+<td><p>Left-arrow</p></td>
+<td><p>Scroll 1 column left.</p></td>
+</tr>
+<tr>
+<td><p>Home</p></td>
+<td><p>Move to the top of line.</p></td>
+</tr>
+<tr>
+<td><p>End</p></td>
+<td><p>Move to the bottom of line.</p></td>
+</tr>
 </table>
+</div>
 
-<p>&lt;Search&gt;</p>
-<table border="1">
-<tr><td>f/F</td><td>Find First</td></tr>
-<tr><td>n/N</td><td>Find Next</td></tr>
-<tr><td>p/P</td><td>Find Previous</td></tr>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Search action</p></th>
+</tr>
+<tr>
+<td><p>f/F</p></td>
+<td><p>Find First</p></td>
+</tr>
+<tr>
+<td><p>n/N</p></td>
+<td><p>Find Next</p></td>
+</tr>
+<tr>
+<td><p>p/P</p></td>
+<td><p>Find Previous</p></td>
+</tr>
 </table>
+</div>
 
-<p>&lt;Edit&gt;</p>
-<table border="1">
-<tr><td>a/A</td><td>Add an entry.</td></tr>
-<tr><td>Enter</td><td>Edit ACLs of a domain at the cursor position. (Valid only for screen for domain listing.)</td></tr>
-<tr><td>Space</td><td>Invert selection state of an entry at the cursor position.</td></tr>
-<tr><td>c/C</td><td>Copy selection state of an entry at the cursor position to all entries below the cursor position.</td></tr>
-<tr><td>d/D</td><td>Delete selected entries.</td></tr>
-<tr><td>s/S</td><td>Set profile number of selected entries. (Valid only for screen for domain listing.)<br>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Edit action</p></th>
+</tr>
+<tr>
+<td><p>a/A</p></td>
+<td><p>Add an entry.</p></td>
+</tr>
+<tr>
+<td><p>Enter</p></td>
+<td><p>Edit ACLs of a domain at the cursor position. (Valid only for screen for domain listing.)</p></td>
+</tr>
+<tr>
+<td><p>Space</p></td>
+<td><p>Invert selection state of an entry at the cursor position.</p></td>
+</tr>
+<tr>
+<td><p>c/C</p></td>
+<td><p>Copy selection state of an entry at the cursor position to all entries below the cursor position.</p></td>
+</tr>
+<tr>
+<td><p>d/D</p></td>
+<td><p>Delete selected entries.</p></td>
+</tr>
+<tr>
+<td><p>s/S</p></td>
+<td><p>Set profile number of selected entries. (Valid only for screen for domain listing.)<br>
 Set profile value for selected entries. (Valid only for screen for profile editing)<br>
-Set new quota value for selected entries. (Valid only for screen for memory usage)</td></tr>
-<tr><td>Insert</td><td>Copy an entry at the cursor position to history buffer.</td></tr>
+Set new quota value for selected entries. (Valid only for screen for memory usage)</p></td>
+</tr>
+<tr>
+<td><p>Insert</p></td>
+<td><p>Copy an entry at the cursor position to history buffer.</p></td>
+</tr>
 </table>
+</div>
 
-<p>&lt;Misc&gt;</p>
-<table border="1">
-<tr><td>q/Q</td><td>Quit</td></tr>
-<tr><td>r/R</td><td>Refresh</td></tr>
-<tr><td>w/W</td><td>Switch to window list.</td></tr>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Miscellaneous action</p></th>
+</tr>
+<tr>
+<td><p>q/Q</p></td>
+<td><p>Quit</p></td>
+</tr>
+<tr>
+<td><p>r/R</p></td>
+<td><p>Refresh</p></td>
+</tr>
+<tr>
+<td><p>w/W</p></td>
+<td><p>Switch to window list.</p></td>
+</tr>
 </table>
+</div>
 
 <p>A tutorial is available at <a href="tool-editpolicy.html.en">How to use Policy Editor</a>.</p>
 
-<h3><a name="ccs-loadpolicy">&lt;Policy Loader "ccs-loadpolicy"&gt;</a></h3>
+<h4><a name="ccs-loadpolicy">Policy Loader "ccs-loadpolicy"</a></h4>
 <p>Reads policy from standard input and writes to /proc/ccs/ interface.</p>
 <p>There are the following commandline parameters.</p>
 <ul>
@@ -74,19 +178,19 @@ Set new quota value for selected entries. (Valid only for screen for memory usag
 <li>-s --- Append to /proc/ccs/stat .
 </ul>
 
-<h3><a name="ccs-setlevel">&lt;Control Level Changer "ccs-setlevel"&gt;</a></h3>
+<h4><a name="ccs-setlevel">Control Level Changer "ccs-setlevel"</a></h4>
 <p>Changes the current control level (i.e. writing to /proc/ccs/profile ) and displays the new control level.</p>
 <p>You can give the new control level from commandline parameter.</p>
 
-<h3><a name="ccs-setprofile">&lt;Profile Selector "ccs-setprofile"&gt;</a></h3>
+<h4><a name="ccs-setprofile">Profile Selector "ccs-setprofile"</a></h4>
 <p>Assigns a profile to domains.</p>
 <p>You can give the new profile number and domainnames from the commandline parameter. The list of domainnames that the profile number assigned to has changed is printed.</p>
 
-<h3><a name="ccs-pstree">&lt;Process Info Viewer "ccs-pstree"&gt;</a></h3>
+<h4><a name="ccs-pstree">Process Info Viewer "ccs-pstree"</a></h4>
 <p>Lists the domainnames of currently running processes belong to and the profile numbers the domains currently assigned to.</p>
 <p>This program shows the profile number, the name of process, PID, the domainname like "pstree" command.</p>
 
-<h3><a name="ccs-savepolicy">&lt;Policy Saver "ccs-savepolicy"&gt;</a></h3>
+<h4><a name="ccs-savepolicy">Policy Saver "ccs-savepolicy"</a></h4>
 <p>Saves the on-memory policy onto disk.</p>
 <p>There are the following commandline parameters.</p>
 <ul>
@@ -97,83 +201,115 @@ Set new quota value for selected entries. (Valid only for screen for memory usag
 <li>-s --- Print /proc/ccs/stat .
 </ul>
 
-<h3><a name="ccs-auditd">&lt;Access Log Reading Daemon "ccs-auditd"&gt;</a></h3>
+<h4><a name="ccs-auditd">Access Log Reading Daemon "ccs-auditd"</a></h4>
 <p>Reads from /proc/ccs/audit and writes to the location specified in /etc/ccs/tools/auditd.conf . The number of logs that the kernel will keep is given using profile's PREFERENCE={ max_audit_log=integer } lines.</p>
 <p>This program runs as a daemon. You can start from /etc/rc.d/rc.local if you are using RedHat Linux. If you needn't to save access logs, you needn't to run this program.</p>
 
-<h3><a name="ccs-sortpolicy">&lt;Access Log Compressor "ccs-sortpolicy"&gt;</a></h3>
+<h4><a name="ccs-sortpolicy">Access Log Compressor "ccs-sortpolicy"</a></h4>
 <p>Remove duplicated entry from logs written by "ccs-auditd".</p>
 <p>Reads logs written by "ccs-auditd" from standard input and sorts by domains and removes duplicated entries and writes to standard output.</p>
 
-<h3><a name="ccs-findtemp">&lt;Temporal Pathnames Detector "ccs-findtemp"&gt;</a></h3>
+<h4><a name="ccs-findtemp">Temporal Pathnames Detector "ccs-findtemp"</a></h4>
 <p>Reads domain policy from standard input and checks the existence of pathnames, and dumps the nonexistent pathnames.</p>
 <p>The nonexistent pathnames are likely used as temporary pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/ccs/exception_policy.conf and /proc/ccs/exception_policy .</p>
 <p>You can pass the content of /etc/ccs/domain_policy.conf or /proc/ccs/domain_policy using redirection or pipes to the standard input of this program.</p>
 
-<h3><a name="ccs-queryd">&lt;Delayed Enforcing Mode Handler "ccs-queryd"&gt;</a></h3>
+<h4><a name="ccs-queryd">Delayed Enforcing Mode Handler "ccs-queryd"</a></h4>
 <p>Detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
 <p>By running this program while updating packages, you can avoid errors due to insufficient permissions.</p>
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
 
-<h3><a name="ccs-notifyd">&lt;Policy Violation Notifyier "ccs-notifyd"&gt;</a></h3>
+<h4><a name="ccs-notifyd">Policy Violation Notifyier "ccs-notifyd"</a></h4>
 <p>Detects policy violation and take some actions (e.g. send a mail) to notify it to the administrator.</p>
 
-<h3><a name="ccs-checkpolicy">&lt;Policy Syntax Checker "ccs-checkpolicy"&gt;</a></h3>
+<h4><a name="ccs-checkpolicy">Policy Syntax Checker "ccs-checkpolicy"</a></h4>
 <p>Reads policy files from standard input and checks syntaxes.</p>
 <p>Prints errors with line numbers if any.</p>
 
-<h3><a name="ccs-init">&lt;Initial Policy Loader "ccs-init"&gt;</a></h3>
+<h4><a name="ccs-init">Initial Policy Loader "ccs-init"</a></h4>
 <p>Loads policy files from /etc/ccs/ directory.</p>
 <p>Put this program as /sbin/ccs-init , and this program will be invoked automatically when execution of /sbin/init is requested by initrd.</p>
 
-<h3><a name="ccs-domainmatch">&lt;ACL Searcher "ccs-domainmatch"&gt;</a></h3>
+<h4><a name="ccs-domainmatch">ACL Searcher "ccs-domainmatch"</a></h4>
 <p>This is a "fgrep" for /proc/ccs/domain_policy .</p>
 
-<h3><a name="ccs-patternize">&lt;Pathname Pattern Replacer "ccs-patternize"&gt;</a></h3>
+<h4><a name="ccs-patternize">Pathname Pattern Replacer "ccs-patternize"</a></h4>
 <p>Reads domain policy from standard input and replaces pathnames with patterns if the pathname matches patterns specified in /etc/ccs/tools/patternize.conf  and writes to standard output. Domainnames won't be patterned.</p>
 
-<h3><a name="init_policy">&lt;Policy Template Generator "init_policy"&gt;</a></h3>
+<h4><a name="init_policy">Policy Template Generator "init_policy"</a></h4>
 <p>Generates templates for policy. You need to review the output because automatically generated policy may contain redundant or dangerous entries.</p>
 
-<h3><a name="audit-exec-param">&lt;A program for auditing execute parameter "audit-exec-param"&gt;</a></h3>
+<h4><a name="audit-exec-param">A program for auditing execute parameter "audit-exec-param"</a></h4>
 <p>This program writes parameters passed to execve() to syslog before actually executes the execve() request.</p>
-<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program, tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy, and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
+<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program, tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/audit-exec-param from kernel /usr/sbin/httpd" in the exception policy, and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "kernel /usr/sbin/httpd" domain).</p>
 
-<hr>
+<h3><a name="authentication_tool">Tools for reinforcing login authentications</a></h3>
 
-<h2><a name="authentication_tool">&lt;&lt;Tools for reinforcing login authentications&gt;&gt;</a></h2>
-
-<h3><a name="falsh">&lt;Restricted login shell for authentication "falsh"&gt;</a></h3>
+<h4><a name="falsh">Restricted login shell for authentication "falsh"</a></h4>
 <p>A tiny shell that has no built-in command such as "kill". You can use this program for login shell ( the shell specified in the /etc/passwd file). You won't need this program if you don't want to reinforce login authentications.</p>
 <p>You should make your own programs for additional authentications. You shouldn't use the following example programs without modifications.</p>
 
-<h3><a name="honey">&lt;An example program for password authentication with timings "honey"&gt;</a></h3>
+<h4><a name="honey">An example program for password authentication with timings "honey"</a></h4>
 <p>This program fails unless the correct password is typed with the correct time interval. Conventional authentication programs don't check the time interval of typing, but this program does to prevent password brute force attack.</p>
 
-<h3><a name="candy">&lt;An example program for password authentication with time limit "candy"&gt;</a></h3>
+<h4><a name="candy">An example program for password authentication with time limit "candy"</a></h4>
 <p>This program fails unless the correct password is typed and this program was invoked within 10 seconds after the parent process was invoked. Conventional authentication programs don't check the time interval between the invocation time of parent process and the invocation time of child process, but this program does to prevent password brute force attack.</p>
 
-<h3><a name="groovy">&lt;An example program for lockfile authentication "groovy"&gt;</a></h3>
+<h4><a name="groovy">An example program for lockfile authentication "groovy"</a></h4>
 <p>This program fails while the file /tmp/.lockme exists. This program prompts for password, but doesn't check for password. This program checks for the existence of the file /tmp/.lockme . This program prevents password brute force attack by keeping locked just before you run this program. This is a program for demonstration, and using a filename that are apparent to crackers. You must customize if you want to use.</p>
 
-<h3><a name="checktoken">&lt;An example program for token authentication "gettoken / checktoken"&gt;</a></h3>
+<h4><a name="checktoken">An example program for token authentication "gettoken / checktoken"</a></h4>
 <p>This program generates tokens based on the system time. The authentication will succeed if the output of "gettoken" is passwd to the input of "checktoken". These are programs for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
 
-<h3><a name="chaplet">&lt;An example program for challenge-handshake authentication "chaplet"&gt;</a></h3>
+<h4><a name="chaplet">An example program for challenge-handshake authentication "chaplet"</a></h4>
 <p>This program displays strings as a challenge data. The authentication will succeed if you input only numerical letters from the challenge data as a response data. This is a program for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
 
-<h3><a name="timeauth">&lt;An example program for password authentication with timings  "timeauth"&gt;</a></h3>
+<h4><a name="timeauth">An example program for password authentication with timings  "timeauth"</a></h4>
 <p>This is a re-implementation of "honey". Create a script and specify this program as the interpreter for the script.</p>
 
-<h3><a name="mailauth">&lt;An example program for one-time-password authentication using mail "mailauth"&gt;</a></h3>
+<h4><a name="mailauth">An example program for one-time-password authentication using mail "mailauth"</a></h4>
 <p>This program generates one time password and sends it to the user using "mail". The authentication will succeed if the user input the password sent by "mail". To use this program, some mail server application is needed.</p>
 
-<h3><a name="proxy">&lt;A simple port forwarder "proxy"&gt;</a></h3>
+<h4><a name="proxy">A simple port forwarder "proxy"</a></h4>
 <p>This program is used by client side. This program explicitly binds to local port and connects to server so that the server side firewall (such as "iptables") can use packet filtering based on client side's port number.</p>
 
-<hr>
+</div><!-- documentation -->
 
-<p><a href="index.html.en">Return to index page.</a></p>
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="something.html.en">Prev</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+<a href="chapter-2.html.en">Next</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>Something</p>
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+<p>Appendix B: Policy editor documentation</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>
