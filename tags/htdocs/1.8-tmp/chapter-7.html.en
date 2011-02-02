@@ -40,47 +40,33 @@
 
 <p>Run the policy editor. Select target domains with the "Space" key, press the "s" key, enter "3", and press "Enter":</p>
 
-<p><img src="editpolicy-httpd-set-profile3.png" alt="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
-
-<br>
+<img class="with-border" src="editpolicy-httpd-set-profile3.png" alt="editpolicy-httpd-set-profile3.png" width="675" height="375">
 
 <p>The profile numbers of the selected domains have now been changed to 3:</p>
 
-<p><img src="editpolicy-httpd-profile3.png" alt="editpolicy-httpd-profile3.png" width="720" height="400"></p>
-
-<br>
+<img class="with-border" src="editpolicy-httpd-profile3.png" alt="editpolicy-httpd-profile3.png" width="675" height="375">
 
 <p>Press the "@" key to switch to the process list. Verify that the "/usr/sbin/httpd" process and descendants are assigned profile number 3:</p>
 
-<p><img src="editpolicy-httpd-process3.png" alt="editpolicy-httpd-process3.png" width="720" height="400"></p>
-
-<br>
+<img class="with-border" src="editpolicy-httpd-process3.png" alt="editpolicy-httpd-process3.png" width="675" height="375">
 
 <p>Now "/usr/sbin/httpd" processes and descendants are protected, as profile 3 was configured for enforcing mode:</p>
 
-<p><img src="editpolicy-profile-list-enforcing.png" alt="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
-
-<br>
+<img class="with-border" src="editpolicy-profile-list-enforcing.png" alt="editpolicy-profile-list-enforcing.png" width="675" height="375">
 
 <p>Quit the policy editor and try an operation which is permitted by policy:</p>
 
-<p><img src="operation-permitted.png" alt="operation-permitted.png" width="684" height="912"></p>
-
-<br>
+<img class="with-border" src="operation-permitted.png" alt="operation-permitted.png" width="547" height="729">
 
 <p>The operation was successfully completed, as sending mail is permitted by policy.</p>
 
 <p>Let's try an operation which is not permitted by policy:</p>
 
-<p><img src="unix-penguin.png" alt="unix-penguin.png" width="684" height="912"></p>
-
-<br>
+<img class="with-border" src="unix-penguin.png" alt="unix-penguin.png" width="547" height="729">
 
 <p>Although it appears to be have been completed successfully, the warning message by "/bin/mail" shows that the input was empty and so the execution of "/bin/cat" was rejected:</p>
 
-<p><img src="unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="684" height="597"></p>
-
-<br>
+<img class="with-border" src="unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477">
 
 <p>Just like in "Permissive Mode", you can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
@@ -99,7 +85,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<p>If audit logs have been configured at <a href="chapter-4.html.en#4.5">4.5. Saving audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
+<p>If audit logs have been configured at <a href="chapter-4.html.en#4.6">4.6. Saving audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
 
 <pre class="command">
 [root@tomoyo ~]# cat /var/log/tomoyo/reject_003.log
@@ -123,9 +109,11 @@ file read /bin/cat
 
 <p><object data="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
-<br>
+<h3><a name="7.2">7.2. Enable enforcing mode for every domain</a></h3>
 
-<h3><a name="7.2">7.2. Handling policy violations in real-time</a></h3>
+<p>Once you are familiar with the methods and tools described in the previous chapters, it will be possible to develop policy for every domain in the system. Placing every domain in "Enforcing Mode" will reduce the points of vulnerability through which a system might be compromised. Thus, all the previous steps should be repeated for all the other domains.</p>
+
+<h3><a name="7.3">7.3. Handling policy violations in real-time</a></h3>
 
 <p>Policy violations can be handled in real time using "/usr/sbin/ccs-queryd". This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
 
@@ -139,9 +127,7 @@ file read /bin/cat
 
 <p>Fortunately, "ccs-queryd" can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
 
-<br>
-
-<h3>Example usage of "ccs-queryd"</h3>
+<h4><a name="7.3.1">7.3.1. Example usage of "ccs-queryd"</a></h4>
 
 <p>The video below demonstrates example usage of "ccs-queryd", which is summarised in the text below:</p>
 
@@ -168,11 +154,11 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/sshd" attempted to execute "/bin/sleep" in order to process the command "sleep 1". Usually this would be instantly denied, but since "ccs-queryd" is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
 
-<p>Press <b>"Y"</b> to grant the request.<br>
-Press <b>"N"</b> to reject the request.<br>
-Press <b>"R"</b> to retry the request (for example after editing domain policy manually).<br>
-Press <b>"S"</b> to show domain policy for the process.<br>
-Press <b>"A"</b> to append the request to domain policy and retry (a chance to edit the request is given first).</p>
+<p>Press <strong>"Y"</strong> to grant the request.<br>
+Press <strong>N"</strong> to reject the request.<br>
+Press <strong>R"</strong> to retry the request (for example after editing domain policy manually).<br>
+Press <strong>S"</strong> to show domain policy for the process.<br>
+Press <strong>A"</strong> to append the request to domain policy and retry (a chance to edit the request is given first).</p>
 
 <p>Do not grant access requests unconditionally. Policy violations are not always due to updating packages, but may be malicious requests by attackers.</p>
 
@@ -188,9 +174,9 @@ Press <b>"A"</b> to append the request to domain policy and retry (a chance to e
 [root@tomoyo ~]# /usr/sbin/ccs-savepolicy
 </pre>
 
-<br>
+<h4><a name="7.3.2">7.3.2. Example output from "ccs-queryd"</a></h4>
 
-<h3>Example output from "ccs-queryd":</h3>
+<p>This is an example of what the output might look like while running ccs-queryd:</p>
 
 <pre class="output">
 #2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
@@ -306,9 +292,7 @@ Enter new entry&gt; file append /var/lib/pgsql/data/pg_log/postgresql-\*
 Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 </pre>
 
-<br>
-
-<h3><a name="7.3">7.3. Notification daemon</a></h3>
+<h3><a name="7.4">7.4. Notification daemon</a></h3>
 
 <p>"/usr/sbin/ccs-notifyd" is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
 
@@ -393,6 +377,12 @@ Q0-0
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh
 file execute /bin/cat
 </pre>
+
+<h3><a name="7.5">7.5. Beyond the core topics</a></h3>
+
+<p>The chapters in this guide so far aim to provide enough knowledge to set up TOMOYO Linux on a system. In order to further improve your knowledge, there is an "Advanced Topics" section of this guide which covers additional useful techniques to secure a system. Also useful are the topics in the <a href="index.html.en#appendix">Appendix</a>.</p>
+
+<p>Remember that security is only as strong as the weakest point. While proper use of the Mandatory Access Control possible with TOMOYO Linux will strengthen a system against being compromised, other security practices and system-hardening methods must not be forgotten. These methods are beyond the scope of this guide but should be eagerly pursued by any who wish to maximize the security of their system.</p>
 
 </div><!-- documentation -->
 

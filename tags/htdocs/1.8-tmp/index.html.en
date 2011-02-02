@@ -34,38 +34,46 @@
 
 <h2>TOMOYO Linux 1.8.x : The Official Guide</h2>
 
-<h3>Contents</h3>
+<h3><a name="contents">Contents</a></h3>
 
 <p>Chapter 1: <a href="chapter-1.html.en">Introduction</a><p>
 <ul>
 <li>1.1. <a href="chapter-1.html.en#1.1">Introduction to this guide</a></li>
 <li>1.2. <a href="chapter-1.html.en#1.2">Typography</a></li>
 </ul>
-Chapter 2: <a href="chapter-2.html.en">Why do I need TOMOYO Linux?</a></li>
+<p>Chapter 2: <a href="chapter-2.html.en">Why do I need TOMOYO Linux?</a></p>
 <ul>
 <li>2.1. <a href="chapter-2.html.en#2.1">What is TOMOYO Linux?</a></li>
 <li>2.2. <a href="chapter-2.html.en#2.2">What is Mandatory Access Control?</a></li>
 <li>2.3. <a href="chapter-2.html.en#2.3">How can TOMOYO Linux help me?</a></li>
 </ul>
-Chapter 3: <a href="chapter-3.html.en">How do I install TOMOYO Linux?</a></li>
+<p>Chapter 3: <a href="chapter-3.html.en">How do I install TOMOYO Linux?</a></p>
 <ul>
 <li>3.1. <a href="chapter-3.html.en#3.1">Are binary packages available for my distribution?</a></li>
 <li>3.2. <a href="chapter-3.html.en#3.2">Installing binary packages</a></li>
 <li>3.3. <a href="chapter-3.html.en#3.3">Installing from source</a></li>
+  <ul class="nested">
+    <li>3.3.1. <a href="chapter-3.html.en#3.3.1">Install dependencies</a></li>
+    <li>3.3.2. <a href="chapter-3.html.en#3.3.2">Download and patch the kernel</a></li>
+    <li>3.3.3. <a href="chapter-3.html.en#3.3.3">Configure the kernel</a></li>
+    <li>3.3.4. <a href="chapter-3.html.en#3.3.4">Compile and install the kernel</a></li>
+    <li>3.3.5. <a href="chapter-3.html.en#3.3.5">Install the userspace tools</a></li>
+  </ul>
 <li>3.4. <a href="chapter-3.html.en#3.4">Initializing configuration</a></li>
 <li>3.5. <a href="chapter-3.html.en#3.5">Configuring your bootloader</a></li>
 <li>3.6. <a href="chapter-3.html.en#3.6">Rebooting your system</a></li>
 <li>3.7. <a href="chapter-3.html.en#3.7">How do I disable/uninstall TOMOYO Linux?</a></li>
 </ul>
-Chapter 4: <a href="chapter-4.html.en">How does TOMOYO Linux work?</a></li>
+<p>Chapter 4: <a href="chapter-4.html.en">How does TOMOYO Linux work?</a></p>
 <ul>
 <li>4.1. <a href="chapter-4.html.en#4.1">Understanding domains</a></li>
-<li>4.2. <a href="chapter-4.html.en#4.2">Understanding profiles</a></li>
-<li>4.3. <a href="chapter-4.html.en#4.3">Understanding domain policy</a></li>
-<li>4.4. <a href="chapter-4.html.en#4.4">Understanding exception policy</a></li>
-<li>4.5. <a href="chapter-4.html.en#4.5">Saving audit logs (optional)</a></li>
+<li>4.2. <a href="chapter-4.html.en#4.2">View domains with the policy editor</a></li>
+<li>4.3. <a href="chapter-4.html.en#4.3">Understanding profiles</a></li>
+<li>4.4. <a href="chapter-4.html.en#4.4">Understanding domain policy</a></li>
+<li>4.5. <a href="chapter-4.html.en#4.5">Understanding exception policy</a></li>
+<li>4.6. <a href="chapter-4.html.en#4.6">Saving audit logs (optional)</a></li>
 </ul>
-Chapter 5: <a href="chapter-5.html.en">How do I manage domains?</a></li>
+<p>Chapter 5: <a href="chapter-5.html.en">How do I manage domains?</a></p>
 <ul>
 <li>5.1. <a href="chapter-5.html.en#5.1">Domain creation</a></li>
 <li>5.2. <a href="chapter-5.html.en#5.2">Management of domain transitions</a></li>
@@ -79,7 +87,7 @@ Chapter 5: <a href="chapter-5.html.en">How do I manage domains?</a></li>
 <li>5.4. <a href="chapter-5.html.en#5.4">Gathering necessary permissions</a></li>
 <li>5.5. <a href="chapter-5.html.en#5.5">Saving permissions to disk</a></li>
 </ul>
-Chapter 6: <a href="chapter-6.html.en">How do I develop policy?</a></li>
+<p>Chapter 6: <a href="chapter-6.html.en">How do I develop policy?</a></p>
 <ul>
 <li>6.1. <a href="chapter-6.html.en#6.1">Patterning temporary files</a></li>
 <li>6.2. <a href="chapter-6.html.en#6.2">Patterning file access permissions</a></li>
@@ -88,11 +96,30 @@ Chapter 6: <a href="chapter-6.html.en">How do I develop policy?</a></li>
 <li>6.5. <a href="chapter-6.html.en#6.5">Reviewing gathered permissions</a></li>
 <li>6.6. <a href="chapter-6.html.en#6.6">Using audit logs to develop policy (optional)</a></li>
 </ul>
-Chapter 7: <a href="chapter-7.html.en">How do I enforce policy?</a></li>
+<p>Chapter 7: <a href="chapter-7.html.en">How do I enforce policy?</a></p>
 <ul>
 <li>7.1. <a href="chapter-7.html.en#7.1">Enabling enforcing mode</a></li>
-<li>7.2. <a href="chapter-7.html.en#7.2">Handling policy violations in real-time</a></li>
-<li>7.3. <a href="chapter-7.html.en#7.3">Notification daemon</a></li>
+<li>7.2. <a href="chapter-7.html.en#7.2">Enabling enforcing mode for all domains</a></li>
+<li>7.3. <a href="chapter-7.html.en#7.3">Handling policy violations in real-time</a></li>
+  <ul class="nested">
+    <li>7.3.1. <a href="chapter-7.html.en#7.3.1">Example usage of "ccs-queryd"</a></li>
+    <li>7.3.2. <a href="chapter-7.html.en#7.3.2">Example output from "ccs-queryd"</a></li>
+  </ul>
+<li>7.4. <a href="chapter-7.html.en#7.4">Notification daemon</a></li>
+<li>7.5. <a href="chapter-7.html.en#7.5">Beyond the core topics</a></li>
+</ul>
+
+<h3><a name="advanced">Advanced topics</a></h3>
+<p>Chapter 8: <a href="chapter-8.html.en">stuff</a></li>
+<ul>
+<li>8.1. <a href="chapter-8.html.en#8.1">stuff</a></li>
+</ul>
+
+<h3><a name="appendix">Appendix</a></h3>
+<ul>
+<li>A.1. <a href="tools-doc.html.en">Userspace tools documentation</a></li>
+<li>A.2. <a href="tool-editpolicy.html.en">Policy editor documentation</a></li>
+<li>A.3. <a href="policy-reference.html.en">Policy specification</a></li>
 </ul>
 
 </div><!-- regular-content -->

@@ -250,62 +250,54 @@ delete file ioctl pipefs:/[11965] 0x5413
 domain.starts &lt;kernel&gt; /usr/sbin/httpd
 </pre>
 
-<br>
-
 <h3><a name="6.2">6.2. Patterning file access permissions</a></h3>
 
 <p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in "Learning Mode". For example, the domain policy can be changed to accommodate for web server contents:</p>
 
-<p>
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
+<div class="simple-table">
+<table>
+<tr>
+<th>
+<p>Before</p>
+</th>
+<th>
+<p>After</p>
+</th>
+</tr>
+<tr>
+<td>
+<p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-file read /var/www/html/index.html<br>
-file read /var/www/html/alice/index.html<br>
-file read /var/www/html/alice/page1.html<br>
-file read /var/www/html/alice/page2.html<br>
-file read /var/www/html/alice/image1.jpg<br>
-file read /var/www/html/alice/image2.jpg<br>
-file read /var/www/html/alice/archive/page1.html<br>
-file read /var/www/html/alice/archive/image1.jpg<br>
-file read /var/www/html/alice/archive/page2.html<br>
-file read /var/www/html/alice/archive/image2.jpg<br>
-file read /var/www/html/bob/index.html<br>
-file read /var/www/html/bob/page1.html<br>
-file read /var/www/html/bob/page2.html<br>
-file read /var/www/html/bob/image1.jpg<br>
-file read /var/www/html/bob/image2.jpg<br>
-file read /var/www/html/bob/archive/page1.html<br>
-file read /var/www/html/bob/archive/image1.jpg<br>
-file read /var/www/html/bob/archive/page2.html<br>
-file read /var/www/html/bob/archive/image2.jpg
-</td><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
+<p>file read /var/www/html/index.html</p>
+<p>file read /var/www/html/alice/index.html</p>
+<p>file read /var/www/html/alice/page1.html</p>
+<p>file read /var/www/html/alice/page2.html</p>
+<p>file read /var/www/html/alice/image1.jpg</p>
+<p>file read /var/www/html/alice/image2.jpg</p>
+<p>file read /var/www/html/alice/archive/page1.html</p>
+<p>file read /var/www/html/alice/archive/image1.jpg</p>
+<p>file read /var/www/html/alice/archive/page2.html</p>
+<p>file read /var/www/html/alice/archive/image2.jpg</p>
+<p>file read /var/www/html/bob/index.html</p>
+<p>file read /var/www/html/bob/page1.html</p>
+<p>file read /var/www/html/bob/page2.html</p>
+<p>file read /var/www/html/bob/image1.jpg</p>
+<p>file read /var/www/html/bob/image2.jpg</p>
+<p>file read /var/www/html/bob/archive/page1.html</p>
+<p>file read /var/www/html/bob/archive/image1.jpg</p>
+<p>file read /var/www/html/bob/archive/page2.html</p>
+<p>file read /var/www/html/bob/archive/image2.jpg</p>
+</td>
+<td>
+<p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-file read /var/www/html/\*.html<br>
-file read /var/www/html/\{\*\}/\*.html<br>
-file read /var/www/html/\{\*\}/\*.jpg<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-</td></tr>
+<p>file read /var/www/html/\*.html</p>
+<p>file read /var/www/html/\{\*\}/\*.html</p>
+<p>file read /var/www/html/\{\*\}/\*.jpg</p>
+</td>
+</tr>
 </table>
-</p>
+</div>
 
 <p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
@@ -339,32 +331,38 @@ acl.starts file read
 rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 </pre>
 
-<br>
-
 <h3><a name="6.3">6.3. Patterning numeric permissions</a></h3>
 
 <p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
 
 <p>The following domain policy example permits "/usr/sbin/httpd" to accept connections from port numbers between 1024 and 65535:</p>
 
-<p>
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
+<div class="simple-table">
+<table>
+<tr>
+<th>
+<p>Before</p>
+</th>
+<th>
+<p>After</p>
+</th>
+</tr>
+<tr>
+<td>
+<p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829
-</td><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
+<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3810</p>
+<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829</p>
+<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829</p>
+</td>
+<td>
+<p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
-<br>
-<br>
-</td></tr>
+<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1024-65535</p>
+</td>
+</tr>
 </table>
-</p>
+</div>
 
 <p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
@@ -388,34 +386,40 @@ acl.starts network inet stream accept
 rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 </pre>
 
-<br>
-
 <h3><a name="6.4">6.4. Patterning network access permissions</a></h3>
 
 <p>Patterns can be made for IP addresses in domain policy, for example:</p>
 
-<p>
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
+<div class="simple-table">
+<table>
+<tr>
+<th>
+<p>Before</p>
+</th>
+<th>
+<p>After</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 10.0.0.10 @WEB-CLIENT-PORTS<br>
-network inet stream accept 10.0.0.200 @WEB-CLIENT-PORTS
-</td><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
+<p>network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS</p>
+<p>network inet stream accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS</p>
+<p>network inet stream accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS</p>
+<p>network inet stream accept 10.0.0.10 @WEB-CLIENT-PORTS</p>
+<p>network inet stream accept 10.0.0.200 @WEB-CLIENT-PORTS</p>
+</td>
+<td>
+<p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
-network inet stream accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS<br>
-network inet stream accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
-<br>
-<br>
-</td></tr>
+<p>network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS</p>
+<p>network inet stream accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS</p>
+<p>network inet stream accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS</p>
+</td>
+</tr>
 </table>
-</p>
+</div>
 
 <p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
@@ -449,8 +453,6 @@ acl.starts network inet stream accept
 rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 </pre>
 
-<br>
-
 <h3><a name="6.5">6.5. Reviewing gathered permissions</a></h3>
 
 <p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.</p>
@@ -459,21 +461,15 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 
 <p>Choose target domains, press the "s" key, enter "2" and press the "Enter" key:</p>
 
-<p><img src="editpolicy-httpd-set-profile2.png" alt="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
-
-<br>
+<img class="with-border" src="editpolicy-httpd-set-profile2.png" alt="editpolicy-httpd-set-profile2.png" width="675" height="375">
 
 <p>Now the profile number of the "/usr/sbin/httpd" domain and its descendants have changed to 2:</p>
 
-<p><img src="editpolicy-httpd-profile2.png" alt="editpolicy-httpd-profile2.png" width="720" height="400"></p>
-
-<br>
+<img class="with-border" src="editpolicy-httpd-profile2.png" alt="editpolicy-httpd-profile2.png" width="675" height="375">
 
 <p>Quit the policy editor and continue using Apache:</p>
 
-<p><img src="operation-permissive.png" alt="operation-permissive.png" width="723" height="561"></p>
-
-<br>
+<img class="with-border" src="operation-permissive.png" alt="operation-permissive.png" width="575" height="475">
 
 <p>You can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
@@ -490,8 +486,6 @@ Memory used by audit log:                      0 (Quota:   16777216)
 Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
-
-<br>
 
 <h3><a name="6.6">6.6. Using audit logs to develop policy (optional)</a></h3>
 
@@ -598,7 +592,6 @@ file read /etc/group
 file read /etc/group
 </pre>
 
-<br>
 <p>These can be compressed with the "ccs-sortpolicy" command:</p>
 
 <pre class="command">
@@ -654,8 +647,6 @@ use_group 0
 <pre class="command">
 # /usr/sbin/ccs-savepolicy
 </pre>
-
-<br>
 
 <p>If you are using TOMOYO Linux for system analysis, you have reached your goal. The steps outlined in the chapters so far can be repeated for all domains which you wish to analyze.</p>
 
