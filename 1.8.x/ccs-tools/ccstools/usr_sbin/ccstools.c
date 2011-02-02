@@ -27,14 +27,7 @@ struct ccs_savename_entry {
 	struct ccs_path_info entry;
 };
 
-struct ccs_free_memory_block_list {
-	struct ccs_free_memory_block_list *next;
-	char *ptr;
-	int len;
-};
-
 #define CCS_SAVENAME_MAX_HASH            256
-#define CCS_PAGE_SIZE                    4096
 
 /* Use ccs-editpolicy-agent process? */
 _Bool ccs_network_mode = false;
@@ -56,7 +49,6 @@ static _Bool ccs_decimal(const char c);
 static _Bool ccs_hexadecimal(const char c);
 static _Bool ccs_alphabet_char(const char c);
 static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
-static void *ccs_alloc_element(const unsigned int size);
 static int ccs_const_part_length(const char *filename);
 static int ccs_domainname_compare(const void *a, const void *b);
 static int ccs_path_info_compare(const void *a, const void *b);
@@ -248,41 +240,6 @@ static inline unsigned int ccs_full_name_hash(const unsigned char *name,
 	while (len--)
 		hash = ccs_partial_name_hash(*name++, hash);
 	return (unsigned int) hash;
-}
-
-/**
- * ccs_alloc_element - Allocate memory for elements.
- *
- * @size: Size in byte.
- *
- * Returns pointer to allocated memory.
- *
- * This function will not allocate memory larger than CCS_PAGE_SIZE bytes.
- */
-static void *ccs_alloc_element(const unsigned int size)
-{
-	static char *buf = NULL;
-	static unsigned int buf_used_len = CCS_PAGE_SIZE;
-	char *ptr = NULL;
-	if (size > CCS_PAGE_SIZE)
-		return NULL;
-	if (buf_used_len + size > CCS_PAGE_SIZE) {
-		ptr = malloc(CCS_PAGE_SIZE);
-		if (!ptr)
-			ccs_out_of_memory();
-		buf = ptr;
-		memset(buf, 0, CCS_PAGE_SIZE);
-		buf_used_len = size;
-		ptr = buf;
-	} else if (size) {
-		int i;
-		ptr = buf + buf_used_len;
-		buf_used_len += size;
-		for (i = 0; i < size; i++)
-			if (ptr[i])
-				ccs_out_of_memory();
-	}
-	return ptr;
 }
 
 /**
@@ -868,22 +825,6 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 }
 
 /**
- * ccs_memsize - Calculate memory size to allocate.
- *
- * @size: Size in byte.
- *
- * Returns memory size to allocate on success, 0 otherwise.
- *
- * This function will not calculate memory size larger than 1048576 bytes.
- */
-static unsigned int ccs_memsize(const unsigned int size)
-{
-	if (size <= 1048576)
-		return ((size / CCS_PAGE_SIZE) + 1) * CCS_PAGE_SIZE;
-	return 0;
-}
-
-/**
  * ccs_savename - Remember string data.
  *
  * @name: Pointer to "const char".
@@ -894,13 +835,11 @@ static unsigned int ccs_memsize(const unsigned int size)
  */
 const struct ccs_path_info *ccs_savename(const char *name)
 {
-	static struct ccs_free_memory_block_list fmb_list = { NULL, NULL, 0 };
 	/* The list of names. */
 	static struct ccs_savename_entry name_list[CCS_SAVENAME_MAX_HASH];
 	struct ccs_savename_entry *ptr;
 	struct ccs_savename_entry *prev = NULL;
 	unsigned int hash;
-	struct ccs_free_memory_block_list *fmb = &fmb_list;
 	int len;
 	static _Bool first_call = true;
 	if (!name)
@@ -923,39 +862,14 @@ const struct ccs_path_info *ccs_savename(const char *name)
 		prev = ptr;
 		ptr = ptr->next;
 	}
-	while (len > fmb->len) {
-		char *cp;
-		if (fmb->next) {
-			fmb = fmb->next;
-			continue;
-		}
-		cp = malloc(ccs_memsize(len));
-		if (!cp)
-			ccs_out_of_memory();
-		fmb->next = ccs_alloc_element(sizeof(*fmb->next));
-		if (!fmb->next)
-			ccs_out_of_memory();
-		memset(cp, 0, ccs_memsize(len));
-		fmb = fmb->next;
-		fmb->ptr = cp;
-		fmb->len = ccs_memsize(len);
-	}
-	ptr = ccs_alloc_element(sizeof(*ptr));
+	ptr = malloc(sizeof(*ptr) + len);
 	if (!ptr)
 		ccs_out_of_memory();
-	memset(ptr, 0, sizeof(struct ccs_savename_entry));
-	ptr->entry.name = fmb->ptr;
-	memmove(fmb->ptr, name, len);
+	ptr->next = NULL;
+	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
+	memmove((void *) ptr->entry.name, name, len);
 	ccs_fill_path_info(&ptr->entry);
-	fmb->ptr += len;
-	fmb->len -= len;
 	prev->next = ptr; /* prev != NULL because name_list is not empty. */
-	if (!fmb->len) {
-		struct ccs_free_memory_block_list *ptr = &fmb_list;
-		while (ptr->next != fmb)
-			ptr = ptr->next;
-		ptr->next = fmb->next;
-	}
 out:
 	return ptr ? &ptr->entry : NULL;
 }
