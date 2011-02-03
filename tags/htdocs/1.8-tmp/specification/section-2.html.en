@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : Specification : C2. The /proc/ccs interface</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../index.html.en"><img src="../../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<h2>C2: The /proc/ccs interface</h2>
+
+<h3><a name="2.1">C2.1. /proc/ccs/audit</a></h3>
+
+<p>This read-only interface contains the audit log. The reader process returns immediately if no granted log exists. To wait until an audit log is generated, use select(2) for readability.</p>
+
+<p>This interface is dependent on how the profiles have been configured in "/proc/ccs/profile". The following profile options affect it:</p>
+<ul>
+<li>grant_log</li>
+<li>reject_log</li>
+<li>max_audit_log</li>
+</ul>
+
+<h3><a name="2.2">C2.2. /proc/ccs/domain_policy</a></h3>
+
+<p>This read/write interface contains the policy that is defined for each domain. Any lines starting with "&lt;kernel&gt;" indicate the start of a new block of access permissions.</p>
+
+<p>The associated configuration file is "/etc/ccs/domain_policy.conf".</p>
+
+<h3><a name="2.3">C2.3. /proc/ccs/exception_policy</a></h3>
+
+<p>This read/write interface contains the exception policy. Each line is an individual entry.</p>
+
+<p>The associated configuration file is "/etc/ccs/exception_policy.conf".</p>
+
+<h3><a name="2.4">C2.4. /proc/ccs/manager</a></h3>
+
+<p>This read/write interface contains a list of domains that have been given permission to write to the /proc/ccs interface.</p>
+
+<p>The associated configuration file is "/etc/ccs/manager.conf".</p>
+
+<h3><a name="2.5">C2.5. /proc/ccs/meminfo</a></h3>
+
+<p>This read-only interface shows the memory usage of TOMOYO Linux in bytes.</p>
+
+<pre class="command">
+# cat /proc/ccs/meminfo
+</pre>
+
+<pre class="output">
+Policy:          377376
+Audit logs:           0
+Query lists:          0
+Total:           377376
+</pre>
+
+<ul>
+<li><strong>Policy</strong> shows the memory used for holding access permissions.</li>
+<li><strong>Audit logs</strong> shows the memory used for holding audit logs.</li>
+<li><strong>Query lists</strong> shows the memory used while running the userspace tool "/usr/sbin/ccs-queryd".</li>
+<li><strong>Total</strong> shows the total memory used.</li>
+</ul>
+
+<h3><a name="2.6">C2.6. /proc/ccs/profile</a></h3>
+
+<p>This read/write interface contains the profile configuration.</p>
+
+<p>The associated configuration file is "/etc/ccs/profile.conf".</p>
+
+<h3><a name="2.7">C2.7. /proc/ccs/query</a></h3>
+
+<p>This read/write interface is used to grant or reject individual access requests that occur within domains in "Enforcing Mode".</p>
+
+<p>The associated tool is "ccs-queryd".</p>
+
+<h3><a name="2.8">C2.8. /proc/ccs/self_domain</a></h3>
+
+<p>This read-only interface shows the domain of the caller process.</p>
+
+<h3><a name="2.9">C2.9. /proc/ccs/stat</a></h3>
+
+<p>This read-only interface contains information about policy violations and memory usage.</p>
+
+<pre class="command">
+# cat /proc/ccs/stat
+</pre>
+
+<pre class="output">
+Policy update:                               172 (Last: 2011/02/03 18:03:01)
+Policy violation in learning mode:             0
+Policy violation in permissive mode:           0
+Policy violation in enforcing mode:            0
+Memory used by policy:                     41792
+Memory used by audit log:                 159328
+Memory used by query message:                  0
+Total memory used:                        201120
+</pre>
+
+<ul>
+<li><strong>Policy update</strong> shows the total number of domains and the last time that policy was updated.</li>
+<li><strong>Policy violation in learning mode</strong> shows the total number of policy violations that have occurred in domains set to "Learning Mode".</li>
+<li><strong>Policy violation in permissive mode</strong> shows the total number of policy violations that have occurred in domains set to "Permissive Mode".</li>
+<li><strong>Policy violation in enforcing mode</strong> shows the total number of policy violations that have occurred in domains set to "Enforcing Mode".</li>
+</ul>
+
+<h3><a name="2.10">C2.10. /proc/ccs/version</a></h3>
+
+<p>This read-only interface contains the currently running version of TOMOYO Linux.</p>
+
+<h3><a name="2.11">C2.11. /proc/ccs/.domain_status</a></h3>
+
+<p>This read-only interface contains a list of domain names and profile numbers currently defined in domain policy.</p>
+
+<p>This is used primarily by the userspace tool "/usr/sbin/set-profile".</p>
+
+<h3><a name="2.12">C2.12. /proc/ccs/.execute_handler</a></h3>
+
+<p>This read-only interface contains information regarding the execute handler.</p>
+
+<h3><a name="2.13">C2.13. /proc/ccs/.process_status</a></h3>
+
+<p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
+
+<p>This interface is used primarily by the userspace tool "/usr/sbin/ccs-pstree".</p>
+
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="section-1.html.en">Next</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+<a href="section-3.html.en">Next</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>C1: Expression rules</p>
+</td>
+<td class="docs-home">
+<a href="../index.html.en">Main Index</a>
+</td>
+<td class="docs-next-description">
+<p>C3:</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date: 2011-02-02 00:15:57 +0000 (Wed, 02 Feb 2011) $</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>
