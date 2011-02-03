@@ -107,84 +107,75 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <p><img src="media/editpolicy-profile-list.png" alt="editpolicy-profile-list.png" width="675" height="375"></p>
 
+<p>Each profile contains 3 fields:</p>
+
 <div class="simple-table">
 <table>
 <tr>
-<th>
-<p>Name</p>
-</th>
-<th>
-<p>Control</p>
-</th>
+<th><p>Name</p></th>
+<th><p>Control</p></th>
 </tr>
 <tr>
-<td>
-<p>COMMENT</p>
-</td>
-<td>
-<p>Description of the profile.</p>
-</td>
+<td><p>COMMENT</p></td>
+<td><p>Description of the profile.</p></td>
 </tr>
 <tr>
-<td>
-<p>CONFIG</p>
-</td>
-<td>
-<p>Configuration of operation mode.</p>
-</td>
+<td><p>CONFIG</p></td>
+<td><p>Configuration of operation mode.</p></td>
 </tr>
 <tr>
-<td>
-<p>PREFERENCE</p>
-</td>
-<td>
-<p>Configuration of various options.</p>
-</td>
+<td><p>PREFERENCE</p></td>
+<td><p>Configuration of various options.</p></td>
 </tr>
 </table>
 </div>
 
-<p>The "mode=" parameter of the CONFIG line can contain one of the following values:</p>
+<p>The "mode" parameter of the CONFIG line can contain one of the following values:</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th>
-<p>Value</p>
-</th>
-<th>
-<p>Meaning</p>
-</th>
+<th><p>Value</p></th>
+<th><p>Meaning</p></th>
 </tr>
 <tr>
-<td>
-<p>Disabled</p>
-</td>
-<td>
-<p>Works as if a regular kernel.</p>
-</td>
+<td><p>Disabled</p></td>
+<td><p>Works as if a regular kernel.</p></td>
 </tr>
 <tr>
-<td>
-<p>Learning</p>
-</td>
-<td>
-<p>Do not reject an access request if the request violates policy. Append the request to policy.</p>
-</td>
+<td><p>Learning</p></td>
+<td><p>Do not reject an access request if the request violates policy. Append the request to policy.</p></td>
 </tr>
 <tr>
-<td>Permissive</td>
-<td>
-<p>Do not reject an access request if the request violates policy. Do not append the request to policy.</p>
-</td>
+<td><p>Permissive</p></td>
+<td><p>Do not reject an access request if the request violates policy. Do not append the request to policy.</p></td>
 </tr>
 <tr>
-<td>
-<p>Enforcing</p>
-</td>
-<td>
-<p>Reject an access request if the request violates policy. Do not append the request to policy.</p>
-</td>
+<td><p>Enforcing</p></td>
+<td><p>Reject an access request if the request violates policy. Do not append the request to policy.</p></td>
+</tr>
+</table>
+</div>
+
+<p>The PREFERENCE line holds the following options:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Name</p></th>
+<th><p>Function</p></th>
+</tr>
+<tr>
+<td><p>max_audit_log</p></td>
+<td><p>Sets the maximum number of audit logs that the kernel will hold</p></td>
+</tr>
+<tr>
+<td><p>max_learning_entry</p></td>
+<td><p>Sets the maximum number of domain policy entries appended by "Learning Mode"</p>
+</tr>
+<tr>
+<td><p>enforcing_penalty</p></td>
+<td><p>Sets the length of time a process is forced to sleep after policy violation</p>
 </tr>
 </table>
 </div>
