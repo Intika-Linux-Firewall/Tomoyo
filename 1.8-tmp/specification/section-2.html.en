@@ -59,9 +59,21 @@
 
 <h3><a name="2.4">C2.4. /proc/ccs/manager</a></h3>
 
-<p>This read/write interface contains a list of domains that have been given permission to write to the /proc/ccs interface.</p>
+<p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs" interface.</p>
 
 <p>The associated configuration file is "/etc/ccs/manager.conf".</p>
+
+<pre class="command">
+# cat /proc/ccs/manager
+</pre>
+
+<pre class="output">
+/usr/sbin/ccs-loadpolicy
+/usr/sbin/ccs-editpolicy
+/usr/sbin/ccs-setlevel
+/usr/sbin/ccs-setprofile
+/usr/sbin/ccs-queryd
+</pre>
 
 <h3><a name="2.5">C2.5. /proc/ccs/meminfo</a></h3>
 
@@ -95,7 +107,7 @@ Total:           377376
 
 <p>This read/write interface is used to grant or reject individual access requests that occur within domains in "Enforcing Mode".</p>
 
-<p>The associated tool is "ccs-queryd".</p>
+<p>This interface is used primarily by the userspace tool "/usr/sbin/ccs-queryd".</p>
 
 <h3><a name="2.8">C2.8. /proc/ccs/self_domain</a></h3>
 
@@ -147,7 +159,6 @@ Total memory used:                        201120
 
 <p>This interface is used primarily by the userspace tool "/usr/sbin/ccs-pstree".</p>
 
-
 </div><!-- documentation -->
 
 </div><!-- content -->
@@ -157,7 +168,7 @@ Total memory used:                        201120
 <table>
 <tr>
 <td class="docs-previous">
-<a href="section-1.html.en">Next</a>
+<a href="section-1.html.en">Prev</a>
 </td>
 <td class="docs-index">
 <a href="index.html.en">Index</a>
@@ -174,7 +185,7 @@ Total memory used:                        201120
 <a href="../index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
-<p>C3:</p>
+<p>C3: Profile management</p>
 </td>
 </tr>
 </table>

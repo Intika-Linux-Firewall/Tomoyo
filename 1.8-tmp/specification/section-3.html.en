@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Specification</title>
+<title>TOMOYO Linux 1.8.x : Specification : C3. Interface permissions</title>
 </head>
 
 <body>
@@ -32,44 +32,48 @@
 
 <div id="documentation">
 
-<h2>Appendix C: Specification</h2>
+<h2>C3: Interface permissions</h2>
 
-<h3><a name="contents">Contents</a></h3>
+<h3><a name="3.1">C3.1. Register applications</h3>
 
-<p><strong>C1:</strong> <a href="section-1.html.en">Expression rules</a></p>
-<ul>
-<li>C1.1. <a href="section-1.html.en#1.1">Word expression rules</a></li>
-<li>C1.2. <a href="section-1.html.en#1.2">Wildcard expression rules</a></li>
-</ul>
+<p>In order for a application or domain to modify policy in the "/proc/ccs" interface, it must be listed in "/proc/ccs/manager". To register an application, you can for example run the following command:</p>
 
-<p><strong>C2:</strong> <a href="section-2.html.en">The /proc/ccs interface</a></p>
-<ul>
-<li>C2.1. <a href="section-2.html.en#2.1">/proc/ccs/audit</a></li>
-<li>C2.2. <a href="section-2.html.en#2.2">/proc/ccs/domain_policy</a></li>
-<li>C2.3. <a href="section-2.html.en#2.3">/proc/ccs/exception_policy</a></li>
-<li>C2.4. <a href="section-2.html.en#2.4">/proc/ccs/manager</a></li>
-<li>C2.5. <a href="section-2.html.en#2.5">/proc/ccs/meminfo</a></li>
-<li>C2.6. <a href="section-2.html.en#2.6">/proc/ccs/profile</a></li>
-<li>C2.7. <a href="section-2.html.en#2.7">/proc/ccs/query</a></li>
-<li>C2.8. <a href="section-2.html.en#2.8">/proc/ccs/self_domain</a></li>
-<li>C2.9. <a href="section-2.html.en#2.9">/proc/ccs/stat</a></li>
-<li>C2.10. <a href="section-2.html.en#2.10">/proc/ccs/version</a></li>
-<li>C2.11. <a href="section-2.html.en#2.11">/proc/ccs/.domain_status</a></li>
-<li>C2.12. <a href="section-2.html.en#2.12">/proc/ccs/.execute_handler</a></li>
-<li>C2.13. <a href="section-2.html.en#2.13">/proc/ccs/.process_status</a></li>
-</ul>
+<pre class="command">
+# echo "/usr/sbin/ccs-editpolicy" | /usr/sbin/ccs-loadpolicy -m
+</pre>
 
-<p><strong>C3:</strong> <a href="section-3.html.en">Interface permissions</a></p>
-<ul>
-<li>C3.1. <a href="section-3.html.en#3.1">Register applications</a></li>
-<li>C3.2. <a href="section-3.html.en#3.2">Managing as non-root user</a></li>
-</ul>
+<h3><a name="3.2">C3.2. Managing as non-root user</h3>
 
-<p><strong>C4:</strong> <a href="section-4.html.en">Profile management</a></p>
-<ul>
-<li>C4.1. <a href="section-4.html.en#4.1">Userspace tools</a></li>
-<li>C4.2. <a href="section-4.html.en#4.2">Configuration syntax</a></li>
-</ul>
+<p>By default, only processes with UID=0 and EUID=0 are allowed to modify policy. In order to allow your normal non-root user to modify policy, run this command:</p>
+
+<pre class="command">
+# echo "manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
+# chown -R $USER:$USER /proc/ccs
+</pre>
+
+<p>This can be reversed by running this command:</p>
+
+<pre class="command">
+# echo "delete manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
+# chown -R root:root /proc/ccs
+</pre>
+
+<p>If you want to have a separate user that is able to modify policy, the file "/etc/ccs/ccs-post-init" can be used. If this file exists, it is executed by "/sbin/ccs-init" at boot. Create "/etc/ccs/ccs-post-init" with the following contents:</p>
+
+<pre>
+#! /bin/sh
+echo manage_by_non_root &gt; /proc/ccs/manager
+chown -R tomoyo:tomoyo /proc/ccs/
+</pre>
+
+<p>Then run the following commands:</p>
+
+<pre class="command">
+# chmod 755 /etc/ccs/ccs-post-init
+# chown -R tomoyo:tomoyo /etc/ccs/
+</pre>
+
+<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to "/proc/ccs/domain_policy" until "max_learning_entry" has been reached.</p>
 
 </div><!-- documentation -->
 
@@ -80,19 +84,24 @@
 <table>
 <tr>
 <td class="docs-previous">
+<a href="section-2.html.en">Prev</a>
 </td>
 <td class="docs-index">
-<a href="../index.html.en">Main Index</a>
+<a href="index.html.en">Index</a>
 </td>
 <td class="docs-next">
+<a href="section-4.html.en">Next</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
+<p>C2: The /proc/ccs interface</p>
 </td>
 <td class="docs-home">
+<a href="../index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
+<p>C4: Profile management</p>
 </td>
 </tr>
 </table>
