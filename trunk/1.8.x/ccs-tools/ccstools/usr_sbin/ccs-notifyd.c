@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 	}
 	query_fd = open(proc_policy_query, O_RDWR);
 	if (query_fd == EOF) {
-		fprintf(stderr, "You can't run this utility for this kernel."
+		fprintf(stderr, "You can't run this daemon for this kernel."
 			"\n");
 		return 1;
 	} else if (time_to_wait && write(query_fd, "", 0) != 0) {
