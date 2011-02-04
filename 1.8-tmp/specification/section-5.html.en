@@ -34,7 +34,7 @@
 
 <h2>C5: Exception policy syntax</h2>
 
-<h3><a name="5.1">C5.1. acl_group</a></h3>
+<h3><a name="acl_group">acl_group</a></h3>
 
 <p>This directive specifies a group entry. This can be referenced to in domain policy by the "use_group" directive. This directive should be followed by a group number, followed by an entry that matches domain policy syntax.</p>
 
@@ -44,7 +44,7 @@
 acl_group 0 file read /dev/null
 </pre>
 
-<h3><a name="5.2">C5.2. aggregator</a></h3>
+<h3><a name="aggregator">aggregator</a></h3>
 
 <p>This directive allows multiple applications to be aggregated together. This directive is intended to aggregate similar programs whose behaviours are very similar.</p>
 
@@ -54,7 +54,7 @@ acl_group 0 file read /dev/null
 aggregator /usr/bin/tac /usr/bin/cat
 </pre>
 
-<h3><a name="5.3">C5.3. initialize_domain</a></h3>
+<h3><a name="initialize_domain">initialize_domain</a></h3>
 
 <p>This directive causes a domain to undergo domain transition and reinitialize as a top-level domain.</p>
 
@@ -71,7 +71,7 @@ aggregator /usr/bin/tac /usr/bin/cat
 initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<h3><a name="5.4">C5.4. no_initialize_domain</a></h3>
+<h3><a name="no_initialize_domain">no_initialize_domain</a></h3>
 
 <p>This directive prevents a domain from reinitializing from a specific domain. This only applies to domains that have the "initialize_domain" directive.</p>
 
@@ -89,7 +89,7 @@ initialize_domain /usr/sbin/sendmail.sendmail from any
 no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 </pre>
 
-<h3><a name="5.5">C5.5. keep_domain</a></h3>
+<h3><a name="keep_domain">keep_domain</a></h3>
 
 <p>This directive prevents any domain transitions from occurring from a particular domain.</p>
 
@@ -106,7 +106,7 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
-<h3><a name="5.6">C5.6. no_keep_domain</a></h3>
+<h3><a name="no_keep_domain">no_keep_domain</a></h3>
 
 <p>This directive resumes domain transition from a specific domain. This only applies to domains that have the "keep_domain" directive.</p>
 
@@ -125,7 +125,7 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
-<h3><a name="5.7">C5.7. address_group</a></h3>
+<h3><a name="address_group">address_group</a></h3>
 
 <p>This directive declares a group name that can be used in domain policy to refer to a range of IP addresses.</p>
 
@@ -143,7 +143,7 @@ address_group LOCAL-ADDRESS 192.168.0.0-192.168.255.255
 network inet stream accept @LOCAL-ADDRESS 1024-65535
 </pre>
 
-<h3><a name="5.8">C5.8. number_group</a></h3>
+<h3><a name="number_group">number_group</a></h3>
 
 <p>This directive declares a group name that can be used in domain policy to refer to a range of numbers.</p>
 
@@ -159,7 +159,7 @@ number_group CREATE-MODES 0664
 file create /tmp/file @CREATE-MODES
 </pre>
 
-<h3><a name="5.9">C5.9. path_group</a></h3>
+<h3><a name="path_group">path_group</a></h3>
 
 <p>This directive declares a group name that can be used in domain policy to refer to a range of pathnames.</p>
 
@@ -175,7 +175,7 @@ path_group HOME-DIR-FILE /home/\*/\{\*\}/\*
 file read @HOME-DIR-FILE
 </pre>
 
-<h3><a name="5.10">C5.10. deny_autobind</a></h3>
+<h3><a name="deny_autobind">deny_autobind</a></h3>
 
 <p>This directive prevents a specific local port from being selected automatically.</p>
 

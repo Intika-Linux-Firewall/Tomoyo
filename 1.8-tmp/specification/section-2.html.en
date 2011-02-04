@@ -34,7 +34,7 @@
 
 <h2>C2: The /proc/ccs interface</h2>
 
-<h3><a name="2.1">C2.1. /proc/ccs/audit</a></h3>
+<h3><a name="audit">/proc/ccs/audit</a></h3>
 
 <p>This read-only interface contains the audit log. The reader process returns immediately if no granted log exists. To wait until an audit log is generated, use select(2) for readability.</p>
 
@@ -45,19 +45,19 @@
 <li>max_audit_log</li>
 </ul>
 
-<h3><a name="2.2">C2.2. /proc/ccs/domain_policy</a></h3>
+<h3><a name="domain_policy">/proc/ccs/domain_policy</a></h3>
 
 <p>This read/write interface contains the policy that is defined for each domain. Any lines starting with "&lt;kernel&gt;" indicate the start of a new block of access permissions.</p>
 
 <p>The associated configuration file is "/etc/ccs/domain_policy.conf".</p>
 
-<h3><a name="2.3">C2.3. /proc/ccs/exception_policy</a></h3>
+<h3><a name="exception_policy">/proc/ccs/exception_policy</a></h3>
 
 <p>This read/write interface contains the exception policy. Each line is an individual entry.</p>
 
 <p>The associated configuration file is "/etc/ccs/exception_policy.conf".</p>
 
-<h3><a name="2.4">C2.4. /proc/ccs/manager</a></h3>
+<h3><a name="manager">/proc/ccs/manager</a></h3>
 
 <p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs" interface.</p>
 
@@ -75,7 +75,7 @@
 /usr/sbin/ccs-queryd
 </pre>
 
-<h3><a name="2.5">C2.5. /proc/ccs/meminfo</a></h3>
+<h3><a name="meminfo">/proc/ccs/meminfo</a></h3>
 
 <p>This read-only interface shows the memory usage of TOMOYO Linux in bytes.</p>
 
@@ -97,23 +97,23 @@ Total:           377376
 <li><strong>Total</strong> shows the total memory used.</li>
 </ul>
 
-<h3><a name="2.6">C2.6. /proc/ccs/profile</a></h3>
+<h3><a name="profile">/proc/ccs/profile</a></h3>
 
 <p>This read/write interface contains the profile configuration.</p>
 
 <p>The associated configuration file is "/etc/ccs/profile.conf".</p>
 
-<h3><a name="2.7">C2.7. /proc/ccs/query</a></h3>
+<h3><a name="query">/proc/ccs/query</a></h3>
 
 <p>This read/write interface is used to grant or reject individual access requests that occur within domains in "Enforcing Mode".</p>
 
 <p>This interface is used primarily by the userspace tool "/usr/sbin/ccs-queryd".</p>
 
-<h3><a name="2.8">C2.8. /proc/ccs/self_domain</a></h3>
+<h3><a name="self_domain">/proc/ccs/self_domain</a></h3>
 
 <p>This read-only interface shows the domain of the caller process.</p>
 
-<h3><a name="2.9">C2.9. /proc/ccs/stat</a></h3>
+<h3><a name="stat">/proc/ccs/stat</a></h3>
 
 <p>This read-only interface contains information about policy violations and memory usage.</p>
 
@@ -139,21 +139,21 @@ Total memory used:                        201120
 <li><strong>Policy violation in enforcing mode</strong> shows the total number of policy violations that have occurred in domains set to "Enforcing Mode".</li>
 </ul>
 
-<h3><a name="2.10">C2.10. /proc/ccs/version</a></h3>
+<h3><a name="version">/proc/ccs/version</a></h3>
 
 <p>This read-only interface contains the currently running version of TOMOYO Linux.</p>
 
-<h3><a name="2.11">C2.11. /proc/ccs/.domain_status</a></h3>
+<h3><a name=".domain_status">/proc/ccs/.domain_status</a></h3>
 
 <p>This read-only interface contains a list of domain names and profile numbers currently defined in domain policy.</p>
 
 <p>This is used primarily by the userspace tool "/usr/sbin/set-profile".</p>
 
-<h3><a name="2.12">C2.12. /proc/ccs/.execute_handler</a></h3>
+<h3><a name=".execute_handler">/proc/ccs/.execute_handler</a></h3>
 
 <p>This read-only interface contains information regarding the execute handler.</p>
 
-<h3><a name="2.13">C2.13. /proc/ccs/.process_status</a></h3>
+<h3><a name=".process_status">/proc/ccs/.process_status</a></h3>
 
 <p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
 
