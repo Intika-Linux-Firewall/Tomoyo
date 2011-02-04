@@ -36,7 +36,7 @@
 
 <h3><a name="1.1">C1.1. Word expression rules</a></h3>
 
-<p>A pathname may contain not only regular characters but also spaces, carriage returns and multibyte characters. Such pathnames can be managed by TOMOYO Linux using octal expressions. Information from the table below can be used to represent special characters.<p>
+<p>Pathnames may contain not only regular characters but also spaces, carriage returns and multibyte characters. Such pathnames can be managed by TOMOYO Linux using octal expressions. Information from the table below can be used to represent special characters.<p>
 
 <p>The first row indicates the lower 4 bits and the first column indicates the higher 4 bits.</p>
 
@@ -461,6 +461,18 @@
 </tr>
 </table>
 </div>
+
+<h3><a name="1.3">C1.3. Filesystem expression rules</a></h3>
+
+<p>Pathnames must generally begin with a "/", but they can also be specified using a special prefix.</p>
+
+<p>For example, the file "/proc/meminfo" can instead be referred to as "proc:/meminfo".</p>
+
+<p>To see a list of possible prefixes supported by your kernel, run the following command:</p>
+
+<pre class="command">
+$ cat /proc/filesystems
+</pre>
 
 </div><!-- documentation -->
 
