@@ -406,12 +406,23 @@ struct ccs_readline_data {
 	char *search_buffer[CCS_MAXSCREEN];
 };
 
+struct ccs_screen {
+	/* Index of currently selected line on each screen. */
+	int current;
+	/* Current cursor position on CUI screen. */
+	int y;
+	/* Columns to shift when displaying. */
+	int x;
+	/* For ccs_editpolicy_line_draw(). */
+	int saved_color_current; /* Initialized to -1 */
+	int saved_color_y;
+};
+
 #define CCS_HEADER_LINES 3
 
 #define CCS_EDITPOLICY_CONF "/etc/ccs/tools/editpolicy.conf"
 
-enum ccs_color_pair ccs_editpolicy_color_cursor(const enum ccs_screen_type screen);
-enum ccs_color_pair ccs_editpolicy_color_head(const enum ccs_screen_type screen);
+enum ccs_color_pair ccs_editpolicy_color_head(void);
 enum ccs_screen_type ccs_find_directive(const _Bool forward, char *line);
 int ccs_add_address_group_policy(char *data, const _Bool is_delete);
 int ccs_add_number_group_policy(char *data, const _Bool is_delete);
@@ -421,15 +432,16 @@ void ccs_editpolicy_clear_groups(void);
 void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
 void ccs_editpolicy_color_init(void);
 void ccs_editpolicy_init_keyword_map(void);
-void ccs_editpolicy_line_draw(const enum ccs_screen_type screen);
+void ccs_editpolicy_line_draw(void);
 void ccs_editpolicy_offline_daemon(void);
 void ccs_editpolicy_sttr_restore(void);
 void ccs_editpolicy_sttr_save(void);
-void ccs_editpolicy_optimize(const int current, const enum ccs_screen_type screen);
+void ccs_editpolicy_optimize(const int current);
 
-extern int ccs_current_y[CCS_MAXSCREEN];
+extern enum ccs_screen_type ccs_current_screen;
+extern struct ccs_screen ccs_screen[CCS_MAXSCREEN];
 extern int ccs_gacl_list_count;
-extern int ccs_list_item_count[CCS_MAXSCREEN];
+extern int ccs_list_item_count;
 extern int ccs_path_group_list_len;
 extern int ccs_persistent_fd;
 extern struct ccs_domain_policy ccs_dp;

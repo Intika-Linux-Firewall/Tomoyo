@@ -61,7 +61,7 @@ static char *ccs_current_domain = NULL;
 /* Currently selected PID. */
 static unsigned int ccs_current_pid = 0;
 /* Currently active screen's index. */
-static enum ccs_screen_type ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+enum ccs_screen_type ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
 /*
  * Array of "initialize_domain"/"no_initialize_domain"/"keep_domain"/
  * "no_keep_domain" entries.
@@ -77,16 +77,12 @@ static int ccs_unnumbered_domain_count = 0;
 static int ccs_window_width = 0;
 /* Height of CUI screen. */
 static int ccs_window_height = 0;
-/* Index of currently selected line on each screen. */
-static int ccs_current_item_index[CCS_MAXSCREEN];
-/* Current cursor position on CUI screen. */
-int ccs_current_y[CCS_MAXSCREEN];
-/* Number of entries available on each screen. */
-int ccs_list_item_count[CCS_MAXSCREEN];
+/* Cursor info for CUI screen. */
+struct ccs_screen ccs_screen[CCS_MAXSCREEN] = { };
+/* Number of entries available on current screen. */
+int ccs_list_item_count = 0;
 /* Lines available for displaying ACL entries.  */
 static int ccs_body_lines = 0;
-/* Columns to shift when displaying. */
-static int ccs_max_eat_col[CCS_MAXSCREEN];
 /* Columns to shift. */
 static int ccs_eat_col = 0;
 /* Max columns. */
@@ -1626,17 +1622,16 @@ static int ccs_show_process_line(const int index)
  */
 static void ccs_show_list(void)
 {
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
 	int ccs_list_indent;
-	const int offset = ccs_current_item_index[ccs_current_screen];
+	const int offset = ptr->current;
 	int i;
 	int tmp_col;
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST)
-		ccs_list_item_count[CCS_SCREEN_DOMAIN_LIST] =
-			ccs_domain_sort_type ?
+		ccs_list_item_count = ccs_domain_sort_type ?
 			ccs_task_list_len : ccs_dp.list_len;
 	else
-		ccs_list_item_count[ccs_current_screen] =
-			ccs_gacl_list_count;
+		ccs_list_item_count = ccs_gacl_list_count;
 	clear();
 	move(0, 0);
 	if (ccs_window_height < CCS_HEADER_LINES + 1) {
@@ -1646,8 +1641,7 @@ static void ccs_show_list(void)
 		return;
 	}
 	/* add color */
-	ccs_editpolicy_color_change
-		(ccs_editpolicy_color_head(ccs_current_screen), true);
+	ccs_editpolicy_color_change(ccs_editpolicy_color_head(), true);
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (ccs_domain_sort_type) {
 			printw("<<< Process State Viewer >>>"
@@ -1655,22 +1649,21 @@ static void ccs_show_list(void)
 			       ccs_task_list_len,
 			       ccs_task_list_len > 1 ? "es" : "");
 		} else {
-			int i = ccs_list_item_count[CCS_SCREEN_DOMAIN_LIST]
+			int i = ccs_list_item_count
 				- ccs_unnumbered_domain_count;
 			printw("<<< Domain Transition Editor >>>"
 			       "      %d domain%c    '?' for help",
 			       i, i > 1 ? 's' : ' ');
 		}
 	} else {
-		int i = ccs_list_item_count[ccs_current_screen];
+		int i = ccs_list_item_count;
 		printw("<<< %s >>>"
 		       "      %d entr%s    '?' for help", ccs_list_caption,
 		       i, i > 1 ? "ies" : "y");
 	}
 	/* add color */
-	ccs_editpolicy_color_change
-		(ccs_editpolicy_color_head(ccs_current_screen), false);
-	ccs_eat_col = ccs_max_eat_col[ccs_current_screen];
+	ccs_editpolicy_color_change(ccs_editpolicy_color_head(), false);
+	ccs_eat_col = ptr->x;
 	ccs_max_col = 0;
 	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
 		char *line;
@@ -1686,7 +1679,7 @@ static void ccs_show_list(void)
 	switch (ccs_current_screen) {
 	case CCS_SCREEN_EXCEPTION_LIST:
 	case CCS_SCREEN_ACL_LIST:
-		for (i = 0; i < ccs_list_item_count[ccs_current_screen]; i++) {
+		for (i = 0; i < ccs_list_item_count; i++) {
 			const enum ccs_editpolicy_directives directive =
 				ccs_gacl_list[i].directive;
 			const int len = ccs_directives[directive].alias_len;
@@ -1699,8 +1692,8 @@ static void ccs_show_list(void)
 	}
 	for (i = 0; i < ccs_body_lines; i++) {
 		const int index = offset + i;
-		ccs_eat_col = ccs_max_eat_col[ccs_current_screen];
-		if (index >= ccs_list_item_count[ccs_current_screen])
+		ccs_eat_col = ptr->x;
+		if (index >= ccs_list_item_count)
 			break;
 		move(CCS_HEADER_LINES + i, 0);
 		switch (ccs_current_screen) {
@@ -1739,12 +1732,13 @@ static void ccs_show_list(void)
  */
 static void ccs_resize_window(void)
 {
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
 	getmaxyx(stdscr, ccs_window_height, ccs_window_width);
 	ccs_body_lines = ccs_window_height - CCS_HEADER_LINES;
-	if (ccs_body_lines <= ccs_current_y[ccs_current_screen])
-		ccs_current_y[ccs_current_screen] = ccs_body_lines - 1;
-	if (ccs_current_y[ccs_current_screen] < 0)
-		ccs_current_y[ccs_current_screen] = 0;
+	if (ccs_body_lines <= ptr->y)
+		ptr->y = ccs_body_lines - 1;
+	if (ptr->y < 0)
+		ptr->y = 0;
 }
 
 /**
@@ -1754,11 +1748,12 @@ static void ccs_resize_window(void)
  */
 static void ccs_up_arrow_key(void)
 {
-	if (ccs_current_y[ccs_current_screen] > 0) {
-		ccs_current_y[ccs_current_screen]--;
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	if (ptr->y > 0) {
+		ptr->y--;
 		ccs_show_current();
-	} else if (ccs_current_item_index[ccs_current_screen] > 0) {
-		ccs_current_item_index[ccs_current_screen]--;
+	} else if (ptr->current > 0) {
+		ptr->current--;
 		ccs_show_list();
 	}
 }
@@ -1770,17 +1765,14 @@ static void ccs_up_arrow_key(void)
  */
 static void ccs_down_arrow_key(void)
 {
-	if (ccs_current_y[ccs_current_screen] < ccs_body_lines - 1) {
-		if (ccs_current_item_index[ccs_current_screen]
-		    + ccs_current_y[ccs_current_screen]
-		    < ccs_list_item_count[ccs_current_screen] - 1) {
-			ccs_current_y[ccs_current_screen]++;
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	if (ptr->y < ccs_body_lines - 1) {
+		if (ptr->current + ptr->y < ccs_list_item_count - 1) {
+			ptr->y++;
 			ccs_show_current();
 		}
-	} else if (ccs_current_item_index[ccs_current_screen]
-		   + ccs_current_y[ccs_current_screen]
-		   < ccs_list_item_count[ccs_current_screen] - 1) {
-		ccs_current_item_index[ccs_current_screen]++;
+	} else if (ptr->current + ptr->y < ccs_list_item_count - 1) {
+		ptr->current++;
 		ccs_show_list();
 	}
 }
@@ -1792,8 +1784,9 @@ static void ccs_down_arrow_key(void)
  */
 static void ccs_page_up_key(void)
 {
-	int p0 = ccs_current_item_index[ccs_current_screen];
-	int p1 = ccs_current_y[ccs_current_screen];
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	int p0 = ptr->current;
+	int p1 = ptr->y;
 	_Bool refresh;
 	if (p0 + p1 > ccs_body_lines) {
 		p0 -= ccs_body_lines;
@@ -1805,9 +1798,9 @@ static void ccs_page_up_key(void)
 	} else {
 		return;
 	}
-	refresh = (ccs_current_item_index[ccs_current_screen] != p0);
-	ccs_current_item_index[ccs_current_screen] = p0;
-	ccs_current_y[ccs_current_screen] = p1;
+	refresh = (ptr->current != p0);
+	ptr->current = p0;
+	ptr->y = p1;
 	if (refresh)
 		ccs_show_list();
 	else
@@ -1821,9 +1814,10 @@ static void ccs_page_up_key(void)
  */
 static void ccs_page_down_key(void)
 {
-	int ccs_count = ccs_list_item_count[ccs_current_screen] - 1;
-	int p0 = ccs_current_item_index[ccs_current_screen];
-	int p1 = ccs_current_y[ccs_current_screen];
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	int ccs_count = ccs_list_item_count - 1;
+	int p0 = ptr->current;
+	int p1 = ptr->y;
 	_Bool refresh;
 	if (p0 + p1 + ccs_body_lines < ccs_count) {
 		p0 += ccs_body_lines;
@@ -1837,9 +1831,9 @@ static void ccs_page_down_key(void)
 	} else {
 		return;
 	}
-	refresh = (ccs_current_item_index[ccs_current_screen] != p0);
-	ccs_current_item_index[ccs_current_screen] = p0;
-	ccs_current_y[ccs_current_screen] = p1;
+	refresh = (ptr->current != p0);
+	ptr->current = p0;
+	ptr->y = p1;
 	if (refresh)
 		ccs_show_list();
 	else
@@ -1855,9 +1849,10 @@ static void ccs_page_down_key(void)
  */
 int ccs_editpolicy_get_current(void)
 {
-	int ccs_count = ccs_list_item_count[ccs_current_screen];
-	const int p0 = ccs_current_item_index[ccs_current_screen];
-	const int p1 = ccs_current_y[ccs_current_screen];
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	int ccs_count = ccs_list_item_count;
+	const int p0 = ptr->current;
+	const int p1 = ptr->y;
 	if (!ccs_count)
 		return EOF;
 	if (p0 + p1 < 0 || p0 + p1 >= ccs_count) {
@@ -1876,12 +1871,13 @@ int ccs_editpolicy_get_current(void)
  */
 static void ccs_show_current(void)
 {
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST &&
 	    !ccs_domain_sort_type) {
 		char *line;
 		const int index = ccs_editpolicy_get_current();
 		ccs_get();
-		ccs_eat_col = ccs_max_eat_col[ccs_current_screen];
+		ccs_eat_col = ptr->x;
 		line = ccs_shprintf("%s",
 				    ccs_eat(ccs_domain_name(&ccs_dp, index)));
 		if (ccs_window_width < strlen(line))
@@ -1893,8 +1889,8 @@ static void ccs_show_current(void)
 		ccs_editpolicy_attr_change(A_REVERSE, false); /* add color */
 		ccs_put();
 	}
-	move(CCS_HEADER_LINES + ccs_current_y[ccs_current_screen], 0);
-	ccs_editpolicy_line_draw(ccs_current_screen);     /* add color */
+	move(CCS_HEADER_LINES + ptr->y, 0);
+	ccs_editpolicy_line_draw();     /* add color */
 	refresh();
 }
 
@@ -1907,16 +1903,16 @@ static void ccs_show_current(void)
  */
 static void ccs_adjust_cursor_pos(const int item_count)
 {
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
 	if (item_count == 0) {
-		ccs_current_item_index[ccs_current_screen] = 0;
-		ccs_current_y[ccs_current_screen] = 0;
+		ptr->current = 0;
+		ptr->y = 0;
 	} else {
-		while (ccs_current_item_index[ccs_current_screen]
-		       + ccs_current_y[ccs_current_screen] >= item_count) {
-			if (ccs_current_y[ccs_current_screen] > 0)
-				ccs_current_y[ccs_current_screen]--;
-			else if (ccs_current_item_index[ccs_current_screen] > 0)
-				ccs_current_item_index[ccs_current_screen]--;
+		while (ptr->current + ptr->y >= item_count) {
+			if (ptr->y > 0)
+				ptr->y--;
+			else if (ptr->current > 0)
+				ptr->current--;
 		}
 	}
 }
@@ -1931,19 +1927,18 @@ static void ccs_adjust_cursor_pos(const int item_count)
  */
 static void ccs_set_cursor_pos(const int index)
 {
-	while (index < ccs_current_y[ccs_current_screen]
-	       + ccs_current_item_index[ccs_current_screen]) {
-		if (ccs_current_y[ccs_current_screen] > 0)
-			ccs_current_y[ccs_current_screen]--;
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	while (index < ptr->y + ptr->current) {
+		if (ptr->y > 0)
+			ptr->y--;
 		else
-			ccs_current_item_index[ccs_current_screen]--;
+			ptr->current--;
 	}
-	while (index > ccs_current_y[ccs_current_screen]
-	       + ccs_current_item_index[ccs_current_screen]) {
-		if (ccs_current_y[ccs_current_screen] < ccs_body_lines - 1)
-			ccs_current_y[ccs_current_screen]++;
+	while (index > ptr->y + ptr->current) {
+		if (ptr->y < ccs_body_lines - 1)
+			ptr->y++;
 		else
-			ccs_current_item_index[ccs_current_screen]++;
+			ptr->current++;
 	}
 }
 
@@ -2190,7 +2185,7 @@ start_search:
 	while (true) {
 		const char *cp;
 		if (forward) {
-			if (++index >= ccs_list_item_count[ccs_current_screen])
+			if (++index >= ccs_list_item_count)
 				break;
 		} else {
 			if (--index < 0)
@@ -2384,12 +2379,11 @@ out:
 /**
  * ccs_select_acl_window - Check whether to switch to ACL list or not. 
  *
- * @current:     Index in the domain policy.
- * @may_refresh: ???
+ * @current: Index in the domain policy.
  *
  * Returns true if next window is ACL list, false otherwise.
  */
-static _Bool ccs_select_acl_window(const int current, const _Bool may_refresh)
+static _Bool ccs_select_acl_window(const int current)
 {
 	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST || current == EOF)
 		return false;
@@ -2397,17 +2391,14 @@ static _Bool ccs_select_acl_window(const int current, const _Bool may_refresh)
 	if (ccs_domain_sort_type) {
 		ccs_current_pid = ccs_task_list[current].pid;
 	} else if (ccs_initializer_source(current)) {
-		int redirect_index;
-		if (!may_refresh)
-			return false;
-		redirect_index = ccs_find_target_domain(current);
+		struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+		const int redirect_index = ccs_find_target_domain(current);
 		if (redirect_index == EOF)
 			return false;
-		ccs_current_item_index[ccs_current_screen]
-			= redirect_index - ccs_current_y[ccs_current_screen];
-		while (ccs_current_item_index[ccs_current_screen] < 0) {
-			ccs_current_item_index[ccs_current_screen]++;
-			ccs_current_y[ccs_current_screen]--;
+		ptr->current = redirect_index - ptr->y;
+		while (ptr->current < 0) {
+			ptr->current++;
+			ptr->y--;
 		}
 		ccs_show_list();
 		return false;
@@ -2438,8 +2429,7 @@ static enum ccs_screen_type ccs_select_window(const int current)
 	printw("e     <<< Exception Policy Editor >>>\n");
 	printw("d     <<< Domain Transition Editor >>>\n");
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST && current != EOF &&
-	    !ccs_initializer_source(current) &&
-	    !ccs_deleted_domain(current))
+	    !ccs_initializer_source(current) && !ccs_deleted_domain(current))
 		printw("a     <<< Domain Policy Editor >>>\n");
 	printw("p     <<< Profile Editor >>>\n");
 	printw("m     <<< Manager Policy Editor >>>\n");
@@ -2457,7 +2447,7 @@ static enum ccs_screen_type ccs_select_window(const int current)
 		if (c == 'D' || c == 'd')
 			return CCS_SCREEN_DOMAIN_LIST;
 		if (c == 'A' || c == 'a')
-			if (ccs_select_acl_window(current, false))
+			if (ccs_select_acl_window(current))
 				return CCS_SCREEN_ACL_LIST;
 		if (c == 'P' || c == 'p')
 			return CCS_SCREEN_PROFILE_LIST;
@@ -2558,17 +2548,11 @@ static void ccs_copy_to_history(const int current)
  */
 static enum ccs_screen_type ccs_generic_list_loop(void)
 {
-	static int saved_current_y[CCS_MAXSCREEN];
-	static int saved_current_item_index[CCS_MAXSCREEN];
-	static _Bool first = true;
-	if (first) {
-		ccs_rl.max = 20;
-		ccs_rl.history = malloc(ccs_rl.max * sizeof(const char *));
-		memset(saved_current_y, 0, sizeof(saved_current_y));
-		memset(saved_current_item_index, 0,
-		       sizeof(saved_current_item_index));
-		first = false;
-	}
+	struct ccs_screen *ptr;
+	static struct {
+		int y;
+		int current;
+	} saved_cursor[CCS_MAXSCREEN] = { };
 	if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST) {
 		ccs_policy_file = CCS_PROC_POLICY_EXCEPTION_POLICY;
 		ccs_list_caption = "Exception Policy Editor";
@@ -2591,10 +2575,9 @@ static enum ccs_screen_type ccs_generic_list_loop(void)
 		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
 		/* ccs_list_caption = "Domain Transition Editor"; */
 	}
-	ccs_current_item_index[ccs_current_screen]
-		= saved_current_item_index[ccs_current_screen];
-	ccs_current_y[ccs_current_screen]
-		= saved_current_y[ccs_current_screen];
+	ptr = &ccs_screen[ccs_current_screen];
+	ptr->current = saved_cursor[ccs_current_screen].current;
+	ptr->y = saved_cursor[ccs_current_screen].y;
 start:
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (!ccs_domain_sort_type) {
@@ -2621,10 +2604,8 @@ start2:
 	while (true) {
 		const int current = ccs_editpolicy_get_current();
 		const int c = ccs_getch2();
-		saved_current_item_index[ccs_current_screen]
-			= ccs_current_item_index[ccs_current_screen];
-		saved_current_y[ccs_current_screen] =
-			ccs_current_y[ccs_current_screen];
+		saved_cursor[ccs_current_screen].current = ptr->current;
+		saved_cursor[ccs_current_screen].y = ptr->y;
 		if (c == 'q' || c == 'Q')
 			return CCS_MAXSCREEN;
 		if ((c == '\r' || c == '\n') &&
@@ -2729,7 +2710,7 @@ start2:
 			break;
 		case '\r':
 		case '\n':
-			if (ccs_select_acl_window(current, true))
+			if (ccs_select_acl_window(current))
 				return CCS_SCREEN_ACL_LIST;
 			break;
 		case 's':
@@ -2754,18 +2735,18 @@ start2:
 		case 'R':
 			goto start;
 		case KEY_LEFT:
-			if (!ccs_max_eat_col[ccs_current_screen])
+			if (!ptr->x)
 				break;
-			ccs_max_eat_col[ccs_current_screen]--;
+			ptr->x--;
 			goto start2;
 		case KEY_RIGHT:
-			ccs_max_eat_col[ccs_current_screen]++;
+			ptr->x++;
 			goto start2;
 		case KEY_HOME:
-			ccs_max_eat_col[ccs_current_screen] = 0;
+			ptr->x = 0;
 			goto start2;
 		case KEY_END:
-			ccs_max_eat_col[ccs_current_screen] = ccs_max_col;
+			ptr->x = ccs_max_col;
 			goto start2;
 		case KEY_IC:
 			ccs_copy_to_history(current);
@@ -2773,8 +2754,7 @@ start2:
 		case 'o':
 		case 'O':
 			if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
-				ccs_editpolicy_optimize(current,
-							ccs_current_screen);
+				ccs_editpolicy_optimize(current);
 				ccs_show_list();
 			}
 			break;
@@ -2999,10 +2979,6 @@ static void ccs_save_offline(void)
 
 int main(int argc, char *argv[])
 {
-	memset(ccs_current_y, 0, sizeof(ccs_current_y));
-	memset(ccs_current_item_index, 0, sizeof(ccs_current_item_index));
-	memset(ccs_list_item_count, 0, sizeof(ccs_list_item_count));
-	memset(ccs_max_eat_col, 0, sizeof(ccs_max_eat_col));
 	ccs_parse_args(argc, argv);
 	ccs_editpolicy_init_keyword_map();
 	if (ccs_offline_mode) {
@@ -3032,6 +3008,8 @@ start:
 		alarm(ccs_refresh_interval);
 		timeout(1000);
 	}
+	ccs_rl.max = 20;
+	ccs_rl.history = malloc(ccs_rl.max * sizeof(const char *));
 	while (ccs_current_screen < CCS_MAXSCREEN) {
 		ccs_resize_window();
 		ccs_current_screen = ccs_generic_list_loop();

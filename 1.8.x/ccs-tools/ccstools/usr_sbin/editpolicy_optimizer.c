@@ -306,12 +306,10 @@ static _Bool ccs_compare_number(const char *sarg, const char *darg)
  * ccs_editpolicy_optimize - Try to merge entries included in other entries.
  *
  * @current: Index in the domain policy.
- * @screen:  Currently selected screen.
  *
  * Returns nothing.
  */
-void ccs_editpolicy_optimize(const int current,
-			     const enum ccs_screen_type screen)
+void ccs_editpolicy_optimize(const int current)
 {
 	char *cp;
 	enum ccs_editpolicy_directives s_index;
@@ -328,7 +326,7 @@ void ccs_editpolicy_optimize(const int current,
 		return;
 	ccs_tokenize(cp, s, s_index);
 	ccs_get();
-	for (index = 0; index < ccs_list_item_count[screen]; index++) {
+	for (index = 0; index < ccs_list_item_count; index++) {
 		char *line;
 		const enum ccs_editpolicy_directives d_index =
 			ccs_gacl_list[index].directive;
