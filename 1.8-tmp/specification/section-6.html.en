@@ -1,0 +1,393 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : Specification : C6. Domain policy syntax</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../index.html.en"><img src="../../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<h2>C6: Domain policy syntax</h2>
+
+<h3><a name="6.1">C6.1. file execute</a></h3>
+
+<p>This directive allows execution of the specified pathname.</p>
+
+<p>This example allows the domain to execute "/bin/ls":</p>
+
+<pre>
+file execute /bin/ls
+</pre>
+
+<h3><a name="6.2">C6.2. file read</a></h3>
+
+<p>This directive allows the domain to open the specified pathname for reading.</p>
+
+<p>This example allows the domain to read "/proc/meminfo":</p>
+
+<pre>
+file read /proc/meminfo
+</pre>
+
+<h3><a name="6.3">C6.3. file write</a></h3>
+
+<p>This directive allows the domain to open the specified pathname for writing.</p>
+
+<p>This example allows the domain to write to "/dev/null":</p>
+
+<pre>
+file write /dev/null
+</pre>
+
+<h3><a name="6.4">C6.4. file append</a></h3>
+
+<p>This directive allows the domain to append to the specified pathname.</p>
+
+<p>This example allows the domain to append to "/var/log/auth.log":</p>
+
+<pre>
+file append /var/log/auth.log
+</pre>
+
+<h3><a name="6.5">C6.5. file create</a></h3>
+
+<p>This directive allows the domain to create the specified pathname.</p>
+
+<p>This example allows the domain to create "/var/lock/subsys/crond":</p>
+
+<pre>
+file create /var/lock/subsys/crond
+</pre>
+
+<h3><a name="6.6">C6.6. file unlink</a></h3>
+
+<p>This directive allows the domain to delete the specified pathname.</p>
+
+<p>This example allows the domain to delete "/var/lock/subsys/crond":</p>
+
+<pre>
+file unlink /var/lock/subsys/crond
+</pre>
+
+<h3><a name="6.7">C6.7. file mkdir</a></h3>
+
+<p>This directive allows the domain to create the specified directory.</p>
+
+<p>This example allows the domain to create directories that match "/tmp/logwatch.\*/":</p>
+
+<pre>
+file mkdir /tmp/logwatch.\*/"
+</pre>
+
+<h3><a name="6.8">C6.8. file rmdir</a></h3>
+
+<p>This directive allows the domain to delete the specified directory.</p>
+
+<p>This example allows the domain to delete directories that match "/tmp/logwatch.\*/":</p>
+
+<pre>
+file rmdir /tmp/logwatch.\*/"
+</pre>
+
+<h3><a name="6.9">C6.9. file mkfifo</a></h3>
+
+<p>This directive allows the domain to create a FIFO with the specified pathname.</p>
+
+<p>This example allows the domain to create the FIFO "/dev/initctl":</p>
+
+<pre>
+file mkfifo /dev/initctl
+</pre>
+
+<h3><a name="6.10">C6.10. file mksock</a></h3>
+
+<p>This directive allows the domain to create a socket with the specified pathname.</p>
+
+<p>This example allows the domain to create the socket "/dev/log":</p>
+
+<pre>
+file mksock /dev/log
+</pre>
+
+<h3><a name="6.11">C6.11. file mkblock</a></h3>
+
+<p>This directive allows the domain to create a block device with the specified pathname.</p>
+
+<p>This example allows the domain to create block devices whose pathname matches "/dev/\*":</p>
+
+<pre>
+file mkblock /dev/\*
+</pre>
+
+<h3><a name="6.12">C6.12. file mkchar</a></h3>
+
+<p>This directive allows the domain to create a character device with the specified pathname.</p>
+
+<p>This example allows the domain to create character devices whose pathname matches "/dev/\*":</p>
+
+<pre>
+file mkchar /dev/\*
+</pre>
+
+<h3><a name="6.13">C6.13. file truncate</a></h3>
+
+<p>This directive allows the domain to truncate or extend the specified pathname.</p>
+
+<p>This example allows the domain to truncate "/etc/mtab":</p>
+
+<pre>
+file truncate /etc/mtab
+</pre>
+
+<h3><a name="6.14">C6.14. file symlink</a></h3>
+
+<p>This directive allows the domain to symlink the specified pathname.</p>
+
+<p>This example allows the domain to symlink "/dev/cdrom":</p>
+
+<pre>
+file symlink /dev/cdrom
+</pre>
+
+<h3><a name="6.15">C6.15. file link</a></h3>
+
+<p>This directive allows the domain to create hard link between the first and second specified pathnames.</p>
+
+<p>This example allows a hard link to be created between pathnames that match "/etc/mtab~\$" and "/etc/mtab~":</p>
+
+<pre>
+file link /etc/mtab~\$ /etc/mtab~
+</pre>
+
+<h3><a name="6.16">C6.16. file rename</a></h3>
+
+<p>This directive allows the domain to rename the first specified pathname to the second specified pathname.</p>
+
+<p>This example allows /etc/mtab.tmp to be rename /etc/mtab:</p>
+
+<pre>
+file rename /etc/mtab.tmp /etc/mtab
+</pre>
+
+<h3><a name="6.17">C6.17. file ioctl</a></h3>
+
+<p>This directive allows the domain to make an ioctl request with the specified options. For information on the ioctl command numbers, refer to manuals provided by each module with ioctl functionality.</p>
+
+<p>This example allows sockets that match the family, type and protocol to make an ioctl request with command number 35093:</p>
+
+<pre>
+file ioctl socket:[family=2:type=2:protocol=17]
+</pre>
+
+<p>This example allows "/dev/null" to make an ioctl request with a command number within the range:</p>
+
+<pre>
+file ioctl /dev/null 10000-20000
+</pre>
+
+<h3><a name="6.18">C6.18. file mount</a></h3>
+
+<p>This directive allows the domain to mount a filesystem with the specified devices, pathnames and options.</p>
+
+<p>The syntax is: "<strong>file mount $DEVICE $MOUNTPOINT $FILESYSTEM $OPTIONS</strong>". If $FILESYSTEM requires a device file, then $DEVICE must be a canonicalized file. The $OPTIONS must be a hexadecimal integer expression. The following options can also be specified:</p>
+
+<ul>
+<li>--bind</li>
+<li>--move</li>
+<li>--remount</li>
+<li>--make-unbindable</li>
+<li>--make-private</li>
+<li>--make-slave</li>
+<li>--make-shared</li>
+</ul>
+
+<p>This example allows the domain to remount the root directory:</p>
+
+<pre>
+file mount any / --remount 0x0
+</pre>
+
+<p>This example allows the domain to mount "/dev/hdc" at "/var/www/":</p>
+
+<pre>
+file mount /dev/hdc /var/www/ ext3 0xF
+</pre>
+
+<p>This example allows the domain to mount "/dev/shm/" as a temporary filesystem:</p>
+
+<pre>
+file mount none /dev/shm/ tmpfs 0xE
+</pre>
+
+<h3><a name="6.19">C6.19. file unmount</a></h3>
+
+<p>This directive allows the domain to unmount a filesystem from the specified canonicalized pathname.</p>
+
+<p>This example allows the domain to umount the filesystem mounted at "/mnt/cdrom":</p>
+
+<pre>
+file unmount /mnt/cdrom
+</pre>
+
+<h3><a name="6.20">C6.20. file chroot</a></h3>
+
+<p>This directive allows the domain to chroot into the specified pathname.</p>
+
+<p>This example allows the domain to chroot into /var/empty/sshd:</p>
+
+<pre>
+file chroot /var/empty/sshd
+</pre>
+
+<h3><a name="6.21">C6.21. file pivot_root</a></h3>
+
+<p>This directive allows the domain to pivot_root to the first canonicalized directory from the second canonicalized directory.</p>
+
+<h3><a name="6.22">C6.22. misc env</a></h3>
+
+<p>This directive allows the domain to read the specified environment variable. Many programs behave differently depending on the environment variables.</p>
+
+<p>This example allows the domain to read the environment variable "LD_PRELOAD":</p>
+
+<pre>
+misc env LD_PRELOAD
+</pre>
+
+<h3><a name="6.23">C6.23. capability</a></h3>
+
+<p>This directive allows the domain to make use of the specified POSIX Capability.</p>
+
+<p>The following capabilities are applicable:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Directive</p></th>
+<th><p>Function</p></th>
+</tr>
+<tr>
+<td><p>capability use_kernel_module</p></td>
+<td><p>Use of the create_module(2), init_module(2) and delete_module(2) syscalls</p></td>
+</tr>
+<tr>
+<td><p>capability use_packet</p></td>
+<td><p>Use of PACKET sockets</p></td>
+</tr>
+<tr>
+<td><p>capability use_route</p></td>
+<td><p>Use of ROUTE sockets</p></td>
+</tr>
+<tr>
+<td><p>capability SYS_KEXEC_LOAD</p></td>
+<td><p>Use of kexec_load(2) syscall</p></td>
+</tr>
+<tr>
+<td><p>capability SYS_NICE</p></td>
+<td><p>Use of nice(2) and setpriority(2) syscalls</p></td>
+</tr>
+<tr>
+<td><p>capability SYS_PTRACE</p></td>
+<td><p>Use of ptrace(2) syscall</p></td>
+</tr>
+<tr>
+<td><p>capability SYS_REBOOT</p></td>
+<td><p>Use of reboot(2) syscall</p></td>
+</tr>
+<tr>
+<td><p>capability SYS_SETHOSTNAME</p></td>
+<td><p>Use of sethostname(2) and setdomainname(2) syscalls</p></td>
+</tr>
+<tr>
+<td><p>capability SYS_TIME</p></td>
+<td><p>Use of stime(2), settimeofday(2) and adjtimex(2) syscalls</p></td>
+</tr>
+<tr>
+<td><p>capability SYS_VHANGUP</p></td>
+<td><p>Use of vhangup(2) syscall</p></td>
+</tr>
+
+<h3><a name="6.24">C6.24. ipc signal</a></h3>
+
+<p>This directive allows the domain to use the inter-process communication signal number specified and the target domain specified.</p>
+
+<p>All domains that start with the target domain are matched. Thus, a target domain of "&lt;kernel&gt;" will match all domains.</p>
+
+<p>A signal number of 0 is always granted, and if the source and target destination are the same it is always granted.</p>
+
+<h3><a name="6.25">C6.25. network inet</a></h3>
+<h3><a name="6.26">C6.26. network unix</a></h3>
+<h3><a name="6.27">C6.27. use_group</a></h3>
+<h3><a name="6.28">C6.28. use_profile</a></h3>
+<h3><a name="6.29">C6.29. task auto_execute_handler</a></h3>
+<h3><a name="6.30">C6.30. task denied_execute_handler</a></h3>
+<h3><a name="6.31">C6.31. task auto_domain_transition</a></h3>
+<h3><a name="6.32">C6.32. task manual_domain_transition</a></h3>
+<h3><a name="6.33">C6.33. quota_exceeded</a></h3>
+<h3><a name="6.34">C6.34. transition_failed</a></h3>
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="section-5.html.en">Prev</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+<a href="section-7.html.en">Next</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>C5: Exception policy syntax</p>
+</td>
+<td class="docs-home">
+<a href="../index.html.en">Main Index</a>
+</td>
+<td class="docs-next-description">
+<p>C7:</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date: 2011-02-02 00:15:57 +0000 (Wed, 02 Feb 2011) $</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>
