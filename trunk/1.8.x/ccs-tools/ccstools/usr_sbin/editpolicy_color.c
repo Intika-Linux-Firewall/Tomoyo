@@ -110,6 +110,8 @@ use_default:
 		init_pair(colorp->tag, colorp->fore, colorp->back);
 	}
 	init_pair(CCS_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
+	for (i = 0; i < CCS_MAXSCREEN; i++)
+		ccs_screen[i].saved_color_current = -1;
 }
 
 /**
@@ -183,14 +185,11 @@ void ccs_editpolicy_sttr_restore(void)
 /**
  * ccseditpolicy_color_head - Get color to use for header line.
  *
- * @screen: Current screen.
- *
  * Returns one of values in "enum ccs_color_pair".
  */
-enum ccs_color_pair ccs_editpolicy_color_head
-(const enum ccs_screen_type screen)
+enum ccs_color_pair ccs_editpolicy_color_head(void)
 {
-	switch (screen) {
+	switch (ccs_current_screen) {
 	case CCS_SCREEN_DOMAIN_LIST:
 		return CCS_DOMAIN_HEAD;
 	case CCS_SCREEN_EXCEPTION_LIST:
@@ -209,14 +208,11 @@ enum ccs_color_pair ccs_editpolicy_color_head
 /**
  * ccs_editpolicy_color_cursor - Get color to use for cursor line.
  *
- * @screen: Current screen.
- *
  * Returns one of values in "enum ccs_color_pair".
  */
-enum ccs_color_pair ccs_editpolicy_color_cursor
-(const enum ccs_screen_type screen)
+static inline enum ccs_color_pair ccs_editpolicy_color_cursor(void)
 {
-	switch (screen) {
+	switch (ccs_current_screen) {
 	case CCS_SCREEN_DOMAIN_LIST:
 		return CCS_DOMAIN_CURSOR;
 	case CCS_SCREEN_EXCEPTION_LIST:
@@ -235,17 +231,12 @@ enum ccs_color_pair ccs_editpolicy_color_cursor
 /**
  * ccs_editpolicy_line_draw - Update colored line.
  *
- * @screen: Current screen.
- *
  * Returns nothing.
  */
-void ccs_editpolicy_line_draw(const enum ccs_screen_type screen)
+void ccs_editpolicy_line_draw(void)
 {
-	static int ccs_before_current[CCS_MAXSCREEN] = { -1, -1, -1, -1,
-							 -1, -1, -1 };
-	static int ccs_before_y[CCS_MAXSCREEN]       = { -1, -1, -1, -1,
-							 -1, -1, -1 };
-	int current = ccs_editpolicy_get_current();
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	const int current = ccs_editpolicy_get_current();
 	int y;
 	int x;
 
@@ -253,18 +244,18 @@ void ccs_editpolicy_line_draw(const enum ccs_screen_type screen)
 		return;
 
 	getyx(stdscr, y, x);
-	if (-1 < ccs_before_current[screen] &&
-	    current != ccs_before_current[screen]){
-		move(CCS_HEADER_LINES + ccs_before_y[screen], 0);
+	if (-1 < ptr->saved_color_current &&
+	    current != ptr->saved_color_current) {
+		move(CCS_HEADER_LINES + ptr->saved_color_y, 0);
 		chgat(-1, A_NORMAL, CCS_NORMAL, NULL);
 	}
 
 	move(y, x);
-	chgat(-1, A_NORMAL, ccs_editpolicy_color_cursor(screen), NULL);
+	chgat(-1, A_NORMAL, ccs_editpolicy_color_cursor(), NULL);
 	touchwin(stdscr);
 
-	ccs_before_current[screen] = current;
-	ccs_before_y[screen] = ccs_current_y[screen];
+	ptr->saved_color_current = current;
+	ptr->saved_color_y = ptr->y;
 }
 
 #else
@@ -323,25 +314,9 @@ void ccs_editpolicy_sttr_restore(void)
 /**
  * ccseditpolicy_color_head - Get color to use for header line.
  *
- * @screen: Current screen.
- *
  * Returns one of values in "enum ccs_color_pair".
  */
-enum ccs_color_pair ccs_editpolicy_color_head
-(const enum ccs_screen_type screen)
-{
-	return CCS_NORMAL;
-}
-
-/**
- * ccseditpolicy_color_head - Get color to use for header line.
- *
- * @screen: Current screen.
- *
- * Returns one of values in "enum ccs_color_pair".
- */
-enum ccs_color_pair ccs_editpolicy_color_cursor
-(const enum ccs_screen_type screen)
+enum ccs_color_pair ccs_editpolicy_color_head(void)
 {
 	return CCS_NORMAL;
 }
@@ -349,11 +324,9 @@ enum ccs_color_pair ccs_editpolicy_color_cursor
 /**
  * ccs_editpolicy_line_draw - Update colored line.
  *
- * @screen: Current screen.
- *
  * Returns nothing.
  */
-void ccs_editpolicy_line_draw(const enum ccs_screen_type screen)
+void ccs_editpolicy_line_draw(void)
 {
 }
 
