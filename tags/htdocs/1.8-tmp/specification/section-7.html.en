@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : Specification : C7. Domain transition procedure</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../index.html.en"><img src="../../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<h2>C7: Domain transition procedure</h2>
+
+<h3><a name="normal_procedure">Normal procedure</h3>
+
+<p>When a domain attempts to execute a program, the steps below are performed.</p>
+
+<p>Any occurrence of <strong>[domain]</strong> represents either the current domain name, or the last part of the current domain name.</p>
+
+<div class="simple-table-wrap">
+<table>
+<tr>
+<th><p>Step</p></th>
+<th><p>Procedure</p></th>
+</tr>
+<tr>
+<td><p>(1) Obtain program pathname</p></td>
+<td><p>The pathname of the program that is being executed is kept as [candidate]. This procedure does not solve symbolic links.</p></td>
+</tr>
+<tr>
+<td><p>(2) Aggregate similar programs</p></td>
+<td><p>If exception policy contains "aggregator [candidate] [pathname]" then the domain transition procedure returns to step (1) with [pathname] set as the new [candidate].</p></td>
+</tr>
+<tr>
+<td><p>(3) Check for "file execute" directive</p></td>
+<td><p>If domain policy contains "file execute [candidate]" then the domain transition procedure continues. This may also be a path_group directive. If execute permissions have not been given, then the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(4) Check for "no_initialize_domain" directive</p></td>
+<td><p>If domain policy contains "no_initialize_domain [candidate] from [domain]" then the domain transition procedure skips to step (6). This also occurs if "no_initialize_domain any from [domain]" is defined.</p></td>
+</tr>
+<tr>
+<td><p>(5) Check for "initialize_domain" directive</p></td>
+<td><p>If domain policy contains "initialize_domain [candidate] from [domain]" then the domain transition procedure continues with "&lt;kernel&gt; [candidate]" as the domain. This also occurs if "initialize_domain any from [domain]" is defined.</p></td>
+</tr>
+<tr>
+<td><p>(6) Check for "no_keep_domain" directive</p></td>
+<td><p>If domain policy contains "no_keep_domain [candidate] from [domain]" then the domain transition procedure skips to step (8). This also occurs if "no_keep_domain any from [domain]" is defined.</p></td>
+</tr>
+<tr>
+<td><p>(7) Check for "keep_domain" directive</p></td>
+<td><p>If domain policy contains "keep_domain [candidate] from [domain]" then the domain transition procedure continues with the destination domain set to the current domain.</p></td>
+</tr>
+<tr>
+<td><p>(8) Check destination domain</p></td>
+<td><p>If the destination domain, as determined by steps (4) to (7), is not defined in domain policy then the execution request is rejected.</p></td>
+</tr>
+<tr>
+<td><p>(9) Check environment variables</p></td>
+<td><p>If more than one environment variable is rejected in the destination domain then the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(10) Execute the program</p></td>
+<td><p>The program is executed normally. If this is successful then the process transits to a new domain.</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="exceptions">Exceptions</a></h3>
+
+<p>If the domain has the "task auto_execute_handler" directive then the program specified by the directive will be set as the new [candidate]. The procedure continues at step (1).</p>
+
+<p>If the execute request was denied at step (3) or step (8) and the domain has the "task denied_execute_handler" directive then the program specified by this directive is set as the new [candidate]. The procedure continues at step (4).</p>
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="section-6.html.en">Prev</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+<a href="section-8.html.en">Next</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>C6: Domain policy syntax</p>
+</td>
+<td class="docs-home">
+<a href="../index.html.en">Main Index</a>
+</td>
+<td class="docs-next-description">
+<p>C8:</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date: 2011-02-02 00:15:57 +0000 (Wed, 02 Feb 2011) $</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>
