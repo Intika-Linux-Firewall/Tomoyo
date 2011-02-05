@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Specification : C4. Profile management</title>
+<title>TOMOYO Linux 1.8.x : Specification : C4. Profile syntax</title>
 </head>
 
 <body>
@@ -32,34 +32,9 @@
 
 <div id="documentation">
 
-<h2>C4: Profile management</h2>
+<h2>C4: Profile syntax</h2>
 
-<h3><a name="tools">Userspace tools</a></h3>
-
-<p>To view profiles currently assigned to all domains:</p>
-<ul>
-<li>/usr/sbin/ccs-editpolicy</li>
-</ul>
-
-<p>To view profiles currently assigned to all processes:</p>
-<ul>
-<li>/usr/sbin/ccs-pstree</li>
-</ul>
-
-<p>To modify a profile:</p>
-<ul>
-<li>/usr/sbin/ccs-loadpolicy</li>
-<li>/usr/sbin/ccs-setlevel</li>
-</ul>
-
-<p>To assign a profile to a domain:</p>
-<ul>
-<li>/usr/sbin/ccs-editpolicy</li>
-<li>/usr/sbin/ccs-loadpolicy</li>
-<li>/usr/sbin/setprofile</li>
-</ul>
-
-<h3><a name="syntax">Policy syntax</a></h3>
+<h3><a name="fields">Fields</a></h3>
 
 <p>Each profile contains 3 fields:</p>
 
@@ -83,6 +58,8 @@
 </tr>
 </table>
 </div>
+
+<h3><a name="config">The CONFIG field</a></h3>
 
 <p>The "mode" parameter of the CONFIG line can contain one of the following values:</p>
 
@@ -377,6 +354,8 @@
 </tr>
 </table>
 </div>
+
+<h3><a name="preference">The PREFERENCE field</a></h3>
 
 <p>The PREFERENCE line holds the following options:</p>
 
