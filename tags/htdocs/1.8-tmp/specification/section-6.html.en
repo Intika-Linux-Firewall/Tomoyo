@@ -353,9 +353,17 @@ capability SYS_REBOOT
 
 <p>All domains that start with the target domain are matched. Thus, a target domain of "&lt;kernel&gt;" will match all domains. A signal number of 0 is always granted, and if the source and target destination are the same it is always granted.</p>
 
+<p>This example allows the domain to send ipc signal number 10 to the specified domain:</p>
+
+<pre>
+ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
+</pre>
+
 <h3><a name="network_inet">network inet</a></h3>
 
 <p>This directive allows the domain to perform network socket operations.</p>
+
+<p>IPv4 and IPv6 addresses are both supported. However, note that use of "::1" for IPv6 addresses is not supported. The address "0:0:0:0:0:0:0:1" must be used instead.</p>
 
 <p>The syntax is summarised in the following table:</p>
 
@@ -418,6 +426,64 @@ network inet stream connect 202.221.179.21 80
 
 <p>This directive allows the domain to perform unix domain socket operations.</p>
 
+<p>The syntax is summarised in the following table:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Directive</p></th>
+<th><p>Function</p></th>
+</tr>
+<tr>
+<td><p>network unix stream bind $ADDRESS</p></td>
+<td><p>Bind to specified byte stream socket</p></td>
+</tr>
+<tr>
+<td><p>network unix stream listen $ADDRESS</p></td>
+<td><p>Listen to specified byte stream socket</p></td>
+</tr>
+<tr>
+<td><p>network unix stream accept $ADDRESS</p></td>
+<td><p>Accept communication from specified byte stream socket</p></td>
+</tr>
+<tr>
+<td><p>network unix stream connect $ADDRESS</p></td>
+<td><p>Initiate communication with specified byte stream socket</p></td>
+</tr>
+<tr>
+<td><p>network unix dgram bind $ADDRESS</p></td>
+<td><p>Bind to specified datagram socket</p></td>
+</tr>
+<tr>
+<td><p>network unix dgram recv $ADDRESS</p></td>
+<td><p>Receive packets from specified datagram socket</p></td>
+</tr>
+<tr>
+<td><p>network unix dgram send $ADDRESS</p></td>
+<td><p>Send packets to specified datagram socket</p></td>
+</tr>
+<tr>
+<td><p>network unix seqpacket bind $ADDRESS</p></td>
+<td><p>Bind to specified seqpacket socket</p></td>
+</tr>
+<tr>
+<td><p>network unix seqpacket recv $ADDRESS</p></td>
+<td><p>Receive packets from specified seqpacket socket</p></td>
+</tr>
+<tr>
+<td><p>network unix seqpacket send $ADDRESS</p></td>
+<td><p>Send packets to specified seqpacket socket</p></td>
+</tr>
+</table>
+</div>
+
+<p>This example allows the domain to bind to the /tmp/.X11-unix/X0 socket:</p>
+
+<pre>
+network unix stream bind /tmp/.X11-unix/X0
+network unix stream bind \000/tmp/.X11-unix/X0
+</pre>
+
 <h3><a name="use_group">use_group</a></h3>
 
 <p>This directive allows the domain to inherit permissions defined for the specified group. These permissions are defined in exception policy.</p>
@@ -464,17 +530,29 @@ task auto_execute_handler /usr/sbin/check-and-exec
 task denied_execute_handler /bin/true
 </pre>
 
-<h3><a name="task_auto_domain_transition">task auto_domain_transition</a></h3>
-
-<p>This directive causes a domain transition to occur when the specified conditions have been met. This can be used to split permissions without requiring an execution.</p>
-
 <h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
 
 <p>This directive causes a domain transition to occur when the application writes a domain name to the "/proc/ccs/self_domain" interface. This can be used to split permissions without requiring an execution, but the application must be modified to write to the interface at the appropriate time.</p>
 
+<p>This example causes a domain transition to the "&lt;kernel&gt; //apache /www.tomoyo00.com" domain (which must be added using the "Domain Transition Editor" if it does not exist) to occur when "//apache /www.tomoyo00.com" is written to "/proc/ccs/self_domain" by the domain:</p>
+
+<pre>
+task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
+</pre>
+
+<h3><a name="task_auto_domain_transition">task auto_domain_transition</a></h3>
+
+<p>This directive causes a domain transition to occur when the specified conditions have been met. This can be used to split permissions without requiring an execution.</p>
+
+<p>This example causes a domain transition to the "&lt;kernel&gt; //non-root-session" domain (which must be added using the "Domain Transition Editor" if it does not exist) to occur when the task UID becomes non-root:</p>
+
+<pre>
+task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
+</pre>
+
 <h3><a name="quota_exceeded">quota_exceeded</a></h3>
 
-<p>This directive indicates that the domain has failed to append an entry while in "Learning Mode" due to the <a href="section-4.html.en#4.2">max_learning_entry</a> value being reached.</p>
+<p>This directive indicates that the domain has failed to append an entry while in "Learning Mode" due to the <a href="section-4.html.en#preference">max_learning_entry</a> value being reached.</p>
 
 <h3><a name="transition_failed">transition_failed</a></h3>
 
