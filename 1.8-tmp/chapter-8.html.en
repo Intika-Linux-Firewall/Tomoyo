@@ -241,6 +241,55 @@
 </table>
 </div>
 
+<p>The value to be tested may take the form of a single integer, a range of integers, or another conditional (the exceptions are "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" which take string values):</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Value</p></th>
+<th><p>Example</p></th>
+</tr>
+<tr>
+<td><p>Integer</p></td>
+<td><p>task.uid=0</p></td>
+</tr>
+<tr>
+<td><p>Range</p></td>
+<td><p>task.uid=100-500</p></td>
+</tr>
+<tr>
+<td><p>Conditional</p></td>
+<td><p>task.uid=path1.uid</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="8.2">8.2. Example usage</a></h3>
+
+<p>If you wish to deny login as the root user from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
+
+<pre>
+file execute /bin/bash task.uid!=0
+</pre>
+
+<p>If you wish to allow login for a range of user ID's from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
+
+<pre>
+file execute /bin/bash task.uid=500-1000
+</pre>
+
+<p>If you wish to allow a domain to read a temporary file only if they own it, the following could be inserted into domain policy:</p>
+
+<pre>
+file read /tmp/file001.tmp task.uid=path1.uid
+</pre>
+
+<p>If you wish to allow the execution of a program only when certain conditions are met, the following could be inserted into domain policy:</p>
+
+<pre>
+file execute /usr/bin/firefox exec.realpath="/usr/lib/firefox-3.6/firefox" exec.argv[0]="/usr/bin/firefox" exec.envc=0
+</pre>
+
 </div><!-- documentation -->
 
 </div><!-- content -->
