@@ -32,11 +32,13 @@
 
 <div id="documentation">
 
+<p><a href="chapter-1.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-3.html.en">&lt;Next&gt;</a></p>
+
 <h2>Chapter 2: Why do I need TOMOYO Linux?</h2>
 
 <h3><a name="2.1">2.1. What is TOMOYO Linux?</a></h3>
 
-<p>TOMOYO Linux is a <strong>Mandatory Access Control (MAC)</strong> implementation for Linux that can be used to increase the security of a system. The project was launched in March 2003 and is sponsored by NTT DATA Corporation, Japan. For further technical information, see the <a href="http://tomoyo.sourceforge.jp/">SourceForge project page</a>.</p>
+<p>TOMOYO Linux is a <strong>Mandatory Access Control (MAC)</strong> implementation for Linux that can be used for system analysis or to increase the security of a system. The project was launched in March 2003 and is sponsored by NTT DATA Corporation, Japan. For further technical information, see the <a href="http://tomoyo.sourceforge.jp/">SourceForge project page</a>.</p>
 
 <p><strong>TOMOYO Linux 1.x</strong> is the original branch of development, which was first released on 11th November 2005 under the GPL. It was implemented as a patch that can be applied to the Linux kernel and is still in active development.</p>
 
@@ -46,7 +48,7 @@
 
 <h3><a name="2.2">2.2. What is Mandatory Access Control?</a></h3>
 
-<p>In an operating system (OS), <strong>each program or process is mostly unrestricted</strong> in the tasks that they are able to perform (the left-hand picture). A security focused OS should implement some form of restriction that prevents a process from performing tasks that they should not perform, or that the administrator specifically wants to prevent them from performing. For example, a WWW server such as Apache should be allowed to provide only WWW services. It should not have access to areas of the filesystem that it does not need, and it should not be allowed to start or interact with other unrelated processes. Access Control Lists (ACLs) provide little protection, especially as many services are run as the root user. MAC on the other hand can take this protection much further, allowing very precise control over what each process is allowed to do, even for processes running as root (the right-hand picture). This is important in the event that a process is compromised. Without MAC, <strong>a compromised process would be free to do what it wants!</strong></p>
+<p>In an operating system (OS), <strong>each program or process is mostly unrestricted</strong> in the tasks that they are able to perform (see illustration below). A security focused OS should implement some form of restriction that prevents a process from performing tasks that they should not perform, or that the administrator specifically wants to prevent them from performing. For example, a web server such as Apache should be allowed to provide only web services. It should not have access to areas of the filesystem that it does not need, and it should not be allowed to start or interact with other unrelated processes. The Linux filesystem Access Control Lists (ACLs) provide little protection, especially as many services are run as the root user. MAC on the other hand can take this protection much further, allowing very precise control over what each process is allowed to do, even for processes running as root (see illustration below). This is important in the event that a process is compromised. Without MAC, <strong>a compromised process would be free to do what it wants!</strong></p>
 
 <p><strong>Unrestricted access on a normal OS:</strong></p>
 <img src="media/fig-1-1.jpg" alt="fig-1-1.jpg" width="500" height="350">
@@ -57,9 +59,9 @@
 
 <h3><a name="2.3">2.3. How can TOMOYO Linux help me?</a></h3>
 
-<p>An important part of MAC is the creation and management of this policy for every process in a system, which requires knowledge of precisely what each process should be allowed to do. This may sound like a fiendishly difficult task and it requires a high degree of understanding and skill. However, <b>TOMOYO Linux provides the ability to generate policy automatically</b> and can make securing a system very easy. Any experienced Linux administrator can set up and use TOMOYO Linux within a day!</p>
+<p>An important part of MAC is the creation and management of this policy for every process in a system, which requires knowledge of precisely what each process should be allowed to do. This may sound like a fiendishly difficult task and it requires a high degree of understanding and skill. However, <strong>TOMOYO Linux provides the ability to generate policy automatically</strong> and can make securing a system very easy. Any experienced Linux administrator should be able to set up and use TOMOYO Linux within a day!</p>
 
-<p>A restricted system helps to reduce the damage done when an application is compromised. For example, damage can be reduced from security exploits such as buffer overflows. Such protection is therefore especially important for internet-facing services such as Apache or SSH. If a "policy of least privilege" is in place, a remote attacker that gains control of such an application can be prevented from further compromising a system.</p>
+<p>A restricted system helps to reduce the damage done when an application is compromised. For example, damage can be reduced from security exploits such as buffer overflows. Such protection is therefore especially important for internet-facing services such as Apache or SSH. If a policy of least privilege is in place, a remote attacker that gains control of such an application can be prevented from further compromising a system.</p>
 
 </div><!-- documentation -->
 

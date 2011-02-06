@@ -32,13 +32,15 @@
 
 <div id="documentation">
 
+<p><a href="chapter-4.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-6.html.en">&lt;Next&gt;</a></p>
+
 <h2>Chapter 5: How do I manage domains?</h2>
 
 <h3><a name="5.1">5.1. Domain creation</a></h3>
 
 <p>Each domain will behave differently and require a unique set of permissions. Their behaviour must therefore be analyzed to determine which actions you wish to permit in domain policy. TOMOYO Linux can be used to restrict only a subset of the domains in a system, but the most secure system would restrict every domain in order to make sure there are no points of vulnerability.</p>
 
-<p>First, choose an application that you wish to analyze/protect. To demonstrate the procedure, this guide will use Apache in CentOS 5.5.</p>
+<p>First, choose an application that you wish to analyze or protect. To demonstrate the procedure, this guide will use Apache in CentOS 5.5.</p>
 
 <p>Start the target application:</p>
 
@@ -46,7 +48,7 @@
 # service httpd start
 </pre>
 
-<p>Run the policy editor again <b>without</b> the "/etc/ccs/" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
+<p>Run the policy editor again <strong>without</strong> the "/etc/ccs/" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition" screen.</p>
 
 <p>In CentOS 5.5, the location of Apache is "/usr/sbin/httpd".</p>
 
@@ -54,7 +56,7 @@
 
 <p><img src="media/editpolicy-httpd-profile0.png" alt="editpolicy-httpd-profile0.png" width="675" height="375"></p>
 
-<p>If "/usr/sbin/httpd" is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <b>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</b>.</p>
+<p>If <code>/usr/sbin/httpd</code> is invoked by "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", then the domain name is <strong>"&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd"</strong>.</p>
 
 <p>You will notice that the picture above may look a little different to what you can see on your own screen. This is because the domain "/usr/sbin/httpd" has been registered with the "initialize_domain" directive. Let's spend some time exploring the management of domains before we continue.</p>
 
@@ -66,17 +68,17 @@
 
 <p>When a unique execution occurs for application, a new domain is created. This allows for an application to receive different permissions depending on how it was executed (e.g. from an Xterm). However, it may be desirable to give the same permissions to an application without regard to how it was executed. This can simplify policy and make it easier to manage.</p>
 
-<p>To do this, we need to enter a new entry into the exception policy. For example, you might add the following to exception policy:</p>
+<p>To do this, we need to enter a new entry into the exception policy. For example, you might add the following directive to exception policy:</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<p>Of course, "/usr/sbin/sshd" can be the full pathname of any application you wish to control domain transitions for. Having added this to exception policy, the application will now not create a new domain every time a unique execution occurs. Instead, it will reinitialize the domain to <b>"&lt;kernel&gt; /usr/sbin/sshd"</b>:</p>
+<p>Of course, "/usr/sbin/sshd" can be the full pathname of any application you wish to control domain transitions for. Having added this to exception policy, the application will now not create a new domain every time a unique execution occurs. Instead, it will reinitialize the domain to <strong>"&lt;kernel&gt; /usr/sbin/sshd"</strong>:</p>
 
 <img src="media/fig-3-4.png" alt="fig-3-4.png" width="600" height="315">
 
-<p>The text "from any" included in the above command signifies that the application domain should be reinitialized when invoked by <b>any domain</b>. It is possible to cause reinitialization to happen only when the application domain is invoked by <b>a single specified domain</b>. This is achieved by adding the following to exception policy:</p>
+<p>The text "from any" included in the above directive signifies that the application domain should be reinitialized when invoked by <strong>any domain</strong>. It is possible to cause reinitialization to happen only when the application domain is invoked by <strong>a single specified domain</strong>. This is achieved by adding the following to exception policy:</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
@@ -84,7 +86,7 @@ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 
 <img src="media/fig-3-5.png" alt="fig-3-5.png" width="600" height="360">
 
-<p>It is also allowable to specify only the last part of the domain name instead of the whole domain name. For example, just <b>"from /etc/rc.d/init.d/sshd"</b> instead of <b>"from &lt;kernel&gt; /etc/rc.d/init.d/sshd"</b>. This would of course be less specific a rule, and would for example still apply to the sshd daemon being run from a terminal.</p>
+<p>It is also allowable to specify only the last part of the domain name instead of the whole domain name. For example, just <strong>"from /etc/rc.d/init.d/sshd"</strong> instead of <strong>"from &lt;kernel&gt; /etc/rc.d/init.d/sshd"</strong>. This would of course be less specific a rule, and would for example still apply to the sshd daemon being run from a terminal.</p>
 
 <p>If you switch back to the "Domain Transition Editor" screen, you may see domains with a "!" mark in the third column. This means that the domain is unreachable and can safely be deleted. The domain you have chosen to initialize to will appear with a "*" mark.</p>
 
@@ -92,7 +94,7 @@ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 
 <h4><a name="5.2.2">5.2.2. no_initialize_domain</a></h4>
 
-<p>After using the initialize_domain rule, a situation may arise where you do not want an application to be reinitialized from a particular domain. For example, the application "/bin/mail" executes "/usr/sbin/sendmail.sendmail" in order to send mails. Consider that the following has been added to exception policy:</p>
+<p>After using the initialize_domain rule, a situation may arise where you do not want an application to be reinitialized from a particular domain. For example, the application <code>/bin/mail</code> executes <code>/usr/sbin/sendmail.sendmail</code> in order to send mails. Consider that the following has been added to exception policy:</p>
 
 <pre>
 initialize_domain /usr/sbin/sendmail.sendmail from any
@@ -108,7 +110,7 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 
 <h4><a name="5.2.3">5.2.3. keep_domain</a></h4>
 
-<p>It may be preferable that any executed applications from a particular domain are <b>suppressed from undergoing a domain transition</b>. They therefore act within the permissions of the domain that has invoked it. For example, suppose you wish apply the same policy to all applications run within an ssh shell, you would add the following to exception policy:</p>
+<p>It may be preferable that any executed applications from a particular domain are <strong>suppressed from undergoing a domain transition</strong>. They therefore act within the permissions of the domain that has invoked it. For example, suppose you wish apply the same policy to all applications run within an ssh shell, you would add the following to exception policy:</p>
 
 <pre>
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
@@ -116,7 +118,7 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 
 <img src="media/fig-3-9.png" alt="fig-3-9.png" width="600" height="262">
 
-<p>Now the execution of any application, such as "/bin/ls" or "/bin/cat" will not result in the creation of a new domain. It will instead remain in the domain specified above and thus act within the permissions of that domain.</p>
+<p>Now the execution of any application, such as <code>/bin/ls</code> or <code>/bin/cat</code> will not result in the creation of a new domain. It will instead remain in the domain specified above and thus act within the permissions of that domain.</p>
 
 <p>This could also be done for any shell instance by adding the following to exception policy:</p>
 
@@ -144,7 +146,7 @@ keep_domain /usr/bin/xargs from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 
 <p>The "keep_domain" directive is useful in managing ssh login sessions as you cannot predict the commands the user will run and the order in which they will do so. However, there may be cases where you wish to resume domain transition, such as allowing access to password files when changing passwords or for restarting daemon services.</p>
 
-<p>For example, if you wish to resume domain transition only for "/bin/cat", you could add the following to exception policy:</p>
+<p>For example, if you wish to resume domain transition only for <code>/bin/cat</code>, you could add the following to exception policy:</p>
 
 <pre>
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
@@ -199,7 +201,7 @@ initialize_domain /usr/sbin/httpd from any
 
 <h3><a name="5.5">5.5. Saving permissions to disk</a></h3>
 
-<p>Remember to save policy, as permissions are accumulated only in kernel memory. <b>If the system is rebooted, the gathered permissions will be lost.</b></p>
+<p>Remember to save policy, as permissions are accumulated only in kernel memory. <strong>If the system is rebooted, the gathered permissions will be lost.</strong></p>
 
 <p>To save policy to disk, use the following command:</p>
 
@@ -218,10 +220,10 @@ initialize_domain /usr/sbin/httpd from any
 # /usr/sbin/ccs-loadpolicy -m &lt; /etc/ccs/manager.conf
 </pre>
 
-<p>The <b>"-df"</b> option means overwrite "/proc/ccs/domain_policy".<br>
-The <b>"-ef"</b> option means overwrite "/proc/ccs/exception_policy".<br>
-The <b>"-p"</b> option means append to "/proc/ccs/profile".<br>
-The <b>"-m"</b> option means append to "/proc/ccs/manager".</p>
+<p>The <strong>"-df"</strong> option means overwrite "/proc/ccs/domain_policy".<br>
+The <strong>"-ef"</strong> option means overwrite "/proc/ccs/exception_policy".<br>
+The <strong>"-p"</strong> option means append to "/proc/ccs/profile".<br>
+The <strong>"-m"</strong> option means append to "/proc/ccs/manager".</p>
 
 <p>To make it harder for fatal mistakes to happen, "-pf" and "-mf" are not supported.</p>
 
@@ -235,7 +237,7 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 
 <p>This limit can be increased with the "max_learning_entry" values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next chapter, and doing so can reduce the size of domain policy to become more manageable. You would then no longer need to increase the "max_learning_entry" value.</p>
 
-<p>You may also see the entry <b>"quota_exceeded"</b> in domain policy. This indicates that no new entries will be learnt until domain policy is shortened or the "max_learning_entry" value is increased.</p>
+<p>You may also see the entry <strong>"quota_exceeded"</strong> in domain policy. This indicates that no new entries will be learnt until domain policy is shortened or the "max_learning_entry" value is increased.</p>
 
 </div><!-- documentation -->
 
