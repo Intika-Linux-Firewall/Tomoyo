@@ -32,6 +32,8 @@
 
 <div id="documentation">
 
+<p><a href="chapter-5.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-7.html.en">&lt;Next&gt;</a></p>
+
 <h2>Chapter 6: How do I develop policy?</h2>
 
 <h3><a name="6.1">6.1. Patterning temporary files</a></h3>
@@ -59,9 +61,9 @@
 
 <p>In the example above, all except "/var/run/nscd/socket" can be considered to be temporary files. Thus, patterns can be made for these pathnames.</p>
 
-<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the \? pattern which matches any one letter (other than '/') and \* pattern which matches zero or more repetition of any characters (other than '/') can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the <code>\?</code> pattern which matches any single character other than "/", and the <code>\*</code> pattern which matches zero or more repetitions of any characters other than "/" can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
 
-<p>Use "/usr/sbin/ccs-patternize" to convert into patterns non-interactively. Rewriting rules are specified in /etc/ccs/tools/patternize.conf file, as shown below:</p>
+<p>Use <code>ccs-patternize</code> to convert into patterns non-interactively. Rewriting rules are specified in "/etc/ccs/tools/patternize.conf" file, as shown below:</p>
 
 <pre>
 # This file contains rewriting rules used by ccs-patternize command.
@@ -153,9 +155,9 @@ rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/\*
 rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/
 </pre>
 
-<p>The <b>"path_pattern"</b> directive matches the whole pathname.<br>
-The <b>"head_pattern"</b> directive matches leading pathname.<br>
-The <b>"tail_pattern"</b> directive matches trailing pathname.</p>
+<p>The <strong>"path_pattern"</strong> directive matches the whole pathname.<br>
+The <strong>"head_pattern"</strong> directive matches leading pathname.<br>
+The <strong>"tail_pattern"</strong> directive matches trailing pathname.</p>
 
 <p>Append patterns for "/tmp/Rs\?\?\?\?\?\?" and "/var/spool/clientmqueue/\*" to /etc/ccs/tools/patternize.conf file:</p>
 
@@ -164,7 +166,7 @@ rewrite tail_pattern /tmp/Rs\?\?\?\?\?\?
 rewrite tail_pattern /var/spool/clientmqueue/\*
 </pre>
 
-<p>Then, convert using "ccs-patternize" command and compare how it was changed using "ccs-diffpolicy" command:</p>
+<p>Then, convert using <code>ccs-patternize</code> command and compare how it was changed using <code>ccs-diffpolicy</code> command:</p>
 
 <pre class="command">
 # ccs-savepolicy -d &gt; /tmp/old
@@ -235,7 +237,7 @@ delete file ioctl pipefs:/[11965] 0x5413
 # ccs-diffpolicy /tmp/old /tmp/new | /usr/sbin/ccs-loadpolicy -d
 </pre>
 
-<p>To convert only specific domains, the "/usr/sbin/ccs-selectpolicy" command can be used. For example, to update only "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains, do the following:</p>
+<p>To convert only specific domains, the <code>ccs-selectpolicy</code> command can be used. For example, to update only "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains, do the following:</p>
 
 <pre class="command">
 # ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' \
@@ -315,7 +317,7 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg
 file read @WEB-CONTENTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "path_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "path_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -378,7 +380,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "number_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "number_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -437,7 +439,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using "/usr/sbin/ccs-editpolicy" can also be managed using "/usr/sbin/ccs-patternize". Add "address_group" to the exception policy like above (as "/usr/sbin/ccs-patternize" only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "address_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -647,6 +649,8 @@ use_group 0
 <pre class="command">
 # /usr/sbin/ccs-savepolicy
 </pre>
+
+<br>
 
 <p>If you are using TOMOYO Linux for system analysis, you have reached your goal. The steps outlined in the chapters so far can be repeated for all domains which you wish to analyze.</p>
 

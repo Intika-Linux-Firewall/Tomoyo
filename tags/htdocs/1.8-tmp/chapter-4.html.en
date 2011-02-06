@@ -32,40 +32,42 @@
 
 <div id="documentation">
 
+<p><a href="chapter-3.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-5.html.en">&lt;Next&gt;</a></p>
+
 <h2>Chapter 4: How does TOMOYO Linux work?</h2>
 
 <h3><a name="4.1">4.1. Understanding domains</a></h3>
 
-<p>In TOMOYO Linux, the technique used to enforce MAC makes use of something called <b>"domains"</b>. This is an important concept. Every process in a system belongs to a domain, which is determined by its execution history. Broadly speaking, every time a process is executed, a new domain is created. Any particular domain is represented by a concatenation of all previously executed pathanames. This creation of a new domain can also be called a <b>"domain transition"</b>. Have a look at this diagram:</p>
+<p>In TOMOYO Linux, the technique used to enforce MAC makes use of something called <strong>"domains"</strong>. This is an important concept. Every process in a system belongs to a domain, which is determined by its execution history. Broadly speaking, every time a process is executed, a new domain is created. Any particular domain is represented by a concatenation of all previously executed pathanames. This creation of a new domain can also be called a <strong>"domain transition"</strong>. Have a look at this diagram:</p>
 
 <img src="media/fig-3-1.png" alt="fig-3-1.png" width="600" height="450">
 
-<p>The kernel is always the first domain and is represented in TOMOYO Linux by <b>&lt;kernel&gt;</b>. In this example, the kernel then executes "/sbin/init". Because a process has been executed, a new domain is created which in this case is the domain <b>"&lt;kernel&gt; /sbin/init"</b>. The bootup scripts are then executed, which result in further domains being created.</p>
+<p>The kernel is always the first domain and is represented in TOMOYO Linux by <strong>&lt;kernel&gt;</strong>. In this example, the kernel then executes "/sbin/init". Because a process has been executed, a new domain is created which in this case is the domain <strong>&lt;kernel&gt; /sbin/init</strong>. The bootup scripts are then executed, which result in further domains being created.</p>
 
 <p>The process execution history is important. Consider the following domains:</p>
 
-<p>&lt;kernel&gt; /sbin/init <b>/etc/rc.d/rc</b><br>
-&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit <b>/etc/rc.d/rc</b><p>
+<p>&lt;kernel&gt; /sbin/init <strong>/etc/rc.d/rc</strong><br>
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit <strong>/etc/rc.d/rc</strong><p>
 
-<p>In both cases, the script "/etc/rc.d/rc" is the process causing a new domain to be created. However, <b>because the process execution history is different, they are considered to be two separate domains</b>. This allows you to control what can be executed by any particular domain, and allows policy to be more flexible as you can apply different levels of restriction to a process depending on how it was executed. There is also the possibility to manage domain transition very precisely and for example apply the same restriction to a process without regard to how it was executed. This topic will be discussed later.</p>
+<p>In both cases, the script "/etc/rc.d/rc" is the process causing a new domain to be created. However, <strong>because the process execution history is different, they are considered to be two separate domains</strong>. This allows you to control what can be executed by any particular domain, and allows policy to be more flexible as you can apply different levels of restriction to a process depending on how it was executed. There is also the possibility to manage domain transition very precisely and for example apply the same restriction to a process without regard to how it was executed. This topic will be discussed later.</p>
 
 <h3><a name="4.2">4.2. View domains with the policy editor</a></h3>
 
 <p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">How to use the Policy Editor</a>.</p>
 
-<p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with "/etc/ccs/" option to edit policy files within "/etc/ccs/":</p>
+<p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with the "/etc/ccs/" option to edit policy files within the "/etc/ccs/" directory:</p>
 
 <pre class="command">
 # /usr/sbin/ccs-editpolicy /etc/ccs/
 </pre>
 
-<p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the <b>"Domain Transition Editor"</b>. The picture below describes the domain tree that should be visible after running the above command. As of now, only the "&lt;kernel&gt;" domain is defined:</p>
+<p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the <strong>"Domain Transition Editor"</strong>. The picture below describes the domain tree that should be visible after running the above command. As of now, only the "&lt;kernel&gt;" domain is defined:</p>
 
 <p><img src="media/editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" width="675" height="375"></p>
 
-<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. <b>There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/"</b>. Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in later. Press the "q" key to quit the policy editor.</p>
+<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. <strong>There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/"</strong>. Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in later. Press the "q" key to quit the policy editor.</p>
 
-<p>Now run the policy editor again <b>without</b> the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:</p>
+<p>Now run the policy editor again <strong>without</strong> the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:</p>
 
 <pre class="command">
 # /usr/sbin/ccs-editpolicy
@@ -82,28 +84,28 @@ The <strong>fourth line</strong> and downwards are the domains currently defined
 
 <p>Try executing some commands and see where new domains are created. You can do this while you still have the policy editor running.</p>
 
-<p>You can scroll using the <b>arrow keys</b> and/or the <b>Home/End/PageUp/PageDown</b> keys.</br>
-Press the <b>"r"</b> key to refresh the contents of the screen.<br>
-Press the <b>"f"</b> key to find an entry.<br>
-Press the <b>"?"</b> key to view the available commands. Press the "?" again to go back to the previous screen.</p>
+<p>You can scroll using the <strong>arrow keys</strong> and/or the <strong>Home/End/PageUp/PageDown</strong> keys.</br>
+Press the <strong>"r"</strong> key to refresh the contents of the screen.<br>
+Press the <strong>"f"</strong> key to find an entry.<br>
+Press the <strong>"?"</strong> key to view the available commands. Press the "?" again to go back to the previous screen.</p>
 
 <p>Note that a new domain is only created if it is unique, so executing the same command over and over again will not result in the creation of many domains.</p>
 
 <h3><a name="4.3">4.3. Understanding profiles</a></h3>
 
-<p>Each domain can be restricted using TOMOYO Linux by assigning a <b>"profile"</b>. These profiles can be assigned to any domain independently of others, which allows you to slowly build up the security in your system one domain at a time. This also allows you to create custom profiles for specific domains, but this is a more advanced topic for later on.</p>
+<p>Each domain can be restricted using TOMOYO Linux by assigning a <strong>"profile"</strong>. These profiles can be assigned to any domain independently of others, which allows you to slowly build up the security in your system one domain at a time. This also allows you to create custom profiles for specific domains, but this is a more advanced topic for later on.</p>
 
 <p>In the policy editor, look at the numbers in the second column of each line:</p>
 
 <p><img src="media/editpolicy-domain-profile-number.png" alt="editpolicy-domain-profile-number.png" width="675" height="375"></p>
 
-<p>This number is called the <b>"profile number"</b>. A profile number is an integer value which takes between 0 and 255. The default profile number is "0", also known as "Disabled Mode", in which the domain is completely unrestricted.</p>
+<p>This number is called the <strong>"profile number"</strong>. A profile number is an integer value which takes between 0 and 255. The default profile number is "0", also known as "Disabled Mode", in which the domain is completely unrestricted.</p>
 
-<p>Press the <b>"w"</b> key to list the different "screens" that can be viewed using the policy editor:</p>
+<p>Press the <strong>"w"</strong> key to list the different "screens" that can be viewed using the policy editor:</p>
 
 <p><img src="media/editpolicy-window-list.png" alt="editpolicy-window-list.png" width="675" height="375"></p>
 
-<p>Press the <b>"p"</b> key to select the <b>"Profile Editor"</b>, and you will see the list of profiles:</p>
+<p>Press the <strong>"p"</strong> key to select the <strong>"Profile Editor"</strong>, and you will see the list of profiles:</p>
 
 <p><img src="media/editpolicy-profile-list.png" alt="editpolicy-profile-list.png" width="675" height="375"></p>
 
@@ -192,15 +194,15 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <h3><a name="4.4">4.4. Understanding domain policy</a></h3>
 
-<p>The restrictions of each domain can be viewed using the <b>"Domain Policy Editor"</b> screen, which can be accessed by selecting a domain in the "Domain Transition" screen, and then pressing the "Enter" key. Since no policy has been developed yet, the screen is empty. This is an example of domain policy for Apache:</p>
+<p>The restrictions of each domain can be viewed using the <strong>"Domain Policy Editor"</strong> screen, which can be accessed by selecting a domain in the "Domain Transition" screen, and then pressing the "Enter" key. Since no policy has been developed yet, the screen is empty. This is an example of domain policy for Apache:</p>
 
 <a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="media/editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="675" height="375"></a>
 
-<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.en#4.5">4.5: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>. However, it is recommended that you <b>continue with this guide rather than try to master these directives</b>. It will become clearer later on how these directives can be used.</p>
+<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.en#4.5">4.5: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>. However, it is recommended that you <strong>continue with this guide rather than try to master these directives</strong>. It will become clearer later on how these directives can be used.</p>
 
 <h3><a name="4.5">4.5. Understanding exception policy</a></h3>
 
-<p>Press the "w" key, then press the "e" key, and you will see the <b>"Exception Policy Editor"</b> screen:</p>
+<p>Press the "w" key, then press the "e" key, and you will see the <strong>"Exception Policy Editor"</strong> screen:</p>
 
 <a href="editpolicy-exception-full.png">(Click to view complete screen.)<br><img src="media/editpolicy-exception-list1.png" alt="editpolicy-exception-list1.png" width="675" height="375"></a>
 
@@ -208,7 +210,7 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <p>The permissions here are similar to those in the domain policy, but apply to all domains. Permissions defined here will not be displayed in domain policy, and access requests from any domain that match a permission in exception policy will be automatically accepted. The exception policy can also be used to shorten and simplify domain policy for each domain by using the group directives.</p>
 
-<p>For in depth details on the directives that can be used in exception policy, see the <a href="policy-reference.html.en#exception_policy">Exception Policy Specifications</a>. However, it is recommended that you <b>continue with this guide rather than try to master these directives</b>. It will become clearer later on how these directives can be used.</p>
+<p>For in depth details on the directives that can be used in exception policy, see the <a href="policy-reference.html.en#exception_policy">Exception Policy Specifications</a>. However, it is recommended that you <strong>continue with this guide rather than try to master these directives</strong>. It will become clearer later on how these directives can be used.</p>
 
 <h3><a name="4.6">4.6. Saving audit logs (optional)</a></h3>
 
@@ -216,9 +218,9 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 
 <p>When developing policy, it may be useful to save a log entry every time a domain makes a request that is undefined in domain/exception policy. While this is crucial for system administration once policy has been fully developed and enforced, it can also be used alongside "Learning Mode" to help develop policy.</p>
 
-<p>TOMOYO Linux can record <b>"access granted logs"</b> (access requests that did not violate domain policy) and <b>"access rejected logs"</b> (access requests that violated domain policy). These logs are in the form of domain policy. This is useful in the case that the user wishes to permit a domain to perform actions that are not currently permitted in policy. The "access rejected log" could then be used to append permissions to domain policy. The "Learning Mode" described in <a href="chapter-5.html.en">the next chapter</a> mostly automates the process of appending "access rejected logs" into domain policy for domains set to that mode.</p>
+<p>TOMOYO Linux can record <strong>"access granted logs"</strong> (access requests that did not violate domain policy) and <strong>"access rejected logs"</strong> (access requests that violated domain policy). These logs are in the form of domain policy. This is useful in the case that the user wishes to permit a domain to perform actions that are not currently permitted in policy. The "access rejected log" could then be used to append permissions to domain policy. The "Learning Mode" described in <a href="chapter-5.html.en">the next chapter</a> mostly automates the process of appending "access rejected logs" into domain policy for domains set to that mode.</p>
 
-<p>The following values can be given for the grant_log= parameter of the CONFIG line:</p>
+<p>The following values can be given for the "grant_log" parameter of the CONFIG line:</p>
 
 <div class="simple-table">
 <table>
@@ -249,7 +251,7 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 </table>
 </div>
 
-<p>The following values can be given for the reject_log= parameter of the CONFIG line:</p>
+<p>The following values can be given for the "reject_log" parameter of the CONFIG line:</p>
 
 <div class="simple-table">
 <table>
@@ -280,9 +282,9 @@ Press the <b>"?"</b> key to view the available commands. Press the "?" again to 
 </table>
 </div>
 
-<p>"/usr/sbin/ccs-auditd" is a daemon program that reads from "/proc/ccs/audit" and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
+<p><code>ccs-auditd</code> is a daemon program that reads from "/proc/ccs/audit" and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
 
-<p>The configuration of this daemon is done in the "/etc/ccs/tools/auditd.conf" file. Text read from "/proc/ccs/audit" can be sorted and sent to different files. Some useful defaults exist, but an advaned user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
+<p>The configuration of this daemon is done in the "/etc/ccs/tools/auditd.conf" file. Text read from "/proc/ccs/audit" can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
 
 <pre>
 # This file contains sorting rules used by ccs-auditd command.
@@ -345,7 +347,7 @@ destination     /var/log/tomoyo/reject_003.log
 
 <p>It is important to <strong>be careful with disk space if "access granted logs" are saved</strong>, as this file can grow extremely quickly. Do not do this unless you know what you are doing.</p>
 
-<p>To manage logs with "logrotate", create /etc/logrotate.d/tomoyo with the following content (give "nocreate" option or logs after the first rotation will not be saved):</p>
+<p>To manage logs with <code>logrotate</code>, create "/etc/logrotate.d/tomoyo" with the following content (give "nocreate" option or logs after the first rotation will not be saved):</p>
 
 <pre>
 /var/log/tomoyo/*.log {
@@ -357,7 +359,7 @@ destination     /var/log/tomoyo/reject_003.log
 }
 </pre>
 
-<p>If audit logs are not required, ccs-auditd need not be run. In this case, give PREFERENCE={ max_audit_log=0 } for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
+<p>If audit logs are not required, ccs-auditd need not be run. In this case, give <strong>PREFERENCE={ max_audit_log=0 }</strong> for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
 
 </div><!-- documentation -->
 

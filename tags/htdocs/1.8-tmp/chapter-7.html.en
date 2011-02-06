@@ -32,6 +32,8 @@
 
 <div id="documentation">
 
+<p><a href="chapter-6.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-8.html.en">&lt;Next&gt;</a></p>
+
 <h2>Chapter 7: How do I enforce policy?</h2>
 
 <h3><a name="7.1">7.1. Enabling enforcing mode</a></h3>
@@ -64,7 +66,7 @@
 
 <img src="media/unix-penguin.png" alt="unix-penguin.png" width="547" height="729">
 
-<p>Although it appears to be have been completed successfully, the warning message by "/bin/mail" shows that the input was empty and so the execution of "/bin/cat" was rejected:</p>
+<p>Although it appears to be have been completed successfully, the warning message by <code>/bin/mail</code> shows that the input was empty and so the execution of <code>/bin/cat</code> was rejected:</p>
 
 <img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477">
 
@@ -101,9 +103,9 @@ file execute /bin/cat
 file read /bin/cat
 </pre>
 
-<p>The first log reports that execution of "/bin/cat" was requested by "/bin/sh", which was invoked by "/usr/sbin/httpd". The command line argument was "cat /etc/passwd". As its first line has "mode=enforcing" and "granted=no", this request was rejected.</p>
+<p>The first log reports that execution of <code>/bin/cat</code> was requested by <code>/bin/sh</code>, which was invoked by <code>/usr/sbin/httpd</code>. The command line argument was <code>cat /etc/passwd</code>. As its first line has "mode=enforcing" and "granted=no", this request was rejected.</p>
 
-<p>The second log reports that opening "/bin/cat" for reading requested by "/bin/sh" which was invoked by "/usr/sbin/httpd". This was rejected because "/bin/sh" tried to open the requested program for reading when that program was not executed.</p>
+<p>The second log reports that opening <code>/bin/cat</code> for reading requested by <code>/bin/sh</code> which was invoked by <code>/usr/sbin/httpd</code>. This was rejected because <code>/bin/sh</code> tried to open the requested program for reading when that program was not executed.</p>
 
 <p>If the "Enforcing Mode" profile is configured with "PREFERENCE={ enforcing_penalty=1 }", domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
 
@@ -115,25 +117,25 @@ file read /bin/cat
 
 <h3><a name="7.3">7.3. Handling policy violations in real-time</a></h3>
 
-<p>Policy violations can be handled in real time using "/usr/sbin/ccs-queryd". This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
+<p>Policy violations can be handled in real time using <code>ccs-queryd</code>. This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
 
 <ul>
-<li>The pathnames of files have changed.
-<li>The dependencies of files have changed.
-<li>The access permissions required have changed or increased.
+<li>The pathnames of files have changed
+<li>The dependencies of files have changed
+<li>The access permissions required have changed or increased
 </ul>
 
 <p>The ideal way to update policy is to rebuild from scratch using learning mode as has been described. However, it is not desirable to change a domain from enforcing mode to learning mode once the system has entered into a production state as this will cause the system to become vulnerable to attack through this unrestricted domain.</p>
 
-<p>Fortunately, "ccs-queryd" can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
+<p>Fortunately, <code>ccs-queryd</code> can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
 
 <h4><a name="7.3.1">7.3.1. Example usage of "ccs-queryd"</a></h4>
 
-<p>The video below demonstrates example usage of "ccs-queryd", which is summarised in the text below:</p>
+<p>The video below demonstrates example usage of <code>ccs-queryd</code>, which is summarised in the text below:</p>
 
 <p><object data="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
-<p>Use "/usr/sbin/ccs-queryd" to view (in realtime) access requests that have been rejected by policy:</p>
+<p>Use <code>ccs-queryd</code> to view, in realtime, the access requests that have been rejected by policy:</p>
 
 <pre class="command">
 [root@tomoyo ~]# /usr/sbin/ccs-queryd
@@ -143,7 +145,7 @@ file read /bin/cat
 Monitoring /proc/ccs/query . Press Ctrl-C to terminate.
 </pre>
 
-<p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the "ccs-queryd" console:</p>
+<p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the <code>ccs-queryd</code> console:</p>
 
 <pre class="output">
 #2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
@@ -152,7 +154,7 @@ file execute /bin/sleep
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 
-<p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/sshd" attempted to execute "/bin/sleep" in order to process the command "sleep 1". Usually this would be instantly denied, but since "ccs-queryd" is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
+<p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/sshd" attempted to execute <code>/bin/sleep</code> in order to process the command <code>sleep 1</code>. Usually this would be instantly denied, but since <code>ccs-queryd</code> is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
 
 <p>Press <strong>"Y"</strong> to grant the request.<br>
 Press <strong>N"</strong> to reject the request.<br>
@@ -162,13 +164,9 @@ Press <strong>A"</strong> to append the request to domain policy and retry (a ch
 
 <p>Do not grant access requests unconditionally. Policy violations are not always due to updating packages, but may be malicious requests by attackers.</p>
 
-<p>Do not logout while "ccs-queryd" is running. Access requests that violated policy are kept pending and may otherwise sleep forever.</p>
+<p>Do not logout while this program is running. Access requests that violated policy are kept pending and may otherwise sleep forever. Monitor the output to make sure programs have the minimum permissions to run properly. If permissions are missing, they will be printed to the console output. Once policy has been updated, the program can be stopped with "Ctrl-C".</p>
 
-<p>Monitor "ccs-queryd" to make sure programs have the minimum permissions to run properly. If permissions are missing, they will be printed to "ccs-queryd".</p>
-
-<p>Once policy has been updated, "ccs-queryd" can be stopped with 'Ctrl-C'.</p>
-
-<p>Note that "ccs-queryd" directly edits policy currently loaded into the kernel, so run "ccs-savepolicy" to save policy to disk, otherwise policy will be lost on shutdown.</p>
+<p>Note that this program directly edits policy currently loaded into the kernel, so run <code>ccs-savepolicy</code> to save policy to disk, otherwise policy will be lost on shutdown.</p>
 
 <pre class="command">
 [root@tomoyo ~]# /usr/sbin/ccs-savepolicy
@@ -176,7 +174,7 @@ Press <strong>A"</strong> to append the request to domain policy and retry (a ch
 
 <h4><a name="7.3.2">7.3.2. Example output from "ccs-queryd"</a></h4>
 
-<p>This is an example of what the output might look like while running ccs-queryd:</p>
+<p>This is an example of what the output might look like while running <code>ccs-queryd</code>:</p>
 
 <pre class="output">
 #2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
@@ -294,7 +292,7 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 
 <h3><a name="7.4">7.4. Notification daemon</a></h3>
 
-<p>"/usr/sbin/ccs-notifyd" is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
+<p><code>ccs-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
 
 <p>Configuration is specified in the "/etc/ccs/tools/notifyd.conf" file, as shown below:</p>
 
@@ -380,7 +378,7 @@ file execute /bin/cat
 
 <h3><a name="7.5">7.5. Beyond the core topics</a></h3>
 
-<p>The chapters in this guide so far aim to provide enough knowledge to set up TOMOYO Linux on a system. In order to further improve your knowledge, please read on. The following chapters cover advanced topics that are not absolutely essential, but can help to increase the security of a system. The appendices found at the end of this guide can also be very helpful.</p>
+<p>The chapters in this guide so far aim to provide enough knowledge to set up TOMOYO Linux on a system. In order to further improve your knowledge, please read on. The following chapters cover advanced topics that are not absolutely essential, but can help to increase the security of a system. The appendices found at the end of this guide can also be very helpful, particularly the specification.</p>
 
 <p>Remember that security is only as strong as the weakest point. While proper use of the Mandatory Access Control possible with TOMOYO Linux will strengthen a system against being compromised, other security practices and system-hardening methods must not be forgotten. These methods are beyond the scope of this guide but should be eagerly pursued by any who wish to maximize the security of their system.</p>
 
