@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Specification : C4. Profile syntax</title>
+<title>TOMOYO Linux 1.8.x : Specification : C4. Exception policy syntax</title>
 </head>
 
 <body>
@@ -32,353 +32,161 @@
 
 <div id="documentation">
 
-<h2>C4: Profile syntax</h2>
+<p><a href="section-3.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-5.html.en">&lt;Next&gt;</a></p>
 
-<h3><a name="fields">Fields</a></h3>
+<h2>C4: Exception policy syntax</h2>
 
-<p>Each profile contains 3 fields:</p>
+<h3><a name="acl_group">acl_group</a></h3>
 
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Name</p></th>
-<th><p>Control</p></th>
-</tr>
-<tr>
-<td><p>COMMENT</p></td>
-<td><p>Description of the profile.</p></td>
-</tr>
-<tr>
-<td><p>CONFIG</p></td>
-<td><p>Configuration of operation mode.</p></td>
-</tr>
-<tr>
-<td><p>PREFERENCE</p></td>
-<td><p>Configuration of various options.</p></td>
-</tr>
-</table>
-</div>
+<p>This directive specifies a group entry. This can be referenced to in domain policy by the "use_group" directive. This directive should be followed by a group number, followed by an entry that matches domain policy syntax.</p>
 
-<h3><a name="config">The CONFIG field</a></h3>
+<p>This example allows domains with "use_group 0" to read /dev/null:</p>
 
-<p>The "mode" parameter of the CONFIG line can contain one of the following values:</p>
+<pre>
+acl_group 0 file read /dev/null
+</pre>
 
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Value</p></th>
-<th><p>Operation mode</p></th>
-</tr>
-<tr>
-<td><p>Disabled</p></td>
-<td><p>Works as if a regular kernel.</p></td>
-</tr>
-<tr>
-<td><p>Learning</p></td>
-<td><p>Do not reject an access request if the request violates policy. Append the request to policy.</p></td>
-</tr>
-<tr>
-<td><p>Permissive</p></td>
-<td><p>Do not reject an access request if the request violates policy. Do not append the request to policy.</p></td>
-</tr>
-<tr>
-<td><p>Enforcing</p></td>
-<td><p>Reject an access request if the request violates policy. Do not append the request to policy.</p></td>
-</tr>
-</table>
-</div>
+<h3><a name="aggregator">aggregator</a></h3>
 
-<p>By default, the CONFIG line specifies the default operation mode for all categories and functionalities. The default configuration can be overwritten by using one or more CONFIG lines per profile and using category-specific configuration:</p>
+<p>This directive allows multiple applications to be aggregated together. This directive is intended to aggregate similar programs whose behaviours are very similar.</p>
 
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Name</p></th>
-<th><p>Category to specify operation mode for</p></th>
-</tr>
-<tr>
-<td><p>CONFIG::capability</td>
-<td><p>POSIX Capabilities</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file</p></td>
-<td><p>File related operations</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc</p></td>
-<td><p>File related inter-process communications</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::misc</td>
-<td><p>Other miscellaneous parameters</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network</p></td>
-<td><p>Network related operations</p>
-</td>
-</tr>
-</table>
-</div>
+<p>This example causes the application /usr/bin/tac to be treated as /usr/bin/cat:</p>
 
-<p>Category-specific configuration can be further overwritten by functionality-specific configuration:</p>
+<pre>
+aggregator /usr/bin/tac /usr/bin/cat
+</pre>
 
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Name</p></th>
-<th><p>Functionality to specify operation mode for</p></th>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_kernel_module</p></td>
-<td><p>Use of the create_module(2), init_module(2) and delete_module(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_packet</p></td>
-<td><p>Use of PACKET sockets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_route</p></td>
-<td><p>Use of ROUTE sockets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_KEXEC_LOAD</p></td>
-<td><p>Use of kexec_load(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_NICE</p></td>
-<td><p>Use of nice(2) and setpriority(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_PTRACE</p></td>
-<td><p>Use of ptrace(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_REBOOT</p></td>
-<td><p>Use of reboot(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_SETHOSTNAME</p></td>
-<td><p>Use of sethostname(2) and setdomainname(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_TIME</p></td>
-<td><p>Use of stime(2), settimeofday(2) and adjtimex(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_VHANGUP</p></td>
-<td><p>Use of vhangup(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::execute</p></td>
-<td><p>Program execution and domain transition</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::open</p></td>
-<td><p>Opening files for reading or writing</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::create</p></td>
-<td><p>File creation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::unlink</p></td>
-<td><p>File deletion</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::mkdir</p></td>
-<td><p>Directory creation.</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::rmdir</p></td>
-<td><p>Directory deletion.</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::mkfifo</p></td>
-<td><p>FIFO creation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::mksock</p></td>
-<td><p>UNIX domain socket creation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::truncate</p></td>
-<td><p>File truncation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::symlink</p></td>
-<td><p>Symlink creation.</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::rewrite</p></td>
-<td><p>File overwriting</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::mkblock</p></td>
-<td><p>Block device file creation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::mkchar</p></td>
-<td><p>Character device file creation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::link</p></td>
-<td><p>Link creation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::rename</p></td>
-<td><p>File or directory renaming</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::chmod</p></td>
-<td><p>File or directory chmod</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::chown</p></td>
-<td><p>File or directory chown</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::chgrp</p></td>
-<td><p>File or directory chgrp</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::ioctl</p></td>
-<td><p>Use of the ioctl system calls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::chroot</p></td>
-<td><p>Use of chroot</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::mount</p></td>
-<td><p>Use of mount</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::unmount</p></td>
-<td><p>Use of umount</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::pivot_root</p></td>
-<td><p>Use of pivot_root</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_bind</p></td>
-<td><p>UDP socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_send</p></td>
-<td><p>UDP socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_recv</p></td>
-<td><p>UDP socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_bind</p></td>
-<td><p>TCP socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_listen</p></td>
-<td><p>TCP socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_connect</p></td>
-<td><p>TCP socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_accept</p></td>
-<td><p>TCP socket's accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_bind</p></td>
-<td><p>RAW socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_send</p></td>
-<td><p>RAW socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_recv</p></td>
-<td><p>RAW socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_bind</p></td>
-<td><p>UNIX domain datagram socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_send</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_recv</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_bind</p></td>
-<td><p>UNIX domain stream socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_listen</p></td>
-<td><p>UNIX domain stream socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_connect</p></td>
-<td><p>UNIX domain stream socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_accept</p></td>
-<td><p>UNIX domain stream socket accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_bind</p></td>
-<td><p>UNIX domain seqpacket socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_listen</p></td>
-<td><p>UNIX domain seqpacket socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_connect</p></td>
-<td><p>UNIX domain seqpacket socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_accept</p></td>
-<td><p>UNIX domain seqpacket socket accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::misc::env</p></td>
-<td><p>Environment variable names</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc::signal</p></td>
-<td><p>Use of signal transmission requests</p></td>
-</tr>
-</table>
-</div>
+<h3><a name="initialize_domain">initialize_domain</a></h3>
 
-<h3><a name="preference">The PREFERENCE field</a></h3>
+<p>This directive causes a domain to undergo domain transition and reinitialize as a top-level domain.</p>
 
-<p>The PREFERENCE line holds the following options:</p>
+<p>Possible entries:</p>
+<ul>
+<li>initialize_domain "program" from any</li>
+<li>initialize_domain "program" from "program"</li>
+<li>initialize_domain "program" from "domain"</li>
+</ul>
 
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Name</p></th>
-<th><p>Function</p></th>
-</tr>
-<tr>
-<td><p>max_audit_log</p></td>
-<td><p>Sets the maximum number of audit logs that the kernel will hold</p></td>
-</tr>
-<tr>
-<td><p>max_learning_entry</p></td>
-<td><p>Sets the maximum number of domain policy entries appended by "Learning Mode"</p>
-</tr>
-<tr>
-<td><p>enforcing_penalty</p></td>
-<td><p>Sets the length of time a process is forced to sleep after policy violation</p>
-</tr>
-</table>
-</div>
+<p>This example causes all executions of "/usr/sbin/sshd" to be reinitialized to "&lt;kernel&gt; /usr/sbin/sshd":</p>
+
+<pre>
+initialize_domain /usr/sbin/sshd from any
+</pre>
+
+<h3><a name="no_initialize_domain">no_initialize_domain</a></h3>
+
+<p>This directive prevents a domain from reinitializing from a specific domain. This only applies to domains that have the "initialize_domain" directive.</p>
+
+<p>Possible entries:</p>
+<ul>
+<li>no_initialize_domain "program" from any</li>
+<li>no_initialize_domain "program" from "program"</li>
+<li>no_initialize_domain "program" from "domain"</li>
+</ul>
+
+<p>This example prevents domains from being reinitialized from "/bin/mail":</p>
+
+<pre>
+initialize_domain /usr/sbin/sendmail.sendmail from any
+no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
+</pre>
+
+<h3><a name="keep_domain">keep_domain</a></h3>
+
+<p>This directive prevents any domain transitions from occurring from a particular domain.</p>
+
+<p>Possible entries:</p>
+<ul>
+<li>keep_domain "any" from "program"</li>
+<li>keep_domain "any" from "domain"</li>
+<li>keep_domain "program" from "program"</li>
+<li>keep_domain "program" from "domain"</li>
+</ul>
+
+<p>This example prevents any executions from this domain from creating a new domain:</p>
+<pre>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+</pre>
+
+<h3><a name="no_keep_domain">no_keep_domain</a></h3>
+
+<p>This directive resumes domain transition from a specific domain. This only applies to domains that have the "keep_domain" directive.</p>
+
+<p>Possible entries:</p>
+<ul>
+<li>no_keep_domain "any" from "program"</li>
+<li>no_keep_domain "any" from "domain"</li>
+<li>no_keep_domain "program" from "program"</li>
+<li>no_keep_domain "program" from "domain"</li>
+</ul>
+
+<p>This example causes domain transition to occur when /bin/cat is
+
+<pre>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+</pre>
+
+<h3><a name="address_group">address_group</a></h3>
+
+<p>This directive declares a group name that can be used in domain policy to refer to a range of IP addresses.</p>
+
+<p>For example, if suppose the following are defined in exception policy:
+
+<pre>
+address_group LOCAL-ADDRESS 10.0.0.0-10.255.255.255
+address_group LOCAL-ADDRESS 172.16.0.0-172.31.255.255
+address_group LOCAL-ADDRESS 192.168.0.0-192.168.255.255
+</pre>
+
+<p>The following can then be defined in domain policy:</p>
+
+<pre>
+network inet stream accept @LOCAL-ADDRESS 1024-65535
+</pre>
+
+<h3><a name="number_group">number_group</a></h3>
+
+<p>This directive declares a group name that can be used in domain policy to refer to a range of numbers.</p>
+
+<p>For example, if suppose the following are defined in exception policy:
+
+<pre>
+number_group CREATE-MODES 0644
+number_group CREATE-MODES 0664
+</pre>
+
+<p>The following can then be defined in domain policy:</p>
+<pre>
+file create /tmp/file @CREATE-MODES
+</pre>
+
+<h3><a name="path_group">path_group</a></h3>
+
+<p>This directive declares a group name that can be used in domain policy to refer to a range of pathnames.</p>
+
+<p>For example, if suppose the following are defined in exception policy:
+<pre>
+path_group HOME-DIR-FILE /home/\*/\*
+path_group HOME-DIR-FILE /home/\*/\{\*\}/\*
+</pre>
+
+<p>The following can then be defined in domain policy:</p>
+
+<pre>
+file read @HOME-DIR-FILE
+</pre>
+
+<h3><a name="deny_autobind">deny_autobind</a></h3>
+
+<p>This directive prevents a specific local port from being selected automatically.</p>
+
+<p>For example, some proxy servers use local port 8080, so this port should not be bound by other programs for temporary use:</p>
+
+<pre>
+deny_autobind 1-1023
+deny_autobind 8080
+</pre>
 
 </div><!-- documentation -->
 
@@ -400,13 +208,13 @@
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>C3: Interface permissions</p>
+<p>Chapter 3: Interface permissions</p>
 </td>
 <td class="docs-home">
 <a href="../index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
-<p>C5: Exception policy specification</p>
+<p>C5: Domain policy syntax</p>
 </td>
 </tr>
 </table>
