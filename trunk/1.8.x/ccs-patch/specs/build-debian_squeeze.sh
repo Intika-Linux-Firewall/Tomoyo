@@ -21,7 +21,7 @@ generate_meta_package() {
 
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
-apt-get -y install wget
+apt-get -y install wget zlib1g-dev debian-keyring
 
 # Download TOMOYO Linux patches.
 mkdir -p /root/rpmbuild/SOURCES/
