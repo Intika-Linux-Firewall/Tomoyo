@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Specification : C4. Exception policy syntax</title>
+<title>TOMOYO Linux 1.8.x : Specification : Interface permissions</title>
 </head>
 
 <body>
@@ -32,161 +32,50 @@
 
 <div id="documentation">
 
-<p><a href="section-3.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-5.html.en">&lt;Next&gt;</a></p>
+<p><a href="section-2.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-4.html.en">&lt;Next&gt;</a></p>
 
-<h2>C4: Exception policy syntax</h2>
+<h2>A4: Interface permissions</h2>
 
-<h3><a name="acl_group">acl_group</a></h3>
+<h3><a name="register">Register applications</a></h3>
 
-<p>This directive specifies a group entry. This can be referenced to in domain policy by the "use_group" directive. This directive should be followed by a group number, followed by an entry that matches domain policy syntax.</p>
+<p>In order for a application or domain to modify policy in the "/proc/ccs" interface, it must be listed in "/proc/ccs/manager". To register an application, you can for example run the following command:</p>
 
-<p>This example allows domains with "use_group 0" to read /dev/null:</p>
-
-<pre>
-acl_group 0 file read /dev/null
+<pre class="command">
+# echo "/usr/sbin/ccs-editpolicy" | /usr/sbin/ccs-loadpolicy -m
 </pre>
 
-<h3><a name="aggregator">aggregator</a></h3>
+<h3><a name="non-root">Managing as non-root user</a></h3>
 
-<p>This directive allows multiple applications to be aggregated together. This directive is intended to aggregate similar programs whose behaviours are very similar.</p>
+<p>By default, only processes with UID=0 and EUID=0 are allowed to modify policy. In order to allow your normal non-root user to modify policy, run this command:</p>
 
-<p>This example causes the application /usr/bin/tac to be treated as /usr/bin/cat:</p>
-
-<pre>
-aggregator /usr/bin/tac /usr/bin/cat
+<pre class="command">
+# echo "manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
+# chown -R $USER:$USER /proc/ccs
 </pre>
 
-<h3><a name="initialize_domain">initialize_domain</a></h3>
+<p>This can be reversed by running this command:</p>
 
-<p>This directive causes a domain to undergo domain transition and reinitialize as a top-level domain.</p>
-
-<p>Possible entries:</p>
-<ul>
-<li>initialize_domain "program" from any</li>
-<li>initialize_domain "program" from "program"</li>
-<li>initialize_domain "program" from "domain"</li>
-</ul>
-
-<p>This example causes all executions of "/usr/sbin/sshd" to be reinitialized to "&lt;kernel&gt; /usr/sbin/sshd":</p>
-
-<pre>
-initialize_domain /usr/sbin/sshd from any
+<pre class="command">
+# echo "delete manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
+# chown -R root:root /proc/ccs
 </pre>
 
-<h3><a name="no_initialize_domain">no_initialize_domain</a></h3>
-
-<p>This directive prevents a domain from reinitializing from a specific domain. This only applies to domains that have the "initialize_domain" directive.</p>
-
-<p>Possible entries:</p>
-<ul>
-<li>no_initialize_domain "program" from any</li>
-<li>no_initialize_domain "program" from "program"</li>
-<li>no_initialize_domain "program" from "domain"</li>
-</ul>
-
-<p>This example prevents domains from being reinitialized from "/bin/mail":</p>
+<p>If you want to have a separate user that is able to modify policy, the file "/etc/ccs/ccs-post-init" can be used. If this file exists, it is executed by "/sbin/ccs-init" at boot. Create "/etc/ccs/ccs-post-init" with the following contents:</p>
 
 <pre>
-initialize_domain /usr/sbin/sendmail.sendmail from any
-no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
+#! /bin/sh
+echo manage_by_non_root &gt; /proc/ccs/manager
+chown -R tomoyo:tomoyo /proc/ccs/
 </pre>
 
-<h3><a name="keep_domain">keep_domain</a></h3>
+<p>Then run the following commands:</p>
 
-<p>This directive prevents any domain transitions from occurring from a particular domain.</p>
-
-<p>Possible entries:</p>
-<ul>
-<li>keep_domain "any" from "program"</li>
-<li>keep_domain "any" from "domain"</li>
-<li>keep_domain "program" from "program"</li>
-<li>keep_domain "program" from "domain"</li>
-</ul>
-
-<p>This example prevents any executions from this domain from creating a new domain:</p>
-<pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+<pre class="command">
+# chmod 755 /etc/ccs/ccs-post-init
+# chown -R tomoyo:tomoyo /etc/ccs/
 </pre>
 
-<h3><a name="no_keep_domain">no_keep_domain</a></h3>
-
-<p>This directive resumes domain transition from a specific domain. This only applies to domains that have the "keep_domain" directive.</p>
-
-<p>Possible entries:</p>
-<ul>
-<li>no_keep_domain "any" from "program"</li>
-<li>no_keep_domain "any" from "domain"</li>
-<li>no_keep_domain "program" from "program"</li>
-<li>no_keep_domain "program" from "domain"</li>
-</ul>
-
-<p>This example causes domain transition to occur when /bin/cat is
-
-<pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
-no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
-</pre>
-
-<h3><a name="address_group">address_group</a></h3>
-
-<p>This directive declares a group name that can be used in domain policy to refer to a range of IP addresses.</p>
-
-<p>For example, if suppose the following are defined in exception policy:
-
-<pre>
-address_group LOCAL-ADDRESS 10.0.0.0-10.255.255.255
-address_group LOCAL-ADDRESS 172.16.0.0-172.31.255.255
-address_group LOCAL-ADDRESS 192.168.0.0-192.168.255.255
-</pre>
-
-<p>The following can then be defined in domain policy:</p>
-
-<pre>
-network inet stream accept @LOCAL-ADDRESS 1024-65535
-</pre>
-
-<h3><a name="number_group">number_group</a></h3>
-
-<p>This directive declares a group name that can be used in domain policy to refer to a range of numbers.</p>
-
-<p>For example, if suppose the following are defined in exception policy:
-
-<pre>
-number_group CREATE-MODES 0644
-number_group CREATE-MODES 0664
-</pre>
-
-<p>The following can then be defined in domain policy:</p>
-<pre>
-file create /tmp/file @CREATE-MODES
-</pre>
-
-<h3><a name="path_group">path_group</a></h3>
-
-<p>This directive declares a group name that can be used in domain policy to refer to a range of pathnames.</p>
-
-<p>For example, if suppose the following are defined in exception policy:
-<pre>
-path_group HOME-DIR-FILE /home/\*/\*
-path_group HOME-DIR-FILE /home/\*/\{\*\}/\*
-</pre>
-
-<p>The following can then be defined in domain policy:</p>
-
-<pre>
-file read @HOME-DIR-FILE
-</pre>
-
-<h3><a name="deny_autobind">deny_autobind</a></h3>
-
-<p>This directive prevents a specific local port from being selected automatically.</p>
-
-<p>For example, some proxy servers use local port 8080, so this port should not be bound by other programs for temporary use:</p>
-
-<pre>
-deny_autobind 1-1023
-deny_autobind 8080
-</pre>
+<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to "/proc/ccs/domain_policy" until "max_learning_entry" has been reached.</p>
 
 </div><!-- documentation -->
 
@@ -197,24 +86,24 @@ deny_autobind 8080
 <table>
 <tr>
 <td class="docs-previous">
-<a href="section-3.html.en">Prev</a>
+<a href="section-2.html.en">Prev</a>
 </td>
 <td class="docs-index">
 <a href="index.html.en">Index</a>
 </td>
 <td class="docs-next">
-<a href="section-5.html.en">Next</a>
+<a href="section-4.html.en">Next</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 3: Interface permissions</p>
+<p>C2: The /proc/ccs interface</p>
 </td>
 <td class="docs-home">
 <a href="../index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
-<p>C5: Domain policy syntax</p>
+<p>C4: Profile management</p>
 </td>
 </tr>
 </table>
