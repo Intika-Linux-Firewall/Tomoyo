@@ -35,7 +35,22 @@
 <h4>ChangeLog for ccs-patch 1.8.0</h4>
 
 <pre>
-Fix 2010/01/11
+Fix 2011/02/07
+
+    @ Fix infinite loop bug when reading /proc/ccs/audit or /proc/ccs/query .
+
+      In ccs_flush(), head-&gt;r.w[0] holds pointer to string data to be printed.
+      But head-&gt;r.w[0] was updated only when the string data was partially
+      printed (because head-&gt;r.w[0] will be updated by head-&gt;r.w[1] later if
+      completely printed). However, regarding /proc/ccs/audit and
+      /proc/ccs/query , an additional '\0' is printed after the string data was
+      completely printed. But if free space for read buffer became 0 before
+      printing the additional '\0', ccs_flush() was returning without updating
+      head-&gt;r.w[0]. As a result, ccs_flush() forever reprints already printed
+      string data.
+
+Fix 2011/01/11
+
    @ Use filesystem name for unnamed devices when vfsmount is missing.
 
      "Change pathname for non-rename()able filesystems." changed to use
