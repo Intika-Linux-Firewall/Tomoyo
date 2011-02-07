@@ -242,29 +242,10 @@ file truncate /etc/mtab
 
 <p>This directive allows the domain to symlink the specified pathname.</p>
 
-<p>The directive can be used with the following conditional parameters:</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Conditional</p></td>
-<th><p>Meaning</p></td>
-</tr>
-<tr>
-<td><p>symlink.target="value"</p></td>
-<td><p>The pathname of the symlink to be created must match "value"</p></td>
-</tr>
-<tr>
-<td><p>symlink.target!="value"</p></td>
-<td><p>The pathname of the symlink to be created must not match "value"</p></td>
-</tr>
-</table>
-</div>
-
 <p>This example allows the domain to symlink "/dev/cdrom":</p>
 
 <pre>
-file symlink /dev/cdrom symlink.target="/dev/cd/cdrom-3:0:0:0"
+file symlink /dev/cdrom
 </pre>
 
 <p>See also:</p>
