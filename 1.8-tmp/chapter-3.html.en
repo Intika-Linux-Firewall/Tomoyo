@@ -178,7 +178,7 @@ $ make -s menuconfig
 
 <p><em>"Compile as loadable kernel module"</em> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
 
-<p><em>"Disable by default"</em> will enable TOMOYO Linux only when <code>ccsecurity=on</code> is passed to the kernel's command line options. If this option is not selected, <code>ccsecurity=off</code> will disable TOMOYO Linux.</p>
+<p><em>"Disable by default"</em> will enable TOMOYO Linux only when "ccsecurity=on" is passed to the kernel's command line options. If this option is not selected, "ccsecurity=off" will disable TOMOYO Linux.</p>
 
 <p><em>"Do not modify 'struct task_struct' in order to keep KABI"</em> is available to 2.6 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
 
@@ -261,7 +261,7 @@ Creating configuration file for ccs-notifyd ... OK
 
 <h3><a name="3.5">3.5. Configuring your bootloader</a></h3>
 
-<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <em>"Disable by default"</em> option was selected during kernel configuration, remember to include <code>ccsecurity=on</strong> in the kernel boot options.</p>
+<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <em>"Disable by default"</em> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options.</p>
 
 <p>Instructions go here...</p>
 
@@ -277,7 +277,7 @@ Creating configuration file for ccs-notifyd ... OK
 
 <h3><a name="3.7">3.7. How can I disable/uninstall TOMOYO Linux?</a></h3>
 
-<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending <code>ccsecurity=off</code> at the kernel command-line parameters.</p>
+<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending "ccsecurity=off" at the kernel command-line parameters.</p>
 
 <p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. rpm or apt). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
 

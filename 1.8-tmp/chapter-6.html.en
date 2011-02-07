@@ -61,7 +61,7 @@
 
 <p>In the example above, all except "/var/run/nscd/socket" can be considered to be temporary files. Thus, patterns can be made for these pathnames.</p>
 
-<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the <code>\?</code> pattern which matches any single character other than "/", and the <code>\*</code> pattern which matches zero or more repetitions of any characters other than "/" can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the "<strong>\?</strong>" pattern which matches any single character other than "/", and the "<strong>\*</strong>" pattern which matches zero or more repetitions of any characters other than "/" can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
 
 <p>Use <code>ccs-patternize</code> to convert into patterns non-interactively. Rewriting rules are specified in "/etc/ccs/tools/patternize.conf" file, as shown below:</p>
 
@@ -459,7 +459,7 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 
 <p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.</p>
 
-<p>Note that Apache may have executed some external programs (e.g. "/bin/sh", "/usr/bin/perl", "/usr/lib/sendmail") and thus has some descendent domains. Be sure to change the profile number for all descendent domains as well.</p>
+<p>Note that Apache may have executed some external programs (e.g. <code>/bin/sh</code>, <code>/usr/bin/perl</code>, <code>/usr/lib/sendmail</code>) and thus has some descendent domains. Be sure to change the profile number for all descendent domains as well.</p>
 
 <p>Choose target domains, press the "s" key, enter "2" and press the "Enter" key:</p>
 
@@ -636,7 +636,7 @@ network unix stream connect /var/run/setrans/.setrans-unix
 use_group 0
 </pre>
 
-<p>These compressed logs can be saved into a temporary file. These can then be edited as required and appended to current policy using the "ccs-loadpolicy" command:</p>
+<p>These compressed logs can be saved into a temporary file. These can then be edited as required and appended to current policy using the <code>ccs-loadpolicy</code> command:</p>
 
 <pre class="command">
 # cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy &gt; ~/rejected.log

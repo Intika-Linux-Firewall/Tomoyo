@@ -52,10 +52,6 @@
 
 <img src="media/editpolicy-httpd-process3.png" alt="editpolicy-httpd-process3.png" width="675" height="375">
 
-<p>Now "/usr/sbin/httpd" processes and descendants are protected, as profile 3 was configured for enforcing mode:</p>
-
-<img src="media/editpolicy-profile-list-enforcing.png" alt="editpolicy-profile-list-enforcing.png" width="675" height="375">
-
 <p>Quit the policy editor and try an operation which is permitted by policy:</p>
 
 <img src="media/operation-permitted.png" alt="operation-permitted.png" width="547" height="729">
@@ -107,7 +103,7 @@ file read /bin/cat
 
 <p>The second log reports that opening <code>/bin/cat</code> for reading requested by <code>/bin/sh</code> which was invoked by <code>/usr/sbin/httpd</code>. This was rejected because <code>/bin/sh</code> tried to open the requested program for reading when that program was not executed.</p>
 
-<p>If the "Enforcing Mode" profile is configured with "PREFERENCE={ enforcing_penalty=1 }", domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
+<p>If the "Enforcing Mode" profile is configured with <a href="chapter-8.html.en#8.2.3">PREFERENCE={ enforcing_penalty=1 }</a> then domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
 
 <p><object data="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
@@ -350,7 +346,7 @@ action_to_take mail -s Notification\040from\040ccs-notifyd root@localhost
 minimal_interval 60
 </pre>
 
-<p>Modify the "action_to_take" line as required and start "/usr/sbin/ccs-notifyd".</p>
+<p>Modify the "action_to_take" line as required and start <code>ccs-notifyd</code>.</p>
 
 <p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):</p>
 
