@@ -44,7 +44,7 @@
 <table>
 <tr>
 <th><p>Option</p></th>
-<th><p>Default value</p></th>
+<th><p>Default</p></th>
 <th><p>Meaning<p></th>
 </tr>
 <tr>
@@ -172,6 +172,60 @@
 </div>
 
 <h4><a name="8.2.2">8.2.2. The CONFIG field</a></h4>
+
+<p>The following options are available in the CONFIG field:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Option</p></th>
+<th><p>Default</p></th>
+<th><p>Meaning</p></th>
+</tr>
+<tr>
+<td><p>grant_log="$bool"</p></td>
+<td><p>no</p></td>
+<td><p>Set whether grant logs should be audited. This value can be either "yes" or "no".<p></td>
+</tr>
+<tr>
+<td><p>reject_log="$bool"</p></td>
+<td><p>yes</p></td>
+<td><p>Set whether reject logs should be audited. This value can be either "yes" or "no".<p></td>
+</tr>
+<tr>
+<td><p>mode</p></td>
+<td><p>disabled</p></td>
+<td><p>Set what mode to use. See the table below.<p></td>
+</tr>
+</table>
+</div>
+
+<p>The "mode" parameter of the CONFIG line can contain one of the following values:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Value</p></th>
+<th><p>Meaning</p></th>
+</tr>
+<tr>
+<td><p>disabled</p></td>
+<td><p>Works as if a regular kernel.</p></td>
+</tr>
+<tr>
+<td><p>learning</p></td>
+<td><p>Do not reject an access request if the request violates policy. Append the request to policy.</p></td>
+</tr>
+<tr>
+<td><p>permissive</p></td>
+<td><p>Do not reject an access request if the request violates policy. Do not append the request to policy.</p></td>
+</tr>
+<tr>
+<td><p>enforcing</p></td>
+<td><p>Reject an access request if the request violates policy. Do not append the request to policy.</p></td>
+</tr>
+</table>
+</div>
 
 <p>By default, the CONFIG line specifies the default operation mode for all categories and functionalities. The absence of the CONFIG line is equivalent to "mode=disabled". The default configuration can be overwritten by using one or more CONFIG lines per profile and using category-specific configuration:</p>
 

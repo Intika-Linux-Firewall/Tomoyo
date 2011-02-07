@@ -40,31 +40,27 @@
 
 <p>Once domain and exception policy have been sufficiently modified, the domain can be set to enforcing mode.</p>
 
-<p>Run the policy editor. Select target domains with the "Space" key, press the "s" key, enter "3", and press "Enter":</p>
+<p>Run the policy editor and change the target domains to profile 3:</p>
 
-<img src="media/editpolicy-httpd-set-profile3.png" alt="editpolicy-httpd-set-profile3.png" width="675" height="375">
-
-<p>The profile numbers of the selected domains have now been changed to 3:</p>
-
-<img src="media/editpolicy-httpd-profile3.png" alt="editpolicy-httpd-profile3.png" width="675" height="375">
+<a href="media/editpolicy-httpd-profile3.png"><img src="media/editpolicy-httpd-profile3.png" alt="editpolicy-httpd-profile3.png" width="675" height="375"></a>
 
 <p>Press the "@" key to switch to the process list. Verify that the "/usr/sbin/httpd" process and descendants are assigned profile number 3:</p>
 
-<img src="media/editpolicy-httpd-process3.png" alt="editpolicy-httpd-process3.png" width="675" height="375">
+<a href="media/editpolicy-httpd-process3.png"><img src="media/editpolicy-httpd-process3.png" alt="editpolicy-httpd-process3.png" width="675" height="375"></a>
 
 <p>Quit the policy editor and try an operation which is permitted by policy:</p>
 
-<img src="media/operation-permitted.png" alt="operation-permitted.png" width="547" height="729">
+<a href="media/operation-permitted.png"><img src="media/operation-permitted.png" alt="operation-permitted.png" width="547" height="729"></a>
 
 <p>The operation was successfully completed, as sending mail is permitted by policy.</p>
 
 <p>Let's try an operation which is not permitted by policy:</p>
 
-<img src="media/unix-penguin.png" alt="unix-penguin.png" width="547" height="729">
+<a href="media/unix-penguin.png"><img src="media/unix-penguin.png" alt="unix-penguin.png" width="547" height="729"></a>
 
 <p>Although it appears to be have been completed successfully, the warning message by <code>/bin/mail</code> shows that the input was empty and so the execution of <code>/bin/cat</code> was rejected:</p>
 
-<img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477">
+<a href="media/unix-penguin-rejected.png"><img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477"></a>
 
 <p>Just like in "Permissive Mode", you can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
