@@ -2719,7 +2719,7 @@ Fix 2010/12/17
       experience temporary inconsistency, but such threads are about to be
       killed by SIGKILL signal.
 
-Fix 2010/01/11
+Fix 2011/01/11
 
    @ Use filesystem name for unnamed devices when vfsmount is missing.
 
@@ -2730,3 +2730,17 @@ Fix 2010/01/11
      (filesystems with $major == 0). Thus, I changed to use "$fsname:" rather
      than "dev($major,$minor):" for filesystems with $major == 0 when vfsmount
      is missing.
+
+Fix 2011/02/07
+
+   @ Fix infinite loop bug when reading /proc/ccs/audit or /proc/ccs/query .
+
+     In ccs_flush(), head->r.w[0] holds pointer to string data to be printed.
+     But head->r.w[0] was updated only when the string data was partially
+     printed (because head->r.w[0] will be updated by head->r.w[1] later if
+     completely printed). However, regarding /proc/ccs/audit and
+     /proc/ccs/query , an additional '\0' is printed after the string data was
+     completely printed. But if free space for read buffer became 0 before
+     printing the additional '\0', ccs_flush() was returning without updating
+     head->r.w[0]. As a result, ccs_flush() forever reprints already printed
+     string data.
