@@ -192,13 +192,15 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 
 <p>The "Learning Mode" profile is the feature of TOMOYO Linux that makes developing policy very easy. This mode will automatically generate policy for any domain that has this profile selected. The other profiles, "Permissive Mode" and "Enforcing Mode", are for later on when a domain is ready to be restricted.</p>
 
+<p>For further information on management of profiles, read <a href="chapter-9.html.en">Chapter 9: Advanced profile management</a>.</p>
+
 <h3><a name="4.4">4.4. Understanding domain policy</a></h3>
 
 <p>The restrictions of each domain can be viewed using the <strong>"Domain Policy Editor"</strong> screen, which can be accessed by selecting a domain in the "Domain Transition" screen, and then pressing the "Enter" key. Since no policy has been developed yet, the screen is empty. This is an example of domain policy for Apache:</p>
 
 <a href="editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="media/editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="675" height="375"></a>
 
-<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.en#4.5">4.5: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. The directives available are described in detail in the <a href="policy-reference.html.en#domain_policy">Domain Policy Specification</a>. However, it is recommended that you <strong>continue with this guide rather than try to master these directives</strong>. It will become clearer later on how these directives can be used.</p>
+<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.en#4.5">4.5: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. For in depth details on the directives that can be used in exception policy, see <a href="specification/section-7.html.en">A7: Domain policy syntax</a>.</p>
 
 <h3><a name="4.5">4.5. Understanding exception policy</a></h3>
 
@@ -210,7 +212,7 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 
 <p>The permissions here are similar to those in the domain policy, but apply to all domains. Permissions defined here will not be displayed in domain policy, and access requests from any domain that match a permission in exception policy will be automatically accepted. The exception policy can also be used to shorten and simplify domain policy for each domain by using the group directives.</p>
 
-<p>For in depth details on the directives that can be used in exception policy, see the <a href="policy-reference.html.en#exception_policy">Exception Policy Specifications</a>. However, it is recommended that you <strong>continue with this guide rather than try to master these directives</strong>. It will become clearer later on how these directives can be used.</p>
+<p>For in depth details on the directives that can used in exception policy, see <a href="specification/section-6.html.en">A6: Exception policy syntax</a>.</p>
 
 <h3><a name="4.6">4.6. Saving audit logs (optional)</a></h3>
 
