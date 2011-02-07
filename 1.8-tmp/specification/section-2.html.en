@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Specification : The userspace tools</title>
+<title>TOMOYO Linux 1.8.x : Specification : The /proc/ccs interface</title>
 </head>
 
 <body>
@@ -34,103 +34,132 @@
 
 <p><a href="section-1.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-3.html.en">&lt;Next&gt;</a></p>
 
-<h2>A2: The userspace tools</h2>
+<h2>A2: The /proc/ccs interface</h2>
 
-<h3><a name="ccs-auditd">ccs-auditd</a></h3>
+<h3><a name="audit">/proc/ccs/audit</a></h3>
 
-<p>This tool is a logging daemon that can be used to write log files of access requests that have been rejected (and/or granted). It reads from the "/proc/ccs/auditd" interface and can be controlled using a configuration file.</p>
+<p>This read-only interface contains the audit log. The reader process returns immediately if no granted log exists. To wait until an audit log is generated, use select(2) for readability.</p>
 
-<p>See the <a href="../man-pages/ccs-auditd.html.en">man page</a> for more information.</p>
+<p>This interface is dependent on how the profiles have been configured in "/proc/ccs/profile". The following profile options affect it:</p>
+<ul>
+<li>grant_log</li>
+<li>reject_log</li>
+<li>max_audit_log</li>
+</ul>
 
-<h3><a name="ccs-checkpolicy">ccs-checkpolicy</a></h3>
+<h3><a name="domain_policy">/proc/ccs/domain_policy</a></h3>
 
-<p>This tool can read policy from standard input and check if the syntax is correct.</p>
+<p>This read/write interface contains the policy that is defined for each domain. Any lines starting with "&lt;kernel&gt;" indicate the start of a new block of access permissions.</p>
 
-<p>See the <a href="../man-pages/ccs-checkpolicy.html.en">man page</a> for more information.</p>
+<p>The associated configuration file is "/etc/ccs/domain_policy.conf".</p>
 
-<h3><a name="ccs-diffpolicy">ccs-diffpolicy</a></h3>
+<h3><a name="exception_policy">/proc/ccs/exception_policy</a></h3>
 
-<p>This tool can print a diff of two domain policy files to standard output that can be used to easily change currently loaded domain policy.</p>
+<p>This read/write interface contains the exception policy. Each line is an individual entry.</p>
 
-<p>See the <a href="../man-pages/ccs-diffpolicy.html.en">man page</a> for more information.</p>
+<p>The associated configuration file is "/etc/ccs/exception_policy.conf".</p>
 
-<h3><a name="ccs-domainmatch">ccs-domainmatch</a></h3>
+<h3><a name="manager">/proc/ccs/manager</a></h3>
 
-<p>This tool can be used to search domain policy currently loaded in kernel memory for a given pathname. This is similar to using fgrep.</p>
+<p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs" interface.</p>
 
-<p>See the <a href="../man-pages/ccs-domainmatch.html.en">man page</a> for more information.</p>
+<p>The associated configuration file is "/etc/ccs/manager.conf".</p>
 
-<h3><a name="ccs-editpolicy">ccs-editpolicy</a></h3>
+<pre class="command">
+# cat /proc/ccs/manager
+</pre>
 
-<p>This tool can be used to edit either policy within "/etc/ccs/" or policy currently loaded in kernel memory.</p>
+<pre class="output">
+/usr/sbin/ccs-loadpolicy
+/usr/sbin/ccs-editpolicy
+/usr/sbin/ccs-setlevel
+/usr/sbin/ccs-setprofile
+/usr/sbin/ccs-queryd
+</pre>
 
-<p>See the <a href="../man-pages/ccs-editpolicy.html.en">man page</a> for more information.</p>
+<h3><a name="meminfo">/proc/ccs/meminfo</a></h3>
 
-<h3><a name="ccs-findtemp">ccs-findtemp</a></h3>
+<p>This read-only interface shows the memory usage of TOMOYO Linux in bytes.</p>
 
-<p>This tool can be used to read domain policy from standard input and prints the non-existent pathnames to standard output. These are likely to be temporary files.</p>
+<pre class="command">
+# cat /proc/ccs/meminfo
+</pre>
 
-<p>See the <a href="../man-pages/ccs-findtemp.html.en">man page</a> for more information.</p>
+<pre class="output">
+Policy:          377376
+Audit logs:           0
+Query lists:          0
+Total:           377376
+</pre>
 
-<h3><a name="ccs-loadpolicy">ccs-loadpolicy</a></h3>
+<ul>
+<li><strong>Policy</strong> shows the memory used for holding access permissions.</li>
+<li><strong>Audit logs</strong> shows the memory used for holding audit logs.</li>
+<li><strong>Query lists</strong> shows the memory used while running the userspace tool "/usr/sbin/ccs-queryd".</li>
+<li><strong>Total</strong> shows the total memory used.</li>
+</ul>
 
-<p>This tool can be used to read policy from standard input and load into kernel memory via the "/proc/ccs/" interface.</p>
+<h3><a name="profile">/proc/ccs/profile</a></h3>
 
-<p>See the <a href="../man-pages/ccs-loadpolicy.html.en">man page</a> for more information.</p>
+<p>This read/write interface contains the profile configuration.</p>
 
-<h3><a name="ccs-notifyd">ccs-notifyd</a></h3>
+<p>The associated configuration file is "/etc/ccs/profile.conf".</p>
 
-<p>This tool is a notification daemon that can be used to notify administrators of policy violations. It can be controlled via a configuration file and supports the running of any arbitrary command (e.g. <code>/usr/bin/mail</code>).</p>
+<h3><a name="query">/proc/ccs/query</a></h3>
 
-<p>See the <a href="../man-pages/ccs-notifyd.html.en">man page</a> for more information.</p>
+<p>This read/write interface is used to grant or reject individual access requests that occur within domains in "Enforcing Mode".</p>
 
-<h3><a name="ccs-patternize">ccs-patternize</a></h3>
+<p>This interface is used primarily by the userspace tool <a href="section-1.html.en#ccs-queryd">ccs-queryd</a>.</p>
 
-<p>This tool can be used to manage pathnames within domain policy. It can replace pathnames with expressions as defined in a configuration file.</p>
+<h3><a name="self_domain">/proc/ccs/self_domain</a></h3>
 
-<p>See the <a href="../man-pages/ccs-patternize.html.en">man page</a> for more information.</p>
+<p>This read-only interface shows the domain of the caller process.</p>
 
-<h3><a name="ccs-pstree">ccs-pstree</a></h3>
+<h3><a name="stat">/proc/ccs/stat</a></h3>
 
-<p>This tool can be used to list currently running processes, their PID, the domain name that they belong to, and the profile number of that domain.</p>
+<p>This read-only interface contains information about policy violations and memory usage.</p>
 
-<p>See the <a href="../man-pages/ccs-pstree.html.en">man page</a> for more information.</p>
+<pre class="command">
+# cat /proc/ccs/stat
+</pre>
 
-<h3><a name="ccs-queryd">ccs-queryd</a></h3>
+<pre class="output">
+Policy update:                               172 (Last: 2011/02/03 18:03:01)
+Policy violation in learning mode:             0
+Policy violation in permissive mode:           0
+Policy violation in enforcing mode:            0
+Memory used by policy:                     41792
+Memory used by audit log:                 159328
+Memory used by query message:                  0
+Total memory used:                        201120
+</pre>
 
-<p>This tool is an access control daemon that can be used to manage access requests in real-time, choosing whether to accept or reject any requests that applications make.</p>
+<ul>
+<li><strong>Policy update</strong> shows the total number of domains and the last time that policy was updated.</li>
+<li><strong>Policy violation in learning mode</strong> shows the total number of policy violations that have occurred in domains set to "Learning Mode".</li>
+<li><strong>Policy violation in permissive mode</strong> shows the total number of policy violations that have occurred in domains set to "Permissive Mode".</li>
+<li><strong>Policy violation in enforcing mode</strong> shows the total number of policy violations that have occurred in domains set to "Enforcing Mode".</li>
+</ul>
 
-<p>See the <a href="../man-pages/ccs-queryd.html.en">man page</a> for more information.</p>
+<h3><a name="version">/proc/ccs/version</a></h3>
 
-<h3><a name="ccs-savepolicy">ccs-savepolicy</a></h3>
+<p>This read-only interface contains the currently running version of TOMOYO Linux.</p>
 
-<p>This tool can be used to save the policy currently loaded in kernel memory to "/etc/ccs/".</p>
+<h3><a name=".domain_status">/proc/ccs/.domain_status</a></h3>
 
-<p>See the <a href="../man-pages/ccs-savepolicy.html.en">man page</a> for more information.</p>
+<p>This read-only interface contains a list of domain names and profile numbers currently defined in domain policy.</p>
 
-<h3><a name="ccs-selectpolicy">ccs-selectpolicy</a></h3>
+<p>This is used primarily by the userspace tool <a href="section-1.html.en#ccs-setprofile">ccs-setprofile</a>.</p>
 
-<p>This tool can be used to read domain policy currently loaded in kernel memory and print the policy of the specified domain(s).</p>
+<h3><a name=".execute_handler">/proc/ccs/.execute_handler</a></h3>
 
-<p>See the <a href="../man-pages/ccs-selectpolicy.html.en">man page</a> for more information.</p>
+<p>This read-only interface contains information regarding the execute handler.</p>
 
-<h3><a name="ccs-setlevel">ccs-setlevel</a></h3>
+<h3><a name=".process_status">/proc/ccs/.process_status</a></h3>
 
-<p>This tool can be used to modify the configuration of profiles.</p>
+<p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
 
-<p>See the <a href="../man-pages/ccs-setlevel.html.en">man page</a> for more information.</p>
-
-<h3><a name="ccs-setprofile">ccs-setprofile</a></h3>
-
-<p>This tool can be used to set the profile number for the specified domain(s).</p>
-
-<p>See the <a href="../man-pages/ccs-setprofile.html.en">man page</a> for more information.</p>
-
-<h3><a name="ccs-sortpolicy">ccs-sortpolicy</a></h3>
-
-<p>This tool can be used to sort domain policy by domain name and remove duplicate entries.</p>
-
-<p>See the <a href="../man-pages/ccs-sortpolicy.html.en">man page</a> for more information.</p>
+<p>This interface is used primarily by the userspace tool <a href="section-1.html.en#ccs-pstree">ccs-pstree</a>.</p>
 
 </div><!-- documentation -->
 
@@ -152,13 +181,13 @@
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>C1: Expression rules</p>
+<p>A1: The userspace tools</p>
 </td>
 <td class="docs-home">
 <a href="../index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
-<p>C3: Profile management</p>
+<p>A3: Interface permissions</p>
 </td>
 </tr>
 </table>

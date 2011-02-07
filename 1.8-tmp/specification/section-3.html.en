@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Specification : The /proc/ccs interface</title>
+<title>TOMOYO Linux 1.8.x : Specification : Interface permissions</title>
 </head>
 
 <body>
@@ -32,134 +32,50 @@
 
 <div id="documentation">
 
-<p><a href="section-1.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-3.html.en">&lt;Next&gt;</a></p>
+<p><a href="section-2.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-4.html.en">&lt;Next&gt;</a></p>
 
-<h2>A3: The /proc/ccs interface</h2>
+<h2>A3: Interface permissions</h2>
 
-<h3><a name="audit">/proc/ccs/audit</a></h3>
+<h3><a name="register">Register applications</a></h3>
 
-<p>This read-only interface contains the audit log. The reader process returns immediately if no granted log exists. To wait until an audit log is generated, use select(2) for readability.</p>
-
-<p>This interface is dependent on how the profiles have been configured in "/proc/ccs/profile". The following profile options affect it:</p>
-<ul>
-<li>grant_log</li>
-<li>reject_log</li>
-<li>max_audit_log</li>
-</ul>
-
-<h3><a name="domain_policy">/proc/ccs/domain_policy</a></h3>
-
-<p>This read/write interface contains the policy that is defined for each domain. Any lines starting with "&lt;kernel&gt;" indicate the start of a new block of access permissions.</p>
-
-<p>The associated configuration file is "/etc/ccs/domain_policy.conf".</p>
-
-<h3><a name="exception_policy">/proc/ccs/exception_policy</a></h3>
-
-<p>This read/write interface contains the exception policy. Each line is an individual entry.</p>
-
-<p>The associated configuration file is "/etc/ccs/exception_policy.conf".</p>
-
-<h3><a name="manager">/proc/ccs/manager</a></h3>
-
-<p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs" interface.</p>
-
-<p>The associated configuration file is "/etc/ccs/manager.conf".</p>
+<p>In order for a application or domain to modify policy in the <a href="section-1.html.en">/proc/ccs/</a> interface, it must be listed in <a href="section-2.html.en#manager">/proc/ccs/manager</a>. To register an application, you can for example run the following command:</p>
 
 <pre class="command">
-# cat /proc/ccs/manager
+# echo "/usr/sbin/ccs-editpolicy" | /usr/sbin/ccs-loadpolicy -m
 </pre>
 
-<pre class="output">
-/usr/sbin/ccs-loadpolicy
-/usr/sbin/ccs-editpolicy
-/usr/sbin/ccs-setlevel
-/usr/sbin/ccs-setprofile
-/usr/sbin/ccs-queryd
-</pre>
+<h3><a name="non-root">Managing as non-root user</a></h3>
 
-<h3><a name="meminfo">/proc/ccs/meminfo</a></h3>
-
-<p>This read-only interface shows the memory usage of TOMOYO Linux in bytes.</p>
+<p>By default, only processes with UID=0 and EUID=0 are allowed to modify policy. In order to allow your normal non-root user to modify policy, run this command:</p>
 
 <pre class="command">
-# cat /proc/ccs/meminfo
+# echo "manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
+# chown -R $USER:$USER /proc/ccs
 </pre>
 
-<pre class="output">
-Policy:          377376
-Audit logs:           0
-Query lists:          0
-Total:           377376
-</pre>
-
-<ul>
-<li><strong>Policy</strong> shows the memory used for holding access permissions.</li>
-<li><strong>Audit logs</strong> shows the memory used for holding audit logs.</li>
-<li><strong>Query lists</strong> shows the memory used while running the userspace tool "/usr/sbin/ccs-queryd".</li>
-<li><strong>Total</strong> shows the total memory used.</li>
-</ul>
-
-<h3><a name="profile">/proc/ccs/profile</a></h3>
-
-<p>This read/write interface contains the profile configuration.</p>
-
-<p>The associated configuration file is "/etc/ccs/profile.conf".</p>
-
-<h3><a name="query">/proc/ccs/query</a></h3>
-
-<p>This read/write interface is used to grant or reject individual access requests that occur within domains in "Enforcing Mode".</p>
-
-<p>This interface is used primarily by the userspace tool "/usr/sbin/ccs-queryd".</p>
-
-<h3><a name="self_domain">/proc/ccs/self_domain</a></h3>
-
-<p>This read-only interface shows the domain of the caller process.</p>
-
-<h3><a name="stat">/proc/ccs/stat</a></h3>
-
-<p>This read-only interface contains information about policy violations and memory usage.</p>
+<p>This can be reversed by running this command:</p>
 
 <pre class="command">
-# cat /proc/ccs/stat
+# echo "delete manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
+# chown -R root:root /proc/ccs
 </pre>
 
-<pre class="output">
-Policy update:                               172 (Last: 2011/02/03 18:03:01)
-Policy violation in learning mode:             0
-Policy violation in permissive mode:           0
-Policy violation in enforcing mode:            0
-Memory used by policy:                     41792
-Memory used by audit log:                 159328
-Memory used by query message:                  0
-Total memory used:                        201120
+<p>If you want to have a separate user that is able to modify policy, the file "/etc/ccs/ccs-post-init" can be used. If this file exists, it is executed by "/sbin/ccs-init" at boot. Create "/etc/ccs/ccs-post-init" with the following contents:</p>
+
+<pre>
+#! /bin/sh
+echo manage_by_non_root &gt; /proc/ccs/manager
+chown -R tomoyo:tomoyo /proc/ccs/
 </pre>
 
-<ul>
-<li><strong>Policy update</strong> shows the total number of domains and the last time that policy was updated.</li>
-<li><strong>Policy violation in learning mode</strong> shows the total number of policy violations that have occurred in domains set to "Learning Mode".</li>
-<li><strong>Policy violation in permissive mode</strong> shows the total number of policy violations that have occurred in domains set to "Permissive Mode".</li>
-<li><strong>Policy violation in enforcing mode</strong> shows the total number of policy violations that have occurred in domains set to "Enforcing Mode".</li>
-</ul>
+<p>Then run the following commands:</p>
 
-<h3><a name="version">/proc/ccs/version</a></h3>
+<pre class="command">
+# chmod 755 /etc/ccs/ccs-post-init
+# chown -R tomoyo:tomoyo /etc/ccs/
+</pre>
 
-<p>This read-only interface contains the currently running version of TOMOYO Linux.</p>
-
-<h3><a name=".domain_status">/proc/ccs/.domain_status</a></h3>
-
-<p>This read-only interface contains a list of domain names and profile numbers currently defined in domain policy.</p>
-
-<p>This is used primarily by the userspace tool "/usr/sbin/set-profile".</p>
-
-<h3><a name=".execute_handler">/proc/ccs/.execute_handler</a></h3>
-
-<p>This read-only interface contains information regarding the execute handler.</p>
-
-<h3><a name=".process_status">/proc/ccs/.process_status</a></h3>
-
-<p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
-
-<p>This interface is used primarily by the userspace tool "/usr/sbin/ccs-pstree".</p>
+<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="section-2.html.en#domain_policy">/proc/ccs/domain_policy</a> until "max_learning_entry" has been reached.</p>
 
 </div><!-- documentation -->
 
@@ -170,24 +86,24 @@ Total memory used:                        201120
 <table>
 <tr>
 <td class="docs-previous">
-<a href="section-1.html.en">Prev</a>
+<a href="section-2.html.en">Prev</a>
 </td>
 <td class="docs-index">
 <a href="index.html.en">Index</a>
 </td>
 <td class="docs-next">
-<a href="section-3.html.en">Next</a>
+<a href="section-4.html.en">Next</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>C1: Expression rules</p>
+<p>A2: The /proc/ccs interface</p>
 </td>
 <td class="docs-home">
 <a href="../index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
-<p>C3: Profile management</p>
+<p>A4: Expression rules</p>
 </td>
 </tr>
 </table>
