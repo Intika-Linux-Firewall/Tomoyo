@@ -32,7 +32,7 @@
 
 <div id="documentation">
 
-<p><a href="section-4.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-6.html.en">&lt;Next&gt;</a></p>
+<p><a href="section-5.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-7.html.en">&lt;Next&gt;</a></p>
 
 <h2>A6: Domain policy syntax</h2>
 
@@ -46,6 +46,12 @@
 file execute /bin/ls
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#aggregator">aggregator</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_read">file read</a></h3>
 
 <p>This directive allows the domain to open the specified pathname for reading.</p>
@@ -55,6 +61,11 @@ file execute /bin/ls
 <pre>
 file read /proc/meminfo
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_write">file write</a></h3>
 
@@ -66,6 +77,11 @@ file read /proc/meminfo
 file write /dev/null
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_append">file append</a></h3>
 
 <p>This directive allows the domain to append to the specified pathname.</p>
@@ -76,15 +92,26 @@ file write /dev/null
 file append /var/log/auth.log
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_create">file create</a></h3>
 
-<p>This directive allows the domain to create the specified pathname.</p>
+<p>This directive allows the domain to create the specified pathname with the specified permissions.</p>
 
 <p>This example allows the domain to create "/var/lock/subsys/crond":</p>
 
 <pre>
-file create /var/lock/subsys/crond
+file create /var/lock/subsys/crond 0644
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#number_group">number_group</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_unlink">file unlink</a></h3>
 
@@ -96,15 +123,26 @@ file create /var/lock/subsys/crond
 file unlink /var/lock/subsys/crond
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_mkdir">file mkdir</a></h3>
 
-<p>This directive allows the domain to create the specified directory.</p>
+<p>This directive allows the domain to create the specified directory with the specified permissions.</p>
 
 <p>This example allows the domain to create directories that match "/tmp/logwatch.\*/":</p>
 
 <pre>
-file mkdir /tmp/logwatch.\*/"
+file mkdir /tmp/logwatch.\*/ 0755
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#number_group">number_group</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_rmdir">file rmdir</a></h3>
 
@@ -113,48 +151,77 @@ file mkdir /tmp/logwatch.\*/"
 <p>This example allows the domain to delete directories that match "/tmp/logwatch.\*/":</p>
 
 <pre>
-file rmdir /tmp/logwatch.\*/"
+file rmdir /tmp/logwatch.\*/
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_mkfifo">file mkfifo</a></h3>
 
-<p>This directive allows the domain to create a FIFO with the specified pathname.</p>
+<p>This directive allows the domain to create the specified FIFO with the specified permissions.</p>
 
 <p>This example allows the domain to create the FIFO "/dev/initctl":</p>
 
 <pre>
-file mkfifo /dev/initctl
+file mkfifo /dev/initctl 0644
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#number_group">number_group</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_mksock">file mksock</a></h3>
 
-<p>This directive allows the domain to create a socket with the specified pathname.</p>
+<p>This directive allows the domain to create the specified socket with the specified permissions.</p>
 
 <p>This example allows the domain to create the socket "/dev/log":</p>
 
 <pre>
-file mksock /dev/log
+file mksock /dev/log 0755
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#number_group">number_group</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_mkblock">file mkblock</a></h3>
 
-<p>This directive allows the domain to create a block device with the specified pathname.</p>
+<p>This directive allows the domain to create the specified block device with the specified permissions, major number and minor number.</p>
 
 <p>This example allows the domain to create block devices whose pathname matches "/dev/\*":</p>
 
 <pre>
-file mkblock /dev/\*
+file mkblock /dev/loop0 0600 7 0
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#number_group">number_group</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_mkchar">file mkchar</a></h3>
 
-<p>This directive allows the domain to create a character device with the specified pathname.</p>
+<p>This directive allows the domain to create the specified character device with the specified permissions, major number and minor number.</p>
 
-<p>This example allows the domain to create character devices whose pathname matches "/dev/\*":</p>
+<p>This example allows the domain to create the character device "/dev/console":</p>
 
 <pre>
-file mkchar /dev/\*
+file mkchar /dev/console 0755 5 1
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#number_group">number_group</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_truncate">file truncate</a></h3>
 
@@ -166,6 +233,11 @@ file mkchar /dev/\*
 file truncate /etc/mtab
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_symlink">file symlink</a></h3>
 
 <p>This directive allows the domain to symlink the specified pathname.</p>
@@ -175,6 +247,11 @@ file truncate /etc/mtab
 <pre>
 file symlink /dev/cdrom
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_link">file link</a></h3>
 
@@ -186,6 +263,11 @@ file symlink /dev/cdrom
 file link /etc/mtab~\$ /etc/mtab~
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_rename">file rename</a></h3>
 
 <p>This directive allows the domain to rename the first specified pathname to the second specified pathname.</p>
@@ -195,6 +277,11 @@ file link /etc/mtab~\$ /etc/mtab~
 <pre>
 file rename /etc/mtab.tmp /etc/mtab
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_ioctl">file ioctl</a></h3>
 
@@ -211,6 +298,12 @@ file ioctl socket:[family=2:type=2:protocol=17]
 <pre>
 file ioctl /dev/null 10000-20000
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#number_group">number_group</a></li>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_mount">file mount</a></h3>
 
@@ -246,6 +339,11 @@ file mount /dev/hdc /var/www/ ext3 0xF
 file mount none /dev/shm/ tmpfs 0xE
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_unmount">file unmount</a></h3>
 
 <p>This directive allows the domain to unmount a filesystem from the specified pathname. This pathname must start with "/" and must not contain symbolic links, "//", "/./" or "/../".</p>
@@ -256,6 +354,11 @@ file mount none /dev/shm/ tmpfs 0xE
 file unmount /mnt/cdrom
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_chroot">file chroot</a></h3>
 
 <p>This directive allows the domain to chroot into the specified pathname.</p>
@@ -265,6 +368,11 @@ file unmount /mnt/cdrom
 <pre>
 file chroot /var/empty/sshd
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="file_pivot_root">file pivot_root</a></h3>
 
@@ -277,6 +385,11 @@ file chroot /var/empty/sshd
 <pre>
 file pivot_root proc:/ proc:/ccs/
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="misc_env">misc env</a></h3>
 
@@ -424,6 +537,11 @@ ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
 network inet stream connect 202.221.179.21 80
 </pre>
 
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#address_group">address_group</a></li>
+</ul>
+
 <h3><a name="network_unix">network unix</a></h3>
 
 <p>This directive allows the domain to perform unix domain socket operations.</p>
@@ -489,6 +607,11 @@ network inet stream connect 202.221.179.21 80
 network unix stream bind /tmp/.X11-unix/X0
 network unix stream bind \000/tmp/.X11-unix/X0
 </pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="section-5.html.en#path_group">path_group</a></li>
+</ul>
 
 <h3><a name="use_group">use_group</a></h3>
 
@@ -575,24 +698,24 @@ task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
 <table>
 <tr>
 <td class="docs-previous">
-<a href="section-4.html.en">Prev</a>
+<a href="section-5.html.en">Prev</a>
 </td>
 <td class="docs-index">
 <a href="index.html.en">Index</a>
 </td>
 <td class="docs-next">
-<a href="section-6.html.en">Next</a>
+<a href="section-7.html.en">Next</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>C4: Exception policy syntax</p>
+<p>A5: Exception policy syntax</p>
 </td>
 <td class="docs-home">
 <a href="../index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
-<p>C6: Domain transition procedure</p>
+<p>A7: Domain transition procedure</p>
 </td>
 </tr>
 </table>
