@@ -38,7 +38,7 @@
 
 <h3><a name="acl_group">acl_group</a></h3>
 
-<p>This directive specifies a group entry. This can be referenced to in domain policy by the "use_group" directive. This directive should be followed by a group number, followed by an entry that matches domain policy syntax.</p>
+<p>This directive specifies a group entry. This can be referenced to in domain policy by the <a href="section-7.html.en#use_group">use_group</a> directive. This directive should be followed by a group number, followed by an entry that matches domain policy syntax.</p>
 
 <p>This example allows domains with "use_group 0" to read /dev/null:</p>
 
@@ -50,7 +50,7 @@ acl_group 0 file read /dev/null
 
 <p>This directive allows multiple applications to be aggregated together. This directive is intended to aggregate similar programs whose behaviours are very similar.</p>
 
-<p>This example causes the application /usr/bin/tac to be treated as /usr/bin/cat:</p>
+<p>This example causes the application <code>/usr/bin/tac</code> to be treated as <code>/usr/bin/cat</code>:</p>
 
 <pre>
 aggregator /usr/bin/tac /usr/bin/cat
@@ -67,7 +67,7 @@ aggregator /usr/bin/tac /usr/bin/cat
 <li>initialize_domain "program" from "domain"</li>
 </ul>
 
-<p>This example causes all executions of "/usr/sbin/sshd" to be reinitialized to "&lt;kernel&gt; /usr/sbin/sshd":</p>
+<p>This example causes all executions of <code>/usr/sbin/sshd</code> to be reinitialized to "&lt;kernel&gt; /usr/sbin/sshd":</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from any
@@ -75,7 +75,7 @@ initialize_domain /usr/sbin/sshd from any
 
 <h3><a name="no_initialize_domain">no_initialize_domain</a></h3>
 
-<p>This directive prevents a domain from reinitializing from a specific domain. This only applies to domains that have the "initialize_domain" directive.</p>
+<p>This directive prevents a domain from reinitializing from a specific domain. This only applies to domains that have the <a href="#initialize_domain">initialize_domain</a> directive.</p>
 
 <p>Possible entries:</p>
 <ul>
@@ -84,7 +84,7 @@ initialize_domain /usr/sbin/sshd from any
 <li>no_initialize_domain "program" from "domain"</li>
 </ul>
 
-<p>This example prevents domains from being reinitialized from "/bin/mail":</p>
+<p>This example prevents domains from being reinitialized from the "/bin/mail" domain:</p>
 
 <pre>
 initialize_domain /usr/sbin/sendmail.sendmail from any
@@ -110,7 +110,7 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 
 <h3><a name="no_keep_domain">no_keep_domain</a></h3>
 
-<p>This directive resumes domain transition from a specific domain. This only applies to domains that have the "keep_domain" directive.</p>
+<p>This directive resumes domain transition from a specific domain. This only applies to domains that have the <a href="#keep_domain">keep_domain</a> directive.</p>
 
 <p>Possible entries:</p>
 <ul>
