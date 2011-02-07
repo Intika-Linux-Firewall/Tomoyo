@@ -1,285 +1,357 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>How to use Policy Editor</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : How to use the policy editor</title>
 </head>
+
 <body>
-<p style="text-align:right;"><a href="tool-editpolicy.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1>How to use Policy Editor</h1>
 
-<h1>Common Operations</h1>
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="tool-editpolicy.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<h2>TOMOYO Linux 1.8.x : How to use the policy editor</h2>
+
+<h2><a name="hotkeys">General hotkeys</a></h2>
+
+<p>The policy editor can be run with the following command:</p>
+
+<pre class="command">
+# ccs-editpolicy
+</pre>
+
+<p>You may give one of a/d/p/m/s to the commandline to choose the initial screen. If an option is not given, the default "Domain Transition Editor" screen is shown.</p>
+
+<p>While using the ncurses interface, the hotkeys listed below can be used:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Scroll action</p></th>
+</tr>
+<tr>
+<td><p>Up-arrow</p></td>
+<td><p>Scroll 1 line up</p></td>
+</tr>
+<tr>
+<td><p>Down-arrow</p></td>
+<td><p>Scroll 1 line down</p></td>
+</tr>
+<tr>
+<td><p>PageUp</p></td>
+<td><p>Scroll 1 page up</p></td>
+</tr>
+<tr>
+<td><p>PageDown</p></td>
+<td><p>Scroll 1 page down</p></td>
+</tr>
+<tr>
+<td><p>Right-arrow</p></td>
+<td><p>Scroll 1 column right</p></td>
+</tr>
+<tr>
+<td><p>Left-arrow</p></td>
+<td><p>Scroll 1 column left</p></td>
+</tr>
+<tr>
+<td><p>Home</p></td>
+<td><p>Move to the top of line</p></td>
+</tr>
+<tr>
+<td><p>End</p></td>
+<td><p>Move to the bottom of line</p></td>
+</tr>
+</table>
+</div>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Search action</p></th>
+</tr>
+<tr>
+<td><p>f/F</p></td>
+<td><p>Find First</p></td>
+</tr>
+<tr>
+<td><p>n/N</p></td>
+<td><p>Find Next</p></td>
+</tr>
+<tr>
+<td><p>p/P</p></td>
+<td><p>Find Previous</p></td>
+</tr>
+</table>
+</div>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Edit action</p></th>
+</tr>
+<tr>
+<td><p>a/A</p></td>
+<td><p>Add an entry.</p></td>
+</tr>
+<tr>
+<td><p>Enter</p></td>
+<td><p>Edit ACLs of a domain at the cursor position on "Domain Transition Editor" screen</p></td>
+</tr>
+<tr>
+<td><p>Space</p></td>
+<td><p>Invert selection state of an entry at the cursor position.</p></td>
+</tr>
+<tr>
+<td><p>c/C</p></td>
+<td><p>Copy selection state of an entry at the cursor position to all entries below the cursor position.</p></td>
+</tr>
+<tr>
+<td><p>d/D</p></td>
+<td><p>Delete selected entries.</p></td>
+</tr>
+<tr>
+<td><p>s/S</p></td>
+<td><p>Set profile number of selected entries on "Domain Transition Editor" screen".<br>
+Set profile value for selected entries on "Profile Editor" screen.<br>
+Set new quota value for selected entries on "Statistics" screen.</p></td>
+</tr>
+<tr>
+<td><p>Insert</p></td>
+<td><p>Copy an entry at the cursor position to history buffer.</p></td>
+</tr>
+</table>
+</div>
 
-<h2>(0) Before you use this editor</h2>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Key</p></th>
+<th><p>Miscellaneous action</p></th>
+</tr>
+<tr>
+<td><p>q/Q</p></td>
+<td><p>Quit</p></td>
+</tr>
+<tr>
+<td><p>r/R</p></td>
+<td><p>Refresh</p></td>
+</tr>
+<tr>
+<td><p>w/W</p></td>
+<td><p>Switch to window list.</p></td>
+</tr>
+</table>
+</div>
 
-<p>TOMOYO Linux includes a CUI based Policy Editor.</p>
+<h2><a name="common">Common operations</h2>
 
-<p>You need to register either "the domainname that this editor belongs to" or "the pathname of this editor (usually /usr/sbin/ccs-editpolicy)" with /proc/ccs/manager before you use this editor.</p>
+<h3><a name="screens">Available screens</h3>
 
-<p>You can start this editor by typing "/usr/sbin/ccs-editpolicy" at the prompt.</p>
+<p>Press the "w" key to show the window/screen list and press a key to view the corresponding screen:</p>
 
-<h2>(1) To quit policy editor</h2>
+<a href="editpolicy/window-list.png"><img src="editpolicy/window-list.png" alt="window-list.png" title="Window List" width="720" height="400"></a>
 
-<p>Press "Q" key to quit.</p>
+<h4>Domain Transition Editor screen</h4>
 
-<h2>(2) To refresh the contents</h2>
+<a href="editpolicy/domain-list.png"><img src="editpolicy/domain-list.png" alt="domain-list.png" title="Screen for Domain List" width="720" height="400"></a>
 
-<p>Press "R" key.</p>
+<p>The <strong>first line</strong> shows what screen you are on and how many domains are listed.<br>
+The <strong>second line</strong> is the message area.<br>
+The <strong>third line</strong> shows the domain name currently selected by the cursor.<br>
+The <strong>fourth line</strong> and downwards are the domains currently defined.<p>
 
-<h2>(3) To move cursor in a vertical direction</h2>
+<h4>Exception Policy Editor screen</h4>
 
-<p>Press "Up-Arrow"/"Down-Arrow" keys or "PageUp"/"PageDown" keys.</p>
+<a href="editpolicy/exception-policy.png"><img src="editpolicy/exception-policy.png" alt="exception-policy.png" title="Screen for Exception Policy" width="720" height="400"></a>
 
-<h2>(4) To scroll screen in a  horizontal direction</h2>
+<h4>Domain Policy Editor screen</h4>
 
-<p>Press "Left-Arrow"/"Right-Arrow" keys or "Home"/"End" keys.</p>
+<p>Note: This can also be viewed by pressing "Enter" in the "Domain Transition Editor" screen.</p>
 
-<h2>(5) To switch screen</h2>
+<a href="editpolicy/domain-policy.png"><img src="editpolicy/domain-policy.png" alt="domain-policy.png" title="Screen for Domain Policy" width="720" height="400"></a>
 
-<p>The policy editor has 6 screens. Press "W" key to show the window list.<br>
-<img src="editpolicy/window-list.png" alt="window-list.png" title="Window List" width="720" height="400"></p>
+<h4>Profile Editor screen</h4>
 
-<p>Screen for editing exception policy will appear if you press "E" key from the window list screen.<br>
-<img src="editpolicy/exception-policy.png" alt="exception-policy.png" title="Screen for Exception Policy" width="720" height="400"></p>
+<a href="editpolicy/profile-list.png"><img src="editpolicy/profile-list.png" alt="profile-list.png" title="Screen for Profile List" width="720" height="400"></a>
 
-<p>Screen for editing domain transition tree will appear if you press "D" key from the window list screen.<br>
-<img src="editpolicy/domain-list.png" alt="domain-list.png" title="Screen for Domain List" width="720" height="400"></p>
+<h4>Manager Policy Editor screen</h4>
 
-<p>Screen for editing specific domain's policy will appear if you press "A" key from the window list screen.<br>
-<img src="editpolicy/domain-policy.png" alt="domain-policy.png" title="Screen for Domain Policy" width="720" height="400"></p>
+<a href="editpolicy/manager-list.png"><img src="editpolicy/manager-list.png" alt="manager-list.png" title="Screen for Manager List" width="720" height="400"></a>
 
-<p>Screen for editing profiles will appear if you press "P" key from the window list screen.<br>
-<img src="editpolicy/profile-list.png" alt="profile-list.png" title="Screen for Profile List" width="720" height="400"></p>
+<h4>Statistics screen</h4>
 
-<p>Screen for editing managers will appear if you press "M" key from the window list screen.<br>
-<img src="editpolicy/manager-list.png" alt="manager-list.png" title="Screen for Manager List" width="720" height="400"></p>
+<a href="editpolicy/stat-list.png"><img src="editpolicy/stat-list.png" alt="stat-list.png" title="Screen for Statistics" width="720" height="400"></a>
 
-<p>Screen for browsing statistics will appear if you press "S" key from the window list screen.<br>
-<img src="editpolicy/stat-list.png" alt="stat-list.png" title="Screen for Statistics" width="720" height="400"></p>
+<h3><a name="search">Search for an entry</h3>
 
-<h2>(6) To search strings</h2>
+<p>To search for a string, press the "f" key and type the string that you wish to search:</p>
 
-<p>To start searching, press "F" and enter strings to search and press "Enter" key.<br>
-<img src="editpolicy/find-first.png" alt="find-first.png" title="Find First" width="720" height="400"></p>
+<a href="editpolicy/find-first.png"><img src="editpolicy/find-first.png" alt="find-first.png" title="Find First" width="720" height="400"></a>
 
-<p>To continue searching in forward direction, press "N" key.</p>
+<p>To continue searching in a forward direction, press the "n" key.<br>
+To continue searching in a backward direction, press the "b" key.</p>
 
-<p>To continue searching in backward direction, press "P" key.</p>
+<h3><a name="add">Add an entry</h3>
 
-<h2>(7) To add an entry</h2>
+<p>To add an entry, press the "a" key and type the string that you wish to add. The strings are saved in the history buffer and can be viewed by pressing the "Insert" key. To load strings in the history buffer, press the Up/Down cursor keys. This can be used in any of the screens except the "Statistics" screen.</p>
 
-<p>To add an entry, press "A" and enter strings to add and press "Enter" key. The strings you entered are saved in the history buffer and you can see them by pressing "Insert" key. To load strings in the history buffer, press "Up-Arrow"/"Down-Arrow" keys.</p>
+<p>An example operation in the "Domain Transition Editor" screen:</p>
 
-<p>An example operation in domain transition tree<br>
-<img src="editpolicy/add-domain-list.png" alt="add-domain-list.png" title="Adding an entry into  List" width="720" height="400"></p>
+<a href="editpolicy/add-domain-list.png"><img src="editpolicy/add-domain-list.png" alt="add-domain-list.png" title="Adding an entry into  List" width="720" height="400"></a>
 
-<p>An example operation in exception policy<br>
-<img src="editpolicy/add-exception-policy.png" alt="add-exception-policy.png" title="Adding Exception Policy" width="720" height="400"></p>
+<h3><a name="select">Select an entry</h3>
 
-<p>An example operation in specific domain's policy<br>
-<img src="editpolicy/add-domain-policy.png" alt="add-domain-policy.png" title="Adding Domain Policy" width="720" height="400"></p>
+<p>Move the cursor to the entry you wish to select and press the "Space" key. When an entry is selected, an "&amp;" symbol will appear at the start of the line. Multiple entries can be selected, and the "Space" key can also be used to deselect an entry.</p>
 
-<h2>(8) To select an entry</h2>
+<p>The selection state of the entry of the cursor line can be copied to all entries below by pressing the "c" key.</p>
 
-<p>Move the cursor to the entry you want to select and then press "Space" key. When an entry is selected, "&amp;" mark will appear at the top of the line.<br>
-<img src="editpolicy/select.png" alt="select.png" title="Selecting an entry" width="720" height="400"></p>
+<a href="editpolicy/copy.png"><img src="editpolicy/copy.png" alt="copy.png" title="Copying selection state" width="720" height="400"></a>
 
-<p>To unselect an entry, press "Space" key again. When an entry is unselected, "&amp;" mark will disappear.</p>
+<p>This makes it easy to select all entries or a block of entries. If you wish to select a block of entries, move the cursor to the first entry of the block and press the "Space" (to select) and "c" keys. Then move the cursor to the entry that lies below the block and press the "Space" (to deselect) and "c" keys:</p>
 
-<h2>(9) To select entries collectively</h2>
+<h3><a name="delete">Delete an entry</h3>
 
-<p>The selection state (the "&amp;" mark at the top of the line) of the cursor line will be copied to all entries under the cursor line by pressing "C" key.<br>
-<img src="editpolicy/copy.png" alt="copy.png" title="Copying selection state" width="720" height="400"></p>
+<p>To delete an entry, move the cursor to the entry you wish to delete and press the "d" key. This can also be done by selecting all of the entries you wish to delete.</p>
 
-<p>To select specific range, mark "&amp;" at the first entry of the range and press "C" key, then unmark "&amp;" at the next of the last entry of the range and press "C" key.</p>
+<a href="editpolicy/delete.png"><img src="editpolicy/delete.png" alt="delete.png" title="Deleting selected entries" width="720" height="400"></a>
 
-<h2>(10) To delete an entry</h2>
+<br><br>
 
-<p>Mark "&amp;" for entries you want to delete and press "D" key. Press "Y" key to the confirmation message, and the entries will be deleted.<br>
-<img src="editpolicy/delete.png" alt="delete.png" title="Deleting selected entries" width="720" height="400"></p>
-<h1>Operations specific to screen for editing domain transition tree</h1>
+<h2><a name="domain_transition_editor">Operations in the Domain Transition Editor screen</h2>
 
-<h2>(0) About this screen</h2>
+<h4>Change profile number</h4>
 
-<p>This screen shows all domains and their transitions in a tree structure with indent. You can see possible domain transitions using this screen.</p>
+<p>Press the "s" key, type the profile number you wish to set, and press the "Enter" key:</p>
 
-<p>The "profile number" of the domain is shown on the right side of the "line number".
-The last "pathname of program" in the domainname is shown on the right side of the "profile number". The "#" "*" "!" marks may be shown between the "profile number" and the last "pathname of program" depending on the attribute of the domain.</p>
+<a href="editpolicy/profile.png"><img src="editpolicy/profile.png" alt="profile.png" title="Setting profile number" width="720" height="400"></a>
 
-<h2>(1) To change "profile number" of a domain</h2>
+<h4>Domains with the "!" mark</h4>
 
-<p>Select domains you want to change "profile number" and press "S" key. Enter "profile number" in the prompt and press "Enter" key.<br>
-<img src="editpolicy/profile.png" alt="profile.png" title="Setting profile number" width="720" height="400"></p>
+<p>This means the domain is unreachable due to either <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> or <a href="specification/section-6.html.en#keep_domain">keep_domain</a> directives.</p>
 
-<h2>(2) About domains with "!" mark</h2>
+<a href="editpolicy/unreachable.png"><img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400"></a>
 
-<p>A domain with "!" mark means that the domain in unreachable due to either "initialize_domain" or "keep_domain" directives. The reason is shown on the right side of the last "pathname of program".<br>
-<img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400"></p>
+<h4>Domains with the "*" mark</h4>
 
-<h2>(3) About domains with "*" mark</h2>
+<p>This means that multiple domains might transit to this domain due to the <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> directive. A domain without this mark only transits from the parent of the domain visible in the "Domain Transition Editor" screen.</p>
 
-<p>A domain with "*" mark means that multiple domains might transit to this domain due to "initialize_domain" directive. A domain without "*" mark transits only from the domain's parent domain.<br>
-<img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400"></p>
+<a href="editpolicy/initialize_domain-dest.png"><img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400"></a>
 
-<h2>(4) About domains with "#" mark</h2>
+<h4>Domains with the "#" mark</h4>
 
-<p>A domain with "#" mark means that multiple programs might belong to this domain (a domain transition may not occur when a program is invoked) due to "keep_domain" directive.<br>
-<img src="editpolicy/keep_domain.png" alt="keep_domain.png" title="Keeping Domain" width="720" height="400"></p>
+<p>This means that multiple programs might belong to this domain due to the <a href="specification/section-6.html.en#keep_domain">keep_domain</a> directive.</p>
 
-<h2>(5) About domains with "( -&gt; "line number" )" after the last "pathname of program"</h2>
+<a href="editpolicy/keep_domain.png"><img src="editpolicy/keep_domain.png" alt="keep_domain.png" title="Keeping Domain" width="720" height="400"></a>
 
-<p>This is not a real domain. The process transits to a domain with "line number" when the program is invoked from the parent domain since the last "pathname of program" is registered with "initialize_domain" directive.<br>
-<img src="editpolicy/initialize_domain-src.png" alt="initialize_domain-src.png" title="Initialization Source" width="720" height="400"></p>
+<h4>Domains with "( -&gt; n )"</h4>
 
-<h2>(6) About domains with "( -&gt; Not Found )" after the last "pathname of program"</h2>
+<p>This means that the domain is not a real domain. The process transits to the domain at the line number specified by "n" due to the <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> directive.</p>
 
-<p>This is not a real domain. Although the last "pathname of program" is registered with "initialize_domain" directive, the destination domain is not created yet.<br>
-<img src="editpolicy/initialize_domain-nodest.png" alt="initialize_domain-nodest.png" title="No Initialization Target" width="720" height="400"></p>
+<a href="editpolicy/initialize_domain-src.png"><img src="editpolicy/initialize_domain-src.png" alt="initialize_domain-src.png" title="Initialization Source" width="720" height="400"></a>
 
-<h2>(7) About domains with "( the last "pathname of program" )"</h2>
+<h4>Domains with "( -&gt; Not Found )"</h4>
 
-<p>This means that this domain doesn't exist due to deletion of domains. This domain appears when the parent domain doesn't exist but descendant domains exist to not to break indent. To create this domain, move the cursor to this domain and press "Insert" -&gt; "A"  -&gt; "UpArrow" -&gt; "Enter" keys.<br>
-<img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400"></p>
+<p>This means that the domain is not a real domain. This occurs when the <a href="section-6.html.en#initialize_domain">initialize_domain</a> directive has been set, but the destination domain has not been created yet.</p>
 
-<h2><a name="Initialize_domain_transition">(8) To initialize domain transition</a></h2>
+<a href="editpolicy/initialize_domain-nodest.png"><img src="editpolicy/initialize_domain-nodest.png" alt="initialize_domain-nodest.png" title="No Initialization Target" width="720" height="400"></a>
 
-<p>TOMOYO Linux in principle transits domains whenever a program is invoked, and the next domain differs if the previous domain differs even if the two domains are invoking the same program. But it would be convenient that some programs, such as daemons, run in the same domain regardless of the previous domain. In such cases, you can run such programs just under the "&lt;kernel&gt;" domain regardless of the previous domain by using "initialize_domain" and "no_initialize_domain" directives.</p>
+<h4>Domains inside brackets</h4>
 
-<p>For example, the following procedure makes /usr/sbin/sendmail always run in the "&lt;kernel&gt; /usr/sbin/sendmail" domain.</p>
-<p>Before you specify "initialize_domain" directive, the same program is invoked from multiple domains, as shown below.<br>
-<img src="editpolicy/before-initialize_domain-1.png" alt="before-initialize_domain-1.png" title="Before initialize_domain" width="720" height="400"><br>
-<img src="editpolicy/before-initialize_domain-2.png" alt="before-initialize_domain-2.png" title="Before initialize_domain" width="720" height="400"></p>
+<p>This means that the domain does not exist due to the deletion of parent domains. Create this domain by moving the cursor to the domain, press the "Insert" key, the "a" key, the "Up" cursor key and the "Enter" key.</p>
 
-<p>Switch to the screen for editing exception policy. Press "A" key and enter "initialize_domain /usr/sbin/sendmail from any" and press "Enter" key. This entry means that "transit to "&lt;kernel&gt; /usr/sbin/sendmail" domain if /usr/sbin/sendmail is invoked".<br>
-<img src="editpolicy/adding-initialize_domain.png" alt="adding-initialize_domain.png" title="Adding initialize_domain" width="720" height="400"></p>
+<a href="editpolicy/deleted-domain.png"><img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400"></a>
 
-<p>Return to the screen for editing domain transition tree. The domains for /usr/sbin/sendmail now marked with "!". Also, the domains with "( -&gt; Not Found )" are appeared because the destination ("&lt;kernel&gt; /usr/sbin/sendmail") domain doesn't exist.<br>
-<img src="editpolicy/after-initialize_domain.png" alt="after-initialize_domain.png" title="After initialize_domain" width="720" height="400"></p>
+<h2><a name="initialize_domain_transition">The <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> and <a href="specification/section-6.html.en#no_initialize_domain">no_initialize_domain</a> directives</a></h2>
 
-<p>To correct "( -&gt; Not Found )" part, press "A" key and enter "&lt;kernel&gt; /usr/sbin/sendmail" and press "Enter" key.<br>
-<img src="editpolicy/adding-initialize_domain-target.png" alt="adding-initialize_domain-target.png" title="Adding initialization target" width="720" height="400"></p>
+<p>The <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen, press "a" to add an entry and then type out the string you wish to add:</p>
 
-<p>And now,  "( -&gt; Not Found )" part has changed to "( -&gt; "line number" )".<br>
-<img src="editpolicy/after-initialize_domain-target.png" alt="after-initialize_domain-target.png" title="After initialize_domain target" width="720" height="400"><br>
-<img src="editpolicy/added-initialize_domain-target.png" alt="added-initialize_domain-target.png" title="Added initialization target" width="720" height="400"></p>
+<a href="editpolicy/adding-initialize_domain.png"><img src="editpolicy/adding-initialize_domain.png" alt="adding-initialize_domain.png" title="Adding initialize_domain" width="720" height="400"></a>
 
-<p>But regarding /usr/sbin/sendmail invoked by /bin/mail, you may wish not to transit to "&lt;kernel&gt; /usr/sbin/sendmail" domain because it is not invoked for daemons.<br>
-<img src="editpolicy/before-no_initialize_domain.png" alt="before-no_initialize_domain.png" title="Before no_initialize_domain" width="720" height="400"></p>
+<p>Switch to the "Domain Transition Editor" screen. The domain you have set the directive for will have "( -&gt; Not Found )" as the destination domain does not exist yet. The domains belonging to the domain you have set the directive for are now marked with the "!" symbol as they do not exist.</p>
 
-<p>In such case, switch to the screen for editing exception policy. Press "A" key and enter "no_initialize_domain /usr/sbin/sendmail from /bin/mail" and press "Enter" key. This entry means that "don't transit to "&lt;kernel&gt; /usr/sbin/sendmail" domain if /usr/sbin/sendmail is invoked by a domain whose the last "pathname of program" in the domainname is "/bin/mail".<br>
-<img src="editpolicy/adding-no_initialize_domain.png" alt="adding-no_initialize_domain.png" title="Adding no_initialize_domain" width="720" height="400"></p>
+<a href="editpolicy/after-initialize_domain.png"><img src="editpolicy/after-initialize_domain.png" alt="after-initialize_domain.png" title="After initialize_domain" width="720" height="400"></a>
 
-<p>Return to the screen for editing domain transition tree. The domains for /usr/sbin/sendmail invoked by /bin/mail now not marked with "!".<br>
-<img src="editpolicy/after-no_initialize_domain.png" alt="after-no_initialize_domain.png" title="After no_initialize_domain" width="720" height="400"></p>
+<p>To correct this, create the missing domain by pressing the "a" key and entering the new domain:</p>
 
-<h2>(9) To suppress domain transition</h2>
+<a href="editpolicy/adding-initialize_domain-target.png"><img src="editpolicy/adding-initialize_domain-target.png" alt="adding-initialize_domain-target.png" title="Adding initialization target" width="720" height="400"></a>
 
-<p>TOMOYO Linux in principle transits domains whenever a program is invoked. But it would be convenient that some programs run in the same domain. In such cases, you can suppress domain transitions by using "keep_domain" and "no_keep_domain" directives.</p>
+<p>Now the  "( -&gt; Not Found )" part has changed to "( -&gt; n )":</p>
 
-<p>For example, the following procedure makes console login ( "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash" ) domain suppress domain transition.</p>
+<a href="editpolicy/after-initialize_domain-target.png"><img src="editpolicy/after-initialize_domain-target.png" alt="after-initialize_domain-target.png" title="After initialize_domain target" width="720" height="400"></a>
 
-<p>Before you specify "keep_domain" directive, domain transitions occur, as shown below.<br>
-<img src="editpolicy/before-keep_domain.png" alt="before-keep_domain.png" title="Before keep_domain" width="720" height="400"></p>
+<p>This is the domain corresponding to the entry above:</p>
 
-<p>Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash" and press "Enter" key.<br>
-<img src="editpolicy/adding-keep_domain-1.png" alt="adding-keep_domain-1.png" title="Adding keep_domain" width="720" height="400"></p>
+<a href="editpolicy/added-initialize_domain-target.png"><img src="editpolicy/added-initialize_domain-target.png" alt="added-initialize_domain-target.png" title="Added initialization target" width="720" height="400"></a>
 
-<p>Return to the screen for editing domain transition tree. The "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash" domain is marked with "#" and its descendant domains are marked with "!".<br>
-<img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></p>
+<p>Now the "/usr/sbin/sendmail" domain is initialized into a new domain. However, the above examples show that it is initialized from a daemon script. You may not want to initialize into a new domain when it is not invoked by a daemon. The <a href="specification/section-6.html.en#no_initialize_domain">no_initialize_domain</a> directive is useful in this situation. Switch to the "Exception Policy Editor" screen and add a new entry, such as "no_initialize_domain /usr/sbin/sendmail from /bin/mail". Now the domain is no longer marked with a "!" and does not transit to a new domain:</p>
 
-<p>The "man" command is invoked after login. But the "man" command performs some complicated tasks. So, let's run "man" in a different domain.<br>
-<img src="editpolicy/before-no_keep_domain.png" alt="before-no_keep_domain.png" title="Before no_keep_domain" width="720" height="400"></p>
+<a href="editpolicy/after-no_initialize_domain.png"><img src="editpolicy/after-no_initialize_domain.png" alt="after-no_initialize_domain.png" title="After no_initialize_domain" width="720" height="400"></a>
 
-<p>Switch to the screen for editing exception policy. Press "A" key and enter "no_keep_domain /usr/bin/man from /bin/bash" (or no_keep_domain /usr/bin/man from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash") and press "Enter" key.<br>
-<img src="editpolicy/adding-no_keep_domain.png" alt="adding-no_keep_domain.png" title="Adding no_keep_domain" width="720" height="400"></p>
+<p>Any domains marked with a "!" can be safely deleted.</p>
 
-<p>Return to the screen for editing domain transition tree. Now the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendants are not marked with "!".<br>
-<img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></p>
+<h2><a name="suppress_domain_transition">The <a href="specification/section-6.html.en#keep_domain">keep_domain</a> and <a href="specification/section-6.html.en#no_keep_domain">no_keep_domain</a> directives</a></h2>
 
-<p>Some commands are invoked by "/usr/bin/man" command, but it doesn't worth doing domain transitions. So, let's make /usr/bin/man not to transit domains. Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain any from /usr/bin/man" (or "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man") and press "Enter" key.<br>
-<img src="editpolicy/adding-keep_domain-2.png" alt="adding-keep_domain-2.png" title="Addint keep_domain" width="720" height="400"></p>
+<p>The <a href="specification/section-6.html.en#keep_domain">keep_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen and add an entry such as "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash". Return to the "Domain Transition Editor" screen and the domain that you have specified the directive for will appear with a "#" symbol. Descendent domains will appear with the "!" symbol:</p>
 
-<p>Return to the screen for editing domain transition tree. The "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain is marked with "#" and its descendant domains are marked with "!".<br>
-<img src="editpolicy/after-keep_domain-2.png" alt="after-keep_domain-2.png" title="After keep_domain" width="720" height="400"></p>
+<a href="editpolicy/after-keep_domain-1.png"><img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></a>
 
-<p>It is meaningless to keep unreachable domains, let's delete them. Select domains that are marked with "!", and press "D" key and "Y" key.<br>
-<img src="editpolicy/before-delete.png" alt="before-delete.png" title="Before deleting unreachable domains" width="720" height="400"></p>
+<p>Now all executions in the chosen domain will not undergo a domain transition. To force a domain transition for a particular application, the <a href=specification/section-6.html.en#no_keep_domain">no_keep_domain</a> directive can be used. Switch to the "Exception Policy Editor" screen and add an entry such as "no_keep_domain /usr/bin/man from /bin/bash". Return to the "Domain Transition Editor" screen and the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendents are no longer marked with a "!":</p>
 
-<p>The following is the screen for editing domain transition tree after deleting unreachable domains.<br>
-<img src="editpolicy/after-delete.png" alt="after-delete.png" title="After deleting unreachable domains" width="720" height="400"></p>
+<a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
 
-<p>If you are going to apply access restrictions, be sure to use "learning mode" to add necessary ACLs and assign profile for "enforcing mode" to enforce.</p>
+<p>It is possible to prevent domain transitions again from "/usr/bin/man" by adding "keep_domain any from /usr/bin/man" in the "Exception Policy Editor" screen. Return to the "Domain Transition Editor" screen:</p>
 
-<h1><a name="acl_editor">Operations specific to screen for editing ACL entries given to the domain</a></h1>
+<a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-keep_domain-2.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
 
-<h2>(0) About this screen</h2>
+<p>Any domains marked with a "!" can be safely deleted.</p>
 
-<p>This screen shows all ACL entries given to the selected domain. You can confirm and add/delete ACL entries as needed.</p>
+<h2><a name="redundant">Remove redundant entries</a></h2>
 
-<h2>(1) To change sort order</h2>
+<p>Redundant entries can be removed by patterning entries (see <a href="chapter-6.html.en">Chapter 6: How do I develop policy?</a>). Switch to the Domain Policy Editor screen and add an entry such as "file read /home/kumaneko/SVN/\{\*\}\/\*":</p>
 
-<p>You can toggle sort order (by operand or by keyword) by pressing "@" key.<br>
-<img src="editpolicy/sort-1.png" alt="sort-1.png" title="Sort by operand" width="720" height="400"><br>
-<img src="editpolicy/sort-2.png" alt="sort-2.png" title="Sort by keyword" width="720" height="400"></p>
+<a href="editpolicy/optimize-2.png"><img src="editpolicy/optimize-2.png" alt="optimize-2.png" title="After adding patterned entry" width="720" height="400"></a>
 
-<h2>(2) To remove redundant ACL entries</h2>
+<p>This directive matches many of the entries that are already defined. Move the cursor to the patterned entry you have just added and press the "o" key. This will select all entries that are implied by the patterned directive:</p>
 
-<p>You can use "O" key to mark "&amp;" to the entries that are implied by the entry at the cursor line, then you can press "D" key to delete redundant ACL entries after confirmation.</p>
+<a href="editpolicy/optimize-3.png"><img src="editpolicy/optimize-3.png" alt="optimize-3.png" title="After entering optimize key" width="720" height="400"></a>
 
-<p>(A-1) The next picture is a screenshot which is before adding patterned entry.<br>
-<img src="editpolicy/optimize-1.png" alt="optimize-1.png" title="Before adding patterned entry" width="720" height="400"></p>
+<p>These can now be deleted with the "d" key. This can be repeated for any patterned entries that you add.</p>
 
-<p>(A-2) The next picture is a screenshot which is after adding patterned entry.<br>
-<img src="editpolicy/optimize-2.png" alt="optimize-2.png" title="After adding patterned entry" width="720" height="400"></p>
+</div><!-- regular-content -->
 
-<p>(A-3) The next picture is a screenshot which is after pressing "O" key on the line of patterned entry.<br>
-<img src="editpolicy/optimize-3.png" alt="optimize-3.png" title="After entering optimize key" width="720" height="400"></p>
+</div><!-- content -->
 
-<p>(A-4) The next picture is a screenshot which is after pressing "D" key.<br>
-<img src="editpolicy/optimize-4.png" alt="optimize-4.png" title="After entering delete key" width="720" height="400"></p>
-
-<p>(A-5) The next picture is a screenshot which is after pressing "Y" key.<br>
-<img src="editpolicy/optimize-5.png" alt="optimize-5.png" title="After entering yes key" width="720" height="400"></p>
-
-<p>(B-1) Same approach for network ACL entries. The next picture is a screenshot which is before adding patterned entry.<br>
-<img src="editpolicy/optimize-6.png" alt="optimize-6.png" title="Before adding patterned entry" width="720" height="400"></p>
-
-<p>(B-2) The next picture is a screenshot which is after adding patterned entry.<br>
-<img src="editpolicy/optimize-7.png" alt="optimize-7.png" title="After adding patterned entry" width="720" height="400"></p>
-
-<p>(B-3) The next picture is a screenshot which is after pressing "O" key on the line of patterned entry.<br>
-<img src="editpolicy/optimize-8.png" alt="optimize-8.png" title="After entering optimize key" width="720" height="400"></p>
-
-<p>(B-4) The next picture is a screenshot which is after pressing "D" key.<br>
-<img src="editpolicy/optimize-9.png" alt="optimize-9.png" title="After entering delete key" width="720" height="400"></p>
-
-<p>(B-5) The next picture is a screenshot which is after pressing "Y" key.<br>
-<img src="editpolicy/optimize-10.png" alt="optimize-10.png" title="After entering yes key" width="720" height="400"></p>
-
-<p>(C-1) Same approach for path_group entries. The next picture is a screenshot which is after adding path_group entry.<br>
-<img src="editpolicy/optimize-11.png" alt="optimize-11.png" title="After adding path_group" width="720" height="400"></p>
-
-<p>(C-2) The next picture is a screenshot which is before adding path_group entry.<br>
-<img src="editpolicy/optimize-12.png" alt="optimize-12.png" title="Before adding path_group entry" width="720" height="400"></p>
-
-<p>(C-3) The next picture is a screenshot which is after adding path_group entry.<br>
-<img src="editpolicy/optimize-13.png" alt="optimize-13.png" title="After adding path_group entry" width="720" height="400"></p>
-
-<p>(C-4) The next picture is a screenshot which is after pressing "O" key on the line of path_group entry.<br>
-<img src="editpolicy/optimize-14.png" alt="optimize-14.png" title="After entering optimize key" width="720" height="400"></p>
-
-<p>(C-5) The next picture is a screenshot which is after pressing "D" key.<br>
-<img src="editpolicy/optimize-15.png" alt="optimize-15.png" title="After entering delete key" width="720" height="400"></p>
-
-<p>(C-6) The next picture is a screenshot which is after pressing "Y" key.<br>
-<img src="editpolicy/optimize-16.png" alt="optimize-16.png" title="After entering yes key" width="720" height="400"></p>
-
-<hr>
-
-<p><a href="index.html.en">Return to index page.</a></p>
+<div id="footer">
+<p class="language">Go to <a href="tool-editpolicy.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>
