@@ -48,7 +48,7 @@
 </tr>
 <tr>
 <td><p>task.type</p></td>
-<td><p>Task type of the current process (e.g. execute_handler or not)</p></td>
+<td><p><a href="#9.4">Task type</a> of the current process</p></td>
 </tr>
 <tr>
 <td><p>task.uid</p></td>
@@ -92,7 +92,7 @@
 </tr>
 <tr>
 <td><p>path1.type</p></td>
-<td><p>Type of the first object (e.g. file, directory, socket)</p></td>
+<td><p><a href="#9.5">File type</a> of the first object</p></td>
 </tr>
 <tr>
 <td><p>path1.uid</p></td>
@@ -108,23 +108,27 @@
 </tr>
 <tr>
 <td><p>path1.perm</p></td>
-<td><p>Permissions of the first object</p></td>
+<td><p><a href="#9.6">Permissions</a> of the first object</p></td>
 </tr>
 <tr>
 <td><p>path1.major</p></td>
-<td><p>Major device number of the device file in which the first object resides</p></td>
+<td><p>Major device number of the device file in which the first object resides.<br>
+Only available when <a href="#9.5">path1.type=block</a> or <a href="#9.5">path1.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path1.minor</p></td>
-<td><p>Minor device number of the device file in which the first object resides</p></td>
+<td><p>Minor device number of the device file in which the first object resides.<br>
+Only available when <a href="#9.5">path1.type=block</a> or <a href="#9.5">path1.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path1.dev_major</p></td>
-<td><p>Major device number of the first object, assuming it is a device file</p></td>
+<td><p>Major device number of the first object, assuming it is a device file.<br>
+Only available when <a href="#9.5">path1.type=block</a> or <a href="#9.5">path1.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path1.dev_minor</p></td>
-<td><p>Device minor number of the first object, assuming it is a device file</p></td>
+<td><p>Device minor number of the first object, assuming it is a device file.<br>
+Only available when <a href="#9.5">path1.type=block</a> or <a href="#9.5">path1.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path1.parent.uid</p></td>
@@ -140,11 +144,11 @@
 </tr>
 <tr>
 <td><p>path1.parent.perm</p></td>
-<td><p>Permissions of the parent directory of the first object</p></td>
+<td><p><a href="#9.6">Permissions</a> of the parent directory of the first object</p></td>
 </tr>
 <tr>
 <td><p>path2.type</p></td>
-<td><p>Type of the second object (e.g. file, directory, socket)</p></td>
+<td><p><a href="#9.5">File type</a> of the second object</p></td>
 </tr>
 <tr>
 <td><p>path2.uid</p></td>
@@ -160,23 +164,27 @@
 </tr>
 <tr>
 <td><p>path2.perm</p></td>
-<td><p>Permissions of the second object</p></td>
+<td><p><a href="#9.6">Permissions</a> of the second object</p></td>
 </tr>
 <tr>
 <td><p>path2.major</p></td>
-<td><p>Major device number of the device file in which the second object resides</p></td>
+<td><p>Major device number of the device file in which the second object resides.<br>
+Only available when <a href="#9.5">path2.type=block</a> or <a href="#9.5">path2.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path2.minor</p></td>
-<td><p>Minor device number of the device file in which the second object resides</p></td>
+<td><p>Minor device number of the device file in which the second object resides.<br>
+Only available when <a href="#9.5">path2.type=block</a> or <a href="#9.5">path2.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path2.dev_major</p></td>
-<td><p>Major device number of the second object, assuming it is a device file</p></td>
+<td><p>Major device number of the second object, assuming it is a device file.<br>
+Only available when <a href="#9.5">path2.type=block</a> or <a href="#9.5">path2.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path2.dev_minor</p></td>
-<td><p>Minor device number of the second object, assuming it is a device file</p></td>
+<td><p>Minor device number of the second object, assuming it is a device file.<br>
+Only available when <a href="#9.5">path2.type=block</a> or <a href="#9.5">path2.type=char</a> have been specified.</p></td>
 </tr>
 <tr>
 <td><p>path2.parent.uid</p></td>
@@ -192,34 +200,48 @@
 </tr>
 <tr>
 <td><p>path2.parent.perm</p></td>
-<td><p>Permissions of the parent directory of the second object</p></td>
+<td><p><a href="#9.6">Permissions</a> of the parent directory of the second object</p></td>
 </tr>
 <tr>
 <td><p>exec.argc</p></td>
-<td><p>Number of argv[] passed for the execute request</p></td>
+<td><p>Number of argv[] passed for the execute request.<br>
+Only available when the <a href="specification/section-7.html.en#file_execute">file execute</a> directive has been specified.</p></td>
 </tr>
 <tr>
 <td><p>exec.envc</p></td>
-<td><p>Number of envp[] passed for the execute request</p></td>
+<td><p>Number of envp[] passed for the execute request.<br>
+Only available when the <a href="specification/section-7.html.en#file_execute">file execute</a> directive has been specified.</p></td>
 </tr>
 <tr>
 <td><p>exec.argv[n]</p></td>
-<td><p>Argument number "n" for the execute request</p></td>
+<td><p>Argument number "n" for the execute request.<br>
+Only available when the <a href="specification/section-7.html.en#file_execute">file execute</a> directive has been specified.</p></td>
 </tr>
 <tr>
 <td><p>exec.envp[var]</p></td>
-<td><p>Value of environment variable "var" for the execute request</p></td>
+<td><p>Value of environment variable "var" for the execute request.<br>
+Only available when the <a href="specification/section-7.html.en#file_execute">file execute</a> directive has been specified.</p></td>
 </tr>
 <tr>
 <td><p>exec.realpath</p></td>
-<td><p>Dereferenced pathname of the requested program</p></td>
+<td><p>Dereferenced pathname of the requested program.<br>
+Only available when the <a href="specification/section-7.html.en#file_execute">file execute</a> directive has been specified.</p></td>
 </tr>
 <tr>
 <td><p>symlink.target</p></td>
-<td><p>Content of a symlink to be created</p></td>
+<td><p>Content of a symlink to be created.<br>
+Only available when the <a href="specification/section-7.html.en#file_symlink">file symlink</a> directive has been specified.</p></td>
 </tr>
 </table>
 </div>
+
+<p>The conditional parameters containing <strong>path1</strong> and <strong>path2</strong> refer to the first and second pathnames specified by the directive. In this example, path1 refers to the file "/tmp/file1" and path2 refers to the file "/tmp/file2":</p>
+
+<pre>
+file rename /tmp/file1 /tmp/file2 path1.type=file path2.type=file
+</pre>
+
+<h3><a name="9.2">9.2. Tests</a></h3>
 
 <p>Matches may be made using the following tests:</p>
 
@@ -242,6 +264,8 @@
 </tr>
 </table>
 </div>
+
+<h3><a name="9.3">9.3. Values</a></h3>
 
 <p>The value to be tested may take the form of a single integer, a range of integers, or another conditional (the exceptions are "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" which take string values):</p>
 
@@ -266,7 +290,130 @@
 </table>
 </div>
 
-<h3><a name="9.2">9.2. Example usage</a></h3>
+<h3><a name="9.4">9.4. Types of task</a></h3>
+
+<p>The following types of task are available, which can also be negatively matched:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Type of task</p></th>
+<th><p>Meaning</p></th>
+</tr>
+<tr>
+<td><p>task.type=execute_handler</p></td>
+<td><p>The current process is a program specified by one of the <a href="section-7-html.en">execute_handler</a> keywords</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="9.5">9.5. Types of file</a></h3>
+
+<p>The following types of file are available, which can be used for either path1 or path2, and can also be negatively matched:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Type of file</p></th>
+<th><p>Meaning</p></th>
+</tr>
+<tr>
+<td><p>path1.type=block</p></td>
+<td><p>path1 is a block device file</p></td>
+</tr>
+<tr>
+<td><p>path1.type=char</p></td>
+<td><p>path1 is a character device file</p></td>
+</tr>
+<tr>
+<td><p>path1.type=directory</p></td>
+<td><p>path1 is a directory</p></td>
+</tr>
+<tr>
+<td><p>path1.type=fifo</p></td>
+<td><p>path1 is a FIFO</p></td>
+</tr>
+<tr>
+<td><p>path1.type=file</p></td>
+<td><p>path1 is a regular file</p></td>
+</tr>
+<tr>
+<td><p>path1.type=socket</p></td>
+<td><p>path1 is a socket</p></td>
+</tr>
+<tr>
+<td><p>path1.type=symlink</p></td>
+<td><p>path1 is a symbolic link</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="9.6">9.6. Types of permission</a></h3>
+
+<p>The following types of permission are available, which can be used for either path1 or path2, and can also be negatively matched:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<td><p>Condition</p></td>
+<td><p>Meaning</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=num1-num2</p></td>
+<td><p>Permissions are between num1 and num2</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=setuid</p></td>
+<td><p>Setuid bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=setgid</p></td>
+<td><p>Setgid bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=sticky</p></td>
+<td><p>Sticky bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=owner_read</p></td>
+<td><p>Owner read bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=owner_write</p></td>
+<td><p>Owner write bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=owner_execute</p></td>
+<td><p>Owner execute bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=group_read</p></td>
+<td><p>Group read bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=group_write</p></td>
+<td><p>Group write bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=group_execute</p></td>
+<td><p>Group execute bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=others_read</p></td>
+<td><p>Others read bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=others_write</p></td>
+<td><p>Others write bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=others_execute</p></td>
+<td><p>Others execute bit is on</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="9.7">9.7. Example usage</a></h3>
 
 <p>If you wish to deny login as the root user from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
 
