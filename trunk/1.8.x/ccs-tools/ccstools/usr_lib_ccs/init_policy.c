@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2011/02/08
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -36,11 +36,33 @@
 #include <errno.h>
 
 #if defined(__GLIBC__)
+/**
+ * get_realpath - Wrapper for realpath(3).
+ *
+ * @path: Pathname to resolve.
+ *
+ * Returns realpath of @path on success, NULL otherwise.
+ *
+ * Caller must free() the returned pointer if this function did not return
+ * NULL. 
+ */
 static inline char *get_realpath(const char *path)
 {
 	return realpath(path, NULL);
 }
 #else
+/**
+ * get_realpath - Fallback routine for realpath(3).
+ *
+ * @path: Pathname to resolve.
+ *
+ * Returns realpath of @path on success, NULL otherwise.
+ *
+ * realpath(@path, NULL) works on GLIBC, but will SIGSEGV on others.
+ *
+ * Caller must free() the returned pointer if this function did not return
+ * NULL.
+ */
 static char *get_realpath(const char *path)
 {
 	struct stat buf;
@@ -49,9 +71,9 @@ static char *get_realpath(const char *path)
 	char *pwd = malloc(pwd_len);
 	char *basename = NULL;
 	int len;
-	if (stat(dir, &buf))
-		goto out;
 	if (!dir || !pwd)
+		goto out;
+	if (stat(dir, &buf))
 		goto out;
 	len = strlen(dir);
 	while (len > 1 && dir[len - 1] == '/')
@@ -75,8 +97,10 @@ static char *get_realpath(const char *path)
 			snprintf(new_dir, len - 1, "%s/%s", dir, pwd);
 		dir = new_dir;
 		free(old_dir);
+		if (!dir)
+			goto out;
 	}
-	if (!dir || !pwd)
+	if (!dir)
 		goto out;
 	basename = strrchr(dir, '/');
 	if (basename)
@@ -104,12 +128,32 @@ out:
 
 #define elementof(x) (sizeof(x) / sizeof(x[0]))
 
+/**
+ * scandir_file_filter - Callback for scandir().
+ *
+ * @buf: Pointer to "const struct dirent".
+ *
+ * Returns non 0 if @buf seems to be a file, 0 otherwise.
+ *
+ * Since several kernels have a bug that leaves @buf->d_type == DT_UNKNOWN,
+ * we allow it for now and recheck it later.
+ */
 static int scandir_file_filter(const struct dirent *buf)
 {
 	return (buf->d_type == DT_REG || buf->d_type == DT_UNKNOWN) &&
 		strcmp(buf->d_name, ".") && strcmp(buf->d_name, "..");
 }
 
+/**
+ * scandir_symlink_and_dir_filter - Callback for scandir().
+ *
+ * @buf: Pointer to "const struct dirent".
+ *
+ * Returns non 0 if @buf seems to be a symlink or a directory, 0 otherwise.
+ *
+ * Since several kernels have a bug that leaves @buf->d_type == DT_UNKNOWN,
+ * we allow it for now and recheck it later.
+ */
 static int scandir_symlink_and_dir_filter(const struct dirent *buf)
 {
 	return (buf->d_type == DT_LNK || buf->d_type == DT_DIR ||
@@ -117,6 +161,15 @@ static int scandir_symlink_and_dir_filter(const struct dirent *buf)
 		strcmp(buf->d_name, ".") && strcmp(buf->d_name, "..");
 }
 
+/**
+ * revalidate_path - Recheck file's attribute.
+ *
+ * @path: Pathname to check.
+ *
+ * Returns type of @path.
+ *
+ * This is needed by buggy kernels that report DT_UNKNOWN upon scandir().
+ */
 static unsigned char revalidate_path(const char *path)
 {
 	struct stat buf;
@@ -132,39 +185,38 @@ static unsigned char revalidate_path(const char *path)
 	return type;
 }
 
-static _Bool file_only_profile = 0;
+/* File handle to /etc/ccs/current/policy/exception_policy.conf . */
 static FILE *filp = NULL;
 
+/**
+ * echo - Print a line to the policy file, without escaping.
+ *
+ * @str: Line to print. Must follow TOMOYO's escape rules.
+ *
+ * Returns nothing.
+ */
 static inline void echo(const char *str)
 {
 	fprintf(filp, "%s\n", str);
 }
 
+/* Keyword before printing a line. */
 static const char *keyword = NULL;
 
-#define SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD 1
-
-static void printf_encoded(const char *str, const unsigned int flags)
+/**
+ * printf_encoded - Print a line to the policy file, with escaping as needed.
+ *
+ * @str: Line to print. Needn't to follow TOMOYO's escape rules.
+ *
+ * Returns nothing.
+ *
+ * If @str starts with "/proc/", it is converted with "proc:/".
+ * If keyword is not NULL, keyword is printed before printing @str.
+ * If keyword is "initialize_domain", " from any" is printed after printing
+ * @str.
+ */
+static void printf_encoded(const char *str)
 {
-	if (flags == SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD) {
-		_Bool found = 0;
-		const char *p = str;
-		while (1) {
-			const char c = *p++;
-			if (!c)
-				break;
-			if (c == '/') {
-				const size_t numbers = strspn(p, "0123456789");
-				const char c2 = p[numbers];
-				if (numbers && (c2 == '/' || !c2)) {
-					found = 1;
-					break;
-				}
-			}
-		}
-		if (!found)
-			return;
-	}
 	if (keyword)
 		fprintf(filp, "%s ", keyword);
 	if (!strncmp(str, "/proc/", 6)) {
@@ -175,16 +227,6 @@ static void printf_encoded(const char *str, const unsigned int flags)
 		const char c = *str++;
 		if (!c)
 			break;
-		if (c == '/' &&
-		    (flags == SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD)) {
-			const size_t numbers = strspn(str, "0123456789");
-			const char c2 = str[numbers];
-			if (numbers && (c2 == '/' || !c2)) {
-				fprintf(filp, "/\\$");
-				str += numbers;
-				continue;
-			}
-		}
 		if (c == '\\') {
 			fputc('\\', filp);
 			fputc('\\', filp);
@@ -201,8 +243,14 @@ static void printf_encoded(const char *str, const unsigned int flags)
 		fputc('\n', filp);
 }
 
+/* Shared buffer for scandir(). */
 static char path[8192];
 
+/**
+ * scan_init_scripts - Scan /etc/rc\?.d/ directories for initialize_domain entries.
+ *
+ * Returns nothing.
+ */
 static void scan_init_scripts(void)
 {
 	struct dirent **namelist;
@@ -230,28 +278,38 @@ static void scan_init_scripts(void)
 			if (entity) {
 				char *cp = strrchr(path, '/');
 				fprintf(filp, "aggregator ");
+				/*
+				 * Use /rc\?.d/ rather than /rc0.d/ /rc1.d/
+				 * /rc2.d/ /rc3.d/ /rc4.d/ /rc5.d/ /rc6.d/ 
+				 * /rcS.d/ .
+				 */
 				if (cp && !strncmp(cp, "/rc", 3) &&
 				    ((cp[3] >= '0' && cp[3] <= '6') ||
 				     cp[3] == 'S') && !strcmp(cp + 4, ".d")) {
 					*cp = '\0';
-					printf_encoded(path, 0);
+					printf_encoded(path);
 					fprintf(filp, "/rc\\?.d");
 					*cp = '/';
 				} else
-					printf_encoded(path, 0);
+					printf_encoded(path);
 				fprintf(filp, "/\\?\\+\\+");
-				printf_encoded(name + 3, 0);
+				printf_encoded(name + 3);
 				fputc(' ', filp);
-				printf_encoded(entity, 0);
+				printf_encoded(entity);
 				fputc('\n', filp);
 				free(entity);
 			}
 		}
-		free((void *) namelist[i]);
+		free(namelist[i]);
 	}
-	free((void *) namelist);
+	free(namelist);
 }
 
+/**
+ * make_init_scripts_as_aggregators - Use realpath for startup/shutdown scripts in /etc/ directory.
+ *
+ * Returns nothing. 
+ */
 static void make_init_scripts_as_aggregators(void)
 {
 	/* Mark symlinks under /etc/rc\?.d/ directory as aggregator. */
@@ -277,6 +335,13 @@ static void make_init_scripts_as_aggregators(void)
 	}
 }
 
+/**
+ * scan_executable_files - Find executable files in the specific directory.
+ *
+ * @dir: Directory name to scan.
+ *
+ * Returns nothing.
+ */
 static void scan_executable_files(const char *dir)
 {
 	struct dirent **namelist;
@@ -291,22 +356,26 @@ static void scan_executable_files(const char *dir)
 		if (type == DT_UNKNOWN)
 			type = revalidate_path(path);
 		if (type == DT_REG && !access(path, X_OK))
-			printf_encoded(path, 0);
-		free((void *) namelist[i]);
+			printf_encoded(path);
+		free(namelist[i]);
 	}
-	free((void *) namelist);
+	free(namelist);
 }
 
+/**
+ * scan_modprobe_and_hotplug - Mark modprobe and hotplug as initialize_domain entries.
+ *
+ * Returns nothing. 
+ */
 static void scan_modprobe_and_hotplug(void)
 {
-	/* Make /sbin/modprobe and /sbin/hotplug as initializers. */
-	const char *files[2] = {
+	static const char *files[2] = {
 		"/proc/sys/kernel/modprobe", "/proc/sys/kernel/hotplug"
 	};
 	int i;
 	for (i = 0; i < elementof(files); i++) {
 		char *ret_ignored;
-		char buffer[8192];
+		char buffer[PATH_MAX + 1];
 		char *cp;
 		FILE *fp = fopen(files[i], "r");
 		if (!fp)
@@ -322,14 +391,20 @@ static void scan_modprobe_and_hotplug(void)
 		cp = get_realpath(buffer);
 		if (!cp)
 			continue;
+		/* We ignore /bin/true if /proc/sys/kernel/modprobe said so. */
 		if (strcmp(cp, "/bin/true") && !access(cp, X_OK)) {
 			keyword = "initialize_domain";
-			printf_encoded(cp, 0);
+			printf_encoded(cp);
 		}
 		free(cp);
 	}
 }
 
+/**
+ * make_globally_readable_files - Mark some files as globally readable.
+ *
+ * Returns nothing.
+ */
 static void make_globally_readable_files(void)
 {
 	/* Allow reading some data files. */
@@ -347,18 +422,31 @@ static void make_globally_readable_files(void)
 		char *cp = get_realpath(files[i]);
 		if (!cp)
 			continue;
-		printf_encoded(cp, 0);
+		printf_encoded(cp);
 		free(cp);
 	}
 }
 
+/**
+ * make_self_readable_files - Mark /proc/self/ files as globally readable.
+ *
+ * Returns nothing.
+ */
 static void make_self_readable_files(void)
 {
 	/* Allow reading information for current process. */
-	fprintf(filp, "acl_group 0 file read proc:/self/\\*\n");
-	fprintf(filp, "acl_group 0 file read proc:/self/\\{\\*\\}/\\*\n");
+	echo("acl_group 0 file read proc:/self/\\*");
+	echo("acl_group 0 file read proc:/self/\\{\\*\\}/\\*");
 }
 
+/**
+ * make_ldconfig_readable_files - Mark shared library files as globally readable.
+ *
+ * Returns nothing.
+ *
+ * We don't scan predefined directories if ldconfig does not exist (e.g.
+ * embedded environment).
+ */
 static void make_ldconfig_readable_files(void)
 {
 	/* Allow reading DLL files registered with ldconfig(8). */
@@ -417,7 +505,7 @@ static void make_ldconfig_readable_files(void)
 				*(cp2 + 6) = '\0';
 			else
 				cp2 = NULL;
-			printf_encoded(cp, 0);
+			printf_encoded(cp);
 			if (cp2)
 				fprintf(filp, "\\*.so");
 			fputc('\n', filp);
@@ -427,9 +515,13 @@ static void make_ldconfig_readable_files(void)
 	pclose(fp);
 }
 
+/**
+ * make_init_dir_as_initializers - Mark programs under /etc/init.d/ directory as initialize_domain entries.
+ *
+ * Returns nothing.
+ */
 static void make_init_dir_as_initializers(void)
 {
-	/* Mark programs under /etc/init.d/ directory as initializer. */
 	char *dir = get_realpath("/etc/init.d/");
 	if (!dir)
 		return;
@@ -438,12 +530,13 @@ static void make_init_dir_as_initializers(void)
 	free(dir);
 }
 
+/**
+ * make_initializers - Mark daemon programs as initialize_domain entries.
+ *
+ * Returns nothing.
+ */
 static void make_initializers(void)
 {
-	/*
-	 * Mark some programs that you want to assign short domainname as
-	 * initializer.
-	 */
 	static const char *files[] = {
 		"/sbin/cardmgr",
 		"/sbin/getty",
@@ -503,13 +596,45 @@ static void make_initializers(void)
 		if (!cp)
 			continue;
 		if (!access(cp, X_OK))
-			printf_encoded(cp, 0);
+			printf_encoded(cp);
 		free(cp);
 	}
 }
 
+/**
+ * mkdir2 - mkdir() with ignoring EEXIST error.
+ *
+ * @dir:  Directory to create.
+ * @mode: Create mode.
+ *
+ * Returns 0 on success, EOF otehrwise.
+ */
+static int mkdir2(const char *dir, int mode)
+{
+	return mkdir(dir, mode) == 0 || errno == EEXIST ? 0 : EOF;
+}
+
+/**
+ * symlink2 - symlink() with ignoring EEXIST error.
+ *
+ * @old: Symlink's content.
+ * @new: Symlink to create.
+ *
+ * Returns 0 on success, EOF otehrwise.
+ */
+static int symlink2(const char *old, const char *new)
+{
+	return symlink(old, new) == 0 || errno == EEXIST ? 0 : EOF;
+}
+
+/* Policy directory. Default is "/etc/ccs/". */
 static char *policy_dir = NULL;
 
+/**
+ * make_policy_dir - Create policy directories and tools directories.
+ *
+ * Returns nothing.
+ */
 static void make_policy_dir(void)
 {
 	char *dir = policy_dir;
@@ -532,20 +657,15 @@ static void make_policy_dir(void)
 		mkdir(policy_dir, 0700);
 		*(dir - 1) = '/';
 	}
-	if ((mkdir(policy_dir, 0700) && errno != EEXIST) ||
-	    chdir(policy_dir) ||
-	    (symlink("policy/current/exception_policy.conf",
-		     "exception_policy.conf") && errno != EEXIST) ||
-	    (symlink("policy/current/domain_policy.conf",
-		     "domain_policy.conf") && errno != EEXIST) ||
-	    (symlink("policy/current/profile.conf", "profile.conf") &&
-	     errno != EEXIST) ||
-	    (symlink("policy/current/manager.conf", "manager.conf") &&
-	     errno != EEXIST) ||
-	    (mkdir("policy", 0700) && errno != EEXIST) || chdir("policy") ||
-	    (mkdir(stamp, 0700) && errno != EEXIST) ||
-	    (symlink(stamp, "previous") && errno != EEXIST) ||
-	    (symlink(stamp, "current") && errno != EEXIST) ||
+	if (mkdir2(policy_dir, 0700) || chdir(policy_dir) ||
+	    symlink2("policy/current/exception_policy.conf",
+		     "exception_policy.conf") ||
+	    symlink2("policy/current/domain_policy.conf",
+		     "domain_policy.conf") ||
+	    symlink2("policy/current/profile.conf", "profile.conf") ||
+	    symlink2("policy/current/manager.conf", "manager.conf") ||
+	    mkdir2("policy", 0700) || chdir("policy") || mkdir2(stamp, 0700) ||
+	    symlink2(stamp, "previous") || symlink2(stamp, "current") ||
 	    chdir(policy_dir) || chdir("policy/current/")) {
 		fprintf(stderr, "failed.\n");
 		exit(1);
@@ -565,46 +685,73 @@ tools_dir:
 	}
 }
 
+/**
+ * make_path_group - Make path_group entries.
+ *
+ * Returns nothing.
+ */
 static void make_path_group(void)
 {
-	fprintf(filp, "path_group ANY_PATHNAME /\n");
-	fprintf(filp, "path_group ANY_PATHNAME /\\*\n");
-	fprintf(filp, "path_group ANY_PATHNAME /\\{\\*\\}/\n");
-	fprintf(filp, "path_group ANY_PATHNAME /\\{\\*\\}/\\*\n");
-	fprintf(filp, "path_group ANY_PATHNAME \\*:/\n");
-	fprintf(filp, "path_group ANY_PATHNAME \\*:/\\*\n");
-	fprintf(filp, "path_group ANY_PATHNAME \\*:/\\{\\*\\}/\n");
-	fprintf(filp, "path_group ANY_PATHNAME \\*:/\\{\\*\\}/\\*\n");
-	fprintf(filp, "path_group ANY_PATHNAME \\*:[\\$]\n");
-	fprintf(filp, "path_group ANY_DIRECTORY /\n");
-	fprintf(filp, "path_group ANY_DIRECTORY /\\{\\*\\}/\n");
-	fprintf(filp, "path_group ANY_DIRECTORY \\*:/\n");
-	fprintf(filp, "path_group ANY_DIRECTORY \\*:/\\{\\*\\}/\n");
+	echo("path_group ANY_PATHNAME /");
+	echo("path_group ANY_PATHNAME /\\*");
+	echo("path_group ANY_PATHNAME /\\{\\*\\}/");
+	echo("path_group ANY_PATHNAME /\\{\\*\\}/\\*");
+	echo("path_group ANY_PATHNAME \\*:/");
+	echo("path_group ANY_PATHNAME \\*:/\\*");
+	echo("path_group ANY_PATHNAME \\*:/\\{\\*\\}/");
+	echo("path_group ANY_PATHNAME \\*:/\\{\\*\\}/\\*");
+	echo("path_group ANY_PATHNAME \\*:[\\$]");
+	echo("path_group ANY_DIRECTORY /");
+	echo("path_group ANY_DIRECTORY /\\{\\*\\}/");
+	echo("path_group ANY_DIRECTORY \\*:/");
+	echo("path_group ANY_DIRECTORY \\*:/\\{\\*\\}/");
 }
 
+/**
+ * make_number_group - Make number_group entries.
+ *
+ * Returns nothing.
+ */
 static void make_number_group(void)
 {
-	fprintf(filp, "number_group COMMON_IOCTL_CMDS 0x5401\n");
+	echo("number_group COMMON_IOCTL_CMDS 0x5401");
 }
 
+/**
+ * make_ioctl - Allow ioctl with common ioctl numbers.
+ *
+ * Returns nothing.
+ */
 static void make_ioctl(void)
 {
-	/* Allow ioctl with common ioctl numbers. */
-	fprintf(filp, "acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS\n");
+	echo("acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS");
 }
 
+/**
+ * make_getattr - Allow getting attributes.
+ *
+ * Returns nothing.
+ */
 static void make_getattr(void)
 {
-	/* Allow getting attributes. */
-	fprintf(filp, "acl_group 0 file getattr @ANY_PATHNAME\n");
+	echo("acl_group 0 file getattr @ANY_PATHNAME");
 }
 
+/**
+ * make_readdir - Allow reading directories.
+ *
+ * Returns nothing.
+ */
 static void make_readdir(void)
 {
-	/* Allow reading directories. */
-	fprintf(filp, "acl_group 0 file read @ANY_DIRECTORY\n");
+	echo("acl_group 0 file read @ANY_DIRECTORY");
 }
 
+/**
+ * chdir_policy - Change to policy directory.
+ *
+ * Returns 1 on success, 0 otherwise.
+ */
 static _Bool chdir_policy(void)
 {
 	if (chdir(policy_dir) || chdir("policy/current/")) {
@@ -615,6 +762,30 @@ static _Bool chdir_policy(void)
 	return 1;
 }
 
+/**
+ * close_file - Close file and rename.
+ *
+ * @fp:        Pointer to "FILE".
+ * @condition: Preconditions before rename().
+ * @old:       Temporary file's pathname.
+ * @new:       Final file's pathname.
+ *
+ * Returns nothing.
+ */
+static void close_file(FILE *fp, _Bool condition, const char *old,
+		       const char *new)
+{
+	if (fsync(fileno(fp)) || fclose(fp) || !condition || rename(old, new))
+		fprintf(stderr, "failed.\n");
+	else
+		fprintf(stderr, "OK.\n");
+}
+
+/**
+ * make_exception_policy - Make /etc/ccs/policy/current/exception_policy.conf .
+ *
+ * Returns nothing.
+ */
 static void make_exception_policy(void)
 {
 	if (!chdir_policy())
@@ -639,15 +810,16 @@ static void make_exception_policy(void)
 	make_init_dir_as_initializers();
 	make_initializers();
 	make_init_scripts_as_aggregators();
-	fclose(filp);
+	close_file(filp, chdir_policy(), "exception_policy.tmp",
+		   "exception_policy.conf");
 	filp = NULL;
-	if (!chdir(policy_dir) && !chdir("policy/current/") &&
-	    !rename("exception_policy.tmp", "exception_policy.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
 }
 
+/**
+ * make_manager - Make /etc/ccs/policy/current/manager.conf .
+ *
+ * Returns nothing.
+ */
 static void make_manager(void)
 {
 	char *tools_dir;
@@ -668,20 +840,27 @@ static void make_manager(void)
 	fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
 	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
 	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
-	fclose(fp);
-	if (!chdir(policy_dir) && !chdir("policy/current/") &&
-	    !rename("manager.tmp", "manager.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, 1, "manager.tmp", "manager.conf");
 }
 
+/* Should we create profiles that restricts file only? */
+static _Bool file_only_profile = 0;
+/* Should we audit access granted logs? */
 static const char *grant_log = "no";
+/* Should we audit access rejected logs? */
 static const char *reject_log = "yes";
+/* How many audit log entries to spool in the kenrel memory? */
 static unsigned int max_audit_log = 1024;
+/* How many ACL entries to add automatically by learning mode? */
 static unsigned int max_learning_entry = 2048;
+/* How long should we carry sleep penalty? */
 static unsigned int enforcing_penalty = 0;
 
+/**
+ * make_profile - Make /etc/ccs/policy/current/profile.conf .
+ *
+ * Returns nothing.
+ */
 static void make_profile(void)
 {
 	static const char *file_only = "";
@@ -723,17 +902,19 @@ static void make_profile(void)
 		"3-CONFIG%s={ mode=enforcing grant_log=%s reject_log=%s }\n",
 		max_audit_log, max_learning_entry, enforcing_penalty,
 		file_only, grant_log, reject_log);
-	fclose(fp);
-	if (!chdir(policy_dir) && !chdir("policy/current/") &&
-	    !rename("profile.tmp", "profile.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, 1, "profile.tmp", "profile.conf");
 }
 
+/* Which profile number does <kernel> domain use? */
 static unsigned char default_profile = 0;
+/* Which ACL group does <kernel> domain use? */
 static unsigned char default_group = 0;
 
+/**
+ * make_domain_policy - Make /etc/ccs/policy/current/domain_policy.conf .
+ *
+ * Returns nothing.
+ */
 static void make_domain_policy(void)
 {
 	FILE *fp;
@@ -749,14 +930,14 @@ static void make_domain_policy(void)
 	fprintf(stderr, "Creating domain policy... ");
 	fprintf(fp, "<kernel>\nuse_profile %u\nuse_group %u\n",
 		default_profile, default_group);
-	fclose(fp);
-	if (!chdir(policy_dir) && !chdir("policy/current/") &&
-	    !rename("domain_policy.tmp", "domain_policy.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, 1, "domain_policy.tmp", "domain_policy.conf");
 }
 
+/**
+ * make_stat - Make /etc/ccs/stat.conf .
+ *
+ * Returns nothing.
+ */
 static void make_stat(void)
 {
 	FILE *fp;
@@ -772,16 +953,17 @@ static void make_stat(void)
 	fprintf(fp, "Memory used by policy:               0\n");
 	fprintf(fp, "Memory used by audit log:     16777216\n");
 	fprintf(fp, "Memory used by query message:  1048576\n");
-	fclose(fp);
-	if (!chdir(policy_dir) &&
-	    !rename("stat.tmp", "stat.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, 1, "stat.tmp", "stat.conf");
 }
 
+/* The name of loadable kernel module to load. */
 static const char *module_name = "ccsecurity";
 
+/**
+ * make_module_loader - Make /etc/ccs/ccs-load-module .
+ *
+ * Returns nothing.
+ */
 static void make_module_loader(void)
 {
 	FILE *fp;
@@ -797,15 +979,11 @@ static void make_module_loader(void)
 	fprintf(fp, "#! /bin/sh\n");
 	fprintf(fp, "export PATH=$PATH:/sbin:/bin\n");
 	fprintf(fp, "exec modprobe %s\n", module_name);
-	fclose(fp);
-	if (!chdir(policy_dir) &&
-	    !chmod("ccs-load-module.tmp", 0700) &&
-	    !rename("ccs-load-module.tmp", "ccs-load-module"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, !chmod("ccs-load-module.tmp", 0700),
+		   "ccs-load-module.tmp", "ccs-load-module");
 }
 
+/* Content of /etc/ccs/tools/editpolicy.conf . */
 static const char editpolicy_data[] =
 "# This file contains configuration used by ccs-editpolicy command.\n"
 "\n"
@@ -1128,7 +1306,12 @@ static const char editpolicy_data[] =
 "line_color STAT_HEAD        = 03\n"
 "line_color PROFILE_CURSOR   = 71\n"
 "line_color PROFILE_HEAD     = 71\n";
-	
+
+/**
+ * make_editpolicy_conf - Make /etc/ccs/tools/editpolicy.conf .
+ *
+ * Returns nothing.
+ */
 static void make_editpolicy_conf(void)
 {
 	FILE *fp;
@@ -1142,15 +1325,11 @@ static void make_editpolicy_conf(void)
 	}
 	fprintf(stderr, "Creating configuration file for ccs-editpolicy ... ");
 	fprintf(fp, "%s", editpolicy_data);
-	fclose(fp);
-	if (!chdir(policy_dir) && !chdir("tools") &&
-	    !chmod("editpolicy.tmp", 0644) &&
-	    !rename("editpolicy.tmp", "editpolicy.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, !chmod("editpolicy.tmp", 0644), "editpolicy.tmp",
+		   "editpolicy.conf");
 }
 
+/* Content of /etc/ccs/tools/auditd.conf . */
 static const char auditd_data[] =
 "# This file contains sorting rules used by ccs-auditd command.\n"
 "\n"
@@ -1210,6 +1389,11 @@ static const char auditd_data[] =
 "destination     /var/log/tomoyo/reject_003.log\n"
 "\n";
 
+/**
+ * make_auditd_conf - Make /etc/ccs/tools/auditd.conf .
+ *
+ * Returns nothing.
+ */
 static void make_auditd_conf(void)
 {
 	FILE *fp;
@@ -1223,14 +1407,11 @@ static void make_auditd_conf(void)
 	}
 	fprintf(stderr, "Creating configuration file for ccs-auditd ... ");
 	fprintf(fp, "%s", auditd_data);
-	fclose(fp);
-	if (!chdir(policy_dir) && !chdir("tools") &&
-	    !chmod("auditd.tmp", 0644) && !rename("auditd.tmp", "auditd.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, !chmod("auditd.tmp", 0644), "auditd.tmp",
+		   "auditd.conf");
 }
 
+/* Content of /etc/ccs/tools/patternize.conf . */
 static const char patternize_data[] =
 "# This file contains rewriting rules used by ccs-patternize command.\n"
 "\n"
@@ -1328,6 +1509,11 @@ static const char patternize_data[] =
 "rewrite tail_pattern /spool/abrt/pyhook-\\*/\\{\\*\\}/\n"
 "\n";
 
+/**
+ * make_patternize_conf - Make /etc/ccs/tools/patternize.conf .
+ *
+ * Returns nothing.
+ */
 static void make_patternize_conf(void)
 {
 	FILE *fp;
@@ -1341,15 +1527,11 @@ static void make_patternize_conf(void)
 	}
 	fprintf(stderr, "Creating configuration file for ccs-patternize ... ");
 	fprintf(fp, "%s", patternize_data);
-	fclose(fp);
-	if (!chdir(policy_dir) && !chdir("tools") &&
-	    !chmod("patternize.tmp", 0644) &&
-	    !rename("patternize.tmp", "patternize.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, !chmod("patternize.tmp", 0644), "patternize.tmp",
+		   "patternize.conf");
 }
 
+/* Content of /etc/ccs/tools/notifyd.conf . */
 static const char notifyd_data[] =
 "# This file contains configuration used by ccs-notifyd command.\n"
 "\n"
@@ -1404,6 +1586,11 @@ static const char notifyd_data[] =
 "minimal_interval 60\n"
 "\n";
 
+/**
+ * make_notifyd_conf - Make /etc/ccs/tools/notifyd.conf .
+ *
+ * Returns nothing.
+ */
 static void make_notifyd_conf(void)
 {
 	FILE *fp;
@@ -1417,13 +1604,8 @@ static void make_notifyd_conf(void)
 	}
 	fprintf(stderr, "Creating configuration file for ccs-notifyd ... ");
 	fprintf(fp, "%s", notifyd_data);
-	fclose(fp);
-	if (!chdir(policy_dir) && !chdir("tools") &&
-	    !chmod("notifyd.tmp", 0644) &&
-	    !rename("notifyd.tmp", "notifyd.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
+	close_file(fp, !chmod("notifyd.tmp", 0644), "notifyd.tmp",
+		   "notifyd.conf");
 }
 
 int main(int argc, char *argv[])
