@@ -76,16 +76,13 @@ acl_group 0 file read proc:/self/\{\*\}/\*
 acl_group 0 file read /lib/lib\*.so\*
 acl_group 0 file read /usr/lib/lib\*.so\*
 acl_group 0 file read /lib64/lib\*.so\*
-acl_group 0 file read /usr/lib/xulrunner-1.9.2/libxul.so
-acl_group 0 file read /usr/lib/xulrunner-1.9.2/libxpcom.so
-acl_group 0 file read /usr/lib/xulrunner-1.9.2/libmozjs.so
 acl_group 0 file read /lib/ld-2.\*.so
 acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS
 acl_group 0 file read @ANY_DIRECTORY
 acl_group 0 file getattr @ANY_PATHNAME
 </pre>
 
-<p>Since the "acl_group" directive has been defined, these entries apply to all domains that have the "use_group 0" entry. Since all domains have this directive by default, the exception policy entries apply to all domains. Permissions are given for reading all directories, and for reading the attributes of all files and directories. This is a sane default that should be safe. Note that files sill cannot be read without specifying an entry. Some other permissions are also given for various shared objects and files in the "/proc/" filesystem.</p>
+<p>Since the "acl_group" directive has been defined, these entries apply to all domains that have the "use_group 0" entry. Since all domains have this directive by default, the exception policy entries apply to all domains. Permissions are given for reading all directories, and for reading the attributes of all files and directories. This is a sane default that should be safe. Note that files still cannot be read without specifying an entry. Some other permissions are also given for various shared objects and files in the "/proc/" filesystem.</p>
 
 <h3><a name="10.2">10.2. Splitting access restriction</a></h3>
 
@@ -140,7 +137,7 @@ use_group 2
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
-<p>Chapter 11: Stuff</p>
+<p>Chapter 11: Reinforced authentication</p>
 </td>
 </tr>
 </table>
