@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 11</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="chapter-11.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<p><a href="chapter-10.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-12.html.en">&lt;Next&gt;</a></p>
+
+<h2>Chapter 11: Reinforced authentication</h2>
+
+<h3><a name="11.1">11.1. Illegal SSH logins</a></h3>
+
+<p>Illegal logins can occur for example through SSH brute force attacks, or through vulnerabilities in other Internet-facing services. It is possible to add another layer of defence using a tiered authentication system. Using TOMOYO Linux, you can enforce login authentication as many times as you want. Suppose we create the following script:</p>
+
+<pre>
+#! /bin/sh -p
+read -r -s -e -p "Password: " password
+sleep 2
+if [ "$password" = "123456" ]; then
+  exec $SHELL
+else
+  echo "Authentication failed."
+fi
+</pre>
+
+<p>Call this script "auth1", make it executable and place it in "/usr/bin" or any directory specified in $PATH. This is only an example script, but it does not matter that the password is in plaintext as the attacker can be denied from reading the script. See <a href="#11.3">11.3. Example authentication programs</a> for more examples. Suppose we have the following in exception policy:</p>
+
+<pre>
+initialize_domain /usr/sbin/sshd from any
+</pre>
+
+<p>Now we can manage the domain "&lt;kernel&gt; /usr/sbin/sshd /bin/bash", but make sure that the <a href="specification/section-6.html.en#keep_domain">keep_domain</a> directive is not specified for this domain. Use domain policy to restrict this domain and only allow the execution of the "auth1" script, but no other programs:</p>
+
+<pre>
+file execute /usr/bin/auth1 exec.realpath="/usr/bin/auth1"
+</pre>
+
+<p>Following login through SSH, the user must go through another authentication mechanism. If this is an illegal login from an attacker, then they will not be able to know what the authentication mechanism is. Ths script above can employ as foreign an authentication mechanism as you desire.</p>
+
+<p>The domain created following successful authentication can be given normal privileges, and for example may be given the "keep_domain /bin/bash from /usr/bin/auth1" directive in exception policy:</p>
+
+<a href="media/fig-6-2.png"><img src="media/fig-6-2.png" alt="fig-6-2.png" width="600" height="450"></a>
+
+<h3><a name="11.2">11.2. Splitting root permissions</a></h3>
+
+<p>Using this tiered approach, it is also possible to split root permissions. The script can be repeated with a different password and saved as "/usr/bin/auth2". The domain created by execution of "auth1" can be given maximum privileges using domain policy, but the domain create by execution of "auth2" can be given limited privileges, such as to administrate only the web server:</p>
+
+<a href="media/fig-6-14-en.png"><img src="media/fig-6-14-en.png" alt="fig-6-14-en.png" width="600" height="450"></a>
+
+<h3><a name="11.2">11.3. Example authentication programs</a></h3>
+
+<p>This example script is the same as above, but stores the password as a hash:</p>
+
+<pre class="command">
+echo "password" | sha1sum
+</pre>
+
+<pre class="output">
+c8fed00eb2e87f1cee8e90ebbe870c190ac3848c  -
+</pre>
+
+<pre>
+#!/bin/sh -p
+
+hash="c8fed00eb2e87f1cee8e90ebbe870c190ac3848c  -"
+
+read -r -s -e -p "Password: " password
+hash_attempt="$(echo "$password" | sha1sum)"
+sleep 2
+if [ "$hash_attempt" = "$hash" ]; then
+  exec $SHELL
+else
+  echo "Authentication failed"
+fi
+</pre>
+
+<p>See <a href="specification/section-8.html.en">A11: Authentication programs</a> for more authentication programs.</p>
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="chapter-10.html.en">Prev</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>Chapter 10: Using ACL groups</p>
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="chapter-11.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date: 2011-02-07 22:46:07 +0000 (Mon, 07 Feb 2011) $</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>
