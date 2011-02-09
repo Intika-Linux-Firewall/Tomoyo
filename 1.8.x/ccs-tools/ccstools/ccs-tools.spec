@@ -11,7 +11,6 @@ Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildRequires: ncurses-devel
 Requires: ncurses
 Conflicts: ccs-tools < 1.8.0-3
 
@@ -46,7 +45,8 @@ ldconfig || true
 %files
 %defattr(-,root,root)
 /sbin/
-%{usrlibdir}
+%{usrlibdir}/ccs/
+%{usrlibdir}/libccs*
 /usr/sbin/
 /usr/share/man/man8/
 
