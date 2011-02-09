@@ -40,7 +40,7 @@
 
 <h3><a name="10.1">10.1. The acl_group and use_group directives</a></h3>
 
-<p>The <a href="specification/section-6.html.en#acl_group">acl_group</a> directive in exception policy and <a href="specification/section-7.html.en#use_group">use_group</a> directive in domain policy can provide a powerful and easy way to manage certain aspects of policy.</p>
+<p>The <a href="policy-specification/exception-policy-syntax.html.en#acl_group">acl_group</a> directive in exception policy and <a href="policy-specification/domain-policy-syntax.html.en#use_group">use_group</a> directive in domain policy can provide a powerful and easy way to manage certain aspects of policy.</p>
 
 <p>In the default exception policy created using <code>/usr/lib/ccs/init_policy</code>, some entries are created such as the following:</p>
 
@@ -110,7 +110,7 @@ acl_group 2 file read /usr/lib/xulrunner-1.9.2/libxul.so
 use_group 2
 </pre>
 
-<p>This domain would inherit the ability to read the xulrunner shared objects specified by the "acl_group 2" directive. The "use_group" directive can be used for as many domains as you want and each domain will inherit the entries specified in exception policy that match the group number.</p>
+<p>This domain would inherit the ability to read the xulrunner shared objects specified by the "acl_group 2" directive. The <a href="policy-specification/domain-policy-syntax.html.en#use_group">use_group</a> directive can be used for as many domains as you want and each domain will inherit the entries specified in exception policy that match the group number.</p>
 
 <p>If you wish to restrict certain domains from reading directory entries, you can either remove this ability from "acl_group 0" or create another "acl_group" that does not have this ability. Note that if you remove this ability from "acl_group 0", you may need to add this entry individually to each "use_group 0" domain that needs to read directories.</p>
 

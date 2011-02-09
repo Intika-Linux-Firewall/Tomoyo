@@ -42,7 +42,7 @@
 
 <p>A particular domain may require many different access permissions to many different resources. Since "Enforcing Mode" allows access to only resources explicitly defined, it is important to cover all necessary resources. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
 
-<p>As mentioned in the previous chapter, there is a limit on the number of entries domain policy can contain. This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see <a href="tool-editpolicy.html.en#acl_editor">How to remove redundant ACL entries</a>.</p>
+<p>As mentioned in the previous chapter, there is a limit on the number of entries domain policy can contain. This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see how to <a href="tool-editpolicy.html.en#redundant">Remove redundant entries</a>.</p>
 
 <p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
 
@@ -63,7 +63,7 @@
 
 <p>In the example above, all except "/var/run/nscd/socket" can be considered to be temporary files. Thus, patterns can be made for these pathnames.</p>
 
-<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the "<strong>\?</strong>" pattern which matches any single character other than "/", and the "<strong>\*</strong>" pattern which matches zero or more repetitions of any characters other than "/" can be used. See <a href="policy-reference.html.en#wildcard_expression_rules">Wilcard expression rules</a> for a list of possible wildcards.</p>
+<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the "<strong>\?</strong>" pattern which matches any single character other than "/", and the "<strong>\*</strong>" pattern which matches zero or more repetitions of any characters other than "/" can be used. See <a href="policy-specification/expression-rules.html.en#wildcard">Wildcard expression rules</a> for a list of possible wildcards.</p>
 
 <p>Use <code>ccs-patternize</code> to convert into patterns non-interactively. Rewriting rules are specified in "/etc/ccs/tools/patternize.conf" file, as shown below:</p>
 
@@ -469,7 +469,7 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 
 <a href="media/operation-permissive.png"><img src="media/operation-permissive.png" alt="operation-permissive.png" width="575" height="475"></a>
 
-<p>You can check "/proc/ccs/stat" for how many times policy violations have occurred and the last time a policy violation occurred:</p>
+<p>You can check the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
 <pre class="command">
 # cat /proc/ccs/stat
