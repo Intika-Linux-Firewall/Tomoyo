@@ -27,13 +27,13 @@ ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
-	$(INSTALL) -m 0755 libccstools.so.1.0.2 -t $(INSTALLDIR)$(USRLIBDIR)
+	$(INSTALL) -m 0755 libccstools.so.1.0.2 $(INSTALLDIR)$(USRLIBDIR)
 	ln -sf libccstools.so.1.0.2 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.1
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRSBINDIR)
-	$(INSTALL) -m 0755 $(BUILD_FILES) -t $(INSTALLDIR)$(USRSBINDIR)
+	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)$(USRSBINDIR)
 
 clean:
 	rm -f -- $(BUILD_FILES) libccstools.so*

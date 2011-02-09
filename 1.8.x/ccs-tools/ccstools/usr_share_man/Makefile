@@ -14,9 +14,9 @@ man8/%.8.gz : %
 
 all: $(PAGES)
 
-install: all
+install:
 	mkdir -p -m 0755 $(INSTALLDIR)$(MAN8)
-	$(INSTALL) -m 0644 $(PAGES) -t $(INSTALLDIR)$(MAN8)
+	$(INSTALL) -m 0644 $(PAGES) $(INSTALLDIR)$(MAN8)
 
 clean:
 	-rm -f man8/*
