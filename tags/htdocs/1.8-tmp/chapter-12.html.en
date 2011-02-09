@@ -33,148 +33,78 @@
 <div id="documentation">
 
 <div class="navheader">
-<p><a href="chapter-11.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a></p>
+<p><a href="chapter-11.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-13.html.en">&lt;Next&gt;</a></p>
 </div>
 
-<h2>Chapter 12: Judging execute requests outside of the kernel</h2>
+<h2>Chapter 12: Reinforced authentication</h2>
 
-<h3><a name="12.1">12.1. task denied_execute_handler</a></h3>
+<h3><a name="12.1">12.1. Illegal SSH logins</a></h3>
 
-<p>A system administrator using TOMOYO Linux will generally know the programs that need to be executed from any particular domain. Thus, a normally functioning system will generally not make any execution requests that violate policy. If such an execution request occurs, such as <code>/bin/bash</code>, from a domain that does not usually need to make that execution, then the domain has probably been compromised.</p>
-
-<p>At this point, the kernel will reject the request. However, it is unlikely that the domain will regain control from the attacker. This is where the <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directive can be useful. This directive allows an external program to be called whenever an execute request is rejected. This external program can for example be <code>/bin/true</code>, which will cause the process that made the execute request to terminate immediately. The process is therefore no longer compromised.</p>
-
-<p>Any other programs can be specified using this directive. It can be useful to run a honeypot program to observe the actions of the attacker, to show a wawrning message, or to change the configuration of a firewall to derive the IP address of the attacker.</p>
-
-<p>This directive should be placed in domain policy for the appropriate domain, and will only function if the domain is in "Enforcing Mode":</p>
+<p>Illegal logins can occur for example through SSH brute force attacks, or through vulnerabilities in other Internet-facing services. It is possible to add another layer of defence using a tiered authentication system. Using TOMOYO Linux, you can enforce login authentication as many times as you want. Suppose we create the following script:</p>
 
 <pre>
-task denied_execute_handler /bin/true
+#! /bin/sh -p
+read -r -s -e -p "Password: " password
+sleep 2
+if [ "$password" = "123456" ]; then
+  exec $SHELL
+else
+  echo "Authentication failed."
+fi
 </pre>
 
-<p>The directive takes the following parameters:</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Parameter</p></th>
-<th><p>Contents</p></th>
-</tr>
-<tr>
-<td><p>argv[0]</p></td>
-<td><p>The pathname of the program specified by the directive</p></td>
-</tr>
-<tr>
-<td><p>argv[1]</p></td>
-<td><p>The name of the domain that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[2]</p></td>
-<td><p>The name of the program that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[3]</p></td>
-<td><p>The name of the process that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[4]</p></td>
-<td><p>The name of the program that the domain tried to execute</p></td>
-</tr>
-<tr>
-<td><p>argv[5]</p></td>
-<td><p>The number of arguments</p></td>
-</tr>
-<tr>
-<td><p>argv[6]</p></td>
-<td><p>The number of environment variables</p></td>
-</tr>
-<tr>
-<td><p>argv[7] to argv[n]</p></td>
-<td><p>The arguments that were passed during the execution request</p></td>
-</tr>
-<tr>
-<td><p>argv[n+1] to argv[z]</p></td>
-<td><p>The environment variables that were passed during the execution request</p></td>
-</tr>
-</table>
-</div>
-
-<p>Important notes:</p>
-<ul>
-<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive.</li>
-<li>All environment variables are cleared before executing the program specified by the directive. This is to prevent dangerous environment variables like LD_PRELOAD from affecting the program. Note that even PATH is cleared. Other resources such as standard input and output are inherited.</li>
-<li>If the process making the request is in a chroot environment, the directive will only function if the program specified by the directive is within the chroot.</li>
-</ul>
-
-<h3><a name="12.2">12.2. task auto_execute_handler</a></h3>
-
-<p>Normally, when a domain makes an execution request, the kernal checks policy to determine whether it should be allowed or rejected. However, judging this within the kernel has some limitations. There are few library functions available and it is more likely to fail when allocating a contiguous area of memory. This is where the <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive can be useful in judging the execution request outside of the kernel, which allows the use of many library functions and more consistent allocation of a contiguous area of memory. However, there is one downside to this approach. There are no means of notifying the process that made the execution request that the execution failed.</p>
-
-<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. The program <a href="policy-specification/section-1.html.en#audit-exec-param">audit-exec-param</a> is an example program that demonstrates how this directive might be used. It provides a hook that can be utilized as you wish, and you are also encouraged to customize this program or design your own to use.</p>
-
-<p>This directive should be placed in domain policy for the appropriate domain, and will only function if the domain is in "Enforcing Mode":</p>
+<p>Call this script "auth1", make it executable and place it in "/usr/bin" or any directory specified in $PATH. This is only an example script, but it does not matter that the password is in plaintext as the attacker can be denied from reading the script. See <a href="#12.3">12.3. Example authentication programs</a> for more examples. Suppose we have the following in exception policy:</p>
 
 <pre>
-task auto_execute_handler /usr/lib/ccs/audit-exec-param
+initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<p>The directive takes the following parameters:</p>
+<p>Now we can manage the domain "&lt;kernel&gt; /usr/sbin/sshd /bin/bash", but make sure that the <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive is not specified for this domain. Use domain policy to restrict this domain and only allow the execution of the "auth1" script, but no other programs:</p>
 
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Parameter</p></th>
-<th><p>Contents</p></th>
-</tr>
-<tr>
-<td><p>argv[0]</p></td>
-<td><p>The pathname of the program specified by the directive</p></td>
-</tr>
-<tr>
-<td><p>argv[1]</p></td>
-<td><p>The name of the domain that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[2]</p></td>
-<td><p>The name of the program that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[3]</p></td>
-<td><p>The name of the process that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[4]</p></td>
-<td><p>The name of the program that the domain tried to execute</p></td>
-</tr>
-<tr>
-<td><p>argv[5]</p></td>
-<td><p>The number of arguments</p></td>
-</tr>
-<tr>
-<td><p>argv[6]</p></td>
-<td><p>The number of environment variables</p></td>
-</tr>
-<tr>
-<td><p>argv[7] to argv[n]</p></td>
-<td><p>The arguments that were passed during the execution request</p></td>
-</tr>
-<tr>
-<td><p>argv[n+1] to argv[z]</p></td>
-<td><p>The environment variables that were passed during the execution request</p></td>
-</tr>
-</table>
-</div>
+<pre>
+file execute /usr/bin/auth1 exec.realpath="/usr/bin/auth1"
+</pre>
 
-<p>Important notes:</p>
-<ul>
-<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive.</li>
-<li>All environment variables are cleared before executing the program specified by the directive. This is to prevent dangerous environment variables like LD_PRELOAD from affecting the program. Note that even PATH is cleared. Other resources such as standard input and output are inherited.</li>
-<li>If the process making the request is in a chroot environment, the directive will only function if the program specified by the directive is within the chroot.</li>
-</ul>
+<p>Following login through SSH, the user must go through another authentication mechanism. If this is an illegal login from an attacker, then they will not be able to know what the authentication mechanism is. Ths script above can employ as foreign an authentication mechanism as you desire.</p>
 
+<p>The domain created following successful authentication can be given normal privileges, and for example may be given the "keep_domain /bin/bash from /usr/bin/auth1" directive in exception policy:</p>
 
+<a href="media/fig-6-2.png"><img src="media/fig-6-2.png" alt="fig-6-2.png" width="600" height="450"></a>
 
+<h3><a name="12.2">12.2. Splitting root permissions</a></h3>
 
+<p>Using this tiered approach, it is also possible to split root permissions. The script can be repeated with a different password and saved as "/usr/bin/auth2". The domain created by execution of "auth1" can be given maximum privileges using domain policy, but the domain create by execution of "auth2" can be given limited privileges, such as to administrate only the web server:</p>
+
+<a href="media/fig-6-14-en.png"><img src="media/fig-6-14-en.png" alt="fig-6-14-en.png" width="600" height="450"></a>
+
+<h3><a name="12.3">12.3. Example authentication programs</a></h3>
+
+<p>This example script is the same as above, but stores the password as a hash:</p>
+
+<pre class="command">
+echo "password" | sha1sum
+</pre>
+
+<pre class="output">
+c8fed00eb2e87f1cee8e90ebbe870c190ac3848c  -
+</pre>
+
+<pre>
+#!/bin/sh -p
+
+hash="c8fed00eb2e87f1cee8e90ebbe870c190ac3848c  -"
+
+read -r -s -e -p "Password: " password
+hash_attempt="$(echo "$password" | sha1sum)"
+sleep 2
+if [ "$hash_attempt" = "$hash" ]; then
+  exec $SHELL
+else
+  echo "Authentication failed"
+fi
+</pre>
+
+<p>See <a href="policy-specification/section-8.html.en">A8: Authentication programs</a> for more authentication programs.</p>
 
 </div><!-- documentation -->
 
@@ -191,15 +121,17 @@ task auto_execute_handler /usr/lib/ccs/audit-exec-param
 <a href="index.html.en">Index</a>
 </td>
 <td class="docs-next">
+<a href="chapter-13.html.en">Next</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 11: Reinforced authentication</p>
+<p>Chapter 11: Using ACL groups</p>
 </td>
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
+<p>Chapter 13: Judging execute request outside of the kernel</p>
 </td>
 </tr>
 </table>
@@ -207,7 +139,7 @@ task auto_execute_handler /usr/lib/ccs/audit-exec-param
 
 <div id="footer">
 <p class="language">Go to <a href="chapter-12.html.ja">Japanese page</a>.</p>
-<p class="timestamp">Last modified: $Date$</p>
+<p class="timestamp">Last modified: $Date: 2011-02-07 22:46:07 +0000 (Mon, 07 Feb 2011) $</p>
 <p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </div>

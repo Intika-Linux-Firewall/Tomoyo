@@ -32,87 +32,415 @@
 
 <div id="documentation">
 
-<div id="navheader">
+<div class="navheader">
 <p><a href="chapter-9.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-11.html.en">&lt;Next&gt;</a></p>
 </div>
 
-<h2>Chapter 10: Using ACL groups</h2>
+<h2>Chapter 10: Using conditional parameters in policy</h2>
 
-<h3><a name="10.1">10.1. The acl_group and use_group directives</a></h3>
+<h3><a name="10.1">10.1. Conditional parameters</a></h3>
 
-<p>The <a href="policy-specification/exception-policy-syntax.html.en#acl_group">acl_group</a> directive in exception policy and <a href="policy-specification/domain-policy-syntax.html.en#use_group">use_group</a> directive in domain policy can provide a powerful and easy way to manage certain aspects of policy.</p>
+<p>Conditions can be used to refine policy and make entries more specific. This is useful for taking into account the user ID of a process when deciding what to allow or reject. This table summarizes the possible conditional parameters:</p>
 
-<p>In the default exception policy created using <code>/usr/lib/ccs/init_policy</code>, some entries are created such as the following:</p>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Conditional</p></th>
+<th><p>Meaning</p></th>
+</tr>
+<tr>
+<td><p>task.type</p></td>
+<td><p><a href="#10.4">Task type</a> of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.uid</p></td>
+<td><p>UID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.euid</p></td>
+<td><p>Effective UID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.suid</p></td>
+<td><p>Saved UID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.fsuid</p></td>
+<td><p>Filesystem UID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.gid</p></td>
+<td><p>GID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.egid</p></td>
+<td><p>Effective GID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.sgid</p></td>
+<td><p>Saved GID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.fsgid</p></td>
+<td><p>Filesystem GID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.pid</p></td>
+<td><p>PID of the current process</p></td>
+</tr>
+<tr>
+<td><p>task.ppid</p></td>
+<td><p>PID of the parent process</p></td>
+</tr>
+<tr>
+<td><p>path1.type</p></td>
+<td><p><a href="#10.5">File type</a> of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.uid</p></td>
+<td><p>UID of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.gid</p></td>
+<td><p>GID of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.ino</p></td>
+<td><p>Inode number of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.perm</p></td>
+<td><p><a href="#10.6">Permissions</a> of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.major</p></td>
+<td><p>Major device number of the device file in which the first object resides.<br>
+Only available when <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path1.minor</p></td>
+<td><p>Minor device number of the device file in which the first object resides.<br>
+Only available when <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path1.dev_major</p></td>
+<td><p>Major device number of the first object, assuming it is a device file.<br>
+Only available when <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path1.dev_minor</p></td>
+<td><p>Device minor number of the first object, assuming it is a device file.<br>
+Only available when <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path1.parent.uid</p></td>
+<td><p>UID of the parent directory of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.parent.gid</p></td>
+<td><p>GID of the parent directory of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.parent.ino</p></td>
+<td><p>Inode number of the parent directory of the first object</p></td>
+</tr>
+<tr>
+<td><p>path1.parent.perm</p></td>
+<td><p><a href="#10.6">Permissions</a> of the parent directory of the first object</p></td>
+</tr>
+<tr>
+<td><p>path2.type</p></td>
+<td><p><a href="#10.5">File type</a> of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.uid</p></td>
+<td><p>UID of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.gid</p></td>
+<td><p>GID of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.ino</p></td>
+<td><p>Inode number of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.perm</p></td>
+<td><p><a href="#10.6">Permissions</a> of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.major</p></td>
+<td><p>Major device number of the device file in which the second object resides.<br>
+Only available when <a href="#10.5">path2.type=block</a> or <a href="#10.5">path2.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path2.minor</p></td>
+<td><p>Minor device number of the device file in which the second object resides.<br>
+Only available when <a href="#10.5">path2.type=block</a> or <a href="#10.5">path2.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path2.dev_major</p></td>
+<td><p>Major device number of the second object, assuming it is a device file.<br>
+Only available when <a href="#10.5">path2.type=block</a> or <a href="#10.5">path2.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path2.dev_minor</p></td>
+<td><p>Minor device number of the second object, assuming it is a device file.<br>
+Only available when <a href="#10.5">path2.type=block</a> or <a href="#10.5">path2.type=char</a> have been specified.</p></td>
+</tr>
+<tr>
+<td><p>path2.parent.uid</p></td>
+<td><p>UID of the parent directory of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.parent.gid</p></td>
+<td><p>GID of the parent directory of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.parent.ino</p></td>
+<td><p>Inode number of the parent directory of the second object</p></td>
+</tr>
+<tr>
+<td><p>path2.parent.perm</p></td>
+<td><p><a href="#10.6">Permissions</a> of the parent directory of the second object</p></td>
+</tr>
+<tr>
+<td><p>exec.argc</p></td>
+<td><p>Number of argv[] passed for the execute request.<br>
+Only available when the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive has been specified.</p></td>
+</tr>
+<tr>
+<td><p>exec.envc</p></td>
+<td><p>Number of envp[] passed for the execute request.<br>
+Only available when the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive has been specified.</p></td>
+</tr>
+<tr>
+<td><p>exec.argv[n]</p></td>
+<td><p>Argument number "n" for the execute request.<br>
+Only available when the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive has been specified.</p></td>
+</tr>
+<tr>
+<td><p>exec.envp[var]</p></td>
+<td><p>Value of environment variable "var" for the execute request.<br>
+Only available when the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive has been specified.</p></td>
+</tr>
+<tr>
+<td><p>exec.realpath</p></td>
+<td><p>Dereferenced pathname of the requested program.<br>
+Only available when the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive has been specified.</p></td>
+</tr>
+<tr>
+<td><p>symlink.target</p></td>
+<td><p>Content of a symlink to be created.<br>
+Only available when the <a href="policy-specification/domain-policy-syntax.html.en#file_symlink">file symlink</a> directive has been specified.</p></td>
+</tr>
+</table>
+</div>
+
+<p>The conditional parameters containing <strong>path1</strong> and <strong>path2</strong> refer to the first and second pathnames specified by the directive. In this example, path1 refers to the file "/tmp/file1" and path2 refers to the file "/tmp/file2":</p>
 
 <pre>
-initialize_domain /sbin/modprobe from any
-initialize_domain /sbin/hotplug from any
-initialize_domain /sbin/init from any
-initialize_domain /sbin/udevd from any
-initialize_domain /usr/bin/dbus-daemon from any
-initialize_domain /usr/sbin/crond from any
-initialize_domain /usr/sbin/gpm from any
-initialize_domain /usr/sbin/logrotate from any
-initialize_domain /usr/sbin/sshd from any
-path_group ANY_PATHNAME /
-path_group ANY_PATHNAME /\*
-path_group ANY_PATHNAME /\{\*\}/
-path_group ANY_PATHNAME /\{\*\}/\*
-path_group ANY_PATHNAME \*:/
-path_group ANY_PATHNAME \*:/\*
-path_group ANY_PATHNAME \*:/\{\*\}/
-path_group ANY_PATHNAME \*:/\{\*\}/\*
-path_group ANY_PATHNAME \*:[\$]
-path_group ANY_DIRECTORY /
-path_group ANY_DIRECTORY /\{\*\}/
-path_group ANY_DIRECTORY \*:/
-path_group ANY_DIRECTORY \*:/\{\*\}/
-number_group COMMON_IOCTL_CMDS 0x5401
-acl_group 0 file read /etc/ld.so.cache
-acl_group 0 file read proc:/meminfo
-acl_group 0 file read proc:/sys/kernel/version
-acl_group 0 file read /etc/localtime
-acl_group 0 file read /usr/share/locale/locale.alias
-acl_group 0 file read proc:/self/\*
-acl_group 0 file read proc:/self/\{\*\}/\*
-acl_group 0 file read /lib/lib\*.so\*
-acl_group 0 file read /usr/lib/lib\*.so\*
-acl_group 0 file read /lib64/lib\*.so\*
-acl_group 0 file read /lib/ld-2.\*.so
-acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS
-acl_group 0 file read @ANY_DIRECTORY
-acl_group 0 file getattr @ANY_PATHNAME
+file rename /tmp/file1 /tmp/file2 path1.type=file path2.type=file
 </pre>
 
-<p>Since the "acl_group" directive has been defined, these entries apply to all domains that have the "use_group 0" entry. Since all domains have this directive by default, the exception policy entries apply to all domains. Permissions are given for reading all directories, and for reading the attributes of all files and directories. This is a sane default that should be safe. Note that files still cannot be read without specifying an entry. Some other permissions are also given for various shared objects and files in the "/proc/" filesystem.</p>
+<h3><a name="10.2">10.2. Tests</a></h3>
 
-<h3><a name="10.2">10.2. Splitting access restriction</a></h3>
+<p>Matches may be made using the following tests:</p>
 
-<p>Each exception policy entry can be attributed to a different group, and thus will apply to different domains. This provides a way to split access restrictions and simplify domain policy. For example, you could put the following in exception policy:</p>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Test</p></th>
+<th><p>Meaning</p></th>
+<th><p>Example</p></th>
+</tr>
+<tr>
+<td><p>=</p></td>
+<td><p>Positive match</p></td>
+<td><p>task.uid=0</p></td>
+</tr>
+<tr>
+<td><p>!=</p></td>
+<td><p>Negative match</p></td>
+<td><p>task.gid!=0</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="10.3">10.3. Values</a></h3>
+
+<p>The value to be tested may take the form of a single integer, a range of integers, or another conditional (the exceptions are "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" which take string values):</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Value</p></th>
+<th><p>Example</p></th>
+</tr>
+<tr>
+<td><p>Integer</p></td>
+<td><p>task.uid=0</p></td>
+</tr>
+<tr>
+<td><p>Range</p></td>
+<td><p>task.uid=100-500</p></td>
+</tr>
+<tr>
+<td><p>Conditional</p></td>
+<td><p>task.uid=path1.uid</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="10.4">10.4. Types of task</a></h3>
+
+<p>The following types of task are available, which can also be <a href="#10.2">negatively matched</a>:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Type of task</p></th>
+<th><p>Meaning</p></th>
+</tr>
+<tr>
+<td><p>task.type=execute_handler</p></td>
+<td><p>The current process is a program specified by one of the <a href="domain-policy-syntax-html.en">execute_handler</a> keywords</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="10.5">10.5. Types of file</a></h3>
+
+<p>The following types of file are available, which can be used for either path1 or path2, and can also be <a href="#10.2">negatively matched</a>:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>Type of file</p></th>
+<th><p>Meaning</p></th>
+</tr>
+<tr>
+<td><p>path1.type=block</p></td>
+<td><p>path1 is a block device file</p></td>
+</tr>
+<tr>
+<td><p>path1.type=char</p></td>
+<td><p>path1 is a character device file</p></td>
+</tr>
+<tr>
+<td><p>path1.type=directory</p></td>
+<td><p>path1 is a directory</p></td>
+</tr>
+<tr>
+<td><p>path1.type=fifo</p></td>
+<td><p>path1 is a FIFO</p></td>
+</tr>
+<tr>
+<td><p>path1.type=file</p></td>
+<td><p>path1 is a regular file</p></td>
+</tr>
+<tr>
+<td><p>path1.type=socket</p></td>
+<td><p>path1 is a socket</p></td>
+</tr>
+<tr>
+<td><p>path1.type=symlink</p></td>
+<td><p>path1 is a symbolic link</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="10.6">10.6. Types of permission</a></h3>
+
+<p>The following types of permission are available, which can be used for either path1 or path2, and can also be <a href="#10.2">negatively matched</a>:</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<td><p>Condition</p></td>
+<td><p>Meaning</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=num1-num2</p></td>
+<td><p>Permissions are between num1 and num2</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=setuid</p></td>
+<td><p>Setuid bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=setgid</p></td>
+<td><p>Setgid bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=sticky</p></td>
+<td><p>Sticky bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=owner_read</p></td>
+<td><p>Owner read bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=owner_write</p></td>
+<td><p>Owner write bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=owner_execute</p></td>
+<td><p>Owner execute bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=group_read</p></td>
+<td><p>Group read bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=group_write</p></td>
+<td><p>Group write bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=group_execute</p></td>
+<td><p>Group execute bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=others_read</p></td>
+<td><p>Others read bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=others_write</p></td>
+<td><p>Others write bit is on</p></td>
+</tr>
+<tr>
+<td><p>path1.perm=others_execute</p></td>
+<td><p>Others execute bit is on</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="10.7">10.7. Example usage</a></h3>
+
+<p>If you wish to deny login as the root user from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
 
 <pre>
-acl_group 0 file read /etc/passwd
-acl_group 0 file read /home/\{\*\-.\*}/\*
-acl_group 0 file write /dev/null
-acl_group 1 file read /etc/passwd
-acl_group 1 file read /etc/shadow
-acl_group 1 file create /etc/shadow.\$ 0600
-acl_group 1 file write /etc/shadow.\$
-acl_group 1 file rename /etc/shadow.\$ /etc/shadow
-acl_group 2 file read /usr/lib/xulrunner-1.9.2/libmozjs.so
-acl_group 2 file read /usr/lib/xulrunner-1.9.2/libxpcom.so
-acl_group 2 file read /usr/lib/xulrunner-1.9.2/libxul.so
+file execute /bin/bash task.uid!=0
 </pre>
 
-<p>The "use_group" keyword can then be added to domains. Consider a domain with the following entry:</p>
+<p>If you wish to allow login for a range of user ID's from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
 
 <pre>
-use_group 2
+file execute /bin/bash task.uid=500-1000
 </pre>
 
-<p>This domain would inherit the ability to read the xulrunner shared objects specified by the "acl_group 2" directive. The <a href="policy-specification/domain-policy-syntax.html.en#use_group">use_group</a> directive can be used for as many domains as you want and each domain will inherit the entries specified in exception policy that match the group number.</p>
+<p>If you wish to allow a domain to read a temporary file only if they own it, the following could be inserted into domain policy:</p>
 
-<p>If you wish to restrict certain domains from reading directory entries, you can either remove this ability from "acl_group 0" or create another "acl_group" that does not have this ability. Note that if you remove this ability from "acl_group 0", you may need to add this entry individually to each "use_group 0" domain that needs to read directories.</p>
+<pre>
+file read /tmp/file001.tmp task.uid=path1.uid
+</pre>
+
+<p>If you wish to allow the execution of a program only when certain conditions are met, the following could be inserted into domain policy:</p>
+
+<pre>
+file execute /usr/bin/ssh exec.realpath="/usr/bin/ssh" exec.argv[0]="ssh"
+file execute /usr/bin/firefox exec.realpath="/usr/lib/firefox-3.6/firefox" exec.argv[0]="/usr/bin/firefox" exec.envc=0
+</pre>
 
 </div><!-- documentation -->
 
@@ -134,12 +462,12 @@ use_group 2
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 9: Using conditional parameters in policy</p>
+<p>Chapter 9: Advanced profile management</p>
 </td>
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
-<p>Chapter 11: Reinforced authentication</p>
+<p>Chapter 11: Using ACL groups</p>
 </td>
 </tr>
 </table>
@@ -147,7 +475,7 @@ use_group 2
 
 <div id="footer">
 <p class="language">Go to <a href="chapter-10.html.ja">Japanese page</a>.</p>
-<p class="timestamp">Last modified: $Date: 2011-02-07 22:46:07 +0000 (Mon, 07 Feb 2011) $</p>
+<p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </div>
