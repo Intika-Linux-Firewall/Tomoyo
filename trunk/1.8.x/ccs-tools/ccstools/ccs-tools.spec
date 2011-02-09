@@ -11,8 +11,8 @@ Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-BuildRequires: readline-devel, ncurses-devel
-Requires: readline, ncurses
+BuildRequires: ncurses-devel
+Requires: ncurses
 Conflicts: ccs-tools < 1.8.0-3
 
 #Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz
