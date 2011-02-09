@@ -32,6 +32,10 @@
 
 <div id="regular-content">
 
+<div id="navheader">
+<p><a href="index.html.en">&lt;Index&gt;</a></p>
+</div>
+
 <h2>TOMOYO Linux 1.8.x : How to use the policy editor</h2>
 
 <h2>Contents</h2>
@@ -269,31 +273,31 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <h4>Domains with the "!" mark</h4>
 
-<p>This means the domain is unreachable due to either <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> or <a href="specification/section-6.html.en#keep_domain">keep_domain</a> directives.</p>
+<p>This means the domain is unreachable due to either <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> or <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directives.</p>
 
 <a href="editpolicy/unreachable.png"><img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400"></a>
 
 <h4>Domains with the "*" mark</h4>
 
-<p>This means that multiple domains might transit to this domain due to the <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> directive. A domain without this mark only transits from the parent of the domain visible in the "Domain Transition Editor" screen.</p>
+<p>This means that multiple domains might transit to this domain due to the <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive. A domain without this mark only transits from the parent of the domain visible in the "Domain Transition Editor" screen.</p>
 
 <a href="editpolicy/initialize_domain-dest.png"><img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400"></a>
 
 <h4>Domains with the "#" mark</h4>
 
-<p>This means that multiple programs might belong to this domain due to the <a href="specification/section-6.html.en#keep_domain">keep_domain</a> directive.</p>
+<p>This means that multiple programs might belong to this domain due to the <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive.</p>
 
 <a href="editpolicy/keep_domain.png"><img src="editpolicy/keep_domain.png" alt="keep_domain.png" title="Keeping Domain" width="720" height="400"></a>
 
 <h4>Domains with "( -&gt; n )"</h4>
 
-<p>This means that the domain is not a real domain. The process transits to the domain at the line number specified by "n" due to the <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> directive.</p>
+<p>This means that the domain is not a real domain. The process transits to the domain at the line number specified by "n" due to the <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive.</p>
 
 <a href="editpolicy/initialize_domain-src.png"><img src="editpolicy/initialize_domain-src.png" alt="initialize_domain-src.png" title="Initialization Source" width="720" height="400"></a>
 
 <h4>Domains with "( -&gt; Not Found )"</h4>
 
-<p>This means that the domain is not a real domain. This occurs when the <a href="section-6.html.en#initialize_domain">initialize_domain</a> directive has been set, but the destination domain has not been created yet.</p>
+<p>This means that the domain is not a real domain. This occurs when the <a href="exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive has been set, but the destination domain has not been created yet.</p>
 
 <a href="editpolicy/initialize_domain-nodest.png"><img src="editpolicy/initialize_domain-nodest.png" alt="initialize_domain-nodest.png" title="No Initialization Target" width="720" height="400"></a>
 
@@ -303,9 +307,9 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <a href="editpolicy/deleted-domain.png"><img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400"></a>
 
-<h2><a name="initialize_domain_transition">The <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> and <a href="specification/section-6.html.en#no_initialize_domain">no_initialize_domain</a> directives</a></h2>
+<h2><a name="initialize_domain_transition">The <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> and <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directives</a></h2>
 
-<p>The <a href="specification/section-6.html.en#initialize_domain">initialize_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen, press "a" to add an entry and then type out the string you wish to add:</p>
+<p>The <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen, press "a" to add an entry and then type out the string you wish to add:</p>
 
 <a href="editpolicy/adding-initialize_domain.png"><img src="editpolicy/adding-initialize_domain.png" alt="adding-initialize_domain.png" title="Adding initialize_domain" width="720" height="400"></a>
 
@@ -325,19 +329,19 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <a href="editpolicy/added-initialize_domain-target.png"><img src="editpolicy/added-initialize_domain-target.png" alt="added-initialize_domain-target.png" title="Added initialization target" width="720" height="400"></a>
 
-<p>Now the "/usr/sbin/sendmail" domain is initialized into a new domain. However, the above examples show that it is initialized from a daemon script. You may not want to initialize into a new domain when it is not invoked by a daemon. The <a href="specification/section-6.html.en#no_initialize_domain">no_initialize_domain</a> directive is useful in this situation. Switch to the "Exception Policy Editor" screen and add a new entry, such as "no_initialize_domain /usr/sbin/sendmail from /bin/mail". Now the domain is no longer marked with a "!" and does not transit to a new domain:</p>
+<p>Now the "/usr/sbin/sendmail" domain is initialized into a new domain. However, the above examples show that it is initialized from a daemon script. You may not want to initialize into a new domain when it is not invoked by a daemon. The <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directive is useful in this situation. Switch to the "Exception Policy Editor" screen and add a new entry, such as "no_initialize_domain /usr/sbin/sendmail from /bin/mail". Now the domain is no longer marked with a "!" and does not transit to a new domain:</p>
 
 <a href="editpolicy/after-no_initialize_domain.png"><img src="editpolicy/after-no_initialize_domain.png" alt="after-no_initialize_domain.png" title="After no_initialize_domain" width="720" height="400"></a>
 
 <p>Any domains marked with a "!" can be safely deleted.</p>
 
-<h2><a name="suppress_domain_transition">The <a href="specification/section-6.html.en#keep_domain">keep_domain</a> and <a href="specification/section-6.html.en#no_keep_domain">no_keep_domain</a> directives</a></h2>
+<h2><a name="suppress_domain_transition">The <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> and <a href="policy-specification/exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> directives</a></h2>
 
-<p>The <a href="specification/section-6.html.en#keep_domain">keep_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen and add an entry such as "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash". Return to the "Domain Transition Editor" screen and the domain that you have specified the directive for will appear with a "#" symbol. Descendent domains will appear with the "!" symbol:</p>
+<p>The <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen and add an entry such as "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash". Return to the "Domain Transition Editor" screen and the domain that you have specified the directive for will appear with a "#" symbol. Descendent domains will appear with the "!" symbol:</p>
 
 <a href="editpolicy/after-keep_domain-1.png"><img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></a>
 
-<p>Now all executions in the chosen domain will not undergo a domain transition. To force a domain transition for a particular application, the <a href=specification/section-6.html.en#no_keep_domain">no_keep_domain</a> directive can be used. Switch to the "Exception Policy Editor" screen and add an entry such as "no_keep_domain /usr/bin/man from /bin/bash". Return to the "Domain Transition Editor" screen and the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendents are no longer marked with a "!":</p>
+<p>Now all executions in the chosen domain will not undergo a domain transition. To force a domain transition for a particular application, the <a href=specification/exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> directive can be used. Switch to the "Exception Policy Editor" screen and add an entry such as "no_keep_domain /usr/bin/man from /bin/bash". Return to the "Domain Transition Editor" screen and the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendents are no longer marked with a "!":</p>
 
 <a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
 

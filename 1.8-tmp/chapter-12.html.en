@@ -42,7 +42,7 @@
 
 <p>A system administrator using TOMOYO Linux will generally know the programs that need to be executed from any particular domain. Thus, a normally functioning system will generally not make any execution requests that violate policy. If such an execution request occurs, such as <code>/bin/bash</code>, from a domain that does not usually need to make that execution, then the domain has probably been compromised.</p>
 
-<p>At this point, the kernel will reject the request. However, it is unlikely that the domain will regain control from the attacker. This is where the <a href="specification/section-7.html.en#task_denied_execute_handler">task denied_execute_handler</a> directive can be useful. This directive allows an external program to be called whenever an execute request is rejected. This external program can for example be <code>/bin/true</code>, which will cause the process that made the execute request to terminate immediately. The process is therefore no longer compromised.</p>
+<p>At this point, the kernel will reject the request. However, it is unlikely that the domain will regain control from the attacker. This is where the <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directive can be useful. This directive allows an external program to be called whenever an execute request is rejected. This external program can for example be <code>/bin/true</code>, which will cause the process that made the execute request to terminate immediately. The process is therefore no longer compromised.</p>
 
 <p>Any other programs can be specified using this directive. It can be useful to run a honeypot program to observe the actions of the attacker, to show a wawrning message, or to change the configuration of a firewall to derive the IP address of the attacker.</p>
 
@@ -101,16 +101,16 @@ task denied_execute_handler /bin/true
 
 <p>Important notes:</p>
 <ul>
-<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="specification/section-7.html.en#file_execute">file execute</a> directive.</li>
+<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive.</li>
 <li>All environment variables are cleared before executing the program specified by the directive. This is to prevent dangerous environment variables like LD_PRELOAD from affecting the program. Note that even PATH is cleared. Other resources such as standard input and output are inherited.</li>
 <li>If the process making the request is in a chroot environment, the directive will only function if the program specified by the directive is within the chroot.</li>
 </ul>
 
 <h3><a name="12.2">12.2. task auto_execute_handler</a></h3>
 
-<p>Normally, when a domain makes an execution request, the kernal checks policy to determine whether it should be allowed or rejected. However, judging this within the kernel has some limitations. There are few library functions available and it is more likely to fail when allocating a contiguous area of memory. This is where the <a href="specification/section-7.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive can be useful in judging the execution request outside of the kernel, which allows the use of many library functions and more consistent allocation of a contiguous area of memory. However, there is one downside to this approach. There are no means of notifying the process that made the execution request that the execution failed.</p>
+<p>Normally, when a domain makes an execution request, the kernal checks policy to determine whether it should be allowed or rejected. However, judging this within the kernel has some limitations. There are few library functions available and it is more likely to fail when allocating a contiguous area of memory. This is where the <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive can be useful in judging the execution request outside of the kernel, which allows the use of many library functions and more consistent allocation of a contiguous area of memory. However, there is one downside to this approach. There are no means of notifying the process that made the execution request that the execution failed.</p>
 
-<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. The program <a href="specification/section-1.html.en#audit-exec-param">audit-exec-param</a> is an example program that demonstrates how this directive might be used. It provides a hook that can be utilized as you wish, and you are also encouraged to customize this program or design your own to use.</p>
+<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. The program <a href="policy-specification/section-1.html.en#audit-exec-param">audit-exec-param</a> is an example program that demonstrates how this directive might be used. It provides a hook that can be utilized as you wish, and you are also encouraged to customize this program or design your own to use.</p>
 
 <p>This directive should be placed in domain policy for the appropriate domain, and will only function if the domain is in "Enforcing Mode":</p>
 
@@ -167,7 +167,7 @@ task auto_execute_handler /usr/lib/ccs/audit-exec-param
 
 <p>Important notes:</p>
 <ul>
-<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="specification/section-7.html.en#file_execute">file execute</a> directive.</li>
+<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive.</li>
 <li>All environment variables are cleared before executing the program specified by the directive. This is to prevent dangerous environment variables like LD_PRELOAD from affecting the program. Note that even PATH is cleared. Other resources such as standard input and output are inherited.</li>
 <li>If the process making the request is in a chroot environment, the directive will only function if the program specified by the directive is within the chroot.</li>
 </ul>

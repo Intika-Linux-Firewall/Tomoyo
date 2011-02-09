@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Specification : The userspace tools</title>
+<title>TOMOYO Linux 1.8.x : The userspace tools</title>
 </head>
 
 <body>
@@ -33,118 +33,118 @@
 <div id="documentation">
 
 <div id="navheader">
-<p>&lt;Prev&gt; <a href="index.html.en">&lt;Index&gt;</a> <a href="section-2.html.en">&lt;Next&gt;</a></p>
+<p><a href="../index.html.en">&lt;Index&gt;</a></p>
 </div>
 
-<h2>A1: The userspace tools</h2>
+<h2>The userspace tools</h2>
 
 <h3><a name="ccs-auditd">ccs-auditd</a></h3>
 
 <p>This tool is a logging daemon that can be used to write log files of access requests that have been rejected (and/or granted). It reads from the <a href="section-2.html.en#audit">/proc/ccs/audit</a> interface and can be controlled using a configuration file.</p>
 
-<p>See the <a href="../man-pages/ccs-auditd.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-auditd.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-checkpolicy">ccs-checkpolicy</a></h3>
 
 <p>This tool can read policy from standard input and check if the syntax is correct.</p>
 
-<p>See the <a href="../man-pages/ccs-checkpolicy.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-checkpolicy.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-diffpolicy">ccs-diffpolicy</a></h3>
 
 <p>This tool can print a diff of two domain policy files to standard output that can be used to easily change currently loaded domain policy.</p>
 
-<p>See the <a href="../man-pages/ccs-diffpolicy.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-diffpolicy.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-domainmatch">ccs-domainmatch</a></h3>
 
 <p>This tool can be used to search domain policy currently loaded in kernel memory for a given pathname. This is similar to using fgrep.</p>
 
-<p>See the <a href="../man-pages/ccs-domainmatch.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-domainmatch.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-editpolicy">ccs-editpolicy</a></h3>
 
 <p>This tool can be used to edit either policy within "/etc/ccs/" or policy currently loaded in kernel memory.</p>
 
-<p>See the <a href="../man-pages/ccs-editpolicy.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-editpolicy.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-editpolicy-agent">ccs-editpolicy-agent</a></h3>
 
 <p>This tool is an agent that can be used to edit policy. It is designed for systems in which running <a href="#ccs-editpolicy">ccs-editpolicy</a> is difficult due to resource limitations.</p>
 
-<p>See the <a href="../man-pages/ccs-editpolicy-agent.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-editpolicy-agent.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-findtemp">ccs-findtemp</a></h3>
 
 <p>This tool can be used to read domain policy from standard input and prints the non-existent pathnames to standard output. These are likely to be temporary files.</p>
 
-<p>See the <a href="../man-pages/ccs-findtemp.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-findtemp.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-loadpolicy">ccs-loadpolicy</a></h3>
 
 <p>This tool can be used to read policy from standard input and load into kernel memory via the <a href="section-2.html.en">/proc/ccs/</a> interface.</p>
 
-<p>See the <a href="../man-pages/ccs-loadpolicy.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-loadpolicy.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-notifyd">ccs-notifyd</a></h3>
 
 <p>This tool is a notification daemon that can be used to notify administrators of policy violations. It can be controlled via a configuration file and supports the running of any arbitrary command, such as <code>/usr/bin/mail</code>.</p>
 
-<p>See the <a href="../man-pages/ccs-notifyd.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-notifyd.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-patternize">ccs-patternize</a></h3>
 
 <p>This tool can be used to manage pathnames within domain policy. It can replace pathnames with expressions as defined in a configuration file.</p>
 
-<p>See the <a href="../man-pages/ccs-patternize.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-patternize.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-pstree">ccs-pstree</a></h3>
 
 <p>This tool can be used to list currently running processes, their PID, the domain name that they belong to, and the profile number of that domain.</p>
 
-<p>See the <a href="../man-pages/ccs-pstree.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-pstree.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-queryd">ccs-queryd</a></h3>
 
 <p>This tool is an access control daemon that can be used to manage access requests in real-time, choosing whether to accept or reject any requests that applications make.</p>
 
-<p>See the <a href="../man-pages/ccs-queryd.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-queryd.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-savepolicy">ccs-savepolicy</a></h3>
 
 <p>This tool can be used to save the policy currently loaded in kernel memory to "/etc/ccs/".</p>
 
-<p>See the <a href="../man-pages/ccs-savepolicy.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-savepolicy.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-selectpolicy">ccs-selectpolicy</a></h3>
 
 <p>This tool can be used to read domain policy currently loaded in kernel memory and print the policy of the specified domain(s).</p>
 
-<p>See the <a href="../man-pages/ccs-selectpolicy.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-selectpolicy.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-setlevel">ccs-setlevel</a></h3>
 
 <p>This tool can be used to modify the configuration of profiles.</p>
 
-<p>See the <a href="../man-pages/ccs-setlevel.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-setlevel.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-setprofile">ccs-setprofile</a></h3>
 
 <p>This tool can be used to set the profile number for the specified domain(s).</p>
 
-<p>See the <a href="../man-pages/ccs-setprofile.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-setprofile.html.en">man page</a> for more information.</p>
 
 <h3><a name="ccs-sortpolicy">ccs-sortpolicy</a></h3>
 
 <p>This tool can be used to sort domain policy by domain name and remove duplicate entries.</p>
 
-<p>See the <a href="../man-pages/ccs-sortpolicy.html.en">man page</a> for more information.</p>
+<p>See the <a href="ccs-sortpolicy.html.en">man page</a> for more information.</p>
 
 <h3><a name="init_policy">init_policy</a></h3>
 
 <p>This tool can be used to initialize policy in preparation for system analysis or restriction.</p>
 
-<p>See the <a href="../man-pages/init_policy.html.en">man page</a> for more information.</p>
+<p>See the <a href="init_policy.html.en">man page</a> for more information.</p>
 
 </div><!-- documentation -->
 
