@@ -1,4 +1,7 @@
-Summary: TOMOYO Linux tools
+Summary: TOMOYO Linux userspace tools
+
+%define libdir /%{_lib}
+%define usrlibdir /usr/%{_lib}
 
 Name: ccs-tools
 Version: 1.8.0
@@ -8,12 +11,16 @@ Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+BuildRequires: readline-devel, ncurses-devel
+Requires: readline, ncurses
 Conflicts: ccs-tools < 1.8.0-3
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz
+#Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz
+Source0: ccs-tools-1.8.0-test.tar.gz
 
 %description
-This is TOMOYO Linux tools.
+These are the TOMOYO Linux userspace tools.
+See http://tomoyo.sourceforge.jp/1.8/ for documentation.
 
 %prep
 
@@ -21,11 +28,13 @@ This is TOMOYO Linux tools.
 
 %build
 
-make -s all
+make LIBDIR=%{libdir} USRLIBDIR=%{usrlibdir} CFLAGS="-Wall $RPM_OPT_FLAGS"
 
 %install
 
-make -s install INSTALLDIR=%{buildroot}
+rm -rf $RPM_BUILD_ROOT
+make INSTALLDIR=$RPM_BUILD_ROOT LIBDIR=%{libdir} USRLIBDIR=%{usrlibdir} \
+    CFLAGS="-Wall $RPM_OPT_FLAGS" install
 
 %clean
 
@@ -36,10 +45,11 @@ ldconfig || true
 
 %files
 %defattr(-,root,root)
-/sbin/ccs-init
-/usr/lib/
+/sbin/
+%{usrlibdir}
 /usr/sbin/
 /usr/share/man/
+/usr/share/ccs/
 
 %changelog
 * Fri Dec 31 2010 1.8.0-3
