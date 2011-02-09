@@ -9,7 +9,7 @@ install: all
 	$(INSTALL) -m 0700 ccs-init $(INSTALLDIR)$(SBINDIR)
 
 .c:
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o $@ $<
 
 clean:
 	rm -f -- $(BUILD_FILES)

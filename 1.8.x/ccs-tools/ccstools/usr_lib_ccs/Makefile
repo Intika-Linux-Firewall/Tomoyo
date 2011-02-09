@@ -6,14 +6,14 @@ BUILD_FILES = audit-exec-param convert-exec-param convert-audit-log \
 all: $(BUILD_FILES)
 
 install: all
-	mkdir -p $(INSTALLDIR)/$(USRLIBDIR)/ccs
-	chmod 755 $(INSTALLDIR)/$(USRLIBDIR)/ccs
+	mkdir -p $(INSTALLDIR)/$(LIBEXECDIR)
+	chmod 755 $(INSTALLDIR)/$(LIBEXECDIR)
 	chown -R root:root .
-	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)/$(USRLIBDIR)/ccs/
-	$(INSTALL) -m 0644 ../README.ccs ../COPYING.ccs $(INSTALLDIR)/$(USRLIBDIR)/ccs/
+	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)/$(LIBEXECDIR)/
+	$(INSTALL) -m 0644 ../README.ccs ../COPYING.ccs $(INSTALLDIR)/$(LIBEXECDIR)/
 
 .c:
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o $@ $<
 
 clean:
 	rm -f -- $(BUILD_FILES)
