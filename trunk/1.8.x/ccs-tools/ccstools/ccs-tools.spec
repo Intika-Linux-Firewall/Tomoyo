@@ -1,6 +1,5 @@
 Summary: TOMOYO Linux userspace tools
 
-%define libdir /%{_lib}
 %define usrlibdir /usr/%{_lib}
 
 Name: ccs-tools
@@ -27,12 +26,12 @@ See http://tomoyo.sourceforge.jp/1.8/ for documentation.
 
 %build
 
-make LIBDIR=%{libdir} USRLIBDIR=%{usrlibdir} CFLAGS="-Wall $RPM_OPT_FLAGS"
+make USRLIBDIR=%{usrlibdir} CFLAGS="-Wall $RPM_OPT_FLAGS"
 
 %install
 
 rm -rf $RPM_BUILD_ROOT
-make INSTALLDIR=$RPM_BUILD_ROOT LIBDIR=%{libdir} USRLIBDIR=%{usrlibdir} \
+make INSTALLDIR=$RPM_BUILD_ROOT USRLIBDIR=%{usrlibdir} \
     CFLAGS="-Wall $RPM_OPT_FLAGS" install
 
 %clean
