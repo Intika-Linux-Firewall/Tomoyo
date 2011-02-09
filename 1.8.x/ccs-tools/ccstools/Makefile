@@ -12,7 +12,6 @@ all:
 	$(MAKE) -C sbin/ all
 	$(MAKE) -C usr_sbin/ all
 	$(MAKE) -C usr_lib_ccs/ all
-	$(MAKE) -C usr_share_man/ all
 
 install: all
 	$(MAKE) -C sbin/ install
