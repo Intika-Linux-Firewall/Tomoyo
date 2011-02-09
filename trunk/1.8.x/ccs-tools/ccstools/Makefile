@@ -23,6 +23,5 @@ clean:
 	$(MAKE) -C sbin/ clean
 	$(MAKE) -C usr_sbin/ clean
 	$(MAKE) -C usr_lib_ccs/ clean
-	$(MAKE) -C usr_share_man/ clean
 
 .PHONY: clean install
