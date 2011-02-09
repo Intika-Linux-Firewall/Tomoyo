@@ -48,8 +48,7 @@ ldconfig || true
 /sbin/
 %{usrlibdir}
 /usr/sbin/
-/usr/share/man/
-/usr/share/ccs/
+/usr/share/man/man8/
 
 %changelog
 * Fri Dec 31 2010 1.8.0-3
