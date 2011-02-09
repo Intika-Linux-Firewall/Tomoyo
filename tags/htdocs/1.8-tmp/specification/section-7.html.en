@@ -32,7 +32,9 @@
 
 <div id="documentation">
 
+<div id="navheader">
 <p><a href="section-6.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="section-8.html.en">&lt;Next&gt;</a></p>
+</div>
 
 <h2>A7: Domain policy syntax</h2>
 
@@ -40,7 +42,7 @@
 
 <p>This directive allows execution of the specified pathname.</p>
 
-<p>This example allows the domain to execute "/bin/ls":</p>
+<p>This example allows the domain to execute <code>/bin/ls</code>:</p>
 
 <pre>
 file execute /bin/ls
@@ -86,7 +88,7 @@ file write /dev/null
 
 <p>This directive allows the domain to append to the specified pathname.</p>
 
-<p>This example allows the domain to append to "/var/log/auth.log":</p>
+<p>This example allows the domain to append to the file "/var/log/auth.log":</p>
 
 <pre>
 file append /var/log/auth.log
@@ -101,7 +103,7 @@ file append /var/log/auth.log
 
 <p>This directive allows the domain to create the specified pathname with the specified permissions.</p>
 
-<p>This example allows the domain to create "/var/lock/subsys/crond":</p>
+<p>This example allows the domain to create the file "/var/lock/subsys/crond":</p>
 
 <pre>
 file create /var/lock/subsys/crond 0644
@@ -117,7 +119,7 @@ file create /var/lock/subsys/crond 0644
 
 <p>This directive allows the domain to delete the specified pathname.</p>
 
-<p>This example allows the domain to delete "/var/lock/subsys/crond":</p>
+<p>This example allows the domain to delete the file "/var/lock/subsys/crond":</p>
 
 <pre>
 file unlink /var/lock/subsys/crond
@@ -227,7 +229,7 @@ file mkchar /dev/console 0755 5 1
 
 <p>This directive allows the domain to truncate or extend the specified pathname.</p>
 
-<p>This example allows the domain to truncate "/etc/mtab":</p>
+<p>This example allows the domain to truncate the contents of "/etc/mtab":</p>
 
 <pre>
 file truncate /etc/mtab
@@ -272,7 +274,7 @@ file link /etc/mtab~\$ /etc/mtab~
 
 <p>This directive allows the domain to rename the first specified pathname to the second specified pathname.</p>
 
-<p>This example allows /etc/mtab.tmp to be rename /etc/mtab:</p>
+<p>This example allows "/etc/mtab.tmp" to be renamed "/etc/mtab":</p>
 
 <pre>
 file rename /etc/mtab.tmp /etc/mtab
@@ -601,7 +603,7 @@ network inet stream connect 202.221.179.21 80
 </table>
 </div>
 
-<p>This example allows the domain to bind to the /tmp/.X11-unix/X0 socket:</p>
+<p>This example allows the domain to bind to the "/tmp/.X11-unix/X0" socket:</p>
 
 <pre>
 network unix stream bind /tmp/.X11-unix/X0
@@ -643,7 +645,7 @@ use_profile 3
 
 <p>This directive causes executions from the domain to be handled by an external program, as specified by the directive. When an execute request is made within this domain, the specified external program is executed instead. This then decides whether it is appropriate to continue.</p>
 
-<p>This example causes the program "/usr/sbin/check-and-exec" to be launched whenever the domain makes an execute request:</p>
+<p>This example causes the program <code>/usr/sbin/check-and-exec</code> to be launched whenever the domain makes an execute request:</p>
 
 <pre>
 task auto_execute_handler /usr/sbin/check-and-exec
@@ -653,7 +655,7 @@ task auto_execute_handler /usr/sbin/check-and-exec
 
 <p>This directive causes an external program, as specified by the directive, to be launched when executions within the domain have been rejected by policy.</p>
 
-<p>This example causes the program "/bin/true" to be launched whenever an execution request from the domain is rejected by policy:</p>
+<p>This example causes the program <code>/bin/true</code> to be launched whenever an execution request from the domain is rejected by policy:</p>
 
 <pre>
 task denied_execute_handler /bin/true
