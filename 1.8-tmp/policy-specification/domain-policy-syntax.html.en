@@ -130,6 +130,54 @@ file unlink /var/lock/subsys/crond
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
+<h3><a name="file_chown">file chown</a></h3>
+
+<p>This directive allows the domain to change the user ownership of the specified pathname to the specified UID.</p>
+
+<p>This example allows the domain to change the owner of "/dev/sda" to UID=0:</p>
+
+<pre>
+file chown /dev/sda 0
+</pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="exception-policy-syntax.html.en#number_group">number_group</a></li>
+<li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+</ul>
+
+<h3><a name="file_chgrp">file chgrp</a></h3>
+
+<p>This directive allows the domain to change group ownership of the specified pathname to the specified GID.</p>
+
+<p>This example allows the domain to change the GID of "/dev/audio" to 92:</p>
+
+<pre>
+file chgrp /dev/audio 92
+</pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="exception-policy-syntax.html.en#number_group">number_group</a></li>
+<li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+</ul>
+
+<h3><a name="file_chmod">file chmod</a></h3>
+
+<p>This directive allows the domain to change the filesystem ACLs of the specified pathname to the specified octal permissions.</p>o
+
+<p>This example allows the domain to change the octal permissions of "/dev/mem" to 0644:</p>
+
+<pre>
+file chmod /dev/mem 0644
+</pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="exception-policy-syntax.html.en#number_group">number_group</a></li>
+<li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_mkdir">file mkdir</a></h3>
 
 <p>This directive allows the domain to create the specified directory with the specified permissions.</p>
