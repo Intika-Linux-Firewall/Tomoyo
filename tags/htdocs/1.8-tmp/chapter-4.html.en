@@ -44,7 +44,7 @@
 
 <a href="media/fig-3-1.png"><img src="media/fig-3-1.png" alt="fig-3-1.png" width="600" height="450"></a>
 
-<p>The kernel is always the first domain and is represented in TOMOYO Linux by <strong>&lt;kernel&gt;</strong>. In this example, the kernel then executes "/sbin/init". Because a process has been executed, a new domain is created which in this case is the domain <strong>&lt;kernel&gt; /sbin/init</strong>. The bootup scripts are then executed, which result in further domains being created.</p>
+<p>The kernel is always the first domain and is represented in TOMOYO Linux by <strong>&lt;kernel&gt;</strong>. In this example, the kernel then executes <code>/sbin/init</code>. Because a process has been executed, a new domain is created which in this case is the domain <strong>&lt;kernel&gt; /sbin/init</strong>. The bootup scripts are then executed, which result in further domains being created.</p>
 
 <p>The process execution history is important. Consider the following domains:</p>
 
@@ -192,7 +192,7 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 
 <a href="media/fig-2-6.png"><img src="media/fig-2-6.png" alt="fig-2-6.png" width="600" height="450"></a>
 
-<p>The "Learning Mode" profile is the feature of TOMOYO Linux that makes developing policy very easy. This mode will automatically generate policy for any domain that has this profile selected. The other profiles, "Permissive Mode" and "Enforcing Mode", are for later on when a domain is ready to be restricted.</p>
+<p>The "Learning Mode" profile is the feature of TOMOYO Linux that makes developing policy very easy. This mode will automatically generate policy for any domain that has this profile selected. This can then be developed and refined into a solid policy. The other profiles, "Permissive Mode" and "Enforcing Mode", are for later on when a domain is ready to be restricted.</p>
 
 <p>For further information on management of profiles, read <a href="chapter-9.html.en">Chapter 9: Advanced profile management</a>.</p>
 
@@ -202,7 +202,7 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 
 <a href="media/editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="media/editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="675" height="375"></a>
 
-<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.en#4.5">4.5: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. For in depth details on the directives that can be used in exception policy, see <a href="policy-specification/domain-policy-syntax.html.en">B5: Domain policy syntax</a>.</p>
+<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.en#4.5">4.5: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. For in depth details on the directives that can be used in exception policy, see <a href="policy-specification/domain-policy-syntax.html.en">Domain policy syntax</a> located in <a href="policy-specification/index.html.en">Appendix B: Policy specification</a>.</p>
 
 <h3><a name="4.5">4.5. Understanding exception policy</a></h3>
 
@@ -214,7 +214,7 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 
 <p>The permissions here are similar to those in the domain policy, but apply to all domains. Permissions defined here will not be displayed in domain policy, and access requests from any domain that match a permission in exception policy will be automatically accepted. The exception policy can also be used to shorten and simplify domain policy for each domain by using the group directives.</p>
 
-<p>For in depth details on the directives that can used in exception policy, see <a href="policy-specification/exception-policy-syntax.html.en">B4: Exception policy syntax</a>.</p>
+<p>For in depth details on the directives that can used in exception policy, see <a href="policy-specification/exception-policy-syntax.html.en">Exception policy syntax</a> located in <a href="policy-specification/index.html.en">Appendix B: Policy specification</a>.</p>
 
 <h3><a name="4.6">4.6. Saving audit logs (optional)</a></h3>
 
@@ -286,9 +286,9 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 </table>
 </div>
 
-<p><code>ccs-auditd</code> is a daemon program that reads from "/proc/ccs/audit" and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
+<p><code>ccs-auditd</code> is a daemon program that reads from the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
 
-<p>The configuration of this daemon is done in the "/etc/ccs/tools/auditd.conf" file. Text read from "/proc/ccs/audit" can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
+<p>The configuration of this daemon is done in the "/etc/ccs/tools/auditd.conf" file. Text read from the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
 
 <pre>
 # This file contains sorting rules used by ccs-auditd command.
@@ -363,7 +363,7 @@ destination     /var/log/tomoyo/reject_003.log
 }
 </pre>
 
-<p>If audit logs are not required, ccs-auditd need not be run. In this case, give <strong>PREFERENCE={ max_audit_log=0 }</strong> for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
+<p>If audit logs are not required, ccs-auditd need not be run. In this case, give <a href="chapter-9.html.en#9.2.3">PREFERENCE={ max_audit_log=0 }</a> for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
 
 </div><!-- documentation -->
 
