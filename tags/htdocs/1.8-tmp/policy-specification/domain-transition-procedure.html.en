@@ -59,28 +59,28 @@
 <td><p>If exception policy contains "aggregator [candidate] [pathname]" then the domain transition procedure returns to step (1) with [pathname] set as the new [candidate].</p></td>
 </tr>
 <tr>
-<td><p>(3) Check for <a href="section-7.html.en#file_execute">file execute</a> directive</p></td>
+<td><p>(3) Check for <a href="domain-policy-syntax.html.en#file_execute">file execute</a> directive</p></td>
 <td><p>If domain policy contains "file execute [candidate]" then the domain transition procedure continues. This may also be a path_group directive. If execute permissions have not been given, then the execution request is denied.</p></td>
 </tr>
 <tr>
-<td><p>(4) Check for <a href="section-6.html.en#no_initialize_domain">no_initialize_domain</a> directive</p></td>
+<td><p>(4) Check for <a href="exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directive</p></td>
 <td><p>If domain policy contains "no_initialize_domain [candidate] from [domain]" then the domain transition procedure skips to step (6). This also occurs if "no_initialize_domain any from [domain]" is defined.</p></td>
 </tr>
 <tr>
-<td><p>(5) Check for <a href="section-6.html.en#initialize_domain">initialize_domain</a> directive</p></td>
+<td><p>(5) Check for <a href="exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive</p></td>
 <td><p>If domain policy contains "initialize_domain [candidate] from [domain]" then the domain transition procedure continues with "&lt;kernel&gt; [candidate]" as the domain. This also occurs if "initialize_domain any from [domain]" is defined.</p></td>
 </tr>
 <tr>
-<td><p>(6) Check for <a href="section-6.html.en#no_keep_domain">no_keep_domain</a> directive</p></td>
+<td><p>(6) Check for <a href="exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> directive</p></td>
 <td><p>If domain policy contains "no_keep_domain [candidate] from [domain]" then the domain transition procedure skips to step (8). This also occurs if "no_keep_domain any from [domain]" is defined.</p></td>
 </tr>
 <tr>
-<td><p>(7) Check for <a href="section-6.html.en#keep_domain">keep_domain</a> directive</p></td>
+<td><p>(7) Check for <a href="exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive</p></td>
 <td><p>If domain policy contains "keep_domain [candidate] from [domain]" then the domain transition procedure continues with the destination domain set to the current domain.</p></td>
 </tr>
 <tr>
-<td><p>(8) Check destination domain</p></td>
-<td><p>If the destination domain, as determined by steps (4) to (7), is not defined in domain policy then the execution request is rejected.</p></td>
+<td><p>(8) Create destination domain</p></td>
+<td><p>Create the destination domain, as determined by steps (4) to (7), if it does not exist. If the destination domain cannot be created, the execution request is rejected if <a href="../chapter-9.html.en#9.2.2">Program execution and domain transition (i.e. CONFIG::file::execute , or CONFIG::file if CONFIG::file::execute is not set, or CONFIG if neither CONFIG::file::execute nor CONFIG::file are set)</a> is set to mode=enforcing . Otherwise, the execution is continued without domain transition after marking <a href="domain-policy-syntax.html.en#transition_failed">transition_failed</a> directive.</p></td>
 </tr>
 <tr>
 <td><p>(9) Check environment variables</p></td>
@@ -95,9 +95,9 @@
 
 <h3><a name="exceptions">Exceptions</a></h3>
 
-<p>If the domain has the <a href="section-7.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive then the program specified by the directive will be set as the new [candidate]. The procedure continues at step (1).</p>
+<p>If the domain has the <a href="domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive then the program specified by the directive will be set as the new [candidate]. The procedure continues at step (1).</p>
 
-<p>If the execute request was denied at step (3) or step (8) and the domain has the <a href="section-7.html.en#task_denied_execute_handler">task denied_execute_handler</a> directive then the program specified by this directive is set as the new [candidate]. The procedure continues at step (4).</p>
+<p>If the execute request was denied at step (3) and the domain has the <a href="domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directive then the program specified by this directive is set as the new [candidate]. The procedure continues at step (4).</p>
 
 </div><!-- documentation -->
 
