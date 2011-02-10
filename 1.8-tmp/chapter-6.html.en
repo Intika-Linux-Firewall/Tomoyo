@@ -44,7 +44,7 @@
 
 <p>As mentioned in the previous chapter, there is a limit on the number of entries domain policy can contain. This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see how to <a href="tool-editpolicy.html.en#redundant">Remove redundant entries</a>.</p>
 
-<p>Use "/usr/sbin/ccs-findtemp" to find pathnames from domain policy that are potentially temporary files:</p>
+<p>Use <code>ccs-findtemp</code> to find pathnames from domain policy that are potentially temporary files:</p>
 
 <pre class="command">
 # /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
@@ -339,7 +339,7 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 
 <p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
 
-<p>The following domain policy example permits "/usr/sbin/httpd" to accept connections from port numbers between 1024 and 65535:</p>
+<p>The following domain policy example permits the domain "&lt;kernel&gt; /usr/sbin/httpd" to accept connections from port numbers between 1024 and 65535:</p>
 
 <div class="simple-table">
 <table>

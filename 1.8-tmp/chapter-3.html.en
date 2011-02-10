@@ -219,7 +219,7 @@ $ su
 
 <h3><a name="3.4">3.4. Initializing configuration</a></h3>
 
-<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using /bin/bash, append the following line to ~/.bashrc:</p>
+<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using <code>/bin/bash</code>, append the following line to ~/.bashrc:</p>
 
 <pre>
 export PATH=$PATH:/usr/sbin
@@ -264,7 +264,7 @@ Creating configuration file for ccs-notifyd ... OK
 
 <h3><a name="3.5">3.5. Configuring your bootloader</a></h3>
 
-<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <em>"Disable by default"</em> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options.</p>
+<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <em>"Disable by default"</em> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options. Consult the documentation for your distribution and bootloader to find out how to boot your TOMOYO Linux kernel.</p>
 
 <h3><a name="3.6">3.6. Rebooting your system</a></h3>
 
@@ -280,7 +280,7 @@ Creating configuration file for ccs-notifyd ... OK
 
 <p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending "ccsecurity=off" at the kernel command-line parameters.</p>
 
-<p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. rpm or apt). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
+<p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. <code>rpm</code> or <code>apt</code>). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
 
 </div><!-- documentation -->
 

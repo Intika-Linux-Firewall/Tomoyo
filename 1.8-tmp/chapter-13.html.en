@@ -44,7 +44,7 @@
 
 <p>At this point, the kernel will reject the request. However, it is unlikely that the domain will regain control from the attacker. This is where the <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directive can be useful. This directive allows an external program to be called whenever an execute request is rejected. This external program can for example be <code>/bin/true</code>, which will cause the process that made the execute request to terminate immediately. The process is therefore no longer compromised.</p>
 
-<p>Any other programs can be specified using this directive. It can be useful to run a honeypot program to observe the actions of the attacker, to show a wawrning message, or to change the configuration of a firewall to derive the IP address of the attacker.</p>
+<p>Any other programs can be specified using this directive. It can be useful to run a honeypot program to observe the actions of the attacker, to show a warning message, or to change the configuration of a firewall to derive the IP address of the attacker.</p>
 
 <p>This directive should be placed in domain policy for the appropriate domain, and will only function if the domain is in "Enforcing Mode":</p>
 
@@ -110,7 +110,7 @@ task denied_execute_handler /bin/true
 
 <p>Normally, when a domain makes an execution request, the kernal checks policy to determine whether it should be allowed or rejected. However, judging this within the kernel has some limitations. There are few library functions available and it is more likely to fail when allocating a contiguous area of memory. This is where the <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive can be useful in judging the execution request outside of the kernel, which allows the use of many library functions and more consistent allocation of a contiguous area of memory. However, there is one downside to this approach. There are no means of notifying the process that made the execution request that the execution failed.</p>
 
-<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. The program <a href="policy-specification/section-1.html.en#audit-exec-param">audit-exec-param</a> is an example program that demonstrates how this directive might be used. It provides a hook that can be utilized as you wish, and you are also encouraged to customize this program or design your own to use.</p>
+<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. The program <a href="example-programs.html.en#audit-exec-param">audit-exec-param</a> is an example program that demonstrates how this directive might be used. It provides a hook that can be utilized as you wish, and you are also encouraged to customize this program or design your own to use.</p>
 
 <p>This directive should be placed in domain policy for the appropriate domain, and will only function if the domain is in "Enforcing Mode":</p>
 
