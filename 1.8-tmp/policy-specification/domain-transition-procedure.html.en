@@ -80,7 +80,7 @@
 </tr>
 <tr>
 <td><p>(8) Create destination domain</p></td>
-<td><p>Create the destination domain, as determined by steps (4) to (7), if it does not exist. If the destination domain cannot be created, the execution request is rejected if <a href="../chapter-9.html.en#9.2.2">Program execution and domain transition (i.e. CONFIG::file::execute , or CONFIG::file if CONFIG::file::execute is not set, or CONFIG if neither CONFIG::file::execute nor CONFIG::file are set)</a> is set to mode=enforcing . Otherwise, the execution is continued without domain transition after marking <a href="domain-policy-syntax.html.en#transition_failed">transition_failed</a> directive.</p></td>
+<td><p>If the domain does not exist, then create the destination domain as determined by steps (4) to (7). If the destination domain cannot be created, the execution request is rejected if program execution and domain transition (i.e. <a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::execute</a>, with the latter overwriting the previous) are set to "mode=enforcing". Otherwise, the execution is continued without domain transition after marking <a href="domain-policy-syntax.html.en#transition_failed">transition_failed</a> directive.</p></td>
 </tr>
 <tr>
 <td><p>(9) Check environment variables</p></td>
