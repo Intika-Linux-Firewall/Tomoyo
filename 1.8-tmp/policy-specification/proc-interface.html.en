@@ -40,7 +40,7 @@
 
 <h3><a name="audit">/proc/ccs/audit</a></h3>
 
-<p>This read-only interface contains the audit log. The reader process returns immediately if no granted log exists. To wait until an audit log is generated, use select(2) for readability.</p>
+<p>This read-only interface contains the audit log. The reader process returns immediately if no audit log exists. To wait until an audit log is generated, use select(2) for readability.</p>
 
 <p>This interface is dependent on how the profiles have been configured in "/proc/ccs/profile". The following profile options affect it:</p>
 <ul>
@@ -49,11 +49,17 @@
 <li>max_audit_log</li>
 </ul>
 
+<p>Also, <a href="#stat">"/proc/ccs/stat"</a> affects how much memory can be assigned for audit logs.</p>
+
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/ccs-auditd.html.en">ccs-auditd</a>.</p>
+
 <h3><a name="domain_policy">/proc/ccs/domain_policy</a></h3>
 
 <p>This read/write interface contains the policy that is defined for each domain. Any lines starting with "&lt;kernel&gt;" indicate the start of a new block of access permissions.</p>
 
 <p>The associated configuration file is "/etc/ccs/domain_policy.conf".</p>
+
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
 
 <h3><a name="exception_policy">/proc/ccs/exception_policy</a></h3>
 
@@ -61,11 +67,23 @@
 
 <p>The associated configuration file is "/etc/ccs/exception_policy.conf".</p>
 
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
+
 <h3><a name="manager">/proc/ccs/manager</a></h3>
 
 <p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs" interface.</p>
 
+<p>As an exception, all domains can write to below interfaces for restricted purposes.</p>
+
+<ul>
+<li><a href="#.process_status">"/proc/ccs/.process_status"</a> for reading information of processes</li>
+<li><a href="#domain_policy">"/proc/ccs/domain_policy"</a> for reading specific domain's (or specific process's) access permissions</li>
+<li><a href="#self_domain">"/proc/ccs/self_domain"</a> for changing the domain of the caller process</li>
+</ul>
+
 <p>The associated configuration file is "/etc/ccs/manager.conf".</p>
+
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
 
 <pre class="command">
 # cat /proc/ccs/manager
@@ -81,7 +99,7 @@
 
 <h3><a name="meminfo">/proc/ccs/meminfo</a></h3>
 
-<p>This read-only interface shows the memory usage of TOMOYO Linux in bytes.</p>
+<p>This read/write interface shows the memory usage of TOMOYO Linux in bytes.</p>
 
 <pre class="command">
 # cat /proc/ccs/meminfo
@@ -101,25 +119,33 @@ Total:           377376
 <li><strong>Total</strong> shows the total memory used.</li>
 </ul>
 
+<p>This interface allows the administrator to configure memory quota.</p>
+
+<p>This interface is obsolete. Please use <a href="#stat">"/proc/ccs/stat"</a> instead.</p>
+
 <h3><a name="profile">/proc/ccs/profile</a></h3>
 
 <p>This read/write interface contains the profile configuration.</p>
 
 <p>The associated configuration file is "/etc/ccs/profile.conf".</p>
 
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a> <a href="../man-pages/ccs-setlevel.html.en">ccs-setlevel</a>.</p>
+
 <h3><a name="query">/proc/ccs/query</a></h3>
 
 <p>This read/write interface is used to grant or reject individual access requests that occur within domains in "Enforcing Mode".</p>
 
-<p>This interface is used primarily by the userspace tool <a href="section-1.html.en#ccs-queryd">ccs-queryd</a>.</p>
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/ccs-queryd.html.en">ccs-queryd</a>.</p>
 
 <h3><a name="self_domain">/proc/ccs/self_domain</a></h3>
 
-<p>This read-only interface shows the domain of the caller process.</p>
+<p>This read/write interface shows the domain of the caller process.</p>
+
+<p>This interface allows the caller to change the domain of the caller process if explicitly permitted by  <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive.</p>
 
 <h3><a name="stat">/proc/ccs/stat</a></h3>
 
-<p>This read-only interface contains information about policy violations and memory usage.</p>
+<p>This read/write interface contains information about policy violations and memory usage in bytes.</p>
 
 <pre class="command">
 # cat /proc/ccs/stat
@@ -141,7 +167,17 @@ Total memory used:                        201120
 <li><strong>Policy violation in learning mode</strong> shows the total number of policy violations that have occurred in domains set to "Learning Mode".</li>
 <li><strong>Policy violation in permissive mode</strong> shows the total number of policy violations that have occurred in domains set to "Permissive Mode".</li>
 <li><strong>Policy violation in enforcing mode</strong> shows the total number of policy violations that have occurred in domains set to "Enforcing Mode".</li>
+<li><strong>Memory used by policy</strong> shows the memory used for holding access permissions.</li>
+<li><strong>Memory used by audit log</strong> shows the memory used for holding audit logs.</li>
+<li><strong>Memory used by query message</strong> shows the memory used while running the userspace tool "/usr/sbin/ccs-queryd".</li>
+<li><strong>Total memory used</strong> shows the total memory used.</li>
 </ul>
+
+<p>This interface allows the administrator to configure memory quota.</p>
+
+<p>The associated configuration file is "/etc/ccs/stat.conf".</p>
+
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
 
 <h3><a name="version">/proc/ccs/version</a></h3>
 
@@ -149,19 +185,21 @@ Total memory used:                        201120
 
 <h3><a name=".domain_status">/proc/ccs/.domain_status</a></h3>
 
-<p>This read-only interface contains a list of domain names and profile numbers currently defined in domain policy.</p>
+<p>This read/write interface contains a list of domain names and profile numbers currently defined in domain policy.</p>
 
-<p>This is used primarily by the userspace tool <a href="section-1.html.en#ccs-setprofile">ccs-setprofile</a>.</p>
+<p>This is used primarily by the userspace tool <a href="../man-pages/ccs-setprofile.html.en">ccs-setprofile</a>.</p>
 
 <h3><a name=".execute_handler">/proc/ccs/.execute_handler</a></h3>
 
-<p>This read-only interface contains information regarding the execute handler.</p>
+<p>This read/write interface is openable by only processes running as an execute_handler process. The content is identical to <a href="#.process_status">"/proc/ccs/.process_status"</a>.</p>
+
+<p>This interface is intended to allow programs specified by <a href="domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> or <a href="domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives verify that they are executed as an execute_handler and arguments are passed by the kernel.</p>
 
 <h3><a name=".process_status">/proc/ccs/.process_status</a></h3>
 
 <p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
 
-<p>This interface is used primarily by the userspace tool <a href="section-1.html.en#ccs-pstree">ccs-pstree</a>.</p>
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/ccs-pstree.html.en">ccs-pstree</a>.</p>
 
 </div><!-- documentation -->
 
