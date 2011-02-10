@@ -348,7 +348,7 @@ file mount none /dev/shm/ tmpfs 0xE
 
 <h3><a name="file_unmount">file unmount</a></h3>
 
-<p>This directive allows the domain to unmount a filesystem from the specified pathname. This pathname must start with "/" and must not contain symbolic links, "//", "/./" or "/../".</p>
+<p>This directive allows the domain to unmount a filesystem from the specified pathname. This pathname must start with "/" and must not contain symbolic links, "//", "/./" or "/../". <a href="expression-rules.html.en#filesystem">Filesystem expressions</a> may also be used, in which case the pathname does not start with "/".</p>
 
 <p>This example allows the domain to umount the filesystem mounted at "/mnt/cdrom":</p>
 
@@ -378,7 +378,7 @@ file chroot /var/empty/sshd
 
 <h3><a name="file_pivot_root">file pivot_root</a></h3>
 
-<p>This directive allows the domain to pivot_root to the first directory from the second directory. The directory pathname must start and end with "/" and must not contain symbolic links, "//", "/./" or "/../".</p>
+<p>This directive allows the domain to pivot_root to the first directory from the second directory. The directory pathname must start and end with "/" and must not contain symbolic links, "//", "/./" or "/../". <a href="expression-rules.html.en#filesystem">Filesystem expressions</a> may also be used, in which case the pathname does not start with "/".</p>
 
 <p>pivot_root() is only called once for switching the root directory from initrd/initramfs to the hard drive, which occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
 
