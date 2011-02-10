@@ -33,7 +33,7 @@
 <div id="documentation">
 
 <div id="navheader">
-<p><a href="section-4.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a></p>
+<p><a href="exception-policy-syntax.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a></p>
 </div>
 
 <h2>Domain policy syntax</h2>
@@ -61,7 +61,7 @@ file execute /bin/ls
 <p>This example allows the domain to read "/proc/meminfo":</p>
 
 <pre>
-file read /proc/meminfo
+file read proc:/meminfo
 </pre>
 
 <p>See also:</p>
@@ -382,7 +382,7 @@ file chroot /var/empty/sshd/
 
 <p>pivot_root() is only called once for switching the root directory from initrd/initramfs to the hard drive, which occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
 
-<p>This example will grant "pivot_root()("/proc/","/proc/ccs/");":</p>
+<p>This example will grant "pivot_root("/proc/","/proc/ccs/");":</p>
 
 <pre>
 file pivot_root proc:/ proc:/ccs/
