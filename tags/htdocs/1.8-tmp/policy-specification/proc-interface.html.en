@@ -42,16 +42,16 @@
 
 <p>This read-only interface contains the audit log. The reader process returns immediately if no audit log exists. To wait until an audit log is generated, use select(2) for readability.</p>
 
-<p>This interface is dependent on how the profiles have been configured in "/proc/ccs/profile". The following profile options affect it:</p>
+<p>This interface is dependent on how the profiles have been configured in <a href="#profile">/proc/ccs/profile</a>. The following profile options affect it:</p>
 <ul>
 <li>grant_log</li>
 <li>reject_log</li>
 <li>max_audit_log</li>
 </ul>
 
-<p>Also, <a href="#stat">"/proc/ccs/stat"</a> affects how much memory can be assigned for audit logs.</p>
+<p>Also, <a href="#stat">/proc/ccs/stat</a> affects how much memory can be assigned for audit logs.</p>
 
-<p>This interface is used primarily by the userspace tool <a href="../man-pages/ccs-auditd.html.en">ccs-auditd</a>.</p>
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/index.html.en#ccs-auditd">ccs-auditd</a>.</p>
 
 <h3><a name="domain_policy">/proc/ccs/domain_policy</a></h3>
 
@@ -59,7 +59,7 @@
 
 <p>The associated configuration file is "/etc/ccs/domain_policy.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
 
 <h3><a name="exception_policy">/proc/ccs/exception_policy</a></h3>
 
@@ -67,7 +67,7 @@
 
 <p>The associated configuration file is "/etc/ccs/exception_policy.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
 
 <h3><a name="manager">/proc/ccs/manager</a></h3>
 
@@ -76,14 +76,14 @@
 <p>As an exception, all domains can write to below interfaces for restricted purposes.</p>
 
 <ul>
-<li><a href="#.process_status">"/proc/ccs/.process_status"</a> for reading information of processes</li>
-<li><a href="#domain_policy">"/proc/ccs/domain_policy"</a> for reading specific domain's (or specific process's) access permissions</li>
-<li><a href="#self_domain">"/proc/ccs/self_domain"</a> for changing the domain of the caller process</li>
+<li><a href="#.process_status">/proc/ccs/.process_status</a> for reading information of processes</li>
+<li><a href="#domain_policy">/proc/ccs/domain_policy</a> for reading specific domain's (or specific process's) access permissions</li>
+<li><a href="#self_domain">/proc/ccs/self_domain</a> for changing the domain of the caller process</li>
 </ul>
 
 <p>The associated configuration file is "/etc/ccs/manager.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
 
 <pre class="command">
 # cat /proc/ccs/manager
@@ -121,7 +121,7 @@ Total:           377376
 
 <p>This interface allows the administrator to configure memory quota.</p>
 
-<p>This interface is obsolete. Please use <a href="#stat">"/proc/ccs/stat"</a> instead.</p>
+<p>This interface is obsolete. Please use <a href="#stat">/proc/ccs/stat</a> instead.</p>
 
 <h3><a name="profile">/proc/ccs/profile</a></h3>
 
@@ -129,7 +129,7 @@ Total:           377376
 
 <p>The associated configuration file is "/etc/ccs/profile.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a> <a href="../man-pages/ccs-setlevel.html.en">ccs-setlevel</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a>, <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a> and <a href="../man-pages/index.html.en#ccs-setlevel">ccs-setlevel</a>.</p>
 
 <h3><a name="query">/proc/ccs/query</a></h3>
 
@@ -177,7 +177,7 @@ Total memory used:                        201120
 
 <p>The associated configuration file is "/etc/ccs/stat.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/ccs-editpolicy.html.en">ccs-editpolicy</a> <a href="../man-pages/ccs-loadpolicy.html.en">ccs-loadpolicy</a> <a href="../man-pages/ccs-savepolicy.html.en">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
 
 <h3><a name="version">/proc/ccs/version</a></h3>
 
@@ -199,7 +199,7 @@ Total memory used:                        201120
 
 <p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
 
-<p>This interface is used primarily by the userspace tool <a href="../man-pages/ccs-pstree.html.en">ccs-pstree</a>.</p>
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/index.html.en#ccs-pstree">ccs-pstree</a>.</p>
 
 </div><!-- documentation -->
 
