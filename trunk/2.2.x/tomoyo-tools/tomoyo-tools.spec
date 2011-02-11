@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: tomoyo-tools
 Version: 2.2.0
-Release: 2
+Release: 3
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: tomoyo-tools < 2.2.0-2
+Conflicts: tomoyo-tools < 2.2.0-3
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20100225.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20110211.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
+* Fri Feb 11 2011 2.2.0-3
+- Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.
+
 * Thu Feb 25 2010 2.2.0-2
 - Recursive directory matching operator support was added to kernel 2.6.33.
 - Restriction for ioctl/chmod/chown/chgrp/mount/unmount/chroot/pivot_root was added to kernel 2.6.34.
