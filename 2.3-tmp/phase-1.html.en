@@ -24,17 +24,16 @@
 <li><b>gcc</b>: to build the kernel and tools</li>
 <li><b>make</b>: to build the kernel and tools</li>
 <li><b>ncurses</b>: for the tools user interface</li>
-<li><b>help2man</b>: for the tools man pages (optional but recommended)</li>
 </ul>
 
 <p>These can be installed with the following commands:</p>
 
 <table border="1">
 <tr><td>RedHat distributions</td><td>
-[root@tomoyo ~]# yum -y install gcc make ncurses-devel wget help2man
+[root@tomoyo ~]# yum -y install wget gcc make ncurses-devel
 </td></tr>
 <tr><td>Debian distributions</td><td>
-[root@tomoyo ~]# apt-get -y install gcc make libncurses-dev wget help2man
+[root@tomoyo ~]# apt-get -y install wget gcc make libncurses-dev
 </td></tr>
 </table>
 
@@ -103,12 +102,12 @@ Linux kernel 2.6.36 and later are supported.</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# wget -O tomoyo-tools-2.3.0-20100820.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/48663/tomoyo-tools-2.3.0-20100820.tar.gz'<br>
-[root@tomoyo ~]# wget -O tomoyo-tools-2.3.0-20100820.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/48663/tomoyo-tools-2.3.0-20100820.tar.gz.asc'<br>
+[root@tomoyo ~]# wget -O tomoyo-tools-2.3.0-20110211.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/48663/tomoyo-tools-2.3.0-20110211.tar.gz'<br>
+[root@tomoyo ~]# wget -O tomoyo-tools-2.3.0-20110211.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/48663/tomoyo-tools-2.3.0-20110211.tar.gz.asc'<br>
 [root@tomoyo ~]# wget http://I-love.SAKURA.ne.jp/kumaneko-key<br>
 [root@tomoyo ~]# gpg --import kumaneko-key<br>
-[root@tomoyo ~]# gpg tomoyo-tools-2.3.0-20100820.tar.gz.asc<br>
-[root@tomoyo ~]# tar -zxf tomoyo-tools-2.3.0-20100820.tar.gz<br>
+[root@tomoyo ~]# gpg tomoyo-tools-2.3.0-20110211.tar.gz.asc<br>
+[root@tomoyo ~]# tar -zxf tomoyo-tools-2.3.0-20110211.tar.gz<br>
 [root@tomoyo ~]# make -C tomoyo-tools/ install<br>
 [root@tomoyo ~]# ldconfig
 </td></tr>
