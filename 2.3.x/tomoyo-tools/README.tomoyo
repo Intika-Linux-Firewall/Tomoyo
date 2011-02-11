@@ -18,3 +18,12 @@ Version 2.2.0p1 2010/02/25 Minor update release.
 Version 2.3.0 2010/08/20   Major update release.
 
   Various enhancements were added to kernel 2.6.36.
+
+Version 2.3.0p1 2011/02/11   Bugfix release.
+
+  /sbin/tomoyo-init
+    Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.
+    Wait for /etc/tomoyo/tomoyo-post-init in a more reliable way.
+
+  /usr/sbin/tomoyo-diffpolicy
+    Fix regression introduced when fixing old/new inversion bug.

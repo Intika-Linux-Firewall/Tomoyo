@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.3.0   2010/08/20
+ * Version: 2.3.0+   2011/02/11
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
 	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
 	/* Mount /sys if not mounted. */
-	if (lstat("/sys/kernel/", &buf) || !S_ISDIR(buf.st_mode))
+	if (lstat("/sys/kernel/security/", &buf) || !S_ISDIR(buf.st_mode))
 		sys_unmount = !mount("/sys", "/sys", "sysfs", 0, NULL);
 	/* Mount /sys/kernel/security if not mounted. */
 	if (lstat("/sys/kernel/security/tomoyo/", &buf) ||
