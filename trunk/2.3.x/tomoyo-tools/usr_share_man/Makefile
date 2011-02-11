@@ -2,12 +2,11 @@ SRC = init_policy tomoyo-checkpolicy tomoyo-diffpolicy tomoyo-domainmatch tomoyo
 
 man8/%.8.gz : %
 	@mkdir -p man8
-	@chmod 755 $^
-	./$^
+	sh ./$<
 
 all: $(patsubst %,man8/%.8.gz,$(SRC))
 
-install: all
+install:
 	mkdir -p $(INSTALLDIR)/usr/share/man/man8
 	cp -af --remove-destination man8/* $(INSTALLDIR)/usr/share/man/man8/
 
