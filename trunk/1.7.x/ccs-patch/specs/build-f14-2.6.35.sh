@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.35.10-74.fc14.src.rpm ]
+if [ ! -r kernel-2.6.35.11-83.fc14.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/14/SRPMS/kernel-2.6.35.10-74.fc14.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/14/SRPMS/kernel-2.6.35.11-83.fc14.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.35.10-74.fc14.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.35.10-74.fc14.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.35.11-83.fc14.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.35.11-83.fc14.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20110121.tar.gz ]
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -412,6 +412,11 @@
+@@ -424,6 +424,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +49,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -471,7 +476,7 @@
+@@ -483,7 +488,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -58,7 +58,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -900,7 +905,7 @@
+@@ -933,7 +938,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1498,6 +1503,10 @@
+@@ -1561,6 +1566,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1526,6 +1535,9 @@
+@@ -1589,6 +1598,9 @@
  for i in *.config
  do
    mv $i .config
