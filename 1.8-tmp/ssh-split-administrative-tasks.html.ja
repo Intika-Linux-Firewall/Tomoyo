@@ -1,32 +1,52 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>SSH サービスでシステム管理者の操作を制限する</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : SSH サービスでシステム管理者の操作を制限する</title>
 </head>
-<body>
-<p style="text-align:right;"><a href="ssh-split-administrative-tasks.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1>SSH サービスでシステム管理者の操作を制限する</h1>
 
-<h2>概要</h2>
+<body>
+
+<div id="titlebar">
+<a href="../index.html.ja"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="../about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="../download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="../support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="ssh-split-administrative-tasks.html.en" title="Go to English page">English page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<h2>SSH サービスでシステム管理者の操作を制限する</h2>
+
+<h3>概要</h3>
 
 <p><object data="http://www.youtube.com/v/aEJAGBKc8uY&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/aEJAGBKc8uY&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
 <p>このページでは、ＳＳＨサーバからログインシェルが実行される時にロールの選択を行うことにより、システム管理者の操作を制限する手順について紹介します。</p>
 
-<hr>
-
-<h2>ステップ１：ソースコードのコンパイル</h2>
+<h3>ステップ１：ソースコードのコンパイル</h3>
 
 <p>使用するロールを決めます。このページでは「 Web サーバ管理者」「 Mail サーバ管理者」「セキュリティ管理者」の３つを使用します。</p>
 
 <p>以下のソースコードをコンパイルします。このページでは、コンパイルされたプログラムの名前を /bin/sshd_login とします。また、ＳＳＨサーバのパス名を /usr/sbin/sshd とします。</p>
 
-<table border="1">
-<tr><td><pre>
+<pre>
 #include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
 #include &lt;unistd.h&gt;
@@ -104,13 +124,11 @@ int main(int raw_argc, char *raw_argv[])
 	}
 	return 1;
 }
-</pre></td></tr>
-</table>
+</pre>
 
 <p>以下の内容を /bin/webadmin-auth として保存し、実行許可を与えます。</p>
 
-<table border="1">
-<tr><td><pre>
+<pre>
 #! /bin/sh
 echo "Enter password for web administrator."
 stty -echo
@@ -120,13 +138,11 @@ stty echo
 echo "Authentication failure"
 sleep 5
 exit 1
-</pre></td></tr>
-</table>
+</pre>
 
 <p>以下の内容を /bin/mailadmin-auth として保存し、実行許可を与えます。</p>
 
-<table border="1">
-<tr><td><pre>
+<pre>
 #! /bin/sh
 echo "Enter password for mail administrator."
 stty -echo
@@ -136,13 +152,11 @@ stty echo
 echo "Authentication failure"
 sleep 5
 exit 1
-</pre></td></tr>
-</table>
+</pre>
 
 <p>以下の内容を /bin/securityadmin-auth として保存し、実行許可を与えます。</p>
 
-<table border="1">
-<tr><td><pre>
+<pre>
 #! /bin/sh
 echo "Enter password for security administrator."
 stty -echo
@@ -152,39 +166,32 @@ stty echo
 echo "Authentication failure"
 sleep 5
 exit 1
-</pre></td></tr>
-</table>
+</pre>
 
-<h2>ステップ２： TOMOYO Linux のインストールと初期化</h2>
+<h3>ステップ２： TOMOYO Linux のインストールと初期化</h3>
 
-<p><a href="install.html.ja">TOMOYO Linux をインストール</a>してから、以下のコマンドを実行して初期設定を行ってください。</p>
+<p><a href="chapter-3.html.ja">TOMOYO Linux をインストール</a>してから、以下のコマンドを実行して初期設定を行ってください。</p>
 
-<table border="1">
-<tr><td>
-/usr/lib/ccs/init_policy
-</td></tr>
-</table>
+<pre class="command">
+# /usr/lib/ccs/init_policy
+</pre>
 
 <p>その後、 TOMOYO Linux カーネルで再起動する前に以下の操作を行ってください。</p>
 
 <p>/usr/sbin/sshd が実行された場合にはドメイン遷移が初期化されるようにするために、 /etc/ccs/exception_policy.conf に以下の内容を追加します。</p>
 
-<table border="1">
-<tr><td>
+<pre>
 initialize_domain /usr/sbin/sshd from any
-</td></tr>
-</table>
+</pre>
 
 <p>/usr/sbin/sshd からのプログラムの実行要求が /bin/sshd_login に渡されるようにするために、 /etc/ccs/domain_policy.conf に以下の内容を追加します。</p>
 
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd
 task auto_execute_handler /bin/sshd_login
-</td></tr>
-</table>
+</pre>
 
-<h2>ステップ３：学習と運用</h2>
+<h3>ステップ３：学習と運用</h3>
 
 <p>以上で設定は完了です。 TOMOYO Linux カーネルで再起動してください。</p>
 
@@ -192,24 +199,20 @@ task auto_execute_handler /bin/sshd_login
 
 <p>/bin/sshd_login から起動される操作を制限するために、学習モードを割り当てます。</p>
 
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
-</td></tr>
-</table>
+<pre class="command">
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+</pre>
 
 <p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後に /bin/sshd_login が表示したプロンプトに対して 1 を入力し、 /bin/webadmin-auth が表示したプロンプトに対して webadmin を入力してください。これで、「 Web サーバ管理者」のためのドメインである &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash が作成されました。</p>
 
 <p>その後、「 Web サーバ管理者」に対して許可したい操作を行います。冒頭の動画では以下の操作をしています。</p>
 
-<table border="1">
-<tr><td>
-service httpd restart<br>
-cd /var/www/html/<br>
-tar -zxf ~/htdocs.tar.gz --strip 1<br>
-less /var/log/httpd/access_log
-</td></tr>
-</table>
+<pre class="command">
+# service httpd restart
+# cd /var/www/html/
+# tar -zxf ~/htdocs.tar.gz --strip 1
+# less /var/log/httpd/access_log
+</pre>
 
 <p>許可したい操作が終わったらログアウトしてください。</p>
 
@@ -217,13 +220,11 @@ less /var/log/httpd/access_log
 
 <p>その後、「 Mail サーバ管理者」に対して許可したい操作を行います。冒頭の動画では以下の操作をしています。</p>
 
-<table border="1">
-<tr><td>
-service sendmail restart<br>
-mailq<br>
-less /var/log/maillog
-</td></tr>
-</table>
+<pre class="command">
+# service sendmail restart
+# mailq
+# less /var/log/maillog
+</pre>
 
 <p>許可したい操作が終わったらログアウトしてください。</p>
 
@@ -231,31 +232,25 @@ less /var/log/maillog
 
 <p>その後、「セキュリティ管理者」に対して許可したい操作を行います。冒頭の動画では以下の操作をしています。</p>
 
-<table border="1">
-<tr><td>
-less /var/log/tomoyo/reject_log.conf
-</td></tr>
-</table>
+<pre class="command">
+# less /var/log/tomoyo/reject_log.conf
+</pre>
 
 <p>許可したい操作が終わったらログアウトしてください。</p>
 
 <p>確認モードを割り当て、許可したい操作を行えるかどうか確認してください。</p>
 
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
-</td></tr>
-</table>
+<pre class="command">
+# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+</pre>
 
 <p>強制モードを割り当てれば完成です。</p>
 
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
-</td></tr>
-</table>
+<pre class="command">
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+</pre>
 
-<h2>説明</h2>
+<h3>説明</h3>
 
 <p>/bin/webadmin-auth /bin/mailadmin-auth /bin/securityadmin-auth という３つのプログラムを /usr/sbin/sshd とログインシェルとの間に挿入してやることにより、親ドメインが異なる３つのドメイン（ "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash", "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash", "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/securityadmin-auth /bin/bash" ）を作成し、それぞれに必要なアクセス許可だけを与えるという形で権限を分割しています。このプログラムはサンプルなのでシェルスクリプトで済ませていますが、実際に使用する場合にはちゃんとしたユーザ認証を行うプログラムを作成してください。</p>
 
@@ -265,17 +260,45 @@ less /var/log/tomoyo/reject_log.conf
 
 <p>それぞれのドメインではプログラムを実行するたびにドメイン遷移が発生します。ドメイン遷移をさせたくない場合は、 /etc/ccs/exception_policy.conf に以下のように keep_domain を指定することができます。</p>
 
-<table border="1">
-<tr><td>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash<br>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash<br>
+<pre>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/securityadmin-auth /bin/bash
-</td></tr>
-</table>
+</pre>
 
+</div><!-- regular-content -->
+
+</div><!-- content -->
+
+<div id="navfooter">
 <hr>
+<table>
+<tr>
+<td class="docs-previous">
+</td>
+<td class="docs-index">
+<a href="index.html.ja">目次</a>
+</td>
+<td class="docs-next">
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+</td>
+</tr>
+</table>
+</div>
 
-<p><a href="index.html.ja">目次へ戻る</a></p>
+<div id="footer">
+<p class="language">Go to <a href="ssh-split-administrative-tasks.html.en">English page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>

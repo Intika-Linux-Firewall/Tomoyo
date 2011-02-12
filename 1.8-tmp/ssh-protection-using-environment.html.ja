@@ -1,17 +1,40 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>環境変数を用いた SSH サービスのブルートフォース対策</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : 環境変数を用いた SSH サービスのブルートフォース対策</title>
 </head>
-<body>
-<p style="text-align:right;"><a href="ssh-protection-using-environment.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1>環境変数を用いた SSH サービスのブルートフォース対策</h1>
 
-<h2>概要</h2>
+<body>
+
+<div id="titlebar">
+<a href="../index.html.ja"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="../about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="../download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="../support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="ssh-protection-using-environment.html.en" title="Go to English page">English page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<h2>環境変数を用いた SSH サービスのブルートフォース対策</h2>
+
+<h3>概要</h3>
 
 <p><object data="http://www.youtube.com/v/-2AQSqNa58c&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/-2AQSqNa58c&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
@@ -21,16 +44,13 @@
 
 <p>従来のブルートフォース対策は、認証が失敗したＩＰアドレスからの接続を一定時間拒否するという方法のため、多数のＩＰアドレスに分散されると防ぎきれない場合があります。この方法は２段階に分けているので、第１段階が突破されたとしても被害を防ぐことが可能です。また、第２段階での認証の自由度が高く認証方式も秘密にできるのでブルートフォース攻撃を仕掛けることが困難です。</p>
 
-<hr>
+<h3>ステップ１：ソースコードのコンパイル</h3>
 
-<h2>ステップ１：ソースコードのコンパイル</h2>
+<p>パスワードとして使用する環境変数の名前と値を決めます。このページでは、環境変数名として CERBERUS を、値として sftp を使用します。</p>
 
-<p>パスワードとして使用する環境変数の名前と値を決めます。</p>
+<p>以下のソースコードをコンパイルします。コンパイルされたプログラムの名前を /bin/env_chk とします。また、ＳＳＨサーバのパス名を /usr/sbin/sshd とします。</p>
 
-<p>以下のソースコードの SECRET_ENVIRONMENT に環境変数名と値を、 SSHD_EXECUTABLE_PATH にＳＳＨサーバへのパス名を設定し、コンパイルします。</p>
-
-<table border="1">
-<tr><td><pre>
+<pre>
 #include &lt;stdio.h&gt;
 #include &lt;stdlib.h&gt;
 #include &lt;unistd.h&gt;
@@ -97,59 +117,46 @@ int main(int raw_argc, char *raw_argv[])
 	}
 	return 1;
 }
-</pre></td></tr>
-</table>
+</pre>
 
-<p>このページでは、環境変数名として CERBERUS を、値として sftp を使用します。また、コンパイルされたプログラムの名前を /bin/env_chk とします。また、ＳＳＨサーバのパス名を /usr/sbin/sshd とします。</p>
-
-<h2>ステップ２：環境変数を渡すための設定</h2>
+<h3>ステップ２：環境変数を渡すための設定</h3>
 
 <p>サーバ側の /etc/ssh/sshd_config の末尾に環境変数名を指定します。</p>
 
-<table border="1">
-<tr><td>
+<pre>
 AcceptEnv CERBERUS
-</td></tr>
-</table>
+</pre>
 
 <p>クライアント側の /etc/ssh/ssh_config の末尾に環境変数名を指定します。</p>
 
-<table border="1">
-<tr><td>
+<pre>
 SendEnv CERBERUS
-</td></tr>
-</table>
+</pre>
 
-<h2>ステップ３： TOMOYO Linux のインストールと初期化</h2>
+<h3>ステップ３： TOMOYO Linux のインストールと初期化</h3>
 
-<p><a href="install.html.ja">TOMOYO Linux をインストール</a>してから、以下のコマンドを実行して初期設定を行ってください。</p>
+<p><a href="chapter-3.html.ja">TOMOYO Linux をインストール</a>してから、以下のコマンドを実行して初期設定を行ってください。</p>
 
-<table border="1">
-<tr><td>
-/usr/lib/ccs/init_policy
-</td></tr>
-</table>
+<pre class="command">
+# /usr/lib/ccs/init_policy
+</pre>
 
 <p>その後、 TOMOYO Linux カーネルで再起動する前に以下の操作を行ってください。</p>
 
 <p>/usr/sbin/sshd が実行された場合にはドメイン遷移が初期化されるようにするために、 /etc/ccs/exception_policy.conf に以下の内容を追加します。</p>
 
-<table border="1">
-<tr><td>
+<pre>
 initialize_domain /usr/sbin/sshd from any
-</td></tr>
-</table>
+</pre>
 
 <p>/usr/sbin/sshd からのプログラムの実行要求が /bin/env_chk に渡されるようにするために、 /etc/ccs/domain_policy.conf に以下の内容を追加します。</p>
 
-<table border="1">
-<tr><td>
+<pre>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 task auto_execute_handler /bin/env_chk
-</td></tr>
-</table>
+</pre>
 
-<h2>ステップ４：運用</h2>
+<h3>ステップ４：運用</h3>
 
 <p>以上で設定は完了です。 TOMOYO Linux カーネルで再起動してください。</p>
 
@@ -159,21 +166,51 @@ task auto_execute_handler /bin/env_chk
 
 <p>クライアント側から sftp でサーバ側にアクセスし、操作が行えることを確認してください。</p>
 
-<h2>説明</h2>
+<h3>説明</h3>
 
 <p>TOMOYO Linux の execute_handler 機能が /usr/sbin/sshd からのプログラムの実行要求を横取りして、 /bin/env_chk に渡しています。 /bin/env_chk がプログラムの実行要求に渡されたパラメータの検査を行い、適切であると判断した場合には要求されたプログラムを実行します。</p>
 
 <p>システムのユーザ認証を通過後なので、シェルの実行要求を伴わないＳＳＨの機能は許可されています。ポートフォワーディングの制限やシェルセッションの制限なども行いたい場合は、通常通り学習モードで動作を学習させて、強制モードで動作を制限してやる必要があります。</p>
 
-<h2>応用</h2>
+<h3>応用</h3>
 
 <p>冒頭の動画では sftp を実行するために ssh ログインをしているため、パスワードとして sftp を指定しています。パスワードは固定されている必要は無く、パスワードの内容に応じて異なる動作をさせることもできます。例えば、 ssh_type=ro-sftp の場合はダウンロード専用の sftp サービス、 ssh_type=rw-sftp の場合はアップロードも可能な sftp サービスとして動作させることができます。</p>
 
 <p>また、プログラム実行時のパラメータが渡されるので、その内容を記録に残すことができます。例えば、ＳＳＨセッションで実行されたプログラムと引数や環境変数などの情報を取得することができます。</p>
 
-<hr>
+</div><!-- regular-content -->
 
-<p><a href="index.html.ja">目次へ戻る</a></p>
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+</td>
+<td class="docs-index">
+<a href="index.html.ja">目次</a>
+</td>
+<td class="docs-next">
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="ssh-protection-using-environment.html.en">English page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>
