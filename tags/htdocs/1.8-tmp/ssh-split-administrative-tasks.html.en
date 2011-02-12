@@ -173,7 +173,7 @@ exit 1
 <p><a href="chapter-3.html.en">Install TOMOYO Linux</a> and run below commandline in order to initialize TOMOYO Linux.</p>
 
 <pre class="command">
-/usr/lib/ccs/init_policy
+# /usr/lib/ccs/init_policy
 </pre>
 
 <p>Then, please do below operations before you reboot using TOMOYO Linux kernel.</p>
@@ -200,7 +200,7 @@ task auto_execute_handler /bin/sshd_login
 <p>Change access control mode to learning mode by assigning profile 1 so that we can restrict operations from /bin/sshd_login .</p>
 
 <pre class="command">
-/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
 </pre>
 
 <p>Access the SSH server. Please select 1 for the prompt shown by /bin/sshd_login and enter "webadmin" to the prompt shown by /bin/webadmin-auth . Now, the domain for "Web server administrator" was created as "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash".</p>
@@ -208,10 +208,10 @@ task auto_execute_handler /bin/sshd_login
 <p>Then, please do operations you want to allow for "Web server administrator". In the above movie, below operations are done.</p>
 
 <pre class="command">
-service httpd restart
-cd /var/www/html/
-tar -zxf ~/htdocs.tar.gz --strip 1
-less /var/log/httpd/access_log
+# service httpd restart
+# cd /var/www/html/
+# tar -zxf ~/htdocs.tar.gz --strip 1
+# less /var/log/httpd/access_log
 </pre>
 
 <p>Logout from the SSH session after you finished doing all operations you want to allow.</p>
@@ -221,9 +221,9 @@ less /var/log/httpd/access_log
 <p>Then, please do operations you want to allow for "Mail server administrator". In the above movie, below operations are done.</p>
 
 <pre class="command">
-service sendmail restart
-mailq
-less /var/log/maillog
+# service sendmail restart
+# mailq
+# less /var/log/maillog
 </pre>
 
 <p>Logout from the SSH session after you finished doing all operations you want to allow.</p>
@@ -233,7 +233,7 @@ less /var/log/maillog
 <p>Then, please do operations you want to allow for "Security administrator". In the above movie, below operations are done.</p>
 
 <pre class="command">
-less /var/log/tomoyo/reject_log.conf
+# less /var/log/tomoyo/reject_log.conf
 </pre>
 
 <p>Logout from the SSH session after you finished doing all operations you want to allow.</p>
@@ -241,13 +241,13 @@ less /var/log/tomoyo/reject_log.conf
 <p>Change access control mode to permissive mode by assigning profile 2 and verify that you can do operations you want to allow.</p>
 
 <pre class="command">
-/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
 </pre>
 
 <p>Change access control mode to enforcing mode by assigning profile 3. Now, the operations are restricted.</p>
 
 <pre class="command">
-/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
 </pre>
 
 <h3>Explanation</h3>
@@ -261,8 +261,8 @@ less /var/log/tomoyo/reject_log.conf
 <p>Regarding within each domain, domain transition occurs whenever a program is executed. If you want to suppress domain transition within each domain,  you can append "keep_domain" lines (like shown below) to /etc/ccs/exception_policy.conf .</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash<br>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash<br>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/securityadmin-auth /bin/bash
 </pre>
 
