@@ -122,7 +122,7 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <li>no_keep_domain "program" from "domain"</li>
 </ul>
 
-<p>This example causes domain transition to occur when /bin/cat is
+<p>This example causes domain transition to occur when /bin/cat is:</p>
 
 <pre>
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
@@ -133,7 +133,7 @@ no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 
 <p>This directive declares a group name that can be used in domain policy to refer to a range of IP addresses.</p>
 
-<p>For example, if suppose the following are defined in exception policy:
+<p>For example, if suppose the following are defined in exception policy:</p>
 
 <pre>
 address_group LOCAL-ADDRESS 10.0.0.0-10.255.255.255
@@ -151,7 +151,7 @@ network inet stream accept @LOCAL-ADDRESS 1024-65535
 
 <p>This directive declares a group name that can be used in domain policy to refer to a range of numbers.</p>
 
-<p>For example, if suppose the following are defined in exception policy:
+<p>For example, if suppose the following are defined in exception policy:</p>
 
 <pre>
 number_group CREATE-MODES 0644
@@ -167,7 +167,8 @@ file create /tmp/file @CREATE-MODES
 
 <p>This directive declares a group name that can be used in domain policy to refer to a range of pathnames.</p>
 
-<p>For example, if suppose the following are defined in exception policy:
+<p>For example, if suppose the following are defined in exception policy:</p>
+
 <pre>
 path_group HOME-DIR-FILE /home/\*/\*
 path_group HOME-DIR-FILE /home/\*/\{\*\}/\*
