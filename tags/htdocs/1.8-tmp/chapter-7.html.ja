@@ -1,30 +1,30 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html lang="en-US">
+<html lang="ja-JP">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 7</title>
+<title>TOMOYO Linux 1.8.x : 導入ガイド : Chapter 7</title>
 </head>
 
 <body>
 
 <div id="titlebar">
-<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+<a href="../index.html.ja"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
 </div>
 
 <div id="navbar" class="tomoyo-documentation">
 <ul id="navbarlist">
-<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
-<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
-<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
-<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
-<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
-<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
-<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+<li id="tomoyo-home"><a href="../index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="../about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="../download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="../support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
 </ul>
 <ul id="switch-language">
-<li id="tomoyo-switch-language"><a href="chapter-7.html.ja" title="Go to Japanese page">Japanese page</a></li>
+<li id="tomoyo-switch-language"><a href="chapter-7.html.en" title="Go to English page">English page</a></li>
 </ul>
 </div>
 
@@ -33,12 +33,12 @@
 <div id="documentation">
 
 <div class="navheader">
-<p><a href="chapter-6.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-8.html.en">&lt;Next&gt;</a></p>
+<p><a href="chapter-6.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="chapter-8.html.ja">&lt;次&gt;</a></p>
 </div>
 
-<h2>Chapter 7: How do I enforce policy?</h2>
+<h2>Chapter 7: ポリシーの適用はどのように行いますか？</h2>
 
-<h3><a name="7.1">7.1. Enabling enforcing mode</a></h3>
+<h3><a name="7.1">7.1. 強制モードを有効にする</a></h3>
 
 <p>Once domain and exception policy have been sufficiently modified, the domain can be set to enforcing mode.</p>
 
@@ -64,7 +64,7 @@
 
 <a href="media/unix-penguin-rejected.png"><img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477"></a>
 
-<p>Just like in "Permissive Mode", you can check the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
+<p>Just like in "Permissive Mode", you can check the <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
 <pre class="command">
 [root@tomoyo ~]# cat /proc/ccs/stat
@@ -81,7 +81,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<p>If audit logs have been configured at <a href="chapter-4.html.en#4.6">4.6. Saving audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
+<p>If audit logs have been configured at <a href="chapter-4.html.ja#4.6">4.6. Saving audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
 
 <pre class="command">
 [root@tomoyo ~]# cat /var/log/tomoyo/reject_003.log
@@ -101,15 +101,15 @@ file read /bin/cat
 
 <p>The second log reports that opening <code>/bin/cat</code> for reading requested by <code>/bin/sh</code> which was invoked by <code>/usr/sbin/httpd</code>. This was rejected because <code>/bin/sh</code> tried to open the requested program for reading when that program was not executed.</p>
 
-<p>If the "Enforcing Mode" profile is configured with <a href="chapter-9.html.en#9.2.3">PREFERENCE={ enforcing_penalty=1 }</a> then domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
+<p>If the "Enforcing Mode" profile is configured with <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ enforcing_penalty=1 }</a> then domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
 
 <p><object data="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
-<h3><a name="7.2">7.2. Enable enforcing mode for every domain</a></h3>
+<h3><a name="7.2">7.2. 全てのドメインに対して強制モードを有効にする</a></h3>
 
 <p>Once you are familiar with the methods and tools described in the previous chapters, it will be possible to develop policy for every domain in the system. Placing every domain in "Enforcing Mode" will reduce the points of vulnerability through which a system might be compromised. Thus, all the previous steps should be repeated for all the other domains.</p>
 
-<h3><a name="7.3">7.3. Handling policy violations in real-time</a></h3>
+<h3><a name="7.3">7.3. ポリシー違反を対話的に処理する</a></h3>
 
 <p>Policy violations can be handled in real time using <code>ccs-queryd</code>. This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
 
@@ -123,7 +123,7 @@ file read /bin/cat
 
 <p>Fortunately, <code>ccs-queryd</code> can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
 
-<h4><a name="7.3.1">7.3.1. Example usage of "ccs-queryd"</a></h4>
+<h4><a name="7.3.1">7.3.1. ccs-queryd の操作例</a></h4>
 
 <p>The video below demonstrates example usage of <code>ccs-queryd</code>, which is summarised in the text below:</p>
 
@@ -166,7 +166,7 @@ Press <strong>"A"</strong> to append the request to domain policy and retry (a c
 [root@tomoyo ~]# /usr/sbin/ccs-savepolicy
 </pre>
 
-<h4><a name="7.3.2">7.3.2. Example output from "ccs-queryd"</a></h4>
+<h4><a name="7.3.2">7.3.2. ccs-queryd の出力例</a></h4>
 
 <p>This is an example of what the output might look like while running <code>ccs-queryd</code>:</p>
 
@@ -284,7 +284,7 @@ Enter new entry&gt; file append /var/lib/pgsql/data/pg_log/postgresql-\*
 Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 </pre>
 
-<h3><a name="7.4">7.4. Notification daemon</a></h3>
+<h3><a name="7.4">7.4. 通知デーモン</a></h3>
 
 <p><code>ccs-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
 
@@ -370,7 +370,7 @@ Q0-0
 file execute /bin/cat
 </pre>
 
-<h3><a name="7.5">7.5. Beyond the core topics</a></h3>
+<h3><a name="7.5">7.5. おわりに</a></h3>
 
 <p>The chapters in this guide so far aim to provide enough knowledge to set up TOMOYO Linux on a system. In order to further improve your knowledge, please read on. The following chapters cover advanced topics that are not absolutely essential, but can help to increase the security of a system. The appendices found at the end of this guide can also be very helpful, particularly the specification.</p>
 
@@ -385,32 +385,32 @@ file execute /bin/cat
 <table>
 <tr>
 <td class="docs-previous">
-<a href="chapter-6.html.en">Prev</a>
+<a href="chapter-6.html.ja">前</a>
 </td>
 <td class="docs-index">
-<a href="index.html.en">Index</a>
+<a href="index.html.ja">目次</a>
 </td>
 <td class="docs-next">
-<a href="chapter-8.html.en">Next</a>
+<a href="chapter-8.html.ja">次</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 6: How do I develop policy?</p>
+<p>Chapter 6: ポリシーはどのように作成しますか？</p>
 </td>
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
-<p>Chapter 8: Interface permissions</p>
+<p>Chapter 8: ポリシーを変更する権限</p>
 </td>
 </tr>
 </table>
 </div>
 
 <div id="footer">
-<p class="language">Go to <a href="chapter-7.html.ja">Japanese page</a>.</p>
+<p class="language">Go to <a href="chapter-7.html.en">English page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
-<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </div>
 
