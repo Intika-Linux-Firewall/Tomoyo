@@ -1,117 +1,199 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux プロジェクト</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : 導入ガイド : 目次</title>
 </head>
+
 <body>
-<p style="text-align:right;"><a href="index.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1>TOMOYO Linux 1.8.x 導入ガイド</h1>
-<table border="0" summary="What is TOMOYO Linux?">
-<tr><td><img src="../tomoyo.png" alt="tomoyo.png" width="115" height="150"></td><td>TOMOYO Linux はシステムの振る舞いに注目したセキュリティモジュールです。プロセスは何かの目的を達成するために生成されます。 TOMOYO Linux は（出入国審査官のように）それぞれのプロセスに対して目的を達成するのに必要な振る舞いや資源について報告させ、（運用監視人のように）申告された振る舞いと資源へのアクセスのみを許可します。このアプローチにより、 Linux システムがどのように機能するのかを理解することが可能になります。 TOMOYO Linux はアクセスを制限するツールとしても、システムを解析するためのツールとしても使うことができます。</td></tr>
-</table>
 
-<h2>このガイドについて</h2>
+<div id="titlebar">
+<a href="../index.html.ja"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
 
-<p>このガイドは、出来る限り簡潔で容易に試すことができる状態を維持しながら TOMOYO Linux を導入するための情報および手順について紹介することを目指しています。ガイドは以下に示されているように幾つかの節に分割されています。システムの動作を解析する用途で TOMOYO Linux を利用したい場合には第１節から第４節が関係します。システムの動作を制限する用途で TOMOYO Linux を利用したい場合には、６つ全ての節を辿ることで、どのようなシステムに対しても必要最小限の権限を持ったアクセス許可を定義するための基礎を習得することができます。 TOMOYO Linux が提供する強制アクセス制御機能（ MAC ）は「導入するだけで何も設定を行うことなく使える」ものではなく、概念や管理ツールの使い方について理解するための時間が必要です。可能な限り安全なシステムを構築するために、このガイドを読んでしっかりと理解しておくことはとても価値があります。</p>
-
-<h2>目次</h2>
-
-第１節：<a href="phase-1.html.ja">導入と初期化</a>
-<ul>
-<li>1.1 <a href="phase-1.html.ja#1.1">依存するパッケージのインストール</a></li>
-<li>1.2 <a href="phase-1.html.ja#1.2">カーネルのインストール</a></li>
-<li>1.3 <a href="phase-1.html.ja#1.3">管理ツールのインストール</a></li>
-<li>1.4 <a href="phase-1.html.ja#1.4">設定の初期化</a></li>
-<li>1.5 <a href="phase-1.html.ja#1.5">ブートローダの設定および再起動</a></li>
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="../about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="../download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="../support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
 </ul>
-第２節：<a href="phase-2.html.ja"> TOMOYO Linux を理解する</a>
-<ul>
-<li>2.1 <a href="phase-2.html.ja#2.1">ドメインを理解する</a></li>
-<li>2.2 <a href="phase-2.html.ja#2.2">プロファイルを理解する</a></li>
-<li>2.3 <a href="phase-2.html.ja#2.3">ドメインポリシーを理解する</a></li>
-<li>2.4 <a href="phase-2.html.ja#2.4">例外ポリシーを理解する</a></li>
-<li>2.5 <a href="phase-2.html.ja#2.5">アクセスログを保存する（任意）</a></li>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.en" title="Go to English page">English page</a></li>
 </ul>
-第３節：<a href="phase-3.html.ja">ドメインを解析する</a>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<h2>TOMOYO Linux 1.8.x : 導入ガイド</h2>
+
+<p>TOMOYO Linux 1.8.x 導入ガイドへようこそ。<a href="chapter-1.html.ja">早速始めましょう！</a></p>
+
+<h3><a name="core">基本編</a></h3>
+
+<p><strong>Chapter 1: <a class="black" href="chapter-1.html.ja">はじめに</a></strong></p>
 <ul>
-<li>3.1 <a href="phase-3.html.ja#3.1">ドメインを作成する</a></li>
-<li>3.2 <a href="phase-3.html.ja#3.2">必要なアクセス許可を収集する</a></li>
+<li>1.1. <a href="chapter-1.html.ja#1.1">このガイドについて</a></li>
+<li>1.2. <a href="chapter-1.html.ja#1.2">表記に関して</a></li>
 </ul>
-第４節：<a href="phase-4.html.ja">ポリシーを作成する</a>
+<p><strong>Chapter 2: <a class="black" href="chapter-2.html.ja">なぜ TOMOYO Linux が必要なのですか？</a></strong></p>
 <ul>
-<li>4.1 <a href="phase-4.html.ja#4.1">テンポラリファイルに対処する</a></li>
-<li>4.2 <a href="phase-4.html.ja#4.2">ファイルのパス名をパターン化する</a></li>
-<li>4.3 <a href="phase-4.html.ja#4.3">数値をパターン化する</a></li>
-<li>4.4 <a href="phase-4.html.ja#4.4">ネットワークのアドレスをパターン化する</a></li>
-<li>4.5 <a href="phase-4.html.ja#4.5">収集されたアクセス許可を確認する</a></li>
-<li>4.6 <a href="phase-4.html.ja#4.6">アクセス許可に条件を付与する（省略可）</a></li>
+<li>2.1. <a href="chapter-2.html.ja#2.1">TOMOYO Linux とは何ですか？</a></li>
+<li>2.2. <a href="chapter-2.html.ja#2.2">強制アクセス制御とは何ですか？</a></li>
+<li>2.3. <a href="chapter-2.html.ja#2.3">TOMOYO Linux は何の役に立ちますか？</a></li>
 </ul>
-第５節：<a href="phase-5.html.ja">ポリシーを適用する</a>
+<p><strong>Chapter 3: <a class="black" href="chapter-3.html.ja">どうすれば TOMOYO Linux をインストールできますか？</a></strong></p>
 <ul>
-<li>5.1 <a href="phase-5.html.ja#5.1">強制モードを有効にする</a></li>
-<li>5.2 <a href="phase-5.html.ja#5.2">ポリシー違反を対話的に処理する</a></li>
-<li>5.3 <a href="phase-5.html.ja#5.3">通知デーモンを利用する</a></li>
+<li>3.1. <a href="chapter-3.html.ja#3.1">私の使っているディストリビューション用のバイナリパッケージはありますか？</a></li>
+<li>3.2. <a href="chapter-3.html.ja#3.2">バイナリパッケージからのインストール</a></li>
+<li>3.3. <a href="chapter-3.html.ja#3.3">ソースからのインストール</a><br>
+  <ul class="nested">
+    <li>3.3.1. <a href="chapter-3.html.ja#3.3.1">依存するパッケージのインストール</a></li>
+    <li>3.3.2. <a href="chapter-3.html.ja#3.3.2">カーネルのダウンロードとパッチの適用</a></li>
+    <li>3.3.3. <a href="chapter-3.html.ja#3.3.3">カーネルコンパイルオプションの設定</a></li>
+    <li>3.3.4. <a href="chapter-3.html.ja#3.3.4">カーネルのコンパイルおよびインストール</a></li>
+    <li>3.3.5. <a href="chapter-3.html.ja#3.3.5">管理ツールのインストール</a></li>
+  </ul></li>
+<li>3.4. <a href="chapter-3.html.ja#3.4">設定の初期化</a></li>
+<li>3.5. <a href="chapter-3.html.ja#3.5">ブートローダの設定</a></li>
+<li>3.6. <a href="chapter-3.html.ja#3.6">システムの再起動</a></li>
+<li>3.7. <a href="chapter-3.html.ja#3.7">どのようにすれば TOMOYO Linux を無効化またはアンインストールできますか？</a></li>
 </ul>
-第６節：<a href="phase-6.html.ja">もっと使いこなす</a>
+<p><strong>Chapter 4: <a class="black" href="chapter-4.html.ja">TOMOYO Linux はどのように動きますか？</a></strong></p>
 <ul>
-<li>6.1 <a href="phase-6.html.ja#6.1">全てのドメインを制限する</a></li>
-<li>6.2 <a href="phase-6.html.ja#6.2">より深く知るためには</a></li>
-<li>6.3 <a href="phase-6.html.ja#6.3">終わりに</a></li>
+<li>4.1. <a href="chapter-4.html.ja#4.1">ドメインを理解する</a></li>
+<li>4.2. <a href="chapter-4.html.ja#4.2">ポリシーエディタを用いてドメインを確認する</a></li>
+<li>4.3. <a href="chapter-4.html.ja#4.3">プロファイルを理解する</a></li>
+<li>4.4. <a href="chapter-4.html.ja#4.4">ドメインポリシーを理解する</a></li>
+<li>4.5. <a href="chapter-4.html.ja#4.5">例外ポリシーを理解する</a></li>
+<li>4.6. <a href="chapter-4.html.ja#4.6">アクセスログを保存する（任意）</a></li>
+</ul>
+<p><strong>Chapter 5: <a class="black" href="chapter-5.html.ja">ドメインの管理はどのように行いますか？</a></strong></p>
+<ul>
+<li>5.1. <a href="chapter-5.html.ja#5.1">ドメインの作成</a></li>
+<li>5.2. <a href="chapter-5.html.ja#5.2">ドメイン遷移の管理</a><br>
+  <ul class="nested">
+    <li>5.2.1. <a href="chapter-5.html.ja#5.2.1">initialize_domain</a></li>
+    <li>5.2.2. <a href="chapter-5.html.ja#5.2.2">no_initialize_domain</a></li>
+    <li>5.2.3. <a href="chapter-5.html.ja#5.2.2">keep_domain</a></li>
+    <li>5.2.4. <a href="chapter-5.html.ja#5.2.4">no_keep_domain</a></li>
+  </ul></li>
+<li>5.3. <a href="chapter-5.html.ja#5.3">学習モードへの切り替え</a></li>
+<li>5.4. <a href="chapter-5.html.ja#5.4">必要なアクセス許可の収集</a></li>
+<li>5.5. <a href="chapter-5.html.ja#5.5">アクセス許可をディスク上に保存する</a></li>
+<li>5.6. <a href="chapter-5.html.ja#5.6">メモリの使用量を管理する</a></li>
+</ul>
+<p><strong>Chapter 6: <a class="black" href="chapter-6.html.ja">ポリシーはどのように作成しますか？</a></strong></p>
+<ul>
+<li>6.1. <a href="chapter-6.html.ja#6.1">テンポラリファイルをパターン化する</a></li>
+<li>6.2. <a href="chapter-6.html.ja#6.2">ファイルのアクセス許可をパターン化する</a></li>
+<li>6.3. <a href="chapter-6.html.ja#6.3">数値パラメータをパターン化する</a></li>
+<li>6.4. <a href="chapter-6.html.ja#6.4">ネットワークアドレスをパターン化する</a></li>
+<li>6.5. <a href="chapter-6.html.ja#6.5">収集されたアクセス許可を確認する</a></li>
+<li>6.6. <a href="chapter-6.html.ja#6.6">アクセスログからポリシーを生成する（任意）</a></li>
+</ul>
+<p><strong>Chapter 7: <a class="black" href="chapter-7.html.ja">ポリシーの適用はどのように行いますか？</a></strong></p>
+<ul>
+<li>7.1. <a href="chapter-7.html.ja#7.1">強制モードを有効にする</a></li>
+<li>7.2. <a href="chapter-7.html.ja#7.2">全てのドメインに対して強制モードを有効にする</a></li>
+<li>7.3. <a href="chapter-7.html.ja#7.3">ポリシー違反を対話的に処理する</a><br>
+  <ul class="nested">
+    <li>7.3.1. <a href="chapter-7.html.ja#7.3.1">ccs-queryd の操作例</a></li>
+    <li>7.3.2. <a href="chapter-7.html.ja#7.3.2">ccs-queryd の出力例</a></li>
+  </ul></li>
+<li>7.4. <a href="chapter-7.html.ja#7.4">通知デーモン</a></li>
+<li>7.5. <a href="chapter-7.html.ja#7.5">おわりに</a></li>
 </ul>
 
-<!--
-<h2><a name="tutorial">TOMOYO Linux の世界</a></h2>
+<h3><a name="advanced">応用編</a></h3>
 
+<p><strong>Chapter 8: <a class="black" href="chapter-8.html.ja">ポリシーを変更する権限</a></strong></p>
 <ul>
-<li><a href="tutorial-1.html.ja">第１回：「ポリシー自動学習を経験しよう」</a></li>
-<li><a href="tutorial-2.html.ja">第２回：「アクセス制御を経験しよう」</a></li>
-<li><a href="tutorial-3.html.ja">第３回：「ドメイン遷移をマスターしよう」</a></li>
-<li><a href="tutorial-4.html.ja">第４回：「ポリシーをチューニングしてみよう」</a></li>
-<li><a href="tutorial-5.html.ja">第５回：「アクセス許可に条件を付けてみよう」</a></li>
-<li><a href="tutorial-6.html.ja">第６回：「不正ログインを撲滅しよう」</a></li>
-<li><a href="tutorial-7.html.ja">第７回：「いろんな機能を試してみよう」</a></li>
-<li><a href="tutorial-8.html.ja">第８回：「ログインセッションを制限してみよう（前編）」</a></li>
-<li><a href="tutorial-9.html.ja">第９回：「ログインセッションを制限してみよう（後編）」</a></li>
-<li><a href="tutorial-10.html.ja">第１０回：「 Apache の権限を分割してみよう」</a></li>
-</ul>
--->
-
-<h2>ドキュメント</h2>
-
-<ul>
-<li><a href="tools-doc.html.ja">各種ツールのドキュメント</a></li>
-<li><a href="tool-editpolicy.html.ja">ポリシーエディタの使い方</a></li>
-<li><a href="policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a></li>
-<li><a href="faq.html.ja">FAQ</a></li>
-<li><a href="meego-x86.html.ja">TOMOYO Linux on MeeGo 1.1</a></li>
-<li><a href="android-arm.html.ja">TOMOYO Linux on Android</a></li>
-<li><a href="cat760-sh.html.ja">TOMOYO Linux on CAT760</a></li>
-<li><a href="ssh-split-administrative-tasks.html.ja">SSH サービスでシステム管理者の操作を制限する</a></li>
-<li><a href="ssh-protection-using-environment.html.ja">環境変数を用いた SSH サービスのブルートフォース対策</a></li>
-<li><a href="sftp-protection-using-environment-variable.html.ja">環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</a></li>
-<li><a href="ssh-recording-cmdline.html.ja">シェルセッションのコマンドラインを記録する</a></li>
+<li>8.1. <a href="chapter-8.html.ja#8.1">プログラムを登録する</a></li>
+<li>8.2. <a href="chapter-8.html.ja#8.2">非 root ユーザによる変更を認める</a></li>
 </ul>
 
-<!--
-<h2>はじめてみよう</h2>
-
+<p><strong>Chapter 9: <a class="black" href="chapter-9.html.ja">より詳細なプロファイルの管理</a></strong></p>
 <ul>
-<li><a href="1st-step/ubuntu10.04-live/index.html.ja">Ubuntu 10.04 LiveCD で手軽にはじめてみよう </a> (version 1.7.2)</li>
-<li><a href="1st-step/centos5-live/index.html.ja">CentOS 5.5 LiveCD で手軽にはじめてみよう</a> (version 1.7.2)</li>
-<li><a href="1st-step/lenny/index.html.ja">Debian Lenny 導入手順</a> (version 1.7.2)</li>
-<li><a href="1st-step/centos5/index.html.ja">CentOS 5.5 導入手順</a> (version 1.7.2)</li>
+<li>9.1. <a href="chapter-9.html.ja#9.1">プロファイルの初期化</a></li>
+<li>9.2. <a href="chapter-9.html.ja#9.2">プロファイルの構文</a><br>
+  <ul class="nested">
+    <li>9.2.1. <a href="chapter-9.html.ja#9.2.1">書式</a></li>
+    <li>9.2.2. <a href="chapter-9.html.ja#9.2.2">CONFIG 行</a></li>
+    <li>9.2.3. <a href="chapter-9.html.ja#9.2.3">PREFERENCE 行</a></li>
+  </ul></li>
 </ul>
--->
 
-<hr>
+<p><strong>Chapter 10: <a class="black" href="chapter-10.html.ja">条件付きアクセス許可の使用</a></strong></p>
+<ul>
+<li>10.1. <a href="chapter-10.html.ja#10.1">利用可能な条件</a></li>
+<li>10.2. <a href="chapter-10.html.ja#10.2">比較</a></li>
+<li>10.3. <a href="chapter-10.html.ja#10.3">値</a></li>
+<li>10.4. <a href="chapter-10.html.ja#10.4">プロセスの種類</a></li>
+<li>10.5. <a href="chapter-10.html.ja#10.5">ファイルの種類</a></li>
+<li>10.6. <a href="chapter-10.html.ja#10.6">パーミッションの種類</a></li>
+<li>10.7. <a href="chapter-10.html.ja#10.7">指定例</a></li>
+</ul>
 
-<address><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/">NTT DATA CORPORATION</a><br>
-<!--#include virtual="/cgi-bin/counter.pl" -->
-</address>
+<p><strong>Chapter 11: <a class="black" href="chapter-11.html.ja">アクセス許可のグループ化</a></strong></p>
+<ul>
+<li>11.1. <a href="chapter-11.html.ja#11.1">acl_group と use_group</a></li>
+<li>11.2. <a href="chapter-11.html.ja#11.2">アクセス許可の分割</a></li>
+</ul>
+
+<p><strong>Chapter 12: <a class="black" href="chapter-12.html.ja">ユーザ認証の強化</a></strong></p>
+<ul>
+<li>12.1. <a href="chapter-12.html.ja#12.1">不正なＳＳＨログイン</a></li>
+<li>12.2. <a href="chapter-12.html.ja#12.2">管理者権限の分割</a></li>
+<li>12.3. <a href="chapter-12.html.ja#12.3">認証プログラムの例</a></li>
+</ul>
+
+<p><strong>Chapter 13: <a class="black" href="chapter-13.html.ja">カーネルの外部でプログラムの実行可否を判断する</a></strong></p>
+<ul>
+<li>13.1. <a href="chapter-13.html.ja#13.1">task denied_execute_handler</a></li>
+<li>13.2. <a href="chapter-13.html.ja#13.2">task auto_execute_handler</a></li>
+</ul>
+
+<h3><a name="appendix">付録</a></h3>
+
+<p><strong>Appendix A: <a class="black" href="man-pages/index.html.ja">管理ツール</a></strong></p>
+
+<p><strong>Appendix B: <a class="black" href="policy-specification/index.html.ja">ポリシー仕様</a></strong></p>
+
+<p><strong>Appendix C: <a class="black" href="tool-editpolicy.html.ja">ポリシーエディタの使い方</a></strong></p>
+
+<p><strong>Appendix D: <a class="black" href="android-arm.html.ja">TOMOYO Linux on Android</a></strong></p>
+
+<p><strong>Appendix E: <a class="black" href="meego-x86.html.ja">TOMOYO Linux on MeeGo 1.1</a></strong></p>
+
+<p><strong>Appendix F: <a class="black" href="cat760-sh.html.ja">TOMOYO Linux on CAT760</a></strong></p>
+
+<p><strong>Appendix G: <a class="black" href="ssh-split-administrative-tasks.html.ja">SSH サービスでシステム管理者の操作を制限する</a></strong></p>
+
+<p><strong>Appendix H: <a class="black" href="ssh-protection-using-environment.html.ja">環境変数を用いた SSH サービスのブルートフォース対策</a></strong></p>
+
+<p><strong>Appendix I: <a class="black" href="sftp-protection-using-environment-variable.html.ja">環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</a></strong></p>
+
+<p><strong>Appendix J: <a class="black" href="ssh-recording-cmdline.html.ja">シェルセッションのコマンドラインを記録する</a></strong></p>
+
+</div><!-- regular-content -->
+
+</div><!-- content -->
+
+<div id="footer">
+<p class="language">Go to <a href="index.html.en">English page</a>.</p>
+<p class="counter"><!--#include virtual="/cgi-bin/counter.pl" --></p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>
