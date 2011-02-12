@@ -110,9 +110,15 @@ task denied_execute_handler /bin/true
 
 <p>Normally, when a domain makes an execution request, the kernal checks policy to determine whether it should be allowed or rejected. However, judging this within the kernel has some limitations. There are few library functions available and it is more likely to fail when allocating a contiguous area of memory. This is where the <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive can be useful in judging the execution request outside of the kernel, which allows the use of many library functions and more consistent allocation of a contiguous area of memory. However, there is one downside to this approach. There are no means of notifying the process that made the execution request that the execution failed.</p>
 
-<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. The program <a href="example-programs.html.en#audit-exec-param">audit-exec-param</a> is an example program that demonstrates how this directive might be used. It provides a hook that can be utilized as you wish, and you are also encouraged to customize this program or design your own to use.</p>
+<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. You can use <a href="#audit-exec-param">audit-exec-param</a> which comes with the userspace tools package as a templete for utilizing this directive.</p>
 
-<p>This directive should be placed in domain policy for the appropriate domain, and will only function if the domain is in "Enforcing Mode":</p>
+<div class="simple-table-wrap">
+<table>
+<tr><td><code><a name="audit-exec-param">audit-exec-param</a></code></td><td><p>This program acts as a preprocessor for auditing command line arguments and environment variables passed to execute requests.<br>This program itself does not judge whether the execution of requested program should be allowed or rejected.<br>You can customize this program as you wish.</p></td></tr>
+</table>
+</div>
+
+<p>This directive should be placed in domain policy for the appropriate domain:</p>
 
 <pre>
 task auto_execute_handler /usr/lib/ccs/audit-exec-param
@@ -167,7 +173,6 @@ task auto_execute_handler /usr/lib/ccs/audit-exec-param
 
 <p>Important notes:</p>
 <ul>
-<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="policy-specification/domain-policy-syntax.html.en#file_execute">file execute</a> directive.</li>
 <li>All environment variables are cleared before executing the program specified by the directive. This is to prevent dangerous environment variables like LD_PRELOAD from affecting the program. Note that even PATH is cleared. Other resources such as standard input and output are inherited.</li>
 <li>If the process making the request is in a chroot environment, the directive will only function if the program specified by the directive is within the chroot.</li>
 </ul>
