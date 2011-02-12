@@ -40,18 +40,18 @@
 
 <h3><a name="4.1">4.1. ドメインを理解する</a></h3>
 
-<p>In TOMOYO Linux, the technique used to enforce MAC makes use of something called <strong>"domains"</strong>. This is an important concept. Every process in a system belongs to a domain, which is determined by its execution history. Broadly speaking, every time a process is executed, a new domain is created. Any particular domain is represented by a concatenation of all previously executed pathanames. This creation of a new domain can also be called a <strong>"domain transition"</strong>. Have a look at this diagram:</p>
+<p>TOMOYO Linux では、強制アクセス制御の適用は<strong>ドメイン</strong>という単位で行われます。これは重要な概念です。システム上に存在する全てのプロセスはそれぞれ１個のドメインに属しています。ドメインはプロセスの実行履歴により決定されます。大まかに言うと、プログラムが実行されるたびに新しいドメインが作成されます。あるドメインの名前はそのドメインに到達するまでに実行された全てのプログラムのパス名を連結したものとして定義されます。このドメインを作成することは<strong>ドメイン遷移</strong>と呼ばれています。以下の図を見てください：</p>
 
 <a href="media/fig-3-1.png"><img src="media/fig-3-1.png" alt="fig-3-1.png" width="600" height="450"></a>
 
-<p>The kernel is always the first domain and is represented in TOMOYO Linux by <strong>&lt;kernel&gt;</strong>. In this example, the kernel then executes <code>/sbin/init</code>. Because a process has been executed, a new domain is created which in this case is the domain <strong>&lt;kernel&gt; /sbin/init</strong>. The bootup scripts are then executed, which result in further domains being created.</p>
+<p>カーネルは常に最初のドメインであり、 TOMOYO Linux においては <strong>&lt;kernel&gt;</strong> というドメイン名で定義されます。この例では、カーネルが <code>/sbin/init</code> を実行します。プログラムが実行されたことにより、新しいドメイン、この場合は <strong>&lt;kernel&gt; /sbin/init</strong> という名前を持つドメインが作成されます。起動スクリプトが実行されると、より多くのドメインが作成されていきます。</p>
 
-<p>The process execution history is important. Consider the following domains:</p>
+<p>このプロセス実行履歴は重要です。以下のドメインを考えてください：</p>
 
 <p>&lt;kernel&gt; /sbin/init <strong>/etc/rc.d/rc</strong><br>
 &lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit <strong>/etc/rc.d/rc</strong></p>
 
-<p>In both cases, the script "/etc/rc.d/rc" is the process causing a new domain to be created. However, <strong>because the process execution history is different, they are considered to be two separate domains</strong>. This allows you to control what can be executed by any particular domain, and allows policy to be more flexible as you can apply different levels of restriction to a process depending on how it was executed. There is also the possibility to manage domain transition very precisely and for example apply the same restriction to a process without regard to how it was executed. This topic will be discussed later.</p>
+<p>どちらのドメインも /etc/rc.d/rc というプログラムが実行されることにより作成されています。しかし、<strong>プロセス実行履歴が異なるため、これらは２つの異なるドメインとして扱われます。</strong>これは、あるドメインから実行できるプログラムを制御できることを、また、そのプロセスがどのように実行されたかにより異なるレベルの制限を行う柔軟なポリシーを記述できることを示しています。また、とても正確なドメイン遷移を行いつつ、例えばプロセスがどのように実行されたかによらずに同じ制限を適用することも可能であることを示しています。この項目については後述します。</p>
 
 <h3><a name="4.2">4.2. ポリシーエディタを用いてドメインを確認する</a></h3>
 
@@ -186,7 +186,7 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 
 <p>Thus, there are four default profiles that each play a different role:</p>
 
-<a href="media/fig-2-5-en.png"><img src="media/fig-2-5-en.png" alt="fig-2-5-en.png" width="640" height="320"></a>
+<a href="media/fig-2-5-ja.png"><img src="media/fig-2-5-ja.png" alt="fig-2-5-ja.png" width="640" height="320"></a>
 
 <p>Each of these profiles can be assigned to a domain:</p>
 
