@@ -55,185 +55,185 @@
 
 <h3><a name="4.2">4.2. ポリシーエディタを用いてドメインを確認する</a></h3>
 
-<p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.ja">How to use the Policy Editor</a>.</p>
+<p>よりドメインについて理解するために、ポリシーエディタを見てみましょう。ポリシーエディタは TOMOYO Linux で使用する中心的なツールであり、使い方に慣れることが重要です。このページの説明を補足するものとして、<a href="tool-editpolicy.html.ja">ポリシーエディタの使い方</a>も参照してください。</p>
 
-<p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with the "/etc/ccs/" option to edit policy files within the "/etc/ccs/" directory:</p>
+<p>システムを TOMOYO Linux カーネルで起動させてから、（ /etc/ccs/ ディレクトリに存在しているポリシーファイルを編集するために） /etc/ccs/ というオプションを指定してポリシーエディタを実行してください：</p>
 
 <pre class="command">
 # /usr/sbin/ccs-editpolicy /etc/ccs/
 </pre>
 
-<p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the <strong>"Domain Transition Editor"</strong>. The picture below describes the domain tree that should be visible after running the above command. As of now, only the "&lt;kernel&gt;" domain is defined:</p>
+<p>ポリシーエディタにはいくつもの画面が存在し、それぞれが異なる役割を提供しています。デフォルトで最初に表示される画面は <strong>Domain Transition Editor</strong> です。以下の画面は上記のコマンドを実行することで表示されるドメインのツリーです。現時点では &lt;kernel&gt; ドメインだけが定義されています：</p>
 
 <a href="media/editpolicy-domain-list1.png"><img src="media/editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" width="675" height="375"></a>
 
-<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. <strong>There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/"</strong>. Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in later. Press the "q" key to quit the policy editor.</p>
+<p>初期化されたばかりのポリシーであるため、 /etc/ccs/ ディレクトリに存在するポリシーファイルは空っぽです。<strong>TOMOYO Linux には２種類のポリシーのセットが存在しています：１つは現在カーネル内にロードされているポリシーのセットであり、もう１つは /etc/ccs/ ディレクトリ内に保存されているポリシーのセットです。</strong> /etc/ccs/ ディレクトリには複数のポリシーのセットを保存することができ、起動時または必要な時にカーネル内へと読み込ませることができます。ポリシーをディスクに保存する方法については後述します。 q キーを押してポリシーエディタを終了してください。</p>
 
-<p>Now run the policy editor again <strong>without</strong> the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:</p>
+<p>今度は、（現在カーネル内にロードされているポリシーを閲覧するために） /etc/ccs/ というオプションを<strong>指定しない</strong>でポリシーエディタを実行してください：</p>
 
 <pre class="command">
 # /usr/sbin/ccs-editpolicy
 </pre>
 
-<p>As the system runs, TOMOYO Linux will record the creation of new domains and add them to the tree. After running the above command, the domain tree should appear populated with all domains created since startup:</p>
+<p>システムが動作するにつれて、 TOMOYO Linux は新しいドメインが作成されたことを記録して、ドメインのツリーへと追加していきます。上記のコマンドを実行することにより、システム起動時から現在までに作成された全てのドメインを含むドメインのツリーが表示されます：</p>
 
 <a href="media/editpolicy-domain-list2.png"><img src="media/editpolicy-domain-list2.png" alt="editpolicy-domain-list2.png" width="675" height="375"></a>
 
-<p>The <strong>first line</strong> shows what screen you are on and how many domains are listed.<br>
-The <strong>second line</strong> is the message area.<br>
-The <strong>third line</strong> shows the domain name currently selected by the cursor.<br>
-The <strong>fourth line</strong> and downwards are the domains currently defined.</p>
+<p><strong>１行目</strong>は現在表示されている画面の名前と、存在しているドメインの数が表示されます。<br>
+<strong>２行目</strong>はメッセージを表示するための領域です。<br>
+<strong>３行目</strong>は現在カーソルのある行のドメイン名が表示されます。<br>
+<strong>４行目</strong>以降は現在定義されているドメインのツリーが表示されます。</p>
 
-<p>Try executing some commands and see where new domains are created. You can do this while you still have the policy editor running.</p>
+<p>適当にコマンドを実行してどのようにドメインが作成されるかを確認してみてください。コマンドを別の画面などで実行する場合は、ポリシーエディタを終了させる必要はありません。</p>
 
-<p>You can scroll using the <strong>arrow keys</strong> and/or the <strong>Home/End/PageUp/PageDown</strong> keys.<br>
-Press the <strong>"r"</strong> key to refresh the contents of the screen.<br>
-Press the <strong>"f"</strong> key to find an entry.<br>
-Press the <strong>"?"</strong> key to view the available commands. Press the "?" again to go back to the previous screen.</p>
+<p><strong>矢印キー</strong>や <strong>Home/End/PageUp/PageDown</strong> キーを使って画面をスクロールすることができます。<br>
+<strong>r</strong> キーを押すと、最新の状態に更新されます。<br>
+<strong>f</strong> キーを押すと、検索ができます。<br>
+<strong>?</strong> キーを押すと、利用可能なコマンドが表示されます。再度 ? キーを押すと元の画面に戻ります。</p>
 
-<p>Note that a new domain is only created if it is unique, so executing the same command over and over again will not result in the creation of many domains.</p>
+<p>新しいドメインは同じ名前のドメインが存在しない場合だけ作成されます。そのため、同じコマンドを何度も実行しても、繰り返した数だけドメインが作成されるわけではありません。</p>
 
 <h3><a name="4.3">4.3. プロファイルを理解する</a></h3>
 
-<p>Each domain can be restricted using TOMOYO Linux by assigning a <strong>"profile"</strong>. These profiles can be assigned to any domain independently of others, which allows you to slowly build up the security in your system one domain at a time. This also allows you to create custom profiles for specific domains, but this is a more advanced topic for later on.</p>
+<p>それぞれのドメインは<strong>プロファイル</strong>というものを指定することにより制限が行われるようになります。プロファイルは他のドメインに割り当てられているプロファイルとは無関係に自由にドメインに割り当てることができます。そのため、ドメインに対するアクセス制限の設定を１個ずつ順番に行っていくことも可能です。また、特定のドメインに対して専用のプロファイルを割り当てることも可能です。この応用についてはここではまだ説明しません。</p>
 
-<p>In the policy editor, look at the numbers in the second column of each line:</p>
+<p>ポリシーエディタの画面で、それぞれの行の２番目に表示されている数値に注目してください：</p>
 
 <a href="media/editpolicy-domain-profile-number.png"><img src="media/editpolicy-domain-profile-number.png" alt="editpolicy-domain-profile-number.png" width="675" height="375"></a>
 
-<p>This number is called the <strong>"profile number"</strong>. A profile number is an integer value which takes between 0 and 255. The default profile number is "0", also known as "Disabled Mode", in which the domain is completely unrestricted.</p>
+<p>この数値は<strong>プロファイル番号</strong>と呼ばれています。プロファイル番号は０～２５５の整数値です。デフォルトのプロファイル番号は０であり、プロファイル０は無効モードとも呼ばれています。無効モードのプロファイルが割り当てられたドメインでは全く制限が行われません。</p>
 
-<p>Press the <strong>"w"</strong> key to list the different "screens" that can be viewed using the policy editor:</p>
+<p><strong>w</strong> キーを押してポリシーエディタで利用可能な画面の一覧を表示してみましょう：</p>
 
 <a href="media/editpolicy-window-list.png"><img src="media/editpolicy-window-list.png" alt="editpolicy-window-list.png" width="675" height="375"></a>
 
-<p>Press the <strong>"p"</strong> key to select the <strong>"Profile Editor"</strong>, and you will see the list of profiles:</p>
+<p><strong>p</strong> キーを押して <strong>Profile Editor</strong> 画面を表示すると、以下のようなプロファイルの一覧が表示されます：</p>
 
 <a href="media/editpolicy-profile-list.png"><img src="media/editpolicy-profile-list.png" alt="editpolicy-profile-list.png" width="675" height="375"></a>
 
-<p>Each profile contains 3 fields:</p>
+<p>それぞれのプロファイルには３種類の行が存在しています：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Name</p></th>
-<th><p>Control</p></th>
+<th><p>名前</p></th>
+<th><p>内容</p></th>
 </tr>
 <tr>
 <td><p>COMMENT</p></td>
-<td><p>Description of the profile.</p></td>
+<td><p>プロファイルの用途を表すコメント</p></td>
 </tr>
 <tr>
 <td><p>CONFIG</p></td>
-<td><p>Configuration of operation mode.</p></td>
+<td><p>アクセス制御モードの設定</p></td>
 </tr>
 <tr>
 <td><p>PREFERENCE</p></td>
-<td><p>Configuration of various options.</p></td>
+<td><p>各種オプションの設定</p></td>
 </tr>
 </table>
 </div>
 
-<p>The "mode" parameter of the CONFIG line can contain one of the following values:</p>
+<p>CONFIG 行の mode パラメータには以下の何れかの値を指定できます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Value</p></th>
-<th><p>Meaning</p></th>
+<th><p>値</p></th>
+<th><p>意味</p></th>
 </tr>
 <tr>
-<td><p>Disabled</p></td>
-<td><p>Works as if a regular kernel.</p></td>
+<td><p>disabled</p></td>
+<td><p>通常のカーネルのように動作します。</p></td>
 </tr>
 <tr>
-<td><p>Learning</p></td>
-<td><p>Do not reject an access request if the request violates policy. Append the request to policy.</p></td>
+<td><p>learning</p></td>
+<td><p>アクセス要求がポリシーで許可されていなくても拒否しません。また、同じアクセス要求を次回以降は許可するためにポリシーに追加します。</p></td>
 </tr>
 <tr>
-<td><p>Permissive</p></td>
-<td><p>Do not reject an access request if the request violates policy. Do not append the request to policy.</p></td>
+<td><p>permissive</p></td>
+<td><p>アクセス要求がポリシーで許可されていなくても拒否しません。ただし、ポリシーへの追加も行いません。</p></td>
 </tr>
 <tr>
-<td><p>Enforcing</p></td>
-<td><p>Reject an access request if the request violates policy. Do not append the request to policy.</p></td>
+<td><p>enforcing</p></td>
+<td><p>アクセス要求がポリシーで許可されていない場合には拒否します。また、ポリシーへの追加も行いません。</p></td>
 </tr>
 </table>
 </div>
 
-<p>The PREFERENCE line holds the following options:</p>
+<p>PREFERENCE 行には以下のオプションを指定できます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Name</p></th>
-<th><p>Function</p></th>
+<th><p>名前</p></th>
+<th><p>内容</p></th>
 </tr>
 <tr>
 <td><p>max_audit_log</p></td>
-<td><p>Sets the maximum number of audit logs that the kernel will hold</p></td>
+<td><p>カーネルが保持するアクセスログの件数の上限</p></td>
 </tr>
 <tr>
 <td><p>max_learning_entry</p></td>
-<td><p>Sets the maximum number of domain policy entries appended by "Learning Mode"</p>
+<td><p>学習モードによりドメインポリシーへと自動的に追加されるアクセス許可の件数の上限</p>
 </tr>
 <tr>
 <td><p>enforcing_penalty</p></td>
-<td><p>Sets the length of time a process is forced to sleep after policy violation</p>
+<td><p>強制モードでポリシー違反を起こしたプロセスに対して強制的にスリープさせる時間</p>
 </tr>
 </table>
 </div>
 
-<p>Thus, there are four default profiles that each play a different role:</p>
+<p>デフォルトでは役割の異なる４つのプロファイルが定義されています：</p>
 
 <a href="media/fig-2-5-ja.png"><img src="media/fig-2-5-ja.png" alt="fig-2-5-ja.png" width="640" height="320"></a>
 
-<p>Each of these profiles can be assigned to a domain:</p>
+<p>これらのプロファイルをドメインへと割り当てていきます：</p>
 
 <a href="media/fig-2-6.png"><img src="media/fig-2-6.png" alt="fig-2-6.png" width="600" height="450"></a>
 
-<p>The "Learning Mode" profile is the feature of TOMOYO Linux that makes developing policy very easy. This mode will automatically generate policy for any domain that has this profile selected. This can then be developed and refined into a solid policy. The other profiles, "Permissive Mode" and "Enforcing Mode", are for later on when a domain is ready to be restricted.</p>
+<p>学習モード用プロファイルというのはポリシーの作成を容易にするための TOMOYO Linux の特徴です。学習モードが割り当てられたドメインではドメインポリシーが自動的に作成されます。学習モードで作成されたポリシーを精製していくことでしっかりとしたポリシーを作成することができます。他のプロファイル（確認モード用と強制モード用）は後でドメインの動作に制限をかける際に利用します。</p>
 
-<p>For further information on management of profiles, read <a href="chapter-9.html.ja">Chapter 9: Advanced profile management</a>.</p>
+<pプロファイル管理の詳細については <a href="chapter-9.html.ja">Chapter 9: より詳細なプロファイルの管理</a>を参照してください。</p>
 
 <h3><a name="4.4">4.4. ドメインポリシーを理解する</a></h3>
 
-<p>The restrictions of each domain can be viewed using the <strong>"Domain Policy Editor"</strong> screen, which can be accessed by selecting a domain in the "Domain Transition" screen, and then pressing the "Enter" key. Since no policy has been developed yet, the screen is empty. This is an example of domain policy for Apache:</p>
+<p>それぞれのドメインに対する制限の内容は <strong>Domain Policy Editor</strong> 画面で確認できます。この画面は Domain Transition Editor 画面でドメインを選択して Enter キーを押すことで表示されます。現時点ではまだポリシーが定義されていないので、空っぽです。以下の写真は Apache 用のドメインポリシーの例です：</p>
 
-<a href="media/editpolicy-httpd-full.png">(Click to view complete screen.)<br><img src="media/editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="675" height="375"></a>
+<a href="media/editpolicy-httpd-full.png">（クリックすると全体を表示します。）<br><img src="media/editpolicy-httpd-acl1.png" alt="editpolicy-httpd-acl1.png" width="675" height="375"></a>
 
-<p>The permissions in domain policy are represented here with directives such as "file read" and "file write". Once the domain is placed in "Enforcing Mode", only the permissions defined in domain policy will be allowed, as well as the permissions defined in exception policy (see <a href="chapter-4.html.ja#4.5">4.5: Understanding exception policy</a>). In order to develop a policy of least privilege that still allows normal usage, the "Learning Mode" and "Permissive Mode" can be used. For in depth details on the directives that can be used in exception policy, see <a href="policy-specification/domain-policy-syntax.html.ja">Domain policy syntax</a> located in <a href="policy-specification/index.html.ja">Appendix B: Policy specification</a>.</p>
+<p>ドメインポリシーのパーミッションは file read や file write などのディレクティブと一緒にこの画面に表示されます。ドメインに対して強制モード用のプロファイルを割り当てることにより、ここで定義されているアクセス許可（および例外ポリシーで定義されているアクセス許可（ <a href="chapter-4.html.ja#4.5">4.5: 例外ポリシーを理解する</a>）を参照してください）だけが許可されるようになります。正常な動作をするのに必要最小限の権限を持ったポリシーを作成するために、学習モードと確認モードを使うことができます。ドメインポリシーで指定できるディレクティブについての詳細は <a href="policy-specification/index.html.ja">Appendix B: ポリシー仕様</a>の中の<a href="policy-specification/domain-policy-syntax.html.ja">ドメインポリシー仕様</a>を参照してください。</p>
 
 <h3><a name="4.5">4.5. 例外ポリシーを理解する</a></h3>
 
-<p>Press the "w" key, then press the "e" key, and you will see the <strong>"Exception Policy Editor"</strong> screen:</p>
+<p>w キーを押して、次に e キーを押すと、 <strong>Exception Policy Editor</strong> という画面が表示されます：</p>
 
-<a href="media/editpolicy-exception-full.png">(Click to view complete screen.)<br><img src="media/editpolicy-exception-list1.png" alt="editpolicy-exception-list1.png" width="675" height="375"></a>
+<a href="media/editpolicy-exception-full.png">（クリックすると全体を表示します。）<br><img src="media/editpolicy-exception-list1.png" alt="editpolicy-exception-list1.png" width="675" height="375"></a>
 
-<p>You can scroll this window using the arrow keys and/or the Home/End/PageUp/PageDown keys.</p>
+<p>矢印キーや Home/End/PageUp/PageDown キーを使って画面をスクロールすることができます。</p>
 
-<p>The permissions here are similar to those in the domain policy, but apply to all domains. Permissions defined here will not be displayed in domain policy, and access requests from any domain that match a permission in exception policy will be automatically accepted. The exception policy can also be used to shorten and simplify domain policy for each domain by using the group directives.</p>
+<p>この画面で表示されるパーミッションはドメインポリシーで表示されるパーミッションと似ていますが、全てのドメインに対して適用されるという点が異なります。この画面で定義されたパーミッションはドメインポリシーには表示されません。また、例外ポリシーで与えられているアクセス許可に一致するアクセス要求は自動的に許可されます。また、例外ポリシーはグループ化ディレクティブを指定することによりドメインポリシーを削減および単純化するためにも利用されます。</p>
 
-<p>For in depth details on the directives that can used in exception policy, see <a href="policy-specification/exception-policy-syntax.html.ja">Exception policy syntax</a> located in <a href="policy-specification/index.html.ja">Appendix B: Policy specification</a>.</p>
+<p>例外ポリシーで指定できるディレクティブについての詳細は <a href="policy-specification/index.html.ja">Appendix B: ポリシー仕様</a>の中の<a href="policy-specification/exception-policy-syntax.html.ja">例外ポリシー仕様</a>を参照してください。</p>
 
 <h3><a name="4.6">4.6. アクセスログを保存する（任意）</a></h3>
 
-<p>When a domain tries to perform an action that has been permitted in domain/exception policy, this action is granted. If the action has not been permitted in policy, then the action is rejected, assuming the domain is in "Enforcing Mode".</p>
+<p>あるドメインに属しているプロセスがそのドメインのドメインポリシーまたは例外ポリシーで許可されているアクセスを要求した場合、その要求は許可されます。ポリシーで許可されておらず、なおかつ、そのドメインに対して強制モードが割り当てられている場合には、その要求は拒否されます。</p>
 
-<p>When developing policy, it may be useful to save a log entry every time a domain makes a request that is undefined in domain/exception policy. While this is crucial for system administration once policy has been fully developed and enforced, it can also be used alongside "Learning Mode" to help develop policy.</p>
+<p>ポリシーを作成中は、ドメインポリシーや例外ポリシーで許可されていないアクセス要求が発生する度にログとして残しておくと有用かもしれません。ポリシーが完成して強制モードが割り当てられた後はログに残しておくことが特に重要ですが、学習モードの時点でもポリシーを作成するためにログに残しておくことができます。</p>
 
-<p>TOMOYO Linux can record <strong>"access granted logs"</strong> (access requests that did not violate domain policy) and <strong>"access rejected logs"</strong> (access requests that violated domain policy). These logs are in the form of domain policy. This is useful in the case that the user wishes to permit a domain to perform actions that are not currently permitted in policy. The "access rejected log" could then be used to append permissions to domain policy. The "Learning Mode" described in <a href="chapter-5.html.ja">the next chapter</a> mostly automates the process of appending "access rejected logs" into domain policy for domains set to that mode.</p>
+<p>TOMOYO Linux では<strong>アクセス許可ログ</strong>（ドメインポリシーまたは例外ポリシーで許可されたアクセス要求）と<strong>アクセス拒否ログ</strong>（ドメインポリシーと例外ポリシーのどちらでも許可されなかったアクセス要求）という２種類のログが存在します。これらのログは、ドメインポリシーの形式で出力されます。これは、現在のポリシーでは許可されていないアクセス要求を行った際にその要求をポリシーとして許可したい場合に便利です。アクセス拒否ログはドメインポリシーにパーミッションを追加する用途で利用できます。<a href="chapter-5.html.ja">次の章</a>で説明する学習モードは、学習モードが割り当てられているドメインで発生したアクセス拒否ログをドメインポリシーへと追加するという作業をほとんど自動的に行ってくれます。</p>
 
-<p>The following values can be given for the "grant_log" parameter of the CONFIG line:</p>
+<p>CONFIG 行の grant_log パラメータには以下の値を指定できます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
 <th>
-<p>Value</p>
+<p>値</p>
 </th>
 <th>
-<p>Meaning</p>
+<p>意味</p>
 </th>
 </tr>
 <tr>
@@ -241,7 +241,7 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 <p>no</p>
 </td>
 <td>
-<p>Don't record "access granted logs" unless "grant_log=yes" is explicitly specified in the individual ACL entry.</p>
+<p>アクセス許可ログを生成しない。ただし、個別のアクセス許可で grant_log=yes と指定されている場合には生成する。</p>
 </td>
 </tr>
 <tr>
@@ -249,22 +249,22 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 <p>yes</p>
 </td>
 <td>
-<p>Record "access granted logs" unless "grant_log=no" is explicitly specified in the individual ACL entry.</p>
+<p>アクセス許可ログを生成する。ただし、個別のアクセス許可で grant_log=no と指定されている場合には生成しない。</p>
 </td>
 </tr>
 </table>
 </div>
 
-<p>The following values can be given for the "reject_log" parameter of the CONFIG line:</p>
+<p>CONFIG 行の reject_log パラメータには以下の値を指定できます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
 <th>
-<p>Value</p>
+<p>値</p>
 </th>
 <th>
-<p>Meaning</p>
+<p>意味</p>
 </th>
 </tr>
 <tr>
@@ -272,7 +272,7 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 <p>no</p>
 </td>
 <td>
-<p>Don't record "access rejected logs".</p>
+<p>アクセス拒否ログを生成しない。</p>
 </td>
 </tr>
 <tr>
@@ -280,15 +280,15 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 <p>yes</p>
 </td>
 <td>
-<p>Record "access rejected logs".</p>
+<p>アクセス拒否ログを生成する。</p>
 </td>
 </tr>
 </table>
 </div>
 
-<p><code>ccs-auditd</code> is a daemon program that reads from the <a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> interface and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
+<p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> からアクセスログを読み出して指定されたログファイルに保存するために <code>ccs-auditd</code> というデーモンプログラムが提供されています。このデーモンプログラムを利用する場合、 /etc/rc.local 等に /usr/sbin/ccs-auditd という行を追加してください。</p>
 
-<p>The configuration of this daemon is done in the "/etc/ccs/tools/auditd.conf" file. Text read from the <a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
+<p>このデーモンの設定ファイルは /etc/ccs/tools/auditd.conf です。 <a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> から読みだされたアクセスログはこの設定ファイルの内容に従って振り分けが行われ、指定されたファイルへと書き出されます。幾つかの有用なデフォルトルールが定義されていますが、上級者はより管理しやすくするために様々なルールを定義することができます。以下に初期設定を示します：</p>
 
 <pre>
 # This file contains sorting rules used by ccs-auditd command.
@@ -349,9 +349,9 @@ header.contains profile=3
 destination     /var/log/tomoyo/reject_003.log
 </pre>
 
-<p>It is important to <strong>be careful with disk space if "access granted logs" are saved</strong>, as this file can grow extremely quickly. Do not do this unless you know what you are doing.</p>
+<p>アクセス許可ログはあっという間に大きくなるので<strong>アクセス許可ログを保存する場合にはディスクのスペースに注意してください。</strong>理解していないのならばアクセス許可ログを保存するべきではありません。</p>
 
-<p>To manage logs with <code>logrotate</code>, create "/etc/logrotate.d/tomoyo" with the following content (give "nocreate" option or logs after the first rotation will not be saved):</p>
+<p><code>logrotate</code> によるローテーションを行わせたい場合は、以下のような内容のファイルを /etc/logrotate.d/tomoyo という名前で作成してください。（ nocreate オプションを必ず指定してください。 nocreate オプションを忘れると、最初のローテーションが実行されて以降のログが保存されなくなってしまいます。）：</p>
 
 <pre>
 /var/log/tomoyo/*.log {
@@ -363,7 +363,7 @@ destination     /var/log/tomoyo/reject_003.log
 }
 </pre>
 
-<p>If audit logs are not required, ccs-auditd need not be run. In this case, give <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ max_audit_log=0 }</a> for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
+<p>アクセスログを保存する必要が無い場合は、  <code>ccs-auditd</code> を実行する必要はありません。また、プロファイルで <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ max_audit_log=0 }</a> という指定をすることにより、消費メモリの節約と応答速度の向上が期待できます。ドメインに対して強制モードを割り当てるまでアクセスログは保存しないという選択肢もありますが、より厳密なアクセス制御を行うためのポリシーを作成できるようにするために、現時点でアクセス拒否ログを保存するように設定しておくことをお勧めします。</p>
 
 </div><!-- documentation -->
 
