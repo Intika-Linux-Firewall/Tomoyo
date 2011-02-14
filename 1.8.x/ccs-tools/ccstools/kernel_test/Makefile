@@ -10,7 +10,7 @@ all: $(ALL_FILES)
 
 CC=gcc
 
-CFLAGS=-Wall -O2
+CFLAGS=-Wall -O2 -Werror
 
 #
 # Tools for kernel testing.
