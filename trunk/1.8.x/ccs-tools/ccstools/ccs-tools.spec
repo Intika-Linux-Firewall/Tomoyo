@@ -3,7 +3,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 ##
 ## Change to /usr/lib64 if needed.
 ##
-%define usrlibdir /usr/%{_lib}
+%define usrlibdir /usr/lib
 
 Name: ccs-tools
 Version: 1.8.0
