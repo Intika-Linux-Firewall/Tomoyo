@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -77,7 +77,7 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 		snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
 		status_fp = fopen(buffer, "r");
 		if (status_fp) {
-			while (memset(buffer, 0, sizeof(buffer)),
+			while (memset(buffer, 0, sizeof(buffer)) &&
 			       fgets(buffer, sizeof(buffer) - 1, status_fp)) {
 				if (!strncmp(buffer, "Name:\t", 6)) {
 					char *cp = buffer + 6;
@@ -127,12 +127,12 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 			fprintf(fp, "<UNKNOWN>");
 		}
 		fputc('\n', fp);
-		fwrite(buffer, strlen(buffer), 1, fp);
+		ret_ignored = fwrite(buffer, strlen(buffer), 1, fp);
 		while (1) {
 			int len = read(status_fd, buffer, sizeof(buffer));
 			if (len <= 0)
 				break;
-			fwrite(buffer, len, 1, fp);
+			ret_ignored = fwrite(buffer, len, 1, fp);
 		}
 		fputc('\n', fp);
 	}

@@ -1,9 +1,9 @@
 /*
  * ccs_execute_handler_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -27,6 +27,7 @@ int main(int raw_argc, char *raw_argv[])
 	int error;
 	memset(buffer, 0, sizeof(buffer));
 	{
+		void *ret_ignored;
 		FILE *fp = fopen(proc_policy_process_status, "r+");
 		if (!fp) {
 			printf("BUG: Can't open %s\n",
@@ -35,7 +36,7 @@ int main(int raw_argc, char *raw_argv[])
 		}
 		fprintf(fp, "info %d\n", getpid());
 		fflush(fp);
-		fgets(buffer, sizeof(buffer) - 1, fp);
+		ret_ignored = fgets(buffer, sizeof(buffer) - 1, fp);
 		fclose(fp);
 	}
 	if (strstr(buffer, " execute_handler=yes")) {
@@ -129,5 +130,9 @@ int main(int raw_argc, char *raw_argv[])
 	set_profile(0, "file::execute");
 	fprintf(domain_fp, "delete task denied_execute_handler %s\n", cp);
 	clear_status();
+	if (0) { /* To suppress "defined but not used" warnings. */
+		write_domain_policy("", 0);
+		write_exception_policy("", 0);
+	}
 	return 0;
 }

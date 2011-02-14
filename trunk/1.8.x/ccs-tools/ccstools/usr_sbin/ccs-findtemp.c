@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 	}
-	while (memset(buffer, 0, sizeof(buffer)),
+	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fscanf(stdin, "%16380s", buffer) == 1) {
 		const char *cp;
 		if (buffer[0] != '/')

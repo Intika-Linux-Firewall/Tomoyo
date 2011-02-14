@@ -1,9 +1,9 @@
 /*
  * ccs_bprm_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -28,10 +28,11 @@ static void try_exec(const char *policy, char *argv[], char *envp[],
 	int policy_found = 0;
 	int err = 0;
 	int pipe_fd[2] = { EOF, EOF };
+	int ret_ignored;
 	set_profile(3, "file::open");
 	fp = fopen(proc_policy_domain_policy, "r");
 	set_profile(3, "file::open");
-	pipe(pipe_fd);
+	ret_ignored = pipe(pipe_fd);
 	printf("%s: ", policy);
 	fflush(stdout);
 	fprintf(domain_fp, "%s\n", policy);
@@ -61,11 +62,11 @@ static void try_exec(const char *policy, char *argv[], char *envp[],
 	if (fork() == 0) {
 		execve("/bin/true", argv, envp);
 		err = errno;
-		write(pipe_fd[1], &err, sizeof(err));
+		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 		_exit(0);
 	}
 	close(pipe_fd[1]);
-	read(pipe_fd[0], &err, sizeof(err));
+	ret_ignored = read(pipe_fd[0], &err, sizeof(err));
 	close(pipe_fd[0]);
 	fprintf(domain_fp, "delete %s\n", policy);
 	if (should_success) {
@@ -183,5 +184,9 @@ int main(int argc, char *argv[])
 	stage_exec_test();
 	set_profile(3, "file::execute");
 	clear_status();
+	if (0) { /* To suppress "defined but not used" warnings. */
+		write_domain_policy("", 0);
+		write_exception_policy("", 0);
+	}
 	return 0;
 }

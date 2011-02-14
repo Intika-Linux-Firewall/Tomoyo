@@ -9,7 +9,7 @@ install: all
 	$(INSTALL) -m 0700 $(BUILD_FILES) $(INSTALLDIR)$(SBINDIR)
 
 .c:
-	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
 	rm -f -- $(BUILD_FILES)

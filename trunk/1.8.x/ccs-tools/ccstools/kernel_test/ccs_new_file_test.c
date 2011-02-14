@@ -1,9 +1,9 @@
 /*
  * ccs_new_file_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -21,46 +21,6 @@
 #include "include.h"
 
 static const char *policy = "";
-
-#if 0
-static int write_policy(void)
-{
-	FILE *fp;
-	char buffer[8192];
-	int domain_found = 0;
-	int policy_found = 0;
-	memset(buffer, 0, sizeof(buffer));
-	set_profile(0, "file::open");
-	fp = fopen(proc_policy_domain_policy, "r");
-	set_profile(3, "file::open");
-	fprintf(domain_fp, "%s\n", policy);
-	if (!fp) {
-		printf("%s : BUG: policy read failed\n", policy);
-		return 0;
-	}
-	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
-		char *cp = strchr(buffer, '\n');
-		if (cp)
-			*cp = '\0';
-		if (!strncmp(buffer, "<kernel>", 8))
-			domain_found = !strcmp(self_domain, buffer);
-		if (!domain_found)
-			continue;
-		/* printf("<%s>\n", buffer); */
-		if (!strcmp(buffer, policy)) {
-			policy_found = 1;
-			break;
-		}
-	}
-	fclose(fp);
-	if (!policy_found) {
-		printf("%s : BUG: policy write failed\n", policy);
-		return 0;
-	}
-	errno = 0;
-	return 1;
-}
-#endif
 
 static void show_result(int result, char should_success)
 {
@@ -138,6 +98,7 @@ static void stage_file_test(void)
 	struct sockaddr_un addr;
 	struct ifreq ifreq;
 	char *filename = "";
+	int ret_ignored;
 	set_profile(3, "file::execute");
 	set_profile(3, "file::open");
 	set_profile(3, "file::create");
@@ -201,15 +162,15 @@ static void stage_file_test(void)
 	write_domain_policy(policy, 0);
 	fflush(stdout);
 	fflush(stderr);
-	pipe(pipe_fd);
+	ret_ignored = pipe(pipe_fd);
 	if (fork() == 0) {
 		execl("/bin/true", "/bin/true", NULL);
 		err = errno;
-		write(pipe_fd[1], &err, sizeof(err));
+		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 		_exit(0);
 	}
 	close(pipe_fd[1]);
-	read(pipe_fd[0], &err, sizeof(err));
+	ret_ignored = read(pipe_fd[0], &err, sizeof(err));
 	close(pipe_fd[0]);
 	wait(NULL);
 	errno = err;
@@ -217,15 +178,15 @@ static void stage_file_test(void)
 	write_domain_policy(policy, 1);
 	fflush(stdout);
 	fflush(stderr);
-	pipe(pipe_fd);
+	ret_ignored = pipe(pipe_fd);
 	if (fork() == 0) {
 		execl("/bin/true", "/bin/true", NULL);
 		err = errno;
-		write(pipe_fd[1], &err, sizeof(err));
+		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 		_exit(0);
 	}
 	close(pipe_fd[1]);
-	read(pipe_fd[0], &err, sizeof(err));
+	ret_ignored = read(pipe_fd[0], &err, sizeof(err));
 	close(pipe_fd[0]);
 	wait(NULL);
 	errno = err;
@@ -640,5 +601,7 @@ int main(int argc, char *argv[])
 	stage_file_test();
 	fprintf(domain_fp, "use_profile 0\n");
 	clear_status();
+	if (0) /* To suppress "defined but not used" warnings. */
+		write_exception_policy("", 0);
 	return 0;
 }

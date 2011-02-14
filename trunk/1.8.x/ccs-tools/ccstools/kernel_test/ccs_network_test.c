@@ -1,9 +1,9 @@
 /*
  * ccs_network_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -198,6 +198,7 @@ static void stage_network_test(void)
 		socklen_t size = sizeof(saddr);
 		int fd1 = EOF;
 		int fd2 = EOF;
+		int ret_ignored;
 
 		fd1 = socket(PF_INET, SOCK_DGRAM, 0);
 
@@ -338,7 +339,7 @@ static void stage_network_test(void)
 		show_result2(read(fd1, buf, sizeof(buf) - 1));
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 		set_enforce(0);
-		write(fd2, "", 1);
+		ret_ignored = write(fd2, "", 1);
 		set_enforce(0);
 		show_prompt(sbuffer);
 		show_result2(read(fd1, buf, sizeof(buf) - 1));
@@ -641,5 +642,9 @@ int main(int argc, char *argv[])
 	}
 	stage_network_test();
 	clear_status();
+	if (0) { /* To suppress "defined but not used" warnings. */
+		write_domain_policy("", 0);
+		write_exception_policy("", 0);
+	}
 	return 0;
 }

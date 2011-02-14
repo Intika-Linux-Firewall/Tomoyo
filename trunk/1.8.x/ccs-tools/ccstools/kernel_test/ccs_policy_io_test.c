@@ -1,9 +1,9 @@
 /*
  * ccs_policy_io_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -210,5 +210,10 @@ int main(int argc, char *argv[])
 {
 	ccs_test_init();
 	stage_policy_io_test();
+	if (0) { /* To suppress "defined but not used" warnings. */
+		write_domain_policy("", 0);
+		write_exception_policy("", 0);
+		set_profile(0, "");
+	}
 	return 0;
 }

@@ -611,5 +611,9 @@ int main(int argc, char *argv[])
 	stage_network_test();
 	stage_unix_network_test();
 	clear_status();
+	if (0) { /* To suppress "defined but not used" warnings. */
+		write_domain_policy("", 0);
+		write_exception_policy("", 0);
+	}
 	return 0;
 }

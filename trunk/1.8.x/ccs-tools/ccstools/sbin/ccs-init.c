@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -190,7 +190,7 @@ static void scan_used_profile_index(void)
 		panic();
 	for (i = 0; i < 256; i++)
 		profile_used[i] = 0;
-	while (memset(buffer, 0, sizeof(buffer)),
+	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		if (sscanf(buffer, "use_profile %u", &i) == 1 && i < 256)
 			profile_used[i] = 1;
@@ -216,7 +216,7 @@ static void disable_profile(void)
 	fp_out = fopen(proc_profile, "w");
 	if (!fp_in || !fp_out)
 		panic();
-	while (memset(buffer, 0, sizeof(buffer)),
+	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp_in)) {
 		char *cp = strchr(buffer, '=');
 		if (!cp)
@@ -240,7 +240,7 @@ static void show_domain_usage(void)
 	FILE *fp = fopen(proc_domain_policy, "r");
 	if (!fp)
 		return;
-	while (memset(buffer, 0, sizeof(buffer)),
+	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		if (!strncmp(buffer, "<kernel>", 8))
 			domain++;
@@ -257,7 +257,7 @@ static void show_memory_usage(void)
 	FILE *fp = fopen(proc_stat, "r");
 	if (!fp)
 		return;
-	while (memset(buffer, 0, sizeof(buffer)),
+	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		unsigned int size;
 		if (sscanf(buffer, "Shared: %u", &size) == 1)
