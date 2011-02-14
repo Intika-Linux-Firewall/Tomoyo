@@ -79,10 +79,10 @@ cd $ANDROID_HOME/tmp/
 wget -O kernel-source.tar.gz 'http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=b0d93fb0426911d0329f861f22c59f1c72cff815;sf=tgz'
 tar -zxf kernel-source.tar.gz
 cd common-b0d93fb/
-wget -O ccs-patch-1.8.0-20110121.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110121.tar.gz'
-wget -O ccs-patch-1.8.0-20110121.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110121.tar.gz.asc'
-gpg ccs-patch-1.8.0-20110121.tar.gz.asc
-tar -zxf ccs-patch-1.8.0-20110121.tar.gz
+wget -O ccs-patch-1.8.0-20110207.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110207.tar.gz'
+wget -O ccs-patch-1.8.0-20110207.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110207.tar.gz.asc'
+gpg ccs-patch-1.8.0-20110207.tar.gz.asc
+tar -zxf ccs-patch-1.8.0-20110207.tar.gz
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
 sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
@@ -106,12 +106,11 @@ cp -p system.img ramdisk.img userdata.img $ANDROID_IMG
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O ccs-tools-1.8.0-20101231.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz'
-wget -O ccs-tools-1.8.0-20101231.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz.asc'
-gpg ccs-tools-1.8.0-20101231.tar.gz.asc
-tar -zxf ccs-tools-1.8.0-20101231.tar.gz
+wget -O ccs-tools-1.8.0-20110214.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz'
+wget -O ccs-tools-1.8.0-20110214.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz.asc'
+gpg ccs-tools-1.8.0-20110214.tar.gz.asc
+tar -zxf ccs-tools-1.8.0-20110214.tar.gz
 cd ccstools
-sudo apt-get install libreadline-dev
 make
 sudo make install
 </pre>

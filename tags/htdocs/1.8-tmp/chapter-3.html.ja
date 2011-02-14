@@ -123,23 +123,21 @@
 <li><strong>gcc</strong>: to build the kernel and tools</li>
 <li><strong>make</strong>: to build the kernel and tools</li>
 <li><strong>ncurses</strong>: for the tools user interface</li>
-<li><strong>readline</strong>: for the tools user interface (optional but recommended)</li>
-<li><strong>help2man</strong>: for the tools man pages (optional but recommended)</li>
 </ul>
 
 <p>These can be installed with the following commands:</p>
 
 <p><strong>RedHat distributions</strong></p>
 <pre class="command">
-# yum -y install wget patch gcc make ncurses-devel readline-devel help2man
+# yum -y install wget patch gcc make ncurses-devel
 </pre>
 <p><strong>Debian distributions</strong></p>
 <pre class="command">
-# apt-get -y install wget patch gcc make libncurses-dev libreadline-dev help2man
+# apt-get -y install wget patch gcc make libncurses-dev
 </pre>
 <p><strong>SUSE distributions</strong></p>
 <pre class="command">
-# yast -i wget patch gcc make ncurses-devel readline-devel help2man
+# yast -i wget patch gcc make ncurses-devel
 </pre>
 
 <h4><a name="3.3.2">3.3.2. カーネルのダウンロードとパッチの適用</a></h4>
@@ -152,10 +150,10 @@ Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.</p>
 In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be replaced with "2.6.37.diff" if using Linux kernel 2.6.37 :</p>
 
 <pre class="command">
-$ wget -O ccs-patch-1.8.0-20110121.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110121.tar.gz'
-$ wget -O ccs-patch-1.8.0-20110121.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110121.tar.gz.asc'
-$ gpg ccs-patch-1.8.0-20110121.tar.gz.asc
-$ tar -zxf ccs-patch-1.8.0-20110121.tar.gz
+$ wget -O ccs-patch-1.8.0-20110207.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110207.tar.gz'
+$ wget -O ccs-patch-1.8.0-20110207.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110207.tar.gz.asc'
+$ gpg ccs-patch-1.8.0-20110207.tar.gz.asc
+$ tar -zxf ccs-patch-1.8.0-20110207.tar.gz
 $ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff
 </pre>
 
@@ -204,10 +202,10 @@ $ su
 <p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
 
 <pre class="command">
-$ wget -O ccs-tools-1.8.0-20101231.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz'
-$ wget -O ccs-tools-1.8.0-20101231.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz.asc'
-$ gpg ccs-tools-1.8.0-20101231.tar.gz.asc
-$ tar -zxf ccs-tools-1.8.0-20101231.tar.gz
+$ wget -O ccs-tools-1.8.0-20110214.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz'
+$ wget -O ccs-tools-1.8.0-20110214.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz.asc'
+$ gpg ccs-tools-1.8.0-20110214.tar.gz.asc
+$ tar -zxf ccs-tools-1.8.0-20110214.tar.gz
 $ cd ccstools/
 $ make -s
 $ su
