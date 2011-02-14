@@ -6,9 +6,7 @@ BUILD_FILES = audit-exec-param ccs-editpolicy-agent convert-audit-log \
 all: $(BUILD_FILES)
 
 install: all
-	mkdir -p $(INSTALLDIR)/$(LIBEXECDIR)
-	chmod 755 $(INSTALLDIR)/$(LIBEXECDIR)
-	chown -R root:root .
+	mkdir -p -m 0755 $(INSTALLDIR)/$(LIBEXECDIR)
 	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)/$(LIBEXECDIR)/
 	$(INSTALL) -m 0644 ../README.ccs ../COPYING.ccs $(INSTALLDIR)/$(LIBEXECDIR)/
 
