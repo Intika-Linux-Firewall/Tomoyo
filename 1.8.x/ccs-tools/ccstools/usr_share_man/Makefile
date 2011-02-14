@@ -1,10 +1,10 @@
 include ../Include.make
 
-SRC = init_policy ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
+SRC = ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
 	ccs-editpolicy ccs-editpolicy-agent ccs-findtemp ccs-init \
 	ccs-loadpolicy ccs-notifyd ccs-patternize ccs-pstree ccs-queryd \
 	ccs-savepolicy ccs-selectpolicy ccs-setlevel ccs-setprofile \
-	ccs-sortpolicy
+	ccs-sortpolicy init_policy
 
 PAGES := $(patsubst %,man8/%.8.gz,$(SRC))
 

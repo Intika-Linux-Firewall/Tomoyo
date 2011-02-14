@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1082,7 +1082,7 @@ static pid_t ccs_get_ppid(const pid_t pid)
 }
 
 /**
- * ccs_get_ppid - Get comm name of the given PID.
+ * ccs_get_name - Get comm name of the given PID.
  *
  * @pid: A pid_t value.
  *
@@ -1175,7 +1175,7 @@ static void ccs_sort_process_entry(const pid_t pid, const int depth)
 }
 
 /**
- * ccs_task_entry_comp - Compare routine for qsort() callback.
+ * ccs_task_entry_compare - Compare routine for qsort() callback.
  *
  * @a: Pointer to "void".
  * @b: Pointer to "void".
