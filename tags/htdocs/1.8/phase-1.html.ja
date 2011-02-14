@@ -24,21 +24,19 @@
 <li><b>gcc</b>：コンパイルを行うために必要です。</li>
 <li><b>make</b>： Makefile を利用するために必要です。</li>
 <li><b>ncurses</b>：ツールのユーザインタフェースを利用するために必要です。</li>
-<li><b>readline</b>：ツールのユーザインタフェースが利用します。（利用不可能でも致命的な問題にはなりません。）</li>
-<li><b>help2man</b>：ツールの man ページを作成するために利用します。（利用不可能でも致命的な問題にはなりません。）</li>
 </ul>
 
 <p>これらのパッケージは以下のコマンドを実行することによりインストールできます。</p>
 
 <table border="1">
 <tr><td>RedHat 系の場合</td><td>
-[root@tomoyo ~]# yum -y install wget patch gcc make ncurses-devel readline-devel help2man
+[root@tomoyo ~]# yum -y install wget patch gcc make ncurses-devel
 </td></tr>
 <tr><td>Debian 系の場合</td><td>
-[root@tomoyo ~]# apt-get -y install wget patch gcc make libncurses-dev libreadline-dev help2man
+[root@tomoyo ~]# apt-get -y install wget patch gcc make libncurses-dev
 </td></tr>
 <tr><td>SUSE 系の場合</td><td>
-[root@tomoyo ~]# yast -i wget patch gcc make ncurses-devel readline-devel help2man
+[root@tomoyo ~]# yast -i wget patch gcc make ncurses-devel
 </td></tr>
 </table>
 
@@ -119,10 +117,10 @@ linux-2.6 についてはカーネル 2.6.11.12 以降に対応しています�
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101231.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz'<br>
-[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20101231.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz.asc'<br>
-[user@tomoyo ~]$ gpg ccs-tools-1.8.0-20101231.tar.gz.asc<br>
-[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20101231.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20110214.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.0-20110214.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-tools-1.8.0-20110214.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.0-20110214.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
 [user@tomoyo ~]$ make -s<br>
 [user@tomoyo ~]$ su<br>
