@@ -85,7 +85,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>Install packages needed by cross compilers in CDROM.</p>
 
 <pre>
-# apt-get -y install gcc-3.4-base libreadline4
+# apt-get -y install gcc-3.4-base
 </pre>
 
 <p>Install cross compilers in CDROM. But uninstall gdb-sh4-linux package because it contains files which conflicts with binutils package.</p>
@@ -98,7 +98,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>Install packages needed for compiling kernel and tools.</p>
 
 <pre>
-# apt-get -y install patch make gcc libc6-dev libncurses5-dev help2man libreadline5-dev
+# apt-get -y install patch make gcc libc6-dev libncurses5-dev
 </pre>
 
 <h2><a name="basic_3">Step 3: Compiling kernel</a></h2>
@@ -147,10 +147,10 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <pre>
 # cd
-# wget -O ccs-tools-1.8.0-20101231.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz'
-# wget -O ccs-tools-1.8.0-20101231.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz.asc'
-# gpg ccs-tools-1.8.0-20101231.tar.gz.asc
-# tar -zxf ccs-tools-1.8.0-20101231.tar.gz
+# wget -O ccs-tools-1.8.0-20110214.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz'
+# wget -O ccs-tools-1.8.0-20110214.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz.asc'
+# gpg ccs-tools-1.8.0-20110214.tar.gz.asc
+# tar -zxf ccs-tools-1.8.0-20110214.tar.gz
 </pre>
 
 <p>Do cross compilation for CAT760. Cross compiled programs are installed under /home/ebihara/tmp/sbin/ directory and /home/ebihara/tmp/usr/ directory.</p>
