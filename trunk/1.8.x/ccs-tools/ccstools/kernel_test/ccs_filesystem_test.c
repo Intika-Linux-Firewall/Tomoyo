@@ -280,13 +280,15 @@ int main(int argc, char *argv[])
 		{
 			struct stat sbuf;
 			FILE *fp = NULL;
+			int ret_ignored;
 			snprintf(buf, sizeof(buf) - 1, "zcat - > %s",
 				 dev_ram_path);
 			if (lstat(dev_ram_path, &sbuf) == 0 &&
 			    S_ISBLK(sbuf.st_mode) && MAJOR(sbuf.st_rdev) == 1)
 				fp = popen(buf, "w");
 			if (fp) {
-				fwrite(compressed_ext2_image_sample, 1,
+				ret_ignored =
+					fwrite(compressed_ext2_image_sample, 1,
 				       sizeof(compressed_ext2_image_sample),
 				       fp);
 				pclose(fp);
