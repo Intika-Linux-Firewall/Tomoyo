@@ -475,7 +475,7 @@ static void make_ldconfig_readable_files(void)
 		fprintf(filp, "acl_group 0 file read %s/lib\\*.so\\*\n", cp);
 		free(cp);
 	}
-	while (memset(path, 0, sizeof(path)),
+	while (memset(path, 0, sizeof(path)) &&
 	       fgets(path, sizeof(path) - 1, fp)) {
 		char *cp = strchr(path, '\n');
 		if (!cp)

@@ -10,11 +10,11 @@ install: all
 	$(MAKE) -C usr_share_man install
 
 clean:
-	##
-	## I don't enable "find" line because older versions does not support
-	## -delete action.
-	##
-	# find -name '*~' -delete
+##
+## I don't enable "find" line because older versions does not support -delete
+## action.
+##
+#	find -name '*~' -delete
 	$(MAKE) -C sbin clean
 	$(MAKE) -C usr_sbin clean
 	$(MAKE) -C usr_lib_ccs clean

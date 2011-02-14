@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -132,6 +132,7 @@ static _Bool ccs_tail_pattern(const char *string,
 {
 	const char *pos;
 	struct ccs_path_info subword;
+	int ret_ignored;
 	for (pos = string; *pos; pos++) {
 		if (*pos != '/')
 			continue;
@@ -139,7 +140,7 @@ static _Bool ccs_tail_pattern(const char *string,
 		ccs_fill_path_info(&subword);
 		if (!ccs_path_matches_pattern(&subword, &ptr->u.path))
 			continue;
-		fwrite(string, 1, pos - string, stdout);
+		ret_ignored = fwrite(string, 1, pos - string, stdout);
 		printf("%s", ptr->string);
 		return true;
 	}

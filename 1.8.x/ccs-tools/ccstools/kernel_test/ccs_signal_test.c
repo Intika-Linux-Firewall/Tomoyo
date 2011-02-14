@@ -1,9 +1,9 @@
 /*
  * ccs_signal_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -85,6 +85,7 @@ static int do_parent(const char *self)
 			int pipe_fd[2] = { EOF, EOF };
 			pid_t pid;
 			char c = 0;
+			int ret_ignored;
 			if (socketpair(AF_UNIX, SOCK_STREAM, 0, pipe_fd) ||
 			    fcntl(pipe_fd[1], F_SETFL, 0)) {
 				fprintf(stderr,
@@ -108,7 +109,7 @@ static int do_parent(const char *self)
 				exit(1);
 			}
 			close(pipe_fd[1]);
-			read(pipe_fd[0], &c, 1);
+			ret_ignored = read(pipe_fd[0], &c, 1);
 			switch (j) {
 				union sigval sv;
 			case 0:
@@ -159,5 +160,9 @@ int main(int argc, char *argv[])
 	ccs_test_init();
 	do_parent(argv[0]);
 	clear_status();
+	if (0) { /* To suppress "defined but not used" warnings. */
+		write_domain_policy("", 0);
+		write_exception_policy("", 0);
+	}
 	return 0;
 }

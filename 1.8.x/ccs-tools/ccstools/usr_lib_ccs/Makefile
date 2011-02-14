@@ -13,7 +13,7 @@ install: all
 	$(INSTALL) -m 0644 ../README.ccs ../COPYING.ccs $(INSTALLDIR)/$(LIBEXECDIR)/
 
 .c:
-	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
 	rm -f -- $(BUILD_FILES)

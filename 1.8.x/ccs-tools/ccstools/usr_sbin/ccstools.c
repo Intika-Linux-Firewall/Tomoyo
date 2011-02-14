@@ -166,10 +166,10 @@ static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
  * Leading and trailing whitespaces are removed.
  * Multiple whitespaces are packed into single space.
  */
-void ccs_normalize_line(unsigned char *buffer)
+void ccs_normalize_line(char *buffer)
 {
-	unsigned char *sp = buffer;
-	unsigned char *dp = buffer;
+	unsigned char *sp = (unsigned char *) buffer;
+	unsigned char *dp = (unsigned char *) buffer;
 	_Bool first = true;
 	while (*sp && (*sp <= ' ' || 127 <= *sp))
 		sp++;
@@ -294,7 +294,7 @@ static int ccs_const_part_length(const char *filename)
  *
  * Note that this function in kernel source checks only !strncmp() part.
  */
-_Bool ccs_domain_def(const unsigned char *domainname)
+_Bool ccs_domain_def(const char *domainname)
 {
 	return !strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN) &&
 		(domainname[CCS_ROOT_NAME_LEN] == '\0'
@@ -487,7 +487,7 @@ _Bool ccs_correct_path(const char *filename)
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
  */
-_Bool ccs_correct_domain(const unsigned char *domainname)
+_Bool ccs_correct_domain(const char *domainname)
 {
 	if (!domainname || strncmp(domainname, CCS_ROOT_NAME,
 				   CCS_ROOT_NAME_LEN))
@@ -498,7 +498,7 @@ _Bool ccs_correct_domain(const unsigned char *domainname)
 	if (*domainname++ != ' ')
 		goto out;
 	while (1) {
-		const unsigned char *cp = strchr(domainname, ' ');
+		const char *cp = strchr(domainname, ' ');
 		if (!cp)
 			break;
 		if (*domainname != '/' ||
@@ -821,7 +821,7 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 	ptr->const_len = ccs_const_part_length(name);
 	ptr->is_dir = len && (name[len - 1] == '/');
 	ptr->is_patterned = (ptr->const_len < len);
-	ptr->hash = ccs_full_name_hash(name, len);
+	ptr->hash = ccs_full_name_hash((const unsigned char *) name, len);
 }
 
 /**
@@ -1071,7 +1071,7 @@ static pid_t ccs_get_ppid(const pid_t pid)
 	snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
 	fp = fopen(buffer, "r");
 	if (fp) {
-		while (memset(buffer, 0, sizeof(buffer)),
+		while (memset(buffer, 0, sizeof(buffer)) &&
 		       fgets(buffer, sizeof(buffer) - 1, fp)) {
 			if (sscanf(buffer, "PPid: %u", &ppid) == 1)
 				break;
@@ -1099,7 +1099,7 @@ static char *ccs_get_name(const pid_t pid)
 	fp = fopen(buffer, "r");
 	if (fp) {
 		static const int offset = sizeof(buffer) / 6;
-		while (memset(buffer, 0, sizeof(buffer)),
+		while (memset(buffer, 0, sizeof(buffer)) &&
 		       fgets(buffer, sizeof(buffer) - 1, fp)) {
 			if (!strncmp(buffer, "Name:\t", 6)) {
 				char *cp = buffer + 6;

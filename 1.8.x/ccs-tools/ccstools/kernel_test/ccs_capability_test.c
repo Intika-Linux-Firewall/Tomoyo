@@ -1,9 +1,9 @@
 /*
  * ccs_capability_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0   2010/11/11
+ * Version: 1.8.0+   2011/02/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -82,6 +82,7 @@ static void stage_capability_test(void)
 	int fd;
 	char tmp1[128];
 	char tmp2[128];
+	int ret_ignored;
 	memset(tmp1, 0, sizeof(tmp1));
 	memset(tmp2, 0, sizeof(tmp2));
 
@@ -142,7 +143,7 @@ static void stage_capability_test(void)
 		int pty_fd = EOF;
 		int status = 0;
 		int pipe_fd[2] = { EOF, EOF };
-		pipe(pipe_fd);
+		ret_ignored = pipe(pipe_fd);
 		set_capability("SYS_VHANGUP");
 		switch (forkpty(&pty_fd, NULL, NULL, NULL)) {
 		case 0:
@@ -150,14 +151,14 @@ static void stage_capability_test(void)
 			vhangup();
 			/* Unreachable if vhangup() succeeded. */
 			status = errno;
-			write(pipe_fd[1], &status, sizeof(status));
+			ret_ignored = write(pipe_fd[1], &status, sizeof(status));
 			_exit(0);
 		case -1:
 			fprintf(stderr, "forkpty() failed.\n");
 			break;
 		default:
 			close(pipe_fd[1]);
-			read(pipe_fd[0], &status, sizeof(status));
+			ret_ignored = read(pipe_fd[0], &status, sizeof(status));
 			wait(NULL);
 			close(pipe_fd[0]);
 			close(pty_fd);
@@ -202,7 +203,7 @@ static void stage_capability_test(void)
 		gethostname(buffer, sizeof(buffer) - 1);
 		show_prompt("SYS_SETHOSTNAME(sethostname())");
 		show_result(sethostname(buffer, strlen(buffer)));
-		getdomainname(buffer, sizeof(buffer) - 1);
+		ret_ignored = getdomainname(buffer, sizeof(buffer) - 1);
 		show_prompt("SYS_SETHOSTNAME(setdomainname())");
 		show_result(setdomainname(buffer, strlen(buffer)));
 		unset_capability("SYS_SETHOSTNAME");
@@ -211,21 +212,21 @@ static void stage_capability_test(void)
 	{
 		int status = 0;
 		int pipe_fd[2] = { EOF, EOF };
-		pipe(pipe_fd);
+		ret_ignored = pipe(pipe_fd);
 		set_capability("SYS_PTRACE");
 		switch (fork()) {
 		case 0:
 			errno = 0;
 			ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 			status = errno;
-			write(pipe_fd[1], &status, sizeof(status));
+			ret_ignored = write(pipe_fd[1], &status, sizeof(status));
 			_exit(0);
 		case -1:
 			fprintf(stderr, "fork() failed.\n");
 			break;
 		default:
 			close(pipe_fd[1]);
-			read(pipe_fd[0], &status, sizeof(status));
+			ret_ignored = read(pipe_fd[0], &status, sizeof(status));
 			wait(NULL);
 			close(pipe_fd[0]);
 			show_prompt("SYS_PTRACE");
@@ -255,5 +256,9 @@ int main(int argc, char *argv[])
 	stage_capability_test();
 	printf("\n\n");
 	clear_status();
+	if (0) { /* To suppress "defined but not used" warnings. */
+		write_domain_policy("", 0);
+		write_exception_policy("", 0);
+	}
 	return 0;
 }

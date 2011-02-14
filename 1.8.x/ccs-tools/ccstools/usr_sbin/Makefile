@@ -13,17 +13,17 @@ all: libccstools.so $(BUILD_FILES)
 	sleep 10
 
 libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.2
+	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.2
 	ln -sf libccstools.so.1.0.2 libccstools.so
 
 .c:
-	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o $@ -lccstools -L. $<
+	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
 
 ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so
-	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
+	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
 
 ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools.so
-	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
+	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
