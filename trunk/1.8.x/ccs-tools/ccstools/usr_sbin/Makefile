@@ -1,9 +1,9 @@
 include ../Include.make
 
-BUILD_FILES := ccs-auditd ccs-domainmatch ccs-queryd ccs-pstree \
-	ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-loadpolicy \
-	ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile \
-	ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy ccs-notifyd
+BUILD_FILES := ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
+	ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize \
+	ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-setlevel \
+	ccs-setprofile ccs-sortpolicy
 
 all: libccstools.so $(BUILD_FILES)
 

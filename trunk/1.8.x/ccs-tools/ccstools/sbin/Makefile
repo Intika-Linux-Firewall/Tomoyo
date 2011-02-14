@@ -6,7 +6,7 @@ all: $(BUILD_FILES)
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(SBINDIR)
-	$(INSTALL) -m 0700 ccs-init $(INSTALLDIR)$(SBINDIR)
+	$(INSTALL) -m 0700 $(BUILD_FILES) $(INSTALLDIR)$(SBINDIR)
 
 .c:
 	$(CC) $(CFLAGS) $(NO_POINTER_SIGN) -o $@ $<

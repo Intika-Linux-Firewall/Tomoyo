@@ -1,5 +1,8 @@
-Summary: TOMOYO Linux userspace tools
+Summary: Userspace tools for TOMOYO Linux 1.8.x
 
+##
+## Change to /usr/lib64 if needed.
+##
 %define usrlibdir /usr/%{_lib}
 
 Name: ccs-tools
@@ -10,15 +13,20 @@ Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+##
+## This spec file is intended for distribution independent.
+## I don't enable "BuildRequires:" line because rpmbuild will fail on
+## environments where packages are managed by (e.g.) apt.
+##
+# BuildRequires: ncurses-devel
 Requires: ncurses
 Conflicts: ccs-tools < 1.8.0-3
 
-#Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20101231.tar.gz
-Source0: ccs-tools-1.8.0-test.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz
 
 %description
-These are the TOMOYO Linux userspace tools.
-See http://tomoyo.sourceforge.jp/1.8/ for documentation.
+This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
 
 %prep
 
@@ -50,6 +58,14 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Mon Feb 14 2011 1.8.0-4
+- Use readymade manpages in order to remove help2man and gzip from build dependency.
+- Removed examples from build target in order to remove readline-devel from build dependency.
+- Use Include.make for passing variables.
+- Use install command rather than cp/chmod/chown commands.
+- Add comments on and reconstruct some of files.
+- Stop if failed to build ccs-editpolicy (probably due to lack of ncurses-devel).
+
 * Fri Dec 31 2010 1.8.0-3
 - Usability enhancement release.
 - Not compatible with 1.8.0-2 and earlier.

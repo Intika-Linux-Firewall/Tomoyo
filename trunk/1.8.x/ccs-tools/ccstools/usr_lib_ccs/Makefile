@@ -1,7 +1,7 @@
 include ../Include.make
 
-BUILD_FILES = audit-exec-param convert-exec-param convert-audit-log \
-	ccs-editpolicy-agent init_policy
+BUILD_FILES = audit-exec-param ccs-editpolicy-agent convert-audit-log \
+	convert-exec-param init_policy
 
 all: $(BUILD_FILES)
 
