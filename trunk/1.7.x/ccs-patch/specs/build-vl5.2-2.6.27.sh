@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for VineLinux 5.1's 2.6.27 kernel.
+# This is a kernel build script for VineLinux 5.2's 2.6.27 kernel.
 #
 
 die () {
@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.27-67vl5.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-5.1/updates/SRPMS/kernel-2.6.27-67vl5.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-5.2/updates/SRPMS/kernel-2.6.27-67vl5.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-2.6.27-67vl5.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.27-67vl5.src.rpm || die "Can't install source package."
