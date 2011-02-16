@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux - News: tomoyo-tools 2.2.0p2 and 2.3.0p1 released</title>
+<title>TOMOYO Linux - News: ccs-tools 1.8.0p3 released</title>
 </head>
 
 <body>
@@ -34,27 +34,28 @@
 
 <div id="news-archive">
 
-<p class="timestamp">11th February, 2011</p>
-<h4>tomoyo-tools 2.2.0p2 and 2.3.0p1 released</h4>
-<p class="article">New versions of tomoyo-tools for both the 2.2.x (<a href="../changelogs/tomoyo-tools-2.2.html.en">ChangeLog</a>) and 2.3.x (<a href="../changelogs/tomoyo-tools-2.3.html.en">ChangeLog</a>) branches have been released.</p>
+<p class="timestamp">14th February, 2011</p>
+<h4>ccs-tools 1.8.0p3 released</h4>
+<p class="article">A new version of ccs-tools for the 1.8.x branch has been released (<a href="changelogs/ccs-tools-1.8.html.en">ChangeLog</a>).</p>
 
-<p>ChangeLog for tomoyo-tools 2.2.0p2:</p>
+<p>ChangeLog for ccs-tools 1.8.0p3:</p>
 <pre>
-Version 2.2.0p2 2011/02/11 Bugfix release.
+Version 1.8.0p3 2011/02/14   Dependency reduction and code cleanup release.
 
-  Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.
-</pre>
+  Use readymade manpages in order to remove help2man and gzip from build
+  dependency.
 
-<p>ChangeLog for tomoyo-tools 2.3.0p1:</p>
-<pre>
-Version 2.3.0p1 2011/02/11   Bugfix release.
+  Removed examples from build target in order to remove readline-devel from
+  build dependency.
 
-  /sbin/tomoyo-init
-    Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.
-    Wait for /etc/tomoyo/tomoyo-post-init in a more reliable way.
+  Use Include.make for passing variables.
 
-  /usr/sbin/tomoyo-diffpolicy
-    Fix regression introduced when fixing old/new inversion bug.
+  Use install command rather than cp/chmod/chown commands.
+
+  Add comments on and reconstruct some of files.
+
+  Stop if failed to build ccs-editpolicy (probably due to lack of
+  ncurses-devel).
 </pre>
 
 </div><!-- news-archive -->
