@@ -49,7 +49,7 @@
     <li><a href="#select">Select an entry</a></li>
     <li><a href="#delete">Delete an entry</a></li>
   </ul></li>
-<li><a href="#domain_transition_editor">Operations in the Domain Transition Editor screen</a></li>
+<li><a href="#operations_in_the_domain_transition_editor">Operations in the Domain Transition Editor screen</a></li>
 <li><a href="#initialize_domain_transition">The initialize_domain and no_initialize_domain directives</a></li>
 <li><a href="#suppress_domain_transition">The keep_domain and no_keep_domain directives</a></li>
 <li><a href="#redundant">Remove redundant entries</a></li>
@@ -243,7 +243,7 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <p>An example operation in the "Domain Transition Editor" screen:</p>
 
-<a href="editpolicy/add-domain-list.png"><img src="editpolicy/add-domain-list.png" alt="add-domain-list.png" title="Adding an entry into  List" width="720" height="400"></a>
+<a href="editpolicy/add-domain-list.png"><img src="editpolicy/add-domain-list.png" alt="add-domain-list.png" title="Adding an entry into List" width="720" height="400"></a>
 
 <h3><a name="select">Select an entry</a></h3>
 
@@ -253,7 +253,7 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <img src="editpolicy/copy.png" alt="copy.png" title="Copying selection state" width="720" height="400">
 
-<p>This makes it easy to select all entries or a block of entries. If you wish to select a block of entries, move the cursor to the first entry of the block and press the "Space" (to select) and "c" keys. Then move the cursor to the entry that lies below the block and press the "Space" (to deselect) and "c" keys:</p>
+<p>This makes it easy to select all entries or a block of entries. If you wish to select a block of entries, move the cursor to the first entry of the block and press the "Space" (to select) and "c" keys. Then move the cursor to the entry that lies below the block and press the "Space" (to deselect) and "c" keys.</p>
 
 <h3><a name="delete">Delete an entry</a></h3>
 
@@ -263,7 +263,7 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <br><br>
 
-<h2><a name="domain_transition_editor">Operations in the Domain Transition Editor screen</a></h2>
+<h2><a name="operations_in_the_domain_transition_editor">Operations in the Domain Transition Editor screen</a></h2>
 
 <h4>Change profile number</h4>
 
@@ -273,13 +273,15 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <h4>Domains with the "!" mark</h4>
 
-<p>This means the domain is unreachable due to either <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> or <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directives.</p>
+<p>This means the domain is unreachable due to either <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> or <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directives.<br>
+Any domains marked with a "!" can be safely deleted, unless they are referenced by either <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> or <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directives.</p>
 
 <a href="editpolicy/unreachable.png"><img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400"></a>
 
 <h4>Domains with the "*" mark</h4>
 
-<p>This means that multiple domains might transit to this domain due to the <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive. A domain without this mark only transits from the parent of the domain visible in the "Domain Transition Editor" screen.</p>
+<p>This means that multiple domains might transit to this domain due to the <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive.<br>
+If this domain does not have this mark and this domain is not specified by neither <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> nor <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directives, only the parent of this domain can transit to this domain.</p>
 
 <img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400">
 
@@ -303,17 +305,19 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <h4>Domains inside brackets</h4>
 
-<p>This means that the domain does not exist due to the deletion of parent domains. Create this domain by moving the cursor to the domain, press the "Insert" key, the "a" key, the "Up" cursor key and the "Enter" key.</p>
+<p>This means that the domain does not exist. This line is displayed for avoiding tree indent breakage.<br>
+You don't need to create parent domains if processes directly transit to descendant domains by either <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> or <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directives.</p>
 
 <img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400">
 
 <h2><a name="initialize_domain_transition">The</a> <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> and <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directives</h2>
 
-<p>The <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen, press "a" to add an entry and then type out the string you wish to add:</p>
+<p>The <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy Editor" screen, press "a" to add an entry and then type out the string you wish to add:</p>
 
 <a href="editpolicy/adding-initialize_domain.png"><img src="editpolicy/adding-initialize_domain.png" alt="adding-initialize_domain.png" title="Adding initialize_domain" width="720" height="400"></a>
 
-<p>Switch to the "Domain Transition Editor" screen. The domain you have set the directive for will have "( -&gt; Not Found )" as the destination domain does not exist yet. The domains belonging to the domain you have set the directive for are now marked with the "!" symbol as they do not exist.</p>
+<p>Switch to the "Domain Transition Editor" screen. Domains which execute the program you specified using the directive will have "( -&gt; Not Found )" as the domain for the program does not exist yet.<br>
+Also, domains which became unreachable due to the directive are now marked with the "!" symbol:</p>
 
 <img src="editpolicy/after-initialize_domain.png" alt="after-initialize_domain.png" title="After initialize_domain" width="720" height="400">
 
@@ -329,11 +333,9 @@ To continue searching in a backward direction, press the "b" key.</p>
 
 <a href="editpolicy/added-initialize_domain-target.png"><img src="editpolicy/added-initialize_domain-target.png" alt="added-initialize_domain-target.png" title="Added initialization target" width="720" height="400"></a>
 
-<p>Now the "/usr/sbin/sendmail" domain is initialized into a new domain. However, the above examples show that it is initialized from a daemon script. You may not want to initialize into a new domain when it is not invoked by a daemon. The <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directive is useful in this situation. Switch to the "Exception Policy Editor" screen and add a new entry, such as "no_initialize_domain /usr/sbin/sendmail from /bin/mail". Now the domain is no longer marked with a "!" and does not transit to a new domain:</p>
+<p>Now the "/usr/sbin/sendmail" domain is initialized into a new domain. However, the above examples show that it is initialized from a daemon script. You may not want to initialize into a new domain when it is not invoked as a daemon. The <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directive is useful in this situation. Switch to the "Exception Policy Editor" screen and add a new entry, such as "no_initialize_domain /usr/sbin/sendmail from /bin/mail". Now the /usr/sbin/sendmail will no longer initialized into the new domain if it is executed from /bin/mail domain:</p>
 
 <img src="editpolicy/after-no_initialize_domain.png" alt="after-no_initialize_domain.png" title="After no_initialize_domain" width="720" height="400">
-
-<p>Any domains marked with a "!" can be safely deleted.</p>
 
 <h2><a name="suppress_domain_transition">The</a> <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> and <a href="policy-specification/exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> directives</h2>
 
@@ -348,8 +350,6 @@ To continue searching in a backward direction, press the "b" key.</p>
 <p>It is possible to prevent domain transitions again from "/usr/bin/man" by adding "keep_domain any from /usr/bin/man" in the "Exception Policy Editor" screen. Return to the "Domain Transition Editor" screen:</p>
 
 <a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-keep_domain-2.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
-
-<p>Any domains marked with a "!" can be safely deleted.</p>
 
 <h2><a name="redundant">Remove redundant entries</a></h2>
 

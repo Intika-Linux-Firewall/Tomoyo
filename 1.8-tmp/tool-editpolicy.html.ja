@@ -1,285 +1,401 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>ポリシーエディタの使い方</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : ポリシーエディタの使い方</title>
 </head>
+
 <body>
-<p style="text-align:right;"><a href="tool-editpolicy.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
-<h1>ポリシーエディタの使い方</h1>
 
-<h1>基本操作</h1>
+<div id="titlebar">
+<a href="../index.html.ja"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="../about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="../download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="../support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="tool-editpolicy.html.en" title="Go to English page">English page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<div id="navheader">
+<p><a href="index.html.ja">&lt;目次&gt;</a></p>
+</div>
+
+<h2>ポリシーエディタの使い方</h2>
+
+<h2>内容</h2>
+<ul>
+<li><a href="#hotkeys">ホットキー</a></li>
+<li><a href="#common">共通の操作</a><br>
+  <ul class="nested">
+    <li><a href="#screens">利用可能な画面</a></li>
+    <li><a href="#search">エントリを検索する</a></li>
+    <li><a href="#add">エントリを追加する</a></li>
+    <li><a href="#select">エントリを選択する</a></li>
+    <li><a href="#delete">エントリを削除する</a></li>
+  </ul></li>
+<li><a href="#operations_in_the_domain_transition_editor">Domain Transition Editor 画面固有の操作</a></li>
+<li><a href="#initialize_domain_transition">initialize_domain と no_initialize_domain ディレクティブ</a></li>
+<li><a href="#suppress_domain_transition">keep_domain と no_keep_domain ディレクティブ</a></li>
+<li><a href="#redundant">冗長なエントリを削除する</a></li>
+</ul>
+
+<h2><a name="hotkeys">ホットキー</a></h2>
+
+<p>ポリシーエディタは以下のように実行することができます：</p>
+
+<pre class="command">
+# ccs-editpolicy
+</pre>
+
+<p>最初に表示される画面を選択するために a d p m s の何れかのオプションをコマンドラインに指定することができます。オプションが指定されなかった場合、デフォルトの画面として Domain Transition Editor 画面が表示されます。</p>
+
+<p>ncurses インタフェースを利用していますが、以下のホットキーを利用することができます：</p>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>キー</p></th>
+<th><p>スクロール動作</p></th>
+</tr>
+<tr>
+<td><p>↑キー</p></td>
+<td><p>１行上へスクロールします。</p></td>
+</tr>
+<tr>
+<td><p>↓キー</p></td>
+<td><p>１行下へスクロールします。</p></td>
+</tr>
+<tr>
+<td><p>PageUp キー</p></td>
+<td><p>１画面上へスクロールします。</p></td>
+</tr>
+<tr>
+<td><p>PageDown キー</p></td>
+<td><p>１画面下へスクロールします。</p></td>
+</tr>
+<tr>
+<td><p>→ キー</p></td>
+<td><p>１桁右へスクロールします。</p></td>
+</tr>
+<tr>
+<td><p>← キー</p></td>
+<td><p>１桁左へスクロールします。</p></td>
+</tr>
+<tr>
+<td><p>Home キー</p></td>
+<td><p>行の先頭へ移動します。</p></td>
+</tr>
+<tr>
+<td><p>End キー</p></td>
+<td><p>行の末尾へ移動します。</p></td>
+</tr>
+</table>
+</div>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>キー</p></th>
+<th><p>検索動作</p></th>
+</tr>
+<tr>
+<td><p>f または F キー</p></td>
+<td><p>最初に一致するエントリを検索します。</p></td>
+</tr>
+<tr>
+<td><p>n または N キー</p></td>
+<td><p>次に一致するエントリを検索します。</p></td>
+</tr>
+<tr>
+<td><p>p または P キー</p></td>
+<td><p>前に一致するエントリを検索します。</p></td>
+</tr>
+</table>
+</div>
+
+<div class="simple-table">
+<table>
+<tr>
+<th><p>キー</p></th>
+<th><p>編集動作</p></th>
+</tr>
+<tr>
+<td><p>a または A キー</p></td>
+<td><p>エントリを追加します。</p></td>
+</tr>
+<tr>
+<td><p>Enter キー</p></td>
+<td><p>Domain Transition Editor 画面においてカーソルのある行のドメインのアクセス許可を編集します。</p></td>
+</tr>
+<tr>
+<td><p>Space キー</p></td>
+<td><p>カーソルのある行の選択状態を反転させます。</p></td>
+</tr>
+<tr>
+<td><p>c または C キー</p></td>
+<td><p>カーソルのある行の選択状態をそれ以降の全ての行にコピーします。</p></td>
+</tr>
+<tr>
+<td><p>d または D キー</p></td>
+<td><p>選択されたエントリを削除します。</p></td>
+</tr>
+<tr>
+<td><p>s または S キー</p></td>
+<td><p>Domain Transition Editor 画面では、選択されたドメインのプロファイル番号を設定します。<br>
+Profile Editor 画面では、選択されたプロファイルの値を設定します。<br>
+Statistics 画面では、選択されたエントリのクォータを設定します。</p></td>
+</tr>
+<tr>
+<td><p>Insert キー</p></td>
+<td><p>カーソルのある行のエントリをヒストリバッファにコピーします。</p></td>
+</tr>
+</table>
+</div>
 
-<h2>（０）ポリシーエディタを使う前に</h2>
+<div class="simple-table">
+<table>
+<tr>
+<th><p>キー</p></th>
+<th><p>その他の動作</p></th>
+</tr>
+<tr>
+<td><p>q または Q キー</p></td>
+<td><p>終了します。</p></td>
+</tr>
+<tr>
+<td><p>r または R キー</p></td>
+<td><p>最新の情報に更新します。</p></td>
+</tr>
+<tr>
+<td><p>w または W キー</p></td>
+<td><p>選択可能な画面の一覧を表示します。</p></td>
+</tr>
+</table>
+</div>
 
-<p>TOMOYO Linux には、 CUI で動作するポリシーエディタが付属しています。</p>
+<h2><a name="common">共通の操作</a></h2>
 
-<p>予め /proc/ccs/manager に「 ccs-editpolicy が動作するドメインのドメイン名」または「 ccs-editpolicy へのパス名（通常は /usr/sbin/ccs-editpolicy ）」が登録されている必要があります。</p>
+<h3><a name="screens">利用可能な画面</a></h3>
 
-<p>シェルプロンプトから ccs-editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
+<p>w キーを押すと画面の一覧が表示されます。その画面からキーを押すと、対応する画面へと切り替わります：</p>
 
-<h2>（１）ポリシーエディタを終了するには</h2>
+<img src="editpolicy/window-list.png" alt="window-list.png" title="Window List" width="720" height="400">
 
-<p>ポリシーエディタを終了するには、「Q」キーを押します。</p>
+<h4><a name="domain_transition_editor">Domain Transition Editor 画面</a></h4>
 
-<h2>（２）最新の情報に更新するには</h2>
+<img src="editpolicy/domain-list.png" alt="domain-list.png" title="Screen for Domain List" width="720" height="400">
 
-<p>最新の情報に更新するには、「R」キーを押します。</p>
+<p><strong>１行目</strong>には現在表示されている画面の名前と定義されているドメインの数が表示されます。<br>
+<strong>２行目</strong>はメッセージ表示領域です。<br>
+<strong>３行目</strong>はカーソルのある行のドメイン名が表示されます。<br>
+<strong>４行目</strong>以降には定義されているドメインの一覧が表示されます。</p>
 
-<h2>（３）カーソルを移動させるには</h2>
+<h4><a name="exception_policy_editor">Exception Policy Editor 画面</a></h4>
 
-<p>カーソルを移動させるには「↑」「↓」キーまたは「PageUp」「PageDown」キーを押します。</p>
+<img src="editpolicy/exception-policy.png" alt="exception-policy.png" title="Screen for Exception Policy" width="720" height="400">
 
-<h2>（４）横方向にスクロールさせるには</h2>
+<h4><a name="domain_policy_editor">Domain Policy Editor 画面</a></h4>
 
-<p>横方向にスクロールさせるには、「←」「→」キーまたは「Home」「End」キーを押します。</p>
+<p>補足：この画面へは Domain Transition Editor 画面で Enter キーを押すことでも表示することができます。</p>
 
-<h2>（５）画面を切り替えるには</h2>
+<img src="editpolicy/domain-policy.png" alt="domain-policy.png" title="Screen for Domain Policy" width="720" height="400">
 
-<p>ポリシーエディタには６つの画面があります。「W」キーを押すと一覧が表示されます。<br>
-<img src="editpolicy/window-list.png" alt="window-list.png" title="Window List" width="720" height="400"></p>
+<h4><a name="profile_editor">Profile Editor 画面</a></h4>
 
-<p>この画面から「E」キーを押すと、例外ポリシーの編集画面に切り替わります。<br>
-<img src="editpolicy/exception-policy.png" alt="exception-policy.png" title="Screen for Exception Policy" width="720" height="400"></p>
+<img src="editpolicy/profile-list.png" alt="profile-list.png" title="Screen for Profile List" width="720" height="400">
 
-<p>この画面から「D」キーを押すと、ドメイン遷移一覧画面に切り替わります。<br>
-<img src="editpolicy/domain-list.png" alt="domain-list.png" title="Screen for Domain List" width="720" height="400"></p>
+<h4><a name="manager_policy_editor">Manager Policy Editor 画面</a></h4>
 
-<p>この画面から「A」キーを押すと、ドメインに対するアクセス許可の編集画面に切り替わります。<br>
-<img src="editpolicy/domain-policy.png" alt="domain-policy.png" title="Screen for Domain Policy" width="720" height="400"></p>
+<img src="editpolicy/manager-list.png" alt="manager-list.png" title="Screen for Manager List" width="720" height="400">
 
-<p>この画面から「P」キーを押すと、プロファイルの編集画面に切り替わります。<br>
-<img src="editpolicy/profile-list.png" alt="profile-list.png" title="Screen for Profile List" width="720" height="400"></p>
+<h4><a name="statistics_screen">Statistics 画面</a></h4>
 
-<p>この画面から「M」キーを押すと、マネージャの編集画面に切り替わります。<br>
-<img src="editpolicy/manager-list.png" alt="manager-list.png" title="Screen for Manager List" width="720" height="400"></p>
+<img src="editpolicy/stat-list.png" alt="stat-list.png" title="Screen for Statistics" width="720" height="400">
 
-<p>この画面から「S」キーを押すと、統計情報画面に切り替わります。<br>
-<img src="editpolicy/stat-list.png" alt="stat-list.png" title="Screen for Statistics" width="720" height="400"></p>
+<h3><a name="search">エントリを検索する</a></h3>
 
-<h2>（６）検索するには</h2>
+<p>検索を開始するには、 f キーを押して、検索したい文字列を入力し、最後に Enter キーを押します：</p>
 
-<p>検索を開始するには、「F」キーを押して、検索したい文字列を入力し、最後に「Enter」キーを押します。<br>
-<img src="editpolicy/find-first.png" alt="find-first.png" title="Find First" width="720" height="400"></p>
+<img src="editpolicy/find-first.png" alt="find-first.png" title="Find First" width="720" height="400">
 
-<p>前回入力した文字列で順方向（下方向）に検索を続行するには、「N」キーを押します。</p>
+<p>前回入力した文字列で順方向（下方向）に検索を続行するには、 n キーを押します。<br>
+前回入力した文字列で逆方向（上方向）に検索を続行するには、 p キーを押します。</p>
 
-<p>前回入力した文字列で逆方向（上方向）に検索を続行するには、「P」キーを押します。</p>
+<h3><a name="add">エントリを追加する</a></h3>
 
-<h2>（７）エントリを追加するには</h2>
+<p>エントリを追加するには、 a キーを押して、追加したい内容を入力し、最後に Enter キーを押します。入力した内容はヒストリに残っており Insert キーでヒストリの内容を確認できます。ヒストリの内容を呼び出すには ↑ および ↓ キーを使います。ヒストリ機能は Statistics 画面を除く全ての画面で利用できます。</p>
 
-<p>エントリを追加するには、「A」キーを押して、追加したい内容を入力し、最後に「Enter」キーを押します。入力した内容はヒストリに残っており「Insert」キーでヒストリの内容を確認できます。ヒストリの内容を呼び出すには「↑」「↓」キーを使います。</p>
+<p>Domain Transition Editor 画面における操作例：</p>
 
-<p>ドメイン遷移一覧画面の例<br>
-<img src="editpolicy/add-domain-list.png" alt="add-domain-list.png" title="Adding an entry into  List" width="720" height="400"></p>
+<a href="editpolicy/add-domain-list.png"><img src="editpolicy/add-domain-list.png" alt="add-domain-list.png" title="Adding an entry into List" width="720" height="400"></a>
 
-<p>例外ポリシーの編集画面の例<br>
-<img src="editpolicy/add-exception-policy.png" alt="add-exception-policy.png" title="Adding Exception Policy" width="720" height="400"></p>
+<h3><a name="select">エントリを選択する</a></h3>
 
-<p>ドメインに対するアクセス許可の編集画面の例<br>
-<img src="editpolicy/add-domain-policy.png" alt="add-domain-policy.png" title="Adding Domain Policy" width="720" height="400"></p>
+<p>選択したいエントリの行へとカーソルを移動させてから Space キーを押してください。選択することにより &amp; マークが行頭に表示されます。複数の行を選択することができます。再度 Space キーを押すことにより、選択を解除することができます。</p>
 
-<h2>（８）エントリを選択するには</h2>
+<p>c キーを押すと、カーソルのある行の選択状態をそれ以降の全ての行へとコピーすることができます。</p>
 
-<p>エントリを選択するには、選択したいエントリにカーソルを合わせて「スペース」キーを押します。選択されると行頭に「&amp;」マークが表示されます。<br>
-<img src="editpolicy/select.png" alt="select.png" title="Selecting an entry" width="720" height="400"></p>
+<img src="editpolicy/copy.png" alt="copy.png" title="Copying selection state" width="720" height="400">
 
-<p>もう一度「スペース」キーを押すと選択解除されます。選択解除されると行頭の「&amp;」マークが消えます。</p>
+<p>これは、全てのエントリや特定の範囲のエントリを選択する際に便利です。特定の範囲のエントリを選択したい場合、その範囲の最初のエントリの行へとカーソルを移動させて（選択するために） Space キーを押し、続けて c キーを押します。そして、範囲の最後のエントリの次の行へとカーソルを移動させて（選択を解除するために） Space キーを押し、続けて c キーを押します。</p>
 
-<h2>（９）エントリを一括選択するには</h2>
+<h3><a name="delete">エントリを削除する</a></h3>
 
-<p>「C」キーを押すと、カーソルのある行の選択状態（行頭の「&amp;」マークの有無）がカーソル行以下の全エントリに複写されます。<br>
-<img src="editpolicy/copy.png" alt="copy.png" title="Copying selection state" width="720" height="400"></p>
+<p>エントリを削除するには、削除したいエントリの行へとカーソルを移動させて d キーを押します。削除したいエントリを全て選択してから行うこともできます。</p>
 
-<p>特定の範囲のみを選択するには、選択対象となる最初のエントリにカーソルを合わせて「&amp;」マークを表示させてから「C」キーを押し、選択対象となる最後のエントリの次のエントリにカーソルを合わせて「&amp;」マークを消してから「C」キーを押します。</p>
+<a href="editpolicy/delete.png"><img src="editpolicy/delete.png" alt="delete.png" title="Deleting selected entries" width="720" height="400"></a>
 
-<h2>（１０）エントリを削除するには</h2>
+<br><br>
 
-<p>削除したいエントリを１個以上選択してから「D」キーを押します。削除を確認するためのプロンプトが表示されるので、「Y」キーを押すと削除されます。<br>
-<img src="editpolicy/delete.png" alt="delete.png" title="Deleting selected entries" width="720" height="400"></p>
+<h2><a name="operations_in_the_domain_transition_editor">Domain Transition Editor 画面固有の操作</a></h2>
 
-<h1>ドメイン遷移一覧画面に固有の機能</h1>
+<h4>プロファイル番号を変更する</h4>
 
-<h2>（０）この画面について</h2>
+<p>s キーを押して、プロファイル番号を入力し、 Enter キーを押してください：</p>
 
-<p>ドメイン遷移一覧画面では、インデント付きのツリー構造でドメイン遷移の一覧が表示されます。起こりうるドメイン遷移の組み合わせをこの画面で確認することができます。</p>
+<img src="editpolicy/profile.png" alt="profile.png" title="Setting profile number" width="720" height="400">
 
-<p>「行番号」の右側には、そのドメインに割り当てられている「プロファイル番号」が表示されます。
-プロファイル番号の右側には、そのドメインのドメイン名に含まれる最後の「プログラムのパス名」が表示されます。「プロファイル番号」と「プログラムのパス名」の間には、ドメインの属性に応じて「#」「*」「!」が表示される場合があります。</p>
+<h4>! マークが表示されているドメインについて</h4>
 
-<h2>（１）ドメインのプロファイル番号を変更する方法について</h2>
+<p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> または <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブが指定されていることにより、このドメインへ到達することができないことを示しています。<br>
+! マークが付いているドメインは、 <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> または <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブで参照されていない限り、削除して大丈夫です。</p>
 
-<p>プロファイルの割り当てを変更したいドメインを１個以上選択してから「S」キーを押します。すると、プロファイル番号の入力を求めるプロンプトが表示されるので、プロファイル番号を入力し、最後に「Enter」キーを押します。<br>
-<img src="editpolicy/profile.png" alt="profile.png" title="Setting profile number" width="720" height="400"></p>
+<a href="editpolicy/unreachable.png"><img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400"></a>
 
-<h2>（２）「!」マークが表示されているドメインについて</h2>
+<h4>* マークが表示されているドメインについて</h4>
 
-<p>「!」マークが表示されているドメインは、 initialize_domain 構文または keep_domain 構文により到達できないドメインであることを示しています。到達できない理由が「プログラムのパス名」の右側に表示されます。<br>
-<img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400"></p>
+<p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブにより複数のドメインからこのドメインへと遷移する可能性があることを示しています。<br>
+このドメインに * マークが表示されていない場合は、このドメインが <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> または <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブにより指定されない限り、このドメインの親ドメインからのみこのドメインへと遷移します。</p>
 
-<h2>（３）「*」マークが表示されているドメインについて</h2>
+<img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400">
 
-<p>「*」マークが表示されているドメインは、 initialize_domain 構文により複数のドメインからこのドメインに遷移する可能性があることを示しています。「*」マークが表示されていないドメインはそのドメインの親ドメインからのみ遷移します。<br>
-<img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400"></p>
+<h4># マークが表示されているドメインについて</h4>
 
-<h2>（４）「#」マークが表示されているドメインについて</h2>
+<p><a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブにより、複数のプログラムがこのドメインで動作する可能性があることを示しています。</p>
 
-<p>「#」マークが表示されているドメインは、 keep_domain 構文により複数のプログラムがこのドメインで動作する（プログラムを実行してもドメイン遷移が発生しない）可能性があることを示しています。<br>
-<img src="editpolicy/keep_domain.png" alt="keep_domain.png" title="Keeping Domain" width="720" height="400"></p>
+<a href="editpolicy/keep_domain.png"><img src="editpolicy/keep_domain.png" alt="keep_domain.png" title="Keeping Domain" width="720" height="400"></a>
 
-<h2>（５）プログラムのパス名の後ろに「( -&gt; 数字 )」という表示があるドメインについて</h2>
+<h4>( -&gt; n ) という表示があるドメインについて</h4>
 
-<p>これは実際のドメインではありません。「プログラムのパス名」が initialize_domain 構文により指定されているために、親ドメインから実行されると「数字」が示す行番号のドメインへ遷移することを示しています。<br>
-<img src="editpolicy/initialize_domain-src.png" alt="initialize_domain-src.png" title="Initialization Source" width="720" height="400"></p>
+<p>このドメインは実際のドメインではありません。 <a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブの指定により、 n 番目のドメインへと遷移することを示しています。</p>
 
-<h2>（６）プログラムのパス名の後ろに「( -&gt; Not Found )」という表示があるドメインについて</h2>
+<img src="editpolicy/initialize_domain-src.png" alt="initialize_domain-src.png" title="Initialization Source" width="720" height="400">
 
-<p>これは実際のドメインではありません。「プログラムのパス名」が initialize_domain 構文により指定されていますが、遷移先のドメインがまだ作成されていないことを示しています。<br>
-<img src="editpolicy/initialize_domain-nodest.png" alt="initialize_domain-nodest.png" title="No Initialization Target" width="720" height="400"></p>
+<h4>( -&gt; Not Found ) という表示があるドメインについて</h4>
 
-<h2>（７）「( プログラムのパス名 )」という表示があるドメインについて</h2>
+<p>このドメインは実際のドメインではありません。 <a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブに指定されているものの、遷移先のドメインが定義されていないことを示しています。</p>
 
-<p>ドメインが削除されたなどの理由により、このドメインが存在していないことを示しています。インデントを崩さないようにするために、親ドメインが存在しないのに子孫ドメインが存在している場合にのみ表示されます。このドメインを作成するには、このドメインにカーソルを合わせて「Insert」→「A」→「↑」→「Enter」キーの順に入力してください。<br>
-<img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400"></p>
+<a href="editpolicy/initialize_domain-nodest.png"><img src="editpolicy/initialize_domain-nodest.png" alt="initialize_domain-nodest.png" title="No Initialization Target" width="720" height="400"></a>
 
-<h2><a name="Initialize_domain_transition">（８）ドメイン遷移を初期化する方法について</a></h2>
+<h4>ドメイン名が ( ) で囲まれたドメインについて</h4>
 
-<p>TOMOYO Linux では原則としてプログラムを実行する度にドメイン遷移を行うので、同じプログラムでも親ドメインが異なれば異なるドメインに属することになりますが、デーモンとして動作するプログラムの場合は親ドメインに関わらず同一のドメインで動作してくれる方が都合が良いことがあります。そのような場合は initialize_domain 構文と no_initialize_domain 構文を使うことで親ドメインに関わらず &lt;kernel&gt; 直下のドメインで動作させることができます。</p>
+<p>このドメインが定義されていないことを示しています。この行はツリーのインデントを崩さないようにするために表示されます。<br>
+<a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> または <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブによりプロセスが直接子孫ドメインへとドメイン遷移する場合には、親ドメインを定義する必要はありません。</p>
 
-<p>例として、 /usr/sbin/sendmail を常に &lt;kernel&gt; /usr/sbin/sendmail ドメインで動作させる方法を示します。</p>
-<p>initialize_domain を指定する前は以下のように複数のドメインで同一のプログラムが実行されています。<br>
-<img src="editpolicy/before-initialize_domain-1.png" alt="before-initialize_domain-1.png" title="Before initialize_domain" width="720" height="400"><br>
-<img src="editpolicy/before-initialize_domain-2.png" alt="before-initialize_domain-2.png" title="Before initialize_domain" width="720" height="400"></p>
+<img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400">
 
-<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから initialize_domain /usr/sbin/sendmail from any と入力し、「Enter」キーを押します。これは、 /usr/sbin/sendmail が実行された場合には &lt;kernel&gt; /usr/sbin/sendmail ドメインへ遷移するということを意味します。<br>
-<img src="editpolicy/adding-initialize_domain.png" alt="adding-initialize_domain.png" title="Adding initialize_domain" width="720" height="400"></p>
+<h2><a name="initialize_domain_transition"></a> <a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> および <a href="policy-specification/exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> ディレクティブ</h2>
 
-<p>その後、ドメイン一覧画面に戻ると、既に作成されたドメインに「!」マークが現れています。さらに、遷移先である &lt;kernel&gt; /usr/sbin/sendmail ドメインがまだ作成されていないので「（-&gt; Not Found）」という表示も現れています。<br>
-<img src="editpolicy/after-initialize_domain.png" alt="after-initialize_domain.png" title="After initialize_domain" width="720" height="400"></p>
+<p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブは Exception Policy Editor および Domain Transition Editor 画面に関連します。まず、 Exception Policy Editor 画面に切り替えて、 a キーを押してエントリを追加します：</p>
 
-<p>「（-&gt; Not Found）」という表示を消すために、「A」キーを押して &lt;kernel&gt; /usr/sbin/sendmail と入力し、「Enter」キーを押します。<br>
-<img src="editpolicy/adding-initialize_domain-target.png" alt="adding-initialize_domain-target.png" title="Adding initialization target" width="720" height="400"></p>
+<a href="editpolicy/adding-initialize_domain.png"><img src="editpolicy/adding-initialize_domain.png" alt="adding-initialize_domain.png" title="Adding initialize_domain" width="720" height="400"></a>
 
-<p>すると、「（-&gt; Not Found）」という表示は遷移先の行番号に変化しました。<br>
-<img src="editpolicy/after-initialize_domain-target.png" alt="after-initialize_domain-target.png" title="After initialize_domain target" width="720" height="400"><br>
-<img src="editpolicy/added-initialize_domain-target.png" alt="added-initialize_domain-target.png" title="Added initialization target" width="720" height="400"></p>
+<p>Domain Transition Editor 画面に切り替えてください。ディレクティブで指定されたプログラムのためのドメインが定義されていないので、ディレクティブで指定されたプログラムを実行しているドメインに ( -&gt; Not Found ) という表示がされている筈です。
+また、ディレクティブにより到達不可能になったドメインには ! マークが表示されます：</p>
 
-<p>しかし、 /bin/mail から /usr/sbin/sendmail が実行される場合はデーモンとして動作させるわけではないため、 &lt;kernel&gt; /usr/sbin/sendmail ドメインへ遷移させたくないと考えるかもしれません。<br>
-<img src="editpolicy/before-no_initialize_domain.png" alt="before-no_initialize_domain.png" title="Before no_initialize_domain" width="720" height="400"></p>
+<img src="editpolicy/after-initialize_domain.png" alt="after-initialize_domain.png" title="After initialize_domain" width="720" height="400">
 
-<p>そのような場合、例外ポリシー編集画面に切り替えて、「A」キーを押してから no_initialize_domain /usr/sbin/sendmail from /bin/mail と入力し、「Enter」キーを押します。これは、ドメイン名が /bin/mail で終わるドメインから /usr/sbin/sendmail が実行される場合には &lt;kernel&gt; /usr/sbin/sendmail ドメインへ遷移させないということを意味します。<br>
-<img src="editpolicy/adding-no_initialize_domain.png" alt="adding-no_initialize_domain.png" title="Adding no_initialize_domain" width="720" height="400"></p>
+<p>これを修正するために、 a キーを押してからドメイン名を入力することにより、ドメインを作成します：</p>
 
-<p>ドメイン一覧画面に戻ると、 /bin/mail から実行される /usr/sbin/sendmail には「!」マークが消えていることを確認できます。<br>
-<img src="editpolicy/after-no_initialize_domain.png" alt="after-no_initialize_domain.png" title="After no_initialize_domain" width="720" height="400"></p>
+<a href="editpolicy/adding-initialize_domain-target.png"><img src="editpolicy/adding-initialize_domain-target.png" alt="adding-initialize_domain-target.png" title="Adding initialization target" width="720" height="400"></a>
 
-<h2>（９）ドメイン遷移を抑制する方法について</h2>
+<p>すると、 ( -&gt; Not Found ) という部分が ( -&gt; n )" に変化しました：</p>
 
-<p>TOMOYO Linux では原則としてプログラムを実行する度にドメイン遷移を行いますが、 keep_domain 構文と no_keep_domain 構文を使うことで不要なドメイン遷移を抑制できます。</p>
+<img src="editpolicy/after-initialize_domain-target.png" alt="after-initialize_domain-target.png" title="After initialize_domain target" width="720" height="400">
 
-<p>例として、コンソールからログインしたドメイン（&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash）ではドメイン遷移をさせないようにする方法を示します。</p>
-<p>keep_domain を指定する前は以下のようなドメイン遷移が発生しています。<br>
-<img src="editpolicy/before-keep_domain.png" alt="before-keep_domain.png" title="Before keep_domain" width="720" height="400"></p>
+<p>これが、上のエントリに対応するドメインです：</p>
 
-<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash と入力し、「Enter」キーを押します。<br>
-<img src="editpolicy/adding-keep_domain-1.png" alt="adding-keep_domain-1.png" title="Adding keep_domain" width="720" height="400"></p>
+<a href="editpolicy/added-initialize_domain-target.png"><img src="editpolicy/added-initialize_domain-target.png" alt="added-initialize_domain-target.png" title="Added initialization target" width="720" height="400"></a>
 
-<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash ドメインの行に「#」という表示が現れ、その子孫ドメインには「!」という表示が現れます。<br>
-<img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></p>
+<p>/usr/sbin/sendmail が新しいドメインで動作するようになりました。しかし、上記の例ではデーモンとして動作させるための初期化スクリプトから新しいドメインへと遷移することを示しています。デーモンとして実行しない場合には、新しいドメインへと遷移させたくないと思うかもしれません。その場合、 <a href="policy-specification/exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> ディレクティブを使用することができます。 Exception Policy Editor 画面に切り替えて、 no_initialize_domain /usr/sbin/sendmail from /bin/mail のようなエントリを追加してください。すると、 /bin/mail ドメインから /usr/sbin/sendmail が実行された場合には新しいドメインへと遷移しないようになります：</p>
 
-<p>ログインしてから man コマンドを実行していますが、 man コマンドは複雑な処理をするので別ドメインで動作させることにします。<br>
-<img src="editpolicy/before-no_keep_domain.png" alt="before-no_keep_domain.png" title="Before no_keep_domain" width="720" height="400"></p>
+<img src="editpolicy/after-no_initialize_domain.png" alt="after-no_initialize_domain.png" title="After no_initialize_domain" width="720" height="400">
 
-<p>例外ポリシー編集画面に切り替えて、「A」キーを押してから no_keep_domain /usr/bin/man from /bin/bash （または no_keep_domain /usr/bin/man from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash）と入力し、「Enter」キーを押します。<br>
-<img src="editpolicy/adding-no_keep_domain.png" alt="adding-no_keep_domain.png" title="Adding no_keep_domain" width="720" height="400"></p>
+<h2><a name="suppress_domain_transition"></a> <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> および <a href="policy-specification/exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブ</h2>
 
-<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメインとその子孫ドメインから「!」という表示が消えました。<br>
-<img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></p>
+<p>The <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen and add an entry such as "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash". Return to the "Domain Transition Editor" screen and the domain that you have specified the directive for will appear with a "#" symbol. Descendent domains will appear with the "!" symbol:</p>
 
-<p>/usr/bin/man コマンドからいくつかのコマンドが実行されていますが、これらはドメイン遷移させる必要が無いので、ドメイン遷移をさせないことにします。例外ポリシー編集画面に切り替えて、「A」キーを押してから keep_domain any from /usr/bin/man（または keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ）と入力し、「Enter」キーを押します。<br>
-<img src="editpolicy/adding-keep_domain-2.png" alt="adding-keep_domain-2.png" title="Addint keep_domain" width="720" height="400"></p>
+<a href="editpolicy/after-keep_domain-1.png"><img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></a>
 
-<p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメインの行に「#」という表示が現れ、その子孫ドメインには「!」という表示が現れます。<br>
-<img src="editpolicy/after-keep_domain-2.png" alt="after-keep_domain-2.png" title="After keep_domain" width="720" height="400"></p>
+<p>Now all executions in the chosen domain will not undergo a domain transition. To force a domain transition for a particular application, the <a href="specification/exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> directive can be used. Switch to the "Exception Policy Editor" screen and add an entry such as "no_keep_domain /usr/bin/man from /bin/bash". Return to the "Domain Transition Editor" screen and the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendents are no longer marked with a "!":</p>
 
-<p>到達不能になったドメインは残しておいても無駄なので、削除することにします。「!」というマークが表示されている行を「スペース」キーを使って選択し、「D」キーを押してから「Y」キーを押すことで削除できます。<br>
-<img src="editpolicy/before-delete.png" alt="before-delete.png" title="Before deleting unreachable domains" width="720" height="400"></p>
+<img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400">
 
-<p>到達不能になったドメインの削除後は以下のようになります。<br>
-<img src="editpolicy/after-delete.png" alt="after-delete.png" title="After deleting unreachable domains" width="720" height="400"></p>
+<p>It is possible to prevent domain transitions again from "/usr/bin/man" by adding "keep_domain any from /usr/bin/man" in the "Exception Policy Editor" screen. Return to the "Domain Transition Editor" screen:</p>
 
-<p>アクセス制限を行うことが目的である場合は、再度学習を行い、最後に強制モード用のプロファイルを割り当てることを忘れないでください。</p>
+<a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-keep_domain-2.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
 
-<h1><a name="acl_editor">アクセス許可編集画面に固有の機能</a></h1>
+<h2><a name="redundant">冗長なエントリを削除する</a></h2>
 
-<h2>（０）この画面について</h2>
+<p>Redundant entries can be removed by patterning entries (see <a href="chapter-6.html.ja">Chapter 6: How do I develop policy?</a>). Switch to the Domain Policy Editor screen and add an entry such as "file read /home/kumaneko/SVN/\{\*\}\/\*":</p>
 
-<p>アクセス許可編集画面では、そのドメインに対して与えられているアクセス許可の一覧が表示されます。アクセス許可を確認し、必要に応じて追加や削除することができます。</p>
+<img src="editpolicy/optimize-2.png" alt="optimize-2.png" title="After adding patterned entry" width="720" height="400">
 
-<h2>（１）表示方法について</h2>
+<p>This directive matches many of the entries that are already defined. Move the cursor to the patterned entry you have just added and press the "o" key. This will select all entries that are implied by the patterned directive:</p>
 
-<p>「@」キーを押すことで、対象順表示と操作順表示を切り替えることができます。<br>
-<img src="editpolicy/sort-1.png" alt="sort-1.png" title="Sort by operand" width="720" height="400"><br>
-<img src="editpolicy/sort-2.png" alt="sort-2.png" title="Sort by keyword" width="720" height="400"></p>
+<img src="editpolicy/optimize-3.png" alt="optimize-3.png" title="After entering optimize key" width="720" height="400">
 
-<h2>（２）パターン化支援機能について</h2>
+<p>These can now be deleted with the "d" key. This can be repeated for any patterned entries that you add.</p>
 
-<p>「O」キーを押すと、カーソルのある行に含まれるアクセス許可に包含されるアクセス許可に対して「&amp;」マークが付与されるので、内容を確認してから「D」キーを押すことで削除することができます。</p>
+</div><!-- regular-content -->
 
-<p>(A-1) 次の絵は、パターン化されたアクセス許可を追加する前のものです。<br>
-<img src="editpolicy/optimize-1.png" alt="optimize-1.png" title="Before adding patterned entry" width="720" height="400"></p>
+</div><!-- content -->
 
-<p>(A-2) 次の絵は、パターン化されたアクセス許可を追加した後のものです。<br>
-<img src="editpolicy/optimize-2.png" alt="optimize-2.png" title="After adding patterned entry" width="720" height="400"></p>
-
-<p>(A-3) 次の絵は、追加したエントリの上で「O」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-3.png" alt="optimize-3.png" title="After entering optimize key" width="720" height="400"></p>
-
-<p>(A-4) 次の絵は、「D」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-4.png" alt="optimize-4.png" title="After entering delete key" width="720" height="400"></p>
-
-<p>(A-5) 次の絵は、「Y」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-5.png" alt="optimize-5.png" title="After entering yes key" width="720" height="400"></p>
-
-<p>(B-1) ネットワークに対するアクセス許可でも同様です。次の絵は、パターン化されたアクセス許可を追加する前のものです。<br>
-<img src="editpolicy/optimize-6.png" alt="optimize-6.png" title="Before adding patterned entry" width="720" height="400"></p>
-
-<p>(B-2) 次の絵は、パターン化されたアクセス許可を追加した後のものです。<br>
-<img src="editpolicy/optimize-7.png" alt="optimize-7.png" title="After adding patterned entry" width="720" height="400"></p>
-
-<p>(B-3) 次の絵は、追加したエントリの上で「O」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-8.png" alt="optimize-8.png" title="After entering optimize key" width="720" height="400"></p>
-
-<p>(B-4) 次の絵は、「D」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-9.png" alt="optimize-9.png" title="After entering delete key" width="720" height="400"></p>
-
-<p>(B-5) 次の絵は、「Y」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-10.png" alt="optimize-10.png" title="After entering yes key" width="720" height="400"></p>
-
-<p>(C-1) path_group を用いた場合も同様です。次の絵は、 path_group を追加した後のものです。<br>
-<img src="editpolicy/optimize-11.png" alt="optimize-11.png" title="After adding path_group" width="720" height="400"></p>
-
-<p>(C-2) 次の絵は、 path_group を追加する前のものです。<br>
-<img src="editpolicy/optimize-12.png" alt="optimize-12.png" title="Before adding path_group entry" width="720" height="400"></p>
-
-<p>(C-3) 次の絵は、 path_group を追加した後のものです。<br>
-<img src="editpolicy/optimize-13.png" alt="optimize-13.png" title="After adding path_group entry" width="720" height="400"></p>
-
-<p>(C-4) 次の絵は、追加したエントリの上で「O」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-14.png" alt="optimize-14.png" title="After entering optimize key" width="720" height="400"></p>
-
-<p>(C-5) 次の絵は、「D」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-15.png" alt="optimize-15.png" title="After entering delete key" width="720" height="400"></p>
-
-<p>(C-6) 次の絵は、「Y」キーを押した後のものです。<br>
-<img src="editpolicy/optimize-16.png" alt="optimize-16.png" title="After entering yes key" width="720" height="400"></p>
-
+<div id="navfooter">
 <hr>
+<table>
+<tr>
+<td class="docs-previous">
+</td>
+<td class="docs-index">
+<a href="index.html.ja">目次</a>
+</td>
+<td class="docs-next">
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+</td>
+</tr>
+</table>
+</div>
 
-<p><a href="index.html.ja">目次へ戻る</a></p>
+<div id="footer">
+<p class="language">Go to <a href="tool-editpolicy.html.en">English page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>
