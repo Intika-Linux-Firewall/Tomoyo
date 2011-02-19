@@ -1,23 +1,41 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux 導入手順書</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : TOMOYO Linux on CAT760</title>
 </head>
-<body>
-<p style="text-align:right;"><a href="cat760-sh.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>TOMOYO Linux on CAT760</h1>
+<body>
+
+<div id="titlebar">
+<a href="../index.html.ja"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="../about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="../download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="../support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="cat760-sh.html.en" title="Go to English page">English page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<h2>TOMOYO Linux on CAT760</h2>
 
 <p>このページでは、 TOMOYO Linux を <a href="http://www.si-linux.co.jp/index.php?CAT/CAT760">CAT760</a> 上で動作させる手順について説明します。ホスト環境として x86 上で動作している Debian Sarge を使用します。</p>
 
-<hr>
-
-<table border="0" summary="index">
-<tr><td>
 <a href="#basic">基本編：コンパクトフラッシュ上のカーネルと rootfs を使って動作させる</a>
 <ul>
 <li><a href="#basic_1">ステップ１：ホスト環境を構築する</a></li>
@@ -31,7 +49,6 @@
 <li><a href="#basic_9">ステップ９：ポリシーを作成する</a></li>
 <li><a href="#basic_appendix">補足：工場出荷時の状態に戻す</a></li>
 </ul>
-</td></tr><tr><td>
 <a href="#advanced">応用編：フラッシュＲＯＭ上のカーネルと rootfs を使って動作させる</a>
 <ul>
 <li><a href="#advanced_1">ステップ１：ホスト環境を構築する</a></li>
@@ -44,68 +61,64 @@
 <li><a href="#advanced_8">ステップ８：フラッシュＲＯＭを書き換える</a></li>
 <li><a href="#advanced_appendix">補足：工場出荷時の状態に戻す</a></li>
 </ul>
-</td></tr>
-</table>
 
+<h2><a name="basic">基本編：コンパクトフラッシュ上のカーネルと rootfs を使って動作させる</a></h2>
 
-
-<h1><a name="basic">基本編：コンパクトフラッシュ上のカーネルと rootfs を使って動作させる</a></h1>
-
-<h2><a name="basic_1">ステップ１：ホスト環境を構築する</a></h2>
+<h3><a name="basic_1">ステップ１：ホスト環境を構築する</a></h3>
 
 <p>Debian Sarge は既に End Of Life であるため、パッケージのダウンロードサーバを書き換える必要があります。 root としてログインし、 /etc/apt/sources.list の内容を以下のように書き換えてください。</p>
 
-<pre>
+<pre class="command">
 deb http://archive.debian.org/debian-archive/debian/ sarge main contrib non-free
 deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main contrib non-free
 </pre>
 
 <p>次に、 fdisk コマンドの -l オプションでデバイスの一覧が表示されるようにするために、 2.6 カーネルをインストールします。</p>
 
-<pre>
+<pre class="command">
 # apt-get update
 # apt-get -y install kernel-image-2.6.8-4-686-smp
 </pre>
 
 <p>2.6.8-4-686-smp カーネルで再起動します。</p>
 
-<pre>
+<pre class="command">
 # reboot
 </pre>
 
-<h2><a name="basic_2">ステップ２：コンパイルに必要なパッケージをインストールする</a></h2>
+<h3><a name="basic_2">ステップ２：コンパイルに必要なパッケージをインストールする</a></h3>
 
 <p>開発用ＣＤＲＯＭのマウントポイントとして /mnt/cdrom を作成し、そこにマウントします。</p>
 
-<pre>
+<pre class="command">
 # mkdir -p /mnt/cdrom
 # mount -t iso9660 -o ro /dev/cdrom /mnt/cdrom/
 </pre>
 
 <p>ＣＤＲＯＭ内にあるクロスツールパッケージが依存するパッケージをインストールします。</p>
 
-<pre>
+<pre class="command">
 # apt-get -y install gcc-3.4-base
 </pre>
 
 <p>ＣＤＲＯＭ内にあるクロスツールパッケージをインストールします。ただし、 binutils パッケージと競合するファイルを含んでいる gdb-sh4-linux パッケージはアンインストールします。</p>
 
-<pre>
+<pre class="command">
 # dpkg -i /mnt/cdrom/cross-tools/debian-sarge/sh4/*.deb
 # dpkg --purge gdb-sh4-linux
 </pre>
 
 <p>カーネルおよびツールのコンパイルに必要なパッケージをインストールします。</p>
 
-<pre>
+<pre class="command">
 # apt-get -y install patch make gcc libc6-dev libncurses5-dev
 </pre>
 
-<h2><a name="basic_3">ステップ３：カーネルをコンパイルする</a></h2>
+<h3><a name="basic_3">ステップ３：カーネルをコンパイルする</a></h3>
 
 <p>カーネルのソースを展開します。</p>
 
-<pre>
+<pre class="command">
 # cd
 # tar -zxf /mnt/cdrom/kernel/linux-2.6.15-cat_20080502.tgz
 # cd linux-2.6.15-cat
@@ -113,7 +126,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <p>TOMOYO Linux パッチをダウンロードして適用します。</p>
 
-<pre>
+<pre class="command">
 # wget -O ccs-patch-1.8.0-20110207.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110207.tar.gz'
 # wget -O ccs-patch-1.8.0-20110207.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110207.tar.gz.asc'
 # gpg ccs-patch-1.8.0-20110207.tar.gz.asc
@@ -123,29 +136,29 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <p>カーネルコンフィグを作成します。</p>
 
-<pre>
+<pre class="command">
 # make cat760_defconfig
 </pre>
 
 <p>コンパイルを行います。</p>
 
-<pre>
+<pre class="command">
 # make
 # make modules_install
 </pre>
 
 <p>make modules_install によりカーネルモジュールが /home/ebihara/tmp/lib/modules/2.6.15-sh/ 以下にインストールされるので、カーネル本体を /home/ebihara/tmp/ 以下にインストールします。</p>
 
-<pre>
+<pre class="command">
 # mkdir -p /home/ebihara/tmp/
 # cp -p arch/sh/boot/zImage /home/ebihara/tmp/
 </pre>
 
-<h2><a name="basic_4">ステップ４：ツールをコンパイルする</a></h2>
+<h3><a name="basic_4">ステップ４：ツールをコンパイルする</a></h3>
 
 <p>ツールのソースをダウンロードします。</p>
 
-<pre>
+<pre class="command">
 # cd
 # wget -O ccs-tools-1.8.0-20110214.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz'
 # wget -O ccs-tools-1.8.0-20110214.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.0-20110214.tar.gz.asc'
@@ -155,29 +168,29 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <p>CAT760 向けにクロスコンパイルを行います。クロスコンパイルされたツールは /home/ebihara/tmp/sbin/ および /home/ebihara/tmp/usr/ 以下にインストールされます。</p>
 
-<pre>
+<pre class="command">
 # make -C ccstools/ CC=sh4-linux-gcc INSTALLDIR=/home/ebihara/tmp/ install clean
 </pre>
 
 <p>man ページは使わないので削除します。</p>
 
-<pre>
+<pre class="command">
 # rm -fR /home/ebihara/tmp/usr/share/
 </pre>
 
 <p>ホスト環境から操作を行うので、ホスト環境向けにもコンパイルを行います。コンパイルされたツールは /sbin/ および /usr/ 以下にインストールされます。</p>
 
-<pre>
+<pre class="command">
 # make -sC ccstools/ install clean
 </pre>
 
-<h2><a name="basic_5">ステップ５：コンパクトフラッシュをフォーマットする</a></h2>
+<h3><a name="basic_5">ステップ５：コンパクトフラッシュをフォーマットする</a></h3>
 
 <p>CAT760 で / パーティションとして使用するためのコンパクトフラッシュを、ホスト環境のドライブに差し込んでください。</p>
 
 <p>fdisk コマンドを使ってコンパクトフラッシュのデバイスファイル名を確認します。</p>
 
-<pre>
+<pre class="command">
 # fdisk -l
 
 Disk /dev/sda: 4294 MB, 4294967296 bytes
@@ -198,8 +211,11 @@ Disk /dev/sdb doesn't contain a valid partition table
 
 <p>fdisk コマンドを使ってコンパクトフラッシュのパーティションを分割します。</p>
 
-<pre>
+<pre class="command">
 # fdisk /dev/sdb
+</pre>
+
+<pre class="output">
 Device contains neither a valid DOS partition table, nor Sun, SGI or OSF disklabel
 Building a new DOS disklabel. Changes will remain in memory only,
 until you decide to write them. After that, of course, the previous
@@ -227,8 +243,11 @@ Syncing disks.
 
 <p>コンパクトフラッシュを / パーティションとしてマウントできるように ext2 でフォーマットします。</p>
 
-<pre>
+<pre class="command">
 # mke2fs /dev/sdb1
+</pre>
+
+<pre class="output">
 mke2fs 1.37 (21-Mar-2005)
 Filesystem label=
 OS type: Linux
@@ -250,40 +269,40 @@ This filesystem will be automatically checked every 38 mounts or
 180 days, whichever comes first.  Use tune2fs -c or -i to override.
 </pre>
 
-<h2><a name="basic_6">ステップ６：コンパクトフラッシュにコピーする</a></h2>
+<h3><a name="basic_6">ステップ６：コンパクトフラッシュにコピーする</a></h3>
 
 <p>マウントポイントとして /mnt/cfcard を作成し、そこにマウントします。</p>
 
-<pre>
+<pre class="command">
 # mkdir -p /mnt/cfcard
 # mount /dev/sdb1 /mnt/cfcard/
 </pre>
 
 <p>ＣＤＲＯＭ内にあるイメージファイルの内容をコンパクトフラッシュに展開します。</p>
 
-<pre>
+<pre class="command">
 # cd /mnt/cfcard/
 # tar -zxf /mnt/cdrom/rootfs/files/target_cat760_20060722.tgz --strip 2
 </pre>
 
 <p>クロスコンパイルしたカーネルとツールをコンパクトフラッシュにコピーします。</p>
 
-<pre>
+<pre class="command">
 # cp -a /home/ebihara/tmp/* /mnt/cfcard/
 </pre>
 
 <p>コンパクトフラッシュをアンマウントし、 CAT760 に挿入します。</p>
 
-<pre>
+<pre class="command">
 # cd
 # umount /mnt/cfcard/
 </pre>
 
-<h2><a name="basic_7">ステップ７：ポリシーの初期化を行う</a></h2>
+<h3><a name="basic_7">ステップ７：ポリシーの初期化を行う</a></h3>
 
 <p>SH4-7760 と書かれている基板の SW1 が全て OFF 側になっていることを確認して、 CAT760 の電源を入れると、以下のようなプロンプトが表示されます。</p>
 
-<pre>
+<pre class="output">
  CAT BOOT for CAT760  Version: 1.07 Feb 27 2007 17:45:59
  RTC clock :2010/05/04 16:44:36
  command line = console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
@@ -295,25 +314,25 @@ This filesystem will be automatically checked every 38 mounts or
 
 <p>管理者モードに移ります。パスワードは silinux です。</p>
 
-<pre>
+<pre class="command">
 admin
 </pre>
 
 <p>デフォルトのコマンドラインを設定します。 CAT760 環境に於いては、コンパクトフラッシュには /dev/hda でアクセスできます。</p>
 
-<pre>
+<pre class="command">
 setparam zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2
 </pre>
 
 <p>ポリシーの初期化が済んでいないため、 TOMOYO Linux を無効にした状態でブートします。</p>
 
-<pre>
+<pre class="command">
 boot zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2 ccsecurity=off
 </pre>
 
 <p>ユーザ名 root 、パスワード root でログインします。</p>
 
-<pre>
+<pre class="output">
 SiliconLinux for CAT709/760 supercat ttySC0
 
 supercat login: root
@@ -324,14 +343,17 @@ supercat:~#
 
 <p>/ を読み書き可能な状態にします。</p>
 
-<pre>
+<pre class="command">
 supercat:~# mount -o remount,rw /
 </pre>
 
 <p>ポリシーの初期化を行います。（ホスト環境と実機が同一の構成であれば、ホスト環境内で chroot /mnt/cfcard/ /usr/lib/ccs/init_policy を実行すればよいのですが、異なる構成であるため、正しい結果を得るために実機で /usr/lib/ccs/init_policy を実行します。）</p>
 
-<pre>
+<pre class="command">
 supercat:~# /usr/lib/ccs/init_policy
+</pre>
+
+<pre class="output">
 Creating policy directory... OK
 Creating exception policy... OK
 Creating domain policy... OK
@@ -343,28 +365,28 @@ Creating module loader... OK
 
 <p>/ を読み込み専用の状態にします。</p>
 
-<pre>
+<pre class="command">
 supercat:~# mount -o remount,ro /
 </pre>
 
 <p>シャットダウンして、コンパクトフラッシュを抜きます。</p>
 
-<pre>
+<pre class="command">
 supercat:~# halt
 </pre>
 
-<h2><a name="basic_8">ステップ８：ポリシーの調整を行う</a></h2>
+<h3><a name="basic_8">ステップ８：ポリシーの調整を行う</a></h3>
 
 <p>コンパクトフラッシュをマウントします。（ホスト環境と実機が同一の構成であれば chroot /mnt/cfcard/ を実行すればよいのですが、異なる構成であるため cd を使用しています。以下、 /etc/ ではなく etc/ であることに注意してください。）</p>
 
-<pre>
+<pre class="command">
 # mount /dev/sdb1 /mnt/cfcard/
 # cd /mnt/cfcard/
 </pre>
 
 <p>シャットダウン時にポリシーを自動的に保存されるようにするために etc/init.d/halt の halt -d -f -i $poweroff $hddown の直前に以下の内容を追加します。</p>
 
-<pre>
+<pre class="command">
 halt --help &gt; /dev/null 2&gt;&amp;1
 mount -o remount,ro /
 mount -o remount,rw /
@@ -374,7 +396,7 @@ mount -o remount,ro /
 
 <p>同様に、 etc/init.d/reboot の reboot -d -f -i の直前に以下の内容を追加します。</p>
 
-<pre>
+<pre class="command">
 reboot --help &gt; /dev/null 2&gt;&amp;1
 mount -o remount,ro /
 mount -o remount,rw /
@@ -384,7 +406,7 @@ mount -o remount,ro /
 
 <p>リモートからポリシーの操作ができるようにするために、 etc/init.d/ccs-editpolicy-agent を作成します。</p>
 
-<pre>
+<pre class="command">
 # echo '#! /bin/sh' &gt; etc/init.d/ccs-editpolicy-agent
 # echo 'exec /usr/lib/ccs/ccs-editpolicy-agent 0.0.0.0:10000 &amp;' &gt;&gt; etc/init.d/ccs-editpolicy-agent
 # chmod 700 etc/init.d/ccs-editpolicy-agent
@@ -392,19 +414,19 @@ mount -o remount,ro /
 
 <p>etc/init.d/ccs-editpolicy-agent が起動時に実行されるようにします。（ホスト環境と実機が同一の構成であれば、ホスト環境内で chroot /mnt/cfcard/ update-rc.d ccs-editpolicy-agent defaults を実行すればよいのですが、異なる構成であるため、手作業により行います。）</p>
 
-<pre>
+<pre class="command">
 # ln -s ../init.d/ccs-editpolicy-agent etc/rcS.d/S60ccs-editpolicy-agent
 </pre>
 
 <p>ポリシーの変更を許可するプログラムの一覧である etc/ccs/manager.conf に /usr/lib/ccs/ccs-editpolicy-agent を追加します。</p>
 
-<pre>
+<pre class="command">
 # echo /usr/lib/ccs/ccs-editpolicy-agent &gt;&gt; etc/ccs/manager.conf
 </pre>
 
 <p>起動時から学習モードになるように、 etc/ccs/domain_policy.conf を更新します。</p>
 
-<pre>
+<pre class="command">
 # cat &gt; etc/ccs/domain_policy.conf &lt;&lt; EOF
 &lt;kernel&gt;
 use_profile 1
@@ -413,7 +435,7 @@ EOF
 
 <p>etc/ccs/meminfo.conf でメモリ使用量の上限を設定します。 CAT760 の搭載メモリは６４ＭＢなので、ポリシー用に５ＭＢ／アクセスログ用に１ＭＢ／対話的処理用に１ＭＢを上限として割り当てます。</p>
 
-<pre>
+<pre class="command">
 # cat &gt; etc/ccs/meminfo.conf &lt;&lt; EOF
 Policy:      5242880
 Audit logs:  1048576
@@ -423,16 +445,16 @@ EOF
 
 <p>コンパクトフラッシュをアンマウントします。</p>
 
-<pre>
+<pre class="command">
 # cd
 # umount /mnt/cfcard/
 </pre>
 
-<h2><a name="basic_9">ステップ９：ポリシーを作成する</a></h2>
+<h3><a name="basic_9">ステップ９：ポリシーを作成する</a></h3>
 
 <p>電源を入れてブートローダに進みます。</p>
 
-<pre>
+<pre class="output">
  CAT BOOT for CAT760  Version: 1.07 Feb 27 2007 17:45:59
  RTC clock :2010/05/04 17:14:20
  command line = zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2
@@ -444,7 +466,7 @@ EOF
 
 <p>ブートします。</p>
 
-<pre>
+<pre class="command">
 boot
 </pre>
 
@@ -452,25 +474,25 @@ boot
 
 <p>CAT760 のＩＰアドレスを xxx.xxx.xxx.xxx とした場合、ホスト側から</p>
 
-<pre>
+<pre class="command">
 # ccs-editpolicy xxx.xxx.xxx.xxx:10000
 </pre>
 
 <p>のように実行することにより、ホスト側からポリシーの編集を行うことができます。同様に、ホスト側から</p>
 
-<pre>
+<pre class="command">
 # ccs-auditd xxx.xxx.xxx.xxx:10000
 </pre>
 
 <p>のように実行することにより、CAT760 で生成されたアクセスログをホスト側に保存することができます。その他にも、</p>
 
-<pre>
+<pre class="command">
 # ccs-savepolicy xxx.xxx.xxx.xxx:10000 -d &gt; /tmp/domain_policy.conf
 </pre>
 
 <p>のように実行することにより、CAT760 側の /proc/ccs/domain_policy の内容をホスト側の /tmp/domain_policy.conf に保存することができ、</p>
 
-<pre>
+<pre class="command">
 # ccs-loadpolicy xxx.xxx.xxx.xxx:10000 -d &lt; /tmp/domain_policy.conf
 </pre>
 
@@ -478,13 +500,13 @@ boot
 
 <p>操作を間違えて起動できなくなった場合には、 boot のコマンドラインで boot zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2 ccsecurity=off のように指定することで TOMOYO Linux を無効にした状態で起動できます。</p>
 
-<h2><a name="basic_appendix">補足：工場出荷時の状態に戻す</a></h2>
+<h3><a name="basic_appendix">補足：工場出荷時の状態に戻す</a></h3>
 
 <p><a href="#basic_7">ステップ７</a>で書き換えたコマンドラインを復元するには以下のように行います。</p>
 
 <p>電源を入れてブートローダに進みます。</p>
 
-<pre>
+<pre class="output">
  CAT BOOT for CAT760  Version: 1.07 Feb 27 2007 17:45:59
  RTC clock :2010/05/04 17:44:10
  command line = zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2
@@ -496,27 +518,27 @@ boot
 
 <p>管理者モードに移ります。パスワードは silinux です。</p>
 
-<pre>
+<pre class="command">
 admin
 </pre>
 
 <p>コマンドラインを設定します。</p>
 
-<pre>
+<pre class="command">
 setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 </pre>
 
-<h1><a name="advanced">応用編：フラッシュＲＯＭ上のカーネルと rootfs を使って動作させる</a></h1>
+<h2><a name="advanced">応用編：フラッシュＲＯＭ上のカーネルと rootfs を使って動作させる</a></h2>
 
-<h2><a name="advanced_1">ステップ１：ホスト環境を構築する</a></h2>
+<h3><a name="advanced_1">ステップ１：ホスト環境を構築する</a></h3>
 
 <p><a href="#basic_1">基本編のステップ１</a>と同じです。</p>
 
-<h2><a name="advanced_2">ステップ２：コンパイルに必要なパッケージをインストールする</a></h2>
+<h3><a name="advanced_2">ステップ２：コンパイルに必要なパッケージをインストールする</a></h3>
 
 <p><a href="#basic_2">基本編のステップ２</a>と同じです。</p>
 
-<h2><a name="advanced_3">ステップ３：カーネルをコンパイルする</a></h2>
+<h3><a name="advanced_3">ステップ３：カーネルをコンパイルする</a></h3>
 
 <p>コンパクトフラッシュに保存されたカーネルから起動する場合にはカーネル本体のサイズを気にする必要はありませんが、フラッシュＲＯＭ内のカーネル用パーティションに保存されたカーネルから起動する場合にはカーネル本体のサイズに注意が必要です。 CAT760 のデフォルトのパーティション設定では、カーネル用のパーティションサイズは 1245184（0x130000）バイトです。デフォルトのカーネルコンフィグでコンパイルした場合のカーネルサイズは 1212416（0x128000）バイトですので、デフォルトでは３２キロバイトしか空き領域がありません。（なお、 CAT760 の新製品である CAT760A ではフラッシュＲＯＭのセクタサイズが６４キロバイトから１２８キロバイトに変更されたのに伴い、カーネル用のパーティションサイズが 1179648（0x120000）バイトに縮小されているため、デフォルトで空き領域が不足しますのでご注意ください。）</p>
 
@@ -526,7 +548,7 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 
 <p>手順は<a href="#basic_3">基本編のステップ３</a>と同じですが、 TOMOYO Linux をローダブルカーネルモジュールとして切り出す場合には、「カーネルコンフィグを作成する」（ make cat760_defconfig ）と「カーネルをコンパイルする」（ make ）の間に以下の手順を行います。</p>
 
-<pre>
+<pre class="command">
 # make menuconfig
 </pre>
 
@@ -549,23 +571,23 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 
 <p>Exit を２回選択し、カーネルコンフィグを保存するかどうかの質問に Yes と答えてください。</p>
 
-<h2><a name="advanced_4">ステップ４：ツールをコンパイルする</a></h2>
+<h3><a name="advanced_4">ステップ４：ツールをコンパイルする</a></h3>
 
 <p><a href="#basic_4">基本編のステップ４</a>と同じです。</p>
 
-<h2><a name="advanced_5">ステップ５：コンパクトフラッシュをフォーマットする</a></h2>
+<h3><a name="advanced_5">ステップ５：コンパクトフラッシュをフォーマットする</a></h3>
 
 <p><a href="#basic_5">基本編のステップ５</a>と同じです。ただし、ブートローダは ext2 ファイルシステムへの書き込みをサポートしていないので、 ext2 ファイルシステムではなく fat ファイルシステムでフォーマットする必要があります。 mke2fs の箇所は mkfs.vfat に読み替えてください。</p>
 
-<pre>
+<pre class="command">
 # mkfs.vfat /dev/sdb1
 </pre>
 
-<h2><a name="advanced_6">ステップ６：バックアップを取得する</a></h2>
+<h3><a name="advanced_6">ステップ６：バックアップを取得する</a></h3>
 
 <p>コンパクトフラッシュを CAT760 に挿入後、電源を入れてブートローダに進みます。</p>
 
-<pre>
+<pre class="output">
  CAT BOOT for CAT760  Version: 1.07 Feb 27 2007 17:45:59
  RTC clock :2010/05/04 17:14:20
  command line = zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2
@@ -577,54 +599,54 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 
 <p>フラッシュＲＯＭに記録されているカーネルと rootfs のバックアップを取得します。</p>
 
-<pre>
+<pre class="command">
 cp rom:zImage cf0:zImage-orig
 cp rom:rootfs cf0:rootfs-orig
 </pre>
 
 <p>シャットダウンして、コンパクトフラッシュを抜きます。</p>
 
-<h2><a name="advanced_7">ステップ７： rootfs を編集する</a></h2>
+<h3><a name="advanced_7">ステップ７： rootfs を編集する</a></h3>
 
 <p>ホスト環境にコンパクトフラッシュを挿入し、マウントします。</p>
 
-<pre>
+<pre class="command">
 # mount /dev/sdb1 /mnt/cfcard/
 </pre>
 
 <p>mkfs.jffs2 のためのパッケージをインストールします。</p>
 
-<pre>
+<pre class="command">
 # apt-get install mtd-tools
 </pre>
 
 <p>mtdblock モジュールをロードします。</p>
 
-<pre>
+<pre class="command">
 # modprobe mtdblock
 </pre>
 
 <p>mtdram モジュールをロードします。</p>
 
-<pre>
+<pre class="command">
 # modprobe mtdram total_size=16384
 </pre>
 
 <p>rootfs となるデバイスファイルを作成します。</p>
 
-<pre>
+<pre class="command">
 # mknod /dev/mtdblock2 b 31 2
 </pre>
 
 <p>rootfs となるデバイスファイルに書き込みます。</p>
 
-<pre>
+<pre class="command">
 # cat /mnt/cfcard/rootfs-orig &gt; /dev/mtdblock2
 </pre>
 
 <p>rootfs をマウントします。</p>
 
-<pre>
+<pre class="command">
 # mkdir -p /mnt/rootfs
 # mount -t jffs2 /dev/mtdblock2 /mnt/rootfs/
 # cd /mnt/rootfs/
@@ -635,28 +657,28 @@ cp rom:rootfs cf0:rootfs-orig
 
 <p>rootfs の内容を固めます。</p>
 
-<pre>
+<pre class="command">
 # cd
 # mkfs.jffs2 -p -o /mnt/cfcard/rootfs -r /mnt/rootfs/
 </pre>
 
 <p>rootfs をアンマウントします。</p>
 
-<pre>
+<pre class="command">
 # umount /mnt/rootfs/
 </pre>
 
 <p>コンパクトフラッシュをアンマウントし、 CAT760 に挿入します。</p>
 
-<pre>
+<pre class="command">
 # umount /mnt/cfcard/
 </pre>
 
-<h2><a name="advanced_8">ステップ８：フラッシュＲＯＭを書き換える</a></h2>
+<h3><a name="advanced_8">ステップ８：フラッシュＲＯＭを書き換える</a></h3>
 
 <p>電源を入れてブートローダに進みます。</p>
 
-<pre>
+<pre class="output">
  CAT BOOT for CAT760  Version: 1.07 Feb 27 2007 17:45:59
  RTC clock :2010/05/04 17:44:10
  command line = zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2
@@ -668,26 +690,26 @@ cp rom:rootfs cf0:rootfs-orig
 
 <p>管理者モードに移ります。パスワードは silinux です。</p>
 
-<pre>
+<pre class="command">
 admin
 </pre>
 
 <p>カーネルと rootfs をコピーします。</p>
 
-<pre>
+<pre class="command">
 cp cf0:zImage rom:zImage
 cp cf0:rootfs rom:rootfs
 </pre>
 
 <p>デフォルトのコマンドラインを設定します。</p>
 
-<pre>
+<pre class="command">
 setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 </pre>
 
 <p>ブートします。</p>
 
-<pre>
+<pre class="command">
 boot
 </pre>
 
@@ -695,13 +717,13 @@ boot
 
 <p>うまくブートできなかった場合には、 boot のコマンドラインで boot console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2 ccsecurity=off のように指定することで TOMOYO Linux を無効にした状態で起動できます。</p>
 
-<h2><a name="advanced_appendix">補足：工場出荷時の状態に戻す</a></h2>
+<h3><a name="advanced_appendix">補足：工場出荷時の状態に戻す</a></h3>
 
 <p><a href="#advanced_6">ステップ６</a>で取得したバックアップをリストアするには以下のように行います。</p>
 
 <p>電源を入れてブートローダに進みます。</p>
 
-<pre>
+<pre class="output">
  CAT BOOT for CAT760  Version: 1.07 Feb 27 2007 17:45:59
  RTC clock :2010/05/04 17:44:10
  command line = zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2
@@ -713,26 +735,56 @@ boot
 
 <p>管理者モードに移ります。パスワードは silinux です。</p>
 
-<pre>
+<pre class="command">
 admin
 </pre>
 
 <p>カーネルと rootfs をコピーします。</p>
 
-<pre>
+<pre class="command">
 cp cf0:zImage-orig rom:zImage
 cp cf0:rootfs-orig rom:rootfs
 </pre>
 
 <p>コマンドラインを設定します。</p>
 
-<pre>
+<pre class="command">
 setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 </pre>
 
-<hr>
+</div><!-- regular-content -->
 
-<p><a href="index.html.ja">目次へ戻る</a></p>
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+</td>
+<td class="docs-index">
+<a href="index.html.ja">目次</a>
+</td>
+<td class="docs-next">
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="cat760-sh.html.en">English page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>
