@@ -40,11 +40,9 @@
 
 <p>There are two types of domain transitions. One is domain transition that involves program execution requests (a.k.a. execve() system call). The other is domain transition that does not involve program execution requests.</p>
 
-<p>The former depends on access control modes. Unless profile's <a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::execute</a> (with the latter overwriting the previous) is set to "mode=enforcing", program execution request will not be rejected even if domain transition failed (due to domainname too long or out of memory when creating the new domain).</p>
-
-<p>The latter is treated as enforcing mode.</p>
-
 <h3><a name="transition_by_execute">Transition by program execution requests</a></h3>
+
+<p>This type of domain transition depends on access control modes. Unless profile's <a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::execute</a> (with the latter overwriting the previous) is set to "mode=enforcing", program execution request will not be rejected even if domain transition failed (due to domainname too long or out of memory when creating the new domain).</p>
 
 <p>When a process in a domain issued a program execution request, the steps below are performed.</p>
 
@@ -120,11 +118,13 @@ Otherwise, the execution is continued without domain transition after marking <a
 
 <h3><a name="transition_by_non_execute">Transition by non program execution requests</a></h3>
 
+<p>This type of domain transition is independent with access control modes. Domain transition requests that are not permitted by the domain policy are always rejected.</p>
+
 <p>If the domain has the <a href="domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> directive, the current process automatically transits to the specified domain whenever conditions specified in the conditional part are met. Note that this transition is checked for not only program execution requests but also all requests such as opening files.</p>
 
-<p>If the domain has the <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive and the current process wrote the domainname specified with the directive to /proc/ccs/self_domain interface, the current process transits to the specified domain.</p>
+<p>If the domain has the <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive and the current process wrote the domainname specified with the directive to <a href="proc-interface.html.en#self_domain">/proc/ccs/self_domain</a> interface, the current process transits to the specified domain.</p>
 
-<p>If the domain has an ACL with auto_domain_transition="name" condition in the policy and the current process requested for an operation that matches the ACL, the current process transits to the child domain which the domainname is the concatenation of "the name of domain which the current process belongs to" and "name" specified by auto_domain_transition= condition part. Note that there is no warantee that the operation that matched the ACL succeeds even if domain transition taken place. Use with caution.</p>
+<p>If the domain policy contains an ACL with auto_domain_transition="name" condition and the current process requested for an operation that matches the ACL, the current process transits to the child domain which the domainname is the concatenation of "the name of domain which the current process belongs to" and "name" specified by auto_domain_transition= condition part. Note that there is no warantee that the operation that matched the ACL succeeds even if domain transition taken place. Use with caution.</p>
 
 </div><!-- documentation -->
 

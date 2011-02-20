@@ -50,8 +50,8 @@
     <li><a href="#delete">エントリを削除する</a></li>
   </ul></li>
 <li><a href="#operations_in_the_domain_transition_editor">Domain Transition Editor 画面固有の操作</a></li>
-<li><a href="#initialize_domain_transition">initialize_domain と no_initialize_domain ディレクティブ</a></li>
-<li><a href="#suppress_domain_transition">keep_domain と no_keep_domain ディレクティブ</a></li>
+<li><a href="#initialize_domain_transition">initialize_domain ディレクティブおよび no_initialize_domain ディレクティブ</a></li>
+<li><a href="#suppress_domain_transition">keep_domain ディレクティブおよび no_keep_domain ディレクティブ</a></li>
 <li><a href="#redundant">冗長なエントリを削除する</a></li>
 </ul>
 
@@ -274,14 +274,14 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 <h4>! マークが表示されているドメインについて</h4>
 
 <p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> または <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブが指定されていることにより、このドメインへ到達することができないことを示しています。<br>
-! マークが付いているドメインは、 <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> または <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブで参照されていない限り、削除して大丈夫です。</p>
+! マークが付いているドメインは、 <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブまたは auto_domain_transition= 条件で参照されていない限り、削除して大丈夫です。</p>
 
 <a href="editpolicy/unreachable.png"><img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400"></a>
 
 <h4>* マークが表示されているドメインについて</h4>
 
 <p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブにより複数のドメインからこのドメインへと遷移する可能性があることを示しています。<br>
-このドメインに * マークが表示されていない場合は、このドメインが <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> または <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブにより指定されない限り、このドメインの親ドメインからのみこのドメインへと遷移します。</p>
+このドメインに * マークが表示されていない場合は、このドメインが <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブにより指定されない限り、このドメインの親ドメインからのみこのドメインへと遷移します。</p>
 
 <img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400">
 
@@ -306,11 +306,11 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 <h4>ドメイン名が ( ) で囲まれたドメインについて</h4>
 
 <p>このドメインが定義されていないことを示しています。この行はツリーのインデントを崩さないようにするために表示されます。<br>
-<a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> または <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブによりプロセスが直接子孫ドメインへとドメイン遷移する場合には、親ドメインを定義する必要はありません。</p>
+<a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブによりプロセスが直接子孫ドメインへとドメイン遷移する場合には、親ドメインを定義する必要はありません。</p>
 
 <img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400">
 
-<h2><a name="initialize_domain_transition"></a> <a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> および <a href="policy-specification/exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> ディレクティブ</h2>
+<h2><a name="initialize_domain_transition"></a> <a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブおよび <a href="policy-specification/exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> ディレクティブ</h2>
 
 <p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブは Exception Policy Editor および Domain Transition Editor 画面に関連します。まず、 Exception Policy Editor 画面に切り替えて、 a キーを押してエントリを追加します：</p>
 
@@ -337,31 +337,31 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 
 <img src="editpolicy/after-no_initialize_domain.png" alt="after-no_initialize_domain.png" title="After no_initialize_domain" width="720" height="400">
 
-<h2><a name="suppress_domain_transition"></a> <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> および <a href="policy-specification/exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブ</h2>
+<h2><a name="suppress_domain_transition"></a> <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブおよび <a href="policy-specification/exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブ</h2>
 
-<p>The <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy" editor screen and add an entry such as "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash". Return to the "Domain Transition Editor" screen and the domain that you have specified the directive for will appear with a "#" symbol. Descendent domains will appear with the "!" symbol:</p>
+<p><a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブは Exception Policy Editor および Domain Transition Editor 画面に関連します。まず、 Exception Policy Editor 画面に切り替えて、 a キーを押して keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash のようなエントリを追加します。 Domain Transition Editor 画面に戻ると、ディレクティブで指定したドメインに # マークが、ディレクティブで指定したドメインの子孫ドメインには ! マークが表示されます：</p>
 
 <a href="editpolicy/after-keep_domain-1.png"><img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></a>
 
-<p>Now all executions in the chosen domain will not undergo a domain transition. To force a domain transition for a particular application, the <a href="specification/exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> directive can be used. Switch to the "Exception Policy Editor" screen and add an entry such as "no_keep_domain /usr/bin/man from /bin/bash". Return to the "Domain Transition Editor" screen and the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendents are no longer marked with a "!":</p>
+<p>指定されたドメインではプログラムを実行してもドメイン遷移が行われないようになりました。特定のアプリケーションが実行された場合にドメイン遷移を再開させるには、 <a href="specification/exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブを指定することができます。 Exception Policy Editor 画面に切り替えて、 no_keep_domain /usr/bin/man from /bin/bash のようなエントリを追加してください。 Domain Transition Editor 画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメイン以下から ! マークが消えたことを確認できます：</p>
 
 <img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400">
 
-<p>It is possible to prevent domain transitions again from "/usr/bin/man" by adding "keep_domain any from /usr/bin/man" in the "Exception Policy Editor" screen. Return to the "Domain Transition Editor" screen:</p>
+<p>Exception Policy Editor 画面で keep_domain any from /usr/bin/man のように指定することにより、 /usr/bin/man から先のドメイン遷移を行わないようにすることもできます。 Domain Transition Editor 画面で確認してください：</p>
 
 <a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-keep_domain-2.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
 
 <h2><a name="redundant">冗長なエントリを削除する</a></h2>
 
-<p>Redundant entries can be removed by patterning entries (see <a href="chapter-6.html.ja">Chapter 6: How do I develop policy?</a>). Switch to the Domain Policy Editor screen and add an entry such as "file read /home/kumaneko/SVN/\{\*\}\/\*":</p>
+<p>冗長なエントリはパターン化することにより除去することができます（ <a href="chapter-6.html.ja">Chapter 6: ポリシーはどのように作成しますか？</a>を参照してください）。 Domain Policy Editor 画面で file read /home/kumaneko/SVN/\{\*\}\/\* のようなエントリを追加してください：</p>
 
 <img src="editpolicy/optimize-2.png" alt="optimize-2.png" title="After adding patterned entry" width="720" height="400">
 
-<p>This directive matches many of the entries that are already defined. Move the cursor to the patterned entry you have just added and press the "o" key. This will select all entries that are implied by the patterned directive:</p>
+<p>手作業で追加されたこのエントリは既に定義されている多くのエントリに一致します。カーソルをパターン化されたこのエントリに合わせて、 o キーを押してください。すると、カーソルのある行に包含されるエントリが全て選択されます：</p>
 
 <img src="editpolicy/optimize-3.png" alt="optimize-3.png" title="After entering optimize key" width="720" height="400">
 
-<p>These can now be deleted with the "d" key. This can be repeated for any patterned entries that you add.</p>
+<p>d キーを押すことにより、選択されたエントリを削除することができます。追加したパターン化されたエントリ全てに対してこの操作を繰り返すことができます。</p>
 
 </div><!-- regular-content -->
 
