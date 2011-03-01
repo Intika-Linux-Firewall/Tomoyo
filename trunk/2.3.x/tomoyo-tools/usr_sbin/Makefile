@@ -6,6 +6,8 @@ BUILD_FILES = tomoyo-domainmatch tomoyo-queryd tomoyo-pstree \
 
 all: libtomoyotools.so $(BUILD_FILES)
 
+$(BUILD_FILES): libtomoyotools.so
+
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses-dev'"
