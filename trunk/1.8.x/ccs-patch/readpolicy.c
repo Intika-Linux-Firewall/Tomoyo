@@ -1,43 +1,76 @@
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+static void run_gc(void)
+{
+	fprintf(stderr, "Running GC.\n");
+	close(open("/proc/ccs/profile", O_WRONLY));
+	sleep(3);
+}
+
+static unsigned int read1(const int fd, unsigned int size)
+{
+	char c;
+	unsigned int len = 0;
+	while (size-- && read(fd, &c, 1) == 1 && write(1, "{", 1) == 1 &&
+	       write(1, &c, 1) == 1 && write(1, "}", 1) == 1)
+		len++;
+	return len;
+}
+
+static void write1(const int fd, const char *str)
+{
+	write(1, str, strlen(str));
+	write(fd, str, strlen(str));
+}
+
+static inline void write2(const int fd, const char *str1, const char *str2)
+{
+	write1(fd, str1);
+	write1(fd, str2);
+}
 
 int main(int argc, char *argv[])
 {
-	int i;
-	char buffer[1024];
-	for (i = 0; i < 1024; i++) {
-		if (0 && fork() == 0) {
-			int fd = open("/proc/ccs/domain_policy", O_RDONLY);
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			if (read(fd, buffer, i) == i) {
-				pause();
-				while (read(fd, buffer, sizeof(buffer)) > 0);
-			}
-			close(fd);
-			_exit(0);
-		}
-		if (fork() == 0) {
-			int fd = open("/proc/ccs/exception_policy", O_RDONLY);
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer));
-			read(fd, buffer, sizeof(buffer) / 2);
-			if (read(fd, buffer, i) == i) {
-				pause();
-				while (read(fd, buffer, sizeof(buffer)) > 0);
-			}
-			close(fd);
-			_exit(0);
-		}
-	}
+	static const char *path1 = "/path/to/some/file/in/very/very/deep/"
+		"location/which/will/surely/stop/within/this/pathname/"
+		"while/reading/policy\n";
+	static const char *path2 = "/path/to/other/file/in/very/very/deep/"
+		"location/which/will/surely/stop/within/this/pathname/"
+		"while/reading/policy\n";
+	int fd1 = open("/proc/ccs/domain_policy", O_RDWR);
+	int fd2 = open("/proc/ccs/domain_policy", O_RDWR);
+	write1(fd1, "<kernel> /foo/bar /foo/bar/buz\n");
+	write2(fd1, "file read/write/execute ", path1);
+	write2(fd1, "file read/write/execute ", path2);
+	write2(fd2, "select ", "<kernel> /foo/bar /foo/bar/buz\n");
+	read1(fd2, 128);
+	write1(fd1, "delete ");
+	write2(fd1, "file read/write/execute ", path2);
+	write1(fd1, "delete ");
+	write2(fd1, "file read/write/execute ", path1);
+	run_gc();
+	write2(fd1, "delete ", "<kernel> /foo/bar /foo/bar/buz\n");
+	run_gc();
+	while (read1(fd2, 1) > 0);
+	close(fd1);
+	close(fd2);
+	fd1 = open("/proc/ccs/exception_policy", O_RDWR);
+	fd2 = open("/proc/ccs/exception_policy", O_RDWR);
+	write2(fd1, "path_group VERY_VERY_LONG_PATH ", path1);
+	write2(fd1, "path_group VERY_VERY_LONG_PATH ", path2);
+	read1(fd2, 128);
+	write1(fd1, "delete ");
+	write2(fd1, "path_group VERY_VERY_LONG_PATH ", path1);
+	write1(fd1, "delete ");
+	write2(fd1, "path_group VERY_VERY_LONG_PATH ", path2);
+	run_gc();
+	while (read1(fd2, 1) > 0);
+	close(fd1);
+	close(fd2);
 	return 0;
 }
