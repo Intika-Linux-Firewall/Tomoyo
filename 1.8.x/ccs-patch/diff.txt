@@ -1,6 +1,6 @@
 Index: security/ccsecurity/internal.h
 ===================================================================
---- security/ccsecurity/internal.h	(revision 4664)
+--- security/ccsecurity/internal.h	(revision 4665)
 +++ security/ccsecurity/internal.h	(working copy)
 @@ -3,7 +3,7 @@
   *
@@ -11,7 +11,7 @@ Index: security/ccsecurity/internal.h
   */
  
  #ifndef _SECURITY_CCSECURITY_INTERNAL_H
-@@ -1314,24 +1314,22 @@
+@@ -1314,27 +1314,25 @@
  	bool is_delete;
  };
  
@@ -40,7 +40,11 @@ Index: security/ccsecurity/internal.h
 +		unsigned int query_index;
  		u16 index;
  		u16 cond_index;
- 		u8 group_index;
+-		u8 group_index;
++		u8 acl_group_index;
+ 		u8 cond_step;
+ 		u8 bit;
+ 		u8 w_pos;
 @@ -1346,18 +1344,22 @@
  	} r;
  	struct {
@@ -141,7 +145,7 @@ Index: security/ccsecurity/internal.h
   *
 Index: security/ccsecurity/policy_io.c
 ===================================================================
---- security/ccsecurity/policy_io.c	(revision 4664)
+--- security/ccsecurity/policy_io.c	(revision 4665)
 +++ security/ccsecurity/policy_io.c	(working copy)
 @@ -3,7 +3,7 @@
   *
@@ -181,6 +185,29 @@ Index: security/ccsecurity/policy_io.c
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  }
  
+@@ -1387,7 +1387,7 @@
+ static void ccs_set_group(struct ccs_io_buffer *head)
+ {
+ 	if (head->type == CCS_EXCEPTIONPOLICY)
+-		ccs_io_printf(head, "acl_group %u ", head->r.group_index);
++		ccs_io_printf(head, "acl_group %u ", head->r.acl_group_index);
+ }
+ 
+ /**
+@@ -2012,10 +2012,10 @@
+ 		return;
+ 	while (head->r.step < CCS_MAX_POLICY + CCS_MAX_GROUP
+ 	       + CCS_MAX_ACL_GROUPS * 2) {
+-		head->r.group_index = (head->r.step - CCS_MAX_POLICY
+-				       - CCS_MAX_GROUP) / 2;
++		head->r.acl_group_index = (head->r.step - CCS_MAX_POLICY
++					   - CCS_MAX_GROUP) / 2;
+ 		if (!ccs_read_domain2(head,
+-				      &ccs_acl_group[head->r.group_index],
++				      &ccs_acl_group[head->r.acl_group_index],
+ 				      head->r.step & 1))
+ 			return;
+ 		head->r.step++;
 @@ -2032,10 +2032,10 @@
  struct ccs_query {
  	struct list_head list;
@@ -299,7 +326,7 @@ Index: security/ccsecurity/policy_io.c
  
 Index: security/ccsecurity/gc.c
 ===================================================================
---- security/ccsecurity/gc.c	(revision 4664)
+--- security/ccsecurity/gc.c	(revision 4665)
 +++ security/ccsecurity/gc.c	(working copy)
 @@ -1,13 +1,17 @@
  /*
@@ -321,7 +348,7 @@ Index: security/ccsecurity/gc.c
  #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
  
  #ifndef LIST_POISON2
-@@ -51,11 +55,139 @@
+@@ -51,11 +55,135 @@
  
  #endif
  
@@ -376,12 +403,10 @@ Index: security/ccsecurity/gc.c
 +{
 +	struct ccs_io_buffer *head;
 +	bool in_use = false;
-+	//WARN_ONCE(1, "Entering %s\n", __func__);
 +	spin_lock(&ccs_io_buffer_list_lock);
 +	list_for_each_entry(head, &ccs_io_buffer_list, list) {
 +		head->users++;
 +		spin_unlock(&ccs_io_buffer_list_lock);
-+		//WARN_ONCE(1, "Locking %s\n", __func__);
 +		if (mutex_lock_interruptible(&head->io_sem)) {
 +			in_use = true;
 +			goto out;
@@ -400,7 +425,6 @@ Index: security/ccsecurity/gc.c
 +			      element))
 +			in_use = true;
 +		mutex_unlock(&head->io_sem);
-+		//WARN_ONCE(1, "Unlocking %s\n", __func__);
 +out:
 +		spin_lock(&ccs_io_buffer_list_lock);
 +		head->users--;
@@ -408,7 +432,6 @@ Index: security/ccsecurity/gc.c
 +			break;
 +	}
 +	spin_unlock(&ccs_io_buffer_list_lock);
-+	//WARN_ONCE(1, "Leaving %s\n", __func__);
 +	return in_use;
 +}
 +
@@ -462,7 +485,7 @@ Index: security/ccsecurity/gc.c
  	struct list_head *element;
  };
  /* List of entries to be deleted. */
-@@ -66,7 +198,7 @@
+@@ -66,7 +194,7 @@
  /**
   * ccs_add_to_gc - Add an entry to to be deleted list.
   *
@@ -471,7 +494,7 @@ Index: security/ccsecurity/gc.c
   * @element: Pointer to "struct list_head".
   *
   * Returns true on success, false otherwise.
-@@ -81,12 +213,28 @@
+@@ -81,12 +209,28 @@
   * If we use singly linked list using "struct list_head"->prev (which is
   * LIST_POISON2), we can avoid kmalloc().
   */
@@ -501,7 +524,7 @@ Index: security/ccsecurity/gc.c
  	entry->element = element;
  	list_add(&entry->list, &ccs_gc_list);
  	list_del_rcu(element);
-@@ -94,19 +242,41 @@
+@@ -94,19 +238,42 @@
  }
  
  /**
@@ -520,7 +543,8 @@ Index: security/ccsecurity/gc.c
 +		const u8 *ptr = (const u8 *) p->element->next;
 +		if (ptr < element || element + size < ptr)
 +			continue;
-+		WARN_ONCE(1, "***** %p <= %p < %p\n", element, ptr,
++		WARN_ONCE(element < ptr && ptr < element + size,
++			  "***** %p < %p < %p *****\n", element, ptr,
 +			  element + size);
 +		return true;
 +	}
@@ -546,7 +570,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -114,15 +284,14 @@
+@@ -114,15 +281,14 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -564,7 +588,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -130,14 +299,13 @@
+@@ -130,14 +296,13 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -581,7 +605,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /* For compatibility with older kernels. */
-@@ -146,13 +314,13 @@
+@@ -146,13 +311,13 @@
  #endif
  
  /**
@@ -597,7 +621,7 @@ Index: security/ccsecurity/gc.c
  {
  	bool in_use = false;
  	/*
-@@ -217,45 +385,40 @@
+@@ -217,45 +382,40 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -653,7 +677,7 @@ Index: security/ccsecurity/gc.c
  			ccs_put_name_union(&entry->name);
  			ccs_put_number_union(&entry->mode);
  			ccs_put_number_union(&entry->major);
-@@ -264,9 +427,8 @@
+@@ -264,9 +424,8 @@
  		break;
  	case CCS_TYPE_MOUNT_ACL:
  		{
@@ -665,7 +689,7 @@ Index: security/ccsecurity/gc.c
  			ccs_put_name_union(&entry->dev_name);
  			ccs_put_name_union(&entry->dir_name);
  			ccs_put_name_union(&entry->fs_type);
-@@ -275,9 +437,8 @@
+@@ -275,9 +434,8 @@
  		break;
  	case CCS_TYPE_INET_ACL:
  		{
@@ -677,7 +701,7 @@ Index: security/ccsecurity/gc.c
  			switch (entry->address_type) {
  			case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
  				ccs_put_group(entry->address.group);
-@@ -292,58 +453,47 @@
+@@ -292,58 +450,47 @@
  		break;
  	case CCS_TYPE_UNIX_ACL:
  		{
@@ -747,7 +771,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -351,9 +501,9 @@
+@@ -351,9 +498,9 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -759,7 +783,7 @@ Index: security/ccsecurity/gc.c
  {
  	struct ccs_domain_info *domain =
  		container_of(element, typeof(*domain), list);
-@@ -361,33 +511,18 @@
+@@ -361,33 +508,18 @@
  	struct ccs_acl_info *tmp;
  	u8 i;
  	/*
@@ -798,7 +822,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -395,14 +530,13 @@
+@@ -395,14 +527,13 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -815,7 +839,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -410,14 +544,13 @@
+@@ -410,14 +541,13 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -832,7 +856,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -425,9 +558,9 @@
+@@ -425,9 +555,9 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -844,7 +868,7 @@ Index: security/ccsecurity/gc.c
  {
  	struct ccs_address_group *member =
  		container_of(element, typeof(*member), head.list);
-@@ -435,7 +568,6 @@
+@@ -435,7 +565,6 @@
  		ccs_put_ipv6_address(member->min.ipv6);
  		ccs_put_ipv6_address(member->max.ipv6);
  	}
@@ -852,7 +876,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -443,13 +575,11 @@
+@@ -443,13 +572,11 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -869,7 +893,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -457,13 +587,11 @@
+@@ -457,13 +584,11 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -886,7 +910,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -471,13 +599,11 @@
+@@ -471,13 +596,11 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -903,7 +927,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -485,9 +611,9 @@
+@@ -485,9 +608,9 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -915,7 +939,7 @@ Index: security/ccsecurity/gc.c
  {
  	struct ccs_condition *cond = container_of(element, typeof(*cond),
  						  head.list);
-@@ -518,7 +644,6 @@
+@@ -518,7 +641,6 @@
  		ccs_put_name(envp->value);
  	}
  	ccs_put_name(cond->transit);
@@ -923,7 +947,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -526,13 +651,11 @@
+@@ -526,13 +648,11 @@
   *
   * @element: Pointer to "struct list_head".
   *
@@ -940,7 +964,7 @@ Index: security/ccsecurity/gc.c
  }
  
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-@@ -540,24 +663,16 @@
+@@ -540,24 +660,16 @@
  /*
   * Lock for syscall users.
   *
@@ -969,7 +993,7 @@ Index: security/ccsecurity/gc.c
   * earlier kernels because they don't have SRCU support.
   */
  static struct {
-@@ -568,7 +683,7 @@
+@@ -568,7 +680,7 @@
  static DEFINE_SPINLOCK(ccs_counter_lock);
  
  /**
@@ -978,7 +1002,7 @@ Index: security/ccsecurity/gc.c
   *
   * Returns index number which has to be passed to ccs_unlock().
   */
-@@ -583,7 +698,7 @@
+@@ -583,7 +695,7 @@
  }
  
  /**
@@ -987,7 +1011,7 @@ Index: security/ccsecurity/gc.c
   *
   * @idx: Index number returned by ccs_lock().
   *
-@@ -597,7 +712,7 @@
+@@ -597,7 +709,7 @@
  }
  
  /**
@@ -996,7 +1020,7 @@ Index: security/ccsecurity/gc.c
   *
   * Returns nothing.
   */
-@@ -617,10 +732,7 @@
+@@ -617,10 +729,7 @@
  	ccs_counter.counter_idx ^= 1;
  	v = ccs_counter.counter[idx];
  	spin_unlock(&ccs_counter_lock);
@@ -1008,7 +1032,7 @@ Index: security/ccsecurity/gc.c
  	while (v) {
  		ssleep(1);
  		spin_lock(&ccs_counter_lock);
-@@ -629,15 +741,18 @@
+@@ -629,15 +738,18 @@
  	}
  }
  
@@ -1029,7 +1053,7 @@ Index: security/ccsecurity/gc.c
  {
  	struct ccs_acl_head *member;
  	list_for_each_entry(member, member_list, list) {
-@@ -679,12 +794,13 @@
+@@ -679,12 +791,13 @@
  static void ccs_collect_entry(void)
  {
  	int i;
@@ -1045,7 +1069,7 @@ Index: security/ccsecurity/gc.c
  			goto unlock;
  	for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
  		if (!ccs_collect_acl(&ccs_acl_group[i]))
-@@ -695,7 +811,7 @@
+@@ -695,7 +808,7 @@
  			if (!ccs_collect_acl(domain))
  				goto unlock;
  			if (!domain->is_deleted ||
@@ -1054,7 +1078,7 @@ Index: security/ccsecurity/gc.c
  				continue;
  			if (!ccs_add_to_gc(CCS_ID_DOMAIN, &domain->list))
  				goto unlock;
-@@ -703,7 +819,6 @@
+@@ -703,7 +816,6 @@
  	}
  	for (i = 0; i < CCS_MAX_GROUP; i++) {
  		struct list_head *list = &ccs_group_list[i];
@@ -1062,7 +1086,7 @@ Index: security/ccsecurity/gc.c
  		struct ccs_group *group;
  		switch (i) {
  		case 0:
-@@ -717,7 +832,7 @@
+@@ -717,7 +829,7 @@
  			break;
  		}
  		list_for_each_entry(group, list, head.list) {
@@ -1071,7 +1095,7 @@ Index: security/ccsecurity/gc.c
  				goto unlock;
  			if (!list_empty(&group->member_list) ||
  			    atomic_read(&group->head.users))
-@@ -729,7 +844,6 @@
+@@ -729,7 +841,6 @@
  	for (i = 0; i < CCS_MAX_LIST + CCS_MAX_HASH; i++) {
  		struct list_head *list = i < CCS_MAX_LIST ?
  			&ccs_shared_list[i] : &ccs_name_list[i - CCS_MAX_LIST];
@@ -1079,7 +1103,7 @@ Index: security/ccsecurity/gc.c
  		struct ccs_shared_acl_head *ptr;
  		switch (i) {
  		case 0:
-@@ -765,52 +879,91 @@
+@@ -765,52 +876,91 @@
  	struct ccs_gc *tmp;
  	bool result = false;
  	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
@@ -1187,7 +1211,7 @@ Index: security/ccsecurity/gc.c
  		list_del(&p->list);
  		kfree(p);
  		ccs_gc_list_len--;
-@@ -863,9 +1016,10 @@
+@@ -863,9 +1013,10 @@
  		ccs_collect_entry();
  		if (list_empty(&ccs_gc_list))
  			break;
@@ -1199,7 +1223,7 @@ Index: security/ccsecurity/gc.c
  #endif
  	} while (ccs_kfree_entry());
  	mutex_unlock(&ccs_gc_mutex);
-@@ -875,18 +1029,39 @@
+@@ -875,18 +1026,38 @@
  }
  
  /**
@@ -1222,7 +1246,6 @@ Index: security/ccsecurity/gc.c
 +	} else {
 +		is_write = head->write_buf != NULL;
 +		if (!--head->users) {
-+			//printk(KERN_INFO "***** Releasing %p\n", head);
 +			list_del(&head->list);
 +			kfree(head->read_buf);
 +			kfree(head->write_buf);

@@ -6,17 +6,26 @@ accessed until close() is called. However, such SRCU usage causes lockdep to
 complain about leaving the kernel with SRCU lock held.
 
 Suppress the warning by holding/releasing SRCU upon each read()/write().
-This patch does something similar to calling kfree() before returning from
+This patch does something similar to calling kfree() without calling
 synchronize_srcu() by selectively deferring kfree() by keeping track of the
 "struct tomoyo_io_buffer" instances.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index 7556315..b7224ab 100644
+index 7556315..3cabaf2 100644
 --- a/security/tomoyo/common.c
 +++ b/security/tomoyo/common.c
-@@ -1880,8 +1880,6 @@ int tomoyo_open_control(const u8 type, struct file *file)
+@@ -1785,8 +1785,6 @@ static void tomoyo_read_self_domain(struct tomoyo_io_buffer *head)
+  * @file: Pointer to "struct file".
+  *
+  * Associates policy handler and returns 0 on success, -ENOMEM otherwise.
+- *
+- * Caller acquires tomoyo_read_lock().
+  */
+ int tomoyo_open_control(const u8 type, struct file *file)
+ {
+@@ -1880,8 +1878,6 @@ int tomoyo_open_control(const u8 type, struct file *file)
  			return -ENOMEM;
  		}
  	}
@@ -25,7 +34,7 @@ index 7556315..b7224ab 100644
  	file->private_data = head;
  	/*
  	 * Call the handler now if the file is
-@@ -1900,6 +1898,7 @@ int tomoyo_open_control(const u8 type, struct file *file)
+@@ -1900,6 +1896,7 @@ int tomoyo_open_control(const u8 type, struct file *file)
  	 */
  	else if (type == TOMOYO_QUERY)
  		atomic_inc(&tomoyo_query_observers);
@@ -33,7 +42,85 @@ index 7556315..b7224ab 100644
  	return 0;
  }
  
-@@ -2017,7 +2016,7 @@ int tomoyo_write_control(struct file *file, const char __user *buffer,
+@@ -1928,14 +1925,13 @@ int tomoyo_poll_control(struct file *file, poll_table *wait)
+  * @buffer_len: Size of @buffer.
+  *
+  * Returns bytes read on success, negative value otherwise.
+- *
+- * Caller holds tomoyo_read_lock().
+  */
+ int tomoyo_read_control(struct file *file, char __user *buffer,
+ 			const int buffer_len)
+ {
+ 	int len;
+ 	struct tomoyo_io_buffer *head = file->private_data;
++	int idx;
+ 
+ 	if (!head->read)
+ 		return -ENOSYS;
+@@ -1943,10 +1939,12 @@ int tomoyo_read_control(struct file *file, char __user *buffer,
+ 		return -EINTR;
+ 	head->read_user_buf = buffer;
+ 	head->read_user_buf_avail = buffer_len;
++	idx = tomoyo_read_lock();
+ 	if (tomoyo_flush(head))
+ 		/* Call the policy handler. */
+ 		head->read(head);
+ 	tomoyo_flush(head);
++	tomoyo_read_unlock(idx);
+ 	len = head->read_user_buf - buffer;
+ 	mutex_unlock(&head->io_sem);
+ 	return len;
+@@ -1960,8 +1958,6 @@ int tomoyo_read_control(struct file *file, char __user *buffer,
+  * @buffer_len: Size of @buffer.
+  *
+  * Returns @buffer_len on success, negative value otherwise.
+- *
+- * Caller holds tomoyo_read_lock().
+  */
+ int tomoyo_write_control(struct file *file, const char __user *buffer,
+ 			 const int buffer_len)
+@@ -1970,17 +1966,22 @@ int tomoyo_write_control(struct file *file, const char __user *buffer,
+ 	int error = buffer_len;
+ 	int avail_len = buffer_len;
+ 	char *cp0 = head->write_buf;
++	int idx;
+ 
+ 	if (!head->write)
+ 		return -ENOSYS;
+ 	if (!access_ok(VERIFY_READ, buffer, buffer_len))
+ 		return -EFAULT;
++	if (mutex_lock_interruptible(&head->io_sem))
++		return -EINTR;
++	idx = tomoyo_read_lock();
+ 	/* Don't allow updating policies by non manager programs. */
+ 	if (head->write != tomoyo_write_pid &&
+-	    head->write != tomoyo_write_domain && !tomoyo_manager())
++	    head->write != tomoyo_write_domain && !tomoyo_manager()) {
++		tomoyo_read_unlock(idx);
++		mutex_unlock(&head->io_sem);
+ 		return -EPERM;
+-	if (mutex_lock_interruptible(&head->io_sem))
+-		return -EINTR;
++	}
+ 	/* Read a line and dispatch it to the policy handler. */
+ 	while (avail_len > 0) {
+ 		char c;
+@@ -2001,6 +2002,7 @@ int tomoyo_write_control(struct file *file, const char __user *buffer,
+ 		tomoyo_normalize_line(cp0);
+ 		head->write(head);
+ 	}
++	tomoyo_read_unlock(idx);
+ 	mutex_unlock(&head->io_sem);
+ 	return error;
+ }
+@@ -2011,13 +2013,11 @@ int tomoyo_write_control(struct file *file, const char __user *buffer,
+  * @file: Pointer to "struct file".
+  *
+  * Releases memory and returns 0.
+- *
+- * Caller looses tomoyo_read_lock().
+  */
  int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -42,7 +129,7 @@ index 7556315..b7224ab 100644
  
  	/*
  	 * If the file is /sys/kernel/security/tomoyo/query , decrement the
-@@ -2025,18 +2024,7 @@ int tomoyo_close_control(struct file *file)
+@@ -2025,18 +2025,7 @@ int tomoyo_close_control(struct file *file)
  	 */
  	if (head->type == TOMOYO_QUERY)
  		atomic_dec(&tomoyo_query_observers);
@@ -96,7 +183,7 @@ index 7c66bd8..4794ed6 100644
  void tomoyo_memory_free(void *ptr);
  
 diff --git a/security/tomoyo/gc.c b/security/tomoyo/gc.c
-index a877e4c..5d41fa1 100644
+index a877e4c..2a2f481 100644
 --- a/security/tomoyo/gc.c
 +++ b/security/tomoyo/gc.c
 @@ -11,9 +11,128 @@
@@ -228,7 +315,7 @@ index a877e4c..5d41fa1 100644
  	struct list_head *element;
  };
  static LIST_HEAD(tomoyo_gc_queue);
-@@ -26,12 +145,47 @@ static bool tomoyo_add_to_gc(const int type, struct list_head *element)
+@@ -26,12 +145,48 @@ static bool tomoyo_add_to_gc(const int type, struct list_head *element)
  	if (!entry)
  		return false;
  	entry->type = type;
@@ -266,7 +353,8 @@ index a877e4c..5d41fa1 100644
 +		const u8 *ptr = (const u8 *) p->element->next;
 +		if (ptr < element || element + size < ptr)
 +			continue;
-+		WARN_ONCE(1, "***** %p <= %p < %p\n", element, ptr,
++		WARN_ONCE(element < ptr && ptr < element + size,
++			  "***** %p < %p < %p *****\n", element, ptr,
 +			  element + size);
 +		return true;
 +	}
@@ -276,7 +364,7 @@ index a877e4c..5d41fa1 100644
  static void tomoyo_del_allow_read(struct list_head *element)
  {
  	struct tomoyo_readable_file *ptr =
-@@ -127,42 +281,17 @@ static void tomoyo_del_acl(struct list_head *element)
+@@ -127,42 +282,17 @@ static void tomoyo_del_acl(struct list_head *element)
  	}
  }
  
@@ -320,7 +408,7 @@ index a877e4c..5d41fa1 100644
  }
  
  
-@@ -283,6 +412,30 @@ static void tomoyo_kfree_entry(void)
+@@ -283,6 +413,30 @@ static void tomoyo_kfree_entry(void)
  
  	list_for_each_entry_safe(p, tmp, &tomoyo_gc_queue, list) {
  		struct list_head *element = p->element;
@@ -351,7 +439,7 @@ index a877e4c..5d41fa1 100644
  		switch (p->type) {
  		case TOMOYO_ID_TRANSITION_CONTROL:
  			tomoyo_del_transition_control(element);
-@@ -303,14 +456,37 @@ static void tomoyo_kfree_entry(void)
+@@ -303,14 +457,37 @@ static void tomoyo_kfree_entry(void)
  			tomoyo_del_manager(element);
  			break;
  		case TOMOYO_ID_NAME:
@@ -391,3 +479,45 @@ index a877e4c..5d41fa1 100644
  			break;
  		case TOMOYO_ID_PATH_GROUP:
  			tomoyo_del_path_group(element);
+@@ -345,10 +522,36 @@ static int tomoyo_gc_thread(void *unused)
+ 	do_exit(0);
+ }
+ 
+-void tomoyo_run_gc(void)
++/**
++ * tomoyo_notify_gc - Register/unregister /sys/kernel/security/tomoyo/ users.
++ *
++ * @head:        Pointer to "struct tomoyo_io_buffer".
++ * @is_register: True if register, false if unregister.
++ *
++ * Returns nothing.
++ */
++void tomoyo_notify_gc(struct tomoyo_io_buffer *head, const bool is_register)
+ {
+-	struct task_struct *task = kthread_create(tomoyo_gc_thread, NULL,
+-						  "GC for TOMOYO");
+-	if (!IS_ERR(task))
+-		wake_up_process(task);
++	bool is_write = false;
++	spin_lock(&tomoyo_io_buffer_list_lock);
++	if (is_register) {
++		head->users = 1;
++		list_add(&head->list, &tomoyo_io_buffer_list);
++	} else {
++		is_write = head->write_buf != NULL;
++		if (!--head->users) {
++			list_del(&head->list);
++			kfree(head->read_buf);
++			kfree(head->write_buf);
++			kfree(head);
++		}
++	}
++	spin_unlock(&tomoyo_io_buffer_list_lock);
++	if (is_write) {
++		struct task_struct *task =
++			kthread_create(tomoyo_gc_thread, NULL,
++				       "GC for TOMOYO");
++		if (!IS_ERR(task))
++			wake_up_process(task);
++	}
+ }
