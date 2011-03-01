@@ -7,6 +7,8 @@ BUILD_FILES := ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
 
 all: libccstools.so $(BUILD_FILES)
 
+$(BUILD_FILES): libccstools.so
+
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses-dev'"
