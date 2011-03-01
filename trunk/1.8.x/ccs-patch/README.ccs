@@ -2744,3 +2744,15 @@ Fix 2011/02/07
       printing the additional '\0', ccs_flush() was returning without updating
       head->r.w[0]. As a result, ccs_flush() forever reprints already printed
       string data.
+
+Fix 2011/03/01
+
+    @ Run garbage collector without waiting for /proc/ccs/ users.
+
+      Currently TOMOYO holds SRCU lock upon open() and releases it upon close()
+      because list elements stored in the "struct ccs_io_buffer" instances are
+      accessed until close() is called. However, such SRCU usage causes lockdep
+      to complain about leaving the kernel with SRCU lock held. Therefore,
+      I changed to hold/release SRCU upon each read()/write() by selectively
+      deferring kfree() by keeping track of the "struct ccs_io_buffer"
+      instances.
