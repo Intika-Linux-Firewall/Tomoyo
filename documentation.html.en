@@ -38,9 +38,41 @@
 
 <p><strong>TOMOYO Linux 2.x</strong> is the Linux mainline kernel branch of development. In June 2009, a subset of TOMOYO functionality was merged into the Linux kernel 2.6.30 and makes use of standard Linux Security Module (LSM) hooks. However, the LSM hooks must be extended further in order to port the full MAC functionality of TOMOYO Linux 1.x into the Linux kernel. Thus, it does not yet provide equal functionality with the 1.x branch of development. <a href="comparison.html.en">This chart compares the differences</a> between each branch.</p>
 
+<p><strong>AKARI</strong> is similar to the 1.x branch but is implemented as a loadable kernel module. <a href="http://akari.sourceforge.jp/comparison.html.en">This chart compares the differences</a> between AKARI and both the TOMOYO Linux 1.x and 2.x branches.</p>
+
+<div class="simple-table-wrap">
+<table>
+<tr>
+<th><p>Branch</p></th>
+<th><p>Advantages</p></th>
+<th><p>Disadvantages</p></th>
+</tr>
+<tr>
+<td><p>TOMOYO Linux 1.x</p></td>
+<td><p>Full MAC functionality.</p></td>
+<td><p>Requires kernel compilation.<br>
+No support from distributor unless shipped with kernel.</p></td>
+</tr>
+<tr>
+<td><p>TOMOYO Linux 2.x</p></td>
+<td><p>Support from distributor if shipped with kernel.<br>
+Kernel generally does not need to be patched or recompiled.</p></td>
+<td><p>Quite limited MAC functionality.</p></td>
+</tr>
+<tr>
+<td><p>AKARI</p></td>
+<td><p>Most MAC functionality.<br>
+Kernel generally does not need to be patched or recompiled.</p>
+<td><p>Missing a small number of advanced features.</p></td>
+</tr>
+</table>
+</div>
+
 <p>Use the 2.x branch if your priority is to use TOMOYO Linux without modifying the kernel, and you do not require any of the missing features. Although this branch is already integrated into the upstream Linux kernel, some distributions may not set certain kernel configuration options that TOMOYO Linux depends on. In this case, you may still need to compile your own kernel.</p>
 
-<p>Use the 1.x branch if your priority is to obtain the most of TOMOYO Linux and the MAC functionality available. Although this branch requires the kernel to be patched and recompiled, binary packages for the 1.x branch are provided for some distributions.</p>
+<p>Use the 1.x branch if your priority is to obtain the most out of TOMOYO Linux and the MAC functionality available. Although this branch requires the kernel to be patched and recompiled, binary packages for the 1.x branch are provided for some distributions.</p>
+
+<p>Use AKARI if your priority is to obtain the most out of TOMOYO Linux and the MAC functionality available, but without patching or recompiling the kernel. This may hopefully allow you to receive support from your distribution for kernel problems unrelated to AKARI.</p>
 
 <h3>Documentation for 2.x branch:</h3>
 <ul>
@@ -52,6 +84,11 @@
 <ul>
 <li><a href="1.8/index.html.en">1.8.x Documentation</a> (current)</li>
 <li><a href="1.7/index.html.en">1.7.x Documentation</a> (old)</li>
+</ul>
+
+<h3>Documentation for AKARI:</h3>
+<ul>
+<li><a href="http://akari.sourceforge.jp/">AKARI Documentation</a></li>
 </ul>
 
 </div><!-- regular-content -->
