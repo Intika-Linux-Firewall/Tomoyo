@@ -1,0 +1,45 @@
+Which version should I use?
+
+TOMOYO Linux 1.x is the original branch of development, which was first released on 11th November 2005 under the GNU GPL. It was implemented as a patch that can be applied to the Linux kernel and is still in active development.
+
+TOMOYO Linux 2.x is the Linux mainline kernel branch of development. In June 2009, a subset of TOMOYO functionality was merged into the Linux kernel 2.6.30 and makes use of standard Linux Security Module (LSM) hooks. However, the LSM hooks must be extended further in order to port the full MAC functionality of TOMOYO Linux 1.x into the Linux kernel. Thus, it does not yet provide equal functionality with the 1.x branch of development. This chart(http://tomoyo.sourceforge.jp/comparison.html.en) compares the differences between each branch.
+
+AKARI is a loadable kernel module version of TOMOYO 1.8. This chart(http://akari.sourceforge.jp/comparison.html.en) compares the differences among TOMOYO 1.8, TOMOYO 2.3 and AKARI.
+
+TOMOYO 2.x's advantages:
+ You can get support from distributors if shipped with distributor's kernels.
+
+TOMOYO 2.x's disadvantages:
+ Functionality is limited.
+
+TOMOYO 1.x's advantages:
+ You can gain all of the functionality.
+
+TOMOYO 1.x's disadvantages:
+ You cannot get support from distributors unless shipped with distributor's kernels.
+
+AKARI's advantages:
+ You can gain most of the functionality of the TOMOYO Linux 1.8 without replacing kernel package.
+
+AKARI's disadvantages:
+ AKARI's behavior is a bit different from TOMOYO Linux 1.8.
+
+Use the 2.x branch if your priority is to use TOMOYO Linux without modifying the kernel, and you do not require any of the missing features. Although this branch is already integrated into the upstream Linux kernel, some distributions may not set certain kernel configuration options that TOMOYO Linux depends on. In this case, you may still need to compile your own kernel.
+
+Use the 1.x branch if your priority is to obtain the most of TOMOYO Linux and the MAC functionality available. Although this branch requires the kernel to be patched and recompiled, binary packages for the 1.x branch are provided for some distributions.
+
+Use the AKARI if your priority is to obtain TOMOYO 1.8's features as many as possible without patching and recompiling the kernel, and hopefully getting support from distributors for problems unrelated to AKARI.
+
+Documentation for 2.x branch:
+
+    * 2.3.x Documentation (Linux 2.6.36 and later)
+    * 2.2.x Documentation (Linux 2.6.30 to 2.6.35)
+
+Documentation for 1.x branch:
+
+    * 1.8.x Documentation (current)
+    * 1.7.x Documentation (old)
+
+Documentation for AKARI:
+
+    * AKARI Documentation (jumps to different site)
