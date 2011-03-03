@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 4.8's 2.6.9 kernel.
+# This is a kernel build script for CentOS 4.9's 2.6.9 kernel.
 #
 
 die () {
@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-89.35.1.EL.src.rpm ]
+if [ ! -r kernel-2.6.9-100.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.35.1.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/4.9/updates/SRPMS/kernel-2.6.9-100.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-89.35.1.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-100.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20110121.tar.gz ]
@@ -31,8 +31,8 @@ patch << "EOF" || die "Can't patch spec file."
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 89.35.1.EL
-+%define release 89.35.1.EL_tomoyo_1.6.8p4
+-%define release 100.EL
++%define release 100.EL_tomoyo_1.6.8p4
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.8-20110121.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.9-centos-4.8.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.9-centos-4.9.diff
 +
  cp %{SOURCE10} Documentation/
  
