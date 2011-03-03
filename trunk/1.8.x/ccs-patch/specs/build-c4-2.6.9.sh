@@ -23,12 +23,17 @@ then
     wget -O ccs-patch-1.8.0-20110207.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.0-20110207.tar.gz' || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.9-centos-4.9-1.8.0-20110217.diff ]
+then
+    wget -O ccs-patch-2.6.9-centos-4.9-1.8.0-20110217.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/ccs-patch-2.6.9-centos-4.9.diff?root=tomoyo&revision=4675' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-2.6.spec
 +++ kernel-2.6.spec
-@@ -27,7 +27,7 @@
+@@ -26,7 +26,7 @@
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
@@ -37,7 +42,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
-@@ -140,6 +140,9 @@
+@@ -139,6 +139,9 @@
  # to versions below the minimum
  #
  
@@ -47,7 +52,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -178,7 +181,7 @@
+@@ -175,7 +178,7 @@
  %define __find_provides /usr/lib/rpm/redhat/find-kmod-provides.sh
  %define __find_requires %{nil}
  
@@ -56,18 +61,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -5755,6 +5758,10 @@
+@@ -6111,6 +6114,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.0-20110207.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.9-centos-4.9.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.9-centos-4.9-1.8.0-20110217.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -5766,6 +5773,9 @@
+@@ -6122,6 +6129,9 @@
  for i in *.config 
  do 
  	mv $i .config 
@@ -92,7 +97,7 @@ sleep 30
 patch << "EOF" || die "Can't patch spec file."
 --- /tmp/ccs-kernel.spec
 +++ /tmp/ccs-kernel.spec
-@@ -4,13 +4,13 @@
+@@ -3,13 +3,13 @@
  # What parts do we want to build?  We must build at least one kernel.
  # These are the kernels that are built IF the architecture allows it.
  
