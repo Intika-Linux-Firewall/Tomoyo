@@ -17,13 +17,23 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
 
   [ -z "$CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY" ] && define_int CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY 2048
   [ $CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY 0
-  int  '  Default maximal count for learning mode' CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY
+  int  'Default maximal count for learning mode' CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY
 
-  string '  Default policy loader' CONFIG_CCSECURITY_DEFAULT_LOADER "/sbin/ccs-init"
+  string 'Default policy loader' CONFIG_CCSECURITY_DEFAULT_LOADER "/sbin/ccs-init"
 
-  string '  Alternative activation trigger' CONFIG_CCSECURITY_ALTERNATIVE_TRIGGER "/sbin/ccs-start"
+  string 'Alternative activation trigger' CONFIG_CCSECURITY_ALTERNATIVE_TRIGGER "/sbin/ccs-start"
 
-  string '  Built-in domain initializer programs' CONFIG_CCSECURITY_BUILTIN_INITIALIZERS "/sbin/modprobe /sbin/hotplug"
+  string 'Built-in domain initializer programs' CONFIG_CCSECURITY_BUILTIN_INITIALIZERS "/sbin/modprobe /sbin/hotplug"
+
+  [ -z "$CONFIG_CCSECURITY_USE_BUILTIN_POLICY" ] && define_bool CONFIG_CCSECURITY_USE_BUILTIN_POLICY n
+  bool 'Use built-in policy' CONFIG_CCSECURITY_USE_BUILTIN_POLICY
+
+  if [ "$CONFIG_CCSECURITY_USE_BUILTIN_POLICY" = "y" ]; then
+
+    [ -z "$CONFIG_CCSECURITY_ACTIVATE_FROM_THE_BEGINNING" ] && define_bool CONFIG_CCSECURITY_ACTIVATE_FROM_THE_BEGINNING n
+    bool 'Activate immediately after loading built-in policy.' CONFIG_CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
+
+  fi
 
   [ -z "$CONFIG_CCSECURITY_MAX_AUDIT_LOG" ] && define_int CONFIG_CCSECURITY_MAX_AUDIT_LOG 1024
   [ $CONFIG_CCSECURITY_MAX_AUDIT_LOG -lt 0 ] && define_int CONFIG_CCSECURITY_MAX_AUDIT_LOG 0
