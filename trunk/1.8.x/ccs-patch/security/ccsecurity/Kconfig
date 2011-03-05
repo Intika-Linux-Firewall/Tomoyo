@@ -49,43 +49,16 @@ config CCSECURITY_MAX_ACCEPT_ENTRY
 	  and consumes much memory.
 	  This is the safeguard for such programs.
 
-config CCSECURITY_DEFAULT_LOADER
-	string "Default policy loader"
-	default "/sbin/ccs-init"
+config CCSECURITY_MAX_AUDIT_LOG
+	int "Default maximal count for audit log"
+	default 1024
+	range 0 2147483647
 	depends on CCSECURITY
-	---help---
-	  This is the default pathname of policy loader which is called before
-	  activation. You can override using CCS_loader= kernel command line
-	  option.
-
-config CCSECURITY_ALTERNATIVE_TRIGGER
-	string "Alternative activation trigger"
-	default "/sbin/ccs-start"
-	depends on CCSECURITY
-	---help---
-	  Some environments do not have /sbin/init . In such environments,
-	  we need to use different program's pathname (e.g. /init or /linuxrc )
-	  as activation trigger.
-
-config CCSECURITY_BUILTIN_INITIALIZERS
-	string "Built-in domain initializer programs"
-	default "/sbin/modprobe /sbin/hotplug"
-	depends on CCSECURITY
-	---help---
-	  Some programs are executed from initrd/initramfs before /sbin/init
-	  starts.
-
-	  Since policy is loaded when /sbin/init starts, it is impossible to
-	  run such programs outside the <kernel> domain. Usually it is fine.
-
-	  But if such programs continue running when /sbin/init starts, such
-	  programs will reside in the <kernel> domain.
-	  If such programs executes /bin/sh , you will give the <kernel> domain
-	  permission to execute /bin/sh ; I think you don't want to do so.
-
-	  This option allows you to chase such programs away from the <kernel>
-	  domain so that you won't give the <kernel> domain permission to
-	  execute /bin/sh .
+	help
+	  This is the default value for maximal entries for
+	  audit logs that the kernel can hold on memory.
+	  You can read the log via /proc/ccs/audit.
+	  If you don't need audit logs, you may set this value to 0.
 
 config CCSECURITY_USE_BUILTIN_POLICY
 	bool "Use built-in policy"
@@ -93,8 +66,7 @@ config CCSECURITY_USE_BUILTIN_POLICY
 	depends on CCSECURITY
 	---help---
 	  Choose this option if you want to embed initial policy files into the
-	  kernel. This option is a superset of "Built-in domain initializer
-	  programs" above.
+	  kernel. This is a superset of "Built-in domain initializer programs".
 
 	  To use this option, you need to create a file named
 	  security/ccsecurity/builtin-policy.h that contains /proc/ccs/profile
@@ -129,6 +101,27 @@ config CCSECURITY_USE_BUILTIN_POLICY
 	  use \n to represent a new line) because the file is interpreted as
 	  a C source file.
 
+config CCSECURITY_BUILTIN_INITIALIZERS
+	string "Built-in domain initializer programs"
+	default "/sbin/modprobe /sbin/hotplug"
+	depends on CCSECURITY
+	depends on !CCSECURITY_USE_BUILTIN_POLICY
+	---help---
+	  Some programs are executed from initrd/initramfs before /sbin/init
+	  starts.
+
+	  Since policy is loaded when /sbin/init starts, it is impossible to
+	  run such programs outside the <kernel> domain. Usually it is fine.
+
+	  But if such programs continue running when /sbin/init starts, such
+	  programs will reside in the <kernel> domain.
+	  If such programs executes /bin/sh , you will give the <kernel> domain
+	  permission to execute /bin/sh ; I think you don't want to do so.
+
+	  This option allows you to chase such programs away from the <kernel>
+	  domain so that you won't give the <kernel> domain permission to
+	  execute /bin/sh .
+
 config CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
 	bool "Activate immediately after loading built-in policy."
 	default n
@@ -145,13 +138,33 @@ config CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
 	  enforcing mode from the beginning, you can reduce the possibility of
 	  hijacking the boot sequence.
 
-config CCSECURITY_MAX_AUDIT_LOG
-	int "Default maximal count for audit log"
-	default 1024
-	range 0 2147483647
+config CCSECURITY_OMIT_USERSPACE_LOADER
+	bool "Omit calling policy loader when /sbin/init starts."
+	default y
+	depends on CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
+	---help---
+	  Choose this option if you want to skip calling policy loader when
+	  /sbin/init starts. If you embedded policy using "Use built-in policy"
+	  and chose "Activate immediately after loading built-in policy.",
+	  I think you don't need to call policy loader because policy was
+	  already loaded and already activated.
+
+config CCSECURITY_DEFAULT_LOADER
+	string "Default policy loader"
+	default "/sbin/ccs-init"
 	depends on CCSECURITY
-	help
-	  This is the default value for maximal entries for
-	  audit logs that the kernel can hold on memory.
-	  You can read the log via /proc/ccs/audit.
-	  If you don't need audit logs, you may set this value to 0.
+	depends on !CCSECURITY_OMIT_USERSPACE_LOADER
+	---help---
+	  This is the default pathname of policy loader which is called before
+	  activation. You can override using CCS_loader= kernel command line
+	  option.
+
+config CCSECURITY_ALTERNATIVE_TRIGGER
+	string "Alternative activation trigger"
+	default "/sbin/ccs-start"
+	depends on CCSECURITY
+	depends on !CCSECURITY_OMIT_USERSPACE_LOADER
+	---help---
+	  Some environments do not have /sbin/init . In such environments,
+	  we need to use different program's pathname (e.g. /init or /linuxrc )
+	  as activation trigger.
