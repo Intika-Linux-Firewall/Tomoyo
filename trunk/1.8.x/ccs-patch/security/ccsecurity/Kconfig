@@ -87,6 +87,64 @@ config CCSECURITY_BUILTIN_INITIALIZERS
 	  domain so that you won't give the <kernel> domain permission to
 	  execute /bin/sh .
 
+config CCSECURITY_USE_BUILTIN_POLICY
+	bool "Use built-in policy"
+	default n
+	depends on CCSECURITY
+	---help---
+	  Choose this option if you want to embed initial policy files into the
+	  kernel. This option is a superset of "Built-in domain initializer
+	  programs" above.
+
+	  To use this option, you need to create a file named
+	  security/ccsecurity/builtin-policy.h that contains /proc/ccs/profile
+	  /proc/ccs/exception_policy /proc/ccs/domain_policy /proc/ccs/manager
+	  and /proc/ccs/stat in this order which are quoted and escaped in
+	  accordance with C syntax. An example content of the file looks like:
+
+	    /* Profile configuration. */
+	    "PROFILE_VERSION=20100903\n"
+	    "0-CONFIG={ mode=enforcing }\n",
+	    /* Exception policy configuration. */
+	    "initialize_domain /sbin/modprobe from any\n"
+	    "initialize_domain /sbin/hotplug from any\n",
+	    /* Domain policy configuration. */
+	    "<kernel>\n"
+	    "use_profile 0\n"
+	    "use_group 0\n"
+	    "file execute /sbin/init\n"
+	    "file execute /sbin/modprobe\n"
+	    "file execute /sbin/hotplug\n"
+	    "<kernel> /sbin/init\n"
+	    "use_profile 0\n"
+	    "use_group 0\n",
+	    /* Manager configuration. */
+	    "/usr/sbin/ccs-editpolicy\n",
+	    /* Stat configuration. */
+	    "Memory used by policy: 0\n"
+	    "Memory used by audit log: 16777216\n"
+	    "Memory used by query message: 1048576\n"
+
+	  Note that you need to escape as needed (e.g. use \\ to represent \ ,
+	  use \n to represent a new line) because the file is interpreted as
+	  a C source file.
+
+config CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
+	bool "Activate immediately after loading built-in policy."
+	default n
+	depends on CCSECURITY_USE_BUILTIN_POLICY
+	---help---
+	  Choose this option if you want to activate access control as soon as
+	  built-in policy was loaded. This option will be useful for systems
+	  where operations which can lead to the hijacking of the boot sequence
+	  are needed before loading the policy. For example, you can activate
+	  immediately after loading the fixed part of policy which will allow
+	  only operations needed for mounting a partition which contains the
+	  variant part of policy and verifying (e.g. running GPG check) and
+	  loading the variant part of policy. Since you can start using
+	  enforcing mode from the beginning, you can reduce the possibility of
+	  hijacking the boot sequence.
+
 config CCSECURITY_MAX_AUDIT_LOG
 	int "Default maximal count for audit log"
 	default 1024
