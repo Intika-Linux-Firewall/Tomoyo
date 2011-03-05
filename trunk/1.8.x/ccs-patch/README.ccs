@@ -2756,3 +2756,20 @@ Fix 2011/03/01
       I changed to hold/release SRCU upon each read()/write() by selectively
       deferring kfree() by keeping track of the "struct ccs_io_buffer"
       instances.
+
+Fix 2011/03/05
+
+    @ Support built-in policy configuration.
+
+      To be able to start using enforcing mode from the early stage of boot
+      sequence, I added support for built-in policy configuration and
+      activating access control without calling external policy loader program.
+
+      This will be useful for systems where operations which can lead to the
+      hijacking of the boot sequence are needed before loading the policy.
+      For example, you can activate immediately after loading the fixed part of
+      policy which will allow only operations needed for mounting a partition
+      which contains the variant part of policy and verifying (e.g. running GPG
+      check) and loading the variant part of policy. Since you can start using
+      enforcing mode from the beginning, you can reduce the possibility of
+      hijacking the boot sequence.

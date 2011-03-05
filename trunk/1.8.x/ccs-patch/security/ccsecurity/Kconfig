@@ -65,8 +65,8 @@ config CCSECURITY_USE_BUILTIN_POLICY
 	default n
 	depends on CCSECURITY
 	---help---
-	  Choose this option if you want to embed initial policy files into the
-	  kernel. This is a superset of "Built-in domain initializer programs".
+	  Say Y here if you want to embed initial policy files into the kernel.
+	  This is a superset of "Built-in domain initializer programs".
 
 	  To use this option, you need to create a file named
 	  security/ccsecurity/builtin-policy.h that contains /proc/ccs/profile
@@ -127,10 +127,10 @@ config CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
 	default n
 	depends on CCSECURITY_USE_BUILTIN_POLICY
 	---help---
-	  Choose this option if you want to activate access control as soon as
-	  built-in policy was loaded. This option will be useful for systems
-	  where operations which can lead to the hijacking of the boot sequence
-	  are needed before loading the policy. For example, you can activate
+	  Say Y here if you want to activate access control as soon as built-in
+	  policy was loaded. This option will be useful for systems where
+	  operations which can lead to the hijacking of the boot sequence are
+	  needed before loading the policy. For example, you can activate
 	  immediately after loading the fixed part of policy which will allow
 	  only operations needed for mounting a partition which contains the
 	  variant part of policy and verifying (e.g. running GPG check) and
@@ -138,16 +138,21 @@ config CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
 	  enforcing mode from the beginning, you can reduce the possibility of
 	  hijacking the boot sequence.
 
+	  If you say Y here, you may want to change "Default policy loader" to
+	  something like /bin/true because the role of policy loader is nothing
+	  but to activate. If you have nothing more to add to policy before
+	  activation, you may want to choose "Omit calling policy loader when
+	  /sbin/init starts." because you no longer need to call policy loader.
+
 config CCSECURITY_OMIT_USERSPACE_LOADER
 	bool "Omit calling policy loader when /sbin/init starts."
 	default y
 	depends on CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
 	---help---
-	  Choose this option if you want to skip calling policy loader when
-	  /sbin/init starts. If you embedded policy using "Use built-in policy"
-	  and chose "Activate immediately after loading built-in policy.",
-	  I think you don't need to call policy loader because policy was
-	  already loaded and already activated.
+	  Say Y here if you want to skip calling policy loader when /sbin/init
+	  starts. If you embedded policy using "Use built-in policy" and chose
+	  "Activate immediately after loading built-in policy.", you don't need
+	  to call policy loader.
 
 config CCSECURITY_DEFAULT_LOADER
 	string "Default policy loader"
