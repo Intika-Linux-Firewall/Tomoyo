@@ -1287,7 +1287,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		/* Don't set error message if failed. */
 		fp = fopen(ccs_policy_file, "r+");
 	if (fp) {
-		fprintf(fp, "select execute\n");
+		fprintf(fp, "select transition_only\n");
 		if (ccs_network_mode)
 			fputc(0, fp);
 		fflush(fp);
