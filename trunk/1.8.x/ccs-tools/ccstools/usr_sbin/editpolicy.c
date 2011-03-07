@@ -1414,9 +1414,15 @@ static void ccs_parse_exception_line(char *line, const int max_index)
 		char *cp = strchr(line + 10, ' ');
 		if (cp)
 			line = cp + 1;
-		for (index = 0; index < max_index; index++)
-			if (ccs_dp.list[index].group == group)
-				ccs_parse_domain_line(line, index, false);
+		for (index = 0; index < max_index; index++) {
+			if (ccs_dp.list[index].group != group)
+				continue;
+			cp = strdup(line);
+			if (!cp)
+				ccs_out_of_memory();
+			ccs_parse_domain_line(cp, index, false);
+			free(cp);
+		}
 	}
 }
 
