@@ -102,56 +102,55 @@ static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
 	[CCS_TRANSITION_CONTROL_NO_KEEP] = "no_keep_domain ",
 };
 
-static void ccs_sigalrm_handler(int sig);
-static const char *ccs_get_last_name(const int index);
-static _Bool ccs_keeper_domain(const int index);
+static FILE *ccs_editpolicy_open_write(const char *filename);
+static _Bool ccs_deleted_domain(const int index);
+static _Bool ccs_domain_unreachable(const int index);
 static _Bool ccs_initializer_source(const int index);
 static _Bool ccs_initializer_target(const int index);
-static _Bool ccs_domain_unreachable(const int index);
-static _Bool ccs_deleted_domain(const int index);
+static _Bool ccs_keeper_domain(const int index);
+static _Bool ccs_select_item(const int index);
+static _Bool ccs_show_command_key(const enum ccs_screen_type screen, const _Bool readonly);
+static const char *ccs_eat(const char *str);
+static const char *ccs_get_last_name(const int index);
 static const struct ccs_transition_control_entry *ccs_transition_control(const struct ccs_path_info *domainname, const char *program);
+static enum ccs_screen_type ccs_generic_list_loop(void);
 static enum ccs_screen_type ccs_select_window(const int current);
-static int ccs_gacl_compare(const void *a, const void *b);
-static int ccs_gacl_compare0(const void *a, const void *b);
-static int ccs_string_acl_compare(const void *a, const void *b);
-static int ccs_profile_entry_compare(const void *a, const void *b);
-static void ccs_read_generic_policy(void);
-static int ccs_add_transition_control_entry(const char *domainname, const char *program, const enum ccs_transition_type type);
-static int ccs_add_transition_control_policy(char *data, const enum ccs_transition_type type);
 static int ccs_add_path_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete);
-static void ccs_assign_dis(const struct ccs_path_info *domainname, const char *program);
-static int ccs_domainname_attribute_compare(const void *a, const void *b);
-static void ccs_read_domain_and_exception_policy(void);
-static void ccs_show_current(void);
-static const char *ccs_eat(const char *str);
-static int ccs_show_domain_line(const int index);
-static int ccs_show_acl_line(const int index, const int list_indent);
-static int ccs_show_profile_line(const int index);
-static int ccs_show_literal_line(const int index);
-static int ccs_show_stat_line(const int index);
-static void ccs_show_list(void);
-static void ccs_resize_window(void);
-static void ccs_up_arrow_key(void);
-static void ccs_down_arrow_key(void);
-static void ccs_page_up_key(void);
-static void ccs_page_down_key(void);
-static void ccs_adjust_cursor_pos(const int item_count);
-static void ccs_set_cursor_pos(const int index);
+static int ccs_add_transition_control_entry(const char *domainname, const char *program, const enum ccs_transition_type type);
+static int ccs_add_transition_control_policy(char *data, const enum ccs_transition_type type);
 static int ccs_count(const unsigned char *array, const int len);
 static int ccs_count2(const struct ccs_generic_acl *array, int len);
-static _Bool ccs_select_item(const int index);
+static int ccs_domainname_attribute_compare(const void *a, const void *b);
 static int ccs_gacl_compare(const void *a, const void *b);
-static void ccs_delete_entry(const int index);
+static int ccs_gacl_compare0(const void *a, const void *b);
+static int ccs_profile_entry_compare(const void *a, const void *b);
+static int ccs_show_acl_line(const int index, const int list_indent);
+static int ccs_show_domain_line(const int index);
+static int ccs_show_literal_line(const int index);
+static int ccs_show_profile_line(const int index);
+static int ccs_show_stat_line(const int index);
+static int ccs_string_acl_compare(const void *a, const void *b);
 static void ccs_add_entry(void);
-static void ccs_find_entry(const _Bool input, const _Bool forward, const int current);
-static void ccs_set_profile(const int current);
-static void ccs_set_level(const int current);
-static void ccs_set_quota(const int current);
-static _Bool ccs_show_command_key(const enum ccs_screen_type screen, const _Bool readonly);
-static enum ccs_screen_type ccs_generic_list_loop(void);
+static void ccs_adjust_cursor_pos(const int item_count);
+static void ccs_assign_dis(const struct ccs_path_info *domainname, const char *program);
 static void ccs_copy_file(const char *source, const char *dest);
-static FILE *ccs_editpolicy_open_write(const char *filename);
+static void ccs_delete_entry(const int index);
+static void ccs_down_arrow_key(void);
+static void ccs_find_entry(const _Bool input, const _Bool forward, const int current);
+static void ccs_page_down_key(void);
+static void ccs_page_up_key(void);
+static void ccs_read_domain_and_exception_policy(void);
+static void ccs_read_generic_policy(void);
+static void ccs_resize_window(void);
+static void ccs_set_cursor_pos(const int index);
+static void ccs_set_level(const int current);
+static void ccs_set_profile(const int current);
+static void ccs_set_quota(const int current);
+static void ccs_show_current(void);
+static void ccs_show_list(void);
+static void ccs_sigalrm_handler(int sig);
+static void ccs_up_arrow_key(void);
 
 /**
  * ccs_copy_file - Copy local file to local or remote file.
@@ -1263,7 +1262,7 @@ static int ccs_jump_list_len = 0;
 /**
  * ccs_add_condition_domain_transition - Add auto_domain_transition= part.
  *
- * @line: Line to parse.
+ * @line:  Line to parse.
  * @index: Current domain's index.
  *
  * Returns nothing.
@@ -1303,7 +1302,7 @@ static void ccs_add_condition_domain_transition(char *line, const int index)
 /**
  * ccs_add_acl_domain_transition - Add task acl.
  *
- * @line: Line to parse.
+ * @line:  Line to parse.
  * @index: Current domain's index.
  *
  * Returns nothing.
@@ -1345,6 +1344,83 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 }
 
 /**
+ * ccs_parse_domain_line - Parse an ACL entry in domain policy.
+ *
+ * @line:  Line to parse.
+ * @index: Current domain's index.
+ * @flags: True if parse use_profile and use_group lines, false otherwise.
+ *
+ * Returns nothing.
+ */
+static void ccs_parse_domain_line(char *line, const int index,
+				  const bool parse_flags)
+{
+	ccs_add_condition_domain_transition(line, index);
+	if (ccs_str_starts(line, "task auto_execute_handler ") ||
+	    ccs_str_starts(line, "task denied_execute_handler ") ||
+	    ccs_str_starts(line, "file execute ")) {
+		char *cp = strchr(line, ' ');
+		if (cp)
+			*cp = '\0';
+		if (*line == '@' || ccs_correct_path(line))
+			ccs_add_string_entry(&ccs_dp, line, index);
+	} else if (ccs_str_starts(line,
+				  "task auto_domain_transition ") ||
+		   ccs_str_starts(line,
+				  "task manual_domain_transition ")) {
+		ccs_add_acl_domain_transition(line, index);
+	} else if (parse_flags) {
+		unsigned int profile;
+		if (sscanf(line, "use_profile %u", &profile) == 1) {
+			ccs_dp.list[index].profile = (u8) profile;
+			ccs_dp.list[index].profile_assigned = 1;
+		} else if (sscanf(line, "use_group %u", &profile) == 1) {
+			ccs_dp.list[index].group = (u8) profile;
+		}
+	}
+}
+
+/**
+ * ccs_parse_exception_line - Parse an ACL entry in exception policy.
+ *
+ * @line:      Line to parse.
+ * @max_index: Number of domains currently defined.
+ *
+ * Returns nothing.
+ */
+static void ccs_parse_exception_line(char *line, const int max_index)
+{
+	unsigned int group;
+	if (ccs_str_starts(line, "initialize_domain "))
+		ccs_add_transition_control_policy
+			(line, CCS_TRANSITION_CONTROL_INITIALIZE);
+	else if (ccs_str_starts(line, "no_initialize_domain "))
+		ccs_add_transition_control_policy
+			(line, CCS_TRANSITION_CONTROL_NO_INITIALIZE);
+	else if (ccs_str_starts(line, "keep_domain "))
+		ccs_add_transition_control_policy
+			(line, CCS_TRANSITION_CONTROL_KEEP);
+	else if (ccs_str_starts(line, "no_keep_domain "))
+		ccs_add_transition_control_policy
+			(line, CCS_TRANSITION_CONTROL_NO_KEEP);
+	else if (ccs_str_starts(line, "path_group "))
+		ccs_add_path_group_policy(line, false);
+	else if (ccs_str_starts(line, "address_group "))
+		ccs_add_address_group_policy(line, false);
+	else if (ccs_str_starts(line, "number_group "))
+		ccs_add_number_group_policy(line, false);
+	else if (sscanf(line, "acl_group %u", &group) == 1 && group < 256) {
+		int index;
+		char *cp = strchr(line + 10, ' ');
+		if (cp)
+			line = cp + 1;
+		for (index = 0; index < max_index; index++)
+			if (ccs_dp.list[index].group == group)
+				ccs_parse_domain_line(line, index, false);
+	}
+}
+
+/**
  * ccs_read_domain_and_exception_policy - Read domain policy and exception policy.
  *
  * Returns nothing.
@@ -1367,126 +1443,87 @@ static void ccs_read_domain_and_exception_policy(void)
 	ccs_editpolicy_clear_groups();
 	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
 
-	/* Load all domain list. */
+	/* Load all domain transition related entries. */
 	fp = NULL;
 	if (ccs_network_mode)
 		/* We can read after write. */
-		fp = ccs_editpolicy_open_write(ccs_policy_file);
+		fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
 	else if (!ccs_offline_mode)
 		/* Don't set error message if failed. */
-		fp = fopen(ccs_policy_file, "r+");
+		fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r+");
 	if (fp) {
-		fprintf(fp, "select transition_only\n");
-		if (ccs_network_mode)
-			fputc(0, fp);
-		fflush(fp);
-	}
-	if (!fp)
+                fprintf(fp, "select transition_only\n");
+                if (ccs_network_mode)
+                        fputc(0, fp);
+                fflush(fp);
+	} else {
 		fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_DOMAIN_POLICY);
-	if (!fp) {
+	}
+	if (fp) {
+		index = EOF;
+		ccs_get();
+		while (true) {
+			char *line = ccs_freadline(fp);
+			if (!line)
+				break;
+			if (ccs_domain_def(line)) {
+				index = ccs_assign_domain(&ccs_dp, line, false,
+							  false);
+				continue;
+			} else if (index == EOF) {
+				continue;
+			}
+			ccs_parse_domain_line(line, index, true);
+		}
+		ccs_put();
+		fclose(fp);
+	} else {
 		ccs_set_error(CCS_PROC_POLICY_DOMAIN_POLICY);
-		goto no_domain;
 	}
-	index = EOF;
-	ccs_get();
-	while (true) {
-		char *line = ccs_freadline(fp);
-		unsigned int profile;
-		if (!line)
-			break;
-		if (ccs_domain_def(line)) {
-			index = ccs_assign_domain(&ccs_dp, line, false, false);
-			continue;
-		} else if (index == EOF) {
-			continue;
-		}
-		ccs_add_condition_domain_transition(line, index);
-		if (ccs_str_starts(line, "task auto_execute_handler ") ||
-		    ccs_str_starts(line, "task denied_execute_handler ") ||
-		    ccs_str_starts(line, "file execute ")) {
-			char *cp = strchr(line, ' ');
-			if (cp)
-				*cp = '\0';
-			if (*line == '@' || ccs_correct_path(line))
-				ccs_add_string_entry(&ccs_dp, line, index);
-		} else if (ccs_str_starts(line,
-					  "task auto_domain_transition ") ||
-			   ccs_str_starts(line,
-					  "task manual_domain_transition ")) {
-			ccs_add_acl_domain_transition(line, index);
-		} else if (sscanf(line, "use_profile %u", &profile) == 1) {
-			ccs_dp.list[index].profile = (u8) profile;
-			ccs_dp.list[index].profile_assigned = 1;
-		} else if (sscanf(line, "use_group %u", &profile) == 1) {
-			ccs_dp.list[index].group = (u8) profile;
-		}
-	}
-	ccs_put();
-	fclose(fp);
-no_domain:
 
 	max_index = ccs_dp.list_len;
 
-	/* Load domain_initializer list, domain_keeper list. */
-	fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_EXCEPTION_POLICY);
-	if (!fp) {
-		ccs_set_error(CCS_PROC_POLICY_EXCEPTION_POLICY);
-		goto no_exception;
+	/* Load domain transition related entries and group entries. */
+	fp = NULL;
+	if (ccs_network_mode)
+		/* We can read after write. */
+		fp = ccs_editpolicy_open_write
+			(CCS_PROC_POLICY_EXCEPTION_POLICY);
+	else if (!ccs_offline_mode)
+		/* Don't set error message if failed. */
+		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
+	if (fp) {
+                fprintf(fp, "select transition_only\n");
+                if (ccs_network_mode)
+                        fputc(0, fp);
+                fflush(fp);
+	} else {
+		fp = ccs_editpolicy_open_read
+			(CCS_PROC_POLICY_EXCEPTION_POLICY);
 	}
-	ccs_get();
-	while (true) {
-		unsigned int group;
-		char *line = ccs_freadline(fp);
-		if (!line)
-			break;
-		if (ccs_str_starts(line, "initialize_domain "))
-			ccs_add_transition_control_policy
-				(line, CCS_TRANSITION_CONTROL_INITIALIZE);
-		else if (ccs_str_starts(line, "no_initialize_domain "))
-			ccs_add_transition_control_policy
-				(line, CCS_TRANSITION_CONTROL_NO_INITIALIZE);
-		else if (ccs_str_starts(line, "keep_domain "))
-			ccs_add_transition_control_policy
-				(line, CCS_TRANSITION_CONTROL_KEEP);
-		else if (ccs_str_starts(line, "no_keep_domain "))
-			ccs_add_transition_control_policy
-				(line, CCS_TRANSITION_CONTROL_NO_KEEP);
-		else if (ccs_str_starts(line, "path_group "))
-			ccs_add_path_group_policy(line, false);
-		else if (ccs_str_starts(line, "address_group "))
-			ccs_add_address_group_policy(line, false);
-		else if (ccs_str_starts(line, "number_group "))
-			ccs_add_number_group_policy(line, false);
-		else if (sscanf(line, "acl_group %u", &group) == 1
-			 && group < 256) {
-			char *cp = strchr(line + 10, ' ');
-			if (cp)
-				line = cp + 1;
-			if (ccs_str_starts(line,
-					   "task auto_execute_handler ") ||
-			    ccs_str_starts(line,
-					   "task denied_execute_handler ") ||
-			    ccs_str_starts(line, "file execute ")) {
-				cp = strchr(line, ' ');
-				if (cp)
-					*cp = '\0';
-				if (*line == '@' || ccs_correct_path(line)) {
-					for (index = 0; index < max_index;
-					     index++)
-						if (ccs_dp.list[index].group
-						    == group)
-							ccs_add_string_entry
-								(&ccs_dp, line,
-								 index);
-				}
-			}
+	if (fp) {
+		ccs_get();
+		while (true) {
+			char *line = ccs_freadline(fp);
+			if (!line)
+				break;
+			ccs_parse_exception_line(line, max_index);
 		}
+		ccs_put();
+		fclose(fp);
+	} else {
+		ccs_set_error(CCS_PROC_POLICY_EXCEPTION_POLICY);
 	}
-	ccs_put();
-	fclose(fp);
-no_exception:
 
-	/* Find unreachable domains. */
+	/*
+	 * Find unreachable domains.
+	 *
+	 * This is calculated based on "initialize_domain" and "keep_domain"
+	 * keywords. However, since "task auto_domain_transition" and "task
+	 * manual_domain_transition" keywords and "auto_domain_transition="
+	 * condition are not subjected to "initialize_domain" and "keep_domain"
+	 * keywords, we need to adjust later.
+	 */
 	for (index = 0; index < max_index; index++) {
 		char *line;
 		ccs_get();
@@ -1563,8 +1600,10 @@ no_exception:
 		const struct ccs_path_info **string_ptr
 			= ccs_dp.list[index].string_ptr;
 		const int max_count = ccs_dp.list[index].string_count;
-		/* Don't create source domain under <kernel> because
-		   they will become ccs_target domains. */
+		/*
+		 * Don't create source domain under <kernel> because
+		 * they will become target domains.
+		 */
 		if (domainname->total_len == CCS_ROOT_NAME_LEN)
 			continue;
 		for (i = 0; i < max_count; i++) {
@@ -1584,18 +1623,19 @@ no_exception:
 		}
 	}
 
-	/* Create domain jump target domains. */
+	/*
+	 * Create domain jump target domains.
+	 * This may reset unreachable domains.
+	 */
 	for (i = 0; i < ccs_jump_list_len; i++) {
-		int index = ccs_find_domain(&ccs_dp, ccs_jump_list[i], false,
-					    false);
-		if (index != EOF) {
-			ccs_dp.list[index].is_dit = true;
-			ccs_dp.list[index].d_t = NULL;
-			ccs_dp.list[index].is_du = false;
-		}
+		const int index = ccs_find_domain(&ccs_dp, ccs_jump_list[i],
+						  false, false);
+		if (index == EOF)
+			continue;
+		ccs_dp.list[index].is_dit = true;
+		ccs_dp.list[index].d_t = NULL;
+		ccs_dp.list[index].is_du = false;
 	}
-
-	//max_index = ccs_dp.list_len;
 
 	/* Create missing parent domains. */
 	for (index = 0; index < max_index; index++) {
