@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 
 static void dump_encoded(const char *filename)
 {
@@ -18,6 +19,8 @@ static void dump_encoded(const char *filename)
 				putchar('\\');
 				putchar('"');
 			} else if (c == '\n') {
+				putchar('\\');
+				putchar('n');
 				putchar('"');
 				putchar('\n');
 				newline = 1;
@@ -29,6 +32,8 @@ static void dump_encoded(const char *filename)
 		if (!newline)
 			fprintf(stderr, "WARNING: The last line in %s "
 				"will be ignored\n", filename);
+	} else {
+		fprintf(stderr, "WARNING: Can't read %s\n", filename);
 	}
 	if (!newline)
 		putchar('"');
@@ -38,6 +43,10 @@ static void dump_encoded(const char *filename)
 
 int main(int argc, char *argv[])
 {
+	if (argc > 1 && chdir(argv[1])) {
+		fprintf(stderr, "%s [policy_dir]\n", argv[0]);
+		return 1;
+	}
 	dump_encoded("profile.conf");
 	dump_encoded("exception_policy.conf");
 	dump_encoded("domain_policy.conf");
