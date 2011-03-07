@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/02/14
+ * Version: 1.8.0+   2011/03/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1253,6 +1253,97 @@ static int ccs_add_path_group_entry(const char *group_name,
 	return 0;
 }
 
+/*
+ * List of "task auto_domain_transition" "task manual_domain_transition"
+ * "auto_domain_transition=" part.
+ */
+static char **ccs_jump_list = NULL;
+static int ccs_jump_list_len = 0;
+
+/**
+ * ccs_add_condition_domain_transition - Add auto_domain_transition= part.
+ *
+ * @line: Line to parse.
+ * @index: Current domain's index.
+ *
+ * Returns nothing.
+ */
+static void ccs_add_condition_domain_transition(char *line, const int index)
+{
+	static char domainname[4096];
+	int source;
+	char *cp = strrchr(line, ' ');
+	if (!cp || strncmp(cp, " auto_domain_transition=\"", 25))
+		return;
+	*cp = '\0';
+	cp += 25;
+	source = strlen(cp);
+	if (!source)
+		return;
+	cp[source - 1] = '\0';
+	snprintf(domainname, sizeof(domainname) - 1, "%s %s",
+		 ccs_domain_name(&ccs_dp, index), cp);
+	domainname[sizeof(domainname) - 1] = '\0';
+	ccs_normalize_line(domainname);
+	cp = strdup(domainname);
+	ccs_jump_list = realloc(ccs_jump_list,
+				(ccs_jump_list_len + 1) * sizeof(char *));
+	if (!cp || !ccs_jump_list)
+		ccs_out_of_memory();
+	ccs_jump_list[ccs_jump_list_len++] = cp;
+	source = ccs_assign_domain(&ccs_dp, domainname, true, false);
+	if (source == EOF)
+		ccs_out_of_memory();
+	cp = strdup(domainname);
+	if (!cp)
+		ccs_out_of_memory();
+	ccs_dp.list[source].target_domainname = cp;
+}
+
+/**
+ * ccs_add_acl_domain_transition - Add task acl.
+ *
+ * @line: Line to parse.
+ * @index: Current domain's index.
+ *
+ * Returns nothing.
+ */
+static void ccs_add_acl_domain_transition(char *line, const int index)
+{
+	static char domainname[4096];
+	int source;
+	char *cp;
+	for (source = 0; line[source]; source++)
+		if (line[source] == ' ' && line[source + 1] != '/') {
+			line[source] = '\0';
+			break;
+		}
+	if (!ccs_correct_domain(line))
+		return;
+	cp = strdup(line);
+	ccs_jump_list = realloc(ccs_jump_list,
+				(ccs_jump_list_len + 1) * sizeof(char *));
+	if (!cp || !ccs_jump_list)
+		ccs_out_of_memory();
+	ccs_jump_list[ccs_jump_list_len++] = cp;
+	cp = strrchr(line, ' ');
+	if (cp)
+		cp++;
+	else
+		cp = line;
+	snprintf(domainname, sizeof(domainname) - 1, "%s %s",
+		 ccs_domain_name(&ccs_dp, index), cp);
+	domainname[sizeof(domainname) - 1] = '\0';
+	ccs_normalize_line(domainname);
+	source = ccs_assign_domain(&ccs_dp, domainname, true, false);
+	if (source == EOF)
+		ccs_out_of_memory();
+	cp = strdup(line);
+	if (!cp)
+		ccs_out_of_memory();
+	ccs_dp.list[source].target_domainname = cp;
+}
+
 /**
  * ccs_read_domain_and_exception_policy - Read domain policy and exception policy.
  *
@@ -1269,8 +1360,6 @@ static void ccs_read_domain_and_exception_policy(void)
 	int j;
 	int index;
 	int max_index;
-	static char **ccs_jump_list = NULL;
-	static int ccs_jump_list_len = 0;
 	while (ccs_jump_list_len)
 		free(ccs_jump_list[--ccs_jump_list_len]);
 	ccs_clear_domain_policy(&ccs_dp);
@@ -1311,6 +1400,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		} else if (index == EOF) {
 			continue;
 		}
+		ccs_add_condition_domain_transition(line, index);
 		if (ccs_str_starts(line, "task auto_execute_handler ") ||
 		    ccs_str_starts(line, "task denied_execute_handler ") ||
 		    ccs_str_starts(line, "file execute ")) {
@@ -1323,42 +1413,7 @@ static void ccs_read_domain_and_exception_policy(void)
 					  "task auto_domain_transition ") ||
 			   ccs_str_starts(line,
 					  "task manual_domain_transition ")) {
-			static char domainname[4096];
-			int source;
-			char *m;
-			int i;
-			for (i = 0; line[i]; i++)
-				if (line[i] == ' ' && line[i + 1] != '/') {
-					line[i] = '\0';
-					break;
-				}
-			if (!ccs_correct_domain(line))
-				continue;
-			ccs_jump_list = realloc(ccs_jump_list,
-						(ccs_jump_list_len + 1)
-						* sizeof(char *));
-			if (!ccs_jump_list)
-				ccs_out_of_memory();
-			ccs_jump_list[ccs_jump_list_len] = strdup(line);
-			if (!ccs_jump_list[ccs_jump_list_len])
-				ccs_out_of_memory();
-			ccs_jump_list_len++;
-			m = strrchr(line, ' ');
-			if (m)
-				m++;
-			else
-				m = line;
-			snprintf(domainname, sizeof(domainname) - 1, "%s %s",
-				 ccs_domain_name(&ccs_dp, index), m);
-			domainname[sizeof(domainname) - 1] = '\0';
-			ccs_normalize_line(domainname);
-			source = ccs_assign_domain(&ccs_dp, domainname, true,
-						   false);
-			if (source == EOF)
-				ccs_out_of_memory();
-			ccs_dp.list[source].target_domainname = strdup(line);
-			if (!ccs_dp.list[source].target_domainname)
-				ccs_out_of_memory();
+			ccs_add_acl_domain_transition(line, index);
 		} else if (sscanf(line, "use_profile %u", &profile) == 1) {
 			ccs_dp.list[index].profile = (u8) profile;
 			ccs_dp.list[index].profile_assigned = 1;
@@ -1533,8 +1588,11 @@ no_exception:
 	for (i = 0; i < ccs_jump_list_len; i++) {
 		int index = ccs_find_domain(&ccs_dp, ccs_jump_list[i], false,
 					    false);
-		if (index != EOF)
+		if (index != EOF) {
 			ccs_dp.list[index].is_dit = true;
+			ccs_dp.list[index].d_t = NULL;
+			ccs_dp.list[index].is_du = false;
+		}
 	}
 
 	//max_index = ccs_dp.list_len;
