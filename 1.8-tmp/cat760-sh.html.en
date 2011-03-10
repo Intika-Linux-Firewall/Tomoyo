@@ -433,13 +433,13 @@ use_profile 1
 EOF
 </pre>
 
-<p>Set memory quota using etc/ccs/meminfo.conf . Since CAT760 has 64MB of RAM, this page sets 5MB for policy and 1MB for access logs and 1MB for interactive enforcing mode.</p>
+<p>Set memory quota using etc/ccs/stat.conf . Since CAT760 has 64MB of RAM, this page sets 5MB for policy and 1MB for access logs and 1MB for interactive enforcing mode.</p>
 
 <pre class="command">
-# cat &gt; etc/ccs/meminfo.conf &lt;&lt; EOF
-Policy:      5242880
-Audit logs:  1048576
-Query lists: 1048576
+# cat &gt; etc/ccs/stat.conf &lt;&lt; EOF
+Memory used by policy:         5242880
+Memory used by audit log:      1048576
+Memory used by query message:  1048576
 EOF
 </pre>
 

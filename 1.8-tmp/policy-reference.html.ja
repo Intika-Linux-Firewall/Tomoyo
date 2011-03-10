@@ -181,17 +181,7 @@
 
 <h2>2.3 <a name="memory_usage_infomation">メモリ使用量に関する情報</a></h2>
 
-<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /proc/ccs/meminfo から確認できます。単位はバイトです。</p>
-
-<table border="1">
-<tr><td>
-# cat /proc/ccs/meminfo<br>
-Policy:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376<br>
-Audit&nbsp;logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br>
-Query&nbsp;lists:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br>
-Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376
-</td></tr>
-</table>
+<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /proc/ccs/stat から確認できます。単位はバイトです。</p>
 
 <ul>
 <li>Policy: ・・・アクセス許可を記憶するために使用されている量</li>
@@ -201,14 +191,14 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376
 
 <p>TOMOYO Linux が使用するメモリの量を制限するためにメモリクォータがサポートされています。</p>
 
-<p>/etc/ccs/meminfo.conf に以下のように指定しておくことで設定できます。</p>
+<p>/etc/ccs/stat.conf に以下のように指定しておくことで設定できます。</p>
 
 <table border="1">
 <tr><td>
-# cat /etc/ccs/meminfo.conf<br>
-Policy:     16777216<br>
-Audit logs:  1048576<br>
-Query lists: 1048576
+# cat /etc/ccs/stat.conf<br>
+Memory used by policy:       16777216<br>
+Memory used by audit log:     1048576<br>
+Memory used by query message: 1048576
 </td></tr>
 </table>
 
@@ -228,7 +218,7 @@ Query lists: 1048576
 <tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>マネージャ（ポリシーの変更ができるプログラムを定義したもの）</td></tr>
 <tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>例外ポリシー（ドメインポリシーの例外を定義したもの）</td></tr>
 <tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>ドメインポリシー（ドメイン単位で適用される設定）</td></tr>
-<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>/etc/ccs/meminfo.conf</td><td>メモリ使用状況およびクォータ</td></tr>
+<tr><td><a href="#stat">/proc/ccs/stat</a></td><td>/etc/ccs/stat.conf</td><td>メモリ使用状況およびクォータ</td></tr>
 </table>
 
 <p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシーファイルはありません。</p>
@@ -1114,11 +1104,11 @@ deny_autobind 8080</p>
 
 <p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
 
-<h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
+<h2><a name="stat">/proc/ccs/stat</a></h2>
 
 <p>TOMOYO Linux がポリシーを保持するために使用しているカーネルのメモリ情報を取得します。</p>
 <p>（例）<br>
-cat /proc/ccs/meminfo<br></p>
+cat /proc/ccs/stat<br></p>
 
 <h2><a name="audit">/proc/ccs/audit</a></h2>
 

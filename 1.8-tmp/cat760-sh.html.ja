@@ -433,13 +433,13 @@ use_profile 1
 EOF
 </pre>
 
-<p>etc/ccs/meminfo.conf でメモリ使用量の上限を設定します。 CAT760 の搭載メモリは６４ＭＢなので、ポリシー用に５ＭＢ／アクセスログ用に１ＭＢ／対話的処理用に１ＭＢを上限として割り当てます。</p>
+<p>etc/ccs/stat.conf でメモリ使用量の上限を設定します。 CAT760 の搭載メモリは６４ＭＢなので、ポリシー用に５ＭＢ／アクセスログ用に１ＭＢ／対話的処理用に１ＭＢを上限として割り当てます。</p>
 
 <pre class="command">
-# cat &gt; etc/ccs/meminfo.conf &lt;&lt; EOF
-Policy:      5242880
-Audit logs:  1048576
-Query lists: 1048576
+# cat &gt; etc/ccs/stat.conf &lt;&lt; EOF
+Memory used by policy:         5242880
+Memory used by audit log:      1048576
+Memory used by query message:  1048576
 EOF
 </pre>
 

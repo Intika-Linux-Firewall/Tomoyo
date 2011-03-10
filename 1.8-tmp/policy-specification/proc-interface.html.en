@@ -97,32 +97,6 @@
 /usr/sbin/ccs-queryd
 </pre>
 
-<h3><a name="meminfo">/proc/ccs/meminfo</a></h3>
-
-<p>This read/write interface shows the memory usage of TOMOYO Linux in bytes.</p>
-
-<pre class="command">
-# cat /proc/ccs/meminfo
-</pre>
-
-<pre class="output">
-Policy:          377376
-Audit logs:           0
-Query lists:          0
-Total:           377376
-</pre>
-
-<ul>
-<li><strong>Policy</strong> shows the memory used for holding access permissions.</li>
-<li><strong>Audit logs</strong> shows the memory used for holding audit logs.</li>
-<li><strong>Query lists</strong> shows the memory used while running the userspace tool "/usr/sbin/ccs-queryd".</li>
-<li><strong>Total</strong> shows the total memory used.</li>
-</ul>
-
-<p>This interface allows the administrator to configure memory quota.</p>
-
-<p>This interface is obsolete. Please use <a href="#stat">/proc/ccs/stat</a> instead.</p>
-
 <h3><a name="profile">/proc/ccs/profile</a></h3>
 
 <p>This read/write interface contains the profile configuration.</p>
