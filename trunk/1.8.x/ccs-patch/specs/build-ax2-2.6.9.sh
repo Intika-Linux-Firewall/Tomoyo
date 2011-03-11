@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-89.18.AXS2.src.rpm ]
+if [ ! -r kernel-2.6.9-89.19.AXS2.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-89.18.AXS2.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-89.19.AXS2.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.9-89.18.AXS2.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.9-89.18.AXS2.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.9-89.19.AXS2.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.9-89.19.AXS2.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.0-20110207.tar.gz ]
@@ -32,8 +32,8 @@ patch << "EOF" || die "Can't patch spec file."
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 89.18%{?dist}
-+%define release 89.18%{?dist}_tomoyo_1.8.0p3
+-%define release 89.19%{?dist}
++%define release 89.19%{?dist}_tomoyo_1.8.0p3
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -6342,6 +6345,10 @@
+@@ -6350,6 +6353,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -6353,6 +6360,9 @@
+@@ -6361,6 +6368,9 @@
  for i in *.config 
  do 
  	mv $i .config 
