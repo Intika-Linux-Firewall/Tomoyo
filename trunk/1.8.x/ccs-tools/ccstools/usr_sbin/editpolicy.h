@@ -423,7 +423,7 @@ struct ccs_screen {
 #define CCS_EDITPOLICY_CONF "/etc/ccs/tools/editpolicy.conf"
 
 enum ccs_color_pair ccs_editpolicy_color_head(void);
-enum ccs_screen_type ccs_find_directive(const _Bool forward, char *line);
+enum ccs_editpolicy_directives ccs_find_directive(const _Bool forward, char *line);
 int ccs_add_address_group_policy(char *data, const _Bool is_delete);
 int ccs_add_number_group_policy(char *data, const _Bool is_delete);
 int ccs_editpolicy_get_current(void);
