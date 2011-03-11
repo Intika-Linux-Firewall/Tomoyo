@@ -116,7 +116,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  if [ -f %_sourcedir/localversion ] ; then
 EOF
-#sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' -e 's:-n kernel:-n ccs-kernel:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
+sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' -e 's:-n kernel:-n ccs-kernel:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
 echo ""
 echo ""
 echo ""
