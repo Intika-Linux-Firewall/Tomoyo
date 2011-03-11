@@ -337,9 +337,9 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
  * @forward: True if original -> alias conversion, false otherwise.
  * @line: A line containing keyword and operand.
  *
- * Returns one of values in "enum ccs_screen_type".
+ * Returns one of values in "enum ccs_editpolicy_directives".
  */
-enum ccs_screen_type ccs_find_directive(const _Bool forward, char *line)
+enum ccs_editpolicy_directives ccs_find_directive(const _Bool forward, char *line)
 {
 	u16 i;
 	for (i = 1; i < CCS_MAX_DIRECTIVE_INDEX; i++) {
