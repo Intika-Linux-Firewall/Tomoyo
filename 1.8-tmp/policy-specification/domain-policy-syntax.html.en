@@ -101,7 +101,7 @@ file append /var/log/auth.log
 
 <h3><a name="file_create">file create</a></h3>
 
-<p>This directive allows the domain to create the specified pathname with the specified permissions.</p>
+<p>This directive allows the domain to create the specified file with the specified permissions.</p>
 
 <p>This example allows the domain to create the file "/var/lock/subsys/crond":</p>
 
@@ -164,7 +164,7 @@ file chgrp /dev/audio 92
 
 <h3><a name="file_chmod">file chmod</a></h3>
 
-<p>This directive allows the domain to change the filesystem ACLs of the specified pathname to the specified octal permissions.</p>o
+<p>This directive allows the domain to change permissions of the specified pathname to the specified octal permissions.</p>
 
 <p>This example allows the domain to change the octal permissions of "/dev/mem" to 0644:</p>
 
@@ -245,7 +245,7 @@ file mksock /dev/log 0755
 
 <p>This directive allows the domain to create the specified block device with the specified permissions, major number and minor number.</p>
 
-<p>This example allows the domain to create block devices whose pathname matches "/dev/\*":</p>
+<p>This example allows the domain to create the block device "/dev/loop0":</p>
 
 <pre>
 file mkblock /dev/loop0 0600 7 0
@@ -335,12 +335,12 @@ file rename /etc/mtab.tmp /etc/mtab
 
 <h3><a name="file_ioctl">file ioctl</a></h3>
 
-<p>This directive allows the domain to make an ioctl request with the specified options. For information on the ioctl command numbers, refer to manuals provided by each module with ioctl functionality.</p>
+<p>This directive allows the domain to make an ioctl request with the specified command number. For information on the ioctl command numbers, refer to manuals provided by each module with ioctl functionality.</p>
 
-<p>This example allows sockets that match the family, type and protocol to make an ioctl request with command number 35093:</p>
+<p>This example allows the domain to issue an ioctl request with command number 0x8915 (i.e. SIOCGIFADDR request) on sockets with family = 2, type = 2, protocol = 17 (i.e. UDP/IPv4 sockets):</p>
 
 <pre>
-file ioctl socket:[family=2:type=2:protocol=17]
+file ioctl socket:[family=2:type=2:protocol=17] 0x8915
 </pre>
 
 <p>This example allows "/dev/null" to make an ioctl request with a command number within the range:</p>
