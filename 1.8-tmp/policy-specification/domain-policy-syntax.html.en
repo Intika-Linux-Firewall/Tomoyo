@@ -343,7 +343,7 @@ file rename /etc/mtab.tmp /etc/mtab
 file ioctl socket:[family=2:type=2:protocol=17] 0x8915
 </pre>
 
-<p>This example allows "/dev/null" to make an ioctl request with a command number within the range:</p>
+<p>This example allows the domain to issue an ioctl request with command numbers between 10000 and 20000 on "/dev/null":</p>
 
 <pre>
 file ioctl /dev/null 10000-20000
@@ -359,7 +359,7 @@ file ioctl /dev/null 10000-20000
 
 <p>This directive allows the domain to mount a filesystem with the specified devices, pathnames and options.</p>
 
-<p>The syntax is: "<strong>file mount $DEVICE $MOUNTPOINT $FILESYSTEM $OPTIONS</strong>". If $FILESYSTEM requires a device file, then the $DEVICE pathname must start with "/" and must not contain symbolic links, "//", "/./" or /../". The $OPTIONS must be a hexadecimal integer expression. The following options can also be specified:</p>
+<p>The syntax is: "<strong>file mount $DEVICE $MOUNTPOINT $FILESYSTEM $OPTIONS</strong>". If $FILESYSTEM requires a device file, a block device file's pathname is specified for $DEVICE. The $OPTIONS is a hexadecimal (or otcal or decimal) integer expression. The following options can also be specified for $FILESYSTEM:</p>
 
 <ul>
 <li>--bind</li>
@@ -371,19 +371,19 @@ file ioctl /dev/null 10000-20000
 <li>--make-shared</li>
 </ul>
 
-<p>This example allows the domain to remount the root directory:</p>
+<p>This example allows the domain to remount the / directory:</p>
 
 <pre>
 file mount any / --remount 0x0
 </pre>
 
-<p>This example allows the domain to mount "/dev/hdc" at "/var/www/":</p>
+<p>This example allows the domain to mount "/dev/hdc" which was formatted as an ext3 filesystem at "/var/www/" directory:</p>
 
 <pre>
 file mount /dev/hdc /var/www/ ext3 0xF
 </pre>
 
-<p>This example allows the domain to mount "/dev/shm/" as a temporary filesystem:</p>
+<p>This example allows the domain to mount a tmpfs filesystem at "/dev/shm/" directory:</p>
 
 <pre>
 file mount none /dev/shm/ tmpfs 0xE
@@ -391,14 +391,16 @@ file mount none /dev/shm/ tmpfs 0xE
 
 <p>See also:</p>
 <ul>
+<li><a href="exception-policy-syntax.html.en#number_group">number_group</a></li>
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+<li><a href="expression-rules.html.en#filesystem">Filesystem expressions</a></li>
 </ul>
 
 <h3><a name="file_unmount">file unmount</a></h3>
 
-<p>This directive allows the domain to unmount a filesystem from the specified pathname. This pathname must start with "/" and must not contain symbolic links, "//", "/./" or "/../". <a href="expression-rules.html.en#filesystem">Filesystem expressions</a> may also be used, in which case the pathname does not start with "/".</p>
+<p>This directive allows the domain to unmount a filesystem from the specified pathname.</p>
 
-<p>This example allows the domain to umount the filesystem mounted at "/mnt/cdrom":</p>
+<p>This example allows the domain to unmount the filesystem mounted at "/mnt/cdrom/" directory:</p>
 
 <pre>
 file unmount /mnt/cdrom/
@@ -407,13 +409,14 @@ file unmount /mnt/cdrom/
 <p>See also:</p>
 <ul>
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+<li><a href="expression-rules.html.en#filesystem">Filesystem expressions</a></li>
 </ul>
 
 <h3><a name="file_chroot">file chroot</a></h3>
 
-<p>This directive allows the domain to chroot into the specified pathname.</p>
+<p>This directive allows the domain to use the specified pathname as a new / directory.</p>
 
-<p>This example allows the domain to chroot into /var/empty/sshd:</p>
+<p>This example allows the domain to use "/var/empty/sshd/" as a new / directory:</p>
 
 <pre>
 file chroot /var/empty/sshd/
@@ -422,15 +425,16 @@ file chroot /var/empty/sshd/
 <p>See also:</p>
 <ul>
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+<li><a href="expression-rules.html.en#filesystem">Filesystem expressions</a></li>
 </ul>
 
 <h3><a name="file_pivot_root">file pivot_root</a></h3>
 
-<p>This directive allows the domain to pivot_root to the first directory from the second directory. The directory pathname must start and end with "/" and must not contain symbolic links, "//", "/./" or "/../". <a href="expression-rules.html.en#filesystem">Filesystem expressions</a> may also be used, in which case the pathname does not start with "/".</p>
+<p>This directive allows the domain to use the first specified pathname as a new / directory and bring the old / directory to the second specified pathname.</p>
 
-<p>pivot_root() is only called once for switching the root directory from initrd/initramfs to the hard drive, which occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
+<p>This functionality is generally used for only once for switching the / directory from initrd/initramfs to the hard drive, which generally occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
 
-<p>This example will grant "pivot_root("/proc/","/proc/ccs/");":</p>
+<p>This example allows the domain to use "/proc/" as a new / directory and bring the old / directory to "/proc/ccs/" directory:</p>
 
 <pre>
 file pivot_root proc:/ proc:/ccs/
@@ -439,6 +443,7 @@ file pivot_root proc:/ proc:/ccs/
 <p>See also:</p>
 <ul>
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+<li><a href="expression-rules.html.en#filesystem">Filesystem expressions</a></li>
 </ul>
 
 <h3><a name="misc_env">misc env</a></h3>
@@ -453,7 +458,7 @@ misc env LD_PRELOAD
 
 <h3><a name="capability">capability</a></h3>
 
-<p>This directive allows the domain to make use of the specified POSIX Capability.</p>
+<p>This directive allows the domain to make use of the specified non-POSIX Capability.</p>
 
 <p>The syntax is summarised in this table:</p>
 
