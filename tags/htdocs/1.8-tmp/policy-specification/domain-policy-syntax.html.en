@@ -545,48 +545,48 @@ ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
 </tr>
 <tr>
 <td><p>network inet stream bind $ADDRESS $PORT</p></td>
-<td><p>Bind to specified local TCP address at specified port</p></td>
+<td><p>Bind TCP sockets to specified local IP address and port</p></td>
 </tr>
 <tr>
 <td><p>network inet stream listen $ADDRESS $PORT</p></td>
-<td><p>Listen to specified local TCP address at specified port</p></td>
+<td><p>Listen TCP sockets at specified local IP address and port</p></td>
 </tr>
 <tr>
 <td><p>network inet stream accept $ADDRESS $PORT</p></td>
-<td><p>Accept communication from specified local TCP address at specified port</p></td>
+<td><p>Accept TCP sockets from specified remote IP address and port</p></td>
 </tr>
 <tr>
 <td><p>network inet stream connect $ADDRESS $PORT</p></td>
-<td><p>Initiate communication with specified local TCP address at specified port</p></td>
+<td><p>Connect TCP sockets to specified remote IP address and port</p></td>
 </tr>
 <tr>
 <td><p>network inet dgram bind $ADDRESS $PORT</p></td>
-<td><p>Bind to specified local UDP address at specified port</p></td>
+<td><p>Bind UDP sockets to specified local IP address and port</p></td>
 </tr>
 <tr>
 <td><p>network inet dgram recv $ADDRESS $PORT</p></td>
-<td><p>Receive UDP packets from specified UDP address at specified port</p></td>
+<td><p>Receive UDP packets from specified remote IP address and port</p></td>
 </tr>
 <tr>
 <td><p>network inet dgram send $ADDRESS $PORT</p></td>
-<td><p>Send UDP packets to specified UDP address at specified port</p></td>
+<td><p>Send UDP packets to specified remote IP address and port</p></td>
 </tr>
 <tr>
-<td><p>network inet raw bind $ADDRESS $PORT</p></td>
-<td><p>Bind to specified local IP address at specified port</p></td>
+<td><p>network inet raw bind $ADDRESS $PROTOCOL</p></td>
+<td><p>Bind IP sockets for specified protocol to specified local IP address</p></td>
 </tr>
 <tr>
-<td><p>network inet raw recv $ADDRESS $PORT</p></td>
-<td><p>Receive IP packets from specified IP address at specified port</p></td>
+<td><p>network inet raw recv $ADDRESS $PROTOCOL</p></td>
+<td><p>Receive IP packets for specified protocol from specified remote IP address</p></td>
 </tr>
 <tr>
-<td><p>network inet raw send $ADDRESS $PORT</p></td>
-<td><p>Send IP packets to specified IP address at specified port</p></td>
+<td><p>network inet raw send $ADDRESS $PROTOCOL</p></td>
+<td><p>Send IP packets for specified protocol to specified remote IP address</p></td>
 </tr>
 </table>
 </div>
 
-<p>This example allows the domain to connect via http to the specified IP address:</p>
+<p>This example allows the domain to connect to port 80 on IP address 202.221.179.21:</p>
 
 <pre>
 network inet stream connect 202.221.179.21 80
@@ -611,52 +611,52 @@ network inet stream connect 202.221.179.21 80
 </tr>
 <tr>
 <td><p>network unix stream bind $ADDRESS</p></td>
-<td><p>Bind to specified byte stream socket</p></td>
+<td><p>Bind byte stream sockets to specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix stream listen $ADDRESS</p></td>
-<td><p>Listen to specified byte stream socket</p></td>
+<td><p>Listen byte stream sockets at specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix stream accept $ADDRESS</p></td>
-<td><p>Accept communication from specified byte stream socket</p></td>
+<td><p>Accept byte stream sockets from specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix stream connect $ADDRESS</p></td>
-<td><p>Initiate communication with specified byte stream socket</p></td>
+<td><p>Connect byte stream sockets to specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix dgram bind $ADDRESS</p></td>
-<td><p>Bind to specified datagram socket</p></td>
+<td><p>Bind datagram sockets to specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix dgram recv $ADDRESS</p></td>
-<td><p>Receive packets from specified datagram socket</p></td>
+<td><p>Receive datagrams from specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix dgram send $ADDRESS</p></td>
-<td><p>Send packets to specified datagram socket</p></td>
+<td><p>Send datagrams to specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix seqpacket bind $ADDRESS</p></td>
-<td><p>Bind to specified seqpacket socket</p></td>
+<td><p>Bind seqpacket sockets to specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix seqpacket listen $ADDRESS</p></td>
-<td><p>Listen to specified seqpacket socket</p></td>
+<td><p>Listen seqpacket sockets at specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix seqpacket accept $ADDRESS</p></td>
-<td><p>Accept communication with specified seqpacket socket</p></td>
+<td><p>Accept seqpacket sockets from specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix seqpacket connect $ADDRESS</p></td>
-<td><p>Initiate communication with specified seqpacket socket</p></td>
+<td><p>Connect seqpacket sockets to specified address</p></td>
 </tr>
 </table>
 </div>
 
-<p>This example allows the domain to bind to the "/tmp/.X11-unix/X0" socket:</p>
+<p>This example allows the domain to bind to "/tmp/.X11-unix/X0" and "\000/tmp/.X11-unix/X0":</p>
 
 <pre>
 network unix stream bind /tmp/.X11-unix/X0
