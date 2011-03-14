@@ -167,14 +167,17 @@ $ make -s menuconfig
 
 <ul>
 <li>[*] CCSecurity support</li>
-<li>[ ]   Compile as loadable kernel module</li>
-<li>[ ]   Disable by default</li>
-<li>[ ]   Do not modify 'struct task_struct' in order to keep KABI</li>
+<li>[ ] &nbsp;&nbsp;Compile as loadable kernel module</li>
+<li>[ ] &nbsp;&nbsp;Disable by default</li>
+<li>[ ] &nbsp;&nbsp;Do not modify 'struct task_struct' in order to keep KABI</li>
 <li>(2048) Default maximal count for learning mode</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
+<li>[ ] &nbsp;&nbsp;Use built-in policy</li>
+<li>[ ] &nbsp;&nbsp;&nbsp;&nbsp;Activate immediately after loading built-in policy.</li>
+<li>[ ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Omit calling policy loader when /sbin/init starts.</li>
+<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
 <li>(/sbin/ccs-init) Default policy loader</li>
 <li>(/sbin/ccs-start) Alternative activation trigger</li>
-<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
-<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
 </ul>
 
 <p><em>"Compile as loadable kernel module"</em> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
@@ -182,6 +185,12 @@ $ make -s menuconfig
 <p><em>"Disable by default"</em> will enable TOMOYO Linux only when "ccsecurity=on" is passed to the kernel's command line options. If this option is not selected, "ccsecurity=off" will disable TOMOYO Linux.</p>
 
 <p><em>"Do not modify 'struct task_struct' in order to keep KABI"</em> is available to 2.6 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
+
+<p><em>Use built-in policy</em> allows you to embed policy configuration into the kernel. (You will need to rebuild the kernel when updating policy configuration.) This is a superset of <em>Built-in domain initializer programs</em>.</p>
+
+<p><em>Activate immediately after loading built-in policy.</em> is available only when <em>Use built-in policy</em> is selected. If this option is selected, access control by TOMOYO is activated before initrd/initramfs are processed. If this option is selected, there is no longer need for calling policy loader specified by <em>Default policy loader</em>. But in case you want to load additional policy from policy loader in addition to built-in policy, policy loader will be called anyway.</p>
+
+<p><em>Omit calling policy loader when /sbin/init starts.</em> is available only when <em>Activate immediately after loading built-in policy.</em> is selected. If this option is selected, policy loader specified by <em>Default policy loader</em> is no longer called. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
 
 <h4><a name="3.3.4">3.3.4. Compile and install the kernel</a></h4>
 
@@ -279,7 +288,7 @@ Creating configuration file for ccs-notifyd ... OK
 
 <p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending "ccsecurity=off" at the kernel command-line parameters.</p>
 
-<p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. <code>rpm</code> or <code>apt</code>). You can then remove the entry from your bootloader and proceed to boot the kernel provided by your distribution.</p>
+<p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. <code>rpm</code> or <code>apt</code>). You can reboot with the kernel provided by your distribution and then remove the entry from your bootloader.</p>
 
 </div><!-- documentation -->
 
