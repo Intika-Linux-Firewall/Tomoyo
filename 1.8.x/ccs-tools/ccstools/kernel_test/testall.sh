@@ -63,3 +63,5 @@ newns ccs_new_file_test | grep -vF OK
 newns ccs_new_capability_test | grep -vF OK
 newns ccs_new_network_test | grep -vF OK
 newns ccs_execute_handler_test | grep -vF OK
+dmesg -c
+uname -r
