@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/02/14
+ * Version: 1.8.0+   2011/03/15
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -277,7 +277,8 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "file read/write /tmp/fifo path1.type=fifo";
+	policy = "file read /tmp/fifo path1.type=fifo\t"
+		"file write /tmp/fifo path1.type=fifo";
 	mkfifo2("/tmp/fifo");
 	write_domain_policy(policy, 0);
 	fd = open("/tmp/fifo", O_RDWR);
@@ -314,7 +315,8 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "file read/write /dev/null task.uid=path1.parent.uid";
+	policy = "file read /dev/null task.uid=path1.parent.uid\t"
+		"file write /dev/null task.uid=path1.parent.uid";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDWR);
 	show_result(fd, 1);

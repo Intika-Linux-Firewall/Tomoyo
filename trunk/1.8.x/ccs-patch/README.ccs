@@ -2779,3 +2779,25 @@ Fix 2011/03/10
     @ Remove /proc/ccs/meminfo interface.
 
       Please use /proc/ccs/stat interface instead.
+
+Fix 2011/03/15
+
+    @ Pack policy when printing via /proc/ccs/ interface.
+
+      The kernel side is ready for accepting packed input like
+
+        file read/write/execute /path/to/file
+
+      but was using unpacked output like
+
+        file read /path/to/file
+        file write /path/to/file
+        file execute /path/to/file
+
+      because most of userland tools were not ready for accepting packed input.
+
+      The advantages of using packed policy are that it makes policy files
+      smaller and it speeds up loading/saving policy files.
+
+      Since most of userland tools are ready for accepting packed input by now,
+      I changed to use packed policy for both input and output.
