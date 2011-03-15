@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/02/14
+ * Version: 1.8.0+   2011/03/15
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -610,19 +610,23 @@ static struct test_struct {
 	  "file::create", "file create /tmp/testfile15 0600 "
 	  "task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_16, cleanup_test_file, "file::open",
-	  "file read/write /tmp/testfile16 task.uid=path1.uid" },
+	  "file read /tmp/testfile16 task.uid=path1.uid\t"
+	  "file write /tmp/testfile16 task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_17, cleanup_test_file, "file::open",
-	  "file read/write /tmp/testfile17 task.uid=path1.uid" },
+	  "file read /tmp/testfile17 task.uid=path1.uid\t"
+	  "file write /tmp/testfile17 task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_17, cleanup_test_file,
 	  "file::create", "file create /tmp/testfile17 0600 "
 	  "task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_18, cleanup_test_file, "file::open",
-	  "file read/write /tmp/testfile18 task.uid=path1.uid" },
+	  "file read /tmp/testfile18 task.uid=path1.uid\t"
+	  "file write /tmp/testfile18 task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_18, cleanup_test_file,
 	  "file::truncate", "file truncate /tmp/testfile18 "
 	  "task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_19, cleanup_test_file, "file::open",
-	  "file read/write /tmp/testfile19 task.uid=path1.uid" },
+	  "file read /tmp/testfile19 task.uid=path1.uid\t"
+	  "file write /tmp/testfile19 task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_19, cleanup_test_file,
 	  "file::create", "file create /tmp/testfile19 0600 "
 	  "task.uid=path1.parent.uid" },
@@ -664,11 +668,11 @@ static struct test_struct {
 	  "file::truncate", "file truncate /tmp/testfile14 "
 	  "task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_16, cleanup_test_file,
-	  "file::open", "file read/write /tmp/testfile16 "
-	  "task.uid=path1.gid" },
+	  "file::open", "file read /tmp/testfile16 task.uid=path1.gid\t"
+	  "file write /tmp/testfile16 task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_18, cleanup_test_file,
-	  "file::open", "file read/write /tmp/testfile18 "
-	  "task.uid=path1.gid" },
+	  "file::open", "file read /tmp/testfile18 task.uid=path1.gid\t"
+	  "file write /tmp/testfile18 task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_18, cleanup_test_file,
 	  "file::truncate", "file truncate /tmp/testfile18 "
 	  "task.uid=path1.gid" },

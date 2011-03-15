@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/02/14
+ * Version: 1.8.0+   2011/03/15
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1890,18 +1890,16 @@ void ccs_put(void)
 }
 
 /**
- * ccs_shprintf - sprintf() to the shared buffer.
+ * ccs_shprintf - sprintf() to dynamically allocated buffer.
  *
  * @fmt: The printf()'s format string, followed by parameters.
  *
- * Returns pointer to the shared buffer.
+ * Returns pointer to  dynamically allocated buffer.
  *
  * The caller must not free() the returned pointer.
  */
 char *ccs_shprintf(const char *fmt, ...)
 {
-	if (!ccs_buffer_locked)
-		ccs_out_of_memory();
 	while (true) {
 		static char *policy = NULL;
 		static int max_policy_len = 0;
@@ -1925,20 +1923,30 @@ char *ccs_shprintf(const char *fmt, ...)
 }
 
 /**
- * ccs_freadline - Read a line from file to the shared buffer.
+ * ccs_freadline - Read a line from file to dynamically allocated buffer.
  *
- * @fp: Pointer to "FILE".
+ * @fp: Pointer to "FILE". Maybe NULL.
  *
- * Returns pointer to the shared buffer on success, NULL otherwise.
+ * Returns pointer to dynamically allocated buffer on success, NULL otherwise.
  *
  * The caller must not free() the returned pointer.
+ *
+ * The caller must repeat calling this function without changing @fp (or with
+ * changing @fp to NULL) until this function returns NULL, for this function
+ * caches a line if the line is packed. Otherwise, some garbage lines might be
+ * returned to the caller.
  */
 char *ccs_freadline(FILE *fp)
 {
 	static char *policy = NULL;
+	static char *packed_policy = NULL;
+	static int pack_start = 0;
+	static int pack_len = 0;
 	int pos = 0;
-	if (!ccs_buffer_locked)
-		ccs_out_of_memory();
+	if (packed_policy)
+		goto unpack;
+	if (!fp)
+		return NULL;
 	while (true) {
 		static int max_policy_len = 0;
 		const int c = fgetc(fp);
@@ -1962,7 +1970,79 @@ char *ccs_freadline(FILE *fp)
 	}
 	if (!ccs_freadline_raw)
 		ccs_normalize_line(policy);
+	{
+		char *cp;
+		char *cp2 = NULL;
+		unsigned int len;
+		if (sscanf(policy, "acl_group %u", &len) == 1 && len < 256)
+			cp = strchr(policy + 11, ' ');
+		else
+			cp = NULL;
+		if (cp++)
+			pos = cp - policy;
+		else
+			pos = 0;
+		if (!strncmp(policy + pos, "file ", 5)) {
+			cp = policy + pos + 5;
+			cp2 = strchr(cp + 1, ' ');
+			len = cp2 - cp;
+			if (cp2 && memchr(cp, '/', len)) {
+				packed_policy = policy;
+				pack_start = pos + 5;
+				pack_len = len;
+				policy = NULL;
+				goto unpack;
+			}
+		} else if (!strncmp(policy + pos, "network ", 8)) {
+			cp = strchr(policy + pos + 8, ' ');
+			if (cp)
+				cp = strchr(cp + 1, ' ');
+			if (cp)
+				cp2 = strchr(cp + 1, ' ');
+			cp++;
+			len = cp2 - cp;
+			if (cp2 && memchr(cp, '/', len)) {
+				packed_policy = policy;
+				pack_start = cp - policy;
+				pack_len = len;
+				policy = NULL;
+				goto unpack;
+			}
+		}
+	}
 	return policy;
+unpack:
+	{
+		char *pos = packed_policy + pack_start;
+		char *cp = memchr(pos, '/', pack_len);
+		int len = cp - pos;
+		free(policy);
+		if (!cp) {
+			policy = packed_policy;
+			packed_policy = NULL;
+		} else if (pack_len == 1) {
+			/* Ignore trailing empty word. */
+			policy = NULL;
+			packed_policy = NULL;
+		} else {
+			/* Current string is "abc d/e/f ghi". */
+			policy = strdup(packed_policy);
+			if (!policy)
+				ccs_out_of_memory();
+			/* Overwrite "abc d/e/f ghi" with "abc d ghi". */
+			memmove(policy + pack_start + len, pos + pack_len,
+				strlen(pos + pack_len) + 1);
+			/* Overwrite "abc d/e/f ghi" with "abc e/f ghi". */
+			cp++;
+			memmove(pos, cp, strlen(cp) + 1);
+			/* Forget "d/" component. */
+			pack_len -= len + 1;
+			/* Ignore leading and middle empty word. */
+			if (!len)
+				goto unpack;
+		}
+		return policy;
+	}
 }
 
 /**

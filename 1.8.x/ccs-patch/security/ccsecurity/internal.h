@@ -778,7 +778,7 @@ enum ccs_value_type {
 		       __GFP_NORETRY | __GFP_NOMEMALLOC)
 
 /* Size of read buffer for /proc/ccs/ interface. */
-#define CCS_MAX_IO_READ_QUEUE 32
+#define CCS_MAX_IO_READ_QUEUE 64
 
 /* Structure definition for internal use. */
 

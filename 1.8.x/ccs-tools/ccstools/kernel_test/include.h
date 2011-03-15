@@ -3,9 +3,9 @@
  *
  * Common functions for testing TOMOYO Linux's kernel.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2010/03/15
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -298,42 +298,166 @@ static void BUG(const char *fmt, ...)
 		sleep(100);
 }
 
+static char *ccs_freadline(FILE *fp)
+{
+	static char *policy = NULL;
+	static char *packed_policy = NULL;
+	static int pack_start = 0;
+	static int pack_len = 0;
+	int pos = 0;
+	if (packed_policy)
+		goto unpack;
+	if (!fp)
+		return NULL;
+	while (1) {
+		static int max_policy_len = 0;
+		const int c = fgetc(fp);
+		if (c == EOF)
+			return NULL;
+		if (pos == max_policy_len) {
+			char *cp;
+			max_policy_len += 4096;
+			cp = realloc(policy, max_policy_len);
+			if (!cp) {
+				BUG("Out of memory");
+				exit(1);
+			}
+			policy = cp;
+		}
+		policy[pos++] = (char) c;
+		if (c == '\n') {
+			policy[--pos] = '\0';
+			break;
+		}
+	}
+	{
+		char *cp;
+		char *cp2 = NULL;
+		unsigned int len;
+		if (sscanf(policy, "acl_group %u", &len) == 1 && len < 256)
+			cp = strchr(policy + 11, ' ');
+		else
+			cp = NULL;
+		if (cp++)
+			pos = cp - policy;
+		else
+			pos = 0;
+		if (!strncmp(policy + pos, "file ", 5)) {
+			cp = policy + pos + 5;
+			cp2 = strchr(cp + 1, ' ');
+			len = cp2 - cp;
+			if (cp2 && memchr(cp, '/', len)) {
+				packed_policy = policy;
+				pack_start = pos + 5;
+				pack_len = len;
+				policy = NULL;
+				goto unpack;
+			}
+		} else if (!strncmp(policy + pos, "network ", 8)) {
+			cp = strchr(policy + pos + 8, ' ');
+			if (cp)
+				cp = strchr(cp + 1, ' ');
+			if (cp)
+				cp2 = strchr(cp + 1, ' ');
+			cp++;
+			len = cp2 - cp;
+			if (cp2 && memchr(cp, '/', len)) {
+				packed_policy = policy;
+				pack_start = cp - policy;
+				pack_len = len;
+				policy = NULL;
+				goto unpack;
+			}
+		}
+	}
+	return policy;
+unpack:
+	{
+		char *pos = packed_policy + pack_start;
+		char *cp = memchr(pos, '/', pack_len);
+		int len = cp - pos;
+		free(policy);
+		if (!cp) {
+			policy = packed_policy;
+			packed_policy = NULL;
+		} else if (pack_len == 1) {
+			/* Ignore trailing empty word. */
+			policy = NULL;
+			packed_policy = NULL;
+		} else {
+			/* Current string is "abc d/e/f ghi". */
+			policy = strdup(packed_policy);
+			if (!policy) {
+				BUG("Out of memory");
+				exit(1);
+			}
+			/* Overwrite "abc d/e/f ghi" with "abc d ghi". */
+			memmove(policy + pack_start + len, pos + pack_len,
+				strlen(pos + pack_len) + 1);
+			/* Overwrite "abc d/e/f ghi" with "abc e/f ghi". */
+			cp++;
+			memmove(pos, cp, strlen(cp) + 1);
+			/* Forget "d/" component. */
+			pack_len -= len + 1;
+			/* Ignore leading and middle empty word. */
+			if (!len)
+				goto unpack;
+		}
+		return policy;
+	}
+}
+
 static int write_domain_policy(const char *policy, int is_delete)
 {
-	FILE *fp = fopen(proc_policy_domain_policy, "r");
-	char buffer[8192];
-	int domain_found = 0;
-	int policy_found = 0;
-	memset(buffer, 0, sizeof(buffer));
-	if (!fp) {
-		BUG("Can't read %s", proc_policy_domain_policy);
-		return 0;
+	char *tmp_policy = strdup(policy);
+	if (!tmp_policy) {
+		BUG("Out of memory");
+		exit(1);
 	}
-	if (is_delete)
-		fprintf(domain_fp, "delete ");
-	fprintf(domain_fp, "%s\n", policy);
-	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
-		char *cp = strchr(buffer, '\n');
-		if (cp)
-			*cp = '\0';
-		if (!strncmp(buffer, "<kernel>", 8))
-			domain_found = !strcmp(self_domain, buffer);
-		if (!domain_found)
-			continue;
-		/* printf("<%s>\n", buffer); */
-		if (strcmp(buffer, policy))
-			continue;
-		policy_found = 1;
-		break;
-	}
-	fclose(fp);
-	if (policy_found == is_delete) {
-		if (!strstr(policy, "read/write")) {
+	while (1) {
+		FILE *fp = fopen(proc_policy_domain_policy, "r");
+		_Bool domain_found = 0;
+		_Bool policy_found = 0;
+		if (!fp) {
+			BUG("Can't read %s", proc_policy_domain_policy);
+			return 0;
+		}
+		{
+			char *cp = strrchr(tmp_policy, '\t');
+			if (cp)
+				*cp++ = '\0';
+			else
+				cp = tmp_policy;
+			policy = cp;
+		}
+		if (is_delete)
+			fprintf(domain_fp, "delete ");
+		fprintf(domain_fp, "%s\n", policy);
+		while (1) {
+			char *line = ccs_freadline(fp);
+			if (!line)
+				break;
+			if (!strncmp(line, "<kernel>", 8))
+				domain_found = !strcmp(self_domain, line);
+			if (!domain_found)
+				continue;
+			/* printf("<%s>\n", buffer); */
+			if (strcmp(line, policy))
+				continue;
+			policy_found = 1;
+			while (ccs_freadline(NULL));
+			break;
+		}
+		fclose(fp);
+		if (policy_found == is_delete) {
 			BUG("Can't %s %s", is_delete ? "delete" : "append",
 			    policy);
 			return 0;
 		}
+		if (policy == tmp_policy)
+			break;
 	}
+	free(tmp_policy);
 	errno = 0;
 	return 1;
 
@@ -341,32 +465,50 @@ static int write_domain_policy(const char *policy, int is_delete)
 
 static int write_exception_policy(const char *policy, int is_delete)
 {
-	FILE *fp = fopen(proc_policy_exception_policy, "r");
-	char buffer[8192];
-	int policy_found = 0;
-	memset(buffer, 0, sizeof(buffer));
-	if (!fp) {
-		BUG("Can't read %s", proc_policy_exception_policy);
-		return 0;
+	char *tmp_policy = strdup(policy);
+	if (!tmp_policy) {
+		BUG("Out of memory");
+		exit(1);
 	}
-	if (is_delete)
-		fprintf(exception_fp, "delete ");
-	fprintf(exception_fp, "%s\n", policy);
-	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
-		char *cp = strchr(buffer, '\n');
-		if (cp)
-			*cp = '\0';
-		if (strcmp(buffer, policy))
-			continue;
-		policy_found = 1;
-		break;
+	while (1) {
+		FILE *fp = fopen(proc_policy_exception_policy, "r");
+		_Bool policy_found = 0;
+		if (!fp) {
+			BUG("Can't read %s", proc_policy_exception_policy);
+			return 0;
+		}
+		{
+			char *cp = strrchr(tmp_policy, '\t');
+			if (cp)
+				*cp++ = '\0';
+			else
+				cp = tmp_policy;
+			policy = cp;
+		}
+		if (is_delete)
+			fprintf(exception_fp, "delete ");
+		fprintf(exception_fp, "%s\n", policy);
+		while (1) {
+			char *line = ccs_freadline(fp);
+			if (!line)
+				break;
+			/* printf("<%s>\n", buffer); */
+			if (strcmp(line, policy))
+				continue;
+			policy_found = 1;
+			while (ccs_freadline(NULL));
+			break;
+		}
+		fclose(fp);
+		if (policy_found == is_delete) {
+			BUG("Can't %s %s", is_delete ? "delete" : "append",
+			    policy);
+			return 0;
+		}
+		if (policy == tmp_policy)
+			break;
 	}
-	fclose(fp);
-	if (policy_found == is_delete) {
-		BUG("Can't %s %s", is_delete ? "delete" : "append",
-		    policy);
-		return 0;
-	}
+	free(tmp_policy);
 	errno = 0;
 	return 1;
 
