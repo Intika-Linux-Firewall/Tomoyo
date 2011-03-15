@@ -8,6 +8,8 @@ ALL_FILES = ccs_accept_test ccs_argv0_test ccs_bind_test ccs_bprm_test \
 all: $(ALL_FILES)
 	chmod 755 testall.sh
 
+$(ALL_FILES): include.h
+
 CC=gcc
 
 CFLAGS=-Wall -O2
@@ -16,21 +18,17 @@ CFLAGS=-Wall -O2
 # Tools for kernel testing.
 #
 
-ccs_capability_test: ccs_capability_test.c include.h
+ccs_capability_test: ccs_capability_test.c
 	$(CC) $(CFLAGS) -o ccs_capability_test ccs_capability_test.c -lutil
-	chmod 700 ccs_capability_test
 
-ccs_new_capability_test: ccs_new_capability_test.c include.h
+ccs_new_capability_test: ccs_new_capability_test.c
 	$(CC) $(CFLAGS) -o ccs_new_capability_test ccs_new_capability_test.c -lutil
-	chmod 700 ccs_new_capability_test
 
 ccs_new_test: ccs_new_test.c include.h
 	$(CC) $(CFLAGS) -o ccs_new_test ccs_new_test.c -lutil
-	chmod 700 ccs_new_test
 
-.c:	include.h
+.c:
 	$(CC) $(CFLAGS) -o $@ $<
-	chmod 700 $@
 
 #
 # Delete all test programs.
