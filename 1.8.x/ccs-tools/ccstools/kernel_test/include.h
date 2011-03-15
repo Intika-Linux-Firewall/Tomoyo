@@ -301,14 +301,7 @@ static void BUG(const char *fmt, ...)
 static char *ccs_freadline(FILE *fp)
 {
 	static char *policy = NULL;
-	static char *packed_policy = NULL;
-	static int pack_start = 0;
-	static int pack_len = 0;
 	int pos = 0;
-	if (packed_policy)
-		goto unpack;
-	if (!fp)
-		return NULL;
 	while (1) {
 		static int max_policy_len = 0;
 		const int c = fgetc(fp);
@@ -330,31 +323,45 @@ static char *ccs_freadline(FILE *fp)
 			break;
 		}
 	}
+	return policy;
+}
+
+static char *ccs_freadline_unpack(FILE *fp)
+{
+	static char *previous_line = NULL;
+	static char *cached_line = NULL;
+	static int pack_start = 0;
+	static int pack_len = 0;
+	if (cached_line)
+		goto unpack;
+	if (!fp)
+		return NULL;
 	{
-		char *cp;
-		char *cp2 = NULL;
+		char *pos;
+		unsigned int offset;
 		unsigned int len;
-		if (sscanf(policy, "acl_group %u", &len) == 1 && len < 256)
-			cp = strchr(policy + 11, ' ');
+		char *line = ccs_freadline(fp);
+		if (!line)
+			return NULL;
+		if (sscanf(line, "acl_group %u", &offset) == 1 && offset < 256)
+			pos = strchr(line + 11, ' ');
 		else
-			cp = NULL;
-		if (cp++)
-			pos = cp - policy;
+			pos = NULL;
+		if (pos++)
+			offset = pos - line;
 		else
-			pos = 0;
-		if (!strncmp(policy + pos, "file ", 5)) {
-			cp = policy + pos + 5;
-			cp2 = strchr(cp + 1, ' ');
+			offset = 0;
+		if (!strncmp(line + offset, "file ", 5)) {
+			char *cp = line + offset + 5;
+			char *cp2 = strchr(cp + 1, ' ');
 			len = cp2 - cp;
 			if (cp2 && memchr(cp, '/', len)) {
-				packed_policy = policy;
-				pack_start = pos + 5;
-				pack_len = len;
-				policy = NULL;
-				goto unpack;
+				pack_start = cp - line;
+				goto prepare;
 			}
-		} else if (!strncmp(policy + pos, "network ", 8)) {
-			cp = strchr(policy + pos + 8, ' ');
+		} else if (!strncmp(line + offset, "network ", 8)) {
+			char *cp = strchr(line + offset + 8, ' ');
+			char *cp2 = NULL;
 			if (cp)
 				cp = strchr(cp + 1, ' ');
 			if (cp)
@@ -362,37 +369,45 @@ static char *ccs_freadline(FILE *fp)
 			cp++;
 			len = cp2 - cp;
 			if (cp2 && memchr(cp, '/', len)) {
-				packed_policy = policy;
-				pack_start = cp - policy;
-				pack_len = len;
-				policy = NULL;
-				goto unpack;
+				pack_start = cp - line;
+				goto prepare;
 			}
 		}
+		return line;
+prepare:
+		pack_len = len;
+		cached_line = strdup(line);
+		if (!cached_line) {
+			BUG("Out of memory");
+			exit(1);
+		}
 	}
-	return policy;
 unpack:
 	{
-		char *pos = packed_policy + pack_start;
+		char *line = NULL;
+		char *pos = cached_line + pack_start;
 		char *cp = memchr(pos, '/', pack_len);
-		int len = cp - pos;
-		free(policy);
+		unsigned int len = cp - pos;
+		free(previous_line);
+		previous_line = NULL;
 		if (!cp) {
-			policy = packed_policy;
-			packed_policy = NULL;
+			previous_line = cached_line;
+			cached_line = NULL;
+			line = previous_line;
 		} else if (pack_len == 1) {
 			/* Ignore trailing empty word. */
-			policy = NULL;
-			packed_policy = NULL;
+			free(cached_line);
+			cached_line = NULL;
 		} else {
 			/* Current string is "abc d/e/f ghi". */
-			policy = strdup(packed_policy);
-			if (!policy) {
-				BUG("Out of memory");
+			line = strdup(cached_line);
+			if (!line) {
+				BUG("Out of memory");			
 				exit(1);
 			}
+			previous_line = line;
 			/* Overwrite "abc d/e/f ghi" with "abc d ghi". */
-			memmove(policy + pack_start + len, pos + pack_len,
+			memmove(line + pack_start + len, pos + pack_len,
 				strlen(pos + pack_len) + 1);
 			/* Overwrite "abc d/e/f ghi" with "abc e/f ghi". */
 			cp++;
@@ -403,7 +418,7 @@ unpack:
 			if (!len)
 				goto unpack;
 		}
-		return policy;
+		return line;
 	}
 }
 
@@ -434,7 +449,7 @@ static int write_domain_policy(const char *policy, int is_delete)
 			fprintf(domain_fp, "delete ");
 		fprintf(domain_fp, "%s\n", policy);
 		while (1) {
-			char *line = ccs_freadline(fp);
+			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
 			if (!strncmp(line, "<kernel>", 8))
@@ -445,7 +460,7 @@ static int write_domain_policy(const char *policy, int is_delete)
 			if (strcmp(line, policy))
 				continue;
 			policy_found = 1;
-			while (ccs_freadline(NULL));
+			while (ccs_freadline_unpack(NULL));
 			break;
 		}
 		fclose(fp);
@@ -489,14 +504,14 @@ static int write_exception_policy(const char *policy, int is_delete)
 			fprintf(exception_fp, "delete ");
 		fprintf(exception_fp, "%s\n", policy);
 		while (1) {
-			char *line = ccs_freadline(fp);
+			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
 			/* printf("<%s>\n", buffer); */
 			if (strcmp(line, policy))
 				continue;
 			policy_found = 1;
-			while (ccs_freadline(NULL));
+			while (ccs_freadline_unpack(NULL));
 			break;
 		}
 		fclose(fp);

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/02/14
+ * Version: 1.8.0+   2011/03/15
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -511,7 +511,7 @@ int main(int argc, char *argv[])
 	ccs_patternize_init_rules(argc == 2 ? argv[2] : CCS_PATTERNIZE_CONF);
 	ccs_get();
 	while (true) {
-		char *sp = ccs_freadline(stdin);
+		char *sp = ccs_freadline_unpack(stdin);
 		if (!sp)
 			break;
 		if (!strncmp(sp, "<kernel>", 8) && (!sp[8] || sp[8] == ' ')) {

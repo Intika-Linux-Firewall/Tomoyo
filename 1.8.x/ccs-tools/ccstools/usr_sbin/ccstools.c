@@ -1801,7 +1801,7 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 	if (!is_write)
 		goto read_policy;
 	while (true) {
-		char *line = ccs_freadline(fp);
+		char *line = ccs_freadline_unpack(fp);
 		_Bool is_delete = false;
 		_Bool is_select = false;
 		unsigned int profile;
@@ -1925,28 +1925,16 @@ char *ccs_shprintf(const char *fmt, ...)
 /**
  * ccs_freadline - Read a line from file to dynamically allocated buffer.
  *
- * @fp: Pointer to "FILE". Maybe NULL.
+ * @fp: Pointer to "FILE".
  *
  * Returns pointer to dynamically allocated buffer on success, NULL otherwise.
  *
  * The caller must not free() the returned pointer.
- *
- * The caller must repeat calling this function without changing @fp (or with
- * changing @fp to NULL) until this function returns NULL, for this function
- * caches a line if the line is packed. Otherwise, some garbage lines might be
- * returned to the caller.
  */
 char *ccs_freadline(FILE *fp)
 {
 	static char *policy = NULL;
-	static char *packed_policy = NULL;
-	static int pack_start = 0;
-	static int pack_len = 0;
 	int pos = 0;
-	if (packed_policy)
-		goto unpack;
-	if (!fp)
-		return NULL;
 	while (true) {
 		static int max_policy_len = 0;
 		const int c = fgetc(fp);
@@ -1970,31 +1958,59 @@ char *ccs_freadline(FILE *fp)
 	}
 	if (!ccs_freadline_raw)
 		ccs_normalize_line(policy);
+	return policy;
+}
+
+/**
+ * ccs_freadline_unpack - Read a line from file to dynamically allocated buffer.
+ *
+ * @fp: Pointer to "FILE". Maybe NULL.
+ *
+ * Returns pointer to dynamically allocated buffer on success, NULL otherwise.
+ *
+ * The caller must not free() the returned pointer.
+ *
+ * The caller must repeat calling this function without changing @fp (or with
+ * changing @fp to NULL) until this function returns NULL, for this function
+ * caches a line if the line is packed. Otherwise, some garbage lines might be
+ * returned to the caller.
+ */
+char *ccs_freadline_unpack(FILE *fp)
+{
+	static char *previous_line = NULL;
+	static char *cached_line = NULL;
+	static int pack_start = 0;
+	static int pack_len = 0;
+	if (cached_line)
+		goto unpack;
+	if (!fp)
+		return NULL;
 	{
-		char *cp;
-		char *cp2 = NULL;
+		char *pos;
+		unsigned int offset;
 		unsigned int len;
-		if (sscanf(policy, "acl_group %u", &len) == 1 && len < 256)
-			cp = strchr(policy + 11, ' ');
+		char *line = ccs_freadline(fp);
+		if (!line)
+			return NULL;
+		if (sscanf(line, "acl_group %u", &offset) == 1 && offset < 256)
+			pos = strchr(line + 11, ' ');
 		else
-			cp = NULL;
-		if (cp++)
-			pos = cp - policy;
+			pos = NULL;
+		if (pos++)
+			offset = pos - line;
 		else
-			pos = 0;
-		if (!strncmp(policy + pos, "file ", 5)) {
-			cp = policy + pos + 5;
-			cp2 = strchr(cp + 1, ' ');
+			offset = 0;
+		if (!strncmp(line + offset, "file ", 5)) {
+			char *cp = line + offset + 5;
+			char *cp2 = strchr(cp + 1, ' ');
 			len = cp2 - cp;
 			if (cp2 && memchr(cp, '/', len)) {
-				packed_policy = policy;
-				pack_start = pos + 5;
-				pack_len = len;
-				policy = NULL;
-				goto unpack;
+				pack_start = cp - line;
+				goto prepare;
 			}
-		} else if (!strncmp(policy + pos, "network ", 8)) {
-			cp = strchr(policy + pos + 8, ' ');
+		} else if (!strncmp(line + offset, "network ", 8)) {
+			char *cp = strchr(line + offset + 8, ' ');
+			char *cp2 = NULL;
 			if (cp)
 				cp = strchr(cp + 1, ' ');
 			if (cp)
@@ -2002,35 +2018,41 @@ char *ccs_freadline(FILE *fp)
 			cp++;
 			len = cp2 - cp;
 			if (cp2 && memchr(cp, '/', len)) {
-				packed_policy = policy;
-				pack_start = cp - policy;
-				pack_len = len;
-				policy = NULL;
-				goto unpack;
+				pack_start = cp - line;
+				goto prepare;
 			}
 		}
+		return line;
+prepare:
+		pack_len = len;
+		cached_line = strdup(line);
+		if (!cached_line)
+			ccs_out_of_memory();
 	}
-	return policy;
 unpack:
 	{
-		char *pos = packed_policy + pack_start;
+		char *line = NULL;
+		char *pos = cached_line + pack_start;
 		char *cp = memchr(pos, '/', pack_len);
-		int len = cp - pos;
-		free(policy);
+		unsigned int len = cp - pos;
+		free(previous_line);
+		previous_line = NULL;
 		if (!cp) {
-			policy = packed_policy;
-			packed_policy = NULL;
+			previous_line = cached_line;
+			cached_line = NULL;
+			line = previous_line;
 		} else if (pack_len == 1) {
 			/* Ignore trailing empty word. */
-			policy = NULL;
-			packed_policy = NULL;
+			free(cached_line);
+			cached_line = NULL;
 		} else {
 			/* Current string is "abc d/e/f ghi". */
-			policy = strdup(packed_policy);
-			if (!policy)
+			line = strdup(cached_line);
+			if (!line)
 				ccs_out_of_memory();
+			previous_line = line;
 			/* Overwrite "abc d/e/f ghi" with "abc d ghi". */
-			memmove(policy + pack_start + len, pos + pack_len,
+			memmove(line + pack_start + len, pos + pack_len,
 				strlen(pos + pack_len) + 1);
 			/* Overwrite "abc d/e/f ghi" with "abc e/f ghi". */
 			cp++;
@@ -2041,7 +2063,7 @@ unpack:
 			if (!len)
 				goto unpack;
 		}
-		return policy;
+		return line;
 	}
 }
 

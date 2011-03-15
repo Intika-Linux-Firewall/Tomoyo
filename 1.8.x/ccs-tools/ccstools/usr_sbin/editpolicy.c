@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/03/07
+ * Version: 1.8.0+   2011/03/15
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1062,7 +1062,7 @@ static void ccs_read_generic_policy(void)
 	ccs_freadline_raw = ccs_current_screen == CCS_SCREEN_STAT_LIST;
 	ccs_get();
 	while (true) {
-		char *line = ccs_freadline(fp);
+		char *line = ccs_freadline_unpack(fp);
 		enum ccs_editpolicy_directives directive;
 		char *cp;
 		if (!line)
@@ -1469,7 +1469,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		index = EOF;
 		ccs_get();
 		while (true) {
-			char *line = ccs_freadline(fp);
+			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
 			if (ccs_domain_def(line)) {
@@ -1510,7 +1510,7 @@ static void ccs_read_domain_and_exception_policy(void)
 	if (fp) {
 		ccs_get();
 		while (true) {
-			char *line = ccs_freadline(fp);
+			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
 			ccs_parse_exception_line(line, max_index);

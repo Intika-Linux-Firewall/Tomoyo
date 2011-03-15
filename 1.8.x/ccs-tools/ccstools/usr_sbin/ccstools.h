@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/02/14
+ * Version: 1.8.0+   2011/03/15
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -142,6 +142,7 @@ _Bool ccs_path_matches_pattern(const struct ccs_path_info *pathname0, const stru
 _Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b);
 _Bool ccs_str_starts(char *str, const char *begin);
 char *ccs_freadline(FILE *fp);
+char *ccs_freadline_unpack(FILE *fp);
 char *ccs_make_filename(const char *prefix, const time_t time);
 char *ccs_shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 const char *ccs_domain_name(const struct ccs_domain_policy *dp, const int index);
