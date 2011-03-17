@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2011/03/17
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -722,6 +722,14 @@ static void ccs_check_domain_policy(char *policy)
 		if (sscanf(policy, "%u", &profile) != 1 ||
 		    profile >= 256) {
 			printf("%u: ERROR: '%s' is a bad profile.\n",
+			       ccs_line, policy);
+			ccs_errors++;
+		}
+	} else if (ccs_str_starts(policy, "use_group ")) {
+		unsigned int group;
+		if (sscanf(policy, "%u", &group) != 1 ||
+		    group >= 256) {
+			printf("%u: ERROR: '%s' is a bad group.\n",
 			       ccs_line, policy);
 			ccs_errors++;
 		}
