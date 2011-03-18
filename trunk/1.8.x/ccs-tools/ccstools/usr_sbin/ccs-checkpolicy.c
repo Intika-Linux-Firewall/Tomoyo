@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/03/17
+ * Version: 1.8.0+   2011/03/18
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -24,17 +24,10 @@
 
 #define CCS_MAX_DOMAINNAME_LEN             4000
 
-enum ccs_policy_type {
-	CCS_POLICY_TYPE_UNKNOWN,
-	CCS_POLICY_TYPE_DOMAIN_POLICY,
-	CCS_POLICY_TYPE_EXCEPTION_POLICY,
-};
+static unsigned int ccs_line = 0;
+static unsigned int ccs_errors = 0;
 
-#define CCS_VALUE_TYPE_DECIMAL     1
-#define CCS_VALUE_TYPE_OCTAL       2
-#define CCS_VALUE_TYPE_HEXADECIMAL 3
-
-static int ccs_parse_ulong(unsigned long *result, char **str)
+static _Bool ccs_parse_ulong(unsigned long *result, char **str)
 {
 	const char *cp = *str;
 	char *ep;
@@ -51,31 +44,10 @@ static int ccs_parse_ulong(unsigned long *result, char **str)
 	}
 	*result = strtoul(cp, &ep, base);
 	if (cp == ep)
-		return 0;
+		return false;
 	*str = ep;
-	return base == 16 ? CCS_VALUE_TYPE_HEXADECIMAL :
-		(base == 8 ? CCS_VALUE_TYPE_OCTAL : CCS_VALUE_TYPE_DECIMAL);
+	return true;
 }
-
-static char *ccs_find_condition_part(char *data)
-{
-	char *cp = strstr(data, " if ");
-	if (cp) {
-		while (1) {
-			char *cp2 = strstr(cp + 3, " if ");
-			if (!cp2)
-				break;
-			cp = cp2;
-		}
-		*cp = '\0';
-		cp += 4;
-	}
-	return cp;
-}
-
-static unsigned int ccs_line = 0;
-static unsigned int ccs_errors = 0;
-static unsigned int ccs_warnings = 0;
 
 static _Bool ccs_check_condition(char *condition)
 {
@@ -315,76 +287,124 @@ next:
 out:
 	printf("%u: ERROR: '%s' is an illegal condition.\n", ccs_line, pos);
 	ccs_errors++;
-	return false;
+	return true;
 }
 
-static void ccs_check_capability_policy(char *data)
+static _Bool ccs_prune_word(char *arg, const char *cp)
 {
-	static const char *capability_keywords[] = {
+	if (cp)
+		memmove(arg, cp, strlen(cp) + 1);
+	else
+		*arg = '\0';
+	return true;
+}
+
+static _Bool ccs_check_path(char *arg)
+{
+	char *cp = strchr(arg, ' ');
+	if (cp)
+		*cp++ = '\0';
+	if (!ccs_correct_word(arg))
+		return false;
+	return ccs_prune_word(arg, cp);
+}
+
+static _Bool ccs_check_number(char *arg)
+{
+	char *cp = strchr(arg, ' ');
+	unsigned long min_value;
+	unsigned long max_value;
+	if (cp)
+		*cp++ = '\0';
+	switch (sscanf(arg, "%lu-%lu", &min_value, &max_value)) {
+	case 2:
+	case 1:
+		break;
+	default:
+		if (*arg != '@')
+			return false;
+		break;
+	}
+	return ccs_prune_word(arg, cp);
+}
+
+static _Bool ccs_check_domain(char *arg)
+{
+	char *cp = arg;
+	while (*cp) {
+		if (*cp++ != ' ' || *cp++ == '/')
+			continue;
+		cp -= 2;
+		*cp++ = '\0';
+		break;
+	}
+	if (!ccs_correct_domain(arg))
+		return false;
+	memmove(arg, cp, strlen(cp) + 1); 
+	return true;
+}
+
+static _Bool ccs_check_capability(char *arg)
+{
+	static const char *list[] = {
 		"use_route", "use_packet", "SYS_REBOOT", "SYS_VHANGUP",
 		"SYS_TIME", "SYS_NICE", "SYS_SETHOSTNAME", "use_kernel_module",
 		"SYS_KEXEC_LOAD", "SYS_PTRACE", NULL
 	};
 	int i;
-	for (i = 0; capability_keywords[i]; i++) {
-		if (!strcmp(data, capability_keywords[i]))
-			return;
-	}
-	printf("%u: ERROR: '%s' is a bad capability name.\n", ccs_line, data);
-	ccs_errors++;
+	char *cp = strchr(arg, ' ');
+	if (cp)
+		*cp++ = '\0';
+	for (i = 0; list[i]; i++)
+		if (!strcmp(arg, list[i])) {
+			if (cp)
+				memmove(arg, cp, strlen(cp) + 1);
+			else
+				*arg = '\0';
+			return true;
+		}
+	return false;
 }
 
-static void ccs_check_signal_policy(char *data)
+static _Bool ccs_check_u8(char *arg)
 {
-	int sig;
-	char *cp;
-	cp = strchr(data, ' ');
-	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", ccs_line);
-		ccs_errors++;
-		return;
-	}
-	*cp++ = '\0';
-	if (sscanf(data, "%d", &sig) != 1) {
-		printf("%u: ERROR: '%s' is a bad signal number.\n", ccs_line, data);
-		ccs_errors++;
-	}
-	if (!ccs_correct_domain(cp)) {
-		printf("%u: ERROR: '%s' is a bad domainname.\n", ccs_line, cp);
-		ccs_errors++;
-	}
+	char *cp = strchr(arg, ' ');
+	unsigned int value;
+	if (cp)
+		*cp++ = '\0';
+	if (sscanf(arg, "%u", &value) != 1 || value >= 256)
+		return false;
+	if (cp)
+		memmove(arg, cp, strlen(cp) + 1);
+	else
+		*arg = '\0';
+	return true;
 }
 
-static void ccs_check_env_policy(char *data)
+static _Bool ccs_check_u16(char *arg)
 {
-	if (!ccs_correct_word(data)) {
-		printf("%u: ERROR: '%s' is a bad variable name.\n", ccs_line, data);
-		ccs_errors++;
-	}
+	char *cp = strchr(arg, ' ');
+	unsigned int value;
+	if (cp)
+		*cp++ = '\0';
+	if (sscanf(arg, "%u", &value) != 1 || value >= 65536)
+		return false;
+	if (cp)
+		memmove(arg, cp, strlen(cp) + 1);
+	else
+		*arg = '\0';
+	return true;
 }
 
-static void ccs_check_inet_network_policy(char *data)
+static _Bool ccs_check_ip_address(char *arg)
 {
+	char *cp = strchr(arg, ' ');
 	u16 min_address[8];
 	u16 max_address[8];
-	unsigned int min_port;
-	unsigned int max_port;
 	int count;
-	static const char *types[3] = { "stream ", "dgram ", "raw " };
-	static const char *ops[6] = { "bind ", "connect ", "listen ",
-				      "accept ", "send ", "recv " };
-	int i;
-	for (i = 0; i < 3; i++)
-		if (ccs_str_starts(data, types[i]))
-			break;
-	if (i == 3)
-		goto out;
-	for (i = 0; i < 6; i++)
-		if (ccs_str_starts(data, ops[i]))
-			break;
-	if (i == 6)
-		goto out;
-	count = sscanf(data, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
+	if (cp)
+		*cp++ = '\0';
+	count = sscanf(arg, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
 		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
 		       &min_address[0], &min_address[1], &min_address[2],
 		       &min_address[3], &min_address[4], &min_address[5],
@@ -393,430 +413,305 @@ static void ccs_check_inet_network_policy(char *data)
 		       &max_address[4], &max_address[5], &max_address[6],
 		       &max_address[7]);
 	if (count == 8 || count == 16)
-		goto next;
-	count = sscanf(data, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+		goto found;
+	count = sscanf(arg, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
 		       &min_address[0], &min_address[1], &min_address[2],
 		       &min_address[3], &max_address[0], &max_address[1],
 		       &max_address[2], &max_address[3]);
 	if (count == 4 || count == 8)
-		goto next;
-	if (*data != '@') /* Don't reject address_group. */
-		goto out;
-next:
-	data = strchr(data, ' ');
-	if (!data)
-		goto out;
-	count = sscanf(data, "%u-%u", &min_port, &max_port);
-	if (count == 1 || count == 2) {
-		if (count == 1)
-			max_port = min_port;
-		if (min_port <= max_port && max_port < 65536)
-			return;
-	}
-out:
-	printf("%u: ERROR: Bad network address.\n", ccs_line);
-	ccs_errors++;
+		goto found;
+	if (*arg == '@') /* Don't reject address_group. */
+		goto found;
+	return false;
+found:
+	if (cp)
+		memmove(arg, cp, strlen(cp) + 1);
+	else
+		*arg = '\0';
+	return true;
 }
 
-static void ccs_check_unix_network_policy(char *data)
+static _Bool ccs_check_port(char *arg)
 {
-	static const char *types[3] = { "stream ", "dgram ", "seqpaket " };
-	static const char *ops[6] = { "bind ", "connect ", "listen ",
-				      "accept ", "send ", "recv " };
-	int i;
-	for (i = 0; i < 3; i++)
-		if (ccs_str_starts(data, types[i]))
-			break;
-	if (i == 3)
-		goto out;
-	for (i = 0; i < 6; i++)
-		if (ccs_str_starts(data, ops[i]))
-			break;
-	if (i == 6)
-		goto out;
-	if (*data == '@' || ccs_correct_path(data))
-		/* Don't reject path_group. */
-		return;
-out:
-	printf("%u: ERROR: Bad network address.\n", ccs_line);
-	ccs_errors++;
+	char *cp = strchr(arg, ' ');
+	unsigned int min_value;
+	unsigned int max_value;
+	if (cp)
+		*cp++ = '\0';
+	switch (sscanf(arg, "%u-%u", &min_value, &max_value)) {
+	case 2:
+	case 1:
+		break;
+	default:
+		return false;
+	}
+	return ccs_prune_word(arg, cp);
 }
 
-static void ccs_check_file_policy(char *data)
+
+static _Bool ccs_check_network(char *arg)
 {
 	static const struct {
-		const char * const keyword;
-		const int paths;
-	} acl_type_array[] = {
-		{ "append",     1 },
-		{ "chgrp",      2 },
-		{ "chmod",      2 },
-		{ "chown",      2 },
-		{ "chroot",     1 },
-		{ "create",     2 },
-		{ "execute",    1 },
-		{ "getattr",    1 },
-		{ "ioctl",      2 },
-		{ "link",       2 },
-		{ "mkblock",    4 },
-		{ "mkchar",     4 },
-		{ "mkdir",      2 },
-		{ "mkfifo",     2 },
-		{ "mksock",     2 },
-		{ "mount",      4 },
-		{ "pivot_root", 2 },
-		{ "read",       1 },
-		{ "rename",     2 },
-		{ "rmdir",      1 },
-		{ "symlink",    1 },
-		{ "transit",    1 },
-		{ "truncate",   1 },
-		{ "unlink",     1 },
-		{ "unmount",    1 },
-		{ "write",      1 },
-		{ NULL, 0 }
+		const char *directive;
+		u8 flags;
+	} list[] = {
+		{ "bind", 1 },
+		{ "listen", 2 },
+		{ "connect", 2 },
+		{ "accept", 2 },
+		{ "send", 4 },
+		{ "recv", 4 },
 	};
-	char *filename = strchr(data, ' ');
-	char *cp;
-	int type;
-	if (!filename) {
-		printf("%u: ERROR: Unknown command '%s'\n", ccs_line, data);
-		ccs_errors++;
-		return;
-	}
-	*filename++ = '\0';
-	for (type = 0; acl_type_array[type].keyword; type++) {
-		if (strcmp(data, acl_type_array[type].keyword))
-			continue;
-		if (acl_type_array[type].paths == 4) {
-			cp = strrchr(filename, ' ');
-			if (!cp) {
-				printf("%u: ERROR: Too few arguments.\n",
-				       ccs_line);
-				break;
-			}
-			if (!ccs_correct_word(cp + 1)) {
-				printf("%u: ERROR: '%s' is a bad argument\n",
-				       ccs_line, cp + 1);
-				break;
-			}
-			*cp = '\0';
-			cp = strrchr(filename, ' ');
-			if (!cp) {
-				printf("%u: ERROR: Too few arguments.\n",
-				       ccs_line);
-				break;
-			}
-			if (!ccs_correct_word(cp + 1)) {
-				printf("%u: ERROR: '%s' is a bad argument.\n",
-				       ccs_line, cp + 1);
-				break;
-			}
-			*cp = '\0';
-		}
-		if (acl_type_array[type].paths >= 2) {
-			cp = strrchr(filename, ' ');
-			if (!cp) {
-				printf("%u: ERROR: Too few arguments.\n",
-				       ccs_line);
-				break;
-			}
-			if (!ccs_correct_word(cp + 1)) {
-				printf("%u: ERROR: '%s' is a bad argument.\n",
-				       ccs_line, cp + 1);
-				break;
-			}
-			*cp = '\0';
-		}
-		if (!ccs_correct_word(filename)) {
-			printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line,
-			       filename);
+	_Bool inet;
+	u8 mask;
+	u8 flags = 0;
+	char *start = arg;
+	if (ccs_str_starts(arg, "inet "))
+		inet = true;
+	else if (ccs_str_starts(arg, "unix "))
+		inet = false;
+	else
+		return false;
+	if ((inet && ccs_str_starts(arg, "stream ")) ||
+	    (!inet && (ccs_str_starts(arg, "stream ") ||
+		       ccs_str_starts(arg, "seqpacket "))))
+		mask = 2;
+	else if ((inet && (ccs_str_starts(arg, "dgram ") ||
+			   ccs_str_starts(arg, "raw "))) ||
+		 (!inet && ccs_str_starts(arg, "dgram ")))
+		mask = 4;
+	else
+		return false;
+	while (1) {
+		u8 type;
+		while (ccs_str_starts(arg, "/"));
+		if (*arg == ' ') {
+			arg++;
 			break;
 		}
-		return;
+		for (type = 0; list[type].directive; type++) {
+			if (((list[type].flags | mask) & 6) == 6)
+				continue;
+			if (!ccs_str_starts(arg, list[type].directive))
+				continue;
+			flags |= list[type].flags;
+			break;
+		}
+		if (!list[type].directive)
+			goto out;
 	}
-	if (!acl_type_array[type].keyword)
-		printf("%u: ERROR: Invalid permission '%s %s'\n", ccs_line, data,
-		       filename);
-	ccs_errors++;
-}
-
-static void ccs_check_reserved_port_policy(char *data)
-{
-	unsigned int from;
-	unsigned int to;
-	if (strchr(data, ' '))
+	if (!flags)
 		goto out;
-	if (sscanf(data, "%u-%u", &from, &to) == 2) {
-		if (from <= to && to < 65536)
-			return;
-	} else if (sscanf(data, "%u", &from) == 1) {
-		if (from < 65536)
-			return;
-	} else {
-		printf("%u: ERROR: Too few parameters.\n", ccs_line);
-		ccs_errors++;
-		return;
-	}
+	ccs_prune_word(start, arg);
+	return inet ? ccs_check_ip_address(start) && ccs_check_number(start) :
+		ccs_check_path(start);
 out:
-	printf("%u: ERROR: '%s' is a bad port number.\n", ccs_line, data);
-	ccs_errors++;
+	return false;
+
 }
 
-static void ccs_check_domain_transition_policy(char *program)
+static _Bool ccs_check_path_domain(char *arg)
 {
-	char *domainname = strstr(program, " from ");
-	if (!domainname) {
-		printf("%u: ERROR: Too few parameters.\n", ccs_line);
-		ccs_errors++;
-		return;
-	}
-	*domainname = '\0';
-	domainname += 6;
-	if (strcmp(program, "any") && !ccs_correct_path(program)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line,
-		       program);
-		ccs_errors++;
-	}
-	if (strcmp(domainname, "any") && !ccs_correct_path(domainname) &&
-	    !ccs_correct_domain(domainname)) {
-		printf("%u: ERROR: '%s' is a bad domainname.\n",
-		       ccs_line, domainname);
-		ccs_errors++;
-	}
+	if (!strncmp(arg, "any ", 4))
+		memmove(arg, arg + 4, strlen(arg + 4) + 1);
+	else if (!ccs_check_path(arg))
+		return false;
+	if (!strncmp(arg, "from ", 5))
+		memmove(arg, arg + 5, strlen(arg + 5) + 1);
+	else
+		return false;
+	if (!strncmp(arg, "any", 3))
+		memmove(arg, arg + 3, strlen(arg + 3) + 1);
+	else
+		return ccs_check_domain(arg);
+	return true;
 }
 
-static void ccs_check_path_group_policy(char *data)
+static _Bool ccs_check_path2(char *arg)
 {
-	char *cp = strchr(data, ' ');
-	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", ccs_line);
-		ccs_errors++;
-		return;
-	}
-	*cp++ = '\0';
-	if (!ccs_correct_word(data)) {
-		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
-		ccs_errors++;
-	}
-	if (!ccs_correct_word(cp)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, cp);
-		ccs_errors++;
-	}
+	return ccs_check_path(arg) && ccs_check_path(arg);
 }
 
-static void ccs_check_number_group_policy(char *data)
+static _Bool ccs_check_path_number(char *arg)
 {
-	char *cp = strchr(data, ' ');
-	unsigned long v;
-	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", ccs_line);
-		ccs_errors++;
-		return;
-	}
-	*cp++ = '\0';
-	if (!ccs_correct_word(data)) {
-		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
-		ccs_errors++;
-	}
-	data = cp;
-	cp = strchr(data, '-');
-	if (cp)
-		*cp = '\0';
-	if (!ccs_parse_ulong(&v, &data) || *data) {
-		printf("%u: ERROR: '%s' is a bad number.\n", ccs_line, data);
-		ccs_errors++;
-	}
-	if (cp && !ccs_parse_ulong(&v, &cp)) {
-		printf("%u: ERROR: '%s' is a bad number.\n", ccs_line, cp);
-		ccs_errors++;
-	}
+	return ccs_check_path(arg) && ccs_check_number(arg);
 }
 
-static void ccs_check_address_group_policy(char *data)
+static _Bool ccs_check_path_number3(char *arg)
 {
-	char *cp = strchr(data, ' ');
-	u16 min_address[8];
-	u16 max_address[8];
-	int count;
-	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", ccs_line);
-		ccs_errors++;
-		return;
-	}
-	*cp++ = '\0';
-	if (!ccs_correct_word(data)) {
-		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
-		ccs_errors++;
-	}
-	count = sscanf(cp, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
-		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-		       &min_address[0], &min_address[1], &min_address[2],
-		       &min_address[3], &min_address[4], &min_address[5],
-		       &min_address[6], &min_address[7], &max_address[0],
-		       &max_address[1], &max_address[2], &max_address[3],
-		       &max_address[4], &max_address[5], &max_address[6],
-		       &max_address[7]);
-	if (count == 8 || count == 16)
-		return;
-	count = sscanf(cp, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-		       &min_address[0], &min_address[1], &min_address[2],
-		       &min_address[3], &max_address[0], &max_address[1],
-		       &max_address[2], &max_address[3]);
-	if (count == 4 || count == 8)
-		return;
-	printf("%u: ERROR: '%s' is a bad address.\n", ccs_line, cp);
-	ccs_errors++;
+	return ccs_check_path(arg) && ccs_check_number(arg) &&
+		ccs_check_number(arg) && ccs_check_number(arg);
 }
 
-static void ccs_check_task_policy(char *data)
+static _Bool ccs_check_path3_number(char *arg)
 {
-	if (ccs_str_starts(data, "auto_execute_handler ") ||
-	    ccs_str_starts(data, "denied_execute_handler ")) {
-		if (!ccs_correct_path(data)) {
-			printf("%u: ERROR: '%s' is a bad pathname.\n",
-			       ccs_line, data);
-			ccs_errors++;
+	return ccs_check_path(arg) && ccs_check_path(arg) &&
+		ccs_check_path(arg) && ccs_check_number(arg);
+}
+
+static _Bool ccs_check_file(char *arg)
+{
+	static const struct {
+		const char *directive;
+		_Bool (*func) (char *arg);
+	} list[] = {
+		{ "append", ccs_check_path },
+		{ "chgrp", ccs_check_path_number },
+		{ "chmod", ccs_check_path_number },
+		{ "chown", ccs_check_path_number },
+		{ "chroot", ccs_check_path },
+		{ "create", ccs_check_path_number },
+		{ "execute", ccs_check_path },
+		{ "getattr", ccs_check_path },
+		{ "ioctl", ccs_check_path_number },
+		{ "link", ccs_check_path2 },
+		{ "mkblock", ccs_check_path_number3 },
+		{ "mkchar", ccs_check_path_number3 },
+		{ "mkdir", ccs_check_path_number },
+		{ "mkfifo", ccs_check_path_number },
+		{ "mksock", ccs_check_path_number },
+		{ "mount", ccs_check_path3_number },
+		{ "pivot_root", ccs_check_path2 },
+		{ "read", ccs_check_path },
+		{ "rename", ccs_check_path2 },
+		{ "rmdir", ccs_check_path },
+		{ "symlink", ccs_check_path },
+		{ "truncate", ccs_check_path },
+		{ "unlink", ccs_check_path },
+		{ "unmount", ccs_check_path },
+		{ "write", ccs_check_path },
+		{ }
+	};
+	_Bool (*func) (char *) = NULL;
+	char *start = arg;
+	while (1) {
+		u8 type;
+		while (ccs_str_starts(arg, "/"));
+		if (*arg == ' ') {
+			arg++;
+			break;
 		}
-	} else if (ccs_str_starts(data, "auto_domain_transition ") ||
-		   ccs_str_starts(data, "manual_domain_transition ")) {
-		if (!ccs_correct_domain(data)) {
-			printf("%u: ERROR: '%s' is a bad domainname.\n",
-			       ccs_line, data);
-			ccs_errors++;
+		for (type = 0; list[type].directive; type++) {
+			if (func && func != list[type].func)
+				continue;
+			if (!ccs_str_starts(arg, list[type].directive))
+				continue;
+			func = list[type].func;
+			break;
 		}
+		if (!list[type].directive)
+			goto out;
 	}
+	if (!func || !func(arg))
+		goto out;
+	memmove(start, arg, strlen(arg) + 1);
+	return true;
+out:
+	return false;
 }
+
+static _Bool ccs_check_domain_policy2(char *policy)
+{
+	u8 type;
+	static const struct {
+		const char *directive;
+		_Bool (*arg1) (char *arg);
+		_Bool (*arg2) (char *arg);
+	} list[] = { 
+		{ "capability ", ccs_check_capability },
+		{ "file ", ccs_check_file },
+		{ "ipc signal ", ccs_check_u16, ccs_check_domain },
+		{ "misc env ", ccs_check_path },
+		{ "network ", ccs_check_network },
+		{ "task auto_domain_transition ", ccs_check_domain },
+		{ "task auto_execute_handler ", ccs_check_path },
+		{ "task denied_execute_handler ", ccs_check_path },
+		{ "task manual_domain_transition ", ccs_check_domain },
+		{ }
+	};
+	for (type = 0; list[type].directive; type++) {
+		if (!ccs_str_starts(policy, list[type].directive))
+			continue;
+		if (!list[type].arg1(policy))
+			break;
+		if (list[type].arg2 && !list[type].arg2(policy))
+			break;
+		if (*policy && !ccs_check_condition(policy))
+			break;
+		return true;
+	}
+	return false;
+}
+
 
 static void ccs_check_domain_policy(char *policy)
 {
-	static int domain = EOF;
-	_Bool is_delete = false;
-	_Bool is_select = false;
-	if (ccs_str_starts(policy, "delete "))
-		is_delete = true;
-	else if (ccs_str_starts(policy, "select "))
-		is_select = true;
 	if (!strncmp(policy, "<kernel>", 8)) {
 		if (!ccs_correct_domain(policy) ||
 		    strlen(policy) >= CCS_MAX_DOMAINNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
 			       ccs_line, policy);
 			ccs_errors++;
-		} else {
-			if (is_delete)
-				domain = EOF;
-			else
-				domain = 0;
 		}
-	} else if (is_select) {
-		printf("%u: ERROR: Command 'select' is valid for selecting "
-		       "domains only.\n", ccs_line);
-		ccs_errors++;
-	} else if (domain == EOF) {
-		printf("%u: WARNING: '%s' is unprocessed because domain is not "
-		       "selected.\n", ccs_line, policy);
-		ccs_warnings++;
-	} else if (ccs_str_starts(policy, "use_profile ")) {
-		unsigned int profile;
-		if (sscanf(policy, "%u", &profile) != 1 ||
-		    profile >= 256) {
-			printf("%u: ERROR: '%s' is a bad profile.\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
-	} else if (ccs_str_starts(policy, "use_group ")) {
-		unsigned int group;
-		if (sscanf(policy, "%u", &group) != 1 ||
-		    group >= 256) {
-			printf("%u: ERROR: '%s' is a bad group.\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
-	} else if (!strcmp(policy, "transition_failed")) {
-		/* Nothing to do. */
-	} else if (!strcmp(policy, "quota_exceeded")) {
-		/* Nothing to do. */
-	} else {
-		char *cp = ccs_find_condition_part(policy);
-		if (cp && !ccs_check_condition(cp))
+		return;
+	} else if (!strcmp(policy, "quota_exceeded") ||
+		   !strcmp(policy, "transition_failed")) {
+		return;
+	} else if (ccs_str_starts(policy, "use_group ") ||
+		   ccs_str_starts(policy, "use_profile ")) {
+		if (ccs_check_u8(policy))
 			return;
-		if (ccs_str_starts(policy, "file "))
-			ccs_check_file_policy(policy);
-		else if (ccs_str_starts(policy, "network inet "))
-			ccs_check_inet_network_policy(policy);
-		else if (ccs_str_starts(policy, "network unix "))
-			ccs_check_unix_network_policy(policy);
-		else if (ccs_str_starts(policy, "misc env "))
-			ccs_check_env_policy(policy);
-		else if (ccs_str_starts(policy, "capability "))
-			ccs_check_capability_policy(policy);
-		else if (ccs_str_starts(policy, "ipc signal "))
-			ccs_check_signal_policy(policy);
-		else if (ccs_str_starts(policy, "task "))
-			ccs_check_task_policy(policy);
-		else {
-			printf("%u: ERROR: Invalid permission '%s'\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
-	}
+	} else if (ccs_check_domain_policy2(policy))
+		return;
+	printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line, policy);
+	ccs_errors++;
 }
 
 static void ccs_check_exception_policy(char *policy)
 {
-	ccs_str_starts(policy, "delete ");
-	if (ccs_str_starts(policy, "initialize_domain ") ||
-	    ccs_str_starts(policy, "no_initialize_domain ") ||
-	    ccs_str_starts(policy, "keep_domain ") ||
-	    ccs_str_starts(policy, "no_keep_domain ")) {
-		ccs_check_domain_transition_policy(policy);
-	} else if (ccs_str_starts(policy, "path_group ")) {
-		ccs_check_path_group_policy(policy);
-	} else if (ccs_str_starts(policy, "number_group ")) {
-		ccs_check_number_group_policy(policy);
-	} else if (ccs_str_starts(policy, "address_group ")) {
-		ccs_check_address_group_policy(policy);
-	} else if (ccs_str_starts(policy, "aggregator ")) {
-		char *cp = strchr(policy, ' ');
-		if (!cp) {
-			printf("%u: ERROR: Too few parameters.\n", ccs_line);
-			ccs_errors++;
-		} else {
-			*cp++ = '\0';
-			if (!ccs_correct_word(policy)) {
-				printf("%u: ERROR: '%s' is a bad pattern.\n",
-				       ccs_line, policy);
-				ccs_errors++;
-			}
-			if (!ccs_correct_path(cp)) {
-				printf("%u: ERROR: '%s' is a bad pathname.\n",
-				       ccs_line, cp);
-				ccs_errors++;
-			}
-		}
-	} else if (ccs_str_starts(policy, "deny_autobind ")) {
-		ccs_check_reserved_port_policy(policy);
-	} else if (ccs_str_starts(policy, "acl_group ")) {
-		unsigned int group;
-		char *cp = strchr(policy, ' ');
-		if (cp && sscanf(policy, "%u", &group) == 1 && group < 256) {
-			ccs_check_domain_policy(cp + 1);
-		} else {
-			printf("%u: ERROR: Bad group '%s'.\n", ccs_line,
-			       policy);
-			ccs_errors++;
-		}
-	} else {
-		printf("%u: ERROR: Unknown command '%s'.\n", ccs_line, policy);
-		ccs_errors++;
+	static const struct {
+		const char *directive;
+		_Bool (*arg1) (char *arg);
+		_Bool (*arg2) (char *arg);
+	} list[] = {
+		{ "acl_group ", ccs_check_u8, ccs_check_domain_policy2 },
+		{ "address_group ", ccs_check_path, ccs_check_ip_address },
+		{ "aggregator ", ccs_check_path, ccs_check_path },
+		{ "deny_autobind ", ccs_check_port },
+		{ "initialize_domain ", ccs_check_path_domain },
+		{ "keep_domain ", ccs_check_path_domain },
+		{ "no_initialize_domain ", ccs_check_path_domain },
+		{ "no_keep_domain ", ccs_check_path_domain },
+		{ "number_group ", ccs_check_path, ccs_check_number },
+		{ "path_group ", ccs_check_path, ccs_check_path },
+		{ }
+	};
+	u8 type;
+	for (type = 0; list[type].directive; type++) {
+		const int len = strlen(list[type].directive);
+		if (strncmp(policy, list[type].directive, len))
+			continue;
+		policy += len;
+		if (!list[type].arg1(policy))
+			break;
+		if (list[type].arg2 && !list[type].arg2(policy))
+			break;
+		return;
 	}
+	printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line, policy);
+	ccs_errors++;
 }
 
 int main(int argc, char *argv[])
 {
+	unsigned int ccs_warnings = 0;
 	char *policy = NULL;
-	int policy_type = CCS_POLICY_TYPE_UNKNOWN;
+	enum ccs_policy_type {
+		CCS_POLICY_TYPE_UNKNOWN,
+		CCS_POLICY_TYPE_DOMAIN_POLICY,
+		CCS_POLICY_TYPE_EXCEPTION_POLICY,
+	};
+	enum ccs_policy_type policy_type = CCS_POLICY_TYPE_UNKNOWN;
 	if (argc > 1) {
 		switch (argv[1][0]) {
 		case 'e':
