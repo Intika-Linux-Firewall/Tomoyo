@@ -312,20 +312,22 @@ static _Bool ccs_check_path(char *arg)
 static _Bool ccs_check_number(char *arg)
 {
 	char *cp = strchr(arg, ' ');
+	char *start = arg;
 	unsigned long min_value;
 	unsigned long max_value;
 	if (cp)
 		*cp++ = '\0';
-	switch (sscanf(arg, "%lu-%lu", &min_value, &max_value)) {
-	case 2:
-	case 1:
-		break;
-	default:
-		if (*arg != '@')
-			return false;
-		break;
-	}
-	return ccs_prune_word(arg, cp);
+	if (*arg == '@')
+		goto ok;
+	if (!ccs_parse_ulong(&min_value, &arg))
+		return false;
+	if (!*arg)
+		goto ok;
+	if (*arg++ != '-' || !ccs_parse_ulong(&max_value, &arg) || *arg ||
+	    min_value > max_value)
+		return false;
+ok:
+	return ccs_prune_word(start, cp);
 }
 
 static _Bool ccs_check_domain(char *arg)
@@ -340,8 +342,7 @@ static _Bool ccs_check_domain(char *arg)
 	}
 	if (!ccs_correct_domain(arg))
 		return false;
-	memmove(arg, cp, strlen(cp) + 1); 
-	return true;
+	return ccs_prune_word(arg, cp); 
 }
 
 static _Bool ccs_check_capability(char *arg)
@@ -356,13 +357,8 @@ static _Bool ccs_check_capability(char *arg)
 	if (cp)
 		*cp++ = '\0';
 	for (i = 0; list[i]; i++)
-		if (!strcmp(arg, list[i])) {
-			if (cp)
-				memmove(arg, cp, strlen(cp) + 1);
-			else
-				*arg = '\0';
-			return true;
-		}
+		if (!strcmp(arg, list[i]))
+			return ccs_prune_word(arg, cp);
 	return false;
 }
 
@@ -374,11 +370,7 @@ static _Bool ccs_check_u8(char *arg)
 		*cp++ = '\0';
 	if (sscanf(arg, "%u", &value) != 1 || value >= 256)
 		return false;
-	if (cp)
-		memmove(arg, cp, strlen(cp) + 1);
-	else
-		*arg = '\0';
-	return true;
+	return ccs_prune_word(arg, cp);
 }
 
 static _Bool ccs_check_u16(char *arg)
@@ -389,46 +381,59 @@ static _Bool ccs_check_u16(char *arg)
 		*cp++ = '\0';
 	if (sscanf(arg, "%u", &value) != 1 || value >= 65536)
 		return false;
-	if (cp)
-		memmove(arg, cp, strlen(cp) + 1);
-	else
-		*arg = '\0';
-	return true;
+	return ccs_prune_word(arg, cp);
 }
 
 static _Bool ccs_check_ip_address(char *arg)
 {
 	char *cp = strchr(arg, ' ');
-	u16 min_address[8];
-	u16 max_address[8];
+	unsigned int min_address[8];
+	unsigned int max_address[8];
 	int count;
 	if (cp)
 		*cp++ = '\0';
-	count = sscanf(arg, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
-		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+	if (*arg == '@') /* Don't reject address_group. */
+		goto found;
+	count = sscanf(arg, "%x:%x:%x:%x:%x:%x:%x:%x-%x:%x:%x:%x:%x:%x:%x:%x",
 		       &min_address[0], &min_address[1], &min_address[2],
 		       &min_address[3], &min_address[4], &min_address[5],
 		       &min_address[6], &min_address[7], &max_address[0],
 		       &max_address[1], &max_address[2], &max_address[3],
 		       &max_address[4], &max_address[5], &max_address[6],
 		       &max_address[7]);
-	if (count == 8 || count == 16)
+	if (count == 8) {
+		memmove(max_address, min_address, sizeof(max_address));
+		count = 16;
+	}
+	if (count == 16) {
+		for (count = 0; count < 4; count++)
+			if (min_address[count] >= 65536 ||
+			    max_address[count] >= 65536)
+				return false;
 		goto found;
-	count = sscanf(arg, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+	}
+	count = sscanf(arg, "%u.%u.%u.%u-%u.%u.%u.%u",
 		       &min_address[0], &min_address[1], &min_address[2],
 		       &min_address[3], &max_address[0], &max_address[1],
 		       &max_address[2], &max_address[3]);
-	if (count == 4 || count == 8)
-		goto found;
-	if (*arg == '@') /* Don't reject address_group. */
-		goto found;
+	if (count == 4) {
+		memmove(max_address, min_address, sizeof(max_address));
+		count = 8;
+	}
+	if (count == 8) {
+		for (count = 0; count < 4; count++) {
+			if (min_address[count] >= 256 ||
+			    max_address[count] >= 256)
+				return false;
+			goto found;
+		}
+	}
 	return false;
 found:
-	if (cp)
-		memmove(arg, cp, strlen(cp) + 1);
-	else
-		*arg = '\0';
-	return true;
+	for (count = 0; count < 8; count++)
+		if (htonl(min_address[count]) > htonl(max_address[count]))
+			return false;
+	return ccs_prune_word(arg, cp);
 }
 
 static _Bool ccs_check_port(char *arg)
@@ -485,10 +490,8 @@ static _Bool ccs_check_network(char *arg)
 	while (1) {
 		u8 type;
 		while (ccs_str_starts(arg, "/"));
-		if (*arg == ' ') {
-			arg++;
+		if (ccs_str_starts(arg, " "))
 			break;
-		}
 		for (type = 0; list[type].directive; type++) {
 			if (((list[type].flags | mask) & 6) == 6)
 				continue;
@@ -497,8 +500,12 @@ static _Bool ccs_check_network(char *arg)
 			flags |= list[type].flags;
 			break;
 		}
-		if (!list[type].directive)
+		if (!list[type].directive) {
+			while (*arg && *arg != ' ' && *arg != '/')
+				arg++;
+			*arg = '\0';
 			goto out;
+		}
 	}
 	if (!flags)
 		goto out;
@@ -513,18 +520,17 @@ out:
 static _Bool ccs_check_path_domain(char *arg)
 {
 	if (!strncmp(arg, "any ", 4))
-		memmove(arg, arg + 4, strlen(arg + 4) + 1);
+		ccs_prune_word(arg, arg + 4);
 	else if (!ccs_check_path(arg))
 		return false;
 	if (!strncmp(arg, "from ", 5))
-		memmove(arg, arg + 5, strlen(arg + 5) + 1);
+		ccs_prune_word(arg, arg + 5);
 	else
 		return false;
 	if (!strncmp(arg, "any", 3))
-		memmove(arg, arg + 3, strlen(arg + 3) + 1);
+		return ccs_prune_word(arg, arg + 3);
 	else
 		return ccs_check_domain(arg);
-	return true;
 }
 
 static _Bool ccs_check_path2(char *arg)
@@ -587,10 +593,8 @@ static _Bool ccs_check_file(char *arg)
 	while (1) {
 		u8 type;
 		while (ccs_str_starts(arg, "/"));
-		if (*arg == ' ') {
-			arg++;
+		if (ccs_str_starts(arg, " "))
 			break;
-		}
 		for (type = 0; list[type].directive; type++) {
 			if (func && func != list[type].func)
 				continue;
@@ -599,13 +603,16 @@ static _Bool ccs_check_file(char *arg)
 			func = list[type].func;
 			break;
 		}
-		if (!list[type].directive)
+		if (!list[type].directive) {
+			while (*arg && *arg != ' ' && *arg != '/')
+				arg++;
+			*arg = '\0';
 			goto out;
+		}
 	}
 	if (!func || !func(arg))
 		goto out;
-	memmove(start, arg, strlen(arg) + 1);
-	return true;
+	return ccs_prune_word(start, arg);
 out:
 	return false;
 }
