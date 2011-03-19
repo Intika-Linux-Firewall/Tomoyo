@@ -766,6 +766,8 @@ int main(int argc, char *argv[])
 		case CCS_POLICY_TYPE_EXCEPTION_POLICY:
 			ccs_check_exception_policy(policy);
 			break;
+		default:
+			break;
 		}
 	}
 out:
