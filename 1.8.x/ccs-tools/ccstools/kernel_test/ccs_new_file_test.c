@@ -19,6 +19,32 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 #include "include.h"
+#include <linux/elf.h>
+
+static void make_elf_lib(void)
+{
+	static const struct elf_phdr eph = {
+		.p_type = PT_LOAD,
+		.p_offset = 4096,
+		.p_filesz = 1,
+	};
+	static const struct elfhdr eh = {
+		.e_ident = ELFMAG,
+		.e_type = ET_EXEC,
+		.e_machine = EM_386,
+		.e_phoff = sizeof(eh),
+		.e_phentsize = sizeof(eph),
+		.e_phnum = 1,
+	};
+	const int fd = open("/tmp/uselib", O_WRONLY | O_CREAT | O_TRUNC, 0755);
+	if (fd != EOF) {
+		write(fd, &eh, sizeof(eh));
+		write(fd, &eph, sizeof(eph));
+		lseek(fd, 4096, SEEK_SET);
+		write(fd, "", 1);
+		close(fd);
+	}
+}
 
 static const char *policy = "";
 
@@ -151,12 +177,12 @@ static void stage_file_test(void)
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 0);
 
-	policy = "file read /bin/true "
+	policy = "file read /tmp/uselib "
 		"path1.uid=0 path1.parent.uid=0 10=10-100";
 	write_domain_policy(policy, 0);
-	show_result(uselib("/bin/true"), 1);
+	show_result(uselib("/tmp/uselib"), 1);
 	write_domain_policy(policy, 1);
-	show_result(uselib("/bin/true"), 0);
+	show_result(uselib("/tmp/uselib"), 0);
 
 	policy = "file execute /bin/true task.uid!=10 path1.parent.uid=0";
 	write_domain_policy(policy, 0);
@@ -596,6 +622,7 @@ static void stage_file_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
+	make_elf_lib();
 	fprintf(domain_fp, "%s /bin/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
