@@ -49,7 +49,23 @@ static _Bool ccs_parse_ulong(unsigned long *result, char **str)
 	return true;
 }
 
-static _Bool ccs_check_condition(char *condition)
+static _Bool ccs_check_number_range(char *pos)
+{
+	unsigned long min_value;
+	unsigned long max_value;
+	if (!ccs_parse_ulong(&min_value, &pos))
+		return false;
+	if (*pos == '-') {
+		pos++;
+		if (!ccs_parse_ulong(&max_value, &pos) || *pos ||
+		    min_value > max_value)
+			return false;
+	} else if (*pos)
+		return false;
+	return true;
+}
+
+static void ccs_check_condition(char *condition)
 {
 	enum ccs_conditions_index {
 		CCS_TASK_UID,             /* current_uid()   */
@@ -183,20 +199,13 @@ static _Bool ccs_check_condition(char *condition)
 		[CCS_PATH2_PARENT_INO]     = "path2.parent.ino",
 		[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
 	};
-	//char *const start = condition;
 	char *pos = condition;
 	u8 left;
 	u8 right;
-	//int i;
-	unsigned long left_min = 0;
-	unsigned long left_max = 0;
-	unsigned long right_min = 0;
-	unsigned long right_max = 0;
-	if (*condition && condition[strlen(condition) - 1] == ' ')
-		condition[strlen(condition) - 1] = '\0';
-	if (!*condition)
-		return true;
-	pos = condition;
+	if (*pos && pos[strlen(pos) - 1] == ' ')
+		condition[strlen(pos) - 1] = '\0';
+	if (!*pos)
+		return;
 	while (pos) {
 		char *eq;
 		char *next = strchr(pos, ' ');
@@ -213,8 +222,9 @@ static _Bool ccs_check_condition(char *condition)
 			*(eq - 1) = '\0';
 		r_len = strlen(eq + 1);
 		if (!strncmp(pos, "exec.argv[", 10)) {
+			unsigned long value;
 			pos += 10;
-			if (!ccs_parse_ulong(&left_min, &pos) || strcmp(pos, "]"))
+			if (!ccs_parse_ulong(&value, &pos) || strcmp(pos, "]"))
 				goto out;
 			pos = eq + 1;
 			if (r_len < 2)
@@ -233,6 +243,17 @@ static _Bool ccs_check_condition(char *condition)
 			if (pos[0] == '"' && pos[r_len - 1] == '"')
 				goto next;
 			goto out;
+		} else if (!strcmp(pos, "auto_domain_transition")) {
+			pos = eq + 1;
+			if (r_len < 2)
+				goto out;
+			if (pos[0] == '"' && pos[r_len - 1] == '"')
+				goto next;
+		} else if (!strcmp(pos, "grant_log")) {
+			pos = eq + 1;
+			if (!strcmp(pos, "yes") || !strcmp(pos, "no"))
+				goto next;
+			goto out;
 		}
 		for (left = 0; left < CCS_MAX_CONDITION_KEYWORD; left++) {
 			const char *keyword = ccs_condition_keyword[left];
@@ -241,14 +262,7 @@ static _Bool ccs_check_condition(char *condition)
 			break;
 		}
 		if (left == CCS_MAX_CONDITION_KEYWORD) {
-			if (!ccs_parse_ulong(&left_min, &pos))
-				goto out;
-			if (pos[0] == '-') {
-				pos++;
-				if (!ccs_parse_ulong(&left_max, &pos) || pos[0] ||
-				    left_min > left_max)
-					goto out;
-			} else if (pos[0])
+			if (!ccs_check_number_range(pos))
 				goto out;
 		}
 		pos = eq + 1;
@@ -265,29 +279,19 @@ static _Bool ccs_check_condition(char *condition)
 			const char *keyword = ccs_condition_keyword[right];
 			if (strcmp(pos, keyword))
 				continue;
-			break;
-		}
-		if (right < CCS_MAX_CONDITION_KEYWORD)
 			goto next;
+		}
 		if (pos[0] == '@' && pos[1])
 			goto next;
-		if (!ccs_parse_ulong(&right_min, &pos))
-			goto out;
-		if (pos[0] == '-') {
-			pos++;
-			if (!ccs_parse_ulong(&right_max, &pos) || pos[0] ||
-			    right_min > right_max)
-				goto out;
-		} else if (pos[0])
+		if (!ccs_check_number_range(pos))
 			goto out;
 next:
 		pos = next;
 	}
-	return true;
+	return;
 out:
 	printf("%u: ERROR: '%s' is an illegal condition.\n", ccs_line, pos);
 	ccs_errors++;
-	return true;
 }
 
 static _Bool ccs_prune_word(char *arg, const char *cp)
@@ -521,16 +525,22 @@ static _Bool ccs_check_path_domain(char *arg)
 {
 	if (!strncmp(arg, "any ", 4))
 		ccs_prune_word(arg, arg + 4);
-	else if (!ccs_check_path(arg))
+	else if (*arg != '/' || !ccs_check_path(arg))
 		return false;
 	if (!strncmp(arg, "from ", 5))
 		ccs_prune_word(arg, arg + 5);
 	else
 		return false;
-	if (!strncmp(arg, "any", 3))
-		return ccs_prune_word(arg, arg + 3);
-	else
-		return ccs_check_domain(arg);
+	if (!strncmp(arg, "any", 3)) {
+		ccs_prune_word(arg, arg + 3);
+	} else if (*arg == '/') {
+		if (!ccs_check_path(arg))
+			return false;
+	} else {
+		if (!ccs_check_domain(arg))
+			return false;
+	}
+	return !*arg;
 }
 
 static _Bool ccs_check_path2(char *arg)
@@ -643,8 +653,7 @@ static _Bool ccs_check_domain_policy2(char *policy)
 			break;
 		if (list[type].arg2 && !list[type].arg2(policy))
 			break;
-		if (*policy && !ccs_check_condition(policy))
-			break;
+		ccs_check_condition(policy);
 		return true;
 	}
 	return false;
@@ -670,6 +679,12 @@ static void ccs_check_domain_policy(char *policy)
 			return;
 	} else if (ccs_check_domain_policy2(policy))
 		return;
+	{
+		char *cp = policy;
+		while (*cp && *cp != ' ')
+			cp++;
+		*cp = '\0';
+	}
 	printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line, policy);
 	ccs_errors++;
 }
@@ -704,6 +719,12 @@ static void ccs_check_exception_policy(char *policy)
 		if (list[type].arg2 && !list[type].arg2(policy))
 			break;
 		return;
+	}
+	{
+		char *cp = policy;
+		while (*cp && *cp != ' ')
+			cp++;
+		*cp = '\0';
 	}
 	printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line, policy);
 	ccs_errors++;
