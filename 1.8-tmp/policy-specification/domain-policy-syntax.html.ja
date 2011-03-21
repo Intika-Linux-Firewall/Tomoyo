@@ -696,9 +696,9 @@ use_profile 3
 
 <h3><a name="task_auto_execute_handler">task auto_execute_handler</a></h3>
 
-<p>This directive causes executions from the domain to be handled by an external program, as specified by the directive. When an execute request is made within this domain, the specified external program is executed instead. This then decides whether it is appropriate to continue.</p>
+<p>このディレクティブは、このディレクティブが割り当てられたドメインからのプログラムの実行要求がこのディレクティブで指定されたプログラムによって処理されるようになります。このドメインでプログラムの実行要求が発生すると、要求されたプログラムの代わりにこのディレクティブで指定されたプログラムが実行されます。そして、このディレクティブで指定されたプログラムが要求されたプログラムを実行すべきかどうかを判断し、実行すべきと判断した場合だけ要求されたプログラムが実行されます。</p>
 
-<p>This example causes the program <code>/usr/sbin/check-and-exec</code> to be launched whenever the domain makes an execute request:</p>
+<p>以下の例では <code>/usr/sbin/check-and-exec</code> というプログラムが要求されたプログラムの代わりに実行されます：</p>
 
 <pre>
 task auto_execute_handler /usr/sbin/check-and-exec
@@ -706,9 +706,9 @@ task auto_execute_handler /usr/sbin/check-and-exec
 
 <h3><a name="task_denied_execute_handler">task denied_execute_handler</a></h3>
 
-<p>This directive causes an external program, as specified by the directive, to be launched when executions within the domain have been rejected by policy.</p>
+<p>このディレクティブは、このディレクティブが割り当てられているドメインからのプログラムの実行要求がポリシーによって拒否された場合に、要求されたプログラムの代わりにこのディレクティブで指定されたプログラムが実行されるようになります。このディレクティブは強制モードが割り当てられている状態でポリシーによって拒否された場合のみ機能することに注意してください。ポリシーによって拒否されたとしても、強制モードではない限りプログラムの実行要求は受け入れられます。アクセス制御モードに関わらず別のプログラムを実行させたい場合には、 <a href="#task_auto_execute_handler">task auto_execute_handler</a> を（必要であれば <a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> と組み合わせて）使ってください。</p>
 
-<p>This example causes the program <code>/bin/true</code> to be launched whenever an execution request from the domain is rejected by policy:</p>
+<p>以下の例では、プログラムの実行要求がポリシーによって拒否された場合に <code>/bin/true</code> というプログラムが要求されたプログラムの代わりに実行されます：</p>
 
 <pre>
 task denied_execute_handler /bin/true
@@ -716,9 +716,9 @@ task denied_execute_handler /bin/true
 
 <h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
 
-<p>This directive causes a domain transition to occur when the application writes a domain name to the "/proc/ccs/self_domain" interface. This can be used to split permissions without requiring an execution, but the application must be modified to write to the interface at the appropriate time.</p>
+<p>このディレクティブは、アプリケーションがこのディレクティブで指定されたドメイン名を /proc/ccs/self_domain インタフェースに書き込むことにより、そのドメインへと遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができますが、アプリケーションからドメイン遷移を行うべきタイミングにこのインタフェースへの書き込みを行うようにアプリケーションを修正することが必要になります。</p>
 
-<p>This example causes a domain transition to the "&lt;kernel&gt; //apache /www.tomoyo00.com" domain (which must be added using the "Domain Transition Editor" if it does not exist) to occur when "//apache /www.tomoyo00.com" is written to "/proc/ccs/self_domain" by the domain:</p>
+<p>以下の例では、 /proc/ccs/self_domain に対して &lt;kernel&gt; //apache /www.tomoyo00.com というドメイン名を書き込むことにより、そのドメインへと遷移することを示しています：</p>
 
 <pre>
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
@@ -726,9 +726,9 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
 
 <h3><a name="task_auto_domain_transition">task auto_domain_transition</a></h3>
 
-<p>This directive causes a domain transition to occur when the specified conditions have been met. This can be used to split permissions without requiring an execution.</p>
+<p>このディレクティブは、指定された条件に一致した場合にこのディレクティブで指定されたドメイン名に自動的に遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができます。</p>
 
-<p>This example causes a domain transition to the "&lt;kernel&gt; //non-root-session" domain (which must be added using the "Domain Transition Editor" if it does not exist) to occur when the task UID becomes non-root:</p>
+<p>以下の例では、プロセスのＵＩＤが０ではなくなった時点で &lt;kernel&gt; //non-root-session ドメインへと自動的に遷移することを示しています：</p>
 
 <pre>
 task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
@@ -736,13 +736,13 @@ task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
 
 <h3><a name="quota_exceeded">quota_exceeded</a></h3>
 
-<p>This directive indicates that the domain has failed to append an entry while in "Learning Mode" due to the "max_learning_entry" value being reached.</p>
+<p>このディレクティブは、ドメインに対するアクセス許可の数がプロファイルの max_learning_entry で指定された数に達したために、学習モードにおいて自動的に追加できなかったアクセス許可があることを示しています。</p>
 
 <h3><a name="transition_failed">transition_failed</a></h3>
 
-<p>This directive indicates that a process within this domain was not able to undergo a domain transition following an execute request.</p>
+<p>このディレクティブは、プログラムの実行要求に対してドメイン遷移を行わないまま処理を継続したことを示しています。</p>
 
-<p>This occurs due to either the name of the domain being too long, or the kernel being unable to allocate memory. To fix this, either suppress domain transitions or increase the memory quota.</p>
+<p>これは、強制モードが割り当てられない限り TOMOYO が原因でアクセス拒否が発生しないようにするために、強制モードではない場合にはドメイン遷移に失敗してもプログラムの実行要求を受け入れるようにしているために発生します。ドメイン遷移が失敗する原因としては、ドメイン名が長すぎたか、ドメインを作成するためのメモリを割り当てられなかったかのどちらかです。この問題を修正するには、ドメイン遷移を抑制するか、 TOMOYO が使ってよいメモリ使用量の上限を増やしてください。</p>
 
 </div><!-- documentation -->
 
