@@ -71,7 +71,7 @@
 
 <h3><a name="manager">/proc/ccs/manager</a></h3>
 
-<p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs" interface.</p>
+<p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs/" interface.</p>
 
 <p>As an exception, all domains can write to below interfaces for restricted purposes.</p>
 
@@ -115,7 +115,7 @@
 
 <p>This read/write interface shows the domain of the caller process.</p>
 
-<p>This interface allows the caller to change the domain of the caller process if explicitly permitted by  <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive.</p>
+<p>This interface allows the caller to change the domain of the caller process if explicitly permitted by <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive.</p>
 
 <h3><a name="stat">/proc/ccs/stat</a></h3>
 
@@ -137,13 +137,13 @@ Total memory used:                        201120
 </pre>
 
 <ul>
-<li><strong>Policy update</strong> shows the total number of domains and the last time that policy was updated.</li>
-<li><strong>Policy violation in learning mode</strong> shows the total number of policy violations that have occurred in domains set to "Learning Mode".</li>
-<li><strong>Policy violation in permissive mode</strong> shows the total number of policy violations that have occurred in domains set to "Permissive Mode".</li>
-<li><strong>Policy violation in enforcing mode</strong> shows the total number of policy violations that have occurred in domains set to "Enforcing Mode".</li>
+<li><strong>Policy update</strong> shows the total number of policy updates and the last time that policy was updated.</li>
+<li><strong>Policy violation in learning mode</strong> shows the total number of policy violations that have occurred in domains set to "Learning Mode" and the last time the violation occurred.</li>
+<li><strong>Policy violation in permissive mode</strong> shows the total number of policy violations that have occurred in domains set to "Permissive Mode"and the last time the violation occurred.</li>
+<li><strong>Policy violation in enforcing mode</strong> shows the total number of policy violations that have occurred in domains set to "Enforcing Mode"and the last time the violation occurred.</li>
 <li><strong>Memory used by policy</strong> shows the memory used for holding access permissions.</li>
 <li><strong>Memory used by audit log</strong> shows the memory used for holding audit logs.</li>
-<li><strong>Memory used by query message</strong> shows the memory used while running the userspace tool "/usr/sbin/ccs-queryd".</li>
+<li><strong>Memory used by query message</strong> shows the memory used for waiting for administrator's decision.</li>
 <li><strong>Total memory used</strong> shows the total memory used.</li>
 </ul>
 
