@@ -29,7 +29,7 @@ echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/47128/ ./' >> /etc/apt/sources.li
 echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/47128/ ./' >> /sources.list
 apt-get -y -o Dir::Etc::SourceList=/sources.list update || die "apt-get update failed. Try again later."
 apt-get -y -o Dir::Etc::SourceList=/sources.list install linux-ccs linux-headers-ccs ccs-tools || die "Can't install packages."
-apt-get -y -o Dir::Etc::SourceList=/sources.list purge linux-image-2.6.32-24-generic linux-image-generic linux-headers-generic linux-generic || die "Can't uninstall packages."
+apt-get -y -o Dir::Etc::SourceList=/sources.list purge linux-image-2.6.32-28-generic linux-image-generic linux-headers-generic linux-generic || die "Can't uninstall packages."
 apt-get -y -o Dir::Etc::SourceList=/sources.list upgrade || die "apt-get upgrade failed. Try again later."
 apt-get -y -o Dir::Etc::SourceList=/sources.list dist-upgrade || die "apt-get dist-upgrade failed. Try again later."
 apt-get -y -o Dir::Etc::SourceList=/sources.list autoremove
@@ -37,9 +37,9 @@ apt-get -y -o Dir::Etc::SourceList=/sources.list clean
 
 /usr/lib/ccs/init_policy
 
-wget http://osdn.dl.sourceforge.jp/tomoyo/47128/tomoyo-tools_2.2.0-2_i386.deb
-dpkg -i tomoyo-tools_2.2.0-2_i386.deb
-rm -f tomoyo-tools_2.2.0-2_i386.deb
+wget http://osdn.dl.sourceforge.jp/tomoyo/47128/tomoyo-tools_2.2.0-3_i386.deb
+dpkg -i tomoyo-tools_2.2.0-3_i386.deb
+rm -f tomoyo-tools_2.2.0-3_i386.deb
 /usr/lib/tomoyo/tomoyo_init_policy
 
 umount -l /lib/init/rw/
