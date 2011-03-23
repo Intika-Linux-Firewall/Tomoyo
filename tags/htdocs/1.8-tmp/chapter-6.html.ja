@@ -40,11 +40,11 @@
 
 <h3><a name="6.1">6.1. テンポラリファイルをパターン化する</a></h3>
 
-<p>A particular domain may require many different access permissions to many different resources. Since "Enforcing Mode" allows access to only resources explicitly defined, it is important to cover all necessary resources. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
+<p>特定のドメインでは、多数の資源に対して多数のアクセス許可を必要とすることがあります。「強制モード」では明示的に許可された資源へのアクセスだけが認められるため、必要な資源を全て網羅しておくことが重要です。網羅するために、アクセス許可をパターン化することができます。パターン化されたアクセス許可を使うと、多数のドメインポリシーのエントリを１個に集約することができます。</p>
 
-<p>As mentioned in the previous chapter, there is a limit on the number of entries domain policy can contain. This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see how to <a href="tool-editpolicy.html.ja#redundant">Remove redundant entries</a>.</p>
+<p>パターン化は、使い捨てのパス名が利用されるテンポラリファイルへの対処を行うのに有効です。以下に紹介する手順で対処することもできますし、ポリシーエディタを用いて対話的に対処することもできます。対話的に対処する手順の詳細については<a href="tool-editpolicy.html.ja#redundant">冗長なエントリを削除する</a>を参照してください。</p>
 
-<p>Use <code>ccs-findtemp</code> to find pathnames from domain policy that are potentially temporary files:</p>
+<p><code>ccs-findtemp</code> コマンドを利用して、テンポラリファイルの可能性があるパス名を抽出します：</p>
 
 <pre class="command">
 # /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
@@ -61,11 +61,11 @@
 /var/spool/clientmqueue/xfoBPETf92002944
 </pre>
 
-<p>In the example above, all except "/var/run/nscd/socket" can be considered to be temporary files. Thus, patterns can be made for these pathnames.</p>
+<p>この例では、 /var/run/nscd/socket 以外は全てテンポラリファイルであると考えられます。そのため、これらのパス名をパターン化します。</p>
 
-<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the "<strong>\?</strong>" pattern which matches any single character other than "/", and the "<strong>\*</strong>" pattern which matches zero or more repetitions of any characters other than "/" can be used. See <a href="policy-specification/expression-rules.html.ja#wildcard">Wildcard expression rules</a> for a list of possible wildcards.</p>
+<p>最初に、どのようなパターンを利用するかを決めます。この例では、ランダムな文字列が使用されていると考えられます。そのため、 / 以外の任意の１文字に一致する <strong>\?</strong> と / 以外の任意の０文字以上に一致する <strong>\*</strong> が妥当だと考えられます。詳細についてはパターンの表記規則を参照してください。詳細については<a href="policy-specification/expression-rules.html.ja#wildcard">パターンの表記規則</a>を参照してください。</p>
 
-<p>Use <code>ccs-patternize</code> to convert into patterns non-interactively. Rewriting rules are specified in "/etc/ccs/tools/patternize.conf" file, as shown below:</p>
+<p><code>ccs-patternize</code> コマンドを利用して、非対話的にパターン化処理を行うことができます。パターン化の規則は /etc/ccs/tools/patternize.conf に記録されています。以下に初期設定を示します：</p>
 
 <pre>
 # This file contains rewriting rules used by ccs-patternize command.
@@ -157,18 +157,18 @@ rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/\*
 rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/
 </pre>
 
-<p>The <strong>"path_pattern"</strong> directive matches the whole pathname.<br>
-The <strong>"head_pattern"</strong> directive matches leading pathname.<br>
-The <strong>"tail_pattern"</strong> directive matches trailing pathname.</p>
+<p><strong>path_pattern</strong> ディレクティブはパス名の全体一致をチェックします。<br>
+<strong>head_pattern</strong> ディレクティブはパス名の前方一致をチェックします。<br>
+<strong>tail_pattern</strong> ディレクティブはパス名の後方一致をチェックします。</p>
 
-<p>Append patterns for "/tmp/Rs\?\?\?\?\?\?" and "/var/spool/clientmqueue/\*" to /etc/ccs/tools/patternize.conf file:</p>
+<p>/tmp/Rs\?\?\?\?\?\? および /var/spool/clientmqueue/\* というパターンを /etc/ccs/tools/patternize.conf に追加してください：</p>
 
 <pre>
 rewrite tail_pattern /tmp/Rs\?\?\?\?\?\?
 rewrite tail_pattern /var/spool/clientmqueue/\*
 </pre>
 
-<p>Then, convert using <code>ccs-patternize</code> command and compare how it was changed using <code>ccs-diffpolicy</code> command:</p>
+<p>その後、 <code>ccs-patternize</code> コマンドを利用してパターン化を行い、 <code>ccs-diffpolicy</code> コマンドを利用して結果を比較してください：</p>
 
 <pre class="command">
 # ccs-savepolicy -d &gt; /tmp/old
@@ -231,15 +231,15 @@ file ioctl pipefs:/[\$] 0x5413
 delete file ioctl pipefs:/[11965] 0x5413
 </pre>
 
-<p>In case the conversion did not achieve the desired result, "/tmp/new" can be edited with a text editor manually, or conversion can be retried after editing "/etc/ccs/tools/patternize.conf".</p>
+<p>意図したとおりに変換されていない場合には、テキストエディタを利用して /tmp/new を直接編集しても構いませんし、 /etc/ccs/tools/patternize.conf を更新してから再度パターン化を行っても構いません。</p>
 
-<p>If the conversion has achieved the desired result, the changes can be applied to existing policy by loading the difference between the two:</p>
+<p>意図したとおりに変換された場合には、差分をカーネル内に読み込ませることで反映することができます：</p>
 
 <pre class="command">
 # ccs-diffpolicy /tmp/old /tmp/new | /usr/sbin/ccs-loadpolicy -d
 </pre>
 
-<p>To convert only specific domains, the <code>ccs-selectpolicy</code> command can be used. For example, to update only "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains, do the following:</p>
+<p>特定のドメインだけを対象に変換処理を行いたい場合、 <code>ccs-selectpolicy</code> コマンドを利用して特定のドメインのドメインポリシーだけを抽出することができます。例えば、 &lt;kernel&gt; /usr/sbin/httpd ドメインとその子孫ドメインだけを対象にパターン化処理を行いたい場合には、以下のように実行してください：</p>
 
 <pre class="command">
 # ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' \
@@ -248,7 +248,7 @@ delete file ioctl pipefs:/[11965] 0x5413
 # ccs-diffpolicy /tmp/old-httpd /tmp/new-httpd | ccs-loadpolicy -d
 </pre>
 
-<p>Conversion of a specific domain can also be managed by editing "/etc/ccs/tools/patternize.conf". The following line can be inserted before the "rewrite" line so that conversion is only done against "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains:</p>
+<p>また、 /etc/ccs/tools/patternize.conf を編集することでも特定のドメインだけを対象に変換処理を行わせることができます。以下の行を rewite 行の前に挿入することで、 <kernel> /usr/sbin/httpd ドメインとその子孫ドメインだけを対象にパターン化処理を行わせることができます：</p>
 
 <pre>
 domain.starts &lt;kernel&gt; /usr/sbin/httpd
@@ -256,16 +256,16 @@ domain.starts &lt;kernel&gt; /usr/sbin/httpd
 
 <h3><a name="6.2">6.2. ファイルのアクセス許可をパターン化する</a></h3>
 
-<p>Access permissions can be patterned to accommodate for files that are not necessarily accessed in "Learning Mode". For example, the domain policy can be changed to accommodate for web server contents:</p>
+<p>学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を追加します。例えば、 WWW サーバがアクセスするコンテンツを扱うために、以下のようにパターン化を行うことができます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
 <th>
-<p>Before</p>
+<p>修正前</p>
 </th>
 <th>
-<p>After</p>
+<p>修正後</p>
 </th>
 </tr>
 <tr>
@@ -303,7 +303,7 @@ domain.starts &lt;kernel&gt; /usr/sbin/httpd
 </table>
 </div>
 
-<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
+<p>例外ポリシーで以下のようなグループを定義しておくことにより：</p>
 
 <pre>
 path_group WEB-CONTENTS /var/www/html/\*.html
@@ -311,7 +311,7 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.html
 path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg
 </pre>
 
-<p>The following can then be defined in domain policy:</p>
+<p>ドメインポリシーでの記述を以下のように単純化することができます：</p>
 
 <pre>
 &lt;kernel&gt; /usr/sbin/httpd
@@ -319,7 +319,7 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg
 file read @WEB-CONTENTS
 </pre>
 
-<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "path_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>上記の変換処理は <code>ccs-editpolicy</code> を利用して行うことができますが、 <code>ccs-patternize</code> を利用して行うこともできます。上記のように path_group を例外ポリシーに追加し（ ccs-patternize はドメインポリシーしか扱わないので例外ポリシーへの追加は手作業で行う必要があります）、以下の内容を /etc/ccs/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -337,18 +337,18 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 
 <h3><a name="6.3">6.3. 数値パラメータをパターン化する</a></h3>
 
-<p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
+<p>ファイルのＤＡＣモードやネットワークのポート番号などの数値で表現されるパラメータについてもパターン化を行うことができます。</p>
 
-<p>The following domain policy example permits the domain "&lt;kernel&gt; /usr/sbin/httpd" to accept connections from port numbers between 1024 and 65535:</p>
+<p>以下のドメインポリシーの例では &lt;kernel&gt; /usr/sbin/httpd ドメインに対してクライアントのポート番号が１０２４～６５５３５からの接続要求を受け付けるようにパターン化しています：</p>
 
 <div class="simple-table">
 <table>
 <tr>
 <th>
-<p>Before</p>
+<p>修正前</p>
 </th>
 <th>
-<p>After</p>
+<p>修正後</p>
 </th>
 </tr>
 <tr>
@@ -368,13 +368,13 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 </table>
 </div>
 
-<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
+<p>例外ポリシーで以下のようなグループを定義しておくことにより：</p>
 
 <pre>
 number_group WEB-CLIENT-PORTS 1024-65535
 </pre>
 
-<p>The following can then be defined in domain policy:</p>
+<p>ドメインポリシーでの記述を以下のように単純化することができます：</p>
 
 <pre>
 &lt;kernel&gt; /usr/sbin/httpd
@@ -382,7 +382,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "number_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>上記の変換処理は <code>ccs-editpolicy</code> を利用して行うことができますが、 <code>ccs-patternize</code> を利用して行うこともできます。上記のように number_group を例外ポリシーに追加し、以下の内容を /etc/ccs/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -392,16 +392,16 @@ rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 
 <h3><a name="6.4">6.4. ネットワークアドレスをパターン化する</a></h3>
 
-<p>Patterns can be made for IP addresses in domain policy, for example:</p>
+<p>同様にＩＰアドレスについてもパターン化を行います。以下に例を示します：</p>
 
 <div class="simple-table">
 <table>
 <tr>
 <th>
-<p>Before</p>
+<p>修正前</p>
 </th>
 <th>
-<p>After</p>
+<p>修正後</p>
 </th>
 </tr>
 <tr>
@@ -425,7 +425,7 @@ rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 </table>
 </div>
 
-<p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
+<p>例外ポリシーで以下のようなグループを定義しておくことにより：</p>
 
 <pre>
 address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:0:0:1
@@ -433,7 +433,7 @@ address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff
 address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 </pre>
 
-<p>The following can then be defined in domain policy:</p>
+<p>ドメインポリシーでの記述を以下のように単純化することができます：</p>
 
 <pre>
 &lt;kernel&gt; /usr/sbin/httpd
@@ -441,7 +441,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "address_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>上記の変換処理は <code>ccs-editpolicy</code> を利用して行うことができますが、 <code>ccs-patternize</code> を利用して行うこともできます。上記のように address_group を例外ポリシーに追加し、以下の内容を /etc/ccs/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -459,17 +459,17 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 
 <h3><a name="6.5">6.5. 収集されたアクセス許可を確認する</a></h3>
 
-<p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.</p>
+<p>Apache に許可したい操作を一通り行ったと判断したら、ポリシーエディタを実行してプロファイル番号を 2 に変更します。</p>
 
-<p>Note that Apache may have executed some external programs (e.g. <code>/bin/sh</code>, <code>/usr/bin/perl</code>, <code>/usr/lib/sendmail</code>) and thus has some descendent domains. Be sure to change the profile number for all descendent domains as well.</p>
+<p>Apache は（例えば <code>/bin/sh</code> <code>/usr/bin/perl</code> <code>/usr/lib/sendmail</code> のような）外部のプログラムを実行したことにより、 Apache に子ドメインや孫ドメインが作成されているかもしれません。 Apache 本体のドメインだけでなくその子孫ドメインのプロファイル番号も変更するのを忘れないようにしてください。</p>
 
 <img src="media/editpolicy-httpd-profile2.png" alt="editpolicy-httpd-profile2.png" width="675" height="375">
 
-<p>Quit the policy editor and continue using Apache:</p>
+<p>q キーを押してポリシーエディタを終了してください。その後、 Apache に対して許可したい操作を再度行ってください：</p>
 
 <img src="media/operation-permissive.png" alt="operation-permissive.png" width="575" height="475">
 
-<p>You can check the <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
+<p><a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> からポリシー違反の発生回数と最後に発生した時刻について知ることができます：</p>
 
 <pre class="command">
 # cat /proc/ccs/stat
@@ -487,7 +487,7 @@ Total memory used:                        165728
 
 <h3><a name="6.6">6.6. アクセスログからポリシーを生成する（任意）</a></h3>
 
-<p>If audit logs have been configured at <a href="chapter-4.html.ja#4.6">4.6. アクセスログを保存する（任意）</a>, necessary permissions can be picked up from "/var/log/tomoyo/reject_002.log":</p>
+<p>もしアクセスログの設定を <a href="chapter-4.html.ja#4.6">4.6. アクセスログを保存する（任意）</a>で行っていた場合は、必要なアクセス許可を /var/log/tomoyo/reject_002.log から抽出することができます：</p>
 
 <pre class="command">
 # cat /var/log/tomoyo/reject_002.log
@@ -590,7 +590,7 @@ file read /etc/group
 file read /etc/group
 </pre>
 
-<p>These can be compressed with the "ccs-sortpolicy" command:</p>
+<p>これらのログは、 <code>ccs-sortpolicy</code> コマンドを使って圧縮することができます：</p>
 
 <pre class="command">
 # cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy
@@ -632,7 +632,7 @@ network unix stream connect /var/run/setrans/.setrans-unix
 use_group 0
 </pre>
 
-<p>These compressed logs can be saved into a temporary file. These can then be edited as required and appended to current policy using the <code>ccs-loadpolicy</code> command:</p>
+<p>圧縮されたログをテンポラリファイルとして保存し、必要に応じて加工してから、 <code>ccs-loadpolicy</code> コマンドを用いてドメインポリシーに追加することができます：</p>
 
 <pre class="command">
 # cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy &gt; ~/rejected.log
@@ -640,7 +640,7 @@ use_group 0
 # /usr/sbin/ccs-loadpolicy -d &lt; ~/rejected.log
 </pre>
 
-<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save "exception_policy.conf", "domain_poilicy.conf", "profile.conf" and "manager.conf" using this command:</p>
+<p>カーネル内のメモリに存在しているポリシーを直接編集しているため、ディスク上に保存せずにシャットダウンすると変更内容は失われてしまいます。以下のコマンドを実行して exception_policy.conf domain_poilicy.conf profile.conf manager.conf をディスク上に保存してください：</p>
 
 <pre class="command">
 # /usr/sbin/ccs-savepolicy
