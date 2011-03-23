@@ -42,7 +42,7 @@
 
 <p>A particular domain may require many different access permissions to many different resources. Since "Enforcing Mode" allows access to only resources explicitly defined, it is important to cover all necessary resources. To do this, permissions can be patterned. A patterned permission will allow multiple domain policy entries to be shortened into a single entry.</p>
 
-<p>As mentioned in the previous chapter, there is a limit on the number of entries domain policy can contain. This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see how to <a href="tool-editpolicy.html.en#redundant">Remove redundant entries</a>.</p>
+<p>This is particularly important for temporary files due to the variety of single-use pathnames involved. They can either be handled in the manner described below, or handled interactively using the policy editor. For details on handling permissions interactively, see how to <a href="tool-editpolicy.html.en#redundant">Remove redundant entries</a>.</p>
 
 <p>Use <code>ccs-findtemp</code> to find pathnames from domain policy that are potentially temporary files:</p>
 
@@ -382,7 +382,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "number_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "number_group" to the exception policy like above, and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -441,7 +441,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </pre>
 
-<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "address_group" to the exception policy like above (as ccs-patternize only deals with domain policy), and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
+<p>The above conversion using <code>ccs-editpolicy</code> can also be managed using <code>ccs-patternize</code>. Add "address_group" to the exception policy like above, and the following can then be added to "/etc/ccs/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -590,7 +590,7 @@ file read /etc/group
 file read /etc/group
 </pre>
 
-<p>These can be compressed with the "ccs-sortpolicy" command:</p>
+<p>These can be compressed with the "<code>ccs-sortpolicy</code>" command:</p>
 
 <pre class="command">
 # cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy
