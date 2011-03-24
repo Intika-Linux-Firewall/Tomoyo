@@ -48,36 +48,36 @@
 
 <h3><a name="8.2">8.2. Managing as non-root user</a></h3>
 
-<p>By default, only processes with UID=0 and EUID=0 are allowed to modify policy. In order to allow your normal non-root user to modify policy, run this command:</p>
+<p>By default, only processes with UID=0 and EUID=0 (a.k.a. root user) are allowed to modify policy. In order to allow $USER user to modify policy, run this command:</p>
 
 <pre class="command">
 # echo "manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R $USER:$USER /proc/ccs
+# chown -R $USER /proc/ccs/
 </pre>
 
 <p>This can be reversed by running this command:</p>
 
 <pre class="command">
 # echo "delete manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R root:root /proc/ccs
+# chown -R root /proc/ccs/
 </pre>
 
-<p>If you want to have a separate user that is able to modify policy, the file "/etc/ccs/ccs-post-init" can be used. If this file exists, it is executed by <code>/sbin/ccs-init</code> at boot. Create "/etc/ccs/ccs-post-init" with the following contents:</p>
+<p>If you want to have a separate user that is able to modify policy, the file "<code>/etc/ccs/ccs-post-init</code>" can be used. If this file exists, it is executed by <code>/sbin/ccs-init</code> at boot. To allow 'tomoyo' user to modify policy, create "<code>/etc/ccs/ccs-post-init</code>" with the following contents:</p>
 
 <pre>
 #! /bin/sh
 echo manage_by_non_root &gt; /proc/ccs/manager
-chown -R tomoyo:tomoyo /proc/ccs/
+chown -R tomoyo /proc/ccs/
 </pre>
 
-<p>Then run the following commands:</p>
+<p>Then, make this file executable and make policy directory readable/writable by 'tomoyo' user:</p>
 
 <pre class="command">
 # chmod 755 /etc/ccs/ccs-post-init
-# chown -R tomoyo:tomoyo /etc/ccs/
+# chown -R tomoyo /etc/ccs/
 </pre>
 
-<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="policy-specification/proc-interface.html.en#domain_policy">/proc/ccs/domain_policy</a> until <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> has been reached.</p>
+<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="policy-specification/self_domain.html.en#self_domain">the domain the process belongs to</a> until <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> has been reached.</p>
 
 </div><!-- documentation -->
 
@@ -102,7 +102,6 @@ chown -R tomoyo:tomoyo /proc/ccs/
 <p>Chapter 7: How do I enforce policy?</p>
 </td>
 <td class="docs-home">
-<a href="index.html.en">Main Index</a>
 </td>
 <td class="docs-next-description">
 <p>Chapter 9: Advanced profile management</p>

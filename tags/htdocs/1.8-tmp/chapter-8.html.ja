@@ -38,46 +38,46 @@
 
 <h2>Chapter 8: ポリシーを変更する権限</h2>
 
-<h3><a name="8.1">8.1. Register applications</a></h3>
+<h3><a name="8.1">8.1. プログラムを登録する</a></h3>
 
-<p>In order for a application or domain to modify policy in the <a href="policy-specification/proc-interface.html.ja">/proc/ccs/</a> interface, it must be listed in <a href="policy-specification/proc-interface.html.ja#manager">/proc/ccs/manager</a>. To register an application, you can for example run the following command:</p>
+<p><a href="policy-specification/proc-interface.html.ja">/proc/ccs/</a> インタフェースを経由してポリシーを変更することができるプログラムやドメインは、 <a href="policy-specification/proc-interface.html.ja#manager">/proc/ccs/manager</a> インタフェースに登録されている必要があります。以下の例では /usr/sbin/ccs-editpolicy を登録しています：</p>
 
 <pre class="command">
 # echo "/usr/sbin/ccs-editpolicy" | /usr/sbin/ccs-loadpolicy -m
 </pre>
 
-<h3><a name="8.2">8.2. Managing as non-root user</a></h3>
+<h3><a name="8.2">8.2. 非 root ユーザによる変更を認める</a></h3>
 
-<p>By default, only processes with UID=0 and EUID=0 are allowed to modify policy. In order to allow your normal non-root user to modify policy, run this command:</p>
+<p>デフォルトでは、ユーザＩＤと実効ユーザＩＤの両方が０（つまり root ユーザ）のプロセスだけがポリシーを変更することができます。$USER ユーザによるポリシーの変更を認めたい場合には、以下のコマンドを実行してください：</p>
 
 <pre class="command">
 # echo "manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R $USER:$USER /proc/ccs
+# chown -R $USER /proc/ccs/
 </pre>
 
-<p>This can be reversed by running this command:</p>
+<p>デフォルト状態に戻すには以下のコマンドを実行してください：</p>
 
 <pre class="command">
 # echo "delete manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R root:root /proc/ccs
+# chown -R root /proc/ccs/
 </pre>
 
-<p>If you want to have a separate user that is able to modify policy, the file "/etc/ccs/ccs-post-init" can be used. If this file exists, it is executed by <code>/sbin/ccs-init</code> at boot. Create "/etc/ccs/ccs-post-init" with the following contents:</p>
+<p>もし、特定のユーザに対してポリシーの変更を認めたい場合、 <code>/etc/ccs/ccs-post-init</code> を使うことができます。このファイルが存在する場合、起動時に <code>/sbin/ccs-init</code> から実行されます。 tomoyo ユーザによる変更を認めたい場合、以下の内容で <code>/etc/ccs/ccs-post-init</code> を作成してください：</p>
 
 <pre>
 #! /bin/sh
 echo manage_by_non_root &gt; /proc/ccs/manager
-chown -R tomoyo:tomoyo /proc/ccs/
+chown -R tomoyo /proc/ccs/
 </pre>
 
-<p>Then run the following commands:</p>
+<p>そして、このファイル実行可能にして、ポリシーディレクトリ以下を tomoyo ユーザが読み書きできるようにしてください：</p>
 
 <pre class="command">
 # chmod 755 /etc/ccs/ccs-post-init
-# chown -R tomoyo:tomoyo /etc/ccs/
+# chown -R tomoyo /etc/ccs/
 </pre>
 
-<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="policy-specification/proc-interface.html.ja#domain_policy">/proc/ccs/domain_policy</a> until <a href="chapter-9.html.ja#9.2.3">max_learning_entry</a> has been reached.</p>
+<p>例外として、学習モード用のプロファイルが割り当てられているドメインに属しているプロセスは、 <a href="chapter-9.html.ja#9.2.3">max_learning_entry</a> で指定されている数を上限として<a href="policy-specification/proc-interface.html.ja#self_domain">そのプロセスが属しているドメイン</a>に対してアクセス許可を追加していくことができます。</p>
 
 </div><!-- documentation -->
 
@@ -102,7 +102,6 @@ chown -R tomoyo:tomoyo /proc/ccs/
 <p>Chapter 7: ポリシーの適用はどのように行いますか？</p>
 </td>
 <td class="docs-home">
-<a href="index.html.ja">Main Index</a>
 </td>
 <td class="docs-next-description">
 <p>Chapter 9: より詳細なプロファイルの管理</p>
