@@ -513,7 +513,7 @@
 </table>
 </div>
 
-<p>For example, you could create a profile for only restricting file execution:</p>
+<p>例えば、プログラムの実行のみを制限するプロファイルは以下のように指定できます：</p>
 
 <pre>
 6-COMMENT=-----Enforcing file::execute only-----
@@ -521,7 +521,7 @@
 6-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
-<p>For performance, permission checks for getting attributes for files and directories could be disabled while still enabling other permission checks for files:</p>
+<p>パフォーマンス上の理由から、ファイルやディレクトリの属性を取得する操作だけを無効モードにしながら、その他のファイルに関する操作は強制モードにするというプロファイルを作成することもできます：</p>
 
 <pre>
 7-COMMENT=-----Enforcing file operations without getattr-----
@@ -530,29 +530,29 @@
 7-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
 </pre>
 
-<p>Note that the settings for "CONFIG::file::getattr" overwrite the settings for "CONFIG::file", which in turn overwrite the settings for "CONFIG" (which in this case has not been set and so is equivalent to "mode=disabled"). This allows fine-grained control over which operations you wish to restrict.</p>
+<p>CONFIG::file::getattr 行は CONFIG::file 行の設定を上書きすることに注目してください。また、 CONFIG::file 行は CONFIG 行の設定（指定されていないので mode=disabled として解釈されます）を上書きすることに注目してください。このように指定することで、アクセスを制限したい操作だけを制限する詳細なプロファイルを定義することができます。</p>
 
 <h4><a name="9.2.3">9.2.3. PREFERENCE 行</a></h4>
 
-<p>The PREFERENCE line holds the following options:</p>
+<p>PREFERENCE 行では以下のオプションを指定できます：</p>
 
 <div class="simple-table-wrap">
 <table>
 <tr>
-<th><p>Name</p></th>
-<th><p>Function</p></th>
+<th><p>名前</p></th>
+<th><p>内容</p></th>
 </tr>
 <tr>
 <td><p>max_audit_log</p></td>
-<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> interface.</p></td>
+<td><p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>max_learning_entry</p></td>
-<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to "0" if you do not wawnt to make use of the "Learning Mode". Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> interface.</p></td>
+<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>enforcing_penalty</p></td>
-<td><p>Set the sleep penalty in deciseconds (1 decisecond = 0.1 seconds) that occurs when a process violates policy in "Enforcing Mode". This value must be an integer. This is useful to prevent CPU consumption issues.</p></td>
+<td><p>強制モードでポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。 0 以上の整数値を指定できます。ＣＰＵ時間を浪費してしまうのを避けるのに有効です。</p></td>
 </tr>
 </table>
 </div>
