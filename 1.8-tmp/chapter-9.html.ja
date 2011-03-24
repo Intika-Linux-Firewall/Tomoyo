@@ -38,81 +38,81 @@
 
 <h2>Chapter 9: より詳細なプロファイルの管理</h2>
 
-<h3><a name="9.1">9.1. Profile initialization</a></h3>
+<h3><a name="9.1">9.1. プロファイルの初期化</a></h3>
 
-<p>The initialization procedure performed using <code>/usr/lib/ccs/init_policy</code> can be modified using command-line options to make development of policy easier depending on what functionality you wish to restrict. For those wishing to restrict only file-related operations, the "--file-only-profile" option exists. The way in which policy is initialized does not restrict how policy can be developed, as the options merely change the default files within "/etc/ccs/" that are created. These files can be modified using the policy editor at any later date to fit your needs. The following table summarizes the command-line options available:</p>
+<p><code>/usr/lib/ccs/init_policy</code> により実行される初期設定は、アクセスを制限したい内容だけを有効にすることでポリシーの作成を容易にするために、コマンドラインオプションを指定することでカスタマイズすることができます。例えば、ファイルに関するアクセス制御だけを有効にしたい場合には --file-only-profile オプションを指定できます。コマンドラインオプションで指定した内容はポリシーディレクトリに作成されるファイルの内容を変化させるだけであり、ポリシーの作成方法を制約するものではありません。これらのファイルはポリシーエディタを用いて後からあなたの要望に沿うように修正することができます。以下に、指定可能なコマンドラインオプションの一覧を示します：</p>
 
 <div class="simple-table-wrap">
 <table>
 <tr>
-<th><p>Option</p></th>
-<th><p>Default</p></th>
-<th><p>Meaning</p></th>
+<th><p>オプション</p></th>
+<th><p>デフォルト</p></th>
+<th><p>内容</p></th>
 </tr>
 <tr>
 <td><p>--full-profile</p></td>
-<td><p>Selected</p></td>
-<td><p>Create profiles with all functionality enabled. This is the default unless "--file-only-profile" is specified.</p></td>
+<td><p>指定済</p></td>
+<td><p>全ての機能を有効にするプロファイルを作成します。 --file-only-profile オプションが指定されない限り、このオプションが指定されたものとして扱われます。</p></td>
 </tr>
 <tr>
 <td><p>--file-only-profile</p></td>
-<td><p>Not selected</p></td>
-<td><p>Create profiles with only file-related functionality enabled.</p></td>
+<td><p>未指定</p></td>
+<td><p>ファイルに関するアクセス制御機能のみを有効にするプロファイルを作成します。</p></td>
 </tr>
 <tr>
 <td><p>--use_profile="$number"</p></td>
 <td><p>0</p></td>
-<td><p>Set the profile number for the "&lt;kernel&gt;" domain when creating "/etc/ccs/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
+<td><p>/etc/ccs/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるプロファイルの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
 </tr>
 <tr>
 <td><p>--use_group="$number"</p></td>
 <td><p>0</p></td>
-<td><p>Set the ACL group for the "&lt;kernel&gt;" domain when creating "/etc/ccs/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
+<td><p>/etc/ccs/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるアクセス許可グループの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
 </tr>
 <tr>
 <td><p>--root="$rootdir"</p></td>
 <td><p>/</p></td>
-<td><p>Change the root directory in which to create configuration files.</p></td>
+<td><p>ポリシーファイル用ディレクトリを生成するときのルートディレクトリを指定します。</p></td>
 </tr>
 <tr>
 <td><p>--policy_dir="$configdir"</p></td>
 <td><p>/etc/ccs/</p></td>
-<td><p>Change the directory in which to create configuration files. If you specify this option then a symbolic link must be created named "/etc/ccs/" that points to "$condigdir".</p></td>
+<td><p>ポリシーファイル用ディレクトリを指定します。もし、このオプションを指定した場合、 $configdir へのシンボリックリンクを /etc/ccs という名前で作成する必要があります。</p></td>
 </tr>
 <tr>
 <td><p>--module_name="$name"</p></td>
 <td><p>ccsecurity</p></td>
-<td><p>Set the name of loadable kernel module when creating "/etc/ccs/ccs-load-module", which is called by "/sbin/ccs-init" if TOMOYO Linux was built as a loadable kernel module (CONFIG_CCSECURITY_LKM=y).</p></td>
+<td><p>TOMOYO Linux がローダブルカーネルモジュールとしてコンパイルされた場合（ CONFIG_CCSECURITY_LKM=y ）に /sbin/ccs-init から実行される /etc/ccs/ccs-load-module を作成時に指定するモジュールの名前を指定します。</p></td>
 </tr>
 <tr>
 <td><p>--grant_log="$bool"</p></td>
 <td><p>no</p></td>
-<td><p>Set whether grant logs should be audited. This value can be either "yes" or "no".</p></td>
+<td><p>アクセス許可ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
 </tr>
 <tr>
 <td><p>--reject_log="$bool"</p></td>
 <td><p>yes</p></td>
-<td><p>Set whether reject logs should be audited. This value can be either "yes" or "no".</p></td>
+<td><p>アクセス拒否ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
 </tr>
 <tr>
 <td><p>--max_audit_log="$number"</p></td>
 <td><p>1024</p></td>
-<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the "/proc/ccs/stat" interface.</p></td>
+<td><p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>--max_learning_entry="$number"</p></td>
 <td><p>2048</p></td>
-<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to "0" if you do not wawnt to make use of the "Learning Mode". Maximum memory used can also be controlled using the "/proc/ccs/stat" interface.</p></td>
+<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>--enforcing_penalty="$number"</p></td>
 <td><p>0</p></td>
-<td><p>Set the sleep penalty in deciseconds (1 decisecond = 0.1 seconds) that occurs when a process violates policy in "Enforcing Mode". This value must be an integer. This is useful to prevent CPU consumption issues.</p></td>
+<td><p>強制モードでポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。 0 以上の整数値を指定できます。ＣＰＵ時間を浪費してしまうのを避けるのに有効です。</p></td>
 </tr>
 </table>
 </div>
 
-<p>If you executed <code>/usr/lib/ccs/init_policy</code> without the "--file-only-profile" option, the CONFIG lines in "/etc/ccs/profile.conf" will look like this:</p>
+<p>もし --file-only-profile オプションを指定せずに <code>/usr/lib/ccs/init_policy</code> を実行した場合、 /etc/ccs/profile.conf の CONFIG 行は以下のようになります：</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -129,7 +129,7 @@
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
-<p>If you executed <code>/usr/lib/ccs/init_policy --file-only-profile</code>, the CONFIG lines in "/etc/ccs/profile.conf" will look like this:</p>
+<p>もし <code>/usr/lib/ccs/init_policy --file-only-profile</code> のように実行した場合、 /etc/ccs/profile.conf の CONFIG 行は以下のようになります：</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -146,125 +146,125 @@
 3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
-<h3><a name="9.2">9.2. Profile syntax</a></h3>
+<h3><a name="9.2">9.2. プロファイルの構文</a></h3>
 
-<h4><a name="9.2.1">9.2.1. Fields</a></h4>
+<h4><a name="9.2.1">9.2.1. 書式</a></h4>
 
-<p>Each profile contains 3 fields:</p>
+<p>各プロファイルには３種類の行が存在します：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Name</p></th>
-<th><p>Control</p></th>
+<th><p>名前</p></th>
+<th><p>内容</p></th>
 </tr>
 <tr>
 <td><p>COMMENT</p></td>
-<td><p>Description of the profile.</p></td>
+<td><p>プロファイルの内容を説明するための１行コメント。</p></td>
 </tr>
 <tr>
 <td><p>CONFIG</p></td>
-<td><p>Configuration of operation mode.</p></td>
+<td><p>アクセス制御モードの設定。</p></td>
 </tr>
 <tr>
 <td><p>PREFERENCE</p></td>
-<td><p>Configuration of various options.</p></td>
+<td><p>様々なオプションの設定。</p></td>
 </tr>
 </table>
 </div>
 
-<h4><a name="9.2.2">9.2.2. The CONFIG field</a></h4>
+<h4><a name="9.2.2">9.2.2. CONFIG 行</a></h4>
 
-<p>The following options are available in the CONFIG field:</p>
+<p>CONFIG 行では以下のオプションを指定できます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Option</p></th>
-<th><p>Default</p></th>
-<th><p>Meaning</p></th>
+<th><p>オプション</p></th>
+<th><p>デフォルト</p></th>
+<th><p>内容</p></th>
 </tr>
 <tr>
 <td><p>grant_log="$bool"</p></td>
 <td><p>no</p></td>
-<td><p>Set whether grant logs should be audited. This value can be either "yes" or "no".</p></td>
+<td><p>アクセス許可ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
 </tr>
 <tr>
 <td><p>reject_log="$bool"</p></td>
 <td><p>yes</p></td>
-<td><p>Set whether reject logs should be audited. This value can be either "yes" or "no".</p></td>
+<td><p>アクセス拒否ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
 </tr>
 <tr>
 <td><p>mode</p></td>
 <td><p>disabled</p></td>
-<td><p>Set what mode to use. See the table below.</p></td>
+<td><p>アクセス制御モードを指定します。以下の表を参照してください。</p></td>
 </tr>
 </table>
 </div>
 
-<p>The "mode" parameter of the CONFIG line can contain one of the following values:</p>
+<p>CONFIG 行の mode パラメータは以下の値を指定できます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Value</p></th>
-<th><p>Meaning</p></th>
+<th><p>値</p></th>
+<th><p>意味</p></th>
 </tr>
 <tr>
 <td><p>disabled</p></td>
-<td><p>Works as if a regular kernel.</p></td>
+<td><p>無効。通常のカーネルと同様に動作する。</p></td>
 </tr>
 <tr>
 <td><p>learning</p></td>
-<td><p>Do not reject an access request if the request violates policy. Append the request to policy.</p></td>
+<td><p>学習モード。アクセス要求がポリシーに違反しても拒否しない。アクセス要求をポリシーへ追加する。</p></td>
 </tr>
 <tr>
 <td><p>permissive</p></td>
-<td><p>Do not reject an access request if the request violates policy. Do not append the request to policy.</p></td>
+<td><p>確認モード。アクセス要求がポリシーに違反しても拒否しない。アクセス要求をポリシーへ追加しない。</p></td>
 </tr>
 <tr>
 <td><p>enforcing</p></td>
-<td><p>Reject an access request if the request violates policy. Do not append the request to policy.</p></td>
+<td><p>強制モード。アクセス要求がポリシーに違反したら拒否する。アクセス要求をポリシーへ追加しない。</p></td>
 </tr>
 </table>
 </div>
 
-<p>By default, the CONFIG line specifies the default operation mode for all categories and functionalities. The absence of the CONFIG line is equivalent to "mode=disabled". The default configuration can be overwritten by using one or more CONFIG lines per profile and using category-specific configuration:</p>
+<p>デフォルトでは CONFIG 行に全てのカテゴリの全ての機能についてのアクセス制御モードの設定が行われます。 CONFIG 行が指定されていない場合、 mode=disabled が指定されたものとして解釈されます。ただし、カテゴリを指定した CONFIG 行を指定することにより、デフォルトの設定を上書きすることができます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Name</p></th>
-<th><p>Category to specify operation mode for</p></th>
+<th><p>名前</p></th>
+<th><p>アクセス制御モードが設定される範囲</p></th>
 </tr>
 <tr>
 <td><p>CONFIG</p></td>
-<td><p>All operations</p></td>
+<td><p>全ての機能</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability</p></td>
-<td><p>POSIX Capabilities only</p></td>
+<td><p>非 POSIX ケイパビリティのみ</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file</p></td>
-<td><p>File related operations only</p></td>
+<td><p>ファイルに関する操作のみ</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::ipc</p></td>
-<td><p>File related inter-process communications only</p></td>
+<td><p>プロセス間通信に関する操作のみ</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::misc</p></td>
-<td><p>Other miscellaneous parameters only</p></td>
+<td><p>その他の操作のみ</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network</p></td>
-<td><p>Network related operations only</p></td>
+<td><p>ネットワークに関する操作のみ</p></td>
 </tr>
 </table>
 </div>
 
-<p>For example, only file and network operations could be restricted by adding a fourth profile:</p>
+<p>例えば、ファイルとネットワークに関する操作のみを制限するプロファイルをプロファイル番号 4 として作成する場合、以下のように指定します：</p>
 
 <pre>
 4-COMMENT=-----Enforcing file and network-----
@@ -273,7 +273,7 @@
 4-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
-<p>It is also possible to mix different restriction modes within a single profile, such as enforcing network operations but staying in "Learning Mode" for file-related operations:</p>
+<p>また、１つのプロファイルの中で複数のアクセス制御モードを組み合わせることも可能です。例えば、ネットワークに関する操作には強制モードを適用しつつ、ファイルに関する操作には学習モードを適用するということができます：</p>
 
 <pre>
 5-COMMENT=-----Learning file and Enforcing network-----
@@ -282,237 +282,233 @@
 5-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
-<p>Category-specific configuration can be further overwritten by functionality-specific configuration:</p>
+<p>カテゴリ単位の設定は、機能単位の設定により上書きすることができます：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Name</p></th>
-<th><p>Functionality to specify operation mode for</p></th>
+<th><p>名前</p></th>
+<th><p>アクセス制御モードが設定される範囲</p></th>
 </tr>
 <tr>
 <td><p>CONFIG::capability::use_kernel_module</p></td>
-<td><p>Use of the create_module(2), init_module(2) and delete_module(2) syscalls</p></td>
+<td><p>create_module(2) init_module(2) delete_module(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::use_packet</p></td>
-<td><p>Use of PACKET sockets</p></td>
+<td><p>PACKET ソケットの使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::use_route</p></td>
-<td><p>Use of ROUTE sockets</p></td>
+<td><p>ROUTE ソケットの使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::SYS_KEXEC_LOAD</p></td>
-<td><p>Use of kexec_load(2) syscall</p></td>
+<td><p>kexec_load(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::SYS_NICE</p></td>
-<td><p>Use of nice(2) and setpriority(2) syscalls</p></td>
+<td><p>nice(2) setpriority(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::SYS_PTRACE</p></td>
-<td><p>Use of ptrace(2) syscall</p></td>
+<td><p>ptrace(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::SYS_REBOOT</p></td>
-<td><p>Use of reboot(2) syscall</p></td>
+<td><p>reboot(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::SYS_SETHOSTNAME</p></td>
-<td><p>Use of sethostname(2) and setdomainname(2) syscalls</p></td>
+<td><p>sethostname(2) setdomainname(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::SYS_TIME</p></td>
-<td><p>Use of stime(2), settimeofday(2) and adjtimex(2) syscalls</p></td>
+<td><p>stime(2) settimeofday(2) adjtimex(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::capability::SYS_VHANGUP</p></td>
-<td><p>Use of vhangup(2) syscall</p></td>
+<td><p>vhangup(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::execute</p></td>
-<td><p>Program execution and domain transition</p></td>
+<td><p>プログラムの実行およびドメイン遷移</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::open</p></td>
-<td><p>Opening files for reading or writing</p></td>
+<td><p>読み込みまたは書き込みモードでのファイルのオープン</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::create</p></td>
-<td><p>File creation</p></td>
+<td><p>ファイルの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::unlink</p></td>
-<td><p>File deletion</p></td>
+<td><p>ファイルの削除</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::mkdir</p></td>
-<td><p>Directory creation.</p></td>
+<td><p>ディレクトリの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::rmdir</p></td>
-<td><p>Directory deletion.</p></td>
+<td><p>ディレクトリの削除</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::mkfifo</p></td>
-<td><p>FIFO creation</p></td>
+<td><p>名前付きパイプの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::mksock</p></td>
-<td><p>UNIX domain socket creation</p></td>
+<td><p>ＵＮＩＸドメインソケットの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::truncate</p></td>
-<td><p>File truncation</p></td>
+<td><p>ファイルの切り詰め</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::symlink</p></td>
-<td><p>Symlink creation.</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::rewrite</p></td>
-<td><p>File overwriting</p></td>
+<td><p>シンボリックリンクの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::mkblock</p></td>
-<td><p>Block device file creation</p></td>
+<td><p>ブロック型デバイスファイルの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::mkchar</p></td>
-<td><p>Character device file creation</p></td>
+<td><p>キャラクタ型デバイスファイルの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::link</p></td>
-<td><p>Link creation</p></td>
+<td><p>ハードリンクの作成</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::rename</p></td>
-<td><p>File or directory renaming</p></td>
+<td><p>ファイルやディレクトリの名前の変更</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::chmod</p></td>
-<td><p>File or directory chmod</p></td>
+<td><p>ファイルやディレクトリのモードの変更</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::chown</p></td>
-<td><p>File or directory chown</p></td>
+<td><p>ファイルやディレクトリの所有者の変更</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::chgrp</p></td>
-<td><p>File or directory chgrp</p></td>
+<td><p>ファイルやディレクトリのグループの変更</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::ioctl</p></td>
-<td><p>Use of the ioctl system calls</p></td>
+<td><p>IOCTL の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::chroot</p></td>
-<td><p>Use of chroot</p></td>
+<td><p>ルートディレクトリの変更</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::mount</p></td>
-<td><p>Use of mount</p></td>
+<td><p>マウント</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::unmount</p></td>
-<td><p>Use of umount</p></td>
+<td><p>アンマウント</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::pivot_root</p></td>
-<td><p>Use of pivot_root</p></td>
+<td><p>ルートディレクトリの交換</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_dgram_bind</p></td>
-<td><p>UDP socket local address restriction</p></td>
+<td><p>UDP ソケットが使用するローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_dgram_send</p></td>
-<td><p>UDP socket remote address restriction for outgoing packets</p></td>
+<td><p>UDP ソケットが送信時に使用するリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_dgram_recv</p></td>
-<td><p>UDP socket remote address restriction for incoming packets</p></td>
+<td><p>UDP ソケットが受信時に使用するリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_stream_bind</p></td>
-<td><p>TCP socket bind() operation</p></td>
+<td><p>TCP ソケットの bind() 操作</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_stream_listen</p></td>
-<td><p>TCP socket listen() operation</p></td>
+<td><p>TCP ソケットの listen() 操作</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_stream_connect</p></td>
-<td><p>TCP socket connect() operation</p></td>
+<td><p>TCP ソケットの connect() 操作</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_stream_accept</p></td>
-<td><p>TCP socket's accept() operation</p></td>
+<td><p>TCP ソケットの accept() 操作</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_raw_bind</p></td>
-<td><p>RAW socket local address restriction</p></td>
+<td><p>RAW ソケットが使用するローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_raw_send</p></td>
-<td><p>RAW socket remote address restriction for outgoing packets</p></td>
+<td><p>RAW ソケットが送信時に使用するリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::inet_raw_recv</p></td>
-<td><p>RAW socket remote address restriction for incoming packets</p></td>
+<td><p>RAW ソケットが受信時に使用するリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_dgram_bind</p></td>
-<td><p>UNIX domain datagram socket local address restriction</p></td>
+<td><p>同一ホスト内でのデータグラムソケットが使用するローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_dgram_send</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for outgoing packets</p></td>
+<td><p>同一ホスト内でのデータグラムソケットが送信してよいリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_dgram_recv</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for incoming packets</p></td>
+<td><p>同一ホスト内でのデータグラムソケットが受信してよいリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_stream_bind</p></td>
-<td><p>UNIX domain stream socket bind() operation</p></td>
+<td><p>同一ホスト内でのストリームソケットが使用するローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_stream_listen</p></td>
-<td><p>UNIX domain stream socket listen() operation</p></td>
+<td><p>同一ホスト内でのストリームソケットが待ち受けするローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_stream_connect</p></td>
-<td><p>UNIX domain stream socket connect() operation</p></td>
+<td><p>同一ホスト内でのストリームソケットが接続するリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_stream_accept</p></td>
-<td><p>UNIX domain stream socket accept() operation</p></td>
+<td><p>同一ホスト内でのストリームソケットが受け付けるリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_seqpacket_bind</p></td>
-<td><p>UNIX domain seqpacket socket bind() operation</p></td>
+<td><p>同一ホスト内での SEQPACKET ソケットが使用するローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_seqpacket_listen</p></td>
-<td><p>UNIX domain seqpacket socket listen() operation</p></td>
+<td><p>同一ホスト内での SEQPACKET ソケットが待ち受けするローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_seqpacket_connect</p></td>
-<td><p>UNIX domain seqpacket socket connect() operation</p></td>
+<td><p>同一ホスト内での SEQPACKET ソケットが接続するリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_seqpacket_accept</p></td>
-<td><p>UNIX domain seqpacket socket accept() operation</p></td>
+<td><p>同一ホスト内での SEQPACKET ソケットが受け付けるリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::misc::env</p></td>
-<td><p>Environment variable names</p></td>
+<td><p>プログラム実行時の環境変数名</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::ipc::signal</p></td>
-<td><p>Use of signal transmission requests</p></td>
+<td><p>シグナルの送信</p></td>
 </tr>
 </table>
 </div>
@@ -536,7 +532,7 @@
 
 <p>Note that the settings for "CONFIG::file::getattr" overwrite the settings for "CONFIG::file", which in turn overwrite the settings for "CONFIG" (which in this case has not been set and so is equivalent to "mode=disabled"). This allows fine-grained control over which operations you wish to restrict.</p>
 
-<h4><a name="9.2.3">9.2.3. The PREFERENCE field</a></h4>
+<h4><a name="9.2.3">9.2.3. PREFERENCE 行</a></h4>
 
 <p>The PREFERENCE line holds the following options:</p>
 

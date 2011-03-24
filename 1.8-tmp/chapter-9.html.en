@@ -40,7 +40,7 @@
 
 <h3><a name="9.1">9.1. Profile initialization</a></h3>
 
-<p>The initialization procedure performed using <code>/usr/lib/ccs/init_policy</code> can be modified using command-line options to make development of policy easier depending on what functionality you wish to restrict. For those wishing to restrict only file-related operations, the "--file-only-profile" option exists. The way in which policy is initialized does not restrict how policy can be developed, as the options merely change the default files within "/etc/ccs/" that are created. These files can be modified using the policy editor at any later date to fit your needs. The following table summarizes the command-line options available:</p>
+<p>The initialization procedure performed using <code>/usr/lib/ccs/init_policy</code> can be modified using command-line options to make development of policy easier depending on what functionality you wish to restrict. For example, for those wishing to restrict only file-related operations can pass the "--file-only-profile" option. The options you pass upon initialization do not constrain how policy can be developed, as the options merely change the default values for files created within the policy directory. These files can be modified using the policy editor at any later date to fit your needs. The following table summarizes the command-line options available:</p>
 
 <div class="simple-table-wrap">
 <table>
@@ -77,7 +77,7 @@
 <tr>
 <td><p>--policy_dir="$configdir"</p></td>
 <td><p>/etc/ccs/</p></td>
-<td><p>Change the directory in which to create configuration files. If you specify this option then a symbolic link must be created named "/etc/ccs/" that points to "$condigdir".</p></td>
+<td><p>Change the directory in which to create configuration files. If you specify this option then a symbolic link must be created named "/etc/ccs" that points to "$condigdir".</p></td>
 </tr>
 <tr>
 <td><p>--module_name="$name"</p></td>
@@ -97,12 +97,12 @@
 <tr>
 <td><p>--max_audit_log="$number"</p></td>
 <td><p>1024</p></td>
-<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the "/proc/ccs/stat" interface.</p></td>
+<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
 </tr>
 <tr>
 <td><p>--max_learning_entry="$number"</p></td>
 <td><p>2048</p></td>
-<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to "0" if you do not wawnt to make use of the "Learning Mode". Maximum memory used can also be controlled using the "/proc/ccs/stat" interface.</p></td>
+<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
 </tr>
 <tr>
 <td><p>--enforcing_penalty="$number"</p></td>
@@ -243,7 +243,7 @@
 </tr>
 <tr>
 <td><p>CONFIG::capability</p></td>
-<td><p>POSIX Capabilities only</p></td>
+<td><p>Non-POSIX Capabilities only</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file</p></td>
@@ -251,7 +251,7 @@
 </tr>
 <tr>
 <td><p>CONFIG::ipc</p></td>
-<td><p>File related inter-process communications only</p></td>
+<td><p>Inter-process communications only</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::misc</p></td>
@@ -369,10 +369,6 @@
 <tr>
 <td><p>CONFIG::file::symlink</p></td>
 <td><p>Symlink creation.</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::file::rewrite</p></td>
-<td><p>File overwriting</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::mkblock</p></td>
