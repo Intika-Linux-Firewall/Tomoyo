@@ -97,7 +97,7 @@ file execute /bin/cat
 file read /bin/cat
 </pre>
 
-<p>The first log reports that execution of <code>/bin/cat</code> was requested by <code>/bin/sh</code>, which was invoked by <code>/usr/sbin/httpd</code>. The command line argument was <code>cat /etc/passwd</code>. As its first line has "mode=enforcing" and "granted=no", this request was rejected.</p>
+<p>The first log reports that execution of <code>/bin/cat</code> was requested by <code>/bin/sh</code>, which was invoked by <code>/usr/sbin/httpd</code>. The command line argument at position 0, also referred to as argv[0], was "cat". The command line argument at position 1, also referred to as argv[1], was "/etc/passwd". As its first line has "mode=enforcing" and "granted=no", this request was rejected.</p>
 
 <p>The second log reports that opening <code>/bin/cat</code> for reading requested by <code>/bin/sh</code> which was invoked by <code>/usr/sbin/httpd</code>. This was rejected because <code>/bin/sh</code> tried to open the requested program for reading when that program was not executed.</p>
 
@@ -286,7 +286,7 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 
 <h3><a name="7.4">7.4. Notification daemon</a></h3>
 
-<p><code>ccs-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "<code>/usr/sbin/ccs-notifyd</code>" from "<code>/etc/rc.local</code>".</p>
+<p><code>ccs-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
 
 <p>Configuration is specified in the "/etc/ccs/tools/notifyd.conf" file, as shown below:</p>
 

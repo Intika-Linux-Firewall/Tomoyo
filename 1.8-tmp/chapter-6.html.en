@@ -242,8 +242,7 @@ delete file ioctl pipefs:/[11965] 0x5413
 <p>To convert only specific domains, the <code>ccs-selectpolicy</code> command can be used. For example, to update only "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains, do the following:</p>
 
 <pre class="command">
-# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' \
-      &lt; /proc/ccs/domain_policy &gt; /tmp/old-httpd
+# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' &lt; /proc/ccs/domain_policy &gt; /tmp/old-httpd
 # ccs-patternize &lt; /tmp/old-httpd &gt; /tmp/new-httpd
 # ccs-diffpolicy /tmp/old-httpd /tmp/new-httpd | ccs-loadpolicy -d
 </pre>
@@ -640,7 +639,7 @@ use_group 0
 # /usr/sbin/ccs-loadpolicy -d &lt; ~/rejected.log
 </pre>
 
-<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save "exception_policy.conf", "domain_poilicy.conf", "profile.conf" and "manager.conf" using this command:</p>
+<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save "exception_policy.conf", "domain_policy.conf", "profile.conf" and "manager.conf" using this command:</p>
 
 <pre class="command">
 # /usr/sbin/ccs-savepolicy
