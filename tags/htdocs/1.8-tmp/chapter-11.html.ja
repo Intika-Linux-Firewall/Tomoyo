@@ -98,7 +98,7 @@ acl_group 0 file getattr @ANY_PATHNAME
 
 <h3><a name="11.2">11.2. アクセス許可の分割</a></h3>
 
-<p>Each acl_group entry can be attributed to a different group, and thus will apply to different domains. This provides a way to split access restrictions and simplify domain policy. For example, you could put the following in exception policy:</p>
+<p>個々の acl_group 行は、グループ番号によってグループ化されます。グループ番号を用いることで、アクセス許可が与えられるドメインの範囲を制御することができます。グループ番号を用いることで、共通するアクセス許可をグループ化することができ、ドメインポリシーを単純化することができます。例えば、例外ポリシーで以下のようなグループを定義することができます：</p>
 
 <pre>
 acl_group 0 file read /etc/passwd
@@ -114,15 +114,15 @@ acl_group 2 file read /usr/lib/xulrunner-1.9.2/libxpcom.so
 acl_group 2 file read /usr/lib/xulrunner-1.9.2/libxul.so
 </pre>
 
-<p>The <a href="policy-specification/domain-policy-syntax.html.ja#use_group">use_group</a> keyword can then be added to domains. Consider a domain with the following entry:</p>
+<p><a href="policy-specification/domain-policy-syntax.html.ja#use_group">use_group</a> ディレクティブはドメインポリシーの中で使用します。以下のエントリがあるドメインを考えます：</p>
 
 <pre>
 use_group 2
 </pre>
 
-<p>This domain would inherit the ability to read the xulrunner shared objects specified by the "acl_group 2" directive. The <a href="policy-specification/domain-policy-syntax.html.ja#use_group">use_group</a> directive can be used for as many domains as you want and each domain will inherit the entries specified in exception policy that match the group number.</p>
+<p>このドメインは、 xulrunner パッケージの共有ライブラリファイルを参照することができます。 <a href="policy-specification/domain-policy-syntax.html.ja#use_group">use_group</a> ディレクティブは全てのドメインに１個ずつ存在しており、それぞれのドメインはグループ番号で参照されるアクセス許可を利用することができます。</p>
 
-<p>If you wish to restrict certain domains from reading directory entries, you can either remove this ability from "acl_group 0" or create another "acl_group" that does not have this ability. Note that if you remove this ability from "acl_group 0", you may need to add this entry individually to each "use_group 0" domain that needs to read directories.</p>
+<p>特定のドメインに対して、ディレクトリの参照を許可したくない場合には、 acl_group 0 からそのアクセス許可を削除するか、あるいはそのアクセス許可を含まない別の acl_group を定義するようにします。なお、 acl_group 0 から削除した場合、 use_domain 0 が指定されているドメインの内、ディレクトリの参照を許可する必要がある全てのドメインに対してそのアクセス許可を追加していく必要が生じますのでちゅういしてください。</p>
 
 </div><!-- documentation -->
 
