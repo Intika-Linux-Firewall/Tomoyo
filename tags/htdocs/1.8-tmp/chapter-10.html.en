@@ -38,6 +38,14 @@
 
 <h2>Chapter 10: Using conditional parameters in policy</h2>
 
+<p>A permission line takes syntax shown below:</p>
+
+<pre>
+Category Operations Targets Conditions
+</pre>
+
+<p>The "Category Operations Targets" arguments are "Mandatory (non-omissible) parameters" and the "Conditions" argument is "Optional (omissible) parameters". This chapter describes "Optional (omissible) parameters".</p>
+
 <h3><a name="10.1">10.1. Conditional parameters</a></h3>
 
 <p>Conditions can be used to refine policy and make entries more specific. This is useful for taking into account the user ID of a process when deciding what to allow or reject. This table summarizes the possible conditional parameters:</p>
@@ -258,7 +266,7 @@ file create /tmp/file 0644 path1.parent.uid=0
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Test</p></th>
+<th><p>Operator</p></th>
 <th><p>Meaning</p></th>
 <th><p>Example</p></th>
 </tr>
@@ -277,7 +285,7 @@ file create /tmp/file 0644 path1.parent.uid=0
 
 <h3><a name="10.3">10.3. Values</a></h3>
 
-<p>The value to be tested may take the form of a single integer, a range of integers, or another conditional (the exceptions are "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" which take string values, and "task.type" which always takes execute_handler):</p>
+<p>The value to be compared with one variable may take the form of a single integer, a range of integers, or another variable:</p>
 
 <div class="simple-table">
 <table>
@@ -287,22 +295,24 @@ file create /tmp/file 0644 path1.parent.uid=0
 </tr>
 <tr>
 <td><p>Integer</p></td>
-<td><p>task.uid=0</p></td>
+<td><p>task.uid=0<br>task.uid!=0</p></td>
 </tr>
 <tr>
 <td><p>Range</p></td>
-<td><p>task.uid=100-500</p></td>
+<td><p>task.uid=100-500<br>task.uid=100-500</p></td>
 </tr>
 <tr>
 <td><p>Conditional</p></td>
-<td><p>task.uid=path1.uid</p></td>
+<td><p>task.uid=path1.uid<br>task.uid!=path1.uid</p></td>
 </tr>
 </table>
 </div>
 
+<p>There are two exceptions. the "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" variables can be compared with only string values. The "task.type" variable can be compared with only execute_handler .</p>
+
 <h3><a name="10.4">10.4. Types of task</a></h3>
 
-<p>The following types of task are available, which can also be <a href="#10.2">negatively matched</a>:</p>
+<p>The following types of task are available:</p>
 
 <div class="simple-table">
 <table>
@@ -314,12 +324,16 @@ file create /tmp/file 0644 path1.parent.uid=0
 <td><p>task.type=execute_handler</p></td>
 <td><p>The current process is a program specified by either <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> or <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives.</p></td>
 </tr>
+<tr>
+<td><p>task.type!=execute_handler</p></td>
+<td><p>The current process is a program specified by neither <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> nor <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives.</p></td>
+</tr>
 </table>
 </div>
 
 <h3><a name="10.5">10.5. Types of file</a></h3>
 
-<p>The following types of file are available, which can be used for either path1 or path2, and can also be <a href="#10.2">negatively matched</a>:</p>
+<p>The following types of file are available:</p>
 
 <div class="simple-table">
 <table>
@@ -355,12 +369,42 @@ file create /tmp/file 0644 path1.parent.uid=0
 <td><p>path1.type=symlink</p></td>
 <td><p>path1 is a symbolic link</p></td>
 </tr>
+<tr>
+<td><p>path1.type!=block</p></td>
+<td><p>path1 is not a block device file</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=char</p></td>
+<td><p>path1 is not a character device file</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=directory</p></td>
+<td><p>path1 is not a directory</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=fifo</p></td>
+<td><p>path1 is not a FIFO</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=file</p></td>
+<td><p>path1 is not a regular file</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=socket</p></td>
+<td><p>path1 is not a socket</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=symlink</p></td>
+<td><p>path1 is not a symbolic link</p></td>
+</tr>
 </table>
 </div>
 
+<p>You can apply for "path2" as well as "path1". But you cannot apply "path1.parent" and "path2.parent" because they are by definition always directories.</p>
+
 <h3><a name="10.6">10.6. Types of permission</a></h3>
 
-<p>The following types of permission are available, which can be used for either path1 or path2, and can also be <a href="#10.2">negatively matched</a>:</p>
+<p>The following types of DAC permission comparison are available:</p>
 
 <div class="simple-table">
 <table>
@@ -420,8 +464,62 @@ file create /tmp/file 0644 path1.parent.uid=0
 <td><p>path1.perm=others_execute</p></td>
 <td><p>Others execute bit is on</p></td>
 </tr>
+<tr>
+<td><p>path1.perm!=num1-num2</p></td>
+<td><p>Permissions are not between num1 and num2</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=setuid</p></td>
+<td><p>Setuid bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=setgid</p></td>
+<td><p>Setgid bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=sticky</p></td>
+<td><p>Sticky bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=owner_read</p></td>
+<td><p>Owner read bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=owner_write</p></td>
+<td><p>Owner write bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=owner_execute</p></td>
+<td><p>Owner execute bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=group_read</p></td>
+<td><p>Group read bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=group_write</p></td>
+<td><p>Group write bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=group_execute</p></td>
+<td><p>Group execute bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=others_read</p></td>
+<td><p>Others read bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=others_write</p></td>
+<td><p>Others write bit is off</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=others_execute</p></td>
+<td><p>Others execute bit is off</p></td>
+</tr>
 </table>
 </div>
+
+<p>You can apply for "path1.parent", "path2" and "path2.parent" as well as "path1".</p>
 
 <h3><a name="10.7">10.7. Example usage</a></h3>
 
@@ -449,6 +547,8 @@ file read /tmp/file001.tmp task.uid=path1.uid
 file execute /usr/bin/ssh exec.realpath="/usr/bin/ssh" exec.argv[0]="ssh"
 file execute /usr/bin/firefox exec.realpath="/usr/lib/firefox-3.6/firefox" exec.argv[0]="/usr/bin/firefox" exec.envc=0
 </pre>
+
+<p>If you wish to perform more complicated checks, you can use execute_handler feature described in <a href="chapter-13.html.en">Chapter 13: Judging execute requests outside of the kernel</a>.</p>
 
 </div><!-- documentation -->
 

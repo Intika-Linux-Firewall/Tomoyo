@@ -38,63 +38,63 @@
 
 <h2>Chapter 14: Apache で mod_ccs モジュールを使用する</h2>
 
-<h3><a name="14.1">14.1. The mod_ccs module</a></h3>
+<h3><a name="14.1">14.1. mod_ccs モジュールについて</a></h3>
 
-<p>mod_ccs is an Apache 2.x module that allows more precise control over Apache. This module allows domain transition based on virtual host names and CGI pathnames without requiring program execution. This way, each virtual host or CGI script can be isolated from each other and given different permissions in policy.</p>
+<p>mod_ccs は Apache に対してより詳細なアクセス制御を行うための Apache 2.x 向けのモジュールです。このモジュールはバーチャルホスト名や要求されたファイルのパス名などに応じて（外部のプログラムを実行することなく）ドメイン遷移を行います。そのため、バーチャルホストやＣＧＩプログラムに対して権限を分割することができるようになります。</p>
 
-<h3><a name="14.2">14.2. Installing the module</a></h3>
+<h3><a name="14.2">14.2. モジュールのインストール</a></h3>
 
-<h4><a name="14.2.1">14.2.1. Install dependencies</a></h4>
+<h4><a name="14.2.1">14.2.1. 依存するパッケージのインストール</a></h4>
 
-<p>This module is available for Linux 2.6 kernels only, and will not work with Linux 2.4 kernels.</p>
+<p>このモジュールは Linux 2.6 カーネル専用です。 Linux 2.4 カーネルでは動作しません。</p>
 
-<p>These packages are required for compiling the module:</p>
+<p>Apache モジュールをコンパイルするのに必要なパッケージをインストールします：</p>
 
-<p><strong>RedHat distributions</strong></p>
+<p><strong>RedHat 系の場合</strong></p>
 
 <pre class="command">
 # yum -y install httpd-devel
 </pre>
 
-<p><strong>Debian distributions</strong></p>
+<p><strong>Debian 系の場合</strong></p>
 
 <pre class="command">
 # apt-get -y install apache2-threaded-dev apache2-prefork-dev
 </pre>
 
-<h4><a name="14.2.2">14.2.2. Downloading the module</a></h4>
+<h4><a name="14.2.2">14.2.2. モジュールのダウンロード</a></h4>
 
-<p>Download the source code for the mod_ccs:</p>
+<p>mod_ccs モジュールのソースコードをダウンロードします：</p>
 
 <pre class="command">
 # wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=4393&amp;root=tomoyo'
 </pre>
 
-<p>Compile, install and activate mod_ccs:</p>
+<p>mod_ccs モジュールをコンパイル／インストール／有効化します：</p>
 
-<h4><a name="14.2.3">14.2.3. Installing the module</a></h4>
+<h4><a name="14.2.3">14.2.3. モジュールのコンパイルとインストール</a></h4>
 
-<p><strong>RedHat distributions</strong></p>
+<p><strong>RedHat 系の場合</strong></p>
 
 <pre class="command">
 # apxs -i -a -c mod_ccs.c
 </pre>
 
-<p><strong>Debian distributions</strong></p>
+<p><strong>Debian 系の場合</strong></p>
 
 <pre class="command">
 # apxs2 -i -a -c mod_ccs.c
 </pre>
 
-<p>If installation completed successfully, the following should be present in the Apache configuration files:</p>
+<p>正常に終了した場合， Apache の設定ファイルの中に以下のような指定が見つかるはずです：</p>
 
 <pre>
 LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 </pre>
 
-<h3><a name="14.3">14.3. Configuration</a></h3>
+<h3><a name="14.3">14.3. 設定</a></h3>
 
-<p>The mod_ccs module performs domain transition based on the pathname of a requested file by specifying the mapping table of pathnames and domain names using the CCS_TransitionMap directive. This can be placed in the Apache configuration files like this (assuming that IP addresses for www.tomoyo00.com etc. are specified in "/etc/hosts"):</p>
+<p>Apache の設定ファイルの中で CCS_TransitionMap ディレクティブを用いてパス名とドメイン名の対応表を指定することにより， mod_ccs モジュールは要求されたファイルのパス名に基づくドメイン遷移を行います。以下の例では /etc/hosts で www.tomoyo00.com 等のＩＰアドレスが登録されているものと仮定します：</p>
 
 <pre>
 &lt;VirtualHost *:80&gt;
@@ -122,7 +122,7 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 &lt;/VirtualHost&gt;
 </pre>
 
-<p>In the file specified by the CCS_TransitionMap directive, the pathname of a requested file needs to be mapped to a domain name. For example, in "/etc/ccs/httpd-tomoyo00.com" the following might be specified:</p>
+<p>CCS_TransitionMap キーワードで指定されたファイルには，リクエストされたファイルのパス名と遷移先のドメイン名との対応表を定義しておきます。例えば、 /etc/ccs/httpd-tomoyo00.com には以下のように指定することができます：</p>
 
 <pre>
 /var/www/cgi-bin/\*         &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-programs
@@ -131,7 +131,7 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 /\{\*\}/\*                  &lt;kernel&gt; //apache /www.tomoyo00.com /default
 </pre>
 
-<p>In domain policy, the domain transitions must be specified beforehand (otherwise Apache will fail with an Internal Server Error):</p>
+<p>ドメイン遷移を行う許可を Apache のドメインに対して予め与えておく必要があります。これを忘れると Internal Server Error になるので注意してください：</p>
 
 <pre>
 &lt;kernel&gt; /usr/sbin/httpd
@@ -142,7 +142,7 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /static-
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
 </pre>
 
-<p>If SELinux is enabled, policy must be configured to allow Apache to write to the <a href="policy-specification/proc-interface.html.ja#self_domain">/proc/ccs/self_domain</a> interface. On CentOS 5.5, this may be done with the following commands, though this depends on policy configuration, distribution and package versions:</p>
+<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では <a href="policy-specification/proc-interface.html.ja#self_domain">/proc/ccs/self_domain</a> への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /proc/ccs/self_domain への書き込みを認めるようにしてください． SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．以下の例は CentOS 5.5 では使えますが，それより古いバージョンでは使えないことがあります：</p>
 
 <pre class="command">
 # cd /etc/selinux/
@@ -150,21 +150,21 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
 # semodule -i ccsecurity.pp
 </pre>
 
-<p>Restart Apache. If the following error occurs on startup, then writing to the <a href="policy-specification/proc-interface.html.ja#self_domain">/proc/ccs/self_domain</a> interface failed:</p>
+<p>Apache を再起動してください。 Apache の起動時に <a href="policy-specification/proc-interface.html.ja#self_domain">/proc/ccs/self_domain</a> への書き込みができなかった場合、以下のようなエラーメッセージが表示されます：</p>
 
 <pre class="output">
 mod_ccs: Unable to open /proc/ccs/self_domain for writing. (errno = 13)
 </pre>
 
-<p>This may appear in the error logs for Apache (e.g. "/var/log/httpd/error_log"):</p>
+<p>また、 Apache のエラーログファイル（例えば /var/log/httpd/error_log ）にも記録されているかもしれません：</p>
 
 <pre class="output">
 [Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_ccs: Unable to open /proc/ccs/self_domain for writing.
 </pre>
 
-<p>Other error messages may appear if there are problems in the mapping file specified by the CCS_TransitionMap directive.</p>
+<p>CCS_TransitionMap キーワードで指定されたファイルに問題があった場合、その他のエラーメッセージが表示されるかもしれません。</p>
 
-<p>To confirm that domain transitions are performed, create a simple CGI program:</p>
+<p>ドメイン遷移が行われていることを確認するために、簡単なＣＧＩプログラムを作成します：</p>
 
 <pre class="command">
 # cat &gt; /var/www/cgi-bin/test.cgi &lt;&lt; "EOF"
@@ -192,7 +192,7 @@ EOF
 # chmod 755 /var/www/cgi-bin/test.cgi
 </pre>
 
-<p>Run the CGI programs using the curl command (or web browsers) and confirm that domain transitions are performed:</p>
+<p>curl コマンド（またはＷｅｂブラウザ）を使ってサンプルプログラムを表示し、ドメイン遷移が行われていることを確認します：</p>
 
 <pre class="command">
 # curl http://www.tomoyo00.com/cgi-bin/test.cgi
@@ -236,7 +236,7 @@ EOF
 &lt;/HTML&gt;
 </pre>
 
-<p>Policy can now be developed for these domains as described in the <a href="index.html.ja#core">core topics</a>.</p>
+<p>ここから先は、<a href="index.html.ja#core">基本編</a>で説明している手順に従ってポリシーを作成してください。</p>
 
 </div><!-- documentation -->
 
