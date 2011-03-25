@@ -53,33 +53,37 @@ else
 fi
 </pre>
 
-<p>Call this script "auth1", make it executable and place it in "/usr/bin" or any directory specified in $PATH. This is only an example script, but it does not matter that the password is in plaintext as the attacker can be denied from reading the script. See <a href="#12.3">12.3. Example authentication programs</a> for more examples. Suppose we have the following in exception policy:</p>
+<p>このスクリプトを auth1 と呼ぶことにします。 auth1 を実行可能にして /bin/ ディレクトリに置いてください。これはサンプルのスクリプトですが、強制アクセス制御機能により auth1 を読み込みモードでオープンすることを禁止することができるのでパスワードを平文のまま保存しています。その他のサンプルについては <a href="#12.3">12.3. 認証プログラムの例</a>を参照してください。以下のエントリが例外ポリシーで指定されている場合を考えます：</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<p>Now we can manage the domain "&lt;kernel&gt; /usr/sbin/sshd /bin/bash", but make sure that the <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> directive is not specified for this domain. Use domain policy to restrict this domain and only allow the execution of the "auth1" script, but no other programs:</p>
+<p>この指定により、ＳＳＨログイン時のログインシェルのドメインは &lt;kernel&gt; /usr/sbin/sshd /bin/bash のようになります。なお、このドメインに対して <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブが指定されていないことを確認してください。このドメインに対しては、 auth1 スクリプトの実行だけを認め、その他のプログラムの実行を認めないようにしてください：</p>
 
 <pre>
-file execute /usr/bin/auth1 exec.realpath="/usr/bin/auth1"
+file execute /bin/auth1 exec.realpath="/bin/auth1"
 </pre>
 
-<p>Following login through SSH, the user must go through another authentication mechanism. If this is an illegal login from an attacker, then they will not be able to know what the authentication mechanism is. Ths script above can employ as foreign an authentication mechanism as you desire.</p>
+<p>これ以降、ＳＳＨログインをした後、ログインしたユーザは追加のログイン認証を経なければ先へ進めなくなります。もし、攻撃者による不正なログインであった場合、追加のログイン認証のメカニズムを知ることができないことでしょう。上記のスクリプトにはあなたか望む突拍子もないメカニズムを使用することができます。</p>
 
-<p>The domain created following successful authentication can be given normal privileges, and for example may be given the "keep_domain /bin/bash from /usr/bin/auth1" directive in exception policy:</p>
+<p>追加のログイン認証を経た後のドメインには、通常の権限を与えることができます。また、例えば以下のように例外ポリシーで指定することで、それ以上ドメイン遷移を行わないようにすることもできます：</p>
+
+<pre>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash
+</pre>
 
 <img src="media/fig-6-2.png" alt="fig-6-2.png" width="600" height="450"></a>
 
 <h3><a name="12.2">12.2. 管理者権限の分割</a></h3>
 
-<p>Using this tiered approach, it is also possible to split root permissions. The script can be repeated with a different password and saved as "/usr/bin/auth2". The domain created by execution of "auth1" can be given maximum privileges using domain policy, but the domain create by execution of "auth2" can be given limited privileges, such as to administrate only the web server:</p>
+<p>この階層化構造を利用することにより、 root ユーザの権限を分割することも可能です。 /bin/auth1 のパスワード部分を変更して /bin/auth2 として保存します。 /bin/auth1 を通過することで実行されるシェルに対しては全ての動作を認めるように設定し、 /bin/auth2 を通過することで実行されるシェルに対しては限られた動作（例えばＷｅｂサーバの管理）のみを認めるように設定します：</p>
 
 <img src="media/fig-6-14-en.png" alt="fig-6-14-en.png" width="600" height="450">
 
 <h3><a name="12.3">12.3. 認証プログラムの例</a></h3>
 
-<p>This example script is the same as above, but stores the password as a hash:</p>
+<p>以下のスクリプトは上記で使用したものと同じですが、パスワードをハッシュ値で保存するようにしています：</p>
 
 <pre class="command">
 echo "password" | sha1sum
@@ -104,26 +108,26 @@ else
 fi
 </pre>
 
-<p>Other example authentication programs are listed below. But these programs exist only as examples of how you might design unique authentication methods. Some of the algorithms are poor and should not be used in a production environment.</p>
+<p>ccs-tools のソース tarball 中に含まれている、ユーザ認証プログラムのサンプルを以下に示します。ただし、これらのプログラムは独自のユーザ認証プログラムを作成する際の参考にしてもらうために用意されているものです。アルゴリズムが貧弱で実際のシステムにそのまま適用するには不向きなものも含まれています。</p>
 
 <div class="simple-table-wrap">
 <table border="1">
-<tr><td><code><a name="candy">candy</a></code></td><td><p>This authentication program succeeds if the correct password is typed, but only if the program is launched within 10 seconds of the parent process (e.g. "/bin/bash") being launched. If the program is not launched within this time period, then all password attempts will fail. This is useful in preventing brute force attacks, and the attacker will not know that no attempt can succeed.</p></td></tr>
-<tr><td><code><a name="chaplet">chaplet</a></code></td><td><p>This authentication program displays a string of challenge data, and authentication will succeed only if the numerical characters from the challenge data are typed. This is only an example and the algorithm is poor. It should be customized before use in a production environment.</p></td></tr>
-<tr><td><code><a name="checktoken_gettoken">checktoken/gettoken</a></code></td><td><p>These authentication programs use tokens based on system time. The <code>gettoken</code> program generates a token to be checked by <code>checktoken</code>. Authentication will succeed if the correct token is generated. This is only an example and the algorithm is poor. It should be customized before use in a production environment.</p></td></tr>
-<tr><td><code><a name="groovy">groovy</a></code></td><td><p>This authentication program prompts for a password, but does not check the password. Instead, it checks for the existence of the file "/tmp/.lockme", succeeding only when this file does not exist. This can prevent brute force attacks. This is only an example and uses a file location that is apparent to attackers. It should be customized before use in a production environment.</p></td></tr>
-<tr><td><code><a name="honey">honey</a></code></td><td><p>This authentication program fails unless the correct password is typed within the correct time interval. This can prevent brute force attacks.</p></td></tr>
-<tr><td><code><a name="mailauth">mailauth</a></code></td><td><p>This authentication program generates a one-time password and sends it to the user using <code>mail</code>. The authentication succeeds if the user inputs this password. To use this program, a mail server is required.</p></td></tr>
-<tr><td><code><a name="timeauth">timeauth</a></code></td><td><p>This authentication program is a reimplementation of <code><a href="#honey">honey</a></code> that makes use of an external script.</p></td></tr>
+<tr><td><code><a name="candy">candy</a></code></td><td><p>この認証プログラムは、親プロセス（例えば /bin/bash ）が起動されてから１０秒以内に開始して、かつ正しいパスワードを入力した場合にのみ認証が成功します。このプログラムが時間内に開始されなかった場合、正しいパスワードを入力しても先へ進むことはできません。攻撃者は正しいパスワードを入力しても先へ進めないことを知らないため、ブルートフォース攻撃を防ぐのに役に立ちます。</p></td></tr>
+<tr><td><code><a name="chaplet">chaplet</a></code></td><td><p>この認証プログラムは、チャレンジとして文字列を表示し、チャレンジ文字列中に含まれる数値のみをレスポンスとして入力した場合にのみ認証が成功します。このサンプルプログラムはアルゴリズムが貧弱であるため、実際のシステムに適用する場合にはカスタマイズをするべきです。</p></td></tr>
+<tr><td><code><a name="checktoken_gettoken">checktoken/gettoken</a></code></td><td><p>これらの認証プログラムはシステムの現在時刻に基づいて生成されるトークンを利用します。 <code>gettoken</code> を実行することで表示されたトークンを <code>checktoken</code> を実行して入力することにより認証が成功します。このサンプルプログラムはアルゴリズムが貧弱であるため、実際のシステムに適用する場合にはカスタマイズをするべきです。</p></td></tr>
+<tr><td><code><a name="groovy">groovy</a></code></td><td><p>この認証プログラムはパスワードの入力を求めるプロンプトを表示しますが、実際にはパスワードはチェックしません。代わりに、 /tmp/.lockme というファイルの有無をチェックし、そのファイルが存在しない場合のみ認証が成功します。これは、ブルートフォース攻撃を防ぐのに利用できます。このサンプルプログラムは攻撃者が見つけやすい場所にあるファイルを使っているため、実際のシステムに適用する場合にはカスタマイズをするべきです。</p></td></tr>
+<tr><td><code><a name="honey">honey</a></code></td><td><p>この認証プログラムは、正しいパスワードを正しい時間間隔で入力した場合にのみ認証が成功します。これは、ブルートフォース攻撃を防ぐのに利用できます。</p></td></tr>
+<tr><td><code><a name="mailauth">mailauth</a></code></td><td><p>この認証プログラムは、ワンタイムパスワードを生成し、そのパスワードを <code>mail</code> コマンドを利用してユーザに送信します。ユーザが受け取ったメールに書かれているワンタイムパスワードを入力することにより、ユーザ認証が成功します。このプログラムを使うには、メールサーバが必要になります。</p></td></tr>
+<tr><td><code><a name="timeauth">timeauth</a></code></td><td><p>この認証プログラムは、 <code><a href="#honey">honey</a></code> を他のスクリプト型プログラムのインタプリタとして利用できるように修正したものです。</p></td></tr>
 </table>
 </div>
 
-<p>Also, below examples can be useful when you use reinforced authentication.</p>
+<p>また、追加のユーザ認証を行う場合、以下のサンプルプログラムも役に立つかもしれません。</p>
 
 <div class="simple-table-wrap">
 <table>
-<tr><td><code><a name="falsh">falsh</a></code></td><td><p>This is a very restricted shell with no built-in commands. Since login shell such as /bin/bash provides many built-in commands such as <code>kill</code>, an attacker can do bad things (e.g. killing processes) without executing external programs even if execution of executing external programs are restricted by TOMOYO Linux. To prevent the attacker from using shell's built-in commands, you may want to use this shell as a login shell when using reinforced authentication.</p></td></tr>
-<tr><td><code><a name="proxy">proxy</a></code></td><td><p> - This is a simple port forwarder program. This program can be used by the client to bind to a specific local port on the server so that the server-side firewall, such as <code>iptables</code> can use packet filtering based on the port number of the client.</p></td></tr>
+<tr><td><code><a name="falsh">falsh</a></code></td><td><p>これは、内部コマンドを持たないシェルです。ログインシェルとして使われる /bin/bash のようなプログラムには <code>kill</code> コマンドのような内部コマンドが多数含まれているため、たとえ外部コマンドの実行が TOMOYO Linux により制限されていたとしても、攻撃者は内部コマンドを用いて（例えばプロセスを強制終了させるなどの）悪事を働くことができてしまいます。追加のユーザ認証を行う場合には、攻撃者がシェルの内部コマンドを悪用するのを防ぐために、このプログラムをログインシェルとして使うことができます。</p></td></tr>
+<tr><td><code><a name="proxy">proxy</a></code></td><td><p>これは、単純なポート転送プログラムです。このプログラムをクライアント側で実行することで特定のポート番号からサーバに接続要求を送ることが可能になり、サーバ側のファイアウォール（例えば <code>iptables</code> ）で接続元ポート番号に基づくフィルタリングを行うことが可能になります。</p></td></tr>
 </table>
 </div>
 

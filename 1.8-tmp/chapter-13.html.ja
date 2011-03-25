@@ -40,141 +40,97 @@
 
 <h3><a name="13.1">13.1. task denied_execute_handler</a></h3>
 
-<p>A system administrator using TOMOYO Linux will generally know the programs that need to be executed from any particular domain. Thus, a normally functioning system will generally not make any execution requests that violate policy. If such an execution request occurs, such as <code>/bin/bash</code>, from a domain that does not usually need to make that execution, then the domain has probably been compromised.</p>
+<p>TOMOYO Linux を利用しているシステム管理者は通常、それぞれのドメインからどのようなプログラムが実行されるかについて把握しているはずです。そのため、正常に動作している限りはポリシーに違反するようなプログラムの実行要求が生じることは通常はありません。もし、 <code>/bin/bash</code> のようなプログラムの実行要求がそのようなプログラムを実行する必要の無いドメインから生じた場合、それはそのドメインに属しているプロセスが侵害されて制御を失っているであろうと考えることができます。</p>
 
-<p>At this point, the kernel will reject the request. However, it is unlikely that the domain will regain control from the attacker. This is where the <a href="policy-specification/domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> directive can be useful. This directive allows an external program to be called whenever an execute request is rejected. This external program can for example be <code>/bin/true</code>, which will cause the process that made the execute request to terminate immediately. The process is therefore no longer compromised.</p>
+<p>この時点で、カーネルは実行要求を拒否します。しかし、実行要求を拒否したところで、攻撃者が奪取した制御をプロセスに戻してくれることはまず期待できません。そのような場合に、 <a href="policy-specification/domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブを使うことができます。このディレクティブは、プログラムの実行要求が拒否された場合に、要求されたプログラムの代わりにディレクティブで指定されたプログラムを実行します。プログラムとして <code>/bin/true</code> を指定した場合、プログラムの実行を要求したプロセスはすぐに終了することでしょう。そのため、それ以上の侵害を防ぐことができます。</p>
 
-<p>Any other programs can be specified using this directive. It can be useful to run a honeypot program to observe the actions of the attacker, to show a warning message, or to change the configuration of a firewall to derive the IP address of the attacker.</p>
+<p>このディレクティブには他のプログラムを指定することもできます。例えば、攻撃者の振る舞いを観察するためにハニーポットプログラムを実行したり、警告メッセージを表示するプログラムを実行したり、攻撃者のＩＰアドレスを調べてファイアウォールの設定を変更するプログラムを実行したりすることもできます。</p>
 
-<p>This directive should be placed in domain policy for the appropriate domain, and will only function if the domain is in "Enforcing Mode":</p>
+<p>このディレクティブは以下のように指定します。強制モード用のプロファイルが割り当てられている場合のみ機能することに注意してください：</p>
 
 <pre>
 task denied_execute_handler /bin/true
 </pre>
 
-<p>The directive takes the following parameters:</p>
+<p>このディレクティブから実行されたプロセスは以下のコマンドライン引数を受け取ります：</p>
 
 <div class="simple-table">
 <table>
 <tr>
-<th><p>Parameter</p></th>
-<th><p>Contents</p></th>
+<th><p>引数</p></th>
+<th><p>内容</p></th>
 </tr>
 <tr>
 <td><p>argv[0]</p></td>
-<td><p>The pathname of the program specified by the directive</p></td>
+<td><p>このディレクティブで指定されたプログラムのパス名</p></td>
 </tr>
 <tr>
 <td><p>argv[1]</p></td>
-<td><p>The name of the domain that made the execute request</p></td>
+<td><p>プログラムの実行を要求したプロセスのドメイン名</p></td>
 </tr>
 <tr>
 <td><p>argv[2]</p></td>
-<td><p>The name of the program that made the execute request</p></td>
+<td><p>プログラムの実行を要求したプロセスのパス名</p></td>
 </tr>
 <tr>
 <td><p>argv[3]</p></td>
-<td><p>The name of the process that made the execute request</p></td>
+<td><p>プログラムの実行を要求したプロセスの情報</p></td>
 </tr>
 <tr>
 <td><p>argv[4]</p></td>
-<td><p>The name of the program that the domain tried to execute</p></td>
+<td><p>実行が要求されたプログラムのパス名</p></td>
 </tr>
 <tr>
 <td><p>argv[5]</p></td>
-<td><p>The number of arguments</p></td>
+<td><p>プログラム実行要求時の引数の数（ argc ）</p></td>
 </tr>
 <tr>
 <td><p>argv[6]</p></td>
-<td><p>The number of environment variables</p></td>
+<td><p>プログラム実行要求時の環境変数の数（ envc ）</p></td>
 </tr>
 <tr>
-<td><p>argv[7] to argv[n]</p></td>
-<td><p>The arguments that were passed during the execution request</p></td>
+<td><p>argv[7] ～ argv[6 + argc]</p></td>
+<td><p>呼び出し元プロセスが渡した argv[] の内容</p></td>
 </tr>
 <tr>
-<td><p>argv[n+1] to argv[z]</p></td>
-<td><p>The environment variables that were passed during the execution request</p></td>
+<td><p>argv[7 + argc] ～ argv[6 + argc + envc]</p></td>
+<td><p>呼び出し元プロセスが渡した envp[] の内容</p></td>
 </tr>
 </table>
 </div>
 
-<p>Important notes:</p>
+<p>重要な注意：</p>
 <ul>
-<li>The domain for the program specified by the directive needs to be created and placed in "Enforcing Mode". This domain should not need the <a href="policy-specification/domain-policy-syntax.html.ja#file_execute">file execute</a> directive.</li>
-<li>All environment variables are cleared before executing the program specified by the directive. This is to prevent dangerous environment variables like LD_PRELOAD from affecting the program. Note that even PATH is cleared. Other resources such as standard input and output are inherited.</li>
-<li>If the process making the request is in a chroot environment, the directive will only function if the program specified by the directive is within the chroot.</li>
+<li>このディレクティブで指定したプログラムには <a href="policy-specification/domain-policy-syntax.html.ja#file_execute">file execute</a> ディレクティブを指定すべきではありません。</li>
+<li>このディレクティブで指定したプログラムのためのドメインは強制モードの状態にしておくべきです。</li>
+<li>LD_PRELOAD などの危険な環境変数によって想定外の動作をすることを予防するため、全ての環境変数はクリアされます。環境変数 PATH もクリアされることに注意してください。その他の資源、例えば標準入力や標準出力などは引き継がれます。</li>
+<li>プロセスが chroot 内部の環境で動作している場合、このディレクティブで指定されたプログラムがその chroot 環境の内部に存在している場合のみ機能します。</li>
 </ul>
 
 <h3><a name="13.2">13.2. task auto_execute_handler</a></h3>
 
-<p>Normally, when a domain makes an execution request, the kernal checks policy to determine whether it should be allowed or rejected. However, judging this within the kernel has some limitations. There are few library functions available and it is more likely to fail when allocating a contiguous area of memory. This is where the <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> directive can be useful in judging the execution request outside of the kernel, which allows the use of many library functions and more consistent allocation of a contiguous area of memory. However, there is one downside to this approach. There are no means of notifying the process that made the execution request that the execution failed.</p>
+<p>通常、プログラムの実行が要求されると、カーネルがポリシーの内容と比較して実行要求を許可するかどうかを判断します。しかし、カーネルの中で判断するには幾つかの制約があります。カーネル内では利用可能なライブラリ関数がほとんどありません。また、連続したメモリ領域を割り当てることが困難です。そのため、 <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> ディレクティブを用いて、プログラムの実行要求を許可するかどうかの判断をカーネルの外部で行わせることができます。そのようにすることで、豊富なライブラリ関数の活用や連続したメモリ領域の確実な割り当てが可能になります。しかし、この方法にも１つ制約があります。プログラムの実行要求を許可しなかった場合に、プログラムの実行を要求したプロセスへと制御を戻す方法が存在しないのです。</p>
 
-<p>This is useful in creating any external program you wish, and you can even judge by using SSH to ask remotely. You can use <a href="#audit-exec-param">audit-exec-param</a> which comes with the userspace tools package as a templete for utilizing this directive.</p>
+<p>この機能は、任意の外部プログラムを活用できます。ＳＳＨを利用して他のホストに問い合わせを行うことさえできます。このディレクティブを利用するテンプレートとして ccs-tools パッケージに含まれている <a href="#audit-exec-param">audit-exec-param</a> を参考にすることができます。</p>
 
 <div class="simple-table-wrap">
 <table>
-<tr><td><code><a name="audit-exec-param">audit-exec-param</a></code></td><td><p>This program acts as a preprocessor for auditing command line arguments and environment variables passed to execute requests.<br>This program itself does not judge whether the execution of requested program should be allowed or rejected.<br>You can customize this program as you wish.</p></td></tr>
+<tr><td><code><a name="audit-exec-param">audit-exec-param</a></code></td><td><p>このプログラムは、プログラムの実行要求に渡されたコマンドライン引数および環境変数を記録に残すためのプリプロセッサとして動作します。<br>このプログラム自身は要求されたプログラムの実行を許可すべきかどうか判断しません。<br>このプログラムを好きなようにカスタマイズして使うことができます。</p></td></tr>
 </table>
 </div>
 
-<p>This directive should be placed in domain policy for the appropriate domain:</p>
+<p>このディレクティブは以下のように指定します：</p>
 
 <pre>
 task auto_execute_handler /usr/lib/ccs/audit-exec-param
 </pre>
 
-<p>The directive takes the following parameters:</p>
+<p>このディレクティブが受け取る引数は <a href="#13.1">13.1. task denied_execute_handler</a> と同じです。</p>
 
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Parameter</p></th>
-<th><p>Contents</p></th>
-</tr>
-<tr>
-<td><p>argv[0]</p></td>
-<td><p>The pathname of the program specified by the directive</p></td>
-</tr>
-<tr>
-<td><p>argv[1]</p></td>
-<td><p>The name of the domain that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[2]</p></td>
-<td><p>The name of the program that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[3]</p></td>
-<td><p>The name of the process that made the execute request</p></td>
-</tr>
-<tr>
-<td><p>argv[4]</p></td>
-<td><p>The name of the program that the domain tried to execute</p></td>
-</tr>
-<tr>
-<td><p>argv[5]</p></td>
-<td><p>The number of arguments</p></td>
-</tr>
-<tr>
-<td><p>argv[6]</p></td>
-<td><p>The number of environment variables</p></td>
-</tr>
-<tr>
-<td><p>argv[7] to argv[n]</p></td>
-<td><p>The arguments that were passed during the execution request</p></td>
-</tr>
-<tr>
-<td><p>argv[n+1] to argv[z]</p></td>
-<td><p>The environment variables that were passed during the execution request</p></td>
-</tr>
-</table>
-</div>
-
-<p>Important notes:</p>
+<p>重要な注意：</p>
 <ul>
-<li>All environment variables are cleared before executing the program specified by the directive. This is to prevent dangerous environment variables like LD_PRELOAD from affecting the program. Note that even PATH is cleared. Other resources such as standard input and output are inherited.</li>
-<li>If the process making the request is in a chroot environment, the directive will only function if the program specified by the directive is within the chroot.</li>
+<li>LD_PRELOAD などの危険な環境変数によって想定外の動作をすることを予防するため、全ての環境変数はクリアされます。環境変数 PATH もクリアされることに注意してください。その他の資源、例えば標準入力や標準出力などは引き継がれます。</li>
+<li>プロセスが chroot 内部の環境で動作している場合、このディレクティブで指定されたプログラムがその chroot 環境の内部に存在している場合のみ機能します。</li>
 </ul>
 
 </div><!-- documentation -->

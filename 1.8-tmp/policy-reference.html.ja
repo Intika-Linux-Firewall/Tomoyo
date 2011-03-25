@@ -1425,7 +1425,6 @@ chown -R demo /proc/ccs/
 <ul>
 <li>task auto_execute_handler で指定されたプログラムに対して実行許可（ <a href="#domain_policy_file_execute">file execute</a> ）を与える必要はありませんし、与えるべきではありません。</li>
 <li>プロセスが chroot 内部の環境で動作している場合、 task auto_execute_handler で指定されたプログラムが見つからないために実行されない場合があります。これは、プロセスが chroot 内部の環境で動作している場合に、 chroot 外部の環境にあるプログラムを実行できてしまうと危険なので、 task auto_execute_handler で指定されたプログラムは、プロセスの名前空間のルートディレクトリではなく、プロセスのルートディレクトリから検索するようになっているためです。</li>
-<li>task auto_execute_handler で指定されたプログラムが動作するためのドメインが存在しない場合、実行されません。そのため、例えば &lt;kernel&gt; 直下に task auto_execute_handler で指定されたプログラム用のドメインを作成して、そのプログラムを <a href="#exception_policy_initialize_domain">initialize_domain</a> キーワードで指定するなどの準備をしてください。</li>
 <li>task auto_execute_handler で指定されたプログラムは環境変数の影響を受けるのを避けるため、全ての環境変数の内容をクリアした状態で起動されます。そのため、環境変数 PATH 等が設定されていないので、外部コマンドを呼び出す場合には注意してください。また、 task auto_execute_handler で指定されたプログラムが動作するドメインにも強制モード用のプロファイルを割り当てておくことを推奨します。</li>
 </ul>
 
