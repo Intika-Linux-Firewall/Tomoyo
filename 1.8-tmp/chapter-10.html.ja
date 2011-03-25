@@ -38,6 +38,14 @@
 
 <h2>Chapter 10: 条件付きアクセス許可の使用</h2>
 
+<p>アクセス許可を記述する際には、以下の構文をとります：</p>
+
+<pre>
+カテゴリ 操作 対象 条件
+</pre>
+
+<p>「カテゴリ 操作 対象」の部分が「必須（省略不可能）パラメータ」で「条件」の部分が「任意（省略可能）パラメータ」です。この章では、「任意（省略可能）パラメータ」について説明します。</p>
+
 <h3><a name="10.1">10.1. 利用可能な条件</a></h3>
 
 <p>より詳細なアクセス制御を行うために、アクセス許可に対して条件を指定することができます。これは、アクセス可否の判断基準にユーザＩＤを利用したい場合などに役に立ちます。以下に、指定可能な条件パラメータを示します：</p>
@@ -277,7 +285,7 @@ file create /tmp/file 0644 path1.parent.uid=0
 
 <h3><a name="10.3">10.3. 値</a></h3>
 
-<p>The value to be tested may take the form of a single integer, a range of integers, or another conditional (the exceptions are "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" which take string values and "task.type" which always takes execute_handler):</p>
+<p>変数との比較の対象となる数値は１個の数値、数値の範囲、あるいは別の変数です：</p>
 
 <div class="simple-table">
 <table>
@@ -287,22 +295,24 @@ file create /tmp/file 0644 path1.parent.uid=0
 </tr>
 <tr>
 <td><p>数値</p></td>
-<td><p>task.uid=0</p></td>
+<td><p>task.uid=0<br>task.uid!=0</p></td>
 </tr>
 <tr>
 <td><p>数値の範囲</p></td>
-<td><p>task.uid=100-500</p></td>
+<td><p>task.uid=100-500<br>task.uid!=100-500</p></td>
 </tr>
 <tr>
-<td><p>別の条件</p></td>
-<td><p>task.uid=path1.uid</p></td>
+<td><p>別の変数</p></td>
+<td><p>task.uid=path1.uid<br>task.uid!=path1.uid</p></td>
 </tr>
 </table>
 </div>
 
+<p>２つの例外があります。 exec.argv[n] exec.envp[var] exec.realpath および symlink.target は常に文字列が比較の対象です。 task.type は常に execute_handler が比較の対象です。</P>
+
 <h3><a name="10.4">10.4. プロセスの種類</a></h3>
 
-<p>The following types of task are available, which can also be <a href="#10.2">negatively matched</a>:</p>
+<p>プロセスの種類については以下の値をとることができます：</p>
 
 <div class="simple-table">
 <table>
@@ -314,12 +324,16 @@ file create /tmp/file 0644 path1.parent.uid=0
 <td><p>task.type=execute_handler</p></td>
 <td><p>カレントプロセスは <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブにより実行されたプログラムである</p></td>
 </tr>
+<tr>
+<td><p>task.type!=execute_handler</p></td>
+<td><p>カレントプロセスは <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブにより実行されたプログラムではない</p></td>
+</tr>
 </table>
 </div>
 
 <h3><a name="10.5">10.5. ファイルの種類</a></h3>
 
-<p>The following types of file are available, which can be used for either path1 or path2, and can also be <a href="#10.2">negatively matched</a>:</p>
+<p>ファイルの種類については、以下の条件を指定することができます：</p>
 
 <div class="simple-table">
 <table>
@@ -355,12 +369,42 @@ file create /tmp/file 0644 path1.parent.uid=0
 <td><p>path1.type=symlink</p></td>
 <td><p>path1 はシンボリックリンクである</p></td>
 </tr>
+<tr>
+<td><p>path1.type!=block</p></td>
+<td><p>path1 はブロックデバイスファイルではない</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=char</p></td>
+<td><p>path1 はキャラクタデバイスファイルではない</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=directory</p></td>
+<td><p>path1 はディレクトリではない</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=fifo</p></td>
+<td><p>path1 は FIFO ではない</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=file</p></td>
+<td><p>	path1 は通常のファイルではない</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=socket</p></td>
+<td><p>path1 はソケットではない</p></td>
+</tr>
+<tr>
+<td><p>path1.type!=symlink</p></td>
+<td><p>path1 はシンボリックリンクではない</p></td>
+</tr>
 </table>
 </div>
 
+<p>path2 についても path1 と同様に指定ができます。しかし、 path1.parent および path2.parent については定義からディレクトリであるため指定できません。</p>
+
 <h3><a name="10.6">10.6. パーミッションの種類</a></h3>
 
-<p>The following types of permission are available, which can be used for either path1 or path2, and can also be <a href="#10.2">negatively matched</a>:</p>
+<p>ファイルのパーミッションについては、以下の条件を指定することができます：</p>
 
 <div class="simple-table">
 <table>
@@ -420,35 +464,91 @@ file create /tmp/file 0644 path1.parent.uid=0
 <td><p>path1.perm=others_execute</p></td>
 <td><p>path1 に関して others に対する execute ビットが on である</p></td>
 </tr>
+<tr>
+<td><p>path1.perm!=num1-num2</p></td>
+<td><p>path1 のパーミッションが「 num1 ～ num2 」ではない</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=setuid</p></td>
+<td><p>path1 に関して setuid ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=setgid</p></td>
+<td><p>path1 に関して setgid ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=sticky</p></td>
+<td><p>path1 に関して sticky ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=owner_read</p></td>
+<td><p>path1 に関して owner に対する read ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=owner_write</p></td>
+<td><p>path1 に関して owner に対する write ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=owner_execute</p></td>
+<td><p>path1 に関して owner に対する execute ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=group_read</p></td>
+<td><p>path1 に関して group に対する read ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=group_write</p></td>
+<td><p>path1 に関して group に対する write ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=group_execute</p></td>
+<td><p>path1 に関して group に対する execute ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=others_read</p></td>
+<td><p>path1 に関して others に対する read ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=others_write</p></td>
+<td><p>path1 に関して others に対する write ビットが off である</p></td>
+</tr>
+<tr>
+<td><p>path1.perm!=others_execute</p></td>
+<td><p>path1 に関して others に対する execute ビットが off である</p></td>
+</tr>
 </table>
 </div>
 
+<p>path1.parent path2 および path2.parent についても path1 と同様に指定ができます。</p>
+
 <h3><a name="10.7">10.7. 指定例</a></h3>
 
-<p>If you wish to deny login as the root user from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
+<p>特定のドメイン（例えば &lt;kernel&gt; /sbin/agetty /bin/login ）から root ユーザとしてログインシェルを実行することを禁止したい場合、以下のように指定することができます：</p>
 
 <pre>
 file execute /bin/bash task.uid!=0
 </pre>
 
-<p>If you wish to allow login for a range of user ID's from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
+<p>特定のドメイン（例えば &lt;kernel&gt; /sbin/agetty /bin/login ）から特定の範囲のユーザＩＤを持つユーザのログインだけを認めたい場合、以下のように指定することができます：</p>
 
 <pre>
 file execute /bin/bash task.uid=500-1000
 </pre>
 
-<p>If you wish to allow a domain to read a temporary file only if they own it, the following could be inserted into domain policy:</p>
+<p>カレントプロセスがテンポラリファイルの所有者である場合だけそのファイルの参照を認めたい場合、以下のように指定することができます：</p>
 
 <pre>
 file read /tmp/file001.tmp task.uid=path1.uid
 </pre>
 
-<p>If you wish to allow the execution of a program only when certain conditions are met, the following could be inserted into domain policy:</p>
+<p>特定のコマンドライン引数や環境変数が渡された場合だけプログラムの実行を認めたい場合、以下のように指定することができます：</p>
 
 <pre>
 file execute /usr/bin/ssh exec.realpath="/usr/bin/ssh" exec.argv[0]="ssh"
 file execute /usr/bin/firefox exec.realpath="/usr/lib/firefox-3.6/firefox" exec.argv[0]="/usr/bin/firefox" exec.envc=0
 </pre>
+
+<p>より複雑な判断を行いたい場合には、 <a href="chapter-13.html.ja">Chapter 13: カーネルの外部でプログラムの実行可否を判断する</a>で説明している execute_handler 機能を利用してください。</p>
 
 </div><!-- documentation -->
 

@@ -38,11 +38,11 @@
 
 <h2>Chapter 11: アクセス許可のグループ化</h2>
 
-<h3><a name="11.1">11.1. The acl_group and use_group directives</a></h3>
+<h3><a name="11.1">11.1. acl_group と use_group</a></h3>
 
-<p>The <a href="policy-specification/exception-policy-syntax.html.ja#acl_group">acl_group</a> directive in exception policy and <a href="policy-specification/domain-policy-syntax.html.ja#use_group">use_group</a> directive in domain policy can provide a powerful and easy way to manage certain aspects of policy.</p>
+<p>例外ポリシーの <a href="policy-specification/exception-policy-syntax.html.ja#acl_group">acl_group</a> ディレクティブとドメインポリシーの <a href="policy-specification/domain-policy-syntax.html.ja#use_group">use_group</a> ディレクティブはポリシーの管理を強力かつ容易に行う方法を提供します。</p>
 
-<p>In the default exception policy created using <code>/usr/lib/ccs/init_policy</code>, some entries are created such as the following:</p>
+<p><code>/usr/lib/ccs/init_policy</code> を実行することにより作成されたデフォルトの例外ポリシーには以下のようなエントリが含まれています：</p>
 
 <pre>
 initialize_domain /sbin/modprobe from any
@@ -84,9 +84,10 @@ acl_group 0 file read @ANY_DIRECTORY
 acl_group 0 file getattr @ANY_PATHNAME
 </pre>
 
-<p>Since the <a href="policy-specification/exception-policy-syntax.html.ja#acl_group">acl_group</a> directive has been defined, these entries apply to all domains that have the "use_group 0" entry. Since all domains have this directive by default, the exception policy entries apply to all domains. Permissions are given for reading all directories, and for reading the attributes of all files and directories. This is a sane default that should be safe. Note that files still cannot be read without specifying an entry. Some other permissions are also given for various shared objects and files in the "/proc/" filesystem.</p>
+<p><a href="policy-specification/exception-policy-syntax.html.ja#acl_group">acl_group</a> ディレクティブを用いてグループ 0 に対するアクセス許可が定義されているため、グループ 0 に対して定義されているアクセス許可は use_group 0 という指定が行われている全てのドメインに対して適用されます。
+Since all domains have this directive by default, the exception policy entries apply to all domains. Permissions are given for reading all directories, and for reading the attributes of all files and directories. This is a sane default that should be safe. Note that files still cannot be read without specifying an entry. Some other permissions are also given for various shared objects and files in the "/proc/" filesystem.</p>
 
-<h3><a name="11.2">11.2. Splitting access restriction</a></h3>
+<h3><a name="11.2">11.2. アクセス許可の分割</a></h3>
 
 <p>Each exception policy entry can be attributed to a different group, and thus will apply to different domains. This provides a way to split access restrictions and simplify domain policy. For example, you could put the following in exception policy:</p>
 
