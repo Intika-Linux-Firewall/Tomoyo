@@ -53,7 +53,7 @@ else
 fi
 </pre>
 
-<p>Call this script "auth1", make it executable and place it in "/usr/bin" or any directory specified in $PATH. This is only an example script, but it does not matter that the password is in plaintext as the attacker can be denied from reading the script. See <a href="#12.3">12.3. Example authentication programs</a> for more examples. Suppose we have the following in exception policy:</p>
+<p>Call this script "auth1", make it executable and place it in "/bin/" directory. This is only an example script, but it does not matter that the password is in plaintext as the attacker can be denied from reading the script. See <a href="#12.3">12.3. Example authentication programs</a> for more examples. Suppose we have the following in exception policy:</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from any
@@ -62,18 +62,22 @@ initialize_domain /usr/sbin/sshd from any
 <p>Now we can manage the domain "&lt;kernel&gt; /usr/sbin/sshd /bin/bash", but make sure that the <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive is not specified for this domain. Use domain policy to restrict this domain and only allow the execution of the "auth1" script, but no other programs:</p>
 
 <pre>
-file execute /usr/bin/auth1 exec.realpath="/usr/bin/auth1"
+file execute /bin/auth1 exec.realpath="/bin/auth1"
 </pre>
 
 <p>Following login through SSH, the user must go through another authentication mechanism. If this is an illegal login from an attacker, then they will not be able to know what the authentication mechanism is. Ths script above can employ as foreign an authentication mechanism as you desire.</p>
 
-<p>The domain created following successful authentication can be given normal privileges, and for example may be given the "keep_domain /bin/bash from /usr/bin/auth1" directive in exception policy:</p>
+<p>The domain created following successful authentication can be given normal privileges, and for example may be given the entry below in exception policy:</p>
+
+<pre>
+keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash
+</pre>
 
 <img src="media/fig-6-2.png" alt="fig-6-2.png" width="600" height="450"></a>
 
 <h3><a name="12.2">12.2. Splitting root permissions</a></h3>
 
-<p>Using this tiered approach, it is also possible to split root permissions. The script can be repeated with a different password and saved as "/usr/bin/auth2". The domain created by execution of "auth1" can be given maximum privileges using domain policy, but the domain create by execution of "auth2" can be given limited privileges, such as to administrate only the web server:</p>
+<p>Using this tiered approach, it is also possible to split root permissions. The script can be repeated with a different password and saved as "/bin/auth2". The domain created by execution of "auth1" can be given maximum privileges using domain policy, but the domain create by execution of "auth2" can be given limited privileges, such as to administrate only the web server:</p>
 
 <img src="media/fig-6-14-en.png" alt="fig-6-14-en.png" width="600" height="450">
 
@@ -104,7 +108,7 @@ else
 fi
 </pre>
 
-<p>Other example authentication programs are listed below. But these programs exist only as examples of how you might design unique authentication methods. Some of the algorithms are poor and should not be used in a production environment.</p>
+<p>Example authentication programs included in the ccs-tools source tarball are listed below. But these programs exist only as examples of how you might design unique authentication methods. Some of the algorithms are poor and should not be used in a production environment.</p>
 
 <div class="simple-table-wrap">
 <table border="1">
@@ -123,7 +127,7 @@ fi
 <div class="simple-table-wrap">
 <table>
 <tr><td><code><a name="falsh">falsh</a></code></td><td><p>This is a very restricted shell with no built-in commands. Since login shell such as /bin/bash provides many built-in commands such as <code>kill</code>, an attacker can do bad things (e.g. killing processes) without executing external programs even if execution of executing external programs are restricted by TOMOYO Linux. To prevent the attacker from using shell's built-in commands, you may want to use this shell as a login shell when using reinforced authentication.</p></td></tr>
-<tr><td><code><a name="proxy">proxy</a></code></td><td><p> - This is a simple port forwarder program. This program can be used by the client to bind to a specific local port on the server so that the server-side firewall, such as <code>iptables</code> can use packet filtering based on the port number of the client.</p></td></tr>
+<tr><td><code><a name="proxy">proxy</a></code></td><td><p>This is a simple port forwarder program. This program can be used by the client to bind to a specific local port on the server so that the server-side firewall, such as <code>iptables</code> can use packet filtering based on the port number of the client.</p></td></tr>
 </table>
 </div>
 
