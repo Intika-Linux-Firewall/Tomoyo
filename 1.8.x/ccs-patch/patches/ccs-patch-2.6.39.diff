@@ -1,4 +1,4 @@
-This is TOMOYO Linux patch for 2.6.39-git18.
+This is TOMOYO Linux patch for 2.6.38-git18.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.38.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/snapshots/patch-2.6.38-git18.bz2
 ---
@@ -64,14 +64,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		return 0;
 --- linux-2.6.38-git18.orig/fs/proc/version.c
 +++ linux-2.6.38-git18/fs/proc/version.c
-@@ -32,3 +32,10 @@ static int __init proc_version_init(void
+@@ -32,4 +32,11 @@ static int __init proc_version_init(void
  	return 0;
  }
  module_init(proc_version_init);
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.39-git18 2011/03/26\n");
++	printk(KERN_INFO "Hook version: 2.6.38-git18 2011/03/26\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
