@@ -97,7 +97,7 @@ file execute /bin/cat
 file read /bin/cat
 </pre>
 
-<p>最初のログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> から <code>/bin/cat</code> の実行が要求され、そのときの引数は <code>cat /etc/passwd</code> であったことを示しています。このログの１行目に mode=enforcing および granted=no という内容が含まれているため、この要求は拒否されたことが判ります。</p>
+<p>最初のログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> から <code>/bin/cat</code> の実行が要求され、そのときの０番目の引数（ argv[0] と呼ばれます）は cat 、１番目の引数（ argv[1] と呼ばれます）は /etc/passwd であったことを示しています。このログの１行目に mode=enforcing および granted=no という内容が含まれているため、この要求は拒否されたことが判ります。</p>
 
 <p>２番目のログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> が <code>/bin/cat</code> を読み込みモードでオープンしようとして拒否されたことを示しています。これは、要求されたプログラムを実行できなかった場合そのプログラムの内容を確認するために読み込みモードでオープンしようとするという習性が <code>/bin/sh</code> にあるためです。</p>
 
@@ -286,7 +286,7 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 
 <h3><a name="7.4">7.4. 通知デーモン</a></h3>
 
-<p>ポリシー違反の発生を通知するために <code>ccs-notifyd</code> というデーモンプログラムが提供されています。 <code>/etc/rc.local</code> 等から <code>/usr/sbin/ccs-notifyd</code> を起動するようにしてください。</p>
+<p>ポリシー違反の発生を通知するために <code>ccs-notifyd</code> というデーモンプログラムが提供されています。 /etc/rc.local 等から /usr/sbin/ccs-notifyd を起動するようにしてください。</p>
 
 <p>通知方法は /etc/ccs/tools/notifyd.conf に記録されています。以下に初期設定を示します：</p>
 

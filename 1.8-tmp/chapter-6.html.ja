@@ -242,8 +242,7 @@ delete file ioctl pipefs:/[11965] 0x5413
 <p>特定のドメインだけを対象に変換処理を行いたい場合、 <code>ccs-selectpolicy</code> コマンドを利用して特定のドメインのドメインポリシーだけを抽出することができます。例えば、 &lt;kernel&gt; /usr/sbin/httpd ドメインとその子孫ドメインだけを対象にパターン化処理を行いたい場合には、以下のように実行してください：</p>
 
 <pre class="command">
-# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' \
-      &lt; /proc/ccs/domain_policy &gt; /tmp/old-httpd
+# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' &lt; /proc/ccs/domain_policy &gt; /tmp/old-httpd
 # ccs-patternize &lt; /tmp/old-httpd &gt; /tmp/new-httpd
 # ccs-diffpolicy /tmp/old-httpd /tmp/new-httpd | ccs-loadpolicy -d
 </pre>
@@ -640,7 +639,7 @@ use_group 0
 # /usr/sbin/ccs-loadpolicy -d &lt; ~/rejected.log
 </pre>
 
-<p>カーネル内のメモリに存在しているポリシーを直接編集しているため、ディスク上に保存せずにシャットダウンすると変更内容は失われてしまいます。以下のコマンドを実行して exception_policy.conf domain_poilicy.conf profile.conf manager.conf をディスク上に保存してください：</p>
+<p>カーネル内のメモリに存在しているポリシーを直接編集しているため、ディスク上に保存せずにシャットダウンすると変更内容は失われてしまいます。以下のコマンドを実行して exception_policy.conf domain_policy.conf profile.conf manager.conf をディスク上に保存してください：</p>
 
 <pre class="command">
 # /usr/sbin/ccs-savepolicy
