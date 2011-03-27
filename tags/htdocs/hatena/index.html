@@ -9,91 +9,75 @@
 <body>
 <h1>TOMOYO Linux</h1>
 
-<h2>概要</h2>
-<p>株式会社NTTデータが開発したセキュリティ強化Linux&reg;。2005年11月11日にSourceforge.jpにオープンソースとして公開された。"TOMOYO&reg; Linux"とは"Task Oriented Management Obviates Your Onus on Linux"の略。Linux vanilla カーネル(2.4/2.6)をベースに独自にポリシーの自動定義機能を備えた強制アクセス制御機構(Mandatory Access Control)を実装している。</p>
-<p>TOMOYO Linuxプロジェクトは当初国内ユーザに特化する考えを持っていたが、CE Linux ForumのTechnical Jamboree12やYLUGカーネル読書会などでの議論を経て、メインライン化を目指すよう方針を変更した。LSM版は2009年6月10日にLinuxカーネルversion 2.6.30にマージされたが、LSMを用いないフル機能版も継続してサポートされている。</p>
+<h2>システムを解析および保護するためのセキュリティモジュール</h2>
+
+<p>TOMOYO LinuxはLinux向けの強制アクセス制御（MAC）の実装で、システムのセキュリティを高める用途は勿論、システムの解析を行う用途でも使えるツールです。このプロジェクトは２００３年３月に始まり、株式会社<a href="http://www.nttdata.co.jp/">ＮＴＴデータ</a>がスポンサーとなって開発されています。</p>
+
+<p>TOMOYO Linuxはシステムの振る舞いに注目します。プロセスは何かの目的を達成するために生成されます。TOMOYO Linuxは（出入国審査官のように）それぞれのプロセスに対して目的を達成するのに必要な振る舞いや資源について報告させることができます。また、保護モードを有効にすることにより、（運用監視人のように）システム管理者により承認された振る舞いと資源へのアクセスのみを許可することもできます。</p>
+
+<p>TOMOYO Linuxには以下のような特徴があります。</p>
+
+<ul>
+<li>システムの解析 </li>
+<li>強制アクセス制御によるシステムのセキュリティ強化 </li>
+<li>自動ポリシー生成 </li>
+<li>簡単な構文 </li>
+<li>使いやすさ</li>
+</ul>
+
+<p>もっと詳しい情報については<a href="http://tomoyo.sourceforge.jp/about.html">詳細</a>を参照してください。１０分でTOMOYO Linuxを体験できる<a href="http://tomoyo.sourceforge.jp/about.html.ja#videos">チュートリアル動画</a>もあります。</p>
+
+<p><object data="http://www.youtube-nocookie.com/v/5cgqbQI9bEM&amp;hl=ja_JP&amp;fs=1&amp;rel=0" type="application/x-shockwave-flash" width="480" height="390"><param name="movie" value="http://www.youtube-nocookie.com/v/5cgqbQI9bEM&amp;hl=ja_JP&amp;fs=1&amp;rel=0"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+
+<h2>GUIエディタ</h2>
+
+<p>クスノさんが、version 1.8対応のGUIエディタ、Gui Policy Editor for TOMOYO Linux (gpet) 、を開発、公開されています！</p>
+
+<p><object data="http://www.youtube-nocookie.com/v/Y_-4D4Pqjd0&amp;hl=ja_JP&amp;fs=1&amp;rel=0" type="application/x-shockwave-flash" width="480" height="390"><param name="movie" value="http://www.youtube-nocookie.com/v/Y_-4D4Pqjd0&amp;hl=ja_JP&amp;fs=1&amp;rel=0"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
 <h2>商標について</h2>
+
 <p>Linuxは、Linus Torvalds氏の日本およびその他の国における登録商標または商標です。</p>
 <p>TOMOYOは、株式会社NTTデータの登録商標です。</p>
 
 <h2>ディストリビューション対応状況</h2>
-<h4>Version 2.2.X（Linuxカーネル version 2.6.30にマージされています）</h4>
-<ul>
-<li>Debian  Squeezeに採用されました。</li>
-<li>Ubuntu 9.10に採用されました。（参考: <a href="http://thinkit.co.jp/article/979/1">第2回 UbuntuでTOMOYO Linuxを使う | Think IT</a>）</li>
-</ul>
-<h4>Version 1.7.X（LSMを使わない独自フック版。フル機能が利用できます）</h4>
-<ul>
-<li><a href="http://www.turbolinux.co.jp/products/server/11s.html">Turbolinux 11 Server</a>に標準搭載されています。
-<ul>
-<li><a href="http://www.turbolinux.co.jp/products/server/11s-tomoyolinux.html">Turbolinux 11 server セキュリティ管理ソフトウェア「TOMOYO Linux」概要</a></li>
-<li><a href="http://www.turbolinux.co.jp/products/server/11s/user_guide/tomoyolinux.html">ユーザガイド</a></li>
-<li><a href="http://www.turbolinux.co.jp/products/server/tomoyo-template.html">Turbolinux 11 Server用ポリシーテンプレート</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li><a href="http://www.turbolinux.co.jp/products/tlc2008/index.html">Turbolinux Client 2008</a>に標準搭載されています。
-<ul>
-<li><a href="http://tomoyo.sourceforge.jp/ja/1.6.x/1st-step/tc2008/">利用方法</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li><a href="http://www.mandriva.com/en/download/free">Mandriva 2009.0</a>に標準搭載されています。
-<ul>
-<li><a href="http://tomoyo.sourceforge.jp/en/1.6.x/1st-step/mandriva2009.0/">利用方法</a></li>
-</ul>
-</li>
-</ul>
-<p>Debianユーザの方は、<a href="http://qa.debian.org/developer.php?login=henrich%40debian.or.jp">やまねさん</a>が作成されたパッケージが利用できます。</p>
-<ul>
-<li>Debian用のTOMOYO Linuxカーネルパッチ (<a href="http://packages.debian.org/ja/lenny/linux-patch-tomoyo">lenny</a> | <a href="http://packages.debian.org/ja/sid/linux-patch-tomoyo">sid</a>)</li>
-<li>ユーザランドツール(<a href="http://packages.debian.org/lenny/tomoyo-ccstools">lenny</a> | <a href="http://packages.debian.org/sid/tomoyo-ccstools">sid</a>)</li>
-<li><a href="http://sourceforge.jp/projects/tomoyo/wiki/HowToDebian">導入手順</a></li>
-</ul>
-<p><a href="http://sourceforge.jp/projects/tomoyo/wiki/HowToRedHat">Red Hat系LinuxでTOMOYO Linuxを導入するための手順</a>がプロジェクトWikiに掲載されています。</p>
-<ul>
-<li><a href="http://sourceforge.jp/projects/tomoyo/wiki/HowToRedHat">導入手順</a></li>
-</ul>
-<p>Gentooの公式?overlayであるsunriseにccs-toolsが登録されました。</p>
-<ul>
-<li><a href="http://overlays.gentoo.org/proj/sunrise/browser/reviewed/sys-apps/ccs-tools">/reviewed/sys-apps/ccs-tools - Sunrise Project Overlay - Trac</a></li>
-<li><a href="http://bugs.gentoo.org/show_bug.cgi?id=271028">Gentoo Bug 271028 - sys-apps/ccs-tools-1.6.7_p20090401.ebuild (New Package)</a></li>
-</ul>
 
-<h2>主な特長</h2>
-
+<h4>Version 2.3.X</h4>
+<h4>Version 2.2.X</h4>
 <ul>
-<li>ポリシーの定義機能を備えており、起動後実行したいサービスや操作を行うだけで、それに必要なアクセス許可をポリシーとして定義、保存する。</li>
-<li>ポリシーはテキストファイルでSELinuxと異なりファイル名やディレクトリ名がそのまま使える。このためポリシーの確認、編集も容易。</li>
-<li>ポリシーについてはプロセスの実行履歴毎に「ドメイン」として独立に管理する。そのため例えばsshdから起こされたbashと、consoleからloginしたbash、あるいはbashから起動されたbashには与えられる権限が独立になる。このためアクセス権限をきめ細かく付与できるが、権限自体の分解能（粒度）は、ファイルについてはread/write/executeの3種とシンプル。（writeについては実際にはcreate, append等分類されている）</li>
-<li>ドメイン毎の制御モードの変更に対応。システム全体を強制モードで動かしながら、Apacheのみを学習モードにするといった操作が可能。</li>
+<li>Debian Squeezeに採用されました。 <a href="http://wiki.debian.org/Tomoyo" target="_blank">http://wiki.debian.org/Tomoyo</a></li>
+<li>Ubuntu 9.10以降に採用されています。（参考: <a href="http://thinkit.co.jp/article/979/1">第2回 UbuntuでTOMOYO Linuxを使う | Think IT</a>）</li>
+<li>Arch Linuxに採用されています。</li>
+<li>Mandrivaに採用されています。</li>
 </ul>
+<h4>Version 1.8.X（LSMを使わない独自フック版。フル機能が利用できます）</h4>
 
 <h2>オフィシャルサイト</h2>
 
 <ul>
 <li><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linuxプロジェクトホームページ</a></li>
-<li><a href="http://sourceforge.jp/projects/tomoyo/">SourceForge.jp: Project Info - TOMOYO</a>（開発者向け、ダウンロードもこちらから）</li>
+<li><a href="http://sourceforge.jp/projects/tomoyo/">SourceForge.jp: Project Info - TOMOYO</a>（開発者向け）</li>
 <li><a href="http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/">TOMOYO最新版（のパッチを当てた2.6カーネルとツール）のコード</a></li>
 <li><a href="http://www.nttdata.co.jp/services/s090309.html">NTT DATAのTOMOYO Linuxオフィシャルサイト</a></li>
 <li><a href="http://tomoyo.sourceforge.jp/wiki/">TOMOYO Linux Wiki</a></li>
 </ul>
 
-<h2>イベント予定 (by Google Calendar)</h2>
-
-<p><iframe src="http://www.google.com/calendar/embed?title=TOMOYO%20Linux&amp;showPrint=0&amp;showTz=0&amp;height=500&amp;wkst=1&amp;bgcolor=%23FFFFFF&amp;src=71t1cadacbb3ikis5h2mkfi0ao%40group.calendar.google.com&amp;color=%231B887A&amp;src=linux.release.mm%40gmail.com&amp;color=%235229A3&amp;src=linux.release.candidate%40gmail.com&amp;color=%237A367A&amp;src=linux.release.history%40gmail.com&amp;color=%23B1365F&amp;src=japanese__ja%40holiday.calendar.google.com&amp;color=%23A32929&amp;ctz=Asia%2FTokyo" style=" border:solid 1px #777 " width="700" height="500" frameborder="0" scrolling="no"></iframe></p>
-<p>Google Calendarをお使いの方は、カレンダーを検索すれば（カレンダー名: "TOMOYO Linux"、カレンダーID: "71t1cadacbb3ikis5h2mkfi0ao@group.calendar.google.com"）自分のカレンダーに追加できます。</p>
-
 <h2>News</h2>
 
+<p>2011.2.15 はてなキーワードの更新を再開します</p>
+<p>このはてなキーワードについて、編集ができなくなり更新が滞っていましたが、「はてなサポート」さんに問い合わせたところ原因が判明し、再び編集できるようになりました（祝）。時間を見つけてバックログを追加していきます。</p>
+<p>とりあえず、Jamie Neugenさんの多大なご協力により、TOMOYO Linuxのホームページが全面更改されました。是非、新しいホームページをごらんください！</p>
+<ul>
+<li><a href="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</a></li>
+</ul>
 <p>2010.9.3 TOMOYO Linux on MeeGo</p>
 <p>MeeGo上でTOMOYO Linuxを動かしました。動画を公開しています。</p>
-<p><object width="640" height="385"><param name="movie" value="http://www.youtube.com/v/H9aZv49d2iw?fs=1&amp;hl=ja_JP"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"><embed src="http://www.youtube.com/v/H9aZv49d2iw?fs=1&amp;hl=ja_JP" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="640" height="385"></object></p>
+
+<p><object data="http://www.youtube-nocookie.com/v/H9aZv49d2iw&amp;hl=ja_JP&amp;fs=1&amp;rel=0" type="application/x-shockwave-flash" width="640" height="385"><param name="movie" value="http://www.youtube-nocookie.com/v/H9aZv49d2iw&amp;hl=ja_JP&amp;fs=1&amp;rel=0"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+
 <p>2010.8.12 LinuxCon 2010でセキュアOSの概要を説明します。</p>
-<div style="width: 425px;" id="ss_4906031"><strong style="display: block; margin: 12px 0pt 4px;"><a href="http://www.slideshare.net/haradats/your-first-guide-to-secure-linux-4906031" title="Your first guide to &quot;secure Linux&quot;">Your first guide to "secure Linux"</a></strong><object id="sse4906031" width="425" height="355"><param name="movie" value="http://static.slidesharecdn.com/swf/ssplayer2.swf?doc=yourfirstguidetosecurelinux-100805034609-phpapp01&amp;stripped_title=your-first-guide-to-secure-linux-4906031"><param name="allowFullScreen" value="true"><param name="allowScriptAccess" value="always"><embed name="sse4906031" src="http://static.slidesharecdn.com/swf/ssplayer2.swf?doc=yourfirstguidetosecurelinux-100805034609-phpapp01&amp;stripped_title=your-first-guide-to-secure-linux-4906031" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="355"></object><div style="padding: 5px 0pt 12px;">View more <a href="http://www.slideshare.net/">presentations</a> from <a href="http://www.slideshare.net/haradats">Toshiharu Harada</a>.</div></div>
+<div style="width: 425px; text-align: left;"><a href="http://www.slideshare.net/haradats/your-first-guide-to-secure-linux-4906031" style="font: 14px Helvetica,Arial,Sans-serif; display: block; margin: 12px 0pt 3px; text-decoration: underline;" title="Your first guide to &quot;secure Linux&quot;">Your first guide to "secure Linux"</a><object data="http://static.slidesharecdn.com/swf/ssplayer2.swf?doc=yourfirstguidetosecurelinux-100805034609-phpapp01&amp;stripped_title=your-first-guide-to-secure-linux-4906031" type="application/x-shockwave-flash" style="margin: 0px;" width="425" height="355"><param name="movie" value="http://static.slidesharecdn.com/swf/ssplayer2.swf?doc=yourfirstguidetosecurelinux-100805034609-phpapp01&amp;stripped_title=your-first-guide-to-secure-linux-4906031"><param name="allowFullScreen" value="true"><param name="allowScriptAccess" value="always"></object><div style="font-size: 11px; font-family: tahoma,arial; height: 26px; padding-top: 2px;">View more <a href="http://www.slideshare.net/" style="text-decoration: underline;">presentations</a> from <a href="http://www.slideshare.net/haradats" style="text-decoration: underline;">Toshiharu Harada</a>.</div></div>
+
 <p>2010.5.19 TOMOYOが、Debian Squeezeに採用されました！</p>
 <ul>
 <li><a href="http://wiki.debian.org/Tomoyo">http://wiki.debian.org/Tomoyo</a></li>
