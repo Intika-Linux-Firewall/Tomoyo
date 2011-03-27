@@ -1894,7 +1894,7 @@ void ccs_put(void)
  *
  * @fmt: The printf()'s format string, followed by parameters.
  *
- * Returns pointer to  dynamically allocated buffer.
+ * Returns pointer to dynamically allocated buffer.
  *
  * The caller must not free() the returned pointer.
  */
