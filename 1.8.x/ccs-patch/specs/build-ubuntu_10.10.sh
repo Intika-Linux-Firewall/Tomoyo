@@ -60,9 +60,9 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +    done
 +    rm -f $hdrdir/include/net $hdrdir/security
 +    cd ../
-+    tar -cf - net | ( cd $hdrdir/include/ ; tar -xf - )
++    tar -cf - net | tar -xf - -C $hdrdir/include/
 +    cd ../
-+    tar -cf - security | ( cd $hdrdir ; tar -xf - )
++    tar -cf - security | tar -xf - -C $hdrdir
 +fi
 +
  exit

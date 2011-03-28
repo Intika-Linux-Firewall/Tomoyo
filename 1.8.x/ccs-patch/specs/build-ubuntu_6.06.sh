@@ -20,7 +20,7 @@ update_linux_26_header_package() {
       cp -p old/usr/src/*/include/linux/$i new/usr/src/*/include/linux/
     done
     rm -f new/usr/src/*/security
-    (cd old/usr/src/*/ ; tar -cf - security/ ) | ( cd new/usr/src/*/ ; tar -xf - )
+    tar -cf - -C old/usr/src/*/ security/ | tar -xf - -C new/usr/src/*/
     dpkg-deb -b new && mv new.deb $2
     rm -fR new old
 }
