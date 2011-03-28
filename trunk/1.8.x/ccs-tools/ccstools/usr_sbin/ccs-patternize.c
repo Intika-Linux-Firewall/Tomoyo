@@ -508,7 +508,7 @@ static void ccs_process_line(char *sp)
 
 int main(int argc, char *argv[])
 {
-	ccs_patternize_init_rules(argc == 2 ? argv[2] : CCS_PATTERNIZE_CONF);
+	ccs_patternize_init_rules(argc == 2 ? argv[1] : CCS_PATTERNIZE_CONF);
 	ccs_get();
 	while (true) {
 		char *sp = ccs_freadline_unpack(stdin);

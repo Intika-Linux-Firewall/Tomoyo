@@ -60,7 +60,7 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +    done
 +    rm -f $hdrdir/security
 +    cd ../../
-+    tar -cf - security | ( cd $hdrdir ; tar -xf - )
++    tar -cf - security | tar -xf - -C $hdrdir
 +fi
 +
  exit
