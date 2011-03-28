@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/03/15
+ * Version: 1.8.0+   2011/03/28
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -93,6 +93,8 @@ static _Bool ccs_acl_sort_type = false;
 static char *ccs_last_error = NULL;
 /* Domain screen is dealing with process list rather than domain list? */
 static _Bool ccs_domain_sort_type = false;
+/* Start from the first line when showing ACL screen? */
+static _Bool ccs_no_restore_cursor = false;
 
 /* Domain transition coltrol keywords. */
 static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
@@ -2489,6 +2491,7 @@ out:
  */
 static _Bool ccs_select_acl_window(const int current)
 {
+	char *old_domain;
 	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST || current == EOF)
 		return false;
 	ccs_current_pid = 0;
@@ -2509,13 +2512,16 @@ static _Bool ccs_select_acl_window(const int current)
 	} else if (ccs_deleted_domain(current)) {
 		return false;
 	}
-	free(ccs_current_domain);
+	old_domain = ccs_current_domain;
 	if (ccs_domain_sort_type)
 		ccs_current_domain = strdup(ccs_task_list[current].domain);
 	else
 		ccs_current_domain = strdup(ccs_domain_name(&ccs_dp, current));
 	if (!ccs_current_domain)
 		ccs_out_of_memory();
+	ccs_no_restore_cursor = old_domain &&
+		strcmp(old_domain, ccs_current_domain);
+	free(old_domain);
 	return true;
 }
 
@@ -2680,8 +2686,14 @@ static enum ccs_screen_type ccs_generic_list_loop(void)
 		/* ccs_list_caption = "Domain Transition Editor"; */
 	}
 	ptr = &ccs_screen[ccs_current_screen];
-	ptr->current = saved_cursor[ccs_current_screen].current;
-	ptr->y = saved_cursor[ccs_current_screen].y;
+	if (ccs_no_restore_cursor) {
+		ptr->current = 0;
+		ptr->y = 0;
+		ccs_no_restore_cursor = false;
+	} else {
+		ptr->current = saved_cursor[ccs_current_screen].current;
+		ptr->y = saved_cursor[ccs_current_screen].y;
+	}
 start:
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (!ccs_domain_sort_type) {

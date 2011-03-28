@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2+   2011/03/28
  *
  */
 #include <stdio.h>
@@ -55,9 +55,15 @@ static void handle_envp_condition(void)
 {
 	while (fscanf(stdin, "%65534s", buffer) == 1 && strcmp(buffer, "}")
 	       && strcmp(buffer, "...")) {
+		/*
+		 * We won't check exec.envp["name"]="value" condition if not in
+		 * "name=value" format.
+		 * But we check "allow_env name" permission even if not in
+		 * "name=value" format.
+		 */
 		char *cp = strchr(buffer, '=');
 		if (!cp)
-			break;
+			continue;
 		realloc_buffer(strlen(buffer) + 16);
 		*cp++ = '\0';
 		cond_len += sprintf(cond + cond_len, " exec.envp[%s\"]=\"%s",

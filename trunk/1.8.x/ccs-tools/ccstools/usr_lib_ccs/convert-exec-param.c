@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.0+   2011/03/28
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 		/* Print domainname. */
 		printf("%s", buffer[1]);
 		/* Print permission and exec.realpath part. */
-		printf("%s if exec.%s", buffer[2], exe);
+		printf("%s exec.%s", buffer[2], exe);
 		/* Print exec.argc part. */
 		printf(" exec.argc=%d", argc);
 		/* Print exec.argv[] part. */
