@@ -1460,10 +1460,10 @@ static void ccs_read_domain_and_exception_policy(void)
 		/* Don't set error message if failed. */
 		fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r+");
 	if (fp) {
-                fprintf(fp, "select transition_only\n");
-                if (ccs_network_mode)
-                        fputc(0, fp);
-                fflush(fp);
+		fprintf(fp, "select transition_only\n");
+		if (ccs_network_mode)
+			fputc(0, fp);
+		fflush(fp);
 	} else {
 		fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_DOMAIN_POLICY);
 	}
@@ -1501,10 +1501,10 @@ static void ccs_read_domain_and_exception_policy(void)
 		/* Don't set error message if failed. */
 		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
 	if (fp) {
-                fprintf(fp, "select transition_only\n");
-                if (ccs_network_mode)
-                        fputc(0, fp);
-                fflush(fp);
+		fprintf(fp, "select transition_only\n");
+		if (ccs_network_mode)
+			fputc(0, fp);
+		fflush(fp);
 	} else {
 		fp = ccs_editpolicy_open_read
 			(CCS_PROC_POLICY_EXCEPTION_POLICY);
@@ -2105,6 +2105,18 @@ static int ccs_gacl_compare(const void *a, const void *b)
 		if (ret)
 			return ret;
 		return strcmp(a2, b2);
+	} else if (a0->directive == CCS_DIRECTIVE_USE_GROUP) {
+ 		return 1;
+	} else if (b0->directive == CCS_DIRECTIVE_USE_GROUP) {
+		return -1;
+	} else if (a0->directive == CCS_DIRECTIVE_TRANSITION_FAILED) {
+		return 2;
+	} else if (b0->directive == CCS_DIRECTIVE_TRANSITION_FAILED) {
+		return -2;
+	} else if (a0->directive == CCS_DIRECTIVE_QUOTA_EXCEEDED) {
+		return 3;
+	} else if (b0->directive == CCS_DIRECTIVE_QUOTA_EXCEEDED) {
+		return -3;
 	} else {
 		const int ret = strcmp(a2, b2);
 		if (ret)
