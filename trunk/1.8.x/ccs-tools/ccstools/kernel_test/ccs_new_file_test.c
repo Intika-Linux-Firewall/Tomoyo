@@ -23,12 +23,12 @@
 
 static void make_elf_lib(void)
 {
-	static const struct elf_phdr eph = {
+	static const struct elf32_phdr eph = {
 		.p_type = PT_LOAD,
 		.p_offset = 4096,
 		.p_filesz = 1,
 	};
-	static const struct elfhdr eh = {
+	static const struct elf32_hdr eh = {
 		.e_ident = ELFMAG,
 		.e_type = ET_EXEC,
 		.e_machine = EM_386,
