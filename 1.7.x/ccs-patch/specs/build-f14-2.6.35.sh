@@ -98,18 +98,5 @@ echo "to build kernel rpm packages."
 echo ""
 echo "I'll start 'rpmbuild -bb --target i686 --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
-patch << "EOF" || die "Can't patch spec file."
---- /root/rpmbuild/SPECS/ccs-kernel.spec
-+++ /root/rpmbuild/SPECS/ccs-kernel.spec
-@@ -220,7 +220,7 @@
- 
- # kernel-PAE is only built on i686.
- %ifarch i686
--%define with_pae 1
-+%define with_pae 0
- %else
- %define with_pae 0
- %endif
-EOF
 exec rpmbuild -bb --target i686 --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec
 exit 0
