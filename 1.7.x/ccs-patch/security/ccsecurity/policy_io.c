@@ -451,8 +451,15 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	if (profile == &ccs_default_profile)
 		return -EINVAL;
 	if (!strcmp(data, "COMMENT")) {
-		const struct ccs_path_info *old_comment = profile->comment;
-		profile->comment = ccs_get_name(cp);
+		static DEFINE_SPINLOCK(lock);
+		const struct ccs_path_info *new_comment = ccs_get_name(cp);
+		const struct ccs_path_info *old_comment;
+		if (!new_comment)
+			return -ENOMEM;
+		spin_lock(&lock);
+		old_comment = profile->comment;
+		profile->comment = new_comment;
+		spin_unlock(&lock);
 		ccs_put_name(old_comment);
 		return 0;
 	}
