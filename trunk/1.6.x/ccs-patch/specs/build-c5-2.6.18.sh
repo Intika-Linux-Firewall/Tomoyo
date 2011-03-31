@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.18-194.32.1.el5.src.rpm || die "Can't verify signature
 rpm -ivh kernel-2.6.18-194.32.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.8-20110121.tar.gz ]
+if [ ! -r ccs-patch-1.6.9-20110401.tar.gz ]
 then
-    wget -O ccs-patch-1.6.8-20110121.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20110121.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.6.9-20110401.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110401.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -#% define buildid
-+%define buildid _tomoyo_1.6.8p4
++%define buildid _tomoyo_1.6.9
  #
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20110121.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.9-20110401.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.18-centos-5.5.diff
 +
  cp %{SOURCE10} Documentation/
