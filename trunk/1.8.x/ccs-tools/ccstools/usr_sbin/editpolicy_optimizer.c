@@ -44,13 +44,19 @@ static struct ccs_number_group_entry *ccs_number_group_list = NULL;
 /* Length of ccs_number_group_list array. */
 static int ccs_number_group_list_len = 0;
 
-static int ccs_add_address_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
-static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name);
-static int ccs_add_number_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
-static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name);
-static _Bool ccs_compare_path(const char *sarg, const char *darg);
-static _Bool ccs_compare_number(const char *sarg, const char *darg);
 static _Bool ccs_compare_address(const char *sarg, const char *darg);
+static _Bool ccs_compare_number(const char *sarg, const char *darg);
+static _Bool ccs_compare_path(const char *sarg, const char *darg);
+static int ccs_add_address_group_entry(const char *group_name,
+				       const char *member_name,
+				       const _Bool is_delete);
+static int ccs_add_number_group_entry(const char *group_name,
+				      const char *member_name,
+				      const _Bool is_delete);
+static struct ccs_address_group_entry *ccs_find_address_group
+(const char *group_name);
+static struct ccs_number_group_entry *ccs_find_number_group
+(const char *group_name);
 
 /**
  * ccs_find_path_group - Find "path_group" entry.
@@ -540,7 +546,7 @@ static struct ccs_address_group_entry *ccs_find_address_group
  *
  * @group_name:  Name of number group.
  * @member_name: Number string.
- * @is_delete:   True if it is delete request, false otherwise. 
+ * @is_delete:   True if it is delete request, false otherwise.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -624,7 +630,7 @@ static struct ccs_number_group_entry *ccs_find_number_group
 /**
  * ccs_editpolicy_clear_groups - Clear path_group/number_group/address_group for reloading policy.
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 void ccs_editpolicy_clear_groups(void)
 {

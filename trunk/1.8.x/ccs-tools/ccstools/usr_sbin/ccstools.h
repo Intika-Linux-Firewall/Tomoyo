@@ -131,27 +131,34 @@ FILE *ccs_open_read(const char *filename);
 FILE *ccs_open_write(const char *filename);
 _Bool ccs_check_remote_host(void);
 _Bool ccs_close_write(FILE *fp);
-_Bool ccs_decode(const char *ascii, char *bin);
 _Bool ccs_correct_domain(const char *domainname);
 _Bool ccs_correct_path(const char *filename);
 _Bool ccs_correct_word(const char *string);
+_Bool ccs_decode(const char *ascii, char *bin);
 _Bool ccs_domain_def(const char *domainname);
 _Bool ccs_identical_file(const char *file1, const char *file2);
 _Bool ccs_move_proc_to_file(const char *src, const char *dest);
-_Bool ccs_path_matches_pattern(const struct ccs_path_info *pathname0, const struct ccs_path_info *pattern0);
+_Bool ccs_path_matches_pattern(const struct ccs_path_info *pathname0,
+			       const struct ccs_path_info *pattern0);
 _Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b);
 _Bool ccs_str_starts(char *str, const char *begin);
 char *ccs_freadline(FILE *fp);
 char *ccs_freadline_unpack(FILE *fp);
 char *ccs_make_filename(const char *prefix, const time_t time);
 char *ccs_shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-const char *ccs_domain_name(const struct ccs_domain_policy *dp, const int index);
+const char *ccs_domain_name(const struct ccs_domain_policy *dp,
+			    const int index);
 const struct ccs_path_info *ccs_savename(const char *name);
-int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry, const int index);
-int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry, const int index);
-int ccs_find_domain(const struct ccs_domain_policy *dp, const char *domainname0, const _Bool is_dis, const _Bool is_dd);
-int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp, const struct ccs_path_info *domainname);
-int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname, const _Bool is_dis, const _Bool is_dd);
+int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
+			 const int index);
+int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
+		      const _Bool is_dis, const _Bool is_dd);
+int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
+			 const int index);
+int ccs_find_domain(const struct ccs_domain_policy *dp, const char *domainname0,
+		    const _Bool is_dis, const _Bool is_dd);
+int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
+			   const struct ccs_path_info *domainname);
 int ccs_open_stream(const char *filename);
 int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry);
 int ccs_parse_number(const char *number, struct ccs_number_entry *entry);
@@ -163,18 +170,19 @@ void ccs_delete_domain(struct ccs_domain_policy *dp, const int index);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_fprintf_encoded(FILE *fp, const char *ccs_pathname);
 void ccs_get(void);
-void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_write);
+void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
+			      _Bool is_write);
 void ccs_normalize_line(char *buffer);
 void ccs_out_of_memory(void);
 void ccs_put(void);
 void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename);
 void ccs_read_process_list(_Bool show_all);
 
-extern _Bool ccs_network_mode;
-extern u32 ccs_network_ip;
-extern u16 ccs_network_port;
-extern struct ccs_task_entry *ccs_task_list;
-extern int ccs_task_list_len;
 extern _Bool ccs_freadline_raw;
+extern _Bool ccs_network_mode;
+extern int ccs_task_list_len;
+extern struct ccs_task_entry *ccs_task_list;
+extern u16 ccs_network_port;
+extern u32 ccs_network_ip;
 
 /***** PROTOTYPES DEFINITION END *****/

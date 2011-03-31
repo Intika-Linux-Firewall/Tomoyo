@@ -53,8 +53,9 @@ int main(int argc, char *argv[])
 					char *cp2 = strchr(cp, ' ');
 					if (cp2)
 						*cp2 = '\0';
-					if (*cp == '/' && ccs_decode(cp, buffer2)
-					    && lstat64(buffer2, &buf)) {
+					if (*cp == '/' &&
+					    ccs_decode(cp, buffer2) &&
+					    lstat64(buffer2, &buf)) {
 						if (!flag)
 							printf("\n%s\n",
 							       domain);

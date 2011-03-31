@@ -205,7 +205,8 @@ static void stage_capability_test(void)
 			vhangup();
 			/* Unreachable if vhangup() succeeded. */
 			status = errno;
-			ret_ignored = write(pipe_fd[1], &status, sizeof(status));
+			ret_ignored = write(pipe_fd[1], &status,
+					    sizeof(status));
 			_exit(0);
 		case -1:
 			fprintf(stderr, "forkpty() failed.\n");
@@ -228,7 +229,8 @@ static void stage_capability_test(void)
 			vhangup();
 			/* Unreachable if vhangup() succeeded. */
 			status = errno;
-			ret_ignored = write(pipe_fd[1], &status, sizeof(status));
+			ret_ignored = write(pipe_fd[1], &status,
+					    sizeof(status));
 			_exit(0);
 		case -1:
 			fprintf(stderr, "forkpty() failed.\n");
@@ -312,7 +314,8 @@ static void stage_capability_test(void)
 			errno = 0;
 			ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 			status = errno;
-			ret_ignored = write(pipe_fd[1], &status, sizeof(status));
+			ret_ignored = write(pipe_fd[1], &status,
+					    sizeof(status));
 			_exit(0);
 		case -1:
 			fprintf(stderr, "fork() failed.\n");
@@ -333,7 +336,8 @@ static void stage_capability_test(void)
 			errno = 0;
 			ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 			status = errno;
-			ret_ignored = write(pipe_fd[1], &status, sizeof(status));
+			ret_ignored = write(pipe_fd[1], &status,
+					    sizeof(status));
 			_exit(0);
 		case -1:
 			fprintf(stderr, "fork() failed.\n");

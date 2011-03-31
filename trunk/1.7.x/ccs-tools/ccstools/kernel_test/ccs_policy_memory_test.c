@@ -62,7 +62,7 @@ static inline void check_policy_deleted(FILE *fp, const int id)
 	check_policy_common(0, id);
 }
 
-static const char *domain_testcases[] = {
+static const char * const domain_testcases[] = {
 	"allow_create /tmp/mknod_reg_test 0600",
 	"allow_create /tmp/open_test 0600 if path1.parent.uid=task.uid",
 	"allow_create /tmp/open_test 0600 if 0=0",
@@ -228,7 +228,7 @@ static void domain_policy_test(const unsigned int before)
 	}
 }
 
-static const char *exception_testcases[] = {
+static const char * const exception_testcases[] = {
 	"allow_read /tmp/mknod_reg_test",
 	"allow_env HOME",
 	"path_group PG1 /",

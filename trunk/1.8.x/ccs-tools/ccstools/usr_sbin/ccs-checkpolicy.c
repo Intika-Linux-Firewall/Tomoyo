@@ -346,12 +346,12 @@ static _Bool ccs_check_domain(char *arg)
 	}
 	if (!ccs_correct_domain(arg))
 		return false;
-	return ccs_prune_word(arg, cp); 
+	return ccs_prune_word(arg, cp);
 }
 
 static _Bool ccs_check_capability(char *arg)
 {
-	static const char *list[] = {
+	static const char * const list[] = {
 		"use_route", "use_packet", "SYS_REBOOT", "SYS_VHANGUP",
 		"SYS_TIME", "SYS_NICE", "SYS_SETHOSTNAME", "use_kernel_module",
 		"SYS_KEXEC_LOAD", "SYS_PTRACE", NULL
@@ -634,7 +634,7 @@ static _Bool ccs_check_domain_policy2(char *policy)
 		const char *directive;
 		_Bool (*arg1) (char *arg);
 		_Bool (*arg2) (char *arg);
-	} list[] = { 
+	} list[] = {
 		{ "capability ", ccs_check_capability },
 		{ "file ", ccs_check_file },
 		{ "ipc signal ", ccs_check_u16, ccs_check_domain },
@@ -803,7 +803,7 @@ out:
 	policy = NULL;
 	ccs_line--;
 	printf("Total:   %u Line%s   %u Error%s   %u Warning%s\n",
-	       ccs_line, ccs_line > 1 ? "s" : "", ccs_errors, ccs_errors > 1 ? "s" : "",
-	       ccs_warnings, ccs_warnings > 1 ? "s" : "");
+	       ccs_line, ccs_line > 1 ? "s" : "", ccs_errors, ccs_errors > 1 ?
+	       "s" : "", ccs_warnings, ccs_warnings > 1 ? "s" : "");
 	return ccs_errors ? 2 : (ccs_warnings ? 1 : 0);
 }

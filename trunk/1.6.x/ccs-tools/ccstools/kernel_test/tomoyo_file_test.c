@@ -9,6 +9,32 @@
  *
  */
 #include "include.h"
+#include <linux/elf.h>
+
+static void make_elf_lib(void)
+{
+	static const struct elf32_phdr eph = {
+		.p_type = PT_LOAD,
+		.p_offset = 4096,
+		.p_filesz = 1,
+	};
+	static const struct elf32_hdr eh = {
+		.e_ident = ELFMAG,
+		.e_type = ET_EXEC,
+		.e_machine = EM_386,
+		.e_phoff = sizeof(eh),
+		.e_phentsize = sizeof(eph),
+		.e_phnum = 1,
+	};
+	const int fd = open("/tmp/uselib", O_WRONLY | O_CREAT | O_TRUNC, 0755);
+	if (fd != EOF) {
+		write(fd, &eh, sizeof(eh));
+		write(fd, &eph, sizeof(eph));
+		lseek(fd, 4096, SEEK_SET);
+		write(fd, "", 1);
+		close(fd);
+	}
+}
 
 static int is_enforce = 0;
 
@@ -75,7 +101,7 @@ static void stage_file_test(void)
 	}
 
 	show_prompt("uselib()");
-	show_result(uselib("/bin/true"));
+	show_result(uselib("/tmp/uselib"));
 
 	{
 		int pipe_fd[2] = { EOF, EOF };
@@ -230,6 +256,7 @@ int main(int argc, char *argv[])
 			"\n");
 		return 1;
 	}
+	make_elf_lib();
 
 	printf("***** Testing file hooks in enforce mode. *****\n");
 	create_files();

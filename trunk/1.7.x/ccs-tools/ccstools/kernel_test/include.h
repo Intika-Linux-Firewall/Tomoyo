@@ -112,7 +112,7 @@ static pid_t pid = 0;
 
 static void clear_status(void)
 {
-	static const char *keywords[] = {
+	static const char * const keywords[] = {
 		"file::execute",
 		"file::open",
 		"file::create",

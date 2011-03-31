@@ -291,11 +291,11 @@ static void show_memory_usage(void)
 int main(int argc, char *argv[])
 {
 	struct stat buf;
-	
+
 	/* Mount /proc if not mounted. */
 	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
-	
+
 	/* Unmount and exit if policy interface doesn't exist. */
 	if (lstat("/proc/ccs", &buf) ||
 	    !S_ISDIR(buf.st_mode)) {
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
 		open("/dev/console", O_WRONLY);
 		open("/dev/console", O_WRONLY);
 	}
-	
+
 	/* Check /proc/cmdline and /proc/self/cmdline */
 	{
 		char *cp;

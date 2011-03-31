@@ -117,9 +117,10 @@ static int ccs_add_history(const char *buffer, const char **history,
 static int ccs_query_fd = EOF;
 static char *ccs_initial_readline_data = NULL;
 
-static char *ccs_readline(const int start_y, const int start_x, const char *prompt,
-			  const char *history[], const int history_count,
-			  const int max_length, const int scroll_width)
+static char *ccs_readline(const int start_y, const int start_x,
+			  const char *prompt, const char *history[],
+			  const int history_count, const int max_length,
+			  const int scroll_width)
 {
 	const int prompt_len = prompt ? strlen(prompt) : 0;
 	int buffer_len = 0;

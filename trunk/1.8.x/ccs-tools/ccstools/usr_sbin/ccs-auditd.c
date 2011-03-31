@@ -320,9 +320,9 @@ start:
 			int ret_ignored;
 			if (*pos++ != '/')
 				continue;
-			*(pos - 1)= '\0';
+			*(pos - 1) = '\0';
 			ret_ignored = mkdir(path, 0700);
-			*(pos - 1)= '/';
+			*(pos - 1) = '/';
 		}
 		ptr->fd = open(path, O_WRONLY | O_APPEND | O_CREAT, 0600);
 		if (ptr->fd == EOF) {

@@ -111,16 +111,23 @@ static _Bool ccs_initializer_source(const int index);
 static _Bool ccs_initializer_target(const int index);
 static _Bool ccs_keeper_domain(const int index);
 static _Bool ccs_select_item(const int index);
-static _Bool ccs_show_command_key(const enum ccs_screen_type screen, const _Bool readonly);
+static _Bool ccs_show_command_key(const enum ccs_screen_type screen,
+				  const _Bool readonly);
 static const char *ccs_eat(const char *str);
 static const char *ccs_get_last_name(const int index);
-static const struct ccs_transition_control_entry *ccs_transition_control(const struct ccs_path_info *domainname, const char *program);
+static const struct ccs_transition_control_entry *ccs_transition_control
+(const struct ccs_path_info *domainname, const char *program);
 static enum ccs_screen_type ccs_generic_list_loop(void);
 static enum ccs_screen_type ccs_select_window(const int current);
-static int ccs_add_path_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
+static int ccs_add_path_group_entry(const char *group_name,
+				    const char *member_name,
+				    const _Bool is_delete);
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete);
-static int ccs_add_transition_control_entry(const char *domainname, const char *program, const enum ccs_transition_type type);
-static int ccs_add_transition_control_policy(char *data, const enum ccs_transition_type type);
+static int ccs_add_transition_control_entry(const char *domainname,
+					    const char *program, const enum
+					    ccs_transition_type type);
+static int ccs_add_transition_control_policy(char *data, const enum
+					     ccs_transition_type type);
 static int ccs_count(const unsigned char *array, const int len);
 static int ccs_count2(const struct ccs_generic_acl *array, int len);
 static int ccs_domainname_attribute_compare(const void *a, const void *b);
@@ -135,11 +142,13 @@ static int ccs_show_stat_line(const int index);
 static int ccs_string_acl_compare(const void *a, const void *b);
 static void ccs_add_entry(void);
 static void ccs_adjust_cursor_pos(const int item_count);
-static void ccs_assign_dis(const struct ccs_path_info *domainname, const char *program);
+static void ccs_assign_dis(const struct ccs_path_info *domainname,
+			   const char *program);
 static void ccs_copy_file(const char *source, const char *dest);
 static void ccs_delete_entry(const int index);
 static void ccs_down_arrow_key(void);
-static void ccs_find_entry(const _Bool input, const _Bool forward, const int current);
+static void ccs_find_entry(const _Bool input, const _Bool forward,
+			   const int current);
 static void ccs_page_down_key(void);
 static void ccs_page_up_key(void);
 static void ccs_read_domain_and_exception_policy(void);
@@ -449,12 +458,12 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
  */
 static int ccs_find_target_domain(const int index)
 {
-	return ccs_find_domain(&ccs_dp, ccs_dp.list[index].target_domainname, false,
-			       false);
+	return ccs_find_domain(&ccs_dp, ccs_dp.list[index].target_domainname,
+			       false, false);
 }
 
 /**
- * ccs_show_domain_line - Show a line of the domain transition tree. 
+ * ccs_show_domain_line - Show a line of the domain transition tree.
  *
  * @index: Index in the domain policy.
  *
@@ -471,7 +480,8 @@ static int ccs_show_domain_line(const int index)
 	const bool is_dis = ccs_initializer_source(index);
 	const bool is_deleted = ccs_deleted_domain(index);
 	if (number >= 0) {
-		printw("%c%4d:", ccs_dp.list_selected[index] ? '&' : ' ', number);
+		printw("%c%4d:", ccs_dp.list_selected[index] ? '&' : ' ',
+		       number);
 		if (ccs_dp.list[index].profile_assigned)
 			printw("%3u", ccs_dp.list[index].profile);
 		else
@@ -940,7 +950,7 @@ next:
 			struct ccs_transition_control_entry *ptr
 				= &ccs_transition_control_list[i];
 			if (ptr->type != type)
-                                continue;
+				continue;
 			if (ptr->domainname) {
 				if (!ptr->is_last_name) {
 					if (ccs_pathcmp(ptr->domainname,
@@ -1348,9 +1358,9 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 /**
  * ccs_parse_domain_line - Parse an ACL entry in domain policy.
  *
- * @line:  Line to parse.
- * @index: Current domain's index.
- * @flags: True if parse use_profile and use_group lines, false otherwise.
+ * @line:        Line to parse.
+ * @index:       Current domain's index.
+ * @parse_flags: True if parse use_profile and use_group lines, false otherwise.
  *
  * Returns nothing.
  */
@@ -1724,7 +1734,7 @@ static int ccs_show_process_line(const int index)
 /**
  * ccs_show_list - Print list on the screen.
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 static void ccs_show_list(void)
 {
@@ -2106,7 +2116,7 @@ static int ccs_gacl_compare(const void *a, const void *b)
 			return ret;
 		return strcmp(a2, b2);
 	} else if (a0->directive == CCS_DIRECTIVE_USE_GROUP) {
- 		return 1;
+		return 1;
 	} else if (b0->directive == CCS_DIRECTIVE_USE_GROUP) {
 		return -1;
 	} else if (a0->directive == CCS_DIRECTIVE_TRANSITION_FAILED) {
@@ -2495,7 +2505,7 @@ out:
 }
 
 /**
- * ccs_select_acl_window - Check whether to switch to ACL list or not. 
+ * ccs_select_acl_window - Check whether to switch to ACL list or not.
  *
  * @current: Index in the domain policy.
  *
@@ -2611,7 +2621,8 @@ static void ccs_copy_mark_state(const int current)
 			if (ccs_deleted_domain(current) ||
 			    ccs_initializer_source(current))
 				return;
-			for (index = current; index < ccs_dp.list_len; index++) {
+			for (index = current; index < ccs_dp.list_len;
+			     index++) {
 				if (ccs_deleted_domain(index) ||
 				    ccs_initializer_source(index))
 					continue;
@@ -2628,7 +2639,7 @@ static void ccs_copy_mark_state(const int current)
 }
 
 /**
- * ccs_copy_to_history - Copy line to histoy buffer. 
+ * ccs_copy_to_history - Copy line to histoy buffer.
  *
  * @current: Index in the domain policy.
  *
@@ -2666,7 +2677,7 @@ static void ccs_copy_to_history(const int current)
 /**
  * ccs_generic_list_loop - Main loop.
  *
- * Returns next screen to display.  
+ * Returns next screen to display.
  */
 static enum ccs_screen_type ccs_generic_list_loop(void)
 {
@@ -3034,7 +3045,6 @@ static void ccs_load_offline(void)
 			ccs_policy_dir);
 		exit(1);
 	}
-		
 }
 
 /**
