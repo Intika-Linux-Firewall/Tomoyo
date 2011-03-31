@@ -110,7 +110,7 @@ static int ccs_print_error(struct ccs_request_info *r,
 /**
  * ccs_may_mount - Check whether this mount request shadows existing mounts.
  *
- * @nd: Pointer to "struct nameidata".
+ * @path: Pointer to "struct nameidata" or "struct path".
  *
  * Returns 0 on success, negative value otherwise.
  */

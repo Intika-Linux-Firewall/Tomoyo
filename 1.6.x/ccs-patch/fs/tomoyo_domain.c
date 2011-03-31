@@ -1721,6 +1721,8 @@ int ccs_start_execve(struct linux_binprm *bprm)
 
 /**
  * ccs_finish_execve - Clean up execve() operation.
+ *
+ * @retval: Unused.
  */
 void ccs_finish_execve(int retval)
 {

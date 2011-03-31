@@ -1800,7 +1800,7 @@ int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 /**
  * ccs_check_ioctl_permission - Check permission for "ioctl".
  *
- * @file: Pointer to "struct file".
+ * @filp: Pointer to "struct file".
  * @cmd:  Ioctl command number.
  * @arg:  Param for @cmd .
  *

@@ -694,7 +694,8 @@ static int ccs_round2(size_t size)
 /**
  * ccs_alloc - Allocate memory for temporary purpose.
  *
- * @size: Size in bytes.
+ * @size:        Size in bytes.
+ * @check_quota: True to check memory quota, false otherwise.
  *
  * Returns pointer to allocated memory on success, NULL otherwise.
  */
