@@ -955,6 +955,8 @@ static bool ccs_kfree_entry(void)
 /**
  * ccs_gc_thread - Garbage collector thread function.
  *
+ * @unused: Unused.
+ *
  * In case OOM-killer choose this thread for termination, we create this thread
  * as a short live thread whenever /proc/ccs/ interface was close()d.
  *

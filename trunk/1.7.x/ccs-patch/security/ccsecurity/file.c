@@ -333,7 +333,7 @@ static int ccs_audit_path_number3_log(struct ccs_request_info *r,
  * ccs_audit_path_number_log - Audit path/number request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
- * @type:       Type of operation.
+ * @operation:  Type of operation.
  * @filename:   Pathname.
  * @value:      Value.
  * @is_granted: True if this is a granted log.
@@ -1689,6 +1689,7 @@ static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
  * ccs_path_number_perm2 - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
  *
  * @r:        Pointer to "struct ccs_request_info".
+ * @type:     One of values in "enum ccs_path_number_acl_index".
  * @filename: Filename to check.
  * @number:   Number.
  *
@@ -1783,7 +1784,7 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 /**
  * ccs_ioctl_permission - Check permission for "ioctl".
  *
- * @file: Pointer to "struct file".
+ * @filp: Pointer to "struct file".
  * @cmd:  Ioctl command number.
  * @arg:  Param for @cmd .
  *

@@ -211,7 +211,7 @@ bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
  * ccs_parse_number_union - Parse a ccs_number_union.
  *
  * @data: Number or number range or number group.
- * @ptr:  Pointer to "struct ccs_number_union".
+ * @num:  Pointer to "struct ccs_number_union".
  *
  * Returns true on success, false otherwise.
  */
@@ -1026,7 +1026,7 @@ int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 /**
  * ccs_last_word - Get last component of a line.
  *
- * @line: A line.
+ * @name: A line.
  *
  * Returns the last word of a line.
  */
