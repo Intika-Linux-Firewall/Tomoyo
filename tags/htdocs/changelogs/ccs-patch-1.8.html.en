@@ -13,7 +13,7 @@
 <a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
 </div>
 
-<div id="navbar" class="tomoyo-changelog">
+<div id="navbar" class="tomoyo-changelogs">
 <ul id="navbarlist">
 <li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
 <li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
@@ -31,6 +31,78 @@
 <div id="content">
 
 <div id="changelogs">
+
+<h4>ChangeLog for ccs-patch 1.8.1</h4>
+
+<pre>
+Fix 2011/03/31
+
+    @ Fix conditional policy parsing.
+
+      Since exec.realpath= and symlink.target= accept path_group,
+      symlink.target="@foo" was by error parsed as symlink.target=@foo .
+
+    @ Serialize updating profile's comment line.
+
+      We need to serialize when updating COMMENT= line in /proc/ccs/profile .
+
+Fix 2011/03/15
+
+    @ Pack policy when printing via /proc/ccs/ interface.
+
+      The kernel side is ready for accepting packed input like
+
+        file read/write/execute /path/to/file
+
+      but was using unpacked output like
+
+        file read /path/to/file
+        file write /path/to/file
+        file execute /path/to/file
+
+      because most of userland tools were not ready for accepting packed input.
+
+      The advantages of using packed policy are that it makes policy files
+      smaller and it speeds up loading/saving policy files.
+
+      Since most of userland tools are ready for accepting packed input by now,
+      I changed to use packed policy for both input and output.
+
+Fix 2011/03/10
+
+    @ Remove /proc/ccs/meminfo interface.
+
+      Please use /proc/ccs/stat interface instead.
+
+Fix 2011/03/05
+
+    @ Support built-in policy configuration.
+
+      To be able to start using enforcing mode from the early stage of boot
+      sequence, I added support for built-in policy configuration and
+      activating access control without calling external policy loader program.
+
+      This will be useful for systems where operations which can lead to the
+      hijacking of the boot sequence are needed before loading the policy.
+      For example, you can activate immediately after loading the fixed part of
+      policy which will allow only operations needed for mounting a partition
+      which contains the variant part of policy and verifying (e.g. running GPG
+      check) and loading the variant part of policy. Since you can start using
+      enforcing mode from the beginning, you can reduce the possibility of
+      hijacking the boot sequence.
+
+Fix 2011/03/01
+
+    @ Run garbage collector without waiting for /proc/ccs/ users.
+
+      Currently TOMOYO holds SRCU lock upon open() and releases it upon close()
+      because list elements stored in the "struct ccs_io_buffer" instances are
+      accessed until close() is called. However, such SRCU usage causes lockdep
+      to complain about leaving the kernel with SRCU lock held. Therefore,
+      I changed to hold/release SRCU upon each read()/write() by selectively
+      deferring kfree() by keeping track of the "struct ccs_io_buffer"
+      instances.
+</pre>
 
 <h4>ChangeLog for ccs-patch 1.8.0</h4>
 
