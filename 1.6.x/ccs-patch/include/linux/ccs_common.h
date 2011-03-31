@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.6.8+   2010/01/20
+ * Version: 1.6.9   2011/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.

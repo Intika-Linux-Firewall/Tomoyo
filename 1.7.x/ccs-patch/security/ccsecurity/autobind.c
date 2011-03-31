@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/autobind.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/06/04
+ * Version: 1.7.3+   2011/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
