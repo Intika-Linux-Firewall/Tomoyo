@@ -423,7 +423,8 @@ struct ccs_screen {
 #define CCS_EDITPOLICY_CONF "/etc/ccs/tools/editpolicy.conf"
 
 enum ccs_color_pair ccs_editpolicy_color_head(void);
-enum ccs_editpolicy_directives ccs_find_directive(const _Bool forward, char *line);
+enum ccs_editpolicy_directives ccs_find_directive(const _Bool forward,
+						  char *line);
 int ccs_add_address_group_policy(char *data, const _Bool is_delete);
 int ccs_add_number_group_policy(char *data, const _Bool is_delete);
 int ccs_editpolicy_get_current(void);
@@ -434,12 +435,11 @@ void ccs_editpolicy_color_init(void);
 void ccs_editpolicy_init_keyword_map(void);
 void ccs_editpolicy_line_draw(void);
 void ccs_editpolicy_offline_daemon(void);
+void ccs_editpolicy_optimize(const int current);
 void ccs_editpolicy_sttr_restore(void);
 void ccs_editpolicy_sttr_save(void);
-void ccs_editpolicy_optimize(const int current);
 
 extern enum ccs_screen_type ccs_current_screen;
-extern struct ccs_screen ccs_screen[CCS_MAXSCREEN];
 extern int ccs_gacl_list_count;
 extern int ccs_list_item_count;
 extern int ccs_path_group_list_len;
@@ -448,3 +448,4 @@ extern struct ccs_domain_policy ccs_dp;
 extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
 extern struct ccs_generic_acl *ccs_gacl_list;
 extern struct ccs_path_group_entry *ccs_path_group_list;
+extern struct ccs_screen ccs_screen[CCS_MAXSCREEN];

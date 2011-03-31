@@ -44,7 +44,7 @@
  * Returns realpath of @path on success, NULL otherwise.
  *
  * Caller must free() the returned pointer if this function did not return
- * NULL. 
+ * NULL.
  */
 static inline char *get_realpath(const char *path)
 {
@@ -280,7 +280,7 @@ static void scan_init_scripts(void)
 				fprintf(filp, "aggregator ");
 				/*
 				 * Use /rc\?.d/ rather than /rc0.d/ /rc1.d/
-				 * /rc2.d/ /rc3.d/ /rc4.d/ /rc5.d/ /rc6.d/ 
+				 * /rc2.d/ /rc3.d/ /rc4.d/ /rc5.d/ /rc6.d/
 				 * /rcS.d/ .
 				 */
 				if (cp && !strncmp(cp, "/rc", 3) &&
@@ -308,12 +308,12 @@ static void scan_init_scripts(void)
 /**
  * make_init_scripts_as_aggregators - Use realpath for startup/shutdown scripts in /etc/ directory.
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 static void make_init_scripts_as_aggregators(void)
 {
 	/* Mark symlinks under /etc/rc\?.d/ directory as aggregator. */
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
 		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
 		"/etc/rc4.d", "/etc/rc5.d", "/etc/rc6.d", "/etc/rcS.d",
@@ -365,11 +365,11 @@ static void scan_executable_files(const char *dir)
 /**
  * scan_modprobe_and_hotplug - Mark modprobe and hotplug as initialize_domain entries.
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 static void scan_modprobe_and_hotplug(void)
 {
-	static const char *files[2] = {
+	static const char * const files[2] = {
 		"/proc/sys/kernel/modprobe", "/proc/sys/kernel/hotplug"
 	};
 	int i;
@@ -408,7 +408,7 @@ static void scan_modprobe_and_hotplug(void)
 static void make_globally_readable_files(void)
 {
 	/* Allow reading some data files. */
-	static const char *files[] = {
+	static const char * const files[] = {
 		"/etc/ld.so.cache", "/proc/meminfo",
 		"/proc/sys/kernel/version", "/etc/localtime",
 		"/usr/lib/gconv/gconv-modules.cache",
@@ -450,7 +450,7 @@ static void make_self_readable_files(void)
 static void make_ldconfig_readable_files(void)
 {
 	/* Allow reading DLL files registered with ldconfig(8). */
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/lib/", "/lib/i486/", "/lib/i586/", "/lib/i686/",
 		"/lib/i686/cmov/", "/lib/tls/", "/lib/tls/i486/",
 		"/lib/tls/i586/", "/lib/tls/i686/", "/lib/tls/i686/cmov/",
@@ -537,7 +537,7 @@ static void make_init_dir_as_initializers(void)
  */
 static void make_initializers(void)
 {
-	static const char *files[] = {
+	static const char const *files[] = {
 		"/sbin/cardmgr",
 		"/sbin/getty",
 		"/sbin/init",

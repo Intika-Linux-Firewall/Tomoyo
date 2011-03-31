@@ -386,7 +386,7 @@ static void scan_init_scripts(void)
 static void make_init_scripts_as_aggregators(void)
 {
 	/* Mark symlinks under /etc/rc\?.d/ directory as aggregator. */
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
 		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
 		"/etc/rc4.d", "/etc/rc5.d", "/etc/rc6.d", "/etc/rcS.d",
@@ -487,7 +487,7 @@ static void make_patterns_for_policy_directory(void)
 static void make_patterns_for_man_directory(void)
 {
 	/* Make patterns for man directory. */
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/usr/share/man", "/usr/X11R6/man"
 	};
 	int i;
@@ -508,7 +508,7 @@ static void make_patterns_for_spool_directory(void)
 {
 	/* Make patterns for spool directory. */
 	struct stat buf;
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/var/spool/clientmqueue",
 		"/var/spool/mail",
 		"/var/spool/mqueue",
@@ -580,7 +580,7 @@ static void make_patterns_for_crontab(void)
 static void make_globally_readable_files(void)
 {
 	/* Allow reading some data files. */
-	static const char *files[] = {
+	static const char * const files[] = {
 		"/etc/ld.so.cache", "/proc/meminfo",
 		"/proc/sys/kernel/version", "/etc/localtime",
 		"/usr/lib/gconv/gconv-modules.cache",
@@ -649,7 +649,7 @@ static void make_initializers(void)
 	 * Mark some programs that you want to assign short domainname as
 	 * initializer.
 	 */
-	static const char *files[] = {
+	static const char * const files[] = {
 		"/sbin/cardmgr",
 		"/sbin/getty",
 		"/sbin/init",

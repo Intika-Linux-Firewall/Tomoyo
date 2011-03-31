@@ -41,8 +41,10 @@ static void get_meminfo(unsigned int *policy_memory)
 {
 	static char buf[1024];
 	FILE *fp = fopen("/proc/ccs/stat", "r");
-	while (memset(buf, 0, sizeof(buf)), fp && fgets(buf, sizeof(buf) - 1, fp)) {
-		if (sscanf(buf, "Memory used by policy: %u", policy_memory) != 1)
+	while (memset(buf, 0, sizeof(buf)),
+	       fp && fgets(buf, sizeof(buf) - 1, fp)) {
+		if (sscanf(buf,
+			   "Memory used by policy: %u", policy_memory) != 1)
 			continue;
 		fclose(fp);
 		return;
@@ -87,7 +89,7 @@ static inline void check_policy_deleted(FILE *fp, const int id)
 	check_policy_common(0, id);
 }
 
-static const char *domain_testcases[] = {
+static const char * const domain_testcases[] = {
 	"file create /tmp/mknod_reg_test 0600",
 	"file create /tmp/open_test 0600 path1.parent.uid=task.uid",
 	"file create /tmp/open_test 0600 0=0",
@@ -251,7 +253,7 @@ static void domain_policy_test(const unsigned int before)
 	}
 }
 
-static const char *exception_testcases[] = {
+static const char * const exception_testcases[] = {
 	"acl_group 0 file read /tmp/mknod_reg_test",
 	"acl_group 0 misc env HOME",
 	"path_group PG1 /",

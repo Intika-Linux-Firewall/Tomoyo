@@ -131,12 +131,12 @@ static _Bool ccs_hexadecimal(const char c)
 }
 
 /**
- *  ccs_alphabet_char - Check whether the character is an alphabet.
+ * ccs_alphabet_char - Check whether the character is an alphabet.
  *
  * @c: The character to check.
  *
  * Returns true if @c is an alphabet character, false otherwise.
- */ 
+ */
 static _Bool ccs_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
@@ -1155,7 +1155,7 @@ static int ccs_dump_index = 0;
  * @pid:   Pid to search.
  * @depth: Depth of the process for printing like pstree command.
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 static void ccs_sort_process_entry(const pid_t pid, const int depth)
 {
@@ -1194,7 +1194,7 @@ static int ccs_task_entry_compare(const void *a, const void *b)
  *
  * @show_all: Ture if kernel threads should be included, false otherwise.
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 void ccs_read_process_list(_Bool show_all)
 {
@@ -1435,7 +1435,7 @@ FILE *ccs_open_read(const char *filename)
  * @src:  Filename to save from.
  * @dest: Filename to save to.
  *
- * Returns true on success, false otherwise. 
+ * Returns true on success, false otherwise.
  */
 _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 {
@@ -1514,7 +1514,7 @@ out:
  *
  * @dp: Pointer to "struct ccs_domain_policy".
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 void ccs_clear_domain_policy(struct ccs_domain_policy *dp)
 {
@@ -1619,7 +1619,7 @@ static void ccs_sort_domain_policy(struct ccs_domain_policy *dp)
  * @dp:       Pointer to "struct ccs_domain_policy".
  * @filename: Domain policy's pathname.
  *
- * Returns nothing. 
+ * Returns nothing.
  */
 void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename)
 {
@@ -1703,7 +1703,7 @@ void ccs_delete_domain(struct ccs_domain_policy *dp, const int index)
  * @entry: String to add.
  * @index: Index in the @dp array.
  *
- * Returns 0 if successfully added or already exists, -EINVAL otherwise. 
+ * Returns 0 if successfully added or already exists, -EINVAL otherwise.
  */
 int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index)
@@ -1750,7 +1750,7 @@ int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
  * @index: Index in the @dp array.
  *
  * Returns 0 if successfully removed, -ENOENT if not found,
- * -EINVAL otherwise. 
+ * -EINVAL otherwise.
  */
 int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index)
@@ -1865,7 +1865,7 @@ static _Bool ccs_buffer_locked = false;
  * Returns nothing.
  *
  * This is for avoiding accidental overwriting.
- * ccs_freadline() and ccs_shprintf() have their own memory buffer. 
+ * ccs_freadline() and ccs_shprintf() have their own memory buffer.
  */
 void ccs_get(void)
 {
@@ -1880,7 +1880,7 @@ void ccs_get(void)
  * Returns nothing.
  *
  * This is for avoiding accidental overwriting.
- * ccs_freadline() and ccs_shprintf() have their own memory buffer. 
+ * ccs_freadline() and ccs_shprintf() have their own memory buffer.
  */
 void ccs_put(void)
 {

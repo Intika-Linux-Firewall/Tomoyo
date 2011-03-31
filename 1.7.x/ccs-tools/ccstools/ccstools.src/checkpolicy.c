@@ -330,7 +330,7 @@ out:
 
 static void check_capability_policy(char *data)
 {
-	static const char *capability_keywords[] = {
+	static const char * const capability_keywords[] = {
 		"inet_tcp_create", "inet_tcp_listen", "inet_tcp_connect",
 		"use_inet_udp", "use_inet_ip", "use_route", "use_packet",
 		"SYS_MOUNT", "SYS_UMOUNT", "SYS_REBOOT", "SYS_CHROOT",

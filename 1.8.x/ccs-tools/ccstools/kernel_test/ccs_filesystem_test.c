@@ -579,7 +579,8 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
-		fprintf(domain_fp, "delete file pivot_root proc:/ proc:/ccs/\n");
+		fprintf(domain_fp,
+			"delete file pivot_root proc:/ proc:/ccs/\n");
 		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
 		show_prompt(stack, 1);
 		{
