@@ -2801,3 +2801,14 @@ Fix 2011/03/15
 
       Since most of userland tools are ready for accepting packed input by now,
       I changed to use packed policy for both input and output.
+
+Fix 2011/03/31
+
+    @ Fix conditional policy parsing.
+
+      Since exec.realpath= and symlink.target= accept path_group,
+      symlink.target="@foo" was by error parsed as symlink.target=@foo .
+
+    @ Serialize updating profile's comment line.
+
+      We need to serialize when updating COMMENT= line in /proc/ccs/profile .

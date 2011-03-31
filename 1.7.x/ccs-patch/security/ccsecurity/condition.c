@@ -263,24 +263,6 @@ static bool ccs_scan_exec_realpath(struct file *file,
 	return result == match;
 }
 
-static bool ccs_parse_name_union_quoted(char *filename,
-					struct ccs_name_union *ptr)
-{
-	bool result;
-	char *cp = NULL;
-	if (*filename == '"') {
-		cp = filename + strlen(filename) - 1;
-		if (*cp != '"')
-			return false;
-		*cp = '\0';
-		filename++;
-	}
-	result = ccs_parse_name_union(filename, ptr);
-	if (cp)
-		*cp = '"';
-	return result;
-}
-
 /**
  * ccs_get_dqword - ccs_get_name() for a quoted string.
  *
@@ -306,6 +288,16 @@ static const struct ccs_path_info *ccs_get_dqword(char *start)
 	if (!ccs_is_correct_path(start, 0, 0, 0))
 		return NULL;
 	return ccs_get_name(start);
+}
+
+static bool ccs_parse_name_union_quoted(char *filename,
+					struct ccs_name_union *ptr)
+{
+	if (*filename == '@')
+		return ccs_parse_name_union(filename, ptr);
+	ptr->is_group = false;
+	ptr->filename = ccs_get_dqword(filename);
+	return ptr->filename != NULL;
 }
 
 /**
