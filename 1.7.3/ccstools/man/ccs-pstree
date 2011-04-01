@@ -1,0 +1,42 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+ccs-pstree 1.7.3
+
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: ccs-pstree [-a] [remote_ip:remote_port]
+
+This program shows profile index and domainname of currently running process like "pstree" command.
+
+ -a    Show all processes including kernel threads.
+
+ remote_ip:remote_port     Get process information via agent listening at specified IP address and port number. 
+
+Examples:
+
+# ccs-pstree
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "View TOMOYO Linux's process information" $0 | gzip -9 > man8/ccs-pstree.8.gz
+[SEE ALSO]
+
+ ccs-setprofile (8)
+ ccs-editpolicy-agent (8)
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0
