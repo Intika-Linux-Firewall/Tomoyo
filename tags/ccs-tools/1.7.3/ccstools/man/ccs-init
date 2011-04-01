@@ -1,0 +1,73 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+ccs-init 1.7.3
+
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: ccs-init
+
+This program is automatically called to load policy from files into kernel when /sbin/init starts.
+
+This program copies the following files.
+
+   /etc/ccs/exception_policy.conf => /proc/ccs/exception_policy
+
+   /etc/ccs/domain_policy.conf => /proc/ccs/domain_policy
+
+   /etc/ccs/profile.conf => /proc/ccs/profile
+
+   /etc/ccs/manager.conf => /proc/ccs/manager
+
+   /etc/ccs/meminfo.conf => /proc/ccs/meminfo
+
+If /etc/ccs/ccs-post-init is an executable file, /etc/ccs/ccs-post-init is also executed.
+You can use /etc/ccs/ccs-post-init for additional initialization purpose.
+For example, you can write
+
+  #! /bin/sh
+
+  echo manage_by_non_root > /proc/ccs/manager
+
+  chown -R demo /proc/ccs/
+
+in the /etc/ccs/ccs-post-init and chown/chmod like
+
+  chown -R demo /etc/ccs/
+
+to allow policy management by user "demo" as well as user "root".
+
+Examples:
+
+None.
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "Load TOMOYO Linux's policy automatically" $0 | gzip -9 > man8/ccs-init.8.gz
+[SEE ALSO]
+
+ ccs-loadpolicy (8)
+
+[NOTES]
+
+ If something went wrong, a prompt is shown so that the administrator can take action before the kernel gets panic.
+
+ You don't need to invoke this program manually.
+
+ To load policy after /sbin/init starts, use ccs-loadpolicy instead.
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0

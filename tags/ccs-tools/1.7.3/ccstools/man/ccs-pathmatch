@@ -1,0 +1,44 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+ccs-pathmatch 1.7.3
+
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: ccs-pathmatch list_of_pathname_patterns
+
+This program scans the filesystem for given pathname patterns.
+
+You can use this program to determine how deep patterns are needed for defining 'file_pattern' or 'path_group'.
+
+Examples:
+
+# ccs-pathmatch '/etc/\*' '/tmp/\*'
+ Search for pathnames matching '/etc/\*' or '/tmp/\*' pattern.
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "Do TOMOYO Linux's pathname pattern matching on the filesystem" $0 | gzip -9 > man8/ccs-pathmatch.8.gz
+[SEE ALSO]
+
+ ccs-patternize (8)
+
+[NOTES]
+
+ You unlikely need this program because TOMOYO 1.7.1 introduced recursive directory matching. For example, you can specify /var/www/html/\e{\e*\e}/\e*.html for matching /var/www/html/\e*/\e*.html /var/www/html/\e*/\e*/\e*.html /var/www/html/\e*/\e*/\e*/\e*.html etc.
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0

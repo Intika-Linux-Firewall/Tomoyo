@@ -1,0 +1,42 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+ccs-domainmatch 1.6.9
+
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: ccs-domainmatch pathname
+
+This program scans domain policy for given pathname.
+
+Examples:
+
+# ccs-domainmatch /etc/fstab
+ Search for domains that access /etc/fstab .
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "Scan TOMOYO Linux's domain policy" $0 | gzip -9 > man8/ccs-domainmatch.8.gz
+[SEE ALSO]
+
+ ccs-findtemp (8)
+
+[NOTES]
+
+ This is a symbolic link to /usr/lib/ccs/domainmatch .
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0
