@@ -1,16 +1,16 @@
 Summary: TOMOYO Linux tools
 
 Name: ccs-tools
-Version: 1.7.2
-Release: 3
+Version: 1.7.3
+Release: 1
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.2-3
+Conflicts: ccs-tools < 1.7.3-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20101231.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.3-20110401.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Fri Apr 01 2011 1.7.3-1
+- Fix convert-audit-log bad exec.envp[] handling.
+
 * Fri Dec 31 2010 1.7.2-3
 - Fix regression introduced when fixing old/new inversion bug.
 

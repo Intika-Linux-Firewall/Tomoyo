@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.2.0+   2010/01/15
+ * Version: 2.2.0+   2011/04/01
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.

@@ -2,9 +2,9 @@
 #
 # Initial policy generator.
 #
-# Copyright (C) 2005-2009  NTT DATA CORPORATION
+# Copyright (C) 2005-2011  NTT DATA CORPORATION
 #
-# Version: 1.6.8   2009/05/28
+# Version: 1.6.9   2011/04/01
 #
 
 cd ${0%/*}

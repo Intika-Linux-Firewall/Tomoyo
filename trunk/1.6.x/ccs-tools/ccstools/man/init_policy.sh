@@ -3,9 +3,9 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-init_policy.sh 1.6.8
+init_policy.sh 1.6.9
 
-Copyright (C) 2005-2009 NTT DATA CORPORATION.
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
 
 This program is free software; you may redistribute it under the terms of
 the GNU General Public License. This program has absolutely no warranty.

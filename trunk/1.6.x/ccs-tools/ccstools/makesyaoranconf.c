@@ -3,9 +3,9 @@
  *
  * Generate policy template file for SYAORAN.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.6.9   2011/04/01
  *
  * This program generates policy template file for SYAORAN
  * (Implementation of the Tamper-Proof Device Filesystem).
