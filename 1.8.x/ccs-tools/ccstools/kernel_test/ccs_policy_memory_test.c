@@ -1,9 +1,9 @@
 /*
  * ccs_policy_memory_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2010/12/31
+ * Version: 1.8.1   2011/04/01
  *
  * Usage: Run this program using init= boot option.
  *

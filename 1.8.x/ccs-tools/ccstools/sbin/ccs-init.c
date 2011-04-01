@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.0+   2011/02/14
+ * Version: 1.8.1   2011/04/01
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.

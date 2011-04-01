@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.6.9   2011/04/01
  *
  */
 #include "ccstools.h"
@@ -1222,7 +1222,7 @@ show_version:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("ccstools version 1.6.8p1 build 2009/06/23\n");
+	printf("ccstools version 1.6.9 build 2011/04/01\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }
