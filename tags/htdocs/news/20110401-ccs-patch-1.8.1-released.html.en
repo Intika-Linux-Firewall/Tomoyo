@@ -36,92 +36,19 @@
 
 <p class="timestamp">1st April, 2011</p>
 <h4>ccs-patch 1.8.1 released</h4>
-<p class="article">A new version of ccs-patch (<a href="../changelogs/ccs-patch-1.8.html.en">ChangeLog</a>) and ccs-tools (<a href="../changelogs/ccs-tools-1.8.html.en">ChangeLog</a>) for the 1.8.x branch have been released.</p>
+<p class="article">New versions of ccs-patch and ccs-tools for 1.8.x, 1.7.x and 1.6.x branches have been released.</p>
 
-<p>ChangeLog for ccs-patch 1.8.1:</p>
-<pre>
-Fix 2011/03/31
+<p>ChangeLogs:</p>
+<ul>
+<li><a href="../changelogs/ccs-patch-1.8.html.en">ccs-patch 1.8.1</a></li>
+<li><a href="../changelogs/ccs-tools-1.8.html.en">ccs-tools 1.8.1</a></li>
+<li><a href="../changelogs/ccs-patch-1.7.html.en">ccs-patch 1.7.3</a></li>
+<li><a href="../changelogs/ccs-tools-1.7.html.en">ccs-tools 1.7.3</a></li>
+<li><a href="../changelogs/ccs-patch-1.6.html.en">ccs-patch 1.6.9</a></li>
+<li><a href="../changelogs/ccs-tools-1.6.html.en">ccs-tools 1.6.9</a></li>
+</ul>
 
-    @ Fix conditional policy parsing.
-
-      Since exec.realpath= and symlink.target= accept path_group,
-      symlink.target="@foo" was by error parsed as symlink.target=@foo .
-
-    @ Serialize updating profile's comment line.
-
-      We need to serialize when updating COMMENT= line in /proc/ccs/profile .
-
-Fix 2011/03/15
-
-    @ Pack policy when printing via /proc/ccs/ interface.
-
-      The kernel side is ready for accepting packed input like
-
-        file read/write/execute /path/to/file
-
-      but was using unpacked output like
-
-        file read /path/to/file
-        file write /path/to/file
-        file execute /path/to/file
-
-      because most of userland tools were not ready for accepting packed input.
-
-      The advantages of using packed policy are that it makes policy files
-      smaller and it speeds up loading/saving policy files.
-
-      Since most of userland tools are ready for accepting packed input by now,
-      I changed to use packed policy for both input and output.
-
-Fix 2011/03/10
-
-    @ Remove /proc/ccs/meminfo interface.
-
-      Please use /proc/ccs/stat interface instead.
-
-Fix 2011/03/05
-
-    @ Support built-in policy configuration.
-
-      To be able to start using enforcing mode from the early stage of boot
-      sequence, I added support for built-in policy configuration and
-      activating access control without calling external policy loader program.
-
-      This will be useful for systems where operations which can lead to the
-      hijacking of the boot sequence are needed before loading the policy.
-      For example, you can activate immediately after loading the fixed part of
-      policy which will allow only operations needed for mounting a partition
-      which contains the variant part of policy and verifying (e.g. running GPG
-      check) and loading the variant part of policy. Since you can start using
-      enforcing mode from the beginning, you can reduce the possibility of
-      hijacking the boot sequence.
-
-Fix 2011/03/01
-
-    @ Run garbage collector without waiting for /proc/ccs/ users.
-
-      Currently TOMOYO holds SRCU lock upon open() and releases it upon close()
-      because list elements stored in the "struct ccs_io_buffer" instances are
-      accessed until close() is called. However, such SRCU usage causes lockdep
-      to complain about leaving the kernel with SRCU lock held. Therefore,
-      I changed to hold/release SRCU upon each read()/write() by selectively
-      deferring kfree() by keeping track of the "struct ccs_io_buffer"
-      instances.
-</pre>
-
-<p>ChangeLog for ccs-tools 1.8.1:</p>
-<pre>
-Version 1.8.1 2011/04/01   Minor update release.
-
-  Updated to handle TOMOYO 1.8.1's syntax.
-
-  Support packed policy format.
-
-  Fix build error on parallel build.
-
-  /usr/sbin/ccs-editpolicy
-    Handle all domain transition related directives.
-</pre>
+<p>Please note that binary packages for the 1.6.x branch will no longer be provided.</p>
 
 </div><!-- news-archive -->
 
