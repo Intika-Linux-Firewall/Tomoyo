@@ -32,6 +32,104 @@
 
 <div id="changelogs">
 
+<h4>ChangeLog for ccs-patch 1.7.3</h4>
+
+<pre>
+Fix 2011/03/31
+
+    @ Fix conditional policy parsing.
+
+      Since exec.realpath= and symlink.target= accept path_group,
+      symlink.target="@foo" was by error parsed as symlink.target=@foo .
+
+    @ Serialize updating profile's comment line.
+
+      We need to serialize when updating COMMENT= line in /proc/ccs/profile .
+
+Fix 2010/11/22
+
+    @ Fix umount() pathname calculation.
+
+      "mount --bind /path/to/file1 /path/to/file2" is legal.
+      Therefore, "umount /path/to/file2" is also legal.
+      Do not automatically append trailing '/' if pathname to be unmounted
+      does not end with '/'.
+
+    @ Change export level of ccsecurity_ops structure.
+
+      Non-GPL modules might need to access ccsecurity_ops via inlined functions
+      embedded into include/linux/security.h and include/net/ip.h .
+
+Fix 2010/09/18
+
+    @ Remove pre-vfs functions.
+
+      I again encountered build failure due to may_create()/may_delete()
+      changes by distributor's patches. Since directory modification syscalls
+      (e.g. mkdir()/unlink()) seldom violate DAC's permission whereas directory
+      scanning syscalls (e.g. open()/stat()) sometimes violate it (because of
+      environment variable PATH), not doing DAC checks before MAC checks won't
+      trigger MAC's permission error flooding. Thus, I removed DAC checks which
+      are done before MAC checks.
+
+Fix 2010/06/09
+
+    @ Add missing ccs_put_name() in ccs_parse_envp().
+
+      Since 1.7.0 , ccs_parse_envp() was not calling ccs_put_name() if
+      environment variable's value ('if exec.envp["name"]="value"' condition)
+      was invalid.
+
+    @ Add missing NULL check in ccs_condition().
+
+      Since 1.7.0 , if 'if symlink.target=' part was given against non-file
+      permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
+      NULL pointer dereference.
+
+Fix 2010/06/03
+
+    @ Fix missing sanity check for "file_pattern".
+
+      Since 1.7.0 , ccs_write_pattern_policy() was by error accepting
+      invalid pathname.
+
+Fix 2010/05/27
+
+    @ Add missing rcu_dereference() for ccs_find_execute_handler().
+
+      Since 1.7.0 , ccs_find_execute_handler() was by error using
+      list_for_each_entry() rather than list_for_each_entry_rcu().
+      This bug affects only Alpha architecture.
+
+Fix 2010/05/10
+
+    @ Fix incorrect out of memory warning.
+
+      Out of memory warnings were not printed in some cases by error.
+
+Fix 2010/05/05
+
+    @ Fix incorrect audit on/off control.
+
+      The grant_log= and reject_log= parameters of CONFIG::misc::env were not
+      used because I forgot to update request type. As a result, those of
+      CONFIG::file::execute were used for CONFIG::misc::env .
+
+      Those of CONFIG::file::rewrite were not used because I forgot to update
+      request type. As a result, those of CONFIG::file::truncate were used for
+      CONFIG::file::rewrite .
+
+Fix 2010/04/10
+
+    @ Fix invalid "struct nameidata" to "struct path" conversion macro.
+
+      Regarding kernels 2.6.24 and earlier, I was converting "struct nameidata"
+      to "struct path" in caller side so that I can unify the callee function's
+      parameter type. But it turned out that the macro I used did not follow C
+      standards and did not work with gcc 4.x . As a result, "allow_pivot_root"
+      keyword was not working as expected.
+</pre>
+
 <h4>ChangeLog for ccs-patch 1.7.2</h4>
 
 <pre>
