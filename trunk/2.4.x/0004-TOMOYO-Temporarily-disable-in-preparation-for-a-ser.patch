@@ -1,0 +1,37 @@
+From c682594fee3f25d747ec64b15f4cf031e753d62c Mon Sep 17 00:00:00 2001
+From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Date: Sun, 3 Apr 2011 00:19:44 +0900
+Subject: [PATCH 4/9] TOMOYO: Temporarily disable in preparation for a series of changes.
+
+For ease of review, subsequent patches might be splitted in a way where runtime
+errors occur. Due to changes in policy syntax, it is difficult to prepare
+userspace programs for "git bisect" until a series of changes has been applied.
+
+For ease of "git bisect" for problems unrelated with TOMOYO, this patch
+temporarily disables TOMOYO. You can estimate how TOMOYO will look like by
+browsing http://tomoyo.sourceforge.jp/cgi-bin/lxr/source/security/ccsecurity/ .
+
+This commit will be reverted when all changes are done.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/tomoyo.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
+
+diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
+index 95d3f95..cc1da19 100644
+--- a/security/tomoyo/tomoyo.c
++++ b/security/tomoyo/tomoyo.c
+@@ -276,6 +276,9 @@ static int __init tomoyo_init(void)
+ 
+ 	if (!security_module_enable(&tomoyo_security_ops))
+ 		return 0;
++	printk(KERN_INFO "TOMOYO Linux is temporarily disabled due to large "
++	       "and imcompatible changes are in progress.\n");
++	return 0;
+ 	/* register ourselves with the security framework */
+ 	if (register_security(&tomoyo_security_ops) ||
+ 	    init_srcu_struct(&tomoyo_ss))
+-- 
+1.6.1
+
