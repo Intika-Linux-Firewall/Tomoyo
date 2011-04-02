@@ -2219,7 +2219,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		goto out;
 	case CCS_CONFIG_LEARNING:
 		error = 0;
-		/* Check mac_learning_entry parameter. */
+		/* Check max_learning_entry parameter. */
 		if (ccs_domain_quota_ok(r))
 			break;
 		/* fall through */
