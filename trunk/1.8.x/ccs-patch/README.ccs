@@ -2814,3 +2814,17 @@ Fix 2011/03/31
       We need to serialize when updating COMMENT= line in /proc/ccs/profile .
 
 Version 1.8.1   2011/04/01   Usability enhancement with "Zettai, Daijoubudayo" release!
+
+Fix 2011/04/03
+
+    @ Fix fcntl(F_SETFL, O_APPEND) handling.
+
+      Since 1.8.0, TOMOYO was by error checking "file write" permission rather
+      than "file append" permission when changing file's writing mode from
+      "overwriting" to "append".
+
+      This error should impact little (except CentOS 6.0 kernels) because once
+      a file was opened for "overwriting" mode, changing that file to "append"
+      mode cannot undo overwriting the file. Regarding CentOS 6.0 kernels,
+      due to different ACC_MODE definition, TOMOYO was by error needlessly
+      checking "file read" permission when fcntl() was requested.
