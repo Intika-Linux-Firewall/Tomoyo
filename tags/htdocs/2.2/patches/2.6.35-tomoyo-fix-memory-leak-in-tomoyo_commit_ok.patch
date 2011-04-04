@@ -1,0 +1,22 @@
+[PATCH] tomoyo: fix memory leak in tomoyo_commit_ok()
+
+When memory used for policy exceeds the quota, tomoyo_memory_ok() return false.
+In this case, tomoyo_commit_ok() must call kfree() before returning NULL.
+This bug exists since 2.6.35.
+
+Signed-off-by: Xiaochen Wang <wangxiaochen0@gmail.com>
+Acked-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/realpath.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- linux-2.6.35.12.orig/security/tomoyo/realpath.c
++++ linux-2.6.35.12/security/tomoyo/realpath.c
+@@ -238,6 +238,7 @@ void *tomoyo_commit_ok(void *data, const
+ 		memset(data, 0, size);
+ 		return ptr;
+ 	}
++	kfree(ptr);
+ 	return NULL;
+ }
+ 
