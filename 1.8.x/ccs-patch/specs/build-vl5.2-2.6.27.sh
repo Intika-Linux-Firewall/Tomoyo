@@ -10,7 +10,7 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27-65vl5.src.rpm ]
+if [ ! -r kernel-2.6.27-67vl5.src.rpm ]
 then
     wget http://updates.vinelinux.org/Vine-5.2/updates/SRPMS/kernel-2.6.27-67vl5.src.rpm || die "Can't download source package."
 fi
