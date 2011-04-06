@@ -50,7 +50,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  #include "ia32priv.h"
  
-@@ -1754,6 +1755,8 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1742,6 +1743,8 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
@@ -190,7 +190,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
  int suid_dumpable = 0;
-@@ -123,6 +125,9 @@ asmlinkage long sys_uselib(const char __
+@@ -123,6 +125,9 @@ SYSCALL_DEFINE1(uselib, const char __use
  	error = vfs_permission(&nd, MAY_READ | MAY_EXEC);
  	if (error)
  		goto exit;
@@ -200,7 +200,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	error = PTR_ERR(file);
-@@ -669,6 +674,11 @@ struct file *open_exec(const char *name)
+@@ -704,6 +709,11 @@ struct file *open_exec(const char *name)
  		file = ERR_PTR(-EACCES);
  		if (S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
@@ -212,7 +212,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd,
-@@ -1328,7 +1338,7 @@ int do_execve(char * filename,
+@@ -1370,7 +1380,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -261,7 +261,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -202,6 +205,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -202,6 +205,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -281,7 +281,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1647,6 +1649,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1673,6 +1675,11 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -293,7 +293,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1693,6 +1700,9 @@ static int __open_namei_create(struct na
+@@ -1719,6 +1726,9 @@ static int __open_namei_create(struct na
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
@@ -303,7 +303,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
-@@ -1703,6 +1713,7 @@ static int __open_namei_create(struct na
+@@ -1729,6 +1739,7 @@ static int __open_namei_create(struct na
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -311,7 +311,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -2098,6 +2109,10 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2124,6 +2135,10 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -322,7 +322,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2174,6 +2189,9 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2200,6 +2215,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -332,7 +332,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2286,6 +2304,9 @@ static long do_rmdir(int dfd, const char
+@@ -2312,6 +2330,9 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -342,7 +342,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
  	mnt_drop_write(nd.path.mnt);
  exit3:
-@@ -2372,6 +2393,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2398,6 +2419,9 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -352,7 +352,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
  		mnt_drop_write(nd.path.mnt);
  	exit2:
-@@ -2457,6 +2481,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2483,6 +2507,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -362,7 +362,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from, S_IALLUGO);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2557,6 +2584,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2582,6 +2609,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -373,7 +373,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode, new_dentry);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2788,6 +2819,10 @@ static int do_rename(int olddfd, const c
+@@ -2813,6 +2844,10 @@ static int do_rename(int olddfd, const c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -405,7 +405,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -1123,6 +1128,8 @@ asmlinkage long sys_umount(char __user *
+@@ -1123,6 +1128,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
  {
  	struct nameidata nd;
  	int retval;
@@ -458,7 +458,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2182,6 +2205,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2181,6 +2204,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -467,7 +467,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
  			    &new_nd);
-@@ -2196,6 +2221,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2195,6 +2220,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd.path, &new_nd.path);
@@ -487,7 +487,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -270,6 +272,10 @@ static long do_sys_truncate(const char _
+@@ -268,6 +270,10 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
@@ -498,7 +498,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -326,6 +332,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -324,6 +330,10 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -509,7 +509,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -559,6 +569,10 @@ asmlinkage long sys_chroot(const char __
+@@ -578,6 +588,10 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -520,9 +520,9 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	set_fs_root(current->fs, &nd.path);
  	set_fs_altroot();
-@@ -1214,6 +1228,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1230,6 +1244,8 @@ EXPORT_SYMBOL(sys_close);
   */
- asmlinkage long sys_vhangup(void)
+ SYSCALL_DEFINE0(vhangup)
  {
 +	if (!ccs_capable(CCS_SYS_VHANGUP))
 +		return -EPERM;
@@ -545,7 +545,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.26-26lenny2 2011/01/30\n");
++	printk(KERN_INFO "Hook version: 2.6.26-26lenny2 2011/04/06\n");
 +#endif
  }
 --- linux-2.6.26-26lenny2.orig/include/linux/init_task.h
@@ -570,7 +570,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  /*
   * Scheduling policies
   */
-@@ -1303,6 +1305,8 @@ struct task_struct {
+@@ -1305,6 +1307,8 @@ struct task_struct {
  	int latency_record_count;
  	struct latency_record latency_record[LT_SAVECOUNT];
  #endif
@@ -581,7 +581,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  /*
 --- linux-2.6.26-26lenny2.orig/kernel/compat.c
 +++ linux-2.6.26-26lenny2/kernel/compat.c
-@@ -25,6 +25,7 @@
+@@ -26,6 +26,7 @@
  #include <linux/posix-timers.h>
  
  #include <asm/uaccess.h>
@@ -589,7 +589,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
  {
-@@ -868,6 +869,8 @@ asmlinkage long compat_sys_stime(compat_
+@@ -869,6 +870,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -608,7 +608,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t* crash_notes;
-@@ -932,6 +933,8 @@ asmlinkage long sys_kexec_load(unsigned 
+@@ -931,6 +932,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -639,7 +639,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  #if 0
  #define DEBUGP printk
-@@ -694,6 +695,8 @@ sys_delete_module(const char __user *nam
+@@ -694,6 +695,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -648,7 +648,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2200,6 +2203,8 @@ sys_init_module(void __user *umod,
+@@ -2208,6 +2211,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -667,7 +667,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -542,6 +543,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -542,6 +543,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -695,8 +695,8 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  /*
   * Convert user-nice values [ -20 ... 0 ... 19 ]
-@@ -4638,6 +4639,8 @@ int can_nice(const struct task_struct *p
- asmlinkage long sys_nice(int increment)
+@@ -4697,6 +4698,8 @@ int can_nice(const struct task_struct *p
+ SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
 +	if (!ccs_capable(CCS_SYS_NICE))
@@ -714,8 +714,8 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  /*
   * SLAB caches for signal bits.
-@@ -2199,6 +2200,10 @@ asmlinkage long
- sys_kill(int pid, int sig)
+@@ -2198,6 +2199,10 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+ SYSCALL_DEFINE2(kill, int, pid, int, sig)
  {
  	struct siginfo info;
 +	if (sig && !ccs_capable(CCS_SYS_KILL))
@@ -725,7 +725,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2260,6 +2265,10 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2259,6 +2264,10 @@ SYSCALL_DEFINE3(tgkill, int, tgid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -736,7 +736,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2273,6 +2282,10 @@ sys_tkill(int pid, int sig)
+@@ -2271,6 +2280,10 @@ SYSCALL_DEFINE2(tkill, int, pid, int, si
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -757,7 +757,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -146,6 +147,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -146,6 +147,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -768,7 +768,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -382,6 +387,8 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -383,6 +388,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -777,7 +777,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1365,6 +1372,8 @@ asmlinkage long sys_sethostname(char __u
+@@ -1366,6 +1373,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -786,7 +786,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1410,6 +1419,8 @@ asmlinkage long sys_setdomainname(char _
+@@ -1411,6 +1420,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -805,7 +805,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1522,6 +1523,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1520,6 +1521,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -825,7 +825,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  #include "timeconst.h"
  
-@@ -90,6 +91,8 @@ asmlinkage long sys_stime(time_t __user 
+@@ -90,6 +91,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1032,7 +1032,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1352,6 +1363,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1352,6 +1363,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)address,
  						   addrlen);
  			if (!err)
@@ -1044,7 +1044,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      address, addrlen);
-@@ -1381,6 +1397,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1381,6 +1397,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1053,7 +1053,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1444,6 +1462,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1444,6 +1462,11 @@ SYSCALL_DEFINE3(accept, int, fd, struct 
  	if (err < 0)
  		goto out_fd;
  
@@ -1065,7 +1065,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1508,6 +1531,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1508,6 +1531,10 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;

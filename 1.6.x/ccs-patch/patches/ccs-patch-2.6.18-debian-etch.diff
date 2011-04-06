@@ -76,7 +76,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  #include "ia32priv.h"
  
-@@ -1741,6 +1742,8 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1726,6 +1727,8 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
@@ -171,7 +171,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  #ifdef CONFIG_COMPAT
  #include "compat_ptrace.h"
-@@ -711,6 +712,8 @@ sys_ptrace(long request, long pid, long 
+@@ -739,6 +740,8 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  
@@ -243,7 +243,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	case PTRACE_TRACEME:
 --- linux-2.6.18-26etch2.orig/fs/Kconfig
 +++ linux-2.6.18-26etch2/fs/Kconfig
-@@ -1931,5 +1931,7 @@ endmenu
+@@ -1978,5 +1978,7 @@ endmenu
  
  source "fs/nls/Kconfig"
  
@@ -253,7 +253,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
 --- linux-2.6.18-26etch2.orig/fs/Makefile
 +++ linux-2.6.18-26etch2/fs/Makefile
-@@ -102,3 +102,5 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
+@@ -103,3 +103,5 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
@@ -344,7 +344,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  int core_uses_pid;
  char core_pattern[65] = "core";
  int suid_dumpable = 0;
-@@ -139,6 +141,10 @@ asmlinkage long sys_uselib(const char __
+@@ -139,6 +141,10 @@ SYSCALL_DEFINE1(uselib, const char __use
  	if (error)
  		goto exit;
  
@@ -365,7 +365,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1188,7 +1197,8 @@ int do_execve(char * filename,
+@@ -1193,7 +1202,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -415,7 +415,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -167,6 +170,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -167,6 +170,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -435,7 +435,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1536,6 +1538,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1551,6 +1553,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -447,7 +447,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1567,6 +1574,7 @@ int may_open(struct nameidata *nd, int a
+@@ -1582,6 +1589,7 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -455,7 +455,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  /*
   *	open_namei()
   *
-@@ -1650,6 +1658,9 @@ do_last:
+@@ -1665,6 +1673,9 @@ do_last:
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -465,7 +465,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		mutex_unlock(&dir->d_inode->i_mutex);
  		dput(nd->dentry);
-@@ -1848,6 +1859,10 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1863,6 +1874,10 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -476,7 +476,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1921,6 +1936,10 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1936,6 +1951,10 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -487,7 +487,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2029,6 +2048,9 @@ static long do_rmdir(int dfd, const char
+@@ -2044,6 +2063,9 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -497,7 +497,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2109,6 +2131,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2124,6 +2146,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -507,7 +507,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2187,6 +2212,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2202,6 +2227,10 @@ SYSCALL_DEFINE3(symlinkat, const char __
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -518,7 +518,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2281,6 +2310,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2295,6 +2324,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -529,7 +529,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2507,6 +2540,11 @@ static int do_rename(int olddfd, const c
+@@ -2521,6 +2554,11 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -562,7 +562,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -641,6 +646,8 @@ asmlinkage long sys_umount(char __user *
+@@ -641,6 +646,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
  {
  	struct nameidata nd;
  	int retval;
@@ -571,7 +571,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -925,6 +932,9 @@ static int do_loopback(struct nameidata 
+@@ -928,6 +935,9 @@ static int do_loopback(struct nameidata 
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -581,7 +581,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1009,7 +1019,9 @@ static int do_move_mount(struct nameidat
+@@ -1012,7 +1022,9 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -592,7 +592,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1111,6 +1123,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1114,6 +1126,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -602,7 +602,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1402,6 +1417,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1405,6 +1420,13 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -616,7 +616,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1691,6 +1713,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1693,6 +1715,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -625,7 +625,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  
-@@ -1707,6 +1731,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1709,6 +1733,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -645,7 +645,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -267,6 +269,8 @@ static long do_sys_truncate(const char _
+@@ -268,6 +270,8 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto dput_and_out;
  
@@ -654,7 +654,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -320,6 +324,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -321,6 +325,10 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -665,7 +665,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -608,6 +616,10 @@ asmlinkage long sys_chroot(const char __
+@@ -625,6 +633,10 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -676,9 +676,9 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1199,6 +1211,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1213,6 +1225,8 @@ EXPORT_SYMBOL(sys_close);
   */
- asmlinkage long sys_vhangup(void)
+ SYSCALL_DEFINE0(vhangup)
  {
 +	if (!ccs_capable(CCS_SYS_VHANGUP))
 +		return -EPERM;
@@ -701,7 +701,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-26etch2 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.18-26etch2 2011/04/06\n");
 +#endif
  }
 --- linux-2.6.18-26etch2.orig/include/linux/init_task.h
@@ -726,9 +726,9 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  /*
   * Scheduling policies
   */
-@@ -996,6 +998,8 @@ struct task_struct {
- #ifdef	CONFIG_TASK_DELAY_ACCT
- 	struct task_delay_info *delays;
+@@ -1000,6 +1002,8 @@ struct task_struct {
+ #ifndef __GENKSYMS__
+ 	struct list_head	*scm_work_list;
  #endif
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
@@ -764,7 +764,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t* crash_notes;
-@@ -922,6 +923,8 @@ asmlinkage long sys_kexec_load(unsigned 
+@@ -921,6 +922,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -795,7 +795,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  #if 0
  #define DEBUGP printk
-@@ -652,7 +653,8 @@ sys_delete_module(const char __user *nam
+@@ -652,7 +653,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -805,7 +805,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
  	name[MODULE_NAME_LEN-1] = '\0';
-@@ -1884,7 +1886,8 @@ sys_init_module(void __user *umod,
+@@ -1888,7 +1890,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -817,7 +817,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		return -EINTR;
 --- linux-2.6.18-26etch2.orig/kernel/ptrace.c
 +++ linux-2.6.18-26etch2/kernel/ptrace.c
-@@ -21,6 +21,7 @@
+@@ -22,6 +22,7 @@
  
  #include <asm/pgtable.h>
  #include <asm/uaccess.h>
@@ -825,7 +825,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -509,6 +510,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -510,6 +511,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -844,8 +844,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  /*
   * Convert user-nice values [ -20 ... 0 ... 19 ]
-@@ -3939,6 +3940,8 @@ int can_nice(const struct task_struct *p
- asmlinkage long sys_nice(int increment)
+@@ -3976,6 +3977,8 @@ int can_nice(const struct task_struct *p
+ SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
 +	if (!ccs_capable(CCS_SYS_NICE))
@@ -863,8 +863,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  /*
   * SLAB caches for signal bits.
-@@ -2183,6 +2184,10 @@ asmlinkage long
- sys_kill(int pid, int sig)
+@@ -2179,6 +2180,10 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+ SYSCALL_DEFINE2(kill, int, pid, int, sig)
  {
  	struct siginfo info;
 +	if (sig && !ccs_capable(CCS_SYS_KILL))
@@ -874,7 +874,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2241,6 +2246,10 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2237,6 +2242,10 @@ SYSCALL_DEFINE3(tgkill, int, tgid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -885,7 +885,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2254,6 +2263,10 @@ sys_tkill(int pid, int sig)
+@@ -2249,6 +2258,10 @@ SYSCALL_DEFINE2(tkill, int, pid, int, si
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -906,7 +906,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -467,6 +468,10 @@ asmlinkage long sys_setpriority(int whic
+@@ -467,6 +468,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > 2 || which < 0)
  		goto out;
@@ -917,7 +917,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -693,6 +698,8 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -694,6 +699,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -926,7 +926,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1690,6 +1697,8 @@ asmlinkage long sys_sethostname(char __u
+@@ -1691,6 +1698,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -935,7 +935,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1735,6 +1744,8 @@ asmlinkage long sys_setdomainname(char _
+@@ -1736,6 +1745,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -954,7 +954,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  extern int proc_nr_files(ctl_table *table, int write, struct file *filp,
                       void __user *buffer, size_t *lenp, loff_t *ppos);
-@@ -1169,6 +1170,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1180,6 +1181,9 @@ int do_sysctl(int __user *name, int nlen
  
  		spin_unlock(&sysctl_lock);
  
@@ -964,7 +964,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table,
  					&context);
-@@ -1241,6 +1245,13 @@ repeat:
+@@ -1252,6 +1256,13 @@ repeat:
  				if (ctl_perm(table, 001))
  					return -EPERM;
  				if (table->strategy) {
@@ -988,7 +988,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  /* 
   * The timezone where the local system is located.  Used as a default by some
-@@ -91,6 +92,8 @@ asmlinkage long sys_stime(time_t __user 
+@@ -91,6 +92,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -997,7 +997,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -161,6 +164,8 @@ int do_sys_settimeofday(struct timespec 
+@@ -162,6 +165,8 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -1006,7 +1006,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-@@ -221,6 +226,8 @@ int do_adjtimex(struct timex *txc)
+@@ -222,6 +227,8 @@ int do_adjtimex(struct timex *txc)
  	/* In order to modify anything, you gotta be super-user! */
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
@@ -1102,7 +1102,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			if (!udp_lport_inuse(result))
  				break;
  		}
-@@ -796,7 +802,10 @@ try_again:
+@@ -798,7 +804,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1225,7 +1225,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -1148,6 +1154,10 @@ static int __sock_create(int family, int
+@@ -1151,6 +1157,10 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1236,7 +1236,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1343,6 +1353,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1347,6 +1357,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
  			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
  			if (!err)
@@ -1248,7 +1248,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  				err = sock->ops->bind(sock,
  					(struct sockaddr *)address, addrlen);
  		}
-@@ -1371,6 +1386,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1375,6 +1390,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1257,7 +1257,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1434,6 +1451,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1439,6 +1456,11 @@ SYSCALL_DEFINE3(accept, int, fd, struct 
  	if (err < 0)
  		goto out_fd;
  
@@ -1269,7 +1269,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1490,7 +1512,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1496,7 +1518,10 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
@@ -1291,7 +1291,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -807,6 +808,9 @@ static int unix_bind(struct socket *sock
+@@ -808,6 +809,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
