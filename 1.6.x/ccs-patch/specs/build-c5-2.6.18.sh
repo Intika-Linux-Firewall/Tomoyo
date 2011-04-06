@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 5.5's 2.6.18 kernel.
+# This is a kernel build script for CentOS 5.6's 2.6.18 kernel.
 #
 
 die () {
@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-194.32.1.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-238.5.1.el5.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/5.5/updates/SRPMS/kernel-2.6.18-194.32.1.el5.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/5.6/updates/SRPMS/kernel-2.6.18-238.5.1.el5.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-194.32.1.el5.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-194.32.1.el5.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-238.5.1.el5.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-238.5.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.9-20110401.tar.gz ]
@@ -62,7 +62,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.9-20110401.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.18-centos-5.5.diff
++patch -sp1 < patches/ccs-patch-2.6.18-centos-5.6.diff
 +
  cp %{SOURCE10} Documentation/
  
