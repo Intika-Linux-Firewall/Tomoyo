@@ -28,7 +28,7 @@ grep -q ccs-auditd ext3/etc/rc.d/rc.local || echo /usr/sbin/ccs-auditd >> ext3/e
 
 cd ext3/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/1st-step/centos5-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
+wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8-tmp/1st-step/centos5-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
 mv centos5-live/ tomoyo || die "Can't create directory."
 sed -i -e 's@http://tomoyo\.sourceforge\.jp/tomoyo\.css@tomoyo.css@' -- tomoyo/index.html.* || die "Can't copy document."
 cd ../../../../ || die "Can't change directory."
