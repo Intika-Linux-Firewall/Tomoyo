@@ -1,15 +1,39 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html lang="en">
+<html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux LiveCD Tutorial for CentOS 5</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=us-ascii">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="media/tomoyolinux.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
+<title>TOMOYO Linux LiveCD Tutorial for CentOS 5</title>
 </head>
+
 <body>
-<p style="text-align:right;"><a href="index.html.ja">Japanese Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> LiveCD Tutorial for CentOS 5</h1>
+
+<div id="titlebar">
+<a href="index.html.en"><img src="media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="http://tomoyo.sourceforge.jp/" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="http://tomoyo.sourceforge.jp/about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="http://tomoyo.sourceforge.jp/download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="http://tomoyo.sourceforge.jp/changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="http://tomoyo.sourceforge.jp/documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="http://tomoyo.sourceforge.jp/support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="http://tomoyo.sourceforge.jp/links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<h2>TOMOYO Linux LiveCD Tutorial for CentOS 5</h2>
 
 <ul>
 <li><a href="#l1">Abstract</a></li>
@@ -20,35 +44,33 @@
 <li><a href="#l6">(appendix) More information</a></li>
 </ul>
 
-<h2><a name="l1">Abstract</a></h2>
+<h3><a name="l1">Abstract</a></h3>
 
-<p>This document explains how to use TOMOYO Linux LiveCD.
-TOMOYO Linux LiveCD is a CD image which contains CentOS installed TOMOYO Linux kernel and tools.
-Using TOMOYO Linux LiveCD, you can try TOMOYO Linux without any effects to existing system.</p>
+<p>This document explains how to use the TOMOYO Linux LiveCD. The CD image contains CentOS with a TOMOYO Linux kernel and userspace tools pre-installed. You can use this CD to try TOMOYO Linux without any effects to the existing system.</p>
 
-<h2><a name="l2">Getting LiveCD</a></h2>
+<h3><a name="l2">Getting LiveCD</a></h3>
 
 <p>You can download ISO image file of TOMOYO Linux LiveCD at <a href="http://tomoyo.sourceforge.jp/wiki-e/?TomoyoLive#g975a344">LiveCD page</a> in TOMOYO Linux project web site.</p>
 
 <p>Please burn the ISO image into CD-R.
 You can use <a href="http://www.vmware.com/products/player/">VMware Player</a> if you don't want to burn the ISO image.</p>
 
-<h2><a name="l3">Booting from LiveCD</a></h2>
+<h3><a name="l3">Booting from LiveCD</a></h3>
 
 <p>Please boot your PC from LiveCD.
 When boot sequence has finished, the following screen is shown.
-This LiveCD is almost the same with normal CentOS LiveCD, except that several icons are added by TOMOYO Linux.</p>
+This LiveCD is almost the same with normal CentOS LiveCD, except that several icons are added by TOMOYO Linux:</p>
 
 <p><img src="desktop.png" width="800" height="600" alt="desktop" title="desktop"></p>
 
-<p>By double-clicking "Keyboard" icon, you can choose keyboard type you want to use.</p>
+<p>By double-clicking "Keyboard" icon, you can choose keyboard type you want to use:</p>
 
 <p><img src="kbdselect-en.png" width="800" height="600" alt="keymap select" title="keymap select"></p>
 
-<h2><a name="l4">Using LiveCD</a></h2>
+<h3><a name="l4">Using LiveCD</a></h3>
 
 <p>Please double-click the icon named "TOMOYO Linux Policy Violation Log".
-Then you can see the following window.</p>
+Then you can see the following window:</p>
 
 <p><img src="reject_log.png" width="800" height="600" alt="policy violation log window" title="policy violation log window"></p>
 
@@ -59,7 +81,7 @@ Please keep the window shown and operate some functions.
 The logs that what process accesses which resources are shown in real time.</p>
 
 <p>Then, please double-click the icon named "TOMOYO Linux Policy Editor".
-Then the following window is shown.</p>
+Then the following window is shown:</p>
 
 <p><img src="editpolicy.png" width="800" height="600" alt="policy editor window" title="policy editor window"></p>
 
@@ -74,15 +96,15 @@ Please scroll down as you like and confirm the process invoked in your system.</
 
 <p>Let's try to find the process named "gnome-terminal".
 Please press 'F' key, then a prompt is shown in the bottom of the window.
-Please input "gnome-terminal" and press 'Enter' key.</p>
+Please input "gnome-terminal" and press 'Enter' key:</p>
 
 <p><img src="find.png" width="800" height="600" alt="find gnome-terminal" title="find gnome-terminal"></p>
 
-<p>You can see that gnome-terminal invoked /usr/sbin/sudo, and /usr/sbin/sudo invoked /usr/bin/tail and /usr/sbin/ccs-editpolicy .</p>
+<p>You can see that gnome-terminal invoked /usr/sbin/sudo, and /usr/sbin/sudo invoked /usr/bin/tail and /usr/sbin/ccs-editpolicy :</p>
 
 <p><img src="domain_gnome-terminal.png" width="800" height="600" alt="around gnome-terminal" title="around gnome-terminal"></p>
 
-<p>Please press 'Enter' key on /usr/bin/tail .</p>
+<p>Please press 'Enter' key on /usr/bin/tail :</p>
 
 <p><img src="acl_tail.png" width="800" height="600" alt="ACLs of tail command" title="ACLs of tail command"></p>
 
@@ -94,24 +116,24 @@ This policy is the result of learning the behavior of double-clicking "TOMOYO Li
 <p>Please press 'Enter' key to go back to the previous domain-tree view.
 Please browse several domains and permissions as you like.</p>
 
-<h2><a name="l5">Restricting accesses</a></h2>
+<h3><a name="l5">Restricting accesses</a></h3>
 
 <p>Now let's try to restrict accesses by TOMOYO Linux.
-Please keep the policy editor in background, and start "Terminal" in the "Application" menu of the top of the display (Applications -&gt; Accessories -&gt; Terminal).</p>
+Please keep the policy editor in background, and start "Terminal" in the "Application" menu of the top of the display (Applications -&gt; Accessories -&gt; Terminal):</p>
 
 <p><img src="menu_terminal.png" width="800" height="600" alt="start Terminal" title="start Terminal"></p>
 
 <p>After starting terminal, please go back to the policy editor and press 'R' key to reload TOMOYO Linux policy.
 Please find /bin/bash that is the child of gnome-terminal .
-To find bash, you can use 'F' key like the previous operations.</p>
+To find bash, you can use 'F' key like the previous operations:</p>
 
 <p><img src="domain_bash.png" width="800" height="600" alt="bash executed by gnome-terminal" title="bash executed by gnome-terminal"></p>
 
 <p>This bash is running in the "Terminal" window.
 There are domains of grep, id, and so on, which were automatically executed in bash start sequence.
-Please type the following command in the terminal.</p>
+Please type the following command in the terminal:</p>
 
-<pre>
+<pre class="command">
 $ head /etc/passwd
 $ bash
 $ tail /etc/passwd
@@ -120,17 +142,17 @@ $ exit
 
 <p><img src="bash_learning.png" width="800" height="600" alt="let bash learn some commands" title="let bash learn some commands"></p>
 
-<p>Then, please go back the policy editor and press 'R' key, and you can see that domains of executed programs are appended.</p>
+<p>Then, please go back the policy editor and press 'R' key, and you can see that domains of executed programs are appended:</p>
 
 <p><img src="bash_learned.png" width="800" height="600" alt="results of learning" title="results of learning"></p>
 
 <p>Please pay attention to the numbers in the next of line numbers.
-All lines are currently '1'.</p>
+All lines are currently '1':</p>
 
 <p><img src="all_learning.png" width="800" height="600" alt="profile number is all 1" title="profile number is all 1"></p>
 
 <p>These numbers show the process's running mode of TOMOYO Linux, which is called profile number.
-The profile numbers of are 0-3 and all domains in this LiveCD are initially assigned profile number 1 (learning mode).</p>
+The profile numbers of are 0-3 and all domains in this LiveCD are initially assigned profile number 1 (learning mode):</p>
 
 <table border="1" summary="profile number">
 <tr><th>profile number</th><th>meanings</th></tr>
@@ -143,39 +165,39 @@ The profile numbers of are 0-3 and all domains in this LiveCD are initially assi
 <p>To enable TOMOYO Linux access restriction, you need to assign profile number 3 to domain.
 Let's restrict operations using bash invoked from gnome-terminal.
 Please press Space key at bash just below gnome-terminal, and you will see '&amp;' mark appeared at the left of the line number.
-This '&amp;' is the 'selected' mark.</p>
+This '&amp;' is the 'selected' mark:</p>
 
 <p><img src="select-1.png" width="800" height="600" alt="bash is selected" title="bash is selected"></p>
 
-<p>Then, please press 'C' key, and you will get '&amp;' mark copied to all lines below.</p>
+<p>Then, please press 'C' key, and you will get '&amp;' mark copied to all lines below:</p>
 
 <p><img src="select-2.png" width="800" height="600" alt="all below bash are selected" title="all below bash are selected"></p>
 
-<p>Then, please press Space key at sudo, and you will see '&amp;' mark disappeared.</p>
+<p>Then, please press Space key at sudo, and you will see '&amp;' mark disappeared:</p>
 
 <p><img src="select-3.png" width="800" height="600" alt="sudo is unselected" title="sudo is unselected"></p>
 
-<p>Then, please press 'C' key, and you will get '&amp;' mark cleared from all lines below.</p>
+<p>Then, please press 'C' key, and you will get '&amp;' mark cleared from all lines below:</p>
 
 <p><img src="select-4.png" width="800" height="600" alt="all below sudo are unselected" title="all below sudo are unselected"></p>
 
 <p>Then, please press 'S' key then prompt is shown in the bottom of the window.
-Please input "3" and press 'Enter' key.</p>
+Please input "3" and press 'Enter' key:</p>
 
 <p><img src="setprofile.png" width="800" height="600" alt="set profile number 3" title="set profile number 3"></p>
 
-<p>Profile number 3 is assigned to the selected domains.</p>
+<p>Profile number 3 is assigned to the selected domains:</p>
 
 <p><img src="bash_enforced.png" width="800" height="600" alt="profile changed to 3" title="profile changed to 3"></p>
 
 <p>bash invoked from gnome-terminal is already running in enforcing mode.
 Please execute some commands in the terminal.
 Commands that are not executed in learning mode will be denied.
-In the following window, "head /etc/password" is granted, but executions of "ls" and "ps" are denied.</p>
+In the following window, "head /etc/password" is granted, but executions of "ls" and "ps" are denied:</p>
 
 <p><img src="1st_bash.png" width="800" height="600" alt="not learned commands are denied" title="not learned commands are denied"></p>
 
-<p>In addition, first-level bash can't execute "tail /etc/passwd", but second-level bash can do it.</p>
+<p>In addition, first-level bash can't execute "tail /etc/passwd", but second-level bash can do it:</p>
 
 <p><img src="2nd_bash.png" width="800" height="600" alt="permissions are different according to shell-level" title="permissions are different according to shell-level"></p>
 
@@ -224,7 +246,7 @@ file read /usr/bin/tail
 </td></tr>
 </table>
 
-<h2><a name="l6">(appendix) More information</a></h2>
+<h3><a name="l6">(appendix) More information</a></h3>
 
 <p>In this tutorial, you have experienced TOMOYO's basic access control functionality.
 TOMOYO Linux has many features. Please see the following documents to utilize TOMOYO Linux more effectively.</p>
@@ -232,15 +254,20 @@ TOMOYO Linux has many features. Please see the following documents to utilize TO
 <ul>
 <li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.en">How to use the policy editor</a>: detailed usage of policy editor</li>
 <li><a href="http://tomoyo.sourceforge.jp/1.8/">TOMOYO Linux 1.8.x : The Official Guide</a>: tutorial for installing and administrating TOMOYO Linux 1.8</li>
+<li><a href="mailto:haradats@gmail.com">Send message to Webadmin</a></li>
 </ul>
 
-<hr>
-<address><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/en/">NTT DATA CORPORATION</a><br>
-<a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
-Last modified: $Date$<br>
-<!--#include virtual="/cgi-bin/counter.pl" -->
-</address>
+</div><!-- documentation -->
 
+</div><!-- content -->
+
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="counter"><!--#include virtual="/cgi-bin/counter.pl" --></p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</div>
+
 </body>
 </html>
