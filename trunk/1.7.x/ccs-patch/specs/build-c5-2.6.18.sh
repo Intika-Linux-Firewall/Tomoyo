@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
-@@ -295,6 +295,9 @@
+@@ -302,6 +302,9 @@
  # to versions below the minimum
  #
  
@@ -47,7 +47,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -325,7 +328,7 @@
+@@ -332,7 +335,7 @@
  #
  %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
  
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -10269,6 +10272,10 @@
+@@ -12351,6 +12354,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -10336,6 +10343,9 @@
+@@ -12418,6 +12425,9 @@
  for i in *.config
  do
    mv $i .config

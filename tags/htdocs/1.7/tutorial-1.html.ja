@@ -20,7 +20,7 @@
 
 <h3>今回の内容</h3>
 
-<p>セキュアＯＳの概要と TOMOYO Linux の導入手順について説明します．手順については， VMware 上に構築した CentOS 5.5 にコンパイル済みの TOMOYO Linux カーネルバージョン 1.7.2 を導入します．導入しただけではつまらないので，実際に TOMOYO Linux カーネルで起動し， TOMOYO Linux のポリシー自動学習を「体験」していただくまでが今回の内容です．</p>
+<p>セキュアＯＳの概要と TOMOYO Linux の導入手順について説明します．手順については， VMware 上に構築した CentOS 5.6 にコンパイル済みの TOMOYO Linux カーネルバージョン 1.7.3 を導入します．導入しただけではつまらないので，実際に TOMOYO Linux カーネルで起動し， TOMOYO Linux のポリシー自動学習を「体験」していただくまでが今回の内容です．</p>
 
 <h2>セキュアＯＳについて</h2>
 
@@ -55,7 +55,7 @@
 ■図３　バイナリパッケージが提供されているディストリビューション<br>
 <ul>
 <li>Fedora 11/12/13</li>
-<li>CentOS 3.9/4.9/5.5</li>
+<li>CentOS 3.9/4.9/5.6</li>
 <li>RHEL 6</li>
 <li>Debian Etch/Lenny</li>
 <li>OpenSUSE 11.0/11.1/11.2</li>
@@ -66,7 +66,7 @@
 </td></tr>
 </table>
 
-<p>本連載では， CentOS 5.5 を例に挙げて説明しますが，上記ディストリビューションであればほぼ同じ手順で利用いただけます．</p>
+<p>本連載では， CentOS 5.6 を例に挙げて説明しますが，上記ディストリビューションであればほぼ同じ手順で利用いただけます．</p>
 
 <h4>●カーネルのインストール</h4>
 
@@ -90,10 +90,10 @@
 <tr><td>
 ■図５　grub.conf に追加される TOMOYO Linux カーネル用のエントリ
 <pre>
-title CentOS (2.6.18-194.26.1.el5_tomoyo_1.7.2)
+title CentOS (2.6.18-238.5.1.el5_tomoyo_1.7.3)
         root (hd0,0)
-        kernel /boot/vmlinuz-2.6.18-194.26.1.el5_tomoyo_1.7.2 ro root=LABEL=/
-        initrd /boot/initrd-2.6.18-194.26.1.el5_tomoyo_1.7.2.img
+        kernel /boot/vmlinuz-2.6.18-238.5.1.el5_tomoyo_1.7.3 ro root=LABEL=/
+        initrd /boot/initrd-2.6.18-238.5.1.el5_tomoyo_1.7.3.img
 </pre>
 </td></tr>
 </table>
