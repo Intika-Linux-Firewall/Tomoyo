@@ -3,9 +3,9 @@
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="CentOS-5.6-i386-TOMOYO-LiveCD"
 ISOIMAGE_NAME=../CentOS-5.6-i386-TOMOYO-LiveCD.iso
-ORIGINAL_VERSION=2.6.18-238.5.1.el5
-ORIGINAL_VERSION_REGEXP=2\.6\.18-238\.5\.1\.el5
-KERNEL_VERSION=2.6.18-238.5.1.el5_tomoyo_1.7.3
+ORIGINAL_VERSION=2.6.18-238.el5
+ORIGINAL_VERSION_REGEXP=2\.6\.18-238.el5
+KERNEL_VERSION=2.6.18-238.5.1.el5_tomoyo_1.8.1
 
 set -v
 
@@ -24,11 +24,11 @@ echo 'use_profile 1' >> ext3/etc/ccs/domain_policy.conf
 
 mkdir -p -m 700 ext3/var/log/tomoyo
 grep -q mount ext3/etc/rc.d/rc.local || echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/' >> ext3/etc/rc.d/rc.local
-grep -q ccs-auditd ext3/etc/rc.d/rc.local || echo '/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject.log' >> ext3/etc/rc.d/rc.local
+grep -q ccs-auditd ext3/etc/rc.d/rc.local || echo /usr/sbin/ccs-auditd >> ext3/etc/rc.d/rc.local
 
 cd ext3/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.7/1st-step/centos5-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
+wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/1st-step/centos5-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
 mv centos5-live/ tomoyo || die "Can't create directory."
 sed -i -e 's@http://tomoyo\.sourceforge\.jp/tomoyo\.css@tomoyo.css@' -- tomoyo/index.html.* || die "Can't copy document."
 cd ../../../../ || die "Can't change directory."
