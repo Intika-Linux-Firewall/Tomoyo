@@ -22,10 +22,6 @@ generate_meta_package() {
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
-for key in 19A42D19 9B441EA8
-do
-  gpg --list-keys $key 2> /dev/null > /dev/null || wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x'$key | gpg --import || die "Can't import PGP key."
-done
 
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
@@ -37,19 +33,19 @@ fi
 
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
-apt-get install fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.18-6-686 || die "Can't install packages."
-apt-get source linux-image-2.6.18-6-686 || die "Can't install kernel source."
+apt-get install build-essential kernel-package || die "Can't install packages."
+apt-get install linux-source-2.6.18 || die "Can't install kernel source."
+rm -fR linux-source-2.6.18
+tar -jxf linux-source-2.6.18.tar.bz2
 
 # Apply patches and create kernel config.
-cd linux-2.6-2.6.18.dfsg.1 || die "Can't chdir to linux-2.6-2.6.18.dfsg.1/ ."
+cd linux-source-2.6.18 || die "Can't chdir to linux-source-2.6.18/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.3-20110401.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.18-debian-etch.diff || die "Can't apply patch."
 cat /boot/config-2.6.18-6-686 config.ccs > .config || die "Can't create config."
-yes | make -s oldconfig > /dev/null
 
 # Start compilation.
-make-kpkg --append-to-version -6-686-ccs --initrd linux-image || die "Failed to build kernel package."
+make-kpkg --append-to-version -6-686-ccs --revision `cat version.Debian` --initrd binary-arch || die "Failed to build kernel package."
 
 # Generate meta packages.
 wget http://archive.debian.org/debian/pool/main/l/linux-latest-2.6/linux-image-2.6-686_2.6.18+6etch3_i386.deb
