@@ -33,53 +33,19 @@ fi
 
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
-apt-get install fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.32-5-686 || die "Can't install packages."
-apt-get source linux-image-2.6.32-5-686 || die "Can't install kernel source."
+apt-get install build-essential kernel-package || die "Can't install packages."
+apt-get install linux-source-2.6.32 || die "Can't install kernel source."
+rm -fR linux-source-2.6.32
+tar -jxf linux-source-2.6.32.tar.bz2
 
 # Apply patches and create kernel config.
-cd linux-2.6-2.6.32 || die "Can't chdir to linux-2.6-2.6.32/ ."
-debian/rules
-cd debian/build/source_i386_none/ || die "Can't change directory"
+cd linux-source-2.6.32 || die "Can't chdir to linux-source-2.6.18/ ."
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.1-20110401.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.32-debian-squeeze.diff || die "Can't apply patch."
-cd ../../../ || die "Can't change directory"
-patch -p1 << EOF || die "Can't apply patch."
---- linux-2.6-2.6.32.orig/debian/config/i386/defines
-+++ linux-2.6-2.6.32/debian/config/i386/defines
-@@ -4,14 +4,8 @@
- 
- [base]
- featuresets:
-- openvz
-- vserver
-- xen
- flavours:
-- 486
-- 686
-- 686-bigmem
-- amd64
-+ 686-ccs
- kernel-arch: x86
- 
- [image]
-@@ -27,11 +21,11 @@
- configs:
-  kernelarch-x86/config-arch-32
- 
--[686_description]
-+[686-ccs_description]
- hardware: modern PCs
- hardware-long: PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom; AMD Geode LX/NX, Athlon (K7), Duron, Opteron, Sempron, Turion or Phenom; Transmeta Efficeon; VIA C3 "Nehemiah" or C7 processors
- 
--[686_image]
-+[686-ccs_image]
- configs:
-  kernelarch-x86/config-arch-32
- recommends: libc6-i686
-EOF
-debian/rules debian/control || /bin/true
-debian/rules binary-arch || die "Can't build packages."
+cat /boot/config-2.6.32-5-686 config.ccs > .config || die "Can't create config."
+
+# Start compilation.
+make-kpkg --append-to-version -5-686-ccs --revision `sed -e 's/ /-/' version.Debian` --initrd binary-arch || die "Failed to build kernel package."
 
 # Generate meta packages.
 wget http://ftp.jp.debian.org/debian/pool/main/l/linux-latest-2.6/linux-image-2.6-686_2.6.32+29_i386.deb

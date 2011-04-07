@@ -33,20 +33,19 @@ fi
 
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
-apt-get install fakeroot build-essential || die "Can't install packages."
-apt-get build-dep linux-image-2.6.26-2-686 || die "Can't install packages."
-apt-get source linux-image-2.6.26-2-686 || die "Can't install kernel source."
+apt-get install build-essential kernel-package || die "Can't install packages."
+apt-get install linux-source-2.6.26 || die "Can't install kernel source."
+rm -fR linux-source-2.6.26
+tar -jxf linux-source-2.6.26.tar.bz2
 
 # Apply patches and create kernel config.
-cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
+cd linux-source-2.6.26 || die "Can't chdir to linux-source-2.6.18/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.8.1-20110401.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
-make -s oldconfig
 
 # Start compilation.
-REVISION=`head -n 1 debian/changelog | awk ' { print $2 } ' | awk -F'(' ' { print $2 } ' |  awk -F')' ' { print $1 } '`
-make-kpkg --append-to-version -2-686-ccs --initrd --revision $REVISION linux-image || die "Failed to build kernel package."
+make-kpkg --append-to-version -2-686-ccs --revision `sed -e 's/ /-/' version.Debian` --initrd binary-arch || die "Failed to build kernel package."
 
 # Generate meta packages.
 wget http://ftp.jp.debian.org/debian/pool/main/l/linux-latest-2.6/linux-image-2.6-686_2.6.26+17+lenny1_i386.deb
