@@ -40,7 +40,6 @@
 
 <h3><a name="3.1">3.1. 私の使っているディストリビューション用のバイナリパッケージはありますか？</a></h3>
 
-<!--
 <p>TOMOYO Linux を使うには、ディストリビュータが配布しているカーネルパッケージとは別のカーネルをインストールする必要があります。インストールする方法は２通りあります。バイナリパッケージをインストールする方法と、ソースに対してパッチを当ててコンパイルする方法です。もし、利用しているディストリビューションが以下の何れかである場合、コンパイルをする必要無しに簡単にバイナリパッケージをインストールすることができます。</p>
 
 <p>以下のディストリビューションに関してバイナリパッケージが提供されています：</p>
@@ -49,10 +48,10 @@
 <li>Fedora 11/12/13/14</li>
 <li>CentOS 3.9/4.9/5.6</li>
 <li>RHEL 6</li>
-<li>Debian Etch/Lenny/Squeeze</li>
+<!--<li>Debian Etch/Lenny/Squeeze</li>-->
 <li>OpenSUSE 11.0/11.1/11.2/11.3/11.4</li>
 <li>Asianux 2.0/3.0</li>
-<li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04/10.10/11.04</li>
+<!--<li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04/10.10/11.04</li>-->
 <li>Vine Linux 4.2/5.2</li>
 </ul>
 
@@ -64,7 +63,7 @@
 
 <pre class="command">
 # wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# rpm --><!--import kumaneko-key
+# rpm --import kumaneko-key
 </pre>
 
 <p>DEB 形式のパッケージを使用しているディストリビューションの場合、以下のようにして GPG 鍵をインポートしてください：</p>
@@ -76,60 +75,190 @@
 
 <p>プロジェクトで配布しているバイナリパッケージは <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=12016" target="_blank">SourceForge のページ</a>から手動でダウンロードすることも可能です。カーネルパッケージと管理ツールパッケージが必要です。レポジトリを使うと簡単にダウンロードできます。レポジトリを使う場合には以下のコマンドを実行してください：</p>
 
-<p><strong>Fedora 14 (i686 以降用)</strong></p>
+<p><strong>Fedora 14 (686 flavour)</strong></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora14/ccs.repo
+# yum install ccs-kernel ccs-tools
+</pre>
+
+<p><strong>Fedora 13 (686 flavour)</strong></p>
 <pre class="command">
 # wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora13/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
-<p><strong>Fedora 13 (i686 以降用)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora13/ccs.repo
-# yum install ccs-kernel ccs-tools
-</pre>
-
-<p><strong>Fedora 12 (i686 以降用)</strong></p>
+<p><strong>Fedora 12 (686 flavour)</strong></p>
 <pre class="command">
 # wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora12/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
-<p><strong>Fedora 11 (i686 以降用)</strong></p>
+<p><strong>Fedora 11 (686-PAE flavour)</strong></p>
 <pre class="command">
 # wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora11/ccs.repo
 # yum install ccs-kernel-PAE ccs-tools
 </pre>
 
-<p><strong>CentOS 4.9 (i686 以降用)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS4/ccs.repo
-# yum install ccs-kernel-smp ccs-tools
-</pre>
-
-<p><strong>CentOS 5.6 (i686 以降用)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS5/ccs.repo
-# yum install ccs-kernel ccs-tools
-</pre>
-
-<p><strong>RHEL 6 (i686 以降用)</strong></p>
+<p><strong>RHEL 6 (686 flavour)</strong></p>
 <pre class="command">
 # wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/RHEL6/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
-<p><strong>Ubuntu 10.10 (generic-pae 用)</strong></p>
+<p><strong>CentOS 5.6 (686 flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/48987/ ./' &gt;&gt; /etc/apt/sources.list
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS5/ccs.repo
+# yum install ccs-kernel ccs-tools
+</pre>
+
+<p><strong>CentOS 4.9 (686 flavour)</strong></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS4/ccs.repo
+# yum install ccs-kernel-smp ccs-tools
+</pre>
+
+<p><strong>CentOS 3.9 (686 flavour)</strong></p>
+<pre class="command">
+# wget -O - http://tomoyo.sourceforge.jp/repos-1.8/CentOS3/ccs.repo &gt;&gt; /etc/yum.conf
+# yum install ccs-kernel-smp ccs-tools
+</pre>
+
+<p><strong>Asianux 3.0 (686 flavour)</strong></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux3/ccs.repo
+# yum install ccs-kernel ccs-tools
+</pre>
+
+<p><strong>Asianux 2.0 (686 flavour)</strong></p>
+<pre class="command">
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux2/ccs.repo
+# yum install ccs-kernel-smp ccs-tools
+</pre>
+
+<p><strong>Vine Linux 5.2 (686 flavour)</strong></p>
+<pre class="command">
+# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux5/ ./" &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install ccs-kernel ccs-tools
+</pre>
+
+<p><strong>Vine Linux 4.2 (686 flavour)</strong></p>
+<pre class="command">
+# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux4/ ./" &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install ccs-kernel ccs-tools
+</pre>
+
+<p><strong>OpenSUSE 11.4 (default flavour)</strong></p>
+<pre class="command">
+# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.4/ ccs
+# zypper install ccs-kernel-default ccs-tools
+</pre>
+
+<p><strong>OpenSUSE 11.3 (default flavour)</strong></p>
+<pre class="command">
+# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.3/ ccs
+# zypper install ccs-kernel-default ccs-tools
+</pre>
+
+<p><strong>OpenSUSE 11.2 (default flavour)</strong></p>
+<pre class="command">
+# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.2/ ccs
+# zypper install ccs-kernel-default ccs-tools
+</pre>
+
+<p><strong>OpenSUSE 11.1 (default flavour)</strong></p>
+<pre class="command">
+# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.1/ ccs
+# zypper install ccs-kernel-default ccs-tools
+</pre>
+
+<p><strong>OpenSUSE 11.0 (default flavour)</strong></p>
+<pre class="command">
+# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.0/ ccs
+# zypper install ccs-kernel-default ccs-tools
+</pre>
+
+<!--
+<p><strong>Debian Squeeze (686 flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianSqueeze/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-image-2.6-686-ccs ccs-tools
+</pre>
+
+<p><strong>Debian Lenny (686 flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianLenny/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-image-2.6-686-ccs ccs-tools
+</pre>
+
+<p><strong>Debian Etch (686 flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianEtch/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-image-2.6-686-ccs ccs-tools
+</pre>
+
+<p><strong>Ubuntu 11.04 (generic-pae flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu11.04/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-ccs ccs-tools
 </pre>
 
-<br>
+<p><strong>Ubuntu 10.10 (generic-pae flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.10/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-ccs ccs-tools
+</pre>
+
+<p><strong>Ubuntu 10.04 (generic-pae flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.04/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-ccs ccs-tools
+</pre>
+
+<p><strong>Ubuntu 9.10 (generic flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu9.10/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-ccs ccs-tools
+</pre>
+
+<p><strong>Ubuntu 9.04 (generic flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu9.04/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-ccs ccs-tools
+</pre>
+
+<p><strong>Ubuntu 8.10 (generic flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu8.10/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-ccs ccs-tools
+</pre>
+
+<p><strong>Ubuntu 8.04 (generic flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu8.04/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-ccs ccs-tools
+</pre>
+
+<p><strong>Ubuntu 6.06 (686 flavour)</strong></p>
+<pre class="command">
+# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu6.06/ ./' &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install linux-686-ccs ccs-tools
+</pre>
+-->
 
 <p><a href="chapter-3.html.ja#3.4">3.4. 設定の初期化</a>へと進んでください。</p>
--->
-<p>未完成です・・・</p>
 
 <h3><a name="3.3">3.3. ソースからのインストール</a></h3>
 
