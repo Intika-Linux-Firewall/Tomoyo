@@ -1,8 +1,8 @@
 #!/bin/sh
 
 LIVECD_HOME=~/LiveCD/
-CD_LABEL="Ubuntu 10.04.2 i386 TOMOYO 1.7.2"
-ISOIMAGE_NAME=../ubuntu-10.04.2-desktop-i386-tomoyo-1.7.2.iso
+CD_LABEL="Ubuntu 10.04.2 i386 TOMOYO 1.8.1"
+ISOIMAGE_NAME=../ubuntu-10.04.2-desktop-i386-tomoyo-1.8.1.iso
 KERNEL_VERSION=2.6.32-30-ccs
 
 # set -v
@@ -28,25 +28,25 @@ then
 	echo 'if [ `stat -f --printf=%t /` -eq 61756673 ]'
 	echo 'then'
 	echo 'ccs-loadpolicy -e << EOF
-file_pattern /target/\{\*\}/\*
-file_pattern /target/\{\*\}/
-file_pattern /rofs/\{\*\}/\*
 initialize_domain /usr/share/ubiquity/install.py
 keep_domain <kernel> /usr/share/ubiquity/install.py
 EOF'
 	echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/'
 	echo 'fi'
-	echo '/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject.log'
+	echo '/usr/sbin/ccs-auditd'
 	) >> squash/etc/init.d/rc.local
 fi
 
 cd squash/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.7/1st-step/ubuntu10.04-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
-mv ubuntu10.04-live/ tomoyo || die "Can't create directory."
-sed -i -e 's@http://tomoyo\.sourceforge\.jp/tomoyo\.css@tomoyo.css@' -- tomoyo/index.html.* || die "Can't copy document."
-cd ../../../../ || die "Can't change directory."
-cp -p resources/tomoyo.css squash/usr/share/doc/tomoyo/ || die "Can't copy document."
+mkdir tomoyo/ || die "Can't create directory."
+cd tomoyo/ || die "Can't change directory."
+wget -O centos5-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8-tmp/ubuntu10.04-live.html.en?revision=HEAD&root=tomoyo' || die "Can't copy document."
+wget -O centos5-live.html.ja 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8-tmp/ubuntu10.04-live.html.ja?revision=HEAD&root=tomoyo' || die "Can't copy document."
+wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8-tmp/media.ubuntu10.04.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
+ln -s ubuntu10.04-live.html.en index.html.en
+ln -s ubuntu10.04-live.html.ja index.html.ja
+cd ../../../../../ || die "Can't change directory."
 cp -p resources/tomoyo*.desktop squash/etc/skel/ || die "Can't copy shortcut."
 
 rm -f squash/var/cache/apt/*.bin

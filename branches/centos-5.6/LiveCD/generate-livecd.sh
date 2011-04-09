@@ -36,7 +36,7 @@ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8-tmp/me
 ln -s centos5-live.html.en index.html.en
 ln -s centos5-live.html.ja index.html.ja
 cd ../../../../../ || die "Can't change directory."
-cp -p resources/tomoyo.css resources/*.desktop ext3/usr/share/doc/tomoyo/ || die "Can't copy document."
+cp -p resources/*.desktop ext3/usr/share/doc/tomoyo/ || die "Can't copy document."
 grep -q desktop ext3/etc/rc.d/rc.local || echo 'cp -af --remove-destination /usr/share/doc/tomoyo/*.desktop /home/centos/Desktop/' >> ext3/etc/rc.d/rc.local
 grep -q centos:centos ext3/etc/rc.d/rc.local || echo 'chown centos:centos /home/centos/Desktop/*.desktop' >> ext3/etc/rc.d/rc.local
 
