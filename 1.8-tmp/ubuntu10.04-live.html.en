@@ -1,60 +1,82 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html lang="en">
+<html lang="en-US">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux LiveCD Tutorial for Ubuntu 10.04</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="media.ubuntu10.04/tomoyolinux.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
+<title>TOMOYO Linux LiveCD Tutorial for Ubuntu 10.04</title>
 </head>
+
 <body>
-<p style="text-align:right;"><a href="index.html.ja">Japanese Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> LiveCD Tutorial for Ubuntu 10.04</h1>
+
+<div id="titlebar">
+<a href="index.html.en"><img src="media.ubuntu10.04/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="http://tomoyo.sourceforge.jp/" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="http://tomoyo.sourceforge.jp/about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="http://tomoyo.sourceforge.jp/download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="http://tomoyo.sourceforge.jp/changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="http://tomoyo.sourceforge.jp/documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="http://tomoyo.sourceforge.jp/support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="http://tomoyo.sourceforge.jp/links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="ubuntu10.04-live.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<h2>TOMOYO Linux LiveCD Tutorial for Ubuntu 10.04</h2>
 
 <ul>
-<li><a href="#l1">Abstract</a></li>
+<li><a href="#l1">About this page</a></li>
 <li><a href="#l2">Getting LiveCD</a></li>
 <li><a href="#l3">Booting from LiveCD</a></li>
 <li><a href="#l4">Using LiveCD</a></li>
 <li><a href="#l5">Restricting accesses</a></li>
 <li><a href="#l6">(appendix) Installing Ubuntu + TOMOYO on your hard drive</a></li>
-<li><a href="#l7">(appendix) More information</a></li>
+<li><a href="#l7">For more information</a></li>
 </ul>
 
-<h2><a name="l1">Abstract</a></h2>
+<h3><a name="l1">About this page</a></h3>
 
-<p>This document explains how to use TOMOYO Linux LiveCD.
-TOMOYO Linux LiveCD is a CD image which contains Ubuntu installed TOMOYO Linux kernel and tools.
-Using TOMOYO Linux LiveCD, you can try TOMOYO Linux without any effects to existing system.</p>
+<p>This document explains how to use the TOMOYO Linux LiveCD. The CD image contains Ubuntu with a TOMOYO Linux kernel and userspace tools pre-installed. You can use this CD to try TOMOYO Linux without any effects to the existing system.</p>
 
-<h2><a name="l2">Getting LiveCD</a></h2>
+<h3><a name="l2">Getting LiveCD</a></h3>
 
-<p>You can download ISO image file of TOMOYO Linux LiveCD at <a href="http://tomoyo.sourceforge.jp/wiki-e/?TomoyoLive#z3329686">LiveCD page</a> in TOMOYO Linux project web site.</p>
+<p>You can download ISO image file of TOMOYO Linux LiveCD at <a href="http://tomoyo.sourceforge.jp/wiki-e/?TomoyoLive#n90f43ff">LiveCD page</a> in TOMOYO Linux project web site.</p>
 
 <p>Please burn the ISO image into CD-R.
 You can use <a href="http://www.vmware.com/products/player/">VMware Player</a> if you don't want to burn the ISO image.</p>
 
-<h2><a name="l3">Booting from LiveCD</a></h2>
+<h3><a name="l3">Booting from LiveCD</a></h3>
 
 <p>When you boot your PC from LiveCD, you will see the following screen.</p>
 
-<p><img src="startup.png" width="800" height="600" alt="startup screen" title="startup screen"></p>
+<p><img src="media.ubuntu10.04/startup.png" width="800" height="600" alt="startup screen" title="startup screen"></p>
 
 <p>By scrolling the language selection bar, you can choose language you want to use.</p>
 
-<p><img src="startup-en.png" width="800" height="600" alt="startup screen (English)" title="startup screen (English)"></p>
+<p><img src="media.ubuntu10.04/startup-en.png" width="800" height="600" alt="startup screen (English)" title="startup screen (English)"></p>
 
 <p>By choosing "Try Ubuntu 10.04 LTS", you will see the following screen.
 This LiveCD is almost the same with normal Ubuntu LiveCD, except that several icons are added by TOMOYO Linux.</p>
 
-<p><img src="desktop-en.png" width="800" height="600" alt="desktop" title="desktop"></p>
+<p><img src="media.ubuntu10.04/desktop-en.png" width="800" height="600" alt="desktop" title="desktop"></p>
 
-<h2><a name="l4">Using LiveCD</a></h2>
+<h3><a name="l4">Using LiveCD</a></h3>
 
 <p>Please double-click the icon named "TOMOYO Linux Policy Violation Log".
-Then you can see the following window.</p>
+Then you can see the following window:</p>
 
-<p><img src="reject_log.png" width="800" height="600" alt="policy violation log window" title="policy violation log window"></p>
+<p><img src="media.ubuntu10.04/reject_log.png" width="800" height="600" alt="policy violation log window" title="policy violation log window"></p>
 
 <p>This window is showing accesses which violate the policy of TOMOYO Linux.
 New violation accesses are showed instantly.
@@ -63,9 +85,9 @@ Please keep the window shown and operate some functions.
 The logs that what process accesses which resources are shown in real time.</p>
 
 <p>Then, please double-click the icon named "TOMOYO Linux Policy Editor".
-Then the following window is shown.</p>
+Then the following window is shown:</p>
 
-<p><img src="editpolicy.png" width="800" height="600" alt="policy editor window" title="policy editor window"></p>
+<p><img src="media.ubuntu10.04/editpolicy.png" width="800" height="600" alt="policy editor window" title="policy editor window"></p>
 
 <p>This window displays all invoked processes in the tree structure. Each line is called "domain".
 All invoked processes from the beginning of boot sequence are monitored by TOMOYO Linux kernel.
@@ -78,110 +100,110 @@ Please scroll down as you like and confirm the process invoked in your system.</
 
 <p>Let's try to find the process named "gnome-terminal".
 Please press 'F' key, then a prompt is shown in the bottom of the window.
-Please input "gnome-terminal" and press 'Enter' key.</p>
+Please input "gnome-terminal" and press 'Enter' key:</p>
 
-<p><img src="find.png" width="800" height="600" alt="find gnome-terminal" title="find gnome-terminal"></p>
+<p><img src="media.ubuntu10.04/find.png" width="800" height="600" alt="find gnome-terminal" title="find gnome-terminal"></p>
 
-<p>You can see that gnome-terminal invoked /usr/sbin/sudo, and /usr/sbin/sudo invoked /usr/bin/tail and /usr/sbin/ccs-editpolicy .</p>
+<p>You can see that gnome-terminal invoked /usr/sbin/sudo, and /usr/sbin/sudo invoked /usr/bin/tail and /usr/sbin/ccs-editpolicy :</p>
 
-<p><img src="domain_gnome-terminal.png" width="800" height="600" alt="around gnome-terminal" title="around gnome-terminal"></p>
+<p><img src="media.ubuntu10.04/domain_gnome-terminal.png" width="800" height="600" alt="around gnome-terminal" title="around gnome-terminal"></p>
 
-<p>Please press 'Enter' key on /usr/bin/tail .</p>
+<p>Please press 'Enter' key on /usr/bin/tail :</p>
 
-<p><img src="acl_tail.png" width="800" height="600" alt="ACLs of tail command" title="ACLs of tail command"></p>
+<p><img src="media.ubuntu10.04/acl_tail.png" width="800" height="600" alt="ACLs of tail command" title="ACLs of tail command"></p>
 
 <p>The leftmost number of each line is line number, and next word is the access permission.
-"file execute" means execute, "file write" means open for writing, "file read" means open for reading, "file read/write" means open for reading and writing, "misc env" means accepting this environment variable name.
-These lines show the tail command read some locale files and /var/log/tomoyo/reject.log .
+"file execute" means execute, "file write" means open for writing, "file read" means open for reading, "misc env" means accepting this environment variable name.
+These lines show the tail command read a locale file and /var/log/tomoyo/reject_000.log /var/log/tomoyo/reject_001.log /var/log/tomoyo/reject_002.log /var/log/tomoyo/reject_003.log .
 This policy is the result of learning the behavior of double-clicking "TOMOYO Linux Policy Violation Log" icon.</p>
 
 <p>Please press 'Enter' key to go back to the previous domain-tree view.
 Please browse several domains and permissions as you like.</p>
 
-<h2><a name="l5">Restricting accesses</a></h2>
+<h3><a name="l5">Restricting accesses</a></h3>
 
 <p>Now let's try to restrict accesses by TOMOYO Linux.
-Please keep the policy editor in background, and start "Terminal" in the "Application" menu of the top of the display (Applications -&gt; Accessories -&gt; Terminal).</p>
+Please keep the policy editor in background, and start "Terminal" in the "Application" menu of the top of the display (Applications -&gt; Accessories -&gt; Terminal):</p>
 
-<p><img src="menu_terminal-en.png" width="800" height="600" alt="start Terminal" title="start Terminal"></p>
+<p><img src="media.ubuntu10.04/menu_terminal-en.png" width="800" height="600" alt="start Terminal" title="start Terminal"></p>
 
 <p>After starting terminal, please go back to the policy editor and press 'R' key to reload TOMOYO Linux policy.
 Please find /bin/bash that is the child of gnome-terminal .
-To find bash, you can use 'F' key like the previous operations.</p>
+To find bash, you can use 'F' key like the previous operations:</p>
 
-<p><img src="domain_bash.png" width="800" height="600" alt="bash executed by gnome-terminal" title="bash executed by gnome-terminal"></p>
+<p><img src="media.ubuntu10.04/domain_bash.png" width="800" height="600" alt="bash executed by gnome-terminal" title="bash executed by gnome-terminal"></p>
 
 <p>This bash is running in the "Terminal" window.
-There are domains of sed, uname, and so on, which were automatically executed in bash start sequence.
-Please type the following command in the terminal.</p>
+There are domains of grep, id, and so on, which were automatically executed in bash start sequence.
+Please type the following command in the terminal:</p>
 
-<pre>
+<pre class="command">
 $ head /etc/passwd
 $ bash
 $ tail /etc/passwd
 $ exit
 </pre>
 
-<p><img src="bash_learning.png" width="800" height="600" alt="let bash learn some commands" title="let bash learn some commands"></p>
+<p><img src="media.ubuntu10.04/bash_learning.png" width="800" height="600" alt="let bash learn some commands" title="let bash learn some commands"></p>
 
-<p>Then, please go back the policy editor and press 'R' key, and you can see that domains of executed programs are appended.</p>
+<p>Then, please go back the policy editor and press 'R' key, and you can see that domains of executed programs are appended:</p>
 
-<p><img src="bash_learned.png" width="800" height="600" alt="results of learning" title="results of learning"></p>
+<p><img src="media.ubuntu10.04/bash_learned.png" width="800" height="600" alt="results of learning" title="results of learning"></p>
 
 <p>Please pay attention to the numbers in the next of line numbers.
-All lines are currently '1'.</p>
+All lines are currently '1':</p>
 
-<p><img src="all_learning.png" width="800" height="600" alt="profile number is all 1" title="profile number is all 1"></p>
+<p><img src="media.ubuntu10.04/all_learning.png" width="800" height="600" alt="profile number is all 1" title="profile number is all 1"></p>
 
 <p>These numbers show the process's running mode of TOMOYO Linux, which is called profile number.
-The profile numbers of are 0-3 and all domains in this LiveCD are initially assigned profile number 1 (learning mode).</p>
+The profile numbers of are 0-3 and all domains in this LiveCD are initially assigned profile number 1 (learning mode):</p>
 
 <table border="1" summary="profile number">
 <tr><th>profile number</th><th>meanings</th></tr>
 <tr><td>0</td><td>disabled mode (TOMOYO Linux do nothing)</td></tr>
-<tr><td>1</td><td>leaning mode (policy violation accesses are permitted and appended into policy)</td></tr>
-<tr><td>2</td><td>permissive mode (policy violation accesses are permitted and recorded into log)</td></tr>
-<tr><td>3</td><td>enforcing mode (policy violation accesses are denied)</td></tr>
+<tr><td>1</td><td>leaning mode (access requests that violated policy are accepted and policy is updated to allow such access requests)</td></tr>
+<tr><td>2</td><td>permissive mode (access requests that violated policy are accepted)</td></tr>
+<tr><td>3</td><td>enforcing mode (access requests that violated policy are debied)</td></tr>
 </table>
 
 <p>To enable TOMOYO Linux access restriction, you need to assign profile number 3 to domain.
 Let's restrict operations using bash invoked from gnome-terminal.
 Please press Space key at bash just below gnome-terminal, and you will see '&amp;' mark appeared at the left of the line number.
-This '&amp;' is the 'selected' mark.</p>
+This '&amp;' is the 'selected' mark:</p>
 
-<p><img src="select-1.png" width="800" height="600" alt="bash is selected" title="bash is selected"></p>
+<p><img src="media.ubuntu10.04/select-1.png" width="800" height="600" alt="bash is selected" title="bash is selected"></p>
 
-<p>Then, please press 'C' key, and you will get '&amp;' mark copied to all lines below.</p>
+<p>Then, please press 'C' key, and you will get '&amp;' mark copied to all lines below:</p>
 
-<p><img src="select-2.png" width="800" height="600" alt="all below bash are selected" title="all below bash are selected"></p>
+<p><img src="media.ubuntu10.04/select-2.png" width="800" height="600" alt="all below bash are selected" title="all below bash are selected"></p>
 
-<p>Then, please press Space key at sudo, and you will see '&amp;' mark disappeared.</p>
+<p>Then, please press Space key at sudo, and you will see '&amp;' mark disappeared:</p>
 
-<p><img src="select-3.png" width="800" height="600" alt="sudo is unselected" title="sudo is unselected"></p>
+<p><img src="media.ubuntu10.04/select-3.png" width="800" height="600" alt="sudo is unselected" title="sudo is unselected"></p>
 
-<p>Then, please press 'C' key, and you will get '&amp;' mark cleared from all lines below.</p>
+<p>Then, please press 'C' key, and you will get '&amp;' mark cleared from all lines below:</p>
 
-<p><img src="select-4.png" width="800" height="600" alt="all below sudo are unselected" title="all below sudo are unselected"></p>
+<p><img src="media.ubuntu10.04/select-4.png" width="800" height="600" alt="all below sudo are unselected" title="all below sudo are unselected"></p>
 
 <p>Then, please press 'S' key then prompt is shown in the bottom of the window.
-Please input "3" and press 'Enter' key.</p>
+Please input "3" and press 'Enter' key:</p>
 
-<p><img src="setprofile.png" width="800" height="600" alt="set profile number 3" title="set profile number 3"></p>
+<p><img src="media.ubuntu10.04/setprofile.png" width="800" height="600" alt="set profile number 3" title="set profile number 3"></p>
 
-<p>Profile number 3 is assigned to the selected domains.</p>
+<p>Profile number 3 is assigned to the selected domains:</p>
 
-<p><img src="bash_enforced.png" width="800" height="600" alt="profile changed to 3" title="profile changed to 3"></p>
+<p><img src="media.ubuntu10.04/bash_enforced.png" width="800" height="600" alt="profile changed to 3" title="profile changed to 3"></p>
 
 <p>bash invoked from gnome-terminal is already running in enforcing mode.
 Please execute some commands in the terminal.
 Commands that are not executed in learning mode will be denied.
-In the following window, "head /etc/password" is granted, but executions of "ls" and "ps" are denied.</p>
+In the following window, "head /etc/password" is granted, but executions of "ls" and "ps" are denied:</p>
 
-<p><img src="1st_bash.png" width="800" height="600" alt="not learned commands are denied" title="not learned commands are denied"></p>
+<p><img src="media.ubuntu10.04/1st_bash.png" width="800" height="600" alt="not learned commands are denied" title="not learned commands are denied"></p>
 
-<p>In addition, first-level bash can't execute "tail /etc/passwd", but second-level bash can do it.</p>
+<p>In addition, first-level bash can't execute "tail /etc/passwd", but second-level bash can do it:</p>
 
-<p><img src="2nd_bash.png" width="800" height="600" alt="permissions are different according to shell-level" title="permissions are different according to shell-level"></p>
+<p><img src="media.ubuntu10.04/2nd_bash.png" width="800" height="600" alt="permissions are different according to shell-level" title="permissions are different according to shell-level"></p>
 
 <p>This is because TOMOYO Linux distinguishes processes according to their invocation history.
 In current policy, the following two bashes exist.</p>
@@ -194,41 +216,38 @@ In current policy, the following two bashes exist.</p>
 <p>head command is only permitted in the first bash, and tail command is only permitted in the second bash.
 TOMOYO Linux monitors all processes from system boot sequence, and processes are distinguished by fine-grained method.</p>
 
-<p>You can find below entries which contains "mode=enforcing" line from TOMOYO Linux Policy Violation Log. Not only requested pathnames but also process credential information / command line arguments / environment variables etc. are recorded. If you want to restrict access more strictly, you can utilize these variables as needed.</p>
+<p>You can find below entries which contains "mode=enforcing" line from /var/log/tomoyo/reject_003.log . Not only requested pathnames but also process credential information / command line arguments / environment variables etc. are recorded. If you want to restrict access more strictly, you can utilize these variables as needed.</p>
 
-<table border="1">
-<tr><td>
-#2010-05-01 02:06:18# profile=3 mode=enforcing (global-pid=2806) task={ pid=2806 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=2781 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=13 perm=0755 } exec={ realpath="/bin/ls" argc=2 envc=37 argv[]={ "ls" "--color=auto" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2448" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=764921d9ac35d59fedb6da914bdc06d7-1272678488.648135-1044584990" "WINDOWID=54535022" "GNOME_KEYRING_CONTROL=/tmp/keyring-NIYXk8" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "SSH_AUTH_SOCK=/tmp/keyring-NIYXk8/ssh" "DEFAULTS_PATH=/usr/share/gconf/gnome.default.path" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2414,unix/ubuntu:/tmp/.ICE-unix/2414" "USERNAME=ubuntu" "XDG_CONFIG_DIRS=/etc/xdg/xdg-gnome:/etc/xdg" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "MANDATORY_PATH=/usr/share/gconf/gnome.mandatory.path" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-FHdQXUWhy3,guid=06e053c0c9085e95e2813ee14bdb8859" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-KWcCkj/database" "COLORTERM=gnome-terminal" "_=/bin/ls" } }<br>
-&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-file execute /bin/ls<br>
-<br>
-#2010-05-01 02:06:18# profile=3 mode=enforcing (global-pid=2806) task={ pid=2806 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=2781 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=13 perm=0755 }<br>
-&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-file read /bin/ls<br>
-<br>
+<pre class="output">#2010-05-01 02:06:18# profile=3 mode=enforcing (global-pid=2806) task={ pid=2806 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=2781 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=13 perm=0755 } exec={ realpath="/bin/ls" argc=2 envc=37 argv[]={ "ls" "--color=auto" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2448" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=764921d9ac35d59fedb6da914bdc06d7-1272678488.648135-1044584990" "WINDOWID=54535022" "GNOME_KEYRING_CONTROL=/tmp/keyring-NIYXk8" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "SSH_AUTH_SOCK=/tmp/keyring-NIYXk8/ssh" "DEFAULTS_PATH=/usr/share/gconf/gnome.default.path" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2414,unix/ubuntu:/tmp/.ICE-unix/2414" "USERNAME=ubuntu" "XDG_CONFIG_DIRS=/etc/xdg/xdg-gnome:/etc/xdg" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "MANDATORY_PATH=/usr/share/gconf/gnome.mandatory.path" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-FHdQXUWhy3,guid=06e053c0c9085e95e2813ee14bdb8859" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-KWcCkj/database" "COLORTERM=gnome-terminal" "_=/bin/ls" } }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash
+file execute /bin/ls
+
+#2010-05-01 02:06:18# profile=3 mode=enforcing (global-pid=2806) task={ pid=2806 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=2781 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=13 perm=0755 }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash
+file read /bin/ls
+
 #2010-05-01 02:06:20# profile=3 mode=enforcing (global-pid=2808) task={ pid=2808 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=7237 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=13 perm=0755 } exec={ realpath="/bin/ps" argc=1 envc=37 argv[]={ "ps" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2448" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=764921d9ac35d59fedb6da914bdc06d7-1272678488.648135-1044584990" "WINDOWID=54535022" "GNOME_KEYRING_CONTROL=/tmp/keyring-NIYXk8" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "SSH_AUTH_SOCK=/tmp/keyring-NIYXk8/ssh" "DEFAULTS_PATH=/usr/share/gconf/gnome.default.path" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2414,unix/ubuntu:/tmp/.ICE-unix/2414" "USERNAME=ubuntu" "XDG_CONFIG_DIRS=/etc/xdg/xdg-gnome:/etc/xdg" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "MANDATORY_PATH=/usr/share/gconf/gnome.mandatory.path" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-FHdQXUWhy3,guid=06e053c0c9085e95e2813ee14bdb8859" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-KWcCkj/database" "COLORTERM=gnome-terminal" "_=/bin/ps" } }
-&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-file execute /bin/ps<br>
-<br>
-#2010-05-01 02:06:20# profile=3 mode=enforcing (global-pid=2808) task={ pid=2808 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=7237 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=13 perm=0755 }<br>
-&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-file read /bin/ps<br>
-<br>
-#2010-05-01 02:06:27# profile=3 mode=enforcing (global-pid=2809) task={ pid=2809 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=848 major=0 minor=16 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=25 perm=0755 }<br>
-&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash /usr/bin/head<br>
-file read /etc/fstab<br>
-<br>
-#2010-05-01 02:07:13# profile=3 mode=enforcing (global-pid=2810) task={ pid=2810 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=3472 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=28 perm=0755 } exec={ realpath="/usr/bin/tail" argc=2 envc=37 argv[]={ "tail" "/etc/passwd" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2448" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=764921d9ac35d59fedb6da914bdc06d7-1272678488.648135-1044584990" "WINDOWID=54535022" "GNOME_KEYRING_CONTROL=/tmp/keyring-NIYXk8" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "SSH_AUTH_SOCK=/tmp/keyring-NIYXk8/ssh" "DEFAULTS_PATH=/usr/share/gconf/gnome.default.path" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2414,unix/ubuntu:/tmp/.ICE-unix/2414" "USERNAME=ubuntu" "XDG_CONFIG_DIRS=/etc/xdg/xdg-gnome:/etc/xdg" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "MANDATORY_PATH=/usr/share/gconf/gnome.mandatory.path" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-FHdQXUWhy3,guid=06e053c0c9085e95e2813ee14bdb8859" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-KWcCkj/database" "COLORTERM=gnome-terminal" "_=/usr/bin/tail" } }<br>
-&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-file execute /usr/bin/tail<br>
-<br>
-#2010-05-01 02:07:13# profile=3 mode=enforcing (global-pid=2810) task={ pid=2810 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=3472 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=28 perm=0755 }<br>
-&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-file read /usr/bin/tail
-</td></tr>
-</table>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash
+file execute /bin/ps
 
-<h2><a name="l6">(appendix) Installing Ubuntu + TOMOYO on your hard drive</a></h2>
+#2010-05-01 02:06:20# profile=3 mode=enforcing (global-pid=2808) task={ pid=2808 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=7237 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=13 perm=0755 }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash
+file read /bin/ps
+
+#2010-05-01 02:06:27# profile=3 mode=enforcing (global-pid=2809) task={ pid=2809 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=848 major=0 minor=16 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=25 perm=0755 }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash /usr/bin/head
+file read /etc/fstab
+
+#2010-05-01 02:07:13# profile=3 mode=enforcing (global-pid=2810) task={ pid=2810 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=3472 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=28 perm=0755 } exec={ realpath="/usr/bin/tail" argc=2 envc=37 argv[]={ "tail" "/etc/passwd" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2448" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=764921d9ac35d59fedb6da914bdc06d7-1272678488.648135-1044584990" "WINDOWID=54535022" "GNOME_KEYRING_CONTROL=/tmp/keyring-NIYXk8" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "SSH_AUTH_SOCK=/tmp/keyring-NIYXk8/ssh" "DEFAULTS_PATH=/usr/share/gconf/gnome.default.path" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2414,unix/ubuntu:/tmp/.ICE-unix/2414" "USERNAME=ubuntu" "XDG_CONFIG_DIRS=/etc/xdg/xdg-gnome:/etc/xdg" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "MANDATORY_PATH=/usr/share/gconf/gnome.mandatory.path" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-FHdQXUWhy3,guid=06e053c0c9085e95e2813ee14bdb8859" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-KWcCkj/database" "COLORTERM=gnome-terminal" "_=/usr/bin/tail" } }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash
+file execute /usr/bin/tail
+
+#2010-05-01 02:07:13# profile=3 mode=enforcing (global-pid=2810) task={ pid=2810 ppid=2763 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=3472 major=0 minor=16 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=28 perm=0755 }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash
+file read /usr/bin/tail
+</pre>
+
+<h3><a name="l6">(appendix) Installing Ubuntu + TOMOYO on your hard drive</a></h3>
 
 <p>Configuration and learned policy are only available in the LiveCD, and they are lost if you shutdown your system.
 Please install the system on your hard drive if you want to use continuously.
@@ -239,24 +258,20 @@ But when you install the system on your hard drive, existing OS may be overwritt
 <p>You can save TOMOYO Linux policy using ccs-savepolicy command in root user.
 The newly saved policy is used from next boot sequence.</p>
 
-<h2><a name="l7">(appendix) More information</a></h2>
+<h3><a name="l7">For more information</a></h3>
 
-<p>In this tutorial, you have experienced TOMOYO's basic access control functionality.
-TOMOYO Linux has many features. Please see the following documents to utilize TOMOYO Linux more effectively.</p>
+<p>In this tutorial, you have experienced TOMOYO's basic access control functionality. TOMOYO Linux has many features. Please follow the links on the top of this page to utilize TOMOYO Linux more effectively.</p>
 
-<ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.en">How to use Policy Editor</a>: detailed usage of policy editor</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.8/policy-reference.html.en">Policy Specifications of TOMOYO Linux</a>: reference of TOMOYO Linux functions</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.8/index.html.en#tutorial">The world of TOMOYO Linux</a>: tutorial covering basic functionalities</li>
-</ul>
+</div><!-- documentation -->
 
-<hr>
-<address><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/en/">NTT DATA CORPORATION</a><br>
-<a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
-Last modified: $Date$<br>
-<!--#include virtual="/cgi-bin/counter.pl" -->
-</address>
+</div><!-- content -->
 
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+<div id="footer">
+<p class="language">Go to <a href="ubuntu10.04-live.html.ja">Japanese page</a>.</p>
+<p class="counter"><!--#include virtual="/cgi-bin/counter.pl" --></p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+</div>
+
 </body>
 </html>
