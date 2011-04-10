@@ -48,7 +48,7 @@ Fix 2010/01/20
     @ Use rcu_read_lock() for find_task_by_pid().
 
       Since kernel 2.6.18 , caller of find_task_by_pid() needs to call
-      rcu_read_lock() rather than read_lock(&tasklist_lock) because find_pid()
+      rcu_read_lock() rather than read_lock(&amp;tasklist_lock) because find_pid()
       uses RCU primitives but spinlock does not prevent RCU callback if
       preemptive RCU ( CONFIG_PREEMPT_RCU or CONFIG_TREE_PREEMPT_RCU ) is
       enabled.
