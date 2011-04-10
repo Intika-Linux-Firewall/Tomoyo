@@ -37,6 +37,18 @@ EOF'
 	) >> squash/etc/init.d/rc.local
 fi
 
+if ! grep -qF tomoyo.sourceforge.jp squash/etc/init.d/rc.local
+then
+    (
+	echo 'if ! grep -qF tomoyo.sourceforge.jp /etc/apt/sources.list'
+	echo 'then'
+	echo 'echo "" >> /etc/apt/sources.list'
+	echo 'echo "# TOMOYO Linux 1.8 kernel and tools" >> /etc/apt/sources.list'
+	echo 'echo "deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.04/ ./" >> /etc/apt/sources.list'
+	echo 'fi'
+    ) >> squash/etc/init.d/rc.local
+fi
+
 cd squash/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
 mkdir tomoyo/ || die "Can't create directory."
