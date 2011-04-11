@@ -26,7 +26,7 @@ fi
 
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
-apt-get -y install fakeroot build-essential || die "Can't install packages."
+apt-get -y install fakeroot build-essential libelf-dev makedumpfile || die "Can't install packages."
 apt-get build-dep linux || die "Can't install packages."
 apt-get source linux-source-2.6.38 || die "Can't install kernel source."
 
