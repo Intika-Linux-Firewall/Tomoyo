@@ -29,6 +29,7 @@ cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get -y install fakeroot build-essential || die "Can't install packages."
 apt-get build-dep linux || die "Can't install packages."
 apt-get source linux-source-2.6.32 || die "Can't install kernel source."
+for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, ","); for (i = 1; i <= n; i++) { split(a[i], b, " "); print b[1]; } } ' linux-2.6.32/debian/control`; do apt-get -y install $i; done
 
 # Apply patches and create kernel config.
 cd linux-2.6.32/ || die "Can't chdir to linux-2.6.32/ ."

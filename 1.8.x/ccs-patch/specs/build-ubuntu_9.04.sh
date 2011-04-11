@@ -24,12 +24,13 @@ fi
 
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
-apt-get install fakeroot build-essential || die "Can't install packages."
+apt-get -y install fakeroot build-essential || die "Can't install packages."
 apt-get build-dep linux-image-${VERSION}-generic || die "Can't install packages."
 apt-get source linux-image-${VERSION}-generic || die "Can't install kernel source."
-apt-get install linux-headers-${VERSION} || die "Can't install packages."
+apt-get -y install linux-headers-${VERSION} || die "Can't install packages."
 apt-get build-dep linux-restricted-modules-${VERSION}-generic || die "Can't install packages."
 apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install kernel source."
+for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, ","); for (i = 1; i <= n; i++) { split(a[i], b, " "); print b[1]; } } ' linux-2.6.28/debian/control`; do apt-get -y install $i; done
 
 # Apply patches and create kernel config.
 cd linux-2.6.28/ || die "Can't chdir to linux-2.6.28/ ."

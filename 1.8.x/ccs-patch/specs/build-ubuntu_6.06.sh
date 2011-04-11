@@ -41,11 +41,12 @@ fi
 
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
-apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
+apt-get -y install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
 apt-get build-dep linux-image-${VERSION}-686 || die "Can't install packages."
 apt-get source linux-image-${VERSION}-686 || die "Can't install kernel source."
 apt-get build-dep linux-restricted-modules-${VERSION}-686 || die "Can't install packages."
 apt-get source linux-restricted-modules-${VERSION}-686 || die "Can't install kernel source."
+for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, ","); for (i = 1; i <= n; i++) { split(a[i], b, " "); print b[1]; } } ' linux-source-2.6.15-2.6.15/debian/control`; do apt-get -y install $i; done
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
