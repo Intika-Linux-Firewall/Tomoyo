@@ -1,1 +1,2 @@
-RedirectMatch (.*)/(.*)\.deb http://sourceforge.jp/frs/redir.php?f=/tomoyo/51588/$2.deb
+RewriteEngine On
+RewriteRule (.*)\.deb /cgi-bin/download.cgi?f=/tomoyo/51588/$1.deb [L,NE]
