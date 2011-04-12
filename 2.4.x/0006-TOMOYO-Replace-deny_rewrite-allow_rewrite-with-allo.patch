@@ -1,24 +1,19 @@
-From 719859b8a05b9468bfd54eaf38d5776c8c899633 Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 3 Apr 2011 00:49:15 +0900
-Subject: [PATCH 6/9] TOMOYO: Replace deny_rewrite/allow_rewrite with allow_append.
+Subject: TOMOYO: Replace deny_rewrite/allow_rewrite with allow_append.
 
 Remove special handling for deny_rewrite/allow_rewrite permission.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   13 +----
- security/tomoyo/common.h |   34 +++---------
- security/tomoyo/file.c   |  134 +++++-----------------------------------------
- security/tomoyo/gc.c     |   10 ----
- security/tomoyo/tomoyo.c |    7 ++-
+ security/tomoyo/common.c |   13 ----
+ security/tomoyo/common.h |   34 ++---------
+ security/tomoyo/file.c   |  134 ++++-------------------------------------------
+ security/tomoyo/gc.c     |   10 ---
+ security/tomoyo/tomoyo.c |    7 +-
  5 files changed, 26 insertions(+), 172 deletions(-)
 
-diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index 1450200..91f332a 100644
---- a/security/tomoyo/common.c
-+++ b/security/tomoyo/common.c
-@@ -45,7 +45,6 @@ static const char *tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -45,7 +45,6 @@ static const char *tomoyo_mac_keywords[T
  	[TOMOYO_MAC_FILE_MKSOCK]     = "file::mksock",
  	[TOMOYO_MAC_FILE_TRUNCATE]   = "file::truncate",
  	[TOMOYO_MAC_FILE_SYMLINK]    = "file::symlink",
@@ -26,7 +21,7 @@ index 1450200..91f332a 100644
  	[TOMOYO_MAC_FILE_MKBLOCK]    = "file::mkblock",
  	[TOMOYO_MAC_FILE_MKCHAR]     = "file::mkchar",
  	[TOMOYO_MAC_FILE_LINK]       = "file::link",
-@@ -1230,10 +1229,9 @@ static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
+@@ -1230,10 +1229,9 @@ static int tomoyo_write_exception(struct
  	static const struct {
  		const char *keyword;
  		int (*write) (char *, const bool);
@@ -38,7 +33,7 @@ index 1450200..91f332a 100644
  		{ TOMOYO_KEYWORD_ALLOW_READ, tomoyo_write_globally_readable },
  	};
  
-@@ -1362,15 +1360,6 @@ static bool tomoyo_read_policy(struct tomoyo_io_buffer *head, const int idx)
+@@ -1362,15 +1360,6 @@ static bool tomoyo_read_policy(struct to
  				tomoyo_set_string(head, ptr->pattern->name);
  			}
  			break;
@@ -54,10 +49,8 @@ index 1450200..91f332a 100644
  		default:
  			continue;
  		}
-diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
-index b0562e4..4d4fb00 100644
---- a/security/tomoyo/common.h
-+++ b/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -54,7 +54,6 @@ enum tomoyo_policy_id {
  	TOMOYO_ID_AGGREGATOR,
  	TOMOYO_ID_GLOBALLY_READABLE,
@@ -130,7 +123,7 @@ index b0562e4..4d4fb00 100644
   * tomoyo_transition_control is a structure which is used for holding
   * "initialize_domain"/"no_initialize_domain"/"keep_domain"/"no_keep_domain"
   * entries.
-@@ -749,11 +731,11 @@ int tomoyo_write_aggregator(char *data, const bool is_delete);
+@@ -749,11 +731,11 @@ int tomoyo_write_aggregator(char *data, 
  int tomoyo_write_transition_control(char *data, const bool is_delete,
  				    const u8 type);
  /*
@@ -145,7 +138,7 @@ index b0562e4..4d4fb00 100644
   */
  int tomoyo_write_file(char *data, struct tomoyo_domain_info *domain,
  		      const bool is_delete);
-@@ -762,8 +744,6 @@ int tomoyo_write_globally_readable(char *data, const bool is_delete);
+@@ -762,8 +744,6 @@ int tomoyo_write_globally_readable(char 
  /* Create "allow_mount" entry in domain policy. */
  int tomoyo_write_mount(char *data, struct tomoyo_domain_info *domain,
  		       const bool is_delete);
@@ -154,11 +147,9 @@ index b0562e4..4d4fb00 100644
  /* Create "file_pattern" entry in exception policy. */
  int tomoyo_write_pattern(char *data, const bool is_delete);
  /* Create "path_group"/"number_group" entry in exception policy. */
-diff --git a/security/tomoyo/file.c b/security/tomoyo/file.c
-index d2bf3ca..746b5b4 100644
---- a/security/tomoyo/file.c
-+++ b/security/tomoyo/file.c
-@@ -14,11 +14,11 @@ const char *tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION] = {
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -14,11 +14,11 @@ const char *tomoyo_path_keyword[TOMOYO_M
  	[TOMOYO_TYPE_EXECUTE]    = "execute",
  	[TOMOYO_TYPE_READ]       = "read",
  	[TOMOYO_TYPE_WRITE]      = "write",
@@ -171,7 +162,7 @@ index d2bf3ca..746b5b4 100644
  	[TOMOYO_TYPE_CHROOT]     = "chroot",
  	[TOMOYO_TYPE_UMOUNT]     = "unmount",
  };
-@@ -52,11 +52,11 @@ static const u8 tomoyo_p2mac[TOMOYO_MAX_PATH_OPERATION] = {
+@@ -52,11 +52,11 @@ static const u8 tomoyo_p2mac[TOMOYO_MAX_
  	[TOMOYO_TYPE_EXECUTE]    = TOMOYO_MAC_FILE_EXECUTE,
  	[TOMOYO_TYPE_READ]       = TOMOYO_MAC_FILE_OPEN,
  	[TOMOYO_TYPE_WRITE]      = TOMOYO_MAC_FILE_OPEN,
@@ -184,7 +175,7 @@ index d2bf3ca..746b5b4 100644
  	[TOMOYO_TYPE_CHROOT]     = TOMOYO_MAC_FILE_CHROOT,
  	[TOMOYO_TYPE_UMOUNT]     = TOMOYO_MAC_FILE_UMOUNT,
  };
-@@ -427,84 +427,6 @@ int tomoyo_write_pattern(char *data, const bool is_delete)
+@@ -427,84 +427,6 @@ int tomoyo_write_pattern(char *data, con
  	return tomoyo_update_file_pattern_entry(data, is_delete);
  }
  
@@ -269,7 +260,7 @@ index d2bf3ca..746b5b4 100644
  static bool tomoyo_check_path_acl(struct tomoyo_request_info *r,
  				  const struct tomoyo_acl_info *ptr)
  {
-@@ -771,7 +693,6 @@ int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
+@@ -771,7 +693,6 @@ int tomoyo_path_permission(struct tomoyo
  {
  	int error;
  
@@ -277,7 +268,7 @@ index d2bf3ca..746b5b4 100644
  	r->type = tomoyo_p2mac[operation];
  	r->mode = tomoyo_get_mode(r->profile, r->type);
  	if (r->mode == TOMOYO_CONFIG_DISABLED)
-@@ -792,16 +713,6 @@ int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
+@@ -792,16 +713,6 @@ int tomoyo_path_permission(struct tomoyo
  		 */
  	} while (error == TOMOYO_RETRY_REQUEST &&
  		 operation != TOMOYO_TYPE_EXECUTE);
@@ -294,7 +285,7 @@ index d2bf3ca..746b5b4 100644
  	return error;
  }
  
-@@ -934,26 +845,10 @@ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+@@ -934,26 +845,10 @@ int tomoyo_check_open_permission(struct 
  	buf.name = NULL;
  	r.mode = TOMOYO_CONFIG_DISABLED;
  	idx = tomoyo_read_lock();
@@ -323,7 +314,7 @@ index d2bf3ca..746b5b4 100644
  			error = -ENOMEM;
  			goto out;
  		}
-@@ -961,7 +856,9 @@ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+@@ -961,7 +856,9 @@ int tomoyo_check_open_permission(struct 
  			error = tomoyo_path_permission(&r, TOMOYO_TYPE_READ,
  						       &buf);
  		if (!error && (acc_mode & MAY_WRITE))
@@ -334,7 +325,7 @@ index d2bf3ca..746b5b4 100644
  						       &buf);
  	}
   out:
-@@ -973,7 +870,7 @@ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+@@ -973,7 +870,7 @@ int tomoyo_check_open_permission(struct 
  }
  
  /**
@@ -343,7 +334,7 @@ index d2bf3ca..746b5b4 100644
   *
   * @operation: Type of operation.
   * @path:      Pointer to "struct path".
-@@ -982,9 +879,10 @@ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+@@ -982,9 +879,10 @@ int tomoyo_check_open_permission(struct 
   */
  int tomoyo_path_perm(const u8 operation, struct path *path)
  {
@@ -356,7 +347,7 @@ index d2bf3ca..746b5b4 100644
  	int idx;
  
  	if (!path->mnt)
-@@ -992,17 +890,13 @@ int tomoyo_path_perm(const u8 operation, struct path *path)
+@@ -992,17 +890,13 @@ int tomoyo_path_perm(const u8 operation,
  	if (tomoyo_init_request_info(&r, NULL, tomoyo_p2mac[operation])
  	    == TOMOYO_CONFIG_DISABLED)
  		return 0;
@@ -376,7 +367,7 @@ index d2bf3ca..746b5b4 100644
  	case TOMOYO_TYPE_RMDIR:
  	case TOMOYO_TYPE_CHROOT:
  		tomoyo_add_slash(&buf);
-@@ -1012,7 +906,7 @@ int tomoyo_path_perm(const u8 operation, struct path *path)
+@@ -1012,7 +906,7 @@ int tomoyo_path_perm(const u8 operation,
   out:
  	kfree(buf.name);
  	tomoyo_read_unlock(idx);
@@ -385,11 +376,9 @@ index d2bf3ca..746b5b4 100644
  		error = 0;
  	return error;
  }
-diff --git a/security/tomoyo/gc.c b/security/tomoyo/gc.c
-index a877e4c..e81ea6b 100644
---- a/security/tomoyo/gc.c
-+++ b/security/tomoyo/gc.c
-@@ -46,13 +46,6 @@ static void tomoyo_del_file_pattern(struct list_head *element)
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -46,13 +46,6 @@ static void tomoyo_del_file_pattern(stru
  	tomoyo_put_name(ptr->pattern);
  }
  
@@ -413,11 +402,9 @@ index a877e4c..e81ea6b 100644
  		case TOMOYO_ID_MANAGER:
  			tomoyo_del_manager(element);
  			break;
-diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
-index cc1da19..7f11790 100644
---- a/security/tomoyo/tomoyo.c
-+++ b/security/tomoyo/tomoyo.c
-@@ -176,9 +176,10 @@ static int tomoyo_path_rename(struct path *old_parent,
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
+@@ -176,9 +176,10 @@ static int tomoyo_path_rename(struct pat
  static int tomoyo_file_fcntl(struct file *file, unsigned int cmd,
  			     unsigned long arg)
  {
@@ -431,6 +418,3 @@ index cc1da19..7f11790 100644
  }
  
  static int tomoyo_dentry_open(struct file *f, const struct cred *cred)
--- 
-1.6.1
-

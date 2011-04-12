@@ -1,7 +1,4 @@
-From db0a81f4b5f3285c303b26ea2214a8e08f4f6da7 Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 3 Apr 2011 00:12:54 +0900
-Subject: [PATCH 3/9] TOMOYO: Fix infinite loop bug when reading /sys/kernel/security/tomoyo/audit
+Subject: TOMOYO: Fix infinite loop bug when reading /sys/kernel/security/tomoyo/audit
 
 In tomoyo_flush(), head->r.w[0] holds pointer to string data to be printed.
 But head->r.w[0] was updated only when the string data was partially
@@ -15,13 +12,11 @@ tomoyo_flush() forever reprints already printed string data.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |    5 ++---
- 1 files changed, 2 insertions(+), 3 deletions(-)
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index 2b7b1a1..a0d09e5 100644
---- a/security/tomoyo/common.c
-+++ b/security/tomoyo/common.c
-@@ -108,10 +108,9 @@ static bool tomoyo_flush(struct tomoyo_io_buffer *head)
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -108,10 +108,9 @@ static bool tomoyo_flush(struct tomoyo_i
  			head->read_user_buf += len;
  			w += len;
  		}
@@ -34,6 +29,3 @@ index 2b7b1a1..a0d09e5 100644
  		/* Add '\0' for query. */
  		if (head->poll) {
  			if (!head->read_user_buf_avail ||
--- 
-1.6.1
-

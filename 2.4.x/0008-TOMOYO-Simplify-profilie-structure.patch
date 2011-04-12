@@ -1,7 +1,4 @@
-From aa0d4d286c15e647043e6e40abbeae402fb97d4e Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 3 Apr 2011 00:50:47 +0900
-Subject: [PATCH 8/9] TOMOYO: Simplify profilie structure.
+Subject: TOMOYO: Simplify profilie structure.
 
 Remove global preference from profile structure in order to make code simpler.
 
@@ -11,15 +8,13 @@ temporarily disabled. They will be replaced by
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  189 +++++++++++++---------------------------------
- security/tomoyo/common.h |   18 ++---
- security/tomoyo/util.c   |   39 ++--------
+ security/tomoyo/common.c |  189 +++++++++++++----------------------------------
+ security/tomoyo/common.h |   18 +---
+ security/tomoyo/util.c   |   39 +--------
  3 files changed, 68 insertions(+), 178 deletions(-)
 
-diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index 8f1c630..aca935d 100644
---- a/security/tomoyo/common.c
-+++ b/security/tomoyo/common.c
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
 @@ -11,16 +11,6 @@
  #include <linux/security.h>
  #include "common.h"
@@ -37,7 +32,7 @@ index 8f1c630..aca935d 100644
  /* Profile version. Currently only 20090903 is defined. */
  static unsigned int tomoyo_profile_version;
  
-@@ -60,6 +50,11 @@ static const char *tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
+@@ -60,6 +50,11 @@ static const char *tomoyo_mac_keywords[T
  	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE] = "file",
  };
  
@@ -49,7 +44,7 @@ index 8f1c630..aca935d 100644
  /* Permit policy management by non-root user? */
  static bool tomoyo_manage_by_non_root;
  
-@@ -267,12 +262,10 @@ static struct tomoyo_profile *tomoyo_assign_profile(const unsigned int profile)
+@@ -267,12 +262,10 @@ static struct tomoyo_profile *tomoyo_ass
  	ptr = tomoyo_profile_ptr[profile];
  	if (!ptr && tomoyo_memory_ok(entry)) {
  		ptr = entry;
@@ -63,7 +58,7 @@ index 8f1c630..aca935d 100644
  		mb(); /* Avoid out-of-order execution. */
  		tomoyo_profile_ptr[profile] = ptr;
  		entry = NULL;
-@@ -292,13 +285,21 @@ static struct tomoyo_profile *tomoyo_assign_profile(const unsigned int profile)
+@@ -292,13 +285,21 @@ static struct tomoyo_profile *tomoyo_ass
   */
  struct tomoyo_profile *tomoyo_profile(const u8 profile)
  {
@@ -88,7 +83,7 @@ index 8f1c630..aca935d 100644
  static s8 tomoyo_find_yesno(const char *string, const char *find)
  {
  	const char *cp = strstr(string, find);
-@@ -312,18 +313,15 @@ static s8 tomoyo_find_yesno(const char *string, const char *find)
+@@ -312,18 +313,15 @@ static s8 tomoyo_find_yesno(const char *
  	return -1;
  }
  
@@ -116,7 +111,7 @@ index 8f1c630..aca935d 100644
  static void tomoyo_set_uint(unsigned int *i, const char *string,
  			    const char *find)
  {
-@@ -332,51 +330,16 @@ static void tomoyo_set_uint(unsigned int *i, const char *string,
+@@ -332,51 +330,16 @@ static void tomoyo_set_uint(unsigned int
  		sscanf(cp + strlen(find), "=%u", i);
  }
  
@@ -177,7 +172,7 @@ index 8f1c630..aca935d 100644
  			   struct tomoyo_profile *profile)
  {
  	u8 i;
-@@ -398,7 +361,7 @@ static int tomoyo_set_mode(char *name, const char *value,
+@@ -398,7 +361,7 @@ static int tomoyo_set_mode(char *name, c
  	} else {
  		return -EINVAL;
  	}
@@ -186,7 +181,7 @@ index 8f1c630..aca935d 100644
  		config = TOMOYO_CONFIG_USE_DEFAULT;
  	} else {
  		u8 mode;
-@@ -428,34 +391,21 @@ static int tomoyo_write_profile(struct tomoyo_io_buffer *head)
+@@ -428,34 +391,21 @@ static int tomoyo_write_profile(struct t
  {
  	char *data = head->write_buf;
  	unsigned int i;
@@ -227,7 +222,7 @@ index 8f1c630..aca935d 100644
  	if (!strcmp(data, "COMMENT")) {
  		static DEFINE_SPINLOCK(lock);
  		const struct tomoyo_path_info *new_comment
-@@ -470,48 +420,13 @@ static int tomoyo_write_profile(struct tomoyo_io_buffer *head)
+@@ -470,48 +420,13 @@ static int tomoyo_write_profile(struct t
  		tomoyo_put_name(old_comment);
  		return 0;
  	}
@@ -282,7 +277,7 @@ index 8f1c630..aca935d 100644
  }
  
  static void tomoyo_print_config(struct tomoyo_io_buffer *head, const u8 config)
-@@ -534,7 +449,6 @@ static void tomoyo_read_profile(struct tomoyo_io_buffer *head)
+@@ -534,7 +449,6 @@ static void tomoyo_read_profile(struct t
  	switch (head->r.step) {
  	case 0:
  		tomoyo_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
@@ -290,7 +285,7 @@ index 8f1c630..aca935d 100644
  		head->r.step++;
  		break;
  	case 1:
-@@ -548,11 +462,17 @@ static void tomoyo_read_profile(struct tomoyo_io_buffer *head)
+@@ -548,11 +462,17 @@ static void tomoyo_read_profile(struct t
  		break;
  	case 2:
  		{
@@ -308,7 +303,7 @@ index 8f1c630..aca935d 100644
  			head->r.step++;
  		}
  		break;
-@@ -579,7 +499,6 @@ static void tomoyo_read_profile(struct tomoyo_io_buffer *head)
+@@ -579,7 +499,6 @@ static void tomoyo_read_profile(struct t
  		}
  		if (head->r.bit == TOMOYO_MAX_MAC_INDEX
  		    + TOMOYO_MAX_MAC_CATEGORY_INDEX) {
@@ -316,10 +311,8 @@ index 8f1c630..aca935d 100644
  			head->r.index++;
  			head->r.step = 1;
  		}
-diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
-index a43499d..4700629 100644
---- a/security/tomoyo/common.h
-+++ b/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -196,6 +196,12 @@ enum tomoyo_mac_category_index {
  
  #define TOMOYO_RETRY_REQUEST 1 /* Retry this request. */
@@ -356,11 +349,9 @@ index a43499d..4700629 100644
  };
  
  /********** Function prototypes. **********/
-diff --git a/security/tomoyo/util.c b/security/tomoyo/util.c
-index 5295c06..1c6e3fe 100644
---- a/security/tomoyo/util.c
-+++ b/security/tomoyo/util.c
-@@ -860,35 +860,10 @@ const char *tomoyo_last_word(const char *name)
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -860,35 +860,10 @@ const char *tomoyo_last_word(const char 
   */
  void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
  {
@@ -400,7 +391,7 @@ index 5295c06..1c6e3fe 100644
  }
  
  /**
-@@ -939,13 +914,13 @@ bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r)
+@@ -939,13 +914,13 @@ bool tomoyo_domain_quota_is_ok(struct to
  			if (perm & (1 << i))
  				count++;
  	}
@@ -417,6 +408,3 @@ index 5295c06..1c6e3fe 100644
  		       "Stopped learning mode.\n", domain->domainname->name);
  	}
  	return false;
--- 
-1.6.1
-

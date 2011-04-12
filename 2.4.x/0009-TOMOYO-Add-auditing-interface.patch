@@ -1,7 +1,4 @@
-From 587c4132f9802aea96c5513834e72425dfa3d67b Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 3 Apr 2011 01:02:21 +0900
-Subject: [PATCH 9/9] TOMOYO: Add auditing interface.
+Subject: TOMOYO: Add auditing interface.
 
 Add /sys/kernel/security/tomoyo/audit interface. This interface generates audit
 logs in the form of domain policy so that /usr/sbin/tomoyo-auditd can reuse
@@ -10,30 +7,24 @@ interface.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/Makefile        |    2 +-
- security/tomoyo/audit.c         |  300 +++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.c        |  257 ++++++++++++++-------------------
- security/tomoyo/common.h        |   86 +++++++++++-
- security/tomoyo/file.c          |   49 ++-----
- security/tomoyo/memory.c        |    5 +
- security/tomoyo/mount.c         |   24 +---
- security/tomoyo/securityfs_if.c |    2 +
- security/tomoyo/util.c          |   14 --
+ security/tomoyo/Makefile        |    2 
+ security/tomoyo/audit.c         |  300 ++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c        |  257 ++++++++++++++--------------------
+ security/tomoyo/common.h        |   86 ++++++++++-
+ security/tomoyo/file.c          |   49 ++----
+ security/tomoyo/memory.c        |    5 
+ security/tomoyo/mount.c         |   24 ---
+ security/tomoyo/securityfs_if.c |    2 
+ security/tomoyo/util.c          |   14 -
  9 files changed, 513 insertions(+), 226 deletions(-)
- create mode 100644 security/tomoyo/audit.c
 
-diff --git a/security/tomoyo/Makefile b/security/tomoyo/Makefile
-index 91640e9..b13f7f9 100644
---- a/security/tomoyo/Makefile
-+++ b/security/tomoyo/Makefile
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
 @@ -1 +1 @@
 -obj-y = common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
 +obj-y = audit.o common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
-diff --git a/security/tomoyo/audit.c b/security/tomoyo/audit.c
-new file mode 100644
-index 0000000..c621d5c
 --- /dev/null
-+++ b/security/tomoyo/audit.c
++++ security-testing-2.6/security/tomoyo/audit.c
 @@ -0,0 +1,300 @@
 +/*
 + * security/tomoyo/audit.c
@@ -335,11 +326,9 @@ index 0000000..c621d5c
 +		return POLLIN | POLLRDNORM;
 +	return 0;
 +}
-diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index aca935d..6d0ad40 100644
---- a/security/tomoyo/common.c
-+++ b/security/tomoyo/common.c
-@@ -17,9 +17,12 @@ static unsigned int tomoyo_profile_version;
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -17,9 +17,12 @@ static unsigned int tomoyo_profile_versi
  /* Profile table. Memory is allocated as needed. */
  static struct tomoyo_profile *tomoyo_profile_ptr[TOMOYO_MAX_PROFILES];
  
@@ -355,7 +344,7 @@ index aca935d..6d0ad40 100644
  };
  
  /* String table for /sys/kernel/security/tomoyo/profile */
-@@ -52,6 +55,7 @@ static const char *tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
+@@ -52,6 +55,7 @@ static const char *tomoyo_mac_keywords[T
  
  /* String table for PREFERENCE keyword. */
  static const char * const tomoyo_pref_keywords[TOMOYO_MAX_PREF] = {
@@ -372,7 +361,7 @@ index aca935d..6d0ad40 100644
  {
  	return value ? "yes" : "no";
  }
-@@ -105,7 +109,7 @@ static bool tomoyo_flush(struct tomoyo_io_buffer *head)
+@@ -105,7 +109,7 @@ static bool tomoyo_flush(struct tomoyo_i
  		head->r.w[0] = w;
  		if (*w)
  			return false;
@@ -381,7 +370,7 @@ index aca935d..6d0ad40 100644
  		if (head->poll) {
  			if (!head->read_user_buf_avail ||
  			    copy_to_user(head->read_user_buf, "", 1))
-@@ -265,6 +269,7 @@ static struct tomoyo_profile *tomoyo_assign_profile(const unsigned int profile)
+@@ -265,6 +269,7 @@ static struct tomoyo_profile *tomoyo_ass
  		ptr->default_config = TOMOYO_CONFIG_DISABLED;
  		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
  		       sizeof(ptr->config));
@@ -389,7 +378,7 @@ index aca935d..6d0ad40 100644
  		ptr->pref[TOMOYO_PREF_MAX_LEARNING_ENTRY] = 2048;
  		mb(); /* Avoid out-of-order execution. */
  		tomoyo_profile_ptr[profile] = ptr;
-@@ -1302,92 +1307,28 @@ static void tomoyo_read_exception(struct tomoyo_io_buffer *head)
+@@ -1302,92 +1307,28 @@ static void tomoyo_read_exception(struct
  	head->r.eof = true;
  }
  
@@ -533,7 +522,7 @@ index aca935d..6d0ad40 100644
   *
   * Returns 0 if the supervisor decided to permit the access request which
   * violated the policy in enforcing mode, TOMOYO_RETRY_REQUEST if the
-@@ -1408,88 +1377,77 @@ static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
+@@ -1408,88 +1377,77 @@ static atomic_t tomoyo_query_observers =
  int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
  {
  	va_list args;
@@ -669,7 +658,7 @@ index aca935d..6d0ad40 100644
  	case 3: /* Asked to retry by administrator. */
  		error = TOMOYO_RETRY_REQUEST;
  		r->retry++;
-@@ -1498,18 +1456,12 @@ int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
+@@ -1498,18 +1456,12 @@ int tomoyo_supervisor(struct tomoyo_requ
  		/* Granted by administrator. */
  		error = 0;
  		break;
@@ -691,7 +680,7 @@ index aca935d..6d0ad40 100644
  	return error;
  }
  
-@@ -1707,6 +1659,11 @@ int tomoyo_open_control(const u8 type, struct file *file)
+@@ -1707,6 +1659,11 @@ int tomoyo_open_control(const u8 type, s
  		head->write = tomoyo_write_exception;
  		head->read = tomoyo_read_exception;
  		break;
@@ -703,7 +692,7 @@ index aca935d..6d0ad40 100644
  	case TOMOYO_SELFDOMAIN:
  		/* /sys/kernel/security/tomoyo/self_domain */
  		head->read = tomoyo_read_self_domain;
-@@ -1780,7 +1737,7 @@ int tomoyo_open_control(const u8 type, struct file *file)
+@@ -1780,7 +1737,7 @@ int tomoyo_open_control(const u8 type, s
  			return -ENOMEM;
  		}
  	}
@@ -712,7 +701,7 @@ index aca935d..6d0ad40 100644
  		head->reader_idx = tomoyo_read_lock();
  	file->private_data = head;
  	/*
-@@ -1925,7 +1882,7 @@ int tomoyo_close_control(struct file *file)
+@@ -1925,7 +1882,7 @@ int tomoyo_close_control(struct file *fi
  	 */
  	if (head->type == TOMOYO_QUERY)
  		atomic_dec(&tomoyo_query_observers);
@@ -721,10 +710,8 @@ index aca935d..6d0ad40 100644
  		tomoyo_read_unlock(head->reader_idx);
  	/* Release memory used for policy I/O. */
  	kfree(head->read_buf);
-diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
-index 4700629..af5fc12 100644
---- a/security/tomoyo/common.h
-+++ b/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -38,12 +38,16 @@ struct linux_binprm;
  /* Profile number is an integer between 0 and 255. */
  #define TOMOYO_MAX_PROFILES 256
@@ -790,7 +777,7 @@ index 4700629..af5fc12 100644
  /********** Function prototypes. **********/
  
  /* Check whether the given string starts with the given keyword. */
-@@ -642,9 +665,6 @@ bool tomoyo_str_starts(char **src, const char *find);
+@@ -642,9 +665,6 @@ bool tomoyo_str_starts(char **src, const
  const char *tomoyo_get_exe(void);
  /* Format string. */
  void tomoyo_normalize_line(unsigned char *buffer);
@@ -800,7 +787,7 @@ index 4700629..af5fc12 100644
  /* Check all profiles currently assigned to domains are defined. */
  void tomoyo_check_profile(void);
  /* Open operation for /sys/kernel/security/tomoyo/ interface. */
-@@ -824,6 +844,14 @@ void tomoyo_check_acl(struct tomoyo_request_info *r,
+@@ -824,6 +844,14 @@ void tomoyo_check_acl(struct tomoyo_requ
  		      bool (*check_entry) (struct tomoyo_request_info *,
  					   const struct tomoyo_acl_info *));
  
@@ -815,7 +802,7 @@ index 4700629..af5fc12 100644
  /********** External variable definitions. **********/
  
  /* Lock for GC. */
-@@ -849,9 +877,11 @@ extern const char *tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION];
+@@ -849,9 +877,11 @@ extern const char *tomoyo_path_keyword[T
  extern const char *tomoyo_mkdev_keyword[TOMOYO_MAX_MKDEV_OPERATION];
  extern const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION];
  extern const char *tomoyo_path_number_keyword[TOMOYO_MAX_PATH_NUMBER_OPERATION];
@@ -829,7 +816,7 @@ index 4700629..af5fc12 100644
  
  /********** Inlined functions. **********/
  
-@@ -943,6 +973,50 @@ static inline bool tomoyo_same_number_union
+@@ -943,6 +973,50 @@ static inline bool tomoyo_same_number_un
  		p1->max_type == p2->max_type && p1->is_group == p2->is_group;
  }
  
@@ -880,11 +867,9 @@ index 4700629..af5fc12 100644
  /**
   * list_for_each_cookie - iterate over a list with cookie.
   * @pos:        the &struct list_head to use as a loop cursor.
-diff --git a/security/tomoyo/file.c b/security/tomoyo/file.c
-index 9bea24e..526ee80 100644
---- a/security/tomoyo/file.c
-+++ b/security/tomoyo/file.c
-@@ -156,13 +156,9 @@ static bool tomoyo_get_realpath(struct tomoyo_path_info *buf, struct path *path)
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -156,13 +156,9 @@ static bool tomoyo_get_realpath(struct t
   */
  static int tomoyo_audit_path_log(struct tomoyo_request_info *r)
  {
@@ -901,7 +886,7 @@ index 9bea24e..526ee80 100644
  }
  
  /**
-@@ -174,15 +170,10 @@ static int tomoyo_audit_path_log(struct tomoyo_request_info *r)
+@@ -174,15 +170,10 @@ static int tomoyo_audit_path_log(struct 
   */
  static int tomoyo_audit_path2_log(struct tomoyo_request_info *r)
  {
@@ -921,7 +906,7 @@ index 9bea24e..526ee80 100644
  }
  
  /**
-@@ -194,17 +185,11 @@ static int tomoyo_audit_path2_log(struct tomoyo_request_info *r)
+@@ -194,17 +185,11 @@ static int tomoyo_audit_path2_log(struct
   */
  static int tomoyo_audit_mkdev_log(struct tomoyo_request_info *r)
  {
@@ -944,7 +929,7 @@ index 9bea24e..526ee80 100644
  }
  
  /**
-@@ -219,11 +204,7 @@ static int tomoyo_audit_path_number_log(struct tomoyo_request_info *r)
+@@ -219,11 +204,7 @@ static int tomoyo_audit_path_number_log(
  {
  	const u8 type = r->param.path_number.operation;
  	u8 radix;
@@ -956,7 +941,7 @@ index 9bea24e..526ee80 100644
  	switch (type) {
  	case TOMOYO_TYPE_CREATE:
  	case TOMOYO_TYPE_MKDIR:
-@@ -241,9 +222,9 @@ static int tomoyo_audit_path_number_log(struct tomoyo_request_info *r)
+@@ -241,9 +222,9 @@ static int tomoyo_audit_path_number_log(
  	}
  	tomoyo_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
  			   radix);
@@ -969,11 +954,9 @@ index 9bea24e..526ee80 100644
  }
  
  static bool tomoyo_same_globally_readable(const struct tomoyo_acl_head *a,
-diff --git a/security/tomoyo/memory.c b/security/tomoyo/memory.c
-index 42a7b1b..634c054 100644
---- a/security/tomoyo/memory.c
-+++ b/security/tomoyo/memory.c
-@@ -29,6 +29,11 @@ void tomoyo_warn_oom(const char *function)
+--- security-testing-2.6.orig/security/tomoyo/memory.c
++++ security-testing-2.6/security/tomoyo/memory.c
+@@ -29,6 +29,11 @@ void tomoyo_warn_oom(const char *functio
  		panic("MAC Initialization failed.\n");
  }
  
@@ -985,10 +968,8 @@ index 42a7b1b..634c054 100644
  /* Memory allocated for policy. */
  static atomic_t tomoyo_policy_memory_size;
  /* Quota for holding policy. */
-diff --git a/security/tomoyo/mount.c b/security/tomoyo/mount.c
-index 317f478..a388d39 100644
---- a/security/tomoyo/mount.c
-+++ b/security/tomoyo/mount.c
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
 @@ -33,30 +33,12 @@
   */
  static int tomoyo_audit_mount_log(struct tomoyo_request_info *r)
@@ -1023,11 +1004,9 @@ index 317f478..a388d39 100644
  }
  
  static bool tomoyo_check_mount_acl(struct tomoyo_request_info *r,
-diff --git a/security/tomoyo/securityfs_if.c b/security/tomoyo/securityfs_if.c
-index e43d555..bd607ec 100644
---- a/security/tomoyo/securityfs_if.c
-+++ b/security/tomoyo/securityfs_if.c
-@@ -135,6 +135,8 @@ static int __init tomoyo_initerface_init(void)
+--- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
++++ security-testing-2.6/security/tomoyo/securityfs_if.c
+@@ -135,6 +135,8 @@ static int __init tomoyo_initerface_init
  			    TOMOYO_DOMAINPOLICY);
  	tomoyo_create_entry("exception_policy", 0600, tomoyo_dir,
  			    TOMOYO_EXCEPTIONPOLICY);
@@ -1036,11 +1015,9 @@ index e43d555..bd607ec 100644
  	tomoyo_create_entry("self_domain",      0400, tomoyo_dir,
  			    TOMOYO_SELFDOMAIN);
  	tomoyo_create_entry(".domain_status",   0600, tomoyo_dir,
-diff --git a/security/tomoyo/util.c b/security/tomoyo/util.c
-index 1c6e3fe..4b9ddf0 100644
---- a/security/tomoyo/util.c
-+++ b/security/tomoyo/util.c
-@@ -853,20 +853,6 @@ const char *tomoyo_last_word(const char *name)
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -853,20 +853,6 @@ const char *tomoyo_last_word(const char 
  }
  
  /**
@@ -1061,6 +1038,3 @@ index 1c6e3fe..4b9ddf0 100644
   * tomoyo_domain_quota_is_ok - Check for domain's quota.
   *
   * @r: Pointer to "struct tomoyo_request_info".
--- 
-1.6.1
-

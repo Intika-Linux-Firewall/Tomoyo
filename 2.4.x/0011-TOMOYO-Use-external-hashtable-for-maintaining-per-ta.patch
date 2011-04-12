@@ -1,34 +1,30 @@
-From b8939dcdbcf858d89a80596f6efe1809bfc3f6f2 Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Mon, 24 Jan 2011 14:44:20 +0900
-Subject: [PATCH 2/2] TOMOYO: Use external hashtable for maintaining per task_struct variables.
+Subject: TOMOYO: Use external hashtable for maintaining per task_struct variables.
 
-Currently, TOMOYO's interactive enforcing mode cannot deal interpreter's
-permission checks because variables the interactive enforcing mode wants to
-read are stored in "struct linux_binprm"->"struct cred"->security but
-"struct linux_binprm"->"struct cred" is not visible to other threads.
+Currently, TOMOYO cannot check binary loader's permissions using
+"struct linux_binprm"->"struct cred"->security . As explained in the previous
+patch, as long as TOMOYO depends on "struct cred", TOMOYO cannot work as
+expected.
 
 This patch changes TOMOYO to use external hashtable for maintaining security
-context in order to make the interactive enforcing mode work.
+context in order to make TOMOYO work as expected.
 
 By applying this patch, TOMOYO no longer requires "void *security" of various
 kernel objects, making it easier to run multiple LSM modules in parallel.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.h        |   82 +++++++++++-
- security/tomoyo/domain.c        |   27 ++++-
- security/tomoyo/gc.c            |   54 +++++++-
- security/tomoyo/memory.c        |    2 +
- security/tomoyo/securityfs_if.c |    2 +-
- security/tomoyo/tomoyo.c        |  268 +++++++++++++++++++++++++-------------
- 6 files changed, 324 insertions(+), 111 deletions(-)
+ security/tomoyo/common.h        |   80 +++++++++-
+ security/tomoyo/domain.c        |   19 ++
+ security/tomoyo/file.c          |   14 +
+ security/tomoyo/gc.c            |   54 +++++-
+ security/tomoyo/memory.c        |    2 
+ security/tomoyo/securityfs_if.c |    2 
+ security/tomoyo/tomoyo.c        |  310 +++++++++++++++++++++++++++-------------
+ 7 files changed, 358 insertions(+), 123 deletions(-)
 
-diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
-index 7c66bd8..b231d5d 100644
---- a/security/tomoyo/common.h
-+++ b/security/tomoyo/common.h
-@@ -395,10 +395,6 @@ struct tomoyo_acl_info {
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -394,10 +394,6 @@ struct tomoyo_acl_info {
   *      name of the domain to be created was too long or it could not allocate
   *      memory. If set to true, more than one process continued execve()
   *      without domain transition.
@@ -39,7 +35,7 @@ index 7c66bd8..b231d5d 100644
   *
   * A domain's lifecycle is an analogy of files on / directory.
   * Multiple domains with the same domainname cannot be created (as with
-@@ -417,7 +413,6 @@ struct tomoyo_domain_info {
+@@ -416,7 +412,6 @@ struct tomoyo_domain_info {
  	bool quota_warned; /* Quota warnning flag.   */
  	bool ignore_global_allow_read; /* Ignore "allow_read" flag. */
  	bool transition_failed; /* Domain transition failed flag. */
@@ -47,8 +43,8 @@ index 7c66bd8..b231d5d 100644
  };
  
  /*
-@@ -687,6 +682,77 @@ struct tomoyo_profile {
- 	u8 config[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_MAC_CATEGORY_INDEX];
+@@ -657,6 +652,72 @@ struct tomoyo_time {
+ 	u8 sec;
  };
  
 +/*
@@ -63,11 +59,6 @@ index 7c66bd8..b231d5d 100644
 +	 * member but any threads can read this member under RCU.
 +	 */
 +	struct tomoyo_domain_info *tomoyo_domain_info;
-+	/*
-+	 * Holds "struct linux_binprm"->cred during do_execve(),
-+	 * NULL otherwise. Only current thread can access this member.
-+	 */
-+	struct cred *binprm_creds;
 +	/*
 +	 * Holds previous tomoyo_domain_info during do_execve() in case
 +	 * do_execve() failed, NULL otherwise. Only current thread can access
@@ -125,16 +116,26 @@ index 7c66bd8..b231d5d 100644
  /********** Function prototypes. **********/
  
  /* Check whether the given string starts with the given keyword. */
-@@ -912,6 +978,8 @@ extern const char *tomoyo_path_number_keyword[TOMOYO_MAX_PATH_NUMBER_OPERATION];
- extern unsigned int tomoyo_quota_for_query;
- extern unsigned int tomoyo_query_memory_size;
+@@ -803,8 +864,7 @@ int tomoyo_write_memory_quota(struct tom
+ void __init tomoyo_mm_init(void);
+ int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
+ 			   const struct tomoyo_path_info *filename);
+-int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+-				 struct path *path, const int flag);
++int tomoyo_check_open_permission(struct path *path, const int flag);
+ int tomoyo_path_number_perm(const u8 operation, struct path *path,
+ 			    unsigned long number);
+ int tomoyo_mkdev_perm(const u8 operation, struct path *path,
+@@ -883,6 +943,8 @@ extern unsigned int tomoyo_memory_quota[
+ extern unsigned int tomoyo_memory_used[TOMOYO_MAX_MEMORY_STAT];
+ 
  
 +extern bool tomoyo_registered;
 +
  /********** Inlined functions. **********/
  
  static inline int tomoyo_read_lock(void)
-@@ -972,13 +1040,13 @@ static inline void tomoyo_put_group(struct tomoyo_group *group)
+@@ -943,13 +1005,13 @@ static inline void tomoyo_put_group(stru
  
  static inline struct tomoyo_domain_info *tomoyo_domain(void)
  {
@@ -150,11 +151,9 @@ index 7c66bd8..b231d5d 100644
  }
  
  static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
-diff --git a/security/tomoyo/domain.c b/security/tomoyo/domain.c
-index 3538840..a138145 100644
---- a/security/tomoyo/domain.c
-+++ b/security/tomoyo/domain.c
-@@ -415,6 +415,7 @@ int tomoyo_find_next_domain(struct linux_binprm *bprm)
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -415,6 +415,7 @@ int tomoyo_find_next_domain(struct linux
  {
  	struct tomoyo_request_info r;
  	char *tmp = kzalloc(TOMOYO_EXEC_TMPSIZE, GFP_NOFS);
@@ -162,7 +161,7 @@ index 3538840..a138145 100644
  	struct tomoyo_domain_info *old_domain = tomoyo_domain();
  	struct tomoyo_domain_info *domain = NULL;
  	const char *original_name = bprm->filename;
-@@ -532,9 +533,29 @@ int tomoyo_find_next_domain(struct linux_binprm *bprm)
+@@ -532,9 +533,21 @@ int tomoyo_find_next_domain(struct linux
   out:
  	if (!domain)
  		domain = old_domain;
@@ -178,28 +177,57 @@ index 3538840..a138145 100644
 +	 */
 +	smp_wmb();
 +	/*
-+	 * Proceed to the next domain in order to allow reaching via PID.
-+	 * It will be reverted if do_execve() failed. Reverting is not good.
-+	 * But it is better than being unable to reach via PID in interactive
-+	 * enforcing mode.
++	 * Proceed to the next domain in order to allow checking permissions
++	 * for binary loader programs. Current thread will go back to the
++	 * previous domain if do_execve() failed.
 +	 */
 +	security->tomoyo_domain_info = domain;
-+	/*
-+	 * Since security_bprm_free() is missing, we hold a reference on
-+	 * "struct linux_binprm"->cred and check the usage count at
-+	 * tomoyo_find_task_security().
-+	 */
-+	security->binprm_creds = bprm->cred;
-+	get_cred(security->binprm_creds);
 +out2:
  	if (need_kfree)
  		kfree(rn.name);
  	kfree(tmp);
-diff --git a/security/tomoyo/gc.c b/security/tomoyo/gc.c
-index a877e4c..620d534 100644
---- a/security/tomoyo/gc.c
-+++ b/security/tomoyo/gc.c
-@@ -127,6 +127,44 @@ static void tomoyo_del_acl(struct list_head *element)
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -703,14 +703,12 @@ int tomoyo_path_number_perm(const u8 typ
+ /**
+  * tomoyo_check_open_permission - Check permission for "read" and "write".
+  *
+- * @domain: Pointer to "struct tomoyo_domain_info".
+  * @path:   Pointer to "struct path".
+  * @flag:   Flags for open().
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+-				 struct path *path, const int flag)
++int tomoyo_check_open_permission(struct path *path, const int flag)
+ {
+ 	const u8 acc_mode = ACC_MODE(flag);
+ 	int error = 0;
+@@ -721,11 +719,19 @@ int tomoyo_check_open_permission(struct 
+ 	if (!path->mnt ||
+ 	    (path->dentry->d_inode && S_ISDIR(path->dentry->d_inode->i_mode)))
+ 		return 0;
++	/*
++	 * Don't check read permission here if called from do_execve().
++	 * But check read permission here if called from binary loader
++	 * functions.
++	 */
++	if (current->in_execve &&
++	    !tomoyo_current_security()->previous_domain_info)
++		return 0;
+ 	buf.name = NULL;
+ 	r.mode = TOMOYO_CONFIG_DISABLED;
+ 	idx = tomoyo_read_lock();
+ 	if (acc_mode &&
+-	    tomoyo_init_request_info(&r, domain, TOMOYO_MAC_FILE_OPEN)
++	    tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_OPEN)
+ 	    != TOMOYO_CONFIG_DISABLED) {
+ 		if (!tomoyo_get_realpath(&buf, path)) {
+ 			error = -ENOMEM;
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -113,6 +113,44 @@ static void tomoyo_del_acl(struct list_h
  	}
  }
  
@@ -244,7 +272,7 @@ index a877e4c..620d534 100644
  static bool tomoyo_del_domain(struct list_head *element)
  {
  	struct tomoyo_domain_info *domain =
-@@ -135,7 +173,7 @@ static bool tomoyo_del_domain(struct list_head *element)
+@@ -121,7 +159,7 @@ static bool tomoyo_del_domain(struct lis
  	struct tomoyo_acl_info *tmp;
  	/*
  	 * Since we don't protect whole execve() operation using SRCU,
@@ -253,7 +281,7 @@ index a877e4c..620d534 100644
  	 *
  	 * (1) Reader starts SRCU section upon execve().
  	 * (2) Reader traverses tomoyo_domain_list and finds this domain.
-@@ -143,19 +181,19 @@ static bool tomoyo_del_domain(struct list_head *element)
+@@ -129,19 +167,19 @@ static bool tomoyo_del_domain(struct lis
  	 * (4) Garbage collector removes this domain from tomoyo_domain_list
  	 *     because this domain is marked as deleted and used by nobody.
  	 * (5) Reader saves reference to this domain into
@@ -278,7 +306,7 @@ index a877e4c..620d534 100644
  		return false;
  	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
  		tomoyo_del_acl(&acl->list);
-@@ -230,12 +268,12 @@ static void tomoyo_collect_entry(void)
+@@ -216,12 +254,12 @@ static void tomoyo_collect_entry(void)
  		list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
  			if (!tomoyo_collect_acl(domain))
  				goto unlock;
@@ -293,11 +321,9 @@ index a877e4c..620d534 100644
  			 */
  			if (!tomoyo_add_to_gc(TOMOYO_ID_DOMAIN, &domain->list))
  				goto unlock;
-diff --git a/security/tomoyo/memory.c b/security/tomoyo/memory.c
-index 2976126..2c487a6 100644
---- a/security/tomoyo/memory.c
-+++ b/security/tomoyo/memory.c
-@@ -204,6 +204,8 @@ void __init tomoyo_mm_init(void)
+--- security-testing-2.6.orig/security/tomoyo/memory.c
++++ security-testing-2.6/security/tomoyo/memory.c
+@@ -210,6 +210,8 @@ void __init tomoyo_mm_init(void)
  	for (idx = 0; idx < TOMOYO_MAX_HASH; idx++)
  		INIT_LIST_HEAD(&tomoyo_name_list[idx]);
  	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
@@ -306,11 +332,9 @@ index 2976126..2c487a6 100644
  	tomoyo_kernel_domain.domainname = tomoyo_get_name(TOMOYO_ROOT_NAME);
  	list_add_tail_rcu(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
  	idx = tomoyo_read_lock();
-diff --git a/security/tomoyo/securityfs_if.c b/security/tomoyo/securityfs_if.c
-index e43d555..97bcda2 100644
---- a/security/tomoyo/securityfs_if.c
-+++ b/security/tomoyo/securityfs_if.c
-@@ -125,7 +125,7 @@ static int __init tomoyo_initerface_init(void)
+--- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
++++ security-testing-2.6/security/tomoyo/securityfs_if.c
+@@ -125,7 +125,7 @@ static int __init tomoyo_initerface_init
  	struct dentry *tomoyo_dir;
  
  	/* Don't create securityfs entries unless registered. */
@@ -319,10 +343,8 @@ index e43d555..97bcda2 100644
  		return 0;
  
  	tomoyo_dir = securityfs_create_dir("tomoyo", NULL);
-diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
-index 95d3f95..1e887ce 100644
---- a/security/tomoyo/tomoyo.c
-+++ b/security/tomoyo/tomoyo.c
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
 @@ -8,90 +8,7 @@
  
  #include <linux/security.h>
@@ -415,11 +437,36 @@ index 95d3f95..1e887ce 100644
  
  static int tomoyo_path_truncate(struct path *path)
  {
-@@ -236,17 +153,183 @@ static int tomoyo_sb_pivotroot(struct path *old_path, struct path *new_path)
+@@ -178,17 +95,13 @@ static int tomoyo_file_fcntl(struct file
+ {
+ 	if (!(cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND)))
+ 		return 0;
+-	return tomoyo_check_open_permission(tomoyo_domain(), &file->f_path,
++	return tomoyo_check_open_permission(&file->f_path,
+ 					    O_WRONLY | (arg & O_APPEND));
+ }
+ 
+ static int tomoyo_dentry_open(struct file *f, const struct cred *cred)
+ {
+-	int flags = f->f_flags;
+-	/* Don't check read permission here if called from do_execve(). */
+-	if (current->in_execve)
+-		return 0;
+-	return tomoyo_check_open_permission(tomoyo_domain(), &f->f_path, flags);
++	return tomoyo_check_open_permission(&f->f_path, f->f_flags);
+ }
+ 
+ static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
+@@ -237,17 +150,217 @@ static int tomoyo_sb_pivotroot(struct pa
  	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path, old_path);
  }
  
-+/* Dummy security context for kernel domain. */
++/* Dummy security context for avoiding NULL pointer dereference. */
++static struct tomoyo_security tomoyo_oom_security = {
++	.tomoyo_domain_info = &tomoyo_kernel_domain
++};
++
++/* Dummy security context for avoiding NULL pointer dereference. */
 +static struct tomoyo_security tomoyo_default_security = {
 +	.tomoyo_domain_info = &tomoyo_kernel_domain
 +};
@@ -430,6 +477,23 @@ index 95d3f95..1e887ce 100644
 +static DEFINE_SPINLOCK(tomoyo_task_security_list_lock);
 +
 +/**
++ * tomoyo_add_task_security - Add "struct tomoyo_security" to list.
++ *
++ * @ptr:  Pointer to "struct tomoyo_security".
++ * @list: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
++static void tomoyo_add_task_security(struct tomoyo_security *ptr,
++				     struct list_head *list)
++{
++	unsigned long flags;
++	spin_lock_irqsave(&tomoyo_task_security_list_lock, flags);
++	list_add_rcu(&ptr->list, list);
++	spin_unlock_irqrestore(&tomoyo_task_security_list_lock, flags);
++}
++
++/**
 + * tomoyo_alloc_task_security - Allocate memory for new tasks.
 + *
 + * @task: Pointer to "struct task_struct".
@@ -438,7 +502,6 @@ index 95d3f95..1e887ce 100644
 + */
 +static int tomoyo_alloc_task_security(struct task_struct *task)
 +{
-+	unsigned long flags;
 +	struct tomoyo_security *old_security = tomoyo_current_security();
 +	struct tomoyo_security *new_security = kzalloc(sizeof(*new_security),
 +						       GFP_KERNEL);
@@ -448,9 +511,7 @@ index 95d3f95..1e887ce 100644
 +		return -ENOMEM;
 +	*new_security = *old_security;
 +	new_security->task = task;
-+	spin_lock_irqsave(&tomoyo_task_security_list_lock, flags);
-+	list_add_rcu(&new_security->list, list);
-+	spin_unlock_irqrestore(&tomoyo_task_security_list_lock, flags);
++	tomoyo_add_task_security(new_security, list);
 +	return 0;
 +}
 +
@@ -459,8 +520,13 @@ index 95d3f95..1e887ce 100644
 + *
 + * @task: Pointer to "struct task_struct".
 + *
-+ * Returns pointer to "struct tomoyo_security" on success,
-+ * &tomoyo_default_security otherwise.
++ * Returns pointer to "struct tomoyo_security" on success, &tomoyo_oom_security
++ * on out of memory, &tomoyo_default_security otherwise.
++ *
++ * If @task is current thread and "struct tomoyo_security" for current thread
++ * was not found, I try to allocate it. But if allocation failed, current
++ * thread will be killed by SIGKILL. Note that if current->pid == 1, sending
++ * SIGKILL won't work.
 + */
 +struct tomoyo_security *tomoyo_find_task_security
 +(const struct task_struct *task)
@@ -473,27 +539,23 @@ index 95d3f95..1e887ce 100644
 +		if (ptr->task != task)
 +			continue;
 +		rcu_read_unlock();
-+		if (task == current && ptr->binprm_creds &&
-+		    atomic_read(&ptr->binprm_creds->usage) == 1) {
-+			/*
-+			 * do_execve() failed. Revert to previous domain.
-+			 *
-+			 * Since security_bprm_free() is missing, we hold a
-+			 * reference on "struct linux_binprm"->cred and
-+			 * check the usage count periodically.
-+			 */
-+			put_cred(ptr->binprm_creds);
-+			ptr->binprm_creds = NULL;
-+			ptr->tomoyo_domain_info =
-+				ptr->previous_domain_info;
-+			/* Make sure that GC sees valid domain. */
-+			smp_wmb();
-+			ptr->previous_domain_info = NULL;
-+		}
 +		return ptr;
 +	}
 +	rcu_read_unlock();
-+	return &tomoyo_default_security;
++	if (task != current)
++		return &tomoyo_default_security;
++	/* Use GFP_ATOMIC because caller may have called rcu_read_lock(). */
++	ptr = kzalloc(sizeof(*ptr), GFP_ATOMIC);
++	if (!ptr) {
++		printk(KERN_WARNING "Unable to allocate memory for pid=%u\n",
++		       task->pid);
++		send_sig(SIGKILL, current, 0);
++		return &tomoyo_oom_security;
++	}
++	*ptr = tomoyo_default_security;
++	ptr->task = task;
++	tomoyo_add_task_security(ptr, list);
++	return ptr;
 +}
 +
 +/**
@@ -520,19 +582,11 @@ index 95d3f95..1e887ce 100644
 +{
 +	unsigned long flags;
 +	struct tomoyo_security *ptr = tomoyo_find_task_security(task);
-+	if (ptr == &tomoyo_default_security)
++	if (ptr == &tomoyo_default_security || ptr == &tomoyo_oom_security)
 +		return;
 +	spin_lock_irqsave(&tomoyo_task_security_list_lock, flags);
 +	list_del_rcu(&ptr->list);
 +	spin_unlock_irqrestore(&tomoyo_task_security_list_lock, flags);
-+	if (ptr->binprm_creds) {
-+		/*
-+		 * This task has died immediately after do_execve() failed.
-+		 * We need to drop reference here.
-+		 */
-+		put_cred(ptr->binprm_creds);
-+		ptr->binprm_creds = NULL;
-+	}
 +	call_rcu(&ptr->rcu, tomoyo_rcu_free);
 +}
 +
@@ -545,14 +599,38 @@ index 95d3f95..1e887ce 100644
 + */
 +static void tomoyo_bprm_committing_creds(struct linux_binprm *bprm)
 +{
-+	struct tomoyo_security *old_security;
-+	old_security = tomoyo_current_security();
-+	if (old_security == &tomoyo_default_security)
++	struct tomoyo_security *security = tomoyo_current_security();
++	if (security == &tomoyo_default_security ||
++	    security == &tomoyo_oom_security)
 +		return;
 +	/* do_execve() succeeded. Forget previous domain. */
-+	old_security->previous_domain_info = NULL;
-+	put_cred(old_security->binprm_creds);
-+	old_security->binprm_creds = NULL;
++	security->previous_domain_info = NULL;
++}
++
++/**
++ * tomoyo_bprm_free_security - A hook which is called when do_execve() finished.
++ *
++ * @bprm: Pointer to "struct linux_binprm".
++ *
++ * Returns nothing.
++ */
++static void tomoyo_bprm_free_security(struct linux_binprm *bprm)
++{
++	struct tomoyo_security *security = tomoyo_current_security();
++	if (security == &tomoyo_default_security ||
++	    security == &tomoyo_oom_security)
++		return;
++	/*
++	 * tomoyo_bprm_committing_creds() already cleared it if do_execve()
++	 * succeeded.
++	 */
++	if (!security->previous_domain_info)
++		return;
++	/* do_execve() failed. Revert to previous domain. */
++	security->tomoyo_domain_info = security->previous_domain_info;
++	/* Make sure that GC sees valid domain. */
++	smp_wmb();
++	security->previous_domain_info = NULL;
 +}
 +
 +/**
@@ -564,7 +642,6 @@ index 95d3f95..1e887ce 100644
 + */
 +static int tomoyo_bprm_check_security(struct linux_binprm *bprm)
 +{
-+	int rc;
 +	struct tomoyo_security *security;
 +	/*
 +	 * Load policy if /sbin/tomoyo-init exists and /sbin/init is requested
@@ -573,18 +650,16 @@ index 95d3f95..1e887ce 100644
 +	if (!tomoyo_policy_loaded)
 +		tomoyo_load_policy(bprm->filename);
 +	security = tomoyo_current_security();
-+	if (security == &tomoyo_default_security)
++	if (security == &tomoyo_default_security ||
++	    security == &tomoyo_oom_security)
 +		return -ENOMEM;
 +	if (!security->previous_domain_info) {
 +		const int idx = tomoyo_read_lock();
-+		rc = tomoyo_find_next_domain(bprm);
++		const int rc = tomoyo_find_next_domain(bprm);
 +		tomoyo_read_unlock(idx);
-+	} else {
-+		rc = tomoyo_check_open_permission(security->tomoyo_domain_info,
-+						  &bprm->file->f_path,
-+						  O_RDONLY);
++		return rc;
 +	}
-+	return rc;
++	return 0;
 +}
 +
  /*
@@ -601,10 +676,11 @@ index 95d3f95..1e887ce 100644
 +	.task_alloc_security = tomoyo_alloc_task_security,
 +	.task_free_security  = tomoyo_free_task_security,
 +	.bprm_committing_creds = tomoyo_bprm_committing_creds,
++	.bprm_free_security  = tomoyo_bprm_free_security,
  	.bprm_check_security = tomoyo_bprm_check_security,
  	.file_fcntl          = tomoyo_file_fcntl,
  	.dentry_open         = tomoyo_dentry_open,
-@@ -270,10 +353,11 @@ static struct security_operations tomoyo_security_ops = {
+@@ -271,10 +384,11 @@ static struct security_operations tomoyo
  /* Lock for GC. */
  struct srcu_struct tomoyo_ss;
  
@@ -617,16 +693,13 @@ index 95d3f95..1e887ce 100644
 -
  	if (!security_module_enable(&tomoyo_security_ops))
  		return 0;
- 	/* register ourselves with the security framework */
-@@ -281,7 +365,7 @@ static int __init tomoyo_init(void)
+ 	printk(KERN_INFO "TOMOYO Linux is temporarily disabled due to large "
+@@ -285,7 +399,7 @@ static int __init tomoyo_init(void)
  	    init_srcu_struct(&tomoyo_ss))
  		panic("Failure registering TOMOYO Linux");
  	printk(KERN_INFO "TOMOYO Linux initialized\n");
 -	cred->security = &tomoyo_kernel_domain;
-+	tomoyo_registered = true; 
++	tomoyo_registered = true;
  	tomoyo_mm_init();
  	return 0;
  }
--- 
-1.7.1
-
