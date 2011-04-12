@@ -1,7 +1,4 @@
-From 17890b675331f5f4fa3f05651f2544abf5fb36d3 Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 3 Apr 2011 00:09:26 +0900
-Subject: [PATCH 1/9] TOMOYO: Fix race on updating profile's comment line.
+Subject: TOMOYO: Fix race on updating profile's comment line.
 
 In tomoyo_write_profile() since 2.6.34, a lock was by error missing when
 replacing profile's comment line. If multiple threads attempted
@@ -16,13 +13,11 @@ Signed-off-by: Xiaochen Wang <wangxiaochen0@gmail.com>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |   12 ++++++++++--
- 1 files changed, 10 insertions(+), 2 deletions(-)
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index 7556315..2b7b1a1 100644
---- a/security/tomoyo/common.c
-+++ b/security/tomoyo/common.c
-@@ -459,8 +459,16 @@ static int tomoyo_write_profile(struct tomoyo_io_buffer *head)
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -459,8 +459,16 @@ static int tomoyo_write_profile(struct t
  	if (profile == &tomoyo_default_profile)
  		return -EINVAL;
  	if (!strcmp(data, "COMMENT")) {
@@ -41,6 +36,3 @@ index 7556315..2b7b1a1 100644
  		tomoyo_put_name(old_comment);
  		return 0;
  	}
--- 
-1.6.1
-

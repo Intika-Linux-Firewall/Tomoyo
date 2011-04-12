@@ -1,7 +1,4 @@
-From 81e67e35ae66007c92cb6f35899a8bfbf05d1c9b Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 3 Apr 2011 00:50:10 +0900
-Subject: [PATCH 7/9] TOMOYO: Remove file_pattern keyword.
+Subject: TOMOYO: Remove file_pattern keyword.
 
 Remove "file_pattern" keyword because it is impossible to predefine all
 possible pathname patterns. Also, learning pathnames using incomplete patterns
@@ -10,18 +7,16 @@ Do the pathname conversion in userspace.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   12 +-----
+ security/tomoyo/common.c |   12 -----
  security/tomoyo/common.h |   20 --------
- security/tomoyo/file.c   |  110 ++--------------------------------------------
+ security/tomoyo/file.c   |  110 +----------------------------------------------
  security/tomoyo/gc.c     |   10 ----
- security/tomoyo/mount.c  |    5 +-
+ security/tomoyo/mount.c  |    5 --
  5 files changed, 7 insertions(+), 150 deletions(-)
 
-diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index 91f332a..8f1c630 100644
---- a/security/tomoyo/common.c
-+++ b/security/tomoyo/common.c
-@@ -1229,9 +1229,8 @@ static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -1229,9 +1229,8 @@ static int tomoyo_write_exception(struct
  	static const struct {
  		const char *keyword;
  		int (*write) (char *, const bool);
@@ -32,7 +27,7 @@ index 91f332a..8f1c630 100644
  		{ TOMOYO_KEYWORD_ALLOW_READ, tomoyo_write_globally_readable },
  	};
  
-@@ -1351,15 +1350,6 @@ static bool tomoyo_read_policy(struct tomoyo_io_buffer *head, const int idx)
+@@ -1351,15 +1350,6 @@ static bool tomoyo_read_policy(struct to
  					       ptr->aggregated_name->name);
  			}
  			break;
@@ -48,10 +43,8 @@ index 91f332a..8f1c630 100644
  		default:
  			continue;
  		}
-diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
-index 4d4fb00..a43499d 100644
---- a/security/tomoyo/common.h
-+++ b/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -53,7 +53,6 @@ enum tomoyo_policy_id {
  	TOMOYO_ID_TRANSITION_CONTROL,
  	TOMOYO_ID_AGGREGATOR,
@@ -89,7 +82,7 @@ index 4d4fb00..a43499d 100644
   * tomoyo_transition_control is a structure which is used for holding
   * "initialize_domain"/"no_initialize_domain"/"keep_domain"/"no_keep_domain"
   * entries.
-@@ -744,8 +728,6 @@ int tomoyo_write_globally_readable(char *data, const bool is_delete);
+@@ -744,8 +728,6 @@ int tomoyo_write_globally_readable(char 
  /* Create "allow_mount" entry in domain policy. */
  int tomoyo_write_mount(char *data, struct tomoyo_domain_info *domain,
  		       const bool is_delete);
@@ -98,7 +91,7 @@ index 4d4fb00..a43499d 100644
  /* Create "path_group"/"number_group" entry in exception policy. */
  int tomoyo_write_group(char *data, const bool is_delete, const u8 type);
  int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
-@@ -784,8 +766,6 @@ char *tomoyo_realpath_nofollow(const char *pathname);
+@@ -784,8 +766,6 @@ char *tomoyo_realpath_nofollow(const cha
   * ignores chroot'ed root and the pathname is already solved.
   */
  char *tomoyo_realpath_from_path(struct path *path);
@@ -107,11 +100,9 @@ index 4d4fb00..a43499d 100644
  
  /* Check memory quota. */
  bool tomoyo_memory_ok(void *ptr);
-diff --git a/security/tomoyo/file.c b/security/tomoyo/file.c
-index 746b5b4..9bea24e 100644
---- a/security/tomoyo/file.c
-+++ b/security/tomoyo/file.c
-@@ -130,24 +130,6 @@ static void tomoyo_add_slash(struct tomoyo_path_info *buf)
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -130,24 +130,6 @@ static void tomoyo_add_slash(struct tomo
  }
  
  /**
@@ -136,7 +127,7 @@ index 746b5b4..9bea24e 100644
   * tomoyo_get_realpath - Get realpath.
   *
   * @buf:  Pointer to "struct tomoyo_path_info".
-@@ -180,7 +162,7 @@ static int tomoyo_audit_path_log(struct tomoyo_request_info *r)
+@@ -180,7 +162,7 @@ static int tomoyo_audit_path_log(struct 
  		return 0;
  	tomoyo_warn_log(r, "%s %s", operation, filename->name);
  	return tomoyo_supervisor(r, "allow_%s %s\n", operation,
@@ -145,7 +136,7 @@ index 746b5b4..9bea24e 100644
  }
  
  /**
-@@ -200,8 +182,7 @@ static int tomoyo_audit_path2_log(struct tomoyo_request_info *r)
+@@ -200,8 +182,7 @@ static int tomoyo_audit_path2_log(struct
  	tomoyo_warn_log(r, "%s %s %s", operation, filename1->name,
  			filename2->name);
  	return tomoyo_supervisor(r, "allow_%s %s %s\n", operation,
@@ -155,7 +146,7 @@ index 746b5b4..9bea24e 100644
  }
  
  /**
-@@ -223,7 +204,7 @@ static int tomoyo_audit_mkdev_log(struct tomoyo_request_info *r)
+@@ -223,7 +204,7 @@ static int tomoyo_audit_mkdev_log(struct
  	tomoyo_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
  			major, minor);
  	return tomoyo_supervisor(r, "allow_%s %s 0%o %u %u\n", operation,
@@ -164,7 +155,7 @@ index 746b5b4..9bea24e 100644
  }
  
  /**
-@@ -262,7 +243,7 @@ static int tomoyo_audit_path_number_log(struct tomoyo_request_info *r)
+@@ -262,7 +243,7 @@ static int tomoyo_audit_path_number_log(
  			   radix);
  	tomoyo_warn_log(r, "%s %s %s", operation, filename->name, buffer);
  	return tomoyo_supervisor(r, "allow_%s %s %s\n", operation,
@@ -173,7 +164,7 @@ index 746b5b4..9bea24e 100644
  }
  
  static bool tomoyo_same_globally_readable(const struct tomoyo_acl_head *a,
-@@ -344,89 +325,6 @@ int tomoyo_write_globally_readable(char *data, const bool is_delete)
+@@ -344,89 +325,6 @@ int tomoyo_write_globally_readable(char 
  	return tomoyo_update_globally_readable_entry(data, is_delete);
  }
  
@@ -263,11 +254,9 @@ index 746b5b4..9bea24e 100644
  static bool tomoyo_check_path_acl(struct tomoyo_request_info *r,
  				  const struct tomoyo_acl_info *ptr)
  {
-diff --git a/security/tomoyo/gc.c b/security/tomoyo/gc.c
-index e81ea6b..d258d00 100644
---- a/security/tomoyo/gc.c
-+++ b/security/tomoyo/gc.c
-@@ -39,13 +39,6 @@ static void tomoyo_del_allow_read(struct list_head *element)
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -39,13 +39,6 @@ static void tomoyo_del_allow_read(struct
  	tomoyo_put_name(ptr->filename);
  }
  
@@ -291,11 +280,9 @@ index e81ea6b..d258d00 100644
  		case TOMOYO_ID_MANAGER:
  			tomoyo_del_manager(element);
  			break;
-diff --git a/security/tomoyo/mount.c b/security/tomoyo/mount.c
-index 82bf8c2..317f478 100644
---- a/security/tomoyo/mount.c
-+++ b/security/tomoyo/mount.c
-@@ -55,9 +55,8 @@ static int tomoyo_audit_mount_log(struct tomoyo_request_info *r)
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -55,9 +55,8 @@ static int tomoyo_audit_mount_log(struct
  				flags);
  	return tomoyo_supervisor(r,
  				 TOMOYO_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
@@ -307,6 +294,3 @@ index 82bf8c2..317f478 100644
  }
  
  static bool tomoyo_check_mount_acl(struct tomoyo_request_info *r,
--- 
-1.6.1
-

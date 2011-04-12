@@ -1,7 +1,4 @@
-From 508be974169211c29c9d14141a04b5fd21d51db7 Mon Sep 17 00:00:00 2001
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Date: Sun, 3 Apr 2011 00:47:30 +0900
-Subject: [PATCH 5/9] TOMOYO: Replace allow_read/write with allow_read and allow_write.
+Subject: TOMOYO: Replace allow_read/write with allow_read and allow_write.
 
 In order to synchronize with TOMOYO 1.8's syntax, remove special handling for
 allow_read/write permission.
@@ -14,11 +11,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/util.c   |   23 ++++++-----------------
  4 files changed, 23 insertions(+), 60 deletions(-)
 
-diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index a0d09e5..1450200 100644
---- a/security/tomoyo/common.c
-+++ b/security/tomoyo/common.c
-@@ -942,11 +942,6 @@ static bool tomoyo_print_entry(struct tomoyo_io_buffer *head,
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -942,11 +942,6 @@ static bool tomoyo_print_entry(struct to
  			if (head->r.print_execute_only &&
  			    bit != TOMOYO_TYPE_EXECUTE)
  				continue;
@@ -30,10 +25,8 @@ index a0d09e5..1450200 100644
  			break;
  		}
  		if (bit >= TOMOYO_MAX_PATH_OPERATION)
-diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
-index 7c66bd8..b0562e4 100644
---- a/security/tomoyo/common.h
-+++ b/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -115,20 +115,7 @@ enum tomoyo_acl_entry_type_index {
  };
  
@@ -64,10 +57,8 @@ index 7c66bd8..b0562e4 100644
  enum tomoyo_mkdev_acl_index {
  	TOMOYO_TYPE_MKBLOCK,
  	TOMOYO_TYPE_MKCHAR,
-diff --git a/security/tomoyo/file.c b/security/tomoyo/file.c
-index d64e8ec..d2bf3ca 100644
---- a/security/tomoyo/file.c
-+++ b/security/tomoyo/file.c
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
 @@ -11,7 +11,6 @@
  
  /* Keyword array for operations with one pathname. */
@@ -76,7 +67,7 @@ index d64e8ec..d2bf3ca 100644
  	[TOMOYO_TYPE_EXECUTE]    = "execute",
  	[TOMOYO_TYPE_READ]       = "read",
  	[TOMOYO_TYPE_WRITE]      = "write",
-@@ -50,7 +49,6 @@ const char *tomoyo_path_number_keyword[TOMOYO_MAX_PATH_NUMBER_OPERATION] = {
+@@ -50,7 +49,6 @@ const char *tomoyo_path_number_keyword[T
  };
  
  static const u8 tomoyo_p2mac[TOMOYO_MAX_PATH_OPERATION] = {
@@ -84,7 +75,7 @@ index d64e8ec..d2bf3ca 100644
  	[TOMOYO_TYPE_EXECUTE]    = TOMOYO_MAC_FILE_EXECUTE,
  	[TOMOYO_TYPE_READ]       = TOMOYO_MAC_FILE_OPEN,
  	[TOMOYO_TYPE_WRITE]      = TOMOYO_MAC_FILE_OPEN,
-@@ -569,6 +567,15 @@ static bool tomoyo_same_path_acl(const struct tomoyo_acl_info *a,
+@@ -569,6 +567,15 @@ static bool tomoyo_same_path_acl(const s
  		tomoyo_same_name_union(&p1->name, &p2->name);
  }
  
@@ -100,7 +91,7 @@ index d64e8ec..d2bf3ca 100644
  static bool tomoyo_merge_path_acl(struct tomoyo_acl_info *a,
  				  struct tomoyo_acl_info *b,
  				  const bool is_delete)
-@@ -577,19 +584,10 @@ static bool tomoyo_merge_path_acl(struct tomoyo_acl_info *a,
+@@ -577,19 +584,10 @@ static bool tomoyo_merge_path_acl(struct
  		->perm;
  	u16 perm = *a_perm;
  	const u16 b_perm = container_of(b, struct tomoyo_path_acl, head)->perm;
@@ -122,7 +113,7 @@ index d64e8ec..d2bf3ca 100644
  	*a_perm = perm;
  	return !perm;
  }
-@@ -615,8 +613,6 @@ static int tomoyo_update_path_acl(const u8 type, const char *filename,
+@@ -615,8 +613,6 @@ static int tomoyo_update_path_acl(const 
  		.perm = 1 << type
  	};
  	int error;
@@ -131,7 +122,7 @@ index d64e8ec..d2bf3ca 100644
  	if (!tomoyo_parse_name_union(filename, &e.name))
  		return -EINVAL;
  	error = tomoyo_update_domain(&e.head, sizeof(e), is_delete, domain,
-@@ -957,18 +953,16 @@ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+@@ -957,18 +953,16 @@ int tomoyo_check_open_permission(struct 
  	if (!error && acc_mode &&
  	    tomoyo_init_request_info(&r, domain, TOMOYO_MAC_FILE_OPEN)
  	    != TOMOYO_CONFIG_DISABLED) {
@@ -156,11 +147,9 @@ index d64e8ec..d2bf3ca 100644
  	}
   out:
  	kfree(buf.name);
-diff --git a/security/tomoyo/util.c b/security/tomoyo/util.c
-index 9bfc1ee..5295c06 100644
---- a/security/tomoyo/util.c
-+++ b/security/tomoyo/util.c
-@@ -911,44 +911,33 @@ bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r)
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -911,44 +911,33 @@ bool tomoyo_domain_quota_is_ok(struct to
  	if (!domain)
  		return true;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -211,6 +200,3 @@ index 9bfc1ee..5295c06 100644
  	}
  	if (count < tomoyo_profile(domain->profile)->learning->
  	    learning_max_entry)
--- 
-1.6.1
-
