@@ -8,10 +8,10 @@ temporarily disabled. They will be replaced by
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  189 +++++++++++++----------------------------------
+ security/tomoyo/common.c |  193 ++++++++++++++---------------------------------
  security/tomoyo/common.h |   18 +---
  security/tomoyo/util.c   |   39 +--------
- 3 files changed, 68 insertions(+), 178 deletions(-)
+ 3 files changed, 72 insertions(+), 178 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -44,7 +44,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Permit policy management by non-root user? */
  static bool tomoyo_manage_by_non_root;
  
-@@ -267,12 +262,10 @@ static struct tomoyo_profile *tomoyo_ass
+@@ -70,10 +65,12 @@ static bool tomoyo_manage_by_non_root;
+  *
+  * @value: Bool value.
+  */
++/*
+ static const char *tomoyo_yesno(const unsigned int value)
+ {
+ 	return value ? "yes" : "no";
+ }
++*/
+ 
+ static void tomoyo_addprintf(char *buffer, int len, const char *fmt, ...)
+ {
+@@ -267,12 +264,10 @@ static struct tomoyo_profile *tomoyo_ass
  	ptr = tomoyo_profile_ptr[profile];
  	if (!ptr && tomoyo_memory_ok(entry)) {
  		ptr = entry;
@@ -58,7 +71,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mb(); /* Avoid out-of-order execution. */
  		tomoyo_profile_ptr[profile] = ptr;
  		entry = NULL;
-@@ -292,13 +285,21 @@ static struct tomoyo_profile *tomoyo_ass
+@@ -292,13 +287,22 @@ static struct tomoyo_profile *tomoyo_ass
   */
  struct tomoyo_profile *tomoyo_profile(const u8 profile)
  {
@@ -80,12 +93,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns 1 if "@find=yes" was found, 0 if "@find=no" was found, -1 otherwise.
 + */
++/*
  static s8 tomoyo_find_yesno(const char *string, const char *find)
  {
  	const char *cp = strstr(string, find);
-@@ -312,18 +313,15 @@ static s8 tomoyo_find_yesno(const char *
+@@ -311,19 +315,17 @@ static s8 tomoyo_find_yesno(const char *
+ 	}
  	return -1;
  }
++*/
  
 -static void tomoyo_set_bool(bool *b, const char *string, const char *find)
 -{
@@ -111,7 +127,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static void tomoyo_set_uint(unsigned int *i, const char *string,
  			    const char *find)
  {
-@@ -332,51 +330,16 @@ static void tomoyo_set_uint(unsigned int
+@@ -332,51 +334,16 @@ static void tomoyo_set_uint(unsigned int
  		sscanf(cp + strlen(find), "=%u", i);
  }
  
@@ -172,7 +188,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			   struct tomoyo_profile *profile)
  {
  	u8 i;
-@@ -398,7 +361,7 @@ static int tomoyo_set_mode(char *name, c
+@@ -398,7 +365,7 @@ static int tomoyo_set_mode(char *name, c
  	} else {
  		return -EINVAL;
  	}
@@ -181,7 +197,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		config = TOMOYO_CONFIG_USE_DEFAULT;
  	} else {
  		u8 mode;
-@@ -428,34 +391,21 @@ static int tomoyo_write_profile(struct t
+@@ -428,34 +395,21 @@ static int tomoyo_write_profile(struct t
  {
  	char *data = head->write_buf;
  	unsigned int i;
@@ -222,7 +238,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!strcmp(data, "COMMENT")) {
  		static DEFINE_SPINLOCK(lock);
  		const struct tomoyo_path_info *new_comment
-@@ -470,48 +420,13 @@ static int tomoyo_write_profile(struct t
+@@ -470,48 +424,13 @@ static int tomoyo_write_profile(struct t
  		tomoyo_put_name(old_comment);
  		return 0;
  	}
@@ -277,7 +293,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static void tomoyo_print_config(struct tomoyo_io_buffer *head, const u8 config)
-@@ -534,7 +449,6 @@ static void tomoyo_read_profile(struct t
+@@ -534,7 +453,6 @@ static void tomoyo_read_profile(struct t
  	switch (head->r.step) {
  	case 0:
  		tomoyo_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
@@ -285,7 +301,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.step++;
  		break;
  	case 1:
-@@ -548,11 +462,17 @@ static void tomoyo_read_profile(struct t
+@@ -548,11 +466,17 @@ static void tomoyo_read_profile(struct t
  		break;
  	case 2:
  		{
@@ -303,7 +319,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			head->r.step++;
  		}
  		break;
-@@ -579,7 +499,6 @@ static void tomoyo_read_profile(struct t
+@@ -579,7 +503,6 @@ static void tomoyo_read_profile(struct t
  		}
  		if (head->r.bit == TOMOYO_MAX_MAC_INDEX
  		    + TOMOYO_MAX_MAC_CATEGORY_INDEX) {

@@ -7,12 +7,12 @@ Do the pathname conversion in userspace.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   12 -----
+ security/tomoyo/common.c |   14 -----
  security/tomoyo/common.h |   20 --------
  security/tomoyo/file.c   |  110 +----------------------------------------------
  security/tomoyo/gc.c     |   10 ----
  security/tomoyo/mount.c  |    5 --
- 5 files changed, 7 insertions(+), 150 deletions(-)
+ 5 files changed, 8 insertions(+), 151 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -27,6 +27,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		{ TOMOYO_KEYWORD_ALLOW_READ, tomoyo_write_globally_readable },
  	};
  
+@@ -1239,7 +1238,7 @@ static int tomoyo_write_exception(struct
+ 		if (tomoyo_str_starts(&data, tomoyo_transition_type[i]))
+ 			return tomoyo_write_transition_control(data, is_delete,
+ 							       i);
+-	for (i = 0; i < 3; i++)
++	for (i = 0; i < 2; i++)
+ 		if (tomoyo_str_starts(&data, tomoyo_callback[i].keyword))
+ 			return tomoyo_callback[i].write(data, is_delete);
+ 	for (i = 0; i < TOMOYO_MAX_GROUP; i++)
 @@ -1351,15 +1350,6 @@ static bool tomoyo_read_policy(struct to
  					       ptr->aggregated_name->name);
  			}
