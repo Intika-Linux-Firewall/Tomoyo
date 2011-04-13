@@ -41,12 +41,30 @@ Although, it is technically possible to remove bprm->cred from the list
 count became 1 or not, it is not clean. Therefore, to be able to cleanly remove
 bprm->cred from the list, this patch revives security_bprm_free() hook.
 
+Reviving security_bprm_free() hook helps TOMOYO with simplifying three more
+things in addition to solving the problem described above. First is that TOMOYO
+can use this hook for calling tomoyo_read_unlock(). Since this hook has been
+missing since 2.6.29, TOMOYO was not able to enclose the entire do_execve()
+operation within an SRCU section, forcing TOMOYO to manage refcounter for
+"struct tomoyo_domain_info" in order to close the race window between "time to
+find domain" and "time to transit to that domain". Second is that TOMOYO
+can use this hook for calling kfree(). In the subsequent patches, I will add a
+sort of redirector which will look like load_script() in fs/binfmt_script.c .
+Regarding load_script(), it can use stack memory for keeping the interpreter's
+pathname because it calls search_binary_handler() from it. But regarding
+TOMOYO, I will have to use kmalloc()/kfree() for keeping the handler's pathname
+because I think LSM modules are expected not to call search_binary_handler()
+from themselves. Third is that TOMOYO's interactive enforcing can get
+up-to-date information because this hook is called as soon as do_execve()
+finishes (rather than after an RCU grace period).
 
 
-However, both approaches are insufficient for TOMOYO. As long as "struct cred"
-combines DAC attributes and MAC attributes, TOMOYO cannot work as expected.
-The credentials mechanism also conflicts with TOMOYO outside do_execve(), for
-the mapping of "struct cred" and "struct task_struct" is not one to one.
+
+However, reviving security_bprm_free() hook alone is not sufficient for TOMOYO.
+As long as "struct cred" combines DAC attributes and MAC attributes, TOMOYO
+cannot work as expected. The credentials mechanism also conflicts with TOMOYO
+outside do_execve(), for the mapping of "struct cred" and "struct task_struct"
+is not always one to one.
 
 The definition of TOMOYO's domain is determined by only current thread's
 "struct task_struct" and the name of programs the current thread ever passed

@@ -8,15 +8,15 @@ interface.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Makefile        |    2 
- security/tomoyo/audit.c         |  300 ++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.c        |  257 ++++++++++++++--------------------
+ security/tomoyo/audit.c         |  300 +++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c        |  302 +++++++++++++++++++---------------------
  security/tomoyo/common.h        |   86 ++++++++++-
- security/tomoyo/file.c          |   49 ++----
+ security/tomoyo/file.c          |   49 +-----
  security/tomoyo/memory.c        |    5 
  security/tomoyo/mount.c         |   24 ---
  security/tomoyo/securityfs_if.c |    2 
  security/tomoyo/util.c          |   14 -
- 9 files changed, 513 insertions(+), 226 deletions(-)
+ 9 files changed, 551 insertions(+), 233 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -352,16 +352,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_PREF_MAX_LEARNING_ENTRY] = "max_learning_entry",
  };
  
-@@ -65,7 +69,7 @@ static bool tomoyo_manage_by_non_root;
+@@ -65,12 +69,10 @@ static bool tomoyo_manage_by_non_root;
   *
   * @value: Bool value.
   */
+-/*
 -static const char *tomoyo_yesno(const unsigned int value)
 +const char *tomoyo_yesno(const unsigned int value)
  {
  	return value ? "yes" : "no";
  }
-@@ -105,7 +109,7 @@ static bool tomoyo_flush(struct tomoyo_i
+-*/
+ 
+ static void tomoyo_addprintf(char *buffer, int len, const char *fmt, ...)
+ {
+@@ -107,7 +109,7 @@ static bool tomoyo_flush(struct tomoyo_i
  		head->r.w[0] = w;
  		if (*w)
  			return false;
@@ -370,15 +375,103 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (head->poll) {
  			if (!head->read_user_buf_avail ||
  			    copy_to_user(head->read_user_buf, "", 1))
-@@ -265,6 +269,7 @@ static struct tomoyo_profile *tomoyo_ass
- 		ptr->default_config = TOMOYO_CONFIG_DISABLED;
+@@ -264,9 +266,12 @@ static struct tomoyo_profile *tomoyo_ass
+ 	ptr = tomoyo_profile_ptr[profile];
+ 	if (!ptr && tomoyo_memory_ok(entry)) {
+ 		ptr = entry;
+-		ptr->default_config = TOMOYO_CONFIG_DISABLED;
++		ptr->default_config = TOMOYO_CONFIG_DISABLED |
++			TOMOYO_CONFIG_WANT_GRANT_LOG |
++			TOMOYO_CONFIG_WANT_REJECT_LOG;
  		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
  		       sizeof(ptr->config));
 +		ptr->pref[TOMOYO_PREF_MAX_AUDIT_LOG] = 1024;
  		ptr->pref[TOMOYO_PREF_MAX_LEARNING_ENTRY] = 2048;
  		mb(); /* Avoid out-of-order execution. */
  		tomoyo_profile_ptr[profile] = ptr;
-@@ -1302,92 +1307,28 @@ static void tomoyo_read_exception(struct
+@@ -302,7 +307,6 @@ struct tomoyo_profile *tomoyo_profile(co
+  *
+  * Returns 1 if "@find=yes" was found, 0 if "@find=no" was found, -1 otherwise.
+  */
+-/*
+ static s8 tomoyo_find_yesno(const char *string, const char *find)
+ {
+ 	const char *cp = strstr(string, find);
+@@ -315,7 +319,6 @@ static s8 tomoyo_find_yesno(const char *
+ 	}
+ 	return -1;
+ }
+-*/
+ 
+ /**
+  * tomoyo_set_uint - Set value for specified preference.
+@@ -376,6 +379,24 @@ static int tomoyo_set_mode(char *name, c
+ 				 * 'config' from 'TOMOYO_CONFIG_USE_DEAFULT'.
+ 				 */
+ 				config = (config & ~7) | mode;
++		if (config != TOMOYO_CONFIG_USE_DEFAULT) {
++			switch (tomoyo_find_yesno(value, "grant_log")) {
++			case 1:
++				config |= TOMOYO_CONFIG_WANT_GRANT_LOG;
++				break;
++			case 0:
++				config &= ~TOMOYO_CONFIG_WANT_GRANT_LOG;
++				break;
++			}
++			switch (tomoyo_find_yesno(value, "reject_log")) {
++			case 1:
++				config |= TOMOYO_CONFIG_WANT_REJECT_LOG;
++				break;
++			case 0:
++				config &= ~TOMOYO_CONFIG_WANT_REJECT_LOG;
++				break;
++			}
++		}
+ 	}
+ 	if (i < TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_MAC_CATEGORY_INDEX)
+ 		profile->config[i] = config;
+@@ -433,15 +454,30 @@ static int tomoyo_write_profile(struct t
+ 	return tomoyo_set_mode(data, cp, profile);
+ }
+ 
++/**
++ * tomoyo_print_config - Print mode for specified functionality.
++ *
++ * @head:   Pointer to "struct tomoyo_io_buffer".
++ * @config: Mode for that functionality.
++ *
++ * Returns nothing.
++ *
++ * Caller prints functionality's name.
++ */
+ static void tomoyo_print_config(struct tomoyo_io_buffer *head, const u8 config)
+ {
+-	tomoyo_io_printf(head, "={ mode=%s }\n", tomoyo_mode[config & 3]);
++	tomoyo_io_printf(head, "={ mode=%s grant_log=%s reject_log=%s }\n",
++			 tomoyo_mode[config & 3],
++			 tomoyo_yesno(config & TOMOYO_CONFIG_WANT_GRANT_LOG),
++			 tomoyo_yesno(config & TOMOYO_CONFIG_WANT_REJECT_LOG));
+ }
+ 
+ /**
+  * tomoyo_read_profile - Read profile table.
+  *
+  * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns nothing.
+  */
+ static void tomoyo_read_profile(struct tomoyo_io_buffer *head)
+ {
+@@ -452,7 +488,7 @@ static void tomoyo_read_profile(struct t
+ 	profile = tomoyo_profile_ptr[index];
+ 	switch (head->r.step) {
+ 	case 0:
+-		tomoyo_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
++		tomoyo_io_printf(head, "PROFILE_VERSION=%u\n", 20090903);
+ 		head->r.step++;
+ 		break;
+ 	case 1:
+@@ -1306,92 +1342,28 @@ static void tomoyo_read_exception(struct
  	head->r.eof = true;
  }
  
@@ -481,7 +574,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * Number of "struct file" referring /sys/kernel/security/tomoyo/query
   * interface.
-@@ -1395,10 +1336,38 @@ static LIST_HEAD(tomoyo_query_list);
+@@ -1399,10 +1371,38 @@ static LIST_HEAD(tomoyo_query_list);
  static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
  
  /**
@@ -522,7 +615,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Returns 0 if the supervisor decided to permit the access request which
   * violated the policy in enforcing mode, TOMOYO_RETRY_REQUEST if the
-@@ -1408,88 +1377,77 @@ static atomic_t tomoyo_query_observers =
+@@ -1412,88 +1412,77 @@ static atomic_t tomoyo_query_observers =
  int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
  {
  	va_list args;
@@ -591,13 +684,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		goto out;
 -	entry = kzalloc(sizeof(*entry), GFP_NOFS);
 -	if (!entry)
+-		goto out;
+-	entry->query = kzalloc(len, GFP_NOFS);
+-	if (!entry->query)
 +	entry.query_len = strlen(entry.query) + 1;
 +	if (!error) {
 +		tomoyo_add_entry(entry.query);
  		goto out;
--	entry->query = kzalloc(len, GFP_NOFS);
--	if (!entry->query)
--		goto out;
 -	len = ksize(entry->query);
 +	}
 +	len = tomoyo_round2(entry.query_len);
@@ -658,7 +751,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case 3: /* Asked to retry by administrator. */
  		error = TOMOYO_RETRY_REQUEST;
  		r->retry++;
-@@ -1498,18 +1456,12 @@ int tomoyo_supervisor(struct tomoyo_requ
+@@ -1502,18 +1491,12 @@ int tomoyo_supervisor(struct tomoyo_requ
  		/* Granted by administrator. */
  		error = 0;
  		break;
@@ -680,7 +773,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -1707,6 +1659,11 @@ int tomoyo_open_control(const u8 type, s
+@@ -1711,6 +1694,11 @@ int tomoyo_open_control(const u8 type, s
  		head->write = tomoyo_write_exception;
  		head->read = tomoyo_read_exception;
  		break;
@@ -692,7 +785,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_SELFDOMAIN:
  		/* /sys/kernel/security/tomoyo/self_domain */
  		head->read = tomoyo_read_self_domain;
-@@ -1780,7 +1737,7 @@ int tomoyo_open_control(const u8 type, s
+@@ -1784,7 +1772,7 @@ int tomoyo_open_control(const u8 type, s
  			return -ENOMEM;
  		}
  	}
@@ -701,7 +794,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->reader_idx = tomoyo_read_lock();
  	file->private_data = head;
  	/*
-@@ -1925,7 +1882,7 @@ int tomoyo_close_control(struct file *fi
+@@ -1929,7 +1917,7 @@ int tomoyo_close_control(struct file *fi
  	 */
  	if (head->type == TOMOYO_QUERY)
  		atomic_dec(&tomoyo_query_observers);
