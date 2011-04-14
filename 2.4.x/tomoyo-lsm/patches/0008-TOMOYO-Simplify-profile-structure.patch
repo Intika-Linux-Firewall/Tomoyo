@@ -8,10 +8,10 @@ temporarily disabled. They will be replaced by
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  193 ++++++++++++++---------------------------------
+ security/tomoyo/common.c |  194 ++++++++++++++---------------------------------
  security/tomoyo/common.h |   18 +---
  security/tomoyo/util.c   |   39 +--------
- 3 files changed, 72 insertions(+), 178 deletions(-)
+ 3 files changed, 73 insertions(+), 178 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -301,7 +301,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.step++;
  		break;
  	case 1:
-@@ -548,11 +466,17 @@ static void tomoyo_read_profile(struct t
+@@ -548,11 +466,18 @@ static void tomoyo_read_profile(struct t
  		break;
  	case 2:
  		{
@@ -311,15 +311,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			tomoyo_io_printf(head, "%u-COMMENT=", index);
  			tomoyo_set_string(head, comment ? comment->name : "");
  			tomoyo_set_lf(head);
++			tomoyo_io_printf(head, "%u-PREFERENCE={ ", index);
 +			for (i = 0; i < TOMOYO_MAX_PREF; i++)
 +				tomoyo_io_printf(head, "%s=%u ",
 +						 tomoyo_pref_keywords[i],
 +						 profile->pref[i]);
-+			tomoyo_set_string(head, " }\n");
++			tomoyo_set_string(head, "}\n");
  			head->r.step++;
  		}
  		break;
-@@ -579,7 +503,6 @@ static void tomoyo_read_profile(struct t
+@@ -579,7 +504,6 @@ static void tomoyo_read_profile(struct t
  		}
  		if (head->r.bit == TOMOYO_MAX_MAC_INDEX
  		    + TOMOYO_MAX_MAC_CATEGORY_INDEX) {

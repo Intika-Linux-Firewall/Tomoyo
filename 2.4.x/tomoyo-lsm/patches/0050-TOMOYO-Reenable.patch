@@ -1,0 +1,49 @@
+Subject: TOMOYO: Reenable TOMOYO Linux.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |    6 +++---
+ security/tomoyo/tomoyo.c |    3 ---
+ 2 files changed, 3 insertions(+), 6 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -11,7 +11,7 @@
+ #include <linux/security.h>
+ #include "common.h"
+ 
+-/* Profile version. Currently only 20090903 is defined. */
++/* Profile version. Currently only 20100903 is defined. */
+ static unsigned int tomoyo_profile_version;
+ 
+ /* Profile table. Memory is allocated as needed. */
+@@ -550,7 +550,7 @@ static void tomoyo_read_profile(struct t
+ 	profile = tomoyo_profile_ptr[index];
+ 	switch (head->r.step) {
+ 	case 0:
+-		tomoyo_io_printf(head, "PROFILE_VERSION=%u\n", 20090903);
++		tomoyo_io_printf(head, "PROFILE_VERSION=%u\n", 20100903);
+ 		head->r.step++;
+ 		break;
+ 	case 1:
+@@ -2227,7 +2227,7 @@ void tomoyo_check_profile(void)
+ 		      profile, domain->domainname->name);
+ 	}
+ 	tomoyo_read_unlock(idx);
+-	if (tomoyo_profile_version != 20090903) {
++	if (tomoyo_profile_version != 20100903) {
+ 		printk(KERN_ERR "You need to install userland programs for "
+ 		       "TOMOYO 2.3 and initialize policy configuration.\n");
+ 		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/2.3/ "
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
+@@ -396,9 +396,6 @@ static int __init tomoyo_init(void)
+ {
+ 	if (!security_module_enable(&tomoyo_security_ops))
+ 		return 0;
+-	printk(KERN_INFO "TOMOYO Linux is temporarily disabled due to large "
+-	       "and imcompatible changes are in progress.\n");
+-	return 0;
+ 	/* register ourselves with the security framework */
+ 	if (register_security(&tomoyo_security_ops) ||
+ 	    init_srcu_struct(&tomoyo_ss))
