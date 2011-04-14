@@ -57,6 +57,8 @@ static void panic(void)
 static const char *profile_name = "default";
 static _Bool tomoyo_noload = 0;
 static _Bool proc_unmount = 0;
+static _Bool sys_unmount = 0;
+static _Bool security_unmount = 0;
 static _Bool chdir_ok = 0;
 
 static _Bool profile_used[256];
@@ -278,43 +280,21 @@ int main(int argc, char *argv[])
 	/* Mount /proc if not mounted. */
 	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
-
-	/* Load kernel module if needed. */
-	if (lstat("/sys/kernel/security/tomoyo/", &buf) || !S_ISDIR(buf.st_mode)) {
-		if (!access("/etc/tomoyo/tomoyo-load-module", X_OK)) {
-			const pid_t pid = fork();
-			switch (pid) {
-			case 0:
-				execl("/etc/tomoyo/tomoyo-load-module",
-				      "/etc/tomoyo/tomoyo-load-module", NULL);
-				_exit(0);
-			case -1:
-				panic();
-			}
-			while (waitpid(pid, NULL, __WALL) == EOF &&
-			       errno == EINTR);
-		}
-	}
-
-	if (getpid() == 1) {
-		/*
-		 * Unmount /proc and execute /sbin/init if this program was
-		 * executed by passing init=/sbin/tomoyo-init . The kernel will
-		 * try to execute this program again with getpid() != 1 when
-		 * /sbin/init starts.
-		 */
-		if (proc_unmount)
-			umount("/proc/");
-		argv[0] = "/sbin/init";
-		execv(argv[0], argv);
-		printf("FATAL: Failed to execute %s\n", argv[0]);
-		fflush(stdout);
-		while (1)
-			sleep(100);
-	}
-
-	/* Unmount /proc and exit if policy interface doesn't exist. */
-	if (lstat("/sys/kernel/security/tomoyo/", &buf) || !S_ISDIR(buf.st_mode)) {
+	/* Mount /sys if not mounted. */
+	if (lstat("/sys/kernel/security/", &buf) || !S_ISDIR(buf.st_mode))
+		sys_unmount = !mount("/sys", "/sys", "sysfs", 0, NULL);
+	/* Mount /sys/kernel/security if not mounted. */
+	if (lstat("/sys/kernel/security/tomoyo/", &buf) ||
+	    !S_ISDIR(buf.st_mode))
+		security_unmount = !mount("none", "/sys/kernel/security",
+					  "securityfs", 0, NULL);
+	/* Unmount and exit if policy interface doesn't exist. */
+	if (lstat("/sys/kernel/security/tomoyo", &buf) ||
+	    !S_ISDIR(buf.st_mode)) {
+		if (security_unmount)
+			umount("/sys/kernel/security/");
+		if (sys_unmount)
+			umount("/sys/");
 		if (proc_unmount)
 			umount("/proc/");
 		return 1;
@@ -428,6 +408,10 @@ int main(int argc, char *argv[])
 	/* Show memory usage. */
 	show_memory_usage();
 
+	if (security_unmount)
+		umount("/sys/kernel/security/");
+	if (sys_unmount)
+		umount("/sys/");
 	if (proc_unmount)
 		umount("/proc");
 
