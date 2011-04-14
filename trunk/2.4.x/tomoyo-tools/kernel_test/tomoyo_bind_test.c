@@ -1,5 +1,5 @@
 /*
- * ccs_bind_test.c
+ * tomoyo_bind_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -509,7 +509,7 @@ int main(int argc, char *argv[])
 	int ipv6_listener_socket = EOF;
 	pid_t ipv4_pid = 0;
 	pid_t ipv6_pid = 0;
-	ccs_test_init();
+	tomoyo_test_init();
 	{
 		FILE *fp = fopen("/proc/sys/net/ipv4/ip_local_port_range", "r");
 		int original_range[2];

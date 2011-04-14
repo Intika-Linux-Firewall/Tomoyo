@@ -1,5 +1,5 @@
 /*
- * ccs_new_network_test.c
+ * tomoyo_new_network_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -596,7 +596,7 @@ static void stage_unix_network_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	set_profile(3, "network::inet_stream_bind");
 	set_profile(3, "network::inet_stream_listen");
 	set_profile(3, "network::inet_stream_connect");

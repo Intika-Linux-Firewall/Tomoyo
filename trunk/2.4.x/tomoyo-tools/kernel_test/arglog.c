@@ -27,7 +27,7 @@
 
 int main(int argc0, char *argv0[])
 {
-	int fd = open("/proc/ccs/audit", O_RDONLY);
+	int fd = open("/sys/kernel/security/tomoyo/audit", O_RDONLY);
 	char *argv[12];
 	char *envp[12];
 	int j;

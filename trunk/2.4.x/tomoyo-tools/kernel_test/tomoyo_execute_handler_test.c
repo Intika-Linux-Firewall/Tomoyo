@@ -1,5 +1,5 @@
 /*
- * ccs_execute_handler_test.c
+ * tomoyo_execute_handler_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -84,7 +84,7 @@ int main(int raw_argc, char *raw_argv[])
 			execve(filename, argv, envp);
 		return 1;
 	}
-	ccs_test_init();
+	tomoyo_test_init();
 	cp = strrchr(self_domain, ' ');
 	if (!cp)
 		return 1;

@@ -1,5 +1,5 @@
 /*
- * ccs-setprofile.c
+ * tomoyo-setprofile.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,7 +20,7 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 int main(int argc, char *argv[])
 {
@@ -40,9 +40,9 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	for (i = start; i < argc; i++)
-		ccs_normalize_line(argv[i]);
+		tomoyo_normalize_line(argv[i]);
 	{
-		const int fd = open(CCS_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
+		const int fd = open(TOMOYO_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
 		if (fd == EOF) {
 			fprintf(stderr, "You can't run this command for this "
 				"kernel.\n");
@@ -50,21 +50,21 @@ int main(int argc, char *argv[])
 		} else if (write(fd, "", 0) != 0) {
 			fprintf(stderr, "You need to register this program to "
 				"%s to run this program.\n",
-				CCS_PROC_POLICY_MANAGER);
+				TOMOYO_PROC_POLICY_MANAGER);
 			return 1;
 		}
 		close(fd);
 	}
 	{
 		_Bool profile_found = false;
-		FILE *fp = fopen(CCS_PROC_POLICY_PROFILE, "r");
+		FILE *fp = fopen(TOMOYO_PROC_POLICY_PROFILE, "r");
 		if (!fp) {
 			fprintf(stderr, "Can't open policy file.\n");
 			exit(1);
 		}
-		ccs_get();
+		tomoyo_get();
 		while (true) {
-			char *line = ccs_freadline(fp);
+			char *line = tomoyo_freadline(fp);
 			if (!line)
 				break;
 			if (atoi(line) != profile)
@@ -72,23 +72,23 @@ int main(int argc, char *argv[])
 			profile_found = true;
 			break;
 		}
-		ccs_put();
+		tomoyo_put();
 		fclose(fp);
 		if (!profile_found) {
 			fprintf(stderr, "Profile %u not defined.\n", profile);
 			exit(1);
 		}
 	}
-	fp_in = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "r");
-	fp_out = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "w");
+	fp_in = fopen(TOMOYO_PROC_POLICY_DOMAIN_STATUS, "r");
+	fp_out = fopen(TOMOYO_PROC_POLICY_DOMAIN_STATUS, "w");
 	if (!fp_in || !fp_out) {
 		fprintf(stderr, "Can't open policy file.\n");
 		exit(1);
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
 		char *cp;
-		char *line = ccs_freadline(fp_in);
+		char *line = tomoyo_freadline(fp_in);
 		if (!line)
 			break;
 		cp = strchr(line, ' ');
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 			printf("%u %s\n", profile, cp);
 		}
 	}
-	ccs_put();
+	tomoyo_put();
 	fclose(fp_in);
 	fclose(fp_out);
 	return 0;

@@ -1,6 +1,6 @@
 include ../Include.make
 
-BUILD_FILES = ccs-init
+BUILD_FILES = tomoyo-init
 
 all: $(BUILD_FILES)
 

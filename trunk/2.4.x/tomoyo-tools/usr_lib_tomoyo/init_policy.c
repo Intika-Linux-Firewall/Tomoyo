@@ -185,7 +185,7 @@ static unsigned char revalidate_path(const char *path)
 	return type;
 }
 
-/* File handle to /etc/ccs/current/policy/exception_policy.conf . */
+/* File handle to /etc/tomoyo/current/policy/exception_policy.conf . */
 static FILE *filp = NULL;
 
 /**
@@ -627,7 +627,7 @@ static int symlink2(const char *old, const char *new)
 	return symlink(old, new) == 0 || errno == EEXIST ? 0 : EOF;
 }
 
-/* Policy directory. Default is "/etc/ccs/". */
+/* Policy directory. Default is "/etc/tomoyo/". */
 static char *policy_dir = NULL;
 
 /**
@@ -782,7 +782,7 @@ static void close_file(FILE *fp, _Bool condition, const char *old,
 }
 
 /**
- * make_exception_policy - Make /etc/ccs/policy/current/exception_policy.conf .
+ * make_exception_policy - Make /etc/tomoyo/policy/current/exception_policy.conf .
  *
  * Returns nothing.
  */
@@ -816,7 +816,7 @@ static void make_exception_policy(void)
 }
 
 /**
- * make_manager - Make /etc/ccs/policy/current/manager.conf .
+ * make_manager - Make /etc/tomoyo/policy/current/manager.conf .
  *
  * Returns nothing.
  */
@@ -835,11 +835,11 @@ static void make_manager(void)
 	}
 	fprintf(stderr, "Creating manager policy... ");
 	tools_dir = get_realpath("/usr/sbin");
-	fprintf(fp, "%s/ccs-loadpolicy\n", tools_dir);
-	fprintf(fp, "%s/ccs-editpolicy\n", tools_dir);
-	fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
-	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
-	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-loadpolicy\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-editpolicy\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-setlevel\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-setprofile\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-queryd\n", tools_dir);
 	close_file(fp, 1, "manager.tmp", "manager.conf");
 }
 
@@ -857,7 +857,7 @@ static unsigned int max_learning_entry = 2048;
 static unsigned int enforcing_penalty = 0;
 
 /**
- * make_profile - Make /etc/ccs/policy/current/profile.conf .
+ * make_profile - Make /etc/tomoyo/policy/current/profile.conf .
  *
  * Returns nothing.
  */
@@ -911,7 +911,7 @@ static unsigned char default_profile = 0;
 static unsigned char default_group = 0;
 
 /**
- * make_domain_policy - Make /etc/ccs/policy/current/domain_policy.conf .
+ * make_domain_policy - Make /etc/tomoyo/policy/current/domain_policy.conf .
  *
  * Returns nothing.
  */
@@ -934,7 +934,7 @@ static void make_domain_policy(void)
 }
 
 /**
- * make_stat - Make /etc/ccs/stat.conf .
+ * make_stat - Make /etc/tomoyo/stat.conf .
  *
  * Returns nothing.
  */
@@ -957,20 +957,20 @@ static void make_stat(void)
 }
 
 /* The name of loadable kernel module to load. */
-static const char *module_name = "ccsecurity";
+static const char *module_name = "tomoyoecurity";
 
 /**
- * make_module_loader - Make /etc/ccs/ccs-load-module .
+ * make_module_loader - Make /etc/tomoyo/tomoyo-load-module .
  *
  * Returns nothing.
  */
 static void make_module_loader(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || !access("ccs-load-module", X_OK)
+	if (chdir(policy_dir) || !access("tomoyo-load-module", X_OK)
 	    || !module_name[0])
 		return;
-	fp = fopen("ccs-load-module.tmp", "w");
+	fp = fopen("tomoyo-load-module.tmp", "w");
 	if (!fp) {
 		fprintf(stderr, "ERROR: Can't create module loader.\n");
 		return;
@@ -979,13 +979,13 @@ static void make_module_loader(void)
 	fprintf(fp, "#! /bin/sh\n");
 	fprintf(fp, "export PATH=$PATH:/sbin:/bin\n");
 	fprintf(fp, "exec modprobe %s\n", module_name);
-	close_file(fp, !chmod("ccs-load-module.tmp", 0700),
-		   "ccs-load-module.tmp", "ccs-load-module");
+	close_file(fp, !chmod("tomoyo-load-module.tmp", 0700),
+		   "tomoyo-load-module.tmp", "tomoyo-load-module");
 }
 
-/* Content of /etc/ccs/tools/editpolicy.conf . */
+/* Content of /etc/tomoyo/tools/editpolicy.conf . */
 static const char editpolicy_data[] =
-"# This file contains configuration used by ccs-editpolicy command.\n"
+"# This file contains configuration used by tomoyo-editpolicy command.\n"
 "\n"
 "# Keyword alias. ( directive-name = display-name )\n"
 "keyword_alias acl_group   0                 = acl_group   0\n"
@@ -1308,7 +1308,7 @@ static const char editpolicy_data[] =
 "line_color PROFILE_HEAD     = 71\n";
 
 /**
- * make_editpolicy_conf - Make /etc/ccs/tools/editpolicy.conf .
+ * make_editpolicy_conf - Make /etc/tomoyo/tools/editpolicy.conf .
  *
  * Returns nothing.
  */
@@ -1323,15 +1323,15 @@ static void make_editpolicy_conf(void)
 		fprintf(stderr, "ERROR: Can't create configuration file.\n");
 		return;
 	}
-	fprintf(stderr, "Creating configuration file for ccs-editpolicy ... ");
+	fprintf(stderr, "Creating configuration file for tomoyo-editpolicy ... ");
 	fprintf(fp, "%s", editpolicy_data);
 	close_file(fp, !chmod("editpolicy.tmp", 0644), "editpolicy.tmp",
 		   "editpolicy.conf");
 }
 
-/* Content of /etc/ccs/tools/auditd.conf . */
+/* Content of /etc/tomoyo/tools/auditd.conf . */
 static const char auditd_data[] =
-"# This file contains sorting rules used by ccs-auditd command.\n"
+"# This file contains sorting rules used by tomoyo-auditd command.\n"
 "\n"
 "# An audit log consists with three lines. You can refer the first line\n"
 "# using 'header' keyword, the second line using 'domain' keyword, and the\n"
@@ -1390,7 +1390,7 @@ static const char auditd_data[] =
 "\n";
 
 /**
- * make_auditd_conf - Make /etc/ccs/tools/auditd.conf .
+ * make_auditd_conf - Make /etc/tomoyo/tools/auditd.conf .
  *
  * Returns nothing.
  */
@@ -1405,15 +1405,15 @@ static void make_auditd_conf(void)
 		fprintf(stderr, "ERROR: Can't create configuration file.\n");
 		return;
 	}
-	fprintf(stderr, "Creating configuration file for ccs-auditd ... ");
+	fprintf(stderr, "Creating configuration file for tomoyo-auditd ... ");
 	fprintf(fp, "%s", auditd_data);
 	close_file(fp, !chmod("auditd.tmp", 0644), "auditd.tmp",
 		   "auditd.conf");
 }
 
-/* Content of /etc/ccs/tools/patternize.conf . */
+/* Content of /etc/tomoyo/tools/patternize.conf . */
 static const char patternize_data[] =
-"# This file contains rewriting rules used by ccs-patternize command.\n"
+"# This file contains rewriting rules used by tomoyo-patternize command.\n"
 "\n"
 "# Domain policy consists with domain declaration lines (which start with\n"
 "# <kernel> ) and acl declaration lines (which do not start with <kernel> ).\n"
@@ -1471,11 +1471,11 @@ static const char patternize_data[] =
 "\n"
 "# Files on / partition.\n"
 "rewrite tail_pattern /etc/mtab~\\$\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/domain_policy.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/exception_policy.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/manager.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/profile.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/\n"
+"rewrite tail_pattern /etc/tomoyo/policy/\\*/domain_policy.conf\n"
+"rewrite tail_pattern /etc/tomoyo/policy/\\*/exception_policy.conf\n"
+"rewrite tail_pattern /etc/tomoyo/policy/\\*/manager.conf\n"
+"rewrite tail_pattern /etc/tomoyo/policy/\\*/profile.conf\n"
+"rewrite tail_pattern /etc/tomoyo/policy/\\*/\n"
 "\n"
 "# Files on /tmp/ partition.\n"
 "rewrite tail_pattern /vte\\?\\?\\?\\?\\?\\?\n"
@@ -1510,7 +1510,7 @@ static const char patternize_data[] =
 "\n";
 
 /**
- * make_patternize_conf - Make /etc/ccs/tools/patternize.conf .
+ * make_patternize_conf - Make /etc/tomoyo/tools/patternize.conf .
  *
  * Returns nothing.
  */
@@ -1525,26 +1525,26 @@ static void make_patternize_conf(void)
 		fprintf(stderr, "ERROR: Can't create configuration file.\n");
 		return;
 	}
-	fprintf(stderr, "Creating configuration file for ccs-patternize ... ");
+	fprintf(stderr, "Creating configuration file for tomoyo-patternize ... ");
 	fprintf(fp, "%s", patternize_data);
 	close_file(fp, !chmod("patternize.tmp", 0644), "patternize.tmp",
 		   "patternize.conf");
 }
 
-/* Content of /etc/ccs/tools/notifyd.conf . */
+/* Content of /etc/tomoyo/tools/notifyd.conf . */
 static const char notifyd_data[] =
-"# This file contains configuration used by ccs-notifyd command.\n"
+"# This file contains configuration used by tomoyo-notifyd command.\n"
 "\n"
-"# ccs-notifyd is a daemon that notifies the occurrence of policy violation\n"
+"# tomoyo-notifyd is a daemon that notifies the occurrence of policy violation\n"
 "# in enforcing mode.\n"
 "#\n"
 "# time_to_wait is grace time in second before rejecting the request that\n"
 "# caused policy violation in enforcing mode. For example, if you specify\n"
-"# 30, you will be given 30 seconds for starting ccs-queryd command and\n"
+"# 30, you will be given 30 seconds for starting tomoyo-queryd command and\n"
 "# responding to the policy violation event.\n"
-"# If you specify non 0 value, you need to register ccs-notifyd command to\n"
-"# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to\n"
-"# behave as if ccs-queryd command is running.\n"
+"# If you specify non 0 value, you need to register tomoyo-notifyd command to\n"
+"# /sys/kernel/security/tomoyo/manager as well as tomoyo-queryd command, for tomoyo-notifyd needs to\n"
+"# behave as if tomoyo-queryd command is running.\n"
 "# Also, you should avoid specifying too large value (e.g. 3600) because\n"
 "# the request will remain pending for that period if you can't respond.\n"
 "#\n"
@@ -1582,12 +1582,12 @@ static const char notifyd_data[] =
 "#    The occurrence is notified by executing curl command.\n"
 "#\n"
 "time_to_wait 0\n"
-"action_to_take mail -s Notification\\040from\\040ccs-notifyd root@localhost\n"
+"action_to_take mail -s Notification\\040from\\040tomoyo-notifyd root@localhost\n"
 "minimal_interval 60\n"
 "\n";
 
 /**
- * make_notifyd_conf - Make /etc/ccs/tools/notifyd.conf .
+ * make_notifyd_conf - Make /etc/tomoyo/tools/notifyd.conf .
  *
  * Returns nothing.
  */
@@ -1602,7 +1602,7 @@ static void make_notifyd_conf(void)
 		fprintf(stderr, "ERROR: Can't create configuration file.\n");
 		return;
 	}
-	fprintf(stderr, "Creating configuration file for ccs-notifyd ... ");
+	fprintf(stderr, "Creating configuration file for tomoyo-notifyd ... ");
 	fprintf(fp, "%s", notifyd_data);
 	close_file(fp, !chmod("notifyd.tmp", 0644), "notifyd.tmp",
 		   "notifyd.conf");
@@ -1648,7 +1648,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (!dir)
-		dir = "/etc/ccs";
+		dir = "/etc/tomoyo";
 	policy_dir = strdup(dir);
 	memset(path, 0, sizeof(path));
 	make_policy_dir();

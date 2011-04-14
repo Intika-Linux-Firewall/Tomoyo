@@ -1,5 +1,5 @@
 /*
- * ccs_cond_test.c
+ * tomoyo_cond_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -232,7 +232,7 @@ static void stage_open_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	fprintf(domain_fp, "ignore_global\n");
 	fprintf(domain_fp, "file read/write %s\n", proc_policy_domain_policy);
 	set_profile(3, "file::execute");

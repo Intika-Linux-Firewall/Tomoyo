@@ -1,5 +1,5 @@
 /*
- * ccs-patternize.c
+ * tomoyo-patternize.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,13 +20,13 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 /*
  * Check whether the given filename is patterened.
  * Returns nonzero if patterned, zero otherwise.
  */
-static _Bool ccs_path_contains_pattern(const char *filename)
+static _Bool tomoyo_path_contains_pattern(const char *filename)
 {
 	if (filename) {
 		char c;
@@ -60,54 +60,54 @@ static _Bool ccs_path_contains_pattern(const char *filename)
 	return false;
 }
 
-#define CCS_PATTERNIZE_CONF "/etc/ccs/tools/patternize.conf"
+#define TOMOYO_PATTERNIZE_CONF "/etc/tomoyo/tools/patternize.conf"
 
-enum ccs_target_types {
-	CCS_TARGET_DOMAIN,
-	CCS_TARGET_ACL,
-	CCS_REWRITE_PATH,
-	CCS_REWRITE_HEAD,
-	CCS_REWRITE_TAIL,
-	CCS_REWRITE_NUMBER,
-	CCS_REWRITE_ADDRESS,
+enum tomoyo_target_types {
+	TOMOYO_TARGET_DOMAIN,
+	TOMOYO_TARGET_ACL,
+	TOMOYO_REWRITE_PATH,
+	TOMOYO_REWRITE_HEAD,
+	TOMOYO_REWRITE_TAIL,
+	TOMOYO_REWRITE_NUMBER,
+	TOMOYO_REWRITE_ADDRESS,
 };
 
-enum ccs_operator_types {
-	CCS_TARGET_CONTAINS,
-	CCS_TARGET_EQUALS,
-	CCS_TARGET_STARTS,
+enum tomoyo_operator_types {
+	TOMOYO_TARGET_CONTAINS,
+	TOMOYO_TARGET_EQUALS,
+	TOMOYO_TARGET_STARTS,
 };
 
-struct ccs_replace_rules {
-	enum ccs_target_types type;
+struct tomoyo_replace_rules {
+	enum tomoyo_target_types type;
 	union {
-		/* Used by CCS_TARGET_{DOMAIN,ACL} */
+		/* Used by TOMOYO_TARGET_{DOMAIN,ACL} */
 		struct {
-			enum ccs_operator_types operation;
+			enum tomoyo_operator_types operation;
 			unsigned int index;
 		} cond;
-		/* Used by CCS_REWRITE_NUMBER */
-		struct ccs_number_entry number;
-		/* Used by CCS_REWRITE_ADDRESS */
-		struct ccs_ip_address_entry ip;
-		/* Used by CCS_REWRITE_{PATH,HEAD,TAIL} */
-		struct ccs_path_info path;
+		/* Used by TOMOYO_REWRITE_NUMBER */
+		struct tomoyo_number_entry number;
+		/* Used by TOMOYO_REWRITE_ADDRESS */
+		struct tomoyo_ip_address_entry ip;
+		/* Used by TOMOYO_REWRITE_{PATH,HEAD,TAIL} */
+		struct tomoyo_path_info path;
 	} u;
 	const char *string;
 	unsigned int string_len; /* strlen(string). */
 };
 
-static struct ccs_replace_rules *rules = NULL;
+static struct tomoyo_replace_rules *rules = NULL;
 static unsigned int rules_len = 0;
 
-static char *ccs_current_domainname = NULL;
-static char *ccs_current_acl = NULL;
+static char *tomoyo_current_domainname = NULL;
+static char *tomoyo_current_acl = NULL;
 
-static _Bool ccs_head_pattern(char *string,
-			      const struct ccs_replace_rules *ptr)
+static _Bool tomoyo_head_pattern(char *string,
+			      const struct tomoyo_replace_rules *ptr)
 {
 	char *pos;
-	struct ccs_path_info subword;
+	struct tomoyo_path_info subword;
 	subword.name = string;
 	for (pos = strrchr(string, '/'); pos >= string; pos--) {
 		_Bool matched;
@@ -116,8 +116,8 @@ static _Bool ccs_head_pattern(char *string,
 			continue;
 		c = *(pos + 1);
 		*(pos + 1) = '\0';
-		ccs_fill_path_info(&subword);
-		matched = ccs_path_matches_pattern(&subword, &ptr->u.path);
+		tomoyo_fill_path_info(&subword);
+		matched = tomoyo_path_matches_pattern(&subword, &ptr->u.path);
 		*(pos + 1) = c;
 		if (!matched)
 			continue;
@@ -127,18 +127,18 @@ static _Bool ccs_head_pattern(char *string,
 	return false;
 }
 
-static _Bool ccs_tail_pattern(const char *string,
-			      const struct ccs_replace_rules *ptr)
+static _Bool tomoyo_tail_pattern(const char *string,
+			      const struct tomoyo_replace_rules *ptr)
 {
 	const char *pos;
-	struct ccs_path_info subword;
+	struct tomoyo_path_info subword;
 	int ret_ignored;
 	for (pos = string; *pos; pos++) {
 		if (*pos != '/')
 			continue;
 		subword.name = pos;
-		ccs_fill_path_info(&subword);
-		if (!ccs_path_matches_pattern(&subword, &ptr->u.path))
+		tomoyo_fill_path_info(&subword);
+		if (!tomoyo_path_matches_pattern(&subword, &ptr->u.path))
 			continue;
 		ret_ignored = fwrite(string, 1, pos - string, stdout);
 		printf("%s", ptr->string);
@@ -147,24 +147,24 @@ static _Bool ccs_tail_pattern(const char *string,
 	return false;
 }
 
-static _Bool ccs_path_pattern(const char *string,
-			      const struct ccs_replace_rules *ptr)
+static _Bool tomoyo_path_pattern(const char *string,
+			      const struct tomoyo_replace_rules *ptr)
 {
-	struct ccs_path_info word;
+	struct tomoyo_path_info word;
 	word.name = string;
-	ccs_fill_path_info(&word);
-	if (ccs_path_matches_pattern(&word, &ptr->u.path)) {
+	tomoyo_fill_path_info(&word);
+	if (tomoyo_path_matches_pattern(&word, &ptr->u.path)) {
 		printf("%s", ptr->string);
 		return true;
 	}
 	return false;
 }
 
-static _Bool ccs_number_pattern(const char *string,
-				const struct ccs_replace_rules *ptr)
+static _Bool tomoyo_number_pattern(const char *string,
+				const struct tomoyo_replace_rules *ptr)
 {
-	struct ccs_number_entry entry;
-	if (!ccs_parse_number(string, &entry) &&
+	struct tomoyo_number_entry entry;
+	if (!tomoyo_parse_number(string, &entry) &&
 	    ptr->u.number.min <= entry.min && ptr->u.number.max >= entry.max) {
 		printf("%s", ptr->string);
 		return true;
@@ -172,11 +172,11 @@ static _Bool ccs_number_pattern(const char *string,
 	return false;
 }
 
-static _Bool ccs_address_pattern(const char *string,
-				 const struct ccs_replace_rules *ptr)
+static _Bool tomoyo_address_pattern(const char *string,
+				 const struct tomoyo_replace_rules *ptr)
 {
-	struct ccs_ip_address_entry entry;
-	if (!ccs_parse_ip(string, &entry) && ptr->u.ip.is_ipv6 == entry.is_ipv6
+	struct tomoyo_ip_address_entry entry;
+	if (!tomoyo_parse_ip(string, &entry) && ptr->u.ip.is_ipv6 == entry.is_ipv6
 	    && memcmp(entry.min, ptr->u.ip.min, 16) >= 0 &&
 	    memcmp(ptr->u.ip.max, entry.max, 16) >= 0) {
 		printf("%s", ptr->string);
@@ -185,52 +185,52 @@ static _Bool ccs_address_pattern(const char *string,
 	return false;
 }
 
-static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
+static _Bool tomoyo_check_rule(char *string, const enum tomoyo_target_types type)
 {
 	unsigned int i;
 	_Bool matched = true;
 	if (*string == '@')
 		return false;
 	for (i = 0; i < rules_len; i++) {
-		const struct ccs_replace_rules *ptr = &rules[i];
+		const struct tomoyo_replace_rules *ptr = &rules[i];
 		char *line = NULL;
 		unsigned int index = ptr->u.cond.index;
 		const char *find = ptr->string;
 		unsigned int find_len = ptr->string_len;
 		switch (ptr->type) {
-		case CCS_TARGET_DOMAIN:
-			line = ccs_current_domainname;
+		case TOMOYO_TARGET_DOMAIN:
+			line = tomoyo_current_domainname;
 			break;
-		case CCS_TARGET_ACL:
-			line = ccs_current_acl;
+		case TOMOYO_TARGET_ACL:
+			line = tomoyo_current_acl;
 			break;
-		case CCS_REWRITE_PATH:
-			if (type == CCS_REWRITE_PATH && matched &&
-			    ccs_path_pattern(string, ptr))
+		case TOMOYO_REWRITE_PATH:
+			if (type == TOMOYO_REWRITE_PATH && matched &&
+			    tomoyo_path_pattern(string, ptr))
 				return true;
 			matched = true;
 			continue;
-		case CCS_REWRITE_HEAD:
-			if (type == CCS_REWRITE_PATH && matched &&
-			    ccs_head_pattern(string, ptr))
+		case TOMOYO_REWRITE_HEAD:
+			if (type == TOMOYO_REWRITE_PATH && matched &&
+			    tomoyo_head_pattern(string, ptr))
 				return true;
 			matched = true;
 			continue;
-		case CCS_REWRITE_TAIL:
-			if (type == CCS_REWRITE_PATH && matched &&
-			    ccs_tail_pattern(string, ptr))
+		case TOMOYO_REWRITE_TAIL:
+			if (type == TOMOYO_REWRITE_PATH && matched &&
+			    tomoyo_tail_pattern(string, ptr))
 				return true;
 			matched = true;
 			continue;
-		case CCS_REWRITE_NUMBER:
-			if (type == CCS_REWRITE_NUMBER && matched &&
-			    ccs_number_pattern(string, ptr))
+		case TOMOYO_REWRITE_NUMBER:
+			if (type == TOMOYO_REWRITE_NUMBER && matched &&
+			    tomoyo_number_pattern(string, ptr))
 				return true;
 			matched = true;
 			continue;
-		case CCS_REWRITE_ADDRESS:
-			if (type == CCS_REWRITE_ADDRESS && matched &&
-			    ccs_address_pattern(string, ptr))
+		case TOMOYO_REWRITE_ADDRESS:
+			if (type == TOMOYO_REWRITE_ADDRESS && matched &&
+			    tomoyo_address_pattern(string, ptr))
 				return true;
 			matched = true;
 			continue;
@@ -239,7 +239,7 @@ static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 			continue;
 		if (!index) {
 			switch (ptr->u.cond.operation) {
-			case CCS_TARGET_CONTAINS:
+			case TOMOYO_TARGET_CONTAINS:
 				while (1) {
 					char *cp = strstr(line, find);
 					if (!cp) {
@@ -253,10 +253,10 @@ static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 					line = cp + 1;
 				}
 				break;
-			case CCS_TARGET_EQUALS:
+			case TOMOYO_TARGET_EQUALS:
 				matched = !strcmp(line, find);
 				break;
-			case CCS_TARGET_STARTS:
+			case TOMOYO_TARGET_STARTS:
 				matched = !strncmp(line, find, find_len) &&
 					(!line[find_len] ||
 					 line[find_len] == ' ');
@@ -278,13 +278,13 @@ static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 			if (word_end)
 				*word_end = '\0';
 			switch (ptr->u.cond.operation) {
-			case CCS_TARGET_CONTAINS:
+			case TOMOYO_TARGET_CONTAINS:
 				matched = strstr(word, find) != NULL;
 				break;
-			case CCS_TARGET_EQUALS:
+			case TOMOYO_TARGET_EQUALS:
 				matched = !strcmp(word, find);
 				break;
-			case CCS_TARGET_STARTS:
+			case TOMOYO_TARGET_STARTS:
 				matched = !strncmp(word, find, find_len);
 				break;
 			}
@@ -295,7 +295,7 @@ static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 	return false;
 }
 
-static void ccs_patternize_init_rules(const char *filename)
+static void tomoyo_patternize_init_rules(const char *filename)
 {
 	FILE *fp = fopen(filename, "r");
 	unsigned int line_no = 0;
@@ -303,71 +303,71 @@ static void ccs_patternize_init_rules(const char *filename)
 		fprintf(stderr, "Can't open %s for reading.\n", filename);
 		exit(1);
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		struct ccs_replace_rules *ptr;
-		char *line = ccs_freadline(fp);
+		struct tomoyo_replace_rules *ptr;
+		char *line = tomoyo_freadline(fp);
 		if (!line)
 			break;
 		line_no++;
-		ccs_normalize_line(line);
+		tomoyo_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
 		rules = realloc(rules, (rules_len + 1) * sizeof(*ptr));
 		if (!rules)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		ptr = &rules[rules_len++];
 		memset(ptr, 0, sizeof(*ptr));
-		if (ccs_str_starts(line, "rewrite ")) {
+		if (tomoyo_str_starts(line, "rewrite ")) {
 			char *cp = strchr(line, ' ');
 			if (!cp)
 				goto invalid_rule;
 			cp = strchr(cp + 1, ' ');
 			if (cp)
 				*cp++ = '\0';
-			if (ccs_str_starts(line, "path_pattern ")) {
-				ptr->type = CCS_REWRITE_PATH;
-			} else if (ccs_str_starts(line, "head_pattern ")) {
-				ptr->type = CCS_REWRITE_HEAD;
+			if (tomoyo_str_starts(line, "path_pattern ")) {
+				ptr->type = TOMOYO_REWRITE_PATH;
+			} else if (tomoyo_str_starts(line, "head_pattern ")) {
+				ptr->type = TOMOYO_REWRITE_HEAD;
 				if (!*line || line[strlen(line) - 1] != '/')
 					goto invalid_rule;
-			} else if (ccs_str_starts(line, "tail_pattern ")) {
-				ptr->type = CCS_REWRITE_TAIL;
+			} else if (tomoyo_str_starts(line, "tail_pattern ")) {
+				ptr->type = TOMOYO_REWRITE_TAIL;
 				if (*line != '/')
 					goto invalid_rule;
-			} else if (ccs_str_starts(line, "number_pattern ")) {
-				if (ccs_parse_number(line, &ptr->u.number))
+			} else if (tomoyo_str_starts(line, "number_pattern ")) {
+				if (tomoyo_parse_number(line, &ptr->u.number))
 					goto invalid_rule;
-				ptr->type = CCS_REWRITE_NUMBER;
-			} else if (ccs_str_starts(line, "address_pattern ")) {
-				if (ccs_parse_ip(line, &ptr->u.ip))
+				ptr->type = TOMOYO_REWRITE_NUMBER;
+			} else if (tomoyo_str_starts(line, "address_pattern ")) {
+				if (tomoyo_parse_ip(line, &ptr->u.ip))
 					goto invalid_rule;
-				ptr->type = CCS_REWRITE_ADDRESS;
+				ptr->type = TOMOYO_REWRITE_ADDRESS;
 			} else {
 				goto invalid_rule;
 			}
-			if (ptr->type != CCS_REWRITE_NUMBER &&
-			    ptr->type != CCS_REWRITE_ADDRESS) {
+			if (ptr->type != TOMOYO_REWRITE_NUMBER &&
+			    ptr->type != TOMOYO_REWRITE_ADDRESS) {
 				if (!*line)
 					goto invalid_rule;
-				if (!ccs_correct_word(line))
+				if (!tomoyo_correct_word(line))
 					goto invalid_rule;
 				line = strdup(line);
 				if (!line)
-					ccs_out_of_memory();
+					tomoyo_out_of_memory();
 				ptr->u.path.name = line;
-				ccs_fill_path_info(&ptr->u.path);
+				tomoyo_fill_path_info(&ptr->u.path);
 			}
 			if (cp)
 				line = cp;
-			if (!ccs_correct_word(line))
+			if (!tomoyo_correct_word(line))
 				goto invalid_rule;
 		} else {
 			unsigned char c;
-			if (ccs_str_starts(line, "domain"))
-				ptr->type = CCS_TARGET_DOMAIN;
-			else if (ccs_str_starts(line, "acl"))
-				ptr->type = CCS_TARGET_ACL;
+			if (tomoyo_str_starts(line, "domain"))
+				ptr->type = TOMOYO_TARGET_DOMAIN;
+			else if (tomoyo_str_starts(line, "acl"))
+				ptr->type = TOMOYO_TARGET_ACL;
 			else
 				goto invalid_rule;
 			switch (sscanf(line, "[%u%c", &ptr->u.cond.index,
@@ -383,12 +383,12 @@ static void ccs_patternize_init_rules(const char *filename)
 			default:
 				goto invalid_rule;
 			}
-			if (ccs_str_starts(line, ".contains "))
-				ptr->u.cond.operation = CCS_TARGET_CONTAINS;
-			else if (ccs_str_starts(line, ".equals "))
-				ptr->u.cond.operation = CCS_TARGET_EQUALS;
-			else if (ccs_str_starts(line, ".starts "))
-				ptr->u.cond.operation = CCS_TARGET_STARTS;
+			if (tomoyo_str_starts(line, ".contains "))
+				ptr->u.cond.operation = TOMOYO_TARGET_CONTAINS;
+			else if (tomoyo_str_starts(line, ".equals "))
+				ptr->u.cond.operation = TOMOYO_TARGET_EQUALS;
+			else if (tomoyo_str_starts(line, ".starts "))
+				ptr->u.cond.operation = TOMOYO_TARGET_STARTS;
 			else
 				goto invalid_rule;
 		}
@@ -396,11 +396,11 @@ static void ccs_patternize_init_rules(const char *filename)
 			goto invalid_rule;
 		line = strdup(line);
 		if (!line)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		ptr->string = line;
 		ptr->string_len = strlen(line);
 	}
-	ccs_put();
+	tomoyo_put();
 	fclose(fp);
 	if (!rules_len) {
 		fprintf(stderr, "No rules defined in %s .\n", filename);
@@ -413,7 +413,7 @@ invalid_rule:
 	exit(1);
 }
 
-static void ccs_process_line(char *sp)
+static void tomoyo_process_line(char *sp)
 {
 	char *cp;
 	_Bool first = true;
@@ -489,16 +489,16 @@ static void ccs_process_line(char *sp)
 			skip_count--;
 		} else if (path_count) {
 			path_count--;
-			if (!ccs_path_contains_pattern(cp) &&
-			    ccs_check_rule(cp, CCS_REWRITE_PATH))
+			if (!tomoyo_path_contains_pattern(cp) &&
+			    tomoyo_check_rule(cp, TOMOYO_REWRITE_PATH))
 				continue;
 		} else if (address_count) {
 			address_count--;
-			if (ccs_check_rule(cp, CCS_REWRITE_ADDRESS))
+			if (tomoyo_check_rule(cp, TOMOYO_REWRITE_ADDRESS))
 				continue;
 		} else if (number_count) {
 			number_count--;
-			if (ccs_check_rule(cp, CCS_REWRITE_NUMBER))
+			if (tomoyo_check_rule(cp, TOMOYO_REWRITE_NUMBER))
 				continue;
 		}
 		printf("%s", cp);
@@ -508,27 +508,27 @@ static void ccs_process_line(char *sp)
 
 int main(int argc, char *argv[])
 {
-	ccs_patternize_init_rules(argc == 2 ? argv[1] : CCS_PATTERNIZE_CONF);
-	ccs_get();
+	tomoyo_patternize_init_rules(argc == 2 ? argv[1] : TOMOYO_PATTERNIZE_CONF);
+	tomoyo_get();
 	while (true) {
-		char *sp = ccs_freadline_unpack(stdin);
+		char *sp = tomoyo_freadline_unpack(stdin);
 		if (!sp)
 			break;
 		if (!strncmp(sp, "<kernel>", 8) && (!sp[8] || sp[8] == ' ')) {
-			free(ccs_current_domainname);
-			ccs_current_domainname = strdup(sp);
+			free(tomoyo_current_domainname);
+			tomoyo_current_domainname = strdup(sp);
 			printf("%s\n", sp);
 			continue;
 		}
-		free(ccs_current_acl);
-		ccs_current_acl = strdup(sp);
-		if (!ccs_current_domainname || !ccs_current_acl) {
+		free(tomoyo_current_acl);
+		tomoyo_current_acl = strdup(sp);
+		if (!tomoyo_current_domainname || !tomoyo_current_acl) {
 			/* Continue without conversion. */
 			printf("%s\n", sp);
 			continue;
 		}
-		ccs_process_line(sp);
+		tomoyo_process_line(sp);
 	}
-	ccs_put();
+	tomoyo_put();
 	return 0;
 }

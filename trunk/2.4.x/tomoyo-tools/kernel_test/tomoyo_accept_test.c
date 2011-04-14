@@ -1,5 +1,5 @@
 /*
- * ccs_accept_test.c
+ * tomoyo_accept_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -108,7 +108,7 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	set_profile(0, "file");
 	fprintf(profile_fp, "255-PREFERENCE={ max_learning_entry=2048 }\n");
 	{

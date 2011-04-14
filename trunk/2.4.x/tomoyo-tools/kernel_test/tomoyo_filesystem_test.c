@@ -1,5 +1,5 @@
 /*
- * ccs_filesystem_test.c
+ * tomoyo_filesystem_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -35,7 +35,7 @@ static void show_prompt(const char *str, const int should_fail)
 static int child(void *arg)
 {
 	errno = 0;
-	pivot_root("/proc/", "/proc/ccs/");
+	pivot_root("/proc/", "/sys/kernel/security/tomoyo/");
 	return errno;
 }
 
@@ -167,7 +167,7 @@ static const unsigned char compressed_ext2_image_sample[1350] = {
 int main(int argc, char *argv[])
 {
 	char c = 0;
-	ccs_test_init();
+	tomoyo_test_init();
 
 	/* Test mount(). */
 	{
@@ -563,8 +563,8 @@ int main(int argc, char *argv[])
 		int error;
 		char *stack = malloc(8192);
 		set_profile(3, "file::pivot_root");
-		fprintf(domain_fp, "file pivot_root proc:/ proc:/ccs/\n");
-		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
+		fprintf(domain_fp, "file pivot_root proc:/ proc:/tomoyo/\n");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/tomoyo/')");
 		show_prompt(stack, 0);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),
@@ -580,8 +580,8 @@ int main(int argc, char *argv[])
 			printf("FAILED: %s\n", strerror(errno));
 
 		fprintf(domain_fp,
-			"delete file pivot_root proc:/ proc:/ccs/\n");
-		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
+			"delete file pivot_root proc:/ proc:/tomoyo/\n");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/tomoyo/')");
 		show_prompt(stack, 1);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),
@@ -597,7 +597,7 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 
 		set_profile(2, "file::pivot_root");
-		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/tomoyo/')");
 		show_prompt(stack, 0);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),

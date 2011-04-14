@@ -1,5 +1,5 @@
 /*
- * ccs-domainmatch.c
+ * tomoyo-domainmatch.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,7 +20,7 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 int main(int argc, char *argv[])
 {
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 		printf("%s string_to_find\n\n", argv[0]);
 		return 0;
 	}
-	fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r");
+	fp = fopen(TOMOYO_PROC_POLICY_DOMAIN_POLICY, "r");
 	if (!fp) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 			free(domain);
 			domain = strdup(buffer);
 			if (!domain)
-				ccs_out_of_memory();
+				tomoyo_out_of_memory();
 			flag = 0;
 			continue;
 		}

@@ -1,5 +1,5 @@
 /*
- * ccs_bprm_test.c
+ * tomoyo_bprm_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -175,7 +175,7 @@ static void stage_exec_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	fprintf(domain_fp, "%s /bin/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);

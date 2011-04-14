@@ -38,7 +38,7 @@ int main(int raw_argc, char *raw_argv[])
 	char **argv;
 	char **envp;
 	if (1) {
-		int fd = open("/proc/ccs/.execute_handler", 0);
+		int fd = open("/sys/kernel/security/tomoyo/.execute_handler", 0);
 		close(fd);
 		if (fd == EOF) {
 			fprintf(stderr, "FATAL: I'm not execute_handler.\n");
@@ -47,7 +47,7 @@ int main(int raw_argc, char *raw_argv[])
 	} else {
 		int ret_ignored;
 		char buffer[1024];
-		int fd = open("/proc/ccs/.process_status", O_RDWR);
+		int fd = open("/sys/kernel/security/tomoyo/.process_status", O_RDWR);
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "info %d\n", getpid());
 		ret_ignored = write(fd, buffer, strlen(buffer));
