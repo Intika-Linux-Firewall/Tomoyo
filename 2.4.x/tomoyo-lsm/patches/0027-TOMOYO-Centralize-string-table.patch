@@ -52,7 +52,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	[TOMOYO_MAC_FILE_IOCTL]      = "file::ioctl",
 -	[TOMOYO_MAC_FILE_CHROOT]     = "file::chroot",
 -	[TOMOYO_MAC_FILE_MOUNT]      = "file::mount",
--	[TOMOYO_MAC_FILE_UMOUNT]     = "file::umount",
+-	[TOMOYO_MAC_FILE_UMOUNT]     = "file::unmount",
 -	[TOMOYO_MAC_FILE_PIVOT_ROOT] = "file::pivot_root",
 +const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX +
 +				       TOMOYO_MAX_MAC_CATEGORY_INDEX] = {
@@ -78,7 +78,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_MAC_FILE_IOCTL]      = "ioctl",
 +	[TOMOYO_MAC_FILE_CHROOT]     = "chroot",
 +	[TOMOYO_MAC_FILE_MOUNT]      = "mount",
-+	[TOMOYO_MAC_FILE_UMOUNT]     = "umount",
++	[TOMOYO_MAC_FILE_UMOUNT]     = "unmount",
 +	[TOMOYO_MAC_FILE_PIVOT_ROOT] = "pivot_root",
 +	/* CONFIG group */
  	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE] = "file",

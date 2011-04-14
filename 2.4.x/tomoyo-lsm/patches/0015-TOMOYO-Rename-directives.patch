@@ -4,14 +4,23 @@ Convert "allow_..." style directives to "file ..." style directives.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  139 ++++++++++++++++++++++++++++++++---------------
+ security/tomoyo/common.c |  141 ++++++++++++++++++++++++++++++++---------------
  security/tomoyo/common.h |   46 ++++++++-------
  security/tomoyo/file.c   |   27 ++++++---
  security/tomoyo/mount.c  |    3 -
- 4 files changed, 142 insertions(+), 73 deletions(-)
+ 4 files changed, 143 insertions(+), 74 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
+@@ -48,7 +48,7 @@ static const char *tomoyo_mac_keywords[T
+ 	[TOMOYO_MAC_FILE_IOCTL]      = "file::ioctl",
+ 	[TOMOYO_MAC_FILE_CHROOT]     = "file::chroot",
+ 	[TOMOYO_MAC_FILE_MOUNT]      = "file::mount",
+-	[TOMOYO_MAC_FILE_UMOUNT]     = "file::umount",
++	[TOMOYO_MAC_FILE_UMOUNT]     = "file::unmount",
+ 	[TOMOYO_MAC_FILE_PIVOT_ROOT] = "file::pivot_root",
+ 	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE] = "file",
+ };
 @@ -169,11 +169,25 @@ void tomoyo_io_printf(struct tomoyo_io_b
  	tomoyo_set_string(head, head->read_buf + pos);
  }

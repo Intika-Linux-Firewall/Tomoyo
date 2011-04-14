@@ -13,8 +13,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/domain.c |  144 ++++++++++++++++++++++++++++++++---------------
  security/tomoyo/file.c   |    3 
  security/tomoyo/gc.c     |   33 ++--------
- security/tomoyo/tomoyo.c |   46 +++++++--------
- 5 files changed, 158 insertions(+), 104 deletions(-)
+ security/tomoyo/tomoyo.c |   26 ++------
+ 5 files changed, 143 insertions(+), 99 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
@@ -404,55 +404,26 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return false;
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -280,20 +280,31 @@ static void tomoyo_free_task_security(st
- }
- 
- /**
-- * tomoyo_bprm_committing_creds - A hook which is called when do_execve() succeeded.
-+ * tomoyo_clear_execve - Release memory used by do_execve().
-  *
-- * @bprm: Pointer to "struct linux_binprm".
-+ * @succeeded: True if do_execve() succeeded, false otherwise.
-  *
-  * Returns nothing.
+@@ -282,9 +282,7 @@ static void tomoyo_free_task_security(st
   */
--static void tomoyo_bprm_committing_creds(struct linux_binprm *bprm)
-+static void tomoyo_clear_execve(const bool succeeded)
+ static void tomoyo_bprm_committing_creds(struct linux_binprm *bprm)
  {
- 	struct tomoyo_security *security = tomoyo_current_security();
- 	if (security == &tomoyo_default_security ||
- 	    security == &tomoyo_oom_security)
- 		return;
+-	struct tomoyo_security *security = tomoyo_current_security();
 -	/* do_execve() succeeded. Forget previous domain. */
 -	security->previous_domain_info = NULL;
-+	tomoyo_finish_execve(succeeded);
-+}
-+
-+/**
-+ * tomoyo_bprm_committing_creds - A hook which is called when do_execve() succeeded.
-+ *
-+ * @bprm: Pointer to "struct linux_binprm".
-+ *
-+ * Returns nothing.
-+ */
-+static void tomoyo_bprm_committing_creds(struct linux_binprm *bprm)
-+{
-+	tomoyo_clear_execve(true);
++	tomoyo_finish_execve(true);
  }
  
  /**
-@@ -305,21 +316,12 @@ static void tomoyo_bprm_committing_creds
+@@ -296,18 +294,12 @@ static void tomoyo_bprm_committing_creds
   */
  static void tomoyo_bprm_free_security(struct linux_binprm *bprm)
  {
 -	struct tomoyo_security *security = tomoyo_current_security();
--	if (security == &tomoyo_default_security ||
--	    security == &tomoyo_oom_security)
--		return;
  	/*
 -	 * tomoyo_bprm_committing_creds() already cleared it if do_execve()
 -	 * succeeded.
-+	 * If do_execve() succeeded, tomoyo_clear_execve(true); is called
++	 * If do_execve() succeeded, tomoyo_finish_execve(true); is called
 +	 * before calling below one.
 +	 * Thus, below call becomes no-op if do_execve() succeeded.
  	 */
@@ -463,14 +434,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	/* Make sure that GC sees valid domain. */
 -	smp_wmb();
 -	security->previous_domain_info = NULL;
-+	tomoyo_clear_execve(false);
++	tomoyo_finish_execve(false);
  }
  
  /**
-@@ -342,12 +344,8 @@ static int tomoyo_bprm_check_security(st
- 	if (security == &tomoyo_default_security ||
- 	    security == &tomoyo_oom_security)
- 		return -ENOMEM;
+@@ -327,12 +319,8 @@ static int tomoyo_bprm_check_security(st
+ 	if (!tomoyo_policy_loaded)
+ 		tomoyo_load_policy(bprm->filename);
+ 	security = tomoyo_current_security();
 -	if (!security->previous_domain_info) {
 -		const int idx = tomoyo_read_lock();
 -		const int rc = tomoyo_find_next_domain(bprm);
