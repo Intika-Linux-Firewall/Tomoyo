@@ -57,7 +57,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_name_union - Print a tomoyo_name_union.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -705,8 +731,8 @@ static bool tomoyo_select_one(struct tom
+@@ -706,8 +732,8 @@ static bool tomoyo_select_one(struct tom
  	struct tomoyo_domain_info *domain = NULL;
  	bool global_pid = false;
  
@@ -68,7 +68,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return true;
  	}
  	if (sscanf(data, "pid=%u", &pid) == 1 ||
-@@ -869,19 +895,17 @@ static int tomoyo_write_domain(struct to
+@@ -870,19 +896,17 @@ static int tomoyo_write_domain(struct to
  }
  
  /**
@@ -95,7 +95,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -896,58 +920,94 @@ static bool tomoyo_print_entry(struct to
+@@ -897,58 +921,94 @@ static bool tomoyo_print_entry(struct to
  			       struct tomoyo_acl_info *acl)
  {
  	const u8 acl_type = acl->type;
@@ -214,7 +214,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		tomoyo_print_name_union(head, &ptr->name);
  		tomoyo_print_number_union(head, &ptr->mode);
  		tomoyo_print_number_union(head, &ptr->major);
-@@ -955,18 +1015,13 @@ static bool tomoyo_print_entry(struct to
+@@ -956,18 +1016,13 @@ static bool tomoyo_print_entry(struct to
  	} else if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
  		struct tomoyo_mount_acl *ptr =
  			container_of(acl, typeof(*ptr), head);

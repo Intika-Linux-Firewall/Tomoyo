@@ -65,7 +65,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @r: Pointer to "struct tomoyo_request_info".
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -1486,7 +1486,8 @@ static void tomoyo_add_entry(char *heade
+@@ -1487,7 +1487,8 @@ static void tomoyo_add_entry(char *heade
  		return;
  	snprintf(buffer, len - 1, "%s", cp);
  	tomoyo_normalize_line(buffer);
@@ -75,7 +75,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(buffer);
  }
  
-@@ -1519,6 +1520,8 @@ int tomoyo_supervisor(struct tomoyo_requ
+@@ -1520,6 +1521,8 @@ int tomoyo_supervisor(struct tomoyo_requ
  	/* Nothing more to do if granted. */
  	if (r->granted)
  		return 0;
@@ -84,7 +84,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	switch (r->mode) {
  	case TOMOYO_CONFIG_ENFORCING:
  		error = -EPERM;
-@@ -1758,6 +1761,104 @@ static void tomoyo_read_self_domain(stru
+@@ -1759,6 +1762,104 @@ static void tomoyo_read_self_domain(stru
  	}
  }
  
@@ -189,7 +189,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_open_control - open() for /sys/kernel/security/tomoyo/ interface.
   *
-@@ -1811,11 +1912,11 @@ int tomoyo_open_control(const u8 type, s
+@@ -1812,11 +1913,11 @@ int tomoyo_open_control(const u8 type, s
  		head->read = tomoyo_read_version;
  		head->readbuf_size = 128;
  		break;
@@ -206,7 +206,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
  	case TOMOYO_PROFILE:
  		/* /sys/kernel/security/tomoyo/profile */
-@@ -1985,7 +2086,27 @@ int tomoyo_write_control(struct file *fi
+@@ -1986,7 +2087,27 @@ int tomoyo_write_control(struct file *fi
  		cp0[head->write_avail - 1] = '\0';
  		head->write_avail = 0;
  		tomoyo_normalize_line(cp0);
@@ -335,14 +335,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		bool result;
 +		spin_lock(&tomoyo_policy_memory_lock);
 +		tomoyo_memory_used[TOMOYO_MEMORY_POLICY] += s;
-+                result = !tomoyo_memory_quota[TOMOYO_MEMORY_POLICY] ||
-+                        tomoyo_memory_used[TOMOYO_MEMORY_POLICY] <=
-+                        tomoyo_memory_quota[TOMOYO_MEMORY_POLICY];
-+                if (!result)
-+                        tomoyo_memory_used[TOMOYO_MEMORY_POLICY] -= s;
-+                spin_unlock(&tomoyo_policy_memory_lock);
-+                if (result)
-+                        return true;
++		result = !tomoyo_memory_quota[TOMOYO_MEMORY_POLICY] ||
++			tomoyo_memory_used[TOMOYO_MEMORY_POLICY] <=
++			tomoyo_memory_quota[TOMOYO_MEMORY_POLICY];
++		if (!result)
++			tomoyo_memory_used[TOMOYO_MEMORY_POLICY] -= s;
++		spin_unlock(&tomoyo_policy_memory_lock);
++		if (result)
++			return true;
  	}
 -	atomic_sub(s, &tomoyo_policy_memory_size);
  	tomoyo_warn_oom(__func__);
@@ -354,9 +354,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
 -	atomic_sub(ksize(ptr), &tomoyo_policy_memory_size);
 +	size_t s = ksize(ptr);
-+        spin_lock(&tomoyo_policy_memory_lock);
-+        tomoyo_memory_used[TOMOYO_MEMORY_POLICY] -= s;
-+        spin_unlock(&tomoyo_policy_memory_lock);
++	spin_lock(&tomoyo_policy_memory_lock);
++	tomoyo_memory_used[TOMOYO_MEMORY_POLICY] -= s;
++	spin_unlock(&tomoyo_policy_memory_lock);
  	kfree(ptr);
  }
  
@@ -399,7 +399,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mutex_unlock(&tomoyo_policy_lock);
  	return ptr ? &ptr->entry : NULL;
  }
-@@ -226,65 +225,3 @@ void __init tomoyo_mm_init(void)
+@@ -228,65 +227,3 @@ void __init tomoyo_mm_init(void)
  	}
  	tomoyo_read_unlock(idx);
  }

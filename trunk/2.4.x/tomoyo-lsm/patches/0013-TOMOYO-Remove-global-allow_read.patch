@@ -12,7 +12,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -839,10 +839,6 @@ static int tomoyo_write_domain(struct to
+@@ -840,10 +840,6 @@ static int tomoyo_write_domain(struct to
  			domain->profile = (u8) profile;
  		return 0;
  	}
@@ -23,7 +23,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!strcmp(data, TOMOYO_KEYWORD_QUOTA_EXCEEDED)) {
  		domain->quota_warned = !is_delete;
  		return 0;
-@@ -1008,10 +1004,6 @@ static void tomoyo_read_domain(struct to
+@@ -1009,10 +1005,6 @@ static void tomoyo_read_domain(struct to
  				tomoyo_set_string(head, "quota_exceeded\n");
  			if (domain->transition_failed)
  				tomoyo_set_string(head, "transition_failed\n");
@@ -34,7 +34,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			head->r.step++;
  			tomoyo_set_lf(head);
  			/* fall through */
-@@ -1188,16 +1180,15 @@ static int tomoyo_write_exception(struct
+@@ -1189,16 +1181,15 @@ static int tomoyo_write_exception(struct
  	static const struct {
  		const char *keyword;
  		int (*write) (char *, const bool);
@@ -53,7 +53,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (tomoyo_str_starts(&data, tomoyo_callback[i].keyword))
  			return tomoyo_callback[i].write(data, is_delete);
  	for (i = 0; i < TOMOYO_MAX_GROUP; i++)
-@@ -1287,15 +1278,6 @@ static bool tomoyo_read_policy(struct to
+@@ -1288,15 +1279,6 @@ static bool tomoyo_read_policy(struct to
  							  name);
  			}
  			break;
