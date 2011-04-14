@@ -404,7 +404,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return false;
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -282,9 +282,7 @@ static void tomoyo_free_task_security(st
+@@ -270,9 +270,7 @@ static void tomoyo_free_task_security(st
   */
  static void tomoyo_bprm_committing_creds(struct linux_binprm *bprm)
  {
@@ -415,7 +415,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -296,18 +294,12 @@ static void tomoyo_bprm_committing_creds
+@@ -284,18 +282,12 @@ static void tomoyo_bprm_committing_creds
   */
  static void tomoyo_bprm_free_security(struct linux_binprm *bprm)
  {
@@ -438,7 +438,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -327,12 +319,8 @@ static int tomoyo_bprm_check_security(st
+@@ -315,12 +307,8 @@ static int tomoyo_bprm_check_security(st
  	if (!tomoyo_policy_loaded)
  		tomoyo_load_policy(bprm->filename);
  	security = tomoyo_current_security();
