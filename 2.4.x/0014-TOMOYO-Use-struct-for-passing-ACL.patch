@@ -7,11 +7,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |   26 ++-
  security/tomoyo/common.h |   22 +-
- security/tomoyo/domain.c |   14 +
+ security/tomoyo/domain.c |   12 -
  security/tomoyo/file.c   |  356 ++++++++++++++++++++++++++++++-----------------
  security/tomoyo/mount.c  |   58 +------
  security/tomoyo/util.c   |   40 +++++
- 6 files changed, 324 insertions(+), 192 deletions(-)
+ 6 files changed, 323 insertions(+), 191 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -110,12 +110,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Lock for GC. */
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -61,19 +61,18 @@ int tomoyo_update_policy(struct tomoyo_a
- /**
-  * tomoyo_update_domain - Update an entry for domain policy.
+@@ -63,17 +63,16 @@ int tomoyo_update_policy(struct tomoyo_a
   *
-- * @new_entry:       Pointer to "struct tomoyo_acl_info".
-+ * @new_entry:       Pointer to "struct ccs_acl_info".
+  * @new_entry:       Pointer to "struct tomoyo_acl_info".
   * @size:            Size of @new_entry in bytes.
 - * @is_delete:       True if it is a delete request.
 - * @domain:          Pointer to "struct tomoyo_domain_info".

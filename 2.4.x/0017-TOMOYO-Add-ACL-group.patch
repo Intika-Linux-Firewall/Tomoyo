@@ -7,9 +7,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |   47 ++++++++++++++++++++++++++++++++++++++++++++---
  security/tomoyo/common.h |   16 ++++++++++++----
- security/tomoyo/domain.c |   18 +++++++++++++++++-
+ security/tomoyo/domain.c |   16 ++++++++++++++++
  security/tomoyo/gc.c     |    3 +++
- 4 files changed, 76 insertions(+), 8 deletions(-)
+ 4 files changed, 75 insertions(+), 7 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -203,15 +203,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* The initial domain. */
  struct tomoyo_domain_info tomoyo_kernel_domain;
  
-@@ -61,7 +70,7 @@ int tomoyo_update_policy(struct tomoyo_a
- /**
-  * tomoyo_update_domain - Update an entry for domain policy.
-  *
-- * @new_entry:       Pointer to "struct ccs_acl_info".
-+ * @new_entry:       Pointer to "struct tomoyo_acl_info".
-  * @size:            Size of @new_entry in bytes.
-  * @param:           Pointer to "struct tomoyo_acl_param".
-  * @check_duplicate: Callback function to find duplicated entry.
 @@ -127,7 +136,9 @@ void tomoyo_check_acl(struct tomoyo_requ
  {
  	const struct tomoyo_domain_info *domain = tomoyo_current_domain();

@@ -4,16 +4,17 @@ Update comments, sort symbols. Use string table etc.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/audit.c  |    2 
- security/tomoyo/common.c |   54 +-
- security/tomoyo/common.h | 1067 +++++++++++++++++++----------------------------
- security/tomoyo/domain.c |   19 
- security/tomoyo/file.c   |   22 
- security/tomoyo/gc.c     |  174 ++++++-
- security/tomoyo/memory.c |   16 
- security/tomoyo/mount.c  |   62 +-
- security/tomoyo/util.c   |    2 
- 9 files changed, 689 insertions(+), 729 deletions(-)
+ security/tomoyo/audit.c         |    2 
+ security/tomoyo/common.c        |   54 +-
+ security/tomoyo/common.h        | 1067 ++++++++++++++++------------------------
+ security/tomoyo/domain.c        |   19 
+ security/tomoyo/file.c          |   22 
+ security/tomoyo/gc.c            |  174 +++++-
+ security/tomoyo/memory.c        |   16 
+ security/tomoyo/mount.c         |   62 +-
+ security/tomoyo/securityfs_if.c |    2 
+ security/tomoyo/util.c          |    2 
+ 10 files changed, 690 insertions(+), 730 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/audit.c
 +++ security-testing-2.6/security/tomoyo/audit.c
@@ -1603,19 +1604,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -static DEFINE_MUTEX(tomoyo_gc_mutex);
 +/* List of entries to be deleted. */
 +static LIST_HEAD(tomoyo_gc_list);
-+/* Length of ccs_gc_list. */
-+static int ccs_gc_list_len;
++/* Length of tomoyo_gc_list. */
++static int tomoyo_gc_list_len;
  
 -/* Caller holds tomoyo_policy_lock mutex. */
 +/**
-+ * ccs_add_to_gc - Add an entry to to be deleted list.
++ * tomoyo_add_to_gc - Add an entry to to be deleted list.
 + *
-+ * @type:    One of values in "enum ccs_policy_id".
++ * @type:    One of values in "enum tomoyo_policy_id".
 + * @element: Pointer to "struct list_head".
 + *
 + * Returns true on success, false otherwise.
 + *
-+ * Caller holds ccs_policy_lock mutex.
++ * Caller holds tomoyo_policy_lock mutex.
 + *
 + * Adding an entry needs kmalloc(). Thus, if we try to add thousands of
 + * entries at once, it will take too long time. Thus, do not add more than 128
@@ -1636,11 +1637,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	list_add(&entry->list, &tomoyo_gc_list);
  	list_del_rcu(element);
 -	return true;
-+	return ccs_gc_list_len++ < 128;
++	return tomoyo_gc_list_len++ < 128;
  }
  
 +/**
-+ * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
++ * tomoyo_del_transition_control - Delete members in "struct tomoyo_transition_control".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1654,7 +1655,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_del_aggregator - Delete members in "struct ccs_aggregator".
++ * tomoyo_del_aggregator - Delete members in "struct tomoyo_aggregator".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1668,7 +1669,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_del_manager - Delete members in "struct ccs_manager".
++ * tomoyo_del_manager - Delete members in "struct tomoyo_manager".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1682,7 +1683,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_del_acl - Delete members in "struct ccs_acl_info".
++ * tomoyo_del_acl - Delete members in "struct tomoyo_acl_info".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1696,7 +1697,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_del_domain - Delete members in "struct ccs_domain_info".
++ * tomoyo_del_domain - Delete members in "struct tomoyo_domain_info".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1711,7 +1712,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 -
 +/**
-+ * ccs_del_name - Delete members in "struct ccs_name".
++ * tomoyo_del_name - Delete members in "struct tomoyo_name".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1725,7 +1726,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_del_path_group - Delete members in "struct ccs_path_group".
++ * tomoyo_del_path_group - Delete members in "struct tomoyo_path_group".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1739,7 +1740,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_del_group - Delete "struct ccs_group".
++ * tomoyo_del_group - Delete "struct tomoyo_group".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1754,7 +1755,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_del_number_group - Delete members in "struct ccs_number_group".
++ * tomoyo_del_number_group - Delete members in "struct tomoyo_number_group".
 + *
 + * @element: Pointer to "struct list_head".
 + *
@@ -1768,9 +1769,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_collect_member - Delete elements with "struct ccs_acl_head".
++ * tomoyo_collect_member - Delete elements with "struct tomoyo_acl_head".
 + *
-+ * @id:          One of values in "enum ccs_policy_id".
++ * @id:          One of values in "enum tomoyo_policy_id".
 + * @member_list: Pointer to "struct list_head".
 + *
 + * Returns true if some elements are deleted, false otherwise.
@@ -1783,9 +1784,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_collect_acl - Delete elements in "struct ccs_domain_info".
++ * tomoyo_collect_acl - Delete elements in "struct tomoyo_domain_info".
 + *
-+ * @domain: Pointer to "struct ccs_domain_info".
++ * @domain: Pointer to "struct tomoyo_domain_info".
 + *
 + * Returns true if some elements are deleted, false otherwise.
 + */
@@ -1797,7 +1798,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_collect_entry - Scan lists for deleted elements.
++ * tomoyo_collect_entry - Scan lists for deleted elements.
 + *
 + * Returns nothing.
 + */
@@ -1842,7 +1843,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 -static void tomoyo_kfree_entry(void)
 +/**
-+ * ccs_kfree_entry - Delete entries in ccs_gc_list.
++ * tomoyo_kfree_entry - Delete entries in tomoyo_gc_list.
 + *
 + * Returns true if some entries were kfree()d, false otherwise.
 + */
@@ -1861,7 +1862,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  		tomoyo_memory_free(element);
  		list_del(&p->list);
-+		ccs_gc_list_len--;
++		tomoyo_gc_list_len--;
  		kfree(p);
 +		result = true;
  	}
@@ -1869,7 +1870,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
 +/**
-+ * ccs_gc_thread - Garbage collector thread function.
++ * tomoyo_gc_thread - Garbage collector thread function.
 + *
 + * @unused: Unused.
 + *
@@ -2079,6 +2080,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		flags &= ~MS_SHARED;
  	}
  	if (!type)
+--- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
++++ security-testing-2.6/security/tomoyo/securityfs_if.c
+@@ -38,7 +38,7 @@ static int tomoyo_release(struct inode *
+ }
+ 
+ /**
+- * tomoyo_poll - poll() for /proc/ccs/ interface.
++ * tomoyo_poll - poll() for /sys/kernel/security/tomoyo/ interface.
+  *
+  * @file: Pointer to "struct file".
+  * @wait: Pointer to "poll_table".
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
 @@ -863,7 +863,7 @@ int tomoyo_get_mode(const u8 profile, co
