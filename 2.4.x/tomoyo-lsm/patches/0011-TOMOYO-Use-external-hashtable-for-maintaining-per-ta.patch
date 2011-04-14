@@ -13,14 +13,14 @@ kernel objects, making it easier to run multiple LSM modules in parallel.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.h        |   80 +++++++++-
+ security/tomoyo/common.h        |   80 +++++++++--
  security/tomoyo/domain.c        |   19 ++
  security/tomoyo/file.c          |   14 +
  security/tomoyo/gc.c            |   54 ++++++-
  security/tomoyo/memory.c        |    2 
  security/tomoyo/securityfs_if.c |    2 
- security/tomoyo/tomoyo.c        |  299 ++++++++++++++++++++++++++--------------
- 7 files changed, 347 insertions(+), 123 deletions(-)
+ security/tomoyo/tomoyo.c        |  287 ++++++++++++++++++++++++++--------------
+ 7 files changed, 335 insertions(+), 123 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
@@ -457,10 +457,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
-@@ -237,17 +150,202 @@ static int tomoyo_sb_pivotroot(struct pa
+@@ -237,17 +150,190 @@ static int tomoyo_sb_pivotroot(struct pa
  	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path, old_path);
  }
  
++/* Dummy security context for avoiding NULL pointer dereference. */
++static struct tomoyo_security tomoyo_null_security = {
++	.tomoyo_domain_info = &tomoyo_kernel_domain,
++};
++
 +/* Security context for init_task task. */
 +static struct tomoyo_security tomoyo_init_security = {
 +	.task = &init_task,
@@ -521,11 +526,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct tomoyo_security *tomoyo_find_task_security
 +(const struct task_struct *task)
 +{
-+	/* Dummy security context for avoiding NULL pointer dereference. */
-+	static struct tomoyo_security tomoyo_dummy_security = {
-+		.tomoyo_domain_info = &tomoyo_kernel_domain,
-+	};
-+	static u8 counter = 5;
 +	struct tomoyo_security *ptr;
 +	struct list_head *list = &tomoyo_task_security_list
 +		[hash_ptr((void *) task, TOMOYO_TASK_SECURITY_HASH_BITS)];
@@ -537,19 +537,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return ptr;
 +	}
 +	rcu_read_unlock();
-+	/*
-+	 * This should not happen, for "a thread's security context is added to
-+	 * the hashtable before making the thread visible" and "a thread's
-+	 * security context is removed from the hashtable after making the
-+	 * thread invisible and waiting for RCU grace period". But in order to
-+	 * omit NULL pointer check in caller side, we return a dummy security
-+	 * context.
-+	 */
-+	if (counter) {
-+		counter--;
-+		WARN(1, "Race detected in %s. Using dummy.\n", __func__);
-+	}
-+	return &tomoyo_dummy_security;
++	return &tomoyo_null_security;
 +}
 +
 +/**
@@ -576,7 +564,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	unsigned long flags;
 +	struct tomoyo_security *ptr = tomoyo_find_task_security(task);
-+	if (ptr == &tomoyo_init_security)
++	if (ptr == &tomoyo_init_security || ptr == &tomoyo_null_security)
 +		return;
 +	spin_lock_irqsave(&tomoyo_task_security_list_lock, flags);
 +	list_del_rcu(&ptr->list);
@@ -665,7 +653,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	.bprm_check_security = tomoyo_bprm_check_security,
  	.file_fcntl          = tomoyo_file_fcntl,
  	.dentry_open         = tomoyo_dentry_open,
-@@ -271,10 +369,11 @@ static struct security_operations tomoyo
+@@ -271,10 +357,11 @@ static struct security_operations tomoyo
  /* Lock for GC. */
  struct srcu_struct tomoyo_ss;
  
@@ -679,7 +667,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!security_module_enable(&tomoyo_security_ops))
  		return 0;
  	printk(KERN_INFO "TOMOYO Linux is temporarily disabled due to large "
-@@ -285,8 +384,12 @@ static int __init tomoyo_init(void)
+@@ -285,8 +372,12 @@ static int __init tomoyo_init(void)
  	    init_srcu_struct(&tomoyo_ss))
  		panic("Failure registering TOMOYO Linux");
  	printk(KERN_INFO "TOMOYO Linux initialized\n");
