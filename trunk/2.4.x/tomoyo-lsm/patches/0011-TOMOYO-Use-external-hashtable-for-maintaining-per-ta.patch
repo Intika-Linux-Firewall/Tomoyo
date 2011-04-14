@@ -16,11 +16,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.h        |   80 +++++++++-
  security/tomoyo/domain.c        |   19 ++
  security/tomoyo/file.c          |   14 +
- security/tomoyo/gc.c            |   54 +++++-
+ security/tomoyo/gc.c            |   54 ++++++-
  security/tomoyo/memory.c        |    2 
  security/tomoyo/securityfs_if.c |    2 
- security/tomoyo/tomoyo.c        |  310 +++++++++++++++++++++++++++-------------
- 7 files changed, 358 insertions(+), 123 deletions(-)
+ security/tomoyo/tomoyo.c        |  299 ++++++++++++++++++++++++++--------------
+ 7 files changed, 347 insertions(+), 123 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
@@ -457,18 +457,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
-@@ -237,17 +150,217 @@ static int tomoyo_sb_pivotroot(struct pa
+@@ -237,17 +150,202 @@ static int tomoyo_sb_pivotroot(struct pa
  	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path, old_path);
  }
  
-+/* Dummy security context for avoiding NULL pointer dereference. */
-+static struct tomoyo_security tomoyo_oom_security = {
-+	.tomoyo_domain_info = &tomoyo_kernel_domain
-+};
-+
-+/* Dummy security context for avoiding NULL pointer dereference. */
-+static struct tomoyo_security tomoyo_default_security = {
-+	.tomoyo_domain_info = &tomoyo_kernel_domain
++/* Security context for init_task task. */
++static struct tomoyo_security tomoyo_init_security = {
++	.task = &init_task,
++	.tomoyo_domain_info = &tomoyo_kernel_domain,
 +};
 +
 +/* List of "struct tomoyo_security". */
@@ -520,17 +516,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * @task: Pointer to "struct task_struct".
 + *
-+ * Returns pointer to "struct tomoyo_security" on success, &tomoyo_oom_security
-+ * on out of memory, &tomoyo_default_security otherwise.
-+ *
-+ * If @task is current thread and "struct tomoyo_security" for current thread
-+ * was not found, I try to allocate it. But if allocation failed, current
-+ * thread will be killed by SIGKILL. Note that if current->pid == 1, sending
-+ * SIGKILL won't work.
++ * Returns pointer to "struct tomoyo_security".
 + */
 +struct tomoyo_security *tomoyo_find_task_security
 +(const struct task_struct *task)
 +{
++	/* Dummy security context for avoiding NULL pointer dereference. */
++	static struct tomoyo_security tomoyo_dummy_security = {
++		.tomoyo_domain_info = &tomoyo_kernel_domain,
++	};
++	static u8 counter = 5;
 +	struct tomoyo_security *ptr;
 +	struct list_head *list = &tomoyo_task_security_list
 +		[hash_ptr((void *) task, TOMOYO_TASK_SECURITY_HASH_BITS)];
@@ -542,20 +537,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return ptr;
 +	}
 +	rcu_read_unlock();
-+	if (task != current)
-+		return &tomoyo_default_security;
-+	/* Use GFP_ATOMIC because caller may have called rcu_read_lock(). */
-+	ptr = kzalloc(sizeof(*ptr), GFP_ATOMIC);
-+	if (!ptr) {
-+		printk(KERN_WARNING "Unable to allocate memory for pid=%u\n",
-+		       task->pid);
-+		send_sig(SIGKILL, current, 0);
-+		return &tomoyo_oom_security;
++	/*
++	 * This should not happen, for "a thread's security context is added to
++	 * the hashtable before making the thread visible" and "a thread's
++	 * security context is removed from the hashtable after making the
++	 * thread invisible and waiting for RCU grace period". But in order to
++	 * omit NULL pointer check in caller side, we return a dummy security
++	 * context.
++	 */
++	if (counter) {
++		counter--;
++		WARN(1, "Race detected in %s. Using dummy.\n", __func__);
 +	}
-+	*ptr = tomoyo_default_security;
-+	ptr->task = task;
-+	tomoyo_add_task_security(ptr, list);
-+	return ptr;
++	return &tomoyo_dummy_security;
 +}
 +
 +/**
@@ -582,7 +576,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	unsigned long flags;
 +	struct tomoyo_security *ptr = tomoyo_find_task_security(task);
-+	if (ptr == &tomoyo_default_security || ptr == &tomoyo_oom_security)
++	if (ptr == &tomoyo_init_security)
 +		return;
 +	spin_lock_irqsave(&tomoyo_task_security_list_lock, flags);
 +	list_del_rcu(&ptr->list);
@@ -600,9 +594,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static void tomoyo_bprm_committing_creds(struct linux_binprm *bprm)
 +{
 +	struct tomoyo_security *security = tomoyo_current_security();
-+	if (security == &tomoyo_default_security ||
-+	    security == &tomoyo_oom_security)
-+		return;
 +	/* do_execve() succeeded. Forget previous domain. */
 +	security->previous_domain_info = NULL;
 +}
@@ -617,9 +608,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static void tomoyo_bprm_free_security(struct linux_binprm *bprm)
 +{
 +	struct tomoyo_security *security = tomoyo_current_security();
-+	if (security == &tomoyo_default_security ||
-+	    security == &tomoyo_oom_security)
-+		return;
 +	/*
 +	 * tomoyo_bprm_committing_creds() already cleared it if do_execve()
 +	 * succeeded.
@@ -650,9 +638,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!tomoyo_policy_loaded)
 +		tomoyo_load_policy(bprm->filename);
 +	security = tomoyo_current_security();
-+	if (security == &tomoyo_default_security ||
-+	    security == &tomoyo_oom_security)
-+		return -ENOMEM;
 +	if (!security->previous_domain_info) {
 +		const int idx = tomoyo_read_lock();
 +		const int rc = tomoyo_find_next_domain(bprm);
@@ -680,7 +665,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	.bprm_check_security = tomoyo_bprm_check_security,
  	.file_fcntl          = tomoyo_file_fcntl,
  	.dentry_open         = tomoyo_dentry_open,
-@@ -271,10 +384,11 @@ static struct security_operations tomoyo
+@@ -271,10 +369,11 @@ static struct security_operations tomoyo
  /* Lock for GC. */
  struct srcu_struct tomoyo_ss;
  
@@ -694,12 +679,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!security_module_enable(&tomoyo_security_ops))
  		return 0;
  	printk(KERN_INFO "TOMOYO Linux is temporarily disabled due to large "
-@@ -285,7 +399,7 @@ static int __init tomoyo_init(void)
+@@ -285,8 +384,12 @@ static int __init tomoyo_init(void)
  	    init_srcu_struct(&tomoyo_ss))
  		panic("Failure registering TOMOYO Linux");
  	printk(KERN_INFO "TOMOYO Linux initialized\n");
 -	cred->security = &tomoyo_kernel_domain;
 +	tomoyo_registered = true;
  	tomoyo_mm_init();
++	tomoyo_add_task_security(&tomoyo_init_security,
++				 &tomoyo_task_security_list
++				 [hash_ptr((void *) &init_task,
++					   TOMOYO_TASK_SECURITY_HASH_BITS)]);
  	return 0;
  }
+ 
