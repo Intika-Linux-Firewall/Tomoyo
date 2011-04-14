@@ -1,5 +1,5 @@
 /*
- * ccs-checkpolicy.c
+ * tomoyo-checkpolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,14 +20,14 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-#define CCS_MAX_DOMAINNAME_LEN             4000
+#define TOMOYO_MAX_DOMAINNAME_LEN             4000
 
-static unsigned int ccs_line = 0;
-static unsigned int ccs_errors = 0;
+static unsigned int tomoyo_line = 0;
+static unsigned int tomoyo_errors = 0;
 
-static _Bool ccs_parse_ulong(unsigned long *result, char **str)
+static _Bool tomoyo_parse_ulong(unsigned long *result, char **str)
 {
 	const char *cp = *str;
 	char *ep;
@@ -49,15 +49,15 @@ static _Bool ccs_parse_ulong(unsigned long *result, char **str)
 	return true;
 }
 
-static _Bool ccs_check_number_range(char *pos)
+static _Bool tomoyo_check_number_range(char *pos)
 {
 	unsigned long min_value;
 	unsigned long max_value;
-	if (!ccs_parse_ulong(&min_value, &pos))
+	if (!tomoyo_parse_ulong(&min_value, &pos))
 		return false;
 	if (*pos == '-') {
 		pos++;
-		if (!ccs_parse_ulong(&max_value, &pos) || *pos ||
+		if (!tomoyo_parse_ulong(&max_value, &pos) || *pos ||
 		    min_value > max_value)
 			return false;
 	} else if (*pos)
@@ -65,139 +65,139 @@ static _Bool ccs_check_number_range(char *pos)
 	return true;
 }
 
-static void ccs_check_condition(char *condition)
+static void tomoyo_check_condition(char *condition)
 {
-	enum ccs_conditions_index {
-		CCS_TASK_UID,             /* current_uid()   */
-		CCS_TASK_EUID,            /* current_euid()  */
-		CCS_TASK_SUID,            /* current_suid()  */
-		CCS_TASK_FSUID,           /* current_fsuid() */
-		CCS_TASK_GID,             /* current_gid()   */
-		CCS_TASK_EGID,            /* current_egid()  */
-		CCS_TASK_SGID,            /* current_sgid()  */
-		CCS_TASK_FSGID,           /* current_fsgid() */
-		CCS_TASK_PID,             /* sys_getpid()   */
-		CCS_TASK_PPID,            /* sys_getppid()  */
-		CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
-		CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-		CCS_TYPE_IS_SOCKET,       /* S_IFSOCK */
-		CCS_TYPE_IS_SYMLINK,      /* S_IFLNK */
-		CCS_TYPE_IS_FILE,         /* S_IFREG */
-		CCS_TYPE_IS_BLOCK_DEV,    /* S_IFBLK */
-		CCS_TYPE_IS_DIRECTORY,    /* S_IFDIR */
-		CCS_TYPE_IS_CHAR_DEV,     /* S_IFCHR */
-		CCS_TYPE_IS_FIFO,         /* S_IFIFO */
-		CCS_MODE_SETUID,          /* S_ISUID */
-		CCS_MODE_SETGID,          /* S_ISGID */
-		CCS_MODE_STICKY,          /* S_ISVTX */
-		CCS_MODE_OWNER_READ,      /* S_IRUSR */
-		CCS_MODE_OWNER_WRITE,     /* S_IWUSR */
-		CCS_MODE_OWNER_EXECUTE,   /* S_IXUSR */
-		CCS_MODE_GROUP_READ,      /* S_IRGRP */
-		CCS_MODE_GROUP_WRITE,     /* S_IWGRP */
-		CCS_MODE_GROUP_EXECUTE,   /* S_IXGRP */
-		CCS_MODE_OTHERS_READ,     /* S_IROTH */
-		CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
-		CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-		CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
-					     CCS_TASK_IS_EXECUTE_HANDLER */
-		CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
-		CCS_EXEC_REALPATH,
-		CCS_SYMLINK_TARGET,
-		CCS_PATH1_UID,
-		CCS_PATH1_GID,
-		CCS_PATH1_INO,
-		CCS_PATH1_MAJOR,
-		CCS_PATH1_MINOR,
-		CCS_PATH1_PERM,
-		CCS_PATH1_TYPE,
-		CCS_PATH1_DEV_MAJOR,
-		CCS_PATH1_DEV_MINOR,
-		CCS_PATH2_UID,
-		CCS_PATH2_GID,
-		CCS_PATH2_INO,
-		CCS_PATH2_MAJOR,
-		CCS_PATH2_MINOR,
-		CCS_PATH2_PERM,
-		CCS_PATH2_TYPE,
-		CCS_PATH2_DEV_MAJOR,
-		CCS_PATH2_DEV_MINOR,
-		CCS_PATH1_PARENT_UID,
-		CCS_PATH1_PARENT_GID,
-		CCS_PATH1_PARENT_INO,
-		CCS_PATH1_PARENT_PERM,
-		CCS_PATH2_PARENT_UID,
-		CCS_PATH2_PARENT_GID,
-		CCS_PATH2_PARENT_INO,
-		CCS_PATH2_PARENT_PERM,
-		CCS_MAX_CONDITION_KEYWORD,
-		CCS_NUMBER_UNION,
-		CCS_NAME_UNION,
-		CCS_ARGV_ENTRY,
-		CCS_ENVP_ENTRY
+	enum tomoyo_conditions_index {
+		TOMOYO_TASK_UID,             /* current_uid()   */
+		TOMOYO_TASK_EUID,            /* current_euid()  */
+		TOMOYO_TASK_SUID,            /* current_suid()  */
+		TOMOYO_TASK_FSUID,           /* current_fsuid() */
+		TOMOYO_TASK_GID,             /* current_gid()   */
+		TOMOYO_TASK_EGID,            /* current_egid()  */
+		TOMOYO_TASK_SGID,            /* current_sgid()  */
+		TOMOYO_TASK_FSGID,           /* current_fsgid() */
+		TOMOYO_TASK_PID,             /* sys_getpid()   */
+		TOMOYO_TASK_PPID,            /* sys_getppid()  */
+		TOMOYO_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
+		TOMOYO_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
+		TOMOYO_TYPE_IS_SOCKET,       /* S_IFSOCK */
+		TOMOYO_TYPE_IS_SYMLINK,      /* S_IFLNK */
+		TOMOYO_TYPE_IS_FILE,         /* S_IFREG */
+		TOMOYO_TYPE_IS_BLOCK_DEV,    /* S_IFBLK */
+		TOMOYO_TYPE_IS_DIRECTORY,    /* S_IFDIR */
+		TOMOYO_TYPE_IS_CHAR_DEV,     /* S_IFCHR */
+		TOMOYO_TYPE_IS_FIFO,         /* S_IFIFO */
+		TOMOYO_MODE_SETUID,          /* S_ISUID */
+		TOMOYO_MODE_SETGID,          /* S_ISGID */
+		TOMOYO_MODE_STICKY,          /* S_ISVTX */
+		TOMOYO_MODE_OWNER_READ,      /* S_IRUSR */
+		TOMOYO_MODE_OWNER_WRITE,     /* S_IWUSR */
+		TOMOYO_MODE_OWNER_EXECUTE,   /* S_IXUSR */
+		TOMOYO_MODE_GROUP_READ,      /* S_IRGRP */
+		TOMOYO_MODE_GROUP_WRITE,     /* S_IWGRP */
+		TOMOYO_MODE_GROUP_EXECUTE,   /* S_IXGRP */
+		TOMOYO_MODE_OTHERS_READ,     /* S_IROTH */
+		TOMOYO_MODE_OTHERS_WRITE,    /* S_IWOTH */
+		TOMOYO_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
+		TOMOYO_TASK_TYPE,            /* ((u8) task->tomoyo_flags) &
+					     TOMOYO_TASK_IS_EXECUTE_HANDLER */
+		TOMOYO_TASK_EXECUTE_HANDLER, /* TOMOYO_TASK_IS_EXECUTE_HANDLER */
+		TOMOYO_EXEC_REALPATH,
+		TOMOYO_SYMLINK_TARGET,
+		TOMOYO_PATH1_UID,
+		TOMOYO_PATH1_GID,
+		TOMOYO_PATH1_INO,
+		TOMOYO_PATH1_MAJOR,
+		TOMOYO_PATH1_MINOR,
+		TOMOYO_PATH1_PERM,
+		TOMOYO_PATH1_TYPE,
+		TOMOYO_PATH1_DEV_MAJOR,
+		TOMOYO_PATH1_DEV_MINOR,
+		TOMOYO_PATH2_UID,
+		TOMOYO_PATH2_GID,
+		TOMOYO_PATH2_INO,
+		TOMOYO_PATH2_MAJOR,
+		TOMOYO_PATH2_MINOR,
+		TOMOYO_PATH2_PERM,
+		TOMOYO_PATH2_TYPE,
+		TOMOYO_PATH2_DEV_MAJOR,
+		TOMOYO_PATH2_DEV_MINOR,
+		TOMOYO_PATH1_PARENT_UID,
+		TOMOYO_PATH1_PARENT_GID,
+		TOMOYO_PATH1_PARENT_INO,
+		TOMOYO_PATH1_PARENT_PERM,
+		TOMOYO_PATH2_PARENT_UID,
+		TOMOYO_PATH2_PARENT_GID,
+		TOMOYO_PATH2_PARENT_INO,
+		TOMOYO_PATH2_PARENT_PERM,
+		TOMOYO_MAX_CONDITION_KEYWORD,
+		TOMOYO_NUMBER_UNION,
+		TOMOYO_NAME_UNION,
+		TOMOYO_ARGV_ENTRY,
+		TOMOYO_ENVP_ENTRY
 	};
-	static const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
-		[CCS_TASK_UID]             = "task.uid",
-		[CCS_TASK_EUID]            = "task.euid",
-		[CCS_TASK_SUID]            = "task.suid",
-		[CCS_TASK_FSUID]           = "task.fsuid",
-		[CCS_TASK_GID]             = "task.gid",
-		[CCS_TASK_EGID]            = "task.egid",
-		[CCS_TASK_SGID]            = "task.sgid",
-		[CCS_TASK_FSGID]           = "task.fsgid",
-		[CCS_TASK_PID]             = "task.pid",
-		[CCS_TASK_PPID]            = "task.ppid",
-		[CCS_EXEC_ARGC]            = "exec.argc",
-		[CCS_EXEC_ENVC]            = "exec.envc",
-		[CCS_TYPE_IS_SOCKET]       = "socket",
-		[CCS_TYPE_IS_SYMLINK]      = "symlink",
-		[CCS_TYPE_IS_FILE]         = "file",
-		[CCS_TYPE_IS_BLOCK_DEV]    = "block",
-		[CCS_TYPE_IS_DIRECTORY]    = "directory",
-		[CCS_TYPE_IS_CHAR_DEV]     = "char",
-		[CCS_TYPE_IS_FIFO]         = "fifo",
-		[CCS_MODE_SETUID]          = "setuid",
-		[CCS_MODE_SETGID]          = "setgid",
-		[CCS_MODE_STICKY]          = "sticky",
-		[CCS_MODE_OWNER_READ]      = "owner_read",
-		[CCS_MODE_OWNER_WRITE]     = "owner_write",
-		[CCS_MODE_OWNER_EXECUTE]   = "owner_execute",
-		[CCS_MODE_GROUP_READ]      = "group_read",
-		[CCS_MODE_GROUP_WRITE]     = "group_write",
-		[CCS_MODE_GROUP_EXECUTE]   = "group_execute",
-		[CCS_MODE_OTHERS_READ]     = "others_read",
-		[CCS_MODE_OTHERS_WRITE]    = "others_write",
-		[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
-		[CCS_TASK_TYPE]            = "task.type",
-		[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
-		[CCS_EXEC_REALPATH]        = "exec.realpath",
-		[CCS_SYMLINK_TARGET]       = "symlink.target",
-		[CCS_PATH1_UID]            = "path1.uid",
-		[CCS_PATH1_GID]            = "path1.gid",
-		[CCS_PATH1_INO]            = "path1.ino",
-		[CCS_PATH1_MAJOR]          = "path1.major",
-		[CCS_PATH1_MINOR]          = "path1.minor",
-		[CCS_PATH1_PERM]           = "path1.perm",
-		[CCS_PATH1_TYPE]           = "path1.type",
-		[CCS_PATH1_DEV_MAJOR]      = "path1.dev_major",
-		[CCS_PATH1_DEV_MINOR]      = "path1.dev_minor",
-		[CCS_PATH2_UID]            = "path2.uid",
-		[CCS_PATH2_GID]            = "path2.gid",
-		[CCS_PATH2_INO]            = "path2.ino",
-		[CCS_PATH2_MAJOR]          = "path2.major",
-		[CCS_PATH2_MINOR]          = "path2.minor",
-		[CCS_PATH2_PERM]           = "path2.perm",
-		[CCS_PATH2_TYPE]           = "path2.type",
-		[CCS_PATH2_DEV_MAJOR]      = "path2.dev_major",
-		[CCS_PATH2_DEV_MINOR]      = "path2.dev_minor",
-		[CCS_PATH1_PARENT_UID]     = "path1.parent.uid",
-		[CCS_PATH1_PARENT_GID]     = "path1.parent.gid",
-		[CCS_PATH1_PARENT_INO]     = "path1.parent.ino",
-		[CCS_PATH1_PARENT_PERM]    = "path1.parent.perm",
-		[CCS_PATH2_PARENT_UID]     = "path2.parent.uid",
-		[CCS_PATH2_PARENT_GID]     = "path2.parent.gid",
-		[CCS_PATH2_PARENT_INO]     = "path2.parent.ino",
-		[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
+	static const char *tomoyo_condition_keyword[TOMOYO_MAX_CONDITION_KEYWORD] = {
+		[TOMOYO_TASK_UID]             = "task.uid",
+		[TOMOYO_TASK_EUID]            = "task.euid",
+		[TOMOYO_TASK_SUID]            = "task.suid",
+		[TOMOYO_TASK_FSUID]           = "task.fsuid",
+		[TOMOYO_TASK_GID]             = "task.gid",
+		[TOMOYO_TASK_EGID]            = "task.egid",
+		[TOMOYO_TASK_SGID]            = "task.sgid",
+		[TOMOYO_TASK_FSGID]           = "task.fsgid",
+		[TOMOYO_TASK_PID]             = "task.pid",
+		[TOMOYO_TASK_PPID]            = "task.ppid",
+		[TOMOYO_EXEC_ARGC]            = "exec.argc",
+		[TOMOYO_EXEC_ENVC]            = "exec.envc",
+		[TOMOYO_TYPE_IS_SOCKET]       = "socket",
+		[TOMOYO_TYPE_IS_SYMLINK]      = "symlink",
+		[TOMOYO_TYPE_IS_FILE]         = "file",
+		[TOMOYO_TYPE_IS_BLOCK_DEV]    = "block",
+		[TOMOYO_TYPE_IS_DIRECTORY]    = "directory",
+		[TOMOYO_TYPE_IS_CHAR_DEV]     = "char",
+		[TOMOYO_TYPE_IS_FIFO]         = "fifo",
+		[TOMOYO_MODE_SETUID]          = "setuid",
+		[TOMOYO_MODE_SETGID]          = "setgid",
+		[TOMOYO_MODE_STICKY]          = "sticky",
+		[TOMOYO_MODE_OWNER_READ]      = "owner_read",
+		[TOMOYO_MODE_OWNER_WRITE]     = "owner_write",
+		[TOMOYO_MODE_OWNER_EXECUTE]   = "owner_execute",
+		[TOMOYO_MODE_GROUP_READ]      = "group_read",
+		[TOMOYO_MODE_GROUP_WRITE]     = "group_write",
+		[TOMOYO_MODE_GROUP_EXECUTE]   = "group_execute",
+		[TOMOYO_MODE_OTHERS_READ]     = "others_read",
+		[TOMOYO_MODE_OTHERS_WRITE]    = "others_write",
+		[TOMOYO_MODE_OTHERS_EXECUTE]  = "others_execute",
+		[TOMOYO_TASK_TYPE]            = "task.type",
+		[TOMOYO_TASK_EXECUTE_HANDLER] = "execute_handler",
+		[TOMOYO_EXEC_REALPATH]        = "exec.realpath",
+		[TOMOYO_SYMLINK_TARGET]       = "symlink.target",
+		[TOMOYO_PATH1_UID]            = "path1.uid",
+		[TOMOYO_PATH1_GID]            = "path1.gid",
+		[TOMOYO_PATH1_INO]            = "path1.ino",
+		[TOMOYO_PATH1_MAJOR]          = "path1.major",
+		[TOMOYO_PATH1_MINOR]          = "path1.minor",
+		[TOMOYO_PATH1_PERM]           = "path1.perm",
+		[TOMOYO_PATH1_TYPE]           = "path1.type",
+		[TOMOYO_PATH1_DEV_MAJOR]      = "path1.dev_major",
+		[TOMOYO_PATH1_DEV_MINOR]      = "path1.dev_minor",
+		[TOMOYO_PATH2_UID]            = "path2.uid",
+		[TOMOYO_PATH2_GID]            = "path2.gid",
+		[TOMOYO_PATH2_INO]            = "path2.ino",
+		[TOMOYO_PATH2_MAJOR]          = "path2.major",
+		[TOMOYO_PATH2_MINOR]          = "path2.minor",
+		[TOMOYO_PATH2_PERM]           = "path2.perm",
+		[TOMOYO_PATH2_TYPE]           = "path2.type",
+		[TOMOYO_PATH2_DEV_MAJOR]      = "path2.dev_major",
+		[TOMOYO_PATH2_DEV_MINOR]      = "path2.dev_minor",
+		[TOMOYO_PATH1_PARENT_UID]     = "path1.parent.uid",
+		[TOMOYO_PATH1_PARENT_GID]     = "path1.parent.gid",
+		[TOMOYO_PATH1_PARENT_INO]     = "path1.parent.ino",
+		[TOMOYO_PATH1_PARENT_PERM]    = "path1.parent.perm",
+		[TOMOYO_PATH2_PARENT_UID]     = "path2.parent.uid",
+		[TOMOYO_PATH2_PARENT_GID]     = "path2.parent.gid",
+		[TOMOYO_PATH2_PARENT_INO]     = "path2.parent.ino",
+		[TOMOYO_PATH2_PARENT_PERM]    = "path2.parent.perm",
 	};
 	char *pos = condition;
 	u8 left;
@@ -212,7 +212,7 @@ static void ccs_check_condition(char *condition)
 		int r_len;
 		if (next)
 			*next++ = '\0';
-		if (!ccs_correct_word(pos))
+		if (!tomoyo_correct_word(pos))
 			goto out;
 		eq = strchr(pos, '=');
 		if (!eq)
@@ -224,7 +224,7 @@ static void ccs_check_condition(char *condition)
 		if (!strncmp(pos, "exec.argv[", 10)) {
 			unsigned long value;
 			pos += 10;
-			if (!ccs_parse_ulong(&value, &pos) || strcmp(pos, "]"))
+			if (!tomoyo_parse_ulong(&value, &pos) || strcmp(pos, "]"))
 				goto out;
 			pos = eq + 1;
 			if (r_len < 2)
@@ -255,18 +255,18 @@ static void ccs_check_condition(char *condition)
 				goto next;
 			goto out;
 		}
-		for (left = 0; left < CCS_MAX_CONDITION_KEYWORD; left++) {
-			const char *keyword = ccs_condition_keyword[left];
+		for (left = 0; left < TOMOYO_MAX_CONDITION_KEYWORD; left++) {
+			const char *keyword = tomoyo_condition_keyword[left];
 			if (strcmp(pos, keyword))
 				continue;
 			break;
 		}
-		if (left == CCS_MAX_CONDITION_KEYWORD) {
-			if (!ccs_check_number_range(pos))
+		if (left == TOMOYO_MAX_CONDITION_KEYWORD) {
+			if (!tomoyo_check_number_range(pos))
 				goto out;
 		}
 		pos = eq + 1;
-		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
+		if (left == TOMOYO_EXEC_REALPATH || left == TOMOYO_SYMLINK_TARGET) {
 			if (r_len < 2)
 				goto out;
 			if (pos[0] == '@')
@@ -275,26 +275,26 @@ static void ccs_check_condition(char *condition)
 				goto next;
 			goto out;
 		}
-		for (right = 0; right < CCS_MAX_CONDITION_KEYWORD; right++) {
-			const char *keyword = ccs_condition_keyword[right];
+		for (right = 0; right < TOMOYO_MAX_CONDITION_KEYWORD; right++) {
+			const char *keyword = tomoyo_condition_keyword[right];
 			if (strcmp(pos, keyword))
 				continue;
 			goto next;
 		}
 		if (pos[0] == '@' && pos[1])
 			goto next;
-		if (!ccs_check_number_range(pos))
+		if (!tomoyo_check_number_range(pos))
 			goto out;
 next:
 		pos = next;
 	}
 	return;
 out:
-	printf("%u: ERROR: '%s' is an illegal condition.\n", ccs_line, pos);
-	ccs_errors++;
+	printf("%u: ERROR: '%s' is an illegal condition.\n", tomoyo_line, pos);
+	tomoyo_errors++;
 }
 
-static _Bool ccs_prune_word(char *arg, const char *cp)
+static _Bool tomoyo_prune_word(char *arg, const char *cp)
 {
 	if (cp)
 		memmove(arg, cp, strlen(cp) + 1);
@@ -303,17 +303,17 @@ static _Bool ccs_prune_word(char *arg, const char *cp)
 	return true;
 }
 
-static _Bool ccs_check_path(char *arg)
+static _Bool tomoyo_check_path(char *arg)
 {
 	char *cp = strchr(arg, ' ');
 	if (cp)
 		*cp++ = '\0';
-	if (!ccs_correct_word(arg))
+	if (!tomoyo_correct_word(arg))
 		return false;
-	return ccs_prune_word(arg, cp);
+	return tomoyo_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_number(char *arg)
+static _Bool tomoyo_check_number(char *arg)
 {
 	char *cp = strchr(arg, ' ');
 	char *start = arg;
@@ -323,18 +323,18 @@ static _Bool ccs_check_number(char *arg)
 		*cp++ = '\0';
 	if (*arg == '@')
 		goto ok;
-	if (!ccs_parse_ulong(&min_value, &arg))
+	if (!tomoyo_parse_ulong(&min_value, &arg))
 		return false;
 	if (!*arg)
 		goto ok;
-	if (*arg++ != '-' || !ccs_parse_ulong(&max_value, &arg) || *arg ||
+	if (*arg++ != '-' || !tomoyo_parse_ulong(&max_value, &arg) || *arg ||
 	    min_value > max_value)
 		return false;
 ok:
-	return ccs_prune_word(start, cp);
+	return tomoyo_prune_word(start, cp);
 }
 
-static _Bool ccs_check_domain(char *arg)
+static _Bool tomoyo_check_domain(char *arg)
 {
 	char *cp = arg;
 	while (*cp) {
@@ -344,12 +344,12 @@ static _Bool ccs_check_domain(char *arg)
 		*cp++ = '\0';
 		break;
 	}
-	if (!ccs_correct_domain(arg))
+	if (!tomoyo_correct_domain(arg))
 		return false;
-	return ccs_prune_word(arg, cp);
+	return tomoyo_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_capability(char *arg)
+static _Bool tomoyo_check_capability(char *arg)
 {
 	static const char * const list[] = {
 		"use_route", "use_packet", "SYS_REBOOT", "SYS_VHANGUP",
@@ -362,11 +362,11 @@ static _Bool ccs_check_capability(char *arg)
 		*cp++ = '\0';
 	for (i = 0; list[i]; i++)
 		if (!strcmp(arg, list[i]))
-			return ccs_prune_word(arg, cp);
+			return tomoyo_prune_word(arg, cp);
 	return false;
 }
 
-static _Bool ccs_check_u8(char *arg)
+static _Bool tomoyo_check_u8(char *arg)
 {
 	char *cp = strchr(arg, ' ');
 	unsigned int value;
@@ -374,10 +374,10 @@ static _Bool ccs_check_u8(char *arg)
 		*cp++ = '\0';
 	if (sscanf(arg, "%u", &value) != 1 || value >= 256)
 		return false;
-	return ccs_prune_word(arg, cp);
+	return tomoyo_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_u16(char *arg)
+static _Bool tomoyo_check_u16(char *arg)
 {
 	char *cp = strchr(arg, ' ');
 	unsigned int value;
@@ -385,10 +385,10 @@ static _Bool ccs_check_u16(char *arg)
 		*cp++ = '\0';
 	if (sscanf(arg, "%u", &value) != 1 || value >= 65536)
 		return false;
-	return ccs_prune_word(arg, cp);
+	return tomoyo_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_ip_address(char *arg)
+static _Bool tomoyo_check_ip_address(char *arg)
 {
 	char *cp = strchr(arg, ' ');
 	unsigned int min_address[8];
@@ -437,10 +437,10 @@ found:
 	for (count = 0; count < 8; count++)
 		if (htonl(min_address[count]) > htonl(max_address[count]))
 			return false;
-	return ccs_prune_word(arg, cp);
+	return tomoyo_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_port(char *arg)
+static _Bool tomoyo_check_port(char *arg)
 {
 	char *cp = strchr(arg, ' ');
 	unsigned int min_value;
@@ -454,11 +454,11 @@ static _Bool ccs_check_port(char *arg)
 	default:
 		return false;
 	}
-	return ccs_prune_word(arg, cp);
+	return tomoyo_prune_word(arg, cp);
 }
 
 
-static _Bool ccs_check_network(char *arg)
+static _Bool tomoyo_check_network(char *arg)
 {
 	static const struct {
 		const char *directive;
@@ -475,31 +475,31 @@ static _Bool ccs_check_network(char *arg)
 	u8 mask;
 	u8 flags = 0;
 	char *start = arg;
-	if (ccs_str_starts(arg, "inet "))
+	if (tomoyo_str_starts(arg, "inet "))
 		inet = true;
-	else if (ccs_str_starts(arg, "unix "))
+	else if (tomoyo_str_starts(arg, "unix "))
 		inet = false;
 	else
 		return false;
-	if ((inet && ccs_str_starts(arg, "stream ")) ||
-	    (!inet && (ccs_str_starts(arg, "stream ") ||
-		       ccs_str_starts(arg, "seqpacket "))))
+	if ((inet && tomoyo_str_starts(arg, "stream ")) ||
+	    (!inet && (tomoyo_str_starts(arg, "stream ") ||
+		       tomoyo_str_starts(arg, "seqpacket "))))
 		mask = 2;
-	else if ((inet && (ccs_str_starts(arg, "dgram ") ||
-			   ccs_str_starts(arg, "raw "))) ||
-		 (!inet && ccs_str_starts(arg, "dgram ")))
+	else if ((inet && (tomoyo_str_starts(arg, "dgram ") ||
+			   tomoyo_str_starts(arg, "raw "))) ||
+		 (!inet && tomoyo_str_starts(arg, "dgram ")))
 		mask = 4;
 	else
 		return false;
 	while (1) {
 		u8 type;
-		while (ccs_str_starts(arg, "/"));
-		if (ccs_str_starts(arg, " "))
+		while (tomoyo_str_starts(arg, "/"));
+		if (tomoyo_str_starts(arg, " "))
 			break;
 		for (type = 0; list[type].directive; type++) {
 			if (((list[type].flags | mask) & 6) == 6)
 				continue;
-			if (!ccs_str_starts(arg, list[type].directive))
+			if (!tomoyo_str_starts(arg, list[type].directive))
 				continue;
 			flags |= list[type].flags;
 			break;
@@ -513,102 +513,102 @@ static _Bool ccs_check_network(char *arg)
 	}
 	if (!flags)
 		goto out;
-	ccs_prune_word(start, arg);
-	return inet ? ccs_check_ip_address(start) && ccs_check_number(start) :
-		ccs_check_path(start);
+	tomoyo_prune_word(start, arg);
+	return inet ? tomoyo_check_ip_address(start) && tomoyo_check_number(start) :
+		tomoyo_check_path(start);
 out:
 	return false;
 
 }
 
-static _Bool ccs_check_path_domain(char *arg)
+static _Bool tomoyo_check_path_domain(char *arg)
 {
 	if (!strncmp(arg, "any ", 4))
-		ccs_prune_word(arg, arg + 4);
-	else if (*arg != '/' || !ccs_check_path(arg))
+		tomoyo_prune_word(arg, arg + 4);
+	else if (*arg != '/' || !tomoyo_check_path(arg))
 		return false;
 	if (!strncmp(arg, "from ", 5))
-		ccs_prune_word(arg, arg + 5);
+		tomoyo_prune_word(arg, arg + 5);
 	else
 		return false;
 	if (!strncmp(arg, "any", 3)) {
-		ccs_prune_word(arg, arg + 3);
+		tomoyo_prune_word(arg, arg + 3);
 	} else if (*arg == '/') {
-		if (!ccs_check_path(arg))
+		if (!tomoyo_check_path(arg))
 			return false;
 	} else {
-		if (!ccs_check_domain(arg))
+		if (!tomoyo_check_domain(arg))
 			return false;
 	}
 	return !*arg;
 }
 
-static _Bool ccs_check_path2(char *arg)
+static _Bool tomoyo_check_path2(char *arg)
 {
-	return ccs_check_path(arg) && ccs_check_path(arg);
+	return tomoyo_check_path(arg) && tomoyo_check_path(arg);
 }
 
-static _Bool ccs_check_path_number(char *arg)
+static _Bool tomoyo_check_path_number(char *arg)
 {
-	return ccs_check_path(arg) && ccs_check_number(arg);
+	return tomoyo_check_path(arg) && tomoyo_check_number(arg);
 }
 
-static _Bool ccs_check_path_number3(char *arg)
+static _Bool tomoyo_check_path_number3(char *arg)
 {
-	return ccs_check_path(arg) && ccs_check_number(arg) &&
-		ccs_check_number(arg) && ccs_check_number(arg);
+	return tomoyo_check_path(arg) && tomoyo_check_number(arg) &&
+		tomoyo_check_number(arg) && tomoyo_check_number(arg);
 }
 
-static _Bool ccs_check_path3_number(char *arg)
+static _Bool tomoyo_check_path3_number(char *arg)
 {
-	return ccs_check_path(arg) && ccs_check_path(arg) &&
-		ccs_check_path(arg) && ccs_check_number(arg);
+	return tomoyo_check_path(arg) && tomoyo_check_path(arg) &&
+		tomoyo_check_path(arg) && tomoyo_check_number(arg);
 }
 
-static _Bool ccs_check_file(char *arg)
+static _Bool tomoyo_check_file(char *arg)
 {
 	static const struct {
 		const char *directive;
 		_Bool (*func) (char *arg);
 	} list[] = {
-		{ "append", ccs_check_path },
-		{ "chgrp", ccs_check_path_number },
-		{ "chmod", ccs_check_path_number },
-		{ "chown", ccs_check_path_number },
-		{ "chroot", ccs_check_path },
-		{ "create", ccs_check_path_number },
-		{ "execute", ccs_check_path },
-		{ "getattr", ccs_check_path },
-		{ "ioctl", ccs_check_path_number },
-		{ "link", ccs_check_path2 },
-		{ "mkblock", ccs_check_path_number3 },
-		{ "mkchar", ccs_check_path_number3 },
-		{ "mkdir", ccs_check_path_number },
-		{ "mkfifo", ccs_check_path_number },
-		{ "mksock", ccs_check_path_number },
-		{ "mount", ccs_check_path3_number },
-		{ "pivot_root", ccs_check_path2 },
-		{ "read", ccs_check_path },
-		{ "rename", ccs_check_path2 },
-		{ "rmdir", ccs_check_path },
-		{ "symlink", ccs_check_path },
-		{ "truncate", ccs_check_path },
-		{ "unlink", ccs_check_path },
-		{ "unmount", ccs_check_path },
-		{ "write", ccs_check_path },
+		{ "append", tomoyo_check_path },
+		{ "chgrp", tomoyo_check_path_number },
+		{ "chmod", tomoyo_check_path_number },
+		{ "chown", tomoyo_check_path_number },
+		{ "chroot", tomoyo_check_path },
+		{ "create", tomoyo_check_path_number },
+		{ "execute", tomoyo_check_path },
+		{ "getattr", tomoyo_check_path },
+		{ "ioctl", tomoyo_check_path_number },
+		{ "link", tomoyo_check_path2 },
+		{ "mkblock", tomoyo_check_path_number3 },
+		{ "mkchar", tomoyo_check_path_number3 },
+		{ "mkdir", tomoyo_check_path_number },
+		{ "mkfifo", tomoyo_check_path_number },
+		{ "mksock", tomoyo_check_path_number },
+		{ "mount", tomoyo_check_path3_number },
+		{ "pivot_root", tomoyo_check_path2 },
+		{ "read", tomoyo_check_path },
+		{ "rename", tomoyo_check_path2 },
+		{ "rmdir", tomoyo_check_path },
+		{ "symlink", tomoyo_check_path },
+		{ "truncate", tomoyo_check_path },
+		{ "unlink", tomoyo_check_path },
+		{ "unmount", tomoyo_check_path },
+		{ "write", tomoyo_check_path },
 		{ }
 	};
 	_Bool (*func) (char *) = NULL;
 	char *start = arg;
 	while (1) {
 		u8 type;
-		while (ccs_str_starts(arg, "/"));
-		if (ccs_str_starts(arg, " "))
+		while (tomoyo_str_starts(arg, "/"));
+		if (tomoyo_str_starts(arg, " "))
 			break;
 		for (type = 0; list[type].directive; type++) {
 			if (func && func != list[type].func)
 				continue;
-			if (!ccs_str_starts(arg, list[type].directive))
+			if (!tomoyo_str_starts(arg, list[type].directive))
 				continue;
 			func = list[type].func;
 			break;
@@ -622,12 +622,12 @@ static _Bool ccs_check_file(char *arg)
 	}
 	if (!func || !func(arg))
 		goto out;
-	return ccs_prune_word(start, arg);
+	return tomoyo_prune_word(start, arg);
 out:
 	return false;
 }
 
-static _Bool ccs_check_domain_policy2(char *policy)
+static _Bool tomoyo_check_domain_policy2(char *policy)
 {
 	u8 type;
 	static const struct {
@@ -635,49 +635,49 @@ static _Bool ccs_check_domain_policy2(char *policy)
 		_Bool (*arg1) (char *arg);
 		_Bool (*arg2) (char *arg);
 	} list[] = {
-		{ "capability ", ccs_check_capability },
-		{ "file ", ccs_check_file },
-		{ "ipc signal ", ccs_check_u16, ccs_check_domain },
-		{ "misc env ", ccs_check_path },
-		{ "network ", ccs_check_network },
-		{ "task auto_domain_transition ", ccs_check_domain },
-		{ "task auto_execute_handler ", ccs_check_path },
-		{ "task denied_execute_handler ", ccs_check_path },
-		{ "task manual_domain_transition ", ccs_check_domain },
+		{ "capability ", tomoyo_check_capability },
+		{ "file ", tomoyo_check_file },
+		{ "ipc signal ", tomoyo_check_u16, tomoyo_check_domain },
+		{ "misc env ", tomoyo_check_path },
+		{ "network ", tomoyo_check_network },
+		{ "task auto_domain_transition ", tomoyo_check_domain },
+		{ "task auto_execute_handler ", tomoyo_check_path },
+		{ "task denied_execute_handler ", tomoyo_check_path },
+		{ "task manual_domain_transition ", tomoyo_check_domain },
 		{ }
 	};
 	for (type = 0; list[type].directive; type++) {
-		if (!ccs_str_starts(policy, list[type].directive))
+		if (!tomoyo_str_starts(policy, list[type].directive))
 			continue;
 		if (!list[type].arg1(policy))
 			break;
 		if (list[type].arg2 && !list[type].arg2(policy))
 			break;
-		ccs_check_condition(policy);
+		tomoyo_check_condition(policy);
 		return true;
 	}
 	return false;
 }
 
 
-static void ccs_check_domain_policy(char *policy)
+static void tomoyo_check_domain_policy(char *policy)
 {
 	if (!strncmp(policy, "<kernel>", 8)) {
-		if (!ccs_correct_domain(policy) ||
-		    strlen(policy) >= CCS_MAX_DOMAINNAME_LEN) {
+		if (!tomoyo_correct_domain(policy) ||
+		    strlen(policy) >= TOMOYO_MAX_DOMAINNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
-			       ccs_line, policy);
-			ccs_errors++;
+			       tomoyo_line, policy);
+			tomoyo_errors++;
 		}
 		return;
 	} else if (!strcmp(policy, "quota_exceeded") ||
 		   !strcmp(policy, "transition_failed")) {
 		return;
-	} else if (ccs_str_starts(policy, "use_group ") ||
-		   ccs_str_starts(policy, "use_profile ")) {
-		if (ccs_check_u8(policy))
+	} else if (tomoyo_str_starts(policy, "use_group ") ||
+		   tomoyo_str_starts(policy, "use_profile ")) {
+		if (tomoyo_check_u8(policy))
 			return;
-	} else if (ccs_check_domain_policy2(policy))
+	} else if (tomoyo_check_domain_policy2(policy))
 		return;
 	{
 		char *cp = policy;
@@ -685,27 +685,27 @@ static void ccs_check_domain_policy(char *policy)
 			cp++;
 		*cp = '\0';
 	}
-	printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line, policy);
-	ccs_errors++;
+	printf("%u: ERROR: '%s' is a bad argument.\n", tomoyo_line, policy);
+	tomoyo_errors++;
 }
 
-static void ccs_check_exception_policy(char *policy)
+static void tomoyo_check_exception_policy(char *policy)
 {
 	static const struct {
 		const char *directive;
 		_Bool (*arg1) (char *arg);
 		_Bool (*arg2) (char *arg);
 	} list[] = {
-		{ "acl_group ", ccs_check_u8, ccs_check_domain_policy2 },
-		{ "address_group ", ccs_check_path, ccs_check_ip_address },
-		{ "aggregator ", ccs_check_path, ccs_check_path },
-		{ "deny_autobind ", ccs_check_port },
-		{ "initialize_domain ", ccs_check_path_domain },
-		{ "keep_domain ", ccs_check_path_domain },
-		{ "no_initialize_domain ", ccs_check_path_domain },
-		{ "no_keep_domain ", ccs_check_path_domain },
-		{ "number_group ", ccs_check_path, ccs_check_number },
-		{ "path_group ", ccs_check_path, ccs_check_path },
+		{ "acl_group ", tomoyo_check_u8, tomoyo_check_domain_policy2 },
+		{ "address_group ", tomoyo_check_path, tomoyo_check_ip_address },
+		{ "aggregator ", tomoyo_check_path, tomoyo_check_path },
+		{ "deny_autobind ", tomoyo_check_port },
+		{ "initialize_domain ", tomoyo_check_path_domain },
+		{ "keep_domain ", tomoyo_check_path_domain },
+		{ "no_initialize_domain ", tomoyo_check_path_domain },
+		{ "no_keep_domain ", tomoyo_check_path_domain },
+		{ "number_group ", tomoyo_check_path, tomoyo_check_number },
+		{ "path_group ", tomoyo_check_path, tomoyo_check_path },
 		{ }
 	};
 	u8 type;
@@ -726,38 +726,38 @@ static void ccs_check_exception_policy(char *policy)
 			cp++;
 		*cp = '\0';
 	}
-	printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line, policy);
-	ccs_errors++;
+	printf("%u: ERROR: '%s' is a bad argument.\n", tomoyo_line, policy);
+	tomoyo_errors++;
 }
 
 int main(int argc, char *argv[])
 {
-	unsigned int ccs_warnings = 0;
+	unsigned int tomoyo_warnings = 0;
 	char *policy = NULL;
-	enum ccs_policy_type {
-		CCS_POLICY_TYPE_UNKNOWN,
-		CCS_POLICY_TYPE_DOMAIN_POLICY,
-		CCS_POLICY_TYPE_EXCEPTION_POLICY,
+	enum tomoyo_policy_type {
+		TOMOYO_POLICY_TYPE_UNKNOWN,
+		TOMOYO_POLICY_TYPE_DOMAIN_POLICY,
+		TOMOYO_POLICY_TYPE_EXCEPTION_POLICY,
 	};
-	enum ccs_policy_type policy_type = CCS_POLICY_TYPE_UNKNOWN;
+	enum tomoyo_policy_type policy_type = TOMOYO_POLICY_TYPE_UNKNOWN;
 	if (argc > 1) {
 		switch (argv[1][0]) {
 		case 'e':
-			policy_type = CCS_POLICY_TYPE_EXCEPTION_POLICY;
+			policy_type = TOMOYO_POLICY_TYPE_EXCEPTION_POLICY;
 			break;
 		case 'd':
-			policy_type = CCS_POLICY_TYPE_DOMAIN_POLICY;
+			policy_type = TOMOYO_POLICY_TYPE_DOMAIN_POLICY;
 			break;
 		}
 	}
-	if (policy_type == CCS_POLICY_TYPE_UNKNOWN) {
+	if (policy_type == TOMOYO_POLICY_TYPE_UNKNOWN) {
 		fprintf(stderr, "%s e|d < policy_to_check\n", argv[0]);
 		return 0;
 	}
 	while (true) {
 		_Bool badchar_warned = false;
 		int pos = 0;
-		ccs_line++;
+		tomoyo_line++;
 		while (true) {
 			static int max_policy_len = 0;
 			int c = getchar();
@@ -768,7 +768,7 @@ int main(int argc, char *argv[])
 				max_policy_len += 4096;
 				cp = realloc(policy, max_policy_len);
 				if (!cp)
-					ccs_out_of_memory();
+					tomoyo_out_of_memory();
 				policy = cp;
 			}
 			policy[pos++] = (char) c;
@@ -780,19 +780,19 @@ int main(int argc, char *argv[])
 			    c == '\t' || (c >= ' ' && c < 127))
 				continue;
 			printf("%u: WARNING: Line contains illegal "
-			       "character (\\%03o).\n", ccs_line, c);
-			ccs_warnings++;
+			       "character (\\%03o).\n", tomoyo_line, c);
+			tomoyo_warnings++;
 			badchar_warned = true;
 		}
-		ccs_normalize_line(policy);
+		tomoyo_normalize_line(policy);
 		if (!policy[0] || policy[0] == '#')
 			continue;
 		switch (policy_type) {
-		case CCS_POLICY_TYPE_DOMAIN_POLICY:
-			ccs_check_domain_policy(policy);
+		case TOMOYO_POLICY_TYPE_DOMAIN_POLICY:
+			tomoyo_check_domain_policy(policy);
 			break;
-		case CCS_POLICY_TYPE_EXCEPTION_POLICY:
-			ccs_check_exception_policy(policy);
+		case TOMOYO_POLICY_TYPE_EXCEPTION_POLICY:
+			tomoyo_check_exception_policy(policy);
 			break;
 		default:
 			break;
@@ -801,9 +801,9 @@ int main(int argc, char *argv[])
 out:
 	free(policy);
 	policy = NULL;
-	ccs_line--;
+	tomoyo_line--;
 	printf("Total:   %u Line%s   %u Error%s   %u Warning%s\n",
-	       ccs_line, ccs_line > 1 ? "s" : "", ccs_errors, ccs_errors > 1 ?
-	       "s" : "", ccs_warnings, ccs_warnings > 1 ? "s" : "");
-	return ccs_errors ? 2 : (ccs_warnings ? 1 : 0);
+	       tomoyo_line, tomoyo_line > 1 ? "s" : "", tomoyo_errors, tomoyo_errors > 1 ?
+	       "s" : "", tomoyo_warnings, tomoyo_warnings > 1 ? "s" : "");
+	return tomoyo_errors ? 2 : (tomoyo_warnings ? 1 : 0);
 }

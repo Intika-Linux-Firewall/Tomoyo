@@ -1,5 +1,5 @@
 /*
- * ccs_policy_io_test.c
+ * tomoyo_policy_io_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -208,7 +208,7 @@ static void stage_policy_io_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	stage_policy_io_test();
 	if (0) { /* To suppress "defined but not used" warnings. */
 		write_domain_policy("", 0);

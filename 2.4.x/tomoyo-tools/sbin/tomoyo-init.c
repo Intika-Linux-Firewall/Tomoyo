@@ -1,5 +1,5 @@
 /*
- * ccs-init.c
+ * tomoyo-init.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -48,14 +48,14 @@ static void panic(void)
 		sleep(100);
 }
 
-#define policy_dir            "/etc/ccs/"
-#define proc_manager          "/proc/ccs/manager"
-#define proc_exception_policy "/proc/ccs/exception_policy"
-#define proc_domain_policy    "/proc/ccs/domain_policy"
-#define proc_profile          "/proc/ccs/profile"
-#define proc_stat             "/proc/ccs/stat"
+#define policy_dir            "/etc/tomoyo/"
+#define proc_manager          "/sys/kernel/security/tomoyo/manager"
+#define proc_exception_policy "/sys/kernel/security/tomoyo/exception_policy"
+#define proc_domain_policy    "/sys/kernel/security/tomoyo/domain_policy"
+#define proc_profile          "/sys/kernel/security/tomoyo/profile"
+#define proc_stat             "/sys/kernel/security/tomoyo/stat"
 static const char *profile_name = "default";
-static _Bool ccs_noload = 0;
+static _Bool tomoyo_noload = 0;
 static _Bool proc_unmount = 0;
 static _Bool chdir_ok = 0;
 
@@ -64,13 +64,13 @@ static char buffer[8192];
 
 static void check_arg(const char *arg)
 {
-	if (!strcmp(arg, "CCS=ask"))
+	if (!strcmp(arg, "TOMOYO=ask"))
 		profile_name = "ask";
-	else if (!strcmp(arg, "CCS=default"))
+	else if (!strcmp(arg, "TOMOYO=default"))
 		profile_name = "default";
-	else if (!strcmp(arg, "CCS=disabled"))
+	else if (!strcmp(arg, "TOMOYO=disabled"))
 		profile_name = "disable";
-	else if (!strncmp(arg, "CCS=", 4)) {
+	else if (!strncmp(arg, "TOMOYO=", 4)) {
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "profile-%s.conf",
@@ -78,8 +78,8 @@ static void check_arg(const char *arg)
 		profile_name = strdup(buffer);
 		if (!profile_name)
 			panic();
-	} else if (!strcmp(arg, "CCS_NOLOAD"))
-		ccs_noload = 1;
+	} else if (!strcmp(arg, "TOMOYO_NOLOAD"))
+		tomoyo_noload = 1;
 }
 
 static void ask_profile(void)
@@ -87,7 +87,7 @@ static void ask_profile(void)
 	static char input[128];
 	while (1) {
 		char *ret_ignored;
-		printf("CCSecurity: Select a profile from "
+		printf("TOMOYOecurity: Select a profile from "
 		       "the following list.\n");
 		if (chdir_ok) {
 			/* Show profiles in policy directory. */
@@ -149,8 +149,8 @@ static void ask_profile(void)
 			profile_name = "disable";
 			break;
 		}
-		if (!strcmp(input, "CCS_NOLOAD"))
-			ccs_noload = 1;
+		if (!strcmp(input, "TOMOYO_NOLOAD"))
+			tomoyo_noload = 1;
 	}
 }
 
@@ -280,13 +280,13 @@ int main(int argc, char *argv[])
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
 
 	/* Load kernel module if needed. */
-	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
-		if (!access("/etc/ccs/ccs-load-module", X_OK)) {
+	if (lstat("/sys/kernel/security/tomoyo/", &buf) || !S_ISDIR(buf.st_mode)) {
+		if (!access("/etc/tomoyo/tomoyo-load-module", X_OK)) {
 			const pid_t pid = fork();
 			switch (pid) {
 			case 0:
-				execl("/etc/ccs/ccs-load-module",
-				      "/etc/ccs/ccs-load-module", NULL);
+				execl("/etc/tomoyo/tomoyo-load-module",
+				      "/etc/tomoyo/tomoyo-load-module", NULL);
 				_exit(0);
 			case -1:
 				panic();
@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 	if (getpid() == 1) {
 		/*
 		 * Unmount /proc and execute /sbin/init if this program was
-		 * executed by passing init=/sbin/ccs-init . The kernel will
+		 * executed by passing init=/sbin/tomoyo-init . The kernel will
 		 * try to execute this program again with getpid() != 1 when
 		 * /sbin/init starts.
 		 */
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Unmount /proc and exit if policy interface doesn't exist. */
-	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
+	if (lstat("/sys/kernel/security/tomoyo/", &buf) || !S_ISDIR(buf.st_mode)) {
 		if (proc_unmount)
 			umount("/proc/");
 		return 1;
@@ -373,14 +373,14 @@ int main(int argc, char *argv[])
 	if (chdir_ok) {
 		if (!strcmp(profile_name, "default")) {
 			if (access("profile.conf", R_OK)) {
-				printf("CCSecurity: Default profile "
+				printf("TOMOYOecurity: Default profile "
 				       "doesn't exist.\n");
 				profile_name = "ask";
 			}
 		} else if (strcmp(profile_name, "ask") &&
 			   strcmp(profile_name, "disable")) {
 			if (access(profile_name, R_OK)) {
-				printf("CCSecurity: Specified profile "
+				printf("TOMOYOecurity: Specified profile "
 				       "doesn't exist.\n");
 				profile_name = "ask";
 			}
@@ -395,7 +395,7 @@ int main(int argc, char *argv[])
 	if (chdir_ok) {
 		copy_files("manager.conf", proc_manager);
 		copy_files("exception_policy.conf", proc_exception_policy);
-		if (!ccs_noload)
+		if (!tomoyo_noload)
 			copy_files("domain_policy.conf", proc_domain_policy);
 		if (!strcmp(profile_name, "default"))
 			copy_files("profile.conf", proc_profile);
@@ -409,12 +409,12 @@ int main(int argc, char *argv[])
 		disable_profile();
 
 	/* Do additional initialization. */
-	if (!access("/etc/ccs/ccs-post-init", X_OK)) {
+	if (!access("/etc/tomoyo/tomoyo-post-init", X_OK)) {
 		const pid_t pid = fork();
 		switch (pid) {
 		case 0:
-			execl("/etc/ccs/ccs-post-init",
-			      "/etc/ccs/ccs-post-init", NULL);
+			execl("/etc/tomoyo/tomoyo-post-init",
+			      "/etc/tomoyo/tomoyo-post-init", NULL);
 			_exit(0);
 		case -1:
 			panic();

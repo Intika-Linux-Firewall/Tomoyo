@@ -1,5 +1,5 @@
 /*
- * ccs-savepolicy.c
+ * tomoyo-savepolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,13 +20,13 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-static const char *ccs_policy_dir = NULL;
+static const char *tomoyo_policy_dir = NULL;
 
-static _Bool ccs_cat_file(const char *path)
+static _Bool tomoyo_cat_file(const char *path)
 {
-	FILE *fp = ccs_open_read(path);
+	FILE *fp = tomoyo_open_read(path);
 	_Bool result = true;
 	if (!fp) {
 		fprintf(stderr, "Can't open %s\n", path);
@@ -34,7 +34,7 @@ static _Bool ccs_cat_file(const char *path)
 	}
 	while (true) {
 		int c = fgetc(fp);
-		if (ccs_network_mode && !c)
+		if (tomoyo_network_mode && !c)
 			break;
 		if (c == EOF)
 			break;
@@ -45,7 +45,7 @@ static _Bool ccs_cat_file(const char *path)
 	return result;
 }
 
-static _Bool ccs_save_policy(void)
+static _Bool tomoyo_save_policy(void)
 {
 	time_t now = time(NULL);
 	char stamp[32] = { };
@@ -61,7 +61,7 @@ static _Bool ccs_save_policy(void)
 			now++;
 		else {
 			fprintf(stderr, "Can't create %s/%s .\n",
-				ccs_policy_dir, stamp);
+				tomoyo_policy_dir, stamp);
 			return false;
 		}
 	}
@@ -74,11 +74,11 @@ static _Bool ccs_save_policy(void)
 	    (symlink("policy/current/domain_policy.conf",
 		     "../domain_policy.conf") && errno != EEXIST) ||
 	    chdir(stamp) ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
+	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_PROFILE, "profile.conf") ||
+	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_MANAGER, "manager.conf") ||
+	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_EXCEPTION_POLICY,
 				   "exception_policy.conf") ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
+	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_DOMAIN_POLICY,
 				   "domain_policy.conf") ||
 	    chdir("..") ||
 	    (rename("current", "previous") && errno != ENOENT) ||
@@ -97,30 +97,30 @@ int main(int argc, char *argv[])
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
 		if (*ptr == '/') {
-			if (ccs_policy_dir || target) {
+			if (tomoyo_policy_dir || target) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"policy directories");
 				goto usage;
 			}
-			ccs_policy_dir = ptr;
+			tomoyo_policy_dir = ptr;
 		} else if (cp) {
 			*cp++ = '\0';
-			ccs_network_ip = inet_addr(ptr);
-			ccs_network_port = htons(atoi(cp));
-			if (ccs_network_mode) {
+			tomoyo_network_ip = inet_addr(ptr);
+			tomoyo_network_port = htons(atoi(cp));
+			if (tomoyo_network_mode) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"remote agents");
 				goto usage;
 			}
-			ccs_network_mode = true;
+			tomoyo_network_mode = true;
 		} else if (*ptr++ == '-' && !target) {
 			target = *ptr++;
 			if (target != 'e' && target != 'd' && target != 'p' &&
 			    target != 'm' && target != 's')
 				goto usage;
-			if (*ptr || ccs_policy_dir) {
+			if (*ptr || tomoyo_policy_dir) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"policies");
@@ -129,10 +129,10 @@ int main(int argc, char *argv[])
 		} else
 			goto usage;
 	}
-	if (ccs_network_mode) {
-		if (!ccs_check_remote_host())
+	if (tomoyo_network_mode) {
+		if (!tomoyo_check_remote_host())
 			return 1;
-	} else if (access(CCS_PROC_POLICY_DIR, F_OK)) {
+	} else if (access(TOMOYO_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
 		return 1;
@@ -141,49 +141,49 @@ int main(int argc, char *argv[])
 		const char *file;
 		switch (target) {
 		case 'p':
-			file = CCS_PROC_POLICY_PROFILE;
+			file = TOMOYO_PROC_POLICY_PROFILE;
 			break;
 		case 'm':
-			file = CCS_PROC_POLICY_MANAGER;
+			file = TOMOYO_PROC_POLICY_MANAGER;
 			break;
 		case 'e':
-			file = CCS_PROC_POLICY_EXCEPTION_POLICY;
+			file = TOMOYO_PROC_POLICY_EXCEPTION_POLICY;
 			break;
 		case 'd':
-			file = CCS_PROC_POLICY_DOMAIN_POLICY;
+			file = TOMOYO_PROC_POLICY_DOMAIN_POLICY;
 			break;
 		default:
-			file = CCS_PROC_POLICY_STAT;
+			file = TOMOYO_PROC_POLICY_STAT;
 			break;
 		}
-		return !ccs_cat_file(file);
+		return !tomoyo_cat_file(file);
 	}
-	if (!ccs_policy_dir) {
-		if (ccs_network_mode && !target) {
+	if (!tomoyo_policy_dir) {
+		if (tomoyo_network_mode && !target) {
 			fprintf(stderr, "You need to specify %s.\n\n",
 				"policy directory");
 			goto usage;
 		}
-		ccs_policy_dir = "/etc/ccs/";
+		tomoyo_policy_dir = "/etc/tomoyo/";
 	}
-	if (chdir(ccs_policy_dir) || chdir("policy/")) {
+	if (chdir(tomoyo_policy_dir) || chdir("policy/")) {
 		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
-			ccs_policy_dir);
+			tomoyo_policy_dir);
 		return 1;
 	}
-	return !ccs_save_policy();
+	return !tomoyo_save_policy();
 usage:
 	printf("%s [policy_dir [remote_ip:remote_port]]\n"
 	       "%s [{-e|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"
-	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
-	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
-	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+	       "policy_dir : Use policy_dir rather than /etc/tomoyo/ directory.\n"
+	       "remote_ip:remote_port : Read from tomoyo-editpolicy-agent "
+	       "listening at remote_ip:remote_port rather than /sys/kernel/security/tomoyo/ "
 	       "directory.\n"
-	       "-e : Print /proc/ccs/exception_policy to stdout.\n"
-	       "-d : Print /proc/ccs/domain_policy to stdout.\n"
-	       "-p : Print /proc/ccs/profile to stdout.\n"
-	       "-m : Print /proc/ccs/manager to stdout.\n"
-	       "-s : Print /proc/ccs/stat to stdout.\n",
+	       "-e : Print /sys/kernel/security/tomoyo/exception_policy to stdout.\n"
+	       "-d : Print /sys/kernel/security/tomoyo/domain_policy to stdout.\n"
+	       "-p : Print /sys/kernel/security/tomoyo/profile to stdout.\n"
+	       "-m : Print /sys/kernel/security/tomoyo/manager to stdout.\n"
+	       "-s : Print /sys/kernel/security/tomoyo/stat to stdout.\n",
 	       argv[0], argv[0]);
 	return 1;
 }

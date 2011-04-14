@@ -1,5 +1,5 @@
 /*
- * ccs_new_test.c
+ * tomoyo_new_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -705,7 +705,7 @@ static struct test_struct {
 int main(int argc, char *argv[])
 {
 	int i;
-	ccs_test_init();
+	tomoyo_test_init();
 	for (i = 0; tests[i].do_test; i++) {
 		int trial;
 		for (trial = 0; trial < 2; trial++) {

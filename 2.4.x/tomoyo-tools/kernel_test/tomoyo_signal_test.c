@@ -1,5 +1,5 @@
 /*
- * ccs_signal_test.c
+ * tomoyo_signal_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	}
 	if (argc > 1)
 		return do_child();
-	ccs_test_init();
+	tomoyo_test_init();
 	do_parent(argv[0]);
 	clear_status();
 	if (0) { /* To suppress "defined but not used" warnings. */

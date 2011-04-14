@@ -1,5 +1,5 @@
 /*
- * ccs-selectpolicy.c
+ * tomoyo-selectpolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,7 +20,7 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 int main(int argc, char *argv[])
 {
@@ -38,13 +38,13 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	for (i = start; i < argc; i++)
-		ccs_normalize_line(argv[i]);
-	ccs_get();
+		tomoyo_normalize_line(argv[i]);
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(stdin);
+		char *line = tomoyo_freadline(stdin);
 		if (!line)
 			break;
-		if (ccs_domain_def(line)) {
+		if (tomoyo_domain_def(line)) {
 			matched = false;
 			for (i = start; i < argc; i++) {
 				const int len = strlen(argv[i]);
@@ -63,6 +63,6 @@ int main(int argc, char *argv[])
 		if (matched)
 			puts(line);
 	}
-	ccs_put();
+	tomoyo_put();
 	return 0;
 }

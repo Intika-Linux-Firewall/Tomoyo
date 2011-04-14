@@ -1,5 +1,5 @@
 /*
- * ccs-notifyd.c
+ * tomoyo-notifyd.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,20 +20,20 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 #include <sys/wait.h>
 #include <syslog.h>
 #include <poll.h>
 
-#define CCS_NOTIFYD_CONF "/etc/ccs/tools/notifyd.conf"
+#define TOMOYO_NOTIFYD_CONF "/etc/tomoyo/tools/notifyd.conf"
 
-static const char *proc_policy_query = "/proc/ccs/query";
+static const char *proc_policy_query = "/sys/kernel/security/tomoyo/query";
 static int query_fd = EOF;
 static int time_to_wait = 0;
 static char **action_to_take = NULL;
 static int minimal_interval = 0;
 
-static void ccs_notifyd_init_rules(const char *filename)
+static void tomoyo_notifyd_init_rules(const char *filename)
 {
 	FILE *fp = fopen(filename, "r");
 	unsigned int line_no = 0;
@@ -42,20 +42,20 @@ static void ccs_notifyd_init_rules(const char *filename)
 		fprintf(stderr, "Can't open %s for reading.\n", filename);
 		exit(1);
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(fp);
+		char *line = tomoyo_freadline(fp);
 		if (!line)
 			break;
 		line_no++;
-		ccs_normalize_line(line);
+		tomoyo_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
 		if (sscanf(line, "time_to_wait %u", &time_to_wait) == 1 ||
 		    sscanf(line, "minimal_interval %u", &minimal_interval)
 		    == 1)
 			continue;
-		if (!ccs_str_starts(line, "action_to_take "))
+		if (!tomoyo_str_starts(line, "action_to_take "))
 			continue;
 		if (!*line)
 			goto invalid_rule;
@@ -63,9 +63,9 @@ static void ccs_notifyd_init_rules(const char *filename)
 			goto invalid_rule;
 		action = strdup(line);
 		if (!action)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 	}
-	ccs_put();
+	tomoyo_put();
 	fclose(fp);
 	if (!action) {
 		fprintf(stderr, "No actions defined in %s .\n", filename);
@@ -79,11 +79,11 @@ static void ccs_notifyd_init_rules(const char *filename)
 			action_to_take = realloc(action_to_take,
 						 sizeof(char *) * ++count);
 			if (!action_to_take)
-				ccs_out_of_memory();
+				tomoyo_out_of_memory();
 			action_to_take[count - 1] = cp;
 			if (!cp)
 				break;
-			if (!ccs_decode(cp, cp))
+			if (!tomoyo_decode(cp, cp))
 				goto invalid_rule;
 		}
 	}
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	unsetenv("SHELLOPTS"); /* Make sure popen() executes commands. */
 	if (argc != 1)
 		goto usage;
-	ccs_notifyd_init_rules(CCS_NOTIFYD_CONF);
+	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
 	umask(0);
 	switch (fork()) {
 	case 0:
@@ -197,13 +197,13 @@ int main(int argc, char *argv[])
 		return 1;
 	} else if (time_to_wait && write(query_fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", "/proc/ccs/manager");
+			"run this program.\n", "/sys/kernel/security/tomoyo/manager");
 		return 1;
 	}
 	close(0);
 	close(1);
 	close(2);
-	openlog("ccs-notifyd", 0,  LOG_USER);
+	openlog("tomoyo-notifyd", 0,  LOG_USER);
 	syslog(LOG_WARNING, "Started.\n");
 	main_loop();
 	syslog(LOG_WARNING, "Terminated.\n");
@@ -211,6 +211,6 @@ int main(int argc, char *argv[])
 	return 0;
 usage:
 	fprintf(stderr, "%s\n  See %s for configuration.\n", argv[0],
-		CCS_NOTIFYD_CONF);
+		TOMOYO_NOTIFYD_CONF);
 	return 1;
 }

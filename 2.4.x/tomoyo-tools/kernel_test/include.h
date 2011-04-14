@@ -103,16 +103,16 @@ int reboot(int cmd);
 int init_module(const char *name, struct module *image);
 int delete_module(const char *name);
 
-#define proc_policy_dir              "/proc/ccs/"
-#define proc_policy_domain_policy    "/proc/ccs/domain_policy"
-#define proc_policy_exception_policy "/proc/ccs/exception_policy"
-#define proc_policy_profile          "/proc/ccs/profile"
-#define proc_policy_manager          "/proc/ccs/manager"
-#define proc_policy_query            "/proc/ccs/query"
-#define proc_policy_audit            "/proc/ccs/audit"
-#define proc_policy_domain_status    "/proc/ccs/.domain_status"
-#define proc_policy_process_status   "/proc/ccs/.process_status"
-#define proc_policy_self_domain      "/proc/ccs/self_domain"
+#define proc_policy_dir              "/sys/kernel/security/tomoyo/"
+#define proc_policy_domain_policy    "/sys/kernel/security/tomoyo/domain_policy"
+#define proc_policy_exception_policy "/sys/kernel/security/tomoyo/exception_policy"
+#define proc_policy_profile          "/sys/kernel/security/tomoyo/profile"
+#define proc_policy_manager          "/sys/kernel/security/tomoyo/manager"
+#define proc_policy_query            "/sys/kernel/security/tomoyo/query"
+#define proc_policy_audit            "/sys/kernel/security/tomoyo/audit"
+#define proc_policy_domain_status    "/sys/kernel/security/tomoyo/.domain_status"
+#define proc_policy_process_status   "/sys/kernel/security/tomoyo/.process_status"
+#define proc_policy_self_domain      "/sys/kernel/security/tomoyo/self_domain"
 
 static FILE *profile_fp = NULL;
 static FILE *domain_fp = NULL;
@@ -217,7 +217,7 @@ static void clear_status(void)
 	fclose(fp);
 }
 
-static void ccs_test_init(void)
+static void tomoyo_test_init(void)
 {
 	pid = getpid();
 	if (access(proc_policy_dir, F_OK)) {
@@ -275,11 +275,11 @@ static void ccs_test_init(void)
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/ccs/domain_policy\n");
+		"proc:/tomoyo/domain_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/ccs/exception_policy\n");
+		"proc:/tomoyo/exception_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/ccs/profile\n");
+		"proc:/tomoyo/profile\n");
 }
 
 static void BUG(const char *fmt, ...)
@@ -298,7 +298,7 @@ static void BUG(const char *fmt, ...)
 		sleep(100);
 }
 
-static char *ccs_freadline(FILE *fp)
+static char *tomoyo_freadline(FILE *fp)
 {
 	static char *policy = NULL;
 	int pos = 0;
@@ -326,7 +326,7 @@ static char *ccs_freadline(FILE *fp)
 	return policy;
 }
 
-static char *ccs_freadline_unpack(FILE *fp)
+static char *tomoyo_freadline_unpack(FILE *fp)
 {
 	static char *previous_line = NULL;
 	static char *cached_line = NULL;
@@ -340,7 +340,7 @@ static char *ccs_freadline_unpack(FILE *fp)
 		char *pos;
 		unsigned int offset;
 		unsigned int len;
-		char *line = ccs_freadline(fp);
+		char *line = tomoyo_freadline(fp);
 		if (!line)
 			return NULL;
 		if (sscanf(line, "acl_group %u", &offset) == 1 && offset < 256)
@@ -449,7 +449,7 @@ static int write_domain_policy(const char *policy, int is_delete)
 			fprintf(domain_fp, "delete ");
 		fprintf(domain_fp, "%s\n", policy);
 		while (1) {
-			char *line = ccs_freadline_unpack(fp);
+			char *line = tomoyo_freadline_unpack(fp);
 			if (!line)
 				break;
 			if (!strncmp(line, "<kernel>", 8))
@@ -460,7 +460,7 @@ static int write_domain_policy(const char *policy, int is_delete)
 			if (strcmp(line, policy))
 				continue;
 			policy_found = 1;
-			while (ccs_freadline_unpack(NULL));
+			while (tomoyo_freadline_unpack(NULL));
 			break;
 		}
 		fclose(fp);
@@ -504,14 +504,14 @@ static int write_exception_policy(const char *policy, int is_delete)
 			fprintf(exception_fp, "delete ");
 		fprintf(exception_fp, "%s\n", policy);
 		while (1) {
-			char *line = ccs_freadline_unpack(fp);
+			char *line = tomoyo_freadline_unpack(fp);
 			if (!line)
 				break;
 			/* printf("<%s>\n", buffer); */
 			if (strcmp(line, policy))
 				continue;
 			policy_found = 1;
-			while (ccs_freadline_unpack(NULL));
+			while (tomoyo_freadline_unpack(NULL));
 			break;
 		}
 		fclose(fp);

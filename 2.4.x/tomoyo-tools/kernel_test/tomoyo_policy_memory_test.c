@@ -1,5 +1,5 @@
 /*
- * ccs_policy_memory_test.c
+ * tomoyo_policy_memory_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -40,7 +40,7 @@ static const char *policy = NULL;
 static void get_meminfo(unsigned int *policy_memory)
 {
 	static char buf[1024];
-	FILE *fp = fopen("/proc/ccs/stat", "r");
+	FILE *fp = fopen("/sys/kernel/security/tomoyo/stat", "r");
 	while (memset(buf, 0, sizeof(buf)),
 	       fp && fgets(buf, sizeof(buf) - 1, fp)) {
 		if (sscanf(buf,
@@ -197,7 +197,7 @@ static void domain_policy_test(const unsigned int before)
 {
 	unsigned int after;
 	int j;
-	policy_file = "/proc/ccs/domain_policy";
+	policy_file = "/sys/kernel/security/tomoyo/domain_policy";
 	for (j = 0; domain_testcases[j]; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");
@@ -299,7 +299,7 @@ static void exception_policy_test(const unsigned int before)
 {
 	unsigned int after;
 	int j;
-	policy_file = "/proc/ccs/exception_policy";
+	policy_file = "/sys/kernel/security/tomoyo/exception_policy";
 	for (j = 0; exception_testcases[j]; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");

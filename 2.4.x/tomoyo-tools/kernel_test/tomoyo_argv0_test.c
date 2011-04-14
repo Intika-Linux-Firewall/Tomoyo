@@ -1,5 +1,5 @@
 /*
- * ccs_argv0_test.c
+ * tomoyo_argv0_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
@@ -103,7 +103,7 @@ static void stage_argv0_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	stage_argv0_test();
 	clear_status();
 	if (0) /* To suppress "defined but not used" warnings. */

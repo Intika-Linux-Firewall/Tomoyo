@@ -1,36 +1,36 @@
 include ../Include.make
 
-BUILD_FILES := ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
-	ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize \
-	ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-setlevel \
-	ccs-setprofile ccs-sortpolicy
+BUILD_FILES := tomoyo-auditd tomoyo-checkpolicy tomoyo-diffpolicy tomoyo-domainmatch \
+	tomoyo-editpolicy tomoyo-findtemp tomoyo-loadpolicy tomoyo-notifyd tomoyo-patternize \
+	tomoyo-pstree tomoyo-queryd tomoyo-savepolicy tomoyo-selectpolicy tomoyo-setlevel \
+	tomoyo-setprofile tomoyo-sortpolicy
 
-all: libccstools.so $(BUILD_FILES)
+all: libtomoyotools.so $(BUILD_FILES)
 
-$(BUILD_FILES): libccstools.so
+$(BUILD_FILES): libtomoyotools.so
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses-dev'"
 	sleep 10
 
-libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.3
-	ln -sf libccstools.so.1.0.3 libccstools.so
+libtomoyotools.so: tomoyotools.c tomoyotools.h
+	$(CC) $(CFLAGS) -fPIC tomoyotools.c -shared -Wl,-soname,libtomoyotools.so.1 -o libtomoyotools.so.1.0.3
+	ln -sf libtomoyotools.so.1.0.3 libtomoyotools.so
 
 .c:
-	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
+	$(CC) $(CFLAGS) -o $@ -ltomoyotools -L. $<
 
-ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so
-	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
+tomoyo-editpolicy: tomoyotools.h editpolicy*.c readline.h /usr/include/curses.h libtomoyotools.so
+	$(CC) $(CFLAGS) -o tomoyo-editpolicy editpolicy*.c -lncurses -ltomoyotools -L. -DCOLOR_ON
 
-ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools.so
-	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
+tomoyo-queryd: tomoyotools.h tomoyo-queryd.c readline.h /usr/include/curses.h libtomoyotools.so
+	$(CC) $(CFLAGS) -o tomoyo-queryd tomoyo-queryd.c -lncurses -ltomoyotools -L.
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
-	$(INSTALL) -m 0755 libccstools.so.1.0.3 $(INSTALLDIR)$(USRLIBDIR)
-	ln -sf libccstools.so.1.0.3 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.1
+	$(INSTALL) -m 0755 libtomoyotools.so.1.0.3 $(INSTALLDIR)$(USRLIBDIR)
+	ln -sf libtomoyotools.so.1.0.3 $(INSTALLDIR)$(USRLIBDIR)/libtomoyotools.so.1
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif
@@ -38,6 +38,6 @@ endif
 	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)$(USRSBINDIR)
 
 clean:
-	rm -f -- $(BUILD_FILES) libccstools.so*
+	rm -f -- $(BUILD_FILES) libtomoyotools.so*
 
 .PHONY: clean install

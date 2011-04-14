@@ -1,5 +1,5 @@
 /*
- * ccs-loadpolicy.c
+ * tomoyo-loadpolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,39 +20,39 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-static _Bool ccs_move_file_to_proc(const char *dest)
+static _Bool tomoyo_move_file_to_proc(const char *dest)
 {
-	FILE *proc_fp = ccs_open_write(dest);
+	FILE *proc_fp = tomoyo_open_write(dest);
 	_Bool result = true;
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s for writing.\n", dest);
 		return false;
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(stdin);
+		char *line = tomoyo_freadline(stdin);
 		if (!line)
 			break;
 		if (line[0])
 			if (fprintf(proc_fp, "%s\n", line) < 0)
 				result = false;
 	}
-	ccs_put();
-	if (!ccs_close_write(proc_fp))
+	tomoyo_put();
+	if (!tomoyo_close_write(proc_fp))
 		result = false;
 	return result;
 }
 
-static _Bool ccs_delete_proc_policy(const char *name)
+static _Bool tomoyo_delete_proc_policy(const char *name)
 {
 	FILE *fp_in;
 	FILE *fp_out;
 	_Bool result = false;
-	if (ccs_network_mode) {
-		fp_in = ccs_open_read(name);
-		fp_out = ccs_open_write(name);
+	if (tomoyo_network_mode) {
+		fp_in = tomoyo_open_read(name);
+		fp_out = tomoyo_open_write(name);
 	} else {
 		fp_in = fopen(name, "r");
 		fp_out = fopen(name, "w");
@@ -66,38 +66,38 @@ static _Bool ccs_delete_proc_policy(const char *name)
 			fclose(fp_out);
 		return false;
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(fp_in);
+		char *line = tomoyo_freadline(fp_in);
 		if (!line)
 			break;
 		if (fprintf(fp_out, "delete %s\n", line) < 0)
 			result = false;
 	}
-	ccs_put();
+	tomoyo_put();
 	if (fclose(fp_in))
 		result = false;
-	if (!ccs_close_write(fp_out))
+	if (!tomoyo_close_write(fp_out))
 		result = false;
 	return result;
 }
 
-static _Bool ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
-				      struct ccs_domain_policy *file_policy,
+static _Bool tomoyo_update_domain_policy(struct tomoyo_domain_policy *proc_policy,
+				      struct tomoyo_domain_policy *file_policy,
 				      const char *src, const char *dest)
 {
 	int file_index;
 	int proc_index;
 	FILE *proc_fp;
 	_Bool result = true;
-	_Bool nm = ccs_network_mode;
+	_Bool nm = tomoyo_network_mode;
 	/* Load disk policy to file_policy->list. */
-	ccs_network_mode = false;
-	ccs_read_domain_policy(file_policy, src);
-	ccs_network_mode = nm;
+	tomoyo_network_mode = false;
+	tomoyo_read_domain_policy(file_policy, src);
+	tomoyo_network_mode = nm;
 	/* Load proc policy to proc_policy->list. */
-	ccs_read_domain_policy(proc_policy, dest);
-	proc_fp = ccs_open_write(dest);
+	tomoyo_read_domain_policy(proc_policy, dest);
+	proc_fp = tomoyo_open_write(dest);
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s for writing.\n", dest);
 		return false;
@@ -106,15 +106,15 @@ static _Bool ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 	     file_index++) {
 		int i;
 		int j;
-		const struct ccs_path_info *domainname
+		const struct tomoyo_path_info *domainname
 			= file_policy->list[file_index].domainname;
-		const struct ccs_path_info **file_string_ptr
+		const struct tomoyo_path_info **file_string_ptr
 			= file_policy->list[file_index].string_ptr;
 		const int file_string_count
 			= file_policy->list[file_index].string_count;
-		const struct ccs_path_info **proc_string_ptr;
+		const struct tomoyo_path_info **proc_string_ptr;
 		int proc_string_count;
-		proc_index = ccs_find_domain_by_ptr(proc_policy, domainname);
+		proc_index = tomoyo_find_domain_by_ptr(proc_policy, domainname);
 		if (fprintf(proc_fp, "%s\n", domainname->name) < 0)
 			result = false;
 		if (proc_index == EOF)
@@ -135,7 +135,7 @@ static _Bool ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 					    proc_string_ptr[j]->name) < 0)
 					result = false;
 		}
-		ccs_delete_domain(proc_policy, proc_index);
+		tomoyo_delete_domain(proc_policy, proc_index);
 not_found:
 		/* Append entries defined in disk policy. */
 		for (i = 0; i < file_string_count; i++)
@@ -155,15 +155,15 @@ not_found:
 			    proc_policy->list[proc_index].domainname->name)
 		    < 0)
 			result = false;
-	if (!ccs_close_write(proc_fp))
+	if (!tomoyo_close_write(proc_fp))
 		result = false;
 	return result;
 }
 
 int main(int argc, char *argv[])
 {
-	struct ccs_domain_policy proc_policy = { NULL, 0, NULL };
-	struct ccs_domain_policy file_policy = { NULL, 0, NULL };
+	struct tomoyo_domain_policy proc_policy = { NULL, 0, NULL };
+	struct tomoyo_domain_policy file_policy = { NULL, 0, NULL };
 	_Bool refresh_policy = false;
 	_Bool result = true;
 	char target = 0;
@@ -173,15 +173,15 @@ int main(int argc, char *argv[])
 		char *cp = strchr(ptr, ':');
 		if (cp) {
 			*cp++ = '\0';
-			ccs_network_ip = inet_addr(ptr);
-			ccs_network_port = htons(atoi(cp));
-			if (ccs_network_mode) {
+			tomoyo_network_ip = inet_addr(ptr);
+			tomoyo_network_port = htons(atoi(cp));
+			if (tomoyo_network_mode) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"remote agents");
 				goto usage;
 			}
-			ccs_network_mode = true;
+			tomoyo_network_mode = true;
 		} else {
 			if (target) {
 				fprintf(stderr, "You cannot specify multiple "
@@ -208,60 +208,60 @@ int main(int argc, char *argv[])
 			"policy to load");
 		goto usage;
 	}
-	if (ccs_network_mode) {
-		if (!ccs_check_remote_host())
+	if (tomoyo_network_mode) {
+		if (!tomoyo_check_remote_host())
 			return 1;
-	} else if (access(CCS_PROC_POLICY_DIR, F_OK)) {
+	} else if (access(TOMOYO_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
 		return 1;
 	}
 	switch (target) {
 	case 'p':
-		result = ccs_move_file_to_proc(CCS_PROC_POLICY_PROFILE);
+		result = tomoyo_move_file_to_proc(TOMOYO_PROC_POLICY_PROFILE);
 		break;
 	case 'm':
-		result = ccs_move_file_to_proc(CCS_PROC_POLICY_MANAGER);
+		result = tomoyo_move_file_to_proc(TOMOYO_PROC_POLICY_MANAGER);
 		break;
 	case 's':
-		result = ccs_move_file_to_proc(CCS_PROC_POLICY_STAT);
+		result = tomoyo_move_file_to_proc(TOMOYO_PROC_POLICY_STAT);
 		break;
 	case 'e':
 		if (refresh_policy)
-			result = ccs_delete_proc_policy
-				(CCS_PROC_POLICY_EXCEPTION_POLICY);
-		result = ccs_move_file_to_proc
-			(CCS_PROC_POLICY_EXCEPTION_POLICY);
+			result = tomoyo_delete_proc_policy
+				(TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
+		result = tomoyo_move_file_to_proc
+			(TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
 		break;
 	case 'd':
 		if (!refresh_policy) {
-			result = ccs_move_file_to_proc
-				(CCS_PROC_POLICY_DOMAIN_POLICY);
+			result = tomoyo_move_file_to_proc
+				(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
 			break;
 		}
-		result = ccs_update_domain_policy
+		result = tomoyo_update_domain_policy
 			(&proc_policy, &file_policy, NULL,
-			 CCS_PROC_POLICY_DOMAIN_POLICY);
-		ccs_clear_domain_policy(&proc_policy);
-		ccs_clear_domain_policy(&file_policy);
+			 TOMOYO_PROC_POLICY_DOMAIN_POLICY);
+		tomoyo_clear_domain_policy(&proc_policy);
+		tomoyo_clear_domain_policy(&file_policy);
 		break;
 	}
 	return !result;
 usage:
 	printf("%s {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
 	       "-e  : Read from stdin and append to "
-	       "/proc/ccs/exception_policy .\n"
+	       "/sys/kernel/security/tomoyo/exception_policy .\n"
 	       "-ef : Read from stdin and overwrite "
-	       "/proc/ccs/exception_policy .\n"
-	       "-d  : Read from stdin and append to /proc/ccs/domain_policy "
+	       "/sys/kernel/security/tomoyo/exception_policy .\n"
+	       "-d  : Read from stdin and append to /sys/kernel/security/tomoyo/domain_policy "
 	       ".\n"
-	       "-df : Read from stdin and overwrite /proc/ccs/domain_policy "
+	       "-df : Read from stdin and overwrite /sys/kernel/security/tomoyo/domain_policy "
 	       ".\n"
-	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
-	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
-	       "-s  : Read from stdin and append to /proc/ccs/stat .\n"
-	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
-	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+	       "-m  : Read from stdin and append to /sys/kernel/security/tomoyo/manager .\n"
+	       "-p  : Read from stdin and append to /sys/kernel/security/tomoyo/profile .\n"
+	       "-s  : Read from stdin and append to /sys/kernel/security/tomoyo/stat .\n"
+	       "remote_ip:remote_port : Write to tomoyo-editpolicy-agent "
+	       "listening at remote_ip:remote_port rather than /sys/kernel/security/tomoyo/ "
 	       "directory.\n", argv[0]);
 	return 1;
 }
