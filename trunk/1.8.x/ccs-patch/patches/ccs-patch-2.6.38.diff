@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for 2.6.38.2.
+This is TOMOYO Linux patch for 2.6.38.3.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.38.2.tar.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.38.3.tar.bz2
 ---
  fs/compat.c               |    2 
  fs/exec.c                 |    2 
@@ -29,9 +29,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  security/security.c       |  142 ++++++++++++++++++++++++++++++++++++++--------
  25 files changed, 254 insertions(+), 50 deletions(-)
 
---- linux-2.6.38.2.orig/fs/compat.c
-+++ linux-2.6.38.2/fs/compat.c
-@@ -1529,7 +1529,7 @@ int compat_do_execve(char * filename,
+--- linux-2.6.38.3.orig/fs/compat.c
++++ linux-2.6.38.3/fs/compat.c
+@@ -1529,8 +1529,8 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -40,9 +40,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.38.2.orig/fs/exec.c
-+++ linux-2.6.38.2/fs/exec.c
-@@ -1443,7 +1443,7 @@ int do_execve(const char * filename,
+--- linux-2.6.38.3.orig/fs/exec.c
++++ linux-2.6.38.3/fs/exec.c
+@@ -1443,8 +1443,8 @@ int do_execve(const char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -51,9 +51,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.38.2.orig/fs/open.c
-+++ linux-2.6.38.2/fs/open.c
-@@ -1022,6 +1022,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-2.6.38.3.orig/fs/open.c
++++ linux-2.6.38.3/fs/open.c
+@@ -1022,7 +1022,9 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -62,21 +62,21 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.38.2.orig/fs/proc/version.c
-+++ linux-2.6.38.2/fs/proc/version.c
-@@ -32,3 +32,10 @@ static int __init proc_version_init(void
+--- linux-2.6.38.3.orig/fs/proc/version.c
++++ linux-2.6.38.3/fs/proc/version.c
+@@ -32,4 +32,11 @@ static int __init proc_version_init(void
  	return 0;
  }
  module_init(proc_version_init);
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.38.2 2011/03/28\n");
++	printk(KERN_INFO "Hook version: 2.6.38.3 2011/04/15\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.38.2.orig/include/linux/init_task.h
-+++ linux-2.6.38.2/include/linux/init_task.h
+--- linux-2.6.38.3.orig/include/linux/init_task.h
++++ linux-2.6.38.3/include/linux/init_task.h
 @@ -124,6 +124,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
@@ -92,7 +92,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -192,6 +200,7 @@ extern struct cred init_cred;
+@@ -192,7 +200,8 @@ extern struct cred init_cred;
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
  	INIT_TASK_RCU_PREEMPT(tsk)					\
@@ -100,8 +100,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  
---- linux-2.6.38.2.orig/include/linux/sched.h
-+++ linux-2.6.38.2/include/linux/sched.h
+--- linux-2.6.38.3.orig/include/linux/sched.h
++++ linux-2.6.38.3/include/linux/sched.h
 @@ -44,6 +44,8 @@
  
  #ifdef __KERNEL__
@@ -111,7 +111,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  struct sched_param {
  	int sched_priority;
  };
-@@ -1528,6 +1530,10 @@ struct task_struct {
+@@ -1528,7 +1530,11 @@ struct task_struct {
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
@@ -122,8 +122,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.38.2.orig/include/linux/security.h
-+++ linux-2.6.38.2/include/linux/security.h
+--- linux-2.6.38.3.orig/include/linux/security.h
++++ linux-2.6.38.3/include/linux/security.h
 @@ -36,6 +36,7 @@
  #include <linux/xfrm.h>
  #include <linux/slab.h>
@@ -297,7 +297,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2892,24 +2900,26 @@ static inline int security_path_rename(s
+@@ -2892,25 +2900,27 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -328,9 +328,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-2.6.38.2.orig/include/net/ip.h
-+++ linux-2.6.38.2/include/net/ip.h
-@@ -198,6 +198,8 @@ extern void inet_get_local_port_range(in
+--- linux-2.6.38.3.orig/include/net/ip.h
++++ linux-2.6.38.3/include/net/ip.h
+@@ -198,7 +198,9 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
  {
@@ -339,8 +339,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.38.2.orig/kernel/fork.c
-+++ linux-2.6.38.2/kernel/fork.c
+--- linux-2.6.38.3.orig/kernel/fork.c
++++ linux-2.6.38.3/kernel/fork.c
 @@ -190,6 +190,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -359,7 +359,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1341,6 +1345,7 @@ bad_fork_cleanup_semundo:
+@@ -1341,7 +1345,8 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -367,8 +367,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-2.6.38.2.orig/kernel/kexec.c
-+++ linux-2.6.38.2/kernel/kexec.c
+--- linux-2.6.38.3.orig/kernel/kexec.c
++++ linux-2.6.38.3/kernel/kexec.c
 @@ -39,6 +39,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -377,7 +377,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t __percpu *crash_notes;
-@@ -947,6 +948,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -947,7 +948,9 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -386,8 +386,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.38.2.orig/kernel/module.c
-+++ linux-2.6.38.2/kernel/module.c
+--- linux-2.6.38.3.orig/kernel/module.c
++++ linux-2.6.38.3/kernel/module.c
 @@ -57,6 +57,7 @@
  #include <linux/kmemleak.h>
  #include <linux/jump_label.h>
@@ -405,7 +405,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2867,6 +2870,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2867,7 +2870,9 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -414,8 +414,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* Do all the hard work */
  	mod = load_module(umod, len, uargs);
---- linux-2.6.38.2.orig/kernel/ptrace.c
-+++ linux-2.6.38.2/kernel/ptrace.c
+--- linux-2.6.38.3.orig/kernel/ptrace.c
++++ linux-2.6.38.3/kernel/ptrace.c
 @@ -699,6 +699,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -425,7 +425,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -843,6 +845,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -843,7 +845,9 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -434,9 +434,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.38.2.orig/kernel/sched.c
-+++ linux-2.6.38.2/kernel/sched.c
-@@ -4654,6 +4654,8 @@ int can_nice(const struct task_struct *p
+--- linux-2.6.38.3.orig/kernel/sched.c
++++ linux-2.6.38.3/kernel/sched.c
+@@ -4654,7 +4654,9 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -445,8 +445,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.38.2.orig/kernel/signal.c
-+++ linux-2.6.38.2/kernel/signal.c
+--- linux-2.6.38.3.orig/kernel/signal.c
++++ linux-2.6.38.3/kernel/signal.c
 @@ -2328,6 +2328,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -483,7 +483,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2449,6 +2457,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2449,7 +2457,9 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -492,8 +492,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.38.2.orig/kernel/sys.c
-+++ linux-2.6.38.2/kernel/sys.c
+--- linux-2.6.38.3.orig/kernel/sys.c
++++ linux-2.6.38.3/kernel/sys.c
 @@ -158,6 +158,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -523,7 +523,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1230,6 +1238,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1230,7 +1238,9 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -532,8 +532,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.38.2.orig/kernel/time/ntp.c
-+++ linux-2.6.38.2/kernel/time/ntp.c
+--- linux-2.6.38.3.orig/kernel/time/ntp.c
++++ linux-2.6.38.3/kernel/time/ntp.c
 @@ -15,6 +15,7 @@
  #include <linux/time.h>
  #include <linux/mm.h>
@@ -542,7 +542,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * NTP timekeeping variables:
-@@ -628,10 +629,15 @@ int do_adjtimex(struct timex *txc)
+@@ -628,11 +629,16 @@ int do_adjtimex(struct timex *txc)
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -558,9 +558,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.38.2.orig/net/ipv4/raw.c
-+++ linux-2.6.38.2/net/ipv4/raw.c
-@@ -681,6 +681,10 @@ static int raw_recvmsg(struct kiocb *ioc
+--- linux-2.6.38.3.orig/net/ipv4/raw.c
++++ linux-2.6.38.3/net/ipv4/raw.c
+@@ -681,7 +681,11 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -571,9 +571,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.38.2.orig/net/ipv4/udp.c
-+++ linux-2.6.38.2/net/ipv4/udp.c
-@@ -1138,6 +1138,10 @@ try_again:
+--- linux-2.6.38.3.orig/net/ipv4/udp.c
++++ linux-2.6.38.3/net/ipv4/udp.c
+@@ -1138,7 +1138,11 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -584,9 +584,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	ulen = skb->len - sizeof(struct udphdr);
  	if (len > ulen)
---- linux-2.6.38.2.orig/net/ipv6/raw.c
-+++ linux-2.6.38.2/net/ipv6/raw.c
-@@ -468,6 +468,10 @@ static int rawv6_recvmsg(struct kiocb *i
+--- linux-2.6.38.3.orig/net/ipv6/raw.c
++++ linux-2.6.38.3/net/ipv6/raw.c
+@@ -468,7 +468,11 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -597,9 +597,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.38.2.orig/net/ipv6/udp.c
-+++ linux-2.6.38.2/net/ipv6/udp.c
-@@ -361,6 +361,10 @@ try_again:
+--- linux-2.6.38.3.orig/net/ipv6/udp.c
++++ linux-2.6.38.3/net/ipv6/udp.c
+@@ -361,7 +361,11 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -610,9 +610,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	ulen = skb->len - sizeof(struct udphdr);
  	if (len > ulen)
---- linux-2.6.38.2.orig/net/socket.c
-+++ linux-2.6.38.2/net/socket.c
-@@ -1517,6 +1517,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+--- linux-2.6.38.3.orig/net/socket.c
++++ linux-2.6.38.3/net/socket.c
+@@ -1517,7 +1517,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -623,9 +623,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-2.6.38.2.orig/net/unix/af_unix.c
-+++ linux-2.6.38.2/net/unix/af_unix.c
-@@ -1744,6 +1744,10 @@ static int unix_dgram_recvmsg(struct kio
+--- linux-2.6.38.3.orig/net/unix/af_unix.c
++++ linux-2.6.38.3/net/unix/af_unix.c
+@@ -1744,7 +1744,11 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -636,9 +636,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-2.6.38.2.orig/security/Kconfig
-+++ linux-2.6.38.2/security/Kconfig
-@@ -224,5 +224,7 @@ config DEFAULT_SECURITY
+--- linux-2.6.38.3.orig/security/Kconfig
++++ linux-2.6.38.3/security/Kconfig
+@@ -224,6 +224,8 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
  
@@ -646,17 +646,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
  endmenu
  
---- linux-2.6.38.2.orig/security/Makefile
-+++ linux-2.6.38.2/security/Makefile
-@@ -26,3 +26,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+--- linux-2.6.38.3.orig/security/Makefile
++++ linux-2.6.38.3/security/Makefile
+@@ -26,4 +26,7 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
  obj-$(CONFIG_IMA)			+= integrity/ima/built-in.o
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-2.6.38.2.orig/security/security.c
-+++ linux-2.6.38.2/security/security.c
+--- linux-2.6.38.3.orig/security/security.c
++++ linux-2.6.38.3/security/security.c
 @@ -203,7 +203,10 @@ int security_syslog(int type)
  
  int security_settime(struct timespec *ts, struct timezone *tz)
