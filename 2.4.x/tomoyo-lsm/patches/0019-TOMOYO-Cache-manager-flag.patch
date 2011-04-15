@@ -7,10 +7,10 @@ compare it, store it when it was authorized for the first time into per a
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   38 ++++++++++++++++++--------------------
+ security/tomoyo/common.c |   34 ++++++++++++++++------------------
  security/tomoyo/common.h |    8 ++++++++
  security/tomoyo/domain.c |    3 +++
- 3 files changed, 29 insertions(+), 20 deletions(-)
+ 3 files changed, 27 insertions(+), 18 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -19,11 +19,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_manager *ptr;
  	const char *exe;
 -	const struct task_struct *task = current;
--	const struct tomoyo_path_info *domainname = tomoyo_current_domain()
--		->domainname;
 +	struct tomoyo_security *task = tomoyo_current_security();
-+	const struct tomoyo_path_info *domainname
-+		= tomoyo_current_domain()->domainname;
+ 	const struct tomoyo_path_info *domainname
+ 		= tomoyo_current_domain()->domainname;
  	bool found = false;
  
  	if (!tomoyo_policy_loaded)

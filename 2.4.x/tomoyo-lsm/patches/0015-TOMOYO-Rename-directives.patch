@@ -4,11 +4,11 @@ Convert "allow_..." style directives to "file ..." style directives.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  141 ++++++++++++++++++++++++++++++++---------------
- security/tomoyo/common.h |   46 ++++++++-------
- security/tomoyo/file.c   |   27 ++++++---
- security/tomoyo/mount.c  |    3 -
- 4 files changed, 143 insertions(+), 74 deletions(-)
+ security/tomoyo/common.c |  159 +++++++++++++++++++++++++++++++----------------
+ security/tomoyo/common.h |   46 +++++++------
+ security/tomoyo/file.c   |   27 +++++--
+ security/tomoyo/mount.c  |    3 
+ 4 files changed, 150 insertions(+), 85 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -244,6 +244,32 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return true;
  }
  
+@@ -1283,18 +1338,14 @@ static bool tomoyo_read_policy(struct to
+ 			{
+ 				struct tomoyo_transition_control *ptr =
+ 					container_of(acl, typeof(*ptr), head);
+-				tomoyo_set_string(head,
+-						  tomoyo_transition_type
++				tomoyo_set_string(head, tomoyo_transition_type
+ 						  [ptr->type]);
+-				if (ptr->program)
+-					tomoyo_set_string(head,
+-							  ptr->program->name);
+-				if (ptr->program && ptr->domainname)
+-					tomoyo_set_string(head, " from ");
+-				if (ptr->domainname)
+-					tomoyo_set_string(head,
+-							  ptr->domainname->
+-							  name);
++				tomoyo_set_string(head, ptr->program ?
++						  ptr->program->name : "any");
++				tomoyo_set_string(head, " from ");
++				tomoyo_set_string(head, ptr->domainname ?
++						  ptr->domainname->name :
++						  "any");
+ 			}
+ 			break;
+ 		case TOMOYO_ID_AGGREGATOR:
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
 @@ -71,8 +71,6 @@ enum tomoyo_group_id {

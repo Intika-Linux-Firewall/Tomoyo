@@ -98,7 +98,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return -EINVAL;
  }
  
-@@ -1395,6 +1426,15 @@ static void tomoyo_read_exception(struct
+@@ -1391,6 +1422,15 @@ static void tomoyo_read_exception(struct
  		head->r.step++;
  	if (head->r.step < TOMOYO_MAX_POLICY + TOMOYO_MAX_GROUP)
  		return;
@@ -114,7 +114,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	head->r.eof = true;
  }
  
-@@ -1925,7 +1965,8 @@ int tomoyo_write_control(struct file *fi
+@@ -1921,7 +1961,8 @@ int tomoyo_write_control(struct file *fi
  		return -EFAULT;
  	/* Don't allow updating policies by non manager programs. */
  	if (head->write != tomoyo_write_pid &&

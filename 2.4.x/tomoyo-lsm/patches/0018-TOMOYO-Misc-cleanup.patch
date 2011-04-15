@@ -1,205 +1,15 @@
 Subject: TOMOYO: Misc cleanup.
 
-Update comments, sort symbols. Use string table etc.
+Update comments, sort symbols in security/tomoyo/common.h .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/audit.c         |    2 
- security/tomoyo/common.c        |   54 +-
- security/tomoyo/common.h        | 1067 ++++++++++++++++------------------------
- security/tomoyo/domain.c        |   19 
- security/tomoyo/file.c          |   22 
- security/tomoyo/gc.c            |  174 +++++-
- security/tomoyo/memory.c        |   16 
- security/tomoyo/mount.c         |   62 +-
- security/tomoyo/securityfs_if.c |    2 
- security/tomoyo/util.c          |    2 
- 10 files changed, 690 insertions(+), 730 deletions(-)
+ security/tomoyo/common.h | 1020 +++++++++++++++++++----------------------------
+ 1 file changed, 430 insertions(+), 590 deletions(-)
 
---- security-testing-2.6.orig/security/tomoyo/audit.c
-+++ security-testing-2.6/security/tomoyo/audit.c
-@@ -110,7 +110,7 @@ char *tomoyo_init_log(struct tomoyo_requ
- 	char *buf = NULL;
- 	const char *header = NULL;
- 	int pos;
--	const char *domainname = tomoyo_domain()->domainname->name;
-+	const char *domainname = tomoyo_current_domain()->domainname->name;
- 	header = tomoyo_print_header(r);
- 	if (!header)
- 		return NULL;
---- security-testing-2.6.orig/security/tomoyo/common.c
-+++ security-testing-2.6/security/tomoyo/common.c
-@@ -628,7 +628,7 @@ static int tomoyo_update_manager_entry(c
- static int tomoyo_write_manager(struct tomoyo_io_buffer *head)
- {
- 	char *data = head->write_buf;
--	bool is_delete = tomoyo_str_starts(&data, TOMOYO_KEYWORD_DELETE);
-+	bool is_delete = tomoyo_str_starts(&data, "delete ");
- 
- 	if (!strcmp(data, "manage_by_non_root")) {
- 		tomoyo_manage_by_non_root = !is_delete;
-@@ -675,7 +675,8 @@ static bool tomoyo_manager(void)
- 	struct tomoyo_manager *ptr;
- 	const char *exe;
- 	const struct task_struct *task = current;
--	const struct tomoyo_path_info *domainname = tomoyo_domain()->domainname;
-+	const struct tomoyo_path_info *domainname = tomoyo_current_domain()
-+		->domainname;
- 	bool found = false;
- 
- 	if (!tomoyo_policy_loaded)
-@@ -746,7 +747,7 @@ static bool tomoyo_select_one(struct tom
- 		else
- 			p = find_task_by_vpid(pid);
- 		if (p)
--			domain = tomoyo_real_domain(p);
-+			domain = tomoyo_task_domain(p);
- 		read_unlock(&tasklist_lock);
- 		rcu_read_unlock();
- 	} else if (!strncmp(data, "domain=", 7)) {
-@@ -855,9 +856,9 @@ static int tomoyo_write_domain(struct to
- 	bool is_select = false;
- 	unsigned int profile;
- 
--	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_DELETE))
-+	if (tomoyo_str_starts(&data, "delete "))
- 		is_delete = true;
--	else if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_SELECT))
-+	else if (tomoyo_str_starts(&data, "select "))
- 		is_select = true;
- 	if (is_select && tomoyo_select_one(head, data))
- 		return -EAGAIN;
-@@ -878,7 +879,7 @@ static int tomoyo_write_domain(struct to
- 	if (!domain)
- 		return -EINVAL;
- 
--	if (sscanf(data, TOMOYO_KEYWORD_USE_PROFILE "%u", &profile) == 1
-+	if (sscanf(data, "use_profile %u", &profile) == 1
- 	    && profile < TOMOYO_MAX_PROFILES) {
- 		if (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded)
- 			domain->profile = (u8) profile;
-@@ -890,11 +891,11 @@ static int tomoyo_write_domain(struct to
- 			domain->group = (u8) profile;
- 		return 0;
- 	}
--	if (!strcmp(data, TOMOYO_KEYWORD_QUOTA_EXCEEDED)) {
-+	if (!strcmp(data, "quota_exceeded")) {
- 		domain->quota_warned = !is_delete;
- 		return 0;
- 	}
--	if (!strcmp(data, TOMOYO_KEYWORD_TRANSITION_FAILED)) {
-+	if (!strcmp(data, "transition_failed")) {
- 		domain->transition_failed = !is_delete;
- 		return 0;
- 	}
-@@ -1080,8 +1081,7 @@ static void tomoyo_read_domain(struct to
- 			/* Print domainname and flags. */
- 			tomoyo_set_string(head, domain->domainname->name);
- 			tomoyo_set_lf(head);
--			tomoyo_io_printf(head,
--					 TOMOYO_KEYWORD_USE_PROFILE "%u\n",
-+			tomoyo_io_printf(head, "use_profile %u\n",
- 					 domain->profile);
- 			tomoyo_io_printf(head, "use_group %u\n",
- 					 domain->group);
-@@ -1225,7 +1225,7 @@ static void tomoyo_read_pid(struct tomoy
- 	else
- 		p = find_task_by_vpid(pid);
- 	if (p)
--		domain = tomoyo_real_domain(p);
-+		domain = tomoyo_task_domain(p);
- 	read_unlock(&tasklist_lock);
- 	rcu_read_unlock();
- 	if (!domain)
-@@ -1234,18 +1234,18 @@ static void tomoyo_read_pid(struct tomoy
- 	tomoyo_set_string(head, domain->domainname->name);
- }
- 
-+/* String table for domain transition control keywords. */
- static const char *tomoyo_transition_type[TOMOYO_MAX_TRANSITION_TYPE] = {
--	[TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE]
--	= TOMOYO_KEYWORD_NO_INITIALIZE_DOMAIN,
--	[TOMOYO_TRANSITION_CONTROL_INITIALIZE]
--	= TOMOYO_KEYWORD_INITIALIZE_DOMAIN,
--	[TOMOYO_TRANSITION_CONTROL_NO_KEEP] = TOMOYO_KEYWORD_NO_KEEP_DOMAIN,
--	[TOMOYO_TRANSITION_CONTROL_KEEP] = TOMOYO_KEYWORD_KEEP_DOMAIN
-+	[TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
-+	[TOMOYO_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
-+	[TOMOYO_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
-+	[TOMOYO_TRANSITION_CONTROL_KEEP]          = "keep_domain ",
- };
- 
-+/* String table for grouping keywords. */
- static const char *tomoyo_group_name[TOMOYO_MAX_GROUP] = {
--	[TOMOYO_PATH_GROUP] = TOMOYO_KEYWORD_PATH_GROUP,
--	[TOMOYO_NUMBER_GROUP] = TOMOYO_KEYWORD_NUMBER_GROUP
-+	[TOMOYO_PATH_GROUP]   = "path_group ",
-+	[TOMOYO_NUMBER_GROUP] = "number_group ",
- };
- 
- /**
-@@ -1260,13 +1260,13 @@ static const char *tomoyo_group_name[TOM
- static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
- {
- 	char *data = head->write_buf;
--	bool is_delete = tomoyo_str_starts(&data, TOMOYO_KEYWORD_DELETE);
-+	bool is_delete = tomoyo_str_starts(&data, "delete ");
- 	u8 i;
- 	static const struct {
- 		const char *keyword;
- 		int (*write) (char *, const bool);
- 	} tomoyo_callback[1] = {
--		{ TOMOYO_KEYWORD_AGGREGATOR, tomoyo_write_aggregator },
-+		{ "aggregator ", tomoyo_write_aggregator },
- 	};
- 
- 	if (!is_delete && tomoyo_str_starts(&data, "select ") &&
-@@ -1316,7 +1316,7 @@ static bool tomoyo_read_group(struct tom
- {
- 	list_for_each_cookie(head->r.group, &tomoyo_group_list[idx]) {
- 		struct tomoyo_group *group =
--			list_entry(head->r.group, typeof(*group), list);
-+			list_entry(head->r.group, typeof(*group), head.list);
- 		list_for_each_cookie(head->r.acl, &group->member_list) {
- 			struct tomoyo_acl_head *ptr =
- 				list_entry(head->r.acl, typeof(*ptr), list);
-@@ -1387,8 +1387,7 @@ static bool tomoyo_read_policy(struct to
- 			{
- 				struct tomoyo_aggregator *ptr =
- 					container_of(acl, typeof(*ptr), head);
--				tomoyo_set_string(head,
--						  TOMOYO_KEYWORD_AGGREGATOR);
-+				tomoyo_set_string(head, "aggregator ");
- 				tomoyo_set_string(head,
- 						  ptr->original_name->name);
- 				tomoyo_set_space(head);
-@@ -1490,7 +1489,7 @@ static void tomoyo_add_entry(char *heade
- 		return;
- 	snprintf(buffer, len - 1, "%s", cp);
- 	tomoyo_normalize_line(buffer);
--	tomoyo_write_domain2(buffer, tomoyo_domain(), false);
-+	tomoyo_write_domain2(buffer, tomoyo_current_domain(), false);
- 	kfree(buffer);
- }
- 
-@@ -1752,11 +1751,12 @@ static void tomoyo_read_self_domain(stru
- {
- 	if (!head->r.eof) {
- 		/*
--		 * tomoyo_domain()->domainname != NULL
-+		 * tomoyo_current_domain()->domainname != NULL
- 		 * because every process belongs to a domain and
- 		 * the domain's name cannot be NULL.
- 		 */
--		tomoyo_io_printf(head, "%s", tomoyo_domain()->domainname->name);
-+		tomoyo_io_printf(head, "%s", tomoyo_current_domain()
-+				 ->domainname->name);
- 		head->r.eof = true;
- 	}
- }
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -23,111 +23,58 @@
+@@ -23,98 +23,58 @@
  #include <linux/poll.h>
  struct linux_binprm;
  
@@ -261,19 +71,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_MAX_GROUP
  };
  
--/* Keywords for ACLs. */
--#define TOMOYO_KEYWORD_AGGREGATOR                "aggregator "
--#define TOMOYO_KEYWORD_DELETE                    "delete "
--#define TOMOYO_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
--#define TOMOYO_KEYWORD_KEEP_DOMAIN               "keep_domain "
--#define TOMOYO_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
--#define TOMOYO_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
--#define TOMOYO_KEYWORD_PATH_GROUP                "path_group "
--#define TOMOYO_KEYWORD_NUMBER_GROUP              "number_group "
--#define TOMOYO_KEYWORD_SELECT                    "select "
--#define TOMOYO_KEYWORD_USE_PROFILE               "use_profile "
--#define TOMOYO_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
--#define TOMOYO_KEYWORD_TRANSITION_FAILED         "transition_failed"
 -/* A domain definition starts with <kernel>. */
 -#define TOMOYO_ROOT_NAME                         "<kernel>"
 -#define TOMOYO_ROOT_NAME_LEN                     (sizeof(TOMOYO_ROOT_NAME) - 1)
@@ -350,7 +147,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_memory_stat_type {
  	TOMOYO_MEMORY_POLICY,
  	TOMOYO_MEMORY_AUDIT,
-@@ -135,12 +82,26 @@ enum tomoyo_memory_stat_type {
+@@ -122,12 +82,26 @@ enum tomoyo_memory_stat_type {
  	TOMOYO_MAX_MEMORY_STAT
  };
  
@@ -377,7 +174,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_path2_acl_index {
  	TOMOYO_TYPE_LINK,
  	TOMOYO_TYPE_RENAME,
-@@ -148,6 +109,22 @@ enum tomoyo_path2_acl_index {
+@@ -135,6 +109,22 @@ enum tomoyo_path2_acl_index {
  	TOMOYO_MAX_PATH2_OPERATION
  };
  
@@ -400,7 +197,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_path_number_acl_index {
  	TOMOYO_TYPE_CREATE,
  	TOMOYO_TYPE_MKDIR,
-@@ -160,6 +137,28 @@ enum tomoyo_path_number_acl_index {
+@@ -147,6 +137,28 @@ enum tomoyo_path_number_acl_index {
  	TOMOYO_MAX_PATH_NUMBER_OPERATION
  };
  
@@ -429,8 +226,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_securityfs_interface_index {
  	TOMOYO_DOMAINPOLICY,
  	TOMOYO_EXCEPTIONPOLICY,
-@@ -174,62 +173,138 @@ enum tomoyo_securityfs_interface_index {
- 	TOMOYO_MANAGER
+@@ -173,57 +185,65 @@ enum tomoyo_special_mount {
+ 	TOMOYO_MAX_SPECIAL_MOUNT
  };
  
 -enum tomoyo_mac_index {
@@ -457,21 +254,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	TOMOYO_MAC_FILE_UMOUNT,
 -	TOMOYO_MAC_FILE_PIVOT_ROOT,
 -	TOMOYO_MAX_MAC_INDEX
-+/* Index numbers for special mount operations. */
-+enum tomoyo_special_mount {
-+	TOMOYO_MOUNT_BIND,            /* mount --bind /source /dest   */
-+	TOMOYO_MOUNT_MOVE,            /* mount --move /old /new       */
-+	TOMOYO_MOUNT_REMOUNT,         /* mount -o remount /dir        */
-+	TOMOYO_MOUNT_MAKE_UNBINDABLE, /* mount --make-unbindable /dir */
-+	TOMOYO_MOUNT_MAKE_PRIVATE,    /* mount --make-private /dir    */
-+	TOMOYO_MOUNT_MAKE_SLAVE,      /* mount --make-slave /dir      */
-+	TOMOYO_MOUNT_MAKE_SHARED,     /* mount --make-shared /dir     */
-+	TOMOYO_MAX_SPECIAL_MOUNT
- };
- 
--enum tomoyo_mac_category_index {
--	TOMOYO_MAC_CATEGORY_FILE,
--	TOMOYO_MAX_MAC_CATEGORY_INDEX
 +/* Index numbers for domain transition control keywords. */
 +enum tomoyo_transition_type {
 +	/* Do not change this order, */
@@ -482,13 +264,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_MAX_TRANSITION_TYPE
  };
  
--#define TOMOYO_RETRY_REQUEST 1 /* Retry this request. */
--
--/* Index numbers for profile's PREFERENCE values. */
--enum tomoyo_pref_index {
--	TOMOYO_PREF_MAX_AUDIT_LOG,
--	TOMOYO_PREF_MAX_LEARNING_ENTRY,
--	TOMOYO_MAX_PREF
+-enum tomoyo_mac_category_index {
+-	TOMOYO_MAC_CATEGORY_FILE,
+-	TOMOYO_MAX_MAC_CATEGORY_INDEX
 +/* Value type definition. */
 +enum tomoyo_value_type {
 +	TOMOYO_VALUE_TYPE_INVALID,
@@ -497,24 +275,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_VALUE_TYPE_HEXADECIMAL,
  };
  
--/********** Structure definitions. **********/
+-#define TOMOYO_RETRY_REQUEST 1 /* Retry this request. */
 +/* Constants definition for internal use. */
  
- /*
-- * tomoyo_acl_head is a structure which is used for holding elements not in
-- * domain policy.
-- * It has following fields.
-- *
-- *  (1) "list" which is linked to tomoyo_policy_list[] .
-- *  (2) "is_deleted" is a bool which is true if marked as deleted, false
-- *      otherwise.
+-/* Index numbers for profile's PREFERENCE values. */
+-enum tomoyo_pref_index {
+-	TOMOYO_PREF_MAX_AUDIT_LOG,
+-	TOMOYO_PREF_MAX_LEARNING_ENTRY,
+-	TOMOYO_MAX_PREF
+-};
++/*
 + * TOMOYO uses this hash only when appending a string into the string
 + * table. Frequency of appending strings is very low. So we don't need
 + * large (e.g. 64k) hash size. 256 will be sufficient.
-  */
++ */
 +#define TOMOYO_HASH_BITS  8
 +#define TOMOYO_MAX_HASH (1u<<TOMOYO_HASH_BITS)
-+
+ 
+-/********** Structure definitions. **********/
 +/* A domain definition starts with <kernel>. */
 +#define TOMOYO_ROOT_NAME                         "<kernel>"
 +#define TOMOYO_ROOT_NAME_LEN                     (sizeof(TOMOYO_ROOT_NAME) - 1)
@@ -527,14 +305,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Group number is an integer between 0 and 255. */
 +#define TOMOYO_MAX_ACL_GROUPS 256
-+
-+/*
+ 
+ /*
+- * tomoyo_acl_head is a structure which is used for holding elements not in
+- * domain policy.
+- * It has following fields.
+- *
+- *  (1) "list" which is linked to tomoyo_policy_list[] .
+- *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+- *      otherwise.
 + * Retry this request. Returned by tomoyo_supervisor() if policy violation has
 + * occurred in enforcing mode and the userspace daemon decided to retry.
 + *
 + * We must choose a positive value in order to distinguish "granted" (which is
 + * 0) and "rejected" (which is a negative value) and "retry".
-+ */
+  */
 +#define TOMOYO_RETRY_REQUEST 1
 +
 +/* Size of read buffer for /sys/kernel/security/tomoyo/ interface. */
@@ -549,14 +334,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_acl_head {
  	struct list_head list;
  	bool is_deleted;
- } __packed;
+@@ -235,6 +255,56 @@ struct tomoyo_shared_acl_head {
+ 	atomic_t users;
+ } __attribute__((__packed__));
  
-+/* Common header for shared entries. */
-+struct tomoyo_shared_acl_head {
-+	struct list_head list;
-+	atomic_t users;
-+} __attribute__((__packed__));
-+
 +/* Common header for individual entries. */
 +struct tomoyo_acl_info {
 +	struct list_head list;
@@ -610,7 +391,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Structure for request info. */
  struct tomoyo_request_info {
  	/*
-@@ -296,26 +371,7 @@ struct tomoyo_request_info {
+@@ -301,26 +371,7 @@ struct tomoyo_request_info {
  	u8 type;
  };
  
@@ -638,7 +419,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_path_info {
  	const char *name;
  	u32 hash;          /* = full_name_hash(name, strlen(name)) */
-@@ -324,97 +380,7 @@ struct tomoyo_path_info {
+@@ -329,95 +380,7 @@ struct tomoyo_path_info {
  	bool is_patterned; /* = tomoyo_path_contains_pattern(name) */
  };
  
@@ -647,8 +428,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 - * "struct tomoyo_path_info" into tomoyo_name_list .
 - */
 -struct tomoyo_name {
--	struct list_head list;
--	atomic_t users;
+-	struct tomoyo_shared_acl_head head;
 -	struct tomoyo_path_info entry;
 -};
 -
@@ -668,10 +448,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -
 -/* Structure for "path_group"/"number_group" directive. */
 -struct tomoyo_group {
--	struct list_head list;
+-	struct tomoyo_shared_acl_head head;
 -	const struct tomoyo_path_info *group_name;
 -	struct list_head member_list;
--	atomic_t users;
 -};
 -
 -/* Structure for "path_group" directive. */
@@ -737,7 +516,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_domain_info {
  	struct list_head list;
  	struct list_head acl_info_list;
-@@ -428,17 +394,38 @@ struct tomoyo_domain_info {
+@@ -431,17 +394,38 @@ struct tomoyo_domain_info {
  };
  
  /*
@@ -787,7 +566,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  struct tomoyo_path_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_ACL */
-@@ -447,19 +434,18 @@ struct tomoyo_path_acl {
+@@ -450,19 +434,18 @@ struct tomoyo_path_acl {
  };
  
  /*
@@ -819,7 +598,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  struct tomoyo_path_number_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_NUMBER_ACL */
-@@ -469,20 +455,7 @@ struct tomoyo_path_number_acl {
+@@ -472,20 +455,7 @@ struct tomoyo_path_number_acl {
  	struct tomoyo_number_union number;
  };
  
@@ -841,7 +620,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_mkdev_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_MKDEV_ACL */
  	u8 perm; /* Bitmask of values in "enum tomoyo_mkdev_acl_index". */
-@@ -492,39 +465,7 @@ struct tomoyo_mkdev_acl {
+@@ -495,39 +465,7 @@ struct tomoyo_mkdev_acl {
  	struct tomoyo_number_union minor;
  };
  
@@ -882,7 +661,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_mount_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_MOUNT_ACL */
  	struct tomoyo_name_union dev_name;
-@@ -533,6 +474,12 @@ struct tomoyo_mount_acl {
+@@ -536,6 +474,12 @@ struct tomoyo_mount_acl {
  	struct tomoyo_number_union flags;
  };
  
@@ -895,7 +674,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Structure for holding a line from /sys/kernel/security/tomoyo/ interface. */
  struct tomoyo_acl_param {
  	char *data;
-@@ -540,10 +487,8 @@ struct tomoyo_acl_param {
+@@ -543,10 +487,8 @@ struct tomoyo_acl_param {
  	bool is_delete;
  };
  
@@ -907,7 +686,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * interfaces.
   */
  struct tomoyo_io_buffer {
-@@ -588,62 +533,7 @@ struct tomoyo_io_buffer {
+@@ -591,62 +533,7 @@ struct tomoyo_io_buffer {
  	u8 type;
  };
  
@@ -971,10 +750,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_profile {
  	const struct tomoyo_path_info *comment;
  	u8 default_config;
-@@ -678,214 +568,69 @@ struct tomoyo_security {
- 	 * do_execve() failed, NULL otherwise. Only current thread can access
- 	 * this member.
- 	 */
+@@ -678,218 +565,72 @@ struct tomoyo_security {
+ 	struct tomoyo_domain_info *tomoyo_domain_info;
+ 	/*
+ 	 * Holds previous tomoyo_domain_info during do_execve() in case
+-	 * do_execve() failed, NULL otherwise. Only current thread can access
+-	 * this member.
+-	 */
 -	struct tomoyo_domain_info *previous_domain_info;
 -	struct rcu_head rcu;
 -};
@@ -1023,6 +805,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -{
 -	return tomoyo_find_task_security(current)->tomoyo_domain_info;
 -}
++	 * do_execve() failed, NULL otherwise. Only current thread can access
++	 * this member.
++	 */
 +	struct tomoyo_domain_info *previous_domain_info;
 +	struct rcu_head rcu;
 +};
@@ -1100,8 +885,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -/* Fill "struct tomoyo_request_info". */
 -int tomoyo_init_request_info(struct tomoyo_request_info *r, const u8 index);
 -/* Check permission for mount operation. */
--int tomoyo_mount_permission(char *dev_name, struct path *path, char *type,
--			    unsigned long flags, void *data_page);
+-int tomoyo_mount_permission(char *dev_name, struct path *path,
+-			    const char *type, unsigned long flags,
+-			    void *data_page);
 -/* Create "aggregator" entry in exception policy. */
 -int tomoyo_write_aggregator(char *data, const bool is_delete);
 -int tomoyo_write_transition_control(char *data, const bool is_delete,
@@ -1226,7 +1012,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
  			 struct tomoyo_acl_param *param,
  			 bool (*check_duplicate) (const struct tomoyo_acl_info
-@@ -901,72 +646,104 @@ int tomoyo_update_policy(struct tomoyo_a
+@@ -905,72 +646,104 @@ int tomoyo_update_policy(struct tomoyo_a
  						  *,
  						  const struct tomoyo_acl_head
  						  *));
@@ -1278,13 +1064,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -
 -char *tomoyo_read_token(struct tomoyo_acl_param *param);
 -bool tomoyo_permstr(const char *string, const char *keyword);
--
+ 
 -/********** External variable definitions. **********/
++/* Variable definition for internal use. */
  
 -/* Lock for GC. */
 -extern struct srcu_struct tomoyo_ss;
-+/* Variable definition for internal use. */
- 
+-
 -/* The list for "struct tomoyo_domain_info". */
 +extern bool tomoyo_policy_loaded;
 +extern bool tomoyo_registered;
@@ -1370,7 +1156,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
  				  const struct tomoyo_path_info *b)
  {
-@@ -997,45 +774,58 @@ static inline bool tomoyo_invalid(const 
+@@ -1001,6 +774,13 @@ static inline bool tomoyo_invalid(const 
  	return c && (c <= ' ' || c >= 127);
  }
  
@@ -1384,10 +1170,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
  {
  	if (name) {
- 		struct tomoyo_name *ptr =
- 			container_of(name, typeof(*ptr), entry);
--		atomic_dec(&ptr->users);
-+		atomic_dec(&ptr->head.users);
+@@ -1010,19 +790,42 @@ static inline void tomoyo_put_name(const
  	}
  }
  
@@ -1401,27 +1184,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline void tomoyo_put_group(struct tomoyo_group *group)
  {
  	if (group)
--		atomic_dec(&group->users);
--}
--
--static inline struct tomoyo_domain_info *tomoyo_domain(void)
--{
--	return tomoyo_current_domain();
--}
--
--static inline struct tomoyo_domain_info *tomoyo_real_domain(struct task_struct
--							    *task)
--{
--	return tomoyo_task_domain(task);
-+		atomic_dec(&group->head.users);
+ 		atomic_dec(&group->head.users);
  }
  
--static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
--					   const struct tomoyo_acl_info *p2)
--{
--	return p1->type == p2->type;
--}
--
 -static inline bool tomoyo_same_name_union
 -(const struct tomoyo_name_union *p1, const struct tomoyo_name_union *p2)
 +/**
@@ -1450,7 +1215,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_same_number_union
  (const struct tomoyo_number_union *p1, const struct tomoyo_number_union *p2)
  {
-@@ -1089,6 +879,43 @@ static inline int tomoyo_round2(size_t s
+@@ -1076,6 +879,43 @@ static inline int tomoyo_round2(size_t s
  #endif
  
  /**
@@ -1494,611 +1259,3 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * list_for_each_cookie - iterate over a list with cookie.
   * @pos:        the &struct list_head to use as a loop cursor.
   * @head:       the head for your list.
---- security-testing-2.6.orig/security/tomoyo/domain.c
-+++ security-testing-2.6/security/tomoyo/domain.c
-@@ -68,6 +68,20 @@ int tomoyo_update_policy(struct tomoyo_a
- }
- 
- /**
-+ * tomoyo_same_acl_head - Check for duplicated "struct tomoyo_acl_info" entry.
-+ *
-+ * @a: Pointer to "struct tomoyo_acl_info".
-+ * @b: Pointer to "struct tomoyo_acl_info".
-+ *
-+ * Returns true if @a == @b, false otherwise.
-+ */
-+static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
-+					const struct tomoyo_acl_info *p2)
-+{
-+	return p1->type == p2->type;
-+}
-+
-+/**
-  * tomoyo_update_domain - Update an entry for domain policy.
-  *
-  * @new_entry:       Pointer to "struct tomoyo_acl_info".
-@@ -98,7 +112,8 @@ int tomoyo_update_domain(struct tomoyo_a
- 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
- 		return error;
- 	list_for_each_entry_rcu(entry, &domain->acl_info_list, list) {
--		if (!check_duplicate(entry, new_entry))
-+		if (!tomoyo_same_acl_head(entry, new_entry) ||
-+		    !check_duplicate(entry, new_entry))
- 			continue;
- 		if (merge_duplicate)
- 			entry->is_deleted = merge_duplicate(entry, new_entry,
-@@ -444,7 +459,7 @@ int tomoyo_find_next_domain(struct linux
- 	struct tomoyo_request_info r;
- 	char *tmp = kzalloc(TOMOYO_EXEC_TMPSIZE, GFP_NOFS);
- 	struct tomoyo_security *security = tomoyo_current_security();
--	struct tomoyo_domain_info *old_domain = tomoyo_domain();
-+	struct tomoyo_domain_info *old_domain = tomoyo_current_domain();
- 	struct tomoyo_domain_info *domain = NULL;
- 	const char *original_name = bprm->filename;
- 	u8 mode;
---- security-testing-2.6.orig/security/tomoyo/file.c
-+++ security-testing-2.6/security/tomoyo/file.c
-@@ -343,8 +343,7 @@ static bool tomoyo_same_path_acl(const s
- {
- 	const struct tomoyo_path_acl *p1 = container_of(a, typeof(*p1), head);
- 	const struct tomoyo_path_acl *p2 = container_of(b, typeof(*p2), head);
--	return tomoyo_same_acl_head(&p1->head, &p2->head) &&
--		tomoyo_same_name_union(&p1->name, &p2->name);
-+	return tomoyo_same_name_union(&p1->name, &p2->name);
- }
- 
- /**
-@@ -413,11 +412,10 @@ static bool tomoyo_same_mkdev_acl(const 
- {
- 	const struct tomoyo_mkdev_acl *p1 = container_of(a, typeof(*p1), head);
- 	const struct tomoyo_mkdev_acl *p2 = container_of(b, typeof(*p2), head);
--	return tomoyo_same_acl_head(&p1->head, &p2->head)
--		&& tomoyo_same_name_union(&p1->name, &p2->name)
--		&& tomoyo_same_number_union(&p1->mode, &p2->mode)
--		&& tomoyo_same_number_union(&p1->major, &p2->major)
--		&& tomoyo_same_number_union(&p1->minor, &p2->minor);
-+	return tomoyo_same_name_union(&p1->name, &p2->name) &&
-+		tomoyo_same_number_union(&p1->mode, &p2->mode) &&
-+		tomoyo_same_number_union(&p1->major, &p2->major) &&
-+		tomoyo_same_number_union(&p1->minor, &p2->minor);
- }
- 
- /**
-@@ -493,9 +491,8 @@ static bool tomoyo_same_path2_acl(const 
- {
- 	const struct tomoyo_path2_acl *p1 = container_of(a, typeof(*p1), head);
- 	const struct tomoyo_path2_acl *p2 = container_of(b, typeof(*p2), head);
--	return tomoyo_same_acl_head(&p1->head, &p2->head)
--		&& tomoyo_same_name_union(&p1->name1, &p2->name1)
--		&& tomoyo_same_name_union(&p1->name2, &p2->name2);
-+	return tomoyo_same_name_union(&p1->name1, &p2->name1) &&
-+		tomoyo_same_name_union(&p1->name2, &p2->name2);
- }
- 
- /**
-@@ -603,9 +600,8 @@ static bool tomoyo_same_path_number_acl(
- 							       head);
- 	const struct tomoyo_path_number_acl *p2 = container_of(b, typeof(*p2),
- 							       head);
--	return tomoyo_same_acl_head(&p1->head, &p2->head)
--		&& tomoyo_same_name_union(&p1->name, &p2->name)
--		&& tomoyo_same_number_union(&p1->number, &p2->number);
-+	return tomoyo_same_name_union(&p1->name, &p2->name) &&
-+		tomoyo_same_number_union(&p1->number, &p2->number);
- }
- 
- /**
---- security-testing-2.6.orig/security/tomoyo/gc.c
-+++ security-testing-2.6/security/tomoyo/gc.c
-@@ -11,15 +11,35 @@
- #include <linux/kthread.h>
- #include <linux/slab.h>
- 
-+/* Structure for garbage collection. */
- struct tomoyo_gc {
- 	struct list_head list;
- 	int type;
- 	struct list_head *element;
- };
--static LIST_HEAD(tomoyo_gc_queue);
--static DEFINE_MUTEX(tomoyo_gc_mutex);
-+/* List of entries to be deleted. */
-+static LIST_HEAD(tomoyo_gc_list);
-+/* Length of tomoyo_gc_list. */
-+static int tomoyo_gc_list_len;
- 
--/* Caller holds tomoyo_policy_lock mutex. */
-+/**
-+ * tomoyo_add_to_gc - Add an entry to to be deleted list.
-+ *
-+ * @type:    One of values in "enum tomoyo_policy_id".
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns true on success, false otherwise.
-+ *
-+ * Caller holds tomoyo_policy_lock mutex.
-+ *
-+ * Adding an entry needs kmalloc(). Thus, if we try to add thousands of
-+ * entries at once, it will take too long time. Thus, do not add more than 128
-+ * entries per a scan. But to be able to handle worst case where all entries
-+ * are in-use, we accept one more entry per a scan.
-+ *
-+ * If we use singly linked list using "struct list_head"->prev (which is
-+ * LIST_POISON2), we can avoid kmalloc().
-+ */
- static bool tomoyo_add_to_gc(const int type, struct list_head *element)
- {
- 	struct tomoyo_gc *entry = kzalloc(sizeof(*entry), GFP_ATOMIC);
-@@ -27,11 +47,18 @@ static bool tomoyo_add_to_gc(const int t
- 		return false;
- 	entry->type = type;
- 	entry->element = element;
--	list_add(&entry->list, &tomoyo_gc_queue);
-+	list_add(&entry->list, &tomoyo_gc_list);
- 	list_del_rcu(element);
--	return true;
-+	return tomoyo_gc_list_len++ < 128;
- }
- 
-+/**
-+ * tomoyo_del_transition_control - Delete members in "struct tomoyo_transition_control".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_transition_control(struct list_head *element)
- {
- 	struct tomoyo_transition_control *ptr =
-@@ -40,6 +67,13 @@ static void tomoyo_del_transition_contro
- 	tomoyo_put_name(ptr->program);
- }
- 
-+/**
-+ * tomoyo_del_aggregator - Delete members in "struct tomoyo_aggregator".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_aggregator(struct list_head *element)
- {
- 	struct tomoyo_aggregator *ptr =
-@@ -48,6 +82,13 @@ static void tomoyo_del_aggregator(struct
- 	tomoyo_put_name(ptr->aggregated_name);
- }
- 
-+/**
-+ * tomoyo_del_manager - Delete members in "struct tomoyo_manager".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_manager(struct list_head *element)
- {
- 	struct tomoyo_manager *ptr =
-@@ -55,6 +96,13 @@ static void tomoyo_del_manager(struct li
- 	tomoyo_put_name(ptr->manager);
- }
- 
-+/**
-+ * tomoyo_del_acl - Delete members in "struct tomoyo_acl_info".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_acl(struct list_head *element)
- {
- 	struct tomoyo_acl_info *acl =
-@@ -144,6 +192,13 @@ out:
- 	return in_use;
- }
- 
-+/**
-+ * tomoyo_del_domain - Delete members in "struct tomoyo_domain_info".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns true if deleted, false otherwise.
-+ */
- static bool tomoyo_del_domain(struct list_head *element)
- {
- 	struct tomoyo_domain_info *domain =
-@@ -182,13 +237,25 @@ static bool tomoyo_del_domain(struct lis
- 	return true;
- }
- 
--
-+/**
-+ * tomoyo_del_name - Delete members in "struct tomoyo_name".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_name(struct list_head *element)
- {
--	const struct tomoyo_name *ptr =
--		container_of(element, typeof(*ptr), list);
-+	/* Nothing to do. */
- }
- 
-+/**
-+ * tomoyo_del_path_group - Delete members in "struct tomoyo_path_group".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_path_group(struct list_head *element)
- {
- 	struct tomoyo_path_group *member =
-@@ -196,19 +263,40 @@ static void tomoyo_del_path_group(struct
- 	tomoyo_put_name(member->member_name);
- }
- 
-+/**
-+ * tomoyo_del_group - Delete "struct tomoyo_group".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_group(struct list_head *element)
- {
- 	struct tomoyo_group *group =
--		container_of(element, typeof(*group), list);
-+		container_of(element, typeof(*group), head.list);
- 	tomoyo_put_name(group->group_name);
- }
- 
-+/**
-+ * tomoyo_del_number_group - Delete members in "struct tomoyo_number_group".
-+ *
-+ * @element: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_del_number_group(struct list_head *element)
- {
--	struct tomoyo_number_group *member =
--		container_of(element, typeof(*member), head.list);
-+	/* Nothing to do. */
- }
- 
-+/**
-+ * tomoyo_collect_member - Delete elements with "struct tomoyo_acl_head".
-+ *
-+ * @id:          One of values in "enum tomoyo_policy_id".
-+ * @member_list: Pointer to "struct list_head".
-+ *
-+ * Returns true if some elements are deleted, false otherwise.
-+ */
- static bool tomoyo_collect_member(struct list_head *member_list, int id)
- {
- 	struct tomoyo_acl_head *member;
-@@ -221,6 +309,13 @@ static bool tomoyo_collect_member(struct
-         return true;
- }
- 
-+/**
-+ * tomoyo_collect_acl - Delete elements in "struct tomoyo_domain_info".
-+ *
-+ * @domain: Pointer to "struct tomoyo_domain_info".
-+ *
-+ * Returns true if some elements are deleted, false otherwise.
-+ */
- static bool tomoyo_collect_acl(struct tomoyo_domain_info *domain)
- {
- 	struct tomoyo_acl_info *acl;
-@@ -233,6 +328,11 @@ static bool tomoyo_collect_acl(struct to
- 	return true;
- }
- 
-+/**
-+ * tomoyo_collect_entry - Scan lists for deleted elements.
-+ *
-+ * Returns nothing.
-+ */
- static void tomoyo_collect_entry(void)
- {
- 	int i;
-@@ -263,10 +363,10 @@ static void tomoyo_collect_entry(void)
- 	}
- 	for (i = 0; i < TOMOYO_MAX_HASH; i++) {
- 		struct tomoyo_name *ptr;
--		list_for_each_entry_rcu(ptr, &tomoyo_name_list[i], list) {
--			if (atomic_read(&ptr->users))
-+		list_for_each_entry_rcu(ptr, &tomoyo_name_list[i], head.list) {
-+			if (atomic_read(&ptr->head.users))
- 				continue;
--			if (!tomoyo_add_to_gc(TOMOYO_ID_NAME, &ptr->list))
-+			if (!tomoyo_add_to_gc(TOMOYO_ID_NAME, &ptr->head.list))
- 				goto unlock;
- 		}
- 	}
-@@ -282,13 +382,14 @@ static void tomoyo_collect_entry(void)
- 			id = TOMOYO_ID_NUMBER_GROUP;
- 			break;
- 		}
--		list_for_each_entry(group, list, list) {
-+		list_for_each_entry(group, list, head.list) {
- 			if (!tomoyo_collect_member(&group->member_list, id))
- 				goto unlock;
- 			if (!list_empty(&group->member_list) ||
--			    atomic_read(&group->users))
-+			    atomic_read(&group->head.users))
- 				continue;
--			if (!tomoyo_add_to_gc(TOMOYO_ID_GROUP, &group->list))
-+			if (!tomoyo_add_to_gc(TOMOYO_ID_GROUP,
-+					      &group->head.list))
- 				goto unlock;
- 		}
- 	}
-@@ -296,12 +397,18 @@ static void tomoyo_collect_entry(void)
- 	mutex_unlock(&tomoyo_policy_lock);
- }
- 
--static void tomoyo_kfree_entry(void)
-+/**
-+ * tomoyo_kfree_entry - Delete entries in tomoyo_gc_list.
-+ *
-+ * Returns true if some entries were kfree()d, false otherwise.
-+ */
-+static bool tomoyo_kfree_entry(void)
- {
- 	struct tomoyo_gc *p;
- 	struct tomoyo_gc *tmp;
-+	bool result = false;
- 
--	list_for_each_entry_safe(p, tmp, &tomoyo_gc_queue, list) {
-+	list_for_each_entry_safe(p, tmp, &tomoyo_gc_list, list) {
- 		struct list_head *element = p->element;
- 		switch (p->type) {
- 		case TOMOYO_ID_TRANSITION_CONTROL:
-@@ -335,27 +442,46 @@ static void tomoyo_kfree_entry(void)
- 		}
- 		tomoyo_memory_free(element);
- 		list_del(&p->list);
-+		tomoyo_gc_list_len--;
- 		kfree(p);
-+		result = true;
- 	}
-+	return result;
- }
- 
-+/**
-+ * tomoyo_gc_thread - Garbage collector thread function.
-+ *
-+ * @unused: Unused.
-+ *
-+ * In case OOM-killer choose this thread for termination, we create this thread
-+ * as a short live thread whenever /sys/kernel/security/tomoyo/ interface was
-+ * close()d.
-+ *
-+ * Returns 0.
-+ */
- static int tomoyo_gc_thread(void *unused)
- {
-+	/* Garbage collector thread is exclusive. */
-+	static DEFINE_MUTEX(tomoyo_gc_mutex);
- 	daemonize("GC for TOMOYO");
- 	if (mutex_trylock(&tomoyo_gc_mutex)) {
--		int i;
--		for (i = 0; i < 10; i++) {
-+		do {
- 			tomoyo_collect_entry();
--			if (list_empty(&tomoyo_gc_queue))
-+			if (list_empty(&tomoyo_gc_list))
- 				break;
- 			synchronize_srcu(&tomoyo_ss);
--			tomoyo_kfree_entry();
--		}
-+		} while (tomoyo_kfree_entry());
- 		mutex_unlock(&tomoyo_gc_mutex);
- 	}
- 	do_exit(0);
- }
- 
-+/**
-+ * tomoyo_run_gc - Start garbage collector thread.
-+ *
-+ * Returns nothing.
-+ */
- void tomoyo_run_gc(void)
- {
- 	struct task_struct *task = kthread_create(tomoyo_gc_thread, NULL,
---- security-testing-2.6.orig/security/tomoyo/memory.c
-+++ security-testing-2.6/security/tomoyo/memory.c
-@@ -115,10 +115,10 @@ struct tomoyo_group *tomoyo_get_group(co
- 		return NULL;
- 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
- 		goto out;
--	list_for_each_entry(group, &tomoyo_group_list[idx], list) {
-+	list_for_each_entry(group, &tomoyo_group_list[idx], head.list) {
- 		if (e.group_name != group->group_name)
- 			continue;
--		atomic_inc(&group->users);
-+		atomic_inc(&group->head.users);
- 		found = true;
- 		break;
- 	}
-@@ -126,8 +126,8 @@ struct tomoyo_group *tomoyo_get_group(co
- 		struct tomoyo_group *entry = tomoyo_commit_ok(&e, sizeof(e));
- 		if (entry) {
- 			INIT_LIST_HEAD(&entry->member_list);
--			atomic_set(&entry->users, 1);
--			list_add_tail_rcu(&entry->list,
-+			atomic_set(&entry->head.users, 1);
-+			list_add_tail_rcu(&entry->head.list,
- 					  &tomoyo_group_list[idx]);
- 			group = entry;
- 			found = true;
-@@ -169,10 +169,10 @@ const struct tomoyo_path_info *tomoyo_ge
- 	head = &tomoyo_name_list[hash_long(hash, TOMOYO_HASH_BITS)];
- 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
- 		return NULL;
--	list_for_each_entry(ptr, head, list) {
-+	list_for_each_entry(ptr, head, head.list) {
- 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
- 			continue;
--		atomic_inc(&ptr->users);
-+		atomic_inc(&ptr->head.users);
- 		goto out;
- 	}
- 	ptr = kzalloc(sizeof(*ptr) + len, GFP_NOFS);
-@@ -188,9 +188,9 @@ const struct tomoyo_path_info *tomoyo_ge
- 	atomic_add(allocated_len, &tomoyo_policy_memory_size);
- 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
- 	memmove((char *) ptr->entry.name, name, len);
--	atomic_set(&ptr->users, 1);
-+	atomic_set(&ptr->head.users, 1);
- 	tomoyo_fill_path_info(&ptr->entry);
--	list_add_tail(&ptr->list, head);
-+	list_add_tail(&ptr->head.list, head);
-  out:
- 	mutex_unlock(&tomoyo_policy_lock);
- 	return ptr ? &ptr->entry : NULL;
---- security-testing-2.6.orig/security/tomoyo/mount.c
-+++ security-testing-2.6/security/tomoyo/mount.c
-@@ -7,22 +7,16 @@
- #include <linux/slab.h>
- #include "common.h"
- 
--/* Keywords for mount restrictions. */
--
--/* Allow to call 'mount --bind /source_dir /dest_dir' */
--#define TOMOYO_MOUNT_BIND_KEYWORD                        "--bind"
--/* Allow to call 'mount --move /old_dir    /new_dir ' */
--#define TOMOYO_MOUNT_MOVE_KEYWORD                        "--move"
--/* Allow to call 'mount -o remount /dir             ' */
--#define TOMOYO_MOUNT_REMOUNT_KEYWORD                     "--remount"
--/* Allow to call 'mount --make-unbindable /dir'       */
--#define TOMOYO_MOUNT_MAKE_UNBINDABLE_KEYWORD             "--make-unbindable"
--/* Allow to call 'mount --make-private /dir'          */
--#define TOMOYO_MOUNT_MAKE_PRIVATE_KEYWORD                "--make-private"
--/* Allow to call 'mount --make-slave /dir'            */
--#define TOMOYO_MOUNT_MAKE_SLAVE_KEYWORD                  "--make-slave"
--/* Allow to call 'mount --make-shared /dir'           */
--#define TOMOYO_MOUNT_MAKE_SHARED_KEYWORD                 "--make-shared"
-+/* String table for special mount operations. */
-+static const char * const tomoyo_mounts[TOMOYO_MAX_SPECIAL_MOUNT] = {
-+	[TOMOYO_MOUNT_BIND]            = "--bind",
-+	[TOMOYO_MOUNT_MOVE]            = "--move",
-+	[TOMOYO_MOUNT_REMOUNT]         = "--remount",
-+	[TOMOYO_MOUNT_MAKE_UNBINDABLE] = "--make-unbindable",
-+	[TOMOYO_MOUNT_MAKE_PRIVATE]    = "--make-private",
-+	[TOMOYO_MOUNT_MAKE_SLAVE]      = "--make-slave",
-+	[TOMOYO_MOUNT_MAKE_SHARED]     = "--make-shared",
-+};
- 
- /**
-  * tomoyo_audit_mount_log - Audit mount log.
-@@ -70,7 +64,8 @@ static bool tomoyo_check_mount_acl(struc
-  * Caller holds tomoyo_read_lock().
-  */
- static int tomoyo_mount_acl(struct tomoyo_request_info *r, char *dev_name,
--			    struct path *dir, char *type, unsigned long flags)
-+			    struct path *dir, const char *type,
-+			    unsigned long flags)
- {
- 	struct path path;
- 	struct file_system_type *fstype = NULL;
-@@ -100,15 +95,15 @@ static int tomoyo_mount_acl(struct tomoy
- 	tomoyo_fill_path_info(&rdir);
- 
- 	/* Compare fs name. */
--	if (!strcmp(type, TOMOYO_MOUNT_REMOUNT_KEYWORD)) {
-+	if (type == tomoyo_mounts[TOMOYO_MOUNT_REMOUNT]) {
- 		/* dev_name is ignored. */
--	} else if (!strcmp(type, TOMOYO_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
--		   !strcmp(type, TOMOYO_MOUNT_MAKE_PRIVATE_KEYWORD) ||
--		   !strcmp(type, TOMOYO_MOUNT_MAKE_SLAVE_KEYWORD) ||
--		   !strcmp(type, TOMOYO_MOUNT_MAKE_SHARED_KEYWORD)) {
-+	} else if (type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_UNBINDABLE] ||
-+		   type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_PRIVATE] ||
-+		   type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_SLAVE] ||
-+		   type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_SHARED]) {
- 		/* dev_name is ignored. */
--	} else if (!strcmp(type, TOMOYO_MOUNT_BIND_KEYWORD) ||
--		   !strcmp(type, TOMOYO_MOUNT_MOVE_KEYWORD)) {
-+	} else if (type == tomoyo_mounts[TOMOYO_MOUNT_BIND] ||
-+		   type == tomoyo_mounts[TOMOYO_MOUNT_MOVE]) {
- 		need_dev = -1; /* dev_name is a directory */
- 	} else {
- 		fstype = get_fs_type(type);
-@@ -173,8 +168,9 @@ static int tomoyo_mount_acl(struct tomoy
-  *
-  * Returns 0 on success, negative value otherwise.
-  */
--int tomoyo_mount_permission(char *dev_name, struct path *path, char *type,
--			    unsigned long flags, void *data_page)
-+int tomoyo_mount_permission(char *dev_name, struct path *path,
-+			    const char *type, unsigned long flags,
-+			    void *data_page)
- {
- 	struct tomoyo_request_info r;
- 	int error;
-@@ -186,31 +182,31 @@ int tomoyo_mount_permission(char *dev_na
- 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
- 		flags &= ~MS_MGC_MSK;
- 	if (flags & MS_REMOUNT) {
--		type = TOMOYO_MOUNT_REMOUNT_KEYWORD;
-+		type = tomoyo_mounts[TOMOYO_MOUNT_REMOUNT];
- 		flags &= ~MS_REMOUNT;
- 	}
- 	if (flags & MS_MOVE) {
--		type = TOMOYO_MOUNT_MOVE_KEYWORD;
-+		type = tomoyo_mounts[TOMOYO_MOUNT_MOVE];
- 		flags &= ~MS_MOVE;
- 	}
- 	if (flags & MS_BIND) {
--		type = TOMOYO_MOUNT_BIND_KEYWORD;
-+		type = tomoyo_mounts[TOMOYO_MOUNT_BIND];
- 		flags &= ~MS_BIND;
- 	}
- 	if (flags & MS_UNBINDABLE) {
--		type = TOMOYO_MOUNT_MAKE_UNBINDABLE_KEYWORD;
-+		type = tomoyo_mounts[TOMOYO_MOUNT_MAKE_UNBINDABLE];
- 		flags &= ~MS_UNBINDABLE;
- 	}
- 	if (flags & MS_PRIVATE) {
--		type = TOMOYO_MOUNT_MAKE_PRIVATE_KEYWORD;
-+		type = tomoyo_mounts[TOMOYO_MOUNT_MAKE_PRIVATE];
- 		flags &= ~MS_PRIVATE;
- 	}
- 	if (flags & MS_SLAVE) {
--		type = TOMOYO_MOUNT_MAKE_SLAVE_KEYWORD;
-+		type = tomoyo_mounts[TOMOYO_MOUNT_MAKE_SLAVE];
- 		flags &= ~MS_SLAVE;
- 	}
- 	if (flags & MS_SHARED) {
--		type = TOMOYO_MOUNT_MAKE_SHARED_KEYWORD;
-+		type = tomoyo_mounts[TOMOYO_MOUNT_MAKE_SHARED];
- 		flags &= ~MS_SHARED;
- 	}
- 	if (!type)
---- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
-+++ security-testing-2.6/security/tomoyo/securityfs_if.c
-@@ -38,7 +38,7 @@ static int tomoyo_release(struct inode *
- }
- 
- /**
-- * tomoyo_poll - poll() for /proc/ccs/ interface.
-+ * tomoyo_poll - poll() for /sys/kernel/security/tomoyo/ interface.
-  *
-  * @file: Pointer to "struct file".
-  * @wait: Pointer to "poll_table".
---- security-testing-2.6.orig/security/tomoyo/util.c
-+++ security-testing-2.6/security/tomoyo/util.c
-@@ -863,7 +863,7 @@ int tomoyo_get_mode(const u8 profile, co
-  */
- int tomoyo_init_request_info(struct tomoyo_request_info *r, const u8 index)
- {
--	const u8 profile = tomoyo_domain()->profile;
-+	const u8 profile = tomoyo_current_domain()->profile;
- 	memset(r, 0, sizeof(*r));
- 	r->profile = profile;
- 	r->type = index;
