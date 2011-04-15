@@ -14,9 +14,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/file.c          |   49 +-----
  security/tomoyo/memory.c        |    5 
  security/tomoyo/mount.c         |   24 ---
- security/tomoyo/securityfs_if.c |    2 
+ security/tomoyo/securityfs_if.c |    4 
  security/tomoyo/util.c          |   14 -
- 9 files changed, 551 insertions(+), 233 deletions(-)
+ 9 files changed, 552 insertions(+), 234 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -1099,6 +1099,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static bool tomoyo_check_mount_acl(struct tomoyo_request_info *r,
 --- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
 +++ security-testing-2.6/security/tomoyo/securityfs_if.c
+@@ -38,7 +38,7 @@ static int tomoyo_release(struct inode *
+ }
+ 
+ /**
+- * tomoyo_poll - poll() for /proc/ccs/ interface.
++ * tomoyo_poll - poll() for /sys/kernel/security/tomoyo/ interface.
+  *
+  * @file: Pointer to "struct file".
+  * @wait: Pointer to "poll_table".
 @@ -135,6 +135,8 @@ static int __init tomoyo_initerface_init
  			    TOMOYO_DOMAINPOLICY);
  	tomoyo_create_entry("exception_policy", 0600, tomoyo_dir,
