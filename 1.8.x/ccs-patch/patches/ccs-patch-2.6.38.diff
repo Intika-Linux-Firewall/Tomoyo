@@ -31,7 +31,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 
 --- linux-2.6.38.3.orig/fs/compat.c
 +++ linux-2.6.38.3/fs/compat.c
-@@ -1529,8 +1529,8 @@ int compat_do_execve(char * filename,
+@@ -1529,7 +1529,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -42,7 +42,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.38.3.orig/fs/exec.c
 +++ linux-2.6.38.3/fs/exec.c
-@@ -1443,8 +1443,8 @@ int do_execve(const char * filename,
+@@ -1443,7 +1443,7 @@ int do_execve(const char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -53,7 +53,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.38.3.orig/fs/open.c
 +++ linux-2.6.38.3/fs/open.c
-@@ -1022,7 +1022,9 @@ EXPORT_SYMBOL(sys_close);
+@@ -1022,6 +1022,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -64,7 +64,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		return 0;
 --- linux-2.6.38.3.orig/fs/proc/version.c
 +++ linux-2.6.38.3/fs/proc/version.c
-@@ -32,4 +32,11 @@ static int __init proc_version_init(void
+@@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
  module_init(proc_version_init);
@@ -92,7 +92,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -192,7 +200,8 @@ extern struct cred init_cred;
+@@ -192,6 +200,7 @@ extern struct cred init_cred;
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
  	INIT_TASK_RCU_PREEMPT(tsk)					\
@@ -111,7 +111,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  struct sched_param {
  	int sched_priority;
  };
-@@ -1528,7 +1530,11 @@ struct task_struct {
+@@ -1528,6 +1530,10 @@ struct task_struct {
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
@@ -297,7 +297,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2892,25 +2900,27 @@ static inline int security_path_rename(s
+@@ -2892,24 +2900,26 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -330,7 +330,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.38.3.orig/include/net/ip.h
 +++ linux-2.6.38.3/include/net/ip.h
-@@ -198,7 +198,9 @@ extern void inet_get_local_port_range(in
+@@ -198,6 +198,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
  {
@@ -359,7 +359,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1341,7 +1345,8 @@ bad_fork_cleanup_semundo:
+@@ -1341,6 +1345,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -377,7 +377,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t __percpu *crash_notes;
-@@ -947,7 +948,9 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -947,6 +948,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -405,7 +405,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2867,7 +2870,9 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2867,6 +2870,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -425,7 +425,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -843,7 +845,9 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -843,6 +845,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -436,7 +436,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		ret = ptrace_traceme();
 --- linux-2.6.38.3.orig/kernel/sched.c
 +++ linux-2.6.38.3/kernel/sched.c
-@@ -4654,7 +4654,9 @@ int can_nice(const struct task_struct *p
+@@ -4654,6 +4654,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -483,7 +483,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2449,7 +2457,9 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2449,6 +2457,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -523,7 +523,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1230,7 +1238,9 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1230,6 +1238,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -542,7 +542,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * NTP timekeeping variables:
-@@ -628,11 +629,16 @@ int do_adjtimex(struct timex *txc)
+@@ -628,10 +629,15 @@ int do_adjtimex(struct timex *txc)
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -560,7 +560,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		 * if the quartz is off by more than 10% then
 --- linux-2.6.38.3.orig/net/ipv4/raw.c
 +++ linux-2.6.38.3/net/ipv4/raw.c
-@@ -681,7 +681,11 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -681,6 +681,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -573,7 +573,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (len < copied) {
 --- linux-2.6.38.3.orig/net/ipv4/udp.c
 +++ linux-2.6.38.3/net/ipv4/udp.c
-@@ -1138,7 +1138,11 @@ try_again:
+@@ -1138,6 +1138,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -586,7 +586,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (len > ulen)
 --- linux-2.6.38.3.orig/net/ipv6/raw.c
 +++ linux-2.6.38.3/net/ipv6/raw.c
-@@ -468,7 +468,11 @@ static int rawv6_recvmsg(struct kiocb *i
+@@ -468,6 +468,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -599,7 +599,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (copied > len) {
 --- linux-2.6.38.3.orig/net/ipv6/udp.c
 +++ linux-2.6.38.3/net/ipv6/udp.c
-@@ -361,7 +361,11 @@ try_again:
+@@ -361,6 +361,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -612,7 +612,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (len > ulen)
 --- linux-2.6.38.3.orig/net/socket.c
 +++ linux-2.6.38.3/net/socket.c
-@@ -1517,7 +1517,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1517,6 +1517,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -625,7 +625,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					  &len, 2) < 0) {
 --- linux-2.6.38.3.orig/net/unix/af_unix.c
 +++ linux-2.6.38.3/net/unix/af_unix.c
-@@ -1744,7 +1744,11 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1744,6 +1744,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -638,7 +638,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.38.3.orig/security/Kconfig
 +++ linux-2.6.38.3/security/Kconfig
-@@ -224,6 +224,8 @@ config DEFAULT_SECURITY
+@@ -224,5 +224,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
  
@@ -648,7 +648,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.38.3.orig/security/Makefile
 +++ linux-2.6.38.3/security/Makefile
-@@ -26,4 +26,7 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+@@ -26,3 +26,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
  obj-$(CONFIG_IMA)			+= integrity/ima/built-in.o
