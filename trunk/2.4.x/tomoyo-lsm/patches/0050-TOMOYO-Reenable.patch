@@ -17,7 +17,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static unsigned int tomoyo_profile_version;
  
  /* Profile table. Memory is allocated as needed. */
-@@ -550,7 +550,7 @@ static void tomoyo_read_profile(struct t
+@@ -549,7 +549,7 @@ static void tomoyo_read_profile(struct t
  	profile = tomoyo_profile_ptr[index];
  	switch (head->r.step) {
  	case 0:
@@ -26,7 +26,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.step++;
  		break;
  	case 1:
-@@ -2227,7 +2227,7 @@ void tomoyo_check_profile(void)
+@@ -2207,7 +2207,7 @@ void tomoyo_check_profile(void)
  		      profile, domain->domainname->name);
  	}
  	tomoyo_read_unlock(idx);
