@@ -1,4 +1,6 @@
 This is TOMOYO Linux patch for CentOS 5.6.
+
+Source code for this patch is http://mirrors.kernel.org/centos/5.6/updates/SRPMS/kernel-2.6.18-238.9.1.el5.src.rpm
 ---
  arch/alpha/kernel/ptrace.c  |    3 +++
  arch/ia64/ia32/sys_ia32.c   |    3 +++
@@ -32,14 +34,15 @@ This is TOMOYO Linux patch for CentOS 5.6.
  kernel/time.c               |    7 +++++++
  net/ipv4/raw.c              |    4 ++++
  net/ipv4/udp.c              |    4 ++++
+ net/ipv6/inet6_hashtables.c |    2 ++
  net/ipv6/raw.c              |    4 ++++
- net/ipv6/udp.c              |    4 ++++
+ net/ipv6/udp.c              |   13 ++++++++++---
  net/socket.c                |   28 +++++++++++++++++++++++++++-
  net/unix/af_unix.c          |    4 ++++
- 36 files changed, 268 insertions(+), 6 deletions(-)
+ 37 files changed, 276 insertions(+), 9 deletions(-)
 
---- linux-2.6.18-238.el5.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18-238.el5/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18-238.9.1.el5.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18-238.9.1.el5/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -57,8 +60,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18-238.el5.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18-238.el5/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18-238.9.1.el5.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18-238.9.1.el5/arch/ia64/ia32/sys_ia32.c
 @@ -58,6 +58,7 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -76,8 +79,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-238.el5.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18-238.el5/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18-238.9.1.el5.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18-238.9.1.el5/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -95,8 +98,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-238.el5.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18-238.el5/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18-238.9.1.el5.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18-238.9.1.el5/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,7 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -114,8 +117,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18-238.el5.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18-238.el5/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18-238.9.1.el5.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18-238.9.1.el5/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -135,8 +138,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18-238.el5.orig/fs/Kconfig
-+++ linux-2.6.18-238.el5/fs/Kconfig
+--- linux-2.6.18-238.9.1.el5.orig/fs/Kconfig
++++ linux-2.6.18-238.9.1.el5/fs/Kconfig
 @@ -2072,5 +2072,7 @@ endmenu
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -145,16 +148,16 @@ This is TOMOYO Linux patch for CentOS 5.6.
 +
  endmenu
  
---- linux-2.6.18-238.el5.orig/fs/Makefile
-+++ linux-2.6.18-238.el5/fs/Makefile
+--- linux-2.6.18-238.9.1.el5.orig/fs/Makefile
++++ linux-2.6.18-238.9.1.el5/fs/Makefile
 @@ -115,3 +115,5 @@ obj-$(CONFIG_CACHEFILES)	+= cachefiles/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.18-238.el5.orig/fs/attr.c
-+++ linux-2.6.18-238.el5/fs/attr.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/attr.c
++++ linux-2.6.18-238.9.1.el5/fs/attr.c
 @@ -15,6 +15,7 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -188,8 +191,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.18-238.el5.orig/fs/compat.c
-+++ linux-2.6.18-238.el5/fs/compat.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/compat.c
++++ linux-2.6.18-238.9.1.el5/fs/compat.c
 @@ -52,6 +52,7 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -227,8 +230,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.18-238.el5.orig/fs/exec.c
-+++ linux-2.6.18-238.el5/fs/exec.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/exec.c
++++ linux-2.6.18-238.9.1.el5/fs/exec.c
 @@ -62,6 +62,8 @@
  #include <linux/kmod.h>
  #endif
@@ -249,7 +252,7 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -717,6 +723,9 @@ struct file *open_exec(const char *name)
+@@ -724,6 +730,9 @@ struct file *open_exec(const char *name)
  		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
  		    S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
@@ -259,7 +262,7 @@ This is TOMOYO Linux patch for CentOS 5.6.
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, force_o_largefile() ?
-@@ -1441,7 +1450,8 @@ int do_execve(char * filename,
+@@ -1448,7 +1457,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -269,8 +272,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux-2.6.18-238.el5.orig/fs/fcntl.c
-+++ linux-2.6.18-238.el5/fs/fcntl.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/fcntl.c
++++ linux-2.6.18-238.9.1.el5/fs/fcntl.c
 @@ -22,6 +22,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -290,8 +293,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18-238.el5.orig/fs/ioctl.c
-+++ linux-2.6.18-238.el5/fs/ioctl.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/ioctl.c
++++ linux-2.6.18-238.9.1.el5/fs/ioctl.c
 @@ -17,6 +17,7 @@
  
  #include <asm/uaccess.h>
@@ -318,8 +321,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	if (error)
  		goto out_fput;
  
---- linux-2.6.18-238.el5.orig/fs/namei.c
-+++ linux-2.6.18-238.el5/fs/namei.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/namei.c
++++ linux-2.6.18-238.9.1.el5/fs/namei.c
 @@ -37,6 +37,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -435,8 +438,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
---- linux-2.6.18-238.el5.orig/fs/namespace.c
-+++ linux-2.6.18-238.el5/fs/namespace.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/namespace.c
++++ linux-2.6.18-238.9.1.el5/fs/namespace.c
 @@ -25,6 +25,8 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -528,8 +531,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18-238.el5.orig/fs/open.c
-+++ linux-2.6.18-238.el5/fs/open.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/open.c
++++ linux-2.6.18-238.9.1.el5/fs/open.c
 @@ -31,6 +31,8 @@
  #include <linux/falloc.h>
  
@@ -579,8 +582,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18-238.el5.orig/fs/proc/Makefile
-+++ linux-2.6.18-238.el5/fs/proc/Makefile
+--- linux-2.6.18-238.9.1.el5.orig/fs/proc/Makefile
++++ linux-2.6.18-238.9.1.el5/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -588,18 +591,18 @@ This is TOMOYO Linux patch for CentOS 5.6.
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.18-238.el5.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18-238.el5/fs/proc/proc_misc.c
+--- linux-2.6.18-238.9.1.el5.orig/fs/proc/proc_misc.c
++++ linux-2.6.18-238.9.1.el5/fs/proc/proc_misc.c
 @@ -738,4 +738,7 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-238.el5 2011/01/14\n");
++	printk(KERN_INFO "Hook version: 2.6.18-238.9.1.el5 2011/04/15\n");
 +#endif
  }
---- linux-2.6.18-238.el5.orig/include/linux/init_task.h
-+++ linux-2.6.18-238.el5/include/linux/init_task.h
+--- linux-2.6.18-238.9.1.el5.orig/include/linux/init_task.h
++++ linux-2.6.18-238.9.1.el5/include/linux/init_task.h
 @@ -125,6 +125,8 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -609,8 +612,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  }
  
  
---- linux-2.6.18-238.el5.orig/include/linux/sched.h
-+++ linux-2.6.18-238.el5/include/linux/sched.h
+--- linux-2.6.18-238.9.1.el5.orig/include/linux/sched.h
++++ linux-2.6.18-238.9.1.el5/include/linux/sched.h
 @@ -25,6 +25,8 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -629,8 +632,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18-238.el5.orig/include/net/ip.h
-+++ linux-2.6.18-238.el5/include/net/ip.h
+--- linux-2.6.18-238.9.1.el5.orig/include/net/ip.h
++++ linux-2.6.18-238.9.1.el5/include/net/ip.h
 @@ -171,8 +171,11 @@ extern void inet_get_local_port_range(in
  extern int sysctl_local_port_range[2];
  
@@ -643,8 +646,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.18-238.el5.orig/kernel/compat.c
-+++ linux-2.6.18-238.el5/kernel/compat.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/compat.c
++++ linux-2.6.18-238.9.1.el5/kernel/compat.c
 @@ -25,6 +25,7 @@
  
  #include <asm/uaccess.h>
@@ -662,8 +665,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18-238.el5.orig/kernel/kexec.c
-+++ linux-2.6.18-238.el5/kernel/kexec.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/kexec.c
++++ linux-2.6.18-238.9.1.el5/kernel/kexec.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -681,8 +684,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.18-238.el5.orig/kernel/kmod.c
-+++ linux-2.6.18-238.el5/kernel/kmod.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/kmod.c
++++ linux-2.6.18-238.9.1.el5/kernel/kmod.c
 @@ -147,6 +147,9 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
@@ -693,8 +696,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
---- linux-2.6.18-238.el5.orig/kernel/module.c
-+++ linux-2.6.18-238.el5/kernel/module.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/module.c
++++ linux-2.6.18-238.9.1.el5/kernel/module.c
 @@ -46,6 +46,7 @@
  #include <linux/license.h>
  #include <linux/tracepoint.h>
@@ -723,8 +726,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18-238.el5.orig/kernel/ptrace.c
-+++ linux-2.6.18-238.el5/kernel/ptrace.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/ptrace.c
++++ linux-2.6.18-238.9.1.el5/kernel/ptrace.c
 @@ -26,6 +26,7 @@
  #include <asm/tracehook.h>
  #include <asm/pgtable.h>
@@ -751,8 +754,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
  		 current->pid, request, pid, addr, cdata);
---- linux-2.6.18-238.el5.orig/kernel/sched.c
-+++ linux-2.6.18-238.el5/kernel/sched.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/sched.c
++++ linux-2.6.18-238.9.1.el5/kernel/sched.c
 @@ -57,6 +57,7 @@
  #include <trace/sched.h>
  
@@ -770,8 +773,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18-238.el5.orig/kernel/signal.c
-+++ linux-2.6.18-238.el5/kernel/signal.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/signal.c
++++ linux-2.6.18-238.9.1.el5/kernel/signal.c
 @@ -29,6 +29,7 @@
  #include <asm/siginfo.h>
  #include "audit.h"	/* audit_signal_info() */
@@ -813,8 +816,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.18-238.el5.orig/kernel/sys.c
-+++ linux-2.6.18-238.el5/kernel/sys.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/sys.c
++++ linux-2.6.18-238.9.1.el5/kernel/sys.c
 @@ -37,6 +37,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -861,8 +864,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18-238.el5.orig/kernel/sysctl.c
-+++ linux-2.6.18-238.el5/kernel/sysctl.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/sysctl.c
++++ linux-2.6.18-238.9.1.el5/kernel/sysctl.c
 @@ -51,6 +51,7 @@
  
  #include <asm/uaccess.h>
@@ -895,8 +898,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18-238.el5.orig/kernel/time.c
-+++ linux-2.6.18-238.el5/kernel/time.c
+--- linux-2.6.18-238.9.1.el5.orig/kernel/time.c
++++ linux-2.6.18-238.9.1.el5/kernel/time.c
 @@ -39,6 +39,7 @@
  
  #include <asm/uaccess.h>
@@ -932,8 +935,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18-238.el5.orig/net/ipv4/raw.c
-+++ linux-2.6.18-238.el5/net/ipv4/raw.c
+--- linux-2.6.18-238.9.1.el5.orig/net/ipv4/raw.c
++++ linux-2.6.18-238.9.1.el5/net/ipv4/raw.c
 @@ -78,6 +78,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -952,8 +955,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.18-238.el5.orig/net/ipv4/udp.c
-+++ linux-2.6.18-238.el5/net/ipv4/udp.c
+--- linux-2.6.18-238.9.1.el5.orig/net/ipv4/udp.c
++++ linux-2.6.18-238.9.1.el5/net/ipv4/udp.c
 @@ -109,6 +109,7 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -972,8 +975,19 @@ This is TOMOYO Linux patch for CentOS 5.6.
    
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
---- linux-2.6.18-238.el5.orig/net/ipv6/raw.c
-+++ linux-2.6.18-238.el5/net/ipv6/raw.c
+--- linux-2.6.18-238.9.1.el5.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.18-238.9.1.el5/net/ipv6/inet6_hashtables.c
+@@ -266,6 +266,8 @@ int inet6_hash_connect(struct inet_timew
+  		local_bh_disable();
+ 		for (i = 1; i <= remaining; i++) {
+ 			port = low + (i + offset) % remaining;
++			if (inet_is_reserved_local_port(port))
++				continue;
+  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
+  			spin_lock(&head->lock);
+ 
+--- linux-2.6.18-238.9.1.el5.orig/net/ipv6/raw.c
++++ linux-2.6.18-238.9.1.el5/net/ipv6/raw.c
 @@ -56,6 +56,7 @@
  
  #include <linux/proc_fs.h>
@@ -992,8 +1006,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  	copied = skb->len;
    	if (copied > len) {
---- linux-2.6.18-238.el5.orig/net/ipv6/udp.c
-+++ linux-2.6.18-238.el5/net/ipv6/udp.c
+--- linux-2.6.18-238.9.1.el5.orig/net/ipv6/udp.c
++++ linux-2.6.18-238.9.1.el5/net/ipv6/udp.c
 @@ -58,6 +58,7 @@
  
  #include <linux/proc_fs.h>
@@ -1002,7 +1016,37 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
  
-@@ -247,6 +248,9 @@ try_again:
+@@ -80,7 +81,8 @@ static int udp_v6_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
+-		if (!udp_lport_inuse(rover))
++		if (!udp_lport_inuse(rover) &&
++		    !inet_is_reserved_local_port(rover))
+ 			goto gotit;
+ 
+ 		/* 1st pass: look for empty (or shortest) hash chain */
+@@ -89,7 +91,8 @@ static int udp_v6_get_port(struct sock *
+ 			struct hlist_head *list;
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+-			if (hlist_empty(list))
++			if (hlist_empty(list) &&
++			    !inet_is_reserved_local_port(rover))
+ 				goto gotit;
+ 
+ 			sk_for_each(sk2, node, list)
+@@ -106,7 +109,8 @@ static int udp_v6_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
+-			if (!udp_lport_inuse(rover))
++			if (!udp_lport_inuse(rover) &&
++			    !inet_is_reserved_local_port(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+ 			if (rover > high)
+@@ -247,6 +251,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -1012,8 +1056,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
---- linux-2.6.18-238.el5.orig/net/socket.c
-+++ linux-2.6.18-238.el5/net/socket.c
+--- linux-2.6.18-238.9.1.el5.orig/net/socket.c
++++ linux-2.6.18-238.9.1.el5/net/socket.c
 @@ -96,6 +96,9 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1091,8 +1135,8 @@ This is TOMOYO Linux patch for CentOS 5.6.
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18-238.el5.orig/net/unix/af_unix.c
-+++ linux-2.6.18-238.el5/net/unix/af_unix.c
+--- linux-2.6.18-238.9.1.el5.orig/net/unix/af_unix.c
++++ linux-2.6.18-238.9.1.el5/net/unix/af_unix.c
 @@ -116,6 +116,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1111,51 +1155,3 @@ This is TOMOYO Linux patch for CentOS 5.6.
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
----
- net/ipv6/inet6_hashtables.c |    2 ++
- net/ipv6/udp.c              |    9 ++++++---
- 2 files changed, 8 insertions(+), 3 deletions(-)
-
---- linux-2.6.18-238.el5.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.18-238.el5/net/ipv6/inet6_hashtables.c
-@@ -266,6 +266,8 @@ int inet6_hash_connect(struct inet_timew
-  		local_bh_disable();
- 		for (i = 1; i <= remaining; i++) {
- 			port = low + (i + offset) % remaining;
-+			if (inet_is_reserved_local_port(port))
-+				continue;
-  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
-  			spin_lock(&head->lock);
- 
---- linux-2.6.18-238.el5.orig/net/ipv6/udp.c
-+++ linux-2.6.18-238.el5/net/ipv6/udp.c
-@@ -81,7 +81,8 @@ static int udp_v6_get_port(struct sock *
- 		best_size_so_far = UINT_MAX;
- 		best = rover = net_random() % remaining + low;
- 
--		if (!udp_lport_inuse(rover))
-+		if (!udp_lport_inuse(rover) &&
-+		    !inet_is_reserved_local_port(rover))
- 			goto gotit;
- 
- 		/* 1st pass: look for empty (or shortest) hash chain */
-@@ -90,7 +91,8 @@ static int udp_v6_get_port(struct sock *
- 			struct hlist_head *list;
- 
- 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
--			if (hlist_empty(list))
-+			if (hlist_empty(list) &&
-+			    !inet_is_reserved_local_port(rover))
- 				goto gotit;
- 
- 			sk_for_each(sk2, node, list)
-@@ -107,7 +109,8 @@ static int udp_v6_get_port(struct sock *
- 		/* 2nd pass: find hole in shortest hash chain */
- 		rover = best;
- 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
--			if (!udp_lport_inuse(rover))
-+			if (!udp_lport_inuse(rover) &&
-+			    !inet_is_reserved_local_port(rover))
- 				goto gotit;
- 			rover += UDP_HTABLE_SIZE;
- 			if (rover > high)
