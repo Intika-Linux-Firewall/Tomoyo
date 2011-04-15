@@ -275,11 +275,11 @@ static void tomoyo_test_init(void)
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/tomoyo/domain_policy\n");
+		"securityfs:/tomoyo/domain_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/tomoyo/exception_policy\n");
+		"securityfs:/tomoyo/exception_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/tomoyo/profile\n");
+		"securityfs:/tomoyo/profile\n");
 }
 
 static void BUG(const char *fmt, ...)
