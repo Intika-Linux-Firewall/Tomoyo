@@ -2,9 +2,9 @@ Subject: TOMOYO: Reenable TOMOYO Linux.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |    6 +++---
+ security/tomoyo/common.c |   16 ++++++++--------
  security/tomoyo/tomoyo.c |    3 ---
- 2 files changed, 3 insertions(+), 6 deletions(-)
+ 2 files changed, 8 insertions(+), 11 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -17,7 +17,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static unsigned int tomoyo_profile_version;
  
  /* Profile table. Memory is allocated as needed. */
-@@ -549,7 +549,7 @@ static void tomoyo_read_profile(struct t
+@@ -551,7 +551,7 @@ static void tomoyo_read_profile(struct t
  	profile = tomoyo_profile_ptr[index];
  	switch (head->r.step) {
  	case 0:
@@ -26,18 +26,45 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.step++;
  		break;
  	case 1:
-@@ -2207,7 +2207,7 @@ void tomoyo_check_profile(void)
+@@ -1795,7 +1795,7 @@ static int tomoyo_write_answer(struct to
+ static void tomoyo_read_version(struct tomoyo_io_buffer *head)
+ {
+ 	if (!head->r.eof) {
+-		tomoyo_io_printf(head, "2.3.0");
++		tomoyo_io_printf(head, "2.4.0");
+ 		head->r.eof = true;
+ 	}
+ }
+@@ -2203,21 +2203,21 @@ void tomoyo_check_profile(void)
+ 			continue;
+ 		printk(KERN_ERR "You need to define profile %u before using it.\n",
+ 		       profile);
+-		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/2.3/ "
++		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/2.4/ "
+ 		       "for more information.\n");
+ 		panic("Profile %u (used by '%s') not defined.\n",
  		      profile, domain->domainname->name);
  	}
  	tomoyo_read_unlock(idx);
 -	if (tomoyo_profile_version != 20090903) {
 +	if (tomoyo_profile_version != 20100903) {
  		printk(KERN_ERR "You need to install userland programs for "
- 		       "TOMOYO 2.3 and initialize policy configuration.\n");
- 		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/2.3/ "
+-		       "TOMOYO 2.3 and initialize policy configuration.\n");
+-		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/2.3/ "
++		       "TOMOYO 2.4 and initialize policy configuration.\n");
++		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/2.4/ "
+ 		       "for more information.\n");
+ 		panic("Profile version %u is not supported.\n",
+ 		      tomoyo_profile_version);
+ 	}
+-	printk(KERN_INFO "TOMOYO: 2.3.0\n");
++	printk(KERN_INFO "TOMOYO: 2.4.0\n");
+ 	printk(KERN_INFO "Mandatory Access Control activated.\n");
+ }
+ 
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -359,9 +359,6 @@ static int __init tomoyo_init(void)
+@@ -361,9 +361,6 @@ static int __init tomoyo_init(void)
  {
  	if (!security_module_enable(&tomoyo_security_ops))
  		return 0;
