@@ -54,7 +54,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +	  To use this option, you need to create a file named
 +	  security/tomoyo/builtin-policy.h that contains the policy to be
-+          embedded.
++	  embedded.
 +
 +config SECURITY_TOMOYO_BUILTIN_INITIALIZERS
 +	string "Built-in domain initializer programs"
@@ -109,16 +109,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	  "Activate immediately after loading built-in policy.", you don't need
 +	  to call policy loader.
 +
-+config SECURITY_TOMOYO_ALTERNATIVE_TRIGGER
-+	string "Alternative activation trigger"
-+	default "/sbin/tomoyo-start"
-+	depends on SECURITY_TOMOYO
-+	depends on !SECURITY_TOMOYO_ACTIVATE_FROM_THE_BEGINNING
-+	---help---
-+	  Some environments do not have /sbin/init . In such environments,
-+	  we need to use different program's pathname (e.g. /init or /linuxrc )
-+	  as activation trigger.
-+
 +config SECURITY_TOMOYO_DEFAULT_LOADER
 +	string "Default policy loader"
 +	default "/sbin/tomoyo-init"
@@ -128,6 +118,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	  This is the default pathname of policy loader which is called before
 +	  activation. You can override using TOMOYO_loader= kernel command line
 +	  option.
++
++config SECURITY_TOMOYO_ALTERNATIVE_TRIGGER
++	string "Alternative activation trigger"
++	default "/sbin/tomoyo-start"
++	depends on SECURITY_TOMOYO
++	depends on !SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
++	---help---
++	  Some environments do not have /sbin/init . In such environments,
++	  we need to use different program's pathname (e.g. /init or /linuxrc )
++	  as activation trigger.
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
 @@ -322,8 +322,10 @@ static struct tomoyo_profile *tomoyo_ass
