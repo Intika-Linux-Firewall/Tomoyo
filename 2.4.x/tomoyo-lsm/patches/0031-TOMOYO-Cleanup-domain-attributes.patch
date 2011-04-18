@@ -12,7 +12,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -838,6 +838,12 @@ static int tomoyo_write_domain2(char *da
+@@ -847,6 +847,12 @@ static int tomoyo_write_domain2(char *da
  	return -EINVAL;
  }
  
@@ -25,7 +25,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_write_domain - Write domain policy.
   *
-@@ -890,12 +896,11 @@ static int tomoyo_write_domain(struct to
+@@ -899,12 +905,11 @@ static int tomoyo_write_domain(struct to
  			domain->group = (u8) profile;
  		return 0;
  	}
@@ -43,7 +43,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	}
  	return tomoyo_write_domain2(data, domain, is_delete);
-@@ -1073,6 +1078,7 @@ static void tomoyo_read_domain(struct to
+@@ -1082,6 +1087,7 @@ static void tomoyo_read_domain(struct to
  		struct tomoyo_domain_info *domain =
  			list_entry(head->r.domain, typeof(*domain), list);
  		switch (head->r.step) {
@@ -51,7 +51,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		case 0:
  			if (domain->is_deleted &&
  			    !head->r.print_this_domain_only)
-@@ -1084,10 +1090,9 @@ static void tomoyo_read_domain(struct to
+@@ -1093,10 +1099,9 @@ static void tomoyo_read_domain(struct to
  					 domain->profile);
  			tomoyo_io_printf(head, "use_group %u\n",
  					 domain->group);
@@ -108,7 +108,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION];
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -580,9 +580,14 @@ static int tomoyo_find_next_domain(struc
+@@ -596,9 +596,14 @@ static int tomoyo_find_next_domain(struc
  		retval = -ENOMEM;
  	else {
  		retval = 0;
