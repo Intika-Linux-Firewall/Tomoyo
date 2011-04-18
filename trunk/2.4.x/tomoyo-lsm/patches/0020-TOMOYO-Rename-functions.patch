@@ -24,7 +24,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return NULL;
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -675,7 +675,8 @@ static bool tomoyo_manager(void)
+@@ -684,7 +684,8 @@ static bool tomoyo_manager(void)
  	struct tomoyo_manager *ptr;
  	const char *exe;
  	const struct task_struct *task = current;
@@ -34,7 +34,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bool found = false;
  
  	if (!tomoyo_policy_loaded)
-@@ -746,7 +747,7 @@ static bool tomoyo_select_one(struct tom
+@@ -755,7 +756,7 @@ static bool tomoyo_select_one(struct tom
  		else
  			p = find_task_by_vpid(pid);
  		if (p)
@@ -43,7 +43,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		read_unlock(&tasklist_lock);
  		rcu_read_unlock();
  	} else if (!strncmp(data, "domain=", 7)) {
-@@ -1224,7 +1225,7 @@ static void tomoyo_read_pid(struct tomoy
+@@ -1233,7 +1234,7 @@ static void tomoyo_read_pid(struct tomoy
  	else
  		p = find_task_by_vpid(pid);
  	if (p)
@@ -52,7 +52,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	read_unlock(&tasklist_lock);
  	rcu_read_unlock();
  	if (!domain)
-@@ -1484,7 +1485,7 @@ static void tomoyo_add_entry(char *heade
+@@ -1493,7 +1494,7 @@ static void tomoyo_add_entry(char *heade
  		return;
  	snprintf(buffer, len - 1, "%s", cp);
  	tomoyo_normalize_line(buffer);
@@ -61,7 +61,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(buffer);
  }
  
-@@ -1746,11 +1747,12 @@ static void tomoyo_read_self_domain(stru
+@@ -1755,11 +1756,12 @@ static void tomoyo_read_self_domain(stru
  {
  	if (!head->r.eof) {
  		/*
@@ -98,7 +98,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -444,7 +444,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -460,7 +460,7 @@ int tomoyo_find_next_domain(struct linux
  	struct tomoyo_request_info r;
  	char *tmp = kzalloc(TOMOYO_EXEC_TMPSIZE, GFP_NOFS);
  	struct tomoyo_security *security = tomoyo_current_security();

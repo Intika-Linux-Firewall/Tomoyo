@@ -10,7 +10,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -628,7 +628,7 @@ static int tomoyo_update_manager_entry(c
+@@ -637,7 +637,7 @@ static int tomoyo_update_manager_entry(c
  static int tomoyo_write_manager(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -19,7 +19,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (!strcmp(data, "manage_by_non_root")) {
  		tomoyo_manage_by_non_root = !is_delete;
-@@ -855,9 +855,9 @@ static int tomoyo_write_domain(struct to
+@@ -864,9 +864,9 @@ static int tomoyo_write_domain(struct to
  	bool is_select = false;
  	unsigned int profile;
  
@@ -31,7 +31,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		is_select = true;
  	if (is_select && tomoyo_select_one(head, data))
  		return -EAGAIN;
-@@ -878,7 +878,7 @@ static int tomoyo_write_domain(struct to
+@@ -887,7 +887,7 @@ static int tomoyo_write_domain(struct to
  	if (!domain)
  		return -EINVAL;
  
@@ -40,7 +40,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    && profile < TOMOYO_MAX_PROFILES) {
  		if (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded)
  			domain->profile = (u8) profile;
-@@ -890,11 +890,11 @@ static int tomoyo_write_domain(struct to
+@@ -899,11 +899,11 @@ static int tomoyo_write_domain(struct to
  			domain->group = (u8) profile;
  		return 0;
  	}
@@ -54,7 +54,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		domain->transition_failed = !is_delete;
  		return 0;
  	}
-@@ -1080,8 +1080,7 @@ static void tomoyo_read_domain(struct to
+@@ -1089,8 +1089,7 @@ static void tomoyo_read_domain(struct to
  			/* Print domainname and flags. */
  			tomoyo_set_string(head, domain->domainname->name);
  			tomoyo_set_lf(head);
@@ -64,7 +64,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  					 domain->profile);
  			tomoyo_io_printf(head, "use_group %u\n",
  					 domain->group);
-@@ -1234,18 +1233,18 @@ static void tomoyo_read_pid(struct tomoy
+@@ -1243,18 +1242,18 @@ static void tomoyo_read_pid(struct tomoy
  	tomoyo_set_string(head, domain->domainname->name);
  }
  
@@ -91,7 +91,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -1260,13 +1259,13 @@ static const char *tomoyo_group_name[TOM
+@@ -1269,13 +1268,13 @@ static const char *tomoyo_group_name[TOM
  static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -107,7 +107,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	};
  
  	if (!is_delete && tomoyo_str_starts(&data, "select ") &&
-@@ -1383,8 +1382,7 @@ static bool tomoyo_read_policy(struct to
+@@ -1392,8 +1391,7 @@ static bool tomoyo_read_policy(struct to
  			{
  				struct tomoyo_aggregator *ptr =
  					container_of(acl, typeof(*ptr), head);

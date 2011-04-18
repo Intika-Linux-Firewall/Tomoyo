@@ -37,10 +37,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true if @a == @b, false otherwise.
 + */
-+static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
-+					const struct tomoyo_acl_info *p2)
++static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *a,
++					const struct tomoyo_acl_info *b)
 +{
-+	return p1->type == p2->type;
++	return a->type == b->type;
 +}
 +
 +/**

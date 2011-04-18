@@ -130,7 +130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	  as activation trigger.
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -322,8 +322,10 @@ static struct tomoyo_profile *tomoyo_ass
+@@ -331,8 +331,10 @@ static struct tomoyo_profile *tomoyo_ass
  			TOMOYO_CONFIG_WANT_REJECT_LOG;
  		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
  		       sizeof(ptr->config));
@@ -143,7 +143,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mb(); /* Avoid out-of-order execution. */
  		tomoyo_profile_ptr[profile] = ptr;
  		entry = NULL;
-@@ -2214,3 +2216,64 @@ void tomoyo_check_profile(void)
+@@ -2224,3 +2226,64 @@ void tomoyo_check_profile(void)
  	printk(KERN_INFO "TOMOYO: 2.3.0\n");
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  }

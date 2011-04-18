@@ -14,7 +14,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -674,35 +674,33 @@ static bool tomoyo_manager(void)
+@@ -683,35 +683,33 @@ static bool tomoyo_manager(void)
  {
  	struct tomoyo_manager *ptr;
  	const char *exe;
@@ -92,7 +92,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	 * do_execve() failed, NULL otherwise. Only current thread can access
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -468,6 +468,9 @@ int tomoyo_find_next_domain(struct linux
+@@ -484,6 +484,9 @@ int tomoyo_find_next_domain(struct linux
  	bool need_kfree = false;
  	struct tomoyo_path_info rn = { }; /* real name */
  
