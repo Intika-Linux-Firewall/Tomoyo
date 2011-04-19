@@ -14,12 +14,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/condition.c | 1069 ++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/domain.c    |   55 ++
  security/tomoyo/file.c      |   24 
- security/tomoyo/gc.c        |   75 ++-
+ security/tomoyo/gc.c        |   78 ++-
  security/tomoyo/memory.c    |    2 
  security/tomoyo/mount.c     |    9 
  security/tomoyo/tomoyo.c    |   14 
  security/tomoyo/util.c      |    2 
- 12 files changed, 1934 insertions(+), 39 deletions(-)
+ 12 files changed, 1937 insertions(+), 39 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -2217,7 +2217,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @operation: Type of operation.
   * @path:      Pointer to "struct path".
-+ * @target:    Symlink's target if @operation is TOMOYO_TYPE_SYMLINK.
++ * @target:    Symlink's target if @operation is TOMOYO_TYPE_SYMLINK,
 + *             NULL otherwise.
   *
   * Returns 0 on success, negative value otherwise.
@@ -2409,6 +2409,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   unlock:
  	mutex_unlock(&tomoyo_policy_lock);
  }
+@@ -560,6 +617,9 @@ static bool tomoyo_kfree_entry(void)
+ 		case TOMOYO_ID_MANAGER:
+ 			tomoyo_del_manager(element);
+ 			break;
++		case TOMOYO_ID_CONDITION:
++                        tomoyo_del_condition(element);
++                        break;
+ 		case TOMOYO_ID_NAME:
+ 			/*
+ 			 * Thirdly, defer until all "struct tomoyo_io_buffer"
 --- security-testing-2.6.orig/security/tomoyo/memory.c
 +++ security-testing-2.6/security/tomoyo/memory.c
 @@ -206,6 +206,8 @@ void __init tomoyo_mm_init(void)
