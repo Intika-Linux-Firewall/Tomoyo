@@ -1,0 +1,23 @@
+[PATCH] TOMOYO: Don't add / for allow_unmount permission check.
+
+commit e4f5f26d8336318a5aa0858223c81cf29fcf5f68 in security-testing-2.6.git.
+
+"mount --bind /path/to/file1 /path/to/file2" is legal. Therefore,
+"umount /path/to/file2" is also legal. Do not automatically append trailing '/'
+if pathname to be unmounted does not end with '/'.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/file.c |    1 -
+ 1 file changed, 1 deletion(-)
+
+--- linux-2.6.39-rc3.orig/security/tomoyo/file.c
++++ linux-2.6.39-rc3/security/tomoyo/file.c
+@@ -1011,7 +1011,6 @@ int tomoyo_path_perm(const u8 operation,
+ 		break;
+ 	case TOMOYO_TYPE_RMDIR:
+ 	case TOMOYO_TYPE_CHROOT:
+-	case TOMOYO_TYPE_UMOUNT:
+ 		tomoyo_add_slash(&buf);
+ 		break;
+ 	}
