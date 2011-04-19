@@ -7,10 +7,10 @@ compare it, store it when it was authorized for the first time into per a
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   34 ++++++++++++++++------------------
- security/tomoyo/common.h |    8 ++++++++
- security/tomoyo/domain.c |    3 +++
- 3 files changed, 27 insertions(+), 18 deletions(-)
+ security/tomoyo/common.c |   52 ++++++++++++++++++++++++++++-------------------
+ security/tomoyo/common.h |   34 ++++++++++++++++++++++++++++++
+ security/tomoyo/domain.c |    3 ++
+ 3 files changed, 68 insertions(+), 21 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -66,6 +66,54 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  	if (!found) { /* Reduce error messages. */
  		static pid_t last_pid;
+@@ -1211,10 +1209,12 @@ static int tomoyo_write_pid(struct tomoy
+ static void tomoyo_read_pid(struct tomoyo_io_buffer *head)
+ {
+ 	char *buf = head->write_buf;
++	bool task_info = false;
+ 	bool global_pid = false;
+ 	unsigned int pid;
+ 	struct task_struct *p;
+ 	struct tomoyo_domain_info *domain = NULL;
++	u32 tomoyo_flags = 0;
+ 
+ 	/* Accessing write_buf is safe because head->io_sem is held. */
+ 	if (!buf) {
+@@ -1224,6 +1224,8 @@ static void tomoyo_read_pid(struct tomoy
+ 	if (head->r.w_pos || head->r.eof)
+ 		return;
+ 	head->r.eof = true;
++	if (tomoyo_str_starts(&buf, "info "))
++		task_info = true;
+ 	if (tomoyo_str_starts(&buf, "global-pid "))
+ 		global_pid = true;
+ 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
+@@ -1233,14 +1235,22 @@ static void tomoyo_read_pid(struct tomoy
+ 		p = find_task_by_pid_ns(pid, &init_pid_ns);
+ 	else
+ 		p = find_task_by_vpid(pid);
+-	if (p)
++	if (p) {
+ 		domain = tomoyo_task_domain(p);
++		tomoyo_flags = tomoyo_task_flags(p);
++	}
+ 	read_unlock(&tasklist_lock);
+ 	rcu_read_unlock();
+ 	if (!domain)
+ 		return;
+-	tomoyo_io_printf(head, "%u %u ", pid, domain->profile);
+-	tomoyo_set_string(head, domain->domainname->name);
++	if (!task_info) {
++		tomoyo_io_printf(head, "%u %u ", pid, domain->profile);
++		tomoyo_set_string(head, domain->domainname->name);
++	} else {
++		tomoyo_io_printf(head, "%u manager=%s ", pid,
++				 tomoyo_yesno(tomoyo_flags &
++					      TOMOYO_TASK_IS_MANAGER));
++	}
+ }
+ 
+ /* String table for domain transition control keywords. */
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
 @@ -241,6 +241,12 @@ enum tomoyo_value_type {
@@ -90,9 +138,42 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * Holds previous tomoyo_domain_info during do_execve() in case
  	 * do_execve() failed, NULL otherwise. Only current thread can access
+@@ -914,6 +922,32 @@ static inline struct tomoyo_domain_info 
+ }
+ 
+ /**
++ * tomoyo_task_flags - Get flags for specified thread.
++ *
++ * @task: Pointer to "struct task_struct".
++ *
++ * Returns flags for specified thread.
++ */
++static inline u32 tomoyo_task_flags(struct task_struct *task)
++{
++        u32 tomoyo_flags;
++        rcu_read_lock();
++        tomoyo_flags = tomoyo_find_task_security(task)->tomoyo_flags;
++        rcu_read_unlock();
++        return tomoyo_flags;
++}
++
++/**
++ * tomoyo_current_flags - Get flags for current thread.
++ *
++ * Returns flags for current thread.
++ */
++static inline u32 tomoyo_current_flags(void)
++{
++        return tomoyo_find_task_security(current)->tomoyo_flags;
++}
++
++/**
+  * list_for_each_cookie - iterate over a list with cookie.
+  * @pos:        the &struct list_head to use as a loop cursor.
+  * @head:       the head for your list.
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -484,6 +484,9 @@ int tomoyo_find_next_domain(struct linux
+@@ -468,6 +468,9 @@ int tomoyo_find_next_domain(struct linux
  	bool need_kfree = false;
  	struct tomoyo_path_info rn = { }; /* real name */
  

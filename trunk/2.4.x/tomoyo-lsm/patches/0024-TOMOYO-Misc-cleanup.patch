@@ -4,8 +4,8 @@ Update comments, sort symbols in security/tomoyo/common.h .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.h | 1020 +++++++++++++++++++----------------------------
- 1 file changed, 430 insertions(+), 590 deletions(-)
+ security/tomoyo/common.h | 1026 +++++++++++++++++++----------------------------
+ 1 file changed, 432 insertions(+), 594 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
@@ -291,12 +291,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +#define TOMOYO_HASH_BITS  8
 +#define TOMOYO_MAX_HASH (1u<<TOMOYO_HASH_BITS)
- 
--/********** Structure definitions. **********/
++
 +/* A domain definition starts with <kernel>. */
 +#define TOMOYO_ROOT_NAME                         "<kernel>"
 +#define TOMOYO_ROOT_NAME_LEN                     (sizeof(TOMOYO_ROOT_NAME) - 1)
-+
+ 
+-/********** Structure definitions. **********/
 +/* Size of temporary buffer for execve() operation. */
 +#define TOMOYO_EXEC_TMPSIZE     4096
 +
@@ -750,10 +750,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_profile {
  	const struct tomoyo_path_info *comment;
  	u8 default_config;
-@@ -678,218 +565,72 @@ struct tomoyo_security {
- 	struct tomoyo_domain_info *tomoyo_domain_info;
+@@ -674,222 +561,76 @@ struct tomoyo_security {
  	/*
- 	 * Holds previous tomoyo_domain_info during do_execve() in case
+ 	 * Holds current thread's domain. Only current thread can modify this
+ 	 * member but any threads can read this member under RCU.
+-	 */
+-	struct tomoyo_domain_info *tomoyo_domain_info;
+-	/*
+-	 * Holds previous tomoyo_domain_info during do_execve() in case
 -	 * do_execve() failed, NULL otherwise. Only current thread can access
 -	 * this member.
 -	 */
@@ -805,6 +809,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -{
 -	return tomoyo_find_task_security(current)->tomoyo_domain_info;
 -}
++	 */
++	struct tomoyo_domain_info *tomoyo_domain_info;
++	/*
++	 * Holds previous tomoyo_domain_info during do_execve() in case
 +	 * do_execve() failed, NULL otherwise. Only current thread can access
 +	 * this member.
 +	 */
@@ -1012,7 +1020,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
  			 struct tomoyo_acl_param *param,
  			 bool (*check_duplicate) (const struct tomoyo_acl_info
-@@ -905,72 +646,104 @@ int tomoyo_update_policy(struct tomoyo_a
+@@ -905,72 +646,102 @@ int tomoyo_update_policy(struct tomoyo_a
  						  *,
  						  const struct tomoyo_acl_head
  						  *));
@@ -1031,8 +1039,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct tomoyo_profile *tomoyo_profile(const u8 profile);
 +struct tomoyo_security *tomoyo_find_task_security(const struct task_struct *
 +						  task);
-+unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
-+				const u8 index);
 +void *tomoyo_commit_ok(void *data, const unsigned int size);
 +void __init tomoyo_mm_init(void);
  void tomoyo_check_acl(struct tomoyo_request_info *r,
@@ -1156,7 +1162,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
  				  const struct tomoyo_path_info *b)
  {
-@@ -1001,6 +774,13 @@ static inline bool tomoyo_invalid(const 
+@@ -1001,6 +772,13 @@ static inline bool tomoyo_invalid(const 
  	return c && (c <= ' ' || c >= 127);
  }
  
@@ -1170,7 +1176,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
  {
  	if (name) {
-@@ -1010,19 +790,42 @@ static inline void tomoyo_put_name(const
+@@ -1010,19 +788,42 @@ static inline void tomoyo_put_name(const
  	}
  }
  
@@ -1215,7 +1221,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_same_number_union
  (const struct tomoyo_number_union *p1, const struct tomoyo_number_union *p2)
  {
-@@ -1076,6 +879,43 @@ static inline int tomoyo_round2(size_t s
+@@ -1076,6 +877,43 @@ static inline int tomoyo_round2(size_t s
  #endif
  
  /**

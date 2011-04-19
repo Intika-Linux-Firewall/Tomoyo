@@ -575,7 +575,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return true;
  }
  
-@@ -1518,6 +1738,22 @@ static DEFINE_SPINLOCK(tomoyo_query_list
+@@ -1530,6 +1750,22 @@ static DEFINE_SPINLOCK(tomoyo_query_list
  static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
  
  /**
@@ -598,7 +598,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_add_entry - Add an ACL to current thread's domain. Used by learning mode.
   *
   * @header: Lines containing ACL.
-@@ -1527,6 +1763,9 @@ static atomic_t tomoyo_query_observers =
+@@ -1539,6 +1775,9 @@ static atomic_t tomoyo_query_observers =
  static void tomoyo_add_entry(char *header)
  {
  	char *buffer;
@@ -608,7 +608,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *cp = strchr(header, '\n');
  	int len;
  	if (!cp)
-@@ -1536,10 +1775,32 @@ static void tomoyo_add_entry(char *heade
+@@ -1548,10 +1787,32 @@ static void tomoyo_add_entry(char *heade
  		return;
  	*cp++ = '\0';
  	len = strlen(cp) + 1;
@@ -2113,7 +2113,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /**
   * tomoyo_last_word - Get last component of a domainname.
-@@ -612,6 +619,52 @@ out:
+@@ -596,6 +603,52 @@ out:
  }
  
  /**

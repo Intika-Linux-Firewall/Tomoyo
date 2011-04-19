@@ -147,7 +147,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			break;
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -749,12 +749,11 @@ void tomoyo_write_log2(struct tomoyo_req
+@@ -747,12 +747,11 @@ void tomoyo_write_log2(struct tomoyo_req
  extern bool tomoyo_policy_loaded;
  extern bool tomoyo_registered;
  extern const char * const tomoyo_dif[TOMOYO_MAX_DOMAIN_INFO_FLAGS];
@@ -245,7 +245,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				 r->param.path_number.filename->name, buffer);
  }
  
-@@ -964,18 +925,20 @@ int tomoyo_write_file(struct tomoyo_acl_
+@@ -963,18 +924,20 @@ int tomoyo_write_file(struct tomoyo_acl_
  	if (perm)
  		return tomoyo_update_path_acl(perm, param);
  	for (type = 0; type < TOMOYO_MAX_PATH2_OPERATION; type++)

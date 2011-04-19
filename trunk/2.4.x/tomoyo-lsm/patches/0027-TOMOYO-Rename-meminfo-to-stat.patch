@@ -65,7 +65,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @r: Pointer to "struct tomoyo_request_info".
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -1492,7 +1492,8 @@ static void tomoyo_add_entry(char *heade
+@@ -1504,7 +1504,8 @@ static void tomoyo_add_entry(char *heade
  		return;
  	snprintf(buffer, len - 1, "%s", cp);
  	tomoyo_normalize_line(buffer);
@@ -75,7 +75,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(buffer);
  }
  
-@@ -1525,6 +1526,8 @@ int tomoyo_supervisor(struct tomoyo_requ
+@@ -1537,6 +1538,8 @@ int tomoyo_supervisor(struct tomoyo_requ
  	/* Nothing more to do if granted. */
  	if (r->granted)
  		return 0;
@@ -84,7 +84,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	switch (r->mode) {
  	case TOMOYO_CONFIG_ENFORCING:
  		error = -EPERM;
-@@ -1764,6 +1767,104 @@ static void tomoyo_read_self_domain(stru
+@@ -1776,6 +1779,104 @@ static void tomoyo_read_self_domain(stru
  	}
  }
  
@@ -189,7 +189,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_open_control - open() for /sys/kernel/security/tomoyo/ interface.
   *
-@@ -1817,11 +1918,11 @@ int tomoyo_open_control(const u8 type, s
+@@ -1829,11 +1930,11 @@ int tomoyo_open_control(const u8 type, s
  		head->read = tomoyo_read_version;
  		head->readbuf_size = 128;
  		break;
@@ -206,7 +206,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
  	case TOMOYO_PROFILE:
  		/* /sys/kernel/security/tomoyo/profile */
-@@ -1992,7 +2093,27 @@ int tomoyo_write_control(struct file *fi
+@@ -2004,7 +2105,27 @@ int tomoyo_write_control(struct file *fi
  		cp0[head->write_avail - 1] = '\0';
  		head->write_avail = 0;
  		tomoyo_normalize_line(cp0);
@@ -280,7 +280,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_write_transition_control(char *data, const bool is_delete,
  				    const u8 type);
  struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
-@@ -694,6 +703,7 @@ void tomoyo_check_acl(struct tomoyo_requ
+@@ -692,6 +701,7 @@ void tomoyo_check_acl(struct tomoyo_requ
  		      bool (*check_entry) (struct tomoyo_request_info *,
  					   const struct tomoyo_acl_info *));
  void tomoyo_check_profile(void);
@@ -288,7 +288,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
  void tomoyo_finish_execve(const bool succeeded);
  void tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
-@@ -706,8 +716,8 @@ void tomoyo_print_ulong(char *buffer, co
+@@ -704,8 +714,8 @@ void tomoyo_print_ulong(char *buffer, co
  void tomoyo_put_name_union(struct tomoyo_name_union *ptr);
  void tomoyo_put_number_union(struct tomoyo_number_union *ptr);
  void tomoyo_read_log(struct tomoyo_io_buffer *head);

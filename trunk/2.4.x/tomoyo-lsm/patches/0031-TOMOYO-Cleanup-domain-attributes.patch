@@ -98,7 +98,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /*
-@@ -732,6 +745,7 @@ void tomoyo_write_log2(struct tomoyo_req
+@@ -730,6 +743,7 @@ void tomoyo_write_log2(struct tomoyo_req
  
  extern bool tomoyo_policy_loaded;
  extern bool tomoyo_registered;
@@ -108,7 +108,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION];
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -596,9 +596,14 @@ static int tomoyo_find_next_domain(struc
+@@ -580,9 +580,14 @@ static int tomoyo_find_next_domain(struc
  		retval = -ENOMEM;
  	else {
  		retval = 0;

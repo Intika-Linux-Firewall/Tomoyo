@@ -143,7 +143,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mb(); /* Avoid out-of-order execution. */
  		tomoyo_profile_ptr[profile] = ptr;
  		entry = NULL;
-@@ -2224,3 +2226,64 @@ void tomoyo_check_profile(void)
+@@ -2236,3 +2238,64 @@ void tomoyo_check_profile(void)
  	printk(KERN_INFO "TOMOYO: 2.3.0\n");
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  }
@@ -210,9 +210,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -720,6 +720,9 @@ struct tomoyo_security *tomoyo_find_task
- unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
- 				const u8 index);
+@@ -717,6 +717,9 @@ struct tomoyo_profile *tomoyo_profile(co
+ struct tomoyo_security *tomoyo_find_task_security(const struct task_struct *
+ 						  task);
  void *tomoyo_commit_ok(void *data, const unsigned int size);
 +#ifdef CONFIG_SECURITY_TOMOYO_USE_BUILTIN_POLICY
 +void __init tomoyo_load_builtin_policy(void);
