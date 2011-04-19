@@ -6,8 +6,8 @@ read()/write() returns ssize_t.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |   20 ++++++++++----------
- security/tomoyo/common.h |   26 ++++++++++++--------------
- 2 files changed, 22 insertions(+), 24 deletions(-)
+ security/tomoyo/common.h |   24 ++++++++++++------------
+ 2 files changed, 22 insertions(+), 22 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -31,7 +31,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int size = head->readbuf_size - pos;
  	if (size <= 0)
  		return;
-@@ -1703,8 +1703,8 @@ static int tomoyo_poll_query(struct file
+@@ -1713,8 +1713,8 @@ static int tomoyo_poll_query(struct file
  static void tomoyo_read_query(struct tomoyo_io_buffer *head)
  {
  	struct list_head *tmp;
@@ -42,7 +42,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *buf;
  	if (head->r.w_pos)
  		return;
-@@ -2069,8 +2069,8 @@ int tomoyo_poll_control(struct file *fil
+@@ -2079,8 +2079,8 @@ int tomoyo_poll_control(struct file *fil
   *
   * Returns bytes read on success, negative value otherwise.
   */
@@ -53,7 +53,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int len;
  	struct tomoyo_io_buffer *head = file->private_data;
-@@ -2102,12 +2102,12 @@ int tomoyo_read_control(struct file *fil
+@@ -2112,12 +2112,12 @@ int tomoyo_read_control(struct file *fil
   *
   * Returns @buffer_len on success, negative value otherwise.
   */
@@ -136,12 +136,3 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
  						const u8 profile,
  						const u8 group,
-@@ -717,8 +717,6 @@ struct tomoyo_group *tomoyo_get_group(co
- struct tomoyo_profile *tomoyo_profile(const u8 profile);
- struct tomoyo_security *tomoyo_find_task_security(const struct task_struct *
- 						  task);
--unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
--				const u8 index);
- void *tomoyo_commit_ok(void *data, const unsigned int size);
- #ifdef CONFIG_SECURITY_TOMOYO_USE_BUILTIN_POLICY
- void __init tomoyo_load_builtin_policy(void);

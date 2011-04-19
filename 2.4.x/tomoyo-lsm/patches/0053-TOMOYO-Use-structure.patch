@@ -9,7 +9,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -806,7 +806,7 @@ static bool tomoyo_select_one(struct tom
+@@ -804,7 +804,7 @@ static bool tomoyo_select_one(struct tom
  			domain = tomoyo_find_domain(data + 7);
  	} else
  		return false;
@@ -18,7 +18,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* Accessing read_buf is safe because head->io_sem is held. */
  	if (!head->read_buf)
  		return true; /* Do nothing if open(O_WRONLY). */
-@@ -908,7 +908,7 @@ const char * const tomoyo_dif[TOMOYO_MAX
+@@ -906,7 +906,7 @@ const char * const tomoyo_dif[TOMOYO_MAX
  static int tomoyo_write_domain(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -27,7 +27,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bool is_delete = false;
  	bool is_select = false;
  	unsigned int profile;
-@@ -930,7 +930,7 @@ static int tomoyo_write_domain(struct to
+@@ -928,7 +928,7 @@ static int tomoyo_write_domain(struct to
  			domain = tomoyo_find_domain(data);
  		else
  			domain = tomoyo_assign_domain(data, 0, 0, false);
@@ -36,7 +36,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	}
  	if (!domain)
-@@ -2129,7 +2129,7 @@ ssize_t tomoyo_write_control(struct file
+@@ -2139,7 +2139,7 @@ ssize_t tomoyo_write_control(struct file
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
@@ -45,7 +45,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			error = -ENOMEM;
  			break;
  		} else if (get_user(c, buffer)) {
-@@ -2138,11 +2138,11 @@ ssize_t tomoyo_write_control(struct file
+@@ -2148,11 +2148,11 @@ ssize_t tomoyo_write_control(struct file
  		}
  		buffer++;
  		avail_len--;

@@ -33,7 +33,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
  struct tomoyo_group *tomoyo_get_group(const char *group_name, const u8 type);
  struct tomoyo_profile *tomoyo_profile(const u8 profile);
-@@ -721,6 +723,8 @@ void tomoyo_read_log(struct tomoyo_io_bu
+@@ -719,6 +721,8 @@ void tomoyo_read_log(struct tomoyo_io_bu
  void tomoyo_run_gc(void);
  void tomoyo_update_stat(const u8 index);
  void tomoyo_warn_oom(const char *function);
@@ -44,7 +44,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -416,49 +416,58 @@ int tomoyo_write_aggregator(char *data, 
+@@ -400,49 +400,58 @@ int tomoyo_write_aggregator(char *data, 
   *
   * @domainname: The name of domain.
   * @profile:    Profile number to assign if the domain was newly created.
@@ -132,7 +132,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -572,13 +581,14 @@ static int tomoyo_find_next_domain(struc
+@@ -556,13 +565,14 @@ static int tomoyo_find_next_domain(struc
  	 * security->tomoyo_domain_info.
  	 */
  	smp_wmb();

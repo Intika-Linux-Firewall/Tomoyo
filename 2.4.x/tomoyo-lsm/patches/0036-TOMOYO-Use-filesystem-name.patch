@@ -43,7 +43,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * Don't check read permission here if called from do_execve().
  	 * But check read permission here if called from binary loader
-@@ -732,8 +730,6 @@ int tomoyo_path_perm(const u8 operation,
+@@ -731,8 +729,6 @@ int tomoyo_path_perm(const u8 operation,
  	bool is_enforce;
  	int idx;
  
@@ -52,7 +52,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (tomoyo_init_request_info(&r, tomoyo_p2mac[operation])
  	    == TOMOYO_CONFIG_DISABLED)
  		return 0;
-@@ -776,8 +772,7 @@ int tomoyo_mkdev_perm(const u8 operation
+@@ -775,8 +771,7 @@ int tomoyo_mkdev_perm(const u8 operation
  	struct tomoyo_path_info buf;
  	int idx;
  
@@ -62,7 +62,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    == TOMOYO_CONFIG_DISABLED)
  		return 0;
  	idx = tomoyo_read_lock();
-@@ -818,8 +813,7 @@ int tomoyo_path2_perm(const u8 operation
+@@ -817,8 +812,7 @@ int tomoyo_path2_perm(const u8 operation
  	struct tomoyo_request_info r;
  	int idx;
  

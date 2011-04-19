@@ -26,7 +26,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.step++;
  		break;
  	case 1:
-@@ -1800,7 +1800,7 @@ static int tomoyo_write_answer(struct to
+@@ -1812,7 +1812,7 @@ static int tomoyo_write_answer(struct to
  static void tomoyo_read_version(struct tomoyo_io_buffer *head)
  {
  	if (!head->r.eof) {
@@ -35,7 +35,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.eof = true;
  	}
  }
-@@ -2209,21 +2209,21 @@ void tomoyo_check_profile(void)
+@@ -2221,21 +2221,21 @@ void tomoyo_check_profile(void)
  			continue;
  		printk(KERN_ERR "You need to define profile %u before using it.\n",
  		       profile);
