@@ -1,4 +1,6 @@
-[PATCH] tomoyo: Fix memory leak upon file open.
+[PATCH] TOMOYO: Fix memory leak upon file open.
+
+commit eae61f3c829439f8f9121b5cd48a14be04df451f upstream.
 
 In tomoyo_check_open_permission() since 2.6.36, TOMOYO was by error
 recalculating already calculated pathname when checking allow_rewrite

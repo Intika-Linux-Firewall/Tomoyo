@@ -1,0 +1,33 @@
+[PATCH] TOMOYO: Fix infinite loop bug when reading /sys/kernel/security/tomoyo/query .
+
+commit c0fa797ae6cd02ff87c0bfe0d509368a3b45640e in security-testing-2.6.git.
+
+In tomoyo_flush(), head->r.w[0] holds pointer to string data to be printed.
+But head->r.w[0] was updated only when the string data was partially
+printed (because head->r.w[0] will be updated by head->r.w[1] later if
+completely printed). However, regarding /sys/kernel/security/tomoyo/query ,
+an additional '\0' is printed after the string data was completely printed.
+But if free space for read buffer became 0 before printing the additional '\0',
+tomoyo_flush() was returning without updating head->r.w[0]. As a result,
+tomoyo_flush() forever reprints already printed string data.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |    5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+--- linux-2.6.38.3.orig/security/tomoyo/common.c
++++ linux-2.6.38.3/security/tomoyo/common.c
+@@ -108,10 +108,9 @@ static bool tomoyo_flush(struct tomoyo_i
+ 			head->read_user_buf += len;
+ 			w += len;
+ 		}
+-		if (*w) {
+-			head->r.w[0] = w;
++		head->r.w[0] = w;
++		if (*w)
+ 			return false;
+-		}
+ 		/* Add '\0' for query. */
+ 		if (head->poll) {
+ 			if (!head->read_user_buf_avail ||
