@@ -6,9 +6,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |  159 +++++++++++++++++++++++++++++++----------------
  security/tomoyo/common.h |   46 +++++++------
+ security/tomoyo/domain.c |    4 -
  security/tomoyo/file.c   |   27 +++++--
  security/tomoyo/mount.c  |    3 
- 4 files changed, 150 insertions(+), 85 deletions(-)
+ 5 files changed, 152 insertions(+), 87 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -402,6 +403,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  extern bool tomoyo_registered;
  
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -191,14 +191,14 @@ static int tomoyo_update_transition_cont
+ {
+ 	struct tomoyo_transition_control e = { .type = type };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+-	if (program) {
++	if (program && strcmp(program, "any")) {
+ 		if (!tomoyo_correct_path(program))
+ 			return -EINVAL;
+ 		e.program = tomoyo_get_name(program);
+ 		if (!e.program)
+ 			goto out;
+ 	}
+-	if (domainname) {
++	if (domainname && strcmp(domainname, "any")) {
+ 		if (!tomoyo_correct_domain(domainname)) {
+ 			if (!tomoyo_correct_path(domainname))
+ 				goto out;
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
 @@ -48,6 +48,9 @@ const char *tomoyo_path_number_keyword[T
