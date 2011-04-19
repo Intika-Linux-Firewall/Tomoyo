@@ -109,7 +109,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		need_dev = -1; /* dev_name is a directory */
  	} else {
  		fstype = get_fs_type(type);
-@@ -173,8 +168,9 @@ static int tomoyo_mount_acl(struct tomoy
+@@ -174,8 +169,9 @@ static int tomoyo_mount_acl(struct tomoy
   *
   * Returns 0 on success, negative value otherwise.
   */
@@ -121,7 +121,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	struct tomoyo_request_info r;
  	int error;
-@@ -186,31 +182,31 @@ int tomoyo_mount_permission(char *dev_na
+@@ -187,31 +183,31 @@ int tomoyo_mount_permission(char *dev_na
  	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
  		flags &= ~MS_MGC_MSK;
  	if (flags & MS_REMOUNT) {

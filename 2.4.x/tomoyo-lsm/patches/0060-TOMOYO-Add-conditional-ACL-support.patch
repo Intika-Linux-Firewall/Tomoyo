@@ -10,13 +10,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/Makefile    |    2 
  security/tomoyo/audit.c     |  229 ++++++++-
  security/tomoyo/common.c    |  267 ++++++++++
- security/tomoyo/common.h    |  222 +++++++++
+ security/tomoyo/common.h    |  225 +++++++++
  security/tomoyo/condition.c | 1069 ++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/domain.c    |   55 ++
+ security/tomoyo/file.c      |   24 
  security/tomoyo/gc.c        |   75 ++-
  security/tomoyo/memory.c    |    2 
+ security/tomoyo/mount.c     |    9 
+ security/tomoyo/tomoyo.c    |   14 
  security/tomoyo/util.c      |    2 
- 9 files changed, 1894 insertions(+), 29 deletions(-)
+ 12 files changed, 1934 insertions(+), 39 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -938,7 +941,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_memory_ok(void *ptr);
  bool tomoyo_number_matches_group(const unsigned long min,
  				 const unsigned long max,
-@@ -707,6 +909,7 @@ ssize_t tomoyo_read_control(struct file 
+@@ -675,7 +877,8 @@ int tomoyo_path2_perm(const u8 operation
+ 		      struct path *path2);
+ int tomoyo_path_number_perm(const u8 operation, struct path *path,
+ 			    unsigned long number);
+-int tomoyo_path_perm(const u8 operation, struct path *path);
++int tomoyo_path_perm(const u8 operation, struct path *path,
++		     const char *target);
+ int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
+ 			   const struct tomoyo_path_info *filename);
+ int tomoyo_poll_control(struct file *file, poll_table *wait);
+@@ -707,6 +910,7 @@ ssize_t tomoyo_read_control(struct file 
  			    const size_t buffer_len);
  ssize_t tomoyo_write_control(struct file *file, const char __user *buffer,
  			     const size_t buffer_len);
@@ -946,7 +959,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
  						const u8 profile,
  						const u8 group,
-@@ -716,6 +919,7 @@ struct tomoyo_group *tomoyo_get_group(co
+@@ -716,6 +920,7 @@ struct tomoyo_group *tomoyo_get_group(co
  struct tomoyo_profile *tomoyo_profile(const u8 profile);
  struct tomoyo_security *tomoyo_find_task_security(const struct task_struct *
  						  task);
@@ -954,7 +967,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void *tomoyo_commit_ok(void *data, const unsigned int size);
  #ifdef CONFIG_SECURITY_TOMOYO_USE_BUILTIN_POLICY
  void __init tomoyo_load_builtin_policy(void);
-@@ -726,8 +930,10 @@ void tomoyo_check_acl(struct tomoyo_requ
+@@ -726,8 +931,10 @@ void tomoyo_check_acl(struct tomoyo_requ
  					   const struct tomoyo_acl_info *));
  void tomoyo_check_profile(void);
  void tomoyo_convert_time(time_t time, struct tomoyo_time *stamp);
@@ -965,7 +978,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
  	__attribute__ ((format(printf, 2, 3)));
  void tomoyo_load_policy(const char *filename);
-@@ -750,6 +956,8 @@ void tomoyo_write_log2(struct tomoyo_req
+@@ -750,6 +957,8 @@ void tomoyo_write_log2(struct tomoyo_req
  
  extern bool tomoyo_policy_loaded;
  extern bool tomoyo_registered;
@@ -974,7 +987,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern const char * const tomoyo_dif[TOMOYO_MAX_DOMAIN_INFO_FLAGS];
  extern const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX +
  					      TOMOYO_MAX_MAC_CATEGORY_INDEX];
-@@ -765,6 +973,7 @@ extern struct list_head tomoyo_name_list
+@@ -765,6 +974,7 @@ extern struct list_head tomoyo_name_list
  extern struct list_head tomoyo_policy_list[TOMOYO_MAX_POLICY];
  extern struct list_head tomoyo_task_security_list
  [TOMOYO_MAX_TASK_SECURITY_HASH];
@@ -982,7 +995,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern struct mutex tomoyo_policy_lock;
  extern struct srcu_struct tomoyo_ss;
  extern struct tomoyo_domain_info tomoyo_acl_group[TOMOYO_MAX_ACL_GROUPS];
-@@ -851,6 +1060,19 @@ static inline void tomoyo_put_name(const
+@@ -851,6 +1061,19 @@ static inline void tomoyo_put_name(const
  }
  
  /**
@@ -2166,6 +2179,117 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_start_execve - Prepare for execve() operation.
   *
   * @bprm: Pointer to "struct linux_binprm".
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -634,6 +634,7 @@ int tomoyo_path_number_perm(const u8 typ
+ 			    unsigned long number)
+ {
+ 	struct tomoyo_request_info r;
++	struct tomoyo_obj_info obj = { .path1 = *path };
+ 	int error = -ENOMEM;
+ 	struct tomoyo_path_info buf;
+ 	int idx;
+@@ -644,6 +645,7 @@ int tomoyo_path_number_perm(const u8 typ
+ 	idx = tomoyo_read_lock();
+ 	if (!tomoyo_get_realpath(&buf, path))
+ 		goto out;
++	r.obj = &obj;
+ 	if (type == TOMOYO_TYPE_MKDIR)
+ 		tomoyo_add_slash(&buf);
+ 	r.param_type = TOMOYO_TYPE_PATH_NUMBER_ACL;
+@@ -676,6 +678,7 @@ int tomoyo_check_open_permission(struct 
+ 	int error = 0;
+ 	struct tomoyo_path_info buf;
+ 	struct tomoyo_request_info r;
++	struct tomoyo_obj_info obj = { .path1 = *path };
+ 	int idx;
+ 
+ 	/*
+@@ -696,6 +699,7 @@ int tomoyo_check_open_permission(struct 
+ 			error = -ENOMEM;
+ 			goto out;
+ 		}
++		r.obj = &obj;
+ 		if (acc_mode & MAY_READ)
+ 			error = tomoyo_path_permission(&r, TOMOYO_TYPE_READ,
+ 						       &buf);
+@@ -718,15 +722,19 @@ int tomoyo_check_open_permission(struct 
+  *
+  * @operation: Type of operation.
+  * @path:      Pointer to "struct path".
++ * @target:    Symlink's target if @operation is TOMOYO_TYPE_SYMLINK.
++ *             NULL otherwise.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int tomoyo_path_perm(const u8 operation, struct path *path)
++int tomoyo_path_perm(const u8 operation, struct path *path, const char *target)
+ {
+ 	struct tomoyo_request_info r;
++	struct tomoyo_obj_info obj = { .path1 = *path };
+ 	int error;
+ 	struct tomoyo_path_info buf;
+ 	bool is_enforce;
++	struct tomoyo_path_info symlink_target;
+ 	int idx;
+ 
+ 	if (tomoyo_init_request_info(&r, tomoyo_p2mac[operation])
+@@ -738,13 +746,23 @@ int tomoyo_path_perm(const u8 operation,
+ 	idx = tomoyo_read_lock();
+ 	if (!tomoyo_get_realpath(&buf, path))
+ 		goto out;
++	r.obj = &obj;
+ 	switch (operation) {
+ 	case TOMOYO_TYPE_RMDIR:
+ 	case TOMOYO_TYPE_CHROOT:
+ 		tomoyo_add_slash(&buf);
+ 		break;
++	case TOMOYO_TYPE_SYMLINK:
++		symlink_target.name = tomoyo_encode(target);
++		if (!symlink_target.name)
++			goto out;
++		tomoyo_fill_path_info(&symlink_target);
++		obj.symlink_target = &symlink_target;
++		break;
+ 	}
+ 	error = tomoyo_path_permission(&r, operation, &buf);
++	if (operation == TOMOYO_TYPE_SYMLINK)
++		kfree(symlink_target.name);
+  out:
+ 	kfree(buf.name);
+ 	tomoyo_read_unlock(idx);
+@@ -767,6 +785,7 @@ int tomoyo_mkdev_perm(const u8 operation
+ 			     const unsigned int mode, unsigned int dev)
+ {
+ 	struct tomoyo_request_info r;
++	struct tomoyo_obj_info obj = { .path1 = *path };
+ 	int error = -ENOMEM;
+ 	struct tomoyo_path_info buf;
+ 	int idx;
+@@ -777,6 +796,7 @@ int tomoyo_mkdev_perm(const u8 operation
+ 	idx = tomoyo_read_lock();
+ 	error = -ENOMEM;
+ 	if (tomoyo_get_realpath(&buf, path)) {
++		r.obj = &obj;
+ 		dev = new_decode_dev(dev);
+ 		r.param_type = TOMOYO_TYPE_MKDEV_ACL;
+ 		r.param.mkdev.filename = &buf;
+@@ -810,6 +830,7 @@ int tomoyo_path2_perm(const u8 operation
+ 	struct tomoyo_path_info buf1;
+ 	struct tomoyo_path_info buf2;
+ 	struct tomoyo_request_info r;
++	struct tomoyo_obj_info obj = { .path1 = *path1, .path2 = *path2 };
+ 	int idx;
+ 
+ 	if (tomoyo_init_request_info(&r, tomoyo_pp2mac[operation])
+@@ -834,6 +855,7 @@ int tomoyo_path2_perm(const u8 operation
+                 tomoyo_add_slash(&buf2);
+ 		break;
+         }
++	r.obj = &obj;
+ 	r.param_type = TOMOYO_TYPE_PATH2_ACL;
+ 	r.param.path2.operation = operation;
+ 	r.param.path2.filename1 = &buf1;
 --- security-testing-2.6.orig/security/tomoyo/gc.c
 +++ security-testing-2.6/security/tomoyo/gc.c
 @@ -25,6 +25,7 @@ static const u8 tomoyo_element_size[TOMO
@@ -2296,6 +2420,112 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	for (idx = 0; idx < TOMOYO_MAX_HASH; idx++)
  		INIT_LIST_HEAD(&tomoyo_name_list[idx]);
  	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -67,6 +67,7 @@ static int tomoyo_mount_acl(struct tomoy
+ 			    struct path *dir, const char *type,
+ 			    unsigned long flags)
+ {
++	struct tomoyo_obj_info obj = { };
+ 	struct path path;
+ 	struct file_system_type *fstype = NULL;
+ 	const char *requested_type = NULL;
+@@ -78,6 +79,8 @@ static int tomoyo_mount_acl(struct tomoy
+ 	int need_dev = 0;
+ 	int error = -ENOMEM;
+ 
++	r->obj = &obj;
++
+ 	/* Get fstype. */
+ 	requested_type = tomoyo_encode(type);
+ 	if (!requested_type)
+@@ -86,6 +89,7 @@ static int tomoyo_mount_acl(struct tomoy
+ 	tomoyo_fill_path_info(&rtype);
+ 
+ 	/* Get mount point. */
++	obj.path2 = *dir;
+ 	requested_dir_name = tomoyo_realpath_from_path(dir);
+ 	if (!requested_dir_name) {
+ 		error = -ENOMEM;
+@@ -121,8 +125,8 @@ static int tomoyo_mount_acl(struct tomoy
+ 			error = -ENOENT;
+ 			goto out;
+ 		}
++		obj.path1 = path;
+ 		requested_dev_name = tomoyo_realpath_from_path(&path);
+-		path_put(&path);
+ 		if (!requested_dev_name) {
+ 			error = -ENOENT;
+ 			goto out;
+@@ -155,6 +159,9 @@ static int tomoyo_mount_acl(struct tomoy
+ 	if (fstype)
+ 		put_filesystem(fstype);
+ 	kfree(requested_type);
++	/* Drop refcount obtained by kern_path(). */
++	if (obj.path1.dentry)
++		path_put(&obj.path1);
+ 	return error;
+ }
+ 
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
+@@ -13,18 +13,18 @@
+ static int tomoyo_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
+ {
+ 	struct path path = { mnt, dentry };
+-	return tomoyo_path_perm(TOMOYO_TYPE_GETATTR, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_GETATTR, &path, NULL);
+ }
+ 
+ static int tomoyo_path_truncate(struct path *path)
+ {
+-	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path);
++	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path, NULL);
+ }
+ 
+ static int tomoyo_path_unlink(struct path *parent, struct dentry *dentry)
+ {
+ 	struct path path = { parent->mnt, dentry };
+-	return tomoyo_path_perm(TOMOYO_TYPE_UNLINK, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_UNLINK, &path, NULL);
+ }
+ 
+ static int tomoyo_path_mkdir(struct path *parent, struct dentry *dentry,
+@@ -38,14 +38,14 @@ static int tomoyo_path_mkdir(struct path
+ static int tomoyo_path_rmdir(struct path *parent, struct dentry *dentry)
+ {
+ 	struct path path = { parent->mnt, dentry };
+-	return tomoyo_path_perm(TOMOYO_TYPE_RMDIR, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_RMDIR, &path, NULL);
+ }
+ 
+ static int tomoyo_path_symlink(struct path *parent, struct dentry *dentry,
+ 			       const char *old_name)
+ {
+ 	struct path path = { parent->mnt, dentry };
+-	return tomoyo_path_perm(TOMOYO_TYPE_SYMLINK, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_SYMLINK, &path, old_name);
+ }
+ 
+ static int tomoyo_path_mknod(struct path *parent, struct dentry *dentry,
+@@ -136,7 +136,7 @@ static int tomoyo_path_chown(struct path
+ 
+ static int tomoyo_path_chroot(struct path *path)
+ {
+-	return tomoyo_path_perm(TOMOYO_TYPE_CHROOT, path);
++	return tomoyo_path_perm(TOMOYO_TYPE_CHROOT, path, NULL);
+ }
+ 
+ static int tomoyo_sb_mount(char *dev_name, struct path *path,
+@@ -148,7 +148,7 @@ static int tomoyo_sb_mount(char *dev_nam
+ static int tomoyo_sb_umount(struct vfsmount *mnt, int flags)
+ {
+ 	struct path path = { mnt, mnt->mnt_root };
+-	return tomoyo_path_perm(TOMOYO_TYPE_UMOUNT, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_UMOUNT, &path, NULL);
+ }
+ 
+ static int tomoyo_sb_pivotroot(struct path *old_path, struct path *new_path)
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
 @@ -138,7 +138,7 @@ char *tomoyo_read_token(struct tomoyo_ac
