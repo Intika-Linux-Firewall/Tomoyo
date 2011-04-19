@@ -1,0 +1,20 @@
+[PATCH] tomoyo: fix refcount leak in tomoyo_mount_acl()
+
+In tomoyo_mount_acl() since 2.6.36, reference to device file (e.g. /dev/sda1)
+was leaking.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/mount.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- linux-2.6.39-rc3.orig/security/tomoyo/mount.c
++++ linux-2.6.39-rc3/security/tomoyo/mount.c
+@@ -143,6 +143,7 @@ static int tomoyo_mount_acl(struct tomoy
+ 			goto out;
+ 		}
+ 		requested_dev_name = tomoyo_realpath_from_path(&path);
++		path_put(&path);
+ 		if (!requested_dev_name) {
+ 			error = -ENOENT;
+ 			goto out;

@@ -1,0 +1,38 @@
+[PATCH] TOMOYO: Fix race on updating profile's comment line.
+
+In tomoyo_write_profile() since 2.6.34, a lock was by error missing when
+replacing profile's comment line. If multiple threads attempted
+
+  echo '0-COMMENT=comment' > /sys/kernel/security/tomoyo/profile
+
+in parallel, garbage collector will fail to kfree() the old value.
+Protect the replacement using a lock. Also, keep the old value rather than
+replace with empty string when out of memory error has occurred.
+
+Signed-off-by: Xiaochen Wang <wangxiaochen0@gmail.com>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+--- linux-2.6.39-rc3.orig/security/tomoyo/common.c
++++ linux-2.6.39-rc3/security/tomoyo/common.c
+@@ -459,8 +459,16 @@ static int tomoyo_write_profile(struct t
+ 	if (profile == &tomoyo_default_profile)
+ 		return -EINVAL;
+ 	if (!strcmp(data, "COMMENT")) {
+-		const struct tomoyo_path_info *old_comment = profile->comment;
+-		profile->comment = tomoyo_get_name(cp);
++		static DEFINE_SPINLOCK(lock);
++		const struct tomoyo_path_info *new_comment
++			= tomoyo_get_name(cp);
++		const struct tomoyo_path_info *old_comment;
++		if (!new_comment)
++			return -ENOMEM;
++		spin_lock(&lock);
++		old_comment = profile->comment;
++		profile->comment = new_comment;
++		spin_unlock(&lock);
+ 		tomoyo_put_name(old_comment);
+ 		return 0;
+ 	}
