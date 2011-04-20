@@ -2,8 +2,9 @@ Subject: TOMOYO: Cache manager flag into per "struct task_struct" variables.
 
 Since it is a waste of time to test whether current thread is allowed to modify
 policy via /sys/kernel/security/tomoyo/ interface by calculating pathname and
-compare it, store it when it was authorized for the first time into per a
-"struct task_struct" variables. It is cleared upon do_execve() request.
+compare it whenever write() is called, store it into per a "struct task_struct"
+variables when it was authorized for the first time. It is cleared upon
+do_execve() request.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
