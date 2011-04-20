@@ -2164,7 +2164,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /**
   * tomoyo_last_word - Get last component of a domainname.
-@@ -596,6 +609,52 @@ out:
+@@ -595,6 +608,52 @@ out:
  }
  
  /**
@@ -2217,7 +2217,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_start_execve - Prepare for execve() operation.
   *
   * @bprm: Pointer to "struct linux_binprm".
-@@ -625,6 +684,8 @@ int tomoyo_start_execve(struct linux_bin
+@@ -624,6 +683,8 @@ int tomoyo_start_execve(struct linux_bin
  	tomoyo_init_request_info(&ee->r, TOMOYO_MAC_FILE_EXECUTE);
  	ee->r.ee = ee;
  	ee->bprm = bprm;

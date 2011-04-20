@@ -336,7 +336,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bool is_deleted;
 @@ -235,6 +255,56 @@ struct tomoyo_shared_acl_head {
  	atomic_t users;
- } __attribute__((__packed__));
+ } __packed;
  
 +/* Common header for individual entries. */
 +struct tomoyo_acl_info {

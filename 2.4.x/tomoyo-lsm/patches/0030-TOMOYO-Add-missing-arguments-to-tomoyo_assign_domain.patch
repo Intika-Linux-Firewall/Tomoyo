@@ -6,8 +6,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |    2 -
  security/tomoyo/common.h |    6 +++
- security/tomoyo/domain.c |   72 ++++++++++++++++++++++++++---------------------
- 3 files changed, 47 insertions(+), 33 deletions(-)
+ security/tomoyo/domain.c |   77 ++++++++++++++++++++++++++---------------------
+ 3 files changed, 49 insertions(+), 36 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -132,7 +132,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -556,13 +565,14 @@ static int tomoyo_find_next_domain(struc
+@@ -556,17 +565,17 @@ static int tomoyo_find_next_domain(struc
  	 * security->tomoyo_domain_info.
  	 */
  	smp_wmb();
@@ -143,9 +143,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	 * for binary loader programs. Current thread will go back to the
  	 * previous domain if do_execve() failed.
  	 */
+-	if (domain) {
 +	if (!domain)
 +		domain = tomoyo_assign_domain(ee->tmp, old_domain->profile,
 +					      old_domain->group, true);
- 	if (domain) {
++	if (domain)
  		retval = 0;
- 		security->tomoyo_domain_info = domain;
+-		security->tomoyo_domain_info = domain;
+-	} else if (r->mode == TOMOYO_CONFIG_ENFORCING)
++	else if (r->mode == TOMOYO_CONFIG_ENFORCING)
+ 		retval = -ENOMEM;
+ 	else {
+ 		retval = 0;
