@@ -36,7 +36,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	}
  	if (!domain)
-@@ -2139,7 +2139,7 @@ ssize_t tomoyo_write_control(struct file
+@@ -2140,7 +2140,7 @@ ssize_t tomoyo_write_control(struct file
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
@@ -45,7 +45,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			error = -ENOMEM;
  			break;
  		} else if (get_user(c, buffer)) {
-@@ -2148,11 +2148,11 @@ ssize_t tomoyo_write_control(struct file
+@@ -2149,11 +2149,11 @@ ssize_t tomoyo_write_control(struct file
  		}
  		buffer++;
  		avail_len--;

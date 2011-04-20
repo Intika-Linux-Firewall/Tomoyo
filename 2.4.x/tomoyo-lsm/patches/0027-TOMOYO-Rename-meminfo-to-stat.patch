@@ -84,7 +84,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	switch (r->mode) {
  	case TOMOYO_CONFIG_ENFORCING:
  		error = -EPERM;
-@@ -1776,6 +1779,104 @@ static void tomoyo_read_self_domain(stru
+@@ -1777,6 +1780,104 @@ static void tomoyo_read_self_domain(stru
  	}
  }
  
@@ -189,7 +189,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_open_control - open() for /sys/kernel/security/tomoyo/ interface.
   *
-@@ -1829,11 +1930,11 @@ int tomoyo_open_control(const u8 type, s
+@@ -1830,11 +1931,11 @@ int tomoyo_open_control(const u8 type, s
  		head->read = tomoyo_read_version;
  		head->readbuf_size = 128;
  		break;
@@ -206,7 +206,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
  	case TOMOYO_PROFILE:
  		/* /sys/kernel/security/tomoyo/profile */
-@@ -2004,7 +2105,27 @@ int tomoyo_write_control(struct file *fi
+@@ -2005,7 +2106,27 @@ int tomoyo_write_control(struct file *fi
  		cp0[head->write_avail - 1] = '\0';
  		head->write_avail = 0;
  		tomoyo_normalize_line(cp0);

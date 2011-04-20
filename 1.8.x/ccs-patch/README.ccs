@@ -2828,3 +2828,14 @@ Fix 2011/04/03
       mode cannot undo overwriting the file. Regarding CentOS 6.0 kernels,
       due to different ACC_MODE definition, TOMOYO was by error needlessly
       checking "file read" permission when fcntl() was requested.
+
+Fix 2011/04/20
+
+    @ Remove unused "struct inode *" parameter from hooks.
+
+      Since pre-vfs functions were removed on 2010/09/18, "struct inode *"
+      parameter which was used for checking parent directory's DAC permission
+      is no longer used.
+
+      Note that "struct ccsecurity_operations ccsecurity_ops" has changed.
+      Loadable kernel modules that depends on it need to be rebuilt.

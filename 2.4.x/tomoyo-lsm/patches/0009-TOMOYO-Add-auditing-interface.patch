@@ -8,15 +8,15 @@ interface.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Makefile        |    2 
- security/tomoyo/audit.c         |  300 +++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.c        |  305 +++++++++++++++++++---------------------
+ security/tomoyo/audit.c         |  300 ++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c        |  310 +++++++++++++++++++---------------------
  security/tomoyo/common.h        |   86 ++++++++++-
  security/tomoyo/file.c          |   49 +-----
  security/tomoyo/memory.c        |    5 
  security/tomoyo/mount.c         |   24 ---
  security/tomoyo/securityfs_if.c |    4 
  security/tomoyo/util.c          |   14 -
- 9 files changed, 554 insertions(+), 235 deletions(-)
+ 9 files changed, 557 insertions(+), 237 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -773,7 +773,26 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -1721,6 +1704,11 @@ int tomoyo_open_control(const u8 type, s
+@@ -1594,7 +1577,7 @@ static void tomoyo_read_query(struct tom
+ 		head->r.query_index = 0;
+ 		return;
+ 	}
+-	buf = kzalloc(len, GFP_NOFS);
++	buf = kzalloc(len + 32, GFP_NOFS);
+ 	if (!buf)
+ 		return;
+ 	pos = 0;
+@@ -1610,7 +1593,8 @@ static void tomoyo_read_query(struct tom
+ 		 * can change, but I don't care.
+ 		 */
+ 		if (len == ptr->query_len)
+-			memmove(buf, ptr->query, len);
++			snprintf(buf, len + 31, "Q%u-%hu\n%s", ptr->serial,
++				 ptr->retry, ptr->query);
+ 		break;
+ 	}
+ 	spin_unlock(&tomoyo_query_list_lock);
+@@ -1721,6 +1705,11 @@ int tomoyo_open_control(const u8 type, s
  		head->write = tomoyo_write_exception;
  		head->read = tomoyo_read_exception;
  		break;
@@ -785,7 +804,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_SELFDOMAIN:
  		/* /sys/kernel/security/tomoyo/self_domain */
  		head->read = tomoyo_read_self_domain;
-@@ -1794,7 +1782,7 @@ int tomoyo_open_control(const u8 type, s
+@@ -1794,7 +1783,7 @@ int tomoyo_open_control(const u8 type, s
  			return -ENOMEM;
  		}
  	}
@@ -794,7 +813,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->reader_idx = tomoyo_read_lock();
  	file->private_data = head;
  	/*
-@@ -1824,7 +1812,8 @@ int tomoyo_open_control(const u8 type, s
+@@ -1824,7 +1813,8 @@ int tomoyo_open_control(const u8 type, s
   * @wait: Pointer to "poll_table".
   *
   * Waits for read readiness.
@@ -804,7 +823,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  int tomoyo_poll_control(struct file *file, poll_table *wait)
  {
-@@ -1939,7 +1928,7 @@ int tomoyo_close_control(struct file *fi
+@@ -1939,7 +1929,7 @@ int tomoyo_close_control(struct file *fi
  	 */
  	if (head->type == TOMOYO_QUERY)
  		atomic_dec(&tomoyo_query_observers);
