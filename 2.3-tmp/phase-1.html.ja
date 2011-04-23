@@ -24,16 +24,20 @@
 <li><b>gcc</b>：コンパイルを行うために必要です。</li>
 <li><b>make</b>： Makefile を利用するために必要です。</li>
 <li><b>ncurses</b>：ツールのユーザインタフェースを利用するために必要です。</li>
+<li><b>patch</b>：不具合修正パッチを適用するために必要です。</li>
 </ul>
 
 <p>これらのパッケージは以下のコマンドを実行することによりインストールできます。</p>
 
 <table border="1">
 <tr><td>RedHat 系の場合</td><td>
-[root@tomoyo ~]# yum -y install wget gcc make ncurses-devel
+[root@tomoyo ~]# yum -y install wget gcc make ncurses-devel patch
 </td></tr>
 <tr><td>Debian 系の場合</td><td>
-[root@tomoyo ~]# apt-get -y install wget gcc make libncurses-dev
+[root@tomoyo ~]# apt-get -y install wget gcc make libncurses-dev patch
+</td></tr>
+<tr><td>SUSE 系の場合</td><td>
+[root@tomoyo ~]# yast -i wget gcc make ncurses-devel patch
 </td></tr>
 </table>
 
@@ -61,6 +65,14 @@
 カーネル 2.6.36 以降に対応しています。</p>
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。</p>
+
+<p>メインラインのカーネルのソースに反映することが間に合わなかった不具合修正パッチがあるかもしれません。利用するカーネルのバージョンに合った全ての不具合修正パッチ（例えば 2.6.38 カーネルの場合には 2.6.38-tomoyo-\*.patch ）を <a href="http://tomoyo.sourceforge.jp/2.3/patches/">http://tomoyo.sourceforge.jp/2.3/patches/</a> からダウンロードして、カーネルのソースコードを展開したディレクトリから以下のコマンドを実行してください。（以下のコマンドは、適用済みのパッチがあればスキップします。）</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ for i in 2.6.*-tomoyo-*.patch; do patch -Nt -p1 --dry-run &lt; $i &amp;&amp; patch -p1 &lt; $i; done
+</td></tr>
+</table>
 
 <h3>カーネルコンパイルオプションの変更</h3>
 

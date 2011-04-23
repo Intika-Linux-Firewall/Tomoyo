@@ -24,19 +24,20 @@
 <li><b>gcc</b>: to build the kernel and tools</li>
 <li><b>make</b>: to build the kernel and tools</li>
 <li><b>ncurses</b>: for the tools user interface</li>
+<li><b>patch</b>: to apply bugfix patches</li>
 </ul>
 
 <p>These can be installed with the following commands:</p>
 
 <table border="1">
 <tr><td>RedHat distributions</td><td>
-[root@tomoyo ~]# yum -y install wget gcc make ncurses-devel
+[root@tomoyo ~]# yum -y install wget gcc make ncurses-devel patch
 </td></tr>
 <tr><td>Debian distributions</td><td>
-[root@tomoyo ~]# apt-get -y install wget gcc make libncurses-dev
+[root@tomoyo ~]# apt-get -y install wget gcc make libncurses-dev patch
 </td></tr>
 <tr><td>SUSE distributions</td><td>
-[root@tomoyo ~]# yast -i wget gcc make ncurses-devel
+[root@tomoyo ~]# yast -i wget gcc make ncurses-devel patch
 </td></tr>
 </table>
 
@@ -64,6 +65,14 @@
 Linux kernel 2.6.36 and later are supported.</p>
 
 <p>Extract the kernel source and go to the extracted directory.</p>
+
+<p>There may be bugfixes that are too late to get merged in the upstream kernel releases. Download all patches that match your kernel version (e.g. 2.6.38-tomoyo-\*.patch for 2.6.38 kernels) from <a href="http://tomoyo.sourceforge.jp/2.3/patches/">http://tomoyo.sourceforge.jp/2.3/patches/</a> and run below command from the kernel's top directory. (Below command will skip already applied patch if any.)</p>
+
+<table border="1">
+<tr><td>
+[user@tomoyo ~]$ for i in 2.6.*-tomoyo-*.patch; do patch -Nt -p1 --dry-run &lt; $i &amp;&amp; patch -p1 &lt; $i; done
+</td></tr>
+</table>
 
 <h3>Configure the kernel</h3>
 
