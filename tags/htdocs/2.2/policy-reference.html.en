@@ -49,6 +49,7 @@
 <li><a href="#exception_policy_keep_domain">keep_domain</a></li>
 <li><a href="#exception_policy_no_keep_domain">no_keep_domain</a></li>
 <li><a href="#exception_policy_file_pattern">file_pattern</a></li>
+<li><a href="#exception_policy_path_group">path_group</a></li>
 <li><a href="#exception_policy_allow_read">allow_read</a></li>
 <li><a href="#exception_policy_deny_rewrite">deny_rewrite</a></li>
 <li><a href="#exception_policy_alias">alias</a></li>
@@ -582,6 +583,28 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ files) needs to be grouped in order to make access control work well.</p>
 
 <p>When file access requests arise in learning mode ( profile's <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is set to "learning" ) , the requested pathname is automatically patterned according to patterns specified using this keyword. This keyword does not affect modes other than learning mode. This keyword is used for only reducing the burden of policy tuning which is needed after the learning mode by making already known pathname patterns as templates.</p>
+
+<h3><a name="exception_policy_path_group">path_group</a></h3>
+
+<p>To declare pathname group, use path_group keyword followed by name of the group and pathname pattern. (Valid only in Kernel 2.6.35 and later)<br>
+For example, if you want to group all files under home directory, you can define</p>
+
+<table border="1">
+<tr><td>
+path_group HOME-DIR-FILE /home/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\{\*\}/\*
+</td></tr>
+</table>
+
+<p>in the exception policy and use like</p>
+
+<table border="1">
+<tr><td>
+allow_read @HOME-DIR-FILE
+</td></tr>
+</table>
+
+<p>to grant file access permission.</p>
 
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 

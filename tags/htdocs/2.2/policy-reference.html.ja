@@ -49,6 +49,7 @@
 <li><a href="#exception_policy_keep_domain">keep_domain</a></li>
 <li><a href="#exception_policy_no_keep_domain">no_keep_domain</a></li>
 <li><a href="#exception_policy_file_pattern">file_pattern</a></li>
+<li><a href="#exception_policy_path_group">path_group</a></li>
 <li><a href="#exception_policy_allow_read">allow_read</a></li>
 <li><a href="#exception_policy_deny_rewrite">deny_rewrite</a></li>
 <li><a href="#exception_policy_alias">alias</a></li>
@@ -580,6 +581,28 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 例えば、プロセスＩＤを含む正規化されたパス名（ /proc/PID/ ）は、アクセス制御が正しく行われるようにグループ化されなければなりません。</p>
 
 <p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われます。</p>
+
+<h3><a name="exception_policy_path_group">path_group</a></h3>
+
+<p>パス名のグループを定義するには、 path_group というキーワードに続けて、グループ名とパス名のパターンを指定します。（カーネル 2.6.35 以降のみ有効）<br>
+　例えば、ホームディレクトリ以下の全ファイルをまとめたい場合、</p>
+
+<table border="1">
+<tr><td>
+path_group HOME-DIR-FILE /home/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\{\*\}/\*
+</td></tr>
+</table>
+
+<p>のように定義しておくことで、ドメインポリシーのファイルに対するアクセス許可を指定する際に</p>
+
+<table border="1">
+<tr><td>
+allow_read @HOME-DIR-FILE
+</td></tr>
+</table>
+
+<p>のように指定できます。</p>
 
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 
