@@ -74,6 +74,14 @@
 <li><a href="#domain_policy_allow_link">allow_link</a></li>
 <li><a href="#domain_policy_allow_rename">allow_rename</a></li>
 <li><a href="#domain_policy_allow_rewrite">allow_rewrite</a></li>
+<li><a href="#domain_policy_allow_chmod">allow_chmod</a></li>
+<li><a href="#domain_policy_allow_chown">allow_chown</a></li>
+<li><a href="#domain_policy_allow_chgrp">allow_chgrp</a></li>
+<li><a href="#domain_policy_allow_ioctl">allow_ioctl</a></li>
+<li><a href="#domain_policy_allow_mount">allow_mount</a></li>
+<li><a href="#domain_policy_allow_unmount">allow_unmount</a></li>
+<li><a href="#domain_policy_allow_chroot">allow_chroot</a></li>
+<li><a href="#domain_policy_allow_pivot_root">allow_pivot_root</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
@@ -501,6 +509,38 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 <p><a href="#exception_policy_deny_rewrite">deny_rewrite</a> によりファイルの内容の上書きが禁止されているパス名が指すファイル内容の上書きを許可します。</p>
 <p>（例） allow_rewrite /var/log/messages</p>
 <p>関連項目： <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
+
+<h3><a name="domain_policy_allow_chmod">allow_chmod</a></h3>
+<p>ＤＡＣパーミッションの変更を許可します。（カーネル 2.6.34 以降のみ有効）</p>
+<p>（例） allow_chmod /dev/mem</p>
+
+<h3><a name="domain_policy_allow_chown">allow_chown</a></h3>
+<p>所有者の変更を許可します。（カーネル 2.6.34 以降のみ有効）</p>
+<p>（例） allow_chown /dev/sda</p>
+
+<h3><a name="domain_policy_allow_chgrp">allow_chgrp</a></h3>
+<p>グループの変更を許可します。（カーネル 2.6.34 以降のみ有効）</p>
+<p>（例） allow_chgrp /dev/audio</p>
+
+<h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
+<p>IOCTL 要求を許可します。（カーネル 2.6.34 以降のみ有効）</p>
+<p>（例） allow_ioctl socket:[\$]</p>
+
+<h3><a name="domain_policy_allow_mount">allow_mount</a></h3>
+<p>指定された場所へのマウントを許可します。（カーネル 2.6.34 以降のみ有効）</p>
+<p>（例） allow_mount /proc/</p>
+
+<h3><a name="domain_policy_allow_unmount">allow_unmount</a></h3>
+<p>指定された場所のアンマウントを許可します。（カーネル 2.6.34 以降のみ有効）</p>
+<p>（例） allow_unmount /mnt/cdrom/</p>
+
+<h3><a name="domain_policy_allow_chroot">allow_chroot</a></h3>
+<p>ルートディレクトリの移動を許可します。（カーネル 2.6.34 以降のみ有効）</p>
+<p>（例） allow_chroot /var/empty/sshd/</p>
+
+<h3><a name="domain_policy_allow_pivot_root">allow_pivot_root</a></h3>
+<p>ルートディレクトリの交換を許可します。（カーネル 2.6.34 以降のみ有効）<br>
+通常、このキーワードを使う必要はありません。</p>
 
 <h3><a name="domain_policy_use_profile">use_profile</a></h3>
 
