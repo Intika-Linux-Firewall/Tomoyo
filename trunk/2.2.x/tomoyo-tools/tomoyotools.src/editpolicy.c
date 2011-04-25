@@ -467,14 +467,15 @@ static int show_meminfo_line(int index)
 	unsigned int quota = 0;
 	const char *data = generic_acl_list[index].operand;
 	get();
-	if (sscanf(data, "Shared: %u (Quota: %u)", &now, &quota) >= 1)
+	if (sscanf(data, "Policy: %u (Quota: %u)", &now, &quota) >= 1)
+		shprintf("Memory used for policy    = %10u bytes   "
+			 "Quota = %10u bytes", now, quota ? quota : -1);
+	else if (sscanf(data, "Shared: %u (Quota: %u)", &now, &quota) >= 1)
 		shprintf("Memory for string data    = %10u bytes    "
-			 "Quota = %10u bytes",
-			 now, quota ? quota : -1);
+			 "Quota = %10u bytes", now, quota ? quota : -1);
 	else if (sscanf(data, "Private: %u (Quota: %u)", &now, &quota) >= 1)
 		shprintf("Memory for numeric data   = %10u bytes    "
-			 "Quota = %10u bytes",
-			 now, quota ? quota : -1);
+			 "Quota = %10u bytes", now, quota ? quota : -1);
 	else if (sscanf(data, "Dynamic: %u", &now) == 1)
 		shprintf("Memory for temporary data = %10u bytes", now);
 	else if (sscanf(data, "Total: %u", &now) == 1)

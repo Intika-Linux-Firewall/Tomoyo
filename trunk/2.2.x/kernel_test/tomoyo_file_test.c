@@ -9,6 +9,33 @@
  *
  */
 #include "include.h"
+int pivot_root(const char *new_root, const char *put_old);
+#include <linux/elf.h>
+
+static void make_elf_lib(void)
+{
+	static const struct elf32_phdr eph = {
+		.p_type = PT_LOAD,
+		.p_offset = 4096,
+		.p_filesz = 1,
+	};
+	static const struct elf32_hdr eh = {
+		.e_ident = ELFMAG,
+		.e_type = ET_EXEC,
+		.e_machine = EM_386,
+		.e_phoff = sizeof(eh),
+		.e_phentsize = sizeof(eph),
+		.e_phnum = 1,
+	};
+	const int fd = open("/tmp/uselib", O_WRONLY | O_CREAT | O_TRUNC, 0755);
+	if (fd != EOF) {
+		write(fd, &eh, sizeof(eh));
+		write(fd, &eph, sizeof(eph));
+		lseek(fd, 4096, SEEK_SET);
+		write(fd, "", 1);
+		close(fd);
+	}
+}
 
 static void show_prompt(const char *str)
 {
@@ -72,9 +99,8 @@ static void stage_file_test(int res)
 		show_result(sysctl(name, 3, 0, 0, buffer, size), res);
 	}
 
-	/* QUESTION: Is there a file which can be passed to uselib()? */
 	show_prompt("uselib()");
-	show_result(uselib("/bin/true"), res);
+	show_result(uselib("/tmp/uselib"), res);
 
 	{
 		int pipe_fd[2] = { EOF, EOF };
@@ -366,11 +392,11 @@ static void stage_file_test2(void)
 		show_result2(sysctl(name, 3, buffer, &size, buffer, size), 0);
 	}
 
-	policy = "allow_read /bin/true";
+	policy = "allow_read /tmp/uselib";
 	if (write_policy()) {
-		show_result2(uselib("/bin/true"), 1);
+		show_result2(uselib("/tmp/uselib"), 1);
 		delete_policy();
-		show_result2(uselib("/bin/true"), 0);
+		show_result2(uselib("/tmp/uselib"), 0);
 	}
 
 	policy = "allow_execute /bin/true";
@@ -1241,6 +1267,7 @@ static int namespace_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
+	make_elf_lib();
 
 	printf("***** Testing file access in enforce mode. *****\n");
 	create_files();
