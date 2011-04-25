@@ -74,6 +74,14 @@
 <li><a href="#domain_policy_allow_link">allow_link</a></li>
 <li><a href="#domain_policy_allow_rename">allow_rename</a></li>
 <li><a href="#domain_policy_allow_rewrite">allow_rewrite</a></li>
+<li><a href="#domain_policy_allow_chmod">allow_chmod</a></li>
+<li><a href="#domain_policy_allow_chown">allow_chown</a></li>
+<li><a href="#domain_policy_allow_chgrp">allow_chgrp</a></li>
+<li><a href="#domain_policy_allow_ioctl">allow_ioctl</a></li>
+<li><a href="#domain_policy_allow_mount">allow_mount</a></li>
+<li><a href="#domain_policy_allow_unmount">allow_unmount</a></li>
+<li><a href="#domain_policy_allow_chroot">allow_chroot</a></li>
+<li><a href="#domain_policy_allow_pivot_root">allow_pivot_root</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
@@ -503,6 +511,38 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 <p>This keyword grants the specified pathname to be rewritten when the pathname is specified by <a href="#exception_policy_deny_rewrite">deny_rewrite</a> keyword.</p>
 <p>(Example) allow_rewrite /var/log/messages</p>
 <p>See also:  <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
+
+<h3><a name="domain_policy_allow_chmod">allow_chmod</a></h3>
+<p>This keyword grants changing DAC's permissions. (Valid only in Kernel 2.6.34 and later)</p>
+<p>(Example) allow_chmod /dev/mem</p>
+
+<h3><a name="domain_policy_allow_chown">allow_chown</a></h3>
+<p>This keyword grants changing DAC's owner. (Valid only in Kernel 2.6.34 and later)</p>
+<p>(Example) allow_chown /dev/sda</p>
+
+<h3><a name="domain_policy_allow_chmod">allow_chmod</a></h3>
+<p>This keyword grants changing DAC's group. (Valid only in Kernel 2.6.34 and later)</p>
+<p>(Example) allow_chgrp /dev/audio</p>
+
+<h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
+<p>This keyword grants doing IOCTL request with the specified pathnames. (Valid only in Kernel 2.6.34 and later)</p>
+<p>(Example) allow_ioctl socket:[\$]</p>
+
+<h3><a name="domain_policy_allow_mount">allow_mount</a></h3>
+<p>This keyword grants mounting on the specified location. (Valid only in Kernel 2.6.34 and later)</p>
+<p>(Example) allow_mount /proc/</p>
+
+<h3><a name="domain_policy_allow_unmount">allow_unmount</a></h3>
+<p>This keyword grants unmounting from the specified location. (Valid only in Kernel 2.6.34 and later)</p>
+<p>(Example) allow_unmount /mnt/cdrom/</p>
+
+<h3><a name="domain_policy_allow_chroot">allow_chroot</a></h3>
+<p>This keyword grants changing root directory to the specified location. (Valid only in Kernel 2.6.34 and later)</p>
+<p>(Example) allow_chroot /var/empty/sshd/</p>
+
+<h3><a name="domain_policy_allow_pivot_root">allow_pivot_root</a></h3>
+<p>This keyword grants exchanging root directory with the specified location. (Valid only in Kernel 2.6.34 and later)<br>
+Usually, you don't need this keyword.</p>
 
 <h3><a name="domain_policy_use_profile">use_profile</a></h3>
 
