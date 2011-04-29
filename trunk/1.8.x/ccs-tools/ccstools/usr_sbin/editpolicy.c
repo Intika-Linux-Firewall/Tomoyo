@@ -188,19 +188,30 @@ static void ccs_copy_file(const char *source, const char *dest)
 }
 
 /**
+ * ccs_get_last_word - Get last component of a line.
+ *
+ * @line: A line of words.
+ *
+ * Returns the last component of the line.
+ */
+static const char *ccs_get_last_word(const char *line)
+{
+	const char *cp = strrchr(line, ' ');
+	if (cp)
+		return cp + 1;
+	return line;
+}
+
+/**
  * ccs_get_last_name - Get last component of a domainname.
  *
  * @index: Index in the domain policy.
  *
- * Returns the last componet of the domainname.
+ * Returns the last component of the domainname.
  */
 static const char *ccs_get_last_name(const int index)
 {
-	const char *cp0 = ccs_domain_name(&ccs_dp, index);
-	const char *cp1 = strrchr(cp0, ' ');
-	if (cp1)
-		return cp1 + 1;
-	return cp0;
+	return ccs_get_last_word(ccs_domain_name(&ccs_dp, index));
 }
 
 /**
@@ -938,11 +949,7 @@ static const struct ccs_transition_control_entry *ccs_transition_control
 	int i;
 	u8 type;
 	struct ccs_path_info last_name;
-	last_name.name = strrchr(domainname->name, ' ');
-	if (last_name.name)
-		last_name.name++;
-	else
-		last_name.name = domainname->name;
+	last_name.name = ccs_get_last_word(domainname->name);
 	ccs_fill_path_info(&last_name);
 	for (type = 0; type < CCS_MAX_TRANSITION_TYPE; type++) {
 next:
@@ -1337,13 +1344,8 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 	if (!cp || !ccs_jump_list)
 		ccs_out_of_memory();
 	ccs_jump_list[ccs_jump_list_len++] = cp;
-	cp = strrchr(line, ' ');
-	if (cp)
-		cp++;
-	else
-		cp = line;
 	snprintf(domainname, sizeof(domainname) - 1, "%s %s",
-		 ccs_domain_name(&ccs_dp, index), cp);
+		 ccs_domain_name(&ccs_dp, index), ccs_get_last_word(line));
 	domainname[sizeof(domainname) - 1] = '\0';
 	ccs_normalize_line(domainname);
 	source = ccs_assign_domain(&ccs_dp, domainname, true, false);
