@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.37.1-1.2.2.src.rpm ]
+if [ ! -r kernel-source-2.6.37.6-0.5.1.src.rpm ]
 then
-    wget http://download.opensuse.org/source/distribution/11.4/repo/oss/suse/src/kernel-source-2.6.37.1-1.2.2.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/source/distribution/11.4/repo/oss/suse/src/kernel-source-2.6.37.6-0.5.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-2.6.37.1-1.2.2.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-2.6.37.1-1.2.2.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-2.6.37.6-0.5.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-2.6.37.6-0.5.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-2.6.37.1-1.2.2.nosrc.rpm ]
+if [ ! -r kernel-default-2.6.37.6-0.5.1.nosrc.rpm ]
 then
     wget http://download.opensuse.org/update/11.3/rpm/src/kernel-default-2.6.34.7-0.7.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-2.6.37.1-1.2.2.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-2.6.37.1-1.2.2.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-2.6.37.6-0.5.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-2.6.37.6-0.5.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.1-20110411.tar.gz ]
@@ -92,9 +92,9 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.37.1
--Release:        1.2.2
-+Release:        1.2.2_tomoyo_1.8.1p1
+ Version:        2.6.37.6
+-Release:        0.5.1
++Release:        0.5.1_tomoyo_1.8.1p1
  %if %using_buildservice
  %else
  %endif
