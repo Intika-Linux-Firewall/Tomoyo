@@ -1105,6 +1105,36 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 	return -EINVAL;
 }
 
+/**
+ * ccs_delete_domain - Delete a domain.
+ *
+ * @domainname: The name of domain.
+ *
+ * Returns 0.
+ */
+static int ccs_delete_domain(char *domainname)
+{
+	struct ccs_domain_info *domain;
+	struct ccs_path_info name;
+	name.name = domainname;
+	ccs_fill_path_info(&name);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		return 0;
+	/* Is there an active domain? */
+	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
+		/* Never delete ccs_kernel_domain. */
+		if (domain == &ccs_kernel_domain)
+			continue;
+		if (domain->is_deleted ||
+		    ccs_pathcmp(domain->domainname, &name))
+			continue;
+		domain->is_deleted = true;
+		break;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	return 0;
+}
+
 /* String table for domain flags. */
 const char * const ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
 	[CCS_DIF_QUOTA_WARNED]      = "quota_exceeded\n",
