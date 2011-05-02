@@ -1007,20 +1007,10 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
 	const int a2 = a0->directive;
 	const int b2 = b0->directive;
 	if (a2 >= 256 || b2 >= 256) {
-		int i;
-		static const char *global[5] = {
-			"PROFILE_VERSION=",
-			"PREFERENCE::audit=",
-			"PREFERENCE::learning=",
-			"PREFERENCE::permissive=",
-			"PREFERENCE::enforcing="
-		};
-		for (i = 0; i < 5; i++) {
-			if (!strncmp(a1, global[i], strlen(global[i])))
-				return -1;
-			if (!strncmp(b1, global[i], strlen(global[i])))
-				return 1;
-		}
+		if (a1[0] == 'P')
+			return -1;
+		if (b1[0] == 'P')
+			return 1;
 	}
 	if (!ccs_profile_sort_type) {
 		if (a2 == b2)

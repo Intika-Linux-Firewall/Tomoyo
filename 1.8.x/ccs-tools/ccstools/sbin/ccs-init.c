@@ -242,9 +242,9 @@ static void show_domain_usage(void)
 		return;
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
-		if (!strncmp(buffer, "<kernel>", 8))
+		if (buffer[0] == '<')
 			domain++;
-		else if (buffer[0] && strcmp(buffer, "use_profile"))
+		else if (buffer[0] > ' ' && strncmp(buffer, "use_", 4))
 			acl++;
 	}
 	fclose(fp);

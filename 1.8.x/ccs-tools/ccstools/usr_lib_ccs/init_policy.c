@@ -537,7 +537,7 @@ static void make_init_dir_as_initializers(void)
  */
 static void make_initializers(void)
 {
-	static const char const *files[] = {
+	static const char * const files[] = {
 		"/sbin/cardmgr",
 		"/sbin/getty",
 		"/sbin/init",
