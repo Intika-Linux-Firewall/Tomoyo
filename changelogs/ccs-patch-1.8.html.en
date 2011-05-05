@@ -35,6 +35,24 @@
 <h4>ChangeLog for ccs-patch 1.8.1</h4>
 
 <pre>
+Fix 2011/05/05
+
+    @ Fix wrong profile number in audit logs for "misc env" permission.
+
+      Profile number used for "file execute" permission was by error reused
+      when generating audit logs for "misc env" permission.
+
+Fix 2011/04/20
+
+    @ Remove unused "struct inode *" parameter from hooks.
+
+      Since pre-vfs functions were removed on 2010/09/18, "struct inode *"
+      parameter which was used for checking parent directory's DAC permission
+      is no longer used.
+
+      Note that "struct ccsecurity_operations ccsecurity_ops" has changed.
+      Loadable kernel modules that depends on it need to be rebuilt.
+
 Fix 2011/04/03
 
     @ Fix fcntl(F_SETFL, O_APPEND) handling.
