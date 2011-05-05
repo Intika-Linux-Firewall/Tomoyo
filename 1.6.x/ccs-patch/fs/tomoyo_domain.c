@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.6.9   2011/04/01
+ * Version: 1.6.9+   2011/05/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1659,6 +1659,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
  ok:
 	if (retval < 0)
 		goto out;
+	ee->r.profile = ee->r.domain->profile;
 	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_FOR_ENV);
 	retval = ccs_check_environ(ee);
 	if (retval < 0)

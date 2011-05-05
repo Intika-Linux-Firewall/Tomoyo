@@ -2839,3 +2839,10 @@ Fix 2011/04/20
 
       Note that "struct ccsecurity_operations ccsecurity_ops" has changed.
       Loadable kernel modules that depends on it need to be rebuilt.
+
+Fix 2011/05/05
+
+    @ Fix wrong profile number in audit logs for "misc env" permission.
+
+      Profile number used for "file execute" permission was by error reused
+      when generating audit logs for "misc env" permission.

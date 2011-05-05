@@ -2031,3 +2031,20 @@ Fix 2010/11/22
       Do not reject if pathname to be unmounted does not end with '/'.
 
 Version 1.6.9   2011/04/01   Bug fix release.
+
+Fix 2011/05/05
+
+    @ Fix race on updating profile's comment line.
+
+      Since ccs_save_name() in ccs_write_profile() may return NULL,
+
+        ccs_profile->comment ? ccs_profile->comment->name : ""
+
+      in ccs_read_profile() may race.
+      Keep the old value rather than replace with empty string when out of
+      memory error has occurred.
+
+    @ Fix wrong profile number in audit logs for "allow_env" permission.
+
+      Profile number used for "allow_execute" permission was by error reused
+      when generating audit logs for "allow_env" permission.
