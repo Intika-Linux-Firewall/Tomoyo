@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.6.9   2011/04/01
+ * Version: 1.6.9+   2011/05/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1134,7 +1134,11 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	*cp = '\0';
 	ccs_update_counter(CCS_UPDATES_COUNTER_PROFILE);
 	if (!strcmp(data, "COMMENT")) {
-		ccs_profile->comment = ccs_save_name(cp + 1);
+		const struct ccs_path_info *new_comment
+			= ccs_save_name(cp + 1);
+		if (!new_comment)
+			return -ENOMEM;
+		ccs_profile->comment = new_comment;
 		ccs_profile_entry_used[0] = true;
 		return 0;
 	}
@@ -2604,10 +2608,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.9   2011/04/01\n");
+	printk(KERN_INFO "SAKURA: 1.6.9+   2011/05/05\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.9   2011/04/01\n");
+	printk(KERN_INFO "TOMOYO: 1.6.9+   2011/05/05\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;
