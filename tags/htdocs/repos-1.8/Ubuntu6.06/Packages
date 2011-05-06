@@ -1,19 +1,19 @@
-Package: linux-headers-686-ccs
+Package: linux-image-686-ccs
 Priority: optional
-Section: devel
+Section: base
 Installed-Size: 52
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
 Version: 2.6.15.57
-Depends: linux-headers-2.6.15-57-686-ccs
-Filename: ./linux-headers-686-ccs1.8.1_2.6.15.57_i386.deb
-Size: 23822
-MD5sum: 32f22a42a55f7529943e713ee552b5c6
-SHA1: 4d3603eef760dac647e30c0b76943050bf2d038e
-SHA256: 9f6a12d1e5a126435d4aacf2ecfd7a4083bd4b43f3d9fb609e4d5e92a1e5de01
-Description: Linux kernel headers on PPro/Celeron/PII/PIII/PIV
- This package will always depend on the latest kernel headers available
+Depends: linux-image-2.6.15-57-686-ccs
+Filename: ./linux-image-686-ccs1.8.1p2_2.6.15.57_i386.deb
+Size: 23816
+MD5sum: 793b3a7ea579a3344b79b8fd2086137a
+SHA1: cbe3fe2a6aaafb0ed2479bdb0ea8bb6461eb3c66
+SHA256: ae16ec633751666db2502d02cfcfbf04e8867b9d8e751ea5ab128d150e95be46
+Description: Linux kernel image on PPro/Celeron/PII/PIII/PIV.
+ This package will always depend on the latest kernel image available
  for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV.
 
 Package: linux-restricted-modules-686-ccs
@@ -25,14 +25,85 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.15.57
 Depends: linux-restricted-modules-2.6.15-57-686-ccs
-Filename: ./linux-restricted-modules-686-ccs1.8.1_2.6.15.57_i386.deb
-Size: 23848
-MD5sum: 2806c2d93066e13967fc3ee25e21b3bc
-SHA1: dcf6d46b0e46f01f8dfcfb205f0e4f712ca5b16c
-SHA256: 4576f331e49163cf305825bf548abed8b1b9805ecc56df9e9b8b817bea3903a8
+Filename: ./linux-restricted-modules-686-ccs1.8.1p2_2.6.15.57_i386.deb
+Size: 23846
+MD5sum: 5972fbc8e7ac5d04a05f5a7ccb091093
+SHA1: a6b527c0984fa6f0a48905c54d25af73cd06171e
+SHA256: fa5ece04d8b411f04c6776d942494177cfd5470161404d488048a2d9c54d3503
 Description: Restricted Linux modules on PPro/Celeron/PII/PIII/PIV.
  This package will always depend on the latest restricted modules available
  for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV.
+
+Package: linux-headers-2.6.15-57-686-ccs
+Priority: optional
+Section: devel
+Installed-Size: 22992
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-source-2.6.15
+Version: 2.6.15-57.97
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.15-57, libc6 (>= 2.3.4-1)
+Filename: ./linux-headers-2.6.15-57-686-ccs1.8.1p2_2.6.15-57.97_i386.deb
+Size: 928252
+MD5sum: 25afca51ede16e78a44e4a5c35058578
+SHA1: 1072122868470baf81fb583c25e5ee61f68dbbde
+SHA256: 5d987e509d3e7f66c2f3a739f3300afdf7f6354d030fb3e35eb16b86f3224440
+Description: Linux kernel headers 2.6.15 on PPro/Celeron/PII/PIII/PIV SMP/UP
+ This package provides kernel header files for version 2.6.15 on Pentium
+ Pro/Celeron/Pentium II/Pentium III/Pentium IV with SMP support, for sites
+ that want the latest kernel headers.
+
+Package: linux-686-ccs-smp
+Priority: optional
+Section: restricted/base
+Installed-Size: 52
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.15.57
+Depends: linux-image-686-ccs, linux-restricted-modules-686-ccs
+Filename: ./linux-686-ccs1.8.1p2-smp_2.6.15.57_i386.deb
+Size: 23900
+MD5sum: 0352ae1c4e31dd4ea61264ebc8072254
+SHA1: 1964ef7111f6c0b7a774a1f5ee8adf796457b39d
+SHA256: 814248a9b087c44dc9f9de2698799d69cc73dcc982a4d352a0ed87fa5159a9d6
+Description: Complete Linux kernel on PPro/Celeron/PII/PIII/PIV SMP.
+ This package will always depend on the latest complete Linux kernel available
+ for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV with SMP support.
+ SMP (symmetric multi-processing) is needed if you have multiple processors.
+
+Package: linux-image-2.6.15-57-686-ccs
+Priority: optional
+Section: base
+Installed-Size: 62948
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-source-2.6.15
+Version: 2.6.15-57.97
+Provides: linux-image, linux-image-2.6, fuse-module, ndiswrapper-modules-1.8
+Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.2.1-0ubuntu1)
+Recommends: lilo (>= 19.1) | grub
+Suggests: fdutils, linux-doc-2.6.15 | linux-source-2.6.15
+Conflicts: hotplug (<< 0.0.20040105-1)
+Filename: ./linux-image-2.6.15-57-686-ccs1.8.1p2_2.6.15-57.97_i386.deb
+Size: 22750944
+MD5sum: 190a8eb34ad7e422dc2e200d729ae5a3
+SHA1: aa37930eef6c177022f701d5f494ce8820edb71f
+SHA256: 5c98164c6d71971cf41a921b7972b44e849809deed61cbcac2f671356d61f4aa
+Description: Linux kernel image for version 2.6.15 on PPro/Celeron/PII/PIII/PIV SMP/UP
+ This package contains the Linux kernel image for version 2.6.15 on
+ Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV with SMP support,
+ the corresponding System.map file, and the modules built by the packager.
+ .
+ If you wish to update a bootdisk, or to use a bootloader to make
+ installing and using the image easier, we suggest you install the latest
+ fdutils (for formatting a floppy to be used as boot disk), and LILO, for
+ a powerful bootloader. Of course, both these are optional.
+ .
+ Kernel image packages are generally produced using kernel-package, and it
+ is suggested that you install that package if you wish to create a custom
+ kernel from the sources.
 
 Package: linux-restricted-modules-2.6.15-57-686-ccs
 Priority: optional
@@ -45,11 +116,11 @@ Version: 2.6.15.12-57.8
 Provides: nvidia-kernel-1.0.8776, nvidia-kernel-1.0.7174
 Depends: linux-image-2.6.15-57-686-ccs, linux-restricted-modules-common (>= 2.6.15), module-init-tools, nvidia-kernel-common
 Suggests: nvidia-glx | nvidia-glx-legacy, avm-fritz-firmware-2.6.15-57
-Filename: ./linux-restricted-modules-2.6.15-57-686-ccs1.8.1_2.6.15.12-57.8_i386.deb
+Filename: ./linux-restricted-modules-2.6.15-57-686-ccs1.8.1p2_2.6.15.12-57.8_i386.deb
 Size: 7967858
-MD5sum: 2c97940764fa0dfe43b524e2866ddaf4
-SHA1: 4d8c9f06b5d5aebd7764b0231120d6247d7d3b08
-SHA256: 139fe38fdb655eb0597cb6df99613ef723effc11d7e1bbf25a9d7d382ad58dc8
+MD5sum: 3f98ed27a1873920efae3e99fb582e4a
+SHA1: a18586cfcd214bc56f7be485e95ce896b24cffdf
+SHA256: d3daab166dd17fe6f277c0dba8533fafe4009357cad627318a3ad6c8aa50751d
 Description: Non-free Linux 2.6.15 modules on PPro/Celeron/PII/PIII/PIV
  This package provides restricted modules for Linux version 2.6.15 on
  Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV.
@@ -62,62 +133,6 @@ Description: Non-free Linux 2.6.15 modules on PPro/Celeron/PII/PIII/PIV
  .
  These modules are "restricted" because they are not available under a
  completely Free licence.
-
-Package: linux-686-ccs
-Priority: optional
-Section: restricted/base
-Installed-Size: 52
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.15.57
-Depends: linux-image-686-ccs, linux-restricted-modules-686-ccs
-Filename: ./linux-686-ccs1.8.1_2.6.15.57_i386.deb
-Size: 23832
-MD5sum: 6520dcb0ad232165fb0fee88a8d19128
-SHA1: ce4ab28a41ae286d76e911cb61b9979953b63061
-SHA256: 5969d50ba8b480af77ca0615801138f296b05685953eb5638946cb453ec151d5
-Description: Complete Linux kernel on PPro/Celeron/PII/PIII/PIV.
- This package will always depend on the latest complete Linux kernel available
- for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV.
-
-Package: linux-headers-2.6.15-57-686-ccs
-Priority: optional
-Section: devel
-Installed-Size: 22992
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-source-2.6.15
-Version: 2.6.15-57.94
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.15-57, libc6 (>= 2.3.4-1)
-Filename: ./linux-headers-2.6.15-57-686-ccs1.8.1_2.6.15-57.94_i386.deb
-Size: 929378
-MD5sum: 502d2d40683497d1182b9548ca419b3f
-SHA1: 7d93d193b23b98a8e5c9760d72fc800fa1e7360e
-SHA256: 7e13b0d4b505e5cdf2a6d90deda8d20bc78a959c4dd88bcc779377fe3e7319f7
-Description: Linux kernel headers 2.6.15 on PPro/Celeron/PII/PIII/PIV SMP/UP
- This package provides kernel header files for version 2.6.15 on Pentium
- Pro/Celeron/Pentium II/Pentium III/Pentium IV with SMP support, for sites
- that want the latest kernel headers.
-
-Package: linux-image-686-ccs
-Priority: optional
-Section: base
-Installed-Size: 52
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.15.57
-Depends: linux-image-2.6.15-57-686-ccs
-Filename: ./linux-image-686-ccs1.8.1_2.6.15.57_i386.deb
-Size: 23822
-MD5sum: 5343b13bc27cc6491e27f4738670ca99
-SHA1: ea48c6ed0ccd7800be88dfca260e1ed6fe074157
-SHA256: ffe9a46a4563b58e26579d8bea663a68f7fe2f0a9eb01306e57c9cf0fbe280f7
-Description: Linux kernel image on PPro/Celeron/PII/PIII/PIV.
- This package will always depend on the latest kernel image available
- for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV.
 
 Package: ccs-tools
 Priority: extra
@@ -138,7 +153,25 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.64.)
 
-Package: linux-686-ccs-smp
+Package: linux-headers-686-ccs
+Priority: optional
+Section: devel
+Installed-Size: 52
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.15.57
+Depends: linux-headers-2.6.15-57-686-ccs
+Filename: ./linux-headers-686-ccs1.8.1p2_2.6.15.57_i386.deb
+Size: 23820
+MD5sum: dbbd860d607d21b91ea78760abfb8b0d
+SHA1: 4b9ac9356009dbc44bbed090b3a78b5ad5cf2ffa
+SHA256: 30c635a61177493eedf3c2c65c756c66406b90cf89b16add4d0d681b6e89d577
+Description: Linux kernel headers on PPro/Celeron/PII/PIII/PIV
+ This package will always depend on the latest kernel headers available
+ for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV.
+
+Package: linux-686-ccs
 Priority: optional
 Section: restricted/base
 Installed-Size: 52
@@ -147,45 +180,12 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.15.57
 Depends: linux-image-686-ccs, linux-restricted-modules-686-ccs
-Filename: ./linux-686-ccs1.8.1-smp_2.6.15.57_i386.deb
-Size: 23900
-MD5sum: b532c7f632b1b7d25ee839002aa245b8
-SHA1: 59f422656c34acda259f51bbc76b59a11f378a33
-SHA256: 486f1ccaed74455b1fcb76c978c83869cf61b4afe737a90d227c57a4a7c131a6
-Description: Complete Linux kernel on PPro/Celeron/PII/PIII/PIV SMP.
+Filename: ./linux-686-ccs1.8.1p2_2.6.15.57_i386.deb
+Size: 23828
+MD5sum: ad4fde6b9a7d8c92116fd7711a90ab3c
+SHA1: 5c985c7522b40f962166845c9d9f985ecef20c1e
+SHA256: 92ad973fd12e2ee44359c3b4c469fd55e186492cbf0cbeda72f36d47ec07bbc3
+Description: Complete Linux kernel on PPro/Celeron/PII/PIII/PIV.
  This package will always depend on the latest complete Linux kernel available
- for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV with SMP support.
- SMP (symmetric multi-processing) is needed if you have multiple processors.
-
-Package: linux-image-2.6.15-57-686-ccs
-Priority: optional
-Section: base
-Installed-Size: 62948
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-source-2.6.15
-Version: 2.6.15-57.94
-Provides: linux-image, linux-image-2.6, fuse-module, ndiswrapper-modules-1.8
-Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.2.1-0ubuntu1)
-Recommends: lilo (>= 19.1) | grub
-Suggests: fdutils, linux-doc-2.6.15 | linux-source-2.6.15
-Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.15-57-686-ccs1.8.1_2.6.15-57.94_i386.deb
-Size: 22750516
-MD5sum: 35dba452008b759eda6bf290160eff3e
-SHA1: b6976779b93f2c8dd8366b7d17ea61cffcfa0a6c
-SHA256: 23be9e5d7542ec85fc22348325b4eee86fbd0cfc3fca3058718328df911fbcf2
-Description: Linux kernel image for version 2.6.15 on PPro/Celeron/PII/PIII/PIV SMP/UP
- This package contains the Linux kernel image for version 2.6.15 on
- Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV with SMP support,
- the corresponding System.map file, and the modules built by the packager.
- .
- If you wish to update a bootdisk, or to use a bootloader to make
- installing and using the image easier, we suggest you install the latest
- fdutils (for formatting a floppy to be used as boot disk), and LILO, for
- a powerful bootloader. Of course, both these are optional.
- .
- Kernel image packages are generally produced using kernel-package, and it
- is suggested that you install that package if you wish to create a custom
- kernel from the sources.
+ for Pentium Pro/Celeron/Pentium II/Pentium III/Pentium IV.
 
