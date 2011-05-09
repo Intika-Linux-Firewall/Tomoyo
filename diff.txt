@@ -1,17 +1,24 @@
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(working copy)
-@@ -43,39 +43,47 @@
+@@ -37,45 +37,51 @@
+ {
+ 	const struct ccs_reserved *p1 = container_of(a, typeof(*p1), head);
+ 	const struct ccs_reserved *p2 = container_of(b, typeof(*p2), head);
+-	return p1->min_port == p2->min_port && p1->max_port == p2->max_port;
++	return ccs_same_number_union(&p1->port, &p2->port);
+ }
+ 
  /**
-  * ccs_update_reserved_entry - Update "struct ccs_reserved" list.
+- * ccs_update_reserved_entry - Update "struct ccs_reserved" list.
++ * ccs_write_reserved_port - Write "struct ccs_reserved" list.
   *
 - * @min_port:  Start of port number range.
 - * @max_port:  End of port number range.
 - * @is_delete: True if it is a delete request.
-+ * @param:    Pointer to "struct ccs_element_param".
-+ * @min_port: Start of port number range.
-+ * @max_port: End of port number range.
++ * @param: Pointer to "struct ccs_element_param".
++ * @data:  String to parse.
   *
   * Returns 0 on success, negative value otherwise.
   *
@@ -19,26 +26,30 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
   */
 -static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 -				     const bool is_delete)
-+static int ccs_update_reserved_entry(struct ccs_element_param *param,
-+				     const u16 min_port, const u16 max_port)
++int ccs_write_reserved_port(struct ccs_element_param *param, char *data)
  {
 -	struct ccs_reserved *ptr;
- 	struct ccs_reserved e = {
- 		.min_port = min_port,
- 		.max_port = max_port
- 	};
+-	struct ccs_reserved e = {
+-		.min_port = min_port,
+-		.max_port = max_port
+-	};
 -	const int error =
 -		ccs_update_policy(&e.head, sizeof(e), is_delete,
 -				  &ccs_policy_list[CCS_ID_RESERVEDPORT],
 -				  ccs_same_reserved);
++	struct ccs_reserved e = { };
 +	struct ccs_policy_namespace *ns = param->ns;
 +	int error;
  	u8 *tmp;
++	if (*data == '@' || strchr(data, ' ') ||
++	    !ccs_parse_number_union(ns, data, &e.port) ||
++	    e.port.values[0] > e.port.values[1] || e.port.values[1] > 65535)
++		return -EINVAL;
 +	param->new_entry = &e.head;
 +	param->size = sizeof(e);
 +	param->list = &ns->policy_list[CCS_ID_RESERVEDPORT];
 +	param->check_duplicate = ccs_same_reserved;
-+	error = ccs_update_list(param);
++	error = ccs_update_policy(param);
  	if (error)
  		return error;
  	tmp = kzalloc(sizeof(ccs_reserved_port_map), CCS_GFP_FLAGS);
@@ -54,105 +65,84 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
 +	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
 +				 &ccs_ss) {
 +		struct ccs_reserved *ptr;
-+		list_for_each_entry_srcu(ptr,
-+					 &ns->policy_list[CCS_ID_RESERVEDPORT],
-+					 head.list, &ccs_ss) {
++		struct list_head *list = &ns->policy_list[CCS_ID_RESERVEDPORT];
++		list_for_each_entry_srcu(ptr, list, head.list, &ccs_ss) {
 +			unsigned int port;
 +			if (ptr->head.is_deleted)
 +				continue;
-+			for (port = ptr->min_port; port <= ptr->max_port;
-+			     port++)
++			for (port = ptr->port.values[0];
++			     port <= ptr->port.values[1]; port++)
 +				tmp[port >> 3] |= 1 << (port & 7);
 +		}
  	}
  	memmove(ccs_reserved_port_map, tmp, sizeof(ccs_reserved_port_map));
  	kfree(tmp);
-@@ -90,14 +98,14 @@
- /**
-  * ccs_write_reserved_port - Write "struct ccs_reserved" list.
-  *
+@@ -86,33 +92,3 @@
+ 	ccsecurity_ops.lport_reserved = __ccs_lport_reserved;
+ 	return 0;
+ }
+-
+-/**
+- * ccs_write_reserved_port - Write "struct ccs_reserved" list.
+- *
 - * @data:      String to parse.
 - * @is_delete: True if it is a delete request.
-+ * @param: Pointer to "struct ccs_element_param".
-+ * @data:  String to parse.
-  *
-  * Returns 0 on success, negative value otherwise.
-  *
-  * Caller holds ccs_read_lock().
-  */
+- *
+- * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
+- */
 -int ccs_write_reserved_port(char *data, const bool is_delete)
-+int ccs_write_reserved_port(struct ccs_element_param *param, char *data)
- {
- 	unsigned int from;
- 	unsigned int to;
-@@ -109,8 +117,7 @@
- 		/* fall through */
- 	case 2:
- 		if (from <= to && to < 65536)
+-{
+-	unsigned int from;
+-	unsigned int to;
+-	if (strchr(data, ' '))
+-		goto out;
+-	switch (sscanf(data, "%u-%u", &from, &to)) {
+-	case 1:
+-		to = from;
+-		/* fall through */
+-	case 2:
+-		if (from <= to && to < 65536)
 -			return ccs_update_reserved_entry(from, to,
 -							 is_delete);
-+			return ccs_update_reserved_entry(param, from, to);
- 		break;
- 	}
- out:
+-		break;
+-	}
+-out:
+-	return -EINVAL;
+-}
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(working copy)
-@@ -334,26 +334,33 @@
-  */
- static void ccs_update_task_domain(struct ccs_request_info *r)
+@@ -336,6 +336,7 @@
  {
--	const struct ccs_domain_info *domain;
--	char *buf;
+ 	const struct ccs_domain_info *domain;
+ 	char *buf;
 +	const char *cp;
  	const struct ccs_acl_info *acl = r->matched_acl;
  	r->matched_acl = NULL;
  	if (!acl || !acl->cond || !acl->cond->transit)
- 		return;
--	while (1) {
--		buf = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
--		if (buf)
--			break;
--		ssleep(1);
--		if (fatal_signal_pending(current))
--			return;
-+	cp = acl->cond->transit->name;
-+	if (*cp == '/') {
-+		const struct ccs_domain_info *domain = ccs_current_domain();
-+		char *buf;
-+		while (1) {
-+			buf = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
-+			if (buf)
-+				break;
-+			ssleep(1);
-+			if (fatal_signal_pending(current))
-+				return;
-+		}
-+		snprintf(buf, CCS_EXEC_TMPSIZE - 1, "%s %s",
-+			 domain->domainname->name, cp);
-+		if (!ccs_assign_domain(r->ns, buf, r->profile, domain->group,
-+				       true))
-+			ccs_transition_failed(buf);
-+		kfree(buf);
-+		return;
+@@ -349,8 +350,12 @@
+ 			return;
  	}
--	domain = ccs_current_domain();
+ 	domain = ccs_current_domain();
 -	snprintf(buf, CCS_EXEC_TMPSIZE - 1, "%s %s", domain->domainname->name,
 -		 acl->cond->transit->name);
--	if (!ccs_assign_domain(buf, r->profile, domain->group, true))
--		ccs_transition_failed(buf);
--	kfree(buf);
-+	if (!ccs_assign_domain(r->ns, cp, 0, 0, true))
-+		ccs_transition_failed(cp);
- }
- 
- /* Wait queue for /proc/ccs/audit. */
++	cp = acl->cond->transit->name;
++	if (*cp == '/')
++		snprintf(buf, CCS_EXEC_TMPSIZE - 1, "%s %s",
++			 domain->domainname->name, cp);
++	else
++		strncpy(buf, cp, CCS_EXEC_TMPSIZE - 1);
+ 	if (!ccs_assign_domain(buf, r->profile, domain->group, true))
+ 		ccs_transition_failed(buf);
+ 	kfree(buf);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(working copy)
-@@ -8,59 +8,34 @@
+@@ -8,59 +8,37 @@
  
  #include "internal.h"
  
@@ -168,9 +158,9 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
 -/* The initial domain. */
 -struct ccs_domain_info ccs_kernel_domain;
 -
--/* The list for "struct ccs_domain_info". */
--LIST_HEAD(ccs_domain_list);
--
+ /* The list for "struct ccs_domain_info". */
+ LIST_HEAD(ccs_domain_list);
+ 
 -/* List of policy. */
 -struct list_head ccs_policy_list[CCS_MAX_POLICY];
 -/* List of "struct ccs_group". */
@@ -179,8 +169,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  struct list_head ccs_shared_list[CCS_MAX_LIST];
  
  /**
-- * ccs_update_policy - Update an entry for exception policy.
-+ * ccs_update_list - Update an entry for exception policy.
+  * ccs_update_policy - Update an entry for exception policy.
   *
 - * @new_entry:       Pointer to "struct ccs_acl_info".
 - * @size:            Size of @new_entry in bytes.
@@ -197,7 +186,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
 -		      bool is_delete, struct list_head *list,
 -		      bool (*check_duplicate) (const struct ccs_acl_head *,
 -					       const struct ccs_acl_head *))
-+int ccs_update_list(struct ccs_element_param *param)
++int ccs_update_policy(struct ccs_element_param *param)
  {
 -	int error = is_delete ? -ENOENT : -ENOMEM;
 +	int error = param->is_delete ? -ENOENT : -ENOMEM;
@@ -221,25 +210,68 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  		if (entry) {
  			list_add_tail_rcu(&entry->list, list);
  			error = 0;
-@@ -114,7 +89,7 @@
- 		type == CCS_TYPE_DENIED_EXECUTE_HANDLER ||
- 		type == CCS_TYPE_AUTO_TASK_ACL;
+@@ -105,23 +83,22 @@
+ 					       struct ccs_acl_info *,
+ 					       const bool))
+ {
+-	struct ccs_domain_info * const domain = param->domain;
+ 	const bool is_delete = param->is_delete;
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	struct ccs_acl_info *entry;
+ 	const u8 type = new_entry->type;
+-	const u8 i = type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
+-		type == CCS_TYPE_DENIED_EXECUTE_HANDLER ||
+-		type == CCS_TYPE_AUTO_TASK_ACL;
++	struct list_head * const list = &param->list
++		[type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
++		 type == CCS_TYPE_DENIED_EXECUTE_HANDLER ||
++		 type == CCS_TYPE_AUTO_TASK_ACL];
  	if (param->data[0]) {
 -		new_entry->cond = ccs_get_condition(param->data);
 +		new_entry->cond = ccs_get_condition(param->ns, param->data);
  		if (!new_entry->cond)
  			return -EINVAL;
  	}
-@@ -183,7 +158,7 @@
+ 	if (mutex_lock_interruptible(&ccs_policy_lock))
+ 		goto out;
+-	list_for_each_entry_srcu(entry, &domain->acl_info_list[i], list,
+-				 &ccs_ss) {
++	list_for_each_entry_srcu(entry, list, list, &ccs_ss) {
+ 		if (!ccs_same_acl_head(entry, new_entry) ||
+ 		    !check_duplicate(entry, new_entry))
+ 			continue;
+@@ -136,8 +113,7 @@
+ 	if (error && !is_delete) {
+ 		entry = ccs_commit_ok(new_entry, size);
+ 		if (entry) {
+-			list_add_tail_rcu(&entry->list,
+-					  &domain->acl_info_list[i]);
++			list_add_tail_rcu(&entry->list, list);
+ 			error = 0;
+ 		}
+ 	}
+@@ -166,9 +142,9 @@
+ 	struct ccs_acl_info *ptr;
+ 	bool retried = false;
+ 	const u8 i = !check_entry;
++	const struct list_head *list = &domain->acl_info_list[i];
+ retry:
+-	list_for_each_entry_srcu(ptr, &domain->acl_info_list[i], list,
+-				 &ccs_ss) {
++	list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
+ 		if (ptr->is_deleted)
+ 			continue;
+ 		if (ptr->type != r->param_type)
+@@ -183,7 +159,7 @@
  	}
  	if (!retried) {
  		retried = true;
 -		domain = &ccs_acl_group[domain->group];
-+		domain = &r->ns->acl_group[domain->group];
++		list = &r->ns->acl_group[domain->group][i];
  		goto retry;
  	}
  	r->granted = false;
-@@ -212,20 +187,20 @@
+@@ -212,20 +188,20 @@
  /**
   * ccs_update_transition_control_entry - Update "struct ccs_transition_control" list.
   *
@@ -265,7 +297,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  	if (program && strcmp(program, "any")) {
  		if (!ccs_correct_path(program))
  			return -EINVAL;
-@@ -243,9 +218,11 @@
+@@ -243,9 +219,11 @@
  		if (!e.domainname)
  			goto out;
  	}
@@ -276,18 +308,18 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
 +	param->size = sizeof(e);
 +	param->list = &param->ns->policy_list[CCS_ID_TRANSITION_CONTROL];
 +	param->check_duplicate = ccs_same_transition_control;
-+	error = ccs_update_list(param);
++	error = ccs_update_policy(param);
  out:
  	ccs_put_name(e.domainname);
  	ccs_put_name(e.program);
-@@ -255,13 +232,13 @@
+@@ -255,13 +233,13 @@
  /**
   * ccs_write_transition_control - Write "struct ccs_transition_control" list.
   *
 - * @data:      String to parse.
 - * @is_delete: True if it is a delete request.
 - * @type:      Type of this entry.
-+ * @param: Pointer to "struct ccs_element_param". 
++ * @param: Pointer to "struct ccs_element_param".
 + * @data:  String to parse.
 + * @type:  Type of this entry.
   *
@@ -298,7 +330,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  				 const u8 type)
  {
  	char *domainname = strstr(data, " from ");
-@@ -273,8 +250,8 @@
+@@ -273,8 +251,8 @@
  		domainname = data;
  		data = NULL;
  	}
@@ -309,7 +341,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  }
  
  /**
-@@ -295,6 +272,7 @@
+@@ -295,6 +273,7 @@
  /**
   * ccs_transition_type - Get domain transition type.
   *
@@ -317,7 +349,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
   * @domainname: The name of domain.
   * @program:    The name of program.
   *
-@@ -304,17 +282,18 @@
+@@ -304,17 +283,18 @@
   *
   * Caller holds ccs_read_lock().
   */
@@ -340,11 +372,12 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  			if (ptr->head.is_deleted || ptr->type != type)
  				continue;
  			if (ptr->domainname) {
-@@ -333,6 +312,14 @@
+@@ -333,6 +313,15 @@
  			}
  			if (ptr->program && ccs_pathcmp(ptr->program, program))
  				continue;
-+			if (type == CCS_TRANSITION_CONTROL_NO_INITIALIZE_NAMESPACE) {
++			if (type ==
++			    CCS_TRANSITION_CONTROL_NO_INITIALIZE_NAMESPACE) {
 +				/*
 +				 * Do not check for initialize_namespace if
 +				 * no_initialize_namespace matched.
@@ -355,7 +388,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  			if (type == CCS_TRANSITION_CONTROL_NO_INITIALIZE) {
  				/*
  				 * Do not check for initialize_domain if
-@@ -368,18 +355,18 @@
+@@ -368,18 +357,18 @@
  /**
   * ccs_update_aggregator_entry - Update "struct ccs_aggregator" list.
   *
@@ -379,7 +412,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  	if (!ccs_correct_word(original_name) ||
  	    !ccs_correct_path(aggregated_name))
  		return -EINVAL;
-@@ -388,9 +375,11 @@
+@@ -388,9 +377,11 @@
  	if (!e.original_name || !e.aggregated_name ||
  	    e.aggregated_name->is_patterned) /* No patterns allowed. */
  		goto out;
@@ -390,11 +423,11 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
 +	param->size = sizeof(e);
 +	param->list = &param->ns->policy_list[CCS_ID_AGGREGATOR];
 +	param->check_duplicate = ccs_same_aggregator;
-+	error = ccs_update_list(param);
++	error = ccs_update_policy(param);
  out:
  	ccs_put_name(e.original_name);
  	ccs_put_name(e.aggregated_name);
-@@ -400,24 +389,25 @@
+@@ -400,24 +391,39 @@
  /**
   * ccs_write_aggregator - Write "struct ccs_aggregator" list.
   *
@@ -419,91 +452,57 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  
  /**
 - * ccs_assign_domain - Create a domain.
-+ * ccs_assign_domain - Create a domain or a namespace.
++ * ccs_namespace_jump - Check for namespace jump.
   *
-+ * @ns:         Pointer to "struct ccs_policy_namespace".
++ * @domainname: Name of domain.
++ *
++ * Returns true if namespace differs, false otherwise.
++ */
++static bool ccs_namespace_jump(const char *domainname)
++{
++	const char *namespace = ccs_current_namespace()->root.domainname->name;
++	const int len = strlen(namespace);
++	return strncmp(domainname, namespace, len) ||
++		(domainname[len] && domainname[len] != ' ');
++}
++
++/**
++ * ccs_assign_domain - Create a domain or a namespace.
++ *
   * @domainname: The name of domain.
   * @profile:    Profile number to assign if the domain was newly created.
   * @group:      Group number to assign if the domain was newly created.
-@@ -427,18 +417,57 @@
-  *
-  * Caller holds ccs_read_lock().
-  */
--struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-+struct ccs_domain_info *ccs_assign_domain(struct ccs_policy_namespace *ns,
-+					  const char *domainname,
- 					  const u8 profile, const u8 group,
+@@ -432,13 +438,26 @@
  					  const bool transit)
  {
  	struct ccs_domain_info e = { };
 -	struct ccs_domain_info *entry = ccs_find_domain(domainname);
 +	struct ccs_domain_info *entry;
-+	const char *nsname = ns->root.domainname->name; 
  	bool created = false;
 -	if (entry)
 -		goto out;
  	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
  	    !ccs_correct_domain(domainname))
  		return NULL;
-+	if (!ccs_domain_in_namespace(domainname, nsname)) {
-+		/*
-+		 * Creating a domain for different namespace is not permitted.
-+		 */
-+		if (!transit) {
-+			/*
-+			 * To create a domain in a <$namespace> namespace,
-+			 * create a namespace by writing <$namespace> to
-+			 * /proc/ccs/namespace and then write
-+			 * "namespace <$namespace>" line to
-+			 * /proc/ccs/domain_policy before creating this domain.
-+			 */
-+			printk(KERN_INFO
-+			       "Domain '%s' not in namespace '%s'.\n",
-+			       domainname, nsname);
-+			return NULL;
-+		}
-+		/*
-+		 * Namespace jump is requested.
-+		 */
-+		ns = ccs_find_namespace(domainname);
-+		if (!ns) {
-+			printk(KERN_INFO "Namespace '%s' not found.\n",
-+			       domainname);
-+			return NULL;
-+		}
-+		if (!ns->profile_ptr[ns->root.profile]) {
-+			printk(KERN_INFO "Profile for '%s' not defined.\n",
-+			       domainname);
-+			return NULL;
-+		}
-+		printk(KERN_INFO "Changing namespace to '%s'.\n", domainname);
-+		ccs_current_security()->ccs_domain_info = &ns->root;
-+		return &ns->root;
-+	}
-+	entry = ccs_find_domain(ns, domainname);
++	entry = ccs_find_domain(domainname);
 +	if (entry)
 +		goto out;
-+	e.ns = ns;
++	if (transit && ccs_namespace_jump(domainname))
++		/*
++		 * Namespace jump is requested but target domain was not found.
++		 * Don't create target domains upon namespace jump in order to
++		 * avoid inheriting "use_profile" and "use_group" information,
++		 * for definition of profiles and acl_groups may differ across
++		 * namespaces.
++		 */
++		return NULL;
++	e.ns = ccs_find_namespace(domainname);
++	if (!e.ns)
++		return NULL;
  	e.profile = profile;
  	e.group = group;
  	e.domainname = ccs_get_name(domainname);
-@@ -446,13 +475,13 @@
- 		return NULL;
- 	if (mutex_lock_interruptible(&ccs_policy_lock))
- 		goto out;
--	entry = ccs_find_domain(domainname);
-+	entry = ccs_find_domain(ns, domainname);
- 	if (!entry) {
- 		entry = ccs_commit_ok(&e, sizeof(e));
- 		if (entry) {
- 			INIT_LIST_HEAD(&entry->acl_info_list[0]);
- 			INIT_LIST_HEAD(&entry->acl_info_list[1]);
--			list_add_tail_rcu(&entry->list, &ccs_domain_list);
-+			list_add_tail_rcu(&entry->list, &ns->domain_list);
- 			created = true;
- 		}
- 	}
-@@ -519,10 +548,10 @@
+@@ -519,10 +538,10 @@
  		}
  	} else {
  		struct ccs_aggregator *ptr;
@@ -517,7 +516,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  			if (ptr->head.is_deleted ||
  			    !ccs_path_matches_pattern(&rn, ptr->original_name))
  				continue;
-@@ -555,18 +584,23 @@
+@@ -555,18 +574,23 @@
  	}
  
  	/* Calculate domain to transit to. */
@@ -546,18 +545,9 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  			/*
  			 * Needn't to transit from kernel domain before
  			 * starting /sbin/init. But transit from kernel domain
-@@ -598,7 +632,7 @@
- 	 * enforcing mode.
- 	 */
- 	if (!domain)
--		domain = ccs_assign_domain(ee->tmp, r->profile,
-+		domain = ccs_assign_domain(r->ns, ee->tmp, r->profile,
- 					   old_domain->group, true);
- 	if (domain)
- 		retval = 0;
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(working copy)
 @@ -109,15 +109,18 @@
  /**
@@ -614,7 +604,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  };
  
  /* List of "struct ccs_security". */
-@@ -400,6 +403,31 @@
+@@ -400,6 +403,30 @@
  
  #endif
  
@@ -625,12 +615,11 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
 +{
 +	unsigned int idx;
 +	ns->root.ns = ns;
-+	INIT_LIST_HEAD(&ns->domain_list);
 +	INIT_LIST_HEAD(&ns->root.acl_info_list[0]);
 +	INIT_LIST_HEAD(&ns->root.acl_info_list[1]);
 +	for (idx = 0; idx < CCS_MAX_ACL_GROUPS; idx++) {
-+		INIT_LIST_HEAD(&ns->acl_group[idx].acl_info_list[0]);
-+		INIT_LIST_HEAD(&ns->acl_group[idx].acl_info_list[1]);
++		INIT_LIST_HEAD(&ns->acl_group[idx][0]);
++		INIT_LIST_HEAD(&ns->acl_group[idx][1]);
 +	}
 +	for (idx = 0; idx < CCS_MAX_GROUP; idx++)
 +		INIT_LIST_HEAD(&ns->group_list[idx]);
@@ -639,14 +628,14 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
 +	ns->root.domainname = ccs_get_name(name);
 +	if (!ns->root.domainname)
 +		return false;
-+	list_add_tail_rcu(&ns->root.list, &ns->domain_list);
++	list_add_tail_rcu(&ns->root.list, &ccs_domain_list);
 +	return true;
 +};
 +
  /**
   * ccs_mm_init - Initialize mm related code.
   *
-@@ -408,14 +436,12 @@
+@@ -408,14 +435,12 @@
  void __init ccs_mm_init(void)
  {
  	int idx;
@@ -665,7 +654,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
  	for (idx = 0; idx < CCS_MAX_TASK_SECURITY_HASH; idx++)
  		INIT_LIST_HEAD(&ccs_task_security_list[idx]);
-@@ -425,27 +451,25 @@
+@@ -425,27 +450,25 @@
  	ccsecurity_ops.alloc_task_security = __ccs_alloc_task_security;
  	ccsecurity_ops.free_task_security = __ccs_free_task_security;
  #endif
@@ -700,7 +689,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  }
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c	(working copy)
 @@ -89,7 +89,7 @@
  		else if (pid == 0)
@@ -713,7 +702,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/signal.c
  		if (p)
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(working copy)
 @@ -247,17 +247,19 @@
  /**
@@ -762,31 +751,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  		ptr->is_group = true;
  		return ptr->group != NULL;
  	}
-@@ -397,6 +401,23 @@
- }
- 
- /**
-+ * ccs_domain_in_namespace - Check for domain's namespace.
-+ *
-+ * @domainname: Name of domain.
-+ * @namespace:  Name of namespace.
-+ *
-+ * Returns true if @domainname is in @namespace namespace, false otherwise.
-+ */
-+bool ccs_domain_in_namespace(const char *domainname, const char *namespace)
-+{
-+	const int len = strlen(namespace);
-+	if (strncmp(domainname, namespace, len) ||
-+	    (domainname[len] && domainname[len] != ' '))
-+		return false;
-+	return true;
-+}
-+
-+/**
-  * ccs_normalize_line - Format string.
-  *
-  * @buffer: The line to normalize.
-@@ -562,26 +583,21 @@
+@@ -562,26 +566,21 @@
   */
  bool ccs_correct_domain(const unsigned char *domainname)
  {
@@ -818,7 +783,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  }
  
  /**
-@@ -593,25 +609,39 @@
+@@ -593,7 +592,18 @@
   */
  bool ccs_domain_def(const unsigned char *buffer)
  {
@@ -838,30 +803,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  }
  
  /**
-  * ccs_find_domain - Find a domain by the given name.
-  *
-+ * @ns:         Pointer to "struct ccs_policy_namespace".
-  * @domainname: The domainname to find.
-  *
-  * Returns pointer to "struct ccs_domain_info" if found, NULL otherwise.
-  *
-  * Caller holds ccs_read_lock().
-  */
--struct ccs_domain_info *ccs_find_domain(const char *domainname)
-+struct ccs_domain_info *ccs_find_domain(const struct ccs_policy_namespace *ns,
-+					const char *domainname)
- {
- 	struct ccs_domain_info *domain;
- 	struct ccs_path_info name;
-+	const struct list_head *list = &ns->domain_list;
- 	name.name = domainname;
- 	ccs_fill_path_info(&name);
--	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
-+	list_for_each_entry_srcu(domain, list, list, &ccs_ss) {
- 		if (!domain->is_deleted &&
- 		    !ccs_pathcmp(&name, domain->domainname))
- 			return domain;
-@@ -1028,6 +1058,7 @@
+@@ -1028,6 +1038,7 @@
  		struct ccs_domain_info *domain = ccs_current_domain();
  		const u8 profile = domain->profile;
  		memset(r, 0, sizeof(*r));
@@ -869,19 +811,9 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  		r->profile = profile;
  		r->type = index;
  		r->mode = ccs_get_mode(profile, index);
-@@ -1037,7 +1068,8 @@
- 			return r->mode;
- 		buf = container_of(r->matched_acl, typeof(struct ccs_task_acl),
- 				   head)->domainname->name;
--		if (!ccs_assign_domain(buf, profile, domain->group, true))
-+		if (!ccs_assign_domain(r->ns, buf, profile, domain->group,
-+				       true))
- 			break;
- 	}
- 	ccs_transition_failed(buf);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(working copy)
 @@ -393,7 +393,7 @@
  		.perm = perm
@@ -950,9 +882,17 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
  		error = ccs_update_domain(&e.head, sizeof(e), param,
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
-@@ -672,6 +672,7 @@
+@@ -544,6 +544,7 @@
+ 	CCS_MEMORY_POLICY,
+ 	CCS_MEMORY_AUDIT,
+ 	CCS_MEMORY_QUERY,
++	CCS_MEMORY_NAMESPACE,
+ 	CCS_MAX_MEMORY_STAT
+ };
+ 
+@@ -672,6 +673,7 @@
  	CCS_PROFILE,
  	CCS_QUERY,
  	CCS_MANAGER,
@@ -960,7 +900,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	CCS_EXECUTE_HANDLER,
  };
  
-@@ -697,6 +698,8 @@
+@@ -697,6 +699,8 @@
  /* Index numbers for domain transition control keywords. */
  enum ccs_transition_type {
  	/* Do not change this order, */
@@ -969,7 +909,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
  	CCS_TRANSITION_CONTROL_INITIALIZE,
  	CCS_TRANSITION_CONTROL_NO_KEEP,
-@@ -728,10 +731,6 @@
+@@ -728,10 +732,6 @@
   */
  #define CCS_SOCK_MAX 6
  
@@ -980,7 +920,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  /* Size of temporary buffer for execve() operation. */
  #define CCS_EXEC_TMPSIZE     4096
  
-@@ -934,6 +933,7 @@
+@@ -934,6 +934,7 @@
  };
  
  struct ccs_execve;
@@ -988,7 +928,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  
  /* Structure for request info. */
  struct ccs_request_info {
-@@ -1027,6 +1027,7 @@
+@@ -1027,6 +1028,7 @@
  			const struct ccs_path_info *domainname;
  		} task;
  	} param;
@@ -996,7 +936,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	u8 param_type; /* One of values in "enum ccs_acl_entry_type_index". */
  	bool granted; /* True if granted, false otherwise. */
  	/* True if current thread should not be carried sleep penalty. */
-@@ -1095,6 +1096,8 @@
+@@ -1095,6 +1097,8 @@
  	struct list_head acl_info_list[2];
  	/* Name of this domain. Never NULL.          */
  	const struct ccs_path_info *domainname;
@@ -1005,7 +945,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	u8 profile;        /* Profile number to use. */
  	u8 group;          /* Group number to use.   */
  	bool is_deleted;   /* Delete flag.           */
-@@ -1102,7 +1105,8 @@
+@@ -1102,7 +1106,8 @@
  };
  
  /*
@@ -1015,10 +955,22 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
   * "keep_domain"/"no_keep_domain" keyword.
   */
  struct ccs_transition_control {
-@@ -1312,14 +1316,33 @@
+@@ -1123,8 +1128,7 @@
+ /* Structure for "deny_autobind" keyword. */
+ struct ccs_reserved {
+ 	struct ccs_acl_head head;
+-	u16 min_port;                /* Start of port number range.          */
+-	u16 max_port;                /* End of port number range.            */
++	struct ccs_number_union port;
+ };
+ 
+ /* Structure for policy manager. */
+@@ -1311,10 +1315,28 @@
+ /* Structure for holding a line from /proc/ccs/ interface. */
  struct ccs_acl_param {
  	char *data;
- 	struct ccs_domain_info *domain;
+-	struct ccs_domain_info *domain;
++	struct list_head *list; /* = &"struct list_head[2]" */
 +	struct ccs_policy_namespace *ns;
  	bool is_delete;
  };
@@ -1043,13 +995,35 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  /* Structure for reading/writing policy via /proc/ccs/ interfaces. */
  struct ccs_io_buffer {
  	void (*read) (struct ccs_io_buffer *);
- 	int (*write) (struct ccs_io_buffer *);
- 	int (*poll) (struct file *file, poll_table *wait);
-+	struct ccs_policy_namespace *ns;
- 	/* Exclusive lock for this structure.   */
- 	struct mutex io_sem;
+@@ -1325,6 +1347,7 @@
  	char __user *read_user_buf;
-@@ -1381,6 +1404,33 @@
+ 	size_t read_user_buf_avail;
+ 	struct {
++		struct list_head *ns;
+ 		struct list_head *domain;
+ 		struct list_head *group;
+ 		struct list_head *acl;
+@@ -1344,8 +1367,10 @@
+ 		const char *w[CCS_MAX_IO_READ_QUEUE];
+ 	} r;
+ 	struct {
++		struct ccs_policy_namespace *ns;
+ 		struct ccs_domain_info *domain;
+ 		size_t avail;
++		bool is_delete;
+ 	} w;
+ 	/* Buffer for reading.                  */
+ 	char *read_buf;
+@@ -1355,6 +1380,8 @@
+ 	char *write_buf;
+ 	/* Size of write buffer.                */
+ 	size_t writebuf_size;
++	/* Namespace as of open(). */
++	struct ccs_policy_namespace *original_ns;
+ 	/* Type of interface. */
+ 	enum ccs_proc_interface_index type;
+ 	/* Users counter protected by ccs_io_buffer_list_lock. */
+@@ -1381,6 +1408,25 @@
  	u8 sec;
  };
  
@@ -1062,20 +1036,12 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 +	 * This domain's name is like "<kernel>" and "</usr/sbin/httpd>".
 +	 */
 +	struct ccs_domain_info root;
-+	/* The list for "struct ccs_domain_info". */
-+	struct list_head domain_list;
 +	/* List of "struct ccs_group". */
 +	struct list_head group_list[CCS_MAX_GROUP];
 +	/* List of policy. */
 +	struct list_head policy_list[CCS_MAX_POLICY];
-+	/*
-+	 * The global domains referred by "use_group" keyword.
-+	 *
-+	 * Although "use_group" needs only "struct list_head acl_info_list[2]",
-+	 * we define structure for "use_group" as "struct ccs_domain_info" in
-+	 * order to use common code.
-+	 */
-+	struct ccs_domain_info acl_group[CCS_MAX_ACL_GROUPS];
++	/* The global ACL referred by "use_group" keyword. */
++	struct list_head acl_group[CCS_MAX_ACL_GROUPS][2];
 +	/* List for connecting to ccs_namespace_list list. */
 +	struct list_head namespace_list;
 +};
@@ -1083,11 +1049,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  /* Prototype definition for "struct ccsecurity_operations". */
  
  void __init ccs_capability_init(void);
-@@ -1404,14 +1454,19 @@
- bool ccs_correct_path(const char *filename);
- bool ccs_correct_word(const char *string);
- bool ccs_domain_def(const unsigned char *buffer);
-+bool ccs_domain_in_namespace(const char *domainname, const char *namespace);
+@@ -1407,11 +1453,15 @@
  bool ccs_domain_quota_ok(struct ccs_request_info *r);
  bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
  		   struct ccs_page_dump *dump);
@@ -1105,7 +1067,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
  			      const struct ccs_path_info *pattern);
  bool ccs_permstr(const char *string, const char *keyword);
-@@ -1452,31 +1507,34 @@
+@@ -1452,31 +1502,32 @@
  		      bool (*merge_duplicate) (struct ccs_acl_info *,
  					       struct ccs_acl_info *,
  					       const bool));
@@ -1114,7 +1076,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 -		      bool (*check_duplicate) (const struct ccs_acl_head *,
 -					       const struct ccs_acl_head *));
 -int ccs_write_aggregator(char *data, const bool is_delete);
-+int ccs_update_list(struct ccs_element_param *param);
++int ccs_update_policy(struct ccs_element_param *param);
 +int ccs_write_aggregator(struct ccs_element_param *param, char *data);
  int ccs_write_capability(struct ccs_acl_param *param);
  int ccs_write_file(struct ccs_acl_param *param);
@@ -1135,39 +1097,36 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  ssize_t ccs_write_control(struct file *file, const char __user *buffer,
  			  const size_t buffer_len);
 -struct ccs_condition *ccs_get_condition(char *condition);
--struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 +struct ccs_condition *ccs_get_condition(struct ccs_policy_namespace *ns,
 +					char *condition);
-+struct ccs_domain_info *ccs_assign_domain(struct ccs_policy_namespace *ns,
-+					  const char *domainname,
+ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
  					  const u8 profile, const u8 group,
  					  const bool transit);
--struct ccs_domain_info *ccs_find_domain(const char *domainname);
+ struct ccs_domain_info *ccs_find_domain(const char *domainname);
 -struct ccs_group *ccs_get_group(const char *group_name, const u8 idx);
-+struct ccs_domain_info *ccs_find_domain(const struct ccs_policy_namespace *ns,
-+					const char *domainname);
 +struct ccs_group *ccs_get_group(struct ccs_policy_namespace *ns,
 +				const char *group_name, const u8 idx);
-+struct ccs_policy_namespace *ccs_find_namespace(const char *domainname); 
++struct ccs_policy_namespace *ccs_find_namespace(const char *domainname);
  struct ccs_profile *ccs_profile(const u8 profile);
  u8 ccs_get_config(const u8 profile, const u8 index);
  u8 ccs_parse_ulong(unsigned long *result, char **str);
-@@ -1528,12 +1586,9 @@
+@@ -1528,12 +1579,11 @@
  extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
  extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
  extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
 -extern struct ccs_domain_info ccs_acl_group[CCS_MAX_ACL_GROUPS];
 -extern struct ccs_domain_info ccs_kernel_domain;
--extern struct list_head ccs_domain_list;
--extern struct list_head ccs_group_list[CCS_MAX_GROUP];
 +extern struct ccs_policy_namespace ccs_default_namespace;
+ extern struct list_head ccs_domain_list;
+-extern struct list_head ccs_group_list[CCS_MAX_GROUP];
++extern struct list_head ccs_manager_list;
  extern struct list_head ccs_name_list[CCS_MAX_HASH];
 -extern struct list_head ccs_policy_list[CCS_MAX_POLICY];
 +extern struct list_head ccs_namespace_list;
  extern struct list_head ccs_shared_list[CCS_MAX_LIST];
  extern struct mutex ccs_policy_lock;
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-@@ -2036,7 +2091,7 @@
+@@ -2036,7 +2086,7 @@
  static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
  {
  	struct ccs_domain_info *domain = task->ccs_domain_info;
@@ -1176,7 +1135,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  }
  
  /**
-@@ -2045,14 +2100,14 @@
+@@ -2045,14 +2095,14 @@
   * Returns pointer to "struct ccs_domain_info" for current thread.
   *
   * If current thread does not belong to a domain (which is true for initial
@@ -1194,7 +1153,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	return task->ccs_domain_info;
  }
  
-@@ -2080,4 +2135,9 @@
+@@ -2080,4 +2130,9 @@
  
  #endif
  
@@ -1206,17 +1165,8 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(working copy)
-@@ -65,7 +65,7 @@
- 		if (!r.granted)
- 			error = -EPERM;
- 		else
--			error = ccs_assign_domain(data, r.profile,
-+			error = ccs_assign_domain(r.ns, data, r.profile,
- 						  ccs_current_domain()->group,
- 						  true) ? 0 : -ENOENT;
- 		ccs_read_unlock(idx);
 @@ -308,6 +308,7 @@
  		ccs_dir_inode_operations.setattr = proc_notify_change;
  	ccs_dir->proc_iops = &ccs_dir_inode_operations;
@@ -1257,7 +1207,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
  #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(working copy)
 @@ -277,16 +277,18 @@
  /**
@@ -1336,7 +1286,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  		}
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
 @@ -83,9 +83,6 @@
  /* Profile version. Currently only 20100903 is defined. */
@@ -1348,8 +1298,25 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  /* String table for operation mode. */
  const char * const ccs_mode[CCS_CONFIG_MAX_MODE] = {
  	[CCS_CONFIG_DISABLED]   = "disabled",
-@@ -433,23 +430,25 @@
+@@ -431,25 +428,42 @@
+ }
+ 
  /**
++ * ccs_print_namespace - Print namespace header.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns nothing.
++ */
++static void ccs_print_namespace(struct ccs_io_buffer *head)
++{
++	ccs_set_string(head,
++		       container_of(head->r.ns, struct ccs_policy_namespace,
++				    namespace_list)->root.domainname->name);
++	ccs_set_space(head);
++}
++
++/**
   * ccs_assign_profile - Create a new profile.
   *
 + * @ns:      Pointer to "struct ccs_policy_namespace".
@@ -1377,7 +1344,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
  		ptr = entry;
  		ptr->default_config = CCS_CONFIG_DISABLED |
-@@ -461,7 +460,7 @@
+@@ -461,7 +475,7 @@
  		ptr->pref[CCS_PREF_MAX_LEARNING_ENTRY] =
  			CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY;
  		mb(); /* Avoid out-of-order execution. */
@@ -1386,44 +1353,35 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		entry = NULL;
  	}
  	mutex_unlock(&ccs_policy_lock);
-@@ -477,19 +476,25 @@
-  */
- static void ccs_check_profile(void)
- {
--	struct ccs_domain_info *domain;
-+	struct ccs_policy_namespace *ns;
- 	const int idx = ccs_read_lock();
+@@ -482,16 +496,15 @@
  	ccs_policy_loaded = true;
--	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
--		const u8 profile = domain->profile;
+ 	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
+ 		const u8 profile = domain->profile;
 -		if (ccs_profile_ptr[profile])
--			continue;
++		if (domain->ns->profile_ptr[profile])
+ 			continue;
 -		printk(KERN_ERR "Profile %u must be defined before using it.\n",
 -		       profile);
--		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/1.8/ "
--		       "for more information.\n");
--		panic("Profile %u (used by '%s') not defined.\n",
--		      profile, domain->domainname->name);
-+	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
-+				 &ccs_ss) {
-+		struct ccs_domain_info *domain;
-+		list_for_each_entry_srcu(domain, &ns->domain_list, list,
-+					 &ccs_ss) {
-+			const u8 profile = domain->profile;
-+			if (ns->profile_ptr[profile])
-+				continue;
-+			printk(KERN_ERR "Profile %u must be defined before "
-+			       "using it.\n", profile);
-+			printk(KERN_ERR "Please see "
-+			       "http://tomoyo.sourceforge.jp/1.8/ "
-+			       "for more information.\n");
-+			panic("Profile %u (used by '%s') not defined.\n",
-+			      profile, domain->domainname->name);
-+		}
++		printk(KERN_ERR "Profile %u must be defined before "
++		       "using it.\n", profile);
+ 		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/1.8/ "
+ 		       "for more information.\n");
+ 		panic("Profile %u (used by '%s') not defined.\n",
+ 		      profile, domain->domainname->name);
  	}
- 	ccs_read_unlock(idx);
+-	ccs_read_unlock(idx);
  	if (ccs_profile_version != 20100903) {
-@@ -514,7 +519,8 @@
+ 		printk(KERN_ERR "Userland tools must be installed for "
+ 		       "TOMOYO 1.8, and policy must be initialized.\n");
+@@ -500,6 +513,7 @@
+ 		panic("Profile version %u is not supported.\n",
+ 		      ccs_profile_version);
+ 	}
++	ccs_read_unlock(idx);
+ 	printk(KERN_INFO "CCSecurity: 1.8.1+   2011/05/05\n");
+ 	printk(KERN_INFO "Mandatory Access Control activated.\n");
+ }
+@@ -514,7 +528,8 @@
  struct ccs_profile *ccs_profile(const u8 profile)
  {
  	static struct ccs_profile ccs_null_profile;
@@ -1433,37 +1391,81 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	if (!ptr)
  		ptr = &ccs_null_profile;
  	return ptr;
-@@ -654,7 +660,7 @@
+@@ -654,7 +669,7 @@
  	if (*cp != '-')
  		return -EINVAL;
  	data = cp + 1;
 -	profile = ccs_assign_profile(i);
-+	profile = ccs_assign_profile(head->ns, i);
++	profile = ccs_assign_profile(head->w.ns, i);
  	if (!profile)
  		return -EINVAL;
  	cp = strchr(data, '=');
-@@ -714,7 +720,7 @@
+@@ -711,31 +726,39 @@
+ static void ccs_read_profile(struct ccs_io_buffer *head)
+ {
+ 	u8 index;
++	struct ccs_policy_namespace *ns = container_of(head->r.ns, typeof(*ns),
++						       namespace_list);
  	const struct ccs_profile *profile;
++	if (head->r.eof)
++		return;
  next:
  	index = head->r.index;
 -	profile = ccs_profile_ptr[index];
-+	profile = head->ns->profile_ptr[index];
++	profile = ns->profile_ptr[index];
  	switch (head->r.step) {
  	case 0:
++		ccs_print_namespace(head);
  		ccs_io_printf(head, "PROFILE_VERSION=%u\n", 20100903);
-@@ -723,7 +729,7 @@
+ 		head->r.step++;
+ 		break;
  	case 1:
- 		for ( ; head->r.index < CCS_MAX_PROFILES;
- 		      head->r.index++)
+-		for ( ; head->r.index < CCS_MAX_PROFILES;
+-		      head->r.index++)
 -			if (ccs_profile_ptr[head->r.index])
-+			if (head->ns->profile_ptr[head->r.index])
++		for ( ; head->r.index < CCS_MAX_PROFILES; head->r.index++)
++			if (ns->profile_ptr[head->r.index])
  				break;
- 		if (head->r.index == CCS_MAX_PROFILES)
+-		if (head->r.index == CCS_MAX_PROFILES)
++		if (head->r.index == CCS_MAX_PROFILES) {
++			head->r.eof = true;
  			return;
-@@ -783,7 +789,96 @@
++		}
+ 		head->r.step++;
+ 		break;
+ 	case 2:
+ 		{
+ 			u8 i;
+ 			const struct ccs_path_info *comment = profile->comment;
++			ccs_print_namespace(head);
+ 			ccs_io_printf(head, "%u-COMMENT=", index);
+ 			ccs_set_string(head, comment ? comment->name : "");
+ 			ccs_set_lf(head);
++			ccs_print_namespace(head);
+ 			ccs_io_printf(head, "%u-PREFERENCE={ ", index);
+ 			for (i = 0; i < CCS_MAX_PREF; i++)
+ 				ccs_io_printf(head, "%s=%u ",
+@@ -747,6 +770,7 @@
+ 		break;
+ 	case 3:
+ 		{
++			ccs_print_namespace(head);
+ 			ccs_io_printf(head, "%u-%s", index, "CONFIG");
+ 			ccs_print_config(head, profile->default_config);
+ 			head->r.bit = 0;
+@@ -760,6 +784,7 @@
+ 			const u8 config = profile->config[i];
+ 			if (config == CCS_CONFIG_USE_DEFAULT)
+ 				continue;
++			ccs_print_namespace(head);
+ 			if (i < CCS_MAX_MAC_INDEX)
+ 				ccs_io_printf(head, "%u-CONFIG::%s::%s", index,
+ 					      ccs_category_keywords
+@@ -783,7 +808,111 @@
  		goto next;
  }
  
++/* List of namespaces. */
 +LIST_HEAD(ccs_namespace_list);
 +
  /**
@@ -1495,10 +1497,18 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 +		break;
 +	}
 +	if (error) {
-+		list_add_tail_rcu(&new_entry->namespace_list,
-+				  &ccs_namespace_list);
-+		new_entry = NULL;
-+		error = 0;
++		const unsigned int size = ccs_round2(sizeof(*new_entry));
++		ccs_memory_used[CCS_MEMORY_NAMESPACE] += size;
++		if (!ccs_memory_quota[CCS_MEMORY_NAMESPACE] ||
++		    ccs_memory_used[CCS_MEMORY_NAMESPACE] <=
++		    ccs_memory_quota[CCS_MEMORY_NAMESPACE]) {
++			list_add_tail_rcu(&new_entry->namespace_list,
++					  &ccs_namespace_list);
++			new_entry = NULL;
++			error = 0;
++		} else {
++			ccs_memory_used[CCS_MEMORY_NAMESPACE] -= size;
++		}
 +	}
 +	mutex_unlock(&ccs_policy_lock);
 +out:
@@ -1545,10 +1555,16 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 +struct ccs_policy_namespace *ccs_find_namespace(const char *domainname)
 +{
 +	struct ccs_policy_namespace *ns;
++	const char *cp = domainname;
++	int len = 0;
++	while (*cp && *cp++ != ' ')
++		len++;
 +	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
 +				 &ccs_ss) {
-+		if (!strcmp(domainname, ns->root.domainname->name))
-+			return ns;
++		if (strncmp(domainname, ns->root.domainname->name, len) ||
++		    (domainname[len] && domainname[len] != ' '))
++			continue;
++		return ns;
 +	}
 +	return NULL;
 +}
@@ -1557,73 +1573,71 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
   * ccs_same_manager - Check for duplicated "struct ccs_manager" entry.
   *
   * @a: Pointer to "struct ccs_acl_head".
-@@ -801,15 +896,16 @@
- /**
-  * ccs_update_manager_entry - Add a manager entry.
-  *
-- * @manager:   The path to manager or the domainnamme.
-- * @is_delete: True if it is a delete request.
-+ * @param:   Pointer to "struct ccs_element_param".
-+ * @manager: The path to manager or the domainnamme.
+@@ -806,9 +935,18 @@
   *
   * Returns 0 on success, negative value otherwise.
   */
 -static int ccs_update_manager_entry(const char *manager, const bool is_delete)
-+static int ccs_update_manager_entry(struct ccs_element_param *param,
-+				    const char *manager)
++static inline int ccs_update_manager_entry(const char *manager,
++					   const bool is_delete)
  {
  	struct ccs_manager e = { };
--	int error = is_delete ? -ENOENT : -ENOMEM;
-+	int error = param->is_delete ? -ENOENT : -ENOMEM;
++	struct ccs_element_param param = {
++		/* .ns = &ccs_default_namespace, */
++		.is_delete = is_delete,
++		.new_entry = &e.head,
++		.size = sizeof(e),
++		.list = &ccs_default_namespace.policy_list[CCS_ID_MANAGER],
++		.check_duplicate = ccs_same_manager,
++	};
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (ccs_domain_def(manager)) {
  		if (!ccs_correct_domain(manager))
+@@ -819,12 +957,10 @@
  			return -EINVAL;
-@@ -821,9 +917,11 @@
+ 	}
  	e.manager = ccs_get_name(manager);
- 	if (!e.manager)
- 		return error;
+-	if (!e.manager)
+-		return error;
 -	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 -				  &ccs_policy_list[CCS_ID_MANAGER],
 -				  ccs_same_manager);
-+	param->new_entry = &e.head;
-+	param->size = sizeof(e);
-+	param->list = &param->ns->policy_list[CCS_ID_MANAGER];
-+	param->check_duplicate = ccs_same_manager;
-+	error = ccs_update_list(param);
- 	ccs_put_name(e.manager);
+-	ccs_put_name(e.manager);
++	if (e.manager) {
++		error = ccs_update_policy(&param);
++		ccs_put_name(e.manager);
++	}
  	return error;
  }
-@@ -839,11 +937,15 @@
+ 
+@@ -837,13 +973,12 @@
+  */
+ static int ccs_write_manager(struct ccs_io_buffer *head)
  {
- 	char *data = head->write_buf;
- 	bool is_delete = ccs_str_starts(&data, "delete ");
-+	struct ccs_element_param param = {
-+		.ns = head->ns,
-+		.is_delete = is_delete,
-+	};
+-	char *data = head->write_buf;
+-	bool is_delete = ccs_str_starts(&data, "delete ");
++	const char *data = head->write_buf;
  	if (!strcmp(data, "manage_by_non_root")) {
- 		ccs_manage_by_non_root = !is_delete;
+-		ccs_manage_by_non_root = !is_delete;
++		ccs_manage_by_non_root = !head->w.is_delete;
  		return 0;
  	}
 -	return ccs_update_manager_entry(data, is_delete);
-+	return ccs_update_manager_entry(&param, data);
++	return ccs_update_manager_entry(data, head->w.is_delete);
  }
  
  /**
-@@ -857,9 +959,11 @@
-  */
- static void ccs_read_manager(struct ccs_io_buffer *head)
+@@ -859,7 +994,8 @@
  {
-+	struct list_head *list;
  	if (head->r.eof)
  		return;
 -	list_for_each_cookie(head->r.acl, &ccs_policy_list[CCS_ID_MANAGER]) {
-+	list = &head->ns->policy_list[CCS_ID_MANAGER];
-+	list_for_each_cookie(head->r.acl, list) {
++	list_for_each_cookie(head->r.acl, &ccs_default_namespace.
++			     policy_list[CCS_ID_MANAGER]) {
  		struct ccs_manager *ptr =
  			list_entry(head->r.acl, typeof(*ptr), head.list);
  		if (ptr->head.is_deleted)
-@@ -888,6 +992,7 @@
+@@ -888,6 +1024,7 @@
  	const struct ccs_path_info *domainname
  		= ccs_current_domain()->domainname;
  	bool found = false;
@@ -1631,7 +1645,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	if (!ccs_policy_loaded)
  		return true;
  	if (task->ccs_flags & CCS_TASK_IS_MANAGER)
-@@ -895,8 +1000,8 @@
+@@ -895,8 +1032,8 @@
  	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
  		return false;
  	exe = ccs_get_exe();
@@ -1642,7 +1656,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		if (ptr->head.is_deleted)
  			continue;
  		if (ptr->is_domain) {
-@@ -925,7 +1030,7 @@
+@@ -925,7 +1062,7 @@
  }
  
  /**
@@ -1651,7 +1665,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
   *
   * @head: Pointer to "struct ccs_io_buffer".
   * @data: String to parse.
-@@ -934,15 +1039,14 @@
+@@ -934,15 +1071,14 @@
   *
   * Caller holds ccs_read_lock().
   */
@@ -1671,35 +1685,21 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	if (sscanf(data, "pid=%u", &pid) == 1 ||
  	    (global_pid = true, sscanf(data, "global-pid=%u", &pid) == 1)) {
  		struct task_struct *p;
-@@ -961,7 +1065,7 @@
+@@ -960,7 +1096,7 @@
+ 			domain = ccs_task_domain(p);
  		ccs_tasklist_unlock();
  	} else if (!strncmp(data, "domain=", 7)) {
- 		if (ccs_domain_def(data + 7))
--			domain = ccs_find_domain(data + 7);
-+			domain = ccs_find_domain(head->ns, data + 7);
+-		if (ccs_domain_def(data + 7))
++		if (*(data + 7) == '<')
+ 			domain = ccs_find_domain(data + 7);
  	} else
  		return false;
- 	head->w.domain = domain;
-@@ -1057,6 +1161,13 @@
- 		};
- 		if (!e.domainname)
- 			error = -EINVAL;
-+		/*
-+		 * If namespace jump, allow jumping to root of that namespace.
-+		 */
-+		else if (!ccs_domain_in_namespace(e.domainname->name, param->
-+						  ns->root.domainname->name) &&
-+			 strchr(e.domainname->name, ' '))
-+			error = -EINVAL;
- 		else
- 			error = ccs_update_domain(&e.head, sizeof(e), param,
- 						  ccs_same_task_acl, NULL);
-@@ -1068,20 +1179,23 @@
+@@ -1068,20 +1204,23 @@
  /**
   * ccs_write_domain2 - Write domain policy.
   *
 + * @ns:        Pointer to "struct ccs_policy_namespace".
-+ * @domain:    Pointer to "struct ccs_domain_info".
++ * @list:      Pointer to "struct list_head [2]".
   * @data:      Policy to be interpreted.
 - * @domain:    Pointer to "struct ccs_domain_info".
   * @is_delete: True if it is a delete request.
@@ -1710,134 +1710,137 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
   */
 -static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 +static int ccs_write_domain2(struct ccs_policy_namespace *ns,
-+			     struct ccs_domain_info *domain, char *data,
++			     struct list_head list[2], char *data,
  			     const bool is_delete)
  {
  	struct ccs_acl_param param = {
 +		.ns = ns,
-+		.domain = domain,
++		.list = list,
  		.data = data,
 -		.domain = domain,
  		.is_delete = is_delete,
  	};
  	static const struct {
-@@ -1108,22 +1222,24 @@
- /**
-  * ccs_delete_domain - Delete a domain.
-  *
-+ * @ns:         Pointer to "struct ccs_policy_namespace".
-  * @domainname: The name of domain.
-  *
-  * Returns 0.
-  */
--static int ccs_delete_domain(char *domainname)
-+static int ccs_delete_domain(struct ccs_policy_namespace *ns, char *domainname)
- {
- 	struct ccs_domain_info *domain;
- 	struct ccs_path_info name;
-+	struct list_head *list = &ns->domain_list;
- 	name.name = domainname;
- 	ccs_fill_path_info(&name);
- 	if (mutex_lock_interruptible(&ccs_policy_lock))
+@@ -1122,8 +1261,8 @@
  		return 0;
  	/* Is there an active domain? */
--	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
+ 	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
 -		/* Never delete ccs_kernel_domain. */
 -		if (domain == &ccs_kernel_domain)
-+	list_for_each_entry_srcu(domain, list, list, &ccs_ss) {
 +		/* Never delete root of a namespace. */
-+		if (domain == &ns->root)
++		if (domain == &domain->ns->root)
  			continue;
  		if (domain->is_deleted ||
  		    ccs_pathcmp(domain->domainname, &name))
-@@ -1153,6 +1269,7 @@
+@@ -1153,20 +1292,12 @@
  static int ccs_write_domain(struct ccs_io_buffer *head)
  {
  	char *data = head->write_buf;
-+	struct ccs_policy_namespace *ns = head->ns;
++	struct ccs_policy_namespace *ns;
  	struct ccs_domain_info *domain = head->w.domain;
- 	bool is_delete = false;
- 	bool is_select = false;
-@@ -1161,19 +1278,14 @@
- 		is_delete = true;
- 	else if (ccs_str_starts(&data, "select "))
- 		is_select = true;
+-	bool is_delete = false;
+-	bool is_select = false;
++	const bool is_delete = head->w.is_delete;
++	const bool is_select = !is_delete && ccs_str_starts(&data, "select ");
+ 	unsigned int profile;
+-	if (ccs_str_starts(&data, "delete "))
+-		is_delete = true;
+-	else if (ccs_str_starts(&data, "select "))
+-		is_select = true;
 -	if (is_select && ccs_select_one(head, data))
 -		return -EAGAIN;
 -	/* Don't allow updating policies by non manager programs. */
 -	if (!ccs_manager())
 -		return -EPERM;
- 	if (ccs_domain_def(data)) {
+-	if (ccs_domain_def(data)) {
++	if (*data == '<') {
  		domain = NULL;
  		if (is_delete)
--			ccs_delete_domain(data);
-+			ccs_delete_domain(ns, data);
- 		else if (is_select)
--			domain = ccs_find_domain(data);
-+			domain = ccs_find_domain(ns, data);
- 		else
--			domain = ccs_assign_domain(data, 0, 0, false);
-+			domain = ccs_assign_domain(ns, data, 0, 0, false);
- 		head->w.domain = domain;
- 		return 0;
+ 			ccs_delete_domain(data);
+@@ -1179,10 +1310,10 @@
  	}
-@@ -1182,7 +1294,7 @@
- 
+ 	if (!domain)
+ 		return -EINVAL;
+-
++	ns = domain->ns;
  	if (sscanf(data, "use_profile %u\n", &profile) == 1
  	    && profile < CCS_MAX_PROFILES) {
 -		if (!ccs_policy_loaded || ccs_profile_ptr[(u8) profile])
-+		if (!ccs_policy_loaded || head->ns->profile_ptr[(u8) profile])
++		if (!ccs_policy_loaded || ns->profile_ptr[(u8) profile])
  			if (!is_delete)
  				domain->profile = (u8) profile;
  		return 0;
-@@ -1200,7 +1312,7 @@
+@@ -1200,7 +1331,7 @@
  		domain->flags[profile] = !is_delete;
  		return 0;
  	}
 -	return ccs_write_domain2(data, domain, is_delete);
-+	return ccs_write_domain2(ns, domain, data, is_delete);
++	return ccs_write_domain2(ns, domain->acl_info_list, data, is_delete);
  }
  
  /**
-@@ -1694,9 +1806,11 @@
+@@ -1426,8 +1557,10 @@
   */
- static void ccs_read_domain(struct ccs_io_buffer *head)
+ static void ccs_set_group(struct ccs_io_buffer *head, const char *category)
  {
-+	struct list_head *list;
- 	if (head->r.eof)
- 		return;
--	list_for_each_cookie(head->r.domain, &ccs_domain_list) {
-+	list = &head->ns->domain_list;
-+	list_for_each_cookie(head->r.domain, list) {
- 		struct ccs_domain_info *domain =
- 			list_entry(head->r.domain, typeof(*domain), list);
- 		switch (head->r.step) {
-@@ -1765,8 +1879,9 @@
- 	profile = simple_strtoul(data, NULL, 10);
+-	if (head->type == CCS_EXCEPTIONPOLICY)
++	if (head->type == CCS_EXCEPTIONPOLICY) {
++		ccs_print_namespace(head);
+ 		ccs_io_printf(head, "acl_group %u ", head->r.acl_group_index);
++	}
+ 	ccs_set_string(head, category);
+ }
+ 
+@@ -1661,19 +1794,17 @@
+ /**
+  * ccs_read_domain2 - Read domain policy.
+  *
+- * @head:   Pointer to "struct ccs_io_buffer".
+- * @domain: Pointer to "struct ccs_domain_info".
+- * @index:  Index number.
++ * @head: Pointer to "struct ccs_io_buffer".
++ * @list: Pointer to "struct list_head".
+  *
+  * Returns true on success, false otherwise.
+  *
+  * Caller holds ccs_read_lock().
+  */
+ static bool ccs_read_domain2(struct ccs_io_buffer *head,
+-			     struct ccs_domain_info *domain,
+-			     const u8 index)
++			     struct list_head *list)
+ {
+-	list_for_each_cookie(head->r.acl, &domain->acl_info_list[index]) {
++	list_for_each_cookie(head->r.acl, list) {
+ 		struct ccs_acl_info *ptr =
+ 			list_entry(head->r.acl, typeof(*ptr), list);
+ 		if (!ccs_print_entry(head, ptr))
+@@ -1718,12 +1849,12 @@
+ 			ccs_set_lf(head);
+ 			/* fall through */
+ 		case 1:
+-			if (!ccs_read_domain2(head, domain, 0))
++			if (!ccs_read_domain2(head, &domain->acl_info_list[0]))
+ 				return;
+ 			head->r.step++;
+ 			/* fall through */
+ 		case 2:
+-			if (!ccs_read_domain2(head, domain, 1))
++			if (!ccs_read_domain2(head, &domain->acl_info_list[1]))
+ 				return;
+ 			head->r.step++;
+ 			if (!ccs_set_lf(head))
+@@ -1766,7 +1897,8 @@
  	if (profile >= CCS_MAX_PROFILES)
  		return -EINVAL;
--	domain = ccs_find_domain(cp + 1);
+ 	domain = ccs_find_domain(cp + 1);
 -	if (domain && (!ccs_policy_loaded || ccs_profile_ptr[(u8) profile]))
-+	domain = ccs_find_domain(head->ns, cp + 1);
 +	if (domain && (!ccs_policy_loaded ||
-+		       head->ns->profile_ptr[(u8) profile]))
++		       head->w.ns->profile_ptr[(u8) profile]))
  		domain->profile = (u8) profile;
  	return 0;
  }
-@@ -1789,9 +1904,11 @@
-  */
- static void ccs_read_domain_profile(struct ccs_io_buffer *head)
- {
-+	struct list_head *list;
- 	if (head->r.eof)
- 		return;
--	list_for_each_cookie(head->r.domain, &ccs_domain_list) {
-+	list = &head->ns->domain_list;
-+	list_for_each_cookie(head->r.domain, list) {
- 		struct ccs_domain_info *domain =
- 			list_entry(head->r.domain, typeof(*domain), list);
- 		if (domain->is_deleted)
-@@ -1881,10 +1998,15 @@
+@@ -1881,10 +2013,15 @@
  
  /* String table for domain transition control keywords. */
  static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
@@ -1857,23 +1860,24 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  };
  
  /* String table for grouping keywords. */
-@@ -1905,41 +2027,37 @@
+@@ -1904,42 +2041,32 @@
+ static int ccs_write_exception(struct ccs_io_buffer *head)
  {
  	char *data = head->write_buf;
- 	const bool is_delete = ccs_str_starts(&data, "delete ");
+-	const bool is_delete = ccs_str_starts(&data, "delete ");
++	const bool is_delete = head->w.is_delete;
 +	struct ccs_element_param param = {
-+		.ns = head->ns,
++		.ns = head->w.ns,
 +		.is_delete = is_delete,
 +	};
  	u8 i;
- 	static const struct {
- 		const char *keyword;
+-	static const struct {
+-		const char *keyword;
 -		int (*write) (char *, const bool);
-+		int (*write) (struct ccs_element_param *, char *);
- 	} ccs_callback[2] = {
- 		{ "aggregator ",    ccs_write_aggregator },
- 		{ "deny_autobind ", ccs_write_reserved_port },
- 	};
+-	} ccs_callback[2] = {
+-		{ "aggregator ",    ccs_write_aggregator },
+-		{ "deny_autobind ", ccs_write_reserved_port },
+-	};
 -	if (!is_delete && ccs_str_starts(&data, "select ") &&
 -	    !strcmp(data, "transition_only")) {
 -		head->r.print_transition_related_only = true;
@@ -1882,10 +1886,13 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 -	/* Don't allow updating policies by non manager programs. */
 -	if (!ccs_manager())
 -		return -EPERM;
- 	for (i = 0; i < 2; i++)
- 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
+-	for (i = 0; i < 2; i++)
+-		if (ccs_str_starts(&data, ccs_callback[i].keyword))
 -			return ccs_callback[i].write(data, is_delete);
-+			return ccs_callback[i].write(&param, data);
++	if (ccs_str_starts(&data, "aggregator "))
++		return ccs_write_aggregator(&param, data);
++	if (ccs_str_starts(&data, "deny_autobind "))
++		return ccs_write_reserved_port(&param, data);
  	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
  		if (ccs_str_starts(&data, ccs_transition_type[i]))
 -			return ccs_write_transition_control(data, is_delete,
@@ -1905,63 +1912,131 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 -							 &ccs_acl_group[group],
 -							 is_delete);
 +			if (data++)
-+				return ccs_write_domain2(head->ns,
-+							 &head->ns->
++				return ccs_write_domain2(head->w.ns,
++							 head->w.ns->
 +							 acl_group[group],
 +							 data, is_delete);
  		}
  	}
  	return -EINVAL;
-@@ -1957,7 +2075,8 @@
+@@ -1957,7 +2084,10 @@
   */
  static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
  {
 -	list_for_each_cookie(head->r.group, &ccs_group_list[idx]) {
-+	struct list_head *list = &head->ns->group_list[idx];
++	struct ccs_policy_namespace *ns = container_of(head->r.ns, typeof(*ns),
++						       namespace_list);
++	struct list_head *list = &ns->group_list[idx];
 +	list_for_each_cookie(head->r.group, list) {
  		struct ccs_group *group =
  			list_entry(head->r.group, typeof(*group), head.list);
  		list_for_each_cookie(head->r.acl, &group->member_list) {
-@@ -2013,7 +2132,8 @@
+@@ -1967,6 +2097,7 @@
+ 				continue;
+ 			if (!ccs_flush(head))
+ 				return false;
++			ccs_print_namespace(head);
+ 			ccs_set_string(head, ccs_group_name[idx]);
+ 			ccs_set_string(head, group->group_name->name);
+ 			if (idx == CCS_PATH_GROUP) {
+@@ -2013,7 +2144,10 @@
   */
  static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
  {
 -	list_for_each_cookie(head->r.acl, &ccs_policy_list[idx]) {
-+	struct list_head *list = &head->ns->policy_list[idx];
++	struct ccs_policy_namespace *ns = container_of(head->r.ns, typeof(*ns),
++						       namespace_list);
++	struct list_head *list = &ns->policy_list[idx];
 +	list_for_each_cookie(head->r.acl, list) {
  		struct ccs_acl_head *acl =
  			container_of(head->r.acl, typeof(*acl), list);
  		if (acl->is_deleted)
-@@ -2096,8 +2216,8 @@
+@@ -2028,6 +2162,7 @@
+ 			{
+ 				struct ccs_transition_control *ptr =
+ 					container_of(acl, typeof(*ptr), head);
++				ccs_print_namespace(head);
+ 				ccs_set_string(head,
+ 					       ccs_transition_type[ptr->type]);
+ 				ccs_set_string(head, ptr->program ?
+@@ -2041,6 +2176,7 @@
+ 			{
+ 				struct ccs_aggregator *ptr =
+ 					container_of(acl, typeof(*ptr), head);
++				ccs_print_namespace(head);
+ 				ccs_set_string(head, "aggregator ");
+ 				ccs_set_string(head, ptr->original_name->name);
+ 				ccs_set_space(head);
+@@ -2052,12 +2188,9 @@
+ 			{
+ 				struct ccs_reserved *ptr =
+ 					container_of(acl, typeof(*ptr), head);
+-				const u16 min_port = ptr->min_port;
+-				const u16 max_port = ptr->max_port;
++				ccs_print_namespace(head);
+ 				ccs_set_string(head, "deny_autobind ");
+-				ccs_io_printf(head, "%u", min_port);
+-				if (min_port != max_port)
+-					ccs_io_printf(head, "-%u", max_port);
++				ccs_print_number_union(head, &ptr->port);
+ 			}
+ 			break;
+ 		default:
+@@ -2080,6 +2213,8 @@
+  */
+ static void ccs_read_exception(struct ccs_io_buffer *head)
+ {
++	struct ccs_policy_namespace *ns = container_of(head->r.ns, typeof(*ns),
++						       namespace_list);
+ 	if (head->r.eof)
+ 		return;
+ 	while (head->r.step < CCS_MAX_POLICY &&
+@@ -2096,9 +2231,9 @@
  	       + CCS_MAX_ACL_GROUPS * 2) {
  		head->r.acl_group_index = (head->r.step - CCS_MAX_POLICY
  					   - CCS_MAX_GROUP) / 2;
 -		if (!ccs_read_domain2(head,
 -				      &ccs_acl_group[head->r.acl_group_index],
-+		if (!ccs_read_domain2(head, &head->ns->
-+				      acl_group[head->r.acl_group_index],
- 				      head->r.step & 1))
+-				      head->r.step & 1))
++		if (!ccs_read_domain2(head, &ns->acl_group
++				      [head->r.acl_group_index]
++				      [head->r.step & 1]))
  			return;
  		head->r.step++;
-@@ -2201,7 +2321,8 @@
+ 	}
+@@ -2201,7 +2336,8 @@
  	if (symlink)
  		ccs_addprintf(buffer, len, "%s", symlink);
  	ccs_normalize_line(buffer);
 -	if (!ccs_write_domain2(buffer, ccs_current_domain(), false))
-+	if (!ccs_write_domain2(ccs_current_namespace(), ccs_current_domain(),
-+			       buffer, false))
++	if (!ccs_write_domain2(ccs_current_namespace(), ccs_current_domain()->
++			       acl_info_list, buffer, false))
  		ccs_update_stat(CCS_STAT_POLICY_UPDATES);
  	kfree(buffer);
  }
-@@ -2577,6 +2698,7 @@
+@@ -2477,9 +2613,10 @@
+ 
+ /* String table for /proc/ccs/stat interface. */
+ static const char * const ccs_memory_headers[CCS_MAX_MEMORY_STAT] = {
+-	[CCS_MEMORY_POLICY] = "policy:",
+-	[CCS_MEMORY_AUDIT]  = "audit log:",
+-	[CCS_MEMORY_QUERY]  = "query message:",
++	[CCS_MEMORY_POLICY]     = "policy:",
++	[CCS_MEMORY_AUDIT]      = "audit log:",
++	[CCS_MEMORY_QUERY]      = "query message:",
++	[CCS_MEMORY_NAMESPACE]  = "namespace:",
+ };
+ 
+ /* Timestamp counter for last updated. */
+@@ -2577,6 +2714,7 @@
  	struct ccs_io_buffer *head = kzalloc(sizeof(*head), CCS_GFP_FLAGS);
  	if (!head)
  		return -ENOMEM;
-+	head->ns = ccs_current_namespace();
++	head->original_ns = ccs_current_namespace();
  	mutex_init(&head->io_sem);
  	head->type = type;
  	switch (type) {
-@@ -2629,6 +2751,10 @@
+@@ -2629,6 +2767,10 @@
  		head->write = ccs_write_manager;
  		head->read = ccs_read_manager;
  		break;
@@ -1972,17 +2047,65 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	}
  	if (!(file->f_mode & FMODE_READ)) {
  		/*
-@@ -2711,6 +2837,9 @@
- 	int idx;
- 	if (!head->read)
- 		return -ENOSYS;
-+	/* Don't allow read/write if namespace is invalid. */
-+	if (!head->ns)
-+		return -ENOENT;
- 	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
- 		return -EFAULT;
- 	if (mutex_lock_interruptible(&head->io_sem))
-@@ -2752,13 +2881,6 @@
+@@ -2695,6 +2837,44 @@
+ }
+ 
+ /**
++ * ccs_move_namespace_cursor - Print namespace delimiter if needed.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns nothing.
++ */
++static inline void ccs_move_namespace_cursor(struct ccs_io_buffer *head)
++{
++	struct list_head *ns;
++	if (head->type != CCS_EXCEPTIONPOLICY && head->type != CCS_PROFILE)
++		return;
++	/*
++	 * If this is the first read, or reading previous namespace finished
++	 * and has more namespaces to read, update the namespace cursor.
++	 */
++	ns = head->r.ns;
++	if (!ns || (head->r.eof && ns->next != &ccs_namespace_list)) {
++		/* Clearing is OK because ccs_flush() returned true. */
++		memset(&head->r, 0, sizeof(head->r));
++		head->r.ns = ns ? ns->next : ccs_namespace_list.next;
++	}
++}
++
++/**
++ * ccs_has_more_namespace - Check for unread namespaces.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Returns true if we have more entries to print, false otherwise.
++ */
++static inline bool ccs_has_more_namespace(struct ccs_io_buffer *head)
++{
++	return (head->type == CCS_EXCEPTIONPOLICY ||
++		head->type == CCS_PROFILE) && head->r.eof &&
++		head->r.ns->next != &ccs_namespace_list;
++}
++
++/**
+  * ccs_read_control - read() for /proc/ccs/ interface.
+  *
+  * @file:       Pointer to "struct file".
+@@ -2720,8 +2900,10 @@
+ 	idx = ccs_read_lock();
+ 	if (ccs_flush(head))
+ 		/* Call the policy handler. */
+-		head->read(head);
+-	ccs_flush(head);
++		do {
++			ccs_move_namespace_cursor(head);
++			head->read(head);
++		} while (ccs_flush(head) && ccs_has_more_namespace(head));
+ 	ccs_read_unlock(idx);
+ 	len = head->read_user_buf - buffer;
+ 	mutex_unlock(&head->io_sem);
+@@ -2752,13 +2934,6 @@
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
  	idx = ccs_read_lock();
@@ -1996,37 +2119,15 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
-@@ -2787,15 +2909,67 @@
+@@ -2787,15 +2962,68 @@
  		cp0[head->w.avail - 1] = '\0';
  		head->w.avail = 0;
  		ccs_normalize_line(cp0);
 +		if (!strcmp(cp0, "reset")) {
++			head->w.ns = head->original_ns;
 +			head->w.domain = NULL;
 +			memset(&head->r, 0, sizeof(head->r));
 +			continue;
-+		}
-+		switch (head->type) {
-+		case CCS_DOMAINPOLICY:
-+		case CCS_EXCEPTIONPOLICY:
-+		case CCS_DOMAIN_STATUS:
-+		case CCS_PROFILE:
-+		case CCS_MANAGER:
-+			/* Selecting namespace to read/write. */
-+			if (!strncmp(cp0, "namespace ", 10)) {
-+				head->ns = ccs_find_namespace(cp0 + 10);
-+				head->w.domain = NULL;
-+				memset(&head->r, 0, sizeof(head->r));
-+				if (head->ns)
-+					continue;
-+			}
-+			/* Don't allow read/write if namespace is invalid. */
-+			if (!head->ns) {
-+				error = -ENOENT;
-+				goto out;
-+			}
-+			break;
-+		default:
-+			break;
 +		}
 +		/* Don't allow updating policies by non manager programs. */
 +		switch (head->type) {
@@ -2049,6 +2150,29 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 +				goto out;
 +			}
 +		}
++		/* Delete request? */
++		head->w.is_delete = !strncmp(cp0, "delete ", 7);
++		if (head->w.is_delete)
++			memmove(cp0, cp0 + 7, strlen(cp0 + 7) + 1);
++		/* Selecting namespace to update. */
++		if (head->type == CCS_EXCEPTIONPOLICY ||
++		    head->type == CCS_PROFILE) {
++			if (*cp0 == '<') {
++				char *cp = strchr(cp0, ' ');
++				if (cp) {
++					*cp++ = '\0';
++					head->w.ns = ccs_find_namespace(cp0);
++					memmove(cp0, cp, strlen(cp) + 1);
++				} else
++					head->w.ns = NULL;
++			} else
++				head->w.ns = head->original_ns;
++			/* Don't allow updating if namespace is invalid. */
++			if (!head->w.ns) {
++				error = -ENOENT;
++				goto out;
++			}
++		}
  		{
 +			/* Do the update. */
  			const int ret = head->write(head);
@@ -2064,7 +2188,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		switch (head->type) {
  		case CCS_DOMAINPOLICY:
  		case CCS_EXCEPTIONPOLICY:
-@@ -2803,12 +2977,14 @@
+@@ -2803,12 +3031,14 @@
  		case CCS_STAT:
  		case CCS_PROFILE:
  		case CCS_MANAGER:
@@ -2081,9 +2205,24 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	return error;
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(working copy)
-@@ -773,19 +773,21 @@
+@@ -749,12 +749,12 @@
+  *
+  * Returns true if some elements are deleted, false otherwise.
+  */
+-static bool ccs_collect_acl(struct ccs_domain_info *domain)
++static bool ccs_collect_acl(struct list_head *list)
+ {
+ 	struct ccs_acl_info *acl;
+ 	u8 i;
+ 	for (i = 0; i < 2; i++) {
+-		list_for_each_entry(acl, &domain->acl_info_list[i], list) {
++		list_for_each_entry(acl, &list[i], list) {
+ 			if (!acl->is_deleted)
+ 				continue;
+ 			if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
+@@ -773,20 +773,15 @@
  {
  	int i;
  	enum ccs_policy_id id;
@@ -2098,26 +2237,18 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
 -	for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
 -		if (!ccs_collect_acl(&ccs_acl_group[i]))
 -			goto unlock;
--	{
-+	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
-+				 &ccs_ss) {
+ 	{
  		struct ccs_domain_info *domain;
--		list_for_each_entry(domain, &ccs_domain_list, list) {
-+		for (id = 0; id < CCS_MAX_POLICY; id++)
-+			if (!ccs_collect_member(id, &ns->policy_list[id]))
-+				goto unlock;
-+		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
-+			if (!ccs_collect_acl(&ns->acl_group[i]))
-+				goto unlock;
-+		list_for_each_entry(domain, &ns->domain_list, list) {
- 			if (!ccs_collect_acl(domain))
+ 		list_for_each_entry(domain, &ccs_domain_list, list) {
+-			if (!ccs_collect_acl(domain))
++			if (!ccs_collect_acl(domain->acl_info_list))
  				goto unlock;
  			if (!domain->is_deleted ||
-@@ -794,30 +796,32 @@
- 			if (!ccs_add_to_gc(CCS_ID_DOMAIN, &domain->list))
+ 			    ccs_domain_used_by_task(domain))
+@@ -795,28 +790,39 @@
  				goto unlock;
  		}
--	}
+ 	}
 -	for (i = 0; i < CCS_MAX_GROUP; i++) {
 -		struct list_head *list = &ccs_group_list[i];
 -		struct ccs_group *group;
@@ -2131,6 +2262,21 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
 -		default:
 -			id = CCS_ID_ADDRESS_GROUP;
 -			break;
+-		}
+-		list_for_each_entry(group, list, head.list) {
+-			if (!ccs_collect_member(id, &group->member_list))
++	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
++				 &ccs_ss) {
++		for (id = 0; id < CCS_MAX_POLICY; id++)
++			if (!ccs_collect_member(id, &ns->policy_list[id]))
+ 				goto unlock;
+-			if (!list_empty(&group->member_list) ||
+-			    atomic_read(&group->head.users))
+-				continue;
+-			if (!ccs_add_to_gc(CCS_ID_GROUP, &group->head.list))
++		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
++			if (!ccs_collect_acl(ns->acl_group[i]))
+ 				goto unlock;
 +		for (i = 0; i < CCS_MAX_GROUP; i++) {
 +			struct list_head *list = &ns->group_list[i];
 +			struct ccs_group *group;
@@ -2157,21 +2303,11 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
 +					goto unlock;
 +			}
  		}
--		list_for_each_entry(group, list, head.list) {
--			if (!ccs_collect_member(id, &group->member_list))
--				goto unlock;
--			if (!list_empty(&group->member_list) ||
--			    atomic_read(&group->head.users))
--				continue;
--			if (!ccs_add_to_gc(CCS_ID_GROUP, &group->head.list))
--				goto unlock;
--		}
  	}
  	for (i = 0; i < CCS_MAX_LIST + CCS_MAX_HASH; i++) {
- 		struct list_head *list = i < CCS_MAX_LIST ?
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(working copy)
 @@ -343,13 +343,13 @@
  		if (address[0] != '@')
@@ -2200,7 +2336,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
  				  ccs_merge_unix_acl);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(revision 4958)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(revision 4972)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(working copy)
 @@ -63,13 +63,13 @@
  /**
@@ -2242,7 +2378,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
 +		param->new_entry = &e.head;
 +		param->size = sizeof(e);
 +		param->check_duplicate = ccs_same_path_group;
-+		error = ccs_update_list(param);
++		error = ccs_update_policy(param);
  		ccs_put_name(e.member_name);
  	} else if (type == CCS_NUMBER_GROUP) {
  		struct ccs_number_group e = { };
@@ -2256,7 +2392,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
 +		param->new_entry = &e.head;
 +		param->size = sizeof(e);
 +		param->check_duplicate = ccs_same_number_group;
-+		error = ccs_update_list(param);
++		error = ccs_update_policy(param);
  		/*
  		 * ccs_put_number_union() is not needed because w[1][0] != '@'.
  		 */
@@ -2269,13 +2405,13 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
 +		param->new_entry = &e.head;
 +		param->size = sizeof(e);
 +		param->check_duplicate = ccs_same_address_group;
-+		error = ccs_update_list(param);
++		error = ccs_update_policy(param);
  out_address:
  		if (e.is_ipv6) {
  			ccs_put_ipv6_address(e.min.ipv6);
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(working copy)
 @@ -51,10 +51,8 @@
  
@@ -2291,25 +2427,15 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
  #define CCS_PROC_POLICY_EXCEPTION_POLICY "/proc/ccs/exception_policy"
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(working copy)
-@@ -63,8 +63,8 @@
- /* Currently active screen's index. */
- enum ccs_screen_type ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
- /*
-- * Array of "initialize_domain"/"no_initialize_domain"/"keep_domain"/
-- * "no_keep_domain" entries.
-+ * Array of "initialize_namespace"/"no_initialize_namespace"/"initialize_domain"/
-+ * "no_initialize_domain"/"keep_domain"/"no_keep_domain" entries.
-  */
- static struct ccs_transition_control_entry *ccs_transition_control_list = NULL;
- /* Length of ccs_transition_control_list array. */
-@@ -96,15 +96,20 @@
+@@ -96,8 +96,14 @@
  /* Start from the first line when showing ACL screen? */
  static _Bool ccs_no_restore_cursor = false;
  
 +/* Namespace to use. */
-+char *current_namespace = NULL;
++char *ccs_current_namespace = NULL;
++int ccs_current_namespace_len = 0;
 +
  /* Domain transition coltrol keywords. */
  static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
@@ -2318,24 +2444,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  	[CCS_TRANSITION_CONTROL_INITIALIZE] = "initialize_domain ",
  	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
  	[CCS_TRANSITION_CONTROL_KEEP] = "keep_domain ",
- 	[CCS_TRANSITION_CONTROL_NO_KEEP] = "no_keep_domain ",
- };
- 
--static FILE *ccs_editpolicy_open_write(const char *filename);
-+static FILE *ccs_editpolicy_open(const char *filename);
- static _Bool ccs_deleted_domain(const int index);
- static _Bool ccs_domain_unreachable(const int index);
- static _Bool ccs_initializer_source(const int index);
-@@ -174,7 +179,7 @@
- static void ccs_copy_file(const char *source, const char *dest)
- {
- 	FILE *fp_in = fopen(source, "r");
--	FILE *fp_out = fp_in ? ccs_editpolicy_open_write(dest) : NULL;
-+	FILE *fp_out = fp_in ? ccs_editpolicy_open(dest) : NULL;
- 	while (fp_in && fp_out) {
- 		int c = fgetc(fp_in);
- 		if (c == EOF)
-@@ -375,7 +380,7 @@
+@@ -375,7 +381,7 @@
  }
  
  /**
@@ -2344,7 +2453,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
   *
   * @data: Line to parse.
   * @type: One of values in "enum ccs_transition_type".
-@@ -425,16 +430,25 @@
+@@ -425,16 +431,26 @@
  {
  	const struct ccs_transition_control_entry *d_t =
  		ccs_transition_control(domainname, program);
@@ -2367,13 +2476,14 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  			ccs_out_of_memory();
 -		line = ccs_shprintf(CCS_ROOT_NAME " %s", program);
 +		if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE)
-+			line = ccs_shprintf("%s %s", current_namespace, program);
++			line = ccs_shprintf("%s %s", ccs_current_namespace,
++					    program);
 +		else
 +			line = ccs_shprintf("<%s>", program);
  		ccs_dp.list[source].target_domainname = strdup(line);
  		if (!ccs_dp.list[source].target_domainname)
  			ccs_out_of_memory();
-@@ -465,12 +479,16 @@
+@@ -465,12 +481,16 @@
   *
   * @index: Index in the domain policy.
   *
@@ -2387,112 +2497,25 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 -			       false, false);
 +	const char *cp = ccs_dp.list[index].target_domainname;
 +	const char *sp = ccs_get_last_word(cp);
-+	if (*sp == '<' && strcmp(current_namespace, sp))
++	if (*sp == '<' && strcmp(ccs_current_namespace, sp))
 +		return -2;
 +	return ccs_find_domain(&ccs_dp, cp, false, false);
  }
  
  /**
-@@ -544,8 +562,10 @@
+@@ -544,8 +564,10 @@
  	if (redirect_index >= 0)
  		line = ccs_shprintf(" ( -> %d )",
  				    ccs_dp.list[redirect_index].number);
--	else
 +	else if (redirect_index == EOF)
- 		line = ccs_shprintf(" ( -> Not Found )");
-+	else
++                line = ccs_shprintf(" ( -> Not Found )");
+ 	else
+-		line = ccs_shprintf(" ( -> Not Found )");
 +		line = ccs_shprintf(" ( -> Namespace jump )");
  	printw("%s", ccs_eat(line));
  	tmp_col += strlen(line);
  	ccs_put();
-@@ -798,7 +818,7 @@
- }
- 
- /**
-- * ccs_editpolicy_open_write - Wrapper for ccs_open_write().
-+ * ccs_editpolicy_open - Wrapper for ccs_open_write().
-  *
-  * @filename: File to open for writing.
-  *
-@@ -808,14 +828,9 @@
-  * this function sets error line if failed. Also, this function returns NULL if
-  * readonly mode.
-  */
--static FILE *ccs_editpolicy_open_write(const char *filename)
-+static FILE *ccs_editpolicy_open(const char *filename)
- {
--	if (ccs_network_mode) {
--		FILE *fp = ccs_open_write(filename);
--		if (!fp)
--			ccs_set_error(filename);
--		return fp;
--	} else if (ccs_offline_mode) {
-+	if (ccs_offline_mode) {
- 		char request[1024];
- 		int fd[2];
- 		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-@@ -833,57 +848,16 @@
- 		close(fd[0]);
- 		exit(1);
- 	} else {
--		FILE *fp;
--		if (ccs_readonly_mode)
--			return NULL;
--		fp = ccs_open_write(filename);
-+		FILE *fp = fopen(filename, "r+");
- 		if (!fp)
- 			ccs_set_error(filename);
-+		fprintf(fp, "namespace %s\n", current_namespace);
-+		fflush(fp);
- 		return fp;
- 	}
- }
- 
- /**
-- * ccs_editpolicy_open_read - Wrapper for ccs_open_read().
-- *
-- * @filename: File to open for reading.
-- *
-- * Returns pointer to "FILE" on success, NULL otherwise.
-- *
-- * Since CUI policy editor screen provides a line for printing error message,
-- * this function sets error line if failed.
-- */
--static FILE *ccs_editpolicy_open_read(const char *filename)
--{
--	if (ccs_network_mode) {
--		return ccs_open_read(filename);
--	} else if (ccs_offline_mode) {
--		char request[1024];
--		int fd[2];
--		FILE *fp;
--		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
--			fprintf(stderr, "socketpair()\n");
--			exit(1);
--		}
--		if (shutdown(fd[0], SHUT_WR))
--			goto out;
--		fp = fdopen(fd[0], "r");
--		if (!fp)
--			goto out;
--		memset(request, 0, sizeof(request));
--		snprintf(request, sizeof(request) - 1, "GET %s", filename);
--		ccs_send_fd(request, &fd[1]);
--		return fp;
--out:
--		close(fd[1]);
--		close(fd[0]);
--		exit(1);
--	} else {
--		return fopen(filename, "r");
--	}
--}
--
--/**
-  * ccs_open2 - Wrapper for open().
-  *
-  * @filename: File to open.
-@@ -972,6 +946,14 @@
+@@ -972,6 +994,14 @@
  			if (ptr->program &&
  			    strcmp(ptr->program->name, program))
  				continue;
@@ -2507,7 +2530,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  			if (type == CCS_TRANSITION_CONTROL_NO_INITIALIZE) {
  				/*
  				 * Do not check for initialize_domain if
-@@ -980,7 +962,8 @@
+@@ -980,7 +1010,8 @@
  				type = CCS_TRANSITION_CONTROL_NO_KEEP;
  				goto next;
  			}
@@ -2517,143 +2540,105 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  			    type == CCS_TRANSITION_CONTROL_KEEP)
  				return ptr;
  			else
-@@ -1043,31 +1026,18 @@
- 		free((void *)
- 		     ccs_gacl_list[--ccs_gacl_list_count].
- 		     operand);
-+	fp = ccs_editpolicy_open(ccs_policy_file);
-+	if (!fp)
-+		return;
- 	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
-+		if (ccs_domain_sort_type)
-+			fprintf(fp, "select pid=%u\n", ccs_current_pid);
-+		else
-+			fprintf(fp, "select domain=%s\n", ccs_current_domain);
- 		if (ccs_network_mode)
--			/* We can read after write. */
--			fp = ccs_editpolicy_open_write(ccs_policy_file);
--		else if (!ccs_offline_mode)
--			/* Don't set error message if failed. */
--			fp = fopen(ccs_policy_file, "r+");
--		if (fp) {
--			if (ccs_domain_sort_type)
--				fprintf(fp, "select pid=%u\n",
--					ccs_current_pid);
--			else
--				fprintf(fp, "select domain=%s\n",
--					ccs_current_domain);
--			if (ccs_network_mode)
--				fputc(0, fp);
--			fflush(fp);
--		}
-+			fputc(0, fp);
-+		fflush(fp);
- 	}
--	if (!fp)
--		fp = ccs_editpolicy_open_read(ccs_policy_file);
--	if (!fp) {
--		ccs_set_error(ccs_policy_file);
--		return;
--	}
- 	ccs_freadline_raw = ccs_current_screen == CCS_SCREEN_STAT_LIST;
- 	ccs_get();
- 	while (true) {
-@@ -1395,8 +1365,14 @@
+@@ -1031,6 +1062,20 @@
+ }
+ 
+ /**
++ * ccs_is_current_namespace - Check namespace.
++ *
++ * @line: Line to check namespace.
++ *
++ * Returns true if this line deals current namespace, false otherwise.
++ */
++static _Bool ccs_is_current_namespace(const char *line)
++{
++	return !strncmp(line, ccs_current_namespace, ccs_current_namespace_len)
++		&& (line[ccs_current_namespace_len] == ' ' ||
++		    !line[ccs_current_namespace_len]);
++}
++
++/**
+  * ccs_read_generic_policy - Read policy data other than domain policy.
+  *
+  * Returns nothing.
+@@ -1088,6 +1133,14 @@
+ 			if (!line[0])
+ 				continue;
+ 		}
++		if ((ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
++		    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) &&
++		    *line == '<') {
++			char *cp = strchr(line, ' ');
++			if (!cp++ || !ccs_is_current_namespace(line))
++				continue;
++			memmove(line, cp, strlen(cp) + 1);
++		}
+ 		switch (ccs_current_screen) {
+ 		case CCS_SCREEN_EXCEPTION_LIST:
+ 		case CCS_SCREEN_ACL_LIST:
+@@ -1395,8 +1448,14 @@
  static void ccs_parse_exception_line(char *line, const int max_index)
  {
  	unsigned int group;
 -	if (ccs_str_starts(line, "initialize_domain "))
 +	if (ccs_str_starts(line, "initialize_namespace "))
- 		ccs_add_transition_control_policy
++                ccs_add_transition_control_policy
 +			(line, CCS_TRANSITION_CONTROL_NAMESPACE);
 +	else if (ccs_str_starts(line, "no_initialize_namespace "))
-+		ccs_add_transition_control_policy
+ 		ccs_add_transition_control_policy
 +			(line, CCS_TRANSITION_CONTROL_NO_NAMESPACE);
 +	else if (ccs_str_starts(line, "initialize_domain "))
 +		ccs_add_transition_control_policy
  			(line, CCS_TRANSITION_CONTROL_INITIALIZE);
  	else if (ccs_str_starts(line, "no_initialize_domain "))
  		ccs_add_transition_control_policy
-@@ -1451,25 +1427,15 @@
+@@ -1451,7 +1510,6 @@
  	ccs_clear_domain_policy(&ccs_dp);
  	ccs_transition_control_list_len = 0;
  	ccs_editpolicy_clear_groups();
 -	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
-+	//ccs_assign_domain(&ccs_dp, current_namespace, false, false);
  
  	/* Load all domain transition related entries. */
--	fp = NULL;
--	if (ccs_network_mode)
--		/* We can read after write. */
--		fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
--	else if (!ccs_offline_mode)
--		/* Don't set error message if failed. */
--		fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r+");
-+	fp = ccs_editpolicy_open(CCS_PROC_POLICY_DOMAIN_POLICY);
- 	if (fp) {
- 		fprintf(fp, "select transition_only\n");
- 		if (ccs_network_mode)
- 			fputc(0, fp);
- 		fflush(fp);
--	} else {
--		fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_DOMAIN_POLICY);
--	}
--	if (fp) {
- 		index = EOF;
- 		ccs_get();
- 		while (true) {
-@@ -1487,31 +1453,17 @@
- 		}
- 		ccs_put();
- 		fclose(fp);
--	} else {
--		ccs_set_error(CCS_PROC_POLICY_DOMAIN_POLICY);
- 	}
- 
- 	max_index = ccs_dp.list_len;
- 
- 	/* Load domain transition related entries and group entries. */
--	fp = NULL;
--	if (ccs_network_mode)
--		/* We can read after write. */
--		fp = ccs_editpolicy_open_write
--			(CCS_PROC_POLICY_EXCEPTION_POLICY);
--	else if (!ccs_offline_mode)
--		/* Don't set error message if failed. */
--		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
-+	fp = ccs_editpolicy_open(CCS_PROC_POLICY_EXCEPTION_POLICY);
- 	if (fp) {
- 		fprintf(fp, "select transition_only\n");
- 		if (ccs_network_mode)
- 			fputc(0, fp);
- 		fflush(fp);
--	} else {
--		fp = ccs_editpolicy_open_read
--			(CCS_PROC_POLICY_EXCEPTION_POLICY);
--	}
--	if (fp) {
- 		ccs_get();
- 		while (true) {
+ 	fp = NULL;
+@@ -1476,7 +1534,11 @@
  			char *line = ccs_freadline_unpack(fp);
-@@ -1521,8 +1473,6 @@
+ 			if (!line)
+ 				break;
+-			if (ccs_domain_def(line)) {
++			if (*line == '<') {
++				if (!ccs_is_current_namespace(line)) {
++					index = EOF;
++					continue;
++				}
+ 				index = ccs_assign_domain(&ccs_dp, line, false,
+ 							  false);
+ 				continue;
+@@ -1517,6 +1579,12 @@
+ 			char *line = ccs_freadline_unpack(fp);
+ 			if (!line)
+ 				break;
++			if (*line == '<') {
++				char *cp = strchr(line, ' ');
++				if (!cp++ || !ccs_is_current_namespace(line))
++					continue;
++				memmove(line, cp, strlen(cp) + 1);
++			}
+ 			ccs_parse_exception_line(line, max_index);
  		}
  		ccs_put();
- 		fclose(fp);
--	} else {
--		ccs_set_error(CCS_PROC_POLICY_EXCEPTION_POLICY);
- 	}
- 
- 	/*
-@@ -1552,7 +1502,7 @@
+@@ -1550,9 +1618,9 @@
+ 			d_t = ccs_transition_control(&parent, cp);
+ 			if (!d_t)
  				continue;
- 			/* Initializer under <kernel> is reachable. */
+-			/* Initializer under <kernel> is reachable. */
++			/* Initializer under root of namespace is reachable. */
  			if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE &&
 -			    parent.total_len == CCS_ROOT_NAME_LEN)
 +			    !strchr(parent.name, ' '))
  				break;
  			ccs_dp.list[index].d_t = d_t;
  			continue;
-@@ -1611,10 +1561,10 @@
+@@ -1611,10 +1679,10 @@
  			= ccs_dp.list[index].string_ptr;
  		const int max_count = ccs_dp.list[index].string_count;
  		/*
@@ -2667,7 +2652,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  			continue;
  		for (i = 0; i < max_count; i++) {
  			const struct ccs_path_info *cp = string_ptr[i];
-@@ -1986,8 +1936,14 @@
+@@ -1986,8 +2054,14 @@
  		const int index = ccs_editpolicy_get_current();
  		ccs_get();
  		ccs_eat_col = ptr->x;
@@ -2680,21 +2665,20 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 +		else
 +			line = ccs_shprintf("%s does not exist or "
 +					    "inaccessible.\n",
-+					    current_namespace);
++					    ccs_current_namespace);
  		if (ccs_window_width < strlen(line))
  			line[ccs_window_width] = '\0';
  		move(2, 0);
-@@ -1997,6 +1953,22 @@
+@@ -1997,6 +2071,21 @@
  		ccs_editpolicy_attr_change(A_REVERSE, false); /* add color */
  		ccs_put();
  	}
 +	if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
-+	    ccs_current_screen == CCS_SCREEN_PROFILE_LIST ||
-+	    ccs_current_screen == CCS_SCREEN_MANAGER_LIST) {
++	    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
 +		char *line;
 +		ccs_get();
 +		ccs_eat_col = ptr->x;
-+		line = ccs_shprintf("%s", current_namespace);
++		line = ccs_shprintf("%s", ccs_current_namespace);
 +		if (ccs_window_width < strlen(line))
 +			line[ccs_window_width] = '\0';
 +		move(2, 0);
@@ -2707,62 +2691,47 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  	move(CCS_HEADER_LINES + ptr->y, 0);
  	ccs_editpolicy_line_draw();     /* add color */
  	refresh();
-@@ -2174,8 +2146,7 @@
- 	}
- 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
- 		int i;
--		FILE *fp = ccs_editpolicy_open_write
--			(CCS_PROC_POLICY_DOMAIN_POLICY);
-+		FILE *fp = ccs_editpolicy_open(CCS_PROC_POLICY_DOMAIN_POLICY);
- 		if (!fp)
- 			return;
- 		for (i = 1; i < ccs_dp.list_len; i++) {
-@@ -2187,7 +2158,7 @@
- 		ccs_close_write(fp);
- 	} else {
- 		int i;
--		FILE *fp = ccs_editpolicy_open_write(ccs_policy_file);
-+		FILE *fp = ccs_editpolicy_open(ccs_policy_file);
- 		if (!fp)
- 			return;
- 		if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
-@@ -2228,7 +2199,7 @@
- 		goto out;
- 	ccs_rl.count = ccs_add_history(line, ccs_rl.history, ccs_rl.count,
- 				       ccs_rl.max);
--	fp = ccs_editpolicy_open_write(ccs_policy_file);
-+	fp = ccs_editpolicy_open(ccs_policy_file);
- 	if (!fp)
- 		goto out;
- 	switch (ccs_current_screen) {
-@@ -2375,7 +2346,7 @@
- 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
- 	if (!line || !*line)
- 		goto out;
--	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
-+	fp = ccs_editpolicy_open(CCS_PROC_POLICY_DOMAIN_POLICY);
- 	if (!fp)
- 		goto out;
- 	if (!ccs_domain_sort_type) {
-@@ -2430,7 +2401,7 @@
- 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
- 	if (!line || !*line)
- 		goto out;
--	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_PROFILE);
-+	fp = ccs_editpolicy_open(CCS_PROC_POLICY_PROFILE);
- 	if (!fp)
- 		goto out;
- 	for (index = 0; index < ccs_gacl_list_count; index++) {
-@@ -2475,7 +2446,7 @@
- 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
- 	if (!line || !*line)
- 		goto out;
--	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_STAT);
-+	fp = ccs_editpolicy_open(CCS_PROC_POLICY_STAT);
- 	if (!fp)
- 		goto out;
- 	for (index = 0; index < ccs_gacl_list_count; index++) {
-@@ -2501,27 +2472,47 @@
+@@ -2203,7 +2292,9 @@
+ 			if (!ccs_gacl_list[i].selected)
+ 				continue;
+ 			directive = ccs_gacl_list[i].directive;
+-			fprintf(fp, "delete %s %s\n",
++			fprintf(fp, "delete %s %s %s\n",
++				ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST
++				? ccs_current_namespace : "",
+ 				ccs_directives[directive].original,
+ 				ccs_gacl_list[i].operand);
+ 		}
+@@ -2252,14 +2343,17 @@
+ 			fprintf(fp, "select domain=%s\n", ccs_current_domain);
+ 		/* Fall through. */
+ 	case CCS_SCREEN_EXCEPTION_LIST:
++		if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST)
++			fprintf(fp, "%s ", ccs_current_namespace);
+ 		directive = ccs_find_directive(false, line);
+ 		if (directive != CCS_DIRECTIVE_NONE)
+-			fprintf(fp, "%s ",
+-				ccs_directives[directive].original);
++			fprintf(fp, "%s ", ccs_directives[directive].original);
+ 		break;
+ 	case CCS_SCREEN_PROFILE_LIST:
+ 		if (!strchr(line, '='))
+-			fprintf(fp, "%s-COMMENT=\n", line);
++			fprintf(fp, "%s %s-COMMENT=\n", ccs_current_namespace,
++				line);
++		fprintf(fp, "%s ", ccs_current_namespace);
+ 		break;
+ 	default:
+ 		break;
+@@ -2445,6 +2539,7 @@
+ 		if (cp)
+ 			*cp = '\0';
+ 		directive = ccs_gacl_list[index].directive;
++		fprintf(fp, "%s ", ccs_current_namespace);
+ 		if (directive < 256)
+ 			fprintf(fp, "%u-", directive);
+ 		fprintf(fp, "%s=%s\n", buf, line);
+@@ -2501,27 +2596,50 @@
   *
   * @current: Index in the domain policy.
   *
@@ -2776,10 +2745,11 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 +	if (current == EOF)
  		return false;
 +	if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
-+		free(current_namespace);
-+		current_namespace = strdup(ccs_gacl_list[current].operand);
-+		if (!current_namespace)
++		free(ccs_current_namespace);
++		ccs_current_namespace = strdup(ccs_gacl_list[current].operand);
++		if (!ccs_current_namespace)
 +			ccs_out_of_memory();
++		ccs_current_namespace_len = strlen(ccs_current_namespace);
 +		ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
 +		return true;
 +	}
@@ -2807,19 +2777,21 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  		}
 -		ccs_show_list();
 +		if (redirect_index == -2) {
-+			free(current_namespace);
-+			current_namespace =
++			free(ccs_current_namespace);
++			ccs_current_namespace =
 +				strdup(ccs_get_last_word(ccs_dp.list[current].
 +							 target_domainname));
-+			if (!current_namespace)
++			if (!ccs_current_namespace)
 +				ccs_out_of_memory();
++			ccs_current_namespace_len =
++				strlen(ccs_current_namespace);
 +			ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
 +			return true;
 +		}
  		return false;
  	} else if (ccs_deleted_domain(current)) {
  		return false;
-@@ -2536,6 +2527,7 @@
+@@ -2536,6 +2654,7 @@
  	ccs_no_restore_cursor = old_domain &&
  		strcmp(old_domain, ccs_current_domain);
  	free(old_domain);
@@ -2827,16 +2799,15 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  	return true;
  }
  
-@@ -2558,7 +2550,7 @@
- 	printw("p     <<< Profile Editor >>>\n");
+@@ -2559,6 +2678,7 @@
  	printw("m     <<< Manager Policy Editor >>>\n");
  	if (!ccs_offline_mode) {
--		/* printw("i     <<< Interactive Enforcing Mode >>>\n"); */
+ 		/* printw("i     <<< Interactive Enforcing Mode >>>\n"); */
 +		printw("n     <<< Namespace Selector >>>\n");
  		printw("s     <<< Statistics >>>\n");
  	}
  	printw("q     Quit this editor.\n");
-@@ -2572,16 +2564,14 @@
+@@ -2572,7 +2692,7 @@
  			return CCS_SCREEN_DOMAIN_LIST;
  		if (c == 'A' || c == 'a')
  			if (ccs_select_acl_window(current))
@@ -2845,31 +2816,31 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  		if (c == 'P' || c == 'p')
  			return CCS_SCREEN_PROFILE_LIST;
  		if (c == 'M' || c == 'm')
- 			return CCS_SCREEN_MANAGER_LIST;
- 		if (!ccs_offline_mode) {
--			/*
--			if (c == 'I' || c == 'i')
--				return CCS_SCREEN_QUERY_LIST;
--			*/
+@@ -2582,6 +2702,8 @@
+ 			if (c == 'I' || c == 'i')
+ 				return CCS_SCREEN_QUERY_LIST;
+ 			*/
 +			if (c == 'N' || c == 'n')
 +				return CCS_SCREEN_NAMESPACE_LIST;
  			if (c == 'S' || c == 's')
  				return CCS_SCREEN_STAT_LIST;
  		}
-@@ -2684,9 +2674,9 @@
+@@ -2684,9 +2806,14 @@
  	} else if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
  		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
  		ccs_list_caption = "Domain Policy Editor";
--	} else if (ccs_current_screen == CCS_SCREEN_QUERY_LIST) {
--		ccs_policy_file = CCS_PROC_POLICY_QUERY;
--		ccs_list_caption = "Interactive Enforcing Mode";
++		/*
+ 	} else if (ccs_current_screen == CCS_SCREEN_QUERY_LIST) {
+ 		ccs_policy_file = CCS_PROC_POLICY_QUERY;
+ 		ccs_list_caption = "Interactive Enforcing Mode";
++		*/
 +	} else if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
 +		ccs_policy_file = CCS_PROC_POLICY_NAMESPACE;
 +		ccs_list_caption = "Namespace Selector";
  	} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
  		ccs_policy_file = CCS_PROC_POLICY_PROFILE;
  		ccs_list_caption = "Profile Editor";
-@@ -2833,6 +2823,7 @@
+@@ -2833,6 +2960,7 @@
  			case CCS_SCREEN_ACL_LIST:
  			case CCS_SCREEN_PROFILE_LIST:
  			case CCS_SCREEN_MANAGER_LIST:
@@ -2877,7 +2848,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  				ccs_add_entry();
  				goto start;
  			default:
-@@ -2842,7 +2833,7 @@
+@@ -2842,7 +2970,7 @@
  		case '\r':
  		case '\n':
  			if (ccs_select_acl_window(current))
@@ -2886,39 +2857,40 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  			break;
  		case 's':
  		case 'S':
-@@ -2928,7 +2919,7 @@
-  */
- static _Bool ccs_save_to_file(const char *src, const char *dest)
- {
--	FILE *proc_fp = ccs_editpolicy_open_read(src);
-+	FILE *proc_fp = ccs_editpolicy_open(src);
- 	FILE *file_fp = fopen(dest, "w");
- 	if (!file_fp) {
- 		fprintf(stderr, "Can't open %s\n", dest);
-@@ -2965,6 +2956,11 @@
+@@ -2965,6 +3093,11 @@
  				goto usage;
  			ccs_policy_dir = ptr;
  			ccs_offline_mode = true;
 +		} else if (*ptr == '<') {
-+			if (current_namespace || strchr(ptr, ' ') ||
++			if (ccs_current_namespace || strchr(ptr, ' ') ||
 +			    !ccs_domain_def(ptr))
 +				goto usage;
-+			current_namespace = strdup(ptr);
++			ccs_current_namespace = strdup(ptr);
  		} else if (cp) {
  			*cp++ = '\0';
  			if (ccs_network_mode || ccs_offline_mode)
-@@ -2996,6 +2992,8 @@
+@@ -2990,12 +3123,17 @@
+ 			 != 1) {
+ usage:
+ 			printf("Usage: %s [e|d|p|m|s] [readonly] "
+-			       "[refresh=interval] "
++			       "[refresh=interval] [<namespace>]"
+ 			       "[{policy_dir|remote_ip:remote_port}]\n",
+ 			       argv[0]);
  			exit(1);
  		}
  	}
-+	if (!current_namespace)
-+		current_namespace = strdup("<kernel>");
++	if (!ccs_current_namespace)
++		ccs_current_namespace = strdup("<kernel>");
++	if (!ccs_current_namespace)
++		goto usage;
++	ccs_current_namespace_len = strlen(ccs_current_namespace);
  }
  
  /**
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c	(working copy)
 @@ -193,7 +193,7 @@
  				goto usage;
@@ -2939,9 +2911,26 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c
  	case 'p':
  		result = ccs_move_file_to_proc(CCS_PROC_POLICY_PROFILE);
  		break;
+@@ -248,7 +251,7 @@
+ 	}
+ 	return !result;
+ usage:
+-	printf("%s {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
++	printf("%s {-e|-ef|-d|-df|-m|-p|-s|-n} [remote_ip:remote_port]\n\n"
+ 	       "-e  : Read from stdin and append to "
+ 	       "/proc/ccs/exception_policy .\n"
+ 	       "-ef : Read from stdin and overwrite "
+@@ -260,6 +263,7 @@
+ 	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
+ 	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
+ 	       "-s  : Read from stdin and append to /proc/ccs/stat .\n"
++	       "-n  : Read from stdin and append to /proc/ccs/namespace .\n"
+ 	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
+ 	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+ 	       "directory.\n", argv[0]);
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(working copy)
 @@ -237,8 +237,10 @@
  		if (!cp)
@@ -2958,47 +2947,50 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
  					continue;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
-@@ -94,7 +94,7 @@
+@@ -94,7 +94,8 @@
  	memset(&ccs_dp, 0, sizeof(ccs_dp));
  	memset(&mp, 0, sizeof(mp));
  	ccs_get();
 -	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
-+	ccs_assign_domain(&ccs_dp, current_namespace, false, false);
++	// How to tell ccs_current_namespace change?
++	ccs_assign_domain(&ccs_dp, ccs_current_namespace, false, false);
  	while (true) {
  		FILE *fp;
  		struct msghdr msg;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(working copy)
-@@ -314,12 +314,16 @@
+@@ -311,6 +311,8 @@
+ 	[CCS_DIRECTIVE_FILE_UNMOUNT]  = { "file unmount", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_FILE_WRITE]    = { "file write", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_INITIALIZE_DOMAIN] = { "initialize_domain", NULL, 0, 0 },
++	[CCS_DIRECTIVE_INITIALIZE_NAMESPACE]
++	= { "initialize_namespace", NULL, 0, 0 },
  	[CCS_DIRECTIVE_IPC_SIGNAL]    = { "ipc signal", NULL, 0, 0 },
  	[CCS_DIRECTIVE_KEEP_DOMAIN]   = { "keep_domain", NULL, 0, 0 },
  	[CCS_DIRECTIVE_MISC_ENV]      = { "misc env", NULL, 0, 0 },
-+	[CCS_DIRECTIVE_INITIALIZE_NAMESPACE]
-+	= { "initialize_namespace", NULL, 0, 0 },
- 	[CCS_DIRECTIVE_NETWORK_INET]  = { "network inet", NULL, 0, 0 },
- 	[CCS_DIRECTIVE_NETWORK_UNIX]  = { "network unix", NULL, 0, 0 },
+@@ -319,6 +321,8 @@
  	[CCS_DIRECTIVE_NONE]          = { "", NULL, 0, 0 },
  	[CCS_DIRECTIVE_NO_INITIALIZE_DOMAIN]
  	= { "no_initialize_domain", NULL, 0, 0 },
- 	[CCS_DIRECTIVE_NO_KEEP_DOMAIN] = { "no_keep_domain", NULL, 0, 0 },
 +	[CCS_DIRECTIVE_NO_INITIALIZE_NAMESPACE]
 +	= { "no_initialize_namespace", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_NO_KEEP_DOMAIN] = { "no_keep_domain", NULL, 0, 0 },
  	[CCS_DIRECTIVE_NUMBER_GROUP]  = { "number_group", NULL, 0, 0 },
  	[CCS_DIRECTIVE_PATH_GROUP]    = { "path_group", NULL, 0, 0 },
- 	[CCS_DIRECTIVE_QUOTA_EXCEEDED] = { "quota_exceeded", NULL, 0, 0 },
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(working copy)
-@@ -29,13 +29,15 @@
+@@ -29,13 +29,16 @@
  	CCS_SCREEN_ACL_LIST,
  	CCS_SCREEN_PROFILE_LIST,
  	CCS_SCREEN_MANAGER_LIST,
 -	CCS_SCREEN_QUERY_LIST,
++	/* CCS_SCREEN_QUERY_LIST, */
 +	CCS_SCREEN_NAMESPACE_LIST,
  	CCS_SCREEN_STAT_LIST,
  	CCS_MAXSCREEN
@@ -3011,7 +3003,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
  	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
  	CCS_TRANSITION_CONTROL_INITIALIZE,
  	CCS_TRANSITION_CONTROL_NO_KEEP,
-@@ -331,12 +333,14 @@
+@@ -331,12 +334,14 @@
  	CCS_DIRECTIVE_FILE_UNMOUNT,
  	CCS_DIRECTIVE_FILE_WRITE,
  	CCS_DIRECTIVE_INITIALIZE_DOMAIN,
@@ -3026,17 +3018,18 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
  	CCS_DIRECTIVE_NO_KEEP_DOMAIN,
  	CCS_DIRECTIVE_NUMBER_GROUP,
  	CCS_DIRECTIVE_PATH_GROUP,
-@@ -439,6 +443,7 @@
+@@ -439,6 +444,8 @@
  void ccs_editpolicy_sttr_restore(void);
  void ccs_editpolicy_sttr_save(void);
  
-+extern char *current_namespace;
++
++extern char *ccs_current_namespace;
  extern enum ccs_screen_type ccs_current_screen;
  extern int ccs_gacl_list_count;
  extern int ccs_list_item_count;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(working copy)
 @@ -286,22 +286,6 @@
  }
@@ -3061,7 +3054,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
   * ccs_fprintf_encoded - fprintf() using TOMOYO's escape rules.
   *
   * @fp:       Pointer to "FILE".
-@@ -481,6 +465,29 @@
+@@ -481,6 +465,30 @@
  }
  
  /**
@@ -3075,23 +3068,24 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
 +{
 +	const char *cp;
 +	int len;
-+	if (*buffer != '<')
-+		return false;
-+	cp = strchr(buffer, ' ');
-+	if (!cp)
-+		len = strlen(buffer);
-+	else
-+		len = cp - buffer;
-+	if (buffer[len - 1] != '>' || !ccs_correct_word2(buffer + 1, len - 2))
-+		return false;
-+	return true;
++	       if (*buffer != '<')
++		       return false;
++	       cp = strchr(buffer, ' ');
++	       if (!cp)
++		       len = strlen(buffer);
++	       else
++		       len = cp - buffer;
++	       if (buffer[len - 1] != '>' ||
++		   !ccs_correct_word2(buffer + 1, len - 2))
++		       return false;
++	       return true;
 +}
 +
 +/**
   * ccs_correct_domain - Check whether the given domainname follows the naming rules.
   *
   * @domainname: The domainname to check.
-@@ -489,14 +496,11 @@
+@@ -489,14 +497,11 @@
   */
  _Bool ccs_correct_domain(const char *domainname)
  {
@@ -3112,7 +3106,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
  		if (!cp)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(working copy)
 @@ -15,8 +15,8 @@
  	sleep 10
@@ -3138,7 +3132,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
  endif
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 4958)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 4972)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(working copy)
 @@ -1274,12 +1274,14 @@
  "keyword_alias file unmount                  = file unmount\n"
@@ -3155,3 +3149,23 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
  "keyword_alias no_keep_domain                = no_keep_domain\n"
  "keyword_alias number_group                  = number_group\n"
  "keyword_alias path_group                    = path_group\n"
+Index: trunk/1.8.x/ccs-tools/ccstools/sbin/ccs-init.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/sbin/ccs-init.c	(revision 4972)
++++ trunk/1.8.x/ccs-tools/ccstools/sbin/ccs-init.c	(working copy)
+@@ -49,6 +49,7 @@
+ }
+ 
+ #define policy_dir            "/etc/ccs/"
++#define proc_namespace        "/proc/ccs/namespace"
+ #define proc_manager          "/proc/ccs/manager"
+ #define proc_exception_policy "/proc/ccs/exception_policy"
+ #define proc_domain_policy    "/proc/ccs/domain_policy"
+@@ -393,6 +394,7 @@
+ 
+ 	/* Load policy. */
+ 	if (chdir_ok) {
++		copy_files("namespace.conf", proc_namespace);
+ 		copy_files("manager.conf", proc_manager);
+ 		copy_files("exception_policy.conf", proc_exception_policy);
+ 		if (!ccs_noload)
