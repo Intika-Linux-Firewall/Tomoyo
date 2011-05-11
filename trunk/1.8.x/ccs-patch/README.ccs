@@ -2846,3 +2846,11 @@ Fix 2011/05/05
 
       Profile number used for "file execute" permission was by error reused
       when generating audit logs for "misc env" permission.
+
+Fix 2011/05/11
+
+    @ Fix wrong domainname validation.
+
+      "<kernel>" + "/foo/\" + "/bar" was by error checked when
+      "<kernel> /foo/\* /bar" was given. As a result, legal domainnames like
+      "<kernel> /foo/\* /bar" are rejected.

@@ -2,18 +2,19 @@ Summary: TOMOYO Linux tools
 
 Name: tomoyo-tools
 Version: 2.3.0
-Release: 2
+Release: 3
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: tomoyo-tools < 2.3.0-2
+Conflicts: tomoyo-tools < 2.3.0-3
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/48663/tomoyo-tools-2.3.0-20110211.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/48663/tomoyo-tools-2.3.0-20110511.tar.gz
 
 %description
-This is TOMOYO Linux tools.
+This package contains userspace tools for administrating TOMOYO Linux 2.3.x.
+Please see http://tomoyo.sourceforge.jp/2.3/ for documentation.
 
 %prep
 
@@ -40,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
+* Wed May 11 2011 2.3.0-3
+- Fix wrong domainname validation.
+
 * Fri Feb 11 2011 2.3.0-2
 - Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.
 - Wait for /etc/tomoyo/tomoyo-post-init in a more reliable way.
