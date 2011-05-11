@@ -156,7 +156,6 @@ enum tomoyo_color_pair {
 
 int tomoyo_add_address_group_policy(char *data, const _Bool is_delete);
 int tomoyo_add_number_group_policy(char *data, const _Bool is_delete);
-int tomoyo_editpolicy_color_cursor(const int screen);
 int tomoyo_editpolicy_color_head(const int screen);
 int tomoyo_editpolicy_get_current(void);
 void tomoyo_editpolicy_attr_change(const attr_t attr, const _Bool flg);

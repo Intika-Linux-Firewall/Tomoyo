@@ -163,7 +163,7 @@ int tomoyo_editpolicy_color_head(const int screen)
 	}
 }
 
-int tomoyo_editpolicy_color_cursor(const int screen)
+static inline int tomoyo_editpolicy_color_cursor(const int screen)
 {
 	switch (screen) {
 	case CCS_SCREEN_DOMAIN_LIST:
@@ -228,9 +228,7 @@ void tomoyo_editpolicy_sttr_restore(void)
 }
 int tomoyo_editpolicy_color_head(const int screen)
 {
-}
-int tomoyo_editpolicy_color_cursor(const int screen)
-{
+	return CCS_NORMAL;
 }
 void tomoyo_editpolicy_line_draw(const int screen)
 {
