@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.7.3   2011/04/01
+ * Version: 1.7.3+   2011/05/11
  *
  */
 #include "ccstools.h"
@@ -153,7 +153,7 @@ int editpolicy_color_head(const int screen)
 	}
 }
 
-int editpolicy_color_cursor(const int screen)
+static inline int editpolicy_color_cursor(const int screen)
 {
 	switch (screen) {
 	case SCREEN_DOMAIN_LIST:
@@ -218,9 +218,7 @@ void editpolicy_sttr_restore(void)
 }
 int editpolicy_color_head(const int screen)
 {
-}
-int editpolicy_color_cursor(const int screen)
-{
+	return NORMAL;
 }
 void editpolicy_line_draw(const int screen)
 {

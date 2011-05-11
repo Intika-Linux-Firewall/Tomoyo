@@ -379,7 +379,6 @@ void editpolicy_attr_change(const attr_t attr, const _Bool flg);
 void editpolicy_sttr_save(void);
 void editpolicy_sttr_restore(void);
 int editpolicy_color_head(const int screen);
-int editpolicy_color_cursor(const int screen);
 int editpolicy_get_current(void);
 int parse_number(const char *number, struct number_entry *entry);
 int parse_ip(const char *address, struct ip_address_entry *entry);
