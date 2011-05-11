@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 1.8.1+   2011/05/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -188,19 +188,30 @@ static void tomoyo_copy_file(const char *source, const char *dest)
 }
 
 /**
+ * tomoyo_get_last_word - Get last component of a line.
+ *
+ * @line: A line of words.
+ *
+ * Returns the last component of the line.
+ */
+static const char *tomoyo_get_last_word(const char *line)
+{
+	const char *cp = strrchr(line, ' ');
+	if (cp)
+		return cp + 1;
+	return line;
+}
+
+/**
  * tomoyo_get_last_name - Get last component of a domainname.
  *
  * @index: Index in the domain policy.
  *
- * Returns the last componet of the domainname.
+ * Returns the last component of the domainname.
  */
 static const char *tomoyo_get_last_name(const int index)
 {
-	const char *cp0 = tomoyo_domain_name(&tomoyo_dp, index);
-	const char *cp1 = strrchr(cp0, ' ');
-	if (cp1)
-		return cp1 + 1;
-	return cp0;
+	return tomoyo_get_last_word(tomoyo_domain_name(&tomoyo_dp, index));
 }
 
 /**
@@ -938,11 +949,7 @@ static const struct tomoyo_transition_control_entry *tomoyo_transition_control
 	int i;
 	u8 type;
 	struct tomoyo_path_info last_name;
-	last_name.name = strrchr(domainname->name, ' ');
-	if (last_name.name)
-		last_name.name++;
-	else
-		last_name.name = domainname->name;
+	last_name.name = tomoyo_get_last_word(domainname->name);
 	tomoyo_fill_path_info(&last_name);
 	for (type = 0; type < TOMOYO_MAX_TRANSITION_TYPE; type++) {
 next:
@@ -1000,20 +1007,10 @@ static int tomoyo_profile_entry_compare(const void *a, const void *b)
 	const int a2 = a0->directive;
 	const int b2 = b0->directive;
 	if (a2 >= 256 || b2 >= 256) {
-		int i;
-		static const char *global[5] = {
-			"PROFILE_VERSION=",
-			"PREFERENCE::audit=",
-			"PREFERENCE::learning=",
-			"PREFERENCE::permissive=",
-			"PREFERENCE::enforcing="
-		};
-		for (i = 0; i < 5; i++) {
-			if (!strncmp(a1, global[i], strlen(global[i])))
-				return -1;
-			if (!strncmp(b1, global[i], strlen(global[i])))
-				return 1;
-		}
+		if (a1[0] == 'P')
+			return -1;
+		if (b1[0] == 'P')
+			return 1;
 	}
 	if (!tomoyo_profile_sort_type) {
 		if (a2 == b2)
@@ -1337,13 +1334,8 @@ static void tomoyo_add_acl_domain_transition(char *line, const int index)
 	if (!cp || !tomoyo_jump_list)
 		tomoyo_out_of_memory();
 	tomoyo_jump_list[tomoyo_jump_list_len++] = cp;
-	cp = strrchr(line, ' ');
-	if (cp)
-		cp++;
-	else
-		cp = line;
 	snprintf(domainname, sizeof(domainname) - 1, "%s %s",
-		 tomoyo_domain_name(&tomoyo_dp, index), cp);
+		 tomoyo_domain_name(&tomoyo_dp, index), tomoyo_get_last_word(line));
 	domainname[sizeof(domainname) - 1] = '\0';
 	tomoyo_normalize_line(domainname);
 	source = tomoyo_assign_domain(&tomoyo_dp, domainname, true, false);
