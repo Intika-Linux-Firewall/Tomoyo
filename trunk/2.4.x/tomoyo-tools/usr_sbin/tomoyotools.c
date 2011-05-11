@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 1.8.1+   2011/05/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -502,7 +502,7 @@ _Bool tomoyo_correct_domain(const char *domainname)
 		if (!cp)
 			break;
 		if (*domainname != '/' ||
-		    !tomoyo_correct_word2(domainname, cp - domainname - 1))
+		    !tomoyo_correct_word2(domainname, cp - domainname))
 			goto out;
 		domainname = cp + 1;
 	}
