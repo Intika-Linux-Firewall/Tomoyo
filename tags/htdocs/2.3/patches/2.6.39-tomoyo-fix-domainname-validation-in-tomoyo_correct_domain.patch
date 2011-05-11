@@ -1,0 +1,23 @@
+[PATCH] TOMOYO: Fix wrong domainname validation.
+
+In tomoyo_correct_domain() since 2.6.36, TOMOYO was by error validating
+"<kernel>" + "/foo/\" + "/bar" when "<kernel> /foo/\* /bar" was given.
+As a result, legal domainnames like "<kernel> /foo/\* /bar" are rejected.
+
+Reported-by: Hayama Yossihiro <yossi@yedo.src.co.jp>
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/util.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- linux-2.6.39-rc7.orig/security/tomoyo/util.c
++++ linux-2.6.39-rc7/security/tomoyo/util.c
+@@ -390,7 +390,7 @@ bool tomoyo_correct_domain(const unsigne
+ 		if (!cp)
+ 			break;
+ 		if (*domainname != '/' ||
+-		    !tomoyo_correct_word2(domainname, cp - domainname - 1))
++		    !tomoyo_correct_word2(domainname, cp - domainname))
+ 			goto out;
+ 		domainname = cp + 1;
+ 	}
