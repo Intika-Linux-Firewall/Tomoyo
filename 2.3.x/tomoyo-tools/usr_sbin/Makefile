@@ -14,8 +14,8 @@ $(BUILD_FILES): libtomoyotools.so
 	sleep 10
 
 libtomoyotools.so: tomoyotools.c tomoyotools.h
-	$(CC) $(CFLAGS) -fPIC tomoyotools.c -shared -Wl,-soname,libtomoyotools.so.1 -o libtomoyotools.so.1.0.0
-	ln -sf libtomoyotools.so.1.0.0 libtomoyotools.so
+	$(CC) $(CFLAGS) -fPIC tomoyotools.c -shared -Wl,-soname,libtomoyotools.so.1 -o libtomoyotools.so.1.0.1
+	ln -sf libtomoyotools.so.1.0.1 libtomoyotools.so
 
 .c:
 	$(CC) $(CFLAGS) -o $@ -ltomoyotools -L. $<
@@ -29,8 +29,8 @@ tomoyo-queryd: tomoyotools.h tomoyo-queryd.c readline.h /usr/include/curses.h li
 install: all
 	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
 	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/usr/sbin/
-	cp -ad --remove-destination libtomoyotools.so.1.0.0 $(INSTALLDIR)/usr/lib/
-	ln -sf libtomoyotools.so.1.0.0 $(INSTALLDIR)/usr/lib/libtomoyotools.so.1
+	cp -ad --remove-destination libtomoyotools.so.1.0.1 $(INSTALLDIR)/usr/lib/
+	ln -sf libtomoyotools.so.1.0.1 $(INSTALLDIR)/usr/lib/libtomoyotools.so.1
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif
