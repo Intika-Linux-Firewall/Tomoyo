@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 1.8.1+   2011/05/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1305,7 +1305,8 @@ static const char editpolicy_data[] =
 "line_color STAT_CURSOR      = 03\n"
 "line_color STAT_HEAD        = 03\n"
 "line_color PROFILE_CURSOR   = 71\n"
-"line_color PROFILE_HEAD     = 71\n";
+"line_color PROFILE_HEAD     = 71\n"
+"line_color DEFAULT_COLOR    = 70\n";
 
 /**
  * make_editpolicy_conf - Make /etc/ccs/tools/editpolicy.conf .

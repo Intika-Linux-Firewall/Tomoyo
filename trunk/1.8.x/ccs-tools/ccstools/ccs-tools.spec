@@ -60,6 +60,7 @@ ldconfig || true
 %changelog
 * Wed May 11 2011 1.8.1-2
 - Fix wrong domainname validation.
+- Allow configuring ccs-editpolicy's background color.
 
 * Fri Apr 01 2011 1.8.1-1
 - Updated to handle TOMOYO 1.8.1's syntax.

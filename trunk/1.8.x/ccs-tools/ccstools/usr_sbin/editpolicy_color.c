@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 1.8.1+   2011/05/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -62,6 +62,8 @@ void ccs_editpolicy_color_init(void)
 		  COLOR_YELLOW,     "STAT_HEAD" },
 		{ CCS_STAT_CURSOR,      COLOR_BLACK,
 		  COLOR_YELLOW,     "STAT_CURSOR" },
+		{ CCS_DEFAULT_COLOR,    COLOR_WHITE,
+		  COLOR_BLACK,      "DEFAULT_COLOR" },
 		{ CCS_NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
@@ -110,6 +112,7 @@ use_default:
 		init_pair(colorp->tag, colorp->fore, colorp->back);
 	}
 	init_pair(CCS_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
+	bkgdset(A_NORMAL | COLOR_PAIR(CCS_DEFAULT_COLOR) | ' ');
 	for (i = 0; i < CCS_MAXSCREEN; i++)
 		ccs_screen[i].saved_color_current = -1;
 }
@@ -123,7 +126,7 @@ use_default:
  */
 static void ccs_editpolicy_color_save(const _Bool flg)
 {
-	static attr_t save_color = CCS_NORMAL;
+	static attr_t save_color = CCS_DEFAULT_COLOR;
 	if (flg)
 		save_color = getattrs(stdscr);
 	else
@@ -247,7 +250,7 @@ void ccs_editpolicy_line_draw(void)
 	if (-1 < ptr->saved_color_current &&
 	    current != ptr->saved_color_current) {
 		move(CCS_HEADER_LINES + ptr->saved_color_y, 0);
-		chgat(-1, A_NORMAL, CCS_NORMAL, NULL);
+		chgat(-1, A_NORMAL, CCS_DEFAULT_COLOR, NULL);
 	}
 
 	move(y, x);
@@ -318,7 +321,7 @@ void ccs_editpolicy_sttr_restore(void)
  */
 enum ccs_color_pair ccs_editpolicy_color_head(void)
 {
-	return CCS_NORMAL;
+	return CCS_DEFAULT_COLOR;
 }
 
 /**
