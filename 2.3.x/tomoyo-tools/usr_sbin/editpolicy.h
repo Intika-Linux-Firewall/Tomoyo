@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.3.0   2010/08/20
+ * Version: 2.3.0+   2011/05/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -146,6 +146,7 @@ enum tomoyo_color_pair {
 	CCS_MANAGER_CURSOR,
 	CCS_MEMORY_HEAD,
 	CCS_MEMORY_CURSOR,
+	CCS_DEFAULT_COLOR,
 	CCS_DISP_ERR
 };
 

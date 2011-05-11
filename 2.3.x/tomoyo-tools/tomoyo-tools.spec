@@ -42,7 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Wed May 11 2011 2.3.0-3
+- Fix build error on parallel build.
 - Fix wrong domainname validation.
+- Allow configuring tomoyo-editpolicy's background color.
 
 * Fri Feb 11 2011 2.3.0-2
 - Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.

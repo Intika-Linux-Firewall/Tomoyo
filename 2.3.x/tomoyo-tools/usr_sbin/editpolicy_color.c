@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.3.0   2010/08/20
+ * Version: 2.3.0+   2011/05/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -57,6 +57,8 @@ void tomoyo_editpolicy_color_init(void)
 		  COLOR_YELLOW,     "MEMORY_HEAD" },
 		{ CCS_MEMORY_CURSOR,    COLOR_BLACK,
 		  COLOR_YELLOW,     "MEMORY_CURSOR" },
+		{ CCS_DEFAULT_COLOR,    COLOR_WHITE,
+		  COLOR_BLACK,      "DEFAULT_COLOR" },
 		{ CCS_NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
@@ -105,11 +107,12 @@ use_default:
 		init_pair(colorp->tag, colorp->fore, colorp->back);
 	}
 	init_pair(CCS_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
+	bkgdset(A_NORMAL | COLOR_PAIR(CCS_DEFAULT_COLOR) | ' ');
 }
 
 static void tomoyo_editpolicy_color_save(const _Bool flg)
 {
-	static attr_t save_color = CCS_NORMAL;
+	static attr_t save_color = CCS_DEFAULT_COLOR;
 	if (flg)
 		save_color = getattrs(stdscr);
 	else
@@ -195,7 +198,7 @@ void tomoyo_editpolicy_line_draw(const int screen)
 	if (-1 < tomoyo_before_current[screen] &&
 	    current != tomoyo_before_current[screen]){
 		move(CCS_HEADER_LINES + tomoyo_before_y[screen], 0);
-		chgat(-1, A_NORMAL, CCS_NORMAL, NULL);
+		chgat(-1, A_NORMAL, CCS_DEFAULT_COLOR, NULL);
 	}
 
 	move(y, x);
