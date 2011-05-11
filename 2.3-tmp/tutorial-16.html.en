@@ -1,0 +1,199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The ???th installment: "Let's master ACL groups."</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-10.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The ???th installment: "Let's master ACL groups."</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>In this installment, I explain acl_group keyword in the exception policy and use_group keyword in the domain policy.</p>
+
+<h3>About acl_group keyword</h3>
+
+<p>Each domain has a line "use_group $groupnumber" that allows you to include commonly granted permissions. The $groupnumber is an integer between 0 and 255.</p>
+
+<pre>
+&lt;kernel&gt;
+use_profile 0
+use_group 0
+</pre>
+
+<p>Several entries that start with "acl_group $groupnumber" are defined in the exception policy. The "acl_group $groupnumber" is referenced by the "use_group $groupnumber" line.</p>
+
+<p>For example,</p>
+
+<pre>
+acl_group 0 file read /etc/passwd
+acl_group 0 file read /home/\{\*\-.\*}/\*
+acl_group 0 file write /dev/null
+acl_group 1 file read /etc/passwd
+acl_group 1 file read /etc/shadow
+acl_group 1 file create /etc/shadow.\$ 0600
+acl_group 1 file write /etc/shadow.\$
+acl_group 1 file rename /etc/shadow.\$ /etc/shadow
+</pre>
+
+<p>in the exception policy and</p>
+
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash
+use_profile 3
+use_group 0
+file execute /bin/cat
+file execute /usr/bin/passwd
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat
+use_profile 3
+use_group 0
+file read /dev/null
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd
+use_profile 3
+use_group 1
+</pre>
+
+<p>in the domain policy is equivalent to:</p>
+
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash
+use_profile 3
+file execute /bin/cat
+file execute /usr/bin/passwd
+file read /etc/passwd
+file read /home/\{\*\-.\*}/\*
+file write /dev/null
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat
+use_profile 3
+file read /dev/null
+file read /etc/passwd
+file read /home/\{\*\-.\*}/\*
+file write /dev/null
+
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd
+use_profile 3
+file read /etc/passwd
+file read /etc/shadow
+file create /etc/shadow.\$ 0600
+file write /etc/shadow.\$
+file rename /etc/shadow.\$ /etc/shadow
+</pre>
+
+<p>in the domain policy.</p>
+
+<p>The "use_group $groupnumber" line, as well as the "use_profile $profilenumber" line, is copied to domains created by domain transition. Thus, a domain policy with only kernel domain defined:</p>
+
+<pre>
+&lt;kernel&gt;
+use_profile 0
+use_group 0
+</pre>
+
+<p>will copy the "use_profile 0" line and the "use_group 0" line when other domains are created by domain transition:</p>
+
+<pre>
+&lt;kernel&gt;
+use_profile 0
+use_group 0
+
+&lt;kernel&gt; /sbin/init
+use_profile 0
+use_group 0
+
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc
+use_profile 0
+use_group 0
+
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit
+use_profile 0
+use_group 0
+</pre>
+
+<p>Note that the "use_group $groupnumber" line and the "use_profile $profilenumber" line will not be copied if the domain to transit to by domain transition already exists. For example, a domain policy like:</p>
+
+<pre>
+&lt;kernel&gt;
+use_profile 0
+use_group 0
+
+&lt;kernel&gt; /usr/sbin/sshd
+use_profile 1
+use_group 1
+</pre>
+
+<p>will copy the "use_profile 0" line and the "use_group 0" line when &lt;kernel&gt; /sbin/init domain is created by domain transition but will not overwrite the "use_profile 1" line and the "use_group 1" line (using the "use_profile 0" line and the "use_group 0" line) when transit to &lt;kernel&gt; /usr/sbin/sshd domain (because &lt;kernel&gt; /usr/sbin/sshd domain already exists as of the domain transition).</p>
+
+<p>By executing /usr/lib/ccs/init_policy , entries like below are appended in /etc/ccs/exception_policy.conf :</p>
+
+<pre>
+acl_group 0 file read /etc/ld.so.cache
+acl_group 0 file read proc:/meminfo
+acl_group 0 file read proc:/sys/kernel/version
+acl_group 0 file read /etc/localtime
+acl_group 0 file read /usr/lib/gconv/gconv-modules.cache
+acl_group 0 file read /usr/share/locale/locale.alias
+acl_group 0 file read proc:/self/\*
+acl_group 0 file read proc:/self/\{\*\}/\*
+acl_group 0 file read /lib/lib\*.so\*
+acl_group 0 file read /lib/i686/lib\*.so\*
+acl_group 0 file read /lib/tls/lib\*.so\*
+acl_group 0 file read /lib/tls/i486/lib\*.so\*
+acl_group 0 file read /lib/tls/i586/lib\*.so\*
+acl_group 0 file read /lib/i686/nosegneg/lib\*.so\*
+acl_group 0 file read /usr/lib/lib\*.so\*
+acl_group 0 file read /usr/lib/tls/lib\*.so\*
+acl_group 0 file read /usr/lib/tls/i486/lib\*.so\*
+acl_group 0 file read /usr/lib/tls/i586/lib\*.so\*
+acl_group 0 file read /usr/lib/tls/i686/lib\*.so\*
+acl_group 0 file read /usr/lib/sse2/lib\*.so\*
+acl_group 0 file read /usr/X11R6/lib/lib\*.so\*
+acl_group 0 file read /usr/lib/xulrunner-1.9.2/libxul.so
+acl_group 0 file read /usr/lib/xulrunner-1.9.2/libxpcom.so
+acl_group 0 file read /usr/lib/vmware-tools/lib32/libvmGuestLibJava.so.0.0.0
+acl_group 0 file read /usr/lib/vmware-tools/lib32/libvmGuestLib.so.0.0.0
+acl_group 0 file read /usr/lib/xulrunner-1.9.2/libsqlite3.so
+acl_group 0 file read /usr/lib/qt-3.3/lib/libqui.so.1.0.0
+acl_group 0 file read /usr/lib/qt-3.3/lib/libqt-mt.so.3.3.6
+acl_group 0 file read /usr/lib/mysql/libmysqlclient_r.so.15.0.0
+acl_group 0 file read /usr/lib/mysql/libmysqlclient.so.15.0.0
+acl_group 0 file read /usr/lib/xulrunner-1.9.2/libmozjs.so
+acl_group 0 file read /usr/lib/pkcs11/libcoolkeypk11.so
+acl_group 0 file read /usr/lib/vmware-tools/lib32/libDeployPkg.so
+acl_group 0 file read /lib/ld-2.\*.so
+acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS
+acl_group 0 file read @ANY_DIRECTORY
+acl_group 0 file getattr @ANY_PATHNAME
+path_group ANY_PATHNAME /
+path_group ANY_PATHNAME /\*
+path_group ANY_PATHNAME /\{\*\}/
+path_group ANY_PATHNAME /\{\*\}/\*
+path_group ANY_PATHNAME \*:/
+path_group ANY_PATHNAME \*:/\*
+path_group ANY_PATHNAME \*:/\{\*\}/
+path_group ANY_PATHNAME \*:/\{\*\}/\*
+path_group ANY_PATHNAME \*:[\$]
+path_group ANY_DIRECTORY /
+path_group ANY_DIRECTORY /\{\*\}/
+path_group ANY_DIRECTORY \*:/
+path_group ANY_DIRECTORY \*:/\{\*\}/
+number_group COMMON_IOCTL_CMDS 0x5401
+</pre>
+
+<p>These are mainly permission for reading shared library files (which are registered in /etc/ld.so.cache ) and some of files in the proc filesystem (which is usually mounted on /proc/ directory). Also, permission for reading arbitrary directories, permission for reading attributes of arbitrary files and directories, and permission for using commonly used ioctl requests on arbitrary files and directories are included by default. These should be safe to allow against each domain.</p>
+
+<p>But if you want to restrict (e.g.) permission for reading directory entries, you can choose from two approaches. The former is to remove "acl_group 0 file read @ANY_DIRECTORY" line from the exception policy. Note that changes made in the exception policy affects all domains in the domain policy. You might need to add "file read @ANY_DIRECTORY" line to some of domains with "use_group 0" line in the domain policy. The latter is to define a new ACL group for the application you want to restrict (e.g. firefox) and refer the new ACL group from the application. The latter approach is also useful when you want to restrict (e.g.) login session without using keep_domain keyword. I'll explain how to restrict login session without using keep_domain keyword in the next installment.</p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
