@@ -35,6 +35,14 @@
 <h4>ChangeLog for ccs-patch 1.8.1</h4>
 
 <pre>
+Fix 2011/05/11
+
+    @ Fix wrong domainname validation.
+
+      "&lt;kernel&gt;" + "/foo/\" + "/bar" was by error checked when
+      "&lt;kernel&gt; /foo/\* /bar" was given. As a result, legal domainnames like
+      "&lt;kernel&gt; /foo/\* /bar" are rejected.
+
 Fix 2011/05/05
 
     @ Fix wrong profile number in audit logs for "misc env" permission.
