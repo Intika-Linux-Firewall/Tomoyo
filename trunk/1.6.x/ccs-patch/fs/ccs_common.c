@@ -2486,7 +2486,7 @@ static bool ccs_policy_loader_exists(void)
 	 * exist. If the initrd includes /sbin/init but real-root-dev has not
 	 * mounted on / yet, activating MAC will block the system since
 	 * policies are not loaded yet.
-	 * Thus, let do_execve() call this function everytime.
+	 * Thus, let do_execve() call this function every time.
 	 */
 	struct nameidata nd;
 	if (!ccs_loader)
