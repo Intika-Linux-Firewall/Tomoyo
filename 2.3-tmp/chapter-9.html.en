@@ -69,11 +69,6 @@
 <td><p>2048</p></td>
 <td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/securityfs-interface.html.en#stat">/sys/kernel/security/tomoyo/meminfo</a> interface.</p></td>
 </tr>
-<tr>
-<td><p>--enforcing_penalty="$number"</p></td>
-<td><p>0</p></td>
-<td><p>Set the sleep penalty in deciseconds (1 decisecond = 0.1 seconds) that occurs when a process violates policy in "Enforcing Mode". This value must be an integer. This is useful to prevent CPU consumption issues.</p></td>
-</tr>
 </table>
 </div>
 
@@ -92,23 +87,6 @@
 3-COMMENT=-----Enforcing Mode-----
 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
-
-<p>If you executed <code>/usr/lib/tomoyo/init_policy --file-only-profile</code>, the CONFIG lines in "/etc/tomoyo/profile.conf" will look like this:</p>
-
-<pre>
-0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }
-1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
-2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
-3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
 <h3><a name="9.2">9.2. Profile syntax</a></h3>

@@ -69,11 +69,6 @@
 <td><p>2048</p></td>
 <td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/meminfo</a> インタフェースから指定することもできます。</p></td>
 </tr>
-<tr>
-<td><p>--enforcing_penalty="$number"</p></td>
-<td><p>0</p></td>
-<td><p>強制モードでポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。 0 以上の整数値を指定できます。ＣＰＵ時間を浪費してしまうのを避けるのに有効です。</p></td>
-</tr>
 </table>
 </div>
 
@@ -92,23 +87,6 @@
 3-COMMENT=-----Enforcing Mode-----
 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
-
-<p>もし <code>/usr/lib/tomoyo/init_policy --file-only-profile</code> のように実行した場合、 /etc/tomoyo/profile.conf の CONFIG 行は以下のようになります：</p>
-
-<pre>
-0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }
-1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
-2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
-3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
 <h3><a name="9.2">9.2. プロファイルの構文</a></h3>
