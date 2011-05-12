@@ -50,24 +50,9 @@
 <th><p>内容</p></th>
 </tr>
 <tr>
-<td><p>--full-profile</p></td>
-<td><p>指定済</p></td>
-<td><p>全ての機能を有効にするプロファイルを作成します。 --file-only-profile オプションが指定されない限り、このオプションが指定されたものとして扱われます。</p></td>
-</tr>
-<tr>
-<td><p>--file-only-profile</p></td>
-<td><p>未指定</p></td>
-<td><p>ファイルに関するアクセス制御機能のみを有効にするプロファイルを作成します。</p></td>
-</tr>
-<tr>
 <td><p>--use_profile="$number"</p></td>
 <td><p>0</p></td>
 <td><p>/etc/ccs/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるプロファイルの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
-</tr>
-<tr>
-<td><p>--use_group="$number"</p></td>
-<td><p>0</p></td>
-<td><p>/etc/ccs/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるアクセス許可グループの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
 </tr>
 <tr>
 <td><p>--root="$rootdir"</p></td>
@@ -78,26 +63,6 @@
 <td><p>--policy_dir="$configdir"</p></td>
 <td><p>/etc/ccs/</p></td>
 <td><p>ポリシーファイル用ディレクトリを指定します。もし、このオプションを指定した場合、 $configdir へのシンボリックリンクを /etc/ccs という名前で作成する必要があります。</p></td>
-</tr>
-<tr>
-<td><p>--module_name="$name"</p></td>
-<td><p>ccsecurity</p></td>
-<td><p>TOMOYO Linux がローダブルカーネルモジュールとしてコンパイルされた場合（ CONFIG_CCSECURITY_LKM=y ）に /sbin/ccs-init から実行される /etc/ccs/ccs-load-module を作成時に指定するモジュールの名前を指定します。</p></td>
-</tr>
-<tr>
-<td><p>--grant_log="$bool"</p></td>
-<td><p>no</p></td>
-<td><p>アクセス許可ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
-</tr>
-<tr>
-<td><p>--reject_log="$bool"</p></td>
-<td><p>yes</p></td>
-<td><p>アクセス拒否ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
-</tr>
-<tr>
-<td><p>--max_audit_log="$number"</p></td>
-<td><p>1024</p></td>
-<td><p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>--max_learning_entry="$number"</p></td>
@@ -185,16 +150,6 @@
 <th><p>内容</p></th>
 </tr>
 <tr>
-<td><p>grant_log="$bool"</p></td>
-<td><p>no</p></td>
-<td><p>アクセス許可ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
-</tr>
-<tr>
-<td><p>reject_log="$bool"</p></td>
-<td><p>yes</p></td>
-<td><p>アクセス拒否ログを生成するかどうかを指定します。 yes または no を指定できます。</p></td>
-</tr>
-<tr>
 <td><p>mode</p></td>
 <td><p>disabled</p></td>
 <td><p>アクセス制御モードを指定します。以下の表を参照してください。</p></td>
@@ -242,24 +197,8 @@
 <td><p>全ての機能</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::capability</p></td>
-<td><p>非 POSIX ケイパビリティのみ</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::file</p></td>
 <td><p>ファイルに関する操作のみ</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc</p></td>
-<td><p>プロセス間通信に関する操作のみ</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::misc</p></td>
-<td><p>その他の操作のみ</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network</p></td>
-<td><p>ネットワークに関する操作のみ</p></td>
 </tr>
 </table>
 </div>
@@ -289,46 +228,6 @@
 <tr>
 <th><p>名前</p></th>
 <th><p>アクセス制御モードが設定される範囲</p></th>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_kernel_module</p></td>
-<td><p>create_module(2) init_module(2) delete_module(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_packet</p></td>
-<td><p>PACKET ソケットの使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_route</p></td>
-<td><p>ROUTE ソケットの使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_KEXEC_LOAD</p></td>
-<td><p>kexec_load(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_NICE</p></td>
-<td><p>nice(2) setpriority(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_PTRACE</p></td>
-<td><p>ptrace(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_REBOOT</p></td>
-<td><p>reboot(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_SETHOSTNAME</p></td>
-<td><p>sethostname(2) setdomainname(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_TIME</p></td>
-<td><p>stime(2) settimeofday(2) adjtimex(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_VHANGUP</p></td>
-<td><p>vhangup(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::execute</p></td>
@@ -418,98 +317,6 @@
 <td><p>CONFIG::file::pivot_root</p></td>
 <td><p>ルートディレクトリの交換</p></td>
 </tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_bind</p></td>
-<td><p>UDP ソケットが使用するローカルアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_send</p></td>
-<td><p>UDP ソケットが送信時に使用するリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_recv</p></td>
-<td><p>UDP ソケットが受信時に使用するリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_bind</p></td>
-<td><p>TCP ソケットの bind() 操作</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_listen</p></td>
-<td><p>TCP ソケットの listen() 操作</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_connect</p></td>
-<td><p>TCP ソケットの connect() 操作</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_accept</p></td>
-<td><p>TCP ソケットの accept() 操作</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_bind</p></td>
-<td><p>RAW ソケットが使用するローカルアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_send</p></td>
-<td><p>RAW ソケットが送信時に使用するリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_recv</p></td>
-<td><p>RAW ソケットが受信時に使用するリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_bind</p></td>
-<td><p>同一ホスト内でのデータグラムソケットが使用するローカルアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_send</p></td>
-<td><p>同一ホスト内でのデータグラムソケットが送信してよいリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_recv</p></td>
-<td><p>同一ホスト内でのデータグラムソケットが受信してよいリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_bind</p></td>
-<td><p>同一ホスト内でのストリームソケットが使用するローカルアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_listen</p></td>
-<td><p>同一ホスト内でのストリームソケットが待ち受けするローカルアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_connect</p></td>
-<td><p>同一ホスト内でのストリームソケットが接続するリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_accept</p></td>
-<td><p>同一ホスト内でのストリームソケットが受け付けるリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_bind</p></td>
-<td><p>同一ホスト内での SEQPACKET ソケットが使用するローカルアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_listen</p></td>
-<td><p>同一ホスト内での SEQPACKET ソケットが待ち受けするローカルアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_connect</p></td>
-<td><p>同一ホスト内での SEQPACKET ソケットが接続するリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_accept</p></td>
-<td><p>同一ホスト内での SEQPACKET ソケットが受け付けるリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::misc::env</p></td>
-<td><p>プログラム実行時の環境変数名</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc::signal</p></td>
-<td><p>シグナルの送信</p></td>
-</tr>
 </table>
 </div>
 
@@ -543,16 +350,8 @@
 <th><p>内容</p></th>
 </tr>
 <tr>
-<td><p>max_audit_log</p></td>
-<td><p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
-</tr>
-<tr>
 <td><p>max_learning_entry</p></td>
 <td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
-</tr>
-<tr>
-<td><p>enforcing_penalty</p></td>
-<td><p>強制モードでポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。 0 以上の整数値を指定できます。ＣＰＵ時間を浪費してしまうのを避けるのに有効です。</p></td>
 </tr>
 </table>
 </div>

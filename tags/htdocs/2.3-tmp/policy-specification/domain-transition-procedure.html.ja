@@ -106,25 +106,11 @@
 そうではない場合、 <a href="domain-policy-syntax.html.ja#transition_failed">transition_failed</a> ディレクティブを設定して、ドメイン遷移を行わないまま実行要求の処理を継続します。</p></td>
 </tr>
 <tr>
-<td><p>(11) 環境変数のチェック</p></td>
-<td><p>もし、１個以上の環境変数の許可が [destination] ドメインに与えられておらず、かつ [destination] ドメインに割り当てられているプロファイル（ <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::misc または CONFIG::misc::env</a> （後者が前者より優先されます））のモードが mode=enforcing の場合、実行要求は拒否されます。</p></td>
-</tr>
-<tr>
 <td><p>(12) プログラムの実行</p></td>
 <td><p>もし、カレントプロセスが要求されたプログラムによって正常に置き換えられた場合、カレントプロセスは [destination] ドメインへと遷移します。</p></td>
 </tr>
 </table>
 </div>
-
-<h3><a name="transition_by_non_execute">プログラム実行要求によらない遷移</a></h3>
-
-<p>この種類のドメイン遷移はアクセス制御のモードに依存しません。ポリシーで許可されていないドメイン遷移要求は常に拒否されます。</p>
-
-<p>もし、ドメインに対して <a href="domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブが指定されていた場合、カレントプロセスは条件節で指定されている条件を満たした時点で自動的にそのディレクティブで指定されたドメインへと遷移します。この遷移はプログラムの実行要求時だけでなくファイルのオープンのような全てのアクセス要求時にチェックされます。</p>
-
-<p>もし、ドメインに対して <a href="domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブが指定されていた場合、カレントプロセスは <a href="proc-interface.html.ja#self_domain">/proc/ccs/self_domain</a> インタフェースに対してこのディレクティブで指定されているドメイン名を書き込むことにより、そのドメインへと遷移します。</p>
-
-<p>もし、ドメインポリシーのアクセス許可に auto_domain_transition="name" という条件が指定されており、カレントプロセスがそのアクセス許可に一致するアクセス要求を行った場合、カレントプロセスは「現在のドメイン名」と「 name で指定されたパス名」とを連結したドメイン名を持つドメインへと遷移します。この遷移は、アクセス許可のチェック時点で行われるものであるため、アクセス要求がアクセス許可に一致することによりドメイン遷移が発生した後にアクセス要求が失敗する可能性があります。注意して利用してください。</p>
 
 </div><!-- documentation -->
 
