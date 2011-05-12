@@ -33,16 +33,12 @@
 <div id="documentation">
 
 <div id="navheader">
-<p><a href="proc-interface.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="expression-rules.html.ja">&lt;次&gt;</a></p>
+<p><a href="securityfs-interface.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="expression-rules.html.ja">&lt;次&gt;</a></p>
 </div>
 
 <h2>ドメイン遷移</h2>
 
-<p>ドメイン遷移には２種類あります。１つはプログラムの実行要求（ execve() システムコール）を伴うドメイン遷移です。もう１つはプログラムの実行要求を伴わないドメイン遷移です。</p>
-
-<h3><a name="transition_by_execute">プログラム実行要求による遷移</a></h3>
-
-<p>この種類のドメイン遷移はアクセス制御のモードに依存します。プロファイルの <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::file または CONFIG::file::execute</a> （後者が前者より優先されます）で mode=enforcing という設定が行われていない限り、ドメイン遷移が失敗（ドメイン名が長すぎるかドメインを作成するためのメモリを割り当てることができなかった場合に発生します）してもプログラムの実行要求は拒否されません。</p>
+<p>プロファイルの <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::file または CONFIG::file::execute</a> （後者が前者より優先されます）で mode=enforcing という設定が行われていない限り、ドメイン遷移が失敗（ドメイン名が長すぎるかドメインを作成するためのメモリを割り当てることができなかった場合に発生します）してもプログラムの実行要求は拒否されません。</p>
 
 <p>プロセスがプログラムを実行しようとすると、以下の処理が行われます。</p>
 
@@ -59,54 +55,43 @@
 <th><p>内容</p></th>
 </tr>
 <tr>
-<td><p>(1) <a href="domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> ディレクティブのチェック</p></td>
-<td><p>
-もし、 task auto_execute_handler [pathname] というエントリが存在している場合、 [pathname] を [candidate] としてステップ (6) へと進みます。</p></td>
-</tr>
-<tr>
-<td><p>(2) プログラムのパス名を取得</p></td>
+<td><p>(1) プログラムのパス名を取得</p></td>
 <td><p>要求されたプログラムのパス名を取得し、それを [candidate] とします。<br>
 シンボリックリンクとして提供されているプログラムに対処するために、パス名の最後のシンボリックリンクは解決しないようにします。</p></td>
 </tr>
 <tr>
-<td><p>(3) <a href="exception-policy-syntax.html.ja#aggregator">aggregator</a> ディレクティブのチェック</p></td>
+<td><p>(2) <a href="exception-policy-syntax.html.ja#aggregator">aggregator</a> ディレクティブのチェック</p></td>
 <td><p>もし、例外ポリシーに aggregator [candidate] [pathname] というエントリが存在している場合、 [pathname] を [candidate] にします。</p></td>
 </tr>
 <tr>
-<td><p>(4) <a href="domain-policy-syntax.html.ja#file_execute">file execute</a> ディレクティブのチェック</p></td>
-<td><p>もし、 file execute [candidate] というエントリが存在しているか、あるいは現在のドメインに割り当てられているプロファイルのモードが mode=enforcing では無い場合、ステップ (6) へと進みます。</p></td>
+<td><p>(3) <a href="domain-policy-syntax.html.ja#file_execute">file execute</a> ディレクティブのチェック</p></td>
+<td><p>もし、 file execute [candidate] というエントリが存在しているか、あるいは現在のドメインに割り当てられているプロファイルのモードが mode=enforcing では無い場合、続行します。そうではない場合には、実行要求は拒否されます。</p></td>
 </tr>
 <tr>
-<td><p>(5) <a href="domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブのチェック</p></td>
-<td><p>
-もし、 task denied_execute_handler [pathname] というエントリが存在している場合、 [pathname] を [candidate] にします。<br>
-存在しない場合、実行要求は拒否されます。</p></td>
+<td><p>(4) <a href="exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> ディレクティブのチェック</p></td>
+<td><p>もし、例外ポリシーに no_initialize_domain [candidate] from [source] または no_initialize_domain any from [source] または no_initialize_domain any from any というエントリが存在している場合、ステップ (6) へと進みます。</p></td>
 </tr>
 <tr>
-<td><p>(6) <a href="exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> ディレクティブのチェック</p></td>
-<td><p>もし、例外ポリシーに no_initialize_domain [candidate] from [source] または no_initialize_domain any from [source] または no_initialize_domain any from any というエントリが存在している場合、ステップ (8) へと進みます。</p></td>
+<td><p>(5) <a href="exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブのチェック</p></td>
+<td><p>もし、例外ポリシーに initialize_domain [candidate] from [source] または initialize_domain any from [source] または initialize_domain any from any というエントリが存在している場合、 &lt;kernel&gt; [candidate] を [destination] としてステップ (8) へと進みます。</p></td>
 </tr>
 <tr>
-<td><p>(7) <a href="exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブのチェック</p></td>
-<td><p>もし、例外ポリシーに initialize_domain [candidate] from [source] または initialize_domain any from [source] または initialize_domain any from any というエントリが存在している場合、 &lt;kernel&gt; [candidate] を [destination] としてステップ (10) へと進みます。</p></td>
+<td><p>(6) <a href="exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブのチェック</p></td>
+<td><p>もし、例外ポリシーに no_keep_domain [candidate] from [source] または no_keep_domain any from [source] または no_keep_domain any from any というエントリが存在している場合、現在のドメイン名と [candidate] を連結したドメイン名を [destination] としてステップ (8) へと進みます。</p></td>
 </tr>
 <tr>
-<td><p>(8) <a href="exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブのチェック</p></td>
-<td><p>もし、例外ポリシーに no_keep_domain [candidate] from [source] または no_keep_domain any from [source] または no_keep_domain any from any というエントリが存在している場合、現在のドメイン名と [candidate] を連結したドメイン名を [destination] としてステップ (10) へと進みます。</p></td>
-</tr>
-<tr>
-<td><p>(9) <a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブのチェック</p></td>
+<td><p>(7) <a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブのチェック</p></td>
 <td><p>もし、例外ポリシーに keep_domain [candidate] from [source] または keep_domain any from [source] または keep_domain any from any というエントリが存在している場合、現在のドメイン名を [destination] とします。<br>
 存在しない場合、現在のドメイン名と [candidate] を連結したドメイン名を [destination] とします。</p></td>
 </tr>
 <tr>
-<td><p>(10) 遷移先ドメインの作成</p></td>
-<td><p>ステップ (6) ～ (9) で計算された [destination] ドメインが存在しない場合には作成します。<br>
+<td><p>(8) 遷移先ドメインの作成</p></td>
+<td><p>ステップ (4) ～ (7) で計算された [destination] ドメインが存在しない場合には作成します。<br>
 もし、 [destination] ドメインを作成することができず、かつ現在のドメインに割り当てられているプロファイルのモードが mode=enforcing の場合、実行要求は拒否されます。<br>
 そうではない場合、 <a href="domain-policy-syntax.html.ja#transition_failed">transition_failed</a> ディレクティブを設定して、ドメイン遷移を行わないまま実行要求の処理を継続します。</p></td>
 </tr>
 <tr>
-<td><p>(12) プログラムの実行</p></td>
+<td><p>(9) プログラムの実行</p></td>
 <td><p>もし、カレントプロセスが要求されたプログラムによって正常に置き換えられた場合、カレントプロセスは [destination] ドメインへと遷移します。</p></td>
 </tr>
 </table>
@@ -121,7 +106,7 @@
 <table>
 <tr>
 <td class="docs-previous">
-<a href="proc-interface.html.ja">前</a>
+<a href="securityfs-interface.html.ja">前</a>
 </td>
 <td class="docs-index">
 <a href="index.html.ja">目次</a>
