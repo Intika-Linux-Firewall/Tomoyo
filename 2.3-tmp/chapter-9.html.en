@@ -40,7 +40,7 @@
 
 <h3><a name="9.1">9.1. Profile initialization</a></h3>
 
-<p>The initialization procedure performed using <code>/usr/lib/tomoyo/init_policy</code> can be modified using command-line options to make development of policy easier depending on what functionality you wish to restrict. For example, for those wishing to restrict only file-related operations can pass the "--file-only-profile" option. The options you pass upon initialization do not constrain how policy can be developed, as the options merely change the default values for files created within the policy directory. These files can be modified using the policy editor at any later date to fit your needs. The following table summarizes the command-line options available:</p>
+<p>Profile can be modified to make development of policy easier depending on what functionality you wish to restrict. Profiles can be modified using the policy editor at any later date to fit your needs. The following table summarizes the command-line options available:</p>
 
 <div class="simple-table-wrap">
 <table>
@@ -50,43 +50,33 @@
 <th><p>Meaning</p></th>
 </tr>
 <tr>
-<td><p>--use_profile="$number"</p></td>
-<td><p>0</p></td>
-<td><p>Set the profile number for the "&lt;kernel&gt;" domain when creating "/etc/tomoyo/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
-</tr>
-<tr>
-<td><p>--root="$rootdir"</p></td>
+<td><p>root="$rootdir"</p></td>
 <td><p>/</p></td>
 <td><p>Change the root directory in which to create configuration files.</p></td>
 </tr>
 <tr>
-<td><p>--policy_dir="$configdir"</p></td>
+<td><p>policy_dir="$configdir"</p></td>
 <td><p>/etc/tomoyo/</p></td>
 <td><p>Change the directory in which to create configuration files. If you specify this option then a symbolic link must be created named "/etc/tomoyo" that points to "$condigdir".</p></td>
-</tr>
-<tr>
-<td><p>--max_learning_entry="$number"</p></td>
-<td><p>2048</p></td>
-<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/securityfs-interface.html.en#stat">/sys/kernel/security/tomoyo/meminfo</a> interface.</p></td>
 </tr>
 </table>
 </div>
 
-<p>If you executed <code>/usr/lib/tomoyo/init_policy</code> without the "--file-only-profile" option, the CONFIG lines in "/etc/tomoyo/profile.conf" will look like this:</p>
+<p>If you executed <code>/usr/lib/tomoyo/init_policy</code>, "/etc/tomoyo/profile.conf" will look like this:</p>
 
 <pre>
+PROFILE_VERSION=20090903
+PREFERENCE::enforcing={ verbose=yes }
+PREFERENCE::learning={ verbose=no max_entry=2048 }
+PREFERENCE::permissive={ verbose=yes }
 0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+0-CONFIG={ mode=disabled }
 1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-1-CONFIG={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG={ mode=learning }
 2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG={ mode=permissive }
 3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
+3-CONFIG={ mode=enforcing }
 </pre>
 
 <h3><a name="9.2">9.2. Profile syntax</a></h3>
@@ -181,23 +171,7 @@
 </table>
 </div>
 
-<p>For example, only file and network operations could be restricted by adding a fourth profile:</p>
-
-<pre>
-4-COMMENT=-----Enforcing file and network-----
-4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
-4-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
-
-<p>It is also possible to mix different restriction modes within a single profile, such as enforcing network operations but staying in "Learning Mode" for file-related operations:</p>
-
-<pre>
-5-COMMENT=-----Learning file and Enforcing network-----
-5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-5-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
-5-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
+<p>(But since CONFIG::file is the only category supported as of this version, CONFIG and CONFIG::file refer the same operations.)</p>
 
 <p>Category-specific configuration can be further overwritten by functionality-specific configuration:</p>
 
@@ -301,21 +275,19 @@
 <p>For example, you could create a profile for only restricting file execution:</p>
 
 <pre>
-6-COMMENT=-----Enforcing file::execute only-----
-6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-6-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
+4-COMMENT=-----Enforcing file::execute only-----
+4-CONFIG::file::execute={ mode=enforcing }
 </pre>
 
-<p>For performance, permission checks for getting attributes for files and directories could be disabled while still enabling other permission checks for files:</p>
+<p>Note that the settings for "CONFIG::file::execute" overwrite the settings for "CONFIG::file", which in turn overwrite the settings for "CONFIG" (which in this case has not been set and so is equivalent to "mode=disabled"). This allows fine-grained control over which operations you wish to restrict.</p>
+
+<p>It is also possible to mix different restriction modes within a single profile, such as enforcing program execution operations but staying in "Learning Mode" for other file-related operations:</p>
 
 <pre>
-7-COMMENT=-----Enforcing file operations without getattr-----
-7-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-7-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
-7-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
+5-COMMENT=-----Enforcing file::execute and learning other file operations-----
+5-CONFIG::file={ mode=learning  }
+5-CONFIG::file::execute={ mode=enforcing }
 </pre>
-
-<p>Note that the settings for "CONFIG::file::getattr" overwrite the settings for "CONFIG::file", which in turn overwrite the settings for "CONFIG" (which in this case has not been set and so is equivalent to "mode=disabled"). This allows fine-grained control over which operations you wish to restrict.</p>
 
 <h4><a name="9.2.3">9.2.3. The PREFERENCE field</a></h4>
 
@@ -328,8 +300,12 @@
 <th><p>Function</p></th>
 </tr>
 <tr>
-<td><p>max_learning_entry</p></td>
-<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/securityfs-interface.html.en#stat">/sys/kernel/security/tomoyo/meminfo</a> interface.</p></td>
+<td><p>verbose</p></td>
+<td><p>Whether to print warning message on console upon policy violation event. This value can be either "yes" or "no".</p></td>
+</tr>
+<tr>
+<td><p>max_entry</p></td>
+<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/securityfs-interface.html.en#meminfo">/sys/kernel/security/tomoyo/meminfo</a> interface.</p></td>
 </tr>
 </table>
 </div>
@@ -359,7 +335,7 @@
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
-<p>Chapter 10: Using conditional parameters in policy</p>
+<p>Chapter 10: Reinforced authentication</p>
 </td>
 </tr>
 </table>

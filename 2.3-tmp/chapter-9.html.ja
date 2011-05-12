@@ -40,7 +40,7 @@
 
 <h3><a name="9.1">9.1. プロファイルの初期化</a></h3>
 
-<p><code>/usr/lib/tomoyo/init_policy</code> により実行される初期設定は、アクセスを制限したい内容だけを有効にすることでポリシーの作成を容易にするために、コマンドラインオプションを指定することでカスタマイズすることができます。例えば、ファイルに関するアクセス制御だけを有効にしたい場合には --file-only-profile オプションを指定できます。コマンドラインオプションで指定した内容はポリシーディレクトリに作成されるファイルの内容を変化させるだけであり、ポリシーの作成方法を制約するものではありません。これらのファイルはポリシーエディタを用いて後からあなたの要望に沿うように修正することができます。以下に、指定可能なコマンドラインオプションの一覧を示します：</p>
+<p>プロファイルは、アクセスを制限したい内容だけを有効にすることでポリシーの作成を容易にするために、カスタマイズすることができます。プロファイルはポリシーエディタを用いて後からあなたの要望に沿うように修正することができます。以下に、指定可能なコマンドラインオプションの一覧を示します：</p>
 
 <div class="simple-table-wrap">
 <table>
@@ -50,43 +50,33 @@
 <th><p>内容</p></th>
 </tr>
 <tr>
-<td><p>--use_profile="$number"</p></td>
-<td><p>0</p></td>
-<td><p>/etc/tomoyo/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるプロファイルの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
-</tr>
-<tr>
-<td><p>--root="$rootdir"</p></td>
+<td><p>root="$rootdir"</p></td>
 <td><p>/</p></td>
 <td><p>ポリシーファイル用ディレクトリを生成するときのルートディレクトリを指定します。</p></td>
 </tr>
 <tr>
-<td><p>--policy_dir="$configdir"</p></td>
+<td><p>policy_dir="$configdir"</p></td>
 <td><p>/etc/tomoyo/</p></td>
 <td><p>ポリシーファイル用ディレクトリを指定します。もし、このオプションを指定した場合、 $configdir へのシンボリックリンクを /etc/tomoyo という名前で作成する必要があります。</p></td>
-</tr>
-<tr>
-<td><p>--max_learning_entry="$number"</p></td>
-<td><p>2048</p></td>
-<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/meminfo</a> インタフェースから指定することもできます。</p></td>
 </tr>
 </table>
 </div>
 
-<p>もし --file-only-profile オプションを指定せずに <code>/usr/lib/tomoyo/init_policy</code> を実行した場合、 /etc/tomoyo/profile.conf の CONFIG 行は以下のようになります：</p>
+<p><code>/usr/lib/tomoyo/init_policy</code> を実行した場合、 /etc/tomoyo/profile.conf は以下のようになります：</p>
 
 <pre>
+PROFILE_VERSION=20090903
+PREFERENCE::enforcing={ verbose=yes }
+PREFERENCE::learning={ verbose=no max_entry=2048 }
+PREFERENCE::permissive={ verbose=yes }
 0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+0-CONFIG={ mode=disabled }
 1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-1-CONFIG={ mode=learning grant_log=no reject_log=yes }
+1-CONFIG={ mode=learning }
 2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
+2-CONFIG={ mode=permissive }
 3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
+3-CONFIG={ mode=enforcing }
 </pre>
 
 <h3><a name="9.2">9.2. プロファイルの構文</a></h3>
@@ -181,23 +171,7 @@
 </table>
 </div>
 
-<p>例えば、ファイルとネットワークに関する操作のみを制限するプロファイルをプロファイル番号 4 として作成する場合、以下のように指定します：</p>
-
-<pre>
-4-COMMENT=-----Enforcing file and network-----
-4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
-4-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
-
-<p>また、１つのプロファイルの中で複数のアクセス制御モードを組み合わせることも可能です。例えば、ネットワークに関する操作には強制モードを適用しつつ、ファイルに関する操作には学習モードを適用するということができます：</p>
-
-<pre>
-5-COMMENT=-----Learning file and Enforcing network-----
-5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-5-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
-5-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
+<p>（なお、このバージョンでは CONFIG::file カテゴリのみがサポートされているため、 CONFIG と CONFIG::file は同じ機能を指します。）</p>
 
 <p>カテゴリ単位の設定は、機能単位の設定により上書きすることができます：</p>
 
@@ -301,21 +275,19 @@
 <p>例えば、プログラムの実行のみを制限するプロファイルは以下のように指定できます：</p>
 
 <pre>
-6-COMMENT=-----Enforcing file::execute only-----
-6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-6-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
+4-COMMENT=-----Enforcing file::execute only-----
+4-CONFIG::file::execute={ mode=enforcing }
 </pre>
 
-<p>パフォーマンス上の理由から、ファイルやディレクトリの属性を取得する操作だけを無効モードにしながら、その他のファイルに関する操作は強制モードにするというプロファイルを作成することもできます：</p>
+<p>CONFIG::file::execute 行は CONFIG::file 行の設定を上書きすることに注目してください。また、 CONFIG::file 行は CONFIG 行の設定（指定されていないので mode=disabled として解釈されます）を上書きすることに注目してください。このように指定することで、アクセスを制限したい操作だけを制限する詳細なプロファイルを定義することができます。</p>
+
+<p>また、１つのプロファイルの中で複数のアクセス制御モードを組み合わせることも可能です。例えば、ネットワークに関する操作には強制モードを適用しつつ、ファイルに関する操作には学習モードを適用するということができます：</p>
 
 <pre>
-7-COMMENT=-----Enforcing file operations without getattr-----
-7-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
-7-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
-7-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
+5-COMMENT=-----Enforcing file::execute and learning other file operations-----
+5-CONFIG::file={ mode=learning  }
+5-CONFIG::file::execute={ mode=enforcing }
 </pre>
-
-<p>CONFIG::file::getattr 行は CONFIG::file 行の設定を上書きすることに注目してください。また、 CONFIG::file 行は CONFIG 行の設定（指定されていないので mode=disabled として解釈されます）を上書きすることに注目してください。このように指定することで、アクセスを制限したい操作だけを制限する詳細なプロファイルを定義することができます。</p>
 
 <h4><a name="9.2.3">9.2.3. PREFERENCE 行</a></h4>
 
@@ -328,8 +300,12 @@
 <th><p>内容</p></th>
 </tr>
 <tr>
-<td><p>max_learning_entry</p></td>
-<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/meminfo</a> インタフェースから指定することもできます。</p></td>
+<td><p>verbose</p></td>
+<td><p>ポリシー違反が発生した場合にコンソールにメッセージを表示するかどうかを指定します。 yes または no を指定できます。</p></td>
+</tr>
+<tr>
+<td><p>max_entry</p></td>
+<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#meminfo">/sys/kernel/security/tomoyo/meminfo</a> インタフェースから指定することもできます。</p></td>
 </tr>
 </table>
 </div>
@@ -359,7 +335,7 @@
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
-<p>Chapter 10: 条件付きアクセス許可の使用</p>
+<p>Chapter 10: ユーザ認証の強化</p>
 </td>
 </tr>
 </table>
