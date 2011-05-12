@@ -38,13 +38,21 @@
 
 <h2>Chapter 3: どうすれば TOMOYO Linux をインストールできますか？</h2>
 
-<h3><a name="3.3">3.3. ソースからのインストール</a></h3>
+<h3><a name="3.1">3.1. カーネルのインストール</a></h3>
 
-<p>あなたが利用しているディストリビューション向けのバイナリパッケージが提供されていない場合、自分でカーネルをコンパイルする必要があります。</p>
+<h4><a name="3.1.1">3.1.1. 既に TOMOYO Linux 対応カーネルであるかどうか判断する</a></h4>
 
-<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.sourceforge.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.sourceforge.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
+<p>TOMOYO Linux 2.3 はメインラインカーネルのソースに既に含まれていますが、特定のカーネルコンフィグオプションを有効にしないと利用できません。以下の手順により利用中のカーネルで TOMOYO Linux を利用できるかどうかを判断することができます。</p>
 
-<h4><a name="3.3.1">3.3.1. 依存するパッケージのインストール</a></h4>
+<pre class="command">
+$ grep tomoyo_supervisor /proc/kallsyms
+</pre>
+
+<p>/proc/kallsyms の中に tomoyo_supervisor を含む行が存在していた場合、既に TOMOYO Linux 対応カーネルですので、<a href="#3.2">3.2. 管理ツールのインストール</a>へと進んでください。</p>
+
+<p>存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.sourceforge.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.sourceforge.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
+
+<h4><a name="3.1.2">3.1.2. 依存するパッケージのインストール</a></h4>
 
 <p>カーネルと管理ツールをコンパイルするために以下のパッケージが必要になります：</p>
 <ul>
@@ -70,69 +78,68 @@
 # yast -i wget patch gcc make ncurses-devel
 </pre>
 
-<h4><a name="3.3.2">3.3.2. カーネルのダウンロードとパッチの適用</a></h4>
+<h4><a name="3.1.3">3.1.3. カーネルソースの入手</a></h4>
 
-<p>カーネルのソースコードを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> からダウンロードしてください。<br>
-linux-2.4 についてはカーネル 2.4.30 以降に対応しています。<br>
-linux-2.6 についてはカーネル 2.6.11.12 以降に対応しています。</p>
+<p>カーネルのソースを "<a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>" または "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=summary">linux-2.6 git tree</a>" からダウンロードして展開してください。<br>
+カーネル 2.6.36 以降に対応しています。</p>
 
-<p>カーネルのソースを展開して、そのディレクトリに移動してください。<br>
-以下の操作において、例えばカーネル 2.6.38.6 を使う場合、 2.$PATCHLEVEL.$SUBLEVEL.diff を 2.6.38.diff に置き換えてください：</p>
+<p>カーネルのソースを展開して、そのディレクトリに移動してください。</p>
+
+<p>メインラインのカーネルのソースに反映することが間に合わなかった不具合修正パッチがあるかもしれません。利用するカーネルのバージョンに合った全ての不具合修正パッチ（例えば 2.6.38 カーネルの場合には 2.6.38-tomoyo-\*.patch ）を <a href="http://tomoyo.sourceforge.jp/2.3/patches/">http://tomoyo.sourceforge.jp/2.3/patches/</a> からダウンロードして、カーネルのソースコードを展開したディレクトリから以下のコマンドを実行してください。（以下のコマンドは、適用済みのパッチがあればスキップします。）</p>
 
 <pre class="command">
-$ wget -O tomoyo-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.1-20110511.tar.gz'
-$ wget -O tomoyo-patch-1.8.1-20110511.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.1-20110511.tar.gz.asc'
-$ gpg tomoyo-patch-1.8.1-20110511.tar.gz.asc
-$ tar -zxf tomoyo-patch-1.8.1-20110511.tar.gz
-$ patch -sp1 &lt; patches/tomoyo-patch-2.$PATCHLEVEL.$SUBLEVEL.diff
+$ for i in 2.6.*-tomoyo-*.patch; do patch -Nt -p1 --dry-run &lt; $i &amp;&amp; patch -p1 &lt; $i; done
 </pre>
 
-<h4><a name="3.3.3">3.3.3. カーネルコンパイルオプションの設定</a></h4>
+<h4><a name="3.1.4">3.1.4. カーネルコンパイルオプションの設定</a></h4>
 
 <pre class="command">
 $ make -s menuconfig
 </pre>
 
-<p>Security options 画面に表示される以下の項目を選択してください：</p>
+<p>Security options の画面に移動して、以下のオプションを選択してください。（ <i>Default security module</i> として TOMOYO を指定するかどうかは任意です。）</p>
 
-<ul>
-<li>[*] CCSecurity support</li>
-</ul>
+<pre>
+[*] Enable different security models
+-*- Enable the securityfs filesystem
+-*- Security hooks for pathname based access control
+[*] TOMOYO Linux Support
+    Default security module (TOMOYO)
+</pre>
 
-<h4><a name="3.3.4">3.3.4. カーネルのコンパイルおよびインストール</a></h4>
+<h4><a name="3.1.5">3.1.5. カーネルのコンパイルおよびインストール</a></h4>
 
 <p>カーネルコンパイルオプションの変更が終わったら、以下のコマンドを実行してカーネルをコンパイルしてください：</p>
 
 <pre class="command">
-$ make -s dep
 $ make -s
-$ make -s modules
 $ su
 # make -s modules_install install
 </pre>
 
 <p>必要であれば initrd/initramfs を作成してください。</p>
 
-<h4><a name="3.3.5">3.3.5. 管理ツールのインストール</a></h4>
+<h3><a name="3.2">3.2. 管理ツールのインストール</a></h3>
 
-<p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます：</p>
+<h4><a name="3.2.1">3.2.1. バイナリパッケージが提供されているかどうか判断する</a></h4>
+
+<p>tomoyo-tools あるいは tomoyotools というパッケージが提供されており、そのバージョンが 2.3 である場合、それを利用することができます。インストールして <a href="#3.3">3.3. 設定の初期化</a>へと進んでください。</p>
+
+<h4><a name="3.2.2">3.2.2. ツールをソースからコンパイルする</a></h4>
+
+<p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます。</p>
 
 <pre class="command">
-$ wget -O tomoyo-tools-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.1-20110511.tar.gz'
-$ wget -O tomoyo-tools-1.8.1-20110511.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.1-20110511.tar.gz.asc'
-$ gpg tomoyo-tools-1.8.1-20110511.tar.gz.asc
-$ tar -zxf tomoyo-tools-1.8.1-20110511.tar.gz
-$ cd ccstools/
-$ make -s
-$ su
-# make -s install
+# wget -O tomoyo-tools-2.3.0-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/48663/tomoyo-tools-2.3.0-20110511.tar.gz'
+# wget -O tomoyo-tools-2.3.0-20110511.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/48663/tomoyo-tools-2.3.0-20110511.tar.gz.asc'
+# wget http://I-love.SAKURA.ne.jp/kumaneko-key
+# gpg --import kumaneko-key
+# gpg tomoyo-tools-2.3.0-20110511.tar.gz.asc
+# tar -zxf tomoyo-tools-2.3.0-20110511.tar.gz
+# make -C tomoyo-tools/ install
 </pre>
 
-<br>
-
-<p><a href="chapter-3.html.ja#3.4">3.4. 設定の初期化</a>へと進んでください。</p>
-
-<h3><a name="3.4">3.4. 設定の初期化</a></h3>
+<h3><a name="3.3">3.3. 設定の初期化</a></h3>
 
 <p>管理ツールを実行するときに便利なように、管理ツールのインストールされているディレクトリ（ /usr/sbin ）を環境変数 PATH に追加したいと思うかもしれません。 <code>/bin/bash</code> を使用している場合、以下の行を ~/.bashrc に追加してください：</p>
 
@@ -142,21 +149,7 @@ export PATH=$PATH:/usr/sbin
 
 <p>TOMOYO Linux を使うためには、初期設定の手順を行う必要があります。この手順により、ポリシーを保存するディレクトリが作成されます。全てのポリシーファイルは <strong>/etc/tomoyo/ ディレクトリに保存されます</strong>。</p>
 
-<p>初期設定を行うには２つのコマンドのどちらかを使用します。どの機能について解析および制限を行いたいかによりどちらのコマンドを使用するかが決まります。</p>
-
-<p>ファイルの読み書きやプログラムの実行のように<strong>ファイルに関する機能だけを制限</strong>したいと思うユーザもいることでしょう。これは、ポリシーをシンプルにしたいユーザや TOMOYO Linux が提供する全部の機能を必要とはしないユーザに適しています。ファイルに関する機能だけを制限する場合、このガイドで説明されている例えばネットワークに関する機能などの無関係な部分を無視することができます。ファイルに関する機能だけを使う場合、以下のコマンドを実行してください：</p>
-
-<pre class="command">
-# /usr/lib/tomoyo/init_policy --file-only-profile
-</pre>
-
-<p><strong>TOMOYO Linux が提供する全部の機能</strong>を使ってファイルやネットワークやケイパビリティや環境変数やシグナルの送信といった操作を解析したり制限したいと思うユーザもいることでしょう。これは、可能な限りシステムのセキュリティを高めたいと考えているユーザに適しています。このガイドでは全部の機能を使うことを想定して作成されています。全部の機能を使う場合、以下のコマンドを実行してください：</p>
-
-<pre class="command">
-# /usr/lib/tomoyo/init_policy
-</pre>
-
-<p>上記のコマンドを実行することで、以下のような出力が表示される筈です：</p>
+<p>/usr/lib/tomoyo/init_policy を実行することで、以下のような出力が表示される筈です：</p>
 
 <pre class="command">
 # /usr/lib/tomoyo/init_policy
@@ -168,19 +161,16 @@ Creating exception policy... OK
 Creating domain policy... OK
 Creating manager policy... OK
 Creating default profile... OK
-Creating stat policy... OK
-Creating module loader... OK
-Creating configuration file for tomoyo-editpolicy ... OK
-Creating configuration file for tomoyo-auditd ... OK
-Creating configuration file for tomoyo-patternize ... OK
-Creating configuration file for tomoyo-notifyd ... OK
+Creating meminfo policy... OK
 </pre>
 
-<h3><a name="3.5">3.5. ブートローダの設定</a></h3>
+<p>なお、 TOMOYO 2.2 用のポリシーと TOMOYO 2.3 用のポリシーとの間には互換性がありません。既に TOMOYO 2.2 用のポリシーを策定済みであっても、 /etc/tomoyo/ ディレクトリを削除（またはリネーム）してから上記のコマンドを実行する必要があります。さもないと、起動時にカーネルパニックに遭遇します。</p>
 
-<p>ブートローダ（ GRUB 等）の設定ファイルを編集し、コンパイルされたカーネル用のエントリを追加してください。カーネルのコンパイル時に <em>Disable by default</em> オプションを指定した場合には、 ccsecurity=on というパラメータをカーネルに対するコマンドラインオプションに指定することを忘れないでください。 TOMOYO Linux カーネルで起動するための方法については、ディストリビューションやブートローダのドキュメントを参照してください。</p>
+<h3><a name="3.4">3.4. ブートローダの設定</a></h3>
 
-<h3><a name="3.6">3.6. システムの再起動</a></h3>
+<p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合、 security=tomoyo という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg であると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
+
+<h3><a name="3.5">3.5. システムの再起動</a></h3>
 
 <p>ここまでで準備は完了です。（お疲れさまでした。）それでは、新しくインストールされたカーネルを使用してみましょう。システムを再起動し、 GRUB の画面（あるいは使用している他のブートローダの画面）で TOMOYO Linux カーネルを選択してください：</p>
 
@@ -190,9 +180,9 @@ Creating configuration file for tomoyo-notifyd ... OK
 
 <img src="media/fig-1-13.png" alt="fig-1-13.png" width="675" height="375">
 
-<h3><a name="3.7">3.7. どのようにすれば TOMOYO Linux を無効化またはアンインストールできますか？</a></h3>
+<h3><a name="3.6">3.6. どのようにすれば TOMOYO Linux を無効化またはアンインストールできますか？</a></h3>
 
-<p>もし、このガイドに従って操作している間またはそれ以降にシステムが起動しなくなってしまった場合、ポリシーの設定が不適切である場合を含めて TOMOYO Linux に原因があるかもしれません。その場合、 ccsecurity=off というパラメータをカーネルに対するコマンドラインオプションに指定することにより、 TOMOYO Linux が無効な状態でカーネルがロードされます。</p>
+<p>もし、このガイドに従って操作している間またはそれ以降にシステムが起動しなくなってしまった場合、ポリシーの設定が不適切である場合を含めて TOMOYO Linux に原因があるかもしれません。その場合、 security=none というパラメータをカーネルに対するコマンドラインオプションに指定することにより、 TOMOYO Linux が無効な状態でカーネルがロードされます。</p>
 
 <p>幸いなことに、 TOMOYO Linux はカーネル以外には既存のプログラムやライブラリなどに対する修正を必要としません。そのため、 TOMOYO Linux のアンインストールはとても簡単です。（ <code>rpm</code> や <code>apt</code> などの）パッケージマネージャを用いてインストールされたカーネルおよび管理ツールをアンインストールするだけです。ディストリビューションから配布されているカーネルで再起動して、ブートローダから TOMOYO Linux カーネル用のエントリを削除してください。</p>
 
