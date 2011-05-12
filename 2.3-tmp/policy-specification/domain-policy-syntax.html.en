@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Policy specification : Domain policy syntax</title>
+<title>TOMOYO Linux 2.3.x : Policy specification : Domain policy syntax</title>
 </head>
 
 <body>
@@ -431,7 +431,7 @@ file chroot /var/empty/sshd/
 
 <p>This functionality is generally used for only once for switching the / directory from initrd/initramfs to the hard drive, which generally occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
 
-<p>This example allows the domain to use "/proc/" as a new / directory and bring the old / directory to "/proc/ccs/" directory:</p>
+<p>This example allows the domain to use "/proc/" as a new / directory and bring the old / directory to "/sys/kernel/security/tomoyo/" directory:</p>
 
 <pre>
 file pivot_root proc:/ proc:/ccs/
