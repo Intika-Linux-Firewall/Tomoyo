@@ -11,12 +11,12 @@
 <!-- .\" Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 NTT DATA Corporation. -->
 <!-- .\" -->
 <!-- .\" You may distribute under the terms of the GNU General Public -->
-<!-- .\" License as specified in the file COPYING.ccs that comes with the -->
+<!-- .\" License as specified in the file COPYING.tomoyo that comes with the -->
 <!-- .\" tomoyo-tools source tarball. -->
 <!-- .\" -->
-<!-- .TH "CCS-PATTERNIZE" "8" "April 2011" "tomoyo-patternize 1.8.1" "System Administration Utilities" -->
+<!-- .TH "TOMOYO-PATTERNIZE" "8" "February 2011" "tomoyo-patternize 2.3.0" "System Administration Utilities" -->
 <CENTER>
-<H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>CCS-PATTERNIZE (8)</NOBR><HR></H1>
+<H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>TOMOYO-PATTERNIZE (8)</NOBR><HR></H1>
 </CENTER>
 <!-- .SH "NAME" -->
 <A name=>
@@ -34,11 +34,8 @@ tomoyo-patternize - a tool to convert pathnames in policy into patterns or wildc
 
 </A>
 <BLOCKQUOTE>
-<!-- .B tomoyo-patternize -->
-<B>tomoyo-patternize</B> <!-- .sp -->
-<P>
-<!-- .B tomoyo-patternize [configfile] -->
-<B>tomoyo-patternize [configfile]</B> <!-- .SH "DESCRIPTION" -->
+<!-- .B tomoyo-patternize <pattern> -->
+<B>tomoyo-patternize &lt;pattern&gt;</B> <!-- .SH "DESCRIPTION" -->
 </BLOCKQUOTE>
 <A name=>
 
@@ -46,7 +43,7 @@ tomoyo-patternize - a tool to convert pathnames in policy into patterns or wildc
 
 </A>
 <BLOCKQUOTE>
-This program reads domain policy from standard input and replaces pathnames with patterns according to rules defined in <I>/etc/tomoyo/tools/patternize.conf</I>. The resulting policy is sent to standard output. This is useful to shorten and simplify domain or exception policy.
+This program reads domain policy from standard input and replaces pathnames with patterns according to the patterns given at the command line. The result is written to standard output. This is useful to shorten and simplify domain or exception policy.
 <!-- .PP -->
 <P>
 Pathnames for domain names will not be replaced. Only the first matching rule is used for any particular pathname. If a pathname does not match any rules, it is left unchanged.
@@ -58,44 +55,34 @@ Pathnames for domain names will not be replaced. Only the first matching rule is
 
 </A>
 <BLOCKQUOTE>
-<!-- .B Replace (e.g.) proc:/self/fd/0 with proc:/self/fd/\e$ : -->
-<B>Replace (e.g.) proc:/self/fd/0 with proc:/self/fd/&#92;$ :</B> <!-- .nf -->
+<!-- .B Replace pathnames that match /tmp/php\e?\e?\e?\e?\e?\e? pattern with /tmp/php\e?\e?\e?\e?\e?\e? : -->
+<B>Replace pathnames that match /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;? pattern with /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;? :</B> <!-- .nf -->
 <PRE>
-rewrite path_pattern proc:/self/fd/&#92;$
+tomoyo-patternize &#146;/tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;?&#146; &lt; /etc/tomoyo/domain_policy.conf &gt; /etc/tomoyo/domain_policy2.conf
 <!-- .fi -->
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Replace (e.g.) proc:/123/status with proc:/\e$/status : -->
-<B>Replace (e.g.) proc:/123/status with proc:/&#92;$/status :</B> <!-- .nf -->
+<!-- .B Replace pathnames that match /tmp/php\e?\e?\e?\e?\e?\e? pattern with /tmp/php\e?\e?\e?\e?\e?\e? : -->
+<B>Replace pathnames that match /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;? pattern with /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;? :</B> <!-- .nf -->
 <PRE>
-rewrite head_pattern proc:/&#92;$/
+tomoyo-patternize &#146;file_pattern /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;?&#146; &lt; /etc/tomoyo/domain_policy.conf &gt; /etc/tomoyo/domain_policy2.conf
 <!-- .fi -->
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B -->
-<B></B> Replace (e.g.) dev(8,1):/etc/mtab~456 with dev(8,1):/etc/mtab~&#92;$ :
-<!-- .nf -->
+<!-- .B Replace pathnames that match /tmp/php\e?\e?\e?\e?\e?\e? pattern with @GROUP1 : -->
+<B>Replace pathnames that match /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;? pattern with @GROUP1 :</B> <!-- .nf -->
 <PRE>
-rewrite tail_pattern /etc/mtab~&#92;$
+tomoyo-patternize &#146;path_group GROUP1 /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;?&#146; &lt; /etc/tomoyo/domain_policy.conf &gt; /etc/tomoyo/domain_policy2.conf
 <!-- .fi -->
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Replace (e.g.) /tmp/phpZjk1k3 with @GROUP1 : -->
-<B>Replace (e.g.) /tmp/phpZjk1k3 with @GROUP1 :</B> <!-- .nf -->
+<!-- .B Replace integers between 0-100 or 100-200 with @GROUP2 : -->
+<B>Replace integers between 0-100 or 100-200 with @GROUP2 :</B> <!-- .nf -->
 <PRE>
-rewrite path_pattern /tmp/php&#92;?&#92;?&#92;?&#92;?&#92;?&#92;? @GROUP1
-<!-- .fi -->
-</PRE>
-<!-- .PP -->
-<P>
-<!-- .B Replace integers between 0\-100 or 100\-200 with @GROUP2 . -->
-<B>Replace integers between 0-100 or 100-200 with @GROUP2 .</B> <!-- .nf -->
-<PRE>
-rewrite number_pattern 0-100 @GROUP2
-rewrite number_pattern 100-200 @GROUP2
+tomoyo-patternize &#146;number_group GROUP2 0-100&#146; &#146;number_group GROUP2 100-200&#146;&lt; /etc/tomoyo/domain_policy.conf &gt; /etc/tomoyo/domain_policy2.conf
 <!-- .fi -->
 </PRE>
 <!-- .PP -->
@@ -103,23 +90,11 @@ rewrite number_pattern 100-200 @GROUP2
 <!-- .B Replace ip addresses 127.0.0.1 or 0:0:0:0:0:0:0:1 with @LOCALHOST : -->
 <B>Replace ip addresses 127.0.0.1 or 0:0:0:0:0:0:0:1 with @LOCALHOST :</B> <!-- .nf -->
 <PRE>
-rewrite address_pattern 127.0.0.1 @LOCALHOST
-rewrite address_pattern 0:0:0:0:0:0:0:1 @LOCALHOST
+tomoyo-patternize &#146;address_group LOCALHOST 127.0.0.1&#146; &#146;address_group LOCALHOST 0:0:0:0:0:0:0:1&#146; &lt; /etc/tomoyo/domain_policy.conf &gt; /etc/tomoyo/domain_policy2.conf
 <!-- .fi -->
 </PRE>
-<!-- .sp -->
+<!-- .PP -->
 <P>
-See the configuration file for more information on rule syntax.
-<!-- .SH "BUGS" -->
-</BLOCKQUOTE>
-<A name=>
-
-     <H3>BUGS</H3>
-
-</A>
-<BLOCKQUOTE>
-If there are any bugs, send an email with as much detail as possible to
-<A HREF="mailto:tomoyo-users-en@lists.sourceforge.jp">tomoyo-users-en@lists.sourceforge.jp</A>
 <!-- .SH "AUTHORS" -->
 </BLOCKQUOTE>
 <A name=>
@@ -128,8 +103,18 @@ If there are any bugs, send an email with as much detail as possible to
 
 </A>
 <BLOCKQUOTE>
-Tetsuo Handa &lt;penguin-kernel _at_ I-love.SAKURA.ne.jp&gt;
-<!-- .SH "SEE ALSO" -->
+<!-- .sp -->
+Main authors:
+<BLOCKQUOTE>
+Tetsuo Handa &lt;penguin-kernel AT I-love.SAKURA.ne.jp&gt;
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<BLOCKQUOTE>
+Other contributers:
+<BLOCKQUOTE>
+<P>Jamie Nguyen &lt;jamie AT tomoyolinux.co.uk&gt;</P>
+<P>Man pages, documentation and website.</P>
+</BLOCKQUOTE>
 </BLOCKQUOTE>
 <A name=>
 
@@ -145,5 +130,5 @@ Tetsuo Handa &lt;penguin-kernel _at_ I-love.SAKURA.ne.jp&gt;
 See <A HREF="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</A> for more information.
 </BLOCKQUOTE>
 <P><HR>
-<TABLE width=100%><TR> <TD width=33%><I>tomoyo-patternize 1.8.1</I></TD> <TD width=33% align=center>CCS-PATTERNIZE (8)</TD> <TD align=right width=33%><I>April 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from tomoyo-patternize.8 using man macros.</FONT>
+<TABLE width=100%><TR> <TD width=33%><I>tomoyo-patternize 2.3.0</I></TD> <TD width=33% align=center>TOMOYO-PATTERNIZE (8)</TD> <TD align=right width=33%><I>February 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from tomoyo-patternize using man macros.</FONT>
 </BODY></HTML>
