@@ -34,11 +34,17 @@ ccs-savepolicy - save TOMOYO Linux policy
 
 </A>
 <BLOCKQUOTE>
-<!-- .B ccs-savepolicy [options] -->
-<B>ccs-savepolicy [options]</B> <!-- .sp -->
+<!-- .B ccs-savepolicy <directory> -->
+<B>ccs-savepolicy &lt;directory&gt;</B> <!-- .sp -->
 <P>
-<!-- .B ccs-savepolicy [options] <remote_ip:remote_port> -->
-<B>ccs-savepolicy [options] &lt;remote_ip:remote_port&gt;</B> <!-- .SH "DESCRIPTION" -->
+<!-- .B ccs-savepolicy <directory> <remote_ip:remote_port> -->
+<B>ccs-savepolicy &lt;directory&gt; &lt;remote_ip:remote_port&gt;</B> <!-- .sp -->
+<P>
+<!-- .B ccs-savepolicy {-e|-d|-p|-m|-s} -->
+<B>ccs-savepolicy {-e|-d|-p|-m|-s}</B> <!-- .sp -->
+<P>
+<!-- .B ccs-savepolicy {-e|-d|-p|-m|-s} <remote_ip:remote_port> -->
+<B>ccs-savepolicy {-e|-d|-p|-m|-s} &lt;remote_ip:remote_port&gt;</B> <!-- .SH "DESCRIPTION" -->
 </BLOCKQUOTE>
 <A name=>
 
@@ -46,7 +52,16 @@ ccs-savepolicy - save TOMOYO Linux policy
 
 </A>
 <BLOCKQUOTE>
-This program saves TOMOYO Linux policy that is in kernel memory onto the disk. Four files are saved by running this command: <I>/etc/ccs/domain_policy.conf</I>, <I>/etc/ccs/exception_policy.conf</I>, <I>/etc/ccs/profile.conf</I> and <I>/etc/ccs/manager.conf</I>.
+This program saves TOMOYO Linux policy that is in kernel memory onto the disk.  By running this command, a directory in <I>/etc/ccs/policy/YY-MM-DD.hh:mm:ss/</I> format is created and four files named <I>domain_policy.conf</I>, <I>exception_policy.conf</I>, <I>profile.conf</I> and <I>manager.conf</I> are saved into the created directory, and a symbolic link <I>/etc/ccs/policy/previous</I> is updated to point to previous <I>YY-MM-DD.hh:mm:ss/</I> directory and a symbolic link /etc/ccs/policy/current is updated to point to current <I>YY-MM-DD.hh:mm:ss/</I> directory.
+<!-- .PP -->
+<P>
+There should be symbolic links <I>/etc/ccs/domain_policy.conf</I>, <I>/etc/ccs/exception_policy.conf</I>, <I>/etc/ccs/profile.conf</I> and <I>/etc/ccs/manager.conf</I> which respectively point to <I>policy/current/domain_policy.conf</I>, <I>policy/current/exception_policy.conf</I>, <I>policy/current/profile.conf</I>, <I>policy/current/manager.conf</I>. Also, there should be a symbolic link <I>/etc/ccs/policy/current</I> which point to <I>YY-MM-DD.hh:mm:ss/</I> directory.
+<!-- .PP -->
+<P>
+As a result, you can access the current policy files using <I>/etc/ccs/domain_policy.conf</I>, <I>/etc/ccs/exception_policy.conf</I>, <I>/etc/ccs/profile.conf</I> and <I>/etc/ccs/manager.conf</I> (or <I>/etc/ccs/policy/current/domain_policy.conf</I>, <I>/etc/ccs/policy/current/exception_policy.conf</I>, <I>/etc/ccs/policy/current/profile.conf</I> and <I>/etc/ccs/policy/current/manager.conf</I> if you prefer). Also, you can access the previous policy files using <I>/etc/ccs/policy/previous/domain_policy.conf</I>, <I>/etc/ccs/policy/previous/exception_policy.conf</I>, <I>/etc/ccs/policy/previous/profile.conf</I> and <I>/etc/ccs/policy/previous/manager.conf</I>.
+<!-- .PP -->
+<P>
+This program works like the <B>cat</B> program, if policy type is specified.
 <!-- .SH "OPTIONS" -->
 </BLOCKQUOTE>
 <A name=>
@@ -98,7 +113,7 @@ Print <I>/proc/ccs/stat</I> to standard output.
 <B>&lt;directory&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Save policy to the specified directory instead of the default <I>/etc/ccs/</I>.
+Save policy to <I>&lt;directory&gt;/policy/YY-MM-DD.hh:mm:ss/</I> directory instead of the default <I>/etc/ccs/policy/YY-MM-DD.hh:mm:ss/</I> directory.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -106,7 +121,7 @@ Save policy to the specified directory instead of the default <I>/etc/ccs/</I>.
 <B>&lt;remote_ip:remote_port&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Instead of saving local policy, save policy via an agent connected to the specified IP address and port number.
+Instead of saving local policy, save policy via an agent waiting at port <I>&lt;remote_port&gt;</I> on IP address <I>&lt;remote_ip&gt;</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .SH "EXAMPLES" -->
@@ -133,8 +148,8 @@ ccs-savepolicy -e
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Retrieve policy from 192.168.1.1:10000 and save into the /etc/ccs/192.168.1.1 directory: -->
-<B>Retrieve policy from 192.168.1.1:10000 and save into the /etc/ccs/192.168.1.1 directory:</B> <!-- .nf -->
+<!-- .B Retrieve policy from 192.168.1.1:10000 and save into the \&"/etc/ccs/192.168.1.1/policy/YY-MM-DD.hh:mm:ss/\&" directory: -->
+<B>Retrieve policy from 192.168.1.1:10000 and save into the  /etc/ccs/192.168.1.1/policy/YY-MM-DD.hh:mm:ss/ directory:</B> <!-- .nf -->
 <PRE>
 ccs-savepolicy /etc/ccs/192.168.1.1/ 192.168.1.1:10000
 <!-- .fi -->
@@ -147,8 +162,7 @@ ccs-savepolicy /etc/ccs/192.168.1.1/ 192.168.1.1:10000
 
 </A>
 <BLOCKQUOTE>
-If there are any bugs, send an email with as much detail as possible to
-<A HREF="mailto:tomoyo-users-en@lists.sourceforge.jp">tomoyo-users-en@lists.sourceforge.jp</A>
+If there are any bugs, send an email with as much detail as possible to <A HREF="mailto:tomoyo-users-en@lists.sourceforge.jp">tomoyo-users-en@lists.sourceforge.jp</A>
 <!-- .SH "AUTHORS" -->
 </BLOCKQUOTE>
 <A name=>
@@ -157,8 +171,18 @@ If there are any bugs, send an email with as much detail as possible to
 
 </A>
 <BLOCKQUOTE>
-Tetsuo Handa &lt;penguin-kernel _at_ I-love.SAKURA.ne.jp&gt;
-<!-- .SH "SEE ALSO" -->
+<!-- .sp -->
+Main authors:
+<BLOCKQUOTE>
+Tetsuo Handa &lt;penguin-kernel AT I-love.SAKURA.ne.jp&gt;
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<BLOCKQUOTE>
+Other contributers:
+<BLOCKQUOTE>
+<P>Jamie Nguyen &lt;jamie AT tomoyolinux.co.uk&gt;</P>
+<P>Man pages, documentation and website.</P>
+</BLOCKQUOTE>
 </BLOCKQUOTE>
 <A name=>
 
@@ -174,5 +198,5 @@ Tetsuo Handa &lt;penguin-kernel _at_ I-love.SAKURA.ne.jp&gt;
 See <A HREF="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</A> for more information.
 </BLOCKQUOTE>
 <P><HR>
-<TABLE width=100%><TR> <TD width=33%><I>ccs-savepolicy 1.8.1</I></TD> <TD width=33% align=center>CCS-SAVEPOLICY (8)</TD> <TD align=right width=33%><I>April 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from ccs-savepolicy.8 using man macros.</FONT>
+<TABLE width=100%><TR> <TD width=33%><I>ccs-savepolicy 1.8.1</I></TD> <TD width=33% align=center>CCS-SAVEPOLICY (8)</TD> <TD align=right width=33%><I>April 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from ccs-savepolicy using man macros.</FONT>
 </BODY></HTML>
