@@ -67,7 +67,7 @@
 <p>確認モードと同様、 <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースからポリシー違反の発生回数と最後に発生した時刻について知ることができます：</p>
 
 <pre class="command">
-[root@tomoyo ~]# cat /proc/ccs/stat
+# cat /proc/ccs/stat
 </pre>
 
 <pre class="output">
@@ -84,7 +84,7 @@ Total memory used:                        165728
 <p>もしアクセスログの設定を <a href="chapter-4.html.ja#4.6">4.6. アクセスログを保存する（任意）</a>で行っていた場合は、拒否されたアクセス要求を /var/log/tomoyo/reject_003.log から抽出することができます：</p>
 
 <pre class="command">
-[root@tomoyo ~]# cat /var/log/tomoyo/reject_003.log
+# cat /var/log/tomoyo/reject_003.log
 </pre>
 
 <pre class="output">
@@ -132,7 +132,7 @@ file read /bin/cat
 <p>ポリシーに違反したアクセス要求を処理するために <code>ccs-queryd</code> コマンドを利用します：</p>
 
 <pre class="command">
-[root@tomoyo ~]# /usr/sbin/ccs-queryd
+# /usr/sbin/ccs-queryd
 </pre>
 
 <pre class="output">
@@ -163,7 +163,7 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 <p>このプログラムはメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずに <code>ccs-savepolicy</code> を実行してポリシーを保存してください。</p>
 
 <pre class="command">
-[root@tomoyo ~]# /usr/sbin/ccs-savepolicy
+# /usr/sbin/ccs-savepolicy
 </pre>
 
 <h4><a name="7.3.2">7.3.2. ccs-queryd の出力例</a></h4>
@@ -349,7 +349,7 @@ minimal_interval 60
 <p>ポリシー違反が発生すると以下のようなメールが届くはずです。このメールの内容は、ヘッダにシリアルナンバーが付与されている点を除いてアクセスログと同一内容です：</p>
 
 <pre class="command">
-[root@tomoyo ~]# mail
+# mail
 </pre>
 
 <pre class="output">

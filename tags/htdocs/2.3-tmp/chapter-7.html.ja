@@ -64,30 +64,6 @@
 
 <img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477">
 
-<p>もしアクセスログの設定を <a href="chapter-4.html.ja#4.6">4.6. アクセスログを保存する（任意）</a>で行っていた場合は、拒否されたアクセス要求を /var/log/tomoyo/reject_003.log から抽出することができます：</p>
-
-<pre class="command">
-[root@tomoyo ~]# cat /var/log/tomoyo/reject_003.log
-</pre>
-
-<pre class="output">
-#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh
-file execute /bin/cat
-
-#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh
-file read /bin/cat
-</pre>
-
-<p>最初のログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> から <code>/bin/cat</code> の実行が要求され、そのときの０番目の引数（ argv[0] と呼ばれます）は cat 、１番目の引数（ argv[1] と呼ばれます）は /etc/passwd であったことを示しています。このログの１行目に mode=enforcing および granted=no という内容が含まれているため、この要求は拒否されたことが判ります。</p>
-
-<p>２番目のログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> が <code>/bin/cat</code> を読み込みモードでオープンしようとして拒否されたことを示しています。これは、要求されたプログラムを実行できなかった場合そのプログラムの内容を確認するために読み込みモードでオープンしようとするという習性が <code>/bin/sh</code> にあるためです。</p>
-
-<p>もし、強制モード用のプロファイルで <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ enforcing_penalty=1 }</a> という設定が行われていた場合、強制モードでポリシー違反が発生した場合に、ポリシー違反の原因となったプロセスを 0.1 秒間スリープ状態にさせることができます。無限ループの中でポリシー違反が発生した場合に、ＣＰＵ使用率が 100% になってしまうのを回避するのに役にたちます。ハイジャックされた Samba サーバプロセスがポリシーで許可されていない要求を繰り返すことによりＣＰＵを浪費している状況について以下のムービーで紹介しています：</p>
-
-<p><object data="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
-
 <h3><a name="7.2">7.2. 全てのドメインに対して強制モードを有効にする</a></h3>
 
 <p>これまでに紹介してきた概念を理解しツールを使いこなせるようになれば、システム全体をアクセス制御の対象とするようなポリシーを作成することができることでしょう。全てのドメインを「強制モード」で運用すれば、システムの侵害へとつながるような弱点を減らすのに有効です。 Apache を制限する例で示した手順は、そのまま全てのドメインを制限するために使うことができます。</p>
@@ -115,7 +91,7 @@ file read /bin/cat
 <p>ポリシーに違反したアクセス要求を処理するために <code>tomoyo-queryd</code> コマンドを利用します：</p>
 
 <pre class="command">
-[root@tomoyo ~]# /usr/sbin/tomoyo-queryd
+# /usr/sbin/tomoyo-queryd
 </pre>
 
 <pre class="output">
@@ -146,7 +122,7 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 <p>このプログラムはメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずに <code>tomoyo-savepolicy</code> を実行してポリシーを保存してください。</p>
 
 <pre class="command">
-[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy
+# /usr/sbin/tomoyo-savepolicy
 </pre>
 
 <h4><a name="7.3.2">7.3.2. tomoyo-queryd の出力例</a></h4>
@@ -271,87 +247,32 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 
 <p>ポリシー違反の発生を通知するために <code>tomoyo-notifyd</code> というデーモンプログラムが提供されています。 /etc/rc.local 等から /usr/sbin/tomoyo-notifyd を起動するようにしてください。</p>
 
-<p>通知方法は /etc/tomoyo/tools/notifyd.conf に記録されています。以下に初期設定を示します：</p>
-
-<pre>
-# This file contains configuration used by tomoyo-notifyd command.
-
-# tomoyo-notifyd is a daemon that notifies the occurrence of policy violation
-# in enforcing mode.
-#
-# time_to_wait is grace time in second before rejecting the request that
-# caused policy violation in enforcing mode. For example, if you specify
-# 30, you will be given 30 seconds for starting tomoyo-queryd command and
-# responding to the policy violation event.
-# If you specify non 0 value, you need to register tomoyo-notifyd command to
-# /sys/kernel/security/tomoyo/manager as well as tomoyo-queryd command, for tomoyo-notifyd needs to
-# behave as if tomoyo-queryd command is running.
-# Also, you should avoid specifying too large value (e.g. 3600) because
-# the request will remain pending for that period if you can't respond.
-#
-# action_to_take is a command line you want to use for notification.
-# The command specified by this parameter must read the policy violation
-# notifycation from standard input. For example, mail, curl and xmessage
-# commands can read from standard input.
-# This parameter is passed to execve(). Thus, please use a wrapper program
-# if you need shell processing (e.g. wildcard expansion, environment
-# variables).
-#
-# minimal_interval is grace time in second before re-notifying the next
-# occurrence of policy violation. You can specify 60 to limit notifycation
-# to once per a minute, 3600 to limit notifycation to once per an hour.
-# You can specify 0 to unlimit, but notifying of every policy violation
-# events (e.g. sending a mail) might annoy you because policy violation
-# can occur in clusters if once occurred.
-
-# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
-# representing a ' ' in a word).
-
-# Examples:
-#
-# time_to_wait 180
-# action_to_take mail admin@example.com
-#
-#    Wait for 180 seconds before rejecting the request.
-#    The occurrence is notified by sending mail to admin@example.com
-#    (if SMTP service is available).
-#
-# time_to_wait 0
-# action_to_take curl --data-binary @- https://your.server/path_to_cgi
-#
-#    Reject the request immediately.
-#    The occurrence is notified by executing curl command.
-#
-time_to_wait 0
-action_to_take mail -s Notification\040from\040tomoyo-notifyd root@localhost
-minimal_interval 60
-</pre>
-
 <p>action_to_take 行を変更して <code>tomoyo-notifyd</code> を実行してください。</p>
 
 <p>ポリシー違反が発生すると以下のようなメールが届くはずです。このメールの内容は、ヘッダにシリアルナンバーが付与されている点を除いてアクセスログと同一内容です：</p>
 
 <pre class="command">
-[root@tomoyo ~]# mail
+# mail
 </pre>
 
 <pre class="output">
 Mail version 8.1 6/6/93.  Type ? for help.
-"/var/spool/mail/root": 1 messages 1 new
-&gt;N  1 root@localhost.local  Sun Dec 26 01:08  18/1211 "Notification from tomoyo-notifyd"
+"/var/spool/mail/root": 1 message 1 new
+&gt;N  1 root@localhost.local  Thu May 12 23:14  18/831
 &amp;
 Message 1:
-From root@localhost.localdomain  Sun Dec 26 01:08:35 2010
-Date: Sun, 26 Dec 2010 01:08:35 +0900
+From root@localhost.localdomain  Thu May 12 23:14:42 2011
+Date: Thu, 12 May 2011 23:14:41 +0900
 From: root &lt;root@localhost.localdomain&gt;
 To: root@localhost.localdomain
-Subject: Notification from tomoyo-notifyd
 
 Q0-0
-#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
+#2011-05-12 23:14:41# profile=3 mode=enforcing (global-pid=4133) task={ pid=4133 ppid=4132 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh
-file execute /bin/cat
+allow_execute /bin/cat
 </pre>
+
+<p>このログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> から <code>/bin/cat</code> の実行が要求されたことを示しています。このログの１行目に mode=enforcing という内容が含まれているため、この要求は拒否されたことが判ります。</p>
 
 <h3><a name="7.5">7.5. おわりに</a></h3>
 

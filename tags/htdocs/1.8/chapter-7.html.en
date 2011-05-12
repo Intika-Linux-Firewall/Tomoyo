@@ -67,7 +67,7 @@
 <p>Just like in "Permissive Mode", you can check the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
 <pre class="command">
-[root@tomoyo ~]# cat /proc/ccs/stat
+# cat /proc/ccs/stat
 </pre>
 
 <pre class="output">
@@ -84,7 +84,7 @@ Total memory used:                        165728
 <p>If audit logs have been configured at <a href="chapter-4.html.en#4.6">4.6. Saving audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
 
 <pre class="command">
-[root@tomoyo ~]# cat /var/log/tomoyo/reject_003.log
+# cat /var/log/tomoyo/reject_003.log
 </pre>
 
 <pre class="output">
@@ -132,7 +132,7 @@ file read /bin/cat
 <p>Use <code>ccs-queryd</code> to view, in realtime, the access requests that have been rejected by policy:</p>
 
 <pre class="command">
-[root@tomoyo ~]# /usr/sbin/ccs-queryd
+# /usr/sbin/ccs-queryd
 </pre>
 
 <pre class="output">
@@ -163,7 +163,7 @@ Press <strong>"A"</strong> to append the request to domain policy and retry (a c
 <p>Note that this program directly edits policy currently loaded into the kernel, so run <code>ccs-savepolicy</code> to save policy to disk, otherwise policy will be lost on shutdown.</p>
 
 <pre class="command">
-[root@tomoyo ~]# /usr/sbin/ccs-savepolicy
+# /usr/sbin/ccs-savepolicy
 </pre>
 
 <h4><a name="7.3.2">7.3.2. Example output from "ccs-queryd"</a></h4>
@@ -349,7 +349,7 @@ minimal_interval 60
 <p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):</p>
 
 <pre class="command">
-[root@tomoyo ~]# mail
+# mail
 </pre>
 
 <pre class="output">
