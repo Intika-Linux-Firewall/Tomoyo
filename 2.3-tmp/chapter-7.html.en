@@ -64,23 +64,6 @@
 
 <img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477">
 
-<p>Just like in "Permissive Mode", you can check the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
-
-<pre class="command">
-[root@tomoyo ~]# cat /proc/ccs/stat
-</pre>
-
-<pre class="output">
-Policy update:                              1571 (Last: 2010/12/25 16:10:48)
-Policy violation in learning mode:           453 (Last: 2010/12/25 15:33:21)
-Policy violation in permissive mode:          22 (Last: 2010/12/25 15:47:10)
-Policy violation in enforcing mode:            2 (Last: 2010/12/25 16:08:35)
-Memory used by policy:                    165728
-Memory used by audit log:                      0 (Quota:   16777216)
-Memory used by query message:                  0 (Quota:    1048576)
-Total memory used:                        165728
-</pre>
-
 <p>If audit logs have been configured at <a href="chapter-4.html.en#4.6">4.6. Saving audit logs (optional)</a>, rejected requests can be picked up from "/var/log/tomoyo/reject_003.log":</p>
 
 <pre class="command">

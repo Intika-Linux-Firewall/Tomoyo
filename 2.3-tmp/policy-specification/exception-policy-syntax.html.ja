@@ -38,16 +38,6 @@
 
 <h2>例外ポリシー構文</h2>
 
-<h3><a name="acl_group">acl_group</a></h3>
-
-<p>このディレクティブは、アクセス許可のグループを指定します。このディレクティブで指定されたアクセス許可は、ドメインポリシーから <a href="domain-policy-syntax.html.ja#use_group">use_group</a> ディレクティブを指定することで参照されます。このディレクティブは、グループ番号に続けて、ドメインポリシー構文で説明されているアクセス許可を指定します。</p>
-
-<p>以下の例では use_group 0 という指定が行われているドメインに対して /dev/null の参照を許可しています：</p>
-
-<pre>
-acl_group 0 file read /dev/null
-</pre>
-
 <h3><a name="aggregator">aggregator</a></h3>
 
 <p>このディレクティブは、複数のプログラムを同一視するために使用します。このディレクティブは、よく似た振る舞いをする一連のプログラムを集約するためのものです。</p>
@@ -140,24 +130,6 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
-<h3><a name="address_group">address_group</a></h3>
-
-<p>このディレクティブは、ＩＰアドレスのグループを定義します。</p>
-
-<p>例えば、例外ポリシーで以下のように定義しておくことにより：</p>
-
-<pre>
-address_group LOCAL-ADDRESS 10.0.0.0-10.255.255.255
-address_group LOCAL-ADDRESS 172.16.0.0-172.31.255.255
-address_group LOCAL-ADDRESS 192.168.0.0-192.168.255.255
-</pre>
-
-<p>ドメインポリシーで以下のように参照することができます：</p>
-
-<pre>
-network inet stream accept @LOCAL-ADDRESS 1024-65535
-</pre>
-
 <h3><a name="number_group">number_group</a></h3>
 
 <p>このディレクティブは、数値のグループを定義します。</p>
@@ -190,17 +162,6 @@ path_group HOME-DIR-FILE /home/\*/\{\*\}/\*
 
 <pre>
 file read @HOME-DIR-FILE
-</pre>
-
-<h3><a name="deny_autobind">deny_autobind</a></h3>
-
-<p>このディレクティブは、指定されたローカルポートが自動的に割り当てられないようにします。</p>
-
-<p>例えば、プロキシサーバはローカルポートの 8080 を必要とする場合があります。そのため、そのポートが他のプログラムの一時的な利用目的のために割り当てられるべきではありません：</p>
-
-<pre>
-deny_autobind 1-1023
-deny_autobind 8080
 </pre>
 
 </div><!-- documentation -->

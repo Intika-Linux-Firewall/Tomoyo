@@ -38,21 +38,6 @@
 
 <h2>/proc/ccs/ インタフェース</h2>
 
-<h3><a name="audit">/proc/ccs/audit</a></h3>
-
-<p>この読み込み専用インタフェースは、アクセスログを保持しています。読み出すべきアクセスログが存在しない場合にはすぐに戻ります。アクセスログが発生するまで待つには select(2) を使用してください。</p>
-
-<p>このインタフェースは、プロファイルが <a href="#profile">/proc/ccs/profile</a> でどのように設定されているかに依存します。以下のプロファイルのオプションが影響します：</p>
-<ul>
-<li>grant_log</li>
-<li>reject_log</li>
-<li>max_audit_log</li>
-</ul>
-
-<p>また、 <a href="#stat">/proc/ccs/stat</a> で指定可能な、アクセスログのために割り当てるメモリ上限の指定の影響も受けます。</p>
-
-<p>このインタフェースは、主に <a href="../man-pages/index.html.ja#ccs-auditd">ccs-auditd</a> が利用します。</p>
-
 <h3><a name="domain_policy">/proc/ccs/domain_policy</a></h3>
 
 <p>この読み書きインタフェースは、ドメインポリシーを保持しています。 &lt;kernel&gt; から始まる行がドメインの定義であり、その後そのドメインに与えられるアクセス許可の内容が続きます。</p>
@@ -162,12 +147,6 @@ Total memory used:                        201120
 <p>この読み書きインタフェースは、ドメイン名の一覧とそれぞれのドメインに割り当てられているプロファイル番号を保持しています。</p>
 
 <p>このインタフェースは、主に <a href="../man-pages/ccs-setprofile.html.ja">ccs-setprofile</a> が利用します。</p>
-
-<h3><a name=".execute_handler">/proc/ccs/.execute_handler</a></h3>
-
-<p>この読み書きインタフェースは、 execute_handler として動作しているプロセスからのみオープンすることができます。内容は <a href="#.process_status">/proc/ccs/.process_status</a> と同一です。</p>
-
-<p>このインタフェースは、 <a href="domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> および <a href="domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブで指定されたプログラムが、コマンドラインに与えられた引数がカーネルから渡された信頼できるものであるかどうかを判断するために、 execute_handler として動作していることを確認できるようにするために提供されています。</p>
 
 <h3><a name=".process_status">/proc/ccs/.process_status</a></h3>
 

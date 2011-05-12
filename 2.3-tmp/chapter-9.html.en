@@ -50,24 +50,9 @@
 <th><p>Meaning</p></th>
 </tr>
 <tr>
-<td><p>--full-profile</p></td>
-<td><p>Selected</p></td>
-<td><p>Create profiles with all functionality enabled. This is the default unless "--file-only-profile" is specified.</p></td>
-</tr>
-<tr>
-<td><p>--file-only-profile</p></td>
-<td><p>Not selected</p></td>
-<td><p>Create profiles with only file-related functionality enabled.</p></td>
-</tr>
-<tr>
 <td><p>--use_profile="$number"</p></td>
 <td><p>0</p></td>
 <td><p>Set the profile number for the "&lt;kernel&gt;" domain when creating "/etc/ccs/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
-</tr>
-<tr>
-<td><p>--use_group="$number"</p></td>
-<td><p>0</p></td>
-<td><p>Set the ACL group for the "&lt;kernel&gt;" domain when creating "/etc/ccs/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
 </tr>
 <tr>
 <td><p>--root="$rootdir"</p></td>
@@ -78,26 +63,6 @@
 <td><p>--policy_dir="$configdir"</p></td>
 <td><p>/etc/ccs/</p></td>
 <td><p>Change the directory in which to create configuration files. If you specify this option then a symbolic link must be created named "/etc/ccs" that points to "$condigdir".</p></td>
-</tr>
-<tr>
-<td><p>--module_name="$name"</p></td>
-<td><p>ccsecurity</p></td>
-<td><p>Set the name of loadable kernel module when creating "/etc/ccs/ccs-load-module", which is called by "/sbin/ccs-init" if TOMOYO Linux was built as a loadable kernel module (CONFIG_CCSECURITY_LKM=y).</p></td>
-</tr>
-<tr>
-<td><p>--grant_log="$bool"</p></td>
-<td><p>no</p></td>
-<td><p>Set whether grant logs should be audited. This value can be either "yes" or "no".</p></td>
-</tr>
-<tr>
-<td><p>--reject_log="$bool"</p></td>
-<td><p>yes</p></td>
-<td><p>Set whether reject logs should be audited. This value can be either "yes" or "no".</p></td>
-</tr>
-<tr>
-<td><p>--max_audit_log="$number"</p></td>
-<td><p>1024</p></td>
-<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
 </tr>
 <tr>
 <td><p>--max_learning_entry="$number"</p></td>
@@ -185,16 +150,6 @@
 <th><p>Meaning</p></th>
 </tr>
 <tr>
-<td><p>grant_log="$bool"</p></td>
-<td><p>no</p></td>
-<td><p>Set whether grant logs should be audited. This value can be either "yes" or "no".</p></td>
-</tr>
-<tr>
-<td><p>reject_log="$bool"</p></td>
-<td><p>yes</p></td>
-<td><p>Set whether reject logs should be audited. This value can be either "yes" or "no".</p></td>
-</tr>
-<tr>
 <td><p>mode</p></td>
 <td><p>disabled</p></td>
 <td><p>Set what mode to use. See the table below.</p></td>
@@ -242,24 +197,8 @@
 <td><p>All operations</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::capability</p></td>
-<td><p>Non-POSIX Capabilities only</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::file</p></td>
 <td><p>File related operations only</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc</p></td>
-<td><p>Inter-process communications only</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::misc</p></td>
-<td><p>Other miscellaneous parameters only</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network</p></td>
-<td><p>Network related operations only</p></td>
 </tr>
 </table>
 </div>
@@ -289,46 +228,6 @@
 <tr>
 <th><p>Name</p></th>
 <th><p>Functionality to specify operation mode for</p></th>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_kernel_module</p></td>
-<td><p>Use of the create_module(2), init_module(2) and delete_module(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_packet</p></td>
-<td><p>Use of PACKET sockets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_route</p></td>
-<td><p>Use of ROUTE sockets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_KEXEC_LOAD</p></td>
-<td><p>Use of kexec_load(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_NICE</p></td>
-<td><p>Use of nice(2) and setpriority(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_PTRACE</p></td>
-<td><p>Use of ptrace(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_REBOOT</p></td>
-<td><p>Use of reboot(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_SETHOSTNAME</p></td>
-<td><p>Use of sethostname(2) and setdomainname(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_TIME</p></td>
-<td><p>Use of stime(2), settimeofday(2) and adjtimex(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_VHANGUP</p></td>
-<td><p>Use of vhangup(2) syscall</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::execute</p></td>
@@ -418,98 +317,6 @@
 <td><p>CONFIG::file::pivot_root</p></td>
 <td><p>Use of pivot_root</p></td>
 </tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_bind</p></td>
-<td><p>UDP socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_send</p></td>
-<td><p>UDP socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_recv</p></td>
-<td><p>UDP socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_bind</p></td>
-<td><p>TCP socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_listen</p></td>
-<td><p>TCP socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_connect</p></td>
-<td><p>TCP socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_accept</p></td>
-<td><p>TCP socket's accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_bind</p></td>
-<td><p>RAW socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_send</p></td>
-<td><p>RAW socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_recv</p></td>
-<td><p>RAW socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_bind</p></td>
-<td><p>UNIX domain datagram socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_send</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_recv</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_bind</p></td>
-<td><p>UNIX domain stream socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_listen</p></td>
-<td><p>UNIX domain stream socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_connect</p></td>
-<td><p>UNIX domain stream socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_accept</p></td>
-<td><p>UNIX domain stream socket accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_bind</p></td>
-<td><p>UNIX domain seqpacket socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_listen</p></td>
-<td><p>UNIX domain seqpacket socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_connect</p></td>
-<td><p>UNIX domain seqpacket socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_accept</p></td>
-<td><p>UNIX domain seqpacket socket accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::misc::env</p></td>
-<td><p>Environment variable names</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc::signal</p></td>
-<td><p>Use of signal transmission requests</p></td>
-</tr>
 </table>
 </div>
 
@@ -543,16 +350,8 @@
 <th><p>Function</p></th>
 </tr>
 <tr>
-<td><p>max_audit_log</p></td>
-<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
-</tr>
-<tr>
 <td><p>max_learning_entry</p></td>
 <td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
-</tr>
-<tr>
-<td><p>enforcing_penalty</p></td>
-<td><p>Set the sleep penalty in deciseconds (1 decisecond = 0.1 seconds) that occurs when a process violates policy in "Enforcing Mode". This value must be an integer. This is useful to prevent CPU consumption issues.</p></td>
 </tr>
 </table>
 </div>
