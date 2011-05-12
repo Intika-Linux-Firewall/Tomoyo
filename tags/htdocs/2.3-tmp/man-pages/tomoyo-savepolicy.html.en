@@ -11,12 +11,12 @@
 <!-- .\" Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 NTT DATA Corporation. -->
 <!-- .\" -->
 <!-- .\" You may distribute under the terms of the GNU General Public -->
-<!-- .\" License as specified in the file COPYING.ccs that comes with the -->
+<!-- .\" License as specified in the file COPYING.tomoyo that comes with the -->
 <!-- .\" tomoyo-tools source tarball. -->
 <!-- .\" -->
-<!-- .TH "CCS-SAVEPOLICY" "8" "April 2011" "tomoyo-savepolicy 1.8.1" "System Administration Utilities" -->
+<!-- .TH "TOMOYO-SAVEPOLICY" "8" "February 2011" "tomoyo-savepolicy 2.3.0" "System Administration Utilities" -->
 <CENTER>
-<H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>CCS-SAVEPOLICY (8)</NOBR><HR></H1>
+<H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>TOMOYO-SAVEPOLICY (8)</NOBR><HR></H1>
 </CENTER>
 <!-- .SH "NAME" -->
 <A name=>
@@ -34,11 +34,17 @@ tomoyo-savepolicy - save TOMOYO Linux policy
 
 </A>
 <BLOCKQUOTE>
-<!-- .B tomoyo-savepolicy [options] -->
-<B>tomoyo-savepolicy [options]</B> <!-- .sp -->
+<!-- .B tomoyo-savepolicy <directory> -->
+<B>tomoyo-savepolicy &lt;directory&gt;</B> <!-- .sp -->
 <P>
-<!-- .B tomoyo-savepolicy [options] <remote_ip:remote_port> -->
-<B>tomoyo-savepolicy [options] &lt;remote_ip:remote_port&gt;</B> <!-- .SH "DESCRIPTION" -->
+<!-- .B tomoyo-savepolicy <directory> <remote_ip:remote_port> -->
+<B>tomoyo-savepolicy &lt;directory&gt; &lt;remote_ip:remote_port&gt;</B> <!-- .sp -->
+<P>
+<!-- .B tomoyo-savepolicy {-e|-d|-p|-m|-s} -->
+<B>tomoyo-savepolicy {-e|-d|-p|-m|-s}</B> <!-- .sp -->
+<P>
+<!-- .B tomoyo-savepolicy {-e|-d|-p|-m|-s} <remote_ip:remote_port> -->
+<B>tomoyo-savepolicy {-e|-d|-p|-m|-s} &lt;remote_ip:remote_port&gt;</B> <!-- .SH "DESCRIPTION" -->
 </BLOCKQUOTE>
 <A name=>
 
@@ -46,7 +52,7 @@ tomoyo-savepolicy - save TOMOYO Linux policy
 
 </A>
 <BLOCKQUOTE>
-This program saves TOMOYO Linux policy that is in kernel memory onto the disk. Four files are saved by running this command: <I>/etc/tomoyo/domain_policy.conf</I>, <I>/etc/tomoyo/exception_policy.conf</I>, <I>/etc/tomoyo/profile.conf</I> and <I>/etc/tomoyo/manager.conf</I>.
+This program saves TOMOYO Linux&#146;s policy from kernel into files.
 <!-- .SH "OPTIONS" -->
 </BLOCKQUOTE>
 <A name=>
@@ -55,42 +61,58 @@ This program saves TOMOYO Linux policy that is in kernel memory onto the disk. F
 
 </A>
 <BLOCKQUOTE>
-<B>-e</B>
+<B>e</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/sys/kernel/security/tomoyo/exception_policy</I> to standard output.
+Save exception policy. ( /sys/kernel/security/tomoyo/exception_policy =&gt; policy_dir/exception_policy.conf )
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
 <P>
-<B>-d</B>
+<B>d</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/sys/kernel/security/tomoyo/domain_policy</I> to standard output.
+Save domain policy. ( /sys/kernel/security/tomoyo/domain_policy =&gt; policy_dir/domain_policy.conf )
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
 <P>
-<B>-p</B>
+<B>a</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/sys/kernel/security/tomoyo/profile</I> to standard output.
+Save exception policy and domain policy. This is default.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
 <P>
-<B>-m</B>
+<B>p</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/sys/kernel/security/tomoyo/manager</I> to standard output.
+Save profile. ( /sys/kernel/security/tomoyo/profile =&gt; policy_dir/profile.conf )
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
 <P>
-<B>-s</B>
+<B>m</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/sys/kernel/security/tomoyo/meminfo</I> to standard output.
+Save manager. ( /sys/kernel/security/tomoyo/manager =&gt; policy_dir/manager.conf )
+<!-- .RE -->
+</BLOCKQUOTE>
+<!-- .PP -->
+<P>
+<B>u</B>
+<!-- .RS 4 -->
+<BLOCKQUOTE>
+Print meminfo. Implies &#146;-&#146; option. ( /sys/kernel/security/tomoyo/meminfo )
+<!-- .RE -->
+</BLOCKQUOTE>
+<!-- .PP -->
+<P>
+<B>-</B>
+<!-- .RS 4 -->
+<BLOCKQUOTE>
+Write policy to stdout. Specify only one of "edpmu" option when you use this option.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -98,7 +120,7 @@ Print <I>/sys/kernel/security/tomoyo/meminfo</I> to standard output.
 <B>&lt;directory&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Save policy to the specified directory instead of the default <I>/etc/tomoyo/</I>.
+Save policy to this directory. This must start with a "/". The default is /etc/tomoyo/.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -106,7 +128,7 @@ Save policy to the specified directory instead of the default <I>/etc/tomoyo/</I
 <B>&lt;remote_ip:remote_port&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Instead of saving local policy, save policy via an agent connected to the specified IP address and port number.
+Instead of saving local policy, save policy via an agent waiting at port <I>&lt;remote_port&gt;</I> on IP address <I>&lt;remote_ip&gt;</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .SH "EXAMPLES" -->
@@ -125,16 +147,16 @@ tomoyo-savepolicy
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Print /sys/kernel/security/tomoyo/exception_policy to standard output: -->
-<B>Print /sys/kernel/security/tomoyo/exception_policy to standard output:</B> <!-- .nf -->
+<!-- .B Save exception policy to disk: -->
+<B>Save exception policy to disk:</B> <!-- .nf -->
 <PRE>
-tomoyo-savepolicy -e
+tomoyo-savepolicy e
 <!-- .fi -->
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Retrieve policy from 192.168.1.1:10000 and save into the /etc/tomoyo/192.168.1.1 directory: -->
-<B>Retrieve policy from 192.168.1.1:10000 and save into the /etc/tomoyo/192.168.1.1 directory:</B> <!-- .nf -->
+<!-- .B Retrieve policy from 192.168.1.1:10000 and save into the \&"/etc/tomoyo/192.168.1.1/\&" directory: -->
+<B>Retrieve policy from 192.168.1.1:10000 and save into the  /etc/tomoyo/192.168.1.1/ directory:</B> <!-- .nf -->
 <PRE>
 tomoyo-savepolicy /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000
 <!-- .fi -->
@@ -157,8 +179,18 @@ If there are any bugs, send an email with as much detail as possible to
 
 </A>
 <BLOCKQUOTE>
-Tetsuo Handa &lt;penguin-kernel _at_ I-love.SAKURA.ne.jp&gt;
-<!-- .SH "SEE ALSO" -->
+<!-- .sp -->
+Main authors:
+<BLOCKQUOTE>
+Tetsuo Handa &lt;penguin-kernel AT I-love.SAKURA.ne.jp&gt;
+</BLOCKQUOTE>
+</BLOCKQUOTE>
+<BLOCKQUOTE>
+Other contributers:
+<BLOCKQUOTE>
+<P>Jamie Nguyen &lt;jamie AT tomoyolinux.co.uk&gt;</P>
+<P>Man pages, documentation and website.</P>
+</BLOCKQUOTE>
 </BLOCKQUOTE>
 <A name=>
 
@@ -174,5 +206,5 @@ Tetsuo Handa &lt;penguin-kernel _at_ I-love.SAKURA.ne.jp&gt;
 See <A HREF="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</A> for more information.
 </BLOCKQUOTE>
 <P><HR>
-<TABLE width=100%><TR> <TD width=33%><I>tomoyo-savepolicy 1.8.1</I></TD> <TD width=33% align=center>CCS-SAVEPOLICY (8)</TD> <TD align=right width=33%><I>April 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from tomoyo-savepolicy.8 using man macros.</FONT>
+<TABLE width=100%><TR> <TD width=33%><I>tomoyo-savepolicy 2.3.0</I></TD> <TD width=33% align=center>TOMOYO-SAVEPOLICY (8)</TD> <TD align=right width=33%><I>February 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from tomoyo-savepolicy using man macros.</FONT>
 </BODY></HTML>
