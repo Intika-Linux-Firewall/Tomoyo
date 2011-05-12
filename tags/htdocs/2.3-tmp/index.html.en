@@ -36,116 +36,25 @@
 
 <p>Welcome to the official documentation of TOMOYO Linux 2.3.x branch. <a href="chapter-1.html.en">Get started now!</a></p>
 
-<h3><a name="core">Core Topics</a></h3>
+<p>For the full contents page and more advanced topics, <a href="index-long.html.en">click here.</a></p>
 
-<p><strong>Chapter 1: <a class="black" href="chapter-1.html.en">Introduction</a></strong></p>
-<ul>
-<li>1.1. <a href="chapter-1.html.en#1.1">Introduction to this guide</a></li>
-<li>1.2. <a href="chapter-1.html.en#1.2">Typography</a></li>
-</ul>
-<p><strong>Chapter 2: <a class="black" href="chapter-2.html.en">Why do I need TOMOYO Linux?</a></strong></p>
-<ul>
-<li>2.1. <a href="chapter-2.html.en#2.1">What is TOMOYO Linux?</a></li>
-<li>2.2. <a href="chapter-2.html.en#2.2">What is Mandatory Access Control?</a></li>
-<li>2.3. <a href="chapter-2.html.en#2.3">How can TOMOYO Linux help me?</a></li>
-</ul>
-<p><strong>Chapter 3: <a class="black" href="chapter-3.html.en">How do I install TOMOYO Linux?</a></strong></p>
-<ul>
-<li>3.1. <a href="chapter-3.html.en#3.1">Install the kernel</a><br>
-  <ul class="nested">
-    <li>3.1.1. <a href="chapter-3.html.en#3.1.1">Determine if your kernel has TOMOYO Linux enabled</a></li>
-    <li>3.1.2. <a href="chapter-3.html.en#3.1.2">Install dependencies</a></li>
-    <li>3.1.3. <a href="chapter-3.html.en#3.1.3">Download the kernel</a></li>
-    <li>3.1.4. <a href="chapter-3.html.en#3.1.4">Configure the kernel</a></li>
-    <li>3.1.5. <a href="chapter-3.html.en#3.1.5">Compile and install the kernel</a></li>
-  </ul></li>
-<li>3.2. <a href="chapter-3.html.en#3.2">Install the userspace tools</a><br>
-  <ul class="nested">
-    <li>3.2.1. <a href="chapter-3.html.en#3.2.1">Determine if binary packages are provided</a></li>
-    <li>3.2.2. <a href="chapter-3.html.en#3.2.2">Install tools from source</a></li>
-  </ul></li>
-<li>3.3. <a href="chapter-3.html.en#3.3">Initialize configuration</a></li>
-<li>3.4. <a href="chapter-3.html.en#3.4">Configure bootloader</a></li>
-<li>3.5. <a href="chapter-3.html.en#3.5">Rebooting your system</a></li>
-<li>3.6. <a href="chapter-3.html.en#3.6">How do I disable/uninstall TOMOYO Linux?</a></li>
-</ul>
-<p><strong>Chapter 4: <a class="black" href="chapter-4.html.en">How does TOMOYO Linux work?</a></strong></p>
-<ul>
-<li>4.1. <a href="chapter-4.html.en#4.1">Understanding domains</a></li>
-<li>4.2. <a href="chapter-4.html.en#4.2">View domains with the policy editor</a></li>
-<li>4.3. <a href="chapter-4.html.en#4.3">Understanding profiles</a></li>
-<li>4.4. <a href="chapter-4.html.en#4.4">Understanding domain policy</a></li>
-<li>4.5. <a href="chapter-4.html.en#4.5">Understanding exception policy</a></li>
-<p><strong>Chapter 5: <a class="black" href="chapter-5.html.en">How do I manage domains?</a></strong></p>
-<ul>
-<li>5.1. <a href="chapter-5.html.en#5.1">Domain creation</a></li>
-<li>5.2. <a href="chapter-5.html.en#5.2">Management of domain transitions</a><br>
-  <ul class="nested">
-    <li>5.2.1. <a href="chapter-5.html.en#5.2.1">initialize_domain</a></li>
-    <li>5.2.2. <a href="chapter-5.html.en#5.2.2">no_initialize_domain</a></li>
-    <li>5.2.3. <a href="chapter-5.html.en#5.2.2">keep_domain</a></li>
-    <li>5.2.4. <a href="chapter-5.html.en#5.2.4">no_keep_domain</a></li>
-  </ul></li>
-<li>5.3. <a href="chapter-5.html.en#5.3">Switching to learning mode</a></li>
-<li>5.4. <a href="chapter-5.html.en#5.4">Gathering necessary permissions</a></li>
-<li>5.5. <a href="chapter-5.html.en#5.5">Saving permissions to disk</a></li>
-<li>5.6. <a href="chapter-5.html.en#5.6">Managing memory usage</a></li>
-</ul>
-<p><strong>Chapter 6: <a class="black" href="chapter-6.html.en">How do I develop policy?</a></strong></p>
-<ul>
-<li>6.1. <a href="chapter-6.html.en#6.1">Patterning temporary files</a></li>
-<li>6.2. <a href="chapter-6.html.en#6.2">Patterning file access permissions</a></li>
-<li>6.3. <a href="chapter-6.html.en#6.3">Patterning numeric permissions</a></li>
-<li>6.5. <a href="chapter-6.html.en#6.5">Reviewing gathered permissions</a></li>
-</ul>
-<p><strong>Chapter 7: <a class="black" href="chapter-7.html.en">How do I enforce policy?</a></strong></p>
-<ul>
-<li>7.1. <a href="chapter-7.html.en#7.1">Enabling enforcing mode</a></li>
-<li>7.2. <a href="chapter-7.html.en#7.2">Enabling enforcing mode for all domains</a></li>
-<li>7.3. <a href="chapter-7.html.en#7.3">Handling policy violations in real-time</a><br>
-  <ul class="nested">
-    <li>7.3.1. <a href="chapter-7.html.en#7.3.1">Example usage of "tomoyo-queryd"</a></li>
-    <li>7.3.2. <a href="chapter-7.html.en#7.3.2">Example output from "tomoyo-queryd"</a></li>
-  </ul></li>
-<li>7.4. <a href="chapter-7.html.en#7.4">Notification daemon</a></li>
-<li>7.5. <a href="chapter-7.html.en#7.5">Beyond the core topics</a></li>
-</ul>
+<h3><a href="index-long.html.en#core">Core Topics</a></h3>
 
-<h3><a name="advanced">Advanced topics</a></h3>
+<p><strong>Chapter 1: <a href="chapter-1.html.en">Introduction</a></strong></p>
+<p><strong>Chapter 2: <a href="chapter-2.html.en">Why do I need TOMOYO Linux?</a></strong></p>
+<p><strong>Chapter 3: <a href="chapter-3.html.en">How do I install TOMOYO Linux?</a></strong></p>
+<p><strong>Chapter 4: <a href="chapter-4.html.en">How does TOMOYO Linux work?</a></strong></p>
+<p><strong>Chapter 5: <a href="chapter-5.html.en">How do I manage domains?</a></strong></p>
+<p><strong>Chapter 6: <a href="chapter-6.html.en">How do I develop policy?</a></strong></p>
+<p><strong>Chapter 7: <a href="chapter-7.html.en">How do I enforce policy?</a></strong></p>
+<p><strong>Chapter 8-10: <a href="index-long.html.en#advanced">Advanced Topics</a></strong></p>
 
-<p><strong>Chapter 8: <a class="black" href="chapter-8.html.en">Interface permissions</a></strong></p>
-<ul>
-<li>8.1. <a href="chapter-8.html.en#8.1">Register applications</a></li>
-<li>8.2. <a href="chapter-8.html.en#8.2">Managing as non-root user</a></li>
-</ul>
+<h3><a href="index-long.html.en#appendix">Appendix</a></h3>
 
-<p><strong>Chapter 9: <a class="black" href="chapter-9.html.en">Advanced profile management</a></strong></p>
-<ul>
-<li>9.1. <a href="chapter-9.html.en#9.1">Profile initialization</a></li>
-<li>9.2. <a href="chapter-9.html.en#9.2">Profile syntax</a><br>
-  <ul class="nested">
-    <li>9.2.1. <a href="chapter-9.html.en#9.2.1">Fields</a></li>
-    <li>9.2.2. <a href="chapter-9.html.en#9.2.2">The CONFIG field</a></li>
-    <li>9.2.3. <a href="chapter-9.html.en#9.2.3">The PREFERENCE field</a></li>
-  </ul></li>
-</ul>
-
-<p><strong>Chapter 10: <a class="black" href="chapter-10.html.en">Reinforced authentication</a></strong></p>
-<ul>
-<li>10.1. <a href="chapter-10.html.en#10.1">Illegal SSH logins</a></li>
-<li>10.2. <a href="chapter-10.html.en#10.2">Splitting root permissions</a></li>
-<li>10.3. <a href="chapter-10.html.en#10.3">Example authentication programs</a></li>
-</ul>
-
-<h3><a name="appendix">Appendix</a></h3>
-
-<p><strong>Appendix A: <a class="black" href="man-pages/index.html.en">The userspace tools</a></strong></p>
-
-<p><strong>Appendix B: <a class="black" href="policy-specification/index.html.en">Policy specification</a></strong></p>
-
-<p><strong>Appendix C: <a class="black" href="tool-editpolicy.html.en">How to use the policy editor</a></strong></p>
-
-<p><strong>Appendix I: <a class="black" href="sftp-protection-using-environment-variable.html.en">Protecting SFTP service</a></strong></p>
+<p><strong>Appendix A: <a href="man-pages/index.html.en">The userspace tools</a></strong></p>
+<p><strong>Appendix B: <a href="policy-specification/index.html.en">Policy specification</a></strong></p>
+<p><strong>Appendix C: <a href="tool-editpolicy.html.en">How to use the policy editor</a></strong></p>
+<p><strong>Appendix I: <a href="sftp-protection-using-environment-variable.html.en">Protecting SFTP service</a></strong></p>
 
 </div><!-- regular-content -->
 
