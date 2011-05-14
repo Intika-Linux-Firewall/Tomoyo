@@ -339,7 +339,7 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 
 <h2><a name="suppress_domain_transition"></a> <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブおよび <a href="policy-specification/exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブ</h2>
 
-<p><a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブは Exception Policy Editor および Domain Transition Editor 画面に関連します。まず、 Exception Policy Editor 画面に切り替えて、 a キーを押して keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash のようなエントリを追加します。 Domain Transition Editor 画面に戻ると、ディレクティブで指定したドメインに # マークが、ディレクティブで指定したドメインの子孫ドメインには ! マークが表示されます：</p>
+<p><a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブは Exception Policy Editor および Domain Transition Editor 画面に関連します。まず、 Exception Policy Editor 画面に切り替えて、 a キーを押して keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash のようなエントリを追加します。 Domain Transition Editor 画面に戻ると、ディレクティブで指定したドメインに # マークが、ディレクティブで指定したドメインの子孫ドメインには ! マークが表示されます：</p>
 
 <a href="editpolicy/after-keep_domain-1.png"><img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></a>
 
@@ -347,7 +347,7 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 
 <img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400">
 
-<p>Exception Policy Editor 画面で keep_domain any from /usr/bin/man のように指定することにより、 /usr/bin/man から先のドメイン遷移を行わないようにすることもできます。 Domain Transition Editor 画面で確認してください：</p>
+<p>Exception Policy Editor 画面で keep_domain /usr/bin/man のように指定することにより、 /usr/bin/man から先のドメイン遷移を行わないようにすることもできます。 Domain Transition Editor 画面で確認してください：</p>
 
 <a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-keep_domain-2.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
 

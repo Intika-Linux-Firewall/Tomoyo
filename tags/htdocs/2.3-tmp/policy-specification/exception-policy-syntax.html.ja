@@ -54,18 +54,15 @@ aggregator /usr/bin/tac /usr/bin/cat
 
 <p>可能な組み合わせ：</p>
 <ul>
-<li>initialize_domain "program" from any</li>
+<li>initialize_domain "program"</li>
 <li>initialize_domain "program" from "last_pathname_of_domain"</li>
 <li>initialize_domain "program" from "domain"</li>
-<li>initialize_domain any from any</li>
-<li>initialize_domain any from "last_pathname_of_domain"</li>
-<li>initialize_domain any from "domain"</li>
 </ul>
 
 <p>以下の例では <code>/usr/sbin/sshd</code> が実行されると &lt;kernel&gt; /usr/sbin/sshd ドメインに遷移するように指定しています：</p>
 
 <pre>
-initialize_domain /usr/sbin/sshd from any
+initialize_domain /usr/sbin/sshd
 </pre>
 
 <h3><a name="no_initialize_domain">no_initialize_domain</a></h3>
@@ -74,18 +71,15 @@ initialize_domain /usr/sbin/sshd from any
 
 <p>可能な組み合わせ：</p>
 <ul>
-<li>no_initialize_domain "program" from any</li>
+<li>no_initialize_domain "program"</li>
 <li>no_initialize_domain "program" from "last_pathname_of_domain"</li>
 <li>no_initialize_domain "program" from "domain"</li>
-<li>no_initialize_domain any from any</li>
-<li>no_initialize_domain any from "last_pathname_of_domain"</li>
-<li>no_initialize_domain any from "domain"</li>
 </ul>
 
 <p>以下の例ではドメイン名が /bin/mail で終わるドメインから <code>/usr/sbin/sendmail.sendmail</code> が実行された場合には &lt;kernel&gt; /usr/sbin/sendmail.sendmail ドメインへと遷移しないようにしています：</p>
 
 <pre>
-initialize_domain /usr/sbin/sendmail.sendmail from any
+initialize_domain /usr/sbin/sendmail.sendmail
 no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 </pre>
 
@@ -95,18 +89,16 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 
 <p>可能な組み合わせ：</p>
 <ul>
-<li>keep_domain "program" from any</li>
 <li>keep_domain "program" from "last_pathname_of_domain"</li>
 <li>keep_domain "program" from "domain"</li>
-<li>keep_domain any from any</li>
-<li>keep_domain any from "last_pathname_of_domain"</li>
-<li>keep_domain any from "domain"</li>
+<li>keep_domain "last_pathname_of_domain"</li>
+<li>keep_domain "domain"</li>
 </ul>
 
 <p>以下の例では &lt;kernel&gt; /usr/sbin/sshd /bin/bash ドメインからプログラムが実行されてもドメイン遷移を行わないように指定しています：</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
 <h3><a name="no_keep_domain">no_keep_domain</a></h3>
@@ -115,18 +107,16 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 
 <p>可能な組み合わせ：</p>
 <ul>
-<li>no_keep_domain "program" from any</li>
 <li>no_keep_domain "program" from "last_pathname_of_domain"</li>
 <li>no_keep_domain "program" from "domain"</li>
-<li>no_keep_domain any from any</li>
-<li>no_keep_domain any from "last_pathname_of_domain"</li>
-<li>no_keep_domain any from "domain"</li>
+<li>no_keep_domain "last_pathname_of_domain"</li>
+<li>no_keep_domain "domain"</li>
 </ul>
 
 <p>以下の例では /bin/cat が &lt;kernel&gt; /usr/sbin/sshd /bin/bash ドメインから実行された場合にはドメイン遷移を行うように指定しています：</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 

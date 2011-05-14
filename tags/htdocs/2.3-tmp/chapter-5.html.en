@@ -73,14 +73,14 @@
 <p>To do this, we need to enter a new entry into the exception policy. For example, you might add the following directive to exception policy:</p>
 
 <pre>
-initialize_domain /usr/sbin/sshd from any
+initialize_domain /usr/sbin/sshd
 </pre>
 
 <p>Of course, "/usr/sbin/sshd" can be the full pathname of any application you wish to control domain transitions for. Having added this to exception policy, the application will now not create a new domain every time a unique execution occurs. Instead, it will reinitialize the domain to <strong>"&lt;kernel&gt; /usr/sbin/sshd"</strong>:</p>
 
 <img src="media/fig-3-4.png" alt="fig-3-4.png" width="600" height="315">
 
-<p>The text "from any" included in the above directive signifies that the application domain should be reinitialized when invoked by <strong>any domain</strong>. It is possible to cause reinitialization to happen only when the application domain is invoked by <strong>a single specified domain</strong>. This is achieved by adding the following to exception policy:</p>
+<p>The above directive signifies that the application domain should be reinitialized when invoked by <strong>any domain</strong>. It is possible to cause reinitialization to happen only when the application domain is invoked by <strong>a single specified domain</strong>. This is achieved by adding the following to exception policy:</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
@@ -99,7 +99,7 @@ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 <p>After using the initialize_domain rule, a situation may arise where you do not want an application to be reinitialized from a particular domain. For example, the application <code>/bin/mail</code> executes <code>/usr/sbin/sendmail.sendmail</code> in order to send mails. Consider that the following has been added to exception policy:</p>
 
 <pre>
-initialize_domain /usr/sbin/sendmail.sendmail from any
+initialize_domain /usr/sbin/sendmail.sendmail
 </pre>
 
 <p>For example, if you wish to have separate permissions for sending mail and receiving mail, you can add the following to exception policy:</p>
@@ -115,7 +115,7 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 <p>It may be preferable that any executed applications from a particular domain are <strong>suppressed from undergoing a domain transition</strong>. They therefore act within the permissions of the domain that has invoked it. For example, suppose you wish apply the same policy to all applications run within an ssh shell, you would add the following to exception policy:</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
 <img src="media/fig-3-9.png" alt="fig-3-9.png" width="600" height="262">
@@ -125,7 +125,7 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <p>This could also be done for any shell instance by adding the following to exception policy:</p>
 
 <pre>
-keep_domain any from /bin/bash
+keep_domain /bin/bash
 </pre>
 
 <img src="media/fig-3-8.png" alt="fig-3-8.png" width="600" height="315">
@@ -151,7 +151,7 @@ keep_domain /usr/bin/xargs from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <p>For example, if you wish to resume domain transition only for <code>/bin/cat</code>, you could add the following to exception policy:</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
@@ -164,7 +164,7 @@ no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <p>To continue with our target application, Apache, let's register it with the <a href="#5.2.1">initialize_domain</a> directive:</p>
 
 <pre>
-initialize_domain /usr/sbin/httpd from any
+initialize_domain /usr/sbin/httpd
 </pre>
 
 <p>Now we can manage all instances of Apache from the "&lt;kernel&gt; /usr/sbin/httpd" domain. Any domains that appear with a "!" mark can be safely deleted as they are unreachable. To start developing policy for this domain, we need to switch it to "Learning Mode".</p>

@@ -69,19 +69,19 @@
 </tr>
 <tr>
 <td><p>(4) <a href="exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> ディレクティブのチェック</p></td>
-<td><p>もし、例外ポリシーに no_initialize_domain [candidate] from [source] または no_initialize_domain any from [source] または no_initialize_domain any from any というエントリが存在している場合、ステップ (6) へと進みます。</p></td>
+<td><p>もし、例外ポリシーに no_initialize_domain [candidate] from [source] というエントリが存在している場合、ステップ (6) へと進みます。</p></td>
 </tr>
 <tr>
 <td><p>(5) <a href="exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブのチェック</p></td>
-<td><p>もし、例外ポリシーに initialize_domain [candidate] from [source] または initialize_domain any from [source] または initialize_domain any from any というエントリが存在している場合、 &lt;kernel&gt; [candidate] を [destination] としてステップ (8) へと進みます。</p></td>
+<td><p>もし、例外ポリシーに initialize_domain [candidate] from [source] というエントリが存在している場合、 &lt;kernel&gt; [candidate] を [destination] としてステップ (8) へと進みます。</p></td>
 </tr>
 <tr>
 <td><p>(6) <a href="exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> ディレクティブのチェック</p></td>
-<td><p>もし、例外ポリシーに no_keep_domain [candidate] from [source] または no_keep_domain any from [source] または no_keep_domain any from any というエントリが存在している場合、現在のドメイン名と [candidate] を連結したドメイン名を [destination] としてステップ (8) へと進みます。</p></td>
+<td><p>もし、例外ポリシーに no_keep_domain [candidate] from [source] または no_keep_domain [source] というエントリが存在している場合、現在のドメイン名と [candidate] を連結したドメイン名を [destination] としてステップ (8) へと進みます。</p></td>
 </tr>
 <tr>
 <td><p>(7) <a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブのチェック</p></td>
-<td><p>もし、例外ポリシーに keep_domain [candidate] from [source] または keep_domain any from [source] または keep_domain any from any というエントリが存在している場合、現在のドメイン名を [destination] とします。<br>
+<td><p>もし、例外ポリシーに keep_domain [candidate] from [source] または keep_domain [source] というエントリが存在している場合、現在のドメイン名を [destination] とします。<br>
 存在しない場合、現在のドメイン名と [candidate] を連結したドメイン名を [destination] とします。</p></td>
 </tr>
 <tr>
