@@ -47,6 +47,9 @@
 <pre class="command">
 $ grep tomoyo_supervisor /proc/kallsyms
 </pre>
+<pre class="output">
+ffffffff8115e460 T tomoyo_supervisor
+</pre>
 
 <p>If you found a line containing tomoyo_supervisor in "/proc/kallsyms", proceed to <a href="#3.2">3.2. Install the userspace tools</a> because your kernel was built with TOMOYO Linux.</p>
 
@@ -169,7 +172,7 @@ Creating memory quota policy... OK
 
 <h3><a name="3.4">3.4. Configure bootloader</a></h3>
 
-<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If you kernel config does not contain "CONFIG_DEFAULT_SECURITY_TOMOYO=y", then edit your bootloader to include "security=tomoyo" in the kernel boot options. Depending on your distribution, the bootloader configuration file will probably be one of "/boot/grub/grub.conf" or "/boot/grub/menu.lst" (for GRUB version 1) or "/boot/grub/grub.cfg" (for GRUB version 2). Consult your distribution documentation for information on how to edit the bootloader.</p>
+<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If your kernel config does not contain "CONFIG_DEFAULT_SECURITY_TOMOYO=y", then edit your bootloader to include "security=tomoyo" in the kernel boot options. Depending on your distribution, the bootloader configuration file will probably be one of "/boot/grub/grub.conf" or "/boot/grub/menu.lst" (for GRUB version 1) or "/boot/grub/grub.cfg" (for GRUB version 2). Consult your distribution documentation for information on how to configure the bootloader.</p>
 
 <h3><a name="3.5">3.5. Rebooting your system</a></h3>
 

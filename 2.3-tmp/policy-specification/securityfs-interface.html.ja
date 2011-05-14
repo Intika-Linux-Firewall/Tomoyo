@@ -98,9 +98,7 @@
 
 <h3><a name="self_domain">/sys/kernel/security/tomoyo/self_domain</a></h3>
 
-<p>この読み書きインタフェースは、呼び出し元プロセスが属しているドメイン名を保持しています。</p>
-
-<p>このインタフェースに対して <a href="domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブで指定されているドメイン名を書き込むことにより、そのドメインへと遷移することができます。</p>
+<p>この読み込み専用インタフェースは、呼び出し元プロセスが属しているドメイン名を保持しています。</p>
 
 <h3><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h3>
 
@@ -111,16 +109,15 @@
 </pre>
 
 <pre class="output">
-Memory used by policy:                     41792
-Memory used by audit log:                 159328
-Memory used by query message:                  0
-Total memory used:                        201120
+Policy:          1081504
+Query lists:           0   (Quota:    1048576)
+Total:           1081504
 </pre>
 
 <ul>
-<li><strong>Memory used by policy</strong> はアクセス許可を保持しておくために使われているメモリの量です。</li>
-<li><strong>Memory used by query message</strong> は管理者の判断を待っているアクセス要求を保持しておくために使われているメモリの量です。</li>
-<li><strong>Total memory used</strong> は使用しているメモリの合計です。</li>
+<li><strong>Policy</strong> はアクセス許可を保持しておくために使われているメモリの量です。</li>
+<li><strong>Query lists</strong> は管理者の判断を待っているアクセス要求を保持しておくために使われているメモリの量です。</li>
+<li><strong>Total</strong> は使用しているメモリの合計です。</li>
 </ul>
 
 <p>このインタフェースは、メモリ使用量の上限を設定することが可能です。</p>

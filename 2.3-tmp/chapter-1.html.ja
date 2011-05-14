@@ -55,15 +55,15 @@
 <p>上記の書式は、この書式内のテキストがコマンドとしてターミナルから実行されるものであることを示しています。 # で始まる行は root ユーザとして実行する必要があるコマンドを、 $ で始まる行は非 root ユーザとして実行すべきコマンドを示しています。テキスト中のコマンド名は <code>tomoyo-editpolicy</code> のように表記されています。</p>
 
 <pre class="output">
-Memory used by policy:                    165728
-Memory used by query message:                  0 (Quota:    1048576)
-Total memory used:                        165728
+Policy:          1081504
+Query lists:           0   (Quota:    1048576)
+Total:           1081504
 </pre>
 
 <p>上記の書式は、この書式内のテキストがターミナルから実行されたコマンドの出力であることを示しています。</p>
 
 <pre>
-number_group WEB-CLIENT-PORTS 1024-65535
+number_group ANY_NUMBER 0-0xFFFFFFFF
 </pre>
 
 <p>上記の書式は、この書式内のテキストがコマンドラインでもコマンドやターミナルの出力でも無いことを示しています。例えば設定ファイルの内容かもしれませんし、ポリシーエディタや設定ファイルに入力すべきテキストかもしれません。</p>
