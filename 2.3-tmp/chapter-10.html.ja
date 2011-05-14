@@ -62,7 +62,7 @@ initialize_domain /usr/sbin/sshd
 <p>この指定により、ＳＳＨログイン時のログインシェルのドメインは &lt;kernel&gt; /usr/sbin/sshd /bin/bash のようになります。なお、このドメインに対して <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブが指定されていないことを確認してください。このドメインに対しては、 auth1 スクリプトの実行だけを認め、その他のプログラムの実行を認めないようにしてください：</p>
 
 <pre>
-file execute /bin/auth1 exec.realpath="/bin/auth1"
+allow_execute /bin/auth1 exec.realpath="/bin/auth1"
 </pre>
 
 <p>これ以降、ＳＳＨログインをした後、ログインしたユーザは追加のログイン認証を経なければ先へ進めなくなります。もし、攻撃者による不正なログインであった場合、追加のログイン認証のメカニズムを知ることができないことでしょう。上記のスクリプトにはあなたか望む突拍子もないメカニズムを使用することができます。</p>

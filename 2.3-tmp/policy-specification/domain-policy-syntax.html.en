@@ -38,14 +38,14 @@
 
 <h2>Domain policy syntax</h2>
 
-<h3><a name="file_execute">file execute</a></h3>
+<h3><a name="file_execute">allow_execute</a></h3>
 
 <p>This directive allows execution of the specified pathname.</p>
 
 <p>This example allows the domain to execute <code>/bin/ls</code>:</p>
 
 <pre>
-file execute /bin/ls
+allow_execute /bin/ls
 </pre>
 
 <p>See also:</p>
@@ -54,14 +54,14 @@ file execute /bin/ls
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_read">file read</a></h3>
+<h3><a name="file_read">allow_read</a></h3>
 
 <p>This directive allows the domain to open the specified pathname for reading.</p>
 
 <p>This example allows the domain to read "/proc/meminfo":</p>
 
 <pre>
-file read proc:/meminfo
+allow_read /proc/meminfo
 </pre>
 
 <p>See also:</p>
@@ -69,14 +69,14 @@ file read proc:/meminfo
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_write">file write</a></h3>
+<h3><a name="file_write">allow_write</a></h3>
 
 <p>This directive allows the domain to open the specified pathname for writing.</p>
 
 <p>This example allows the domain to write to "/dev/null":</p>
 
 <pre>
-file write /dev/null
+allow_write /dev/null
 </pre>
 
 <p>See also:</p>
@@ -99,14 +99,14 @@ file append /var/log/auth.log
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_create">file create</a></h3>
+<h3><a name="file_create">allow_create</a></h3>
 
 <p>This directive allows the domain to create the specified file with the specified permissions.</p>
 
 <p>This example allows the domain to create the file "/var/lock/subsys/crond":</p>
 
 <pre>
-file create /var/lock/subsys/crond 0644
+allow_create /var/lock/subsys/crond 0644
 </pre>
 
 <p>See also:</p>
@@ -115,14 +115,14 @@ file create /var/lock/subsys/crond 0644
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unlink">file unlink</a></h3>
+<h3><a name="file_unlink">allow_unlink</a></h3>
 
 <p>This directive allows the domain to delete the specified pathname.</p>
 
 <p>This example allows the domain to delete the file "/var/lock/subsys/crond":</p>
 
 <pre>
-file unlink /var/lock/subsys/crond
+allow_unlink /var/lock/subsys/crond
 </pre>
 
 <p>See also:</p>
@@ -130,14 +130,14 @@ file unlink /var/lock/subsys/crond
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chown">file chown</a></h3>
+<h3><a name="file_chown">allow_chown</a></h3>
 
 <p>This directive allows the domain to change the user ownership of the specified pathname to the specified UID.</p>
 
 <p>This example allows the domain to change the owner of "/dev/sda" to UID=0:</p>
 
 <pre>
-file chown /dev/sda 0
+allow_chown /dev/sda 0
 </pre>
 
 <p>See also:</p>
@@ -146,14 +146,14 @@ file chown /dev/sda 0
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chgrp">file chgrp</a></h3>
+<h3><a name="file_chgrp">allow_chgrp</a></h3>
 
 <p>This directive allows the domain to change group ownership of the specified pathname to the specified GID.</p>
 
 <p>This example allows the domain to change the GID of "/dev/audio" to 92:</p>
 
 <pre>
-file chgrp /dev/audio 92
+allow_chgrp /dev/audio 92
 </pre>
 
 <p>See also:</p>
@@ -162,14 +162,14 @@ file chgrp /dev/audio 92
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chmod">file chmod</a></h3>
+<h3><a name="file_chmod">allow_chmod</a></h3>
 
 <p>This directive allows the domain to change permissions of the specified pathname to the specified octal permissions.</p>
 
 <p>This example allows the domain to change the octal permissions of "/dev/mem" to 0644:</p>
 
 <pre>
-file chmod /dev/mem 0644
+allow_chmod /dev/mem 0644
 </pre>
 
 <p>See also:</p>
@@ -178,14 +178,14 @@ file chmod /dev/mem 0644
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkdir">file mkdir</a></h3>
+<h3><a name="file_mkdir">allow_mkdir</a></h3>
 
 <p>This directive allows the domain to create the specified directory with the specified permissions.</p>
 
 <p>This example allows the domain to create directories that match "/tmp/logwatch.\*/":</p>
 
 <pre>
-file mkdir /tmp/logwatch.\*/ 0755
+allow_mkdir /tmp/logwatch.\*/ 0755
 </pre>
 
 <p>See also:</p>
@@ -194,14 +194,14 @@ file mkdir /tmp/logwatch.\*/ 0755
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rmdir">file rmdir</a></h3>
+<h3><a name="file_rmdir">allow_rmdir</a></h3>
 
 <p>This directive allows the domain to delete the specified directory.</p>
 
 <p>This example allows the domain to delete directories that match "/tmp/logwatch.\*/":</p>
 
 <pre>
-file rmdir /tmp/logwatch.\*/
+allow_rmdir /tmp/logwatch.\*/
 </pre>
 
 <p>See also:</p>
@@ -209,14 +209,14 @@ file rmdir /tmp/logwatch.\*/
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkfifo">file mkfifo</a></h3>
+<h3><a name="file_mkfifo">allow_mkfifo</a></h3>
 
 <p>This directive allows the domain to create the specified FIFO with the specified permissions.</p>
 
 <p>This example allows the domain to create the FIFO "/dev/initctl":</p>
 
 <pre>
-file mkfifo /dev/initctl 0644
+allow_mkfifo /dev/initctl 0644
 </pre>
 
 <p>See also:</p>
@@ -225,14 +225,14 @@ file mkfifo /dev/initctl 0644
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mksock">file mksock</a></h3>
+<h3><a name="file_mksock">allow_mksock</a></h3>
 
 <p>This directive allows the domain to create the specified socket with the specified permissions.</p>
 
 <p>This example allows the domain to create the socket "/dev/log":</p>
 
 <pre>
-file mksock /dev/log 0755
+allow_mksock /dev/log 0755
 </pre>
 
 <p>See also:</p>
@@ -241,14 +241,14 @@ file mksock /dev/log 0755
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkblock">file mkblock</a></h3>
+<h3><a name="file_mkblock">allow_mkblock</a></h3>
 
 <p>This directive allows the domain to create the specified block device with the specified permissions, major number and minor number.</p>
 
 <p>This example allows the domain to create the block device "/dev/loop0":</p>
 
 <pre>
-file mkblock /dev/loop0 0600 7 0
+allow_mkblock /dev/loop0 0600 7 0
 </pre>
 
 <p>See also:</p>
@@ -257,14 +257,14 @@ file mkblock /dev/loop0 0600 7 0
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkchar">file mkchar</a></h3>
+<h3><a name="file_mkchar">allow_mkchar</a></h3>
 
 <p>This directive allows the domain to create the specified character device with the specified permissions, major number and minor number.</p>
 
 <p>This example allows the domain to create the character device "/dev/console":</p>
 
 <pre>
-file mkchar /dev/console 0755 5 1
+allow_mkchar /dev/console 0755 5 1
 </pre>
 
 <p>See also:</p>
@@ -273,14 +273,14 @@ file mkchar /dev/console 0755 5 1
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_truncate">file truncate</a></h3>
+<h3><a name="file_truncate">allow_truncate</a></h3>
 
 <p>This directive allows the domain to truncate or extend the specified pathname.</p>
 
 <p>This example allows the domain to truncate the contents of "/etc/mtab":</p>
 
 <pre>
-file truncate /etc/mtab
+allow_truncate /etc/mtab
 </pre>
 
 <p>See also:</p>
@@ -288,14 +288,14 @@ file truncate /etc/mtab
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_symlink">file symlink</a></h3>
+<h3><a name="file_symlink">allow_symlink</a></h3>
 
 <p>This directive allows the domain to symlink the specified pathname.</p>
 
 <p>This example allows the domain to symlink "/dev/cdrom":</p>
 
 <pre>
-file symlink /dev/cdrom
+allow_symlink /dev/cdrom
 </pre>
 
 <p>See also:</p>
@@ -303,14 +303,14 @@ file symlink /dev/cdrom
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_link">file link</a></h3>
+<h3><a name="file_link">allow_link</a></h3>
 
 <p>This directive allows the domain to create hard link between the first and second specified pathnames.</p>
 
 <p>This example allows a hard link to be created between pathnames that match "/etc/mtab~\$" and "/etc/mtab~":</p>
 
 <pre>
-file link /etc/mtab~\$ /etc/mtab~
+allow_link /etc/mtab~\$ /etc/mtab~
 </pre>
 
 <p>See also:</p>
@@ -318,14 +318,14 @@ file link /etc/mtab~\$ /etc/mtab~
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rename">file rename</a></h3>
+<h3><a name="file_rename">allow_rename</a></h3>
 
 <p>This directive allows the domain to rename the first specified pathname to the second specified pathname.</p>
 
 <p>This example allows "/etc/mtab.tmp" to be renamed "/etc/mtab":</p>
 
 <pre>
-file rename /etc/mtab.tmp /etc/mtab
+allow_rename /etc/mtab.tmp /etc/mtab
 </pre>
 
 <p>See also:</p>
@@ -333,20 +333,20 @@ file rename /etc/mtab.tmp /etc/mtab
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_ioctl">file ioctl</a></h3>
+<h3><a name="file_ioctl">allow_ioctl</a></h3>
 
 <p>This directive allows the domain to make an ioctl request with the specified command number. For information on the ioctl command numbers, refer to manuals provided by each module with ioctl functionality.</p>
 
 <p>This example allows the domain to issue an ioctl request with command number 0x8915 (i.e. SIOCGIFADDR request) on sockets with family = 2, type = 2, protocol = 17 (i.e. UDP/IPv4 sockets):</p>
 
 <pre>
-file ioctl socket:[family=2:type=2:protocol=17] 0x8915
+allow_ioctl socket:[family=2:type=2:protocol=17] 0x8915
 </pre>
 
 <p>This example allows the domain to issue an ioctl request with command numbers between 10000 and 20000 on "/dev/null":</p>
 
 <pre>
-file ioctl /dev/null 10000-20000
+allow_ioctl /dev/null 10000-20000
 </pre>
 
 <p>See also:</p>
@@ -355,11 +355,11 @@ file ioctl /dev/null 10000-20000
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mount">file mount</a></h3>
+<h3><a name="file_mount">allow_mount</a></h3>
 
 <p>This directive allows the domain to mount a filesystem with the specified devices, pathnames and options.</p>
 
-<p>The syntax is: "<strong>file mount $DEVICE $MOUNTPOINT $FILESYSTEM $OPTIONS</strong>". If $FILESYSTEM requires a device file, a block device file's pathname is specified for $DEVICE. The $OPTIONS is a hexadecimal (or otcal or decimal) integer expression. The following options can also be specified for $FILESYSTEM:</p>
+<p>The syntax is: "<strong>allow_mount $DEVICE $MOUNTPOINT $FILESYSTEM $OPTIONS</strong>". If $FILESYSTEM requires a device file, a block device file's pathname is specified for $DEVICE. The $OPTIONS is a hexadecimal (or otcal or decimal) integer expression. The following options can also be specified for $FILESYSTEM:</p>
 
 <ul>
 <li>--bind</li>
@@ -374,19 +374,19 @@ file ioctl /dev/null 10000-20000
 <p>This example allows the domain to remount the / directory:</p>
 
 <pre>
-file mount any / --remount 0x0
+allow_mount any / --remount 0x0
 </pre>
 
 <p>This example allows the domain to mount "/dev/hdc" which was formatted as an ext3 filesystem at "/var/www/" directory:</p>
 
 <pre>
-file mount /dev/hdc /var/www/ ext3 0xF
+allow_mount /dev/hdc /var/www/ ext3 0xF
 </pre>
 
 <p>This example allows the domain to mount a tmpfs filesystem at "/dev/shm/" directory:</p>
 
 <pre>
-file mount none /dev/shm/ tmpfs 0xE
+allow_mount none /dev/shm/ tmpfs 0xE
 </pre>
 
 <p>See also:</p>
@@ -395,14 +395,14 @@ file mount none /dev/shm/ tmpfs 0xE
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unmount">file unmount</a></h3>
+<h3><a name="file_unmount">allow_unmount</a></h3>
 
 <p>This directive allows the domain to unmount a filesystem from the specified pathname.</p>
 
 <p>This example allows the domain to unmount the filesystem mounted at "/mnt/cdrom/" directory:</p>
 
 <pre>
-file unmount /mnt/cdrom/
+allow_unmount /mnt/cdrom/
 </pre>
 
 <p>See also:</p>
@@ -410,14 +410,14 @@ file unmount /mnt/cdrom/
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chroot">file chroot</a></h3>
+<h3><a name="file_chroot">allow_chroot</a></h3>
 
 <p>This directive allows the domain to use the specified pathname as a new / directory.</p>
 
 <p>This example allows the domain to use "/var/empty/sshd/" as a new / directory:</p>
 
 <pre>
-file chroot /var/empty/sshd/
+allow_chroot /var/empty/sshd/
 </pre>
 
 <p>See also:</p>
@@ -425,16 +425,16 @@ file chroot /var/empty/sshd/
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_pivot_root">file pivot_root</a></h3>
+<h3><a name="file_pivot_root">allow_pivot_root</a></h3>
 
 <p>This directive allows the domain to use the first specified pathname as a new / directory and bring the old / directory to the second specified pathname.</p>
 
 <p>This functionality is generally used for only once for switching the / directory from initrd/initramfs to the hard drive, which generally occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
 
-<p>This example allows the domain to use "/proc/" as a new / directory and bring the old / directory to "/sys/kernel/security/tomoyo/" directory:</p>
+<p>This example allows the domain to use "/sys/kernel/security/" as a new / directory and bring the old / directory to "/sys/kernel/security/tomoyo/" directory:</p>
 
 <pre>
-file pivot_root proc:/ proc:/ccs/
+allow_pivot_root /sys/kernel/security/ /sys/kernel/security/tomoyo/
 </pre>
 
 <p>See also:</p>
