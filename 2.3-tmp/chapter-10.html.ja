@@ -56,7 +56,7 @@ fi
 <p>このスクリプトを auth1 と呼ぶことにします。 auth1 を実行可能にして /bin/ ディレクトリに置いてください。これはサンプルのスクリプトですが、強制アクセス制御機能により auth1 を読み込みモードでオープンすることを禁止することができるのでパスワードを平文のまま保存しています。その他のサンプルについては <a href="#10.3">10.3. 認証プログラムの例</a>を参照してください。以下のエントリが例外ポリシーで指定されている場合を考えます：</p>
 
 <pre>
-initialize_domain /usr/sbin/sshd from any
+initialize_domain /usr/sbin/sshd
 </pre>
 
 <p>この指定により、ＳＳＨログイン時のログインシェルのドメインは &lt;kernel&gt; /usr/sbin/sshd /bin/bash のようになります。なお、このドメインに対して <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブが指定されていないことを確認してください。このドメインに対しては、 auth1 スクリプトの実行だけを認め、その他のプログラムの実行を認めないようにしてください：</p>
@@ -70,7 +70,7 @@ file execute /bin/auth1 exec.realpath="/bin/auth1"
 <p>追加のログイン認証を経た後のドメインには、通常の権限を与えることができます。また、例えば以下のように例外ポリシーで指定することで、それ以上ドメイン遷移を行わないようにすることもできます：</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash
 </pre>
 
 <img src="media/fig-6-2.png" alt="fig-6-2.png" width="600" height="450">

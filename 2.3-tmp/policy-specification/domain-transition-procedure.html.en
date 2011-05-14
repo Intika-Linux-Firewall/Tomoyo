@@ -69,19 +69,19 @@ To accept programs provided using symbolic links, the last component of the path
 </tr>
 <tr>
 <td><p>(4) Check for <a href="exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directive</p></td>
-<td><p>If exception policy contains "no_initialize_domain [candidate] from [source]" or "no_initialize_domain any from [source]" or "no_initialize_domain any from any", jump to step (6).</p></td>
+<td><p>If exception policy contains "no_initialize_domain [candidate] from [source]", jump to step (6).</p></td>
 </tr>
 <tr>
 <td><p>(5) Check for <a href="exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive</p></td>
-<td><p>If exception policy contains "initialize_domain [candidate] from [source]" or "initialize_domain any from [source]" or "initialize_domain any from any", set "&lt;kernel&gt; [candidate]" as the [destination] and jump to step (8).</p></td>
+<td><p>If exception policy contains "initialize_domain [candidate] from [source]", set "&lt;kernel&gt; [candidate]" as the [destination] and jump to step (8).</p></td>
 </tr>
 <tr>
 <td><p>(6) Check for <a href="exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> directive</p></td>
-<td><p>If exception policy contains "no_keep_domain [candidate] from [source]" or "no_keep_domain any from [source]" or "no_keep_domain any from any", set concatenation of "the current domain name" and "[candidate]" as the [destination] and jump to step (8).</p></td>
+<td><p>If exception policy contains "no_keep_domain [candidate] from [source]" or "no_keep_domain [source]", set concatenation of "the current domain name" and "[candidate]" as the [destination] and jump to step (8).</p></td>
 </tr>
 <tr>
 <td><p>(7) Check for <a href="exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive</p></td>
-<td><p>If exception policy contains "keep_domain [candidate] from [source]" or "keep_domain any from [source]" or "keep_domain any from any", set the current domain as the [destination].<br>
+<td><p>If exception policy contains "keep_domain [candidate] from [source]" or "keep_domain [source]", set the current domain as the [destination].<br>
 Otherwise, set concatenation of "the current domain name" and "[candidate]" as the [destination] .</p></td>
 </tr>
 <tr>

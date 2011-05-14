@@ -56,7 +56,7 @@ fi
 <p>Call this script "auth1", make it executable and place it in "/bin/" directory. This is only an example script, but it does not matter that the password is in plaintext as the attacker can be denied from reading the script. See <a href="#10.3">10.3. Example authentication programs</a> for more examples. Suppose we have the following in exception policy:</p>
 
 <pre>
-initialize_domain /usr/sbin/sshd from any
+initialize_domain /usr/sbin/sshd
 </pre>
 
 <p>Now we can manage the domain "&lt;kernel&gt; /usr/sbin/sshd /bin/bash", but make sure that the <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive is not specified for this domain. Use domain policy to restrict this domain and only allow the execution of the "auth1" script, but no other programs:</p>
@@ -70,7 +70,7 @@ file execute /bin/auth1 exec.realpath="/bin/auth1"
 <p>The domain created following successful authentication can be given normal privileges, and for example may be given the entry below in exception policy:</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash
 </pre>
 
 <img src="media/fig-6-2.png" alt="fig-6-2.png" width="600" height="450">

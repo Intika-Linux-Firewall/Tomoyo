@@ -339,7 +339,7 @@ Also, domains which became unreachable due to the directive are now marked with 
 
 <h2><a name="suppress_domain_transition">The</a> <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> and <a href="policy-specification/exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> directives</h2>
 
-<p>The <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy Editor" screen and add an entry such as "keep_domain any from &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash". Return to the "Domain Transition Editor" screen and the domain that you have specified the directive for will appear with a "#" symbol. Descendent domains will appear with the "!" symbol:</p>
+<p>The <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive involves using the "Exception Policy Editor" and "Domain Transition Editor" screens. First, switch to the "Exception Policy Editor" screen and add an entry such as "keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash". Return to the "Domain Transition Editor" screen and the domain that you have specified the directive for will appear with a "#" symbol. Descendent domains will appear with the "!" symbol:</p>
 
 <a href="editpolicy/after-keep_domain-1.png"><img src="editpolicy/after-keep_domain-1.png" alt="after-keep_domain-1.png" title="After keep_domain" width="720" height="400"></a>
 
@@ -347,7 +347,7 @@ Also, domains which became unreachable due to the directive are now marked with 
 
 <img src="editpolicy/after-no_keep_domain.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400">
 
-<p>It is possible to prevent domain transitions again from "/usr/bin/man" by adding "keep_domain any from /usr/bin/man" in the "Exception Policy Editor" screen. Return to the "Domain Transition Editor" screen:</p>
+<p>It is possible to prevent domain transitions again from "/usr/bin/man" by adding "keep_domain /usr/bin/man" in the "Exception Policy Editor" screen. Return to the "Domain Transition Editor" screen:</p>
 
 <a href="editpolicy/after-no_keep_domain.png"><img src="editpolicy/after-keep_domain-2.png" alt="after-no_keep_domain.png" title="After no_keep_domain" width="720" height="400"></a>
 

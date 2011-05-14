@@ -73,14 +73,14 @@
 <p>そのためには、例外ポリシーにエントリを追加する必要があります。例えば、例外ポリシーに以下のディレクティブを追加するかもしれません：</p>
 
 <pre>
-initialize_domain /usr/sbin/sshd from any
+initialize_domain /usr/sbin/sshd
 </pre>
 
 <p>もちろん、 /usr/sbin/sshd の部分はドメイン遷移を制御したいアプリケーションのパス名に置き換えてください。このディレクティブを追加すると、これ以降、今までにない動作パターンでプログラムが実行されても、新しいドメインを作成しないようになります。代わりに、<strong>&lt;kernel&gt; /usr/sbin/sshd</strong> というドメインで動作するようになります：</p>
 
 <img src="media/fig-3-4.png" alt="fig-3-4.png" width="600" height="315">
 
-<p>上記のディレクティブの from any という部分は、<strong>任意のドメイン</strong>から実行された場合にドメイン遷移を初期化するという意味です。<strong>特定のドメイン</strong>から実行された場合だけドメイン遷移を初期化させるようにもできます。これは、例外ポリシーに以下のようなエントリを追加することで実現できます：</p>
+<p>上記のディレクティブは、<strong>任意のドメイン</strong>から実行された場合にドメイン遷移を初期化するという意味です。<strong>特定のドメイン</strong>から実行された場合だけドメイン遷移を初期化させるようにもできます。これは、例外ポリシーに以下のようなエントリを追加することで実現できます：</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
@@ -99,7 +99,7 @@ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd
 <p>initialize_domain を指定した後で、特定のドメインから実行された場合にはドメイン遷移を初期化させたくないと思うことがあるかもしれません。例えば、 <code>/bin/mail</code> はメールを送信するために <code>/usr/sbin/sendmail.sendmail</code> を実行します。以下のエントリが例外ポリシーに追加されている場合を考えてみましょう：</p>
 
 <pre>
-initialize_domain /usr/sbin/sendmail.sendmail from any
+initialize_domain /usr/sbin/sendmail.sendmail
 </pre>
 
 <p>例えば、メールを送信するためと受信するためとで異なるアクセス許可を与えたい場合、以下のエントリを例外ポリシーに追加することができます：</p>
@@ -115,7 +115,7 @@ no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail
 <p>特定のドメインからプログラムが実行された場合には<strong>ドメイン遷移を行わない</strong>方が好都合な場合があります。そのようにすると、プログラムの実行を要求したプロセスのドメインに与えられているアクセス許可で動作することになります。例えば、ＳＳＨセッションから起動されたシェルから実行されるプログラムに対しては全て同じアクセス許可を与えたいと思うかもしれません。その場合、例外ポリシーに以下のエントリを追加します：</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
 <img src="media/fig-3-9.png" alt="fig-3-9.png" width="600" height="262">
@@ -125,7 +125,7 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <p>例外ポリシーで以下のように指定すると、 /bin/bash のプロセスから実行されるプログラムを /bin/bash のドメインで動作させることができるようになります：</p>
 
 <pre>
-keep_domain any from /bin/bash
+keep_domain /bin/bash
 </pre>
 
 <img src="media/fig-3-8.png" alt="fig-3-8.png" width="600" height="315">
@@ -151,7 +151,7 @@ keep_domain /usr/bin/xargs from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <p>例えば、 <code>/bin/cat</code> が実行される場合だけドメイン遷移を再開させたい場合、例外ポリシーに以下のエントリを追加することができます：</p>
 
 <pre>
-keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
@@ -164,7 +164,7 @@ no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 <p>解析／保護の対象である Apache の話に戻りましょう。 Apache を <a href="#5.2.1">initialize_domain</a> ディレクティブに指定します：</p>
 
 <pre>
-initialize_domain /usr/sbin/httpd from any
+initialize_domain /usr/sbin/httpd
 </pre>
 
 <p>これで、 Apache がどのように実行されても &lt;kernel&gt; /usr/sbin/httpd ドメインで動作するようになりました。 ! 印が付いているドメインは到達不可能なので削除して構いません。このドメインに対するアクセス許可を与えるために、学習モードに切り替えます。</p>
