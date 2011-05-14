@@ -64,6 +64,10 @@
 
 <img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" width="547" height="477">
 
+<p>If the profile is configured as "PREFERENCE::enforcing={ verbose=yes }" (this is default), the "ERROR:" messages will be printed to the console when policy violations occur:</p>
+
+<p><img src="media/enforcing-error.png" alt="enforcing-error.png" width="720" height="400"></p>
+
 <h3><a name="7.2">7.2. Enable enforcing mode for every domain</a></h3>
 
 <p>Once you are familiar with the methods and tools described in the previous chapters, it will be possible to develop policy for every domain in the system. Placing every domain in "Enforcing Mode" will reduce the points of vulnerability through which a system might be compromised. Thus, all the previous steps should be repeated for all the other domains.</p>
@@ -86,7 +90,7 @@
 
 <p>The video below demonstrates example usage of <code>tomoyo-queryd</code>, which is summarised in the text below:</p>
 
-<p><object data="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
+<p><object data="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
 <p>Use <code>tomoyo-queryd</code> to view, in realtime, the access requests that have been rejected by policy:</p>
 
@@ -101,13 +105,13 @@ Monitoring /sys/kernel/security/tomoyo/query . Press Ctrl-C to terminate.
 <p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the <code>tomoyo-queryd</code> console:</p>
 
 <pre class="output">
-#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
-&lt;kernel&gt; /etc/rc.d/init.d/sshd
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
+&lt;kernel&gt; /etc/rc.d/init.d/cups
 allow_execute /bin/sleep
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 
-<p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/sshd" attempted to execute <code>/bin/sleep</code> in order to process the command <code>sleep 1</code>. Usually this would be instantly denied, but since <code>tomoyo-queryd</code> is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
+<p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/sshd" attempted to execute <code>/bin/sleep</code>. Usually this would be instantly denied, but since <code>tomoyo-queryd</code> is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
 
 <p>Press <strong>"Y"</strong> to grant the request.<br>
 Press <strong>"N"</strong> to reject the request.<br>
@@ -118,6 +122,31 @@ Press <strong>"A"</strong> to append the request to domain policy and retry (a c
 <p>Do not grant access requests unconditionally. Policy violations are not always due to updating packages, but may be malicious requests by attackers.</p>
 
 <p>Do not logout while this program is running. Access requests that violated policy are kept pending and may otherwise sleep forever. Monitor the output to make sure programs have the minimum permissions to run properly. If permissions are missing, they will be printed to the console output. Once policy has been updated, the program can be stopped with "Ctrl-C".</p>
+
+<pre class="output">
+#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
+&lt;kernel&gt; /usr/sbin/acpid
+allow_unlink /var/run/acpid.socket
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
+Enter new entry&gt; allow_unlink /var/run/acpid.socket
+Added 'allow_unlink /var/run/acpid.socket'.
+
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
+
+The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
+</pre>
+
+<p>When the location of shared libraries in "/etc/ld.so.cache" has changed, "tomoyo-queryd" automatically appends shared libraries to exception policy using "allow_read" directive. The following line indicates that the pathname "/usr/lib/libpurple.so.0.6.3" was appended to exception policy as it was registered to "/etc/ld.so.cache":</p>
+
+<pre class="output">
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
+</pre>
+
+<p>In addition, "tomoyo-queryd" automatically removes the pathname from exception policy when it is unregistered from "/etc/ld.so.cache":</p>
+
+<pre class="output">
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
+</pre>
 
 <p>Note that this program directly edits policy currently loaded into the kernel, so run <code>tomoyo-savepolicy</code> to save policy to disk, otherwise policy will be lost on shutdown.</p>
 
@@ -130,126 +159,99 @@ Press <strong>"A"</strong> to append the request to domain policy and retry (a c
 <p>This is an example of what the output might look like while running <code>tomoyo-queryd</code>:</p>
 
 <pre class="output">
-#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
+#2010-01-10 12:27:10# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
 &lt;kernel&gt; /etc/rc.d/init.d/sshd
+allow_ioctl /dev/null 0x5401
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s
+# select global-pid=4210
+&lt;kernel&gt; /etc/rc.d/init.d/sshd
+use_profile 3
+
+allow_read /bin/bash
+allow_read/write /dev/tty
+allow_read/write /dev/pts/\$
+allow_read /usr/lib/locale/locale-archive
+allow_read /etc/nsswitch.conf
+allow_read /etc/passwd
+allow_read /etc/rc.d/init.d/sshd
+allow_read /etc/rc.d/init.d/functions
+allow_execute /sbin/consoletype
+allow_read /etc/profile.d/lang.sh
+allow_read /etc/sysconfig/i18n
+allow_read /etc/sysconfig/init
+allow_execute /sbin/runlevel
+allow_execute /bin/cp
+allow_execute /usr/sbin/sshd
+allow_execute /bin/touch
+allow_read/write /dev/console
+allow_execute /bin/unicode_start
+allow_read /var/run/sshd.pid
+allow_write /dev/null
+allow_execute /bin/usleep
+allow_execute /bin/rm
+allow_execute /usr/bin/killall
+allow_execute /usr/bin/rhgb-client
+allow_execute /bin/sleep
+allow_ioctl /dev/console 0x5401
+allow_ioctl /etc/rc.d/init.d/sshd 0x5401
+allow_ioctl /var/run/sshd.pid 0x5401
+allow_ioctl /dev/pts/\$ 0x5401
+
+
+#2010-01-10 12:27:20# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
+&lt;kernel&gt; /etc/rc.d/init.d/sshd
+allow_ioctl /dev/null 0x5401
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
+Enter new entry&gt; allow_ioctl /dev/null 0x5401
+Added 'allow_ioctl /dev/null 0x5401'.
+
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
+
+The pathname /usr/lib/libpurple-client.so.0.6.3 was created. Appended to globally readable file.
+
+----------------------------------------
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
+&lt;kernel&gt; /etc/rc.d/init.d/cups
 allow_execute /bin/sleep
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
-Enter new entry&gt; allow_execute /bin/sleep
-Added 'allow_execute /bin/sleep'.
+Enter new entry&gt; allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"
+Added 'allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"'.
 
-----------------------------------------
-#2010/12/30 00:22:12# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }
-&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
-allow_read /usr/share/zoneinfo/posix/Pacific/Pohnpei
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s
-# select global-pid=11937
-&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
-use_profile 3
-use_group 0
+#2010-01-10 12:29:55# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
+&lt;kernel&gt; /etc/rc.d/init.d/cups
+# wants to create domain
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep
+Allow? ('Y'es/'N'o/'R'etry):y
 
-network unix stream connect /var/run/nscd/socket
+#2010-01-10 12:29:58# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep
 allow_read /usr/lib/locale/locale-archive
-allow_read /var/lib/pgsql/data/postgresql.conf
-allow_read /var/lib/pgsql/data/PG_VERSION
-allow_read /var/lib/pgsql/data/global/pg_control
-allow_write /var/lib/pgsql/data/global/pg_control
-allow_create /var/lib/pgsql/data/postmaster.pid 0600
-allow_read /var/lib/pgsql/data/postmaster.pid
-allow_write /var/lib/pgsql/data/postmaster.pid
-allow_unlink /var/lib/pgsql/data/postmaster.pid
-allow_read /usr/share/zoneinfo/MST7MDT
-(...snipped...)
-allow_read /usr/share/zoneinfo/EST5EDT
-network inet stream bind 127.0.0.1 5432
-network inet stream listen 127.0.0.1 5432
-allow_create /tmp/.s.PGSQL.5432.lock 0600
-allow_read /tmp/.s.PGSQL.5432.lock
-allow_write /tmp/.s.PGSQL.5432.lock
-allow_unlink /tmp/.s.PGSQL.5432.lock
-allow_unlink /tmp/.s.PGSQL.5432
-network unix stream bind /tmp/.s.PGSQL.5432
-network unix stream listen /tmp/.s.PGSQL.5432
-allow_mksock /tmp/.s.PGSQL.5432 0700
-allow_chmod /tmp/.s.PGSQL.5432 0777
-allow_write /var/lib/pgsql/data/postmaster.opts
-allow_truncate /var/lib/pgsql/data/postmaster.opts
-allow_mkdir /var/lib/pgsql/data/pg_log/ 0700
-file append /var/lib/pgsql/data/pg_log/postgresql-Wed.log
-network inet dgram bind 127.0.0.1 0
-allow_read /var/lib/pgsql/data/pg_hba.conf
-allow_read /var/lib/pgsql/data/pg_ident.conf
-allow_read /var/lib/pgsql/data/pg_xlog/000000010000000000000000
-allow_write /var/lib/pgsql/data/pg_xlog/000000010000000000000000
-allow_read /var/lib/pgsql/data/pg_clog/0000
-allow_write /var/lib/pgsql/data/pg_clog/0000
-allow_read /var/lib/pgsql/data/pg_multixact/offsets/0000
-allow_write /var/lib/pgsql/data/pg_multixact/offsets/0000
-allow_read /var/lib/pgsql/data/global/pg_fsm.cache
-allow_write /var/lib/pgsql/data/global/pg_fsm.cache
-allow_unlink /var/lib/pgsql/data/global/pg_fsm.cache
-allow_read /var/lib/pgsql/data/global/1262
-allow_write /var/lib/pgsql/data/global/1262
-allow_read /var/lib/pgsql/data/global/1260
-allow_write /var/lib/pgsql/data/global/1260
-allow_read /var/lib/pgsql/data/global/1261
-allow_write /var/lib/pgsql/data/global/1261
-allow_read /var/lib/pgsql/data/global/pg_auth
-allow_read /var/lib/pgsql/data/global/pgstat.stat
-allow_create /var/lib/pgsql/data/global/pgstat.tmp 0666
-allow_write /var/lib/pgsql/data/global/pgstat.tmp
-allow_rename /var/lib/pgsql/data/global/pgstat.tmp /var/lib/pgsql/data/global/pgstat.stat
-allow_read /var/lib/pgsql/data/pg_subtrans/0000
-allow_write /var/lib/pgsql/data/pg_subtrans/0000
-allow_create /var/lib/pgsql/data/global/pg_fsm.cache 0666
-allow_create /var/lib/pgsql/data/global/pg_auth.\$ 0666
-allow_create /var/lib/pgsql/data/global/pg_database.\$ 0666
-allow_rename /var/lib/pgsql/data/global/pg_auth.\$ /var/lib/pgsql/data/global/pg_auth
-allow_rename /var/lib/pgsql/data/global/pg_database.\$ /var/lib/pgsql/data/global/pg_database
-allow_unlink /var/lib/pgsql/data/base/\$/pg_internal.init
-allow_write /var/lib/pgsql/data/global/pg_auth.\$
-allow_write /var/lib/pgsql/data/global/pg_database.\$
-network inet dgram send 127.0.0.1 1024-65535
-network inet dgram recv 127.0.0.1 1024-65535
-
-
-#2010/12/30 00:22:26# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }
-&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
-allow_read /usr/share/zoneinfo/posix/Pacific/Pohnpei
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
-Enter new entry&gt; allow_read /usr/share/zoneinfo/\{\*\}/\*
-Added 'allow_read /usr/share/zoneinfo/\{\*\}/\*'.
+Enter new entry&gt; allow_read /usr/lib/locale/locale-archive
+Added 'allow_read /usr/lib/locale/locale-archive'.
 
 ----------------------------------------
-#2010/12/30 00:22:23# profile=3 mode=enforcing granted=no (global-pid=11974) task={ pid=11974 ppid=11968 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=524564 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=524555 perm=0755 }
-&lt;kernel&gt; /usr/sbin/sshd
-allow_read /etc/pki/tls/openssl.cnf
+#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 }
+&lt;kernel&gt; /usr/sbin/acpid
+allow_unlink /var/run/acpid.socket
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
-Enter new entry&gt; allow_read /etc/pki/tls/openssl.cnf
-Added 'allow_read /etc/pki/tls/openssl.cnf'.
+Enter new entry&gt; allow_unlink /var/run/acpid.socket if path1.type=socket
+Added 'allow_unlink /var/run/acpid.socket if path1.type=socket'.
 
-----------------------------------------
-#2010/12/30 00:22:53# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }
-&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
-allow_create /var/lib/pgsql/data/pg_log/postgresql-Thu.log 0666
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
-Enter new entry&gt; allow_create /var/lib/pgsql/data/pg_log/postgresql-\*
-Added 'allow_create /var/lib/pgsql/data/pg_log/postgresql-\*.log 0666'.
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
 
-#2010/12/30 00:23:04# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=26 gid=26 ino=426434 major=253 minor=0 perm=0600 type=file } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }
-&lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
-file append /var/lib/pgsql/data/pg_log/postgresql-Thu.log
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
-Enter new entry&gt; file append /var/lib/pgsql/data/pg_log/postgresql-\*
-Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
+The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
 </pre>
 
 <h3><a name="7.4">7.4. Notification daemon</a></h3>
 
-<p><code>tomoyo-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/tomoyo-notifyd" from "/etc/rc.local".</p>
+<p><code>tomoyo-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, to notify "root@example.com" via mail, up to once per an hour, add the following to "/etc/crontab":</p>
 
-<p>Modify the "action_to_take" line as required and start <code>tomoyo-notifyd</code>.</p>
+<pre>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</pre>
 
-<p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):</p>
+<p>Rejected requests will be notified via mail:</p>
 
 <pre class="command">
 # mail
@@ -257,17 +259,17 @@ Added 'file append /var/lib/pgsql/data/pg_log/postgresql-\*.log'.
 
 <pre class="output">
 Mail version 8.1 6/6/93.  Type ? for help.
-"/var/spool/mail/root": 1 message 1 new
-&gt;N  1 root@localhost.local  Thu May 12 23:14  18/831
+"/var/spool/mail/root": 1 message 1 unread
+&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234
 &amp;
 Message 1:
-From root@localhost.localdomain  Thu May 12 23:14:42 2011
-Date: Thu, 12 May 2011 23:14:41 +0900
+From root@localhost.localdomain  Tue Jan 12 16:19:17 2010
+Date: Tue, 12 Jan 2010 16:19:17 +0900
 From: root &lt;root@localhost.localdomain&gt;
 To: root@localhost.localdomain
 
 Q0-0
-#2011-05-12 23:14:41# profile=3 mode=enforcing (global-pid=4133) task={ pid=4133 ppid=4132 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh
 allow_execute /bin/cat
 </pre>

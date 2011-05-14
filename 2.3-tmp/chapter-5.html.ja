@@ -211,7 +211,7 @@ initialize_domain /usr/sbin/httpd
 # /usr/sbin/tomoyo-savepolicy
 </pre>
 
-<p><code>tomoyo-savepolicy</code> を実行することにより、４個のファイル（ exception_policy.conf domain_policy.conf profile.conf manager.conf ）が /etc/tomoyo/policy/YYYY-MM-DD-hh:mm:ss/ ディレクトリ内に作成されます。（ YYYY-MM-DD-hh:mm:ss は現在時刻です。）</p>
+<p><code>tomoyo-savepolicy</code> を実行することにより、 exception_policy.YYYY-MM-DD.hh:mm:ss.conf および domain_policy.YYYY-MM-DD.hh:mm:ss.conf が /etc/tomoyo/ ディレクトリ内に作成されます。（ YYYY-MM-DD.hh:mm:ss は現在時刻です。）</p>
 
 <p>ディスク上に保存されているポリシーをカーネル内のメモリに読み込ませるには、 <code>tomoyo-loadpolicy</code> コマンドを利用します：</p>
 
@@ -243,17 +243,17 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has so many ACLs to hold. Stopp
 
 <pre>
 # Memory quota (byte). 0 means no quota.
-Memory used by policy:               0
-Memory used by query message:  1048576
+Policy:             0
+Query lists:  1048576
 </pre>
 
 <p>この設定は以下のコマンドを実行することでカーネル内に反映することができます：</p>
 
 <pre class="command">
-tomoyo-loadpolicy -s &lt; /etc/tomoyo/meminfo.conf
+tomoyo-loadpolicy -u &lt; /etc/tomoyo/meminfo.conf
 </pre>
 
-<p>ドメインを作成することでカーネル内のメモリを消費するため、 Memory used by policy の制限を行うことは重要です。もし、大量のドメインが作成された場合、メモリ不足に陥ってシステムがクラッシュしてしまうかもしれません。制限を行うことにより、システムがクラッシュしてしまう前に新しいドメインの作成を止めることができます。このガイドに従ってポリシーを完成させた後、 Statistics 画面でどれくらいのメモリを消費しているかを確認してください。そこで得られた情報を、上限（例えば現在の使用量＋２５％程度）を設定するための参考にしてください。大量のアクセス許可を追加したり大量のドメインを作成した場合には、この上限を適切に修正してください。</p>
+<p>ドメインを作成することでカーネル内のメモリを消費するため、 Memory used for policy の制限を行うことは重要です。もし、大量のドメインが作成された場合、メモリ不足に陥ってシステムがクラッシュしてしまうかもしれません。制限を行うことにより、システムがクラッシュしてしまう前に新しいドメインの作成を止めることができます。このガイドに従ってポリシーを完成させた後、 Memory Usage 画面でどれくらいのメモリを消費しているかを確認してください。そこで得られた情報を、上限（例えば現在の使用量＋２５％程度）を設定するための参考にしてください。大量のアクセス許可を追加したり大量のドメインを作成した場合には、この上限を適切に修正してください。</p>
 
 </div><!-- documentation -->
 

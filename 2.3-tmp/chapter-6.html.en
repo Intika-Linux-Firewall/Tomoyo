@@ -50,207 +50,43 @@
 # /usr/sbin/tomoyo-findtemp &lt; /sys/kernel/security/tomoyo/domain_policy
 </pre>
 <pre class="output">
-/tmp/RsACr8YD
-/tmp/RsXg3Aav
-/var/run/nscd/socket
-/var/spool/clientmqueue/dfoBPETPpH002933
-/var/spool/clientmqueue/dfoBPETf92002944
-/var/spool/clientmqueue/qfoBPETPpH002933
-/var/spool/clientmqueue/qfoBPETf92002944
-/var/spool/clientmqueue/xfoBPETPpH002933
-/var/spool/clientmqueue/xfoBPETf92002944
+/etc/mtab.tmp
+/etc/mtab~
+/etc/mtab~2302
+/etc/mtab~2328
+/etc/mtab~2329
+/etc/mtab~2330
+/etc/mtab~2331
+/etc/mtab~2332
+/etc/mtab~2339
+/etc/mtab~2383
+/halt
+/selinux/disable
+/selinux/enforce
+/selinux/policyvers
+/tmp/sh-thd-1163110572
+/tmp/sh-thd-1163113704
+/var/cache/samba/browse.dat.
+/var/lib/nfs/etab.tmp
+/var/lib/nfs/xtab.tmp
+/var/lock/mrtg/mrtg_l
 </pre>
 
-<p>In the example above, all except "/var/run/nscd/socket" can be considered to be temporary files. Thus, patterns can be made for these pathnames.</p>
+<p>In the example above, "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" can be considered to be temporary files. Thus, patterns can be made for these pathnames.</p>
 
-<p>First, the type of pattern must be considered. The strings here appear to be random characters. Thus, the "<strong>\?</strong>" pattern which matches any single character other than "/", and the "<strong>\*</strong>" pattern which matches zero or more repetitions of any characters other than "/" can be used. See <a href="policy-specification/expression-rules.html.en#wildcard">Wildcard expression rules</a> for a list of possible wildcards.</p>
+<p>First, the type of pattern must be considered. The numeric strings here appear to be decimal digits. Thus, the "<strong>\$</strong>" pattern which matches one or more repetitions of decimal digits can be used. See <a href="policy-specification/expression-rules.html.en#wildcard">Wildcard expression rules</a> for a list of possible wildcards.</p>
 
-<p>Use <code>tomoyo-patternize</code> to convert into patterns non-interactively. Rewriting rules are specified in "/etc/tomoyo/tools/patternize.conf" file, as shown below:</p>
-
-<pre>
-# This file contains rewriting rules used by tomoyo-patternize command.
-
-# Domain policy consists with domain declaration lines (which start with
-# &lt;kernel&gt; ) and acl declaration lines (which do not start with &lt;kernel&gt; ).
-# You can refer the former using 'domain' keyword and the latter using 'acl'
-# keyword.
-#
-# Words in each line are separated by a space character. Therefore, you can
-# use 'domain[index]', 'acl[index]' for referring index'th word of the line.
-# The index starts from 1, and 0 refers the whole line (i.e.
-# 'domain[0]' = 'domain', 'acl[0]' = 'acl').
-#
-# Three operators are provided for conditional rewriting.
-# '.contains' is for 'fgrep keyword' match.
-# '.equals' is for 'grep ^keyword$' match.
-# '.starts' is for 'grep ^keyword' match.
-#
-# Rewriting rules are defined using multi-lined chunks. A chunk is terminated
-# by a 'rewrite' line which specifies old pattern and new pattern.
-# A 'rewrite' line is evaluated only when all preceding 'domain' and 'acl'
-# lines in that chunk have matched.
-# Evaluation stops at first 'rewrite' line where a word matched old pattern.
-# Therefore, no words are rewritten more than once.
-#
-# For user's convenience, new pattern can be omitted if old pattern is reused
-# for new pattern.
-
-# Please use TOMOYO Linux's escape rule (e.g. '\040' rather than '\ ' for
-# representing a ' ' in a word).
-
-# Files on proc filesystem.
-rewrite path_pattern /proc/self/task/\$/fdinfo/\$
-rewrite path_pattern /proc/self/task/\$/fd/\$
-rewrite head_pattern /proc/self/task/\$/
-rewrite path_pattern /proc/self/fdinfo/\$
-rewrite path_pattern /proc/self/fd/\$
-rewrite head_pattern /proc/self/
-rewrite path_pattern /proc/\$/task/\$/fdinfo/\$
-rewrite path_pattern /proc/\$/task/\$/fd/\$
-rewrite head_pattern /proc/\$/task/\$/
-rewrite path_pattern /proc/\$/fdinfo/\$
-rewrite path_pattern /proc/\$/fd/\$
-rewrite head_pattern /proc/\$/
-
-# Files on devpts filesystem.
-rewrite path_pattern devpts:/\$
-
-# Files on pipe filesystem.
-rewrite path_pattern pipe:[\$]
-rewrite path_pattern pipefs:/[\$]
-
-# Files on / partition.
-rewrite tail_pattern /etc/mtab~\$
-rewrite tail_pattern /etc/tomoyo/policy/\*/domain_policy.conf
-rewrite tail_pattern /etc/tomoyo/policy/\*/exception_policy.conf
-rewrite tail_pattern /etc/tomoyo/policy/\*/manager.conf
-rewrite tail_pattern /etc/tomoyo/policy/\*/profile.conf
-rewrite tail_pattern /etc/tomoyo/policy/\*/
-
-# Files on /tmp/ partition.
-rewrite tail_pattern /vte\?\?\?\?\?\?
-rewrite tail_pattern /.ICE-unix/\$
-rewrite tail_pattern /keyring-\?\?\?\?\?\?/socket.ssh
-rewrite tail_pattern /orbit-\*/bonobo-activation-register-\X.lock
-rewrite tail_pattern /orbit-\*/bonobo-activation-server-\X-ior
-rewrite tail_pattern /orbit-\*/linc-\*
-rewrite tail_pattern /orbit-\*/
-rewrite tail_pattern /sh-thd-\$
-rewrite tail_pattern /zman\?\?\?\?\?\?
-
-# Files on home directory.
-rewrite tail_pattern /.ICEauthority-\?
-rewrite tail_pattern /.xauth\?\?\?\?\?\?
-rewrite tail_pattern /.xauth\?\?\?\?\?\?-?
-rewrite tail_pattern /.local/share/applications/preferred-mail-reader.desktop.\?\?\?\?\?\?
-rewrite tail_pattern /.local/share/applications/preferred-web-browser.desktop.\?\?\?\?\?\?
-
-# Files on /var/ partition.
-rewrite tail_pattern /cache/fontconfig/\X-le64.cache-3
-rewrite tail_pattern /lib/gdm/.pulse/\X-default-source
-rewrite tail_pattern /lib/gdm/.pulse/\X-default-sink
-rewrite tail_pattern /lib/gdm/.dbus/session-bus/\X-\X
-rewrite tail_pattern /run/gdm/auth-for-\*/database-\?
-rewrite tail_pattern /run/gdm/auth-for-\*/database
-rewrite tail_pattern /run/gdm/auth-for-\*/
-rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/\*
-rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/
-</pre>
-
-<p>The <strong>"path_pattern"</strong> directive matches the whole pathname.<br>
-The <strong>"head_pattern"</strong> directive matches leading pathname.<br>
-The <strong>"tail_pattern"</strong> directive matches trailing pathname.</p>
-
-<p>Append patterns for "/tmp/Rs\?\?\?\?\?\?" and "/var/spool/clientmqueue/\*" to /etc/tomoyo/tools/patternize.conf file:</p>
-
-<pre>
-rewrite tail_pattern /tmp/Rs\?\?\?\?\?\?
-rewrite tail_pattern /var/spool/clientmqueue/\*
-</pre>
-
-<p>Then, convert using <code>tomoyo-patternize</code> command and compare how it was changed using <code>tomoyo-diffpolicy</code> command:</p>
+<p>Use <code>tomoyo-patternize</code> to replace all occurrences of "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with "/etc/mtab~\$" and "/tmp/sh-thd-\$" respectively:</p>
 
 <pre class="command">
-# tomoyo-savepolicy -d &gt; /tmp/old
-# tomoyo-patternize &lt; /tmp/old &gt; /tmp/new
-# tomoyo-diffpolicy /tmp/old /tmp/new
-</pre>
-<pre class="output">
-&lt;kernel&gt; /usr/sbin/httpd
-
-allow_write /proc/self/task/\$/attr/fscreate
-delete allow_write /proc/self/task/2766/attr/fscreate
-
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail
-
-allow_create /tmp/Rs\?\?\?\?\?\? 0666
-allow_read /tmp/Rs\?\?\?\?\?\?
-allow_unlink /tmp/Rs\?\?\?\?\?\?
-allow_write /tmp/Rs\?\?\?\?\?\?
-delete allow_create /tmp/RsACr8YD 0666
-delete allow_create /tmp/RsXg3Aav 0666
-delete allow_read /tmp/RsACr8YD
-delete allow_read /tmp/RsXg3Aav
-delete allow_unlink /tmp/RsACr8YD
-delete allow_unlink /tmp/RsXg3Aav
-delete allow_write /tmp/RsACr8YD
-delete allow_write /tmp/RsXg3Aav
-
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail
-
-allow_ioctl pipefs:/[\$] 0x5413
-delete allow_ioctl pipefs:/[11895] 0x5413
-delete allow_ioctl pipefs:/[11965] 0x5413
-
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail /usr/sbin/sendmail
-
-allow_create /var/spool/clientmqueue/\* 0660
-allow_read /var/spool/clientmqueue/\*
-allow_unlink /var/spool/clientmqueue/\*
-allow_write /var/spool/clientmqueue/\*
-delete allow_create /var/spool/clientmqueue/dfoBPETPpH002933 0660
-delete allow_create /var/spool/clientmqueue/dfoBPETf92002944 0660
-delete allow_create /var/spool/clientmqueue/qfoBPETPpH002933 0660
-delete allow_create /var/spool/clientmqueue/qfoBPETf92002944 0660
-delete allow_read /var/spool/clientmqueue/dfoBPETPpH002933
-delete allow_read /var/spool/clientmqueue/dfoBPETf92002944
-delete allow_unlink /var/spool/clientmqueue/dfoBPETPpH002933
-delete allow_unlink /var/spool/clientmqueue/dfoBPETf92002944
-delete allow_unlink /var/spool/clientmqueue/qfoBPETPpH002933
-delete allow_unlink /var/spool/clientmqueue/qfoBPETf92002944
-delete allow_unlink /var/spool/clientmqueue/xfoBPETPpH002933
-delete allow_unlink /var/spool/clientmqueue/xfoBPETf92002944
-delete allow_write /var/spool/clientmqueue/dfoBPETPpH002933
-delete allow_write /var/spool/clientmqueue/dfoBPETf92002944
-delete allow_write /var/spool/clientmqueue/qfoBPETPpH002933
-delete allow_write /var/spool/clientmqueue/qfoBPETf92002944
-
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/ls
-
-allow_ioctl pipefs:/[\$] 0x5413
-delete allow_ioctl pipefs:/[11965] 0x5413
+# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -d
 </pre>
 
-<p>In case the conversion did not achieve the desired result, "/tmp/new" can be edited with a text editor manually, or conversion can be retried after editing "/etc/tomoyo/tools/patternize.conf".</p>
-
-<p>If the conversion has achieved the desired result, the changes can be applied to existing policy by loading the difference between the two:</p>
+<p>If preferred, these patterns can instead be managed in exception policy so that "Learning Mode" will append these pathnames using these patterns:</p>
 
 <pre class="command">
-# tomoyo-diffpolicy /tmp/old /tmp/new | /usr/sbin/tomoyo-loadpolicy -d
-</pre>
-
-<p>To convert only specific domains, the <code>tomoyo-selectpolicy</code> command can be used. For example, to update only "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains, do the following:</p>
-
-<pre class="command">
-# tomoyo-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' &lt; /sys/kernel/security/tomoyo/domain_policy &gt; /tmp/old-httpd
-# tomoyo-patternize &lt; /tmp/old-httpd &gt; /tmp/new-httpd
-# tomoyo-diffpolicy /tmp/old-httpd /tmp/new-httpd | tomoyo-loadpolicy -d
-</pre>
-
-<p>Conversion of a specific domain can also be managed by editing "/etc/tomoyo/tools/patternize.conf". The following line can be inserted before the "rewrite" line so that conversion is only done against "&lt;kernel&gt; /usr/sbin/httpd" and descendent domains:</p>
-
-<pre>
-domain.starts &lt;kernel&gt; /usr/sbin/httpd
+# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/tomoyo-loadpolicy -e
+# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -e
 </pre>
 
 <h3><a name="6.2">6.2. Patterning file access permissions</a></h3>
@@ -318,27 +154,11 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg
 allow_read @WEB-CONTENTS
 </pre>
 
-<p>The above conversion using <code>tomoyo-editpolicy</code> can also be managed using <code>tomoyo-patternize</code>. Add "path_group" to the exception policy like above (as tomoyo-patternize only deals with domain policy), and the following can then be added to "/etc/tomoyo/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
-
-<pre>
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts allow_read
-rewrite path_pattern /var/www/html/\*.html @WEB-CONTENTS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts allow_read
-rewrite path_pattern /var/www/html/\{\*\}/\*.html @WEB-CONTENTS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts allow_read
-rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
-</pre>
-
 <h3><a name="6.3">6.3. Patterning numeric permissions</a></h3>
 
-<p>Patterns can be used for numeric parameters such as the creation mode of a file or a network's port numbers.</p>
+<p>Patterns can be used for numeric parameters such as the creation mode of a file.</p>
 
-<p>The following domain policy example permits the domain "&lt;kernel&gt; /usr/sbin/httpd" to accept connections from port numbers between 1024 and 65535:</p>
+<p>The following domain policy example permits the domain "&lt;kernel&gt; /sbin/init" to use any ioctl requests for /dev/console:</p>
 
 <div class="simple-table">
 <table>
@@ -352,16 +172,18 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 </tr>
 <tr>
 <td>
-<p>&lt;kernel&gt; /usr/sbin/httpd</p>
+<p>&lt;kernel&gt; /sbin/init</p>
 <br>
-<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3810</p>
-<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829</p>
-<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 3829</p>
+<p>allow_ioctl /dev/console 0x5401</p>
+<p>allow_ioctl /dev/console 0x5402</p>
+<p>allow_ioctl /dev/console 0x540B</p>
+<p>allow_ioctl /dev/console 0x540E</p>
+<p>allow_ioctl /dev/console 0x540F</p>
 </td>
 <td>
-<p>&lt;kernel&gt; /usr/sbin/httpd</p>
+<p>&lt;kernel&gt; /sbin/init</p>
 <br>
-<p>network inet stream accept 0:0:0:0:0:ffff:c0a8:801 1024-65535</p>
+<p>allow_ioctl /dev/console 0-0xFFFFFFFF</p>
 </td>
 </tr>
 </table>
@@ -370,26 +192,18 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 <p>Domain policy can be further simplified by placing directives in the exception policy, such as:</p>
 
 <pre>
-number_group WEB-CLIENT-PORTS 1024-65535
+number_group ANY_NUMBER 0-0xFFFFFFFF
 </pre>
 
 <p>The following can then be defined in domain policy:</p>
 
 <pre>
-&lt;kernel&gt; /usr/sbin/httpd
+&lt;kernel&gt; /sbin/init
 
-network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS
+allow_ioctl /dev/console @ANY_NUMBER
 </pre>
 
-<p>The above conversion using <code>tomoyo-editpolicy</code> can also be managed using <code>tomoyo-patternize</code>. Add "number_group" to the exception policy like above, and the following can then be added to "/etc/tomoyo/tools/patternize.conf" similar to section <a href="#6.1">6.1. Patterning temporary files</a>:</p>
-
-<pre>
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
-</pre>
-
-<h3><a name="6.5">6.5. Reviewing gathered permissions</a></h3>
+<h3><a name="6.4">6.4. Reviewing gathered permissions</a></h3>
 
 <p>Once you think you have done everything you want to allow Apache to do, run the policy editor and change the profile number to 2.</p>
 
@@ -400,6 +214,10 @@ rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 <p>Quit the policy editor and continue using Apache:</p>
 
 <img src="media/operation-permissive.png" alt="operation-permissive.png" width="575" height="475">
+
+<p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violation occurs:</p>
+
+<p><img src="media/permissive-warning.png" alt="permissive-warning.png" width="720" height="400"></p>
 
 </div><!-- documentation -->
 

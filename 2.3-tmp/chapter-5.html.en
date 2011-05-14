@@ -211,7 +211,7 @@ initialize_domain /usr/sbin/httpd
 # /usr/sbin/tomoyo-savepolicy
 </pre>
 
-<p>By executing <code>tomoyo-savepolicy</code>, four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/tomoyo/policy/YYYY-MM-DD-hh:mm:ss/" directory. ( YYYY-MM-DD-hh:mm:ss is current timestamp.)</p>
+<p>By executing <code>tomoyo-savepolicy</code>, "exception_policy.YYYY-MM-DD.hh:mm:ss.conf" and "domain_policy.YYYY-MM-DD.hh:mm:ss.conf" are created in the "/etc/tomoyo/" directory. ( YYYY-MM-DD.hh:mm:ss is current timestamp.)</p>
 
 <p>To load the policy currently on the disk into the kernel, use the <code>tomoyo-loadpolicy</code> command:</p>
 
@@ -243,17 +243,17 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has so many ACLs to hold. Stopp
 
 <pre>
 # Memory quota (byte). 0 means no quota.
-Memory used by policy:               0
-Memory used by query message:  1048576
+Policy:             0
+Query lists:  1048576
 </pre>
 
 <p>These settings can be loaded into kernel memory by running the following command:</p>
 
 <pre class="command">
-tomoyo-loadpolicy -s &lt; /etc/tomoyo/meminfo.conf
+tomoyo-loadpolicy -u &lt; /etc/tomoyo/meminfo.conf
 </pre>
 
-<p>It is important to set a limit on the "Memory used by policy", as the creation of domains consumes kernel memory. If enough domains are created, the system will run out of memory and crash. If a limit is set, the creation of new domains can be stopped before the system crashes. At the end of this guide after you have set up a complete policy, view how much memory is being used by policy in the "Statistics" screen. Use this information to set an appropriate limit, such as 25% more than the current memory being used. If you make many additions to policy or create many additional domains, this limit should be changed appropriately.</p>
+<p>It is important to set a limit on the "Memory used for policy", as the creation of domains consumes kernel memory. If enough domains are created, the system will run out of memory and crash. If a limit is set, the creation of new domains can be stopped before the system crashes. At the end of this guide after you have set up a complete policy, view how much memory is being used by policy in the "Memory Usage" screen. Use this information to set an appropriate limit, such as 25% more than the current memory being used. If you make many additions to policy or create many additional domains, this limit should be changed appropriately.</p>
 
 </div><!-- documentation -->
 
