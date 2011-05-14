@@ -98,9 +98,7 @@
 
 <h3><a name="self_domain">/sys/kernel/security/tomoyo/self_domain</a></h3>
 
-<p>This read/write interface shows the domain of the caller process.</p>
-
-<p>This interface allows the caller to change the domain of the caller process if explicitly permitted by <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive.</p>
+<p>This read-only interface shows the domain of the caller process.</p>
 
 <h3><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h3>
 
@@ -111,15 +109,15 @@
 </pre>
 
 <pre class="output">
-Memory used by policy:                     41792
-Memory used by query message:                  0
-Total memory used:                        201120
+Policy:          1081504
+Query lists:           0   (Quota:    1048576)
+Total:           1081504
 </pre>
 
 <ul>
-<li><strong>Memory used by policy</strong> shows the memory used for holding access permissions.</li>
-<li><strong>Memory used by query message</strong> shows the memory used for waiting for administrator's decision.</li>
-<li><strong>Total memory used</strong> shows the total memory used.</li>
+<li><strong>Policy</strong> shows the memory used for holding access permissions.</li>
+<li><strong>Query lists</strong> shows the memory used for waiting for administrator's decision.</li>
+<li><strong>Total</strong> shows the total memory used.</li>
 </ul>
 
 <p>This interface allows the administrator to configure memory quota.</p>
