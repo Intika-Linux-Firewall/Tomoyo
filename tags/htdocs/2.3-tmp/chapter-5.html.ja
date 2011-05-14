@@ -234,7 +234,7 @@ initialize_domain /usr/sbin/httpd
 <p>コンソール上に以下のようなメッセージが表示され、ドメインポリシーに <a href="policy-specification/domain-policy-syntax.html.ja#quota_exceeded">quota_exceeded</a> というエントリが表示される場合があります：</p>
 
 <pre class="output">
-WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stopped learning mode.
+WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has so many ACLs to hold. Stopped learning mode.
 </pre>
 
 <p>これは、 TOMOYO Linux が全てのメモリを消費してしまうのを予防するための安全装置です。もし、学習モードに対して制限が存在しない場合、学習モードにより学習されたポリシーとの比較処理のために使い物にならないくらい応答が遅くなってしまうかもしれません。この制限はプロファイルの <a href="chapter-9.html.ja#9.2.3">max_entry</a> の値を増やすことで緩めることができます。しかし、 max_entry の値を増やすとメモリ消費が増えるため、注意が必要です。 max_entry の値を増やす前に、ポリシーのチューニングを行ってください。チューニングを行う手順は次章で紹介します。ポリシーのチューニングを行うことで、ドメインポリシーの量を減らして管理しやすくなり、 <a href="chapter-9.html.ja#9.2.3">max_entry</a> の値を増やす必要性も解消できることが期待されます。</p>

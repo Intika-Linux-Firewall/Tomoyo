@@ -99,18 +99,18 @@
 # representing a ' ' in a word).
 
 # Files on proc filesystem.
-rewrite path_pattern proc:/self/task/\$/fdinfo/\$
-rewrite path_pattern proc:/self/task/\$/fd/\$
-rewrite head_pattern proc:/self/task/\$/
-rewrite path_pattern proc:/self/fdinfo/\$
-rewrite path_pattern proc:/self/fd/\$
-rewrite head_pattern proc:/self/
-rewrite path_pattern proc:/\$/task/\$/fdinfo/\$
-rewrite path_pattern proc:/\$/task/\$/fd/\$
-rewrite head_pattern proc:/\$/task/\$/
-rewrite path_pattern proc:/\$/fdinfo/\$
-rewrite path_pattern proc:/\$/fd/\$
-rewrite head_pattern proc:/\$/
+rewrite path_pattern /proc/self/task/\$/fdinfo/\$
+rewrite path_pattern /proc/self/task/\$/fd/\$
+rewrite head_pattern /proc/self/task/\$/
+rewrite path_pattern /proc/self/fdinfo/\$
+rewrite path_pattern /proc/self/fd/\$
+rewrite head_pattern /proc/self/
+rewrite path_pattern /proc/\$/task/\$/fdinfo/\$
+rewrite path_pattern /proc/\$/task/\$/fd/\$
+rewrite head_pattern /proc/\$/task/\$/
+rewrite path_pattern /proc/\$/fdinfo/\$
+rewrite path_pattern /proc/\$/fd/\$
+rewrite head_pattern /proc/\$/
 
 # Files on devpts filesystem.
 rewrite path_pattern devpts:/\$
@@ -178,57 +178,57 @@ rewrite tail_pattern /var/spool/clientmqueue/\*
 <pre class="output">
 &lt;kernel&gt; /usr/sbin/httpd
 
-file write proc:/self/task/\$/attr/fscreate
-delete file write proc:/self/task/2766/attr/fscreate
+allow_write /proc/self/task/\$/attr/fscreate
+delete allow_write /proc/self/task/2766/attr/fscreate
 
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail
 
-file create /tmp/Rs\?\?\?\?\?\? 0666
-file read /tmp/Rs\?\?\?\?\?\?
-file unlink /tmp/Rs\?\?\?\?\?\?
-file write /tmp/Rs\?\?\?\?\?\?
-delete file create /tmp/RsACr8YD 0666
-delete file create /tmp/RsXg3Aav 0666
-delete file read /tmp/RsACr8YD
-delete file read /tmp/RsXg3Aav
-delete file unlink /tmp/RsACr8YD
-delete file unlink /tmp/RsXg3Aav
-delete file write /tmp/RsACr8YD
-delete file write /tmp/RsXg3Aav
+allow_create /tmp/Rs\?\?\?\?\?\? 0666
+allow_read /tmp/Rs\?\?\?\?\?\?
+allow_unlink /tmp/Rs\?\?\?\?\?\?
+allow_write /tmp/Rs\?\?\?\?\?\?
+delete allow_create /tmp/RsACr8YD 0666
+delete allow_create /tmp/RsXg3Aav 0666
+delete allow_read /tmp/RsACr8YD
+delete allow_read /tmp/RsXg3Aav
+delete allow_unlink /tmp/RsACr8YD
+delete allow_unlink /tmp/RsXg3Aav
+delete allow_write /tmp/RsACr8YD
+delete allow_write /tmp/RsXg3Aav
 
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail
 
-file ioctl pipefs:/[\$] 0x5413
-delete file ioctl pipefs:/[11895] 0x5413
-delete file ioctl pipefs:/[11965] 0x5413
+allow_ioctl pipefs:/[\$] 0x5413
+delete allow_ioctl pipefs:/[11895] 0x5413
+delete allow_ioctl pipefs:/[11965] 0x5413
 
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/mail /usr/sbin/sendmail
 
-file create /var/spool/clientmqueue/\* 0660
-file read /var/spool/clientmqueue/\*
-file unlink /var/spool/clientmqueue/\*
-file write /var/spool/clientmqueue/\*
-delete file create /var/spool/clientmqueue/dfoBPETPpH002933 0660
-delete file create /var/spool/clientmqueue/dfoBPETf92002944 0660
-delete file create /var/spool/clientmqueue/qfoBPETPpH002933 0660
-delete file create /var/spool/clientmqueue/qfoBPETf92002944 0660
-delete file read /var/spool/clientmqueue/dfoBPETPpH002933
-delete file read /var/spool/clientmqueue/dfoBPETf92002944
-delete file unlink /var/spool/clientmqueue/dfoBPETPpH002933
-delete file unlink /var/spool/clientmqueue/dfoBPETf92002944
-delete file unlink /var/spool/clientmqueue/qfoBPETPpH002933
-delete file unlink /var/spool/clientmqueue/qfoBPETf92002944
-delete file unlink /var/spool/clientmqueue/xfoBPETPpH002933
-delete file unlink /var/spool/clientmqueue/xfoBPETf92002944
-delete file write /var/spool/clientmqueue/dfoBPETPpH002933
-delete file write /var/spool/clientmqueue/dfoBPETf92002944
-delete file write /var/spool/clientmqueue/qfoBPETPpH002933
-delete file write /var/spool/clientmqueue/qfoBPETf92002944
+allow_create /var/spool/clientmqueue/\* 0660
+allow_read /var/spool/clientmqueue/\*
+allow_unlink /var/spool/clientmqueue/\*
+allow_write /var/spool/clientmqueue/\*
+delete allow_create /var/spool/clientmqueue/dfoBPETPpH002933 0660
+delete allow_create /var/spool/clientmqueue/dfoBPETf92002944 0660
+delete allow_create /var/spool/clientmqueue/qfoBPETPpH002933 0660
+delete allow_create /var/spool/clientmqueue/qfoBPETf92002944 0660
+delete allow_read /var/spool/clientmqueue/dfoBPETPpH002933
+delete allow_read /var/spool/clientmqueue/dfoBPETf92002944
+delete allow_unlink /var/spool/clientmqueue/dfoBPETPpH002933
+delete allow_unlink /var/spool/clientmqueue/dfoBPETf92002944
+delete allow_unlink /var/spool/clientmqueue/qfoBPETPpH002933
+delete allow_unlink /var/spool/clientmqueue/qfoBPETf92002944
+delete allow_unlink /var/spool/clientmqueue/xfoBPETPpH002933
+delete allow_unlink /var/spool/clientmqueue/xfoBPETf92002944
+delete allow_write /var/spool/clientmqueue/dfoBPETPpH002933
+delete allow_write /var/spool/clientmqueue/dfoBPETf92002944
+delete allow_write /var/spool/clientmqueue/qfoBPETPpH002933
+delete allow_write /var/spool/clientmqueue/qfoBPETf92002944
 
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /bin/ls
 
-file ioctl pipefs:/[\$] 0x5413
-delete file ioctl pipefs:/[11965] 0x5413
+allow_ioctl pipefs:/[\$] 0x5413
+delete allow_ioctl pipefs:/[11965] 0x5413
 </pre>
 
 <p>意図したとおりに変換されていない場合には、テキストエディタを利用して /tmp/new を直接編集しても構いませんし、 /etc/tomoyo/tools/patternize.conf を更新してから再度パターン化を行っても構いません。</p>
@@ -271,32 +271,32 @@ domain.starts &lt;kernel&gt; /usr/sbin/httpd
 <td>
 <p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-<p>file read /var/www/html/index.html</p>
-<p>file read /var/www/html/alice/index.html</p>
-<p>file read /var/www/html/alice/page1.html</p>
-<p>file read /var/www/html/alice/page2.html</p>
-<p>file read /var/www/html/alice/image1.jpg</p>
-<p>file read /var/www/html/alice/image2.jpg</p>
-<p>file read /var/www/html/alice/archive/page1.html</p>
-<p>file read /var/www/html/alice/archive/image1.jpg</p>
-<p>file read /var/www/html/alice/archive/page2.html</p>
-<p>file read /var/www/html/alice/archive/image2.jpg</p>
-<p>file read /var/www/html/bob/index.html</p>
-<p>file read /var/www/html/bob/page1.html</p>
-<p>file read /var/www/html/bob/page2.html</p>
-<p>file read /var/www/html/bob/image1.jpg</p>
-<p>file read /var/www/html/bob/image2.jpg</p>
-<p>file read /var/www/html/bob/archive/page1.html</p>
-<p>file read /var/www/html/bob/archive/image1.jpg</p>
-<p>file read /var/www/html/bob/archive/page2.html</p>
-<p>file read /var/www/html/bob/archive/image2.jpg</p>
+<p>allow_read /var/www/html/index.html</p>
+<p>allow_read /var/www/html/alice/index.html</p>
+<p>allow_read /var/www/html/alice/page1.html</p>
+<p>allow_read /var/www/html/alice/page2.html</p>
+<p>allow_read /var/www/html/alice/image1.jpg</p>
+<p>allow_read /var/www/html/alice/image2.jpg</p>
+<p>allow_read /var/www/html/alice/archive/page1.html</p>
+<p>allow_read /var/www/html/alice/archive/image1.jpg</p>
+<p>allow_read /var/www/html/alice/archive/page2.html</p>
+<p>allow_read /var/www/html/alice/archive/image2.jpg</p>
+<p>allow_read /var/www/html/bob/index.html</p>
+<p>allow_read /var/www/html/bob/page1.html</p>
+<p>allow_read /var/www/html/bob/page2.html</p>
+<p>allow_read /var/www/html/bob/image1.jpg</p>
+<p>allow_read /var/www/html/bob/image2.jpg</p>
+<p>allow_read /var/www/html/bob/archive/page1.html</p>
+<p>allow_read /var/www/html/bob/archive/image1.jpg</p>
+<p>allow_read /var/www/html/bob/archive/page2.html</p>
+<p>allow_read /var/www/html/bob/archive/image2.jpg</p>
 </td>
 <td>
 <p>&lt;kernel&gt; /usr/sbin/httpd</p>
 <br>
-<p>file read /var/www/html/\*.html</p>
-<p>file read /var/www/html/\{\*\}/\*.html</p>
-<p>file read /var/www/html/\{\*\}/\*.jpg</p>
+<p>allow_read /var/www/html/\*.html</p>
+<p>allow_read /var/www/html/\{\*\}/\*.html</p>
+<p>allow_read /var/www/html/\{\*\}/\*.jpg</p>
 </td>
 </tr>
 </table>
@@ -315,22 +315,22 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg
 <pre>
 &lt;kernel&gt; /usr/sbin/httpd
 
-file read @WEB-CONTENTS
+allow_read @WEB-CONTENTS
 </pre>
 
 <p>上記の変換処理は <code>tomoyo-editpolicy</code> を利用して行うことができますが、 <code>tomoyo-patternize</code> を利用して行うこともできます。上記のように path_group を例外ポリシーに追加し（ tomoyo-patternize はドメインポリシーしか扱わないので例外ポリシーへの追加は手作業で行う必要があります）、以下の内容を /etc/tomoyo/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts file read
+acl.starts allow_read
 rewrite path_pattern /var/www/html/\*.html @WEB-CONTENTS
 
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts file read
+acl.starts allow_read
 rewrite path_pattern /var/www/html/\{\*\}/\*.html @WEB-CONTENTS
 
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts file read
+acl.starts allow_read
 rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 </pre>
 

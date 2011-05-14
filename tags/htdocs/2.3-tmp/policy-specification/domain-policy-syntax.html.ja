@@ -38,14 +38,14 @@
 
 <h2>ドメインポリシー構文</h2>
 
-<h3><a name="file_execute">file execute</a></h3>
+<h3><a name="file_execute">allow_execute</a></h3>
 
 <p>このディレクティブは、指定されたパス名の実行を許可します。</p>
 
 <p>以下の例では <code>/bin/ls</code> の実行を許可しています：</p>
 
 <pre>
-file execute /bin/ls
+allow_execute /bin/ls
 </pre>
 
 <p>参照：</p>
@@ -54,14 +54,14 @@ file execute /bin/ls
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_read">file read</a></h3>
+<h3><a name="file_read">allow_read</a></h3>
 
 <p>このディレクティブは、指定されたパス名を読み込みモードでオープンすることを許可します。</p>
 
 <p>以下の例では /proc/meminfo の参照を許可しています：</p>
 
 <pre>
-file read proc:/meminfo
+allow_read /proc/meminfo
 </pre>
 
 <p>参照：</p>
@@ -69,14 +69,14 @@ file read proc:/meminfo
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_write">file write</a></h3>
+<h3><a name="file_write">allow_write</a></h3>
 
 <p>このディレクティブは、指定されたパス名を書き込みモードでオープンすることを許可します。</p>
 
 <p>以下の例では /dev/null への書き込みを許可しています：</p>
 
 <pre>
-file write /dev/null
+allow_write /dev/null
 </pre>
 
 <p>参照：</p>
@@ -99,14 +99,14 @@ file append /var/log/auth.log
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_create">file create</a></h3>
+<h3><a name="file_create">allow_create</a></h3>
 
 <p>このディレクティブは、指定されたファイルを指定されたパーミッションで作成することを許可します。</p>
 
 <p>以下の例では /var/lock/subsys/crond の作成を許可しています：</p>
 
 <pre>
-file create /var/lock/subsys/crond 0644
+allow_create /var/lock/subsys/crond 0644
 </pre>
 
 <p>参照：</p>
@@ -115,14 +115,14 @@ file create /var/lock/subsys/crond 0644
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unlink">file unlink</a></h3>
+<h3><a name="file_unlink">allow_unlink</a></h3>
 
 <p>このディレクティブは、指定されたパス名を削除することを許可します。</p>
 
 <p>以下の例では /var/lock/subsys/crond の削除を許可しています：</p>
 
 <pre>
-file unlink /var/lock/subsys/crond
+allow_unlink /var/lock/subsys/crond
 </pre>
 
 <p>参照：</p>
@@ -130,14 +130,14 @@ file unlink /var/lock/subsys/crond
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chown">file chown</a></h3>
+<h3><a name="file_chown">allow_chown</a></h3>
 
 <p>このディレクティブは、指定されたパス名の所有者を指定されたユーザＩＤに変更することを許可します。</p>
 
 <p>以下の例では /dev/sda の所有者のユーザＩＤを 0 に設定することを許可しています：</p>
 
 <pre>
-file chown /dev/sda 0
+allow_chown /dev/sda 0
 </pre>
 
 <p>参照：</p>
@@ -146,14 +146,14 @@ file chown /dev/sda 0
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chgrp">file chgrp</a></h3>
+<h3><a name="file_chgrp">allow_chgrp</a></h3>
 
 <p>このディレクティブは、指定されたパス名のグループを指定されたグループＩＤに変更することを許可します。</p>
 
 <p>以下の例では /dev/audio のグループのグループＩＤを 92 に設定することを許可しています：</p>
 
 <pre>
-file chgrp /dev/audio 92
+allow_chgrp /dev/audio 92
 </pre>
 
 <p>参照：</p>
@@ -162,14 +162,14 @@ file chgrp /dev/audio 92
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chmod">file chmod</a></h3>
+<h3><a name="file_chmod">allow_chmod</a></h3>
 
 <p>このディレクティブは、指定されたパス名のパーミッションを指定された数値に変更することを許可します。</p>
 
 <p>以下の例では /dev/mem のパーミッションを 0644 に設定することを許可しています：</p>
 
 <pre>
-file chmod /dev/mem 0644
+allow_chmod /dev/mem 0644
 </pre>
 
 <p>参照：</p>
@@ -178,14 +178,14 @@ file chmod /dev/mem 0644
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkdir">file mkdir</a></h3>
+<h3><a name="file_mkdir">allow_mkdir</a></h3>
 
 <p>このディレクティブは、指定されたパス名のディレクトリを指定されたパーミッションで作成することを許可します。</p>
 
 <p>以下の例では /tmp/logwatch.\*/ というパターンに一致するディレクトリの作成を許可しています：</p>
 
 <pre>
-file mkdir /tmp/logwatch.\*/ 0755
+allow_mkdir /tmp/logwatch.\*/ 0755
 </pre>
 
 <p>参照：</p>
@@ -194,14 +194,14 @@ file mkdir /tmp/logwatch.\*/ 0755
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rmdir">file rmdir</a></h3>
+<h3><a name="file_rmdir">allow_rmdir</a></h3>
 
 <p>このディレクティブは、指定されたディレクトリを削除することを許可します。</p>
 
 <p>以下の例では /tmp/logwatch.\*/ というパターンに一致するディレクトリの削除を許可しています：</p>
 
 <pre>
-file rmdir /tmp/logwatch.\*/
+allow_rmdir /tmp/logwatch.\*/
 </pre>
 
 <p>参照：</p>
@@ -209,14 +209,14 @@ file rmdir /tmp/logwatch.\*/
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkfifo">file mkfifo</a></h3>
+<h3><a name="file_mkfifo">allow_mkfifo</a></h3>
 
 <p>このディレクティブは、指定されたＦＩＦＯを指定されたパーミッションで作成することを許可します。</p>
 
 <p>以下の例では /dev/initctl という名前のＦＩＦＯの作成を許可しています：</p>
 
 <pre>
-file mkfifo /dev/initctl 0644
+allow_mkfifo /dev/initctl 0644
 </pre>
 
 <p>参照：</p>
@@ -225,14 +225,14 @@ file mkfifo /dev/initctl 0644
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mksock">file mksock</a></h3>
+<h3><a name="file_mksock">allow_mksock</a></h3>
 
 <p>このディレクティブは、指定されたソケットを指定されたパーミッションで作成することを許可します。</p>
 
 <p>以下の例では /dev/log という名前のソケットの作成を許可しています：</p>
 
 <pre>
-file mksock /dev/log 0755
+allow_mksock /dev/log 0755
 </pre>
 
 <p>参照：</p>
@@ -241,14 +241,14 @@ file mksock /dev/log 0755
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkblock">file mkblock</a></h3>
+<h3><a name="file_mkblock">allow_mkblock</a></h3>
 
 <p>このディレクティブは、指定されたブロックデバイスを指定されたパーミッションおよびメジャー番号／マイナー番号で作成することを許可します。</p>
 
 <p>以下の例では /dev/loop0 というブロックデバイスの作成を許可しています：</p>
 
 <pre>
-file mkblock /dev/loop0 0600 7 0
+allow_mkblock /dev/loop0 0600 7 0
 </pre>
 
 <p>参照：</p>
@@ -257,14 +257,14 @@ file mkblock /dev/loop0 0600 7 0
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkchar">file mkchar</a></h3>
+<h3><a name="file_mkchar">allow_mkchar</a></h3>
 
 <p>このディレクティブは、指定されたキャラクタデバイスを指定されたパーミッションおよびメジャー番号／マイナー番号で作成することを許可します。</p>
 
 <p>以下の例では /dev/console というキャラクタデバイスの作成を許可しています：</p>
 
 <pre>
-file mkchar /dev/console 0755 5 1
+allow_mkchar /dev/console 0755 5 1
 </pre>
 
 <p>参照：</p>
@@ -273,14 +273,14 @@ file mkchar /dev/console 0755 5 1
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_truncate">file truncate</a></h3>
+<h3><a name="file_truncate">allow_truncate</a></h3>
 
 <p>このディレクティブは、指定されたパス名を切り詰めたり伸長したりすることを許可します。</p>
 
 <p>以下の例では /etc/mtab を切り詰めることを許可しています：</p>
 
 <pre>
-file truncate /etc/mtab
+allow_truncate /etc/mtab
 </pre>
 
 <p>参照：</p>
@@ -288,14 +288,14 @@ file truncate /etc/mtab
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_symlink">file symlink</a></h3>
+<h3><a name="file_symlink">allow_symlink</a></h3>
 
 <p>このディレクティブは、指定されたシンボリックリンクを作成することを許可します。</p>
 
 <p>以下の例では /dev/cdrom というシンボリックリンクの作成を許可しています：</p>
 
 <pre>
-file symlink /dev/cdrom
+allow_symlink /dev/cdrom
 </pre>
 
 <p>参照：</p>
@@ -303,14 +303,14 @@ file symlink /dev/cdrom
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_link">file link</a></h3>
+<h3><a name="file_link">allow_link</a></h3>
 
 <p>このディレクティブは、１番目に指定されたパス名と２番目に指定されたパス名とでハードリンクを作成することを許可します。</p>
 
 <p>以下の例では /etc/mtab~\$ というパターンに一致するパス名と /etc/mtab~ というパス名とでハードリンクを作成することを許可しています：</p>
 
 <pre>
-file link /etc/mtab~\$ /etc/mtab~
+allow_link /etc/mtab~\$ /etc/mtab~
 </pre>
 
 <p>参照：</p>
@@ -318,14 +318,14 @@ file link /etc/mtab~\$ /etc/mtab~
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rename">file rename</a></h3>
+<h3><a name="file_rename">allow_rename</a></h3>
 
 <p>このディレクティブは、１番目に指定されたパス名から２番目に指定されたパス名にリネームすることを許可します。</p>
 
 <p>以下の例では /etc/mtab.tmp というパス名を /etc/mtab というパス名にリネームすることを許可しています：</p>
 
 <pre>
-file rename /etc/mtab.tmp /etc/mtab
+allow_rename /etc/mtab.tmp /etc/mtab
 </pre>
 
 <p>参照：</p>
@@ -333,20 +333,20 @@ file rename /etc/mtab.tmp /etc/mtab
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_ioctl">file ioctl</a></h3>
+<h3><a name="file_ioctl">allow_ioctl</a></h3>
 
 <p>このディレクティブは、指定されたパス名に対して指定されたコマンド番号の ioctl 要求を行うことを許可します。 ioctl のコマンド番号については、対象となるモジュールの ioctl 機能の説明を参照してください。</p>
 
 <p>以下の例ではファミリーが２、タイプが２、プロトコルが１７のソケット（ＵＤＰ／ＩＰｖ４ソケット）に対して、 0x8915 番の ioctl 要求（ SIOCGIFADDR 要求）を行うことを許可しています：</p>
 
 <pre>
-file ioctl socket:[family=2:type=2:protocol=17] 0x8915
+allow_ioctl socket:[family=2:type=2:protocol=17] 0x8915
 </pre>
 
 <p>以下の例では /dev/null に対して 10000 ～ 20000 番の ioctl 要求を行うことを許可しています：</p>
 
 <pre>
-file ioctl /dev/null 10000-20000
+allow_ioctl /dev/null 10000-20000
 </pre>
 
 <p>参照：</p>
@@ -355,11 +355,11 @@ file ioctl /dev/null 10000-20000
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mount">file mount</a></h3>
+<h3><a name="file_mount">allow_mount</a></h3>
 
 <p>このディレクティブは、指定されたデバイス／ファイルシステムタイプ／マウントオプションで指定されたマウントポイントにマウントすることを許可します。</p>
 
-<p>構文は <strong>file mount $DEVICE $MOUNTPOINT $FILESYSTEM $OPTIONS</strong> です。 $FILESYSTEM がデバイスファイルを必要とする場合、 $DEVICE にはデバイスファイルを指定します。 $OPTIONS は１６進数（または８進数／１０進数）の整数です。 $FILESYSTEM には以下の値も指定できます：</p>
+<p>構文は <strong>allow_mount $DEVICE $MOUNTPOINT $FILESYSTEM $OPTIONS</strong> です。 $FILESYSTEM がデバイスファイルを必要とする場合、 $DEVICE にはデバイスファイルを指定します。 $OPTIONS は１６進数（または８進数／１０進数）の整数です。 $FILESYSTEM には以下の値も指定できます：</p>
 
 <ul>
 <li>--bind</li>
@@ -374,19 +374,19 @@ file ioctl /dev/null 10000-20000
 <p>以下の例では / ディレクトリの再マウントを許可しています：</p>
 
 <pre>
-file mount any / --remount 0x0
+allow_mount any / --remount 0x0
 </pre>
 
 <p>以下の例では ext3 ファイルシステムとしてフォーマットされた /dev/hdc を /var/www/ ディレクトリにマウントすることを許可しています：</p>
 
 <pre>
-file mount /dev/hdc /var/www/ ext3 0xF
+allow_mount /dev/hdc /var/www/ ext3 0xF
 </pre>
 
 <p>以下の例では /dev/shm/ ディレクトリに tmpfs ファイルシステムをマウントすることを許可しています：</p>
 
 <pre>
-file mount none /dev/shm/ tmpfs 0xE
+allow_mount none /dev/shm/ tmpfs 0xE
 </pre>
 
 <p>参照：</p>
@@ -395,14 +395,14 @@ file mount none /dev/shm/ tmpfs 0xE
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unmount">file unmount</a></h3>
+<h3><a name="file_unmount">allow_unmount</a></h3>
 
 <p>このディレクティブは、指定されたパス名をアンマウントすることを許可します。</p>
 
 <p>以下の例では /mnt/cdrom/ ディレクトリをアンマウントすることを許可しています：</p>
 
 <pre>
-file unmount /mnt/cdrom/
+allow_unmount /mnt/cdrom/
 </pre>
 
 <p>参照：</p>
@@ -410,14 +410,14 @@ file unmount /mnt/cdrom/
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chroot">file chroot</a></h3>
+<h3><a name="file_chroot">allow_chroot</a></h3>
 
 <p>このディレクティブは、指定されたパス名を新しい / ディレクトリに設定することを許可します。</p>
 
 <p>以下の例では /var/empty/sshd/ を新しい / ディレクトリに設定することを許可しています：</p>
 
 <pre>
-file chroot /var/empty/sshd/
+allow_chroot /var/empty/sshd/
 </pre>
 
 <p>参照：</p>
@@ -425,16 +425,16 @@ file chroot /var/empty/sshd/
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_pivot_root">file pivot_root</a></h3>
+<h3><a name="file_pivot_root">allow_pivot_root</a></h3>
 
 <p>このディレクティブは、１番目に指定されたパス名を新しい / ディレクトリに設定し、古い / ディレクトリを２番目に指定されたパス名へと移動させることを許可します。</p>
 
 <p>この機能は通常、 initrd/initramfs が使用していた / ディレクトリからハードディスクが使用する / ディレクトリへと切り替えるために１回だけ呼ばれます。この機能は通常、 TOMOYO Linux が有効にされるよりも前に呼び出されるため、このディレクティブが必要になることは滅多にありません。</p>
 
-<p>以下の例では /proc/ を新しい / ディレクトリに設定し、古い / ディレクトリを /sys/kernel/security/tomoyo/ に移動させることを許可しています：</p>
+<p>以下の例では /sys/kernel/security/ を新しい / ディレクトリに設定し、古い / ディレクトリを /sys/kernel/security/tomoyo/ に移動させることを許可しています：</p>
 
 <pre>
-file pivot_root proc:/ proc:/ccs/
+allow_pivot_root /sys/kernel/security/ /sys/kernel/security/tomoyo/
 </pre>
 
 <p>参照：</p>

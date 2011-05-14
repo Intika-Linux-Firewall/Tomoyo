@@ -116,18 +116,18 @@ path_group SFTP_FILES /var/sftp/\*
 &lt;kernel&gt; /bin/sftp-shell
 
 &lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server
-file read @SFTP_FILES
+allow_read @SFTP_FILES
 
 &lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server
-file read @SFTP_FILES
-file write @SFTP_FILES
-file create @SFTP_FILES 0644
-file unlink @SFTP_FILES
-file mkdir @SFTP_DIRS 0755
-file rmdir @SFTP_DIRS
-file rename @SFTP_FILES @SFTP_FILES
-file rename @SFTP_DIRS @SFTP_DIRS
-file truncate @SFTP_FILES
+allow_read @SFTP_FILES
+allow_write @SFTP_FILES
+allow_create @SFTP_FILES 0644
+allow_unlink @SFTP_FILES
+allow_mkdir @SFTP_DIRS 0755
+allow_rmdir @SFTP_DIRS
+allow_rename @SFTP_FILES @SFTP_FILES
+allow_rename @SFTP_DIRS @SFTP_DIRS
+allow_truncate @SFTP_FILES
 </pre>
 
 <h3>Step 5: Learning and operation</h3>
