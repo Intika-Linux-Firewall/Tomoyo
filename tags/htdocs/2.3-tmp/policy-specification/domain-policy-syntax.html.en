@@ -84,14 +84,14 @@ allow_write /dev/null
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_append">file append</a></h3>
+<h3><a name="file_read/write">allow_read/write</a></h3>
 
-<p>This directive allows the domain to append to the specified pathname.</p>
+<p>This directive allows the domain to open the specified pathname for reading and/or writing.</p>
 
-<p>This example allows the domain to append to the file "/var/log/auth.log":</p>
+<p>This example allows the domain to read and/or write to "/dev/null":</p>
 
 <pre>
-file append /var/log/auth.log
+allow_read/write /dev/null
 </pre>
 
 <p>See also:</p>
@@ -333,6 +333,22 @@ allow_rename /etc/mtab.tmp /etc/mtab
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
+<h3><a name="file_rewrite">allow_rewrite</a></h3>
+
+<p>This directive cancels the effect of <a href="exception-policy-syntax.html.en#deny_rewrite">deny_rewrite</a> directive.</p>
+
+<p>This example cancels "deny_rewrite /var/log/\*":</p>
+
+<pre>
+allow_rewrite /var/log/\*
+</pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="exception-policy-syntax.html.en#deny_rewrite">deny_rewrite</a></li>
+<li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
+</ul>
+
 <h3><a name="file_ioctl">allow_ioctl</a></h3>
 
 <p>This directive allows the domain to make an ioctl request with the specified command number. For information on the ioctl command numbers, refer to manuals provided by each module with ioctl functionality.</p>
@@ -451,6 +467,15 @@ allow_pivot_root /sys/kernel/security/ /sys/kernel/security/tomoyo/
 <pre>
 use_profile 3
 </pre>
+
+<h3><a name="ignore_global_allow_read">ignore_global_allow_read</a></h3>
+
+<p>This directive cancels the effect of <a href="exception-policy-syntax.html.en#allow_read">allow_read</a> directive in the exception policy.</p>
+
+<p>See also:</p>
+<ul>
+<li><a href="exception-policy-syntax.html.en#allow_read">allow_read</a></li>
+</ul>
 
 <h3><a name="quota_exceeded">quota_exceeded</a></h3>
 
