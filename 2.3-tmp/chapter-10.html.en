@@ -62,7 +62,7 @@ initialize_domain /usr/sbin/sshd
 <p>Now we can manage the domain "&lt;kernel&gt; /usr/sbin/sshd /bin/bash", but make sure that the <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directive is not specified for this domain. Use domain policy to restrict this domain and only allow the execution of the "auth1" script, but no other programs:</p>
 
 <pre>
-allow_execute /bin/auth1 exec.realpath="/bin/auth1"
+allow_execute /bin/auth1
 </pre>
 
 <p>Following login through SSH, the user must go through another authentication mechanism. If this is an illegal login from an attacker, then they will not be able to know what the authentication mechanism is. Ths script above can employ as foreign an authentication mechanism as you desire.</p>
