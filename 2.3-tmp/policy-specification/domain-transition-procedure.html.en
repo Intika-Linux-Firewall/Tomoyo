@@ -86,9 +86,8 @@ Otherwise, set concatenation of "the current domain name" and "[candidate]" as t
 </tr>
 <tr>
 <td><p>(8) Create destination domain</p></td>
-<td><p>Create the [destination] as determined by steps (4) to (7) if the [destination] does not exist.<br>
-If the [destination] cannot be created and the profile for the [source] is "mode=enforcing", the execution request is denied.<br>
-Otherwise, the execution is continued without domain transition after marking <a href="domain-policy-syntax.html.en#transition_failed">transition_failed</a> directive.</p></td>
+<td><p>If the [destination] as determined by steps (4) to (7) does not exist, the execution request is denied if the profile for the [source] is "mode=enforcing", create the [destination] otherwise.<br>
+If the [destination] cannot be created and the profile for the [source] is not "mode=enforcing", the execution is continued without domain transition after marking <a href="domain-policy-syntax.html.en#transition_failed">transition_failed</a> directive.</p></td>
 </tr>
 <tr>
 <td><p>(9) Execute the program</p></td>
