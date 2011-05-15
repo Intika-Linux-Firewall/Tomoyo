@@ -68,9 +68,38 @@
 
 <p><img src="media/enforcing-error.png" alt="enforcing-error.png" width="720" height="400"></p>
 
-<h3><a name="7.2">7.2. Enable enforcing mode for every domain</a></h3>
+<h3><a name="7.2">7.2. Notification daemon</a></h3>
 
-<p>Once you are familiar with the methods and tools described in the previous chapters, it will be possible to develop policy for every domain in the system. Placing every domain in "Enforcing Mode" will reduce the points of vulnerability through which a system might be compromised. Thus, all the previous steps should be repeated for all the other domains.</p>
+<p><code>tomoyo-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, to notify "root@example.com" via mail, up to once per an hour, add the following to "/etc/crontab":</p>
+
+<pre>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</pre>
+
+<p>Rejected requests will be notified via mail:</p>
+
+<pre class="command">
+# mail
+</pre>
+
+<pre class="output">
+Mail version 8.1 6/6/93.  Type ? for help.
+"/var/spool/mail/root": 1 message 1 unread
+&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234
+&amp;
+Message 1:
+From root@localhost.localdomain  Tue Jan 12 16:19:17 2010
+Date: Tue, 12 Jan 2010 16:19:17 +0900
+From: root &lt;root@localhost.localdomain&gt;
+To: root@localhost.localdomain
+
+Q0-0
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh
+allow_execute /bin/cat
+</pre>
+
+<p>This log reports that execution of <code>/bin/cat</code> was requested by <code>/bin/sh</code>, which was invoked by <code>/usr/sbin/httpd</code>. As its first line has "mode=enforcing", this request was rejected.</p>
 
 <h3><a name="7.3">7.3. Handling policy violations in real-time</a></h3>
 
@@ -243,38 +272,9 @@ The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally read
 The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
 </pre>
 
-<h3><a name="7.4">7.4. Notification daemon</a></h3>
+<h3><a name="7.4">7.4. Enable enforcing mode for every domain</a></h3>
 
-<p><code>tomoyo-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, to notify "root@example.com" via mail, up to once per an hour, add the following to "/etc/crontab":</p>
-
-<pre>
-00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
-</pre>
-
-<p>Rejected requests will be notified via mail:</p>
-
-<pre class="command">
-# mail
-</pre>
-
-<pre class="output">
-Mail version 8.1 6/6/93.  Type ? for help.
-"/var/spool/mail/root": 1 message 1 unread
-&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234
-&amp;
-Message 1:
-From root@localhost.localdomain  Tue Jan 12 16:19:17 2010
-Date: Tue, 12 Jan 2010 16:19:17 +0900
-From: root &lt;root@localhost.localdomain&gt;
-To: root@localhost.localdomain
-
-Q0-0
-#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh
-allow_execute /bin/cat
-</pre>
-
-<p>This log reports that execution of <code>/bin/cat</code> was requested by <code>/bin/sh</code>, which was invoked by <code>/usr/sbin/httpd</code>. As its first line has "mode=enforcing", this request was rejected.</p>
+<p>Once you are familiar with the methods and tools described in the previous chapters, it will be possible to develop policy for every domain in the system. Placing every domain in "Enforcing Mode" will reduce the points of vulnerability through which a system might be compromised. Thus, all the previous steps should be repeated for all the other domains.</p>
 
 <h3><a name="7.5">7.5. Beyond the core topics</a></h3>
 

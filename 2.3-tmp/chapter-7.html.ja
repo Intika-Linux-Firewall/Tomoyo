@@ -66,11 +66,40 @@
 
 <p>もしプロファイルで PREFERENCE::enforcing={ verbose=yes } と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと ERROR: というメッセージがコンソールに表示されます：</p>
 
-<p><img src="enforcing-error.png" alt="enforcing-error.png" width="720" height="400"></p>
+<p><img src="media/enforcing-error.png" alt="enforcing-error.png" width="720" height="400"></p>
 
-<h3><a name="7.2">7.2. 全てのドメインに対して強制モードを有効にする</a></h3>
+<h3><a name="7.2">7.2. 通知デーモン</a></h3>
 
-<p>これまでに紹介してきた概念を理解しツールを使いこなせるようになれば、システム全体をアクセス制御の対象とするようなポリシーを作成することができることでしょう。全てのドメインを「強制モード」で運用すれば、システムの侵害へとつながるような弱点を減らすのに有効です。 Apache を制限する例で示した手順は、そのまま全てのドメインを制限するために使うことができます。</p>
+<p>ポリシー違反の発生を通知するために <code>tomoyo-notifyd</code> というデーモンプログラムが提供されています。例えば、１時間に１回まで root@example.com 宛のメールで通知するには以下の行を /etc/crontab に追加してください：</p>
+
+<pre>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</pre>
+
+<p>上記のように設定した場合、アクセス要求の内容がメールで通知されます：</p>
+
+<pre class="command">
+# mail
+</pre>
+
+<pre class="output">
+Mail version 8.1 6/6/93.  Type ? for help.
+"/var/spool/mail/root": 1 message 1 unread
+&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234
+&amp;
+Message 1:
+From root@localhost.localdomain  Tue Jan 12 16:19:17 2010
+Date: Tue, 12 Jan 2010 16:19:17 +0900
+From: root &lt;root@localhost.localdomain&gt;
+To: root@localhost.localdomain
+
+Q0-0
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh
+allow_execute /bin/cat
+</pre>
+
+<p>このログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> から <code>/bin/cat</code> の実行が要求されたことを示しています。このログの１行目に mode=enforcing という内容が含まれているため、この要求は拒否されたことが判ります。</p>
 
 <h3><a name="7.3">7.3. ポリシー違反を対話的に処理する</a></h3>
 
@@ -243,38 +272,9 @@ The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally read
 The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
 </pre>
 
-<h3><a name="7.4">7.4. 通知デーモン</a></h3>
+<h3><a name="7.4">7.4. 全てのドメインに対して強制モードを有効にする</a></h3>
 
-<p>ポリシー違反の発生を通知するために <code>tomoyo-notifyd</code> というデーモンプログラムが提供されています。例えば、１時間に１回まで root@example.com 宛のメールで通知するには以下の行を /etc/crontab に追加してください：</p>
-
-<pre>
-00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
-</pre>
-
-<p>上記のように設定した場合、アクセス要求の内容がメールで通知されます：</p>
-
-<pre class="command">
-# mail
-</pre>
-
-<pre class="output">
-Mail version 8.1 6/6/93.  Type ? for help.
-"/var/spool/mail/root": 1 message 1 unread
-&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234
-&amp;
-Message 1:
-From root@localhost.localdomain  Tue Jan 12 16:19:17 2010
-Date: Tue, 12 Jan 2010 16:19:17 +0900
-From: root &lt;root@localhost.localdomain&gt;
-To: root@localhost.localdomain
-
-Q0-0
-#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh
-allow_execute /bin/cat
-</pre>
-
-<p>このログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> から <code>/bin/cat</code> の実行が要求されたことを示しています。このログの１行目に mode=enforcing という内容が含まれているため、この要求は拒否されたことが判ります。</p>
+<p>これまでに紹介してきた概念を理解しツールを使いこなせるようになれば、システム全体をアクセス制御の対象とするようなポリシーを作成することができることでしょう。全てのドメインを「強制モード」で運用すれば、システムの侵害へとつながるような弱点を減らすのに有効です。 Apache を制限する例で示した手順は、そのまま全てのドメインを制限するために使うことができます。</p>
 
 <h3><a name="7.5">7.5. おわりに</a></h3>
 
