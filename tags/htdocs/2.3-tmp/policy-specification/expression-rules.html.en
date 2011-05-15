@@ -68,7 +68,7 @@
 </tr>
 <tr>
 <th><p>0x0</p></th>
-<td><p>\000</p></td>
+<td><p></p></td>
 <td><p>\001</p></td>
 <td><p>\002</p></td>
 <td><p>\003</p></td>
@@ -376,7 +376,8 @@
 <p>Notes:</p>
 <ul>
 <li>The "\" character (0x5c) is used for indicating octal expression. Thus, "\\" must be used to represent a "\".</li>
-<li>The characters 0x00 to 0x20, and 0x7F to 0xFF are represented using the expression "\ooo".</li>
+<li>NUL character (0x00) is used for indicating end of string. Thus you cannot include \000 in a word.</li>
+<li>The characters 0x01 to 0x20, and 0x7F to 0xFF are represented using the expression "\ooo".</li>
 <li>The space character (0x20) is used as a delimiter that separates words, while the line feed character (0x0A) is used as a delimiter that separates lines.</li>
 <li>All other characters are regarded as a space character.</li>
 <li>Multiple spaces are automatically compressed into one space, and leading and trailing spaces are automatically deleted.</li>
