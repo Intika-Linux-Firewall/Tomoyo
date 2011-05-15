@@ -86,9 +86,8 @@
 </tr>
 <tr>
 <td><p>(8) 遷移先ドメインの作成</p></td>
-<td><p>ステップ (4) ～ (7) で計算された [destination] ドメインが存在しない場合には作成します。<br>
-もし、 [destination] ドメインを作成することができず、かつ現在のドメインに割り当てられているプロファイルのモードが mode=enforcing の場合、実行要求は拒否されます。<br>
-そうではない場合、 <a href="domain-policy-syntax.html.ja#transition_failed">transition_failed</a> ディレクティブを設定して、ドメイン遷移を行わないまま実行要求の処理を継続します。</p></td>
+<td><p>ステップ (4) ～ (7) で計算された [destination] ドメインが存在しない場合、現在のドメインに割り当てられているプロファイルのモードが mode=enforcing の場合は実行要求は拒否され、そうではない場合には作成します。<br>
+もし、 [destination] ドメインを作成することができず、かつ現在のドメインに割り当てられているプロファイルのモードが mode=enforcing ではない場合、 <a href="domain-policy-syntax.html.ja#transition_failed">transition_failed</a> ディレクティブを設定して、ドメイン遷移を行わないまま実行要求の処理を継続します。</p></td>
 </tr>
 <tr>
 <td><p>(9) プログラムの実行</p></td>
