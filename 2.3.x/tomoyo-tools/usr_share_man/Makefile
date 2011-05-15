@@ -2,6 +2,7 @@ SRC = init_policy tomoyo-checkpolicy tomoyo-diffpolicy tomoyo-domainmatch tomoyo
 
 man8/%.8.gz : %
 	@mkdir -p man8
+	chmod 755 ./$<
 	sh ./$<
 
 all: $(patsubst %,man8/%.8.gz,$(SRC))
