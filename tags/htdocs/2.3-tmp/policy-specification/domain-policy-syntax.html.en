@@ -38,7 +38,7 @@
 
 <h2>Domain policy syntax</h2>
 
-<h3><a name="file_execute">allow_execute</a></h3>
+<h3><a name="allow_execute">allow_execute</a></h3>
 
 <p>This directive allows execution of the specified pathname.</p>
 
@@ -54,7 +54,7 @@ allow_execute /bin/ls
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_read">allow_read</a></h3>
+<h3><a name="allow_read">allow_read</a></h3>
 
 <p>This directive allows the domain to open the specified pathname for reading.</p>
 
@@ -69,7 +69,7 @@ allow_read /proc/meminfo
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_write">allow_write</a></h3>
+<h3><a name="allow_write">allow_write</a></h3>
 
 <p>This directive allows the domain to open the specified pathname for writing.</p>
 
@@ -84,7 +84,7 @@ allow_write /dev/null
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_read/write">allow_read/write</a></h3>
+<h3><a name="allow_read/write">allow_read/write</a></h3>
 
 <p>This directive allows the domain to open the specified pathname for reading and/or writing.</p>
 
@@ -99,7 +99,7 @@ allow_read/write /dev/null
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_create">allow_create</a></h3>
+<h3><a name="allow_create">allow_create</a></h3>
 
 <p>This directive allows the domain to create the specified file with the specified permissions.</p>
 
@@ -115,7 +115,7 @@ allow_create /var/lock/subsys/crond 0644
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unlink">allow_unlink</a></h3>
+<h3><a name="allow_unlink">allow_unlink</a></h3>
 
 <p>This directive allows the domain to delete the specified pathname.</p>
 
@@ -130,7 +130,7 @@ allow_unlink /var/lock/subsys/crond
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chown">allow_chown</a></h3>
+<h3><a name="allow_chown">allow_chown</a></h3>
 
 <p>This directive allows the domain to change the user ownership of the specified pathname to the specified UID.</p>
 
@@ -146,7 +146,7 @@ allow_chown /dev/sda 0
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chgrp">allow_chgrp</a></h3>
+<h3><a name="allow_chgrp">allow_chgrp</a></h3>
 
 <p>This directive allows the domain to change group ownership of the specified pathname to the specified GID.</p>
 
@@ -162,7 +162,7 @@ allow_chgrp /dev/audio 92
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chmod">allow_chmod</a></h3>
+<h3><a name="allow_chmod">allow_chmod</a></h3>
 
 <p>This directive allows the domain to change permissions of the specified pathname to the specified octal permissions.</p>
 
@@ -178,7 +178,7 @@ allow_chmod /dev/mem 0644
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkdir">allow_mkdir</a></h3>
+<h3><a name="allow_mkdir">allow_mkdir</a></h3>
 
 <p>This directive allows the domain to create the specified directory with the specified permissions.</p>
 
@@ -194,7 +194,7 @@ allow_mkdir /tmp/logwatch.\*/ 0755
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rmdir">allow_rmdir</a></h3>
+<h3><a name="allow_rmdir">allow_rmdir</a></h3>
 
 <p>This directive allows the domain to delete the specified directory.</p>
 
@@ -209,7 +209,7 @@ allow_rmdir /tmp/logwatch.\*/
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkfifo">allow_mkfifo</a></h3>
+<h3><a name="allow_mkfifo">allow_mkfifo</a></h3>
 
 <p>This directive allows the domain to create the specified FIFO with the specified permissions.</p>
 
@@ -225,7 +225,7 @@ allow_mkfifo /dev/initctl 0644
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mksock">allow_mksock</a></h3>
+<h3><a name="allow_mksock">allow_mksock</a></h3>
 
 <p>This directive allows the domain to create the specified socket with the specified permissions.</p>
 
@@ -241,7 +241,7 @@ allow_mksock /dev/log 0755
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkblock">allow_mkblock</a></h3>
+<h3><a name="allow_mkblock">allow_mkblock</a></h3>
 
 <p>This directive allows the domain to create the specified block device with the specified permissions, major number and minor number.</p>
 
@@ -257,7 +257,7 @@ allow_mkblock /dev/loop0 0600 7 0
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkchar">allow_mkchar</a></h3>
+<h3><a name="allow_mkchar">allow_mkchar</a></h3>
 
 <p>This directive allows the domain to create the specified character device with the specified permissions, major number and minor number.</p>
 
@@ -273,7 +273,7 @@ allow_mkchar /dev/console 0755 5 1
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_truncate">allow_truncate</a></h3>
+<h3><a name="allow_truncate">allow_truncate</a></h3>
 
 <p>This directive allows the domain to truncate or extend the specified pathname.</p>
 
@@ -288,7 +288,7 @@ allow_truncate /etc/mtab
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_symlink">allow_symlink</a></h3>
+<h3><a name="allow_symlink">allow_symlink</a></h3>
 
 <p>This directive allows the domain to symlink the specified pathname.</p>
 
@@ -303,7 +303,7 @@ allow_symlink /dev/cdrom
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_link">allow_link</a></h3>
+<h3><a name="allow_link">allow_link</a></h3>
 
 <p>This directive allows the domain to create hard link between the first and second specified pathnames.</p>
 
@@ -318,7 +318,7 @@ allow_link /etc/mtab~\$ /etc/mtab~
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rename">allow_rename</a></h3>
+<h3><a name="allow_rename">allow_rename</a></h3>
 
 <p>This directive allows the domain to rename the first specified pathname to the second specified pathname.</p>
 
@@ -333,7 +333,7 @@ allow_rename /etc/mtab.tmp /etc/mtab
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rewrite">allow_rewrite</a></h3>
+<h3><a name="allow_rewrite">allow_rewrite</a></h3>
 
 <p>This directive cancels the effect of <a href="exception-policy-syntax.html.en#deny_rewrite">deny_rewrite</a> directive.</p>
 
@@ -349,7 +349,7 @@ allow_rewrite /var/log/\*
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_ioctl">allow_ioctl</a></h3>
+<h3><a name="allow_ioctl">allow_ioctl</a></h3>
 
 <p>This directive allows the domain to make an ioctl request with the specified command number. For information on the ioctl command numbers, refer to manuals provided by each module with ioctl functionality.</p>
 
@@ -371,7 +371,7 @@ allow_ioctl /dev/null 10000-20000
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mount">allow_mount</a></h3>
+<h3><a name="allow_mount">allow_mount</a></h3>
 
 <p>This directive allows the domain to mount a filesystem with the specified devices, pathnames and options.</p>
 
@@ -411,7 +411,7 @@ allow_mount none /dev/shm/ tmpfs 0xE
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unmount">allow_unmount</a></h3>
+<h3><a name="allow_unmount">allow_unmount</a></h3>
 
 <p>This directive allows the domain to unmount a filesystem from the specified pathname.</p>
 
@@ -426,7 +426,7 @@ allow_unmount /mnt/cdrom/
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chroot">allow_chroot</a></h3>
+<h3><a name="allow_chroot">allow_chroot</a></h3>
 
 <p>This directive allows the domain to use the specified pathname as a new / directory.</p>
 
@@ -441,7 +441,7 @@ allow_chroot /var/empty/sshd/
 <li><a href="exception-policy-syntax.html.en#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_pivot_root">allow_pivot_root</a></h3>
+<h3><a name="allow_pivot_root">allow_pivot_root</a></h3>
 
 <p>This directive allows the domain to use the first specified pathname as a new / directory and bring the old / directory to the second specified pathname.</p>
 

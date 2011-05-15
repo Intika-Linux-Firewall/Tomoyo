@@ -38,7 +38,7 @@
 
 <h2>ドメインポリシー構文</h2>
 
-<h3><a name="file_execute">allow_execute</a></h3>
+<h3><a name="allow_execute">allow_execute</a></h3>
 
 <p>このディレクティブは、指定されたパス名の実行を許可します。</p>
 
@@ -54,7 +54,7 @@ allow_execute /bin/ls
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_read">allow_read</a></h3>
+<h3><a name="allow_read">allow_read</a></h3>
 
 <p>このディレクティブは、指定されたパス名を読み込みモードでオープンすることを許可します。</p>
 
@@ -69,7 +69,7 @@ allow_read /proc/meminfo
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_write">allow_write</a></h3>
+<h3><a name="allow_write">allow_write</a></h3>
 
 <p>このディレクティブは、指定されたパス名を書き込みモードでオープンすることを許可します。</p>
 
@@ -84,7 +84,7 @@ allow_write /dev/null
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_read/write">allow_read/write</a></h3>
+<h3><a name="allow_read/write">allow_read/write</a></h3>
 
 <p>このディレクティブは、指定されたパス名を読み書きモードでオープンすることを許可します。</p>
 
@@ -99,7 +99,7 @@ allow_read/write /dev/null
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_create">allow_create</a></h3>
+<h3><a name="allow_create">allow_create</a></h3>
 
 <p>このディレクティブは、指定されたファイルを指定されたパーミッションで作成することを許可します。</p>
 
@@ -115,7 +115,7 @@ allow_create /var/lock/subsys/crond 0644
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unlink">allow_unlink</a></h3>
+<h3><a name="allow_unlink">allow_unlink</a></h3>
 
 <p>このディレクティブは、指定されたパス名を削除することを許可します。</p>
 
@@ -130,7 +130,7 @@ allow_unlink /var/lock/subsys/crond
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chown">allow_chown</a></h3>
+<h3><a name="allow_chown">allow_chown</a></h3>
 
 <p>このディレクティブは、指定されたパス名の所有者を指定されたユーザＩＤに変更することを許可します。</p>
 
@@ -146,7 +146,7 @@ allow_chown /dev/sda 0
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chgrp">allow_chgrp</a></h3>
+<h3><a name="allow_chgrp">allow_chgrp</a></h3>
 
 <p>このディレクティブは、指定されたパス名のグループを指定されたグループＩＤに変更することを許可します。</p>
 
@@ -162,7 +162,7 @@ allow_chgrp /dev/audio 92
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chmod">allow_chmod</a></h3>
+<h3><a name="allow_chmod">allow_chmod</a></h3>
 
 <p>このディレクティブは、指定されたパス名のパーミッションを指定された数値に変更することを許可します。</p>
 
@@ -178,7 +178,7 @@ allow_chmod /dev/mem 0644
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkdir">allow_mkdir</a></h3>
+<h3><a name="allow_mkdir">allow_mkdir</a></h3>
 
 <p>このディレクティブは、指定されたパス名のディレクトリを指定されたパーミッションで作成することを許可します。</p>
 
@@ -194,7 +194,7 @@ allow_mkdir /tmp/logwatch.\*/ 0755
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rmdir">allow_rmdir</a></h3>
+<h3><a name="allow_rmdir">allow_rmdir</a></h3>
 
 <p>このディレクティブは、指定されたディレクトリを削除することを許可します。</p>
 
@@ -209,7 +209,7 @@ allow_rmdir /tmp/logwatch.\*/
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkfifo">allow_mkfifo</a></h3>
+<h3><a name="allow_mkfifo">allow_mkfifo</a></h3>
 
 <p>このディレクティブは、指定されたＦＩＦＯを指定されたパーミッションで作成することを許可します。</p>
 
@@ -225,7 +225,7 @@ allow_mkfifo /dev/initctl 0644
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mksock">allow_mksock</a></h3>
+<h3><a name="allow_mksock">allow_mksock</a></h3>
 
 <p>このディレクティブは、指定されたソケットを指定されたパーミッションで作成することを許可します。</p>
 
@@ -241,7 +241,7 @@ allow_mksock /dev/log 0755
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkblock">allow_mkblock</a></h3>
+<h3><a name="allow_mkblock">allow_mkblock</a></h3>
 
 <p>このディレクティブは、指定されたブロックデバイスを指定されたパーミッションおよびメジャー番号／マイナー番号で作成することを許可します。</p>
 
@@ -257,7 +257,7 @@ allow_mkblock /dev/loop0 0600 7 0
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mkchar">allow_mkchar</a></h3>
+<h3><a name="allow_mkchar">allow_mkchar</a></h3>
 
 <p>このディレクティブは、指定されたキャラクタデバイスを指定されたパーミッションおよびメジャー番号／マイナー番号で作成することを許可します。</p>
 
@@ -273,7 +273,7 @@ allow_mkchar /dev/console 0755 5 1
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_truncate">allow_truncate</a></h3>
+<h3><a name="allow_truncate">allow_truncate</a></h3>
 
 <p>このディレクティブは、指定されたパス名を切り詰めたり伸長したりすることを許可します。</p>
 
@@ -288,7 +288,7 @@ allow_truncate /etc/mtab
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_symlink">allow_symlink</a></h3>
+<h3><a name="allow_symlink">allow_symlink</a></h3>
 
 <p>このディレクティブは、指定されたシンボリックリンクを作成することを許可します。</p>
 
@@ -303,7 +303,7 @@ allow_symlink /dev/cdrom
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_link">allow_link</a></h3>
+<h3><a name="allow_link">allow_link</a></h3>
 
 <p>このディレクティブは、１番目に指定されたパス名と２番目に指定されたパス名とでハードリンクを作成することを許可します。</p>
 
@@ -318,7 +318,7 @@ allow_link /etc/mtab~\$ /etc/mtab~
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rename">allow_rename</a></h3>
+<h3><a name="allow_rename">allow_rename</a></h3>
 
 <p>このディレクティブは、１番目に指定されたパス名から２番目に指定されたパス名にリネームすることを許可します。</p>
 
@@ -333,7 +333,7 @@ allow_rename /etc/mtab.tmp /etc/mtab
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_rewrite">allow_rewrite</a></h3>
+<h3><a name="allow_rewrite">allow_rewrite</a></h3>
 
 <p>このディレクティブは <a href="exception-policy-syntax.html.ja#deny_rewrite">deny_rewrite</a> ディレクティブの効果を打ち消すために使用します。</p>
 
@@ -349,7 +349,7 @@ allow_rewrite /var/log/\*
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_ioctl">allow_ioctl</a></h3>
+<h3><a name="allow_ioctl">allow_ioctl</a></h3>
 
 <p>このディレクティブは、指定されたパス名に対して指定されたコマンド番号の ioctl 要求を行うことを許可します。 ioctl のコマンド番号については、対象となるモジュールの ioctl 機能の説明を参照してください。</p>
 
@@ -371,7 +371,7 @@ allow_ioctl /dev/null 10000-20000
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_mount">allow_mount</a></h3>
+<h3><a name="allow_mount">allow_mount</a></h3>
 
 <p>このディレクティブは、指定されたデバイス／ファイルシステムタイプ／マウントオプションで指定されたマウントポイントにマウントすることを許可します。</p>
 
@@ -411,7 +411,7 @@ allow_mount none /dev/shm/ tmpfs 0xE
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_unmount">allow_unmount</a></h3>
+<h3><a name="allow_unmount">allow_unmount</a></h3>
 
 <p>このディレクティブは、指定されたパス名をアンマウントすることを許可します。</p>
 
@@ -426,7 +426,7 @@ allow_unmount /mnt/cdrom/
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_chroot">allow_chroot</a></h3>
+<h3><a name="allow_chroot">allow_chroot</a></h3>
 
 <p>このディレクティブは、指定されたパス名を新しい / ディレクトリに設定することを許可します。</p>
 
@@ -441,7 +441,7 @@ allow_chroot /var/empty/sshd/
 <li><a href="exception-policy-syntax.html.ja#path_group">path_group</a></li>
 </ul>
 
-<h3><a name="file_pivot_root">allow_pivot_root</a></h3>
+<h3><a name="allow_pivot_root">allow_pivot_root</a></h3>
 
 <p>このディレクティブは、１番目に指定されたパス名を新しい / ディレクトリに設定し、古い / ディレクトリを２番目に指定されたパス名へと移動させることを許可します。</p>
 
