@@ -48,6 +48,46 @@
 aggregator /usr/bin/tac /usr/bin/cat
 </pre>
 
+<h3><a name="allow_read">allow_read</a></h3>
+
+<p>このディレクティブは、<a href="domain-policy-syntax.html.ja#ignore_global_allow_read">ignore_global_allow_read</a> という指定がされていない全てのドメインに対して、指定されたパス名を読み込みモードでオープンすることを許可します。</p>
+
+<p>以下の例では /proc/meminfo の参照をデフォルトで許可しています：</p>
+
+<pre>
+allow_read /proc/meminfo
+</pre>
+
+<p>参照：</p>
+<ul>
+<li><a href="domain-policy-syntax.html.ja#ignore_global_allow_read">ignore_global_allow_read</a></li>
+</ul>
+
+<h3><a name="deny_rewrite">deny_rewrite</a></h3>
+
+<p>このディレクティブは、 <a href="domain-policy-syntax.html.ja#file_rewrite">allow_rewrite</a> という指定がされていない全てのドメインに対して、指定されたパス名が指すファイルの内容を書き換えることを禁止します。</p>
+
+<p>以下の例では /var/log/\* の書き換えをデフォルトで禁止しています：</p>
+
+<pre>
+deny_rewrite /var/log/\*
+</pre>
+
+<p>参照：</p>
+<ul>
+<li><a href="domain-policy-syntax.html.ja#file_rewrite">allow_rewrite</a></li>
+</ul>
+
+<h3><a name="file_pattern">file_pattern</a></h3>
+
+<p>このディレクティブは、パス名を学習する際に、このディレクティブで指定されたパス名のパターンと一致した場合には、そのパターンを用いて学習するように指示します。</p>
+
+<p>以下の例では /proc/$PID/status （ $PID の部分には整数値が入ります）というパス名に一致した場合には /proc/\$/status として学習するように指示しています：</p>
+
+<pre>
+file_pattern /proc/\$/status
+</pre>
+
 <h3><a name="initialize_domain">initialize_domain</a></h3>
 
 <p>このディレクティブは、指定されたプログラム実行された場合に &lt;kernel&gt; の子ドメインで動作させるために使用します。</p>

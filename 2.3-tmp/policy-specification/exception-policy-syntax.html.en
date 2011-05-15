@@ -48,6 +48,46 @@
 aggregator /usr/bin/tac /usr/bin/cat
 </pre>
 
+<h3><a name="allow_read">allow_read</a></h3>
+
+<p>This directive by default allows every domain to open the specified pathname for reading, unless the domain is marked as "<a href="domain-policy-syntax.html.en#ignore_global_allow_read">ignore_global_allow_read</a>" directive.</p>
+
+<p>This example by default allows every domain to read "/proc/meminfo":</p>
+
+<pre>
+allow_read /proc/meminfo
+</pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="domain-policy-syntax.html.en#ignore_global_allow_read">ignore_global_allow_read</a></li>
+</ul>
+
+<h3><a name="deny_rewrite">deny_rewrite</a></h3>
+
+<p>This directive by default disallows every domain to rewrite the specified pathname's contents, unless the domain is marked as "<a href="domain-policy-syntax.html.en#file_rewrite">allow_rewrite</a>" directive.</p>
+
+<p>This example by default disallows every domain to rewrite "/var/log/\*":</p>
+
+<pre>
+deny_rewrite /var/log/\*
+</pre>
+
+<p>See also:</p>
+<ul>
+<li><a href="domain-policy-syntax.html.en#file_rewrite">allow_rewrite</a></li>
+</ul>
+
+<h3><a name="file_pattern">file_pattern</a></h3>
+
+<p>This directive lets TOMOYO to learn entries using pathname patterns if the pathname to learn matched the pathname pattern specified by this directive.</p>
+
+<p>This example lets TOMOYO to learn /proc/$PID/status (where $PID is an integer) as /proc/\$/status:</p>
+
+<pre>
+file_pattern /proc/\$/status
+</pre>
+
 <h3><a name="initialize_domain">initialize_domain</a></h3>
 
 <p>This directive causes programs to run in a child of "&lt;kernel&gt;" domain.</p>
