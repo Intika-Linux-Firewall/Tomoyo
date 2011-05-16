@@ -7,11 +7,11 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.27.17.21
 Depends: linux-image-ccs (= 2.6.27.17.21), linux-restricted-modules-ccs (= 2.6.27.17.21)
-Filename: ./linux-ccs1.8.1_2.6.27.17.21_i386.deb
-Size: 3178
-MD5sum: e8a9b89848b31db4cf5c150cec095def
-SHA1: 73cea0ed2a479676afc1e41f021dcb3690973a94
-SHA256: 6dec6b8605af8fb0c4b34934c324c361dee1d43987a44647b5feae5acb184c4e
+Filename: ./linux-ccs1.8.1p3_2.6.27.17.21_i386.deb
+Size: 3180
+MD5sum: 44a4fa125353911b5119a155aeb30ebc
+SHA1: f5afd00401bd3687850ce162fa48e48a40c0ef20
+SHA256: 4016a970b0075c2b9e500f91aef0a9135813c6c547ff5aaf5ef79a3a4d4e6141
 Description: Complete Generic Linux kernel
  This package will always depend on the latest complete ccs Linux kernel
  available.
@@ -26,35 +26,17 @@ Source: linux
 Version: 2.6.27-17.46
 Provides: linux-headers, linux-headers-2.6
 Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.27-17, libc6 (>= 2.8~20080505), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.27-17-ccs1.8.1_2.6.27-17.46_i386.deb
-Size: 712248
-MD5sum: 8d81bde113c4b68f87589f688021a671
-SHA1: 6f7ca41082826903bfbcac65dc3689466401b518
-SHA256: 53defeea329629a5a42872392e85b7c84889039bcf83ca9ae04113b2d84e71c3
+Filename: ./linux-headers-2.6.27-17-ccs1.8.1p3_2.6.27-17.46_i386.deb
+Size: 712866
+MD5sum: 12c7fbe461d3c8d361b37fc74b0add43
+SHA1: 7f68c43f2e42025cb3b8e754cca3b86fed1b6476
+SHA256: 0c652ce6cf1b7107a20c85818641557820f96ac4cb84af06acafcb8ecd9dfbf3
 Description: Linux kernel headers for version 2.6.27 on x86/x86_64
  This package provides kernel header files for version 2.6.27 on
  x86/x86_64.
  .
  This is for sites that want the latest kernel headers.  Please read
  /usr/share/doc/linux-headers-2.6.27-17/debian.README.gz for details.
-
-Package: linux-restricted-modules-ccs
-Priority: optional
-Section: restricted/metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.27.17.21
-Depends: linux-restricted-modules-2.6.27-17-ccs
-Filename: ./linux-restricted-modules-ccs1.8.1_2.6.27.17.21_i386.deb
-Size: 3178
-MD5sum: 34682c06c59a3d26d9fbc030e0965048
-SHA1: a7850d7755c2b8ef11d38cfb6224b94d4a29a376
-SHA256: 5c45319b87768032058b87142d7c05fadb48d48ddbe785c1c662cda5c9f5208c
-Description: Restricted Linux modules for ccs kernels
- This package will always depend on the latest restricted modules available
- for ccs kernels.
 
 Package: linux-headers-ccs
 Priority: optional
@@ -65,33 +47,32 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.27.17.21
 Depends: linux-headers-2.6.27-17-ccs
-Filename: ./linux-headers-ccs1.8.1_2.6.27.17.21_i386.deb
-Size: 3150
-MD5sum: 1d82c3a2cc3d2cd7f685b5cf098d3b4f
-SHA1: c52207131112ddc79916527030eb4b1f642d5644
-SHA256: 0555dc6556fb6638bbe21fb20ad49c472b0fd762994e19c46718976a118257b8
+Filename: ./linux-headers-ccs1.8.1p3_2.6.27.17.21_i386.deb
+Size: 3154
+MD5sum: 13b72b90ab2fabb82e4150f65c5ec093
+SHA1: 753ac08338b351c8f3a3b89c7e87b48798e9b943
+SHA256: 32558d6021cdb70c193ff939b43c845e36ebf2dba14087b050127b95cc66b02e
 Description: Generic Linux kernel headers
  This package will always depend on the latest ccs kernel headers
  available.
 
-Package: ccs-tools
-Priority: extra
-Section: alien
-Installed-Size: 652
+Package: linux-restricted-modules-ccs
+Priority: optional
+Section: restricted/metapackages
+Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Version: 1.8.1-1
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
-Filename: ./ccs-tools_1.8.1-1_i386.deb
-Size: 177422
-MD5sum: 5c7a743481b913e5848b09c3a16b194c
-SHA1: 2e29a41b9e9fee05abc6d86add563a9b0f79678e
-SHA256: c88237698744afec0a7c40c6bfedeb912f1a880540b132987c0ea84ba32b7785
-Description: Userspace tools for TOMOYO Linux 1.8.x
- This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
- Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
- .
- (Converted from a rpm package by alien version 8.72.)
+Source: linux-meta
+Version: 2.6.27.17.21
+Depends: linux-restricted-modules-2.6.27-17-ccs
+Filename: ./linux-restricted-modules-ccs1.8.1p3_2.6.27.17.21_i386.deb
+Size: 3180
+MD5sum: ab6c65c1dff866edfb957f7f742be929
+SHA1: 60367026094e5c6397a863899bbb40b8ae433829
+SHA256: 96445d6c8645365c4502fb38444a8c59169c7e21df47d31f1c6ba4539e6c1fbc
+Description: Restricted Linux modules for ccs kernels
+ This package will always depend on the latest restricted modules available
+ for ccs kernels.
 
 Package: linux-restricted-modules-2.6.27-17-ccs
 Priority: optional
@@ -103,11 +84,11 @@ Source: linux-restricted-modules
 Version: 2.6.27-17.23
 Depends: linux-image-2.6.27-17-ccs, linux-restricted-modules-common
 Pre-Depends: dpkg (>= 1.10.24)
-Filename: ./linux-restricted-modules-2.6.27-17-ccs1.8.1_2.6.27-17.23_i386.deb
-Size: 852900
-MD5sum: e762ff78e0db3ea11e65b93aee1db763
-SHA1: f73441f2e1ef467782ac4ca2e9a55ef4141ef7d5
-SHA256: 6229344268887923b70be8a4cb521e5ff04d5fd5b062272ddf4d77261116701f
+Filename: ./linux-restricted-modules-2.6.27-17-ccs1.8.1p3_2.6.27-17.23_i386.deb
+Size: 852910
+MD5sum: daf4b8b582ec1413a82027511c846578
+SHA1: aea25ffd3ade595c58daf2470e954cdf2af98374
+SHA256: c99607201d73808807a45f83a7ee32c8194b7a9a966fda8f79dea5b81d477a0b
 Description: Non-free Linux kernel modules for version 2.6.27 on x86/x86_64
  This package provides restricted modules for Linux version 2.6.27 on
  x86/x86_64.
@@ -118,6 +99,25 @@ Description: Non-free Linux kernel modules for version 2.6.27 on x86/x86_64
  You likely do not want to install this package directly. Instead, install
  the linux-restricted-modules-ccs meta-package, which will ensure that
  upgrades work correctly, and that supporting packages are also installed.
+
+Package: ccs-tools
+Priority: extra
+Section: alien
+Installed-Size: 652
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Version: 1.8.1-2
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
+Filename: ./ccs-tools_1.8.1-2_i386.deb
+Size: 177404
+MD5sum: 17bf392c4c7a580bdc32150c9a1ca4f7
+SHA1: 77cfd41bba5079fdf9e29ee0c24bc46aa0eb704b
+SHA256: 6fe0149542c5ff0cdb3afaeae9ecfe5b5538e0c8ab2763c949aa0821e4d458b7
+Description: Userspace tools for TOMOYO Linux 1.8.x
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+ .
+ (Converted from a rpm package by alien version 8.72.)
 
 Package: linux-image-2.6.27-17-ccs
 Priority: optional
@@ -133,11 +133,11 @@ Pre-Depends: dpkg (>= 1.10.24)
 Recommends: lilo (>= 19.1) | grub
 Suggests: fdutils, linux-doc-2.6.27 | linux-source-2.6.27
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.27-17-ccs1.8.1_2.6.27-17.46_i386.deb
-Size: 26985078
-MD5sum: 0a6181682c86eeacf2b9b0dff477e2a1
-SHA1: 367f6cac6b9332c1c5f7aeff82e7872c5d64bb40
-SHA256: c82f51e489f8671dc183dc1f777160a440dbcb883128f12caf4c81f5134d07c8
+Filename: ./linux-image-2.6.27-17-ccs1.8.1p3_2.6.27-17.46_i386.deb
+Size: 26985526
+MD5sum: 5555832c6d0cd8b5e91fd9ed220edb72
+SHA1: f3ba8dbccf58dc39832e42d822e3310f58d3fc99
+SHA256: f27148c5980b4d1a7bf7e21fa14cbadba52aa990e39165fe31eeb5ca1c77bf18
 Description: Linux kernel image for version 2.6.27 on x86/x86_64
  This package contains the Linux kernel image for version 2.6.27 on
  x86/x86_64.
@@ -163,11 +163,11 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.27.17.21
 Depends: linux-image-2.6.27-17-ccs, linux-firmware
-Filename: ./linux-image-ccs1.8.1_2.6.27.17.21_i386.deb
-Size: 3160
-MD5sum: 58add32fd02da4596aeb28066bc58498
-SHA1: 5883b9934ab845ad6ecb36a40ad6edf0f62b46a7
-SHA256: 081c8221c8c4714e10a0ae62fc8386b4a6516fe207d202c5e617cae06046b36e
+Filename: ./linux-image-ccs1.8.1p3_2.6.27.17.21_i386.deb
+Size: 3168
+MD5sum: 1c8ba4d11e10ac409a47939d2d0fd74b
+SHA1: f78d7b9ba17613addb292f0594201b21a7ce8fbe
+SHA256: a52f014a53e6188eda611e143a0dd4ff11953237b768db7cc94805090f5d7173
 Description: Generic Linux kernel image
  This package will always depend on the latest ccs kernel image
  available.
