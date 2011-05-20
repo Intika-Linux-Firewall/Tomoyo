@@ -1,6 +1,6 @@
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(working copy)
 @@ -37,45 +37,51 @@
  {
@@ -113,7 +113,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
 -}
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(working copy)
 @@ -336,6 +336,7 @@
  {
@@ -140,7 +140,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c
  	kfree(buf);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(working copy)
 @@ -8,59 +8,40 @@
  
@@ -601,18 +601,9 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  			 rn.name);
  		break;
  	case CCS_TRANSITION_CONTROL_KEEP:
-@@ -566,7 +659,7 @@
- 		domain = old_domain;
- 		break;
- 	default:
--		if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded) {
-+		if (!ccs_policy_loaded && old_domain == &ccs_kernel_domain) {
- 			/*
- 			 * Needn't to transit from kernel domain before
- 			 * starting /sbin/init. But transit from kernel domain
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(working copy)
 @@ -109,15 +109,18 @@
  /**
@@ -714,7 +705,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  }
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(working copy)
 @@ -247,17 +247,19 @@
  /**
@@ -738,8 +729,24 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  		ptr->is_group = true;
  		return ptr->group != NULL;
  	}
-@@ -269,12 +271,14 @@
+@@ -267,14 +269,30 @@
+ }
+ 
  /**
++ * ccs_parse_name_union2 - Parse a ccs_name_union.
++ *
++ * @param: Pointer to "struct ccs_acl_param".
++ * @ptr:   Pointer to "struct ccs_name_union".
++ *
++ * Returns true on success, false otherwise.
++ */
++bool ccs_parse_name_union2(struct ccs_acl_param *param,
++			   struct ccs_name_union *ptr)
++{
++	return ccs_parse_name_union(param->ns, ccs_read_token(param), ptr);
++}
++
++/**
   * ccs_parse_number_union - Parse a ccs_number_union.
   *
 + * @ns:   Pointer to "struct ccs_policy_namespace".
@@ -754,7 +761,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  {
  	u8 type;
  	unsigned long v;
-@@ -284,7 +288,7 @@
+@@ -284,7 +302,7 @@
  	if (data[0] == '@') {
  		if (!ccs_correct_word(data))
  			return false;
@@ -763,7 +770,29 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  		ptr->is_group = true;
  		return ptr->group != NULL;
  	}
-@@ -562,26 +566,21 @@
+@@ -309,6 +327,21 @@
+ }
+ 
+ /**
++ * ccs_parse_number_union2 - Parse a ccs_number_union.
++ *
++ * @param: Pointer to "struct ccs_acl_param".
++ * @ptr:   Pointer to "struct ccs_number_union".
++ *
++ * Returns true on success, false otherwise.
++ */
++bool ccs_parse_number_union2(struct ccs_acl_param *param,
++			     struct ccs_number_union *ptr)
++{
++	return ccs_parse_number_union(param->ns,
++				      ccs_read_token(param), ptr);
++}
++
++/**
+  * ccs_byte_range - Check whether the string is a \ooo style octal value.
+  *
+  * @str: Pointer to the string.
+@@ -562,26 +595,21 @@
   */
  bool ccs_correct_domain(const unsigned char *domainname)
  {
@@ -795,7 +824,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  }
  
  /**
-@@ -593,7 +592,18 @@
+@@ -593,7 +621,18 @@
   */
  bool ccs_domain_def(const unsigned char *buffer)
  {
@@ -815,7 +844,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  }
  
  /**
-@@ -1028,6 +1038,7 @@
+@@ -1028,6 +1067,7 @@
  		struct ccs_domain_info *domain = ccs_current_domain();
  		const u8 profile = domain->profile;
  		memset(r, 0, sizeof(*r));
@@ -825,18 +854,18 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  		r->mode = ccs_get_mode(profile, index);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(working copy)
 @@ -393,7 +393,7 @@
  		.perm = perm
  	};
  	int error;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
-+	if (!ccs_parse_name_union(param->ns, ccs_read_token(param), &e.name))
++	if (!ccs_parse_name_union2(param, &e.name))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
-@@ -462,10 +462,11 @@
+@@ -462,10 +462,10 @@
  		.perm = perm
  	};
  	int error;
@@ -844,27 +873,25 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.mode) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.major) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.minor))
-+	struct ccs_policy_namespace *ns = param->ns;
-+	if (!ccs_parse_name_union(ns, ccs_read_token(param), &e.name) ||
-+	    !ccs_parse_number_union(ns, ccs_read_token(param), &e.mode) ||
-+	    !ccs_parse_number_union(ns, ccs_read_token(param), &e.major) ||
-+	    !ccs_parse_number_union(ns, ccs_read_token(param), &e.minor))
++	if (!ccs_parse_name_union2(param, &e.name) ||
++	    !ccs_parse_number_union2(param, &e.mode) ||
++	    !ccs_parse_number_union2(param, &e.major) ||
++	    !ccs_parse_number_union2(param, &e.minor))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
-@@ -535,8 +536,9 @@
+@@ -535,8 +535,8 @@
  		.perm = perm
  	};
  	int error;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name1) ||
 -	    !ccs_parse_name_union(ccs_read_token(param), &e.name2))
-+	struct ccs_policy_namespace *ns = param->ns;
-+	if (!ccs_parse_name_union(ns, ccs_read_token(param), &e.name1) ||
-+	    !ccs_parse_name_union(ns, ccs_read_token(param), &e.name2))
++	if (!ccs_parse_name_union2(param, &e.name1) ||
++	    !ccs_parse_name_union2(param, &e.name2))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
-@@ -579,10 +581,11 @@
+@@ -579,10 +579,10 @@
  {
  	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL };
  	int error;
@@ -872,29 +899,58 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 -	    !ccs_parse_name_union(ccs_read_token(param), &e.dir_name) ||
 -	    !ccs_parse_name_union(ccs_read_token(param), &e.fs_type) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.flags))
-+	struct ccs_policy_namespace *ns = param->ns;
-+	if (!ccs_parse_name_union(ns, ccs_read_token(param), &e.dev_name) ||
-+	    !ccs_parse_name_union(ns, ccs_read_token(param), &e.dir_name) ||
-+	    !ccs_parse_name_union(ns, ccs_read_token(param), &e.fs_type) ||
-+	    !ccs_parse_number_union(ns, ccs_read_token(param), &e.flags))
++	if (!ccs_parse_name_union2(param, &e.dev_name) ||
++	    !ccs_parse_name_union2(param, &e.dir_name) ||
++	    !ccs_parse_name_union2(param, &e.fs_type) ||
++	    !ccs_parse_number_union2(param, &e.flags))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
-@@ -1001,8 +1004,9 @@
+@@ -1001,8 +1001,8 @@
  		.perm = perm
  	};
  	int error;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.number))
-+	struct ccs_policy_namespace *ns = param->ns;
-+	if (!ccs_parse_name_union(ns, ccs_read_token(param), &e.name) ||
-+	    !ccs_parse_number_union(ns, ccs_read_token(param), &e.number))
++	if (!ccs_parse_name_union2(param, &e.name) ||
++	    !ccs_parse_number_union2(param, &e.number))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 5042)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(working copy)
+@@ -338,10 +338,6 @@
+ static int __init ccs_init_module(void)
+ {
+ 	int i;
+-	for (i = 0; i < CCS_MAX_POLICY; i++)
+-		INIT_LIST_HEAD(&ccs_policy_list[i]);
+-	for (i = 0; i < CCS_MAX_GROUP; i++)
+-		INIT_LIST_HEAD(&ccs_group_list[i]);
+ 	for (i = 0; i < CCS_MAX_LIST; i++)
+ 		INIT_LIST_HEAD(&ccs_shared_list[i]);
+ 	if (ccsecurity_ops.disabled)
+@@ -353,7 +349,6 @@
+ 	if (init_srcu_struct(&ccs_ss))
+ 		panic("Out of memory.");
+ #endif
+-	ccs_proc_init();
+ 	ccs_mm_init();
+ 	ccs_capability_init();
+ 	ccs_file_init();
+@@ -362,6 +357,7 @@
+ 	ccs_mount_init();
+ 	ccs_policy_io_init();
+ 	ccs_domain_init();
++	ccs_proc_init();
+ #ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
+ 	ccs_load_builtin_policy();
+ #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
 @@ -697,6 +697,8 @@
  /* Index numbers for domain transition control keywords. */
@@ -1042,7 +1098,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  /* Prototype definition for "struct ccsecurity_operations". */
  
  void __init ccs_capability_init(void);
-@@ -1410,8 +1451,10 @@
+@@ -1410,8 +1451,14 @@
  bool ccs_memory_ok(const void *ptr, const unsigned int size);
  bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
  			      const struct ccs_group *group);
@@ -1050,12 +1106,16 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 -bool ccs_parse_number_union(char *data, struct ccs_number_union *num);
 +bool ccs_parse_name_union(struct ccs_policy_namespace *ns,
 +			  const char *filename, struct ccs_name_union *ptr);
++bool ccs_parse_name_union2(struct ccs_acl_param *param,
++			   struct ccs_name_union *ptr);
 +bool ccs_parse_number_union(struct ccs_policy_namespace *ns, char *data,
 +			    struct ccs_number_union *num);
++bool ccs_parse_number_union2(struct ccs_acl_param *param,
++			     struct ccs_number_union *ptr);
  bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
  			      const struct ccs_path_info *pattern);
  bool ccs_permstr(const char *string, const char *keyword);
-@@ -1452,31 +1495,32 @@
+@@ -1452,31 +1499,32 @@
  		      bool (*merge_duplicate) (struct ccs_acl_info *,
  					       struct ccs_acl_info *,
  					       const bool));
@@ -1098,7 +1158,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  struct ccs_profile *ccs_profile(const u8 profile);
  u8 ccs_get_config(const u8 profile, const u8 index);
  u8 ccs_parse_ulong(unsigned long *result, char **str);
-@@ -1488,6 +1532,7 @@
+@@ -1488,6 +1536,7 @@
  void ccs_del_condition(struct list_head *element);
  void ccs_fill_path_info(struct ccs_path_info *ptr);
  void ccs_get_attributes(struct ccs_obj_info *obj);
@@ -1106,7 +1166,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  void ccs_memory_free(const void *ptr, size_t size);
  void ccs_normalize_line(unsigned char *buffer);
  void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
-@@ -1528,12 +1573,12 @@
+@@ -1528,12 +1577,12 @@
  extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
  extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
  extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
@@ -1122,7 +1182,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  extern struct list_head ccs_shared_list[CCS_MAX_LIST];
  extern struct mutex ccs_policy_lock;
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-@@ -2045,8 +2090,8 @@
+@@ -2045,8 +2094,8 @@
   * Returns pointer to "struct ccs_domain_info" for current thread.
   *
   * If current thread does not belong to a domain (which is true for initial
@@ -1133,7 +1193,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
   */
  static inline struct ccs_domain_info *ccs_current_domain(void)
  {
-@@ -2080,4 +2125,9 @@
+@@ -2080,4 +2129,9 @@
  
  #endif
  
@@ -1143,40 +1203,9 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 +}
 +
  #endif
-Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
-===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 5039)
-+++ trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(working copy)
-@@ -338,10 +338,6 @@
- static int __init ccs_init_module(void)
- {
- 	int i;
--	for (i = 0; i < CCS_MAX_POLICY; i++)
--		INIT_LIST_HEAD(&ccs_policy_list[i]);
--	for (i = 0; i < CCS_MAX_GROUP; i++)
--		INIT_LIST_HEAD(&ccs_group_list[i]);
- 	for (i = 0; i < CCS_MAX_LIST; i++)
- 		INIT_LIST_HEAD(&ccs_shared_list[i]);
- 	if (ccsecurity_ops.disabled)
-@@ -353,7 +349,6 @@
- 	if (init_srcu_struct(&ccs_ss))
- 		panic("Out of memory.");
- #endif
--	ccs_proc_init();
- 	ccs_mm_init();
- 	ccs_capability_init();
- 	ccs_file_init();
-@@ -362,6 +357,7 @@
- 	ccs_mount_init();
- 	ccs_policy_io_init();
- 	ccs_domain_init();
-+	ccs_proc_init();
- #ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
- 	ccs_load_builtin_policy();
- #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(working copy)
 @@ -277,16 +277,18 @@
  /**
@@ -1263,7 +1292,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  		}
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
 @@ -83,9 +83,6 @@
  /* Profile version. Currently only 20100903 is defined. */
@@ -2177,7 +2206,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	return error;
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(working copy)
 @@ -749,12 +749,12 @@
   *
@@ -2279,7 +2308,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
  	for (i = 0; i < CCS_MAX_LIST + CCS_MAX_HASH; i++) {
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(working copy)
 @@ -343,13 +343,13 @@
  		if (address[0] != '@')
@@ -2293,7 +2322,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
  		break;
  	}
 -	if (!ccs_parse_number_union(ccs_read_token(param), &e.port))
-+	if (!ccs_parse_number_union(param->ns, ccs_read_token(param), &e.port))
++	if (!ccs_parse_number_union2(param, &e.port))
  		goto out;
  	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_inet_acl,
  				  ccs_merge_inet_acl);
@@ -2302,13 +2331,13 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
  	if (e.protocol == CCS_SOCK_MAX || !e.perm)
  		return -EINVAL;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
-+	if (!ccs_parse_name_union(param->ns, ccs_read_token(param), &e.name))
++	if (!ccs_parse_name_union2(param, &e.name))
  		return -EINVAL;
  	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_unix_acl,
  				  ccs_merge_unix_acl);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(revision 5039)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(revision 5042)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(working copy)
 @@ -63,13 +63,13 @@
  /**
@@ -2383,7 +2412,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
  			ccs_put_ipv6_address(e.min.ipv6);
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(working copy)
 @@ -51,9 +51,6 @@
  
@@ -2397,7 +2426,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
  #define CCS_PROC_POLICY_DOMAIN_STATUS    "/proc/ccs/.domain_status"
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(working copy)
 @@ -238,17 +238,27 @@
  			pos = eq + 1;
@@ -2456,7 +2485,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c
  		{ "number_group ", ccs_check_path, ccs_check_number },
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(working copy)
 @@ -40,7 +40,7 @@
  /* Array of string ACL entries. */
@@ -3082,9 +3111,22 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  }
  
  /**
+Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5042)
++++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
+@@ -94,7 +94,7 @@
+ 	memset(&ccs_dp, 0, sizeof(ccs_dp));
+ 	memset(&mp, 0, sizeof(mp));
+ 	ccs_get();
+-	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
++	ccs_assign_domain(&ccs_dp, "<kernel>", false, false);
+ 	while (true) {
+ 		FILE *fp;
+ 		struct msghdr msg;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(working copy)
 @@ -237,8 +237,10 @@
  		if (!cp)
@@ -3099,22 +3141,9 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
  			while (*cp) {
  				if (*cp++ != ' ' || *cp++ == '/')
  					continue;
-Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
-===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5039)
-+++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
-@@ -94,7 +94,7 @@
- 	memset(&ccs_dp, 0, sizeof(ccs_dp));
- 	memset(&mp, 0, sizeof(mp));
- 	ccs_get();
--	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
-+	ccs_assign_domain(&ccs_dp, "<kernel>", false, false);
- 	while (true) {
- 		FILE *fp;
- 		struct msghdr msg;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(working copy)
 @@ -314,11 +314,14 @@
  	[CCS_DIRECTIVE_IPC_SIGNAL]    = { "ipc signal", NULL, 0, 0 },
@@ -3133,7 +3162,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
  	[CCS_DIRECTIVE_PATH_GROUP]    = { "path_group", NULL, 0, 0 },
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(working copy)
 @@ -29,13 +29,16 @@
  	CCS_SCREEN_ACL_LIST,
@@ -3175,7 +3204,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
  extern int ccs_persistent_fd;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c	(working copy)
 @@ -38,8 +38,7 @@
  				char *cp = strchr(buffer, '\n');
@@ -3189,7 +3218,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c
  					if (!domain)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(working copy)
 @@ -286,22 +286,6 @@
  }
@@ -3266,7 +3295,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
  		if (!cp)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c	(working copy)
 @@ -43,8 +43,7 @@
  		char *cp = strchr(buffer, '\n');
@@ -3280,7 +3309,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c
  			if (!domain)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c	(working copy)
 @@ -514,7 +514,7 @@
  		char *sp = ccs_freadline_unpack(stdin);
@@ -3293,7 +3322,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c
  			printf("%s\n", sp);
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(working copy)
 @@ -15,8 +15,8 @@
  	sleep 10
@@ -3319,7 +3348,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
  endif
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(working copy)
 @@ -1277,9 +1277,11 @@
  "keyword_alias ipc signal                    = ipc signal\n"
@@ -3344,7 +3373,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
  "# keyword.\n"
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(revision 5039)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(revision 5042)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(working copy)
 @@ -100,6 +100,7 @@
  
