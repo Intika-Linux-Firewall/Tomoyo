@@ -70,7 +70,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.3-20110505.tar.gz
-+awk ' { if ( $0 == "--- linux-2.6.32-71.14.1.el6.i686.orig/security/ccsecurity/file.c" ) exit; print $0; } ' patches/ccs-patch-2.6.32-centos-6.0.diff | patch -sp1
++patch -sp1 < patches/ccs-patch-2.6.32-centos-6.0.diff
 +
  # Any further pre-build tree manipulations happen here.
  

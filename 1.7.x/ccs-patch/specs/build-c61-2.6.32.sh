@@ -25,7 +25,7 @@ fi
 
 if [ ! -r ccs-patch-2.6.32-centos-6.1-20110520-1.7.3.diff ]
 then
-    wget -O ccs-patch-2.6.32-centos-6.1-20110520-1.7.3.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.1.diff?revision=5041&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.32-centos-6.1-20110520-1.7.3.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.1.diff?revision=5041&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -74,7 +74,7 @@ patch << "EOF" || die "Can't patch spec file."
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.3-20110511.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.3-20110505.tar.gz
 +patch -sp1 < %_sourcedir/ccs-patch-2.6.32-centos-6.1-20110520-1.7.3.diff
 +
  # Any further pre-build tree manipulations happen here.
@@ -95,11 +95,11 @@ echo ""
 echo ""
 echo ""
 echo "Edit /root/rpmbuild/SPECS/ccs-kernel.spec if needed, and run"
-echo "rpmbuild -bb /root/rpmbuild/SPECS/ccs-kernel.spec"
+echo "rpmbuild -bb --without kabichk /root/rpmbuild/SPECS/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 echo ""
-ARCH=`uname -m`
-echo "I'll start 'rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
+# sed -i -e 's@%{?dist}@.el6@g' /root/rpmbuild/SPECS/ccs-kernel.spec
+echo "I'll start 'rpmbuild -bb --target i686 --without kabichk --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
-exec rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec
+exec rpmbuild -bb --target i686 --without kabichk --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec
 exit 0
