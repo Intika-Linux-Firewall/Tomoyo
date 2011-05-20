@@ -98,6 +98,7 @@ echo "Edit /root/rpmbuild/SPECS/ccs-kernel.spec if needed, and run"
 echo "rpmbuild -bb /root/rpmbuild/SPECS/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 echo ""
+# sed -i -e 's@%{?dist}@.el6@g' /root/rpmbuild/SPECS/ccs-kernel.spec
 ARCH=`uname -m`
 echo "I'll start 'rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
