@@ -1,8 +1,8 @@
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c	(working copy)
-@@ -37,45 +37,49 @@
+@@ -37,45 +37,50 @@
  {
  	const struct ccs_reserved *p1 = container_of(a, typeof(*p1), head);
  	const struct ccs_reserved *p2 = container_of(b, typeof(*p2), head);
@@ -40,14 +40,15 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
 +	struct ccs_policy_namespace *ns = param->ns;
 +	int error;
  	u8 *tmp;
-+	char *data = param->data;
-+	if (*data == '@' || strchr(data, ' ') ||
-+	    !ccs_parse_number_union2(param, &e.port) ||
-+	    e.port.values[0] > e.port.values[1] || e.port.values[1] > 65535)
++	if (param->data[0] == '@' || !ccs_parse_number_union(param, &e.port) ||
++	    e.port.values[1] > 65535 || param->data[0])
 +		return -EINVAL;
 +	param->list = &ns->policy_list[CCS_ID_RESERVEDPORT];
 +	error = ccs_update_policy(&e.head, sizeof(e), param,
 +				  ccs_same_reserved);
++	/*
++	 * ccs_put_number_union() is not needed because param->data[0] != '@'.
++	 */
  	if (error)
  		return error;
  	tmp = kzalloc(sizeof(ccs_reserved_port_map), CCS_GFP_FLAGS);
@@ -75,7 +76,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
  	}
  	memmove(ccs_reserved_port_map, tmp, sizeof(ccs_reserved_port_map));
  	kfree(tmp);
-@@ -86,33 +90,3 @@
+@@ -86,33 +91,3 @@
  	ccsecurity_ops.lport_reserved = __ccs_lport_reserved;
  	return 0;
  }
@@ -111,7 +112,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/autobind.c
 -}
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(working copy)
 @@ -336,6 +336,7 @@
  {
@@ -138,7 +139,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c
  	kfree(buf);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(working copy)
 @@ -8,25 +8,12 @@
  
@@ -600,39 +601,40 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
  	case CCS_TRANSITION_CONTROL_KEEP:
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c	(working copy)
-@@ -109,15 +109,18 @@
+@@ -109,15 +109,17 @@
  /**
   * ccs_get_group - Allocate memory for "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group".
   *
-+ * @ns:         Pointer to "struct ccs_policy_namespace".
-  * @group_name: The name of address group.
-  * @idx:        Index number.
+- * @group_name: The name of address group.
+- * @idx:        Index number.
++ * @param: Pointer to "struct ccs_acl_param".
++ * @idx:   Index number.
   *
   * Returns pointer to "struct ccs_group" on success, NULL otherwise.
   */
 -struct ccs_group *ccs_get_group(const char *group_name, const u8 idx)
-+struct ccs_group *ccs_get_group(struct ccs_policy_namespace *ns,
-+				const char *group_name, const u8 idx)
++struct ccs_group *ccs_get_group(struct ccs_acl_param *param, const u8 idx)
  {
  	struct ccs_group e = { };
  	struct ccs_group *group = NULL;
 +	struct list_head *list;
++	const char *group_name = ccs_read_token(param);
  	bool found = false;
  	if (!ccs_correct_word(group_name) || idx >= CCS_MAX_GROUP)
  		return NULL;
-@@ -126,7 +129,8 @@
+@@ -126,7 +128,8 @@
  		return NULL;
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		goto out;
 -	list_for_each_entry(group, &ccs_group_list[idx], head.list) {
-+	list = &ns->group_list[idx];
++	list = &param->ns->group_list[idx];
 +	list_for_each_entry(group, list, head.list) {
  		if (e.group_name != group->group_name)
  			continue;
  		atomic_inc(&group->head.users);
-@@ -138,8 +142,7 @@
+@@ -138,8 +141,7 @@
  		if (entry) {
  			INIT_LIST_HEAD(&entry->member_list);
  			atomic_set(&entry->head.users, 1);
@@ -642,7 +644,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  			group = entry;
  			found = true;
  		}
-@@ -400,6 +403,9 @@
+@@ -400,6 +402,9 @@
  
  #endif
  
@@ -652,7 +654,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  /**
   * ccs_mm_init - Initialize mm related code.
   *
-@@ -410,10 +416,9 @@
+@@ -410,10 +415,9 @@
  	int idx;
  	for (idx = 0; idx < CCS_MAX_HASH; idx++)
  		INIT_LIST_HEAD(&ccs_name_list[idx]);
@@ -666,7 +668,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[0]);
  	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[1]);
  #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
-@@ -425,27 +430,28 @@
+@@ -425,27 +429,28 @@
  	ccsecurity_ops.alloc_task_security = __ccs_alloc_task_security;
  	ccsecurity_ops.free_task_security = __ccs_free_task_security;
  #endif
@@ -703,94 +705,119 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/memory.c
  }
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/util.c	(working copy)
-@@ -247,17 +247,19 @@
+@@ -247,20 +247,24 @@
  /**
   * ccs_parse_name_union - Parse a ccs_name_union.
   *
-+ * @ns:       Pointer to "struct ccs_policy_namespace".
-  * @filename: Name or name group.
-  * @ptr:      Pointer to "struct ccs_name_union".
+- * @filename: Name or name group.
+- * @ptr:      Pointer to "struct ccs_name_union".
++ * @param: Pointer to "struct ccs_acl_param".
++ * @ptr:   Pointer to "struct ccs_name_union".
   *
   * Returns true on success, false otherwise.
   */
 -bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
-+bool ccs_parse_name_union(struct ccs_policy_namespace *ns,
-+			  const char *filename, struct ccs_name_union *ptr)
++bool ccs_parse_name_union(struct ccs_acl_param *param,
++			  struct ccs_name_union *ptr)
  {
- 	if (!ccs_correct_word(filename))
- 		return false;
- 	if (filename[0] == '@') {
+-	if (!ccs_correct_word(filename))
+-		return false;
+-	if (filename[0] == '@') {
 -		ptr->group = ccs_get_group(filename + 1, CCS_PATH_GROUP);
-+		ptr->group = ccs_get_group(ns, filename + 1, CCS_PATH_GROUP);
++	char *filename;
++	if (param->data[0] == '@') {
++		param->data++;
++		ptr->group = ccs_get_group(param, CCS_PATH_GROUP);
  		ptr->is_group = true;
  		return ptr->group != NULL;
  	}
-@@ -267,14 +269,30 @@
- }
- 
++	filename = ccs_read_token(param);
++	if (!ccs_correct_word(filename))
++		return false;
+ 	ptr->filename = ccs_get_name(filename);
+ 	ptr->is_group = false;
+ 	return ptr->filename != NULL;
+@@ -269,25 +273,25 @@
  /**
-+ * ccs_parse_name_union2 - Parse a ccs_name_union.
-+ *
-+ * @param: Pointer to "struct ccs_acl_param".
-+ * @ptr:   Pointer to "struct ccs_name_union".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+bool ccs_parse_name_union2(struct ccs_acl_param *param,
-+			   struct ccs_name_union *ptr)
-+{
-+	return ccs_parse_name_union(param->ns, ccs_read_token(param), ptr);
-+}
-+
-+/**
   * ccs_parse_number_union - Parse a ccs_number_union.
   *
-+ * @ns:   Pointer to "struct ccs_policy_namespace".
-  * @data: Number or number range or number group.
-  * @ptr:  Pointer to "struct ccs_number_union".
+- * @data: Number or number range or number group.
+- * @ptr:  Pointer to "struct ccs_number_union".
++ * @param: Pointer to "struct ccs_acl_param".
++ * @ptr:   Pointer to "struct ccs_number_union".
   *
   * Returns true on success, false otherwise.
   */
 -bool ccs_parse_number_union(char *data, struct ccs_number_union *ptr)
-+bool ccs_parse_number_union(struct ccs_policy_namespace *ns, char *data,
++bool ccs_parse_number_union(struct ccs_acl_param *param,
 +			    struct ccs_number_union *ptr)
  {
++	char *data;
  	u8 type;
  	unsigned long v;
-@@ -284,7 +302,7 @@
- 	if (data[0] == '@') {
- 		if (!ccs_correct_word(data))
- 			return false;
+ 	memset(ptr, 0, sizeof(*ptr));
+-	if (!data[0])
+-		return false;
+-	if (data[0] == '@') {
+-		if (!ccs_correct_word(data))
+-			return false;
 -		ptr->group = ccs_get_group(data + 1, CCS_NUMBER_GROUP);
-+		ptr->group = ccs_get_group(ns, data + 1, CCS_NUMBER_GROUP);
++	if (param->data[0] == '@') {
++		param->data++;
++		ptr->group = ccs_get_group(param, CCS_NUMBER_GROUP);
  		ptr->is_group = true;
  		return ptr->group != NULL;
  	}
-@@ -309,6 +327,21 @@
++	data = ccs_read_token(param);
+ 	type = ccs_parse_ulong(&v, &data);
+ 	if (type == CCS_VALUE_TYPE_INVALID)
+ 		return false;
+@@ -301,7 +305,7 @@
+ 	if (*data++ != '-')
+ 		return false;
+ 	type = ccs_parse_ulong(&v, &data);
+-	if (type == CCS_VALUE_TYPE_INVALID || *data)
++	if (type == CCS_VALUE_TYPE_INVALID || *data || ptr->values[0] > v)
+ 		return false;
+ 	ptr->values[1] = v;
+ 	ptr->value_type[1] = type;
+@@ -426,33 +430,6 @@
  }
  
  /**
-+ * ccs_parse_number_union2 - Parse a ccs_number_union.
-+ *
-+ * @param: Pointer to "struct ccs_acl_param".
-+ * @ptr:   Pointer to "struct ccs_number_union".
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+bool ccs_parse_number_union2(struct ccs_acl_param *param,
-+			     struct ccs_number_union *ptr)
-+{
-+	return ccs_parse_number_union(param->ns,
-+				      ccs_read_token(param), ptr);
-+}
-+
-+/**
-  * ccs_byte_range - Check whether the string is a \ooo style octal value.
+- * ccs_tokenize - Tokenize string.
+- *
+- * @buffer: The line to tokenize.
+- * @w:      Pointer to "char *".
+- * @size:   Sizeof @w.
+- *
+- * Returns true on success, false otherwise.
+- */
+-bool ccs_tokenize(char *buffer, char *w[], size_t size)
+-{
+-	int count = size / sizeof(char *);
+-	int i;
+-	for (i = 0; i < count; i++)
+-		w[i] = "";
+-	for (i = 0; i < count; i++) {
+-		char *cp = strchr(buffer, ' ');
+-		if (cp)
+-			*cp = '\0';
+-		w[i] = buffer;
+-		if (!cp)
+-			break;
+-		buffer = cp + 1;
+-	}
+-	return i < count || !*buffer;
+-}
+-
+-/**
+  * ccs_correct_word2 - Check whether the given string follows the naming rules.
   *
-  * @str: Pointer to the string.
-@@ -562,26 +595,21 @@
+  * @string: The byte sequence to check. Not '\0'-terminated.
+@@ -562,26 +539,21 @@
   */
  bool ccs_correct_domain(const unsigned char *domainname)
  {
@@ -822,7 +849,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  }
  
  /**
-@@ -593,7 +621,18 @@
+@@ -593,7 +565,18 @@
   */
  bool ccs_domain_def(const unsigned char *buffer)
  {
@@ -842,7 +869,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  }
  
  /**
-@@ -1028,6 +1067,7 @@
+@@ -1028,6 +1011,7 @@
  		struct ccs_domain_info *domain = ccs_current_domain();
  		const u8 profile = domain->profile;
  		memset(r, 0, sizeof(*r));
@@ -852,14 +879,14 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/util.c
  		r->mode = ccs_get_mode(profile, index);
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(working copy)
 @@ -393,7 +393,7 @@
  		.perm = perm
  	};
  	int error;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
-+	if (!ccs_parse_name_union2(param, &e.name))
++	if (!ccs_parse_name_union(param, &e.name))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -871,10 +898,10 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.mode) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.major) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.minor))
-+	if (!ccs_parse_name_union2(param, &e.name) ||
-+	    !ccs_parse_number_union2(param, &e.mode) ||
-+	    !ccs_parse_number_union2(param, &e.major) ||
-+	    !ccs_parse_number_union2(param, &e.minor))
++	if (!ccs_parse_name_union(param, &e.name) ||
++	    !ccs_parse_number_union(param, &e.mode) ||
++	    !ccs_parse_number_union(param, &e.major) ||
++	    !ccs_parse_number_union(param, &e.minor))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -884,8 +911,8 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
  	int error;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name1) ||
 -	    !ccs_parse_name_union(ccs_read_token(param), &e.name2))
-+	if (!ccs_parse_name_union2(param, &e.name1) ||
-+	    !ccs_parse_name_union2(param, &e.name2))
++	if (!ccs_parse_name_union(param, &e.name1) ||
++	    !ccs_parse_name_union(param, &e.name2))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -897,10 +924,10 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 -	    !ccs_parse_name_union(ccs_read_token(param), &e.dir_name) ||
 -	    !ccs_parse_name_union(ccs_read_token(param), &e.fs_type) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.flags))
-+	if (!ccs_parse_name_union2(param, &e.dev_name) ||
-+	    !ccs_parse_name_union2(param, &e.dir_name) ||
-+	    !ccs_parse_name_union2(param, &e.fs_type) ||
-+	    !ccs_parse_number_union2(param, &e.flags))
++	if (!ccs_parse_name_union(param, &e.dev_name) ||
++	    !ccs_parse_name_union(param, &e.dir_name) ||
++	    !ccs_parse_name_union(param, &e.fs_type) ||
++	    !ccs_parse_number_union(param, &e.flags))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
@@ -910,14 +937,14 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
  	int error;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name) ||
 -	    !ccs_parse_number_union(ccs_read_token(param), &e.number))
-+	if (!ccs_parse_name_union2(param, &e.name) ||
-+	    !ccs_parse_number_union2(param, &e.number))
++	if (!ccs_parse_name_union(param, &e.name) ||
++	    !ccs_parse_number_union(param, &e.number))
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(working copy)
 @@ -338,10 +338,6 @@
  static int __init ccs_init_module(void)
@@ -948,9 +975,23 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
  #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
-@@ -697,6 +697,8 @@
+@@ -461,13 +461,6 @@
+ 	CCS_MAX_GROUP
+ };
+ 
+-/* Index numbers for type of IP address. */
+-enum ccs_ip_address_type {
+-	CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP,
+-	CCS_IP_ADDRESS_TYPE_IPv4,
+-	CCS_IP_ADDRESS_TYPE_IPv6,
+-};
+-
+ /* Index numbers for category of functionality. */
+ enum ccs_mac_category_index {
+ 	CCS_MAC_CATEGORY_FILE,
+@@ -697,6 +690,8 @@
  /* Index numbers for domain transition control keywords. */
  enum ccs_transition_type {
  	/* Do not change this order, */
@@ -959,7 +1000,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
  	CCS_TRANSITION_CONTROL_INITIALIZE,
  	CCS_TRANSITION_CONTROL_NO_KEEP,
-@@ -728,10 +730,6 @@
+@@ -728,10 +723,6 @@
   */
  #define CCS_SOCK_MAX 6
  
@@ -970,7 +1011,46 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  /* Size of temporary buffer for execve() operation. */
  #define CCS_EXEC_TMPSIZE     4096
  
-@@ -934,6 +932,7 @@
+@@ -823,6 +814,24 @@
+ 	u8 is_group;
+ };
+ 
++/* Structure for holding an IP address. */
++struct ccs_ipaddr_union {
++	struct {
++		/* Start of IPv4 address range. Host endian. */
++		u32 min;
++		/* End of IPv4 address range. Host endian.   */
++		u32 max;
++	} ipv4;
++	struct {
++		/* Start of IPv6 address range. Big endian.  */
++		const struct in6_addr *min;
++		/* End of IPv6 address range. Big endian.    */
++		const struct in6_addr *max;
++	} ipv6;
++	/* Pointer to address group. */
++	struct ccs_group *group;
++};
++
+ /* Structure for "path_group"/"number_group"/"address_group" directive. */
+ struct ccs_group {
+ 	struct ccs_shared_acl_head head;
+@@ -850,11 +859,8 @@
+ /* Structure for "address_group" directive. */
+ struct ccs_address_group {
+ 	struct ccs_acl_head head;
+-	bool is_ipv6; /* True if IPv6 address, false if IPv4 address. */
+-	union {
+-		u32 ipv4;                    /* Host byte order    */
+-		const struct in6_addr *ipv6; /* Network byte order */
+-	} min, max;
++	/* Structure for holding an IP address. */
++	struct ccs_ipaddr_union address;
+ };
+ 
+ /* Subset of "struct stat". Used by conditional ACL and audit logs. */
+@@ -934,6 +940,7 @@
  };
  
  struct ccs_execve;
@@ -978,7 +1058,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  
  /* Structure for request info. */
  struct ccs_request_info {
-@@ -1027,6 +1026,7 @@
+@@ -1027,6 +1034,7 @@
  			const struct ccs_path_info *domainname;
  		} task;
  	} param;
@@ -986,7 +1066,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	u8 param_type; /* One of values in "enum ccs_acl_entry_type_index". */
  	bool granted; /* True if granted, false otherwise. */
  	/* True if current thread should not be carried sleep penalty. */
-@@ -1095,6 +1095,8 @@
+@@ -1095,6 +1103,8 @@
  	struct list_head acl_info_list[2];
  	/* Name of this domain. Never NULL.          */
  	const struct ccs_path_info *domainname;
@@ -995,7 +1075,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	u8 profile;        /* Profile number to use. */
  	u8 group;          /* Group number to use.   */
  	bool is_deleted;   /* Delete flag.           */
-@@ -1102,7 +1104,8 @@
+@@ -1102,7 +1112,8 @@
  };
  
  /*
@@ -1005,7 +1085,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
   * "keep_domain"/"no_keep_domain" keyword.
   */
  struct ccs_transition_control {
-@@ -1123,8 +1126,7 @@
+@@ -1123,8 +1134,7 @@
  /* Structure for "deny_autobind" keyword. */
  struct ccs_reserved {
  	struct ccs_acl_head head;
@@ -1015,7 +1095,50 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  };
  
  /* Structure for policy manager. */
-@@ -1310,8 +1312,13 @@
+@@ -1137,7 +1147,7 @@
+ 
+ /* Structure for argv[]. */
+ struct ccs_argv {
+-	unsigned int index;
++	unsigned long index;
+ 	const struct ccs_path_info *value;
+ 	bool is_not;
+ };
+@@ -1264,32 +1274,7 @@
+ 	struct ccs_acl_info head; /* type = CCS_TYPE_INET_ACL */
+ 	u8 protocol;
+ 	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
+-	/*
+-	 * address_type takes one of the following constants.
+-	 *   CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP
+-	 *                if @address points to "address_group" directive.
+-	 *   CCS_IP_ADDRESS_TYPE_IPv4
+-	 *                if @address points to an IPv4 address.
+-	 *   CCS_IP_ADDRESS_TYPE_IPv6
+-	 *                if @address points to an IPv6 address.
+-	 */
+-	u8 address_type;
+-	union {
+-		struct {
+-			/* Start of IPv4 address range. Host endian. */
+-			u32 min;
+-			/* End of IPv4 address range. Host endian.   */
+-			u32 max;
+-		} ipv4;
+-		struct {
+-			/* Start of IPv6 address range. Big endian.  */
+-			const struct in6_addr *min;
+-			/* End of IPv6 address range. Big endian.    */
+-			const struct in6_addr *max;
+-		} ipv6;
+-		/* Pointer to address group. */
+-		struct ccs_group *group;
+-	} address;
++	struct ccs_ipaddr_union address;
+ 	struct ccs_number_union port;
+ };
+ 
+@@ -1310,8 +1295,13 @@
  
  /* Structure for holding a line from /proc/ccs/ interface. */
  struct ccs_acl_param {
@@ -1030,7 +1153,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	bool is_delete;
  };
  
-@@ -1325,6 +1332,7 @@
+@@ -1325,6 +1315,7 @@
  	char __user *read_user_buf;
  	size_t read_user_buf_avail;
  	struct {
@@ -1038,7 +1161,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  		struct list_head *domain;
  		struct list_head *group;
  		struct list_head *acl;
-@@ -1344,8 +1352,10 @@
+@@ -1344,8 +1335,10 @@
  		const char *w[CCS_MAX_IO_READ_QUEUE];
  	} r;
  	struct {
@@ -1049,7 +1172,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	} w;
  	/* Buffer for reading.                  */
  	char *read_buf;
-@@ -1355,6 +1365,8 @@
+@@ -1355,6 +1348,8 @@
  	char *write_buf;
  	/* Size of write buffer.                */
  	size_t writebuf_size;
@@ -1058,7 +1181,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  	/* Type of interface. */
  	enum ccs_proc_interface_index type;
  	/* Users counter protected by ccs_io_buffer_list_lock. */
-@@ -1381,6 +1393,22 @@
+@@ -1381,6 +1376,22 @@
  	u8 sec;
  };
  
@@ -1081,24 +1204,36 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  /* Prototype definition for "struct ccsecurity_operations". */
  
  void __init ccs_capability_init(void);
-@@ -1410,8 +1438,14 @@
+@@ -1410,13 +1421,16 @@
  bool ccs_memory_ok(const void *ptr, const unsigned int size);
  bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
  			      const struct ccs_group *group);
 -bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
 -bool ccs_parse_number_union(char *data, struct ccs_number_union *num);
-+bool ccs_parse_name_union(struct ccs_policy_namespace *ns,
-+			  const char *filename, struct ccs_name_union *ptr);
-+bool ccs_parse_name_union2(struct ccs_acl_param *param,
-+			   struct ccs_name_union *ptr);
-+bool ccs_parse_number_union(struct ccs_policy_namespace *ns, char *data,
-+			    struct ccs_number_union *num);
-+bool ccs_parse_number_union2(struct ccs_acl_param *param,
-+			     struct ccs_number_union *ptr);
++bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
++			    struct ccs_ipaddr_union *ptr);
++bool ccs_parse_name_union(struct ccs_acl_param *param,
++			  struct ccs_name_union *ptr);
++bool ccs_parse_number_union(struct ccs_acl_param *param,
++			    struct ccs_number_union *ptr);
  bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
  			      const struct ccs_path_info *pattern);
  bool ccs_permstr(const char *string, const char *keyword);
-@@ -1453,30 +1487,31 @@
+ bool ccs_str_starts(char **src, const char *find);
+-bool ccs_tokenize(char *buffer, char *w[], size_t size);
+ char *ccs_encode(const char *str);
+ char *ccs_encode2(const char *str, int str_len);
+ char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
+@@ -1437,7 +1451,7 @@
+ int ccs_get_path(const char *pathname, struct path *path);
+ int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+ int ccs_open_control(const u8 type, struct file *file);
+-int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
++int ccs_parse_ip_address(struct ccs_acl_param *param, u16 *min, u16 *max);
+ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+ 			const struct ccs_path_info *filename);
+ int ccs_poll_control(struct file *file, poll_table *wait);
+@@ -1453,30 +1467,30 @@
  					       struct ccs_acl_info *,
  					       const bool));
  int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
@@ -1132,13 +1267,12 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  					  const bool transit);
  struct ccs_domain_info *ccs_find_domain(const char *domainname);
 -struct ccs_group *ccs_get_group(const char *group_name, const u8 idx);
-+struct ccs_group *ccs_get_group(struct ccs_policy_namespace *ns,
-+				const char *group_name, const u8 idx);
++struct ccs_group *ccs_get_group(struct ccs_acl_param *param, const u8 idx);
 +struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
  struct ccs_profile *ccs_profile(const u8 profile);
  u8 ccs_get_config(const u8 profile, const u8 index);
  u8 ccs_parse_ulong(unsigned long *result, char **str);
-@@ -1488,6 +1523,7 @@
+@@ -1488,14 +1502,12 @@
  void ccs_del_condition(struct list_head *element);
  void ccs_fill_path_info(struct ccs_path_info *ptr);
  void ccs_get_attributes(struct ccs_obj_info *obj);
@@ -1146,7 +1280,17 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  void ccs_memory_free(const void *ptr, size_t size);
  void ccs_normalize_line(unsigned char *buffer);
  void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
-@@ -1528,12 +1564,12 @@
+-void ccs_print_ipv4(char *buffer, const int buffer_len, const u32 min_ip,
+-		    const u32 max_ip);
+-void ccs_print_ipv6(char *buffer, const int buffer_len,
+-		    const struct in6_addr *min_ip,
+-		    const struct in6_addr *max_ip);
++void ccs_print_ip(char *buf, const unsigned int size,
++		  const struct ccs_ipaddr_union *ptr);
+ void ccs_print_ulong(char *buffer, const int buffer_len,
+ 		     const unsigned long value, const u8 type);
+ void ccs_put_name_union(struct ccs_name_union *ptr);
+@@ -1528,12 +1540,12 @@
  extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
  extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
  extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
@@ -1162,7 +1306,30 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  extern struct list_head ccs_shared_list[CCS_MAX_LIST];
  extern struct mutex ccs_policy_lock;
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-@@ -2045,8 +2081,8 @@
+@@ -1591,6 +1603,22 @@
+ 		a->is_group == b->is_group;
+ }
+ 
++/**
++ * ccs_same_ipaddr_union - Check for duplicated "struct ccs_ipaddr_union" entry.
++ *
++ * @a: Pointer to "struct ccs_ipaddr_union".
++ * @b: Pointer to "struct ccs_ipaddr_union".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
++static inline bool ccs_same_ipaddr_union(const struct ccs_ipaddr_union *a,
++					 const struct ccs_ipaddr_union *b)
++{
++	return a->ipv4.min == b->ipv4.min && a->ipv4.max == b->ipv4.max &&
++		a->ipv6.min == b->ipv6.min && a->ipv6.max == b->ipv6.max &&
++		a->group == b->group;
++}
++
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+ 
+ /**
+@@ -2045,8 +2073,8 @@
   * Returns pointer to "struct ccs_domain_info" for current thread.
   *
   * If current thread does not belong to a domain (which is true for initial
@@ -1173,7 +1340,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
   */
  static inline struct ccs_domain_info *ccs_current_domain(void)
  {
-@@ -2080,4 +2116,9 @@
+@@ -2080,4 +2108,9 @@
  
  #endif
  
@@ -1185,30 +1352,151 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(working copy)
-@@ -277,16 +277,18 @@
+@@ -277,16 +277,17 @@
  /**
   * ccs_parse_name_union_quoted - Parse a quoted word.
   *
-+ * @ns:       Pointer to "struct ccs_policy_namespace".
-  * @filename: A line containing a quoted word.
-  * @ptr:      Pointer to "struct ccs_name_union".
+- * @filename: A line containing a quoted word.
+- * @ptr:      Pointer to "struct ccs_name_union".
++ * @param: Pointer to "struct ccs_acl_param".
++ * @ptr:   Pointer to "struct ccs_name_union".
   *
   * Returns true on success, false otherwise.
   */
 -static bool ccs_parse_name_union_quoted(char *filename,
-+static bool ccs_parse_name_union_quoted(struct ccs_policy_namespace *ns,
-+					char *filename,
++static bool ccs_parse_name_union_quoted(struct ccs_acl_param *param,
  					struct ccs_name_union *ptr)
  {
++	char *filename = param->data;
  	if (*filename == '@')
 -		return ccs_parse_name_union(filename, ptr);
-+		return ccs_parse_name_union(ns, filename, ptr);
++		return ccs_parse_name_union(param, ptr);
  	ptr->is_group = false;
  	ptr->filename = ccs_get_dqword(filename);
  	return ptr->filename != NULL;
-@@ -482,11 +484,11 @@
+@@ -295,35 +296,28 @@
+ /**
+  * ccs_parse_argv - Parse an argv[] condition part.
+  *
+- * @start: String to parse.
++ * @left:  Lefthand value.
++ * @right: Righthand value.
+  * @argv:  Pointer to "struct ccs_argv".
+  *
+  * Returns true on success, false otherwise.
+  */
+-static bool ccs_parse_argv(char *start, struct ccs_argv *argv)
++static bool ccs_parse_argv(char *left, char *right, struct ccs_argv *argv)
+ {
+-	unsigned long index;
+-	const struct ccs_path_info *value;
+-	bool is_not;
+-	char c;
+-	if (ccs_parse_ulong(&index, &start) != CCS_VALUE_TYPE_DECIMAL)
++	if (ccs_parse_ulong(&argv->index, &left) != CCS_VALUE_TYPE_DECIMAL)
+ 		goto out;
+-	if (*start++ != ']')
++	if (*left++ != ']')
+ 		goto out;
+-	c = *start++;
+-	if (c == '=')
+-		is_not = false;
+-	else if (c == '!' && *start++ == '=')
+-		is_not = true;
+-	else
++	if (*left == '!') {
++		left++;
++		argv->is_not = true;
++	} else {
++		argv->is_not = false;
++	}
++	if (*left)
+ 		goto out;
+-	value = ccs_get_dqword(start);
+-	if (!value)
+-		goto out;
+-	argv->index = index;
+-	argv->is_not = is_not;
+-	argv->value = value;
+-	return true;
++	argv->value = ccs_get_dqword(right);
++	return argv->value != NULL;
+ out:
+ 	return false;
+ }
+@@ -331,53 +325,41 @@
+ /**
+  * ccs_parse_envp - Parse an envp[] condition part.
+  *
+- * @start: String to parse.
++ * @left:  Lefthand value.
++ * @right: Righthand value.
+  * @envp:  Pointer to "struct ccs_envp".
+  *
+  * Returns true on success, false otherwise.
+  */
+-static bool ccs_parse_envp(char *start, struct ccs_envp *envp)
++static bool ccs_parse_envp(char *left, char *right, struct ccs_envp *envp)
+ {
+ 	const struct ccs_path_info *name;
+ 	const struct ccs_path_info *value;
+-	bool is_not;
+-	char *cp = start;
+-	/*
+-	 * Since environment variable names don't
+-	 * contain '=', I can treat '"]=' and '"]!='
+-	 * sequences as delimiters.
+-	 */
+-	while (1) {
+-		if (!strncmp(start, "\"]=", 3)) {
+-			is_not = false;
+-			*start = '\0';
+-			start += 3;
+-			break;
+-		} else if (!strncmp(start, "\"]!=", 4)) {
+-			is_not = true;
+-			*start = '\0';
+-			start += 4;
+-			break;
+-		} else if (!*start++) {
+-			goto out;
+-		}
++	char *cp = left + strlen(left) - 1;
++	if (*cp == '!') {
++		cp--;
++		envp->is_not = true;
++	} else {
++		envp->is_not = false;
+ 	}
+-	if (!ccs_correct_word(cp))
++	if (*cp-- != ']' || *cp != '"')
+ 		goto out;
+-	name = ccs_get_name(cp);
++	*cp = '\0';
++	if (!ccs_correct_word(left))
++		goto out;
++	name = ccs_get_name(left);
+ 	if (!name)
+ 		goto out;
+-	if (!strcmp(start, "NULL")) {
++	if (!strcmp(right, "NULL")) {
+ 		value = NULL;
+ 	} else {
+-		value = ccs_get_dqword(start);
++		value = ccs_get_dqword(right);
+ 		if (!value) {
+ 			ccs_put_name(name);
+ 			goto out;
+ 		}
+ 	}
+ 	envp->name = name;
+-	envp->is_not = is_not;
+ 	envp->value = value;
+ 	return true;
+ out:
+@@ -482,11 +464,11 @@
  /**
   * ccs_get_condition - Parse condition part.
   *
@@ -1222,65 +1510,192 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  {
  	char *start;
  	struct ccs_condition *entry = NULL;
-@@ -497,6 +499,8 @@
+@@ -497,17 +479,18 @@
  	struct ccs_envp *envp = NULL;
  	struct ccs_condition e = { };
  	bool dry_run = true;
-+	struct ccs_policy_namespace *ns = param->ns;
-+	char *condition = param->data;
- 	char *end_of_string = condition + strlen(condition);
+-	char *end_of_string = condition + strlen(condition);
++	char * const start_of_string = param->data;
++	char * const end_of_string = start_of_string + strlen(start_of_string);
  rerun:
- 	start = condition;
-@@ -541,6 +545,17 @@
+-	start = condition;
++	start = start_of_string;
+ 	while (1) {
+ 		u8 left = -1;
+ 		u8 right = -1;
+-		char *word = start;
++		char *left_word = start;
+ 		char *cp;
+-		char *eq;
+-		bool is_not = false;
+-		if (!*word)
++		char *right_word;
++		bool is_not;
++		if (!*left_word)
+ 			break;
+ 		cp = strchr(start, ' ');
+ 		if (cp) {
+@@ -516,33 +499,45 @@
+ 		} else {
+ 			start = "";
+ 		}
+-		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
+-		if (!strncmp(word, "grant_log=", 10)) {
++		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, left_word);
++		right_word = strchr(left_word, '=');
++		if (!right_word || right_word == left_word)
++			goto out;
++		is_not = (*(right_word - 1) == '!');
++		*right_word++ = '\0';
++		if (!strcmp(left_word, "grant_log")) {
+ 			if (!dry_run) {
+-				word += 10;
+ 				if (entry->grant_log != CCS_GRANTLOG_AUTO)
+ 					goto out;
+-				else if (!strcmp(word, "yes"))
++				else if (!strcmp(right_word, "yes"))
+ 					entry->grant_log = CCS_GRANTLOG_YES;
+-				else if (!strcmp(word, "no"))
++				else if (!strcmp(right_word, "no"))
+ 					entry->grant_log = CCS_GRANTLOG_NO;
+ 				else
  					goto out;
  			}
  			continue;
-+		} else if (!strncmp(word, "auto_namespace_transition=", 26)) {
+-		} else if (!strncmp(word, "auto_domain_transition=", 23)) {
++		} else if (!strcmp(left_word, "auto_domain_transition")) {
+ 			if (!dry_run) {
+-				word += 23;
+-				if (entry->transit)
++				if (entry->transit || *right_word != '/')
+ 					goto out;
+-				entry->transit = ccs_get_dqword(word);
+-				if (!entry->transit ||
+-				    entry->transit->name[0] != '/')
++				entry->transit = ccs_get_dqword(right_word);
++				if (!entry->transit)
+ 					goto out;
+ 			}
+ 			continue;
++		} else if (!strcmp(left_word, "auto_namespace_transition")) {
 +			if (!dry_run) {
-+				word += 26;
-+				if (entry->transit)
++				if (entry->transit ||
++				    !ccs_domain_def(right_word))
 +					goto out;
-+				entry->transit = ccs_get_dqword(word);
-+				if (!entry->transit ||
-+				    !ccs_domain_def(entry->transit->name))
++				entry->transit = ccs_get_dqword(right_word);
++				if (!entry->transit)
 +					goto out;
 +			}
 +			continue;
  		}
- 		if (!strncmp(word, "exec.argv[", 10)) {
+-		if (!strncmp(word, "exec.argv[", 10)) {
++		if (!strncmp(left_word, "exec.argv[", 10)) {
  			if (dry_run) {
-@@ -584,7 +599,8 @@
+ 				e.argc++;
+ 				e.condc++;
+@@ -550,11 +545,12 @@
+ 				e.argc--;
+ 				e.condc--;
+ 				left = CCS_ARGV_ENTRY;
+-				if (!ccs_parse_argv(word + 10, argv++))
++				if (!ccs_parse_argv(left_word + 10,
++						    right_word, argv++))
+ 					goto out;
+ 			}
+ 			goto store_value;
+-		} else if (!strncmp(word, "exec.envp[\"", 11)) {
++		} else if (!strncmp(left_word, "exec.envp[\"", 11)) {
+ 			if (dry_run) {
+ 				e.envc++;
+ 				e.condc++;
+@@ -562,21 +558,14 @@
+ 				e.envc--;
+ 				e.condc--;
+ 				left = CCS_ENVP_ENTRY;
+-				if (!ccs_parse_envp(word + 11, envp++))
++				if (!ccs_parse_envp(left_word + 11,
++						    right_word, envp++))
+ 					goto out;
+ 			}
+ 			goto store_value;
+ 		}
+-		eq = strchr(word, '=');
+-		if (!eq)
+-			goto out;
+-		if (eq > word && *(eq - 1) == '!') {
+-			is_not = true;
+-			eq--;
+-		}
+-		*eq = '\0';
+-		left = ccs_condition_type(word);
+-		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
++		left = ccs_condition_type(left_word);
++		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, left_word,
+ 			left);
+ 		if (left == CCS_MAX_CONDITION_KEYWORD) {
+ 			if (dry_run) {
+@@ -584,17 +573,13 @@
  			} else {
  				e.numbers_count--;
  				left = CCS_NUMBER_UNION;
 -				if (!ccs_parse_number_union(word, numbers_p))
-+				if (!ccs_parse_number_union(ns, word,
-+							    numbers_p))
++				param->data = left_word;
++				if (*left_word == '@' ||
++				    !ccs_parse_number_union(param,
++							    numbers_p++))
  					goto out;
- 				if (numbers_p->is_group)
- 					goto out;
-@@ -605,7 +621,7 @@
+-				if (numbers_p->is_group)
+-					goto out;
+-				numbers_p++;
+ 			}
+ 		}
+-		*eq = is_not ? '!' : '=';
+-		word = eq + 1;
+-		if (is_not)
+-			word++;
+ 		if (dry_run)
+ 			e.condc++;
+ 		else
+@@ -605,20 +590,24 @@
  			} else {
  				e.names_count--;
  				right = CCS_NAME_UNION;
 -				if (!ccs_parse_name_union_quoted(word,
-+				if (!ccs_parse_name_union_quoted(ns, word,
++				param->data = right_word;
++				if (!ccs_parse_name_union_quoted(param,
  								 names_p++))
  					goto out;
  			}
-@@ -618,7 +634,8 @@
+ 			goto store_value;
+ 		}
+-		right = ccs_condition_type(word);
++		right = ccs_condition_type(right_word);
+ 		if (right == CCS_MAX_CONDITION_KEYWORD) {
+ 			if (dry_run) {
+ 				e.numbers_count++;
  			} else {
  				e.numbers_count--;
  				right = CCS_NUMBER_UNION;
 -				if (!ccs_parse_number_union(word, numbers_p++))
-+				if (!ccs_parse_number_union(ns, word,
++				param->data = right_word;
++				if (*right_word == '@' ||
++				    !ccs_parse_number_union(param,
 +							    numbers_p++))
  					goto out;
  			}
  		}
+@@ -656,7 +645,7 @@
+ 	names_p = (struct ccs_name_union *) (numbers_p + e.numbers_count);
+ 	argv = (struct ccs_argv *) (names_p + e.names_count);
+ 	envp = (struct ccs_envp *) (argv + e.argc);
+-	for (start = condition; start < end_of_string; start++)
++	for (start = start_of_string; start < end_of_string; start++)
+ 		if (!*start)
+ 			*start = ' ';
+ 	dry_run = false;
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
 @@ -83,9 +83,6 @@
  /* Profile version. Currently only 20100903 is defined. */
@@ -1753,6 +2168,35 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
   * ccs_print_condition - Print condition part.
   *
   * @head: Pointer to "struct ccs_io_buffer".
+@@ -1345,19 +1427,19 @@
+ 				switch (left) {
+ 				case CCS_ARGV_ENTRY:
+ 					ccs_io_printf(head,
+-						      "exec.argv[%u]%s\"%s\"",
++						      "exec.argv[%lu]%s=\"",
+ 						      argv->index,
+-						      argv->is_not ?
+-						      "!=" : "=",
+-						      argv->value->name);
++						      argv->is_not ? "!" : "");
++					ccs_set_string(head,
++						       argv->value->name);
++					ccs_set_string(head, "\"");
+ 					argv++;
+ 					continue;
+ 				case CCS_ENVP_ENTRY:
+-					ccs_io_printf(head,
+-						      "exec.envp[\"%s\"]%s",
+-						      envp->name->name,
+-						      envp->is_not ?
+-						      "!=" : "=");
++					ccs_set_string(head, "exec.envp[\"");
++					ccs_set_string(head, envp->name->name);
++					ccs_io_printf(head, "\"]%s=",
++						      envp->is_not ? "!" : "");
+ 					if (envp->value) {
+ 						ccs_set_string(head, "\"");
+ 						ccs_set_string(head, envp->
 @@ -1369,8 +1451,8 @@
  					envp++;
  					continue;
@@ -1806,7 +2250,35 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	ccs_set_string(head, category);
  }
  
-@@ -1661,19 +1749,17 @@
+@@ -1588,23 +1676,14 @@
+ 		if (first)
+ 			return true;
+ 		ccs_set_space(head);
+-		switch (ptr->address_type) {
+-			char buf[128];
+-		case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
++		if (ptr->address.group) {
+ 			ccs_set_string(head, "@");
+ 			ccs_set_string(head,
+ 				       ptr->address.group->group_name->name);
+-			break;
+-		case CCS_IP_ADDRESS_TYPE_IPv4:
+-			ccs_print_ipv4(buf, sizeof(buf), ptr->address.ipv4.min,
+-				       ptr->address.ipv4.max);
++		} else {
++			char buf[128];
++			ccs_print_ip(buf, sizeof(buf), &ptr->address);
+ 			ccs_io_printf(head, "%s", buf);
+-			break;
+-		case CCS_IP_ADDRESS_TYPE_IPv6:
+-			ccs_print_ipv6(buf, sizeof(buf), ptr->address.ipv6.min,
+-				       ptr->address.ipv6.max);
+-			ccs_io_printf(head, "%s", buf);
+-			break;
+ 		}
+ 		ccs_print_number_union(head, &ptr->port);
+ 	} else if (acl_type == CCS_TYPE_UNIX_ACL) {
+@@ -1661,19 +1740,17 @@
  /**
   * ccs_read_domain2 - Read domain policy.
   *
@@ -1830,7 +2302,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		struct ccs_acl_info *ptr =
  			list_entry(head->r.acl, typeof(*ptr), list);
  		if (!ccs_print_entry(head, ptr))
-@@ -1718,12 +1804,12 @@
+@@ -1718,12 +1795,12 @@
  			ccs_set_lf(head);
  			/* fall through */
  		case 1:
@@ -1845,7 +2317,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  				return;
  			head->r.step++;
  			if (!ccs_set_lf(head))
-@@ -1766,7 +1852,8 @@
+@@ -1766,7 +1843,8 @@
  	if (profile >= CCS_MAX_PROFILES)
  		return -EINVAL;
  	domain = ccs_find_domain(cp + 1);
@@ -1855,7 +2327,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		domain->profile = (u8) profile;
  	return 0;
  }
-@@ -1881,6 +1968,9 @@
+@@ -1881,6 +1959,9 @@
  
  /* String table for domain transition control keywords. */
  static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
@@ -1865,7 +2337,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
  	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
  	[CCS_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
-@@ -1903,43 +1993,34 @@
+@@ -1903,43 +1984,34 @@
   */
  static int ccs_write_exception(struct ccs_io_buffer *head)
  {
@@ -1930,7 +2402,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		}
  	}
  	return -EINVAL;
-@@ -1957,7 +2038,10 @@
+@@ -1957,7 +2029,10 @@
   */
  static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
  {
@@ -1942,7 +2414,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		struct ccs_group *group =
  			list_entry(head->r.group, typeof(*group), head.list);
  		list_for_each_cookie(head->r.acl, &group->member_list) {
-@@ -1967,6 +2051,7 @@
+@@ -1967,6 +2042,7 @@
  				continue;
  			if (!ccs_flush(head))
  				return false;
@@ -1950,7 +2422,24 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  			ccs_set_string(head, ccs_group_name[idx]);
  			ccs_set_string(head, group->group_name->name);
  			if (idx == CCS_PATH_GROUP) {
-@@ -2013,7 +2098,10 @@
+@@ -1983,14 +2059,8 @@
+ 				struct ccs_address_group *member =
+ 					container_of(ptr, typeof(*member),
+ 						     head);
+-				if (member->is_ipv6)
+-					ccs_print_ipv6(buffer, sizeof(buffer),
+-						       member->min.ipv6,
+-						       member->max.ipv6);
+-				else
+-					ccs_print_ipv4(buffer, sizeof(buffer),
+-						       member->min.ipv4,
+-						       member->max.ipv4);
++				ccs_print_ip(buffer, sizeof(buffer),
++					     &member->address);
+ 				ccs_io_printf(head, " %s", buffer);
+ 			}
+ 			ccs_set_lf(head);
+@@ -2013,7 +2083,10 @@
   */
  static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
  {
@@ -1962,7 +2451,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		struct ccs_acl_head *acl =
  			container_of(head->r.acl, typeof(*acl), list);
  		if (acl->is_deleted)
-@@ -2028,6 +2116,7 @@
+@@ -2028,6 +2101,7 @@
  			{
  				struct ccs_transition_control *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -1970,7 +2459,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  				ccs_set_string(head,
  					       ccs_transition_type[ptr->type]);
  				ccs_set_string(head, ptr->program ?
-@@ -2041,6 +2130,7 @@
+@@ -2041,6 +2115,7 @@
  			{
  				struct ccs_aggregator *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -1978,7 +2467,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  				ccs_set_string(head, "aggregator ");
  				ccs_set_string(head, ptr->original_name->name);
  				ccs_set_space(head);
-@@ -2052,12 +2142,10 @@
+@@ -2052,12 +2127,10 @@
  			{
  				struct ccs_reserved *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -1994,7 +2483,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  			}
  			break;
  		default:
-@@ -2080,6 +2168,8 @@
+@@ -2080,6 +2153,8 @@
   */
  static void ccs_read_exception(struct ccs_io_buffer *head)
  {
@@ -2003,7 +2492,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	if (head->r.eof)
  		return;
  	while (head->r.step < CCS_MAX_POLICY &&
-@@ -2096,9 +2186,9 @@
+@@ -2096,9 +2171,9 @@
  	       + CCS_MAX_ACL_GROUPS * 2) {
  		head->r.acl_group_index = (head->r.step - CCS_MAX_POLICY
  					   - CCS_MAX_GROUP) / 2;
@@ -2016,7 +2505,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  			return;
  		head->r.step++;
  	}
-@@ -2201,7 +2291,8 @@
+@@ -2201,7 +2276,8 @@
  	if (symlink)
  		ccs_addprintf(buffer, len, "%s", symlink);
  	ccs_normalize_line(buffer);
@@ -2026,7 +2515,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		ccs_update_stat(CCS_STAT_POLICY_UPDATES);
  	kfree(buffer);
  }
-@@ -2477,9 +2568,9 @@
+@@ -2477,9 +2553,9 @@
  
  /* String table for /proc/ccs/stat interface. */
  static const char * const ccs_memory_headers[CCS_MAX_MEMORY_STAT] = {
@@ -2039,7 +2528,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  };
  
  /* Timestamp counter for last updated. */
-@@ -2577,6 +2668,7 @@
+@@ -2577,6 +2653,7 @@
  	struct ccs_io_buffer *head = kzalloc(sizeof(*head), CCS_GFP_FLAGS);
  	if (!head)
  		return -ENOMEM;
@@ -2047,7 +2536,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	mutex_init(&head->io_sem);
  	head->type = type;
  	switch (type) {
-@@ -2695,6 +2787,44 @@
+@@ -2695,6 +2772,44 @@
  }
  
  /**
@@ -2092,7 +2581,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
   * ccs_read_control - read() for /proc/ccs/ interface.
   *
   * @file:       Pointer to "struct file".
-@@ -2720,8 +2850,10 @@
+@@ -2720,8 +2835,10 @@
  	idx = ccs_read_lock();
  	if (ccs_flush(head))
  		/* Call the policy handler. */
@@ -2105,7 +2594,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	ccs_read_unlock(idx);
  	len = head->read_user_buf - buffer;
  	mutex_unlock(&head->io_sem);
-@@ -2752,13 +2884,6 @@
+@@ -2752,13 +2869,6 @@
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
  	idx = ccs_read_lock();
@@ -2119,7 +2608,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
-@@ -2787,15 +2912,68 @@
+@@ -2787,15 +2897,68 @@
  		cp0[head->w.avail - 1] = '\0';
  		head->w.avail = 0;
  		ccs_normalize_line(cp0);
@@ -2188,7 +2677,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  		switch (head->type) {
  		case CCS_DOMAINPOLICY:
  		case CCS_EXCEPTIONPOLICY:
-@@ -2809,6 +2987,7 @@
+@@ -2809,6 +2972,7 @@
  			break;
  		}
  	}
@@ -2198,9 +2687,41 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	return error;
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(working copy)
-@@ -745,16 +745,16 @@
+@@ -417,15 +417,9 @@
+ 		{
+ 			struct ccs_inet_acl *entry =
+ 				container_of(acl, typeof(*entry), head);
+-			switch (entry->address_type) {
+-			case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
+-				ccs_put_group(entry->address.group);
+-				break;
+-			case CCS_IP_ADDRESS_TYPE_IPv6:
+-				ccs_put_ipv6_address(entry->address.ipv6.min);
+-				ccs_put_ipv6_address(entry->address.ipv6.max);
+-				break;
+-			}
++			ccs_put_group(entry->address.group);
++			ccs_put_ipv6_address(entry->address.ipv6.min);
++			ccs_put_ipv6_address(entry->address.ipv6.max);
+ 			ccs_put_number_union(&entry->port);
+ 		}
+ 		break;
+@@ -542,10 +536,8 @@
+ {
+ 	struct ccs_address_group *member =
+ 		container_of(element, typeof(*member), head.list);
+-	if (member->is_ipv6) {
+-		ccs_put_ipv6_address(member->min.ipv6);
+-		ccs_put_ipv6_address(member->max.ipv6);
+-	}
++	ccs_put_ipv6_address(member->address.ipv6.min);
++	ccs_put_ipv6_address(member->address.ipv6.max);
+ }
+ 
+ /**
+@@ -745,16 +737,16 @@
  /**
   * ccs_collect_acl - Delete elements in "struct ccs_domain_info".
   *
@@ -2220,7 +2741,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
  			if (!acl->is_deleted)
  				continue;
  			if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
-@@ -773,20 +773,15 @@
+@@ -773,20 +765,15 @@
  {
  	int i;
  	enum ccs_policy_id id;
@@ -2243,7 +2764,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
  				goto unlock;
  			if (!domain->is_deleted ||
  			    ccs_domain_used_by_task(domain))
-@@ -795,28 +790,39 @@
+@@ -795,28 +782,39 @@
  				goto unlock;
  		}
  	}
@@ -2305,38 +2826,284 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
  	for (i = 0; i < CCS_MAX_LIST + CCS_MAX_HASH; i++) {
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(working copy)
-@@ -343,13 +343,13 @@
- 		if (address[0] != '@')
- 			return -EINVAL;
- 		e.address_type = CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
+@@ -50,18 +50,19 @@
+ };
+ 
+ /**
+- * ccs_parse_ip_address - Parse an IP address.
++ * ccs_parse_ipaddr_union - Parse an IP address.
+  *
+- * @address: String to parse.
+- * @min:     Pointer to store min address.
+- * @max:     Pointer to store max address.
++ * @param: Pointer to "struct ccs_acl_param".
++ * @ptr:   Pointer to "struct ccs_ipaddr_union".
+  *
+- * Returns CCS_IP_ADDRESS_TYPE_IPv6 if @address is an IPv6,
+- * CCS_IP_ADDRESS_TYPE_IPv4 if @address is an IPv4,
+- * CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP otherwise.
++ * Returns true on success, false otherwise.
+  */
+-int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
++bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
++			    struct ccs_ipaddr_union *ptr)
+ {
++	u16 min[8];
++	u16 max[8];
++	char *address = ccs_read_token(param);
+ 	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
+ 			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+ 			   &min[0], &min[1], &min[2], &min[3],
+@@ -70,29 +71,40 @@
+ 			   &max[4], &max[5], &max[6], &max[7]);
+ 	if (count == 8 || count == 16) {
+ 		u8 i;
++		const struct in6_addr *ip[2];
+ 		if (count == 8)
+ 			memmove(max, min, sizeof(u16) * 8);
+ 		for (i = 0; i < 8; i++) {
+ 			min[i] = htons(min[i]);
+ 			max[i] = htons(max[i]);
+ 		}
+-		return CCS_IP_ADDRESS_TYPE_IPv6;
++		ip[0] = ccs_get_ipv6_address((struct in6_addr *) min);
++		ip[1] = ccs_get_ipv6_address((struct in6_addr *) max);
++		if (!ip[0] || !ip[1]) {
++			ccs_put_ipv6_address(ip[0]);
++			ccs_put_ipv6_address(ip[1]);
++			return false;
++		}
++		ptr->ipv6.min = ip[0];
++		ptr->ipv6.max = ip[1];
++		return true;
+ 	}
+ 	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+ 		       &min[0], &min[1], &min[2], &min[3],
+ 		       &max[0], &max[1], &max[2], &max[3]);
+ 	if (count == 4 || count == 8) {
+-		u32 ip = htonl((((u8) min[0]) << 24) + (((u8) min[1]) << 16)
+-			       + (((u8) min[2]) << 8) + (u8) min[3]);
+-		memmove(min, &ip, sizeof(ip));
+-		if (count == 8)
+-			ip = htonl((((u8) max[0]) << 24)
+-				   + (((u8) max[1]) << 16)
+-				   + (((u8) max[2]) << 8) + (u8) max[3]);
+-		memmove(max, &ip, sizeof(ip));
+-		return CCS_IP_ADDRESS_TYPE_IPv4;
++		/* use host byte order to allow u32 comparison.*/
++		ptr->ipv4.min = (((u8) min[0]) << 24) + (((u8) min[1]) << 16)
++			+ (((u8) min[2]) << 8) + (u8) min[3];
++		if (count == 4)
++			ptr->ipv4.max = ptr->ipv4.min;
++		else
++			ptr->ipv4.max =
++				(((u8) max[0]) << 24) + (((u8) max[1]) << 16)
++				+ (((u8) max[2]) << 8) + (u8) max[3];
++		return true;
+ 	}
+-	return CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
++	return false;
+ }
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+@@ -123,8 +135,8 @@
+  *
+  * Returns nothing.
+  */
+-void ccs_print_ipv4(char *buffer, const int buffer_len,
+-		    const u32 min_ip, const u32 max_ip)
++static void ccs_print_ipv4(char *buffer, const unsigned int buffer_len,
++			   const u32 min_ip, const u32 max_ip)
+ {
+ 	memset(buffer, 0, buffer_len);
+ 	snprintf(buffer, buffer_len - 1, "%u.%u.%u.%u%c%u.%u.%u.%u",
+@@ -152,9 +164,9 @@
+  *
+  * Returns nothing.
+  */
+-void ccs_print_ipv6(char *buffer, const int buffer_len,
+-		    const struct in6_addr *min_ip,
+-		    const struct in6_addr *max_ip)
++static void ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
++			   const struct in6_addr *min_ip,
++			   const struct in6_addr *max_ip)
+ {
+ 	memset(buffer, 0, buffer_len);
+ 	snprintf(buffer, buffer_len - 1,
+@@ -163,6 +175,24 @@
+ 		 NIP6(*max_ip));
+ }
+ 
++/**
++ * ccs_print_ip - Print an IP address.
++ *
++ * @buf:  Buffer to write to.
++ * @size: Size of @buf.
++ * @ptr:  Pointer to "struct ipaddr_union".
++ *
++ * Returns nothing.
++ */
++void ccs_print_ip(char *buf, const unsigned int size,
++		  const struct ccs_ipaddr_union *ptr)
++{
++	if (ptr->ipv6.min)
++		ccs_print_ipv6(buf, size, ptr->ipv6.min, ptr->ipv6.max);
++	else
++		ccs_print_ipv4(buf, size, ptr->ipv4.min, ptr->ipv4.max);
++}
++
+ /*
+  * Mapping table from "enum ccs_network_acl_index" to "enum ccs_mac_index" for
+  * inet domain socket.
+@@ -224,12 +254,7 @@
+ 	const struct ccs_inet_acl *p1 = container_of(a, typeof(*p1), head);
+ 	const struct ccs_inet_acl *p2 = container_of(b, typeof(*p2), head);
+ 	return p1->protocol == p2->protocol &&
+-		p1->address_type == p2->address_type &&
+-		p1->address.ipv4.min == p2->address.ipv4.min &&
+-		p1->address.ipv6.min == p2->address.ipv6.min &&
+-		p1->address.ipv4.max == p2->address.ipv4.max &&
+-		p1->address.ipv6.max == p2->address.ipv6.max &&
+-		p1->address.group == p2->address.group &&
++		ccs_same_ipaddr_union(&p1->address, &p2->address) &&
+ 		ccs_same_number_union(&p1->port, &p2->port);
+ }
+ 
+@@ -308,13 +333,10 @@
+ int ccs_write_inet_network(struct ccs_acl_param *param)
+ {
+ 	struct ccs_inet_acl e = { .head.type = CCS_TYPE_INET_ACL };
+-	u16 min_address[8];
+-	u16 max_address[8];
+ 	int error = -EINVAL;
+ 	u8 type;
+ 	const char *protocol = ccs_read_token(param);
+ 	const char *operation = ccs_read_token(param);
+-	char *address = ccs_read_token(param);
+ 	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
+ 		if (!strcmp(protocol, ccs_proto_keyword[e.protocol]))
+ 			break;
+@@ -323,43 +345,24 @@
+ 			e.perm |= 1 << type;
+ 	if (e.protocol == CCS_SOCK_MAX || !e.perm)
+ 		return -EINVAL;
+-	switch (ccs_parse_ip_address(address, min_address, max_address)) {
+-	case CCS_IP_ADDRESS_TYPE_IPv6:
+-		e.address_type = CCS_IP_ADDRESS_TYPE_IPv6;
+-		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
+-							    min_address);
+-		e.address.ipv6.max = ccs_get_ipv6_address((struct in6_addr *)
+-							    max_address);
+-		if (!e.address.ipv6.min || !e.address.ipv6.max)
+-			goto out;
+-		break;
+-	case CCS_IP_ADDRESS_TYPE_IPv4:
+-		e.address_type = CCS_IP_ADDRESS_TYPE_IPv4;
+-		/* use host byte order to allow u32 comparison.*/
+-		e.address.ipv4.min = ntohl(*(u32 *) min_address);
+-		e.address.ipv4.max = ntohl(*(u32 *) max_address);
+-		break;
+-	default:
+-		if (address[0] != '@')
+-			return -EINVAL;
+-		e.address_type = CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
 -		e.address.group = ccs_get_group(address + 1,
-+		e.address.group = ccs_get_group(param->ns, address + 1,
- 						CCS_ADDRESS_GROUP);
+-						CCS_ADDRESS_GROUP);
++	if (param->data[0] == '@') {
++		param->data++;
++		e.address.group = ccs_get_group(param, CCS_ADDRESS_GROUP);
  		if (!e.address.group)
  			return -ENOMEM;
- 		break;
+-		break;
++	} else {
++		if (!ccs_parse_ipaddr_union(param, &e.address))
++			goto out;
  	}
 -	if (!ccs_parse_number_union(ccs_read_token(param), &e.port))
-+	if (!ccs_parse_number_union2(param, &e.port))
++	if (!ccs_parse_number_union(param, &e.port) ||
++	    e.port.values[1] > 65535)
  		goto out;
  	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_inet_acl,
  				  ccs_merge_inet_acl);
-@@ -386,7 +386,7 @@
+ out:
+-	if (e.address_type == CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP)
+-		ccs_put_group(e.address.group);
+-	else if (e.address_type == CCS_IP_ADDRESS_TYPE_IPv6) {
+-		ccs_put_ipv6_address(e.address.ipv6.min);
+-		ccs_put_ipv6_address(e.address.ipv6.max);
+-	}
++	ccs_put_group(e.address.group);
++	ccs_put_ipv6_address(e.address.ipv6.min);
++	ccs_put_ipv6_address(e.address.ipv6.max);
+ 	ccs_put_number_union(&e.port);
+ 	return error;
+ }
+@@ -386,7 +389,7 @@
  			e.perm |= 1 << type;
  	if (e.protocol == CCS_SOCK_MAX || !e.perm)
  		return -EINVAL;
 -	if (!ccs_parse_name_union(ccs_read_token(param), &e.name))
-+	if (!ccs_parse_name_union2(param, &e.name))
++	if (!ccs_parse_name_union(param, &e.name))
  		return -EINVAL;
  	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_unix_acl,
  				  ccs_merge_unix_acl);
+@@ -478,30 +481,23 @@
+ 			       const struct ccs_acl_info *ptr)
+ {
+ 	const struct ccs_inet_acl *acl = container_of(ptr, typeof(*acl), head);
+-	bool ret;
+ 	if (!(acl->perm & (1 << r->param.inet_network.operation)) ||
+ 	    !ccs_compare_number_union(r->param.inet_network.port, &acl->port))
+ 		return false;
+-	switch (acl->address_type) {
+-	case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
+-		ret = ccs_address_matches_group(r->param.inet_network.is_ipv6,
+-						r->param.inet_network.address,
+-						acl->address.group);
+-		break;
+-	case CCS_IP_ADDRESS_TYPE_IPv4:
+-		ret = !r->param.inet_network.is_ipv6 &&
+-			acl->address.ipv4.min <= r->param.inet_network.ip &&
+-			r->param.inet_network.ip <= acl->address.ipv4.max;
+-		break;
+-	default:
+-		ret = r->param.inet_network.is_ipv6 &&
++	if (acl->address.group)
++		return ccs_address_matches_group(r->param.inet_network.is_ipv6,
++						 r->param.inet_network.address,
++						 acl->address.group);
++	else if (acl->address.ipv6.min)
++		return r->param.inet_network.is_ipv6 &&
+ 			memcmp(acl->address.ipv6.min,
+ 			       r->param.inet_network.address, 16) <= 0 &&
+ 			memcmp(r->param.inet_network.address,
+ 			       acl->address.ipv6.max, 16) <= 0;
+-		break;
+-	}
+-	return ret;
++	else
++		return !r->param.inet_network.is_ipv6 &&
++			acl->address.ipv4.min <= r->param.inet_network.ip &&
++			r->param.inet_network.ip <= acl->address.ipv4.max;
+ }
+ 
+ /**
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(revision 5042)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(revision 5044)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/group.c	(working copy)
-@@ -63,24 +63,25 @@
+@@ -55,80 +55,54 @@
+ 							  head);
+ 	const struct ccs_address_group *p2 = container_of(b, typeof(*p2),
+ 							  head);
+-	return p1->is_ipv6 == p2->is_ipv6 &&
+-		p1->min.ipv4 == p2->min.ipv4 && p1->min.ipv6 == p2->min.ipv6 &&
+-		p1->max.ipv4 == p2->max.ipv4 && p1->max.ipv6 == p2->max.ipv6;
++	return ccs_same_ipaddr_union(&p1->address, &p2->address);
+ }
+ 
  /**
   * ccs_write_group - Write "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
   *
@@ -2351,23 +3118,23 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
 -int ccs_write_group(char *data, const bool is_delete, const u8 type)
 +int ccs_write_group(struct ccs_acl_param *param, const u8 type)
  {
- 	struct ccs_group *group;
- 	struct list_head *member;
- 	char *w[2];
+-	struct ccs_group *group;
+-	struct list_head *member;
+-	char *w[2];
++	struct ccs_group *group = ccs_get_group(param, type);
  	int error = -EINVAL;
-+	char *data = param->data; 
- 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
- 		return -EINVAL;
+-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+-		return -EINVAL;
 -	group = ccs_get_group(w[0], type);
-+	group = ccs_get_group(param->ns, w[0], type);
  	if (!group)
  		return -ENOMEM;
- 	member = &group->member_list;
-+	param->list = member;
+-	member = &group->member_list;
++	param->list = &group->member_list;
  	if (type == CCS_PATH_GROUP) {
  		struct ccs_path_group e = { };
- 		e.member_name = ccs_get_name(w[1]);
-@@ -88,16 +89,17 @@
+-		e.member_name = ccs_get_name(w[1]);
++		e.member_name = ccs_get_name(ccs_read_token(param));
+ 		if (!e.member_name) {
  			error = -ENOMEM;
  			goto out;
  		}
@@ -2379,31 +3146,84 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/group.c
  	} else if (type == CCS_NUMBER_GROUP) {
  		struct ccs_number_group e = { };
 -		if (w[1][0] == '@' || !ccs_parse_number_union(w[1], &e.number)
-+		if (w[1][0] == '@' || !ccs_parse_number_union(param->ns, w[1],
-+							      &e.number)
- 		    || e.number.values[0] > e.number.values[1])
+-		    || e.number.values[0] > e.number.values[1])
++		if (param->data[0] == '@' ||
++		    !ccs_parse_number_union(param, &e.number))
  			goto out;
 -		error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 -					  member, ccs_same_number_group);
 +		error = ccs_update_policy(&e.head, sizeof(e), param,
 +					  ccs_same_number_group);
  		/*
- 		 * ccs_put_number_union() is not needed because w[1][0] != '@'.
+-		 * ccs_put_number_union() is not needed because w[1][0] != '@'.
++		 * ccs_put_number_union() is not needed because
++		 * param->data[0] != '@'.
  		 */
-@@ -122,8 +124,8 @@
- 		default:
- 			goto out_address;
- 		}
+ 	} else {
+ 		struct ccs_address_group e = { };
+-		u16 min_address[8];
+-		u16 max_address[8];
+-		switch (ccs_parse_ip_address(w[1], min_address, max_address)) {
+-		case CCS_IP_ADDRESS_TYPE_IPv6:
+-			e.is_ipv6 = true;
+-			e.min.ipv6 = ccs_get_ipv6_address((struct in6_addr *)
+-							  min_address);
+-			e.max.ipv6 = ccs_get_ipv6_address((struct in6_addr *)
+-							  max_address);
+-			if (!e.min.ipv6 || !e.max.ipv6)
+-				goto out_address;
+-			break;
+-		case CCS_IP_ADDRESS_TYPE_IPv4:
+-			e.min.ipv4 = ntohl(*(u32 *) min_address);
+-			e.max.ipv4 = ntohl(*(u32 *) max_address);
+-			break;
+-		default:
+-			goto out_address;
+-		}
 -		error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 -					  member, ccs_same_address_group);
+-out_address:
+-		if (e.is_ipv6) {
+-			ccs_put_ipv6_address(e.min.ipv6);
+-			ccs_put_ipv6_address(e.max.ipv6);
+-		}
++		if (param->data[0] == '@' ||
++		    !ccs_parse_ipaddr_union(param, &e.address))
++			goto out;
 +		error = ccs_update_policy(&e.head, sizeof(e), param,
 +					  ccs_same_address_group);
- out_address:
- 		if (e.is_ipv6) {
- 			ccs_put_ipv6_address(e.min.ipv6);
++		ccs_put_ipv6_address(e.address.ipv6.min);
++		ccs_put_ipv6_address(e.address.ipv6.max);
+ 	}
+ out:
+ 	ccs_put_group(group);
+@@ -211,16 +185,19 @@
+ 				 &ccs_ss) {
+ 		if (member->head.is_deleted)
+ 			continue;
+-		if (member->is_ipv6) {
++		if (member->address.ipv6.min) {
+ 			if (is_ipv6 &&
+-			    memcmp(member->min.ipv6, address, 16) <= 0 &&
+-			    memcmp(address, member->max.ipv6, 16) <= 0) {
++			    memcmp(member->address.ipv6.min, address, 16)
++			    <= 0 &&
++			    memcmp(address, member->address.ipv6.max, 16)
++			    <= 0) {
+ 				matched = true;
+ 				break;
+ 			}
+ 		} else {
+ 			if (!is_ipv6 &&
+-			    member->min.ipv4 <= ip && ip <= member->max.ipv4) {
++			    member->address.ipv4.min <= ip &&
++			    ip <= member->address.ipv4.max) {
+ 				matched = true;
+ 				break;
+ 			}
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(working copy)
 @@ -51,9 +51,6 @@
  
@@ -2417,7 +3237,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
  #define CCS_PROC_POLICY_DOMAIN_STATUS    "/proc/ccs/.domain_status"
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(working copy)
 @@ -238,17 +238,27 @@
  			pos = eq + 1;
@@ -2476,7 +3296,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c
  		{ "number_group ", ccs_check_path, ccs_check_number },
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(working copy)
 @@ -40,7 +40,7 @@
  /* Array of string ACL entries. */
@@ -3104,7 +3924,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  /**
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
 @@ -94,7 +94,7 @@
  	memset(&ccs_dp, 0, sizeof(ccs_dp));
@@ -3117,7 +3937,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
  		struct msghdr msg;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(working copy)
 @@ -237,8 +237,10 @@
  		if (!cp)
@@ -3134,7 +3954,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
  					continue;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(working copy)
 @@ -314,11 +314,14 @@
  	[CCS_DIRECTIVE_IPC_SIGNAL]    = { "ipc signal", NULL, 0, 0 },
@@ -3153,7 +3973,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
  	[CCS_DIRECTIVE_PATH_GROUP]    = { "path_group", NULL, 0, 0 },
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(working copy)
 @@ -29,13 +29,16 @@
  	CCS_SCREEN_ACL_LIST,
@@ -3195,7 +4015,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
  extern int ccs_persistent_fd;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c	(working copy)
 @@ -38,8 +38,7 @@
  				char *cp = strchr(buffer, '\n');
@@ -3209,7 +4029,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-findtemp.c
  					if (!domain)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c	(working copy)
 @@ -286,22 +286,6 @@
  }
@@ -3286,7 +4106,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.c
  		if (!cp)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c	(working copy)
 @@ -43,8 +43,7 @@
  		char *cp = strchr(buffer, '\n');
@@ -3300,7 +4120,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-domainmatch.c
  			if (!domain)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c	(working copy)
 @@ -514,7 +514,7 @@
  		char *sp = ccs_freadline_unpack(stdin);
@@ -3313,7 +4133,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-patternize.c
  			printf("%s\n", sp);
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(working copy)
 @@ -15,8 +15,8 @@
  	sleep 10
@@ -3339,7 +4159,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
  endif
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(working copy)
 @@ -1277,9 +1277,11 @@
  "keyword_alias ipc signal                    = ipc signal\n"
@@ -3364,7 +4184,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
  "# keyword.\n"
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(revision 5042)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(revision 5044)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(working copy)
 @@ -100,6 +100,7 @@
  
