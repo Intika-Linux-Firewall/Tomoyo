@@ -942,37 +942,6 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
-Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
-===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 5044)
-+++ trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(working copy)
-@@ -338,10 +338,6 @@
- static int __init ccs_init_module(void)
- {
- 	int i;
--	for (i = 0; i < CCS_MAX_POLICY; i++)
--		INIT_LIST_HEAD(&ccs_policy_list[i]);
--	for (i = 0; i < CCS_MAX_GROUP; i++)
--		INIT_LIST_HEAD(&ccs_group_list[i]);
- 	for (i = 0; i < CCS_MAX_LIST; i++)
- 		INIT_LIST_HEAD(&ccs_shared_list[i]);
- 	if (ccsecurity_ops.disabled)
-@@ -353,7 +349,6 @@
- 	if (init_srcu_struct(&ccs_ss))
- 		panic("Out of memory.");
- #endif
--	ccs_proc_init();
- 	ccs_mm_init();
- 	ccs_capability_init();
- 	ccs_file_init();
-@@ -362,6 +357,7 @@
- 	ccs_mount_init();
- 	ccs_policy_io_init();
- 	ccs_domain_init();
-+	ccs_proc_init();
- #ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
- 	ccs_load_builtin_policy();
- #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
 --- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5044)
@@ -1350,6 +1319,37 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 +}
 +
  #endif
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 5044)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/proc_if.c	(working copy)
+@@ -338,10 +338,6 @@
+ static int __init ccs_init_module(void)
+ {
+ 	int i;
+-	for (i = 0; i < CCS_MAX_POLICY; i++)
+-		INIT_LIST_HEAD(&ccs_policy_list[i]);
+-	for (i = 0; i < CCS_MAX_GROUP; i++)
+-		INIT_LIST_HEAD(&ccs_group_list[i]);
+ 	for (i = 0; i < CCS_MAX_LIST; i++)
+ 		INIT_LIST_HEAD(&ccs_shared_list[i]);
+ 	if (ccsecurity_ops.disabled)
+@@ -353,7 +349,6 @@
+ 	if (init_srcu_struct(&ccs_ss))
+ 		panic("Out of memory.");
+ #endif
+-	ccs_proc_init();
+ 	ccs_mm_init();
+ 	ccs_capability_init();
+ 	ccs_file_init();
+@@ -362,6 +357,7 @@
+ 	ccs_mount_init();
+ 	ccs_policy_io_init();
+ 	ccs_domain_init();
++	ccs_proc_init();
+ #ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
+ 	ccs_load_builtin_policy();
+ #endif
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 ===================================================================
 --- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 5044)
@@ -1376,7 +1376,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  	ptr->is_group = false;
  	ptr->filename = ccs_get_dqword(filename);
  	return ptr->filename != NULL;
-@@ -295,35 +296,28 @@
+@@ -295,89 +296,53 @@
  /**
   * ccs_parse_argv - Parse an argv[] condition part.
   *
@@ -1395,25 +1395,16 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 -	bool is_not;
 -	char c;
 -	if (ccs_parse_ulong(&index, &start) != CCS_VALUE_TYPE_DECIMAL)
-+	if (ccs_parse_ulong(&argv->index, &left) != CCS_VALUE_TYPE_DECIMAL)
- 		goto out;
+-		goto out;
 -	if (*start++ != ']')
-+	if (*left++ != ']')
- 		goto out;
+-		goto out;
 -	c = *start++;
 -	if (c == '=')
 -		is_not = false;
 -	else if (c == '!' && *start++ == '=')
 -		is_not = true;
 -	else
-+	if (*left == '!') {
-+		left++;
-+		argv->is_not = true;
-+	} else {
-+		argv->is_not = false;
-+	}
-+	if (*left)
- 		goto out;
+-		goto out;
 -	value = ccs_get_dqword(start);
 -	if (!value)
 -		goto out;
@@ -1421,12 +1412,15 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 -	argv->is_not = is_not;
 -	argv->value = value;
 -	return true;
+-out:
+-	return false;
++	if (ccs_parse_ulong(&argv->index, &left) != CCS_VALUE_TYPE_DECIMAL ||
++	    *left++ != ']' || *left)
++		return false;
 +	argv->value = ccs_get_dqword(right);
 +	return argv->value != NULL;
- out:
- 	return false;
  }
-@@ -331,53 +325,41 @@
+ 
  /**
   * ccs_parse_envp - Parse an envp[] condition part.
   *
@@ -1463,14 +1457,9 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 -		} else if (!*start++) {
 -			goto out;
 -		}
-+	char *cp = left + strlen(left) - 1;
-+	if (*cp == '!') {
-+		cp--;
-+		envp->is_not = true;
-+	} else {
-+		envp->is_not = false;
- 	}
+-	}
 -	if (!ccs_correct_word(cp))
++	char *cp = left + strlen(left) - 1;
 +	if (*cp-- != ']' || *cp != '"')
  		goto out;
 -	name = ccs_get_name(cp);
@@ -1496,7 +1485,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  	envp->value = value;
  	return true;
  out:
-@@ -482,11 +464,11 @@
+@@ -482,13 +447,12 @@
  /**
   * ccs_get_condition - Parse condition part.
   *
@@ -1508,23 +1497,26 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 -struct ccs_condition *ccs_get_condition(char *condition)
 +struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param)
  {
- 	char *start;
+-	char *start;
  	struct ccs_condition *entry = NULL;
-@@ -497,17 +479,18 @@
+ 	struct ccs_condition_element *condp = NULL;
+ 	struct ccs_number_union *numbers_p = NULL;
+@@ -497,52 +461,80 @@
  	struct ccs_envp *envp = NULL;
  	struct ccs_condition e = { };
  	bool dry_run = true;
 -	char *end_of_string = condition + strlen(condition);
 +	char * const start_of_string = param->data;
 +	char * const end_of_string = start_of_string + strlen(start_of_string);
++	char *pos;
  rerun:
 -	start = condition;
-+	start = start_of_string;
++	pos = start_of_string;
  	while (1) {
  		u8 left = -1;
  		u8 right = -1;
 -		char *word = start;
-+		char *left_word = start;
++		char *left_word = pos;
  		char *cp;
 -		char *eq;
 -		bool is_not = false;
@@ -1533,20 +1525,39 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 +		bool is_not;
 +		if (!*left_word)
  			break;
- 		cp = strchr(start, ' ');
+-		cp = strchr(start, ' ');
++		/*
++		 * Since left-hand condition does not allow use of "path_group"
++		 * or "number_group" and environment variable's names do not
++		 * accept '=', it is guaranteed that the original line consists
++		 * of one or more repetition of $left$operator$right blocks
++		 * where "$left is free from '=' and ' '" and "$operator is
++		 * either '=' or '!='" and "$right is free from ' '".
++		 * Therefore, we can reconstruct the original line at the end
++		 * of dry run even if we overwrite $operator with '\0'.
++		 */
++		cp = strchr(pos, ' ');
  		if (cp) {
-@@ -516,33 +499,45 @@
+-			*cp = '\0';
+-			start = cp + 1;
++			*cp = '\0'; /* Will restore later. */
++			pos = cp + 1;
  		} else {
- 			start = "";
+-			start = "";
++			pos = "";
  		}
 -		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
 -		if (!strncmp(word, "grant_log=", 10)) {
-+		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, left_word);
 +		right_word = strchr(left_word, '=');
 +		if (!right_word || right_word == left_word)
 +			goto out;
-+		is_not = (*(right_word - 1) == '!');
-+		*right_word++ = '\0';
++		is_not = *(right_word - 1) == '!';
++		if (is_not)
++			*(right_word++ - 1) = '\0'; /* Will restore later. */
++		else
++			*right_word++ = '\0'; /* Will restore later. */
++		dprintk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left_word,
++			is_not ? "!" : "", right_word);
 +		if (!strcmp(left_word, "grant_log")) {
  			if (!dry_run) {
 -				word += 10;
@@ -1593,14 +1604,16 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  			if (dry_run) {
  				e.argc++;
  				e.condc++;
-@@ -550,11 +545,12 @@
+@@ -550,11 +542,14 @@
  				e.argc--;
  				e.condc--;
  				left = CCS_ARGV_ENTRY;
 -				if (!ccs_parse_argv(word + 10, argv++))
++				argv->is_not = is_not;
 +				if (!ccs_parse_argv(left_word + 10,
 +						    right_word, argv++))
  					goto out;
++				
  			}
  			goto store_value;
 -		} else if (!strncmp(word, "exec.envp[\"", 11)) {
@@ -1608,11 +1621,12 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  			if (dry_run) {
  				e.envc++;
  				e.condc++;
-@@ -562,21 +558,14 @@
+@@ -562,21 +557,15 @@
  				e.envc--;
  				e.condc--;
  				left = CCS_ENVP_ENTRY;
 -				if (!ccs_parse_envp(word + 11, envp++))
++				envp->is_not = is_not;
 +				if (!ccs_parse_envp(left_word + 11,
 +						    right_word, envp++))
  					goto out;
@@ -1656,7 +1670,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  		if (dry_run)
  			e.condc++;
  		else
-@@ -605,20 +590,24 @@
+@@ -605,26 +590,32 @@
  			} else {
  				e.names_count--;
  				right = CCS_NAME_UNION;
@@ -1678,21 +1692,45 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
  				right = CCS_NUMBER_UNION;
 -				if (!ccs_parse_number_union(word, numbers_p++))
 +				param->data = right_word;
-+				if (*right_word == '@' ||
-+				    !ccs_parse_number_union(param,
++				if (!ccs_parse_number_union(param,
 +							    numbers_p++))
  					goto out;
  			}
  		}
-@@ -656,7 +645,7 @@
+ store_value:
+-		if (dry_run)
++		if (dry_run) {
++			dprintk(KERN_WARNING "%u: dry_run left=%u right=%u "
++				"match=%u\n", __LINE__, left, right, !is_not);
+ 			continue;
++		}
+ 		condp->left = left;
+ 		condp->right = right;
+ 		condp->equals = !is_not;
+@@ -656,9 +647,20 @@
  	names_p = (struct ccs_name_union *) (numbers_p + e.numbers_count);
  	argv = (struct ccs_argv *) (names_p + e.names_count);
  	envp = (struct ccs_envp *) (argv + e.argc);
 -	for (start = condition; start < end_of_string; start++)
-+	for (start = start_of_string; start < end_of_string; start++)
- 		if (!*start)
- 			*start = ' ';
+-		if (!*start)
+-			*start = ' ';
++	{
++		bool flag = false;
++		for (pos = start_of_string; pos < end_of_string; pos++) {
++			if (*pos)
++				continue;
++			if (flag) /* Restore " ". */
++				*pos = ' ';
++			else if (*(pos + 1) == '=') /* Restore "!=". */
++				*pos = '!';
++			else /* Restore "=". */
++				*pos = '=';
++			flag = !flag;
++		}
++	}
  	dry_run = false;
+ 	goto rerun;
+ out:
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 ===================================================================
 --- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5044)
@@ -3922,19 +3960,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  }
  
  /**
-Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
-===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5044)
-+++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
-@@ -94,7 +94,7 @@
- 	memset(&ccs_dp, 0, sizeof(ccs_dp));
- 	memset(&mp, 0, sizeof(mp));
- 	ccs_get();
--	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
-+	ccs_assign_domain(&ccs_dp, "<kernel>", false, false);
- 	while (true) {
- 		FILE *fp;
- 		struct msghdr msg;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
 ===================================================================
 --- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 5044)
@@ -3952,6 +3977,19 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
  			while (*cp) {
  				if (*cp++ != ' ' || *cp++ == '/')
  					continue;
+Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5044)
++++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
+@@ -94,7 +94,7 @@
+ 	memset(&ccs_dp, 0, sizeof(ccs_dp));
+ 	memset(&mp, 0, sizeof(mp));
+ 	ccs_get();
+-	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
++	ccs_assign_domain(&ccs_dp, "<kernel>", false, false);
+ 	while (true) {
+ 		FILE *fp;
+ 		struct msghdr msg;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
 ===================================================================
 --- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 5044)
