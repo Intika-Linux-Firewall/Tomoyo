@@ -237,8 +237,10 @@ static void ccs_tokenize(char *buffer, char *w[5],
 		if (!cp)
 			return;
 		if (index == CCS_DIRECTIVE_IPC_SIGNAL && i == 1 &&
-		    !strncmp(buffer, "<kernel>", 8)) {
-			cp = buffer + 8;
+		    ccs_domain_def(buffer)) {
+			cp = strchr(buffer, ' ');
+			if (!cp)
+				return;
 			while (*cp) {
 				if (*cp++ != ' ' || *cp++ == '/')
 					continue;

@@ -15,8 +15,8 @@ $(BUILD_FILES): libccstools.so
 	sleep 10
 
 libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.4
-	ln -sf libccstools.so.1.0.4 libccstools.so
+	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.5
+	ln -sf libccstools.so.1.0.5 libccstools.so
 
 .c:
 	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
@@ -29,8 +29,8 @@ ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
-	$(INSTALL) -m 0755 libccstools.so.1.0.4 $(INSTALLDIR)$(USRLIBDIR)
-	ln -sf libccstools.so.1.0.4 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.1
+	$(INSTALL) -m 0755 libccstools.so.1.0.5 $(INSTALLDIR)$(USRLIBDIR)
+	ln -sf libccstools.so.1.0.5 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.1
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif

@@ -100,6 +100,7 @@ static void handle_exec_condition(void)
 
 int main(int argc, char *argv[])
 {
+	char *namespace = NULL;
 	char *domainname = NULL;
 	memset(buffer, 0, sizeof(buffer));
 	if (argc > 1) {
@@ -125,8 +126,12 @@ int main(int argc, char *argv[])
 		else if (!strncmp(buffer, "symlink.target=", 15)) {
 			realloc_buffer(strlen(buffer) + 2);
 			cond_len += sprintf(cond + cond_len, " %s", buffer);
-		} else if (!strcmp(buffer, "<kernel>")) {
+		} else if (buffer[0] == '<' /* ccs_domain_def(buffer) */) {
 			char *cp;
+			free(namespace);
+			namespace = strdup(buffer);
+			if (!namespace)
+				break;
 			if (!fgets(buffer, sizeof(buffer) - 1, stdin) ||
 			    !strchr(buffer, '\n'))
 				break;
@@ -145,7 +150,7 @@ int main(int argc, char *argv[])
 				cond_len = 0;
 				continue;
 			}
-			printf("<kernel>%s", domainname);
+			printf("%s%s", namespace, domainname);
 			printf("%s", buffer);
 			if (cond_len) {
 				printf("%s", cond);
@@ -155,6 +160,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	free(domainname);
+	free(namespace);
 	free(cond);
 	return 0;
 }

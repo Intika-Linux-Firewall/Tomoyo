@@ -29,13 +29,16 @@ enum ccs_screen_type {
 	CCS_SCREEN_ACL_LIST,
 	CCS_SCREEN_PROFILE_LIST,
 	CCS_SCREEN_MANAGER_LIST,
-	CCS_SCREEN_QUERY_LIST,
+	/* CCS_SCREEN_QUERY_LIST, */
+	CCS_SCREEN_NAMESPACE_LIST,
 	CCS_SCREEN_STAT_LIST,
 	CCS_MAXSCREEN
 };
 
 enum ccs_transition_type {
 	/* Do not change this order, */
+	CCS_TRANSITION_CONTROL_NO_NAMESPACE,
+	CCS_TRANSITION_CONTROL_NAMESPACE,
 	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
 	CCS_TRANSITION_CONTROL_INITIALIZE,
 	CCS_TRANSITION_CONTROL_NO_KEEP,
@@ -334,9 +337,11 @@ enum ccs_editpolicy_directives {
 	CCS_DIRECTIVE_IPC_SIGNAL,
 	CCS_DIRECTIVE_KEEP_DOMAIN,
 	CCS_DIRECTIVE_MISC_ENV,
+	CCS_DIRECTIVE_MOVE_NAMESPACE,
 	CCS_DIRECTIVE_NETWORK_INET,
 	CCS_DIRECTIVE_NETWORK_UNIX,
 	CCS_DIRECTIVE_NO_INITIALIZE_DOMAIN,
+	CCS_DIRECTIVE_NO_MOVE_NAMESPACE,
 	CCS_DIRECTIVE_NO_KEEP_DOMAIN,
 	CCS_DIRECTIVE_NUMBER_GROUP,
 	CCS_DIRECTIVE_PATH_GROUP,
@@ -441,7 +446,6 @@ void ccs_editpolicy_sttr_restore(void);
 void ccs_editpolicy_sttr_save(void);
 
 extern enum ccs_screen_type ccs_current_screen;
-extern int ccs_gacl_list_count;
 extern int ccs_list_item_count;
 extern int ccs_path_group_list_len;
 extern int ccs_persistent_fd;

@@ -38,8 +38,7 @@ int main(int argc, char *argv[])
 				char *cp = strchr(buffer, '\n');
 				if (cp)
 					*cp = '\0';
-				if (!strncmp(buffer, "<kernel>", 8) &&
-				    (buffer[8] == ' ' || !buffer[8])) {
+				if (ccs_domain_def(buffer)) {
 					free(domain);
 					domain = strdup(buffer);
 					if (!domain)
