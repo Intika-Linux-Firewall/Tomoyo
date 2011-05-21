@@ -40,7 +40,7 @@ int ccs_path_group_list_len = 0;
 /* Array of string ACL entries. */
 struct ccs_generic_acl *ccs_gacl_list = NULL;
 /* Length of ccs_generic_list array. */
-int ccs_gacl_list_count = 0;
+static int ccs_gacl_list_count = 0;
 
 /* Policy directory. */
 static const char *ccs_policy_dir = NULL;
@@ -62,6 +62,8 @@ static char *ccs_current_domain = NULL;
 static unsigned int ccs_current_pid = 0;
 /* Currently active screen's index. */
 enum ccs_screen_type ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+/* Previously active screen's index. */
+static enum ccs_screen_type ccs_previous_screen = CCS_SCREEN_DOMAIN_LIST;
 /*
  * Array of "initialize_domain"/"no_initialize_domain"/"keep_domain"/
  * "no_keep_domain" entries.
@@ -96,12 +98,18 @@ static _Bool ccs_domain_sort_type = false;
 /* Start from the first line when showing ACL screen? */
 static _Bool ccs_no_restore_cursor = false;
 
+/* Namespace to use. */
+static char *ccs_current_namespace = NULL;
+static int ccs_current_namespace_len = 0;
+
 /* Domain transition coltrol keywords. */
 static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_INITIALIZE] = "initialize_domain ",
+	[CCS_TRANSITION_CONTROL_NAMESPACE]     = "move_namespace ",
+	[CCS_TRANSITION_CONTROL_NO_NAMESPACE]  = "no_move_namespace ",
+	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
 	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
-	[CCS_TRANSITION_CONTROL_KEEP] = "keep_domain ",
-	[CCS_TRANSITION_CONTROL_NO_KEEP] = "no_keep_domain ",
+	[CCS_TRANSITION_CONTROL_KEEP]          = "keep_domain ",
+	[CCS_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
 };
 
 static FILE *ccs_editpolicy_open_write(const char *filename);
@@ -152,6 +160,7 @@ static void ccs_find_entry(const _Bool input, const _Bool forward,
 static void ccs_page_down_key(void);
 static void ccs_page_up_key(void);
 static void ccs_read_domain_and_exception_policy(void);
+static void ccs_read_namespace_list(void);
 static void ccs_read_generic_policy(void);
 static void ccs_resize_window(void);
 static void ccs_set_cursor_pos(const int index);
@@ -375,7 +384,7 @@ static int ccs_string_acl_compare(const void *a, const void *b)
 }
 
 /**
- * ccs_add_transition_control_policy - Add "initialize_domain"/"no_initialize_domain"/"keep_domain"/ "no_keep_domain" entries.
+ * ccs_add_transition_control_policy - Add "move_namespace"/"no_move_namespace"/"initialize_domain"/"no_initialize_domain"/"keep_domain"/ "no_keep_domain" entries.
  *
  * @data: Line to parse.
  * @type: One of values in "enum ccs_transition_type".
@@ -425,16 +434,26 @@ static void ccs_assign_dis(const struct ccs_path_info *domainname,
 {
 	const struct ccs_transition_control_entry *d_t =
 		ccs_transition_control(domainname, program);
-	if (d_t && d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE) {
+	if (d_t && (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE ||
+		    d_t->type == CCS_TRANSITION_CONTROL_NAMESPACE)) {
 		char *line;
 		int source;
 		ccs_get();
-		line = ccs_shprintf("%s %s", domainname->name, program);
+		if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE)
+			line = ccs_shprintf("%s %s", domainname->name,
+					    program);
+		else
+			line = ccs_shprintf("%s <%s>", domainname->name,
+					    program);
 		ccs_normalize_line(line);
 		source = ccs_assign_domain(&ccs_dp, line, true, false);
 		if (source == EOF)
 			ccs_out_of_memory();
-		line = ccs_shprintf(CCS_ROOT_NAME " %s", program);
+		if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE)
+			line = ccs_shprintf("%s %s", ccs_current_namespace,
+					    program);
+		else
+			line = ccs_shprintf("<%s>", program);
 		ccs_dp.list[source].target_domainname = strdup(line);
 		if (!ccs_dp.list[source].target_domainname)
 			ccs_out_of_memory();
@@ -465,12 +484,16 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
  *
  * @index: Index in the domain policy.
  *
- * Returns index in the domain policy if found, EOF otherwise.
+ * Returns index in the domain policy if found, -2 if namespace jump,
+ * EOF otherwise.
  */
 static int ccs_find_target_domain(const int index)
 {
-	return ccs_find_domain(&ccs_dp, ccs_dp.list[index].target_domainname,
-			       false, false);
+	const char *cp = ccs_dp.list[index].target_domainname;
+	const char *sp = ccs_get_last_word(cp);
+	if (*sp == '<' && strcmp(ccs_current_namespace, sp))
+		return -2;
+	return ccs_find_domain(&ccs_dp, cp, false, false);
 }
 
 /**
@@ -544,8 +567,10 @@ no_transition_control:
 	if (redirect_index >= 0)
 		line = ccs_shprintf(" ( -> %d )",
 				    ccs_dp.list[redirect_index].number);
+	else if (redirect_index == EOF)
+                line = ccs_shprintf(" ( -> Not Found )");
 	else
-		line = ccs_shprintf(" ( -> Not Found )");
+		line = ccs_shprintf(" ( -> Namespace jump )");
 	printw("%s", ccs_eat(line));
 	tmp_col += strlen(line);
 	ccs_put();
@@ -972,6 +997,14 @@ next:
 			if (ptr->program &&
 			    strcmp(ptr->program->name, program))
 				continue;
+			if (type == CCS_TRANSITION_CONTROL_NO_NAMESPACE) {
+				/*
+				 * Do not check for move_namespace if
+				 * no_move_namespace matched.
+				 */
+				type = CCS_TRANSITION_CONTROL_NO_INITIALIZE;
+				goto next;
+			}
 			if (type == CCS_TRANSITION_CONTROL_NO_INITIALIZE) {
 				/*
 				 * Do not check for initialize_domain if
@@ -980,7 +1013,8 @@ next:
 				type = CCS_TRANSITION_CONTROL_NO_KEEP;
 				goto next;
 			}
-			if (type == CCS_TRANSITION_CONTROL_INITIALIZE ||
+			if (type == CCS_TRANSITION_CONTROL_NAMESPACE ||
+			    type == CCS_TRANSITION_CONTROL_INITIALIZE ||
 			    type == CCS_TRANSITION_CONTROL_KEEP)
 				return ptr;
 			else
@@ -1031,6 +1065,81 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
 }
 
 /**
+ * ccs_is_current_namespace - Check namespace.
+ *
+ * @line: Line to check namespace.
+ *
+ * Returns true if this line deals current namespace, false otherwise.
+ */
+static _Bool ccs_is_current_namespace(const char *line)
+{
+	return !strncmp(line, ccs_current_namespace, ccs_current_namespace_len)
+		&& (line[ccs_current_namespace_len] == ' ' ||
+		    !line[ccs_current_namespace_len]);
+}
+
+static void ccs_add_generic_entry(const char *line, const enum
+				  ccs_editpolicy_directives directive)
+{
+	int i;
+	char *cp;
+	for (i = 0; i < ccs_gacl_list_count; i++)
+		if (!strcmp(line, ccs_gacl_list[i].operand))
+			return;
+	ccs_gacl_list = realloc(ccs_gacl_list,
+				(ccs_gacl_list_count + 1) *
+				sizeof(struct ccs_generic_acl));
+	if (!ccs_gacl_list)
+		ccs_out_of_memory();
+	cp = strdup(line);
+	if (!cp)
+		ccs_out_of_memory();
+	ccs_gacl_list[ccs_gacl_list_count].directive = directive;
+	ccs_gacl_list[ccs_gacl_list_count].selected = 0;
+	ccs_gacl_list[ccs_gacl_list_count++].operand = cp;
+}
+
+/**
+ * ccs_read_namespace_list - Read namespace list.
+ *
+ * Returns nothing.
+ */
+static void ccs_read_namespace_list(void)
+{
+	u8 i;
+	static const char *files[3] = { CCS_PROC_POLICY_PROFILE,
+					CCS_PROC_POLICY_EXCEPTION_POLICY,
+					CCS_PROC_POLICY_DOMAIN_POLICY };
+	while (ccs_gacl_list_count)
+		free((void *) ccs_gacl_list[--ccs_gacl_list_count].operand);
+	ccs_add_generic_entry("<kernel>", CCS_DIRECTIVE_NONE);
+	for (i = 0; i < 3; i++) {
+		FILE *fp = ccs_editpolicy_open_read(files[i]);
+		if (!fp)
+			continue;
+		ccs_get();
+		while (true) {
+			char *line = ccs_freadline_unpack(fp);
+			char *cp;
+			if (!line)
+				break;
+			cp = strchr(line, ' ');
+			if (cp)
+				*cp = '\0';
+			else if (i != 2)
+				continue;
+			if (!ccs_domain_def(line))
+				continue;
+			ccs_add_generic_entry(line, CCS_DIRECTIVE_NONE);
+		}
+		ccs_put();
+		fclose(fp);
+	}
+	qsort(ccs_gacl_list, ccs_gacl_list_count,
+	      sizeof(struct ccs_generic_acl), ccs_string_acl_compare);
+}
+
+/**
  * ccs_read_generic_policy - Read policy data other than domain policy.
  *
  * Returns nothing.
@@ -1040,9 +1149,7 @@ static void ccs_read_generic_policy(void)
 	FILE *fp = NULL;
 	_Bool flag = false;
 	while (ccs_gacl_list_count)
-		free((void *)
-		     ccs_gacl_list[--ccs_gacl_list_count].
-		     operand);
+		free((void *) ccs_gacl_list[--ccs_gacl_list_count].operand);
 	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
 		if (ccs_network_mode)
 			/* We can read after write. */
@@ -1088,6 +1195,14 @@ static void ccs_read_generic_policy(void)
 			if (!line[0])
 				continue;
 		}
+		if ((ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
+		    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) &&
+		    *line == '<') {
+			char *cp = strchr(line, ' ');
+			if (!cp++ || !ccs_is_current_namespace(line))
+				continue;
+			memmove(line, cp, strlen(cp) + 1);
+		}
 		switch (ccs_current_screen) {
 		case CCS_SCREEN_EXCEPTION_LIST:
 		case CCS_SCREEN_ACL_LIST:
@@ -1108,20 +1223,7 @@ static void ccs_read_generic_policy(void)
 			directive = CCS_DIRECTIVE_NONE;
 			break;
 		}
-		ccs_gacl_list =
-			realloc(ccs_gacl_list,
-				(ccs_gacl_list_count + 1) *
-				sizeof(struct ccs_generic_acl));
-		if (!ccs_gacl_list)
-			ccs_out_of_memory();
-		cp = strdup(line);
-		if (!cp)
-			ccs_out_of_memory();
-		ccs_gacl_list[ccs_gacl_list_count].directive =
-			directive;
-		ccs_gacl_list[ccs_gacl_list_count].selected = 0;
-		ccs_gacl_list[ccs_gacl_list_count++].operand =
-			cp;
+		ccs_add_generic_entry(line, directive);
 	}
 	ccs_put();
 	ccs_freadline_raw = false;
@@ -1281,10 +1383,16 @@ static void ccs_add_condition_domain_transition(char *line, const int index)
 	static char domainname[4096];
 	int source;
 	char *cp = strrchr(line, ' ');
-	if (!cp || strncmp(cp, " auto_domain_transition=\"", 25))
+	if (!cp)
 		return;
-	*cp = '\0';
-	cp += 25;
+	if (!strncmp(cp, " auto_domain_transition=\"", 25)) {
+		*cp = '\0';
+		cp += 25;
+	} else if (!strncmp(cp, " auto_namespace_transition=\"", 28)) {
+		*cp = '\0';
+		cp += 28;
+	} else
+		return;
 	source = strlen(cp);
 	if (!source)
 		return;
@@ -1395,19 +1503,13 @@ static void ccs_parse_domain_line(char *line, const int index,
 static void ccs_parse_exception_line(char *line, const int max_index)
 {
 	unsigned int group;
-	if (ccs_str_starts(line, "initialize_domain "))
-		ccs_add_transition_control_policy
-			(line, CCS_TRANSITION_CONTROL_INITIALIZE);
-	else if (ccs_str_starts(line, "no_initialize_domain "))
-		ccs_add_transition_control_policy
-			(line, CCS_TRANSITION_CONTROL_NO_INITIALIZE);
-	else if (ccs_str_starts(line, "keep_domain "))
-		ccs_add_transition_control_policy
-			(line, CCS_TRANSITION_CONTROL_KEEP);
-	else if (ccs_str_starts(line, "no_keep_domain "))
-		ccs_add_transition_control_policy
-			(line, CCS_TRANSITION_CONTROL_NO_KEEP);
-	else if (ccs_str_starts(line, "path_group "))
+	for (group = 0; group < CCS_MAX_TRANSITION_TYPE; group++) {
+		if (!ccs_str_starts(line, ccs_transition_type[group]))
+			continue;
+		ccs_add_transition_control_policy(line, group);
+		return;
+	}
+	if (ccs_str_starts(line, "path_group "))
 		ccs_add_path_group_policy(line, false);
 	else if (ccs_str_starts(line, "address_group "))
 		ccs_add_address_group_policy(line, false);
@@ -1451,7 +1553,6 @@ static void ccs_read_domain_and_exception_policy(void)
 	ccs_clear_domain_policy(&ccs_dp);
 	ccs_transition_control_list_len = 0;
 	ccs_editpolicy_clear_groups();
-	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
 
 	/* Load all domain transition related entries. */
 	fp = NULL;
@@ -1476,7 +1577,11 @@ static void ccs_read_domain_and_exception_policy(void)
 			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
-			if (ccs_domain_def(line)) {
+			if (*line == '<') {
+				if (!ccs_is_current_namespace(line)) {
+					index = EOF;
+					continue;
+				}
 				index = ccs_assign_domain(&ccs_dp, line, false,
 							  false);
 				continue;
@@ -1517,6 +1622,12 @@ static void ccs_read_domain_and_exception_policy(void)
 			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
+			if (*line == '<') {
+				char *cp = strchr(line, ' ');
+				if (!cp++ || !ccs_is_current_namespace(line))
+					continue;
+				memmove(line, cp, strlen(cp) + 1);
+			}
 			ccs_parse_exception_line(line, max_index);
 		}
 		ccs_put();
@@ -1550,9 +1661,9 @@ static void ccs_read_domain_and_exception_policy(void)
 			d_t = ccs_transition_control(&parent, cp);
 			if (!d_t)
 				continue;
-			/* Initializer under <kernel> is reachable. */
+			/* Initializer under root of namespace is reachable. */
 			if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE &&
-			    parent.total_len == CCS_ROOT_NAME_LEN)
+			    !strchr(parent.name, ' '))
 				break;
 			ccs_dp.list[index].d_t = d_t;
 			continue;
@@ -1611,10 +1722,10 @@ static void ccs_read_domain_and_exception_policy(void)
 			= ccs_dp.list[index].string_ptr;
 		const int max_count = ccs_dp.list[index].string_count;
 		/*
-		 * Don't create source domain under <kernel> because
-		 * they will become target domains.
+		 * Don't create source domains under root of namespace
+		 * because they will become target domains.
 		 */
-		if (domainname->total_len == CCS_ROOT_NAME_LEN)
+		if (!strchr(domainname->name, ' '))
 			continue;
 		for (i = 0; i < max_count; i++) {
 			const struct ccs_path_info *cp = string_ptr[i];
@@ -1986,8 +2097,27 @@ static void ccs_show_current(void)
 		const int index = ccs_editpolicy_get_current();
 		ccs_get();
 		ccs_eat_col = ptr->x;
-		line = ccs_shprintf("%s",
-				    ccs_eat(ccs_domain_name(&ccs_dp, index)));
+		if (index >= 0)
+			line = ccs_shprintf("%s",
+					    ccs_eat(ccs_domain_name(&ccs_dp,
+								    index)));
+		else
+			line = ccs_shprintf("%s", ccs_current_namespace);
+		if (ccs_window_width < strlen(line))
+			line[ccs_window_width] = '\0';
+		move(2, 0);
+		clrtoeol();
+		ccs_editpolicy_attr_change(A_REVERSE, true);  /* add color */
+		printw("%s", line);
+		ccs_editpolicy_attr_change(A_REVERSE, false); /* add color */
+		ccs_put();
+	}
+	if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
+	    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
+		char *line;
+		ccs_get();
+		ccs_eat_col = ptr->x;
+		line = ccs_shprintf("%s", ccs_current_namespace);
 		if (ccs_window_width < strlen(line))
 			line[ccs_window_width] = '\0';
 		move(2, 0);
@@ -2203,7 +2333,9 @@ static void ccs_delete_entry(const int index)
 			if (!ccs_gacl_list[i].selected)
 				continue;
 			directive = ccs_gacl_list[i].directive;
-			fprintf(fp, "delete %s %s\n",
+			fprintf(fp, "delete %s %s %s\n",
+				ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST
+				? ccs_current_namespace : "",
 				ccs_directives[directive].original,
 				ccs_gacl_list[i].operand);
 		}
@@ -2252,14 +2384,17 @@ static void ccs_add_entry(void)
 			fprintf(fp, "select domain=%s\n", ccs_current_domain);
 		/* Fall through. */
 	case CCS_SCREEN_EXCEPTION_LIST:
+		if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST)
+			fprintf(fp, "%s ", ccs_current_namespace);
 		directive = ccs_find_directive(false, line);
 		if (directive != CCS_DIRECTIVE_NONE)
-			fprintf(fp, "%s ",
-				ccs_directives[directive].original);
+			fprintf(fp, "%s ", ccs_directives[directive].original);
 		break;
 	case CCS_SCREEN_PROFILE_LIST:
 		if (!strchr(line, '='))
-			fprintf(fp, "%s-COMMENT=\n", line);
+			fprintf(fp, "%s %s-COMMENT=\n", ccs_current_namespace,
+				line);
+		fprintf(fp, "%s ", ccs_current_namespace);
 		break;
 	default:
 		break;
@@ -2445,6 +2580,7 @@ static void ccs_set_level(const int current)
 		if (cp)
 			*cp = '\0';
 		directive = ccs_gacl_list[index].directive;
+		fprintf(fp, "%s ", ccs_current_namespace);
 		if (directive < 256)
 			fprintf(fp, "%u-", directive);
 		fprintf(fp, "%s=%s\n", buf, line);
@@ -2501,12 +2637,23 @@ out:
  *
  * @current: Index in the domain policy.
  *
- * Returns true if next window is ACL list, false otherwise.
+ * Returns true if next window is ACL list or namespace list, false otherwise.
  */
 static _Bool ccs_select_acl_window(const int current)
 {
 	char *old_domain;
-	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST || current == EOF)
+	if (current == EOF)
+		return false;
+	if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
+		free(ccs_current_namespace);
+		ccs_current_namespace = strdup(ccs_gacl_list[current].operand);
+		if (!ccs_current_namespace)
+			ccs_out_of_memory();
+		ccs_current_namespace_len = strlen(ccs_current_namespace);
+		ccs_current_screen = ccs_previous_screen;
+		return true;
+	}
+	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST)
 		return false;
 	ccs_current_pid = 0;
 	if (ccs_domain_sort_type) {
@@ -2514,14 +2661,26 @@ static _Bool ccs_select_acl_window(const int current)
 	} else if (ccs_initializer_source(current)) {
 		struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
 		const int redirect_index = ccs_find_target_domain(current);
-		if (redirect_index == EOF)
-			return false;
-		ptr->current = redirect_index - ptr->y;
-		while (ptr->current < 0) {
-			ptr->current++;
-			ptr->y--;
+		if (redirect_index >= 0) {
+			ptr->current = redirect_index - ptr->y;
+			while (ptr->current < 0) {
+				ptr->current++;
+				ptr->y--;
+			}
+			ccs_show_list();
 		}
-		ccs_show_list();
+		if (redirect_index == -2) {
+			free(ccs_current_namespace);
+			ccs_current_namespace =
+				strdup(ccs_get_last_word(ccs_dp.list[current].
+							 target_domainname));
+			if (!ccs_current_namespace)
+				ccs_out_of_memory();
+			ccs_current_namespace_len =
+				strlen(ccs_current_namespace);
+			ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+			return true;
+		}
 		return false;
 	} else if (ccs_deleted_domain(current)) {
 		return false;
@@ -2536,6 +2695,7 @@ static _Bool ccs_select_acl_window(const int current)
 	ccs_no_restore_cursor = old_domain &&
 		strcmp(old_domain, ccs_current_domain);
 	free(old_domain);
+	ccs_current_screen = CCS_SCREEN_ACL_LIST;
 	return true;
 }
 
@@ -2557,6 +2717,7 @@ static enum ccs_screen_type ccs_select_window(const int current)
 		printw("a     <<< Domain Policy Editor >>>\n");
 	printw("p     <<< Profile Editor >>>\n");
 	printw("m     <<< Manager Policy Editor >>>\n");
+	printw("n     <<< Namespace Selector >>>\n");
 	if (!ccs_offline_mode) {
 		/* printw("i     <<< Interactive Enforcing Mode >>>\n"); */
 		printw("s     <<< Statistics >>>\n");
@@ -2572,11 +2733,15 @@ static enum ccs_screen_type ccs_select_window(const int current)
 			return CCS_SCREEN_DOMAIN_LIST;
 		if (c == 'A' || c == 'a')
 			if (ccs_select_acl_window(current))
-				return CCS_SCREEN_ACL_LIST;
+				return ccs_current_screen;
 		if (c == 'P' || c == 'p')
 			return CCS_SCREEN_PROFILE_LIST;
 		if (c == 'M' || c == 'm')
 			return CCS_SCREEN_MANAGER_LIST;
+		if (c == 'N' || c == 'n') {
+			ccs_previous_screen = ccs_current_screen;
+			return CCS_SCREEN_NAMESPACE_LIST;
+		}
 		if (!ccs_offline_mode) {
 			/*
 			if (c == 'I' || c == 'i')
@@ -2684,9 +2849,14 @@ static enum ccs_screen_type ccs_generic_list_loop(void)
 	} else if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
 		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
 		ccs_list_caption = "Domain Policy Editor";
+		/*
 	} else if (ccs_current_screen == CCS_SCREEN_QUERY_LIST) {
 		ccs_policy_file = CCS_PROC_POLICY_QUERY;
 		ccs_list_caption = "Interactive Enforcing Mode";
+		*/
+	} else if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
+		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_STATUS;
+		ccs_list_caption = "Namespace Selector";
 	} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
 		ccs_policy_file = CCS_PROC_POLICY_PROFILE;
 		ccs_list_caption = "Profile Editor";
@@ -2718,6 +2888,9 @@ start:
 			ccs_read_process_list(true);
 			ccs_adjust_cursor_pos(ccs_task_list_len);
 		}
+	} else if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
+		ccs_read_namespace_list();
+		ccs_adjust_cursor_pos(ccs_gacl_list_count);
 	} else {
 		ccs_read_generic_policy();
 		ccs_adjust_cursor_pos(ccs_gacl_list_count);
@@ -2833,6 +3006,7 @@ start2:
 			case CCS_SCREEN_ACL_LIST:
 			case CCS_SCREEN_PROFILE_LIST:
 			case CCS_SCREEN_MANAGER_LIST:
+			case CCS_SCREEN_NAMESPACE_LIST:
 				ccs_add_entry();
 				goto start;
 			default:
@@ -2842,7 +3016,7 @@ start2:
 		case '\r':
 		case '\n':
 			if (ccs_select_acl_window(current))
-				return CCS_SCREEN_ACL_LIST;
+				return ccs_current_screen;
 			break;
 		case 's':
 		case 'S':
@@ -2965,6 +3139,11 @@ static void ccs_parse_args(int argc, char *argv[])
 				goto usage;
 			ccs_policy_dir = ptr;
 			ccs_offline_mode = true;
+		} else if (*ptr == '<') {
+			if (ccs_current_namespace || strchr(ptr, ' ') ||
+			    !ccs_domain_def(ptr))
+				goto usage;
+			ccs_current_namespace = strdup(ptr);
 		} else if (cp) {
 			*cp++ = '\0';
 			if (ccs_network_mode || ccs_offline_mode)
@@ -2990,12 +3169,17 @@ static void ccs_parse_args(int argc, char *argv[])
 			 != 1) {
 usage:
 			printf("Usage: %s [e|d|p|m|s] [readonly] "
-			       "[refresh=interval] "
+			       "[refresh=interval] [<namespace>]"
 			       "[{policy_dir|remote_ip:remote_port}]\n",
 			       argv[0]);
 			exit(1);
 		}
 	}
+	if (!ccs_current_namespace)
+		ccs_current_namespace = strdup("<kernel>");
+	if (!ccs_current_namespace)
+		goto usage;
+	ccs_current_namespace_len = strlen(ccs_current_namespace);
 }
 
 /**

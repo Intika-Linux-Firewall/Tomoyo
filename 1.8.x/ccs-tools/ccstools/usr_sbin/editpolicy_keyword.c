@@ -314,11 +314,14 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_IPC_SIGNAL]    = { "ipc signal", NULL, 0, 0 },
 	[CCS_DIRECTIVE_KEEP_DOMAIN]   = { "keep_domain", NULL, 0, 0 },
 	[CCS_DIRECTIVE_MISC_ENV]      = { "misc env", NULL, 0, 0 },
+	[CCS_DIRECTIVE_MOVE_NAMESPACE] = { "move_namespace", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NETWORK_INET]  = { "network inet", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NETWORK_UNIX]  = { "network unix", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NONE]          = { "", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NO_INITIALIZE_DOMAIN]
 	= { "no_initialize_domain", NULL, 0, 0 },
+	[CCS_DIRECTIVE_NO_MOVE_NAMESPACE]
+	= { "no_move_namespace", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NO_KEEP_DOMAIN] = { "no_keep_domain", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NUMBER_GROUP]  = { "number_group", NULL, 0, 0 },
 	[CCS_DIRECTIVE_PATH_GROUP]    = { "path_group", NULL, 0, 0 },

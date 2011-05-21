@@ -51,9 +51,6 @@
 
 /***** CONSTANTS DEFINITION START *****/
 
-#define CCS_ROOT_NAME                    "<kernel>"
-#define CCS_ROOT_NAME_LEN                (sizeof(CCS_ROOT_NAME) - 1)
-
 #define CCS_PROC_POLICY_DIR              "/proc/ccs/"
 #define CCS_PROC_POLICY_DOMAIN_POLICY    "/proc/ccs/domain_policy"
 #define CCS_PROC_POLICY_DOMAIN_STATUS    "/proc/ccs/.domain_status"

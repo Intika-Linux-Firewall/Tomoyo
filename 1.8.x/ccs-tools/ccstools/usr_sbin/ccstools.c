@@ -286,22 +286,6 @@ static int ccs_const_part_length(const char *filename)
 }
 
 /**
- * ccs_domain_def - Check whether the given token can be a domainname.
- *
- * @domainname: The token to check.
- *
- * Returns true if @domainname possibly be a domainname, false otherwise.
- *
- * Note that this function in kernel source checks only !strncmp() part.
- */
-_Bool ccs_domain_def(const char *domainname)
-{
-	return !strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN) &&
-		(domainname[CCS_ROOT_NAME_LEN] == '\0'
-		 || domainname[CCS_ROOT_NAME_LEN] == ' ');
-}
-
-/**
  * ccs_fprintf_encoded - fprintf() using TOMOYO's escape rules.
  *
  * @fp:       Pointer to "FILE".
@@ -481,6 +465,30 @@ _Bool ccs_correct_path(const char *filename)
 }
 
 /**
+ * ccs_domain_def - Check whether the given token can be a domainname.
+ *
+ * @buffer: The token to check.
+ *
+ * Returns true if @buffer possibly be a domainname, false otherwise.
+ */
+_Bool ccs_domain_def(const char *buffer)
+{
+	const char *cp;
+	int len;
+	       if (*buffer != '<')
+		       return false;
+	       cp = strchr(buffer, ' ');
+	       if (!cp)
+		       len = strlen(buffer);
+	       else
+		       len = cp - buffer;
+	       if (buffer[len - 1] != '>' ||
+		   !ccs_correct_word2(buffer + 1, len - 2))
+		       return false;
+	       return true;
+}
+
+/**
  * ccs_correct_domain - Check whether the given domainname follows the naming rules.
  *
  * @domainname: The domainname to check.
@@ -489,14 +497,11 @@ _Bool ccs_correct_path(const char *filename)
  */
 _Bool ccs_correct_domain(const char *domainname)
 {
-	if (!domainname || strncmp(domainname, CCS_ROOT_NAME,
-				   CCS_ROOT_NAME_LEN))
-		goto out;
-	domainname += CCS_ROOT_NAME_LEN;
-	if (!*domainname)
+	if (!domainname || !ccs_domain_def(domainname))
+		return false;
+	domainname = strchr(domainname, ' ');
+	if (!domainname++)
 		return true;
-	if (*domainname++ != ' ')
-		goto out;
 	while (1) {
 		const char *cp = strchr(domainname, ' ');
 		if (!cp)

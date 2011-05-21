@@ -94,7 +94,7 @@ void ccs_editpolicy_offline_daemon(void)
 	memset(&ccs_dp, 0, sizeof(ccs_dp));
 	memset(&mp, 0, sizeof(mp));
 	ccs_get();
-	ccs_assign_domain(&ccs_dp, CCS_ROOT_NAME, false, false);
+	ccs_assign_domain(&ccs_dp, "<kernel>", false, false);
 	while (true) {
 		FILE *fp;
 		struct msghdr msg;

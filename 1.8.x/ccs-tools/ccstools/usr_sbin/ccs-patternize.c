@@ -514,7 +514,7 @@ int main(int argc, char *argv[])
 		char *sp = ccs_freadline_unpack(stdin);
 		if (!sp)
 			break;
-		if (!strncmp(sp, "<kernel>", 8) && (!sp[8] || sp[8] == ' ')) {
+		if (ccs_domain_def(sp)) {
 			free(ccs_current_domainname);
 			ccs_current_domainname = strdup(sp);
 			printf("%s\n", sp);

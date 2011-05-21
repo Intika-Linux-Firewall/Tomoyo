@@ -238,17 +238,27 @@ static void ccs_check_condition(char *condition)
 			pos = eq + 1;
 			if (!strcmp(pos, "NULL"))
 				goto next;
-			if (r_len < 2)
+			if (r_len < 2 || pos[0] != '"' ||
+			    pos[r_len - 1] != '"')
 				goto out;
-			if (pos[0] == '"' && pos[r_len - 1] == '"')
-				goto next;
-			goto out;
+			goto next;
 		} else if (!strcmp(pos, "auto_domain_transition")) {
 			pos = eq + 1;
-			if (r_len < 2)
+			if (r_len < 2 || pos[0] != '"' ||
+			    pos[r_len - 1] != '"')
 				goto out;
-			if (pos[0] == '"' && pos[r_len - 1] == '"')
-				goto next;
+			if (pos[1] != '/')
+				goto out;
+			goto next;
+		} else if (!strcmp(pos, "auto_namespace_transition")) {
+			pos = eq + 1;
+			if (r_len < 2 || pos[0] != '"' ||
+			    pos[r_len - 1] != '"')
+				goto out;
+			pos[r_len - 1] = '\0';
+			if (!ccs_domain_def(pos + 1))
+				goto out;
+			goto next;
 		} else if (!strcmp(pos, "grant_log")) {
 			pos = eq + 1;
 			if (!strcmp(pos, "yes") || !strcmp(pos, "no"))
@@ -662,7 +672,7 @@ static _Bool ccs_check_domain_policy2(char *policy)
 
 static void ccs_check_domain_policy(char *policy)
 {
-	if (!strncmp(policy, "<kernel>", 8)) {
+	if (ccs_domain_def(policy)) {
 		if (!ccs_correct_domain(policy) ||
 		    strlen(policy) >= CCS_MAX_DOMAINNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
@@ -700,8 +710,10 @@ static void ccs_check_exception_policy(char *policy)
 		{ "address_group ", ccs_check_path, ccs_check_ip_address },
 		{ "aggregator ", ccs_check_path, ccs_check_path },
 		{ "deny_autobind ", ccs_check_port },
+		{ "move_namespace ", ccs_check_path_domain },
 		{ "initialize_domain ", ccs_check_path_domain },
 		{ "keep_domain ", ccs_check_path_domain },
+		{ "no_move_namespace ", ccs_check_path_domain },
 		{ "no_initialize_domain ", ccs_check_path_domain },
 		{ "no_keep_domain ", ccs_check_path_domain },
 		{ "number_group ", ccs_check_path, ccs_check_number },
