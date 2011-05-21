@@ -173,6 +173,51 @@ static void ccs_sigalrm_handler(int sig);
 static void ccs_up_arrow_key(void);
 
 /**
+ * strdup2 - strdup() with abort on error.
+ *
+ * @string: String to duplicate.
+ *
+ * Returns copy of @string on success, abort otherwise. 
+ */
+static char *strdup2(const char *string)
+{
+	char *cp = strdup(string);
+	if (!cp)
+		ccs_out_of_memory();
+	return cp;
+}
+
+/**
+ * realloc2 - realloc() with abort on error.
+ *
+ * @ptr:  Pointer to void.
+ * @size: New size.
+ *
+ * Returns return value of realloc() on success, abort otherwise. 
+ */
+static void *realloc2(void *ptr, size_t size)
+{
+	void *vp = realloc(ptr, size);
+	if (!vp)
+		ccs_out_of_memory();
+	return vp;
+}
+
+/**
+ * ccs_is_current_namespace - Check namespace.
+ *
+ * @line: Line to check namespace.
+ *
+ * Returns true if this line deals current namespace, false otherwise.
+ */
+static _Bool ccs_is_current_namespace(const char *line)
+{
+	return !strncmp(line, ccs_current_namespace, ccs_current_namespace_len)
+		&& (line[ccs_current_namespace_len] == ' ' ||
+		    !line[ccs_current_namespace_len]);
+}
+
+/**
  * ccs_copy_file - Copy local file to local or remote file.
  *
  * @source: Local file.
@@ -454,9 +499,7 @@ static void ccs_assign_dis(const struct ccs_path_info *domainname,
 					    program);
 		else
 			line = ccs_shprintf("<%s>", program);
-		ccs_dp.list[source].target_domainname = strdup(line);
-		if (!ccs_dp.list[source].target_domainname)
-			ccs_out_of_memory();
+		ccs_dp.list[source].target_domainname = strdup2(line);
 		ccs_put();
 	}
 }
@@ -490,8 +533,7 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 static int ccs_find_target_domain(const int index)
 {
 	const char *cp = ccs_dp.list[index].target_domainname;
-	const char *sp = ccs_get_last_word(cp);
-	if (*sp == '<' && strcmp(ccs_current_namespace, sp))
+	if (!ccs_is_current_namespace(cp))
 		return -2;
 	return ccs_find_domain(&ccs_dp, cp, false, false);
 }
@@ -783,9 +825,7 @@ static void ccs_set_error(const char *filename)
 {
 	if (filename) {
 		const int len = strlen(filename) + 128;
-		ccs_last_error = realloc(ccs_last_error, len);
-		if (!ccs_last_error)
-			ccs_out_of_memory();
+		ccs_last_error = realloc2(ccs_last_error, len);
 		memset(ccs_last_error, 0, len);
 		snprintf(ccs_last_error, len - 1, "Can't open %s .", filename);
 	} else {
@@ -1065,38 +1105,27 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
 }
 
 /**
- * ccs_is_current_namespace - Check namespace.
+ * ccs_add_generic_entry - Add text lines.
  *
- * @line: Line to check namespace.
+ * @line:      Line to add.
+ * @directive: One of values in "enum ccs_editpolicy_directives".
  *
  * Returns true if this line deals current namespace, false otherwise.
  */
-static _Bool ccs_is_current_namespace(const char *line)
-{
-	return !strncmp(line, ccs_current_namespace, ccs_current_namespace_len)
-		&& (line[ccs_current_namespace_len] == ' ' ||
-		    !line[ccs_current_namespace_len]);
-}
-
 static void ccs_add_generic_entry(const char *line, const enum
 				  ccs_editpolicy_directives directive)
 {
 	int i;
-	char *cp;
 	for (i = 0; i < ccs_gacl_list_count; i++)
-		if (!strcmp(line, ccs_gacl_list[i].operand))
+		if (ccs_gacl_list[i].directive == directive &&
+		    !strcmp(line, ccs_gacl_list[i].operand))
 			return;
-	ccs_gacl_list = realloc(ccs_gacl_list,
-				(ccs_gacl_list_count + 1) *
-				sizeof(struct ccs_generic_acl));
-	if (!ccs_gacl_list)
-		ccs_out_of_memory();
-	cp = strdup(line);
-	if (!cp)
-		ccs_out_of_memory();
+	ccs_gacl_list = realloc2(ccs_gacl_list,
+				 (ccs_gacl_list_count + 1) *
+				 sizeof(struct ccs_generic_acl));
 	ccs_gacl_list[ccs_gacl_list_count].directive = directive;
 	ccs_gacl_list[ccs_gacl_list_count].selected = 0;
-	ccs_gacl_list[ccs_gacl_list_count++].operand = cp;
+	ccs_gacl_list[ccs_gacl_list_count++].operand = strdup2(line);
 }
 
 /**
@@ -1264,7 +1293,6 @@ static int ccs_add_transition_control_entry
 (const char *domainname, const char *program,
  const enum ccs_transition_type type)
 {
-	void *vp;
 	struct ccs_transition_control_entry *ptr;
 	_Bool is_last_name = false;
 	if (program && strcmp(program, "any")) {
@@ -1278,12 +1306,10 @@ static int ccs_add_transition_control_entry
 			is_last_name = true;
 		}
 	}
-	vp = realloc(ccs_transition_control_list,
-		     (ccs_transition_control_list_len + 1) *
-		     sizeof(struct ccs_transition_control_entry));
-	if (!vp)
-		ccs_out_of_memory();
-	ccs_transition_control_list = vp;
+	ccs_transition_control_list =
+		realloc2(ccs_transition_control_list,
+			 (ccs_transition_control_list_len + 1) *
+			 sizeof(struct ccs_transition_control_entry));
 	ptr = &ccs_transition_control_list[ccs_transition_control_list_len++];
 	memset(ptr, 0, sizeof(struct ccs_transition_control_entry));
 	if (program && strcmp(program, "any")) {
@@ -1345,20 +1371,17 @@ static int ccs_add_path_group_entry(const char *group_name,
 	if (is_delete)
 		return -ENOENT;
 	if (i == ccs_path_group_list_len) {
-		ccs_path_group_list = realloc(ccs_path_group_list,
-					  (ccs_path_group_list_len + 1) *
-					  sizeof(struct ccs_path_group_entry));
-		if (!ccs_path_group_list)
-			ccs_out_of_memory();
+		ccs_path_group_list =
+			realloc2(ccs_path_group_list,
+				 (ccs_path_group_list_len + 1) *
+				 sizeof(struct ccs_path_group_entry));
 		group = &ccs_path_group_list[ccs_path_group_list_len++];
 		memset(group, 0, sizeof(struct ccs_path_group_entry));
 		group->group_name = saved_group_name;
 	}
-	group->member_name = realloc(group->member_name,
-				     (group->member_name_len + 1)
-				     * sizeof(const struct ccs_path_info *));
-	if (!group->member_name)
-		ccs_out_of_memory();
+	group->member_name = realloc2(group->member_name,
+				      (group->member_name_len + 1)
+				      * sizeof(const struct ccs_path_info *));
 	group->member_name[group->member_name_len++] = saved_member_name;
 	return 0;
 }
@@ -1401,19 +1424,13 @@ static void ccs_add_condition_domain_transition(char *line, const int index)
 		 ccs_domain_name(&ccs_dp, index), cp);
 	domainname[sizeof(domainname) - 1] = '\0';
 	ccs_normalize_line(domainname);
-	cp = strdup(domainname);
-	ccs_jump_list = realloc(ccs_jump_list,
-				(ccs_jump_list_len + 1) * sizeof(char *));
-	if (!cp || !ccs_jump_list)
-		ccs_out_of_memory();
-	ccs_jump_list[ccs_jump_list_len++] = cp;
+	ccs_jump_list = realloc2(ccs_jump_list,
+				 (ccs_jump_list_len + 1) * sizeof(char *));
+	ccs_jump_list[ccs_jump_list_len++] = strdup2(domainname);
 	source = ccs_assign_domain(&ccs_dp, domainname, true, false);
 	if (source == EOF)
 		ccs_out_of_memory();
-	cp = strdup(domainname);
-	if (!cp)
-		ccs_out_of_memory();
-	ccs_dp.list[source].target_domainname = cp;
+	ccs_dp.list[source].target_domainname = strdup2(domainname);
 }
 
 /**
@@ -1428,7 +1445,6 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 {
 	static char domainname[4096];
 	int source;
-	char *cp;
 	for (source = 0; line[source]; source++)
 		if (line[source] == ' ' && line[source + 1] != '/') {
 			line[source] = '\0';
@@ -1436,12 +1452,9 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 		}
 	if (!ccs_correct_domain(line))
 		return;
-	cp = strdup(line);
-	ccs_jump_list = realloc(ccs_jump_list,
-				(ccs_jump_list_len + 1) * sizeof(char *));
-	if (!cp || !ccs_jump_list)
-		ccs_out_of_memory();
-	ccs_jump_list[ccs_jump_list_len++] = cp;
+	ccs_jump_list = realloc2(ccs_jump_list,
+				 (ccs_jump_list_len + 1) * sizeof(char *));
+	ccs_jump_list[ccs_jump_list_len++] = strdup2(line);
 	snprintf(domainname, sizeof(domainname) - 1, "%s %s",
 		 ccs_domain_name(&ccs_dp, index), ccs_get_last_word(line));
 	domainname[sizeof(domainname) - 1] = '\0';
@@ -1449,10 +1462,7 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 	source = ccs_assign_domain(&ccs_dp, domainname, true, false);
 	if (source == EOF)
 		ccs_out_of_memory();
-	cp = strdup(line);
-	if (!cp)
-		ccs_out_of_memory();
-	ccs_dp.list[source].target_domainname = cp;
+	ccs_dp.list[source].target_domainname = strdup2(line);
 }
 
 /**
@@ -1523,9 +1533,7 @@ static void ccs_parse_exception_line(char *line, const int max_index)
 		for (index = 0; index < max_index; index++) {
 			if (ccs_dp.list[index].group != group)
 				continue;
-			cp = strdup(line);
-			if (!cp)
-				ccs_out_of_memory();
+			cp = strdup2(line);
 			ccs_parse_domain_line(cp, index, false);
 			free(cp);
 		}
@@ -1798,9 +1806,9 @@ static void ccs_read_domain_and_exception_policy(void)
 		}
 	}
 
-	ccs_dp.list_selected = realloc(ccs_dp.list_selected, ccs_dp.list_len);
-	if (ccs_dp.list_len && !ccs_dp.list_selected)
-		ccs_out_of_memory();
+	if (!ccs_dp.list_len)
+		return;
+	ccs_dp.list_selected = realloc2(ccs_dp.list_selected, ccs_dp.list_len);
 	memset(ccs_dp.list_selected, 0, ccs_dp.list_len);
 }
 
@@ -2368,9 +2376,7 @@ static void ccs_add_entry(void)
 	case CCS_SCREEN_DOMAIN_LIST:
 		if (!ccs_correct_domain(line)) {
 			const int len = strlen(line) + 128;
-			ccs_last_error = realloc(ccs_last_error, len);
-			if (!ccs_last_error)
-				ccs_out_of_memory();
+			ccs_last_error = realloc2(ccs_last_error, len);
 			memset(ccs_last_error, 0, len);
 			snprintf(ccs_last_error, len - 1,
 				 "%s is an invalid domainname.", line);
@@ -2646,9 +2652,8 @@ static _Bool ccs_select_acl_window(const int current)
 		return false;
 	if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
 		free(ccs_current_namespace);
-		ccs_current_namespace = strdup(ccs_gacl_list[current].operand);
-		if (!ccs_current_namespace)
-			ccs_out_of_memory();
+		ccs_current_namespace =
+			strdup2(ccs_gacl_list[current].operand);
 		ccs_current_namespace_len = strlen(ccs_current_namespace);
 		ccs_current_screen = ccs_previous_screen;
 		return true;
@@ -2670,15 +2675,18 @@ static _Bool ccs_select_acl_window(const int current)
 			ccs_show_list();
 		}
 		if (redirect_index == -2) {
+			char *cp;
 			free(ccs_current_namespace);
 			ccs_current_namespace =
-				strdup(ccs_get_last_word(ccs_dp.list[current].
-							 target_domainname));
-			if (!ccs_current_namespace)
-				ccs_out_of_memory();
+				strdup2(ccs_dp.list[current].
+					target_domainname);
+			cp = strchr(ccs_current_namespace, ' ');
+			if (cp)
+				*cp = '\0';
 			ccs_current_namespace_len =
 				strlen(ccs_current_namespace);
 			ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+			ccs_no_restore_cursor = true;
 			return true;
 		}
 		return false;
@@ -2687,11 +2695,9 @@ static _Bool ccs_select_acl_window(const int current)
 	}
 	old_domain = ccs_current_domain;
 	if (ccs_domain_sort_type)
-		ccs_current_domain = strdup(ccs_task_list[current].domain);
+		ccs_current_domain = strdup2(ccs_task_list[current].domain);
 	else
-		ccs_current_domain = strdup(ccs_domain_name(&ccs_dp, current));
-	if (!ccs_current_domain)
-		ccs_out_of_memory();
+		ccs_current_domain = strdup2(ccs_domain_name(&ccs_dp, current));
 	ccs_no_restore_cursor = old_domain &&
 		strcmp(old_domain, ccs_current_domain);
 	free(old_domain);
@@ -3143,7 +3149,7 @@ static void ccs_parse_args(int argc, char *argv[])
 			if (ccs_current_namespace || strchr(ptr, ' ') ||
 			    !ccs_domain_def(ptr))
 				goto usage;
-			ccs_current_namespace = strdup(ptr);
+			ccs_current_namespace = strdup2(ptr);
 		} else if (cp) {
 			*cp++ = '\0';
 			if (ccs_network_mode || ccs_offline_mode)
@@ -3176,7 +3182,7 @@ usage:
 		}
 	}
 	if (!ccs_current_namespace)
-		ccs_current_namespace = strdup("<kernel>");
+		ccs_current_namespace = strdup2("<kernel>");
 	if (!ccs_current_namespace)
 		goto usage;
 	ccs_current_namespace_len = strlen(ccs_current_namespace);
