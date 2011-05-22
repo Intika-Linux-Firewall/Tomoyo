@@ -256,19 +256,10 @@ static bool ccs_scan_exec_realpath(struct file *file,
  */
 static const struct ccs_path_info *ccs_get_dqword(char *start)
 {
-	char *cp;
-	if (*start++ != '"')
+	char *cp = start + strlen(start) - 1;
+	if (cp == start || *start++ != '"' || *cp != '"')
 		return NULL;
-	cp = start;
-	while (1) {
-		const char c = *cp++;
-		if (!c)
-			return NULL;
-		if (c != '"' || *cp)
-			continue;
-		*(cp - 1) = '\0';
-		break;
-	}
+	*cp = '\0';
 	if (*start && !ccs_correct_word(start))
 		return NULL;
 	return ccs_get_name(start);
@@ -503,7 +494,8 @@ rerun:
 			is_not ? "!" : "", right_word);
 		if (!strcmp(left_word, "grant_log")) {
 			if (entry) {
-				if (entry->grant_log != CCS_GRANTLOG_AUTO)
+				if (is_not ||
+				    entry->grant_log != CCS_GRANTLOG_AUTO)
 					goto out;
 				else if (!strcmp(right_word, "yes"))
 					entry->grant_log = CCS_GRANTLOG_YES;
@@ -513,22 +505,25 @@ rerun:
 					goto out;
 			}
 			continue;
-		} else if (!strcmp(left_word, "auto_domain_transition")) {
+		}
+		if (!strcmp(left_word, "auto_domain_transition")) {
 			if (entry) {
-				if (entry->transit || *right_word != '/')
+				if (is_not || entry->transit)
 					goto out;
 				entry->transit = ccs_get_dqword(right_word);
-				if (!entry->transit)
+				if (!entry->transit ||
+				    entry->transit->name[0] != '/')
 					goto out;
 			}
 			continue;
-		} else if (!strcmp(left_word, "auto_namespace_transition")) {
+		}
+		if (!strcmp(left_word, "auto_namespace_transition")) {
 			if (entry) {
-				if (entry->transit ||
-				    !ccs_domain_def(right_word))
+				if (is_not || entry->transit)
 					goto out;
 				entry->transit = ccs_get_dqword(right_word);
-				if (!entry->transit)
+				if (!entry->transit ||
+				    !ccs_domain_def(entry->transit->name))
 					goto out;
 			}
 			continue;
@@ -548,7 +543,8 @@ rerun:
 				
 			}
 			goto store_value;
-		} else if (!strncmp(left_word, "exec.envp[\"", 11)) {
+		}
+		if (!strncmp(left_word, "exec.envp[\"", 11)) {
 			if (!envp) {
 				e.envc++;
 				e.condc++;

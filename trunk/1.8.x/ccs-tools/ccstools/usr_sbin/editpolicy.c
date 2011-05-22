@@ -1401,6 +1401,8 @@ static void ccs_add_condition_domain_transition(char *line, const int index)
 	source = ccs_assign_domain(&ccs_dp, domainname, true, false);
 	if (source == EOF)
 		ccs_out_of_memory();
+	if (*cp == '<')
+		snprintf(domainname, sizeof(domainname) - 1, "%s", cp);
 	ccs_dp.list[source].target_domainname = strdup2(domainname);
 }
 
