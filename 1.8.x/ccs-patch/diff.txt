@@ -2,6 +2,15 @@ Index: security/ccsecurity/autobind.c
 ===================================================================
 --- security/ccsecurity/autobind.c	(revision 5044)
 +++ security/ccsecurity/autobind.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -37,45 +37,50 @@
  {
  	const struct ccs_reserved *p1 = container_of(a, typeof(*p1), head);
@@ -12,7 +21,7 @@ Index: security/ccsecurity/autobind.c
  
  /**
 - * ccs_update_reserved_entry - Update "struct ccs_reserved" list.
-+ * ccs_write_reserved_port - Write "struct ccs_reserved" list.
++ * ccs_write_reserved_port - Update "struct ccs_reserved" list.
   *
 - * @min_port:  Start of port number range.
 - * @max_port:  End of port number range.
@@ -114,6 +123,15 @@ Index: security/ccsecurity/audit.c
 ===================================================================
 --- security/ccsecurity/audit.c	(revision 5044)
 +++ security/ccsecurity/audit.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -334,8 +334,8 @@
   */
  static void ccs_update_task_domain(struct ccs_request_info *r)
@@ -146,7 +164,13 @@ Index: security/ccsecurity/domain.c
 ===================================================================
 --- security/ccsecurity/domain.c	(revision 5044)
 +++ security/ccsecurity/domain.c	(working copy)
-@@ -8,25 +8,12 @@
+@@ -3,30 +3,17 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1+   2011/05/05
++ * Version: 1.8.2-pre   2011/05/22
+  */
  
  #include "internal.h"
  
@@ -665,6 +689,15 @@ Index: security/ccsecurity/memory.c
 ===================================================================
 --- security/ccsecurity/memory.c	(revision 5044)
 +++ security/ccsecurity/memory.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -109,15 +109,17 @@
  /**
   * ccs_get_group - Allocate memory for "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group".
@@ -765,10 +798,99 @@ Index: security/ccsecurity/memory.c
  #endif
 -	ccs_read_unlock(idx);
  }
+Index: security/ccsecurity/signal.c
+===================================================================
+--- security/ccsecurity/signal.c	(revision 5044)
++++ security/ccsecurity/signal.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
+@@ -39,7 +39,7 @@
+ {
+ 	const struct ccs_signal_acl *acl =
+ 		container_of(ptr, typeof(*acl), head);
+-	if (acl->sig == r->param.signal.sig) {
++	if (ccs_compare_number_union(r->param.signal.sig, &acl->sig)) {
+ 		const int len = acl->domainname->total_len;
+ 		if (!strncmp(acl->domainname->name,
+ 			     r->param.signal.dest_pattern, len)) {
+@@ -158,26 +158,23 @@
+ {
+ 	const struct ccs_signal_acl *p1 = container_of(a, typeof(*p1), head);
+ 	const struct ccs_signal_acl *p2 = container_of(b, typeof(*p2), head);
+-	return p1->sig == p2->sig && p1->domainname == p2->domainname;
++	return ccs_same_number_union(&p1->sig, &p2->sig) &&
++		p1->domainname == p2->domainname;
+ }
+ 
+ /**
+- * ccs_write_signal - Write "struct ccs_signal_acl" list.
++ * ccs_write_ipc - Update "struct ccs_signal_acl" list.
+  *
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
+  */
+-static int ccs_write_signal(struct ccs_acl_param *param)
++int ccs_write_ipc(struct ccs_acl_param *param)
+ {
+ 	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL };
+ 	int error;
+-	int sig;
+-	if (sscanf(ccs_read_token(param), "%d", &sig) != 1)
++	if (!ccs_parse_number_union(param, &e.sig))
+ 		return -EINVAL;
+-	e.sig = sig;
+ 	e.domainname = ccs_get_domainname(param);
+ 	if (!e.domainname)
+ 		error = -EINVAL;
+@@ -185,24 +182,11 @@
+ 		error = ccs_update_domain(&e.head, sizeof(e), param,
+ 					  ccs_same_signal_acl, NULL);
+ 	ccs_put_name(e.domainname);
++	ccs_put_number_union(&e.sig);
+ 	return error;
+ }
+ 
+ /**
+- * ccs_write_ipc - Update ipc related list.
+- *
+- * @param: Pointer to "struct ccs_acl_param".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-int ccs_write_ipc(struct ccs_acl_param *param)
+-{
+-	if (ccs_str_starts(&param->data, "signal "))
+-		return ccs_write_signal(param);
+-	return -EINVAL;
+-}
+-
+-/**
+  * ccs_file_init - Register ipc related hooks.
+  *
+  * Returns nothing.
 Index: security/ccsecurity/util.c
 ===================================================================
 --- security/ccsecurity/util.c	(revision 5044)
 +++ security/ccsecurity/util.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1+   2011/05/11
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -247,20 +247,24 @@
  /**
   * ccs_parse_name_union - Parse a ccs_name_union.
@@ -956,6 +1078,24 @@ Index: security/ccsecurity/file.c
 ===================================================================
 --- security/ccsecurity/file.c	(revision 5044)
 +++ security/ccsecurity/file.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1+   2011/04/11
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
+@@ -88,7 +88,7 @@
+ }
+ 
+ /**
+- * ccs_put_name_union - Drop reference on "struct ccs_number_union".
++ * ccs_put_number_union - Drop reference on "struct ccs_number_union".
+  *
+  * @ptr: Pointer to "struct ccs_number_union".
+  *
 @@ -393,7 +393,7 @@
  		.perm = perm
  	};
@@ -1017,10 +1157,70 @@ Index: security/ccsecurity/file.c
  		error = -EINVAL;
  	else
  		error = ccs_update_domain(&e.head, sizeof(e), param,
+Index: security/ccsecurity/proc_if.c
+===================================================================
+--- security/ccsecurity/proc_if.c	(revision 5044)
++++ security/ccsecurity/proc_if.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
+@@ -65,9 +65,7 @@
+ 		if (!r.granted)
+ 			error = -EPERM;
+ 		else
+-			error = ccs_assign_domain(data, r.profile,
+-						  ccs_current_domain()->group,
+-						  true) ? 0 : -ENOENT;
++			error = ccs_assign_domain(data, true) ? 0 : -ENOENT;
+ 		ccs_read_unlock(idx);
+ 	} else
+ 		error = -EINVAL;
+@@ -338,10 +336,6 @@
+ static int __init ccs_init_module(void)
+ {
+ 	int i;
+-	for (i = 0; i < CCS_MAX_POLICY; i++)
+-		INIT_LIST_HEAD(&ccs_policy_list[i]);
+-	for (i = 0; i < CCS_MAX_GROUP; i++)
+-		INIT_LIST_HEAD(&ccs_group_list[i]);
+ 	for (i = 0; i < CCS_MAX_LIST; i++)
+ 		INIT_LIST_HEAD(&ccs_shared_list[i]);
+ 	if (ccsecurity_ops.disabled)
+@@ -353,7 +347,6 @@
+ 	if (init_srcu_struct(&ccs_ss))
+ 		panic("Out of memory.");
+ #endif
+-	ccs_proc_init();
+ 	ccs_mm_init();
+ 	ccs_capability_init();
+ 	ccs_file_init();
+@@ -362,6 +355,7 @@
+ 	ccs_mount_init();
+ 	ccs_policy_io_init();
+ 	ccs_domain_init();
++	ccs_proc_init();
+ #ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
+ 	ccs_load_builtin_policy();
+ #endif
 Index: security/ccsecurity/internal.h
 ===================================================================
 --- security/ccsecurity/internal.h	(revision 5044)
 +++ security/ccsecurity/internal.h	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #ifndef _SECURITY_CCSECURITY_INTERNAL_H
 @@ -461,13 +461,6 @@
  	CCS_MAX_GROUP
  };
@@ -1102,15 +1302,31 @@ Index: security/ccsecurity/internal.h
  
  /* Structure for request info. */
  struct ccs_request_info {
-@@ -1027,6 +1034,7 @@
+@@ -1027,10 +1034,8 @@
  			const struct ccs_path_info *domainname;
  		} task;
  	} param;
+-	u8 param_type; /* One of values in "enum ccs_acl_entry_type_index". */
+-	bool granted; /* True if granted, false otherwise. */
+-	/* True if current thread should not be carried sleep penalty. */
+-	bool dont_sleep_on_enforce_error;
++	/* For holding namespace used for this request. */
 +	struct ccs_policy_namespace *ns;
- 	u8 param_type; /* One of values in "enum ccs_acl_entry_type_index". */
- 	bool granted; /* True if granted, false otherwise. */
- 	/* True if current thread should not be carried sleep penalty. */
-@@ -1095,6 +1103,8 @@
+ 	/*
+ 	 * For updating current->ccs_domain_info at ccs_update_task_domain().
+ 	 * Initialized to NULL at ccs_init_request_info().
+@@ -1038,6 +1043,10 @@
+ 	 * granted. Re-initialized to NULL at ccs_update_task_domain().
+ 	 */
+ 	struct ccs_acl_info *matched_acl;
++	u8 param_type; /* One of values in "enum ccs_acl_entry_type_index". */
++	bool granted; /* True if granted, false otherwise. */
++	/* True if current thread should not be carried sleep penalty. */
++	bool dont_sleep_on_enforce_error;
+ 	/*
+ 	 * For counting number of retries made for this request.
+ 	 * This counter is incremented whenever ccs_supervisor() returned
+@@ -1095,6 +1104,8 @@
  	struct list_head acl_info_list[2];
  	/* Name of this domain. Never NULL.          */
  	const struct ccs_path_info *domainname;
@@ -1119,7 +1335,7 @@ Index: security/ccsecurity/internal.h
  	u8 profile;        /* Profile number to use. */
  	u8 group;          /* Group number to use.   */
  	bool is_deleted;   /* Delete flag.           */
-@@ -1102,7 +1112,8 @@
+@@ -1102,7 +1113,8 @@
  };
  
  /*
@@ -1129,7 +1345,7 @@ Index: security/ccsecurity/internal.h
   * "keep_domain"/"no_keep_domain" keyword.
   */
  struct ccs_transition_control {
-@@ -1123,8 +1134,7 @@
+@@ -1123,8 +1135,7 @@
  /* Structure for "deny_autobind" keyword. */
  struct ccs_reserved {
  	struct ccs_acl_head head;
@@ -1139,7 +1355,7 @@ Index: security/ccsecurity/internal.h
  };
  
  /* Structure for policy manager. */
-@@ -1137,7 +1147,7 @@
+@@ -1137,7 +1148,7 @@
  
  /* Structure for argv[]. */
  struct ccs_argv {
@@ -1148,7 +1364,16 @@ Index: security/ccsecurity/internal.h
  	const struct ccs_path_info *value;
  	bool is_not;
  };
-@@ -1264,32 +1274,7 @@
+@@ -1248,7 +1259,7 @@
+ /* Structure for "ipc signal" directive. */
+ struct ccs_signal_acl {
+ 	struct ccs_acl_info head; /* type = CCS_TYPE_SIGNAL_ACL */
+-	u16 sig;
++	struct ccs_number_union sig;
+ 	/* Pointer to destination pattern. */
+ 	const struct ccs_path_info *domainname;
+ };
+@@ -1264,32 +1275,7 @@
  	struct ccs_acl_info head; /* type = CCS_TYPE_INET_ACL */
  	u8 protocol;
  	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
@@ -1182,7 +1407,7 @@ Index: security/ccsecurity/internal.h
  	struct ccs_number_union port;
  };
  
-@@ -1310,8 +1295,13 @@
+@@ -1310,8 +1296,13 @@
  
  /* Structure for holding a line from /proc/ccs/ interface. */
  struct ccs_acl_param {
@@ -1197,7 +1422,7 @@ Index: security/ccsecurity/internal.h
  	bool is_delete;
  };
  
-@@ -1325,6 +1315,7 @@
+@@ -1325,6 +1316,7 @@
  	char __user *read_user_buf;
  	size_t read_user_buf_avail;
  	struct {
@@ -1205,7 +1430,7 @@ Index: security/ccsecurity/internal.h
  		struct list_head *domain;
  		struct list_head *group;
  		struct list_head *acl;
-@@ -1344,8 +1335,10 @@
+@@ -1344,8 +1336,10 @@
  		const char *w[CCS_MAX_IO_READ_QUEUE];
  	} r;
  	struct {
@@ -1216,7 +1441,7 @@ Index: security/ccsecurity/internal.h
  	} w;
  	/* Buffer for reading.                  */
  	char *read_buf;
-@@ -1355,6 +1348,8 @@
+@@ -1355,6 +1349,8 @@
  	char *write_buf;
  	/* Size of write buffer.                */
  	size_t writebuf_size;
@@ -1225,7 +1450,7 @@ Index: security/ccsecurity/internal.h
  	/* Type of interface. */
  	enum ccs_proc_interface_index type;
  	/* Users counter protected by ccs_io_buffer_list_lock. */
-@@ -1381,6 +1376,22 @@
+@@ -1381,6 +1377,22 @@
  	u8 sec;
  };
  
@@ -1248,7 +1473,7 @@ Index: security/ccsecurity/internal.h
  /* Prototype definition for "struct ccsecurity_operations". */
  
  void __init ccs_capability_init(void);
-@@ -1410,13 +1421,16 @@
+@@ -1410,21 +1422,24 @@
  bool ccs_memory_ok(const void *ptr, const unsigned int size);
  bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
  			      const struct ccs_group *group);
@@ -1268,7 +1493,16 @@ Index: security/ccsecurity/internal.h
  char *ccs_encode(const char *str);
  char *ccs_encode2(const char *str, int str_len);
  char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
-@@ -1437,7 +1451,7 @@
+ 		   va_list args);
+ char *ccs_read_token(struct ccs_acl_param *param);
+ char *ccs_realpath_from_path(struct path *path);
++const char *ccs_get_exe(void);
+ const char *ccs_yesno(const unsigned int value);
+-const char *ccs_get_exe(void);
+ const struct ccs_path_info *ccs_compare_name_union
+ (const struct ccs_path_info *name, const struct ccs_name_union *ptr);
+ const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
+@@ -1437,7 +1452,7 @@
  int ccs_get_path(const char *pathname, struct path *path);
  int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
  int ccs_open_control(const u8 type, struct file *file);
@@ -1277,7 +1511,7 @@ Index: security/ccsecurity/internal.h
  int ccs_path_permission(struct ccs_request_info *r, u8 operation,
  			const struct ccs_path_info *filename);
  int ccs_poll_control(struct file *file, poll_table *wait);
-@@ -1453,30 +1467,29 @@
+@@ -1453,30 +1468,29 @@
  					       struct ccs_acl_info *,
  					       const bool));
  int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
@@ -1316,7 +1550,7 @@ Index: security/ccsecurity/internal.h
  struct ccs_profile *ccs_profile(const u8 profile);
  u8 ccs_get_config(const u8 profile, const u8 index);
  u8 ccs_parse_ulong(unsigned long *result, char **str);
-@@ -1488,14 +1501,12 @@
+@@ -1488,14 +1502,12 @@
  void ccs_del_condition(struct list_head *element);
  void ccs_fill_path_info(struct ccs_path_info *ptr);
  void ccs_get_attributes(struct ccs_obj_info *obj);
@@ -1334,13 +1568,13 @@ Index: security/ccsecurity/internal.h
  void ccs_print_ulong(char *buffer, const int buffer_len,
  		     const unsigned long value, const u8 type);
  void ccs_put_name_union(struct ccs_name_union *ptr);
-@@ -1528,12 +1539,12 @@
+@@ -1528,12 +1540,12 @@
  extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
  extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
  extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
 -extern struct ccs_domain_info ccs_acl_group[CCS_MAX_ACL_GROUPS];
-+extern struct ccs_policy_namespace ccs_kernel_namespace;
  extern struct ccs_domain_info ccs_kernel_domain;
++extern struct ccs_policy_namespace ccs_kernel_namespace;
  extern struct list_head ccs_domain_list;
 -extern struct list_head ccs_group_list[CCS_MAX_GROUP];
 +extern struct list_head ccs_manager_list;
@@ -1350,7 +1584,7 @@ Index: security/ccsecurity/internal.h
  extern struct list_head ccs_shared_list[CCS_MAX_LIST];
  extern struct mutex ccs_policy_lock;
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-@@ -1591,6 +1602,22 @@
+@@ -1591,6 +1603,22 @@
  		a->is_group == b->is_group;
  }
  
@@ -1373,7 +1607,7 @@ Index: security/ccsecurity/internal.h
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
  
  /**
-@@ -2045,8 +2072,8 @@
+@@ -2045,8 +2073,8 @@
   * Returns pointer to "struct ccs_domain_info" for current thread.
   *
   * If current thread does not belong to a domain (which is true for initial
@@ -1384,7 +1618,7 @@ Index: security/ccsecurity/internal.h
   */
  static inline struct ccs_domain_info *ccs_current_domain(void)
  {
-@@ -2080,4 +2107,9 @@
+@@ -2080,4 +2108,9 @@
  
  #endif
  
@@ -1394,52 +1628,19 @@ Index: security/ccsecurity/internal.h
 +}
 +
  #endif
-Index: security/ccsecurity/proc_if.c
-===================================================================
---- security/ccsecurity/proc_if.c	(revision 5044)
-+++ security/ccsecurity/proc_if.c	(working copy)
-@@ -65,9 +65,7 @@
- 		if (!r.granted)
- 			error = -EPERM;
- 		else
--			error = ccs_assign_domain(data, r.profile,
--						  ccs_current_domain()->group,
--						  true) ? 0 : -ENOENT;
-+			error = ccs_assign_domain(data, true) ? 0 : -ENOENT;
- 		ccs_read_unlock(idx);
- 	} else
- 		error = -EINVAL;
-@@ -338,10 +336,6 @@
- static int __init ccs_init_module(void)
- {
- 	int i;
--	for (i = 0; i < CCS_MAX_POLICY; i++)
--		INIT_LIST_HEAD(&ccs_policy_list[i]);
--	for (i = 0; i < CCS_MAX_GROUP; i++)
--		INIT_LIST_HEAD(&ccs_group_list[i]);
- 	for (i = 0; i < CCS_MAX_LIST; i++)
- 		INIT_LIST_HEAD(&ccs_shared_list[i]);
- 	if (ccsecurity_ops.disabled)
-@@ -353,7 +347,6 @@
- 	if (init_srcu_struct(&ccs_ss))
- 		panic("Out of memory.");
- #endif
--	ccs_proc_init();
- 	ccs_mm_init();
- 	ccs_capability_init();
- 	ccs_file_init();
-@@ -362,6 +355,7 @@
- 	ccs_mount_init();
- 	ccs_policy_io_init();
- 	ccs_domain_init();
-+	ccs_proc_init();
- #ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
- 	ccs_load_builtin_policy();
- #endif
 Index: security/ccsecurity/condition.c
 ===================================================================
 --- security/ccsecurity/condition.c	(revision 5044)
 +++ security/ccsecurity/condition.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -277,16 +277,17 @@
  /**
   * ccs_parse_name_union_quoted - Parse a quoted word.
@@ -1821,6 +2022,15 @@ Index: security/ccsecurity/policy_io.c
 ===================================================================
 --- security/ccsecurity/policy_io.c	(revision 5044)
 +++ security/ccsecurity/policy_io.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1+   2011/05/11
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -83,9 +83,6 @@
  /* Profile version. Currently only 20100903 is defined. */
  static unsigned int ccs_profile_version;
@@ -1933,14 +2143,16 @@ Index: security/ccsecurity/policy_io.c
  	if (ccs_profile_version != 20100903) {
  		printk(KERN_ERR "Userland tools must be installed for "
  		       "TOMOYO 1.8, and policy must be initialized.\n");
-@@ -500,6 +542,7 @@
+@@ -500,7 +542,8 @@
  		panic("Profile version %u is not supported.\n",
  		      ccs_profile_version);
  	}
+-	printk(KERN_INFO "CCSecurity: 1.8.1+   2011/05/11\n");
 +	ccs_read_unlock(idx);
- 	printk(KERN_INFO "CCSecurity: 1.8.1+   2011/05/11\n");
++	printk(KERN_INFO "CCSecurity: 1.8.2-pre   2011/05/22\n");
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  }
+ 
 @@ -514,7 +557,8 @@
  struct ccs_profile *ccs_profile(const u8 profile)
  {
@@ -2160,6 +2372,15 @@ Index: security/ccsecurity/policy_io.c
  		.is_delete = is_delete,
  	};
  	static const struct {
+@@ -1093,7 +1155,7 @@
+ 		{ "network unix ", ccs_write_unix_network },
+ 		{ "misc ", ccs_write_misc },
+ 		{ "capability ", ccs_write_capability },
+-		{ "ipc ", ccs_write_ipc },
++		{ "ipc signal ", ccs_write_ipc },
+ 		{ "task ", ccs_write_task },
+ 	};
+ 	u8 i;
 @@ -1153,36 +1215,28 @@
  static int ccs_write_domain(struct ccs_io_buffer *head)
  {
@@ -2405,7 +2626,17 @@ Index: security/ccsecurity/policy_io.c
  		}
  		ccs_print_number_union(head, &ptr->port);
  	} else if (acl_type == CCS_TYPE_UNIX_ACL) {
-@@ -1661,19 +1740,17 @@
+@@ -1632,7 +1711,8 @@
+ 		struct ccs_signal_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+ 		ccs_set_group(head, "ipc signal ");
+-		ccs_io_printf(head, "%u ", ptr->sig);
++		ccs_print_number_union_nospace(head, &ptr->sig);
++		ccs_set_space(head);
+ 		ccs_set_string(head, ptr->domainname->name);
+ 	} else if (acl_type == CCS_TYPE_MOUNT_ACL) {
+ 		struct ccs_mount_acl *ptr =
+@@ -1661,19 +1741,17 @@
  /**
   * ccs_read_domain2 - Read domain policy.
   *
@@ -2429,7 +2660,7 @@ Index: security/ccsecurity/policy_io.c
  		struct ccs_acl_info *ptr =
  			list_entry(head->r.acl, typeof(*ptr), list);
  		if (!ccs_print_entry(head, ptr))
-@@ -1718,12 +1795,12 @@
+@@ -1718,12 +1796,12 @@
  			ccs_set_lf(head);
  			/* fall through */
  		case 1:
@@ -2444,7 +2675,7 @@ Index: security/ccsecurity/policy_io.c
  				return;
  			head->r.step++;
  			if (!ccs_set_lf(head))
-@@ -1766,7 +1843,8 @@
+@@ -1766,7 +1844,8 @@
  	if (profile >= CCS_MAX_PROFILES)
  		return -EINVAL;
  	domain = ccs_find_domain(cp + 1);
@@ -2454,7 +2685,7 @@ Index: security/ccsecurity/policy_io.c
  		domain->profile = (u8) profile;
  	return 0;
  }
-@@ -1881,6 +1959,9 @@
+@@ -1881,6 +1960,9 @@
  
  /* String table for domain transition control keywords. */
  static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
@@ -2464,7 +2695,7 @@ Index: security/ccsecurity/policy_io.c
  	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
  	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
  	[CCS_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
-@@ -1903,44 +1984,31 @@
+@@ -1903,44 +1985,31 @@
   */
  static int ccs_write_exception(struct ccs_io_buffer *head)
  {
@@ -2530,7 +2761,7 @@ Index: security/ccsecurity/policy_io.c
  	}
  	return -EINVAL;
  }
-@@ -1957,7 +2025,10 @@
+@@ -1957,7 +2026,10 @@
   */
  static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
  {
@@ -2542,7 +2773,7 @@ Index: security/ccsecurity/policy_io.c
  		struct ccs_group *group =
  			list_entry(head->r.group, typeof(*group), head.list);
  		list_for_each_cookie(head->r.acl, &group->member_list) {
-@@ -1967,6 +2038,7 @@
+@@ -1967,6 +2039,7 @@
  				continue;
  			if (!ccs_flush(head))
  				return false;
@@ -2550,7 +2781,7 @@ Index: security/ccsecurity/policy_io.c
  			ccs_set_string(head, ccs_group_name[idx]);
  			ccs_set_string(head, group->group_name->name);
  			if (idx == CCS_PATH_GROUP) {
-@@ -1983,14 +2055,8 @@
+@@ -1983,14 +2056,8 @@
  				struct ccs_address_group *member =
  					container_of(ptr, typeof(*member),
  						     head);
@@ -2567,7 +2798,7 @@ Index: security/ccsecurity/policy_io.c
  				ccs_io_printf(head, " %s", buffer);
  			}
  			ccs_set_lf(head);
-@@ -2013,7 +2079,10 @@
+@@ -2013,7 +2080,10 @@
   */
  static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
  {
@@ -2579,7 +2810,7 @@ Index: security/ccsecurity/policy_io.c
  		struct ccs_acl_head *acl =
  			container_of(head->r.acl, typeof(*acl), list);
  		if (acl->is_deleted)
-@@ -2028,6 +2097,7 @@
+@@ -2028,6 +2098,7 @@
  			{
  				struct ccs_transition_control *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -2587,7 +2818,7 @@ Index: security/ccsecurity/policy_io.c
  				ccs_set_string(head,
  					       ccs_transition_type[ptr->type]);
  				ccs_set_string(head, ptr->program ?
-@@ -2041,6 +2111,7 @@
+@@ -2041,6 +2112,7 @@
  			{
  				struct ccs_aggregator *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -2595,7 +2826,7 @@ Index: security/ccsecurity/policy_io.c
  				ccs_set_string(head, "aggregator ");
  				ccs_set_string(head, ptr->original_name->name);
  				ccs_set_space(head);
-@@ -2052,12 +2123,10 @@
+@@ -2052,12 +2124,10 @@
  			{
  				struct ccs_reserved *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -2611,7 +2842,7 @@ Index: security/ccsecurity/policy_io.c
  			}
  			break;
  		default:
-@@ -2080,6 +2149,8 @@
+@@ -2080,6 +2150,8 @@
   */
  static void ccs_read_exception(struct ccs_io_buffer *head)
  {
@@ -2620,7 +2851,7 @@ Index: security/ccsecurity/policy_io.c
  	if (head->r.eof)
  		return;
  	while (head->r.step < CCS_MAX_POLICY &&
-@@ -2096,9 +2167,9 @@
+@@ -2096,9 +2168,9 @@
  	       + CCS_MAX_ACL_GROUPS * 2) {
  		head->r.acl_group_index = (head->r.step - CCS_MAX_POLICY
  					   - CCS_MAX_GROUP) / 2;
@@ -2633,7 +2864,7 @@ Index: security/ccsecurity/policy_io.c
  			return;
  		head->r.step++;
  	}
-@@ -2201,8 +2272,12 @@
+@@ -2201,8 +2273,12 @@
  	if (symlink)
  		ccs_addprintf(buffer, len, "%s", symlink);
  	ccs_normalize_line(buffer);
@@ -2648,7 +2879,7 @@ Index: security/ccsecurity/policy_io.c
  	kfree(buffer);
  }
  
-@@ -2463,7 +2538,7 @@
+@@ -2463,7 +2539,7 @@
  {
  	if (head->r.eof)
  		return;
@@ -2657,7 +2888,7 @@ Index: security/ccsecurity/policy_io.c
  	head->r.eof = true;
  }
  
-@@ -2477,9 +2552,9 @@
+@@ -2477,9 +2553,9 @@
  
  /* String table for /proc/ccs/stat interface. */
  static const char * const ccs_memory_headers[CCS_MAX_MEMORY_STAT] = {
@@ -2670,7 +2901,7 @@ Index: security/ccsecurity/policy_io.c
  };
  
  /* Timestamp counter for last updated. */
-@@ -2560,7 +2635,8 @@
+@@ -2560,7 +2636,8 @@
  	if (ccs_str_starts(&data, "Memory used by "))
  		for (i = 0; i < CCS_MAX_MEMORY_STAT; i++)
  			if (ccs_str_starts(&data, ccs_memory_headers[i]))
@@ -2680,7 +2911,7 @@ Index: security/ccsecurity/policy_io.c
  	return 0;
  }
  
-@@ -2577,6 +2653,7 @@
+@@ -2577,6 +2654,7 @@
  	struct ccs_io_buffer *head = kzalloc(sizeof(*head), CCS_GFP_FLAGS);
  	if (!head)
  		return -ENOMEM;
@@ -2688,7 +2919,7 @@ Index: security/ccsecurity/policy_io.c
  	mutex_init(&head->io_sem);
  	head->type = type;
  	switch (type) {
-@@ -2695,6 +2772,44 @@
+@@ -2695,6 +2773,44 @@
  }
  
  /**
@@ -2733,7 +2964,7 @@ Index: security/ccsecurity/policy_io.c
   * ccs_read_control - read() for /proc/ccs/ interface.
   *
   * @file:       Pointer to "struct file".
-@@ -2720,8 +2835,10 @@
+@@ -2720,8 +2836,10 @@
  	idx = ccs_read_lock();
  	if (ccs_flush(head))
  		/* Call the policy handler. */
@@ -2746,7 +2977,7 @@ Index: security/ccsecurity/policy_io.c
  	ccs_read_unlock(idx);
  	len = head->read_user_buf - buffer;
  	mutex_unlock(&head->io_sem);
-@@ -2752,13 +2869,6 @@
+@@ -2752,13 +2870,6 @@
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
  	idx = ccs_read_lock();
@@ -2760,7 +2991,7 @@ Index: security/ccsecurity/policy_io.c
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
-@@ -2787,15 +2897,68 @@
+@@ -2787,15 +2898,68 @@
  		cp0[head->w.avail - 1] = '\0';
  		head->w.avail = 0;
  		ccs_normalize_line(cp0);
@@ -2829,7 +3060,7 @@ Index: security/ccsecurity/policy_io.c
  		switch (head->type) {
  		case CCS_DOMAINPOLICY:
  		case CCS_EXCEPTIONPOLICY:
-@@ -2809,6 +2972,7 @@
+@@ -2809,6 +2973,7 @@
  			break;
  		}
  	}
@@ -2841,6 +3072,15 @@ Index: security/ccsecurity/gc.c
 ===================================================================
 --- security/ccsecurity/gc.c	(revision 5044)
 +++ security/ccsecurity/gc.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -417,15 +417,9 @@
  		{
  			struct ccs_inet_acl *entry =
@@ -2980,6 +3220,15 @@ Index: security/ccsecurity/network.c
 ===================================================================
 --- security/ccsecurity/network.c	(revision 5044)
 +++ security/ccsecurity/network.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -50,18 +50,19 @@
  };
  
@@ -3246,6 +3495,15 @@ Index: security/ccsecurity/group.c
 ===================================================================
 --- security/ccsecurity/group.c	(revision 5044)
 +++ security/ccsecurity/group.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.1   2011/04/01
++ * Version: 1.8.2-pre   2011/05/22
+  */
+ 
+ #include "internal.h"
 @@ -55,80 +55,54 @@
  							  head);
  	const struct ccs_address_group *p2 = container_of(b, typeof(*p2),
