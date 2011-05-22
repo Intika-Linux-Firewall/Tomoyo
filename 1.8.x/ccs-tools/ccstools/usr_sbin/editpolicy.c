@@ -160,7 +160,6 @@ static void ccs_find_entry(const _Bool input, const _Bool forward,
 static void ccs_page_down_key(void);
 static void ccs_page_up_key(void);
 static void ccs_read_domain_and_exception_policy(void);
-static void ccs_read_namespace_list(void);
 static void ccs_read_generic_policy(void);
 static void ccs_resize_window(void);
 static void ccs_set_cursor_pos(const int index);
@@ -1129,46 +1128,6 @@ static void ccs_add_generic_entry(const char *line, const enum
 }
 
 /**
- * ccs_read_namespace_list - Read namespace list.
- *
- * Returns nothing.
- */
-static void ccs_read_namespace_list(void)
-{
-	u8 i;
-	static const char *files[3] = { CCS_PROC_POLICY_PROFILE,
-					CCS_PROC_POLICY_EXCEPTION_POLICY,
-					CCS_PROC_POLICY_DOMAIN_POLICY };
-	while (ccs_gacl_list_count)
-		free((void *) ccs_gacl_list[--ccs_gacl_list_count].operand);
-	ccs_add_generic_entry("<kernel>", CCS_DIRECTIVE_NONE);
-	for (i = 0; i < 3; i++) {
-		FILE *fp = ccs_editpolicy_open_read(files[i]);
-		if (!fp)
-			continue;
-		ccs_get();
-		while (true) {
-			char *line = ccs_freadline_unpack(fp);
-			char *cp;
-			if (!line)
-				break;
-			cp = strchr(line, ' ');
-			if (cp)
-				*cp = '\0';
-			else if (i != 2)
-				continue;
-			if (!ccs_domain_def(line))
-				continue;
-			ccs_add_generic_entry(line, CCS_DIRECTIVE_NONE);
-		}
-		ccs_put();
-		fclose(fp);
-	}
-	qsort(ccs_gacl_list, ccs_gacl_list_count,
-	      sizeof(struct ccs_generic_acl), ccs_string_acl_compare);
-}
-
-/**
  * ccs_read_generic_policy - Read policy data other than domain policy.
  *
  * Returns nothing.
@@ -1197,6 +1156,8 @@ static void ccs_read_generic_policy(void)
 				fputc(0, fp);
 			fflush(fp);
 		}
+	} else if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
+		ccs_add_generic_entry("<kernel>", CCS_DIRECTIVE_NONE);
 	}
 	if (!fp)
 		fp = ccs_editpolicy_open_read(ccs_policy_file);
@@ -1225,9 +1186,9 @@ static void ccs_read_generic_policy(void)
 				continue;
 		}
 		if ((ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
-		    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) &&
+		     ccs_current_screen == CCS_SCREEN_PROFILE_LIST) &&
 		    *line == '<') {
-			char *cp = strchr(line, ' ');
+			cp = strchr(line, ' ');
 			if (!cp++ || !ccs_is_current_namespace(line))
 				continue;
 			memmove(line, cp, strlen(cp) + 1);
@@ -1248,6 +1209,16 @@ static void ccs_read_generic_policy(void)
 			} else
 				directive = (u16) -1;
 			break;
+		case CCS_SCREEN_NAMESPACE_LIST:
+			if (*line != '<')
+				continue;
+			cp = strchr(line, ' ');
+			if (!cp)
+				continue;
+			*cp = '\0';
+			if (!ccs_domain_def(line))
+				continue;
+			/* Fall through. */
 		default:
 			directive = CCS_DIRECTIVE_NONE;
 			break;
@@ -2402,6 +2373,10 @@ static void ccs_add_entry(void)
 				line);
 		fprintf(fp, "%s ", ccs_current_namespace);
 		break;
+	case CCS_SCREEN_NAMESPACE_LIST:
+		fprintf(fp, "%s PROFILE_VERSION=20100903\n", line);
+		line[0] = '\0';
+		break;
 	default:
 		break;
 	}
@@ -2861,7 +2836,7 @@ static enum ccs_screen_type ccs_generic_list_loop(void)
 		ccs_list_caption = "Interactive Enforcing Mode";
 		*/
 	} else if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
-		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_STATUS;
+		ccs_policy_file = CCS_PROC_POLICY_PROFILE;
 		ccs_list_caption = "Namespace Selector";
 	} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
 		ccs_policy_file = CCS_PROC_POLICY_PROFILE;
@@ -2894,9 +2869,6 @@ start:
 			ccs_read_process_list(true);
 			ccs_adjust_cursor_pos(ccs_task_list_len);
 		}
-	} else if (ccs_current_screen == CCS_SCREEN_NAMESPACE_LIST) {
-		ccs_read_namespace_list();
-		ccs_adjust_cursor_pos(ccs_gacl_list_count);
 	} else {
 		ccs_read_generic_policy();
 		ccs_adjust_cursor_pos(ccs_gacl_list_count);

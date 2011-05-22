@@ -507,6 +507,8 @@ static int write_exception_policy(const char *policy, int is_delete)
 			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
+			if (!strncmp(line, "<kernel> ", 9))
+				line += 9;
 			/* printf("<%s>\n", buffer); */
 			if (strcmp(line, policy))
 				continue;
@@ -547,6 +549,8 @@ static int set_profile(const int mode, const char *name)
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
+		if (!strncmp(buffer, "<kernel> ", 9))
+			memmove(buffer, buffer + 9, strlen(buffer + 9) + 1);
 		if (strncmp(buffer, "255-CONFIG::", 12) ||
 		    strncmp(buffer + 12, name, len) ||
 		    buffer[12 + len] != '=')
