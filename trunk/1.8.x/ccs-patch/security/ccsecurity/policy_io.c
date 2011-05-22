@@ -79,10 +79,6 @@ do {									\
 	for (pos = pos ? pos : srcu_dereference((head)->next, &ccs_ss); \
 	     pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
 
-
-/* Profile version. Currently only 20100903 is defined. */
-static unsigned int ccs_profile_version;
-
 /* String table for operation mode. */
 const char * const ccs_mode[CCS_CONFIG_MAX_MODE] = {
 	[CCS_CONFIG_DISABLED]   = "disabled",
@@ -450,6 +446,7 @@ void ccs_init_policy_namespace(struct ccs_policy_namespace *ns)
 		INIT_LIST_HEAD(&ns->group_list[idx]);
 	for (idx = 0; idx < CCS_MAX_POLICY; idx++)
 		INIT_LIST_HEAD(&ns->policy_list[idx]);
+	ns->profile_version = 20100903;
 	ccs_namespace_enabled = !list_empty(&ccs_namespace_list);
 	list_add_tail_rcu(&ns->namespace_list, &ccs_namespace_list);
 }
@@ -523,27 +520,28 @@ static void ccs_check_profile(void)
 	struct ccs_domain_info *domain;
 	const int idx = ccs_read_lock();
 	ccs_policy_loaded = true;
+	printk(KERN_INFO "CCSecurity: 1.8.2-pre   2011/05/22\n");
 	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
 		const u8 profile = domain->profile;
-		if (domain->ns->profile_ptr[profile])
+		const struct ccs_policy_namespace *ns = domain->ns;
+		if (ns->profile_version != 20100903)
+			printk(KERN_ERR
+			       "Profile version %u is not supported.\n",
+			       ns->profile_version);
+		else if (!ns->profile_ptr[profile])
+			printk(KERN_ERR
+			       "Profile %u (used by '%s') is not defined.\n",
+			       profile, domain->domainname->name);
+		else
 			continue;
-		printk(KERN_ERR "Profile %u must be defined before using it.\n",
-		       profile);
+		printk(KERN_ERR
+		       "Userland tools for TOMOYO 1.8 must be installed and "
+		       "policy must be initialized.\n");
 		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/1.8/ "
 		       "for more information.\n");
-		panic("Profile %u (used by '%s') not defined.\n",
-		      profile, domain->domainname->name);
-	}
-	if (ccs_profile_version != 20100903) {
-		printk(KERN_ERR "Userland tools must be installed for "
-		       "TOMOYO 1.8, and policy must be initialized.\n");
-		printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/1.8/ "
-		       "for more information.\n");
-		panic("Profile version %u is not supported.\n",
-		      ccs_profile_version);
+		panic("STOP!");
 	}
 	ccs_read_unlock(idx);
-	printk(KERN_INFO "CCSecurity: 1.8.2-pre   2011/05/22\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
 
@@ -692,7 +690,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	unsigned int i;
 	char *cp;
 	struct ccs_profile *profile;
-	if (sscanf(data, "PROFILE_VERSION=%u", &ccs_profile_version) == 1)
+	if (sscanf(data, "PROFILE_VERSION=%u", &head->w.ns->profile_version)
+	    == 1)
 		return 0;
 	i = simple_strtoul(data, &cp, 10);
 	if (*cp != '-')

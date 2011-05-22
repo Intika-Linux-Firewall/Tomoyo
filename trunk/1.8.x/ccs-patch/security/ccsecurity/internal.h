@@ -1389,6 +1389,8 @@ struct ccs_policy_namespace {
 	struct list_head acl_group[CCS_MAX_ACL_GROUPS][2];
 	/* List for connecting to ccs_namespace_list list. */
 	struct list_head namespace_list;
+	/* Profile version. Currently only 20100903 is defined. */
+	unsigned int profile_version;
 	/* Name of this namespace (e.g. "<kernel>", "</usr/sbin/httpd>" ). */
 	const char *name;
 };

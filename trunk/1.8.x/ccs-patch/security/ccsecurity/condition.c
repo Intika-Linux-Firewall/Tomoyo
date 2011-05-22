@@ -460,7 +460,6 @@ struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param)
 	struct ccs_argv *argv = NULL;
 	struct ccs_envp *envp = NULL;
 	struct ccs_condition e = { };
-	bool dry_run = true;
 	char * const start_of_string = param->data;
 	char * const end_of_string = start_of_string + strlen(start_of_string);
 	char *pos;
@@ -503,7 +502,7 @@ rerun:
 		dprintk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left_word,
 			is_not ? "!" : "", right_word);
 		if (!strcmp(left_word, "grant_log")) {
-			if (!dry_run) {
+			if (entry) {
 				if (entry->grant_log != CCS_GRANTLOG_AUTO)
 					goto out;
 				else if (!strcmp(right_word, "yes"))
@@ -515,7 +514,7 @@ rerun:
 			}
 			continue;
 		} else if (!strcmp(left_word, "auto_domain_transition")) {
-			if (!dry_run) {
+			if (entry) {
 				if (entry->transit || *right_word != '/')
 					goto out;
 				entry->transit = ccs_get_dqword(right_word);
@@ -524,7 +523,7 @@ rerun:
 			}
 			continue;
 		} else if (!strcmp(left_word, "auto_namespace_transition")) {
-			if (!dry_run) {
+			if (entry) {
 				if (entry->transit ||
 				    !ccs_domain_def(right_word))
 					goto out;
@@ -535,7 +534,7 @@ rerun:
 			continue;
 		}
 		if (!strncmp(left_word, "exec.argv[", 10)) {
-			if (dry_run) {
+			if (!argv) {
 				e.argc++;
 				e.condc++;
 			} else {
@@ -550,7 +549,7 @@ rerun:
 			}
 			goto store_value;
 		} else if (!strncmp(left_word, "exec.envp[\"", 11)) {
-			if (dry_run) {
+			if (!envp) {
 				e.envc++;
 				e.condc++;
 			} else {
@@ -568,7 +567,7 @@ rerun:
 		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, left_word,
 			left);
 		if (left == CCS_MAX_CONDITION_KEYWORD) {
-			if (dry_run) {
+			if (!numbers_p) {
 				e.numbers_count++;
 			} else {
 				e.numbers_count--;
@@ -580,12 +579,12 @@ rerun:
 					goto out;
 			}
 		}
-		if (dry_run)
+		if (!condp)
 			e.condc++;
 		else
 			e.condc--;
 		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
-			if (dry_run) {
+			if (!names_p) {
 				e.names_count++;
 			} else {
 				e.names_count--;
@@ -599,7 +598,7 @@ rerun:
 		}
 		right = ccs_condition_type(right_word);
 		if (right == CCS_MAX_CONDITION_KEYWORD) {
-			if (dry_run) {
+			if (!numbers_p) {
 				e.numbers_count++;
 			} else {
 				e.numbers_count--;
@@ -611,7 +610,7 @@ rerun:
 			}
 		}
 store_value:
-		if (dry_run) {
+		if (!condp) {
 			dprintk(KERN_WARNING "%u: dry_run left=%u right=%u "
 				"match=%u\n", __LINE__, left, right, !is_not);
 			continue;
@@ -627,7 +626,7 @@ store_value:
 	dprintk(KERN_INFO "%u: cond=%u numbers=%u names=%u ac=%u ec=%u\n",
 		__LINE__, e.condc, e.numbers_count, e.names_count, e.argc,
 		e.envc);
-	if (!dry_run) {
+	if (entry) {
 		BUG_ON(e.names_count | e.numbers_count | e.argc | e.envc |
 		       e.condc);
 		return ccs_commit_condition(entry);
@@ -661,7 +660,6 @@ store_value:
 			flag = !flag;
 		}
 	}
-	dry_run = false;
 	goto rerun;
 out:
 	dprintk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
