@@ -65,7 +65,8 @@ static ssize_t ccs_write_self(struct file *file, const char __user *buf,
 		if (!r.granted)
 			error = -EPERM;
 		else
-			error = ccs_assign_domain(data, true) ? 0 : -ENOENT;
+			error = ccs_assign_domain(data, true, NULL) ?
+				0 : -ENOENT;
 		ccs_read_unlock(idx);
 	} else
 		error = -EINVAL;

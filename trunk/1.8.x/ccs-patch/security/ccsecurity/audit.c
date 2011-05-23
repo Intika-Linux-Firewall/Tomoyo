@@ -354,7 +354,7 @@ static void ccs_update_task_domain(struct ccs_request_info *r)
 			 ccs_current_domain()->domainname->name, cp);
 	else
 		strncpy(buf, cp, CCS_EXEC_TMPSIZE - 1);
-	if (!ccs_assign_domain(buf, true))
+	if (!ccs_assign_domain(buf, true, NULL))
 		ccs_transition_failed(buf);
 	kfree(buf);
 }
