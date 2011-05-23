@@ -460,13 +460,16 @@ static bool ccs_namespace_jump(const char *domainname)
  *
  * @domainname: The name of domain.
  * @transit:    True if transit to domain found or created.
+ * @ns_error:   Pointer to "bool". Maybe NULL. If not NULL, set to true on
+ *              namespace error in order to let do_execve() fail with -ENOMEM
+ *              when domain transition across namespaces has failed.
  *
  * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
  *
  * Caller holds ccs_read_lock().
  */
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const bool transit)
+					  const bool transit, bool *ns_error)
 {
 	struct ccs_security *security = ccs_current_security();
 	struct ccs_domain_info e = { };
@@ -480,30 +483,37 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 			 * that domain. Do not perform domain transition if
 			 * profile for that domain is not yet created.
 			 */
-			if (!entry->ns->profile_ptr[entry->profile])
+			if (!entry->ns->profile_ptr[entry->profile]) {
+				if (ns_error)
+					*ns_error = 1;
 				return NULL;
+			}
 			security->ccs_domain_info = entry;
 		}
 		return entry;
 	}
 	/* Requested domain does not exist. */
-	/* Don't create requested domain if domainname is invalid. */
-	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
-	    !ccs_correct_domain(domainname))
-		return NULL;
 	/*
 	 * Since definition of profiles and acl_groups may differ across
 	 * namespaces, do not inherit "use_profile" and "use_group" settings
 	 * by automatically creating requested domain upon domain transition.
 	 */
-	if (transit && ccs_namespace_jump(domainname))
+	if (transit && ccs_namespace_jump(domainname)) {
+		if (ns_error)
+			*ns_error = 1;
+		return NULL;
+	}
+	/* Don't create requested domain if domainname is invalid. */
+	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
+	    !ccs_correct_domain(domainname))
 		return NULL;
 	e.ns = ccs_assign_namespace(domainname);
 	if (!e.ns)
 		return NULL;
 	/*
 	 * "use_profile" and "use_group" settings for automatically created
-	 * domains are inherited from current domain, 0 otherwise.
+	 * domains are inherited from current domain. These are 0 for manually
+	 * created domains.
 	 */
 	if (transit) {
 		const struct ccs_domain_info *domain =
@@ -563,6 +573,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	struct ccs_path_info rn = { }; /* real name */
 	int retval;
 	bool need_kfree = false;
+	bool ns_error = false;
 retry:
 	r->matched_acl = NULL;
 	if (need_kfree) {
@@ -672,10 +683,10 @@ retry:
 	 * enforcing mode.
 	 */
 	if (!domain)
-		domain = ccs_assign_domain(ee->tmp, true);
+		domain = ccs_assign_domain(ee->tmp, true, &ns_error);
 	if (domain)
 		retval = 0;
-	else if (r->mode == CCS_CONFIG_ENFORCING)
+	else if (r->mode == CCS_CONFIG_ENFORCING || ns_error)
 		retval = -ENOMEM;
 	else {
 		retval = 0;
