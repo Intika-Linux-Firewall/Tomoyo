@@ -700,7 +700,7 @@ static void check_number_group_policy(char *data)
 	data = cp;
 	cp = strchr(data, '-');
 	if (cp)
-		*cp = '\0';
+		*cp++ = '\0';
 	if (!parse_ulong(&v, &data) || *data) {
 		printf("%u: ERROR: '%s' is a bad number.\n", line, data);
 		errors++;
