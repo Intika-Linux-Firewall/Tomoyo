@@ -460,16 +460,13 @@ static bool ccs_namespace_jump(const char *domainname)
  *
  * @domainname: The name of domain.
  * @transit:    True if transit to domain found or created.
- * @ns_error:   Pointer to "bool". Maybe NULL. If not NULL, set to true on
- *              namespace error in order to let do_execve() fail with -ENOMEM
- *              when domain transition across namespaces has failed.
  *
  * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
  *
  * Caller holds ccs_read_lock().
  */
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const bool transit, bool *ns_error)
+					  const bool transit)
 {
 	struct ccs_security *security = ccs_current_security();
 	struct ccs_domain_info e = { };
@@ -483,29 +480,23 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 			 * that domain. Do not perform domain transition if
 			 * profile for that domain is not yet created.
 			 */
-			if (!entry->ns->profile_ptr[entry->profile]) {
-				if (ns_error)
-					*ns_error = 1;
+			if (!entry->ns->profile_ptr[entry->profile])
 				return NULL;
-			}
 			security->ccs_domain_info = entry;
 		}
 		return entry;
 	}
 	/* Requested domain does not exist. */
+	/* Don't create requested domain if domainname is invalid. */
+	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
+	    !ccs_correct_domain(domainname))
+		return NULL;
 	/*
 	 * Since definition of profiles and acl_groups may differ across
 	 * namespaces, do not inherit "use_profile" and "use_group" settings
 	 * by automatically creating requested domain upon domain transition.
 	 */
-	if (transit && ccs_namespace_jump(domainname)) {
-		if (ns_error)
-			*ns_error = 1;
-		return NULL;
-	}
-	/* Don't create requested domain if domainname is invalid. */
-	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
-	    !ccs_correct_domain(domainname))
+	if (transit && ccs_namespace_jump(domainname))
 		return NULL;
 	e.ns = ccs_assign_namespace(domainname);
 	if (!e.ns)
@@ -573,7 +564,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	struct ccs_path_info rn = { }; /* real name */
 	int retval;
 	bool need_kfree = false;
-	bool ns_error = false;
+	bool reject_on_transition_failure = false;
 retry:
 	r->matched_acl = NULL;
 	if (need_kfree) {
@@ -640,6 +631,11 @@ retry:
 	case CCS_TRANSITION_CONTROL_NAMESPACE:
 		/* Transit to the root of specified namespace. */
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<%s>", rn.name);
+		/*
+		 * Make do_execve() fail if domain transition across namespaces
+		 * has failed.
+		 */
+		reject_on_transition_failure = true;
 		break;
 	case CCS_TRANSITION_CONTROL_INITIALIZE:
 		/* Transit to the child of current namespace's root. */
@@ -683,10 +679,11 @@ retry:
 	 * enforcing mode.
 	 */
 	if (!domain)
-		domain = ccs_assign_domain(ee->tmp, true, &ns_error);
+		domain = ccs_assign_domain(ee->tmp, true);
 	if (domain)
 		retval = 0;
-	else if (r->mode == CCS_CONFIG_ENFORCING || ns_error)
+	else if (r->mode == CCS_CONFIG_ENFORCING ||
+		 reject_on_transition_failure)
 		retval = -ENOMEM;
 	else {
 		retval = 0;

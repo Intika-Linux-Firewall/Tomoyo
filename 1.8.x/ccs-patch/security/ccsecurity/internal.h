@@ -1489,7 +1489,7 @@ ssize_t ccs_write_control(struct file *file, const char __user *buffer,
 			  const size_t buffer_len);
 struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const bool transit, bool *ns_error);
+					  const bool transit);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_group *ccs_get_group(struct ccs_acl_param *param, const u8 idx);
 struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
