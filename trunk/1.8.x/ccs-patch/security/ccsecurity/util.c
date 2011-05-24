@@ -1020,7 +1020,7 @@ int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 			return r->mode;
 		buf = container_of(r->matched_acl, typeof(struct ccs_task_acl),
 				   head)->domainname->name;
-		if (!ccs_assign_domain(buf, true, NULL))
+		if (!ccs_assign_domain(buf, true))
 			break;
 	}
 	ccs_transition_failed(buf);
