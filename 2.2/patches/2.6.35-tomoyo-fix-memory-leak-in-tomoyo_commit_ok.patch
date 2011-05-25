@@ -1,6 +1,6 @@
 [PATCH] TOMOYO: Fix memory leak in tomoyo_commit_ok().
 
-commit cfc64fd91fabed099a4c3df58559f4b7efe9bcce in security-testing-2.6.git.
+commit cfc64fd91fabed099a4c3df58559f4b7efe9bcce upstream.
 
 When memory used for policy exceeds the quota, tomoyo_memory_ok() return false.
 In this case, tomoyo_commit_ok() must call kfree() before returning NULL.
