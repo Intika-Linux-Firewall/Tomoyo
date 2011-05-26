@@ -1195,6 +1195,17 @@ static void ccs_read_generic_policy(void)
 		}
 		switch (ccs_current_screen) {
 		case CCS_SCREEN_EXCEPTION_LIST:
+			directive = ccs_find_directive(true, line);
+			if (directive == CCS_DIRECTIVE_NONE)
+				continue;
+			/* Remember groups for ccs_editpolicy_optimize(). */
+			if (directive == CCS_DIRECTIVE_PATH_GROUP)
+				ccs_add_path_group_policy(line, false);
+			else if (directive == CCS_DIRECTIVE_NUMBER_GROUP)
+				ccs_add_number_group_policy(line, false);
+			else if (directive == CCS_DIRECTIVE_ADDRESS_GROUP)
+				ccs_add_address_group_policy(line, false);
+			break;
 		case CCS_SCREEN_ACL_LIST:
 			directive = ccs_find_directive(true, line);
 			if (directive == CCS_DIRECTIVE_NONE)
@@ -3038,7 +3049,8 @@ start2:
 			break;
 		case 'o':
 		case 'O':
-			if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
+			if (ccs_current_screen == CCS_SCREEN_ACL_LIST ||
+			    ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST) {
 				ccs_editpolicy_optimize(current);
 				ccs_show_list();
 			}
