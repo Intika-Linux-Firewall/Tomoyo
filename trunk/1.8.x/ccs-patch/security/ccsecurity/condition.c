@@ -125,10 +125,8 @@ static bool ccs_scan_bprm(struct ccs_execve *ee,
 		pos += PAGE_SIZE - offset;
 		while (offset < PAGE_SIZE) {
 			/* Read. */
-			struct ccs_path_info arg;
 			const char *kaddr = dump->data;
 			const unsigned char c = kaddr[offset++];
-			arg.name = arg_ptr;
 			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
 				if (c == '\\') {
 					arg_ptr[arg_len++] = '\\';
