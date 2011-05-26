@@ -397,7 +397,7 @@ static void scan_init_scripts(void)
 static void make_init_scripts_as_aggregators(void)
 {
 	/* Mark symlinks under /etc/rc\?.d/ directory as aggregator. */
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
 		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
 		"/etc/rc4.d", "/etc/rc5.d", "/etc/rc6.d", "/etc/rcS.d",
@@ -498,7 +498,7 @@ static void make_patterns_for_policy_directory(void)
 static void make_patterns_for_man_directory(void)
 {
 	/* Make patterns for man directory. */
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/usr/share/man", "/usr/X11R6/man"
 	};
 	int i;
@@ -519,7 +519,7 @@ static void make_patterns_for_spool_directory(void)
 {
 	/* Make patterns for spool directory. */
 	struct stat buf;
-	static const char *dirs[] = {
+	static const char * const dirs[] = {
 		"/var/spool/clientmqueue",
 		"/var/spool/mail",
 		"/var/spool/mqueue",
@@ -591,7 +591,7 @@ static void make_patterns_for_crontab(void)
 static void make_globally_readable_files(void)
 {
 	/* Allow reading some data files. */
-	static const char *files[] = {
+	static const char * const files[] = {
 		"/etc/ld.so.cache", "/proc/meminfo",
 		"/proc/sys/kernel/version", "/etc/localtime",
 		"/usr/lib/gconv/gconv-modules.cache",
@@ -619,13 +619,34 @@ static void make_self_readable_files(void)
 static void make_ldconfig_readable_files(void)
 {
 	/* Allow reading DLL files registered with ldconfig(8). */
+	static const char * const dirs[] = {
+		"/lib/", "/lib/i486/", "/lib/i586/", "/lib/i686/",
+		"/lib/i686/cmov/", "/lib/tls/", "/lib/tls/i486/",
+		"/lib/tls/i586/", "/lib/tls/i686/", "/lib/tls/i686/cmov/",
+		"/lib/i686/nosegneg/", "/usr/lib/", "/usr/lib/i486/",
+		"/usr/lib/i586/", "/usr/lib/i686/", "/usr/lib/i686/cmov/",
+		"/usr/lib/tls/", "/usr/lib/tls/i486/", "/usr/lib/tls/i586/",
+		"/usr/lib/tls/i686/", "/usr/lib/tls/i686/cmov/",
+		"/usr/lib/sse2/", "/usr/X11R6/lib/", "/usr/lib32/",
+		"/usr/lib64/", "/lib64/", "/lib64/tls/",
+	};
+	int i;
 	FILE *fp = !access("/sbin/ldconfig", X_OK) ||
 		!access("/bin/ldconfig", X_OK)
 		? popen("ldconfig -NXp", "r") : NULL;
 	if (!fp)
 		return;
-	keyword = "allow_read";
-	while (memset(path, 0, sizeof(path)),
+	keyword = NULL;
+	for (i = 0; i < elementof(dirs); i++) {
+		char *cp = get_realpath(dirs[i]);
+		if (!cp)
+			continue;
+		fprintf(filp, "allow_read ");
+		printf_encoded(cp, 0);
+		fprintf(filp, "/lib\\*.so\\*\n");
+		free(cp);
+	}
+	while (memset(path, 0, sizeof(path)) &&
 	       fgets(path, sizeof(path) - 1, fp)) {
 		char *cp = strchr(path, '\n');
 		if (!cp)
@@ -637,7 +658,29 @@ static void make_ldconfig_readable_files(void)
 		cp = get_realpath(cp + 4);
 		if (!cp)
 			continue;
-		printf_encoded(cp, 0);
+		for (i = 0; i < elementof(dirs); i++) {
+			const int len = strlen(dirs[i]);
+			if (!strncmp(cp, dirs[i], len) &&
+			    !strncmp(cp + len, "lib", 3) &&
+			    strstr(cp + len + 3, ".so"))
+				break;
+		}
+		if (i == elementof(dirs)) {
+			char *cp2 = strrchr(cp, '/');
+			const int len = strlen(cp);
+			char buf[16];
+			memset(buf, 0, sizeof(buf));
+			fprintf(filp, "allow_read ");
+			if (cp2 && !strncmp(cp2, "/ld-2.", 6) &&
+			    len > 3 && !strcmp(cp + len - 3, ".so"))
+				*(cp2 + 6) = '\0';
+			else
+				cp2 = NULL;
+			printf_encoded(cp, 0);
+			if (cp2)
+				fprintf(filp, "\\*.so");
+			fputc('\n', filp);
+		}
 		free(cp);
 	}
 	pclose(fp);
@@ -660,7 +703,7 @@ static void make_initializers(void)
 	 * Mark some programs that you want to assign short domainname as
 	 * initializer.
 	 */
-	static const char *files[] = {
+	static const char * const files[] = {
 		"/sbin/cardmgr",
 		"/sbin/getty",
 		"/sbin/init",

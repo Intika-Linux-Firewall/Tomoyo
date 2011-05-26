@@ -472,7 +472,9 @@ static void make_ldconfig_readable_files(void)
 		char *cp = get_realpath(dirs[i]);
 		if (!cp)
 			continue;
-		fprintf(filp, "acl_group 0 file read %s/lib\\*.so\\*\n", cp);
+		fprintf(filp, "acl_group 0 file read ");
+		printf_encoded(cp);
+		fprintf(filp, "/lib\\*.so\\*\n");
 		free(cp);
 	}
 	while (memset(path, 0, sizeof(path)) &&
