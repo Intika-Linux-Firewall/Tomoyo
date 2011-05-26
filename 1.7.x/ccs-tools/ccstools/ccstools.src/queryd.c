@@ -18,8 +18,6 @@
 
 static void _printw(const char *fmt, ...)
      __attribute__ ((format(printf, 1, 2)));
-static int send_encoded(const int fd, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
 static void do_check_update(const int fd);
 static void handle_update(const int check_update, const int fd);
 /*
@@ -52,25 +50,12 @@ static void _printw(const char *fmt, ...)
 	free(buffer);
 }
 
-static int send_encoded(const int fd, const char *fmt, ...)
+static char *encode(const char *sp)
 {
-	va_list args;
-	int i;
-	int len;
-	char *buffer;
-	char *sp;
-	char *dp;
-	va_start(args, fmt);
-	len = vsnprintf((char *) &i, sizeof(i) - 1, fmt, args) + 16;
-	va_end(args);
-	buffer = malloc(len * 5);
-	if (!buffer)
+	char *dp = malloc(strlen(sp) * 4 + 1);
+	char * const str = dp;
+	if (!dp)
 		out_of_memory();
-	va_start(args, fmt);
-	vsnprintf(buffer, len, fmt, args);
-	va_end(args);
-	sp = buffer;
-	dp = buffer + len;
 	while (true) {
 		unsigned char c = *(const unsigned char *) sp++;
 		if (!c) {
@@ -88,9 +73,7 @@ static int send_encoded(const int fd, const char *fmt, ...)
 			*dp++ = (c & 7) + '0';
 		}
 	}
-	len = send(fd, buffer + len, strlen(buffer + len), 0);
-	free(buffer);
-	return len;
+	return str;
 }
 
 #if 0
@@ -138,7 +121,7 @@ static _Bool check_path_info(const char *buffer)
 static void do_check_update(const int fd)
 {
 	FILE *fp_in = fopen(proc_policy_exception_policy, "r");
-	char **pathnames = NULL;
+	struct path_info *pathnames = NULL;
 	int pathnames_len = 0;
 	char buffer[16384];
 	memset(buffer, 0, sizeof(buffer));
@@ -153,15 +136,17 @@ static void do_check_update(const int fd)
 		*cp = '\0';
 		if (!str_starts(buffer, KEYWORD_ALLOW_READ))
 			continue;
-		if (!decode(buffer, buffer))
+		if (!is_correct_path(buffer, 1, 0, 0))
 			continue;
-		pathnames = realloc(pathnames, sizeof(char *) *
+		pathnames = realloc(pathnames,
+				    sizeof(struct path_info) *
 				    (pathnames_len + 1));
 		if (!pathnames)
 			out_of_memory();
-		pathnames[pathnames_len] = strdup(buffer);
-		if (!pathnames[pathnames_len])
+		pathnames[pathnames_len].name = strdup(buffer);
+		if (!pathnames[pathnames_len].name)
 			out_of_memory();
+		fill_path_info(&pathnames[pathnames_len]);
 		pathnames_len++;
 	}
 	fclose(fp_in);
@@ -172,10 +157,14 @@ static void do_check_update(const int fd)
 		sleep(1);
 		for (i = 0; i < pathnames_len; i++) {
 			int j;
-			if (!stat64(pathnames[i], &buf))
+			if (pathnames[i].is_patterned ||
+			    pathnames[i].total_len + 1 >= sizeof(buffer) ||
+			    !decode(pathnames[i].name, buffer) ||
+			    !stat64(buffer, &buf))
 				continue;
-			send_encoded(fd, "-%s", pathnames[i]);
-			free(pathnames[i]);
+			send(fd, "-", 1, 0);
+			send(fd, pathnames[i].name, pathnames[i].total_len, 0);
+			free((char *) pathnames[i].name);
 			pathnames_len--;
 			for (j = i; j < pathnames_len; j++)
 				pathnames[j] = pathnames[j + 1];
@@ -191,7 +180,7 @@ static void do_check_update(const int fd)
 		memset(buffer, 0, sizeof(buffer));
 		while (fgets(buffer, sizeof(buffer) - 1, fp_in)) {
 			char *cp = strchr(buffer, '\n');
-			char *real_pathname;
+			struct path_info real_pathname;
 			if (!cp)
 				break;
 			*cp = '\0';
@@ -200,26 +189,29 @@ static void do_check_update(const int fd)
 				continue;
 			if (stat64(cp, &buf))
 				continue;
-			real_pathname = realpath(cp, NULL);
-			if (!real_pathname)
+			cp = realpath(cp, NULL);
+			if (!cp)
 				continue;
+			real_pathname.name = encode(cp);
+			free(cp);
+			fill_path_info(&real_pathname);
 			for (i = 0; i < pathnames_len; i++) {
-				if (!strcmp(real_pathname, pathnames[i]))
+				if (!path_matches_pattern(&real_pathname,
+							  &pathnames[i]))
 					break;
 			}
-			if (i == pathnames_len) {
-				char *cp;
-				pathnames = realloc(pathnames, sizeof(char *) *
-						    (pathnames_len + 1));
-				if (!pathnames)
-					out_of_memory();
-				cp = strdup(real_pathname);
-				if (!cp)
-					out_of_memory();
-				pathnames[pathnames_len++] = cp;
-				send_encoded(fd, "+%s", pathnames[i]);
+			if (i < pathnames_len) {
+				free((char *) real_pathname.name);
+				continue;
 			}
-			free(real_pathname);
+			pathnames = realloc(pathnames,
+					    sizeof(struct path_info) *
+					    ++pathnames_len);
+			if (!pathnames)
+				out_of_memory();
+			pathnames[i] = real_pathname;
+			send(fd, "+", 1, 0);
+			send(fd, pathnames[i].name, pathnames[i].total_len, 0);
 		}
 		pclose(fp_in);
 	}
@@ -289,7 +281,8 @@ static void handle_update(const int check_update, const int fd)
 	if (!fp)
 		fp = fopen(proc_policy_exception_policy, "w");
 	memset(pathname, 0, sizeof(pathname));
-	if (recv(fd, pathname, sizeof(pathname) - 1, 0) == EOF)
+	if (recv(fd, pathname, 1, 0) == EOF ||
+	    recv(fd, pathname + 1, sizeof(pathname) - 2, 0) == EOF)
 		return;
 	if (check_update == GLOBALLY_READABLE_FILES_UPDATE_AUTO) {
 		if (pathname[0] == '-')

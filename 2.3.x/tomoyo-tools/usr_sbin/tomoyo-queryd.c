@@ -30,7 +30,6 @@
 /* Prototypes */
 
 static void tomoyo_printw(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
-static int tomoyo_send_encoded(const int fd, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 static void tomoyo_do_check_update(const int fd);
 static void tomoyo_handle_update(const int tomoyo_check_update, const int fd);
 /*
@@ -62,25 +61,12 @@ static void tomoyo_printw(const char *fmt, ...)
 	free(buffer);
 }
 
-static int tomoyo_send_encoded(const int fd, const char *fmt, ...)
+static char *tomoyo_encode(const char *sp)
 {
-	va_list args;
-	int i;
-	int len;
-	char *buffer;
-	char *sp;
-	char *dp;
-	va_start(args, fmt);
-	len = vsnprintf((char *) &i, sizeof(i) - 1, fmt, args) + 16;
-	va_end(args);
-	buffer = malloc(len * 5);
-	if (!buffer)
+	char *dp = malloc(strlen(sp) * 4 + 1);
+	char * const str = dp;
+	if (!dp)
 		tomoyo_out_of_memory();
-	va_start(args, fmt);
-	vsnprintf(buffer, len, fmt, args);
-	va_end(args);
-	sp = buffer;
-	dp = buffer + len;
 	while (true) {
 		unsigned char c = *(const unsigned char *) sp++;
 		if (!c) {
@@ -98,9 +84,7 @@ static int tomoyo_send_encoded(const int fd, const char *fmt, ...)
 			*dp++ = (c & 7) + '0';
 		}
 	}
-	len = send(fd, buffer + len, strlen(buffer + len), 0);
-	free(buffer);
-	return len;
+	return str;
 }
 
 #if 0
@@ -148,7 +132,7 @@ static _Bool tomoyo_check_path_info(const char *buffer)
 static void tomoyo_do_check_update(const int fd)
 {
 	FILE *fp_in = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r");
-	char **pathnames = NULL;
+	struct tomoyo_path_info *pathnames = NULL;
 	int pathnames_len = 0;
 	char buffer[16384];
 	memset(buffer, 0, sizeof(buffer));
@@ -163,15 +147,17 @@ static void tomoyo_do_check_update(const int fd)
 		*cp = '\0';
 		if (!tomoyo_str_starts(buffer, CCS_KEYWORD_ALLOW_READ))
 			continue;
-		if (!tomoyo_decode(buffer, buffer))
+		if (!tomoyo_correct_path(buffer))
 			continue;
-		pathnames = realloc(pathnames, sizeof(char *) *
+		pathnames = realloc(pathnames,
+				    sizeof(struct tomoyo_path_info) *
 				    (pathnames_len + 1));
 		if (!pathnames)
 			tomoyo_out_of_memory();
-		pathnames[pathnames_len] = strdup(buffer);
-		if (!pathnames[pathnames_len])
+		pathnames[pathnames_len].name = strdup(buffer);
+		if (!pathnames[pathnames_len].name)
 			tomoyo_out_of_memory();
+		tomoyo_fill_path_info(&pathnames[pathnames_len]);
 		pathnames_len++;
 	}
 	fclose(fp_in);
@@ -182,10 +168,14 @@ static void tomoyo_do_check_update(const int fd)
 		sleep(1);
 		for (i = 0; i < pathnames_len; i++) {
 			int j;
-			if (!stat64(pathnames[i], &buf))
+			if (pathnames[i].is_patterned ||
+			    pathnames[i].total_len + 1 >= sizeof(buffer) ||
+			    !tomoyo_decode(pathnames[i].name, buffer) ||
+			    !stat64(buffer, &buf))
 				continue;
-			tomoyo_send_encoded(fd, "-%s", pathnames[i]);
-			free(pathnames[i]);
+			send(fd, "-", 1, 0);
+			send(fd, pathnames[i].name, pathnames[i].total_len, 0);
+			free((char *) pathnames[i].name);
 			pathnames_len--;
 			for (j = i; j < pathnames_len; j++)
 				pathnames[j] = pathnames[j + 1];
@@ -201,7 +191,7 @@ static void tomoyo_do_check_update(const int fd)
 		memset(buffer, 0, sizeof(buffer));
 		while (fgets(buffer, sizeof(buffer) - 1, fp_in)) {
 			char *cp = strchr(buffer, '\n');
-			char *real_pathname;
+			struct tomoyo_path_info real_pathname;
 			if (!cp)
 				break;
 			*cp = '\0';
@@ -210,26 +200,29 @@ static void tomoyo_do_check_update(const int fd)
 				continue;
 			if (stat64(cp, &buf))
 				continue;
-			real_pathname = realpath(cp, NULL);
-			if (!real_pathname)
+			cp = realpath(cp, NULL);
+			if (!cp)
 				continue;
+			real_pathname.name = tomoyo_encode(cp);
+			free(cp);
+			tomoyo_fill_path_info(&real_pathname); 
 			for (i = 0; i < pathnames_len; i++) {
-				if (!strcmp(real_pathname, pathnames[i]))
+				if (tomoyo_path_matches_pattern(&real_pathname,
+								&pathnames[i]))
 					break;
 			}
-			if (i == pathnames_len) {
-				char *cp;
-				pathnames = realloc(pathnames, sizeof(char *) *
-						    (pathnames_len + 1));
-				if (!pathnames)
-					tomoyo_out_of_memory();
-				cp = strdup(real_pathname);
-				if (!cp)
-					tomoyo_out_of_memory();
-				pathnames[pathnames_len++] = cp;
-				tomoyo_send_encoded(fd, "+%s", pathnames[i]);
+			if (i < pathnames_len) {
+				free((char *) real_pathname.name);
+				continue;
 			}
-			free(real_pathname);
+			pathnames = realloc(pathnames,
+					    sizeof(struct tomoyo_path_info) *
+					    ++pathnames_len);
+			if (!pathnames)
+				tomoyo_out_of_memory();
+			pathnames[i] = real_pathname;
+			send(fd, "+", 1, 0);
+			send(fd, pathnames[i].name, pathnames[i].total_len, 0);
 		}
 		pclose(fp_in);
 	}
@@ -299,7 +292,8 @@ static void tomoyo_handle_update(const int check_update, const int fd)
 	if (!fp)
 		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "w");
 	memset(pathname, 0, sizeof(pathname));
-	if (recv(fd, pathname, sizeof(pathname) - 1, 0) == EOF)
+	if (recv(fd, pathname, 1, 0) == EOF ||
+	    recv(fd, pathname + 1, sizeof(pathname) - 2, 0) == EOF)
 		return;
 	if (check_update == CCS_GLOBALLY_READABLE_FILES_UPDATE_AUTO) {
 		if (pathname[0] == '-')
