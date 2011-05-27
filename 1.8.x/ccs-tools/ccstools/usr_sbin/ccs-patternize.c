@@ -313,9 +313,7 @@ static void ccs_patternize_init_rules(const char *filename)
 		ccs_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
-		rules = realloc(rules, (rules_len + 1) * sizeof(*ptr));
-		if (!rules)
-			ccs_out_of_memory();
+		rules = ccs_realloc(rules, (rules_len + 1) * sizeof(*ptr));
 		ptr = &rules[rules_len++];
 		memset(ptr, 0, sizeof(*ptr));
 		if (ccs_str_starts(line, "rewrite ")) {
@@ -352,9 +350,7 @@ static void ccs_patternize_init_rules(const char *filename)
 					goto invalid_rule;
 				if (!ccs_correct_word(line))
 					goto invalid_rule;
-				line = strdup(line);
-				if (!line)
-					ccs_out_of_memory();
+				line = ccs_strdup(line);
 				ptr->u.path.name = line;
 				ccs_fill_path_info(&ptr->u.path);
 			}
@@ -394,9 +390,7 @@ static void ccs_patternize_init_rules(const char *filename)
 		}
 		if (!*line)
 			goto invalid_rule;
-		line = strdup(line);
-		if (!line)
-			ccs_out_of_memory();
+		line = ccs_strdup(line);
 		ptr->string = line;
 		ptr->string_len = strlen(line);
 	}

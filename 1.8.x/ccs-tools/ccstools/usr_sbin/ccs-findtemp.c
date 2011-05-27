@@ -40,9 +40,7 @@ int main(int argc, char *argv[])
 					*cp = '\0';
 				if (ccs_domain_def(buffer)) {
 					free(domain);
-					domain = strdup(buffer);
-					if (!domain)
-						ccs_out_of_memory();
+					domain = ccs_strdup(buffer);
 					flag = 0;
 					continue;
 				}
@@ -78,7 +76,6 @@ int main(int argc, char *argv[])
 	}
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fscanf(stdin, "%16380s", buffer) == 1) {
-		const char *cp;
 		if (buffer[0] != '/')
 			continue;
 		{
@@ -94,14 +91,9 @@ int main(int argc, char *argv[])
 		}
 		if (i < pattern_list_count)
 			continue;
-		pattern_list = realloc(pattern_list, sizeof(const char *) *
-				       (pattern_list_count + 1));
-		if (!pattern_list)
-			ccs_out_of_memory();
-		cp = strdup(buffer);
-		if (!cp)
-			ccs_out_of_memory();
-		pattern_list[pattern_list_count++] = cp;
+		pattern_list = ccs_realloc(pattern_list, sizeof(const char *) *
+					   (pattern_list_count + 1));
+		pattern_list[pattern_list_count++] = ccs_strdup(buffer);
 	}
 	qsort(pattern_list, pattern_list_count, sizeof(const char *),
 	      ccs_string_compare);

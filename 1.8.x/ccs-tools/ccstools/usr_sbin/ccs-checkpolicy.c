@@ -776,12 +776,8 @@ int main(int argc, char *argv[])
 			if (c == EOF)
 				goto out;
 			if (pos == max_policy_len) {
-				char *cp;
 				max_policy_len += 4096;
-				cp = realloc(policy, max_policy_len);
-				if (!cp)
-					ccs_out_of_memory();
-				policy = cp;
+				policy = ccs_realloc(policy, max_policy_len);
 			}
 			policy[pos++] = (char) c;
 			if (c == '\n') {

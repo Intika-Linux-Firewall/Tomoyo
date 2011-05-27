@@ -410,9 +410,7 @@ void ccs_editpolicy_init_keyword_map(void)
 			if (strcmp(line, ccs_directives[i].original))
 				continue;
 			free((void *) ccs_directives[i].alias);
-			cp = strdup(cp);
-			if (!cp)
-				ccs_out_of_memory();
+			cp = ccs_strdup(cp);
 			ccs_directives[i].alias = cp;
 			ccs_directives[i].alias_len = strlen(cp);
 			break;

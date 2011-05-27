@@ -61,9 +61,7 @@ static void ccs_notifyd_init_rules(const char *filename)
 			goto invalid_rule;
 		if (action)
 			goto invalid_rule;
-		action = strdup(line);
-		if (!action)
-			ccs_out_of_memory();
+		action = ccs_strdup(line);
 	}
 	ccs_put();
 	fclose(fp);
@@ -76,10 +74,8 @@ static void ccs_notifyd_init_rules(const char *filename)
 		char *sp = action;
 		while (true) {
 			char *cp = strsep(&sp, " ");
-			action_to_take = realloc(action_to_take,
-						 sizeof(char *) * ++count);
-			if (!action_to_take)
-				ccs_out_of_memory();
+			action_to_take = ccs_realloc(action_to_take,
+						     sizeof(char *) * ++count);
 			action_to_take[count - 1] = cp;
 			if (!cp)
 				break;

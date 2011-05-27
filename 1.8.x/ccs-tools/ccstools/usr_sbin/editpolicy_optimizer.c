@@ -501,8 +501,6 @@ static int ccs_add_address_group_entry(const char *group_name,
 	if (!ccs_correct_word(group_name))
 		return -EINVAL;
 	saved_group_name = ccs_savename(group_name);
-	if (!saved_group_name)
-		return -ENOMEM;
 	for (i = 0; i < ccs_address_group_list_len; i++) {
 		group = &ccs_address_group_list[i];
 		if (saved_group_name != group->group_name)
@@ -524,22 +522,17 @@ static int ccs_add_address_group_entry(const char *group_name,
 	if (is_delete)
 		return -ENOENT;
 	if (i == ccs_address_group_list_len) {
-		void *vp;
-		vp = realloc(ccs_address_group_list,
-			     (ccs_address_group_list_len + 1) *
-			     sizeof(struct ccs_address_group_entry));
-		if (!vp)
-			ccs_out_of_memory();
-		ccs_address_group_list = vp;
+		ccs_address_group_list =
+			ccs_realloc(ccs_address_group_list,
+				    (ccs_address_group_list_len + 1) *
+				    sizeof(struct ccs_address_group_entry));
 		group = &ccs_address_group_list[ccs_address_group_list_len++];
 		memset(group, 0, sizeof(struct ccs_address_group_entry));
 		group->group_name = saved_group_name;
 	}
 	group->member_name =
-		realloc(group->member_name, (group->member_name_len + 1) *
-			sizeof(const struct ccs_ip_address_entry));
-	if (!group->member_name)
-		ccs_out_of_memory();
+		ccs_realloc(group->member_name, (group->member_name_len + 1) *
+			    sizeof(const struct ccs_ip_address_entry));
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }
@@ -587,8 +580,6 @@ static int ccs_add_number_group_entry(const char *group_name,
 	if (!ccs_correct_word(group_name))
 		return -EINVAL;
 	saved_group_name = ccs_savename(group_name);
-	if (!saved_group_name)
-		return -ENOMEM;
 	for (i = 0; i < ccs_number_group_list_len; i++) {
 		group = &ccs_number_group_list[i];
 		if (saved_group_name != group->group_name)
@@ -610,22 +601,17 @@ static int ccs_add_number_group_entry(const char *group_name,
 	if (is_delete)
 		return -ENOENT;
 	if (i == ccs_number_group_list_len) {
-		void *vp;
-		vp = realloc(ccs_number_group_list,
-			     (ccs_number_group_list_len + 1) *
-			     sizeof(struct ccs_number_group_entry));
-		if (!vp)
-			ccs_out_of_memory();
-		ccs_number_group_list = vp;
+		ccs_number_group_list =
+			ccs_realloc(ccs_number_group_list,
+				    (ccs_number_group_list_len + 1) *
+				    sizeof(struct ccs_number_group_entry));
 		group = &ccs_number_group_list[ccs_number_group_list_len++];
 		memset(group, 0, sizeof(struct ccs_number_group_entry));
 		group->group_name = saved_group_name;
 	}
-	group->member_name = realloc(group->member_name,
-				     (group->member_name_len + 1) *
-				     sizeof(const struct ccs_number_entry));
-	if (!group->member_name)
-		ccs_out_of_memory();
+	group->member_name =
+		ccs_realloc(group->member_name, (group->member_name_len + 1) *
+			    sizeof(const struct ccs_number_entry));
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }

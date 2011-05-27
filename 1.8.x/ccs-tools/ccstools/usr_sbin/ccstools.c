@@ -61,10 +61,76 @@ static void ccs_sort_domain_policy(struct ccs_domain_policy *dp);
  *
  * This function does not return.
  */
-void ccs_out_of_memory(void)
+static void ccs_out_of_memory(void)
 {
 	fprintf(stderr, "Out of memory. Aborted.\n");
 	exit(1);
+}
+
+/**
+ * ccs_strdup - strdup() with abort on error.
+ *
+ * @string: String to duplicate.
+ *
+ * Returns copy of @string on success, abort otherwise. 
+ */
+char *ccs_strdup(const char *string)
+{
+	char *cp = strdup(string);
+	if (!cp)
+		ccs_out_of_memory();
+	return cp;
+}
+
+/**
+ * ccs_realloc - realloc() with abort on error.
+ *
+ * @ptr:  Pointer to void.
+ * @size: New size.
+ *
+ * Returns return value of realloc() on success, abort otherwise. 
+ */
+void *ccs_realloc(void *ptr, const size_t size)
+{
+	void *vp = realloc(ptr, size);
+	if (!vp)
+		ccs_out_of_memory();
+	return vp;
+}
+
+/**
+ * ccs_realloc2 - realloc() with abort on error.
+ *
+ * @ptr:  Pointer to void.
+ * @size: New size.
+ *
+ * Returns return value of realloc() on success, abort otherwise. 
+ *
+ * Allocated memory is cleared with 0.
+ */
+void *ccs_realloc2(void *ptr, const size_t size)
+{
+	void *vp = ccs_realloc(ptr, size);
+	memset(vp, 0, size);
+	return vp;
+}
+
+/**
+ * ccs_malloc - malloc() with abort on error.
+ *
+ * @size: Size to allocate.
+ *
+ * Returns return value of malloc() on success, abort otherwise. 
+ *
+ * Allocated memory is cleared with 0.
+ */
+void *ccs_malloc(const size_t size)
+{
+	void *vp = malloc(size);
+	if (!vp)
+		ccs_out_of_memory();
+	memset(vp, 0, size);
+	return vp;
 }
 
 /**
@@ -834,7 +900,7 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
  *
  * @name: Pointer to "const char".
  *
- * Returns pointer to "const struct ccs_path_info" on success, NULL otherwise.
+ * Returns pointer to "const struct ccs_path_info" on success, abort otherwise.
  *
  * The returned pointer refers shared string. Thus, the caller must not free().
  */
@@ -848,7 +914,7 @@ const struct ccs_path_info *ccs_savename(const char *name)
 	int len;
 	static _Bool first_call = true;
 	if (!name)
-		return NULL;
+		ccs_out_of_memory();
 	len = strlen(name) + 1;
 	hash = ccs_full_name_hash((const unsigned char *) name, len - 1);
 	if (first_call) {
@@ -860,23 +926,19 @@ const struct ccs_path_info *ccs_savename(const char *name)
 			ccs_fill_path_info(&name_list[i].entry);
 		}
 	}
-	ptr = &name_list[hash % CCS_SAVENAME_MAX_HASH];
-	while (ptr) {
+	for (ptr = &name_list[hash % CCS_SAVENAME_MAX_HASH]; ptr;
+	     ptr = ptr->next) {
 		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
-			goto out;
+			return &ptr->entry;
 		prev = ptr;
-		ptr = ptr->next;
 	}
-	ptr = malloc(sizeof(*ptr) + len);
-	if (!ptr)
-		ccs_out_of_memory();
+	ptr = ccs_malloc(sizeof(*ptr) + len);
 	ptr->next = NULL;
 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 	memmove((void *) ptr->entry.name, name, len);
 	ccs_fill_path_info(&ptr->entry);
 	prev->next = ptr; /* prev != NULL because name_list is not empty. */
-out:
-	return ptr ? &ptr->entry : NULL;
+	return &ptr->entry;
 }
 
 /**
@@ -1029,34 +1091,25 @@ int ccs_find_domain(const struct ccs_domain_policy *dp,
  * @is_dd:      True if the domain is marked as deleted, false otherwise.
  *
  * Returns index number (>= 0) in the @dp array if created or already exists,
- * EOF otherwise.
+ * abort otherwise.
  */
 int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
 		      const _Bool is_dis, const _Bool is_dd)
 {
-	const struct ccs_path_info *saved_domainname;
 	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
 	if (index >= 0)
-		goto found;
+		return index;
 	if (!is_dis && !ccs_correct_domain(domainname)) {
-		fprintf(stderr, "Invalid domainname '%s'\n",
-			domainname);
-		return EOF;
+		fprintf(stderr, "Invalid domainname '%s'\n", domainname);
+		ccs_out_of_memory();
 	}
-	dp->list = realloc(dp->list, (dp->list_len + 1) *
-			   sizeof(struct ccs_domain_info));
-	if (!dp->list)
-		ccs_out_of_memory();
-	memset(&dp->list[dp->list_len], 0,
-	       sizeof(struct ccs_domain_info));
-	saved_domainname = ccs_savename(domainname);
-	if (!saved_domainname)
-		ccs_out_of_memory();
-	dp->list[dp->list_len].domainname = saved_domainname;
-	dp->list[dp->list_len].is_dis = is_dis;
-	dp->list[dp->list_len].is_dd = is_dd;
 	index = dp->list_len++;
-found:
+	dp->list = ccs_realloc(dp->list, dp->list_len *
+			       sizeof(struct ccs_domain_info));
+	memset(&dp->list[index], 0, sizeof(struct ccs_domain_info));
+	dp->list[index].domainname = ccs_savename(domainname);
+	dp->list[index].is_dis = is_dis;
+	dp->list[index].is_dd = is_dd;
 	return index;
 }
 
@@ -1195,6 +1248,44 @@ static int ccs_task_entry_compare(const void *a, const void *b)
 }
 
 /**
+ * ccs_add_process_entry - Add entry for running processes.
+ *
+ * @line:    A line containing PID and profile and domainname.
+ * @ppid:    Parent PID.
+ * @name:    Comm name (allocated by strdup()).
+ *
+ * Returns nothing.
+ *
+ * @name is free()d on failure.
+ */
+static void ccs_add_process_entry(const char *line, const pid_t ppid,
+				  char *name)
+{
+	int index;
+	unsigned int pid = 0;
+	int profile = -1;
+	char *domain;
+	if (!line || sscanf(line, "%u %u", &pid, &profile) != 2) {
+		free(name);
+		return;
+	}
+	domain = strchr(line, '<');
+	if (domain)
+		domain = ccs_strdup(domain);
+	else
+		domain = ccs_strdup("<UNKNOWN>");
+	index = ccs_task_list_len++;
+	ccs_task_list = ccs_realloc(ccs_task_list, ccs_task_list_len *
+				    sizeof(struct ccs_task_entry));
+	memset(&ccs_task_list[index], 0, sizeof(ccs_task_list[0]));
+	ccs_task_list[index].pid = pid;
+	ccs_task_list[index].ppid = ppid;
+	ccs_task_list[index].profile = profile;
+	ccs_task_list[index].name = name;
+	ccs_task_list[index].domain = domain;
+}
+	
+/**
  * ccs_read_process_list - Read all process's information.
  *
  * @show_all: Ture if kernel threads should be included, false otherwise.
@@ -1221,45 +1312,17 @@ void ccs_read_process_list(_Bool show_all)
 			char *line = ccs_freadline(fp);
 			unsigned int pid = 0;
 			unsigned int ppid = 0;
-			int profile = -1;
 			char *name;
-			char *domain;
 			if (!line)
 				break;
 			sscanf(line, "PID=%u PPID=%u", &pid, &ppid);
 			name = strstr(line, "NAME=");
 			if (name)
-				name = strdup(name + 5);
-			if (!name)
-				name = strdup("<UNKNOWN>");
-			if (!name)
-				ccs_out_of_memory();
+				name = ccs_strdup(name + 5);
+			else
+				name = ccs_strdup("<UNKNOWN>");
 			line = ccs_freadline(fp);
-			if (!line ||
-			    sscanf(line, "%u %u", &pid, &profile) != 2) {
-				free(name);
-				break;
-			}
-			domain = strchr(line, '<');
-			if (domain)
-				domain = strdup(domain);
-			if (!domain)
-				domain = strdup("<UNKNOWN>");
-			if (!domain)
-				ccs_out_of_memory();
-			ccs_task_list = realloc(ccs_task_list,
-						(ccs_task_list_len + 1) *
-						sizeof(struct ccs_task_entry));
-			if (!ccs_task_list)
-				ccs_out_of_memory();
-			memset(&ccs_task_list[ccs_task_list_len], 0,
-			       sizeof(ccs_task_list[0]));
-			ccs_task_list[ccs_task_list_len].pid = pid;
-			ccs_task_list[ccs_task_list_len].ppid = ppid;
-			ccs_task_list[ccs_task_list_len].profile = profile;
-			ccs_task_list[ccs_task_list_len].name = name;
-			ccs_task_list[ccs_task_list_len].domain = domain;
-			ccs_task_list_len++;
+			ccs_add_process_entry(line, ppid, name);
 		}
 		ccs_put();
 		fclose(fp);
@@ -1275,13 +1338,9 @@ void ccs_read_process_list(_Bool show_all)
 				closedir(dir);
 			return;
 		}
-		line = malloc(line_len);
-		if (!line)
-			ccs_out_of_memory();
+		line = ccs_malloc(line_len);
 		while (1) {
 			char *name;
-			char *domain;
-			int profile = -1;
 			int ret_ignored;
 			unsigned int pid = 0;
 			char buffer[128];
@@ -1301,38 +1360,12 @@ void ccs_read_process_list(_Bool show_all)
 			}
 			name = ccs_get_name(pid);
 			if (!name)
-				name = strdup("<UNKNOWN>");
-			if (!name)
-				ccs_out_of_memory();
+				name = ccs_strdup("<UNKNOWN>");
 			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
 			ret_ignored = write(status_fd, buffer, strlen(buffer));
 			memset(line, 0, line_len);
 			ret_ignored = read(status_fd, line, line_len - 1);
-			if (sscanf(line, "%u %u", &pid, &profile) != 2) {
-				free(name);
-				continue;
-			}
-			domain = strchr(line, '<');
-			if (domain)
-				domain = strdup(domain);
-			if (!domain)
-				domain = strdup("<UNKNOWN>");
-			if (!domain)
-				ccs_out_of_memory();
-			ccs_task_list = realloc(ccs_task_list,
-						(ccs_task_list_len + 1) *
-						sizeof(struct ccs_task_entry));
-			if (!ccs_task_list)
-				ccs_out_of_memory();
-			memset(&ccs_task_list[ccs_task_list_len], 0,
-			       sizeof(ccs_task_list[0]));
-			ccs_task_list[ccs_task_list_len].pid = pid;
-			ccs_task_list[ccs_task_list_len].ppid =
-				ccs_get_ppid(pid);
-			ccs_task_list[ccs_task_list_len].profile = profile;
-			ccs_task_list[ccs_task_list_len].name = name;
-			ccs_task_list[ccs_task_list_len].domain = domain;
-			ccs_task_list_len++;
+			ccs_add_process_entry(line, ccs_get_ppid(pid), name);
 		}
 		free(line);
 		closedir(dir);
@@ -1724,23 +1757,18 @@ int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	if (!entry || !*entry)
 		return -EINVAL;
 	cp = ccs_savename(entry);
-	if (!cp)
-		ccs_out_of_memory();
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
 
 	/* Check for the same entry. */
-	for (i = 0; i < acl_count; i++) {
+	for (i = 0; i < acl_count; i++)
 		/* Faster comparison, for they are ccs_savename'd. */
 		if (cp == acl_ptr[i])
 			return 0;
-	}
 
-	acl_ptr = realloc(acl_ptr, (acl_count + 1)
-			  * sizeof(const struct ccs_path_info *));
-	if (!acl_ptr)
-		ccs_out_of_memory();
+	acl_ptr = ccs_realloc(acl_ptr, (acl_count + 1) *
+			      sizeof(const struct ccs_path_info *));
 	acl_ptr[acl_count++] = cp;
 	dp->list[index].string_ptr = acl_ptr;
 	dp->list[index].string_count = acl_count;
@@ -1771,8 +1799,6 @@ int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	if (!entry || !*entry)
 		return -EINVAL;
 	cp = ccs_savename(entry);
-	if (!cp)
-		ccs_out_of_memory();
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
@@ -1916,12 +1942,8 @@ char *ccs_shprintf(const char *fmt, ...)
 		if (len < 0)
 			ccs_out_of_memory();
 		if (len >= max_policy_len) {
-			char *cp;
 			max_policy_len = len + 1;
-			cp = realloc(policy, max_policy_len);
-			if (!cp)
-				ccs_out_of_memory();
-			policy = cp;
+			policy = ccs_realloc(policy, max_policy_len);
 		} else
 			return policy;
 	}
@@ -1948,12 +1970,8 @@ char *ccs_freadline(FILE *fp)
 		if (ccs_network_mode && !c)
 			return NULL;
 		if (pos == max_policy_len) {
-			char *cp;
 			max_policy_len += 4096;
-			cp = realloc(policy, max_policy_len);
-			if (!cp)
-				ccs_out_of_memory();
-			policy = cp;
+			policy = ccs_realloc(policy, max_policy_len);
 		}
 		policy[pos++] = (char) c;
 		if (c == '\n') {
@@ -2030,9 +2048,7 @@ char *ccs_freadline_unpack(FILE *fp)
 		return line;
 prepare:
 		pack_len = len;
-		cached_line = strdup(line);
-		if (!cached_line)
-			ccs_out_of_memory();
+		cached_line = ccs_strdup(line);
 	}
 unpack:
 	{
@@ -2052,9 +2068,7 @@ unpack:
 			cached_line = NULL;
 		} else {
 			/* Current string is "abc d/e/f ghi". */
-			line = strdup(cached_line);
-			if (!line)
-				ccs_out_of_memory();
+			line = ccs_strdup(cached_line);
 			previous_line = line;
 			/* Overwrite "abc d/e/f ghi" with "abc d ghi". */
 			memmove(line + pack_start + len, pos + pack_len,

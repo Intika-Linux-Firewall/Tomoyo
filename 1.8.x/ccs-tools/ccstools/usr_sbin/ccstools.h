@@ -143,6 +143,7 @@ char *ccs_freadline(FILE *fp);
 char *ccs_freadline_unpack(FILE *fp);
 char *ccs_make_filename(const char *prefix, const time_t time);
 char *ccs_shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+char *ccs_strdup(const char *string);
 const char *ccs_domain_name(const struct ccs_domain_policy *dp,
 			    const int index);
 const struct ccs_path_info *ccs_savename(const char *name);
@@ -162,6 +163,9 @@ int ccs_parse_number(const char *number, struct ccs_number_entry *entry);
 int ccs_string_compare(const void *a, const void *b);
 int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd);
 struct ccs_path_group_entry *ccs_find_path_group(const char *group_name);
+void *ccs_malloc(const size_t size);
+void *ccs_realloc(void *ptr, const size_t size);
+void *ccs_realloc2(void *ptr, const size_t size);
 void ccs_clear_domain_policy(struct ccs_domain_policy *dp);
 void ccs_delete_domain(struct ccs_domain_policy *dp, const int index);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
@@ -170,7 +174,6 @@ void ccs_get(void);
 void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 			      _Bool is_write);
 void ccs_normalize_line(char *buffer);
-void ccs_out_of_memory(void);
 void ccs_put(void);
 void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename);
 void ccs_read_process_list(_Bool show_all);

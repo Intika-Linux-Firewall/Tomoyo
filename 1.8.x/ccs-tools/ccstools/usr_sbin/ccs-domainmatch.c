@@ -45,9 +45,7 @@ int main(int argc, char *argv[])
 			*cp = '\0';
 		if (ccs_domain_def(buffer)) {
 			free(domain);
-			domain = strdup(buffer);
-			if (!domain)
-				ccs_out_of_memory();
+			domain = ccs_strdup(buffer);
 			flag = 0;
 			continue;
 		}
