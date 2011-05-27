@@ -1199,12 +1199,18 @@ static void ccs_read_generic_policy(void)
 			if (directive == CCS_DIRECTIVE_NONE)
 				continue;
 			/* Remember groups for ccs_editpolicy_optimize(). */
+			if (directive != CCS_DIRECTIVE_PATH_GROUP &&
+			    directive != CCS_DIRECTIVE_NUMBER_GROUP &&
+			    directive != CCS_DIRECTIVE_ADDRESS_GROUP)
+				break;
+			cp = strdup2(line);
 			if (directive == CCS_DIRECTIVE_PATH_GROUP)
-				ccs_add_path_group_policy(line, false);
+				ccs_add_path_group_policy(cp, false);
 			else if (directive == CCS_DIRECTIVE_NUMBER_GROUP)
-				ccs_add_number_group_policy(line, false);
-			else if (directive == CCS_DIRECTIVE_ADDRESS_GROUP)
-				ccs_add_address_group_policy(line, false);
+				ccs_add_number_group_policy(cp, false);
+			else
+				ccs_add_address_group_policy(cp, false);
+			free(cp);
 			break;
 		case CCS_SCREEN_ACL_LIST:
 			directive = ccs_find_directive(true, line);

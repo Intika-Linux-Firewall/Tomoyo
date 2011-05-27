@@ -815,6 +815,21 @@ static void tomoyo_read_generic_policy(void)
 		}
 		switch (tomoyo_current_screen) {
 		case CCS_SCREEN_EXCEPTION_LIST:
+			directive = tomoyo_find_directive(true, line);
+			if (directive == CCS_DIRECTIVE_NONE)
+				continue;
+			/*
+			 * Remember path_group for
+			 * tomoyo_editpolicy_try_optimize().
+			 */
+			if (directive != CCS_DIRECTIVE_PATH_GROUP)
+				break;
+			cp = strdup(line);
+			if (!cp)
+				tomoyo_out_of_memory();
+			tomoyo_add_path_group_policy(cp, false);
+			free(cp);
+			break;
 		case CCS_SCREEN_ACL_LIST:
 			directive = tomoyo_find_directive(true, line);
 			if (directive == CCS_DIRECTIVE_NONE)
@@ -2253,7 +2268,9 @@ start2:
 			break;
 		case 'o':
 		case 'O':
-			if (tomoyo_current_screen == CCS_SCREEN_ACL_LIST) {
+			if (tomoyo_current_screen == CCS_SCREEN_ACL_LIST ||
+			    tomoyo_current_screen ==
+			    CCS_SCREEN_EXCEPTION_LIST) {
 				tomoyo_editpolicy_try_optimize(dp, current,
 							    tomoyo_current_screen);
 				tomoyo_show_list(dp);

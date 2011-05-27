@@ -264,6 +264,10 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 	s_index = generic_acl_list[current].directive;
 	if (s_index == DIRECTIVE_NONE)
 		return;
+	/* Allow allow_read lines and allow_env lines to be optimized. */
+	if (screen == SCREEN_EXCEPTION_LIST &&
+	    s_index != DIRECTIVE_ALLOW_READ && s_index != DIRECTIVE_ALLOW_ENV)
+		return;
 	cp = strdup(generic_acl_list[current].operand);
 	if (!cp)
 		return;
