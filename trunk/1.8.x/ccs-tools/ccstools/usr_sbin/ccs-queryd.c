@@ -27,10 +27,6 @@
 
 static void ccs_printw(const char *fmt, ...)
      __attribute__ ((format(printf, 1, 2)));
-/*
-static _Bool ccs_convert_path_info(FILE *fp,
-const struct ccs_path_info *pattern, const char *new);
-*/
 static _Bool ccs_handle_query(unsigned int serial);
 
 /* Utility functions */
@@ -44,9 +40,7 @@ static void ccs_printw(const char *fmt, ...)
 	va_start(args, fmt);
 	len = vsnprintf((char *) &i, sizeof(i) - 1, fmt, args) + 16;
 	va_end(args);
-	buffer = malloc(len);
-	if (!buffer)
-		ccs_out_of_memory();
+	buffer = ccs_malloc(len);
 	va_start(args, fmt);
 	len = vsnprintf(buffer, len, fmt, args);
 	va_end(args);
@@ -56,95 +50,6 @@ static void ccs_printw(const char *fmt, ...)
 	}
 	free(buffer);
 }
-
-#if 0
-static _Bool ccs_check_path_info(const char *buffer)
-{
-	_Bool modified = false;
-	static struct ccs_path_info *update_list = NULL;
-	static int update_list_len = 0;
-	char *sp = strdup(buffer);
-	char *str = sp;
-	const char *path_list[2] = {
-		CCS_PROC_POLICY_EXCEPTION_POLICY,
-		CCS_PROC_POLICY_DOMAIN_POLICY
-	};
-	if (!str)
-		return false;
-	while (true) {
-		int i;
-		char *cp = strsep(&sp, " ");
-		if (!cp)
-			break;
-		for (i = 0; i < update_list_len; i++) {
-			int j;
-			struct ccs_path_info old;
-			/* TODO: split cp at upadte_list's depth. */
-			old.name = cp;
-			ccs_fill_path_info(&old);
-			if (!ccs_path_matches_pattern(&old, &update_list[i]))
-				continue;
-			for (j = 0; j < 2; j++) {
-				FILE *fp = fopen(path_list[j], "r+");
-				if (!fp)
-					continue;
-				if (convert_path_info(fp, &update_list[i], cp))
-					modified = true;
-				fclose(fp);
-			}
-		}
-	}
-	free(str);
-	return modified;
-}
-#endif
-
-#if 0
-static _Bool ccs_convert_path_info(FILE *fp,
-				   const struct ccs_path_info *pattern,
-				   const char *new)
-{
-	_Bool modified = false;
-	const char *cp = pattern->name;
-	int depth = 0;
-	while (*cp)
-		if (*cp++ == '/')
-			depth++;
-	while (true) {
-		int d = depth;
-		char buffer[4096];
-		char *cp;
-		if (fscanf(fp, "%4095s", buffer) != 1)
-			break;
-		if (buffer[0] != '/')
-			goto out;
-		cp = buffer;
-		while (*cp) {
-			char c;
-			struct ccs_path_info old;
-			_Bool matched;
-			if (*cp != '/' || --d)
-				continue;
-			cp++;
-			c = *cp;
-			*cp = '\0';
-			old.name = buffer;
-			ccs_fill_path_info(&old);
-			matched = ccs_path_matches_pattern(&old, pattern);
-			*cp = c;
-			if (matched) {
-				fprintf(fp, "%s%s", new, cp);
-				modified = true;
-				buffer[0] = '\0';
-				break;
-			}
-		}
-out:
-		fprintf(fp, "%s ", buffer);
-	}
-	return modified;
-}
-#endif
 
 static void ccs_send_keepalive(void)
 {
@@ -166,8 +71,7 @@ static int ccs_domain_policy_fd = EOF;
 #define CCS_MAX_READLINE_HISTORY 20
 static const char **ccs_readline_history = NULL;
 static int ccs_readline_history_count = 0;
-static const int ccs_buffer_len = 32768;
-static char *ccs_buffer = NULL;
+static char ccs_buffer[32768];
 
 /* Main functions */
 
@@ -192,12 +96,6 @@ static _Bool ccs_handle_query(unsigned int serial)
 		return false;
 	}
 	*(cp - 1) = '\0';
-	/*
-	if (0 && !ccs_retries && check_path_info(ccs_buffer)) {
-		c = 'r';
-		goto write_answer;
-	}
-	*/
 	if (pid != prev_pid) {
 		if (prev_pid)
 			ccs_printw("----------------------------------------"
@@ -242,7 +140,7 @@ static _Bool ccs_handle_query(unsigned int serial)
 				int i;
 				int len = read(ccs_domain_policy_fd,
 					       ccs_buffer,
-					       ccs_buffer_len - 1);
+					       sizeof(ccs_buffer) - 1);
 				if (len <= 0)
 					break;
 				for (i = 0; i < len; i++) {
@@ -301,7 +199,7 @@ write_answer:
 		c = 3;
 	else
 		c = 2;
-	snprintf(ccs_buffer, ccs_buffer_len - 1, "A%u=%u\n", serial, c);
+	snprintf(ccs_buffer, sizeof(ccs_buffer) - 1, "A%u=%u\n", serial, c);
 	ret_ignored = write(ccs_query_fd, ccs_buffer, strlen(ccs_buffer));
 	ccs_printw("\n");
 	return true;
@@ -364,10 +262,8 @@ ok:
 			"run this program.\n", CCS_PROC_POLICY_MANAGER);
 		return 1;
 	}
-	ccs_readline_history = malloc(CCS_MAX_READLINE_HISTORY *
-				      sizeof(const char *));
-	if (!ccs_readline_history)
-		ccs_out_of_memory();
+	ccs_readline_history = ccs_malloc(CCS_MAX_READLINE_HISTORY *
+					  sizeof(const char *));
 	ccs_send_keepalive();
 	initscr();
 	cbreak();
@@ -389,38 +285,32 @@ ok:
 	while (true) {
 		static _Bool first = true;
 		static unsigned int prev_serial = 0;
-		fd_set rfds;
 		unsigned int serial;
 		char *cp;
-		if (!ccs_buffer) {
-			ccs_buffer = malloc(ccs_buffer_len);
-			if (!ccs_buffer)
-				break;
-		}
-		/* Wait for query. */
+		/* Wait for query and read query. */
+		memset(ccs_buffer, 0, sizeof(ccs_buffer));
 		if (ccs_network_mode) {
 			int i;
 			int ret_ignored;
 			ret_ignored = write(ccs_query_fd, "", 1);
-			memset(ccs_buffer, 0, ccs_buffer_len);
-			for (i = 0; i < ccs_buffer_len - 1; i++) {
+			for (i = 0; i < sizeof(ccs_buffer) - 1; i++) {
 				if (read(ccs_query_fd, ccs_buffer + i, 1) != 1)
 					break;
 				if (!ccs_buffer[i])
 					goto read_ok;
 			}
 			break;
+		} else {
+			fd_set rfds;
+			FD_ZERO(&rfds);
+			FD_SET(ccs_query_fd, &rfds);
+			select(ccs_query_fd + 1, &rfds, NULL, NULL, NULL);
+			if (!FD_ISSET(ccs_query_fd, &rfds))
+				continue;
+			if (read(ccs_query_fd, ccs_buffer,
+				 sizeof(ccs_buffer) - 1) <= 0)
+				continue;
 		}
-		FD_ZERO(&rfds);
-		FD_SET(ccs_query_fd, &rfds);
-		select(ccs_query_fd + 1, &rfds, NULL, NULL, NULL);
-		if (!FD_ISSET(ccs_query_fd, &rfds))
-			continue;
-
-		/* Read query. */
-		memset(ccs_buffer, 0, ccs_buffer_len);
-		if (read(ccs_query_fd, ccs_buffer, ccs_buffer_len - 1) <= 0)
-			continue;
 read_ok:
 		cp = strchr(ccs_buffer, '\n');
 		if (!cp)

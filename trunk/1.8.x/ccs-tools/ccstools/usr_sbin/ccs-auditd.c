@@ -78,10 +78,8 @@ static void ccs_auditd_init_rules(const char *filename)
 		ccs_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
-		rules = realloc(rules, sizeof(struct ccs_sort_rules) *
-				(rules_len + 1));
-		if (!rules)
-			ccs_out_of_memory();
+		rules = ccs_realloc(rules, sizeof(struct ccs_sort_rules) *
+				    (rules_len + 1));
 		ptr = &rules[rules_len++];
 		memset(ptr, 0, sizeof(*ptr));
 		if (ccs_str_starts(line, "destination ")) {
@@ -94,16 +92,12 @@ static void ccs_auditd_init_rules(const char *filename)
 			if (i < destination_list_len)
 				goto store_destination;
 			destination_list =
-				realloc(destination_list,
-					++destination_list_len *
-					sizeof(struct ccs_destination));
-			if (!destination_list)
-				ccs_out_of_memory();
+				ccs_realloc(destination_list,
+					    ++destination_list_len *
+					    sizeof(struct ccs_destination));
 			if (!ccs_decode(line, line))
 				goto invalid_rule;
-			destination_list[i].pathname = strdup(line);
-			if (!destination_list[i].pathname)
-				ccs_out_of_memory();
+			destination_list[i].pathname = ccs_strdup(line);
 			destination_list[i].fd = EOF;
 store_destination:
 			ptr->type = CCS_SORT_RULE_DESTINATION;
@@ -140,9 +134,7 @@ store_destination:
 			goto invalid_rule;
 		if (!*line)
 			goto invalid_rule;
-		line = strdup(line);
-		if (!line)
-			ccs_out_of_memory();
+		line = ccs_strdup(line);
 		ptr->string = line;
 		ptr->string_len = strlen(line);
 	}

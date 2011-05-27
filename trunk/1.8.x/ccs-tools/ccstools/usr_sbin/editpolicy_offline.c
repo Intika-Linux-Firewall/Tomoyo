@@ -48,8 +48,6 @@ static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp,
 			continue;
 		is_delete = ccs_str_starts(line, "delete ");
 		cp = ccs_savename(line);
-		if (!cp)
-			ccs_out_of_memory();
 		if (!is_delete)
 			goto append_policy;
 		for (i = 0; i < mp->list_len; i++)
@@ -67,10 +65,8 @@ append_policy:
 				break;
 		if (i < mp->list_len)
 			continue;
-		mp->list = realloc(mp->list, (mp->list_len + 1)
-				   * sizeof(const struct ccs_path_info *));
-		if (!mp->list)
-			ccs_out_of_memory();
+		mp->list = ccs_realloc(mp->list, (mp->list_len + 1) *
+				       sizeof(const struct ccs_path_info *));
 		mp->list[mp->list_len++] = cp;
 	}
 	return;
@@ -88,9 +84,7 @@ void ccs_editpolicy_offline_daemon(void)
 {
 	struct ccs_misc_policy mp[3];
 	static const int buffer_len = 8192;
-	char *buffer = malloc(buffer_len);
-	if (!buffer)
-		ccs_out_of_memory();
+	char *buffer = ccs_malloc(buffer_len);
 	memset(&ccs_dp, 0, sizeof(ccs_dp));
 	memset(&mp, 0, sizeof(mp));
 	ccs_get();
