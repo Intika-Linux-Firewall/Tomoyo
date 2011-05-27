@@ -283,8 +283,6 @@ ok:
 		ccs_printw("Monitoring /proc/ccs/query .");
 	ccs_printw(" Press Ctrl-C to terminate.\n\n");
 	while (true) {
-		static _Bool first = true;
-		static unsigned int prev_serial = 0;
 		unsigned int serial;
 		char *cp;
 		/* Wait for query and read query. */
@@ -322,8 +320,6 @@ read_ok:
 			continue;
 		memmove(ccs_buffer, cp + 1, strlen(cp + 1) + 1);
 
-		first = false;
-		prev_serial = serial;
 		/* Clear pending input. */;
 		timeout(0);
 		while (true) {
