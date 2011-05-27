@@ -151,7 +151,7 @@ static int ccs_string_acl_compare(const void *a, const void *b);
 static void ccs_add_entry(void);
 static void ccs_adjust_cursor_pos(const int item_count);
 static void ccs_assign_dis(const struct ccs_path_info *domainname,
-			   const char *program);
+			   const char *program, const bool is_root);
 static void ccs_copy_file(const char *source, const char *dest);
 static void ccs_delete_entry(const int index);
 static void ccs_down_arrow_key(void);
@@ -441,13 +441,20 @@ static int ccs_add_path_group_policy(char *data, const _Bool is_delete)
  *
  * @domainname: Pointer to "const struct ccs_path_info".
  * @program:    Program name.
+ * @is_root:    True if root of namespace, false otherwise.
  */
 static void ccs_assign_dis(const struct ccs_path_info *domainname,
-			   const char *program)
+			   const char *program, const bool is_root)
 {
 	const struct ccs_transition_control_entry *d_t =
 		ccs_transition_control(domainname, program);
-	if (d_t && (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE ||
+	/*
+	 * Don't create source domains under root of namespace because they
+	 * will become target domains. However, create them under root of
+	 * namespace anyway if namespace jump, for we need to indicate it.
+	 */
+	if (d_t && ((!is_root &&
+		     d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE) ||
 		    d_t->type == CCS_TRANSITION_CONTROL_NAMESPACE)) {
 		char *line;
 		int source;
@@ -1673,17 +1680,12 @@ static void ccs_read_domain_and_exception_policy(void)
 		const struct ccs_path_info **string_ptr
 			= ccs_dp.list[index].string_ptr;
 		const int max_count = ccs_dp.list[index].string_count;
-		/*
-		 * Don't create source domains under root of namespace
-		 * because they will become target domains.
-		 */
-		if (!strchr(domainname->name, ' '))
-			continue;
+		const bool is_root = !strchr(domainname->name, ' '); 
 		for (i = 0; i < max_count; i++) {
 			const struct ccs_path_info *cp = string_ptr[i];
 			struct ccs_path_group_entry *group;
 			if (cp->name[0] != '@') {
-				ccs_assign_dis(domainname, cp->name);
+				ccs_assign_dis(domainname, cp->name, is_root);
 				continue;
 			}
 			group = ccs_find_path_group(cp->name + 1);
@@ -1691,7 +1693,7 @@ static void ccs_read_domain_and_exception_policy(void)
 				continue;
 			for (j = 0; j < group->member_name_len; j++) {
 				cp = group->member_name[j];
-				ccs_assign_dis(domainname, cp->name);
+				ccs_assign_dis(domainname, cp->name, is_root);
 			}
 		}
 	}
