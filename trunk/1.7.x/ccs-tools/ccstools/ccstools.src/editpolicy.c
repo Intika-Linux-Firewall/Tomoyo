@@ -973,6 +973,20 @@ static void read_generic_policy(void)
 		}
 		switch (current_screen) {
 		case SCREEN_EXCEPTION_LIST:
+			directive = find_directive(true, line);
+			if (directive == DIRECTIVE_NONE)
+				continue;
+			/*
+			 * Remember path_group for editpolicy_try_optimize().
+			 */
+			if (directive != DIRECTIVE_PATH_GROUP)
+				break;
+			cp = strdup(line);
+			if (!cp)
+				out_of_memory();
+			add_path_group_policy(cp, false);
+			free(cp);
+			break;
 		case SCREEN_ACL_LIST:
 			directive = find_directive(true, line);
 			if (directive == DIRECTIVE_NONE)
@@ -2643,7 +2657,8 @@ start2:
 			break;
 		case 'o':
 		case 'O':
-			if (current_screen == SCREEN_ACL_LIST) {
+			if (current_screen == SCREEN_ACL_LIST ||
+			    current_screen == SCREEN_EXCEPTION_LIST) {
 				editpolicy_try_optimize(dp, current,
 							current_screen);
 				show_list(dp);
