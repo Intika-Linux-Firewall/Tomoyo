@@ -254,12 +254,13 @@ static void ccs_test_init(void)
 	{
 		FILE *fp = fopen("/proc/sys/kernel/osrelease", "r");
 		int version = 0;
-		if (!fp || fscanf(fp, "2.%d.", &version) != 1 || fclose(fp)) {
+		if (!fp || (fscanf(fp, "2.%d.", &version) != 1 &&
+			    fscanf(fp, "%d.", &version) != 1) || fclose(fp)) {
 			fprintf(stderr, "Can't read /proc/sys/kernel/osrelease"
 				"\n");
 			exit(1);
 		}
-		if (version == 6)
+		if (version == 6 || version == 3)
 			is_kernel26 = 1;
 	}
 	{
