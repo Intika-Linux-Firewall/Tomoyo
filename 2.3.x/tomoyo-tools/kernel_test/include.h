@@ -119,7 +119,6 @@ static FILE *profile_fp = NULL;
 static FILE *domain_fp = NULL;
 static FILE *exception_fp = NULL;
 static char self_domain[4096] = "";
-static int is_kernel26 = 0;
 static pid_t pid = 0;
 
 static void clear_status(void)
@@ -275,17 +274,6 @@ static void tomoyo_test_init(void)
 		exit(1);
 	}
 	clear_status();
-	{
-		FILE *fp = fopen("/proc/sys/kernel/osrelease", "r");
-		int version = 0;
-		if (!fp || fscanf(fp, "2.%d.", &version) != 1 || fclose(fp)) {
-			fprintf(stderr, "Can't read /proc/sys/kernel/osrelease"
-				"\n");
-			exit(1);
-		}
-		if (version == 6)
-			is_kernel26 = 1;
-	}
 	{
 		FILE *fp = fopen(proc_policy_self_domain, "r");
 		memset(self_domain, 0, sizeof(self_domain));
