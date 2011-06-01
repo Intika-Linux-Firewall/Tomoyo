@@ -42,7 +42,7 @@
 
 <p>Until now, this documentation has been explaining that a domain's name starts with "&lt;kernel&gt;". But this is true for only "&lt;kernel&gt;" namespace. Policy namespace, which is a new feature introduced in TOMOYO 1.8.2, allows you to use namespaces other than "&lt;kernel&gt;" namespace, which means a domain's name can start with other than "&lt;kernel&gt;".</p>
 
-<p>Each policy namespace has its own set of domain policy, exception policy and profile. These policy files in one namespace are independent from these of other namespaces. This independency allows you (and those who want to develop and distribute policy for specific applications) to develop policy files without worrying interference among namespaces, except that directives for jumping to different namespaces needs to be added to other namespaces.</p>
+<p>Each policy namespace has its own set of domain policy, exception policy and profile. These policy files in one namespace are independent from these of other namespaces. This independency allows you (and those who want to develop and distribute policy for specific applications) to develop policy files without worrying interference among namespaces, except that a directive for declining an invitation of namespace transition from other namespaces may need to be specified.</p>
 
 <h3><a name="15.2">15.2. How to specify namespaces?</a></h3>
 
@@ -118,7 +118,15 @@ use_group 0
 move_namespace /usr/sbin/sshd from any
 </pre>
 
-<p>The "no_move_namespace" directive cancels the effect of "move_namespace" directive. The syntax is same with "no_initialize_domain" directive.</p>
+<p>Please note that, unlike other directives, the "move_namespace" directive is checked from all namespaces (rather than from only current namespace). This is designed for allowing policy developers not to ask for other namespace's exception policy to add an entry for jumping to their namespaces.</p>
+
+<p>The "no_move_namespace" directive in current policy namespace's exception policy cancels the effect of "move_namespace" directive in all policy namespaces' exception policy. The syntax is same with "no_initialize_domain" directive. This is designed for giving you a chance to decline invitations of namespace transition from other namespaces. For example, below example in current namespace's exception policy will decline all "move_namespace" directives from any namespaces' exception policy:</p>
+
+<pre>
+no_move_namespace any from any
+</pre>
+
+<p>Although, the "move_namespace" directive is usually provided by exception policy that implements the namespace specified by the "move_namespace" directive, you can add the "move_namespace" directive to any namespaces.</p>
 
 <p>Also, "auto_namespace_transition=" part in the conditional ACL allows transition to arbitrary namespaces upon permitted by policy. (But as with "auto_domain_transition=" part in the conditional ACL, use with caution because there is no guaranty that the access request that was permitted by policy never fails after the domain transition.)</p>
 
@@ -164,11 +172,18 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <p>Namespace is convenient, but there are a few pitfalls that you need to take care.</p>
 
-<p>Program execution request that causes domain transition across namespaces (i.e. domain transition by "move_namespace" directive) will be silently denied regardless of profile settings if either "the domain to transit to is not defined" or "the profile for the domain to transit to is not defined" is true. This is because "move_namespace" directive is considered as a clear sign for applying different set of policy files and therefore should not automatically inherit configuration from current namespace. <strong>You have to explicitly load domain policy, exception policy and profile for the namespace by the moment a process attempts to transit to that namespace.</strong></p>
+<ul>
+<li>Program execution request that causes domain transition by "move_namespace" directive will be denied (with error messages like below printed on the console) regardless of profile configurations if either "the domain to transit to is not defined" or "the profile for the domain to transit to is not defined" is true. This is because "move_namespace" directive is considered as a clear sign for applying different set of policy files and therefore should not automatically inherit configuration from current namespace. <strong>You have to explicitly load domain policy, exception policy and profile for the namespace by the moment a process attempts to transit to that namespace.</strong>
 
-<p>Although you can develop specific application's policy independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "move_namespace" directive will not be useful</strong> unless one of "auto_namespace_transition=" part in the conditional ACL, "task auto_domain_transition" directive or "task manual_domain_transition" directive is specified.</p>
+<pre class="output">
+ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
+</pre>
 
-<p>Memory allocated for creating namespaces cannot be released as with memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /proc/ccs/stat interface.</p>
+</li>
+<li>Although you can develop specific application's policy independently, the process might unexpectedly transit to different namespaces by invitations from other namespaces. <strong>Use "no_move_namespace" directive as needed in order to decline unwanted invitations.</strong></li>
+
+<li>Memory allocated for creating namespaces cannot be released as with memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /proc/ccs/stat interface.</li>
+</ul>
 
 </div><!-- documentation -->
 
