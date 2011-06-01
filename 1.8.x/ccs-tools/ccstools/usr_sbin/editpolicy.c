@@ -2262,7 +2262,7 @@ static void ccs_delete_entry(const int index)
 			(CCS_PROC_POLICY_DOMAIN_POLICY);
 		if (!fp)
 			return;
-		for (i = 1; i < ccs_dp.list_len; i++) {
+		for (i = 0; i < ccs_dp.list_len; i++) {
 			if (!ccs_dp.list_selected[i])
 				continue;
 			fprintf(fp, "delete %s\n",
