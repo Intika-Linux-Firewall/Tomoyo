@@ -1583,7 +1583,9 @@ static void ccs_read_domain_and_exception_policy(void)
 				break;
 			if (*line == '<') {
 				char *cp = strchr(line, ' ');
-				if (!cp++ || !ccs_is_current_namespace(line))
+				if (!cp++ ||
+				    (!ccs_is_current_namespace(line) &&
+				     strncmp(cp, "move_namespace ", 15)))
 					continue;
 				memmove(line, cp, strlen(cp) + 1);
 			}
