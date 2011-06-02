@@ -35,8 +35,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  security/Makefile         |    3 +++
  33 files changed, 207 insertions(+), 2 deletions(-)
 
---- linux-2.6.32-131.0.15.el6.orig/fs/compat.c
-+++ linux-2.6.32-131.0.15.el6/fs/compat.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/compat.c
++++ linux-2.6.32-131.2.1.el6/fs/compat.c
 @@ -1550,7 +1550,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
@@ -46,8 +46,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-131.0.15.el6.orig/fs/compat_ioctl.c
-+++ linux-2.6.32-131.0.15.el6/fs/compat_ioctl.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/compat_ioctl.c
++++ linux-2.6.32-131.2.1.el6/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -65,9 +65,9 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-131.0.15.el6.orig/fs/exec.c
-+++ linux-2.6.32-131.0.15.el6/fs/exec.c
-@@ -1421,7 +1421,7 @@ int do_execve(char * filename,
+--- linux-2.6.32-131.2.1.el6.orig/fs/exec.c
++++ linux-2.6.32-131.2.1.el6/fs/exec.c
+@@ -1426,7 +1426,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -76,8 +76,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-131.0.15.el6.orig/fs/fcntl.c
-+++ linux-2.6.32-131.0.15.el6/fs/fcntl.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/fcntl.c
++++ linux-2.6.32-131.2.1.el6/fs/fcntl.c
 @@ -428,6 +428,8 @@ SYSCALL_DEFINE3(fcntl, unsigned int, fd,
  		goto out;
  
@@ -96,8 +96,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (err) {
  		fput(filp);
  		return err;
---- linux-2.6.32-131.0.15.el6.orig/fs/ioctl.c
-+++ linux-2.6.32-131.0.15.el6/fs/ioctl.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/ioctl.c
++++ linux-2.6.32-131.2.1.el6/fs/ioctl.c
 @@ -639,6 +639,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
@@ -107,8 +107,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-131.0.15.el6.orig/fs/namei.c
-+++ linux-2.6.32-131.0.15.el6/fs/namei.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/namei.c
++++ linux-2.6.32-131.2.1.el6/fs/namei.c
 @@ -1583,6 +1583,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
@@ -203,8 +203,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.32-131.0.15.el6.orig/fs/namespace.c
-+++ linux-2.6.32-131.0.15.el6/fs/namespace.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/namespace.c
++++ linux-2.6.32-131.2.1.el6/fs/namespace.c
 @@ -1030,6 +1030,8 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
@@ -241,8 +241,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.32-131.0.15.el6.orig/fs/open.c
-+++ linux-2.6.32-131.0.15.el6/fs/open.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/open.c
++++ linux-2.6.32-131.2.1.el6/fs/open.c
 @@ -278,6 +278,8 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error)
@@ -351,8 +351,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.32-131.0.15.el6.orig/fs/proc/version.c
-+++ linux-2.6.32-131.0.15.el6/fs/proc/version.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/proc/version.c
++++ linux-2.6.32-131.2.1.el6/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -360,12 +360,12 @@ This is TOMOYO Linux patch for CentOS 6.1.
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32-131.0.15.el6 2011/05/20\n");
++	printk(KERN_INFO "Hook version: 2.6.32-131.2.1.el6 2011/06/02\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.32-131.0.15.el6.orig/fs/stat.c
-+++ linux-2.6.32-131.0.15.el6/fs/stat.c
+--- linux-2.6.32-131.2.1.el6.orig/fs/stat.c
++++ linux-2.6.32-131.2.1.el6/fs/stat.c
 @@ -43,6 +43,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
@@ -375,8 +375,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (retval)
  		return retval;
  
---- linux-2.6.32-131.0.15.el6.orig/include/linux/init_task.h
-+++ linux-2.6.32-131.0.15.el6/include/linux/init_task.h
+--- linux-2.6.32-131.2.1.el6.orig/include/linux/init_task.h
++++ linux-2.6.32-131.2.1.el6/include/linux/init_task.h
 @@ -115,6 +115,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
@@ -400,8 +400,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  }
  
  
---- linux-2.6.32-131.0.15.el6.orig/include/linux/sched.h
-+++ linux-2.6.32-131.0.15.el6/include/linux/sched.h
+--- linux-2.6.32-131.2.1.el6.orig/include/linux/sched.h
++++ linux-2.6.32-131.2.1.el6/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -422,8 +422,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.32-131.0.15.el6.orig/include/linux/security.h
-+++ linux-2.6.32-131.0.15.el6/include/linux/security.h
+--- linux-2.6.32-131.2.1.el6.orig/include/linux/security.h
++++ linux-2.6.32-131.2.1.el6/include/linux/security.h
 @@ -35,6 +35,7 @@
  #include <linux/xfrm.h>
  #include <linux/gfp.h>
@@ -432,8 +432,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
---- linux-2.6.32-131.0.15.el6.orig/include/net/ip.h
-+++ linux-2.6.32-131.0.15.el6/include/net/ip.h
+--- linux-2.6.32-131.2.1.el6.orig/include/net/ip.h
++++ linux-2.6.32-131.2.1.el6/include/net/ip.h
 @@ -30,6 +30,7 @@
  #include <net/inet_sock.h>
  #include <net/snmp.h>
@@ -451,8 +451,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.32-131.0.15.el6.orig/kernel/compat.c
-+++ linux-2.6.32-131.0.15.el6/kernel/compat.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/compat.c
++++ linux-2.6.32-131.2.1.el6/kernel/compat.c
 @@ -924,6 +924,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
@@ -462,8 +462,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.32-131.0.15.el6.orig/kernel/fork.c
-+++ linux-2.6.32-131.0.15.el6/kernel/fork.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/fork.c
++++ linux-2.6.32-131.2.1.el6/kernel/fork.c
 @@ -168,6 +168,7 @@ void __put_task_struct(struct task_struc
  	exit_creds(tsk);
  	delayacct_tsk_free(tsk);
@@ -490,8 +490,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-2.6.32-131.0.15.el6.orig/kernel/kexec.c
-+++ linux-2.6.32-131.0.15.el6/kernel/kexec.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/kexec.c
++++ linux-2.6.32-131.2.1.el6/kernel/kexec.c
 @@ -40,6 +40,7 @@
  #include <asm/system.h>
  #include <asm/sections.h>
@@ -509,8 +509,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	if (kexec_load_disabled)
  		return -EPERM;
---- linux-2.6.32-131.0.15.el6.orig/kernel/module.c
-+++ linux-2.6.32-131.0.15.el6/kernel/module.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/module.c
++++ linux-2.6.32-131.2.1.el6/kernel/module.c
 @@ -56,6 +56,7 @@
  #include <linux/percpu.h>
  #include <linux/kmemleak.h>
@@ -537,8 +537,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.32-131.0.15.el6.orig/kernel/ptrace.c
-+++ linux-2.6.32-131.0.15.el6/kernel/ptrace.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/ptrace.c
++++ linux-2.6.32-131.2.1.el6/kernel/ptrace.c
 @@ -195,6 +195,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -557,8 +557,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.32-131.0.15.el6.orig/kernel/sched.c
-+++ linux-2.6.32-131.0.15.el6/kernel/sched.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/sched.c
++++ linux-2.6.32-131.2.1.el6/kernel/sched.c
 @@ -6459,6 +6459,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -568,8 +568,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.32-131.0.15.el6.orig/kernel/signal.c
-+++ linux-2.6.32-131.0.15.el6/kernel/signal.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/signal.c
++++ linux-2.6.32-131.2.1.el6/kernel/signal.c
 @@ -2278,6 +2278,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -615,8 +615,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.32-131.0.15.el6.orig/kernel/sys.c
-+++ linux-2.6.32-131.0.15.el6/kernel/sys.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/sys.c
++++ linux-2.6.32-131.2.1.el6/kernel/sys.c
 @@ -155,6 +155,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -655,8 +655,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.32-131.0.15.el6.orig/kernel/sysctl.c
-+++ linux-2.6.32-131.0.15.el6/kernel/sysctl.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/sysctl.c
++++ linux-2.6.32-131.2.1.el6/kernel/sysctl.c
 @@ -2016,6 +2016,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
@@ -667,8 +667,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.32-131.0.15.el6.orig/kernel/time.c
-+++ linux-2.6.32-131.0.15.el6/kernel/time.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/time.c
++++ linux-2.6.32-131.2.1.el6/kernel/time.c
 @@ -92,6 +92,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
@@ -687,8 +687,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.32-131.0.15.el6.orig/kernel/time/ntp.c
-+++ linux-2.6.32-131.0.15.el6/kernel/time/ntp.c
+--- linux-2.6.32-131.2.1.el6.orig/kernel/time/ntp.c
++++ linux-2.6.32-131.2.1.el6/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -713,8 +713,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.32-131.0.15.el6.orig/net/ipv4/raw.c
-+++ linux-2.6.32-131.0.15.el6/net/ipv4/raw.c
+--- linux-2.6.32-131.2.1.el6.orig/net/ipv4/raw.c
++++ linux-2.6.32-131.2.1.el6/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -734,8 +734,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.32-131.0.15.el6.orig/net/ipv4/udp.c
-+++ linux-2.6.32-131.0.15.el6/net/ipv4/udp.c
+--- linux-2.6.32-131.2.1.el6.orig/net/ipv4/udp.c
++++ linux-2.6.32-131.2.1.el6/net/ipv4/udp.c
 @@ -105,6 +105,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -755,8 +755,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32-131.0.15.el6.orig/net/ipv6/raw.c
-+++ linux-2.6.32-131.0.15.el6/net/ipv6/raw.c
+--- linux-2.6.32-131.2.1.el6.orig/net/ipv6/raw.c
++++ linux-2.6.32-131.2.1.el6/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -776,8 +776,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.32-131.0.15.el6.orig/net/ipv6/udp.c
-+++ linux-2.6.32-131.0.15.el6/net/ipv6/udp.c
+--- linux-2.6.32-131.2.1.el6.orig/net/ipv6/udp.c
++++ linux-2.6.32-131.2.1.el6/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -797,8 +797,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32-131.0.15.el6.orig/net/socket.c
-+++ linux-2.6.32-131.0.15.el6/net/socket.c
+--- linux-2.6.32-131.2.1.el6.orig/net/socket.c
++++ linux-2.6.32-131.2.1.el6/net/socket.c
 @@ -563,6 +563,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
@@ -859,8 +859,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (err)
  		goto out_put;
  
---- linux-2.6.32-131.0.15.el6.orig/net/unix/af_unix.c
-+++ linux-2.6.32-131.0.15.el6/net/unix/af_unix.c
+--- linux-2.6.32-131.2.1.el6.orig/net/unix/af_unix.c
++++ linux-2.6.32-131.2.1.el6/net/unix/af_unix.c
 @@ -838,6 +838,10 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_dput;
@@ -883,8 +883,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-2.6.32-131.0.15.el6.orig/security/Kconfig
-+++ linux-2.6.32-131.0.15.el6/security/Kconfig
+--- linux-2.6.32-131.2.1.el6.orig/security/Kconfig
++++ linux-2.6.32-131.2.1.el6/security/Kconfig
 @@ -177,5 +177,7 @@ source security/tomoyo/Kconfig
  
  source security/integrity/ima/Kconfig
@@ -893,8 +893,8 @@ This is TOMOYO Linux patch for CentOS 6.1.
 +
  endmenu
  
---- linux-2.6.32-131.0.15.el6.orig/security/Makefile
-+++ linux-2.6.32-131.0.15.el6/security/Makefile
+--- linux-2.6.32-131.2.1.el6.orig/security/Makefile
++++ linux-2.6.32-131.2.1.el6/security/Makefile
 @@ -25,3 +25,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima

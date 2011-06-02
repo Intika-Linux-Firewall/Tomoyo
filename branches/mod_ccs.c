@@ -646,7 +646,7 @@ static bool ccs_correct_domain(const char *domainname)
 		if (!cp)
 			break;
 		if (*domainname != '/' ||
-		    !ccs_correct_word2(domainname, cp - domainname - 1))
+		    !ccs_correct_word2(domainname, cp - domainname))
 			goto out;
 		domainname = cp + 1;
 	}
