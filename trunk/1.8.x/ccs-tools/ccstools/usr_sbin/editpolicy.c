@@ -104,8 +104,8 @@ static int ccs_current_namespace_len = 0;
 
 /* Domain transition coltrol keywords. */
 static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_NAMESPACE]     = "move_namespace ",
-	[CCS_TRANSITION_CONTROL_NO_NAMESPACE]  = "no_move_namespace ",
+	[CCS_TRANSITION_CONTROL_TRANSIT]       = "transit_namespace ",
+	[CCS_TRANSITION_CONTROL_NO_TRANSIT]    = "no_transit_namespace ",
 	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
 	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
 	[CCS_TRANSITION_CONTROL_KEEP]          = "keep_domain ",
@@ -397,7 +397,7 @@ static int ccs_string_acl_compare(const void *a, const void *b)
 }
 
 /**
- * ccs_add_transition_control_policy - Add "move_namespace"/"no_move_namespace"/"initialize_domain"/"no_initialize_domain"/"keep_domain"/ "no_keep_domain" entries.
+ * ccs_add_transition_control_policy - Add "transit_namespace"/"no_transit_namespace"/"initialize_domain"/"no_initialize_domain"/"keep_domain"/ "no_keep_domain" entries.
  *
  * @data: Line to parse.
  * @type: One of values in "enum ccs_transition_type".
@@ -455,7 +455,7 @@ static void ccs_assign_dis(const struct ccs_path_info *domainname,
 	 */
 	if (d_t && ((!is_root &&
 		     d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE) ||
-		    d_t->type == CCS_TRANSITION_CONTROL_NAMESPACE)) {
+		    d_t->type == CCS_TRANSITION_CONTROL_TRANSIT)) {
 		char *line;
 		int source;
 		ccs_get();
@@ -1009,10 +1009,10 @@ next:
 			if (ptr->program &&
 			    strcmp(ptr->program->name, program))
 				continue;
-			if (type == CCS_TRANSITION_CONTROL_NO_NAMESPACE) {
+			if (type == CCS_TRANSITION_CONTROL_NO_TRANSIT) {
 				/*
-				 * Do not check for move_namespace if
-				 * no_move_namespace matched.
+				 * Do not check for transit_namespace if
+				 * no_transit_namespace matched.
 				 */
 				type = CCS_TRANSITION_CONTROL_NO_INITIALIZE;
 				goto next;
@@ -1025,7 +1025,7 @@ next:
 				type = CCS_TRANSITION_CONTROL_NO_KEEP;
 				goto next;
 			}
-			if (type == CCS_TRANSITION_CONTROL_NAMESPACE ||
+			if (type == CCS_TRANSITION_CONTROL_TRANSIT ||
 			    type == CCS_TRANSITION_CONTROL_INITIALIZE ||
 			    type == CCS_TRANSITION_CONTROL_KEEP)
 				return ptr;
