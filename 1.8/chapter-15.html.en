@@ -112,22 +112,22 @@ use_group 0
 
 <p>As explained above, directives for jumping to different namespaces needs to be added to other namespaces. Two more directives are added.</p>
 
-<p>The "move_namespace" directive causes programs to run in the namespace specified by this program. The syntax is same with "initialize_domain" directive. Below example causes all executions of /usr/sbin/sshd to be transit to "&lt;/usr/sbin/sshd&gt;" domain:</p>
+<p>The "transit_namespace" directive causes programs to run in the namespace specified by this program. The syntax is same with "initialize_domain" directive. Below example causes all executions of /usr/sbin/sshd to be transit to "&lt;/usr/sbin/sshd&gt;" domain:</p>
 
 <pre>
-move_namespace /usr/sbin/sshd from any
+transit_namespace /usr/sbin/sshd from any
 </pre>
 
-<p>The "no_move_namespace" directive cancels the effect of "move_namespace" directive. The syntax is same with "no_initialize_domain" directive.</p>
+<p>The "no_transit_namespace" directive cancels the effect of "transit_namespace" directive. The syntax is same with "no_initialize_domain" directive.</p>
 
-<p>Also, "auto_namespace_transition=" part in the conditional ACL allows transition to arbitrary namespaces upon permitted by policy. (But as with "auto_domain_transition=" part in the conditional ACL, use with caution because there is no guaranty that the access request that was permitted by policy never fails after the domain transition.)</p>
+<p>Also, "auto_domain_transition=" part in the conditional ACL allows transition to arbitrary namespaces upon permitted by policy. (But use with caution because there is no guaranty that the access request that was permitted by policy never fails after the domain transition.)</p>
 
 <pre>
-file pivot_root /usr/lxc/lxc1/ /usr/lxc/lxc1/oldroot/ auto_namespace_transition="&lt;lxc1&gt;"
-file pivot_root /usr/lxc/lxc2/ /usr/lxc/lxc2/oldroot/ auto_namespace_transition="&lt;lxc2&gt;"
+file pivot_root /usr/lxc/lxc1/ /usr/lxc/lxc1/oldroot/ auto_domain_transition="&lt;lxc1&gt;"
+file pivot_root /usr/lxc/lxc2/ /usr/lxc/lxc2/oldroot/ auto_domain_transition="&lt;lxc2&gt;"
 </pre>
 
-<p>While "move_namespace" directive allows only transition to the domain where the name of the namespace is equals to the name of the program, "auto_namespace_transition=" part in the conditional ACL allows transition to the domain where the name of the namespace is an arbitrary word. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;Apache&gt;".</p>
+<p>While "transit_namespace" directive allows only transition to the domain where the name of the namespace is equals to the name of the program, "auto_domain_transition=" part in the conditional ACL allows transition to the domain where the name of the namespace is an arbitrary word. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;Apache&gt;".</p>
 
 <p>Regarding "task auto_domain_transition" directive and "task manual_domain_transition" directive, there is no change because these directives receive a domainname which already contains the name of namespace. Thus, you can specify like below:</p>
 
@@ -138,7 +138,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo02.com
 task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 </pre>
 
-<p>While "move_namespace" directive and "auto_namespace_transition=" part in the conditional ACL allow only transition to the domain where the name of the domain is equals to the name of the domain's namespace, "task auto_domain_transition" directive and "task manual_domain_transition" directive allow transition to arbitrary domains. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi".</p>
+<p>While "transit_namespace" directive and "auto_domain_transition=" part in the conditional ACL allow only transition to the domain where the name of the domain is equals to the name of the domain's namespace, "task auto_domain_transition" directive and "task manual_domain_transition" directive allow transition to arbitrary domains. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi".</p>
 
 <h3><a name="15.4">15.4. How to use namespace from policy editor?</a></h3>
 
@@ -165,12 +165,12 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 <p>Namespace is convenient, but there are a few pitfalls that you need to take care.</p>
 
 <ul>
-<li>Program execution request that causes domain transition by "move_namespace" directive will be denied (with error messages like below printed on the console) regardless of profile configurations if either "the domain to transit to is not defined" or "the profile for the domain to transit to is not defined" is true. This is because "move_namespace" directive is considered as a clear sign for applying different set of policy files and therefore should not automatically inherit configuration from current namespace. <strong>You have to explicitly load domain policy, exception policy and profile for the namespace by the moment a process attempts to transit to that namespace.</strong>
+<li>Program execution request that causes domain transition by "transit_namespace" directive will be denied (with error messages like below printed on the console) regardless of profile configurations if either "the domain to transit to is not defined" or "the profile for the domain to transit to is not defined" is true. This is because "transit_namespace" directive is considered as a clear sign for applying different set of policy files and therefore should not automatically inherit configuration from current namespace. <strong>You have to explicitly load domain policy, exception policy and profile for the namespace by the moment a process attempts to transit to that namespace.</strong>
 <pre class="output">
 ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
-<li>Although you can develop specific application's policy independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "move_namespace" directive will not be useful</strong> unless one of "auto_namespace_transition=" part in the conditional ACL, "task auto_domain_transition" directive or "task manual_domain_transition" directive is specified.</li>
+<li>Although you can develop specific application's policy independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "transit_namespace" directive will not be useful</strong> unless one of "auto_domain_transition=" part in the conditional ACL, "task auto_domain_transition" directive or "task manual_domain_transition" directive is specified.</li>
 <li>Memory allocated for creating namespaces cannot be released as with memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /proc/ccs/stat interface.</li>
 </ul>
 
