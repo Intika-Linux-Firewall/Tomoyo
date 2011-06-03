@@ -3005,7 +3005,6 @@ void __init ccs_policy_io_init(void)
 	ccsecurity_ops.check_profile = ccs_check_profile;
 }
 
-#ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
 /**
  * ccs_load_builtin_policy - Load built-in policy.
  *
@@ -3060,8 +3059,7 @@ void __init ccs_load_builtin_policy(void)
 		}
 	}
 	ccs_read_unlock(idx);
-#ifdef CONFIG_CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
+#ifdef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
 	ccs_check_profile();
 #endif
 }
-#endif

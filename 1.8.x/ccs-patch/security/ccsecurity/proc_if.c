@@ -356,9 +356,7 @@ static int __init ccs_init_module(void)
 	ccs_policy_io_init();
 	ccs_domain_init();
 	ccs_proc_init();
-#ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
 	ccs_load_builtin_policy();
-#endif
 	return 0;
 }
 

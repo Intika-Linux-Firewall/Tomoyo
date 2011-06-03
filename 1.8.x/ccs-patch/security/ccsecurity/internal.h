@@ -1398,6 +1398,7 @@ struct ccs_policy_namespace {
 void __init ccs_capability_init(void);
 void __init ccs_domain_init(void);
 void __init ccs_file_init(void);
+void __init ccs_load_builtin_policy(void);
 void __init ccs_mm_init(void);
 void __init ccs_mount_init(void);
 void __init ccs_network_init(void);
@@ -1520,9 +1521,6 @@ void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 void ccs_write_log2(struct ccs_request_info *r, int len, const char *fmt,
 		    va_list args);
-#ifdef CONFIG_CCSECURITY_USE_BUILTIN_POLICY
-void __init ccs_load_builtin_policy(void);
-#endif
 
 /* Variable definition for internal use. */
 

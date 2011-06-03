@@ -33,28 +33,6 @@
 
 #include <linux/ccsecurity.h>
 
-#ifndef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
-
-/* Path to the policy loader. (default = CONFIG_CCSECURITY_DEFAULT_LOADER) */
-static const char *ccs_loader;
-
-/**
- * ccs_loader_setup - Specify the policy loader to use.
- *
- * @str: Path to the policy loader.
- *
- * Returns 0.
- */
-static int __init ccs_loader_setup(char *str)
-{
-	ccs_loader = str;
-	return 0;
-}
-
-__setup("CCS_loader=", ccs_loader_setup);
-
-#endif
-
 /**
  * ccs_setup - Set enable/disable upon boot.
  *
@@ -82,28 +60,17 @@ __setup("ccsecurity=", ccs_setup);
  */
 static _Bool ccs_policy_loader_exists(void)
 {
-	/*
-	 * Don't activate MAC if the path given by 'CCS_loader=' option doesn't
-	 * exist. If the initrd includes /sbin/init but real-root-dev has not
-	 * mounted on / yet, activating MAC will block the system since
-	 * policies are not loaded yet.
-	 * Thus, let do_execve() call this function every time.
-	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
 	struct path path;
-	if (!ccs_loader)
-		ccs_loader = CONFIG_CCSECURITY_DEFAULT_LOADER;
-	if (kern_path(ccs_loader, LOOKUP_FOLLOW | LOOKUP_POSITIVE,
-		      &path) == 0) {
+	if (kern_path(CONFIG_CCSECURITY_POLICY_LOADER,
+		      LOOKUP_FOLLOW | LOOKUP_POSITIVE, &path) == 0) {
 		path_put(&path);
 		return 1;
 	}
 #else
 	struct nameidata nd;
-	if (!ccs_loader)
-		ccs_loader = CONFIG_CCSECURITY_DEFAULT_LOADER;
-	if (path_lookup(ccs_loader, LOOKUP_FOLLOW | LOOKUP_POSITIVE,
-			&nd) == 0) {
+	if (path_lookup(CONFIG_CCSECURITY_POLICY_LOADER,
+			LOOKUP_FOLLOW | LOOKUP_POSITIVE, &nd) == 0) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		path_put(&nd.path);
 #else
@@ -113,7 +80,7 @@ static _Bool ccs_policy_loader_exists(void)
 	}
 #endif
 	printk(KERN_INFO "Not activating Mandatory Access Control "
-	       "as %s does not exist.\n", ccs_loader);
+	       "as %s does not exist.\n", CONFIG_CCSECURITY_POLICY_LOADER);
 	return 0;
 }
 
@@ -131,8 +98,8 @@ static int ccs_run_loader(void *unused)
 	char *argv[2];
 	char *envp[3];
 	printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
-	       ccs_loader);
-	argv[0] = (char *) ccs_loader;
+	       CONFIG_CCSECURITY_POLICY_LOADER);
+	argv[0] = (char *) CONFIG_CCSECURITY_POLICY_LOADER;
 	argv[1] = NULL;
 	envp[0] = "HOME=/";
 	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
@@ -159,8 +126,7 @@ static void ccs_load_policy(const char *filename)
 {
 	if (ccsecurity_ops.disabled)
 		return;
-	if (strcmp(filename, "/sbin/init") &&
-	    strcmp(filename, CONFIG_CCSECURITY_ALTERNATIVE_TRIGGER))
+	if (strcmp(filename, CONFIG_CCSECURITY_ACTIVATION_TRIGGER))
 		return;
 	if (!ccs_policy_loader_exists())
 		return;
@@ -169,8 +135,8 @@ static void ccs_load_policy(const char *filename)
 		char *argv[2];
 		char *envp[3];
 		printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
-		       ccs_loader);
-		argv[0] = (char *) ccs_loader;
+		       CONFIG_CCSECURITY_POLICY_LOADER);
+		argv[0] = (char *) CONFIG_CCSECURITY_POLICY_LOADER;
 		argv[1] = NULL;
 		envp[0] = "HOME=/";
 		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
