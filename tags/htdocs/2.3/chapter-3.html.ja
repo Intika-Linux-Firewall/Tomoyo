@@ -88,7 +88,7 @@ ffffffff8115e460 T tomoyo_supervisor
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。</p>
 
-<p>メインラインのカーネルのソースに反映することが間に合わなかった不具合修正パッチがあるかもしれません。利用するカーネルのバージョンに合った全ての不具合修正パッチ（例えば 2.6.38 カーネルの場合には 2.6.38-tomoyo-\*.patch ）を <a href="http://tomoyo.sourceforge.jp/2.3/patches/">http://tomoyo.sourceforge.jp/2.3/patches/</a> からダウンロードして、カーネルのソースコードを展開したディレクトリから以下のコマンドを実行してください。（以下のコマンドは、適用済みのパッチがあればスキップします。）</p>
+<p>メインラインのカーネルのソースに反映することが間に合わなかった不具合修正パッチがあるかもしれません。利用するカーネルのバージョンに合った全ての不具合修正パッチ（例えば 2.6.39 カーネルの場合には 2.6.39-tomoyo-\*.patch ）を <a href="http://tomoyo.sourceforge.jp/2.3/patches/">http://tomoyo.sourceforge.jp/2.3/patches/</a> からダウンロードして、カーネルのソースコードを展開したディレクトリから以下のコマンドを実行してください。（以下のコマンドは、適用済みのパッチがあればスキップします。）</p>
 
 <pre class="command">
 $ for i in 2.6.*-tomoyo-*.patch; do patch -Nt -p1 --dry-run &lt; $i &amp;&amp; patch -p1 &lt; $i; done

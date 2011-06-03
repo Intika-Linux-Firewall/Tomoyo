@@ -90,7 +90,7 @@ Linux kernel 2.6.36 and later are supported.</p>
 
 <p>Extract the kernel source and go to the extracted directory.</p>
 
-<p>There may be bugfixes that are too late to get merged in the upstream kernel releases. Download all patches that match your kernel version (e.g. 2.6.38-tomoyo-\*.patch for 2.6.38 kernels) from <a href="http://tomoyo.sourceforge.jp/2.3/patches/">http://tomoyo.sourceforge.jp/2.3/patches/</a> and run below command from the kernel's top directory. (Below command will skip already applied patch if any.)</p>
+<p>There may be bugfixes that are too late to get merged in the upstream kernel releases. Download all patches that match your kernel version (e.g. 2.6.39-tomoyo-\*.patch for 2.6.39 kernels) from <a href="http://tomoyo.sourceforge.jp/2.3/patches/">http://tomoyo.sourceforge.jp/2.3/patches/</a> and run below command from the kernel's top directory. (Below command will skip already applied patch if any.)</p>
 
 <pre class="command">
 $ for i in 2.6.*-tomoyo-*.patch; do patch -Nt -p1 --dry-run &lt; $i &amp;&amp; patch -p1 &lt; $i; done
