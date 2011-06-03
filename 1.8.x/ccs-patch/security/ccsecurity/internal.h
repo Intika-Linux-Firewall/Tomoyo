@@ -1448,7 +1448,7 @@ const struct ccs_path_info *ccs_get_name(const char *name);
 const struct ccs_path_info *ccs_path_matches_group
 (const struct ccs_path_info *pathname, const struct ccs_group *group);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
-int ccs_close_control(struct file *file);
+int ccs_close_control(struct ccs_io_buffer *head);
 int ccs_env_perm(struct ccs_request_info *r, const char *env);
 int ccs_get_path(const char *pathname, struct path *path);
 int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
@@ -1482,10 +1482,10 @@ int ccs_write_misc(struct ccs_acl_param *param);
 int ccs_write_reserved_port(struct ccs_acl_param *param);
 int ccs_write_transition_control(struct ccs_acl_param *param, const u8 type);
 int ccs_write_unix_network(struct ccs_acl_param *param);
-ssize_t ccs_read_control(struct file *file, char __user *buffer,
+ssize_t ccs_read_control(struct ccs_io_buffer *head, char __user *buffer,
 			 const size_t buffer_len);
-ssize_t ccs_write_control(struct file *file, const char __user *buffer,
-			  const size_t buffer_len);
+ssize_t ccs_write_control(struct ccs_io_buffer *head,
+			  const char __user *buffer, const size_t buffer_len);
 struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const bool transit);
