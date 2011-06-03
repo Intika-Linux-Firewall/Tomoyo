@@ -155,7 +155,7 @@ static int ccs_open(struct inode *inode, struct file *file)
  */
 static int ccs_release(struct inode *inode, struct file *file)
 {
-	return ccs_close_control(file);
+	return ccs_close_control(file->private_data);
 }
 
 /**
@@ -184,7 +184,7 @@ static unsigned int ccs_poll(struct file *file, poll_table *wait)
 static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
 			loff_t *ppos)
 {
-	return ccs_read_control(file, buf, count);
+	return ccs_read_control(file->private_data, buf, count);
 }
 
 /**
@@ -200,7 +200,7 @@ static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
 static ssize_t ccs_write(struct file *file, const char __user *buf,
 			 size_t count, loff_t *ppos)
 {
-	return ccs_write_control(file, buf, count);
+	return ccs_write_control(file->private_data, buf, count);
 }
 
 /* Operations for /proc/ccs/ interface. */

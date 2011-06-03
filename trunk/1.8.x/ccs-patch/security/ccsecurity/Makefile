@@ -26,8 +26,8 @@ policy/profile.conf:
 
 policy/exception_policy.conf:
 	@echo Creating a default policy/exception_policy.conf
-	@echo /sbin/modprobe >> $@
-	@echo /sbin/hotplug >> $@
+	@echo initialize_domain /sbin/modprobe from any >> $@
+	@echo initialize_domain /sbin/hotplug from any >> $@
 
 policy/domain_policy.conf:
 	@echo Creating an empty policy/domain_policy.conf
@@ -70,8 +70,8 @@ $(obj)/policy/profile.conf:
 
 $(obj)/policy/exception_policy.conf:
 	@echo Creating a default policy/exception_policy.conf
-	@echo /sbin/modprobe >> $@
-	@echo /sbin/hotplug >> $@
+	@echo initialize_domain /sbin/modprobe from any >> $@
+	@echo initialize_domain /sbin/hotplug from any >> $@
 
 $(obj)/policy/domain_policy.conf:
 	@echo Creating an empty policy/domain_policy.conf
