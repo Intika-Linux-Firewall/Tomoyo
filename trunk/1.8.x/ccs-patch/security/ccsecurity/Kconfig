@@ -60,72 +60,10 @@ config CCSECURITY_MAX_AUDIT_LOG
 	  You can read the log via /proc/ccs/audit.
 	  If you don't need audit logs, you may set this value to 0.
 
-config CCSECURITY_USE_BUILTIN_POLICY
-	bool "Use built-in policy"
+config CCSECURITY_OMIT_USERSPACE_LOADER
+	bool "Activate without calling userspace policy loader."
 	default n
 	depends on CCSECURITY
-	---help---
-	  Say Y here if you want to embed initial policy files into the kernel.
-	  This is a superset of "Built-in domain initializer programs".
-
-	  To use this option, you need to create a file named
-	  security/ccsecurity/builtin-policy.h that contains /proc/ccs/profile
-	  /proc/ccs/exception_policy /proc/ccs/domain_policy /proc/ccs/manager
-	  and /proc/ccs/stat in this order which are quoted and escaped in
-	  accordance with C syntax. An example content of the file looks like:
-
-	    /* Profile configuration. */
-	    "PROFILE_VERSION=20100903\n"
-	    "0-CONFIG={ mode=enforcing }\n",
-	    /* Exception policy configuration. */
-	    "initialize_domain /sbin/modprobe from any\n"
-	    "initialize_domain /sbin/hotplug from any\n",
-	    /* Domain policy configuration. */
-	    "<kernel>\n"
-	    "use_profile 0\n"
-	    "use_group 0\n"
-	    "file execute /sbin/init\n"
-	    "file execute /sbin/modprobe\n"
-	    "file execute /sbin/hotplug\n"
-	    "<kernel> /sbin/init\n"
-	    "use_profile 0\n"
-	    "use_group 0\n",
-	    /* Manager configuration. */
-	    "/usr/sbin/ccs-editpolicy\n",
-	    /* Stat configuration. */
-	    "Memory used by policy: 0\n"
-	    "Memory used by audit log: 16777216\n"
-	    "Memory used by query message: 1048576\n"
-
-	  Note that you need to escape as needed (e.g. use \\ to represent \ ,
-	  use \n to represent a new line) because the file is interpreted as
-	  a C source file.
-
-config CCSECURITY_BUILTIN_INITIALIZERS
-	string "Built-in domain initializer programs"
-	default "/sbin/modprobe /sbin/hotplug"
-	depends on CCSECURITY
-	depends on !CCSECURITY_USE_BUILTIN_POLICY
-	---help---
-	  Some programs are executed from initrd/initramfs before /sbin/init
-	  starts.
-
-	  Since policy is loaded when /sbin/init starts, it is impossible to
-	  run such programs outside the <kernel> domain. Usually it is fine.
-
-	  But if such programs continue running when /sbin/init starts, such
-	  programs will reside in the <kernel> domain.
-	  If such programs executes /bin/sh , you will give the <kernel> domain
-	  permission to execute /bin/sh ; I think you don't want to do so.
-
-	  This option allows you to chase such programs away from the <kernel>
-	  domain so that you won't give the <kernel> domain permission to
-	  execute /bin/sh .
-
-config CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
-	bool "Activate immediately after loading built-in policy."
-	default n
-	depends on CCSECURITY_USE_BUILTIN_POLICY
 	---help---
 	  Say Y here if you want to activate access control as soon as built-in
 	  policy was loaded. This option will be useful for systems where
@@ -138,35 +76,18 @@ config CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
 	  enforcing mode from the beginning, you can reduce the possibility of
 	  hijacking the boot sequence.
 
-	  If you say Y here, you may want to change "Default policy loader" to
-	  something like /bin/true because the role of policy loader is nothing
-	  but to activate. If you have nothing more to add to policy before
-	  activation, you may want to choose "Omit calling policy loader when
-	  /sbin/init starts." because you no longer need to call policy loader.
-
-config CCSECURITY_OMIT_USERSPACE_LOADER
-	bool "Omit calling policy loader when /sbin/init starts."
-	default y
-	depends on CCSECURITY_ACTIVATE_FROM_THE_BEGINNING
-	---help---
-	  Say Y here if you want to skip calling policy loader when /sbin/init
-	  starts. If you embedded policy using "Use built-in policy" and chose
-	  "Activate immediately after loading built-in policy.", you don't need
-	  to call policy loader.
-
-config CCSECURITY_DEFAULT_LOADER
-	string "Default policy loader"
+config CCSECURITY_POLICY_LOADER
+	string "Location of userspace policy loader"
 	default "/sbin/ccs-init"
 	depends on CCSECURITY
 	depends on !CCSECURITY_OMIT_USERSPACE_LOADER
 	---help---
-	  This is the default pathname of policy loader which is called before
-	  activation. You can override using CCS_loader= kernel command line
-	  option.
+	  This is the pathname of policy loader which is called before
+	  activation.
 
-config CCSECURITY_ALTERNATIVE_TRIGGER
-	string "Alternative activation trigger"
-	default "/sbin/ccs-start"
+config CCSECURITY_ACTIVATION_TRIGGER
+	string "Trigger for calling userspace policy loader"
+	default "/sbin/init"
 	depends on CCSECURITY
 	depends on !CCSECURITY_OMIT_USERSPACE_LOADER
 	---help---
