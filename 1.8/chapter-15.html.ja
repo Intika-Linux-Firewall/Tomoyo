@@ -112,13 +112,13 @@ use_group 0
 
 <p>上で説明したように、ある名前空間から他の名前空間へとジャンプするためのディレクティブを追加する必要があります。そのために２つのディレクティブが定義されています。</p>
 
-<p>transit_namespace ディレクティブは、このディレクティブで指定されたプログラムのパス名を持つ名前空間へと遷移するようにします。構文は initialize_domain ディレクティブと同じです。以下の例では /usr/sbin/sshd が実行されると &lt;/usr/sbin/sshd&gt; ドメインへと遷移するようになります：</p>
+<p>reset_domain ディレクティブは、このディレクティブで指定されたプログラムのパス名を持つ名前空間へと遷移するようにします。構文は initialize_domain ディレクティブと同じです。以下の例では /usr/sbin/sshd が実行されると &lt;/usr/sbin/sshd&gt; ドメインへと遷移するようになります：</p>
 
 <pre>
-transit_namespace /usr/sbin/sshd from any
+reset_domain /usr/sbin/sshd from any
 </pre>
 
-<p>no_transit_namespace ディレクティブは、 transit_namespace ディレクティブの効果を打ち消します。構文は no_initialize_domain ディレクティブと同じです。</p>
+<p>no_reset_domain ディレクティブは、 reset_domain ディレクティブの効果を打ち消します。構文は no_initialize_domain ディレクティブと同じです。</p>
 
 <p>また、条件付きアクセス許可の auto_domain_transition= という指定を用いて、ポリシーで許可されるのと同時に任意の名前空間へと遷移させることができます。（ただし、ポリシーで許可されたからといって、ドメイン遷移の後にそのアクセス要求が成功するという保証は存在しないため、利用する場合には注意してください。）</p>
 
@@ -127,7 +127,7 @@ file pivot_root /usr/lxc/lxc1/ /usr/lxc/lxc1/oldroot/ auto_domain_transition="&l
 file pivot_root /usr/lxc/lxc2/ /usr/lxc/lxc2/oldroot/ auto_domain_transition="&lt;lxc2&gt;"
 </pre>
 
-<p>transit_namespace ディレクティブは指定されたプログラムのパス名と同じ名前のドメインへしか遷移できないのに対して、条件付きアクセス許可の auto_domain_transition= という指定では任意の単語のドメインへと遷移することができます。言い換えると、前者は &lt;/usr/sbin/httpd&gt; のようなドメインへしか遷移できないのに対して、後者は &lt;/usr/sbin/httpd&gt; や &lt;Apache&gt; のようなドメインへ遷移できます。</p>
+<p>reset_domain ディレクティブは指定されたプログラムのパス名と同じ名前のドメインへしか遷移できないのに対して、条件付きアクセス許可の auto_domain_transition= という指定では任意の単語のドメインへと遷移することができます。言い換えると、前者は &lt;/usr/sbin/httpd&gt; のようなドメインへしか遷移できないのに対して、後者は &lt;/usr/sbin/httpd&gt; や &lt;Apache&gt; のようなドメインへ遷移できます。</p>
 
 <p>task auto_domain_transition ディレクティブおよび task manual_domain_transition ディレクティブは、このディレクティブで指定するドメイン名の中に既に名前空間が含まれているため、何の変更もありません。そのため、以下のように指定することができます：</p>
 
@@ -138,7 +138,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo02.com
 task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 </pre>
 
-<p>transit_namespace ディレクティブおよび条件付きアクセス許可の auto_domain_transition= という指定は名前空間と同じ名前のドメインへしか遷移できないのに対して、 task auto_domain_transition ディレクティブおよび task manual_domain_transition ディレクティブは任意のドメインへと遷移することができます。言い換えると、前者は &lt;/usr/sbin/httpd&gt; のようなドメインへしか遷移できないのに対して、後者は &lt;/usr/sbin/httpd&gt; や &lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi のようなドメインへ遷移できます。</p>
+<p>reset_domain ディレクティブおよび条件付きアクセス許可の auto_domain_transition= という指定は名前空間と同じ名前のドメインへしか遷移できないのに対して、 task auto_domain_transition ディレクティブおよび task manual_domain_transition ディレクティブは任意のドメインへと遷移することができます。言い換えると、前者は &lt;/usr/sbin/httpd&gt; のようなドメインへしか遷移できないのに対して、後者は &lt;/usr/sbin/httpd&gt; や &lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi のようなドメインへ遷移できます。</p>
 
 <h3><a name="15.4">15.4. ポリシーエディタから名前空間をどのように指定しますか？</a></h3>
 
@@ -165,12 +165,12 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 <p>名前空間は便利ですが、注意すべき点が幾つかあります。</p>
 
 <ul>
-<li>transit_namespace ディレクティブによるドメイン遷移が発生するようなプログラム実行要求は、遷移先のドメインが定義されていない場合、あるいは、遷移先のドメインに割り当てられているプロファイルが定義されていない場合には、プロファイルの設定に関係なく（以下のようなエラーメッセージがコンソールに表示されて）拒否されます。これは、 transit_namespace ディレクティブは、異なるポリシーのセットを適用するという明確な意思表示であり、現在の名前空間の設定を遷移先の名前空間へと自動的に継承すべきではないと考えられるためです。そのため、<strong>プロセスが目的の名前空間へと到達しようとする時点よりも前に、その名前空間のためのドメインポリシー、例外ポリシー、プロファイルを明示的にロードしておく必要があります。</strong>
+<li>reset_domain ディレクティブによるドメイン遷移が発生するようなプログラム実行要求は、遷移先のドメインが定義されていない場合、あるいは、遷移先のドメインに割り当てられているプロファイルが定義されていない場合には、プロファイルの設定に関係なく（以下のようなエラーメッセージがコンソールに表示されて）拒否されます。これは、 reset_domain ディレクティブは、異なるポリシーのセットを適用するという明確な意思表示であり、現在の名前空間の設定を遷移先の名前空間へと自動的に継承すべきではないと考えられるためです。そのため、<strong>プロセスが目的の名前空間へと到達しようとする時点よりも前に、その名前空間のためのドメインポリシー、例外ポリシー、プロファイルを明示的にロードしておく必要があります。</strong>
 <pre class="output">
 ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
-<li>特定の名前空間用のポリシーを、他の名前空間用のポリシーとは独立して作成することが可能ですが、明示的に指定されない限りプロセスは異なる名前空間へと遷移しません。そのため、条件付きアクセス許可の auto_domain_transition= という指定、 task auto_domain_transition ディレクティブ、 task manual_domain_transition ディレクティブの何れかを指定しない限り、<strong>（名前空間を使うのであれば、） transit_namespace ディレクティブを含まない例外ポリシーは役に立たないでしょう。</strong></li>
+<li>特定の名前空間用のポリシーを、他の名前空間用のポリシーとは独立して作成することが可能ですが、明示的に指定されない限りプロセスは異なる名前空間へと遷移しません。そのため、条件付きアクセス許可の auto_domain_transition= という指定、 task auto_domain_transition ディレクティブ、 task manual_domain_transition ディレクティブの何れかを指定しない限り、<strong>（名前空間を使うのであれば、） reset_domain ディレクティブを含まない例外ポリシーは役に立たないでしょう。</strong></li>
 <li>プロファイルを作成するために割り当てられたメモリは解放できないのと同様に、名前空間を作成するために割り当てられたメモリは解放できません。しかし、 /proc/ccs/stat インタフェースから使用してよいメモリ量の上限を制御できるため、普通の使い方であれば問題になることは無いでしょう。</li>
 </ul>
 
