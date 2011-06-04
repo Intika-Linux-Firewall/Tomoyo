@@ -702,14 +702,14 @@ static void ccs_check_exception_policy(char *policy)
 		{ "address_group ", ccs_check_path, ccs_check_ip_address },
 		{ "aggregator ", ccs_check_path, ccs_check_path },
 		{ "deny_autobind ", ccs_check_port },
-		{ "transit_namespace ", ccs_check_path_domain },
 		{ "initialize_domain ", ccs_check_path_domain },
 		{ "keep_domain ", ccs_check_path_domain },
-		{ "no_transit_namespace ", ccs_check_path_domain },
 		{ "no_initialize_domain ", ccs_check_path_domain },
 		{ "no_keep_domain ", ccs_check_path_domain },
+		{ "no_reset_domain ", ccs_check_path_domain },
 		{ "number_group ", ccs_check_path, ccs_check_number },
 		{ "path_group ", ccs_check_path, ccs_check_path },
+		{ "reset_domain ", ccs_check_path_domain },
 		{ }
 	};
 	u8 type;

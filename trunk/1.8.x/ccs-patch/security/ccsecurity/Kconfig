@@ -1,6 +1,6 @@
 config CCSECURITY
 	bool "CCSecurity support"
-	default m
+	default y
 	help
 	  Say Y here to support non-LSM version of TOMOYO Linux.
 	  http://tomoyo.sourceforge.jp/
@@ -10,7 +10,11 @@ config CCSECURITY_LKM
 	default n
 	depends on CCSECURITY && MODULES
 	help
-	  Say Y here if you want to keep vmlinux's size as small as possible.
+	  This version of TOMOYO depends on patching the kernel source in order
+	  to insert some hooks which LSM does not provide. Therefore,
+	  recompiling the kernel is inevitable. But if you want to keep
+	  vmlinux's size as small as possible, you can compile most part of
+	  TOMOYO as a loadable kernel module by saying Y here.
 
 config CCSECURITY_DISABLE_BY_DEFAULT
 	bool "Disable by default"
