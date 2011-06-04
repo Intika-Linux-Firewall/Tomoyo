@@ -37,7 +37,7 @@ static void BUG(const char *msg)
 static const char *policy_file = NULL;
 static const char *policy = NULL;
 
-static _Bool ignore_namespace = 0;
+static _Bool ignore_ns = 0;
 
 static void get_meminfo(unsigned int *policy_memory)
 {
@@ -66,7 +66,7 @@ static void check_policy_common(const int found_expected, const int id)
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
-		if (ignore_namespace && !strncmp(buffer, "<kernel> ", 9))
+		if (ignore_ns && !strncmp(buffer, "<kernel> ", 9))
 			memmove(buffer, buffer + 9, strlen(buffer + 9) + 1);
 		if (strcmp(buffer, policy))
 			continue;
@@ -304,7 +304,7 @@ static void exception_policy_test(const unsigned int before)
 {
 	unsigned int after;
 	int j;
-	ignore_namespace = 1;
+	ignore_ns = 1;
 	policy_file = "/proc/ccs/exception_policy";
 	for (j = 0; exception_testcases[j]; j++) {
 		int i;
