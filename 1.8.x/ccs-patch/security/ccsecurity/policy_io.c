@@ -1957,8 +1957,8 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 
 /* String table for domain transition control keywords. */
 static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_NO_TRANSIT]    = "no_transit_namespace ",
-	[CCS_TRANSITION_CONTROL_TRANSIT]       = "transit_namespace ",
+	[CCS_TRANSITION_CONTROL_NO_RESET]      = "no_reset_domain ",
+	[CCS_TRANSITION_CONTROL_RESET]         = "reset_domain ",
 	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
 	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
 	[CCS_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",

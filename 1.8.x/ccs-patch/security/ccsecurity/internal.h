@@ -690,8 +690,8 @@ enum ccs_special_mount {
 /* Index numbers for domain transition control keywords. */
 enum ccs_transition_type {
 	/* Do not change this order, */
-	CCS_TRANSITION_CONTROL_NO_TRANSIT,
-	CCS_TRANSITION_CONTROL_TRANSIT,
+	CCS_TRANSITION_CONTROL_NO_RESET,
+	CCS_TRANSITION_CONTROL_RESET,
 	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
 	CCS_TRANSITION_CONTROL_INITIALIZE,
 	CCS_TRANSITION_CONTROL_NO_KEEP,
@@ -1113,9 +1113,8 @@ struct ccs_domain_info {
 };
 
 /*
- * Structure for "transit_namespace"/"no_transit_namespace" and
- * "initialize_domain"/"no_initialize_domain" and
- * "keep_domain"/"no_keep_domain" keyword.
+ * Structure for "reset_domain"/"no_reset_domain"/"initialize_domain"/
+ * "no_initialize_domain"/"keep_domain"/"no_keep_domain" keyword.
  */
 struct ccs_transition_control {
 	struct ccs_acl_head head;
