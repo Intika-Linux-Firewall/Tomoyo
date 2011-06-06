@@ -1,0 +1,359 @@
+Subject: TOMOYO: Rename directives.
+
+Convert "allow_..." style directives to "file ..." style directives.
+By converting to the latter style, we can pack policy like
+"file read/write/execute /path/to/file".
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |  148 +++++++++++++++++++++++++++++++----------------
+ security/tomoyo/common.h |    4 +
+ security/tomoyo/domain.c |    4 -
+ security/tomoyo/file.c   |   15 ++--
+ 4 files changed, 113 insertions(+), 58 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -55,7 +55,7 @@ static const char *tomoyo_mac_keywords[T
+ 	[TOMOYO_MAC_FILE_IOCTL]      = "file::ioctl",
+ 	[TOMOYO_MAC_FILE_CHROOT]     = "file::chroot",
+ 	[TOMOYO_MAC_FILE_MOUNT]      = "file::mount",
+-	[TOMOYO_MAC_FILE_UMOUNT]     = "file::umount",
++	[TOMOYO_MAC_FILE_UMOUNT]     = "file::unmount",
+ 	[TOMOYO_MAC_FILE_PIVOT_ROOT] = "file::pivot_root",
+ 	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE] = "file",
+ };
+@@ -170,11 +170,25 @@ void tomoyo_io_printf(struct tomoyo_io_b
+ 	tomoyo_set_string(head, head->read_buf + pos);
+ }
+ 
++/**
++ * tomoyo_set_space - Put a space to "struct tomoyo_io_buffer" structure.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_set_space(struct tomoyo_io_buffer *head)
+ {
+ 	tomoyo_set_string(head, " ");
+ }
+ 
++/**
++ * tomoyo_set_lf - Put a line feed to "struct tomoyo_io_buffer" structure.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns nothing.
++ */
+ static bool tomoyo_set_lf(struct tomoyo_io_buffer *head)
+ {
+ 	tomoyo_set_string(head, "\n");
+@@ -182,6 +196,18 @@ static bool tomoyo_set_lf(struct tomoyo_
+ }
+ 
+ /**
++ * tomoyo_set_slash - Put a shash to "struct tomoyo_io_buffer" structure.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns nothing.
++ */
++static void tomoyo_set_slash(struct tomoyo_io_buffer *head)
++{
++	tomoyo_set_string(head, "/");
++}
++
++/**
+  * tomoyo_print_name_union - Print a tomoyo_name_union.
+  *
+  * @head: Pointer to "struct tomoyo_io_buffer".
+@@ -911,20 +937,19 @@ static int tomoyo_write_domain(struct to
+ 	return tomoyo_write_domain2(&domain->acl_info_list, data, is_delete);
+ }
+ 
++
+ /**
+- * tomoyo_fns - Find next set bit.
++ * tomoyo_set_group - Print category name.
+  *
+- * @perm: 8 bits value.
+- * @bit:  First bit to find.
++ * @head:     Pointer to "struct tomoyo_io_buffer".
++ * @category: Category name.
+  *
+- * Returns next on-bit on success, 8 otherwise.
++ * Returns nothing.
+  */
+-static u8 tomoyo_fns(const u8 perm, u8 bit)
++static void tomoyo_set_group(struct tomoyo_io_buffer *head,
++			     const char *category)
+ {
+-	for ( ; bit < 8; bit++)
+-		if (perm & (1 << bit))
+-			break;
+-	return bit;
++	tomoyo_set_string(head, category);
+ }
+ 
+ /**
+@@ -939,58 +964,94 @@ static bool tomoyo_print_entry(struct to
+ 			       struct tomoyo_acl_info *acl)
+ {
+ 	const u8 acl_type = acl->type;
++	bool first = true;
+ 	u8 bit;
+ 
+ 	if (acl->is_deleted)
+ 		return true;
+- next:
+-	bit = head->r.bit;
+ 	if (!tomoyo_flush(head))
+ 		return false;
+ 	else if (acl_type == TOMOYO_TYPE_PATH_ACL) {
+ 		struct tomoyo_path_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+ 		const u16 perm = ptr->perm;
+-		for ( ; bit < TOMOYO_MAX_PATH_OPERATION; bit++) {
++		for (bit = 0; bit < TOMOYO_MAX_PATH_OPERATION; bit++) {
+ 			if (!(perm & (1 << bit)))
+ 				continue;
+ 			if (head->r.print_execute_only &&
+ 			    bit != TOMOYO_TYPE_EXECUTE)
+ 				continue;
+-			break;
++			if (first) {
++				tomoyo_set_group(head, "file ");
++				first = false;
++			} else {
++				tomoyo_set_slash(head);
++			}
++			tomoyo_set_string(head, tomoyo_path_keyword[bit]);
+ 		}
+-		if (bit >= TOMOYO_MAX_PATH_OPERATION)
+-			goto done;
+-		tomoyo_io_printf(head, "allow_%s", tomoyo_path_keyword[bit]);
++		if (first)
++			return true;
+ 		tomoyo_print_name_union(head, &ptr->name);
+ 	} else if (head->r.print_execute_only) {
+ 		return true;
+ 	} else if (acl_type == TOMOYO_TYPE_PATH2_ACL) {
+ 		struct tomoyo_path2_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+-		bit = tomoyo_fns(ptr->perm, bit);
+-		if (bit >= TOMOYO_MAX_PATH2_OPERATION)
+-			goto done;
+-		tomoyo_io_printf(head, "allow_%s", tomoyo_path2_keyword[bit]);
++		const u8 perm = ptr->perm;
++		for (bit = 0; bit < TOMOYO_MAX_PATH2_OPERATION; bit++) {
++			if (!(perm & (1 << bit)))
++				continue;
++			if (first) {
++				tomoyo_set_group(head, "file ");
++				first = false;
++			} else {
++				tomoyo_set_slash(head);
++			}
++			tomoyo_set_string(head, tomoyo_mac_keywords
++					  [tomoyo_pp2mac[bit]]);
++		}
++		if (first)
++			return true;
+ 		tomoyo_print_name_union(head, &ptr->name1);
+ 		tomoyo_print_name_union(head, &ptr->name2);
+ 	} else if (acl_type == TOMOYO_TYPE_PATH_NUMBER_ACL) {
+ 		struct tomoyo_path_number_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+-		bit = tomoyo_fns(ptr->perm, bit);
+-		if (bit >= TOMOYO_MAX_PATH_NUMBER_OPERATION)
+-			goto done;
+-		tomoyo_io_printf(head, "allow_%s",
+-				 tomoyo_path_number_keyword[bit]);
++		const u8 perm = ptr->perm;
++		for (bit = 0; bit < TOMOYO_MAX_PATH_NUMBER_OPERATION; bit++) {
++			if (!(perm & (1 << bit)))
++				continue;
++			if (first) {
++				tomoyo_set_group(head, "file ");
++				first = false;
++			} else {
++				tomoyo_set_slash(head);
++			}
++			tomoyo_set_string(head, tomoyo_mac_keywords
++					  [tomoyo_pn2mac[bit]]);
++		}
++		if (first)
++			return true;
+ 		tomoyo_print_name_union(head, &ptr->name);
+ 		tomoyo_print_number_union(head, &ptr->number);
+ 	} else if (acl_type == TOMOYO_TYPE_MKDEV_ACL) {
+ 		struct tomoyo_mkdev_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+-		bit = tomoyo_fns(ptr->perm, bit);
+-		if (bit >= TOMOYO_MAX_MKDEV_OPERATION)
+-			goto done;
+-		tomoyo_io_printf(head, "allow_%s", tomoyo_mkdev_keyword[bit]);
++		const u8 perm = ptr->perm;
++		for (bit = 0; bit < TOMOYO_MAX_MKDEV_OPERATION; bit++) {
++			if (!(perm & (1 << bit)))
++				continue;
++			if (first) {
++				tomoyo_set_group(head, "file ");
++				first = false;
++			} else {
++				tomoyo_set_slash(head);
++			}
++			tomoyo_set_string(head, tomoyo_mac_keywords
++					  [tomoyo_pnnn2mac[bit]]);
++		}
++		if (first)
++			return true;
+ 		tomoyo_print_name_union(head, &ptr->name);
+ 		tomoyo_print_number_union(head, &ptr->mode);
+ 		tomoyo_print_number_union(head, &ptr->major);
+@@ -998,18 +1059,13 @@ static bool tomoyo_print_entry(struct to
+ 	} else if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
+ 		struct tomoyo_mount_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+-		tomoyo_io_printf(head, "allow_mount");
++		tomoyo_set_group(head, "file mount");
+ 		tomoyo_print_name_union(head, &ptr->dev_name);
+ 		tomoyo_print_name_union(head, &ptr->dir_name);
+ 		tomoyo_print_name_union(head, &ptr->fs_type);
+ 		tomoyo_print_number_union(head, &ptr->flags);
+ 	}
+-	head->r.bit = bit + 1;
+-	tomoyo_io_printf(head, "\n");
+-	if (acl_type != TOMOYO_TYPE_MOUNT_ACL)
+-		goto next;
+- done:
+-	head->r.bit = 0;
++	tomoyo_set_lf(head);
+ 	return true;
+ }
+ 
+@@ -1315,18 +1371,14 @@ static bool tomoyo_read_policy(struct to
+ 			{
+ 				struct tomoyo_transition_control *ptr =
+ 					container_of(acl, typeof(*ptr), head);
+-				tomoyo_set_string(head,
+-						  tomoyo_transition_type
++				tomoyo_set_string(head, tomoyo_transition_type
+ 						  [ptr->type]);
+-				if (ptr->program)
+-					tomoyo_set_string(head,
+-							  ptr->program->name);
+-				if (ptr->program && ptr->domainname)
+-					tomoyo_set_string(head, " from ");
+-				if (ptr->domainname)
+-					tomoyo_set_string(head,
+-							  ptr->domainname->
+-							  name);
++				tomoyo_set_string(head, ptr->program ?
++						  ptr->program->name : "any");
++				tomoyo_set_string(head, " from ");
++				tomoyo_set_string(head, ptr->domainname ?
++						  ptr->domainname->name :
++						  "any");
+ 			}
+ 			break;
+ 		case TOMOYO_ID_AGGREGATOR:
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -639,6 +639,10 @@ extern const char *tomoyo_mkdev_keyword[
+ extern const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION];
+ extern const char *tomoyo_path_number_keyword[TOMOYO_MAX_PATH_NUMBER_OPERATION];
+ 
++extern const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION];
++extern const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION];
++extern const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION];
++
+ extern unsigned int tomoyo_quota_for_query;
+ extern unsigned int tomoyo_query_memory_size;
+ 
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -200,14 +200,14 @@ int tomoyo_write_transition_control(stru
+ 		domainname = program;
+ 		program = NULL;
+ 	}
+-	if (program) {
++	if (program && strcmp(program, "any")) {
+ 		if (!tomoyo_correct_path(program))
+ 			return -EINVAL;
+ 		e.program = tomoyo_get_name(program);
+ 		if (!e.program)
+ 			goto out;
+ 	}
+-	if (domainname) {
++	if (domainname && strcmp(domainname, "any")) {
+ 		if (!tomoyo_correct_domain(domainname)) {
+ 			if (!tomoyo_correct_path(domainname))
+ 				goto out;
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -67,7 +67,7 @@ static const u8 tomoyo_p2mac[TOMOYO_MAX_
+ /*
+  * Mapping table from "enum tomoyo_mkdev_acl_index" to "enum tomoyo_mac_index".
+  */
+-static const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION] = {
++const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION] = {
+ 	[TOMOYO_TYPE_MKBLOCK] = TOMOYO_MAC_FILE_MKBLOCK,
+ 	[TOMOYO_TYPE_MKCHAR]  = TOMOYO_MAC_FILE_MKCHAR,
+ };
+@@ -75,7 +75,7 @@ static const u8 tomoyo_pnnn2mac[TOMOYO_M
+ /*
+  * Mapping table from "enum tomoyo_path2_acl_index" to "enum tomoyo_mac_index".
+  */
+-static const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION] = {
++const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION] = {
+ 	[TOMOYO_TYPE_LINK]       = TOMOYO_MAC_FILE_LINK,
+ 	[TOMOYO_TYPE_RENAME]     = TOMOYO_MAC_FILE_RENAME,
+ 	[TOMOYO_TYPE_PIVOT_ROOT] = TOMOYO_MAC_FILE_PIVOT_ROOT,
+@@ -85,7 +85,7 @@ static const u8 tomoyo_pp2mac[TOMOYO_MAX
+  * Mapping table from "enum tomoyo_path_number_acl_index" to
+  * "enum tomoyo_mac_index".
+  */
+-static const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION] = {
++const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION] = {
+ 	[TOMOYO_TYPE_CREATE] = TOMOYO_MAC_FILE_CREATE,
+ 	[TOMOYO_TYPE_MKDIR]  = TOMOYO_MAC_FILE_MKDIR,
+ 	[TOMOYO_TYPE_MKFIFO] = TOMOYO_MAC_FILE_MKFIFO,
+@@ -214,8 +214,7 @@ static int tomoyo_audit_path_log(struct 
+ 	if (r->granted)
+ 		return 0;
+ 	tomoyo_warn_log(r, "%s %s", operation, filename->name);
+-	return tomoyo_supervisor(r, "allow_%s %s\n", operation,
+-				 filename->name);
++	return tomoyo_supervisor(r, "file %s %s\n", operation, filename->name);
+ }
+ 
+ /**
+@@ -234,7 +233,7 @@ static int tomoyo_audit_path2_log(struct
+ 		return 0;
+ 	tomoyo_warn_log(r, "%s %s %s", operation, filename1->name,
+ 			filename2->name);
+-	return tomoyo_supervisor(r, "allow_%s %s %s\n", operation,
++	return tomoyo_supervisor(r, "file %s %s %s\n", operation,
+ 				 filename1->name, filename2->name);
+ }
+ 
+@@ -256,7 +255,7 @@ static int tomoyo_audit_mkdev_log(struct
+ 		return 0;
+ 	tomoyo_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
+ 			major, minor);
+-	return tomoyo_supervisor(r, "allow_%s %s 0%o %u %u\n", operation,
++	return tomoyo_supervisor(r, "file %s %s 0%o %u %u\n", operation,
+ 				 filename->name, mode, major, minor);
+ }
+ 
+@@ -295,7 +294,7 @@ static int tomoyo_audit_path_number_log(
+ 	tomoyo_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
+ 			   radix);
+ 	tomoyo_warn_log(r, "%s %s %s", operation, filename->name, buffer);
+-	return tomoyo_supervisor(r, "allow_%s %s %s\n", operation,
++	return tomoyo_supervisor(r, "file %s %s %s\n", operation,
+ 				 filename->name, buffer);
+ }
+ 

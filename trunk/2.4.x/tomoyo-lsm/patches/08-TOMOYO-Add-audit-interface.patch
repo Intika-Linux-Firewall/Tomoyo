@@ -1,0 +1,851 @@
+Subject: TOMOYO: Add auditing interface.
+
+Add /sys/kernel/security/tomoyo/audit interface. This interface generates audit
+logs in the form of domain policy so that /usr/sbin/tomoyo-auditd can reuse
+audit logs for appending to /sys/kernel/security/tomoyo/domain_policy
+interface.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/Makefile        |    2 
+ security/tomoyo/common.c        |  315 +++++++++++++++++++---------------------
+ security/tomoyo/common.h        |   83 +++++++++-
+ security/tomoyo/file.c          |   49 ++----
+ security/tomoyo/memory.c        |    5 
+ security/tomoyo/mount.c         |   26 ---
+ security/tomoyo/securityfs_if.c |    2 
+ security/tomoyo/util.c          |   14 -
+ 8 files changed, 259 insertions(+), 237 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
+@@ -1 +1 @@
+-obj-y = common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
++obj-y = audit.o common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -17,9 +17,12 @@ static unsigned int tomoyo_profile_versi
+ /* Profile table. Memory is allocated as needed. */
+ static struct tomoyo_profile *tomoyo_profile_ptr[TOMOYO_MAX_PROFILES];
+ 
+-/* String table for functionality that takes 4 modes. */
+-static const char *tomoyo_mode[4] = {
+-	"disabled", "learning", "permissive", "enforcing"
++/* String table for operation mode. */
++const char * const tomoyo_mode[TOMOYO_CONFIG_MAX_MODE] = {
++	[TOMOYO_CONFIG_DISABLED]   = "disabled",
++	[TOMOYO_CONFIG_LEARNING]   = "learning",
++	[TOMOYO_CONFIG_PERMISSIVE] = "permissive",
++	[TOMOYO_CONFIG_ENFORCING]  = "enforcing"
+ };
+ 
+ /* String table for /sys/kernel/security/tomoyo/profile */
+@@ -52,6 +55,7 @@ static const char *tomoyo_mac_keywords[T
+ 
+ /* String table for PREFERENCE keyword. */
+ static const char * const tomoyo_pref_keywords[TOMOYO_MAX_PREF] = {
++	[TOMOYO_PREF_MAX_AUDIT_LOG]      = "max_audit_log",
+ 	[TOMOYO_PREF_MAX_LEARNING_ENTRY] = "max_learning_entry",
+ };
+ 
+@@ -65,12 +69,10 @@ static bool tomoyo_manage_by_non_root;
+  *
+  * @value: Bool value.
+  */
+-/*
+-static const char *tomoyo_yesno(const unsigned int value)
++const char *tomoyo_yesno(const unsigned int value)
+ {
+ 	return value ? "yes" : "no";
+ }
+-*/
+ 
+ /**
+  * tomoyo_addprintf - strncat()-like-snprintf().
+@@ -116,7 +118,7 @@ static bool tomoyo_flush(struct tomoyo_i
+ 		head->r.w[0] = w;
+ 		if (*w)
+ 			return false;
+-		/* Add '\0' for query. */
++		/* Add '\0' for audit logs and query. */
+ 		if (head->poll) {
+ 			if (!head->read_user_buf_avail ||
+ 			    copy_to_user(head->read_user_buf, "", 1))
+@@ -299,9 +301,12 @@ static struct tomoyo_profile *tomoyo_ass
+ 	ptr = tomoyo_profile_ptr[profile];
+ 	if (!ptr && tomoyo_memory_ok(entry)) {
+ 		ptr = entry;
+-		ptr->default_config = TOMOYO_CONFIG_DISABLED;
++		ptr->default_config = TOMOYO_CONFIG_DISABLED |
++			TOMOYO_CONFIG_WANT_GRANT_LOG |
++			TOMOYO_CONFIG_WANT_REJECT_LOG;
+ 		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
+ 		       sizeof(ptr->config));
++		ptr->pref[TOMOYO_PREF_MAX_AUDIT_LOG] = 1024;
+ 		ptr->pref[TOMOYO_PREF_MAX_LEARNING_ENTRY] = 2048;
+ 		mb(); /* Avoid out-of-order execution. */
+ 		tomoyo_profile_ptr[profile] = ptr;
+@@ -337,7 +342,6 @@ struct tomoyo_profile *tomoyo_profile(co
+  *
+  * Returns 1 if "@find=yes" was found, 0 if "@find=no" was found, -1 otherwise.
+  */
+-/*
+ static s8 tomoyo_find_yesno(const char *string, const char *find)
+ {
+ 	const char *cp = strstr(string, find);
+@@ -350,7 +354,6 @@ static s8 tomoyo_find_yesno(const char *
+ 	}
+ 	return -1;
+ }
+-*/
+ 
+ /**
+  * tomoyo_set_uint - Set value for specified preference.
+@@ -411,6 +414,24 @@ static int tomoyo_set_mode(char *name, c
+ 				 * 'config' from 'TOMOYO_CONFIG_USE_DEAFULT'.
+ 				 */
+ 				config = (config & ~7) | mode;
++		if (config != TOMOYO_CONFIG_USE_DEFAULT) {
++			switch (tomoyo_find_yesno(value, "grant_log")) {
++			case 1:
++				config |= TOMOYO_CONFIG_WANT_GRANT_LOG;
++				break;
++			case 0:
++				config &= ~TOMOYO_CONFIG_WANT_GRANT_LOG;
++				break;
++			}
++			switch (tomoyo_find_yesno(value, "reject_log")) {
++			case 1:
++				config |= TOMOYO_CONFIG_WANT_REJECT_LOG;
++				break;
++			case 0:
++				config &= ~TOMOYO_CONFIG_WANT_REJECT_LOG;
++				break;
++			}
++		}
+ 	}
+ 	if (i < TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_MAC_CATEGORY_INDEX)
+ 		profile->config[i] = config;
+@@ -468,15 +489,30 @@ static int tomoyo_write_profile(struct t
+ 	return tomoyo_set_mode(data, cp, profile);
+ }
+ 
++/**
++ * tomoyo_print_config - Print mode for specified functionality.
++ *
++ * @head:   Pointer to "struct tomoyo_io_buffer".
++ * @config: Mode for that functionality.
++ *
++ * Returns nothing.
++ *
++ * Caller prints functionality's name.
++ */
+ static void tomoyo_print_config(struct tomoyo_io_buffer *head, const u8 config)
+ {
+-	tomoyo_io_printf(head, "={ mode=%s }\n", tomoyo_mode[config & 3]);
++	tomoyo_io_printf(head, "={ mode=%s grant_log=%s reject_log=%s }\n",
++			 tomoyo_mode[config & 3],
++			 tomoyo_yesno(config & TOMOYO_CONFIG_WANT_GRANT_LOG),
++			 tomoyo_yesno(config & TOMOYO_CONFIG_WANT_REJECT_LOG));
+ }
+ 
+ /**
+  * tomoyo_read_profile - Read profile table.
+  *
+  * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns nothing.
+  */
+ static void tomoyo_read_profile(struct tomoyo_io_buffer *head)
+ {
+@@ -487,7 +523,7 @@ static void tomoyo_read_profile(struct t
+ 	profile = tomoyo_profile_ptr[index];
+ 	switch (head->r.step) {
+ 	case 0:
+-		tomoyo_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
++		tomoyo_io_printf(head, "PROFILE_VERSION=%u\n", 20090903);
+ 		head->r.step++;
+ 		break;
+ 	case 1:
+@@ -1359,92 +1395,28 @@ static void tomoyo_read_exception(struct
+ 	head->r.eof = true;
+ }
+ 
+-/**
+- * tomoyo_print_header - Get header line of audit log.
+- *
+- * @r: Pointer to "struct tomoyo_request_info".
+- *
+- * Returns string representation.
+- *
+- * This function uses kmalloc(), so caller must kfree() if this function
+- * didn't return NULL.
+- */
+-static char *tomoyo_print_header(struct tomoyo_request_info *r)
+-{
+-	struct timeval tv;
+-	const pid_t gpid = task_pid_nr(current);
+-	static const int tomoyo_buffer_len = 4096;
+-	char *buffer = kmalloc(tomoyo_buffer_len, GFP_NOFS);
+-	pid_t ppid;
+-	if (!buffer)
+-		return NULL;
+-	do_gettimeofday(&tv);
+-	rcu_read_lock();
+-	ppid = task_tgid_vnr(current->real_parent);
+-	rcu_read_unlock();
+-	snprintf(buffer, tomoyo_buffer_len - 1,
+-		 "#timestamp=%lu profile=%u mode=%s (global-pid=%u)"
+-		 " task={ pid=%u ppid=%u uid=%u gid=%u euid=%u"
+-		 " egid=%u suid=%u sgid=%u fsuid=%u fsgid=%u }",
+-		 tv.tv_sec, r->profile, tomoyo_mode[r->mode], gpid,
+-		 task_tgid_vnr(current), ppid,
+-		 current_uid(), current_gid(), current_euid(),
+-		 current_egid(), current_suid(), current_sgid(),
+-		 current_fsuid(), current_fsgid());
+-	return buffer;
+-}
+-
+-/**
+- * tomoyo_init_audit_log - Allocate buffer for audit logs.
+- *
+- * @len: Required size.
+- * @r:   Pointer to "struct tomoyo_request_info".
+- *
+- * Returns pointer to allocated memory.
+- *
+- * The @len is updated to add the header lines' size on success.
+- *
+- * This function uses kzalloc(), so caller must kfree() if this function
+- * didn't return NULL.
+- */
+-static char *tomoyo_init_audit_log(int *len, struct tomoyo_request_info *r)
+-{
+-	char *buf = NULL;
+-	const char *header;
+-	const char *domainname;
+-	if (!r->domain)
+-		r->domain = tomoyo_domain();
+-	domainname = r->domain->domainname->name;
+-	header = tomoyo_print_header(r);
+-	if (!header)
+-		return NULL;
+-	*len += strlen(domainname) + strlen(header) + 10;
+-	buf = kzalloc(*len, GFP_NOFS);
+-	if (buf)
+-		snprintf(buf, (*len) - 1, "%s\n%s\n", header, domainname);
+-	kfree(header);
+-	return buf;
+-}
+-
+-/* Wait queue for tomoyo_query_list. */
++/* Wait queue for kernel -> userspace notification. */
+ static DECLARE_WAIT_QUEUE_HEAD(tomoyo_query_wait);
+-
+-/* Lock for manipulating tomoyo_query_list. */
+-static DEFINE_SPINLOCK(tomoyo_query_list_lock);
++/* Wait queue for userspace -> kernel notification. */
++static DECLARE_WAIT_QUEUE_HEAD(tomoyo_answer_wait);
+ 
+ /* Structure for query. */
+ struct tomoyo_query {
+ 	struct list_head list;
+ 	char *query;
+-	int query_len;
++	size_t query_len;
+ 	unsigned int serial;
+-	int timer;
+-	int answer;
++	u8 timer;
++	u8 answer;
++	u8 retry;
+ };
+ 
+ /* The list for "struct tomoyo_query". */
+ static LIST_HEAD(tomoyo_query_list);
+ 
++/* Lock for manipulating tomoyo_query_list. */
++static DEFINE_SPINLOCK(tomoyo_query_list_lock);
++
+ /*
+  * Number of "struct file" referring /sys/kernel/security/tomoyo/query
+  * interface.
+@@ -1452,10 +1424,39 @@ static LIST_HEAD(tomoyo_query_list);
+ static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
+ 
+ /**
++ * tomoyo_add_entry - Add an ACL to current thread's domain. Used by learning mode.
++ *
++ * @domain: Pointer to "struct tomoyo_domain_info".
++ * @header: Lines containing ACL.
++ *
++ * Returns nothing.
++ */
++static void tomoyo_add_entry(struct tomoyo_domain_info *domain, char *header)
++{
++	char *buffer;
++	char *cp = strchr(header, '\n');
++	int len;
++	if (!cp)
++		return;
++	cp = strchr(cp + 1, '\n');
++	if (!cp)
++		return;
++	*cp++ = '\0';
++	len = strlen(cp) + 1;
++	buffer = kmalloc(len, GFP_NOFS);
++	if (!buffer)
++		return;
++	snprintf(buffer, len - 1, "%s", cp);
++	tomoyo_normalize_line(buffer);
++	tomoyo_write_domain2(&domain->acl_info_list, buffer, false);
++	kfree(buffer);
++}
++
++/**
+  * tomoyo_supervisor - Ask for the supervisor's decision.
+  *
+- * @r:       Pointer to "struct tomoyo_request_info".
+- * @fmt:     The printf()'s format string, followed by parameters.
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @fmt: The printf()'s format string, followed by parameters.
+  *
+  * Returns 0 if the supervisor decided to permit the access request which
+  * violated the policy in enforcing mode, TOMOYO_RETRY_REQUEST if the
+@@ -1464,89 +1465,78 @@ static atomic_t tomoyo_query_observers =
+  */
+ int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
+ {
+-	va_list args;
+-	int error = -EPERM;
+-	int pos;
++  	va_list args;
++	int error;
+ 	int len;
+ 	static unsigned int tomoyo_serial;
+-	struct tomoyo_query *entry = NULL;
++	struct tomoyo_query entry = { };
+ 	bool quota_exceeded = false;
+-	char *header;
++	va_start(args, fmt);
++	len = vsnprintf((char *) &len, 1, fmt, args) + 1;
++	va_end(args);
++	/* Write /sys/kernel/security/tomoyo/audit. */
++	va_start(args, fmt);
++	tomoyo_write_log2(r, len, fmt, args);
++	va_end(args);
++	/* Nothing more to do if granted. */
++	if (r->granted)
++		return 0;
+ 	switch (r->mode) {
+-		char *buffer;
++	case TOMOYO_CONFIG_ENFORCING:
++		error = -EPERM;
++		if (atomic_read(&tomoyo_query_observers))
++			break;
++		goto out;
+ 	case TOMOYO_CONFIG_LEARNING:
+-		if (!tomoyo_domain_quota_is_ok(r))
+-			return 0;
+-		va_start(args, fmt);
+-		len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 4;
+-		va_end(args);
+-		buffer = kmalloc(len, GFP_NOFS);
+-		if (!buffer)
+-			return 0;
+-		va_start(args, fmt);
+-		vsnprintf(buffer, len - 1, fmt, args);
+-		va_end(args);
+-		tomoyo_normalize_line(buffer);
+-		tomoyo_write_domain2(&r->domain->acl_info_list, buffer, false);
+-		kfree(buffer);
++		error = 0;
++		/* Check max_learning_entry parameter. */
++		if (tomoyo_domain_quota_is_ok(r))
++			break;
+ 		/* fall through */
+-	case TOMOYO_CONFIG_PERMISSIVE:
++	default:
+ 		return 0;
+ 	}
+-	if (!r->domain)
+-		r->domain = tomoyo_domain();
+-	if (!atomic_read(&tomoyo_query_observers))
+-		return -EPERM;
++	/* Get message. */
+ 	va_start(args, fmt);
+-	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
++	entry.query = tomoyo_init_log(r, len, fmt, args);
+ 	va_end(args);
+-	header = tomoyo_init_audit_log(&len, r);
+-	if (!header)
+-		goto out;
+-	entry = kzalloc(sizeof(*entry), GFP_NOFS);
+-	if (!entry)
+-		goto out;
+-	entry->query = kzalloc(len, GFP_NOFS);
+-	if (!entry->query)
++	if (!entry.query)
+ 		goto out;
+-	len = ksize(entry->query);
++	entry.query_len = strlen(entry.query) + 1;
++	if (!error) {
++		tomoyo_add_entry(r->domain, entry.query);
++  		goto out;
++	}
++	len = tomoyo_round2(entry.query_len);
+ 	spin_lock(&tomoyo_query_list_lock);
+-	if (tomoyo_quota_for_query && tomoyo_query_memory_size + len +
+-	    sizeof(*entry) >= tomoyo_quota_for_query) {
++	if (tomoyo_memory_quota[TOMOYO_MEMORY_QUERY] &&
++	    tomoyo_memory_used[TOMOYO_MEMORY_QUERY] + len
++	    >= tomoyo_memory_quota[TOMOYO_MEMORY_QUERY]) {
+ 		quota_exceeded = true;
+ 	} else {
+-		tomoyo_query_memory_size += len + sizeof(*entry);
+-		entry->serial = tomoyo_serial++;
++		entry.serial = tomoyo_serial++;
++		entry.retry = r->retry;
++		tomoyo_memory_used[TOMOYO_MEMORY_QUERY] += len;
++		list_add_tail(&entry.list, &tomoyo_query_list);
+ 	}
+ 	spin_unlock(&tomoyo_query_list_lock);
+ 	if (quota_exceeded)
+ 		goto out;
+-	pos = snprintf(entry->query, len - 1, "Q%u-%hu\n%s",
+-		       entry->serial, r->retry, header);
+-	kfree(header);
+-	header = NULL;
+-	va_start(args, fmt);
+-	vsnprintf(entry->query + pos, len - 1 - pos, fmt, args);
+-	entry->query_len = strlen(entry->query) + 1;
+-	va_end(args);
+-	spin_lock(&tomoyo_query_list_lock);
+-	list_add_tail(&entry->list, &tomoyo_query_list);
+-	spin_unlock(&tomoyo_query_list_lock);
+ 	/* Give 10 seconds for supervisor's opinion. */
+-	for (entry->timer = 0;
+-	     atomic_read(&tomoyo_query_observers) && entry->timer < 100;
+-	     entry->timer++) {
+-		wake_up(&tomoyo_query_wait);
+-		set_current_state(TASK_INTERRUPTIBLE);
+-		schedule_timeout(HZ / 10);
+-		if (entry->answer)
++	while (entry.timer < 10) {
++		wake_up_all(&tomoyo_query_wait);
++		if (wait_event_interruptible_timeout
++		    (tomoyo_answer_wait, entry.answer ||
++		     !atomic_read(&tomoyo_query_observers), HZ))
+ 			break;
++		else
++			entry.timer++;
+ 	}
+ 	spin_lock(&tomoyo_query_list_lock);
+-	list_del(&entry->list);
+-	tomoyo_query_memory_size -= len + sizeof(*entry);
++	list_del(&entry.list);
++	tomoyo_memory_used[TOMOYO_MEMORY_QUERY] -= len;
+ 	spin_unlock(&tomoyo_query_list_lock);
+-	switch (entry->answer) {
++	switch (entry.answer) {
+ 	case 3: /* Asked to retry by administrator. */
+ 		error = TOMOYO_RETRY_REQUEST;
+ 		r->retry++;
+@@ -1555,18 +1545,12 @@ int tomoyo_supervisor(struct tomoyo_requ
+ 		/* Granted by administrator. */
+ 		error = 0;
+ 		break;
+-	case 0:
+-		/* Timed out. */
+-		break;
+ 	default:
+-		/* Rejected by administrator. */
++		/* Timed out or rejected by administrator. */
+ 		break;
+ 	}
+- out:
+-	if (entry)
+-		kfree(entry->query);
+-	kfree(entry);
+-	kfree(header);
++out:
++	kfree(entry.query);
+ 	return error;
+ }
+ 
+@@ -1637,7 +1621,7 @@ static void tomoyo_read_query(struct tom
+ 		head->r.query_index = 0;
+ 		return;
+ 	}
+-	buf = kzalloc(len, GFP_NOFS);
++	buf = kzalloc(len + 32, GFP_NOFS);
+ 	if (!buf)
+ 		return;
+ 	pos = 0;
+@@ -1653,7 +1637,8 @@ static void tomoyo_read_query(struct tom
+ 		 * can change, but I don't care.
+ 		 */
+ 		if (len == ptr->query_len)
+-			memmove(buf, ptr->query, len);
++			snprintf(buf, len + 31, "Q%u-%hu\n%s", ptr->serial,
++				 ptr->retry, ptr->query);
+ 		break;
+ 	}
+ 	spin_unlock(&tomoyo_query_list_lock);
+@@ -1764,6 +1749,11 @@ int tomoyo_open_control(const u8 type, s
+ 		head->write = tomoyo_write_exception;
+ 		head->read = tomoyo_read_exception;
+ 		break;
++	case TOMOYO_AUDIT:
++		/* /sys/kernel/security/tomoyo/audit */
++		head->poll = tomoyo_poll_log;
++		head->read = tomoyo_read_log;
++		break;
+ 	case TOMOYO_SELFDOMAIN:
+ 		/* /sys/kernel/security/tomoyo/self_domain */
+ 		head->read = tomoyo_read_self_domain;
+@@ -1837,7 +1827,7 @@ int tomoyo_open_control(const u8 type, s
+ 			return -ENOMEM;
+ 		}
+ 	}
+-	if (type != TOMOYO_QUERY)
++	if (type != TOMOYO_QUERY && type != TOMOYO_AUDIT)
+ 		head->reader_idx = tomoyo_read_lock();
+ 	file->private_data = head;
+ 	/*
+@@ -1858,7 +1848,8 @@ int tomoyo_open_control(const u8 type, s
+  * @wait: Pointer to "poll_table".
+  *
+  * Waits for read readiness.
+- * /sys/kernel/security/tomoyo/query is handled by /usr/sbin/tomoyo-queryd .
++ * /sys/kernel/security/tomoyo/query is handled by /usr/sbin/tomoyo-queryd and
++ * /sys/kernel/security/tomoyo/audit is handled by /usr/sbin/tomoyo-auditd.
+  */
+ int tomoyo_poll_control(struct file *file, poll_table *wait)
+ {
+@@ -1973,7 +1964,7 @@ int tomoyo_close_control(struct file *fi
+ 	 */
+ 	if (head->type == TOMOYO_QUERY)
+ 		atomic_dec(&tomoyo_query_observers);
+-	else
++	else if (head->type != TOMOYO_AUDIT)
+ 		tomoyo_read_unlock(head->reader_idx);
+ 	/* Release memory used for policy I/O. */
+ 	kfree(head->read_buf);
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -44,7 +44,10 @@ enum tomoyo_mode_index {
+ 	TOMOYO_CONFIG_LEARNING,
+ 	TOMOYO_CONFIG_PERMISSIVE,
+ 	TOMOYO_CONFIG_ENFORCING,
+-	TOMOYO_CONFIG_USE_DEFAULT = 255
++	TOMOYO_CONFIG_MAX_MODE,
++	TOMOYO_CONFIG_WANT_REJECT_LOG =  64,
++	TOMOYO_CONFIG_WANT_GRANT_LOG  = 128,
++	TOMOYO_CONFIG_USE_DEFAULT     = 255,
+ };
+ 
+ /* Index numbers for entry type. */
+@@ -114,6 +117,13 @@ enum tomoyo_path_acl_index {
+ 	TOMOYO_MAX_PATH_OPERATION
+ };
+ 
++enum tomoyo_memory_stat_type {
++	TOMOYO_MEMORY_POLICY,
++	TOMOYO_MEMORY_AUDIT,
++	TOMOYO_MEMORY_QUERY,
++	TOMOYO_MAX_MEMORY_STAT
++};
++
+ enum tomoyo_mkdev_acl_index {
+ 	TOMOYO_TYPE_MKBLOCK,
+ 	TOMOYO_TYPE_MKCHAR,
+@@ -149,6 +159,7 @@ enum tomoyo_securityfs_interface_index {
+ 	TOMOYO_PROCESS_STATUS,
+ 	TOMOYO_MEMINFO,
+ 	TOMOYO_SELFDOMAIN,
++	TOMOYO_AUDIT,
+ 	TOMOYO_VERSION,
+ 	TOMOYO_PROFILE,
+ 	TOMOYO_QUERY,
+@@ -211,6 +222,7 @@ enum tomoyo_mac_category_index {
+ 
+ /* Index numbers for profile's PREFERENCE values. */
+ enum tomoyo_pref_index {
++	TOMOYO_PREF_MAX_AUDIT_LOG,
+ 	TOMOYO_PREF_MAX_LEARNING_ENTRY,
+ 	TOMOYO_MAX_PREF
+ };
+@@ -506,13 +518,21 @@ struct tomoyo_profile {
+ 	unsigned int pref[TOMOYO_MAX_PREF];
+ };
+ 
++/* Structure for representing YYYY/MM/DD hh/mm/ss. */
++struct tomoyo_time {
++	u16 year;
++	u8 month;
++	u8 day;
++	u8 hour;
++	u8 min;
++	u8 sec;
++};
++
+ /********** Function prototypes. **********/
+ 
+ bool tomoyo_str_starts(char **src, const char *find);
+ const char *tomoyo_get_exe(void);
+ void tomoyo_normalize_line(unsigned char *buffer);
+-void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
+-     __attribute__ ((format(printf, 2, 3)));
+ void tomoyo_check_profile(void);
+ int tomoyo_open_control(const u8 type, struct file *file);
+ int tomoyo_close_control(struct file *file);
+@@ -620,6 +640,14 @@ void tomoyo_check_acl(struct tomoyo_requ
+ char *tomoyo_read_token(struct tomoyo_acl_param *param);
+ bool tomoyo_permstr(const char *string, const char *keyword);
+ 
++const char *tomoyo_yesno(const unsigned int value);
++void tomoyo_write_log2(struct tomoyo_request_info *r, int len, const char *fmt,
++		       va_list args);
++void tomoyo_read_log(struct tomoyo_io_buffer *head);
++int tomoyo_poll_log(struct file *file, poll_table *wait);
++char *tomoyo_init_log(struct tomoyo_request_info *r, int len, const char *fmt,
++		      va_list args);
++
+ /********** External variable definitions. **********/
+ 
+ /* Lock for GC. */
+@@ -650,8 +678,9 @@ extern const u8 tomoyo_pnnn2mac[TOMOYO_M
+ extern const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION];
+ extern const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION];
+ 
+-extern unsigned int tomoyo_quota_for_query;
+-extern unsigned int tomoyo_query_memory_size;
++extern const char * const tomoyo_mode[TOMOYO_CONFIG_MAX_MODE];
++extern unsigned int tomoyo_memory_quota[TOMOYO_MAX_MEMORY_STAT];
++extern unsigned int tomoyo_memory_used[TOMOYO_MAX_MEMORY_STAT];
+ 
+ /********** Inlined functions. **********/
+ 
+@@ -798,6 +827,50 @@ static inline bool tomoyo_same_number_un
+ 		p1->max_type == p2->max_type && p1->is_group == p2->is_group;
+ }
+ 
++#if defined(CONFIG_SLOB)
++
++/**
++ * tomoyo_round2 - Round up to power of 2 for calculating memory usage.
++ *
++ * @size: Size to be rounded up.
++ *
++ * Returns @size.
++ *
++ * Since SLOB does not round up, this function simply returns @size.
++ */
++static inline int tomoyo_round2(size_t size)
++{
++	return size;
++}
++
++#else
++
++/**
++ * tomoyo_round2 - Round up to power of 2 for calculating memory usage.
++ *
++ * @size: Size to be rounded up.
++ *
++ * Returns rounded size.
++ *
++ * Strictly speaking, SLAB may be able to allocate (e.g.) 96 bytes instead of
++ * (e.g.) 128 bytes.
++ */
++static inline int tomoyo_round2(size_t size)
++{
++#if PAGE_SIZE == 4096
++	size_t bsize = 32;
++#else
++	size_t bsize = 64;
++#endif
++	if (!size)
++		return 0;
++	while (size > bsize)
++		bsize <<= 1;
++	return bsize;
++}
++
++#endif
++
+ /**
+  * list_for_each_cookie - iterate over a list with cookie.
+  * @pos:        the &struct list_head to use as a loop cursor.
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -209,12 +209,9 @@ static bool tomoyo_get_realpath(struct t
+  */
+ static int tomoyo_audit_path_log(struct tomoyo_request_info *r)
+ {
+-	const char *operation = tomoyo_path_keyword[r->param.path.operation];
+-	const struct tomoyo_path_info *filename = r->param.path.filename;
+-	if (r->granted)
+-		return 0;
+-	tomoyo_warn_log(r, "%s %s", operation, filename->name);
+-	return tomoyo_supervisor(r, "file %s %s\n", operation, filename->name);
++	return tomoyo_supervisor(r, "file %s %s\n", tomoyo_path_keyword
++				 [r->param.path.operation],
++				 r->param.path.filename->name);
+ }
+ 
+ /**
+@@ -226,15 +223,10 @@ static int tomoyo_audit_path_log(struct 
+  */
+ static int tomoyo_audit_path2_log(struct tomoyo_request_info *r)
+ {
+-	const char *operation = tomoyo_path2_keyword[r->param.path2.operation];
+-	const struct tomoyo_path_info *filename1 = r->param.path2.filename1;
+-	const struct tomoyo_path_info *filename2 = r->param.path2.filename2;
+-	if (r->granted)
+-		return 0;
+-	tomoyo_warn_log(r, "%s %s %s", operation, filename1->name,
+-			filename2->name);
+-	return tomoyo_supervisor(r, "file %s %s %s\n", operation,
+-				 filename1->name, filename2->name);
++	return tomoyo_supervisor(r, "file %s %s %s\n", tomoyo_path2_keyword
++				 [r->param.path2.operation],
++				 r->param.path2.filename1->name,
++				 r->param.path2.filename2->name);
+ }
+ 
+ /**
+@@ -246,17 +238,12 @@ static int tomoyo_audit_path2_log(struct
+  */
+ static int tomoyo_audit_mkdev_log(struct tomoyo_request_info *r)
+ {
+-	const char *operation = tomoyo_mkdev_keyword[r->param.mkdev.operation];
+-	const struct tomoyo_path_info *filename = r->param.mkdev.filename;
+-	const unsigned int major = r->param.mkdev.major;
+-	const unsigned int minor = r->param.mkdev.minor;
+-	const unsigned int mode = r->param.mkdev.mode;
+-	if (r->granted)
+-		return 0;
+-	tomoyo_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
+-			major, minor);
+-	return tomoyo_supervisor(r, "file %s %s 0%o %u %u\n", operation,
+-				 filename->name, mode, major, minor);
++	return tomoyo_supervisor(r, "file %s %s 0%o %u %u\n",
++				 tomoyo_mkdev_keyword
++				 [r->param.mkdev.operation],
++				 r->param.mkdev.filename->name,
++				 r->param.mkdev.mode, r->param.mkdev.major,
++				 r->param.mkdev.minor);
+ }
+ 
+ /**
+@@ -271,11 +258,7 @@ static int tomoyo_audit_path_number_log(
+ {
+ 	const u8 type = r->param.path_number.operation;
+ 	u8 radix;
+-	const struct tomoyo_path_info *filename = r->param.path_number.filename;
+-	const char *operation = tomoyo_path_number_keyword[type];
+ 	char buffer[64];
+-	if (r->granted)
+-		return 0;
+ 	switch (type) {
+ 	case TOMOYO_TYPE_CREATE:
+ 	case TOMOYO_TYPE_MKDIR:
+@@ -293,9 +276,9 @@ static int tomoyo_audit_path_number_log(
+ 	}
+ 	tomoyo_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
+ 			   radix);
+-	tomoyo_warn_log(r, "%s %s %s", operation, filename->name, buffer);
+-	return tomoyo_supervisor(r, "file %s %s %s\n", operation,
+-				 filename->name, buffer);
++	return tomoyo_supervisor(r, "file %s %s %s\n",
++				 tomoyo_path_number_keyword[type],
++				 r->param.path_number.filename->name, buffer);
+ }
+ 
+ /**
+--- security-testing-2.6.orig/security/tomoyo/memory.c
++++ security-testing-2.6/security/tomoyo/memory.c
+@@ -29,6 +29,11 @@ void tomoyo_warn_oom(const char *functio
+ 		panic("MAC Initialization failed.\n");
+ }
+ 
++/* Memoy currently used by policy/audit log/query. */
++unsigned int tomoyo_memory_used[TOMOYO_MAX_MEMORY_STAT];
++/* Memory quota for "policy"/"audit log"/"query". */
++unsigned int tomoyo_memory_quota[TOMOYO_MAX_MEMORY_STAT];
++
+ /* Memory allocated for policy. */
+ static atomic_t tomoyo_policy_memory_size;
+ /* Quota for holding policy. */
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -27,29 +27,11 @@ static const char * const tomoyo_mounts[
+  */
+ static int tomoyo_audit_mount_log(struct tomoyo_request_info *r)
+ {
+-	const char *dev = r->param.mount.dev->name;
+-	const char *dir = r->param.mount.dir->name;
+-	const char *type = r->param.mount.type->name;
+-	const unsigned long flags = r->param.mount.flags;
+-	if (r->granted)
+-		return 0;
+-	if (type == tomoyo_mounts[TOMOYO_MOUNT_REMOUNT])
+-		tomoyo_warn_log(r, "mount -o remount %s 0x%lX", dir, flags);
+-	else if (type == tomoyo_mounts[TOMOYO_MOUNT_BIND]
+-		 || type == tomoyo_mounts[TOMOYO_MOUNT_MOVE])
+-		tomoyo_warn_log(r, "mount %s %s %s 0x%lX", type, dev, dir,
+-				flags);
+-	else if (type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_UNBINDABLE] ||
+-		 type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_PRIVATE] ||
+-		 type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_SLAVE] ||
+-		 type == tomoyo_mounts[TOMOYO_MOUNT_MAKE_SHARED])
+-		tomoyo_warn_log(r, "mount %s %s 0x%lX", type, dir, flags);
+-	else
+-		tomoyo_warn_log(r, "mount -t %s %s %s 0x%lX", type, dev, dir,
+-				flags);
+-	return tomoyo_supervisor(r, "allow_mount %s %s %s 0x%lX\n",
++	return tomoyo_supervisor(r, "file mount %s %s %s 0x%lX\n",
+ 				 r->param.mount.dev->name,
+-				 r->param.mount.dir->name, type, flags);
++				 r->param.mount.dir->name,
++				 r->param.mount.type->name,
++				 r->param.mount.flags);
+ }
+ 
+ /**
+--- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
++++ security-testing-2.6/security/tomoyo/securityfs_if.c
+@@ -135,6 +135,8 @@ static int __init tomoyo_initerface_init
+ 			    TOMOYO_DOMAINPOLICY);
+ 	tomoyo_create_entry("exception_policy", 0600, tomoyo_dir,
+ 			    TOMOYO_EXCEPTIONPOLICY);
++	tomoyo_create_entry("audit",            0400, tomoyo_dir,
++			    TOMOYO_AUDIT);
+ 	tomoyo_create_entry("self_domain",      0400, tomoyo_dir,
+ 			    TOMOYO_SELFDOMAIN);
+ 	tomoyo_create_entry(".domain_status",   0600, tomoyo_dir,
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -898,20 +898,6 @@ const char *tomoyo_last_word(const char 
+ }
+ 
+ /**
+- * tomoyo_warn_log - Print warning or error message on console.
+- *
+- * @r:   Pointer to "struct tomoyo_request_info".
+- * @fmt: The printf()'s format string, followed by parameters.
+- */
+-void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
+-{
+-	/*
+-	 * Temporarily disabled.
+-	 * Will be replaced with /sys/kernel/security/tomoyo/audit interface.
+-	 */
+-}
+-
+-/**
+  * tomoyo_domain_quota_is_ok - Check for domain's quota.
+  *
+  * @r: Pointer to "struct tomoyo_request_info".
