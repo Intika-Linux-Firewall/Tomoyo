@@ -1,0 +1,1133 @@
+Subject: TOMOYO: Use struct for passing ACL line.
+
+Use structure for passing ACL line, in preparation for supporting policy
+namespace and conditional parameters.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |   77 ++++++++-------
+ security/tomoyo/common.h |   32 +++---
+ security/tomoyo/domain.c |  124 ++++++++----------------
+ security/tomoyo/file.c   |  238 ++++++++++++++++++++++++-----------------------
+ security/tomoyo/group.c  |   33 ++----
+ security/tomoyo/memory.c |   20 ++-
+ security/tomoyo/mount.c  |   53 ----------
+ security/tomoyo/util.c   |   95 +++++++++++++-----
+ 8 files changed, 328 insertions(+), 344 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -610,8 +610,11 @@ static int tomoyo_update_manager_entry(c
+ 				       const bool is_delete)
+ {
+ 	struct tomoyo_manager e = { };
+-	int error;
+-
++	struct tomoyo_acl_param param = {
++		.is_delete = is_delete,
++		.list = &tomoyo_policy_list[TOMOYO_ID_MANAGER],
++	};
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	if (tomoyo_domain_def(manager)) {
+ 		if (!tomoyo_correct_domain(manager))
+ 			return -EINVAL;
+@@ -621,12 +624,11 @@ static int tomoyo_update_manager_entry(c
+ 			return -EINVAL;
+ 	}
+ 	e.manager = tomoyo_get_name(manager);
+-	if (!e.manager)
+-		return -ENOMEM;
+-	error = tomoyo_update_policy(&e.head, sizeof(e), is_delete,
+-				     &tomoyo_policy_list[TOMOYO_ID_MANAGER],
+-				     tomoyo_same_manager);
+-	tomoyo_put_name(e.manager);
++	if (e.manager) {
++		error = tomoyo_update_policy(&e.head, sizeof(e), &param,
++					     tomoyo_same_manager);
++		tomoyo_put_name(e.manager);
++	}
+ 	return error;
+ }
+ 
+@@ -820,18 +822,36 @@ static int tomoyo_delete_domain(char *do
+ /**
+  * tomoyo_write_domain2 - Write domain policy.
+  *
+- * @head: Pointer to "struct tomoyo_io_buffer".
++ * @list:      Pointer to "struct list_head".
++ * @data:      Policy to be interpreted.
++ * @is_delete: True if it is a delete request.
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_write_domain2(char *data, struct tomoyo_domain_info *domain,
++static int tomoyo_write_domain2(struct list_head *list, char *data,
+ 				const bool is_delete)
+ {
+-	if (tomoyo_str_starts(&data, "allow_mount "))
+-		return tomoyo_write_mount(data, domain, is_delete);
+-	return tomoyo_write_file(data, domain, is_delete);
++	struct tomoyo_acl_param param = {
++		.list = list,
++		.data = data,
++		.is_delete = is_delete,
++	};
++	static const struct {
++		const char *keyword;
++		int (*write) (struct tomoyo_acl_param *);
++	} tomoyo_callback[1] = {
++		{ "file ", tomoyo_write_file },
++	};
++	u8 i;
++	for (i = 0; i < 1; i++) {
++		if (!tomoyo_str_starts(&param.data,
++				       tomoyo_callback[i].keyword))
++			continue;
++		return tomoyo_callback[i].write(&param);
++	}
++	return -EINVAL;
+ }
+ 
+ /**
+@@ -888,7 +908,7 @@ static int tomoyo_write_domain(struct to
+ 		domain->transition_failed = !is_delete;
+ 		return 0;
+ 	}
+-	return tomoyo_write_domain2(data, domain, is_delete);
++	return tomoyo_write_domain2(&domain->acl_info_list, data, is_delete);
+ }
+ 
+ /**
+@@ -1212,26 +1232,19 @@ static const char *tomoyo_group_name[TOM
+  */
+ static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
+ {
+-	char *data = head->write_buf;
+-	bool is_delete = tomoyo_str_starts(&data, "delete ");
+-	u8 i;
+-	static const struct {
+-		const char *keyword;
+-		int (*write) (char *, const bool);
+-	} tomoyo_callback[1] = {
+-		{ "aggregator ", tomoyo_write_aggregator },
++	struct tomoyo_acl_param param = {
++		.data = head->write_buf,
+ 	};
+-
++	u8 i;
++	param.is_delete = tomoyo_str_starts(&param.data, "delete ");
++	if (tomoyo_str_starts(&param.data, "aggregator "))
++		return tomoyo_write_aggregator(&param);
+ 	for (i = 0; i < TOMOYO_MAX_TRANSITION_TYPE; i++)
+-		if (tomoyo_str_starts(&data, tomoyo_transition_type[i]))
+-			return tomoyo_write_transition_control(data, is_delete,
+-							       i);
+-	for (i = 0; i < 1; i++)
+-		if (tomoyo_str_starts(&data, tomoyo_callback[i].keyword))
+-			return tomoyo_callback[i].write(data, is_delete);
++		if (tomoyo_str_starts(&param.data, tomoyo_transition_type[i]))
++			return tomoyo_write_transition_control(&param, i);
+ 	for (i = 0; i < TOMOYO_MAX_GROUP; i++)
+-		if (tomoyo_str_starts(&data, tomoyo_group_name[i]))
+-			return tomoyo_write_group(data, is_delete, i);
++		if (tomoyo_str_starts(&param.data, tomoyo_group_name[i]))
++			return tomoyo_write_group(&param, i);
+ 	return -EINVAL;
+ }
+ 
+@@ -1489,7 +1502,7 @@ int tomoyo_supervisor(struct tomoyo_requ
+ 		vsnprintf(buffer, len - 1, fmt, args);
+ 		va_end(args);
+ 		tomoyo_normalize_line(buffer);
+-		tomoyo_write_domain2(buffer, r->domain, false);
++		tomoyo_write_domain2(&r->domain->acl_info_list, buffer, false);
+ 		kfree(buffer);
+ 		/* fall through */
+ 	case TOMOYO_CONFIG_PERMISSIVE:
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -399,6 +399,13 @@ struct tomoyo_mount_acl {
+ 	struct tomoyo_number_union flags;
+ };
+ 
++/* Structure for holding a line from /sys/kernel/security/tomoyo/ interface. */
++struct tomoyo_acl_param {
++	char *data;
++	struct list_head *list;
++	bool is_delete;
++};
++
+ #define TOMOYO_MAX_IO_READ_QUEUE 32
+ 
+ /*
+@@ -521,7 +528,7 @@ bool tomoyo_correct_domain(const unsigne
+ bool tomoyo_correct_path(const char *filename);
+ bool tomoyo_correct_word(const char *string);
+ bool tomoyo_domain_def(const unsigned char *buffer);
+-bool tomoyo_parse_name_union(const char *filename,
++bool tomoyo_parse_name_union(struct tomoyo_acl_param *param,
+ 			     struct tomoyo_name_union *ptr);
+ const struct tomoyo_path_info *
+ tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
+@@ -531,7 +538,8 @@ bool tomoyo_number_matches_group(const u
+ 				 const struct tomoyo_group *group);
+ bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
+ 				 const struct tomoyo_path_info *pattern);
+-bool tomoyo_parse_number_union(char *data, struct tomoyo_number_union *num);
++bool tomoyo_parse_number_union(struct tomoyo_acl_param *param,
++			       struct tomoyo_number_union *ptr);
+ bool tomoyo_tokenize(char *buffer, char *w[], size_t size);
+ bool tomoyo_verbose_mode(const struct tomoyo_domain_info *domain);
+ int tomoyo_init_request_info(struct tomoyo_request_info *r,
+@@ -540,21 +548,19 @@ int tomoyo_init_request_info(struct tomo
+ int tomoyo_mount_permission(char *dev_name, struct path *path,
+ 			    const char *type, unsigned long flags,
+ 			    void *data_page);
+-int tomoyo_write_aggregator(char *data, const bool is_delete);
+-int tomoyo_write_transition_control(char *data, const bool is_delete,
++int tomoyo_write_aggregator(struct tomoyo_acl_param *param);
++int tomoyo_write_transition_control(struct tomoyo_acl_param *param,
+ 				    const u8 type);
+-int tomoyo_write_file(char *data, struct tomoyo_domain_info *domain,
+-		      const bool is_delete);
+-int tomoyo_write_mount(char *data, struct tomoyo_domain_info *domain,
+-		       const bool is_delete);
+-int tomoyo_write_group(char *data, const bool is_delete, const u8 type);
++int tomoyo_write_file(struct tomoyo_acl_param *param);
++int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type);
+ int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
+      __attribute__ ((format(printf, 2, 3)));
+ struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
+ struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
+ 						const u8 profile);
+ struct tomoyo_profile *tomoyo_profile(const u8 profile);
+-struct tomoyo_group *tomoyo_get_group(const char *group_name, const u8 type);
++struct tomoyo_group *tomoyo_get_group(struct tomoyo_acl_param *param,
++				      const u8 idx);
+ unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
+ 				const u8 index);
+ void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
+@@ -587,7 +593,7 @@ void tomoyo_put_name_union(struct tomoyo
+ void tomoyo_run_gc(void);
+ void tomoyo_memory_free(void *ptr);
+ int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
+-			 bool is_delete, struct tomoyo_domain_info *domain,
++			 struct tomoyo_acl_param *param,
+ 			 bool (*check_duplicate) (const struct tomoyo_acl_info
+ 						  *,
+ 						  const struct tomoyo_acl_info
+@@ -596,7 +602,7 @@ int tomoyo_update_domain(struct tomoyo_a
+ 						  struct tomoyo_acl_info *,
+ 						  const bool));
+ int tomoyo_update_policy(struct tomoyo_acl_head *new_entry, const int size,
+-			 bool is_delete, struct list_head *list,
++			 struct tomoyo_acl_param *param,
+ 			 bool (*check_duplicate) (const struct tomoyo_acl_head
+ 						  *,
+ 						  const struct tomoyo_acl_head
+@@ -604,6 +610,8 @@ int tomoyo_update_policy(struct tomoyo_a
+ void tomoyo_check_acl(struct tomoyo_request_info *r,
+ 		      bool (*check_entry) (struct tomoyo_request_info *,
+ 					   const struct tomoyo_acl_info *));
++char *tomoyo_read_token(struct tomoyo_acl_param *param);
++bool tomoyo_permstr(const char *string, const char *keyword);
+ 
+ /********** External variable definitions. **********/
+ 
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -20,8 +20,7 @@ struct tomoyo_domain_info tomoyo_kernel_
+  *
+  * @new_entry:       Pointer to "struct tomoyo_acl_info".
+  * @size:            Size of @new_entry in bytes.
+- * @is_delete:       True if it is a delete request.
+- * @list:            Pointer to "struct list_head".
++ * @param:           Pointer to "struct tomoyo_acl_param".
+  * @check_duplicate: Callback function to find duplicated entry.
+  *
+  * Returns 0 on success, negative value otherwise.
+@@ -29,25 +28,26 @@ struct tomoyo_domain_info tomoyo_kernel_
+  * Caller holds tomoyo_read_lock().
+  */
+ int tomoyo_update_policy(struct tomoyo_acl_head *new_entry, const int size,
+-			 bool is_delete, struct list_head *list,
++			 struct tomoyo_acl_param *param,
+ 			 bool (*check_duplicate) (const struct tomoyo_acl_head
+ 						  *,
+ 						  const struct tomoyo_acl_head
+ 						  *))
+ {
+-	int error = is_delete ? -ENOENT : -ENOMEM;
++	int error = param->is_delete ? -ENOENT : -ENOMEM;
+ 	struct tomoyo_acl_head *entry;
++	struct list_head *list = param->list;
+ 
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		return -ENOMEM;
+ 	list_for_each_entry_rcu(entry, list, list) {
+ 		if (!check_duplicate(entry, new_entry))
+ 			continue;
+-		entry->is_deleted = is_delete;
++		entry->is_deleted = param->is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (error && !is_delete) {
++	if (error && !param->is_delete) {
+ 		entry = tomoyo_commit_ok(new_entry, size);
+ 		if (entry) {
+ 			list_add_tail_rcu(&entry->list, list);
+@@ -77,8 +77,7 @@ static inline bool tomoyo_same_acl_head(
+  *
+  * @new_entry:       Pointer to "struct tomoyo_acl_info".
+  * @size:            Size of @new_entry in bytes.
+- * @is_delete:       True if it is a delete request.
+- * @domain:          Pointer to "struct tomoyo_domain_info".
++ * @param:           Pointer to "struct tomoyo_acl_param".
+  * @check_duplicate: Callback function to find duplicated entry.
+  * @merge_duplicate: Callback function to merge duplicated entry.
+  *
+@@ -87,7 +86,7 @@ static inline bool tomoyo_same_acl_head(
+  * Caller holds tomoyo_read_lock().
+  */
+ int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
+-			 bool is_delete, struct tomoyo_domain_info *domain,
++			 struct tomoyo_acl_param *param,
+ 			 bool (*check_duplicate) (const struct tomoyo_acl_info
+ 						  *,
+ 						  const struct tomoyo_acl_info
+@@ -96,12 +95,14 @@ int tomoyo_update_domain(struct tomoyo_a
+ 						  struct tomoyo_acl_info *,
+ 						  const bool))
+ {
++	const bool is_delete = param->is_delete;
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	struct tomoyo_acl_info *entry;
++	struct list_head * const list = param->list;
+ 
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		return error;
+-	list_for_each_entry_rcu(entry, &domain->acl_info_list, list) {
++	list_for_each_entry_rcu(entry, list, list) {
+ 		if (!check_duplicate(entry, new_entry))
+ 			continue;
+ 		if (merge_duplicate)
+@@ -115,7 +116,7 @@ int tomoyo_update_domain(struct tomoyo_a
+ 	if (error && !is_delete) {
+ 		entry = tomoyo_commit_ok(new_entry, size);
+ 		if (entry) {
+-			list_add_tail_rcu(&entry->list, &domain->acl_info_list);
++			list_add_tail_rcu(&entry->list, list);
+ 			error = 0;
+ 		}
+ 	}
+@@ -177,22 +178,28 @@ static bool tomoyo_same_transition_contr
+ }
+ 
+ /**
+- * tomoyo_update_transition_control_entry - Update "struct tomoyo_transition_control" list.
++ * tomoyo_write_transition_control - Write "struct tomoyo_transition_control" list.
+  *
+- * @domainname: The name of domain. Maybe NULL.
+- * @program:    The name of program. Maybe NULL.
+- * @type:       Type of transition.
+- * @is_delete:  True if it is a delete request.
++ * @param: Pointer to "struct tomoyo_acl_param".
++ * @type:  Type of this entry.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int tomoyo_update_transition_control_entry(const char *domainname,
+-						  const char *program,
+-						  const u8 type,
+-						  const bool is_delete)
++int tomoyo_write_transition_control(struct tomoyo_acl_param *param,
++				    const u8 type)
+ {
+ 	struct tomoyo_transition_control e = { .type = type };
+-	int error = is_delete ? -ENOENT : -ENOMEM;
++	int error = param->is_delete ? -ENOENT : -ENOMEM;
++	char *program = param->data;
++	char *domainname = strstr(program, " from ");
++	if (domainname) {
++		*domainname = '\0';
++		domainname += 6;
++	} else if (type == TOMOYO_TRANSITION_CONTROL_NO_KEEP ||
++		   type == TOMOYO_TRANSITION_CONTROL_KEEP) {
++		domainname = program;
++		program = NULL;
++	}
+ 	if (program) {
+ 		if (!tomoyo_correct_path(program))
+ 			return -EINVAL;
+@@ -210,42 +217,16 @@ static int tomoyo_update_transition_cont
+ 		if (!e.domainname)
+ 			goto out;
+ 	}
+-	error = tomoyo_update_policy(&e.head, sizeof(e), is_delete,
+-				     &tomoyo_policy_list
+-				     [TOMOYO_ID_TRANSITION_CONTROL],
++	param->list = &tomoyo_policy_list[TOMOYO_ID_TRANSITION_CONTROL];
++	error = tomoyo_update_policy(&e.head, sizeof(e), param,
+ 				     tomoyo_same_transition_control);
+- out:
++out:
+ 	tomoyo_put_name(e.domainname);
+ 	tomoyo_put_name(e.program);
+ 	return error;
+ }
+ 
+ /**
+- * tomoyo_write_transition_control - Write "struct tomoyo_transition_control" list.
+- *
+- * @data:      String to parse.
+- * @is_delete: True if it is a delete request.
+- * @type:      Type of this entry.
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-int tomoyo_write_transition_control(char *data, const bool is_delete,
+-				    const u8 type)
+-{
+-	char *domainname = strstr(data, " from ");
+-	if (domainname) {
+-		*domainname = '\0';
+-		domainname += 6;
+-	} else if (type == TOMOYO_TRANSITION_CONTROL_NO_KEEP ||
+-		   type == TOMOYO_TRANSITION_CONTROL_KEEP) {
+-		domainname = data;
+-		data = NULL;
+-	}
+-	return tomoyo_update_transition_control_entry(domainname, data, type,
+-						      is_delete);
+-}
+-
+-/**
+  * tomoyo_transition_type - Get domain transition type.
+  *
+  * @domainname: The name of domain.
+@@ -312,24 +293,21 @@ static bool tomoyo_same_aggregator(const
+ }
+ 
+ /**
+- * tomoyo_update_aggregator_entry - Update "struct tomoyo_aggregator" list.
++ * tomoyo_write_aggregator - Write "struct tomoyo_aggregator" list.
+  *
+- * @original_name:   The original program's name.
+- * @aggregated_name: The program name to use.
+- * @is_delete:       True if it is a delete request.
++ * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_update_aggregator_entry(const char *original_name,
+-					  const char *aggregated_name,
+-					  const bool is_delete)
++int tomoyo_write_aggregator(struct tomoyo_acl_param *param)
+ {
+ 	struct tomoyo_aggregator e = { };
+-	int error = is_delete ? -ENOENT : -ENOMEM;
+-
+-	if (!tomoyo_correct_path(original_name) ||
++	int error = param->is_delete ? -ENOENT : -ENOMEM;
++	const char *original_name = tomoyo_read_token(param);
++	const char *aggregated_name = tomoyo_read_token(param);
++	if (!tomoyo_correct_word(original_name) ||
+ 	    !tomoyo_correct_path(aggregated_name))
+ 		return -EINVAL;
+ 	e.original_name = tomoyo_get_name(original_name);
+@@ -337,36 +315,16 @@ static int tomoyo_update_aggregator_entr
+ 	if (!e.original_name || !e.aggregated_name ||
+ 	    e.aggregated_name->is_patterned) /* No patterns allowed. */
+ 		goto out;
+-	error = tomoyo_update_policy(&e.head, sizeof(e), is_delete,
+-				     &tomoyo_policy_list[TOMOYO_ID_AGGREGATOR],
++	param->list = &tomoyo_policy_list[TOMOYO_ID_AGGREGATOR];
++	error = tomoyo_update_policy(&e.head, sizeof(e), param,
+ 				     tomoyo_same_aggregator);
+- out:
++out:
+ 	tomoyo_put_name(e.original_name);
+ 	tomoyo_put_name(e.aggregated_name);
+ 	return error;
+ }
+ 
+ /**
+- * tomoyo_write_aggregator - Write "struct tomoyo_aggregator" list.
+- *
+- * @data:      String to parse.
+- * @is_delete: True if it is a delete request.
+- *
+- * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds tomoyo_read_lock().
+- */
+-int tomoyo_write_aggregator(char *data, const bool is_delete)
+-{
+-	char *cp = strchr(data, ' ');
+-
+-	if (!cp)
+-		return -EINVAL;
+-	*cp++ = '\0';
+-	return tomoyo_update_aggregator_entry(data, cp, is_delete);
+-}
+-
+-/**
+  * tomoyo_assign_domain - Create a domain.
+  *
+  * @domainname: The name of domain.
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -432,29 +432,27 @@ static bool tomoyo_merge_path_acl(struct
+ /**
+  * tomoyo_update_path_acl - Update "struct tomoyo_path_acl" list.
+  *
+- * @type:      Type of operation.
+- * @filename:  Filename.
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @is_delete: True if it is a delete request.
++ * @perm:  Permission.
++ * @param: Pointer to "struct tomoyo_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_update_path_acl(const u8 type, const char *filename,
+-				  struct tomoyo_domain_info * const domain,
+-				  const bool is_delete)
++static int tomoyo_update_path_acl(const u16 perm,
++				  struct tomoyo_acl_param *param)
+ {
+ 	struct tomoyo_path_acl e = {
+ 		.head.type = TOMOYO_TYPE_PATH_ACL,
+-		.perm = 1 << type
++		.perm = perm
+ 	};
+ 	int error;
+-	if (!tomoyo_parse_name_union(filename, &e.name))
+-		return -EINVAL;
+-	error = tomoyo_update_domain(&e.head, sizeof(e), is_delete, domain,
+-				     tomoyo_same_path_acl,
+-				     tomoyo_merge_path_acl);
++	if (!tomoyo_parse_name_union(param, &e.name))
++		error = -EINVAL;
++	else
++		error = tomoyo_update_domain(&e.head, sizeof(e), param,
++					     tomoyo_same_path_acl,
++					     tomoyo_merge_path_acl);
+ 	tomoyo_put_name_union(&e.name);
+ 	return error;
+ }
+@@ -507,37 +505,30 @@ static bool tomoyo_merge_mkdev_acl(struc
+ /**
+  * tomoyo_update_mkdev_acl - Update "struct tomoyo_mkdev_acl" list.
+  *
+- * @type:      Type of operation.
+- * @filename:  Filename.
+- * @mode:      Create mode.
+- * @major:     Device major number.
+- * @minor:     Device minor number.
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @is_delete: True if it is a delete request.
++ * @perm:  Permission.
++ * @param: Pointer to "struct tomoyo_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_update_mkdev_acl(const u8 type, const char *filename,
+-					  char *mode, char *major, char *minor,
+-					  struct tomoyo_domain_info * const
+-					  domain, const bool is_delete)
++static int tomoyo_update_mkdev_acl(const u8 perm,
++				   struct tomoyo_acl_param *param)
+ {
+ 	struct tomoyo_mkdev_acl e = {
+ 		.head.type = TOMOYO_TYPE_MKDEV_ACL,
+-		.perm = 1 << type
++		.perm = perm
+ 	};
+-	int error = is_delete ? -ENOENT : -ENOMEM;
+-	if (!tomoyo_parse_name_union(filename, &e.name) ||
+-	    !tomoyo_parse_number_union(mode, &e.mode) ||
+-	    !tomoyo_parse_number_union(major, &e.major) ||
+-	    !tomoyo_parse_number_union(minor, &e.minor))
+-		goto out;
+-	error = tomoyo_update_domain(&e.head, sizeof(e), is_delete, domain,
+-				     tomoyo_same_mkdev_acl,
+-				     tomoyo_merge_mkdev_acl);
+- out:
++	int error;
++	if (!tomoyo_parse_name_union(param, &e.name) ||
++	    !tomoyo_parse_number_union(param, &e.mode) ||
++	    !tomoyo_parse_number_union(param, &e.major) ||
++	    !tomoyo_parse_number_union(param, &e.minor))
++		error = -EINVAL;
++	else
++		error = tomoyo_update_domain(&e.head, sizeof(e), param,
++					     tomoyo_same_mkdev_acl,
++					     tomoyo_merge_mkdev_acl);
+ 	tomoyo_put_name_union(&e.name);
+ 	tomoyo_put_number_union(&e.mode);
+ 	tomoyo_put_number_union(&e.major);
+@@ -590,33 +581,28 @@ static bool tomoyo_merge_path2_acl(struc
+ /**
+  * tomoyo_update_path2_acl - Update "struct tomoyo_path2_acl" list.
+  *
+- * @type:      Type of operation.
+- * @filename1: First filename.
+- * @filename2: Second filename.
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @is_delete: True if it is a delete request.
++ * @perm:  Permission.
++ * @param: Pointer to "struct tomoyo_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_update_path2_acl(const u8 type, const char *filename1,
+-				   const char *filename2,
+-				   struct tomoyo_domain_info * const domain,
+-				   const bool is_delete)
++static int tomoyo_update_path2_acl(const u8 perm,
++				   struct tomoyo_acl_param *param)
+ {
+ 	struct tomoyo_path2_acl e = {
+ 		.head.type = TOMOYO_TYPE_PATH2_ACL,
+-		.perm = 1 << type
++		.perm = perm
+ 	};
+-	int error = is_delete ? -ENOENT : -ENOMEM;
+-	if (!tomoyo_parse_name_union(filename1, &e.name1) ||
+-	    !tomoyo_parse_name_union(filename2, &e.name2))
+-		goto out;
+-	error = tomoyo_update_domain(&e.head, sizeof(e), is_delete, domain,
+-				     tomoyo_same_path2_acl,
+-				     tomoyo_merge_path2_acl);
+- out:
++	int error;
++	if (!tomoyo_parse_name_union(param, &e.name1) ||
++	    !tomoyo_parse_name_union(param, &e.name2))
++		error = -EINVAL;
++	else
++		error = tomoyo_update_domain(&e.head, sizeof(e), param,
++					     tomoyo_same_path2_acl,
++					     tomoyo_merge_path2_acl);
+ 	tomoyo_put_name_union(&e.name1);
+ 	tomoyo_put_name_union(&e.name2);
+ 	return error;
+@@ -705,33 +691,26 @@ static bool tomoyo_merge_path_number_acl
+ /**
+  * tomoyo_update_path_number_acl - Update ioctl/chmod/chown/chgrp ACL.
+  *
+- * @type:      Type of operation.
+- * @filename:  Filename.
+- * @number:    Number.
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @is_delete: True if it is a delete request.
++ * @perm:  Permission.
++ * @param: Pointer to "struct tomoyo_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int tomoyo_update_path_number_acl(const u8 type, const char *filename,
+-					 char *number,
+-					 struct tomoyo_domain_info * const
+-					 domain,
+-					 const bool is_delete)
++static int tomoyo_update_path_number_acl(const u8 perm,
++					 struct tomoyo_acl_param *param)
+ {
+ 	struct tomoyo_path_number_acl e = {
+ 		.head.type = TOMOYO_TYPE_PATH_NUMBER_ACL,
+-		.perm = 1 << type
++		.perm = perm
+ 	};
+-	int error = is_delete ? -ENOENT : -ENOMEM;
+-	if (!tomoyo_parse_name_union(filename, &e.name))
+-		return -EINVAL;
+-	if (!tomoyo_parse_number_union(number, &e.number))
+-		goto out;
+-	error = tomoyo_update_domain(&e.head, sizeof(e), is_delete, domain,
+-				     tomoyo_same_path_number_acl,
+-				     tomoyo_merge_path_number_acl);
+- out:
++	int error;
++	if (!tomoyo_parse_name_union(param, &e.name) ||
++	    !tomoyo_parse_number_union(param, &e.number))
++		error = -EINVAL;
++	else
++		error = tomoyo_update_domain(&e.head, sizeof(e), param,
++					     tomoyo_same_path_number_acl,
++					     tomoyo_merge_path_number_acl);
+ 	tomoyo_put_name_union(&e.name);
+ 	tomoyo_put_number_union(&e.number);
+ 	return error;
+@@ -969,53 +948,88 @@ int tomoyo_path2_perm(const u8 operation
+ }
+ 
+ /**
++ * tomoyo_same_mount_acl - Check for duplicated "struct tomoyo_mount_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
++static bool tomoyo_same_mount_acl(const struct tomoyo_acl_info *a,
++				  const struct tomoyo_acl_info *b)
++{
++	const struct tomoyo_mount_acl *p1 = container_of(a, typeof(*p1), head);
++	const struct tomoyo_mount_acl *p2 = container_of(b, typeof(*p2), head);
++	return tomoyo_same_name_union(&p1->dev_name, &p2->dev_name) &&
++		tomoyo_same_name_union(&p1->dir_name, &p2->dir_name) &&
++		tomoyo_same_name_union(&p1->fs_type, &p2->fs_type) &&
++		tomoyo_same_number_union(&p1->flags, &p2->flags);
++}
++
++/**
++ * tomoyo_update_mount_acl - Write "struct tomoyo_mount_acl" list.
++ *
++ * @param: Pointer to "struct tomoyo_acl_param".
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static int tomoyo_update_mount_acl(struct tomoyo_acl_param *param)
++{
++	struct tomoyo_mount_acl e = { .head.type = TOMOYO_TYPE_MOUNT_ACL };
++	int error;
++	if (!tomoyo_parse_name_union(param, &e.dev_name) ||
++	    !tomoyo_parse_name_union(param, &e.dir_name) ||
++	    !tomoyo_parse_name_union(param, &e.fs_type) ||
++	    !tomoyo_parse_number_union(param, &e.flags))
++		error = -EINVAL;
++	else
++		error = tomoyo_update_domain(&e.head, sizeof(e), param,
++					     tomoyo_same_mount_acl, NULL);
++	tomoyo_put_name_union(&e.dev_name);
++	tomoyo_put_name_union(&e.dir_name);
++	tomoyo_put_name_union(&e.fs_type);
++	tomoyo_put_number_union(&e.flags);
++	return error;
++}
++
++/**
+  * tomoyo_write_file - Update file related list.
+  *
+- * @data:      String to parse.
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @is_delete: True if it is a delete request.
++ * @param: Pointer to "struct tomoyo_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-int tomoyo_write_file(char *data, struct tomoyo_domain_info *domain,
+-		      const bool is_delete)
++int tomoyo_write_file(struct tomoyo_acl_param *param)
+ {
+-	char *w[5];
++	u16 perm = 0;
+ 	u8 type;
+-	if (!tomoyo_tokenize(data, w, sizeof(w)) || !w[1][0])
+-		return -EINVAL;
+-	if (strncmp(w[0], "allow_", 6))
+-		goto out;
+-	w[0] += 6;
+-	for (type = 0; type < TOMOYO_MAX_PATH_OPERATION; type++) {
+-		if (strcmp(w[0], tomoyo_path_keyword[type]))
+-			continue;
+-		return tomoyo_update_path_acl(type, w[1], domain, is_delete);
+-	}
+-	if (!w[2][0])
+-		goto out;
+-	for (type = 0; type < TOMOYO_MAX_PATH2_OPERATION; type++) {
+-		if (strcmp(w[0], tomoyo_path2_keyword[type]))
+-			continue;
+-		return tomoyo_update_path2_acl(type, w[1], w[2], domain,
+-					       is_delete);
+-	}
+-	for (type = 0; type < TOMOYO_MAX_PATH_NUMBER_OPERATION; type++) {
+-		if (strcmp(w[0], tomoyo_path_number_keyword[type]))
+-			continue;
+-		return tomoyo_update_path_number_acl(type, w[1], w[2], domain,
+-						     is_delete);
+-	}
+-	if (!w[3][0] || !w[4][0])
+-		goto out;
+-	for (type = 0; type < TOMOYO_MAX_MKDEV_OPERATION; type++) {
+-		if (strcmp(w[0], tomoyo_mkdev_keyword[type]))
+-			continue;
+-		return tomoyo_update_mkdev_acl(type, w[1], w[2], w[3],
+-					       w[4], domain, is_delete);
+-	}
+- out:
++	const char *operation = tomoyo_read_token(param);
++	for (type = 0; type < TOMOYO_MAX_PATH_OPERATION; type++)
++		if (tomoyo_permstr(operation, tomoyo_path_keyword[type]))
++			perm |= 1 << type;
++	if (perm)
++		return tomoyo_update_path_acl(perm, param);
++	for (type = 0; type < TOMOYO_MAX_PATH2_OPERATION; type++)
++		if (tomoyo_permstr(operation, tomoyo_path2_keyword[type]))
++			perm |= 1 << type;
++	if (perm)
++		return tomoyo_update_path2_acl(perm, param);
++	for (type = 0; type < TOMOYO_MAX_PATH_NUMBER_OPERATION; type++)
++		if (tomoyo_permstr(operation,
++				   tomoyo_path_number_keyword[type]))
++			perm |= 1 << type;
++	if (perm)
++		return tomoyo_update_path_number_acl(perm, param);
++	for (type = 0; type < TOMOYO_MAX_MKDEV_OPERATION; type++)
++		if (tomoyo_permstr(operation, tomoyo_mkdev_keyword[type]))
++			perm |= 1 << type;
++	if (perm)
++		return tomoyo_update_mkdev_acl(perm, param);
++	if (tomoyo_permstr(operation, "mount"))
++		return tomoyo_update_mount_acl(param);
+ 	return -EINVAL;
+ }
+--- security-testing-2.6.orig/security/tomoyo/group.c
++++ security-testing-2.6/security/tomoyo/group.c
+@@ -28,48 +28,41 @@ static bool tomoyo_same_number_group(con
+ /**
+  * tomoyo_write_group - Write "struct tomoyo_path_group"/"struct tomoyo_number_group" list.
+  *
+- * @data:      String to parse.
+- * @is_delete: True if it is a delete request.
++ * @param: Pointer to "struct tomoyo_acl_param".
+  * @type:      Type of this group.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int tomoyo_write_group(char *data, const bool is_delete, const u8 type)
++int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type)
+ {
+-	struct tomoyo_group *group;
+-	struct list_head *member;
+-	char *w[2];
++	struct tomoyo_group *group = tomoyo_get_group(param, type);
+ 	int error = -EINVAL;
+-	if (!tomoyo_tokenize(data, w, sizeof(w)) || !w[1][0])
+-		return -EINVAL;
+-	group = tomoyo_get_group(w[0], type);
+ 	if (!group)
+ 		return -ENOMEM;
+-	member = &group->member_list;
++	param->list = &group->member_list;
+ 	if (type == TOMOYO_PATH_GROUP) {
+ 		struct tomoyo_path_group e = { };
+-		e.member_name = tomoyo_get_name(w[1]);
++		e.member_name = tomoyo_get_name(tomoyo_read_token(param));
+ 		if (!e.member_name) {
+ 			error = -ENOMEM;
+ 			goto out;
+ 		}
+-		error = tomoyo_update_policy(&e.head, sizeof(e), is_delete,
+-					     member, tomoyo_same_path_group);
++		error = tomoyo_update_policy(&e.head, sizeof(e), param,
++					  tomoyo_same_path_group);
+ 		tomoyo_put_name(e.member_name);
+ 	} else if (type == TOMOYO_NUMBER_GROUP) {
+ 		struct tomoyo_number_group e = { };
+-		if (w[1][0] == '@'
+-		    || !tomoyo_parse_number_union(w[1], &e.number)
+-		    || e.number.values[0] > e.number.values[1])
++		if (param->data[0] == '@' ||
++		    !tomoyo_parse_number_union(param, &e.number))
+ 			goto out;
+-		error = tomoyo_update_policy(&e.head, sizeof(e), is_delete,
+-					     member, tomoyo_same_number_group);
++		error = tomoyo_update_policy(&e.head, sizeof(e), param,
++					  tomoyo_same_number_group);
+ 		/*
+ 		 * tomoyo_put_number_union() is not needed because
+-		 * w[1][0] != '@'.
++		 * param->data[0] != '@'.
+ 		 */
+ 	}
+- out:
++out:
+ 	tomoyo_put_group(group);
+ 	return error;
+ }
+--- security-testing-2.6.orig/security/tomoyo/memory.c
++++ security-testing-2.6/security/tomoyo/memory.c
+@@ -93,15 +93,18 @@ void tomoyo_memory_free(void *ptr)
+ /**
+  * tomoyo_get_group - Allocate memory for "struct tomoyo_path_group"/"struct tomoyo_number_group".
+  *
+- * @group_name: The name of address group.
+- * @idx:        Index number.
++ * @param: Pointer to "struct tomoyo_acl_param".
++ * @idx:   Index number.
+  *
+  * Returns pointer to "struct tomoyo_group" on success, NULL otherwise.
+  */
+-struct tomoyo_group *tomoyo_get_group(const char *group_name, const u8 idx)
++struct tomoyo_group *tomoyo_get_group(struct tomoyo_acl_param *param,
++				      const u8 idx)
+ {
+ 	struct tomoyo_group e = { };
+ 	struct tomoyo_group *group = NULL;
++	struct list_head *list;
++	const char *group_name = tomoyo_read_token(param);
+ 	bool found = false;
+ 	if (!tomoyo_correct_word(group_name) || idx >= TOMOYO_MAX_GROUP)
+ 		return NULL;
+@@ -110,7 +113,8 @@ struct tomoyo_group *tomoyo_get_group(co
+ 		return NULL;
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		goto out;
+-	list_for_each_entry(group, &tomoyo_group_list[idx], head.list) {
++	list = &tomoyo_group_list[idx];
++	list_for_each_entry(group, list, head.list) {
+ 		if (e.group_name != group->group_name)
+ 			continue;
+ 		atomic_inc(&group->head.users);
+@@ -122,14 +126,13 @@ struct tomoyo_group *tomoyo_get_group(co
+ 		if (entry) {
+ 			INIT_LIST_HEAD(&entry->member_list);
+ 			atomic_set(&entry->head.users, 1);
+-			list_add_tail_rcu(&entry->head.list,
+-					  &tomoyo_group_list[idx]);
++			list_add_tail_rcu(&entry->head.list, list);
+ 			group = entry;
+ 			found = true;
+ 		}
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+- out:
++out:
+ 	tomoyo_put_name(e.group_name);
+ 	return found ? group : NULL;
+ }
+@@ -210,6 +213,8 @@ void __init tomoyo_mm_init(void)
+ 	idx = tomoyo_read_lock();
+ 	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
+ 		panic("Can't register tomoyo_kernel_domain");
++#if 0
++	/* Will be replaced with tomoyo_load_builtin_policy(). */
+ 	{
+ 		/* Load built-in policy. */
+ 		tomoyo_write_transition_control("/sbin/hotplug", false,
+@@ -217,6 +222,7 @@ void __init tomoyo_mm_init(void)
+ 		tomoyo_write_transition_control("/sbin/modprobe", false,
+ 					TOMOYO_TRANSITION_CONTROL_INITIALIZE);
+ 	}
++#endif
+ 	tomoyo_read_unlock(idx);
+ }
+ 
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -243,56 +243,3 @@ int tomoyo_mount_permission(char *dev_na
+ 	tomoyo_read_unlock(idx);
+ 	return error;
+ }
+-
+-/**
+- * tomoyo_same_mount_acl - Check for duplicated "struct tomoyo_mount_acl" entry.
+- *
+- * @a: Pointer to "struct tomoyo_acl_info".
+- * @b: Pointer to "struct tomoyo_acl_info".
+- *
+- * Returns true if @a == @b, false otherwise.
+- */
+-static bool tomoyo_same_mount_acl(const struct tomoyo_acl_info *a,
+-				  const struct tomoyo_acl_info *b)
+-{
+-	const struct tomoyo_mount_acl *p1 = container_of(a, typeof(*p1), head);
+-	const struct tomoyo_mount_acl *p2 = container_of(b, typeof(*p2), head);
+-	return tomoyo_same_name_union(&p1->dev_name, &p2->dev_name) &&
+-		tomoyo_same_name_union(&p1->dir_name, &p2->dir_name) &&
+-		tomoyo_same_name_union(&p1->fs_type, &p2->fs_type) &&
+-		tomoyo_same_number_union(&p1->flags, &p2->flags);
+-}
+-
+-/**
+- * tomoyo_write_mount - Write "struct tomoyo_mount_acl" list.
+- *
+- * @data:      String to parse.
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @is_delete: True if it is a delete request.
+- *
+- * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds tomoyo_read_lock().
+- */
+-int tomoyo_write_mount(char *data, struct tomoyo_domain_info *domain,
+-		       const bool is_delete)
+-{
+-	struct tomoyo_mount_acl e = { .head.type = TOMOYO_TYPE_MOUNT_ACL };
+-	int error = is_delete ? -ENOENT : -ENOMEM;
+-	char *w[4];
+-	if (!tomoyo_tokenize(data, w, sizeof(w)) || !w[3][0])
+-		return -EINVAL;
+-	if (!tomoyo_parse_name_union(w[0], &e.dev_name) ||
+-	    !tomoyo_parse_name_union(w[1], &e.dir_name) ||
+-	    !tomoyo_parse_name_union(w[2], &e.fs_type) ||
+-	    !tomoyo_parse_number_union(w[3], &e.flags))
+-		goto out;
+-	error = tomoyo_update_domain(&e.head, sizeof(e), is_delete, domain,
+-				     tomoyo_same_mount_acl, NULL);
+- out:
+-	tomoyo_put_name_union(&e.dev_name);
+-	tomoyo_put_name_union(&e.dir_name);
+-	tomoyo_put_name_union(&e.fs_type);
+-	tomoyo_put_number_union(&e.flags);
+-	return error;
+-}
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -16,6 +16,46 @@ DEFINE_MUTEX(tomoyo_policy_lock);
+ bool tomoyo_policy_loaded;
+ 
+ /**
++ * tomoyo_permstr - Find permission keywords.
++ *
++ * @string: String representation for permissions in foo/bar/buz format.
++ * @keyword: Keyword to find from @string/
++ *
++ * Returns ture if @keyword was found in @string, false otherwise.
++ *
++ * This function assumes that strncmp(w1, w2, strlen(w1)) != 0 if w1 != w2.
++ */
++bool tomoyo_permstr(const char *string, const char *keyword)
++{
++	const char *cp = strstr(string, keyword);
++	if (cp)
++		return cp == string || *(cp - 1) == '/';
++	return false;
++}
++
++/**
++ * tomoyo_read_token - Read a word from a line.
++ *
++ * @param: Pointer to "struct tomoyo_acl_param".
++ *
++ * Returns a word on success, "" otherwise.
++ *
++ * To allow the caller to skip NULL check, this function returns "" rather than
++ * NULL if there is no more words to read.
++ */
++char *tomoyo_read_token(struct tomoyo_acl_param *param)
++{
++	char *pos = param->data;
++	char *del = strchr(pos, ' ');
++	if (del)
++		*del++ = '\0';
++	else
++		del = pos + strlen(pos);
++	param->data = del;
++	return pos;
++}
++
++/**
+  * tomoyo_parse_ulong - Parse an "unsigned long" value.
+  *
+  * @result: Pointer to "unsigned long".
+@@ -81,21 +121,24 @@ void tomoyo_print_ulong(char *buffer, co
+ /**
+  * tomoyo_parse_name_union - Parse a tomoyo_name_union.
+  *
+- * @filename: Name or name group.
+- * @ptr:      Pointer to "struct tomoyo_name_union".
++ * @param: Pointer to "struct tomoyo_acl_param".
++ * @ptr:   Pointer to "struct tomoyo_name_union".
+  *
+  * Returns true on success, false otherwise.
+  */
+-bool tomoyo_parse_name_union(const char *filename,
++bool tomoyo_parse_name_union(struct tomoyo_acl_param *param,
+ 			     struct tomoyo_name_union *ptr)
+ {
+-	if (!tomoyo_correct_word(filename))
+-		return false;
+-	if (filename[0] == '@') {
+-		ptr->group = tomoyo_get_group(filename + 1, TOMOYO_PATH_GROUP);
++	char *filename;
++	if (param->data[0] == '@') {
++		param->data++;
++		ptr->group = tomoyo_get_group(param, TOMOYO_PATH_GROUP);
+ 		ptr->is_group = true;
+ 		return ptr->group != NULL;
+ 	}
++	filename = tomoyo_read_token(param);
++	if (!tomoyo_correct_word(filename))
++		return false;
+ 	ptr->filename = tomoyo_get_name(filename);
+ 	ptr->is_group = false;
+ 	return ptr->filename != NULL;
+@@ -104,40 +147,42 @@ bool tomoyo_parse_name_union(const char 
+ /**
+  * tomoyo_parse_number_union - Parse a tomoyo_number_union.
+  *
+- * @data: Number or number range or number group.
+- * @ptr:  Pointer to "struct tomoyo_number_union".
++ * @param: Pointer to "struct tomoyo_acl_param".
++ * @ptr:   Pointer to "struct tomoyo_number_union".
+  *
+  * Returns true on success, false otherwise.
+  */
+-bool tomoyo_parse_number_union(char *data, struct tomoyo_number_union *num)
++bool tomoyo_parse_number_union(struct tomoyo_acl_param *param,
++			       struct tomoyo_number_union *ptr)
+ {
++	char *data;
+ 	u8 type;
+ 	unsigned long v;
+-	memset(num, 0, sizeof(*num));
+-	if (data[0] == '@') {
+-		if (!tomoyo_correct_word(data))
+-			return false;
+-		num->group = tomoyo_get_group(data + 1, TOMOYO_NUMBER_GROUP);
+-		num->is_group = true;
+-		return num->group != NULL;
++	memset(ptr, 0, sizeof(*ptr));
++	if (param->data[0] == '@') {
++		param->data++;
++		ptr->group = tomoyo_get_group(param, TOMOYO_NUMBER_GROUP);
++		ptr->is_group = true;
++		return ptr->group != NULL;
+ 	}
++	data = tomoyo_read_token(param);
+ 	type = tomoyo_parse_ulong(&v, &data);
+-	if (!type)
++	if (type == TOMOYO_VALUE_TYPE_INVALID)
+ 		return false;
+-	num->values[0] = v;
+-	num->min_type = type;
++	ptr->values[0] = v;
++	ptr->min_type = type;
+ 	if (!*data) {
+-		num->values[1] = v;
+-		num->max_type = type;
++		ptr->values[1] = v;
++		ptr->max_type = type;
+ 		return true;
+ 	}
+ 	if (*data++ != '-')
+ 		return false;
+ 	type = tomoyo_parse_ulong(&v, &data);
+-	if (!type || *data)
++	if (type == TOMOYO_VALUE_TYPE_INVALID || *data || ptr->values[0] > v)
+ 		return false;
+-	num->values[1] = v;
+-	num->max_type = type;
++	ptr->values[1] = v;
++	ptr->max_type = type;
+ 	return true;
+ }
+ 

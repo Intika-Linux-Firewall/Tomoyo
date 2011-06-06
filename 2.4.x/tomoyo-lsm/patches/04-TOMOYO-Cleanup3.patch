@@ -1,0 +1,808 @@
+Subject: TOMOYO: Cleanup.
+
+Use common structure for ACL with "struct list_head" + "atomic_t".
+Update some of comments.
+Bring tomoyo_same_acl_head() to tomoyo_update_domain().
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |    2 
+ security/tomoyo/common.h |   30 ++-----
+ security/tomoyo/domain.c |   14 +++
+ security/tomoyo/file.c   |  182 +++++++++++++++++++++++++++++++++++++++++------
+ security/tomoyo/gc.c     |  127 +++++++++++++++++++++++++++++---
+ security/tomoyo/memory.c |   16 ++--
+ security/tomoyo/mount.c  |   31 ++++++--
+ 7 files changed, 334 insertions(+), 68 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -1249,7 +1249,7 @@ static bool tomoyo_read_group(struct tom
+ {
+ 	list_for_each_cookie(head->r.group, &tomoyo_group_list[idx]) {
+ 		struct tomoyo_group *group =
+-			list_entry(head->r.group, typeof(*group), list);
++			list_entry(head->r.group, typeof(*group), head.list);
+ 		list_for_each_cookie(head->r.acl, &group->member_list) {
+ 			struct tomoyo_acl_head *ptr =
+ 				list_entry(head->r.acl, typeof(*ptr), list);
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -217,6 +217,12 @@ struct tomoyo_acl_head {
+ 	bool is_deleted;
+ } __packed;
+ 
++/* Common header for shared entries. */
++struct tomoyo_shared_acl_head {
++	struct list_head list;
++	atomic_t users;
++} __packed;
++
+ /* Structure for request info. */
+ struct tomoyo_request_info {
+ 	struct tomoyo_domain_info *domain;
+@@ -279,8 +285,7 @@ struct tomoyo_path_info {
+ 
+ /* Structure for holding string data. */
+ struct tomoyo_name {
+-	struct list_head list;
+-	atomic_t users;
++	struct tomoyo_shared_acl_head head;
+ 	struct tomoyo_path_info entry;
+ };
+ 
+@@ -306,10 +311,9 @@ struct tomoyo_number_union {
+ 
+ /* Structure for "path_group"/"number_group" directive. */
+ struct tomoyo_group {
+-	struct list_head list;
++	struct tomoyo_shared_acl_head head;
+ 	const struct tomoyo_path_info *group_name;
+ 	struct list_head member_list;
+-	atomic_t users;
+ };
+ 
+ /* Structure for "path_group" directive. */
+@@ -704,7 +708,7 @@ static inline void tomoyo_put_name(const
+ 	if (name) {
+ 		struct tomoyo_name *ptr =
+ 			container_of(name, typeof(*ptr), entry);
+-		atomic_dec(&ptr->users);
++		atomic_dec(&ptr->head.users);
+ 	}
+ }
+ 
+@@ -718,7 +722,7 @@ static inline void tomoyo_put_name(const
+ static inline void tomoyo_put_group(struct tomoyo_group *group)
+ {
+ 	if (group)
+-		atomic_dec(&group->users);
++		atomic_dec(&group->head.users);
+ }
+ 
+ /**
+@@ -745,20 +749,6 @@ static inline struct tomoyo_domain_info 
+ }
+ 
+ /**
+- * tomoyo_same_acl_head - Check for duplicated "struct tomoyo_acl_info" entry.
+- *
+- * @a: Pointer to "struct tomoyo_acl_info".
+- * @b: Pointer to "struct tomoyo_acl_info".
+- *
+- * Returns true if @a == @b, false otherwise.
+- */
+-static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
+-					const struct tomoyo_acl_info *p2)
+-{
+-	return p1->type == p2->type;
+-}
+-
+-/**
+  * tomoyo_same_name_union - Check for duplicated "struct tomoyo_name_union" entry.
+  *
+  * @a: Pointer to "struct tomoyo_name_union".
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -59,6 +59,20 @@ int tomoyo_update_policy(struct tomoyo_a
+ }
+ 
+ /**
++ * tomoyo_same_acl_head - Check for duplicated "struct tomoyo_acl_info" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
++static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
++					const struct tomoyo_acl_info *p2)
++{
++	return p1->type == p2->type;
++}
++
++/**
+  * tomoyo_update_domain - Update an entry for domain policy.
+  *
+  * @new_entry:       Pointer to "struct tomoyo_acl_info".
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -48,6 +48,9 @@ const char *tomoyo_path_number_keyword[T
+ 	[TOMOYO_TYPE_CHGRP]      = "chgrp",
+ };
+ 
++/*
++ * Mapping table from "enum tomoyo_path_acl_index" to "enum tomoyo_mac_index".
++ */
+ static const u8 tomoyo_p2mac[TOMOYO_MAX_PATH_OPERATION] = {
+ 	[TOMOYO_TYPE_EXECUTE]    = TOMOYO_MAC_FILE_EXECUTE,
+ 	[TOMOYO_TYPE_READ]       = TOMOYO_MAC_FILE_OPEN,
+@@ -61,17 +64,27 @@ static const u8 tomoyo_p2mac[TOMOYO_MAX_
+ 	[TOMOYO_TYPE_UMOUNT]     = TOMOYO_MAC_FILE_UMOUNT,
+ };
+ 
++/*
++ * Mapping table from "enum tomoyo_mkdev_acl_index" to "enum tomoyo_mac_index".
++ */
+ static const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION] = {
+ 	[TOMOYO_TYPE_MKBLOCK] = TOMOYO_MAC_FILE_MKBLOCK,
+ 	[TOMOYO_TYPE_MKCHAR]  = TOMOYO_MAC_FILE_MKCHAR,
+ };
+ 
++/*
++ * Mapping table from "enum tomoyo_path2_acl_index" to "enum tomoyo_mac_index".
++ */
+ static const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION] = {
+ 	[TOMOYO_TYPE_LINK]       = TOMOYO_MAC_FILE_LINK,
+ 	[TOMOYO_TYPE_RENAME]     = TOMOYO_MAC_FILE_RENAME,
+ 	[TOMOYO_TYPE_PIVOT_ROOT] = TOMOYO_MAC_FILE_PIVOT_ROOT,
+ };
+ 
++/*
++ * Mapping table from "enum tomoyo_path_number_acl_index" to
++ * "enum tomoyo_mac_index".
++ */
+ static const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION] = {
+ 	[TOMOYO_TYPE_CREATE] = TOMOYO_MAC_FILE_CREATE,
+ 	[TOMOYO_TYPE_MKDIR]  = TOMOYO_MAC_FILE_MKDIR,
+@@ -83,6 +96,13 @@ static const u8 tomoyo_pn2mac[TOMOYO_MAX
+ 	[TOMOYO_TYPE_CHGRP]  = TOMOYO_MAC_FILE_CHGRP,
+ };
+ 
++/**
++ * tomoyo_put_name_union - Drop reference on "struct tomoyo_name_union".
++ *
++ * @ptr: Pointer to "struct tomoyo_name_union".
++ *
++ * Returns nothing.
++ */
+ void tomoyo_put_name_union(struct tomoyo_name_union *ptr)
+ {
+ 	if (!ptr)
+@@ -93,6 +113,14 @@ void tomoyo_put_name_union(struct tomoyo
+ 		tomoyo_put_name(ptr->filename);
+ }
+ 
++/**
++ * tomoyo_compare_name_union - Check whether a name matches "struct tomoyo_name_union" or not.
++ *
++ * @name: Pointer to "struct tomoyo_path_info".
++ * @ptr:  Pointer to "struct tomoyo_name_union".
++ *
++ * Returns "struct tomoyo_path_info" if @name matches @ptr, NULL otherwise.
++ */
+ const struct tomoyo_path_info *
+ tomoyo_compare_name_union(const struct tomoyo_path_info *name,
+ 			  const struct tomoyo_name_union *ptr)
+@@ -104,12 +132,27 @@ tomoyo_compare_name_union(const struct t
+ 	return NULL;
+ }
+ 
++/**
++ * tomoyo_put_number_union - Drop reference on "struct tomoyo_number_union".
++ *
++ * @ptr: Pointer to "struct tomoyo_number_union".
++ *
++ * Returns nothing.
++ */
+ void tomoyo_put_number_union(struct tomoyo_number_union *ptr)
+ {
+ 	if (ptr && ptr->is_group)
+ 		tomoyo_put_group(ptr->group);
+ }
+ 
++/**
++ * tomoyo_compare_number_union - Check whether a value matches "struct tomoyo_number_union" or not.
++ *
++ * @value: Number to check.
++ * @ptr:   Pointer to "struct tomoyo_number_union".
++ *
++ * Returns true if @value matches @ptr, false otherwise.
++ */
+ bool tomoyo_compare_number_union(const unsigned long value,
+ 				 const struct tomoyo_number_union *ptr)
+ {
+@@ -118,6 +161,16 @@ bool tomoyo_compare_number_union(const u
+ 	return value >= ptr->values[0] && value <= ptr->values[1];
+ }
+ 
++/**
++ * tomoyo_add_slash - Add trailing '/' if needed.
++ *
++ * @buf: Pointer to "struct tomoyo_path_info".
++ *
++ * Returns nothing.
++ *
++ * @buf must be generated by tomoyo_encode() because this function does not
++ * allocate memory for adding '/'.
++ */
+ static void tomoyo_add_slash(struct tomoyo_path_info *buf)
+ {
+ 	if (buf->is_dir)
+@@ -246,6 +299,18 @@ static int tomoyo_audit_path_number_log(
+ 				 filename->name, buffer);
+ }
+ 
++/**
++ * tomoyo_check_path_acl - Check permission for path operation.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @ptr: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if granted, false otherwise.
++ *
++ * To be able to use wildcard for domain transition, this function sets
++ * matching entry on success. Since the caller holds tomoyo_read_lock(),
++ * it is safe to set matching entry.
++ */
+ static bool tomoyo_check_path_acl(struct tomoyo_request_info *r,
+ 				  const struct tomoyo_acl_info *ptr)
+ {
+@@ -260,6 +325,14 @@ static bool tomoyo_check_path_acl(struct
+ 	return false;
+ }
+ 
++/**
++ * tomoyo_check_path_number_acl - Check permission for path number operation.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @ptr: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if granted, false otherwise.
++ */
+ static bool tomoyo_check_path_number_acl(struct tomoyo_request_info *r,
+ 					 const struct tomoyo_acl_info *ptr)
+ {
+@@ -272,6 +345,14 @@ static bool tomoyo_check_path_number_acl
+ 					  &acl->name);
+ }
+ 
++/**
++ * tomoyo_check_path2_acl - Check permission for path path operation.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @ptr: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if granted, false otherwise.
++ */
+ static bool tomoyo_check_path2_acl(struct tomoyo_request_info *r,
+ 				   const struct tomoyo_acl_info *ptr)
+ {
+@@ -283,8 +364,16 @@ static bool tomoyo_check_path2_acl(struc
+ 					     &acl->name2);
+ }
+ 
++/**
++ * tomoyo_check_mkdev_acl - Check permission for path number number number operation.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @ptr: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if granted, false otherwise.
++ */
+ static bool tomoyo_check_mkdev_acl(struct tomoyo_request_info *r,
+-				const struct tomoyo_acl_info *ptr)
++				   const struct tomoyo_acl_info *ptr)
+ {
+ 	const struct tomoyo_mkdev_acl *acl =
+ 		container_of(ptr, typeof(*acl), head);
+@@ -299,13 +388,20 @@ static bool tomoyo_check_mkdev_acl(struc
+ 					  &acl->name);
+ }
+ 
++/**
++ * tomoyo_same_path_acl - Check for duplicated "struct tomoyo_path_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b except permission bits, false otherwise.
++ */
+ static bool tomoyo_same_path_acl(const struct tomoyo_acl_info *a,
+ 				 const struct tomoyo_acl_info *b)
+ {
+ 	const struct tomoyo_path_acl *p1 = container_of(a, typeof(*p1), head);
+ 	const struct tomoyo_path_acl *p2 = container_of(b, typeof(*p2), head);
+-	return tomoyo_same_acl_head(&p1->head, &p2->head) &&
+-		tomoyo_same_name_union(&p1->name, &p2->name);
++	return tomoyo_same_name_union(&p1->name, &p2->name);
+ }
+ 
+ /**
+@@ -363,23 +459,37 @@ static int tomoyo_update_path_acl(const 
+ 	return error;
+ }
+ 
++/**
++ * tomoyo_same_mkdev_acl - Check for duplicated "struct tomoyo_mkdev_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b except permission bits, false otherwise.
++ */
+ static bool tomoyo_same_mkdev_acl(const struct tomoyo_acl_info *a,
+ 					 const struct tomoyo_acl_info *b)
+ {
+-	const struct tomoyo_mkdev_acl *p1 = container_of(a, typeof(*p1),
+-								head);
+-	const struct tomoyo_mkdev_acl *p2 = container_of(b, typeof(*p2),
+-								head);
+-	return tomoyo_same_acl_head(&p1->head, &p2->head)
+-		&& tomoyo_same_name_union(&p1->name, &p2->name)
+-		&& tomoyo_same_number_union(&p1->mode, &p2->mode)
+-		&& tomoyo_same_number_union(&p1->major, &p2->major)
+-		&& tomoyo_same_number_union(&p1->minor, &p2->minor);
++	const struct tomoyo_mkdev_acl *p1 = container_of(a, typeof(*p1), head);
++	const struct tomoyo_mkdev_acl *p2 = container_of(b, typeof(*p2), head);
++	return tomoyo_same_name_union(&p1->name, &p2->name) &&
++		tomoyo_same_number_union(&p1->mode, &p2->mode) &&
++		tomoyo_same_number_union(&p1->major, &p2->major) &&
++		tomoyo_same_number_union(&p1->minor, &p2->minor);
+ }
+ 
++/**
++ * tomoyo_merge_mkdev_acl - Merge duplicated "struct tomoyo_mkdev_acl" entry.
++ *
++ * @a:         Pointer to "struct tomoyo_acl_info".
++ * @b:         Pointer to "struct tomoyo_acl_info".
++ * @is_delete: True for @a &= ~@b, false for @a |= @b.
++ *
++ * Returns true if @a is empty, false otherwise.
++ */
+ static bool tomoyo_merge_mkdev_acl(struct tomoyo_acl_info *a,
+-					  struct tomoyo_acl_info *b,
+-					  const bool is_delete)
++				   struct tomoyo_acl_info *b,
++				   const bool is_delete)
+ {
+ 	u8 *const a_perm = &container_of(a, struct tomoyo_mkdev_acl,
+ 					 head)->perm;
+@@ -435,16 +545,32 @@ static int tomoyo_update_mkdev_acl(const
+ 	return error;
+ }
+ 
++/**
++ * tomoyo_same_path2_acl - Check for duplicated "struct tomoyo_path2_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b except permission bits, false otherwise.
++ */
+ static bool tomoyo_same_path2_acl(const struct tomoyo_acl_info *a,
+ 				  const struct tomoyo_acl_info *b)
+ {
+ 	const struct tomoyo_path2_acl *p1 = container_of(a, typeof(*p1), head);
+ 	const struct tomoyo_path2_acl *p2 = container_of(b, typeof(*p2), head);
+-	return tomoyo_same_acl_head(&p1->head, &p2->head)
+-		&& tomoyo_same_name_union(&p1->name1, &p2->name1)
+-		&& tomoyo_same_name_union(&p1->name2, &p2->name2);
++	return tomoyo_same_name_union(&p1->name1, &p2->name1) &&
++		tomoyo_same_name_union(&p1->name2, &p2->name2);
+ }
+ 
++/**
++ * tomoyo_merge_path2_acl - Merge duplicated "struct tomoyo_path2_acl" entry.
++ *
++ * @a:         Pointer to "struct tomoyo_acl_info".
++ * @b:         Pointer to "struct tomoyo_acl_info".
++ * @is_delete: True for @a &= ~@b, false for @a |= @b.
++ *
++ * Returns true if @a is empty, false otherwise.
++ */
+ static bool tomoyo_merge_path2_acl(struct tomoyo_acl_info *a,
+ 				   struct tomoyo_acl_info *b,
+ 				   const bool is_delete)
+@@ -531,6 +657,14 @@ int tomoyo_path_permission(struct tomoyo
+ 	return error;
+ }
+ 
++/**
++ * tomoyo_same_path_number_acl - Check for duplicated "struct tomoyo_path_number_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b except permission bits, false otherwise.
++ */
+ static bool tomoyo_same_path_number_acl(const struct tomoyo_acl_info *a,
+ 					const struct tomoyo_acl_info *b)
+ {
+@@ -538,11 +672,19 @@ static bool tomoyo_same_path_number_acl(
+ 							       head);
+ 	const struct tomoyo_path_number_acl *p2 = container_of(b, typeof(*p2),
+ 							       head);
+-	return tomoyo_same_acl_head(&p1->head, &p2->head)
+-		&& tomoyo_same_name_union(&p1->name, &p2->name)
+-		&& tomoyo_same_number_union(&p1->number, &p2->number);
++	return tomoyo_same_name_union(&p1->name, &p2->name) &&
++		tomoyo_same_number_union(&p1->number, &p2->number);
+ }
+ 
++/**
++ * tomoyo_merge_path_number_acl - Merge duplicated "struct tomoyo_path_number_acl" entry.
++ *
++ * @a:         Pointer to "struct tomoyo_acl_info".
++ * @b:         Pointer to "struct tomoyo_acl_info".
++ * @is_delete: True for @a &= ~@b, false for @a |= @b.
++ *
++ * Returns true if @a is empty, false otherwise.
++ */
+ static bool tomoyo_merge_path_number_acl(struct tomoyo_acl_info *a,
+ 					 struct tomoyo_acl_info *b,
+ 					 const bool is_delete)
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -13,13 +13,30 @@
+ 
+ struct tomoyo_gc {
+ 	struct list_head list;
+-	int type;
++	enum tomoyo_policy_id type;
+ 	struct list_head *element;
+ };
+ static LIST_HEAD(tomoyo_gc_queue);
+ static DEFINE_MUTEX(tomoyo_gc_mutex);
+ 
+-/* Caller holds tomoyo_policy_lock mutex. */
++/**
++ * tomoyo_add_to_gc - Add an entry to to be deleted list.
++ *
++ * @type:    One of values in "enum tomoyo_policy_id".
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns true on success, false otherwise.
++ *
++ * Caller holds tomoyo_policy_lock mutex.
++ *
++ * Adding an entry needs kmalloc(). Thus, if we try to add thousands of
++ * entries at once, it will take too long time. Thus, do not add more than 128
++ * entries per a scan. But to be able to handle worst case where all entries
++ * are in-use, we accept one more entry per a scan.
++ *
++ * If we use singly linked list using "struct list_head"->prev (which is
++ * LIST_POISON2), we can avoid kmalloc().
++ */
+ static bool tomoyo_add_to_gc(const int type, struct list_head *element)
+ {
+ 	struct tomoyo_gc *entry = kzalloc(sizeof(*entry), GFP_ATOMIC);
+@@ -32,6 +49,13 @@ static bool tomoyo_add_to_gc(const int t
+ 	return true;
+ }
+ 
++/**
++ * tomoyo_del_transition_control - Delete members in "struct tomoyo_transition_control".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_transition_control(struct list_head *element)
+ {
+ 	struct tomoyo_transition_control *ptr =
+@@ -40,6 +64,13 @@ static void tomoyo_del_transition_contro
+ 	tomoyo_put_name(ptr->program);
+ }
+ 
++/**
++ * tomoyo_del_aggregator - Delete members in "struct tomoyo_aggregator".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_aggregator(struct list_head *element)
+ {
+ 	struct tomoyo_aggregator *ptr =
+@@ -48,6 +79,13 @@ static void tomoyo_del_aggregator(struct
+ 	tomoyo_put_name(ptr->aggregated_name);
+ }
+ 
++/**
++ * tomoyo_del_manager - Delete members in "struct tomoyo_manager".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_manager(struct list_head *element)
+ {
+ 	struct tomoyo_manager *ptr =
+@@ -55,6 +93,13 @@ static void tomoyo_del_manager(struct li
+ 	tomoyo_put_name(ptr->manager);
+ }
+ 
++/**
++ * tomoyo_del_acl - Delete members in "struct tomoyo_acl_info".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_acl(struct list_head *element)
+ {
+ 	struct tomoyo_acl_info *acl =
+@@ -145,12 +190,26 @@ static bool tomoyo_del_domain(struct lis
+ }
+ 
+ 
++/**
++ * tomoyo_del_name - Delete members in "struct tomoyo_name".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_name(struct list_head *element)
+ {
+ 	const struct tomoyo_name *ptr =
+-		container_of(element, typeof(*ptr), list);
++		container_of(element, typeof(*ptr), head.list);
+ }
+ 
++/**
++ * tomoyo_del_path_group - Delete members in "struct tomoyo_path_group".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_path_group(struct list_head *element)
+ {
+ 	struct tomoyo_path_group *member =
+@@ -158,20 +217,43 @@ static void tomoyo_del_path_group(struct
+ 	tomoyo_put_name(member->member_name);
+ }
+ 
++/**
++ * tomoyo_del_group - Delete "struct tomoyo_group".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_group(struct list_head *element)
+ {
+ 	struct tomoyo_group *group =
+-		container_of(element, typeof(*group), list);
++		container_of(element, typeof(*group), head.list);
+ 	tomoyo_put_name(group->group_name);
+ }
+ 
++/**
++ * tomoyo_del_number_group - Delete members in "struct tomoyo_number_group".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_del_number_group(struct list_head *element)
+ {
+ 	struct tomoyo_number_group *member =
+ 		container_of(element, typeof(*member), head.list);
+ }
+ 
+-static bool tomoyo_collect_member(struct list_head *member_list, int id)
++/**
++ * tomoyo_collect_member - Delete elements with "struct tomoyo_acl_head".
++ *
++ * @id:          One of values in "enum tomoyo_policy_id".
++ * @member_list: Pointer to "struct list_head".
++ *
++ * Returns true if some elements are deleted, false otherwise.
++ */
++static bool tomoyo_collect_member(const enum tomoyo_policy_id id,
++				  struct list_head *member_list)
+ {
+ 	struct tomoyo_acl_head *member;
+ 	list_for_each_entry(member, member_list, list) {
+@@ -195,13 +277,18 @@ static bool tomoyo_collect_acl(struct to
+ 	return true;
+ }
+ 
++/**
++ * tomoyo_collect_entry - Scan lists for deleted elements.
++ *
++ * Returns nothing.
++ */
+ static void tomoyo_collect_entry(void)
+ {
+ 	int i;
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		return;
+ 	for (i = 0; i < TOMOYO_MAX_POLICY; i++) {
+-		if (!tomoyo_collect_member(&tomoyo_policy_list[i], i))
++		if (!tomoyo_collect_member(i, &tomoyo_policy_list[i]))
+ 			goto unlock;
+ 	}
+ 	{
+@@ -222,10 +309,10 @@ static void tomoyo_collect_entry(void)
+ 	}
+ 	for (i = 0; i < TOMOYO_MAX_HASH; i++) {
+ 		struct tomoyo_name *ptr;
+-		list_for_each_entry_rcu(ptr, &tomoyo_name_list[i], list) {
+-			if (atomic_read(&ptr->users))
++		list_for_each_entry_rcu(ptr, &tomoyo_name_list[i], head.list) {
++			if (atomic_read(&ptr->head.users))
+ 				continue;
+-			if (!tomoyo_add_to_gc(TOMOYO_ID_NAME, &ptr->list))
++			if (!tomoyo_add_to_gc(TOMOYO_ID_NAME, &ptr->head.list))
+ 				goto unlock;
+ 		}
+ 	}
+@@ -241,13 +328,14 @@ static void tomoyo_collect_entry(void)
+ 			id = TOMOYO_ID_NUMBER_GROUP;
+ 			break;
+ 		}
+-		list_for_each_entry(group, list, list) {
+-			if (!tomoyo_collect_member(&group->member_list, id))
++		list_for_each_entry(group, list, head.list) {
++			if (!tomoyo_collect_member(id, &group->member_list))
+ 				goto unlock;
+ 			if (!list_empty(&group->member_list) ||
+-			    atomic_read(&group->users))
++			    atomic_read(&group->head.users))
+ 				continue;
+-			if (!tomoyo_add_to_gc(TOMOYO_ID_GROUP, &group->list))
++			if (!tomoyo_add_to_gc(TOMOYO_ID_GROUP,
++					      &group->head.list))
+ 				goto unlock;
+ 		}
+ 	}
+@@ -291,6 +379,8 @@ static void tomoyo_kfree_entry(void)
+ 		case TOMOYO_ID_NUMBER_GROUP:
+ 			tomoyo_del_number_group(element);
+ 			break;
++		case TOMOYO_MAX_POLICY:
++			break;
+ 		}
+ 		tomoyo_memory_free(element);
+ 		list_del(&p->list);
+@@ -298,6 +388,17 @@ static void tomoyo_kfree_entry(void)
+ 	}
+ }
+ 
++/**
++ * tomoyo_gc_thread - Garbage collector thread function.
++ *
++ * @unused: Unused.
++ *
++ * In case OOM-killer choose this thread for termination, we create this thread
++ * as a short live thread whenever /sys/kernel/security/tomoyo/ interface was
++ * close()d.
++ *
++ * Returns 0.
++ */
+ static int tomoyo_gc_thread(void *unused)
+ {
+ 	daemonize("GC for TOMOYO");
+--- security-testing-2.6.orig/security/tomoyo/memory.c
++++ security-testing-2.6/security/tomoyo/memory.c
+@@ -110,10 +110,10 @@ struct tomoyo_group *tomoyo_get_group(co
+ 		return NULL;
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		goto out;
+-	list_for_each_entry(group, &tomoyo_group_list[idx], list) {
++	list_for_each_entry(group, &tomoyo_group_list[idx], head.list) {
+ 		if (e.group_name != group->group_name)
+ 			continue;
+-		atomic_inc(&group->users);
++		atomic_inc(&group->head.users);
+ 		found = true;
+ 		break;
+ 	}
+@@ -121,8 +121,8 @@ struct tomoyo_group *tomoyo_get_group(co
+ 		struct tomoyo_group *entry = tomoyo_commit_ok(&e, sizeof(e));
+ 		if (entry) {
+ 			INIT_LIST_HEAD(&entry->member_list);
+-			atomic_set(&entry->users, 1);
+-			list_add_tail_rcu(&entry->list,
++			atomic_set(&entry->head.users, 1);
++			list_add_tail_rcu(&entry->head.list,
+ 					  &tomoyo_group_list[idx]);
+ 			group = entry;
+ 			found = true;
+@@ -164,10 +164,10 @@ const struct tomoyo_path_info *tomoyo_ge
+ 	head = &tomoyo_name_list[hash_long(hash, TOMOYO_HASH_BITS)];
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		return NULL;
+-	list_for_each_entry(ptr, head, list) {
++	list_for_each_entry(ptr, head, head.list) {
+ 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
+ 			continue;
+-		atomic_inc(&ptr->users);
++		atomic_inc(&ptr->head.users);
+ 		goto out;
+ 	}
+ 	ptr = kzalloc(sizeof(*ptr) + len, GFP_NOFS);
+@@ -183,9 +183,9 @@ const struct tomoyo_path_info *tomoyo_ge
+ 	atomic_add(allocated_len, &tomoyo_policy_memory_size);
+ 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
+ 	memmove((char *) ptr->entry.name, name, len);
+-	atomic_set(&ptr->users, 1);
++	atomic_set(&ptr->head.users, 1);
+ 	tomoyo_fill_path_info(&ptr->entry);
+-	list_add_tail(&ptr->list, head);
++	list_add_tail(&ptr->head.list, head);
+  out:
+ 	mutex_unlock(&tomoyo_policy_lock);
+ 	return ptr ? &ptr->entry : NULL;
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -52,16 +52,28 @@ static int tomoyo_audit_mount_log(struct
+ 				 r->param.mount.dir->name, type, flags);
+ }
+ 
++/**
++ * tomoyo_check_mount_acl - Check permission for path path path number operation.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @ptr: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if granted, false otherwise.
++ */
+ static bool tomoyo_check_mount_acl(struct tomoyo_request_info *r,
+ 				   const struct tomoyo_acl_info *ptr)
+ {
+ 	const struct tomoyo_mount_acl *acl =
+ 		container_of(ptr, typeof(*acl), head);
+-	return tomoyo_compare_number_union(r->param.mount.flags, &acl->flags) &&
+-		tomoyo_compare_name_union(r->param.mount.type, &acl->fs_type) &&
+-		tomoyo_compare_name_union(r->param.mount.dir, &acl->dir_name) &&
++	return tomoyo_compare_number_union(r->param.mount.flags,
++					   &acl->flags) &&
++		tomoyo_compare_name_union(r->param.mount.type,
++					  &acl->fs_type) &&
++		tomoyo_compare_name_union(r->param.mount.dir,
++					  &acl->dir_name) &&
+ 		(!r->param.mount.need_dev ||
+-		 tomoyo_compare_name_union(r->param.mount.dev, &acl->dev_name));
++		 tomoyo_compare_name_union(r->param.mount.dev,
++					   &acl->dev_name));
+ }
+ 
+ /**
+@@ -232,13 +244,20 @@ int tomoyo_mount_permission(char *dev_na
+ 	return error;
+ }
+ 
++/**
++ * tomoyo_same_mount_acl - Check for duplicated "struct tomoyo_mount_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
+ static bool tomoyo_same_mount_acl(const struct tomoyo_acl_info *a,
+ 				  const struct tomoyo_acl_info *b)
+ {
+ 	const struct tomoyo_mount_acl *p1 = container_of(a, typeof(*p1), head);
+ 	const struct tomoyo_mount_acl *p2 = container_of(b, typeof(*p2), head);
+-	return tomoyo_same_acl_head(&p1->head, &p2->head) &&
+-		tomoyo_same_name_union(&p1->dev_name, &p2->dev_name) &&
++	return tomoyo_same_name_union(&p1->dev_name, &p2->dev_name) &&
+ 		tomoyo_same_name_union(&p1->dir_name, &p2->dir_name) &&
+ 		tomoyo_same_name_union(&p1->fs_type, &p2->fs_type) &&
+ 		tomoyo_same_number_union(&p1->flags, &p2->flags);
