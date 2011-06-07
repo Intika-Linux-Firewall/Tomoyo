@@ -1108,6 +1108,7 @@ static void ccs_read_generic_policy(void)
 {
 	FILE *fp = NULL;
 	_Bool flag = false;
+	const _Bool is_kernel_ns = !strcmp(ccs_current_ns, "<kernel>");
 	while (ccs_gacl_list_count)
 		free((void *) ccs_gacl_list[--ccs_gacl_list_count].operand);
 	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
@@ -1157,13 +1158,15 @@ static void ccs_read_generic_policy(void)
 			if (!line[0])
 				continue;
 		}
-		if ((ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
-		     ccs_current_screen == CCS_SCREEN_PROFILE_LIST) &&
-		    *line == '<') {
-			cp = strchr(line, ' ');
-			if (!cp++ || !ccs_is_current_namespace(line))
+		if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
+		    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
+			if (*line == '<') {
+				cp = strchr(line, ' ');
+				if (!cp++ || !ccs_is_current_namespace(line))
+					continue;
+				memmove(line, cp, strlen(cp) + 1);
+			} else if (!is_kernel_ns)
 				continue;
-			memmove(line, cp, strlen(cp) + 1);
 		}
 		switch (ccs_current_screen) {
 		case CCS_SCREEN_EXCEPTION_LIST:
@@ -2264,6 +2267,7 @@ static void ccs_delete_entry(const int index)
 		ccs_close_write(fp);
 	} else {
 		int i;
+		const _Bool is_kernel_ns = !strcmp(ccs_current_ns, "<kernel>");
 		FILE *fp = ccs_editpolicy_open_write(ccs_policy_file);
 		if (!fp)
 			return;
@@ -2282,7 +2286,7 @@ static void ccs_delete_entry(const int index)
 			directive = ccs_gacl_list[i].directive;
 			fprintf(fp, "delete %s %s %s\n",
 				ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST
-				? ccs_current_ns : "",
+				&& !is_kernel_ns ? ccs_current_ns : "",
 				ccs_directives[directive].original,
 				ccs_gacl_list[i].operand);
 		}
@@ -2299,6 +2303,7 @@ static void ccs_add_entry(void)
 {
 	FILE *fp;
 	char *line;
+	const _Bool is_kernel_ns = !strcmp(ccs_current_ns, "<kernel>");
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = ccs_readline(ccs_window_height - 1, 0, "Enter new entry> ",
 			    ccs_rl.history, ccs_rl.count, 128000, 8);
@@ -2328,7 +2333,8 @@ static void ccs_add_entry(void)
 			fprintf(fp, "select domain=%s\n", ccs_current_domain);
 		/* Fall through. */
 	case CCS_SCREEN_EXCEPTION_LIST:
-		if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST)
+		if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST &&
+		    !is_kernel_ns)
 			fprintf(fp, "%s ", ccs_current_ns);
 		directive = ccs_find_directive(false, line);
 		if (directive != CCS_DIRECTIVE_NONE)
@@ -2336,8 +2342,10 @@ static void ccs_add_entry(void)
 		break;
 	case CCS_SCREEN_PROFILE_LIST:
 		if (!strchr(line, '='))
-			fprintf(fp, "%s %s-COMMENT=\n", ccs_current_ns, line);
-		fprintf(fp, "%s ", ccs_current_ns);
+			fprintf(fp, "%s %s-COMMENT=\n",
+				!is_kernel_ns ? ccs_current_ns : "", line);
+		if (!is_kernel_ns)
+			fprintf(fp, "%s ", ccs_current_ns);
 		break;
 	case CCS_SCREEN_NS_LIST:
 		fprintf(fp, "%s PROFILE_VERSION=20100903\n", line);
