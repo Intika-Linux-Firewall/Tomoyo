@@ -7,13 +7,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |   77 ++++++++-------
  security/tomoyo/common.h |   32 +++---
- security/tomoyo/domain.c |  124 ++++++++----------------
+ security/tomoyo/domain.c |  146 ++++++++++++----------------
  security/tomoyo/file.c   |  238 ++++++++++++++++++++++++-----------------------
  security/tomoyo/group.c  |   33 ++----
  security/tomoyo/memory.c |   20 ++-
  security/tomoyo/mount.c  |   53 ----------
- security/tomoyo/util.c   |   95 +++++++++++++-----
- 8 files changed, 328 insertions(+), 344 deletions(-)
+ security/tomoyo/util.c   |   93 +++++++++++++-----
+ 8 files changed, 347 insertions(+), 345 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -148,7 +148,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_CONFIG_PERMISSIVE:
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -399,6 +399,13 @@ struct tomoyo_mount_acl {
+@@ -394,6 +394,13 @@ struct tomoyo_mount_acl {
  	struct tomoyo_number_union flags;
  };
  
@@ -162,7 +162,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #define TOMOYO_MAX_IO_READ_QUEUE 32
  
  /*
-@@ -521,7 +528,7 @@ bool tomoyo_correct_domain(const unsigne
+@@ -518,7 +525,7 @@ bool tomoyo_correct_domain(const unsigne
  bool tomoyo_correct_path(const char *filename);
  bool tomoyo_correct_word(const char *string);
  bool tomoyo_domain_def(const unsigned char *buffer);
@@ -171,7 +171,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			     struct tomoyo_name_union *ptr);
  const struct tomoyo_path_info *
  tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
-@@ -531,7 +538,8 @@ bool tomoyo_number_matches_group(const u
+@@ -528,7 +535,8 @@ bool tomoyo_number_matches_group(const u
  				 const struct tomoyo_group *group);
  bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
  				 const struct tomoyo_path_info *pattern);
@@ -181,7 +181,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_tokenize(char *buffer, char *w[], size_t size);
  bool tomoyo_verbose_mode(const struct tomoyo_domain_info *domain);
  int tomoyo_init_request_info(struct tomoyo_request_info *r,
-@@ -540,21 +548,19 @@ int tomoyo_init_request_info(struct tomo
+@@ -537,21 +545,19 @@ int tomoyo_init_request_info(struct tomo
  int tomoyo_mount_permission(char *dev_name, struct path *path,
  			    const char *type, unsigned long flags,
  			    void *data_page);
@@ -209,7 +209,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
  				const u8 index);
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
-@@ -587,7 +593,7 @@ void tomoyo_put_name_union(struct tomoyo
+@@ -584,7 +590,7 @@ void tomoyo_put_name_union(struct tomoyo
  void tomoyo_run_gc(void);
  void tomoyo_memory_free(void *ptr);
  int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
@@ -218,7 +218,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			 bool (*check_duplicate) (const struct tomoyo_acl_info
  						  *,
  						  const struct tomoyo_acl_info
-@@ -596,7 +602,7 @@ int tomoyo_update_domain(struct tomoyo_a
+@@ -593,7 +599,7 @@ int tomoyo_update_domain(struct tomoyo_a
  						  struct tomoyo_acl_info *,
  						  const bool));
  int tomoyo_update_policy(struct tomoyo_acl_head *new_entry, const int size,
@@ -227,7 +227,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			 bool (*check_duplicate) (const struct tomoyo_acl_head
  						  *,
  						  const struct tomoyo_acl_head
-@@ -604,6 +610,8 @@ int tomoyo_update_policy(struct tomoyo_a
+@@ -601,6 +607,8 @@ int tomoyo_update_policy(struct tomoyo_a
  void tomoyo_check_acl(struct tomoyo_request_info *r,
  		      bool (*check_entry) (struct tomoyo_request_info *,
  					   const struct tomoyo_acl_info *));
@@ -323,7 +323,22 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			error = 0;
  		}
  	}
-@@ -177,22 +178,28 @@ static bool tomoyo_same_transition_contr
+@@ -162,6 +163,14 @@ static const char *tomoyo_last_word(cons
+         return name;
+ }
+ 
++/**
++ * tomoyo_same_transition_control - Check for duplicated "struct tomoyo_transition_control" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_head".
++ * @b: Pointer to "struct tomoyo_acl_head".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
+ static bool tomoyo_same_transition_control(const struct tomoyo_acl_head *a,
+ 					   const struct tomoyo_acl_head *b)
+ {
+@@ -177,22 +186,28 @@ static bool tomoyo_same_transition_contr
  }
  
  /**
@@ -362,7 +377,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (program) {
  		if (!tomoyo_correct_path(program))
  			return -EINVAL;
-@@ -210,42 +217,16 @@ static int tomoyo_update_transition_cont
+@@ -210,42 +225,16 @@ static int tomoyo_update_transition_cont
  		if (!e.domainname)
  			goto out;
  	}
@@ -408,7 +423,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_transition_type - Get domain transition type.
   *
   * @domainname: The name of domain.
-@@ -312,24 +293,21 @@ static bool tomoyo_same_aggregator(const
+@@ -302,34 +291,41 @@ static u8 tomoyo_transition_type(const s
+ 	return type;
+ }
+ 
++/**
++ * tomoyo_same_aggregator - Check for duplicated "struct tomoyo_aggregator" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_head".
++ * @b: Pointer to "struct tomoyo_acl_head".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
+ static bool tomoyo_same_aggregator(const struct tomoyo_acl_head *a,
+ 				   const struct tomoyo_acl_head *b)
+ {
+-	const struct tomoyo_aggregator *p1 = container_of(a, typeof(*p1), head);
+-	const struct tomoyo_aggregator *p2 = container_of(b, typeof(*p2), head);
++	const struct tomoyo_aggregator *p1 = container_of(a, typeof(*p1),
++							  head);
++	const struct tomoyo_aggregator *p2 = container_of(b, typeof(*p2),
++							  head);
+ 	return p1->original_name == p2->original_name &&
+ 		p1->aggregated_name == p2->aggregated_name;
  }
  
  /**
@@ -418,7 +455,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 - * @original_name:   The original program's name.
 - * @aggregated_name: The program name to use.
 - * @is_delete:       True if it is a delete request.
-+ * @param: Pointer to "struct ccs_acl_param".
++ * @param: Pointer to "struct tomoyo_acl_param".
   *
   * Returns 0 on success, negative value otherwise.
   *
@@ -440,7 +477,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    !tomoyo_correct_path(aggregated_name))
  		return -EINVAL;
  	e.original_name = tomoyo_get_name(original_name);
-@@ -337,36 +315,16 @@ static int tomoyo_update_aggregator_entr
+@@ -337,36 +333,16 @@ static int tomoyo_update_aggregator_entr
  	if (!e.original_name || !e.aggregated_name ||
  	    e.aggregated_name->is_patterned) /* No patterns allowed. */
  		goto out;
@@ -482,7 +519,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @domainname: The name of domain.
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -432,29 +432,27 @@ static bool tomoyo_merge_path_acl(struct
+@@ -427,29 +427,27 @@ static bool tomoyo_merge_path_acl(struct
  /**
   * tomoyo_update_path_acl - Update "struct tomoyo_path_acl" list.
   *
@@ -523,7 +560,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name);
  	return error;
  }
-@@ -507,37 +505,30 @@ static bool tomoyo_merge_mkdev_acl(struc
+@@ -502,37 +500,30 @@ static bool tomoyo_merge_mkdev_acl(struc
  /**
   * tomoyo_update_mkdev_acl - Update "struct tomoyo_mkdev_acl" list.
   *
@@ -576,7 +613,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name);
  	tomoyo_put_number_union(&e.mode);
  	tomoyo_put_number_union(&e.major);
-@@ -590,33 +581,28 @@ static bool tomoyo_merge_path2_acl(struc
+@@ -585,33 +576,28 @@ static bool tomoyo_merge_path2_acl(struc
  /**
   * tomoyo_update_path2_acl - Update "struct tomoyo_path2_acl" list.
   *
@@ -623,7 +660,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name1);
  	tomoyo_put_name_union(&e.name2);
  	return error;
-@@ -705,33 +691,26 @@ static bool tomoyo_merge_path_number_acl
+@@ -700,33 +686,26 @@ static bool tomoyo_merge_path_number_acl
  /**
   * tomoyo_update_path_number_acl - Update ioctl/chmod/chown/chgrp ACL.
   *
@@ -670,7 +707,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name);
  	tomoyo_put_number_union(&e.number);
  	return error;
-@@ -969,53 +948,88 @@ int tomoyo_path2_perm(const u8 operation
+@@ -964,53 +943,88 @@ int tomoyo_path2_perm(const u8 operation
  }
  
  /**
@@ -1038,7 +1075,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_parse_ulong - Parse an "unsigned long" value.
   *
   * @result: Pointer to "unsigned long".
-@@ -81,21 +121,24 @@ void tomoyo_print_ulong(char *buffer, co
+@@ -81,20 +121,23 @@ void tomoyo_print_ulong(char *buffer, co
  /**
   * tomoyo_parse_name_union - Parse a tomoyo_name_union.
   *
@@ -1061,16 +1098,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (param->data[0] == '@') {
 +		param->data++;
 +		ptr->group = tomoyo_get_group(param, TOMOYO_PATH_GROUP);
- 		ptr->is_group = true;
  		return ptr->group != NULL;
  	}
 +	filename = tomoyo_read_token(param);
 +	if (!tomoyo_correct_word(filename))
 +		return false;
  	ptr->filename = tomoyo_get_name(filename);
- 	ptr->is_group = false;
  	return ptr->filename != NULL;
-@@ -104,40 +147,42 @@ bool tomoyo_parse_name_union(const char 
+ }
+@@ -102,39 +145,41 @@ bool tomoyo_parse_name_union(const char 
  /**
   * tomoyo_parse_number_union - Parse a tomoyo_number_union.
   *
@@ -1093,13 +1129,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		if (!tomoyo_correct_word(data))
 -			return false;
 -		num->group = tomoyo_get_group(data + 1, TOMOYO_NUMBER_GROUP);
--		num->is_group = true;
 -		return num->group != NULL;
 +	memset(ptr, 0, sizeof(*ptr));
 +	if (param->data[0] == '@') {
 +		param->data++;
 +		ptr->group = tomoyo_get_group(param, TOMOYO_NUMBER_GROUP);
-+		ptr->is_group = true;
 +		return ptr->group != NULL;
  	}
 +	data = tomoyo_read_token(param);
@@ -1108,14 +1142,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (type == TOMOYO_VALUE_TYPE_INVALID)
  		return false;
 -	num->values[0] = v;
--	num->min_type = type;
+-	num->value_type[0] = type;
 +	ptr->values[0] = v;
-+	ptr->min_type = type;
++	ptr->value_type[1] = type;
  	if (!*data) {
 -		num->values[1] = v;
--		num->max_type = type;
+-		num->value_type[1] = type;
 +		ptr->values[1] = v;
-+		ptr->max_type = type;
++		ptr->value_type[1] = type;
  		return true;
  	}
  	if (*data++ != '-')
@@ -1125,9 +1159,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (type == TOMOYO_VALUE_TYPE_INVALID || *data || ptr->values[0] > v)
  		return false;
 -	num->values[1] = v;
--	num->max_type = type;
+-	num->value_type[1] = type;
 +	ptr->values[1] = v;
-+	ptr->max_type = type;
++	ptr->value_type[1] = type;
  	return true;
  }
  

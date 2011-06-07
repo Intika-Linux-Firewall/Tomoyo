@@ -7,10 +7,10 @@ By converting to the latter style, we can pack policy like
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |  148 +++++++++++++++++++++++++++++++----------------
- security/tomoyo/common.h |    4 +
+ security/tomoyo/common.h |    6 +
  security/tomoyo/domain.c |    4 -
  security/tomoyo/file.c   |   15 ++--
- 4 files changed, 113 insertions(+), 58 deletions(-)
+ 4 files changed, 114 insertions(+), 59 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -261,7 +261,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		case TOMOYO_ID_AGGREGATOR:
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -639,6 +639,10 @@ extern const char *tomoyo_mkdev_keyword[
+@@ -401,7 +401,7 @@ struct tomoyo_acl_param {
+ 	bool is_delete;
+ };
+ 
+-#define TOMOYO_MAX_IO_READ_QUEUE 32
++#define TOMOYO_MAX_IO_READ_QUEUE 64
+ 
+ /*
+  * Structure for reading/writing policy via /sys/kernel/security/tomoyo
+@@ -636,6 +636,10 @@ extern const char *tomoyo_mkdev_keyword[
  extern const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION];
  extern const char *tomoyo_path_number_keyword[TOMOYO_MAX_PATH_NUMBER_OPERATION];
  
@@ -274,7 +283,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -200,14 +200,14 @@ int tomoyo_write_transition_control(stru
+@@ -208,14 +208,14 @@ int tomoyo_write_transition_control(stru
  		domainname = program;
  		program = NULL;
  	}
@@ -320,7 +329,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_CREATE] = TOMOYO_MAC_FILE_CREATE,
  	[TOMOYO_TYPE_MKDIR]  = TOMOYO_MAC_FILE_MKDIR,
  	[TOMOYO_TYPE_MKFIFO] = TOMOYO_MAC_FILE_MKFIFO,
-@@ -214,8 +214,7 @@ static int tomoyo_audit_path_log(struct 
+@@ -209,8 +209,7 @@ static int tomoyo_audit_path_log(struct 
  	if (r->granted)
  		return 0;
  	tomoyo_warn_log(r, "%s %s", operation, filename->name);
@@ -330,7 +339,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -234,7 +233,7 @@ static int tomoyo_audit_path2_log(struct
+@@ -229,7 +228,7 @@ static int tomoyo_audit_path2_log(struct
  		return 0;
  	tomoyo_warn_log(r, "%s %s %s", operation, filename1->name,
  			filename2->name);
@@ -339,7 +348,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				 filename1->name, filename2->name);
  }
  
-@@ -256,7 +255,7 @@ static int tomoyo_audit_mkdev_log(struct
+@@ -251,7 +250,7 @@ static int tomoyo_audit_mkdev_log(struct
  		return 0;
  	tomoyo_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
  			major, minor);
@@ -348,7 +357,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				 filename->name, mode, major, minor);
  }
  
-@@ -295,7 +294,7 @@ static int tomoyo_audit_path_number_log(
+@@ -290,7 +289,7 @@ static int tomoyo_audit_path_number_log(
  	tomoyo_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
  			   radix);
  	tomoyo_warn_log(r, "%s %s %s", operation, filename->name, buffer);
