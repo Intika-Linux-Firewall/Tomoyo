@@ -1,4 +1,4 @@
-Subject: TOMOYO: Cleanup.
+Subject: TOMOYO: Cleanup part 2.
 
 Update (or temporarily remove) comments.
 Remove or replace some of #define lines.
@@ -6,10 +6,10 @@ Remove or replace some of #define lines.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c        |   38 +--
- security/tomoyo/common.h        |  436 +++++++++++++---------------------------
- security/tomoyo/mount.c         |   79 +++----
+ security/tomoyo/common.h        |  454 +++++++++++++---------------------------
+ security/tomoyo/mount.c         |   79 +++---
  security/tomoyo/securityfs_if.c |    2 
- 4 files changed, 204 insertions(+), 351 deletions(-)
+ 4 files changed, 213 insertions(+), 360 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -848,7 +848,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
  {
  	if (name) {
-@@ -889,29 +708,64 @@ static inline void tomoyo_put_name(const
+@@ -889,42 +708,85 @@ static inline void tomoyo_put_name(const
  	}
  }
  
@@ -888,6 +888,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return task_cred_xxx(task, security);
  }
  
+-static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
+-					   const struct tomoyo_acl_info *p2)
 +/**
 + * tomoyo_same_acl_head - Check for duplicated "struct tomoyo_acl_info" entry.
 + *
@@ -896,11 +898,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true if @a == @b, false otherwise.
 + */
- static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
--					   const struct tomoyo_acl_info *p2)
-+					const struct tomoyo_acl_info *p2)
++static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *a,
++					const struct tomoyo_acl_info *b)
  {
- 	return p1->type == p2->type;
+-	return p1->type == p2->type;
++	return a->type == b->type;
  }
  
 +/**
@@ -912,10 +914,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true if @a == @b, false otherwise.
 + */
  static inline bool tomoyo_same_name_union
- (const struct tomoyo_name_union *p1, const struct tomoyo_name_union *p2)
+-(const struct tomoyo_name_union *p1, const struct tomoyo_name_union *p2)
++(const struct tomoyo_name_union *a, const struct tomoyo_name_union *b)
  {
-@@ -919,6 +773,14 @@ static inline bool tomoyo_same_name_unio
- 		p1->is_group == p2->is_group;
+-	return p1->filename == p2->filename && p1->group == p2->group &&
+-		p1->is_group == p2->is_group;
++	return a->filename == b->filename && a->group == b->group &&
++		a->is_group == b->is_group;
  }
  
 +/**
@@ -927,8 +932,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true if @a == @b, false otherwise.
 + */
  static inline bool tomoyo_same_number_union
- (const struct tomoyo_number_union *p1, const struct tomoyo_number_union *p2)
+-(const struct tomoyo_number_union *p1, const struct tomoyo_number_union *p2)
++(const struct tomoyo_number_union *a, const struct tomoyo_number_union *b)
  {
+-	return p1->values[0] == p2->values[0] && p1->values[1] == p2->values[1]
+-		&& p1->group == p2->group && p1->min_type == p2->min_type &&
+-		p1->max_type == p2->max_type && p1->is_group == p2->is_group;
++	return a->values[0] == b->values[0] && a->values[1] == b->values[1] &&
++		a->group == b->group && a->min_type == b->min_type &&
++		a->max_type == b->max_type && a->is_group == b->is_group;
+ }
+ 
+ /**
 --- security-testing-2.6.orig/security/tomoyo/mount.c
 +++ security-testing-2.6/security/tomoyo/mount.c
 @@ -7,22 +7,16 @@

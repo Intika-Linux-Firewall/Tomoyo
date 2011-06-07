@@ -8,14 +8,14 @@ interface.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Makefile        |    2 
- security/tomoyo/common.c        |  315 +++++++++++++++++++---------------------
- security/tomoyo/common.h        |   83 +++++++++-
+ security/tomoyo/common.c        |  311 +++++++++++++++++++---------------------
+ security/tomoyo/common.h        |   83 ++++++++++
  security/tomoyo/file.c          |   49 ++----
  security/tomoyo/memory.c        |    5 
  security/tomoyo/mount.c         |   26 ---
  security/tomoyo/securityfs_if.c |    2 
  security/tomoyo/util.c          |   14 -
- 8 files changed, 259 insertions(+), 237 deletions(-)
+ 8 files changed, 257 insertions(+), 235 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -312,14 +312,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Returns 0 if the supervisor decided to permit the access request which
   * violated the policy in enforcing mode, TOMOYO_RETRY_REQUEST if the
-@@ -1464,89 +1465,78 @@ static atomic_t tomoyo_query_observers =
-  */
+@@ -1465,88 +1466,77 @@ static atomic_t tomoyo_query_observers =
  int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
  {
--	va_list args;
+ 	va_list args;
 -	int error = -EPERM;
 -	int pos;
-+  	va_list args;
 +	int error;
  	int len;
  	static unsigned int tomoyo_serial;
@@ -379,19 +377,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	va_end(args);
 -	header = tomoyo_init_audit_log(&len, r);
 -	if (!header)
--		goto out;
++	if (!entry.query)
+ 		goto out;
 -	entry = kzalloc(sizeof(*entry), GFP_NOFS);
 -	if (!entry)
 -		goto out;
 -	entry->query = kzalloc(len, GFP_NOFS);
 -	if (!entry->query)
-+	if (!entry.query)
- 		goto out;
--	len = ksize(entry->query);
 +	entry.query_len = strlen(entry.query) + 1;
 +	if (!error) {
 +		tomoyo_add_entry(r->domain, entry.query);
-+  		goto out;
+ 		goto out;
+-	len = ksize(entry->query);
 +	}
 +	len = tomoyo_round2(entry.query_len);
  	spin_lock(&tomoyo_query_list_lock);
@@ -576,7 +573,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_PREF_MAX_LEARNING_ENTRY,
  	TOMOYO_MAX_PREF
  };
-@@ -506,13 +518,21 @@ struct tomoyo_profile {
+@@ -503,13 +515,21 @@ struct tomoyo_profile {
  	unsigned int pref[TOMOYO_MAX_PREF];
  };
  
@@ -600,7 +597,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_check_profile(void);
  int tomoyo_open_control(const u8 type, struct file *file);
  int tomoyo_close_control(struct file *file);
-@@ -620,6 +640,14 @@ void tomoyo_check_acl(struct tomoyo_requ
+@@ -617,6 +637,14 @@ void tomoyo_check_acl(struct tomoyo_requ
  char *tomoyo_read_token(struct tomoyo_acl_param *param);
  bool tomoyo_permstr(const char *string, const char *keyword);
  
@@ -615,7 +612,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /********** External variable definitions. **********/
  
  /* Lock for GC. */
-@@ -650,8 +678,9 @@ extern const u8 tomoyo_pnnn2mac[TOMOYO_M
+@@ -647,8 +675,9 @@ extern const u8 tomoyo_pnnn2mac[TOMOYO_M
  extern const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION];
  extern const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION];
  
@@ -627,8 +624,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /********** Inlined functions. **********/
  
-@@ -798,6 +827,50 @@ static inline bool tomoyo_same_number_un
- 		p1->max_type == p2->max_type && p1->is_group == p2->is_group;
+@@ -794,6 +823,50 @@ static inline bool tomoyo_same_number_un
+ 		a->value_type[1] == b->value_type[1];
  }
  
 +#if defined(CONFIG_SLOB)
@@ -680,7 +677,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @pos:        the &struct list_head to use as a loop cursor.
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -209,12 +209,9 @@ static bool tomoyo_get_realpath(struct t
+@@ -204,12 +204,9 @@ static bool tomoyo_get_realpath(struct t
   */
  static int tomoyo_audit_path_log(struct tomoyo_request_info *r)
  {
@@ -696,7 +693,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -226,15 +223,10 @@ static int tomoyo_audit_path_log(struct 
+@@ -221,15 +218,10 @@ static int tomoyo_audit_path_log(struct 
   */
  static int tomoyo_audit_path2_log(struct tomoyo_request_info *r)
  {
@@ -716,7 +713,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -246,17 +238,12 @@ static int tomoyo_audit_path2_log(struct
+@@ -241,17 +233,12 @@ static int tomoyo_audit_path2_log(struct
   */
  static int tomoyo_audit_mkdev_log(struct tomoyo_request_info *r)
  {
@@ -740,7 +737,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -271,11 +258,7 @@ static int tomoyo_audit_path_number_log(
+@@ -266,11 +253,7 @@ static int tomoyo_audit_path_number_log(
  {
  	const u8 type = r->param.path_number.operation;
  	u8 radix;
@@ -752,7 +749,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	switch (type) {
  	case TOMOYO_TYPE_CREATE:
  	case TOMOYO_TYPE_MKDIR:
-@@ -293,9 +276,9 @@ static int tomoyo_audit_path_number_log(
+@@ -288,9 +271,9 @@ static int tomoyo_audit_path_number_log(
  	}
  	tomoyo_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
  			   radix);
@@ -828,7 +825,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_create_entry(".domain_status",   0600, tomoyo_dir,
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
-@@ -898,20 +898,6 @@ const char *tomoyo_last_word(const char 
+@@ -895,20 +895,6 @@ const char *tomoyo_last_word(const char 
  }
  
  /**
