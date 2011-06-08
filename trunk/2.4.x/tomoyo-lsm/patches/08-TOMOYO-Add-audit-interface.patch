@@ -520,7 +520,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  int tomoyo_poll_control(struct file *file, poll_table *wait)
  {
-@@ -1973,7 +1964,7 @@ int tomoyo_close_control(struct file *fi
+@@ -1970,7 +1961,7 @@ int tomoyo_close_control(struct tomoyo_i
  	 */
  	if (head->type == TOMOYO_QUERY)
  		atomic_dec(&tomoyo_query_observers);
@@ -596,7 +596,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -     __attribute__ ((format(printf, 2, 3)));
  void tomoyo_check_profile(void);
  int tomoyo_open_control(const u8 type, struct file *file);
- int tomoyo_close_control(struct file *file);
+ int tomoyo_close_control(struct tomoyo_io_buffer *head);
 @@ -617,6 +637,14 @@ void tomoyo_check_acl(struct tomoyo_requ
  char *tomoyo_read_token(struct tomoyo_acl_param *param);
  bool tomoyo_permstr(const char *string, const char *keyword);
