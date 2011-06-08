@@ -3,20 +3,22 @@ Subject: TOMOYO: Cleanup part 3.
 Use common structure for ACL with "struct list_head" + "atomic_t".
 Use array/struct where possible.
 Remove is_group from "struct tomoyo_name_union"/"struct tomoyo_number_union".
+Pass "struct file"->private_data rather than "struct file".
 Update some of comments.
 Bring tomoyo_same_acl_head() to tomoyo_update_domain().
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   24 ++---
- security/tomoyo/common.h |   54 ++++--------
- security/tomoyo/domain.c |   14 +++
- security/tomoyo/file.c   |  197 +++++++++++++++++++++++++++++++++++++++--------
- security/tomoyo/gc.c     |  127 +++++++++++++++++++++++++++---
- security/tomoyo/memory.c |   16 +--
- security/tomoyo/mount.c  |   31 +++++--
- security/tomoyo/util.c   |    9 --
- 8 files changed, 363 insertions(+), 109 deletions(-)
+ security/tomoyo/common.c        |   43 +++-----
+ security/tomoyo/common.h        |   62 ++++--------
+ security/tomoyo/domain.c        |   14 ++
+ security/tomoyo/file.c          |  197 +++++++++++++++++++++++++++++++++-------
+ security/tomoyo/gc.c            |  127 +++++++++++++++++++++++--
+ security/tomoyo/memory.c        |   16 +--
+ security/tomoyo/mount.c         |   31 +++++-
+ security/tomoyo/securityfs_if.c |    6 -
+ security/tomoyo/util.c          |    9 -
+ 9 files changed, 377 insertions(+), 128 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -84,7 +86,51 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		list_for_each_cookie(head->r.acl, &group->member_list) {
  			struct tomoyo_acl_head *ptr =
  				list_entry(head->r.acl, typeof(*ptr), list);
-@@ -1934,7 +1934,7 @@ int tomoyo_write_control(struct file *fi
+@@ -1873,7 +1873,7 @@ int tomoyo_poll_control(struct file *fil
+ /**
+  * tomoyo_read_control - read() for /sys/kernel/security/tomoyo/ interface.
+  *
+- * @file:       Pointer to "struct file".
++ * @head:       Pointer to "struct tomoyo_io_buffer".
+  * @buffer:     Poiner to buffer to write to.
+  * @buffer_len: Size of @buffer.
+  *
+@@ -1881,11 +1881,10 @@ int tomoyo_poll_control(struct file *fil
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-int tomoyo_read_control(struct file *file, char __user *buffer,
++int tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
+ 			const int buffer_len)
+ {
+ 	int len;
+-	struct tomoyo_io_buffer *head = file->private_data;
+ 
+ 	if (!head->read)
+ 		return -ENOSYS;
+@@ -1905,7 +1904,7 @@ int tomoyo_read_control(struct file *fil
+ /**
+  * tomoyo_write_control - write() for /sys/kernel/security/tomoyo/ interface.
+  *
+- * @file:       Pointer to "struct file".
++ * @head:       Pointer to "struct tomoyo_io_buffer".
+  * @buffer:     Pointer to buffer to read from.
+  * @buffer_len: Size of @buffer.
+  *
+@@ -1913,10 +1912,9 @@ int tomoyo_read_control(struct file *fil
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-int tomoyo_write_control(struct file *file, const char __user *buffer,
+-			 const int buffer_len)
++int tomoyo_write_control(struct tomoyo_io_buffer *head,
++			 const char __user *buffer, const int buffer_len)
+ {
+-	struct tomoyo_io_buffer *head = file->private_data;
+ 	int error = buffer_len;
+ 	int avail_len = buffer_len;
+ 	char *cp0 = head->write_buf;
+@@ -1934,7 +1932,7 @@ int tomoyo_write_control(struct file *fi
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
@@ -93,7 +139,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			error = -ENOMEM;
  			break;
  		} else if (get_user(c, buffer)) {
-@@ -1943,11 +1943,11 @@ int tomoyo_write_control(struct file *fi
+@@ -1943,11 +1941,11 @@ int tomoyo_write_control(struct file *fi
  		}
  		buffer++;
  		avail_len--;
@@ -108,6 +154,33 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		tomoyo_normalize_line(cp0);
  		head->write(head);
  	}
+@@ -1958,15 +1956,14 @@ int tomoyo_write_control(struct file *fi
+ /**
+  * tomoyo_close_control - close() for /sys/kernel/security/tomoyo/ interface.
+  *
+- * @file: Pointer to "struct file".
++ * @head: Pointer to "struct tomoyo_io_buffer".
+  *
+  * Releases memory and returns 0.
+  *
+  * Caller looses tomoyo_read_lock().
+  */
+-int tomoyo_close_control(struct file *file)
++int tomoyo_close_control(struct tomoyo_io_buffer *head)
+ {
+-	struct tomoyo_io_buffer *head = file->private_data;
+ 	const bool is_write = !!head->write_buf;
+ 
+ 	/*
+@@ -1983,8 +1980,6 @@ int tomoyo_close_control(struct file *fi
+ 	kfree(head->write_buf);
+ 	head->write_buf = NULL;
+ 	kfree(head);
+-	head = NULL;
+-	file->private_data = NULL;
+ 	if (is_write)
+ 		tomoyo_run_gc();
+ 	return 0;
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
 @@ -217,6 +217,12 @@ struct tomoyo_acl_head {
@@ -186,6 +259,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* Size of write buffer.                */
  	int writebuf_size;
  	/* Type of this interface.              */
+@@ -497,12 +498,12 @@ void tomoyo_warn_log(struct tomoyo_reque
+      __attribute__ ((format(printf, 2, 3)));
+ void tomoyo_check_profile(void);
+ int tomoyo_open_control(const u8 type, struct file *file);
+-int tomoyo_close_control(struct file *file);
++int tomoyo_close_control(struct tomoyo_io_buffer *head);
+ int tomoyo_poll_control(struct file *file, poll_table *wait);
+-int tomoyo_read_control(struct file *file, char __user *buffer,
++int tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
+ 			const int buffer_len);
+-int tomoyo_write_control(struct file *file, const char __user *buffer,
+-			 const int buffer_len);
++int tomoyo_write_control(struct tomoyo_io_buffer *head,
++			 const char __user *buffer, const int buffer_len);
+ bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
+ void tomoyo_warn_oom(const char *function);
+ const struct tomoyo_path_info *
 @@ -704,7 +705,7 @@ static inline void tomoyo_put_name(const
  	if (name) {
  		struct tomoyo_name *ptr =
@@ -963,6 +1053,35 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		tomoyo_same_name_union(&p1->dir_name, &p2->dir_name) &&
  		tomoyo_same_name_union(&p1->fs_type, &p2->fs_type) &&
  		tomoyo_same_number_union(&p1->flags, &p2->flags);
+--- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
++++ security-testing-2.6/security/tomoyo/securityfs_if.c
+@@ -34,7 +34,7 @@ static int tomoyo_open(struct inode *ino
+  */
+ static int tomoyo_release(struct inode *inode, struct file *file)
+ {
+-	return tomoyo_close_control(file);
++	return tomoyo_close_control(file->private_data);
+ }
+ 
+ /**
+@@ -63,7 +63,7 @@ static unsigned int tomoyo_poll(struct f
+ static ssize_t tomoyo_read(struct file *file, char __user *buf, size_t count,
+ 			   loff_t *ppos)
+ {
+-	return tomoyo_read_control(file, buf, count);
++	return tomoyo_read_control(file->private_data, buf, count);
+ }
+ 
+ /**
+@@ -79,7 +79,7 @@ static ssize_t tomoyo_read(struct file *
+ static ssize_t tomoyo_write(struct file *file, const char __user *buf,
+ 			    size_t count, loff_t *ppos)
+ {
+-	return tomoyo_write_control(file, buf, count);
++	return tomoyo_write_control(file->private_data, buf, count);
+ }
+ 
+ /*
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
 @@ -93,11 +93,9 @@ bool tomoyo_parse_name_union(const char 

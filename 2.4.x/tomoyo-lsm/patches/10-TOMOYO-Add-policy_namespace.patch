@@ -1,17 +1,25 @@
 Subject: TOMOYO: Add policy namespace support.
 
+Mauras Olivier reported that it is difficult to use TOMOYO in LXC environments,
+for TOMOYO cannot distinguish between environments outside the container and
+environments inside the container since LXC environments are created using
+pivot_root(). To address this problem, this patch introduces policy namespace.
+
+Each policy namespace has its own set of domain policy, exception policy and
+profiles, which are all independent of other namespaces. This independency
+allows users to develop policy without worrying interference among namespaces.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/audit.c         |    8 
- security/tomoyo/common.c        |  394 ++++++++++++++++++++++++++++------------
- security/tomoyo/common.h        |   68 +++++-
- security/tomoyo/domain.c        |  234 ++++++++++++++++++-----
- security/tomoyo/file.c          |    2 
- security/tomoyo/gc.c            |   73 ++++---
- security/tomoyo/memory.c        |   20 --
- security/tomoyo/securityfs_if.c |    6 
- security/tomoyo/util.c          |   44 ++--
- 9 files changed, 596 insertions(+), 253 deletions(-)
+ security/tomoyo/audit.c  |    8 -
+ security/tomoyo/common.c |  372 ++++++++++++++++++++++++++++++++++-------------
+ security/tomoyo/common.h |   64 ++++++--
+ security/tomoyo/domain.c |  356 ++++++++++++++++++++++++++++++++------------
+ security/tomoyo/file.c   |    2 
+ security/tomoyo/gc.c     |   73 +++++----
+ security/tomoyo/memory.c |   20 +-
+ security/tomoyo/util.c   |   44 +++--
+ 8 files changed, 661 insertions(+), 278 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/audit.c
 +++ security-testing-2.6/security/tomoyo/audit.c
@@ -197,10 +205,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_policy_namespace *ns =
 +		container_of(head->r.ns, typeof(*ns), namespace_list);
  	const struct tomoyo_profile *profile;
-- next:
 +	if (head->r.eof)
 +		return;
-+next:
+  next:
  	index = head->r.index;
 -	profile = tomoyo_profile_ptr[index];
 +	profile = ns->profile_ptr[index];
@@ -357,7 +364,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		.list = list,
  		.data = data,
  		.is_delete = is_delete,
-@@ -861,21 +915,12 @@ static int tomoyo_write_domain2(struct l
+@@ -861,37 +915,28 @@ static int tomoyo_write_domain2(struct l
  static int tomoyo_write_domain(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -383,7 +390,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		domain = NULL;
  		if (is_delete)
  			tomoyo_delete_domain(data);
-@@ -888,10 +933,10 @@ static int tomoyo_write_domain(struct to
+ 		else if (is_select)
+ 			domain = tomoyo_find_domain(data);
+ 		else
+-			domain = tomoyo_assign_domain(data, 0);
++			domain = tomoyo_assign_domain(data, false);
+ 		head->w.domain = domain;
+ 		return 0;
  	}
  	if (!domain)
  		return -EINVAL;
@@ -559,7 +572,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(buffer);
  }
  
-@@ -1896,9 +1951,48 @@ int tomoyo_poll_control(struct file *fil
+@@ -1896,6 +1951,45 @@ int tomoyo_poll_control(struct file *fil
  }
  
  /**
@@ -604,25 +617,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/**
   * tomoyo_read_control - read() for /sys/kernel/security/tomoyo/ interface.
   *
-- * @file:       Pointer to "struct file".
-+ * @head:       Pointer to "struct tomoyo_io_buffer".
-  * @buffer:     Poiner to buffer to write to.
-  * @buffer_len: Size of @buffer.
-  *
-@@ -1906,11 +2000,10 @@ int tomoyo_poll_control(struct file *fil
-  *
-  * Caller holds tomoyo_read_lock().
-  */
--int tomoyo_read_control(struct file *file, char __user *buffer,
-+int tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
- 			const int buffer_len)
- {
- 	int len;
--	struct tomoyo_io_buffer *head = file->private_data;
- 
- 	if (!head->read)
- 		return -ENOSYS;
-@@ -1920,17 +2013,57 @@ int tomoyo_read_control(struct file *fil
+  * @head:       Pointer to "struct tomoyo_io_buffer".
+@@ -1919,14 +2013,54 @@ int tomoyo_read_control(struct tomoyo_io
  	head->read_user_buf_avail = buffer_len;
  	if (tomoyo_flush(head))
  		/* Call the policy handler. */
@@ -678,27 +674,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/**
   * tomoyo_write_control - write() for /sys/kernel/security/tomoyo/ interface.
   *
-- * @file:       Pointer to "struct file".
-+ * @head:       Pointer to "struct tomoyo_io_buffer".
-  * @buffer:     Pointer to buffer to read from.
-  * @buffer_len: Size of @buffer.
-  *
-@@ -1938,32 +2071,37 @@ int tomoyo_read_control(struct file *fil
-  *
-  * Caller holds tomoyo_read_lock().
-  */
--int tomoyo_write_control(struct file *file, const char __user *buffer,
--			 const int buffer_len)
-+int tomoyo_write_control(struct tomoyo_io_buffer *head,
-+			 const char __user *buffer, const int buffer_len)
+  * @head:       Pointer to "struct tomoyo_io_buffer".
+@@ -1941,27 +2075,31 @@ int tomoyo_write_control(struct tomoyo_i
+ 			 const char __user *buffer, const int buffer_len)
  {
--	struct tomoyo_io_buffer *head = file->private_data;
  	int error = buffer_len;
 -	int avail_len = buffer_len;
 +	size_t avail_len = buffer_len;
  	char *cp0 = head->write_buf;
 -
-+	int idx;
  	if (!head->write)
  		return -ENOSYS;
  	if (!access_ok(VERIFY_READ, buffer, buffer_len))
@@ -710,7 +694,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		return -EPERM;
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
-+	idx = tomoyo_read_lock();
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
@@ -734,7 +717,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			error = -EFAULT;
  			break;
  		}
-@@ -1975,8 +2113,41 @@ int tomoyo_write_control(struct file *fi
+@@ -1973,8 +2111,40 @@ int tomoyo_write_control(struct tomoyo_i
  		cp0[head->w.avail - 1] = '\0';
  		head->w.avail = 0;
  		tomoyo_normalize_line(cp0);
@@ -773,38 +756,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
  	}
 +out:
-+	tomoyo_read_unlock(idx);
  	mutex_unlock(&head->io_sem);
  	return error;
  }
-@@ -1984,15 +2155,14 @@ int tomoyo_write_control(struct file *fi
- /**
-  * tomoyo_close_control - close() for /sys/kernel/security/tomoyo/ interface.
-  *
-- * @file: Pointer to "struct file".
-+ * @head: Pointer to "struct tomoyo_io_buffer".
-  *
-  * Releases memory and returns 0.
-  *
-  * Caller looses tomoyo_read_lock().
-  */
--int tomoyo_close_control(struct file *file)
-+int tomoyo_close_control(struct tomoyo_io_buffer *head)
- {
--	struct tomoyo_io_buffer *head = file->private_data;
- 	const bool is_write = !!head->write_buf;
- 
- 	/*
-@@ -2009,8 +2179,6 @@ int tomoyo_close_control(struct file *fi
- 	kfree(head->write_buf);
- 	head->write_buf = NULL;
- 	kfree(head);
--	head = NULL;
--	file->private_data = NULL;
- 	if (is_write)
- 		tomoyo_run_gc();
- 	return 0;
-@@ -2024,27 +2192,27 @@ void tomoyo_check_profile(void)
+@@ -2019,27 +2189,27 @@ void tomoyo_check_profile(void)
  	struct tomoyo_domain_info *domain;
  	const int idx = tomoyo_read_lock();
  	tomoyo_policy_loaded = true;
@@ -930,7 +885,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	} w;
  	/* Buffer for reading.                  */
  	char *read_buf;
-@@ -530,19 +537,38 @@ struct tomoyo_time {
+@@ -530,8 +537,27 @@ struct tomoyo_time {
  	u8 sec;
  };
  
@@ -958,21 +913,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_str_starts(char **src, const char *find);
  const char *tomoyo_get_exe(void);
  void tomoyo_normalize_line(unsigned char *buffer);
- void tomoyo_check_profile(void);
- int tomoyo_open_control(const u8 type, struct file *file);
--int tomoyo_close_control(struct file *file);
-+int tomoyo_close_control(struct tomoyo_io_buffer *head);
- int tomoyo_poll_control(struct file *file, poll_table *wait);
--int tomoyo_read_control(struct file *file, char __user *buffer,
-+int tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
- 			const int buffer_len);
--int tomoyo_write_control(struct file *file, const char __user *buffer,
--			 const int buffer_len);
-+int tomoyo_write_control(struct tomoyo_io_buffer *head,
-+			 const char __user *buffer, const int buffer_len);
- bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
- void tomoyo_warn_oom(const char *function);
- const struct tomoyo_path_info *
 @@ -550,7 +576,8 @@ tomoyo_compare_name_union(const struct t
  			  const struct tomoyo_name_union *ptr);
  bool tomoyo_compare_number_union(const unsigned long value,
@@ -983,11 +923,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
  	__attribute__ ((format(printf, 2, 3)));
  bool tomoyo_correct_domain(const unsigned char *domainname);
-@@ -587,7 +614,10 @@ int tomoyo_supervisor(struct tomoyo_requ
+@@ -586,8 +613,11 @@ int tomoyo_supervisor(struct tomoyo_requ
+      __attribute__ ((format(printf, 2, 3)));
  struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
  struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
- 						const u8 profile);
+-						const u8 profile);
 -struct tomoyo_profile *tomoyo_profile(const u8 profile);
++						const bool transit);
 +struct tomoyo_profile *tomoyo_profile(const struct tomoyo_policy_namespace *ns,
 +				      const u8 profile);
 +struct tomoyo_policy_namespace *tomoyo_assign_namespace
@@ -995,7 +937,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_group *tomoyo_get_group(struct tomoyo_acl_param *param,
  				      const u8 idx);
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
-@@ -658,8 +688,6 @@ extern struct srcu_struct tomoyo_ss;
+@@ -643,6 +673,8 @@ char *tomoyo_read_token(struct tomoyo_ac
+ bool tomoyo_permstr(const char *string, const char *keyword);
+ 
+ const char *tomoyo_yesno(const unsigned int value);
++void tomoyo_write_log(struct tomoyo_request_info *r, const char *fmt, ...)
++	__attribute__ ((format(printf, 2, 3)));
+ void tomoyo_write_log2(struct tomoyo_request_info *r, int len, const char *fmt,
+ 		       va_list args);
+ void tomoyo_read_log(struct tomoyo_io_buffer *head);
+@@ -658,8 +690,6 @@ extern struct srcu_struct tomoyo_ss;
  /* The list for "struct tomoyo_domain_info". */
  extern struct list_head tomoyo_domain_list;
  
@@ -1004,7 +955,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
  
  /* Lock for protecting policy. */
-@@ -668,10 +696,10 @@ extern struct mutex tomoyo_policy_lock;
+@@ -668,10 +698,10 @@ extern struct mutex tomoyo_policy_lock;
  /* Has /sbin/init started? */
  extern bool tomoyo_policy_loaded;
  
@@ -1017,7 +968,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  extern const char *tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION];
  extern const char *tomoyo_mkdev_keyword[TOMOYO_MAX_MKDEV_OPERATION];
-@@ -830,6 +858,16 @@ static inline bool tomoyo_same_number_un
+@@ -830,6 +860,16 @@ static inline bool tomoyo_same_number_un
  		a->value_type[1] == b->value_type[1];
  }
  
@@ -1213,22 +1164,32 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	error = tomoyo_update_policy(&e.head, sizeof(e), param,
  				     tomoyo_same_aggregator);
  out:
-@@ -364,6 +387,88 @@ out:
+@@ -364,53 +387,170 @@ out:
  }
  
  /**
+- * tomoyo_assign_domain - Create a domain.
 + * tomoyo_find_namespace - Find specified namespace.
-+ *
+  *
+- * @domainname: The name of domain.
+- * @profile:    Profile number to assign if the domain was newly created.
 + * @name: Name of namespace to find.
 + * @len:  Length of @name.
-+ *
+  *
+- * Returns pointer to "struct tomoyo_domain_info" on success, NULL otherwise.
 + * Returns pointer to "struct tomoyo_policy_namespace" if found, NULL otherwise.
-+ *
-+ * Caller holds tomoyo_read_lock().
-+ */
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
+-						const u8 profile)
 +static struct tomoyo_policy_namespace *tomoyo_find_namespace
 +(const char *name, const unsigned int len)
-+{
+ {
+-	struct tomoyo_domain_info *entry;
+-	struct tomoyo_domain_info *domain = NULL;
+-	const struct tomoyo_path_info *saved_domainname;
+-	bool found = false;
 +	struct tomoyo_policy_namespace *ns;
 +	list_for_each_entry(ns, &tomoyo_namespace_list, namespace_list) {
 +		if (strncmp(name, ns->name, len) ||
@@ -1238,7 +1199,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	return NULL;
 +}
-+
+ 
+-	if (!tomoyo_correct_domain(domainname))
 +/**
 + * tomoyo_assign_namespace - Create a new namespace.
 + *
@@ -1261,12 +1223,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (ptr)
 +		return ptr;
 +	if (len >= TOMOYO_EXEC_TMPSIZE - 10 || !tomoyo_domain_def(domainname))
-+		return NULL;
+ 		return NULL;
+-	saved_domainname = tomoyo_get_name(domainname);
+-	if (!saved_domainname)
 +	entry = kzalloc(sizeof(*entry) + len + 1, GFP_NOFS);
 +	if (!entry)
-+		return NULL;
-+	if (mutex_lock_interruptible(&tomoyo_policy_lock))
-+		goto out;
+ 		return NULL;
+-	entry = kzalloc(sizeof(*entry), GFP_NOFS);
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		goto out;
+-	list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
+-		if (domain->is_deleted ||
+-		    tomoyo_pathcmp(saved_domainname, domain->domainname))
+-			continue;
+-		found = true;
+-		break;
+-	}
+-	if (!found && tomoyo_memory_ok(entry)) {
+-		INIT_LIST_HEAD(&entry->acl_info_list);
+-		entry->domainname = saved_domainname;
+-		saved_domainname = NULL;
+-		entry->profile = profile;
+-		list_add_tail_rcu(&entry->list, &tomoyo_domain_list);
+-		domain = entry;
 +	ptr = tomoyo_find_namespace(domainname, len);
 +	if (!ptr && tomoyo_memory_ok(entry)) {
 +		char *name = (char *) (entry + 1);
@@ -1275,11 +1254,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		name[len] = '\0';
 +		entry->name = name;
 +		tomoyo_init_policy_namespace(entry);
-+		entry = NULL;
-+	}
-+	mutex_unlock(&tomoyo_policy_lock);
+ 		entry = NULL;
+-		found = true;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+- out:
+-	tomoyo_put_name(saved_domainname);
 +out:
-+	kfree(entry);
+ 	kfree(entry);
+-	return found ? domain : NULL;
 +	return ptr;
 +}
 +
@@ -1299,10 +1282,92 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-  * tomoyo_assign_domain - Create a domain.
-  *
-  * @domainname: The name of domain.
-@@ -433,6 +538,7 @@ int tomoyo_find_next_domain(struct linux
++ * tomoyo_assign_domain - Create a domain or a namespace.
++ *
++ * @domainname: The name of domain.
++ * @transit:    True if transit to domain found or created.
++ *
++ * Returns pointer to "struct tomoyo_domain_info" on success, NULL otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
++						const bool transit)
++{
++	struct tomoyo_domain_info e = { };
++	struct tomoyo_domain_info *entry = tomoyo_find_domain(domainname);
++	bool created = false;
++	if (entry) {
++		if (transit) {
++			/*
++			 * Since namespace is created at runtime, profiles may
++			 * not be created by the moment the process transits to
++			 * that domain. Do not perform domain transition if
++			 * profile for that domain is not yet created.
++			 */
++			if (!entry->ns->profile_ptr[entry->profile])
++				return NULL;
++		}
++		return entry;
++	}
++	/* Requested domain does not exist. */
++	/* Don't create requested domain if domainname is invalid. */
++	if (strlen(domainname) >= TOMOYO_EXEC_TMPSIZE - 10 ||
++	    !tomoyo_correct_domain(domainname))
++		return NULL;
++	/*
++	 * Since definition of profiles and acl_groups may differ across
++	 * namespaces, do not inherit "use_profile" and "use_group" settings
++	 * by automatically creating requested domain upon domain transition.
++	 */
++	if (transit && tomoyo_namespace_jump(domainname))
++		return NULL;
++	e.ns = tomoyo_assign_namespace(domainname);
++	if (!e.ns)
++		return NULL;
++	/*
++	 * "use_profile" and "use_group" settings for automatically created
++	 * domains are inherited from current domain. These are 0 for manually
++	 * created domains.
++	 */
++	if (transit) {
++		const struct tomoyo_domain_info *domain = tomoyo_domain();
++		e.profile = domain->profile;
++		e.group = domain->group;
++	}
++	e.domainname = tomoyo_get_name(domainname);
++	if (!e.domainname)
++		return NULL;
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
++	entry = tomoyo_find_domain(domainname);
++	if (!entry) {
++		entry = tomoyo_commit_ok(&e, sizeof(e));
++		if (entry) {
++			INIT_LIST_HEAD(&entry->acl_info_list);
++			list_add_tail_rcu(&entry->list, &tomoyo_domain_list);
++			created = true;
++		}
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++out:
++	tomoyo_put_name(e.domainname);
++	if (entry && transit) {
++		if (created) {
++			struct tomoyo_request_info r;
++			tomoyo_init_request_info(&r, entry,
++						 TOMOYO_MAC_FILE_EXECUTE);
++			r.granted = false;
++			tomoyo_write_log(&r, "use_profile %u\n",
++					 entry->profile);
++			tomoyo_write_log(&r, "use_group %u\n", entry->group);
++		}
++	}
++	return entry;
+ }
+ 
+ /**
+@@ -433,6 +573,7 @@ int tomoyo_find_next_domain(struct linux
  	bool is_enforce;
  	int retval = -ENOMEM;
  	bool need_kfree = false;
@@ -1310,7 +1375,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_path_info rn = { }; /* real name */
  
  	mode = tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_EXECUTE);
-@@ -456,8 +562,10 @@ int tomoyo_find_next_domain(struct linux
+@@ -456,8 +597,10 @@ int tomoyo_find_next_domain(struct linux
  	/* Check 'aggregator' directive. */
  	{
  		struct tomoyo_aggregator *ptr;
@@ -1323,7 +1388,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			if (ptr->head.is_deleted ||
  			    !tomoyo_path_matches_pattern(&rn,
  							 ptr->original_name))
-@@ -491,11 +599,20 @@ int tomoyo_find_next_domain(struct linux
+@@ -491,11 +634,20 @@ int tomoyo_find_next_domain(struct linux
  	}
  
  	/* Calculate domain to transit to. */
@@ -1348,18 +1413,43 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
  	case TOMOYO_TRANSITION_CONTROL_KEEP:
  		/* Keep current domain. */
-@@ -526,6 +643,11 @@ int tomoyo_find_next_domain(struct linux
-  done:
+@@ -518,19 +670,25 @@ int tomoyo_find_next_domain(struct linux
+ 		}
+ 		break;
+ 	}
+-	if (domain || strlen(tmp) >= TOMOYO_EXEC_TMPSIZE - 10)
+-		goto done;
+-	domain = tomoyo_find_domain(tmp);
+ 	if (!domain)
+-		domain = tomoyo_assign_domain(tmp, old_domain->profile);
+- done:
++		domain = tomoyo_assign_domain(tmp, true);
  	if (domain)
- 		goto out;
-+	if (reject_on_transition_failure) {
+-		goto out;
+-	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n", tmp);
+-	if (is_enforce)
+-		retval = -EPERM;
+-	else
+-		old_domain->transition_failed = true;
++		retval = 0;
++	else if (reject_on_transition_failure) {
 +		printk(KERN_WARNING "ERROR: Domain '%s' not ready.\n", tmp);
 +		retval = -ENOMEM;
-+		goto out;
++	} else if (r.mode == TOMOYO_CONFIG_ENFORCING)
++		retval = -ENOMEM;
++	else {
++		retval = 0;
++		if (!old_domain->transition_failed) {
++			old_domain->transition_failed = true;
++			r.granted = false;
++			tomoyo_write_log(&r, "%s", "transition_failed\n");
++			printk(KERN_WARNING
++			       "ERROR: Domain '%s' not defined.\n", tmp);
++		}
 +	}
- 	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n", tmp);
- 	if (is_enforce)
- 		retval = -EPERM;
+  out:
+ 	if (!domain)
+ 		domain = old_domain;
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
 @@ -602,7 +602,7 @@ int tomoyo_path_permission(struct tomoyo
@@ -1515,35 +1605,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #if 0
  	/* Will be replaced with tomoyo_load_builtin_policy(). */
  	{
---- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
-+++ security-testing-2.6/security/tomoyo/securityfs_if.c
-@@ -34,7 +34,7 @@ static int tomoyo_open(struct inode *ino
-  */
- static int tomoyo_release(struct inode *inode, struct file *file)
- {
--	return tomoyo_close_control(file);
-+	return tomoyo_close_control(file->private_data);
- }
- 
- /**
-@@ -63,7 +63,7 @@ static unsigned int tomoyo_poll(struct f
- static ssize_t tomoyo_read(struct file *file, char __user *buf, size_t count,
- 			   loff_t *ppos)
- {
--	return tomoyo_read_control(file, buf, count);
-+	return tomoyo_read_control(file->private_data, buf, count);
- }
- 
- /**
-@@ -79,7 +79,7 @@ static ssize_t tomoyo_read(struct file *
- static ssize_t tomoyo_write(struct file *file, const char __user *buf,
- 			    size_t count, loff_t *ppos)
- {
--	return tomoyo_write_control(file, buf, count);
-+	return tomoyo_write_control(file->private_data, buf, count);
- }
- 
- /*
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
 @@ -419,26 +419,21 @@ bool tomoyo_correct_path(const char *fil
