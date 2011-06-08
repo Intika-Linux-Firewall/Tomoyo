@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1+   2011/05/11
+ * Version: 1.8.2-pre   2011/06/08
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -582,7 +582,7 @@ no_transition_control:
 		line = ccs_shprintf(" ( -> %d )",
 				    ccs_dp.list[redirect_index].number);
 	else if (redirect_index == EOF)
-                line = ccs_shprintf(" ( -> Not Found )");
+		line = ccs_shprintf(" ( -> Not Found )");
 	else
 		line = ccs_shprintf(" ( -> Namespace jump )");
 	printw("%s", ccs_eat(line));
@@ -720,7 +720,8 @@ static _Bool ccs_show_command_key(const enum ccs_screen_type screen,
 		} else {
 			if (!readonly) {
 				printw("A/a        Add a new domain.\n");
-				printw("D/d        Delete selected domains.\n");
+				printw("D/d        Delete selected domains."
+				       "\n");
 				printw("S/s        Set profile number of "
 				       "selected domains.\n");
 			}
@@ -1248,7 +1249,7 @@ static void ccs_read_generic_policy(void)
  *
  * @domainname: Domainname.
  * @program:    Program name.
- * @type: One of values in "enum ccs_transition_type".
+ * @type:       One of values in "enum ccs_transition_type".
  *
  * Returns 0 on success, -EINVAL otherwise.
  */
@@ -1419,7 +1420,8 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
  *
  * @line:        Line to parse.
  * @index:       Current domain's index.
- * @parse_flags: True if parse use_profile and use_group lines, false otherwise.
+ * @parse_flags: True if parse use_profile and use_group lines, false
+ *               otherwise.
  *
  * Returns nothing.
  */
@@ -1678,7 +1680,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		const struct ccs_path_info **string_ptr
 			= ccs_dp.list[index].string_ptr;
 		const int max_count = ccs_dp.list[index].string_count;
-		const bool is_root = !strchr(domainname->name, ' '); 
+		const bool is_root = !strchr(domainname->name, ' ');
 		for (i = 0; i < max_count; i++) {
 			const struct ccs_path_info *cp = string_ptr[i];
 			struct ccs_path_group_entry *group;
@@ -2600,8 +2602,12 @@ static _Bool ccs_select_acl_window(const int current)
 	if (current == EOF)
 		return false;
 	if (ccs_current_screen == CCS_SCREEN_NS_LIST) {
+		const char *namespace = ccs_gacl_list[current].operand;
+		if (ccs_previous_screen == CCS_SCREEN_ACL_LIST &&
+		    strcmp(ccs_current_ns, namespace))
+			ccs_previous_screen = CCS_SCREEN_DOMAIN_LIST;
 		free(ccs_current_ns);
-		ccs_current_ns = ccs_strdup(ccs_gacl_list[current].operand);
+		ccs_current_ns = ccs_strdup(namespace);
 		ccs_current_ns_len = strlen(ccs_current_ns);
 		ccs_current_screen = ccs_previous_screen;
 		return true;

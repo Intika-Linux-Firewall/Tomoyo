@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 1.8.2-pre   2011/06/08
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -133,16 +133,16 @@ _Bool ccs_correct_path(const char *filename);
 _Bool ccs_correct_word(const char *string);
 _Bool ccs_decode(const char *ascii, char *bin);
 _Bool ccs_domain_def(const char *domainname);
-_Bool ccs_identical_file(const char *file1, const char *file2);
 _Bool ccs_move_proc_to_file(const char *src, const char *dest);
 _Bool ccs_path_matches_pattern(const struct ccs_path_info *pathname0,
 			       const struct ccs_path_info *pattern0);
-_Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b);
+_Bool ccs_pathcmp(const struct ccs_path_info *a,
+		  const struct ccs_path_info *b);
 _Bool ccs_str_starts(char *str, const char *begin);
 char *ccs_freadline(FILE *fp);
 char *ccs_freadline_unpack(FILE *fp);
-char *ccs_make_filename(const char *prefix, const time_t time);
-char *ccs_shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+char *ccs_shprintf(const char *fmt, ...)
+	__attribute__ ((format(printf, 1, 2)));
 char *ccs_strdup(const char *string);
 const char *ccs_domain_name(const struct ccs_domain_policy *dp,
 			    const int index);
@@ -153,8 +153,9 @@ int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
 		      const _Bool is_dis, const _Bool is_dd);
 int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index);
-int ccs_find_domain(const struct ccs_domain_policy *dp, const char *domainname0,
-		    const _Bool is_dis, const _Bool is_dd);
+int ccs_find_domain(const struct ccs_domain_policy *dp,
+		    const char *domainname0, const _Bool is_dis,
+		    const _Bool is_dd);
 int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
 			   const struct ccs_path_info *domainname);
 int ccs_open_stream(const char *filename);
@@ -175,7 +176,8 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 			      _Bool is_write);
 void ccs_normalize_line(char *buffer);
 void ccs_put(void);
-void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename);
+void ccs_read_domain_policy(struct ccs_domain_policy *dp,
+			    const char *filename);
 void ccs_read_process_list(_Bool show_all);
 
 extern _Bool ccs_freadline_raw;

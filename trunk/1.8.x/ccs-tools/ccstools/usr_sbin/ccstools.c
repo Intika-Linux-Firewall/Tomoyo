@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1+   2011/05/11
+ * Version: 1.8.2-pre   2011/06/08
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -72,7 +72,7 @@ static void ccs_out_of_memory(void)
  *
  * @string: String to duplicate.
  *
- * Returns copy of @string on success, abort otherwise. 
+ * Returns copy of @string on success, abort otherwise.
  */
 char *ccs_strdup(const char *string)
 {
@@ -88,7 +88,7 @@ char *ccs_strdup(const char *string)
  * @ptr:  Pointer to void.
  * @size: New size.
  *
- * Returns return value of realloc() on success, abort otherwise. 
+ * Returns return value of realloc() on success, abort otherwise.
  */
 void *ccs_realloc(void *ptr, const size_t size)
 {
@@ -104,7 +104,7 @@ void *ccs_realloc(void *ptr, const size_t size)
  * @ptr:  Pointer to void.
  * @size: New size.
  *
- * Returns return value of realloc() on success, abort otherwise. 
+ * Returns return value of realloc() on success, abort otherwise.
  *
  * Allocated memory is cleared with 0.
  */
@@ -120,7 +120,7 @@ void *ccs_realloc2(void *ptr, const size_t size)
  *
  * @size: Size to allocate.
  *
- * Returns return value of malloc() on success, abort otherwise. 
+ * Returns return value of malloc() on success, abort otherwise.
  *
  * Allocated memory is cleared with 0.
  */
@@ -249,28 +249,6 @@ void ccs_normalize_line(char *buffer)
 			sp++;
 	}
 	*dp = '\0';
-}
-
-/**
- * ccs_make_filename - Make filename using given prefix.
- *
- * @prefix: String to use as a prefix, including leading directories.
- * @time:   A time_t value, usually return value of time(NULL).
- *
- * Returns pathname with timestamp embedded using static buffer.
- *
- * Note that this function is no longer used by anybody since 1.8.0p1.
- */
-char *ccs_make_filename(const char *prefix, const time_t time)
-{
-	struct tm *tm = localtime(&time);
-	static char filename[1024];
-	memset(filename, 0, sizeof(filename));
-	snprintf(filename, sizeof(filename) - 1,
-		 "%s.%02d-%02d-%02d.%02d:%02d:%02d.conf",
-		 prefix, tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday,
-		 tm->tm_hour, tm->tm_min, tm->tm_sec);
-	return filename;
 }
 
 /**
@@ -541,17 +519,15 @@ _Bool ccs_domain_def(const char *buffer)
 {
 	const char *cp;
 	int len;
-	       if (*buffer != '<')
-		       return false;
-	       cp = strchr(buffer, ' ');
-	       if (!cp)
-		       len = strlen(buffer);
-	       else
-		       len = cp - buffer;
-	       if (buffer[len - 1] != '>' ||
-		   !ccs_correct_word2(buffer + 1, len - 2))
-		       return false;
-	       return true;
+	if (*buffer != '<')
+		return false;
+	cp = strchr(buffer, ' ');
+	if (!cp)
+		len = strlen(buffer);
+	else
+		len = cp - buffer;
+	return buffer[len - 1] == '>' &&
+		ccs_correct_word2(buffer + 1, len - 2);
 }
 
 /**
@@ -1284,7 +1260,7 @@ static void ccs_add_process_entry(const char *line, const pid_t ppid,
 	ccs_task_list[index].name = name;
 	ccs_task_list[index].domain = domain;
 }
-	
+
 /**
  * ccs_read_process_list - Read all process's information.
  *
@@ -1504,47 +1480,6 @@ _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 		if (fclose(file_fp) == EOF)
 			result = false;
 	return result;
-}
-
-/**
- * ccs_identical_file - Check whether two files are identical or not.
- *
- * @file1: Pointer to "const char ".
- * @file2: Pointer to "const char".
- *
- * Returns true if both @file1 and @file2 exist and are readable and are
- * identical, false otherwise.
- *
- * Note that this function is no longer used by anybody since 1.8.0p1.
- */
-_Bool ccs_identical_file(const char *file1, const char *file2)
-{
-	char buffer1[4096];
-	char buffer2[4096];
-	struct stat sb1;
-	struct stat sb2;
-	const int fd1 = open(file1, O_RDONLY);
-	const int fd2 = open(file2, O_RDONLY);
-	int len1;
-	int len2;
-	/* Don't compare if file1 is a symlink to file2. */
-	if (fstat(fd1, &sb1) || fstat(fd2, &sb2) || sb1.st_ino == sb2.st_ino)
-		goto out;
-	do {
-		len1 = read(fd1, buffer1, sizeof(buffer1));
-		len2 = read(fd2, buffer2, sizeof(buffer2));
-		if (len1 < 0 || len1 != len2)
-			goto out;
-		if (memcmp(buffer1, buffer2, len1))
-			goto out;
-	} while (len1);
-	close(fd1);
-	close(fd2);
-	return true;
-out:
-	close(fd1);
-	close(fd2);
-	return false;
 }
 
 /**

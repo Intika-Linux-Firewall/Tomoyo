@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 1.8.2-pre   2011/06/08
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -310,7 +310,8 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_FILE_UNLINK]   = { "file unlink", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_UNMOUNT]  = { "file unmount", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_WRITE]    = { "file write", NULL, 0, 0 },
-	[CCS_DIRECTIVE_INITIALIZE_DOMAIN] = { "initialize_domain", NULL, 0, 0 },
+	[CCS_DIRECTIVE_INITIALIZE_DOMAIN]
+	= { "initialize_domain", NULL, 0, 0 },
 	[CCS_DIRECTIVE_IPC_SIGNAL]    = { "ipc signal", NULL, 0, 0 },
 	[CCS_DIRECTIVE_KEEP_DOMAIN]   = { "keep_domain", NULL, 0, 0 },
 	[CCS_DIRECTIVE_MISC_ENV]      = { "misc env", NULL, 0, 0 },
@@ -333,7 +334,8 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	= { "task denied_execute_handler", NULL, 0, 0 },
 	[CCS_DIRECTIVE_TASK_MANUAL_DOMAIN_TRANSITION]
 	= { "task manual_domain_transition", NULL, 0, 0 },
-	[CCS_DIRECTIVE_TRANSITION_FAILED] = { "transition_failed", NULL, 0, 0 },
+	[CCS_DIRECTIVE_TRANSITION_FAILED]
+	= { "transition_failed", NULL, 0, 0 },
 	[CCS_DIRECTIVE_USE_GROUP]     = { "use_group", NULL, 0, 0 },
 	[CCS_DIRECTIVE_USE_PROFILE]   = { "use_profile", NULL, 0, 0 },
 };

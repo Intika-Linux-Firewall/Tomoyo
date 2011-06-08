@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 1.8.2-pre   2011/06/08
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -22,7 +22,7 @@
  */
 #include "ccstools.h"
 
-#define CCS_MAX_DOMAINNAME_LEN             4000
+#define CCS_MAX_DOMAINNAME_LEN             (4096 - 10)
 
 static unsigned int ccs_line = 0;
 static unsigned int ccs_errors = 0;
@@ -531,6 +531,8 @@ static _Bool ccs_check_path_domain(char *arg)
 		return false;
 	if (!strncmp(arg, "from ", 5))
 		ccs_prune_word(arg, arg + 5);
+	else if (!*arg)
+		return true;
 	else
 		return false;
 	if (!strncmp(arg, "any", 3)) {
