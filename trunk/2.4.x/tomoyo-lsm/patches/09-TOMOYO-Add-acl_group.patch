@@ -191,7 +191,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* The initial domain. */
  struct tomoyo_domain_info tomoyo_kernel_domain;
  
-@@ -124,14 +127,27 @@ int tomoyo_update_domain(struct tomoyo_a
+@@ -125,14 +128,27 @@ int tomoyo_update_domain(struct tomoyo_a
  	return error;
  }
  
@@ -220,7 +220,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (ptr->is_deleted || ptr->type != r->param_type)
  			continue;
  		if (check_entry(r, ptr)) {
-@@ -139,6 +155,11 @@ void tomoyo_check_acl(struct tomoyo_requ
+@@ -140,6 +156,11 @@ void tomoyo_check_acl(struct tomoyo_requ
  			return;
  		}
  	}

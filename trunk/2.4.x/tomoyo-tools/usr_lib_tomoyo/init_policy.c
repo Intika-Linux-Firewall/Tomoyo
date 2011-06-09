@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1+   2011/05/11
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -472,7 +472,9 @@ static void make_ldconfig_readable_files(void)
 		char *cp = get_realpath(dirs[i]);
 		if (!cp)
 			continue;
-		fprintf(filp, "acl_group 0 file read %s/lib\\*.so\\*\n", cp);
+		fprintf(filp, "acl_group 0 file read ");
+		printf_encoded(cp);
+		fprintf(filp, "/lib\\*.so\\*\n");
 		free(cp);
 	}
 	while (memset(path, 0, sizeof(path)) &&
@@ -1281,9 +1283,11 @@ static const char editpolicy_data[] =
 "keyword_alias network unix                  = network unix\n"
 "keyword_alias no_initialize_domain          = no_initialize_domain\n"
 "keyword_alias no_keep_domain                = no_keep_domain\n"
+"keyword_alias no_reset_domain               = no_reset_domain\n"
 "keyword_alias number_group                  = number_group\n"
 "keyword_alias path_group                    = path_group\n"
 "keyword_alias quota_exceeded                = quota_exceeded\n"
+"keyword_alias reset_domain                  = reset_domain\n"
 "keyword_alias task auto_domain_transition   = task auto_domain_transition\n"
 "keyword_alias task auto_execute_handler     = task auto_execute_handler\n"
 "keyword_alias task denied_execute_handler   = task denied_execute_handler\n"
@@ -1417,7 +1421,7 @@ static const char patternize_data[] =
 "# This file contains rewriting rules used by tomoyo-patternize command.\n"
 "\n"
 "# Domain policy consists with domain declaration lines (which start with\n"
-"# <kernel> ) and acl declaration lines (which do not start with <kernel> ).\n"
+"# '<' ,) and acl declaration lines (which do not start with '<' ).\n"
 "# You can refer the former using 'domain' keyword and the latter using 'acl'"
 "\n"
 "# keyword.\n"

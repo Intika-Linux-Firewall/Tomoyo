@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -78,10 +78,8 @@ static void tomoyo_auditd_init_rules(const char *filename)
 		tomoyo_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
-		rules = realloc(rules, sizeof(struct tomoyo_sort_rules) *
-				(rules_len + 1));
-		if (!rules)
-			tomoyo_out_of_memory();
+		rules = tomoyo_realloc(rules, sizeof(struct tomoyo_sort_rules) *
+				    (rules_len + 1));
 		ptr = &rules[rules_len++];
 		memset(ptr, 0, sizeof(*ptr));
 		if (tomoyo_str_starts(line, "destination ")) {
@@ -94,16 +92,12 @@ static void tomoyo_auditd_init_rules(const char *filename)
 			if (i < destination_list_len)
 				goto store_destination;
 			destination_list =
-				realloc(destination_list,
-					++destination_list_len *
-					sizeof(struct tomoyo_destination));
-			if (!destination_list)
-				tomoyo_out_of_memory();
+				tomoyo_realloc(destination_list,
+					    ++destination_list_len *
+					    sizeof(struct tomoyo_destination));
 			if (!tomoyo_decode(line, line))
 				goto invalid_rule;
-			destination_list[i].pathname = strdup(line);
-			if (!destination_list[i].pathname)
-				tomoyo_out_of_memory();
+			destination_list[i].pathname = tomoyo_strdup(line);
 			destination_list[i].fd = EOF;
 store_destination:
 			ptr->type = TOMOYO_SORT_RULE_DESTINATION;
@@ -140,9 +134,7 @@ store_destination:
 			goto invalid_rule;
 		if (!*line)
 			goto invalid_rule;
-		line = strdup(line);
-		if (!line)
-			tomoyo_out_of_memory();
+		line = tomoyo_strdup(line);
 		ptr->string = line;
 		ptr->string_len = strlen(line);
 	}

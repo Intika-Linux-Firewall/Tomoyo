@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1+   2011/05/11
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -61,10 +61,76 @@ static void tomoyo_sort_domain_policy(struct tomoyo_domain_policy *dp);
  *
  * This function does not return.
  */
-void tomoyo_out_of_memory(void)
+static void tomoyo_out_of_memory(void)
 {
 	fprintf(stderr, "Out of memory. Aborted.\n");
 	exit(1);
+}
+
+/**
+ * tomoyo_strdup - strdup() with abort on error.
+ *
+ * @string: String to duplicate.
+ *
+ * Returns copy of @string on success, abort otherwise.
+ */
+char *tomoyo_strdup(const char *string)
+{
+	char *cp = strdup(string);
+	if (!cp)
+		tomoyo_out_of_memory();
+	return cp;
+}
+
+/**
+ * tomoyo_realloc - realloc() with abort on error.
+ *
+ * @ptr:  Pointer to void.
+ * @size: New size.
+ *
+ * Returns return value of realloc() on success, abort otherwise.
+ */
+void *tomoyo_realloc(void *ptr, const size_t size)
+{
+	void *vp = realloc(ptr, size);
+	if (!vp)
+		tomoyo_out_of_memory();
+	return vp;
+}
+
+/**
+ * tomoyo_realloc2 - realloc() with abort on error.
+ *
+ * @ptr:  Pointer to void.
+ * @size: New size.
+ *
+ * Returns return value of realloc() on success, abort otherwise.
+ *
+ * Allocated memory is cleared with 0.
+ */
+void *tomoyo_realloc2(void *ptr, const size_t size)
+{
+	void *vp = tomoyo_realloc(ptr, size);
+	memset(vp, 0, size);
+	return vp;
+}
+
+/**
+ * tomoyo_malloc - malloc() with abort on error.
+ *
+ * @size: Size to allocate.
+ *
+ * Returns return value of malloc() on success, abort otherwise.
+ *
+ * Allocated memory is cleared with 0.
+ */
+void *tomoyo_malloc(const size_t size)
+{
+	void *vp = malloc(size);
+	if (!vp)
+		tomoyo_out_of_memory();
+	memset(vp, 0, size);
+	return vp;
 }
 
 /**
@@ -186,28 +252,6 @@ void tomoyo_normalize_line(char *buffer)
 }
 
 /**
- * tomoyo_make_filename - Make filename using given prefix.
- *
- * @prefix: String to use as a prefix, including leading directories.
- * @time:   A time_t value, usually return value of time(NULL).
- *
- * Returns pathname with timestamp embedded using static buffer.
- *
- * Note that this function is no longer used by anybody since 1.8.0p1.
- */
-char *tomoyo_make_filename(const char *prefix, const time_t time)
-{
-	struct tm *tm = localtime(&time);
-	static char filename[1024];
-	memset(filename, 0, sizeof(filename));
-	snprintf(filename, sizeof(filename) - 1,
-		 "%s.%02d-%02d-%02d.%02d:%02d:%02d.conf",
-		 prefix, tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday,
-		 tm->tm_hour, tm->tm_min, tm->tm_sec);
-	return filename;
-}
-
-/**
  * tomoyo_partial_name_hash - Hash name.
  *
  * @c:        A unsigned long value.
@@ -283,22 +327,6 @@ static int tomoyo_const_part_length(const char *filename)
 		}
 	}
 	return len;
-}
-
-/**
- * tomoyo_domain_def - Check whether the given token can be a domainname.
- *
- * @domainname: The token to check.
- *
- * Returns true if @domainname possibly be a domainname, false otherwise.
- *
- * Note that this function in kernel source checks only !strncmp() part.
- */
-_Bool tomoyo_domain_def(const char *domainname)
-{
-	return !strncmp(domainname, TOMOYO_ROOT_NAME, TOMOYO_ROOT_NAME_LEN) &&
-		(domainname[TOMOYO_ROOT_NAME_LEN] == '\0'
-		 || domainname[TOMOYO_ROOT_NAME_LEN] == ' ');
 }
 
 /**
@@ -481,6 +509,28 @@ _Bool tomoyo_correct_path(const char *filename)
 }
 
 /**
+ * tomoyo_domain_def - Check whether the given token can be a domainname.
+ *
+ * @buffer: The token to check.
+ *
+ * Returns true if @buffer possibly be a domainname, false otherwise.
+ */
+_Bool tomoyo_domain_def(const char *buffer)
+{
+	const char *cp;
+	int len;
+	if (*buffer != '<')
+		return false;
+	cp = strchr(buffer, ' ');
+	if (!cp)
+		len = strlen(buffer);
+	else
+		len = cp - buffer;
+	return buffer[len - 1] == '>' &&
+		tomoyo_correct_word2(buffer + 1, len - 2);
+}
+
+/**
  * tomoyo_correct_domain - Check whether the given domainname follows the naming rules.
  *
  * @domainname: The domainname to check.
@@ -489,14 +539,11 @@ _Bool tomoyo_correct_path(const char *filename)
  */
 _Bool tomoyo_correct_domain(const char *domainname)
 {
-	if (!domainname || strncmp(domainname, TOMOYO_ROOT_NAME,
-				   TOMOYO_ROOT_NAME_LEN))
-		goto out;
-	domainname += TOMOYO_ROOT_NAME_LEN;
-	if (!*domainname)
+	if (!domainname || !tomoyo_domain_def(domainname))
+		return false;
+	domainname = strchr(domainname, ' ');
+	if (!domainname++)
 		return true;
-	if (*domainname++ != ' ')
-		goto out;
 	while (1) {
 		const char *cp = strchr(domainname, ' ');
 		if (!cp)
@@ -829,7 +876,7 @@ void tomoyo_fill_path_info(struct tomoyo_path_info *ptr)
  *
  * @name: Pointer to "const char".
  *
- * Returns pointer to "const struct tomoyo_path_info" on success, NULL otherwise.
+ * Returns pointer to "const struct tomoyo_path_info" on success, abort otherwise.
  *
  * The returned pointer refers shared string. Thus, the caller must not free().
  */
@@ -843,7 +890,7 @@ const struct tomoyo_path_info *tomoyo_savename(const char *name)
 	int len;
 	static _Bool first_call = true;
 	if (!name)
-		return NULL;
+		tomoyo_out_of_memory();
 	len = strlen(name) + 1;
 	hash = tomoyo_full_name_hash((const unsigned char *) name, len - 1);
 	if (first_call) {
@@ -855,23 +902,19 @@ const struct tomoyo_path_info *tomoyo_savename(const char *name)
 			tomoyo_fill_path_info(&name_list[i].entry);
 		}
 	}
-	ptr = &name_list[hash % TOMOYO_SAVENAME_MAX_HASH];
-	while (ptr) {
+	for (ptr = &name_list[hash % TOMOYO_SAVENAME_MAX_HASH]; ptr;
+	     ptr = ptr->next) {
 		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
-			goto out;
+			return &ptr->entry;
 		prev = ptr;
-		ptr = ptr->next;
 	}
-	ptr = malloc(sizeof(*ptr) + len);
-	if (!ptr)
-		tomoyo_out_of_memory();
+	ptr = tomoyo_malloc(sizeof(*ptr) + len);
 	ptr->next = NULL;
 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 	memmove((void *) ptr->entry.name, name, len);
 	tomoyo_fill_path_info(&ptr->entry);
 	prev->next = ptr; /* prev != NULL because name_list is not empty. */
-out:
-	return ptr ? &ptr->entry : NULL;
+	return &ptr->entry;
 }
 
 /**
@@ -1024,34 +1067,25 @@ int tomoyo_find_domain(const struct tomoyo_domain_policy *dp,
  * @is_dd:      True if the domain is marked as deleted, false otherwise.
  *
  * Returns index number (>= 0) in the @dp array if created or already exists,
- * EOF otherwise.
+ * abort otherwise.
  */
 int tomoyo_assign_domain(struct tomoyo_domain_policy *dp, const char *domainname,
 		      const _Bool is_dis, const _Bool is_dd)
 {
-	const struct tomoyo_path_info *saved_domainname;
 	int index = tomoyo_find_domain(dp, domainname, is_dis, is_dd);
 	if (index >= 0)
-		goto found;
+		return index;
 	if (!is_dis && !tomoyo_correct_domain(domainname)) {
-		fprintf(stderr, "Invalid domainname '%s'\n",
-			domainname);
-		return EOF;
+		fprintf(stderr, "Invalid domainname '%s'\n", domainname);
+		tomoyo_out_of_memory();
 	}
-	dp->list = realloc(dp->list, (dp->list_len + 1) *
-			   sizeof(struct tomoyo_domain_info));
-	if (!dp->list)
-		tomoyo_out_of_memory();
-	memset(&dp->list[dp->list_len], 0,
-	       sizeof(struct tomoyo_domain_info));
-	saved_domainname = tomoyo_savename(domainname);
-	if (!saved_domainname)
-		tomoyo_out_of_memory();
-	dp->list[dp->list_len].domainname = saved_domainname;
-	dp->list[dp->list_len].is_dis = is_dis;
-	dp->list[dp->list_len].is_dd = is_dd;
 	index = dp->list_len++;
-found:
+	dp->list = tomoyo_realloc(dp->list, dp->list_len *
+			       sizeof(struct tomoyo_domain_info));
+	memset(&dp->list[index], 0, sizeof(struct tomoyo_domain_info));
+	dp->list[index].domainname = tomoyo_savename(domainname);
+	dp->list[index].is_dis = is_dis;
+	dp->list[index].is_dd = is_dd;
 	return index;
 }
 
@@ -1190,6 +1224,44 @@ static int tomoyo_task_entry_compare(const void *a, const void *b)
 }
 
 /**
+ * tomoyo_add_process_entry - Add entry for running processes.
+ *
+ * @line:    A line containing PID and profile and domainname.
+ * @ppid:    Parent PID.
+ * @name:    Comm name (allocated by strdup()).
+ *
+ * Returns nothing.
+ *
+ * @name is free()d on failure.
+ */
+static void tomoyo_add_process_entry(const char *line, const pid_t ppid,
+				  char *name)
+{
+	int index;
+	unsigned int pid = 0;
+	int profile = -1;
+	char *domain;
+	if (!line || sscanf(line, "%u %u", &pid, &profile) != 2) {
+		free(name);
+		return;
+	}
+	domain = strchr(line, '<');
+	if (domain)
+		domain = tomoyo_strdup(domain);
+	else
+		domain = tomoyo_strdup("<UNKNOWN>");
+	index = tomoyo_task_list_len++;
+	tomoyo_task_list = tomoyo_realloc(tomoyo_task_list, tomoyo_task_list_len *
+				    sizeof(struct tomoyo_task_entry));
+	memset(&tomoyo_task_list[index], 0, sizeof(tomoyo_task_list[0]));
+	tomoyo_task_list[index].pid = pid;
+	tomoyo_task_list[index].ppid = ppid;
+	tomoyo_task_list[index].profile = profile;
+	tomoyo_task_list[index].name = name;
+	tomoyo_task_list[index].domain = domain;
+}
+
+/**
  * tomoyo_read_process_list - Read all process's information.
  *
  * @show_all: Ture if kernel threads should be included, false otherwise.
@@ -1216,45 +1288,17 @@ void tomoyo_read_process_list(_Bool show_all)
 			char *line = tomoyo_freadline(fp);
 			unsigned int pid = 0;
 			unsigned int ppid = 0;
-			int profile = -1;
 			char *name;
-			char *domain;
 			if (!line)
 				break;
 			sscanf(line, "PID=%u PPID=%u", &pid, &ppid);
 			name = strstr(line, "NAME=");
 			if (name)
-				name = strdup(name + 5);
-			if (!name)
-				name = strdup("<UNKNOWN>");
-			if (!name)
-				tomoyo_out_of_memory();
+				name = tomoyo_strdup(name + 5);
+			else
+				name = tomoyo_strdup("<UNKNOWN>");
 			line = tomoyo_freadline(fp);
-			if (!line ||
-			    sscanf(line, "%u %u", &pid, &profile) != 2) {
-				free(name);
-				break;
-			}
-			domain = strchr(line, '<');
-			if (domain)
-				domain = strdup(domain);
-			if (!domain)
-				domain = strdup("<UNKNOWN>");
-			if (!domain)
-				tomoyo_out_of_memory();
-			tomoyo_task_list = realloc(tomoyo_task_list,
-						(tomoyo_task_list_len + 1) *
-						sizeof(struct tomoyo_task_entry));
-			if (!tomoyo_task_list)
-				tomoyo_out_of_memory();
-			memset(&tomoyo_task_list[tomoyo_task_list_len], 0,
-			       sizeof(tomoyo_task_list[0]));
-			tomoyo_task_list[tomoyo_task_list_len].pid = pid;
-			tomoyo_task_list[tomoyo_task_list_len].ppid = ppid;
-			tomoyo_task_list[tomoyo_task_list_len].profile = profile;
-			tomoyo_task_list[tomoyo_task_list_len].name = name;
-			tomoyo_task_list[tomoyo_task_list_len].domain = domain;
-			tomoyo_task_list_len++;
+			tomoyo_add_process_entry(line, ppid, name);
 		}
 		tomoyo_put();
 		fclose(fp);
@@ -1270,13 +1314,9 @@ void tomoyo_read_process_list(_Bool show_all)
 				closedir(dir);
 			return;
 		}
-		line = malloc(line_len);
-		if (!line)
-			tomoyo_out_of_memory();
+		line = tomoyo_malloc(line_len);
 		while (1) {
 			char *name;
-			char *domain;
-			int profile = -1;
 			int ret_ignored;
 			unsigned int pid = 0;
 			char buffer[128];
@@ -1296,38 +1336,12 @@ void tomoyo_read_process_list(_Bool show_all)
 			}
 			name = tomoyo_get_name(pid);
 			if (!name)
-				name = strdup("<UNKNOWN>");
-			if (!name)
-				tomoyo_out_of_memory();
+				name = tomoyo_strdup("<UNKNOWN>");
 			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
 			ret_ignored = write(status_fd, buffer, strlen(buffer));
 			memset(line, 0, line_len);
 			ret_ignored = read(status_fd, line, line_len - 1);
-			if (sscanf(line, "%u %u", &pid, &profile) != 2) {
-				free(name);
-				continue;
-			}
-			domain = strchr(line, '<');
-			if (domain)
-				domain = strdup(domain);
-			if (!domain)
-				domain = strdup("<UNKNOWN>");
-			if (!domain)
-				tomoyo_out_of_memory();
-			tomoyo_task_list = realloc(tomoyo_task_list,
-						(tomoyo_task_list_len + 1) *
-						sizeof(struct tomoyo_task_entry));
-			if (!tomoyo_task_list)
-				tomoyo_out_of_memory();
-			memset(&tomoyo_task_list[tomoyo_task_list_len], 0,
-			       sizeof(tomoyo_task_list[0]));
-			tomoyo_task_list[tomoyo_task_list_len].pid = pid;
-			tomoyo_task_list[tomoyo_task_list_len].ppid =
-				tomoyo_get_ppid(pid);
-			tomoyo_task_list[tomoyo_task_list_len].profile = profile;
-			tomoyo_task_list[tomoyo_task_list_len].name = name;
-			tomoyo_task_list[tomoyo_task_list_len].domain = domain;
-			tomoyo_task_list_len++;
+			tomoyo_add_process_entry(line, tomoyo_get_ppid(pid), name);
 		}
 		free(line);
 		closedir(dir);
@@ -1466,47 +1480,6 @@ _Bool tomoyo_move_proc_to_file(const char *src, const char *dest)
 		if (fclose(file_fp) == EOF)
 			result = false;
 	return result;
-}
-
-/**
- * tomoyo_identical_file - Check whether two files are identical or not.
- *
- * @file1: Pointer to "const char ".
- * @file2: Pointer to "const char".
- *
- * Returns true if both @file1 and @file2 exist and are readable and are
- * identical, false otherwise.
- *
- * Note that this function is no longer used by anybody since 1.8.0p1.
- */
-_Bool tomoyo_identical_file(const char *file1, const char *file2)
-{
-	char buffer1[4096];
-	char buffer2[4096];
-	struct stat sb1;
-	struct stat sb2;
-	const int fd1 = open(file1, O_RDONLY);
-	const int fd2 = open(file2, O_RDONLY);
-	int len1;
-	int len2;
-	/* Don't compare if file1 is a symlink to file2. */
-	if (fstat(fd1, &sb1) || fstat(fd2, &sb2) || sb1.st_ino == sb2.st_ino)
-		goto out;
-	do {
-		len1 = read(fd1, buffer1, sizeof(buffer1));
-		len2 = read(fd2, buffer2, sizeof(buffer2));
-		if (len1 < 0 || len1 != len2)
-			goto out;
-		if (memcmp(buffer1, buffer2, len1))
-			goto out;
-	} while (len1);
-	close(fd1);
-	close(fd2);
-	return true;
-out:
-	close(fd1);
-	close(fd2);
-	return false;
 }
 
 /**
@@ -1719,23 +1692,18 @@ int tomoyo_add_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 	if (!entry || !*entry)
 		return -EINVAL;
 	cp = tomoyo_savename(entry);
-	if (!cp)
-		tomoyo_out_of_memory();
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
 
 	/* Check for the same entry. */
-	for (i = 0; i < acl_count; i++) {
+	for (i = 0; i < acl_count; i++)
 		/* Faster comparison, for they are tomoyo_savename'd. */
 		if (cp == acl_ptr[i])
 			return 0;
-	}
 
-	acl_ptr = realloc(acl_ptr, (acl_count + 1)
-			  * sizeof(const struct tomoyo_path_info *));
-	if (!acl_ptr)
-		tomoyo_out_of_memory();
+	acl_ptr = tomoyo_realloc(acl_ptr, (acl_count + 1) *
+			      sizeof(const struct tomoyo_path_info *));
 	acl_ptr[acl_count++] = cp;
 	dp->list[index].string_ptr = acl_ptr;
 	dp->list[index].string_count = acl_count;
@@ -1766,8 +1734,6 @@ int tomoyo_del_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 	if (!entry || !*entry)
 		return -EINVAL;
 	cp = tomoyo_savename(entry);
-	if (!cp)
-		tomoyo_out_of_memory();
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
@@ -1911,12 +1877,8 @@ char *tomoyo_shprintf(const char *fmt, ...)
 		if (len < 0)
 			tomoyo_out_of_memory();
 		if (len >= max_policy_len) {
-			char *cp;
 			max_policy_len = len + 1;
-			cp = realloc(policy, max_policy_len);
-			if (!cp)
-				tomoyo_out_of_memory();
-			policy = cp;
+			policy = tomoyo_realloc(policy, max_policy_len);
 		} else
 			return policy;
 	}
@@ -1943,12 +1905,8 @@ char *tomoyo_freadline(FILE *fp)
 		if (tomoyo_network_mode && !c)
 			return NULL;
 		if (pos == max_policy_len) {
-			char *cp;
 			max_policy_len += 4096;
-			cp = realloc(policy, max_policy_len);
-			if (!cp)
-				tomoyo_out_of_memory();
-			policy = cp;
+			policy = tomoyo_realloc(policy, max_policy_len);
 		}
 		policy[pos++] = (char) c;
 		if (c == '\n') {
@@ -2025,9 +1983,7 @@ char *tomoyo_freadline_unpack(FILE *fp)
 		return line;
 prepare:
 		pack_len = len;
-		cached_line = strdup(line);
-		if (!cached_line)
-			tomoyo_out_of_memory();
+		cached_line = tomoyo_strdup(line);
 	}
 unpack:
 	{
@@ -2047,9 +2003,7 @@ unpack:
 			cached_line = NULL;
 		} else {
 			/* Current string is "abc d/e/f ghi". */
-			line = strdup(cached_line);
-			if (!line)
-				tomoyo_out_of_memory();
+			line = tomoyo_strdup(cached_line);
 			previous_line = line;
 			/* Overwrite "abc d/e/f ghi" with "abc d ghi". */
 			memmove(line + pack_start + len, pos + pack_len,
@@ -2068,9 +2022,9 @@ unpack:
 }
 
 /**
- * tomoyo_check_remote_host - Check whether the remote host is running with the TOMOYO 1.8 kernel or not.
+ * tomoyo_check_remote_host - Check whether the remote host is running with the TOMOYO 2.4 kernel or not.
  *
- * Returns true if running with TOMOYO 1.8 kernel, false otherwise.
+ * Returns true if running with TOMOYO 2.4 kernel, false otherwise.
  */
 _Bool tomoyo_check_remote_host(void)
 {
@@ -2080,7 +2034,7 @@ _Bool tomoyo_check_remote_host(void)
 	FILE *fp = tomoyo_open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &major, &minor, &rev) < 2 ||
-	    major != 1 || minor != 8) {
+	    major != 2 || minor != 4) {
 		const u32 ip = ntohl(tomoyo_network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),
@@ -2091,4 +2045,16 @@ _Bool tomoyo_check_remote_host(void)
 	}
 	fclose(fp);
 	return true;
+}
+
+void tomoyo_mount_securityfs(void)
+{
+	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
+		if (/* unshare(CLONE_NEWNS) || */
+		    mount("none", "/sys/kernel/security/", "securityfs", 0,
+			  NULL)) {
+			fprintf(stderr, "Please mount securityfs on "
+				"/sys/kernel/security/ .\n");
+		}
+	}
 }

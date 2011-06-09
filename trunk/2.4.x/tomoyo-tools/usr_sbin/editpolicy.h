@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1+   2011/05/11
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -29,13 +29,16 @@ enum tomoyo_screen_type {
 	TOMOYO_SCREEN_ACL_LIST,
 	TOMOYO_SCREEN_PROFILE_LIST,
 	TOMOYO_SCREEN_MANAGER_LIST,
-	TOMOYO_SCREEN_QUERY_LIST,
+	/* TOMOYO_SCREEN_QUERY_LIST, */
+	TOMOYO_SCREEN_NS_LIST,
 	TOMOYO_SCREEN_STAT_LIST,
 	TOMOYO_MAXSCREEN
 };
 
 enum tomoyo_transition_type {
 	/* Do not change this order, */
+	TOMOYO_TRANSITION_CONTROL_NO_RESET,
+	TOMOYO_TRANSITION_CONTROL_RESET,
 	TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE,
 	TOMOYO_TRANSITION_CONTROL_INITIALIZE,
 	TOMOYO_TRANSITION_CONTROL_NO_KEEP,
@@ -338,9 +341,11 @@ enum tomoyo_editpolicy_directives {
 	TOMOYO_DIRECTIVE_NETWORK_UNIX,
 	TOMOYO_DIRECTIVE_NO_INITIALIZE_DOMAIN,
 	TOMOYO_DIRECTIVE_NO_KEEP_DOMAIN,
+	TOMOYO_DIRECTIVE_NO_RESET_DOMAIN,
 	TOMOYO_DIRECTIVE_NUMBER_GROUP,
 	TOMOYO_DIRECTIVE_PATH_GROUP,
 	TOMOYO_DIRECTIVE_QUOTA_EXCEEDED,
+	TOMOYO_DIRECTIVE_RESET_DOMAIN,
 	TOMOYO_DIRECTIVE_TASK_AUTO_DOMAIN_TRANSITION,
 	TOMOYO_DIRECTIVE_TASK_AUTO_EXECUTE_HANDLER,
 	TOMOYO_DIRECTIVE_TASK_DENIED_EXECUTE_HANDLER,
@@ -441,7 +446,6 @@ void tomoyo_editpolicy_sttr_restore(void);
 void tomoyo_editpolicy_sttr_save(void);
 
 extern enum tomoyo_screen_type tomoyo_current_screen;
-extern int tomoyo_gacl_list_count;
 extern int tomoyo_list_item_count;
 extern int tomoyo_path_group_list_len;
 extern int tomoyo_persistent_fd;

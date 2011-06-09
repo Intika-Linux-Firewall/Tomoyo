@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * Usage: Run this program using init= boot option.
  *
@@ -37,10 +37,12 @@ static void BUG(const char *msg)
 static const char *policy_file = NULL;
 static const char *policy = NULL;
 
+static _Bool ignore_ns = 0;
+
 static void get_meminfo(unsigned int *policy_memory)
 {
 	static char buf[1024];
-	FILE *fp = fopen("/sys/kernel/security/tomoyo/stat", "r");
+	FILE *fp = fopen("/sys/kernel/security/tomoyo/stat", "r+");
 	while (memset(buf, 0, sizeof(buf)),
 	       fp && fgets(buf, sizeof(buf) - 1, fp)) {
 		if (sscanf(buf,
@@ -64,6 +66,8 @@ static void check_policy_common(const int found_expected, const int id)
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
+		if (ignore_ns && !strncmp(buffer, "<kernel> ", 9))
+			memmove(buffer, buffer + 9, strlen(buffer + 9) + 1);
 		if (strcmp(buffer, policy))
 			continue;
 		policy_found = 1;
@@ -230,6 +234,7 @@ static void domain_policy_test(const unsigned int before)
 			BUG("Policy read/write test: Fail\n");
 		}
 	}
+	printf("Processing all.\n");
 	for (j = 0; j < 10; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");
@@ -305,6 +310,7 @@ static void exception_policy_test(const unsigned int before)
 {
 	unsigned int after;
 	int j;
+	ignore_ns = 1;
 	policy_file = "/sys/kernel/security/tomoyo/exception_policy";
 	for (j = 0; exception_testcases[j]; j++) {
 		int i;
@@ -337,6 +343,7 @@ static void exception_policy_test(const unsigned int before)
 			BUG("Policy read/write test: Fail\n");
 		}
 	}
+	printf("Processing all.\n");
 	for (j = 0; j < 10; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");
@@ -364,7 +371,9 @@ int main(int argc, char *argv[])
 {
 	unsigned int before;
 	mount("/proc", "/proc/", "proc", 0, NULL);
+	printf("Waiting for stabilized.\n");
 	get_meminfo(&before);
+	sleep(3);
 	domain_policy_test(before);
 	exception_policy_test(before);
 	BUG("Policy read/write test: Success\n");

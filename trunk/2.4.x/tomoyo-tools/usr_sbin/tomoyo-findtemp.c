@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -38,12 +38,9 @@ int main(int argc, char *argv[])
 				char *cp = strchr(buffer, '\n');
 				if (cp)
 					*cp = '\0';
-				if (!strncmp(buffer, "<kernel>", 8) &&
-				    (buffer[8] == ' ' || !buffer[8])) {
+				if (tomoyo_domain_def(buffer)) {
 					free(domain);
-					domain = strdup(buffer);
-					if (!domain)
-						tomoyo_out_of_memory();
+					domain = tomoyo_strdup(buffer);
 					flag = 0;
 					continue;
 				}
@@ -79,7 +76,6 @@ int main(int argc, char *argv[])
 	}
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fscanf(stdin, "%16380s", buffer) == 1) {
-		const char *cp;
 		if (buffer[0] != '/')
 			continue;
 		{
@@ -95,14 +91,9 @@ int main(int argc, char *argv[])
 		}
 		if (i < pattern_list_count)
 			continue;
-		pattern_list = realloc(pattern_list, sizeof(const char *) *
-				       (pattern_list_count + 1));
-		if (!pattern_list)
-			tomoyo_out_of_memory();
-		cp = strdup(buffer);
-		if (!cp)
-			tomoyo_out_of_memory();
-		pattern_list[pattern_list_count++] = cp;
+		pattern_list = tomoyo_realloc(pattern_list, sizeof(const char *) *
+					   (pattern_list_count + 1));
+		pattern_list[pattern_list_count++] = tomoyo_strdup(buffer);
 	}
 	qsort(pattern_list, pattern_list_count, sizeof(const char *),
 	      tomoyo_string_compare);

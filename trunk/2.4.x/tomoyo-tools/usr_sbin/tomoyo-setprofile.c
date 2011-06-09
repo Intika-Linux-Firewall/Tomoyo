@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -35,7 +35,8 @@ int main(int argc, char *argv[])
 		start = 3;
 	}
 	if (argc <= start || sscanf(argv[start - 1], "%u", &profile) != 1) {
-		fprintf(stderr, "%s [-r] profile domainname [domainname ...]\n",
+		fprintf(stderr,
+			"%s [-r] profile domainname [domainname ...]\n",
 			argv[0]);
 		return 0;
 	}

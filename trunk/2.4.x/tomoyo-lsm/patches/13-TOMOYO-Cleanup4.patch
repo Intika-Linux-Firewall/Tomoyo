@@ -222,7 +222,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			head->r.step++;
  			tomoyo_set_lf(head);
  			/* fall through */
-@@ -1689,8 +1732,8 @@ static int tomoyo_poll_query(struct file
+@@ -1691,8 +1734,8 @@ static int tomoyo_poll_query(struct file
  static void tomoyo_read_query(struct tomoyo_io_buffer *head)
  {
  	struct list_head *tmp;
@@ -233,7 +233,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *buf;
  	if (head->r.w_pos)
  		return;
-@@ -1996,8 +2039,8 @@ static inline bool tomoyo_has_more_names
+@@ -1998,8 +2041,8 @@ static inline bool tomoyo_has_more_names
   *
   * Returns bytes read on success, negative value otherwise.
   */
@@ -244,7 +244,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int len;
  	int idx;
-@@ -2068,8 +2111,8 @@ static int tomoyo_parse_policy(struct to
+@@ -2070,8 +2113,8 @@ static int tomoyo_parse_policy(struct to
   *
   * Returns @buffer_len on success, negative value otherwise.
   */
@@ -371,7 +371,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern unsigned int tomoyo_memory_used[TOMOYO_MAX_MEMORY_STAT];
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -682,10 +682,11 @@ int tomoyo_find_next_domain(struct linux
+@@ -683,10 +683,11 @@ int tomoyo_find_next_domain(struct linux
  		retval = -ENOMEM;
  	else {
  		retval = 0;

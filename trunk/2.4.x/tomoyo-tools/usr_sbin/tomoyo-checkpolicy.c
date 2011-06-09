@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -22,7 +22,7 @@
  */
 #include "tomoyotools.h"
 
-#define TOMOYO_MAX_DOMAINNAME_LEN             4000
+#define TOMOYO_MAX_DOMAINNAME_LEN             (4096 - 10)
 
 static unsigned int tomoyo_line = 0;
 static unsigned int tomoyo_errors = 0;
@@ -238,17 +238,19 @@ static void tomoyo_check_condition(char *condition)
 			pos = eq + 1;
 			if (!strcmp(pos, "NULL"))
 				goto next;
-			if (r_len < 2)
+			if (r_len < 2 || pos[0] != '"' ||
+			    pos[r_len - 1] != '"')
 				goto out;
-			if (pos[0] == '"' && pos[r_len - 1] == '"')
-				goto next;
-			goto out;
+			goto next;
 		} else if (!strcmp(pos, "auto_domain_transition")) {
 			pos = eq + 1;
-			if (r_len < 2)
+			if (r_len < 2 || pos[0] != '"' ||
+			    pos[r_len - 1] != '"')
 				goto out;
-			if (pos[0] == '"' && pos[r_len - 1] == '"')
-				goto next;
+			pos[r_len - 1] = '\0';
+			if (pos[1] != '/' && !tomoyo_domain_def(pos + 1))
+				goto out;
+			goto next;
 		} else if (!strcmp(pos, "grant_log")) {
 			pos = eq + 1;
 			if (!strcmp(pos, "yes") || !strcmp(pos, "no"))
@@ -529,6 +531,8 @@ static _Bool tomoyo_check_path_domain(char *arg)
 		return false;
 	if (!strncmp(arg, "from ", 5))
 		tomoyo_prune_word(arg, arg + 5);
+	else if (!*arg)
+		return true;
 	else
 		return false;
 	if (!strncmp(arg, "any", 3)) {
@@ -662,7 +666,7 @@ static _Bool tomoyo_check_domain_policy2(char *policy)
 
 static void tomoyo_check_domain_policy(char *policy)
 {
-	if (!strncmp(policy, "<kernel>", 8)) {
+	if (tomoyo_domain_def(policy)) {
 		if (!tomoyo_correct_domain(policy) ||
 		    strlen(policy) >= TOMOYO_MAX_DOMAINNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
@@ -704,8 +708,10 @@ static void tomoyo_check_exception_policy(char *policy)
 		{ "keep_domain ", tomoyo_check_path_domain },
 		{ "no_initialize_domain ", tomoyo_check_path_domain },
 		{ "no_keep_domain ", tomoyo_check_path_domain },
+		{ "no_reset_domain ", tomoyo_check_path_domain },
 		{ "number_group ", tomoyo_check_path, tomoyo_check_number },
 		{ "path_group ", tomoyo_check_path, tomoyo_check_path },
+		{ "reset_domain ", tomoyo_check_path_domain },
 		{ }
 	};
 	u8 type;
@@ -764,12 +770,8 @@ int main(int argc, char *argv[])
 			if (c == EOF)
 				goto out;
 			if (pos == max_policy_len) {
-				char *cp;
 				max_policy_len += 4096;
-				cp = realloc(policy, max_policy_len);
-				if (!cp)
-					tomoyo_out_of_memory();
-				policy = cp;
+				policy = tomoyo_realloc(policy, max_policy_len);
 			}
 			policy[pos++] = (char) c;
 			if (c == '\n') {
