@@ -17,7 +17,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -610,8 +610,11 @@ static int tomoyo_update_manager_entry(c
+@@ -611,8 +611,11 @@ static int tomoyo_update_manager_entry(c
  				       const bool is_delete)
  {
  	struct tomoyo_manager e = { };
@@ -31,7 +31,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (tomoyo_domain_def(manager)) {
  		if (!tomoyo_correct_domain(manager))
  			return -EINVAL;
-@@ -621,12 +624,11 @@ static int tomoyo_update_manager_entry(c
+@@ -622,12 +625,11 @@ static int tomoyo_update_manager_entry(c
  			return -EINVAL;
  	}
  	e.manager = tomoyo_get_name(manager);
@@ -49,7 +49,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -820,18 +822,36 @@ static int tomoyo_delete_domain(char *do
+@@ -821,18 +823,36 @@ static int tomoyo_delete_domain(char *do
  /**
   * tomoyo_write_domain2 - Write domain policy.
   *
@@ -91,7 +91,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -888,7 +908,7 @@ static int tomoyo_write_domain(struct to
+@@ -889,7 +909,7 @@ static int tomoyo_write_domain(struct to
  		domain->transition_failed = !is_delete;
  		return 0;
  	}
@@ -100,7 +100,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -1212,26 +1232,19 @@ static const char *tomoyo_group_name[TOM
+@@ -1213,26 +1233,19 @@ static const char *tomoyo_group_name[TOM
   */
  static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
  {
@@ -137,7 +137,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return -EINVAL;
  }
  
-@@ -1489,7 +1502,7 @@ int tomoyo_supervisor(struct tomoyo_requ
+@@ -1490,7 +1503,7 @@ int tomoyo_supervisor(struct tomoyo_requ
  		vsnprintf(buffer, len - 1, fmt, args);
  		va_end(args);
  		tomoyo_normalize_line(buffer);
@@ -148,7 +148,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_CONFIG_PERMISSIVE:
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -394,6 +394,13 @@ struct tomoyo_mount_acl {
+@@ -397,6 +397,13 @@ struct tomoyo_mount_acl {
  	struct tomoyo_number_union flags;
  };
  
@@ -162,7 +162,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #define TOMOYO_MAX_IO_READ_QUEUE 32
  
  /*
-@@ -518,7 +525,7 @@ bool tomoyo_correct_domain(const unsigne
+@@ -521,7 +528,7 @@ bool tomoyo_correct_domain(const unsigne
  bool tomoyo_correct_path(const char *filename);
  bool tomoyo_correct_word(const char *string);
  bool tomoyo_domain_def(const unsigned char *buffer);
@@ -171,7 +171,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			     struct tomoyo_name_union *ptr);
  const struct tomoyo_path_info *
  tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
-@@ -528,7 +535,8 @@ bool tomoyo_number_matches_group(const u
+@@ -531,7 +538,8 @@ bool tomoyo_number_matches_group(const u
  				 const struct tomoyo_group *group);
  bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
  				 const struct tomoyo_path_info *pattern);
@@ -181,7 +181,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_tokenize(char *buffer, char *w[], size_t size);
  bool tomoyo_verbose_mode(const struct tomoyo_domain_info *domain);
  int tomoyo_init_request_info(struct tomoyo_request_info *r,
-@@ -537,21 +545,19 @@ int tomoyo_init_request_info(struct tomo
+@@ -540,21 +548,19 @@ int tomoyo_init_request_info(struct tomo
  int tomoyo_mount_permission(char *dev_name, struct path *path,
  			    const char *type, unsigned long flags,
  			    void *data_page);
@@ -209,7 +209,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
  				const u8 index);
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
-@@ -584,7 +590,7 @@ void tomoyo_put_name_union(struct tomoyo
+@@ -587,7 +593,7 @@ void tomoyo_put_name_union(struct tomoyo
  void tomoyo_run_gc(void);
  void tomoyo_memory_free(void *ptr);
  int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
@@ -218,7 +218,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			 bool (*check_duplicate) (const struct tomoyo_acl_info
  						  *,
  						  const struct tomoyo_acl_info
-@@ -593,7 +599,7 @@ int tomoyo_update_domain(struct tomoyo_a
+@@ -596,7 +602,7 @@ int tomoyo_update_domain(struct tomoyo_a
  						  struct tomoyo_acl_info *,
  						  const bool));
  int tomoyo_update_policy(struct tomoyo_acl_head *new_entry, const int size,
@@ -227,7 +227,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			 bool (*check_duplicate) (const struct tomoyo_acl_head
  						  *,
  						  const struct tomoyo_acl_head
-@@ -601,6 +607,8 @@ int tomoyo_update_policy(struct tomoyo_a
+@@ -604,6 +610,8 @@ int tomoyo_update_policy(struct tomoyo_a
  void tomoyo_check_acl(struct tomoyo_request_info *r,
  		      bool (*check_entry) (struct tomoyo_request_info *,
  					   const struct tomoyo_acl_info *));
@@ -519,7 +519,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @domainname: The name of domain.
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -427,29 +427,27 @@ static bool tomoyo_merge_path_acl(struct
+@@ -428,29 +428,27 @@ static bool tomoyo_merge_path_acl(struct
  /**
   * tomoyo_update_path_acl - Update "struct tomoyo_path_acl" list.
   *
@@ -560,7 +560,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name);
  	return error;
  }
-@@ -502,37 +500,30 @@ static bool tomoyo_merge_mkdev_acl(struc
+@@ -503,37 +501,30 @@ static bool tomoyo_merge_mkdev_acl(struc
  /**
   * tomoyo_update_mkdev_acl - Update "struct tomoyo_mkdev_acl" list.
   *
@@ -613,7 +613,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name);
  	tomoyo_put_number_union(&e.mode);
  	tomoyo_put_number_union(&e.major);
-@@ -585,33 +576,28 @@ static bool tomoyo_merge_path2_acl(struc
+@@ -586,33 +577,28 @@ static bool tomoyo_merge_path2_acl(struc
  /**
   * tomoyo_update_path2_acl - Update "struct tomoyo_path2_acl" list.
   *
@@ -660,7 +660,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name1);
  	tomoyo_put_name_union(&e.name2);
  	return error;
-@@ -700,33 +686,26 @@ static bool tomoyo_merge_path_number_acl
+@@ -701,33 +687,26 @@ static bool tomoyo_merge_path_number_acl
  /**
   * tomoyo_update_path_number_acl - Update ioctl/chmod/chown/chgrp ACL.
   *

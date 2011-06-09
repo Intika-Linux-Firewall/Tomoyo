@@ -1,0 +1,67 @@
+Subject: TOMOYO: Add enforcing penalty.
+
+TOMOYO is using only LSM hooks where it is permitted to do sleeping operation.
+
+If the "Enforcing Mode" profile is configured with
+PREFERENCE={ enforcing_penalty=1 } then domains that violate policy will be
+made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that
+can cause CPU usage to reach 100%.
+http://www.youtube.com/watch?v=I8fF5mueWTw demonstrates a hijacked Samba server
+process consuming CPU by repeating a request that is not permitted by policy.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |   11 +++++++++++
+ security/tomoyo/common.h |    3 +++
+ 2 files changed, 14 insertions(+)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -52,6 +52,7 @@ const char * const tomoyo_mac_keywords[T
+ static const char * const tomoyo_pref_keywords[TOMOYO_MAX_PREF] = {
+ 	[TOMOYO_PREF_MAX_AUDIT_LOG]      = "max_audit_log",
+ 	[TOMOYO_PREF_MAX_LEARNING_ENTRY] = "max_learning_entry",
++	[TOMOYO_PREF_ENFORCING_PENALTY]  = "enforcing_penalty",
+ };
+ 
+ /* String table for path operation. */
+@@ -1620,10 +1621,20 @@ int tomoyo_supervisor(struct tomoyo_requ
+ 	if (r->mode)
+ 		tomoyo_update_stat(r->mode);
+ 	switch (r->mode) {
++		int i;
++		struct tomoyo_profile *p;
+ 	case TOMOYO_CONFIG_ENFORCING:
+ 		error = -EPERM;
+ 		if (atomic_read(&tomoyo_query_observers))
+ 			break;
++		if (r->dont_sleep_on_enforce_error)
++			goto out;
++		p = tomoyo_profile(r->ns, r->profile);
++		/* Check enforcing_penalty parameter. */
++		for (i = 0; i < p->pref[TOMOYO_PREF_ENFORCING_PENALTY]; i++) {
++			set_current_state(TASK_INTERRUPTIBLE);
++			schedule_timeout(HZ / 10);
++		}
+ 		goto out;
+ 	case TOMOYO_CONFIG_LEARNING:
+ 		error = 0;
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -252,6 +252,7 @@ enum tomoyo_policy_stat_type {
+ enum tomoyo_pref_index {
+ 	TOMOYO_PREF_MAX_AUDIT_LOG,
+ 	TOMOYO_PREF_MAX_LEARNING_ENTRY,
++	TOMOYO_PREF_ENFORCING_PENALTY,
+ 	TOMOYO_MAX_PREF
+ };
+ 
+@@ -317,6 +318,8 @@ struct tomoyo_request_info {
+ 	struct tomoyo_policy_namespace *ns;
+ 	u8 param_type;
+ 	bool granted;
++	/* True if current thread should not be carried sleep penalty. */
++	bool dont_sleep_on_enforce_error;
+ 	u8 retry;
+ 	u8 profile;
+ 	u8 mode; /* One of tomoyo_mode_index . */

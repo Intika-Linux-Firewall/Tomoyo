@@ -7,24 +7,33 @@ In order to synchronize with TOMOYO 1.8's syntax,
 (3) Remove file_pattern keyword.
 (4) Remove allow_read permission from exception policy.
 (5) Allow creating domains in enforcing mode without calling supervisor.
-(6) Make "cat < /sys/kernel/security/tomoyo/self_domain" behave as if
+(6) Add permission check for opening directory for reading.
+(7) Add permission check for stat() operation.
+(8) Make "cat < /sys/kernel/security/tomoyo/self_domain" behave as if
     "cat /sys/kernel/security/tomoyo/self_domain".
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   59 -------
- security/tomoyo/common.h |   91 +----------
+ security/tomoyo/common.c |   60 -------
+ security/tomoyo/common.h |   93 +----------
  security/tomoyo/domain.c |   13 -
- security/tomoyo/file.c   |  363 ++++-------------------------------------------
+ security/tomoyo/file.c   |  368 ++++-------------------------------------------
  security/tomoyo/gc.c     |   30 ---
  security/tomoyo/mount.c  |    5 
- security/tomoyo/tomoyo.c |    7 
+ security/tomoyo/tomoyo.c |   14 +
  security/tomoyo/util.c   |   23 --
- 8 files changed, 58 insertions(+), 533 deletions(-)
+ 8 files changed, 71 insertions(+), 535 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -45,7 +45,6 @@ static const char *tomoyo_mac_keywords[T
+@@ -39,13 +39,13 @@ static const char *tomoyo_mac_keywords[T
+ 	[TOMOYO_MAC_FILE_OPEN]       = "file::open",
+ 	[TOMOYO_MAC_FILE_CREATE]     = "file::create",
+ 	[TOMOYO_MAC_FILE_UNLINK]     = "file::unlink",
++	[TOMOYO_MAC_FILE_GETATTR]    = "file::getattr",
+ 	[TOMOYO_MAC_FILE_MKDIR]      = "file::mkdir",
+ 	[TOMOYO_MAC_FILE_RMDIR]      = "file::rmdir",
+ 	[TOMOYO_MAC_FILE_MKFIFO]     = "file::mkfifo",
  	[TOMOYO_MAC_FILE_MKSOCK]     = "file::mksock",
  	[TOMOYO_MAC_FILE_TRUNCATE]   = "file::truncate",
  	[TOMOYO_MAC_FILE_SYMLINK]    = "file::symlink",
@@ -32,7 +41,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_MAC_FILE_MKBLOCK]    = "file::mkblock",
  	[TOMOYO_MAC_FILE_MKCHAR]     = "file::mkchar",
  	[TOMOYO_MAC_FILE_LINK]       = "file::link",
-@@ -881,10 +880,6 @@ static int tomoyo_write_domain(struct to
+@@ -881,10 +881,6 @@ static int tomoyo_write_domain(struct to
  			domain->profile = (u8) profile;
  		return 0;
  	}
@@ -43,7 +52,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!strcmp(data, TOMOYO_KEYWORD_QUOTA_EXCEEDED)) {
  		domain->quota_warned = !is_delete;
  		return 0;
-@@ -942,11 +937,6 @@ static bool tomoyo_print_entry(struct to
+@@ -942,11 +938,6 @@ static bool tomoyo_print_entry(struct to
  			if (head->r.print_execute_only &&
  			    bit != TOMOYO_TYPE_EXECUTE)
  				continue;
@@ -55,7 +64,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			break;
  		}
  		if (bit >= TOMOYO_MAX_PATH_OPERATION)
-@@ -1055,10 +1045,6 @@ static void tomoyo_read_domain(struct to
+@@ -1055,10 +1046,6 @@ static void tomoyo_read_domain(struct to
  				tomoyo_set_string(head, "quota_exceeded\n");
  			if (domain->transition_failed)
  				tomoyo_set_string(head, "transition_failed\n");
@@ -66,7 +75,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			head->r.step++;
  			tomoyo_set_lf(head);
  			/* fall through */
-@@ -1235,18 +1221,15 @@ static int tomoyo_write_exception(struct
+@@ -1235,18 +1222,15 @@ static int tomoyo_write_exception(struct
  	static const struct {
  		const char *keyword;
  		int (*write) (char *, const bool);
@@ -87,7 +96,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (tomoyo_str_starts(&data, tomoyo_callback[i].keyword))
  			return tomoyo_callback[i].write(data, is_delete);
  	for (i = 0; i < TOMOYO_MAX_GROUP; i++)
-@@ -1336,15 +1319,6 @@ static bool tomoyo_read_policy(struct to
+@@ -1336,15 +1320,6 @@ static bool tomoyo_read_policy(struct to
  							  name);
  			}
  			break;
@@ -103,7 +112,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		case TOMOYO_ID_AGGREGATOR:
  			{
  				struct tomoyo_aggregator *ptr =
-@@ -1358,24 +1332,6 @@ static bool tomoyo_read_policy(struct to
+@@ -1358,24 +1333,6 @@ static bool tomoyo_read_policy(struct to
  					       ptr->aggregated_name->name);
  			}
  			break;
@@ -128,7 +137,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		default:
  			continue;
  		}
-@@ -1891,21 +1847,12 @@ int tomoyo_open_control(const u8 type, s
+@@ -1891,21 +1848,12 @@ int tomoyo_open_control(const u8 type, s
  		head->reader_idx = tomoyo_read_lock();
  	file->private_data = head;
  	/*
@@ -180,7 +189,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #define TOMOYO_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
  #define TOMOYO_KEYWORD_TRANSITION_FAILED         "transition_failed"
  /* A domain definition starts with <kernel>. */
-@@ -115,35 +109,20 @@ enum tomoyo_acl_entry_type_index {
+@@ -115,35 +109,21 @@ enum tomoyo_acl_entry_type_index {
  };
  
  /* Index numbers for File Controls. */
@@ -203,6 +212,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_TYPE_WRITE,
 +	TOMOYO_TYPE_APPEND,
  	TOMOYO_TYPE_UNLINK,
++	TOMOYO_TYPE_GETATTR,
  	TOMOYO_TYPE_RMDIR,
  	TOMOYO_TYPE_TRUNCATE,
  	TOMOYO_TYPE_SYMLINK,
@@ -217,7 +227,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_mkdev_acl_index {
  	TOMOYO_TYPE_MKBLOCK,
  	TOMOYO_TYPE_MKCHAR,
-@@ -193,7 +172,6 @@ enum tomoyo_mac_index {
+@@ -187,13 +167,13 @@ enum tomoyo_mac_index {
+ 	TOMOYO_MAC_FILE_OPEN,
+ 	TOMOYO_MAC_FILE_CREATE,
+ 	TOMOYO_MAC_FILE_UNLINK,
++	TOMOYO_MAC_FILE_GETATTR,
+ 	TOMOYO_MAC_FILE_MKDIR,
+ 	TOMOYO_MAC_FILE_RMDIR,
+ 	TOMOYO_MAC_FILE_MKFIFO,
  	TOMOYO_MAC_FILE_MKSOCK,
  	TOMOYO_MAC_FILE_TRUNCATE,
  	TOMOYO_MAC_FILE_SYMLINK,
@@ -225,7 +242,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_MAC_FILE_MKBLOCK,
  	TOMOYO_MAC_FILE_MKCHAR,
  	TOMOYO_MAC_FILE_LINK,
-@@ -388,9 +366,7 @@ struct tomoyo_acl_info {
+@@ -388,9 +368,7 @@ struct tomoyo_acl_info {
   *      "deleted", false otherwise.
   *  (6) "quota_warned" is a bool which is used for suppressing warning message
   *      when learning mode learned too much entries.
@@ -236,7 +253,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *      unable to create a new domain at tomoyo_find_next_domain() because the
   *      name of the domain to be created was too long or it could not allocate
   *      memory. If set to true, more than one process continued execve()
-@@ -415,7 +391,6 @@ struct tomoyo_domain_info {
+@@ -415,7 +393,6 @@ struct tomoyo_domain_info {
  	u8 profile;        /* Profile number to use. */
  	bool is_deleted;   /* Delete flag.           */
  	bool quota_warned; /* Quota warnning flag.   */
@@ -244,7 +261,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bool transition_failed; /* Domain transition failed flag. */
  	atomic_t users; /* Number of referring credentials. */
  };
-@@ -429,10 +404,9 @@ struct tomoyo_domain_info {
+@@ -429,10 +406,9 @@ struct tomoyo_domain_info {
   *  (2) "perm" which is a bitmask of permitted operations.
   *  (3) "name" is the pathname.
   *
@@ -258,7 +275,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  struct tomoyo_path_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_ACL */
-@@ -574,47 +548,6 @@ struct tomoyo_io_buffer {
+@@ -574,47 +550,6 @@ struct tomoyo_io_buffer {
  };
  
  /*
@@ -306,7 +323,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_transition_control is a structure which is used for holding
   * "initialize_domain"/"no_initialize_domain"/"keep_domain"/"no_keep_domain"
   * entries.
-@@ -764,23 +697,17 @@ int tomoyo_write_aggregator(char *data, 
+@@ -764,23 +699,17 @@ int tomoyo_write_aggregator(char *data, 
  int tomoyo_write_transition_control(char *data, const bool is_delete,
  				    const u8 type);
  /*
@@ -333,7 +350,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Create "path_group"/"number_group" entry in exception policy. */
  int tomoyo_write_group(char *data, const bool is_delete, const u8 type);
  int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
-@@ -819,8 +746,6 @@ char *tomoyo_realpath_nofollow(const cha
+@@ -819,8 +748,6 @@ char *tomoyo_realpath_nofollow(const cha
   * ignores chroot'ed root and the pathname is already solved.
   */
  char *tomoyo_realpath_from_path(struct path *path);
@@ -366,7 +383,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		goto out;
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -11,15 +11,14 @@
+@@ -11,15 +11,15 @@
  
  /* Keyword array for operations with one pathname. */
  const char *tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION] = {
@@ -376,6 +393,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_WRITE]      = "write",
 +	[TOMOYO_TYPE_APPEND]     = "append",
  	[TOMOYO_TYPE_UNLINK]     = "unlink",
++	[TOMOYO_TYPE_GETATTR]    = "getattr",
  	[TOMOYO_TYPE_RMDIR]      = "rmdir",
  	[TOMOYO_TYPE_TRUNCATE]   = "truncate",
  	[TOMOYO_TYPE_SYMLINK]    = "symlink",
@@ -383,7 +401,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_CHROOT]     = "chroot",
  	[TOMOYO_TYPE_UMOUNT]     = "unmount",
  };
-@@ -50,15 +49,14 @@ const char *tomoyo_path_number_keyword[T
+@@ -50,15 +50,15 @@ const char *tomoyo_path_number_keyword[T
  };
  
  static const u8 tomoyo_p2mac[TOMOYO_MAX_PATH_OPERATION] = {
@@ -393,6 +411,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_WRITE]      = TOMOYO_MAC_FILE_OPEN,
 +	[TOMOYO_TYPE_APPEND]     = TOMOYO_MAC_FILE_OPEN,
  	[TOMOYO_TYPE_UNLINK]     = TOMOYO_MAC_FILE_UNLINK,
++	[TOMOYO_TYPE_GETATTR]    = TOMOYO_MAC_FILE_GETATTR,
  	[TOMOYO_TYPE_RMDIR]      = TOMOYO_MAC_FILE_RMDIR,
  	[TOMOYO_TYPE_TRUNCATE]   = TOMOYO_MAC_FILE_TRUNCATE,
  	[TOMOYO_TYPE_SYMLINK]    = TOMOYO_MAC_FILE_SYMLINK,
@@ -400,7 +419,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_CHROOT]     = TOMOYO_MAC_FILE_CHROOT,
  	[TOMOYO_TYPE_UMOUNT]     = TOMOYO_MAC_FILE_UMOUNT,
  };
-@@ -132,24 +130,6 @@ static void tomoyo_add_slash(struct tomo
+@@ -132,24 +132,6 @@ static void tomoyo_add_slash(struct tomo
  }
  
  /**
@@ -425,7 +444,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_get_realpath - Get realpath.
   *
   * @buf:  Pointer to "struct tomoyo_path_info".
-@@ -182,7 +162,7 @@ static int tomoyo_audit_path_log(struct 
+@@ -182,7 +164,7 @@ static int tomoyo_audit_path_log(struct 
  		return 0;
  	tomoyo_warn_log(r, "%s %s", operation, filename->name);
  	return tomoyo_supervisor(r, "allow_%s %s\n", operation,
@@ -434,7 +453,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -202,8 +182,7 @@ static int tomoyo_audit_path2_log(struct
+@@ -202,8 +184,7 @@ static int tomoyo_audit_path2_log(struct
  	tomoyo_warn_log(r, "%s %s %s", operation, filename1->name,
  			filename2->name);
  	return tomoyo_supervisor(r, "allow_%s %s %s\n", operation,
@@ -444,7 +463,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -225,7 +204,7 @@ static int tomoyo_audit_mkdev_log(struct
+@@ -225,7 +206,7 @@ static int tomoyo_audit_mkdev_log(struct
  	tomoyo_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
  			major, minor);
  	return tomoyo_supervisor(r, "allow_%s %s 0%o %u %u\n", operation,
@@ -453,7 +472,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -264,247 +243,7 @@ static int tomoyo_audit_path_number_log(
+@@ -264,247 +245,7 @@ static int tomoyo_audit_path_number_log(
  			   radix);
  	tomoyo_warn_log(r, "%s %s %s", operation, filename->name, buffer);
  	return tomoyo_supervisor(r, "allow_%s %s %s\n", operation,
@@ -702,7 +721,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static bool tomoyo_check_path_acl(struct tomoyo_request_info *r,
-@@ -569,6 +308,15 @@ static bool tomoyo_same_path_acl(const s
+@@ -569,6 +310,15 @@ static bool tomoyo_same_path_acl(const s
  		tomoyo_same_name_union(&p1->name, &p2->name);
  }
  
@@ -718,7 +737,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static bool tomoyo_merge_path_acl(struct tomoyo_acl_info *a,
  				  struct tomoyo_acl_info *b,
  				  const bool is_delete)
-@@ -577,19 +325,10 @@ static bool tomoyo_merge_path_acl(struct
+@@ -577,19 +327,10 @@ static bool tomoyo_merge_path_acl(struct
  		->perm;
  	u16 perm = *a_perm;
  	const u16 b_perm = container_of(b, struct tomoyo_path_acl, head)->perm;
@@ -740,7 +759,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	*a_perm = perm;
  	return !perm;
  }
-@@ -615,8 +354,6 @@ static int tomoyo_update_path_acl(const 
+@@ -615,8 +356,6 @@ static int tomoyo_update_path_acl(const 
  		.perm = 1 << type
  	};
  	int error;
@@ -749,7 +768,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!tomoyo_parse_name_union(filename, &e.name))
  		return -EINVAL;
  	error = tomoyo_update_domain(&e.head, sizeof(e), is_delete, domain,
-@@ -775,7 +512,6 @@ int tomoyo_path_permission(struct tomoyo
+@@ -775,7 +514,6 @@ int tomoyo_path_permission(struct tomoyo
  {
  	int error;
  
@@ -757,7 +776,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	r->type = tomoyo_p2mac[operation];
  	r->mode = tomoyo_get_mode(r->profile, r->type);
  	if (r->mode == TOMOYO_CONFIG_DISABLED)
-@@ -785,10 +521,6 @@ int tomoyo_path_permission(struct tomoyo
+@@ -785,10 +523,6 @@ int tomoyo_path_permission(struct tomoyo
  	r->param.path.operation = operation;
  	do {
  		tomoyo_check_acl(r, tomoyo_check_path_acl);
@@ -768,7 +787,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = tomoyo_audit_path_log(r);
  		/*
  		 * Do not retry for execute request, for alias may have
-@@ -796,16 +528,6 @@ int tomoyo_path_permission(struct tomoyo
+@@ -796,16 +530,6 @@ int tomoyo_path_permission(struct tomoyo
  		 */
  	} while (error == TOMOYO_RETRY_REQUEST &&
  		 operation != TOMOYO_TYPE_EXECUTE);
@@ -785,7 +804,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -938,37 +660,21 @@ int tomoyo_check_open_permission(struct 
+@@ -932,43 +656,26 @@ int tomoyo_check_open_permission(struct 
+ 	struct tomoyo_request_info r;
+ 	int idx;
+ 
+-	if (!path->mnt ||
+-	    (path->dentry->d_inode && S_ISDIR(path->dentry->d_inode->i_mode)))
++	if (!path->mnt)
+ 		return 0;
  	buf.name = NULL;
  	r.mode = TOMOYO_CONFIG_DISABLED;
  	idx = tomoyo_read_lock();
@@ -832,7 +858,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
   out:
  	kfree(buf.name);
-@@ -979,7 +685,7 @@ int tomoyo_check_open_permission(struct 
+@@ -979,7 +686,7 @@ int tomoyo_check_open_permission(struct 
  }
  
  /**
@@ -841,7 +867,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @operation: Type of operation.
   * @path:      Pointer to "struct path".
-@@ -988,9 +694,10 @@ int tomoyo_check_open_permission(struct 
+@@ -988,9 +695,10 @@ int tomoyo_check_open_permission(struct 
   */
  int tomoyo_path_perm(const u8 operation, struct path *path)
  {
@@ -854,7 +880,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int idx;
  
  	if (!path->mnt)
-@@ -998,17 +705,13 @@ int tomoyo_path_perm(const u8 operation,
+@@ -998,17 +706,13 @@ int tomoyo_path_perm(const u8 operation,
  	if (tomoyo_init_request_info(&r, NULL, tomoyo_p2mac[operation])
  	    == TOMOYO_CONFIG_DISABLED)
  		return 0;
@@ -874,7 +900,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_TYPE_RMDIR:
  	case TOMOYO_TYPE_CHROOT:
  		tomoyo_add_slash(&buf);
-@@ -1018,7 +721,7 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1018,7 +722,7 @@ int tomoyo_path_perm(const u8 operation,
   out:
  	kfree(buf.name);
  	tomoyo_read_unlock(idx);
@@ -945,7 +971,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static bool tomoyo_check_mount_acl(struct tomoyo_request_info *r,
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -176,9 +176,10 @@ static int tomoyo_path_rename(struct pat
+@@ -93,6 +93,12 @@ static int tomoyo_bprm_check_security(st
+ 	return tomoyo_check_open_permission(domain, &bprm->file->f_path, O_RDONLY);
+ }
+ 
++static int tomoyo_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
++{
++	struct path path = { mnt, dentry };
++	return tomoyo_path_perm(TOMOYO_TYPE_GETATTR, &path);
++}
++
+ static int tomoyo_path_truncate(struct path *path)
+ {
+ 	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path);
+@@ -176,9 +182,10 @@ static int tomoyo_path_rename(struct pat
  static int tomoyo_file_fcntl(struct file *file, unsigned int cmd,
  			     unsigned long arg)
  {
@@ -959,6 +998,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static int tomoyo_dentry_open(struct file *f, const struct cred *cred)
+@@ -258,6 +265,7 @@ static struct security_operations tomoyo
+ 	.path_mknod          = tomoyo_path_mknod,
+ 	.path_link           = tomoyo_path_link,
+ 	.path_rename         = tomoyo_path_rename,
++	.inode_getattr       = tomoyo_inode_getattr,
+ 	.file_ioctl          = tomoyo_file_ioctl,
+ 	.path_chmod          = tomoyo_path_chmod,
+ 	.path_chown          = tomoyo_path_chown,
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
 @@ -911,44 +911,33 @@ bool tomoyo_domain_quota_is_ok(struct to

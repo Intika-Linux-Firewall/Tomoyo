@@ -1,0 +1,651 @@
+---
+ security/tomoyo/Kconfig          |   59 +++++++
+ security/tomoyo/Makefile         |   36 ++++
+ security/tomoyo/builtin-policy.h |  322 ---------------------------------------
+ security/tomoyo/common.c         |   63 +++++++
+ security/tomoyo/common.h         |    1 
+ security/tomoyo/load_policy.c    |   26 +--
+ security/tomoyo/memory.c         |   10 -
+ security/tomoyo/tomoyo2c.c       |   45 +++++
+ 8 files changed, 218 insertions(+), 344 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/Kconfig
++++ security-testing-2.6/security/tomoyo/Kconfig
+@@ -9,3 +9,62 @@ config SECURITY_TOMOYO
+ 	  Required userspace tools and further information may be
+ 	  found at <http://tomoyo.sourceforge.jp/>.
+ 	  If you are unsure how to answer this question, answer N.
++
++config SECURITY_TOMOYO_MAX_ACCEPT_ENTRY
++	int "Default maximal count for learning mode"
++	default 2048
++	range 0 2147483647
++	depends on SECURITY_TOMOYO
++	help
++	  This is the default value for maximal ACL entries
++	  that are automatically appended into policy at "learning mode".
++	  Some programs access thousands of objects, so running
++	  such programs in "learning mode" dulls the system response
++	  and consumes much memory.
++	  This is the safeguard for such programs.
++
++config SECURITY_TOMOYO_MAX_AUDIT_LOG
++	int "Default maximal count for audit log"
++	default 1024
++	range 0 2147483647
++	depends on SECURITY_TOMOYO
++	help
++	  This is the default value for maximal entries for
++	  audit logs that the kernel can hold on memory.
++	  You can read the log via /sys/kernel/security/tomoyo/audit.
++	  If you don't need audit logs, you may set this value to 0.
++
++config SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
++	bool "Activate without calling userspace policy loader."
++	default n
++	depends on SECURITY_TOMOYO
++	---help---
++	  Say Y here if you want to activate access control as soon as built-in
++	  policy was loaded. This option will be useful for systems where
++	  operations which can lead to the hijacking of the boot sequence are
++	  needed before loading the policy. For example, you can activate
++	  immediately after loading the fixed part of policy which will allow
++	  only operations needed for mounting a partition which contains the
++	  variant part of policy and verifying (e.g. running GPG check) and
++	  loading the variant part of policy. Since you can start using
++	  enforcing mode from the beginning, you can reduce the possibility of
++	  hijacking the boot sequence.
++
++config SECURITY_TOMOYO_POLICY_LOADER
++	string "Location of userspace policy loader"
++	default "/sbin/tomoyo-init"
++	depends on SECURITY_TOMOYO
++	depends on !SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
++	---help---
++	  This is the pathname of policy loader which is called before
++	  activation.
++
++config SECURITY_TOMOYO_ACTIVATION_TRIGGER
++	string "Trigger for calling userspace policy loader"
++	default "/sbin/init"
++	depends on SECURITY_TOMOYO
++	depends on !SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
++	---help---
++	  Some environments do not have /sbin/init . In such environments,
++	  we need to use different program's pathname (e.g. /init or /linuxrc )
++	  as activation trigger.
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
+@@ -1 +1,37 @@
+ obj-y = audit.o common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
++
++$(obj)/tomoyo2c: $(obj)/tomoyo2c.c
++	@echo Compiling built-in policy generator for TOMOYO 2.4.x.
++	@$(HOSTCC) $(HOSTCFLAGS) -o $(obj)/tomoyo2c $(obj)/tomoyo2c.c
++
++$(obj)/policy/profile.conf:
++	@mkdir -p $(obj)/policy/
++	@echo Creating an empty policy/profile.conf
++	@touch $@
++
++$(obj)/policy/exception_policy.conf:
++	@echo Creating a default policy/exception_policy.conf
++	@echo initialize_domain /sbin/modprobe from any >> $@
++	@echo initialize_domain /sbin/hotplug from any >> $@
++
++$(obj)/policy/domain_policy.conf:
++	@echo Creating an empty policy/domain_policy.conf
++	@touch $@
++
++$(obj)/policy/manager.conf:
++	@echo Creating an empty policy/manager.conf
++	@touch $@
++
++$(obj)/policy/stat.conf:
++	@echo Creating an empty policy/stat.conf
++	@touch $@
++
++$(obj)/builtin-policy.h: $(obj)/policy/profile.conf $(obj)/policy/exception_policy.conf $(obj)/policy/domain_policy.conf $(obj)/policy/manager.conf $(obj)/policy/stat.conf $(obj)/tomoyo2c
++	@echo Generating built-in policy for TOMOYO 2.4.x.
++	@$(obj)/tomoyo2c profile < $(obj)/policy/profile.conf > $@
++	@$(obj)/tomoyo2c exception_policy < $(obj)/policy/exception_policy.conf >> $@
++	@$(obj)/tomoyo2c domain_policy < $(obj)/policy/domain_policy.conf >> $@
++	@$(obj)/tomoyo2c manager < $(obj)/policy/manager.conf >> $@
++	@$(obj)/tomoyo2c stat < $(obj)/policy/stat.conf >> $@
++
++$(obj)/common.o: $(obj)/builtin-policy.h
+--- security-testing-2.6.orig/security/tomoyo/builtin-policy.h
++++ security-testing-2.6/security/tomoyo/builtin-policy.h
+@@ -1,326 +1,12 @@
+ static char tomoyo_builtin_profile[] __initdata =
+-"PROFILE_VERSION=20100903\n"
+-"0-COMMENT=-----Disabled Mode-----\n"
+-"0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }\n"
+-"0-CONFIG={ mode=disabled grant_log=no reject_log=yes }\n"
+-"1-COMMENT=-----Learning Mode-----\n"
+-"1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }\n"
+-"1-CONFIG={ mode=learning grant_log=no reject_log=yes }\n"
+-"2-COMMENT=-----Permissive Mode-----\n"
+-"2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }\n"
+-"2-CONFIG={ mode=permissive grant_log=no reject_log=yes }\n"
+-"3-COMMENT=-----Enforcing Mode-----\n"
+-"3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }\n"
+-"3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }\n"
+-;
++"";
+ static char tomoyo_builtin_exception_policy[] __initdata =
+-"acl_group 0 file read /etc/ld.so.cache\n"
+-"acl_group 0 file read proc:/meminfo\n"
+-"acl_group 0 file read proc:/sys/kernel/version\n"
+-"acl_group 0 file read /usr/share/zoneinfo/Asia/Tokyo\n"
+-"acl_group 0 file read /etc/locale.alias\n"
+-"acl_group 0 file read proc:/self/\\*\n"
+-"acl_group 0 file read proc:/self/\\{\\*\\}/\\*\n"
+-"acl_group 0 file read /lib/lib\\*.so\\*\n"
+-"acl_group 0 file read /lib/tls/lib\\*.so\\*\n"
+-"acl_group 0 file read /usr/lib/lib\\*.so\\*\n"
+-"acl_group 0 file read /usr/lib/i486/lib\\*.so\\*\n"
+-"acl_group 0 file read /usr/lib/i586/lib\\*.so\\*\n"
+-"acl_group 0 file read /usr/lib/i686/lib\\*.so\\*\n"
+-"acl_group 0 file read /usr/lib/i686/cmov/lib\\*.so\\*\n"
+-"acl_group 0 file read /usr/X11R6/lib/lib\\*.so\\*\n"
+-"acl_group 0 file read /lib/tls/ld-2.\\*.so\n"
+-"acl_group 0 file read /lib/ld-2.\\*.so\n"
+-"path_group ANY_PATHNAME /\n"
+-"path_group ANY_PATHNAME /\\*\n"
+-"path_group ANY_PATHNAME /\\{\\*\\}/\n"
+-"path_group ANY_PATHNAME /\\{\\*\\}/\\*\n"
+-"path_group ANY_PATHNAME \\*:/\n"
+-"path_group ANY_PATHNAME \\*:/\\*\n"
+-"path_group ANY_PATHNAME \\*:/\\{\\*\\}/\n"
+-"path_group ANY_PATHNAME \\*:/\\{\\*\\}/\\*\n"
+-"path_group ANY_PATHNAME \\*:[\\$]\n"
+-"path_group ANY_DIRECTORY /\n"
+-"path_group ANY_DIRECTORY /\\{\\*\\}/\n"
+-"path_group ANY_DIRECTORY \\*:/\n"
+-"path_group ANY_DIRECTORY \\*:/\\{\\*\\}/\n"
+-"number_group COMMON_IOCTL_CMDS 0x5401\n"
+-"acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS\n"
+-"acl_group 0 file read @ANY_DIRECTORY\n"
+-"acl_group 0 file getattr @ANY_PATHNAME\n"
+ "initialize_domain /sbin/modprobe from any\n"
+ "initialize_domain /sbin/hotplug from any\n"
+-"initialize_domain /etc/init.d/makedev from any\n"
+-"initialize_domain /etc/init.d/modutils from any\n"
+-"initialize_domain /etc/init.d/procps.sh from any\n"
+-"initialize_domain /etc/init.d/checkroot.sh from any\n"
+-"initialize_domain /etc/init.d/halt from any\n"
+-"initialize_domain /etc/init.d/mountnfs.sh from any\n"
+-"initialize_domain /etc/init.d/reboot from any\n"
+-"initialize_domain /etc/init.d/single from any\n"
+-"initialize_domain /etc/init.d/mountvirtfs from any\n"
+-"initialize_domain /etc/init.d/skeleton from any\n"
+-"initialize_domain /etc/init.d/mountall.sh from any\n"
+-"initialize_domain /etc/init.d/rmnologin from any\n"
+-"initialize_domain /etc/init.d/urandom from any\n"
+-"initialize_domain /etc/init.d/umountnfs.sh from any\n"
+-"initialize_domain /etc/init.d/bootmisc.sh from any\n"
+-"initialize_domain /etc/init.d/checkfs.sh from any\n"
+-"initialize_domain /etc/init.d/hostname.sh from any\n"
+-"initialize_domain /etc/init.d/sendsigs from any\n"
+-"initialize_domain /etc/init.d/umountfs from any\n"
+-"initialize_domain /etc/init.d/bootlogd from any\n"
+-"initialize_domain /etc/init.d/rc from any\n"
+-"initialize_domain /etc/init.d/rcS from any\n"
+-"initialize_domain /etc/init.d/hwclock.sh from any\n"
+-"initialize_domain /etc/init.d/hwclockfirst.sh from any\n"
+-"initialize_domain /etc/init.d/sysklogd from any\n"
+-"initialize_domain /etc/init.d/hotplug from any\n"
+-"initialize_domain /etc/init.d/ssh from any\n"
+-"initialize_domain /etc/init.d/keymap.sh from any\n"
+-"initialize_domain /etc/init.d/discover from any\n"
+-"initialize_domain /etc/init.d/inetd from any\n"
+-"initialize_domain /etc/init.d/dns-clean from any\n"
+-"initialize_domain /etc/init.d/atd from any\n"
+-"initialize_domain /etc/init.d/ifupdown-clean from any\n"
+-"initialize_domain /etc/init.d/networking from any\n"
+-"initialize_domain /etc/init.d/pppd-dns from any\n"
+-"initialize_domain /etc/init.d/initrd-tools.sh from any\n"
+-"initialize_domain /etc/init.d/ppp from any\n"
+-"initialize_domain /etc/init.d/exim4 from any\n"
+-"initialize_domain /etc/init.d/nviboot from any\n"
+-"initialize_domain /etc/init.d/ifupdown from any\n"
+-"initialize_domain /etc/init.d/klogd from any\n"
+-"initialize_domain /etc/init.d/console-screen.sh from any\n"
+-"initialize_domain /etc/init.d/xfree86-common from any\n"
+-"initialize_domain /etc/init.d/hotplug-net from any\n"
+-"initialize_domain /etc/init.d/module-init-tools from any\n"
+-"initialize_domain /etc/init.d/cron from any\n"
+-"initialize_domain /etc/init.d/ntpdate from any\n"
+-"initialize_domain /etc/init.d/ccs-auditd from any\n"
+-"initialize_domain /etc/init.d/nfs-user-server from any\n"
+-"initialize_domain /etc/init.d/nfs-kernel-server from any\n"
+-"initialize_domain /etc/init.d/portmap from any\n"
+-"initialize_domain /etc/init.d/nfs-common from any\n"
+-"initialize_domain /etc/init.d/postgresql from any\n"
+-"initialize_domain /etc/init.d/samba from any\n"
+-"initialize_domain /etc/init.d/apache2 from any\n"
+-"initialize_domain /etc/init.d/syslog-ng from any\n"
+-"initialize_domain /sbin/getty from any\n"
+-"initialize_domain /sbin/init from any\n"
+-"initialize_domain /sbin/klogd from any\n"
+-"initialize_domain /sbin/portmap from any\n"
+-"initialize_domain /sbin/rpc.statd from any\n"
+-"initialize_domain /sbin/syslogd from any\n"
+-"initialize_domain /usr/sbin/apache2 from any\n"
+-"initialize_domain /usr/sbin/atd from any\n"
+-"initialize_domain /usr/sbin/cron from any\n"
+-"initialize_domain /usr/sbin/exim4 from any\n"
+-"initialize_domain /usr/sbin/inetd from any\n"
+-"initialize_domain /usr/sbin/logrotate from any\n"
+-"initialize_domain /usr/sbin/nmbd from any\n"
+-"initialize_domain /usr/sbin/rpc.mountd from any\n"
+-"initialize_domain /usr/sbin/smbd from any\n"
+-"initialize_domain /usr/sbin/sshd from any\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+makedev /etc/init.d/makedev\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hwclock.sh /etc/init.d/hwclock.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+urandom /etc/init.d/urandom\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sendsigs /etc/init.d/sendsigs\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+umountnfs.sh /etc/init.d/umountnfs.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+umountfs /etc/init.d/umountfs\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+halt /etc/init.d/halt\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+cron /etc/init.d/cron\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+inetd /etc/init.d/inetd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ifupdown /etc/init.d/ifupdown\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+networking /etc/init.d/networking\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ppp /etc/init.d/ppp\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+samba /etc/init.d/samba\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+atd /etc/init.d/atd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sysklogd /etc/init.d/sysklogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+klogd /etc/init.d/klogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hotplug-net /etc/init.d/hotplug-net\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ssh /etc/init.d/ssh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+portmap /etc/init.d/portmap\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-user-server /etc/init.d/nfs-user-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-common /etc/init.d/nfs-common\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-kernel-server /etc/init.d/nfs-kernel-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+postgresql /etc/init.d/postgresql\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+apache2 /etc/init.d/apache2\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+syslog-ng /etc/init.d/syslog-ng\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+exim4 /etc/init.d/exim4\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+makedev /etc/init.d/makedev\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+rmnologin /etc/init.d/rmnologin\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+stop-bootlogd /etc/init.d/bootlogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+cron /etc/init.d/cron\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+inetd /etc/init.d/inetd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ppp /etc/init.d/ppp\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+samba /etc/init.d/samba\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+atd /etc/init.d/atd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sysklogd /etc/init.d/sysklogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+klogd /etc/init.d/klogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ssh /etc/init.d/ssh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ccs-auditd /etc/init.d/ccs-auditd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+portmap /etc/init.d/portmap\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-user-server /etc/init.d/nfs-user-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-common /etc/init.d/nfs-common\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-kernel-server /etc/init.d/nfs-kernel-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+postgresql /etc/init.d/postgresql\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+apache2 /etc/init.d/apache2\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+syslog-ng /etc/init.d/syslog-ng\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+exim4 /etc/init.d/exim4\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+makedev /etc/init.d/makedev\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+rmnologin /etc/init.d/rmnologin\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+stop-bootlogd /etc/init.d/bootlogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+cron /etc/init.d/cron\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+inetd /etc/init.d/inetd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ppp /etc/init.d/ppp\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+samba /etc/init.d/samba\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+atd /etc/init.d/atd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sysklogd /etc/init.d/sysklogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+klogd /etc/init.d/klogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ssh /etc/init.d/ssh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ccs-auditd /etc/init.d/ccs-auditd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+portmap /etc/init.d/portmap\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-user-server /etc/init.d/nfs-user-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-common /etc/init.d/nfs-common\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-kernel-server /etc/init.d/nfs-kernel-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+postgresql /etc/init.d/postgresql\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+apache2 /etc/init.d/apache2\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+syslog-ng /etc/init.d/syslog-ng\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+exim4 /etc/init.d/exim4\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+makedev /etc/init.d/makedev\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+rmnologin /etc/init.d/rmnologin\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+stop-bootlogd /etc/init.d/bootlogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+cron /etc/init.d/cron\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+inetd /etc/init.d/inetd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ppp /etc/init.d/ppp\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+samba /etc/init.d/samba\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+atd /etc/init.d/atd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sysklogd /etc/init.d/sysklogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+klogd /etc/init.d/klogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ssh /etc/init.d/ssh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ccs-auditd /etc/init.d/ccs-auditd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+portmap /etc/init.d/portmap\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-user-server /etc/init.d/nfs-user-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-common /etc/init.d/nfs-common\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-kernel-server /etc/init.d/nfs-kernel-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+postgresql /etc/init.d/postgresql\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+apache2 /etc/init.d/apache2\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+syslog-ng /etc/init.d/syslog-ng\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+exim4 /etc/init.d/exim4\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+makedev /etc/init.d/makedev\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+rmnologin /etc/init.d/rmnologin\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+stop-bootlogd /etc/init.d/bootlogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+cron /etc/init.d/cron\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+inetd /etc/init.d/inetd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ppp /etc/init.d/ppp\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+samba /etc/init.d/samba\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+atd /etc/init.d/atd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sysklogd /etc/init.d/sysklogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+klogd /etc/init.d/klogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ssh /etc/init.d/ssh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ccs-auditd /etc/init.d/ccs-auditd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+portmap /etc/init.d/portmap\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-user-server /etc/init.d/nfs-user-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-common /etc/init.d/nfs-common\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-kernel-server /etc/init.d/nfs-kernel-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+postgresql /etc/init.d/postgresql\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+apache2 /etc/init.d/apache2\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+syslog-ng /etc/init.d/syslog-ng\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+exim4 /etc/init.d/exim4\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+makedev /etc/init.d/makedev\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hwclock.sh /etc/init.d/hwclock.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+urandom /etc/init.d/urandom\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sendsigs /etc/init.d/sendsigs\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+umountnfs.sh /etc/init.d/umountnfs.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+umountfs /etc/init.d/umountfs\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+reboot /etc/init.d/reboot\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+cron /etc/init.d/cron\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+inetd /etc/init.d/inetd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ifupdown /etc/init.d/ifupdown\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+networking /etc/init.d/networking\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ppp /etc/init.d/ppp\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+samba /etc/init.d/samba\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+atd /etc/init.d/atd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+sysklogd /etc/init.d/sysklogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+klogd /etc/init.d/klogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hotplug-net /etc/init.d/hotplug-net\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ssh /etc/init.d/ssh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+portmap /etc/init.d/portmap\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-user-server /etc/init.d/nfs-user-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-common /etc/init.d/nfs-common\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nfs-kernel-server /etc/init.d/nfs-kernel-server\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+postgresql /etc/init.d/postgresql\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+apache2 /etc/init.d/apache2\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+syslog-ng /etc/init.d/syslog-ng\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+exim4 /etc/init.d/exim4\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+procps.sh /etc/init.d/procps.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hwclock.sh /etc/init.d/hwclock.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hwclockfirst.sh /etc/init.d/hwclockfirst.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+mountvirtfs /etc/init.d/mountvirtfs\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+mountvirtfs /etc/init.d/mountvirtfs\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+bootlogd /etc/init.d/bootlogd\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+checkroot.sh /etc/init.d/checkroot.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+modutils /etc/init.d/modutils\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+checkfs.sh /etc/init.d/checkfs.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+mountall.sh /etc/init.d/mountall.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hostname.sh /etc/init.d/hostname.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+mountnfs.sh /etc/init.d/mountnfs.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+bootmisc.sh /etc/init.d/bootmisc.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+urandom /etc/init.d/urandom\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+nviboot /etc/init.d/nviboot\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ifupdown /etc/init.d/ifupdown\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ifupdown-clean /etc/init.d/ifupdown-clean\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+networking /etc/init.d/networking\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+pppd-dns /etc/init.d/pppd-dns\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+dns-clean /etc/init.d/dns-clean\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+console-screen.sh /etc/init.d/console-screen.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+keymap.sh /etc/init.d/keymap.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+initrd-tools.sh /etc/init.d/initrd-tools.sh\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+discover /etc/init.d/discover\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hotplug /etc/init.d/hotplug\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+hotplug-net /etc/init.d/hotplug-net\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+module-init-tools /etc/init.d/module-init-tools\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+xfree86-common /etc/init.d/xfree86-common\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+ntpdate /etc/init.d/ntpdate\n"
+-"aggregator /etc/rc\\?.d/\\?\\+\\+portmap /etc/init.d/portmap\n"
+ ;
+ static char tomoyo_builtin_domain_policy[] __initdata =
+-"<kernel>\n"
+-"use_profile 1\n"
+-"use_group 0\n"
+-;
++"";
+ static char tomoyo_builtin_manager[] __initdata =
+-"/usr/sbin/tomoyo-loadpolicy\n"
+-"/usr/sbin/tomoyo-editpolicy\n"
+-"/usr/sbin/tomoyo-setlevel\n"
+-"/usr/sbin/tomoyo-setprofile\n"
+-"/usr/sbin/tomoyo-queryd\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/testall.sh\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/newns\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_accept_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_argv0_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_bind_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_bprm_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_capability_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_cond_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_env_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_execute_handler_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_filesystem_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_file_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_network_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_new_capability_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_new_file_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_new_network_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_new_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_policy_io_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_policy_memory_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_rewrite_test\n"
+-"/root/SVN/tomoyo/trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_signal_test\n"
+-;
++"";
+ static char tomoyo_builtin_stat[] __initdata =
+-"# Memory quota (byte). 0 means no quota.\n"
+-"Memory used by policy:               0\n"
+-"Memory used by audit log:     16777216\n"
+-"Memory used by query message:  1048576\n"
+-;
++"";
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -2370,3 +2370,66 @@ void tomoyo_check_profile(void)
+ 	tomoyo_read_unlock(idx);
+ 	printk(KERN_INFO "Mandatory Access Control activated.\n");
+ }
++
++/**
++ * tomoyo_load_builtin_policy - Load built-in policy.
++ *
++ * Returns nothing.
++ */
++void __init tomoyo_load_builtin_policy(void)
++{
++	/*
++	 * This include file is manually created and contains built-in policy
++	 * named "tomoyo_builtin_profile", "tomoyo_builtin_exception_policy",
++	 * "tomoyo_builtin_domain_policy", "tomoyo_builtin_manager",
++	 * "tomoyo_builtin_stat" in the form of "static char [] __initdata".
++	 */
++#include "builtin-policy.h"
++	u8 i;
++	const int idx = tomoyo_read_lock();
++	for (i = 0; i < 5; i++) {
++		struct tomoyo_io_buffer head = { };
++		char *start = "";
++		switch (i) {
++		case 0:
++			start = tomoyo_builtin_profile;
++			head.type = TOMOYO_PROFILE;
++			head.write = tomoyo_write_profile;
++			break;
++		case 1:
++			start = tomoyo_builtin_exception_policy;
++			head.type = TOMOYO_EXCEPTIONPOLICY;
++			head.write = tomoyo_write_exception;
++			break;
++		case 2:
++			start = tomoyo_builtin_domain_policy;
++			head.type = TOMOYO_DOMAINPOLICY;
++			head.write = tomoyo_write_domain;
++			break;
++		case 3:
++			start = tomoyo_builtin_manager;
++			head.type = TOMOYO_MANAGER;
++			head.write = tomoyo_write_manager;
++			break;
++		case 4:
++			start = tomoyo_builtin_stat;
++			head.type = TOMOYO_STAT;
++			head.write = tomoyo_write_stat;
++			break;
++		}
++		while (1) {
++			char *end = strchr(start, '\n');
++			if (!end)
++				break;
++			*end = '\0';
++			tomoyo_normalize_line(start);
++			head.write_buf = start;
++			tomoyo_parse_policy(&head, start);
++			start = end + 1;
++		}
++	}
++	tomoyo_read_unlock(idx);
++#ifdef CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
++	tomoyo_check_profile();
++#endif
++}
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -666,6 +666,7 @@ const struct tomoyo_path_info *tomoyo_ge
+ void tomoyo_convert_time(time_t time, struct tomoyo_time *stamp);
+ void tomoyo_update_stat(const u8 index);
+ void __init tomoyo_mm_init(void);
++void __init tomoyo_load_builtin_policy(void);
+ int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
+ 			   const struct tomoyo_path_info *filename);
+ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+--- security-testing-2.6.orig/security/tomoyo/load_policy.c
++++ security-testing-2.6/security/tomoyo/load_policy.c
+@@ -8,8 +8,7 @@
+ 
+ #include "common.h"
+ 
+-/* path to policy loader */
+-static const char *tomoyo_loader = "/sbin/tomoyo-init";
++#ifndef CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
+ 
+ /**
+  * tomoyo_policy_loader_exists - Check whether /sbin/tomoyo-init exists.
+@@ -27,9 +26,11 @@ static bool tomoyo_policy_loader_exists(
+ 	 */
+ 	struct path path;
+ 
+-	if (kern_path(tomoyo_loader, LOOKUP_FOLLOW, &path)) {
++	if (kern_path(CONFIG_SECURITY_TOMOYO_POLICY_LOADER, LOOKUP_FOLLOW,
++		      &path)) {
+ 		printk(KERN_INFO "Not activating Mandatory Access Control now "
+-		       "since %s doesn't exist.\n", tomoyo_loader);
++		       "since %s doesn't exist.\n",
++		       CONFIG_SECURITY_TOMOYO_POLICY_LOADER);
+ 		return false;
+ 	}
+ 	path_put(&path);
+@@ -56,22 +57,13 @@ void tomoyo_load_policy(const char *file
+ 
+ 	if (tomoyo_policy_loaded)
+ 		return;
+-	/*
+-	 * Check filename is /sbin/init or /sbin/tomoyo-start.
+-	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't
+-	 * be passed.
+-	 * You can create /sbin/tomoyo-start by
+-	 * "ln -s /bin/true /sbin/tomoyo-start".
+-	 */
+-	if (strcmp(filename, "/sbin/init") &&
+-	    strcmp(filename, "/sbin/tomoyo-start"))
++	if (strcmp(filename, CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER))
+ 		return;
+ 	if (!tomoyo_policy_loader_exists())
+ 		return;
+-
+ 	printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
+-	       tomoyo_loader);
+-	argv[0] = (char *) tomoyo_loader;
++	       CONFIG_SECURITY_TOMOYO_POLICY_LOADER);
++	argv[0] = (char *) CONFIG_SECURITY_TOMOYO_POLICY_LOADER;
+ 	argv[1] = NULL;
+ 	envp[0] = "HOME=/";
+ 	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
+@@ -79,3 +71,5 @@ void tomoyo_load_policy(const char *file
+ 	call_usermodehelper(argv[0], argv, envp, 1);
+ 	tomoyo_check_profile();
+ }
++
++#endif
+--- security-testing-2.6.orig/security/tomoyo/memory.c
++++ security-testing-2.6/security/tomoyo/memory.c
+@@ -215,14 +215,4 @@ void __init tomoyo_mm_init(void)
+ 	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
+ 	tomoyo_kernel_domain.domainname = tomoyo_get_name("<kernel>");
+ 	list_add_tail_rcu(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
+-#if 0
+-	/* Will be replaced with tomoyo_load_builtin_policy(). */
+-	{
+-		/* Load built-in policy. */
+-		tomoyo_write_transition_control("/sbin/hotplug", false,
+-					TOMOYO_TRANSITION_CONTROL_INITIALIZE);
+-		tomoyo_write_transition_control("/sbin/modprobe", false,
+-					TOMOYO_TRANSITION_CONTROL_INITIALIZE);
+-	}
+-#endif
+ }
+--- /dev/null
++++ security-testing-2.6/security/tomoyo/tomoyo2c.c
+@@ -0,0 +1,45 @@
++/*
++ * tomoyo2c.c
++ *
++ * Copyright (C) 2005-2011  NTT DATA CORPORATION
++ *
++ * This program converts policy for TOMOYO 2.4.x to C source.
++ */
++#include <stdio.h>
++
++int main(int argc, char *argv[])
++{
++	_Bool newline = 0;
++	int c;
++	if (argc != 2) {
++		fprintf(stderr, "%s name\n", argv[0]);
++		return 1;
++	}
++	printf("static char tomoyo_builtin_%s[] __initdata =\n", argv[1]);
++	putchar('"');
++	while ((c = fgetc(stdin)) != EOF) {
++		if (newline)
++			putchar('"');
++		newline = 0;
++		if (c == '\\') {
++			putchar('\\');
++			putchar('\\');
++		} else if (c == '"') {
++			putchar('\\');
++			putchar('"');
++		} else if (c == '\n') {
++			putchar('\\');
++			putchar('n');
++			putchar('"');
++			putchar('\n');
++			newline = 1;
++		} else {
++			putchar(c);
++		}
++	}
++	if (!newline)
++		putchar('"');
++	putchar(';');
++	putchar('\n');
++	return 0;
++}
