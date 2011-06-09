@@ -1,0 +1,407 @@
+Index: memory.c
+===================================================================
+--- memory.c	(revision 5100)
++++ memory.c	(working copy)
+@@ -152,46 +152,6 @@
+ 	return found ? group : NULL;
+ }
+ 
+-/**
+- * ccs_get_ipv6_address - Keep the given IPv6 address on the RAM.
+- *
+- * @addr: Pointer to "struct in6_addr".
+- *
+- * Returns pointer to "struct in6_addr" on success, NULL otherwise.
+- */
+-const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
+-{
+-	struct ccs_ipv6addr *entry;
+-	struct ccs_ipv6addr *ptr = NULL;
+-	int error = -ENOMEM;
+-	if (!addr)
+-		return NULL;
+-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+-	if (mutex_lock_interruptible(&ccs_policy_lock))
+-		goto out;
+-	list_for_each_entry(ptr, &ccs_shared_list[CCS_IPV6ADDRESS_LIST],
+-			    head.list) {
+-		if (memcmp(&ptr->addr, addr, sizeof(*addr)))
+-			continue;
+-		atomic_inc(&ptr->head.users);
+-		error = 0;
+-		break;
+-	}
+-	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
+-		ptr = entry;
+-		ptr->addr = *addr;
+-		atomic_set(&ptr->head.users, 1);
+-		list_add_tail(&ptr->head.list,
+-			      &ccs_shared_list[CCS_IPV6ADDRESS_LIST]);
+-		entry = NULL;
+-		error = 0;
+-	}
+-	mutex_unlock(&ccs_policy_lock);
+-out:
+-	kfree(entry);
+-	return !error ? &ptr->addr : NULL;
+-}
+-
+ /* The list for "struct ccs_name". */
+ struct list_head ccs_name_list[CCS_MAX_HASH];
+ 
+Index: internal.h
+===================================================================
+--- internal.h	(revision 5100)
++++ internal.h	(working copy)
+@@ -627,7 +627,6 @@
+ 	CCS_ID_AGGREGATOR,
+ 	CCS_ID_TRANSITION_CONTROL,
+ 	CCS_ID_MANAGER,
+-	CCS_ID_IPV6_ADDRESS,
+ 	CCS_ID_CONDITION,
+ 	CCS_ID_NAME,
+ 	CCS_ID_ACL,
+@@ -671,7 +670,6 @@
+ /* Index numbers for shared entries. */
+ enum ccs_shared_acl_id {
+ 	CCS_CONDITION_LIST,
+-	CCS_IPV6ADDRESS_LIST,
+ 	CCS_MAX_LIST
+ };
+ 
+@@ -812,20 +810,14 @@
+ 
+ /* Structure for holding an IP address. */
+ struct ccs_ipaddr_union {
+-	struct {
+-		/* Start of IPv4 address range. Host endian. */
+-		u32 min;
+-		/* End of IPv4 address range. Host endian.   */
+-		u32 max;
+-	} ipv4;
+-	struct {
+-		/* Start of IPv6 address range. Big endian.  */
+-		const struct in6_addr *min;
+-		/* End of IPv6 address range. Big endian.    */
+-		const struct in6_addr *max;
+-	} ipv6;
++	/*
++	 * Big endian if storing IPv6 address range.
++	 * Host endian if storing IPv4 address range.
++	 */
++	struct in6_addr ip[2];
+ 	/* Pointer to address group. */
+ 	struct ccs_group *group;
++	bool is_ipv6; /* Valid only if @group == NULL. */
+ };
+ 
+ /* Structure for "path_group"/"number_group"/"address_group" directive. */
+@@ -1259,12 +1251,6 @@
+ 	const struct ccs_path_info *domainname;
+ };
+ 
+-/* Structure for holding an IPv6 address. */
+-struct ccs_ipv6addr {
+-	struct ccs_shared_acl_head head;
+-	struct in6_addr addr;
+-};
+-
+ /* Structure for "network inet" directive. */
+ struct ccs_inet_acl {
+ 	struct ccs_acl_info head; /* type = CCS_TYPE_INET_ACL */
+@@ -1438,7 +1424,6 @@
+ const struct ccs_path_info *ccs_get_name(const char *name);
+ const struct ccs_path_info *ccs_path_matches_group
+ (const struct ccs_path_info *pathname, const struct ccs_group *group);
+-const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
+ int ccs_close_control(struct ccs_io_buffer *head);
+ int ccs_env_perm(struct ccs_request_info *r, const char *env);
+ int ccs_get_path(const char *pathname, struct path *path);
+@@ -1600,9 +1585,8 @@
+ static inline bool ccs_same_ipaddr_union(const struct ccs_ipaddr_union *a,
+ 					 const struct ccs_ipaddr_union *b)
+ {
+-	return a->ipv4.min == b->ipv4.min && a->ipv4.max == b->ipv4.max &&
+-		a->ipv6.min == b->ipv6.min && a->ipv6.max == b->ipv6.max &&
+-		a->group == b->group;
++	return !memcmp(a->ip, b->ip, sizeof(a->ip)) && a->group == b->group &&
++		a->is_ipv6 == b->is_ipv6;
+ }
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+@@ -1886,20 +1870,6 @@
+ }
+ 
+ /**
+- * ccs_put_ipv6_address - Drop reference on "struct ccs_ipv6addr".
+- *
+- * @addr: Pointer to "struct in6_addr". Maybe NULL.
+- *
+- * Returns nothing.
+- */
+-static inline void ccs_put_ipv6_address(const struct in6_addr *addr)
+-{
+-	if (addr)
+-		atomic_dec(&container_of(addr, struct ccs_ipv6addr,
+-					 addr)->head.users);
+-}
+-
+-/**
+  * ccs_put_name - Drop reference on "struct ccs_name".
+  *
+  * @name: Pointer to "struct ccs_path_info". Maybe NULL.
+Index: policy_io.c
+===================================================================
+--- policy_io.c	(revision 5100)
++++ policy_io.c	(working copy)
+@@ -174,6 +174,16 @@
+ 	[CCS_TYPE_UMOUNT]     = "unmount",
+ };
+ 
++/* String table for socket's operation. */
++const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
++	[CCS_NETWORK_BIND]    = "bind",
++	[CCS_NETWORK_LISTEN]  = "listen",
++	[CCS_NETWORK_CONNECT] = "connect",
++	[CCS_NETWORK_ACCEPT]  = "accept",
++	[CCS_NETWORK_SEND]    = "send",
++	[CCS_NETWORK_RECV]    = "recv",
++};
++
+ /* String table for categories. */
+ static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
+ 	[CCS_MAC_CATEGORY_FILE]       = "file",
+Index: gc.c
+===================================================================
+--- gc.c	(revision 5100)
++++ gc.c	(working copy)
+@@ -61,7 +61,6 @@
+ 	[CCS_ID_AGGREGATOR] = sizeof(struct ccs_aggregator),
+ 	[CCS_ID_TRANSITION_CONTROL] = sizeof(struct ccs_transition_control),
+ 	[CCS_ID_MANAGER] = sizeof(struct ccs_manager),
+-	[CCS_ID_IPV6_ADDRESS] = sizeof(struct ccs_ipv6addr),
+ 	/* [CCS_ID_CONDITION] = "struct ccs_condition"->size, */
+ 	/* [CCS_ID_NAME] = "struct ccs_name"->size, */
+ 	/* [CCS_ID_ACL] = ccs_acl_size["struct ccs_acl_info"->type], */
+@@ -418,8 +417,6 @@
+ 			struct ccs_inet_acl *entry =
+ 				container_of(acl, typeof(*entry), head);
+ 			ccs_put_group(entry->address.group);
+-			ccs_put_ipv6_address(entry->address.ipv6.min);
+-			ccs_put_ipv6_address(entry->address.ipv6.max);
+ 			ccs_put_number_union(&entry->port);
+ 		}
+ 		break;
+@@ -530,10 +527,7 @@
+  */
+ static inline void ccs_del_address_group(struct list_head *element)
+ {
+-	struct ccs_address_group *member =
+-		container_of(element, typeof(*member), head.list);
+-	ccs_put_ipv6_address(member->address.ipv6.min);
+-	ccs_put_ipv6_address(member->address.ipv6.max);
++	/* Nothing to do. */
+ }
+ 
+ /**
+@@ -561,18 +555,6 @@
+ }
+ 
+ /**
+- * ccs_del_ipv6_address - Delete members in "struct ccs_ipv6addr".
+- *
+- * @element: Pointer to "struct list_head".
+- *
+- * Returns nothing.
+- */
+-static inline void ccs_del_ipv6_address(struct list_head *element)
+-{
+-	/* Nothing to do. */
+-}
+-
+-/**
+  * ccs_del_condition - Delete members in "struct ccs_condition".
+  *
+  * @element: Pointer to "struct list_head".
+@@ -818,9 +800,6 @@
+ 		case 0:
+ 			id = CCS_ID_CONDITION;
+ 			break;
+-		case 1:
+-			id = CCS_ID_IPV6_ADDRESS;
+-			break;
+ 		default:
+ 			id = CCS_ID_NAME;
+ 			break;
+@@ -897,9 +876,6 @@
+ 		case CCS_ID_RESERVEDPORT:
+ 			ccs_del_reservedport(element);
+ 			break;
+-		case CCS_ID_IPV6_ADDRESS:
+-			ccs_del_ipv6_address(element);
+-			break;
+ 		case CCS_ID_CONDITION:
+ 			ccs_del_condition(element);
+ 			break;
+Index: network.c
+===================================================================
+--- network.c	(revision 5100)
++++ network.c	(working copy)
+@@ -39,16 +39,6 @@
+ 	[4] = " ", /* Dummy for avoiding NULL pointer dereference. */
+ };
+ 
+-/* String table for socket's operation. */
+-const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
+-	[CCS_NETWORK_BIND]    = "bind",
+-	[CCS_NETWORK_LISTEN]  = "listen",
+-	[CCS_NETWORK_CONNECT] = "connect",
+-	[CCS_NETWORK_ACCEPT]  = "accept",
+-	[CCS_NETWORK_SEND]    = "send",
+-	[CCS_NETWORK_RECV]    = "recv",
+-};
+-
+ /**
+  * ccs_parse_ipaddr_union - Parse an IP address.
+  *
+@@ -60,8 +50,8 @@
+ bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
+ 			    struct ccs_ipaddr_union *ptr)
+ {
+-	u16 min[8];
+-	u16 max[8];
++	u16 * const min = ptr->ip[0].s6_addr16;
++	u16 * const max = ptr->ip[1].s6_addr16;
+ 	char *address = ccs_read_token(param);
+ 	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
+ 			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+@@ -71,22 +61,13 @@
+ 			   &max[4], &max[5], &max[6], &max[7]);
+ 	if (count == 8 || count == 16) {
+ 		u8 i;
+-		const struct in6_addr *ip[2];
+ 		if (count == 8)
+ 			memmove(max, min, sizeof(u16) * 8);
+ 		for (i = 0; i < 8; i++) {
+ 			min[i] = htons(min[i]);
+ 			max[i] = htons(max[i]);
+ 		}
+-		ip[0] = ccs_get_ipv6_address((struct in6_addr *) min);
+-		ip[1] = ccs_get_ipv6_address((struct in6_addr *) max);
+-		if (!ip[0] || !ip[1]) {
+-			ccs_put_ipv6_address(ip[0]);
+-			ccs_put_ipv6_address(ip[1]);
+-			return false;
+-		}
+-		ptr->ipv6.min = ip[0];
+-		ptr->ipv6.max = ip[1];
++		ptr->is_ipv6 = true;
+ 		return true;
+ 	}
+ 	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+@@ -94,14 +75,16 @@
+ 		       &max[0], &max[1], &max[2], &max[3]);
+ 	if (count == 4 || count == 8) {
+ 		/* use host byte order to allow u32 comparison.*/
+-		ptr->ipv4.min = (((u8) min[0]) << 24) + (((u8) min[1]) << 16)
++		ptr->ip[0].s6_addr32[0] =
++			(((u8) min[0]) << 24) + (((u8) min[1]) << 16)
+ 			+ (((u8) min[2]) << 8) + (u8) min[3];
+ 		if (count == 4)
+-			ptr->ipv4.max = ptr->ipv4.min;
++			ptr->ip[1].s6_addr32[0] = ptr->ip[0].s6_addr32[0];
+ 		else
+-			ptr->ipv4.max =
++			ptr->ip[1].s6_addr32[0] =
+ 				(((u8) max[0]) << 24) + (((u8) max[1]) << 16)
+ 				+ (((u8) max[2]) << 8) + (u8) max[3];
++		ptr->is_ipv6 = false;
+ 		return true;
+ 	}
+ 	return false;
+@@ -187,10 +170,11 @@
+ void ccs_print_ip(char *buf, const unsigned int size,
+ 		  const struct ccs_ipaddr_union *ptr)
+ {
+-	if (ptr->ipv6.min)
+-		ccs_print_ipv6(buf, size, ptr->ipv6.min, ptr->ipv6.max);
++	if (ptr->is_ipv6)
++		ccs_print_ipv6(buf, size, &ptr->ip[0], &ptr->ip[1]);
+ 	else
+-		ccs_print_ipv4(buf, size, ptr->ipv4.min, ptr->ipv4.max);
++		ccs_print_ipv4(buf, size, ptr->ip[0].s6_addr32[0],
++			       ptr->ip[1].s6_addr32[0]);
+ }
+ 
+ /*
+@@ -361,8 +345,6 @@
+ 				  ccs_merge_inet_acl);
+ out:
+ 	ccs_put_group(e.address.group);
+-	ccs_put_ipv6_address(e.address.ipv6.min);
+-	ccs_put_ipv6_address(e.address.ipv6.max);
+ 	ccs_put_number_union(&e.port);
+ 	return error;
+ }
+@@ -488,16 +470,18 @@
+ 		return ccs_address_matches_group(r->param.inet_network.is_ipv6,
+ 						 r->param.inet_network.address,
+ 						 acl->address.group);
+-	else if (acl->address.ipv6.min)
++	else if (acl->address.is_ipv6)
+ 		return r->param.inet_network.is_ipv6 &&
+-			memcmp(acl->address.ipv6.min,
++			memcmp(&acl->address.ip[0],
+ 			       r->param.inet_network.address, 16) <= 0 &&
+ 			memcmp(r->param.inet_network.address,
+-			       acl->address.ipv6.max, 16) <= 0;
++			       &acl->address.ip[1], 16) <= 0;
+ 	else
+ 		return !r->param.inet_network.is_ipv6 &&
+-			acl->address.ipv4.min <= r->param.inet_network.ip &&
+-			r->param.inet_network.ip <= acl->address.ipv4.max;
++			acl->address.ip[0].s6_addr32[0] <=
++			r->param.inet_network.ip &&
++			r->param.inet_network.ip <=
++			acl->address.ip[1].s6_addr32[0];
+ }
+ 
+ /**
+Index: group.c
+===================================================================
+--- group.c	(revision 5100)
++++ group.c	(working copy)
+@@ -101,8 +101,6 @@
+ 			goto out;
+ 		error = ccs_update_policy(&e.head, sizeof(e), param,
+ 					  ccs_same_address_group);
+-		ccs_put_ipv6_address(e.address.ipv6.min);
+-		ccs_put_ipv6_address(e.address.ipv6.max);
+ 	}
+ out:
+ 	ccs_put_group(group);
+@@ -185,19 +183,17 @@
+ 				 &ccs_ss) {
+ 		if (member->head.is_deleted)
+ 			continue;
+-		if (member->address.ipv6.min) {
++		if (member->address.is_ipv6) {
+ 			if (is_ipv6 &&
+-			    memcmp(member->address.ipv6.min, address, 16)
+-			    <= 0 &&
+-			    memcmp(address, member->address.ipv6.max, 16)
+-			    <= 0) {
++			    memcmp(&member->address.ip[0], address, 16) <= 0 &&
++			    memcmp(address, &member->address.ip[1], 16) <= 0) {
+ 				matched = true;
+ 				break;
+ 			}
+ 		} else {
+ 			if (!is_ipv6 &&
+-			    member->address.ipv4.min <= ip &&
+-			    ip <= member->address.ipv4.max) {
++			    member->address.ip[0].s6_addr32[0] <= ip &&
++			    ip <= member->address.ip[1].s6_addr32[0]) {
+ 				matched = true;
+ 				break;
+ 			}
