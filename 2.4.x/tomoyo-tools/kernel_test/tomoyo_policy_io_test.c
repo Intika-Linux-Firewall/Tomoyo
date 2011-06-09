@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -39,6 +39,9 @@ static void try_io(const char *policy, const char should_success)
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
+		if (policy_file == proc_policy_exception_policy &&
+		    !strncmp(buffer, "<kernel> ", 9))
+			memmove(buffer, buffer + 9, strlen(buffer + 9) + 1);
 		if (!strcmp(buffer, policy)) {
 			policy_found = 1;
 			break;

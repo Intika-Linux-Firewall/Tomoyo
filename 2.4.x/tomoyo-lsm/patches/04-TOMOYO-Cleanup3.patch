@@ -10,15 +10,15 @@ Bring tomoyo_same_acl_head() to tomoyo_update_domain().
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c        |   43 +++-----
- security/tomoyo/common.h        |   62 ++++--------
- security/tomoyo/domain.c        |   14 ++
+ security/tomoyo/common.h        |   54 ++++------
+ security/tomoyo/domain.c        |   17 +++
  security/tomoyo/file.c          |  197 +++++++++++++++++++++++++++++++++-------
  security/tomoyo/gc.c            |  127 +++++++++++++++++++++++--
  security/tomoyo/memory.c        |   16 +--
  security/tomoyo/mount.c         |   31 +++++-
  security/tomoyo/securityfs_if.c |    6 -
  security/tomoyo/util.c          |    9 -
- 9 files changed, 377 insertions(+), 128 deletions(-)
+ 9 files changed, 379 insertions(+), 121 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -294,28 +294,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -748,20 +749,6 @@ static inline struct tomoyo_domain_info 
+@@ -747,12 +748,6 @@ static inline struct tomoyo_domain_info 
+ 	return task_cred_xxx(task, security);
  }
  
- /**
-- * tomoyo_same_acl_head - Check for duplicated "struct tomoyo_acl_info" entry.
-- *
-- * @a: Pointer to "struct tomoyo_acl_info".
-- * @b: Pointer to "struct tomoyo_acl_info".
-- *
-- * Returns true if @a == @b, false otherwise.
-- */
--static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *a,
--					const struct tomoyo_acl_info *b)
+-static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
+-					const struct tomoyo_acl_info *p2)
 -{
--	return a->type == b->type;
+-	return p1->type == p2->type;
 -}
 -
--/**
+ /**
   * tomoyo_same_name_union - Check for duplicated "struct tomoyo_name_union" entry.
   *
-  * @a: Pointer to "struct tomoyo_name_union".
-@@ -772,8 +759,7 @@ static inline bool tomoyo_same_acl_head(
+@@ -764,8 +759,7 @@ static inline bool tomoyo_same_acl_head(
  static inline bool tomoyo_same_name_union
  (const struct tomoyo_name_union *a, const struct tomoyo_name_union *b)
  {
@@ -325,7 +317,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -788,8 +774,8 @@ static inline bool tomoyo_same_number_un
+@@ -780,8 +774,8 @@ static inline bool tomoyo_same_number_un
  (const struct tomoyo_number_union *a, const struct tomoyo_number_union *b)
  {
  	return a->values[0] == b->values[0] && a->values[1] == b->values[1] &&
@@ -359,6 +351,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_update_domain - Update an entry for domain policy.
   *
   * @new_entry:       Pointer to "struct tomoyo_acl_info".
+@@ -88,7 +102,8 @@ int tomoyo_update_domain(struct tomoyo_a
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		return error;
+ 	list_for_each_entry_rcu(entry, &domain->acl_info_list, list) {
+-		if (!check_duplicate(entry, new_entry))
++		if (!tomoyo_same_acl_head(entry, new_entry) ||
++		    !check_duplicate(entry, new_entry))
+ 			continue;
+ 		if (merge_duplicate)
+ 			entry->is_deleted = merge_duplicate(entry, new_entry,
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
 @@ -49,6 +49,9 @@ const char *tomoyo_path_number_keyword[T

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -48,8 +48,6 @@ static void tomoyo_handle_misc_policy(struct tomoyo_misc_policy *mp, FILE *fp,
 			continue;
 		is_delete = tomoyo_str_starts(line, "delete ");
 		cp = tomoyo_savename(line);
-		if (!cp)
-			tomoyo_out_of_memory();
 		if (!is_delete)
 			goto append_policy;
 		for (i = 0; i < mp->list_len; i++)
@@ -67,10 +65,8 @@ append_policy:
 				break;
 		if (i < mp->list_len)
 			continue;
-		mp->list = realloc(mp->list, (mp->list_len + 1)
-				   * sizeof(const struct tomoyo_path_info *));
-		if (!mp->list)
-			tomoyo_out_of_memory();
+		mp->list = tomoyo_realloc(mp->list, (mp->list_len + 1) *
+				       sizeof(const struct tomoyo_path_info *));
 		mp->list[mp->list_len++] = cp;
 	}
 	return;
@@ -88,13 +84,11 @@ void tomoyo_editpolicy_offline_daemon(void)
 {
 	struct tomoyo_misc_policy mp[3];
 	static const int buffer_len = 8192;
-	char *buffer = malloc(buffer_len);
-	if (!buffer)
-		tomoyo_out_of_memory();
+	char *buffer = tomoyo_malloc(buffer_len);
 	memset(&tomoyo_dp, 0, sizeof(tomoyo_dp));
 	memset(&mp, 0, sizeof(mp));
 	tomoyo_get();
-	tomoyo_assign_domain(&tomoyo_dp, TOMOYO_ROOT_NAME, false, false);
+	tomoyo_assign_domain(&tomoyo_dp, "<kernel>", false, false);
 	while (true) {
 		FILE *fp;
 		struct msghdr msg;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -50,9 +50,6 @@
 #define false 0
 
 /***** CONSTANTS DEFINITION START *****/
-
-#define TOMOYO_ROOT_NAME                    "<kernel>"
-#define TOMOYO_ROOT_NAME_LEN                (sizeof(TOMOYO_ROOT_NAME) - 1)
 
 #define TOMOYO_PROC_POLICY_DIR              "/sys/kernel/security/tomoyo/"
 #define TOMOYO_PROC_POLICY_DOMAIN_POLICY    "/sys/kernel/security/tomoyo/domain_policy"
@@ -136,16 +133,17 @@ _Bool tomoyo_correct_path(const char *filename);
 _Bool tomoyo_correct_word(const char *string);
 _Bool tomoyo_decode(const char *ascii, char *bin);
 _Bool tomoyo_domain_def(const char *domainname);
-_Bool tomoyo_identical_file(const char *file1, const char *file2);
 _Bool tomoyo_move_proc_to_file(const char *src, const char *dest);
 _Bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *pathname0,
 			       const struct tomoyo_path_info *pattern0);
-_Bool tomoyo_pathcmp(const struct tomoyo_path_info *a, const struct tomoyo_path_info *b);
+_Bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
+		  const struct tomoyo_path_info *b);
 _Bool tomoyo_str_starts(char *str, const char *begin);
 char *tomoyo_freadline(FILE *fp);
 char *tomoyo_freadline_unpack(FILE *fp);
-char *tomoyo_make_filename(const char *prefix, const time_t time);
-char *tomoyo_shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+char *tomoyo_shprintf(const char *fmt, ...)
+	__attribute__ ((format(printf, 1, 2)));
+char *tomoyo_strdup(const char *string);
 const char *tomoyo_domain_name(const struct tomoyo_domain_policy *dp,
 			    const int index);
 const struct tomoyo_path_info *tomoyo_savename(const char *name);
@@ -155,8 +153,9 @@ int tomoyo_assign_domain(struct tomoyo_domain_policy *dp, const char *domainname
 		      const _Bool is_dis, const _Bool is_dd);
 int tomoyo_del_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 			 const int index);
-int tomoyo_find_domain(const struct tomoyo_domain_policy *dp, const char *domainname0,
-		    const _Bool is_dis, const _Bool is_dd);
+int tomoyo_find_domain(const struct tomoyo_domain_policy *dp,
+		    const char *domainname0, const _Bool is_dis,
+		    const _Bool is_dd);
 int tomoyo_find_domain_by_ptr(struct tomoyo_domain_policy *dp,
 			   const struct tomoyo_path_info *domainname);
 int tomoyo_open_stream(const char *filename);
@@ -165,6 +164,9 @@ int tomoyo_parse_number(const char *number, struct tomoyo_number_entry *entry);
 int tomoyo_string_compare(const void *a, const void *b);
 int tomoyo_write_domain_policy(struct tomoyo_domain_policy *dp, const int fd);
 struct tomoyo_path_group_entry *tomoyo_find_path_group(const char *group_name);
+void *tomoyo_malloc(const size_t size);
+void *tomoyo_realloc(void *ptr, const size_t size);
+void *tomoyo_realloc2(void *ptr, const size_t size);
 void tomoyo_clear_domain_policy(struct tomoyo_domain_policy *dp);
 void tomoyo_delete_domain(struct tomoyo_domain_policy *dp, const int index);
 void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
@@ -173,9 +175,9 @@ void tomoyo_get(void);
 void tomoyo_handle_domain_policy(struct tomoyo_domain_policy *dp, FILE *fp,
 			      _Bool is_write);
 void tomoyo_normalize_line(char *buffer);
-void tomoyo_out_of_memory(void);
 void tomoyo_put(void);
-void tomoyo_read_domain_policy(struct tomoyo_domain_policy *dp, const char *filename);
+void tomoyo_read_domain_policy(struct tomoyo_domain_policy *dp,
+			    const char *filename);
 void tomoyo_read_process_list(_Bool show_all);
 
 extern _Bool tomoyo_freadline_raw;

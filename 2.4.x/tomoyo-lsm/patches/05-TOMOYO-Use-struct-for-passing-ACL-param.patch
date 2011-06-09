@@ -311,10 +311,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return error;
 -	list_for_each_entry_rcu(entry, &domain->acl_info_list, list) {
 +	list_for_each_entry_rcu(entry, list, list) {
- 		if (!check_duplicate(entry, new_entry))
+ 		if (!tomoyo_same_acl_head(entry, new_entry) ||
+ 		    !check_duplicate(entry, new_entry))
  			continue;
- 		if (merge_duplicate)
-@@ -115,7 +116,7 @@ int tomoyo_update_domain(struct tomoyo_a
+@@ -116,7 +117,7 @@ int tomoyo_update_domain(struct tomoyo_a
  	if (error && !is_delete) {
  		entry = tomoyo_commit_ok(new_entry, size);
  		if (entry) {
@@ -323,7 +323,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			error = 0;
  		}
  	}
-@@ -162,6 +163,14 @@ static const char *tomoyo_last_word(cons
+@@ -163,6 +164,14 @@ static const char *tomoyo_last_word(cons
          return name;
  }
  
@@ -338,7 +338,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static bool tomoyo_same_transition_control(const struct tomoyo_acl_head *a,
  					   const struct tomoyo_acl_head *b)
  {
-@@ -177,22 +186,28 @@ static bool tomoyo_same_transition_contr
+@@ -178,22 +187,28 @@ static bool tomoyo_same_transition_contr
  }
  
  /**
@@ -377,7 +377,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (program) {
  		if (!tomoyo_correct_path(program))
  			return -EINVAL;
-@@ -210,42 +225,16 @@ static int tomoyo_update_transition_cont
+@@ -211,42 +226,16 @@ static int tomoyo_update_transition_cont
  		if (!e.domainname)
  			goto out;
  	}
@@ -423,7 +423,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_transition_type - Get domain transition type.
   *
   * @domainname: The name of domain.
-@@ -302,34 +291,41 @@ static u8 tomoyo_transition_type(const s
+@@ -303,34 +292,41 @@ static u8 tomoyo_transition_type(const s
  	return type;
  }
  
@@ -477,7 +477,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    !tomoyo_correct_path(aggregated_name))
  		return -EINVAL;
  	e.original_name = tomoyo_get_name(original_name);
-@@ -337,36 +333,16 @@ static int tomoyo_update_aggregator_entr
+@@ -338,36 +334,16 @@ static int tomoyo_update_aggregator_entr
  	if (!e.original_name || !e.aggregated_name ||
  	    e.aggregated_name->is_patterned) /* No patterns allowed. */
  		goto out;
@@ -1144,7 +1144,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	num->values[0] = v;
 -	num->value_type[0] = type;
 +	ptr->values[0] = v;
-+	ptr->value_type[1] = type;
++	ptr->value_type[0] = type;
  	if (!*data) {
 -		num->values[1] = v;
 -		num->value_type[1] = type;

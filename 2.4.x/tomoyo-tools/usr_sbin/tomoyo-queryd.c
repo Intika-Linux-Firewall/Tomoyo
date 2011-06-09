@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -26,11 +26,7 @@
 /* Prototypes */
 
 static void tomoyo_printw(const char *fmt, ...)
-     __attribute__ ((format(printf, 1, 2)));
-/*
-static _Bool tomoyo_convert_path_info(FILE *fp,
-const struct tomoyo_path_info *pattern, const char *new);
-*/
+	__attribute__ ((format(printf, 1, 2)));
 static _Bool tomoyo_handle_query(unsigned int serial);
 
 /* Utility functions */
@@ -44,9 +40,7 @@ static void tomoyo_printw(const char *fmt, ...)
 	va_start(args, fmt);
 	len = vsnprintf((char *) &i, sizeof(i) - 1, fmt, args) + 16;
 	va_end(args);
-	buffer = malloc(len);
-	if (!buffer)
-		tomoyo_out_of_memory();
+	buffer = tomoyo_malloc(len);
 	va_start(args, fmt);
 	len = vsnprintf(buffer, len, fmt, args);
 	va_end(args);
@@ -56,95 +50,6 @@ static void tomoyo_printw(const char *fmt, ...)
 	}
 	free(buffer);
 }
-
-#if 0
-static _Bool tomoyo_check_path_info(const char *buffer)
-{
-	_Bool modified = false;
-	static struct tomoyo_path_info *update_list = NULL;
-	static int update_list_len = 0;
-	char *sp = strdup(buffer);
-	char *str = sp;
-	const char *path_list[2] = {
-		TOMOYO_PROC_POLICY_EXCEPTION_POLICY,
-		TOMOYO_PROC_POLICY_DOMAIN_POLICY
-	};
-	if (!str)
-		return false;
-	while (true) {
-		int i;
-		char *cp = strsep(&sp, " ");
-		if (!cp)
-			break;
-		for (i = 0; i < update_list_len; i++) {
-			int j;
-			struct tomoyo_path_info old;
-			/* TODO: split cp at upadte_list's depth. */
-			old.name = cp;
-			tomoyo_fill_path_info(&old);
-			if (!tomoyo_path_matches_pattern(&old, &update_list[i]))
-				continue;
-			for (j = 0; j < 2; j++) {
-				FILE *fp = fopen(path_list[j], "r+");
-				if (!fp)
-					continue;
-				if (convert_path_info(fp, &update_list[i], cp))
-					modified = true;
-				fclose(fp);
-			}
-		}
-	}
-	free(str);
-	return modified;
-}
-#endif
-
-#if 0
-static _Bool tomoyo_convert_path_info(FILE *fp,
-				   const struct tomoyo_path_info *pattern,
-				   const char *new)
-{
-	_Bool modified = false;
-	const char *cp = pattern->name;
-	int depth = 0;
-	while (*cp)
-		if (*cp++ == '/')
-			depth++;
-	while (true) {
-		int d = depth;
-		char buffer[4096];
-		char *cp;
-		if (fscanf(fp, "%4095s", buffer) != 1)
-			break;
-		if (buffer[0] != '/')
-			goto out;
-		cp = buffer;
-		while (*cp) {
-			char c;
-			struct tomoyo_path_info old;
-			_Bool matched;
-			if (*cp != '/' || --d)
-				continue;
-			cp++;
-			c = *cp;
-			*cp = '\0';
-			old.name = buffer;
-			tomoyo_fill_path_info(&old);
-			matched = tomoyo_path_matches_pattern(&old, pattern);
-			*cp = c;
-			if (matched) {
-				fprintf(fp, "%s%s", new, cp);
-				modified = true;
-				buffer[0] = '\0';
-				break;
-			}
-		}
-out:
-		fprintf(fp, "%s ", buffer);
-	}
-	return modified;
-}
-#endif
 
 static void tomoyo_send_keepalive(void)
 {
@@ -166,8 +71,7 @@ static int tomoyo_domain_policy_fd = EOF;
 #define TOMOYO_MAX_READLINE_HISTORY 20
 static const char **tomoyo_readline_history = NULL;
 static int tomoyo_readline_history_count = 0;
-static const int tomoyo_buffer_len = 32768;
-static char *tomoyo_buffer = NULL;
+static char tomoyo_buffer[32768];
 
 /* Main functions */
 
@@ -192,12 +96,6 @@ static _Bool tomoyo_handle_query(unsigned int serial)
 		return false;
 	}
 	*(cp - 1) = '\0';
-	/*
-	if (0 && !tomoyo_retries && check_path_info(tomoyo_buffer)) {
-		c = 'r';
-		goto write_answer;
-	}
-	*/
 	if (pid != prev_pid) {
 		if (prev_pid)
 			tomoyo_printw("----------------------------------------"
@@ -242,7 +140,7 @@ static _Bool tomoyo_handle_query(unsigned int serial)
 				int i;
 				int len = read(tomoyo_domain_policy_fd,
 					       tomoyo_buffer,
-					       tomoyo_buffer_len - 1);
+					       sizeof(tomoyo_buffer) - 1);
 				if (len <= 0)
 					break;
 				for (i = 0; i < len; i++) {
@@ -301,7 +199,7 @@ write_answer:
 		c = 3;
 	else
 		c = 2;
-	snprintf(tomoyo_buffer, tomoyo_buffer_len - 1, "A%u=%u\n", serial, c);
+	snprintf(tomoyo_buffer, sizeof(tomoyo_buffer) - 1, "A%u=%u\n", serial, c);
 	ret_ignored = write(tomoyo_query_fd, tomoyo_buffer, strlen(tomoyo_buffer));
 	tomoyo_printw("\n");
 	return true;
@@ -364,10 +262,8 @@ ok:
 			"run this program.\n", TOMOYO_PROC_POLICY_MANAGER);
 		return 1;
 	}
-	tomoyo_readline_history = malloc(TOMOYO_MAX_READLINE_HISTORY *
-				      sizeof(const char *));
-	if (!tomoyo_readline_history)
-		tomoyo_out_of_memory();
+	tomoyo_readline_history = tomoyo_malloc(TOMOYO_MAX_READLINE_HISTORY *
+					  sizeof(const char *));
 	tomoyo_send_keepalive();
 	initscr();
 	cbreak();
@@ -387,40 +283,32 @@ ok:
 		tomoyo_printw("Monitoring /sys/kernel/security/tomoyo/query .");
 	tomoyo_printw(" Press Ctrl-C to terminate.\n\n");
 	while (true) {
-		static _Bool first = true;
-		static unsigned int prev_serial = 0;
-		fd_set rfds;
 		unsigned int serial;
 		char *cp;
-		if (!tomoyo_buffer) {
-			tomoyo_buffer = malloc(tomoyo_buffer_len);
-			if (!tomoyo_buffer)
-				break;
-		}
-		/* Wait for query. */
+		/* Wait for query and read query. */
+		memset(tomoyo_buffer, 0, sizeof(tomoyo_buffer));
 		if (tomoyo_network_mode) {
 			int i;
 			int ret_ignored;
 			ret_ignored = write(tomoyo_query_fd, "", 1);
-			memset(tomoyo_buffer, 0, tomoyo_buffer_len);
-			for (i = 0; i < tomoyo_buffer_len - 1; i++) {
+			for (i = 0; i < sizeof(tomoyo_buffer) - 1; i++) {
 				if (read(tomoyo_query_fd, tomoyo_buffer + i, 1) != 1)
 					break;
 				if (!tomoyo_buffer[i])
 					goto read_ok;
 			}
 			break;
+		} else {
+			fd_set rfds;
+			FD_ZERO(&rfds);
+			FD_SET(tomoyo_query_fd, &rfds);
+			select(tomoyo_query_fd + 1, &rfds, NULL, NULL, NULL);
+			if (!FD_ISSET(tomoyo_query_fd, &rfds))
+				continue;
+			if (read(tomoyo_query_fd, tomoyo_buffer,
+				 sizeof(tomoyo_buffer) - 1) <= 0)
+				continue;
 		}
-		FD_ZERO(&rfds);
-		FD_SET(tomoyo_query_fd, &rfds);
-		select(tomoyo_query_fd + 1, &rfds, NULL, NULL, NULL);
-		if (!FD_ISSET(tomoyo_query_fd, &rfds))
-			continue;
-
-		/* Read query. */
-		memset(tomoyo_buffer, 0, tomoyo_buffer_len);
-		if (read(tomoyo_query_fd, tomoyo_buffer, tomoyo_buffer_len - 1) <= 0)
-			continue;
 read_ok:
 		cp = strchr(tomoyo_buffer, '\n');
 		if (!cp)
@@ -432,8 +320,6 @@ read_ok:
 			continue;
 		memmove(tomoyo_buffer, cp + 1, strlen(cp + 1) + 1);
 
-		first = false;
-		prev_serial = serial;
 		/* Clear pending input. */;
 		timeout(0);
 		while (true) {

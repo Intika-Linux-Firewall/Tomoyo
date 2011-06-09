@@ -19,7 +19,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -1818,9 +1818,7 @@ static void tomoyo_read_self_domain(stru
+@@ -1820,9 +1820,7 @@ static void tomoyo_read_self_domain(stru
   * @type: Type of interface.
   * @file: Pointer to "struct file".
   *
@@ -30,7 +30,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  int tomoyo_open_control(const u8 type, struct file *file)
  {
-@@ -1919,9 +1917,6 @@ int tomoyo_open_control(const u8 type, s
+@@ -1921,9 +1919,6 @@ int tomoyo_open_control(const u8 type, s
  			return -ENOMEM;
  		}
  	}
@@ -40,7 +40,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * If the file is /sys/kernel/security/tomoyo/query , increment the
  	 * observer counter.
-@@ -1930,6 +1925,8 @@ int tomoyo_open_control(const u8 type, s
+@@ -1932,6 +1927,8 @@ int tomoyo_open_control(const u8 type, s
  	 */
  	if (type == TOMOYO_QUERY)
  		atomic_inc(&tomoyo_query_observers);
@@ -49,7 +49,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
-@@ -1998,13 +1995,12 @@ static inline bool tomoyo_has_more_names
+@@ -2000,13 +1997,12 @@ static inline bool tomoyo_has_more_names
   * @buffer_len: Size of @buffer.
   *
   * Returns bytes read on success, negative value otherwise.
@@ -64,7 +64,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (!head->read)
  		return -ENOSYS;
-@@ -2012,6 +2008,7 @@ int tomoyo_read_control(struct tomoyo_io
+@@ -2014,6 +2010,7 @@ int tomoyo_read_control(struct tomoyo_io
  		return -EINTR;
  	head->read_user_buf = buffer;
  	head->read_user_buf_avail = buffer_len;
@@ -72,7 +72,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (tomoyo_flush(head))
  		/* Call the policy handler. */
  		do {
-@@ -2019,6 +2016,7 @@ int tomoyo_read_control(struct tomoyo_io
+@@ -2021,6 +2018,7 @@ int tomoyo_read_control(struct tomoyo_io
  			head->read(head);
  		} while (tomoyo_flush(head) &&
  			 tomoyo_has_more_namespace(head));
@@ -80,7 +80,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	len = head->read_user_buf - buffer;
  	mutex_unlock(&head->io_sem);
  	return len;
-@@ -2069,8 +2067,6 @@ static int tomoyo_parse_policy(struct to
+@@ -2071,8 +2069,6 @@ static int tomoyo_parse_policy(struct to
   * @buffer_len: Size of @buffer.
   *
   * Returns @buffer_len on success, negative value otherwise.
@@ -89,7 +89,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  int tomoyo_write_control(struct tomoyo_io_buffer *head,
  			 const char __user *buffer, const int buffer_len)
-@@ -2078,12 +2074,14 @@ int tomoyo_write_control(struct tomoyo_i
+@@ -2080,12 +2076,14 @@ int tomoyo_write_control(struct tomoyo_i
  	int error = buffer_len;
  	size_t avail_len = buffer_len;
  	char *cp0 = head->write_buf;
@@ -104,7 +104,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
-@@ -2146,6 +2144,7 @@ int tomoyo_write_control(struct tomoyo_i
+@@ -2148,6 +2146,7 @@ int tomoyo_write_control(struct tomoyo_i
  		}
  	}
  out:
@@ -112,7 +112,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mutex_unlock(&head->io_sem);
  	return error;
  }
-@@ -2155,30 +2154,18 @@ out:
+@@ -2157,30 +2156,18 @@ out:
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
   *

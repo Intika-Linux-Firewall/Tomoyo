@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -254,12 +254,13 @@ static void tomoyo_test_init(void)
 	{
 		FILE *fp = fopen("/proc/sys/kernel/osrelease", "r");
 		int version = 0;
-		if (!fp || fscanf(fp, "2.%d.", &version) != 1 || fclose(fp)) {
+		if (!fp || (fscanf(fp, "2.%d.", &version) != 1 &&
+			    fscanf(fp, "%d.", &version) != 1) || fclose(fp)) {
 			fprintf(stderr, "Can't read /proc/sys/kernel/osrelease"
 				"\n");
 			exit(1);
 		}
-		if (version == 6)
+		if (version == 6 || version == 3)
 			is_kernel26 = 1;
 	}
 	{
@@ -507,6 +508,8 @@ static int write_exception_policy(const char *policy, int is_delete)
 			char *line = tomoyo_freadline_unpack(fp);
 			if (!line)
 				break;
+			if (!strncmp(line, "<kernel> ", 9))
+				line += 9;
 			/* printf("<%s>\n", buffer); */
 			if (strcmp(line, policy))
 				continue;
@@ -547,6 +550,8 @@ static int set_profile(const int mode, const char *name)
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
+		if (!strncmp(buffer, "<kernel> ", 9))
+			memmove(buffer, buffer + 9, strlen(buffer + 9) + 1);
 		if (strncmp(buffer, "255-CONFIG::", 12) ||
 		    strncmp(buffer + 12, name, len) ||
 		    buffer[12 + len] != '=')

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -61,9 +61,7 @@ static void tomoyo_notifyd_init_rules(const char *filename)
 			goto invalid_rule;
 		if (action)
 			goto invalid_rule;
-		action = strdup(line);
-		if (!action)
-			tomoyo_out_of_memory();
+		action = tomoyo_strdup(line);
 	}
 	tomoyo_put();
 	fclose(fp);
@@ -76,10 +74,8 @@ static void tomoyo_notifyd_init_rules(const char *filename)
 		char *sp = action;
 		while (true) {
 			char *cp = strsep(&sp, " ");
-			action_to_take = realloc(action_to_take,
-						 sizeof(char *) * ++count);
-			if (!action_to_take)
-				tomoyo_out_of_memory();
+			action_to_take = tomoyo_realloc(action_to_take,
+						     sizeof(char *) * ++count);
 			action_to_take[count - 1] = cp;
 			if (!cp)
 				break;

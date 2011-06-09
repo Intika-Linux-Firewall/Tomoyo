@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -237,8 +237,10 @@ static void tomoyo_tokenize(char *buffer, char *w[5],
 		if (!cp)
 			return;
 		if (index == TOMOYO_DIRECTIVE_IPC_SIGNAL && i == 1 &&
-		    !strncmp(buffer, "<kernel>", 8)) {
-			cp = buffer + 8;
+		    tomoyo_domain_def(buffer)) {
+			cp = strchr(buffer, ' ');
+			if (!cp)
+				return;
 			while (*cp) {
 				if (*cp++ != ' ' || *cp++ == '/')
 					continue;
@@ -318,7 +320,10 @@ static _Bool tomoyo_compare_number(const char *sarg, const char *darg)
 void tomoyo_editpolicy_optimize(const int current)
 {
 	char *cp;
+	const bool is_exception_list =
+		tomoyo_current_screen == TOMOYO_SCREEN_EXCEPTION_LIST;
 	enum tomoyo_editpolicy_directives s_index;
+	enum tomoyo_editpolicy_directives s_index2;
 	int index;
 	char *s[5];
 	char *d[5];
@@ -327,26 +332,44 @@ void tomoyo_editpolicy_optimize(const int current)
 	s_index = tomoyo_gacl_list[current].directive;
 	if (s_index == TOMOYO_DIRECTIVE_NONE)
 		return;
+	/* Allow acl_group lines to be optimized. */
+	if (is_exception_list &&
+	    (s_index < TOMOYO_DIRECTIVE_ACL_GROUP_000 ||
+	     s_index > TOMOYO_DIRECTIVE_ACL_GROUP_255))
+		return;
 	cp = strdup(tomoyo_gacl_list[current].operand);
 	if (!cp)
 		return;
+	s_index2 = s_index;
+	if (is_exception_list)
+		s_index = tomoyo_find_directive(true, cp);
 	tomoyo_tokenize(cp, s, s_index);
 	tomoyo_get();
 	for (index = 0; index < tomoyo_list_item_count; index++) {
 		char *line;
-		const enum tomoyo_editpolicy_directives d_index =
+		enum tomoyo_editpolicy_directives d_index =
 			tomoyo_gacl_list[index].directive;
+		enum tomoyo_editpolicy_directives d_index2;
 		if (index == current)
 			/* Skip source. */
 			continue;
 		if (tomoyo_gacl_list[index].selected)
 			/* Dest already selected. */
 			continue;
-		else if (s_index != d_index)
+		else if (s_index == s_index2 && s_index != d_index)
+			/* Source and dest have different directive. */
+			continue;
+		else if (is_exception_list && s_index2 != d_index)
 			/* Source and dest have different directive. */
 			continue;
 		/* Source and dest have same directive. */
 		line = tomoyo_shprintf("%s", tomoyo_gacl_list[index].operand);
+		d_index2 = d_index;
+		if (is_exception_list)
+			d_index = tomoyo_find_directive(true, line);
+		if (s_index != d_index || s_index2 != d_index2)
+			/* Source and dest have different directive. */
+			continue;
 		tomoyo_tokenize(line, d, d_index);
 		/* Compare condition part. */
 		if (strcmp(s[4], d[4]))
@@ -478,8 +501,6 @@ static int tomoyo_add_address_group_entry(const char *group_name,
 	if (!tomoyo_correct_word(group_name))
 		return -EINVAL;
 	saved_group_name = tomoyo_savename(group_name);
-	if (!saved_group_name)
-		return -ENOMEM;
 	for (i = 0; i < tomoyo_address_group_list_len; i++) {
 		group = &tomoyo_address_group_list[i];
 		if (saved_group_name != group->group_name)
@@ -501,22 +522,17 @@ static int tomoyo_add_address_group_entry(const char *group_name,
 	if (is_delete)
 		return -ENOENT;
 	if (i == tomoyo_address_group_list_len) {
-		void *vp;
-		vp = realloc(tomoyo_address_group_list,
-			     (tomoyo_address_group_list_len + 1) *
-			     sizeof(struct tomoyo_address_group_entry));
-		if (!vp)
-			tomoyo_out_of_memory();
-		tomoyo_address_group_list = vp;
+		tomoyo_address_group_list =
+			tomoyo_realloc(tomoyo_address_group_list,
+				    (tomoyo_address_group_list_len + 1) *
+				    sizeof(struct tomoyo_address_group_entry));
 		group = &tomoyo_address_group_list[tomoyo_address_group_list_len++];
 		memset(group, 0, sizeof(struct tomoyo_address_group_entry));
 		group->group_name = saved_group_name;
 	}
 	group->member_name =
-		realloc(group->member_name, (group->member_name_len + 1) *
-			sizeof(const struct tomoyo_ip_address_entry));
-	if (!group->member_name)
-		tomoyo_out_of_memory();
+		tomoyo_realloc(group->member_name, (group->member_name_len + 1) *
+			    sizeof(const struct tomoyo_ip_address_entry));
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }
@@ -564,8 +580,6 @@ static int tomoyo_add_number_group_entry(const char *group_name,
 	if (!tomoyo_correct_word(group_name))
 		return -EINVAL;
 	saved_group_name = tomoyo_savename(group_name);
-	if (!saved_group_name)
-		return -ENOMEM;
 	for (i = 0; i < tomoyo_number_group_list_len; i++) {
 		group = &tomoyo_number_group_list[i];
 		if (saved_group_name != group->group_name)
@@ -587,22 +601,17 @@ static int tomoyo_add_number_group_entry(const char *group_name,
 	if (is_delete)
 		return -ENOENT;
 	if (i == tomoyo_number_group_list_len) {
-		void *vp;
-		vp = realloc(tomoyo_number_group_list,
-			     (tomoyo_number_group_list_len + 1) *
-			     sizeof(struct tomoyo_number_group_entry));
-		if (!vp)
-			tomoyo_out_of_memory();
-		tomoyo_number_group_list = vp;
+		tomoyo_number_group_list =
+			tomoyo_realloc(tomoyo_number_group_list,
+				    (tomoyo_number_group_list_len + 1) *
+				    sizeof(struct tomoyo_number_group_entry));
 		group = &tomoyo_number_group_list[tomoyo_number_group_list_len++];
 		memset(group, 0, sizeof(struct tomoyo_number_group_entry));
 		group->group_name = saved_group_name;
 	}
-	group->member_name = realloc(group->member_name,
-				     (group->member_name_len + 1) *
-				     sizeof(const struct tomoyo_number_entry));
-	if (!group->member_name)
-		tomoyo_out_of_memory();
+	group->member_name =
+		tomoyo_realloc(group->member_name, (group->member_name_len + 1) *
+			    sizeof(const struct tomoyo_number_entry));
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -236,7 +236,8 @@ static char *tomoyo_readline(const int start_y, const int start_x,
 			if (history_pos) {
 				if (!tmp_saved) {
 					tmp_saved = true;
-					strncpy(tmp_buffer, buffer, max_length);
+					strncpy(tmp_buffer, buffer,
+						max_length);
 				}
 				history_pos--;
 				strncpy(buffer, history[history_pos],

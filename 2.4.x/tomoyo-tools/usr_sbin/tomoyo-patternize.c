@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -313,9 +313,7 @@ static void tomoyo_patternize_init_rules(const char *filename)
 		tomoyo_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
-		rules = realloc(rules, (rules_len + 1) * sizeof(*ptr));
-		if (!rules)
-			tomoyo_out_of_memory();
+		rules = tomoyo_realloc(rules, (rules_len + 1) * sizeof(*ptr));
 		ptr = &rules[rules_len++];
 		memset(ptr, 0, sizeof(*ptr));
 		if (tomoyo_str_starts(line, "rewrite ")) {
@@ -352,9 +350,7 @@ static void tomoyo_patternize_init_rules(const char *filename)
 					goto invalid_rule;
 				if (!tomoyo_correct_word(line))
 					goto invalid_rule;
-				line = strdup(line);
-				if (!line)
-					tomoyo_out_of_memory();
+				line = tomoyo_strdup(line);
 				ptr->u.path.name = line;
 				tomoyo_fill_path_info(&ptr->u.path);
 			}
@@ -394,9 +390,7 @@ static void tomoyo_patternize_init_rules(const char *filename)
 		}
 		if (!*line)
 			goto invalid_rule;
-		line = strdup(line);
-		if (!line)
-			tomoyo_out_of_memory();
+		line = tomoyo_strdup(line);
 		ptr->string = line;
 		ptr->string_len = strlen(line);
 	}
@@ -514,7 +508,7 @@ int main(int argc, char *argv[])
 		char *sp = tomoyo_freadline_unpack(stdin);
 		if (!sp)
 			break;
-		if (!strncmp(sp, "<kernel>", 8) && (!sp[8] || sp[8] == ' ')) {
+		if (tomoyo_domain_def(sp)) {
 			free(tomoyo_current_domainname);
 			tomoyo_current_domainname = strdup(sp);
 			printf("%s\n", sp);

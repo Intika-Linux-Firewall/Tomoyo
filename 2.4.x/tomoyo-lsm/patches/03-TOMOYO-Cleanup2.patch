@@ -6,11 +6,11 @@ Remove or replace some of #define lines.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c        |   38 +--
- security/tomoyo/common.h        |  453 +++++++++++++---------------------------
+ security/tomoyo/common.h        |  441 +++++++++++++---------------------------
  security/tomoyo/file.c          |    3 
- security/tomoyo/mount.c         |   79 +++---
+ security/tomoyo/mount.c         |   79 +++----
  security/tomoyo/securityfs_if.c |    2 
- 5 files changed, 214 insertions(+), 361 deletions(-)
+ 5 files changed, 204 insertions(+), 359 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -849,7 +849,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
  {
  	if (name) {
-@@ -891,42 +711,85 @@ static inline void tomoyo_put_name(const
+@@ -891,17 +711,36 @@ static inline void tomoyo_put_name(const
  	}
  }
  
@@ -886,24 +886,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline struct tomoyo_domain_info *tomoyo_real_domain(struct task_struct
  							    *task)
  {
- 	return task_cred_xxx(task, security);
+@@ -909,24 +748,40 @@ static inline struct tomoyo_domain_info 
  }
  
--static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
+ static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *p1,
 -					   const struct tomoyo_acl_info *p2)
-+/**
-+ * tomoyo_same_acl_head - Check for duplicated "struct tomoyo_acl_info" entry.
-+ *
-+ * @a: Pointer to "struct tomoyo_acl_info".
-+ * @b: Pointer to "struct tomoyo_acl_info".
-+ *
-+ * Returns true if @a == @b, false otherwise.
-+ */
-+static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *a,
-+					const struct tomoyo_acl_info *b)
++					const struct tomoyo_acl_info *p2)
  {
--	return p1->type == p2->type;
-+	return a->type == b->type;
+ 	return p1->type == p2->type;
  }
  
 +/**
