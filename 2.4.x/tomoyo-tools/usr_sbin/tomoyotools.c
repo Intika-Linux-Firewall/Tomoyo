@@ -2050,7 +2050,7 @@ _Bool tomoyo_check_remote_host(void)
 void tomoyo_mount_securityfs(void)
 {
 	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
-		if (/* unshare(CLONE_NEWNS) || */
+		if (unshare(CLONE_NEWNS) ||
 		    mount("none", "/sys/kernel/security/", "securityfs", 0,
 			  NULL)) {
 			fprintf(stderr, "Please mount securityfs on "

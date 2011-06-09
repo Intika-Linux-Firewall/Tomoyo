@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
 	if (argc != 1)
 		goto usage;
 	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
+	tomoyo_mount_securityfs();
 	umask(0);
 	switch (fork()) {
 	case 0:

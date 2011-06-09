@@ -3256,6 +3256,7 @@ int main(int argc, char *argv[])
 	}
 	if (tomoyo_network_mode)
 		goto start;
+	tomoyo_mount_securityfs();
 	if (chdir(TOMOYO_PROC_POLICY_DIR)) {
 		fprintf(stderr,
 			"You can't use this editor for this kernel.\n");

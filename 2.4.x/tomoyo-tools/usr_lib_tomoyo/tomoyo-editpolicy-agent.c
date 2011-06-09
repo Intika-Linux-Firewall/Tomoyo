@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 	socklen_t size = sizeof(addr);
 	char *port;
 	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
-		if (/* unshare(CLONE_NEWNS) || */
+		if (unshare(CLONE_NEWNS) ||
 		    mount("none", "/sys/kernel/security/", "securityfs", 0,
 			  NULL)) {
 			fprintf(stderr, "Please mount securityfs on "
