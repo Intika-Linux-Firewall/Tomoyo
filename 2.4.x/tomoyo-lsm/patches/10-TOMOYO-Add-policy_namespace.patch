@@ -977,7 +977,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  extern const char *tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION];
  extern const char *tomoyo_mkdev_keyword[TOMOYO_MAX_MKDEV_OPERATION];
-@@ -833,6 +863,16 @@ static inline bool tomoyo_same_number_un
+@@ -809,6 +839,16 @@ static inline bool tomoyo_same_number_un
  		a->value_type[1] == b->value_type[1];
  }
  
@@ -1630,7 +1630,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
-@@ -419,26 +419,21 @@ bool tomoyo_correct_path(const char *fil
+@@ -416,26 +416,21 @@ bool tomoyo_correct_path(const char *fil
   */
  bool tomoyo_correct_domain(const unsigned char *domainname)
  {
@@ -1662,7 +1662,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -450,7 +445,19 @@ bool tomoyo_correct_domain(const unsigne
+@@ -447,7 +442,19 @@ bool tomoyo_correct_domain(const unsigne
   */
  bool tomoyo_domain_def(const unsigned char *buffer)
  {
@@ -1683,7 +1683,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -836,22 +843,24 @@ const char *tomoyo_get_exe(void)
+@@ -833,22 +840,24 @@ const char *tomoyo_get_exe(void)
  /**
   * tomoyo_get_mode - Get MAC mode.
   *
@@ -1712,7 +1712,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return mode & 3;
  }
  
-@@ -872,29 +881,15 @@ int tomoyo_init_request_info(struct tomo
+@@ -869,29 +878,15 @@ int tomoyo_init_request_info(struct tomo
  	if (!domain)
  		domain = tomoyo_domain();
  	r->domain = domain;
@@ -1744,7 +1744,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_domain_quota_is_ok - Check for domain's quota.
   *
   * @r: Pointer to "struct tomoyo_request_info".
-@@ -942,7 +937,7 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -939,7 +934,7 @@ bool tomoyo_domain_quota_is_ok(struct to
  			if (perm & (1 << i))
  				count++;
  	}

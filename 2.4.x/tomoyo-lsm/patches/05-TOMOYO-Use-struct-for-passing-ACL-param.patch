@@ -12,8 +12,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/group.c  |   33 ++----
  security/tomoyo/memory.c |   20 ++-
  security/tomoyo/mount.c  |   53 ----------
- security/tomoyo/util.c   |   93 +++++++++++++-----
- 8 files changed, 347 insertions(+), 345 deletions(-)
+ security/tomoyo/util.c   |  120 +++++++++++++----------
+ 8 files changed, 347 insertions(+), 372 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -1165,3 +1165,37 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return true;
  }
  
+@@ -259,33 +304,6 @@ void tomoyo_normalize_line(unsigned char
+ }
+ 
+ /**
+- * tomoyo_tokenize - Tokenize string.
+- *
+- * @buffer: The line to tokenize.
+- * @w:      Pointer to "char *".
+- * @size:   Sizeof @w .
+- *
+- * Returns true on success, false otherwise.
+- */
+-bool tomoyo_tokenize(char *buffer, char *w[], size_t size)
+-{
+-	int count = size / sizeof(char *);
+-	int i;
+-	for (i = 0; i < count; i++)
+-		w[i] = "";
+-	for (i = 0; i < count; i++) {
+-		char *cp = strchr(buffer, ' ');
+-		if (cp)
+-			*cp = '\0';
+-		w[i] = buffer;
+-		if (!cp)
+-			break;
+-		buffer = cp + 1;
+-	}
+-	return i < count || !*buffer;
+-}
+-
+-/**
+  * tomoyo_correct_word2 - Validate a string.
+  *
+  * @string: The string to check. May be non-'\0'-terminated.
