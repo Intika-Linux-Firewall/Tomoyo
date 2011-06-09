@@ -514,7 +514,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_MAC_FILE_OPEN]       = TOMOYO_MAC_CATEGORY_FILE,
 +	[TOMOYO_MAC_FILE_CREATE]     = TOMOYO_MAC_CATEGORY_FILE,
 +	[TOMOYO_MAC_FILE_UNLINK]     = TOMOYO_MAC_CATEGORY_FILE,
-+	/* [TOMOYO_MAC_FILE_GETATTR]    = TOMOYO_MAC_CATEGORY_FILE, */
++	[TOMOYO_MAC_FILE_GETATTR]    = TOMOYO_MAC_CATEGORY_FILE,
 +	[TOMOYO_MAC_FILE_MKDIR]      = TOMOYO_MAC_CATEGORY_FILE,
 +	[TOMOYO_MAC_FILE_RMDIR]      = TOMOYO_MAC_CATEGORY_FILE,
 +	[TOMOYO_MAC_FILE_MKFIFO]     = TOMOYO_MAC_CATEGORY_FILE,
@@ -538,7 +538,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_permstr - Find permission keywords.
   *
-@@ -940,9 +971,11 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -937,9 +968,11 @@ bool tomoyo_domain_quota_is_ok(struct to
  	if (count < tomoyo_profile(domain->ns, domain->profile)->
  	    pref[TOMOYO_PREF_MAX_LEARNING_ENTRY])
  		return true;
