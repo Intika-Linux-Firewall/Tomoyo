@@ -14,7 +14,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -55,7 +55,7 @@ static const char *tomoyo_mac_keywords[T
+@@ -56,7 +56,7 @@ static const char *tomoyo_mac_keywords[T
  	[TOMOYO_MAC_FILE_IOCTL]      = "file::ioctl",
  	[TOMOYO_MAC_FILE_CHROOT]     = "file::chroot",
  	[TOMOYO_MAC_FILE_MOUNT]      = "file::mount",
@@ -23,7 +23,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_MAC_FILE_PIVOT_ROOT] = "file::pivot_root",
  	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE] = "file",
  };
-@@ -170,11 +170,25 @@ void tomoyo_io_printf(struct tomoyo_io_b
+@@ -171,11 +171,25 @@ void tomoyo_io_printf(struct tomoyo_io_b
  	tomoyo_set_string(head, head->read_buf + pos);
  }
  
@@ -49,7 +49,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static bool tomoyo_set_lf(struct tomoyo_io_buffer *head)
  {
  	tomoyo_set_string(head, "\n");
-@@ -182,6 +196,18 @@ static bool tomoyo_set_lf(struct tomoyo_
+@@ -183,6 +197,18 @@ static bool tomoyo_set_lf(struct tomoyo_
  }
  
  /**
@@ -68,7 +68,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_name_union - Print a tomoyo_name_union.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -911,20 +937,19 @@ static int tomoyo_write_domain(struct to
+@@ -912,20 +938,19 @@ static int tomoyo_write_domain(struct to
  	return tomoyo_write_domain2(&domain->acl_info_list, data, is_delete);
  }
  
@@ -97,7 +97,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -939,58 +964,94 @@ static bool tomoyo_print_entry(struct to
+@@ -940,58 +965,94 @@ static bool tomoyo_print_entry(struct to
  			       struct tomoyo_acl_info *acl)
  {
  	const u8 acl_type = acl->type;
@@ -212,7 +212,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		tomoyo_print_name_union(head, &ptr->name);
  		tomoyo_print_number_union(head, &ptr->mode);
  		tomoyo_print_number_union(head, &ptr->major);
-@@ -998,18 +1059,13 @@ static bool tomoyo_print_entry(struct to
+@@ -999,18 +1060,13 @@ static bool tomoyo_print_entry(struct to
  	} else if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
  		struct tomoyo_mount_acl *ptr =
  			container_of(acl, typeof(*ptr), head);
@@ -233,7 +233,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return true;
  }
  
-@@ -1315,18 +1371,14 @@ static bool tomoyo_read_policy(struct to
+@@ -1316,18 +1372,14 @@ static bool tomoyo_read_policy(struct to
  			{
  				struct tomoyo_transition_control *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -261,7 +261,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		case TOMOYO_ID_AGGREGATOR:
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -401,7 +401,7 @@ struct tomoyo_acl_param {
+@@ -404,7 +404,7 @@ struct tomoyo_acl_param {
  	bool is_delete;
  };
  
@@ -270,7 +270,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /*
   * Structure for reading/writing policy via /sys/kernel/security/tomoyo
-@@ -636,6 +636,10 @@ extern const char *tomoyo_mkdev_keyword[
+@@ -639,6 +639,10 @@ extern const char *tomoyo_mkdev_keyword[
  extern const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION];
  extern const char *tomoyo_path_number_keyword[TOMOYO_MAX_PATH_NUMBER_OPERATION];
  
@@ -302,7 +302,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				goto out;
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -67,7 +67,7 @@ static const u8 tomoyo_p2mac[TOMOYO_MAX_
+@@ -69,7 +69,7 @@ static const u8 tomoyo_p2mac[TOMOYO_MAX_
  /*
   * Mapping table from "enum tomoyo_mkdev_acl_index" to "enum tomoyo_mac_index".
   */
@@ -311,7 +311,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_MKBLOCK] = TOMOYO_MAC_FILE_MKBLOCK,
  	[TOMOYO_TYPE_MKCHAR]  = TOMOYO_MAC_FILE_MKCHAR,
  };
-@@ -75,7 +75,7 @@ static const u8 tomoyo_pnnn2mac[TOMOYO_M
+@@ -77,7 +77,7 @@ static const u8 tomoyo_pnnn2mac[TOMOYO_M
  /*
   * Mapping table from "enum tomoyo_path2_acl_index" to "enum tomoyo_mac_index".
   */
@@ -320,7 +320,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_LINK]       = TOMOYO_MAC_FILE_LINK,
  	[TOMOYO_TYPE_RENAME]     = TOMOYO_MAC_FILE_RENAME,
  	[TOMOYO_TYPE_PIVOT_ROOT] = TOMOYO_MAC_FILE_PIVOT_ROOT,
-@@ -85,7 +85,7 @@ static const u8 tomoyo_pp2mac[TOMOYO_MAX
+@@ -87,7 +87,7 @@ static const u8 tomoyo_pp2mac[TOMOYO_MAX
   * Mapping table from "enum tomoyo_path_number_acl_index" to
   * "enum tomoyo_mac_index".
   */
@@ -329,7 +329,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_CREATE] = TOMOYO_MAC_FILE_CREATE,
  	[TOMOYO_TYPE_MKDIR]  = TOMOYO_MAC_FILE_MKDIR,
  	[TOMOYO_TYPE_MKFIFO] = TOMOYO_MAC_FILE_MKFIFO,
-@@ -209,8 +209,7 @@ static int tomoyo_audit_path_log(struct 
+@@ -211,8 +211,7 @@ static int tomoyo_audit_path_log(struct 
  	if (r->granted)
  		return 0;
  	tomoyo_warn_log(r, "%s %s", operation, filename->name);
@@ -339,7 +339,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -229,7 +228,7 @@ static int tomoyo_audit_path2_log(struct
+@@ -231,7 +230,7 @@ static int tomoyo_audit_path2_log(struct
  		return 0;
  	tomoyo_warn_log(r, "%s %s %s", operation, filename1->name,
  			filename2->name);
@@ -348,7 +348,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				 filename1->name, filename2->name);
  }
  
-@@ -251,7 +250,7 @@ static int tomoyo_audit_mkdev_log(struct
+@@ -253,7 +252,7 @@ static int tomoyo_audit_mkdev_log(struct
  		return 0;
  	tomoyo_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
  			major, minor);
@@ -357,7 +357,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				 filename->name, mode, major, minor);
  }
  
-@@ -290,7 +289,7 @@ static int tomoyo_audit_path_number_log(
+@@ -291,7 +290,7 @@ static int tomoyo_audit_path_number_log(
  	tomoyo_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
  			   radix);
  	tomoyo_warn_log(r, "%s %s %s", operation, filename->name, buffer);

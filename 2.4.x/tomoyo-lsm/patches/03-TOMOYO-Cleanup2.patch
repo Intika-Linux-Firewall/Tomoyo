@@ -6,14 +6,15 @@ Remove or replace some of #define lines.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c        |   38 +--
- security/tomoyo/common.h        |  454 +++++++++++++---------------------------
+ security/tomoyo/common.h        |  453 +++++++++++++---------------------------
+ security/tomoyo/file.c          |    3 
  security/tomoyo/mount.c         |   79 +++---
  security/tomoyo/securityfs_if.c |    2 
- 4 files changed, 213 insertions(+), 360 deletions(-)
+ 5 files changed, 214 insertions(+), 361 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -642,7 +642,7 @@ static int tomoyo_update_manager_entry(c
+@@ -643,7 +643,7 @@ static int tomoyo_update_manager_entry(c
  static int tomoyo_write_manager(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -22,7 +23,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (!strcmp(data, "manage_by_non_root")) {
  		tomoyo_manage_by_non_root = !is_delete;
-@@ -829,7 +829,7 @@ static int tomoyo_delete_domain(char *do
+@@ -830,7 +830,7 @@ static int tomoyo_delete_domain(char *do
  static int tomoyo_write_domain2(char *data, struct tomoyo_domain_info *domain,
  				const bool is_delete)
  {
@@ -31,7 +32,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return tomoyo_write_mount(data, domain, is_delete);
  	return tomoyo_write_file(data, domain, is_delete);
  }
-@@ -851,9 +851,9 @@ static int tomoyo_write_domain(struct to
+@@ -852,9 +852,9 @@ static int tomoyo_write_domain(struct to
  	bool is_select = false;
  	unsigned int profile;
  
@@ -43,7 +44,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		is_select = true;
  	if (is_select && tomoyo_select_one(head, data))
  		return 0;
-@@ -874,17 +874,17 @@ static int tomoyo_write_domain(struct to
+@@ -875,17 +875,17 @@ static int tomoyo_write_domain(struct to
  	if (!domain)
  		return -EINVAL;
  
@@ -64,7 +65,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		domain->transition_failed = !is_delete;
  		return 0;
  	}
-@@ -1038,8 +1038,7 @@ static void tomoyo_read_domain(struct to
+@@ -1039,8 +1039,7 @@ static void tomoyo_read_domain(struct to
  			/* Print domainname and flags. */
  			tomoyo_set_string(head, domain->domainname->name);
  			tomoyo_set_lf(head);
@@ -74,7 +75,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  					 domain->profile);
  			if (domain->quota_warned)
  				tomoyo_set_string(head, "quota_exceeded\n");
-@@ -1191,17 +1190,15 @@ static void tomoyo_read_pid(struct tomoy
+@@ -1192,17 +1191,15 @@ static void tomoyo_read_pid(struct tomoy
  }
  
  static const char *tomoyo_transition_type[TOMOYO_MAX_TRANSITION_TYPE] = {
@@ -98,7 +99,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -1216,13 +1213,13 @@ static const char *tomoyo_group_name[TOM
+@@ -1217,13 +1214,13 @@ static const char *tomoyo_group_name[TOM
  static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -114,7 +115,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	};
  
  	for (i = 0; i < TOMOYO_MAX_TRANSITION_TYPE; i++)
-@@ -1323,8 +1320,7 @@ static bool tomoyo_read_policy(struct to
+@@ -1324,8 +1321,7 @@ static bool tomoyo_read_policy(struct to
  			{
  				struct tomoyo_aggregator *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -198,7 +199,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_path_acl_index {
  	TOMOYO_TYPE_EXECUTE,
  	TOMOYO_TYPE_READ,
-@@ -129,6 +120,7 @@ enum tomoyo_mkdev_acl_index {
+@@ -130,6 +121,7 @@ enum tomoyo_mkdev_acl_index {
  	TOMOYO_MAX_MKDEV_OPERATION
  };
  
@@ -206,7 +207,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_path2_acl_index {
  	TOMOYO_TYPE_LINK,
  	TOMOYO_TYPE_RENAME,
-@@ -136,6 +128,7 @@ enum tomoyo_path2_acl_index {
+@@ -137,6 +129,7 @@ enum tomoyo_path2_acl_index {
  	TOMOYO_MAX_PATH2_OPERATION
  };
  
@@ -214,7 +215,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_path_number_acl_index {
  	TOMOYO_TYPE_CREATE,
  	TOMOYO_TYPE_MKDIR,
-@@ -148,6 +141,7 @@ enum tomoyo_path_number_acl_index {
+@@ -149,6 +142,7 @@ enum tomoyo_path_number_acl_index {
  	TOMOYO_MAX_PATH_NUMBER_OPERATION
  };
  
@@ -222,7 +223,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_securityfs_interface_index {
  	TOMOYO_DOMAINPOLICY,
  	TOMOYO_EXCEPTIONPOLICY,
-@@ -161,6 +155,19 @@ enum tomoyo_securityfs_interface_index {
+@@ -162,6 +156,19 @@ enum tomoyo_securityfs_interface_index {
  	TOMOYO_MANAGER
  };
  
@@ -242,7 +243,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_mac_index {
  	TOMOYO_MAC_FILE_EXECUTE,
  	TOMOYO_MAC_FILE_OPEN,
-@@ -187,37 +194,30 @@ enum tomoyo_mac_index {
+@@ -189,37 +196,30 @@ enum tomoyo_mac_index {
  	TOMOYO_MAX_MAC_INDEX
  };
  
@@ -291,7 +292,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_request_info {
  	struct tomoyo_domain_info *domain;
  	/* For holding parameters. */
-@@ -226,11 +226,13 @@ struct tomoyo_request_info {
+@@ -228,11 +228,13 @@ struct tomoyo_request_info {
  			const struct tomoyo_path_info *filename;
  			/* For using wildcards at tomoyo_find_next_domain(). */
  			const struct tomoyo_path_info *matched_path;
@@ -305,7 +306,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			u8 operation;
  		} path2;
  		struct {
-@@ -238,11 +240,16 @@ struct tomoyo_request_info {
+@@ -240,11 +242,16 @@ struct tomoyo_request_info {
  			unsigned int mode;
  			unsigned int major;
  			unsigned int minor;
@@ -322,7 +323,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			u8 operation;
  		} path_number;
  		struct {
-@@ -261,26 +268,7 @@ struct tomoyo_request_info {
+@@ -263,26 +270,7 @@ struct tomoyo_request_info {
  	u8 type;
  };
  
@@ -350,7 +351,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_path_info {
  	const char *name;
  	u32 hash;          /* = full_name_hash(name, strlen(name)) */
-@@ -289,27 +277,30 @@ struct tomoyo_path_info {
+@@ -291,27 +279,30 @@ struct tomoyo_path_info {
  	bool is_patterned; /* = tomoyo_path_contains_pattern(name) */
  };
  
@@ -386,7 +387,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	u8 is_group;
  };
  
-@@ -333,56 +324,14 @@ struct tomoyo_number_group {
+@@ -335,56 +326,14 @@ struct tomoyo_number_group {
  	struct tomoyo_number_union number;
  };
  
@@ -446,7 +447,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_domain_info {
  	struct list_head list;
  	struct list_head acl_info_list;
-@@ -396,63 +345,31 @@ struct tomoyo_domain_info {
+@@ -398,63 +347,32 @@ struct tomoyo_domain_info {
  };
  
  /*
@@ -491,8 +492,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  struct tomoyo_path_number_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_NUMBER_ACL */
--	u8 perm;
-+	u8 perm; /* Bitmask of values in "enum tomoyo_path_number_acl_index". */
++	/* Bitmask of values in "enum tomoyo_path_number_acl_index". */
+ 	u8 perm;
  	struct tomoyo_name_union name;
  	struct tomoyo_number_union number;
  };
@@ -519,7 +520,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_name_union name;
  	struct tomoyo_number_union mode;
  	struct tomoyo_number_union major;
-@@ -460,38 +377,16 @@ struct tomoyo_mkdev_acl {
+@@ -462,38 +380,16 @@ struct tomoyo_mkdev_acl {
  };
  
  /*
@@ -561,7 +562,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_mount_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_MOUNT_ACL */
  	struct tomoyo_name_union dev_name;
-@@ -548,18 +443,8 @@ struct tomoyo_io_buffer {
+@@ -550,18 +446,8 @@ struct tomoyo_io_buffer {
  };
  
  /*
@@ -582,7 +583,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  struct tomoyo_transition_control {
  	struct tomoyo_acl_head head;
-@@ -570,32 +455,14 @@ struct tomoyo_transition_control {
+@@ -572,32 +458,14 @@ struct tomoyo_transition_control {
  	const struct tomoyo_path_info *program;    /* Maybe NULL */
  };
  
@@ -617,7 +618,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_manager {
  	struct tomoyo_acl_head head;
  	bool is_domain;  /* True if manager is a domainname. */
-@@ -610,6 +477,7 @@ struct tomoyo_preference {
+@@ -612,6 +480,7 @@ struct tomoyo_preference {
  	bool permissive_verbose;
  };
  
@@ -625,7 +626,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_profile {
  	const struct tomoyo_path_info *comment;
  	struct tomoyo_preference *learning;
-@@ -622,148 +490,80 @@ struct tomoyo_profile {
+@@ -624,148 +493,80 @@ struct tomoyo_profile {
  
  /********** Function prototypes. **********/
  
@@ -777,7 +778,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void __init tomoyo_mm_init(void);
  int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
  			   const struct tomoyo_path_info *filename);
-@@ -777,18 +577,11 @@ int tomoyo_path_perm(const u8 operation,
+@@ -779,18 +580,11 @@ int tomoyo_path_perm(const u8 operation,
  int tomoyo_path2_perm(const u8 operation, struct path *path1,
  		      struct path *path2);
  int tomoyo_find_next_domain(struct linux_binprm *bprm);
@@ -796,7 +797,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
  			 bool is_delete, struct tomoyo_domain_info *domain,
  			 bool (*check_duplicate) (const struct tomoyo_acl_info
-@@ -839,17 +632,36 @@ extern unsigned int tomoyo_query_memory_
+@@ -841,17 +635,36 @@ extern unsigned int tomoyo_query_memory_
  
  /********** Inlined functions. **********/
  
@@ -834,7 +835,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
  				  const struct tomoyo_path_info *b)
  {
-@@ -880,6 +692,13 @@ static inline bool tomoyo_invalid(const 
+@@ -882,6 +695,13 @@ static inline bool tomoyo_invalid(const 
  	return c && (c <= ' ' || c >= 127);
  }
  
@@ -848,7 +849,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
  {
  	if (name) {
-@@ -889,42 +708,85 @@ static inline void tomoyo_put_name(const
+@@ -891,42 +711,85 @@ static inline void tomoyo_put_name(const
  	}
  }
  
@@ -944,6 +945,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -212,8 +212,7 @@ static int tomoyo_audit_mkdev_log(struct
+ /**
+  * tomoyo_audit_path_number_log - Audit path/number request log.
+  *
+- * @r:     Pointer to "struct tomoyo_request_info".
+- * @error: Error code.
++ * @r: Pointer to "struct tomoyo_request_info".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
 --- security-testing-2.6.orig/security/tomoyo/mount.c
 +++ security-testing-2.6/security/tomoyo/mount.c
 @@ -7,22 +7,16 @@

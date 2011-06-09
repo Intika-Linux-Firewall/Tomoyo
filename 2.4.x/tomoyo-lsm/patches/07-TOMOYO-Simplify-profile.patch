@@ -26,7 +26,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Profile version. Currently only 20090903 is defined. */
  static unsigned int tomoyo_profile_version;
  
-@@ -60,6 +50,11 @@ static const char *tomoyo_mac_keywords[T
+@@ -61,6 +51,11 @@ static const char *tomoyo_mac_keywords[T
  	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE] = "file",
  };
  
@@ -38,7 +38,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Permit policy management by non-root user? */
  static bool tomoyo_manage_by_non_root;
  
-@@ -70,11 +65,22 @@ static bool tomoyo_manage_by_non_root;
+@@ -71,11 +66,22 @@ static bool tomoyo_manage_by_non_root;
   *
   * @value: Bool value.
   */
@@ -61,7 +61,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static void tomoyo_addprintf(char *buffer, int len, const char *fmt, ...)
  {
  	va_list args;
-@@ -293,12 +299,10 @@ static struct tomoyo_profile *tomoyo_ass
+@@ -294,12 +300,10 @@ static struct tomoyo_profile *tomoyo_ass
  	ptr = tomoyo_profile_ptr[profile];
  	if (!ptr && tomoyo_memory_ok(entry)) {
  		ptr = entry;
@@ -75,7 +75,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		mb(); /* Avoid out-of-order execution. */
  		tomoyo_profile_ptr[profile] = ptr;
  		entry = NULL;
-@@ -318,13 +322,22 @@ static struct tomoyo_profile *tomoyo_ass
+@@ -319,13 +323,22 @@ static struct tomoyo_profile *tomoyo_ass
   */
  struct tomoyo_profile *tomoyo_profile(const u8 profile)
  {
@@ -101,7 +101,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static s8 tomoyo_find_yesno(const char *string, const char *find)
  {
  	const char *cp = strstr(string, find);
-@@ -337,19 +350,17 @@ static s8 tomoyo_find_yesno(const char *
+@@ -338,19 +351,17 @@ static s8 tomoyo_find_yesno(const char *
  	}
  	return -1;
  }
@@ -131,7 +131,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static void tomoyo_set_uint(unsigned int *i, const char *string,
  			    const char *find)
  {
-@@ -358,51 +369,16 @@ static void tomoyo_set_uint(unsigned int
+@@ -359,51 +370,16 @@ static void tomoyo_set_uint(unsigned int
  		sscanf(cp + strlen(find), "=%u", i);
  }
  
@@ -192,7 +192,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			   struct tomoyo_profile *profile)
  {
  	u8 i;
-@@ -424,7 +400,7 @@ static int tomoyo_set_mode(char *name, c
+@@ -425,7 +401,7 @@ static int tomoyo_set_mode(char *name, c
  	} else {
  		return -EINVAL;
  	}
@@ -201,7 +201,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		config = TOMOYO_CONFIG_USE_DEFAULT;
  	} else {
  		u8 mode;
-@@ -454,34 +430,21 @@ static int tomoyo_write_profile(struct t
+@@ -455,34 +431,21 @@ static int tomoyo_write_profile(struct t
  {
  	char *data = head->write_buf;
  	unsigned int i;
@@ -242,7 +242,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!strcmp(data, "COMMENT")) {
  		static DEFINE_SPINLOCK(lock);
  		const struct tomoyo_path_info *new_comment
-@@ -496,48 +459,13 @@ static int tomoyo_write_profile(struct t
+@@ -497,48 +460,13 @@ static int tomoyo_write_profile(struct t
  		tomoyo_put_name(old_comment);
  		return 0;
  	}
@@ -297,7 +297,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static void tomoyo_print_config(struct tomoyo_io_buffer *head, const u8 config)
-@@ -560,7 +488,6 @@ static void tomoyo_read_profile(struct t
+@@ -561,7 +489,6 @@ static void tomoyo_read_profile(struct t
  	switch (head->r.step) {
  	case 0:
  		tomoyo_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
@@ -305,7 +305,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.step++;
  		break;
  	case 1:
-@@ -574,11 +501,18 @@ static void tomoyo_read_profile(struct t
+@@ -575,11 +502,18 @@ static void tomoyo_read_profile(struct t
  		break;
  	case 2:
  		{
@@ -324,7 +324,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			head->r.step++;
  		}
  		break;
-@@ -605,7 +539,6 @@ static void tomoyo_read_profile(struct t
+@@ -606,7 +540,6 @@ static void tomoyo_read_profile(struct t
  		}
  		if (head->r.bit == TOMOYO_MAX_MAC_INDEX
  		    + TOMOYO_MAX_MAC_CATEGORY_INDEX) {
@@ -334,7 +334,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -209,6 +209,12 @@ enum tomoyo_mac_category_index {
+@@ -211,6 +211,12 @@ enum tomoyo_mac_category_index {
   */
  #define TOMOYO_RETRY_REQUEST 1
  
@@ -347,7 +347,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /********** Structure definitions. **********/
  
  /* Common header for holding ACL entries. */
-@@ -494,6 +500,7 @@ struct tomoyo_profile {
+@@ -497,6 +503,7 @@ struct tomoyo_profile {
  	struct tomoyo_preference preference;
  	u8 default_config;
  	u8 config[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_MAC_CATEGORY_INDEX];
