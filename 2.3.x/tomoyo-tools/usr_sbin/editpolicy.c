@@ -2040,7 +2040,10 @@ static void tomoyo_copy_to_history(struct tomoyo_domain_policy *dp, const int cu
 	switch (tomoyo_current_screen) {
 		u8 directive;
 	case CCS_SCREEN_DOMAIN_LIST:
-		line = tomoyo_domain_name(dp, current);
+		if (tomoyo_domain_sort_type == 0)
+			line = tomoyo_domain_name(dp, current);
+		else
+			line = tomoyo_task_list[current].domain;
 		break;
 	case CCS_SCREEN_EXCEPTION_LIST:
 	case CCS_SCREEN_ACL_LIST:

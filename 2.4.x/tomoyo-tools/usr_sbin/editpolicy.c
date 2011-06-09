@@ -2770,7 +2770,10 @@ static void tomoyo_copy_to_history(const int current)
 	switch (tomoyo_current_screen) {
 		enum tomoyo_editpolicy_directives directive;
 	case TOMOYO_SCREEN_DOMAIN_LIST:
-		line = tomoyo_domain_name(&tomoyo_dp, current);
+		if (!tomoyo_domain_sort_type)
+			line = tomoyo_domain_name(&tomoyo_dp, current);
+		else
+			line = tomoyo_task_list[current].domain;
 		break;
 	case TOMOYO_SCREEN_EXCEPTION_LIST:
 	case TOMOYO_SCREEN_ACL_LIST:
