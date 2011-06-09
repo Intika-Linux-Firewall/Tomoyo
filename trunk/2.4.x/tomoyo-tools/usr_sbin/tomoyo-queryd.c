@@ -249,6 +249,7 @@ ok:
 		tomoyo_query_fd = tomoyo_open_stream("proc:query");
 		tomoyo_domain_fp = tomoyo_open_write(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
 	} else {
+		tomoyo_mount_securityfs();
 		tomoyo_query_fd = open(TOMOYO_PROC_POLICY_QUERY, O_RDWR);
 		tomoyo_domain_policy_fd = open(TOMOYO_PROC_POLICY_DOMAIN_POLICY,
 					    O_RDWR);

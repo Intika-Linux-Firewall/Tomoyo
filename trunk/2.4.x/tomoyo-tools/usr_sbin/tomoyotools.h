@@ -41,6 +41,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <sched.h>
+#include <sys/mount.h>
 
 #define s8 __s8
 #define u8 __u8
@@ -174,6 +176,7 @@ void tomoyo_fprintf_encoded(FILE *fp, const char *tomoyo_pathname);
 void tomoyo_get(void);
 void tomoyo_handle_domain_policy(struct tomoyo_domain_policy *dp, FILE *fp,
 			      _Bool is_write);
+void tomoyo_mount_securityfs(void);
 void tomoyo_normalize_line(char *buffer);
 void tomoyo_put(void);
 void tomoyo_read_domain_policy(struct tomoyo_domain_policy *dp,

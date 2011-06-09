@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/09
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -211,7 +211,8 @@ int main(int argc, char *argv[])
 	if (tomoyo_network_mode) {
 		if (!tomoyo_check_remote_host())
 			return 1;
-	} else if (access(TOMOYO_PROC_POLICY_DIR, F_OK)) {
+	} else if (tomoyo_mount_securityfs(),
+		   access(TOMOYO_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
 		return 1;

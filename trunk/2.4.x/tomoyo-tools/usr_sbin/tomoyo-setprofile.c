@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
 	}
 	for (i = start; i < argc; i++)
 		tomoyo_normalize_line(argv[i]);
+	tomoyo_mount_securityfs();
 	{
 		const int fd = open(TOMOYO_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
 		if (fd == EOF) {
