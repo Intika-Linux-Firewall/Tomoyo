@@ -2770,7 +2770,10 @@ static void ccs_copy_to_history(const int current)
 	switch (ccs_current_screen) {
 		enum ccs_editpolicy_directives directive;
 	case CCS_SCREEN_DOMAIN_LIST:
-		line = ccs_domain_name(&ccs_dp, current);
+		if (!ccs_domain_sort_type)
+			line = ccs_domain_name(&ccs_dp, current);
+		else
+			line = ccs_task_list[current].domain;
 		break;
 	case CCS_SCREEN_EXCEPTION_LIST:
 	case CCS_SCREEN_ACL_LIST:

@@ -2429,7 +2429,10 @@ static void copy_to_history(struct domain_policy *dp, const int current,
 	switch (current_screen) {
 		u8 directive;
 	case SCREEN_DOMAIN_LIST:
-		line = domain_name(dp, current);
+		if (domain_sort_type == 0)
+			line = domain_name(dp, current);
+		else
+			line = task_list[current].domain;
 		break;
 	case SCREEN_EXCEPTION_LIST:
 	case SCREEN_ACL_LIST:
