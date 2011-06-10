@@ -2870,3 +2870,11 @@ Fix 2011/06/06
       policy namespace (which is a <$namespace> prefix added to each line).
       Thus, space-separated list for CONFIG_TOMOYO_BUILTIN_INITIALIZERS is
       no longer suitable for handling policy namespace.
+
+Fix 2011/06/10
+
+    @ Allow specifying trigger for activation.
+
+      To be able to use TOMOYO under systemd environments where init= parameter
+      is used, I changed to allow overriding the trigger for calling external
+      policy loader and activating MAC via kernel command line options.

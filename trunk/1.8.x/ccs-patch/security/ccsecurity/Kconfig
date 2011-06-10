@@ -80,14 +80,20 @@ config CCSECURITY_OMIT_USERSPACE_LOADER
 	  enforcing mode from the beginning, you can reduce the possibility of
 	  hijacking the boot sequence.
 
+	  If you say Y to both "Compile as loadable kernel module" option and
+	  "Activate without calling userspace policy loader." option, be sure
+	  to excplicitly load the kernel module from the userspace, for
+	  the kernel will not call /sbin/ccs-init when /sbin/init starts.
+
 config CCSECURITY_POLICY_LOADER
 	string "Location of userspace policy loader"
 	default "/sbin/ccs-init"
 	depends on CCSECURITY
 	depends on !CCSECURITY_OMIT_USERSPACE_LOADER
 	---help---
-	  This is the pathname of policy loader which is called before
-	  activation.
+	  This is the default pathname of policy loader which is called before
+	  activation. You can override this setting via CCS_loader= kernel
+	  command line option.
 
 config CCSECURITY_ACTIVATION_TRIGGER
 	string "Trigger for calling userspace policy loader"
@@ -95,6 +101,7 @@ config CCSECURITY_ACTIVATION_TRIGGER
 	depends on CCSECURITY
 	depends on !CCSECURITY_OMIT_USERSPACE_LOADER
 	---help---
-	  Some environments do not have /sbin/init . In such environments,
-	  we need to use different program's pathname (e.g. /init or /linuxrc )
-	  as activation trigger.
+	  This is the default pathname of activation trigger.
+	  You can override this setting via CCS_trigger= kernel command line
+	  option. For example, if you pass init=/bin/systemd option, you may
+	  want to also pass CCS_trigger=/bin/systemd option.
