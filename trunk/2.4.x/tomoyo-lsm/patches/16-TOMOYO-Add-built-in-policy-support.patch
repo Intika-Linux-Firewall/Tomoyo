@@ -1,81 +1,19 @@
 Subject: TOMOYO: Add built-in policy support.
 
+To be able to start using enforcing mode from the early stage of boot sequence,
+this patch adds support for built-in policy configuration (and next patch adds
+support for activating access control without calling external policy loader
+program).
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/Kconfig       |   59 +++++++++++++++++++++++++++++++++++++++
- security/tomoyo/Makefile      |   36 ++++++++++++++++++++++++
- security/tomoyo/common.c      |   63 ++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h      |    1 
- security/tomoyo/load_policy.c |   26 ++++++-----------
- security/tomoyo/memory.c      |   10 ------
- security/tomoyo/tomoyo2c.c    |   45 ++++++++++++++++++++++++++++++
- 7 files changed, 214 insertions(+), 26 deletions(-)
+ security/tomoyo/Makefile   |   36 +++++++++++++++++++++++++++
+ security/tomoyo/common.c   |   60 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h   |    1 
+ security/tomoyo/memory.c   |   10 -------
+ security/tomoyo/tomoyo2c.c |   45 +++++++++++++++++++++++++++++++++
+ 5 files changed, 142 insertions(+), 10 deletions(-)
 
---- security-testing-2.6.orig/security/tomoyo/Kconfig
-+++ security-testing-2.6/security/tomoyo/Kconfig
-@@ -9,3 +9,62 @@ config SECURITY_TOMOYO
- 	  Required userspace tools and further information may be
- 	  found at <http://tomoyo.sourceforge.jp/>.
- 	  If you are unsure how to answer this question, answer N.
-+
-+config SECURITY_TOMOYO_MAX_ACCEPT_ENTRY
-+	int "Default maximal count for learning mode"
-+	default 2048
-+	range 0 2147483647
-+	depends on SECURITY_TOMOYO
-+	help
-+	  This is the default value for maximal ACL entries
-+	  that are automatically appended into policy at "learning mode".
-+	  Some programs access thousands of objects, so running
-+	  such programs in "learning mode" dulls the system response
-+	  and consumes much memory.
-+	  This is the safeguard for such programs.
-+
-+config SECURITY_TOMOYO_MAX_AUDIT_LOG
-+	int "Default maximal count for audit log"
-+	default 1024
-+	range 0 2147483647
-+	depends on SECURITY_TOMOYO
-+	help
-+	  This is the default value for maximal entries for
-+	  audit logs that the kernel can hold on memory.
-+	  You can read the log via /sys/kernel/security/tomoyo/audit.
-+	  If you don't need audit logs, you may set this value to 0.
-+
-+config SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
-+	bool "Activate without calling userspace policy loader."
-+	default n
-+	depends on SECURITY_TOMOYO
-+	---help---
-+	  Say Y here if you want to activate access control as soon as built-in
-+	  policy was loaded. This option will be useful for systems where
-+	  operations which can lead to the hijacking of the boot sequence are
-+	  needed before loading the policy. For example, you can activate
-+	  immediately after loading the fixed part of policy which will allow
-+	  only operations needed for mounting a partition which contains the
-+	  variant part of policy and verifying (e.g. running GPG check) and
-+	  loading the variant part of policy. Since you can start using
-+	  enforcing mode from the beginning, you can reduce the possibility of
-+	  hijacking the boot sequence.
-+
-+config SECURITY_TOMOYO_POLICY_LOADER
-+	string "Location of userspace policy loader"
-+	default "/sbin/tomoyo-init"
-+	depends on SECURITY_TOMOYO
-+	depends on !SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
-+	---help---
-+	  This is the pathname of policy loader which is called before
-+	  activation.
-+
-+config SECURITY_TOMOYO_ACTIVATION_TRIGGER
-+	string "Trigger for calling userspace policy loader"
-+	default "/sbin/init"
-+	depends on SECURITY_TOMOYO
-+	depends on !SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
-+	---help---
-+	  Some environments do not have /sbin/init . In such environments,
-+	  we need to use different program's pathname (e.g. /init or /linuxrc )
-+	  as activation trigger.
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
 @@ -1 +1,37 @@
@@ -118,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +$(obj)/common.o: $(obj)/builtin-policy.h
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -2372,3 +2372,66 @@ void tomoyo_check_profile(void)
+@@ -2372,3 +2372,63 @@ void tomoyo_check_profile(void)
  	tomoyo_read_unlock(idx);
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  }
@@ -181,9 +119,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	}
 +	tomoyo_read_unlock(idx);
-+#ifdef CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
-+	tomoyo_check_profile();
-+#endif
 +}
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
@@ -195,64 +130,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
  			   const struct tomoyo_path_info *filename);
  int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
---- security-testing-2.6.orig/security/tomoyo/load_policy.c
-+++ security-testing-2.6/security/tomoyo/load_policy.c
-@@ -8,8 +8,7 @@
- 
- #include "common.h"
- 
--/* path to policy loader */
--static const char *tomoyo_loader = "/sbin/tomoyo-init";
-+#ifndef CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
- 
- /**
-  * tomoyo_policy_loader_exists - Check whether /sbin/tomoyo-init exists.
-@@ -27,9 +26,11 @@ static bool tomoyo_policy_loader_exists(
- 	 */
- 	struct path path;
- 
--	if (kern_path(tomoyo_loader, LOOKUP_FOLLOW, &path)) {
-+	if (kern_path(CONFIG_SECURITY_TOMOYO_POLICY_LOADER, LOOKUP_FOLLOW,
-+		      &path)) {
- 		printk(KERN_INFO "Not activating Mandatory Access Control now "
--		       "since %s doesn't exist.\n", tomoyo_loader);
-+		       "since %s doesn't exist.\n",
-+		       CONFIG_SECURITY_TOMOYO_POLICY_LOADER);
- 		return false;
- 	}
- 	path_put(&path);
-@@ -56,22 +57,13 @@ void tomoyo_load_policy(const char *file
- 
- 	if (tomoyo_policy_loaded)
- 		return;
--	/*
--	 * Check filename is /sbin/init or /sbin/tomoyo-start.
--	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't
--	 * be passed.
--	 * You can create /sbin/tomoyo-start by
--	 * "ln -s /bin/true /sbin/tomoyo-start".
--	 */
--	if (strcmp(filename, "/sbin/init") &&
--	    strcmp(filename, "/sbin/tomoyo-start"))
-+	if (strcmp(filename, CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER))
- 		return;
- 	if (!tomoyo_policy_loader_exists())
- 		return;
--
- 	printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
--	       tomoyo_loader);
--	argv[0] = (char *) tomoyo_loader;
-+	       CONFIG_SECURITY_TOMOYO_POLICY_LOADER);
-+	argv[0] = (char *) CONFIG_SECURITY_TOMOYO_POLICY_LOADER;
- 	argv[1] = NULL;
- 	envp[0] = "HOME=/";
- 	envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
-@@ -79,3 +71,5 @@ void tomoyo_load_policy(const char *file
- 	call_usermodehelper(argv[0], argv, envp, 1);
- 	tomoyo_check_profile();
- }
-+
-+#endif
 --- security-testing-2.6.orig/security/tomoyo/memory.c
 +++ security-testing-2.6/security/tomoyo/memory.c
 @@ -215,14 +215,4 @@ void __init tomoyo_mm_init(void)
