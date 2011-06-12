@@ -150,7 +150,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -442,8 +442,6 @@ struct tomoyo_io_buffer {
+@@ -441,8 +441,6 @@ struct tomoyo_io_buffer {
  	int (*poll) (struct file *file, poll_table *wait);
  	/* Exclusive lock for this structure.   */
  	struct mutex io_sem;
@@ -159,7 +159,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char __user *read_user_buf;
  	int read_user_buf_avail;
  	struct {
-@@ -481,6 +479,10 @@ struct tomoyo_io_buffer {
+@@ -480,6 +478,10 @@ struct tomoyo_io_buffer {
  	int writebuf_size;
  	/* Type of this interface.              */
  	u8 type;
@@ -170,7 +170,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /*
-@@ -652,7 +654,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -651,7 +653,7 @@ int tomoyo_find_next_domain(struct linux
  void tomoyo_print_ulong(char *buffer, const int buffer_len,
  			const unsigned long value, const u8 type);
  void tomoyo_put_name_union(struct tomoyo_name_union *ptr);

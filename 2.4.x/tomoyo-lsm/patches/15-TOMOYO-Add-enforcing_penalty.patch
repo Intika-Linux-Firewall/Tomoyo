@@ -56,8 +56,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_MAX_PREF
  };
  
-@@ -317,6 +318,8 @@ struct tomoyo_request_info {
- 	struct tomoyo_policy_namespace *ns;
+@@ -316,6 +317,8 @@ struct tomoyo_request_info {
+ 	} param;
  	u8 param_type;
  	bool granted;
 +	/* True if current thread should not be carried sleep penalty. */

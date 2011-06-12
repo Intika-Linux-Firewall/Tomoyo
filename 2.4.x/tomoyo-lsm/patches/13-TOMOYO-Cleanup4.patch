@@ -278,7 +278,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Index numbers for group entries. */
  enum tomoyo_group_id {
  	TOMOYO_PATH_GROUP,
-@@ -365,8 +379,7 @@ struct tomoyo_domain_info {
+@@ -364,8 +378,7 @@ struct tomoyo_domain_info {
  	u8 profile;        /* Profile number to use. */
  	u8 group;          /* Group number to use.   */
  	bool is_deleted;   /* Delete flag.           */
@@ -288,7 +288,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	atomic_t users; /* Number of referring credentials. */
  };
  
-@@ -443,15 +456,15 @@ struct tomoyo_io_buffer {
+@@ -442,15 +455,15 @@ struct tomoyo_io_buffer {
  	/* Exclusive lock for this structure.   */
  	struct mutex io_sem;
  	char __user *read_user_buf;
@@ -308,7 +308,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		u16 index;
  		u8 acl_group_index;
  		u8 bit;
-@@ -466,19 +479,19 @@ struct tomoyo_io_buffer {
+@@ -465,19 +478,19 @@ struct tomoyo_io_buffer {
  		/* The position currently writing to.   */
  		struct tomoyo_domain_info *domain;
  		/* Bytes available for writing.         */
@@ -332,7 +332,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* Users counter protected by tomoyo_io_buffer_list_lock. */
  	u8 users;
  	/* List for telling GC not to kfree() elements. */
-@@ -570,10 +583,10 @@ void tomoyo_check_profile(void);
+@@ -569,10 +582,10 @@ void tomoyo_check_profile(void);
  int tomoyo_open_control(const u8 type, struct file *file);
  int tomoyo_close_control(struct tomoyo_io_buffer *head);
  int tomoyo_poll_control(struct file *file, poll_table *wait);
@@ -347,7 +347,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
  void tomoyo_warn_oom(const char *function);
  const struct tomoyo_path_info *
-@@ -708,15 +721,17 @@ extern struct tomoyo_domain_info tomoyo_
+@@ -707,15 +720,17 @@ extern struct tomoyo_domain_info tomoyo_
  extern struct tomoyo_policy_namespace tomoyo_kernel_namespace;
  extern struct list_head tomoyo_namespace_list;
  
@@ -371,7 +371,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern unsigned int tomoyo_memory_used[TOMOYO_MAX_MEMORY_STAT];
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -683,10 +683,11 @@ int tomoyo_find_next_domain(struct linux
+@@ -684,10 +684,11 @@ int tomoyo_find_next_domain(struct linux
  		retval = -ENOMEM;
  	else {
  		retval = 0;
@@ -538,7 +538,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_permstr - Find permission keywords.
   *
-@@ -937,9 +968,11 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -936,9 +967,11 @@ bool tomoyo_domain_quota_is_ok(struct to
  	if (count < tomoyo_profile(domain->ns, domain->profile)->
  	    pref[TOMOYO_PREF_MAX_LEARNING_ENTRY])
  		return true;
