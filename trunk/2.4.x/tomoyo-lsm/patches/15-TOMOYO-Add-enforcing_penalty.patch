@@ -37,7 +37,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			break;
 +		if (r->dont_sleep_on_enforce_error)
 +			goto out;
-+		p = tomoyo_profile(r->ns, r->profile);
++		p = tomoyo_profile(r->domain->ns, r->profile);
 +		/* Check enforcing_penalty parameter. */
 +		for (i = 0; i < p->pref[TOMOYO_PREF_ENFORCING_PENALTY]; i++) {
 +			set_current_state(TASK_INTERRUPTIBLE);
