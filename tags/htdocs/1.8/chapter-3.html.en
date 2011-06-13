@@ -334,6 +334,7 @@ $ make -s menuconfig
 <li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
 <li>(/sbin/ccs-init) Default policy loader</li>
 <li>(/sbin/ccs-start) Alternative activation trigger</li>
+<!--<li>(/sbin/init) Trigger for calling userspace policy loader</li>-->
 </ul>
 
 <p><em>"Compile as loadable kernel module"</em> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
@@ -347,6 +348,10 @@ $ make -s menuconfig
 <p><em>Activate immediately after loading built-in policy.</em> is available only when <em>Use built-in policy</em> is selected. If this option is selected, access control by TOMOYO is activated before initrd/initramfs are processed. If this option is selected, there is no longer need for calling policy loader specified by <em>Default policy loader</em>. But in case you want to load additional policy from policy loader in addition to built-in policy, policy loader will be called anyway.</p>
 
 <p><em>Omit calling policy loader when /sbin/init starts.</em> is available only when <em>Activate immediately after loading built-in policy.</em> is selected. If this option is selected, policy loader specified by <em>Default policy loader</em> is no longer called. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
+
+<!--
+<p><em>Trigger for calling userspace policy loader</em> is the default pathname of the activation trigger. You can override this setting via the "CCS_trigger=" kernel command-line option. For example, if you pass "init=/bin/systemd" option, you may also want to pass "CCS_trigger=/bin/systemd" option.
+-->
 
 <h4><a name="3.3.4">3.3.4. Compile and install the kernel</a></h4>
 
@@ -428,6 +433,10 @@ Creating configuration file for ccs-notifyd ... OK
 <h3><a name="3.5">3.5. Configuring your bootloader</a></h3>
 
 <p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <em>"Disable by default"</em> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options. Consult the documentation for your distribution and bootloader to find out how to boot your TOMOYO Linux kernel.</p>
+
+<!--
+<p>TOMOYO Linux supports the kernel boot option "CCS_trigger" from version 1.8.2 and later. This is useful for systems that run a program other than <code>/sbin/init</code> on startup, for example when booting using systemd which uses <code>/bin/systemd</code>. In this case, you should include "CCS_trigger=/bin/systemd" in the kernel boot options.</p>
+-->
 
 <h3><a name="3.6">3.6. Rebooting your system</a></h3>
 
