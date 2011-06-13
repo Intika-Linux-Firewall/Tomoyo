@@ -365,6 +365,23 @@ destination     /var/log/tomoyo/reject_003.log
 
 <p>If audit logs are not required, <code>ccs-auditd</code> need not be run. In this case, give <a href="chapter-9.html.en#9.2.3">PREFERENCE={ max_audit_log=0 }</a> for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
 
+<!--
+<p>Distributers may wish to create daemon or service to be included with the package. It is very simple to do so, as such a daemon would only need to run a single command: <code>/usr/sbin/ccs-auditd</code>. If you are using systemd, create "/lib/systemd/system/ccs-auditd.service" with the following contents:</p>
+
+<pre>
+[Unit]
+Description=TOMOYO Linux Auditing Daemon
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/ccs-auditd
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+</pre>
+-->
+
 </div><!-- documentation -->
 
 </div><!-- content -->
