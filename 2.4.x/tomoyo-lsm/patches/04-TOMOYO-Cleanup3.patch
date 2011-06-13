@@ -18,8 +18,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/memory.c        |   16 +--
  security/tomoyo/mount.c         |   31 +++++-
  security/tomoyo/securityfs_if.c |    6 -
- security/tomoyo/util.c          |   33 +++++-
- 9 files changed, 403 insertions(+), 145 deletions(-)
+ security/tomoyo/util.c          |   37 +++++--
+ 9 files changed, 405 insertions(+), 147 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -1118,6 +1118,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
+@@ -21,7 +21,7 @@ bool tomoyo_policy_loaded;
+  * @result: Pointer to "unsigned long".
+  * @str:    Pointer to string to parse.
+  *
+- * Returns value type on success, 0 otherwise.
++ * Returns one of values in "enum tomoyo_value_type".
+  *
+  * The @src is updated to point the first character after the value
+  * on success.
+@@ -43,7 +43,7 @@ static u8 tomoyo_parse_ulong(unsigned lo
+ 	}
+ 	*result = simple_strtoul(cp, &ep, base);
+ 	if (cp == ep)
+-		return 0;
++		return TOMOYO_VALUE_TYPE_INVALID;
+ 	*str = ep;
+ 	switch (base) {
+ 	case 16:
 @@ -93,11 +93,9 @@ bool tomoyo_parse_name_union(const char 
  		return false;
  	if (filename[0] == '@') {
