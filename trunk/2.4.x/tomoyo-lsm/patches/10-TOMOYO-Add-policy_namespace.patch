@@ -11,15 +11,15 @@ allows users to develop policy without worrying interference among namespaces.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/audit.c  |    8 -
- security/tomoyo/common.c |  374 ++++++++++++++++++++++++++++++++++-------------
+ security/tomoyo/audit.c  |    8 
+ security/tomoyo/common.c |  382 ++++++++++++++++++++++++++++++++++-------------
  security/tomoyo/common.h |   63 ++++++-
- security/tomoyo/domain.c |  360 ++++++++++++++++++++++++++++++++-------------
+ security/tomoyo/domain.c |  360 +++++++++++++++++++++++++++++++-------------
  security/tomoyo/file.c   |    2 
- security/tomoyo/gc.c     |   73 +++++----
- security/tomoyo/memory.c |   21 +-
+ security/tomoyo/gc.c     |   73 ++++----
+ security/tomoyo/memory.c |   21 --
  security/tomoyo/util.c   |   58 +++----
- 8 files changed, 664 insertions(+), 295 deletions(-)
+ 8 files changed, 668 insertions(+), 299 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/audit.c
 +++ security-testing-2.6/security/tomoyo/audit.c
@@ -461,15 +461,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		domain->profile = (u8) profile;
  	return 0;
  }
-@@ -1247,6 +1295,8 @@ static void tomoyo_read_pid(struct tomoy
+@@ -1247,10 +1295,12 @@ static void tomoyo_read_pid(struct tomoy
  }
  
  static const char *tomoyo_transition_type[TOMOYO_MAX_TRANSITION_TYPE] = {
+-	[TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain",
+-	[TOMOYO_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain",
+-	[TOMOYO_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain",
+-	[TOMOYO_TRANSITION_CONTROL_KEEP]          = "keep_domain",
 +	[TOMOYO_TRANSITION_CONTROL_NO_RESET]      = "no_reset_domain ",
 +	[TOMOYO_TRANSITION_CONTROL_RESET]         = "reset_domain ",
- 	[TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain",
- 	[TOMOYO_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain",
- 	[TOMOYO_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain",
++	[TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
++	[TOMOYO_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
++	[TOMOYO_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
++	[TOMOYO_TRANSITION_CONTROL_KEEP]          = "keep_domain ",
+ };
+ 
+ static const char *tomoyo_group_name[TOMOYO_MAX_GROUP] = {
 @@ -1269,19 +1319,13 @@ static const char *tomoyo_group_name[TOM
   */
  static int tomoyo_write_exception(struct tomoyo_io_buffer *head)
