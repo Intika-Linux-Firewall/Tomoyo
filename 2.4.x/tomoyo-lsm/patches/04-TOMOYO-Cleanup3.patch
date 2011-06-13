@@ -13,13 +13,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.c        |   43 +++-----
  security/tomoyo/common.h        |   78 ++++-----------
  security/tomoyo/domain.c        |   17 +++
- security/tomoyo/file.c          |  197 +++++++++++++++++++++++++++++++++-------
- security/tomoyo/gc.c            |  127 +++++++++++++++++++++++--
+ security/tomoyo/file.c          |  208 +++++++++++++++++++++++++++++++++-------
+ security/tomoyo/gc.c            |  127 +++++++++++++++++++++---
  security/tomoyo/memory.c        |   16 +--
- security/tomoyo/mount.c         |   31 +++++-
+ security/tomoyo/mount.c         |   31 ++++-
  security/tomoyo/securityfs_if.c |    6 -
  security/tomoyo/util.c          |   37 +++++--
- 9 files changed, 405 insertions(+), 147 deletions(-)
+ 9 files changed, 410 insertions(+), 153 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -659,6 +659,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	u8 *const a_perm = &container_of(a, struct tomoyo_mkdev_acl,
  					 head)->perm;
+@@ -411,9 +516,9 @@ static bool tomoyo_merge_mkdev_acl(struc
+  * Caller holds tomoyo_read_lock().
+  */
+ static int tomoyo_update_mkdev_acl(const u8 type, const char *filename,
+-					  char *mode, char *major, char *minor,
+-					  struct tomoyo_domain_info * const
+-					  domain, const bool is_delete)
++				   char *mode, char *major, char *minor,
++				   struct tomoyo_domain_info * const domain,
++				   const bool is_delete)
+ {
+ 	struct tomoyo_mkdev_acl e = {
+ 		.head.type = TOMOYO_TYPE_MKDEV_ACL,
 @@ -436,16 +541,32 @@ static int tomoyo_update_mkdev_acl(const
  	return error;
  }
@@ -733,6 +746,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static bool tomoyo_merge_path_number_acl(struct tomoyo_acl_info *a,
  					 struct tomoyo_acl_info *b,
  					 const bool is_delete)
+@@ -575,8 +712,7 @@ static bool tomoyo_merge_path_number_acl
+ static int tomoyo_update_path_number_acl(const u8 type, const char *filename,
+ 					 char *number,
+ 					 struct tomoyo_domain_info * const
+-					 domain,
+-					 const bool is_delete)
++					 domain, const bool is_delete)
+ {
+ 	struct tomoyo_path_number_acl e = {
+ 		.head.type = TOMOYO_TYPE_PATH_NUMBER_ACL,
+@@ -737,7 +873,7 @@ int tomoyo_path_perm(const u8 operation,
+  * Returns 0 on success, negative value otherwise.
+  */
+ int tomoyo_mkdev_perm(const u8 operation, struct path *path,
+-			     const unsigned int mode, unsigned int dev)
++		      const unsigned int mode, unsigned int dev)
+ {
+ 	struct tomoyo_request_info r;
+ 	int error = -ENOMEM;
 --- security-testing-2.6.orig/security/tomoyo/gc.c
 +++ security-testing-2.6/security/tomoyo/gc.c
 @@ -13,13 +13,30 @@

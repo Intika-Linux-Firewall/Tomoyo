@@ -8,12 +8,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.c |   77 ++++++++-------
  security/tomoyo/common.h |   32 +++---
  security/tomoyo/domain.c |  146 ++++++++++++----------------
- security/tomoyo/file.c   |  238 ++++++++++++++++++++++++-----------------------
+ security/tomoyo/file.c   |  237 ++++++++++++++++++++++++-----------------------
  security/tomoyo/group.c  |   33 ++----
  security/tomoyo/memory.c |   20 ++-
  security/tomoyo/mount.c  |   53 ----------
  security/tomoyo/util.c   |  120 +++++++++++++----------
- 8 files changed, 347 insertions(+), 372 deletions(-)
+ 8 files changed, 347 insertions(+), 371 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -579,9 +579,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * Caller holds tomoyo_read_lock().
   */
 -static int tomoyo_update_mkdev_acl(const u8 type, const char *filename,
--					  char *mode, char *major, char *minor,
--					  struct tomoyo_domain_info * const
--					  domain, const bool is_delete)
+-				   char *mode, char *major, char *minor,
+-				   struct tomoyo_domain_info * const domain,
+-				   const bool is_delete)
 +static int tomoyo_update_mkdev_acl(const u8 perm,
 +				   struct tomoyo_acl_param *param)
  {
@@ -660,7 +660,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name1);
  	tomoyo_put_name_union(&e.name2);
  	return error;
-@@ -701,33 +687,26 @@ static bool tomoyo_merge_path_number_acl
+@@ -701,32 +687,26 @@ static bool tomoyo_merge_path_number_acl
  /**
   * tomoyo_update_path_number_acl - Update ioctl/chmod/chown/chgrp ACL.
   *
@@ -677,8 +677,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -static int tomoyo_update_path_number_acl(const u8 type, const char *filename,
 -					 char *number,
 -					 struct tomoyo_domain_info * const
--					 domain,
--					 const bool is_delete)
+-					 domain, const bool is_delete)
 +static int tomoyo_update_path_number_acl(const u8 perm,
 +					 struct tomoyo_acl_param *param)
  {
@@ -707,7 +706,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name_union(&e.name);
  	tomoyo_put_number_union(&e.number);
  	return error;
-@@ -964,53 +943,88 @@ int tomoyo_path2_perm(const u8 operation
+@@ -963,53 +943,88 @@ int tomoyo_path2_perm(const u8 operation
  }
  
  /**

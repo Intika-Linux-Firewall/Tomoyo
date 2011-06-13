@@ -18,10 +18,10 @@ same kernel in two different init systems (BSD-style init and systemd).
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
- security/tomoyo/Kconfig       |   61 ++++++++++++++++++++++++++++++++
+ security/tomoyo/Kconfig       |   61 +++++++++++++++++++++++++++++++++
  security/tomoyo/common.c      |    3 +
- security/tomoyo/load_policy.c |   78 +++++++++++++++++++++++++++++-------------
- 3 files changed, 118 insertions(+), 24 deletions(-)
+ security/tomoyo/load_policy.c |   76 +++++++++++++++++++++++++++++-------------
+ 3 files changed, 117 insertions(+), 23 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6/security/tomoyo/Kconfig
@@ -97,7 +97,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  	tomoyo_read_unlock(idx);
 +#ifdef CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER
-+        tomoyo_check_profile();
++	tomoyo_check_profile();
 +#endif
  }
 --- security-testing-2.6.orig/security/tomoyo/load_policy.c
@@ -124,8 +124,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static int __init tomoyo_loader_setup(char *str)
 +{
-+        tomoyo_loader = str;
-+        return 0;
++	tomoyo_loader = str;
++	return 0;
 +}
 +
 +__setup("TOMOYO_loader=", tomoyo_loader_setup);
@@ -145,8 +145,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	 */
  	struct path path;
 -
-+        if (!tomoyo_loader)
-+                tomoyo_loader = CONFIG_SECURITY_TOMOYO_POLICY_LOADER;
++	if (!tomoyo_loader)
++		tomoyo_loader = CONFIG_SECURITY_TOMOYO_POLICY_LOADER;
  	if (kern_path(tomoyo_loader, LOOKUP_FOLLOW, &path)) {
 -		printk(KERN_INFO "Not activating Mandatory Access Control now "
 -		       "since %s doesn't exist.\n", tomoyo_loader);
@@ -172,8 +172,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static int __init tomoyo_trigger_setup(char *str)
 +{
-+        tomoyo_trigger = str;
-+        return 0;
++	tomoyo_trigger = str;
++	return 0;
 +}
 +
 +__setup("TOMOYO_trigger=", tomoyo_trigger_setup);
@@ -190,7 +190,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *envp[3];
  
 -	if (tomoyo_policy_loaded)
--		return;
++	if (tomoyo_policy_loaded || done)
+ 		return;
 -	/*
 -	 * Check filename is /sbin/init or /sbin/tomoyo-start.
 -	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't
@@ -200,12 +201,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	 */
 -	if (strcmp(filename, "/sbin/init") &&
 -	    strcmp(filename, "/sbin/tomoyo-start"))
-+	if (tomoyo_policy_loaded || done)
- 		return;
 +	if (!tomoyo_trigger)
-+                tomoyo_trigger = CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER;
-+        if (strcmp(filename, tomoyo_trigger))
-+                return;
++		tomoyo_trigger = CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER;
++	if (strcmp(filename, tomoyo_trigger))
+ 		return;
  	if (!tomoyo_policy_loader_exists())
  		return;
 -

@@ -1,15 +1,24 @@
 TOMOYO: Add conditional ACL support.
 
+Allow using UID/GID etc. of current thread as conditions.
+Allow using executable file's realpath as conditions when executing programs.
+Allow using argv[]/envp[] as conditions when executing programs.
+Allow using symbolic link's contents as conditions when creating one.
+
+This patch is for reading/writing policy and checking conditions.
+Next pacth is for adding hooks.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Makefile    |    2 
- security/tomoyo/common.c    |  267 ++++++++++-
- security/tomoyo/common.h    |  264 +++++++++++
+ security/tomoyo/audit.c     |  231 ++++++++-
+ security/tomoyo/common.c    |  308 ++++++++++++
+ security/tomoyo/common.h    |  263 +++++++++++
  security/tomoyo/condition.c | 1048 ++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/domain.c    |   67 ++
  security/tomoyo/gc.c        |   56 ++
  security/tomoyo/util.c      |    2 
- 7 files changed, 1685 insertions(+), 21 deletions(-)
+ 8 files changed, 1938 insertions(+), 39 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -19,6 +28,285 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  $(obj)/tomoyo2c: $(obj)/tomoyo2c.c
  	@echo Compiling built-in policy generator for TOMOYO 2.4.x.
+--- security-testing-2.6.orig/security/tomoyo/audit.c
++++ security-testing-2.6/security/tomoyo/audit.c
+@@ -10,6 +10,133 @@
+ #include <linux/slab.h>
+ 
+ /**
++ * tomoyo_print_bprm - Print "struct linux_binprm" for auditing.
++ *
++ * @bprm: Pointer to "struct linux_binprm".
++ * @dump: Pointer to "struct tomoyo_page_dump".
++ *
++ * Returns the contents of @bprm on success, NULL otherwise.
++ *
++ * This function uses kzalloc(), so caller must kfree() if this function
++ * didn't return NULL.
++ */
++static char *tomoyo_print_bprm(struct linux_binprm *bprm,
++			       struct tomoyo_page_dump *dump)
++{
++	static const int tomoyo_buffer_len = 4096 * 2;
++	char *buffer = kzalloc(tomoyo_buffer_len, GFP_NOFS);
++	char *cp;
++	char *last_start;
++	int len;
++	unsigned long pos = bprm->p;
++	int offset = pos % PAGE_SIZE;
++	int argv_count = bprm->argc;
++	int envp_count = bprm->envc;
++	bool truncated = false;
++	if (!buffer)
++		return NULL;
++	len = snprintf(buffer, tomoyo_buffer_len - 1, "argv[]={ ");
++	cp = buffer + len;
++	if (!argv_count) {
++		memmove(cp, "} envp[]={ ", 11);
++		cp += 11;
++	}
++	last_start = cp;
++	while (argv_count || envp_count) {
++		if (!tomoyo_dump_page(bprm, pos, dump))
++			goto out;
++		pos += PAGE_SIZE - offset;
++		/* Read. */
++		while (offset < PAGE_SIZE) {
++			const char *kaddr = dump->data;
++			const unsigned char c = kaddr[offset++];
++			if (cp == last_start)
++				*cp++ = '"';
++			if (cp >= buffer + tomoyo_buffer_len - 32) {
++				/* Reserve some room for "..." string. */
++				truncated = true;
++			} else if (c == '\\') {
++				*cp++ = '\\';
++				*cp++ = '\\';
++			} else if (c > ' ' && c < 127) {
++				*cp++ = c;
++			} else if (!c) {
++				*cp++ = '"';
++				*cp++ = ' ';
++				last_start = cp;
++			} else {
++				*cp++ = '\\';
++				*cp++ = (c >> 6) + '0';
++				*cp++ = ((c >> 3) & 7) + '0';
++				*cp++ = (c & 7) + '0';
++			}
++			if (c)
++				continue;
++			if (argv_count) {
++				if (--argv_count == 0) {
++					if (truncated) {
++						cp = last_start;
++						memmove(cp, "... ", 4);
++						cp += 4;
++					}
++					memmove(cp, "} envp[]={ ", 11);
++					cp += 11;
++					last_start = cp;
++					truncated = false;
++				}
++			} else if (envp_count) {
++				if (--envp_count == 0) {
++					if (truncated) {
++						cp = last_start;
++						memmove(cp, "... ", 4);
++						cp += 4;
++					}
++				}
++			}
++			if (!argv_count && !envp_count)
++				break;
++		}
++		offset = 0;
++	}
++	*cp++ = '}';
++	*cp = '\0';
++	return buffer;
++out:
++	snprintf(buffer, tomoyo_buffer_len - 1,
++		 "argv[]={ ... } envp[]= { ... }");
++	return buffer;
++}
++
++/**
++ * tomoyo_filetype - Get string representation of file type.
++ *
++ * @mode: Mode value for stat().
++ *
++ * Returns file type string.
++ */
++static inline const char *tomoyo_filetype(const mode_t mode)
++{
++	switch (mode & S_IFMT) {
++	case S_IFREG:
++	case 0:
++		return tomoyo_condition_keyword[TOMOYO_TYPE_IS_FILE];
++	case S_IFDIR:
++		return tomoyo_condition_keyword[TOMOYO_TYPE_IS_DIRECTORY];
++	case S_IFLNK:
++		return tomoyo_condition_keyword[TOMOYO_TYPE_IS_SYMLINK];
++	case S_IFIFO:
++		return tomoyo_condition_keyword[TOMOYO_TYPE_IS_FIFO];
++	case S_IFSOCK:
++		return tomoyo_condition_keyword[TOMOYO_TYPE_IS_SOCKET];
++	case S_IFBLK:
++		return tomoyo_condition_keyword[TOMOYO_TYPE_IS_BLOCK_DEV];
++	case S_IFCHR:
++		return tomoyo_condition_keyword[TOMOYO_TYPE_IS_CHAR_DEV];
++	}
++	return "unknown"; /* This should not happen. */
++}
++
++/**
+  * tomoyo_print_header - Get header line of audit log.
+  *
+  * @r: Pointer to "struct tomoyo_request_info".
+@@ -22,10 +149,11 @@
+ static char *tomoyo_print_header(struct tomoyo_request_info *r)
+ {
+ 	struct tomoyo_time stamp;
+-	const pid_t gpid = task_pid_nr(current);
++	struct tomoyo_obj_info *obj = r->obj;
+ 	static const int tomoyo_buffer_len = 4096;
+ 	char *buffer = kmalloc(tomoyo_buffer_len, GFP_NOFS);
+-	pid_t ppid;
++	int pos;
++	u8 i;
+ 	if (!buffer)
+ 		return NULL;
+ 	{
+@@ -33,21 +161,62 @@ static char *tomoyo_print_header(struct 
+ 		do_gettimeofday(&tv);
+ 		tomoyo_convert_time(tv.tv_sec, &stamp);
+ 	}
+-	rcu_read_lock();
+-	ppid = task_tgid_vnr(current->real_parent);
+-	rcu_read_unlock();
+-	snprintf(buffer, tomoyo_buffer_len - 1,
+-		 "#%04u/%02u/%02u %02u:%02u:%02u# profile=%u mode=%s "
+-		 "granted=%s (global-pid=%u) task={ pid=%u ppid=%u "
+-		 "uid=%u gid=%u euid=%u egid=%u suid=%u sgid=%u "
+-		 "fsuid=%u fsgid=%u }",
+-		 stamp.year, stamp.month, stamp.day, stamp.hour,
+-		 stamp.min, stamp.sec, r->profile, tomoyo_mode[r->mode],
+-		 tomoyo_yesno(r->granted), gpid, task_tgid_vnr(current), ppid,
+-		 current_uid(), current_gid(), current_euid(), current_egid(),
+-		 current_suid(), current_sgid(), current_fsuid(),
+-		 current_fsgid());
+-	return buffer;
++	pos = snprintf(buffer, tomoyo_buffer_len - 1,
++		       "#%04u/%02u/%02u %02u:%02u:%02u# profile=%u mode=%s "
++		       "granted=%s (global-pid=%u) task={ pid=%u ppid=%u "
++		       "uid=%u gid=%u euid=%u egid=%u suid=%u sgid=%u "
++		       "fsuid=%u fsgid=%u }", stamp.year, stamp.month,
++		       stamp.day, stamp.hour, stamp.min, stamp.sec, r->profile,
++		       tomoyo_mode[r->mode], tomoyo_yesno(r->granted),
++		       task_pid_nr(current), tomoyo_sys_getpid(),
++		       tomoyo_sys_getppid(), current_uid(), current_gid(),
++		       current_euid(), current_egid(), current_suid(),
++		       current_sgid(), current_fsuid(), current_fsgid());
++	if (!obj)
++		goto no_obj_info;
++	if (!obj->validate_done) {
++		tomoyo_get_attributes(obj);
++		obj->validate_done = true;
++	}
++	for (i = 0; i < TOMOYO_MAX_PATH_STAT; i++) {
++		struct tomoyo_mini_stat *stat;
++		unsigned int dev;
++		mode_t mode;
++		if (!obj->stat_valid[i])
++			continue;
++		stat = &obj->stat[i];
++		dev = stat->dev;
++		mode = stat->mode;
++		if (i & 1) {
++			pos += snprintf(buffer + pos,
++					tomoyo_buffer_len - 1 - pos,
++					" path%u.parent={ uid=%u gid=%u "
++					"ino=%lu perm=0%o }", (i >> 1) + 1,
++					stat->uid, stat->gid, (unsigned long)
++					stat->ino, stat->mode & S_IALLUGO);
++			continue;
++		}
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" path%u={ uid=%u gid=%u ino=%lu major=%u"
++				" minor=%u perm=0%o type=%s", (i >> 1) + 1,
++				stat->uid, stat->gid, (unsigned long)
++				stat->ino, MAJOR(dev), MINOR(dev),
++				mode & S_IALLUGO, tomoyo_filetype(mode));
++		if (S_ISCHR(mode) || S_ISBLK(mode)) {
++			dev = stat->rdev;
++			pos += snprintf(buffer + pos,
++					tomoyo_buffer_len - 1 - pos,
++					" dev_major=%u dev_minor=%u",
++					MAJOR(dev), MINOR(dev));
++		}
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" }");
++	}
++no_obj_info:
++	if (pos < tomoyo_buffer_len - 1)
++		return buffer;
++	kfree(buffer);
++	return NULL;
+ }
+ 
+ /**
+@@ -67,23 +236,49 @@ char *tomoyo_init_log(struct tomoyo_requ
+ 		      va_list args)
+ {
+ 	char *buf = NULL;
++	char *bprm_info = NULL;
++	char *realpath = NULL;
++	const char *symlink = NULL;
+ 	const char *header = NULL;
+ 	int pos;
+-	const char *domainname = tomoyo_domain()->domainname->name;
++	const char *domainname = r->domain->domainname->name;
+ 	header = tomoyo_print_header(r);
+ 	if (!header)
+ 		return NULL;
+ 	/* +10 is for '\n' etc. and '\0'. */
+ 	len += strlen(domainname) + strlen(header) + 10;
++	if (r->ee) {
++		struct file *file = r->ee->bprm->file;
++		realpath = tomoyo_realpath_from_path(&file->f_path);
++		bprm_info = tomoyo_print_bprm(r->ee->bprm, &r->ee->dump);
++		if (!realpath || !bprm_info)
++			goto out;
++		/* +80 is for " exec={ realpath=\"%s\" argc=%d envc=%d %s }" */
++		len += strlen(realpath) + 80 + strlen(bprm_info);
++	} else if (r->obj && r->obj->symlink_target) {
++		symlink = r->obj->symlink_target->name;
++		/* +18 is for " symlink.target=\"%s\"" */
++		len += 18 + strlen(symlink);
++	}
+ 	len = tomoyo_round2(len);
+ 	buf = kzalloc(len, GFP_NOFS);
+ 	if (!buf)
+ 		goto out;
+ 	len--;
+ 	pos = snprintf(buf, len, "%s", header);
++	if (realpath) {
++		struct linux_binprm *bprm = r->ee->bprm;
++		pos += snprintf(buf + pos, len - pos,
++				" exec={ realpath=\"%s\" argc=%d envc=%d %s }",
++				realpath, bprm->argc, bprm->envc, bprm_info);
++	} else if (symlink)
++		pos += snprintf(buf + pos, len - pos, " symlink.target=\"%s\"",
++				symlink);
+ 	pos += snprintf(buf + pos, len - pos, "\n%s\n", domainname);
+ 	vsnprintf(buf + pos, len - pos, fmt, args);
+ out:
++	kfree(realpath);
++	kfree(bprm_info);
+ 	kfree(header);
+ 	return buf;
+ }
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
 @@ -48,6 +48,69 @@ const char * const tomoyo_mac_keywords[T
@@ -340,6 +628,72 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return true;
  }
  
+@@ -1561,6 +1810,22 @@ static DEFINE_SPINLOCK(tomoyo_query_list
+ static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
+ 
+ /**
++ * tomoyo_truncate - Truncate a line.
++ *
++ * @str: String to truncate.
++ *
++ * Returns length of truncated @str.
++ */
++static int tomoyo_truncate(char *str)
++{
++	char *start = str;
++	while (*(unsigned char *) str > (unsigned char) ' ')
++		str++;
++	*str = '\0';
++	return strlen(start) + 1;
++}
++
++/**
+  * tomoyo_add_entry - Add an ACL to current thread's domain. Used by learning mode.
+  *
+  * @domain: Pointer to "struct tomoyo_domain_info".
+@@ -1571,6 +1836,9 @@ static atomic_t tomoyo_query_observers =
+ static void tomoyo_add_entry(struct tomoyo_domain_info *domain, char *header)
+ {
+ 	char *buffer;
++	char *realpath = NULL;
++	char *argv0 = NULL;
++	char *symlink = NULL;
+ 	char *cp = strchr(header, '\n');
+ 	int len;
+ 	if (!cp)
+@@ -1580,10 +1848,32 @@ static void tomoyo_add_entry(struct tomo
+ 		return;
+ 	*cp++ = '\0';
+ 	len = strlen(cp) + 1;
++	/* strstr() will return NULL if ordering is wrong. */
++	if (*cp == 'f') {
++		argv0 = strstr(header, " argv[]={ \"");
++		if (argv0) {
++			argv0 += 10;
++			len += tomoyo_truncate(argv0) + 14;
++		}
++		realpath = strstr(header, " exec={ realpath=\"");
++		if (realpath) {
++			realpath += 8;
++			len += tomoyo_truncate(realpath) + 6;
++		}
++		symlink = strstr(header, " symlink.target=\"");
++		if (symlink)
++			len += tomoyo_truncate(symlink + 1) + 1;
++	}
+ 	buffer = kmalloc(len, GFP_NOFS);
+ 	if (!buffer)
+ 		return;
+ 	snprintf(buffer, len - 1, "%s", cp);
++	if (realpath)
++		tomoyo_addprintf(buffer, len, " exec.%s", realpath);
++	if (argv0)
++		tomoyo_addprintf(buffer, len, " exec.argv[0]=%s", argv0);
++	if (symlink)
++		tomoyo_addprintf(buffer, len, "%s", symlink);
+ 	tomoyo_normalize_line(buffer);
+ 	if (!tomoyo_write_domain2(domain->ns, &domain->acl_info_list, buffer,
+ 				  false))
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
 @@ -21,7 +21,8 @@
@@ -472,7 +826,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_domain_info *domain;
  	/* For holding parameters. */
  	union {
-@@ -374,9 +474,114 @@ struct tomoyo_number_group {
+@@ -374,9 +474,113 @@ struct tomoyo_number_group {
  	struct tomoyo_number_union number;
  };
  
@@ -535,7 +889,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_request_info r;
 +	struct tomoyo_obj_info obj;
 +	struct linux_binprm *bprm;
-+	int reader_idx;
 +	/* For dumping argv[] and envp[]. */
 +	struct tomoyo_page_dump dump;
 +	/* For temporary use. */
@@ -587,7 +940,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bool is_deleted;
  	u8 type; /* One of values in "enum tomoyo_acl_entry_type_index". */
  } __packed;
-@@ -479,12 +684,15 @@ struct tomoyo_io_buffer {
+@@ -479,12 +683,15 @@ struct tomoyo_io_buffer {
  		unsigned int step;
  		unsigned int query_index;
  		u16 index;
@@ -603,7 +956,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		const char *w[TOMOYO_MAX_IO_READ_QUEUE];
  	} r;
  	struct {
-@@ -590,11 +798,16 @@ struct tomoyo_policy_namespace {
+@@ -590,11 +797,16 @@ struct tomoyo_policy_namespace {
  
  bool tomoyo_compare_number_union(const unsigned long value,
  				 const struct tomoyo_number_union *ptr);
@@ -620,7 +973,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_memory_ok(void *ptr);
  bool tomoyo_number_matches_group(const unsigned long min,
  				 const unsigned long max,
-@@ -668,6 +881,7 @@ ssize_t tomoyo_read_control(struct tomoy
+@@ -668,6 +880,7 @@ ssize_t tomoyo_read_control(struct tomoy
  			    const int buffer_len);
  ssize_t tomoyo_write_control(struct tomoyo_io_buffer *head,
  			     const char __user *buffer, const int buffer_len);
@@ -628,7 +981,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
  						const bool transit);
  struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
-@@ -679,6 +893,7 @@ struct tomoyo_profile *tomoyo_profile(co
+@@ -679,6 +892,7 @@ struct tomoyo_profile *tomoyo_profile(co
  				      const u8 profile);
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
  				const u8 index);
@@ -636,7 +989,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void *tomoyo_commit_ok(void *data, const unsigned int size);
  void __init tomoyo_load_builtin_policy(void);
  void __init tomoyo_mm_init(void);
-@@ -687,6 +902,7 @@ void tomoyo_check_acl(struct tomoyo_requ
+@@ -687,6 +901,7 @@ void tomoyo_check_acl(struct tomoyo_requ
  					   const struct tomoyo_acl_info *));
  void tomoyo_check_profile(void);
  void tomoyo_convert_time(time_t time, struct tomoyo_time *stamp);
@@ -644,7 +997,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
  void tomoyo_init_policy_namespace(struct tomoyo_policy_namespace *ns);
  void tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
-@@ -710,6 +926,8 @@ void tomoyo_write_log2(struct tomoyo_req
+@@ -710,6 +925,8 @@ void tomoyo_write_log2(struct tomoyo_req
  /********** External variable definitions. **********/
  
  extern bool tomoyo_policy_loaded;
@@ -653,7 +1006,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern const char * const tomoyo_dif[TOMOYO_MAX_DOMAIN_INFO_FLAGS];
  extern const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
  					      + TOMOYO_MAX_MAC_CATEGORY_INDEX];
-@@ -719,6 +937,7 @@ extern const u8 tomoyo_index2category[TO
+@@ -719,6 +936,7 @@ extern const u8 tomoyo_index2category[TO
  extern const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION];
  extern const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION];
  extern const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION];
@@ -661,7 +1014,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern struct list_head tomoyo_domain_list;
  extern struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
  extern struct list_head tomoyo_namespace_list;
-@@ -754,6 +973,36 @@ static inline void tomoyo_read_unlock(in
+@@ -754,6 +972,36 @@ static inline void tomoyo_read_unlock(in
  }
  
  /**
@@ -698,7 +1051,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_pathcmp - strcmp() for "struct tomoyo_path_info" structure.
   *
   * @a: Pointer to "struct tomoyo_path_info".
-@@ -784,6 +1033,19 @@ static inline void tomoyo_put_name(const
+@@ -784,6 +1032,19 @@ static inline void tomoyo_put_name(const
  }
  
  /**
