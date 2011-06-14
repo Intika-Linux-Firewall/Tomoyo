@@ -155,6 +155,16 @@ int main(int argc, char *argv[])
 		goto usage;
 	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
 	tomoyo_mount_securityfs();
+	query_fd = open(proc_policy_query, O_RDWR);
+	if (query_fd == EOF) {
+		fprintf(stderr, "You can't run this daemon for this kernel."
+			"\n");
+		return 1;
+	} else if (time_to_wait && write(query_fd, "", 0) != 0) {
+		fprintf(stderr, "You need to register this program to %s to "
+			"run this program.\n", "/sys/kernel/security/tomoyo/manager");
+		return 1;
+	}
 	umask(0);
 	switch (fork()) {
 	case 0:
@@ -187,16 +197,6 @@ int main(int argc, char *argv[])
 		if (flock(fd, LOCK_EX | LOCK_NB) == EOF)
 			return 0;
 	}
-	query_fd = open(proc_policy_query, O_RDWR);
-	if (query_fd == EOF) {
-		fprintf(stderr, "You can't run this daemon for this kernel."
-			"\n");
-		return 1;
-	} else if (time_to_wait && write(query_fd, "", 0) != 0) {
-		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", "/sys/kernel/security/tomoyo/manager");
-		return 1;
-	}
 	close(0);
 	close(1);
 	close(2);
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 	main_loop();
 	syslog(LOG_WARNING, "Terminated.\n");
 	closelog();
-	return 0;
+	return 1;
 usage:
 	fprintf(stderr, "%s\n  See %s for configuration.\n", argv[0],
 		TOMOYO_NOTIFYD_CONF);

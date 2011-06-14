@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 	if (access(CCS_PROC_POLICY_AUDIT, R_OK)) {
 		fprintf(stderr, "You can't run this daemon for this kernel."
 			"\n");
-		return 0;
+		return 1;
 	}
 	{ /* Get exclusive lock. */
 		int fd = open("/proc/self/exe", O_RDONLY);
@@ -407,9 +407,9 @@ start:
 out:
 	syslog(LOG_WARNING, "Terminated.\n");
 	closelog();
-	return 0;
+	return 1;
 usage:
 	fprintf(stderr, "%s [remote_ip:remote_port]\n"
 		"  See %s for configuration.\n", argv[0], CCS_AUDITD_CONF);
-	return 0;
+	return 1;
 }
