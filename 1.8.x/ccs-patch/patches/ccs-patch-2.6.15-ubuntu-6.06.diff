@@ -16,7 +16,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   29 +++++++++++++++++++++++++++++
+ fs/namei.c                      |   21 +++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   24 ++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -42,10 +42,10 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  net/ipv6/tcp_ipv6.c             |    5 +++++
  net/ipv6/udp.c                  |    9 +++++++++
  net/socket.c                    |   18 ++++++++++++++++++
- net/unix/af_unix.c              |    7 +++++++
+ net/unix/af_unix.c              |    6 ++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 248 insertions(+), 3 deletions(-)
+ 43 files changed, 239 insertions(+), 3 deletions(-)
 
 --- linux-2.6.15-57.97.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-57.97/arch/alpha/kernel/ptrace.c
@@ -290,82 +290,74 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1594,6 +1599,9 @@ do_last:
+@@ -1594,6 +1599,8 @@ do_last:
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
-+		error = ccs_mknod_permission(dir->d_inode, path.dentry,
-+					     nd->mnt, mode, 0);
++		error = ccs_mknod_permission(path.dentry, nd->mnt, mode, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1781,6 +1789,9 @@ SYSCALL_DEFINE3(mknod, const char __user
+@@ -1781,6 +1788,8 @@ SYSCALL_DEFINE3(mknod, const char __user
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1849,6 +1860,9 @@ SYSCALL_DEFINE2(mkdir, const char __user
+@@ -1849,6 +1858,8 @@ SYSCALL_DEFINE2(mkdir, const char __user
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
-+			error = ccs_mkdir_permission(nd.dentry->d_inode,
-+						     dentry, nd.mnt, mode);
++			error = ccs_mkdir_permission(dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1952,6 +1966,9 @@ SYSCALL_DEFINE1(rmdir, const char __user
+@@ -1952,6 +1963,8 @@ SYSCALL_DEFINE1(rmdir, const char __user
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt);
++		error = ccs_rmdir_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2027,6 +2044,9 @@ SYSCALL_DEFINE1(unlink, const char __use
+@@ -2027,6 +2040,8 @@ SYSCALL_DEFINE1(unlink, const char __use
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
-+		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
-+					      nd.mnt);
++		error = ccs_unlink_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2089,6 +2109,9 @@ SYSCALL_DEFINE2(symlink, const char __us
+@@ -2089,6 +2104,8 @@ SYSCALL_DEFINE2(symlink, const char __us
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_symlink_permission(nd.dentry->d_inode,
-+						       dentry, nd.mnt, from);
++			error = ccs_symlink_permission(dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2172,6 +2195,9 @@ SYSCALL_DEFINE2(link, const char __user 
+@@ -2172,6 +2189,8 @@ SYSCALL_DEFINE2(link, const char __user 
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
-+		error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
-+					    new_dentry, nd.mnt);
++		error = ccs_link_permission(old_nd.dentry, new_dentry, nd.mnt);
 +		if (!error)
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2392,6 +2418,9 @@ static inline int do_rename(const char *
+@@ -2392,6 +2411,8 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
-+	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+				      new_dir->d_inode, new_dentry, newnd.mnt);
++	error = ccs_rename_permission(old_dentry, new_dentry, newnd.mnt);
 +	if (!error)
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
@@ -511,7 +503,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.15-57.97 2011/05/06\n");
++	printk(KERN_INFO "Hook version: 2.6.15-57.97 2011/06/14\n");
  }
 --- linux-2.6.15-57.97.orig/fs/stat.c
 +++ linux-2.6.15-57.97/fs/stat.c
@@ -1074,17 +1066,16 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
 --- linux-2.6.15-57.97.orig/net/unix/af_unix.c
 +++ linux-2.6.15-57.97/net/unix/af_unix.c
-@@ -781,6 +781,9 @@ static int unix_bind(struct socket *sock
+@@ -781,6 +781,8 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
-+		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
-+					   mode, 0);
++		err = ccs_mknod_permission(dentry, nd.mnt, mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1558,6 +1561,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1558,6 +1560,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible(&u->peer_wait);
  

@@ -16,7 +16,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   27 +++++++++++++++++++++++++++
+ fs/namei.c                      |   21 +++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -43,10 +43,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    5 +++++
  net/socket.c                    |   18 ++++++++++++++++++
- net/unix/af_unix.c              |    7 +++++++
+ net/unix/af_unix.c              |    6 ++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 44 files changed, 241 insertions(+), 2 deletions(-)
+ 44 files changed, 234 insertions(+), 2 deletions(-)
 
 --- linux-2.6.20.21.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.20.21/arch/alpha/kernel/ptrace.c
@@ -291,80 +291,74 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1600,6 +1605,9 @@ static int open_namei_create(struct name
+@@ -1600,6 +1605,8 @@ static int open_namei_create(struct name
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
-+	error = ccs_mknod_permission(dir->d_inode, path->dentry, nd->mnt, mode,
-+				     0);
++	error = ccs_mknod_permission(path->dentry, nd->mnt, mode, 0);
 +	if (!error)
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->dentry);
-@@ -1883,6 +1891,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1883,6 +1890,8 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1959,6 +1970,8 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1959,6 +1968,8 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
-+	error = ccs_mkdir_permission(nd.dentry->d_inode, dentry, nd.mnt, mode);
++	error = ccs_mkdir_permission(dentry, nd.mnt, mode);
 +	if (!error)
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  	dput(dentry);
  out_unlock:
-@@ -2066,6 +2079,8 @@ static long do_rmdir(int dfd, const char
+@@ -2066,6 +2077,8 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
-+	error = ccs_rmdir_permission(nd.dentry->d_inode, dentry, nd.mnt);
++	error = ccs_rmdir_permission(dentry, nd.mnt);
 +	if (!error)
  	error = vfs_rmdir(nd.dentry->d_inode, dentry);
  	dput(dentry);
  exit2:
-@@ -2146,6 +2161,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2146,6 +2159,8 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
-+		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
-+					      nd.mnt);
++		error = ccs_unlink_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2227,6 +2245,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2227,6 +2242,8 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
-+	error = ccs_symlink_permission(nd.dentry->d_inode, dentry, nd.mnt,
-+				       from);
++	error = ccs_symlink_permission(dentry, nd.mnt, from);
 +	if (!error)
  	error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  	dput(dentry);
  out_unlock:
-@@ -2322,6 +2343,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2322,6 +2339,8 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
-+	error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
-+				    new_dentry, nd.mnt);
++	error = ccs_link_permission(old_nd.dentry, new_dentry, nd.mnt);
 +	if (!error)
  	error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  	dput(new_dentry);
  out_unlock:
-@@ -2548,6 +2572,9 @@ static int do_rename(int olddfd, const c
+@@ -2548,6 +2567,8 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
-+	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+				      new_dir->d_inode, new_dentry, newnd.mnt);
++	error = ccs_rename_permission(old_dentry, new_dentry, newnd.mnt);
 +	if (!error)
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
@@ -518,7 +512,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.20.21 2010/11/22\n");
++	printk(KERN_INFO "Hook version: 2.6.20.21 2011/06/14\n");
  }
 --- linux-2.6.20.21.orig/fs/stat.c
 +++ linux-2.6.20.21/fs/stat.c
@@ -1062,17 +1056,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.20.21.orig/net/unix/af_unix.c
 +++ linux-2.6.20.21/net/unix/af_unix.c
-@@ -808,6 +808,9 @@ static int unix_bind(struct socket *sock
+@@ -808,6 +808,8 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
-+		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
-+					   mode, 0);
++		err = ccs_mknod_permission(dentry, nd.mnt, mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1614,6 +1617,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1614,6 +1616,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible(&u->peer_wait);
  

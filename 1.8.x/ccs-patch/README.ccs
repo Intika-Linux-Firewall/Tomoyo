@@ -2878,3 +2878,14 @@ Fix 2011/06/10
       To be able to use TOMOYO under systemd environments where init= parameter
       is used, I changed to allow overriding the trigger for calling external
       policy loader and activating MAC via kernel command line options.
+
+Fix 2008/06/14
+
+    @ Remove unused "struct inode *" parameter from ccs-patch-\*.diff .
+
+      To follow changes I made on 2011/04/20, I removed "struct inode *" from
+      ccs_mknod_permission(), ccs_mkdir_permission(), ccs_rmdir_permission(),
+      ccs_unlink_permission(), ccs_symlink_permission(), ccs_link_permission(),
+      ccs_rename_permission() that are called from fs/namei.c
+      net/unix/af_unix.c include/linux/security.c security/security.c .
+      If you have your own ccs-patch-*.diff , please update accordingly.

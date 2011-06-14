@@ -28,7 +28,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/exec.c                    |   11 ++++++++++-
  fs/fcntl.c                   |    5 +++++
  fs/ioctl.c                   |    6 ++++++
- fs/namei.c                   |   35 +++++++++++++++++++++++++++++++++++
+ fs/namei.c                   |   28 ++++++++++++++++++++++++++++
  fs/namespace.c               |   17 +++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
@@ -47,8 +47,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/tcp_ipv6.c          |    3 +++
  net/ipv6/udp.c               |    9 +++++++++
  net/socket.c                 |   22 +++++++++++++++++++++-
- net/unix/af_unix.c           |    8 ++++++++
- 46 files changed, 324 insertions(+), 3 deletions(-)
+ net/unix/af_unix.c           |    7 +++++++
+ 46 files changed, 316 insertions(+), 3 deletions(-)
 
 --- linux-2.4.35.5.orig/Makefile
 +++ linux-2.4.35.5/Makefile
@@ -596,7 +596,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	/* Negative dentry, just create the file */
  	if (!dentry->d_inode) {
-+		error = ccs_mknod_permission(dir->d_inode, dentry, nd->mnt,
++		error = ccs_mknod_permission(dentry, nd->mnt,
 +					     mode & ~current->fs->umask, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, dentry,
@@ -614,73 +614,66 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1289,6 +1300,9 @@ asmlinkage long sys_mknod(const char * f
+@@ -1289,6 +1300,8 @@ asmlinkage long sys_mknod(const char * f
  
  	mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
-@@ -1355,6 +1369,9 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1355,6 +1368,8 @@ asmlinkage long sys_mkdir(const char * p
  		dentry = lookup_create(&nd, 1);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_mkdir_permission(nd.dentry->d_inode,
-+						     dentry, nd.mnt, mode);
++			error = ccs_mkdir_permission(dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry,
  					  mode & ~current->fs->umask);
  			dput(dentry);
-@@ -1464,6 +1481,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1464,6 +1479,8 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt);
++		error = ccs_rmdir_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1533,6 +1553,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1533,6 +1550,8 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
-+		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
-+					      nd.mnt);
++		error = ccs_unlink_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1597,6 +1620,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1597,6 +1616,8 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_symlink_permission(nd.dentry->d_inode,
-+						       dentry, nd.mnt, from);
++			error = ccs_symlink_permission(dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1683,6 +1709,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1683,6 +1704,9 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
-+			error = ccs_link_permission(old_nd.dentry,
-+						    nd.dentry->d_inode,
-+						    new_dentry, nd.mnt);
++			error = ccs_link_permission(old_nd.dentry, new_dentry,
++						    nd.mnt);
 +			if (!error)
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1913,12 +1943,17 @@ static inline int do_rename(const char *
+@@ -1913,12 +1937,16 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;
-+	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+				      new_dir->d_inode, new_dentry, newnd.mnt);
++	error = ccs_rename_permission(old_dentry, new_dentry, newnd.mnt);
 +	if (error)
 +		goto exit5;
  
@@ -867,7 +860,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.35.5 2010/10/28\n");
++	printk(KERN_INFO "Hook version: 2.4.35.5 2011/06/14\n");
  }
 --- linux-2.4.35.5.orig/fs/stat.c
 +++ linux-2.4.35.5/fs/stat.c
@@ -1466,17 +1459,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -709,6 +710,9 @@ static int unix_bind(struct socket *sock
+@@ -709,6 +710,8 @@ static int unix_bind(struct socket *sock
  		 * All right, let's create it.
  		 */
  		mode = S_IFSOCK | (sock->inode->i_mode & ~current->fs->umask);
-+		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
-+					   mode, 0);
++		err = ccs_mknod_permission(dentry, nd.mnt, mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1411,6 +1415,10 @@ static int unix_dgram_recvmsg(struct soc
+@@ -1411,6 +1414,10 @@ static int unix_dgram_recvmsg(struct soc
  
  	wake_up_interruptible(&sk->protinfo.af_unix.peer_wait);
  

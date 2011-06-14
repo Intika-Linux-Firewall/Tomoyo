@@ -6,18 +6,18 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
  fs/proc/version.c         |    7 ++
- include/linux/init_task.h |    9 ++
- include/linux/sched.h     |    6 +
- include/linux/security.h  |   58 ++++++++++--------
+ include/linux/init_task.h |    9 +++
+ include/linux/sched.h     |    6 ++
+ include/linux/security.h  |   52 +++++++++--------
  include/net/ip.h          |    2 
  kernel/fork.c             |    5 +
- kernel/kexec.c            |    3 
+ kernel/kexec.c            |    3 +
  kernel/module.c           |    5 +
  kernel/ptrace.c           |    4 +
  kernel/sched.c            |    2 
  kernel/signal.c           |   10 +++
  kernel/sys.c              |   10 +++
- kernel/time/ntp.c         |    6 +
+ kernel/time/ntp.c         |    6 ++
  net/ipv4/raw.c            |    4 +
  net/ipv4/udp.c            |    4 +
  net/ipv6/raw.c            |    4 +
@@ -25,9 +25,9 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  net/socket.c              |    4 +
  net/unix/af_unix.c        |    4 +
  security/Kconfig          |    2 
- security/Makefile         |    3 
- security/security.c       |  144 ++++++++++++++++++++++++++++++++++++++--------
- 25 files changed, 255 insertions(+), 51 deletions(-)
+ security/Makefile         |    3 +
+ security/security.c       |  136 +++++++++++++++++++++++++++++++++++++---------
+ 25 files changed, 241 insertions(+), 51 deletions(-)
 
 --- linux-2.6.35-30.53.orig/fs/compat.c
 +++ linux-2.6.35-30.53/fs/compat.c
@@ -71,7 +71,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.35-30.53 2011/06/08\n");
++	printk(KERN_INFO "Hook version: 2.6.35-30.53 2011/06/14\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -243,34 +243,32 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2829,43 +2833,47 @@ int security_path_chroot(struct path *pa
+@@ -2829,43 +2833,43 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
 -	return 0;
-+	return ccs_unlink_permission(dir->dentry->d_inode, dentry, dir->mnt);
++	return ccs_unlink_permission(dentry, dir->mnt);
  }
  
  static inline int security_path_mkdir(struct path *dir, struct dentry *dentry,
  				      int mode)
  {
 -	return 0;
-+	return ccs_mkdir_permission(dir->dentry->d_inode, dentry, dir->mnt,
-+				    mode);
++	return ccs_mkdir_permission(dentry, dir->mnt, mode);
  }
  
  static inline int security_path_rmdir(struct path *dir, struct dentry *dentry)
  {
 -	return 0;
-+	return ccs_rmdir_permission(dir->dentry->d_inode, dentry, dir->mnt);
++	return ccs_rmdir_permission(dentry, dir->mnt);
  }
  
  static inline int security_path_mknod(struct path *dir, struct dentry *dentry,
  				      int mode, unsigned int dev)
  {
 -	return 0;
-+	return ccs_mknod_permission(dir->dentry->d_inode, dentry, dir->mnt,
-+				    mode, dev);
++	return ccs_mknod_permission(dentry, dir->mnt, mode, dev);
  }
  
  static inline int security_path_truncate(struct path *path, loff_t length,
@@ -284,8 +282,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  					const char *old_name)
  {
 -	return 0;
-+	return ccs_symlink_permission(dir->dentry->d_inode, dentry, dir->mnt,
-+				      old_name);
++	return ccs_symlink_permission(dentry, dir->mnt, old_name);
  }
  
  static inline int security_path_link(struct dentry *old_dentry,
@@ -293,19 +290,16 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  				     struct dentry *new_dentry)
  {
 -	return 0;
-+	return ccs_link_permission(old_dentry, new_dir->dentry->d_inode,
-+				   new_dentry, new_dir->mnt);
++	return ccs_link_permission(old_dentry, new_dentry, new_dir->mnt);
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2873,24 +2881,26 @@ static inline int security_path_rename(s
+@@ -2873,24 +2877,24 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
 -	return 0;
-+	return ccs_rename_permission(old_dir->dentry->d_inode, old_dentry,
-+				     new_dir->dentry->d_inode, new_dentry,
-+				     new_dir->mnt);
++	return ccs_rename_permission(old_dentry, new_dentry, new_dir->mnt);
  }
  
  static inline int security_path_chmod(struct dentry *dentry,
@@ -701,7 +695,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -382,52 +395,82 @@ EXPORT_SYMBOL(security_inode_init_securi
+@@ -382,52 +395,76 @@ EXPORT_SYMBOL(security_inode_init_securi
  int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
  			unsigned int dev)
  {
@@ -711,8 +705,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 -	return security_ops->path_mknod(dir, dentry, mode, dev);
 +	error = security_ops->path_mknod(dir, dentry, mode, dev);
 +	if (!error)
-+		error = ccs_mknod_permission(dir->dentry->d_inode, dentry,
-+					     dir->mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, dir->mnt, mode, dev);
 +	return error;
  }
  EXPORT_SYMBOL(security_path_mknod);
@@ -725,8 +718,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 -	return security_ops->path_mkdir(dir, dentry, mode);
 +	error = security_ops->path_mkdir(dir, dentry, mode);
 +	if (!error)
-+		error = ccs_mkdir_permission(dir->dentry->d_inode, dentry,
-+					     dir->mnt, mode);
++		error = ccs_mkdir_permission(dentry, dir->mnt, mode);
 +	return error;
  }
  EXPORT_SYMBOL(security_path_mkdir);
@@ -739,8 +731,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 -	return security_ops->path_rmdir(dir, dentry);
 +	error = security_ops->path_rmdir(dir, dentry);
 +	if (!error)
-+		error = ccs_rmdir_permission(dir->dentry->d_inode, dentry,
-+					     dir->mnt);
++		error = ccs_rmdir_permission(dentry, dir->mnt);
 +	return error;
  }
  EXPORT_SYMBOL(security_path_rmdir);
@@ -753,8 +744,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 -	return security_ops->path_unlink(dir, dentry);
 +	error = security_ops->path_unlink(dir, dentry);
 +	if (!error)
-+		error = ccs_unlink_permission(dir->dentry->d_inode, dentry,
-+					      dir->mnt);
++		error = ccs_unlink_permission(dentry, dir->mnt);
 +	return error;
  }
  EXPORT_SYMBOL(security_path_unlink);
@@ -768,8 +758,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 -	return security_ops->path_symlink(dir, dentry, old_name);
 +	error = security_ops->path_symlink(dir, dentry, old_name);
 +	if (!error)
-+		error = ccs_symlink_permission(dir->dentry->d_inode, dentry,
-+					       dir->mnt, old_name);
++		error = ccs_symlink_permission(dentry, dir->mnt, old_name);
 +	return error;
  }
  EXPORT_SYMBOL(security_path_symlink);
@@ -780,8 +769,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +	int rc;
  	if (unlikely(IS_PRIVATE(old_dentry->d_inode)))
  		return 0;
-+	rc = ccs_link_permission(old_dentry, new_dir->dentry->d_inode,
-+				 new_dentry, new_dir->mnt);
++	rc = ccs_link_permission(old_dentry, new_dentry, new_dir->mnt);
 +	if (rc)
 +		return rc;
  #if CONFIG_SECURITY_YAMA
@@ -790,7 +778,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	if (rc || security_ops->path_link == yama_path_link)
  		return rc;
  #endif
-@@ -438,43 +481,66 @@ EXPORT_SYMBOL(security_path_link);
+@@ -438,43 +475,64 @@ EXPORT_SYMBOL(security_path_link);
  int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
  			 struct path *new_dir, struct dentry *new_dentry)
  {
@@ -803,10 +791,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +	error = security_ops->path_rename(old_dir, old_dentry, new_dir,
 +					  new_dentry);
 +	if (!error)
-+		error = ccs_rename_permission(old_dir->dentry->d_inode,
-+					      old_dentry,
-+					      new_dir->dentry->d_inode,
-+					      new_dentry, new_dir->mnt);
++		error = ccs_rename_permission(old_dentry, new_dentry,
++					      new_dir->mnt);
 +	return error;
  }
  EXPORT_SYMBOL(security_path_rename);
@@ -863,7 +849,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  #endif
  
-@@ -579,9 +645,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+@@ -579,9 +637,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
  
  int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
  {
@@ -878,7 +864,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  int security_inode_setxattr(struct dentry *dentry, const char *name,
-@@ -675,7 +745,10 @@ void security_file_free(struct file *fil
+@@ -675,7 +737,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -890,7 +876,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -704,7 +777,10 @@ int security_file_lock(struct file *file
+@@ -704,7 +769,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -902,7 +888,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -725,7 +801,10 @@ int security_file_receive(struct file *f
+@@ -725,7 +793,10 @@ int security_file_receive(struct file *f
  
  int security_dentry_open(struct file *file, const struct cred *cred)
  {
@@ -914,7 +900,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  int security_task_create(unsigned long clone_flags)
-@@ -1054,7 +1133,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1054,7 +1125,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -926,7 +912,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1066,17 +1148,26 @@ int security_socket_post_create(struct s
+@@ -1066,17 +1140,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -956,7 +942,7 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1086,7 +1177,10 @@ int security_socket_accept(struct socket
+@@ -1086,7 +1169,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {

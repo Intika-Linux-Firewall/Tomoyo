@@ -27,39 +27,39 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  arch/x86_64/kernel/ptrace.c        |    2 
  fs/Kconfig                         |    2 
  fs/Makefile                        |    2 
- fs/attr.c                          |   11 ---
+ fs/attr.c                          |   11 ----
  fs/compat.c                        |    9 ---
- fs/exec.c                          |   58 ++-----------------
- fs/fcntl.c                         |   11 +--
+ fs/exec.c                          |   58 ++-------------------
+ fs/fcntl.c                         |   11 +---
  fs/ioctl.c                         |    8 --
- fs/namei.c                         |  108 +++++++++----------------------------
- fs/namespace.c                     |   53 +++---------------
- fs/open.c                          |   68 ++++++++---------------
+ fs/namei.c                         |  100 +++++++-----------------------------
+ fs/namespace.c                     |   53 +++----------------
+ fs/open.c                          |   68 ++++++++----------------
  fs/proc/Makefile                   |    3 -
  fs/proc/proc_misc.c                |   10 ---
  fs/stat.c                          |    2 
  include/linux/init_task.h          |   15 +++--
- include/linux/sched.h              |   17 ++---
+ include/linux/sched.h              |   17 ++----
  include/linux/security.h           |    1 
  kernel/fork.c                      |    5 +
  kernel/kmod.c                      |    7 --
- kernel/module.c                    |   14 +---
+ kernel/module.c                    |   14 +----
  kernel/sched.c                     |    8 --
  kernel/signal.c                    |   24 ++------
- kernel/sys.c                       |   25 +++-----
- kernel/sysctl.c                    |  101 +++-------------------------------
+ kernel/sys.c                       |   25 +++------
+ kernel/sysctl.c                    |  101 +++----------------------------------
  kernel/time.c                      |   19 ++----
  net/ipv4/raw.c                     |    5 +
- net/ipv4/tcp_ipv4.c                |   14 +---
- net/ipv4/udp.c                     |   20 +++---
+ net/ipv4/tcp_ipv4.c                |   14 +----
+ net/ipv4/udp.c                     |   20 +++----
  net/ipv6/raw.c                     |    5 +
  net/ipv6/tcp_ipv6.c                |    9 +--
  net/ipv6/udp.c                     |   18 +++---
- net/socket.c                       |   47 +++++-----------
- net/unix/af_unix.c                 |   21 ++-----
+ net/socket.c                       |   47 ++++++-----------
+ net/unix/af_unix.c                 |   20 ++-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 59 files changed, 270 insertions(+), 517 deletions(-)
+ 59 files changed, 261 insertions(+), 517 deletions(-)
 
 --- linux-2.6.8-22.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/alpha/kernel/ptrace.c
@@ -730,17 +730,16 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  /*
   *	open_namei()
   *
-@@ -1418,6 +1398,9 @@ do_last:
+@@ -1418,6 +1398,8 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
-+		error = ccs_mknod_permission(dir->d_inode, dentry, nd->mnt,
-+					     mode, 0);
++		error = ccs_mknod_permission(dentry, nd->mnt, mode, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1465,7 +1448,6 @@ ok:
+@@ -1465,7 +1447,6 @@ ok:
  exit_dput:
  	dput(dentry);
  exit:
@@ -748,7 +747,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	path_release(nd);
  	return error;
  
-@@ -1589,12 +1571,6 @@ asmlinkage long sys_mknod(const char __u
+@@ -1589,12 +1570,6 @@ asmlinkage long sys_mknod(const char __u
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -761,12 +760,11 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1608,21 +1584,18 @@ asmlinkage long sys_mknod(const char __u
+@@ -1608,21 +1583,17 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
@@ -786,7 +784,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1631,7 +1604,6 @@ asmlinkage long sys_mknod(const char __u
+@@ -1631,7 +1602,6 @@ asmlinkage long sys_mknod(const char __u
  		default:
  			error = -EINVAL;
  		}
@@ -794,37 +792,35 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		dput(dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -1685,11 +1657,10 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1685,11 +1655,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
 - 			/***** TOMOYO Linux start. *****/
 - 			if ((error = pre_vfs_mkdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_MKDIR_ACL, dentry, nd.mnt)) == 0)
 - 			/***** TOMOYO Linux end. *****/
-+			error = ccs_mkdir_permission(nd.dentry->d_inode,
-+						     dentry, nd.mnt, mode);
++			error = ccs_mkdir_permission(dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
 -			if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_mkdir"); /***** ReadOnly Tracer *****/
  			dput(dentry);
  		}
  		up(&nd.dentry->d_inode->i_sem);
-@@ -1797,11 +1768,10 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1797,11 +1765,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
 -		/***** TOMOYO Linux start. *****/
 -		if ((error = pre_vfs_rmdir(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_RMDIR_ACL, dentry, nd.mnt)) == 0)
 -		/***** TOMOYO Linux end. *****/
-+		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt);
++		error = ccs_rmdir_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
 -		if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_rmdir"); /***** ReadOnly Tracer *****/
  		dput(dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -1855,9 +1825,6 @@ asmlinkage long sys_unlink(const char __
+@@ -1855,9 +1821,6 @@ asmlinkage long sys_unlink(const char __
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -834,22 +830,21 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -1879,11 +1846,10 @@ asmlinkage long sys_unlink(const char __
+@@ -1879,11 +1842,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
 -		/***** TOMOYO Linux start. *****/
 - 		if ((error = pre_vfs_unlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_UNLINK_ACL, dentry, nd.mnt)) == 0)
 - 		/***** TOMOYO Linux end. *****/
-+		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
-+					      nd.mnt);
++		error = ccs_unlink_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
 -		if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "sys_unlink"); /***** ReadOnly Tracer *****/
  	exit2:
  		dput(dentry);
  	}
-@@ -1931,9 +1897,6 @@ asmlinkage long sys_symlink(const char _
+@@ -1931,9 +1892,6 @@ asmlinkage long sys_symlink(const char _
  	int error = 0;
  	char * from;
  	char * to;
@@ -859,22 +854,21 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -1950,11 +1913,10 @@ asmlinkage long sys_symlink(const char _
+@@ -1950,11 +1908,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
 -			/***** TOMOYO Linux start. *****/
 - 			if ((error = pre_vfs_symlink(nd.dentry->d_inode, dentry)) == 0 && (error = CheckSingleWritePermission(TYPE_SYMLINK_ACL, dentry, nd.mnt)) == 0)
 - 			/***** TOMOYO Linux end. *****/
-+			error = ccs_symlink_permission(nd.dentry->d_inode,
-+						       dentry, nd.mnt, from);
++			error = ccs_symlink_permission(dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
 -			if (error == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "vfs_symlink"); /***** ReadOnly Tracer *****/
  			dput(dentry);
  		}
  		up(&nd.dentry->d_inode->i_sem);
-@@ -2021,9 +1983,6 @@ asmlinkage long sys_link(const char __us
+@@ -2021,9 +1977,6 @@ asmlinkage long sys_link(const char __us
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -884,22 +878,21 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	to = getname(newname);
  	if (IS_ERR(to))
-@@ -2041,11 +2000,10 @@ asmlinkage long sys_link(const char __us
+@@ -2041,11 +1994,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
 -		/***** TOMOYO Linux start. *****/
 -		if ((error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry)) == 0 && (error = CheckDoubleWritePermission(TYPE_LINK_ACL, old_nd.dentry, old_nd.mnt, new_dentry, nd.mnt)) == 0)
 -		/***** TOMOYO Linux end. *****/
-+		error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
-+					    new_dentry, nd.mnt);
++		error = ccs_link_permission(old_nd.dentry, new_dentry, nd.mnt);
 +		if (!error)
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
 -		if (error == -EROFS) ROFS_Log_from_dentry(new_dentry, nd.mnt, "vfs_link"); /***** ReadOnly Tracer *****/
  		dput(new_dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -2267,13 +2225,9 @@ static inline int do_rename(const char *
+@@ -2267,13 +2218,8 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -910,13 +903,12 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 - 	}
 - 	/***** TOMOYO Linux end. *****/
 - 
-+	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+				      new_dir->d_inode, new_dentry, newnd.mnt);
++	error = ccs_rename_permission(old_dentry, new_dentry, newnd.mnt);
 +	if (!error)
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2287,7 +2241,6 @@ exit2:
+@@ -2287,7 +2233,6 @@ exit2:
  exit1:
  	path_release(&oldnd);
  exit:
@@ -924,7 +916,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	return error;
  }
  
-@@ -2296,9 +2249,6 @@ asmlinkage long sys_rename(const char __
+@@ -2296,9 +2241,6 @@ asmlinkage long sys_rename(const char __
  	int error;
  	char * from;
  	char * to;
@@ -1311,7 +1303,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.8-22 2011/04/08\n");
++	printk(KERN_INFO "Hook version: 2.6.8-22 2011/06/14\n");
  }
 --- linux-2.6.8-22.orig/fs/stat.c
 +++ linux-2.6.8-22/fs/stat.c
@@ -2170,22 +2162,21 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	err = unix_mkname(sunaddr, addr_len, &hash);
  	if (err < 0)
-@@ -805,11 +795,10 @@ static int unix_bind(struct socket *sock
+@@ -805,11 +795,9 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
 -		/***** TOMOYO Linux start. *****/
 -		if ((err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode)) == 0 && (err = CheckSingleWritePermission(TYPE_MKSOCK_ACL, dentry, nd.mnt)) == 0)
 -		/***** TOMOYO Linux end. *****/
-+		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
-+					   mode, 0);
++		err = ccs_mknod_permission(dentry, nd.mnt, mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
 -		if (err == -EROFS) ROFS_Log_from_dentry(dentry, nd.mnt, "unix_bind"); /***** ReadOnly Tracer *****/
  		if (err)
  			goto out_mknod_dput;
  		up(&nd.dentry->d_inode->i_sem);
-@@ -1597,6 +1586,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1597,6 +1585,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible(&u->peer_wait);
  
