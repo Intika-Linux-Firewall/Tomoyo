@@ -7,7 +7,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  fs/exec.c                       |    2 +-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   28 ++++++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   15 +++++++++++++++
  fs/proc/version.c               |    7 +++++++
@@ -33,10 +33,10 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    5 +++++
  net/socket.c                    |   18 ++++++++++++++++++
- net/unix/af_unix.c              |    8 ++++++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 207 insertions(+), 3 deletions(-)
+ 34 files changed, 199 insertions(+), 3 deletions(-)
 
 --- linux-2.6.32-33.65.orig/fs/compat.c
 +++ linux-2.6.32-33.65/fs/compat.c
@@ -129,8 +129,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
 +	if (!error)
-+		error = ccs_mknod_permission(dir->d_inode, path->dentry,
-+					     nd->path.mnt, mode, 0);
++		error = ccs_mknod_permission(path->dentry, nd->path.mnt, mode,
++					     0);
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
@@ -154,74 +154,67 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2068,6 +2080,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2068,6 +2080,8 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
 +	if (!error)
-+		error = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
-+					     nd.path.mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, nd.path.mnt, mode, dev);
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2143,6 +2158,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2143,6 +2157,8 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
 +	if (!error)
-+		error = ccs_mkdir_permission(nd.path.dentry->d_inode, dentry,
-+					     nd.path.mnt, mode);
++		error = ccs_mkdir_permission(dentry, nd.path.mnt, mode);
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2257,6 +2275,9 @@ static long do_rmdir(int dfd, const char
+@@ -2257,6 +2273,8 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
 +	if (!error)
-+		error = ccs_rmdir_permission(nd.path.dentry->d_inode, dentry,
-+					     nd.path.mnt);
++		error = ccs_rmdir_permission(dentry, nd.path.mnt);
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2346,6 +2367,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2346,6 +2364,8 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
 +		if (!error)
-+			error = ccs_unlink_permission(nd.path.dentry->d_inode,
-+						      dentry, nd.path.mnt);
++			error = ccs_unlink_permission(dentry, nd.path.mnt);
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2431,6 +2455,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2431,6 +2451,8 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
 +	if (!error)
-+		error = ccs_symlink_permission(nd.path.dentry->d_inode, dentry,
-+					       nd.path.mnt, from);
++		error = ccs_symlink_permission(dentry, nd.path.mnt, from);
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2531,6 +2558,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2531,6 +2553,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
 +	if (!error)
-+		error = ccs_link_permission(old_path.dentry,
-+					    nd.path.dentry->d_inode,
-+					    new_dentry, nd.path.mnt);
++		error = ccs_link_permission(old_path.dentry, new_dentry,
++					    nd.path.mnt);
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2772,6 +2803,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2772,6 +2797,9 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
 +	if (!error)
-+		error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+					      new_dir->d_inode, new_dentry,
++		error = ccs_rename_permission(old_dentry, new_dentry,
 +					      newnd.path.mnt);
  	if (error)
  		goto exit6;
@@ -339,7 +332,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32-33.65 2011/06/08\n");
++	printk(KERN_INFO "Hook version: 2.6.32-33.65 2011/06/14\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -869,18 +862,17 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
 --- linux-2.6.32-33.65.orig/net/unix/af_unix.c
 +++ linux-2.6.32-33.65/net/unix/af_unix.c
-@@ -848,6 +848,10 @@ static int unix_bind(struct socket *sock
+@@ -848,6 +848,9 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_dput;
  		err = security_path_mknod(&nd.path, dentry, mode, 0);
 +		if (!err)
-+			err = ccs_mknod_permission(nd.path.dentry->d_inode,
-+						   dentry, nd.path.mnt, mode,
++			err = ccs_mknod_permission(dentry, nd.path.mnt, mode,
 +						   0);
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
-@@ -1723,6 +1727,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1723,6 +1726,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible_sync(&u->peer_wait);
  

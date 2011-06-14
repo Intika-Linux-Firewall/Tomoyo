@@ -27,7 +27,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  fs/exec.c                    |   10 +++++++++-
  fs/fcntl.c                   |    5 +++++
  fs/ioctl.c                   |    6 ++++++
- fs/namei.c                   |   35 +++++++++++++++++++++++++++++++++++
+ fs/namei.c                   |   27 +++++++++++++++++++++++++++
  fs/namespace.c               |   17 +++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
@@ -46,8 +46,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/tcp_ipv6.c          |    3 +++
  net/ipv6/udp.c               |    9 +++++++++
  net/socket.c                 |   20 ++++++++++++++++++++
- net/unix/af_unix.c           |    8 ++++++++
- 45 files changed, 322 insertions(+), 3 deletions(-)
+ net/unix/af_unix.c           |    7 +++++++
+ 45 files changed, 313 insertions(+), 3 deletions(-)
 
 --- linux-2.4.21-63.EL.orig/Makefile
 +++ linux-2.4.21-63.EL/Makefile
@@ -571,17 +571,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1080,6 +1083,9 @@ do_last:
+@@ -1080,6 +1083,8 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
-+		error = ccs_mknod_permission(dir->d_inode, dentry, nd->mnt,
-+					     mode, 0);
++		error = ccs_mknod_permission(dentry, nd->mnt, mode, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, dentry, mode);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1165,6 +1171,11 @@ ok:
+@@ -1165,6 +1170,11 @@ ok:
  			goto exit;
  	}
  
@@ -593,73 +592,66 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1316,6 +1327,9 @@ asmlinkage long sys_mknod(const char * f
+@@ -1316,6 +1326,8 @@ asmlinkage long sys_mknod(const char * f
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
-@@ -1384,6 +1398,9 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1384,6 +1396,8 @@ asmlinkage long sys_mkdir(const char * p
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
-+			error = ccs_mkdir_permission(nd.dentry->d_inode,
-+						     dentry, nd.mnt, mode);
++			error = ccs_mkdir_permission(dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1492,6 +1509,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1492,6 +1506,8 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt);
++		error = ccs_rmdir_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1554,6 +1574,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1554,6 +1570,8 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
-+		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
-+					      nd.mnt);
++		error = ccs_unlink_permission(dentry, nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1618,6 +1641,9 @@ asmlinkage long sys_symlink(const char *
+@@ -1618,6 +1636,8 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_symlink_permission(nd.dentry->d_inode,
-+						       dentry, nd.mnt, from);
++			error = ccs_symlink_permission(dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1702,6 +1728,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1702,6 +1722,9 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
-+			error = ccs_link_permission(old_nd.dentry,
-+						    nd.dentry->d_inode,
-+						    new_dentry, nd.mnt);
++			error = ccs_link_permission(old_nd.dentry, new_dentry,
++						    nd.mnt);
 +			if (!error)
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1932,12 +1962,17 @@ static inline int do_rename(const char *
+@@ -1932,12 +1955,16 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;
-+	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+				      new_dir->d_inode, new_dentry, newnd.mnt);
++	error = ccs_rename_permission(old_dentry, new_dentry, newnd.mnt);
 +	if (error)
 +		goto exit5;
  
@@ -846,7 +838,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.21-63.EL 2010/10/28\n");
++	printk(KERN_INFO "Hook version: 2.4.21-63.EL 2011/06/14\n");
  }
 --- linux-2.4.21-63.EL.orig/fs/stat.c
 +++ linux-2.4.21-63.EL/fs/stat.c
@@ -1447,17 +1439,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -721,6 +722,9 @@ static int unix_bind(struct socket *sock
+@@ -721,6 +722,8 @@ static int unix_bind(struct socket *sock
  		 * All right, let's create it.
  		 */
  		mode = S_IFSOCK | (sock->inode->i_mode & ~current->fs->umask);
-+		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
-+					   mode, 0);
++		err = ccs_mknod_permission(dentry, nd.mnt, mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1434,6 +1438,10 @@ static int unix_dgram_recvmsg(struct soc
+@@ -1434,6 +1437,10 @@ static int unix_dgram_recvmsg(struct soc
  
  	wake_up_interruptible(&sk->protinfo.af_unix.peer_wait);
  

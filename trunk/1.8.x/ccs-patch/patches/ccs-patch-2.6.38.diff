@@ -6,18 +6,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
  fs/proc/version.c         |    7 ++
- include/linux/init_task.h |    9 ++
- include/linux/sched.h     |    6 +
- include/linux/security.h  |   58 +++++++++++-------
+ include/linux/init_task.h |    9 +++
+ include/linux/sched.h     |    6 ++
+ include/linux/security.h  |   52 +++++++++--------
  include/net/ip.h          |    2 
  kernel/fork.c             |    5 +
- kernel/kexec.c            |    3 
+ kernel/kexec.c            |    3 +
  kernel/module.c           |    5 +
  kernel/ptrace.c           |    4 +
  kernel/sched.c            |    2 
  kernel/signal.c           |   10 +++
  kernel/sys.c              |   10 +++
- kernel/time/ntp.c         |    6 +
+ kernel/time/ntp.c         |    6 ++
  net/ipv4/raw.c            |    4 +
  net/ipv4/udp.c            |    4 +
  net/ipv6/raw.c            |    4 +
@@ -25,9 +25,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/socket.c              |    4 +
  net/unix/af_unix.c        |    4 +
  security/Kconfig          |    2 
- security/Makefile         |    3 
- security/security.c       |  142 ++++++++++++++++++++++++++++++++++++++--------
- 25 files changed, 254 insertions(+), 50 deletions(-)
+ security/Makefile         |    3 +
+ security/security.c       |  134 +++++++++++++++++++++++++++++++++++++---------
+ 25 files changed, 240 insertions(+), 50 deletions(-)
 
 --- linux-2.6.38.8.orig/fs/compat.c
 +++ linux-2.6.38.8/fs/compat.c
@@ -71,7 +71,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.38.8 2011/06/03\n");
++	printk(KERN_INFO "Hook version: 2.6.38.8 2011/06/14\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -243,34 +243,32 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2849,42 +2853,46 @@ int security_path_chroot(struct path *pa
+@@ -2849,42 +2853,42 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
 -	return 0;
-+	return ccs_unlink_permission(dir->dentry->d_inode, dentry, dir->mnt);
++	return ccs_unlink_permission(dentry, dir->mnt);
  }
  
  static inline int security_path_mkdir(struct path *dir, struct dentry *dentry,
  				      int mode)
  {
 -	return 0;
-+	return ccs_mkdir_permission(dir->dentry->d_inode, dentry, dir->mnt,
-+				    mode);
++	return ccs_mkdir_permission(dentry, dir->mnt, mode);
  }
  
  static inline int security_path_rmdir(struct path *dir, struct dentry *dentry)
  {
 -	return 0;
-+	return ccs_rmdir_permission(dir->dentry->d_inode, dentry, dir->mnt);
++	return ccs_rmdir_permission(dentry, dir->mnt);
  }
  
  static inline int security_path_mknod(struct path *dir, struct dentry *dentry,
  				      int mode, unsigned int dev)
  {
 -	return 0;
-+	return ccs_mknod_permission(dir->dentry->d_inode, dentry, dir->mnt,
-+				    mode, dev);
++	return ccs_mknod_permission(dentry, dir->mnt, mode, dev);
  }
  
  static inline int security_path_truncate(struct path *path)
@@ -283,8 +281,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					const char *old_name)
  {
 -	return 0;
-+	return ccs_symlink_permission(dir->dentry->d_inode, dentry, dir->mnt,
-+				      old_name);
++	return ccs_symlink_permission(dentry, dir->mnt, old_name);
  }
  
  static inline int security_path_link(struct dentry *old_dentry,
@@ -292,19 +289,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				     struct dentry *new_dentry)
  {
 -	return 0;
-+	return ccs_link_permission(old_dentry, new_dir->dentry->d_inode,
-+				   new_dentry, new_dir->mnt);
++	return ccs_link_permission(old_dentry, new_dentry, new_dir->mnt);
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2892,24 +2900,26 @@ static inline int security_path_rename(s
+@@ -2892,24 +2896,24 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
 -	return 0;
-+	return ccs_rename_permission(old_dir->dentry->d_inode, old_dentry,
-+				     new_dir->dentry->d_inode, new_dentry,
-+				     new_dir->mnt);
++	return ccs_rename_permission(old_dentry, new_dentry, new_dir->mnt);
  }
  
  static inline int security_path_chmod(struct dentry *dentry,
@@ -700,7 +694,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -347,84 +360,138 @@ EXPORT_SYMBOL(security_inode_init_securi
+@@ -347,84 +360,130 @@ EXPORT_SYMBOL(security_inode_init_securi
  int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
  			unsigned int dev)
  {
@@ -710,8 +704,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 -	return security_ops->path_mknod(dir, dentry, mode, dev);
 +	error = security_ops->path_mknod(dir, dentry, mode, dev);
 +	if (!error)
-+		error = ccs_mknod_permission(dir->dentry->d_inode, dentry,
-+					     dir->mnt, mode, dev);
++		error = ccs_mknod_permission(dentry, dir->mnt, mode, dev);
 +	return error;
  }
  EXPORT_SYMBOL(security_path_mknod);
@@ -724,8 +717,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 -	return security_ops->path_mkdir(dir, dentry, mode);
 +	error = security_ops->path_mkdir(dir, dentry, mode);
 +	if (!error)
-+		error = ccs_mkdir_permission(dir->dentry->d_inode, dentry,
-+					     dir->mnt, mode);
++		error = ccs_mkdir_permission(dentry, dir->mnt, mode);
 +	return error;
  }
  
@@ -737,8 +729,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 -	return security_ops->path_rmdir(dir, dentry);
 +	error = security_ops->path_rmdir(dir, dentry);
 +	if (!error)
-+		error = ccs_rmdir_permission(dir->dentry->d_inode, dentry,
-+					     dir->mnt);
++		error = ccs_rmdir_permission(dentry, dir->mnt);
 +	return error;
  }
  
@@ -750,8 +741,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 -	return security_ops->path_unlink(dir, dentry);
 +	error = security_ops->path_unlink(dir, dentry);
 +	if (!error)
-+		error = ccs_unlink_permission(dir->dentry->d_inode, dentry,
-+					      dir->mnt);
++		error = ccs_unlink_permission(dentry, dir->mnt);
 +	return error;
  }
  
@@ -764,8 +754,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 -	return security_ops->path_symlink(dir, dentry, old_name);
 +	error = security_ops->path_symlink(dir, dentry, old_name);
 +	if (!error)
-+		error = ccs_symlink_permission(dir->dentry->d_inode, dentry,
-+					       dir->mnt, old_name);
++		error = ccs_symlink_permission(dentry, dir->mnt, old_name);
 +	return error;
  }
  
@@ -778,9 +767,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 -	return security_ops->path_link(old_dentry, new_dir, new_dentry);
 +	error = security_ops->path_link(old_dentry, new_dir, new_dentry);
 +	if (!error)
-+		error = ccs_link_permission(old_dentry,
-+					    new_dir->dentry->d_inode,
-+					    new_dentry, new_dir->mnt);
++		error = ccs_link_permission(old_dentry, new_dentry,
++					    new_dir->mnt);
 +	return error;
  }
  
@@ -796,10 +784,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +	error = security_ops->path_rename(old_dir, old_dentry, new_dir,
 +					  new_dentry);
 +	if (!error)
-+		error = ccs_rename_permission(old_dir->dentry->d_inode,
-+					      old_dentry,
-+					      new_dir->dentry->d_inode,
-+					      new_dentry, new_dir->mnt);
++		error = ccs_rename_permission(old_dentry, new_dentry,
++					      new_dir->mnt);
 +	return error;
  }
  
@@ -851,7 +837,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  #endif
  
-@@ -531,9 +598,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+@@ -531,9 +590,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
  
  int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
  {
@@ -866,7 +852,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_inode_setxattr(struct dentry *dentry, const char *name,
-@@ -632,7 +703,10 @@ void security_file_free(struct file *fil
+@@ -632,7 +695,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -878,7 +864,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -660,7 +734,10 @@ int security_file_lock(struct file *file
+@@ -660,7 +726,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -890,7 +876,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -684,6 +761,8 @@ int security_dentry_open(struct file *fi
+@@ -684,6 +753,8 @@ int security_dentry_open(struct file *fi
  	int ret;
  
  	ret = security_ops->dentry_open(file, cred);
@@ -899,7 +885,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (ret)
  		return ret;
  
-@@ -999,7 +1078,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -999,7 +1070,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -911,7 +897,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1011,17 +1093,26 @@ int security_socket_post_create(struct s
+@@ -1011,17 +1085,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -941,7 +927,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1031,7 +1122,10 @@ int security_socket_accept(struct socket
+@@ -1031,7 +1114,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {

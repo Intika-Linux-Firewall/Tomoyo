@@ -9,7 +9,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  fs/exec.c                       |    8 +++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   34 ++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   25 +++++++++++++++++++++++++
  fs/namespace.c                  |    8 ++++++++
  fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
@@ -35,10 +35,10 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  net/ipv6/raw.c                  |    5 +++++
  net/ipv6/udp.c                  |    5 +++++
  net/socket.c                    |   18 ++++++++++++++++++
- net/unix/af_unix.c              |    7 +++++++
+ net/unix/af_unix.c              |    6 ++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 217 insertions(+), 2 deletions(-)
+ 36 files changed, 207 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27-71vl5.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-71vl5/arch/ia64/ia32/sys_ia32.c
@@ -176,17 +176,16 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1627,6 +1632,9 @@ static int __open_namei_create(struct na
+@@ -1627,6 +1632,8 @@ static int __open_namei_create(struct na
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
-+	error = ccs_mknod_permission(dir->d_inode, path->dentry, nd->path.mnt,
-+				     mode, 0);
++	error = ccs_mknod_permission(path->dentry, nd->path.mnt, mode, 0);
 +	if (!error)
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
-@@ -1758,7 +1766,9 @@ do_last:
+@@ -1758,7 +1765,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -196,7 +195,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1811,7 +1821,9 @@ ok:
+@@ -1811,7 +1820,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -206,73 +205,65 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2030,6 +2042,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2030,6 +2041,8 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
-+				     nd.path.mnt, mode, dev);
++	error = ccs_mknod_permission(dentry, nd.path.mnt, mode, dev);
 +	if (!error)
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2101,6 +2116,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2101,6 +2114,8 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_mkdir_permission(nd.path.dentry->d_inode, dentry,
-+				     nd.path.mnt, mode);
++	error = ccs_mkdir_permission(dentry, nd.path.mnt, mode);
 +	if (!error)
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2208,6 +2226,9 @@ static long do_rmdir(int dfd, const char
+@@ -2208,6 +2223,8 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
-+	error = ccs_rmdir_permission(nd.path.dentry->d_inode, dentry,
-+				     nd.path.mnt);
++	error = ccs_rmdir_permission(dentry, nd.path.mnt);
 +	if (!error)
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
  	mnt_drop_write(nd.path.mnt);
  exit3:
-@@ -2292,6 +2313,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2292,6 +2309,8 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
-+		error = ccs_unlink_permission(nd.path.dentry->d_inode, dentry,
-+					      nd.path.mnt);
++		error = ccs_unlink_permission(dentry, nd.path.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
  		mnt_drop_write(nd.path.mnt);
  	exit2:
-@@ -2373,6 +2397,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2373,6 +2392,8 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_symlink_permission(nd.path.dentry->d_inode, dentry,
-+				       nd.path.mnt, from);
++	error = ccs_symlink_permission(dentry, nd.path.mnt, from);
 +	if (!error)
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2469,6 +2496,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2469,6 +2490,8 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_link_permission(old_path.dentry, nd.path.dentry->d_inode,
-+				    new_dentry, nd.path.mnt);
++	error = ccs_link_permission(old_path.dentry, new_dentry, nd.path.mnt);
 +	if (!error)
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2701,6 +2731,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2701,6 +2724,8 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
-+	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+				      new_dir->d_inode, new_dentry,
-+				      newnd.path.mnt);
++	error = ccs_rename_permission(old_dentry, new_dentry, newnd.path.mnt);
 +	if (!error)
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
@@ -433,7 +424,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27-71vl5 2011/05/30\n");
++	printk(KERN_INFO "Hook version: 2.6.27-71vl5 2011/06/14\n");
  }
 --- linux-2.6.27-71vl5.orig/fs/stat.c
 +++ linux-2.6.27-71vl5/fs/stat.c
@@ -952,17 +943,16 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  
 --- linux-2.6.27-71vl5.orig/net/unix/af_unix.c
 +++ linux-2.6.27-71vl5/net/unix/af_unix.c
-@@ -827,6 +827,9 @@ static int unix_bind(struct socket *sock
+@@ -827,6 +827,8 @@ static int unix_bind(struct socket *sock
  		err = mnt_want_write(nd.path.mnt);
  		if (err)
  			goto out_mknod_dput;
-+		err = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
-+					   nd.path.mnt, mode, 0);
++		err = ccs_mknod_permission(dentry, nd.path.mnt, mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
  		mnt_drop_write(nd.path.mnt);
  		if (err)
-@@ -1661,6 +1664,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1661,6 +1663,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible_sync(&u->peer_wait);
  
