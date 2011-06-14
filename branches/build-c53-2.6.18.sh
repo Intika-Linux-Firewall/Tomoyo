@@ -12,15 +12,15 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.18-128.7.1.el5.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/5.5/updates/SRPMS/kernel-2.6.18-128.7.1.el5.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/5.3/updates/SRPMS/kernel-2.6.18-128.7.1.el5.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-2.6.18-128.7.1.el5.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.18-128.7.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.1-20110411.tar.gz ]
+if [ ! -r ccs-patch-1.8.1-20110511.tar.gz ]
 then
-    wget -O ccs-patch-1.8.1-20110411.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110411.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz' || die "Can't download patch."
 fi
 
 if [ ! -r ccs-patch-2.6.18-centos-5.3-20110131.diff ]
@@ -38,7 +38,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -#% define buildid
-+%define buildid _tomoyo_1.8.0p3
++%define buildid _tomoyo_1.8.1p3
  #
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.1-20110411.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.1-20110511.tar.gz
 +patch -sp1 < %_sourcedir/ccs-patch-2.6.18-centos-5.3-20110131.diff
 +
  cp %{SOURCE10} Documentation/
