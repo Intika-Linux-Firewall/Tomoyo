@@ -21,6 +21,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
 #include "tomoyotools.h"
+#include <signal.h>
 #include <syslog.h>
 #include <poll.h>
 
@@ -60,17 +61,33 @@ static unsigned int rules_len = 0;
 
 static void tomoyo_auditd_init_rules(const char *filename)
 {
+	static _Bool first = 1;
 	FILE *fp = fopen(filename, "r");
 	unsigned int line_no = 0;
+	unsigned int i;
+	if (!first) {
+		for (i = 0; i < rules_len; i++)
+			free((void *) rules[i].string);
+		rules_len = 0;
+		for (i = 0; i < destination_list_len; i++) {
+			free((void *) destination_list[i].pathname);
+			close(destination_list[i].fd);
+		}
+		destination_list_len = 0;
+	}
 	if (!fp) {
-		fprintf(stderr, "Can't open %s for reading.\n", filename);
+		if (first)
+			fprintf(stderr, "Can't open %s for reading.\n",
+				filename);
+		else
+			syslog(LOG_WARNING, "Can't open %s for reading.\n",
+			       filename);
 		exit(1);
 	}
 	tomoyo_get();
 	while (true) {
 		char *line = tomoyo_freadline(fp);
 		struct tomoyo_sort_rules *ptr;
-		unsigned int i;
 		unsigned char c;
 		if (!line)
 			break;
@@ -141,13 +158,50 @@ store_destination:
 	tomoyo_put();
 	fclose(fp);
 	if (!rules_len) {
-		fprintf(stderr, "No rules defined in %s .\n", filename);
+		if (first)
+			fprintf(stderr, "No rules defined in %s .\n",
+				filename);
+		else
+			syslog(LOG_WARNING, "No rules defined in %s .\n",
+			       filename);
 		exit(1);
 	}
+	for (i = 0; i < destination_list_len; i++) {
+		struct tomoyo_destination *ptr = &destination_list[i];
+		const char *path = ptr->pathname;
+		/* This is OK because path is a strdup()ed string. */
+		char *pos = (char *) path;
+		while (*pos) {
+			int ret_ignored;
+			if (*pos++ != '/')
+				continue;
+			*(pos - 1) = '\0';
+			ret_ignored = mkdir(path, 0700);
+			*(pos - 1) = '/';
+		}
+		do {
+			ptr->fd = open(path, O_WRONLY | O_APPEND | O_CREAT,
+				       0600);
+		} while (ptr->fd == EOF && errno == EINTR);
+		if (ptr->fd == EOF) {
+			if (first)
+				fprintf(stderr, "Can't open %s for writing.\n",
+					path);
+			else
+				syslog(LOG_WARNING,
+				       "Can't open %s for writing.\n", path);
+			exit(1);
+		}
+	}
+	first = 0;
 	return;
 invalid_rule:
-	fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
-		filename);
+	if (first)
+		fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
+			filename);
+	else
+		syslog(LOG_WARNING, "Invalid rule at line %u in %s .\n",
+		       line_no, filename);
 	exit(1);
 }
 
@@ -240,12 +294,15 @@ static int tomoyo_check_rules(char *header, char *domain, char *acl)
 static _Bool tomoyo_write_log(const int i, char *buffer)
 {
 	int len = strlen(buffer);
+	int ret;
 	struct tomoyo_destination *ptr = &destination_list[i];
 	/* Create destination file if needed. */
 	if (access(ptr->pathname, F_OK)) {
 		close(ptr->fd);
-		ptr->fd = open(ptr->pathname, O_WRONLY | O_APPEND | O_CREAT,
-			       0600);
+		do {
+			ptr->fd = open(ptr->pathname,
+				       O_WRONLY | O_APPEND | O_CREAT, 0600);
+		} while (ptr->fd == EOF && errno == EINTR);
 		if (ptr->fd == EOF) {
 			syslog(LOG_WARNING, "Can't open %s for writing.\n",
 			       ptr->pathname);
@@ -256,10 +313,21 @@ static _Bool tomoyo_write_log(const int i, char *buffer)
 	 * This is OK because we read only up to sizeof(buffer) - 1 bytes.
 	 */
 	buffer[len++] = '\n';
-	if (write(ptr->fd, buffer, len) == len)
-		return 1;
+	do {
+		ret = write(ptr->fd, buffer, len);
+		if (ret == len)
+			return 1;
+	} while (ret == EOF && errno == EINTR);
 	syslog(LOG_WARNING, "Can't write to %s .\n", ptr->pathname);
 	return 0;
+}
+
+static void tomoyo_reload_config(int sig)
+{
+	signal(SIGHUP, SIG_IGN);
+	syslog(LOG_WARNING, "Reloading congiguration file.\n");
+	tomoyo_auditd_init_rules(TOMOYO_AUDITD_CONF);
+	signal(SIGHUP, tomoyo_reload_config);
 }
 
 int main(int argc, char *argv[])
@@ -303,25 +371,6 @@ start:
 			TOMOYO_PROC_POLICY_AUDIT);
 		return 1;
 	}
-	for (i = 0; i < destination_list_len; i++) {
-		struct tomoyo_destination *ptr = &destination_list[i];
-		const char *path = ptr->pathname;
-		/* This is OK because path is a strdup()ed string. */
-		char *pos = (char *) path;
-		while (*pos) {
-			int ret_ignored;
-			if (*pos++ != '/')
-				continue;
-			*(pos - 1) = '\0';
-			ret_ignored = mkdir(path, 0700);
-			*(pos - 1) = '/';
-		}
-		ptr->fd = open(path, O_WRONLY | O_APPEND | O_CREAT, 0600);
-		if (ptr->fd == EOF) {
-			fprintf(stderr, "Can't open %s for writing.\n", path);
-			return 1;
-		}
-	}
 	switch (fork()) {
 	case 0:
 		break;
@@ -353,16 +402,21 @@ start:
 	close(2);
 	openlog("tomoyo-auditd", 0,  LOG_USER);
 	syslog(LOG_WARNING, "Started.\n");
+	signal(SIGHUP, tomoyo_reload_config);
 	while (true) {
 		static char buffer[32768];
 		char *domain;
 		char *acl;
 		char *tail;
+		int ret;
 		memset(buffer, 0, sizeof(buffer));
 		if (tomoyo_network_mode) {
 			int j;
 			for (j = 0; j < sizeof(buffer) - 1; j++) {
-				if (read(fd_in, buffer + j, 1) != 1)
+				do {
+					ret = read(fd_in, buffer + j, 1);
+				} while (ret == EOF && errno == EINTR);
+				if (ret != 1)
 					goto out;
 				if (!buffer[j])
 					break;
@@ -376,7 +430,7 @@ start:
 					.fd = fd_in,
 					.events = POLLIN,
 				};
-				if (poll(&pfd, 1, -1) == EOF)
+				if (poll(&pfd, 1, -1) == EOF && errno != EINTR)
 					goto out;
 			}
 		}

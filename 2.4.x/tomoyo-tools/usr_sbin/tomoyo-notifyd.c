@@ -22,6 +22,7 @@
  */
 #include "tomoyotools.h"
 #include <sys/wait.h>
+#include <signal.h>
 #include <syslog.h>
 #include <poll.h>
 
@@ -35,11 +36,23 @@ static int minimal_interval = 0;
 
 static void tomoyo_notifyd_init_rules(const char *filename)
 {
+	static _Bool first = 1;
 	FILE *fp = fopen(filename, "r");
 	unsigned int line_no = 0;
 	char *action = NULL;
+	if (!first) {
+		free(action_to_take);
+		action_to_take = NULL;
+		time_to_wait = 0;
+		minimal_interval = 0;
+	}
 	if (!fp) {
-		fprintf(stderr, "Can't open %s for reading.\n", filename);
+		if (first)
+			fprintf(stderr, "Can't open %s for reading.\n",
+				filename);
+		else
+			syslog(LOG_WARNING, "Can't open %s for reading.\n",
+			       filename);
 		exit(1);
 	}
 	tomoyo_get();
@@ -66,7 +79,12 @@ static void tomoyo_notifyd_init_rules(const char *filename)
 	tomoyo_put();
 	fclose(fp);
 	if (!action) {
-		fprintf(stderr, "No actions defined in %s .\n", filename);
+		if (first)
+			fprintf(stderr, "No actions defined in %s .\n",
+				filename);
+		else
+			syslog(LOG_WARNING, "No actions defined in %s .\n",
+			       filename);
 		exit(1);
 	}
 	{
@@ -83,10 +101,15 @@ static void tomoyo_notifyd_init_rules(const char *filename)
 				goto invalid_rule;
 		}
 	}
+	first = 0;
 	return;
 invalid_rule:
-	fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
-		filename);
+	if (first)
+		fprintf(stderr, "Invalid rule at line %u in %s .\n", line_no,
+			filename);
+	else
+		syslog(LOG_WARNING, "Invalid rule at line %u in %s .\n",
+		       line_no, filename);
 	exit(1);
 }
 
@@ -103,7 +126,7 @@ static void main_loop(void)
 				.fd = query_fd,
 				.events = POLLIN,
 			};
-			if (poll(&pfd, 1, -1) == EOF)
+			if (poll(&pfd, 1, -1) == EOF && errno != EINTR)
 				return;
 		}
 		if (pipe(pipe_fd) == EOF) {
@@ -117,11 +140,11 @@ static void main_loop(void)
 		}
 		if (!pid) {
 			int ret_ignored;
-			close(query_fd);
-			close(pipe_fd[1]);
+			ret_ignored = close(query_fd);
+			ret_ignored = close(pipe_fd[1]);
 			ret_ignored = close(0);
 			ret_ignored = dup2(pipe_fd[0], 0);
-			close(pipe_fd[0]);
+			ret_ignored = close(pipe_fd[0]);
 			execvp(action_to_take[0], action_to_take);
 			syslog(LOG_WARNING, "Can't execute %s\n",
 			       action_to_take[0]);
@@ -144,8 +167,18 @@ static void main_loop(void)
 		close(query_fd);
 		while (waitpid(pid, NULL, __WALL) == EOF && errno == EINTR);
 		sleep(minimal_interval);
-		query_fd = open(proc_policy_query, O_RDWR);
+		do {
+			query_fd = open(proc_policy_query, O_RDWR);
+		} while (query_fd == EOF && errno == EINTR);
 	}
+}
+
+static void tomoyo_reload_config(int sig)
+{
+	signal(SIGHUP, SIG_IGN);
+	syslog(LOG_WARNING, "Reloading congiguration file.\n");
+	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
+	signal(SIGHUP, tomoyo_reload_config);
 }
 
 int main(int argc, char *argv[])
@@ -202,6 +235,7 @@ int main(int argc, char *argv[])
 	close(2);
 	openlog("tomoyo-notifyd", 0,  LOG_USER);
 	syslog(LOG_WARNING, "Started.\n");
+	signal(SIGHUP, tomoyo_reload_config);
 	main_loop();
 	syslog(LOG_WARNING, "Terminated.\n");
 	closelog();
