@@ -1,13 +1,276 @@
+Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5127)
++++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(working copy)
+@@ -30,9 +30,6 @@
+ /* Readline history. */
+ static struct ccs_readline_data ccs_rl = { };
+ 
+-/* File descriptor for offline mode. */
+-int ccs_persistent_fd = EOF;
+-
+ /* Array of "path_group" entries. */
+ struct ccs_path_group_entry *ccs_path_group_list = NULL;
+ /* Length of ccs_path_group_list array. */
+@@ -711,6 +708,10 @@
+ 		       "position.\n");
+ 	}
+ 	switch (screen) {
++	case CCS_SCREEN_NS_LIST:
++		if (!readonly)
++			printw("A/a        Add a new namespace.\n");
++		break;
+ 	case CCS_SCREEN_DOMAIN_LIST:
+ 		if (ccs_domain_sort_type) {
+ 			printw("S/s        Set profile number of selected "
+@@ -807,34 +808,6 @@
+ }
+ 
+ /**
+- * ccs_send_fd - Send file descriptor.
+- *
+- * @data: String data to send with file descriptor.
+- * @fd:   Pointer to file desciptor.
+- *
+- * Returns nothing.
+- */
+-static void ccs_send_fd(char *data, int *fd)
+-{
+-	struct msghdr msg;
+-	struct iovec iov = { data, strlen(data) };
+-	char cmsg_buf[CMSG_SPACE(sizeof(int))];
+-	struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_buf;
+-	memset(&msg, 0, sizeof(msg));
+-	msg.msg_iov = &iov;
+-	msg.msg_iovlen = 1;
+-	msg.msg_control = cmsg_buf;
+-	msg.msg_controllen = sizeof(cmsg_buf);
+-	cmsg->cmsg_level = SOL_SOCKET;
+-	cmsg->cmsg_type = SCM_RIGHTS;
+-	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+-	msg.msg_controllen = cmsg->cmsg_len;
+-	memmove(CMSG_DATA(cmsg), fd, sizeof(int));
+-	sendmsg(ccs_persistent_fd, &msg, 0);
+-	close(*fd);
+-}
+-
+-/**
+  * ccs_editpolicy_open_write - Wrapper for ccs_open_write().
+  *
+  * @filename: File to open for writing.
+@@ -847,37 +820,10 @@
+  */
+ static FILE *ccs_editpolicy_open_write(const char *filename)
+ {
+-	if (ccs_network_mode) {
+-		FILE *fp = ccs_open_write(filename);
+-		if (!fp)
+-			ccs_set_error(filename);
+-		return fp;
+-	} else if (ccs_offline_mode) {
+-		char request[1024];
+-		int fd[2];
+-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
+-			fprintf(stderr, "socketpair()\n");
+-			exit(1);
+-		}
+-		if (shutdown(fd[0], SHUT_RD))
+-			goto out;
+-		memset(request, 0, sizeof(request));
+-		snprintf(request, sizeof(request) - 1, "POST %s", filename);
+-		ccs_send_fd(request, &fd[1]);
+-		return fdopen(fd[0], "w");
+-out:
+-		close(fd[1]);
+-		close(fd[0]);
+-		exit(1);
+-	} else {
+-		FILE *fp;
+-		if (ccs_readonly_mode)
+-			return NULL;
+-		fp = ccs_open_write(filename);
+-		if (!fp)
+-			ccs_set_error(filename);
+-		return fp;
+-	}
++	FILE *fp = ccs_open_write(filename);
++	if (!fp)
++		ccs_set_error(filename);
++	return fp;
+ }
+ 
+ /**
+@@ -892,32 +838,10 @@
+  */
+ static FILE *ccs_editpolicy_open_read(const char *filename)
+ {
+-	if (ccs_network_mode) {
+-		return ccs_open_read(filename);
+-	} else if (ccs_offline_mode) {
+-		char request[1024];
+-		int fd[2];
+-		FILE *fp;
+-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
+-			fprintf(stderr, "socketpair()\n");
+-			exit(1);
+-		}
+-		if (shutdown(fd[0], SHUT_WR))
+-			goto out;
+-		fp = fdopen(fd[0], "r");
+-		if (!fp)
+-			goto out;
+-		memset(request, 0, sizeof(request));
+-		snprintf(request, sizeof(request) - 1, "GET %s", filename);
+-		ccs_send_fd(request, &fd[1]);
+-		return fp;
+-out:
+-		close(fd[1]);
+-		close(fd[0]);
+-		exit(1);
+-	} else {
+-		return fopen(filename, "r");
+-	}
++	FILE *fp = ccs_open_read(filename);
++	if (!fp)
++		ccs_set_error(filename);
++	return fp;
+ }
+ 
+ /**
+@@ -1116,7 +1040,7 @@
+ 		if (ccs_network_mode)
+ 			/* We can read after write. */
+ 			fp = ccs_editpolicy_open_write(ccs_policy_file);
+-		else if (!ccs_offline_mode)
++		else
+ 			/* Don't set error message if failed. */
+ 			fp = fopen(ccs_policy_file, "r+");
+ 		if (fp) {
+@@ -1518,7 +1442,7 @@
+ 	if (ccs_network_mode)
+ 		/* We can read after write. */
+ 		fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
+-	else if (!ccs_offline_mode)
++	else
+ 		/* Don't set error message if failed. */
+ 		fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r+");
+ 	if (fp) {
+@@ -1563,7 +1487,7 @@
+ 		/* We can read after write. */
+ 		fp = ccs_editpolicy_open_write
+ 			(CCS_PROC_POLICY_EXCEPTION_POLICY);
+-	else if (!ccs_offline_mode)
++	else
+ 		/* Don't set error message if failed. */
+ 		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
+ 	if (fp) {
+@@ -3064,20 +2988,21 @@
+ {
+ 	FILE *proc_fp = ccs_editpolicy_open_read(src);
+ 	FILE *file_fp = fopen(dest, "w");
++	int c;
+ 	if (!file_fp) {
+ 		fprintf(stderr, "Can't open %s\n", dest);
+ 		fclose(proc_fp);
+ 		return false;
+ 	}
+ 	while (true) {
+-		int c = fgetc(proc_fp);
+-		if (c == EOF)
++		c = fgetc(proc_fp);
++		if (!c || c == EOF)
+ 			break;
+ 		fputc(c, file_fp);
+ 	}
+ 	fclose(proc_fp);
+ 	fclose(file_fp);
+-	return true;
++	return !c;
+ }
+ 
+ /**
+@@ -3123,12 +3048,14 @@
+ 			ccs_current_screen = CCS_SCREEN_MANAGER_LIST;
+ 		else if (!strcmp(ptr, "s"))
+ 			ccs_current_screen = CCS_SCREEN_STAT_LIST;
++		else if (!strcmp(ptr, "n"))
++			ccs_current_screen = CCS_SCREEN_NS_LIST;
+ 		else if (!strcmp(ptr, "readonly"))
+ 			ccs_readonly_mode = true;
+ 		else if (sscanf(ptr, "refresh=%u", &ccs_refresh_interval)
+ 			 != 1) {
+ usage:
+-			printf("Usage: %s [e|d|p|m|s] [readonly] "
++			printf("Usage: %s [e|d|p|m|s|n] [readonly] "
+ 			       "[refresh=interval] [<namespace>]"
+ 			       "[{policy_dir|remote_ip:remote_port}]\n",
+ 			       argv[0]);
+@@ -3147,28 +3074,33 @@
+  */
+ static void ccs_load_offline(void)
+ {
+-	int fd[2] = { EOF, EOF };
++	int fd = socket(AF_INET, SOCK_STREAM, 0);
++	struct sockaddr_in addr = { };
++	socklen_t size = sizeof(addr);
++	addr.sin_family = AF_INET;
++	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+ 	if (chdir(ccs_policy_dir) || chdir("policy/current/")) {
+ 		fprintf(stderr, "Directory %s/policy/current/ doesn't "
+ 			"exist.\n", ccs_policy_dir);
+ 		exit(1);
+ 	}
+-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
+-		fprintf(stderr, "socketpair()\n");
++	if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) || listen(fd, 5)
++	    || getsockname(fd, (struct sockaddr *) &addr, &size)) {
++		fprintf(stderr, "Can't create listener socket.\n");
+ 		exit(1);
+ 	}
++	ccs_network_ip = addr.sin_addr.s_addr;
++	ccs_network_port = addr.sin_port;
++	ccs_network_mode = true;
+ 	switch (fork()) {
+ 	case 0:
+-		close(fd[0]);
+-		ccs_persistent_fd = fd[1];
+-		ccs_editpolicy_offline_daemon();
++		ccs_editpolicy_offline_daemon(fd);
+ 		_exit(0);
+ 	case -1:
+ 		fprintf(stderr, "fork()\n");
+ 		exit(1);
+ 	}
+-	close(fd[1]);
+-	ccs_persistent_fd = fd[0];
++	close(fd);
+ 	ccs_copy_file("exception_policy.conf",
+ 		      CCS_PROC_POLICY_EXCEPTION_POLICY);
+ 	ccs_copy_file("domain_policy.conf", CCS_PROC_POLICY_DOMAIN_POLICY);
+@@ -3253,10 +3185,8 @@
+ {
+ 	ccs_parse_args(argc, argv);
+ 	ccs_editpolicy_init_keyword_map();
+-	if (ccs_offline_mode) {
++	if (ccs_offline_mode)
+ 		ccs_load_offline();
+-		goto start;
+-	}
+ 	if (ccs_network_mode)
+ 		goto start;
+ 	if (chdir(CCS_PROC_POLICY_DIR)) {
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5125)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5127)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
-@@ -22,8 +22,4726 @@
+@@ -22,137 +22,4720 @@
   */
  #include "ccstools.h"
  #include "editpolicy.h"
 +#include <poll.h>
  
++static FILE *log_fp = NULL;
++
 +struct list_head {
 +	struct list_head* next;
 +	struct list_head* prev;
@@ -1245,21 +1508,29 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +static struct list_head ccs_name_list[CCS_MAX_HASH];
 +static unsigned int ccs_memory_quota[CCS_MAX_MEMORY_STAT];
 +
-+static unsigned long simple_strtoul(const char *cp, char **endp,
-+				    unsigned int base)
-+{
-+	return 0;
-+}
-+
  /**
+- * ccs_handle_misc_policy - Handle policy data other than domain policy.
 + * ccs_put_condition - Drop reference on "struct ccs_condition".
-+ *
+  *
+- * @mp:       Pointer to "struct ccs_misc_policy".
+- * @fp:       Pointer to "FILE".
+- * @is_write: True if write request, false otherwise.
 + * @cond: Pointer to "struct ccs_condition". Maybe NULL.
-+ *
-+ * Returns nothing.
-+ */
+  *
+  * Returns nothing.
+  */
+-static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp,
+-				   _Bool is_write)
 +static inline void ccs_put_condition(struct ccs_condition *cond)
-+{
+ {
+-	int i;
+-	if (!is_write)
+-		goto read_policy;
+-	while (true) {
+-		char *line = ccs_freadline_unpack(fp);
+-		const struct ccs_path_info *cp;
+-		_Bool is_delete;
+-		if (!line)
 +	if (cond)
 +		cond->head.users--;
 +}
@@ -1630,7 +1901,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			cp++;
 +		}
 +	}
-+	*result = simple_strtoul(cp, &ep, base);
++	*result = strtoul(cp, &ep, base);
 +	if (cp == ep)
 +		return CCS_VALUE_TYPE_INVALID;
 +	*str = ep;
@@ -1715,8 +1986,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @domainname: The domainname to find.
 + *
 + * Returns pointer to "struct ccs_domain2_info" if found, NULL otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static struct ccs_domain2_info *ccs_find_domain2(const char *domainname)
 +{
@@ -1762,8 +2031,11 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		va_end(args);
 +		if (len < 0)
 +			_exit(1);
-+		if (buffer_pos + len <= buffer_len)
-+			break;
++		if (buffer_pos + len <= buffer_len) {
++			buffer_pos += len;
+ 			break;
+-		if (!line[0])
++		}
 +		buffer_len = buffer_pos + len + 4096;
 +		buffer = ccs_realloc(buffer, buffer_len);
 +	}
@@ -1783,8 +2055,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @check_duplicate: Callback function to find duplicated entry.
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 +			     struct ccs_acl_param *param,
@@ -1797,7 +2067,14 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	struct list_head *list = param->list;
 +	list_for_each_entry(entry, list, list) {
 +		if (!check_duplicate(entry, new_entry))
-+			continue;
+ 			continue;
+-		is_delete = ccs_str_starts(line, "delete ");
+-		cp = ccs_savename(line);
+-		if (!is_delete)
+-			goto append_policy;
+-		for (i = 0; i < mp->list_len; i++)
+-			/* Faster comparison, for they are ccs_savename'd. */
+-			if (mp->list[i] == cp)
 +		entry->is_deleted = param->is_delete;
 +		error = 0;
 +		break;
@@ -2227,8 +2504,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @merge_duplicate: Callback function to merge duplicated entry. Maybe NULL.
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 +			     struct ccs_acl_param *param,
@@ -2388,8 +2663,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @len:  Length of @name.
 + *
 + * Returns pointer to "struct ccs_policy_namespace" if found, NULL otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static struct ccs_policy_namespace *ccs_find_namespace(const char *name,
 +						       const unsigned int len)
@@ -2410,8 +2683,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @domainname: Name of namespace to create.
 + *
 + * Returns pointer to "struct ccs_policy_namespace" on success, NULL otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname)
 +{
@@ -2434,7 +2705,9 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		entry->name = name;
 +	}
 +	entry->profile_version = 20100903;
-+	ccs_namespace_enabled = list_empty(&ccs_namespace_list);
++	for (len = 0; len < CCS_MAX_ACL_GROUPS; len++)
++		INIT_LIST_HEAD(&entry->acl_group[len]);
++	ccs_namespace_enabled = !list_empty(&ccs_namespace_list);
 +	list_add_tail(&entry->namespace_list, &ccs_namespace_list);
 +	return entry;
 +}
@@ -2445,8 +2718,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @domainname: The name of domain.
 + *
 + * Returns pointer to "struct ccs_domain2_info" on success, NULL otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static struct ccs_domain2_info *ccs_assign_domain2(const char *domainname)
 +{
@@ -2513,8 +2784,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_update_path_acl(const u16 perm, struct ccs_acl_param *param)
 +{
@@ -2582,8 +2851,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_update_mkdev_acl(const u8 perm, struct ccs_acl_param *param)
 +{
@@ -2655,8 +2922,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_update_path2_acl(const u8 perm, struct ccs_acl_param *param)
 +{
@@ -2775,8 +3040,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_update_mount_acl(struct ccs_acl_param *param)
 +{
@@ -2803,8 +3066,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_write_file(struct ccs_acl_param *param)
 +{
@@ -3045,8 +3306,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_write_inet_network(struct ccs_acl_param *param)
 +{
@@ -3137,8 +3396,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_write_capability(struct ccs_acl_param *param)
 +{
@@ -3177,8 +3434,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_write_env(struct ccs_acl_param *param)
 +{
@@ -3272,8 +3527,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @param: Pointer to "struct ccs_acl_param".
 + *
 + * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
 + */
 +static int ccs_write_reserved_port(struct ccs_acl_param *param)
 +{
@@ -3294,13 +3547,15 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +/**
 + * ccs_print_namespace - Print namespace header.
 + *
++ * @ns: Pointer to "struct ccs_policy_namespace".
++ *
 + * Returns nothing.
 + */
-+static void ccs_print_namespace(void)
++static void ccs_print_namespace(const struct ccs_policy_namespace *ns)
 +{
 +	if (!ccs_namespace_enabled)
 +		return;
-+	cprintf("%s ", head.ns->name);
++	cprintf("%s ", ns->name);
 +}
 +
 +/**
@@ -3424,10 +3679,19 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			switch (ccs_find_yesno(value, "grant_log")) {
 +			case 1:
 +				config |= CCS_CONFIG_WANT_GRANT_LOG;
-+				break;
+ 				break;
+-		if (i < mp->list_len)
+-			for (mp->list_len--; i < mp->list_len; i++)
+-				mp->list[i] = mp->list[i + 1];
+-		continue;
+-append_policy:
+-		for (i = 0; i < mp->list_len; i++)
+-			/* Faster comparison, for they are ccs_savename'd. */
+-			if (mp->list[i] == cp)
 +			case 0:
 +				config &= ~CCS_CONFIG_WANT_GRANT_LOG;
-+				break;
+ 				break;
+-		if (i < mp->list_len)
 +			}
 +			switch (ccs_find_yesno(value, "reject_log")) {
 +			case 1:
@@ -3460,7 +3724,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	if (sscanf(data, "PROFILE_VERSION=%u", &head.ns->profile_version)
 +	    == 1)
 +		return 0;
-+	i = simple_strtoul(data, &cp, 10);
++	i = strtoul(data, &cp, 10);
 +	if (*cp != '-')
 +		return -EINVAL;
 +	data = cp + 1;
@@ -3516,7 +3780,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		return;
 +	list_for_each_entry(ns, &ccs_namespace_list, namespace_list) {
 +		u16 index;
-+		ccs_print_namespace();
++		ccs_print_namespace(ns);
 +		cprintf("PROFILE_VERSION=%u\n", ns->profile_version);
 +		for (index = 0; index < CCS_MAX_PROFILES; index++) {
 +			u8 i;
@@ -3524,16 +3788,16 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +				ns->profile_ptr[index];
 +			if (!profile)
 +				continue;
-+			ccs_print_namespace();
++			ccs_print_namespace(ns);
 +			cprintf("%u-COMMENT=%s\n", index, profile->comment ?
 +				profile->comment->name : "");
-+			ccs_print_namespace();
++			ccs_print_namespace(ns);
 +			cprintf("%u-PREFERENCE={ ", index);
 +			for (i = 0; i < CCS_MAX_PREF; i++)
 +				cprintf("%s=%u ", ccs_pref_keywords[i],
 +					profile->pref[i]);
 +			cprintf("}\n");
-+			ccs_print_namespace();
++			ccs_print_namespace(ns);
 +			cprintf("%u-CONFIG", index);
 +			ccs_print_config(profile->default_config);
 +			for (i = 0; i < CCS_MAX_MAC_INDEX
@@ -3541,7 +3805,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +				const u8 config = profile->config[i];
 +				if (config == CCS_CONFIG_USE_DEFAULT)
 +					continue;
-+				ccs_print_namespace();
++				ccs_print_namespace(ns);
 +				if (i < CCS_MAX_MAC_INDEX)
 +					cprintf("%u-CONFIG::%s::%s", index,
 +						ccs_category_keywords
@@ -3774,21 +4038,52 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	u8 i;
 +	for (i = 0; i < 7; i++) {
 +		if (!ccs_str_starts(param.data, ccs_callback[i].keyword))
-+			continue;
+ 			continue;
+-		mp->list = ccs_realloc(mp->list, (mp->list_len + 1) *
+-				       sizeof(const struct ccs_path_info *));
+-		mp->list[mp->list_len++] = cp;
 +		return ccs_callback[i].write(&param);
-+	}
+ 	}
+-	return;
+-read_policy:
+-	for (i = 0; i < mp->list_len; i++)
+-		fprintf(fp, "%s\n", mp->list[i]->name);
 +	return -EINVAL;
-+}
-+
-+/**
+ }
+ 
+ /**
+- * ccs_editpolicy_offline_daemon - Emulate /proc/ccs/ interface.
 + * ccs_delete_domain2 - Delete a domain from domain policy.
-+ *
+  *
+- * This function does not return.
 + * @domainname: Name of domain.
 + *
 + * Returns nothing.
-+ */
+  */
+-void ccs_editpolicy_offline_daemon(void)
 +static void ccs_delete_domain2(const char *domainname)
-+{
+ {
+-	struct ccs_misc_policy mp[3];
+-	static const int buffer_len = 8192;
+-	char *buffer = ccs_malloc(buffer_len);
+-	memset(&ccs_dp, 0, sizeof(ccs_dp));
+-	memset(&mp, 0, sizeof(mp));
+-	ccs_get();
+-	ccs_assign_domain(&ccs_dp, "<kernel>", false, false);
+-	while (true) {
+-		FILE *fp;
+-		struct msghdr msg;
+-		struct iovec iov = { buffer, buffer_len - 1 };
+-		char cmsg_buf[CMSG_SPACE(sizeof(int))];
+-		struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_buf;
+-		memset(&msg, 0, sizeof(msg));
+-		msg.msg_iov = &iov;
+-		msg.msg_iovlen = 1;
+-		msg.msg_control = cmsg_buf;
+-		msg.msg_controllen = sizeof(cmsg_buf);
+-		memset(buffer, 0, buffer_len);
+-		errno = 0;
+-		if (recvmsg(ccs_persistent_fd, &msg, 0) <= 0)
 +	struct ccs_domain2_info *domain;
 +	list_for_each_entry(domain, &ccs_domain_list, list) {
 +		if (domain == &ccs_kernel_domain)
@@ -3974,10 +4269,20 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			continue;
 +		case CCS_NUMBER_UNION:
 +			ccs_print_number_union_nospace(numbers_p++);
-+			break;
+ 			break;
+-		cmsg = CMSG_FIRSTHDR(&msg);
+-		if (!cmsg)
 +		default:
 +			cprintf("%s", ccs_condition_keyword[left]);
-+			break;
+ 			break;
+-		if (cmsg->cmsg_level == SOL_SOCKET &&
+-		    cmsg->cmsg_type == SCM_RIGHTS &&
+-		    cmsg->cmsg_len == CMSG_LEN(sizeof(int))) {
+-			const int *fdp = (int *) CMSG_DATA(cmsg);
+-			const int fd = *fdp;
+-			fp = fdopen(fd, "w+");
+-			if (!fp) {
+-				close(fd);
 +		}
 +		cprintf("%s", match ? "=" : "!=");
 +		switch (right) {
@@ -4010,7 +4315,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +static void ccs_set_group(const char *category)
 +{
 +	if (head.type == CCS_EXCEPTIONPOLICY) {
-+		ccs_print_namespace();
++		ccs_print_namespace(head.ns);
 +		cprintf("acl_group %u ", head.acl_group_index);
 +	}
 +	cprintf("%s", category);
@@ -4037,7 +4342,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		const u16 perm = ptr->perm;
 +		for (bit = 0; bit < CCS_MAX_PATH_OPERATION; bit++) {
 +			if (!(perm & (1 << bit)))
-+				continue;
+ 				continue;
 +			if (head.print_transition_related_only &&
 +			    bit != CCS_TYPE_EXECUTE && !may_trigger_transition)
 +				continue;
@@ -4046,9 +4351,31 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +				first = false;
 +			} else {
 +				cprintf("/");
-+			}
+ 			}
+-		} else {
+-			break;
 +			cprintf("%s", ccs_path_keyword[bit]);
-+		}
+ 		}
+-		if (ccs_str_starts(buffer, "POST ")) {
+-			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
+-				ccs_handle_domain_policy(&ccs_dp, fp, true);
+-			else if (!strcmp(buffer,
+-					 CCS_PROC_POLICY_EXCEPTION_POLICY))
+-				ccs_handle_misc_policy(&mp[0], fp, true);
+-			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
+-				ccs_handle_misc_policy(&mp[1], fp, true);
+-			else if (!strcmp(buffer, CCS_PROC_POLICY_MANAGER))
+-				ccs_handle_misc_policy(&mp[2], fp, true);
+-		} else if (ccs_str_starts(buffer, "GET ")) {
+-			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
+-				ccs_handle_domain_policy(&ccs_dp, fp, false);
+-			else if (!strcmp(buffer,
+-					 CCS_PROC_POLICY_EXCEPTION_POLICY))
+-				ccs_handle_misc_policy(&mp[0], fp, false);
+-			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
+-				ccs_handle_misc_policy(&mp[1], fp, false);
+-			else if (!strcmp(buffer, CCS_PROC_POLICY_MANAGER))
+-				ccs_handle_misc_policy(&mp[2], fp, false);
 +		if (first)
 +			return;
 +		ccs_print_name_union(&ptr->name);
@@ -4086,7 +4413,8 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +				cprintf("/");
 +			}
 +			cprintf("%s", ccs_mac_keywords[ccs_pnnn2mac[bit]]);
-+		}
+ 		}
+-		fclose(fp);
 +		if (first)
 +			return;
 +		ccs_print_name_union(&ptr->name);
@@ -4200,7 +4528,15 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		ccs_print_name_union(&ptr->dir_name);
 +		ccs_print_name_union(&ptr->fs_type);
 +		ccs_print_number_union(&ptr->flags);
-+	}
+ 	}
+-	ccs_put();
+-	ccs_clear_domain_policy(&ccs_dp);
+-	{
+-		int i;
+-		for (i = 0; i < 3; i++) {
+-			free(mp[i].list);
+-			mp[i].list = NULL;
+-			mp[i].list_len = 0;
 +	if (acl->cond)
 +		ccs_print_condition(acl->cond);
 +	cprintf("\n");
@@ -4377,7 +4713,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	if (ccs_str_starts(param.data, "acl_group ")) {
 +		unsigned int group;
 +		char *data;
-+		group = simple_strtoul(param.data, &data, 10);
++		group = strtoul(param.data, &data, 10);
 +		if (group < CCS_MAX_ACL_GROUPS && *data++ == ' ')
 +			return ccs_write_domain2(head.ns,
 +						 &head.ns->acl_group[group],
@@ -4399,19 +4735,21 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	list_for_each_entry(group, &ccs_path_group, head.list) {
 +		struct ccs_acl_head *ptr;
 +		list_for_each_entry(ptr, &group->member_list, list) {
-+			ccs_print_namespace();
++			ccs_print_namespace(group->ns);
 +			cprintf("%s%s", ccs_group_name[CCS_PATH_GROUP],
 +				group->group_name->name);
 +			cprintf(" %s",
 +				container_of(ptr, struct ccs_path_group,
 +					     head)->member_name->name);
 +			cprintf("\n");
-+		}
-+	}
+ 		}
+ 	}
+-	free(buffer);
+-	_exit(0);
 +	list_for_each_entry(group, &ccs_number_group, head.list) {
 +		struct ccs_acl_head *ptr;
 +		list_for_each_entry(ptr, &group->member_list, list) {
-+			ccs_print_namespace();
++			ccs_print_namespace(group->ns);
 +			cprintf("%s%s", ccs_group_name[CCS_NUMBER_GROUP],
 +				group->group_name->name);
 +			ccs_print_number_union(&container_of
@@ -4423,7 +4761,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	list_for_each_entry(group, &ccs_address_group, head.list) {
 +		struct ccs_acl_head *ptr;
 +		list_for_each_entry(ptr, &group->member_list, list) {
-+			ccs_print_namespace();
++			ccs_print_namespace(group->ns);
 +			cprintf("%s%s", ccs_group_name[CCS_ADDRESS_GROUP],
 +				group->group_name->name);
 +			cprintf(" ");
@@ -4433,7 +4771,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			cprintf("\n");
 +		}
 +	}
-+}
+ }
 +
 +/**
 + * ccs_read_policy - Read "struct ccs_..._entry" list.
@@ -4448,7 +4786,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			container_of(acl, typeof(*ptr), head);
 +		if (acl->is_deleted)
 +			continue;
-+		ccs_print_namespace();
++		ccs_print_namespace(ptr->ns);
 +		cprintf("%s %s from %s\n", ccs_transition_type[ptr->type],
 +			ptr->program ? ptr->program->name : "any",
 +			ptr->domainname ? ptr->domainname->name : "any");
@@ -4460,7 +4798,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			container_of(acl, typeof(*ptr), head);
 +		if (acl->is_deleted)
 +			continue;
-+		ccs_print_namespace();
++		ccs_print_namespace(ptr->ns);
 +		cprintf("aggregator %s %s\n", ptr->original_name->name,
 +			ptr->aggregated_name->name);
 +	}
@@ -4469,7 +4807,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			container_of(acl, typeof(*ptr), head);
 +		if (acl->is_deleted)
 +			continue;
-+		ccs_print_namespace();
++		ccs_print_namespace(ptr->ns);
 +		cprintf("deny_autobind ");
 +		ccs_print_number_union_nospace(&ptr->port);
 +		cprintf("\n");
@@ -4483,14 +4821,17 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + */
 +static void ccs_read_exception(void)
 +{
-+	struct ccs_policy_namespace *ns = NULL;
-+	unsigned int i;
++	struct ccs_policy_namespace *ns;
 +	if (head.eof)
 +		return;
 +	ccs_read_policy();
 +	ccs_read_group();
-+	for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
-+		ccs_read_domain2(&ns->acl_group[i]);
++	list_for_each_entry(ns, &ccs_namespace_list, namespace_list) {
++		unsigned int i;
++		head.ns = ns;
++		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
++			ccs_read_domain2(&ns->acl_group[i]);
++	}
 +	head.eof = true;
 +}
 +
@@ -4522,8 +4863,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	if (ccs_str_starts(data, "Memory used by "))
 +		for (i = 0; i < CCS_MAX_MEMORY_STAT; i++)
 +			if (ccs_str_starts(data, ccs_memory_headers[i]))
-+				ccs_memory_quota[i] =
-+					simple_strtoul(data, NULL, 10);
++				ccs_memory_quota[i] = strtoul(data, NULL, 10);
 +	return 0;
 +}
 +
@@ -4627,10 +4967,14 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	if (!first)
 +		return;
 +	first = false;
++	log_fp = fopen("/tmp/log2", "a+");
 +	memset(&head, 0, sizeof(head));
 +	memset(&ccs_kernel_domain, 0, sizeof(ccs_kernel_domain));
 +	memset(&ccs_kernel_namespace, 0, sizeof(ccs_kernel_namespace));
 +	ccs_namespace_enabled = false;
++	ccs_kernel_namespace.name = "<kernel>";
++	for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
++		INIT_LIST_HEAD(&ccs_kernel_namespace.acl_group[i]);
 +	list_add_tail(&ccs_kernel_namespace.namespace_list,
 +		      &ccs_namespace_list);
 +	for (i = 0; i < CCS_MAX_HASH; i++)
@@ -4638,22 +4982,14 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	memset(ccs_memory_quota, 0, sizeof(ccs_memory_quota));
 +}
 +
-+static _Bool wait_data(const int fd)
++static void handle_policy(const int fd)
 +{
-+	struct pollfd pfd = { .fd = fd, .events = POLLIN};
-+	poll(&pfd, 1, -1);
-+	return 1;
-+}
-+
-+static void handle_policy(void)
-+{
-+	
 +	int i;
 +	static char buffer[4096];
 +	init();
 +	/* Read filename. */
 +	for (i = 0; i < sizeof(buffer); i++) {
-+		if (read(client_fd, buffer + i, 1) != 1)
++		if (read(fd, buffer + i, 1) != 1)
 +			goto out;
 +		if (!buffer[i])
 +			break;
@@ -4675,12 +5011,15 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	else
 +		goto out;
 +	/* Return \0 to indicate success. */
-+	if (write(client_fd, "", 1) != 1)
++	if (write(fd, "", 1) != 1)
 +		goto out;
-+	while (wait_data(client_fd)) {
-+		int len = recv(client_fd, buffer, sizeof(buffer),
-+			       MSG_DONTWAIT);
++	client_fd = fd;
++	while (1) {
++		struct pollfd pfd = { .fd = fd, .events = POLLIN};
++		int len;
 +		int nonzero_len;
++		poll(&pfd, 1, -1);
++		len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 +		if (len <= 0)
 +			break;
 +restart:
@@ -4688,8 +5027,13 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			if (!buffer[nonzero_len])
 +				break;
 +		if (nonzero_len) {
++			//fprintf(log_fp, "<<<<<write start>>>>>\n");
 +			ccs_write_control(buffer, nonzero_len);
++			//fprintf(log_fp, "<<<<<write end>>>>>\n");
++			//fflush(log_fp);
 +		} else {
++			//fprintf(log_fp, "<<<<<read start>>>>>\n");
++			//fflush(log_fp);
 +			switch (head.type) {
 +			case CCS_DOMAINPOLICY:
 +				ccs_read_domain();
@@ -4710,9 +5054,11 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			/* Flush data. */
 +			cprintf("%s", "");
 +			/* Return \0 to indicate EOF. */
-+			if (write(client_fd, "", 1) != 1)
++			if (write(fd, "", 1) != 1)
 +				goto out;
 +			nonzero_len = 1;
++			//fprintf(log_fp, "<<<<<read end>>>>>\n");
++			//fflush(log_fp);
 +		}
 +		len -= nonzero_len;
 +		memmove(buffer, buffer + nonzero_len, len);
@@ -4720,34 +5066,47 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			goto restart;
 +	}
 +out:
-+	close(client_fd);
-+	client_fd = EOF;
++	return;
 +}
 +
-+#if 0
 +/**
-  * ccs_handle_misc_policy - Handle policy data other than domain policy.
-  *
-  * @mp:       Pointer to "struct ccs_misc_policy".
-@@ -74,6 +4792,7 @@
- 	for (i = 0; i < mp->list_len; i++)
- 		fprintf(fp, "%s\n", mp->list[i]->name);
- }
-+#endif
- 
- /**
-  * ccs_editpolicy_offline_daemon - Emulate /proc/ccs/ interface.
-@@ -82,6 +4801,7 @@
-  */
- void ccs_editpolicy_offline_daemon(void)
- {
-+#if 0
- 	struct ccs_misc_policy mp[3];
- 	static const int buffer_len = 8192;
- 	char *buffer = ccs_malloc(buffer_len);
-@@ -155,4 +4875,5 @@
- 	}
- 	free(buffer);
- 	_exit(0);
-+#endif
- }
++ * ccs_editpolicy_offline_daemon - Emulate /proc/ccs/ interface.
++ *
++ * @listener: Listener fd.
++ *
++ * This function does not return.
++ */
++void ccs_editpolicy_offline_daemon(const int listener)
++{
++	while (1) {
++		struct sockaddr_in addr;
++		socklen_t size = sizeof(addr);
++		const int fd = accept(listener, (struct sockaddr *) &addr,
++				      &size);
++		if (fd == EOF)
++			_exit(1);
++		handle_policy(fd);
++		close(fd);
++	}
++}
+Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5127)
++++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(working copy)
+@@ -440,7 +440,7 @@
+ void ccs_editpolicy_color_init(void);
+ void ccs_editpolicy_init_keyword_map(void);
+ void ccs_editpolicy_line_draw(void);
+-void ccs_editpolicy_offline_daemon(void);
++void ccs_editpolicy_offline_daemon(const int listener);
+ void ccs_editpolicy_optimize(const int current);
+ void ccs_editpolicy_sttr_restore(void);
+ void ccs_editpolicy_sttr_save(void);
+@@ -448,7 +448,6 @@
+ extern enum ccs_screen_type ccs_current_screen;
+ extern int ccs_list_item_count;
+ extern int ccs_path_group_list_len;
+-extern int ccs_persistent_fd;
+ extern struct ccs_domain_policy ccs_dp;
+ extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
+ extern struct ccs_generic_acl *ccs_gacl_list;
