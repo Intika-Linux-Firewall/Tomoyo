@@ -2940,9 +2940,7 @@ static void ccs_print_ipv6(const struct in6_addr *min_ip,
 /**
  * ccs_print_ip - Print an IP address.
  *
- * @buf:  Buffer to write to.
- * @size: Size of @buf.
- * @ptr:  Pointer to "struct ipaddr_union".
+ * @ptr: Pointer to "struct ipaddr_union".
  *
  * Returns nothing.
  */
@@ -3845,7 +3843,7 @@ static int ccs_write_domain(void)
 /**
  * ccs_print_name_union - Print a ccs_name_union.
  *
- * @ptr:  Pointer to "struct ccs_name_union".
+ * @ptr: Pointer to "struct ccs_name_union".
  *
  * Returns nothing.
  */
@@ -3860,7 +3858,7 @@ static void ccs_print_name_union(const struct ccs_name_union *ptr)
 /**
  * ccs_print_name_union_quoted - Print a ccs_name_union with a quote.
  *
- * @ptr:  Pointer to "struct ccs_name_union".
+ * @ptr: Pointer to "struct ccs_name_union".
  *
  * Returns nothing.
  */
@@ -3875,7 +3873,7 @@ static void ccs_print_name_union_quoted(const struct ccs_name_union *ptr)
 /**
  * ccs_print_number_union_nospace - Print a ccs_number_union without a space.
  *
- * @ptr:  Pointer to "struct ccs_number_union".
+ * @ptr: Pointer to "struct ccs_number_union".
  *
  * Returns nothing.
  */
@@ -3913,7 +3911,7 @@ static void ccs_print_number_union_nospace(const struct ccs_number_union *ptr)
 /**
  * ccs_print_number_union - Print a ccs_number_union.
  *
- * @ptr:  Pointer to "struct ccs_number_union".
+ * @ptr: Pointer to "struct ccs_number_union".
  *
  * Returns nothing.
  */
@@ -4380,16 +4378,18 @@ static int ccs_write_exception(void)
 /**
  * ccs_read_group - Read "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
  *
- * @idx:  Index number.
+ * @ns: Pointer to "struct ccs_policy_namespace".
  *
  * Returns nothing.
  */
-static void ccs_read_group(void)
+static void ccs_read_group(const struct ccs_policy_namespace *ns)
 {
 	struct ccs_group *group;
 	list_for_each_entry(group, &ccs_path_group, head.list) {
 		struct ccs_acl_head *ptr;
 		list_for_each_entry(ptr, &group->member_list, list) {
+			if (group->ns != ns)
+				continue;
 			ccs_print_namespace(group->ns);
 			cprintf("%s%s", ccs_group_name[CCS_PATH_GROUP],
 				group->group_name->name);
@@ -4402,6 +4402,8 @@ static void ccs_read_group(void)
 	list_for_each_entry(group, &ccs_number_group, head.list) {
 		struct ccs_acl_head *ptr;
 		list_for_each_entry(ptr, &group->member_list, list) {
+			if (group->ns != ns)
+				continue;
 			ccs_print_namespace(group->ns);
 			cprintf("%s%s", ccs_group_name[CCS_NUMBER_GROUP],
 				group->group_name->name);
@@ -4414,6 +4416,8 @@ static void ccs_read_group(void)
 	list_for_each_entry(group, &ccs_address_group, head.list) {
 		struct ccs_acl_head *ptr;
 		list_for_each_entry(ptr, &group->member_list, list) {
+			if (group->ns != ns)
+				continue;
 			ccs_print_namespace(group->ns);
 			cprintf("%s%s", ccs_group_name[CCS_ADDRESS_GROUP],
 				group->group_name->name);
@@ -4429,41 +4433,44 @@ static void ccs_read_group(void)
 /**
  * ccs_read_policy - Read "struct ccs_..._entry" list.
  *
+ * @ns: Pointer to "struct ccs_policy_namespace".
+ *
  * Returns nothing.
  */
-static void ccs_read_policy(void)
+static void ccs_read_policy(const struct ccs_policy_namespace *ns)
 {
 	struct ccs_acl_head *acl;
-	list_for_each_entry(acl, &ccs_transition_list, list) {
-		struct ccs_transition_control *ptr =
-			container_of(acl, typeof(*ptr), head);
-		if (acl->is_deleted)
-			continue;
-		ccs_print_namespace(ptr->ns);
-		cprintf("%s%s from %s\n", ccs_transition_type[ptr->type],
-			ptr->program ? ptr->program->name : "any",
-			ptr->domainname ? ptr->domainname->name : "any");
-	}
 	if (head.print_transition_related_only)
-		return;
-	list_for_each_entry(acl, &ccs_aggregator_list, list) {
-		struct ccs_aggregator *ptr =
-			container_of(acl, typeof(*ptr), head);
-		if (acl->is_deleted)
-			continue;
-		ccs_print_namespace(ptr->ns);
-		cprintf("aggregator %s %s\n", ptr->original_name->name,
-			ptr->aggregated_name->name);
-	}
+		goto transition_only;
 	list_for_each_entry(acl, &ccs_reserved_list, list) {
 		struct ccs_reserved *ptr =
 			container_of(acl, typeof(*ptr), head);
-		if (acl->is_deleted)
+		if (acl->is_deleted || ptr->ns != ns)
 			continue;
 		ccs_print_namespace(ptr->ns);
 		cprintf("deny_autobind ");
 		ccs_print_number_union_nospace(&ptr->port);
 		cprintf("\n");
+	}
+	list_for_each_entry(acl, &ccs_aggregator_list, list) {
+		struct ccs_aggregator *ptr =
+			container_of(acl, typeof(*ptr), head);
+		if (acl->is_deleted || ptr->ns != ns)
+			continue;
+		ccs_print_namespace(ptr->ns);
+		cprintf("aggregator %s %s\n", ptr->original_name->name,
+			ptr->aggregated_name->name);
+	}
+transition_only:
+	list_for_each_entry(acl, &ccs_transition_list, list) {
+		struct ccs_transition_control *ptr =
+			container_of(acl, typeof(*ptr), head);
+		if (acl->is_deleted || ptr->ns != ns)
+			continue;
+		ccs_print_namespace(ptr->ns);
+		cprintf("%s%s from %s\n", ccs_transition_type[ptr->type],
+			ptr->program ? ptr->program->name : "any",
+			ptr->domainname ? ptr->domainname->name : "any");
 	}
 }
 
@@ -4477,11 +4484,11 @@ static void ccs_read_exception(void)
 	struct ccs_policy_namespace *ns;
 	if (head.eof)
 		return;
-	ccs_read_policy();
-	ccs_read_group();
 	list_for_each_entry(ns, &ccs_namespace_list, namespace_list) {
 		unsigned int i;
 		head.ns = ns;
+		ccs_read_policy(ns);
+		ccs_read_group(ns);
 		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
 			ccs_read_domain2(&ns->acl_group[i]);
 	}
