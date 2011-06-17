@@ -30,9 +30,6 @@ struct ccs_domain_policy ccs_dp = { };
 /* Readline history. */
 static struct ccs_readline_data ccs_rl = { };
 
-/* File descriptor for offline mode. */
-int ccs_persistent_fd = EOF;
-
 /* Array of "path_group" entries. */
 struct ccs_path_group_entry *ccs_path_group_list = NULL;
 /* Length of ccs_path_group_list array. */
@@ -711,6 +708,10 @@ static _Bool ccs_show_command_key(const enum ccs_screen_type screen,
 		       "position.\n");
 	}
 	switch (screen) {
+	case CCS_SCREEN_NS_LIST:
+		if (!readonly)
+			printw("A/a        Add a new namespace.\n");
+		break;
 	case CCS_SCREEN_DOMAIN_LIST:
 		if (ccs_domain_sort_type) {
 			printw("S/s        Set profile number of selected "
@@ -807,34 +808,6 @@ static void ccs_set_error(const char *filename)
 }
 
 /**
- * ccs_send_fd - Send file descriptor.
- *
- * @data: String data to send with file descriptor.
- * @fd:   Pointer to file desciptor.
- *
- * Returns nothing.
- */
-static void ccs_send_fd(char *data, int *fd)
-{
-	struct msghdr msg;
-	struct iovec iov = { data, strlen(data) };
-	char cmsg_buf[CMSG_SPACE(sizeof(int))];
-	struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_buf;
-	memset(&msg, 0, sizeof(msg));
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_control = cmsg_buf;
-	msg.msg_controllen = sizeof(cmsg_buf);
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-	msg.msg_controllen = cmsg->cmsg_len;
-	memmove(CMSG_DATA(cmsg), fd, sizeof(int));
-	sendmsg(ccs_persistent_fd, &msg, 0);
-	close(*fd);
-}
-
-/**
  * ccs_editpolicy_open_write - Wrapper for ccs_open_write().
  *
  * @filename: File to open for writing.
@@ -847,37 +820,10 @@ static void ccs_send_fd(char *data, int *fd)
  */
 static FILE *ccs_editpolicy_open_write(const char *filename)
 {
-	if (ccs_network_mode) {
-		FILE *fp = ccs_open_write(filename);
-		if (!fp)
-			ccs_set_error(filename);
-		return fp;
-	} else if (ccs_offline_mode) {
-		char request[1024];
-		int fd[2];
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-			fprintf(stderr, "socketpair()\n");
-			exit(1);
-		}
-		if (shutdown(fd[0], SHUT_RD))
-			goto out;
-		memset(request, 0, sizeof(request));
-		snprintf(request, sizeof(request) - 1, "POST %s", filename);
-		ccs_send_fd(request, &fd[1]);
-		return fdopen(fd[0], "w");
-out:
-		close(fd[1]);
-		close(fd[0]);
-		exit(1);
-	} else {
-		FILE *fp;
-		if (ccs_readonly_mode)
-			return NULL;
-		fp = ccs_open_write(filename);
-		if (!fp)
-			ccs_set_error(filename);
-		return fp;
-	}
+	FILE *fp = ccs_open_write(filename);
+	if (!fp)
+		ccs_set_error(filename);
+	return fp;
 }
 
 /**
@@ -892,32 +838,10 @@ out:
  */
 static FILE *ccs_editpolicy_open_read(const char *filename)
 {
-	if (ccs_network_mode) {
-		return ccs_open_read(filename);
-	} else if (ccs_offline_mode) {
-		char request[1024];
-		int fd[2];
-		FILE *fp;
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-			fprintf(stderr, "socketpair()\n");
-			exit(1);
-		}
-		if (shutdown(fd[0], SHUT_WR))
-			goto out;
-		fp = fdopen(fd[0], "r");
-		if (!fp)
-			goto out;
-		memset(request, 0, sizeof(request));
-		snprintf(request, sizeof(request) - 1, "GET %s", filename);
-		ccs_send_fd(request, &fd[1]);
-		return fp;
-out:
-		close(fd[1]);
-		close(fd[0]);
-		exit(1);
-	} else {
-		return fopen(filename, "r");
-	}
+	FILE *fp = ccs_open_read(filename);
+	if (!fp)
+		ccs_set_error(filename);
+	return fp;
 }
 
 /**
@@ -1116,7 +1040,7 @@ static void ccs_read_generic_policy(void)
 		if (ccs_network_mode)
 			/* We can read after write. */
 			fp = ccs_editpolicy_open_write(ccs_policy_file);
-		else if (!ccs_offline_mode)
+		else
 			/* Don't set error message if failed. */
 			fp = fopen(ccs_policy_file, "r+");
 		if (fp) {
@@ -1275,7 +1199,7 @@ static int ccs_add_transition_control_entry
 			    (ccs_transition_control_list_len + 1) *
 			    sizeof(struct ccs_transition_control_entry));
 	ptr = &ccs_transition_control_list[ccs_transition_control_list_len++];
-	memset(ptr, 0, sizeof(struct ccs_transition_control_entry));
+	memset(ptr, 0, sizeof(*ptr));
 	if (program && strcmp(program, "any"))
 		ptr->program = ccs_savename(program);
 	if (domainname && strcmp(domainname, "any"))
@@ -1332,7 +1256,7 @@ static int ccs_add_path_group_entry(const char *group_name,
 				    (ccs_path_group_list_len + 1) *
 				    sizeof(struct ccs_path_group_entry));
 		group = &ccs_path_group_list[ccs_path_group_list_len++];
-		memset(group, 0, sizeof(struct ccs_path_group_entry));
+		memset(group, 0, sizeof(*group));
 		group->group_name = saved_group_name;
 	}
 	group->member_name =
@@ -1518,7 +1442,7 @@ static void ccs_read_domain_and_exception_policy(void)
 	if (ccs_network_mode)
 		/* We can read after write. */
 		fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
-	else if (!ccs_offline_mode)
+	else
 		/* Don't set error message if failed. */
 		fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r+");
 	if (fp) {
@@ -1551,8 +1475,6 @@ static void ccs_read_domain_and_exception_policy(void)
 		}
 		ccs_put();
 		fclose(fp);
-	} else {
-		ccs_set_error(CCS_PROC_POLICY_DOMAIN_POLICY);
 	}
 
 	max_index = ccs_dp.list_len;
@@ -1563,7 +1485,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		/* We can read after write. */
 		fp = ccs_editpolicy_open_write
 			(CCS_PROC_POLICY_EXCEPTION_POLICY);
-	else if (!ccs_offline_mode)
+	else
 		/* Don't set error message if failed. */
 		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
 	if (fp) {
@@ -1591,8 +1513,6 @@ static void ccs_read_domain_and_exception_policy(void)
 		}
 		ccs_put();
 		fclose(fp);
-	} else {
-		ccs_set_error(CCS_PROC_POLICY_EXCEPTION_POLICY);
 	}
 
 	/*
@@ -1637,6 +1557,23 @@ static void ccs_read_domain_and_exception_policy(void)
 		char *cp = strchr(ccs_domain_name(&ccs_dp, index), ' ');
 		if (!cp || strchr(cp + 1, ' '))
 			continue;
+		/* Check "no_initialize_domain $program from any" entry. */
+		for (i = 0; i < ccs_transition_control_list_len; i++) {
+			struct ccs_transition_control_entry *ptr
+				= &ccs_transition_control_list[i];
+			if (ptr->type != CCS_TRANSITION_CONTROL_NO_INITIALIZE)
+				continue;
+			if (ptr->domainname)
+				continue;
+			if (ptr->program && strcmp(ptr->program->name, cp + 1))
+				continue;
+			break;
+		}
+		if (i < ccs_transition_control_list_len)
+			continue;
+		/*
+		 * Check "initialize_domain $program from $domainname" entry.
+		 */
 		for (i = 0; i < ccs_transition_control_list_len; i++) {
 			struct ccs_transition_control_entry *ptr
 				= &ccs_transition_control_list[i];
@@ -1650,6 +1587,32 @@ static void ccs_read_domain_and_exception_policy(void)
 
 	/* Find domain keeper domains. */
 	for (index = 0; index < max_index; index++) {
+		const struct ccs_path_info *name =
+			ccs_dp.list[index].domainname;
+		/* Check "no_keep_domain any from $domainname" entry. */
+		for (i = 0; i < ccs_transition_control_list_len; i++) {
+			struct ccs_transition_control_entry *ptr
+				= &ccs_transition_control_list[i];
+			char *cp;
+			if (ptr->type != CCS_TRANSITION_CONTROL_NO_KEEP)
+				continue;
+			if (ptr->program)
+				continue;
+			if (!ptr->is_last_name) {
+				if (ptr->domainname &&
+				    ccs_pathcmp(ptr->domainname, name))
+					continue;
+				break;
+			}
+			cp = strrchr(name->name, ' ');
+			if (!cp || (ptr->domainname &&
+				    strcmp(ptr->domainname->name, cp + 1)))
+				continue;
+			break;
+		}
+		if (i < ccs_transition_control_list_len)
+			continue;
+		/* Check "keep_domain $program from $domainname" entry. */
 		for (i = 0; i < ccs_transition_control_list_len; i++) {
 			struct ccs_transition_control_entry *ptr
 				= &ccs_transition_control_list[i];
@@ -1658,15 +1621,13 @@ static void ccs_read_domain_and_exception_policy(void)
 				continue;
 			if (!ptr->is_last_name) {
 				if (ptr->domainname &&
-				    ccs_pathcmp(ptr->domainname,
-						ccs_dp.list[index].domainname))
+				    ccs_pathcmp(ptr->domainname, name))
 					continue;
 				ccs_dp.list[index].is_dk = true;
 				continue;
 			}
-			cp = strrchr(ccs_dp.list[index].domainname->name,
-				     ' ');
-			if (!cp || (ptr->domainname->name &&
+			cp = strrchr(name->name, ' ');
+			if (!cp || (ptr->domainname &&
 				    strcmp(ptr->domainname->name, cp + 1)))
 				continue;
 			ccs_dp.list[index].is_dk = true;
@@ -3064,20 +3025,24 @@ static _Bool ccs_save_to_file(const char *src, const char *dest)
 {
 	FILE *proc_fp = ccs_editpolicy_open_read(src);
 	FILE *file_fp = fopen(dest, "w");
+	int c;
 	if (!file_fp) {
 		fprintf(stderr, "Can't open %s\n", dest);
 		fclose(proc_fp);
 		return false;
 	}
 	while (true) {
-		int c = fgetc(proc_fp);
-		if (c == EOF)
+		c = fgetc(proc_fp);
+		if (!c || c == EOF)
 			break;
-		fputc(c, file_fp);
+		if (fputc(c, file_fp) == EOF) {
+			c = EOF;
+			break;
+		}
 	}
 	fclose(proc_fp);
 	fclose(file_fp);
-	return true;
+	return !c;
 }
 
 /**
@@ -3123,12 +3088,14 @@ static void ccs_parse_args(int argc, char *argv[])
 			ccs_current_screen = CCS_SCREEN_MANAGER_LIST;
 		else if (!strcmp(ptr, "s"))
 			ccs_current_screen = CCS_SCREEN_STAT_LIST;
+		else if (!strcmp(ptr, "n"))
+			ccs_current_screen = CCS_SCREEN_NS_LIST;
 		else if (!strcmp(ptr, "readonly"))
 			ccs_readonly_mode = true;
 		else if (sscanf(ptr, "refresh=%u", &ccs_refresh_interval)
 			 != 1) {
 usage:
-			printf("Usage: %s [e|d|p|m|s] [readonly] "
+			printf("Usage: %s [e|d|p|m|s|n] [readonly] "
 			       "[refresh=interval] [<namespace>]"
 			       "[{policy_dir|remote_ip:remote_port}]\n",
 			       argv[0]);
@@ -3147,32 +3114,37 @@ usage:
  */
 static void ccs_load_offline(void)
 {
-	int fd[2] = { EOF, EOF };
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in addr = { };
+	socklen_t size = sizeof(addr);
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	if (chdir(ccs_policy_dir) || chdir("policy/current/")) {
 		fprintf(stderr, "Directory %s/policy/current/ doesn't "
 			"exist.\n", ccs_policy_dir);
 		exit(1);
 	}
-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-		fprintf(stderr, "socketpair()\n");
+	if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) || listen(fd, 5)
+	    || getsockname(fd, (struct sockaddr *) &addr, &size)) {
+		fprintf(stderr, "Can't create listener socket.\n");
 		exit(1);
 	}
+	ccs_network_ip = addr.sin_addr.s_addr;
+	ccs_network_port = addr.sin_port;
+	ccs_network_mode = true;
 	switch (fork()) {
 	case 0:
-		close(fd[0]);
-		ccs_persistent_fd = fd[1];
-		ccs_editpolicy_offline_daemon();
+		ccs_editpolicy_offline_daemon(fd);
 		_exit(0);
 	case -1:
 		fprintf(stderr, "fork()\n");
 		exit(1);
 	}
-	close(fd[1]);
-	ccs_persistent_fd = fd[0];
+	close(fd);
+	ccs_copy_file("profile.conf", CCS_PROC_POLICY_PROFILE);
 	ccs_copy_file("exception_policy.conf",
 		      CCS_PROC_POLICY_EXCEPTION_POLICY);
 	ccs_copy_file("domain_policy.conf", CCS_PROC_POLICY_DOMAIN_POLICY);
-	ccs_copy_file("profile.conf", CCS_PROC_POLICY_PROFILE);
 	ccs_copy_file("manager.conf", CCS_PROC_POLICY_MANAGER);
 	if (chdir("..")) {
 		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
@@ -3253,10 +3225,8 @@ int main(int argc, char *argv[])
 {
 	ccs_parse_args(argc, argv);
 	ccs_editpolicy_init_keyword_map();
-	if (ccs_offline_mode) {
+	if (ccs_offline_mode)
 		ccs_load_offline();
-		goto start;
-	}
 	if (ccs_network_mode)
 		goto start;
 	if (chdir(CCS_PROC_POLICY_DIR)) {
