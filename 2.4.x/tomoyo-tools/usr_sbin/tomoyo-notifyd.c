@@ -113,6 +113,14 @@ invalid_rule:
 	exit(1);
 }
 
+static void block_sighup(const _Bool block)
+{
+	sigset_t sigset;
+	sigemptyset(&sigset);
+	sigaddset(&sigset, SIGHUP);
+	sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &sigset, NULL);
+}
+
 static void main_loop(void)
 {
 	static char buffer[32768];
@@ -133,6 +141,7 @@ static void main_loop(void)
 			syslog(LOG_WARNING, "Can't create pipe.\n");
 			return;
 		}
+		block_sighup(1);
 		pid = fork();
 		if (pid == -1) {
 			syslog(LOG_WARNING, "Can't fork().\n");
@@ -159,6 +168,7 @@ static void main_loop(void)
 			ret_ignored = write(pipe_fd[1], buffer, len);
 			close(pipe_fd[1]);
 		}
+		block_sighup(0);
 		while (time_to_wait-- > 0) {
 			int ret_ignored;
 			sleep(1);
@@ -175,10 +185,10 @@ static void main_loop(void)
 
 static void tomoyo_reload_config(int sig)
 {
-	signal(SIGHUP, SIG_IGN);
+	block_sighup(1);
 	syslog(LOG_WARNING, "Reloading congiguration file.\n");
 	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
-	signal(SIGHUP, tomoyo_reload_config);
+	block_sighup(0);
 }
 
 int main(int argc, char *argv[])

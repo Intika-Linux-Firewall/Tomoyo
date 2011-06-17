@@ -322,12 +322,20 @@ static _Bool ccs_write_log(const int i, char *buffer)
 	return 0;
 }
 
+static void block_sighup(const _Bool block)
+{
+	sigset_t sigset;
+	sigemptyset(&sigset);
+	sigaddset(&sigset, SIGHUP);
+	sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &sigset, NULL);
+}
+
 static void ccs_reload_config(int sig)
 {
-	signal(SIGHUP, SIG_IGN);
+	block_sighup(1);
 	syslog(LOG_WARNING, "Reloading congiguration file.\n");
 	ccs_auditd_init_rules(CCS_AUDITD_CONF);
-	signal(SIGHUP, ccs_reload_config);
+	block_sighup(0);
 }
 
 int main(int argc, char *argv[])
@@ -447,16 +455,18 @@ start:
 		if (!tail)
 			continue;
 		*tail = '\0';
+		block_sighup(1);
 		/* Check for filtering rules. */
 		i = ccs_check_rules(buffer, domain, acl);
-		if (i == EOF)
-			continue;
-		*tail = '\n';
-		*--acl = '\n';
-		*--domain = '\n';
-		/* Write the audit log. */
-		if (!ccs_write_log(i, buffer))
-			break;
+		if (i >= 0) {
+			*tail = '\n';
+			*--acl = '\n';
+			*--domain = '\n';
+			/* Write the audit log. */
+			if (!ccs_write_log(i, buffer))
+				break;
+		}
+		block_sighup(0);
 	}
 out:
 	syslog(LOG_WARNING, "Terminated.\n");
