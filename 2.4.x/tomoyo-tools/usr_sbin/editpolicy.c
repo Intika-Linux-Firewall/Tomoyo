@@ -1666,7 +1666,7 @@ static void tomoyo_read_domain_and_exception_policy(void)
 			}
 			cp = strrchr(tomoyo_dp.list[index].domainname->name,
 				     ' ');
-			if (!cp || (ptr->domainname->name &&
+			if (!cp || (ptr->domainname &&
 				    strcmp(ptr->domainname->name, cp + 1)))
 				continue;
 			tomoyo_dp.list[index].is_dk = true;
