@@ -333,7 +333,7 @@ static void block_sighup(const _Bool block)
 static void tomoyo_reload_config(int sig)
 {
 	block_sighup(1);
-	syslog(LOG_WARNING, "Reloading congiguration file.\n");
+	syslog(LOG_WARNING, "Reloading configuration file.\n");
 	tomoyo_auditd_init_rules(TOMOYO_AUDITD_CONF);
 	block_sighup(0);
 }

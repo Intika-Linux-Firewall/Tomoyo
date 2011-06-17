@@ -186,7 +186,7 @@ static void main_loop(void)
 static void tomoyo_reload_config(int sig)
 {
 	block_sighup(1);
-	syslog(LOG_WARNING, "Reloading congiguration file.\n");
+	syslog(LOG_WARNING, "Reloading configuration file.\n");
 	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
 	block_sighup(0);
 }
