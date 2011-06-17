@@ -13,12 +13,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/Makefile    |    2 
  security/tomoyo/audit.c     |  231 ++++++++-
  security/tomoyo/common.c    |  308 ++++++++++++
- security/tomoyo/common.h    |  263 +++++++++++
- security/tomoyo/condition.c | 1048 ++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h    |  263 ++++++++++-
+ security/tomoyo/condition.c | 1050 ++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/domain.c    |   67 ++
  security/tomoyo/gc.c        |   56 ++
  security/tomoyo/util.c      |    2 
- 8 files changed, 1938 insertions(+), 39 deletions(-)
+ 8 files changed, 1940 insertions(+), 39 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -1073,7 +1073,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @group: Pointer to "struct tomoyo_group". Maybe NULL.
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/condition.c
-@@ -0,0 +1,1048 @@
+@@ -0,0 +1,1050 @@
 +/*
 + * security/tomoyo/condition.c
 + *
@@ -1557,8 +1557,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		is_not = *(right_word - 1) == '!';
 +		if (is_not)
 +			*(right_word++ - 1) = '\0'; /* Will restore later. */
-+		else
++		else if (*(right_word + 1) != '=')
 +			*right_word++ = '\0'; /* Will restore later. */
++		else
++			goto out;
 +		dprintk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left_word,
 +			is_not ? "!" : "", right_word);
 +		if (!strcmp(left_word, "grant_log")) {
