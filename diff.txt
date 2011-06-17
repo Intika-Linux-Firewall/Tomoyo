@@ -1,6 +1,6 @@
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5127)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5131)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(working copy)
 @@ -30,9 +30,6 @@
  /* Readline history. */
@@ -164,7 +164,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  		/* Don't set error message if failed. */
  		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
  	if (fp) {
-@@ -3064,20 +2988,21 @@
+@@ -3064,20 +2988,24 @@
  {
  	FILE *proc_fp = ccs_editpolicy_open_read(src);
  	FILE *file_fp = fopen(dest, "w");
@@ -180,7 +180,11 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 +		c = fgetc(proc_fp);
 +		if (!c || c == EOF)
  			break;
- 		fputc(c, file_fp);
+-		fputc(c, file_fp);
++		if (fputc(c, file_fp) == EOF) {
++			c = EOF;
++			break;
++		}
  	}
  	fclose(proc_fp);
  	fclose(file_fp);
@@ -189,7 +193,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  }
  
  /**
-@@ -3123,12 +3048,14 @@
+@@ -3123,12 +3051,14 @@
  			ccs_current_screen = CCS_SCREEN_MANAGER_LIST;
  		else if (!strcmp(ptr, "s"))
  			ccs_current_screen = CCS_SCREEN_STAT_LIST;
@@ -205,7 +209,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  			       "[refresh=interval] [<namespace>]"
  			       "[{policy_dir|remote_ip:remote_port}]\n",
  			       argv[0]);
-@@ -3147,28 +3074,33 @@
+@@ -3147,32 +3077,37 @@
   */
  static void ccs_load_offline(void)
  {
@@ -244,10 +248,15 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 -	close(fd[1]);
 -	ccs_persistent_fd = fd[0];
 +	close(fd);
++	ccs_copy_file("profile.conf", CCS_PROC_POLICY_PROFILE);
  	ccs_copy_file("exception_policy.conf",
  		      CCS_PROC_POLICY_EXCEPTION_POLICY);
  	ccs_copy_file("domain_policy.conf", CCS_PROC_POLICY_DOMAIN_POLICY);
-@@ -3253,10 +3185,8 @@
+-	ccs_copy_file("profile.conf", CCS_PROC_POLICY_PROFILE);
+ 	ccs_copy_file("manager.conf", CCS_PROC_POLICY_MANAGER);
+ 	if (chdir("..")) {
+ 		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
+@@ -3253,10 +3188,8 @@
  {
  	ccs_parse_args(argc, argv);
  	ccs_editpolicy_init_keyword_map();
@@ -261,16 +270,15 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  	if (chdir(CCS_PROC_POLICY_DIR)) {
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5127)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5131)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
-@@ -22,137 +22,4720 @@
+@@ -22,137 +22,4713 @@
   */
  #include "ccstools.h"
  #include "editpolicy.h"
++#include <syslog.h>
 +#include <poll.h>
  
-+static FILE *log_fp = NULL;
-+
 +struct list_head {
 +	struct list_head* next;
 +	struct list_head* prev;
@@ -1723,7 +1731,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + *
 + * @name: The string to store into the permernent memory.
 + *
-+ * Returns pointer to "struct ccs_path_info" on success, NULL otherwise.
++ * Returns pointer to "struct ccs_path_info" on success, abort otherwise.
 + */
 +static const struct ccs_path_info *ccs_get_name(const char *name)
 +{
@@ -1763,7 +1771,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 + * @data: Data to copy from.
 + * @size: Size in byte.
 + *
-+ * Returns pointer to allocated memory on success, NULL otherwise.
++ * Returns pointer to allocated memory on success, abort otherwise.
 + * @data is zero-cleared on success.
 + */
 +static void *ccs_commit_ok(void *data, const unsigned int size)
@@ -2031,7 +2039,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		va_end(args);
 +		if (len < 0)
 +			_exit(1);
-+		if (buffer_pos + len <= buffer_len) {
++		if (buffer_pos + len < buffer_len) {
 +			buffer_pos += len;
  			break;
 -		if (!line[0])
@@ -2039,11 +2047,11 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		buffer_len = buffer_pos + len + 4096;
 +		buffer = ccs_realloc(buffer, buffer_len);
 +	}
-+	if (len == 0 || buffer_pos >= 1048576) {
-+		if (write(client_fd, buffer, buffer_pos) != buffer_pos)
-+			_exit(1);
-+		buffer_pos = 0;
-+	}
++	if (len && buffer_pos < 1048576)
++		return;
++	if (write(client_fd, buffer, buffer_pos) != buffer_pos)
++		_exit(1);
++	buffer_pos = 0;
 +}
 +
 +/**
@@ -2318,8 +2326,10 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +		is_not = *(right_word - 1) == '!';
 +		if (is_not)
 +			*(right_word++ - 1) = '\0'; /* Will restore later. */
-+		else
++		else if (*(right_word + 1) != '=')
 +			*right_word++ = '\0'; /* Will restore later. */
++		else
++			goto out;
 +		dprintk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left_word,
 +			is_not ? "!" : "", right_word);
 +		if (!strcmp(left_word, "grant_log")) {
@@ -4967,7 +4977,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +	if (!first)
 +		return;
 +	first = false;
-+	log_fp = fopen("/tmp/log2", "a+");
 +	memset(&head, 0, sizeof(head));
 +	memset(&ccs_kernel_domain, 0, sizeof(ccs_kernel_domain));
 +	memset(&ccs_kernel_namespace, 0, sizeof(ccs_kernel_namespace));
@@ -5027,13 +5036,8 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			if (!buffer[nonzero_len])
 +				break;
 +		if (nonzero_len) {
-+			//fprintf(log_fp, "<<<<<write start>>>>>\n");
 +			ccs_write_control(buffer, nonzero_len);
-+			//fprintf(log_fp, "<<<<<write end>>>>>\n");
-+			//fflush(log_fp);
 +		} else {
-+			//fprintf(log_fp, "<<<<<read start>>>>>\n");
-+			//fflush(log_fp);
 +			switch (head.type) {
 +			case CCS_DOMAINPOLICY:
 +				ccs_read_domain();
@@ -5057,8 +5061,6 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +			if (write(fd, "", 1) != 1)
 +				goto out;
 +			nonzero_len = 1;
-+			//fprintf(log_fp, "<<<<<read end>>>>>\n");
-+			//fflush(log_fp);
 +		}
 +		len -= nonzero_len;
 +		memmove(buffer, buffer + nonzero_len, len);
@@ -5091,7 +5093,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 +}
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5127)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5131)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(working copy)
 @@ -440,7 +440,7 @@
  void ccs_editpolicy_color_init(void);
