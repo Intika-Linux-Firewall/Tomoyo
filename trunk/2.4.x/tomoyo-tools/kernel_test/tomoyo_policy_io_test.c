@@ -39,7 +39,7 @@ static void try_io(const char *policy, const char should_success)
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
-		if (policy_file == proc_policy_exception_policy &&
+		if (!strcmp(policy_file, proc_policy_exception_policy) &&
 		    !strncmp(buffer, "<kernel> ", 9))
 			memmove(buffer, buffer + 9, strlen(buffer + 9) + 1);
 		if (!strcmp(buffer, policy)) {
