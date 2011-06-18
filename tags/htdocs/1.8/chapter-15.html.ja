@@ -112,13 +112,13 @@ use_group 0
 
 <p>上で説明したように、ある名前空間から他の名前空間へとジャンプするためのディレクティブを追加する必要があります。そのために２つのディレクティブが定義されています。</p>
 
-<p>reset_domain ディレクティブは、このディレクティブで指定されたプログラムのパス名を持つ名前空間へと遷移するようにします。構文は initialize_domain ディレクティブと同じです。以下の例では /usr/sbin/sshd が実行されると &lt;/usr/sbin/sshd&gt; ドメインへと遷移するようになります：</p>
+<p>reset_domain ディレクティブは、このディレクティブで指定されたプログラムのパス名を持つ名前空間へと遷移するようにします。構文は <a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブと同じです。以下の例では /usr/sbin/sshd が実行されると &lt;/usr/sbin/sshd&gt; ドメインへと遷移するようになります：</p>
 
 <pre>
 reset_domain /usr/sbin/sshd from any
 </pre>
 
-<p>no_reset_domain ディレクティブは、 reset_domain ディレクティブの効果を打ち消します。構文は no_initialize_domain ディレクティブと同じです。</p>
+<p>no_reset_domain ディレクティブは、 reset_domain ディレクティブの効果を打ち消します。構文は <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> ディレクティブと同じです。</p>
 
 <p>また、条件付きアクセス許可の auto_domain_transition= という指定を用いて、ポリシーで許可されるのと同時に任意の名前空間へと遷移させることができます。（ただし、ポリシーで許可されたからといって、ドメイン遷移の後にそのアクセス要求が成功するという保証は存在しないため、利用する場合には注意してください。）</p>
 

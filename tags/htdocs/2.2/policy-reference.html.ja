@@ -199,7 +199,8 @@
 
 <p>ただし、運用開始後にはアクセス許可の変更は生じにくいという傾向があること、および、運用開始前に適切にチューニングすることによりメモリ消費量を通常は 1 メガバイト以内に抑えられることから、心配する必要はありません。</p>
 
-<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /sys/kernel/security/tomoyo/meminfo から確認できます。単位はバイトです。 Shared: が単語を記憶するために使用されている量、 Private: がアクセス許可を記憶するために使用されている量で、減少することはありません。 Dynamic: がアクセス許可のチェックやアクセスログの保持などのために一時的に使用されている量で、不要になると減少します。</p>
+<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /sys/kernel/security/tomoyo/meminfo から確認できます。単位はバイトです。 Shared: が単語を記憶するために使用されている量、 Private: がアクセス許可を記憶するために使用されている量で、減少することはありません。
+Dynamic: がアクセス許可のチェックやアクセスログの保持などのために一時的に使用されている量で、不要になると減少します。</p>
 
 <table border="1">
 <tr><td><pre>
@@ -292,7 +293,8 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2>4.2 <a name="domain_transition">ドメイン遷移とは</a></h2>
 
-<p>実行時のプログラムの名前により異なる動作をするプログラムが存在します。例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクです。 TOMOYO Linux は正規化したパス名を使用するので、 /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。</p>
+<p>実行時のプログラムの名前により異なる動作をするプログラムが存在します。
+例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクです。 TOMOYO Linux は正規化したパス名を使用するので、 /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。</p>
 
 <p>プロセスがプログラムを実行しようとすると、以下の処理が行われます。</p>
 
@@ -642,6 +644,7 @@ allow_read @HOME-DIR-FILE
 <h3><a name="exception_policy_no_initialize_domain">no_initialize_domain</a></h3>
 
 <p>initialize_domain の効力を打ち消すには、 no_initialize_domain というキーワードを指定します。</p>
+
 <ul>
 <li>no_initialize_domain プログラム名 from ドメイン名
 <li>no_initialize_domain プログラム名 from ドメイン名の最後のプログラム名
@@ -666,6 +669,9 @@ allow_read @HOME-DIR-FILE
 <p> from 以前が指定されていない場合は任意のプログラムが実行された場合に適用されます。ドメイン名が &lt;kernel&gt; で始まらない場合は、ドメイン名の最後のプログラム名が一致する全てのドメインに適用されます。</p>
 
 <p>このキーワードの目的は、不要なドメイン遷移の発生を抑制することでドメイン数とメモリ消費を抑えることです。</p>
+
+<p>ドメイン遷移を抑制するには、 keep_domain ディレクティブに続けてドメイン名を指定します。</p>
+<p>このディレクティブで指定されたドメインに属しているプロセスは、 initialize_domain ディレクティブで指定されたプログラムが実行されない限り、同じドメインに残ります。</p>
 
 <p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
 
@@ -761,6 +767,8 @@ chown -R demo /sys/kernel/security/tomoyo/
 <p>を実行することで demo ユーザがポリシーのあるディレクトリへのアクセスとポリシーを編集するためのプログラムを実行できるようになります。</p>
 
 <h2>6.2 <a name="memory_quota">ポリシーに割り当てられるメモリ量を制限</a></h2>
+
+<p>TOMOYO Linux のポリシーを保持しておくために割り当てられるメモリの上限（クォータ）を設定することができます。</p>
 
 <p>/etc/tomoyo/tomoyo-post-init から以下のように /sys/kernel/security/tomoyo/meminfo に書き込みを行うことで設定できます。</p>
 

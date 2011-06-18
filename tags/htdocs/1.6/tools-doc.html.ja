@@ -19,7 +19,6 @@
 <h3><a name="ccs-editpolicy">＜ポリシーエディタ　ccs-editpolicy＞</a></h3>
 <p>現在のポリシーを /proc/ccs/ ディレクトリから読み込み、編集を行う。</p>
 <p>コマンドラインパラメータとして s e d p m u のいずれかの文字を指定することで最初に表示される画面を指定できる。省略すると最初にドメイン一覧表示画面が表示される。</p>
-<p>以下のキーを使用して操作する。</p>
 
 <p>＜カーソル移動＞</p>
 <table border="1">
@@ -146,6 +145,13 @@
 <h3><a name="init_policy.sh">＜ポリシー初期化ツール　init_policy.sh＞</a></h3>
 <p>ポリシーの雛型を生成する。自動生成された結果には余計なものや危険なものが含まれているかもしれないため、随時見直しを行うこと。</p>
 
+<h3><a name="force-logout">＜強制ログアウトツール　force-logout＞</a></h3>
+<p>このプログラムを実行したユーザの端末をハングアップさせることにより強制的にログアウトさせる。現在のユーザを追い出すために使用する。</p>
+
+<h3><a name="audit-exec-param">＜パラメータ記録ツール　audit-exec-param＞</a></h3>
+<p>このプログラムは execve() に渡されたパラメータを syslog に記録してから要求されたプログラムを実行する。</p>
+<p>このプログラムをどこかにコピー（例えば cp -p /usr/lib/ccs/audit-exec-param /bin/audit-exec-param ）して使う。例えば Apache の CGI として実行されるプログラムのパラメータを記録したい場合、例外ポリシーに keep_domain /usr/lib/ccs/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd というエントリを登録することで /bin/audit-exec-param が実行されてもドメイン遷移を行わないようにしておき、 Apache のドメイン（例えば &lt;kernel&gt; /usr/sbin/httpd ドメイン）に対して execute_handler /bin/audit-exec-param というエントリを追加する。</p>
+
 <hr>
 
 <h2><a name="authentication_tool">＜＜ログイン認証強化用ツール＞＞</a></h2>
@@ -187,7 +193,10 @@
 <p>syaoran.conf に記録されていないファイルは作成できないので、動的にデバイスファイルが作成される環境の場合はこのプログラムを実行する前に全てのデバイスを接続し、必要なデバイスファイルが全て syaoran.conf に記録されるように注意する。</p>
 
 <h3><a name="syaoran_syntax">SYAORAN filesystem の仕様</a></h3>
-
+<p>ポリシーファイルには、 /dev ディレクトリに存在するエントリのリストが記述されている。<br>
+/dev ディレクトリには多数のデバイスファイルが存在しているが、実際にシステムが動作するのに必要なものは少数である。<br>
+さらに、デバイスファイルが常に適切なデバイスと関連付けられていることは、システムのセキュリティにとって不可欠である。<br>
+例えば、もし /dev/null が char-1-3 という属性ではなく major-8-0 （ /dev/sda ）という属性を持っていた場合、 SCSI ハードディスクの内容は一瞬にして破壊されてしまうだろう。</p>
 <p>設定ファイルの書式は以下の通りである。</p>
 <p>１行に１エントリを記述する。 各エントリには９個の要素がある。</p>
 <table border="1">
@@ -237,9 +246,9 @@
 <td>１０進数で表記されたマイナー番号。 type が c または b 以外の場合は不要。</td>
 </tr>
 </table>
-<p>各行は '\n' で区切られる。 ファイル名・ディレクトリ名の内容は全て正規化した形で指定する。 ただし、ディレクトリ名の末尾の / は省略可能である。</p>
-<p>シンボリックリンクの内容は正規化する必要は無い。</p>
-<p>空白文字などをシンボリックリンク中に含める目的で \\ および \ooo 形式によるエスケープを行うことが可能である。</p>
+<p>各行は '\n' で区切られる。</p>
+<p>ファイル名・ディレクトリ名の内容は全て正規化した形で指定する。 ただし、ディレクトリ名の末尾の / は省略可能である。</p>
+<p>シンボリックリンクの内容は正規化する必要は無い。しかし、空白文字などをシンボリックリンク中に含める場合には \\ および \ooo 形式によるエスケープを行うことが必要である。</p>
 <p>使用方法：</p>
 <table border="1">
 <tr>
@@ -248,9 +257,8 @@
 </tr>
 <tr>
 <td>Step 2</td>
-<td>accept モードでマウントする。設定ファイルを /etc/ccs/syaoran.conf に作成して /dev にマウントする場合、<br>
-mount -t syaoran -o accept=/etc/ccs/syaoran.conf none /dev<br>
-を実行する。</td>
+<td>accept モードでマウントする。設定ファイルを /etc/ccs/syaoran.conf に作成して /dev にマウントする場合、以下のように実行する。<br>
+mount -t syaoran -o accept=/etc/ccs/syaoran.conf none /dev</td>
 </tr>
 <tr>
 <td>Step 3</td>
@@ -258,7 +266,8 @@ mount -t syaoran -o accept=/etc/ccs/syaoran.conf none /dev<br>
 </tr>
 <tr>
 <td>Step 4</td>
-<td>学習結果はマウントポイント直下にある .syaoran というファイルを通じて読み出すことができるのでこれを適当に編集（不要なシンボリックリンクの削除など）して /etc/ccs/syaoran.conf に保存する。 accept モードでは、実際にオープンされたキャラクタ型デバイスとブロック型デバイスのみが .syaoran に反映されるので、不要なエントリを削除するために利用できる。ディレクトリ、ＦＩＦＯ、ソケット、シンボリックリンク、通常ファイルはオープンされたかどうかに関係なく常に .syaoran に反映される。</td>
+<td>学習結果はマウントポイント直下にある .syaoran というファイルを通じて読み出すことができるのでこれを適当に編集（不要なシンボリックリンクの削除など）して /etc/ccs/syaoran.conf に保存する。<br>
+accept モードでは、実際にオープンされたキャラクタ型デバイスとブロック型デバイスのみが .syaoran に反映されるので、不要なエントリを削除するために利用できる。ディレクトリ、ＦＩＦＯ、ソケット、シンボリックリンク、通常ファイルはオープンされたかどうかに関係なく常に .syaoran に反映される。</td>
 </tr>
 <tr>
 <td>Step 5</td>
@@ -270,8 +279,7 @@ mount -t syaoran -o accept=/etc/ccs/syaoran.conf none /dev<br>
 mount -t syaoran -o enforce=/etc/ccs/syaoran.conf none /dev<br>
 を実行する。 enforce モードでは、 flags の値が更新されることは無い。<br>
 エントリ不足などによりポリシー違反が発生すると SYAORAN-ERROR: というメッセージが表示される。以下のコマンドを用いて知ることができる。<br>
-dmesg | grep ^SYAORAN-ERROR:
-</td>
+dmesg | grep ^SYAORAN-ERROR:</td>
 </tr>
 </table>
 <p>カーネルのコマンドラインに SYAORAN=accept または SYAORAN=enforce と指定することで、デフォルトのモードを指定できる。デフォルトのモードを指定した場合は、マウント時に accept= または enforce= を省略することができる。</p>
