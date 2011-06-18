@@ -298,9 +298,10 @@
 
 <h4><a name="3.3.2">3.3.2. Download and patch the kernel</a></h4>
 
-<p>Download the kernel source from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>.<br>
+<p>Download the kernel source from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a><!-- or <a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a>-->.<br>
 Linux kernel 2.4.30 and later are supported from the linux-2.4 tree.<br>
-Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.</p>
+Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.<!--<br>
+Linux kernel 3.0 and later are supported from the linux-3 tree.--></p>
 
 <p>Extract the kernel source and go to the extracted directory.<br>
 In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be replaced with "2.6.39.diff" if using Linux kernel 2.6.39.1 :</p>
@@ -334,7 +335,6 @@ $ make -s menuconfig
 <li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
 <li>(/sbin/ccs-init) Default policy loader</li>
 <li>(/sbin/ccs-start) Alternative activation trigger</li>
-<!--<li>(/sbin/init) Trigger for calling userspace policy loader</li>-->
 </ul>
 
 <p><em>"Compile as loadable kernel module"</em> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
@@ -350,10 +350,36 @@ $ make -s menuconfig
 <p><em>Omit calling policy loader when /sbin/init starts.</em> is available only when <em>Activate immediately after loading built-in policy.</em> is selected. If this option is selected, policy loader specified by <em>Default policy loader</em> is no longer called. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
 
 <!--
-<p><em>Trigger for calling userspace policy loader</em> is the default pathname of the activation trigger. You can override this setting via the "CCS_trigger=" kernel command-line option. For example, if you pass "init=/bin/systemd" option, you may also want to pass "CCS_trigger=/bin/systemd" option.
+<ul>
+<li>[*] CCSecurity support</li>
+<li>[ ] &nbsp;&nbsp;Compile as loadable kernel module</li>
+<li>[ ] &nbsp;&nbsp;Disable by default</li>
+<li>[ ] &nbsp;&nbsp;Do not modify 'struct task_struct' in order to keep KABI</li>
+<li>(2048) Default maximal count for learning mode</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
+<li>[ ] &nbsp;&nbsp;Activate without calling userspace policy loader.</li>
+<li>(/sbin/ccs-init) Location of userspace policy loader</li>
+<li>(/sbin/init) Trigger for calling userspace policy loader</li>
+</ul>
+
+<p><em>"Compile as loadable kernel module"</em> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
+
+<p><em>"Disable by default"</em> will enable TOMOYO Linux only when "ccsecurity=on" is passed to the kernel's command line options. If this option is not selected, "ccsecurity=off" will disable TOMOYO Linux.</p>
+
+<p><em>"Do not modify 'struct task_struct' in order to keep KABI"</em> is available to 2.6 kernels and 3 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
+
+<p>There are two types of TOMOYO's policy configuration. The former is embedded into the kernel and the latter is saved as files on the filesystems (e.g. /etc/ccs/ directory). You will need to rebuild the kernel whenever updating the former, but allows you to load policy without using userspace policy loader (e.g. /sbin/ccs-init ). The latter is loaded by executing userspace policy loader when the access control by TOMOYO is about to be activated (e.g. when /sbin/init starts). <em>Activate without calling userspace policy loader.</em> allows you to activate access control by TOMOYO as soon as the former is loaded. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
+
+<p><em>Location of userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the userspace policy loader. You can override this setting via the "CCS_loader=" kernel command-line option.</p>
+
+<p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "CCS_trigger=" kernel command-line option. For example, if you pass "init=/bin/systemd" option, you may also want to pass "CCS_trigger=/bin/systemd" option.</p>
 -->
 
 <h4><a name="3.3.4">3.3.4. Compile and install the kernel</a></h4>
+
+<!--
+<p>The policy configuration which will be embedded into the kernel needs to be exist as domain_policy.conf, exception_policy.conf, manager.conf, profile.conf and stat.conf under security/ccsecurity/policy/ directory. But you can proceed without creating files under security/ccsecurity/policy/ directory because you don't have the policy configuration to embed as of this step. (You may come back here after you developed policy configuration to embed.)</p>
+-->
 
 <p>Once the kernel has been configured, compile and install the kernel with the following commands:</p>
 

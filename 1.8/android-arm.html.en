@@ -281,6 +281,19 @@ sed -e 's/# CONFIG_CCSECURITY_USE_BUILTIN_POLICY is not set/CONFIG_CCSECURITY_US
 $ANDROID_HOME/tmp/tomoyo2c $ANDROID_HOME/tmp/policy/ &gt; security/ccsecurity/builtin-policy.h
 </pre>
 
+<!--
+<pre class="command">
+cd $ANDROID_HOME/tmp/common-b0d93fb/
+wget -O ccs-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz'
+wget -O ccs-patch-1.8.1-20110511.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz.asc'
+gpg ccs-patch-1.8.1-20110511.tar.gz.asc
+tar -zxf ccs-patch-1.8.1-20110511.tar.gz
+patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
+sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
+cp -p $ANDROID_HOME/tmp/policy/*.conf &gt; security/ccsecurity/policy/
+</pre>
+-->
+
 <p>Compile the kernel.</p>
 
 <pre class="command">
