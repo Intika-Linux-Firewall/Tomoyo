@@ -150,9 +150,7 @@
 
 <h3><a name="audit-exec-param">&lt;A program for auditing execute parameter "audit-exec-param"&gt;</a></h3>
 <p>This program writes parameters passed to execve() to syslog before actually executes the execve() request.</p>
-<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/misc/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program,
-tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/misc/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy,
-and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
+<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/misc/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program, tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/misc/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy, and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
 
 <hr>
 
@@ -268,7 +266,7 @@ mount -t syaoran -o accept=/etc/ccs/syaoran.conf none /dev</td>
 </tr>
 <tr>
 <td>Step 4</td>
-<td>The result of file access tracing is readable via the file .syaoran which exists just under the mount point, and edit (removing unnecessary symbolic links etc.) and save as /etc/ccs/syaoran.conf<br>
+<td>The result of file access tracing is readable via the file .syaoran which exists just under the mount point, and edit (removing unnecessary symbolic links etc.) and save as /etc/ccs/syaoran.conf .<br>
 The file access tracing functionality reflects to .syaoran only block and character device files that are actually opened, this functionality is available for removing unnecessary device files. Directories, FIFOs, sockets, symbolic links and regular files are always reflected to .syaoran regardless of they are actually opened or not.</td>
 </tr>
 <tr>
@@ -285,6 +283,7 @@ dmesg | grep ^SYAORAN-ERROR:</td>
 </tr>
 </table>
 <p>You can tell the default mode for this filesystem by giving SYAORAN=accept or SYAORAN=enforce option to the kernel commandline. If you told the default mode to the command line, you can omit 'accept=' or 'enforce=' option at mount time.</p>
+
 <h3>An example of policy file</h3>
 <p>The required files depend on your system.</p>
 <table border="0">

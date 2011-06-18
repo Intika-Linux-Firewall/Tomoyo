@@ -770,7 +770,7 @@ chown -R demo /sys/kernel/security/tomoyo/
 
 <p>You can use memory quota for limiting maximum memory allocated for holding TOMOYO Linux's policy.</p>
 
-<p>You can set memory quota by writing to /sys/kernel/security/tomoyo/meminfo like</p>
+<p>You can set memory quota by writing to /sys/kernel/security/tomoyo/meminfo like below from /etc/tomoyo/tomoyo-post-init .</p>
 
 <p>(For Kernel 2.6.33 and earlier)</p>
 <table border="1">
@@ -786,8 +786,6 @@ echo Private: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
 echo Policy: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
 </td></tr>
 </table>
-
-<p>from /etc/tomoyo/tomoyo-post-init .</p>
 
 <hr>
 
