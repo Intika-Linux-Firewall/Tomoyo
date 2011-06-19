@@ -458,7 +458,7 @@ start:
 		block_sighup(1);
 		/* Check for filtering rules. */
 		i = ccs_check_rules(buffer, domain, acl);
-		if (i >= 0) {
+		if (i != EOF) {
 			*tail = '\n';
 			*--acl = '\n';
 			*--domain = '\n';
