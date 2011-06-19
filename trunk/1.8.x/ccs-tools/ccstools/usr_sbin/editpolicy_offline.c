@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2-pre   2011/06/08
+ * Version: 1.8.2   2011/06/20
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -26,8 +26,8 @@
 #include <poll.h>
 
 struct list_head {
-	struct list_head* next;
-	struct list_head* prev;
+	struct list_head *next;
+	struct list_head *prev;
 };	
 
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
@@ -47,8 +47,8 @@ struct list_head {
 #define list_entry(ptr, type, member) container_of(ptr, type, member)
 #define list_for_each_entry(pos, head, member)                          \
         for (pos = list_entry((head)->next, typeof(*pos), member);      \
-		              &pos->member != (head);    \
-	      pos = list_entry(pos->member.next, typeof(*pos), member))
+	     &pos->member != (head);					\
+	     pos = list_entry(pos->member.next, typeof(*pos), member))
 
 static inline void __list_add(struct list_head *new, struct list_head *prev,
 			      struct list_head *next)
@@ -1563,7 +1563,8 @@ static char *ccs_read_token(struct ccs_acl_param *param)
  *
  * Returns a domainname on success, NULL otherwise.
  */
-static const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param)
+static const struct ccs_path_info *ccs_get_domainname
+(struct ccs_acl_param *param)
 {
 	char *start = param->data;
 	char *pos = start;
@@ -1588,7 +1589,8 @@ static const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *para
  *
  * Returns pointer to "struct ccs_group" on success, NULL otherwise.
  */
-static struct ccs_group *ccs_get_group(struct ccs_acl_param *param, struct list_head *list)
+static struct ccs_group *ccs_get_group(struct ccs_acl_param *param,
+				       struct list_head *list)
 {
 	struct ccs_group e = { };
 	struct ccs_group *group = NULL;
@@ -2308,7 +2310,8 @@ static bool ccs_same_transition_control(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_transition_control(struct ccs_acl_param *param, const u8 type)
+static int ccs_write_transition_control(struct ccs_acl_param *param,
+					const u8 type)
 {
 	struct ccs_transition_control e = { .type = type, .ns = param->ns };
 	int error = param->is_delete ? -ENOENT : -ENOMEM;
@@ -3541,7 +3544,6 @@ static void ccs_read_profile(void)
 						ccs_mac_keywords[i]);
 				ccs_print_config(config);
 			}
-			
 		}
 	}
 	head.eof = true;

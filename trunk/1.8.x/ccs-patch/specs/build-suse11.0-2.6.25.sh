@@ -68,9 +68,9 @@ rpm --checksig kernel-source-2.6.25.20-0.7.src.rpm || die "Can't verify signatur
 rpm -ivh kernel-source-2.6.25.20-0.7.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.1-20110511.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110620.tar.gz ]
 then
-    wget -O ccs-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110620.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110620.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -87,7 +87,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.25.20
 -Release: 0.7
-+Release: 0.7_tomoyo_1.8.1p3
++Release: 0.7_tomoyo_1.8.2
  License:        GPL v2 or later
  Group:          System/Kernel
  Url:            http://www.kernel.org/
@@ -96,7 +96,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  cd linux-2.6.25
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.1-20110511.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.2-20110620.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.25-suse-11.0.diff
 +cat config.ccs >> .config
  cp .config .config.orig

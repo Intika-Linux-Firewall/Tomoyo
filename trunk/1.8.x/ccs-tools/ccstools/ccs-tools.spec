@@ -22,7 +22,7 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Requires: ncurses
 Conflicts: ccs-tools < 1.8.2-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-2011????.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110620.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -58,9 +58,12 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
-* ??? ??? ?? 2011 1.8.2-1
+* Mon Jun 20 2011 1.8.2-1
 - Updated to handle TOMOYO 1.8.2's syntax.
 - Support policy namespace.
+- Let ccs-editpolicy validate policy when editing on-disk policy files.
+- Let ccs-auditd reload configuration file upon SIGHUP.
+- Let ccs-notifyd reload configuration file upon SIGHUP.
 
 * Wed May 11 2011 1.8.1-2
 - Fix wrong domainname validation.
