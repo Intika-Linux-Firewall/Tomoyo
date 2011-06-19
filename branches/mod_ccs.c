@@ -15,7 +15,7 @@
  *
  * Runtime dependency:
  *
- *   TOMOYO Linux 1.8.0 (or later) running on Linux 2.6 kernels.
+ *   TOMOYO Linux 1.8.2 (or later) running on Linux 2.6 (or later) kernels.
  *
  * How to build and install:
  *
@@ -626,6 +626,29 @@ static bool ccs_correct_path(const char *filename)
 }
 
 /**
+ * ccs_domain_def - Check whether the given token can be a domainname.
+ *
+ * @buffer: The token to check.
+ *
+ * Returns true if @buffer possibly be a domainname, false otherwise.
+ */
+static bool ccs_domain_def(const char *buffer)
+{
+	const char *cp;
+	int len;
+	if (*buffer != '<')
+		return false;
+	cp = strchr(buffer, ' ');
+	if (!cp)
+		len = strlen(buffer);
+	else
+		len = cp - buffer;
+	if (buffer[len - 1] != '>' || !ccs_correct_word2(buffer + 1, len - 2))
+		return false;
+	return true;
+}
+
+/**
  * ccs_correct_domain - Check whether the given domainname follows the naming rules.
  *
  * @domainname: The domainname to check.
@@ -634,25 +657,21 @@ static bool ccs_correct_path(const char *filename)
  */
 static bool ccs_correct_domain(const char *domainname)
 {
-	if (!domainname || strncmp(domainname, "<kernel>", 8))
-		goto out;
-	domainname += 8;
-	if (!*domainname)
+	if (!domainname || !ccs_domain_def(domainname))
+		return false;
+	domainname = strchr(domainname, ' ');
+	if (!domainname++)
 		return true;
-	if (*domainname++ != ' ')
-		goto out;
 	while (1) {
 		const char *cp = strchr(domainname, ' ');
 		if (!cp)
 			break;
 		if (*domainname != '/' ||
 		    !ccs_correct_word2(domainname, cp - domainname))
-			goto out;
+			return false;
 		domainname = cp + 1;
 	}
 	return ccs_correct_path(domainname);
-out:
-	return false;
 }
 
 #include "httpd.h"
