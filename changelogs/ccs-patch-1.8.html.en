@@ -32,6 +32,43 @@
 
 <div id="changelogs">
 
+<h4>ChangeLog for ccs-patch 1.8.2</h4>
+Fix 2011/06/14
+
+    @ Remove unused "struct inode *" parameter from ccs-patch-\*.diff .
+
+      To follow changes I made on 2011/04/20, I removed "struct inode *" from
+      ccs_mknod_permission(), ccs_mkdir_permission(), ccs_rmdir_permission(),
+      ccs_unlink_permission(), ccs_symlink_permission(), ccs_link_permission(),
+      ccs_rename_permission() that are called from fs/namei.c
+      net/unix/af_unix.c include/linux/security.c security/security.c .
+      If you have your own ccs-patch-*.diff , please update accordingly.
+
+Fix 2011/06/10
+
+    @ Allow specifying trigger for activation.
+
+      To be able to use TOMOYO under systemd environments where init= parameter
+      is used, I changed to allow overriding the trigger for calling external
+      policy loader and activating MAC via kernel command line options.
+
+Fix 2011/06/06
+
+    @ Add policy namespace support.
+
+      To be able to use TOMOYO in LXC environments, I introduced policy
+      namespace. Each policy namespace has its own set of domain policy,
+      exception policy and profiles, which are all independent of other
+      namespaces.
+
+    @ Remove CONFIG_CCSECURITY_BUILTIN_INITIALIZERS option.
+
+      From now on, exception policy and manager need to be able to handle
+      policy namespace (which is a &lt;$namespace&gt; prefix added to each line).
+      Thus, space-separated list for CONFIG_CCSECURITY_BUILTIN_INITIALIZERS is
+      no longer suitable for handling policy namespace.
+</pre>
+
 <h4>ChangeLog for ccs-patch 1.8.1</h4>
 
 <pre>
