@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.30.10-105.2.23.fc11.src.rpm || die "Can't verify signa
 rpm -ivh kernel-2.6.30.10-105.2.23.fc11.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.1-20110511.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110620.tar.gz ]
 then
-    wget -O ccs-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110620.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110620.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -# % define buildid .local
-+%define buildid _tomoyo_1.8.1p3
++%define buildid _tomoyo_1.8.2
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
@@ -81,7 +81,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.1-20110511.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.2-20110620.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.30-fedora-11.diff
 +
  %endif
