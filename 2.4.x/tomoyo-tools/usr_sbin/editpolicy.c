@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/20
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -29,9 +29,6 @@ struct tomoyo_domain_policy tomoyo_dp = { };
 
 /* Readline history. */
 static struct tomoyo_readline_data tomoyo_rl = { };
-
-/* File descriptor for offline mode. */
-int tomoyo_persistent_fd = EOF;
 
 /* Array of "path_group" entries. */
 struct tomoyo_path_group_entry *tomoyo_path_group_list = NULL;
@@ -63,12 +60,14 @@ static unsigned int tomoyo_current_pid = 0;
 /* Currently active screen's index. */
 enum tomoyo_screen_type tomoyo_current_screen = TOMOYO_SCREEN_DOMAIN_LIST;
 /* Previously active screen's index. */
-static enum tomoyo_screen_type tomoyo_previous_screen = TOMOYO_SCREEN_DOMAIN_LIST;
+static enum tomoyo_screen_type tomoyo_previous_screen =
+TOMOYO_SCREEN_DOMAIN_LIST;
 /*
  * Array of "initialize_domain"/"no_initialize_domain"/"keep_domain"/
  * "no_keep_domain" entries.
  */
-static struct tomoyo_transition_control_entry *tomoyo_transition_control_list = NULL;
+static struct tomoyo_transition_control_entry *tomoyo_transition_control_list =
+NULL;
 /* Length of tomoyo_transition_control_list array. */
 static int tomoyo_transition_control_list_len = 0;
 /* Sort profiles by value? */
@@ -120,7 +119,7 @@ static _Bool tomoyo_initializer_target(const int index);
 static _Bool tomoyo_keeper_domain(const int index);
 static _Bool tomoyo_select_item(const int index);
 static _Bool tomoyo_show_command_key(const enum tomoyo_screen_type screen,
-				  const _Bool readonly);
+				     const _Bool readonly);
 static const char *tomoyo_eat(const char *str);
 static const char *tomoyo_get_last_name(const int index);
 static const struct tomoyo_transition_control_entry *tomoyo_transition_control
@@ -128,14 +127,14 @@ static const struct tomoyo_transition_control_entry *tomoyo_transition_control
 static enum tomoyo_screen_type tomoyo_generic_list_loop(void);
 static enum tomoyo_screen_type tomoyo_select_window(const int current);
 static int tomoyo_add_path_group_entry(const char *group_name,
-				    const char *member_name,
-				    const _Bool is_delete);
+				       const char *member_name,
+				       const _Bool is_delete);
 static int tomoyo_add_path_group_policy(char *data, const _Bool is_delete);
 static int tomoyo_add_transition_control_entry(const char *domainname,
-					    const char *program, const enum
-					    tomoyo_transition_type type);
+					       const char *program, const enum
+					       tomoyo_transition_type type);
 static int tomoyo_add_transition_control_policy(char *data, const enum
-					     tomoyo_transition_type type);
+						tomoyo_transition_type type);
 static int tomoyo_count(const unsigned char *array, const int len);
 static int tomoyo_count2(const struct tomoyo_generic_acl *array, int len);
 static int tomoyo_domainname_attribute_compare(const void *a, const void *b);
@@ -151,12 +150,12 @@ static int tomoyo_string_acl_compare(const void *a, const void *b);
 static void tomoyo_add_entry(void);
 static void tomoyo_adjust_cursor_pos(const int item_count);
 static void tomoyo_assign_dis(const struct tomoyo_path_info *domainname,
-			   const char *program, const bool is_root);
+			      const char *program, const bool is_root);
 static void tomoyo_copy_file(const char *source, const char *dest);
 static void tomoyo_delete_entry(const int index);
 static void tomoyo_down_arrow_key(void);
 static void tomoyo_find_entry(const _Bool input, const _Bool forward,
-			   const int current);
+			      const int current);
 static void tomoyo_page_down_key(void);
 static void tomoyo_page_up_key(void);
 static void tomoyo_read_domain_and_exception_policy(void);
@@ -444,7 +443,7 @@ static int tomoyo_add_path_group_policy(char *data, const _Bool is_delete)
  * @is_root:    True if root of namespace, false otherwise.
  */
 static void tomoyo_assign_dis(const struct tomoyo_path_info *domainname,
-			   const char *program, const bool is_root)
+			      const char *program, const bool is_root)
 {
 	const struct tomoyo_transition_control_entry *d_t =
 		tomoyo_transition_control(domainname, program);
@@ -461,14 +460,15 @@ static void tomoyo_assign_dis(const struct tomoyo_path_info *domainname,
 		tomoyo_get();
 		if (d_t->type == TOMOYO_TRANSITION_CONTROL_INITIALIZE)
 			line = tomoyo_shprintf("%s %s", domainname->name,
-					    program);
+					       program);
 		else
 			line = tomoyo_shprintf("%s <%s>", domainname->name,
-					    program);
+					       program);
 		tomoyo_normalize_line(line);
 		source = tomoyo_assign_domain(&tomoyo_dp, line, true, false);
 		if (d_t->type == TOMOYO_TRANSITION_CONTROL_INITIALIZE)
-			line = tomoyo_shprintf("%s %s", tomoyo_current_ns, program);
+			line = tomoyo_shprintf("%s %s", tomoyo_current_ns,
+					       program);
 		else
 			line = tomoyo_shprintf("<%s>", program);
 		tomoyo_dp.list[source].target_domainname = tomoyo_strdup(line);
@@ -563,12 +563,12 @@ static int tomoyo_show_domain_line(const int index)
 	if (!transition_control || is_dis)
 		goto no_transition_control;
 	tomoyo_get();
-	line = tomoyo_shprintf(" ( %s%s from %s )",
-			    tomoyo_transition_type[transition_control->type],
-			    transition_control->program ?
-			    transition_control->program->name : "any",
-			    transition_control->domainname ?
-			    transition_control->domainname->name : "any");
+	line = tomoyo_shprintf(" ( %s%s from %s )", tomoyo_transition_type
+			       [transition_control->type],
+			       transition_control->program ?
+			       transition_control->program->name : "any",
+			       transition_control->domainname ?
+			       transition_control->domainname->name : "any");
 	printw("%s", tomoyo_eat(line));
 	tmp_col += strlen(line);
 	tomoyo_put();
@@ -580,7 +580,7 @@ no_transition_control:
 	redirect_index = tomoyo_find_target_domain(index);
 	if (redirect_index >= 0)
 		line = tomoyo_shprintf(" ( -> %d )",
-				    tomoyo_dp.list[redirect_index].number);
+				       tomoyo_dp.list[redirect_index].number);
 	else if (redirect_index == EOF)
 		line = tomoyo_shprintf(" ( -> Not Found )");
 	else
@@ -681,7 +681,7 @@ static int tomoyo_show_stat_line(const int index)
  * Returns true to continue, false to quit.
  */
 static _Bool tomoyo_show_command_key(const enum tomoyo_screen_type screen,
-				  const _Bool readonly)
+				     const _Bool readonly)
 {
 	int c;
 	clear();
@@ -711,6 +711,10 @@ static _Bool tomoyo_show_command_key(const enum tomoyo_screen_type screen,
 		       "position.\n");
 	}
 	switch (screen) {
+	case TOMOYO_SCREEN_NS_LIST:
+		if (!readonly)
+			printw("A/a        Add a new namespace.\n");
+		break;
 	case TOMOYO_SCREEN_DOMAIN_LIST:
 		if (tomoyo_domain_sort_type) {
 			printw("S/s        Set profile number of selected "
@@ -799,39 +803,12 @@ static void tomoyo_set_error(const char *filename)
 	if (filename) {
 		const int len = strlen(filename) + 128;
 		tomoyo_last_error = tomoyo_realloc2(tomoyo_last_error, len);
-		snprintf(tomoyo_last_error, len - 1, "Can't open %s .", filename);
+		snprintf(tomoyo_last_error, len - 1, "Can't open %s .",
+			 filename);
 	} else {
 		free(tomoyo_last_error);
 		tomoyo_last_error = NULL;
 	}
-}
-
-/**
- * tomoyo_send_fd - Send file descriptor.
- *
- * @data: String data to send with file descriptor.
- * @fd:   Pointer to file desciptor.
- *
- * Returns nothing.
- */
-static void tomoyo_send_fd(char *data, int *fd)
-{
-	struct msghdr msg;
-	struct iovec iov = { data, strlen(data) };
-	char cmsg_buf[CMSG_SPACE(sizeof(int))];
-	struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_buf;
-	memset(&msg, 0, sizeof(msg));
-	msg.msg_iov = &iov;
-	msg.msg_iovlen = 1;
-	msg.msg_control = cmsg_buf;
-	msg.msg_controllen = sizeof(cmsg_buf);
-	cmsg->cmsg_level = SOL_SOCKET;
-	cmsg->cmsg_type = SCM_RIGHTS;
-	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
-	msg.msg_controllen = cmsg->cmsg_len;
-	memmove(CMSG_DATA(cmsg), fd, sizeof(int));
-	sendmsg(tomoyo_persistent_fd, &msg, 0);
-	close(*fd);
 }
 
 /**
@@ -847,37 +824,10 @@ static void tomoyo_send_fd(char *data, int *fd)
  */
 static FILE *tomoyo_editpolicy_open_write(const char *filename)
 {
-	if (tomoyo_network_mode) {
-		FILE *fp = tomoyo_open_write(filename);
-		if (!fp)
-			tomoyo_set_error(filename);
-		return fp;
-	} else if (tomoyo_offline_mode) {
-		char request[1024];
-		int fd[2];
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-			fprintf(stderr, "socketpair()\n");
-			exit(1);
-		}
-		if (shutdown(fd[0], SHUT_RD))
-			goto out;
-		memset(request, 0, sizeof(request));
-		snprintf(request, sizeof(request) - 1, "POST %s", filename);
-		tomoyo_send_fd(request, &fd[1]);
-		return fdopen(fd[0], "w");
-out:
-		close(fd[1]);
-		close(fd[0]);
-		exit(1);
-	} else {
-		FILE *fp;
-		if (tomoyo_readonly_mode)
-			return NULL;
-		fp = tomoyo_open_write(filename);
-		if (!fp)
-			tomoyo_set_error(filename);
-		return fp;
-	}
+	FILE *fp = tomoyo_open_write(filename);
+	if (!fp)
+		tomoyo_set_error(filename);
+	return fp;
 }
 
 /**
@@ -892,32 +842,10 @@ out:
  */
 static FILE *tomoyo_editpolicy_open_read(const char *filename)
 {
-	if (tomoyo_network_mode) {
-		return tomoyo_open_read(filename);
-	} else if (tomoyo_offline_mode) {
-		char request[1024];
-		int fd[2];
-		FILE *fp;
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-			fprintf(stderr, "socketpair()\n");
-			exit(1);
-		}
-		if (shutdown(fd[0], SHUT_WR))
-			goto out;
-		fp = fdopen(fd[0], "r");
-		if (!fp)
-			goto out;
-		memset(request, 0, sizeof(request));
-		snprintf(request, sizeof(request) - 1, "GET %s", filename);
-		tomoyo_send_fd(request, &fd[1]);
-		return fp;
-out:
-		close(fd[1]);
-		close(fd[0]);
-		exit(1);
-	} else {
-		return fopen(filename, "r");
-	}
+	FILE *fp = tomoyo_open_read(filename);
+	if (!fp)
+		tomoyo_set_error(filename);
+	return fp;
 }
 
 /**
@@ -946,8 +874,9 @@ static int tomoyo_open2(const char *filename, int mode)
  *
  * Returns nothing.
  *
- * This function is called when tomoyo_refresh_interval is non-zero. This function
- * marks current screen to reload. Also, this function reenables timer event.
+ * This function is called when tomoyo_refresh_interval is non-zero.
+ * This function marks current screen to reload. Also, this function reenables
+ * timer event.
  */
 static void tomoyo_sigalrm_handler(int sig)
 {
@@ -977,8 +906,8 @@ static const char *tomoyo_eat(const char *str)
  * @domainname: Pointer to "const struct tomoyo_path_info".
  * @program:    Program name.
  *
- * Returns pointer to "const struct tomoyo_transition_control_entry" if found one,
- * NULL otherwise.
+ * Returns pointer to "const struct tomoyo_transition_control_entry" if found
+ * one, NULL otherwise.
  */
 static const struct tomoyo_transition_control_entry *tomoyo_transition_control
 (const struct tomoyo_path_info *domainname, const char *program)
@@ -998,11 +927,11 @@ next:
 			if (ptr->domainname) {
 				if (!ptr->is_last_name) {
 					if (tomoyo_pathcmp(ptr->domainname,
-							domainname))
+							   domainname))
 						continue;
 				} else {
 					if (tomoyo_pathcmp(ptr->domainname,
-							&last_name))
+							   &last_name))
 						continue;
 				}
 			}
@@ -1085,7 +1014,7 @@ static int tomoyo_profile_entry_compare(const void *a, const void *b)
  * Returns true if this line deals current namespace, false otherwise.
  */
 static void tomoyo_add_generic_entry(const char *line, const enum
-				  tomoyo_editpolicy_directives directive)
+				     tomoyo_editpolicy_directives directive)
 {
 	int i;
 	for (i = 0; i < tomoyo_gacl_list_count; i++)
@@ -1093,8 +1022,9 @@ static void tomoyo_add_generic_entry(const char *line, const enum
 		    !strcmp(line, tomoyo_gacl_list[i].operand))
 			return;
 	i = tomoyo_gacl_list_count++;
-	tomoyo_gacl_list = tomoyo_realloc(tomoyo_gacl_list, tomoyo_gacl_list_count *
-				    sizeof(struct tomoyo_generic_acl));
+	tomoyo_gacl_list = tomoyo_realloc(tomoyo_gacl_list,
+					  tomoyo_gacl_list_count *
+					  sizeof(struct tomoyo_generic_acl));
 	tomoyo_gacl_list[i].directive = directive;
 	tomoyo_gacl_list[i].selected = 0;
 	tomoyo_gacl_list[i].operand = tomoyo_strdup(line);
@@ -1111,12 +1041,13 @@ static void tomoyo_read_generic_policy(void)
 	_Bool flag = false;
 	const _Bool is_kernel_ns = !strcmp(tomoyo_current_ns, "<kernel>");
 	while (tomoyo_gacl_list_count)
-		free((void *) tomoyo_gacl_list[--tomoyo_gacl_list_count].operand);
+		free((void *)
+		     tomoyo_gacl_list[--tomoyo_gacl_list_count].operand);
 	if (tomoyo_current_screen == TOMOYO_SCREEN_ACL_LIST) {
 		if (tomoyo_network_mode)
 			/* We can read after write. */
 			fp = tomoyo_editpolicy_open_write(tomoyo_policy_file);
-		else if (!tomoyo_offline_mode)
+		else
 			/* Don't set error message if failed. */
 			fp = fopen(tomoyo_policy_file, "r+");
 		if (fp) {
@@ -1139,7 +1070,8 @@ static void tomoyo_read_generic_policy(void)
 		tomoyo_set_error(tomoyo_policy_file);
 		return;
 	}
-	tomoyo_freadline_raw = tomoyo_current_screen == TOMOYO_SCREEN_STAT_LIST;
+	tomoyo_freadline_raw =
+		tomoyo_current_screen == TOMOYO_SCREEN_STAT_LIST;
 	tomoyo_get();
 	while (true) {
 		char *line = tomoyo_freadline_unpack(fp);
@@ -1163,7 +1095,8 @@ static void tomoyo_read_generic_policy(void)
 		    tomoyo_current_screen == TOMOYO_SCREEN_PROFILE_LIST) {
 			if (*line == '<') {
 				cp = strchr(line, ' ');
-				if (!cp++ || !tomoyo_is_current_namespace(line))
+				if (!cp++ ||
+				    !tomoyo_is_current_namespace(line))
 					continue;
 				memmove(line, cp, strlen(cp) + 1);
 			} else if (!is_kernel_ns)
@@ -1240,7 +1173,8 @@ static void tomoyo_read_generic_policy(void)
 		break;
 	default:
 		qsort(tomoyo_gacl_list, tomoyo_gacl_list_count,
-		      sizeof(struct tomoyo_generic_acl), tomoyo_string_acl_compare);
+		      sizeof(struct tomoyo_generic_acl),
+		      tomoyo_string_acl_compare);
 	}
 }
 
@@ -1272,10 +1206,11 @@ static int tomoyo_add_transition_control_entry
 	}
 	tomoyo_transition_control_list =
 		tomoyo_realloc(tomoyo_transition_control_list,
-			    (tomoyo_transition_control_list_len + 1) *
-			    sizeof(struct tomoyo_transition_control_entry));
-	ptr = &tomoyo_transition_control_list[tomoyo_transition_control_list_len++];
-	memset(ptr, 0, sizeof(struct tomoyo_transition_control_entry));
+			       (tomoyo_transition_control_list_len + 1) *
+			       sizeof(struct tomoyo_transition_control_entry));
+	ptr = &tomoyo_transition_control_list
+		[tomoyo_transition_control_list_len++];
+	memset(ptr, 0, sizeof(*ptr));
 	if (program && strcmp(program, "any"))
 		ptr->program = tomoyo_savename(program);
 	if (domainname && strcmp(domainname, "any"))
@@ -1295,15 +1230,16 @@ static int tomoyo_add_transition_control_entry
  * Returns 0 on success, negative value otherwise.
  */
 static int tomoyo_add_path_group_entry(const char *group_name,
-				    const char *member_name,
-				    const _Bool is_delete)
+				       const char *member_name,
+				       const _Bool is_delete)
 {
 	const struct tomoyo_path_info *saved_group_name;
 	const struct tomoyo_path_info *saved_member_name;
 	int i;
 	int j;
 	struct tomoyo_path_group_entry *group = NULL;
-	if (!tomoyo_correct_word(group_name) || !tomoyo_correct_word(member_name))
+	if (!tomoyo_correct_word(group_name) ||
+	    !tomoyo_correct_word(member_name))
 		return -EINVAL;
 	saved_group_name = tomoyo_savename(group_name);
 	saved_member_name = tomoyo_savename(member_name);
@@ -1329,15 +1265,16 @@ static int tomoyo_add_path_group_entry(const char *group_name,
 	if (i == tomoyo_path_group_list_len) {
 		tomoyo_path_group_list =
 			tomoyo_realloc(tomoyo_path_group_list,
-				    (tomoyo_path_group_list_len + 1) *
-				    sizeof(struct tomoyo_path_group_entry));
+				       (tomoyo_path_group_list_len + 1) *
+				       sizeof(struct tomoyo_path_group_entry));
 		group = &tomoyo_path_group_list[tomoyo_path_group_list_len++];
-		memset(group, 0, sizeof(struct tomoyo_path_group_entry));
+		memset(group, 0, sizeof(*group));
 		group->group_name = saved_group_name;
 	}
 	group->member_name =
-		tomoyo_realloc(group->member_name, (group->member_name_len + 1) *
-			    sizeof(const struct tomoyo_path_info *));
+		tomoyo_realloc(group->member_name,
+			       (group->member_name_len + 1) *
+			       sizeof(const struct tomoyo_path_info *));
 	group->member_name[group->member_name_len++] = saved_member_name;
 	return 0;
 }
@@ -1377,7 +1314,8 @@ static void tomoyo_add_condition_domain_transition(char *line, const int index)
 	domainname[sizeof(domainname) - 1] = '\0';
 	tomoyo_normalize_line(domainname);
 	tomoyo_jump_list = tomoyo_realloc(tomoyo_jump_list,
-				    (tomoyo_jump_list_len + 1) * sizeof(char *));
+					  (tomoyo_jump_list_len + 1) *
+					  sizeof(char *));
 	tomoyo_jump_list[tomoyo_jump_list_len++] = tomoyo_strdup(domainname);
 	source = tomoyo_assign_domain(&tomoyo_dp, domainname, true, false);
 	if (*cp == '<')
@@ -1405,10 +1343,12 @@ static void tomoyo_add_acl_domain_transition(char *line, const int index)
 	if (!tomoyo_correct_domain(line))
 		return;
 	tomoyo_jump_list = tomoyo_realloc(tomoyo_jump_list,
-				    (tomoyo_jump_list_len + 1) * sizeof(char *));
+					  (tomoyo_jump_list_len + 1) *
+					  sizeof(char *));
 	tomoyo_jump_list[tomoyo_jump_list_len++] = tomoyo_strdup(line);
 	snprintf(domainname, sizeof(domainname) - 1, "%s %s",
-		 tomoyo_domain_name(&tomoyo_dp, index), tomoyo_get_last_word(line));
+		 tomoyo_domain_name(&tomoyo_dp, index),
+		 tomoyo_get_last_word(line));
 	domainname[sizeof(domainname) - 1] = '\0';
 	tomoyo_normalize_line(domainname);
 	source = tomoyo_assign_domain(&tomoyo_dp, domainname, true, false);
@@ -1426,7 +1366,7 @@ static void tomoyo_add_acl_domain_transition(char *line, const int index)
  * Returns nothing.
  */
 static void tomoyo_parse_domain_line(char *line, const int index,
-				  const bool parse_flags)
+				     const bool parse_flags)
 {
 	tomoyo_add_condition_domain_transition(line, index);
 	if (tomoyo_str_starts(line, "task auto_execute_handler ") ||
@@ -1438,9 +1378,9 @@ static void tomoyo_parse_domain_line(char *line, const int index,
 		if (*line == '@' || tomoyo_correct_path(line))
 			tomoyo_add_string_entry(&tomoyo_dp, line, index);
 	} else if (tomoyo_str_starts(line,
-				  "task auto_domain_transition ") ||
+				     "task auto_domain_transition ") ||
 		   tomoyo_str_starts(line,
-				  "task manual_domain_transition ")) {
+				     "task manual_domain_transition ")) {
 		tomoyo_add_acl_domain_transition(line, index);
 	} else if (parse_flags) {
 		unsigned int profile;
@@ -1517,8 +1457,9 @@ static void tomoyo_read_domain_and_exception_policy(void)
 	fp = NULL;
 	if (tomoyo_network_mode)
 		/* We can read after write. */
-		fp = tomoyo_editpolicy_open_write(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
-	else if (!tomoyo_offline_mode)
+		fp = tomoyo_editpolicy_open_write
+			(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
+	else
 		/* Don't set error message if failed. */
 		fp = fopen(TOMOYO_PROC_POLICY_DOMAIN_POLICY, "r+");
 	if (fp) {
@@ -1527,7 +1468,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 			fputc(0, fp);
 		fflush(fp);
 	} else {
-		fp = tomoyo_editpolicy_open_read(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
+		fp = tomoyo_editpolicy_open_read
+			(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
 	}
 	if (fp) {
 		index = EOF;
@@ -1541,8 +1483,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 					index = EOF;
 					continue;
 				}
-				index = tomoyo_assign_domain(&tomoyo_dp, line, false,
-							  false);
+				index = tomoyo_assign_domain(&tomoyo_dp, line,
+							     false, false);
 				continue;
 			} else if (index == EOF) {
 				continue;
@@ -1551,8 +1493,6 @@ static void tomoyo_read_domain_and_exception_policy(void)
 		}
 		tomoyo_put();
 		fclose(fp);
-	} else {
-		tomoyo_set_error(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
 	}
 
 	max_index = tomoyo_dp.list_len;
@@ -1563,7 +1503,7 @@ static void tomoyo_read_domain_and_exception_policy(void)
 		/* We can read after write. */
 		fp = tomoyo_editpolicy_open_write
 			(TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
-	else if (!tomoyo_offline_mode)
+	else
 		/* Don't set error message if failed. */
 		fp = fopen(TOMOYO_PROC_POLICY_EXCEPTION_POLICY, "r+");
 	if (fp) {
@@ -1583,7 +1523,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 				break;
 			if (*line == '<') {
 				char *cp = strchr(line, ' ');
-				if (!cp++ || !tomoyo_is_current_namespace(line))
+				if (!cp++ ||
+				    !tomoyo_is_current_namespace(line))
 					continue;
 				memmove(line, cp, strlen(cp) + 1);
 			}
@@ -1591,8 +1532,6 @@ static void tomoyo_read_domain_and_exception_policy(void)
 		}
 		tomoyo_put();
 		fclose(fp);
-	} else {
-		tomoyo_set_error(TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
 	}
 
 	/*
@@ -1607,7 +1546,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 	for (index = 0; index < max_index; index++) {
 		char *line;
 		tomoyo_get();
-		line = tomoyo_shprintf("%s", tomoyo_domain_name(&tomoyo_dp, index));
+		line = tomoyo_shprintf("%s",
+				       tomoyo_domain_name(&tomoyo_dp, index));
 		while (true) {
 			const struct tomoyo_transition_control_entry *d_t;
 			struct tomoyo_path_info parent;
@@ -1621,8 +1561,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 			if (!d_t)
 				continue;
 			/* Initializer under root of namespace is reachable. */
-			if (d_t->type == TOMOYO_TRANSITION_CONTROL_INITIALIZE &&
-			    !strchr(parent.name, ' '))
+			if (d_t->type == TOMOYO_TRANSITION_CONTROL_INITIALIZE
+			    && !strchr(parent.name, ' '))
 				break;
 			tomoyo_dp.list[index].d_t = d_t;
 			continue;
@@ -1637,6 +1577,24 @@ static void tomoyo_read_domain_and_exception_policy(void)
 		char *cp = strchr(tomoyo_domain_name(&tomoyo_dp, index), ' ');
 		if (!cp || strchr(cp + 1, ' '))
 			continue;
+		/* Check "no_initialize_domain $program from any" entry. */
+		for (i = 0; i < tomoyo_transition_control_list_len; i++) {
+			struct tomoyo_transition_control_entry *ptr
+				= &tomoyo_transition_control_list[i];
+			if (ptr->type !=
+			    TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE)
+				continue;
+			if (ptr->domainname)
+				continue;
+			if (ptr->program && strcmp(ptr->program->name, cp + 1))
+				continue;
+			break;
+		}
+		if (i < tomoyo_transition_control_list_len)
+			continue;
+		/*
+		 * Check "initialize_domain $program from $domainname" entry.
+		 */
 		for (i = 0; i < tomoyo_transition_control_list_len; i++) {
 			struct tomoyo_transition_control_entry *ptr
 				= &tomoyo_transition_control_list[i];
@@ -1650,6 +1608,32 @@ static void tomoyo_read_domain_and_exception_policy(void)
 
 	/* Find domain keeper domains. */
 	for (index = 0; index < max_index; index++) {
+		const struct tomoyo_path_info *name =
+			tomoyo_dp.list[index].domainname;
+		/* Check "no_keep_domain any from $domainname" entry. */
+		for (i = 0; i < tomoyo_transition_control_list_len; i++) {
+			struct tomoyo_transition_control_entry *ptr
+				= &tomoyo_transition_control_list[i];
+			char *cp;
+			if (ptr->type != TOMOYO_TRANSITION_CONTROL_NO_KEEP)
+				continue;
+			if (ptr->program)
+				continue;
+			if (!ptr->is_last_name) {
+				if (ptr->domainname &&
+				    tomoyo_pathcmp(ptr->domainname, name))
+					continue;
+				break;
+			}
+			cp = strrchr(name->name, ' ');
+			if (!cp || (ptr->domainname &&
+				    strcmp(ptr->domainname->name, cp + 1)))
+				continue;
+			break;
+		}
+		if (i < tomoyo_transition_control_list_len)
+			continue;
+		/* Check "keep_domain $program from $domainname" entry. */
 		for (i = 0; i < tomoyo_transition_control_list_len; i++) {
 			struct tomoyo_transition_control_entry *ptr
 				= &tomoyo_transition_control_list[i];
@@ -1658,14 +1642,12 @@ static void tomoyo_read_domain_and_exception_policy(void)
 				continue;
 			if (!ptr->is_last_name) {
 				if (ptr->domainname &&
-				    tomoyo_pathcmp(ptr->domainname,
-						tomoyo_dp.list[index].domainname))
+				    tomoyo_pathcmp(ptr->domainname, name))
 					continue;
 				tomoyo_dp.list[index].is_dk = true;
 				continue;
 			}
-			cp = strrchr(tomoyo_dp.list[index].domainname->name,
-				     ' ');
+			cp = strrchr(name->name, ' ');
 			if (!cp || (ptr->domainname &&
 				    strcmp(ptr->domainname->name, cp + 1)))
 				continue;
@@ -1685,7 +1667,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 			const struct tomoyo_path_info *cp = string_ptr[i];
 			struct tomoyo_path_group_entry *group;
 			if (cp->name[0] != '@') {
-				tomoyo_assign_dis(domainname, cp->name, is_root);
+				tomoyo_assign_dis(domainname, cp->name,
+						  is_root);
 				continue;
 			}
 			group = tomoyo_find_path_group(cp->name + 1);
@@ -1693,7 +1676,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 				continue;
 			for (j = 0; j < group->member_name_len; j++) {
 				cp = group->member_name[j];
-				tomoyo_assign_dis(domainname, cp->name, is_root);
+				tomoyo_assign_dis(domainname, cp->name,
+						  is_root);
 			}
 		}
 	}
@@ -1703,8 +1687,9 @@ static void tomoyo_read_domain_and_exception_policy(void)
 	 * This may reset unreachable domains.
 	 */
 	for (i = 0; i < tomoyo_jump_list_len; i++) {
-		const int index = tomoyo_find_domain(&tomoyo_dp, tomoyo_jump_list[i],
-						  false, false);
+		const int index = tomoyo_find_domain(&tomoyo_dp,
+						     tomoyo_jump_list[i],
+						     false, false);
 		if (index == EOF)
 			continue;
 		tomoyo_dp.list[index].is_dit = true;
@@ -1716,7 +1701,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 	for (index = 0; index < max_index; index++) {
 		char *line;
 		tomoyo_get();
-		line = tomoyo_shprintf("%s", tomoyo_domain_name(&tomoyo_dp, index));
+		line = tomoyo_shprintf("%s",
+				       tomoyo_domain_name(&tomoyo_dp, index));
 		while (true) {
 			char *cp = strrchr(line, ' ');
 			if (!cp)
@@ -1731,7 +1717,8 @@ static void tomoyo_read_domain_and_exception_policy(void)
 	}
 
 	/* Sort by domain name. */
-	qsort(tomoyo_dp.list, tomoyo_dp.list_len, sizeof(struct tomoyo_domain_info),
+	qsort(tomoyo_dp.list, tomoyo_dp.list_len,
+	      sizeof(struct tomoyo_domain_info),
 	      tomoyo_domainname_attribute_compare);
 
 	/* Assign domain numbers. */
@@ -1753,7 +1740,7 @@ static void tomoyo_read_domain_and_exception_policy(void)
 	if (!tomoyo_dp.list_len)
 		return;
 	tomoyo_dp.list_selected = tomoyo_realloc2(tomoyo_dp.list_selected,
-					    tomoyo_dp.list_len);
+						  tomoyo_dp.list_len);
 }
 
 /**
@@ -1768,8 +1755,8 @@ static int tomoyo_show_process_line(const int index)
 	char *line;
 	int tmp_col = 0;
 	int i;
-	printw("%c%4d:%3u ", tomoyo_task_list[index].selected ? '&' : ' ', index,
-	       tomoyo_task_list[index].profile);
+	printw("%c%4d:%3u ", tomoyo_task_list[index].selected ? '&' : ' ',
+	       index, tomoyo_task_list[index].profile);
 	tmp_col += 10;
 	for (i = 0; i < tomoyo_task_list[index].depth - 1; i++) {
 		printw("%s", tomoyo_eat("    "));
@@ -1777,9 +1764,9 @@ static int tomoyo_show_process_line(const int index)
 	}
 	tomoyo_get();
 	line = tomoyo_shprintf("%s%s (%u) %s", tomoyo_task_list[index].depth ?
-			    " +- " : "", tomoyo_task_list[index].name,
-			    tomoyo_task_list[index].pid,
-			    tomoyo_task_list[index].domain);
+			       " +- " : "", tomoyo_task_list[index].name,
+			       tomoyo_task_list[index].pid,
+			       tomoyo_task_list[index].domain);
 	printw("%s", tomoyo_eat(line));
 	tmp_col += strlen(line);
 	tomoyo_put();
@@ -1839,11 +1826,13 @@ static void tomoyo_show_list(void)
 	if (tomoyo_current_screen == TOMOYO_SCREEN_ACL_LIST) {
 		char *line;
 		tomoyo_get();
-		line = tomoyo_shprintf("%s", tomoyo_eat(tomoyo_current_domain));
-		tomoyo_editpolicy_attr_change(A_REVERSE, true);  /* add color */
+		line = tomoyo_shprintf("%s",
+				       tomoyo_eat(tomoyo_current_domain));
+		tomoyo_editpolicy_attr_change(A_REVERSE, true); /* add color */
 		move(2, 0);
 		printw("%s", line);
-		tomoyo_editpolicy_attr_change(A_REVERSE, false); /* add color */
+		/* add color */
+		tomoyo_editpolicy_attr_change(A_REVERSE, false);
 		tomoyo_put();
 	}
 	tomoyo_list_indent = 0;
@@ -1876,7 +1865,8 @@ static void tomoyo_show_list(void)
 			break;
 		case TOMOYO_SCREEN_EXCEPTION_LIST:
 		case TOMOYO_SCREEN_ACL_LIST:
-			tmp_col = tomoyo_show_acl_line(index, tomoyo_list_indent);
+			tmp_col = tomoyo_show_acl_line(index,
+						       tomoyo_list_indent);
 			break;
 		case TOMOYO_SCREEN_PROFILE_LIST:
 			tmp_col = tomoyo_show_profile_line(index);
@@ -2028,8 +2018,8 @@ int tomoyo_editpolicy_get_current(void)
 		return EOF;
 	if (p0 + p1 < 0 || p0 + p1 >= tomoyo_count) {
 		fprintf(stderr,
-			"ERROR: tomoyo_current_item_index=%d tomoyo_current_y=%d\n",
-			p0, p1);
+			"ERROR: tomoyo_current_item_index=%d "
+			"tomoyo_current_y=%d\n", p0, p1);
 		exit(127);
 	}
 	return p0 + p1;
@@ -2051,17 +2041,19 @@ static void tomoyo_show_current(void)
 		tomoyo_eat_col = ptr->x;
 		if (index >= 0)
 			line = tomoyo_shprintf("%s",
-					    tomoyo_eat(tomoyo_domain_name(&tomoyo_dp,
-								    index)));
+					       tomoyo_eat(tomoyo_domain_name
+							  (&tomoyo_dp,
+							   index)));
 		else
 			line = tomoyo_shprintf("%s", tomoyo_current_ns);
 		if (tomoyo_window_width < strlen(line))
 			line[tomoyo_window_width] = '\0';
 		move(2, 0);
 		clrtoeol();
-		tomoyo_editpolicy_attr_change(A_REVERSE, true);  /* add color */
+		tomoyo_editpolicy_attr_change(A_REVERSE, true); /* add color */
 		printw("%s", line);
-		tomoyo_editpolicy_attr_change(A_REVERSE, false); /* add color */
+		/* add color */
+		tomoyo_editpolicy_attr_change(A_REVERSE, false);
 		tomoyo_put();
 	}
 	if (tomoyo_current_screen == TOMOYO_SCREEN_EXCEPTION_LIST ||
@@ -2074,9 +2066,10 @@ static void tomoyo_show_current(void)
 			line[tomoyo_window_width] = '\0';
 		move(2, 0);
 		clrtoeol();
-		tomoyo_editpolicy_attr_change(A_REVERSE, true);  /* add color */
+		tomoyo_editpolicy_attr_change(A_REVERSE, true); /* add color */
 		printw("%s", line);
-		tomoyo_editpolicy_attr_change(A_REVERSE, false); /* add color */
+		/* add color */
+		tomoyo_editpolicy_attr_change(A_REVERSE, false);
 		tomoyo_put();
 	}
 	move(TOMOYO_HEADER_LINES + ptr->y, 0);
@@ -2232,7 +2225,7 @@ static void tomoyo_delete_entry(const int index)
 			       c > 1 ? "s" : "");
 	} else {
 		c = tomoyo_count2(tomoyo_gacl_list,
-			       tomoyo_gacl_list_count);
+				  tomoyo_gacl_list_count);
 		if (!c)
 			c = tomoyo_select_item(index);
 		if (!c)
@@ -2269,7 +2262,8 @@ static void tomoyo_delete_entry(const int index)
 		tomoyo_close_write(fp);
 	} else {
 		int i;
-		const _Bool is_kernel_ns = !strcmp(tomoyo_current_ns, "<kernel>");
+		const _Bool is_kernel_ns =
+			!strcmp(tomoyo_current_ns, "<kernel>");
 		FILE *fp = tomoyo_editpolicy_open_write(tomoyo_policy_file);
 		if (!fp)
 			return;
@@ -2287,8 +2281,9 @@ static void tomoyo_delete_entry(const int index)
 				continue;
 			directive = tomoyo_gacl_list[i].directive;
 			fprintf(fp, "delete %s %s %s\n",
-				tomoyo_current_screen == TOMOYO_SCREEN_EXCEPTION_LIST
-				&& !is_kernel_ns ? tomoyo_current_ns : "",
+				tomoyo_current_screen ==
+				TOMOYO_SCREEN_EXCEPTION_LIST && !is_kernel_ns ?
+				tomoyo_current_ns : "",
 				tomoyo_directives[directive].original,
 				tomoyo_gacl_list[i].operand);
 		}
@@ -2307,13 +2302,14 @@ static void tomoyo_add_entry(void)
 	char *line;
 	const _Bool is_kernel_ns = !strcmp(tomoyo_current_ns, "<kernel>");
 	tomoyo_editpolicy_attr_change(A_BOLD, true);  /* add color */
-	line = tomoyo_readline(tomoyo_window_height - 1, 0, "Enter new entry> ",
-			    tomoyo_rl.history, tomoyo_rl.count, 128000, 8);
+	line = tomoyo_readline(tomoyo_window_height - 1, 0,
+			       "Enter new entry> ", tomoyo_rl.history,
+			       tomoyo_rl.count, 128000, 8);
 	tomoyo_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	tomoyo_rl.count = tomoyo_add_history(line, tomoyo_rl.history, tomoyo_rl.count,
-				       tomoyo_rl.max);
+	tomoyo_rl.count = tomoyo_add_history(line, tomoyo_rl.history,
+					     tomoyo_rl.count, tomoyo_rl.max);
 	fp = tomoyo_editpolicy_open_write(tomoyo_policy_file);
 	if (!fp)
 		goto out;
@@ -2322,7 +2318,8 @@ static void tomoyo_add_entry(void)
 	case TOMOYO_SCREEN_DOMAIN_LIST:
 		if (!tomoyo_correct_domain(line)) {
 			const int len = strlen(line) + 128;
-			tomoyo_last_error = tomoyo_realloc2(tomoyo_last_error, len);
+			tomoyo_last_error =
+				tomoyo_realloc2(tomoyo_last_error, len);
 			snprintf(tomoyo_last_error, len - 1,
 				 "%s is an invalid domainname.", line);
 			line[0] = '\0';
@@ -2332,7 +2329,8 @@ static void tomoyo_add_entry(void)
 		if (tomoyo_domain_sort_type)
 			fprintf(fp, "select pid=%u\n", tomoyo_current_pid);
 		else
-			fprintf(fp, "select domain=%s\n", tomoyo_current_domain);
+			fprintf(fp, "select domain=%s\n",
+				tomoyo_current_domain);
 		/* Fall through. */
 	case TOMOYO_SCREEN_EXCEPTION_LIST:
 		if (tomoyo_current_screen == TOMOYO_SCREEN_EXCEPTION_LIST &&
@@ -2340,7 +2338,8 @@ static void tomoyo_add_entry(void)
 			fprintf(fp, "%s ", tomoyo_current_ns);
 		directive = tomoyo_find_directive(false, line);
 		if (directive != TOMOYO_DIRECTIVE_NONE)
-			fprintf(fp, "%s ", tomoyo_directives[directive].original);
+			fprintf(fp, "%s ",
+				tomoyo_directives[directive].original);
 		break;
 	case TOMOYO_SCREEN_PROFILE_LIST:
 		if (!strchr(line, '='))
@@ -2372,7 +2371,7 @@ out:
  * Returns nothing.
  */
 static void tomoyo_find_entry(const _Bool input, const _Bool forward,
-			   const int current)
+			      const int current)
 {
 	int index = current;
 	char *line = NULL;
@@ -2382,17 +2381,17 @@ static void tomoyo_find_entry(const _Bool input, const _Bool forward,
 		goto start_search;
 	tomoyo_editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = tomoyo_readline(tomoyo_window_height - 1, 0, "Search> ",
-			    tomoyo_rl.history, tomoyo_rl.count, 128000, 8);
+			       tomoyo_rl.history, tomoyo_rl.count, 128000, 8);
 	tomoyo_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	tomoyo_rl.count = tomoyo_add_history(line, tomoyo_rl.history, tomoyo_rl.count,
-				       tomoyo_rl.max);
+	tomoyo_rl.count = tomoyo_add_history(line, tomoyo_rl.history,
+					     tomoyo_rl.count, tomoyo_rl.max);
 	free(tomoyo_rl.search_buffer[tomoyo_current_screen]);
 	tomoyo_rl.search_buffer[tomoyo_current_screen] = line;
 	line = NULL;
 	index = -1;
-start_search:
+ start_search:
 	tomoyo_get();
 	while (true) {
 		const char *cp;
@@ -2408,24 +2407,27 @@ start_search:
 				cp = tomoyo_task_list[index].name;
 			else
 				cp = tomoyo_get_last_name(index);
-		} else if (tomoyo_current_screen == TOMOYO_SCREEN_PROFILE_LIST) {
+		} else if (tomoyo_current_screen ==
+			   TOMOYO_SCREEN_PROFILE_LIST) {
 			cp = tomoyo_shprintf("%u-%s",
-					  tomoyo_gacl_list[index].directive,
-					  tomoyo_gacl_list[index].operand);
+					     tomoyo_gacl_list[index].directive,
+					     tomoyo_gacl_list[index].operand);
 		} else {
 			const enum tomoyo_editpolicy_directives directive =
 				tomoyo_gacl_list[index].directive;
 			cp = tomoyo_shprintf("%s %s",
-					  tomoyo_directives[directive].alias,
-					  tomoyo_gacl_list[index].operand);
+					     tomoyo_directives[directive].
+					     alias,
+					     tomoyo_gacl_list[index].operand);
 		}
-		if (!strstr(cp, tomoyo_rl.search_buffer[tomoyo_current_screen]))
+		if (!strstr(cp,
+			    tomoyo_rl.search_buffer[tomoyo_current_screen]))
 			continue;
 		tomoyo_set_cursor_pos(index);
 		break;
 	}
 	tomoyo_put();
-out:
+ out:
 	free(line);
 	tomoyo_show_list();
 }
@@ -2443,8 +2445,8 @@ static void tomoyo_set_profile(const int current)
 	FILE *fp;
 	char *line;
 	if (!tomoyo_domain_sort_type) {
-		if (!tomoyo_count(tomoyo_dp.list_selected, tomoyo_dp.list_len) &&
-		    !tomoyo_select_item(current)) {
+		if (!tomoyo_count(tomoyo_dp.list_selected, tomoyo_dp.list_len)
+		    && !tomoyo_select_item(current)) {
 			move(1, 0);
 			printw("Select domain using Space key first.");
 			clrtoeol();
@@ -2462,8 +2464,8 @@ static void tomoyo_set_profile(const int current)
 		}
 	}
 	tomoyo_editpolicy_attr_change(A_BOLD, true);  /* add color */
-	line = tomoyo_readline(tomoyo_window_height - 1, 0, "Enter profile number> ",
-			    NULL, 0, 8, 1);
+	line = tomoyo_readline(tomoyo_window_height - 1, 0,
+			       "Enter profile number> ", NULL, 0, 8, 1);
 	tomoyo_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
@@ -2516,8 +2518,8 @@ static void tomoyo_set_level(const int current)
 		tomoyo_initial_readline_data = cp + 1;
 		break;
 	}
-	line = tomoyo_readline(tomoyo_window_height - 1, 0, "Enter new value> ",
-			    NULL, 0, 128000, 1);
+	line = tomoyo_readline(tomoyo_window_height - 1, 0,
+			       "Enter new value> ", NULL, 0, 128000, 1);
 	tomoyo_initial_readline_data = NULL;
 	tomoyo_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
@@ -2563,8 +2565,8 @@ static void tomoyo_set_quota(const int current)
 	if (!tomoyo_count2(tomoyo_gacl_list, tomoyo_gacl_list_count))
 		tomoyo_select_item(current);
 	tomoyo_editpolicy_attr_change(A_BOLD, true);  /* add color */
-	line = tomoyo_readline(tomoyo_window_height - 1, 0, "Enter new value> ",
-			    NULL, 0, 20, 1);
+	line = tomoyo_readline(tomoyo_window_height - 1, 0,
+			       "Enter new value> ", NULL, 0, 20, 1);
 	tomoyo_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
@@ -2618,7 +2620,8 @@ static _Bool tomoyo_select_acl_window(const int current)
 	if (tomoyo_domain_sort_type) {
 		tomoyo_current_pid = tomoyo_task_list[current].pid;
 	} else if (tomoyo_initializer_source(current)) {
-		struct tomoyo_screen *ptr = &tomoyo_screen[tomoyo_current_screen];
+		struct tomoyo_screen *ptr =
+			&tomoyo_screen[tomoyo_current_screen];
 		const int redirect_index = tomoyo_find_target_domain(current);
 		if (redirect_index >= 0) {
 			ptr->current = redirect_index - ptr->y;
@@ -2631,8 +2634,9 @@ static _Bool tomoyo_select_acl_window(const int current)
 		if (redirect_index == -2) {
 			char *cp;
 			free(tomoyo_current_ns);
-			tomoyo_current_ns = tomoyo_strdup(tomoyo_dp.list[current].
-						    target_domainname);
+			tomoyo_current_ns =
+				tomoyo_strdup(tomoyo_dp.list[current].
+					      target_domainname);
 			cp = strchr(tomoyo_current_ns, ' ');
 			if (cp)
 				*cp = '\0';
@@ -2647,10 +2651,11 @@ static _Bool tomoyo_select_acl_window(const int current)
 	}
 	old_domain = tomoyo_current_domain;
 	if (tomoyo_domain_sort_type)
-		tomoyo_current_domain = tomoyo_strdup(tomoyo_task_list[current].domain);
+		tomoyo_current_domain =
+			tomoyo_strdup(tomoyo_task_list[current].domain);
 	else
-		tomoyo_current_domain = tomoyo_strdup(tomoyo_domain_name(&tomoyo_dp,
-								current));
+		tomoyo_current_domain =
+			tomoyo_strdup(tomoyo_domain_name(&tomoyo_dp, current));
 	tomoyo_no_restore_cursor = old_domain &&
 		strcmp(old_domain, tomoyo_current_domain);
 	free(old_domain);
@@ -2671,8 +2676,9 @@ static enum tomoyo_screen_type tomoyo_select_window(const int current)
 	printw("Press one of below keys to switch window.\n\n");
 	printw("e     <<< Exception Policy Editor >>>\n");
 	printw("d     <<< Domain Transition Editor >>>\n");
-	if (tomoyo_current_screen == TOMOYO_SCREEN_DOMAIN_LIST && current != EOF &&
-	    !tomoyo_initializer_source(current) && !tomoyo_deleted_domain(current))
+	if (tomoyo_current_screen == TOMOYO_SCREEN_DOMAIN_LIST &&
+	    current != EOF && !tomoyo_initializer_source(current) &&
+	    !tomoyo_deleted_domain(current))
 		printw("a     <<< Domain Policy Editor >>>\n");
 	printw("p     <<< Profile Editor >>>\n");
 	printw("m     <<< Manager Policy Editor >>>\n");
@@ -2703,8 +2709,8 @@ static enum tomoyo_screen_type tomoyo_select_window(const int current)
 		}
 		if (!tomoyo_offline_mode) {
 			/*
-			if (c == 'I' || c == 'i')
-				return TOMOYO_SCREEN_QUERY_LIST;
+			  if (c == 'I' || c == 'i')
+			  return TOMOYO_SCREEN_QUERY_LIST;
 			*/
 			if (c == 'S' || c == 's')
 				return TOMOYO_SCREEN_STAT_LIST;
@@ -2778,18 +2784,19 @@ static void tomoyo_copy_to_history(const int current)
 	case TOMOYO_SCREEN_EXCEPTION_LIST:
 	case TOMOYO_SCREEN_ACL_LIST:
 		directive = tomoyo_gacl_list[current].directive;
-		line = tomoyo_shprintf("%s %s", tomoyo_directives[directive].alias,
-				tomoyo_gacl_list[current].operand);
+		line = tomoyo_shprintf("%s %s",
+				       tomoyo_directives[directive].alias,
+				       tomoyo_gacl_list[current].operand);
 		break;
 	case TOMOYO_SCREEN_STAT_LIST:
 		line = NULL;
 		break;
 	default:
 		line = tomoyo_shprintf("%s",
-				    tomoyo_gacl_list[current].operand);
+				       tomoyo_gacl_list[current].operand);
 	}
-	tomoyo_rl.count = tomoyo_add_history(line, tomoyo_rl.history, tomoyo_rl.count,
-				       tomoyo_rl.max);
+	tomoyo_rl.count = tomoyo_add_history(line, tomoyo_rl.history,
+					     tomoyo_rl.count, tomoyo_rl.max);
 	tomoyo_put();
 }
 
@@ -3018,7 +3025,8 @@ start2:
 		case 'o':
 		case 'O':
 			if (tomoyo_current_screen == TOMOYO_SCREEN_ACL_LIST ||
-			    tomoyo_current_screen == TOMOYO_SCREEN_EXCEPTION_LIST) {
+			    tomoyo_current_screen ==
+			    TOMOYO_SCREEN_EXCEPTION_LIST) {
 				tomoyo_editpolicy_optimize(current);
 				tomoyo_show_list();
 			}
@@ -3029,12 +3037,14 @@ start2:
 				tomoyo_acl_sort_type = !tomoyo_acl_sort_type;
 				goto start;
 			case TOMOYO_SCREEN_PROFILE_LIST:
-				tomoyo_profile_sort_type = !tomoyo_profile_sort_type;
+				tomoyo_profile_sort_type =
+					!tomoyo_profile_sort_type;
 				goto start;
 			case TOMOYO_SCREEN_DOMAIN_LIST:
 				if (tomoyo_offline_mode)
 					break;
-				tomoyo_domain_sort_type = !tomoyo_domain_sort_type;
+				tomoyo_domain_sort_type =
+					!tomoyo_domain_sort_type;
 				goto start;
 			default:
 				break;
@@ -3045,7 +3055,7 @@ start2:
 			return tomoyo_select_window(current);
 		case '?':
 			if (tomoyo_show_command_key(tomoyo_current_screen,
-						 tomoyo_readonly_mode))
+						    tomoyo_readonly_mode))
 				goto start;
 			return TOMOYO_MAXSCREEN;
 		}
@@ -3064,20 +3074,24 @@ static _Bool tomoyo_save_to_file(const char *src, const char *dest)
 {
 	FILE *proc_fp = tomoyo_editpolicy_open_read(src);
 	FILE *file_fp = fopen(dest, "w");
+	int c;
 	if (!file_fp) {
 		fprintf(stderr, "Can't open %s\n", dest);
 		fclose(proc_fp);
 		return false;
 	}
 	while (true) {
-		int c = fgetc(proc_fp);
-		if (c == EOF)
+		c = fgetc(proc_fp);
+		if (!c || c == EOF)
 			break;
-		fputc(c, file_fp);
+		if (fputc(c, file_fp) == EOF) {
+			c = EOF;
+			break;
+		}
 	}
 	fclose(proc_fp);
 	fclose(file_fp);
-	return true;
+	return !c;
 }
 
 /**
@@ -3123,12 +3137,14 @@ static void tomoyo_parse_args(int argc, char *argv[])
 			tomoyo_current_screen = TOMOYO_SCREEN_MANAGER_LIST;
 		else if (!strcmp(ptr, "s"))
 			tomoyo_current_screen = TOMOYO_SCREEN_STAT_LIST;
+		else if (!strcmp(ptr, "n"))
+			tomoyo_current_screen = TOMOYO_SCREEN_NS_LIST;
 		else if (!strcmp(ptr, "readonly"))
 			tomoyo_readonly_mode = true;
 		else if (sscanf(ptr, "refresh=%u", &tomoyo_refresh_interval)
 			 != 1) {
 usage:
-			printf("Usage: %s [e|d|p|m|s] [readonly] "
+			printf("Usage: %s [e|d|p|m|s|n] [readonly] "
 			       "[refresh=interval] [<namespace>]"
 			       "[{policy_dir|remote_ip:remote_port}]\n",
 			       argv[0]);
@@ -3147,32 +3163,38 @@ usage:
  */
 static void tomoyo_load_offline(void)
 {
-	int fd[2] = { EOF, EOF };
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in addr = { };
+	socklen_t size = sizeof(addr);
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	if (chdir(tomoyo_policy_dir) || chdir("policy/current/")) {
 		fprintf(stderr, "Directory %s/policy/current/ doesn't "
 			"exist.\n", tomoyo_policy_dir);
 		exit(1);
 	}
-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-		fprintf(stderr, "socketpair()\n");
+	if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) || listen(fd, 5)
+	    || getsockname(fd, (struct sockaddr *) &addr, &size)) {
+		fprintf(stderr, "Can't create listener socket.\n");
 		exit(1);
 	}
+	tomoyo_network_ip = addr.sin_addr.s_addr;
+	tomoyo_network_port = addr.sin_port;
+	tomoyo_network_mode = true;
 	switch (fork()) {
 	case 0:
-		close(fd[0]);
-		tomoyo_persistent_fd = fd[1];
-		tomoyo_editpolicy_offline_daemon();
+		tomoyo_editpolicy_offline_daemon(fd);
 		_exit(0);
 	case -1:
 		fprintf(stderr, "fork()\n");
 		exit(1);
 	}
-	close(fd[1]);
-	tomoyo_persistent_fd = fd[0];
-	tomoyo_copy_file("exception_policy.conf",
-		      TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
-	tomoyo_copy_file("domain_policy.conf", TOMOYO_PROC_POLICY_DOMAIN_POLICY);
+	close(fd);
 	tomoyo_copy_file("profile.conf", TOMOYO_PROC_POLICY_PROFILE);
+	tomoyo_copy_file("exception_policy.conf",
+			 TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
+	tomoyo_copy_file("domain_policy.conf",
+			 TOMOYO_PROC_POLICY_DOMAIN_POLICY);
 	tomoyo_copy_file("manager.conf", TOMOYO_PROC_POLICY_MANAGER);
 	if (chdir("..")) {
 		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
@@ -3182,13 +3204,14 @@ static void tomoyo_load_offline(void)
 }
 
 /**
- * tomoyo_load_readwrite - Check that this program can write to /sys/kernel/security/tomoyo/ interface.
+ * tomoyo_load_readwrite - Check that this program can write to /proc/tomoyo/ interface.
  *
  * Returns nothing.
  */
 static void tomoyo_load_readwrite(void)
 {
-	const int fd1 = tomoyo_open2(TOMOYO_PROC_POLICY_EXCEPTION_POLICY, O_RDWR);
+	const int fd1 = tomoyo_open2(TOMOYO_PROC_POLICY_EXCEPTION_POLICY,
+				     O_RDWR);
 	const int fd2 = tomoyo_open2(TOMOYO_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
 	if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
 	    (fd2 != EOF && write(fd2, "", 0) != 0)) {
@@ -3238,9 +3261,9 @@ static void tomoyo_save_offline(void)
 	    !tomoyo_save_to_file(TOMOYO_PROC_POLICY_PROFILE, "profile.conf") ||
 	    !tomoyo_save_to_file(TOMOYO_PROC_POLICY_MANAGER, "manager.conf") ||
 	    !tomoyo_save_to_file(TOMOYO_PROC_POLICY_EXCEPTION_POLICY,
-			      "exception_policy.conf") ||
+				 "exception_policy.conf") ||
 	    !tomoyo_save_to_file(TOMOYO_PROC_POLICY_DOMAIN_POLICY,
-			      "domain_policy.conf") ||
+				 "domain_policy.conf") ||
 	    chdir("..") ||
 	    (rename("current", "previous") && errno != ENOENT) ||
 	    symlink(stamp, "current")) {
@@ -3253,10 +3276,8 @@ int main(int argc, char *argv[])
 {
 	tomoyo_parse_args(argc, argv);
 	tomoyo_editpolicy_init_keyword_map();
-	if (tomoyo_offline_mode) {
+	if (tomoyo_offline_mode)
 		tomoyo_load_offline();
-		goto start;
-	}
 	if (tomoyo_network_mode)
 		goto start;
 	tomoyo_mount_securityfs();
@@ -3267,7 +3288,7 @@ int main(int argc, char *argv[])
 	}
 	if (!tomoyo_readonly_mode)
 		tomoyo_load_readwrite();
-start:
+ start:
 	initscr();
 	tomoyo_editpolicy_color_init();
 	cbreak();
@@ -3282,7 +3303,8 @@ start:
 		timeout(1000);
 	}
 	tomoyo_rl.max = 20;
-	tomoyo_rl.history = tomoyo_malloc(tomoyo_rl.max * sizeof(const char *));
+	tomoyo_rl.history =
+		tomoyo_malloc(tomoyo_rl.max * sizeof(const char *));
 	while (tomoyo_current_screen < TOMOYO_MAXSCREEN) {
 		tomoyo_resize_window();
 		tomoyo_current_screen = tomoyo_generic_list_loop();
