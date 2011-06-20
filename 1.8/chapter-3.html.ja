@@ -298,10 +298,10 @@
 
 <h4><a name="3.3.2">3.3.2. カーネルのダウンロードとパッチの適用</a></h4>
 
-<p>カーネルのソースコードを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> <!--または <a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a> -->からダウンロードしてください。<br>
+<p>カーネルのソースコードを <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> または <a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a> からダウンロードしてください。<br>
 linux-2.4 についてはカーネル 2.4.30 以降に対応しています。<br>
-linux-2.6 についてはカーネル 2.6.11.12 以降に対応しています。<!--<br>
-linux-3 についてはカーネル 3.0 以降に対応しています。--></p>
+linux-2.6 についてはカーネル 2.6.11.12 以降に対応しています。<br>
+linux-3 についてはカーネル 3.0 以降に対応しています。</p>
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。<br>
 以下の操作において、例えばカーネル 2.6.39.1 を使う場合、 2.$PATCHLEVEL.$SUBLEVEL.diff を 2.6.39.diff に置き換えてください：</p>
@@ -329,34 +329,6 @@ $ make -s menuconfig
 <li>[ ] &nbsp;&nbsp;Do not modify 'struct task_struct' in order to keep KABI</li>
 <li>(2048) Default maximal count for learning mode</li>
 <li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
-<li>[ ] &nbsp;&nbsp;Use built-in policy</li>
-<li>[ ] &nbsp;&nbsp;&nbsp;&nbsp;Activate immediately after loading built-in policy.</li>
-<li>[ ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Omit calling policy loader when /sbin/init starts.</li>
-<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
-<li>(/sbin/ccs-init) Default policy loader</li>
-<li>(/sbin/ccs-start) Alternative activation trigger</li>
-</ul>
-
-<p><em>Compile as loadable kernel module</em> オプションは（組込みシステムなど） vmlinux のファイルサイズに制限がある場合に便利です。</p>
-
-<p><em>Disable by default</em> オプションを選択した場合、カーネルのコマンドラインで ccsecurity=on という指定を行った場合だけ有効化されます。選択しなかった場合、カーネルのコマンドラインで ccsecurity=off という指定を行った場合だけ無効化されます。</p>
-
-<p><em>Do not modify 'struct task_struct' in order to keep KABI</em> オプションはカーネル 2.6 でのみ選択可能です。このオプションを選択した場合、 TOMOYO が利用する変数をタスク構造体の外部で管理することにより、タスク構造体に変更を加えることにより生じる Kernel Application Binary Interface (KABI) の変化を回避することができます。ディストリビュータのカーネルに対して適用する際に Kernel ABI の変化を避けたい場合に選択してください。ただし、カーネルモジュールに対して TOMOYO の機能を呼び出すために ccsecurity_operations 構造体へのアクセスを認める（エクスポートする）必要があるため、カーネルパッケージを作成するスクリプトが警告を出力することは避けられない点については了承ください。</p>
-
-<p><em>Use built-in policy</em> オプションを選択した場合、カーネル内にポリシーを埋め込むことが可能になります。（ポリシーを変更するためにはカーネルの再コンパイルが必要になります。）これは、 <em>Built-in domain initializer programs</em> オプションのスーパーセットです。</p>
-
-<p><em>Activate immediately after loading built-in policy.</em> オプションは、 <em>Use built-in policy</em> オプションを選択した場合にのみ選択できます。このオプションを選択した場合、 initrd/initramfs の開始前から TOMOYO のアクセス制御が有効になります。このオプションを選択した場合、 <em>Default policy loader</em> オプションで指定されたポリシーローダを実行する必要性は消滅します。しかし、カーネル内に埋め込まれたポリシーとは別にポリシーローダからも追加でポリシーを読み込ませたい場合に対処できるようにするため、ポリシーローダは実行されます。</p>
-
-<p><em>Omit calling policy loader when /sbin/init starts.</em> オプションは、 <em>Activate immediately after loading built-in policy.</em> オプションを選択した場合にのみ選択できます。このオプションを指定すると、 <em>Default policy loader</em> オプションで指定されたポリシーローダを実行しなくなります。このオプションは、（組込みシステムなど）ポリシーローダを実行することが困難な場合に便利です。</p>
-
-<!--
-<ul>
-<li>[*] CCSecurity support</li>
-<li>[ ] &nbsp;&nbsp;Compile as loadable kernel module</li>
-<li>[ ] &nbsp;&nbsp;Disable by default</li>
-<li>[ ] &nbsp;&nbsp;Do not modify 'struct task_struct' in order to keep KABI</li>
-<li>(2048) Default maximal count for learning mode</li>
-<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
 <li>[ ] &nbsp;&nbsp;Activate without calling userspace policy loader.</li>
 <li>(/sbin/ccs-init) Location of userspace policy loader</li>
 <li>(/sbin/init) Trigger for calling userspace policy loader</li>
@@ -373,13 +345,10 @@ $ make -s menuconfig
 <p><em>Location of userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはポリシーローダとして使用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで CCS_loader= オプションで上書きできます。</p>
 
 <p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで CCS_trigger= オプションで上書きできます。例えば、 init=/bin/systemd というオプションを指定する場合、 CCS_trigger=/bin/systemd というオプションも指定することになるでしょう。</p>
--->
 
 <h4><a name="3.3.4">3.3.4. カーネルのコンパイルおよびインストール</a></h4>
 
-<!--
 <p>カーネル内に埋め込まれるポリシーは security/ccsecurity/policy/ ディレクトリ内に domain_policy.conf exception_policy.conf manager.conf profile.conf stat.conf という名前で存在している必要があります。しかし、現時点では埋め込まれるべきポリシーを持っていないでしょうから、 security/ccsecurity/policy/ ディレクトリ内にファイルを作成せずに先に進んでください。（埋め込むべきポリシーを作成後にここに戻ってくることができます。）</p>
--->
 
 <p>カーネルコンパイルオプションの変更が終わったら、以下のコマンドを実行してカーネルをコンパイルしてください：</p>
 
@@ -460,9 +429,7 @@ Creating configuration file for ccs-notifyd ... OK
 
 <p>ブートローダ（ GRUB 等）の設定ファイルを編集し、コンパイルされたカーネル用のエントリを追加してください。カーネルのコンパイル時に <em>Disable by default</em> オプションを指定した場合には、 ccsecurity=on というパラメータをカーネルに対するコマンドラインオプションに指定することを忘れないでください。 TOMOYO Linux カーネルで起動するための方法については、ディストリビューションやブートローダのドキュメントを参照してください。</p>
 
-<!--
 <p>TOMOYO Linux 1.8.2 以降では、 CCS_trigger というカーネルのコマンドラインオプションをサポートしています。このオプションは、最初に実行されるプログラムとして <code>/sbin/init</code> 以外を利用しているシステムにおいて便利です。例えば、 systemd を利用して移動する場合、最初に実行されるプログラムは <code>/bin/systemd</code> になるでしょう。その場合、 CCS_trigger=/bin/systemd というパラメータをカーネルに対するコマンドラインオプションに指定してください。</p>
--->
 
 <h3><a name="3.6">3.6. システムの再起動</a></h3>
 
