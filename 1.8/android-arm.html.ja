@@ -92,10 +92,10 @@ make
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O ccs-tools-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.1-20110511.tar.gz'
-wget -O ccs-tools-1.8.1-20110511.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.1-20110511.tar.gz.asc'
-gpg ccs-tools-1.8.1-20110511.tar.gz.asc
-tar -zxf ccs-tools-1.8.1-20110511.tar.gz
+wget -O ccs-tools-1.8.2-20110620.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110620.tar.gz'
+wget -O ccs-tools-1.8.2-20110620.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110620.tar.gz.asc'
+gpg ccs-tools-1.8.2-20110620.tar.gz.asc
+tar -zxf ccs-tools-1.8.2-20110620.tar.gz
 cd ccstools
 make
 sudo make install
@@ -107,14 +107,6 @@ sudo make install
 sudo /usr/lib/ccs/init_policy
 sudo chown -R `id -u` /etc/ccs/
 echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/ccs/tools/patternize.conf
-</pre>
-
-<p>また、ポリシーファイルをカーネルのソースコード内に埋め込むためのツールをコンパイルします。</p>
-
-<pre class="command">
-cd $ANDROID_HOME/tmp/
-wget -O tomoyo2c.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/tomoyo2c.c?revision=HEAD&amp;root=tomoyo'
-gcc -o tomoyo2c tomoyo2c.c
 </pre>
 
 <h3>ステップ５：エミュレータ環境用ツールのインストール</h3>
@@ -270,29 +262,14 @@ ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common-b0d93fb/
-wget -O ccs-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz'
-wget -O ccs-patch-1.8.1-20110511.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz.asc'
-gpg ccs-patch-1.8.1-20110511.tar.gz.asc
-tar -zxf ccs-patch-1.8.1-20110511.tar.gz
-patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
-sed -e 's/# CONFIG_CCSECURITY_USE_BUILTIN_POLICY is not set/CONFIG_CCSECURITY_USE_BUILTIN_POLICY=y/' \
--e 's/# CONFIG_CCSECURITY_ACTIVATE_FROM_THE_BEGINNING is not set/CONFIG_CCSECURITY_ACTIVATE_FROM_THE_BEGINNING=y/' \
--e '# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
-$ANDROID_HOME/tmp/tomoyo2c $ANDROID_HOME/tmp/policy/ &gt; security/ccsecurity/builtin-policy.h
-</pre>
-
-<!--
-<pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
-wget -O ccs-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz'
-wget -O ccs-patch-1.8.1-20110511.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz.asc'
-gpg ccs-patch-1.8.1-20110511.tar.gz.asc
-tar -zxf ccs-patch-1.8.1-20110511.tar.gz
+wget -O ccs-patch-1.8.2-20110620.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110620.tar.gz'
+wget -O ccs-patch-1.8.2-20110620.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110620.tar.gz.asc'
+gpg ccs-patch-1.8.2-20110620.tar.gz.asc
+tar -zxf ccs-patch-1.8.2-20110620.tar.gz
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
 sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 </pre>
--->
 
 <p>カーネルをコンパイルします。</p>
 
@@ -387,8 +364,7 @@ cd $ANDROID_HOME/tmp/policy/
 <p>また、保存したポリシーをカーネル内に埋め込むには以下のように行ってください。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
-$ANDROID_HOME/tmp/tomoyo2c $ANDROID_HOME/tmp/policy/ &gt; security/ccsecurity/builtin-policy.h
+cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/common-b0d93fb/security/ccsecurity/policy/
 </pre>
 
 <p>カーネルを再コンパイルします。</p>
