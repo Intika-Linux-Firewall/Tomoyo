@@ -365,7 +365,6 @@ destination     /var/log/tomoyo/reject_003.log
 
 <p>アクセスログを保存する必要が無い場合は、  <code>ccs-auditd</code> を実行する必要はありません。また、プロファイルで <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ max_audit_log=0 }</a> という指定をすることにより、消費メモリの節約と応答速度の向上が期待できます。ドメインに対して強制モードを割り当てるまでアクセスログは保存しないという選択肢もありますが、より厳密なアクセス制御を行うためのポリシーを作成できるようにするために、現時点でアクセス拒否ログを保存するように設定しておくことをお勧めします。</p>
 
-<!--
 <p>ディストリビュータはデーモンやサービスのための設定をパッケージの中に含めたいと思うかもしれません。 <code>/usr/sbin/ccs-auditd</code> という単一のコマンドを実行するだけでデーモンを起動できるので、そのための設定を含めることは簡単です。もし systemd を利用している場合、以下のような内容を含む /lib/systemd/system/ccs-auditd.service というファイルを作成してください：</p>
 
 <pre>
@@ -380,7 +379,6 @@ ExecReload=/bin/kill -HUP $MAINPID
 [Install]
 WantedBy=multi-user.target
 </pre>
--->
 
 </div><!-- documentation -->
 
