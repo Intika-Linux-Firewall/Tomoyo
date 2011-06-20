@@ -22,13 +22,12 @@
  */
 #include "ccstools.h"
 #include "editpolicy.h"
-#include <syslog.h>
 #include <poll.h>
 
 struct list_head {
 	struct list_head *next;
 	struct list_head *prev;
-};	
+};
 
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 #define LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
@@ -2912,8 +2911,8 @@ static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
 /**
  * ccs_print_ipv4 - Print an IPv4 address.
  *
- * @min_ip:     Min address in host byte order.
- * @max_ip:     Max address in host byte order.
+ * @min_ip: Min address in host byte order.
+ * @max_ip: Max address in host byte order.
  *
  * Returns nothing.
  */
@@ -2927,8 +2926,8 @@ static void ccs_print_ipv4(const u32 min_ip, const u32 max_ip)
 /**
  * ccs_print_ipv6 - Print an IPv6 address.
  *
- * @min_ip:     Pointer to "struct in6_addr".
- * @max_ip:     Pointer to "struct in6_addr".
+ * @min_ip: Pointer to "struct in6_addr".
+ * @max_ip: Pointer to "struct in6_addr".
  *
  * Returns nothing.
  */
@@ -3136,7 +3135,7 @@ static bool ccs_same_capability_acl(const struct ccs_acl_info *a,
  */
 static int ccs_write_capability(struct ccs_acl_param *param)
 {
-	struct ccs_capability_acl e = {	.head.type = CCS_TYPE_CAPABILITY_ACL };
+	struct ccs_capability_acl e = { .head.type = CCS_TYPE_CAPABILITY_ACL };
 	const char *operation = ccs_read_token(param);
 	for (e.operation = 0; e.operation < CCS_MAX_CAPABILITY_INDEX;
 	     e.operation++) {
