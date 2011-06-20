@@ -379,7 +379,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* String table for PREFERENCE keyword. */
  static const char * const tomoyo_pref_keywords[TOMOYO_MAX_PREF] = {
  	[TOMOYO_PREF_MAX_AUDIT_LOG]      = "max_audit_log",
-@@ -295,15 +358,37 @@ static void tomoyo_print_name_union(stru
+@@ -294,15 +357,37 @@ static void tomoyo_print_name_union(stru
  }
  
  /**
@@ -423,7 +423,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (ptr->group) {
  		tomoyo_set_string(head, "@");
  		tomoyo_set_string(head, ptr->group->group_name->name);
-@@ -326,8 +411,8 @@ static void tomoyo_print_number_union(st
+@@ -325,8 +410,8 @@ static void tomoyo_print_number_union(st
  						 "0%lo", min);
  				break;
  			default:
@@ -434,7 +434,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				break;
  			}
  			if (min == max && min_type == max_type)
-@@ -341,6 +426,21 @@ static void tomoyo_print_number_union(st
+@@ -340,6 +425,21 @@ static void tomoyo_print_number_union(st
  }
  
  /**
@@ -809,7 +809,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_ID_NAME,
  	TOMOYO_ID_ACL,
  	TOMOYO_ID_DOMAIN,
-@@ -274,6 +364,16 @@ struct tomoyo_policy_namespace;
+@@ -273,6 +363,16 @@ struct tomoyo_policy_namespace;
  
  /* Structure for request info. */
  struct tomoyo_request_info {
@@ -826,7 +826,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_domain_info *domain;
  	/* For holding parameters. */
  	union {
-@@ -374,9 +474,113 @@ struct tomoyo_number_group {
+@@ -371,9 +471,113 @@ struct tomoyo_number_group {
  	struct tomoyo_number_union number;
  };
  
@@ -940,7 +940,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bool is_deleted;
  	u8 type; /* One of values in "enum tomoyo_acl_entry_type_index". */
  } __packed;
-@@ -479,12 +683,15 @@ struct tomoyo_io_buffer {
+@@ -476,12 +680,15 @@ struct tomoyo_io_buffer {
  		unsigned int step;
  		unsigned int query_index;
  		u16 index;
@@ -956,7 +956,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		const char *w[TOMOYO_MAX_IO_READ_QUEUE];
  	} r;
  	struct {
-@@ -590,11 +797,16 @@ struct tomoyo_policy_namespace {
+@@ -587,11 +794,16 @@ struct tomoyo_policy_namespace {
  
  bool tomoyo_compare_number_union(const unsigned long value,
  				 const struct tomoyo_number_union *ptr);
@@ -973,7 +973,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_memory_ok(void *ptr);
  bool tomoyo_number_matches_group(const unsigned long min,
  				 const unsigned long max,
-@@ -668,6 +880,7 @@ ssize_t tomoyo_read_control(struct tomoy
+@@ -665,6 +877,7 @@ ssize_t tomoyo_read_control(struct tomoy
  			    const int buffer_len);
  ssize_t tomoyo_write_control(struct tomoyo_io_buffer *head,
  			     const char __user *buffer, const int buffer_len);
@@ -981,7 +981,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
  						const bool transit);
  struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
-@@ -679,6 +892,7 @@ struct tomoyo_profile *tomoyo_profile(co
+@@ -676,6 +889,7 @@ struct tomoyo_profile *tomoyo_profile(co
  				      const u8 profile);
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
  				const u8 index);
@@ -989,7 +989,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void *tomoyo_commit_ok(void *data, const unsigned int size);
  void __init tomoyo_load_builtin_policy(void);
  void __init tomoyo_mm_init(void);
-@@ -687,6 +901,7 @@ void tomoyo_check_acl(struct tomoyo_requ
+@@ -684,6 +898,7 @@ void tomoyo_check_acl(struct tomoyo_requ
  					   const struct tomoyo_acl_info *));
  void tomoyo_check_profile(void);
  void tomoyo_convert_time(time_t time, struct tomoyo_time *stamp);
@@ -997,7 +997,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
  void tomoyo_init_policy_namespace(struct tomoyo_policy_namespace *ns);
  void tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
-@@ -710,6 +925,8 @@ void tomoyo_write_log2(struct tomoyo_req
+@@ -707,6 +922,8 @@ void tomoyo_write_log2(struct tomoyo_req
  /********** External variable definitions. **********/
  
  extern bool tomoyo_policy_loaded;
@@ -1006,7 +1006,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern const char * const tomoyo_dif[TOMOYO_MAX_DOMAIN_INFO_FLAGS];
  extern const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
  					      + TOMOYO_MAX_MAC_CATEGORY_INDEX];
-@@ -719,6 +936,7 @@ extern const u8 tomoyo_index2category[TO
+@@ -716,6 +933,7 @@ extern const u8 tomoyo_index2category[TO
  extern const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION];
  extern const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION];
  extern const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION];
@@ -1014,7 +1014,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern struct list_head tomoyo_domain_list;
  extern struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
  extern struct list_head tomoyo_namespace_list;
-@@ -754,6 +972,36 @@ static inline void tomoyo_read_unlock(in
+@@ -751,6 +969,36 @@ static inline void tomoyo_read_unlock(in
  }
  
  /**
@@ -1051,7 +1051,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_pathcmp - strcmp() for "struct tomoyo_path_info" structure.
   *
   * @a: Pointer to "struct tomoyo_path_info".
-@@ -784,6 +1032,19 @@ static inline void tomoyo_put_name(const
+@@ -781,6 +1029,19 @@ static inline void tomoyo_put_name(const
  }
  
  /**

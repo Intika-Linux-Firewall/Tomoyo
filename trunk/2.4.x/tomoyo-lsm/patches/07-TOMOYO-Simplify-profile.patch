@@ -8,10 +8,10 @@ temporarily disabled. They will be replaced by
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  203 +++++++++++++++--------------------------------
+ security/tomoyo/common.c |  205 +++++++++++++++--------------------------------
  security/tomoyo/common.h |    7 +
- security/tomoyo/util.c   |   39 +--------
- 3 files changed, 82 insertions(+), 167 deletions(-)
+ security/tomoyo/util.c   |   39 +-------
+ 3 files changed, 83 insertions(+), 168 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -338,6 +338,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			head->r.index++;
  			head->r.step = 1;
  		}
+@@ -1778,7 +1711,7 @@ static int tomoyo_write_answer(struct to
+ static void tomoyo_read_version(struct tomoyo_io_buffer *head)
+ {
+ 	if (!head->r.eof) {
+-		tomoyo_io_printf(head, "2.3.0");
++		tomoyo_io_printf(head, "2.4.0");
+ 		head->r.eof = true;
+ 	}
+ }
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
 @@ -211,6 +211,12 @@ enum tomoyo_mac_category_index {

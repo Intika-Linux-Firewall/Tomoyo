@@ -1,15 +1,15 @@
 Subject: TOMOYO: Make several options configurable.
 
 To be able to start using enforcing mode from the early stage of boot sequence,
-this patch adds adds support for activating access control without calling
-external policy loader program. This will be useful for systems where
-operations which can lead to the hijacking of the boot sequence are needed
-before loading the policy. For example, you can activate immediately after
-loading the fixed part of policy which will allow only operations needed for
-mounting a partition which contains the variant part of policy and verifying
-(e.g. running GPG check) and loading the variant part of policy. Since you can
-start using enforcing mode from the beginning, you can reduce the possibility
-of hijacking the boot sequence.
+this patch adds support for activating access control without calling external
+policy loader program. This will be useful for systems where operations which
+can lead to the hijacking of the boot sequence are needed before loading the
+policy. For example, you can activate immediately after loading the fixed part
+of policy which will allow only operations needed for mounting a partition
+which contains the variant part of policy and verifying (e.g. running GPG
+check) and loading the variant part of policy. Since you can start using
+enforcing mode from the beginning, you can reduce the possibility of hijacking
+the boot sequence.
 
 This patch makes several variables configurable on build time. This patch also
 adds TOMOYO_loader= and TOMOYO_trigger= kernel command line option to boot the
@@ -92,7 +92,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	  want to also pass TOMOYO_trigger=/bin/systemd option.
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -2431,4 +2431,7 @@ void __init tomoyo_load_builtin_policy(v
+@@ -2421,4 +2421,7 @@ void __init tomoyo_load_builtin_policy(v
  		}
  	}
  	tomoyo_read_unlock(idx);
