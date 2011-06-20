@@ -56,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +$(obj)/common.o: $(obj)/builtin-policy.h
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -2372,3 +2372,63 @@ void tomoyo_check_profile(void)
+@@ -2362,3 +2362,63 @@ void tomoyo_check_profile(void)
  	tomoyo_read_unlock(idx);
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  }
@@ -122,7 +122,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -665,6 +665,7 @@ const struct tomoyo_path_info *tomoyo_ge
+@@ -662,6 +662,7 @@ const struct tomoyo_path_info *tomoyo_ge
  void tomoyo_convert_time(time_t time, struct tomoyo_time *stamp);
  void tomoyo_update_stat(const u8 index);
  void __init tomoyo_mm_init(void);
