@@ -7,21 +7,16 @@ program).
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/Makefile   |   36 +++++++++++++++++++++++++++
- security/tomoyo/common.c   |   60 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h   |    1 
- security/tomoyo/memory.c   |   10 -------
- security/tomoyo/tomoyo2c.c |   45 +++++++++++++++++++++++++++++++++
- 5 files changed, 142 insertions(+), 10 deletions(-)
+ security/tomoyo/Makefile |   47 ++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c |   60 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h |    1 
+ security/tomoyo/memory.c |   10 -------
+ 4 files changed, 108 insertions(+), 10 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
-@@ -1 +1,37 @@
+@@ -1 +1,48 @@
  obj-y = audit.o common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
-+
-+$(obj)/tomoyo2c: $(obj)/tomoyo2c.c
-+	@echo Compiling built-in policy generator for TOMOYO 2.4.x.
-+	@$(HOSTCC) $(HOSTCFLAGS) -o $(obj)/tomoyo2c $(obj)/tomoyo2c.c
 +
 +$(obj)/policy/profile.conf:
 +	@mkdir -p $(obj)/policy/
@@ -29,29 +24,44 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	@touch $@
 +
 +$(obj)/policy/exception_policy.conf:
++	@mkdir -p $(obj)/policy/
 +	@echo Creating a default policy/exception_policy.conf
 +	@echo initialize_domain /sbin/modprobe from any >> $@
 +	@echo initialize_domain /sbin/hotplug from any >> $@
 +
 +$(obj)/policy/domain_policy.conf:
++	@mkdir -p $(obj)/policy/
 +	@echo Creating an empty policy/domain_policy.conf
 +	@touch $@
 +
 +$(obj)/policy/manager.conf:
++	@mkdir -p $(obj)/policy/
 +	@echo Creating an empty policy/manager.conf
 +	@touch $@
 +
 +$(obj)/policy/stat.conf:
++	@mkdir -p $(obj)/policy/
 +	@echo Creating an empty policy/stat.conf
 +	@touch $@
 +
-+$(obj)/builtin-policy.h: $(obj)/policy/profile.conf $(obj)/policy/exception_policy.conf $(obj)/policy/domain_policy.conf $(obj)/policy/manager.conf $(obj)/policy/stat.conf $(obj)/tomoyo2c
++$(obj)/builtin-policy.h: $(obj)/policy/profile.conf $(obj)/policy/exception_policy.conf $(obj)/policy/domain_policy.conf $(obj)/policy/manager.conf $(obj)/policy/stat.conf
 +	@echo Generating built-in policy for TOMOYO 2.4.x.
-+	@$(obj)/tomoyo2c profile < $(obj)/policy/profile.conf > $@
-+	@$(obj)/tomoyo2c exception_policy < $(obj)/policy/exception_policy.conf >> $@
-+	@$(obj)/tomoyo2c domain_policy < $(obj)/policy/domain_policy.conf >> $@
-+	@$(obj)/tomoyo2c manager < $(obj)/policy/manager.conf >> $@
-+	@$(obj)/tomoyo2c stat < $(obj)/policy/stat.conf >> $@
++	@echo "static char tomoyo_builtin_profile[] __initdata = " > $@.tmp
++	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/profile.conf >> $@.tmp
++	@echo "\"\";" >> $@.tmp
++	@echo "static char tomoyo_builtin_exception_policy[] __initdata =" >> $@.tmp
++	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/exception_policy.conf >> $@.tmp
++	@echo "\"\";" >> $@.tmp
++	@echo "static char tomoyo_builtin_domain_policy[] __initdata =" >> $@.tmp
++	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/domain_policy.conf >> $@.tmp
++	@echo "\"\";" >> $@.tmp
++	@echo "static char tomoyo_builtin_manager[] __initdata =" >> $@.tmp
++	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/manager.conf >> $@.tmp
++	@echo "\"\";" >> $@.tmp
++	@echo "static char tomoyo_builtin_stat[] __initdata =" >> $@.tmp
++	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/stat.conf >> $@.tmp
++	@echo "\"\";" >> $@.tmp
++	@mv $@.tmp $@
 +
 +$(obj)/common.o: $(obj)/builtin-policy.h
 --- security-testing-2.6.orig/security/tomoyo/common.c
@@ -147,51 +157,3 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	}
 -#endif
  }
---- /dev/null
-+++ security-testing-2.6/security/tomoyo/tomoyo2c.c
-@@ -0,0 +1,45 @@
-+/*
-+ * tomoyo2c.c
-+ *
-+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
-+ *
-+ * This program converts policy for TOMOYO 2.4.x to C source.
-+ */
-+#include <stdio.h>
-+
-+int main(int argc, char *argv[])
-+{
-+	_Bool newline = 0;
-+	int c;
-+	if (argc != 2) {
-+		fprintf(stderr, "%s name\n", argv[0]);
-+		return 1;
-+	}
-+	printf("static char tomoyo_builtin_%s[] __initdata =\n", argv[1]);
-+	putchar('"');
-+	while ((c = fgetc(stdin)) != EOF) {
-+		if (newline)
-+			putchar('"');
-+		newline = 0;
-+		if (c == '\\') {
-+			putchar('\\');
-+			putchar('\\');
-+		} else if (c == '"') {
-+			putchar('\\');
-+			putchar('"');
-+		} else if (c == '\n') {
-+			putchar('\\');
-+			putchar('n');
-+			putchar('"');
-+			putchar('\n');
-+			newline = 1;
-+		} else {
-+			putchar(c);
-+		}
-+	}
-+	if (!newline)
-+		putchar('"');
-+	putchar(';');
-+	putchar('\n');
-+	return 0;
-+}

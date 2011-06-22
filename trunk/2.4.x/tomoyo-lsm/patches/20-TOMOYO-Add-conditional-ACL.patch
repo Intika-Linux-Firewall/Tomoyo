@@ -26,8 +26,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -obj-y = audit.o common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
 +obj-y = audit.o common.o condition.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
  
- $(obj)/tomoyo2c: $(obj)/tomoyo2c.c
- 	@echo Compiling built-in policy generator for TOMOYO 2.4.x.
+ $(obj)/policy/profile.conf:
+ 	@mkdir -p $(obj)/policy/
 --- security-testing-2.6.orig/security/tomoyo/audit.c
 +++ security-testing-2.6/security/tomoyo/audit.c
 @@ -10,6 +10,133 @@
