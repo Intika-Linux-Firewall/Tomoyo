@@ -16,38 +16,50 @@ export-objs := load_policy.o
 endif
 include $(TOPDIR)/Rules.make
 
-tomoyo2c: tomoyo2c.c
-	@echo Compiling built-in policy generator for TOMOYO 1.8.x.
-	@$(HOSTCC) $(HOSTCFLAGS) -o ./tomoyo2c tomoyo2c.c
-
 policy/profile.conf:
+	@mkdir -p policy/
 	@echo Creating an empty policy/profile.conf
 	@touch $@
 
 policy/exception_policy.conf:
+	@mkdir -p policy/
 	@echo Creating a default policy/exception_policy.conf
 	@echo initialize_domain /sbin/modprobe from any >> $@
 	@echo initialize_domain /sbin/hotplug from any >> $@
 
 policy/domain_policy.conf:
+	@mkdir -p policy/
 	@echo Creating an empty policy/domain_policy.conf
 	@touch $@
 
 policy/manager.conf:
+	@mkdir -p policy/
 	@echo Creating an empty policy/manager.conf
 	@touch $@
 
 policy/stat.conf:
+	@mkdir -p policy/
 	@echo Creating an empty policy/stat.conf
 	@touch $@
 
-builtin-policy.h: policy/profile.conf policy/exception_policy.conf policy/domain_policy.conf policy/manager.conf policy/stat.conf tomoyo2c
+builtin-policy.h: policy/profile.conf policy/exception_policy.conf policy/domain_policy.conf policy/manager.conf policy/stat.conf
 	@echo Generating built-in policy for TOMOYO 1.8.x.
-	@./tomoyo2c profile < policy/profile.conf > $@
-	@./tomoyo2c exception_policy < policy/exception_policy.conf >> $@
-	@./tomoyo2c domain_policy < policy/domain_policy.conf >> $@
-	@./tomoyo2c manager < policy/manager.conf >> $@
-	@./tomoyo2c stat < policy/stat.conf >> $@
+	@echo "static char ccs_builtin_profile[] __initdata = " > $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/profile.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_exception_policy[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/exception_policy.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_domain_policy[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/domain_policy.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_manager[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/manager.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_stat[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/stat.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@mv $@.tmp $@
 
 policy_io.o: builtin-policy.h
 
@@ -60,38 +72,50 @@ else
 obj-y += ccsecurity.o
 endif
 
-$(obj)/tomoyo2c: $(obj)/tomoyo2c.c
-	@echo Compiling built-in policy generator for TOMOYO 1.8.x.
-	@$(HOSTCC) $(HOSTCFLAGS) -o $(obj)/tomoyo2c $(obj)/tomoyo2c.c
-
 $(obj)/policy/profile.conf:
+	@mkdir -p $(obj)/policy/
 	@echo Creating an empty policy/profile.conf
 	@touch $@
 
 $(obj)/policy/exception_policy.conf:
+	@mkdir -p $(obj)/policy/
 	@echo Creating a default policy/exception_policy.conf
 	@echo initialize_domain /sbin/modprobe from any >> $@
 	@echo initialize_domain /sbin/hotplug from any >> $@
 
 $(obj)/policy/domain_policy.conf:
+	@mkdir -p $(obj)/policy/
 	@echo Creating an empty policy/domain_policy.conf
 	@touch $@
 
 $(obj)/policy/manager.conf:
+	@mkdir -p $(obj)/policy/
 	@echo Creating an empty policy/manager.conf
 	@touch $@
 
 $(obj)/policy/stat.conf:
+	@mkdir -p $(obj)/policy/
 	@echo Creating an empty policy/stat.conf
 	@touch $@
 
-$(obj)/builtin-policy.h: $(obj)/policy/profile.conf $(obj)/policy/exception_policy.conf $(obj)/policy/domain_policy.conf $(obj)/policy/manager.conf $(obj)/policy/stat.conf $(obj)/tomoyo2c
+$(obj)/builtin-policy.h: $(obj)/policy/profile.conf $(obj)/policy/exception_policy.conf $(obj)/policy/domain_policy.conf $(obj)/policy/manager.conf $(obj)/policy/stat.conf
 	@echo Generating built-in policy for TOMOYO 1.8.x.
-	@$(obj)/tomoyo2c profile < $(obj)/policy/profile.conf > $@
-	@$(obj)/tomoyo2c exception_policy < $(obj)/policy/exception_policy.conf >> $@
-	@$(obj)/tomoyo2c domain_policy < $(obj)/policy/domain_policy.conf >> $@
-	@$(obj)/tomoyo2c manager < $(obj)/policy/manager.conf >> $@
-	@$(obj)/tomoyo2c stat < $(obj)/policy/stat.conf >> $@
+	@echo "static char ccs_builtin_profile[] __initdata = " > $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/profile.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_exception_policy[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/exception_policy.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_domain_policy[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/domain_policy.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_manager[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/manager.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@echo "static char ccs_builtin_stat[] __initdata =" >> $@.tmp
+	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/stat.conf >> $@.tmp
+	@echo "\"\";" >> $@.tmp
+	@mv $@.tmp $@
 
 $(obj)/policy_io.o: $(obj)/builtin-policy.h
 
