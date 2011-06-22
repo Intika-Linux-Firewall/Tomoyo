@@ -3156,6 +3156,8 @@ usage:
 	tomoyo_current_ns_len = strlen(tomoyo_current_ns);
 }
 
+static pid_t daemon_pid = 0;
+
 /**
  * tomoyo_load_offline - Load policy for offline mode.
  *
@@ -3181,7 +3183,8 @@ static void tomoyo_load_offline(void)
 	tomoyo_network_ip = addr.sin_addr.s_addr;
 	tomoyo_network_port = addr.sin_port;
 	tomoyo_network_mode = true;
-	switch (fork()) {
+	daemon_pid = fork();
+	switch (daemon_pid) {
 	case 0:
 		tomoyo_editpolicy_offline_daemon(fd);
 		_exit(0);
@@ -3316,6 +3319,8 @@ int main(int argc, char *argv[])
 	endwin();
 	if (tomoyo_offline_mode && !tomoyo_readonly_mode)
 		tomoyo_save_offline();
+	if (daemon_pid)
+		kill(daemon_pid, SIGHUP);
 	tomoyo_clear_domain_policy(&tomoyo_dp);
 	return 0;
 }
