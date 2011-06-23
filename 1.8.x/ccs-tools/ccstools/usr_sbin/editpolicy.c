@@ -1665,9 +1665,14 @@ static void ccs_read_domain_and_exception_policy(void)
 		ccs_get();
 		line = ccs_shprintf("%s", ccs_domain_name(&ccs_dp, index));
 		while (true) {
+			const int index2 = ccs_find_domain(&ccs_dp, line,
+							   false, false);
 			const struct ccs_transition_control_entry *d_t;
 			struct ccs_path_info parent;
 			char *cp = strrchr(line, ' ');
+			/* Stop traversal if current is jump target. */
+			if (index2 >= 0 && ccs_dp.list[index2].is_dit)
+				break;
 			if (cp)
 				*cp++ = '\0';
 			else
