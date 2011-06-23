@@ -70,7 +70,7 @@ static struct ccs_transition_control_entry *ccs_transition_control_list = NULL;
 static int ccs_transition_control_list_len = 0;
 /* Sort profiles by value? */
 static _Bool ccs_profile_sort_type = false;
-/* Number of domain initializer source domains. */
+/* Number of domain jump source domains. */
 static int ccs_unnumbered_domain_count = 0;
 /* Width of CUI screen. */
 static int ccs_window_width = 0;
@@ -112,8 +112,8 @@ static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
 static FILE *ccs_editpolicy_open_write(const char *filename);
 static _Bool ccs_deleted_domain(const int index);
 static _Bool ccs_domain_unreachable(const int index);
-static _Bool ccs_initializer_source(const int index);
-static _Bool ccs_initializer_target(const int index);
+static _Bool ccs_jump_source(const int index);
+static _Bool ccs_jump_target(const int index);
 static _Bool ccs_keeper_domain(const int index);
 static _Bool ccs_select_item(const int index);
 static _Bool ccs_show_command_key(const enum ccs_screen_type screen,
@@ -147,7 +147,7 @@ static int ccs_show_stat_line(const int index);
 static int ccs_string_acl_compare(const void *a, const void *b);
 static void ccs_add_entry(void);
 static void ccs_adjust_cursor_pos(const int item_count);
-static void ccs_assign_dis(const struct ccs_path_info *domainname,
+static void ccs_assign_djs(const struct ccs_path_info *domainname,
 			   const char *program, const bool is_root);
 static void ccs_copy_file(const char *source, const char *dest);
 static void ccs_delete_entry(const int index);
@@ -288,7 +288,7 @@ static int ccs_count3(const struct ccs_task_entry *array, int len)
 }
 
 /**
- * ccs_keeper_domain - Check whether the given domain is marked as "keep_domain".
+ * ccs_keeper_domain - Check whether the given domain is marked as keeper or not.
  *
  * @index: Index in the domain policy.
  *
@@ -301,33 +301,33 @@ static _Bool ccs_keeper_domain(const int index)
 }
 
 /**
- * ccs_initializer_source - Check whether the given domain is marked as "initialize_domain".
+ * ccs_jump_source - Check whether the given domain is marked as jump source or not.
  *
  * @index: Index in the domain policy.
  *
  * Returns true if the given domain is marked as "initialize_domain",
  * false otherwise.
  */
-static _Bool ccs_initializer_source(const int index)
+static _Bool ccs_jump_source(const int index)
 {
 	return ccs_dp.list[index].is_dis;
 }
 
 /**
- * ccs_initializer_target - Check whether the given domain is a target of "initialize_domain".
+ * ccs_jump_target - Check whether the given domain is marked as jump target or not.
  *
  * @index: Index in the domain policy.
  *
  * Returns true if the given domain is a target of "initialize_domain",
  * false otherwise.
  */
-static _Bool ccs_initializer_target(const int index)
+static _Bool ccs_jump_target(const int index)
 {
 	return ccs_dp.list[index].is_dit;
 }
 
 /**
- * ccs_domain_unreachable - Check whether the given domain is unreachable or not.
+ * ccs_domain_unreachable - Check whether the given domain is marked as unreachable or not.
  *
  * @index: Index in the domain policy.
  *
@@ -434,13 +434,13 @@ static int ccs_add_path_group_policy(char *data, const _Bool is_delete)
 }
 
 /**
- * ccs_assign_dis - Assign domain initializer source domain.
+ * ccs_assign_djs - Assign domain jump source domain.
  *
  * @domainname: Pointer to "const struct ccs_path_info".
  * @program:    Program name.
  * @is_root:    True if root of namespace, false otherwise.
  */
-static void ccs_assign_dis(const struct ccs_path_info *domainname,
+static void ccs_assign_djs(const struct ccs_path_info *domainname,
 			   const char *program, const bool is_root)
 {
 	const struct ccs_transition_control_entry *d_t =
@@ -450,9 +450,10 @@ static void ccs_assign_dis(const struct ccs_path_info *domainname,
 	 * will become target domains. However, create them under root of
 	 * namespace anyway if namespace jump, for we need to indicate it.
 	 */
-	if (d_t && ((!is_root &&
-		     d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE) ||
-		    d_t->type == CCS_TRANSITION_CONTROL_RESET)) {
+	if (!d_t)
+		return;
+	if ((!is_root && d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE) ||
+	    d_t->type == CCS_TRANSITION_CONTROL_RESET) {
 		char *line;
 		int source;
 		ccs_get();
@@ -522,7 +523,7 @@ static int ccs_show_domain_line(const int index)
 	const char *sp;
 	const int number = ccs_dp.list[index].number;
 	int redirect_index;
-	const bool is_dis = ccs_initializer_source(index);
+	const bool is_djs = ccs_jump_source(index);
 	const bool is_deleted = ccs_deleted_domain(index);
 	if (number >= 0) {
 		printw("%c%4d:", ccs_dp.list_selected[index] ? '&' : ' ',
@@ -532,7 +533,7 @@ static int ccs_show_domain_line(const int index)
 		else
 			printw("???");
 		printw(" %c%c%c ", ccs_keeper_domain(index) ? '#' : ' ',
-		       ccs_initializer_target(index) ? '*' : ' ',
+		       ccs_jump_target(index) ? '*' : ' ',
 		       ccs_domain_unreachable(index) ? '!' : ' ');
 	} else
 		printw("              ");
@@ -557,7 +558,7 @@ static int ccs_show_domain_line(const int index)
 		tmp_col += 2;
 	}
 	transition_control = ccs_dp.list[index].d_t;
-	if (!transition_control || is_dis)
+	if (!transition_control || is_djs)
 		goto no_transition_control;
 	ccs_get();
 	line = ccs_shprintf(" ( %s%s from %s )",
@@ -571,7 +572,7 @@ static int ccs_show_domain_line(const int index)
 	ccs_put();
 	goto done;
 no_transition_control:
-	if (!is_dis)
+	if (!is_djs)
 		goto done;
 	ccs_get();
 	redirect_index = ccs_find_target_domain(index);
@@ -919,17 +920,10 @@ next:
 				= &ccs_transition_control_list[i];
 			if (ptr->type != type)
 				continue;
-			if (ptr->domainname) {
-				if (!ptr->is_last_name) {
-					if (ccs_pathcmp(ptr->domainname,
-							domainname))
-						continue;
-				} else {
-					if (ccs_pathcmp(ptr->domainname,
-							&last_name))
-						continue;
-				}
-			}
+			if (ptr->domainname &&
+			    ccs_pathcmp(ptr->domainname, domainname) &&
+			    ccs_pathcmp(ptr->domainname, &last_name))
+				continue;
 			if (ptr->program &&
 			    strcmp(ptr->program->name, program))
 				continue;
@@ -1182,18 +1176,13 @@ static int ccs_add_transition_control_entry
  const enum ccs_transition_type type)
 {
 	struct ccs_transition_control_entry *ptr;
-	_Bool is_last_name = false;
-	if (program && strcmp(program, "any")) {
+	if (program && strcmp(program, "any"))
 		if (!ccs_correct_path(program))
 			return -EINVAL;
-	}
-	if (domainname && strcmp(domainname, "any")) {
-		if (!ccs_correct_domain(domainname)) {
+	if (domainname && strcmp(domainname, "any"))
+		if (!ccs_correct_domain(domainname))
 			if (!ccs_correct_path(domainname))
 				return -EINVAL;
-			is_last_name = true;
-		}
-	}
 	ccs_transition_control_list =
 		ccs_realloc(ccs_transition_control_list,
 			    (ccs_transition_control_list_len + 1) *
@@ -1205,7 +1194,6 @@ static int ccs_add_transition_control_entry
 	if (domainname && strcmp(domainname, "any"))
 		ptr->domainname = ccs_savename(domainname);
 	ptr->type = type;
-	ptr->is_last_name = is_last_name;
 	return 0;
 }
 
@@ -1361,10 +1349,8 @@ static void ccs_parse_domain_line(char *line, const int index,
 			*cp = '\0';
 		if (*line == '@' || ccs_correct_path(line))
 			ccs_add_string_entry(&ccs_dp, line, index);
-	} else if (ccs_str_starts(line,
-				  "task auto_domain_transition ") ||
-		   ccs_str_starts(line,
-				  "task manual_domain_transition ")) {
+	} else if (ccs_str_starts(line, "task auto_domain_transition ") ||
+		   ccs_str_starts(line, "task manual_domain_transition ")) {
 		ccs_add_acl_domain_transition(line, index);
 	} else if (parse_flags) {
 		unsigned int profile;
@@ -1380,12 +1366,11 @@ static void ccs_parse_domain_line(char *line, const int index,
 /**
  * ccs_parse_exception_line - Parse an ACL entry in exception policy.
  *
- * @line:      Line to parse.
- * @max_index: Number of domains currently defined.
+ * @line: Line to parse.
  *
  * Returns nothing.
  */
-static void ccs_parse_exception_line(char *line, const int max_index)
+static void ccs_parse_exception_line(char *line)
 {
 	unsigned int group;
 	for (group = 0; group < CCS_MAX_TRANSITION_TYPE; group++) {
@@ -1402,10 +1387,11 @@ static void ccs_parse_exception_line(char *line, const int max_index)
 		ccs_add_number_group_policy(line, false);
 	else if (sscanf(line, "acl_group %u", &group) == 1 && group < 256) {
 		int index;
-		char *cp = strchr(line + 10, ' ');
-		if (cp)
-			line = cp + 1;
-		for (index = 0; index < max_index; index++) {
+		line = strchr(line + 10, ' ');
+		if (!line++)
+			return;
+		for (index = 0; index < ccs_dp.list_len; index++) {
+			char *cp;
 			if (ccs_dp.list[index].group != group)
 				continue;
 			cp = ccs_strdup(line);
@@ -1420,7 +1406,7 @@ static void ccs_parse_exception_line(char *line, const int max_index)
  *
  * Returns nothing.
  *
- * Since CUI policy editor screen shows domain initializer source domains and
+ * Since CUI policy editor screen shows domain jump source domains and
  * unreachable domains, we need to read not only the domain policy but also
  * the exception policy for printing the domain transition tree.
  */
@@ -1477,8 +1463,6 @@ static void ccs_read_domain_and_exception_policy(void)
 		fclose(fp);
 	}
 
-	max_index = ccs_dp.list_len;
-
 	/* Load domain transition related entries and group entries. */
 	fp = NULL;
 	if (ccs_network_mode)
@@ -1509,53 +1493,93 @@ static void ccs_read_domain_and_exception_policy(void)
 					continue;
 				memmove(line, cp, strlen(cp) + 1);
 			}
-			ccs_parse_exception_line(line, max_index);
+			ccs_parse_exception_line(line);
 		}
 		ccs_put();
 		fclose(fp);
 	}
 
 	/*
-	 * Find unreachable domains.
+	 * Domain jump sources by "task manual_domain_transition" keyword or
+	 * "task auto_domain_transition" keyword or "auto_domain_transition="
+	 * part of conditional ACL have been created by now because these
+	 * keywords must not refer "path_group" keyword.
 	 *
-	 * This is calculated based on "initialize_domain" and "keep_domain"
-	 * keywords. However, since "task auto_domain_transition" and "task
-	 * manual_domain_transition" keywords and "auto_domain_transition="
-	 * condition are not subjected to "initialize_domain" and "keep_domain"
-	 * keywords, we need to adjust later.
+	 * FIXME: Recognize domain transition across namespaces. To do so, I
+	 * need to remember not only domain policy and exception policy for
+	 * current namespace but also domain policy and exception policy for
+	 * all namespaces.
+	 *
+	 * Create domain jump sources for "task auto_execute_handler" keyword
+	 * or "task denied_execute_handler" keyword or "file execute" keyword
+	 * now because these keywords may refer "path_group" keyword.
 	 */
+	max_index = ccs_dp.list_len;
 	for (index = 0; index < max_index; index++) {
-		char *line;
-		ccs_get();
-		line = ccs_shprintf("%s", ccs_domain_name(&ccs_dp, index));
-		while (true) {
-			const struct ccs_transition_control_entry *d_t;
-			struct ccs_path_info parent;
-			char *cp = strrchr(line, ' ');
-			if (!cp)
-				break;
-			*cp++ = '\0';
-			parent.name = line;
-			ccs_fill_path_info(&parent);
-			d_t = ccs_transition_control(&parent, cp);
-			if (!d_t)
-				continue;
-			/* Initializer under root of namespace is reachable. */
-			if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE &&
-			    !strchr(parent.name, ' '))
-				break;
-			ccs_dp.list[index].d_t = d_t;
+		const struct ccs_path_info *domainname
+			= ccs_dp.list[index].domainname;
+		const struct ccs_path_info **string_ptr
+			= ccs_dp.list[index].string_ptr;
+		const int max_count = ccs_dp.list[index].string_count;
+		const bool is_root = !strchr(domainname->name, ' ');
+		/* Do not recursively create domain jump source. */
+		if (ccs_dp.list[index].is_dis)
 			continue;
+		for (i = 0; i < max_count; i++) {
+			const struct ccs_path_info *cp = string_ptr[i];
+			struct ccs_path_group_entry *group;
+			if (cp->name[0] != '@') {
+				ccs_assign_djs(domainname, cp->name, is_root);
+				continue;
+			}
+			group = ccs_find_path_group(cp->name + 1);
+			if (!group)
+				continue;
+			for (j = 0; j < group->member_name_len; j++) {
+				cp = group->member_name[j];
+				ccs_assign_djs(domainname, cp->name, is_root);
+			}
 		}
-		ccs_put();
-		if (ccs_dp.list[index].d_t)
-			ccs_dp.list[index].is_du = true;
 	}
 
-	/* Find domain initializer target domains. */
+	/*
+	 * Real domains and domain jump sources have been created by now. Let's
+	 * calculate domain jump targets and unreachable domains and missing
+	 * domains.
+	 */
+	max_index = ccs_dp.list_len;
+
+	/*
+	 * Find real domains that might be reachable via
+	 * "task manual_domain_transition" keyword or
+	 * "task auto_domain_transition" keyword or
+	 * "auto_domain_transition=" part of conditional ACL.
+	 * Such domains are marked with '*'.
+	 */
+	for (i = 0; i < ccs_jump_list_len; i++) {
+		const int index = ccs_find_domain(&ccs_dp, ccs_jump_list[i],
+						  false, false);
+		if (index == EOF)
+			continue;
+		ccs_dp.list[index].is_dit = true;
+	}
+
+	/*
+	 * Find real domains that might be reachable via "initialize_domain"
+	 * keyword. Such domains are marked with '*'.
+	 */
 	for (index = 0; index < max_index; index++) {
-		char *cp = strchr(ccs_domain_name(&ccs_dp, index), ' ');
-		if (!cp || strchr(cp + 1, ' '))
+		const struct ccs_domain_info *domain = &ccs_dp.list[index];
+		char *cp;
+		/* Ignore domain jump sources. */
+		if (domain->is_dis)
+			continue;
+		/* Ignore if already marked as domain jump targets. */
+		if (domain->is_dit)
+			continue;
+		/* Ignore if not a namespace's root's child domain. */
+		cp = strchr(domain->domainname->name, ' ');
+		if (!cp++ || strchr(cp, ' '))
 			continue;
 		/* Check "no_initialize_domain $program from any" entry. */
 		for (i = 0; i < ccs_transition_control_list_len; i++) {
@@ -1565,7 +1589,7 @@ static void ccs_read_domain_and_exception_policy(void)
 				continue;
 			if (ptr->domainname)
 				continue;
-			if (ptr->program && strcmp(ptr->program->name, cp + 1))
+			if (ptr->program && strcmp(ptr->program->name, cp))
 				continue;
 			break;
 		}
@@ -1579,36 +1603,37 @@ static void ccs_read_domain_and_exception_policy(void)
 				= &ccs_transition_control_list[i];
 			if (ptr->type != CCS_TRANSITION_CONTROL_INITIALIZE)
 				continue;
-			if (ptr->program && strcmp(ptr->program->name, cp + 1))
+			if (ptr->program && strcmp(ptr->program->name, cp))
 				continue;
-			ccs_dp.list[index].is_dit = true;
+			break;
 		}
+		if (i < ccs_transition_control_list_len)
+			ccs_dp.list[index].is_dit = true;
 	}
 
-	/* Find domain keeper domains. */
+	/*
+	 * Find real domains that might suppress domain transition via
+	 * "keep_domain" keyword. Such domains are marked with '#'.
+	 */
 	for (index = 0; index < max_index; index++) {
-		const struct ccs_path_info *name =
-			ccs_dp.list[index].domainname;
+		const struct ccs_domain_info *domain = &ccs_dp.list[index];
+		const struct ccs_path_info *name = domain->domainname;
+		const char *last_name = ccs_get_last_word(name->name);
+		/* Ignore domain jump sources. */
+		if (domain->is_dis)
+			continue;
 		/* Check "no_keep_domain any from $domainname" entry. */
 		for (i = 0; i < ccs_transition_control_list_len; i++) {
 			struct ccs_transition_control_entry *ptr
 				= &ccs_transition_control_list[i];
-			char *cp;
 			if (ptr->type != CCS_TRANSITION_CONTROL_NO_KEEP)
 				continue;
 			if (ptr->program)
 				continue;
-			if (!ptr->is_last_name) {
-				if (ptr->domainname &&
-				    ccs_pathcmp(ptr->domainname, name))
-					continue;
+			if (!ptr->domainname ||
+			    !ccs_pathcmp(ptr->domainname, name) ||
+			    !strcmp(ptr->domainname->name, last_name))
 				break;
-			}
-			cp = strrchr(name->name, ' ');
-			if (!cp || (ptr->domainname &&
-				    strcmp(ptr->domainname->name, cp + 1)))
-				continue;
-			break;
 		}
 		if (i < ccs_transition_control_list_len)
 			continue;
@@ -1616,61 +1641,46 @@ static void ccs_read_domain_and_exception_policy(void)
 		for (i = 0; i < ccs_transition_control_list_len; i++) {
 			struct ccs_transition_control_entry *ptr
 				= &ccs_transition_control_list[i];
-			char *cp;
 			if (ptr->type != CCS_TRANSITION_CONTROL_KEEP)
 				continue;
-			if (!ptr->is_last_name) {
-				if (ptr->domainname &&
-				    ccs_pathcmp(ptr->domainname, name))
-					continue;
-				ccs_dp.list[index].is_dk = true;
-				continue;
-			}
-			cp = strrchr(name->name, ' ');
-			if (!cp || (ptr->domainname &&
-				    strcmp(ptr->domainname->name, cp + 1)))
-				continue;
+			if (!ptr->domainname ||
+			    !ccs_pathcmp(ptr->domainname, name) ||
+			    !strcmp(ptr->domainname->name, last_name))
+				break;
+		}
+		if (i < ccs_transition_control_list_len)
 			ccs_dp.list[index].is_dk = true;
-		}
 	}
 
-	/* Create domain initializer source domains. */
+	/* Find unreachable domains. Such domains are marked with '!'. */
 	for (index = 0; index < max_index; index++) {
-		const struct ccs_path_info *domainname
-			= ccs_dp.list[index].domainname;
-		const struct ccs_path_info **string_ptr
-			= ccs_dp.list[index].string_ptr;
-		const int max_count = ccs_dp.list[index].string_count;
-		const bool is_root = !strchr(domainname->name, ' ');
-		for (i = 0; i < max_count; i++) {
-			const struct ccs_path_info *cp = string_ptr[i];
-			struct ccs_path_group_entry *group;
-			if (cp->name[0] != '@') {
-				ccs_assign_dis(domainname, cp->name, is_root);
-				continue;
-			}
-			group = ccs_find_path_group(cp->name + 1);
-			if (!group)
-				continue;
-			for (j = 0; j < group->member_name_len; j++) {
-				cp = group->member_name[j];
-				ccs_assign_dis(domainname, cp->name, is_root);
-			}
-		}
-	}
-
-	/*
-	 * Create domain jump target domains.
-	 * This may reset unreachable domains.
-	 */
-	for (i = 0; i < ccs_jump_list_len; i++) {
-		const int index = ccs_find_domain(&ccs_dp, ccs_jump_list[i],
-						  false, false);
-		if (index == EOF)
+		char *line;
+		const struct ccs_domain_info *domain = &ccs_dp.list[index];
+		/* Ignore domain jump sources. */
+		if (domain->is_dis)
 			continue;
-		ccs_dp.list[index].is_dit = true;
-		ccs_dp.list[index].d_t = NULL;
-		ccs_dp.list[index].is_du = false;
+		/* Ignore if domain jump targets. */
+		if (domain->is_dit)
+			continue;
+		ccs_get();
+		line = ccs_shprintf("%s", ccs_domain_name(&ccs_dp, index));
+		while (true) {
+			const struct ccs_transition_control_entry *d_t;
+			struct ccs_path_info parent;
+			char *cp = strrchr(line, ' ');
+			if (cp)
+				*cp++ = '\0';
+			else
+				break;
+			parent.name = line;
+			ccs_fill_path_info(&parent);
+			d_t = ccs_transition_control(&parent, cp);
+			if (d_t)
+				ccs_dp.list[index].d_t = d_t;
+		}
+		ccs_put();
+		if (ccs_dp.list[index].d_t)
+			ccs_dp.list[index].is_du = true;
 	}
 
 	/* Create missing parent domains. */
@@ -1702,7 +1712,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		ccs_unnumbered_domain_count = 0;
 		for (index = 0; index < ccs_dp.list_len; index++) {
 			if (ccs_deleted_domain(index) ||
-			    ccs_initializer_source(index)) {
+			    ccs_jump_source(index)) {
 				ccs_dp.list[index].number = -1;
 				ccs_unnumbered_domain_count++;
 			} else {
@@ -2112,7 +2122,7 @@ static _Bool ccs_select_item(const int index)
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (!ccs_domain_sort_type) {
 			if (ccs_deleted_domain(index) ||
-			    ccs_initializer_source(index))
+			    ccs_jump_source(index))
 				return false;
 			ccs_dp.list_selected[index] ^= 1;
 		} else {
@@ -2578,7 +2588,7 @@ static _Bool ccs_select_acl_window(const int current)
 	ccs_current_pid = 0;
 	if (ccs_domain_sort_type) {
 		ccs_current_pid = ccs_task_list[current].pid;
-	} else if (ccs_initializer_source(current)) {
+	} else if (ccs_jump_source(current)) {
 		struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
 		const int redirect_index = ccs_find_target_domain(current);
 		if (redirect_index >= 0) {
@@ -2633,7 +2643,7 @@ static enum ccs_screen_type ccs_select_window(const int current)
 	printw("e     <<< Exception Policy Editor >>>\n");
 	printw("d     <<< Domain Transition Editor >>>\n");
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST && current != EOF &&
-	    !ccs_initializer_source(current) && !ccs_deleted_domain(current))
+	    !ccs_jump_source(current) && !ccs_deleted_domain(current))
 		printw("a     <<< Domain Policy Editor >>>\n");
 	printw("p     <<< Profile Editor >>>\n");
 	printw("m     <<< Manager Policy Editor >>>\n");
@@ -2696,12 +2706,12 @@ static void ccs_copy_mark_state(const int current)
 		} else {
 			const u8 selected = ccs_dp.list_selected[current];
 			if (ccs_deleted_domain(current) ||
-			    ccs_initializer_source(current))
+			    ccs_jump_source(current))
 				return;
 			for (index = current; index < ccs_dp.list_len;
 			     index++) {
 				if (ccs_deleted_domain(index) ||
-				    ccs_initializer_source(index))
+				    ccs_jump_source(index))
 					continue;
 				ccs_dp.list_selected[index] = selected;
 			}
