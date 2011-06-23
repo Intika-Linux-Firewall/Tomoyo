@@ -1,3 +1,29 @@
+Package: linux-restricted-modules-2.6.28-19-ccs
+Priority: optional
+Section: base
+Installed-Size: 2364
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-restricted-modules
+Version: 2.6.28-19.24
+Depends: linux-image-2.6.28-19-ccs, linux-restricted-modules-common
+Pre-Depends: dpkg (>= 1.10.24)
+Filename: ./linux-restricted-modules-2.6.28-19-ccs1.8.2_2.6.28-19.24_i386.deb
+Size: 851502
+MD5sum: c54b1f5f173373bfca86c1efbd91999d
+SHA1: 8bd1182b272eca26aa208f3d8c5ae4d35972ca1c
+SHA256: df536c7b49964179aa2399cb30ebb78e43d63cb7caca398efd7d73325931238f
+Description: Non-free Linux kernel modules for version 2.6.28 on x86/x86_64
+ This package provides restricted modules for Linux version 2.6.28 on
+ x86/x86_64.
+ .
+ These modules are "restricted" because they are not available under a
+ completely Free licence.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-restricted-modules-ccs meta-package, which will ensure that
+ upgrades work correctly, and that supporting packages are also installed.
+
 Package: linux-headers-ccs
 Priority: optional
 Section: devel
@@ -7,59 +33,19 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.28.19.24
 Depends: linux-headers-2.6.28-19-ccs
-Filename: ./linux-headers-ccs1.8.1p3_2.6.28.19.24_i386.deb
+Filename: ./linux-headers-ccs1.8.2_2.6.28.19.24_i386.deb
 Size: 3668
-MD5sum: 480f33fe1a426102a775d2687ff777f8
-SHA1: a0a5e6dbccb91fece5b79f1c3a9f3c8716488d6d
-SHA256: 6ee1fc6c5c8e3929210e4025743cb52496f22d95e5f7b5c732dea516a671ecfb
+MD5sum: 2cedd4fe320285fa673d6b39b67be06b
+SHA1: eecff762e6e60f6bf3b8d433d957c3f09fb5a86d
+SHA256: 9b4549e0792a41c4942786f6d1b9e78eae3f223aedcb69aa52cd5caf0e60822e
 Description: Generic Linux kernel headers
  This package will always depend on the latest ccs kernel headers
  available.
 
-Package: linux-ccs
-Priority: optional
-Section: restricted/metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.28.19.24
-Depends: linux-image-ccs (= 2.6.28.19.24), linux-restricted-modules-ccs (= 2.6.28.19.24)
-Filename: ./linux-ccs1.8.1p3_2.6.28.19.24_i386.deb
-Size: 3694
-MD5sum: c828c5a8c40ec122c8b0db71ac7e895a
-SHA1: c3656732fee1fca854c5fe174ff0a0add45c915a
-SHA256: d004740891105ca1ce6497799033aad0d6372dfa905140528bde9af596148167
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete ccs Linux kernel
- available.
-
-Package: linux-headers-2.6.28-19-ccs
-Priority: optional
-Section: devel
-Installed-Size: 8268
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.28-19.66
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.28-19, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.28-19-ccs1.8.1p3_2.6.28-19.66_i386.deb
-Size: 757066
-MD5sum: 1156cf9d796c5449be871739b1cd4d22
-SHA1: a58c85cb14f408358aabf4ea1cfefd787b268bdf
-SHA256: 75a34f43feaa380e1e4636c46b0e6605f71d60dd9c8a5cb54ad20469adfca189
-Description: Linux kernel headers for version 2.6.28 on x86/x86_64
- This package provides kernel header files for version 2.6.28 on
- x86/x86_64.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.28-19/debian.README.gz for details.
-
 Package: linux-image-2.6.28-19-ccs
 Priority: optional
 Section: base
-Installed-Size: 93808
+Installed-Size: 93800
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
@@ -70,11 +56,11 @@ Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.28 | linux-source-2.6.28
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.28-19-ccs1.8.1p3_2.6.28-19.66_i386.deb
-Size: 28205404
-MD5sum: 526d4644786c725fae21c34027a63178
-SHA1: 2b3c38f659a20567f00039cb9c1cd2fbe4c85806
-SHA256: 2c3663f950c0a1ac86289152892ef717186b2c2fc80b1f114248534d9a70c2d0
+Filename: ./linux-image-2.6.28-19-ccs1.8.2_2.6.28-19.66_i386.deb
+Size: 28202422
+MD5sum: e4f6a6d97ca47347c27866eaf8333891
+SHA1: c6bc0042fc3540ed781080a11bcd7de1c05cd86c
+SHA256: b95da19a3738bbc42888bde66c8315bb182d4d3f66c8d2186370db40d295a76d
 Description: Linux kernel image for version 2.6.28 on x86/x86_64
  This package contains the Linux kernel image for version 2.6.28 on
  x86/x86_64.
@@ -91,50 +77,46 @@ Description: Linux kernel image for version 2.6.28 on x86/x86_64
  the linux-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-restricted-modules-2.6.28-19-ccs
-Priority: optional
-Section: base
-Installed-Size: 2364
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-restricted-modules
-Version: 2.6.28-19.24
-Depends: linux-image-2.6.28-19-ccs, linux-restricted-modules-common
-Pre-Depends: dpkg (>= 1.10.24)
-Filename: ./linux-restricted-modules-2.6.28-19-ccs1.8.1p3_2.6.28-19.24_i386.deb
-Size: 851506
-MD5sum: 602a3c1579da933ff4e75433701ed6e5
-SHA1: 9c82ea5ff40d51623dc4f491b896b4973500fb61
-SHA256: 80012773043bb152cded36a28d775bc75a55b5fe68d2abe2aa2d159dd474ada0
-Description: Non-free Linux kernel modules for version 2.6.28 on x86/x86_64
- This package provides restricted modules for Linux version 2.6.28 on
- x86/x86_64.
- .
- These modules are "restricted" because they are not available under a
- completely Free licence.
- .
- You likely do not want to install this package directly. Instead, install
- the linux-restricted-modules-ccs meta-package, which will ensure that
- upgrades work correctly, and that supporting packages are also installed.
-
 Package: ccs-tools
 Priority: extra
 Section: alien
-Installed-Size: 652
+Installed-Size: 684
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Version: 1.8.1-2
+Version: 1.8.2-1
 Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
-Filename: ./ccs-tools_1.8.1-2_i386.deb
-Size: 177398
-MD5sum: 57d855c9bf4bfbaca1d259c01d3893c0
-SHA1: 13a76dfec4fb7692dd52037662f31e13f298ffa0
-SHA256: 4d9ab17a54192f571985396e9e92f264843346811124b0e8b3c952b73ccc9480
+Filename: ./ccs-tools_1.8.2-1_i386.deb
+Size: 192324
+MD5sum: 1baeaeddc4faa3587c746ae83723c995
+SHA1: d2f2bf8cc1e746d4976a46402d889b5a53e34f8b
+SHA256: e85f9b8c2dd15a57ef71b29e7eedbd7819a752ae52bdabeefcd25d1a360e8041
 Description: Userspace tools for TOMOYO Linux 1.8.x
  This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
  Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
  .
  (Converted from a rpm package by alien version 8.73.)
+
+Package: linux-headers-2.6.28-19-ccs
+Priority: optional
+Section: devel
+Installed-Size: 8264
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.28-19.66
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.28-19, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
+Filename: ./linux-headers-2.6.28-19-ccs1.8.2_2.6.28-19.66_i386.deb
+Size: 751550
+MD5sum: d799ceeece9eeca96f21170537e98527
+SHA1: f488901a0ff351528feec99277f6357c5dba50dc
+SHA256: c9f58552c6c4248abf306cecff2fa74311ee7658c617c5abdc13345e903cc054
+Description: Linux kernel headers for version 2.6.28 on x86/x86_64
+ This package provides kernel header files for version 2.6.28 on
+ x86/x86_64.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.28-19/debian.README.gz for details.
 
 Package: linux-image-ccs
 Priority: optional
@@ -145,11 +127,11 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.28.19.24
 Depends: linux-image-2.6.28-19-ccs, linux-firmware
-Filename: ./linux-image-ccs1.8.1p3_2.6.28.19.24_i386.deb
-Size: 3676
-MD5sum: 8ca82658f8889c494a2c35e27bb00069
-SHA1: 377c749554aa1f39ea32da8fd7f232ed9c518814
-SHA256: 4c8ed869b9b118a7bb8136d8ec66373d2fba64f6818013c7d6037649ea9c8a89
+Filename: ./linux-image-ccs1.8.2_2.6.28.19.24_i386.deb
+Size: 3680
+MD5sum: 83ae6c18642af07a6dfdd73d8c53e35c
+SHA1: ab998dd380ef2db8322f61eb32e4c6d0d81f9e80
+SHA256: f19dfde8c275436125770797e59f87ce5eb4d419be7f505b34a7d3a21ca80ec4
 Description: Generic Linux kernel image
  This package will always depend on the latest ccs kernel image
  available.
@@ -163,12 +145,30 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.28.19.24
 Depends: linux-restricted-modules-2.6.28-19-ccs
-Filename: ./linux-restricted-modules-ccs1.8.1p3_2.6.28.19.24_i386.deb
-Size: 3694
-MD5sum: 17c8546764824a9a1979597c345e2289
-SHA1: 3ad526f68c7a0dd1e5230a096e0630afc31e21c8
-SHA256: d346c10c483ff84a2204c88c2c955a50bddbe4c9c13fd89df535906106195c14
+Filename: ./linux-restricted-modules-ccs1.8.2_2.6.28.19.24_i386.deb
+Size: 3698
+MD5sum: 8faa053e458ca03d8b7b3dc5f458b20b
+SHA1: 92db552be93c6c709483b878ffb6eac18d8a3b18
+SHA256: 4026016cd048f6685e8a9961fd1e2aafe8ed48e2fd96079e75a5b560a9e63ce1
 Description: Restricted Linux modules for ccs kernels
  This package will always depend on the latest restricted modules available
  for ccs kernels.
+
+Package: linux-ccs
+Priority: optional
+Section: restricted/metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.28.19.24
+Depends: linux-image-ccs (= 2.6.28.19.24), linux-restricted-modules-ccs (= 2.6.28.19.24)
+Filename: ./linux-ccs1.8.2_2.6.28.19.24_i386.deb
+Size: 3698
+MD5sum: bc90d4163b813762e171941c21111f92
+SHA1: ff0f576013768f417c301f83a87d4423e6572da6
+SHA256: 78b8746fb90576389cd297be5ff910a9ade93d6da33746ab6db08177ec4ae044
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete ccs Linux kernel
+ available.
 
