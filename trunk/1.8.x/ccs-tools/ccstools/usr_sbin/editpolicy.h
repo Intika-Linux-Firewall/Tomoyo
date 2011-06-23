@@ -378,7 +378,6 @@ struct ccs_transition_control_entry {
 	const struct ccs_path_info *domainname;    /* This may be NULL */
 	const struct ccs_path_info *program;       /* This may be NULL */
 	u8 type;
-	_Bool is_last_name;
 };
 
 struct ccs_generic_acl {
