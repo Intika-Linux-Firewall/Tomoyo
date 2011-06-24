@@ -59,17 +59,20 @@ static struct ccs_number_group_entry *ccs_find_number_group
 (const char *group_name);
 
 /**
- * ccs_find_path_group - Find "path_group" entry.
+ * ccs_find_path_group_ns - Find "path_group" entry.
  *
+ * @ns:         Pointer to "const struct ccs_path_info".
  * @group_name: Name of path group.
  *
  * Returns pointer to "struct ccs_path_group_entry" if found, NULL otherwise.
  */
-struct ccs_path_group_entry *ccs_find_path_group(const char *group_name)
+struct ccs_path_group_entry *ccs_find_path_group_ns
+(const struct ccs_path_info *ns, const char *group_name)
 {
 	int i;
 	for (i = 0; i < ccs_path_group_list_len; i++) {
-		if (!strcmp(group_name,
+		if (!ccs_pathcmp(ccs_path_group_list[i].ns, ns) &&
+		    !strcmp(group_name,
 			    ccs_path_group_list[i].group_name->name))
 			return &ccs_path_group_list[i];
 	}
@@ -119,7 +122,7 @@ static _Bool ccs_compare_path(const char *sarg, const char *darg)
 		/* Pathname component. */
 		return ccs_path_matches_pattern(&d, &s);
 	/* path_group component. */
-	group = ccs_find_path_group(s.name + 1);
+	group = ccs_find_path_group_ns(ccs_current_ns, s.name + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
