@@ -1,6 +1,6 @@
 [PATCH] TOMOYO: Fix race on updating profile's comment line.
 
-commit 2a086e5d3a23570735f75b784d29b93068070833 in upstream.
+commit 2a086e5d3a23570735f75b784d29b93068070833 upstream.
 
 In tomoyo_write_profile() since 2.6.34, a lock was by error missing when
 replacing profile's comment line. If multiple threads attempted
@@ -17,8 +17,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.c |   12 ++++++++++--
  1 file changed, 10 insertions(+), 2 deletions(-)
 
---- linux-2.6.39.1.orig/security/tomoyo/common.c
-+++ linux-2.6.39.1/security/tomoyo/common.c
+--- linux-2.6.39.2.orig/security/tomoyo/common.c
++++ linux-2.6.39.2/security/tomoyo/common.c
 @@ -458,8 +458,16 @@ static int tomoyo_write_profile(struct t
  	if (profile == &tomoyo_default_profile)
  		return -EINVAL;
