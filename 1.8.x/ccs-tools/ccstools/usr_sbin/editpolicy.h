@@ -375,6 +375,7 @@ enum ccs_color_pair {
 };
 
 struct ccs_transition_control_entry {
+	const struct ccs_path_info *ns;
 	const struct ccs_path_info *domainname;    /* This may be NULL */
 	const struct ccs_path_info *program;       /* This may be NULL */
 	u8 type;
@@ -399,6 +400,7 @@ struct ccs_misc_policy {
 };
 
 struct ccs_path_group_entry {
+	const struct ccs_path_info *ns;
 	const struct ccs_path_info *group_name;
 	const struct ccs_path_info **member_name;
 	int member_name_len;
@@ -443,12 +445,36 @@ void ccs_editpolicy_offline_daemon(const int listener);
 void ccs_editpolicy_optimize(const int current);
 void ccs_editpolicy_sttr_restore(void);
 void ccs_editpolicy_sttr_save(void);
+struct ccs_path_group_entry *ccs_find_path_group_ns
+(const struct ccs_path_info *ns, const char *group_name);
+
+struct ccs_domain {
+	const struct ccs_path_info *domainname;
+	const struct ccs_path_info *target; /* This may be NULL */
+	const struct ccs_transition_control_entry *d_t; /* This may be NULL */
+	const struct ccs_path_info **string_ptr;
+	int string_count;
+	int number;   /* domain number (-1 if is_dis or is_dd) */
+	u8 profile;
+	_Bool is_dit; /* domain initializer target */
+	_Bool is_dk;  /* domain keeper */
+	_Bool is_du;  /* unreachable domain */
+	_Bool is_dd;  /* deleted domain */
+	u8 group;
+};
+
+struct ccs_domain_policy3 {
+	struct ccs_domain *list;
+	int list_len;
+	unsigned char *list_selected;
+};
 
 extern enum ccs_screen_type ccs_current_screen;
 extern int ccs_list_item_count;
 extern int ccs_path_group_list_len;
-extern struct ccs_domain_policy ccs_dp;
+extern struct ccs_domain_policy3 ccs_dp;
 extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
 extern struct ccs_generic_acl *ccs_gacl_list;
 extern struct ccs_path_group_entry *ccs_path_group_list;
 extern struct ccs_screen ccs_screen[CCS_MAXSCREEN];
+extern const struct ccs_path_info *ccs_current_ns;
