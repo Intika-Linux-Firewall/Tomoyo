@@ -456,11 +456,12 @@ struct ccs_domain {
 	int string_count;
 	int number;   /* domain number (-1 if target or is_dd) */
 	u8 profile;
+	u8 group;
 	_Bool is_djt; /* domain jump target */
 	_Bool is_dk;  /* domain keeper */
 	_Bool is_du;  /* unreachable domain */
 	_Bool is_dd;  /* deleted domain */
-	u8 group;
+	_Bool djt_nx; /* reachable by non execve(). */
 };
 
 struct ccs_domain_policy3 {

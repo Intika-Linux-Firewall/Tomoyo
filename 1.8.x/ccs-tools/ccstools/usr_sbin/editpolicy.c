@@ -80,7 +80,7 @@ static int ccs_window_height = 0;
 struct ccs_screen ccs_screen[CCS_MAXSCREEN] = { };
 /* Number of entries available on current screen. */
 int ccs_list_item_count = 0;
-/* Lines available for displaying ACL entries.  */
+/* Lines available for displaying ACL entries. */
 static int ccs_body_lines = 0;
 /* Columns to shift. */
 static int ccs_eat_col = 0;
@@ -1830,8 +1830,10 @@ static void ccs_read_domain_and_exception_policy(void)
 	for (i = 0; i < ccs_jump_list_len; i++) {
 		const int index = ccs_find_domain3(ccs_jump_list[i], NULL,
 						   false);
-		if (index >= 0)
+		if (index >= 0) {
 			ccs_dp.list[index].is_djt = true;
+			ccs_dp.list[index].djt_nx = true;
+		}
 	}
 
 	/*
@@ -1931,13 +1933,24 @@ static void ccs_read_domain_and_exception_policy(void)
 			ccs_dp.list[index].is_dk = true;
 	}
 
-	/* Find unreachable domains. Such domains are marked with '!'. */
+	/*
+	 * Find unreachable domains. Such domains are marked with '!'.
+	 *
+	 * Unreachable domains are caused by one of "initialize_domain" keyword
+	 * or "keep_domain" keyword or "reset_domain" keyword.
+	 *
+	 * Domains referred by one of "task manual_domain_transition" keyword
+	 * or "task auto_domain_transition" keyword or
+	 * "auto_domain_transition=" part of conditional ACL are always
+	 * reachable.
+	 */
 	for (index = 0; index < max_index; index++) {
 		char *line;
 		struct ccs_domain *domain = &ccs_dp.list[index];
 		/*
 		 * Mark domain jump source as unreachable if domain jump target
-		 * does not exist.
+		 * does not exist. Note that such domains are not marked with
+		 * '!'.
 		 */
 		if (domain->target) {
 			if (ccs_find_domain3(domain->target->name, NULL,
@@ -1946,7 +1959,7 @@ static void ccs_read_domain_and_exception_policy(void)
 			continue;
 		}
 		/* Ignore if domain jump targets. */
-		if (domain->is_djt)
+		if (domain->djt_nx)
 			continue;
 		ns = ccs_get_ns(ccs_dp.list[index].domainname->name);
 		ccs_get();
@@ -1955,8 +1968,8 @@ static void ccs_read_domain_and_exception_policy(void)
 			const int index2 = ccs_find_domain3(line, NULL, false);
 			const struct ccs_transition_control_entry *d_t;
 			char *cp;
-			/* Stop traversal if current is jump target. */
-			if (index2 >= 0 && ccs_dp.list[index2].is_djt)
+			/* Stop traversal if current is domain jump target. */
+			if (index2 >= 0 && ccs_dp.list[index2].djt_nx)
 				break;
 			cp = strrchr(line, ' ');
 			if (cp)
