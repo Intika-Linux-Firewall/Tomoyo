@@ -4391,6 +4391,8 @@ static void ccs_read_group(const struct ccs_policy_namespace *ns)
 		list_for_each_entry(ptr, &group->member_list, list) {
 			if (group->ns != ns)
 				continue;
+			if (ptr->is_deleted)
+				continue;
 			ccs_print_namespace(group->ns);
 			cprintf("%s%s", ccs_group_name[CCS_PATH_GROUP],
 				group->group_name->name);
@@ -4405,6 +4407,8 @@ static void ccs_read_group(const struct ccs_policy_namespace *ns)
 		list_for_each_entry(ptr, &group->member_list, list) {
 			if (group->ns != ns)
 				continue;
+			if (ptr->is_deleted)
+				continue;
 			ccs_print_namespace(group->ns);
 			cprintf("%s%s", ccs_group_name[CCS_NUMBER_GROUP],
 				group->group_name->name);
@@ -4418,6 +4422,8 @@ static void ccs_read_group(const struct ccs_policy_namespace *ns)
 		struct ccs_acl_head *ptr;
 		list_for_each_entry(ptr, &group->member_list, list) {
 			if (group->ns != ns)
+				continue;
+			if (ptr->is_deleted)
 				continue;
 			ccs_print_namespace(group->ns);
 			cprintf("%s%s", ccs_group_name[CCS_ADDRESS_GROUP],
