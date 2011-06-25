@@ -1463,6 +1463,7 @@ static int ccs_add_transition_control_entry
 /**
  * ccs_add_path_group_entry - Add "path_group" entry.
  *
+ * @ns:          Pointer to "const struct ccs_path_info".
  * @group_name:  Name of address group.
  * @member_name: Address string.
  * @is_delete:   True if it is delete request, false otherwise.
@@ -3419,8 +3420,6 @@ usage:
 		ccs_current_ns = ccs_savename("<kernel>");
 }
 
-static pid_t daemon_pid = 0;
-
 /**
  * ccs_load_offline - Load policy for offline mode.
  *
@@ -3428,9 +3427,15 @@ static pid_t daemon_pid = 0;
  */
 static void ccs_load_offline(void)
 {
+	int pipe_fd[2] = { EOF, EOF };
 	int fd = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr = { };
 	socklen_t size = sizeof(addr);
+	/*
+	 * Use PF_INET socket as a method for communicating with child task
+	 * so that we can use same method for child task and
+	 * ccs-editpolicy-agent.
+	 */
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	if (chdir(ccs_policy_dir) || chdir("policy/current/")) {
@@ -3446,16 +3451,32 @@ static void ccs_load_offline(void)
 	ccs_network_ip = addr.sin_addr.s_addr;
 	ccs_network_port = addr.sin_port;
 	ccs_network_mode = true;
-	daemon_pid = fork();
-	switch (daemon_pid) {
+	/*
+	 * Use pipe as a notifier for termination.
+	 *
+	 * Sending signals by remembering child task's PID would be possible.
+	 * But such approach will not work if main task exited unexpectedly
+	 * (e.g. SIGKILL). Since pipe_fd[1] is guaranteed to be closed no
+	 * matter how main task exits, pipe approach is more reliable for
+	 * telling the child task to exit.
+	 */
+	if (pipe(pipe_fd)) {
+		fprintf(stderr, "Can't create pipe.\n");
+		exit(1);
+	}
+	switch (fork()) {
 	case 0:
-		ccs_editpolicy_offline_daemon(fd);
-		_exit(0);
+		if (close(pipe_fd[1]) ||
+		    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_NONBLOCK))
+			_exit(1);
+		ccs_editpolicy_offline_daemon(fd, pipe_fd[0]);
+		_exit(1);
 	case -1:
 		fprintf(stderr, "fork()\n");
 		exit(1);
 	}
-	close(fd);
+	if (close(fd) || close(pipe_fd[0]))
+		exit(1);
 	ccs_copy_file("profile.conf", CCS_PROC_POLICY_PROFILE);
 	ccs_copy_file("exception_policy.conf",
 		      CCS_PROC_POLICY_EXCEPTION_POLICY);
@@ -3578,8 +3599,6 @@ start:
 	endwin();
 	if (ccs_offline_mode && !ccs_readonly_mode)
 		ccs_save_offline();
-	if (daemon_pid)
-		kill(daemon_pid, SIGHUP);
 	ccs_clear_domain_policy3();
 	return 0;
 }

@@ -441,7 +441,7 @@ void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
 void ccs_editpolicy_color_init(void);
 void ccs_editpolicy_init_keyword_map(void);
 void ccs_editpolicy_line_draw(void);
-void ccs_editpolicy_offline_daemon(const int listener);
+void ccs_editpolicy_offline_daemon(const int listener, const int notifier);
 void ccs_editpolicy_optimize(const int current);
 void ccs_editpolicy_sttr_restore(void);
 void ccs_editpolicy_sttr_save(void);

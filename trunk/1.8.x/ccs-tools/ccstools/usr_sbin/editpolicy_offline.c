@@ -4621,7 +4621,12 @@ static void ccs_write_control(char *buffer, const size_t buffer_len)
 	}
 }
 
-static void init(coid)
+/**
+ * ccs_editpolicy_offline_init - Initialize variables for offline daemon.
+ *
+ * Returns nothing.
+ */
+static void ccs_editpolicy_offline_init(coid)
 {
 	static _Bool first = true;
 	int i;
@@ -4642,20 +4647,27 @@ static void init(coid)
 	memset(ccs_memory_quota, 0, sizeof(ccs_memory_quota));
 }
 
-static void handle_policy(const int fd)
+/**
+ * ccs_editpolicy_offline_main - Read request and handle policy I/O.
+ *
+ * @fd: Socket file descriptor. 
+ *
+ * Returns nothing.
+ */
+static void ccs_editpolicy_offline_main(const int fd)
 {
 	int i;
 	static char buffer[4096];
-	init();
+	ccs_editpolicy_offline_init();
 	/* Read filename. */
 	for (i = 0; i < sizeof(buffer); i++) {
 		if (read(fd, buffer + i, 1) != 1)
-			goto out;
+			return;
 		if (!buffer[i])
 			break;
 	}
 	if (!memchr(buffer, '\0', sizeof(buffer)))
-		goto out;
+		return;
 	memset(&head, 0, sizeof(head));
 	head.reset = true;
 	if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
@@ -4669,13 +4681,13 @@ static void handle_policy(const int fd)
 	else if (!strcmp(buffer, CCS_PROC_POLICY_STAT))
 		head.type = CCS_STAT;
 	else
-		goto out;
+		return;
 	/* Return \0 to indicate success. */
 	if (write(fd, "", 1) != 1)
-		goto out;
+		return;
 	client_fd = fd;
 	while (1) {
-		struct pollfd pfd = { .fd = fd, .events = POLLIN};
+		struct pollfd pfd = { .fd = fd, .events = POLLIN };
 		int len;
 		int nonzero_len;
 		poll(&pfd, 1, -1);
@@ -4710,7 +4722,7 @@ restart:
 			cprintf("%s", "");
 			/* Return \0 to indicate EOF. */
 			if (write(fd, "", 1) != 1)
-				goto out;
+				return;
 			nonzero_len = 1;
 		}
 		len -= nonzero_len;
@@ -4718,27 +4730,33 @@ restart:
 		if (len)
 			goto restart;
 	}
-out:
-	return;
 }
 
 /**
  * ccs_editpolicy_offline_daemon - Emulate /proc/ccs/ interface.
  *
- * @listener: Listener fd.
+ * @listener: Listener fd. This is a listening PF_INET socket.
+ * @notifier: Notifier fd. This is a pipe's reader side.
  *
  * This function does not return.
  */
-void ccs_editpolicy_offline_daemon(const int listener)
+void ccs_editpolicy_offline_daemon(const int listener, const int notifier)
 {
 	while (1) {
+		struct pollfd pfd[2] = {
+			{ .fd = listener, .events = POLLIN },
+			{ .fd = notifier, .events = POLLIN }
+		};
 		struct sockaddr_in addr;
 		socklen_t size = sizeof(addr);
-		const int fd = accept(listener, (struct sockaddr *) &addr,
-				      &size);
-		if (fd == EOF)
+		int fd;
+		if (poll(pfd, 2, -1) == EOF ||
+		    (pfd[1].revents & (POLLIN | POLLHUP)))
 			_exit(1);
-		handle_policy(fd);
+		fd = accept(listener, (struct sockaddr *) &addr, &size);
+		if (fd == EOF)
+			continue;
+		ccs_editpolicy_offline_main(fd);
 		close(fd);
 	}
 }
