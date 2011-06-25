@@ -1783,8 +1783,15 @@ static void cprintf(const char *fmt, ...)
 	}
 	if (len && buffer_pos < 1048576)
 		return;
-	if (write(client_fd, buffer, buffer_pos) != buffer_pos)
-		_exit(1);
+	/*
+	 * Reader might close connection without reading until EOF.
+	 * In that case, we should not call _exit() because offline daemon does
+	 * not call fork() for each accept()ed socket connection.
+	 */
+	if (write(client_fd, buffer, buffer_pos) != buffer_pos) {
+		close(client_fd);
+		client_fd = EOF;
+	}
 	buffer_pos = 0;
 }
 

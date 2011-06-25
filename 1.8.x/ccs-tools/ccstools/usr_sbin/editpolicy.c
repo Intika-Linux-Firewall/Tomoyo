@@ -3358,9 +3358,12 @@ static _Bool ccs_save_to_file(const char *src, const char *dest)
 	FILE *proc_fp = ccs_editpolicy_open_read(src);
 	FILE *file_fp = fopen(dest, "w");
 	int c;
-	if (!file_fp) {
+	if (!file_fp || !proc_fp) {
 		fprintf(stderr, "Can't open %s\n", dest);
-		fclose(proc_fp);
+		if (file_fp)
+			fclose(file_fp);
+		if (proc_fp)
+			fclose(proc_fp);
 		return false;
 	}
 	while (true) {
