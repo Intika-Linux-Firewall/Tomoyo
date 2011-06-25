@@ -454,9 +454,9 @@ struct ccs_domain {
 	const struct ccs_transition_control_entry *d_t; /* This may be NULL */
 	const struct ccs_path_info **string_ptr;
 	int string_count;
-	int number;   /* domain number (-1 if is_dis or is_dd) */
+	int number;   /* domain number (-1 if target or is_dd) */
 	u8 profile;
-	_Bool is_dit; /* domain initializer target */
+	_Bool is_djt; /* domain jump target */
 	_Bool is_dk;  /* domain keeper */
 	_Bool is_du;  /* unreachable domain */
 	_Bool is_dd;  /* deleted domain */

@@ -454,7 +454,7 @@ static _Bool ccs_keeper_domain(const int index)
  *
  * @index: Index in the domain policy.
  *
- * Returns true if the given domain is marked as "initialize_domain",
+ * Returns true if the given domain is marked as domain jump source,
  * false otherwise.
  */
 static _Bool ccs_jump_source(const int index)
@@ -467,12 +467,11 @@ static _Bool ccs_jump_source(const int index)
  *
  * @index: Index in the domain policy.
  *
- * Returns true if the given domain is a target of "initialize_domain",
- * false otherwise.
+ * Returns true if the given domain is a domain jump target, false otherwise.
  */
 static _Bool ccs_jump_target(const int index)
 {
-	return ccs_dp.list[index].is_dit;
+	return ccs_dp.list[index].is_djt;
 }
 
 /**
@@ -738,18 +737,21 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 }
 
 /**
- * ccs_find_target_domain - Find the initialize_domain target domain.
+ * ccs_find_target_domain - Find the domain jump target domain.
  *
  * @index: Index in the domain policy.
  *
- * Returns index in the domain policy if found, -2 if namespace jump,
- * EOF otherwise.
+ * Returns index of the domain if found in a current namespace,
+ * -2 if found in a different namespace, EOF otherwise.
  */
 static int ccs_find_target_domain(const int index)
 {
 	const char *cp = ccs_dp.list[index].target->name;
-	if (!ccs_is_current_namespace(cp))
+	if (!ccs_is_current_namespace(cp)) {
+		if (ccs_dp.list[index].is_du)
+			return EOF;
 		return -2;
+	}
 	return ccs_find_domain3(cp, NULL, false);
 }
 
@@ -1829,7 +1831,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		const int index = ccs_find_domain3(ccs_jump_list[i], NULL,
 						   false);
 		if (index >= 0)
-			ccs_dp.list[index].is_dit = true;
+			ccs_dp.list[index].is_djt = true;
 	}
 
 	/*
@@ -1844,7 +1846,7 @@ static void ccs_read_domain_and_exception_policy(void)
 		if (domain->target)
 			continue;
 		/* Ignore if already marked as domain jump targets. */
-		if (domain->is_dit)
+		if (domain->is_djt)
 			continue;
 		/* Ignore if not a namespace's root's child domain. */
 		cp = strchr(domainname, ' ');
@@ -1881,7 +1883,7 @@ static void ccs_read_domain_and_exception_policy(void)
 			break;
 		}
 		if (i < ccs_transition_control_list_len)
-			ccs_dp.list[index].is_dit = true;
+			ccs_dp.list[index].is_djt = true;
 	}
 
 	/*
@@ -1932,12 +1934,19 @@ static void ccs_read_domain_and_exception_policy(void)
 	/* Find unreachable domains. Such domains are marked with '!'. */
 	for (index = 0; index < max_index; index++) {
 		char *line;
-		const struct ccs_domain *domain = &ccs_dp.list[index];
-		/* Ignore domain jump sources. */
-		if (domain->target)
+		struct ccs_domain *domain = &ccs_dp.list[index];
+		/*
+		 * Mark domain jump source as unreachable if domain jump target
+		 * does not exist.
+		 */
+		if (domain->target) {
+			if (ccs_find_domain3(domain->target->name, NULL,
+					     false) == EOF)
+				domain->is_du = true;
 			continue;
+		}
 		/* Ignore if domain jump targets. */
-		if (domain->is_dit)
+		if (domain->is_djt)
 			continue;
 		ns = ccs_get_ns(ccs_dp.list[index].domainname->name);
 		ccs_get();
@@ -1947,7 +1956,7 @@ static void ccs_read_domain_and_exception_policy(void)
 			const struct ccs_transition_control_entry *d_t;
 			char *cp;
 			/* Stop traversal if current is jump target. */
-			if (index2 >= 0 && ccs_dp.list[index2].is_dit)
+			if (index2 >= 0 && ccs_dp.list[index2].is_djt)
 				break;
 			cp = strrchr(line, ' ');
 			if (cp)
@@ -1956,11 +1965,11 @@ static void ccs_read_domain_and_exception_policy(void)
 				break;
 			d_t = ccs_transition_control(ns, line, cp);
 			if (d_t)
-				ccs_dp.list[index].d_t = d_t;
+				domain->d_t = d_t;
 		}
 		ccs_put();
-		if (ccs_dp.list[index].d_t)
-			ccs_dp.list[index].is_du = true;
+		if (domain->d_t)
+			domain->is_du = true;
 	}
 
 	/* Create missing parent domains. */
