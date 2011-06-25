@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -4657,6 +4657,9 @@ static void ccs_editpolicy_offline_init(coid)
 		      &ccs_namespace_list);
 	for (i = 0; i < CCS_MAX_HASH; i++)
 		INIT_LIST_HEAD(&ccs_name_list[i]);
+	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
+	ccs_kernel_domain.domainname = ccs_savename("<kernel>");
+	list_add_tail(&ccs_kernel_domain.list, &ccs_domain_list);
 	memset(ccs_memory_quota, 0, sizeof(ccs_memory_quota));
 }
 

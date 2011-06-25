@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -623,24 +623,6 @@ static void ccs_assign_djs(const struct ccs_path_info *ns,
 	}
 }
 
-static inline unsigned int ccs_depth(const char *domain)
-{
-	unsigned int depth = 0;
-	while (*domain)
-		if (*domain++ == ' ')
-			depth++;
-	return depth;
-}
-
-static inline int ccs_sign(const int v)
-{
-	if (v > 0)
-		return 1;
-	if (v < 0)
-		return -1;
-	return 0;
-}
-
 /**
  * ccs_domainname_attribute_compare - strcmp() for qsort() callback.
  *
@@ -651,11 +633,10 @@ static inline int ccs_sign(const int v)
  */
 static int ccs_domainname_attribute_compare(const void *a, const void *b)
 {
-#if 1
 	const struct ccs_domain *a0 = a;
 	const struct ccs_domain *b0 = b;
-	char *name1 = NULL;
-	char *name2 = NULL;
+	char *name1;
+	char *name2;
 	char *line;
 	char *cp;
 	int k;
@@ -674,11 +655,8 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 			*cp = '\0';
 	}
 	k = strcmp(name1, name2);
-	if (k) {
-		free(name1);
-		free(name2);
-		return k;
-	}
+	if (k)
+		goto done;
 	ccs_get();
 	if (a0->target)
 		line = ccs_shprintf("%s %s", name1, a0->target->name);
@@ -694,42 +672,10 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 	name2 = ccs_strdup(line);
 	ccs_put();
 	k = strcmp(name1, name2);
+done:
 	free(name1);
 	free(name2);
 	return k;
-#elif 1
-	const struct ccs_domain *a0 = a;
-	const struct ccs_domain *b0 = b;
-	char *name1 = NULL;
-	char *name2 = NULL;
-	char *line;
-	char *cp;
-	int k;
-	ccs_get();
-	if (a0->target) {
-		name1 = ccs_strdup(a0->domainname->name);
-		cp = strrchr(name1, ' ');
-		*cp = '\0';
-		line = ccs_shprintf("%s %s", name1, a0->target->name);
-		free(name1);
-	} else
-		line = ccs_shprintf("%s", a0->domainname->name);
-	name1 = ccs_strdup(line);
-	if (b0->target) {
-		name2 = ccs_strdup(b0->domainname->name);
-		cp = strrchr(name2, ' ');
-		*cp = '\0';
-		line = ccs_shprintf("%s %s", name2, b0->target->name);
-		free(name2);
-	} else
-		line = ccs_shprintf("%s", b0->domainname->name);
-	name2 = ccs_strdup(line);
-	ccs_put();
-	k = strcmp(name1, name2);
-	free(name1);
-	free(name2);
-	return k;
-#endif
 }
 
 /**
@@ -801,14 +747,6 @@ static int ccs_show_domain_line(const int index)
 		printw("%s", ccs_eat(" )"));
 		tmp_col += 2;
 	}
-	/*
-	if (is_djs) {
-		printw("%s", ccs_eat(" [ "));
-		printw("%s", ccs_dp.list[index].domainname->name);
-		printw("%s", ccs_eat(" ] "));
-		tmp_col += 6 + ccs_dp.list[index].domainname->total_len;
-	}
-	*/
 	transition_control = ccs_dp.list[index].d_t;
 	if (!transition_control || is_djs)
 		goto no_transition_control;
