@@ -480,10 +480,6 @@ static _Bool ccs_jump_target(const int index)
  * @index: Index in the domain policy.
  *
  * Returns true if the given domain is unreachable, false otherwise.
- *
- * TODO: Check "task auto_domain_transition" and
- * "task manual_domain_transition" which allow other domains to reach
- * the given domain.
  */
 static _Bool ccs_domain_unreachable(const int index)
 {
@@ -1969,7 +1965,7 @@ static void ccs_read_domain_and_exception_policy(void)
 			const struct ccs_transition_control_entry *d_t;
 			char *cp;
 			/* Stop traversal if current is domain jump target. */
-			if (index2 >= 0 && ccs_dp.list[index2].djt_nx)
+			if (index2 >= 0 && ccs_dp.list[index2].is_djt)
 				break;
 			cp = strrchr(line, ' ');
 			if (cp)
