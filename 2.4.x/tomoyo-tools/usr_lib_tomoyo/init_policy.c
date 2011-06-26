@@ -958,33 +958,6 @@ static void make_stat(void)
 	close_file(fp, 1, "stat.tmp", "stat.conf");
 }
 
-/* The name of loadable kernel module to load. */
-static const char *module_name = "tomoyoecurity";
-
-/**
- * make_module_loader - Make /etc/tomoyo/tomoyo-load-module .
- *
- * Returns nothing.
- */
-static void make_module_loader(void)
-{
-	FILE *fp;
-	if (chdir(policy_dir) || !access("tomoyo-load-module", X_OK)
-	    || !module_name[0])
-		return;
-	fp = fopen("tomoyo-load-module.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create module loader.\n");
-		return;
-	}
-	fprintf(stderr, "Creating module loader... ");
-	fprintf(fp, "#! /bin/sh\n");
-	fprintf(fp, "export PATH=$PATH:/sbin:/bin\n");
-	fprintf(fp, "exec modprobe %s\n", module_name);
-	close_file(fp, !chmod("tomoyo-load-module.tmp", 0700),
-		   "tomoyo-load-module.tmp", "tomoyo-load-module");
-}
-
 /* Content of /etc/tomoyo/tools/editpolicy.conf . */
 static const char editpolicy_data[] =
 "# This file contains configuration used by tomoyo-editpolicy command.\n"
@@ -1633,8 +1606,6 @@ int main(int argc, char *argv[])
 			file_only_profile = 1;
 		} else if (!strcmp(arg, "full-profile")) {
 			file_only_profile = 0;
-		} else if (!strncmp(arg, "module_name=", 12)) {
-			module_name = arg + 12;
 		} else if (!strncmp(arg, "use_profile=", 12)) {
 			default_profile = atoi(arg + 12);
 		} else if (!strncmp(arg, "use_group=", 10)) {
@@ -1662,7 +1633,6 @@ int main(int argc, char *argv[])
 	make_manager();
 	make_profile();
 	make_stat();
-	make_module_loader();
 	make_editpolicy_conf();
 	make_auditd_conf();
 	make_patternize_conf();
