@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.18-238.12.1.el5.src.rpm || die "Can't verify signature
 rpm -ivh kernel-2.6.18-238.12.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.2-20110620.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110626.tar.gz ]
 then
-    wget -O ccs-patch-1.8.2-20110620.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110620.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.2-20110620.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.2-20110626.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.18-centos-5.6.diff
 +
  cp %{SOURCE10} Documentation/
