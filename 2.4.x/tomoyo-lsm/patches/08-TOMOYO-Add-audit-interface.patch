@@ -471,7 +471,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->r.step++;
  		break;
  	case 1:
-@@ -1360,92 +1396,28 @@ static void tomoyo_read_exception(struct
+@@ -1359,92 +1395,28 @@ static void tomoyo_read_exception(struct
  	head->r.eof = true;
  }
  
@@ -574,7 +574,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * Number of "struct file" referring /sys/kernel/security/tomoyo/query
   * interface.
-@@ -1453,10 +1425,39 @@ static LIST_HEAD(tomoyo_query_list);
+@@ -1452,10 +1424,39 @@ static LIST_HEAD(tomoyo_query_list);
  static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
  
  /**
@@ -616,7 +616,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Returns 0 if the supervisor decided to permit the access request which
   * violated the policy in enforcing mode, TOMOYO_RETRY_REQUEST if the
-@@ -1466,88 +1467,77 @@ static atomic_t tomoyo_query_observers =
+@@ -1465,88 +1466,77 @@ static atomic_t tomoyo_query_observers =
  int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
  {
  	va_list args;
@@ -752,7 +752,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case 3: /* Asked to retry by administrator. */
  		error = TOMOYO_RETRY_REQUEST;
  		r->retry++;
-@@ -1556,18 +1546,12 @@ int tomoyo_supervisor(struct tomoyo_requ
+@@ -1555,18 +1545,12 @@ int tomoyo_supervisor(struct tomoyo_requ
  		/* Granted by administrator. */
  		error = 0;
  		break;
@@ -774,7 +774,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -1638,7 +1622,7 @@ static void tomoyo_read_query(struct tom
+@@ -1637,7 +1621,7 @@ static void tomoyo_read_query(struct tom
  		head->r.query_index = 0;
  		return;
  	}
@@ -783,7 +783,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!buf)
  		return;
  	pos = 0;
-@@ -1654,7 +1638,8 @@ static void tomoyo_read_query(struct tom
+@@ -1653,7 +1637,8 @@ static void tomoyo_read_query(struct tom
  		 * can change, but I don't care.
  		 */
  		if (len == ptr->query_len)
@@ -793,7 +793,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
  	}
  	spin_unlock(&tomoyo_query_list_lock);
-@@ -1765,6 +1750,11 @@ int tomoyo_open_control(const u8 type, s
+@@ -1764,6 +1749,11 @@ int tomoyo_open_control(const u8 type, s
  		head->write = tomoyo_write_exception;
  		head->read = tomoyo_read_exception;
  		break;
@@ -805,7 +805,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_SELFDOMAIN:
  		/* /sys/kernel/security/tomoyo/self_domain */
  		head->read = tomoyo_read_self_domain;
-@@ -1838,7 +1828,7 @@ int tomoyo_open_control(const u8 type, s
+@@ -1837,7 +1827,7 @@ int tomoyo_open_control(const u8 type, s
  			return -ENOMEM;
  		}
  	}
@@ -814,7 +814,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->reader_idx = tomoyo_read_lock();
  	file->private_data = head;
  	/*
-@@ -1859,7 +1849,8 @@ int tomoyo_open_control(const u8 type, s
+@@ -1858,7 +1848,8 @@ int tomoyo_open_control(const u8 type, s
   * @wait: Pointer to "poll_table".
   *
   * Waits for read readiness.
@@ -824,7 +824,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  int tomoyo_poll_control(struct file *file, poll_table *wait)
  {
-@@ -1971,7 +1962,7 @@ int tomoyo_close_control(struct tomoyo_i
+@@ -1970,7 +1961,7 @@ int tomoyo_close_control(struct tomoyo_i
  	 */
  	if (head->type == TOMOYO_QUERY)
  		atomic_dec(&tomoyo_query_observers);

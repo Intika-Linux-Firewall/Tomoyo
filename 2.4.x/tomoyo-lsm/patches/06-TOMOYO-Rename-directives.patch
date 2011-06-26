@@ -6,11 +6,11 @@ By converting to the latter style, we can pack policy like
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  148 +++++++++++++++++++++++++++++++----------------
+ security/tomoyo/common.c |  147 +++++++++++++++++++++++++++++++----------------
  security/tomoyo/common.h |    6 +
  security/tomoyo/domain.c |    4 -
  security/tomoyo/file.c   |   15 ++--
- 4 files changed, 114 insertions(+), 59 deletions(-)
+ 4 files changed, 113 insertions(+), 59 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -68,11 +68,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_name_union - Print a tomoyo_name_union.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -912,20 +938,19 @@ static int tomoyo_write_domain(struct to
- 	return tomoyo_write_domain2(&domain->acl_info_list, data, is_delete);
+@@ -913,19 +939,17 @@ static int tomoyo_write_domain(struct to
  }
  
-+
  /**
 - * tomoyo_fns - Find next set bit.
 + * tomoyo_set_group - Print category name.
@@ -97,7 +95,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -940,58 +965,94 @@ static bool tomoyo_print_entry(struct to
+@@ -940,58 +964,94 @@ static bool tomoyo_print_entry(struct to
  			       struct tomoyo_acl_info *acl)
  {
  	const u8 acl_type = acl->type;
@@ -212,7 +210,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		tomoyo_print_name_union(head, &ptr->name);
  		tomoyo_print_number_union(head, &ptr->mode);
  		tomoyo_print_number_union(head, &ptr->major);
-@@ -999,18 +1060,13 @@ static bool tomoyo_print_entry(struct to
+@@ -999,18 +1059,13 @@ static bool tomoyo_print_entry(struct to
  	} else if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
  		struct tomoyo_mount_acl *ptr =
  			container_of(acl, typeof(*ptr), head);
@@ -233,7 +231,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return true;
  }
  
-@@ -1316,18 +1372,14 @@ static bool tomoyo_read_policy(struct to
+@@ -1316,18 +1371,14 @@ static bool tomoyo_read_policy(struct to
  			{
  				struct tomoyo_transition_control *ptr =
  					container_of(acl, typeof(*ptr), head);

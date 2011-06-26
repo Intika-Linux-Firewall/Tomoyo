@@ -200,7 +200,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	}
  	return tomoyo_write_domain2(ns, &domain->acl_info_list, data,
-@@ -1135,6 +1178,7 @@ static void tomoyo_read_domain(struct to
+@@ -1134,6 +1177,7 @@ static void tomoyo_read_domain(struct to
  		struct tomoyo_domain_info *domain =
  			list_entry(head->r.domain, typeof(*domain), list);
  		switch (head->r.step) {
@@ -208,7 +208,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		case 0:
  			if (domain->is_deleted &&
  			    !head->r.print_this_domain_only)
-@@ -1146,10 +1190,9 @@ static void tomoyo_read_domain(struct to
+@@ -1145,10 +1189,9 @@ static void tomoyo_read_domain(struct to
  					 domain->profile);
  			tomoyo_io_printf(head, "use_group %u\n",
  					 domain->group);
@@ -222,7 +222,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			head->r.step++;
  			tomoyo_set_lf(head);
  			/* fall through */
-@@ -1692,8 +1735,8 @@ static int tomoyo_poll_query(struct file
+@@ -1691,8 +1734,8 @@ static int tomoyo_poll_query(struct file
  static void tomoyo_read_query(struct tomoyo_io_buffer *head)
  {
  	struct list_head *tmp;
@@ -233,7 +233,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *buf;
  	if (head->r.w_pos)
  		return;
-@@ -1999,8 +2042,8 @@ static inline bool tomoyo_has_more_names
+@@ -1998,8 +2041,8 @@ static inline bool tomoyo_has_more_names
   *
   * Returns bytes read on success, negative value otherwise.
   */
@@ -244,7 +244,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	int len;
  	int idx;
-@@ -2071,8 +2114,8 @@ static int tomoyo_parse_policy(struct to
+@@ -2070,8 +2113,8 @@ static int tomoyo_parse_policy(struct to
   *
   * Returns @buffer_len on success, negative value otherwise.
   */
