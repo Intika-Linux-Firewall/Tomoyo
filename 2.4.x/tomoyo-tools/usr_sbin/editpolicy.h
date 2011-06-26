@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -375,10 +375,10 @@ enum tomoyo_color_pair {
 };
 
 struct tomoyo_transition_control_entry {
+	const struct tomoyo_path_info *ns;
 	const struct tomoyo_path_info *domainname;    /* This may be NULL */
 	const struct tomoyo_path_info *program;       /* This may be NULL */
 	u8 type;
-	_Bool is_last_name;
 };
 
 struct tomoyo_generic_acl {
@@ -400,6 +400,7 @@ struct tomoyo_misc_policy {
 };
 
 struct tomoyo_path_group_entry {
+	const struct tomoyo_path_info *ns;
 	const struct tomoyo_path_info *group_name;
 	const struct tomoyo_path_info **member_name;
 	int member_name_len;
@@ -440,16 +441,41 @@ void tomoyo_editpolicy_color_change(const attr_t attr, const _Bool flg);
 void tomoyo_editpolicy_color_init(void);
 void tomoyo_editpolicy_init_keyword_map(void);
 void tomoyo_editpolicy_line_draw(void);
-void tomoyo_editpolicy_offline_daemon(const int listener);
+void tomoyo_editpolicy_offline_daemon(const int listener, const int notifier);
 void tomoyo_editpolicy_optimize(const int current);
 void tomoyo_editpolicy_sttr_restore(void);
 void tomoyo_editpolicy_sttr_save(void);
+struct tomoyo_path_group_entry *tomoyo_find_path_group_ns
+(const struct tomoyo_path_info *ns, const char *group_name);
+
+struct tomoyo_domain {
+	const struct tomoyo_path_info *domainname;
+	const struct tomoyo_path_info *target; /* This may be NULL */
+	const struct tomoyo_transition_control_entry *d_t; /* This may be NULL */
+	const struct tomoyo_path_info **string_ptr;
+	int string_count;
+	int number;   /* domain number (-1 if target or is_dd) */
+	u8 profile;
+	u8 group;
+	_Bool is_djt; /* domain jump target */
+	_Bool is_dk;  /* domain keeper */
+	_Bool is_du;  /* unreachable domain */
+	_Bool is_dd;  /* deleted domain */
+	_Bool djt_nx; /* reachable by non execve(). */
+};
+
+struct tomoyo_domain_policy3 {
+	struct tomoyo_domain *list;
+	int list_len;
+	unsigned char *list_selected;
+};
 
 extern enum tomoyo_screen_type tomoyo_current_screen;
 extern int tomoyo_list_item_count;
 extern int tomoyo_path_group_list_len;
-extern struct tomoyo_domain_policy tomoyo_dp;
+extern struct tomoyo_domain_policy3 tomoyo_dp;
 extern struct tomoyo_editpolicy_directive tomoyo_directives[TOMOYO_MAX_DIRECTIVE_INDEX];
 extern struct tomoyo_generic_acl *tomoyo_gacl_list;
 extern struct tomoyo_path_group_entry *tomoyo_path_group_list;
 extern struct tomoyo_screen tomoyo_screen[TOMOYO_MAXSCREEN];
+extern const struct tomoyo_path_info *tomoyo_current_ns;

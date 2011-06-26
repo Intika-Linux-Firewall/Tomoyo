@@ -186,7 +186,7 @@ void ccs_editpolicy_sttr_restore(void)
 }
 
 /**
- * ccseditpolicy_color_head - Get color to use for header line.
+ * ccs_editpolicy_color_head - Get color to use for header line.
  *
  * Returns one of values in "enum ccs_color_pair".
  */
@@ -315,7 +315,7 @@ void ccs_editpolicy_sttr_restore(void)
 }
 
 /**
- * ccseditpolicy_color_head - Get color to use for header line.
+ * ccs_editpolicy_color_head - Get color to use for header line.
  *
  * Returns one of values in "enum ccs_color_pair".
  */
