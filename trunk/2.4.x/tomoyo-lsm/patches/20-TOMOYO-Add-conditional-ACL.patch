@@ -12,13 +12,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Makefile    |    2 
  security/tomoyo/audit.c     |  231 ++++++++-
- security/tomoyo/common.c    |  308 ++++++++++++
+ security/tomoyo/common.c    |  309 ++++++++++++
  security/tomoyo/common.h    |  263 ++++++++++-
  security/tomoyo/condition.c | 1050 ++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/domain.c    |   67 ++
  security/tomoyo/gc.c        |   56 ++
  security/tomoyo/util.c      |    2 
- 8 files changed, 1940 insertions(+), 39 deletions(-)
+ 8 files changed, 1941 insertions(+), 39 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -456,11 +456,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_assign_profile - Create a new profile.
   *
   * @ns:      Pointer to "struct tomoyo_policy_namespace".
-@@ -1003,6 +1103,142 @@ static int tomoyo_write_domain(struct to
- 				    is_delete);
+@@ -1004,6 +1104,143 @@ static int tomoyo_write_domain(struct to
  }
  
-+/**
+ /**
 + * tomoyo_print_condition - Print condition part.
 + *
 + * @head: Pointer to "struct tomoyo_io_buffer".
@@ -596,10 +595,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	return false;
 +}
- 
- /**
++
++/**
   * tomoyo_set_group - Print "acl_group " header keyword and category name.
-@@ -1038,6 +1274,8 @@ static bool tomoyo_print_entry(struct to
+  *
+  * @head:     Pointer to "struct tomoyo_io_buffer".
+@@ -1037,6 +1274,8 @@ static bool tomoyo_print_entry(struct to
  	bool first = true;
  	u8 bit;
  
@@ -608,7 +609,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (acl->is_deleted)
  		return true;
  	if (!tomoyo_flush(head))
-@@ -1136,7 +1374,18 @@ static bool tomoyo_print_entry(struct to
+@@ -1135,7 +1374,18 @@ static bool tomoyo_print_entry(struct to
  		tomoyo_print_name_union(head, &ptr->fs_type);
  		tomoyo_print_number_union(head, &ptr->flags);
  	}
@@ -628,7 +629,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return true;
  }
  
-@@ -1561,6 +1810,22 @@ static DEFINE_SPINLOCK(tomoyo_query_list
+@@ -1560,6 +1810,22 @@ static DEFINE_SPINLOCK(tomoyo_query_list
  static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
  
  /**
@@ -651,7 +652,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_add_entry - Add an ACL to current thread's domain. Used by learning mode.
   *
   * @domain: Pointer to "struct tomoyo_domain_info".
-@@ -1571,6 +1836,9 @@ static atomic_t tomoyo_query_observers =
+@@ -1570,6 +1836,9 @@ static atomic_t tomoyo_query_observers =
  static void tomoyo_add_entry(struct tomoyo_domain_info *domain, char *header)
  {
  	char *buffer;
@@ -661,7 +662,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *cp = strchr(header, '\n');
  	int len;
  	if (!cp)
-@@ -1580,10 +1848,32 @@ static void tomoyo_add_entry(struct tomo
+@@ -1579,10 +1848,32 @@ static void tomoyo_add_entry(struct tomo
  		return;
  	*cp++ = '\0';
  	len = strlen(cp) + 1;

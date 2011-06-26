@@ -27,8 +27,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!strcmp(data, "quota_exceeded")) {
  		domain->quota_warned = !is_delete;
  		return 0;
-@@ -909,7 +915,7 @@ static int tomoyo_write_domain(struct to
- 
+@@ -908,7 +914,7 @@ static int tomoyo_write_domain(struct to
+ }
  
  /**
 - * tomoyo_set_group - Print category name.
@@ -36,7 +36,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @head:     Pointer to "struct tomoyo_io_buffer".
   * @category: Category name.
-@@ -919,6 +925,9 @@ static int tomoyo_write_domain(struct to
+@@ -918,6 +924,9 @@ static int tomoyo_write_domain(struct to
  static void tomoyo_set_group(struct tomoyo_io_buffer *head,
  			     const char *category)
  {
@@ -46,7 +46,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_set_string(head, category);
  }
  
-@@ -1042,17 +1051,17 @@ static bool tomoyo_print_entry(struct to
+@@ -1041,17 +1050,17 @@ static bool tomoyo_print_entry(struct to
  /**
   * tomoyo_read_domain2 - Read domain policy.
   *
@@ -68,7 +68,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_acl_info *ptr =
  			list_entry(head->r.acl, typeof(*ptr), list);
  		if (!tomoyo_print_entry(head, ptr))
-@@ -1086,6 +1095,8 @@ static void tomoyo_read_domain(struct to
+@@ -1085,6 +1094,8 @@ static void tomoyo_read_domain(struct to
  			tomoyo_set_lf(head);
  			tomoyo_io_printf(head, "use_profile %u\n",
  					 domain->profile);
@@ -77,7 +77,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			if (domain->quota_warned)
  				tomoyo_set_string(head, "quota_exceeded\n");
  			if (domain->transition_failed)
-@@ -1094,7 +1105,7 @@ static void tomoyo_read_domain(struct to
+@@ -1093,7 +1104,7 @@ static void tomoyo_read_domain(struct to
  			tomoyo_set_lf(head);
  			/* fall through */
  		case 1:
@@ -86,7 +86,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				return;
  			head->r.step++;
  			if (!tomoyo_set_lf(head))
-@@ -1263,6 +1274,14 @@ static int tomoyo_write_exception(struct
+@@ -1262,6 +1273,14 @@ static int tomoyo_write_exception(struct
  	};
  	u8 i;
  	param.is_delete = tomoyo_str_starts(&param.data, "delete ");
@@ -101,7 +101,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (tomoyo_str_starts(&param.data, "aggregator "))
  		return tomoyo_write_aggregator(&param);
  	for (i = 0; i < TOMOYO_MAX_TRANSITION_TYPE; i++)
-@@ -1271,6 +1290,14 @@ static int tomoyo_write_exception(struct
+@@ -1270,6 +1289,14 @@ static int tomoyo_write_exception(struct
  	for (i = 0; i < TOMOYO_MAX_GROUP; i++)
  		if (tomoyo_str_starts(&param.data, tomoyo_group_name[i]))
  			return tomoyo_write_group(&param, i);
@@ -116,7 +116,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return -EINVAL;
  }
  
-@@ -1393,6 +1420,15 @@ static void tomoyo_read_exception(struct
+@@ -1392,6 +1419,15 @@ static void tomoyo_read_exception(struct
  		head->r.step++;
  	if (head->r.step < TOMOYO_MAX_POLICY + TOMOYO_MAX_GROUP)
  		return;
@@ -132,7 +132,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	head->r.eof = true;
  }
  
-@@ -1915,7 +1951,8 @@ int tomoyo_write_control(struct tomoyo_i
+@@ -1914,7 +1950,8 @@ int tomoyo_write_control(struct tomoyo_i
  		return -EFAULT;
  	/* Don't allow updating policies by non manager programs. */
  	if (head->write != tomoyo_write_pid &&
