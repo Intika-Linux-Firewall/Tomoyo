@@ -26,65 +26,65 @@
 #ifdef COLOR_ON
 
 /**
- * tomoyo_editpolicy_color_init - Initialize line coloring table.
+ * ccs_editpolicy_color_init - Initialize line coloring table.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_color_init(void)
+void ccs_editpolicy_color_init(void)
 {
-	static struct tomoyo_color_env_t {
-		enum tomoyo_color_pair tag;
+	static struct ccs_color_env_t {
+		enum ccs_color_pair tag;
 		short int fore;
 		short int back;
 		const char *name;
 	} color_env[] = {
-		{ TOMOYO_DOMAIN_HEAD,      COLOR_BLACK,
+		{ CCS_DOMAIN_HEAD,      COLOR_BLACK,
 		  COLOR_GREEN,      "DOMAIN_HEAD" },
-		{ TOMOYO_DOMAIN_CURSOR,    COLOR_BLACK,
+		{ CCS_DOMAIN_CURSOR,    COLOR_BLACK,
 		  COLOR_GREEN,      "DOMAIN_CURSOR" },
-		{ TOMOYO_EXCEPTION_HEAD,   COLOR_BLACK,
+		{ CCS_EXCEPTION_HEAD,   COLOR_BLACK,
 		  COLOR_CYAN,       "EXCEPTION_HEAD" },
-		{ TOMOYO_EXCEPTION_CURSOR, COLOR_BLACK,
+		{ CCS_EXCEPTION_CURSOR, COLOR_BLACK,
 		  COLOR_CYAN,       "EXCEPTION_CURSOR" },
-		{ TOMOYO_ACL_HEAD,         COLOR_BLACK,
+		{ CCS_ACL_HEAD,         COLOR_BLACK,
 		  COLOR_YELLOW,     "ACL_HEAD" },
-		{ TOMOYO_ACL_CURSOR,       COLOR_BLACK,
+		{ CCS_ACL_CURSOR,       COLOR_BLACK,
 		  COLOR_YELLOW,     "ACL_CURSOR" },
-		{ TOMOYO_PROFILE_HEAD,     COLOR_WHITE,
+		{ CCS_PROFILE_HEAD,     COLOR_WHITE,
 		  COLOR_RED,        "PROFILE_HEAD" },
-		{ TOMOYO_PROFILE_CURSOR,   COLOR_WHITE,
+		{ CCS_PROFILE_CURSOR,   COLOR_WHITE,
 		  COLOR_RED,        "PROFILE_CURSOR" },
-		{ TOMOYO_MANAGER_HEAD,     COLOR_WHITE,
+		{ CCS_MANAGER_HEAD,     COLOR_WHITE,
 		  COLOR_GREEN,      "MANAGER_HEAD" },
-		{ TOMOYO_MANAGER_CURSOR,   COLOR_WHITE,
+		{ CCS_MANAGER_CURSOR,   COLOR_WHITE,
 		  COLOR_GREEN,      "MANAGER_CURSOR" },
-		{ TOMOYO_STAT_HEAD,        COLOR_BLACK,
+		{ CCS_STAT_HEAD,        COLOR_BLACK,
 		  COLOR_YELLOW,     "STAT_HEAD" },
-		{ TOMOYO_STAT_CURSOR,      COLOR_BLACK,
+		{ CCS_STAT_CURSOR,      COLOR_BLACK,
 		  COLOR_YELLOW,     "STAT_CURSOR" },
-		{ TOMOYO_DEFAULT_COLOR,    COLOR_WHITE,
+		{ CCS_DEFAULT_COLOR,    COLOR_WHITE,
 		  COLOR_BLACK,      "DEFAULT_COLOR" },
-		{ TOMOYO_NORMAL,           COLOR_WHITE,
+		{ CCS_NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
-	FILE *fp = fopen(TOMOYO_EDITPOLICY_CONF, "r");
+	FILE *fp = fopen(CCS_EDITPOLICY_CONF, "r");
 	int i;
 	if (!fp)
 		goto use_default;
-	tomoyo_get();
+	ccs_get();
 	while (true) {
-		char *line = tomoyo_freadline(fp);
+		char *line = ccs_freadline(fp);
 		char *cp;
 		if (!line)
 			break;
-		if (!tomoyo_str_starts(line, "line_color "))
+		if (!ccs_str_starts(line, "line_color "))
 			continue;
 		cp = strchr(line, '=');
 		if (!cp)
 			continue;
 		*cp++ = '\0';
-		tomoyo_normalize_line(line);
-		tomoyo_normalize_line(cp);
+		ccs_normalize_line(line);
+		ccs_normalize_line(cp);
 		if (!*line || !*cp)
 			continue;
 		for (i = 0; color_env[i].name; i++) {
@@ -103,30 +103,30 @@ void tomoyo_editpolicy_color_init(void)
 			break;
 		}
 	}
-	tomoyo_put();
+	ccs_put();
 	fclose(fp);
 use_default:
 	start_color();
 	for (i = 0; color_env[i].name; i++) {
-		struct tomoyo_color_env_t *colorp = &color_env[i];
+		struct ccs_color_env_t *colorp = &color_env[i];
 		init_pair(colorp->tag, colorp->fore, colorp->back);
 	}
-	init_pair(TOMOYO_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
-	bkgdset(A_NORMAL | COLOR_PAIR(TOMOYO_DEFAULT_COLOR) | ' ');
-	for (i = 0; i < TOMOYO_MAXSCREEN; i++)
-		tomoyo_screen[i].saved_color_current = -1;
+	init_pair(CCS_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
+	bkgdset(A_NORMAL | COLOR_PAIR(CCS_DEFAULT_COLOR) | ' ');
+	for (i = 0; i < CCS_MAXSCREEN; i++)
+		ccs_screen[i].saved_color_current = -1;
 }
 
 /**
- * tomoyo_editpolicy_color_save - Save or load current color.
+ * ccs_editpolicy_color_save - Save or load current color.
  *
  * @flg: True if save request, false otherwise.
  *
  * Returns nothing.
  */
-static void tomoyo_editpolicy_color_save(const _Bool flg)
+static void ccs_editpolicy_color_save(const _Bool flg)
 {
-	static attr_t save_color = TOMOYO_DEFAULT_COLOR;
+	static attr_t save_color = CCS_DEFAULT_COLOR;
 	if (flg)
 		save_color = getattrs(stdscr);
 	else
@@ -134,14 +134,14 @@ static void tomoyo_editpolicy_color_save(const _Bool flg)
 }
 
 /**
- * tomoyo_editpolicy_color_change - Change current color.
+ * ccs_editpolicy_color_change - Change current color.
  *
  * @attr: Coloe to use.
  * @flg:  True if turn on, false otherwise.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_color_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
 		attron(COLOR_PAIR(attr));
@@ -150,14 +150,14 @@ void tomoyo_editpolicy_color_change(const attr_t attr, const _Bool flg)
 }
 
 /**
- * tomoyo_editpolicy_attr_change - Change current attribute.
+ * ccs_editpolicy_attr_change - Change current attribute.
  *
  * @attr: Coloe to use.
  * @flg:  True if turn on, false otherwise.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_attr_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
 		attron(attr);
@@ -166,80 +166,80 @@ void tomoyo_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 }
 
 /**
- * tomoyo_editpolicy_sttr_save - Save current color.
+ * ccs_editpolicy_sttr_save - Save current color.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_sttr_save(void)
+void ccs_editpolicy_sttr_save(void)
 {
-	tomoyo_editpolicy_color_save(true);
+	ccs_editpolicy_color_save(true);
 }
 
 /**
- * tomoyo_editpolicy_sttr_restore - Load current color.
+ * ccs_editpolicy_sttr_restore - Load current color.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_sttr_restore(void)
+void ccs_editpolicy_sttr_restore(void)
 {
-	tomoyo_editpolicy_color_save(false);
+	ccs_editpolicy_color_save(false);
 }
 
 /**
- * tomoyo_editpolicy_color_head - Get color to use for header line.
+ * ccs_editpolicy_color_head - Get color to use for header line.
  *
- * Returns one of values in "enum tomoyo_color_pair".
+ * Returns one of values in "enum ccs_color_pair".
  */
-enum tomoyo_color_pair tomoyo_editpolicy_color_head(void)
+enum ccs_color_pair ccs_editpolicy_color_head(void)
 {
-	switch (tomoyo_current_screen) {
-	case TOMOYO_SCREEN_DOMAIN_LIST:
-		return TOMOYO_DOMAIN_HEAD;
-	case TOMOYO_SCREEN_EXCEPTION_LIST:
-		return TOMOYO_EXCEPTION_HEAD;
-	case TOMOYO_SCREEN_PROFILE_LIST:
-		return TOMOYO_PROFILE_HEAD;
-	case TOMOYO_SCREEN_MANAGER_LIST:
-		return TOMOYO_MANAGER_HEAD;
-	case TOMOYO_SCREEN_STAT_LIST:
-		return TOMOYO_STAT_HEAD;
+	switch (ccs_current_screen) {
+	case CCS_SCREEN_DOMAIN_LIST:
+		return CCS_DOMAIN_HEAD;
+	case CCS_SCREEN_EXCEPTION_LIST:
+		return CCS_EXCEPTION_HEAD;
+	case CCS_SCREEN_PROFILE_LIST:
+		return CCS_PROFILE_HEAD;
+	case CCS_SCREEN_MANAGER_LIST:
+		return CCS_MANAGER_HEAD;
+	case CCS_SCREEN_STAT_LIST:
+		return CCS_STAT_HEAD;
 	default:
-		return TOMOYO_ACL_HEAD;
+		return CCS_ACL_HEAD;
 	}
 }
 
 /**
- * tomoyo_editpolicy_color_cursor - Get color to use for cursor line.
+ * ccs_editpolicy_color_cursor - Get color to use for cursor line.
  *
- * Returns one of values in "enum tomoyo_color_pair".
+ * Returns one of values in "enum ccs_color_pair".
  */
-static inline enum tomoyo_color_pair tomoyo_editpolicy_color_cursor(void)
+static inline enum ccs_color_pair ccs_editpolicy_color_cursor(void)
 {
-	switch (tomoyo_current_screen) {
-	case TOMOYO_SCREEN_DOMAIN_LIST:
-		return TOMOYO_DOMAIN_CURSOR;
-	case TOMOYO_SCREEN_EXCEPTION_LIST:
-		return TOMOYO_EXCEPTION_CURSOR;
-	case TOMOYO_SCREEN_PROFILE_LIST:
-		return TOMOYO_PROFILE_CURSOR;
-	case TOMOYO_SCREEN_MANAGER_LIST:
-		return TOMOYO_MANAGER_CURSOR;
-	case TOMOYO_SCREEN_STAT_LIST:
-		return TOMOYO_STAT_CURSOR;
+	switch (ccs_current_screen) {
+	case CCS_SCREEN_DOMAIN_LIST:
+		return CCS_DOMAIN_CURSOR;
+	case CCS_SCREEN_EXCEPTION_LIST:
+		return CCS_EXCEPTION_CURSOR;
+	case CCS_SCREEN_PROFILE_LIST:
+		return CCS_PROFILE_CURSOR;
+	case CCS_SCREEN_MANAGER_LIST:
+		return CCS_MANAGER_CURSOR;
+	case CCS_SCREEN_STAT_LIST:
+		return CCS_STAT_CURSOR;
 	default:
-		return TOMOYO_ACL_CURSOR;
+		return CCS_ACL_CURSOR;
 	}
 }
 
 /**
- * tomoyo_editpolicy_line_draw - Update colored line.
+ * ccs_editpolicy_line_draw - Update colored line.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_line_draw(void)
+void ccs_editpolicy_line_draw(void)
 {
-	struct tomoyo_screen *ptr = &tomoyo_screen[tomoyo_current_screen];
-	const int current = tomoyo_editpolicy_get_current();
+	struct ccs_screen *ptr = &ccs_screen[ccs_current_screen];
+	const int current = ccs_editpolicy_get_current();
 	int y;
 	int x;
 
@@ -249,12 +249,12 @@ void tomoyo_editpolicy_line_draw(void)
 	getyx(stdscr, y, x);
 	if (-1 < ptr->saved_color_current &&
 	    current != ptr->saved_color_current) {
-		move(TOMOYO_HEADER_LINES + ptr->saved_color_y, 0);
-		chgat(-1, A_NORMAL, TOMOYO_DEFAULT_COLOR, NULL);
+		move(CCS_HEADER_LINES + ptr->saved_color_y, 0);
+		chgat(-1, A_NORMAL, CCS_DEFAULT_COLOR, NULL);
 	}
 
 	move(y, x);
-	chgat(-1, A_NORMAL, tomoyo_editpolicy_color_cursor(), NULL);
+	chgat(-1, A_NORMAL, ccs_editpolicy_color_cursor(), NULL);
 	touchwin(stdscr);
 
 	ptr->saved_color_current = current;
@@ -264,72 +264,72 @@ void tomoyo_editpolicy_line_draw(void)
 #else
 
 /**
- * tomoyo_editpolicy_color_init - Initialize line coloring table.
+ * ccs_editpolicy_color_init - Initialize line coloring table.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_color_init(void)
+void ccs_editpolicy_color_init(void)
 {
 }
 
 /**
- * tomoyo_editpolicy_color_change - Change current color.
+ * ccs_editpolicy_color_change - Change current color.
  *
  * @attr: Coloe to use.
  * @flg:  True if turn on, false otherwise.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_color_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 }
 
 /**
- * tomoyo_editpolicy_attr_change - Change current attribute.
+ * ccs_editpolicy_attr_change - Change current attribute.
  *
  * @attr: Coloe to use.
  * @flg:  True if turn on, false otherwise.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_attr_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 }
 
 /**
- * tomoyo_editpolicy_sttr_save - Save current color.
+ * ccs_editpolicy_sttr_save - Save current color.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_sttr_save(void)
+void ccs_editpolicy_sttr_save(void)
 {
 }
 
 /**
- * tomoyo_editpolicy_sttr_restore - Load current color.
+ * ccs_editpolicy_sttr_restore - Load current color.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_sttr_restore(void)
+void ccs_editpolicy_sttr_restore(void)
 {
 }
 
 /**
- * tomoyo_editpolicy_color_head - Get color to use for header line.
+ * ccs_editpolicy_color_head - Get color to use for header line.
  *
- * Returns one of values in "enum tomoyo_color_pair".
+ * Returns one of values in "enum ccs_color_pair".
  */
-enum tomoyo_color_pair tomoyo_editpolicy_color_head(void)
+enum ccs_color_pair ccs_editpolicy_color_head(void)
 {
-	return TOMOYO_DEFAULT_COLOR;
+	return CCS_DEFAULT_COLOR;
 }
 
 /**
- * tomoyo_editpolicy_line_draw - Update colored line.
+ * ccs_editpolicy_line_draw - Update colored line.
  *
  * Returns nothing.
  */
-void tomoyo_editpolicy_line_draw(void)
+void ccs_editpolicy_line_draw(void)
 {
 }
 

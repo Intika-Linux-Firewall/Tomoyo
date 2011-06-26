@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -41,10 +41,10 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	for (i = start; i < argc; i++)
-		tomoyo_normalize_line(argv[i]);
-	tomoyo_mount_securityfs();
+		ccs_normalize_line(argv[i]);
+	ccs_mount_securityfs();
 	{
-		const int fd = open(TOMOYO_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
+		const int fd = open(CCS_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
 		if (fd == EOF) {
 			fprintf(stderr, "You can't run this command for this "
 				"kernel.\n");
@@ -52,21 +52,21 @@ int main(int argc, char *argv[])
 		} else if (write(fd, "", 0) != 0) {
 			fprintf(stderr, "You need to register this program to "
 				"%s to run this program.\n",
-				TOMOYO_PROC_POLICY_MANAGER);
+				CCS_PROC_POLICY_MANAGER);
 			return 1;
 		}
 		close(fd);
 	}
 	{
 		_Bool profile_found = false;
-		FILE *fp = fopen(TOMOYO_PROC_POLICY_PROFILE, "r");
+		FILE *fp = fopen(CCS_PROC_POLICY_PROFILE, "r");
 		if (!fp) {
 			fprintf(stderr, "Can't open policy file.\n");
 			exit(1);
 		}
-		tomoyo_get();
+		ccs_get();
 		while (true) {
-			char *line = tomoyo_freadline(fp);
+			char *line = ccs_freadline(fp);
 			if (!line)
 				break;
 			if (atoi(line) != profile)
@@ -74,23 +74,23 @@ int main(int argc, char *argv[])
 			profile_found = true;
 			break;
 		}
-		tomoyo_put();
+		ccs_put();
 		fclose(fp);
 		if (!profile_found) {
 			fprintf(stderr, "Profile %u not defined.\n", profile);
 			exit(1);
 		}
 	}
-	fp_in = fopen(TOMOYO_PROC_POLICY_DOMAIN_STATUS, "r");
-	fp_out = fopen(TOMOYO_PROC_POLICY_DOMAIN_STATUS, "w");
+	fp_in = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "r");
+	fp_out = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "w");
 	if (!fp_in || !fp_out) {
 		fprintf(stderr, "Can't open policy file.\n");
 		exit(1);
 	}
-	tomoyo_get();
+	ccs_get();
 	while (true) {
 		char *cp;
-		char *line = tomoyo_freadline(fp_in);
+		char *line = ccs_freadline(fp_in);
 		if (!line)
 			break;
 		cp = strchr(line, ' ');
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 			printf("%u %s\n", profile, cp);
 		}
 	}
-	tomoyo_put();
+	ccs_put();
 	fclose(fp_in);
 	fclose(fp_out);
 	return 0;

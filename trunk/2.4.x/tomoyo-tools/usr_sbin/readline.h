@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -22,7 +22,7 @@
  */
 #include <ncurses.h>
 
-static int tomoyo_getch0(void)
+static int ccs_getch0(void)
 {
 	static int enter_key = EOF;
 	int c;
@@ -30,7 +30,7 @@ again:
 	c = getch();
 	if (c == 127 || c == 8)
 		c = KEY_BACKSPACE;
-	/* syslog(LOG_INFO, "tomoyo_getch0='%c' (%d)\n", c, c); */
+	/* syslog(LOG_INFO, "ccs_getch0='%c' (%d)\n", c, c); */
 	if (c == '\r' || c == '\n') {
 		if (enter_key == EOF)
 			enter_key = c;
@@ -40,7 +40,7 @@ again:
 	return c;
 }
 
-static int tomoyo_getch2(void)
+static int ccs_getch2(void)
 {
 	static int c0 = 0;
 	static int c1 = 0;
@@ -54,25 +54,25 @@ static int tomoyo_getch2(void)
 		len--;
 		return c0;
 	}
-	c0 = tomoyo_getch0();
+	c0 = ccs_getch0();
 	if (c0 != 0x1B)
 		return c0;
-	c1 = tomoyo_getch0();
+	c1 = ccs_getch0();
 	if (c1 != '[') {
 		len = 1;
 		return c0;
 	}
-	c2 = tomoyo_getch0();
+	c2 = ccs_getch0();
 	if (c2 < '1' || c2 > '6') {
 		len = 2;
 		return c0;
 	}
-	c3 = tomoyo_getch0();
+	c3 = ccs_getch0();
 	if (c3 != '~') {
 		len = 3;
 		return c0;
 	}
-	/* syslog(LOG_INFO, "tomoyo_getch2='%c'\n", c2); */
+	/* syslog(LOG_INFO, "ccs_getch2='%c'\n", c2); */
 	switch (c2) {
 	case '1':
 		return KEY_HOME;
@@ -90,7 +90,7 @@ static int tomoyo_getch2(void)
 	return 0;
 }
 
-static int tomoyo_add_history(const char *buffer, const char **history,
+static int ccs_add_history(const char *buffer, const char **history,
 			   const int history_count, const int max_history)
 {
 	char *cp = buffer ? strdup(buffer) : NULL;
@@ -114,10 +114,10 @@ static int tomoyo_add_history(const char *buffer, const char **history,
 	return 0;
 }
 
-static int tomoyo_query_fd = EOF;
-static char *tomoyo_initial_readline_data = NULL;
+static int ccs_query_fd = EOF;
+static char *ccs_initial_readline_data = NULL;
 
-static char *tomoyo_readline(const int start_y, const int start_x,
+static char *ccs_readline(const int start_y, const int start_x,
 			  const char *prompt, const char *history[],
 			  const int history_count, const int max_length,
 			  const int scroll_width)
@@ -151,8 +151,8 @@ static char *tomoyo_readline(const int start_y, const int start_x,
 	}
 	move(start_y, start_x);
 	history_pos = history_count;
-	if (tomoyo_initial_readline_data) {
-		strncpy(buffer, tomoyo_initial_readline_data, max_length);
+	if (ccs_initial_readline_data) {
+		strncpy(buffer, ccs_initial_readline_data, max_length);
 		buffer_len = strlen(buffer);
 		ungetch(KEY_END);
 	}
@@ -183,9 +183,9 @@ static char *tomoyo_readline(const int start_y, const int start_x,
 		clrtoeol();
 		move(y, cur_pos + prompt_len);
 		refresh();
-		c = tomoyo_getch2();
-		if (tomoyo_query_fd != EOF)
-			ret_ignored = write(tomoyo_query_fd, "\n", 1);
+		c = ccs_getch2();
+		if (ccs_query_fd != EOF)
+			ret_ignored = write(ccs_query_fd, "\n", 1);
 		if (c == 4) { /* Ctrl-D */
 			if (!buffer_len)
 				buffer_len = -1;
@@ -298,6 +298,6 @@ end_key:
 	}
 	if (buffer_len == -1)
 		return NULL;
-	tomoyo_normalize_line(buffer);
+	ccs_normalize_line(buffer);
 	return strdup(buffer);
 }

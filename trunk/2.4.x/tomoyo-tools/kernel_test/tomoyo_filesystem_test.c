@@ -1,9 +1,9 @@
 /*
- * tomoyo_filesystem_test.c
+ * ccs_filesystem_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -35,7 +35,7 @@ static void show_prompt(const char *str, const int should_fail)
 static int child(void *arg)
 {
 	errno = 0;
-	pivot_root("/sys/kernel/security/", "/sys/kernel/security/tomoyo/");
+	pivot_root("/proc/", "/sys/kernel/security/tomoyo/");
 	return errno;
 }
 
@@ -167,7 +167,7 @@ static const unsigned char compressed_ext2_image_sample[1350] = {
 int main(int argc, char *argv[])
 {
 	char c = 0;
-	tomoyo_test_init();
+	ccs_test_init();
 
 	/* Test mount(). */
 	{
@@ -563,8 +563,8 @@ int main(int argc, char *argv[])
 		int error;
 		char *stack = malloc(8192);
 		set_profile(3, "file::pivot_root");
-		fprintf(domain_fp, "file pivot_root securityfs:/ securityfs:/tomoyo/\n");
-		snprintf(stack, 8191, "pivot_root('securityfs:/', 'securityfs:/tomoyo/')");
+		fprintf(domain_fp, "file pivot_root proc:/ proc:/ccs/\n");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
 		show_prompt(stack, 0);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),
@@ -580,8 +580,8 @@ int main(int argc, char *argv[])
 			printf("FAILED: %s\n", strerror(errno));
 
 		fprintf(domain_fp,
-			"delete file pivot_root securityfs:/ securityfs:/tomoyo/\n");
-		snprintf(stack, 8191, "pivot_root('securityfs:/', 'securityfs:/tomoyo/')");
+			"delete file pivot_root proc:/ proc:/ccs/\n");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
 		show_prompt(stack, 1);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),
@@ -597,7 +597,7 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 
 		set_profile(2, "file::pivot_root");
-		snprintf(stack, 8191, "pivot_root('securityfs:/', 'securityfs:/tomoyo/')");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
 		show_prompt(stack, 0);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),

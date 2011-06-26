@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
 		printf("%s string_to_find\n\n", argv[0]);
 		return 0;
 	}
-	tomoyo_mount_securityfs();
-	fp = fopen(TOMOYO_PROC_POLICY_DOMAIN_POLICY, "r");
+	ccs_mount_securityfs();
+	fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r");
 	if (!fp) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
@@ -44,9 +44,9 @@ int main(int argc, char *argv[])
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
-		if (tomoyo_domain_def(buffer)) {
+		if (ccs_domain_def(buffer)) {
 			free(domain);
-			domain = tomoyo_strdup(buffer);
+			domain = ccs_strdup(buffer);
 			flag = 0;
 			continue;
 		}

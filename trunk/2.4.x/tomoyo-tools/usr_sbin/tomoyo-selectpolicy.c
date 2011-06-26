@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -38,13 +38,13 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	for (i = start; i < argc; i++)
-		tomoyo_normalize_line(argv[i]);
-	tomoyo_get();
+		ccs_normalize_line(argv[i]);
+	ccs_get();
 	while (true) {
-		char *line = tomoyo_freadline(stdin);
+		char *line = ccs_freadline(stdin);
 		if (!line)
 			break;
-		if (tomoyo_domain_def(line)) {
+		if (ccs_domain_def(line)) {
 			matched = false;
 			for (i = start; i < argc; i++) {
 				const int len = strlen(argv[i]);
@@ -63,6 +63,6 @@ int main(int argc, char *argv[])
 		if (matched)
 			puts(line);
 	}
-	tomoyo_put();
+	ccs_put();
 	return 0;
 }

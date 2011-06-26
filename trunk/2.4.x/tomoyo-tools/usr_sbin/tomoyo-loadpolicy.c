@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -22,37 +22,37 @@
  */
 #include "tomoyotools.h"
 
-static _Bool tomoyo_move_file_to_proc(const char *dest)
+static _Bool ccs_move_file_to_proc(const char *dest)
 {
-	FILE *proc_fp = tomoyo_open_write(dest);
+	FILE *proc_fp = ccs_open_write(dest);
 	_Bool result = true;
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s for writing.\n", dest);
 		return false;
 	}
-	tomoyo_get();
+	ccs_get();
 	while (true) {
-		char *line = tomoyo_freadline(stdin);
+		char *line = ccs_freadline(stdin);
 		if (!line)
 			break;
 		if (line[0])
 			if (fprintf(proc_fp, "%s\n", line) < 0)
 				result = false;
 	}
-	tomoyo_put();
-	if (!tomoyo_close_write(proc_fp))
+	ccs_put();
+	if (!ccs_close_write(proc_fp))
 		result = false;
 	return result;
 }
 
-static _Bool tomoyo_delete_proc_policy(const char *name)
+static _Bool ccs_delete_proc_policy(const char *name)
 {
 	FILE *fp_in;
 	FILE *fp_out;
 	_Bool result = false;
-	if (tomoyo_network_mode) {
-		fp_in = tomoyo_open_read(name);
-		fp_out = tomoyo_open_write(name);
+	if (ccs_network_mode) {
+		fp_in = ccs_open_read(name);
+		fp_out = ccs_open_write(name);
 	} else {
 		fp_in = fopen(name, "r");
 		fp_out = fopen(name, "w");
@@ -66,38 +66,38 @@ static _Bool tomoyo_delete_proc_policy(const char *name)
 			fclose(fp_out);
 		return false;
 	}
-	tomoyo_get();
+	ccs_get();
 	while (true) {
-		char *line = tomoyo_freadline(fp_in);
+		char *line = ccs_freadline(fp_in);
 		if (!line)
 			break;
 		if (fprintf(fp_out, "delete %s\n", line) < 0)
 			result = false;
 	}
-	tomoyo_put();
+	ccs_put();
 	if (fclose(fp_in))
 		result = false;
-	if (!tomoyo_close_write(fp_out))
+	if (!ccs_close_write(fp_out))
 		result = false;
 	return result;
 }
 
-static _Bool tomoyo_update_domain_policy(struct tomoyo_domain_policy *proc_policy,
-				      struct tomoyo_domain_policy *file_policy,
+static _Bool ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
+				      struct ccs_domain_policy *file_policy,
 				      const char *src, const char *dest)
 {
 	int file_index;
 	int proc_index;
 	FILE *proc_fp;
 	_Bool result = true;
-	_Bool nm = tomoyo_network_mode;
+	_Bool nm = ccs_network_mode;
 	/* Load disk policy to file_policy->list. */
-	tomoyo_network_mode = false;
-	tomoyo_read_domain_policy(file_policy, src);
-	tomoyo_network_mode = nm;
+	ccs_network_mode = false;
+	ccs_read_domain_policy(file_policy, src);
+	ccs_network_mode = nm;
 	/* Load proc policy to proc_policy->list. */
-	tomoyo_read_domain_policy(proc_policy, dest);
-	proc_fp = tomoyo_open_write(dest);
+	ccs_read_domain_policy(proc_policy, dest);
+	proc_fp = ccs_open_write(dest);
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s for writing.\n", dest);
 		return false;
@@ -106,15 +106,15 @@ static _Bool tomoyo_update_domain_policy(struct tomoyo_domain_policy *proc_polic
 	     file_index++) {
 		int i;
 		int j;
-		const struct tomoyo_path_info *domainname
+		const struct ccs_path_info *domainname
 			= file_policy->list[file_index].domainname;
-		const struct tomoyo_path_info **file_string_ptr
+		const struct ccs_path_info **file_string_ptr
 			= file_policy->list[file_index].string_ptr;
 		const int file_string_count
 			= file_policy->list[file_index].string_count;
-		const struct tomoyo_path_info **proc_string_ptr;
+		const struct ccs_path_info **proc_string_ptr;
 		int proc_string_count;
-		proc_index = tomoyo_find_domain_by_ptr(proc_policy, domainname);
+		proc_index = ccs_find_domain_by_ptr(proc_policy, domainname);
 		if (fprintf(proc_fp, "%s\n", domainname->name) < 0)
 			result = false;
 		if (proc_index == EOF)
@@ -135,7 +135,7 @@ static _Bool tomoyo_update_domain_policy(struct tomoyo_domain_policy *proc_polic
 					    proc_string_ptr[j]->name) < 0)
 					result = false;
 		}
-		tomoyo_delete_domain(proc_policy, proc_index);
+		ccs_delete_domain(proc_policy, proc_index);
 not_found:
 		/* Append entries defined in disk policy. */
 		for (i = 0; i < file_string_count; i++)
@@ -155,15 +155,15 @@ not_found:
 			    proc_policy->list[proc_index].domainname->name)
 		    < 0)
 			result = false;
-	if (!tomoyo_close_write(proc_fp))
+	if (!ccs_close_write(proc_fp))
 		result = false;
 	return result;
 }
 
 int main(int argc, char *argv[])
 {
-	struct tomoyo_domain_policy proc_policy = { NULL, 0, NULL };
-	struct tomoyo_domain_policy file_policy = { NULL, 0, NULL };
+	struct ccs_domain_policy proc_policy = { NULL, 0, NULL };
+	struct ccs_domain_policy file_policy = { NULL, 0, NULL };
 	_Bool refresh_policy = false;
 	_Bool result = true;
 	char target = 0;
@@ -173,15 +173,15 @@ int main(int argc, char *argv[])
 		char *cp = strchr(ptr, ':');
 		if (cp) {
 			*cp++ = '\0';
-			tomoyo_network_ip = inet_addr(ptr);
-			tomoyo_network_port = htons(atoi(cp));
-			if (tomoyo_network_mode) {
+			ccs_network_ip = inet_addr(ptr);
+			ccs_network_port = htons(atoi(cp));
+			if (ccs_network_mode) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"remote agents");
 				goto usage;
 			}
-			tomoyo_network_mode = true;
+			ccs_network_mode = true;
 		} else {
 			if (target) {
 				fprintf(stderr, "You cannot specify multiple "
@@ -208,43 +208,43 @@ int main(int argc, char *argv[])
 			"policy to load");
 		goto usage;
 	}
-	if (tomoyo_network_mode) {
-		if (!tomoyo_check_remote_host())
+	if (ccs_network_mode) {
+		if (!ccs_check_remote_host())
 			return 1;
-	} else if (tomoyo_mount_securityfs(),
-		   access(TOMOYO_PROC_POLICY_DIR, F_OK)) {
+	} else if (ccs_mount_securityfs(),
+		   access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
 		return 1;
 	}
 	switch (target) {
 	case 'p':
-		result = tomoyo_move_file_to_proc(TOMOYO_PROC_POLICY_PROFILE);
+		result = ccs_move_file_to_proc(CCS_PROC_POLICY_PROFILE);
 		break;
 	case 'm':
-		result = tomoyo_move_file_to_proc(TOMOYO_PROC_POLICY_MANAGER);
+		result = ccs_move_file_to_proc(CCS_PROC_POLICY_MANAGER);
 		break;
 	case 's':
-		result = tomoyo_move_file_to_proc(TOMOYO_PROC_POLICY_STAT);
+		result = ccs_move_file_to_proc(CCS_PROC_POLICY_STAT);
 		break;
 	case 'e':
 		if (refresh_policy)
-			result = tomoyo_delete_proc_policy
-				(TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
-		result = tomoyo_move_file_to_proc
-			(TOMOYO_PROC_POLICY_EXCEPTION_POLICY);
+			result = ccs_delete_proc_policy
+				(CCS_PROC_POLICY_EXCEPTION_POLICY);
+		result = ccs_move_file_to_proc
+			(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		break;
 	case 'd':
 		if (!refresh_policy) {
-			result = tomoyo_move_file_to_proc
-				(TOMOYO_PROC_POLICY_DOMAIN_POLICY);
+			result = ccs_move_file_to_proc
+				(CCS_PROC_POLICY_DOMAIN_POLICY);
 			break;
 		}
-		result = tomoyo_update_domain_policy
+		result = ccs_update_domain_policy
 			(&proc_policy, &file_policy, NULL,
-			 TOMOYO_PROC_POLICY_DOMAIN_POLICY);
-		tomoyo_clear_domain_policy(&proc_policy);
-		tomoyo_clear_domain_policy(&file_policy);
+			 CCS_PROC_POLICY_DOMAIN_POLICY);
+		ccs_clear_domain_policy(&proc_policy);
+		ccs_clear_domain_policy(&file_policy);
 		break;
 	}
 	return !result;

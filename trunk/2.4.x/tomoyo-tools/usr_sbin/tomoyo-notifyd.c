@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -26,7 +26,7 @@
 #include <syslog.h>
 #include <poll.h>
 
-#define TOMOYO_NOTIFYD_CONF "/etc/tomoyo/tools/notifyd.conf"
+#define CCS_NOTIFYD_CONF "/etc/tomoyo/tools/notifyd.conf"
 
 static const char *proc_policy_query = "/sys/kernel/security/tomoyo/query";
 static int query_fd = EOF;
@@ -34,7 +34,7 @@ static int time_to_wait = 0;
 static char **action_to_take = NULL;
 static int minimal_interval = 0;
 
-static void tomoyo_notifyd_init_rules(const char *filename)
+static void ccs_notifyd_init_rules(const char *filename)
 {
 	static _Bool first = 1;
 	FILE *fp = fopen(filename, "r");
@@ -55,28 +55,28 @@ static void tomoyo_notifyd_init_rules(const char *filename)
 			       filename);
 		exit(1);
 	}
-	tomoyo_get();
+	ccs_get();
 	while (true) {
-		char *line = tomoyo_freadline(fp);
+		char *line = ccs_freadline(fp);
 		if (!line)
 			break;
 		line_no++;
-		tomoyo_normalize_line(line);
+		ccs_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
 		if (sscanf(line, "time_to_wait %u", &time_to_wait) == 1 ||
 		    sscanf(line, "minimal_interval %u", &minimal_interval)
 		    == 1)
 			continue;
-		if (!tomoyo_str_starts(line, "action_to_take "))
+		if (!ccs_str_starts(line, "action_to_take "))
 			continue;
 		if (!*line)
 			goto invalid_rule;
 		if (action)
 			goto invalid_rule;
-		action = tomoyo_strdup(line);
+		action = ccs_strdup(line);
 	}
-	tomoyo_put();
+	ccs_put();
 	fclose(fp);
 	if (!action) {
 		if (first)
@@ -92,12 +92,12 @@ static void tomoyo_notifyd_init_rules(const char *filename)
 		char *sp = action;
 		while (true) {
 			char *cp = strsep(&sp, " ");
-			action_to_take = tomoyo_realloc(action_to_take,
+			action_to_take = ccs_realloc(action_to_take,
 						     sizeof(char *) * ++count);
 			action_to_take[count - 1] = cp;
 			if (!cp)
 				break;
-			if (!tomoyo_decode(cp, cp))
+			if (!ccs_decode(cp, cp))
 				goto invalid_rule;
 		}
 	}
@@ -183,11 +183,11 @@ static void main_loop(void)
 	}
 }
 
-static void tomoyo_reload_config(int sig)
+static void ccs_reload_config(int sig)
 {
 	block_sighup(1);
 	syslog(LOG_WARNING, "Reloading configuration file.\n");
-	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
+	ccs_notifyd_init_rules(CCS_NOTIFYD_CONF);
 	block_sighup(0);
 }
 
@@ -196,8 +196,8 @@ int main(int argc, char *argv[])
 	unsetenv("SHELLOPTS"); /* Make sure popen() executes commands. */
 	if (argc != 1)
 		goto usage;
-	tomoyo_notifyd_init_rules(TOMOYO_NOTIFYD_CONF);
-	tomoyo_mount_securityfs();
+	ccs_notifyd_init_rules(CCS_NOTIFYD_CONF);
+	ccs_mount_securityfs();
 	query_fd = open(proc_policy_query, O_RDWR);
 	if (query_fd == EOF) {
 		fprintf(stderr, "You can't run this daemon for this kernel."
@@ -245,13 +245,13 @@ int main(int argc, char *argv[])
 	close(2);
 	openlog("tomoyo-notifyd", 0,  LOG_USER);
 	syslog(LOG_WARNING, "Started.\n");
-	signal(SIGHUP, tomoyo_reload_config);
+	signal(SIGHUP, ccs_reload_config);
 	main_loop();
 	syslog(LOG_WARNING, "Terminated.\n");
 	closelog();
 	return 1;
 usage:
 	fprintf(stderr, "%s\n  See %s for configuration.\n", argv[0],
-		TOMOYO_NOTIFYD_CONF);
+		CCS_NOTIFYD_CONF);
 	return 1;
 }

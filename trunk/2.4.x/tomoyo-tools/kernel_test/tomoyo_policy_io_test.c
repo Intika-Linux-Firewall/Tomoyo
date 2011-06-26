@@ -1,9 +1,9 @@
 /*
- * tomoyo_policy_io_test.c
+ * ccs_policy_io_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -179,7 +179,7 @@ static void stage_policy_io_test(void)
 
 int main(int argc, char *argv[])
 {
-	tomoyo_test_init();
+	ccs_test_init();
 	stage_policy_io_test();
 	if (0) { /* To suppress "defined but not used" warnings. */
 		write_domain_policy("", 0);

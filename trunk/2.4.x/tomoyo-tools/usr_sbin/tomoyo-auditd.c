@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -25,41 +25,41 @@
 #include <syslog.h>
 #include <poll.h>
 
-#define TOMOYO_AUDITD_CONF "/etc/tomoyo/tools/auditd.conf"
+#define CCS_AUDITD_CONF "/etc/tomoyo/tools/auditd.conf"
 
-struct tomoyo_destination {
+struct ccs_destination {
 	const char *pathname;
 	int fd;
 };
 
-static struct tomoyo_destination *destination_list = NULL;
+static struct ccs_destination *destination_list = NULL;
 static unsigned int destination_list_len = 0;
 
-enum tomoyo_rule_types {
-	TOMOYO_SORT_RULE_HEADER,
-	TOMOYO_SORT_RULE_DOMAIN,
-	TOMOYO_SORT_RULE_ACL,
-	TOMOYO_SORT_RULE_DESTINATION,
+enum ccs_rule_types {
+	CCS_SORT_RULE_HEADER,
+	CCS_SORT_RULE_DOMAIN,
+	CCS_SORT_RULE_ACL,
+	CCS_SORT_RULE_DESTINATION,
 };
 
-enum tomoyo_operator_types {
-	TOMOYO_SORT_OPERATOR_CONTAINS,
-	TOMOYO_SORT_OPERATOR_EQUALS,
-	TOMOYO_SORT_OPERATOR_STARTS,
+enum ccs_operator_types {
+	CCS_SORT_OPERATOR_CONTAINS,
+	CCS_SORT_OPERATOR_EQUALS,
+	CCS_SORT_OPERATOR_STARTS,
 };
 
-struct tomoyo_sort_rules {
-	enum tomoyo_rule_types type;
-	enum tomoyo_operator_types operation;
+struct ccs_sort_rules {
+	enum ccs_rule_types type;
+	enum ccs_operator_types operation;
 	unsigned int index;
 	const char *string;
 	unsigned int string_len; /* strlen(string). */
 };
 
-static struct tomoyo_sort_rules *rules = NULL;
+static struct ccs_sort_rules *rules = NULL;
 static unsigned int rules_len = 0;
 
-static void tomoyo_auditd_init_rules(const char *filename)
+static void ccs_auditd_init_rules(const char *filename)
 {
 	static _Bool first = 1;
 	FILE *fp = fopen(filename, "r");
@@ -84,22 +84,22 @@ static void tomoyo_auditd_init_rules(const char *filename)
 			       filename);
 		exit(1);
 	}
-	tomoyo_get();
+	ccs_get();
 	while (true) {
-		char *line = tomoyo_freadline(fp);
-		struct tomoyo_sort_rules *ptr;
+		char *line = ccs_freadline(fp);
+		struct ccs_sort_rules *ptr;
 		unsigned char c;
 		if (!line)
 			break;
 		line_no++;
-		tomoyo_normalize_line(line);
+		ccs_normalize_line(line);
 		if (*line == '#' || !*line)
 			continue;
-		rules = tomoyo_realloc(rules, sizeof(struct tomoyo_sort_rules) *
+		rules = ccs_realloc(rules, sizeof(struct ccs_sort_rules) *
 				    (rules_len + 1));
 		ptr = &rules[rules_len++];
 		memset(ptr, 0, sizeof(*ptr));
-		if (tomoyo_str_starts(line, "destination ")) {
+		if (ccs_str_starts(line, "destination ")) {
 			if (*line != '/')
 				goto invalid_rule;
 			for (i = 0; i < destination_list_len; i++)
@@ -109,24 +109,24 @@ static void tomoyo_auditd_init_rules(const char *filename)
 			if (i < destination_list_len)
 				goto store_destination;
 			destination_list =
-				tomoyo_realloc(destination_list,
+				ccs_realloc(destination_list,
 					    ++destination_list_len *
-					    sizeof(struct tomoyo_destination));
-			if (!tomoyo_decode(line, line))
+					    sizeof(struct ccs_destination));
+			if (!ccs_decode(line, line))
 				goto invalid_rule;
-			destination_list[i].pathname = tomoyo_strdup(line);
+			destination_list[i].pathname = ccs_strdup(line);
 			destination_list[i].fd = EOF;
 store_destination:
-			ptr->type = TOMOYO_SORT_RULE_DESTINATION;
+			ptr->type = CCS_SORT_RULE_DESTINATION;
 			ptr->index = i;
 			continue;
 		}
-		if (tomoyo_str_starts(line, "header"))
-			ptr->type = TOMOYO_SORT_RULE_HEADER;
-		else if (tomoyo_str_starts(line, "domain"))
-			ptr->type = TOMOYO_SORT_RULE_DOMAIN;
-		else if (tomoyo_str_starts(line, "acl"))
-			ptr->type = TOMOYO_SORT_RULE_ACL;
+		if (ccs_str_starts(line, "header"))
+			ptr->type = CCS_SORT_RULE_HEADER;
+		else if (ccs_str_starts(line, "domain"))
+			ptr->type = CCS_SORT_RULE_DOMAIN;
+		else if (ccs_str_starts(line, "acl"))
+			ptr->type = CCS_SORT_RULE_ACL;
 		else
 			goto invalid_rule;
 		switch (sscanf(line, "[%u%c", &ptr->index, &c)) {
@@ -141,21 +141,21 @@ store_destination:
 		default:
 			goto invalid_rule;
 		}
-		if (tomoyo_str_starts(line, ".contains "))
-			ptr->operation = TOMOYO_SORT_OPERATOR_CONTAINS;
-		else if (tomoyo_str_starts(line, ".equals "))
-			ptr->operation = TOMOYO_SORT_OPERATOR_EQUALS;
-		else if (tomoyo_str_starts(line, ".starts "))
-			ptr->operation = TOMOYO_SORT_OPERATOR_STARTS;
+		if (ccs_str_starts(line, ".contains "))
+			ptr->operation = CCS_SORT_OPERATOR_CONTAINS;
+		else if (ccs_str_starts(line, ".equals "))
+			ptr->operation = CCS_SORT_OPERATOR_EQUALS;
+		else if (ccs_str_starts(line, ".starts "))
+			ptr->operation = CCS_SORT_OPERATOR_STARTS;
 		else
 			goto invalid_rule;
 		if (!*line)
 			goto invalid_rule;
-		line = tomoyo_strdup(line);
+		line = ccs_strdup(line);
 		ptr->string = line;
 		ptr->string_len = strlen(line);
 	}
-	tomoyo_put();
+	ccs_put();
 	fclose(fp);
 	if (!rules_len) {
 		if (first)
@@ -167,7 +167,7 @@ store_destination:
 		exit(1);
 	}
 	for (i = 0; i < destination_list_len; i++) {
-		struct tomoyo_destination *ptr = &destination_list[i];
+		struct ccs_destination *ptr = &destination_list[i];
 		const char *path = ptr->pathname;
 		/* This is OK because path is a strdup()ed string. */
 		char *pos = (char *) path;
@@ -205,27 +205,27 @@ invalid_rule:
 	exit(1);
 }
 
-static int tomoyo_check_rules(char *header, char *domain, char *acl)
+static int ccs_check_rules(char *header, char *domain, char *acl)
 {
 	unsigned int i;
 	_Bool matched = true;
 	for (i = 0; i < rules_len; i++) {
-		const struct tomoyo_sort_rules *ptr = &rules[i];
+		const struct ccs_sort_rules *ptr = &rules[i];
 		char *line;
 		unsigned int index = ptr->index;
 		const char *find = ptr->string;
 		unsigned int find_len = ptr->string_len;
 		switch (ptr->type) {
-		case TOMOYO_SORT_RULE_HEADER:
+		case CCS_SORT_RULE_HEADER:
 			line = header;
 			break;
-		case TOMOYO_SORT_RULE_DOMAIN:
+		case CCS_SORT_RULE_DOMAIN:
 			line = domain;
 			break;
-		case TOMOYO_SORT_RULE_ACL:
+		case CCS_SORT_RULE_ACL:
 			line = acl;
 			break;
-		default: /* TOMOYO_SORT_RULE_DESTINATION */
+		default: /* CCS_SORT_RULE_DESTINATION */
 			if (matched)
 				return ptr->index;
 			matched = true;
@@ -235,7 +235,7 @@ static int tomoyo_check_rules(char *header, char *domain, char *acl)
 			continue;
 		if (!index) {
 			switch (ptr->operation) {
-			case TOMOYO_SORT_OPERATOR_CONTAINS:
+			case CCS_SORT_OPERATOR_CONTAINS:
 				while (1) {
 					char *cp = strstr(line, find);
 					if (!cp) {
@@ -249,10 +249,10 @@ static int tomoyo_check_rules(char *header, char *domain, char *acl)
 					line = cp + 1;
 				}
 				break;
-			case TOMOYO_SORT_OPERATOR_EQUALS:
+			case CCS_SORT_OPERATOR_EQUALS:
 				matched = !strcmp(line, find);
 				break;
-			default: /* TOMOYO_SORT_OPERATOR_STARTS */
+			default: /* CCS_SORT_OPERATOR_STARTS */
 				matched = !strncmp(line, find, find_len) &&
 					(!line[find_len] ||
 					 line[find_len] == ' ');
@@ -274,13 +274,13 @@ static int tomoyo_check_rules(char *header, char *domain, char *acl)
 			if (word_end)
 				*word_end = '\0';
 			switch (ptr->operation) {
-			case TOMOYO_SORT_OPERATOR_CONTAINS:
+			case CCS_SORT_OPERATOR_CONTAINS:
 				matched = strstr(word, find) != NULL;
 				break;
-			case TOMOYO_SORT_OPERATOR_EQUALS:
+			case CCS_SORT_OPERATOR_EQUALS:
 				matched = !strcmp(word, find);
 				break;
-			default: /* TOMOYO_SORT_OPERATOR_STARTS */
+			default: /* CCS_SORT_OPERATOR_STARTS */
 				matched = !strncmp(word, find, find_len);
 				break;
 			}
@@ -291,11 +291,11 @@ static int tomoyo_check_rules(char *header, char *domain, char *acl)
 	return EOF;
 }
 
-static _Bool tomoyo_write_log(const int i, char *buffer)
+static _Bool ccs_write_log(const int i, char *buffer)
 {
 	int len = strlen(buffer);
 	int ret;
-	struct tomoyo_destination *ptr = &destination_list[i];
+	struct ccs_destination *ptr = &destination_list[i];
 	/* Create destination file if needed. */
 	if (access(ptr->pathname, F_OK)) {
 		close(ptr->fd);
@@ -330,11 +330,11 @@ static void block_sighup(const _Bool block)
 	sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &sigset, NULL);
 }
 
-static void tomoyo_reload_config(int sig)
+static void ccs_reload_config(int sig)
 {
 	block_sighup(1);
 	syslog(LOG_WARNING, "Reloading configuration file.\n");
-	tomoyo_auditd_init_rules(TOMOYO_AUDITD_CONF);
+	ccs_auditd_init_rules(CCS_AUDITD_CONF);
 	block_sighup(0);
 }
 
@@ -348,18 +348,18 @@ int main(int argc, char *argv[])
 		if (!cp)
 			goto usage;
 		*cp++ = '\0';
-		if (tomoyo_network_mode)
+		if (ccs_network_mode)
 			goto usage;
-		tomoyo_network_ip = inet_addr(ptr);
-		tomoyo_network_port = htons(atoi(cp));
-		tomoyo_network_mode = true;
-		if (!tomoyo_check_remote_host())
+		ccs_network_ip = inet_addr(ptr);
+		ccs_network_port = htons(atoi(cp));
+		ccs_network_mode = true;
+		if (!ccs_check_remote_host())
 			return 1;
 	}
-	tomoyo_auditd_init_rules(TOMOYO_AUDITD_CONF);
-	if (tomoyo_network_mode)
+	ccs_auditd_init_rules(CCS_AUDITD_CONF);
+	if (ccs_network_mode)
 		goto start;
-	if (access(TOMOYO_PROC_POLICY_AUDIT, R_OK)) {
+	if (access(CCS_PROC_POLICY_AUDIT, R_OK)) {
 		fprintf(stderr, "You can't run this daemon for this kernel."
 			"\n");
 		return 1;
@@ -370,13 +370,13 @@ int main(int argc, char *argv[])
 			return 0;
 	}
 start:
-	if (tomoyo_network_mode)
-		fd_in = tomoyo_open_stream("proc:audit");
+	if (ccs_network_mode)
+		fd_in = ccs_open_stream("proc:audit");
 	else
-		fd_in = open(TOMOYO_PROC_POLICY_AUDIT, O_RDONLY);
+		fd_in = open(CCS_PROC_POLICY_AUDIT, O_RDONLY);
 	if (fd_in == EOF) {
 		fprintf(stderr, "Can't open %s for reading.\n",
-			TOMOYO_PROC_POLICY_AUDIT);
+			CCS_PROC_POLICY_AUDIT);
 		return 1;
 	}
 	switch (fork()) {
@@ -410,7 +410,7 @@ start:
 	close(2);
 	openlog("tomoyo-auditd", 0,  LOG_USER);
 	syslog(LOG_WARNING, "Started.\n");
-	signal(SIGHUP, tomoyo_reload_config);
+	signal(SIGHUP, ccs_reload_config);
 	while (true) {
 		static char buffer[32768];
 		char *domain;
@@ -418,7 +418,7 @@ start:
 		char *tail;
 		int ret;
 		memset(buffer, 0, sizeof(buffer));
-		if (tomoyo_network_mode) {
+		if (ccs_network_mode) {
 			int j;
 			for (j = 0; j < sizeof(buffer) - 1; j++) {
 				do {
@@ -457,13 +457,13 @@ start:
 		*tail = '\0';
 		block_sighup(1);
 		/* Check for filtering rules. */
-		i = tomoyo_check_rules(buffer, domain, acl);
-		if (i >= 0) {
+		i = ccs_check_rules(buffer, domain, acl);
+		if (i != EOF) {
 			*tail = '\n';
 			*--acl = '\n';
 			*--domain = '\n';
 			/* Write the audit log. */
-			if (!tomoyo_write_log(i, buffer))
+			if (!ccs_write_log(i, buffer))
 				break;
 		}
 		block_sighup(0);
@@ -474,6 +474,6 @@ out:
 	return 1;
 usage:
 	fprintf(stderr, "%s [remote_ip:remote_port]\n"
-		"  See %s for configuration.\n", argv[0], TOMOYO_AUDITD_CONF);
+		"  See %s for configuration.\n", argv[0], CCS_AUDITD_CONF);
 	return 1;
 }

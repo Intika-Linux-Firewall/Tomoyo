@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -24,12 +24,12 @@
 
 int main(int argc, char *argv[])
 {
-	const char *policy_file = TOMOYO_PROC_POLICY_PROFILE;
+	const char *policy_file = CCS_PROC_POLICY_PROFILE;
 	int i;
 	int fd;
 	char c;
-	tomoyo_mount_securityfs();
-	if (access(TOMOYO_PROC_POLICY_DIR, F_OK)) {
+	ccs_mount_securityfs();
+	if (access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr, "You can't use this command for this "
 			"kernel.\n");
 		return 1;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 		return 1;
 	} else if (write(fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", TOMOYO_PROC_POLICY_MANAGER);
+			"run this program.\n", CCS_PROC_POLICY_MANAGER);
 		return 1;
 	}
 	if (argc == 1) {
@@ -61,9 +61,9 @@ int main(int argc, char *argv[])
 				*(cp + 1) = '\0';
 		}
 		fflush(fp);
-		tomoyo_get();
+		ccs_get();
 		while (true) {
-			char *line = tomoyo_freadline(fp);
+			char *line = ccs_freadline(fp);
 			if (!line)
 				break;
 			for (i = 1; i < argc; i++) {
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
-		tomoyo_put();
+		ccs_put();
 		fclose(fp);
 	}
 	close(fd);

@@ -19,13 +19,15 @@ int main(int argc, char *argv[])
 	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_APPEND) == EOF)
 		fprintf(stderr, "fcntl(O_APPEND) rejected for O_RDONLY.\n");
 	if (write(fd, "", 1) != EOF)
-		fprintf(stderr, "write() not rejected for O_RDONLY | O_APPEND.\n");
+		fprintf(stderr, "write() not rejected for "
+			"O_RDONLY | O_APPEND.\n");
 	close(fd);
 	fprintf(stderr, "file read /tmp/O_RDONLY+O_APPEND\n");
 	fd = open("/tmp/O_RDONLY+O_APPEND", O_RDONLY | O_APPEND);
 	fprintf(stderr, "file write /tmp/O_RDONLY+O_APPEND\n");
 	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_APPEND) == EOF)
-		fprintf(stderr, "fcntl(~O_APPEND) rejected for O_RDONLY | O_APPEND.\n");
+		fprintf(stderr, "fcntl(~O_APPEND) rejected for "
+			"O_RDONLY | O_APPEND.\n");
 	if (write(fd, "", 1) != EOF)
 		fprintf(stderr, "write() not rejected for O_RDONLY.\n");
 	close(fd);
@@ -41,7 +43,8 @@ int main(int argc, char *argv[])
 	fd = open("/tmp/O_WRONLY+O_APPEND", O_WRONLY | O_APPEND);
 	fprintf(stderr, "file write /tmp/O_WRONLY+O_APPEND\n");
 	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_APPEND) == EOF)
-		fprintf(stderr, "fcntl(~O_APPEND) rejected for O_WRONLY | O_APPEND.\n");
+		fprintf(stderr, "fcntl(~O_APPEND) rejected for "
+			"O_WRONLY | O_APPEND.\n");
 	if (write(fd, "", 1) == EOF)
 		fprintf(stderr, "write() rejected for O_WRONLY.\n");
 	close(fd);
@@ -57,7 +60,8 @@ int main(int argc, char *argv[])
 	fd = open("/tmp/O_RDWR+O_APPEND", O_RDWR | O_APPEND);
 	fprintf(stderr, "file write /tmp/O_RDWR+O_APPEND\n");
 	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_APPEND) == EOF)
-		fprintf(stderr, "fcntl(~O_APPEND) rejected for O_RDWR | O_APPEND.\n");
+		fprintf(stderr, "fcntl(~O_APPEND) rejected for "
+			"O_RDWR | O_APPEND.\n");
 	if (write(fd, "", 1) == EOF)
 		fprintf(stderr, "write() rejected for O_RDWR.\n");
 	close(fd);
@@ -66,12 +70,14 @@ int main(int argc, char *argv[])
 	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_APPEND) == EOF)
 		fprintf(stderr, "fcntl(O_APPEND) rejected for O_IOCTL.\n");
 	if (write(fd, "", 1) != EOF)
-		fprintf(stderr, "write() not rejected for O_IOCTL | O_APPEND.\n");
+		fprintf(stderr, "write() not rejected for "
+			"O_IOCTL | O_APPEND.\n");
 	close(fd);
 	fd = open("/tmp/O_IOCTL+O_APPEND", 3 | O_APPEND);
 	fprintf(stderr, "file write /tmp/O_IOCTL+O_APPEND\n");
 	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_APPEND) == EOF)
-		fprintf(stderr, "fcntl(~O_APPEND) rejected for O_IOCTL | O_APPEND.\n");
+		fprintf(stderr, "fcntl(~O_APPEND) rejected for "
+			"O_IOCTL | O_APPEND.\n");
 	if (write(fd, "", 1) != EOF)
 		fprintf(stderr, "write() not rejected for O_IOCTL.\n");
 	close(fd);
