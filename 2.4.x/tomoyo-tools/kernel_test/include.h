@@ -276,11 +276,11 @@ static void ccs_test_init(void)
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/ccs/domain_policy\n");
+		"securityfs:/tomoyo/domain_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/ccs/exception_policy\n");
+		"securityfs:/tomoyo/exception_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"proc:/ccs/profile\n");
+		"securityfs:/tomoyo/profile\n");
 }
 
 static void BUG(const char *fmt, ...)
