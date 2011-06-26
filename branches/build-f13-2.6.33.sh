@@ -18,14 +18,14 @@ rpm --checksig kernel-2.6.33.3-85.fc13.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.33.3-85.fc13.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.1-20110511.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110626.tar.gz ]
 then
-    wget -O ccs-patch-1.8.1-20110511.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.1-20110511.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz' || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-2.6.33-fedora-13-20110201.diff ]
+if [ ! -r ccs-patch-2.6.33-fedora-13-20110614.diff ]
 then
-    wget -O ccs-patch-2.6.33-fedora-13-20110201.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.33-fedora-13.diff?revision=4505&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.33-fedora-13-20110614.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.33-fedora-13.diff?revision=5185&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -38,7 +38,7 @@ patch << "EOF" || die "Can't patch spec file."
  # (Uncomment the '#' and both spaces below to set the buildid.)
  #
 -# % define buildid .local
-+%define buildid _tomoyo_1.8.1p3
++%define buildid _tomoyo_1.8.2
  ###################################################################
  
  # buildid can also be specified on the rpmbuild command line
@@ -77,8 +77,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.1-20110511.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.33-fedora-13-20110201.diff
++tar -zxf %_sourcedir/ccs-patch-1.8.2-20110626.tar.gz
++patch -sp1 < %_sourcedir/ccs-patch-2.6.33-fedora-13-20110614.diff
 +
  %endif
  
