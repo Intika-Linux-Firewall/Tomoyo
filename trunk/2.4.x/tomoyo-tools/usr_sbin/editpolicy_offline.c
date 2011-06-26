@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/20
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -184,7 +184,7 @@ enum tomoyo_conditions_index {
 	TOMOYO_MODE_OTHERS_WRITE,    /* S_IWOTH */
 	TOMOYO_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
 	TOMOYO_TASK_TYPE,            /* ((u8) task->tomoyo_flags) &
-					TOMOYO_TASK_IS_EXECUTE_HANDLER */
+				     TOMOYO_TASK_IS_EXECUTE_HANDLER */
 	TOMOYO_TASK_EXECUTE_HANDLER, /* TOMOYO_TASK_IS_EXECUTE_HANDLER */
 	TOMOYO_EXEC_REALPATH,
 	TOMOYO_SYMLINK_TARGET,
@@ -227,8 +227,8 @@ enum tomoyo_domain_info_flags_index {
 	TOMOYO_DIF_QUOTA_WARNED,
 	/*
 	 * This domain was unable to create a new domain at
-	 * tomoyo_find_next_domain() because the name of the domain to be
-	 * created was too long or it could not allocate memory.
+	 * tomoyo_find_next_domain() because the name of the domain to be created
+	 * was too long or it could not allocate memory.
 	 * More than one process continued execve() without domain transition.
 	 */
 	TOMOYO_DIF_TRANSITION_FAILED,
@@ -324,7 +324,7 @@ enum tomoyo_mac_index {
 	TOMOYO_MAX_MAC_INDEX
 };
 
-/* Index numbers for /proc/tomoyo/stat interface. */
+/* Index numbers for /sys/kernel/security/tomoyo/stat interface. */
 enum tomoyo_memory_stat_type {
 	TOMOYO_MEMORY_POLICY,
 	TOMOYO_MEMORY_AUDIT,
@@ -409,7 +409,7 @@ enum tomoyo_path_stat_index {
 	TOMOYO_MAX_PATH_STAT
 };
 
-/* Index numbers for /proc/tomoyo/stat interface. */
+/* Index numbers for /sys/kernel/security/tomoyo/stat interface. */
 enum tomoyo_policy_stat_type {
 	/* Do not change this order. */
 	TOMOYO_STAT_POLICY_UPDATES,
@@ -427,7 +427,7 @@ enum tomoyo_pref_index {
 	TOMOYO_MAX_PREF
 };
 
-/* Index numbers for /proc/tomoyo/ interfaces. */
+/* Index numbers for /sys/kernel/security/tomoyo/ interfaces. */
 enum tomoyo_proc_interface_index {
 	TOMOYO_DOMAINPOLICY,
 	TOMOYO_EXCEPTIONPOLICY,
@@ -545,8 +545,8 @@ struct tomoyo_group {
 	/* Name of group (without leading '@'). */
 	const struct tomoyo_path_info *group_name;
 	/*
-	 * List of "struct tomoyo_path_group" or "struct tomoyo_number_group"
-	 * or "struct tomoyo_address_group".
+	 * List of "struct tomoyo_path_group" or "struct tomoyo_number_group" or
+	 * "struct tomoyo_address_group".
 	 */
 	struct list_head member_list;
 };
@@ -580,9 +580,8 @@ struct tomoyo_condition_element {
 	u8 left;
 	/*
 	 * Right hand operand. A "struct tomoyo_number_union" for
-	 * TOMOYO_NUMBER_UNION, a "struct tomoyo_name_union" for
-	 * TOMOYO_NAME_UNION is attached to the tail of the array of this
-	 * struct.
+	 * TOMOYO_NUMBER_UNION, a "struct tomoyo_name_union" for TOMOYO_NAME_UNION is
+	 * attached to the tail of the array of this struct.
 	 */
 	u8 right;
 	/* Equation operator. True if equals or overlaps, false otherwise. */
@@ -678,9 +677,8 @@ struct tomoyo_envp {
  * user to honey pot etc.).
  */
 struct tomoyo_handler_acl {
-	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_*_EXECUTE_HANDLER */
-	/* Pointer to single pathname.  */
-	const struct tomoyo_path_info *handler;
+	struct tomoyo_acl_info head;       /* type = TOMOYO_TYPE_*_EXECUTE_HANDLER */
+	const struct tomoyo_path_info *handler; /* Pointer to single pathname.  */
 };
 
 /*
@@ -720,8 +718,7 @@ struct tomoyo_path2_acl {
  */
 struct tomoyo_path_number_acl {
 	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_NUMBER_ACL */
-	/* Bitmask of values in "enum tomoyo_path_number_acl_index". */
-	u8 perm;
+	u8 perm; /* Bitmask of values in "enum tomoyo_path_number_acl_index". */
 	struct tomoyo_name_union name;
 	struct tomoyo_number_union number;
 };
@@ -754,8 +751,7 @@ struct tomoyo_env_acl {
 /* Structure for "capability" directive. */
 struct tomoyo_capability_acl {
 	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_CAPABILITY_ACL */
-	/* One of values in "enum tomoyo_capability_acl_index". */
-	u8 operation;
+	u8 operation; /* One of values in "enum tomoyo_capability_acl_index". */
 };
 
 /* Structure for "ipc signal" directive. */
@@ -790,7 +786,7 @@ struct tomoyo_name {
 	struct tomoyo_path_info entry;
 };
 
-/* Structure for holding a line from /proc/tomoyo/ interface. */
+/* Structure for holding a line from /sys/kernel/security/tomoyo/ interface. */
 struct tomoyo_acl_param {
 	char *namespace;
 	char *data; /* Unprocessed data. */
@@ -799,7 +795,7 @@ struct tomoyo_acl_param {
 	bool is_delete; /* True if it is a delete request. */
 };
 
-/* Structure for /proc/tomoyo/profile interface. */
+/* Structure for /sys/kernel/security/tomoyo/profile interface. */
 struct tomoyo_profile {
 	const struct tomoyo_path_info *comment;
 	u8 default_config;
@@ -863,10 +859,9 @@ static const char * const tomoyo_mode[TOMOYO_CONFIG_MAX_MODE] = {
 	[TOMOYO_CONFIG_ENFORCING]  = "enforcing"
 };
 
-/* String table for /proc/tomoyo/profile interface. */
+/* String table for /sys/kernel/security/tomoyo/profile interface. */
 static const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
-					      + TOMOYO_MAX_MAC_CATEGORY_INDEX]
-= {
+					   + TOMOYO_MAX_MAC_CATEGORY_INDEX] = {
 	/* CONFIG::file group */
 	[TOMOYO_MAC_FILE_EXECUTE]    = "execute",
 	[TOMOYO_MAC_FILE_OPEN]       = "open",
@@ -952,8 +947,7 @@ static const char * const tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION] = {
 };
 
 /* String table for socket's operation. */
-static const char * const tomoyo_socket_keyword[TOMOYO_MAX_NETWORK_OPERATION]
-= {
+static const char * const tomoyo_socket_keyword[TOMOYO_MAX_NETWORK_OPERATION] = {
 	[TOMOYO_NETWORK_BIND]    = "bind",
 	[TOMOYO_NETWORK_LISTEN]  = "listen",
 	[TOMOYO_NETWORK_CONNECT] = "connect",
@@ -963,8 +957,7 @@ static const char * const tomoyo_socket_keyword[TOMOYO_MAX_NETWORK_OPERATION]
 };
 
 /* String table for categories. */
-static const char * const tomoyo_category_keywords
-[TOMOYO_MAX_MAC_CATEGORY_INDEX] = {
+static const char * const tomoyo_category_keywords[TOMOYO_MAX_MAC_CATEGORY_INDEX] = {
 	[TOMOYO_MAC_CATEGORY_FILE]       = "file",
 	[TOMOYO_MAC_CATEGORY_NETWORK]    = "network",
 	[TOMOYO_MAC_CATEGORY_MISC]       = "misc",
@@ -973,8 +966,7 @@ static const char * const tomoyo_category_keywords
 };
 
 /* String table for conditions. */
-static const char * const tomoyo_condition_keyword
-[TOMOYO_MAX_CONDITION_KEYWORD] = {
+static const char * const tomoyo_condition_keyword[TOMOYO_MAX_CONDITION_KEYWORD] = {
 	[TOMOYO_TASK_UID]             = "task.uid",
 	[TOMOYO_TASK_EUID]            = "task.euid",
 	[TOMOYO_TASK_SUID]            = "task.suid",
@@ -1045,9 +1037,7 @@ static const char * const tomoyo_pref_keywords[TOMOYO_MAX_PREF] = {
 	[TOMOYO_PREF_ENFORCING_PENALTY]  = "enforcing_penalty",
 };
 
-/*
- * Mapping table from "enum tomoyo_path_acl_index" to "enum tomoyo_mac_index".
- */
+/* Mapping table from "enum tomoyo_path_acl_index" to "enum tomoyo_mac_index". */
 static const u8 tomoyo_p2mac[TOMOYO_MAX_PATH_OPERATION] = {
 	[TOMOYO_TYPE_EXECUTE]    = TOMOYO_MAC_FILE_EXECUTE,
 	[TOMOYO_TYPE_READ]       = TOMOYO_MAC_FILE_OPEN,
@@ -1062,17 +1052,13 @@ static const u8 tomoyo_p2mac[TOMOYO_MAX_PATH_OPERATION] = {
 	[TOMOYO_TYPE_UMOUNT]     = TOMOYO_MAC_FILE_UMOUNT,
 };
 
-/*
- * Mapping table from "enum tomoyo_mkdev_acl_index" to "enum tomoyo_mac_index".
- */
+/* Mapping table from "enum tomoyo_mkdev_acl_index" to "enum tomoyo_mac_index". */
 static const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION] = {
 	[TOMOYO_TYPE_MKBLOCK] = TOMOYO_MAC_FILE_MKBLOCK,
 	[TOMOYO_TYPE_MKCHAR]  = TOMOYO_MAC_FILE_MKCHAR,
 };
 
-/*
- * Mapping table from "enum tomoyo_path2_acl_index" to "enum tomoyo_mac_index".
- */
+/* Mapping table from "enum tomoyo_path2_acl_index" to "enum tomoyo_mac_index". */
 static const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION] = {
 	[TOMOYO_TYPE_LINK]       = TOMOYO_MAC_FILE_LINK,
 	[TOMOYO_TYPE_RENAME]     = TOMOYO_MAC_FILE_RENAME,
@@ -1080,8 +1066,7 @@ static const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION] = {
 };
 
 /*
- * Mapping table from "enum tomoyo_path_number_acl_index" to
- * "enum tomoyo_mac_index".
+ * Mapping table from "enum tomoyo_path_number_acl_index" to "enum tomoyo_mac_index".
  */
 static const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION] = {
 	[TOMOYO_TYPE_CREATE] = TOMOYO_MAC_FILE_CREATE,
@@ -1095,19 +1080,15 @@ static const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION] = {
 };
 
 /*
- * Mapping table from "enum tomoyo_network_acl_index" to
- * "enum tomoyo_mac_index" for inet domain socket.
+ * Mapping table from "enum tomoyo_network_acl_index" to "enum tomoyo_mac_index" for
+ * inet domain socket.
  */
-static const u8 tomoyo_inet2mac[TOMOYO_SOCK_MAX][TOMOYO_MAX_NETWORK_OPERATION]
-= {
+static const u8 tomoyo_inet2mac[TOMOYO_SOCK_MAX][TOMOYO_MAX_NETWORK_OPERATION] = {
 	[SOCK_STREAM] = {
 		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_INET_STREAM_BIND,
-		[TOMOYO_NETWORK_LISTEN]  =
-		TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN,
-		[TOMOYO_NETWORK_CONNECT] =
-		TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT,
-		[TOMOYO_NETWORK_ACCEPT]  =
-		TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT,
+		[TOMOYO_NETWORK_LISTEN]  = TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN,
+		[TOMOYO_NETWORK_CONNECT] = TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT,
+		[TOMOYO_NETWORK_ACCEPT]  = TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT,
 	},
 	[SOCK_DGRAM] = {
 		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_INET_DGRAM_BIND,
@@ -1122,19 +1103,15 @@ static const u8 tomoyo_inet2mac[TOMOYO_SOCK_MAX][TOMOYO_MAX_NETWORK_OPERATION]
 };
 
 /*
- * Mapping table from "enum tomoyo_network_acl_index" to
- * "enum tomoyo_mac_index" for unix domain socket.
+ * Mapping table from "enum tomoyo_network_acl_index" to "enum tomoyo_mac_index" for
+ * unix domain socket.
  */
-static const u8 tomoyo_unix2mac[TOMOYO_SOCK_MAX][TOMOYO_MAX_NETWORK_OPERATION]
-= {
+static const u8 tomoyo_unix2mac[TOMOYO_SOCK_MAX][TOMOYO_MAX_NETWORK_OPERATION] = {
 	[SOCK_STREAM] = {
 		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_UNIX_STREAM_BIND,
-		[TOMOYO_NETWORK_LISTEN]  =
-		TOMOYO_MAC_NETWORK_UNIX_STREAM_LISTEN,
-		[TOMOYO_NETWORK_CONNECT] =
-		TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT,
-		[TOMOYO_NETWORK_ACCEPT]  =
-		TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT,
+		[TOMOYO_NETWORK_LISTEN]  = TOMOYO_MAC_NETWORK_UNIX_STREAM_LISTEN,
+		[TOMOYO_NETWORK_CONNECT] = TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT,
+		[TOMOYO_NETWORK_ACCEPT]  = TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT,
 	},
 	[SOCK_DGRAM] = {
 		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_UNIX_DGRAM_BIND,
@@ -1142,14 +1119,10 @@ static const u8 tomoyo_unix2mac[TOMOYO_SOCK_MAX][TOMOYO_MAX_NETWORK_OPERATION]
 		[TOMOYO_NETWORK_RECV]    = TOMOYO_MAC_NETWORK_UNIX_DGRAM_RECV,
 	},
 	[SOCK_SEQPACKET] = {
-		[TOMOYO_NETWORK_BIND]    =
-		TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_BIND,
-		[TOMOYO_NETWORK_LISTEN]  =
-		TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
-		[TOMOYO_NETWORK_CONNECT] =
-		TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
-		[TOMOYO_NETWORK_ACCEPT]  =
-		TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
+		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_BIND,
+		[TOMOYO_NETWORK_LISTEN]  = TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
+		[TOMOYO_NETWORK_CONNECT] = TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
+		[TOMOYO_NETWORK_ACCEPT]  = TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
 	},
 };
 
@@ -1164,8 +1137,7 @@ static const char * const tomoyo_proto_keyword[TOMOYO_SOCK_MAX] = {
 };
 
 /*
- * Mapping table from "enum tomoyo_capability_acl_index" to
- * "enum tomoyo_mac_index".
+ * Mapping table from "enum tomoyo_capability_acl_index" to "enum tomoyo_mac_index".
  */
 static const u8 tomoyo_c2mac[TOMOYO_MAX_CAPABILITY_INDEX] = {
 	[TOMOYO_USE_ROUTE_SOCKET]  = TOMOYO_MAC_CAPABILITY_USE_ROUTE_SOCKET,
@@ -1180,7 +1152,7 @@ static const u8 tomoyo_c2mac[TOMOYO_MAX_CAPABILITY_INDEX] = {
 	[TOMOYO_SYS_PTRACE]        = TOMOYO_MAC_CAPABILITY_SYS_PTRACE,
 };
 
-/* String table for /proc/tomoyo/stat interface. */
+/* String table for /sys/kernel/security/tomoyo/stat interface. */
 static const char * const tomoyo_memory_headers[TOMOYO_MAX_MEMORY_STAT] = {
 	[TOMOYO_MEMORY_POLICY]     = "policy:",
 	[TOMOYO_MEMORY_AUDIT]      = "audit log:",
@@ -1188,8 +1160,7 @@ static const char * const tomoyo_memory_headers[TOMOYO_MAX_MEMORY_STAT] = {
 };
 
 /* String table for domain transition control keywords. */
-static const char * const tomoyo_transition_type[TOMOYO_MAX_TRANSITION_TYPE]
-= {
+static const char * const tomoyo_transition_type[TOMOYO_MAX_TRANSITION_TYPE] = {
 	[TOMOYO_TRANSITION_CONTROL_NO_RESET]      = "no_reset_domain ",
 	[TOMOYO_TRANSITION_CONTROL_RESET]         = "reset_domain ",
 	[TOMOYO_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
@@ -1211,10 +1182,7 @@ static const char * const tomoyo_dif[TOMOYO_MAX_DOMAIN_INFO_FLAGS] = {
 	[TOMOYO_DIF_TRANSITION_FAILED] = "transition_failed\n",
 };
 
-/*
- * Mapping table from "enum tomoyo_mac_index" to
- * "enum tomoyo_mac_category_index".
- */
+/* Mapping table from "enum tomoyo_mac_index" to "enum tomoyo_mac_category_index". */
 static const u8 tomoyo_index2category[TOMOYO_MAX_MAC_INDEX] = {
 	/* CONFIG::file group */
 	[TOMOYO_MAC_FILE_EXECUTE]    = TOMOYO_MAC_CATEGORY_FILE,
@@ -1243,71 +1211,40 @@ static const u8 tomoyo_index2category[TOMOYO_MAX_MAC_INDEX] = {
 	/* CONFIG::misc group */
 	[TOMOYO_MAC_ENVIRON]         = TOMOYO_MAC_CATEGORY_MISC,
 	/* CONFIG::network group */
-	[TOMOYO_MAC_NETWORK_INET_STREAM_BIND]       =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN]     =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT]    =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT]     =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_DGRAM_BIND]        =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_DGRAM_SEND]        =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_DGRAM_RECV]        =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_RAW_BIND]          =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_RAW_SEND]          =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_INET_RAW_RECV]          =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_STREAM_BIND]       =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_STREAM_LISTEN]     =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT]    =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT]     =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_BIND]        =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_SEND]        =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_RECV]        =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_BIND]    =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] =
-	TOMOYO_MAC_CATEGORY_NETWORK,
-	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  =
-	TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_STREAM_BIND]       = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN]     = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT]    = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT]     = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_DGRAM_BIND]        = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_DGRAM_SEND]        = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_DGRAM_RECV]        = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_RAW_BIND]          = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_RAW_SEND]          = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_INET_RAW_RECV]          = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_STREAM_BIND]       = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_STREAM_LISTEN]     = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT]    = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_BIND]        = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_SEND]        = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_RECV]        = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = TOMOYO_MAC_CATEGORY_NETWORK,
+	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = TOMOYO_MAC_CATEGORY_NETWORK,
 	/* CONFIG::ipc group */
 	[TOMOYO_MAC_SIGNAL]          = TOMOYO_MAC_CATEGORY_IPC,
 	/* CONFIG::capability group */
-	[TOMOYO_MAC_CAPABILITY_USE_ROUTE_SOCKET]  =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_USE_PACKET_SOCKET] =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_SYS_REBOOT]        =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_SYS_VHANGUP]       =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_SYS_SETTIME]       =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_SYS_NICE]          =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_SYS_SETHOSTNAME]   =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_USE_KERNEL_MODULE] =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_SYS_KEXEC_LOAD]    =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
-	[TOMOYO_MAC_CAPABILITY_SYS_PTRACE]        =
-	TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_USE_PACKET_SOCKET] = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_SYS_REBOOT]        = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_SYS_VHANGUP]       = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_SYS_SETTIME]       = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_SYS_NICE]          = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_SYS_SETHOSTNAME]   = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_USE_KERNEL_MODULE] = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = TOMOYO_MAC_CATEGORY_CAPABILITY,
+	[TOMOYO_MAC_CAPABILITY_SYS_PTRACE]        = TOMOYO_MAC_CATEGORY_CAPABILITY,
 };
 
 static struct tomoyo_io_buffer head;
@@ -1400,7 +1337,7 @@ static void tomoyo_put_number_union(struct tomoyo_number_union *ptr)
 static void tomoyo_del_condition(struct list_head *element)
 {
 	struct tomoyo_condition *cond = container_of(element, typeof(*cond),
-						     head.list);
+						  head.list);
 	const u16 condc = cond->condc;
 	const u16 numbers_count = cond->numbers_count;
 	const u16 names_count = cond->names_count;
@@ -1451,7 +1388,7 @@ static const char *tomoyo_yesno(const unsigned int value)
  * Returns true if @a == @b, false otherwise.
  */
 static inline bool tomoyo_same_name_union(const struct tomoyo_name_union *a,
-					  const struct tomoyo_name_union *b)
+				       const struct tomoyo_name_union *b)
 {
 	return a->filename == b->filename && a->group == b->group;
 }
@@ -1464,8 +1401,8 @@ static inline bool tomoyo_same_name_union(const struct tomoyo_name_union *a,
  *
  * Returns true if @a == @b, false otherwise.
  */
-static inline bool tomoyo_same_number_union
-(const struct tomoyo_number_union *a, const struct tomoyo_number_union *b)
+static inline bool tomoyo_same_number_union(const struct tomoyo_number_union *a,
+					 const struct tomoyo_number_union *b)
 {
 	return a->values[0] == b->values[0] && a->values[1] == b->values[1] &&
 		a->group == b->group && a->value_type[0] == b->value_type[0] &&
@@ -1480,8 +1417,8 @@ static inline bool tomoyo_same_number_union
  *
  * Returns true if @a == @b, false otherwise.
  */
-static inline bool tomoyo_same_ipaddr_union
-(const struct tomoyo_ipaddr_union *a, const struct tomoyo_ipaddr_union *b)
+static inline bool tomoyo_same_ipaddr_union(const struct tomoyo_ipaddr_union *a,
+					 const struct tomoyo_ipaddr_union *b)
 {
 	return !memcmp(a->ip, b->ip, sizeof(a->ip)) && a->group == b->group &&
 		a->is_ipv6 == b->is_ipv6;
@@ -1498,7 +1435,7 @@ static inline bool tomoyo_same_ipaddr_union
  * This function is copied from partial_name_hash() in the kernel source.
  */
 static inline unsigned long tomoyo_partial_name_hash(unsigned long c,
-						     unsigned long prevhash)
+						  unsigned long prevhash)
 {
 	return (prevhash + (c << 4) + (c >> 4)) * 11;
 }
@@ -1514,7 +1451,7 @@ static inline unsigned long tomoyo_partial_name_hash(unsigned long c,
  * This function is copied from full_name_hash() in the kernel source.
  */
 static inline unsigned int tomoyo_full_name_hash(const unsigned char *name,
-						 unsigned int len)
+					      unsigned int len)
 {
 	unsigned long hash = 0;
 	while (len--)
@@ -1652,7 +1589,7 @@ static const struct tomoyo_path_info *tomoyo_get_domainname
  * Returns pointer to "struct tomoyo_group" on success, NULL otherwise.
  */
 static struct tomoyo_group *tomoyo_get_group(struct tomoyo_acl_param *param,
-					     struct list_head *list)
+				       struct list_head *list)
 {
 	struct tomoyo_group e = { };
 	struct tomoyo_group *group = NULL;
@@ -1730,7 +1667,7 @@ static u8 tomoyo_parse_ulong(unsigned long *result, char **str)
  * Returns true on success, false otherwise.
  */
 static bool tomoyo_parse_name_union(struct tomoyo_acl_param *param,
-				    struct tomoyo_name_union *ptr)
+				 struct tomoyo_name_union *ptr)
 {
 	char *filename;
 	if (param->data[0] == '@') {
@@ -1754,7 +1691,7 @@ static bool tomoyo_parse_name_union(struct tomoyo_acl_param *param,
  * Returns true on success, false otherwise.
  */
 static bool tomoyo_parse_number_union(struct tomoyo_acl_param *param,
-				      struct tomoyo_number_union *ptr)
+				   struct tomoyo_number_union *ptr)
 {
 	char *data;
 	u8 type;
@@ -1810,7 +1747,7 @@ static struct tomoyo_domain2_info *tomoyo_find_domain2(const char *domainname)
 static int client_fd = EOF;
 
 static void cprintf(const char *fmt, ...)
-     __attribute__ ((format(printf, 1, 2)));
+	__attribute__ ((format(printf, 1, 2)));
 
 /**
  * cprintf - printf() over socket.
@@ -1846,8 +1783,15 @@ static void cprintf(const char *fmt, ...)
 	}
 	if (len && buffer_pos < 1048576)
 		return;
-	if (write(client_fd, buffer, buffer_pos) != buffer_pos)
-		_exit(1);
+	/*
+	 * Reader might close connection without reading until EOF.
+	 * In that case, we should not call _exit() because offline daemon does
+	 * not call fork() for each accept()ed socket connection.
+	 */
+	if (write(client_fd, buffer, buffer_pos) != buffer_pos) {
+		close(client_fd);
+		client_fd = EOF;
+	}
 	buffer_pos = 0;
 }
 
@@ -1861,11 +1805,11 @@ static void cprintf(const char *fmt, ...)
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int tomoyo_update_policy(struct tomoyo_acl_head *new_entry,
-				const int size, struct tomoyo_acl_param *param,
-				bool (*check_duplicate)
-				(const struct tomoyo_acl_head *,
-				 const struct tomoyo_acl_head *))
+static int tomoyo_update_policy(struct tomoyo_acl_head *new_entry, const int size,
+			     struct tomoyo_acl_param *param,
+			     bool (*check_duplicate)
+			     (const struct tomoyo_acl_head *,
+			      const struct tomoyo_acl_head *))
 {
 	int error = param->is_delete ? -ENOENT : -ENOMEM;
 	struct tomoyo_acl_head *entry;
@@ -1915,7 +1859,7 @@ static const struct tomoyo_path_info *tomoyo_get_dqword(char *start)
  * Returns true on success, false otherwise.
  */
 static bool tomoyo_parse_name_union_quoted(struct tomoyo_acl_param *param,
-					   struct tomoyo_name_union *ptr)
+					struct tomoyo_name_union *ptr)
 {
 	char *filename = param->data;
 	if (*filename == '@')
@@ -1933,11 +1877,10 @@ static bool tomoyo_parse_name_union_quoted(struct tomoyo_acl_param *param,
  *
  * Returns true on success, false otherwise.
  */
-static bool tomoyo_parse_argv(char *left, char *right,
-			      struct tomoyo_argv *argv)
+static bool tomoyo_parse_argv(char *left, char *right, struct tomoyo_argv *argv)
 {
-	if (tomoyo_parse_ulong(&argv->index, &left) !=
-	    TOMOYO_VALUE_TYPE_DECIMAL || *left++ != ']' || *left)
+	if (tomoyo_parse_ulong(&argv->index, &left) != TOMOYO_VALUE_TYPE_DECIMAL ||
+	    *left++ != ']' || *left)
 		return false;
 	argv->value = tomoyo_get_dqword(right);
 	return argv->value != NULL;
@@ -1952,8 +1895,7 @@ static bool tomoyo_parse_argv(char *left, char *right,
  *
  * Returns true on success, false otherwise.
  */
-static bool tomoyo_parse_envp(char *left, char *right,
-			      struct tomoyo_envp *envp)
+static bool tomoyo_parse_envp(char *left, char *right, struct tomoyo_envp *envp)
 {
 	const struct tomoyo_path_info *name;
 	const struct tomoyo_path_info *value;
@@ -1989,7 +1931,7 @@ out:
  * Returns true if @a == @b, false otherwise.
  */
 static inline bool tomoyo_same_condition(const struct tomoyo_condition *a,
-					 const struct tomoyo_condition *b)
+				      const struct tomoyo_condition *b)
 {
 	return a->size == b->size && a->condc == b->condc &&
 		a->numbers_count == b->numbers_count &&
@@ -2036,8 +1978,7 @@ static u8 tomoyo_condition_type(const char *word)
  * This function merges duplicated entries. This function returns NULL if
  * @entry is not duplicated but memory quota for policy has exceeded.
  */
-static struct tomoyo_condition *tomoyo_commit_condition
-(struct tomoyo_condition *entry)
+static struct tomoyo_condition *tomoyo_commit_condition(struct tomoyo_condition *entry)
 {
 	struct tomoyo_condition *ptr;
 	bool found = false;
@@ -2073,8 +2014,7 @@ static struct tomoyo_condition *tomoyo_commit_condition
  *
  * Returns pointer to "struct tomoyo_condition" on success, NULL otherwise.
  */
-static struct tomoyo_condition *tomoyo_get_condition
-(struct tomoyo_acl_param *param)
+static struct tomoyo_condition *tomoyo_get_condition(struct tomoyo_acl_param *param)
 {
 	struct tomoyo_condition *entry = NULL;
 	struct tomoyo_condition_element *condp = NULL;
@@ -2162,7 +2102,7 @@ rerun:
 				left = TOMOYO_ARGV_ENTRY;
 				argv->is_not = is_not;
 				if (!tomoyo_parse_argv(left_word + 10,
-						       right_word, argv++))
+						    right_word, argv++))
 					goto out;
 			}
 			goto store_value;
@@ -2177,7 +2117,7 @@ rerun:
 				left = TOMOYO_ENVP_ENTRY;
 				envp->is_not = is_not;
 				if (!tomoyo_parse_envp(left_word + 11,
-						       right_word, envp++))
+						    right_word, envp++))
 					goto out;
 			}
 			goto store_value;
@@ -2194,7 +2134,7 @@ rerun:
 				param->data = left_word;
 				if (*left_word == '@' ||
 				    !tomoyo_parse_number_union(param,
-							       numbers_p++))
+							    numbers_p++))
 					goto out;
 			}
 		}
@@ -2202,8 +2142,7 @@ rerun:
 			e.condc++;
 		else
 			e.condc--;
-		if (left == TOMOYO_EXEC_REALPATH ||
-		    left == TOMOYO_SYMLINK_TARGET) {
+		if (left == TOMOYO_EXEC_REALPATH || left == TOMOYO_SYMLINK_TARGET) {
 			if (!names_p) {
 				e.names_count++;
 			} else {
@@ -2211,7 +2150,7 @@ rerun:
 				right = TOMOYO_NAME_UNION;
 				param->data = right_word;
 				if (!tomoyo_parse_name_union_quoted(param,
-								    names_p++))
+								 names_p++))
 					goto out;
 			}
 			goto store_value;
@@ -2225,7 +2164,7 @@ rerun:
 				right = TOMOYO_NUMBER_UNION;
 				param->data = right_word;
 				if (!tomoyo_parse_number_union(param,
-							       numbers_p++))
+							    numbers_p++))
 					goto out;
 			}
 		}
@@ -2294,7 +2233,7 @@ out:
  * Returns true if @a == @b, false otherwise.
  */
 static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *a,
-					const struct tomoyo_acl_info *b)
+				     const struct tomoyo_acl_info *b)
 {
 	return a->type == b->type && a->cond == b->cond;
 }
@@ -2310,15 +2249,14 @@ static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int tomoyo_update_domain(struct tomoyo_acl_info *new_entry,
-				const int size, struct tomoyo_acl_param *param,
-				bool (*check_duplicate)
-				(const struct tomoyo_acl_info *,
-				 const struct tomoyo_acl_info *),
-				bool (*merge_duplicate)
-				(struct tomoyo_acl_info *,
-				 struct tomoyo_acl_info *,
-				 const bool))
+static int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
+			     struct tomoyo_acl_param *param,
+			     bool (*check_duplicate)
+			     (const struct tomoyo_acl_info *,
+			      const struct tomoyo_acl_info *),
+			     bool (*merge_duplicate)
+			     (struct tomoyo_acl_info *, struct tomoyo_acl_info *,
+			      const bool))
 {
 	const bool is_delete = param->is_delete;
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -2359,12 +2297,12 @@ static int tomoyo_update_domain(struct tomoyo_acl_info *new_entry,
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_transition_control(const struct tomoyo_acl_head *a,
-					   const struct tomoyo_acl_head *b)
+					const struct tomoyo_acl_head *b)
 {
-	const struct tomoyo_transition_control *p1 =
-		container_of(a, typeof(*p1), head);
-	const struct tomoyo_transition_control *p2 =
-		container_of(b, typeof(*p2), head);
+	const struct tomoyo_transition_control *p1 = container_of(a, typeof(*p1),
+							       head);
+	const struct tomoyo_transition_control *p2 = container_of(b, typeof(*p2),
+							       head);
 	return p1->type == p2->type && p1->is_last_name == p2->is_last_name
 		&& p1->domainname == p2->domainname
 		&& p1->program == p2->program && p1->ns == p2->ns;
@@ -2379,7 +2317,7 @@ static bool tomoyo_same_transition_control(const struct tomoyo_acl_head *a,
  * Returns 0 on success, negative value otherwise.
  */
 static int tomoyo_write_transition_control(struct tomoyo_acl_param *param,
-					   const u8 type)
+					const u8 type)
 {
 	struct tomoyo_transition_control e = { .type = type, .ns = param->ns };
 	int error = param->is_delete ? -ENOENT : -ENOMEM;
@@ -2408,7 +2346,7 @@ static int tomoyo_write_transition_control(struct tomoyo_acl_param *param,
 	}
 	param->list = &tomoyo_transition_list;
 	error = tomoyo_update_policy(&e.head, sizeof(e), param,
-				     tomoyo_same_transition_control);
+				  tomoyo_same_transition_control);
 out:
 	tomoyo_put_name(e.domainname);
 	tomoyo_put_name(e.program);
@@ -2424,12 +2362,10 @@ out:
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_aggregator(const struct tomoyo_acl_head *a,
-				   const struct tomoyo_acl_head *b)
+				const struct tomoyo_acl_head *b)
 {
-	const struct tomoyo_aggregator *p1 = container_of(a, typeof(*p1),
-							  head);
-	const struct tomoyo_aggregator *p2 = container_of(b, typeof(*p2),
-							  head);
+	const struct tomoyo_aggregator *p1 = container_of(a, typeof(*p1), head);
+	const struct tomoyo_aggregator *p2 = container_of(b, typeof(*p2), head);
 	return p1->original_name == p2->original_name &&
 		p1->aggregated_name == p2->aggregated_name && p1->ns == p2->ns;
 }
@@ -2456,7 +2392,7 @@ static int tomoyo_write_aggregator(struct tomoyo_acl_param *param)
 		goto out;
 	param->list = &tomoyo_aggregator_list;
 	error = tomoyo_update_policy(&e.head, sizeof(e), param,
-				     tomoyo_same_aggregator);
+				  tomoyo_same_aggregator);
 out:
 	tomoyo_put_name(e.original_name);
 	tomoyo_put_name(e.aggregated_name);
@@ -2471,11 +2407,10 @@ out:
  * @name: Name of namespace to find.
  * @len:  Length of @name.
  *
- * Returns pointer to "struct tomoyo_policy_namespace" if found, NULL
- * otherwise.
+ * Returns pointer to "struct tomoyo_policy_namespace" if found, NULL otherwise.
  */
-static struct tomoyo_policy_namespace *tomoyo_find_namespace
-(const char *name, const unsigned int len)
+static struct tomoyo_policy_namespace *tomoyo_find_namespace(const char *name,
+						       const unsigned int len)
 {
 	struct tomoyo_policy_namespace *ns;
 	list_for_each_entry(ns, &tomoyo_namespace_list, namespace_list) {
@@ -2492,11 +2427,9 @@ static struct tomoyo_policy_namespace *tomoyo_find_namespace
  *
  * @domainname: Name of namespace to create.
  *
- * Returns pointer to "struct tomoyo_policy_namespace" on success, NULL
- * otherwise.
+ * Returns pointer to "struct tomoyo_policy_namespace" on success, NULL otherwise.
  */
-static struct tomoyo_policy_namespace *tomoyo_assign_namespace
-(const char *domainname)
+static struct tomoyo_policy_namespace *tomoyo_assign_namespace(const char *domainname)
 {
 	struct tomoyo_policy_namespace *ptr;
 	struct tomoyo_policy_namespace *entry;
@@ -2531,8 +2464,7 @@ static struct tomoyo_policy_namespace *tomoyo_assign_namespace
  *
  * Returns pointer to "struct tomoyo_domain2_info" on success, NULL otherwise.
  */
-static struct tomoyo_domain2_info *tomoyo_assign_domain2
-(const char *domainname)
+static struct tomoyo_domain2_info *tomoyo_assign_domain2(const char *domainname)
 {
 	struct tomoyo_domain2_info e = { };
 	struct tomoyo_domain2_info *entry = tomoyo_find_domain2(domainname);
@@ -2560,7 +2492,7 @@ static struct tomoyo_domain2_info *tomoyo_assign_domain2
  * Returns true if @a == @b except permission bits, false otherwise.
  */
 static bool tomoyo_same_path_acl(const struct tomoyo_acl_info *a,
-				 const struct tomoyo_acl_info *b)
+			      const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_path_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_path_acl *p2 = container_of(b, typeof(*p2), head);
@@ -2576,12 +2508,10 @@ static bool tomoyo_same_path_acl(const struct tomoyo_acl_info *a,
  *
  * Returns true if @a is empty, false otherwise.
  */
-static bool tomoyo_merge_path_acl(struct tomoyo_acl_info *a,
-				  struct tomoyo_acl_info *b,
-				  const bool is_delete)
+static bool tomoyo_merge_path_acl(struct tomoyo_acl_info *a, struct tomoyo_acl_info *b,
+			       const bool is_delete)
 {
-	u16 * const a_perm = &container_of(a, struct tomoyo_path_acl, head)
-		->perm;
+	u16 * const a_perm = &container_of(a, struct tomoyo_path_acl, head)->perm;
 	u16 perm = *a_perm;
 	const u16 b_perm = container_of(b, struct tomoyo_path_acl, head)->perm;
 	if (is_delete)
@@ -2600,8 +2530,7 @@ static bool tomoyo_merge_path_acl(struct tomoyo_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int tomoyo_update_path_acl(const u16 perm,
-				  struct tomoyo_acl_param *param)
+static int tomoyo_update_path_acl(const u16 perm, struct tomoyo_acl_param *param)
 {
 	struct tomoyo_path_acl e = {
 		.head.type = TOMOYO_TYPE_PATH_ACL,
@@ -2612,8 +2541,8 @@ static int tomoyo_update_path_acl(const u16 perm,
 		error = -EINVAL;
 	else
 		error = tomoyo_update_domain(&e.head, sizeof(e), param,
-					     tomoyo_same_path_acl,
-					     tomoyo_merge_path_acl);
+					  tomoyo_same_path_acl,
+					  tomoyo_merge_path_acl);
 	tomoyo_put_name_union(&e.name);
 	return error;
 }
@@ -2627,7 +2556,7 @@ static int tomoyo_update_path_acl(const u16 perm,
  * Returns true if @a == @b except permission bits, false otherwise.
  */
 static bool tomoyo_same_mkdev_acl(const struct tomoyo_acl_info *a,
-				  const struct tomoyo_acl_info *b)
+			       const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_mkdev_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_mkdev_acl *p2 = container_of(b, typeof(*p2), head);
@@ -2646,12 +2575,10 @@ static bool tomoyo_same_mkdev_acl(const struct tomoyo_acl_info *a,
  *
  * Returns true if @a is empty, false otherwise.
  */
-static bool tomoyo_merge_mkdev_acl(struct tomoyo_acl_info *a,
-				   struct tomoyo_acl_info *b,
-				   const bool is_delete)
+static bool tomoyo_merge_mkdev_acl(struct tomoyo_acl_info *a, struct tomoyo_acl_info *b,
+				const bool is_delete)
 {
-	u8 *const a_perm = &container_of(a, struct tomoyo_mkdev_acl, head)
-		->perm;
+	u8 *const a_perm = &container_of(a, struct tomoyo_mkdev_acl, head)->perm;
 	u8 perm = *a_perm;
 	const u8 b_perm = container_of(b, struct tomoyo_mkdev_acl, head)->perm;
 	if (is_delete)
@@ -2670,8 +2597,7 @@ static bool tomoyo_merge_mkdev_acl(struct tomoyo_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int tomoyo_update_mkdev_acl(const u8 perm,
-				   struct tomoyo_acl_param *param)
+static int tomoyo_update_mkdev_acl(const u8 perm, struct tomoyo_acl_param *param)
 {
 	struct tomoyo_mkdev_acl e = {
 		.head.type = TOMOYO_TYPE_MKDEV_ACL,
@@ -2685,8 +2611,8 @@ static int tomoyo_update_mkdev_acl(const u8 perm,
 		error = -EINVAL;
 	else
 		error = tomoyo_update_domain(&e.head, sizeof(e), param,
-					     tomoyo_same_mkdev_acl,
-					     tomoyo_merge_mkdev_acl);
+					  tomoyo_same_mkdev_acl,
+					  tomoyo_merge_mkdev_acl);
 	tomoyo_put_name_union(&e.name);
 	tomoyo_put_number_union(&e.mode);
 	tomoyo_put_number_union(&e.major);
@@ -2703,7 +2629,7 @@ static int tomoyo_update_mkdev_acl(const u8 perm,
  * Returns true if @a == @b except permission bits, false otherwise.
  */
 static bool tomoyo_same_path2_acl(const struct tomoyo_acl_info *a,
-				  const struct tomoyo_acl_info *b)
+			       const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_path2_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_path2_acl *p2 = container_of(b, typeof(*p2), head);
@@ -2720,12 +2646,10 @@ static bool tomoyo_same_path2_acl(const struct tomoyo_acl_info *a,
  *
  * Returns true if @a is empty, false otherwise.
  */
-static bool tomoyo_merge_path2_acl(struct tomoyo_acl_info *a,
-				   struct tomoyo_acl_info *b,
-				   const bool is_delete)
+static bool tomoyo_merge_path2_acl(struct tomoyo_acl_info *a, struct tomoyo_acl_info *b,
+				const bool is_delete)
 {
-	u8 * const a_perm = &container_of(a, struct tomoyo_path2_acl, head)
-		->perm;
+	u8 * const a_perm = &container_of(a, struct tomoyo_path2_acl, head)->perm;
 	u8 perm = *a_perm;
 	const u8 b_perm = container_of(b, struct tomoyo_path2_acl, head)->perm;
 	if (is_delete)
@@ -2744,8 +2668,7 @@ static bool tomoyo_merge_path2_acl(struct tomoyo_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int tomoyo_update_path2_acl(const u8 perm,
-				   struct tomoyo_acl_param *param)
+static int tomoyo_update_path2_acl(const u8 perm, struct tomoyo_acl_param *param)
 {
 	struct tomoyo_path2_acl e = {
 		.head.type = TOMOYO_TYPE_PATH2_ACL,
@@ -2757,8 +2680,8 @@ static int tomoyo_update_path2_acl(const u8 perm,
 		error = -EINVAL;
 	else
 		error = tomoyo_update_domain(&e.head, sizeof(e), param,
-					     tomoyo_same_path2_acl,
-					     tomoyo_merge_path2_acl);
+					  tomoyo_same_path2_acl,
+					  tomoyo_merge_path2_acl);
 	tomoyo_put_name_union(&e.name1);
 	tomoyo_put_name_union(&e.name2);
 	return error;
@@ -2773,12 +2696,12 @@ static int tomoyo_update_path2_acl(const u8 perm,
  * Returns true if @a == @b except permission bits, false otherwise.
  */
 static bool tomoyo_same_path_number_acl(const struct tomoyo_acl_info *a,
-					const struct tomoyo_acl_info *b)
+				     const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_path_number_acl *p1 = container_of(a, typeof(*p1),
-							       head);
+							    head);
 	const struct tomoyo_path_number_acl *p2 = container_of(b, typeof(*p2),
-							       head);
+							    head);
 	return tomoyo_same_name_union(&p1->name, &p2->name) &&
 		tomoyo_same_number_union(&p1->number, &p2->number);
 }
@@ -2793,11 +2716,11 @@ static bool tomoyo_same_path_number_acl(const struct tomoyo_acl_info *a,
  * Returns true if @a is empty, false otherwise.
  */
 static bool tomoyo_merge_path_number_acl(struct tomoyo_acl_info *a,
-					 struct tomoyo_acl_info *b,
-					 const bool is_delete)
+				      struct tomoyo_acl_info *b,
+				      const bool is_delete)
 {
-	u8 * const a_perm = &container_of(a, struct tomoyo_path_number_acl,
-					  head)->perm;
+	u8 * const a_perm = &container_of(a, struct tomoyo_path_number_acl, head)
+		->perm;
 	u8 perm = *a_perm;
 	const u8 b_perm = container_of(b, struct tomoyo_path_number_acl, head)
 		->perm;
@@ -2818,7 +2741,7 @@ static bool tomoyo_merge_path_number_acl(struct tomoyo_acl_info *a,
  * Returns 0 on success, negative value otherwise.
  */
 static int tomoyo_update_path_number_acl(const u8 perm,
-					 struct tomoyo_acl_param *param)
+				      struct tomoyo_acl_param *param)
 {
 	struct tomoyo_path_number_acl e = {
 		.head.type = TOMOYO_TYPE_PATH_NUMBER_ACL,
@@ -2830,8 +2753,8 @@ static int tomoyo_update_path_number_acl(const u8 perm,
 		error = -EINVAL;
 	else
 		error = tomoyo_update_domain(&e.head, sizeof(e), param,
-					     tomoyo_same_path_number_acl,
-					     tomoyo_merge_path_number_acl);
+					  tomoyo_same_path_number_acl,
+					  tomoyo_merge_path_number_acl);
 	tomoyo_put_name_union(&e.name);
 	tomoyo_put_number_union(&e.number);
 	return error;
@@ -2846,7 +2769,7 @@ static int tomoyo_update_path_number_acl(const u8 perm,
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_mount_acl(const struct tomoyo_acl_info *a,
-				  const struct tomoyo_acl_info *b)
+			       const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_mount_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_mount_acl *p2 = container_of(b, typeof(*p2), head);
@@ -2874,7 +2797,7 @@ static int tomoyo_update_mount_acl(struct tomoyo_acl_param *param)
 		error = -EINVAL;
 	else
 		error = tomoyo_update_domain(&e.head, sizeof(e), param,
-					     tomoyo_same_mount_acl, NULL);
+					  tomoyo_same_mount_acl, NULL);
 	tomoyo_put_name_union(&e.dev_name);
 	tomoyo_put_name_union(&e.dir_name);
 	tomoyo_put_name_union(&e.fs_type);
@@ -2900,25 +2823,22 @@ static int tomoyo_write_file(struct tomoyo_acl_param *param)
 	if (perm)
 		return tomoyo_update_path_acl(perm, param);
 	for (type = 0; type < TOMOYO_MAX_PATH2_OPERATION; type++)
-		if (tomoyo_permstr(operation,
-				   tomoyo_mac_keywords[tomoyo_pp2mac[type]]))
+		if (tomoyo_permstr(operation, tomoyo_mac_keywords[tomoyo_pp2mac[type]]))
 			perm |= 1 << type;
 	if (perm)
 		return tomoyo_update_path2_acl(perm, param);
 	for (type = 0; type < TOMOYO_MAX_PATH_NUMBER_OPERATION; type++)
-		if (tomoyo_permstr(operation,
-				   tomoyo_mac_keywords[tomoyo_pn2mac[type]]))
+		if (tomoyo_permstr(operation, tomoyo_mac_keywords[tomoyo_pn2mac[type]]))
 			perm |= 1 << type;
 	if (perm)
 		return tomoyo_update_path_number_acl(perm, param);
 	for (type = 0; type < TOMOYO_MAX_MKDEV_OPERATION; type++)
 		if (tomoyo_permstr(operation,
-				   tomoyo_mac_keywords[tomoyo_pnnn2mac[type]]))
+				tomoyo_mac_keywords[tomoyo_pnnn2mac[type]]))
 			perm |= 1 << type;
 	if (perm)
 		return tomoyo_update_mkdev_acl(perm, param);
-	if (tomoyo_permstr(operation,
-			   tomoyo_mac_keywords[TOMOYO_MAC_FILE_MOUNT]))
+	if (tomoyo_permstr(operation, tomoyo_mac_keywords[TOMOYO_MAC_FILE_MOUNT]))
 		return tomoyo_update_mount_acl(param);
 	return -EINVAL;
 }
@@ -2953,7 +2873,7 @@ struct tomoyo_addr_info {
  * Returns true on success, false otherwise.
  */
 static bool tomoyo_parse_ipaddr_union(struct tomoyo_acl_param *param,
-				      struct tomoyo_ipaddr_union *ptr)
+				   struct tomoyo_ipaddr_union *ptr)
 {
 	u16 * const min = ptr->ip[0].s6_addr16;
 	u16 * const max = ptr->ip[1].s6_addr16;
@@ -3019,7 +2939,7 @@ static void tomoyo_print_ipv4(const u32 min_ip, const u32 max_ip)
  * Returns nothing.
  */
 static void tomoyo_print_ipv6(const struct in6_addr *min_ip,
-			      const struct in6_addr *max_ip)
+			   const struct in6_addr *max_ip)
 {
 	cprintf("%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*min_ip));
 	if (memcmp(min_ip, max_ip, 16))
@@ -3039,7 +2959,7 @@ static void tomoyo_print_ip(const struct tomoyo_ipaddr_union *ptr)
 		tomoyo_print_ipv6(&ptr->ip[0], &ptr->ip[1]);
 	else
 		tomoyo_print_ipv4(ptr->ip[0].s6_addr32[0],
-				  ptr->ip[1].s6_addr32[0]);
+			       ptr->ip[1].s6_addr32[0]);
 }
 
 /**
@@ -3051,7 +2971,7 @@ static void tomoyo_print_ip(const struct tomoyo_ipaddr_union *ptr)
  * Returns true if @a == @b except permission bits, false otherwise.
  */
 static bool tomoyo_same_inet_acl(const struct tomoyo_acl_info *a,
-				 const struct tomoyo_acl_info *b)
+			      const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_inet_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_inet_acl *p2 = container_of(b, typeof(*p2), head);
@@ -3069,7 +2989,7 @@ static bool tomoyo_same_inet_acl(const struct tomoyo_acl_info *a,
  * Returns true if @a == @b except permission bits, false otherwise.
  */
 static bool tomoyo_same_unix_acl(const struct tomoyo_acl_info *a,
-				 const struct tomoyo_acl_info *b)
+			      const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_unix_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_unix_acl *p2 = container_of(b, typeof(*p2), head);
@@ -3086,12 +3006,10 @@ static bool tomoyo_same_unix_acl(const struct tomoyo_acl_info *a,
  *
  * Returns true if @a is empty, false otherwise.
  */
-static bool tomoyo_merge_inet_acl(struct tomoyo_acl_info *a,
-				  struct tomoyo_acl_info *b,
-				  const bool is_delete)
+static bool tomoyo_merge_inet_acl(struct tomoyo_acl_info *a, struct tomoyo_acl_info *b,
+			       const bool is_delete)
 {
-	u8 * const a_perm = &container_of(a, struct tomoyo_inet_acl, head)
-		->perm;
+	u8 * const a_perm = &container_of(a, struct tomoyo_inet_acl, head)->perm;
 	u8 perm = *a_perm;
 	const u8 b_perm = container_of(b, struct tomoyo_inet_acl, head)->perm;
 	if (is_delete)
@@ -3111,12 +3029,10 @@ static bool tomoyo_merge_inet_acl(struct tomoyo_acl_info *a,
  *
  * Returns true if @a is empty, false otherwise.
  */
-static bool tomoyo_merge_unix_acl(struct tomoyo_acl_info *a,
-				  struct tomoyo_acl_info *b,
-				  const bool is_delete)
+static bool tomoyo_merge_unix_acl(struct tomoyo_acl_info *a, struct tomoyo_acl_info *b,
+			       const bool is_delete)
 {
-	u8 * const a_perm = &container_of(a, struct tomoyo_unix_acl, head)
-		->perm;
+	u8 * const a_perm = &container_of(a, struct tomoyo_unix_acl, head)->perm;
 	u8 perm = *a_perm;
 	const u8 b_perm = container_of(b, struct tomoyo_unix_acl, head)->perm;
 	if (is_delete)
@@ -3151,8 +3067,7 @@ static int tomoyo_write_inet_network(struct tomoyo_acl_param *param)
 		return -EINVAL;
 	if (param->data[0] == '@') {
 		param->data++;
-		e.address.group = tomoyo_get_group(param,
-						   &tomoyo_address_group);
+		e.address.group = tomoyo_get_group(param, &tomoyo_address_group);
 		if (!e.address.group)
 			return -ENOMEM;
 	} else {
@@ -3162,9 +3077,8 @@ static int tomoyo_write_inet_network(struct tomoyo_acl_param *param)
 	if (!tomoyo_parse_number_union(param, &e.port) ||
 	    e.port.values[1] > 65535)
 		goto out;
-	error = tomoyo_update_domain(&e.head, sizeof(e), param,
-				     tomoyo_same_inet_acl,
-				     tomoyo_merge_inet_acl);
+	error = tomoyo_update_domain(&e.head, sizeof(e), param, tomoyo_same_inet_acl,
+				  tomoyo_merge_inet_acl);
 out:
 	tomoyo_put_group(e.address.group);
 	tomoyo_put_number_union(&e.port);
@@ -3195,9 +3109,8 @@ static int tomoyo_write_unix_network(struct tomoyo_acl_param *param)
 		return -EINVAL;
 	if (!tomoyo_parse_name_union(param, &e.name))
 		return -EINVAL;
-	error = tomoyo_update_domain(&e.head, sizeof(e), param,
-				     tomoyo_same_unix_acl,
-				     tomoyo_merge_unix_acl);
+	error = tomoyo_update_domain(&e.head, sizeof(e), param, tomoyo_same_unix_acl,
+				  tomoyo_merge_unix_acl);
 	tomoyo_put_name_union(&e.name);
 	return error;
 }
@@ -3211,12 +3124,12 @@ static int tomoyo_write_unix_network(struct tomoyo_acl_param *param)
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_capability_acl(const struct tomoyo_acl_info *a,
-				       const struct tomoyo_acl_info *b)
+				    const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_capability_acl *p1 = container_of(a, typeof(*p1),
-							      head);
+							   head);
 	const struct tomoyo_capability_acl *p2 = container_of(b, typeof(*p2),
-							      head);
+							   head);
 	return p1->operation == p2->operation;
 }
 
@@ -3229,8 +3142,7 @@ static bool tomoyo_same_capability_acl(const struct tomoyo_acl_info *a,
  */
 static int tomoyo_write_capability(struct tomoyo_acl_param *param)
 {
-	struct tomoyo_capability_acl e = {
-		.head.type = TOMOYO_TYPE_CAPABILITY_ACL };
+	struct tomoyo_capability_acl e = { .head.type = TOMOYO_TYPE_CAPABILITY_ACL };
 	const char *operation = tomoyo_read_token(param);
 	for (e.operation = 0; e.operation < TOMOYO_MAX_CAPABILITY_INDEX;
 	     e.operation++) {
@@ -3238,7 +3150,7 @@ static int tomoyo_write_capability(struct tomoyo_acl_param *param)
 			   tomoyo_mac_keywords[tomoyo_c2mac[e.operation]]))
 			continue;
 		return tomoyo_update_domain(&e.head, sizeof(e), param,
-					    tomoyo_same_capability_acl, NULL);
+					 tomoyo_same_capability_acl, NULL);
 	}
 	return -EINVAL;
 }
@@ -3252,7 +3164,7 @@ static int tomoyo_write_capability(struct tomoyo_acl_param *param)
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_env_acl(const struct tomoyo_acl_info *a,
-				const struct tomoyo_acl_info *b)
+			     const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_env_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_env_acl *p2 = container_of(b, typeof(*p2), head);
@@ -3275,7 +3187,7 @@ static int tomoyo_write_env(struct tomoyo_acl_param *param)
 		return -EINVAL;
 	e.env = tomoyo_get_name(data);
 	error = tomoyo_update_domain(&e.head, sizeof(e), param,
-				     tomoyo_same_env_acl, NULL);
+				  tomoyo_same_env_acl, NULL);
 	tomoyo_put_name(e.env);
 	return error;
 }
@@ -3303,12 +3215,10 @@ static int tomoyo_write_misc(struct tomoyo_acl_param *param)
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_signal_acl(const struct tomoyo_acl_info *a,
-				   const struct tomoyo_acl_info *b)
+				const struct tomoyo_acl_info *b)
 {
-	const struct tomoyo_signal_acl *p1 = container_of(a, typeof(*p1),
-							  head);
-	const struct tomoyo_signal_acl *p2 = container_of(b, typeof(*p2),
-							  head);
+	const struct tomoyo_signal_acl *p1 = container_of(a, typeof(*p1), head);
+	const struct tomoyo_signal_acl *p2 = container_of(b, typeof(*p2), head);
 	return tomoyo_same_number_union(&p1->sig, &p2->sig) &&
 		p1->domainname == p2->domainname;
 }
@@ -3331,7 +3241,7 @@ static int tomoyo_write_ipc(struct tomoyo_acl_param *param)
 		error = -EINVAL;
 	else
 		error = tomoyo_update_domain(&e.head, sizeof(e), param,
-					     tomoyo_same_signal_acl, NULL);
+					  tomoyo_same_signal_acl, NULL);
 	tomoyo_put_name(e.domainname);
 	tomoyo_put_number_union(&e.sig);
 	return error;
@@ -3347,12 +3257,11 @@ static int tomoyo_write_ipc(struct tomoyo_acl_param *param)
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_reserved(const struct tomoyo_acl_head *a,
-				 const struct tomoyo_acl_head *b)
+			      const struct tomoyo_acl_head *b)
 {
 	const struct tomoyo_reserved *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_reserved *p2 = container_of(b, typeof(*p2), head);
-	return p1->ns == p2->ns && tomoyo_same_number_union(&p1->port,
-							    &p2->port);
+	return p1->ns == p2->ns && tomoyo_same_number_union(&p1->port, &p2->port);
 }
 
 /**
@@ -3366,15 +3275,14 @@ static int tomoyo_write_reserved_port(struct tomoyo_acl_param *param)
 {
 	struct tomoyo_reserved e = { .ns = param->ns };
 	int error;
-	if (param->data[0] == '@' || !tomoyo_parse_number_union(param, &e.port)
-	    || e.port.values[1] > 65535 || param->data[0])
+	if (param->data[0] == '@' || !tomoyo_parse_number_union(param, &e.port) ||
+	    e.port.values[1] > 65535 || param->data[0])
 		return -EINVAL;
 	param->list = &tomoyo_reserved_list;
 	error = tomoyo_update_policy(&e.head, sizeof(e), param,
-				     tomoyo_same_reserved);
+				  tomoyo_same_reserved);
 	/*
-	 * tomoyo_put_number_union() is not needed because
-	 * param->data[0] != '@'.
+	 * tomoyo_put_number_union() is not needed because param->data[0] != '@'.
 	 */
 	return error;
 }
@@ -3401,8 +3309,8 @@ static void tomoyo_print_namespace(const struct tomoyo_policy_namespace *ns)
  *
  * Returns pointer to "struct tomoyo_profile" on success, NULL otherwise.
  */
-static struct tomoyo_profile *tomoyo_assign_profile
-(struct tomoyo_policy_namespace *ns, const unsigned int profile)
+static struct tomoyo_profile *tomoyo_assign_profile(struct tomoyo_policy_namespace *ns,
+					      const unsigned int profile)
 {
 	struct tomoyo_profile *ptr;
 	if (profile >= TOMOYO_MAX_PROFILES)
@@ -3451,8 +3359,7 @@ static s8 tomoyo_find_yesno(const char *string, const char *find)
  *
  * Returns nothing.
  */
-static void tomoyo_set_uint(unsigned int *i, const char *string,
-			    const char *find)
+static void tomoyo_set_uint(unsigned int *i, const char *string, const char *find)
 {
 	const char *cp = strstr(string, find);
 	if (cp)
@@ -3469,7 +3376,7 @@ static void tomoyo_set_uint(unsigned int *i, const char *string,
  * Returns 0 on success, negative value otherwise.
  */
 static int tomoyo_set_mode(char *name, const char *value,
-			   struct tomoyo_profile *profile)
+			struct tomoyo_profile *profile)
 {
 	u8 i;
 	u8 config;
@@ -3478,8 +3385,7 @@ static int tomoyo_set_mode(char *name, const char *value,
 		config = profile->default_config;
 	} else if (tomoyo_str_starts(name, "CONFIG::")) {
 		config = 0;
-		for (i = 0;
-		     i < TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_MAC_CATEGORY_INDEX;
+		for (i = 0; i < TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_MAC_CATEGORY_INDEX;
 		     i++) {
 			int len = 0;
 			if (i < TOMOYO_MAX_MAC_INDEX) {
@@ -3564,8 +3470,7 @@ static int tomoyo_write_profile(void)
 		return -EINVAL;
 	*cp++ = '\0';
 	if (!strcmp(data, "COMMENT")) {
-		const struct tomoyo_path_info *new_comment =
-			tomoyo_get_name(cp);
+		const struct tomoyo_path_info *new_comment = tomoyo_get_name(cp);
 		const struct tomoyo_path_info *old_comment = profile->comment;
 		profile->comment = new_comment;
 		tomoyo_put_name(old_comment);
@@ -3574,7 +3479,7 @@ static int tomoyo_write_profile(void)
 	if (!strcmp(data, "PREFERENCE")) {
 		for (i = 0; i < TOMOYO_MAX_PREF; i++)
 			tomoyo_set_uint(&profile->pref[i], cp,
-					tomoyo_pref_keywords[i]);
+				     tomoyo_pref_keywords[i]);
 		return 0;
 	}
 	return tomoyo_set_mode(data, cp, profile);
@@ -3659,7 +3564,7 @@ static void tomoyo_read_profile(void)
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_manager(const struct tomoyo_acl_head *a,
-				const struct tomoyo_acl_head *b)
+			     const struct tomoyo_acl_head *b)
 {
 	return container_of(a, struct tomoyo_manager, head)->manager
 		== container_of(b, struct tomoyo_manager, head)->manager;
@@ -3674,7 +3579,7 @@ static bool tomoyo_same_manager(const struct tomoyo_acl_head *a,
  * Returns 0 on success, negative value otherwise.
  */
 static inline int tomoyo_update_manager_entry(const char *manager,
-					      const bool is_delete)
+					   const bool is_delete)
 {
 	struct tomoyo_manager e = { };
 	struct tomoyo_acl_param param = {
@@ -3692,7 +3597,7 @@ static inline int tomoyo_update_manager_entry(const char *manager,
 	}
 	e.manager = tomoyo_get_name(manager);
 	error = tomoyo_update_policy(&e.head, sizeof(e), &param,
-				     tomoyo_same_manager);
+				  tomoyo_same_manager);
 	tomoyo_put_name(e.manager);
 	return error;
 }
@@ -3759,12 +3664,10 @@ static bool tomoyo_select_domain(const char *data)
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_handler_acl(const struct tomoyo_acl_info *a,
-				    const struct tomoyo_acl_info *b)
+				 const struct tomoyo_acl_info *b)
 {
-	const struct tomoyo_handler_acl *p1 = container_of(a, typeof(*p1),
-							   head);
-	const struct tomoyo_handler_acl *p2 = container_of(b, typeof(*p2),
-							   head);
+	const struct tomoyo_handler_acl *p1 = container_of(a, typeof(*p1), head);
+	const struct tomoyo_handler_acl *p2 = container_of(b, typeof(*p2), head);
 	return p1->handler == p2->handler;
 }
 
@@ -3777,7 +3680,7 @@ static bool tomoyo_same_handler_acl(const struct tomoyo_acl_info *a,
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_task_acl(const struct tomoyo_acl_info *a,
-				 const struct tomoyo_acl_info *b)
+			      const struct tomoyo_acl_info *b)
 {
 	const struct tomoyo_task_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct tomoyo_task_acl *p2 = container_of(b, typeof(*p2), head);
@@ -3795,15 +3698,15 @@ static int tomoyo_write_task(struct tomoyo_acl_param *param)
 {
 	int error;
 	const bool is_auto = tomoyo_str_starts(param->data,
-					       "auto_domain_transition ");
+					    "auto_domain_transition ");
 	if (!is_auto && !tomoyo_str_starts(param->data,
-					   "manual_domain_transition ")) {
+					"manual_domain_transition ")) {
 		struct tomoyo_handler_acl e = { };
 		char *handler;
 		if (tomoyo_str_starts(param->data, "auto_execute_handler "))
 			e.head.type = TOMOYO_TYPE_AUTO_EXECUTE_HANDLER;
 		else if (tomoyo_str_starts(param->data,
-					   "denied_execute_handler "))
+					"denied_execute_handler "))
 			e.head.type = TOMOYO_TYPE_DENIED_EXECUTE_HANDLER;
 		else
 			return -EINVAL;
@@ -3815,21 +3718,19 @@ static int tomoyo_write_task(struct tomoyo_acl_param *param)
 			error = -EINVAL; /* No patterns allowed. */
 		else
 			error = tomoyo_update_domain(&e.head, sizeof(e), param,
-						     tomoyo_same_handler_acl,
-						     NULL);
+						  tomoyo_same_handler_acl, NULL);
 		tomoyo_put_name(e.handler);
 	} else {
 		struct tomoyo_task_acl e = {
-			.head.type = is_auto ? TOMOYO_TYPE_AUTO_TASK_ACL :
-			TOMOYO_TYPE_MANUAL_TASK_ACL,
+			.head.type = is_auto ?
+			TOMOYO_TYPE_AUTO_TASK_ACL : TOMOYO_TYPE_MANUAL_TASK_ACL,
 			.domainname = tomoyo_get_domainname(param),
 		};
 		if (!e.domainname)
 			error = -EINVAL;
 		else
 			error = tomoyo_update_domain(&e.head, sizeof(e), param,
-						     tomoyo_same_task_acl,
-						     NULL);
+						  tomoyo_same_task_acl, NULL);
 		tomoyo_put_name(e.domainname);
 	}
 	return error;
@@ -3846,8 +3747,8 @@ static int tomoyo_write_task(struct tomoyo_acl_param *param)
  * Returns 0 on success, negative value otherwise.
  */
 static int tomoyo_write_domain2(struct tomoyo_policy_namespace *ns,
-				struct list_head *list, char *data,
-				const bool is_delete)
+			     struct list_head *list, char *data,
+			     const bool is_delete)
 {
 	struct tomoyo_acl_param param = {
 		.ns = ns,
@@ -3906,8 +3807,7 @@ static int tomoyo_write_domain(void)
 	struct tomoyo_policy_namespace *ns;
 	struct tomoyo_domain2_info *domain = head.domain;
 	const bool is_delete = head.is_delete;
-	const bool is_select = !is_delete &&
-		tomoyo_str_starts(data, "select ");
+	const bool is_select = !is_delete && tomoyo_str_starts(data, "select ");
 	unsigned int profile;
 	if (*data == '<') {
 		domain = NULL;
@@ -3945,8 +3845,7 @@ static int tomoyo_write_domain(void)
 		domain->flags[profile] = !is_delete;
 		return 0;
 	}
-	return tomoyo_write_domain2(ns, &domain->acl_info_list, data,
-				    is_delete);
+	return tomoyo_write_domain2(ns, &domain->acl_info_list, data, is_delete);
 }
 
 /**
@@ -3986,8 +3885,7 @@ static void tomoyo_print_name_union_quoted(const struct tomoyo_name_union *ptr)
  *
  * Returns nothing.
  */
-static void tomoyo_print_number_union_nospace
-(const struct tomoyo_number_union *ptr)
+static void tomoyo_print_number_union_nospace(const struct tomoyo_number_union *ptr)
 {
 	if (ptr->group) {
 		cprintf("@%s", ptr->group->group_name->name);
@@ -4041,8 +3939,7 @@ static void tomoyo_print_number_union(const struct tomoyo_number_union *ptr)
 static void tomoyo_print_condition(const struct tomoyo_condition *cond)
 {
 	const u16 condc = cond->condc;
-	const struct tomoyo_condition_element *condp =
-		(typeof(condp)) (cond + 1);
+	const struct tomoyo_condition_element *condp = (typeof(condp)) (cond + 1);
 	const struct tomoyo_number_union *numbers_p =
 		(typeof(numbers_p)) (condp + condc);
 	const struct tomoyo_name_union *names_p =
@@ -4139,8 +4036,7 @@ static void tomoyo_print_entry(const struct tomoyo_acl_info *acl)
 			if (!(perm & (1 << bit)))
 				continue;
 			if (head.print_transition_related_only &&
-			    bit != TOMOYO_TYPE_EXECUTE &&
-			    !may_trigger_transition)
+			    bit != TOMOYO_TYPE_EXECUTE && !may_trigger_transition)
 				continue;
 			if (first) {
 				tomoyo_set_group("file ");
@@ -4186,8 +4082,7 @@ static void tomoyo_print_entry(const struct tomoyo_acl_info *acl)
 			} else {
 				cprintf("/");
 			}
-			cprintf("%s",
-				tomoyo_mac_keywords[tomoyo_pnnn2mac[bit]]);
+			cprintf("%s", tomoyo_mac_keywords[tomoyo_pnnn2mac[bit]]);
 		}
 		if (first)
 			return;
@@ -4242,8 +4137,7 @@ static void tomoyo_print_entry(const struct tomoyo_acl_info *acl)
 		struct tomoyo_capability_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
 		tomoyo_set_group("capability ");
-		cprintf("%s",
-			tomoyo_mac_keywords[tomoyo_c2mac[ptr->operation]]);
+		cprintf("%s", tomoyo_mac_keywords[tomoyo_c2mac[ptr->operation]]);
 	} else if (acl_type == TOMOYO_TYPE_INET_ACL) {
 		struct tomoyo_inet_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
@@ -4363,7 +4257,7 @@ static void tomoyo_read_domain(void)
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_path_group(const struct tomoyo_acl_head *a,
-				   const struct tomoyo_acl_head *b)
+				const struct tomoyo_acl_head *b)
 {
 	return container_of(a, struct tomoyo_path_group, head)->member_name ==
 		container_of(b, struct tomoyo_path_group, head)->member_name;
@@ -4378,12 +4272,10 @@ static bool tomoyo_same_path_group(const struct tomoyo_acl_head *a,
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_number_group(const struct tomoyo_acl_head *a,
-				     const struct tomoyo_acl_head *b)
+				  const struct tomoyo_acl_head *b)
 {
-	return !memcmp(&container_of(a, struct tomoyo_number_group, head)
-		       ->number,
-		       &container_of(b, struct tomoyo_number_group, head)
-		       ->number,
+	return !memcmp(&container_of(a, struct tomoyo_number_group, head)->number,
+		       &container_of(b, struct tomoyo_number_group, head)->number,
 		       sizeof(container_of(a, struct tomoyo_number_group, head)
 			      ->number));
 }
@@ -4397,12 +4289,12 @@ static bool tomoyo_same_number_group(const struct tomoyo_acl_head *a,
  * Returns true if @a == @b, false otherwise.
  */
 static bool tomoyo_same_address_group(const struct tomoyo_acl_head *a,
-				      const struct tomoyo_acl_head *b)
+				   const struct tomoyo_acl_head *b)
 {
 	const struct tomoyo_address_group *p1 = container_of(a, typeof(*p1),
-							     head);
+							  head);
 	const struct tomoyo_address_group *p2 = container_of(b, typeof(*p2),
-							     head);
+							  head);
 	return tomoyo_same_ipaddr_union(&p1->address, &p2->address);
 }
 
@@ -4416,11 +4308,11 @@ static bool tomoyo_same_address_group(const struct tomoyo_acl_head *a,
  */
 static int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type)
 {
-	struct tomoyo_group *group =
-		tomoyo_get_group(param, type == TOMOYO_PATH_GROUP ?
-				 &tomoyo_path_group :
-				 type == TOMOYO_NUMBER_GROUP ?
-				 &tomoyo_number_group : &tomoyo_address_group);
+	struct tomoyo_group *group = tomoyo_get_group(param, type == TOMOYO_PATH_GROUP ?
+						&tomoyo_path_group :
+						type == TOMOYO_NUMBER_GROUP ?
+						&tomoyo_number_group :
+						&tomoyo_address_group);
 	int error = -EINVAL;
 	if (!group)
 		return -ENOMEM;
@@ -4429,7 +4321,7 @@ static int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type)
 		struct tomoyo_path_group e = { };
 		e.member_name = tomoyo_get_name(tomoyo_read_token(param));
 		error = tomoyo_update_policy(&e.head, sizeof(e), param,
-					     tomoyo_same_path_group);
+					  tomoyo_same_path_group);
 		tomoyo_put_name(e.member_name);
 	} else if (type == TOMOYO_NUMBER_GROUP) {
 		struct tomoyo_number_group e = { };
@@ -4437,7 +4329,7 @@ static int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type)
 		    !tomoyo_parse_number_union(param, &e.number))
 			goto out;
 		error = tomoyo_update_policy(&e.head, sizeof(e), param,
-					     tomoyo_same_number_group);
+					  tomoyo_same_number_group);
 		/*
 		 * tomoyo_put_number_union() is not needed because
 		 * param->data[0] != '@'.
@@ -4448,7 +4340,7 @@ static int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type)
 		    !tomoyo_parse_ipaddr_union(param, &e.address))
 			goto out;
 		error = tomoyo_update_policy(&e.head, sizeof(e), param,
-					     tomoyo_same_address_group);
+					  tomoyo_same_address_group);
 	}
 out:
 	tomoyo_put_group(group);
@@ -4485,8 +4377,8 @@ static int tomoyo_write_exception(void)
 		group = strtoul(param.data, &data, 10);
 		if (group < TOMOYO_MAX_ACL_GROUPS && *data++ == ' ')
 			return tomoyo_write_domain2(head.ns,
-						    &head.ns->acl_group[group],
-						    data, is_delete);
+						 &head.ns->acl_group[group],
+						 data, is_delete);
 	}
 	return -EINVAL;
 }
@@ -4506,6 +4398,8 @@ static void tomoyo_read_group(const struct tomoyo_policy_namespace *ns)
 		list_for_each_entry(ptr, &group->member_list, list) {
 			if (group->ns != ns)
 				continue;
+			if (ptr->is_deleted)
+				continue;
 			tomoyo_print_namespace(group->ns);
 			cprintf("%s%s", tomoyo_group_name[TOMOYO_PATH_GROUP],
 				group->group_name->name);
@@ -4520,13 +4414,14 @@ static void tomoyo_read_group(const struct tomoyo_policy_namespace *ns)
 		list_for_each_entry(ptr, &group->member_list, list) {
 			if (group->ns != ns)
 				continue;
+			if (ptr->is_deleted)
+				continue;
 			tomoyo_print_namespace(group->ns);
 			cprintf("%s%s", tomoyo_group_name[TOMOYO_NUMBER_GROUP],
 				group->group_name->name);
 			tomoyo_print_number_union(&container_of
-						  (ptr,
-						   struct tomoyo_number_group,
-						   head)->number);
+					       (ptr, struct tomoyo_number_group,
+						head)->number);
 			cprintf("\n");
 		}
 	}
@@ -4535,14 +4430,15 @@ static void tomoyo_read_group(const struct tomoyo_policy_namespace *ns)
 		list_for_each_entry(ptr, &group->member_list, list) {
 			if (group->ns != ns)
 				continue;
+			if (ptr->is_deleted)
+				continue;
 			tomoyo_print_namespace(group->ns);
-			cprintf("%s%s",
-				tomoyo_group_name[TOMOYO_ADDRESS_GROUP],
+			cprintf("%s%s", tomoyo_group_name[TOMOYO_ADDRESS_GROUP],
 				group->group_name->name);
 			cprintf(" ");
 			tomoyo_print_ip(&container_of
-					(ptr, struct tomoyo_address_group,
-					 head)->address);
+				     (ptr, struct tomoyo_address_group, head)->
+				     address);
 			cprintf("\n");
 		}
 	}
@@ -4624,8 +4520,8 @@ static void tomoyo_read_stat(void)
 	if (head.eof)
 		return;
 	for (i = 0; i < TOMOYO_MAX_MEMORY_STAT; i++)
-		cprintf("Memory used by %-22s %10u\n",
-			tomoyo_memory_headers[i], tomoyo_memory_quota[i]);
+		cprintf("Memory used by %-22s %10u\n", tomoyo_memory_headers[i],
+			tomoyo_memory_quota[i]);
 	head.eof = true;
 }
 
@@ -4641,8 +4537,7 @@ static int tomoyo_write_stat(void)
 	if (tomoyo_str_starts(data, "Memory used by "))
 		for (i = 0; i < TOMOYO_MAX_MEMORY_STAT; i++)
 			if (tomoyo_str_starts(data, tomoyo_memory_headers[i]))
-				tomoyo_memory_quota[i] = strtoul(data, NULL,
-								 10);
+				tomoyo_memory_quota[i] = strtoul(data, NULL, 10);
 	return 0;
 }
 
@@ -4660,8 +4555,7 @@ static int tomoyo_parse_policy(char *line)
 	if (head.is_delete)
 		memmove(line, line + 7, strlen(line + 7) + 1);
 	/* Selecting namespace to update. */
-	if (head.type == TOMOYO_EXCEPTIONPOLICY ||
-	    head.type == TOMOYO_PROFILE) {
+	if (head.type == TOMOYO_EXCEPTIONPOLICY || head.type == TOMOYO_PROFILE) {
 		if (*line == '<') {
 			char *cp = strchr(line, ' ');
 			if (cp) {
@@ -4694,7 +4588,7 @@ static int tomoyo_parse_policy(char *line)
 }
 
 /**
- * tomoyo_write_control - write() for /proc/tomoyo/ interface.
+ * tomoyo_write_control - write() for /sys/kernel/security/tomoyo/ interface.
  *
  * @buffer:     Pointer to buffer to read from.
  * @buffer_len: Size of @buffer.
@@ -4740,7 +4634,12 @@ static void tomoyo_write_control(char *buffer, const size_t buffer_len)
 	}
 }
 
-static void init(coid)
+/**
+ * tomoyo_editpolicy_offline_init - Initialize variables for offline daemon.
+ *
+ * Returns nothing.
+ */
+static void tomoyo_editpolicy_offline_init(coid)
 {
 	static _Bool first = true;
 	int i;
@@ -4758,23 +4657,33 @@ static void init(coid)
 		      &tomoyo_namespace_list);
 	for (i = 0; i < TOMOYO_MAX_HASH; i++)
 		INIT_LIST_HEAD(&tomoyo_name_list[i]);
+	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
+	tomoyo_kernel_domain.domainname = tomoyo_savename("<kernel>");
+	list_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
 	memset(tomoyo_memory_quota, 0, sizeof(tomoyo_memory_quota));
 }
 
-static void handle_policy(const int fd)
+/**
+ * tomoyo_editpolicy_offline_main - Read request and handle policy I/O.
+ *
+ * @fd: Socket file descriptor. 
+ *
+ * Returns nothing.
+ */
+static void tomoyo_editpolicy_offline_main(const int fd)
 {
 	int i;
 	static char buffer[4096];
-	init();
+	tomoyo_editpolicy_offline_init();
 	/* Read filename. */
 	for (i = 0; i < sizeof(buffer); i++) {
 		if (read(fd, buffer + i, 1) != 1)
-			goto out;
+			return;
 		if (!buffer[i])
 			break;
 	}
 	if (!memchr(buffer, '\0', sizeof(buffer)))
-		goto out;
+		return;
 	memset(&head, 0, sizeof(head));
 	head.reset = true;
 	if (!strcmp(buffer, TOMOYO_PROC_POLICY_DOMAIN_POLICY))
@@ -4788,13 +4697,13 @@ static void handle_policy(const int fd)
 	else if (!strcmp(buffer, TOMOYO_PROC_POLICY_STAT))
 		head.type = TOMOYO_STAT;
 	else
-		goto out;
+		return;
 	/* Return \0 to indicate success. */
 	if (write(fd, "", 1) != 1)
-		goto out;
+		return;
 	client_fd = fd;
 	while (1) {
-		struct pollfd pfd = { .fd = fd, .events = POLLIN};
+		struct pollfd pfd = { .fd = fd, .events = POLLIN };
 		int len;
 		int nonzero_len;
 		poll(&pfd, 1, -1);
@@ -4829,7 +4738,7 @@ restart:
 			cprintf("%s", "");
 			/* Return \0 to indicate EOF. */
 			if (write(fd, "", 1) != 1)
-				goto out;
+				return;
 			nonzero_len = 1;
 		}
 		len -= nonzero_len;
@@ -4837,27 +4746,33 @@ restart:
 		if (len)
 			goto restart;
 	}
-out:
-	return;
 }
 
 /**
- * tomoyo_editpolicy_offline_daemon - Emulate /proc/tomoyo/ interface.
+ * tomoyo_editpolicy_offline_daemon - Emulate /sys/kernel/security/tomoyo/ interface.
  *
- * @listener: Listener fd.
+ * @listener: Listener fd. This is a listening PF_INET socket.
+ * @notifier: Notifier fd. This is a pipe's reader side.
  *
  * This function does not return.
  */
-void tomoyo_editpolicy_offline_daemon(const int listener)
+void tomoyo_editpolicy_offline_daemon(const int listener, const int notifier)
 {
 	while (1) {
+		struct pollfd pfd[2] = {
+			{ .fd = listener, .events = POLLIN },
+			{ .fd = notifier, .events = POLLIN }
+		};
 		struct sockaddr_in addr;
 		socklen_t size = sizeof(addr);
-		const int fd = accept(listener, (struct sockaddr *) &addr,
-				      &size);
-		if (fd == EOF)
+		int fd;
+		if (poll(pfd, 2, -1) == EOF ||
+		    (pfd[1].revents & (POLLIN | POLLHUP)))
 			_exit(1);
-		handle_policy(fd);
+		fd = accept(listener, (struct sockaddr *) &addr, &size);
+		if (fd == EOF)
+			continue;
+		tomoyo_editpolicy_offline_main(fd);
 		close(fd);
 	}
 }

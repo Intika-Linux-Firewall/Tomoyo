@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -59,17 +59,20 @@ static struct tomoyo_number_group_entry *tomoyo_find_number_group
 (const char *group_name);
 
 /**
- * tomoyo_find_path_group - Find "path_group" entry.
+ * tomoyo_find_path_group_ns - Find "path_group" entry.
  *
+ * @ns:         Pointer to "const struct tomoyo_path_info".
  * @group_name: Name of path group.
  *
  * Returns pointer to "struct tomoyo_path_group_entry" if found, NULL otherwise.
  */
-struct tomoyo_path_group_entry *tomoyo_find_path_group(const char *group_name)
+struct tomoyo_path_group_entry *tomoyo_find_path_group_ns
+(const struct tomoyo_path_info *ns, const char *group_name)
 {
 	int i;
 	for (i = 0; i < tomoyo_path_group_list_len; i++) {
-		if (!strcmp(group_name,
+		if (!tomoyo_pathcmp(tomoyo_path_group_list[i].ns, ns) &&
+		    !strcmp(group_name,
 			    tomoyo_path_group_list[i].group_name->name))
 			return &tomoyo_path_group_list[i];
 	}
@@ -119,7 +122,7 @@ static _Bool tomoyo_compare_path(const char *sarg, const char *darg)
 		/* Pathname component. */
 		return tomoyo_path_matches_pattern(&d, &s);
 	/* path_group component. */
-	group = tomoyo_find_path_group(s.name + 1);
+	group = tomoyo_find_path_group_ns(tomoyo_current_ns, s.name + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {

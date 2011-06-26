@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1+   2011/05/11
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -186,7 +186,7 @@ void tomoyo_editpolicy_sttr_restore(void)
 }
 
 /**
- * tomoyoeditpolicy_color_head - Get color to use for header line.
+ * tomoyo_editpolicy_color_head - Get color to use for header line.
  *
  * Returns one of values in "enum tomoyo_color_pair".
  */
@@ -315,7 +315,7 @@ void tomoyo_editpolicy_sttr_restore(void)
 }
 
 /**
- * tomoyoeditpolicy_color_head - Get color to use for header line.
+ * tomoyo_editpolicy_color_head - Get color to use for header line.
  *
  * Returns one of values in "enum tomoyo_color_pair".
  */
