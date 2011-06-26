@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -55,7 +55,7 @@ static void panic(void)
 #define proc_profile          "/sys/kernel/security/tomoyo/profile"
 #define proc_stat             "/sys/kernel/security/tomoyo/stat"
 static const char *profile_name = "default";
-static _Bool tomoyo_noload = 0;
+static _Bool ccs_noload = 0;
 static _Bool proc_unmount = 0;
 static _Bool sys_unmount = 0;
 static _Bool security_unmount = 0;
@@ -72,16 +72,16 @@ static void check_arg(const char *arg)
 		profile_name = "default";
 	else if (!strcmp(arg, "TOMOYO=disabled"))
 		profile_name = "disable";
-	else if (!strncmp(arg, "TOMOYO=", 4)) {
+	else if (!strncmp(arg, "TOMOYO=", 7)) {
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "profile-%s.conf",
-			 arg + 4);
+			 arg + 7);
 		profile_name = strdup(buffer);
 		if (!profile_name)
 			panic();
 	} else if (!strcmp(arg, "TOMOYO_NOLOAD"))
-		tomoyo_noload = 1;
+		ccs_noload = 1;
 }
 
 static void ask_profile(void)
@@ -89,7 +89,7 @@ static void ask_profile(void)
 	static char input[128];
 	while (1) {
 		char *ret_ignored;
-		printf("TOMOYOecurity: Select a profile from "
+		printf("TOMOYO: Select a profile from "
 		       "the following list.\n");
 		if (chdir_ok) {
 			/* Show profiles in policy directory. */
@@ -152,7 +152,7 @@ static void ask_profile(void)
 			break;
 		}
 		if (!strcmp(input, "TOMOYO_NOLOAD"))
-			tomoyo_noload = 1;
+			ccs_noload = 1;
 	}
 }
 
@@ -353,14 +353,14 @@ int main(int argc, char *argv[])
 	if (chdir_ok) {
 		if (!strcmp(profile_name, "default")) {
 			if (access("profile.conf", R_OK)) {
-				printf("TOMOYOecurity: Default profile "
+				printf("TOMOYO: Default profile "
 				       "doesn't exist.\n");
 				profile_name = "ask";
 			}
 		} else if (strcmp(profile_name, "ask") &&
 			   strcmp(profile_name, "disable")) {
 			if (access(profile_name, R_OK)) {
-				printf("TOMOYOecurity: Specified profile "
+				printf("TOMOYO: Specified profile "
 				       "doesn't exist.\n");
 				profile_name = "ask";
 			}
@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
 	if (chdir_ok) {
 		copy_files("manager.conf", proc_manager);
 		copy_files("exception_policy.conf", proc_exception_policy);
-		if (!tomoyo_noload)
+		if (!ccs_noload)
 			copy_files("domain_policy.conf", proc_domain_policy);
 		if (!strcmp(profile_name, "default"))
 			copy_files("profile.conf", proc_profile);

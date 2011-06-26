@@ -20,7 +20,7 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 1.8.1-1
+Conflicts: tomoyo-tools < 2.4.0-1
 
 Source0: http://osdn.dl.sourceforge.jp/tomoyo/?????/tomoyo-tools-2.4.0-2011????.tar.gz
 
@@ -59,3 +59,4 @@ ldconfig || true
 
 %changelog
 * ??? ??? ?? 2011 2.4.0-1
+- Major update release.

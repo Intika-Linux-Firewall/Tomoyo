@@ -1,9 +1,9 @@
 /*
- * tomoyo_rewrite_test.c
+ * ccs_rewrite_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -124,7 +124,7 @@ static void stage_rewrite_test(void)
 
 int main(int argc, char *argv[])
 {
-	tomoyo_test_init();
+	ccs_test_init();
 	stage_rewrite_test();
 	clear_status();
 	if (0) /* To suppress "defined but not used" warnings. */

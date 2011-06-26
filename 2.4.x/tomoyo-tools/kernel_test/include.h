@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -217,7 +217,7 @@ static void clear_status(void)
 	fclose(fp);
 }
 
-static void tomoyo_test_init(void)
+static void ccs_test_init(void)
 {
 	pid = getpid();
 	if (access(proc_policy_dir, F_OK)) {
@@ -276,11 +276,11 @@ static void tomoyo_test_init(void)
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"securityfs:/tomoyo/domain_policy\n");
+		"proc:/ccs/domain_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"securityfs:/tomoyo/exception_policy\n");
+		"proc:/ccs/exception_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
-		"securityfs:/tomoyo/profile\n");
+		"proc:/ccs/profile\n");
 }
 
 static void BUG(const char *fmt, ...)
@@ -299,7 +299,7 @@ static void BUG(const char *fmt, ...)
 		sleep(100);
 }
 
-static char *tomoyo_freadline(FILE *fp)
+static char *ccs_freadline(FILE *fp)
 {
 	static char *policy = NULL;
 	int pos = 0;
@@ -327,7 +327,7 @@ static char *tomoyo_freadline(FILE *fp)
 	return policy;
 }
 
-static char *tomoyo_freadline_unpack(FILE *fp)
+static char *ccs_freadline_unpack(FILE *fp)
 {
 	static char *previous_line = NULL;
 	static char *cached_line = NULL;
@@ -341,7 +341,7 @@ static char *tomoyo_freadline_unpack(FILE *fp)
 		char *pos;
 		unsigned int offset;
 		unsigned int len;
-		char *line = tomoyo_freadline(fp);
+		char *line = ccs_freadline(fp);
 		if (!line)
 			return NULL;
 		if (sscanf(line, "acl_group %u", &offset) == 1 && offset < 256)
@@ -450,7 +450,7 @@ static int write_domain_policy(const char *policy, int is_delete)
 			fprintf(domain_fp, "delete ");
 		fprintf(domain_fp, "%s\n", policy);
 		while (1) {
-			char *line = tomoyo_freadline_unpack(fp);
+			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
 			if (!strncmp(line, "<kernel>", 8))
@@ -461,7 +461,7 @@ static int write_domain_policy(const char *policy, int is_delete)
 			if (strcmp(line, policy))
 				continue;
 			policy_found = 1;
-			while (tomoyo_freadline_unpack(NULL));
+			while (ccs_freadline_unpack(NULL));
 			break;
 		}
 		fclose(fp);
@@ -505,7 +505,7 @@ static int write_exception_policy(const char *policy, int is_delete)
 			fprintf(exception_fp, "delete ");
 		fprintf(exception_fp, "%s\n", policy);
 		while (1) {
-			char *line = tomoyo_freadline_unpack(fp);
+			char *line = ccs_freadline_unpack(fp);
 			if (!line)
 				break;
 			if (!strncmp(line, "<kernel> ", 9))
@@ -514,7 +514,7 @@ static int write_exception_policy(const char *policy, int is_delete)
 			if (strcmp(line, policy))
 				continue;
 			policy_found = 1;
-			while (tomoyo_freadline_unpack(NULL));
+			while (ccs_freadline_unpack(NULL));
 			break;
 		}
 		fclose(fp);

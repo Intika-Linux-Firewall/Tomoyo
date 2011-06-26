@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -22,84 +22,84 @@
  */
 #include "tomoyotools.h"
 
-struct tomoyo_savename_entry {
-	struct tomoyo_savename_entry *next;
-	struct tomoyo_path_info entry;
+struct ccs_savename_entry {
+	struct ccs_savename_entry *next;
+	struct ccs_path_info entry;
 };
 
-#define TOMOYO_SAVENAME_MAX_HASH            256
+#define CCS_SAVENAME_MAX_HASH            256
 
 /* Use tomoyo-editpolicy-agent process? */
-_Bool tomoyo_network_mode = false;
+_Bool ccs_network_mode = false;
 /* The IPv4 address of the remote host running the tomoyo-editpolicy-agent . */
-u32 tomoyo_network_ip = INADDR_NONE;
+u32 ccs_network_ip = INADDR_NONE;
 /* The port number of the remote host running the tomoyo-editpolicy-agent . */
-u16 tomoyo_network_port = 0;
+u16 ccs_network_port = 0;
 /* The list of processes currently running. */
-struct tomoyo_task_entry *tomoyo_task_list = NULL;
-/* The length of tomoyo_task_list . */
-int tomoyo_task_list_len = 0;
-/* Read files without calling tomoyo_normalize_line() ? */
-_Bool tomoyo_freadline_raw = false;
+struct ccs_task_entry *ccs_task_list = NULL;
+/* The length of ccs_task_list . */
+int ccs_task_list_len = 0;
+/* Read files without calling ccs_normalize_line() ? */
+_Bool ccs_freadline_raw = false;
 
 /* Prototypes */
 
-static _Bool tomoyo_byte_range(const char *str);
-static _Bool tomoyo_decimal(const char c);
-static _Bool tomoyo_hexadecimal(const char c);
-static _Bool tomoyo_alphabet_char(const char c);
-static u8 tomoyo_make_byte(const u8 c1, const u8 c2, const u8 c3);
-static int tomoyo_const_part_length(const char *filename);
-static int tomoyo_domainname_compare(const void *a, const void *b);
-static int tomoyo_path_info_compare(const void *a, const void *b);
-static void tomoyo_sort_domain_policy(struct tomoyo_domain_policy *dp);
+static _Bool ccs_byte_range(const char *str);
+static _Bool ccs_decimal(const char c);
+static _Bool ccs_hexadecimal(const char c);
+static _Bool ccs_alphabet_char(const char c);
+static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
+static int ccs_const_part_length(const char *filename);
+static int ccs_domainname_compare(const void *a, const void *b);
+static int ccs_path_info_compare(const void *a, const void *b);
+static void ccs_sort_domain_policy(struct ccs_domain_policy *dp);
 
 /* Utility functions */
 
 /**
- * tomoyo_out_of_memory - Print error message and abort.
+ * ccs_out_of_memory - Print error message and abort.
  *
  * This function does not return.
  */
-static void tomoyo_out_of_memory(void)
+static void ccs_out_of_memory(void)
 {
 	fprintf(stderr, "Out of memory. Aborted.\n");
 	exit(1);
 }
 
 /**
- * tomoyo_strdup - strdup() with abort on error.
+ * ccs_strdup - strdup() with abort on error.
  *
  * @string: String to duplicate.
  *
  * Returns copy of @string on success, abort otherwise.
  */
-char *tomoyo_strdup(const char *string)
+char *ccs_strdup(const char *string)
 {
 	char *cp = strdup(string);
 	if (!cp)
-		tomoyo_out_of_memory();
+		ccs_out_of_memory();
 	return cp;
 }
 
 /**
- * tomoyo_realloc - realloc() with abort on error.
+ * ccs_realloc - realloc() with abort on error.
  *
  * @ptr:  Pointer to void.
  * @size: New size.
  *
  * Returns return value of realloc() on success, abort otherwise.
  */
-void *tomoyo_realloc(void *ptr, const size_t size)
+void *ccs_realloc(void *ptr, const size_t size)
 {
 	void *vp = realloc(ptr, size);
 	if (!vp)
-		tomoyo_out_of_memory();
+		ccs_out_of_memory();
 	return vp;
 }
 
 /**
- * tomoyo_realloc2 - realloc() with abort on error.
+ * ccs_realloc2 - realloc() with abort on error.
  *
  * @ptr:  Pointer to void.
  * @size: New size.
@@ -108,15 +108,15 @@ void *tomoyo_realloc(void *ptr, const size_t size)
  *
  * Allocated memory is cleared with 0.
  */
-void *tomoyo_realloc2(void *ptr, const size_t size)
+void *ccs_realloc2(void *ptr, const size_t size)
 {
-	void *vp = tomoyo_realloc(ptr, size);
+	void *vp = ccs_realloc(ptr, size);
 	memset(vp, 0, size);
 	return vp;
 }
 
 /**
- * tomoyo_malloc - malloc() with abort on error.
+ * ccs_malloc - malloc() with abort on error.
  *
  * @size: Size to allocate.
  *
@@ -124,17 +124,17 @@ void *tomoyo_realloc2(void *ptr, const size_t size)
  *
  * Allocated memory is cleared with 0.
  */
-void *tomoyo_malloc(const size_t size)
+void *ccs_malloc(const size_t size)
 {
 	void *vp = malloc(size);
 	if (!vp)
-		tomoyo_out_of_memory();
+		ccs_out_of_memory();
 	memset(vp, 0, size);
 	return vp;
 }
 
 /**
- * tomoyo_str_starts - Check whether the given string starts with the given keyword.
+ * ccs_str_starts - Check whether the given string starts with the given keyword.
  *
  * @str:   Pointer to "char *".
  * @begin: Pointer to "const char *".
@@ -147,7 +147,7 @@ void *tomoyo_malloc(const size_t size)
  * Note that this function in kernel source has different arguments and behaves
  * differently.
  */
-_Bool tomoyo_str_starts(char *str, const char *begin)
+_Bool ccs_str_starts(char *str, const char *begin)
 {
 	const int len = strlen(begin);
 	if (strncmp(str, begin, len))
@@ -157,13 +157,13 @@ _Bool tomoyo_str_starts(char *str, const char *begin)
 }
 
 /**
- * tomoyo_byte_range - Check whether the string is a \ooo style octal value.
+ * ccs_byte_range - Check whether the string is a \ooo style octal value.
  *
  * @str: Pointer to the string.
  *
  * Returns true if @str is a \ooo style octal value, false otherwise.
  */
-static _Bool tomoyo_byte_range(const char *str)
+static _Bool ccs_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
 		*str >= '0' && *str++ <= '7' &&
@@ -171,25 +171,25 @@ static _Bool tomoyo_byte_range(const char *str)
 }
 
 /**
- * tomoyo_decimal - Check whether the character is a decimal character.
+ * ccs_decimal - Check whether the character is a decimal character.
  *
  * @c: The character to check.
  *
  * Returns true if @c is a decimal character, false otherwise.
  */
-static _Bool tomoyo_decimal(const char c)
+static _Bool ccs_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
 
 /**
- * tomoyo_hexadecimal - Check whether the character is a hexadecimal character.
+ * ccs_hexadecimal - Check whether the character is a hexadecimal character.
  *
  * @c: The character to check.
  *
  * Returns true if @c is a hexadecimal character, false otherwise.
  */
-static _Bool tomoyo_hexadecimal(const char c)
+static _Bool ccs_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
@@ -197,19 +197,19 @@ static _Bool tomoyo_hexadecimal(const char c)
 }
 
 /**
- * tomoyo_alphabet_char - Check whether the character is an alphabet.
+ * ccs_alphabet_char - Check whether the character is an alphabet.
  *
  * @c: The character to check.
  *
  * Returns true if @c is an alphabet character, false otherwise.
  */
-static _Bool tomoyo_alphabet_char(const char c)
+static _Bool ccs_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
 /**
- * tomoyo_make_byte - Make byte value from three octal characters.
+ * ccs_make_byte - Make byte value from three octal characters.
  *
  * @c1: The first character.
  * @c2: The second character.
@@ -217,13 +217,13 @@ static _Bool tomoyo_alphabet_char(const char c)
  *
  * Returns byte value.
  */
-static u8 tomoyo_make_byte(const u8 c1, const u8 c2, const u8 c3)
+static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
 {
 	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
 }
 
 /**
- * tomoyo_normalize_line - Format string.
+ * ccs_normalize_line - Format string.
  *
  * @buffer: The line to normalize.
  *
@@ -232,7 +232,7 @@ static u8 tomoyo_make_byte(const u8 c1, const u8 c2, const u8 c3)
  * Leading and trailing whitespaces are removed.
  * Multiple whitespaces are packed into single space.
  */
-void tomoyo_normalize_line(char *buffer)
+void ccs_normalize_line(char *buffer)
 {
 	unsigned char *sp = (unsigned char *) buffer;
 	unsigned char *dp = (unsigned char *) buffer;
@@ -252,7 +252,7 @@ void tomoyo_normalize_line(char *buffer)
 }
 
 /**
- * tomoyo_partial_name_hash - Hash name.
+ * ccs_partial_name_hash - Hash name.
  *
  * @c:        A unsigned long value.
  * @prevhash: A previous hash value.
@@ -261,14 +261,14 @@ void tomoyo_normalize_line(char *buffer)
  *
  * This function is copied from partial_name_hash() in the kernel source.
  */
-static inline unsigned long tomoyo_partial_name_hash(unsigned long c,
+static inline unsigned long ccs_partial_name_hash(unsigned long c,
 						  unsigned long prevhash)
 {
 	return (prevhash + (c << 4) + (c >> 4)) * 11;
 }
 
 /**
- * tomoyo_full_name_hash - Hash full name.
+ * ccs_full_name_hash - Hash full name.
  *
  * @name: Pointer to "const unsigned char".
  * @len:  Length of @name in byte.
@@ -277,23 +277,23 @@ static inline unsigned long tomoyo_partial_name_hash(unsigned long c,
  *
  * This function is copied from full_name_hash() in the kernel source.
  */
-static inline unsigned int tomoyo_full_name_hash(const unsigned char *name,
+static inline unsigned int ccs_full_name_hash(const unsigned char *name,
 					      unsigned int len)
 {
 	unsigned long hash = 0;
 	while (len--)
-		hash = tomoyo_partial_name_hash(*name++, hash);
+		hash = ccs_partial_name_hash(*name++, hash);
 	return (unsigned int) hash;
 }
 
 /**
- * tomoyo_const_part_length - Evaluate the initial length without a pattern in a token.
+ * ccs_const_part_length - Evaluate the initial length without a pattern in a token.
  *
  * @filename: The string to evaluate.
  *
  * Returns the initial length without a pattern in @filename.
  */
-static int tomoyo_const_part_length(const char *filename)
+static int ccs_const_part_length(const char *filename)
 {
 	int len = 0;
 	if (filename) {
@@ -330,14 +330,14 @@ static int tomoyo_const_part_length(const char *filename)
 }
 
 /**
- * tomoyo_fprintf_encoded - fprintf() using TOMOYO's escape rules.
+ * ccs_fprintf_encoded - fprintf() using TOMOYO's escape rules.
  *
  * @fp:       Pointer to "FILE".
  * @pathname: String to print.
  *
  * Returns nothing.
  */
-void tomoyo_fprintf_encoded(FILE *fp, const char *pathname)
+void ccs_fprintf_encoded(FILE *fp, const char *pathname)
 {
 	while (true) {
 		unsigned char c = *(const unsigned char *) pathname++;
@@ -356,7 +356,7 @@ void tomoyo_fprintf_encoded(FILE *fp, const char *pathname)
 }
 
 /**
- * tomoyo_decode - Decode a string in TOMOYO's rule to a string in C.
+ * ccs_decode - Decode a string in TOMOYO's rule to a string in C.
  *
  * @ascii: Pointer to "const char".
  * @bin:   Pointer to "char". Must not contain wildcards nor '\000'.
@@ -366,7 +366,7 @@ void tomoyo_fprintf_encoded(FILE *fp, const char *pathname)
  * Note that it is legal to pass @ascii == @bin if the caller want to decode
  * a string in a temporary buffer.
  */
-_Bool tomoyo_decode(const char *ascii, char *bin)
+_Bool ccs_decode(const char *ascii, char *bin)
 {
 	while (true) {
 		char c = *ascii++;
@@ -408,14 +408,14 @@ _Bool tomoyo_decode(const char *ascii, char *bin)
 }
 
 /**
- * tomoyo_correct_word2 - Check whether the given string follows the naming rules.
+ * ccs_correct_word2 - Check whether the given string follows the naming rules.
  *
  * @string: The byte sequence to check. Not '\0'-terminated.
  * @len:    Length of @string.
  *
  * Returns true if @string follows the naming rules, false otherwise.
  */
-static _Bool tomoyo_correct_word2(const char *string, size_t len)
+static _Bool ccs_correct_word2(const char *string, size_t len)
 {
 	const char *const start = string;
 	_Bool in_repetition = false;
@@ -466,7 +466,7 @@ static _Bool tomoyo_correct_word2(const char *string, size_t len)
 				e = *string++;
 				if (d < '0' || d > '7' || e < '0' || e > '7')
 					break;
-				c = tomoyo_make_byte(c, d, e);
+				c = ccs_make_byte(c, d, e);
 				if (c <= ' ' || c >= 127)
 					continue;
 			}
@@ -485,37 +485,37 @@ out:
 }
 
 /**
- * tomoyo_correct_word - Check whether the given string follows the naming rules.
+ * ccs_correct_word - Check whether the given string follows the naming rules.
  *
  * @string: The string to check.
  *
  * Returns true if @string follows the naming rules, false otherwise.
  */
-_Bool tomoyo_correct_word(const char *string)
+_Bool ccs_correct_word(const char *string)
 {
-	return tomoyo_correct_word2(string, strlen(string));
+	return ccs_correct_word2(string, strlen(string));
 }
 
 /**
- * tomoyo_correct_path - Check whether the given pathname follows the naming rules.
+ * ccs_correct_path - Check whether the given pathname follows the naming rules.
  *
  * @filename: The pathname to check.
  *
  * Returns true if @filename follows the naming rules, false otherwise.
  */
-_Bool tomoyo_correct_path(const char *filename)
+_Bool ccs_correct_path(const char *filename)
 {
-	return *filename == '/' && tomoyo_correct_word(filename);
+	return *filename == '/' && ccs_correct_word(filename);
 }
 
 /**
- * tomoyo_domain_def - Check whether the given token can be a domainname.
+ * ccs_domain_def - Check whether the given token can be a domainname.
  *
  * @buffer: The token to check.
  *
  * Returns true if @buffer possibly be a domainname, false otherwise.
  */
-_Bool tomoyo_domain_def(const char *buffer)
+_Bool ccs_domain_def(const char *buffer)
 {
 	const char *cp;
 	int len;
@@ -527,19 +527,19 @@ _Bool tomoyo_domain_def(const char *buffer)
 	else
 		len = cp - buffer;
 	return buffer[len - 1] == '>' &&
-		tomoyo_correct_word2(buffer + 1, len - 2);
+		ccs_correct_word2(buffer + 1, len - 2);
 }
 
 /**
- * tomoyo_correct_domain - Check whether the given domainname follows the naming rules.
+ * ccs_correct_domain - Check whether the given domainname follows the naming rules.
  *
  * @domainname: The domainname to check.
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
  */
-_Bool tomoyo_correct_domain(const char *domainname)
+_Bool ccs_correct_domain(const char *domainname)
 {
-	if (!domainname || !tomoyo_domain_def(domainname))
+	if (!domainname || !ccs_domain_def(domainname))
 		return false;
 	domainname = strchr(domainname, ' ');
 	if (!domainname++)
@@ -549,17 +549,17 @@ _Bool tomoyo_correct_domain(const char *domainname)
 		if (!cp)
 			break;
 		if (*domainname != '/' ||
-		    !tomoyo_correct_word2(domainname, cp - domainname))
+		    !ccs_correct_word2(domainname, cp - domainname))
 			goto out;
 		domainname = cp + 1;
 	}
-	return tomoyo_correct_path(domainname);
+	return ccs_correct_path(domainname);
 out:
 	return false;
 }
 
 /**
- * tomoyo_file_matches_pattern2 - Pattern matching without '/' character and "\-" pattern.
+ * ccs_file_matches_pattern2 - Pattern matching without '/' character and "\-" pattern.
  *
  * @filename:     The start of string to check.
  * @filename_end: The end of string to check.
@@ -568,7 +568,7 @@ out:
  *
  * Returns true if @filename matches @pattern, false otherwise.
  */
-static _Bool tomoyo_file_matches_pattern2(const char *filename,
+static _Bool ccs_file_matches_pattern2(const char *filename,
 				       const char *filename_end,
 				       const char *pattern,
 				       const char *pattern_end)
@@ -591,7 +591,7 @@ static _Bool tomoyo_file_matches_pattern2(const char *filename,
 			} else if (c == '\\') {
 				if (filename[1] == '\\')
 					filename++;
-				else if (tomoyo_byte_range(filename + 1))
+				else if (ccs_byte_range(filename + 1))
 					filename += 3;
 				else
 					return false;
@@ -604,22 +604,22 @@ static _Bool tomoyo_file_matches_pattern2(const char *filename,
 				return false;
 			break;
 		case '+':
-			if (!tomoyo_decimal(c))
+			if (!ccs_decimal(c))
 				return false;
 			break;
 		case 'x':
-			if (!tomoyo_hexadecimal(c))
+			if (!ccs_hexadecimal(c))
 				return false;
 			break;
 		case 'a':
-			if (!tomoyo_alphabet_char(c))
+			if (!ccs_alphabet_char(c))
 				return false;
 			break;
 		case '0':
 		case '1':
 		case '2':
 		case '3':
-			if (c == '\\' && tomoyo_byte_range(filename + 1)
+			if (c == '\\' && ccs_byte_range(filename + 1)
 			    && !strncmp(filename + 1, pattern, 3)) {
 				filename += 3;
 				pattern += 2;
@@ -629,7 +629,7 @@ static _Bool tomoyo_file_matches_pattern2(const char *filename,
 		case '*':
 		case '@':
 			for (i = 0; i <= filename_end - filename; i++) {
-				if (tomoyo_file_matches_pattern2(filename + i,
+				if (ccs_file_matches_pattern2(filename + i,
 							      filename_end,
 							      pattern + 1,
 							      pattern_end))
@@ -641,7 +641,7 @@ static _Bool tomoyo_file_matches_pattern2(const char *filename,
 					continue;
 				if (filename[i + 1] == '\\')
 					i++;
-				else if (tomoyo_byte_range(filename + i + 1))
+				else if (ccs_byte_range(filename + i + 1))
 					i += 3;
 				else
 					break; /* Bad pattern. */
@@ -651,17 +651,17 @@ static _Bool tomoyo_file_matches_pattern2(const char *filename,
 			j = 0;
 			c = *pattern;
 			if (c == '$') {
-				while (tomoyo_decimal(filename[j]))
+				while (ccs_decimal(filename[j]))
 					j++;
 			} else if (c == 'X') {
-				while (tomoyo_hexadecimal(filename[j]))
+				while (ccs_hexadecimal(filename[j]))
 					j++;
 			} else if (c == 'A') {
-				while (tomoyo_alphabet_char(filename[j]))
+				while (ccs_alphabet_char(filename[j]))
 					j++;
 			}
 			for (i = 1; i <= j; i++) {
-				if (tomoyo_file_matches_pattern2(filename + i,
+				if (ccs_file_matches_pattern2(filename + i,
 							      filename_end,
 							      pattern + 1,
 							      pattern_end))
@@ -679,7 +679,7 @@ static _Bool tomoyo_file_matches_pattern2(const char *filename,
 }
 
 /**
- * tomoyo_file_matches_pattern - Pattern matching without '/' character.
+ * ccs_file_matches_pattern - Pattern matching without '/' character.
  *
  * @filename:     The start of string to check.
  * @filename_end: The end of string to check.
@@ -688,7 +688,7 @@ static _Bool tomoyo_file_matches_pattern2(const char *filename,
  *
  * Returns true if @filename matches @pattern, false otherwise.
  */
-static _Bool tomoyo_file_matches_pattern(const char *filename,
+static _Bool ccs_file_matches_pattern(const char *filename,
 				      const char *filename_end,
 				      const char *pattern,
 				      const char *pattern_end)
@@ -700,7 +700,7 @@ static _Bool tomoyo_file_matches_pattern(const char *filename,
 		/* Split at "\-" pattern. */
 		if (*pattern++ != '\\' || *pattern++ != '-')
 			continue;
-		result = tomoyo_file_matches_pattern2(filename, filename_end,
+		result = ccs_file_matches_pattern2(filename, filename_end,
 						   pattern_start, pattern - 2);
 		if (first)
 			result = !result;
@@ -709,20 +709,20 @@ static _Bool tomoyo_file_matches_pattern(const char *filename,
 		first = false;
 		pattern_start = pattern;
 	}
-	result = tomoyo_file_matches_pattern2(filename, filename_end,
+	result = ccs_file_matches_pattern2(filename, filename_end,
 					   pattern_start, pattern_end);
 	return first ? result : !result;
 }
 
 /**
- * tomoyo_path_matches_pattern2 - Do pathname pattern matching.
+ * ccs_path_matches_pattern2 - Do pathname pattern matching.
  *
  * @f: The start of string to check.
  * @p: The start of pattern to compare.
  *
  * Returns true if @f matches @p, false otherwise.
  */
-static _Bool tomoyo_path_matches_pattern2(const char *f, const char *p)
+static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
 {
 	const char *f_delimiter;
 	const char *p_delimiter;
@@ -735,7 +735,7 @@ static _Bool tomoyo_path_matches_pattern2(const char *f, const char *p)
 			p_delimiter = p + strlen(p);
 		if (*p == '\\' && *(p + 1) == '{')
 			goto recursive;
-		if (!tomoyo_file_matches_pattern(f, f_delimiter, p, p_delimiter))
+		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
 			return false;
 		f = f_delimiter;
 		if (*f)
@@ -761,7 +761,7 @@ recursive:
 		return false; /* Bad pattern. */
 	do {
 		/* Compare current component with pattern. */
-		if (!tomoyo_file_matches_pattern(f, f_delimiter, p + 2,
+		if (!ccs_file_matches_pattern(f, f_delimiter, p + 2,
 					      p_delimiter - 2))
 			break;
 		/* Proceed to next component. */
@@ -770,7 +770,7 @@ recursive:
 			break;
 		f++;
 		/* Continue comparison. */
-		if (tomoyo_path_matches_pattern2(f, p_delimiter + 1))
+		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
 			return true;
 		f_delimiter = strchr(f, '/');
 	} while (f_delimiter);
@@ -778,7 +778,7 @@ recursive:
 }
 
 /**
- * tomoyo_path_matches_pattern - Check whether the given filename matches the given pattern.
+ * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
  *
  * @filename: The filename to check.
  * @pattern:  The pattern to compare.
@@ -803,8 +803,8 @@ recursive:
  *   /\{dir\}/   '/' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
  *               /dir/dir/dir/ ).
  */
-_Bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
-			       const struct tomoyo_path_info *pattern)
+_Bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
+			       const struct ccs_path_info *pattern)
 {
 	/*
 	if (!filename || !pattern)
@@ -815,7 +815,7 @@ _Bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
 	const int len = pattern->const_len;
 	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 	if (!pattern->is_patterned)
-		return !tomoyo_pathcmp(filename, pattern);
+		return !ccs_pathcmp(filename, pattern);
 	/* Don't compare directory and non-directory. */
 	if (filename->is_dir != pattern->is_dir)
 		return false;
@@ -824,108 +824,108 @@ _Bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
 		return false;
 	f += len;
 	p += len;
-	return tomoyo_path_matches_pattern2(f, p);
+	return ccs_path_matches_pattern2(f, p);
 }
 
 /**
- * tomoyo_string_compare - strcmp() for qsort() callback.
+ * ccs_string_compare - strcmp() for qsort() callback.
  *
  * @a: Pointer to "void".
  * @b: Pointer to "void".
  *
  * Returns return value of strcmp().
  */
-int tomoyo_string_compare(const void *a, const void *b)
+int ccs_string_compare(const void *a, const void *b)
 {
 	return strcmp(*(char **) a, *(char **) b);
 }
 
 /**
- * tomoyo_pathcmp - strcmp() for "struct tomoyo_path_info".
+ * ccs_pathcmp - strcmp() for "struct ccs_path_info".
  *
- * @a: Pointer to "const struct tomoyo_path_info".
- * @b: Pointer to "const struct tomoyo_path_info".
+ * @a: Pointer to "const struct ccs_path_info".
+ * @b: Pointer to "const struct ccs_path_info".
  *
  * Returns true if @a != @b, false otherwise.
  */
-_Bool tomoyo_pathcmp(const struct tomoyo_path_info *a, const struct tomoyo_path_info *b)
+_Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
 /**
- * tomoyo_fill_path_info - Fill in "struct tomoyo_path_info" members.
+ * ccs_fill_path_info - Fill in "struct ccs_path_info" members.
  *
- * @ptr: Pointer to "struct tomoyo_path_info" to fill in.
+ * @ptr: Pointer to "struct ccs_path_info" to fill in.
  *
- * The caller sets "struct tomoyo_path_info"->name.
+ * The caller sets "struct ccs_path_info"->name.
  */
-void tomoyo_fill_path_info(struct tomoyo_path_info *ptr)
+void ccs_fill_path_info(struct ccs_path_info *ptr)
 {
 	const char *name = ptr->name;
 	const int len = strlen(name);
 	ptr->total_len = len;
-	ptr->const_len = tomoyo_const_part_length(name);
+	ptr->const_len = ccs_const_part_length(name);
 	ptr->is_dir = len && (name[len - 1] == '/');
 	ptr->is_patterned = (ptr->const_len < len);
-	ptr->hash = tomoyo_full_name_hash((const unsigned char *) name, len);
+	ptr->hash = ccs_full_name_hash((const unsigned char *) name, len);
 }
 
 /**
- * tomoyo_savename - Remember string data.
+ * ccs_savename - Remember string data.
  *
  * @name: Pointer to "const char".
  *
- * Returns pointer to "const struct tomoyo_path_info" on success, abort otherwise.
+ * Returns pointer to "const struct ccs_path_info" on success, abort otherwise.
  *
  * The returned pointer refers shared string. Thus, the caller must not free().
  */
-const struct tomoyo_path_info *tomoyo_savename(const char *name)
+const struct ccs_path_info *ccs_savename(const char *name)
 {
 	/* The list of names. */
-	static struct tomoyo_savename_entry name_list[TOMOYO_SAVENAME_MAX_HASH];
-	struct tomoyo_savename_entry *ptr;
-	struct tomoyo_savename_entry *prev = NULL;
+	static struct ccs_savename_entry name_list[CCS_SAVENAME_MAX_HASH];
+	struct ccs_savename_entry *ptr;
+	struct ccs_savename_entry *prev = NULL;
 	unsigned int hash;
 	int len;
 	static _Bool first_call = true;
 	if (!name)
-		tomoyo_out_of_memory();
+		ccs_out_of_memory();
 	len = strlen(name) + 1;
-	hash = tomoyo_full_name_hash((const unsigned char *) name, len - 1);
+	hash = ccs_full_name_hash((const unsigned char *) name, len - 1);
 	if (first_call) {
 		int i;
 		first_call = false;
 		memset(&name_list, 0, sizeof(name_list));
-		for (i = 0; i < TOMOYO_SAVENAME_MAX_HASH; i++) {
+		for (i = 0; i < CCS_SAVENAME_MAX_HASH; i++) {
 			name_list[i].entry.name = "/";
-			tomoyo_fill_path_info(&name_list[i].entry);
+			ccs_fill_path_info(&name_list[i].entry);
 		}
 	}
-	for (ptr = &name_list[hash % TOMOYO_SAVENAME_MAX_HASH]; ptr;
+	for (ptr = &name_list[hash % CCS_SAVENAME_MAX_HASH]; ptr;
 	     ptr = ptr->next) {
 		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
 			return &ptr->entry;
 		prev = ptr;
 	}
-	ptr = tomoyo_malloc(sizeof(*ptr) + len);
+	ptr = ccs_malloc(sizeof(*ptr) + len);
 	ptr->next = NULL;
 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 	memmove((void *) ptr->entry.name, name, len);
-	tomoyo_fill_path_info(&ptr->entry);
+	ccs_fill_path_info(&ptr->entry);
 	prev->next = ptr; /* prev != NULL because name_list is not empty. */
 	return &ptr->entry;
 }
 
 /**
- * tomoyo_parse_number - Parse a tomoyo_number_entry.
+ * ccs_parse_number - Parse a ccs_number_entry.
  *
  * @number: Number or number range.
- * @entry:  Pointer to "struct tomoyo_number_entry".
+ * @entry:  Pointer to "struct ccs_number_entry".
  *
  * Returns 0 on success, -EINVAL otherwise.
  */
-int tomoyo_parse_number(const char *number, struct tomoyo_number_entry *entry)
+int ccs_parse_number(const char *number, struct ccs_number_entry *entry)
 {
 	unsigned long min;
 	unsigned long max;
@@ -956,14 +956,14 @@ int tomoyo_parse_number(const char *number, struct tomoyo_number_entry *entry)
 }
 
 /**
- * tomoyo_parse_ip - Parse a tomoyo_ip_address_entry.
+ * ccs_parse_ip - Parse a ccs_ip_address_entry.
  *
  * @address: IP address or IP range.
- * @entry:   Pointer to "struct tomoyo_address_entry".
+ * @entry:   Pointer to "struct ccs_address_entry".
  *
  * Returns 0 on success, -EINVAL otherwise.
  */
-int tomoyo_parse_ip(const char *address, struct tomoyo_ip_address_entry *entry)
+int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
 {
 	unsigned int min[8];
 	unsigned int max[8];
@@ -1005,13 +1005,13 @@ int tomoyo_parse_ip(const char *address, struct tomoyo_ip_address_entry *entry)
 }
 
 /**
- * tomoyo_open_stream - Establish IP connection.
+ * ccs_open_stream - Establish IP connection.
  *
  * @filename: String to send to remote tomoyo-editpolicy-agent program.
  *
  * Retruns file descriptor on success, EOF otherwise.
  */
-int tomoyo_open_stream(const char *filename)
+int ccs_open_stream(const char *filename)
 {
 	const int fd = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
@@ -1019,8 +1019,8 @@ int tomoyo_open_stream(const char *filename)
 	int len = strlen(filename) + 1;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = tomoyo_network_ip;
-	addr.sin_port = tomoyo_network_port;
+	addr.sin_addr.s_addr = ccs_network_ip;
+	addr.sin_port = ccs_network_port;
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
 	    write(fd, filename, len) != len || read(fd, &c, 1) != 1 || c) {
 		close(fd);
@@ -1030,9 +1030,9 @@ int tomoyo_open_stream(const char *filename)
 }
 
 /**
- * tomoyo_find_domain - Find a domain by name and other attributes.
+ * ccs_find_domain - Find a domain by name and other attributes.
  *
- * @dp:          Pointer to "const struct tomoyo_domain_policy".
+ * @dp:          Pointer to "const struct ccs_domain_policy".
  * @domainname0: Name of domain to find.
  * @is_dis:      True if the domain acts as domain initialize source, false
  *               otherwise.
@@ -1040,27 +1040,27 @@ int tomoyo_open_stream(const char *filename)
  *
  * Returns index number (>= 0) in the @dp array if found, EOF otherwise.
  */
-int tomoyo_find_domain(const struct tomoyo_domain_policy *dp,
+int ccs_find_domain(const struct ccs_domain_policy *dp,
 		    const char *domainname0, const _Bool is_dis,
 		    const _Bool is_dd)
 {
 	int i;
-	struct tomoyo_path_info domainname;
+	struct ccs_path_info domainname;
 	domainname.name = domainname0;
-	tomoyo_fill_path_info(&domainname);
+	ccs_fill_path_info(&domainname);
 	for (i = 0; i < dp->list_len; i++) {
 		if (dp->list[i].is_dis == is_dis &&
 		    dp->list[i].is_dd == is_dd &&
-		    !tomoyo_pathcmp(&domainname, dp->list[i].domainname))
+		    !ccs_pathcmp(&domainname, dp->list[i].domainname))
 			return i;
 	}
 	return EOF;
 }
 
 /**
- * tomoyo_assign_domain - Create a domain by name and other attributes.
+ * ccs_assign_domain - Create a domain by name and other attributes.
  *
- * @dp:         Pointer to "struct tomoyo_domain_policy".
+ * @dp:         Pointer to "struct ccs_domain_policy".
  * @domainname: Name of domain to find.
  * @is_dis:     True if the domain acts as domain initialize source, false
  *              otherwise.
@@ -1069,34 +1069,34 @@ int tomoyo_find_domain(const struct tomoyo_domain_policy *dp,
  * Returns index number (>= 0) in the @dp array if created or already exists,
  * abort otherwise.
  */
-int tomoyo_assign_domain(struct tomoyo_domain_policy *dp, const char *domainname,
+int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
 		      const _Bool is_dis, const _Bool is_dd)
 {
-	int index = tomoyo_find_domain(dp, domainname, is_dis, is_dd);
+	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
 	if (index >= 0)
 		return index;
-	if (!is_dis && !tomoyo_correct_domain(domainname)) {
+	if (!is_dis && !ccs_correct_domain(domainname)) {
 		fprintf(stderr, "Invalid domainname '%s'\n", domainname);
-		tomoyo_out_of_memory();
+		ccs_out_of_memory();
 	}
 	index = dp->list_len++;
-	dp->list = tomoyo_realloc(dp->list, dp->list_len *
-			       sizeof(struct tomoyo_domain_info));
-	memset(&dp->list[index], 0, sizeof(struct tomoyo_domain_info));
-	dp->list[index].domainname = tomoyo_savename(domainname);
+	dp->list = ccs_realloc(dp->list, dp->list_len *
+			       sizeof(struct ccs_domain_info));
+	memset(&dp->list[index], 0, sizeof(struct ccs_domain_info));
+	dp->list[index].domainname = ccs_savename(domainname);
 	dp->list[index].is_dis = is_dis;
 	dp->list[index].is_dd = is_dd;
 	return index;
 }
 
 /**
- * tomoyo_get_ppid - Get PPID of the given PID.
+ * ccs_get_ppid - Get PPID of the given PID.
  *
  * @pid: A pid_t value.
  *
  * Returns PPID value.
  */
-static pid_t tomoyo_get_ppid(const pid_t pid)
+static pid_t ccs_get_ppid(const pid_t pid)
 {
 	char buffer[1024];
 	FILE *fp;
@@ -1116,7 +1116,7 @@ static pid_t tomoyo_get_ppid(const pid_t pid)
 }
 
 /**
- * tomoyo_get_name - Get comm name of the given PID.
+ * ccs_get_name - Get comm name of the given PID.
  *
  * @pid: A pid_t value.
  *
@@ -1124,7 +1124,7 @@ static pid_t tomoyo_get_ppid(const pid_t pid)
  *
  * The caller must free() the returned pointer.
  */
-static char *tomoyo_get_name(const pid_t pid)
+static char *ccs_get_name(const pid_t pid)
 {
 	char buffer[1024];
 	FILE *fp;
@@ -1180,51 +1180,51 @@ static char *tomoyo_get_name(const pid_t pid)
 	return NULL;
 }
 
-/* Serial number for sorting tomoyo_task_list . */
-static int tomoyo_dump_index = 0;
+/* Serial number for sorting ccs_task_list . */
+static int ccs_dump_index = 0;
 
 /**
- * tomoyo_sort_process_entry - Sort tomoyo_tasklist list.
+ * ccs_sort_process_entry - Sort ccs_tasklist list.
  *
  * @pid:   Pid to search.
  * @depth: Depth of the process for printing like pstree command.
  *
  * Returns nothing.
  */
-static void tomoyo_sort_process_entry(const pid_t pid, const int depth)
+static void ccs_sort_process_entry(const pid_t pid, const int depth)
 {
 	int i;
-	for (i = 0; i < tomoyo_task_list_len; i++) {
-		if (pid != tomoyo_task_list[i].pid)
+	for (i = 0; i < ccs_task_list_len; i++) {
+		if (pid != ccs_task_list[i].pid)
 			continue;
-		tomoyo_task_list[i].index = tomoyo_dump_index++;
-		tomoyo_task_list[i].depth = depth;
-		tomoyo_task_list[i].selected = true;
+		ccs_task_list[i].index = ccs_dump_index++;
+		ccs_task_list[i].depth = depth;
+		ccs_task_list[i].selected = true;
 	}
-	for (i = 0; i < tomoyo_task_list_len; i++) {
-		if (pid != tomoyo_task_list[i].ppid)
+	for (i = 0; i < ccs_task_list_len; i++) {
+		if (pid != ccs_task_list[i].ppid)
 			continue;
-		tomoyo_sort_process_entry(tomoyo_task_list[i].pid, depth + 1);
+		ccs_sort_process_entry(ccs_task_list[i].pid, depth + 1);
 	}
 }
 
 /**
- * tomoyo_task_entry_compare - Compare routine for qsort() callback.
+ * ccs_task_entry_compare - Compare routine for qsort() callback.
  *
  * @a: Pointer to "void".
  * @b: Pointer to "void".
  *
  * Returns index diff value.
  */
-static int tomoyo_task_entry_compare(const void *a, const void *b)
+static int ccs_task_entry_compare(const void *a, const void *b)
 {
-	const struct tomoyo_task_entry *a0 = (struct tomoyo_task_entry *) a;
-	const struct tomoyo_task_entry *b0 = (struct tomoyo_task_entry *) b;
+	const struct ccs_task_entry *a0 = (struct ccs_task_entry *) a;
+	const struct ccs_task_entry *b0 = (struct ccs_task_entry *) b;
 	return a0->index - b0->index;
 }
 
 /**
- * tomoyo_add_process_entry - Add entry for running processes.
+ * ccs_add_process_entry - Add entry for running processes.
  *
  * @line:    A line containing PID and profile and domainname.
  * @ppid:    Parent PID.
@@ -1234,7 +1234,7 @@ static int tomoyo_task_entry_compare(const void *a, const void *b)
  *
  * @name is free()d on failure.
  */
-static void tomoyo_add_process_entry(const char *line, const pid_t ppid,
+static void ccs_add_process_entry(const char *line, const pid_t ppid,
 				  char *name)
 {
 	int index;
@@ -1247,45 +1247,45 @@ static void tomoyo_add_process_entry(const char *line, const pid_t ppid,
 	}
 	domain = strchr(line, '<');
 	if (domain)
-		domain = tomoyo_strdup(domain);
+		domain = ccs_strdup(domain);
 	else
-		domain = tomoyo_strdup("<UNKNOWN>");
-	index = tomoyo_task_list_len++;
-	tomoyo_task_list = tomoyo_realloc(tomoyo_task_list, tomoyo_task_list_len *
-				    sizeof(struct tomoyo_task_entry));
-	memset(&tomoyo_task_list[index], 0, sizeof(tomoyo_task_list[0]));
-	tomoyo_task_list[index].pid = pid;
-	tomoyo_task_list[index].ppid = ppid;
-	tomoyo_task_list[index].profile = profile;
-	tomoyo_task_list[index].name = name;
-	tomoyo_task_list[index].domain = domain;
+		domain = ccs_strdup("<UNKNOWN>");
+	index = ccs_task_list_len++;
+	ccs_task_list = ccs_realloc(ccs_task_list, ccs_task_list_len *
+				    sizeof(struct ccs_task_entry));
+	memset(&ccs_task_list[index], 0, sizeof(ccs_task_list[0]));
+	ccs_task_list[index].pid = pid;
+	ccs_task_list[index].ppid = ppid;
+	ccs_task_list[index].profile = profile;
+	ccs_task_list[index].name = name;
+	ccs_task_list[index].domain = domain;
 }
 
 /**
- * tomoyo_read_process_list - Read all process's information.
+ * ccs_read_process_list - Read all process's information.
  *
  * @show_all: Ture if kernel threads should be included, false otherwise.
  *
  * Returns nothing.
  */
-void tomoyo_read_process_list(_Bool show_all)
+void ccs_read_process_list(_Bool show_all)
 {
 	int i;
-	while (tomoyo_task_list_len) {
-		tomoyo_task_list_len--;
-		free((void *) tomoyo_task_list[tomoyo_task_list_len].name);
-		free((void *) tomoyo_task_list[tomoyo_task_list_len].domain);
+	while (ccs_task_list_len) {
+		ccs_task_list_len--;
+		free((void *) ccs_task_list[ccs_task_list_len].name);
+		free((void *) ccs_task_list[ccs_task_list_len].domain);
 	}
-	tomoyo_dump_index = 0;
-	if (tomoyo_network_mode) {
-		FILE *fp = tomoyo_open_write(show_all ?
+	ccs_dump_index = 0;
+	if (ccs_network_mode) {
+		FILE *fp = ccs_open_write(show_all ?
 					  "proc:all_process_status" :
 					  "proc:process_status");
 		if (!fp)
 			return;
-		tomoyo_get();
+		ccs_get();
 		while (true) {
-			char *line = tomoyo_freadline(fp);
+			char *line = ccs_freadline(fp);
 			unsigned int pid = 0;
 			unsigned int ppid = 0;
 			char *name;
@@ -1294,18 +1294,18 @@ void tomoyo_read_process_list(_Bool show_all)
 			sscanf(line, "PID=%u PPID=%u", &pid, &ppid);
 			name = strstr(line, "NAME=");
 			if (name)
-				name = tomoyo_strdup(name + 5);
+				name = ccs_strdup(name + 5);
 			else
-				name = tomoyo_strdup("<UNKNOWN>");
-			line = tomoyo_freadline(fp);
-			tomoyo_add_process_entry(line, ppid, name);
+				name = ccs_strdup("<UNKNOWN>");
+			line = ccs_freadline(fp);
+			ccs_add_process_entry(line, ppid, name);
 		}
-		tomoyo_put();
+		ccs_put();
 		fclose(fp);
 	} else {
 		static const int line_len = 8192;
 		char *line;
-		int status_fd = open(TOMOYO_PROC_POLICY_PROCESS_STATUS, O_RDWR);
+		int status_fd = open(CCS_PROC_POLICY_PROCESS_STATUS, O_RDWR);
 		DIR *dir = opendir("/proc/");
 		if (status_fd == EOF || !dir) {
 			if (status_fd != EOF)
@@ -1314,7 +1314,7 @@ void tomoyo_read_process_list(_Bool show_all)
 				closedir(dir);
 			return;
 		}
-		line = tomoyo_malloc(line_len);
+		line = ccs_malloc(line_len);
 		while (1) {
 			char *name;
 			int ret_ignored;
@@ -1334,50 +1334,50 @@ void tomoyo_read_process_list(_Bool show_all)
 				if (readlink(buffer, test, sizeof(test)) <= 0)
 					continue;
 			}
-			name = tomoyo_get_name(pid);
+			name = ccs_get_name(pid);
 			if (!name)
-				name = tomoyo_strdup("<UNKNOWN>");
+				name = ccs_strdup("<UNKNOWN>");
 			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
 			ret_ignored = write(status_fd, buffer, strlen(buffer));
 			memset(line, 0, line_len);
 			ret_ignored = read(status_fd, line, line_len - 1);
-			tomoyo_add_process_entry(line, tomoyo_get_ppid(pid), name);
+			ccs_add_process_entry(line, ccs_get_ppid(pid), name);
 		}
 		free(line);
 		closedir(dir);
 		close(status_fd);
 	}
-	tomoyo_sort_process_entry(1, 0);
-	for (i = 0; i < tomoyo_task_list_len; i++) {
-		if (tomoyo_task_list[i].selected) {
-			tomoyo_task_list[i].selected = false;
+	ccs_sort_process_entry(1, 0);
+	for (i = 0; i < ccs_task_list_len; i++) {
+		if (ccs_task_list[i].selected) {
+			ccs_task_list[i].selected = false;
 			continue;
 		}
-		tomoyo_task_list[i].index = tomoyo_dump_index++;
-		tomoyo_task_list[i].depth = 0;
+		ccs_task_list[i].index = ccs_dump_index++;
+		ccs_task_list[i].depth = 0;
 	}
-	qsort(tomoyo_task_list, tomoyo_task_list_len, sizeof(struct tomoyo_task_entry),
-	      tomoyo_task_entry_compare);
+	qsort(ccs_task_list, ccs_task_list_len, sizeof(struct ccs_task_entry),
+	      ccs_task_entry_compare);
 }
 
 /**
- * tomoyo_open_write - Open a file for writing.
+ * ccs_open_write - Open a file for writing.
  *
  * @filename: String to send to remote tomoyo-editpolicy-agent program if using
  *            network mode, file to open for writing otherwise.
  *
  * Returns pointer to "FILE" on success, NULL otherwise.
  */
-FILE *tomoyo_open_write(const char *filename)
+FILE *ccs_open_write(const char *filename)
 {
-	if (tomoyo_network_mode) {
+	if (ccs_network_mode) {
 		const int fd = socket(AF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in addr;
 		FILE *fp;
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = tomoyo_network_ip;
-		addr.sin_port = tomoyo_network_port;
+		addr.sin_addr.s_addr = ccs_network_ip;
+		addr.sin_port = ccs_network_port;
 		if (connect(fd, (struct sockaddr *) &addr, sizeof(addr))) {
 			close(fd);
 			return NULL;
@@ -1398,16 +1398,16 @@ FILE *tomoyo_open_write(const char *filename)
 }
 
 /**
- * tomoyo_close_write - Close stream opened by tomoyo_open_write().
+ * ccs_close_write - Close stream opened by ccs_open_write().
  *
  * @fp: Pointer to "FILE".
  *
  * Returns true on success, false otherwise.
  */
-_Bool tomoyo_close_write(FILE *fp)
+_Bool ccs_close_write(FILE *fp)
 {
 	_Bool result = true;
-	if (tomoyo_network_mode) {
+	if (ccs_network_mode) {
 		if (fputc(0, fp) == EOF)
 			result = false;
 		if (fflush(fp) == EOF)
@@ -1422,17 +1422,17 @@ _Bool tomoyo_close_write(FILE *fp)
 
 
 /**
- * tomoyo_open_read - Open a file for reading.
+ * ccs_open_read - Open a file for reading.
  *
  * @filename: String to send to remote tomoyo-editpolicy-agent program if using
  *            network mode, file to open for reading otherwise.
  *
  * Returns pointer to "FILE" on success, NULL otherwise.
  */
-FILE *tomoyo_open_read(const char *filename)
+FILE *ccs_open_read(const char *filename)
 {
-	if (tomoyo_network_mode) {
-		FILE *fp = tomoyo_open_write(filename);
+	if (ccs_network_mode) {
+		FILE *fp = ccs_open_write(filename);
 		if (fp) {
 			fputc(0, fp);
 			fflush(fp);
@@ -1444,16 +1444,16 @@ FILE *tomoyo_open_read(const char *filename)
 }
 
 /**
- * tomoyo_move_proc_to_file - Save /sys/kernel/security/tomoyo/ to /etc/tomoyo/ .
+ * ccs_move_proc_to_file - Save /sys/kernel/security/tomoyo/ to /etc/tomoyo/ .
  *
  * @src:  Filename to save from.
  * @dest: Filename to save to.
  *
  * Returns true on success, false otherwise.
  */
-_Bool tomoyo_move_proc_to_file(const char *src, const char *dest)
+_Bool ccs_move_proc_to_file(const char *src, const char *dest)
 {
-	FILE *proc_fp = tomoyo_open_read(src);
+	FILE *proc_fp = ccs_open_read(src);
 	FILE *file_fp;
 	_Bool result = true;
 	if (!proc_fp) {
@@ -1468,7 +1468,7 @@ _Bool tomoyo_move_proc_to_file(const char *src, const char *dest)
 	}
 	while (true) {
 		const int c = fgetc(proc_fp);
-		if (tomoyo_network_mode && !c)
+		if (ccs_network_mode && !c)
 			break;
 		if (c == EOF)
 			break;
@@ -1483,13 +1483,13 @@ _Bool tomoyo_move_proc_to_file(const char *src, const char *dest)
 }
 
 /**
- * tomoyo_clear_domain_policy - Clean up domain policy.
+ * ccs_clear_domain_policy - Clean up domain policy.
  *
- * @dp: Pointer to "struct tomoyo_domain_policy".
+ * @dp: Pointer to "struct ccs_domain_policy".
  *
  * Returns nothing.
  */
-void tomoyo_clear_domain_policy(struct tomoyo_domain_policy *dp)
+void ccs_clear_domain_policy(struct ccs_domain_policy *dp)
 {
 	int index;
 	for (index = 0; index < dp->list_len; index++) {
@@ -1503,18 +1503,18 @@ void tomoyo_clear_domain_policy(struct tomoyo_domain_policy *dp)
 }
 
 /**
- * tomoyo_find_domain_by_ptr - Find a domain by memory address.
+ * ccs_find_domain_by_ptr - Find a domain by memory address.
  *
- * @dp:         Pointer to "struct tomoyo_domain_policy".
- * @domainname: Pointer to "const struct tomoyo_path_info".
+ * @dp:         Pointer to "struct ccs_domain_policy".
+ * @domainname: Pointer to "const struct ccs_path_info".
  *
  * Returns index number (>= 0) in the @dp array if found, EOF otherwise.
  *
- * This function is faster than faster than tomoyo_find_domain() because
+ * This function is faster than faster than ccs_find_domain() because
  * this function searches for a domain by address (i.e. avoid strcmp()).
  */
-int tomoyo_find_domain_by_ptr(struct tomoyo_domain_policy *dp,
-			   const struct tomoyo_path_info *domainname)
+int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
+			   const struct ccs_path_info *domainname)
 {
 	int i;
 	for (i = 0; i < dp->list_len; i++) {
@@ -1525,107 +1525,107 @@ int tomoyo_find_domain_by_ptr(struct tomoyo_domain_policy *dp,
 }
 
 /**
- * tomoyo_domain_name - Return domainname.
+ * ccs_domain_name - Return domainname.
  *
- * @dp:    Pointer to "const struct tomoyo_domain_policy".
+ * @dp:    Pointer to "const struct ccs_domain_policy".
  * @index: Index in the @dp array.
  *
  * Returns domainname.
  *
  * Note that this function does not validate @index value.
  */
-const char *tomoyo_domain_name(const struct tomoyo_domain_policy *dp,
+const char *ccs_domain_name(const struct ccs_domain_policy *dp,
 			    const int index)
 {
 	return dp->list[index].domainname->name;
 }
 
 /**
- * tomoyo_domainname_compare - strcmp() for qsort() callback.
+ * ccs_domainname_compare - strcmp() for qsort() callback.
  *
  * @a: Pointer to "void".
  * @b: Pointer to "void".
  *
  * Returns return value of strcmp().
  */
-static int tomoyo_domainname_compare(const void *a, const void *b)
+static int ccs_domainname_compare(const void *a, const void *b)
 {
-	return strcmp(((struct tomoyo_domain_info *) a)->domainname->name,
-		      ((struct tomoyo_domain_info *) b)->domainname->name);
+	return strcmp(((struct ccs_domain_info *) a)->domainname->name,
+		      ((struct ccs_domain_info *) b)->domainname->name);
 }
 
 /**
- * tomoyo_path_info_compare - strcmp() for qsort() callback.
+ * ccs_path_info_compare - strcmp() for qsort() callback.
  *
  * @a: Pointer to "void".
  * @b: Pointer to "void".
  *
  * Returns return value of strcmp().
  */
-static int tomoyo_path_info_compare(const void *a, const void *b)
+static int ccs_path_info_compare(const void *a, const void *b)
 {
-	const char *a0 = (*(struct tomoyo_path_info **) a)->name;
-	const char *b0 = (*(struct tomoyo_path_info **) b)->name;
+	const char *a0 = (*(struct ccs_path_info **) a)->name;
+	const char *b0 = (*(struct ccs_path_info **) b)->name;
 	return strcmp(a0, b0);
 }
 
 /**
- * tomoyo_sort_domain_policy - Sort domain policy.
+ * ccs_sort_domain_policy - Sort domain policy.
  *
- * @dp: Pointer to "struct tomoyo_domain_policy".
+ * @dp: Pointer to "struct ccs_domain_policy".
  *
  * Returns nothing.
  */
-static void tomoyo_sort_domain_policy(struct tomoyo_domain_policy *dp)
+static void ccs_sort_domain_policy(struct ccs_domain_policy *dp)
 {
 	int i;
-	qsort(dp->list, dp->list_len, sizeof(struct tomoyo_domain_info),
-	      tomoyo_domainname_compare);
+	qsort(dp->list, dp->list_len, sizeof(struct ccs_domain_info),
+	      ccs_domainname_compare);
 	for (i = 0; i < dp->list_len; i++)
 		qsort(dp->list[i].string_ptr, dp->list[i].string_count,
-		      sizeof(struct tomoyo_path_info *), tomoyo_path_info_compare);
+		      sizeof(struct ccs_path_info *), ccs_path_info_compare);
 }
 
 /**
- * tomoyo_read_domain_policy - Read domain policy from file or network or stdin.
+ * ccs_read_domain_policy - Read domain policy from file or network or stdin.
  *
- * @dp:       Pointer to "struct tomoyo_domain_policy".
+ * @dp:       Pointer to "struct ccs_domain_policy".
  * @filename: Domain policy's pathname.
  *
  * Returns nothing.
  */
-void tomoyo_read_domain_policy(struct tomoyo_domain_policy *dp, const char *filename)
+void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename)
 {
 	FILE *fp = stdin;
 	if (filename) {
-		fp = tomoyo_open_read(filename);
+		fp = ccs_open_read(filename);
 		if (!fp) {
 			fprintf(stderr, "Can't open %s\n", filename);
 			return;
 		}
 	}
-	tomoyo_get();
-	tomoyo_handle_domain_policy(dp, fp, true);
-	tomoyo_put();
+	ccs_get();
+	ccs_handle_domain_policy(dp, fp, true);
+	ccs_put();
 	if (fp != stdin)
 		fclose(fp);
-	tomoyo_sort_domain_policy(dp);
+	ccs_sort_domain_policy(dp);
 }
 
 /**
- * tomoyo_write_domain_policy - Write domain policy to file descriptor.
+ * ccs_write_domain_policy - Write domain policy to file descriptor.
  *
- * @dp: Pointer to "struct tomoyo_domain_policy".
+ * @dp: Pointer to "struct ccs_domain_policy".
  * @fd: File descriptor.
  *
  * Returns 0.
  */
-int tomoyo_write_domain_policy(struct tomoyo_domain_policy *dp, const int fd)
+int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
 {
 	int i;
 	int j;
 	for (i = 0; i < dp->list_len; i++) {
-		const struct tomoyo_path_info **string_ptr
+		const struct ccs_path_info **string_ptr
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
 		int ret_ignored;
@@ -1651,14 +1651,14 @@ int tomoyo_write_domain_policy(struct tomoyo_domain_policy *dp, const int fd)
 }
 
 /**
- * tomoyo_delete_domain - Delete a domain from domain policy.
+ * ccs_delete_domain - Delete a domain from domain policy.
  *
- * @dp:    Pointer to "struct tomoyo_domain_policy".
+ * @dp:    Pointer to "struct ccs_domain_policy".
  * @index: Index in the @dp array.
  *
  * Returns nothing.
  */
-void tomoyo_delete_domain(struct tomoyo_domain_policy *dp, const int index)
+void ccs_delete_domain(struct ccs_domain_policy *dp, const int index)
 {
 	if (index >= 0 && index < dp->list_len) {
 		int i;
@@ -1670,20 +1670,20 @@ void tomoyo_delete_domain(struct tomoyo_domain_policy *dp, const int index)
 }
 
 /**
- * tomoyo_add_string_entry - Add string entry to a domain.
+ * ccs_add_string_entry - Add string entry to a domain.
  *
- * @dp:    Pointer to "struct tomoyo_domain_policy".
+ * @dp:    Pointer to "struct ccs_domain_policy".
  * @entry: String to add.
  * @index: Index in the @dp array.
  *
  * Returns 0 if successfully added or already exists, -EINVAL otherwise.
  */
-int tomoyo_add_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
+int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index)
 {
-	const struct tomoyo_path_info **acl_ptr;
+	const struct ccs_path_info **acl_ptr;
 	int acl_count;
-	const struct tomoyo_path_info *cp;
+	const struct ccs_path_info *cp;
 	int i;
 	if (index < 0 || index >= dp->list_len) {
 		fprintf(stderr, "ERROR: domain is out of range.\n");
@@ -1691,19 +1691,19 @@ int tomoyo_add_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 	}
 	if (!entry || !*entry)
 		return -EINVAL;
-	cp = tomoyo_savename(entry);
+	cp = ccs_savename(entry);
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
 
 	/* Check for the same entry. */
 	for (i = 0; i < acl_count; i++)
-		/* Faster comparison, for they are tomoyo_savename'd. */
+		/* Faster comparison, for they are ccs_savename'd. */
 		if (cp == acl_ptr[i])
 			return 0;
 
-	acl_ptr = tomoyo_realloc(acl_ptr, (acl_count + 1) *
-			      sizeof(const struct tomoyo_path_info *));
+	acl_ptr = ccs_realloc(acl_ptr, (acl_count + 1) *
+			      sizeof(const struct ccs_path_info *));
 	acl_ptr[acl_count++] = cp;
 	dp->list[index].string_ptr = acl_ptr;
 	dp->list[index].string_count = acl_count;
@@ -1711,21 +1711,21 @@ int tomoyo_add_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 }
 
 /**
- * tomoyo_del_string_entry - Delete string entry from a domain.
+ * ccs_del_string_entry - Delete string entry from a domain.
  *
- * @dp:    Pointer to "struct tomoyo_domain_policy".
+ * @dp:    Pointer to "struct ccs_domain_policy".
  * @entry: String to remove.
  * @index: Index in the @dp array.
  *
  * Returns 0 if successfully removed, -ENOENT if not found,
  * -EINVAL otherwise.
  */
-int tomoyo_del_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
+int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index)
 {
-	const struct tomoyo_path_info **acl_ptr;
+	const struct ccs_path_info **acl_ptr;
 	int acl_count;
-	const struct tomoyo_path_info *cp;
+	const struct ccs_path_info *cp;
 	int i;
 	if (index < 0 || index >= dp->list_len) {
 		fprintf(stderr, "ERROR: domain is out of range.\n");
@@ -1733,13 +1733,13 @@ int tomoyo_del_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 	}
 	if (!entry || !*entry)
 		return -EINVAL;
-	cp = tomoyo_savename(entry);
+	cp = ccs_savename(entry);
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
 
 	for (i = 0; i < acl_count; i++) {
-		/* Faster comparison, for they are tomoyo_savename'd. */
+		/* Faster comparison, for they are ccs_savename'd. */
 		if (cp != acl_ptr[i])
 			continue;
 		dp->list[index].string_count--;
@@ -1751,15 +1751,15 @@ int tomoyo_del_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 }
 
 /**
- * tomoyo_handle_domain_policy - Parse domain policy.
+ * ccs_handle_domain_policy - Parse domain policy.
  *
- * @dp:       Pointer to "struct tomoyo_domain_policy".
+ * @dp:       Pointer to "struct ccs_domain_policy".
  * @fp:       Pointer to "FILE".
  * @is_write: True if input, false if output.
  *
  * Returns nothing.
  */
-void tomoyo_handle_domain_policy(struct tomoyo_domain_policy *dp, FILE *fp,
+void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 			      _Bool is_write)
 {
 	int i;
@@ -1767,32 +1767,32 @@ void tomoyo_handle_domain_policy(struct tomoyo_domain_policy *dp, FILE *fp,
 	if (!is_write)
 		goto read_policy;
 	while (true) {
-		char *line = tomoyo_freadline_unpack(fp);
+		char *line = ccs_freadline_unpack(fp);
 		_Bool is_delete = false;
 		_Bool is_select = false;
 		unsigned int profile;
 		if (!line)
 			break;
-		if (tomoyo_str_starts(line, "delete "))
+		if (ccs_str_starts(line, "delete "))
 			is_delete = true;
-		else if (tomoyo_str_starts(line, "select "))
+		else if (ccs_str_starts(line, "select "))
 			is_select = true;
-		tomoyo_str_starts(line, "domain=");
-		if (tomoyo_domain_def(line)) {
+		ccs_str_starts(line, "domain=");
+		if (ccs_domain_def(line)) {
 			if (is_delete) {
-				index = tomoyo_find_domain(dp, line, false,
+				index = ccs_find_domain(dp, line, false,
 							false);
 				if (index >= 0)
-					tomoyo_delete_domain(dp, index);
+					ccs_delete_domain(dp, index);
 				index = EOF;
 				continue;
 			}
 			if (is_select) {
-				index = tomoyo_find_domain(dp, line, false,
+				index = ccs_find_domain(dp, line, false,
 							false);
 				continue;
 			}
-			index = tomoyo_assign_domain(dp, line, false, false);
+			index = ccs_assign_domain(dp, line, false, false);
 			continue;
 		}
 		if (index == EOF || !line[0])
@@ -1801,18 +1801,18 @@ void tomoyo_handle_domain_policy(struct tomoyo_domain_policy *dp, FILE *fp,
 			dp->list[index].profile = (u8) profile;
 			dp->list[index].profile_assigned = 1;
 		} else if (is_delete)
-			tomoyo_del_string_entry(dp, line, index);
+			ccs_del_string_entry(dp, line, index);
 		else
-			tomoyo_add_string_entry(dp, line, index);
+			ccs_add_string_entry(dp, line, index);
 	}
 	return;
 read_policy:
 	for (i = 0; i < dp->list_len; i++) {
 		int j;
-		const struct tomoyo_path_info **string_ptr
+		const struct ccs_path_info **string_ptr
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
-		fprintf(fp, "%s\n", tomoyo_domain_name(dp, i));
+		fprintf(fp, "%s\n", ccs_domain_name(dp, i));
 		if (dp->list[i].profile_assigned)
 			fprintf(fp, "use_profile %u\n", dp->list[i].profile);
 		fprintf(fp, "\n");
@@ -1822,41 +1822,41 @@ read_policy:
 	}
 }
 
-/* Is the shared buffer for tomoyo_freadline() and tomoyo_shprintf() owned? */
-static _Bool tomoyo_buffer_locked = false;
+/* Is the shared buffer for ccs_freadline() and ccs_shprintf() owned? */
+static _Bool ccs_buffer_locked = false;
 
 /**
- * tomoyo_get - Mark the shared buffer for tomoyo_freadline() and tomoyo_shprintf() owned.
+ * ccs_get - Mark the shared buffer for ccs_freadline() and ccs_shprintf() owned.
  *
  * Returns nothing.
  *
  * This is for avoiding accidental overwriting.
- * tomoyo_freadline() and tomoyo_shprintf() have their own memory buffer.
+ * ccs_freadline() and ccs_shprintf() have their own memory buffer.
  */
-void tomoyo_get(void)
+void ccs_get(void)
 {
-	if (tomoyo_buffer_locked)
-		tomoyo_out_of_memory();
-	tomoyo_buffer_locked = true;
+	if (ccs_buffer_locked)
+		ccs_out_of_memory();
+	ccs_buffer_locked = true;
 }
 
 /**
- * tomoyo_put - Mark the shared buffer for tomoyo_freadline() and tomoyo_shprintf() no longer owned.
+ * ccs_put - Mark the shared buffer for ccs_freadline() and ccs_shprintf() no longer owned.
  *
  * Returns nothing.
  *
  * This is for avoiding accidental overwriting.
- * tomoyo_freadline() and tomoyo_shprintf() have their own memory buffer.
+ * ccs_freadline() and ccs_shprintf() have their own memory buffer.
  */
-void tomoyo_put(void)
+void ccs_put(void)
 {
-	if (!tomoyo_buffer_locked)
-		tomoyo_out_of_memory();
-	tomoyo_buffer_locked = false;
+	if (!ccs_buffer_locked)
+		ccs_out_of_memory();
+	ccs_buffer_locked = false;
 }
 
 /**
- * tomoyo_shprintf - sprintf() to dynamically allocated buffer.
+ * ccs_shprintf - sprintf() to dynamically allocated buffer.
  *
  * @fmt: The printf()'s format string, followed by parameters.
  *
@@ -1864,7 +1864,7 @@ void tomoyo_put(void)
  *
  * The caller must not free() the returned pointer.
  */
-char *tomoyo_shprintf(const char *fmt, ...)
+char *ccs_shprintf(const char *fmt, ...)
 {
 	while (true) {
 		static char *policy = NULL;
@@ -1875,17 +1875,17 @@ char *tomoyo_shprintf(const char *fmt, ...)
 		len = vsnprintf(policy, max_policy_len, fmt, args);
 		va_end(args);
 		if (len < 0)
-			tomoyo_out_of_memory();
+			ccs_out_of_memory();
 		if (len >= max_policy_len) {
 			max_policy_len = len + 1;
-			policy = tomoyo_realloc(policy, max_policy_len);
+			policy = ccs_realloc(policy, max_policy_len);
 		} else
 			return policy;
 	}
 }
 
 /**
- * tomoyo_freadline - Read a line from file to dynamically allocated buffer.
+ * ccs_freadline - Read a line from file to dynamically allocated buffer.
  *
  * @fp: Pointer to "FILE".
  *
@@ -1893,7 +1893,7 @@ char *tomoyo_shprintf(const char *fmt, ...)
  *
  * The caller must not free() the returned pointer.
  */
-char *tomoyo_freadline(FILE *fp)
+char *ccs_freadline(FILE *fp)
 {
 	static char *policy = NULL;
 	int pos = 0;
@@ -1902,11 +1902,11 @@ char *tomoyo_freadline(FILE *fp)
 		const int c = fgetc(fp);
 		if (c == EOF)
 			return NULL;
-		if (tomoyo_network_mode && !c)
+		if (ccs_network_mode && !c)
 			return NULL;
 		if (pos == max_policy_len) {
 			max_policy_len += 4096;
-			policy = tomoyo_realloc(policy, max_policy_len);
+			policy = ccs_realloc(policy, max_policy_len);
 		}
 		policy[pos++] = (char) c;
 		if (c == '\n') {
@@ -1914,13 +1914,13 @@ char *tomoyo_freadline(FILE *fp)
 			break;
 		}
 	}
-	if (!tomoyo_freadline_raw)
-		tomoyo_normalize_line(policy);
+	if (!ccs_freadline_raw)
+		ccs_normalize_line(policy);
 	return policy;
 }
 
 /**
- * tomoyo_freadline_unpack - Read a line from file to dynamically allocated buffer.
+ * ccs_freadline_unpack - Read a line from file to dynamically allocated buffer.
  *
  * @fp: Pointer to "FILE". Maybe NULL.
  *
@@ -1933,7 +1933,7 @@ char *tomoyo_freadline(FILE *fp)
  * caches a line if the line is packed. Otherwise, some garbage lines might be
  * returned to the caller.
  */
-char *tomoyo_freadline_unpack(FILE *fp)
+char *ccs_freadline_unpack(FILE *fp)
 {
 	static char *previous_line = NULL;
 	static char *cached_line = NULL;
@@ -1947,7 +1947,7 @@ char *tomoyo_freadline_unpack(FILE *fp)
 		char *pos;
 		unsigned int offset;
 		unsigned int len;
-		char *line = tomoyo_freadline(fp);
+		char *line = ccs_freadline(fp);
 		if (!line)
 			return NULL;
 		if (sscanf(line, "acl_group %u", &offset) == 1 && offset < 256)
@@ -1983,7 +1983,7 @@ char *tomoyo_freadline_unpack(FILE *fp)
 		return line;
 prepare:
 		pack_len = len;
-		cached_line = tomoyo_strdup(line);
+		cached_line = ccs_strdup(line);
 	}
 unpack:
 	{
@@ -2003,7 +2003,7 @@ unpack:
 			cached_line = NULL;
 		} else {
 			/* Current string is "abc d/e/f ghi". */
-			line = tomoyo_strdup(cached_line);
+			line = ccs_strdup(cached_line);
 			previous_line = line;
 			/* Overwrite "abc d/e/f ghi" with "abc d ghi". */
 			memmove(line + pack_start + len, pos + pack_len,
@@ -2022,23 +2022,23 @@ unpack:
 }
 
 /**
- * tomoyo_check_remote_host - Check whether the remote host is running with the TOMOYO 2.4 kernel or not.
+ * ccs_check_remote_host - Check whether the remote host is running with the TOMOYO 2.4 kernel or not.
  *
  * Returns true if running with TOMOYO 2.4 kernel, false otherwise.
  */
-_Bool tomoyo_check_remote_host(void)
+_Bool ccs_check_remote_host(void)
 {
 	int major = 0;
 	int minor = 0;
 	int rev = 0;
-	FILE *fp = tomoyo_open_read("version");
+	FILE *fp = ccs_open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &major, &minor, &rev) < 2 ||
 	    major != 2 || minor != 4) {
-		const u32 ip = ntohl(tomoyo_network_ip);
+		const u32 ip = ntohl(ccs_network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),
-			(u8) (ip >> 8), (u8) ip, ntohs(tomoyo_network_port));
+			(u8) (ip >> 8), (u8) ip, ntohs(ccs_network_port));
 		if (fp)
 			fclose(fp);
 		return false;
@@ -2047,7 +2047,7 @@ _Bool tomoyo_check_remote_host(void)
 	return true;
 }
 
-void tomoyo_mount_securityfs(void)
+void ccs_mount_securityfs(void)
 {
 	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
 		if (unshare(CLONE_NEWNS) ||

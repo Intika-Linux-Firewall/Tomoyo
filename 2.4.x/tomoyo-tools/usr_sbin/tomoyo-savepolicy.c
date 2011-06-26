@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -22,11 +22,11 @@
  */
 #include "tomoyotools.h"
 
-static const char *tomoyo_policy_dir = NULL;
+static const char *ccs_policy_dir = NULL;
 
-static _Bool tomoyo_cat_file(const char *path)
+static _Bool ccs_cat_file(const char *path)
 {
-	FILE *fp = tomoyo_open_read(path);
+	FILE *fp = ccs_open_read(path);
 	_Bool result = true;
 	if (!fp) {
 		fprintf(stderr, "Can't open %s\n", path);
@@ -34,7 +34,7 @@ static _Bool tomoyo_cat_file(const char *path)
 	}
 	while (true) {
 		int c = fgetc(fp);
-		if (tomoyo_network_mode && !c)
+		if (ccs_network_mode && !c)
 			break;
 		if (c == EOF)
 			break;
@@ -45,7 +45,7 @@ static _Bool tomoyo_cat_file(const char *path)
 	return result;
 }
 
-static _Bool tomoyo_save_policy(void)
+static _Bool ccs_save_policy(void)
 {
 	time_t now = time(NULL);
 	char stamp[32] = { };
@@ -61,7 +61,7 @@ static _Bool tomoyo_save_policy(void)
 			now++;
 		else {
 			fprintf(stderr, "Can't create %s/%s .\n",
-				tomoyo_policy_dir, stamp);
+				ccs_policy_dir, stamp);
 			return false;
 		}
 	}
@@ -74,11 +74,11 @@ static _Bool tomoyo_save_policy(void)
 	    (symlink("policy/current/domain_policy.conf",
 		     "../domain_policy.conf") && errno != EEXIST) ||
 	    chdir(stamp) ||
-	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_PROFILE, "profile.conf") ||
-	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_MANAGER, "manager.conf") ||
-	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_EXCEPTION_POLICY,
+	    !ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
+	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
+	    !ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
 				   "exception_policy.conf") ||
-	    !tomoyo_move_proc_to_file(TOMOYO_PROC_POLICY_DOMAIN_POLICY,
+	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
 				   "domain_policy.conf") ||
 	    chdir("..") ||
 	    (rename("current", "previous") && errno != ENOENT) ||
@@ -97,30 +97,30 @@ int main(int argc, char *argv[])
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
 		if (*ptr == '/') {
-			if (tomoyo_policy_dir || target) {
+			if (ccs_policy_dir || target) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"policy directories");
 				goto usage;
 			}
-			tomoyo_policy_dir = ptr;
+			ccs_policy_dir = ptr;
 		} else if (cp) {
 			*cp++ = '\0';
-			tomoyo_network_ip = inet_addr(ptr);
-			tomoyo_network_port = htons(atoi(cp));
-			if (tomoyo_network_mode) {
+			ccs_network_ip = inet_addr(ptr);
+			ccs_network_port = htons(atoi(cp));
+			if (ccs_network_mode) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"remote agents");
 				goto usage;
 			}
-			tomoyo_network_mode = true;
+			ccs_network_mode = true;
 		} else if (*ptr++ == '-' && !target) {
 			target = *ptr++;
 			if (target != 'e' && target != 'd' && target != 'p' &&
 			    target != 'm' && target != 's')
 				goto usage;
-			if (*ptr || tomoyo_policy_dir) {
+			if (*ptr || ccs_policy_dir) {
 				fprintf(stderr, "You cannot specify multiple "
 					"%s at the same time.\n\n",
 					"policies");
@@ -129,11 +129,11 @@ int main(int argc, char *argv[])
 		} else
 			goto usage;
 	}
-	if (tomoyo_network_mode) {
-		if (!tomoyo_check_remote_host())
+	if (ccs_network_mode) {
+		if (!ccs_check_remote_host())
 			return 1;
-	} else if (tomoyo_mount_securityfs(),
-		   access(TOMOYO_PROC_POLICY_DIR, F_OK)) {
+	} else if (ccs_mount_securityfs(),
+		   access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
 		return 1;
@@ -142,37 +142,37 @@ int main(int argc, char *argv[])
 		const char *file;
 		switch (target) {
 		case 'p':
-			file = TOMOYO_PROC_POLICY_PROFILE;
+			file = CCS_PROC_POLICY_PROFILE;
 			break;
 		case 'm':
-			file = TOMOYO_PROC_POLICY_MANAGER;
+			file = CCS_PROC_POLICY_MANAGER;
 			break;
 		case 'e':
-			file = TOMOYO_PROC_POLICY_EXCEPTION_POLICY;
+			file = CCS_PROC_POLICY_EXCEPTION_POLICY;
 			break;
 		case 'd':
-			file = TOMOYO_PROC_POLICY_DOMAIN_POLICY;
+			file = CCS_PROC_POLICY_DOMAIN_POLICY;
 			break;
 		default:
-			file = TOMOYO_PROC_POLICY_STAT;
+			file = CCS_PROC_POLICY_STAT;
 			break;
 		}
-		return !tomoyo_cat_file(file);
+		return !ccs_cat_file(file);
 	}
-	if (!tomoyo_policy_dir) {
-		if (tomoyo_network_mode && !target) {
+	if (!ccs_policy_dir) {
+		if (ccs_network_mode && !target) {
 			fprintf(stderr, "You need to specify %s.\n\n",
 				"policy directory");
 			goto usage;
 		}
-		tomoyo_policy_dir = "/etc/tomoyo/";
+		ccs_policy_dir = "/etc/tomoyo/";
 	}
-	if (chdir(tomoyo_policy_dir) || chdir("policy/")) {
+	if (chdir(ccs_policy_dir) || chdir("policy/")) {
 		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
-			tomoyo_policy_dir);
+			ccs_policy_dir);
 		return 1;
 	}
-	return !tomoyo_save_policy();
+	return !ccs_save_policy();
 usage:
 	printf("%s [policy_dir [remote_ip:remote_port]]\n"
 	       "%s [{-e|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"

@@ -1,9 +1,9 @@
 /*
- * tomoyo_accept_test.c
+ * ccs_accept_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -108,7 +108,7 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 
 int main(int argc, char *argv[])
 {
-	tomoyo_test_init();
+	ccs_test_init();
 	set_profile(0, "file");
 	fprintf(profile_fp, "255-PREFERENCE={ max_learning_entry=2048 }\n");
 	{

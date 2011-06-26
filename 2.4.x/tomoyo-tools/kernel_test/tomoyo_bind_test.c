@@ -1,9 +1,9 @@
 /*
- * tomoyo_bind_test.c
+ * ccs_bind_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -509,7 +509,7 @@ int main(int argc, char *argv[])
 	int ipv6_listener_socket = EOF;
 	pid_t ipv4_pid = 0;
 	pid_t ipv6_pid = 0;
-	tomoyo_test_init();
+	ccs_test_init();
 	{
 		FILE *fp = fopen("/proc/sys/net/ipv4/ip_local_port_range", "r");
 		int original_range[2];

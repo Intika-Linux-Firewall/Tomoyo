@@ -1,9 +1,9 @@
 /*
- * tomoyo_new_file_test.c
+ * ccs_new_file_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -621,7 +621,7 @@ static void stage_file_test(void)
 
 int main(int argc, char *argv[])
 {
-	tomoyo_test_init();
+	ccs_test_init();
 	make_elf_lib();
 	fprintf(domain_fp, "%s /bin/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");

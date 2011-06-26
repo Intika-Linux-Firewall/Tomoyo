@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -38,9 +38,9 @@ int main(int argc, char *argv[])
 				char *cp = strchr(buffer, '\n');
 				if (cp)
 					*cp = '\0';
-				if (tomoyo_domain_def(buffer)) {
+				if (ccs_domain_def(buffer)) {
 					free(domain);
-					domain = tomoyo_strdup(buffer);
+					domain = ccs_strdup(buffer);
 					flag = 0;
 					continue;
 				}
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 					if (cp2)
 						*cp2 = '\0';
 					if (*cp == '/' &&
-					    tomoyo_decode(cp, buffer2) &&
+					    ccs_decode(cp, buffer2) &&
 					    lstat64(buffer2, &buf)) {
 						if (!flag)
 							printf("\n%s\n",
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 			continue;
 		{
 			struct stat64 buf;
-			if (!tomoyo_decode(buffer, buffer2))
+			if (!ccs_decode(buffer, buffer2))
 				continue;
 			if (!lstat64(buffer2, &buf))
 				continue;
@@ -91,12 +91,12 @@ int main(int argc, char *argv[])
 		}
 		if (i < pattern_list_count)
 			continue;
-		pattern_list = tomoyo_realloc(pattern_list, sizeof(const char *) *
+		pattern_list = ccs_realloc(pattern_list, sizeof(const char *) *
 					   (pattern_list_count + 1));
-		pattern_list[pattern_list_count++] = tomoyo_strdup(buffer);
+		pattern_list[pattern_list_count++] = ccs_strdup(buffer);
 	}
 	qsort(pattern_list, pattern_list_count, sizeof(const char *),
-	      tomoyo_string_compare);
+	      ccs_string_compare);
 	for (i = 0; i < pattern_list_count; i++)
 		printf("%s\n", pattern_list[i]);
 	for (i = 0; i < pattern_list_count; i++)

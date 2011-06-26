@@ -1,9 +1,9 @@
 /*
- * tomoyo_cond_test.c
+ * ccs_cond_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -232,7 +232,7 @@ static void stage_open_test(void)
 
 int main(int argc, char *argv[])
 {
-	tomoyo_test_init();
+	ccs_test_init();
 	fprintf(domain_fp, "ignore_global\n");
 	fprintf(domain_fp, "file read/write %s\n", proc_policy_domain_policy);
 	set_profile(3, "file::execute");

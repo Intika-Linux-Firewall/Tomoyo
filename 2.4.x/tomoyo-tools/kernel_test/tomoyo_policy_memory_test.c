@@ -1,9 +1,9 @@
 /*
- * tomoyo_policy_memory_test.c
+ * ccs_policy_memory_test.c
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * Usage: Run this program using init= boot option.
  *
@@ -260,25 +260,19 @@ static void domain_policy_test(const unsigned int before)
 
 static const char * const exception_testcases[] = {
 	"acl_group 0 file read /tmp/mknod_reg_test",
-	/*
 	"acl_group 0 misc env HOME",
-	*/
 	"path_group PG1 /",
 	"path_group PG2 /",
-	/*
 	"address_group AG3 0.0.0.0",
 	"address_group AG3 1.2.3.4-5.6.7.8",
 	"address_group AG3 f:ee:ddd:cccc:b:aa:999:8888",
 	"address_group AG4 0:1:2:3:4:5:6:7-8:90:a00:b000:c00:d0:e:f000",
-	*/
 	"number_group NG1 1000",
 	"number_group NG2 10-0x100000",
 	"number_group NG3 01234567-0xABCDEF89",
-	/*
 	"deny_autobind 1024",
 	"deny_autobind 32668-65535",
 	"deny_autobind 0-1023",
-	*/
 	"initialize_domain /usr/sbin/sshd from any",
 	"no_initialize_domain /usr/sbin/sshd from any",
 	"initialize_domain /usr/sbin/sshd from /bin/bash",

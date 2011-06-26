@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/09
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -53,46 +53,46 @@
 
 /***** CONSTANTS DEFINITION START *****/
 
-#define TOMOYO_PROC_POLICY_DIR              "/sys/kernel/security/tomoyo/"
-#define TOMOYO_PROC_POLICY_DOMAIN_POLICY    "/sys/kernel/security/tomoyo/domain_policy"
-#define TOMOYO_PROC_POLICY_DOMAIN_STATUS    "/sys/kernel/security/tomoyo/.domain_status"
-#define TOMOYO_PROC_POLICY_EXCEPTION_POLICY "/sys/kernel/security/tomoyo/exception_policy"
-#define TOMOYO_PROC_POLICY_AUDIT            "/sys/kernel/security/tomoyo/audit"
-#define TOMOYO_PROC_POLICY_MANAGER          "/sys/kernel/security/tomoyo/manager"
-#define TOMOYO_PROC_POLICY_STAT             "/sys/kernel/security/tomoyo/stat"
-#define TOMOYO_PROC_POLICY_PROCESS_STATUS   "/sys/kernel/security/tomoyo/.process_status"
-#define TOMOYO_PROC_POLICY_PROFILE          "/sys/kernel/security/tomoyo/profile"
-#define TOMOYO_PROC_POLICY_QUERY            "/sys/kernel/security/tomoyo/query"
+#define CCS_PROC_POLICY_DIR              "/sys/kernel/security/tomoyo/"
+#define CCS_PROC_POLICY_DOMAIN_POLICY    "/sys/kernel/security/tomoyo/domain_policy"
+#define CCS_PROC_POLICY_DOMAIN_STATUS    "/sys/kernel/security/tomoyo/.domain_status"
+#define CCS_PROC_POLICY_EXCEPTION_POLICY "/sys/kernel/security/tomoyo/exception_policy"
+#define CCS_PROC_POLICY_AUDIT            "/sys/kernel/security/tomoyo/audit"
+#define CCS_PROC_POLICY_MANAGER          "/sys/kernel/security/tomoyo/manager"
+#define CCS_PROC_POLICY_STAT             "/sys/kernel/security/tomoyo/stat"
+#define CCS_PROC_POLICY_PROCESS_STATUS   "/sys/kernel/security/tomoyo/.process_status"
+#define CCS_PROC_POLICY_PROFILE          "/sys/kernel/security/tomoyo/profile"
+#define CCS_PROC_POLICY_QUERY            "/sys/kernel/security/tomoyo/query"
 
 /***** CONSTANTS DEFINITION END *****/
 
 /***** STRUCTURES DEFINITION START *****/
 
-struct tomoyo_path_info {
+struct ccs_path_info {
 	const char *name;
-	u32 hash;           /* = tomoyo_full_name_hash(name, total_len) */
+	u32 hash;           /* = ccs_full_name_hash(name, total_len) */
 	u16 total_len;      /* = strlen(name)                        */
-	u16 const_len;      /* = tomoyo_const_part_length(name)         */
-	_Bool is_dir;       /* = tomoyo_strendswith(name, "/")          */
+	u16 const_len;      /* = ccs_const_part_length(name)         */
+	_Bool is_dir;       /* = ccs_strendswith(name, "/")          */
 	_Bool is_patterned; /* = const_len < total_len               */
 };
 
-struct tomoyo_ip_address_entry {
+struct ccs_ip_address_entry {
 	u8 min[16];
 	u8 max[16];
 	_Bool is_ipv6;
 };
 
-struct tomoyo_number_entry {
+struct ccs_number_entry {
 	unsigned long min;
 	unsigned long max;
 };
 
-struct tomoyo_domain_info {
-	const struct tomoyo_path_info *domainname;
+struct ccs_domain_info {
+	const struct ccs_path_info *domainname;
 	const char *target_domainname; /* This may be NULL */
-	const struct tomoyo_transition_control_entry *d_t; /* This may be NULL */
-	const struct tomoyo_path_info **string_ptr;
+	const struct ccs_transition_control_entry *d_t; /* This may be NULL */
+	const struct ccs_path_info **string_ptr;
 	int string_count;
 	int number;   /* domain number (-1 if is_dis or is_dd) */
 	u8 profile;
@@ -105,13 +105,13 @@ struct tomoyo_domain_info {
 	u8 group;
 };
 
-struct tomoyo_domain_policy {
-	struct tomoyo_domain_info *list;
+struct ccs_domain_policy {
+	struct ccs_domain_info *list;
 	int list_len;
 	unsigned char *list_selected;
 };
 
-struct tomoyo_task_entry {
+struct ccs_task_entry {
 	pid_t pid;
 	pid_t ppid;
 	char *name;
@@ -126,68 +126,68 @@ struct tomoyo_task_entry {
 
 /***** PROTOTYPES DEFINITION START *****/
 
-FILE *tomoyo_open_read(const char *filename);
-FILE *tomoyo_open_write(const char *filename);
-_Bool tomoyo_check_remote_host(void);
-_Bool tomoyo_close_write(FILE *fp);
-_Bool tomoyo_correct_domain(const char *domainname);
-_Bool tomoyo_correct_path(const char *filename);
-_Bool tomoyo_correct_word(const char *string);
-_Bool tomoyo_decode(const char *ascii, char *bin);
-_Bool tomoyo_domain_def(const char *domainname);
-_Bool tomoyo_move_proc_to_file(const char *src, const char *dest);
-_Bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *pathname0,
-			       const struct tomoyo_path_info *pattern0);
-_Bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
-		  const struct tomoyo_path_info *b);
-_Bool tomoyo_str_starts(char *str, const char *begin);
-char *tomoyo_freadline(FILE *fp);
-char *tomoyo_freadline_unpack(FILE *fp);
-char *tomoyo_shprintf(const char *fmt, ...)
+FILE *ccs_open_read(const char *filename);
+FILE *ccs_open_write(const char *filename);
+_Bool ccs_check_remote_host(void);
+_Bool ccs_close_write(FILE *fp);
+_Bool ccs_correct_domain(const char *domainname);
+_Bool ccs_correct_path(const char *filename);
+_Bool ccs_correct_word(const char *string);
+_Bool ccs_decode(const char *ascii, char *bin);
+_Bool ccs_domain_def(const char *domainname);
+_Bool ccs_move_proc_to_file(const char *src, const char *dest);
+_Bool ccs_path_matches_pattern(const struct ccs_path_info *pathname0,
+			       const struct ccs_path_info *pattern0);
+_Bool ccs_pathcmp(const struct ccs_path_info *a,
+		  const struct ccs_path_info *b);
+_Bool ccs_str_starts(char *str, const char *begin);
+char *ccs_freadline(FILE *fp);
+char *ccs_freadline_unpack(FILE *fp);
+char *ccs_shprintf(const char *fmt, ...)
 	__attribute__ ((format(printf, 1, 2)));
-char *tomoyo_strdup(const char *string);
-const char *tomoyo_domain_name(const struct tomoyo_domain_policy *dp,
+char *ccs_strdup(const char *string);
+const char *ccs_domain_name(const struct ccs_domain_policy *dp,
 			    const int index);
-const struct tomoyo_path_info *tomoyo_savename(const char *name);
-int tomoyo_add_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
+const struct ccs_path_info *ccs_savename(const char *name);
+int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index);
-int tomoyo_assign_domain(struct tomoyo_domain_policy *dp, const char *domainname,
+int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
 		      const _Bool is_dis, const _Bool is_dd);
-int tomoyo_del_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
+int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index);
-int tomoyo_find_domain(const struct tomoyo_domain_policy *dp,
+int ccs_find_domain(const struct ccs_domain_policy *dp,
 		    const char *domainname0, const _Bool is_dis,
 		    const _Bool is_dd);
-int tomoyo_find_domain_by_ptr(struct tomoyo_domain_policy *dp,
-			   const struct tomoyo_path_info *domainname);
-int tomoyo_open_stream(const char *filename);
-int tomoyo_parse_ip(const char *address, struct tomoyo_ip_address_entry *entry);
-int tomoyo_parse_number(const char *number, struct tomoyo_number_entry *entry);
-int tomoyo_string_compare(const void *a, const void *b);
-int tomoyo_write_domain_policy(struct tomoyo_domain_policy *dp, const int fd);
-struct tomoyo_path_group_entry *tomoyo_find_path_group(const char *group_name);
-void *tomoyo_malloc(const size_t size);
-void *tomoyo_realloc(void *ptr, const size_t size);
-void *tomoyo_realloc2(void *ptr, const size_t size);
-void tomoyo_clear_domain_policy(struct tomoyo_domain_policy *dp);
-void tomoyo_delete_domain(struct tomoyo_domain_policy *dp, const int index);
-void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
-void tomoyo_fprintf_encoded(FILE *fp, const char *tomoyo_pathname);
-void tomoyo_get(void);
-void tomoyo_handle_domain_policy(struct tomoyo_domain_policy *dp, FILE *fp,
+int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
+			   const struct ccs_path_info *domainname);
+int ccs_open_stream(const char *filename);
+int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry);
+int ccs_parse_number(const char *number, struct ccs_number_entry *entry);
+int ccs_string_compare(const void *a, const void *b);
+int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd);
+struct ccs_path_group_entry *ccs_find_path_group(const char *group_name);
+void *ccs_malloc(const size_t size);
+void *ccs_realloc(void *ptr, const size_t size);
+void *ccs_realloc2(void *ptr, const size_t size);
+void ccs_clear_domain_policy(struct ccs_domain_policy *dp);
+void ccs_delete_domain(struct ccs_domain_policy *dp, const int index);
+void ccs_fill_path_info(struct ccs_path_info *ptr);
+void ccs_fprintf_encoded(FILE *fp, const char *ccs_pathname);
+void ccs_get(void);
+void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 			      _Bool is_write);
-void tomoyo_mount_securityfs(void);
-void tomoyo_normalize_line(char *buffer);
-void tomoyo_put(void);
-void tomoyo_read_domain_policy(struct tomoyo_domain_policy *dp,
+void ccs_mount_securityfs(void);
+void ccs_normalize_line(char *buffer);
+void ccs_put(void);
+void ccs_read_domain_policy(struct ccs_domain_policy *dp,
 			    const char *filename);
-void tomoyo_read_process_list(_Bool show_all);
+void ccs_read_process_list(_Bool show_all);
 
-extern _Bool tomoyo_freadline_raw;
-extern _Bool tomoyo_network_mode;
-extern int tomoyo_task_list_len;
-extern struct tomoyo_task_entry *tomoyo_task_list;
-extern u16 tomoyo_network_port;
-extern u32 tomoyo_network_ip;
+extern _Bool ccs_freadline_raw;
+extern _Bool ccs_network_mode;
+extern int ccs_task_list_len;
+extern struct ccs_task_entry *ccs_task_list;
+extern u16 ccs_network_port;
+extern u32 ccs_network_ip;
 
 /***** PROTOTYPES DEFINITION END *****/

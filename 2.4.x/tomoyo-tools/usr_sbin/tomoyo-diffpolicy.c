@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.1   2011/04/01
+ * Version: 2.4.0-pre   2011/06/26
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -24,15 +24,15 @@
 
 int main(int argc, char *argv[])
 {
-	struct tomoyo_domain_policy old_policy = { NULL, 0, NULL };
-	struct tomoyo_domain_policy new_policy = { NULL, 0, NULL };
-	const struct tomoyo_path_info **old_string_ptr;
-	const struct tomoyo_path_info **new_string_ptr;
+	struct ccs_domain_policy old_policy = { NULL, 0, NULL };
+	struct ccs_domain_policy new_policy = { NULL, 0, NULL };
+	const struct ccs_path_info **old_string_ptr;
+	const struct ccs_path_info **new_string_ptr;
 	int old_string_count;
 	int new_string_count;
 	int old_index;
 	int new_index;
-	const struct tomoyo_path_info *domainname;
+	const struct ccs_path_info *domainname;
 	int i;
 	int j;
 	const char *old = NULL;
@@ -51,11 +51,11 @@ usage:
 		       "- : Read policy from stdin.\n", argv[0]);
 		return 0;
 	}
-	tomoyo_read_domain_policy(&old_policy, old);
-	tomoyo_read_domain_policy(&new_policy, new);
+	ccs_read_domain_policy(&old_policy, old);
+	ccs_read_domain_policy(&new_policy, new);
 	for (old_index = 0; old_index < old_policy.list_len; old_index++) {
 		domainname = old_policy.list[old_index].domainname;
-		new_index = tomoyo_find_domain_by_ptr(&new_policy, domainname);
+		new_index = ccs_find_domain_by_ptr(&new_policy, domainname);
 		if (new_index >= 0)
 			continue;
 		/* This domain was deleted. */
@@ -63,7 +63,7 @@ usage:
 	}
 	for (new_index = 0; new_index < new_policy.list_len; new_index++) {
 		domainname = new_policy.list[new_index].domainname;
-		old_index = tomoyo_find_domain_by_ptr(&old_policy, domainname);
+		old_index = ccs_find_domain_by_ptr(&old_policy, domainname);
 		if (old_index >= 0)
 			continue;
 		/* This domain was added. */
@@ -80,7 +80,7 @@ usage:
 	for (old_index = 0; old_index < old_policy.list_len; old_index++) {
 		_Bool first = true;
 		domainname = old_policy.list[old_index].domainname;
-		new_index = tomoyo_find_domain_by_ptr(&new_policy, domainname);
+		new_index = ccs_find_domain_by_ptr(&new_policy, domainname);
 		if (new_index == EOF)
 			continue;
 		/* This domain exists in both old policy and new policy. */
