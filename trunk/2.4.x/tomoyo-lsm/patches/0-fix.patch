@@ -1,0 +1,21 @@
+[PATCH] TOMOYO: Fix wrong domainname in tomoyo_init_log().
+
+Commit eadd99cc "TOMOYO: Add auditing interface." needs to use domainname from
+"struct tomoyo_request_info"->domain rather than tomoyo_domain().
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/audit.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- security-testing-2.6.orig/security/tomoyo/audit.c
++++ security-testing-2.6/security/tomoyo/audit.c
+@@ -69,7 +69,7 @@ char *tomoyo_init_log(struct tomoyo_requ
+ 	char *buf = NULL;
+ 	const char *header = NULL;
+ 	int pos;
+-	const char *domainname = tomoyo_domain()->domainname->name;
++	const char *domainname = r->domain->domainname->name;
+ 	header = tomoyo_print_header(r);
+ 	if (!header)
+ 		return NULL;
