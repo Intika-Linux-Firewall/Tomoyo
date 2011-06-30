@@ -1,0 +1,976 @@
+TOMOYO: Allow using UID/GID etc. of current thread as conditions.
+
+This patch adds support for permission checks using current thread's UID/GID
+etc. in addition to pathnames.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/Makefile    |    2 
+ security/tomoyo/audit.c     |   32 ++--
+ security/tomoyo/common.c    |  146 +++++++++++++++++-
+ security/tomoyo/common.h    |   97 ++++++++++++
+ security/tomoyo/condition.c |  349 ++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/domain.c    |   21 +-
+ security/tomoyo/gc.c        |   39 ++++
+ security/tomoyo/util.c      |    2 
+ 8 files changed, 651 insertions(+), 37 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
+@@ -1,4 +1,4 @@
+-obj-y = audit.o common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
++obj-y = audit.o common.o condition.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
+ 
+ $(obj)/policy/profile.conf:
+ 	@mkdir -p $(obj)/policy/
+--- security-testing-2.6.orig/security/tomoyo/audit.c
++++ security-testing-2.6/security/tomoyo/audit.c
+@@ -25,7 +25,7 @@ static char *tomoyo_print_header(struct 
+ 	const pid_t gpid = task_pid_nr(current);
+ 	static const int tomoyo_buffer_len = 4096;
+ 	char *buffer = kmalloc(tomoyo_buffer_len, GFP_NOFS);
+-	pid_t ppid;
++	int pos;
+ 	if (!buffer)
+ 		return NULL;
+ 	{
+@@ -33,21 +33,21 @@ static char *tomoyo_print_header(struct 
+ 		do_gettimeofday(&tv);
+ 		tomoyo_convert_time(tv.tv_sec, &stamp);
+ 	}
+-	rcu_read_lock();
+-	ppid = task_tgid_vnr(current->real_parent);
+-	rcu_read_unlock();
+-	snprintf(buffer, tomoyo_buffer_len - 1,
+-		 "#%04u/%02u/%02u %02u:%02u:%02u# profile=%u mode=%s "
+-		 "granted=%s (global-pid=%u) task={ pid=%u ppid=%u "
+-		 "uid=%u gid=%u euid=%u egid=%u suid=%u sgid=%u "
+-		 "fsuid=%u fsgid=%u }",
+-		 stamp.year, stamp.month, stamp.day, stamp.hour,
+-		 stamp.min, stamp.sec, r->profile, tomoyo_mode[r->mode],
+-		 tomoyo_yesno(r->granted), gpid, task_tgid_vnr(current), ppid,
+-		 current_uid(), current_gid(), current_euid(), current_egid(),
+-		 current_suid(), current_sgid(), current_fsuid(),
+-		 current_fsgid());
+-	return buffer;
++	pos = snprintf(buffer, tomoyo_buffer_len - 1,
++		       "#%04u/%02u/%02u %02u:%02u:%02u# profile=%u mode=%s "
++		       "granted=%s (global-pid=%u) task={ pid=%u ppid=%u "
++		       "uid=%u gid=%u euid=%u egid=%u suid=%u sgid=%u "
++		       "fsuid=%u fsgid=%u }", stamp.year, stamp.month,
++		       stamp.day, stamp.hour, stamp.min, stamp.sec, r->profile,
++		       tomoyo_mode[r->mode], tomoyo_yesno(r->granted), gpid,
++		       tomoyo_sys_getpid(), tomoyo_sys_getppid(),
++		       current_uid(), current_gid(), current_euid(),
++		       current_egid(), current_suid(), current_sgid(),
++		       current_fsuid(), current_fsgid());
++	if (pos < tomoyo_buffer_len - 1)
++		return buffer;
++	kfree(buffer);
++	return NULL;
+ }
+ 
+ /**
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -48,6 +48,20 @@ const char * const tomoyo_mac_keywords[T
+ 	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE] = "file",
+ };
+ 
++/* String table for conditions. */
++const char * const tomoyo_condition_keyword[TOMOYO_MAX_CONDITION_KEYWORD] = {
++	[TOMOYO_TASK_UID]             = "task.uid",
++	[TOMOYO_TASK_EUID]            = "task.euid",
++	[TOMOYO_TASK_SUID]            = "task.suid",
++	[TOMOYO_TASK_FSUID]           = "task.fsuid",
++	[TOMOYO_TASK_GID]             = "task.gid",
++	[TOMOYO_TASK_EGID]            = "task.egid",
++	[TOMOYO_TASK_SGID]            = "task.sgid",
++	[TOMOYO_TASK_FSGID]           = "task.fsgid",
++	[TOMOYO_TASK_PID]             = "task.pid",
++	[TOMOYO_TASK_PPID]            = "task.ppid",
++};
++
+ /* String table for PREFERENCE keyword. */
+ static const char * const tomoyo_pref_keywords[TOMOYO_MAX_PREF] = {
+ 	[TOMOYO_PREF_MAX_AUDIT_LOG]      = "max_audit_log",
+@@ -294,15 +308,16 @@ static void tomoyo_print_name_union(stru
+ }
+ 
+ /**
+- * tomoyo_print_number_union - Print a tomoyo_number_union.
++ * tomoyo_print_number_union_nospace - Print a tomoyo_number_union without a space.
+  *
+- * @head:       Pointer to "struct tomoyo_io_buffer".
+- * @ptr:        Pointer to "struct tomoyo_number_union".
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ * @ptr:  Pointer to "struct tomoyo_number_union".
++ *
++ * Returns nothing.
+  */
+-static void tomoyo_print_number_union(struct tomoyo_io_buffer *head,
+-				      const struct tomoyo_number_union *ptr)
++static void tomoyo_print_number_union_nospace
++(struct tomoyo_io_buffer *head, const struct tomoyo_number_union *ptr)
+ {
+-	tomoyo_set_space(head);
+ 	if (ptr->group) {
+ 		tomoyo_set_string(head, "@");
+ 		tomoyo_set_string(head, ptr->group->group_name->name);
+@@ -325,8 +340,8 @@ static void tomoyo_print_number_union(st
+ 						 "0%lo", min);
+ 				break;
+ 			default:
+-				tomoyo_addprintf(buffer, sizeof(buffer),
+-						 "%lu", min);
++				tomoyo_addprintf(buffer, sizeof(buffer), "%lu",
++						 min);
+ 				break;
+ 			}
+ 			if (min == max && min_type == max_type)
+@@ -340,6 +355,21 @@ static void tomoyo_print_number_union(st
+ }
+ 
+ /**
++ * tomoyo_print_number_union - Print a tomoyo_number_union.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ * @ptr:  Pointer to "struct tomoyo_number_union".
++ *
++ * Returns nothing.
++ */
++static void tomoyo_print_number_union(struct tomoyo_io_buffer *head,
++				      const struct tomoyo_number_union *ptr)
++{
++	tomoyo_set_space(head);
++	tomoyo_print_number_union_nospace(head, ptr);
++}
++
++/**
+  * tomoyo_assign_profile - Create a new profile.
+  *
+  * @ns:      Pointer to "struct tomoyo_policy_namespace".
+@@ -1004,6 +1034,91 @@ static int tomoyo_write_domain(struct to
+ }
+ 
+ /**
++ * tomoyo_print_condition - Print condition part.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ * @cond: Pointer to "struct tomoyo_condition".
++ *
++ * Returns true on success, false otherwise.
++ */
++static bool tomoyo_print_condition(struct tomoyo_io_buffer *head,
++				   const struct tomoyo_condition *cond)
++{
++	switch (head->r.cond_step) {
++	case 0:
++		head->r.cond_index = 0;
++		head->r.cond_step++;
++		/* fall through */
++	case 1:
++		{
++			const u16 condc = cond->condc;
++			const struct tomoyo_condition_element *condp =
++				(typeof(condp)) (cond + 1);
++			const struct tomoyo_number_union *numbers_p =
++				(typeof(numbers_p)) (condp + condc);
++			u16 skip;
++			for (skip = 0; skip < head->r.cond_index; skip++) {
++				const u8 left = condp->left;
++				const u8 right = condp->right;
++				condp++;
++				switch (left) {
++				case TOMOYO_NUMBER_UNION:
++					numbers_p++;
++					break;
++				}
++				switch (right) {
++				case TOMOYO_NUMBER_UNION:
++					numbers_p++;
++					break;
++				}
++			}
++			while (head->r.cond_index < condc) {
++				const u8 match = condp->equals;
++				const u8 left = condp->left;
++				const u8 right = condp->right;
++				if (!tomoyo_flush(head))
++					return false;
++				condp++;
++				head->r.cond_index++;
++				tomoyo_set_space(head);
++				switch (left) {
++				case TOMOYO_NUMBER_UNION:
++					tomoyo_print_number_union_nospace
++						(head, numbers_p++);
++					break;
++				default:
++					tomoyo_set_string(head,
++					       tomoyo_condition_keyword[left]);
++					break;
++				}
++				tomoyo_set_string(head, match ? "=" : "!=");
++				switch (right) {
++				case TOMOYO_NUMBER_UNION:
++					tomoyo_print_number_union_nospace
++						(head, numbers_p++);
++					break;
++				default:
++					tomoyo_set_string(head,
++					  tomoyo_condition_keyword[right]);
++					break;
++				}
++			}
++		}
++		head->r.cond_step++;
++		/* fall through */
++	case 2:
++		if (!tomoyo_flush(head))
++			break;
++		head->r.cond_step++;
++		/* fall through */
++	case 3:
++		tomoyo_set_lf(head);
++		return true;
++	}
++	return false;
++}
++
++/**
+  * tomoyo_set_group - Print "acl_group " header keyword and category name.
+  *
+  * @head:     Pointer to "struct tomoyo_io_buffer".
+@@ -1037,6 +1152,8 @@ static bool tomoyo_print_entry(struct to
+ 	bool first = true;
+ 	u8 bit;
+ 
++	if (head->r.print_cond_part)
++		goto print_cond_part;
+ 	if (acl->is_deleted)
+ 		return true;
+ 	if (!tomoyo_flush(head))
+@@ -1135,7 +1252,18 @@ static bool tomoyo_print_entry(struct to
+ 		tomoyo_print_name_union(head, &ptr->fs_type);
+ 		tomoyo_print_number_union(head, &ptr->flags);
+ 	}
+-	tomoyo_set_lf(head);
++	if (acl->cond) {
++		head->r.print_cond_part = true;
++		head->r.cond_step = 0;
++		if (!tomoyo_flush(head))
++			return false;
++print_cond_part:
++		if (!tomoyo_print_condition(head, acl->cond))
++			return false;
++		head->r.print_cond_part = false;
++	} else {
++		tomoyo_set_lf(head);
++	}
+ 	return true;
+ }
+ 
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -21,7 +21,8 @@
+ #include <linux/list.h>
+ #include <linux/cred.h>
+ #include <linux/poll.h>
+-struct linux_binprm;
++#include <linux/binfmts.h>
++#include <linux/highmem.h>
+ 
+ /********** Constants definitions. **********/
+ 
+@@ -41,6 +42,22 @@ struct linux_binprm;
+ /* Group number is an integer between 0 and 255. */
+ #define TOMOYO_MAX_ACL_GROUPS 256
+ 
++/* Index numbers for "struct tomoyo_condition". */
++enum tomoyo_conditions_index {
++	TOMOYO_TASK_UID,             /* current_uid()   */
++	TOMOYO_TASK_EUID,            /* current_euid()  */
++	TOMOYO_TASK_SUID,            /* current_suid()  */
++	TOMOYO_TASK_FSUID,           /* current_fsuid() */
++	TOMOYO_TASK_GID,             /* current_gid()   */
++	TOMOYO_TASK_EGID,            /* current_egid()  */
++	TOMOYO_TASK_SGID,            /* current_sgid()  */
++	TOMOYO_TASK_FSGID,           /* current_fsgid() */
++	TOMOYO_TASK_PID,             /* sys_getpid()   */
++	TOMOYO_TASK_PPID,            /* sys_getppid()  */
++	TOMOYO_MAX_CONDITION_KEYWORD,
++	TOMOYO_NUMBER_UNION,
++};
++
+ /* Index numbers for operation mode. */
+ enum tomoyo_mode_index {
+ 	TOMOYO_CONFIG_DISABLED,
+@@ -61,6 +78,7 @@ enum tomoyo_policy_id {
+ 	TOMOYO_ID_TRANSITION_CONTROL,
+ 	TOMOYO_ID_AGGREGATOR,
+ 	TOMOYO_ID_MANAGER,
++	TOMOYO_ID_CONDITION,
+ 	TOMOYO_ID_NAME,
+ 	TOMOYO_ID_ACL,
+ 	TOMOYO_ID_DOMAIN,
+@@ -371,9 +389,32 @@ struct tomoyo_number_group {
+ 	struct tomoyo_number_union number;
+ };
+ 
++/* Structure for entries which follows "struct tomoyo_condition". */
++struct tomoyo_condition_element {
++	/* Left hand operand. */
++	u8 left;
++	/* Right hand operand. */
++	u8 right;
++	/* Equation operator. True if equals or overlaps, false otherwise. */
++	bool equals;
++};
++
++/* Structure for optional arguments. */
++struct tomoyo_condition {
++	struct tomoyo_shared_acl_head head;
++	u32 size; /* Memory size allocated for this entry. */
++	u16 condc; /* Number of conditions in this struct. */
++	u16 numbers_count; /* Number of "struct tomoyo_number_union values". */
++	/*
++	 * struct tomoyo_condition_element condition[condc];
++	 * struct tomoyo_number_union values[numbers_count];
++	 */
++};
++
+ /* Common header for individual entries. */
+ struct tomoyo_acl_info {
+ 	struct list_head list;
++	struct tomoyo_condition *cond; /* Maybe NULL. */
+ 	bool is_deleted;
+ 	u8 type; /* One of values in "enum tomoyo_acl_entry_type_index". */
+ } __packed;
+@@ -476,12 +517,15 @@ struct tomoyo_io_buffer {
+ 		unsigned int step;
+ 		unsigned int query_index;
+ 		u16 index;
++		u16 cond_index;
+ 		u8 acl_group_index;
++		u8 cond_step;
+ 		u8 bit;
+ 		u8 w_pos;
+ 		bool eof;
+ 		bool print_this_domain_only;
+ 		bool print_transition_related_only;
++		bool print_cond_part;
+ 		const char *w[TOMOYO_MAX_IO_READ_QUEUE];
+ 	} r;
+ 	struct {
+@@ -587,6 +631,8 @@ struct tomoyo_policy_namespace {
+ 
+ bool tomoyo_compare_number_union(const unsigned long value,
+ 				 const struct tomoyo_number_union *ptr);
++bool tomoyo_condition(struct tomoyo_request_info *r,
++		      const struct tomoyo_condition *cond);
+ bool tomoyo_correct_domain(const unsigned char *domainname);
+ bool tomoyo_correct_path(const char *filename);
+ bool tomoyo_correct_word(const char *string);
+@@ -665,6 +711,7 @@ ssize_t tomoyo_read_control(struct tomoy
+ 			    const int buffer_len);
+ ssize_t tomoyo_write_control(struct tomoyo_io_buffer *head,
+ 			     const char __user *buffer, const int buffer_len);
++struct tomoyo_condition *tomoyo_get_condition(struct tomoyo_acl_param *param);
+ struct tomoyo_domain_info *tomoyo_assign_domain(const char *domainname,
+ 						const bool transit);
+ struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
+@@ -676,6 +723,7 @@ struct tomoyo_profile *tomoyo_profile(co
+ 				      const u8 profile);
+ unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
+ 				const u8 index);
++u8 tomoyo_parse_ulong(unsigned long *result, char **str);
+ void *tomoyo_commit_ok(void *data, const unsigned int size);
+ void __init tomoyo_load_builtin_policy(void);
+ void __init tomoyo_mm_init(void);
+@@ -684,6 +732,7 @@ void tomoyo_check_acl(struct tomoyo_requ
+ 					   const struct tomoyo_acl_info *));
+ void tomoyo_check_profile(void);
+ void tomoyo_convert_time(time_t time, struct tomoyo_time *stamp);
++void tomoyo_del_condition(struct list_head *element);
+ void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
+ void tomoyo_init_policy_namespace(struct tomoyo_policy_namespace *ns);
+ void tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
+@@ -707,6 +756,8 @@ void tomoyo_write_log2(struct tomoyo_req
+ /********** External variable definitions. **********/
+ 
+ extern bool tomoyo_policy_loaded;
++extern const char * const tomoyo_condition_keyword
++[TOMOYO_MAX_CONDITION_KEYWORD];
+ extern const char * const tomoyo_dif[TOMOYO_MAX_DOMAIN_INFO_FLAGS];
+ extern const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
+ 					      + TOMOYO_MAX_MAC_CATEGORY_INDEX];
+@@ -716,6 +767,7 @@ extern const u8 tomoyo_index2category[TO
+ extern const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION];
+ extern const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION];
+ extern const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION];
++extern struct list_head tomoyo_condition_list;
+ extern struct list_head tomoyo_domain_list;
+ extern struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
+ extern struct list_head tomoyo_namespace_list;
+@@ -751,6 +803,36 @@ static inline void tomoyo_read_unlock(in
+ }
+ 
+ /**
++ * tomoyo_sys_getppid - Copy of getppid().
++ *
++ * Returns parent process's PID.
++ *
++ * Alpha does not have getppid() defined. To be able to build this module on
++ * Alpha, I have to copy getppid() from kernel/timer.c.
++ */
++static inline pid_t tomoyo_sys_getppid(void)
++{
++	pid_t pid;
++	rcu_read_lock();
++	pid = task_tgid_vnr(current->real_parent);
++	rcu_read_unlock();
++	return pid;
++}
++
++/**
++ * tomoyo_sys_getpid - Copy of getpid().
++ *
++ * Returns current thread's PID.
++ *
++ * Alpha does not have getpid() defined. To be able to build this module on
++ * Alpha, I have to copy getpid() from kernel/timer.c.
++ */
++static inline pid_t tomoyo_sys_getpid(void)
++{
++	return task_tgid_vnr(current);
++}
++
++/**
+  * tomoyo_pathcmp - strcmp() for "struct tomoyo_path_info" structure.
+  *
+  * @a: Pointer to "struct tomoyo_path_info".
+@@ -781,6 +863,19 @@ static inline void tomoyo_put_name(const
+ }
+ 
+ /**
++ * tomoyo_put_condition - Drop reference on "struct tomoyo_condition".
++ *
++ * @cond: Pointer to "struct tomoyo_condition". Maybe NULL.
++ *
++ * Returns nothing.
++ */
++static inline void tomoyo_put_condition(struct tomoyo_condition *cond)
++{
++	if (cond)
++		atomic_dec(&cond->head.users);
++}
++
++/**
+  * tomoyo_put_group - Drop reference on "struct tomoyo_group".
+  *
+  * @group: Pointer to "struct tomoyo_group". Maybe NULL.
+--- /dev/null
++++ security-testing-2.6/security/tomoyo/condition.c
+@@ -0,0 +1,349 @@
++/*
++ * security/tomoyo/condition.c
++ *
++ * Copyright (C) 2005-2011  NTT DATA CORPORATION
++ */
++
++#include "common.h"
++#include <linux/slab.h>
++
++/* List of "struct tomoyo_condition". */
++LIST_HEAD(tomoyo_condition_list);
++
++/**
++ * tomoyo_same_condition - Check for duplicated "struct tomoyo_condition" entry.
++ *
++ * @a: Pointer to "struct tomoyo_condition".
++ * @b: Pointer to "struct tomoyo_condition".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
++static inline bool tomoyo_same_condition(const struct tomoyo_condition *a,
++					 const struct tomoyo_condition *b)
++{
++	return a->size == b->size && a->condc == b->condc &&
++		a->numbers_count == b->numbers_count &&
++		!memcmp(a + 1, b + 1, a->size - sizeof(*a));
++}
++
++/**
++ * tomoyo_condition_type - Get condition type.
++ *
++ * @word: Keyword string.
++ *
++ * Returns one of values in "enum tomoyo_conditions_index" on success,
++ * TOMOYO_MAX_CONDITION_KEYWORD otherwise.
++ */
++static u8 tomoyo_condition_type(const char *word)
++{
++	u8 i;
++	for (i = 0; i < TOMOYO_MAX_CONDITION_KEYWORD; i++) {
++		if (!strcmp(word, tomoyo_condition_keyword[i]))
++			break;
++	}
++	return i;
++}
++
++/* Define this to enable debug mode. */
++/* #define DEBUG_CONDITION */
++
++#ifdef DEBUG_CONDITION
++#define dprintk printk
++#else
++#define dprintk(...) do { } while (0)
++#endif
++
++/**
++ * tomoyo_commit_condition - Commit "struct tomoyo_condition".
++ *
++ * @entry: Pointer to "struct tomoyo_condition".
++ *
++ * Returns pointer to "struct tomoyo_condition" on success, NULL otherwise.
++ *
++ * This function merges duplicated entries. This function returns NULL if
++ * @entry is not duplicated but memory quota for policy has exceeded.
++ */
++static struct tomoyo_condition *tomoyo_commit_condition
++(struct tomoyo_condition *entry)
++{
++	struct tomoyo_condition *ptr;
++	bool found = false;
++	if (mutex_lock_interruptible(&tomoyo_policy_lock)) {
++		dprintk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
++		ptr = NULL;
++		found = true;
++		goto out;
++	}
++	list_for_each_entry_rcu(ptr, &tomoyo_condition_list, head.list) {
++		if (!tomoyo_same_condition(ptr, entry))
++			continue;
++		/* Same entry found. Share this entry. */
++		atomic_inc(&ptr->head.users);
++		found = true;
++		break;
++	}
++	if (!found) {
++		if (tomoyo_memory_ok(entry)) {
++			atomic_set(&entry->head.users, 1);
++			list_add_rcu(&entry->head.list,
++				     &tomoyo_condition_list);
++		} else {
++			found = true;
++			ptr = NULL;
++		}
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++out:
++	if (found) {
++		tomoyo_del_condition(&entry->head.list);
++		kfree(entry);
++		entry = ptr;
++	}
++	return entry;
++}
++
++/**
++ * tomoyo_get_condition - Parse condition part.
++ *
++ * @param: Pointer to "struct tomoyo_acl_param".
++ *
++ * Returns pointer to "struct tomoyo_condition" on success, NULL otherwise.
++ */
++struct tomoyo_condition *tomoyo_get_condition(struct tomoyo_acl_param *param)
++{
++	struct tomoyo_condition *entry = NULL;
++	struct tomoyo_condition_element *condp = NULL;
++	struct tomoyo_number_union *numbers_p = NULL;
++	struct tomoyo_condition e = { };
++	char * const start_of_string = param->data;
++	char * const end_of_string = start_of_string + strlen(start_of_string);
++	char *pos;
++rerun:
++	pos = start_of_string;
++	while (1) {
++		u8 left = -1;
++		u8 right = -1;
++		char *left_word = pos;
++		char *cp;
++		char *right_word;
++		bool is_not;
++		if (!*left_word)
++			break;
++		/*
++		 * Since left-hand condition does not allow use of "path_group"
++		 * or "number_group" and environment variable's names do not
++		 * accept '=', it is guaranteed that the original line consists
++		 * of one or more repetition of $left$operator$right blocks
++		 * where "$left is free from '=' and ' '" and "$operator is
++		 * either '=' or '!='" and "$right is free from ' '".
++		 * Therefore, we can reconstruct the original line at the end
++		 * of dry run even if we overwrite $operator with '\0'.
++		 */
++		cp = strchr(pos, ' ');
++		if (cp) {
++			*cp = '\0'; /* Will restore later. */
++			pos = cp + 1;
++		} else {
++			pos = "";
++		}
++		right_word = strchr(left_word, '=');
++		if (!right_word || right_word == left_word)
++			goto out;
++		is_not = *(right_word - 1) == '!';
++		if (is_not)
++			*(right_word++ - 1) = '\0'; /* Will restore later. */
++		else if (*(right_word + 1) != '=')
++			*right_word++ = '\0'; /* Will restore later. */
++		else
++			goto out;
++		dprintk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left_word,
++			is_not ? "!" : "", right_word);
++		left = tomoyo_condition_type(left_word);
++		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, left_word,
++			left);
++		if (left == TOMOYO_MAX_CONDITION_KEYWORD) {
++			if (!numbers_p) {
++				e.numbers_count++;
++			} else {
++				e.numbers_count--;
++				left = TOMOYO_NUMBER_UNION;
++				param->data = left_word;
++				if (*left_word == '@' ||
++				    !tomoyo_parse_number_union(param,
++							       numbers_p++))
++					goto out;
++			}
++		}
++		if (!condp)
++			e.condc++;
++		else
++			e.condc--;
++		right = tomoyo_condition_type(right_word);
++		if (right == TOMOYO_MAX_CONDITION_KEYWORD) {
++			if (!numbers_p) {
++				e.numbers_count++;
++			} else {
++				e.numbers_count--;
++				right = TOMOYO_NUMBER_UNION;
++				param->data = right_word;
++				if (!tomoyo_parse_number_union(param,
++							       numbers_p++))
++					goto out;
++			}
++		}
++		if (!condp) {
++			dprintk(KERN_WARNING "%u: dry_run left=%u right=%u "
++				"match=%u\n", __LINE__, left, right, !is_not);
++			continue;
++		}
++		condp->left = left;
++		condp->right = right;
++		condp->equals = !is_not;
++		dprintk(KERN_WARNING "%u: left=%u right=%u match=%u\n",
++			__LINE__, condp->left, condp->right,
++			condp->equals);
++		condp++;
++	}
++	dprintk(KERN_INFO "%u: cond=%u numbers=%u\n",
++		__LINE__, e.condc, e.numbers_count);
++	if (entry) {
++		BUG_ON(e.numbers_count | e.condc);
++		return tomoyo_commit_condition(entry);
++	}
++	e.size = sizeof(*entry)
++		+ e.condc * sizeof(struct tomoyo_condition_element)
++		+ e.numbers_count * sizeof(struct tomoyo_number_union);
++	entry = kzalloc(e.size, GFP_NOFS);
++	if (!entry)
++		return NULL;
++	*entry = e;
++	condp = (struct tomoyo_condition_element *) (entry + 1);
++	numbers_p = (struct tomoyo_number_union *) (condp + e.condc);
++	{
++		bool flag = false;
++		for (pos = start_of_string; pos < end_of_string; pos++) {
++			if (*pos)
++				continue;
++			if (flag) /* Restore " ". */
++				*pos = ' ';
++			else if (*(pos + 1) == '=') /* Restore "!=". */
++				*pos = '!';
++			else /* Restore "=". */
++				*pos = '=';
++			flag = !flag;
++		}
++	}
++	goto rerun;
++out:
++	dprintk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
++	if (entry) {
++		tomoyo_del_condition(&entry->head.list);
++		kfree(entry);
++	}
++	return NULL;
++}
++
++/**
++ * tomoyo_condition - Check condition part.
++ *
++ * @r:    Pointer to "struct tomoyo_request_info".
++ * @cond: Pointer to "struct tomoyo_condition". Maybe NULL.
++ *
++ * Returns true on success, false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++bool tomoyo_condition(struct tomoyo_request_info *r,
++		      const struct tomoyo_condition *cond)
++{
++	u32 i;
++	unsigned long min_v[2] = { 0, 0 };
++	unsigned long max_v[2] = { 0, 0 };
++	const struct tomoyo_condition_element *condp;
++	const struct tomoyo_number_union *numbers_p;
++	u16 condc;
++	if (!cond)
++		return true;
++	condc = cond->condc;
++	condp = (struct tomoyo_condition_element *) (cond + 1);
++	numbers_p = (const struct tomoyo_number_union *) (condp + condc);
++	for (i = 0; i < condc; i++) {
++		const bool match = condp->equals;
++		const u8 left = condp->left;
++		const u8 right = condp->right;
++		u8 j;
++		condp++;
++		/* Check numeric or bit-op expressions. */
++		for (j = 0; j < 2; j++) {
++			const u8 index = j ? right : left;
++			unsigned long value = 0;
++			switch (index) {
++			case TOMOYO_TASK_UID:
++				value = current_uid();
++				break;
++			case TOMOYO_TASK_EUID:
++				value = current_euid();
++				break;
++			case TOMOYO_TASK_SUID:
++				value = current_suid();
++				break;
++			case TOMOYO_TASK_FSUID:
++				value = current_fsuid();
++				break;
++			case TOMOYO_TASK_GID:
++				value = current_gid();
++				break;
++			case TOMOYO_TASK_EGID:
++				value = current_egid();
++				break;
++			case TOMOYO_TASK_SGID:
++				value = current_sgid();
++				break;
++			case TOMOYO_TASK_FSGID:
++				value = current_fsgid();
++				break;
++			case TOMOYO_TASK_PID:
++				value = tomoyo_sys_getpid();
++				break;
++			case TOMOYO_TASK_PPID:
++				value = tomoyo_sys_getppid();
++				break;
++			case TOMOYO_NUMBER_UNION:
++				/* Fetch values later. */
++				break;
++			default:
++				break;
++			}
++			max_v[j] = value;
++			min_v[j] = value;
++		}
++		if (left == TOMOYO_NUMBER_UNION) {
++			/* Fetch values now. */
++			const struct tomoyo_number_union *ptr = numbers_p++;
++			min_v[0] = ptr->values[0];
++			max_v[0] = ptr->values[1];
++		}
++		if (right == TOMOYO_NUMBER_UNION) {
++			/* Fetch values now. */
++			const struct tomoyo_number_union *ptr = numbers_p++;
++			if (ptr->group) {
++				if (tomoyo_number_matches_group(min_v[0],
++								max_v[0],
++								ptr->group)
++				    == match)
++					continue;
++			} else {
++				if ((min_v[0] <= ptr->values[1] &&
++				     max_v[0] >= ptr->values[0]) == match)
++					continue;
++			}
++			goto out;
++		}
++		/* Normal value range comparison. */
++		if ((min_v[0] <= max_v[1] && max_v[0] >= min_v[1]) == match)
++			continue;
++out:
++		return false;
++	}
++	return true;
++}
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -69,7 +69,7 @@ int tomoyo_update_policy(struct tomoyo_a
+ static inline bool tomoyo_same_acl_head(const struct tomoyo_acl_info *a,
+ 					const struct tomoyo_acl_info *b)
+ {
+-	return a->type == b->type;
++	return a->type == b->type && a->cond == b->cond;
+ }
+ 
+ /**
+@@ -100,8 +100,13 @@ int tomoyo_update_domain(struct tomoyo_a
+ 	struct tomoyo_acl_info *entry;
+ 	struct list_head * const list = param->list;
+ 
++	if (param->data[0]) {
++		new_entry->cond = tomoyo_get_condition(param);
++		if (!new_entry->cond)
++			return -EINVAL;
++	}
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+-		return error;
++		goto out;
+ 	list_for_each_entry_rcu(entry, list, list) {
+ 		if (!tomoyo_same_acl_head(entry, new_entry) ||
+ 		    !check_duplicate(entry, new_entry))
+@@ -122,6 +127,8 @@ int tomoyo_update_domain(struct tomoyo_a
+ 		}
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
++out:
++	tomoyo_put_condition(new_entry->cond);
+ 	return error;
+ }
+ 
+@@ -148,10 +155,12 @@ retry:
+ 	list_for_each_entry_rcu(ptr, list, list) {
+ 		if (ptr->is_deleted || ptr->type != r->param_type)
+ 			continue;
+-		if (check_entry(r, ptr)) {
+-			r->granted = true;
+-			return;
+-		}
++		if (!check_entry(r, ptr))
++			continue;
++		if (!tomoyo_condition(r, ptr->cond))
++			continue;
++		r->granted = true;
++		return;
+ 	}
+ 	if (!retried) {
+ 		retried = true;
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -25,6 +25,7 @@ static const u8 tomoyo_element_size[TOMO
+ 	[TOMOYO_ID_TRANSITION_CONTROL] =
+ 	sizeof(struct tomoyo_transition_control),
+ 	[TOMOYO_ID_MANAGER] = sizeof(struct tomoyo_manager),
++	/* [TOMOYO_ID_CONDITION] = "struct tomoyo_condition"->size, */
+ 	/* [TOMOYO_ID_NAME] = "struct tomoyo_name"->size, */
+ 	/* [TOMOYO_ID_ACL] =
+ 	   tomoyo_acl_size["struct tomoyo_acl_info"->type], */
+@@ -162,6 +163,10 @@ static bool tomoyo_add_to_gc(const int t
+ 		entry->size = strlen(container_of(element,
+ 						  typeof(struct tomoyo_name),
+ 						  head.list)->entry.name) + 1;
++	else if (type == TOMOYO_ID_CONDITION)
++		entry->size =
++			container_of(element, typeof(struct tomoyo_condition),
++				     head.list)->size;
+ 	else
+ 		entry->size = tomoyo_element_size[type];
+ 	entry->element = element;
+@@ -246,6 +251,7 @@ static void tomoyo_del_acl(struct list_h
+ {
+ 	struct tomoyo_acl_info *acl =
+ 		container_of(element, typeof(*acl), list);
++	tomoyo_put_condition(acl->cond);
+ 	switch (acl->type) {
+ 	case TOMOYO_TYPE_PATH_ACL:
+ 		{
+@@ -338,6 +344,27 @@ static bool tomoyo_del_domain(struct lis
+ 	return true;
+ }
+ 
++/**
++ * tomoyo_del_condition - Delete members in "struct tomoyo_condition".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
++void tomoyo_del_condition(struct list_head *element)
++{
++	struct tomoyo_condition *cond = container_of(element, typeof(*cond),
++						     head.list);
++	const u16 condc = cond->condc;
++	const u16 numbers_count = cond->numbers_count;
++	unsigned int i;
++	const struct tomoyo_condition_element *condp
++		= (const struct tomoyo_condition_element *) (cond + 1);
++	struct tomoyo_number_union *numbers_p
++		= (struct tomoyo_number_union *) (condp + condc);
++	for (i = 0; i < numbers_count; i++)
++		tomoyo_put_number_union(numbers_p++);
++}
+ 
+ /**
+  * tomoyo_del_name - Delete members in "struct tomoyo_name".
+@@ -494,15 +521,18 @@ static void tomoyo_collect_entry(void)
+ 			}
+ 		}
+ 	}
+-	for (i = 0; i < TOMOYO_MAX_HASH; i++) {
+-		struct list_head *list = &tomoyo_name_list[i];
++	id = TOMOYO_ID_CONDITION;
++	for (i = 0; i < TOMOYO_MAX_HASH + 1; i++) {
++		struct list_head *list = !i ?
++			&tomoyo_condition_list : &tomoyo_name_list[i - 1];
+ 		struct tomoyo_shared_acl_head *ptr;
+ 		list_for_each_entry(ptr, list, list) {
+ 			if (atomic_read(&ptr->users))
+ 				continue;
+-			if (!tomoyo_add_to_gc(TOMOYO_ID_NAME, &ptr->list))
++			if (!tomoyo_add_to_gc(id, &ptr->list))
+ 				goto unlock;
+ 		}
++		id = TOMOYO_ID_NAME;
+ 	}
+ unlock:
+ 	tomoyo_read_unlock(idx);
+@@ -557,6 +587,9 @@ static bool tomoyo_kfree_entry(void)
+ 		case TOMOYO_ID_MANAGER:
+ 			tomoyo_del_manager(element);
+ 			break;
++		case TOMOYO_ID_CONDITION:
++			tomoyo_del_condition(element);
++			break;
+ 		case TOMOYO_ID_NAME:
+ 			/*
+ 			 * Thirdly, defer until all "struct tomoyo_io_buffer"
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -138,7 +138,7 @@ char *tomoyo_read_token(struct tomoyo_ac
+  * The @src is updated to point the first character after the value
+  * on success.
+  */
+-static u8 tomoyo_parse_ulong(unsigned long *result, char **str)
++u8 tomoyo_parse_ulong(unsigned long *result, char **str)
+ {
+ 	const char *cp = *str;
+ 	char *ep;
