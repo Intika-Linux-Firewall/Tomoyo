@@ -5,13 +5,13 @@ request. Hooks are in the last patch of this pathset.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/audit.c     |  111 ++++++++++++++
+ security/tomoyo/audit.c     |  111 +++++++++++++-
  security/tomoyo/common.c    |   48 ++++++
- security/tomoyo/common.h    |   45 +++++-
- security/tomoyo/condition.c |  327 +++++++++++++++++++++++++++++++++++++++++++-
+ security/tomoyo/common.h    |   45 +++++
+ security/tomoyo/condition.c |  337 +++++++++++++++++++++++++++++++++++++++++++-
  security/tomoyo/domain.c    |   46 ++++++
  security/tomoyo/gc.c        |   12 +
- 6 files changed, 579 insertions(+), 10 deletions(-)
+ 6 files changed, 589 insertions(+), 10 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/audit.c
 +++ security-testing-2.6/security/tomoyo/audit.c
@@ -204,8 +204,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				case TOMOYO_ARGV_ENTRY:
 +					tomoyo_io_printf(head,
 +							 "exec.argv[%lu]%s=\"",
-+							 argv->index,
-+							 argv->is_not ? "!" : "");
++							 argv->index, argv->
++							 is_not ? "!" : "");
 +					tomoyo_set_string(head,
 +							  argv->value->name);
 +					tomoyo_set_string(head, "\"");
@@ -771,7 +771,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		/* Check string expressions. */
  		if (right == TOMOYO_NAME_UNION) {
  			const struct tomoyo_name_union *ptr = names_p++;
-@@ -702,5 +1018,8 @@ bool tomoyo_condition(struct tomoyo_requ
+@@ -524,6 +840,16 @@ bool tomoyo_condition(struct tomoyo_requ
+ 			case TOMOYO_MODE_OTHERS_EXECUTE:
+ 				value = S_IXOTH;
+ 				break;
++			case TOMOYO_EXEC_ARGC:
++				if (!bprm)
++					goto out;
++				value = bprm->argc;
++				break;
++			case TOMOYO_EXEC_ENVC:
++				if (!bprm)
++					goto out;
++				value = bprm->envc;
++				break;
+ 			case TOMOYO_NUMBER_UNION:
+ 				/* Fetch values later. */
+ 				break;
+@@ -702,5 +1028,8 @@ bool tomoyo_condition(struct tomoyo_requ
  out:
  		return false;
  	}
