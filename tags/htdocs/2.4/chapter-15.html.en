@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 15</title>
+<title>TOMOYO Linux 2.4.x : The Official Guide : Chapter 15</title>
 </head>
 
 <body>
@@ -53,9 +53,9 @@
 <img src="media/kernel_namespace.png" alt="kernel_namespace.png" title="Default namespace" width="400" height="300">
 <img src="media/sshd_namespace.png" alt="sshd_namespace.png" title="Namespace for SSH session" width="400" height="300">
 
-<p>Although each namespace has its own set of domain policy, exception policy and profiles, the policy for all namespaces are still contained within the same files within /proc/ccs/ and /etc/ccs/policy/ for simplicity and compatibility reasons. In other words, the policy for each namespace is not split into separate files.</p>
+<p>Although each namespace has its own set of domain policy, exception policy and profiles, the policy for all namespaces are still contained within the same files within /sys/kernel/security/tomoyo/ and /etc/tomoyo/policy/ for simplicity and compatibility reasons. In other words, the policy for each namespace is not split into separate files.</p>
 
-<p>To specify namespace in /proc/ccs/exception_policy and /proc/ccs/profile , add "&lt;$namespace&gt;" prefix to each line. An example of /proc/ccs/profile containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like below:</p>
+<p>To specify namespace in /sys/kernel/security/tomoyo/exception_policy and /sys/kernel/security/tomoyo/profile , add "&lt;$namespace&gt;" prefix to each line. An example of /sys/kernel/security/tomoyo/profile containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like below:</p>
 
 <pre>
 &lt;kernel&gt; PROFILE_VERSION=20100903
@@ -88,7 +88,7 @@
 
 <p>For compatibility, "&lt;kernel&gt;" prefix can be omitted when specifying "&lt;kernel&gt;" namespace.</p>
 
-<p>To specify namespace in /proc/ccs/domain_policy , no special care needs to be taken. This is because domain policy consists with blocks where a block starts with a domainname declaration line and the domain name contains namespace which the domain belongs to. An example of /proc/ccs/domain_policy containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like this:</p>
+<p>To specify namespace in /sys/kernel/security/tomoyo/domain_policy , no special care needs to be taken. This is because domain policy consists with blocks where a block starts with a domainname declaration line and the domain name contains namespace which the domain belongs to. An example of /sys/kernel/security/tomoyo/domain_policy containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like this:</p>
 
 <pre>
 &lt;kernel&gt;
@@ -142,20 +142,20 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <h3><a name="15.4">15.4. How to use namespace from policy editor?</a></h3>
 
-<p><code>ccs-editpolicy</code> supports new command line option <strong>&lt;$namespace&gt;</strong> which sets the initial namespace to edit to &lt;$namespace&gt; namespace. The default namespace is "&lt;kernel&gt;". Be careful not to typo the namespace. Entries will not be shown as you expect if you typo, for <code>ccs-editpolicy</code> filters entries based on the namespace currently editing.</p>
+<p><code>tomoyo-editpolicy</code> supports new command line option <strong>&lt;$namespace&gt;</strong> which sets the initial namespace to edit to &lt;$namespace&gt; namespace. The default namespace is "&lt;kernel&gt;". Be careful not to typo the namespace. Entries will not be shown as you expect if you typo, for <code>tomoyo-editpolicy</code> filters entries based on the namespace currently editing.</p>
 
 <p>Regarding &lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; screen and &lt;&lt;&lt; Profile Editor &gt;&gt;&gt; screen, the name of namespace currently editing is shown on the third line of the screen as with the name of domainname currently selected is shown on the third line of the &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; screen. You can jump to &lt;&lt;&lt; Namespace Selector &gt;&gt;&gt; screen by pressing "n" key after pressing "w" key in order to select namespace to edit.</p>
 
-<p>Although it is possible to create a new namespace and create profiles for the new namespace and add entries using <code>ccs-editpolicy</code>, it is recommended to use <code>ccs-loadpolicy</code> for your convenience. For example, to clone profile for "&lt;kernel&gt;" namespace in order to use for "&lt;/usr/sbin/httpd&gt;" namespace, you can use an <code>awk</code> script like below:</p>
+<p>Although it is possible to create a new namespace and create profiles for the new namespace and add entries using <code>tomoyo-editpolicy</code>, it is recommended to use <code>tomoyo-loadpolicy</code> for your convenience. For example, to clone profile for "&lt;kernel&gt;" namespace in order to use for "&lt;/usr/sbin/httpd&gt;" namespace, you can use an <code>awk</code> script like below:</p>
 
 <pre class="command">
-# awk ' { print "&lt;/usr/sbin/httpd&gt; " $0 } ' /etc/ccs/profile.conf | ccs-loadpolicy -p
+# awk ' { print "&lt;/usr/sbin/httpd&gt; " $0 } ' /etc/tomoyo/profile.conf | tomoyo-loadpolicy -p
 </pre>
 
-<p>If /etc/ccs/profile.conf already contains the "&lt;kernel&gt;" prefix, the script will look like below:</p>
+<p>If /etc/tomoyo/profile.conf already contains the "&lt;kernel&gt;" prefix, the script will look like below:</p>
 
 <pre class="command">
-# grep '^&lt;kernel&gt; ' /etc/ccs/profile.conf | awk ' { $1 = "&lt;/usr/sbin/httpd&gt; "; print $0 } ' | ccs-loadpolicy -p
+# grep '^&lt;kernel&gt; ' /etc/tomoyo/profile.conf | awk ' { $1 = "&lt;/usr/sbin/httpd&gt; "; print $0 } ' | tomoyo-loadpolicy -p
 </pre>
 
 <p>Note that the purpose of namespace is to allow having independent set of domain policy, exception policy and profile. You don't have to clone from existing files.</p>
@@ -171,7 +171,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
 <li>Although you can develop policy for specific applications independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "reset_domain" directive will not be useful</strong> unless one of "auto_domain_transition=" part in the conditional ACL, "task auto_domain_transition" directive or "task manual_domain_transition" directive is specified.</li>
-<li>Memory allocated for creating namespaces cannot be released just like memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /proc/ccs/stat interface.</li>
+<li>Memory allocated for creating namespaces cannot be released just like memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /sys/kernel/security/tomoyo/stat interface.</li>
 </ul>
 
 </div><!-- documentation -->

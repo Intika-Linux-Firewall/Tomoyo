@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : 導入ガイド : Chapter 8</title>
+<title>TOMOYO Linux 2.4.x : 導入ガイド : Chapter 8</title>
 </head>
 
 <body>
@@ -40,10 +40,10 @@
 
 <h3><a name="8.1">8.1. プログラムを登録する</a></h3>
 
-<p><a href="policy-specification/proc-interface.html.ja">/proc/ccs/</a> インタフェースを経由してポリシーを変更することができるプログラムやドメインは、 <a href="policy-specification/proc-interface.html.ja#manager">/proc/ccs/manager</a> インタフェースに登録されている必要があります。以下の例では /usr/sbin/ccs-editpolicy を登録しています：</p>
+<p><a href="policy-specification/proc-interface.html.ja">/sys/kernel/security/tomoyo/</a> インタフェースを経由してポリシーを変更することができるプログラムやドメインは、 <a href="policy-specification/proc-interface.html.ja#manager">/sys/kernel/security/tomoyo/manager</a> インタフェースに登録されている必要があります。以下の例では /usr/sbin/tomoyo-editpolicy を登録しています：</p>
 
 <pre class="command">
-# echo "/usr/sbin/ccs-editpolicy" | /usr/sbin/ccs-loadpolicy -m
+# echo "/usr/sbin/tomoyo-editpolicy" | /usr/sbin/tomoyo-loadpolicy -m
 </pre>
 
 <h3><a name="8.2">8.2. 非 root ユーザによる変更を認める</a></h3>
@@ -51,30 +51,30 @@
 <p>デフォルトでは、ユーザＩＤと実効ユーザＩＤの両方が０（つまり root ユーザ）のプロセスだけがポリシーを変更することができます。$USER ユーザによるポリシーの変更を認めたい場合には、以下のコマンドを実行してください：</p>
 
 <pre class="command">
-# echo "manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R $USER /proc/ccs/
+# echo "manage_by_non_root" | /usr/sbin/tomoyo-loadpolicy -m
+# chown -R $USER /sys/kernel/security/tomoyo/
 </pre>
 
 <p>デフォルト状態に戻すには以下のコマンドを実行してください：</p>
 
 <pre class="command">
-# echo "delete manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R root /proc/ccs/
+# echo "delete manage_by_non_root" | /usr/sbin/tomoyo-loadpolicy -m
+# chown -R root /sys/kernel/security/tomoyo/
 </pre>
 
-<p>もし、特定のユーザに対してポリシーの変更を認めたい場合、 <code>/etc/ccs/ccs-post-init</code> を使うことができます。このファイルが存在する場合、起動時に <code>/sbin/ccs-init</code> から実行されます。 tomoyo ユーザによる変更を認めたい場合、以下の内容で <code>/etc/ccs/ccs-post-init</code> を作成してください：</p>
+<p>もし、特定のユーザに対してポリシーの変更を認めたい場合、 <code>/etc/tomoyo/tomoyo-post-init</code> を使うことができます。このファイルが存在する場合、起動時に <code>/sbin/tomoyo-init</code> から実行されます。 tomoyo ユーザによる変更を認めたい場合、以下の内容で <code>/etc/tomoyo/tomoyo-post-init</code> を作成してください：</p>
 
 <pre>
 #! /bin/sh
-echo manage_by_non_root &gt; /proc/ccs/manager
-chown -R tomoyo /proc/ccs/
+echo manage_by_non_root &gt; /sys/kernel/security/tomoyo/manager
+chown -R tomoyo /sys/kernel/security/tomoyo/
 </pre>
 
 <p>そして、このファイル実行可能にして、ポリシーディレクトリ以下を tomoyo ユーザが読み書きできるようにしてください：</p>
 
 <pre class="command">
-# chmod 755 /etc/ccs/ccs-post-init
-# chown -R tomoyo /etc/ccs/
+# chmod 755 /etc/tomoyo/tomoyo-post-init
+# chown -R tomoyo /etc/tomoyo/
 </pre>
 
 <p>例外として、学習モード用のプロファイルが割り当てられているドメインに属しているプロセスは、 <a href="chapter-9.html.ja#9.2.3">max_learning_entry</a> で指定されている数を上限として<a href="policy-specification/proc-interface.html.ja#self_domain">そのプロセスが属しているドメイン</a>に対してアクセス許可を追加していくことができます。</p>

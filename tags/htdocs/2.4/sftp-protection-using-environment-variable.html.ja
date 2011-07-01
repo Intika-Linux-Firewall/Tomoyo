@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : 環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</title>
+<title>TOMOYO Linux 2.4.x : 環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</title>
 </head>
 
 <body>
@@ -91,18 +91,18 @@ SendEnv sftp_type
 <p><a href="chapter-3.html.ja">TOMOYO Linux をインストール</a>してから、以下のコマンドを実行して初期設定を行ってください。</p>
 
 <pre class="command">
-# /usr/lib/ccs/init_policy
+# /usr/lib/tomoyo/init_policy
 </pre>
 
 <p>その後、 TOMOYO Linux カーネルで再起動する前に以下の操作を行ってください。</p>
 
-<p>/bin/sftp-shell が実行された場合にはドメイン遷移が初期化されるようにするために、 /etc/ccs/exception_policy.conf に以下の内容を追加します。</p>
+<p>/bin/sftp-shell が実行された場合にはドメイン遷移が初期化されるようにするために、 /etc/tomoyo/exception_policy.conf に以下の内容を追加します。</p>
 
 <pre>
 initialize_domain /bin/sftp-shell from any
 </pre>
 
-<p>ＳＦＴＰコンテンツ用ディレクトリ以下をまとめて指定できるようにするために、 /etc/ccs/exception_policy.conf に以下の内容を追加します。</p>
+<p>ＳＦＴＰコンテンツ用ディレクトリ以下をまとめて指定できるようにするために、 /etc/tomoyo/exception_policy.conf に以下の内容を追加します。</p>
 
 <pre>
 path_group SFTP_DIRS /var/sftp/\{\*\}/
@@ -110,7 +110,7 @@ path_group SFTP_FILES /var/sftp/\{\*\}/\*
 path_group SFTP_FILES /var/sftp/\*
 </pre>
 
-<p>ＳＦＴＰコンテンツの参照と更新ができるようにするために、 /etc/ccs/domain_policy.conf に以下の内容を追加します。</p>
+<p>ＳＦＴＰコンテンツの参照と更新ができるようにするために、 /etc/tomoyo/domain_policy.conf に以下の内容を追加します。</p>
 
 <pre>
 &lt;kernel&gt; /bin/sftp-shell
@@ -137,7 +137,7 @@ file truncate @SFTP_FILES
 <p>学習モードに切り替えます。</p>
 
 <pre class="command">
-# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /bin/sftp-shell'
+# /usr/sbin/tomoyo-setprofile -r 1 '&lt;kernel&gt; /bin/sftp-shell'
 </pre>
 
 <p>環境変数 sftp_type に ro-sftp を設定して、クライアントから sftp でアクセスしてください。このページでは、サーバのホスト名を server とします。</p>
@@ -161,13 +161,13 @@ $ sftp sftp@server
 <p>強制モードに切り替えます。</p>
 
 <pre class="command">
-# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /bin/sftp-shell'
+# /usr/sbin/tomoyo-setprofile -r 3 '&lt;kernel&gt; /bin/sftp-shell'
 </pre>
 
 <p>ポリシーを保存します。</p>
 
 <pre class="command">
-# /usr/sbin/ccs-savepolicy
+# /usr/sbin/tomoyo-savepolicy
 </pre>
 
 <h3>説明</h3>

@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : ポリシー仕様 : ドメインポリシー構文</title>
+<title>TOMOYO Linux 2.4.x : ポリシー仕様 : ドメインポリシー構文</title>
 </head>
 
 <body>
@@ -434,7 +434,7 @@ file chroot /var/empty/sshd/
 
 <p>この機能は通常、 initrd/initramfs が使用していた / ディレクトリからハードディスクが使用する / ディレクトリへと切り替えるために１回だけ呼ばれます。この機能は通常、 TOMOYO Linux が有効にされるよりも前に呼び出されるため、このディレクティブが必要になることは滅多にありません。</p>
 
-<p>以下の例では /proc/ を新しい / ディレクトリに設定し、古い / ディレクトリを /proc/ccs/ に移動させることを許可しています：</p>
+<p>以下の例では /proc/ を新しい / ディレクトリに設定し、古い / ディレクトリを /sys/kernel/security/tomoyo/ に移動させることを許可しています：</p>
 
 <pre>
 file pivot_root proc:/ proc:/ccs/
@@ -716,9 +716,9 @@ task denied_execute_handler /bin/true
 
 <h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
 
-<p>このディレクティブは、アプリケーションがこのディレクティブで指定されたドメイン名を /proc/ccs/self_domain インタフェースに書き込むことにより、そのドメインへと遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができますが、アプリケーションからドメイン遷移を行うべきタイミングにこのインタフェースへの書き込みを行うようにアプリケーションを修正することが必要になります。</p>
+<p>このディレクティブは、アプリケーションがこのディレクティブで指定されたドメイン名を /sys/kernel/security/tomoyo/self_domain インタフェースに書き込むことにより、そのドメインへと遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができますが、アプリケーションからドメイン遷移を行うべきタイミングにこのインタフェースへの書き込みを行うようにアプリケーションを修正することが必要になります。</p>
 
-<p>以下の例では、 /proc/ccs/self_domain に対して &lt;kernel&gt; //apache /www.tomoyo00.com というドメイン名を書き込むことにより、そのドメインへと遷移することを示しています：</p>
+<p>以下の例では、 /sys/kernel/security/tomoyo/self_domain に対して &lt;kernel&gt; //apache /www.tomoyo00.com というドメイン名を書き込むことにより、そのドメインへと遷移することを示しています：</p>
 
 <pre>
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
