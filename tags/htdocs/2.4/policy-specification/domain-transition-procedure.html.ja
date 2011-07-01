@@ -33,7 +33,7 @@
 <div id="documentation">
 
 <div id="navheader">
-<p><a href="proc-interface.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="expression-rules.html.ja">&lt;次&gt;</a></p>
+<p><a href="securityfs-interface.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="expression-rules.html.ja">&lt;次&gt;</a></p>
 </div>
 
 <h2>ドメイン遷移</h2>
@@ -122,7 +122,7 @@
 
 <p>もし、ドメインに対して <a href="domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブが指定されていた場合、カレントプロセスは条件節で指定されている条件を満たした時点で自動的にそのディレクティブで指定されたドメインへと遷移します。この遷移はプログラムの実行要求時だけでなくファイルのオープンのような全てのアクセス要求時にチェックされます。</p>
 
-<p>もし、ドメインに対して <a href="domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブが指定されていた場合、カレントプロセスは <a href="proc-interface.html.ja#self_domain">/sys/kernel/security/tomoyo/self_domain</a> インタフェースに対してこのディレクティブで指定されているドメイン名を書き込むことにより、そのドメインへと遷移します。</p>
+<p>もし、ドメインに対して <a href="domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブが指定されていた場合、カレントプロセスは <a href="securityfs-interface.html.ja#self_domain">/sys/kernel/security/tomoyo/self_domain</a> インタフェースに対してこのディレクティブで指定されているドメイン名を書き込むことにより、そのドメインへと遷移します。</p>
 
 <p>もし、ドメインポリシーのアクセス許可に auto_domain_transition="name" という条件が指定されており、カレントプロセスがそのアクセス許可に一致するアクセス要求を行った場合、カレントプロセスは「現在のドメイン名」と「 name で指定されたパス名」とを連結したドメイン名を持つドメインへと遷移します。この遷移は、アクセス許可のチェック時点で行われるものであるため、アクセス要求がアクセス許可に一致することによりドメイン遷移が発生した後にアクセス要求が失敗する可能性があります。注意して利用してください。</p>
 
@@ -135,7 +135,7 @@
 <table>
 <tr>
 <td class="docs-previous">
-<a href="proc-interface.html.ja">前</a>
+<a href="securityfs-interface.html.ja">前</a>
 </td>
 <td class="docs-index">
 <a href="index.html.ja">目次</a>
