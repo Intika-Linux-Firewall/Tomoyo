@@ -209,15 +209,15 @@ allow_ioctl /dev/console @ANY_NUMBER
 
 <p>Apache は（例えば <code>/bin/sh</code> <code>/usr/bin/perl</code> <code>/usr/lib/sendmail</code> のような）外部のプログラムを実行したことにより、 Apache に子ドメインや孫ドメインが作成されているかもしれません。 Apache 本体のドメインだけでなくその子孫ドメインのプロファイル番号も変更するのを忘れないようにしてください。</p>
 
-<img src="media/editpolicy-httpd-profile2.png" alt="editpolicy-httpd-profile2.png" width="675" height="375">
+<img src="media/editpolicy-httpd-profile2.png" alt="editpolicy-httpd-profile2.png" title="Apache executed external programs." width="675" height="375">
 
 <p>q キーを押してポリシーエディタを終了してください。その後、 Apache に対して許可したい操作を再度行ってください：</p>
 
-<img src="media/operation-permissive.png" alt="operation-permissive.png" width="575" height="475">
+<img src="media/operation-permissive.png" alt="operation-permissive.png" title="Check that Apache has appropriate permissions." width="575" height="475">
 
 <p>もしプロファイルで PREFERENCE::permissive={ verbose=yes } と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと WARNING: というメッセージがコンソールに表示されます。</p>
 
-<p><img src="media/permissive-warning.png" alt="permissive-warning.png" width="720" height="400"></p>
+<p><img src="media/permissive-warning.png" alt="permissive-warning.png" title="Warning messages are printed." width="720" height="400"></p>
 
 </div><!-- documentation -->
 
