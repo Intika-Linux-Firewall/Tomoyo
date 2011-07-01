@@ -24,7 +24,7 @@
 <li id="tomoyo-links"><a href="../../links.html.ja" title="Links">リンク</a></li>
 </ul>
 <ul id="switch-language">
-<li id="tomoyo-switch-language"><a href="proc-interface.html.en" title="Go to English page">English page</a></li>
+<li id="tomoyo-switch-language"><a href="securityfs-interface.html.en" title="Go to English page">English page</a></li>
 </ul>
 </div>
 
@@ -78,7 +78,6 @@
 <ul>
 <li>プロセスの情報を取得するための <a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a></li>
 <li>特定のドメインあるいは特定のプロセスＩＤの属するドメインのアクセス許可だけを選択するための <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></li>
-<li>自分のドメインを変更するための <a href="#self_domain">/sys/kernel/security/tomoyo/self_domain</a></li>
 </ul>
 
 <p>対応する設定ファイルは /etc/tomoyo/manager.conf です。</p>
@@ -113,9 +112,7 @@
 
 <h3><a name="self_domain">/sys/kernel/security/tomoyo/self_domain</a></h3>
 
-<p>この読み書きインタフェースは、呼び出し元プロセスが属しているドメイン名を保持しています。</p>
-
-<p>このインタフェースに対して <a href="domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブで指定されているドメイン名を書き込むことにより、そのドメインへと遷移することができます。</p>
+<p>この読み込み専用インタフェースは、呼び出し元プロセスが属しているドメイン名を保持しています。</p>
 
 <h3><a name="stat">/sys/kernel/security/tomoyo/stat</a></h3>
 
@@ -163,12 +160,6 @@ Total memory used:                        201120
 
 <p>このインタフェースは、主に <a href="../man-pages/tomoyo-setprofile.html.ja">tomoyo-setprofile</a> が利用します。</p>
 
-<h3><a name=".execute_handler">/sys/kernel/security/tomoyo/.execute_handler</a></h3>
-
-<p>この読み書きインタフェースは、 execute_handler として動作しているプロセスからのみオープンすることができます。内容は <a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a> と同一です。</p>
-
-<p>このインタフェースは、 <a href="domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> および <a href="domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブで指定されたプログラムが、コマンドラインに与えられた引数がカーネルから渡された信頼できるものであるかどうかを判断するために、 execute_handler として動作していることを確認できるようにするために提供されています。</p>
-
 <h3><a name=".process_status">/sys/kernel/security/tomoyo/.process_status</a></h3>
 
 <p>この読み書きインタフェースは、現在動作中のプロセスが属しているドメイン名とそのドメインに割り当てられているプロファイル番号を保持しています。</p>
@@ -206,7 +197,7 @@ Total memory used:                        201120
 </div>
 
 <div id="footer">
-<p class="language">Go to <a href="proc-interface.html.en">English page</a>.</p>
+<p class="language">Go to <a href="securityfs-interface.html.en">English page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
