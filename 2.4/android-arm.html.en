@@ -92,11 +92,9 @@ make
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O tomoyo-tools-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz'
-wget -O tomoyo-tools-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz.asc'
-gpg tomoyo-tools-1.8.2-20110626.tar.gz.asc
-tar -zxf tomoyo-tools-1.8.2-20110626.tar.gz
-cd ccstools
+wget -O tomoyo-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/2.4.x/tomoyo-tools.tar.gz?root=tomoyo&amp;view=tar'
+tar -zxf tomoyo-tools.tar.gz
+cd tomoyo-tools
 make
 sudo make install
 </pre>
@@ -117,7 +115,7 @@ echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/tomoyo/tools/patternize.
 cd $ANDROID_HOME/tmp/
 wget -O agcc http://plausible.org/andy/agcc
 chmod 755 agcc
-./agcc -o tomoyo-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/tomoyo-editpolicy-agent.c
+./agcc -o tomoyo-editpolicy-agent $ANDROID_HOME/tmp/tomoyo-tools/usr_lib_tomoyo/tomoyo-editpolicy-agent.c
 chmod 700 tomoyo-editpolicy-agent
 </pre>
 
@@ -127,30 +125,27 @@ chmod 700 tomoyo-editpolicy-agent
 
 <ul>
 <li>Use profile 1 (which is a profile for "learning mode") to all domains.</li>
-<li>Automatically transit to "&lt;kernel&gt; //./system-user" domain when the current process's UID or GID has changed from 0 to 1 to 9999.</li>
-<li>Automatically transit to "&lt;kernel&gt; //./app-user" domain when the current process's UID or GID has changed from 0 to 10000 or above.</li>
 <li>Give some permission from the beginning.</li>
-<li>Do not distinguish individual Android applications.</li>
 <li>Only /sbin/tomoyo-editpolicy-agent is allowed to modify policy via /sys/kernel/security/tomoyo/ interface.</li>
 </ul>
 
-<p>An example with conditions above is shown below. But it would be too loose to give write access to ANY_PATHNAME to "&lt;kernel&gt; //./app-user" domain. When applying to real devices, you should use more strict permissions such as forbidding write access to /system/ directory.</p>
+<p>An example with conditions above is shown below.</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/policy/
 cat &gt; profile.conf &lt;&lt; "EOF"
 PROFILE_VERSION=20100903
 0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0  }
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
 0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
 1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0  }
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
 1-CONFIG={ mode=learning grant_log=no reject_log=yes }
 2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0  }
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
 2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
 3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0  }
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 EOF
 cat &gt; exception_policy.conf &lt;&lt; "EOF"
@@ -189,57 +184,11 @@ acl_group 0 misc env qemu
 acl_group 0 misc env RANDOM
 acl_group 0 misc env SHELL
 acl_group 0 misc env TERM
-acl_group 0 task auto_domain_transition &lt;kernel&gt; //./app-user task.gid=10000-4294967295
-acl_group 0 task auto_domain_transition &lt;kernel&gt; //./app-user task.uid=10000-4294967295
-acl_group 0 task auto_domain_transition &lt;kernel&gt; //./system-user task.gid=1-9999
-acl_group 0 task auto_domain_transition &lt;kernel&gt; //./system-user task.uid=1-9999
-acl_group 1 file getattr @ANY_PATHNAME
-acl_group 1 file ioctl @ANY_PATHNAME 0-0xFFFFFFFF
-acl_group 1 file read /dev/urandom
-acl_group 1 file read /system/bin/linker
-acl_group 1 file read /system/lib/lib\*.so
-acl_group 1 misc env _
-acl_group 1 misc env ANDROID_ASSETS
-acl_group 1 misc env ANDROID_BOOTLOGO
-acl_group 1 misc env ANDROID_DATA
-acl_group 1 misc env ANDROID_PROPERTY_WORKSPACE
-acl_group 1 misc env ANDROID_ROOT
-acl_group 1 misc env ANDROID_SOCKET_\*
-acl_group 1 misc env ASEC_MOUNTPOINT
-acl_group 1 misc env BOOTCLASSPATH
-acl_group 1 misc env EXTERNAL_STORAGE
-acl_group 1 misc env HOME
-acl_group 1 misc env HOSTNAME
-acl_group 1 misc env LD_LIBRARY_PATH
-acl_group 1 misc env LOOP_MOUNTPOINT
-acl_group 1 misc env MKSH
-acl_group 1 misc env PATH
-acl_group 1 misc env PS1
-acl_group 1 misc env RANDOM
-acl_group 1 misc env SHELL
-acl_group 1 misc env TERM
-acl_group 1 misc env USER
 EOF
 cat &gt; domain_policy.conf &lt;&lt; "EOF"
 &lt;kernel&gt;
 use_profile 1
 use_group 0
-
-&lt;kernel&gt; //./system-user
-use_profile 1
-use_group 1
-
-file read/write/unlink/rmdir/truncate/symlink @ANY_PATHNAME task.euid=1-9999 task.egid=1-9999
-file create/mkdir/mkfifo/mksock/chmod @ANY_PATHNAME 0-0777 task.euid=1-9999 task.egid=1-9999
-file link/rename @ANY_PATHNAME @ANY_PATHNAME task.euid=1-9999 task.egid=1-9999
-
-&lt;kernel&gt; //./app-user
-use_profile 1
-use_group 1
-
-file read/write/unlink/rmdir/truncate/symlink @ANY_PATHNAME task.euid=10000-4294967295 task.egid=10000-4294967295
-file create/mkdir/mkfifo/mksock/chmod @ANY_PATHNAME 0-0777 task.euid=10000-4294967295 task.egid=10000-4294967295
-file link/rename @ANY_PATHNAME @ANY_PATHNAME task.euid=10000-4294967295 task.egid=10000-4294967295
 EOF
 echo /sbin/tomoyo-editpolicy-agent &gt; manager.conf
 echo &gt; stat.conf
@@ -262,13 +211,8 @@ ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common-b0d93fb/
-wget -O tomoyo-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz'
-wget -O tomoyo-patch-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz.asc'
-gpg tomoyo-patch-1.8.2-20110626.tar.gz.asc
-tar -zxf tomoyo-patch-1.8.2-20110626.tar.gz
-patch -p1 &lt; patches/tomoyo-patch-2.6.29-android-goldfish.diff
-sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
-cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
+sed -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
+cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
 </pre>
 
 <p>Compile the kernel.</p>
@@ -296,7 +240,7 @@ cp -p system.img ramdisk.img userdata.img $ANDROID_IMG
 cd $ANDROID_IMG/tmp/
 zcat ../ramdisk.img | cpio -id
 echo &gt;&gt; init.rc
-echo 'service ccs_agent /sbin/tomoyo-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
+echo 'service tomoyo_agent /sbin/tomoyo-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
 echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc
 cp -p $ANDROID_HOME/tmp/tomoyo-editpolicy-agent sbin/
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
@@ -364,7 +308,7 @@ cd $ANDROID_HOME/tmp/policy/
 <p>Run below commands to update policy which will be embedded into the kernel.</p>
 
 <pre class="command">
-cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/common-b0d93fb/security/ccsecurity/policy/
+cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/common-b0d93fb/security/tomoyo/policy/
 </pre>
 
 <p>Recompile the Android kernel.</p>

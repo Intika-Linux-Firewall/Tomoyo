@@ -274,14 +274,14 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 <h4>! マークが表示されているドメインについて</h4>
 
 <p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> または <a href="policy-specification/exception-policy-syntax.html.ja#keep_domain">keep_domain</a> ディレクティブが指定されていることにより、このドメインへ到達することができないことを示しています。<br>
-! マークが付いているドメインは、 <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブまたは auto_domain_transition= 条件で参照されていない限り、削除して大丈夫です。</p>
+! マークが付いているドメインは、削除して大丈夫です。</p>
 
 <img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400">
 
 <h4>* マークが表示されているドメインについて</h4>
 
 <p><a href="policy-specification/exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> ディレクティブにより複数のドメインからこのドメインへと遷移する可能性があることを示しています。<br>
-このドメインに * マークが表示されていない場合は、このドメインが <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブにより指定されない限り、このドメインの親ドメインからのみこのドメインへと遷移します。</p>
+このドメインに * マークが表示されていない場合は、このドメインの親ドメインからのみこのドメインへと遷移します。</p>
 
 <img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400">
 
@@ -305,8 +305,7 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 
 <h4>ドメイン名が ( ) で囲まれたドメインについて</h4>
 
-<p>このドメインが定義されていないことを示しています。この行はツリーのインデントを崩さないようにするために表示されます。<br>
-<a href="policy-specification/domain-policy-syntax.html.ja#task_auto_domain_transition">task auto_domain_transition</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブによりプロセスが直接子孫ドメインへとドメイン遷移する場合には、親ドメインを定義する必要はありません。</p>
+<p>このドメインが定義されていないことを示しています。この行はツリーのインデントを崩さないようにするために表示されます。</p>
 
 <img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400">
 

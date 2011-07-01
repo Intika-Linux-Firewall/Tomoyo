@@ -60,29 +60,29 @@
 <pre>
 &lt;kernel&gt; PROFILE_VERSION=20100903
 &lt;kernel&gt; 0-COMMENT=-----Disabled Mode-----
-&lt;kernel&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
 &lt;kernel&gt; 1-COMMENT=-----Learning Mode-----
-&lt;kernel&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 1-CONFIG={ mode=learning grant_log=no reject_log=yes }
 &lt;kernel&gt; 2-COMMENT=-----Permissive Mode-----
-&lt;kernel&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
 &lt;kernel&gt; 3-COMMENT=-----Enforcing Mode-----
-&lt;kernel&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; PROFILE_VERSION=20100903
 &lt;/usr/sbin/httpd&gt; 0-COMMENT=-----Disabled Mode-----
-&lt;/usr/sbin/httpd&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; 1-COMMENT=-----Learning Mode-----
-&lt;/usr/sbin/httpd&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 1-CONFIG={ mode=learning grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; 2-COMMENT=-----Permissive Mode-----
-&lt;/usr/sbin/httpd&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; 3-COMMENT=-----Enforcing Mode-----
-&lt;/usr/sbin/httpd&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -120,26 +120,6 @@ reset_domain /usr/sbin/sshd from any
 
 <p>no_reset_domain ディレクティブは、 reset_domain ディレクティブの効果を打ち消します。構文は <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> ディレクティブと同じです。</p>
 
-<p>また、条件付きアクセス許可の auto_domain_transition= という指定を用いて、ポリシーで許可されるのと同時に任意の名前空間へと遷移させることができます。（ただし、ポリシーで許可されたからといって、ドメイン遷移の後にそのアクセス要求が成功するという保証は存在しないため、利用する場合には注意してください。）</p>
-
-<pre>
-file pivot_root /usr/lxc/lxc1/ /usr/lxc/lxc1/oldroot/ auto_domain_transition="&lt;lxc1&gt;"
-file pivot_root /usr/lxc/lxc2/ /usr/lxc/lxc2/oldroot/ auto_domain_transition="&lt;lxc2&gt;"
-</pre>
-
-<p>reset_domain ディレクティブは指定されたプログラムのパス名と同じ名前のドメインへしか遷移できないのに対して、条件付きアクセス許可の auto_domain_transition= という指定では任意の単語のドメインへと遷移することができます。言い換えると、前者は &lt;/usr/sbin/httpd&gt; のようなドメインへしか遷移できないのに対して、後者は &lt;/usr/sbin/httpd&gt; や &lt;Apache&gt; のようなドメインへ遷移できます。</p>
-
-<p>task auto_domain_transition ディレクティブおよび task manual_domain_transition ディレクティブは、このディレクティブで指定するドメイン名の中に既に名前空間が含まれているため、何の変更もありません。そのため、以下のように指定することができます：</p>
-
-<pre>
-task manual_domain_transition &lt;Apache&gt; /www.tomoyo00.com
-task manual_domain_transition &lt;Apache&gt; /www.tomoyo01.com
-task manual_domain_transition &lt;Apache&gt; /www.tomoyo02.com
-task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
-</pre>
-
-<p>reset_domain ディレクティブおよび条件付きアクセス許可の auto_domain_transition= という指定は名前空間と同じ名前のドメインへしか遷移できないのに対して、 task auto_domain_transition ディレクティブおよび task manual_domain_transition ディレクティブは任意のドメインへと遷移することができます。言い換えると、前者は &lt;/usr/sbin/httpd&gt; のようなドメインへしか遷移できないのに対して、後者は &lt;/usr/sbin/httpd&gt; や &lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi のようなドメインへ遷移できます。</p>
-
 <h3><a name="13.4">13.4. ポリシーエディタから名前空間をどのように指定しますか？</a></h3>
 
 <p><code>tomoyo-editpolicy</code> は最初に編集する名前空間を &lt;$namespace&gt; に設定するための新しいコマンドラインオプションとして <strong>&lt;$namespace&gt;</strong> がサポートされています。デフォルトの名前空間は &lt;kernel&gt; です。名前空間の指定間違いに注意してください。 <code>tomoyo-editpolicy</code> は現在編集中の名前空間に基づいて表示内容をフィルタリングするため、指定を間違えた場合、期待したとおりにエントリが表示されなくなります。</p>
@@ -170,7 +150,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
-<li>特定の名前空間用のポリシーを、他の名前空間用のポリシーとは独立して作成することが可能ですが、明示的に指定されない限りプロセスは異なる名前空間へと遷移しません。そのため、条件付きアクセス許可の auto_domain_transition= という指定、 task auto_domain_transition ディレクティブ、 task manual_domain_transition ディレクティブの何れかを指定しない限り、<strong>（名前空間を使うのであれば、） reset_domain ディレクティブを含まない例外ポリシーは役に立たないでしょう。</strong></li>
+<li>特定の名前空間用のポリシーを、他の名前空間用のポリシーとは独立して作成することが可能ですが、明示的に指定されない限りプロセスは異なる名前空間へと遷移しません。そのため、<strong>（名前空間を使うのであれば、） reset_domain ディレクティブを含まない例外ポリシーは役に立たないでしょう。</strong></li>
 <li>プロファイルを作成するために割り当てられたメモリは解放できないのと同様に、名前空間を作成するために割り当てられたメモリは解放できません。しかし、 /sys/kernel/security/tomoyo/stat インタフェースから使用してよいメモリ量の上限を制御できるため、普通の使い方であれば問題になることは無いでしょう。</li>
 </ul>
 

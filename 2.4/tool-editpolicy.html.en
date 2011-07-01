@@ -274,14 +274,14 @@ To continue searching in a backward direction, press the "b" key.</p>
 <h4>Domains with the "!" mark</h4>
 
 <p>This means the domain is unreachable due to either <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> or <a href="policy-specification/exception-policy-syntax.html.en#keep_domain">keep_domain</a> directives.<br>
-Any domains marked with a "!" can be safely deleted, unless they are referenced by either <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> directive or <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive or auto_domain_transition= condition.</p>
+Any domains marked with a "!" can be safely deleted.</p>
 
 <img src="editpolicy/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400">
 
 <h4>Domains with the "*" mark</h4>
 
 <p>This means that multiple domains might transit to this domain due to the <a href="policy-specification/exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> directive.<br>
-If this domain does not have this mark and this domain is not specified by neither <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> nor <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directives, only the parent of this domain can transit to this domain.</p>
+If this domain does not have this mark, only the parent of this domain can transit to this domain.</p>
 
 <img src="editpolicy/initialize_domain-dest.png" alt="initialize_domain-dest.png" title="Initialization Target" width="720" height="400">
 
@@ -305,8 +305,7 @@ If this domain does not have this mark and this domain is not specified by neith
 
 <h4>Domains inside brackets</h4>
 
-<p>This means that the domain does not exist. This line is displayed for avoiding tree indent breakage.<br>
-You don't need to create parent domains if processes directly transit to descendant domains by either <a href="policy-specification/domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> or <a href="policy-specification/domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directives.</p>
+<p>This means that the domain does not exist. This line is displayed for avoiding tree indent breakage.</p>
 
 <img src="editpolicy/deleted-domain.png" alt="deleted-domain.png" title="Deleted Domain" width="720" height="400">
 
