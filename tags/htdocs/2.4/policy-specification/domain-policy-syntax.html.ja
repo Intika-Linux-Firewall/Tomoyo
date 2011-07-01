@@ -434,10 +434,10 @@ file chroot /var/empty/sshd/
 
 <p>この機能は通常、 initrd/initramfs が使用していた / ディレクトリからハードディスクが使用する / ディレクトリへと切り替えるために１回だけ呼ばれます。この機能は通常、 TOMOYO Linux が有効にされるよりも前に呼び出されるため、このディレクティブが必要になることは滅多にありません。</p>
 
-<p>以下の例では /proc/ を新しい / ディレクトリに設定し、古い / ディレクトリを /sys/kernel/security/tomoyo/ に移動させることを許可しています：</p>
+<p>以下の例では /sys/kernel/security/ を新しい / ディレクトリに設定し、古い / ディレクトリを /sys/kernel/security/tomoyo/ に移動させることを許可しています：</p>
 
 <pre>
-file pivot_root proc:/ proc:/ccs/
+file pivot_root securityfs:/ securityfs:/tomoyo/
 </pre>
 
 <p>参照：</p>
