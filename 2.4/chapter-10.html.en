@@ -57,10 +57,6 @@ Category Operations Targets Conditions
 <th><p>Meaning</p></th>
 </tr>
 <tr>
-<td><p>task.type</p></td>
-<td><p><a href="#10.4">Task type</a> of the current process</p></td>
-</tr>
-<tr>
 <td><p>task.uid</p></td>
 <td><p>UID of the current process</p></td>
 </tr>
@@ -102,7 +98,7 @@ Category Operations Targets Conditions
 </tr>
 <tr>
 <td><p>path1.type</p></td>
-<td><p><a href="#10.5">File type</a> of the first object</p></td>
+<td><p><a href="#10.4">File type</a> of the first object</p></td>
 </tr>
 <tr>
 <td><p>path1.uid</p></td>
@@ -118,7 +114,7 @@ Category Operations Targets Conditions
 </tr>
 <tr>
 <td><p>path1.perm</p></td>
-<td><p><a href="#10.6">Permissions</a> of the first object</p></td>
+<td><p><a href="#10.5">Permissions</a> of the first object</p></td>
 </tr>
 <tr>
 <td><p>path1.major</p></td>
@@ -131,12 +127,12 @@ Category Operations Targets Conditions
 <tr>
 <td><p>path1.dev_major</p></td>
 <td><p>Major device number of the first object, assuming it is a device file.<br>
-Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> conditions.</p></td>
+Can be combined with <a href="#10.4">path1.type=block</a> or <a href="#10.4">path1.type=char</a> conditions.</p></td>
 </tr>
 <tr>
 <td><p>path1.dev_minor</p></td>
 <td><p>Device minor number of the first object, assuming it is a device file.<br>
-Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> conditions.</p></td>
+Can be combined with <a href="#10.4">path1.type=block</a> or <a href="#10.4">path1.type=char</a> conditions.</p></td>
 </tr>
 <tr>
 <td><p>path1.parent.uid</p></td>
@@ -152,11 +148,11 @@ Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">pat
 </tr>
 <tr>
 <td><p>path1.parent.perm</p></td>
-<td><p><a href="#10.6">Permissions</a> of the parent directory of the first object</p></td>
+<td><p><a href="#10.5">Permissions</a> of the parent directory of the first object</p></td>
 </tr>
 <tr>
 <td><p>path2.type</p></td>
-<td><p><a href="#10.5">File type</a> of the second object</p></td>
+<td><p><a href="#10.4">File type</a> of the second object</p></td>
 </tr>
 <tr>
 <td><p>path2.uid</p></td>
@@ -172,7 +168,7 @@ Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">pat
 </tr>
 <tr>
 <td><p>path2.perm</p></td>
-<td><p><a href="#10.6">Permissions</a> of the second object</p></td>
+<td><p><a href="#10.5">Permissions</a> of the second object</p></td>
 </tr>
 <tr>
 <td><p>path2.major</p></td>
@@ -185,12 +181,12 @@ Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">pat
 <tr>
 <td><p>path2.dev_major</p></td>
 <td><p>Major device number of the second object, assuming it is a device file.<br>
-Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> conditions.</p></td>
+Can be combined with <a href="#10.4">path1.type=block</a> or <a href="#10.4">path1.type=char</a> conditions.</p></td>
 </tr>
 <tr>
 <td><p>path2.dev_minor</p></td>
 <td><p>Minor device number of the second object, assuming it is a device file.<br>
-Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">path1.type=char</a> conditions.</p></td>
+Can be combined with <a href="#10.4">path1.type=block</a> or <a href="#10.4">path1.type=char</a> conditions.</p></td>
 </tr>
 <tr>
 <td><p>path2.parent.uid</p></td>
@@ -206,7 +202,7 @@ Can be combined with <a href="#10.5">path1.type=block</a> or <a href="#10.5">pat
 </tr>
 <tr>
 <td><p>path2.parent.perm</p></td>
-<td><p><a href="#10.6">Permissions</a> of the parent directory of the second object</p></td>
+<td><p><a href="#10.5">Permissions</a> of the parent directory of the second object</p></td>
 </tr>
 <tr>
 <td><p>exec.argc</p></td>
@@ -308,30 +304,9 @@ file create /tmp/file 0644 path1.parent.uid=0
 </table>
 </div>
 
-<p>There are two exceptions. the "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" variables can be compared with only string values. The "task.type" variable can be compared with only execute_handler .</p>
+<p>There are one exception. the "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" variables can be compared with only string values.</p>
 
-<h3><a name="10.4">10.4. Types of task</a></h3>
-
-<p>The following types of task are available:</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Type of task</p></th>
-<th><p>Meaning</p></th>
-</tr>
-<tr>
-<td><p>task.type=execute_handler</p></td>
-<td><p>The current process is a program specified by either <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> or <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives.</p></td>
-</tr>
-<tr>
-<td><p>task.type!=execute_handler</p></td>
-<td><p>The current process is a program specified by neither <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> nor <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives.</p></td>
-</tr>
-</table>
-</div>
-
-<h3><a name="10.5">10.5. Types of file</a></h3>
+<h3><a name="10.4">10.4. Types of file</a></h3>
 
 <p>The following types of file are available:</p>
 
@@ -402,7 +377,7 @@ file create /tmp/file 0644 path1.parent.uid=0
 
 <p>You can apply for "path2" as well as "path1". But you cannot apply "path1.parent" and "path2.parent" because they are by definition always directories.</p>
 
-<h3><a name="10.6">10.6. Types of permission</a></h3>
+<h3><a name="10.5">10.5. Types of permission</a></h3>
 
 <p>The following types of DAC permission comparison are available:</p>
 
@@ -521,7 +496,7 @@ file create /tmp/file 0644 path1.parent.uid=0
 
 <p>You can apply for "path1.parent", "path2" and "path2.parent" as well as "path1".</p>
 
-<h3><a name="10.7">10.7. Example usage</a></h3>
+<h3><a name="10.6">10.6. Example usage</a></h3>
 
 <p>If you wish to deny login as the root user from a specific domain (e.g. "&lt;kernel&gt; /sbin/agetty /bin/login"), the following could be inserted into domain policy:</p>
 
@@ -547,8 +522,6 @@ file read /tmp/file001.tmp task.uid=path1.uid
 file execute /usr/bin/ssh exec.realpath="/usr/bin/ssh" exec.argv[0]="ssh"
 file execute /usr/bin/firefox exec.realpath="/usr/lib/firefox-3.6/firefox" exec.argv[0]="/usr/bin/firefox" exec.envc=0
 </pre>
-
-<p>If you wish to perform more complicated checks, you can use execute_handler feature described in <a href="chapter-13.html.en">Chapter 13: Judging execute requests outside of the kernel</a>.</p>
 
 </div><!-- documentation -->
 

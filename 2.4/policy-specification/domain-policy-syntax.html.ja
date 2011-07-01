@@ -694,46 +694,6 @@ use_group 2
 use_profile 3
 </pre>
 
-<h3><a name="task_auto_execute_handler">task auto_execute_handler</a></h3>
-
-<p>このディレクティブは、このディレクティブが割り当てられたドメインからのプログラムの実行要求がこのディレクティブで指定されたプログラムによって処理されるようになります。このドメインでプログラムの実行要求が発生すると、要求されたプログラムの代わりにこのディレクティブで指定されたプログラムが実行されます。そして、このディレクティブで指定されたプログラムが要求されたプログラムを実行すべきかどうかを判断し、実行すべきと判断した場合だけ要求されたプログラムが実行されます。</p>
-
-<p>以下の例では <code>/usr/sbin/check-and-exec</code> というプログラムが要求されたプログラムの代わりに実行されます：</p>
-
-<pre>
-task auto_execute_handler /usr/sbin/check-and-exec
-</pre>
-
-<h3><a name="task_denied_execute_handler">task denied_execute_handler</a></h3>
-
-<p>このディレクティブは、このディレクティブが割り当てられているドメインからのプログラムの実行要求がポリシーによって拒否された場合に、要求されたプログラムの代わりにこのディレクティブで指定されたプログラムが実行されるようになります。このディレクティブは強制モードが割り当てられている状態でポリシーによって拒否された場合のみ機能することに注意してください。ポリシーによって拒否されたとしても、強制モードではない限りプログラムの実行要求は受け入れられます。アクセス制御モードに関わらず別のプログラムを実行させたい場合には、 <a href="#task_auto_execute_handler">task auto_execute_handler</a> を（必要であれば <a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> と組み合わせて）使ってください。</p>
-
-<p>以下の例では、プログラムの実行要求がポリシーによって拒否された場合に <code>/bin/true</code> というプログラムが要求されたプログラムの代わりに実行されます：</p>
-
-<pre>
-task denied_execute_handler /bin/true
-</pre>
-
-<h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
-
-<p>このディレクティブは、アプリケーションがこのディレクティブで指定されたドメイン名を /sys/kernel/security/tomoyo/self_domain インタフェースに書き込むことにより、そのドメインへと遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができますが、アプリケーションからドメイン遷移を行うべきタイミングにこのインタフェースへの書き込みを行うようにアプリケーションを修正することが必要になります。</p>
-
-<p>以下の例では、 /sys/kernel/security/tomoyo/self_domain に対して &lt;kernel&gt; //apache /www.tomoyo00.com というドメイン名を書き込むことにより、そのドメインへと遷移することを示しています：</p>
-
-<pre>
-task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
-</pre>
-
-<h3><a name="task_auto_domain_transition">task auto_domain_transition</a></h3>
-
-<p>このディレクティブは、指定された条件に一致した場合にこのディレクティブで指定されたドメイン名に自動的に遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができます。</p>
-
-<p>以下の例では、プロセスのＵＩＤが０ではなくなった時点で &lt;kernel&gt; //non-root-session ドメインへと自動的に遷移することを示しています：</p>
-
-<pre>
-task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
-</pre>
-
 <h3><a name="quota_exceeded">quota_exceeded</a></h3>
 
 <p>このディレクティブは、ドメインに対するアクセス許可の数がプロファイルの max_learning_entry で指定された数に達したために、学習モードにおいて自動的に追加できなかったアクセス許可があることを示しています。</p>

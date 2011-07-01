@@ -694,46 +694,6 @@ use_group 2
 use_profile 3
 </pre>
 
-<h3><a name="task_auto_execute_handler">task auto_execute_handler</a></h3>
-
-<p>This directive causes executions from the domain to be handled by an external program, as specified by the directive. When an execute request is made within this domain, the specified external program is executed instead. This then decides whether it is appropriate to continue.</p>
-
-<p>This example causes the program <code>/usr/sbin/check-and-exec</code> to be launched whenever the domain makes an execute request:</p>
-
-<pre>
-task auto_execute_handler /usr/sbin/check-and-exec
-</pre>
-
-<h3><a name="task_denied_execute_handler">task denied_execute_handler</a></h3>
-
-<p>This directive causes an external program, as specified by the directive, to be launched when executions within the domain have been rejected by policy. Note that this directive takes effect only when an execute request was rejected by policy in enforcing mode. Even if an execute request was rejected by policy, the request will be accepted unless in enforcing mode. Use <a href="#task_auto_execute_handler">task auto_execute_handler</a> (optionally with <a href="exception-policy-syntax.html.en#keep_domain">keep_domain</a>) if you want to execute an external program regardless of access control mode.</p>
-
-<p>This example causes the program <code>/bin/true</code> to be launched whenever an execution request from the domain is rejected by policy:</p>
-
-<pre>
-task denied_execute_handler /bin/true
-</pre>
-
-<h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
-
-<p>This directive causes a domain transition to occur when the application writes a domain name to the "/sys/kernel/security/tomoyo/self_domain" interface. This can be used to split permissions without requiring an execution, but the application must be modified to write to the interface at the appropriate time.</p>
-
-<p>This example causes a domain transition to the "&lt;kernel&gt; //apache /www.tomoyo00.com" domain to occur when "&lt;kernel&gt; //apache /www.tomoyo00.com" is written to "/sys/kernel/security/tomoyo/self_domain" by the domain:</p>
-
-<pre>
-task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
-</pre>
-
-<h3><a name="task_auto_domain_transition">task auto_domain_transition</a></h3>
-
-<p>This directive causes a domain transition to occur when the specified conditions have been met. This can be used to split permissions without requiring an execution.</p>
-
-<p>This example causes a domain transition to the "&lt;kernel&gt; //non-root-session" domain to occur when the task UID becomes non-root:</p>
-
-<pre>
-task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
-</pre>
-
 <h3><a name="quota_exceeded">quota_exceeded</a></h3>
 
 <p>This directive indicates that the domain has failed to append an entry while in "Learning Mode" due to the "max_learning_entry" value being reached.</p>

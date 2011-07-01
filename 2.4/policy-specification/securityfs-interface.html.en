@@ -24,7 +24,7 @@
 <li id="tomoyo-links"><a href="../../links.html.en" title="Links">Links</a></li>
 </ul>
 <ul id="switch-language">
-<li id="tomoyo-switch-language"><a href="proc-interface.html.ja" title="Go to Japanese page">Japanese page</a></li>
+<li id="tomoyo-switch-language"><a href="securityfs-interface.html.ja" title="Go to Japanese page">Japanese page</a></li>
 </ul>
 </div>
 
@@ -78,7 +78,6 @@
 <ul>
 <li><a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a> for reading information of processes</li>
 <li><a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> for reading specific domain's (or specific process's) access permissions</li>
-<li><a href="#self_domain">/sys/kernel/security/tomoyo/self_domain</a> for changing the domain of the caller process</li>
 </ul>
 
 <p>The associated configuration file is "/etc/tomoyo/manager.conf".</p>
@@ -113,9 +112,7 @@
 
 <h3><a name="self_domain">/sys/kernel/security/tomoyo/self_domain</a></h3>
 
-<p>This read/write interface shows the domain of the caller process.</p>
-
-<p>This interface allows the caller to change the domain of the caller process if explicitly permitted by <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive.</p>
+<p>This read-only interface shows the domain of the caller process.</p>
 
 <h3><a name="stat">/sys/kernel/security/tomoyo/stat</a></h3>
 
@@ -163,12 +160,6 @@ Total memory used:                        201120
 
 <p>This is used primarily by the userspace tool <a href="../man-pages/tomoyo-setprofile.html.en">tomoyo-setprofile</a>.</p>
 
-<h3><a name=".execute_handler">/sys/kernel/security/tomoyo/.execute_handler</a></h3>
-
-<p>This read/write interface is openable by only processes running as an execute_handler process. The content is identical to <a href="#.process_status">"/sys/kernel/security/tomoyo/.process_status"</a>.</p>
-
-<p>This interface is intended to allow programs specified by <a href="domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> or <a href="domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives verify that they are executed as an execute_handler and arguments are passed by the kernel.</p>
-
 <h3><a name=".process_status">/sys/kernel/security/tomoyo/.process_status</a></h3>
 
 <p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
@@ -206,7 +197,7 @@ Total memory used:                        201120
 </div>
 
 <div id="footer">
-<p class="language">Go to <a href="proc-interface.html.ja">Japanese page</a>.</p>
+<p class="language">Go to <a href="securityfs-interface.html.ja">Japanese page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
