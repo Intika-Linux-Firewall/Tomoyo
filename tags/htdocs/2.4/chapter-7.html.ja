@@ -101,10 +101,6 @@ file read /bin/cat
 
 <p>２番目のログは、 <code>/usr/sbin/httpd</code> から実行された <code>/bin/sh</code> が <code>/bin/cat</code> を読み込みモードでオープンしようとして拒否されたことを示しています。これは、要求されたプログラムを実行できなかった場合そのプログラムの内容を確認するために読み込みモードでオープンしようとするという習性が <code>/bin/sh</code> にあるためです。</p>
 
-<p>もし、強制モード用のプロファイルで <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ enforcing_penalty=1 }</a> という設定が行われていた場合、強制モードでポリシー違反が発生した場合に、ポリシー違反の原因となったプロセスを 0.1 秒間スリープ状態にさせることができます。無限ループの中でポリシー違反が発生した場合に、ＣＰＵ使用率が 100% になってしまうのを回避するのに役にたちます。ハイジャックされた Samba サーバプロセスがポリシーで許可されていない要求を繰り返すことによりＣＰＵを浪費している状況について以下のムービーで紹介しています：</p>
-
-<p><object data="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
-
 <h3><a name="7.2">7.2. 通知デーモン</a></h3>
 
 <p>ポリシー違反の発生を通知するために <code>tomoyo-notifyd</code> というデーモンプログラムが提供されています。 /etc/rc.local 等から /usr/sbin/tomoyo-notifyd を起動するようにしてください。</p>
