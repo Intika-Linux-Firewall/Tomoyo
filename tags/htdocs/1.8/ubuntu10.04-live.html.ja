@@ -60,23 +60,23 @@ CD-R に焼きたくない場合、 <a href="http://www.vmware.com/jp/products/p
 
 <p>CD-R に焼いた LiveCD を CD-ROM ドライブに入れてマシンを起動するか、前節で紹介した方法で VMware Player 上で ISO イメージから起動すると、以下の画面が表示されます。</p>
 
-<p><img src="media.ubuntu10.04/startup.png" width="800" height="600" alt="スタートアップ画面" title="スタートアップ画面"></p>
+<p><img src="media.ubuntu10.04/startup.png" width="800" height="600" alt="startup.png" title="スタートアップ画面"></p>
 
 <p>言語の一覧をスクロールして「日本語」を選択することで、メニュー表示を日本語化できます。</p>
 
-<p><img src="media.ubuntu10.04/startup-ja.png" width="800" height="600" alt="スタートアップ画面（日本語）" title="スタートアップ画面（日本語）"></p>
+<p><img src="media.ubuntu10.04/startup-ja.png" width="800" height="600" alt="startup-ja.png" title="スタートアップ画面（日本語）"></p>
 
 <p>「 Ubuntu 10.04.2 LTS を試す」を選択すると、以下のようなデスクトップが表示されます。
 通常の Ubuntu LiveCD とほとんど同じですが、デスクトップに TOMOYO Linux 関連のアイコンが追加されています。</p>
 
-<p><img src="media.ubuntu10.04/desktop-ja.png" width="800" height="600" alt="デスクトップ" title="デスクトップ"></p>
+<p><img src="media.ubuntu10.04/desktop-ja.png" width="800" height="600" alt="desktop-ja.png" title="デスクトップ"></p>
 
 <h3><a name="l4">LiveCD を使ってみる</a></h3>
 
 <p>まずは「 TOMOYO Linux Policy Violation Log 」アイコンをダブルクリックしてみてください。
 以下のようなウィンドウが表示されます：</p>
 
-<p><img src="media.ubuntu10.04/reject_log.png" width="800" height="600" alt="ポリシー違反ログウィンドウ" title="ポリシー違反ログウィンドウ"></p>
+<p><img src="media.ubuntu10.04/reject_log.png" width="800" height="600" alt="reject_log.png" title="ポリシー違反ログウィンドウ"></p>
 
 <p>この画面は TOMOYO Linux のポリシーに違反したアクセスログを表示しています。
 新たなポリシー違反が発生すればすぐに表示されるようになっています。
@@ -87,7 +87,7 @@ LiveCD では何の許可も与えていないポリシーで起動されるの�
 <p>続けて、「 TOMOYO Linux Policy Editor 」アイコンをダブルクリックしてみてください。
 以下のようなウィンドウが表示されます：</p>
 
-<p><img src="media.ubuntu10.04/editpolicy.png" width="800" height="600" alt="ポリシーエディタウィンドウ" title="ポリシーエディタウィンドウ"></p>
+<p><img src="media.ubuntu10.04/editpolicy.png" width="800" height="600" alt="editpolicy.png" title="ポリシーエディタウィンドウ"></p>
 
 <p>この画面には今までにどのようなプロセスが起動されたかを木構造で表示しており、それぞれの行はドメインと呼ばれます。
 システム起動時から、実行されたすべてのプロセスがTOMOYO Linuxカーネルで監視されています。
@@ -102,15 +102,15 @@ LiveCD では何の許可も与えていないポリシーで起動されるの�
 'F' キーを押すと最下行に検索のための１行入力が表示されます。
 そこに 'gnome-terminal' と入力して Enter キーを押してください：</p>
 
-<p><img src="media.ubuntu10.04/find.png" width="800" height="600" alt="gnome-terminal を検索" title="gnome-terminal を検索"></p>
+<p><img src="media.ubuntu10.04/find.png" width="800" height="600" alt="find.png" title="gnome-terminal を検索"></p>
 
 <p>gnome-terminal の下には /usr/bin/sudo という行が存在し、さらにその下に、 /usr/bin/tail や /usr/sbin/ccs-editpolicy という行が存在するのが見てとれます：</p>
 
-<p><img src="media.ubuntu10.04/domain_gnome-terminal.png" width="800" height="600" alt="gnome-terminal のドメイン周辺" title="gnome-terminal のドメイン周辺"></p>
+<p><img src="media.ubuntu10.04/domain_gnome-terminal.png" width="800" height="600" alt="domain_gnome-terminal.png" title="gnome-terminal のドメイン周辺"></p>
 
 <p>表示されている /usr/bin/tail の行にカーソルを合わせて Enter キーを押してみましょう：</p>
 
-<p><img src="media.ubuntu10.04/acl_tail.png" width="800" height="600" alt="tail コマンドのアクセス許可" title="tail コマンドのアクセス許可"></p>
+<p><img src="media.ubuntu10.04/acl_tail.png" width="800" height="600" alt="acl_tail.png" title="tail コマンドのアクセス許可"></p>
 
 <p>それぞれの行の一番左が行番号で、その次に表示されている単語はアクセスの種類を表しています。
 file execute が実行を許可、 file write が書き込みモードでのオープンを許可、 file read が読み込みモードでのオープンを許可、 misc env が環境変数名の受け取り許可を表しています。
@@ -125,13 +125,13 @@ file execute が実行を許可、 file write が書き込みモードでのオ�
 <p>学習されたポリシーを見るだけでなく、 TOMOYO Linux によるアクセス制御を体験してみましょう。
 先ほどのポリシーエディタの画面は閉じずにそのままにしておいて、画面上端に表示されている「 Applications 」メニューから、「 Accessories 」「 Terminal 」を起動してください：</p>
 
-<p><img src="media.ubuntu10.04/menu_terminal.png" width="800" height="600" alt="端末の起動" title="端末の起動"></p>
+<p><img src="media.ubuntu10.04/menu_terminal.png" width="800" height="600" alt="menu_terminal.png" title="端末の起動"></p>
 
 <p>端末が起動できたら、先ほどのポリシーエディタの画面に戻り、ドメインの木構造が表示されている状態で、 'R' キーを押してポリシーを再読み込みしてください。
 そして、 gnome-terminal 以下の /bin/bash を探して見てください。
 検索は先ほどと同じく 'F' キーで行えます：</p>
 
-<p><img src="media.ubuntu10.04/domain_bash.png" width="800" height="600" alt="gnome-terminal から起動された bash" title="gnome-terminal から起動された bash"></p>
+<p><img src="media.ubuntu10.04/domain_bash.png" width="800" height="600" alt="domain_bash.png" title="gnome-terminal から起動された bash"></p>
 
 <p>これは先ほど起動した端末内で実行されている bash です。
 grep や id などのプログラムが bash の開始時に自動的に実行されたことにより、それらのプログラムのためのドメインが作成されています。
@@ -144,16 +144,16 @@ $ tail /etc/passwd
 $ exit
 </pre>
 
-<p><img src="media.ubuntu10.04/bash_learning.png" width="800" height="600" alt="bash に適当なコマンドを学習させる" title="bash に適当なコマンドを学習させる"></p>
+<p><img src="media.ubuntu10.04/bash_learning.png" width="800" height="600" alt="bash_learning.png" title="bash に適当なコマンドを学習させる"></p>
 
 <p>再度ポリシーエディタの画面に戻って 'R' キーを押すと、実行したプログラムが追加されていることが分かります：</p>
 
-<p><img src="media.ubuntu10.04/bash_learned.png" width="800" height="600" alt="学習結果" title="学習結果"></p>
+<p><img src="media.ubuntu10.04/bash_learned.png" width="800" height="600" alt="bash_learned.png" title="学習結果"></p>
 
 <p>この画面で、行番号の次に表示されている数字に注目してください。
 今は全ての行で '1' と表示されています：</p>
 
-<p><img src="media.ubuntu10.04/all_learning.png" width="800" height="600" alt="プロファイル番号は全部 1" title="プロファイル番号は全部 1"></p>
+<p><img src="media.ubuntu10.04/all_learning.png" width="800" height="600" alt="all_learning.png" title="プロファイル番号は全部 1"></p>
 
 <p>これはそのプロセスが動いている TOMOYO Linux のモードを表しており、プロファイル番号とよばれる数値です。
 プロファイルとして以下の４種類が定義されており、 LiveCD ではあらかじめ全て 1 （学習モード）に設定されています：</p>
@@ -171,39 +171,39 @@ $ exit
 まず、 gnome-terminal 直下の bash にカーソルを合わせてスペースキーを押します。
 すると、行番号の左側に '&amp;' マークが表示され、この行が選択された状態になります：</p>
 
-<p><img src="media.ubuntu10.04/select-1.png" width="800" height="600" alt="bash を選択した状態" title="bash を選択した状態"></p>
+<p><img src="media.ubuntu10.04/select-1.png" width="800" height="600" alt="select-1.png" title="bash を選択した状態"></p>
 
 <p>この状態で 'C' キーを押すと、 '&amp;' マークの有無がカーソル行以下全部にコピーされます：</p>
 
-<p><img src="media.ubuntu10.04/select-2.png" width="800" height="600" alt="bash 以下すべてを選択した状態" title="bash 以下すべてを選択した状態"></p>
+<p><img src="media.ubuntu10.04/select-2.png" width="800" height="600" alt="select-2.png" title="bash 以下すべてを選択した状態"></p>
 
 <p>次に、 sudo にカーソルを合わせてスペースキーを押します。すると、行番号の左側の '&amp;' マークが消えます：</p>
 
-<p><img src="media.ubuntu10.04/select-3.png" width="800" height="600" alt="sudo を選択解除した状態" title="sudo を選択解除した状態"></p>
+<p><img src="media.ubuntu10.04/select-3.png" width="800" height="600" alt="select-3.png" title="sudo を選択解除した状態"></p>
 
 <p>この状態で 'C' キーを押すと、 '&amp;' マークの有無がカーソル行以下全部にコピーされます：</p>
 
-<p><img src="media.ubuntu10.04/select-4.png" width="800" height="600" alt="sudo 以下すべてを選択解除した状態" title="sudo 以下すべてを選択解除した状態"></p>
+<p><img src="media.ubuntu10.04/select-4.png" width="800" height="600" alt="select-4.png" title="sudo 以下すべてを選択解除した状態"></p>
 
 <p>この状態で 'S' キーを押すと、ポリシーエディタの最下行にプロファイル番号を入力する 1 行入力が表示されます。
 アクセス制御を体験するために、プロファイル 3 （強制モード）を割り当てましょう：</p>
 
-<p><img src="media.ubuntu10.04/setprofile.png" width="800" height="600" alt="プロファイル番号 3 を割り当てる" title="プロファイル番号 3 を割り当てる"></p>
+<p><img src="media.ubuntu10.04/setprofile.png" width="800" height="600" alt="setprofile.png" title="プロファイル番号 3 を割り当てる"></p>
 
 <p>'&amp;' マークが付いていたドメインにプロファイル番号 3 が割り当てられました：</p>
 
-<p><img src="media.ubuntu10.04/bash_enforced.png" width="800" height="600" alt="プロファイルが 3 になった" title="プロファイルが 3 になった"></p>
+<p><img src="media.ubuntu10.04/bash_enforced.png" width="800" height="600" alt="bash_enforced.png" title="プロファイルが 3 になった"></p>
 
 <p>これでもう gnome-terminal から起動された bash に対しては強制モードで動いています。
 端末の画面で適当なコマンドを入力してみてください。
 先ほど学習モードで実行したコマンド以外は拒否されるはずです。
 以下の画面では、 head /etc/passwd の実行には成功していますが、 ls や ps コマンドの実行は拒否されています：</p>
 
-<p><img src="media.ubuntu10.04/1st_bash.png" width="800" height="600" alt="学習されたコマンド以外は拒否される" title="学習されたコマンド以外は拒否される"></p>
+<p><img src="media.ubuntu10.04/1st_bash.png" width="800" height="600" alt="1st_bash.png" title="学習されたコマンド以外は拒否される"></p>
 
 <p>また、１段階目の bash では tail /etc/passwd は拒否されますが、 bash をもう１段起動した場合には許可されます：</p>
 
-<p><img src="media.ubuntu10.04/2nd_bash.png" width="800" height="600" alt="シェルレベルによるアクセス許可の違い" title="シェルレベルによるアクセス許可の違い"></p>
+<p><img src="media.ubuntu10.04/2nd_bash.png" width="800" height="600" alt="2nd_bash.png" title="シェルレベルによるアクセス許可の違い"></p>
 
 <p>これは、 TOMOYO Linux がプロセスをその実行履歴によって区別していることに起因しています。
 ポリシーエディタを見ると、以下の２種類の bash が存在します。</p>
