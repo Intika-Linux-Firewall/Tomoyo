@@ -196,29 +196,25 @@ echo &gt; stat.conf
 
 <h3>ステップ７： Android 用カーネルの構築</h3>
 
-<p>カーネルのソースコードをダウンロードして展開します。</p>
+<p><a href="http://android.git.kernel.org/?p=kernel/common.git">http://android.git.kernel.org/?p=kernel/common.git</a> から Linux 3.1 以降のカーネルのソースコードをダウンロードして展開して、そのディレクトリへと移動します。以後、そのディレクトリを $ANDROID_HOME/tmp/common/ と表記します。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/
-wget -O kernel-source.tar.gz \
-'http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=b0d93fb0426911d0329f861f22c59f1c72cff815;sf=tgz'
-tar -zxf kernel-source.tar.gz
-cd common-b0d93fb/
+cd $ANDROID_HOME/tmp/common/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
 </pre>
 
-<p>TOMOYO Linux パッチを適用します。</p>
+<p>TOMOYO Linux を有効にします。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
-sed -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
+cd $ANDROID_HOME/tmp/common/
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
 </pre>
 
 <p>カーネルをコンパイルします。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
+cd $ANDROID_HOME/tmp/common/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>
@@ -308,13 +304,13 @@ cd $ANDROID_HOME/tmp/policy/
 <p>また、保存したポリシーをカーネル内に埋め込むには以下のように行ってください。</p>
 
 <pre class="command">
-cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/common-b0d93fb/security/tomoyo/policy/
+cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/common/security/tomoyo/policy/
 </pre>
 
 <p>カーネルを再コンパイルします。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
+cd $ANDROID_HOME/tmp/common/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>

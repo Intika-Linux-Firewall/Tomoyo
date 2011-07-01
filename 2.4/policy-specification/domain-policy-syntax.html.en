@@ -434,10 +434,10 @@ file chroot /var/empty/sshd/
 
 <p>This functionality is generally used for only once for switching the / directory from initrd/initramfs to the hard drive, which generally occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
 
-<p>This example allows the domain to use "/proc/" as a new / directory and bring the old / directory to "/sys/kernel/security/tomoyo/" directory:</p>
+<p>This example allows the domain to use "/sys/kernel/security/" as a new / directory and bring the old / directory to "/sys/kernel/security/tomoyo/" directory:</p>
 
 <pre>
-file pivot_root proc:/ proc:/ccs/
+file pivot_root securityfs:/ securityfs:/tomoyo/
 </pre>
 
 <p>See also:</p>
