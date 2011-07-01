@@ -61,18 +61,18 @@ You can use <a href="http://www.vmware.com/products/player/">VMware Player</a> i
 When boot sequence has finished, the following screen is shown.
 This LiveCD is almost the same with normal CentOS LiveCD, except that several icons are added by TOMOYO Linux:</p>
 
-<p><img src="media.centos5/desktop.png" width="800" height="600" alt="desktop" title="desktop"></p>
+<p><img src="media.centos5/desktop.png" width="800" height="600" alt="desktop.png" title="desktop"></p>
 
 <p>By double-clicking "Keyboard" icon, you can choose keyboard type you want to use:</p>
 
-<p><img src="media.centos5/kbdselect-en.png" width="800" height="600" alt="keymap select" title="keymap select"></p>
+<p><img src="media.centos5/kbdselect-en.png" width="800" height="600" alt="kbdselect-en.png" title="keymap select"></p>
 
 <h3><a name="l4">Using LiveCD</a></h3>
 
 <p>Please double-click the icon named "TOMOYO Linux Policy Violation Log".
 Then you can see the following window:</p>
 
-<p><img src="media.centos5/reject_log.png" width="800" height="600" alt="policy violation log window" title="policy violation log window"></p>
+<p><img src="media.centos5/reject_log.png" width="800" height="600" alt="reject_log.png" title="policy violation log window"></p>
 
 <p>This window is showing accesses which violate the policy of TOMOYO Linux.
 New violation accesses are showed instantly.
@@ -83,7 +83,7 @@ The logs that what process accesses which resources are shown in real time.</p>
 <p>Then, please double-click the icon named "TOMOYO Linux Policy Editor".
 Then the following window is shown:</p>
 
-<p><img src="media.centos5/editpolicy.png" width="800" height="600" alt="policy editor window" title="policy editor window"></p>
+<p><img src="media.centos5/editpolicy.png" width="800" height="600" alt="editpolicy.png" title="policy editor window"></p>
 
 <p>This window displays all invoked processes in the tree structure. Each line is called "domain".
 All invoked processes from the beginning of boot sequence are monitored by TOMOYO Linux kernel.
@@ -98,15 +98,15 @@ Please scroll down as you like and confirm the process invoked in your system.</
 Please press 'F' key, then a prompt is shown in the bottom of the window.
 Please input "gnome-terminal" and press 'Enter' key:</p>
 
-<p><img src="media.centos5/find.png" width="800" height="600" alt="find gnome-terminal" title="find gnome-terminal"></p>
+<p><img src="media.centos5/find.png" width="800" height="600" alt="find.png" title="find gnome-terminal"></p>
 
 <p>You can see that gnome-terminal invoked /usr/sbin/sudo, and /usr/sbin/sudo invoked /usr/bin/tail and /usr/sbin/ccs-editpolicy :</p>
 
-<p><img src="media.centos5/domain_gnome-terminal.png" width="800" height="600" alt="around gnome-terminal" title="around gnome-terminal"></p>
+<p><img src="media.centos5/domain_gnome-terminal.png" width="800" height="600" alt="domain_gnome-terminal.png" title="around gnome-terminal"></p>
 
 <p>Please press 'Enter' key on /usr/bin/tail :</p>
 
-<p><img src="media.centos5/acl_tail.png" width="800" height="600" alt="ACLs of tail command" title="ACLs of tail command"></p>
+<p><img src="media.centos5/acl_tail.png" width="800" height="600" alt="acl_tail.png" title="ACLs of tail command"></p>
 
 <p>The leftmost number of each line is line number, and next word is the access permission.
 "file execute" means execute, "file write" means open for writing, "file read" means open for reading, "misc env" means accepting this environment variable name.
@@ -121,13 +121,13 @@ Please browse several domains and permissions as you like.</p>
 <p>Now let's try to restrict accesses by TOMOYO Linux.
 Please keep the policy editor in background, and start "Terminal" in the "Application" menu of the top of the display (Applications -&gt; Accessories -&gt; Terminal):</p>
 
-<p><img src="media.centos5/menu_terminal.png" width="800" height="600" alt="start Terminal" title="start Terminal"></p>
+<p><img src="media.centos5/menu_terminal.png" width="800" height="600" alt="menu_terminal.png" title="start Terminal"></p>
 
 <p>After starting terminal, please go back to the policy editor and press 'R' key to reload TOMOYO Linux policy.
 Please find /bin/bash that is the child of gnome-terminal .
 To find bash, you can use 'F' key like the previous operations:</p>
 
-<p><img src="media.centos5/domain_bash.png" width="800" height="600" alt="bash executed by gnome-terminal" title="bash executed by gnome-terminal"></p>
+<p><img src="media.centos5/domain_bash.png" width="800" height="600" alt="domain_bash.png" title="bash executed by gnome-terminal"></p>
 
 <p>This bash is running in the "Terminal" window.
 There are domains of grep, id, and so on, which were automatically executed in bash start sequence.
@@ -140,16 +140,16 @@ $ tail /etc/passwd
 $ exit
 </pre>
 
-<p><img src="media.centos5/bash_learning.png" width="800" height="600" alt="let bash learn some commands" title="let bash learn some commands"></p>
+<p><img src="media.centos5/bash_learning.png" width="800" height="600" alt="bash_learning.png" title="let bash learn some commands"></p>
 
 <p>Then, please go back the policy editor and press 'R' key, and you can see that domains of executed programs are appended:</p>
 
-<p><img src="media.centos5/bash_learned.png" width="800" height="600" alt="results of learning" title="results of learning"></p>
+<p><img src="media.centos5/bash_learned.png" width="800" height="600" alt="bash_learned.png" title="results of learning"></p>
 
 <p>Please pay attention to the numbers in the next of line numbers.
 All lines are currently '1':</p>
 
-<p><img src="media.centos5/all_learning.png" width="800" height="600" alt="profile number is all 1" title="profile number is all 1"></p>
+<p><img src="media.centos5/all_learning.png" width="800" height="600" alt="all_learning.png" title="profile number is all 1"></p>
 
 <p>These numbers show the process's running mode of TOMOYO Linux, which is called profile number.
 The profile numbers of are 0-3 and all domains in this LiveCD are initially assigned profile number 1 (learning mode):</p>
@@ -167,39 +167,39 @@ Let's restrict operations using bash invoked from gnome-terminal.
 Please press Space key at bash just below gnome-terminal, and you will see '&amp;' mark appeared at the left of the line number.
 This '&amp;' is the 'selected' mark:</p>
 
-<p><img src="media.centos5/select-1.png" width="800" height="600" alt="bash is selected" title="bash is selected"></p>
+<p><img src="media.centos5/select-1.png" width="800" height="600" alt="select-1.png" title="bash is selected"></p>
 
 <p>Then, please press 'C' key, and you will get '&amp;' mark copied to all lines below:</p>
 
-<p><img src="media.centos5/select-2.png" width="800" height="600" alt="all below bash are selected" title="all below bash are selected"></p>
+<p><img src="media.centos5/select-2.png" width="800" height="600" alt="select-2.png" title="all below bash are selected"></p>
 
 <p>Then, please press Space key at sudo, and you will see '&amp;' mark disappeared:</p>
 
-<p><img src="media.centos5/select-3.png" width="800" height="600" alt="sudo is unselected" title="sudo is unselected"></p>
+<p><img src="media.centos5/select-3.png" width="800" height="600" alt="select-3.png" title="sudo is unselected"></p>
 
 <p>Then, please press 'C' key, and you will get '&amp;' mark cleared from all lines below:</p>
 
-<p><img src="media.centos5/select-4.png" width="800" height="600" alt="all below sudo are unselected" title="all below sudo are unselected"></p>
+<p><img src="media.centos5/select-4.png" width="800" height="600" alt="select-4.png" title="all below sudo are unselected"></p>
 
 <p>Then, please press 'S' key then prompt is shown in the bottom of the window.
 Please input "3" and press 'Enter' key:</p>
 
-<p><img src="media.centos5/setprofile.png" width="800" height="600" alt="set profile number 3" title="set profile number 3"></p>
+<p><img src="media.centos5/setprofile.png" width="800" height="600" alt="setprofile.png" title="set profile number 3"></p>
 
 <p>Profile number 3 is assigned to the selected domains:</p>
 
-<p><img src="media.centos5/bash_enforced.png" width="800" height="600" alt="profile changed to 3" title="profile changed to 3"></p>
+<p><img src="media.centos5/bash_enforced.png" width="800" height="600" alt="bash_enforced.png" title="profile changed to 3"></p>
 
 <p>bash invoked from gnome-terminal is already running in enforcing mode.
 Please execute some commands in the terminal.
 Commands that are not executed in learning mode will be denied.
 In the following window, "head /etc/password" is granted, but executions of "ls" and "ps" are denied:</p>
 
-<p><img src="media.centos5/1st_bash.png" width="800" height="600" alt="not learned commands are denied" title="not learned commands are denied"></p>
+<p><img src="media.centos5/1st_bash.png" width="800" height="600" alt="1st_bash.png" title="not learned commands are denied"></p>
 
 <p>In addition, first-level bash can't execute "tail /etc/passwd", but second-level bash can do it:</p>
 
-<p><img src="media.centos5/2nd_bash.png" width="800" height="600" alt="permissions are different according to shell-level" title="permissions are different according to shell-level"></p>
+<p><img src="media.centos5/2nd_bash.png" width="800" height="600" alt="2nd_bash.png" title="permissions are different according to shell-level"></p>
 
 <p>This is because TOMOYO Linux distinguishes processes according to their invocation history.
 In current policy, the following two bashes exist.</p>
