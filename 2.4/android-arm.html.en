@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : TOMOYO Linux on Android</title>
+<title>TOMOYO Linux 2.4.x : TOMOYO Linux on Android</title>
 </head>
 
 <body>
@@ -92,10 +92,10 @@ make
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O ccs-tools-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110626.tar.gz'
-wget -O ccs-tools-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110626.tar.gz.asc'
-gpg ccs-tools-1.8.2-20110626.tar.gz.asc
-tar -zxf ccs-tools-1.8.2-20110626.tar.gz
+wget -O tomoyo-tools-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz'
+wget -O tomoyo-tools-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz.asc'
+gpg tomoyo-tools-1.8.2-20110626.tar.gz.asc
+tar -zxf tomoyo-tools-1.8.2-20110626.tar.gz
 cd ccstools
 make
 sudo make install
@@ -104,9 +104,9 @@ sudo make install
 <p>Also, create default configuration in order to prepare for policy management tools.</p>
 
 <pre class="command">
-sudo /usr/lib/ccs/init_policy
-sudo chown -R `id -u` /etc/ccs/
-echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/ccs/tools/patternize.conf
+sudo /usr/lib/tomoyo/init_policy
+sudo chown -R `id -u` /etc/tomoyo/
+echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/tomoyo/tools/patternize.conf
 </pre>
 
 <h3>Step 5: Compile tools for emulator environment.</h3>
@@ -117,8 +117,8 @@ echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/ccs/tools/patternize.con
 cd $ANDROID_HOME/tmp/
 wget -O agcc http://plausible.org/andy/agcc
 chmod 755 agcc
-./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/ccs-editpolicy-agent.c
-chmod 700 ccs-editpolicy-agent
+./agcc -o tomoyo-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/tomoyo-editpolicy-agent.c
+chmod 700 tomoyo-editpolicy-agent
 </pre>
 
 <h3>Step 6: Create initial policy.</h3>
@@ -131,7 +131,7 @@ chmod 700 ccs-editpolicy-agent
 <li>Automatically transit to "&lt;kernel&gt; //./app-user" domain when the current process's UID or GID has changed from 0 to 10000 or above.</li>
 <li>Give some permission from the beginning.</li>
 <li>Do not distinguish individual Android applications.</li>
-<li>Only /sbin/ccs-editpolicy-agent is allowed to modify policy via /proc/ccs/ interface.</li>
+<li>Only /sbin/tomoyo-editpolicy-agent is allowed to modify policy via /sys/kernel/security/tomoyo/ interface.</li>
 </ul>
 
 <p>An example with conditions above is shown below. But it would be too loose to give write access to ANY_PATHNAME to "&lt;kernel&gt; //./app-user" domain. When applying to real devices, you should use more strict permissions such as forbidding write access to /system/ directory.</p>
@@ -241,7 +241,7 @@ file read/write/unlink/rmdir/truncate/symlink @ANY_PATHNAME task.euid=10000-4294
 file create/mkdir/mkfifo/mksock/chmod @ANY_PATHNAME 0-0777 task.euid=10000-4294967295 task.egid=10000-4294967295
 file link/rename @ANY_PATHNAME @ANY_PATHNAME task.euid=10000-4294967295 task.egid=10000-4294967295
 EOF
-echo /sbin/ccs-editpolicy-agent &gt; manager.conf
+echo /sbin/tomoyo-editpolicy-agent &gt; manager.conf
 echo &gt; stat.conf
 </pre>
 
@@ -262,11 +262,11 @@ ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common-b0d93fb/
-wget -O ccs-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz'
-wget -O ccs-patch-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz.asc'
-gpg ccs-patch-1.8.2-20110626.tar.gz.asc
-tar -zxf ccs-patch-1.8.2-20110626.tar.gz
-patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
+wget -O tomoyo-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz'
+wget -O tomoyo-patch-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz.asc'
+gpg tomoyo-patch-1.8.2-20110626.tar.gz.asc
+tar -zxf tomoyo-patch-1.8.2-20110626.tar.gz
+patch -p1 &lt; patches/tomoyo-patch-2.6.29-android-goldfish.diff
 sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 </pre>
@@ -296,9 +296,9 @@ cp -p system.img ramdisk.img userdata.img $ANDROID_IMG
 cd $ANDROID_IMG/tmp/
 zcat ../ramdisk.img | cpio -id
 echo &gt;&gt; init.rc
-echo 'service ccs_agent /sbin/ccs-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
+echo 'service ccs_agent /sbin/tomoyo-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
 echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc
-cp -p $ANDROID_HOME/tmp/ccs-editpolicy-agent sbin/
+cp -p $ANDROID_HOME/tmp/tomoyo-editpolicy-agent sbin/
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </pre>
 
@@ -313,7 +313,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h3>Step 11: Enable TCP port forwarding.</h3>
 
-<p>Configure port forwarding in order to communicate with the agent program running in the emulator. Below line makes TCP connection requests sent to host environment's port 10000 are forwarded to emulator environment's port 7000. As you have configures ccs-editpolicy-agent to listen at port 7000 at step 9, you can communicate with the agent program by connecting to host environment's port 10000.</p>
+<p>Configure port forwarding in order to communicate with the agent program running in the emulator. Below line makes TCP connection requests sent to host environment's port 10000 are forwarded to emulator environment's port 7000. As you have configures tomoyo-editpolicy-agent to listen at port 7000 at step 9, you can communicate with the agent program by connecting to host environment's port 10000.</p>
 
 <pre class="command">
 adb forward tcp:10000 tcp:7000
@@ -321,33 +321,33 @@ adb forward tcp:10000 tcp:7000
 
 <h3>Step 12: Operate via agent.</h3>
 
-<p>You can browse/edit policy via agent program by starting ccs-editpolicy as shown below.</p>
+<p>You can browse/edit policy via agent program by starting tomoyo-editpolicy as shown below.</p>
 
 <pre class="command">
-/usr/sbin/ccs-editpolicy 127.0.0.1:10000
+/usr/sbin/tomoyo-editpolicy 127.0.0.1:10000
 </pre>
 
-<p>You can save audit logs by starting ccs-auditd as shown below. Please be careful with disk's free space because a lot of logs are generated.</p>
+<p>You can save audit logs by starting tomoyo-auditd as shown below. Please be careful with disk's free space because a lot of logs are generated.</p>
 
 <pre class="command">
-/usr/sbin/ccs-auditd 127.0.0.1:10000
+/usr/sbin/tomoyo-auditd 127.0.0.1:10000
 </pre>
 
-<p>You can interactively handle policy violation in enforcing mode by starting ccs-queryd as shown below. Press Ctrl-C to terminate ccs-queryd.</p>
+<p>You can interactively handle policy violation in enforcing mode by starting tomoyo-queryd as shown below. Press Ctrl-C to terminate tomoyo-queryd.</p>
 
 <pre class="command">
-/usr/sbin/ccs-queryd 127.0.0.1:10000
+/usr/sbin/tomoyo-queryd 127.0.0.1:10000
 </pre>
 
-<p>You can make patterns by running ccs-patternize as show below. Edit /etc/ccs/tools/patternize.conf as needed since the rules for making patterns are defined in that file.</p>
+<p>You can make patterns by running tomoyo-patternize as show below. Edit /etc/tomoyo/tools/patternize.conf as needed since the rules for making patterns are defined in that file.</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/policy/
-/usr/sbin/ccs-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.old
-/usr/sbin/ccs-patternize &lt; domain_policy.old &gt; domain_policy.new
-/usr/sbin/ccs-diffpolicy domain_policy.old domain_policy.new &gt; domain_policy.diff
+/usr/sbin/tomoyo-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.old
+/usr/sbin/tomoyo-patternize &lt; domain_policy.old &gt; domain_policy.new
+/usr/sbin/tomoyo-diffpolicy domain_policy.old domain_policy.new &gt; domain_policy.diff
 less domain_policy.diff
-/usr/sbin/ccs-loadpolicy -d 127.0.0.1:10000 &lt; domain_policy.diff
+/usr/sbin/tomoyo-loadpolicy -d 127.0.0.1:10000 &lt; domain_policy.diff
 </pre>
 
 <h3>Step 13: Updating policy</h3>
@@ -356,9 +356,9 @@ less domain_policy.diff
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/policy/
-/usr/sbin/ccs-savepolicy -e 127.0.0.1:10000 &gt; exception_policy.conf
-/usr/sbin/ccs-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.conf
-/usr/sbin/ccs-savepolicy -p 127.0.0.1:10000 &gt; profile.conf
+/usr/sbin/tomoyo-savepolicy -e 127.0.0.1:10000 &gt; exception_policy.conf
+/usr/sbin/tomoyo-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.conf
+/usr/sbin/tomoyo-savepolicy -p 127.0.0.1:10000 &gt; profile.conf
 </pre>
 
 <p>Run below commands to update policy which will be embedded into the kernel.</p>
@@ -382,7 +382,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 -data $ANDROID_IMG/userdata.img -show-kernel
 </pre>
 
-<p>When you have finished developing the final policy files, you can specify a profile for enforcing mode (use_profile 3) to domain_policy.conf which will be embedded into the kernel. By using a profile for enforcing mode, you can enable access control from the moment /init in the initramfs is executed. After you have verified that the emulator works as expected with a profile for enforcing mode, you can remove /sbin/ccs-editpolicy-agent added at step 9. Also, you can remove ccs-editpolicy-agent from /init.rc and from profile.conf which will be embedded into the kernel.</p>
+<p>When you have finished developing the final policy files, you can specify a profile for enforcing mode (use_profile 3) to domain_policy.conf which will be embedded into the kernel. By using a profile for enforcing mode, you can enable access control from the moment /init in the initramfs is executed. After you have verified that the emulator works as expected with a profile for enforcing mode, you can remove /sbin/tomoyo-editpolicy-agent added at step 9. Also, you can remove tomoyo-editpolicy-agent from /init.rc and from profile.conf which will be embedded into the kernel.</p>
 
 <h3>Appendix: Hints for allowing policy updates after boot</h3>
 
@@ -392,7 +392,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <p>You can reduce the risk of tampering the "fixed" part by deploying the kernel into the read-only partition. But you may not be able to reduce the risk of tampering the "variant" part because the "variant" part will likely be located into the read-write partition. In that case, you can use (e.g.) GPG signature and append the policy into the kernel only when you verified that the "variant" part is not tampered.</p>
 
-<p>TOMOYO Linux provides a mechanism for querying external userland application when a policy violation in enforcing mode has occurred. You can implement a program like ccs-queryd and daemonize the program instead of ccs-editpolicy-agent .</p>
+<p>TOMOYO Linux provides a mechanism for querying external userland application when a policy violation in enforcing mode has occurred. You can implement a program like tomoyo-queryd and daemonize the program instead of tomoyo-editpolicy-agent .</p>
 
 </div><!-- regular-content -->
 

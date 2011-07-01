@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Policy specification : The /proc/ccs/ interface</title>
+<title>TOMOYO Linux 2.4.x : Policy specification : The /sys/kernel/security/tomoyo/ interface</title>
 </head>
 
 <body>
@@ -36,93 +36,93 @@
 <p>&lt;Prev&gt; <a href="index.html.en">&lt;Index&gt;</a> <a href="domain-transition-procedure.html.en">&lt;Next&gt;</a></p>
 </div>
 
-<h2>The /proc/ccs/ interface</h2>
+<h2>The /sys/kernel/security/tomoyo/ interface</h2>
 
-<h3><a name="audit">/proc/ccs/audit</a></h3>
+<h3><a name="audit">/sys/kernel/security/tomoyo/audit</a></h3>
 
 <p>This read-only interface contains the audit log. The reader process returns immediately if no audit log exists. To wait until an audit log is generated, use select(2) for readability.</p>
 
-<p>This interface is dependent on how the profiles have been configured in <a href="#profile">/proc/ccs/profile</a>. The following profile options affect it:</p>
+<p>This interface is dependent on how the profiles have been configured in <a href="#profile">/sys/kernel/security/tomoyo/profile</a>. The following profile options affect it:</p>
 <ul>
 <li>grant_log</li>
 <li>reject_log</li>
 <li>max_audit_log</li>
 </ul>
 
-<p>Also, <a href="#stat">/proc/ccs/stat</a> affects how much memory can be assigned for audit logs.</p>
+<p>Also, <a href="#stat">/sys/kernel/security/tomoyo/stat</a> affects how much memory can be assigned for audit logs.</p>
 
-<p>This interface is used primarily by the userspace tool <a href="../man-pages/index.html.en#ccs-auditd">ccs-auditd</a>.</p>
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/index.html.en#tomoyo-auditd">tomoyo-auditd</a>.</p>
 
-<h3><a name="domain_policy">/proc/ccs/domain_policy</a></h3>
+<h3><a name="domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></h3>
 
 <p>This read/write interface contains the policy that is defined for each domain. Any lines starting with "&lt;kernel&gt;" indicate the start of a new block of access permissions.</p>
 
-<p>The associated configuration file is "/etc/ccs/domain_policy.conf".</p>
+<p>The associated configuration file is "/etc/tomoyo/domain_policy.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#tomoyo-editpolicy">tomoyo-editpolicy</a>, <a href="../man-pages/index.html.en#tomoyo-loadpolicy">tomoyo-loadpolicy</a> and <a href="../man-pages/index.html.en#tomoyo-savepolicy">tomoyo-savepolicy</a>.</p>
 
-<h3><a name="exception_policy">/proc/ccs/exception_policy</a></h3>
+<h3><a name="exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></h3>
 
 <p>This read/write interface contains the exception policy. Each line is an individual entry.</p>
 
-<p>The associated configuration file is "/etc/ccs/exception_policy.conf".</p>
+<p>The associated configuration file is "/etc/tomoyo/exception_policy.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#tomoyo-editpolicy">tomoyo-editpolicy</a>, <a href="../man-pages/index.html.en#tomoyo-loadpolicy">tomoyo-loadpolicy</a> and <a href="../man-pages/index.html.en#tomoyo-savepolicy">tomoyo-savepolicy</a>.</p>
 
-<h3><a name="manager">/proc/ccs/manager</a></h3>
+<h3><a name="manager">/sys/kernel/security/tomoyo/manager</a></h3>
 
-<p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/proc/ccs/" interface.</p>
+<p>This read/write interface contains a list of either domains or full pathnames that have been given permission to write to the "/sys/kernel/security/tomoyo/" interface.</p>
 
 <p>As an exception, all domains can write to below interfaces for restricted purposes.</p>
 
 <ul>
-<li><a href="#.process_status">/proc/ccs/.process_status</a> for reading information of processes</li>
-<li><a href="#domain_policy">/proc/ccs/domain_policy</a> for reading specific domain's (or specific process's) access permissions</li>
-<li><a href="#self_domain">/proc/ccs/self_domain</a> for changing the domain of the caller process</li>
+<li><a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a> for reading information of processes</li>
+<li><a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> for reading specific domain's (or specific process's) access permissions</li>
+<li><a href="#self_domain">/sys/kernel/security/tomoyo/self_domain</a> for changing the domain of the caller process</li>
 </ul>
 
-<p>The associated configuration file is "/etc/ccs/manager.conf".</p>
+<p>The associated configuration file is "/etc/tomoyo/manager.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#tomoyo-editpolicy">tomoyo-editpolicy</a>, <a href="../man-pages/index.html.en#tomoyo-loadpolicy">tomoyo-loadpolicy</a> and <a href="../man-pages/index.html.en#tomoyo-savepolicy">tomoyo-savepolicy</a>.</p>
 
 <pre class="command">
-# cat /proc/ccs/manager
+# cat /sys/kernel/security/tomoyo/manager
 </pre>
 
 <pre class="output">
-/usr/sbin/ccs-loadpolicy
-/usr/sbin/ccs-editpolicy
-/usr/sbin/ccs-setlevel
-/usr/sbin/ccs-setprofile
-/usr/sbin/ccs-queryd
+/usr/sbin/tomoyo-loadpolicy
+/usr/sbin/tomoyo-editpolicy
+/usr/sbin/tomoyo-setlevel
+/usr/sbin/tomoyo-setprofile
+/usr/sbin/tomoyo-queryd
 </pre>
 
-<h3><a name="profile">/proc/ccs/profile</a></h3>
+<h3><a name="profile">/sys/kernel/security/tomoyo/profile</a></h3>
 
 <p>This read/write interface contains the profile configuration.</p>
 
-<p>The associated configuration file is "/etc/ccs/profile.conf".</p>
+<p>The associated configuration file is "/etc/tomoyo/profile.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a>, <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a> and <a href="../man-pages/index.html.en#ccs-setlevel">ccs-setlevel</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#tomoyo-editpolicy">tomoyo-editpolicy</a>, <a href="../man-pages/index.html.en#tomoyo-loadpolicy">tomoyo-loadpolicy</a>, <a href="../man-pages/index.html.en#tomoyo-savepolicy">tomoyo-savepolicy</a> and <a href="../man-pages/index.html.en#tomoyo-setlevel">tomoyo-setlevel</a>.</p>
 
-<h3><a name="query">/proc/ccs/query</a></h3>
+<h3><a name="query">/sys/kernel/security/tomoyo/query</a></h3>
 
 <p>This read/write interface is used to grant or reject individual access requests that occur within domains in "Enforcing Mode".</p>
 
-<p>This interface is used primarily by the userspace tool <a href="../man-pages/ccs-queryd.html.en">ccs-queryd</a>.</p>
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/tomoyo-queryd.html.en">tomoyo-queryd</a>.</p>
 
-<h3><a name="self_domain">/proc/ccs/self_domain</a></h3>
+<h3><a name="self_domain">/sys/kernel/security/tomoyo/self_domain</a></h3>
 
 <p>This read/write interface shows the domain of the caller process.</p>
 
 <p>This interface allows the caller to change the domain of the caller process if explicitly permitted by <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive.</p>
 
-<h3><a name="stat">/proc/ccs/stat</a></h3>
+<h3><a name="stat">/sys/kernel/security/tomoyo/stat</a></h3>
 
 <p>This read/write interface contains information about policy violations and memory usage in bytes.</p>
 
 <pre class="command">
-# cat /proc/ccs/stat
+# cat /sys/kernel/security/tomoyo/stat
 </pre>
 
 <pre class="output">
@@ -149,31 +149,31 @@ Total memory used:                        201120
 
 <p>This interface allows the administrator to configure memory quota.</p>
 
-<p>The associated configuration file is "/etc/ccs/stat.conf".</p>
+<p>The associated configuration file is "/etc/tomoyo/stat.conf".</p>
 
-<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#ccs-editpolicy">ccs-editpolicy</a>, <a href="../man-pages/index.html.en#ccs-loadpolicy">ccs-loadpolicy</a> and <a href="../man-pages/index.html.en#ccs-savepolicy">ccs-savepolicy</a>.</p>
+<p>This interface is used primarily by the userspace tools <a href="../man-pages/index.html.en#tomoyo-editpolicy">tomoyo-editpolicy</a>, <a href="../man-pages/index.html.en#tomoyo-loadpolicy">tomoyo-loadpolicy</a> and <a href="../man-pages/index.html.en#tomoyo-savepolicy">tomoyo-savepolicy</a>.</p>
 
-<h3><a name="version">/proc/ccs/version</a></h3>
+<h3><a name="version">/sys/kernel/security/tomoyo/version</a></h3>
 
 <p>This read-only interface contains the currently running version of TOMOYO Linux.</p>
 
-<h3><a name=".domain_status">/proc/ccs/.domain_status</a></h3>
+<h3><a name=".domain_status">/sys/kernel/security/tomoyo/.domain_status</a></h3>
 
 <p>This read/write interface contains a list of domain names and profile numbers currently defined in domain policy.</p>
 
-<p>This is used primarily by the userspace tool <a href="../man-pages/ccs-setprofile.html.en">ccs-setprofile</a>.</p>
+<p>This is used primarily by the userspace tool <a href="../man-pages/tomoyo-setprofile.html.en">tomoyo-setprofile</a>.</p>
 
-<h3><a name=".execute_handler">/proc/ccs/.execute_handler</a></h3>
+<h3><a name=".execute_handler">/sys/kernel/security/tomoyo/.execute_handler</a></h3>
 
-<p>This read/write interface is openable by only processes running as an execute_handler process. The content is identical to <a href="#.process_status">"/proc/ccs/.process_status"</a>.</p>
+<p>This read/write interface is openable by only processes running as an execute_handler process. The content is identical to <a href="#.process_status">"/sys/kernel/security/tomoyo/.process_status"</a>.</p>
 
 <p>This interface is intended to allow programs specified by <a href="domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> or <a href="domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives verify that they are executed as an execute_handler and arguments are passed by the kernel.</p>
 
-<h3><a name=".process_status">/proc/ccs/.process_status</a></h3>
+<h3><a name=".process_status">/sys/kernel/security/tomoyo/.process_status</a></h3>
 
 <p>This read/write interface contains a list of domain names and profile numbers that the currently running process belongs to.</p>
 
-<p>This interface is used primarily by the userspace tool <a href="../man-pages/index.html.en#ccs-pstree">ccs-pstree</a>.</p>
+<p>This interface is used primarily by the userspace tool <a href="../man-pages/index.html.en#tomoyo-pstree">tomoyo-pstree</a>.</p>
 
 </div><!-- documentation -->
 

@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : Policy specification : Domain policy syntax</title>
+<title>TOMOYO Linux 2.4.x : Policy specification : Domain policy syntax</title>
 </head>
 
 <body>
@@ -434,7 +434,7 @@ file chroot /var/empty/sshd/
 
 <p>This functionality is generally used for only once for switching the / directory from initrd/initramfs to the hard drive, which generally occurs before TOMOYO Linux has been activated. It is therefore unlikely that you will need this directive.</p>
 
-<p>This example allows the domain to use "/proc/" as a new / directory and bring the old / directory to "/proc/ccs/" directory:</p>
+<p>This example allows the domain to use "/proc/" as a new / directory and bring the old / directory to "/sys/kernel/security/tomoyo/" directory:</p>
 
 <pre>
 file pivot_root proc:/ proc:/ccs/
@@ -716,9 +716,9 @@ task denied_execute_handler /bin/true
 
 <h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
 
-<p>This directive causes a domain transition to occur when the application writes a domain name to the "/proc/ccs/self_domain" interface. This can be used to split permissions without requiring an execution, but the application must be modified to write to the interface at the appropriate time.</p>
+<p>This directive causes a domain transition to occur when the application writes a domain name to the "/sys/kernel/security/tomoyo/self_domain" interface. This can be used to split permissions without requiring an execution, but the application must be modified to write to the interface at the appropriate time.</p>
 
-<p>This example causes a domain transition to the "&lt;kernel&gt; //apache /www.tomoyo00.com" domain to occur when "&lt;kernel&gt; //apache /www.tomoyo00.com" is written to "/proc/ccs/self_domain" by the domain:</p>
+<p>This example causes a domain transition to the "&lt;kernel&gt; //apache /www.tomoyo00.com" domain to occur when "&lt;kernel&gt; //apache /www.tomoyo00.com" is written to "/sys/kernel/security/tomoyo/self_domain" by the domain:</p>
 
 <pre>
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com

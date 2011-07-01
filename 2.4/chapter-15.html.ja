@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : 導入ガイド : Chapter 15</title>
+<title>TOMOYO Linux 2.4.x : 導入ガイド : Chapter 15</title>
 </head>
 
 <body>
@@ -53,9 +53,9 @@
 <img src="media/kernel_namespace.png" alt="kernel_namespace.png" title="Default namespace" width="400" height="300">
 <img src="media/sshd_namespace.png" alt="sshd_namespace.png" title="Namespace for SSH session" width="400" height="300">
 
-<p>それぞれの名前空間は独立したドメインポリシー、例外ポリシー、プロファイルのセットを持っていますが、 /proc/ccs/ ディレクトリと /etc/ccs/policy/ ディレクトリは（簡単さと互換性のために）全ての名前空間で共有するようになっています。言い換えると、 /proc/ccs/domain_policy /proc/ccs/exception_policy /proc/ccs/profile および /etc/ccs/domain_policy.conf /etc/ccs/exception_policy.conf /etc/ccs/profile.conf は全ての名前空間用のポリシーを保持しています。</p>
+<p>それぞれの名前空間は独立したドメインポリシー、例外ポリシー、プロファイルのセットを持っていますが、 /sys/kernel/security/tomoyo/ ディレクトリと /etc/tomoyo/policy/ ディレクトリは（簡単さと互換性のために）全ての名前空間で共有するようになっています。言い換えると、 /sys/kernel/security/tomoyo/domain_policy /sys/kernel/security/tomoyo/exception_policy /sys/kernel/security/tomoyo/profile および /etc/tomoyo/domain_policy.conf /etc/tomoyo/exception_policy.conf /etc/tomoyo/profile.conf は全ての名前空間用のポリシーを保持しています。</p>
 
-<p>/proc/ccs/exception_policy および /proc/ccs/profile に対して名前空間を指定するには、 &lt;$namespace&gt; というプレフィックスを各行の先頭に追加してください。以下に、 &lt;kernel&gt; と &lt;/usr/sbin/httpd&gt; という名前空間を持つ /proc/ccs/profile の例を示します：</p>
+<p>/sys/kernel/security/tomoyo/exception_policy および /sys/kernel/security/tomoyo/profile に対して名前空間を指定するには、 &lt;$namespace&gt; というプレフィックスを各行の先頭に追加してください。以下に、 &lt;kernel&gt; と &lt;/usr/sbin/httpd&gt; という名前空間を持つ /sys/kernel/security/tomoyo/profile の例を示します：</p>
 
 <pre>
 &lt;kernel&gt; PROFILE_VERSION=20100903
@@ -88,7 +88,7 @@
 
 <p>互換性のために、 &lt;kernel&gt; 名前空間を指定する場合には &lt;kernel&gt; というプレフィックスを省略することができるようになっています。</p>
 
-<p>/proc/ccs/domain_policy に対して名前空間を指定するには、何の配慮も不要です。これは、ドメインポリシーがドメイン名を宣言する行から始まるブロックの集まりとして構成されており、ドメイン名の中にそのドメインが属している名前空間の情報が含まれているからです。以下に、 &lt;kernel&gt; と &lt;/usr/sbin/httpd&gt; という名前空間を持つ /proc/ccs/domain_policy の例を示します：</p>
+<p>/sys/kernel/security/tomoyo/domain_policy に対して名前空間を指定するには、何の配慮も不要です。これは、ドメインポリシーがドメイン名を宣言する行から始まるブロックの集まりとして構成されており、ドメイン名の中にそのドメインが属している名前空間の情報が含まれているからです。以下に、 &lt;kernel&gt; と &lt;/usr/sbin/httpd&gt; という名前空間を持つ /sys/kernel/security/tomoyo/domain_policy の例を示します：</p>
 
 <pre>
 &lt;kernel&gt;
@@ -142,20 +142,20 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <h3><a name="15.4">15.4. ポリシーエディタから名前空間をどのように指定しますか？</a></h3>
 
-<p><code>ccs-editpolicy</code> は最初に編集する名前空間を &lt;$namespace&gt; に設定するための新しいコマンドラインオプションとして <strong>&lt;$namespace&gt;</strong> がサポートされています。デフォルトの名前空間は &lt;kernel&gt; です。名前空間の指定間違いに注意してください。 <code>ccs-editpolicy</code> は現在編集中の名前空間に基づいて表示内容をフィルタリングするため、指定を間違えた場合、期待したとおりにエントリが表示されなくなります。</p>
+<p><code>tomoyo-editpolicy</code> は最初に編集する名前空間を &lt;$namespace&gt; に設定するための新しいコマンドラインオプションとして <strong>&lt;$namespace&gt;</strong> がサポートされています。デフォルトの名前空間は &lt;kernel&gt; です。名前空間の指定間違いに注意してください。 <code>tomoyo-editpolicy</code> は現在編集中の名前空間に基づいて表示内容をフィルタリングするため、指定を間違えた場合、期待したとおりにエントリが表示されなくなります。</p>
 
 <p>&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; 画面および &lt;&lt;&lt; Profile Editor &gt;&gt;&gt; 画面に関しては、 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 画面の３行目に現在選択されているドメイン名が表示されるのと同様に、現在編集中の名前空間の名前が３行目に表示されます。 w キーの後に n キーを押すと &lt;&lt;&lt; Namespace Selector &gt;&gt;&gt; 画面に切り替わって、編集したい名前空間を選択することができます。</p>
 
-<p><code>ccs-editpolicy</code> を用いて新しい名前空間を作成して、その名前空間用のプロファイルを作成して、エントリを追加することも可能ですが、より簡単に行うために <code>ccs-loadpolicy</code> を利用することを推奨します。例えば、 &lt;/usr/sbin/httpd&gt; 名前空間で利用するためのプロファイルを作成するために &lt;kernel&gt; 名前空間で利用しているプロファイルを複製するには、以下のような <code>awk</code> スクリプトを利用することができます：</p>
+<p><code>tomoyo-editpolicy</code> を用いて新しい名前空間を作成して、その名前空間用のプロファイルを作成して、エントリを追加することも可能ですが、より簡単に行うために <code>tomoyo-loadpolicy</code> を利用することを推奨します。例えば、 &lt;/usr/sbin/httpd&gt; 名前空間で利用するためのプロファイルを作成するために &lt;kernel&gt; 名前空間で利用しているプロファイルを複製するには、以下のような <code>awk</code> スクリプトを利用することができます：</p>
 
 <pre class="command">
-# awk ' { print "&lt;/usr/sbin/httpd&gt; " $0 } ' /etc/ccs/profile.conf | ccs-loadpolicy -p
+# awk ' { print "&lt;/usr/sbin/httpd&gt; " $0 } ' /etc/tomoyo/profile.conf | tomoyo-loadpolicy -p
 </pre>
 
-<p>もし、 &lt;kernel&gt; というプレフィックスが既に /etc/ccs/profile.conf の中で指定されている場合、以下のようなスクリプトになるでしょう：</p>
+<p>もし、 &lt;kernel&gt; というプレフィックスが既に /etc/tomoyo/profile.conf の中で指定されている場合、以下のようなスクリプトになるでしょう：</p>
 
 <pre class="command">
-# grep '^&lt;kernel&gt; ' /etc/ccs/profile.conf | awk ' { $1 = "&lt;/usr/sbin/httpd&gt; "; print $0 } ' | ccs-loadpolicy -p
+# grep '^&lt;kernel&gt; ' /etc/tomoyo/profile.conf | awk ' { $1 = "&lt;/usr/sbin/httpd&gt; "; print $0 } ' | tomoyo-loadpolicy -p
 </pre>
 
 <p>名前空間の目的は、独立したドメインポリシー、例外ポリシー、プロファイルのセットを利用可能にすることであることを忘れないでください。既存のセットから複製しても構いませんが、既存のセットから複製しなければいけないわけではありません。</p>
@@ -171,7 +171,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
 <li>特定の名前空間用のポリシーを、他の名前空間用のポリシーとは独立して作成することが可能ですが、明示的に指定されない限りプロセスは異なる名前空間へと遷移しません。そのため、条件付きアクセス許可の auto_domain_transition= という指定、 task auto_domain_transition ディレクティブ、 task manual_domain_transition ディレクティブの何れかを指定しない限り、<strong>（名前空間を使うのであれば、） reset_domain ディレクティブを含まない例外ポリシーは役に立たないでしょう。</strong></li>
-<li>プロファイルを作成するために割り当てられたメモリは解放できないのと同様に、名前空間を作成するために割り当てられたメモリは解放できません。しかし、 /proc/ccs/stat インタフェースから使用してよいメモリ量の上限を制御できるため、普通の使い方であれば問題になることは無いでしょう。</li>
+<li>プロファイルを作成するために割り当てられたメモリは解放できないのと同様に、名前空間を作成するために割り当てられたメモリは解放できません。しかし、 /sys/kernel/security/tomoyo/stat インタフェースから使用してよいメモリ量の上限を制御できるため、普通の使い方であれば問題になることは無いでしょう。</li>
 </ul>
 
 </div><!-- documentation -->

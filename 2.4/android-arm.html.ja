@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : TOMOYO Linux on Android</title>
+<title>TOMOYO Linux 2.4.x : TOMOYO Linux on Android</title>
 </head>
 
 <body>
@@ -92,10 +92,10 @@ make
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O ccs-tools-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110626.tar.gz'
-wget -O ccs-tools-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110626.tar.gz.asc'
-gpg ccs-tools-1.8.2-20110626.tar.gz.asc
-tar -zxf ccs-tools-1.8.2-20110626.tar.gz
+wget -O tomoyo-tools-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz'
+wget -O tomoyo-tools-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz.asc'
+gpg tomoyo-tools-1.8.2-20110626.tar.gz.asc
+tar -zxf tomoyo-tools-1.8.2-20110626.tar.gz
 cd ccstools
 make
 sudo make install
@@ -104,9 +104,9 @@ sudo make install
 <p>また、ポリシーをチューニングするためのツールを使うので、そのための準備を行います。</p>
 
 <pre class="command">
-sudo /usr/lib/ccs/init_policy
-sudo chown -R `id -u` /etc/ccs/
-echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/ccs/tools/patternize.conf
+sudo /usr/lib/tomoyo/init_policy
+sudo chown -R `id -u` /etc/tomoyo/
+echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/tomoyo/tools/patternize.conf
 </pre>
 
 <h3>ステップ５：エミュレータ環境用ツールのインストール</h3>
@@ -117,8 +117,8 @@ echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/ccs/tools/patternize.con
 cd $ANDROID_HOME/tmp/
 wget -O agcc http://plausible.org/andy/agcc
 chmod 755 agcc
-./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/ccs-editpolicy-agent.c
-chmod 700 ccs-editpolicy-agent
+./agcc -o tomoyo-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/tomoyo-editpolicy-agent.c
+chmod 700 tomoyo-editpolicy-agent
 </pre>
 
 <h3>ステップ６：初期ポリシーの作成</h3>
@@ -131,7 +131,7 @@ chmod 700 ccs-editpolicy-agent
 <li>ユーザＩＤまたはグループＩＤが 10000 以上に変化した時点で &lt;kernel&gt; //./app-user ドメインへと遷移する</li>
 <li>予めある程度のアクセス許可を与えておく</li>
 <li>個々の Android アプリは区別しない</li>
-<li>ポリシーを変更できるのは /sbin/ccs-editpolicy-agent のみとする</li>
+<li>ポリシーを変更できるのは /sbin/tomoyo-editpolicy-agent のみとする</li>
 </ul>
 
 <p>という設定での例を示します。 &lt;kernel&gt; //./app-user ドメインに対して ANY_PATHNAME への書き込み許可は与えすぎです。実際に利用する場合には例えば /system/ 以下への書き込みを禁止するなどの対策を行うべきです。</p>
@@ -241,7 +241,7 @@ file read/write/unlink/rmdir/truncate/symlink @ANY_PATHNAME task.euid=10000-4294
 file create/mkdir/mkfifo/mksock/chmod @ANY_PATHNAME 0-0777 task.euid=10000-4294967295 task.egid=10000-4294967295
 file link/rename @ANY_PATHNAME @ANY_PATHNAME task.euid=10000-4294967295 task.egid=10000-4294967295
 EOF
-echo /sbin/ccs-editpolicy-agent &gt; manager.conf
+echo /sbin/tomoyo-editpolicy-agent &gt; manager.conf
 echo &gt; stat.conf
 </pre>
 
@@ -262,11 +262,11 @@ ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common-b0d93fb/
-wget -O ccs-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz'
-wget -O ccs-patch-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz.asc'
-gpg ccs-patch-1.8.2-20110626.tar.gz.asc
-tar -zxf ccs-patch-1.8.2-20110626.tar.gz
-patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
+wget -O tomoyo-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz'
+wget -O tomoyo-patch-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz.asc'
+gpg tomoyo-patch-1.8.2-20110626.tar.gz.asc
+tar -zxf tomoyo-patch-1.8.2-20110626.tar.gz
+patch -p1 &lt; patches/tomoyo-patch-2.6.29-android-goldfish.diff
 sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 </pre>
@@ -296,9 +296,9 @@ cp -p system.img ramdisk.img userdata.img $ANDROID_IMG
 cd $ANDROID_IMG/tmp/
 zcat ../ramdisk.img | cpio -id
 echo &gt;&gt; init.rc
-echo 'service ccs_agent /sbin/ccs-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
+echo 'service ccs_agent /sbin/tomoyo-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
 echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc
-cp -p $ANDROID_HOME/tmp/ccs-editpolicy-agent sbin/
+cp -p $ANDROID_HOME/tmp/tomoyo-editpolicy-agent sbin/
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </pre>
 
@@ -313,7 +313,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h3>ステップ１１：ポート転送の指定</h3>
 
-<p>エミュレータ内で動作しているエージェントと通信するために、ポート転送を指定します。以下のように指定した場合、ホスト側でのポート 10000 への TCP 接続は、エミュレータ側でのポート 7000 へと転送されます。ステップ９で ccs-editpolicy-agent をポート 7000 で待機するように指定しているので、ホスト側でポート 10000 へ接続することにより、エージェントとの通信が可能になります。</p>
+<p>エミュレータ内で動作しているエージェントと通信するために、ポート転送を指定します。以下のように指定した場合、ホスト側でのポート 10000 への TCP 接続は、エミュレータ側でのポート 7000 へと転送されます。ステップ９で tomoyo-editpolicy-agent をポート 7000 で待機するように指定しているので、ホスト側でポート 10000 へ接続することにより、エージェントとの通信が可能になります。</p>
 
 <pre class="command">
 adb forward tcp:10000 tcp:7000
@@ -321,33 +321,33 @@ adb forward tcp:10000 tcp:7000
 
 <h3>ステップ１２：エージェント経由での操作</h3>
 
-<p>以下のように ccs-editpolicy を起動すると、エミュレータ内のエージェント経由で ポリシーを閲覧／編集できます。</p>
+<p>以下のように tomoyo-editpolicy を起動すると、エミュレータ内のエージェント経由で ポリシーを閲覧／編集できます。</p>
 
 <pre class="command">
-/usr/sbin/ccs-editpolicy 127.0.0.1:10000
+/usr/sbin/tomoyo-editpolicy 127.0.0.1:10000
 </pre>
 
-<p>以下のように ccs-auditd を起動すると、エミュレータ内のエージェント経由でアクセス許可ログ／拒否ログを取得して保存することができます。なお、アクセスログは大量に出力されるため、ディスクの空き容量に注意してください。</p>
+<p>以下のように tomoyo-auditd を起動すると、エミュレータ内のエージェント経由でアクセス許可ログ／拒否ログを取得して保存することができます。なお、アクセスログは大量に出力されるため、ディスクの空き容量に注意してください。</p>
 
 <pre class="command">
-/usr/sbin/ccs-auditd 127.0.0.1:10000
+/usr/sbin/tomoyo-auditd 127.0.0.1:10000
 </pre>
 
-<p>以下のように ccs-queryd を実行すると、エミュレータ内のエージェント経由で、強制モードでのポリシー違反を対話的に処理できます。 ccs-queryd を終了させるには Ctrl-C を押してください。</p>
+<p>以下のように tomoyo-queryd を実行すると、エミュレータ内のエージェント経由で、強制モードでのポリシー違反を対話的に処理できます。 tomoyo-queryd を終了させるには Ctrl-C を押してください。</p>
 
 <pre class="command">
-/usr/sbin/ccs-queryd 127.0.0.1:10000
+/usr/sbin/tomoyo-queryd 127.0.0.1:10000
 </pre>
 
-<p>ワイルドカード化を行うには以下のようにしてください。ワイルドカード化のルールは /etc/ccs/tools/patternize.conf で定義されているので、適宜編集してください。</p>
+<p>ワイルドカード化を行うには以下のようにしてください。ワイルドカード化のルールは /etc/tomoyo/tools/patternize.conf で定義されているので、適宜編集してください。</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/policy/
-/usr/sbin/ccs-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.old
-/usr/sbin/ccs-patternize &lt; domain_policy.old &gt; domain_policy.new
-/usr/sbin/ccs-diffpolicy domain_policy.old domain_policy.new &gt; domain_policy.diff
+/usr/sbin/tomoyo-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.old
+/usr/sbin/tomoyo-patternize &lt; domain_policy.old &gt; domain_policy.new
+/usr/sbin/tomoyo-diffpolicy domain_policy.old domain_policy.new &gt; domain_policy.diff
 less domain_policy.diff
-/usr/sbin/ccs-loadpolicy -d 127.0.0.1:10000 &lt; domain_policy.diff
+/usr/sbin/tomoyo-loadpolicy -d 127.0.0.1:10000 &lt; domain_policy.diff
 </pre>
 
 <h3>ステップ１３：ポリシーのアップデート</h3>
@@ -356,9 +356,9 @@ less domain_policy.diff
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/policy/
-/usr/sbin/ccs-savepolicy -e 127.0.0.1:10000 &gt; exception_policy.conf
-/usr/sbin/ccs-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.conf
-/usr/sbin/ccs-savepolicy -p 127.0.0.1:10000 &gt; profile.conf
+/usr/sbin/tomoyo-savepolicy -e 127.0.0.1:10000 &gt; exception_policy.conf
+/usr/sbin/tomoyo-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.conf
+/usr/sbin/tomoyo-savepolicy -p 127.0.0.1:10000 &gt; profile.conf
 </pre>
 
 <p>また、保存したポリシーをカーネル内に埋め込むには以下のように行ってください。</p>
@@ -382,7 +382,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 -data $ANDROID_IMG/userdata.img -show-kernel
 </pre>
 
-<p>最終的なポリシーが完成したら、カーネル内に埋め込まれている domain_policy.conf に enforcing mode 用のプロファイルを割り当てておく（ use_profile 3 ）ことにより、 /init が実行される時点からアクセス制御を有効にすることができます。その状態で正常に動作することを確認したら、ステップ９で追加した /sbin/ccs-editpolicy-agent を削除します。また、 /init.rc およびカーネル内に埋め込まれた profile.conf からも ccs-editpolicy-agent を削除します。</p>
+<p>最終的なポリシーが完成したら、カーネル内に埋め込まれている domain_policy.conf に enforcing mode 用のプロファイルを割り当てておく（ use_profile 3 ）ことにより、 /init が実行される時点からアクセス制御を有効にすることができます。その状態で正常に動作することを確認したら、ステップ９で追加した /sbin/tomoyo-editpolicy-agent を削除します。また、 /init.rc およびカーネル内に埋め込まれた profile.conf からも tomoyo-editpolicy-agent を削除します。</p>
 
 <h3>補足：ポリシーの更新を認めたい場合のヒント</h3>
 
@@ -392,7 +392,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <p>起動時に必要となるポリシーはカーネルを読み込み専用のパーティションに配置することで、改ざんされる可能性を減らすことができます。起動後に必要になるポリシーは読み書きが可能なパーティションに配置することになるので改ざんされる可能性が高くなります。そのため、例えば GPG で署名し、改ざんされていないことを確認できた場合にのみポリシーを追加読み込みするという方法が考えられます。</p>
 
-<p>TOMOYO Linux では強制モードにおけるポリシー違反を契機として外部のプログラムに問い合わせを行うことができます。 ccs-queryd 相当の処理を実装し、 ccs-editpolicy-agent の代わりに常駐させておくという方法を利用できます。</p>
+<p>TOMOYO Linux では強制モードにおけるポリシー違反を契機として外部のプログラムに問い合わせを行うことができます。 tomoyo-queryd 相当の処理を実装し、 tomoyo-editpolicy-agent の代わりに常駐させておくという方法を利用できます。</p>
 
 </div><!-- regular-content -->
 

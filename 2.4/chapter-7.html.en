@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 7</title>
+<title>TOMOYO Linux 2.4.x : The Official Guide : Chapter 7</title>
 </head>
 
 <body>
@@ -64,10 +64,10 @@
 
 <img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" title="This operation was rejected by policy." width="547" height="477">
 
-<p>Just like in "Permissive Mode", you can check the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
+<p>Just like in "Permissive Mode", you can check the <a href="policy-specification/proc-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface for how many times policy violations have occurred and the last time a policy violation occurred:</p>
 
 <pre class="command">
-# cat /proc/ccs/stat
+# cat /sys/kernel/security/tomoyo/stat
 </pre>
 
 <pre class="output">
@@ -107,23 +107,23 @@ file read /bin/cat
 
 <h3><a name="7.2">7.2. Notification daemon</a></h3>
 
-<p><code>ccs-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/ccs-notifyd" from "/etc/rc.local".</p>
+<p><code>tomoyo-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/tomoyo-notifyd" from "/etc/rc.local".</p>
 
-<p>Configuration is specified in the "/etc/ccs/tools/notifyd.conf" file, as shown below:</p>
+<p>Configuration is specified in the "/etc/tomoyo/tools/notifyd.conf" file, as shown below:</p>
 
 <pre>
-# This file contains configuration used by ccs-notifyd command.
+# This file contains configuration used by tomoyo-notifyd command.
 
-# ccs-notifyd is a daemon that notifies the occurrence of policy violation
+# tomoyo-notifyd is a daemon that notifies the occurrence of policy violation
 # in enforcing mode.
 #
 # time_to_wait is grace time in second before rejecting the request that
 # caused policy violation in enforcing mode. For example, if you specify
-# 30, you will be given 30 seconds for starting ccs-queryd command and
+# 30, you will be given 30 seconds for starting tomoyo-queryd command and
 # responding to the policy violation event.
-# If you specify non 0 value, you need to register ccs-notifyd command to
-# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to
-# behave as if ccs-queryd command is running.
+# If you specify non 0 value, you need to register tomoyo-notifyd command to
+# /sys/kernel/security/tomoyo/manager as well as tomoyo-queryd command, for tomoyo-notifyd needs to
+# behave as if tomoyo-queryd command is running.
 # Also, you should avoid specifying too large value (e.g. 3600) because
 # the request will remain pending for that period if you can't respond.
 #
@@ -161,11 +161,11 @@ file read /bin/cat
 #    The occurrence is notified by executing curl command.
 #
 time_to_wait 0
-action_to_take mail -s Notification\040from\040ccs-notifyd root@localhost
+action_to_take mail -s Notification\040from\040tomoyo-notifyd root@localhost
 minimal_interval 60
 </pre>
 
-<p>Modify the "action_to_take" line as required and start <code>ccs-notifyd</code>.</p>
+<p>Modify the "action_to_take" line as required and start <code>tomoyo-notifyd</code>.</p>
 
 <p>This will send mails similar to the following (identical to audit logs, but with serial numbers in the header):</p>
 
@@ -176,14 +176,14 @@ minimal_interval 60
 <pre class="output">
 Mail version 8.1 6/6/93.  Type ? for help.
 "/var/spool/mail/root": 1 messages 1 new
-&gt;N  1 root@localhost.local  Sun Dec 26 01:08  18/1211 "Notification from ccs-notifyd"
+&gt;N  1 root@localhost.local  Sun Dec 26 01:08  18/1211 "Notification from tomoyo-notifyd"
 &amp;
 Message 1:
 From root@localhost.localdomain  Sun Dec 26 01:08:35 2010
 Date: Sun, 26 Dec 2010 01:08:35 +0900
 From: root &lt;root@localhost.localdomain&gt;
 To: root@localhost.localdomain
-Subject: Notification from ccs-notifyd
+Subject: Notification from tomoyo-notifyd
 
 Q0-0
 #2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
@@ -193,7 +193,7 @@ file execute /bin/cat
 
 <h3><a name="7.3">7.3. Handling policy violations in real-time</a></h3>
 
-<p>Policy violations can be handled in real time using <code>ccs-queryd</code>. This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
+<p>Policy violations can be handled in real time using <code>tomoyo-queryd</code>. This is especially useful during the installation of software updates. When packages are updated, policy may need to be altered if any of the following occur:</p>
 
 <ul>
 <li>The pathnames of files have changed
@@ -203,25 +203,25 @@ file execute /bin/cat
 
 <p>The ideal way to update policy is to rebuild from scratch using learning mode as has been described. However, it is not desirable to change a domain from enforcing mode to learning mode once the system has entered into a production state as this will cause the system to become vulnerable to attack through this unrestricted domain.</p>
 
-<p>Fortunately, <code>ccs-queryd</code> can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
+<p>Fortunately, <code>tomoyo-queryd</code> can help administrators update policy in real-time while running in "Enforcing Mode". Please note that this method cannot always support every case and the resulting policy may not be fully optimized.</p>
 
-<h4><a name="7.3.1">7.3.1. Example usage of "ccs-queryd"</a></h4>
+<h4><a name="7.3.1">7.3.1. Example usage of "tomoyo-queryd"</a></h4>
 
-<p>The video below demonstrates example usage of <code>ccs-queryd</code>, which is summarised in the text below:</p>
+<p>The video below demonstrates example usage of <code>tomoyo-queryd</code>, which is summarised in the text below:</p>
 
 <p><object data="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
-<p>Use <code>ccs-queryd</code> to view, in realtime, the access requests that have been rejected by policy:</p>
+<p>Use <code>tomoyo-queryd</code> to view, in realtime, the access requests that have been rejected by policy:</p>
 
 <pre class="command">
-# /usr/sbin/ccs-queryd
+# /usr/sbin/tomoyo-queryd
 </pre>
 
 <pre class="output">
-Monitoring /proc/ccs/query . Press Ctrl-C to terminate.
+Monitoring /sys/kernel/security/tomoyo/query . Press Ctrl-C to terminate.
 </pre>
 
-<p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the <code>ccs-queryd</code> console:</p>
+<p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the <code>tomoyo-queryd</code> console:</p>
 
 <pre class="output">
 #2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
@@ -230,7 +230,7 @@ file execute /bin/sleep
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 
-<p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/sshd" attempted to execute <code>/bin/sleep</code> in order to process the command <code>sleep 1</code>. Usually this would be instantly denied, but since <code>ccs-queryd</code> is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
+<p>This indicates that a process that belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/sshd" attempted to execute <code>/bin/sleep</code> in order to process the command <code>sleep 1</code>. Usually this would be instantly denied, but since <code>tomoyo-queryd</code> is running, the kernel waits for the administrators decision before accepting or rejecting the request.</p>
 
 <p>Press <strong>"Y"</strong> to grant the request.<br>
 Press <strong>"N"</strong> to reject the request.<br>
@@ -242,15 +242,15 @@ Press <strong>"A"</strong> to append the request to domain policy and retry (a c
 
 <p>Do not logout while this program is running. Access requests that violated policy are kept pending and may otherwise sleep forever. Monitor the output to make sure programs have the minimum permissions to run properly. If permissions are missing, they will be printed to the console output. Once policy has been updated, the program can be stopped with "Ctrl-C".</p>
 
-<p>Note that this program directly edits policy currently loaded into the kernel, so run <code>ccs-savepolicy</code> to save policy to disk, otherwise policy will be lost on shutdown.</p>
+<p>Note that this program directly edits policy currently loaded into the kernel, so run <code>tomoyo-savepolicy</code> to save policy to disk, otherwise policy will be lost on shutdown.</p>
 
 <pre class="command">
-# /usr/sbin/ccs-savepolicy
+# /usr/sbin/tomoyo-savepolicy
 </pre>
 
-<h4><a name="7.3.2">7.3.2. Example output from "ccs-queryd"</a></h4>
+<h4><a name="7.3.2">7.3.2. Example output from "tomoyo-queryd"</a></h4>
 
-<p>This is an example of what the output might look like while running <code>ccs-queryd</code>:</p>
+<p>This is an example of what the output might look like while running <code>tomoyo-queryd</code>:</p>
 
 <pre class="output">
 #2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }

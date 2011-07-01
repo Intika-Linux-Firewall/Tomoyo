@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : TOMOYO Linux on MeeGo</title>
+<title>TOMOYO Linux 2.4.x : TOMOYO Linux on MeeGo</title>
 </head>
 
 <body>
@@ -337,11 +337,11 @@ $ sed -i -e 's/CONFIG_DEBUG_INFO=y/# CONFIG_DEBUG_INFO is not set/' -- .config
 <p>Next, download and apply TOMOYO Linux kernel patch.</p>
 
 <pre class="command">
-$ wget -O ccs-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz'
-$ wget -O ccs-patch-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz.asc'
-$ gpg ccs-patch-1.8.2-20110626.tar.gz.asc
-$ tar -zxf ccs-patch-1.8.2-20110626.tar.gz
-$ patch -p1 &lt; patches/ccs-patch-2.6.35.diff
+$ wget -O tomoyo-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz'
+$ wget -O tomoyo-patch-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110626.tar.gz.asc'
+$ gpg tomoyo-patch-1.8.2-20110626.tar.gz.asc
+$ tar -zxf tomoyo-patch-1.8.2-20110626.tar.gz
+$ patch -p1 &lt; patches/tomoyo-patch-2.6.35.diff
 $ cat config.ccs &gt;&gt; .config
 </pre>
 
@@ -355,10 +355,10 @@ $ make -s
 
 <pre class="command">
 $ cd ~/rpmbuild/BUILD/
-$ wget -O ccs-tools-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110626.tar.gz'
-$ wget -O ccs-tools-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/ccs-tools-1.8.2-20110626.tar.gz.asc'
-$ gpg ccs-tools-1.8.2-20110626.tar.gz.asc
-$ tar -zxf ccs-tools-1.8.2-20110626.tar.gz
+$ wget -O tomoyo-tools-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz'
+$ wget -O tomoyo-tools-1.8.2-20110626.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110626.tar.gz.asc'
+$ gpg tomoyo-tools-1.8.2-20110626.tar.gz.asc
+$ tar -zxf tomoyo-tools-1.8.2-20110626.tar.gz
 $ make -sC ccstools/
 </pre>
 
@@ -397,7 +397,7 @@ $ tar -zcf - | ssh root@meegohost 'cd / &amp;&amp; tar -zxf -'
 <p>Initialize TOMOYO Linux's configuration.</p>
 
 <pre class="command">
-# /usr/lib/ccs/init_policy --use_profile=1
+# /usr/lib/tomoyo/init_policy --use_profile=1
 </pre>
 
 <p>Change bootloader configuration.</p>

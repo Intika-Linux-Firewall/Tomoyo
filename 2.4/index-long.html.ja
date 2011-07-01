@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : 導入ガイド : 目次</title>
+<title>TOMOYO Linux 2.4.x : 導入ガイド : 目次</title>
 </head>
 
 <body>
@@ -32,9 +32,9 @@
 
 <div id="regular-content">
 
-<h2>TOMOYO Linux 1.8.x : 導入ガイド</h2>
+<h2>TOMOYO Linux 2.4.x : 導入ガイド</h2>
 
-<p>TOMOYO Linux 1.8.x 導入ガイドへようこそ。<a href="chapter-1.html.ja">早速始めましょう！</a></p>
+<p>TOMOYO Linux 2.4.x 導入ガイドへようこそ。<a href="chapter-1.html.ja">早速始めましょう！</a></p>
 
 <h3><a name="core" href="index.html.ja#core">基本編</a></h3>
 
@@ -105,8 +105,8 @@
 <li>7.2. <a href="chapter-7.html.ja#7.2">通知デーモン</a></li>
 <li>7.3. <a href="chapter-7.html.ja#7.3">ポリシー違反を対話的に処理する</a><br>
   <ul class="nested">
-    <li>7.3.1. <a href="chapter-7.html.ja#7.3.1">ccs-queryd の操作例</a></li>
-    <li>7.3.2. <a href="chapter-7.html.ja#7.3.2">ccs-queryd の出力例</a></li>
+    <li>7.3.1. <a href="chapter-7.html.ja#7.3.1">tomoyo-queryd の操作例</a></li>
+    <li>7.3.2. <a href="chapter-7.html.ja#7.3.2">tomoyo-queryd の出力例</a></li>
   </ul></li>
 <li>7.4. <a href="chapter-7.html.ja#7.4">全てのドメインに対して強制モードを有効にする</a></li>
 <li>7.5. <a href="chapter-7.html.ja#7.5">おわりに</a></li>
@@ -155,31 +155,13 @@
 <li>12.3. <a href="chapter-12.html.ja#12.3">認証プログラムの例</a></li>
 </ul>
 
-<p><strong>Chapter 13: <a class="black" href="chapter-13.html.ja">カーネルの外部でプログラムの実行可否を判断する</a></strong></p>
+<p><strong>Chapter 13: <a class="black" href="chapter-13.html.ja">名前空間の管理はどのように行いますか？</a></strong></p>
 <ul>
-<li>13.1. <a href="chapter-13.html.ja#13.1">task denied_execute_handler</a></li>
-<li>13.2. <a href="chapter-13.html.ja#13.2">task auto_execute_handler</a></li>
-</ul>
-
-<p><strong>Chapter 14: <a class="black" href="chapter-14.html.ja">Apache で mod_ccs モジュールを使用する</a></strong></p>
-<ul>
-<li>14.1. <a href="chapter-14.html.ja#14.1">mod_ccs モジュールについて</a></li>
-<li>14.2. <a href="chapter-14.html.ja#14.2">モジュールのインストール</a><br>
-  <ul class="nested">
-    <li>14.2.1. <a href="chapter-14.html.ja#14.2.1">依存するパッケージのインストール</a></li>
-    <li>14.2.2. <a href="chapter-14.html.ja#14.2.2">モジュールのダウンロード</a></li>
-    <li>14.2.3. <a href="chapter-14.html.ja#14.2.3">モジュールのコンパイルとインストール</a></li>
-  </ul></li>
-<li>14.3. <a href="chapter-14.html.ja#14.3">設定</a></li>
-</ul>
-
-<p><strong>Chapter 15: <a class="black" href="chapter-15.html.ja">名前空間の管理はどのように行いますか？</a></strong></p>
-<ul>
-<li>15.1. <a href="chapter-15.html.ja#15.1">ポリシー名前空間について</a></li>
-<li>15.2. <a href="chapter-15.html.ja#15.2">名前空間はどのように指定しますか？</a></li>
-<li>15.3. <a href="chapter-15.html.ja#15.3">名前空間の異なるドメインへの遷移はどのように行いますか？</a></li>
-<li>15.4. <a href="chapter-15.html.ja#15.4">ポリシーエディタから名前空間をどのように指定しますか？</a></li>
-<li>15.5. <a href="chapter-15.html.ja#15.5">名前空間を利用する上での注意点</a></li>
+<li>13.1. <a href="chapter-13.html.ja#13.1">ポリシー名前空間について</a></li>
+<li>13.2. <a href="chapter-13.html.ja#13.2">名前空間はどのように指定しますか？</a></li>
+<li>13.3. <a href="chapter-13.html.ja#13.3">名前空間の異なるドメインへの遷移はどのように行いますか？</a></li>
+<li>13.4. <a href="chapter-13.html.ja#13.4">ポリシーエディタから名前空間をどのように指定しますか？</a></li>
+<li>13.5. <a href="chapter-13.html.ja#13.5">名前空間を利用する上での注意点</a></li>
 </ul>
 
 <h3><a name="appendix" href="index.html.ja#appendix">付録</a></h3>
@@ -189,11 +171,7 @@
 <p><strong>Appendix C: <a class="black" href="tool-editpolicy.html.ja">ポリシーエディタの使い方</a></strong></p>
 <p><strong>Appendix D: <a class="black" href="android-arm.html.ja">TOMOYO Linux on Android</a></strong></p>
 <p><strong>Appendix E: <a class="black" href="meego-x86.html.ja">TOMOYO Linux on MeeGo 1.1</a></strong></p>
-<p><strong>Appendix F: <a class="black" href="cat760-sh.html.ja">TOMOYO Linux on CAT760</a></strong></p>
-<p><strong>Appendix G: <a class="black" href="ssh-split-administrative-tasks.html.ja">SSH サービスでシステム管理者の操作を制限する</a></strong></p>
-<p><strong>Appendix H: <a class="black" href="ssh-protection-using-environment.html.ja">環境変数を用いた SSH サービスのブルートフォース対策</a></strong></p>
-<p><strong>Appendix I: <a class="black" href="sftp-protection-using-environment-variable.html.ja">環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</a></strong></p>
-<p><strong>Appendix J: <a class="black" href="ssh-recording-cmdline.html.ja">SSH セッションのコマンドラインを記録する</a></strong></p>
+<p><strong>Appendix F: <a class="black" href="sftp-protection-using-environment-variable.html.ja">環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</a></strong></p>
 
 </div><!-- regular-content -->
 

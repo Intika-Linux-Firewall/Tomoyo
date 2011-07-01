@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 9</title>
+<title>TOMOYO Linux 2.4.x : The Official Guide : Chapter 9</title>
 </head>
 
 <body>
@@ -40,7 +40,7 @@
 
 <h3><a name="9.1">9.1. Profile initialization</a></h3>
 
-<p>The initialization procedure performed using <code>/usr/lib/ccs/init_policy</code> can be modified using command-line options to make development of policy easier depending on what functionality you wish to restrict. For example, for those wishing to restrict only file-related operations can pass the "--file-only-profile" option. The options you pass upon initialization do not constrain how policy can be developed, as the options merely change the default values for files created within the policy directory. These files can be modified using the policy editor at any later date to fit your needs. The following table summarizes the command-line options available:</p>
+<p>The initialization procedure performed using <code>/usr/lib/tomoyo/init_policy</code> can be modified using command-line options to make development of policy easier depending on what functionality you wish to restrict. For example, for those wishing to restrict only file-related operations can pass the "--file-only-profile" option. The options you pass upon initialization do not constrain how policy can be developed, as the options merely change the default values for files created within the policy directory. These files can be modified using the policy editor at any later date to fit your needs. The following table summarizes the command-line options available:</p>
 
 <div class="simple-table-wrap">
 <table>
@@ -62,12 +62,12 @@
 <tr>
 <td><p>--use_profile="$number"</p></td>
 <td><p>0</p></td>
-<td><p>Set the profile number for the "&lt;kernel&gt;" domain when creating "/etc/ccs/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
+<td><p>Set the profile number for the "&lt;kernel&gt;" domain when creating "/etc/tomoyo/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
 </tr>
 <tr>
 <td><p>--use_group="$number"</p></td>
 <td><p>0</p></td>
-<td><p>Set the ACL group for the "&lt;kernel&gt;" domain when creating "/etc/ccs/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
+<td><p>Set the ACL group for the "&lt;kernel&gt;" domain when creating "/etc/tomoyo/domain_policy.conf". This value must be an integer between 0 and 255.</p></td>
 </tr>
 <tr>
 <td><p>--root="$rootdir"</p></td>
@@ -76,13 +76,13 @@
 </tr>
 <tr>
 <td><p>--policy_dir="$configdir"</p></td>
-<td><p>/etc/ccs/</p></td>
-<td><p>Change the directory in which to create configuration files. If you specify this option then a symbolic link must be created named "/etc/ccs" that points to "$condigdir".</p></td>
+<td><p>/etc/tomoyo/</p></td>
+<td><p>Change the directory in which to create configuration files. If you specify this option then a symbolic link must be created named "/etc/tomoyo" that points to "$condigdir".</p></td>
 </tr>
 <tr>
 <td><p>--module_name="$name"</p></td>
 <td><p>ccsecurity</p></td>
-<td><p>Set the name of loadable kernel module when creating "/etc/ccs/ccs-load-module", which is called by "/sbin/ccs-init" if TOMOYO Linux was built as a loadable kernel module (CONFIG_CCSECURITY_LKM=y).</p></td>
+<td><p>Set the name of loadable kernel module when creating "/etc/tomoyo/tomoyo-load-module", which is called by "/sbin/tomoyo-init" if TOMOYO Linux was built as a loadable kernel module (CONFIG_CCSECURITY_LKM=y).</p></td>
 </tr>
 <tr>
 <td><p>--grant_log="$bool"</p></td>
@@ -97,12 +97,12 @@
 <tr>
 <td><p>--max_audit_log="$number"</p></td>
 <td><p>1024</p></td>
-<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
+<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface.</p></td>
 </tr>
 <tr>
 <td><p>--max_learning_entry="$number"</p></td>
 <td><p>2048</p></td>
-<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
+<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface.</p></td>
 </tr>
 <tr>
 <td><p>--enforcing_penalty="$number"</p></td>
@@ -112,7 +112,7 @@
 </table>
 </div>
 
-<p>If you executed <code>/usr/lib/ccs/init_policy</code> without the "--file-only-profile" option, the CONFIG lines in "/etc/ccs/profile.conf" will look like this:</p>
+<p>If you executed <code>/usr/lib/tomoyo/init_policy</code> without the "--file-only-profile" option, the CONFIG lines in "/etc/tomoyo/profile.conf" will look like this:</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -129,7 +129,7 @@
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
-<p>If you executed <code>/usr/lib/ccs/init_policy --file-only-profile</code>, the CONFIG lines in "/etc/ccs/profile.conf" will look like this:</p>
+<p>If you executed <code>/usr/lib/tomoyo/init_policy --file-only-profile</code>, the CONFIG lines in "/etc/tomoyo/profile.conf" will look like this:</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -544,11 +544,11 @@
 </tr>
 <tr>
 <td><p>max_audit_log</p></td>
-<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
+<td><p>Set maximum audit log (grant/reject logs) entries that the kernel will spool in the <a href="policy-specification/proc-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> interface. This value must be an integer, and can be set to "0" if audit logs are not required. Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface.</p></td>
 </tr>
 <tr>
 <td><p>max_learning_entry</p></td>
-<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/proc/ccs/stat</a> interface.</p></td>
+<td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/proc-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface.</p></td>
 </tr>
 <tr>
 <td><p>enforcing_penalty</p></td>
