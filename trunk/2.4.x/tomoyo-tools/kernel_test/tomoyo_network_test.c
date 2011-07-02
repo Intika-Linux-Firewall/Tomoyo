@@ -57,7 +57,12 @@ static void show_result2(int result)
 			else
 				printf("FAILED: %s\n", strerror(errno));
 		} else {
-			printf("BUG!(%d)\n", result);
+			char c;
+			if (recv(result, &c, 1, MSG_DONTWAIT) == EOF &&
+			    errno == EPERM)
+				printf("OK: Permission denied.\n");
+			else
+				printf("BUG!(%d)\n", result);
 		}
 	} else {
 		if (result != EOF)

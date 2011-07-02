@@ -359,6 +359,7 @@ int main(int argc, char *argv[])
 	ccs_auditd_init_rules(CCS_AUDITD_CONF);
 	if (ccs_network_mode)
 		goto start;
+	ccs_mount_securityfs();
 	if (access(CCS_PROC_POLICY_AUDIT, R_OK)) {
 		fprintf(stderr, "You can't run this daemon for this kernel."
 			"\n");
