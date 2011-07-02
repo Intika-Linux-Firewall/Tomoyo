@@ -1,0 +1,426 @@
+[PATCH] TOMOYO: Add environment variable name restriction support.
+
+This patch adds support for checking environment variable's names.
+Although TOMOYO already provides ability to check argv[]/envp[] passed to
+execve() requests,
+
+  file execute /bin/sh exec.envp["LD_LIBRARY_PATH"]="bar"
+
+will reject execution of /bin/sh if environment variable LD_LIBRARY_PATH is not
+defined. To grant execution of /bin/sh if LD_LIBRARY_PATH is not defined,
+administrators has to specify like
+
+  file execute /bin/sh exec.envp["LD_LIBRARY_PATH"]="/system/lib"
+  file execute /bin/sh exec.envp["LD_LIBRARY_PATH"]=NULL
+
+. Since there are many environment variables whereas conditional checks are
+applied as "&&", it is difficult to cover all combinations. Therefore, this
+patch supports conditional checks that are applied as "||", by specifying like
+
+  file execute /bin/sh
+  misc LD_LIBRARY_PATH exec.envp["LD_LIBRARY_PATH"]="/system/lib"
+
+which means "grant execution of /bin/sh if environment variable is not defined
+or is defined and its value is /system/lib".
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
+---
+ security/tomoyo/Makefile  |    2 
+ security/tomoyo/common.c  |   14 ++++-
+ security/tomoyo/common.h  |   14 +++++
+ security/tomoyo/domain.c  |   89 ++++++++++++++++++++++++++++++++++
+ security/tomoyo/environ.c |  118 ++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/gc.c      |    8 +++
+ security/tomoyo/util.c    |    2 
+ 7 files changed, 244 insertions(+), 3 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
+@@ -1,4 +1,4 @@
+-obj-y = audit.o common.o condition.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o network.o realpath.o securityfs_if.o tomoyo.o util.o
++obj-y = audit.o common.o condition.o domain.o environ.o file.o gc.o group.o load_policy.o memory.o mount.o network.o realpath.o securityfs_if.o tomoyo.o util.o
+ 
+ $(obj)/policy/profile.conf:
+ 	@mkdir -p $(obj)/policy/
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -46,6 +46,8 @@ const char * const tomoyo_mac_keywords[T
+ 	[TOMOYO_MAC_FILE_MOUNT]      = "mount",
+ 	[TOMOYO_MAC_FILE_UMOUNT]     = "unmount",
+ 	[TOMOYO_MAC_FILE_PIVOT_ROOT] = "pivot_root",
++	/* CONFIG::misc group */
++	[TOMOYO_MAC_ENVIRON] = "env",
+ 	/* CONFIG::network group */
+ 	[TOMOYO_MAC_NETWORK_INET_STREAM_BIND]       = "inet_stream_bind",
+ 	[TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN]     = "inet_stream_listen",
+@@ -71,6 +73,7 @@ const char * const tomoyo_mac_keywords[T
+ 	/* CONFIG group */
+ 	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_FILE]    = "file",
+ 	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_NETWORK] = "network",
++	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_MISC]    = "misc",
+ };
+ 
+ /* String table for conditions. */
+@@ -172,6 +175,7 @@ static const char * const tomoyo_categor
+ [TOMOYO_MAX_MAC_CATEGORY_INDEX] = {
+ 	[TOMOYO_MAC_CATEGORY_FILE]    = "file",
+ 	[TOMOYO_MAC_CATEGORY_NETWORK] = "network",
++	[TOMOYO_MAC_CATEGORY_MISC]    = "misc",
+ };
+ 
+ /* Permit policy management by non-root user? */
+@@ -1066,13 +1070,14 @@ static int tomoyo_write_domain2(struct t
+ 	static const struct {
+ 		const char *keyword;
+ 		int (*write) (struct tomoyo_acl_param *);
+-	} tomoyo_callback[3] = {
++	} tomoyo_callback[4] = {
+ 		{ "file ", tomoyo_write_file },
+ 		{ "network inet ", tomoyo_write_inet_network },
+ 		{ "network unix ", tomoyo_write_unix_network },
++		{ "misc ", tomoyo_write_misc },
+ 	};
+ 	u8 i;
+-	for (i = 0; i < 3; i++) {
++	for (i = 0; i < 4; i++) {
+ 		if (!tomoyo_str_starts(&param.data,
+ 				       tomoyo_callback[i].keyword))
+ 			continue;
+@@ -1399,6 +1404,11 @@ static bool tomoyo_print_entry(struct to
+ 		tomoyo_print_number_union(head, &ptr->mode);
+ 		tomoyo_print_number_union(head, &ptr->major);
+ 		tomoyo_print_number_union(head, &ptr->minor);
++	} else if (acl_type == TOMOYO_TYPE_ENV_ACL) {
++		struct tomoyo_env_acl *ptr =
++			container_of(acl, typeof(*ptr), head);
++		tomoyo_set_group(head, "misc env ");
++		tomoyo_set_string(head, ptr->env->name);
+ 	} else if (acl_type == TOMOYO_TYPE_INET_ACL) {
+ 		struct tomoyo_inet_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -214,6 +214,7 @@ enum tomoyo_acl_entry_type_index {
+ 	TOMOYO_TYPE_PATH_NUMBER_ACL,
+ 	TOMOYO_TYPE_MKDEV_ACL,
+ 	TOMOYO_TYPE_MOUNT_ACL,
++	TOMOYO_TYPE_ENV_ACL,
+ 	TOMOYO_TYPE_INET_ACL,
+ 	TOMOYO_TYPE_UNIX_ACL,
+ };
+@@ -353,6 +354,7 @@ enum tomoyo_mac_index {
+ 	TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
+ 	TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
+ 	TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
++	TOMOYO_MAC_ENVIRON,
+ 	TOMOYO_MAX_MAC_INDEX
+ };
+ 
+@@ -360,6 +362,7 @@ enum tomoyo_mac_index {
+ enum tomoyo_mac_category_index {
+ 	TOMOYO_MAC_CATEGORY_FILE,
+ 	TOMOYO_MAC_CATEGORY_NETWORK,
++	TOMOYO_MAC_CATEGORY_MISC,
+ 	TOMOYO_MAX_MAC_CATEGORY_INDEX
+ };
+ 
+@@ -468,6 +471,9 @@ struct tomoyo_request_info {
+ 			u8 operation;
+ 		} unix_network;
+ 		struct {
++			const struct tomoyo_path_info *name;
++		} environ;
++		struct {
+ 			const struct tomoyo_path_info *type;
+ 			const struct tomoyo_path_info *dir;
+ 			const struct tomoyo_path_info *dev;
+@@ -728,6 +734,12 @@ struct tomoyo_mount_acl {
+ 	struct tomoyo_number_union flags;
+ };
+ 
++/* Structure for "misc env" directive in domain policy. */
++struct tomoyo_env_acl {
++	struct tomoyo_acl_info head;        /* type = TOMOYO_TYPE_ENV_ACL  */
++	const struct tomoyo_path_info *env; /* environment variable */
++};
++
+ /* Structure for "network inet" directive. */
+ struct tomoyo_inet_acl {
+ 	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_INET_ACL */
+@@ -932,6 +944,7 @@ const struct tomoyo_path_info *tomoyo_pa
+ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+ 				 struct path *path, const int flag);
+ int tomoyo_close_control(struct tomoyo_io_buffer *head);
++int tomoyo_env_perm(struct tomoyo_request_info *r, const char *env);
+ int tomoyo_find_next_domain(struct linux_binprm *bprm);
+ int tomoyo_get_mode(const struct tomoyo_policy_namespace *ns, const u8 profile,
+ 		    const u8 index);
+@@ -982,6 +995,7 @@ int tomoyo_write_aggregator(struct tomoy
+ int tomoyo_write_file(struct tomoyo_acl_param *param);
+ int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type);
+ int tomoyo_write_inet_network(struct tomoyo_acl_param *param);
++int tomoyo_write_misc(struct tomoyo_acl_param *param);
+ int tomoyo_write_transition_control(struct tomoyo_acl_param *param,
+ 				    const u8 type);
+ int tomoyo_write_unix_network(struct tomoyo_acl_param *param);
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -565,6 +565,91 @@ out:
+ }
+ 
+ /**
++ * tomoyo_environ - Check permission for environment variable names.
++ *
++ * @ee: Pointer to "struct tomoyo_execve".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int tomoyo_environ(struct tomoyo_execve *ee)
++{
++	struct tomoyo_request_info *r = &ee->r;
++	struct linux_binprm *bprm = ee->bprm;
++	/* env_page->data is allocated by tomoyo_dump_page(). */
++	struct tomoyo_page_dump env_page = { };
++	char *arg_ptr; /* Size is TOMOYO_EXEC_TMPSIZE bytes */
++	int arg_len = 0;
++	unsigned long pos = bprm->p;
++	int offset = pos % PAGE_SIZE;
++	int argv_count = bprm->argc;
++	int envp_count = bprm->envc;
++	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
++	int error = -ENOMEM;
++	ee->r.type = TOMOYO_MAC_ENVIRON;
++	ee->r.profile = r->domain->profile;
++	ee->r.mode = tomoyo_get_mode(r->domain->ns, ee->r.profile,
++				     TOMOYO_MAC_ENVIRON);
++	if (!r->mode || !envp_count)
++		return 0;
++	arg_ptr = kzalloc(TOMOYO_EXEC_TMPSIZE, GFP_NOFS);
++	if (!arg_ptr)
++		goto out;
++	while (error == -ENOMEM) {
++		if (!tomoyo_dump_page(bprm, pos, &env_page))
++			goto out;
++		pos += PAGE_SIZE - offset;
++		/* Read. */
++		while (argv_count && offset < PAGE_SIZE) {
++			if (!env_page.data[offset++])
++				argv_count--;
++		}
++		if (argv_count) {
++			offset = 0;
++			continue;
++		}
++		while (offset < PAGE_SIZE) {
++			const unsigned char c = env_page.data[offset++];
++			if (c && arg_len < TOMOYO_EXEC_TMPSIZE - 10) {
++				if (c == '=') {
++					arg_ptr[arg_len++] = '\0';
++				} else if (c == '\\') {
++					arg_ptr[arg_len++] = '\\';
++					arg_ptr[arg_len++] = '\\';
++				} else if (c > ' ' && c < 127) {
++					arg_ptr[arg_len++] = c;
++				} else {
++					arg_ptr[arg_len++] = '\\';
++					arg_ptr[arg_len++] = (c >> 6) + '0';
++					arg_ptr[arg_len++]
++						= ((c >> 3) & 7) + '0';
++					arg_ptr[arg_len++] = (c & 7) + '0';
++				}
++			} else {
++				arg_ptr[arg_len] = '\0';
++			}
++			if (c)
++				continue;
++			if (tomoyo_env_perm(r, arg_ptr)) {
++				error = -EPERM;
++				break;
++			}
++			if (!--envp_count) {
++				error = 0;
++				break;
++			}
++			arg_len = 0;
++		}
++		offset = 0;
++	}
++out:
++	if (r->mode != 3)
++		error = 0;
++	kfree(env_page.data);
++	kfree(arg_ptr);
++	return error;
++}
++
++/**
+  * tomoyo_find_next_domain - Find a domain.
+  *
+  * @bprm: Pointer to "struct linux_binprm".
+@@ -715,6 +800,10 @@ int tomoyo_find_next_domain(struct linux
+ 	bprm->cred->security = domain;
+ 	if (need_kfree)
+ 		kfree(rn.name);
++	if (!retval) {
++		ee->r.domain = domain;
++		retval = tomoyo_environ(ee);
++	}
+ 	kfree(ee->tmp);
+ 	kfree(ee->dump.data);
+ 	kfree(ee);
+--- /dev/null
++++ security-testing-2.6/security/tomoyo/environ.c
+@@ -0,0 +1,118 @@
++/*
++ * security/tomoyo/environ.c
++ *
++ * Copyright (C) 2005-2011  NTT DATA CORPORATION
++ */
++
++#include "common.h"
++
++/**
++ * tomoyo_check_env_acl - Check permission for environment variable's name.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @ptr: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if granted, false otherwise.
++ */
++static bool tomoyo_check_env_acl(struct tomoyo_request_info *r,
++				 const struct tomoyo_acl_info *ptr)
++{
++	const struct tomoyo_env_acl *acl =
++		container_of(ptr, typeof(*acl), head);
++	return tomoyo_path_matches_pattern(r->param.environ.name, acl->env);
++}
++
++/**
++ * tomoyo_audit_env_log - Audit environment variable name log.
++ *
++ * @r: Pointer to "struct tomoyo_request_info".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int tomoyo_audit_env_log(struct tomoyo_request_info *r)
++{
++	return tomoyo_supervisor(r, "misc env %s\n",
++				 r->param.environ.name->name);
++}
++
++/**
++ * tomoyo_env_perm - Check permission for environment variable's name.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @env: The name of environment variable.
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++int tomoyo_env_perm(struct tomoyo_request_info *r, const char *env)
++{
++	struct tomoyo_path_info environ;
++	int error;
++	if (!env || !*env)
++		return 0;
++	environ.name = env;
++	tomoyo_fill_path_info(&environ);
++	r->param_type = TOMOYO_TYPE_ENV_ACL;
++	r->param.environ.name = &environ;
++	do {
++		tomoyo_check_acl(r, tomoyo_check_env_acl);
++		error = tomoyo_audit_env_log(r);
++	} while (error == TOMOYO_RETRY_REQUEST);
++	return error;
++}
++
++/**
++ * tomoyo_same_env_acl - Check for duplicated "struct tomoyo_env_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
++static bool tomoyo_same_env_acl(const struct tomoyo_acl_info *a,
++				const struct tomoyo_acl_info *b)
++{
++	const struct tomoyo_env_acl *p1 = container_of(a, typeof(*p1), head);
++	const struct tomoyo_env_acl *p2 = container_of(b, typeof(*p2), head);
++	return p1->env == p2->env;
++}
++
++/**
++ * tomoyo_write_env - Write "struct tomoyo_env_acl" list.
++ *
++ * @param: Pointer to "struct tomoyo_acl_param".
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static int tomoyo_write_env(struct tomoyo_acl_param *param)
++{
++	struct tomoyo_env_acl e = { .head.type = TOMOYO_TYPE_ENV_ACL };
++	int error = -ENOMEM;
++	const char *data = tomoyo_read_token(param);
++	if (!tomoyo_correct_word(data) || strchr(data, '='))
++		return -EINVAL;
++	e.env = tomoyo_get_name(data);
++	if (!e.env)
++		return error;
++	error = tomoyo_update_domain(&e.head, sizeof(e), param,
++				  tomoyo_same_env_acl, NULL);
++	tomoyo_put_name(e.env);
++	return error;
++}
++
++/**
++ * tomoyo_write_misc - Update environment variable list.
++ *
++ * @param: Pointer to "struct tomoyo_acl_param".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_write_misc(struct tomoyo_acl_param *param)
++{
++	if (tomoyo_str_starts(&param->data, "env "))
++		return tomoyo_write_env(param);
++	return -EINVAL;
++}
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -42,6 +42,7 @@ static const u8 tomoyo_acl_size[] = {
+ 	[TOMOYO_TYPE_MOUNT_ACL] = sizeof(struct tomoyo_mount_acl),
+ 	[TOMOYO_TYPE_INET_ACL] = sizeof(struct tomoyo_inet_acl),
+ 	[TOMOYO_TYPE_UNIX_ACL] = sizeof(struct tomoyo_unix_acl),
++	[TOMOYO_TYPE_ENV_ACL] = sizeof(struct tomoyo_env_acl),
+ };
+ 
+ /**
+@@ -314,6 +315,13 @@ static void tomoyo_del_acl(struct list_h
+ 			tomoyo_put_name_union(&entry->name);
+ 		}
+ 		break;
++	case TOMOYO_TYPE_ENV_ACL:
++		{
++			struct tomoyo_env_acl *entry =
++				container_of(acl, typeof(*entry), head);
++			tomoyo_put_name(entry->env);
++		}
++		break;
+ 	}
+ }
+ 
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -44,6 +44,8 @@ const u8 tomoyo_index2category[TOMOYO_MA
+ 	[TOMOYO_MAC_FILE_MOUNT]      = TOMOYO_MAC_CATEGORY_FILE,
+ 	[TOMOYO_MAC_FILE_UMOUNT]     = TOMOYO_MAC_CATEGORY_FILE,
+ 	[TOMOYO_MAC_FILE_PIVOT_ROOT] = TOMOYO_MAC_CATEGORY_FILE,
++	/* CONFIG::misc group */
++	[TOMOYO_MAC_ENVIRON]         = TOMOYO_MAC_CATEGORY_MISC,
+ 	/* CONFIG::network group */
+ 	[TOMOYO_MAC_NETWORK_INET_STREAM_BIND]       =
+ 	TOMOYO_MAC_CATEGORY_NETWORK,
