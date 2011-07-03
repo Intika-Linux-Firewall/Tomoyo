@@ -36,89 +36,90 @@
 
 <div class="simple-table-wrap">
 <table>
-<tr><td></td><td>TOMOYO Linux バージョン</td><td><a href="http://tomoyo.sourceforge.jp/1.7/index.html.ja">1.7</a></td><td><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja">1.8</a></td><td colspan=4><a href="http://tomoyo.sourceforge.jp/2.2/index.html.ja">2.2</a></td><td><a href="http://tomoyo.sourceforge.jp/2.3/index.html.ja">2.3</a></td></tr>
-<tr><td></td><td>対応カーネルバージョン</td><td>2.4.30-2.4.37<br>2.6.11-2.6.37</td><td>2.4.30-2.4.37<br>2.6.11-</td><td>2.6.30-2.6.32</td><td>2.6.33</td><td>2.6.34</td><td>2.6.35</td><td>2.6.36-</td></tr>
-<tr><td>種別</td><td>内容</td><td colspan=6></tr>
-<tr><td colspan=9>ファイルに対するアクセス制御</td></tr>
-<tr><td></td><td>読み込みモードでのオープン（read）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>書き込みモードでのオープン（write）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　追記モードでのオープン（append）を書き込みモードのオープンと区別</td><td><a href="#note1">(*1)</a></td><td>○</td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td></tr>
-<tr><td></td><td>プログラムの実行（execute）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　一時的な名前を持つプログラムの実行を許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>　　シンボリックリンクのリンク先を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>　　起動時の名前（argv[0]）を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>　　引数（argv[]）および環境変数（envp[]）の内容を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>　　使用してよい環境変数名を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>ファイルの作成（create）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　ファイル作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>ディレクトリの作成（mkdir）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　ディレクトリ作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>FIFOの作成（mkfifo）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　FIFO作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>Unixドメインソケットの作成（mksock）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　Unixドメインソケット作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>シンボリックリンクの作成（symlink）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　シンボリックリンク作成時のリンク先を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>デバイスファイルの作成（mkblock/mkchar）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　デバイスファイル作成時のデバイス番号およびパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>IOCTLの可否（ioctl）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　IOCTLのコマンド番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>所有者（chown）／グループ（chgrp）／パーミッション（chmod）の変更可否を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　所有者ＩＤ／グループＩＤ／パーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>ファイルの削除（unlink）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>ファイルの切り詰め（truncate）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>ファイルの上書き（rewrite）を制限</td><td>○</td><td><a href="#note1">(*1)</a></td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>ファイルのリネーム（rename）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>ファイルのハードリンク（link）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>ディレクトリの削除（rmdir）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>ファイルシステムのマウント（mount）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>　　マウント時のファイルシステム種別やモードを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>ファイルシステムのアンマウント（unmount）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>ルートディレクトリの置換（chroot）や交換（pivot_root）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td colspan=9>パス名の正確さ</td></tr>
-<tr><td></td><td>自プロセスの情報（/proc/self/）へのアクセスのみを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>削除されたファイルに対するアクセスを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>４０００文字を超える長いパス名に対するアクセスを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td colspan=9>パス名の指定を容易にする機能</td></tr>
-<tr><td></td><td>再帰的なパス名（/\{dir\}/）の指定</td><td>○</td><td>○</td><td></td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td></td><td>パス名のグループ化（path_group）</td><td>○</td><td>○</td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
-<tr><td colspan=9>数値の指定を容易にする機能</td></tr>
-<tr><td></td><td>数値のグループ化（number_group）</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>IPアドレスのグループ化（address_group）</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>再起動回数を減らす機能</td></tr>
-<tr><td></td><td>ガベージコレクションによるメモリ解放</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td></tr>
-<tr><td colspan=9>Apacheのバーチャルホストに対応する機能</td></tr>
-<tr><td></td><td>プログラムの実行を伴わないドメイン遷移を許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>ネットワークに対するアクセス制御</td></tr>
-<tr><td></td><td>送信時にリモートホストのＩＰアドレスおよびポート番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>受信時にリモートホストのＩＰアドレスおよびポート番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>ローカルホストのＩＰアドレスおよびポート番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>特定のローカルポート番号を必要とするアプリケーションのために予約しておく</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>送信時にリモートのＵｎｉｘアドレスを制限</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>受信時にリモートのＵｎｉｘアドレスを制限</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>ローカルのＵｎｉｘアドレスを制限</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>ケイパビリティに対するアクセス制御</td></tr>
-<tr><td></td><td>独自のケイパビリティを用いた制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>　　他のパーミッションと重複するケイパビリティをチェックしない</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>プロセス間通信に対するアクセス制御</td></tr>
-<tr><td></td><td>シグナルの送信先を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>より詳細なアクセス許可を指定する機能</td></tr>
-<tr><td></td><td>プロセスのユーザＩＤなどを利用した制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>ファイルの所有者ＩＤなどを利用した制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>状態変数を利用したステートフルなアクセス許可</td><td>○</td><td><a href="#note2">(*2)</a></td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>グループ化されたパーミッション（acl_group）の利用を許可</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>暴走によるダメージを減らす機能</td></tr>
-<tr><td></td><td>スリープペナルティ機能</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>execute handler機能</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>アクセスログを取得する機能</td></tr>
-<tr><td></td><td>ポリシー違反のメール通知</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>許可ログ／拒否ログの取得</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td colspan=9>ソフトウェアのアップデートを支援する機能</td></tr>
-<tr><td></td><td>ポリシー違反の対話的な処理</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td colspan=9>その他</td></tr>
-<tr><td></td><td>SELinuxやAppArmorなどとの同時使用を許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td></tr>
-<tr><td></td><td>使いたい機能だけを有効にすることを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
-<tr><td></td><td>設定を初期化するときの所要時間を短縮</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td></tr>
+<tr><td></td><td>TOMOYO Linux バージョン</td><td><a href="http://tomoyo.sourceforge.jp/1.7/index.html.ja">1.7</a></td><td><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja">1.8</a></td><td colspan=4><a href="http://tomoyo.sourceforge.jp/2.2/index.html.ja">2.2</a></td><td><a href="http://tomoyo.sourceforge.jp/2.3/index.html.ja">2.3</a></td><td><a href="http://tomoyo.sourceforge.jp/2.4/index.html.ja">2.4</a></td></tr>
+<tr><td></td><td>対応カーネルバージョン</td><td>2.4.30-2.4.37<br>2.6.11-2.6.37</td><td>2.4.30-2.4.37<br>2.6.11-2.6.39<br>3.0-</td><td>2.6.30-2.6.32</td><td>2.6.33</td><td>2.6.34</td><td>2.6.35</td><td>2.6.36-2.6.39<br>3.0</td><td>3.1-</td></tr>
+<tr><td>種別</td><td>内容</td><td colspan=8></tr>
+<tr><td colspan=10>ファイルに対するアクセス制御</td></tr>
+<tr><td></td><td>読み込みモードでのオープン（read）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>書き込みモードでのオープン（write）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　追記モードでのオープン（append）を書き込みモードのオープンと区別</td><td><a href="#note1">(*1)</a></td><td>○</td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td><td><a href="#note1">(*1)</a></td><td>○</td></tr>
+<tr><td></td><td>プログラムの実行（execute）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　一時的な名前を持つプログラムの実行を許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　シンボリックリンクのリンク先を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>　　起動時の名前（argv[0]）を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>　　引数（argv[]）および環境変数（envp[]）の内容を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>　　使用してよい環境変数名を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>　　バイナリローダー（例： /lib/ld-linux.so.2 ）として使用できるプログラムを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>ファイルの作成（create）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　ファイル作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ディレクトリの作成（mkdir）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　ディレクトリ作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>FIFOの作成（mkfifo）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　FIFO作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>Unixドメインソケットの作成（mksock）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　Unixドメインソケット作成時のパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>シンボリックリンクの作成（symlink）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　シンボリックリンク作成時のリンク先を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>デバイスファイルの作成（mkblock/mkchar）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　デバイスファイル作成時のデバイス番号およびパーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>IOCTLの可否（ioctl）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　IOCTLのコマンド番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>所有者（chown）／グループ（chgrp）／パーミッション（chmod）の変更可否を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　所有者ＩＤ／グループＩＤ／パーミッションを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ファイルの削除（unlink）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ファイルの切り詰め（truncate）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ファイルの上書き（rewrite）を制限</td><td>○</td><td><a href="#note1">(*1)</a></td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td><a href="#note1">(*1)</a></td></tr>
+<tr><td></td><td>ファイルのリネーム（rename）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ファイルのハードリンク（link）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ディレクトリの削除（rmdir）を制限</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ファイルシステムのマウント（mount）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>　　マウント時のファイルシステム種別やモードを制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ファイルシステムのアンマウント（unmount）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>ルートディレクトリの置換（chroot）や交換（pivot_root）を制限</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td colspan=10>パス名の正確さ</td></tr>
+<tr><td></td><td>自プロセスの情報（/proc/self/）へのアクセスのみを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td>○</td></tr>
+<tr><td></td><td>削除されたファイルに対するアクセスを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>４０００文字を超える長いパス名に対するアクセスを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td colspan=10>パス名の指定を容易にする機能</td></tr>
+<tr><td></td><td>再帰的なパス名（/\{dir\}/）の指定</td><td>○</td><td>○</td><td></td><td>○</td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td></td><td>パス名のグループ化（path_group）</td><td>○</td><td>○</td><td></td><td></td><td></td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td colspan=10>数値の指定を容易にする機能</td></tr>
+<tr><td></td><td>数値のグループ化（number_group）</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>IPアドレスのグループ化（address_group）</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td colspan=10>再起動回数を減らす機能</td></tr>
+<tr><td></td><td>ガベージコレクションによるメモリ解放</td><td>○</td><td>○</td><td></td><td></td><td>○</td><td>○</td><td>○</td><td>○</td></tr>
+<tr><td colspan=10>Apacheのバーチャルホストに対応する機能</td></tr>
+<tr><td></td><td>プログラムの実行を伴わないドメイン遷移を許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td colspan=10>ネットワークに対するアクセス制御</td></tr>
+<tr><td></td><td>送信時にリモートホストのＩＰアドレスおよびポート番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>受信時にリモートホストのＩＰアドレスおよびポート番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>ローカルホストのＩＰアドレスおよびポート番号を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>特定のローカルポート番号を必要とするアプリケーションのために予約しておく</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>送信時にリモートのＵｎｉｘアドレスを制限</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>受信時にリモートのＵｎｉｘアドレスを制限</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>ローカルのＵｎｉｘアドレスを制限</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td colspan=10>ケイパビリティに対するアクセス制御</td></tr>
+<tr><td></td><td>独自のケイパビリティを用いた制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>　　他のパーミッションと重複するケイパビリティをチェックしない</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td colspan=10>プロセス間通信に対するアクセス制御</td></tr>
+<tr><td></td><td>シグナルの送信先を制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td colspan=10>より詳細なアクセス許可を指定する機能</td></tr>
+<tr><td></td><td>プロセスのユーザＩＤなどを利用した制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>ファイルの所有者ＩＤなどを利用した制限</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>状態変数を利用したステートフルなアクセス許可</td><td>○</td><td><a href="#note2">(*2)</a></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>グループ化されたパーミッション（acl_group）の利用を許可</td><td></td><td>○</td><td></td><td></td><td></td><td></td><td></td><td>○</td></tr>
+<tr><td colspan=10>暴走によるダメージを減らす機能</td></tr>
+<tr><td></td><td>スリープペナルティ機能</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>execute handler機能</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td colspan=10>アクセスログを取得する機能</td></tr>
+<tr><td></td><td>ポリシー違反のメール通知</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>許可ログ／拒否ログの取得</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td>○</td></tr>
+<tr><td colspan=10>ソフトウェアのアップデートを支援する機能</td></tr>
+<tr><td></td><td>ポリシー違反の対話的な処理</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td colspan=10>その他</td></tr>
+<tr><td></td><td>SELinuxやAppArmorなどとの同時使用を許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td></td><td>使いたい機能だけを有効にすることを許可</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
+<tr><td></td><td>設定を初期化するときの所要時間を短縮</td><td>○</td><td>○</td><td></td><td></td><td></td><td></td><td>○</td><td>○</td></tr>
 </table>
 </div>
 
