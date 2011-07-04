@@ -1,3 +1,35 @@
+Package: linux-image-2.6.32-5-686-ccs
+Priority: optional
+Section: kernel
+Installed-Size: 79576
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-source-2.6.32-5-686-ccs
+Version: 2.6.32-35
+Provides: linux-image, linux-image-2.6
+Depends: coreutils (>= 5.96)
+Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
+Suggests: fdutils, linux-doc-2.6.32-5-686-ccs | linux-source-2.6.32-5-686-ccs, ksymoops, linux-image-2.6.32-5-686-ccs-dbg
+Filename: ./linux-image-2.6.32-5-686-ccs1.8.2_2.6.32-35_i386.deb
+Size: 27716930
+MD5sum: a665d68f2c4aea45f46c45185d1097e5
+SHA1: 8bc42290e55e55a556853f40e7da3295468ede6e
+SHA256: 6a9792d624c3626132718f4c301a7c73c88e25cf7e38735446fda1a475606152
+Description: Linux kernel binary image for version 2.6.32-5-686-ccs
+ This package contains the Linux kernel image for version
+ 2.6.32-5-686-ccs.
+ .
+ It also contains the corresponding System.map file, and the modules
+ built by the packager.  It also contains scripts that try to ensure
+ that the system is not left in a unbootable state after an update.
+ .
+ Kernel image packages are generally produced using kernel-package,
+ and it is suggested that you install that package if you wish to
+ create a custom kernel from the sources. Please look at kernel-img.conf(5),
+ and /usr/share/doc/kernel-package/README.gz  from the package kernel-package
+ for details on how to tailor the  installation of this or any other kernel
+ image package
+
 Package: ccs-tools
 Priority: extra
 Section: alien
@@ -17,6 +49,33 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.81.)
 
+Package: linux-headers-2.6.32-5-686-ccs
+Priority: optional
+Section: devel
+Installed-Size: 46764
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-source-2.6.32-5-686-ccs
+Version: 2.6.32-35
+Provides: linux-headers, linux-headers-2.6
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
+Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
+Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
+Filename: ./linux-headers-2.6.32-5-686-ccs1.8.2_2.6.32-35_i386.deb
+Size: 6446890
+MD5sum: fc2b72f012261ebe2e86e5c817178353
+SHA1: db9b34e9bac15360baca31a47cf473393be31a30
+SHA256: 761f80b386762308142a1d40ce7dddd2fb71c2df3b1a61e0df2b57604b0ea539
+Description: Header files related to Linux kernel, specifically,
+ version 2.6.32-5-686-ccs
+ .
+ This package provides kernel header files for sites
+ that want the latest kernel headers for version
+ 2.6.32-5-686-ccs.
+ Please read
+ /usr/share/doc/linux-headers-2.6.32-5-686-ccs/debian.README.gz
+ for details
+
 Package: linux-image-2.6-686-ccs
 Priority: optional
 Section: kernel
@@ -28,72 +87,13 @@ Version: 2.6.32+29
 Provides: linux-latest-modules-2.6.32-5-686-ccs
 Depends: linux-image-2.6.32-5-686-ccs
 Filename: ./linux-image-2.6-686-ccs1.8.2_2.6.32+29_i386.deb
-Size: 4430
-MD5sum: c27aa3974cbe7832af1f9d18f230ea02
-SHA1: f5259d8bc27b52848ce6ee7287eecedc6aea0629
-SHA256: 1a0a4e7b4c7a109d04ca9de8a389af00c4384fa5e46f8bddd0134001b0771304
+Size: 4428
+MD5sum: 84be1454c1ecf8bcaede89275cc1b580
+SHA1: 91e61a568f75f3bf79de56bbd583593b0105014f
+SHA256: f71e1bcda0ebf49679c2be8525bf4911785b887cf86e80165f6d7462525fe650
 Description: Linux 2.6 for modern PCs (meta-package)
  This package depends on the latest Linux kernel 2.6 and modules for use on
  PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom;
  AMD Geode LX/NX, Athlon (K7), Duron, Opteron, Sempron, Turion or Phenom;
  Transmeta Efficeon; VIA C3 "Nehemiah" or C7 processors.
-
-Package: linux-headers-2.6.32-5-686-ccs
-Priority: optional
-Section: devel
-Installed-Size: 46736
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-source-2.6.32-5-686-ccs
-Version: 2.6.32-34squeeze1
-Provides: linux-headers, linux-headers-2.6
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
-Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
-Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
-Filename: ./linux-headers-2.6.32-5-686-ccs1.8.2_2.6.32-34squeeze1_i386.deb
-Size: 6443654
-MD5sum: e5bb209e756bd7a4e1ce1b7e87bce465
-SHA1: e532bd59b84c3a8c68e63acc0bb77b181641282d
-SHA256: cd79ae3ae4ef2fe7d3b5d43f8e39d295196e4f5315b526c6e5857f94811a14be
-Description: Header files related to Linux kernel, specifically,
- version 2.6.32-5-686-ccs
- .
- This package provides kernel header files for sites
- that want the latest kernel headers for version
- 2.6.32-5-686-ccs.
- Please read
- /usr/share/doc/linux-headers-2.6.32-5-686-ccs/debian.README.gz
- for details
-
-Package: linux-image-2.6.32-5-686-ccs
-Priority: optional
-Section: kernel
-Installed-Size: 79304
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-source-2.6.32-5-686-ccs
-Version: 2.6.32-34squeeze1
-Provides: linux-image, linux-image-2.6
-Depends: coreutils (>= 5.96)
-Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
-Suggests: fdutils, linux-doc-2.6.32-5-686-ccs | linux-source-2.6.32-5-686-ccs, ksymoops, linux-image-2.6.32-5-686-ccs-dbg
-Filename: ./linux-image-2.6.32-5-686-ccs1.8.2_2.6.32-34squeeze1_i386.deb
-Size: 27614392
-MD5sum: cd58b09b2270dc3e497cf093264a1c71
-SHA1: d9bce9c798d6af3c6faf5745b6827c9336a634f8
-SHA256: 6f47deb0f67676c078307c2d49ec486e2364c793ea96788279921de3593003c2
-Description: Linux kernel binary image for version 2.6.32-5-686-ccs
- This package contains the Linux kernel image for version
- 2.6.32-5-686-ccs.
- .
- It also contains the corresponding System.map file, and the modules
- built by the packager.  It also contains scripts that try to ensure
- that the system is not left in a unbootable state after an update.
- .
- Kernel image packages are generally produced using kernel-package,
- and it is suggested that you install that package if you wish to
- create a custom kernel from the sources. Please look at kernel-img.conf(5),
- and /usr/share/doc/kernel-package/README.gz  from the package kernel-package
- for details on how to tailor the  installation of this or any other kernel
- image package
 
