@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/26
+ * Version: 2.4.0-pre   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -24,10 +24,9 @@
 
 int main(int argc, char *argv[])
 {
-	FILE *fp_in;
-	FILE *fp_out;
 	unsigned int profile = 0;
 	_Bool recursive = false;
+	int try;
 	int i;
 	int start = 2;
 	if (argc > 1 && !strcmp(argv[1], "-r")) {
@@ -44,7 +43,7 @@ int main(int argc, char *argv[])
 		ccs_normalize_line(argv[i]);
 	ccs_mount_securityfs();
 	{
-		const int fd = open(CCS_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
+		const int fd = open(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
 		if (fd == EOF) {
 			fprintf(stderr, "You can't run this command for this "
 				"kernel.\n");
@@ -57,63 +56,53 @@ int main(int argc, char *argv[])
 		}
 		close(fd);
 	}
-	{
-		_Bool profile_found = false;
-		FILE *fp = fopen(CCS_PROC_POLICY_PROFILE, "r");
-		if (!fp) {
+	for (try = 0; try < 2; try++) {
+		FILE *fp_in = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r");
+		FILE *fp_out = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "w");
+		char *domainname = NULL;
+		if (!fp_in || !fp_out) {
 			fprintf(stderr, "Can't open policy file.\n");
 			exit(1);
 		}
 		ccs_get();
 		while (true) {
-			char *line = ccs_freadline(fp);
+			char *line = ccs_freadline(fp_in);
 			if (!line)
 				break;
-			if (atoi(line) != profile)
+			if (domainname) {
+				if (sscanf(line, "use_profile %u", &profile)
+				    != 1)
+					continue;
+				printf("%u %s\n", profile, domainname);
+				free(domainname);
+				domainname = NULL;
 				continue;
-			profile_found = true;
-			break;
+			}
+			if (*line != '<')
+				continue;
+			for (i = start; i < argc; i++) {
+				const int len = strlen(argv[i]);
+				if (strncmp(line, argv[i], len))
+					continue;
+				if (!recursive) {
+					if (line[len])
+						continue;
+				} else {
+					if (line[len] && line[len] != ' ')
+						continue;
+				}
+				if (try) {
+					domainname = ccs_strdup(line);
+					break;
+				}
+				fprintf(fp_out, "select %s\nuse_profile %u\n",
+					line, profile);
+				break;
+			}
 		}
 		ccs_put();
-		fclose(fp);
-		if (!profile_found) {
-			fprintf(stderr, "Profile %u not defined.\n", profile);
-			exit(1);
-		}
+		fclose(fp_in);
+		fclose(fp_out);
 	}
-	fp_in = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "r");
-	fp_out = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "w");
-	if (!fp_in || !fp_out) {
-		fprintf(stderr, "Can't open policy file.\n");
-		exit(1);
-	}
-	ccs_get();
-	while (true) {
-		char *cp;
-		char *line = ccs_freadline(fp_in);
-		if (!line)
-			break;
-		cp = strchr(line, ' ');
-		if (!cp)
-			break;
-		*cp++ = '\0';
-		for (i = start; i < argc; i++) {
-			const int len = strlen(argv[i]);
-			if (strncmp(cp, argv[i], len))
-				continue;
-			if (!recursive) {
-				if (cp[len])
-					continue;
-			} else {
-				if (cp[len] && cp[len] != ' ')
-					continue;
-			}
-			fprintf(fp_out, "%u %s\n", profile, cp);
-			printf("%u %s\n", profile, cp);
-		}
-	}
-	ccs_put();
-	fclose(fp_in);
-	fclose(fp_out);
 	return 0;
 }
