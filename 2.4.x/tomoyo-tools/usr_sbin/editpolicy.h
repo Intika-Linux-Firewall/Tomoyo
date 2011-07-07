@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/26
+ * Version: 2.4.0-pre   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -461,7 +461,6 @@ struct ccs_domain {
 	_Bool is_dk;  /* domain keeper */
 	_Bool is_du;  /* unreachable domain */
 	_Bool is_dd;  /* deleted domain */
-	_Bool djt_nx; /* reachable by non execve(). */
 };
 
 struct ccs_domain_policy3 {
