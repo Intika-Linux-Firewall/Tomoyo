@@ -129,7 +129,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				case TOMOYO_NUMBER_UNION:
  					tomoyo_print_number_union_nospace
  						(head, numbers_p++);
-@@ -1733,6 +1766,22 @@ static DEFINE_SPINLOCK(tomoyo_query_list
+@@ -1666,6 +1699,22 @@ static DEFINE_SPINLOCK(tomoyo_query_list
  static atomic_t tomoyo_query_observers = ATOMIC_INIT(0);
  
  /**
@@ -152,7 +152,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_add_entry - Add an ACL to current thread's domain. Used by learning mode.
   *
   * @domain: Pointer to "struct tomoyo_domain_info".
-@@ -1743,6 +1792,8 @@ static atomic_t tomoyo_query_observers =
+@@ -1676,6 +1725,8 @@ static atomic_t tomoyo_query_observers =
  static void tomoyo_add_entry(struct tomoyo_domain_info *domain, char *header)
  {
  	char *buffer;
@@ -161,7 +161,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *cp = strchr(header, '\n');
  	int len;
  	if (!cp)
-@@ -1752,10 +1803,25 @@ static void tomoyo_add_entry(struct tomo
+@@ -1685,10 +1736,25 @@ static void tomoyo_add_entry(struct tomo
  		return;
  	*cp++ = '\0';
  	len = strlen(cp) + 1;
@@ -206,7 +206,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  
-@@ -352,6 +355,11 @@ struct tomoyo_request_info {
+@@ -351,6 +354,11 @@ struct tomoyo_request_info {
  	 * NULL if not dealing files.
  	 */
  	struct tomoyo_obj_info *obj;
@@ -218,7 +218,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_domain_info *domain;
  	/* For holding parameters. */
  	union {
-@@ -477,6 +485,20 @@ struct tomoyo_obj_info {
+@@ -476,6 +484,20 @@ struct tomoyo_obj_info {
  	 * parent directory.
  	 */
  	struct tomoyo_mini_stat stat[TOMOYO_MAX_PATH_STAT];
@@ -239,7 +239,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Structure for entries which follows "struct tomoyo_condition". */
-@@ -495,9 +517,11 @@ struct tomoyo_condition {
+@@ -494,9 +516,11 @@ struct tomoyo_condition {
  	u32 size; /* Memory size allocated for this entry. */
  	u16 condc; /* Number of conditions in this struct. */
  	u16 numbers_count; /* Number of "struct tomoyo_number_union values". */

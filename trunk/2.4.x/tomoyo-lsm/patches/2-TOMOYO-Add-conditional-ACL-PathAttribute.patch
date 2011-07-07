@@ -233,7 +233,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Index numbers for operation mode. */
  enum tomoyo_mode_index {
  	TOMOYO_CONFIG_DISABLED,
-@@ -291,6 +347,11 @@ struct tomoyo_policy_namespace;
+@@ -290,6 +346,11 @@ struct tomoyo_policy_namespace;
  
  /* Structure for request info. */
  struct tomoyo_request_info {
@@ -245,7 +245,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_domain_info *domain;
  	/* For holding parameters. */
  	union {
-@@ -389,6 +450,35 @@ struct tomoyo_number_group {
+@@ -388,6 +449,35 @@ struct tomoyo_number_group {
  	struct tomoyo_number_union number;
  };
  
@@ -281,7 +281,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Structure for entries which follows "struct tomoyo_condition". */
  struct tomoyo_condition_element {
  	/* Left hand operand. */
-@@ -734,6 +824,7 @@ void tomoyo_check_profile(void);
+@@ -733,6 +823,7 @@ void tomoyo_check_profile(void);
  void tomoyo_convert_time(time_t time, struct tomoyo_time *stamp);
  void tomoyo_del_condition(struct list_head *element);
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);

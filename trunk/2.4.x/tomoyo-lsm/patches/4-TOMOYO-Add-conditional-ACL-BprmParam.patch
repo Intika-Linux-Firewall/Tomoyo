@@ -232,7 +232,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				case TOMOYO_NUMBER_UNION:
  					tomoyo_print_number_union_nospace
  						(head, numbers_p++);
-@@ -1793,6 +1833,7 @@ static void tomoyo_add_entry(struct tomo
+@@ -1726,6 +1766,7 @@ static void tomoyo_add_entry(struct tomo
  {
  	char *buffer;
  	char *realpath = NULL;
@@ -240,7 +240,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	char *symlink = NULL;
  	char *cp = strchr(header, '\n');
  	int len;
-@@ -1805,6 +1846,11 @@ static void tomoyo_add_entry(struct tomo
+@@ -1738,6 +1779,11 @@ static void tomoyo_add_entry(struct tomo
  	len = strlen(cp) + 1;
  	/* strstr() will return NULL if ordering is wrong. */
  	if (*cp == 'f') {
@@ -252,7 +252,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		realpath = strstr(header, " exec={ realpath=\"");
  		if (realpath) {
  			realpath += 8;
-@@ -1820,6 +1866,8 @@ static void tomoyo_add_entry(struct tomo
+@@ -1753,6 +1799,8 @@ static void tomoyo_add_entry(struct tomo
  	snprintf(buffer, len - 1, "%s", cp);
  	if (realpath)
  		tomoyo_addprintf(buffer, len, " exec.%s", realpath);
@@ -281,7 +281,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  
-@@ -468,6 +472,12 @@ struct tomoyo_mini_stat {
+@@ -467,6 +471,12 @@ struct tomoyo_mini_stat {
  	dev_t rdev;
  };
  
@@ -294,7 +294,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Structure for attribute checks in addition to pathname checks. */
  struct tomoyo_obj_info {
  	/*
-@@ -492,20 +502,45 @@ struct tomoyo_obj_info {
+@@ -491,20 +501,45 @@ struct tomoyo_obj_info {
  	struct tomoyo_path_info *symlink_target;
  };
  
@@ -342,7 +342,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	u8 right;
  	/* Equation operator. True if equals or overlaps, false otherwise. */
  	bool equals;
-@@ -518,10 +553,14 @@ struct tomoyo_condition {
+@@ -517,10 +552,14 @@ struct tomoyo_condition {
  	u16 condc; /* Number of conditions in this struct. */
  	u16 numbers_count; /* Number of "struct tomoyo_number_union values". */
  	u16 names_count; /* Number of "struct tomoyo_name_union names". */
@@ -357,7 +357,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	 */
  };
  
-@@ -752,6 +791,8 @@ bool tomoyo_correct_path(const char *fil
+@@ -751,6 +790,8 @@ bool tomoyo_correct_path(const char *fil
  bool tomoyo_correct_word(const char *string);
  bool tomoyo_domain_def(const unsigned char *buffer);
  bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
