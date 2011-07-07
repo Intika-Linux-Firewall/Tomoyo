@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2+   2011/06/26
+ * Version: 1.8.2+   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -152,8 +152,7 @@ static int ccs_string_acl_compare(const void *a, const void *b);
 static void ccs_add_entry(void);
 static void ccs_adjust_cursor_pos(const int item_count);
 static void ccs_assign_djs(const struct ccs_path_info *ns,
-			   const char *domainname, const char *program,
-			   const bool is_root);
+			   const char *domainname, const char *program);
 static void ccs_copy_file(const char *source, const char *dest);
 static void ccs_delete_entry(const int index);
 static void ccs_down_arrow_key(void);
@@ -196,6 +195,24 @@ static int ccs_find_domain3(const char *domainname, const char *target,
 			return i;
 	}
 	return EOF;
+}
+
+/**
+ * ccs_find_domain3_by_name - Find a domain by name.
+ *
+ * @domainname: Name of domain to find.
+ *
+ * Returns pointer to "struct ccs_domain" if found, NULL otherwise.
+ */
+static struct ccs_domain *ccs_find_domain3_by_name(const char *domainname)
+{
+	int i;
+	for (i = 0; i < ccs_dp.list_len; i++) {
+		struct ccs_domain *ptr = &ccs_dp.list[i];
+		if (!ptr->target && !strcmp(ptr->domainname->name, domainname))
+			return ptr;
+	}
+	return NULL;
 }
 
 /**
@@ -587,22 +604,15 @@ static int ccs_add_path_group_policy(const struct ccs_path_info *ns,
  * @ns:         Pointer to "const struct ccs_path_info".
  * @domainname: Domainname.
  * @program:    Program name.
- * @is_root:    True if root of namespace, false otherwise.
  */
 static void ccs_assign_djs(const struct ccs_path_info *ns,
-			   const char *domainname, const char *program,
-			   const bool is_root)
+			   const char *domainname, const char *program)
 {
 	const struct ccs_transition_control_entry *d_t =
 		ccs_transition_control(ns, domainname, program);
-	/*
-	 * Don't create source domains under root of namespace because they
-	 * will become target domains. However, create them under root of
-	 * namespace anyway if namespace jump, for we need to indicate it.
-	 */
 	if (!d_t)
 		return;
-	if ((!is_root && d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE) ||
+	if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE ||
 	    d_t->type == CCS_TRANSITION_CONTROL_RESET) {
 		char *line;
 		char *cp;
@@ -714,13 +724,17 @@ static int ccs_show_domain_line(const int index)
 	int redirect_index;
 	const bool is_djs = ccs_jump_source(index);
 	const bool is_deleted = ccs_deleted_domain(index);
-	if (number >= 0) {
+	if (number >= 0)
 		printw("%c%4d:%3u %c%c%c ", ccs_dp.list_selected[index] ? '&' :
 		       ' ', number, ccs_dp.list[index].profile,
 		       ccs_keeper_domain(index) ? '#' : ' ',
 		       ccs_jump_target(index) ? '*' : ' ',
 		       ccs_domain_unreachable(index) ? '!' : ' ');
-	} else
+	else if (ccs_dp.list[index].is_djt)
+		printw("          %c*%c ",
+		       ccs_keeper_domain(index) ? '#' : ' ',
+		       ccs_domain_unreachable(index) ? '!' : ' ');
+	else
 		printw("              ");
 	tmp_col += 14;
 	sp = ccs_dp.list[index].domainname->name;
@@ -1711,11 +1725,14 @@ static void ccs_read_domain_and_exception_policy(void)
 	 * Domain jump sources by "task manual_domain_transition" keyword or
 	 * "task auto_domain_transition" keyword or "auto_domain_transition="
 	 * part of conditional ACL have been created by now because these
-	 * keywords must not refer "path_group" keyword.
+	 * keywords do not depend on domain transition control directives
+	 * defined in the exception policy.
 	 *
 	 * Create domain jump sources for "task auto_execute_handler" keyword
 	 * or "task denied_execute_handler" keyword or "file execute" keyword
-	 * now because these keywords may refer "path_group" keyword.
+	 * now because these keywords depend on domain transition control
+	 * directives defined in the exception policy. Note that "file execute"
+	 * allows referring "path_group" directives.
 	 */
 	max_index = ccs_dp.list_len;
 	for (index = 0; index < max_index; index++) {
@@ -1723,55 +1740,66 @@ static void ccs_read_domain_and_exception_policy(void)
 		const struct ccs_path_info **string_ptr
 			= ccs_dp.list[index].string_ptr;
 		const int max_count = ccs_dp.list[index].string_count;
-		const bool is_root = !strchr(domainname, ' ');
 		/* Do not recursively create domain jump source. */
 		if (ccs_dp.list[index].target)
 			continue;
 		ns = ccs_get_ns(domainname);
 		for (i = 0; i < max_count; i++) {
-			const struct ccs_path_info *cp = string_ptr[i];
+			const char *name = string_ptr[i]->name;
 			struct ccs_path_group_entry *group;
-			if (cp->name[0] != '@') {
-				ccs_assign_djs(ns, domainname, cp->name,
-					       is_root);
+			if (name[0] != '@') {
+				ccs_assign_djs(ns, domainname, name);
 				continue;
 			}
-			group = ccs_find_path_group_ns(ns, cp->name + 1);
+			group = ccs_find_path_group_ns(ns, name + 1);
 			if (!group)
 				continue;
 			for (j = 0; j < group->member_name_len; j++) {
-				cp = group->member_name[j];
-				ccs_assign_djs(ns, domainname, cp->name,
-					       is_root);
+				name = group->member_name[j]->name;
+				ccs_assign_djs(ns, domainname, name);
 			}
 		}
 	}
 
+	/* Create missing parent domains. */
+	max_index = ccs_dp.list_len;
+	for (index = 0; index < max_index; index++) {
+		char *line;
+		ccs_get();
+		line = ccs_shprintf("%s", ccs_dp.list[index].domainname->name);
+		while (true) {
+			char *cp = strrchr(line, ' ');
+			if (!cp)
+				break;
+			*cp = '\0';
+			if (ccs_find_domain3(line, NULL, false) == EOF)
+				ccs_assign_domain3(line, NULL, true);
+		}
+		ccs_put();
+	}
+
 	/*
-	 * Real domains and domain jump sources have been created by now. Let's
-	 * calculate domain jump targets and unreachable domains and missing
-	 * domains.
+	 * All domains and jump sources have been created by now.
+	 * Let's markup domain jump targets and unreachable domains.
 	 */
 	max_index = ccs_dp.list_len;
 
 	/*
-	 * Find real domains that might be reachable via
+	 * Find domains that might be reachable via
 	 * "task manual_domain_transition" keyword or
 	 * "task auto_domain_transition" keyword or
 	 * "auto_domain_transition=" part of conditional ACL.
 	 * Such domains are marked with '*'.
 	 */
 	for (i = 0; i < ccs_jump_list_len; i++) {
-		const int index = ccs_find_domain3(ccs_jump_list[i], NULL,
-						   false);
-		if (index >= 0) {
-			ccs_dp.list[index].is_djt = true;
-			ccs_dp.list[index].djt_nx = true;
-		}
+		struct ccs_domain *ptr =
+			ccs_find_domain3_by_name(ccs_jump_list[i]);
+		if (ptr)
+			ptr->is_djt = true;
 	}
 
 	/*
-	 * Find real domains that might be reachable via "initialize_domain"
+	 * Find domains that might be reachable via "initialize_domain"
 	 * keyword. Such domains are marked with '*'.
 	 */
 	for (index = 0; index < max_index; index++) {
@@ -1823,8 +1851,8 @@ static void ccs_read_domain_and_exception_policy(void)
 	}
 
 	/*
-	 * Find real domains that might suppress domain transition via
-	 * "keep_domain" keyword. Such domains are marked with '#'.
+	 * Find domains that might suppress domain transition via "keep_domain"
+	 * keyword. Such domains are marked with '#'.
 	 */
 	for (index = 0; index < max_index; index++) {
 		const struct ccs_domain *domain = &ccs_dp.list[index];
@@ -1869,18 +1897,12 @@ static void ccs_read_domain_and_exception_policy(void)
 
 	/*
 	 * Find unreachable domains. Such domains are marked with '!'.
-	 *
 	 * Unreachable domains are caused by one of "initialize_domain" keyword
 	 * or "keep_domain" keyword or "reset_domain" keyword.
-	 *
-	 * Domains referred by one of "task manual_domain_transition" keyword
-	 * or "task auto_domain_transition" keyword or
-	 * "auto_domain_transition=" part of conditional ACL are always
-	 * reachable.
 	 */
 	for (index = 0; index < max_index; index++) {
 		char *line;
-		struct ccs_domain *domain = &ccs_dp.list[index];
+		struct ccs_domain * const domain = &ccs_dp.list[index];
 		/*
 		 * Mark domain jump source as unreachable if domain jump target
 		 * does not exist. Note that such domains are not marked with
@@ -1893,17 +1915,21 @@ static void ccs_read_domain_and_exception_policy(void)
 			continue;
 		}
 		/* Ignore if domain jump targets. */
-		if (domain->djt_nx)
+		if (domain->is_djt)
 			continue;
-		ns = ccs_get_ns(ccs_dp.list[index].domainname->name);
+		/* Ignore if deleted domain. */
+		if (domain->is_dd)
+			continue;
+		ns = ccs_get_ns(domain->domainname->name);
 		ccs_get();
-		line = ccs_shprintf("%s", ccs_dp.list[index].domainname->name);
+		line = ccs_shprintf("%s", domain->domainname->name);
 		while (true) {
-			const int index2 = ccs_find_domain3(line, NULL, false);
+			const struct ccs_domain *ptr =
+				ccs_find_domain3_by_name(line);
 			const struct ccs_transition_control_entry *d_t;
 			char *cp;
 			/* Stop traversal if current is domain jump target. */
-			if (index2 >= 0 && ccs_dp.list[index2].is_djt)
+			if (ptr && ptr->is_djt)
 				break;
 			cp = strrchr(line, ' ');
 			if (cp)
@@ -1917,22 +1943,6 @@ static void ccs_read_domain_and_exception_policy(void)
 		ccs_put();
 		if (domain->d_t)
 			domain->is_du = true;
-	}
-
-	/* Create missing parent domains. */
-	for (index = 0; index < max_index; index++) {
-		char *line;
-		ccs_get();
-		line = ccs_shprintf("%s", ccs_dp.list[index].domainname->name);
-		while (true) {
-			char *cp = strrchr(line, ' ');
-			if (!cp)
-				break;
-			*cp = '\0';
-			if (ccs_find_domain3(line, NULL, false) == EOF)
-				ccs_assign_domain3(line, NULL, true);
-		}
-		ccs_put();
 	}
 
 	/* Sort by domain name. */
@@ -2988,9 +2998,14 @@ static void ccs_copy_to_history(const int current)
 	switch (ccs_current_screen) {
 		enum ccs_editpolicy_directives directive;
 	case CCS_SCREEN_DOMAIN_LIST:
-		if (!ccs_domain_sort_type)
-			line = ccs_dp.list[current].domainname->name;
-		else
+		if (!ccs_domain_sort_type) {
+			const struct ccs_domain *domain =
+				&ccs_dp.list[current];
+			if (domain->target)
+				line = domain->target->name;
+			else
+				line = domain->domainname->name;
+		} else
 			line = ccs_task_list[current].domain;
 		break;
 	case CCS_SCREEN_EXCEPTION_LIST:
