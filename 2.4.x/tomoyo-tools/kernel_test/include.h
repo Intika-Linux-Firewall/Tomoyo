@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/26
+ * Version: 2.4.0-pre   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -110,7 +110,6 @@ int delete_module(const char *name);
 #define proc_policy_manager          "/sys/kernel/security/tomoyo/manager"
 #define proc_policy_query            "/sys/kernel/security/tomoyo/query"
 #define proc_policy_audit            "/sys/kernel/security/tomoyo/audit"
-#define proc_policy_domain_status    "/sys/kernel/security/tomoyo/.domain_status"
 #define proc_policy_process_status   "/sys/kernel/security/tomoyo/.process_status"
 #define proc_policy_self_domain      "/sys/kernel/security/tomoyo/self_domain"
 

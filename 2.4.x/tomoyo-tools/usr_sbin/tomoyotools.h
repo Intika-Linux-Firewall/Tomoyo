@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/26
+ * Version: 2.4.0-pre   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -55,7 +55,6 @@
 
 #define CCS_PROC_POLICY_DIR              "/sys/kernel/security/tomoyo/"
 #define CCS_PROC_POLICY_DOMAIN_POLICY    "/sys/kernel/security/tomoyo/domain_policy"
-#define CCS_PROC_POLICY_DOMAIN_STATUS    "/sys/kernel/security/tomoyo/.domain_status"
 #define CCS_PROC_POLICY_EXCEPTION_POLICY "/sys/kernel/security/tomoyo/exception_policy"
 #define CCS_PROC_POLICY_AUDIT            "/sys/kernel/security/tomoyo/audit"
 #define CCS_PROC_POLICY_MANAGER          "/sys/kernel/security/tomoyo/manager"
