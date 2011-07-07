@@ -28,9 +28,9 @@ apt-get -y install wget zlib1g-dev debian-keyring
 # Download TOMOYO Linux patches.
 mkdir -p /root/rpmbuild/SOURCES/
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.2-20110626.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110707.tar.gz ]
 then
-    wget -O ccs-patch-1.8.2-20110626.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110626.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110707.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110707.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -42,7 +42,7 @@ tar -jxf linux-source-2.6.32.tar.bz2
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.32 || die "Can't chdir to linux-source-2.6.18/ ."
-tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.2-20110626.tar.gz || die "Can't extract patch."
+tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.2-20110707.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.32-debian-squeeze.diff || die "Can't apply patch."
 cat /boot/config-2.6.32-5-686 config.ccs > .config || die "Can't create config."
 
