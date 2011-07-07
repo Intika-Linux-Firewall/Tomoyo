@@ -60,6 +60,7 @@ ldconfig || true
 %changelog
 * Thu Jul 07 2011 1.8.2-3
 - Fix bugs in ccs-editpolicy's domain transition jump information.
+- Let ccs-setprofile use /proc/ccs/domain_policy rather than /proc/ccs/.domain_status .
 
 * Sun Jun 26 2011 1.8.2-2
 - Improve ccs-editpolicy's domain transition jump information.

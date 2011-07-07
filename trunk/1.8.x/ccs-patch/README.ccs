@@ -2894,7 +2894,19 @@ Version 1.8.2   2011/06/20   Usability enhancement release.
 
 Fix 2011/07/07
 
-    @ Fix wrong namepsace reference.
+    @ Remove /proc/ccs/.domain_status interface.
 
-      ccs_write_domain_profile() was by error using previously selected
-      namespace. It should use selected domain's namespace.
+      Writing to /proc/ccs/.domain_status can be emulated by
+
+        ( echo "select " $domainname; echo "use_profile " $profile ) |
+        /usr/sbin/ccs-loadpolicy -d
+
+      and reading from /proc/ccs/.domain_status can be emulated by
+
+        grep -A 1 '^<' /proc/ccs/domain_policy |
+        awk ' { if ( domainname == "" ) { if ( substr($1, 1, 1) == "<" )
+        domainname = $0; } else if ( $1 == "use_profile" ) {
+        print $2 " " domainname; domainname = ""; } } ; '
+
+      . Since this interface is used by only /usr/sbin/ccs-setprofile ,
+      remove this interface by updating /usr/sbin/ccs-setprofile .
