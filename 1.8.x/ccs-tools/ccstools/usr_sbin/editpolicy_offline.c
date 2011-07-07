@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2+   2011/06/26
+ * Version: 1.8.2+   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -431,7 +431,6 @@ enum ccs_pref_index {
 enum ccs_proc_interface_index {
 	CCS_DOMAINPOLICY,
 	CCS_EXCEPTIONPOLICY,
-	CCS_DOMAIN_STATUS,
 	CCS_PROCESS_STATUS,
 	CCS_STAT,
 	CCS_AUDIT,

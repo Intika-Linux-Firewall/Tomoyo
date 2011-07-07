@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -53,7 +53,6 @@
 
 #define CCS_PROC_POLICY_DIR              "/proc/ccs/"
 #define CCS_PROC_POLICY_DOMAIN_POLICY    "/proc/ccs/domain_policy"
-#define CCS_PROC_POLICY_DOMAIN_STATUS    "/proc/ccs/.domain_status"
 #define CCS_PROC_POLICY_EXCEPTION_POLICY "/proc/ccs/exception_policy"
 #define CCS_PROC_POLICY_AUDIT            "/proc/ccs/audit"
 #define CCS_PROC_POLICY_MANAGER          "/proc/ccs/manager"

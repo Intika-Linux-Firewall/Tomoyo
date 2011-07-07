@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/07/07
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -110,7 +110,6 @@ int delete_module(const char *name);
 #define proc_policy_manager          "/proc/ccs/manager"
 #define proc_policy_query            "/proc/ccs/query"
 #define proc_policy_audit            "/proc/ccs/audit"
-#define proc_policy_domain_status    "/proc/ccs/.domain_status"
 #define proc_policy_process_status   "/proc/ccs/.process_status"
 #define proc_policy_self_domain      "/proc/ccs/self_domain"
 
