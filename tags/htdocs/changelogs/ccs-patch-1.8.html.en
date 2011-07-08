@@ -35,6 +35,25 @@
 <h4>ChangeLog for ccs-patch 1.8.2</h4>
 
 <pre>
+Fix 2011/07/07
+
+    @ Remove /proc/ccs/.domain_status interface.
+
+      Writing to /proc/ccs/.domain_status can be emulated by
+
+        ( echo "select " $domainname; echo "use_profile " $profile ) |
+        /usr/sbin/ccs-loadpolicy -d
+
+      and reading from /proc/ccs/.domain_status can be emulated by
+
+        grep -A 1 '^&lt;' /proc/ccs/domain_policy |
+        awk ' { if ( domainname == "" ) { if ( substr($1, 1, 1) == "&lt;" )
+        domainname = $0; } else if ( $1 == "use_profile" ) {
+        print $2 " " domainname; domainname = ""; } } ; '
+
+      . Since this interface is used by only /usr/sbin/ccs-setprofile ,
+      remove this interface by updating /usr/sbin/ccs-setprofile .
+
 Fix 2011/06/14
 
     @ Remove unused "struct inode *" parameter from ccs-patch-\*.diff .
