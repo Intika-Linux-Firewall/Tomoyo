@@ -8,7 +8,7 @@ Source: linux
 Version: 2.6.31-23.75
 Provides: linux-headers, linux-headers-2.6
 Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.31-23, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.31-23-ccs1.8.2_2.6.31-23.75_i386.deb
+Filename: ./linux-headers-2.6.31-23-ccs1.8.2p11.8.2_2.6.31-23.75_i386.deb
 Size: 767172
 MD5sum: 3f41cee89e347695f58e3f30a5bc71b6
 SHA1: 70a4a554ab18cc70b0b5c968bc74a641af1df982
@@ -20,43 +20,6 @@ Description: Linux kernel headers for version 2.6.31 on x86/x86_64
  This is for sites that want the latest kernel headers.  Please read
  /usr/share/doc/linux-headers-2.6.31-23/debian.README.gz for details.
 
-Package: ccs-tools
-Priority: extra
-Section: alien
-Installed-Size: 652
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Version: 1.8.2-2
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
-Filename: ./ccs-tools_1.8.2-2_i386.deb
-Size: 187586
-MD5sum: a12dbb821fb1e601626aa36805c3ebfe
-SHA1: 821abcb7187ec590fcd75e1be95f88565c83b669
-SHA256: 4d3bfce3afa0a5dc9c24ced399a73a1bb36621becfe81739d7559d3fdfefd4c8
-Description: Userspace tools for TOMOYO Linux 1.8.x
- This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
- Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
- .
- (Converted from a rpm package by alien version 8.78.)
-
-Package: linux-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.31.23.36
-Depends: linux-image-ccs (= 2.6.31.23.36)
-Filename: ./linux-ccs1.8.2_2.6.31.23.36_i386.deb
-Size: 3492
-MD5sum: e76c831ce697c2302420e1b72d365cca
-SHA1: d8ae851975a4456dead7970860fa8d17f29b4fba
-SHA256: 130442ff875bdbe87817bead9c48675d929f3a874dbfaab8942b4bf4d58f6c5b
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete ccs Linux kernel
- available.
-
 Package: linux-image-ccs
 Priority: optional
 Section: metapackages
@@ -66,7 +29,7 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.31.23.36
 Depends: linux-image-2.6.31-23-ccs, linux-firmware
-Filename: ./linux-image-ccs1.8.2_2.6.31.23.36_i386.deb
+Filename: ./linux-image-ccs1.8.2p11.8.2_2.6.31.23.36_i386.deb
 Size: 3498
 MD5sum: 0a87c16050e7e0cc57d84ab761223258
 SHA1: bec59c8d014eee89483ef2030e166e8ea2f19da1
@@ -74,6 +37,25 @@ SHA256: 6f133867c8d91622ac12d30bb60a29355a936895310cdca594c23a3d50ce0279
 Description: Generic Linux kernel image
  This package will always depend on the latest ccs kernel image
  available.
+
+Package: ccs-tools
+Priority: extra
+Section: alien
+Installed-Size: 652
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Version: 1.8.2-3
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
+Filename: ./ccs-tools_1.8.2-3_i386.deb
+Size: 187766
+MD5sum: 3a0214e11f1b3fd7eb3f85d6ec2189e4
+SHA1: 9bf71e469d420e3d1644ba0fe98ae63c05412aa2
+SHA256: d3566719ff4c5e50b9ac8020227efb84a4c9afd0da4df2d4dc5d747200dbe280
+Description: Userspace tools for TOMOYO Linux 1.8.x
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+ .
+ (Converted from a rpm package by alien version 8.78.)
 
 Package: linux-image-2.6.31-23-ccs
 Priority: optional
@@ -89,7 +71,7 @@ Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.31 | linux-source-2.6.31
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.31-23-ccs1.8.2_2.6.31-23.75_i386.deb
+Filename: ./linux-image-2.6.31-23-ccs1.8.2p11.8.2_2.6.31-23.75_i386.deb
 Size: 32482202
 MD5sum: 6c6bc4e76f1fe73f06bcf9a59ff7fa5c
 SHA1: c570ff0b5517c3c0ec2dffd7fceb939b38873a60
@@ -110,6 +92,24 @@ Description: Linux kernel image for version 2.6.31 on x86/x86_64
  the linux-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
+Package: linux-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.31.23.36
+Depends: linux-image-ccs (= 2.6.31.23.36)
+Filename: ./linux-ccs1.8.2p11.8.2_2.6.31.23.36_i386.deb
+Size: 3492
+MD5sum: e76c831ce697c2302420e1b72d365cca
+SHA1: d8ae851975a4456dead7970860fa8d17f29b4fba
+SHA256: 130442ff875bdbe87817bead9c48675d929f3a874dbfaab8942b4bf4d58f6c5b
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete ccs Linux kernel
+ available.
+
 Package: linux-headers-ccs
 Priority: optional
 Section: devel
@@ -119,7 +119,7 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.31.23.36
 Depends: linux-headers-2.6.31-23-ccs
-Filename: ./linux-headers-ccs1.8.2_2.6.31.23.36_i386.deb
+Filename: ./linux-headers-ccs1.8.2p11.8.2_2.6.31.23.36_i386.deb
 Size: 3486
 MD5sum: 34b7cb8f2b504bb8701e76364245911b
 SHA1: c8889d761d6546399b6a1b36b272a608e6a64c1e
