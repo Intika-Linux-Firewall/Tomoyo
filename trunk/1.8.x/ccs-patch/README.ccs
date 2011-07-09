@@ -2910,3 +2910,11 @@ Fix 2011/07/07
 
       . Since this interface is used by only /usr/sbin/ccs-setprofile ,
       remove this interface by updating /usr/sbin/ccs-setprofile .
+
+Fix 2011/07/09
+
+    @ Fix /proc/ccs/stat parser.
+
+      For optimization, I changed to use simple_strtoul() rather than sscanf()
+      in ccs_write_stat(). But it caused parsing failure if space is inserted
+      before value (e.g. "Memory used by policy: $value").
