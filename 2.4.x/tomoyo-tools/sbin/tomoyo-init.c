@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/26
+ * Version: 2.4.0-pre   2011/07/11
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -61,7 +61,11 @@ static _Bool sys_unmount = 0;
 static _Bool security_unmount = 0;
 static _Bool chdir_ok = 0;
 
-static _Bool profile_used[256];
+static struct ns_profile {
+	char *namespace;
+	_Bool profile[256];
+} *ns_profile_list;
+static int ns_profile_list_len = 0;
 static char buffer[8192];
 
 static void check_arg(const char *arg)
@@ -184,18 +188,44 @@ static void scan_used_profile_index(void)
 	static _Bool checked = 0;
 	unsigned int i;
 	FILE *fp;
+	struct ns_profile *ptr = NULL;
 	if (checked)
 		return;
 	checked = 1;
 	fp = fopen(proc_domain_policy, "r");
 	if (!fp)
 		panic();
-	for (i = 0; i < 256; i++)
-		profile_used[i] = 0;
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
-		if (sscanf(buffer, "use_profile %u", &i) == 1 && i < 256)
-			profile_used[i] = 1;
+		if (buffer[0] == '<') {
+			char *cp = strchr(buffer, ' ');
+			if (!cp)
+				cp = strchr(buffer, '\n');
+			if (cp)
+				*cp = '\0';
+			ptr = NULL;
+			for (i = 0; i < ns_profile_list_len; i++) {
+				if (strcmp(buffer,
+					   ns_profile_list[i].namespace))
+					continue;
+				ptr = &ns_profile_list[i];
+				break;
+			}
+			if (ptr)
+				continue;
+			ns_profile_list = realloc(ns_profile_list,
+						  sizeof(*ptr) *
+						  (ns_profile_list_len + 1));
+			if (!ns_profile_list)
+				panic();
+			ptr = &ns_profile_list[ns_profile_list_len++];
+			ptr->namespace = strdup(buffer);
+			if (!ptr->namespace)
+				panic();
+			memset(ptr->profile, 0, sizeof(ptr->profile));
+		} else if (ptr && sscanf(buffer, "use_profile %u", &i) == 1 &&
+			   i < 256)
+			ptr->profile[i] = 1;
 	}
 	fclose(fp);
 }
@@ -208,10 +238,15 @@ static void disable_profile(void)
 	if (!fp_out)
 		panic();
 	scan_used_profile_index();
-	for (i = 0; i < 256; i++) {
-		if (!profile_used[i])
-			continue;
-		fprintf(fp_out, "%u-COMMENT=disabled\n", i);
+	for (i = 0; i < ns_profile_list_len; i++) {
+		struct ns_profile *ptr = &ns_profile_list[i];
+		int j;
+		for (j = 0; j < 256; j++) {
+			if (!ptr->profile[j])
+				continue;
+			fprintf(fp_out, "%s %u-COMMENT=disabled\n",
+				ptr->namespace, j);
+		}
 	}
 	fclose(fp_out);
 	fp_in = fopen(proc_profile, "r");
@@ -220,16 +255,11 @@ static void disable_profile(void)
 		panic();
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp_in)) {
-		char *cp = strchr(buffer, '=');
+		char *cp = strstr(buffer, "={ mode=");
 		if (!cp)
 			continue;
-		*cp = '\0';
-		if (!strcmp(buffer, "PROFILE_VERSION"))
-			fprintf(fp_out, "%s=%s\n", buffer, cp + 1);
-		else if (strstr(buffer, "COMMENT"))
-			fprintf(fp_out, "%s=disabled\n", buffer);
-		else
-			fprintf(fp_out, "%s={ mode=disabled }\n", buffer);
+		*(cp + 8) = '\0';
+		fprintf(fp_out, "%sdisabled }\n", buffer);
 	}
 	fclose(fp_in);
 	fclose(fp_out);

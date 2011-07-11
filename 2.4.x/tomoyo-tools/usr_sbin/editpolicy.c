@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/07/07
+ * Version: 2.4.0-pre   2011/07/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -2280,11 +2280,16 @@ static void ccs_show_current(void)
 		const int index = ccs_editpolicy_get_current();
 		ccs_get();
 		ccs_eat_col = ptr->x;
-		if (index >= 0)
+		if (index >= 0) {
 			line = ccs_shprintf
 				("%s", ccs_eat(ccs_dp.list[index].
 					       domainname->name));
-		else
+			if (ccs_jump_source(index)) {
+				char *cp = strrchr(line, ' ');
+				if (cp)
+					*cp = '\0';
+			}
+		} else
 			line = ccs_shprintf("%s", ccs_current_ns->name);
 		if (ccs_window_width < strlen(line))
 			line[ccs_window_width] = '\0';
