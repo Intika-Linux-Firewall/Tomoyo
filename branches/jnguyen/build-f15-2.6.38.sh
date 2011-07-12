@@ -7,8 +7,8 @@ URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patc
 COLOUR=0 # set to 1 for coloured output
 
 CCS_VER="1.8.2"
-CCSPATCH_VER="1.8.2-20110620"
-KERNEL_VER="2.6.38.8-32.fc15"
+CCSPATCH_VER="1.8.2-20110707"
+KERNEL_VER="2.6.38.8-35.fc15"
 
 UPDATED_DIFF=0
 CCSDIFF_NAME="ccs-patch-2.6.38-fedora-15.diff"
