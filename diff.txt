@@ -1,0 +1,1010 @@
+Index: trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_cond_test.c
+===================================================================
+--- trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_cond_test.c	(revision 5260)
++++ trunk/2.4.x/tomoyo-tools/kernel_test/tomoyo_cond_test.c	(working copy)
+@@ -230,6 +230,161 @@
+ 	}
+ }
+ 
++static int try_exec(void)
++{
++	int status = 0;
++	int pipe_fd[2] = { EOF, EOF };
++	int ret_ignored = pipe(pipe_fd);
++	switch (fork()) {
++	case 0:
++		errno = 0;
++		execl("/bin/true", "true", NULL);
++		/* Unreachable if execl() succeeded. */
++		status = errno;
++		ret_ignored = write(pipe_fd[1], &status, sizeof(status));
++		_exit(0);
++	case -1:
++		fprintf(stderr, "fork() failed.\n");
++		break;
++	default:
++		close(pipe_fd[1]);
++		ret_ignored = read(pipe_fd[0], &status, sizeof(status));
++		wait(NULL);
++		close(pipe_fd[0]);
++	}
++	return status ? EOF : 0;
++}
++
++static void stage_cond_test(void)
++{
++	int fd;
++	const char *policy;
++
++	/* open read */
++	policy = "file read /etc/fstab task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_RDONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd != EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open read */
++	policy = "file read /etc/fstab task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_RDONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open write */
++	policy = "file write /etc/fstab task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_WRONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd != EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open write */
++	policy = "file write /etc/fstab task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_WRONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path and single number */
++	policy = "file mkdir /tmp/testdir/ 0755 task.uid!=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mkdir("/tmp/testdir", 0755) == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++	
++	/* single path and single number */
++	policy = "file mkdir /tmp/testdir/ 0755 task.uid=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mkdir("/tmp/testdir", 0755) == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path */
++	policy = "file rmdir /tmp/testdir/ task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rmdir("/tmp/testdir") == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path */
++	policy = "file rmdir /tmp/testdir/ task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rmdir("/tmp/testdir") == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path and three numbers */
++	policy = "file mkchar /tmp/char-1-3 0600 1 3 "
++		"task.uid!=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mknod("/tmp/char-1-3", S_IFCHR | 0600, MKDEV(1, 3)) == EOF ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path and three numbers */
++	policy = "file mkchar /tmp/char-1-3 0600 1 3 "
++		"task.uid=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mknod("/tmp/char-1-3", S_IFCHR | 0600, MKDEV(1, 3)) == 0 ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* two paths */
++	policy = "file rename /tmp/char-1-3 /tmp/char-1-3.new "
++		"path1.parent.ino!=path2.parent.ino";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rename("/tmp/char-1-3", "/tmp/char-1-3.new") == EOF ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* two paths */
++	policy = "file rename /tmp/char-1-3 /tmp/char-1-3.new "
++		"path1.parent.ino=path2.parent.ino";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rename("/tmp/char-1-3", "/tmp/char-1-3.new") == 0 ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true exec.realpath!=\"/bin/true\"";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true exec.realpath=\"/bin/true\"";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++}
++
+ int main(int argc, char *argv[])
+ {
+ 	ccs_test_init();
+@@ -258,6 +413,7 @@
+ 	set_profile(3, "file::unmount");
+ 	set_profile(3, "file::pivot_root");
+ 	stage_open_test();
++	stage_cond_test();
+ 	set_profile(0, "file::execute");
+ 	set_profile(0, "file::open");
+ 	set_profile(0, "file::create");
+@@ -281,9 +437,7 @@
+ 	set_profile(0, "file::unmount");
+ 	set_profile(0, "file::pivot_root");
+ 	clear_status();
+-	if (0) { /* To suppress "defined but not used" warnings. */
+-		write_domain_policy("", 0);
++	if (0) /* To suppress "defined but not used" warnings. */
+ 		write_exception_policy("", 0);
+-	}
+ 	return 0;
+ }
+Index: trunk/1.8.x/ccs-patch/README.ccs
+===================================================================
+--- trunk/1.8.x/ccs-patch/README.ccs	(revision 5260)
++++ trunk/1.8.x/ccs-patch/README.ccs	(working copy)
+@@ -2918,3 +2918,12 @@
+       For optimization, I changed to use simple_strtoul() rather than sscanf()
+       in ccs_write_stat(). But it caused parsing failure if space is inserted
+       before value (e.g. "Memory used by policy: $value").
++
++Fix 2006/07/13
++
++    @ Accept "::" notation for IPv6 address.
++
++      In order to add network access restriction to TOMOYO 2.4, I backported
++      routines for parsing/printing IPv4/IPv6 address from kernel 3.0 into
++      TOMOYO 1.8.2.
++      Now, IPv6 address accepts "::1" instead of "0:0:0:0:0:0:0:1".
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/mount.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/mount.c	(revision 5260)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/mount.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.2   2011/06/20
++ * Version: 1.8.2+   2011/07/13
+  */
+ 
+ #include "internal.h"
+@@ -105,7 +105,6 @@
+ 			 unsigned long flags)
+ {
+ 	struct ccs_obj_info obj = { };
+-	struct path path;
+ 	struct file_system_type *fstype = NULL;
+ 	const char *requested_type = NULL;
+ 	const char *requested_dir_name = NULL;
+@@ -157,12 +156,11 @@
+ 	}
+ 	if (need_dev) {
+ 		/* Get mount point or device file. */
+-		if (ccs_get_path(dev_name, &path)) {
++		if (ccs_get_path(dev_name, &obj.path1)) {
+ 			error = -ENOENT;
+ 			goto out;
+ 		}
+-		obj.path1 = path;
+-		requested_dev_name = ccs_realpath_from_path(&path);
++		requested_dev_name = ccs_realpath_from_path(&obj.path1);
+ 		if (!requested_dev_name) {
+ 			error = -ENOENT;
+ 			goto out;
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5260)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.2+   2011/07/09
++ * Version: 1.8.2+   2011/07/13
+  */
+ 
+ #include "internal.h"
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/network.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(revision 5260)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/network.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2011  NTT DATA CORPORATION
+  *
+- * Version: 1.8.2   2011/06/20
++ * Version: 1.8.2+   2011/07/13
+  */
+ 
+ #include "internal.h"
+@@ -39,6 +39,351 @@
+ 	[4] = " ", /* Dummy for avoiding NULL pointer dereference. */
+ };
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
++
++/*
++ * Routines for parsing IPv4 or IPv6 address.
++ * These are copied from lib/hexdump.c net/core/utils.c .
++ */
++#include <linux/ctype.h>
++
++static int hex_to_bin(char ch)
++{
++	if ((ch >= '0') && (ch <= '9'))
++		return ch - '0';
++	ch = tolower(ch);
++	if ((ch >= 'a') && (ch <= 'f'))
++		return ch - 'a' + 10;
++	return -1;
++}
++
++#define IN6PTON_XDIGIT		0x00010000
++#define IN6PTON_DIGIT		0x00020000
++#define IN6PTON_COLON_MASK	0x00700000
++#define IN6PTON_COLON_1		0x00100000	/* single : requested */
++#define IN6PTON_COLON_2		0x00200000	/* second : requested */
++#define IN6PTON_COLON_1_2	0x00400000	/* :: requested */
++#define IN6PTON_DOT		0x00800000	/* . */
++#define IN6PTON_DELIM		0x10000000
++#define IN6PTON_NULL		0x20000000	/* first/tail */
++#define IN6PTON_UNKNOWN		0x40000000
++
++static inline int xdigit2bin(char c, int delim)
++{
++	int val;
++
++	if (c == delim || c == '\0')
++		return IN6PTON_DELIM;
++	if (c == ':')
++		return IN6PTON_COLON_MASK;
++	if (c == '.')
++		return IN6PTON_DOT;
++
++	val = hex_to_bin(c);
++	if (val >= 0)
++		return val | IN6PTON_XDIGIT | (val < 10 ? IN6PTON_DIGIT : 0);
++
++	if (delim == -1)
++		return IN6PTON_DELIM;
++	return IN6PTON_UNKNOWN;
++}
++
++static int in4_pton(const char *src, int srclen, u8 *dst, int delim,
++		    const char **end)
++{
++	const char *s;
++	u8 *d;
++	u8 dbuf[4];
++	int ret = 0;
++	int i;
++	int w = 0;
++
++	if (srclen < 0)
++		srclen = strlen(src);
++	s = src;
++	d = dbuf;
++	i = 0;
++	while(1) {
++		int c;
++		c = xdigit2bin(srclen > 0 ? *s : '\0', delim);
++		if (!(c & (IN6PTON_DIGIT | IN6PTON_DOT | IN6PTON_DELIM |
++			   IN6PTON_COLON_MASK))) {
++			goto out;
++		}
++		if (c & (IN6PTON_DOT | IN6PTON_DELIM | IN6PTON_COLON_MASK)) {
++			if (w == 0)
++				goto out;
++			*d++ = w & 0xff;
++			w = 0;
++			i++;
++			if (c & (IN6PTON_DELIM | IN6PTON_COLON_MASK)) {
++				if (i != 4)
++					goto out;
++				break;
++			}
++			goto cont;
++		}
++		w = (w * 10) + c;
++		if ((w & 0xffff) > 255) {
++			goto out;
++		}
++cont:
++		if (i >= 4)
++			goto out;
++		s++;
++		srclen--;
++	}
++	ret = 1;
++	memcpy(dst, dbuf, sizeof(dbuf));
++out:
++	if (end)
++		*end = s;
++	return ret;
++}
++
++static int in6_pton(const char *src, int srclen, u8 *dst, int delim,
++		    const char **end)
++{
++	const char *s, *tok = NULL;
++	u8 *d, *dc = NULL;
++	u8 dbuf[16];
++	int ret = 0;
++	int i;
++	int state = IN6PTON_COLON_1_2 | IN6PTON_XDIGIT | IN6PTON_NULL;
++	int w = 0;
++
++	memset(dbuf, 0, sizeof(dbuf));
++
++	s = src;
++	d = dbuf;
++	if (srclen < 0)
++		srclen = strlen(src);
++
++	while (1) {
++		int c;
++
++		c = xdigit2bin(srclen > 0 ? *s : '\0', delim);
++		if (!(c & state))
++			goto out;
++		if (c & (IN6PTON_DELIM | IN6PTON_COLON_MASK)) {
++			/* process one 16-bit word */
++			if (!(state & IN6PTON_NULL)) {
++				*d++ = (w >> 8) & 0xff;
++				*d++ = w & 0xff;
++			}
++			w = 0;
++			if (c & IN6PTON_DELIM) {
++				/* We've processed last word */
++				break;
++			}
++			/*
++			 * COLON_1 => XDIGIT
++			 * COLON_2 => XDIGIT|DELIM
++			 * COLON_1_2 => COLON_2
++			 */
++			switch (state & IN6PTON_COLON_MASK) {
++			case IN6PTON_COLON_2:
++				dc = d;
++				state = IN6PTON_XDIGIT | IN6PTON_DELIM;
++				if (dc - dbuf >= sizeof(dbuf))
++					state |= IN6PTON_NULL;
++				break;
++			case IN6PTON_COLON_1|IN6PTON_COLON_1_2:
++				state = IN6PTON_XDIGIT | IN6PTON_COLON_2;
++				break;
++			case IN6PTON_COLON_1:
++				state = IN6PTON_XDIGIT;
++				break;
++			case IN6PTON_COLON_1_2:
++				state = IN6PTON_COLON_2;
++				break;
++			default:
++				state = 0;
++			}
++			tok = s + 1;
++			goto cont;
++		}
++
++		if (c & IN6PTON_DOT) {
++			ret = in4_pton(tok ? tok : s, srclen + (int)(s - tok),
++				       d, delim, &s);
++			if (ret > 0) {
++				d += 4;
++				break;
++			}
++			goto out;
++		}
++
++		w = (w << 4) | (0xff & c);
++		state = IN6PTON_COLON_1 | IN6PTON_DELIM;
++		if (!(w & 0xf000)) {
++			state |= IN6PTON_XDIGIT;
++		}
++		if (!dc && d + 2 < dbuf + sizeof(dbuf)) {
++			state |= IN6PTON_COLON_1_2;
++			state &= ~IN6PTON_DELIM;
++		}
++		if (d + 2 >= dbuf + sizeof(dbuf)) {
++			state &= ~(IN6PTON_COLON_1|IN6PTON_COLON_1_2);
++		}
++cont:
++		if ((dc && d + 4 < dbuf + sizeof(dbuf)) ||
++		    d + 4 == dbuf + sizeof(dbuf)) {
++			state |= IN6PTON_DOT;
++		}
++		if (d >= dbuf + sizeof(dbuf)) {
++			state &= ~(IN6PTON_XDIGIT|IN6PTON_COLON_MASK);
++		}
++		s++;
++		srclen--;
++	}
++
++	i = 15; d--;
++
++	if (dc) {
++		while(d >= dc)
++			dst[i--] = *d--;
++		while(i >= dc - dbuf)
++			dst[i--] = 0;
++		while(i >= 0)
++			dst[i--] = *d--;
++	} else
++		memcpy(dst, dbuf, sizeof(dbuf));
++
++	ret = 1;
++out:
++	if (end)
++		*end = s;
++	return ret;
++}
++#endif
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
++
++/*
++ * Routines for printing IPv4 or IPv6 address.
++ * These are copied from include/linux/kernel.h include/net/ipv6.h
++ * include/net/addrconf.h lib/hexdump.c lib/vsprintf.c and simplified.
++ */
++static const char hex_asc[] = "0123456789abcdef";
++#define hex_asc_lo(x)   hex_asc[((x) & 0x0f)]
++#define hex_asc_hi(x)   hex_asc[((x) & 0xf0) >> 4]
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
++static inline char *pack_hex_byte(char *buf, u8 byte)
++{
++	*buf++ = hex_asc_hi(byte);
++	*buf++ = hex_asc_lo(byte);
++	return buf;
++}
++#endif
++
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
++static inline int ipv6_addr_v4mapped(const struct in6_addr *a)
++{
++	return (a->s6_addr32[0] | a->s6_addr32[1] |
++		(a->s6_addr32[2] ^ htonl(0x0000ffff))) == 0;
++}
++#endif
++
++static inline int ipv6_addr_is_isatap(const struct in6_addr *addr)
++{
++	return (addr->s6_addr32[2] | htonl(0x02000000)) == htonl(0x02005EFE);
++}
++
++static char *ip4_string(char *p, const u8 *addr)
++{
++	/*
++	 * Since this function is called outside vsnprintf(), I can use
++	 * sprintf() here.
++	 */
++	return p +
++		sprintf(p, "%u.%u.%u.%u", addr[0], addr[1], addr[2], addr[3]);
++}
++
++static char *ip6_compressed_string(char *p, const char *addr)
++{
++	int i, j, range;
++	unsigned char zerolength[8];
++	int longest = 1;
++	int colonpos = -1;
++	u16 word;
++	u8 hi, lo;
++	bool needcolon = false;
++	bool useIPv4;
++	struct in6_addr in6;
++
++	memcpy(&in6, addr, sizeof(struct in6_addr));
++
++	useIPv4 = ipv6_addr_v4mapped(&in6) || ipv6_addr_is_isatap(&in6);
++
++	memset(zerolength, 0, sizeof(zerolength));
++
++	if (useIPv4)
++		range = 6;
++	else
++		range = 8;
++
++	/* find position of longest 0 run */
++	for (i = 0; i < range; i++) {
++		for (j = i; j < range; j++) {
++			if (in6.s6_addr16[j] != 0)
++				break;
++			zerolength[i]++;
++		}
++	}
++	for (i = 0; i < range; i++) {
++		if (zerolength[i] > longest) {
++			longest = zerolength[i];
++			colonpos = i;
++		}
++	}
++	if (longest == 1)		/* don't compress a single 0 */
++		colonpos = -1;
++
++	/* emit address */
++	for (i = 0; i < range; i++) {
++		if (i == colonpos) {
++			if (needcolon || i == 0)
++				*p++ = ':';
++			*p++ = ':';
++			needcolon = false;
++			i += longest - 1;
++			continue;
++		}
++		if (needcolon) {
++			*p++ = ':';
++			needcolon = false;
++		}
++		/* hex u16 without leading 0s */
++		word = ntohs(in6.s6_addr16[i]);
++		hi = word >> 8;
++		lo = word & 0xff;
++		if (hi) {
++			if (hi > 0x0f)
++				p = pack_hex_byte(p, hi);
++			else
++				*p++ = hex_asc_lo(hi);
++			p = pack_hex_byte(p, lo);
++		}
++		else if (lo > 0x0f)
++			p = pack_hex_byte(p, lo);
++		else
++			*p++ = hex_asc_lo(lo);
++		needcolon = true;
++	}
++
++	if (useIPv4) {
++		if (needcolon)
++			*p++ = ':';
++		p = ip4_string(p, &in6.s6_addr[12]);
++	}
++	*p = '\0';
++
++	return p;
++}
++#endif
++
+ /**
+  * ccs_parse_ipaddr_union - Parse an IP address.
+  *
+@@ -50,64 +395,35 @@
+ bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
+ 			    struct ccs_ipaddr_union *ptr)
+ {
+-	u16 * const min = ptr->ip[0].s6_addr16;
+-	u16 * const max = ptr->ip[1].s6_addr16;
++	u8 * const min = ptr->ip[0].in6_u.u6_addr8;
++	u8 * const max = ptr->ip[1].in6_u.u6_addr8;
+ 	char *address = ccs_read_token(param);
+-	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
+-			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+-			   &min[0], &min[1], &min[2], &min[3],
+-			   &min[4], &min[5], &min[6], &min[7],
+-			   &max[0], &max[1], &max[2], &max[3],
+-			   &max[4], &max[5], &max[6], &max[7]);
+-	if (count == 8 || count == 16) {
+-		u8 i;
+-		if (count == 8)
+-			memmove(max, min, sizeof(u16) * 8);
+-		for (i = 0; i < 8; i++) {
+-			min[i] = htons(min[i]);
+-			max[i] = htons(max[i]);
+-		}
+-		ptr->is_ipv6 = true;
++	const char *end;
++	if (!strchr(address, ':') &&
++	    in4_pton(address, -1, min, '-', &end) > 0) {
++		ptr->is_ipv6 = false;
++		if (!*end)
++			ptr->ip[1].s6_addr32[0] = ptr->ip[0].s6_addr32[0];
++		else if (*end++ != '-' ||
++			 in4_pton(end, -1, max, '\0', &end) <= 0 || *end)
++			return false;
++		/* use host byte order to allow u32 comparison.*/
++		ptr->ip[0].s6_addr32[0] = htonl(ptr->ip[0].s6_addr32[0]);
++		ptr->ip[1].s6_addr32[0] = htonl(ptr->ip[1].s6_addr32[0]);
+ 		return true;
+ 	}
+-	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+-		       &min[0], &min[1], &min[2], &min[3],
+-		       &max[0], &max[1], &max[2], &max[3]);
+-	if (count == 4 || count == 8) {
+-		/* use host byte order to allow u32 comparison.*/
+-		ptr->ip[0].s6_addr32[0] =
+-			(((u8) min[0]) << 24) + (((u8) min[1]) << 16)
+-			+ (((u8) min[2]) << 8) + (u8) min[3];
+-		if (count == 4)
+-			ptr->ip[1].s6_addr32[0] = ptr->ip[0].s6_addr32[0];
+-		else
+-			ptr->ip[1].s6_addr32[0] =
+-				(((u8) max[0]) << 24) + (((u8) max[1]) << 16)
+-				+ (((u8) max[2]) << 8) + (u8) max[3];
+-		ptr->is_ipv6 = false;
++	if (in6_pton(address, -1, min, '-', &end) > 0) {
++		ptr->is_ipv6 = true;
++		if (!*end)
++			memmove(max, min, sizeof(u16) * 8);
++		else if (*end++ != '-' ||
++			 in6_pton(end, -1, max, '\0', &end) <= 0 || *end)
++			return false;
+ 		return true;
+ 	}
+ 	return false;
+ }
+ 
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+-#if defined(__LITTLE_ENDIAN)
+-#define HIPQUAD(addr)				\
+-	((unsigned char *)&addr)[3],		\
+-		((unsigned char *)&addr)[2],	\
+-		((unsigned char *)&addr)[1],	\
+-		((unsigned char *)&addr)[0]
+-#elif defined(__BIG_ENDIAN)
+-#define HIPQUAD(addr)				\
+-	((unsigned char *)&addr)[0],		\
+-		((unsigned char *)&addr)[1],	\
+-		((unsigned char *)&addr)[2],	\
+-		((unsigned char *)&addr)[3]
+-#else
+-#error "Please fix asm/byteorder.h"
+-#endif /* __LITTLE_ENDIAN */
+-#endif
+-
+ /**
+  * ccs_print_ipv4 - Print an IPv4 address.
+  *
+@@ -119,24 +435,30 @@
+  * Returns nothing.
+  */
+ static void ccs_print_ipv4(char *buffer, const unsigned int buffer_len,
+-			   const u32 min_ip, const u32 max_ip)
++			   u32 min_ip, u32 max_ip)
+ {
+-	memset(buffer, 0, buffer_len);
+-	snprintf(buffer, buffer_len - 1, "%u.%u.%u.%u%c%u.%u.%u.%u",
+-		 HIPQUAD(min_ip), min_ip == max_ip ? '\0' : '-',
+-		 HIPQUAD(max_ip));
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
++	snprintf(buffer, buffer_len - 1, "%pI4h%c%pI4h", &min_ip,
++		 min_ip == max_ip ? '\0' : '-', &max_ip);
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
++	min_ip = htonl(min_ip);
++	max_ip = htonl(max_ip);
++	snprintf(buffer, buffer_len - 1, "%pI4%c%pI4", &min_ip,
++		 min_ip == max_ip ? '\0' : '-', &max_ip);
++#else
++	char min_addr[sizeof("255.255.255.255")];
++	char max_addr[sizeof("255.255.255.255")];
++	min_ip = htonl(min_ip);
++	max_ip = htonl(max_ip);
++	ip4_string(min_addr, (u8 *) &min_ip);
++	ip4_string(max_addr, (u8 *) &max_ip);
++	snprintf(buffer, buffer_len - 1, "%s%c%s", min_addr,
++		 min_ip == max_ip ? '\0' : '-', max_addr);
++#endif
++	if (buffer_len)
++		buffer[buffer_len - 1] = '\0';
+ }
+ 
+-#if !defined(NIP6)
+-
+-#define NIP6(addr)							\
+-	ntohs((addr).s6_addr16[0]), ntohs((addr).s6_addr16[1]),		\
+-		ntohs((addr).s6_addr16[2]), ntohs((addr).s6_addr16[3]), \
+-		ntohs((addr).s6_addr16[4]), ntohs((addr).s6_addr16[5]), \
+-		ntohs((addr).s6_addr16[6]), ntohs((addr).s6_addr16[7])
+-
+-#endif
+-
+ /**
+  * ccs_print_ipv6 - Print an IPv6 address.
+  *
+@@ -151,11 +473,19 @@
+ 			   const struct in6_addr *min_ip,
+ 			   const struct in6_addr *max_ip)
+ {
+-	memset(buffer, 0, buffer_len);
+-	snprintf(buffer, buffer_len - 1,
+-		 "%x:%x:%x:%x:%x:%x:%x:%x%c%x:%x:%x:%x:%x:%x:%x:%x",
+-		 NIP6(*min_ip), !memcmp(min_ip, max_ip, 16) ? '\0' : '-',
+-		 NIP6(*max_ip));
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
++	snprintf(buffer, buffer_len, "%pI6c%c%pI6c", min_ip,
++		 !memcmp(min_ip, max_ip, 16) ? '\0' : '-', max_ip);
++#else
++	char min_addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
++	char max_addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
++	ip6_compressed_string(min_addr, (const u8 *) min_ip);
++	ip6_compressed_string(max_addr, (const u8 *) max_ip);
++	snprintf(buffer, buffer_len, "%s%c%s", min_addr,
++		 !memcmp(min_ip, max_ip, 16) ? '\0' : '-', max_addr);
++#endif
++	if (buffer_len)
++		buffer[buffer_len - 1] = '\0';
+ }
+ 
+ /**
+Index: trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_cond_test.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_cond_test.c	(revision 5260)
++++ trunk/1.8.x/ccs-tools/ccstools/kernel_test/ccs_cond_test.c	(working copy)
+@@ -230,6 +230,161 @@
+ 	}
+ }
+ 
++static int try_exec(void)
++{
++	int status = 0;
++	int pipe_fd[2] = { EOF, EOF };
++	int ret_ignored = pipe(pipe_fd);
++	switch (fork()) {
++	case 0:
++		errno = 0;
++		execl("/bin/true", "true", NULL);
++		/* Unreachable if execl() succeeded. */
++		status = errno;
++		ret_ignored = write(pipe_fd[1], &status, sizeof(status));
++		_exit(0);
++	case -1:
++		fprintf(stderr, "fork() failed.\n");
++		break;
++	default:
++		close(pipe_fd[1]);
++		ret_ignored = read(pipe_fd[0], &status, sizeof(status));
++		wait(NULL);
++		close(pipe_fd[0]);
++	}
++	return status ? EOF : 0;
++}
++
++static void stage_cond_test(void)
++{
++	int fd;
++	const char *policy;
++
++	/* open read */
++	policy = "file read /etc/fstab task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_RDONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd != EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open read */
++	policy = "file read /etc/fstab task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_RDONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open write */
++	policy = "file write /etc/fstab task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_WRONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd != EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open write */
++	policy = "file write /etc/fstab task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	fd = open("/etc/fstab", O_WRONLY);
++	if (fd != EOF)
++		close(fd);
++	printf("%s : %s\n", policy, fd == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path and single number */
++	policy = "file mkdir /tmp/testdir/ 0755 task.uid!=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mkdir("/tmp/testdir", 0755) == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++	
++	/* single path and single number */
++	policy = "file mkdir /tmp/testdir/ 0755 task.uid=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mkdir("/tmp/testdir", 0755) == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path */
++	policy = "file rmdir /tmp/testdir/ task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rmdir("/tmp/testdir") == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path */
++	policy = "file rmdir /tmp/testdir/ task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rmdir("/tmp/testdir") == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path and three numbers */
++	policy = "file mkchar /tmp/char-1-3 0600 1 3 "
++		"task.uid!=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mknod("/tmp/char-1-3", S_IFCHR | 0600, MKDEV(1, 3)) == EOF ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* single path and three numbers */
++	policy = "file mkchar /tmp/char-1-3 0600 1 3 "
++		"task.uid=path1.parent.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       mknod("/tmp/char-1-3", S_IFCHR | 0600, MKDEV(1, 3)) == 0 ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* two paths */
++	policy = "file rename /tmp/char-1-3 /tmp/char-1-3.new "
++		"path1.parent.ino!=path2.parent.ino";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rename("/tmp/char-1-3", "/tmp/char-1-3.new") == EOF ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* two paths */
++	policy = "file rename /tmp/char-1-3 /tmp/char-1-3.new "
++		"path1.parent.ino=path2.parent.ino";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy,
++	       rename("/tmp/char-1-3", "/tmp/char-1-3.new") == 0 ?
++	       "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true task.uid!=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true task.uid=path1.uid";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true exec.realpath!=\"/bin/true\"";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++
++	/* open execute */
++	policy = "file execute /bin/true exec.realpath=\"/bin/true\"";
++	write_domain_policy(policy, 0);
++	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
++	write_domain_policy(policy, 1);
++}
++
+ int main(int argc, char *argv[])
+ {
+ 	ccs_test_init();
+@@ -258,6 +413,7 @@
+ 	set_profile(3, "file::unmount");
+ 	set_profile(3, "file::pivot_root");
+ 	stage_open_test();
++	stage_cond_test();
+ 	set_profile(0, "file::execute");
+ 	set_profile(0, "file::open");
+ 	set_profile(0, "file::create");
+@@ -281,9 +437,7 @@
+ 	set_profile(0, "file::unmount");
+ 	set_profile(0, "file::pivot_root");
+ 	clear_status();
+-	if (0) { /* To suppress "defined but not used" warnings. */
+-		write_domain_policy("", 0);
++	if (0) /* To suppress "defined but not used" warnings. */
+ 		write_exception_policy("", 0);
+-	}
+ 	return 0;
+ }
+Index: trunk/1.8.x/ccs-tools/ccstools/ccs-tools.spec
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/ccs-tools.spec	(revision 5260)
++++ trunk/1.8.x/ccs-tools/ccstools/ccs-tools.spec	(working copy)
+@@ -7,7 +7,7 @@
+ 
+ Name: ccs-tools
+ Version: 1.8.2
+-Release: 3
++Release: 4
+ License: GPL
+ Group: System Environment/Kernel
+ ExclusiveOS: Linux
+@@ -20,9 +20,9 @@
+ ##
+ # BuildRequires: ncurses-devel
+ Requires: ncurses
+-Conflicts: ccs-tools < 1.8.2-3
++Conflicts: ccs-tools < 1.8.2-4
+ 
+-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110707.tar.gz
++Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110713.tar.gz
+ 
+ %description
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+@@ -58,6 +58,10 @@
+ /usr/share/man/man8/
+ 
+ %changelog
++* Wed Jul 13 2011 1.8.2-4
++- Let ccs-init handle profiles in all namespaces.
++- Let ccs-editpolicy print domain's name rather than shortcut's name.
++
+ * Thu Jul 07 2011 1.8.2-3
+ - Fix bugs in ccs-editpolicy's domain transition jump information.
+ - Let ccs-setprofile use /proc/ccs/domain_policy rather than /proc/ccs/.domain_status .
+Index: trunk/1.8.x/ccs-tools/ccstools/README.ccs
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/README.ccs	(revision 5260)
++++ trunk/1.8.x/ccs-tools/ccstools/README.ccs	(working copy)
+@@ -676,3 +676,11 @@
+ 
+   /usr/sbin/ccs-setprofile
+     Use /proc/ccs/domain_policy rather than /proc/ccs/.domain_status .
++
++Version 1.8.2p3 2011/07/13   Bug fix release.
++
++  /sbin/ccs-init
++    Handle profiles in all namespaces.
++
++  /usr/sbin/ccs-editpolicy
++    Print domain's name rather than shortcut's name.
