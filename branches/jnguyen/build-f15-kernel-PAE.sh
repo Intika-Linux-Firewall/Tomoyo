@@ -1,12 +1,13 @@
 #! /bin/bash
 
-RPM_BUILD_DIR="/root/rpmbuild"
-SOURCEDIR="/tmp"
+RPM_BUILD_DIR="/home/build/rpmbuild"
+SOURCE_DIR="/home/build/sources"
+PACKAGE_DIR="/home/build/RPMS"
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
-COLOUR=0 # set to 1 for coloured output
+COLOUR=1
 
-CCS_VER="1.8.2"
+CCS_VER="1.8.2p1"
 CCSPATCH_VER="1.8.2-20110707"
 KERNEL_VER="2.6.38.8-35.fc15"
 
@@ -18,7 +19,7 @@ CCSDIFF_NAME="ccs-patch-2.6.38-fedora-15.diff"
 #CCSDIFF_NAME="ccs-patch-2.6.38-fedora-15-20110526-1.8.1.diff"
 #CCSDIFF_REVISION="ccs-patch-2.6.38-fedora-15.diff?revision=5059&root=tomoyo"
 
-# stuff that probably will not be changed much
+# stuff that probably will not need to be changed much
 # {{{
 if tput setaf 0 &>/dev/null; then
 	ALL_OFF="$(tput sgr0)"
@@ -48,22 +49,12 @@ error() {
 	exit 1
 }
 
-#################################
-#if ! whereis rpmdev-wipetree >/dev/null; then
-#	error "ERROR: rpmdevtools package not installed"
-#fi
-#
-#if ! whereis yumdownloader >/dev/null; then
-#	error "ERROR: yum-utils package not installed"
-#fi
-#
-#msg "Setting up a clean rpmbuild tree ..."
-#rpmdev-wipetree || error "ERROR: rpmbuild tree wipe failed"
-#rpmdev-setuptree || error "ERROR: rpmbuild tree setup failed"
-#################################
+msg "Setting up a clean rpmbuild tree ..."
+rm -rf "${RPM_BUILD_DIR}"
+rpmdev-setuptree || error "ERROR: rpmbuild tree setup failed"
 
-msg "Entering '${SOURCEDIR}' directory ..."
-cd "${SOURCEDIR}" || error "ERROR: chdir to '${SOURCEDIR}' failed"
+msg "Entering '${SOURCE_DIR}' directory ..."
+cd "${SOURCE_DIR}" || error "ERROR: chdir to '${SOURCE_DIR}' failed"
 
 if [[ ! -e ccs-patch-${CCSPATCH_VER}.tar.gz ]]; then
 	msg "Downloading ccs-patch source ..."
@@ -81,19 +72,14 @@ fi
 
 if [[ ! -e "kernel-${KERNEL_VER}.src.rpm" ]]; then
 	msg "Downloading kernel SRPM ..."
-    wget "http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-${KERNEL_VER}.src.rpm" \
-		|| error "ERROR: kernel SRPM download failed"
-	# alternatively use this command (from yum-utils package) to download the latest
-	# kernel source from an appropriate mirror, but will cause error if ${KERNEL_VER}
-	# does not match the kernel version that is downloaded.
-	#yumdownloader --source kernel || error "ERROR: kernel SRPM download failed"
+	yumdownloader --source kernel || error "ERROR: kernel SRPM download failed"
 fi
 
 msg "Waiting 10 seconds ..."
 read -t 10 -r -e -p "Run yum-builddep [y/N]?: " builddep
 if [[ "${builddep}" = "y" || "${builddep}" = "Y" ]]; then
 	msg "Installing build dependencies ..."
-	su -c "yum-builddep kernel-${KERNEL_VER}.src.rpm" || "ERROR: dependency installation failed"
+	su -c "yum-builddep kernel-${KERNEL_VER}.src.rpm" || error "ERROR: dependency installation failed"
 fi
 
 msg "Verifying signature for kernel SRPM ..."
@@ -102,8 +88,9 @@ rpm --checksig "kernel-${KERNEL_VER}.src.rpm" || error "ERROR: signature verific
 msg "Installing kernel SRPM ..."
 rpm -ivh "kernel-${KERNEL_VER}.src.rpm" || error "ERROR: kernel SRPM installation failed"
 
-msg "Copying sources to '${RPM_BUILD_DIR}/SOURCES' directory ..."
-cp -vp "ccs-patch-${CCSPATCH_VER}.tar.gz" "${CCSDIFF_NAME}" "${RPM_BUILD_DIR}/SOURCES/"
+msg "Copying sources ..."
+cp -vp "ccs-patch-${CCSPATCH_VER}.tar.gz" "${RPM_BUILD_DIR}/SOURCES/"
+[[ "${UPDATED_DIFF}" = 1 ]] && cp -vp "${CCSDIFF_NAME}" "${RPM_BUILD_DIR}/SOURCES/"
 
 msg "Entering SPEC directory ..."
 cd "${RPM_BUILD_DIR}/SPECS" || error "ERROR: chdir to '${RPM_BUILD_DIR}/SPECS' failed"
@@ -179,7 +166,7 @@ patch_spec() {
 EOF
 }
 
-# before applying the patch, replace the placeholder variables with the real values
+# here we replace the placeholder variables with the real values
 msg "Patching ccs-kernel.spec ..."
 if [[ "${UPDATED_DIFF}" = 0 ]]; then
 	patch_spec | sed -e "s#\${CCS_VER}#${CCS_VER}#g" \
@@ -206,13 +193,18 @@ msg "Edit ${RPM_BUILD_DIR}/SPECS/ccs-kernel.spec if required."
 printf '\n'
 msg "To build the kernel RPM, run the following command:"
 printf '\n'
-printf '%s\n' "    rpmbuild -bb --target ${ARCH} --with baseonly \\"
+printf '%s\n' "    rpmbuild -bb --target ${ARCH} --with paeonly \\"
 printf '%s\n' "    --without debug --without debuginfo \\"
 printf '%s\n' "    ${RPM_BUILD_DIR}/SPECS/ccs-kernel.spec"
 printf '\n'
 
+#msg "Running rpmbuild -bs in 10 seconds ..."
+#sleep 10 && rpmbuild -bs "${RPM_BUILD_DIR}/SPECS/ccs-kernel.spec" \
+#	&& cp -v "${RPM_BUILD_DIR}"/SRPMS/ccs-kernel-*.rpm "${PACKAGE_DIR}/"
+
 msg "Running rpmbuild -bb in 10 seconds ..."
-sleep 10 && rpmbuild -bb --target ${ARCH} --with baseonly --without debug \
-	--without debuginfo "${RPM_BUILD_DIR}/SPECS/ccs-kernel.spec"
+sleep 10 && rpmbuild -bb --target ${ARCH} --with paeonly --without debug \
+	--without debuginfo "${RPM_BUILD_DIR}/SPECS/ccs-kernel.spec" \
+	&& cp -v "${RPM_BUILD_DIR}/RPMS/${ARCH}"/ccs-kernel-*.rpm "${PACKAGE_DIR}/"
 
 exit 0
