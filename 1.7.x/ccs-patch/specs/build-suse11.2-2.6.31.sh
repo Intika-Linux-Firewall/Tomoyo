@@ -75,9 +75,9 @@ rpm --checksig kernel-default-2.6.31.14-0.8.1.nosrc.rpm || die "Can't verify sig
 rpm -ivh kernel-default-2.6.31.14-0.8.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.3-20110505.tar.gz ]
+if [ ! -r ccs-patch-1.7.3-20110713.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20110505.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20110505.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20110713.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20110713.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -103,7 +103,7 @@ patch << "EOF" || die "Can't patch spec file."
      >>../apply-patches.sh
  bash -ex ../apply-patches.sh
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.3-20110505.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.3-20110713.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.31-suse-11.2.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
  
