@@ -35,6 +35,15 @@
 <h4>ChangeLog for ccs-patch 1.8.2</h4>
 
 <pre>
+Fix 2011/07/13
+
+    @ Accept "::" notation for IPv6 address.
+
+      In order to add network access restriction to TOMOYO 2.4, I backported
+      routines for parsing/printing IPv4/IPv6 address from kernel 3.0 into
+      TOMOYO 1.8.2.
+      Now, IPv6 address accepts "::1" instead of "0:0:0:0:0:0:0:1".
+
 Fix 2011/07/07
 
     @ Remove /proc/ccs/.domain_status interface.
