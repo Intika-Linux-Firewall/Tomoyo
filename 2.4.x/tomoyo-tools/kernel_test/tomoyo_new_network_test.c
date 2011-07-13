@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/26
+ * Version: 2.4.0-pre   2011/07/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -263,7 +263,7 @@ static void stage_network_test(void)
 		saddr.sin6_port = htons(0);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream bind 0:0:0:0:0:0:0:1 0-1");
+			 "network inet stream bind ::1 0-1");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -275,8 +275,7 @@ static void stage_network_test(void)
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream listen "
-			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
+			 "network inet stream listen ::-::ff %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
 		errno = 0;
@@ -287,7 +286,7 @@ static void stage_network_test(void)
 		}
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream connect 0:0:0:0:0:0:0:1 %u-%u",
+			 "network inet stream connect ::1 %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
 		errno = 0;
@@ -301,7 +300,7 @@ static void stage_network_test(void)
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream accept 0:0:0:0:0:0:0:1 %u-%u",
+			 "network inet stream accept ::1 %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
@@ -315,7 +314,7 @@ static void stage_network_test(void)
 		close(fd2);
 		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
 		snprintf(buffer, sizeof(buffer) - 1, "network inet stream "
-			 "connect 0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
+			 "connect ::-::ff %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
 		if (write_policy()) {
@@ -325,8 +324,7 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream accept "
-			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
+			 "network inet stream accept ::-::ff %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
@@ -356,8 +354,7 @@ static void stage_network_test(void)
 		saddr.sin6_family = AF_INET6;
 		saddr.sin6_addr = in6addr_loopback;
 		saddr.sin6_port = htons(30003);
-		fprintf(exception_fp, "address_group TESTADDRESS "
-			"0:0:0:0:0:0:0:1\n");
+		fprintf(exception_fp, "address_group TESTADDRESS ::1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "network inet stream bind @TESTADDRESS 30003");
 		errno = 0;
@@ -369,10 +366,10 @@ static void stage_network_test(void)
 			delete_policy();
 		}
 		fprintf(exception_fp, "delete address_group "
-			"TESTADDRESS 0:0:0:0:0:0:0:1\n");
+			"TESTADDRESS ::1\n");
 		saddr.sin6_port = htons(40004);
 		fprintf(exception_fp, "address_group TESTADDRESS "
-			"0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:2\n");
+			"::-::2\n");
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "network inet stream bind @TESTADDRESS 40004");
 		errno = 0;
@@ -384,7 +381,7 @@ static void stage_network_test(void)
 			delete_policy();
 		}
 		fprintf(exception_fp, "delete address_group TESTADDRESS "
-			"0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:2\n");
+			"::-::2\n");
 		if (fd1 != EOF)
 			close(fd1);
 		if (fd2 != EOF)

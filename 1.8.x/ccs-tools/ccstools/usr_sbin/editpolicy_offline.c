@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2+   2011/07/07
+ * Version: 1.8.2+   2011/07/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -78,32 +78,6 @@ static inline int list_empty(const struct list_head *head)
 {
 	return head->next == head;
 }
-
-#ifndef HIPQUAD
-#if defined(__LITTLE_ENDIAN)
-#define HIPQUAD(addr)				\
-	((unsigned char *)&addr)[3],		\
-		((unsigned char *)&addr)[2],	\
-		((unsigned char *)&addr)[1],	\
-		((unsigned char *)&addr)[0]
-#elif defined(__BIG_ENDIAN)
-#define HIPQUAD(addr)				\
-	((unsigned char *)&addr)[0],		\
-		((unsigned char *)&addr)[1],	\
-		((unsigned char *)&addr)[2],	\
-		((unsigned char *)&addr)[3]
-#else
-#error "Please fix asm/byteorder.h"
-#endif /* __LITTLE_ENDIAN */
-#endif
-
-#if !defined(NIP6)
-#define NIP6(addr)							\
-	ntohs((addr).s6_addr16[0]), ntohs((addr).s6_addr16[1]),		\
-		ntohs((addr).s6_addr16[2]), ntohs((addr).s6_addr16[3]), \
-		ntohs((addr).s6_addr16[4]), ntohs((addr).s6_addr16[5]), \
-		ntohs((addr).s6_addr16[6]), ntohs((addr).s6_addr16[7])
-#endif
 
 /* Enumeration definition for internal use. */
 
@@ -527,13 +501,8 @@ struct ccs_number_union {
 
 /* Structure for holding an IP address. */
 struct ccs_ipaddr_union {
-	/*
-	 * Big endian if storing IPv6 address range.
-	 * Host endian if storing IPv4 address range.
-	 */
-	struct in6_addr ip[2];
-	/* Pointer to address group. */
-	struct ccs_group *group;
+	struct in6_addr ip[2]; /* Big endian. */
+	struct ccs_group *group; /* Pointer to address group. */
 	bool is_ipv6; /* Valid only if @group == NULL. */
 };
 
@@ -2842,27 +2811,6 @@ static int ccs_write_file(struct ccs_acl_param *param)
 	return -EINVAL;
 }
 
-/* Structure for holding inet domain socket's address. */
-struct ccs_inet_addr_info {
-	u16 port;           /* In network byte order. */
-	const u32 *address; /* In network byte order. */
-	bool is_ipv6;
-};
-
-/* Structure for holding unix domain socket's address. */
-struct ccs_unix_addr_info {
-	u8 *addr; /* This may not be '\0' terminated string. */
-	unsigned int addr_len;
-};
-
-/* Structure for holding socket address. */
-struct ccs_addr_info {
-	u8 protocol;
-	u8 operation;
-	struct ccs_inet_addr_info inet;
-	struct ccs_unix_addr_info unix0;
-};
-
 /**
  * ccs_parse_ipaddr_union - Parse an IP address.
  *
@@ -2874,59 +2822,153 @@ struct ccs_addr_info {
 static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
 				   struct ccs_ipaddr_union *ptr)
 {
-	u16 * const min = ptr->ip[0].s6_addr16;
-	u16 * const max = ptr->ip[1].s6_addr16;
-	char *address = ccs_read_token(param);
-	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
-			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
-			   &min[0], &min[1], &min[2], &min[3],
-			   &min[4], &min[5], &min[6], &min[7],
-			   &max[0], &max[1], &max[2], &max[3],
-			   &max[4], &max[5], &max[6], &max[7]);
-	if (count == 8 || count == 16) {
-		u8 i;
-		if (count == 8)
-			memmove(max, min, sizeof(u16) * 8);
-		for (i = 0; i < 8; i++) {
-			min[i] = htons(min[i]);
-			max[i] = htons(max[i]);
-		}
-		ptr->is_ipv6 = true;
-		return true;
-	}
-	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
-		       &min[0], &min[1], &min[2], &min[3],
-		       &max[0], &max[1], &max[2], &max[3]);
-	if (count == 4 || count == 8) {
-		/* use host byte order to allow u32 comparison.*/
-		ptr->ip[0].s6_addr32[0] =
-			(((u8) min[0]) << 24) + (((u8) min[1]) << 16)
-			+ (((u8) min[2]) << 8) + (u8) min[3];
-		if (count == 4)
-			ptr->ip[1].s6_addr32[0] = ptr->ip[0].s6_addr32[0];
-		else
-			ptr->ip[1].s6_addr32[0] =
-				(((u8) max[0]) << 24) + (((u8) max[1]) << 16)
-				+ (((u8) max[2]) << 8) + (u8) max[3];
-		ptr->is_ipv6 = false;
+	struct ccs_ip_address_entry e;
+	memset(ptr, 0, sizeof(ptr));
+	if (ccs_parse_ip(ccs_read_token(param), &e) == 0) {
+		memmove(&ptr->ip[0], e.min, sizeof(ptr->ip[0]));
+		memmove(&ptr->ip[1], e.max, sizeof(ptr->ip[1]));
+		ptr->is_ipv6 = e.is_ipv6;
 		return true;
 	}
 	return false;
 }
 
+/*
+ * Routines for printing IPv4 or IPv6 address.
+ * These are copied from include/linux/kernel.h include/net/ipv6.h
+ * include/net/addrconf.h lib/hexdump.c lib/vsprintf.c and simplified.
+ */
+static const char hex_asc[] = "0123456789abcdef";
+#define hex_asc_lo(x)   hex_asc[((x) & 0x0f)]
+#define hex_asc_hi(x)   hex_asc[((x) & 0xf0) >> 4]
+
+static inline char *pack_hex_byte(char *buf, u8 byte)
+{
+	*buf++ = hex_asc_hi(byte);
+	*buf++ = hex_asc_lo(byte);
+	return buf;
+}
+
+static inline int ipv6_addr_v4mapped(const struct in6_addr *a)
+{
+	return (a->s6_addr32[0] | a->s6_addr32[1] |
+		(a->s6_addr32[2] ^ htonl(0x0000ffff))) == 0;
+}
+
+static inline int ipv6_addr_is_isatap(const struct in6_addr *addr)
+{
+	return (addr->s6_addr32[2] | htonl(0x02000000)) == htonl(0x02005EFE);
+}
+
+static char *ip4_string(char *p, const u8 *addr)
+{
+	/*
+	 * Since this function is called outside vsnprintf(), I can use
+	 * sprintf() here.
+	 */
+	return p +
+		sprintf(p, "%u.%u.%u.%u", addr[0], addr[1], addr[2], addr[3]);
+}
+
+static char *ip6_compressed_string(char *p, const char *addr)
+{
+	int i, j, range;
+	unsigned char zerolength[8];
+	int longest = 1;
+	int colonpos = -1;
+	u16 word;
+	u8 hi, lo;
+	bool needcolon = false;
+	bool useIPv4;
+	struct in6_addr in6;
+
+	memcpy(&in6, addr, sizeof(struct in6_addr));
+
+	useIPv4 = ipv6_addr_v4mapped(&in6) || ipv6_addr_is_isatap(&in6);
+
+	memset(zerolength, 0, sizeof(zerolength));
+
+	if (useIPv4)
+		range = 6;
+	else
+		range = 8;
+
+	/* find position of longest 0 run */
+	for (i = 0; i < range; i++) {
+		for (j = i; j < range; j++) {
+			if (in6.s6_addr16[j] != 0)
+				break;
+			zerolength[i]++;
+		}
+	}
+	for (i = 0; i < range; i++) {
+		if (zerolength[i] > longest) {
+			longest = zerolength[i];
+			colonpos = i;
+		}
+	}
+	if (longest == 1)		/* don't compress a single 0 */
+		colonpos = -1;
+
+	/* emit address */
+	for (i = 0; i < range; i++) {
+		if (i == colonpos) {
+			if (needcolon || i == 0)
+				*p++ = ':';
+			*p++ = ':';
+			needcolon = false;
+			i += longest - 1;
+			continue;
+		}
+		if (needcolon) {
+			*p++ = ':';
+			needcolon = false;
+		}
+		/* hex u16 without leading 0s */
+		word = ntohs(in6.s6_addr16[i]);
+		hi = word >> 8;
+		lo = word & 0xff;
+		if (hi) {
+			if (hi > 0x0f)
+				p = pack_hex_byte(p, hi);
+			else
+				*p++ = hex_asc_lo(hi);
+			p = pack_hex_byte(p, lo);
+		}
+		else if (lo > 0x0f)
+			p = pack_hex_byte(p, lo);
+		else
+			*p++ = hex_asc_lo(lo);
+		needcolon = true;
+	}
+
+	if (useIPv4) {
+		if (needcolon)
+			*p++ = ':';
+		p = ip4_string(p, &in6.s6_addr[12]);
+	}
+	*p = '\0';
+
+	return p;
+}
+
 /**
  * ccs_print_ipv4 - Print an IPv4 address.
  *
- * @min_ip: Min address in host byte order.
- * @max_ip: Max address in host byte order.
+ * @min_ip: Pointer to "u32 in network byte order".
+ * @max_ip: Pointer to "u32 in network byte order".
  *
  * Returns nothing.
  */
-static void ccs_print_ipv4(const u32 min_ip, const u32 max_ip)
+static void ccs_print_ipv4(const u32 *min_ip, const u32 *max_ip)
 {
-	cprintf("%u.%u.%u.%u", HIPQUAD(min_ip));
-	if (min_ip != max_ip)
-		cprintf("-%u.%u.%u.%u", HIPQUAD(max_ip));
+	char addr[sizeof("255.255.255.255")];
+	ip4_string(addr, (const u8 *) min_ip);
+	cprintf("%s", addr);
+	if (*min_ip == *max_ip)
+		return;
+	ip4_string(addr, (const u8 *) max_ip);
+	cprintf("-%s", addr);
 }
 
 /**
@@ -2940,15 +2982,19 @@ static void ccs_print_ipv4(const u32 min_ip, const u32 max_ip)
 static void ccs_print_ipv6(const struct in6_addr *min_ip,
 			   const struct in6_addr *max_ip)
 {
-	cprintf("%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*min_ip));
-	if (memcmp(min_ip, max_ip, 16))
-		cprintf("-%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*max_ip));
+	char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
+	ip6_compressed_string(addr, (const char *) min_ip);
+	cprintf("%s", addr);
+	if (!memcmp(min_ip, max_ip, 16))
+		return;
+	ip6_compressed_string(addr, (const char *) max_ip);
+	cprintf("-%s", addr);
 }
 
 /**
  * ccs_print_ip - Print an IP address.
  *
- * @ptr: Pointer to "struct ipaddr_union".
+ * @ptr: Pointer to "struct ccs_ipaddr_union".
  *
  * Returns nothing.
  */
@@ -2957,8 +3003,8 @@ static void ccs_print_ip(const struct ccs_ipaddr_union *ptr)
 	if (ptr->is_ipv6)
 		ccs_print_ipv6(&ptr->ip[0], &ptr->ip[1]);
 	else
-		ccs_print_ipv4(ptr->ip[0].s6_addr32[0],
-			       ptr->ip[1].s6_addr32[0]);
+		ccs_print_ipv4(&ptr->ip[0].s6_addr32[0],
+			       &ptr->ip[1].s6_addr32[0]);
 }
 
 /**

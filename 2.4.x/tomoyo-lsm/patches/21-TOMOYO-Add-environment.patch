@@ -124,7 +124,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_MAX_MAC_CATEGORY_INDEX
  };
  
-@@ -467,6 +470,9 @@ struct tomoyo_request_info {
+@@ -466,6 +469,9 @@ struct tomoyo_request_info {
  			u8 operation;
  		} unix_network;
  		struct {
@@ -134,7 +134,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			const struct tomoyo_path_info *type;
  			const struct tomoyo_path_info *dir;
  			const struct tomoyo_path_info *dev;
-@@ -727,6 +733,12 @@ struct tomoyo_mount_acl {
+@@ -721,6 +727,12 @@ struct tomoyo_mount_acl {
  	struct tomoyo_number_union flags;
  };
  
@@ -147,7 +147,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Structure for "network inet" directive. */
  struct tomoyo_inet_acl {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_INET_ACL */
-@@ -931,6 +943,7 @@ const struct tomoyo_path_info *tomoyo_pa
+@@ -925,6 +937,7 @@ const struct tomoyo_path_info *tomoyo_pa
  int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
  				 struct path *path, const int flag);
  int tomoyo_close_control(struct tomoyo_io_buffer *head);
@@ -155,7 +155,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_find_next_domain(struct linux_binprm *bprm);
  int tomoyo_get_mode(const struct tomoyo_policy_namespace *ns, const u8 profile,
  		    const u8 index);
-@@ -981,6 +994,7 @@ int tomoyo_write_aggregator(struct tomoy
+@@ -975,6 +988,7 @@ int tomoyo_write_aggregator(struct tomoy
  int tomoyo_write_file(struct tomoyo_acl_param *param);
  int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type);
  int tomoyo_write_inet_network(struct tomoyo_acl_param *param);

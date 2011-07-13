@@ -7,7 +7,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.2
-Release: 3
+Release: 4
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -20,9 +20,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.2-3
+Conflicts: ccs-tools < 1.8.2-4
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110707.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110713.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -58,6 +58,13 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Wed Jul 13 2011 1.8.2-4
+- Let ccs-init handle profiles in all namespaces.
+- Let ccs-editpolicy print domain's name rather than shortcut's name.
+- Let ccs-editpolicy parse and print IPv6 address in RFC5952 format.
+- Let ccs-checkpolicy parse and check IPv6 address in RFC5952 format.
+- Let libccstools.so.2 parse IPv6 address in RFC5952 format.
+
 * Thu Jul 07 2011 1.8.2-3
 - Fix bugs in ccs-editpolicy's domain transition jump information.
 - Let ccs-setprofile use /proc/ccs/domain_policy rather than /proc/ccs/.domain_status .

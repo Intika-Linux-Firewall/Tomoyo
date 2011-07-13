@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0-pre   2011/06/26
+ * Version: 2.4.0-pre   2011/07/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -494,7 +494,7 @@ static void stage_network_test(void)
 		saddr.sin6_addr = in6addr_loopback;
 		saddr.sin6_port = htons(0);
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Binding TCP 0:0:0:0:0:0:0:1 0");
+			 "Server: Binding TCP ::1 0");
 		set_enforce(1);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
@@ -506,7 +506,7 @@ static void stage_network_test(void)
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Listening TCP 0:0:0:0:0:0:0:1 %d",
+			 "Server: Listening TCP ::1 %d",
 			 ntohs(saddr.sin6_port));
 		set_enforce(1);
 		show_prompt(sbuffer);
@@ -518,7 +518,7 @@ static void stage_network_test(void)
 		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
-			 "Client: Connecting TCP 0:0:0:0:0:0:0:1 %d",
+			 "Client: Connecting TCP ::1 %d",
 			 ntohs(saddr.sin6_port));
 		set_enforce(1);
 		show_prompt(cbuffer);
@@ -531,7 +531,7 @@ static void stage_network_test(void)
 
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Accepting TCP 0:0:0:0:0:0:0:1 %d",
+			 "Server: Accepting TCP ::1 %d",
 			 ntohs(caddr.sin6_port));
 		set_enforce(1);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
@@ -547,7 +547,7 @@ static void stage_network_test(void)
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Accepting TCP 0:0:0:0:0:0:0:1 %d",
+			 "Server: Accepting TCP ::1 %d",
 			 ntohs(caddr.sin6_port));
 		set_enforce(0);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
@@ -575,7 +575,7 @@ static void stage_network_test(void)
 		saddr.sin6_addr = in6addr_loopback;
 		saddr.sin6_port = htons(0);
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Binding UDP 0:0:0:0:0:0:0:1 0");
+			 "Server: Binding UDP ::1 0");
 		set_enforce(1);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
@@ -589,7 +589,7 @@ static void stage_network_test(void)
 		fd2 = socket(PF_INET6, SOCK_DGRAM, 0);
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
-			 "Client: Connecting UDP 0:0:0:0:0:0:0:1 %d",
+			 "Client: Connecting UDP ::1 %d",
 			 ntohs(saddr.sin6_port));
 		set_enforce(1);
 		show_prompt(cbuffer);
@@ -602,10 +602,10 @@ static void stage_network_test(void)
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
-			 "Client: Sending UDP 0:0:0:0:0:0:0:1 %d",
+			 "Client: Sending UDP ::1 %d",
 			 ntohs(saddr.sin6_port));
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Receiving UDP 0:0:0:0:0:0:0:1 %d",
+			 "Server: Receiving UDP ::1 %d",
 			 ntohs(caddr.sin6_port));
 
 		set_enforce(1);

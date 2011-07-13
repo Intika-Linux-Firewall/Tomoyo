@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/07/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -144,15 +144,13 @@ static void stage_policy_io_test(void)
 		try_io("path_group TEST3 boo/", 1);
 		try_io("address_group TEST 0.0.0.0", 1);
 		try_io("address_group TEST 0.0.0.0-1.2.3.4", 1);
-		try_io("address_group TEST 0:0:0:0:0:0:0:ff", 1);
-		try_io("address_group TEST "
-		       "0:0:0:0:0:0:0:0-ff:ff:ff:ff:ff:ff:ff:ff", 1);
+		try_io("address_group TEST ::ff", 1);
+		try_io("address_group TEST ::-ff:ff:ff:ff:ff:ff:ff:ff", 1);
 		try_io("address_group TEST "
 		       "fff0:fff1:fff2:fff3:fff4:fff5:fff6:fff7-"
 		       "fff8:fff9:fffa:fffb:fffc:fffd:fffe:ffff", 1);
-		try_io("address_group TEST2 0:0:0:0:0:0:0:ff", 1);
-		try_io("address_group TEST2 "
-		       "0:0:0:0:0:0:0:0-ff:ff:ff:ff:ff:ff:ff:ff", 1);
+		try_io("address_group TEST2 ::ff", 1);
+		try_io("address_group TEST2 ::-ff:ff:ff:ff:ff:ff:ff:ff", 1);
 		try_io("address_group TEST2 "
 		       "fff0:fff1:fff2:fff3:fff4:fff5:fff6:fff7-"
 		       "fff8:fff9:fffa:fffb:fffc:fffd:fffe:ffff", 1);
