@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/07/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -393,52 +393,15 @@ static _Bool ccs_check_u16(char *arg)
 static _Bool ccs_check_ip_address(char *arg)
 {
 	char *cp = strchr(arg, ' ');
-	unsigned int min_address[8];
-	unsigned int max_address[8];
-	int count;
+	struct ccs_ip_address_entry entry = { };
 	if (cp)
 		*cp++ = '\0';
 	if (*arg == '@') /* Don't reject address_group. */
 		goto found;
-	count = sscanf(arg, "%x:%x:%x:%x:%x:%x:%x:%x-%x:%x:%x:%x:%x:%x:%x:%x",
-		       &min_address[0], &min_address[1], &min_address[2],
-		       &min_address[3], &min_address[4], &min_address[5],
-		       &min_address[6], &min_address[7], &max_address[0],
-		       &max_address[1], &max_address[2], &max_address[3],
-		       &max_address[4], &max_address[5], &max_address[6],
-		       &max_address[7]);
-	if (count == 8) {
-		memmove(max_address, min_address, sizeof(max_address));
-		count = 16;
-	}
-	if (count == 16) {
-		for (count = 0; count < 4; count++)
-			if (min_address[count] >= 65536 ||
-			    max_address[count] >= 65536)
-				return false;
-		goto found;
-	}
-	count = sscanf(arg, "%u.%u.%u.%u-%u.%u.%u.%u",
-		       &min_address[0], &min_address[1], &min_address[2],
-		       &min_address[3], &max_address[0], &max_address[1],
-		       &max_address[2], &max_address[3]);
-	if (count == 4) {
-		memmove(max_address, min_address, sizeof(max_address));
-		count = 8;
-	}
-	if (count == 8) {
-		for (count = 0; count < 4; count++) {
-			if (min_address[count] >= 256 ||
-			    max_address[count] >= 256)
-				return false;
-			goto found;
-		}
-	}
-	return false;
+	if (ccs_parse_ip(arg, &entry) ||
+	    memcmp(entry.min, entry.max, 16) > 0)
+		return false;
 found:
-	for (count = 0; count < 8; count++)
-		if (htonl(min_address[count]) > htonl(max_address[count]))
-			return false;
 	return ccs_prune_word(arg, cp);
 }
 

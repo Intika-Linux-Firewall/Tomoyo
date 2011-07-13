@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/07/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -230,6 +230,161 @@ static void stage_open_test(void)
 	}
 }
 
+static int try_exec(void)
+{
+	int status = 0;
+	int pipe_fd[2] = { EOF, EOF };
+	int ret_ignored = pipe(pipe_fd);
+	switch (fork()) {
+	case 0:
+		errno = 0;
+		execl("/bin/true", "true", NULL);
+		/* Unreachable if execl() succeeded. */
+		status = errno;
+		ret_ignored = write(pipe_fd[1], &status, sizeof(status));
+		_exit(0);
+	case -1:
+		fprintf(stderr, "fork() failed.\n");
+		break;
+	default:
+		close(pipe_fd[1]);
+		ret_ignored = read(pipe_fd[0], &status, sizeof(status));
+		wait(NULL);
+		close(pipe_fd[0]);
+	}
+	return status ? EOF : 0;
+}
+
+static void stage_cond_test(void)
+{
+	int fd;
+	const char *policy;
+
+	/* open read */
+	policy = "file read /etc/fstab task.uid=path1.uid";
+	write_domain_policy(policy, 0);
+	fd = open("/etc/fstab", O_RDONLY);
+	if (fd != EOF)
+		close(fd);
+	printf("%s : %s\n", policy, fd != EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* open read */
+	policy = "file read /etc/fstab task.uid!=path1.uid";
+	write_domain_policy(policy, 0);
+	fd = open("/etc/fstab", O_RDONLY);
+	if (fd != EOF)
+		close(fd);
+	printf("%s : %s\n", policy, fd == EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* open write */
+	policy = "file write /etc/fstab task.uid=path1.uid";
+	write_domain_policy(policy, 0);
+	fd = open("/etc/fstab", O_WRONLY);
+	if (fd != EOF)
+		close(fd);
+	printf("%s : %s\n", policy, fd != EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* open write */
+	policy = "file write /etc/fstab task.uid!=path1.uid";
+	write_domain_policy(policy, 0);
+	fd = open("/etc/fstab", O_WRONLY);
+	if (fd != EOF)
+		close(fd);
+	printf("%s : %s\n", policy, fd == EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* single path and single number */
+	policy = "file mkdir /tmp/testdir/ 0755 task.uid!=path1.parent.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       mkdir("/tmp/testdir", 0755) == EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+	
+	/* single path and single number */
+	policy = "file mkdir /tmp/testdir/ 0755 task.uid=path1.parent.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       mkdir("/tmp/testdir", 0755) == 0 ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* single path */
+	policy = "file rmdir /tmp/testdir/ task.uid!=path1.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       rmdir("/tmp/testdir") == EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* single path */
+	policy = "file rmdir /tmp/testdir/ task.uid=path1.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       rmdir("/tmp/testdir") == 0 ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* single path and three numbers */
+	policy = "file mkchar /tmp/char-1-3 0600 1 3 "
+		"task.uid!=path1.parent.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       mknod("/tmp/char-1-3", S_IFCHR | 0600, MKDEV(1, 3)) == EOF ?
+	       "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* single path and three numbers */
+	policy = "file mkchar /tmp/char-1-3 0600 1 3 "
+		"task.uid=path1.parent.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       mknod("/tmp/char-1-3", S_IFCHR | 0600, MKDEV(1, 3)) == 0 ?
+	       "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* two paths */
+	policy = "file rename /tmp/char-1-3 /tmp/char-1-3.new "
+		"path1.parent.ino!=path2.parent.ino";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       rename("/tmp/char-1-3", "/tmp/char-1-3.new") == EOF ?
+	       "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* two paths */
+	policy = "file rename /tmp/char-1-3 /tmp/char-1-3.new "
+		"path1.parent.ino=path2.parent.ino";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy,
+	       rename("/tmp/char-1-3", "/tmp/char-1-3.new") == 0 ?
+	       "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* open execute */
+	policy = "file execute /bin/true task.uid!=path1.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* open execute */
+	policy = "file execute /bin/true task.uid=path1.uid";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* open execute */
+	policy = "file execute /bin/true exec.realpath!=\"/bin/true\"";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+
+	/* open execute */
+	policy = "file execute /bin/true exec.realpath=\"/bin/true\"";
+	write_domain_policy(policy, 0);
+	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
+	write_domain_policy(policy, 1);
+}
+
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
@@ -258,6 +413,7 @@ int main(int argc, char *argv[])
 	set_profile(3, "file::unmount");
 	set_profile(3, "file::pivot_root");
 	stage_open_test();
+	stage_cond_test();
 	set_profile(0, "file::execute");
 	set_profile(0, "file::open");
 	set_profile(0, "file::create");
@@ -281,9 +437,7 @@ int main(int argc, char *argv[])
 	set_profile(0, "file::unmount");
 	set_profile(0, "file::pivot_root");
 	clear_status();
-	if (0) { /* To suppress "defined but not used" warnings. */
-		write_domain_policy("", 0);
+	if (0) /* To suppress "defined but not used" warnings. */
 		write_exception_policy("", 0);
-	}
 	return 0;
 }

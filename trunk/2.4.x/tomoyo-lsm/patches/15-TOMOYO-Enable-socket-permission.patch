@@ -8,12 +8,12 @@ security_socket_post_recvmsg() LSM hook.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/tomoyo.c |  253 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 253 insertions(+)
+ security/tomoyo/tomoyo.c |  252 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 252 insertions(+)
 
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -245,6 +245,248 @@ static int tomoyo_sb_pivotroot(struct pa
+@@ -245,6 +245,247 @@ static int tomoyo_sb_pivotroot(struct pa
  	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path, old_path);
  }
  
@@ -99,8 +99,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/*
 +	 * Subsequent LSM hooks will receive "newsock". Therefore, I mark
 +	 * "newsock" as "an accept()ed socket but post accept() permission
-+	 * check is not done yet" by allocating memory using inode of the
-+	 * "newsock" as a search key.
++	 * check is not done yet" by assigning a magic value ERR_PTR(1).
 +	 */
 +	SOCK_INODE(newsock)->i_security = ERR_PTR(1);
 +	return 0;
@@ -262,7 +261,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * tomoyo_security_ops is a "struct security_operations" which is used for
   * registering TOMOYO.
-@@ -275,6 +517,17 @@ static struct security_operations tomoyo
+@@ -275,6 +516,17 @@ static struct security_operations tomoyo
  	.sb_mount            = tomoyo_sb_mount,
  	.sb_umount           = tomoyo_sb_umount,
  	.sb_pivotroot        = tomoyo_sb_pivotroot,
