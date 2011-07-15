@@ -1,41 +1,41 @@
-Package: linux-headers-2.6.38-8-generic-pae-ccs
+Package: linux-headers-2.6.38-10-generic-pae-ccs
 Priority: optional
 Section: devel
-Installed-Size: 12760
+Installed-Size: 13084
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 2.6.38-8.42
+Version: 2.6.38-10.46
 Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.38-8, libc6 (>= 2.11)
-Filename: ./linux-headers-2.6.38-8-generic-pae-ccs1.8.2_2.6.38-8.42_i386.deb
-Size: 1344322
-MD5sum: f182c2acbc2039c39630e0f3251dbf23
-SHA1: 0c872028dc179b16bae43fdc9fb26595490a3d70
-SHA256: b32e2989659420f8cb9ebf990a89432f539ff7a76761c972ec83ad19c4daaed2
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.38-10, libc6 (>= 2.11)
+Filename: ./linux-headers-2.6.38-10-generic-pae-ccs1.8.2p2_2.6.38-10.46_i386.deb
+Size: 1354608
+MD5sum: 51b8fd03ab6760bb5f8b8227673f240a
+SHA1: 7727831d04e703a99128249d0e16bef47845ba73
+SHA256: 6614ec2c5680778c932a8db3b4edcfe4d1df3815f26e44d9ed7467a89b6c5f2f
 Description: Linux kernel headers for version 2.6.38 on x86
  This package provides kernel header files for version 2.6.38 on
  x86.
  .
  This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.38-8/debian.README.gz for details.
+ /usr/share/doc/linux-headers-2.6.38-10/debian.README.gz for details.
 
-Package: linux-image-generic-pae-ccs
+Package: linux-generic-pae-ccs
 Priority: optional
 Section: metapackages
 Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 2.6.38.8.22
-Depends: linux-image-2.6.38-8-generic-pae-ccs, linux-firmware
-Filename: ./linux-image-generic-pae-ccs1.8.2_2.6.38.8.22_i386.deb
-Size: 5434
-MD5sum: 6fe7810b2df66308930dc2ad2fb82267
-SHA1: b2a3cfd5b2114fb848ab89139fceeea91668776d
-SHA256: ca922d9c7cefe9320c0c7d1548eabd3ae0f94503f37f045003b4a2a6bc172122
-Description: Generic Linux kernel image
- This package will always depend on the latest generic kernel image
+Version: 2.6.38.10.25
+Depends: linux-image-generic-pae-ccs (= 2.6.38.10.25)
+Filename: ./linux-generic-pae-ccs1.8.2p2_2.6.38.10.25_i386.deb
+Size: 5562
+MD5sum: 0871aeaa709b33ec6e4229c9f383ac65
+SHA1: 0c2f1b92570a4cf4740f40e0b31d2c59e4b19763
+SHA256: d28880ccf826d4917b71be0c89e7947b9fdcc74a8fa12b6342ed004d21587f48
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete generic Linux kernel
  available.
 
 Package: linux-headers-generic-pae-ccs
@@ -45,55 +45,54 @@ Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 2.6.38.8.22
-Depends: linux-headers-2.6.38-8-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.2_2.6.38.8.22_i386.deb
-Size: 5426
-MD5sum: 0561541fd9fe84b32bd39b4b0c383bea
-SHA1: 95e9e8010c9f1f0772d555c0a628928617a296e4
-SHA256: 0f449b2a999204ef4c4ae50416586a93c420f3a24ff0412e0a3bae8e05b3c454
+Version: 2.6.38.10.25
+Depends: linux-headers-2.6.38-10-generic-pae-ccs
+Filename: ./linux-headers-generic-pae-ccs1.8.2p2_2.6.38.10.25_i386.deb
+Size: 5556
+MD5sum: f00bbb1dc509e1b9a18bb4faf5d82b4b
+SHA1: 04a8f39df85ed2a1b8215275544af61fea6bfad8
+SHA256: 69798ce6855920d5627ef23353f35ae14b7bbc5120fa8c80d2a6e17385e84488
 Description: Generic Linux kernel headers
  This package will always depend on the latest generic kernel headers
  available.
 
-Package: ccs-tools
-Priority: extra
-Section: alien
-Installed-Size: 660
+Package: linux-image-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Version: 1.8.2-3
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.5-5~)
-Filename: ./ccs-tools_1.8.2-3_i386.deb
-Size: 188456
-MD5sum: da8847a052c9376d4f1e34414a7a6e85
-SHA1: 7596aeb0b5dd6bd51ac64676e103d5a69dcf3eff
-SHA256: f2ccab8ff7677be66b9fc13447c0e56e93418e4beb3ff1ecf41fe4125b47c57d
-Description: Userspace tools for TOMOYO Linux 1.8.x
- This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
- Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
- .
- (Converted from a rpm package by alien version 8.83.)
+Source: linux-meta
+Version: 2.6.38.10.25
+Depends: linux-image-2.6.38-10-generic-pae-ccs, linux-firmware
+Filename: ./linux-image-generic-pae-ccs1.8.2p2_2.6.38.10.25_i386.deb
+Size: 5568
+MD5sum: 3d1afed1d0512242eac3afa05848439f
+SHA1: 162495e9ab5866368ae195b3cb44fbb68098fbe6
+SHA256: 7dd267341bfe301ddda35b6319df2883a16e6c39870a41ac772cd7fe4ed681fb
+Description: Generic Linux kernel image
+ This package will always depend on the latest generic kernel image
+ available.
 
-Package: linux-image-2.6.38-8-generic-pae-ccs
+Package: linux-image-2.6.38-10-generic-pae-ccs
 Priority: optional
 Section: admin
-Installed-Size: 111616
+Installed-Size: 111660
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 2.6.38-8.42
+Version: 2.6.38-10.46
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
 Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.38 | linux-source-2.6.38, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.38-8-generic-pae-ccs1.8.2_2.6.38-8.42_i386.deb
-Size: 40424994
-MD5sum: 7769b41d8e16d9a34f8f64603540f20a
-SHA1: fa9d7167d75b0f29ff8544fb3fe39dd2211d9d35
-SHA256: 8f9bc58efb40cc97a541ed0c923ed17b0632fbb5336e82eee7a3f4a351205ffc
+Filename: ./linux-image-2.6.38-10-generic-pae-ccs1.8.2p2_2.6.38-10.46_i386.deb
+Size: 40457674
+MD5sum: 0ad3f3e41b042815bf06bbfb61f6160b
+SHA1: c958e68ec5695c6207c1cfcceacc4d6f19aed128
+SHA256: 51ea21b3223bfa652c5d2b7c5120ef65f82047ae7868b065fd3cdf16bbb95615
 Description: Linux kernel image for version 2.6.38 on x86
  This package contains the Linux kernel image for version 2.6.38 on
  x86.
@@ -110,21 +109,22 @@ Description: Linux kernel image for version 2.6.38 on x86
  the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-generic-pae-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
+Package: ccs-tools
+Priority: extra
+Section: alien
+Installed-Size: 664
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux-meta
-Version: 2.6.38.8.22
-Depends: linux-image-generic-pae-ccs (= 2.6.38.8.22)
-Filename: ./linux-generic-pae-ccs1.8.2_2.6.38.8.22_i386.deb
-Size: 5426
-MD5sum: c020dd3194b2acac7991651cd9f92b97
-SHA1: 9b335ce014cb5068244260c199421293c7237d96
-SHA256: 938e528f346df0457850f9c3531245aad812011a24fd344294a8c33585319c64
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete generic Linux kernel
- available.
+Version: 1.8.2-4
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.5-5~)
+Filename: ./ccs-tools_1.8.2-4_i386.deb
+Size: 190836
+MD5sum: ae0ddd4fc834bd632746639a9ab1b326
+SHA1: e91d89ded8470e356125780055238846b52df5ef
+SHA256: 5333402f6de40272e77b73f5695983470e507200ed47970ce9ddd4689dbcc71e
+Description: Userspace tools for TOMOYO Linux 1.8.x
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+ .
+ (Converted from a rpm package by alien version 8.83.)
 
