@@ -7,8 +7,8 @@ URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
 COLOUR=1
 
-CCS_VER="1.8.2p1"
-CCSPATCH_VER="1.8.2-20110707"
+CCS_VER="1.8.2p2"
+CCSPATCH_VER="1.8.2-20110713"
 KERNEL_VER="2.6.38.8-35.fc15"
 
 UPDATED_DIFF=0

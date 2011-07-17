@@ -12,7 +12,7 @@ cp -a mnt/LiveOS/ squash/
 umount -d mnt/
 mount -o loop,noatime,nodiratime squash/LiveOS/ext3fs.img ext3/ # Unmounted by generate-livecd.sh
 cd ext3/
-wget http://osdn.dl.sourceforge.jp/tomoyo/51567/ccs-kernel-2.6.18-238.5.1.el5_tomoyo_1.8.1.i686.rpm http://osdn.dl.sourceforge.jp/tomoyo/51567/ccs-tools-1.8.1-1.i386.rpm
+wget http://osdn.dl.sourceforge.jp/tomoyo/51567/ccs-kernel-2.6.18-238.12.1.el5_tomoyo_1.8.2p2.i686.rpm http://osdn.dl.sourceforge.jp/tomoyo/51567/ccs-tools-1.8.2-4.i386.rpm
 rpm --checksig ccs-*.rpm
 cp -p ../package-install.sh .
 cat /etc/resolv.conf > etc/resolv.conf

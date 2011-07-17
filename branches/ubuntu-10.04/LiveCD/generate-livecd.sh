@@ -1,9 +1,9 @@
 #!/bin/sh
 
 LIVECD_HOME=~/LiveCD/
-CD_LABEL="Ubuntu 10.04.2 i386 TOMOYO 1.8.1"
-ISOIMAGE_NAME=../ubuntu-10.04.2-desktop-i386-tomoyo-1.8.1.iso
-KERNEL_VERSION=2.6.32-30-generic-pae-ccs
+CD_LABEL="Ubuntu 10.04.2 i386 TOMOYO 1.8.2p2"
+ISOIMAGE_NAME=../ubuntu-10.04.2-desktop-i386-tomoyo-1.8.2p2.iso
+KERNEL_VERSION=2.6.32-33-generic-pae-ccs
 
 # set -v
 
