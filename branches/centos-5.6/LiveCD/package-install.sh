@@ -11,11 +11,11 @@ rm -f /var/lib/rpm/__db*
 rpm --rebuilddb
 rpm -ivh /*.rpm
 rpm -e kernel
-# tar -zcf /locale.tar.gz /usr/lib/locale/ /usr/share/locale/
+tar -zcf /locale.tar.gz /usr/lib/locale/ /usr/share/locale/
 yum -y update
-# rm -fR /usr/lib/locale/ /usr/share/locale/
-# tar -zxf /locale.tar.gz
-# rm -f /locale.tar.gz
+rm -fR /usr/lib/locale/ /usr/share/locale/
+tar -zxf /locale.tar.gz
+rm -f /locale.tar.gz
 yum clean all
 rpm --rebuilddb
 rm -f /var/log/yum.log
