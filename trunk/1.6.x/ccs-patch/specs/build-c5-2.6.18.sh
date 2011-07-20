@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-238.12.1.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-238.19.1.el5.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/5.6/updates/SRPMS/kernel-2.6.18-238.12.1.el5.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/5.6/updates/SRPMS/kernel-2.6.18-238.19.1.el5.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-238.12.1.el5.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-238.12.1.el5.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-238.19.1.el5.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-238.19.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.9-20110505.tar.gz ]
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -12487,6 +12490,10 @@
+@@ -12530,6 +12533,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -12554,6 +12561,9 @@
+@@ -12597,6 +12604,9 @@
  for i in *.config
  do
    mv $i .config
