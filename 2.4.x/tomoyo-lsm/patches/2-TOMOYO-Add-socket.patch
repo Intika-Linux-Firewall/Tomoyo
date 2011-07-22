@@ -1,25 +1,21 @@
 [PATCH] TOMOYO: Add socket operation restriction support.
 
 This patch adds support for permission checks for PF_INET/PF_INET6/PF_UNIX
-socket operations.
-
-Permission check for post accept() is emulated using other security_socket_*()
-LSM hook. Permission check for post recvmsg() is not implemented due to lack of
-security_socket_post_recvmsg() LSM hook.
+socket's bind()/listen()/connect()/send() operations.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
 ---
  security/tomoyo/Kconfig    |    2 
  security/tomoyo/Makefile   |    2 
- security/tomoyo/common.c   |  111 +++++-
- security/tomoyo/common.h   |  137 +++++++
- security/tomoyo/gc.c       |   38 ++
- security/tomoyo/group.c    |   58 +++
- security/tomoyo/network.c  |  792 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.c |   33 +
- security/tomoyo/tomoyo.c   |  252 ++++++++++++++
- security/tomoyo/util.c     |   43 ++
- 10 files changed, 1448 insertions(+), 20 deletions(-)
+ security/tomoyo/common.c   |  104 +++++-
+ security/tomoyo/common.h   |  127 +++++++
+ security/tomoyo/gc.c       |   40 ++
+ security/tomoyo/group.c    |   61 +++
+ security/tomoyo/network.c  |  771 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/realpath.c |   32 +
+ security/tomoyo/tomoyo.c   |   62 +++
+ security/tomoyo/util.c     |   31 +
+ 10 files changed, 1215 insertions(+), 17 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6/security/tomoyo/Kconfig
@@ -44,7 +40,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	@mkdir -p $(obj)/policy/
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -44,10 +44,33 @@ const char * const tomoyo_mac_keywords[T
+@@ -44,10 +44,27 @@ const char * const tomoyo_mac_keywords[T
  	[TOMOYO_MAC_FILE_MOUNT]      = "mount",
  	[TOMOYO_MAC_FILE_UMOUNT]     = "unmount",
  	[TOMOYO_MAC_FILE_PIVOT_ROOT] = "pivot_root",
@@ -52,24 +48,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_MAC_NETWORK_INET_STREAM_BIND]       = "inet_stream_bind",
 +	[TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN]     = "inet_stream_listen",
 +	[TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT]    = "inet_stream_connect",
-+	[TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT]     = "inet_stream_accept",
 +	[TOMOYO_MAC_NETWORK_INET_DGRAM_BIND]        = "inet_dgram_bind",
 +	[TOMOYO_MAC_NETWORK_INET_DGRAM_SEND]        = "inet_dgram_send",
-+	[TOMOYO_MAC_NETWORK_INET_DGRAM_RECV]        = "inet_dgram_recv",
 +	[TOMOYO_MAC_NETWORK_INET_RAW_BIND]          = "inet_raw_bind",
 +	[TOMOYO_MAC_NETWORK_INET_RAW_SEND]          = "inet_raw_send",
-+	[TOMOYO_MAC_NETWORK_INET_RAW_RECV]          = "inet_raw_recv",
 +	[TOMOYO_MAC_NETWORK_UNIX_STREAM_BIND]       = "unix_stream_bind",
 +	[TOMOYO_MAC_NETWORK_UNIX_STREAM_LISTEN]     = "unix_stream_listen",
 +	[TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT]    = "unix_stream_connect",
-+	[TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = "unix_stream_accept",
 +	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_BIND]        = "unix_dgram_bind",
 +	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_SEND]        = "unix_dgram_send",
-+	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_RECV]        = "unix_dgram_recv",
 +	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = "unix_seqpacket_bind",
 +	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = "unix_seqpacket_listen",
 +	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
-+	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
  	/* CONFIG::misc group */
  	[TOMOYO_MAC_ENVIRON] = "env",
  	/* CONFIG group */
@@ -78,7 +68,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAC_CATEGORY_MISC] = "misc",
  };
  
-@@ -135,11 +158,22 @@ const char * const tomoyo_path_keyword[T
+@@ -135,11 +152,20 @@ const char * const tomoyo_path_keyword[T
  	[TOMOYO_TYPE_UMOUNT]     = "unmount",
  };
  
@@ -87,9 +77,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_NETWORK_BIND]    = "bind",
 +	[TOMOYO_NETWORK_LISTEN]  = "listen",
 +	[TOMOYO_NETWORK_CONNECT] = "connect",
-+	[TOMOYO_NETWORK_ACCEPT]  = "accept",
 +	[TOMOYO_NETWORK_SEND]    = "send",
-+	[TOMOYO_NETWORK_RECV]    = "recv",
 +};
 +
  /* String table for categories. */
@@ -103,7 +91,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Permit policy management by non-root user? */
-@@ -1042,12 +1076,14 @@ static int tomoyo_write_domain2(struct t
+@@ -1042,8 +1068,10 @@ static int tomoyo_write_domain2(struct t
  	static const struct {
  		const char *keyword;
  		int (*write) (struct tomoyo_acl_param *);
@@ -115,12 +103,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		{ "misc ", tomoyo_write_misc },
  	};
  	u8 i;
--	for (i = 0; i < 2; i++) {
-+	for (i = 0; i < 4; i++) {
- 		if (!tomoyo_str_starts(&param.data,
- 				       tomoyo_callback[i].keyword))
- 			continue;
-@@ -1374,6 +1410,58 @@ static bool tomoyo_print_entry(struct to
+@@ -1375,6 +1403,60 @@ static bool tomoyo_print_entry(struct to
  		tomoyo_print_number_union(head, &ptr->mode);
  		tomoyo_print_number_union(head, &ptr->major);
  		tomoyo_print_number_union(head, &ptr->minor);
@@ -128,6 +111,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct tomoyo_inet_acl *ptr =
 +			container_of(acl, typeof(*ptr), head);
 +		const u8 perm = ptr->perm;
++
 +		for (bit = 0; bit < TOMOYO_MAX_NETWORK_OPERATION; bit++) {
 +			if (!(perm & (1 << bit)))
 +				continue;
@@ -159,6 +143,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct tomoyo_unix_acl *ptr =
 +			container_of(acl, typeof(*ptr), head);
 +		const u8 perm = ptr->perm;
++
 +		for (bit = 0; bit < TOMOYO_MAX_NETWORK_OPERATION; bit++) {
 +			if (!(perm & (1 << bit)))
 +				continue;
@@ -179,7 +164,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	} else if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
  		struct tomoyo_mount_acl *ptr =
  			container_of(acl, typeof(*ptr), head);
-@@ -1546,8 +1634,9 @@ static const char *tomoyo_transition_typ
+@@ -1548,8 +1630,9 @@ static const char *tomoyo_transition_typ
  
  /* String table for grouping keywords. */
  static const char *tomoyo_group_name[TOMOYO_MAX_GROUP] = {
@@ -191,7 +176,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -1589,7 +1678,7 @@ static int tomoyo_write_exception(struct
+@@ -1591,7 +1674,7 @@ static int tomoyo_write_exception(struct
  }
  
  /**
@@ -200,12 +185,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
   * @idx:  Index number.
-@@ -1626,6 +1715,14 @@ static bool tomoyo_read_group(struct tom
+@@ -1628,6 +1711,15 @@ static bool tomoyo_read_group(struct tom
  							  (ptr,
  						   struct tomoyo_number_group,
  							   head)->number);
 +			} else if (idx == TOMOYO_ADDRESS_GROUP) {
 +				char buffer[128];
++
 +				struct tomoyo_address_group *member =
 +					container_of(ptr, typeof(*member),
 +						     head);
@@ -272,7 +258,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_TYPE_ENV_ACL,
  };
  
-@@ -229,6 +249,17 @@ enum tomoyo_mkdev_acl_index {
+@@ -229,6 +249,15 @@ enum tomoyo_mkdev_acl_index {
  	TOMOYO_MAX_MKDEV_OPERATION
  };
  
@@ -281,44 +267,36 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_NETWORK_BIND,    /* bind() operation. */
 +	TOMOYO_NETWORK_LISTEN,  /* listen() operation. */
 +	TOMOYO_NETWORK_CONNECT, /* connect() operation. */
-+	TOMOYO_NETWORK_ACCEPT,  /* accept() operation. */
 +	TOMOYO_NETWORK_SEND,    /* send() operation. */
-+	TOMOYO_NETWORK_RECV,    /* recv() operation. */
 +	TOMOYO_MAX_NETWORK_OPERATION
 +};
 +
  /* Index numbers for access controls with two pathnames. */
  enum tomoyo_path2_acl_index {
  	TOMOYO_TYPE_LINK,
-@@ -301,6 +332,27 @@ enum tomoyo_mac_index {
+@@ -301,6 +330,21 @@ enum tomoyo_mac_index {
  	TOMOYO_MAC_FILE_MOUNT,
  	TOMOYO_MAC_FILE_UMOUNT,
  	TOMOYO_MAC_FILE_PIVOT_ROOT,
 +	TOMOYO_MAC_NETWORK_INET_STREAM_BIND,
 +	TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN,
 +	TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT,
-+	TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT,
 +	TOMOYO_MAC_NETWORK_INET_DGRAM_BIND,
 +	TOMOYO_MAC_NETWORK_INET_DGRAM_SEND,
-+	TOMOYO_MAC_NETWORK_INET_DGRAM_RECV,
 +	TOMOYO_MAC_NETWORK_INET_RAW_BIND,
 +	TOMOYO_MAC_NETWORK_INET_RAW_SEND,
-+	TOMOYO_MAC_NETWORK_INET_RAW_RECV,
 +	TOMOYO_MAC_NETWORK_UNIX_STREAM_BIND,
 +	TOMOYO_MAC_NETWORK_UNIX_STREAM_LISTEN,
 +	TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT,
-+	TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT,
 +	TOMOYO_MAC_NETWORK_UNIX_DGRAM_BIND,
 +	TOMOYO_MAC_NETWORK_UNIX_DGRAM_SEND,
-+	TOMOYO_MAC_NETWORK_UNIX_DGRAM_RECV,
 +	TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_BIND,
 +	TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
 +	TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
-+	TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
  	TOMOYO_MAC_ENVIRON,
  	TOMOYO_MAX_MAC_INDEX
  };
-@@ -308,6 +360,7 @@ enum tomoyo_mac_index {
+@@ -308,6 +352,7 @@ enum tomoyo_mac_index {
  /* Index numbers for category of functionality. */
  enum tomoyo_mac_category_index {
  	TOMOYO_MAC_CATEGORY_FILE,
@@ -326,7 +304,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_MAC_CATEGORY_MISC,
  	TOMOYO_MAX_MAC_CATEGORY_INDEX
  };
-@@ -403,6 +456,22 @@ struct tomoyo_request_info {
+@@ -403,6 +448,22 @@ struct tomoyo_request_info {
  			const struct tomoyo_path_info *name;
  		} environ;
  		struct {
@@ -349,7 +327,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			const struct tomoyo_path_info *type;
  			const struct tomoyo_path_info *dir;
  			const struct tomoyo_path_info *dev;
-@@ -448,7 +517,14 @@ struct tomoyo_number_union {
+@@ -448,7 +509,14 @@ struct tomoyo_number_union {
  	u8 value_type[2];
  };
  
@@ -365,7 +343,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_group {
  	struct tomoyo_shared_acl_head head;
  	const struct tomoyo_path_info *group_name;
-@@ -467,6 +543,13 @@ struct tomoyo_number_group {
+@@ -467,6 +535,13 @@ struct tomoyo_number_group {
  	struct tomoyo_number_union number;
  };
  
@@ -379,7 +357,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Subset of "struct stat". Used by conditional ACL and audit logs. */
  struct tomoyo_mini_stat {
  	uid_t uid;
-@@ -650,6 +733,23 @@ struct tomoyo_env_acl {
+@@ -650,6 +725,23 @@ struct tomoyo_env_acl {
  	const struct tomoyo_path_info *env; /* environment variable */
  };
  
@@ -403,7 +381,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Structure for holding a line from /sys/kernel/security/tomoyo/ interface. */
  struct tomoyo_acl_param {
  	char *data;
-@@ -793,6 +893,8 @@ struct tomoyo_policy_namespace {
+@@ -793,6 +885,8 @@ struct tomoyo_policy_namespace {
  
  /********** Function prototypes. **********/
  
@@ -412,7 +390,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_compare_number_union(const unsigned long value,
  				 const struct tomoyo_number_union *ptr);
  bool tomoyo_condition(struct tomoyo_request_info *r,
-@@ -808,6 +910,8 @@ bool tomoyo_memory_ok(void *ptr);
+@@ -808,6 +902,8 @@ bool tomoyo_memory_ok(void *ptr);
  bool tomoyo_number_matches_group(const unsigned long min,
  				 const unsigned long max,
  				 const struct tomoyo_group *group);
@@ -421,7 +399,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bool tomoyo_parse_name_union(struct tomoyo_acl_param *param,
  			     struct tomoyo_name_union *ptr);
  bool tomoyo_parse_number_union(struct tomoyo_acl_param *param,
-@@ -817,6 +921,7 @@ bool tomoyo_path_matches_pattern(const s
+@@ -817,6 +913,7 @@ bool tomoyo_path_matches_pattern(const s
  bool tomoyo_permstr(const char *string, const char *keyword);
  bool tomoyo_str_starts(char **src, const char *find);
  char *tomoyo_encode(const char *str);
@@ -429,7 +407,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  char *tomoyo_init_log(struct tomoyo_request_info *r, int len, const char *fmt,
  		      va_list args);
  char *tomoyo_read_token(struct tomoyo_acl_param *param);
-@@ -855,6 +960,15 @@ int tomoyo_path_permission(struct tomoyo
+@@ -855,6 +952,13 @@ int tomoyo_path_permission(struct tomoyo
  			   const struct tomoyo_path_info *filename);
  int tomoyo_poll_control(struct file *file, poll_table *wait);
  int tomoyo_poll_log(struct file *file, poll_table *wait);
@@ -438,14 +416,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_socket_connect_permission(struct socket *sock,
 +				     struct sockaddr *addr, int addr_len);
 +int tomoyo_socket_listen_permission(struct socket *sock);
-+int tomoyo_socket_post_accept_permission(struct socket *sock,
-+					 struct socket *newsock);
 +int tomoyo_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg,
 +				     int size);
  int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
  	__printf(2, 3);
  int tomoyo_update_domain(struct tomoyo_acl_info *new_entry, const int size,
-@@ -874,8 +988,10 @@ int tomoyo_write_aggregator(struct tomoy
+@@ -874,8 +978,10 @@ int tomoyo_write_aggregator(struct tomoy
  int tomoyo_write_file(struct tomoyo_acl_param *param);
  int tomoyo_write_group(struct tomoyo_acl_param *param, const u8 type);
  int tomoyo_write_misc(struct tomoyo_acl_param *param);
@@ -456,7 +432,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  ssize_t tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
  			    const int buffer_len);
  ssize_t tomoyo_write_control(struct tomoyo_io_buffer *head,
-@@ -911,6 +1027,8 @@ void tomoyo_load_policy(const char *file
+@@ -911,6 +1017,8 @@ void tomoyo_load_policy(const char *file
  void tomoyo_memory_free(void *ptr);
  void tomoyo_normalize_line(unsigned char *buffer);
  void tomoyo_notify_gc(struct tomoyo_io_buffer *head, const bool is_register);
@@ -465,7 +441,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_print_ulong(char *buffer, const int buffer_len,
  			const unsigned long value, const u8 type);
  void tomoyo_put_name_union(struct tomoyo_name_union *ptr);
-@@ -933,6 +1051,8 @@ extern const char * const tomoyo_mac_key
+@@ -933,6 +1041,8 @@ extern const char * const tomoyo_mac_key
  					      + TOMOYO_MAX_MAC_CATEGORY_INDEX];
  extern const char * const tomoyo_mode[TOMOYO_CONFIG_MAX_MODE];
  extern const char * const tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION];
@@ -474,7 +450,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern const u8 tomoyo_index2category[TOMOYO_MAX_MAC_INDEX];
  extern const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION];
  extern const u8 tomoyo_pnnn2mac[TOMOYO_MAX_MKDEV_OPERATION];
-@@ -1112,6 +1232,21 @@ static inline bool tomoyo_same_number_un
+@@ -1112,6 +1222,21 @@ static inline bool tomoyo_same_number_un
  }
  
  /**
@@ -515,7 +491,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	[TOMOYO_TYPE_ENV_ACL] = sizeof(struct tomoyo_env_acl),
  };
  
-@@ -301,6 +304,21 @@ static void tomoyo_del_acl(struct list_h
+@@ -302,6 +305,23 @@ static void tomoyo_del_acl(struct list_h
  			tomoyo_put_name(entry->env);
  		}
  		break;
@@ -523,6 +499,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		{
 +			struct tomoyo_inet_acl *entry =
 +				container_of(acl, typeof(*entry), head);
++
 +			tomoyo_put_group(entry->address.group);
 +			tomoyo_put_number_union(&entry->port);
 +		}
@@ -531,13 +508,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		{
 +			struct tomoyo_unix_acl *entry =
 +				container_of(acl, typeof(*entry), head);
++
 +			tomoyo_put_name_union(&entry->name);
 +		}
 +		break;
  	}
  }
  
-@@ -430,6 +448,18 @@ static void tomoyo_del_group(struct list
+@@ -431,6 +451,18 @@ static void tomoyo_del_group(struct list
  }
  
  /**
@@ -556,7 +534,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_del_number_group - Delete members in "struct tomoyo_number_group".
   *
   * @element: Pointer to "struct list_head".
-@@ -526,9 +556,12 @@ static void tomoyo_collect_entry(void)
+@@ -527,9 +559,12 @@ static void tomoyo_collect_entry(void)
  			case 0:
  				id = TOMOYO_ID_PATH_GROUP;
  				break;
@@ -570,7 +548,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			}
  			list_for_each_entry(group, list, head.list) {
  				if (!tomoyo_collect_member
-@@ -633,6 +666,9 @@ static bool tomoyo_kfree_entry(void)
+@@ -634,6 +669,9 @@ static bool tomoyo_kfree_entry(void)
  		case TOMOYO_ID_PATH_GROUP:
  			tomoyo_del_path_group(element);
  			break;
@@ -582,7 +560,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			break;
 --- security-testing-2.6.orig/security/tomoyo/group.c
 +++ security-testing-2.6/security/tomoyo/group.c
-@@ -42,7 +42,25 @@ static bool tomoyo_same_number_group(con
+@@ -42,7 +42,26 @@ static bool tomoyo_same_number_group(con
  }
  
  /**
@@ -601,6 +579,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +							     head);
 +	const struct tomoyo_address_group *p2 = container_of(b, typeof(*p2),
 +							     head);
++
 +	return tomoyo_same_ipaddr_union(&p1->address, &p2->address);
 +}
 +
@@ -609,12 +588,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @param: Pointer to "struct tomoyo_acl_param".
   * @type:  Type of this group.
-@@ -77,6 +95,13 @@ int tomoyo_write_group(struct tomoyo_acl
+@@ -77,6 +96,14 @@ int tomoyo_write_group(struct tomoyo_acl
  		 * tomoyo_put_number_union() is not needed because
  		 * param->data[0] != '@'.
  		 */
 +	} else {
 +		struct tomoyo_address_group e = { };
++
 +		if (param->data[0] == '@' ||
 +		    !tomoyo_parse_ipaddr_union(param, &e.address))
 +			goto out;
@@ -623,7 +603,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  out:
  	tomoyo_put_group(group);
-@@ -137,3 +162,34 @@ bool tomoyo_number_matches_group(const u
+@@ -137,3 +164,35 @@ bool tomoyo_number_matches_group(const u
  	}
  	return matched;
  }
@@ -645,6 +625,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_address_group *member;
 +	bool matched = false;
 +	const u8 size = is_ipv6 ? 16 : 4;
++
 +	list_for_each_entry_rcu(member, &group->member_list, head.list) {
 +		if (member->head.is_deleted)
 +			continue;
@@ -660,7 +641,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/network.c
-@@ -0,0 +1,792 @@
+@@ -0,0 +1,771 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -716,6 +697,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	u8 * const max = ptr->ip[1].in6_u.u6_addr8;
 +	char *address = tomoyo_read_token(param);
 +	const char *end;
++
 +	if (!strchr(address, ':') &&
 +	    in4_pton(address, -1, min, '-', &end) > 0) {
 +		ptr->is_ipv6 = false;
@@ -804,18 +786,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		TOMOYO_MAC_NETWORK_INET_STREAM_LISTEN,
 +		[TOMOYO_NETWORK_CONNECT] =
 +		TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT,
-+		[TOMOYO_NETWORK_ACCEPT]  =
-+		TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT,
 +	},
 +	[SOCK_DGRAM] = {
 +		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_INET_DGRAM_BIND,
 +		[TOMOYO_NETWORK_SEND]    = TOMOYO_MAC_NETWORK_INET_DGRAM_SEND,
-+		[TOMOYO_NETWORK_RECV]    = TOMOYO_MAC_NETWORK_INET_DGRAM_RECV,
 +	},
 +	[SOCK_RAW]    = {
 +		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_INET_RAW_BIND,
 +		[TOMOYO_NETWORK_SEND]    = TOMOYO_MAC_NETWORK_INET_RAW_SEND,
-+		[TOMOYO_NETWORK_RECV]    = TOMOYO_MAC_NETWORK_INET_RAW_RECV,
 +	},
 +};
 +
@@ -831,13 +809,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		TOMOYO_MAC_NETWORK_UNIX_STREAM_LISTEN,
 +		[TOMOYO_NETWORK_CONNECT] =
 +		TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT,
-+		[TOMOYO_NETWORK_ACCEPT]  =
-+		TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT,
 +	},
 +	[SOCK_DGRAM] = {
 +		[TOMOYO_NETWORK_BIND]    = TOMOYO_MAC_NETWORK_UNIX_DGRAM_BIND,
 +		[TOMOYO_NETWORK_SEND]    = TOMOYO_MAC_NETWORK_UNIX_DGRAM_SEND,
-+		[TOMOYO_NETWORK_RECV]    = TOMOYO_MAC_NETWORK_UNIX_DGRAM_RECV,
 +	},
 +	[SOCK_SEQPACKET] = {
 +		[TOMOYO_NETWORK_BIND]    =
@@ -846,8 +821,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
 +		[TOMOYO_NETWORK_CONNECT] =
 +		TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
-+		[TOMOYO_NETWORK_ACCEPT]  =
-+		TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
 +	},
 +};
 +
@@ -864,6 +837,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct tomoyo_inet_acl *p1 = container_of(a, typeof(*p1), head);
 +	const struct tomoyo_inet_acl *p2 = container_of(b, typeof(*p2), head);
++
 +	return p1->protocol == p2->protocol &&
 +		tomoyo_same_ipaddr_union(&p1->address, &p2->address) &&
 +		tomoyo_same_number_union(&p1->port, &p2->port);
@@ -882,6 +856,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct tomoyo_unix_acl *p1 = container_of(a, typeof(*p1), head);
 +	const struct tomoyo_unix_acl *p2 = container_of(b, typeof(*p2), head);
++
 +	return p1->protocol == p2->protocol &&
 +		tomoyo_same_name_union(&p1->name, &p2->name);
 +}
@@ -903,6 +878,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		&container_of(a, struct tomoyo_inet_acl, head)->perm;
 +	u8 perm = *a_perm;
 +	const u8 b_perm = container_of(b, struct tomoyo_inet_acl, head)->perm;
++
 +	if (is_delete)
 +		perm &= ~b_perm;
 +	else
@@ -928,6 +904,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		&container_of(a, struct tomoyo_unix_acl, head)->perm;
 +	u8 perm = *a_perm;
 +	const u8 b_perm = container_of(b, struct tomoyo_unix_acl, head)->perm;
++
 +	if (is_delete)
 +		perm &= ~b_perm;
 +	else
@@ -952,6 +929,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	u8 type;
 +	const char *protocol = tomoyo_read_token(param);
 +	const char *operation = tomoyo_read_token(param);
++
 +	for (e.protocol = 0; e.protocol < TOMOYO_SOCK_MAX; e.protocol++)
 +		if (!strcmp(protocol, tomoyo_proto_keyword[e.protocol]))
 +			break;
@@ -996,6 +974,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	u8 type;
 +	const char *protocol = tomoyo_read_token(param);
 +	const char *operation = tomoyo_read_token(param);
++
 +	for (e.protocol = 0; e.protocol < TOMOYO_SOCK_MAX; e.protocol++)
 +		if (!strcmp(protocol, tomoyo_proto_keyword[e.protocol]))
 +			break;
@@ -1045,6 +1024,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	char buf[128];
 +	int len;
 +	const __be32 *address = r->param.inet_network.address;
++
 +	if (r->param.inet_network.is_ipv6)
 +		tomoyo_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
 +				  address, (const struct in6_addr *) address);
@@ -1085,6 +1065,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct tomoyo_inet_acl *acl =
 +		container_of(ptr, typeof(*acl), head);
 +	const u8 size = r->param.inet_network.is_ipv6 ? 16 : 4;
++
 +	if (!(acl->perm & (1 << r->param.inet_network.operation)) ||
 +	    !tomoyo_compare_number_union(r->param.inet_network.port,
 +					 &acl->port))
@@ -1113,6 +1094,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct tomoyo_unix_acl *acl =
 +		container_of(ptr, typeof(*acl), head);
++
 +	return (acl->perm & (1 << r->param.unix_network.operation)) &&
 +		tomoyo_compare_name_union(r->param.unix_network.address,
 +					  &acl->name);
@@ -1131,6 +1113,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_request_info r;
 +	int error = 0;
 +	const u8 type = tomoyo_inet2mac[address->protocol][address->operation];
++
 +	if (type && tomoyo_init_request_info(&r, NULL, type)
 +	    != TOMOYO_CONFIG_DISABLED) {
 +		r.param_type = TOMOYO_TYPE_INET_ACL;
@@ -1164,6 +1147,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				     struct tomoyo_addr_info *address)
 +{
 +	struct tomoyo_inet_addr_info *i = &address->inet;
++
 +	switch (addr->sa_family) {
 +	case AF_INET6:
 +		if (addr_len < SIN6_LEN_RFC2133)
@@ -1204,10 +1188,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_request_info r;
 +	int error = 0;
 +	const u8 type = tomoyo_unix2mac[address->protocol][address->operation];
++
 +	if (type && tomoyo_init_request_info(&r, NULL, type)
 +	    != TOMOYO_CONFIG_DISABLED) {
 +		char *buf = address->unix0.addr;
 +		int len = address->unix0.addr_len - sizeof(sa_family_t);
++
 +		if (len <= 0) {
 +			buf = "anonymous";
 +			len = 9;
@@ -1217,6 +1203,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		buf = tomoyo_encode2(buf, len);
 +		if (buf) {
 +			struct tomoyo_path_info addr;
++
 +			addr.name = buf;
 +			tomoyo_fill_path_info(&addr);
 +			r.param_type = TOMOYO_TYPE_UNIX_ACL;
@@ -1249,6 +1236,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				     struct tomoyo_addr_info *address)
 +{
 +	struct tomoyo_unix_addr_info *u = &address->unix0;
++
 +	if (addr->sa_family != AF_UNIX)
 +		return 0;
 +	u->addr = ((struct sockaddr_un *) addr)->sun_path;
@@ -1277,6 +1265,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static u8 tomoyo_sock_family(struct sock *sk)
 +{
 +	u8 family;
++
 +	if (tomoyo_kernel_service())
 +		return 0;
 +	family = sk->sk_family;
@@ -1304,11 +1293,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const unsigned int type = sock->type;
 +	struct sockaddr_storage addr;
 +	int addr_len;
++
 +	if (!family || (type != SOCK_STREAM && type != SOCK_SEQPACKET))
 +		return 0;
 +	{
 +		const int error = sock->ops->getname(sock, (struct sockaddr *)
 +						     &addr, &addr_len, 0);
++
 +		if (error)
 +			return error;
 +	}
@@ -1336,6 +1327,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_addr_info address;
 +	const u8 family = tomoyo_sock_family(sock->sk);
 +	const unsigned int type = sock->type;
++
 +	if (!family)
 +		return 0;
 +	address.protocol = type;
@@ -1372,6 +1364,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_addr_info address;
 +	const u8 family = tomoyo_sock_family(sock->sk);
 +	const unsigned int type = sock->type;
++
 +	if (!family)
 +		return 0;
 +	switch (type) {
@@ -1406,6 +1399,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_addr_info address;
 +	const u8 family = tomoyo_sock_family(sock->sk);
 +	const unsigned int type = sock->type;
++
 +	if (!msg->msg_name || !family ||
 +	    (type != SOCK_DGRAM && type != SOCK_RAW))
 +		return 0;
@@ -1419,43 +1413,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					 msg->msg_namelen,
 +					 sock->sk->sk_protocol, &address);
 +}
-+
-+/**
-+ * tomoyo_socket_post_accept_permission - Check permission for accepting a socket.
-+ *
-+ * @sock:    Pointer to "struct socket".
-+ * @newsock: Pointer to "struct socket".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+int tomoyo_socket_post_accept_permission(struct socket *sock,
-+					 struct socket *newsock)
-+{
-+	struct tomoyo_addr_info address;
-+	const u8 family = tomoyo_sock_family(sock->sk);
-+	const unsigned int type = sock->type;
-+	struct sockaddr_storage addr;
-+	int addr_len;
-+	if (!family || (type != SOCK_STREAM && type != SOCK_SEQPACKET))
-+		return 0;
-+	{
-+		const int error = newsock->ops->getname(newsock,
-+							(struct sockaddr *)
-+							&addr, &addr_len, 2);
-+		if (error)
-+			return error;
-+	}
-+	address.protocol = type;
-+	address.operation = TOMOYO_NETWORK_ACCEPT;
-+	if (family == PF_UNIX)
-+		return tomoyo_check_unix_address((struct sockaddr *) &addr,
-+						 addr_len, &address);
-+	return tomoyo_check_inet_address((struct sockaddr *) &addr, addr_len,
-+					 0, &address);
-+}
 --- security-testing-2.6.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6/security/tomoyo/realpath.c
-@@ -15,26 +15,27 @@
+@@ -15,17 +15,19 @@
  #include "../../fs/internal.h"
  
  /**
@@ -1478,30 +1438,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int len = 0;
  	const char *p = str;
  	char *cp;
- 	char *cp0;
--
+@@ -33,8 +35,9 @@ char *tomoyo_encode(const char *str)
+ 
  	if (!p)
  		return NULL;
 -	while (*p) {
 -		const unsigned char c = *p++;
 +	for (i = 0; i < str_len; i++) {
 +		const unsigned char c = p[i];
++
  		if (c == '\\')
  			len += 2;
  		else if (c > ' ' && c < 127)
-@@ -49,9 +50,8 @@ char *tomoyo_encode(const char *str)
+@@ -49,8 +52,8 @@ char *tomoyo_encode(const char *str)
  		return NULL;
  	cp0 = cp;
  	p = str;
 -	while (*p) {
 -		const unsigned char c = *p++;
--
 +	for (i = 0; i < str_len; i++) {
 +		const unsigned char c = p[i];
+ 
  		if (c == '\\') {
  			*cp++ = '\\';
- 			*cp++ = '\\';
-@@ -68,6 +68,21 @@ char *tomoyo_encode(const char *str)
+@@ -68,6 +71,21 @@ char *tomoyo_encode(const char *str)
  }
  
  /**
@@ -1525,98 +1485,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @path:   Pointer to "struct path".
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -442,6 +442,247 @@ static int tomoyo_sb_pivotroot(struct pa
+@@ -442,6 +442,64 @@ static int tomoyo_sb_pivotroot(struct pa
  	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path, old_path);
  }
  
-+/**
-+ * tomoyo_validate_socket - Check post accept() permission if needed.
-+ *
-+ * @sock: Pointer to "struct socket".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int tomoyo_validate_socket(struct socket *sock)
-+{
-+	struct inode *inode = SOCK_INODE(sock);
-+	int ret = PTR_ERR(inode->i_security);
-+	if (ret <= 0)
-+		/*
-+		 * This socket is not an accept()ed socket or this socket is
-+		 * an accept()ed socket and post accept() permission is done.
-+		 */
-+		return ret;
-+	/*
-+	 * Check post accept() permission now.
-+	 *
-+	 * Strictly speaking, we need to pass both listen()ing socket and
-+	 * accept()ed socket to __tomoyo_socket_post_accept_permission().
-+	 * But since socket's family and type are same for both sockets,
-+	 * passing the accept()ed socket in place for the listen()ing socket
-+	 * will work.
-+	 */
-+	ret = tomoyo_socket_post_accept_permission(sock, sock);
-+	/*
-+	 * If permission was granted, we forget that this is an accept()ed
-+	 * socket. Otherwise, we remember that this socket needs to return
-+	 * error for subsequent socketcalls.
-+	 */
-+	inode->i_security = ERR_PTR(ret);
-+	return ret;
-+}
-+
-+/**
-+ * tomoyo_socket_accept - Check permission for accept().
-+ *
-+ * @sock:    Pointer to "struct socket".
-+ * @newsock: Pointer to "struct socket".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ *
-+ * This hook is used for setting up environment for doing post accept()
-+ * permission check. TOMOYO's permission check is "which thread accept()s the
-+ * connection from which source". No LSM hook can do it because the thread
-+ * that accept()s the connection is not known until sock->ops->accept() is
-+ * called. Even security_socket_accept() is not usable for TOMOYO because
-+ *
-+ *  (1) There is a race window when multiple threads using the same listen()ing
-+ *      socket attempt to accept() the connection because there is no way to
-+ *      serialize accept() operation. By error accept()ing the second
-+ *      connection in the queue from unwanted source due to successful
-+ *      permission check on the first connection in the queue from wanted
-+ *      source is no good.
-+ *  (2) There is a time lag (which can be longer than hours and days) between
-+ *      security_socket_accept() and sock->ops->accept() when the socket queue
-+ *      is empty and the operation is blocking mode; meanwhile policy can
-+ *      change but there is no way to recheck permission using updated policy.
-+ *  (3) select() on listen()ing socket saying "You will be able to pick up a
-+ *      connection without blocking" and accept() on the same socket saying
-+ *      "You cannot pick up the connection" will result in either busy loop
-+ *      (if the thread did not close() the listen()ing socket) or give up all
-+ *      established connections (if the thread close()s the listen()ing
-+ *      socket). select() triggering consuming 100% CPU time is no good. Also,
-+ *      one connection from unwanted source can destroy all other connections
-+ *      from wanted sources is also no good.
-+ *
-+ * Therefore, we do post accept() permission check upon next socket syscalls
-+ * rather than pre accept() permission check. This means that if a socket was
-+ * close()d before calling some socket syscalls, post accept() permission check
-+ * will not be done.
-+ */
-+static int tomoyo_socket_accept(struct socket *sock, struct socket *newsock)
-+{
-+	int rc = tomoyo_validate_socket(sock);
-+	if (rc < 0)
-+		return rc;
-+	/*
-+	 * Subsequent LSM hooks will receive "newsock". Therefore, I mark
-+	 * "newsock" as "an accept()ed socket but post accept() permission
-+	 * check is not done yet" by assigning a magic value ERR_PTR(1).
-+	 */
-+	SOCK_INODE(newsock)->i_security = ERR_PTR(1);
-+	return 0;
-+}
-+
 +/**
 + * tomoyo_socket_listen - Check permission for listen().
 + *
@@ -1627,9 +1499,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static int tomoyo_socket_listen(struct socket *sock, int backlog)
 +{
-+	int rc = tomoyo_validate_socket(sock);
-+	if (rc < 0)
-+		return rc;
 +	return tomoyo_socket_listen_permission(sock);
 +}
 +
@@ -1645,9 +1514,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tomoyo_socket_connect(struct socket *sock, struct sockaddr *addr,
 +				 int addr_len)
 +{
-+	int rc = tomoyo_validate_socket(sock);
-+	if (rc < 0)
-+		return rc;
 +	return tomoyo_socket_connect_permission(sock, addr, addr_len);
 +}
 +
@@ -1663,9 +1529,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tomoyo_socket_bind(struct socket *sock, struct sockaddr *addr,
 +			      int addr_len)
 +{
-+	int rc = tomoyo_validate_socket(sock);
-+	if (rc < 0)
-+		return rc;
 +	return tomoyo_socket_bind_permission(sock, addr, addr_len);
 +}
 +
@@ -1681,99 +1544,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
 +				 int size)
 +{
-+	int rc = tomoyo_validate_socket(sock);
-+	if (rc < 0)
-+		return rc;
 +	return tomoyo_socket_sendmsg_permission(sock, msg, size);
-+}
-+
-+/**
-+ * tomoyo_socket_recvmsg - Check permission for recvmsg().
-+ *
-+ * @sock:  Pointer to "struct socket".
-+ * @msg:   Pointer to "struct msghdr".
-+ * @size:  Size of message.
-+ * @flags: Flags.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int tomoyo_socket_recvmsg(struct socket *sock, struct msghdr *msg,
-+				 int size, int flags)
-+{
-+	return tomoyo_validate_socket(sock);
-+}
-+
-+/**
-+ * tomoyo_socket_getsockname - Check permission for getsockname().
-+ *
-+ * @sock: Pointer to "struct socket".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int tomoyo_socket_getsockname(struct socket *sock)
-+{
-+	return tomoyo_validate_socket(sock);
-+}
-+
-+/**
-+ * tomoyo_socket_getpeername - Check permission for getpeername().
-+ *
-+ * @sock: Pointer to "struct socket".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int tomoyo_socket_getpeername(struct socket *sock)
-+{
-+	return tomoyo_validate_socket(sock);
-+}
-+
-+/**
-+ * tomoyo_socket_getsockopt - Check permission for getsockopt().
-+ *
-+ * @sock:    Pointer to "struct socket".
-+ * @level:   Level.
-+ * @optname: Option's name,
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int tomoyo_socket_getsockopt(struct socket *sock, int level,
-+				    int optname)
-+{
-+	return tomoyo_validate_socket(sock);
-+}
-+
-+/**
-+ * tomoyo_socket_setsockopt - Check permission for setsockopt().
-+ *
-+ * @sock:    Pointer to "struct socket".
-+ * @level:   Level.
-+ * @optname: Option's name,
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int tomoyo_socket_setsockopt(struct socket *sock, int level,
-+				    int optname)
-+{
-+	return tomoyo_validate_socket(sock);
-+}
-+
-+/**
-+ * tomoyo_socket_shutdown - Check permission for shutdown().
-+ *
-+ * @sock: Pointer to "struct socket".
-+ * @how:  Shutdown mode.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static int tomoyo_socket_shutdown(struct socket *sock, int how)
-+{
-+	return tomoyo_validate_socket(sock);
 +}
 +
  /*
   * tomoyo_security_ops is a "struct security_operations" which is used for
   * registering TOMOYO.
-@@ -472,6 +713,17 @@ static struct security_operations tomoyo
+@@ -472,6 +530,10 @@ static struct security_operations tomoyo
  	.sb_mount            = tomoyo_sb_mount,
  	.sb_umount           = tomoyo_sb_umount,
  	.sb_pivotroot        = tomoyo_sb_pivotroot,
@@ -1781,19 +1558,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.socket_connect      = tomoyo_socket_connect,
 +	.socket_listen       = tomoyo_socket_listen,
 +	.socket_sendmsg      = tomoyo_socket_sendmsg,
-+	.socket_recvmsg      = tomoyo_socket_recvmsg,
-+	.socket_getsockname  = tomoyo_socket_getsockname,
-+	.socket_getpeername  = tomoyo_socket_getpeername,
-+	.socket_getsockopt   = tomoyo_socket_getsockopt,
-+	.socket_setsockopt   = tomoyo_socket_setsockopt,
-+	.socket_shutdown     = tomoyo_socket_shutdown,
-+	.socket_accept       = tomoyo_socket_accept,
  };
  
  /* Lock for GC. */
 --- security-testing-2.6.orig/security/tomoyo/util.c
 +++ security-testing-2.6/security/tomoyo/util.c
-@@ -42,6 +42,49 @@ const u8 tomoyo_index2category[TOMOYO_MA
+@@ -42,6 +42,37 @@ const u8 tomoyo_index2category[TOMOYO_MA
  	[TOMOYO_MAC_FILE_MOUNT]      = TOMOYO_MAC_CATEGORY_FILE,
  	[TOMOYO_MAC_FILE_UMOUNT]     = TOMOYO_MAC_CATEGORY_FILE,
  	[TOMOYO_MAC_FILE_PIVOT_ROOT] = TOMOYO_MAC_CATEGORY_FILE,
@@ -1804,19 +1574,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_INET_STREAM_CONNECT]    =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_NETWORK_INET_STREAM_ACCEPT]     =
-+	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_INET_DGRAM_BIND]        =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_INET_DGRAM_SEND]        =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_NETWORK_INET_DGRAM_RECV]        =
-+	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_INET_RAW_BIND]          =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_INET_RAW_SEND]          =
-+	TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_NETWORK_INET_RAW_RECV]          =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_UNIX_STREAM_BIND]       =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
@@ -1824,21 +1588,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_UNIX_STREAM_CONNECT]    =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_NETWORK_UNIX_STREAM_ACCEPT]     =
-+	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_BIND]        =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_SEND]        =
-+	TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_NETWORK_UNIX_DGRAM_RECV]        =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_BIND]    =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] =
-+	TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  =
 +	TOMOYO_MAC_CATEGORY_NETWORK,
  	/* CONFIG::misc group */
  	[TOMOYO_MAC_ENVIRON]         = TOMOYO_MAC_CATEGORY_MISC,

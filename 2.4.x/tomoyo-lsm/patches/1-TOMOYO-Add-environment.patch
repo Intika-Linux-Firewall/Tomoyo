@@ -1,4 +1,4 @@
-[PATCH] TOMOYO: Add environment variable name restriction support.
+[PATCH (v3)] TOMOYO: Add environment variable name restriction support.
 
 This patch adds support for checking environment variable's names.
 Although TOMOYO already provides ability to check argv[]/envp[] passed to
@@ -26,13 +26,13 @@ or is defined and its value is /system/lib".
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Makefile  |    2 
- security/tomoyo/common.c  |   18 +++++--
+ security/tomoyo/common.c  |   20 ++++++-
  security/tomoyo/common.h  |   14 +++++
- security/tomoyo/domain.c  |   89 ++++++++++++++++++++++++++++++++++
- security/tomoyo/environ.c |  118 ++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/gc.c      |    8 +++
- security/tomoyo/util.c    |    6 +-
- 7 files changed, 249 insertions(+), 6 deletions(-)
+ security/tomoyo/domain.c  |   95 +++++++++++++++++++++++++++++++++++
+ security/tomoyo/environ.c |  122 ++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/gc.c      |    9 +++
+ security/tomoyo/util.c    |    7 +-
+ 7 files changed, 262 insertions(+), 7 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -74,7 +74,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Permit policy management by non-root user? */
-@@ -1036,11 +1042,12 @@ static int tomoyo_write_domain2(struct t
+@@ -1036,11 +1042,13 @@ static int tomoyo_write_domain2(struct t
  	static const struct {
  		const char *keyword;
  		int (*write) (struct tomoyo_acl_param *);
@@ -85,17 +85,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	};
  	u8 i;
 -	for (i = 0; i < 1; i++) {
-+	for (i = 0; i < 2; i++) {
++
++	for (i = 0; i < ARRAY_SIZE(tomoyo_callback); i++) {
  		if (!tomoyo_str_starts(&param.data,
  				       tomoyo_callback[i].keyword))
  			continue;
-@@ -1375,6 +1382,11 @@ static bool tomoyo_print_entry(struct to
+@@ -1375,6 +1383,12 @@ static bool tomoyo_print_entry(struct to
  		tomoyo_print_name_union(head, &ptr->dir_name);
  		tomoyo_print_name_union(head, &ptr->fs_type);
  		tomoyo_print_number_union(head, &ptr->flags);
 +	} else if (acl_type == TOMOYO_TYPE_ENV_ACL) {
 +		struct tomoyo_env_acl *ptr =
 +			container_of(acl, typeof(*ptr), head);
++
 +		tomoyo_set_group(head, "misc env ");
 +		tomoyo_set_string(head, ptr->env->name);
  	}
@@ -167,7 +169,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  ssize_t tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -563,6 +563,91 @@ out:
+@@ -563,6 +563,92 @@ out:
  }
  
  /**
@@ -181,7 +183,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct tomoyo_request_info *r = &ee->r;
 +	struct linux_binprm *bprm = ee->bprm;
-+	/* env_page->data is allocated by tomoyo_dump_page(). */
++	/* env_page.data is allocated by tomoyo_dump_page(). */
 +	struct tomoyo_page_dump env_page = { };
 +	char *arg_ptr; /* Size is TOMOYO_EXEC_TMPSIZE bytes */
 +	int arg_len = 0;
@@ -189,8 +191,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int offset = pos % PAGE_SIZE;
 +	int argv_count = bprm->argc;
 +	int envp_count = bprm->envc;
-+	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
 +	int error = -ENOMEM;
++
 +	ee->r.type = TOMOYO_MAC_ENVIRON;
 +	ee->r.profile = r->domain->profile;
 +	ee->r.mode = tomoyo_get_mode(r->domain->ns, ee->r.profile,
@@ -215,6 +217,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +		while (offset < PAGE_SIZE) {
 +			const unsigned char c = env_page.data[offset++];
++
 +			if (c && arg_len < TOMOYO_EXEC_TMPSIZE - 10) {
 +				if (c == '=') {
 +					arg_ptr[arg_len++] = '\0';
@@ -248,7 +251,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		offset = 0;
 +	}
 +out:
-+	if (r->mode != 3)
++	if (r->mode != TOMOYO_CONFIG_ENFORCING)
 +		error = 0;
 +	kfree(env_page.data);
 +	kfree(arg_ptr);
@@ -259,7 +262,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_find_next_domain - Find a domain.
   *
   * @bprm: Pointer to "struct linux_binprm".
-@@ -713,6 +798,10 @@ int tomoyo_find_next_domain(struct linux
+@@ -581,6 +667,7 @@ int tomoyo_find_next_domain(struct linux
+ 	bool reject_on_transition_failure = false;
+ 	struct tomoyo_path_info rn = { }; /* real name */
+ 	struct tomoyo_execve *ee = kzalloc(sizeof(*ee), GFP_NOFS);
++
+ 	if (!ee)
+ 		return -ENOMEM;
+ 	ee->tmp = kzalloc(TOMOYO_EXEC_TMPSIZE, GFP_NOFS);
+@@ -713,6 +800,10 @@ int tomoyo_find_next_domain(struct linux
  	bprm->cred->security = domain;
  	if (need_kfree)
  		kfree(rn.name);
@@ -270,9 +281,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(ee->tmp);
  	kfree(ee->dump.data);
  	kfree(ee);
+@@ -732,7 +823,8 @@ bool tomoyo_dump_page(struct linux_binpr
+ 		      struct tomoyo_page_dump *dump)
+ {
+ 	struct page *page;
+-	/* dump->data is released by tomoyo_finish_execve(). */
++
++	/* dump->data is released by tomoyo_find_next_domain(). */
+ 	if (!dump->data) {
+ 		dump->data = kzalloc(PAGE_SIZE, GFP_NOFS);
+ 		if (!dump->data)
+@@ -753,6 +845,7 @@ bool tomoyo_dump_page(struct linux_binpr
+ 		 * So do I.
+ 		 */
+ 		char *kaddr = kmap_atomic(page, KM_USER0);
++
+ 		dump->page = page;
+ 		memcpy(dump->data + offset, kaddr + offset,
+ 		       PAGE_SIZE - offset);
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/environ.c
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,122 @@
 +/*
 + * security/tomoyo/environ.c
 + *
@@ -294,6 +323,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct tomoyo_env_acl *acl =
 +		container_of(ptr, typeof(*acl), head);
++
 +	return tomoyo_path_matches_pattern(r->param.environ.name, acl->env);
 +}
 +
@@ -324,6 +354,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct tomoyo_path_info environ;
 +	int error;
++
 +	if (!env || !*env)
 +		return 0;
 +	environ.name = env;
@@ -350,6 +381,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const struct tomoyo_env_acl *p1 = container_of(a, typeof(*p1), head);
 +	const struct tomoyo_env_acl *p2 = container_of(b, typeof(*p2), head);
++
 +	return p1->env == p2->env;
 +}
 +
@@ -367,6 +399,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_env_acl e = { .head.type = TOMOYO_TYPE_ENV_ACL };
 +	int error = -ENOMEM;
 +	const char *data = tomoyo_read_token(param);
++
 +	if (!tomoyo_correct_word(data) || strchr(data, '='))
 +		return -EINVAL;
 +	e.env = tomoyo_get_name(data);
@@ -401,7 +434,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -293,6 +294,13 @@ static void tomoyo_del_acl(struct list_h
+@@ -293,6 +294,14 @@ static void tomoyo_del_acl(struct list_h
  			tomoyo_put_number_union(&entry->flags);
  		}
  		break;
@@ -409,6 +442,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		{
 +			struct tomoyo_env_acl *entry =
 +				container_of(acl, typeof(*entry), head);
++
 +			tomoyo_put_name(entry->env);
 +		}
 +		break;
@@ -426,11 +460,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -920,12 +922,12 @@ int tomoyo_get_mode(const struct tomoyo_
+@@ -920,12 +922,13 @@ int tomoyo_get_mode(const struct tomoyo_
  		    const u8 index)
  {
  	u8 mode;
 -	const u8 category = TOMOYO_MAC_CATEGORY_FILE;
++
  	if (!tomoyo_policy_loaded)
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(ns, profile)->config[index];
