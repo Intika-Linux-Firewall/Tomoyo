@@ -336,7 +336,7 @@ rewrite path_pattern /var/www/html/\{\*\}/\*.jpg @WEB-CONTENTS
 
 <h3><a name="6.3">6.3. 数値パラメータをパターン化する</a></h3>
 
-<p>ファイルのＤＡＣモードやネットワークのポート番号などの数値で表現されるパラメータについてもパターン化を行うことができます。</p>
+<p>ファイルのＤＡＣモードなどの数値で表現されるパラメータについてもパターン化を行うことができます。</p>
 
 <p>以下のドメインポリシーの例では &lt;kernel&gt; /usr/sbin/httpd ドメインに対してクライアントのポート番号が１０２４～６５５３５からの接続要求を受け付けるようにパターン化しています：</p>
 
@@ -389,74 +389,7 @@ acl.starts network inet stream accept
 rewrite number_pattern 1024-65535 @WEB-CLIENT-PORTS
 </pre>
 
-<h3><a name="6.4">6.4. ネットワークアドレスをパターン化する</a></h3>
-
-<p>同様にＩＰアドレスについてもパターン化を行います。以下に例を示します：</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th>
-<p>修正前</p>
-</th>
-<th>
-<p>修正後</p>
-</th>
-</tr>
-<tr>
-<td>
-<p>&lt;kernel&gt; /usr/sbin/httpd</p>
-<br>
-<p>network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS</p>
-<p>network inet stream accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS</p>
-<p>network inet stream accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS</p>
-<p>network inet stream accept 10.0.0.10 @WEB-CLIENT-PORTS</p>
-<p>network inet stream accept 10.0.0.200 @WEB-CLIENT-PORTS</p>
-</td>
-<td>
-<p>&lt;kernel&gt; /usr/sbin/httpd</p>
-<br>
-<p>network inet stream accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS</p>
-<p>network inet stream accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS</p>
-<p>network inet stream accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS</p>
-</td>
-</tr>
-</table>
-</div>
-
-<p>例外ポリシーで以下のようなグループを定義しておくことにより：</p>
-
-<pre>
-address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:0:0:1
-address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff
-address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
-</pre>
-
-<p>ドメインポリシーでの記述を以下のように単純化することができます：</p>
-
-<pre>
-&lt;kernel&gt; /usr/sbin/httpd
-
-network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
-</pre>
-
-<p>上記の変換処理は <code>tomoyo-editpolicy</code> を利用して行うことができますが、 <code>tomoyo-patternize</code> を利用して行うこともできます。上記のように address_group を例外ポリシーに追加し、以下の内容を /etc/tomoyo/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
-
-<pre>
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite address_pattern 0:0:0:0:0:0:0:1 @WEB-CLIENT-ADDRESS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite address_pattern 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-ADDRESS
-
-domain.equals &lt;kernel&gt; /usr/sbin/httpd
-acl.starts network inet stream accept
-rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
-</pre>
-
-<h3><a name="6.5">6.5. 収集されたアクセス許可を確認する</a></h3>
+<h3><a name="6.4">6.4. 収集されたアクセス許可を確認する</a></h3>
 
 <p>Apache に許可したい操作を一通り行ったと判断したら、ポリシーエディタを実行してプロファイル番号を 2 に変更します。</p>
 
@@ -484,7 +417,7 @@ Memory used by query message:                  0 (Quota:    1048576)
 Total memory used:                        165728
 </pre>
 
-<h3><a name="6.6">6.6. アクセスログからポリシーを生成する（任意）</a></h3>
+<h3><a name="6.5">6.5. アクセスログからポリシーを生成する（任意）</a></h3>
 
 <p>もしアクセスログの設定を <a href="chapter-4.html.ja#4.6">4.6. アクセスログを保存する（任意）</a>で行っていた場合は、必要なアクセス許可を /var/log/tomoyo/reject_002.log から抽出することができます：</p>
 
@@ -504,34 +437,6 @@ use_profile 2
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
 use_group 0
 
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-misc env TERM
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-misc env PATH
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-misc env PWD
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-misc env LANG
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-misc env SHLVL
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-misc env LANGUAGE
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1545499 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1540116 perm=0755 } exec={ realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-misc env _
-
 #2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245682 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245419 perm=0755 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
 file read /etc/selinux/config
@@ -539,10 +444,6 @@ file read /etc/selinux/config
 #2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=12 major=0 minor=15 perm=0444 type=file } path1.parent={ uid=0 gid=0 ino=496 perm=0755 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
 file read selinuxfs:/mls
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-network unix stream connect /var/run/setrans/.setrans-unix
 
 #2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=4026531844 major=0 minor=3 perm=0444 type=file } path1.parent={ uid=0 gid=0 ino=1 perm=0555 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
@@ -552,18 +453,6 @@ file read proc:/filesystems
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
 file read /usr/lib/locale/locale-archive
 
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-network unix stream connect /var/run/setrans/.setrans-unix
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-network unix stream connect /var/run/nscd/socket
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-network unix stream connect /var/run/nscd/socket
-
 #2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245231 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
 file read /etc/nsswitch.conf
@@ -571,14 +460,6 @@ file read /etc/nsswitch.conf
 #2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245924 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
 file read /etc/passwd
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-network unix stream connect /var/run/nscd/socket
-
-#2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler }
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
-network unix stream connect /var/run/nscd/socket
 
 #2010/12/25 15:47:10# profile=2 mode=permissive granted=no (global-pid=3390) task={ pid=3390 ppid=3386 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=1245902 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=1245185 perm=0755 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id
@@ -619,15 +500,6 @@ file read /etc/selinux/config
 file read /usr/lib/locale/locale-archive
 file read proc:/filesystems
 file read selinuxfs:/mls
-misc env LANG
-misc env LANGUAGE
-misc env PATH
-misc env PWD
-misc env SHLVL
-misc env TERM
-misc env _
-network unix stream connect /var/run/nscd/socket
-network unix stream connect /var/run/setrans/.setrans-unix
 use_group 0
 </pre>
 

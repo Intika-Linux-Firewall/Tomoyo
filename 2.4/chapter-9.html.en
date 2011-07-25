@@ -235,34 +235,8 @@
 <td><p>CONFIG::file</p></td>
 <td><p>File related operations only</p></td>
 </tr>
-<tr>
-<td><p>CONFIG::misc</p></td>
-<td><p>Other miscellaneous parameters only</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network</p></td>
-<td><p>Network related operations only</p></td>
-</tr>
 </table>
 </div>
-
-<p>For example, only file and network operations could be restricted by adding a fourth profile:</p>
-
-<pre>
-4-COMMENT=-----Enforcing file and network-----
-4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
-4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
-4-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
-
-<p>It is also possible to mix different restriction modes within a single profile, such as enforcing network operations but staying in "Learning Mode" for file-related operations:</p>
-
-<pre>
-5-COMMENT=-----Learning file and Enforcing network-----
-5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
-5-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
-5-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
-</pre>
 
 <p>Category-specific configuration can be further overwritten by functionality-specific configuration:</p>
 
@@ -359,94 +333,6 @@
 <tr>
 <td><p>CONFIG::file::pivot_root</p></td>
 <td><p>Use of pivot_root</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_bind</p></td>
-<td><p>UDP socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_send</p></td>
-<td><p>UDP socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_dgram_recv</p></td>
-<td><p>UDP socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_bind</p></td>
-<td><p>TCP socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_listen</p></td>
-<td><p>TCP socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_connect</p></td>
-<td><p>TCP socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_stream_accept</p></td>
-<td><p>TCP socket's accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_bind</p></td>
-<td><p>RAW socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_send</p></td>
-<td><p>RAW socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::inet_raw_recv</p></td>
-<td><p>RAW socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_bind</p></td>
-<td><p>UNIX domain datagram socket local address restriction</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_send</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_recv</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_bind</p></td>
-<td><p>UNIX domain stream socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_listen</p></td>
-<td><p>UNIX domain stream socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_connect</p></td>
-<td><p>UNIX domain stream socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_stream_accept</p></td>
-<td><p>UNIX domain stream socket accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_bind</p></td>
-<td><p>UNIX domain seqpacket socket bind() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_listen</p></td>
-<td><p>UNIX domain seqpacket socket listen() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_connect</p></td>
-<td><p>UNIX domain seqpacket socket connect() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_seqpacket_accept</p></td>
-<td><p>UNIX domain seqpacket socket accept() operation</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::misc::env</p></td>
-<td><p>Environment variable names</p></td>
 </tr>
 </table>
 </div>

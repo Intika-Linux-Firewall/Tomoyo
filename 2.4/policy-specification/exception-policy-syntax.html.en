@@ -140,24 +140,6 @@ keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
-<h3><a name="address_group">address_group</a></h3>
-
-<p>This directive declares a group name that can be used in domain policy to refer to a range of IP addresses.</p>
-
-<p>For example, if suppose the following are defined in exception policy:</p>
-
-<pre>
-address_group LOCAL-ADDRESS 10.0.0.0-10.255.255.255
-address_group LOCAL-ADDRESS 172.16.0.0-172.31.255.255
-address_group LOCAL-ADDRESS 192.168.0.0-192.168.255.255
-</pre>
-
-<p>The following can then be defined in domain policy:</p>
-
-<pre>
-network inet stream accept @LOCAL-ADDRESS 1024-65535
-</pre>
-
 <h3><a name="number_group">number_group</a></h3>
 
 <p>This directive declares a group name that can be used in domain policy to refer to a range of numbers.</p>
