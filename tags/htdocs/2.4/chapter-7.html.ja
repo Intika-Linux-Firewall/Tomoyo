@@ -266,7 +266,6 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s
 use_profile 3
 use_group 0
 
-network unix stream connect /var/run/nscd/socket
 file read /usr/lib/locale/locale-archive
 file read /var/lib/pgsql/data/postgresql.conf
 file read /var/lib/pgsql/data/PG_VERSION
@@ -279,22 +278,17 @@ file unlink /var/lib/pgsql/data/postmaster.pid
 file read /usr/share/zoneinfo/MST7MDT
 (...snipped...)
 file read /usr/share/zoneinfo/EST5EDT
-network inet stream bind 127.0.0.1 5432
-network inet stream listen 127.0.0.1 5432
 file create /tmp/.s.PGSQL.5432.lock 0600
 file read /tmp/.s.PGSQL.5432.lock
 file write /tmp/.s.PGSQL.5432.lock
 file unlink /tmp/.s.PGSQL.5432.lock
 file unlink /tmp/.s.PGSQL.5432
-network unix stream bind /tmp/.s.PGSQL.5432
-network unix stream listen /tmp/.s.PGSQL.5432
 file mksock /tmp/.s.PGSQL.5432 0700
 file chmod /tmp/.s.PGSQL.5432 0777
 file write /var/lib/pgsql/data/postmaster.opts
 file truncate /var/lib/pgsql/data/postmaster.opts
 file mkdir /var/lib/pgsql/data/pg_log/ 0700
 file append /var/lib/pgsql/data/pg_log/postgresql-Wed.log
-network inet dgram bind 127.0.0.1 0
 file read /var/lib/pgsql/data/pg_hba.conf
 file read /var/lib/pgsql/data/pg_ident.conf
 file read /var/lib/pgsql/data/pg_xlog/000000010000000000000000
@@ -327,8 +321,6 @@ file rename /var/lib/pgsql/data/global/pg_database.\$ /var/lib/pgsql/data/global
 file unlink /var/lib/pgsql/data/base/\$/pg_internal.init
 file write /var/lib/pgsql/data/global/pg_auth.\$
 file write /var/lib/pgsql/data/global/pg_database.\$
-network inet dgram send 127.0.0.1 1024-65535
-network inet dgram recv 127.0.0.1 1024-65535
 
 
 #2010/12/30 00:22:26# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }
