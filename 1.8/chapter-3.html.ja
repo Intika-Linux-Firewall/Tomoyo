@@ -51,7 +51,7 @@
 <li>OpenSUSE 11.0/11.1/11.2/11.3/11.4</li>
 <li>Asianux 2.0/3.0</li>
 <li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04/10.10/11.04</li>
-<li>Vine Linux 4.2/5.2</li>
+<li>Vine Linux 4.2/5.2/6.0</li>
 </ul>
 
 <p>もし、上記の何れかのディストリビューションを使用しているのであれば、<a href="chapter-3.html.ja#3.2">3.2. バイナリパッケージからのインストール</a>へと進んでください。そうではない場合には、カーネルをコンパイルする必要がありますので、<a href="chapter-3.html.ja#3.3">3.3. ソースからのインストール</a>へと進んでください。</p>
@@ -138,6 +138,13 @@
 <pre class="command">
 # wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux2/ccs.repo
 # yum install ccs-kernel-smp ccs-tools
+</pre>
+
+<p><strong>Vine Linux 6.0 (686-pae flavour)</strong></p>
+<pre class="command">
+# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux6/ ./" &gt;&gt; /etc/apt/sources.list
+# apt-get update
+# apt-get install ccs-kernel-pae ccs-tools
 </pre>
 
 <p><strong>Vine Linux 5.2 (686 flavour)</strong></p>
