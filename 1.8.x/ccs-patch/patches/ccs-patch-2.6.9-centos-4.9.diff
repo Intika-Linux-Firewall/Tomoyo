@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for CentOS 4.9.
 
-Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS/kernel-2.6.9-100.EL.src.rpm
+Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS/kernel-2.6.9-101.EL.src.rpm
 ---
  arch/alpha/kernel/ptrace.c         |    2 ++
  arch/arm/kernel/ptrace.c           |    2 ++
@@ -60,8 +60,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  security/Makefile                  |    3 +++
  56 files changed, 277 insertions(+), 6 deletions(-)
 
---- linux-2.6.9-100.EL.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/alpha/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/alpha/kernel/ptrace.c
 @@ -260,6 +260,8 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
@@ -71,8 +71,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.9-100.EL.orig/arch/arm/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/arm/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/arm/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/arm/kernel/ptrace.c
 @@ -731,6 +731,8 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
@@ -82,8 +82,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/arm26/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/arm26/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/arm26/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/arm26/kernel/ptrace.c
 @@ -668,6 +668,8 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
@@ -93,8 +93,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/cris/arch-v10/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/cris/arch-v10/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/cris/arch-v10/kernel/ptrace.c
 @@ -16,6 +16,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -112,8 +112,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/h8300/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/h8300/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/h8300/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/h8300/kernel/ptrace.c
 @@ -31,6 +31,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -131,8 +131,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/i386/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/i386/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/i386/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/i386/kernel/ptrace.c
 @@ -237,6 +237,8 @@ asmlinkage int sys_ptrace(long request, 
  	struct user * dummy = NULL;
  	int i, ret;
@@ -142,8 +142,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.9-100.EL/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.9-101.EL.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.9-101.EL/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,7 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -161,8 +161,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-100.EL.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/ia64/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/ia64/kernel/ptrace.c
 @@ -1288,6 +1288,8 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *rbs_child;
  	struct switch_stack *sw;
@@ -172,8 +172,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/m32r/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -191,8 +191,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/m68k/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/m68k/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -210,8 +210,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/m68knommu/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/m68knommu/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/m68knommu/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/m68knommu/kernel/ptrace.c
 @@ -25,6 +25,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -229,8 +229,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/mips/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/mips/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/mips/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/mips/kernel/ptrace.c
 @@ -49,6 +49,8 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
@@ -240,8 +240,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.9-100.EL.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.9-100.EL/arch/mips/kernel/ptrace32.c
+--- linux-2.6.9-101.EL.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.9-101.EL/arch/mips/kernel/ptrace32.c
 @@ -42,6 +42,8 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
@@ -251,8 +251,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.9-100.EL.orig/arch/parisc/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/parisc/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/parisc/kernel/ptrace.c
 @@ -84,6 +84,8 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
@@ -262,8 +262,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/ppc/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/ppc/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/ppc/kernel/ptrace.c
 @@ -239,6 +239,8 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
@@ -273,8 +273,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-100.EL.orig/arch/ppc64/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/ppc64/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/ppc64/kernel/ptrace.c
 @@ -54,6 +54,8 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
@@ -284,8 +284,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-100.EL.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.6.9-100.EL/arch/ppc64/kernel/ptrace32.c
+--- linux-2.6.9-101.EL.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.9-101.EL/arch/ppc64/kernel/ptrace32.c
 @@ -42,6 +42,8 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
@@ -295,8 +295,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.9-100.EL.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/s390/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/s390/kernel/ptrace.c
 @@ -733,6 +733,8 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
@@ -306,8 +306,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  
---- linux-2.6.9-100.EL.orig/arch/sh/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/sh/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/sh/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/sh/kernel/ptrace.c
 @@ -85,6 +85,8 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
@@ -317,8 +317,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/sh64/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/sh64/kernel/ptrace.c
 @@ -34,6 +34,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -336,8 +336,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/sparc/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/sparc/kernel/ptrace.c
 @@ -266,6 +266,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
@@ -349,8 +349,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.9-100.EL.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/sparc64/kernel/ptrace.c
 @@ -112,6 +112,10 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
@@ -362,8 +362,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.9-100.EL.orig/arch/um/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/um/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/um/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/um/kernel/ptrace.c
 @@ -28,6 +28,8 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
@@ -373,8 +373,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.9-100.EL.orig/arch/v850/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/v850/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/v850/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/v850/kernel/ptrace.c
 @@ -28,6 +28,7 @@
  #include <asm/ptrace.h>
  #include <asm/processor.h>
@@ -392,8 +392,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	lock_kernel();
  
---- linux-2.6.9-100.EL.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.9-100.EL/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.9-101.EL.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.9-101.EL/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,7 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -411,8 +411,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	switch (request) { 
  	default:
---- linux-2.6.9-100.EL.orig/arch/x86_64/kernel/ptrace.c
-+++ linux-2.6.9-100.EL/arch/x86_64/kernel/ptrace.c
+--- linux-2.6.9-101.EL.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.6.9-101.EL/arch/x86_64/kernel/ptrace.c
 @@ -203,6 +203,8 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	long i, ret;
@@ -422,8 +422,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.6.9-100.EL.orig/fs/compat.c
-+++ linux-2.6.9-100.EL/fs/compat.c
+--- linux-2.6.9-101.EL.orig/fs/compat.c
++++ linux-2.6.9-101.EL/fs/compat.c
 @@ -48,6 +48,7 @@
  
  #include <asm/uaccess.h>
@@ -454,8 +454,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.9-100.EL.orig/fs/exec.c
-+++ linux-2.6.9-100.EL/fs/exec.c
+--- linux-2.6.9-101.EL.orig/fs/exec.c
++++ linux-2.6.9-101.EL/fs/exec.c
 @@ -140,6 +140,10 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
@@ -499,8 +499,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.9-100.EL.orig/fs/fcntl.c
-+++ linux-2.6.9-100.EL/fs/fcntl.c
+--- linux-2.6.9-101.EL.orig/fs/fcntl.c
++++ linux-2.6.9-101.EL/fs/fcntl.c
 @@ -372,6 +372,8 @@ asmlinkage long sys_fcntl(int fd, unsign
  		goto out;
  
@@ -519,8 +519,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (err) {
  		fput(filp);
  		return err;
---- linux-2.6.9-100.EL.orig/fs/ioctl.c
-+++ linux-2.6.9-100.EL/fs/ioctl.c
+--- linux-2.6.9-101.EL.orig/fs/ioctl.c
++++ linux-2.6.9-101.EL/fs/ioctl.c
 @@ -62,6 +62,8 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
  
@@ -530,8 +530,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (error) {
                  fput(filp);
                  goto out;
---- linux-2.6.9-100.EL.orig/fs/namei.c
-+++ linux-2.6.9-100.EL/fs/namei.c
+--- linux-2.6.9-101.EL.orig/fs/namei.c
++++ linux-2.6.9-101.EL/fs/namei.c
 @@ -1429,6 +1429,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
@@ -616,8 +616,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
---- linux-2.6.9-100.EL.orig/fs/namespace.c
-+++ linux-2.6.9-100.EL/fs/namespace.c
+--- linux-2.6.9-101.EL.orig/fs/namespace.c
++++ linux-2.6.9-101.EL/fs/namespace.c
 @@ -409,6 +409,8 @@ static int do_umount(struct vfsmount *mn
  	int retval;
  
@@ -654,8 +654,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.9-100.EL.orig/fs/open.c
-+++ linux-2.6.9-100.EL/fs/open.c
+--- linux-2.6.9-101.EL.orig/fs/open.c
++++ linux-2.6.9-101.EL/fs/open.c
 @@ -262,6 +262,8 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
@@ -751,16 +751,16 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.9-100.EL.orig/fs/proc/proc_misc.c
-+++ linux-2.6.9-100.EL/fs/proc/proc_misc.c
+--- linux-2.6.9-101.EL.orig/fs/proc/proc_misc.c
++++ linux-2.6.9-101.EL/fs/proc/proc_misc.c
 @@ -704,4 +704,5 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-100.EL 2011/06/14\n");
++	printk(KERN_INFO "Hook version: 2.6.9-101.EL 2011/07/26\n");
  }
---- linux-2.6.9-100.EL.orig/fs/stat.c
-+++ linux-2.6.9-100.EL/fs/stat.c
+--- linux-2.6.9-101.EL.orig/fs/stat.c
++++ linux-2.6.9-101.EL/fs/stat.c
 @@ -43,6 +43,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
@@ -770,8 +770,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (retval)
  		return retval;
  
---- linux-2.6.9-100.EL.orig/include/linux/init_task.h
-+++ linux-2.6.9-100.EL/include/linux/init_task.h
+--- linux-2.6.9-101.EL.orig/include/linux/init_task.h
++++ linux-2.6.9-101.EL/include/linux/init_task.h
 @@ -60,6 +60,14 @@
  
  extern struct group_info init_groups;
@@ -795,8 +795,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  }
  
  
---- linux-2.6.9-100.EL.orig/include/linux/sched.h
-+++ linux-2.6.9-100.EL/include/linux/sched.h
+--- linux-2.6.9-101.EL.orig/include/linux/sched.h
++++ linux-2.6.9-101.EL/include/linux/sched.h
 @@ -137,6 +137,8 @@ struct sched_param {
  
  #ifdef __KERNEL__
@@ -817,8 +817,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.9-100.EL.orig/include/linux/security.h
-+++ linux-2.6.9-100.EL/include/linux/security.h
+--- linux-2.6.9-101.EL.orig/include/linux/security.h
++++ linux-2.6.9-101.EL/include/linux/security.h
 @@ -34,6 +34,7 @@
  #include <linux/skbuff.h>
  #include <linux/netlink.h>
@@ -827,8 +827,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  /*
   * These functions are in security/capability.c and are used
---- linux-2.6.9-100.EL.orig/kernel/compat.c
-+++ linux-2.6.9-100.EL/kernel/compat.c
+--- linux-2.6.9-101.EL.orig/kernel/compat.c
++++ linux-2.6.9-101.EL/kernel/compat.c
 @@ -791,6 +791,8 @@ asmlinkage long compat_sys_stime(compat_
  		return -EPERM;
  	if (get_user(tv.tv_sec, tptr))
@@ -838,8 +838,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	tv.tv_nsec = 0;
  
---- linux-2.6.9-100.EL.orig/kernel/fork.c
-+++ linux-2.6.9-100.EL/kernel/fork.c
+--- linux-2.6.9-101.EL.orig/kernel/fork.c
++++ linux-2.6.9-101.EL/kernel/fork.c
 @@ -109,6 +109,7 @@ void __put_task_struct(struct task_struc
  	free_uid(tsk->user);
  	put_group_info(tsk->group_info);
@@ -866,8 +866,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  bad_fork_cleanup_security:
  	security_task_free(p);
  bad_fork_cleanup_policy:
---- linux-2.6.9-100.EL.orig/kernel/module.c
-+++ linux-2.6.9-100.EL/kernel/module.c
+--- linux-2.6.9-101.EL.orig/kernel/module.c
++++ linux-2.6.9-101.EL/kernel/module.c
 @@ -38,6 +38,7 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -894,8 +894,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
---- linux-2.6.9-100.EL.orig/kernel/sched.c
-+++ linux-2.6.9-100.EL/kernel/sched.c
+--- linux-2.6.9-101.EL.orig/kernel/sched.c
++++ linux-2.6.9-101.EL/kernel/sched.c
 @@ -3306,6 +3306,8 @@ asmlinkage long sys_nice(int increment)
  {
  	int retval;
@@ -905,8 +905,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.9-100.EL.orig/kernel/signal.c
-+++ linux-2.6.9-100.EL/kernel/signal.c
+--- linux-2.6.9-101.EL.orig/kernel/signal.c
++++ linux-2.6.9-101.EL/kernel/signal.c
 @@ -2340,6 +2340,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
@@ -943,8 +943,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
---- linux-2.6.9-100.EL.orig/kernel/sys.c
-+++ linux-2.6.9-100.EL/kernel/sys.c
+--- linux-2.6.9-101.EL.orig/kernel/sys.c
++++ linux-2.6.9-101.EL/kernel/sys.c
 @@ -330,6 +330,10 @@ asmlinkage long sys_setpriority(int whic
  
  	if (which > 2 || which < 0)
@@ -983,8 +983,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.9-100.EL.orig/kernel/sysctl.c
-+++ linux-2.6.9-100.EL/kernel/sysctl.c
+--- linux-2.6.9-101.EL.orig/kernel/sysctl.c
++++ linux-2.6.9-101.EL/kernel/sysctl.c
 @@ -1266,6 +1266,9 @@ int do_sysctl(int __user *name, int nlen
  
  		spin_unlock(&sysctl_lock);
@@ -1018,8 +1018,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  }
  
  /*
---- linux-2.6.9-100.EL.orig/kernel/time.c
-+++ linux-2.6.9-100.EL/kernel/time.c
+--- linux-2.6.9-101.EL.orig/kernel/time.c
++++ linux-2.6.9-101.EL/kernel/time.c
 @@ -34,6 +34,7 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1055,8 +1055,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.9-100.EL.orig/net/ipv4/raw.c
-+++ linux-2.6.9-100.EL/net/ipv4/raw.c
+--- linux-2.6.9-101.EL.orig/net/ipv4/raw.c
++++ linux-2.6.9-101.EL/net/ipv4/raw.c
 @@ -79,6 +79,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -1076,8 +1076,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.9-100.EL.orig/net/ipv4/tcp_ipv4.c
-+++ linux-2.6.9-100.EL/net/ipv4/tcp_ipv4.c
+--- linux-2.6.9-101.EL.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.6.9-101.EL/net/ipv4/tcp_ipv4.c
 @@ -74,6 +74,7 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1104,8 +1104,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
---- linux-2.6.9-100.EL.orig/net/ipv4/udp.c
-+++ linux-2.6.9-100.EL/net/ipv4/udp.c
+--- linux-2.6.9-101.EL.orig/net/ipv4/udp.c
++++ linux-2.6.9-101.EL/net/ipv4/udp.c
 @@ -107,6 +107,7 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1152,8 +1152,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
  		copied = len;
---- linux-2.6.9-100.EL.orig/net/ipv6/raw.c
-+++ linux-2.6.9-100.EL/net/ipv6/raw.c
+--- linux-2.6.9-101.EL.orig/net/ipv6/raw.c
++++ linux-2.6.9-101.EL/net/ipv6/raw.c
 @@ -54,6 +54,7 @@
  
  #include <linux/proc_fs.h>
@@ -1173,8 +1173,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
  	copied = skb->len;
    	if (copied > len) {
---- linux-2.6.9-100.EL.orig/net/ipv6/tcp_ipv6.c
-+++ linux-2.6.9-100.EL/net/ipv6/tcp_ipv6.c
+--- linux-2.6.9-101.EL.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.6.9-101.EL/net/ipv6/tcp_ipv6.c
 @@ -63,6 +63,7 @@
  
  #include <linux/proc_fs.h>
@@ -1192,8 +1192,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.9-100.EL.orig/net/ipv6/udp.c
-+++ linux-2.6.9-100.EL/net/ipv6/udp.c
+--- linux-2.6.9-101.EL.orig/net/ipv6/udp.c
++++ linux-2.6.9-101.EL/net/ipv6/udp.c
 @@ -57,6 +57,7 @@
  
  #include <linux/proc_fs.h>
@@ -1238,8 +1238,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
---- linux-2.6.9-100.EL.orig/net/socket.c
-+++ linux-2.6.9-100.EL/net/socket.c
+--- linux-2.6.9-101.EL.orig/net/socket.c
++++ linux-2.6.9-101.EL/net/socket.c
 @@ -552,6 +552,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
@@ -1300,8 +1300,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (err)
  		goto out_put;
  
---- linux-2.6.9-100.EL.orig/net/unix/af_unix.c
-+++ linux-2.6.9-100.EL/net/unix/af_unix.c
+--- linux-2.6.9-101.EL.orig/net/unix/af_unix.c
++++ linux-2.6.9-101.EL/net/unix/af_unix.c
 @@ -806,6 +806,8 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
@@ -1322,8 +1322,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-2.6.9-100.EL.orig/security/Kconfig
-+++ linux-2.6.9-100.EL/security/Kconfig
+--- linux-2.6.9-101.EL.orig/security/Kconfig
++++ linux-2.6.9-101.EL/security/Kconfig
 @@ -87,5 +87,7 @@ config SECURITY_ROOTPLUG
  
  source security/selinux/Kconfig
@@ -1332,8 +1332,8 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.9/updates/SRPMS
 +
  endmenu
  
---- linux-2.6.9-100.EL.orig/security/Makefile
-+++ linux-2.6.9-100.EL/security/Makefile
+--- linux-2.6.9-101.EL.orig/security/Makefile
++++ linux-2.6.9-101.EL/security/Makefile
 @@ -16,3 +16,6 @@ obj-$(CONFIG_SECURITY)			+= security.o d
  obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
  obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
