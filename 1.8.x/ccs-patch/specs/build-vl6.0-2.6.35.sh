@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.35-20vl6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.35-20vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.2-20110713.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110726.tar.gz ]
 then
-    wget -O ccs-patch-1.8.2-20110713.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110713.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110726.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110726.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -61,8 +61,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.2-20110713.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.35.diff # ccs-patch-2.6.35-vine-linux-6.0.diff
++tar -zxf %_sourcedir/ccs-patch-1.8.2-20110726.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.35-vine-linux-6.0.diff
 +
  cp %{SOURCE10} Documentation/
  
