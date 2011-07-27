@@ -1,43 +1,3 @@
-Package: linux-headers-2.6.31-23-ccs
-Priority: optional
-Section: devel
-Installed-Size: 8996
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.31-23.75
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.31-23, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.31-23-ccs1.8.2_2.6.31-23.75_i386.deb
-Size: 767172
-MD5sum: 3f41cee89e347695f58e3f30a5bc71b6
-SHA1: 70a4a554ab18cc70b0b5c968bc74a641af1df982
-SHA256: 40b95f15293d861dee4716d2f8282d351d372e0208815235492e58a9a11a1505
-Description: Linux kernel headers for version 2.6.31 on x86/x86_64
- This package provides kernel header files for version 2.6.31 on
- x86/x86_64.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.31-23/debian.README.gz for details.
-
-Package: linux-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.31.23.36
-Depends: linux-image-ccs (= 2.6.31.23.36)
-Filename: ./linux-ccs1.8.2_2.6.31.23.36_i386.deb
-Size: 3492
-MD5sum: e76c831ce697c2302420e1b72d365cca
-SHA1: d8ae851975a4456dead7970860fa8d17f29b4fba
-SHA256: 130442ff875bdbe87817bead9c48675d929f3a874dbfaab8942b4bf4d58f6c5b
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete ccs Linux kernel
- available.
-
 Package: linux-image-ccs
 Priority: optional
 Section: metapackages
@@ -47,38 +7,19 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.31.23.36
 Depends: linux-image-2.6.31-23-ccs, linux-firmware
-Filename: ./linux-image-ccs1.8.2_2.6.31.23.36_i386.deb
-Size: 3498
-MD5sum: 0a87c16050e7e0cc57d84ab761223258
-SHA1: bec59c8d014eee89483ef2030e166e8ea2f19da1
-SHA256: 6f133867c8d91622ac12d30bb60a29355a936895310cdca594c23a3d50ce0279
+Filename: ./linux-image-ccs1.8.2p2_2.6.31.23.36_i386.deb
+Size: 3502
+MD5sum: 3f01d8a1308d0518101931e8bcad624b
+SHA1: 444f0f7b521da604cf8fc1cd7a126b8aae22d2f1
+SHA256: 61afb9dd454cb4e1333b76b283d60b9df527a925d7cf08b689a15c137114127e
 Description: Generic Linux kernel image
  This package will always depend on the latest ccs kernel image
  available.
 
-Package: ccs-tools
-Priority: extra
-Section: alien
-Installed-Size: 652
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Version: 1.8.2-3
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
-Filename: ./ccs-tools_1.8.2-3_i386.deb
-Size: 187766
-MD5sum: 3a0214e11f1b3fd7eb3f85d6ec2189e4
-SHA1: 9bf71e469d420e3d1644ba0fe98ae63c05412aa2
-SHA256: d3566719ff4c5e50b9ac8020227efb84a4c9afd0da4df2d4dc5d747200dbe280
-Description: Userspace tools for TOMOYO Linux 1.8.x
- This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
- Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
- .
- (Converted from a rpm package by alien version 8.78.)
-
 Package: linux-image-2.6.31-23-ccs
 Priority: optional
 Section: admin
-Installed-Size: 88232
+Installed-Size: 88236
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
@@ -89,11 +30,11 @@ Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.31 | linux-source-2.6.31
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.31-23-ccs1.8.2_2.6.31-23.75_i386.deb
-Size: 32482202
-MD5sum: 6c6bc4e76f1fe73f06bcf9a59ff7fa5c
-SHA1: c570ff0b5517c3c0ec2dffd7fceb939b38873a60
-SHA256: 9150946f559debecabd32b1bf04db13b038bfb362308898e54176b6db7824f1f
+Filename: ./linux-image-2.6.31-23-ccs1.8.2p2_2.6.31-23.75_i386.deb
+Size: 32483754
+MD5sum: f22b98275eba7323d0fb14be12eb10e9
+SHA1: aee3c3ea40b9c2fc9b694cdf873395db10d119e4
+SHA256: 602353d6ff39197770dc43415493cf012293e8cd33788c3673cdddacb3a71a57
 Description: Linux kernel image for version 2.6.31 on x86/x86_64
  This package contains the Linux kernel image for version 2.6.31 on
  x86/x86_64.
@@ -110,6 +51,43 @@ Description: Linux kernel image for version 2.6.31 on x86/x86_64
  the linux-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
+Package: linux-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.31.23.36
+Depends: linux-image-ccs (= 2.6.31.23.36)
+Filename: ./linux-ccs1.8.2p2_2.6.31.23.36_i386.deb
+Size: 3496
+MD5sum: ede112a98deb5c990297ba01ad2acd5c
+SHA1: e32dceddd210ae40489b56c263f5d3619bf8ec8c
+SHA256: 7d7bb79000df6918667112e4e65224362e4ad6b503ab9bcbe65cd196d3624242
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete ccs Linux kernel
+ available.
+
+Package: ccs-tools
+Priority: extra
+Section: alien
+Installed-Size: 656
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Version: 1.8.2-4
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
+Filename: ./ccs-tools_1.8.2-4_i386.deb
+Size: 190080
+MD5sum: 5caf50444b663133a6c5f01839871a63
+SHA1: 989972be528b4d4b54d2ad77ee1c92e525ec56f2
+SHA256: 86a7e4ba992a4c3e43ca6db2bc5ef73d5fee44181bfa08434358d84a4b4e912e
+Description: Userspace tools for TOMOYO Linux 1.8.x
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+ .
+ (Converted from a rpm package by alien version 8.78.)
+
 Package: linux-headers-ccs
 Priority: optional
 Section: devel
@@ -119,12 +97,34 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.31.23.36
 Depends: linux-headers-2.6.31-23-ccs
-Filename: ./linux-headers-ccs1.8.2_2.6.31.23.36_i386.deb
-Size: 3486
-MD5sum: 34b7cb8f2b504bb8701e76364245911b
-SHA1: c8889d761d6546399b6a1b36b272a608e6a64c1e
-SHA256: 99f532317750a80ae9094a9867b047d01256bc2ba5ceb15e638b7cb6bc1f2a16
+Filename: ./linux-headers-ccs1.8.2p2_2.6.31.23.36_i386.deb
+Size: 3490
+MD5sum: 3ca63572dd89246213aa321df890d744
+SHA1: 2a7d1609d2663fb010005cf88cefa3031c462f2d
+SHA256: 4863d8ebb4175ce4211b4ddbf63c3ea054c8b7a13330945089b3cb8c42c244ee
 Description: Generic Linux kernel headers
  This package will always depend on the latest ccs kernel headers
  available.
+
+Package: linux-headers-2.6.31-23-ccs
+Priority: optional
+Section: devel
+Installed-Size: 8996
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.31-23.75
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.31-23, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
+Filename: ./linux-headers-2.6.31-23-ccs1.8.2p2_2.6.31-23.75_i386.deb
+Size: 766984
+MD5sum: 7c2396a3ad17fc8631225d3317a63d32
+SHA1: 6564916e57259e1251ac1aa4dc8c33609b6c5032
+SHA256: d320e4dd38f16963a30620e667cdfb2b71dcdd1331c379deca14253cf58e2eb5
+Description: Linux kernel headers for version 2.6.31 on x86/x86_64
+ This package provides kernel header files for version 2.6.31 on
+ x86/x86_64.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.31-23/debian.README.gz for details.
 
