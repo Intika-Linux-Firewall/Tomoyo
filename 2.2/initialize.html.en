@@ -194,12 +194,7 @@ The following is the guideline.</p>
 To allow executing programs using the name of symbolic links, use alias directive followed by dereferenced pathname and reference pathname. No patterns are allowed.<br>
 For example, /sbin/pidof is a symbolic link to /sbin/killall5 . In normal case, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed. By specifying "alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the domain for /sbin/pidof .</p>
 </td></tr><tr><td>
-(5) Program aggregations
-</td><td>
-<p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. Patterns are allowed for name of original program.<br>
-For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
-</td></tr><tr><td>
-(6) Programs that cause domain transition initialization
+(5) Programs that cause domain transition initialization
 </td><td>
 <p>Register programs that initializes the domain transition history using the "initialize_domain" directive. No patterns allowed. When a program that is registered with "initialize_domain" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
 The following is the guideline.</p>
@@ -245,16 +240,16 @@ allow_read /etc/fstab
 </td></tr>
 </table>
 </td></tr><tr><td>
-(7) Programs that prevent domain transition initialization
+(6) Programs that prevent domain transition initialization
 </td><td>
 <p>To deny the effect of "initialize_domain" directive under specific conditions, use "no_initialize_domain" directive.</p>
 </td></tr><tr><td>
-(8) Domains that prevent domain transition
+(7) Domains that prevent domain transition
 </td><td>
 <p>To declare domain keepers, use "keep_domain" directive followed by domain definition.<br>
 For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless any program registered with "initialize_domain" directive is executed.</p>
 </td></tr><tr><td>
-(9) Domains that cause domain transition
+(8) Domains that cause domain transition
 </td><td>
 <p>To deny the effect of "keep_domain" directive under specific conditions, use "no_keep_domain" directive.</p>
 </td></tr>
