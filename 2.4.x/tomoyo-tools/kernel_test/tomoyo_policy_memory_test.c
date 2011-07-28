@@ -260,13 +260,17 @@ static void domain_policy_test(const unsigned int before)
 
 static const char * const exception_testcases[] = {
 	"acl_group 0 file read /tmp/mknod_reg_test",
+	/*
 	"acl_group 0 misc env HOME",
+	*/
 	"path_group PG1 /",
 	"path_group PG2 /",
+	/*
 	"address_group AG3 0.0.0.0",
 	"address_group AG3 1.2.3.4-5.6.7.8",
 	"address_group AG3 f:ee:ddd:cccc:b:aa:999:8888",
 	"address_group AG4 0:1:2:3:4:5:6:7-8:90:a00:b000:c00:d0:e:f000",
+	*/
 	"number_group NG1 1000",
 	"number_group NG2 10-0x100000",
 	"number_group NG3 01234567-0xABCDEF89",
