@@ -29,12 +29,12 @@ newns tomoyo_file_test
 newns tomoyo_rewrite_test
 #newns tomoyo_capability_test
 #newns tomoyo_signal_test
-newns tomoyo_network_test
+#newns tomoyo_network_test
 newns tomoyo_argv0_test
-newns tomoyo_env_test
+#newns tomoyo_env_test
 newns tomoyo_new_file_test
 #newns tomoyo_new_capability_test
-newns tomoyo_new_network_test
+#newns tomoyo_new_network_test
 newns tomoyo_new_test
 #newns tomoyo_bind_test
 echo
@@ -48,9 +48,9 @@ newns tomoyo_file_test | grep -vF OK | grep -F '('
 newns tomoyo_rewrite_test | grep -vF OK | grep -F '('
 #newns tomoyo_capability_test | grep -vF OK | grep -F '('
 #newns tomoyo_signal_test | grep -vF OK | grep -F '('
-newns tomoyo_network_test | grep -vF OK | grep -F '('
+#newns tomoyo_network_test | grep -vF OK | grep -F '('
 newns tomoyo_argv0_test | grep -vF OK | grep -F '('
-newns tomoyo_env_test | grep -vF OK | grep -F '('
+#newns tomoyo_env_test | grep -vF OK | grep -F '('
 newns tomoyo_new_test | grep -vF OK
 echo
 echo
@@ -61,7 +61,7 @@ newns tomoyo_cond_test | grep -vF OK
 newns tomoyo_policy_io_test | grep -vF OK
 newns tomoyo_new_file_test | grep -vF OK
 #newns tomoyo_new_capability_test | grep -vF OK
-newns tomoyo_new_network_test | grep -vF OK
+#newns tomoyo_new_network_test | grep -vF OK
 #newns tomoyo_execute_handler_test | grep -vF OK
 dmesg -c
 uname -r

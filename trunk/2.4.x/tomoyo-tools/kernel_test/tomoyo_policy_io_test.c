@@ -120,12 +120,14 @@ static void stage_policy_io_test(void)
 		try_io("acl_group 0 file read /tmp/abc/", 1);
 		try_io("acl_group 0 file read", 0);
 		try_io("acl_group 0 file read *", 1);
+		/*
 		try_io("acl_group 0 misc env FOO", 1);
 		try_io("acl_group 0 misc env FOO=", 0);
 		try_io("acl_group 0 misc env FOO=BAR", 0);
 		try_io("acl_group 0 misc env FOO BAR", 0);
 		try_io("acl_group 0 misc env FOO\\040BAR", 1);
 		try_io("acl_group 0 misc env FOO;BAR;BUZ", 1);
+		*/
 		try_io("path_group TEST /", 1);
 		try_io("path_group TEST /boo", 1);
 		try_io("path_group TEST /bar", 1);
@@ -142,6 +144,7 @@ static void stage_policy_io_test(void)
 		try_io("path_group TEST3 /bar", 1);
 		try_io("path_group TEST3 boo", 1);
 		try_io("path_group TEST3 boo/", 1);
+		/*
 		try_io("address_group TEST 0.0.0.0", 1);
 		try_io("address_group TEST 0.0.0.0-1.2.3.4", 1);
 		try_io("address_group TEST ::ff", 1);
@@ -154,6 +157,7 @@ static void stage_policy_io_test(void)
 		try_io("address_group TEST2 "
 		       "fff0:fff1:fff2:fff3:fff4:fff5:fff6:fff7-"
 		       "fff8:fff9:fffa:fffb:fffc:fffd:fffe:ffff", 1);
+		*/
 		try_io("aggregator /boo/\\* /BOO", 1);
 		try_io("aggregator /boo/\\* /BOO\\*", 0);
 		try_io("aggregator /boo/\\*/ /BOO", 1);
