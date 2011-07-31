@@ -1,11 +1,11 @@
 #!/bin/sh
 
 LIVECD_HOME=~/LiveCD/
-CD_LABEL="CentOS-5.6-i386-TOMOYO-LiveCD"
-ISOIMAGE_NAME=../CentOS-5.6-i386-TOMOYO-LiveCD.iso
-ORIGINAL_VERSION=2.6.18-238.el5
-ORIGINAL_VERSION_REGEXP=2\.6\.18-238\.el5
-KERNEL_VERSION=2.6.18-238.19.1.el5_tomoyo_1.8.2p2
+CD_LABEL="CentOS-6.0-i386-TOMOYO-LiveCD"
+ISOIMAGE_NAME=../CentOS-6.0-i386-TOMOYO-LiveCD.iso
+ORIGINAL_VERSION=2.6.32-71.el6.i686
+ORIGINAL_VERSION_REGEXP=2\.6\.32-71\.el6\.i686
+KERNEL_VERSION=2.6.32-71.29.1.el6_tomoyo_1.8.2p2.i686
 
 set -v
 
@@ -18,9 +18,6 @@ cd ${LIVECD_HOME}
 echo "********** Updating root filesystem for LiveCD. **********"
 
 [ -d ext3/home/ ] || mount -o loop,noatime squash/LiveOS/ext3fs.img ext3/ || die "Mount squash/LiveOS/ext3fs.img on ext3/ ."
-
-echo '<kernel>' > ext3/etc/ccs/domain_policy.conf
-echo 'use_profile 1' >> ext3/etc/ccs/domain_policy.conf
 
 mkdir -p -m 700 ext3/var/log/tomoyo
 grep -q mount ext3/etc/rc.d/rc.local || echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/' >> ext3/etc/rc.d/rc.local
@@ -40,10 +37,13 @@ cp -p resources/*.desktop ext3/usr/share/doc/tomoyo/ || die "Can't copy document
 grep -q desktop ext3/etc/rc.d/rc.local || echo 'cp -af --remove-destination /usr/share/doc/tomoyo/*.desktop /home/centos/Desktop/' >> ext3/etc/rc.d/rc.local
 grep -q centos:centos ext3/etc/rc.d/rc.local || echo 'chown centos:centos /home/centos/Desktop/*.desktop' >> ext3/etc/rc.d/rc.local
 
-rm -f ext3/*.rpm
+rm -f ext3/var/log/yum.log
+rm -fR ext3/var/lib/yum/*/
+rm -fR ext3/var/tmp/*/
+rm -f ext3/var/lib/rpm/__db.00*
 rm -f ext3/package-install.sh
 rm -f ext3/root/.bash_history
-rm -f ext3/boot/initrd-*
+rm -f ext3/boot/initramfs-*
 
 cd ${LIVECD_HOME}
 echo "********** Copying kernel. **********"
@@ -75,7 +75,7 @@ echo "********** Updating root filesystem for LiveCD. **********"
 
 rm squash/LiveOS/ext3fs.img || die "Can't delete old image file."
 dd if=/dev/zero of=squash/LiveOS/ext3fs.img bs=1048576 count=4096 || die "Can't create image file."
-mke2fs -j -m 0 -L "CentOS-5.6-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
+mkfs.ext4 -m 0 -L "CentOS-6.0-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
 tune2fs -c -1 -i 0 -o user_xattr,acl squash/LiveOS/ext3fs.img || die "Can't tune filesystem."
 mount -o loop,noatime squash/LiveOS/ext3fs.img mnt/ || die "Can't mount filesystem."
 cp -a ext3/* mnt/ || die "Can't copy image file."
@@ -92,12 +92,7 @@ umount -d mnt/ || die "Can't unmount new filesystem."
 
 cd ${LIVECD_HOME}
 echo "********** Generating squashfs image file. **********"
-if mksquashfs -version | grep -qF 3.4
-    then
-    mksquashfs squash cdrom/LiveOS/squashfs.img -noappend -b 65536 -no-sparse -no-exports -no-recovery || die "Can't generate squashfs image file."
-else
-    mksquashfs squash cdrom/LiveOS/squashfs.img -noappend || die "Can't generate squashfs image file."
-fi
+mksquashfs squash cdrom/LiveOS/squashfs.img -noappend -b 131072 -no-sparse -no-exports -no-recovery || die "Can't generate squashfs image file."
 
 cd ${LIVECD_HOME}
 echo "********** Generating iso image file. **********"
