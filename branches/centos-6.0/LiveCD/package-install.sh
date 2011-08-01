@@ -24,7 +24,7 @@ yum -y install ccs-kernel ccs-tools || die "Can't install packages."
 rpm -e kernel
 yum -y update
 yum clean all
-rpmbuild --rebuilddb
+rpm --rebuilddb
 
 /usr/lib/ccs/init_policy --use_profile=1 --use_group=0
 

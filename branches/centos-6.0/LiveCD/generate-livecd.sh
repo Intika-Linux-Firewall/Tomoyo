@@ -4,7 +4,6 @@ LIVECD_HOME=~/LiveCD/
 CD_LABEL="CentOS-6.0-i386-TOMOYO-LiveCD"
 ISOIMAGE_NAME=../CentOS-6.0-i386-TOMOYO-LiveCD.iso
 ORIGINAL_VERSION=2.6.32-71.el6.i686
-ORIGINAL_VERSION_REGEXP=2\.6\.32-71\.el6\.i686
 KERNEL_VERSION=2.6.32-71.29.1.el6_tomoyo_1.8.2p2.i686
 
 set -v
@@ -48,6 +47,7 @@ rm -f ext3/boot/initramfs-*
 cd ${LIVECD_HOME}
 echo "********** Copying kernel. **********"
 cp -af ext3/boot/vmlinuz-${KERNEL_VERSION} cdrom/isolinux/vmlinuz0 || die "Can't copy kernel."
+ln -f cdrom/isolinux/vmlinuz0 cdrom/EFI/boot/ || die "Can't copy kernel."
 
 cd ${LIVECD_HOME}
 echo "********** Updating initramfs. **********"
@@ -57,18 +57,15 @@ mkdir initrd
 zcat cdrom/isolinux/initrd0.img | (cd initrd/ ; cpio -id ) || die "Can't extract initramfs."
 
 if [ ! -d initrd/lib/modules/${KERNEL_VERSION}/ ]
-    then
+then
     mkdir initrd/lib/modules/${KERNEL_VERSION} || die "Can't create kernel modules directory."
-    for i in `( cd initrd/lib/modules/${ORIGINAL_VERSION}/ ; echo *.ko )`
-      do
-      find ext3/lib/modules/${KERNEL_VERSION}/ -type f -name $i -exec cp -p \{\} initrd/lib/modules/${KERNEL_VERSION}/ \; || die "Can't copy kernel modules."
-    done
+    ( cd initrd/lib/modules/${ORIGINAL_VERSION}/ ; find . -type f -print0 ) | xargs -0 tar -cf - -C ext3/lib/modules/${KERNEL_VERSION}/ | tar -xf - -C initrd/lib/modules/${KERNEL_VERSION}/ || die "Can't copy kernel modules."
     cp -p initrd/lib/modules/${ORIGINAL_VERSION}/modules.* initrd/lib/modules/${KERNEL_VERSION}/ || "Can't copy modules information."
-    sed -i -e "s/${ORIGINAL_VERSION_REGEXP}/${KERNEL_VERSION}/g" initrd/lib/modules/${KERNEL_VERSION}/modules.* || die "Can't update modules information."
     rm -fR initrd/lib/modules/${ORIGINAL_VERSION}/ || die "Can't delete kernel modules directory."
 fi
 
 ( cd initrd ; find -print0 | cpio -o0 -H newc | gzip -9 ) > cdrom/isolinux/initrd0.img || die "Can't update initramfs."
+ln -f cdrom/isolinux/initrd0.img cdrom/EFI/boot/ || die "Can't update initramfs."
 
 cd ${LIVECD_HOME}
 echo "********** Updating root filesystem for LiveCD. **********"
