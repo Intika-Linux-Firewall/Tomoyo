@@ -1,0 +1,19 @@
+cd
+#wget http://ftp.riken.jp/Linux/centos/6.0/isos/i386/CentOS-6.0-i386-LiveCD.iso
+#wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/centos-6.0/LiveCD.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+cd LiveCD/
+chmod +x *.sh
+mkdir -p mnt cdrom squash initrd ext3
+mount -o loop ~/CentOS-6.0-i386-LiveCD.iso mnt/
+cp -a mnt/* cdrom/
+umount -d mnt/
+mount -t squashfs -o loop cdrom/LiveOS/squashfs.img mnt/
+cp -a mnt/LiveOS/ squash/
+umount -d mnt/
+mount -o loop,noatime squash/LiveOS/ext3fs.img ext3/ # Unmounted by generate-livecd.sh
+cd ext3/
+cp -p ../package-install.sh .
+cat /etc/resolv.conf > etc/resolv.conf
+chroot . /package-install.sh
+cd ../
+./generate-livecd.sh
