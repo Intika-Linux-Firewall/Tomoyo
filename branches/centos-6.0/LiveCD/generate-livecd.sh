@@ -26,15 +26,15 @@ cd ext3/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
 mkdir tomoyo/ || die "Can't create directory."
 cd tomoyo/ || die "Can't change directory."
-wget -O centos5-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos5-live.html.en?revision=HEAD&root=tomoyo' || die "Can't copy document."
-wget -O centos5-live.html.ja 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos5-live.html.ja?revision=HEAD&root=tomoyo' || die "Can't copy document."
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos5.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
-ln -s centos5-live.html.en index.html.en
-ln -s centos5-live.html.ja index.html.ja
+wget -O centos6-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo' || die "Can't copy document."
+wget -O centos6-live.html.ja 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo' || die "Can't copy document."
+wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
+ln -s centos6-live.html.en index.html.en
+ln -s centos6-live.html.ja index.html.ja
 cd ../../../../../ || die "Can't change directory."
 cp -p resources/*.desktop ext3/usr/share/doc/tomoyo/ || die "Can't copy document."
-grep -q desktop ext3/etc/rc.d/rc.local || echo 'cp -af --remove-destination /usr/share/doc/tomoyo/*.desktop /home/centos/Desktop/' >> ext3/etc/rc.d/rc.local
-grep -q centos:centos ext3/etc/rc.d/rc.local || echo 'chown centos:centos /home/centos/Desktop/*.desktop' >> ext3/etc/rc.d/rc.local
+grep -q desktop ext3/etc/rc.d/rc.local || echo 'cp -af --remove-destination /usr/share/doc/tomoyo/*.desktop /home/centoslive/Desktop/' >> ext3/etc/rc.d/rc.local
+grep -q centoslive:centoslive ext3/etc/rc.d/rc.local || echo 'chown centoslive:centoslive /home/centoslive/Desktop/*.desktop' >> ext3/etc/rc.d/rc.local
 
 rm -f ext3/var/log/yum.log
 rm -fR ext3/var/lib/yum/*/
