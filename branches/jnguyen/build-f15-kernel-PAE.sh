@@ -9,15 +9,15 @@ COLOUR=1
 
 CCS_VER="1.8.2p2"
 CCSPATCH_VER="1.8.2-20110726"
-KERNEL_VER="2.6.38.8-35.fc15"
+KERNEL_VER="2.6.40-4.fc15"
 
-UPDATED_DIFF=0
-CCSDIFF_NAME="ccs-patch-2.6.38-fedora-15.diff"
+#UPDATED_DIFF=0
+#CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15.diff"
 
 # only required if using updated revision
-#UPDATED_DIFF=1
-#CCSDIFF_NAME="ccs-patch-2.6.38-fedora-15-20110526-1.8.1.diff"
-#CCSDIFF_REVISION="ccs-patch-2.6.38-fedora-15.diff?revision=5059&root=tomoyo"
+UPDATED_DIFF=1
+CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15-20110802.diff"
+CCSDIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
 
 # stuff that probably will not need to be changed much
 # {{{
