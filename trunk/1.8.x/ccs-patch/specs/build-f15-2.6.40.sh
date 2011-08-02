@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 15's 2.6.38 kernel.
+# This is a kernel build script for Fedora 15's 2.6.40 kernel.
 #
 
 die () {
@@ -10,17 +10,22 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.38.8-35.fc15.src.rpm ]
+if [ ! -r kernel-2.6.40-4.fc15.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.38.8-35.fc15.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.40-4.fc15.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.38.8-35.fc15.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.38.8-35.fc15.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.40-4.fc15.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.40-4.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.2-20110726.tar.gz ]
 then
     wget -O ccs-patch-1.8.2-20110726.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110726.tar.gz' || die "Can't download patch."
+fi
+
+if [ ! -r ccs-patch-2.6.40-fedora-15-20110802.diff ]
+then
+    wget -O ccs-patch-2.6.40-fedora-15-20110802.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -37,7 +42,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -427,6 +427,11 @@
+@@ -419,6 +419,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +54,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -486,7 +491,7 @@
+@@ -478,7 +483,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -58,7 +63,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -902,7 +907,7 @@
+@@ -804,7 +809,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -67,18 +72,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1469,6 +1474,10 @@
+@@ -1261,6 +1266,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.2-20110726.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.38-fedora-15.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.40-fedora-15-20110802.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1497,6 +1506,9 @@
+@@ -1289,6 +1298,9 @@
  for i in *.config
  do
    mv $i .config
