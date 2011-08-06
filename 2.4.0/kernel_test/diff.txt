@@ -1,0 +1,592 @@
+Index: tomoyo_network_test.c
+===================================================================
+--- tomoyo_network_test.c	(revision 5295)
++++ tomoyo_network_test.c	(working copy)
+@@ -48,30 +48,6 @@
+ 	}
+ }
+ 
+-static void show_result2(int result)
+-{
+-	if (is_enforce) {
+-		if (result == EOF) {
+-			if (errno == EAGAIN)
+-				printf("OK: Permission denied.\n");
+-			else
+-				printf("FAILED: %s\n", strerror(errno));
+-		} else {
+-			char c;
+-			if (recv(result, &c, 1, MSG_DONTWAIT) == EOF &&
+-			    errno == EPERM)
+-				printf("OK: Permission denied.\n");
+-			else
+-				printf("BUG!(%d)\n", result);
+-		}
+-	} else {
+-		if (result != EOF)
+-			printf("OK\n");
+-		else
+-			printf("%s\n", strerror(errno));
+-	}
+-}
+-
+ static void show_result3(int result)
+ {
+ 	if (result == EOF) {
+@@ -96,13 +72,10 @@
+ 	set_profile(flag, "network::inet_stream_bind");
+ 	set_profile(flag, "network::inet_stream_listen");
+ 	set_profile(flag, "network::inet_stream_connect");
+-	set_profile(flag, "network::inet_stream_accept");
+ 	set_profile(flag, "network::inet_dgram_bind");
+ 	set_profile(flag, "network::inet_dgram_send");
+-	set_profile(flag, "network::inet_dgram_recv");
+ 	set_profile(flag, "network::inet_raw_bind");
+ 	set_profile(flag, "network::inet_raw_send");
+-	set_profile(flag, "network::inet_raw_recv");
+ }
+ 
+ static void stage_network_test(void)
+@@ -117,11 +90,9 @@
+ 
+ 	{ /* IPv4 TCP */
+ 		struct sockaddr_in saddr;
+-		struct sockaddr_in caddr;
+ 		socklen_t size = sizeof(saddr);
+ 		int fd1 = EOF;
+ 		int fd2 = EOF;
+-		int fd3 = EOF;
+ 
+ 		fd1 = socket(PF_INET, SOCK_STREAM, 0);
+ 
+@@ -164,42 +135,12 @@
+ 		show_prompt(cbuffer);
+ 		show_result(connect(fd2, (struct sockaddr *) &saddr,
+ 				    sizeof(saddr)));
+-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+-
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Accepting TCP 127.0.0.1 %d",
+-			 ntohs(caddr.sin_port));
+-		set_enforce(1);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		show_prompt(sbuffer);
+-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-		show_result2(fd3);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+-
+-		set_enforce(0);
+ 		close(fd2);
+-		fd2 = socket(PF_INET, SOCK_STREAM, 0);
+-		connect(fd2, (struct sockaddr *) &saddr, sizeof(saddr));
+-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+-
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Accepting TCP 127.0.0.1 %d",
+-			 ntohs(caddr.sin_port));
+-		set_enforce(0);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		show_prompt(sbuffer);
+-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-		show_result2(fd3);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+-
+-		close(fd3);
+-		close(fd2);
+ 		close(fd1);
+ 	}
+ 
+ 	{ /* IPv4 UDP */
+ 		struct sockaddr_in saddr;
+-		struct sockaddr_in caddr;
+ 		socklen_t size = sizeof(saddr);
+ 		int fd1 = EOF;
+ 		int fd2 = EOF;
+@@ -262,17 +203,12 @@
+ 		show_prompt(cbuffer);
+ 		show_result(connect(fd2, (struct sockaddr *) &saddr,
+ 				    sizeof(saddr)));
+-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+ 
+ 		/* sendto() -> recvfrom() */
+ 
+ 		snprintf(cbuffer, sizeof(cbuffer) - 1,
+ 			 "Client: Sending UDP 127.0.0.1 %d using sendto()",
+ 			 ntohs(saddr.sin_port));
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Receiving UDP 127.0.0.1 %d using recvfrom()",
+-			 ntohs(caddr.sin_port));
+-
+ 		set_enforce(1);
+ 		show_prompt(cbuffer);
+ 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
+@@ -281,26 +217,12 @@
+ 		show_prompt(cbuffer);
+ 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
+ 				   sizeof(saddr)));
+-		set_enforce(1);
+-		show_prompt(sbuffer);
+-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+-				      (struct sockaddr *) &caddr, &size));
+-		set_enforce(0);
+-		sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
+-		       sizeof(saddr));
+-		set_enforce(0);
+-		show_prompt(sbuffer);
+-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+-				      (struct sockaddr *) &caddr, &size));
+ 
+ 		/* send() -> recv() */
+ 
+ 		snprintf(cbuffer, sizeof(cbuffer) - 1,
+ 			 "Client: Sending UDP 127.0.0.1 %d using send()",
+ 			 ntohs(saddr.sin_port));
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Receiving UDP 127.0.0.1 %d using recv()",
+-			 ntohs(caddr.sin_port));
+ 		if (0) {
+ 			set_enforce(1);
+ 			show_prompt(cbuffer);
+@@ -311,23 +233,12 @@
+ 		set_enforce(0);
+ 		show_prompt(cbuffer);
+ 		show_result(send(fd2, "", 1, 0));
+-		set_enforce(1);
+-		show_prompt(sbuffer);
+-		show_result2(recv(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT));
+-		set_enforce(0);
+-		send(fd2, "", 1, 0);
+-		set_enforce(0);
+-		show_prompt(sbuffer);
+-		show_result2(recv(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT));
+ 
+ 		/* write() -> read() */
+ 
+ 		snprintf(cbuffer, sizeof(cbuffer) - 1,
+ 			 "Client: Sending UDP 127.0.0.1 %d using write()",
+ 			 ntohs(saddr.sin_port));
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Receiving UDP 127.0.0.1 %d using read()",
+-			 ntohs(caddr.sin_port));
+ 		if (0) {
+ 			set_enforce(1);
+ 			show_prompt(cbuffer);
+@@ -338,16 +249,8 @@
+ 		set_enforce(0);
+ 		show_prompt(cbuffer);
+ 		show_result(write(fd2, "", 1));
+-		set_enforce(1);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		show_prompt(sbuffer);
+-		show_result2(read(fd1, buf, sizeof(buf) - 1));
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+ 		set_enforce(0);
+ 		ret_ignored = write(fd2, "", 1);
+-		set_enforce(0);
+-		show_prompt(sbuffer);
+-		show_result2(read(fd1, buf, sizeof(buf) - 1));
+ 
+ 		/* sendmsg() -> recvmsg() */
+ 		{
+@@ -370,23 +273,14 @@
+ 			snprintf(cbuffer, sizeof(cbuffer) - 1,
+ 				 "Client: Sending UDP 127.0.0.1 %d using "
+ 				 "sendmsg()", ntohs(saddr.sin_port));
+-			snprintf(sbuffer, sizeof(sbuffer) - 1,
+-				 "Server: Receiving UDP 127.0.0.1 %d using "
+-				 "recvmsg()", ntohs(caddr.sin_port));
+ 			set_enforce(1);
+ 			show_prompt(cbuffer);
+ 			show_result(sendmsg(fd1, &msg1, 0));
+ 			set_enforce(0);
+ 			show_prompt(cbuffer);
+ 			show_result(sendmsg(fd1, &msg1, 0));
+-			set_enforce(1);
+-			show_prompt(sbuffer);
+-			show_result2(recvmsg(fd1, &msg2, MSG_DONTWAIT));
+ 			set_enforce(0);
+ 			sendmsg(fd1, &msg1, 0);
+-			set_enforce(0);
+-			show_prompt(sbuffer);
+-			show_result2(recvmsg(fd1, &msg2, MSG_DONTWAIT));
+ 		}
+ 
+ 		close(fd2);
+@@ -397,7 +291,6 @@
+ 	{ /* IPv4 RAW */
+ 		static struct iphdr ip;
+ 		struct sockaddr_in saddr;
+-		struct sockaddr_in caddr;
+ 		socklen_t size = sizeof(saddr);
+ 		int fd1 = EOF;
+ 		int fd2 = EOF;
+@@ -453,22 +346,6 @@
+ 		show_result(sendto(fd2, &ip, sizeof(ip), 0,
+ 				   (struct sockaddr *) &saddr, sizeof(saddr)));
+ 
+-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Receiving RAW 127.0.0.1 %d",
+-			 ntohs(caddr.sin_port));
+-		set_enforce(1);
+-		show_prompt(sbuffer);
+-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+-				      (struct sockaddr *) &caddr, &size));
+-		set_enforce(0);
+-		sendto(fd2, &ip, sizeof(ip), 0, (struct sockaddr *) &saddr,
+-		       sizeof(saddr));
+-		set_enforce(0);
+-		show_prompt(sbuffer);
+-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+-				      (struct sockaddr *) &caddr, &size));
+-
+ 		close(fd2);
+ 		close(fd1);
+ 
+@@ -481,11 +358,9 @@
+ 
+ 	{
+ 		struct sockaddr_in6 saddr;
+-		struct sockaddr_in6 caddr;
+ 		socklen_t size = sizeof(saddr);
+ 		int fd1 = EOF;
+ 		int fd2 = EOF;
+-		int fd3 = EOF;
+ 
+ 		fd1 = socket(PF_INET6, SOCK_STREAM, 0);
+ 
+@@ -529,41 +404,12 @@
+ 		show_result(connect(fd2, (struct sockaddr *) &saddr,
+ 				    sizeof(saddr)));
+ 
+-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Accepting TCP ::1 %d",
+-			 ntohs(caddr.sin6_port));
+-		set_enforce(1);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		show_prompt(sbuffer);
+-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-		show_result2(fd3);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+-
+-		set_enforce(0);
+ 		close(fd2);
+-		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
+-		connect(fd2, (struct sockaddr *) &saddr, sizeof(saddr));
+-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+-
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Accepting TCP ::1 %d",
+-			 ntohs(caddr.sin6_port));
+-		set_enforce(0);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		show_prompt(sbuffer);
+-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-		show_result2(fd3);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+-
+-		close(fd3);
+-		close(fd2);
+ 		close(fd1);
+ 	}
+ 
+ 	{
+ 		struct sockaddr_in6 saddr;
+-		struct sockaddr_in6 caddr;
+ 		socklen_t size = sizeof(saddr);
+ 		int fd1 = EOF;
+ 		int fd2 = EOF;
+@@ -599,14 +445,10 @@
+ 		show_prompt(cbuffer);
+ 		show_result(connect(fd2, (struct sockaddr *) &saddr,
+ 				    sizeof(saddr)));
+-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+ 
+ 		snprintf(cbuffer, sizeof(cbuffer) - 1,
+ 			 "Client: Sending UDP ::1 %d",
+ 			 ntohs(saddr.sin6_port));
+-		snprintf(sbuffer, sizeof(sbuffer) - 1,
+-			 "Server: Receiving UDP ::1 %d",
+-			 ntohs(caddr.sin6_port));
+ 
+ 		set_enforce(1);
+ 		show_prompt(cbuffer);
+@@ -616,18 +458,6 @@
+ 		show_prompt(cbuffer);
+ 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
+ 				   sizeof(saddr)));
+-		set_enforce(1);
+-		show_prompt(sbuffer);
+-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+-				      (struct sockaddr *) &caddr, &size));
+-		set_enforce(0);
+-		sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
+-		       sizeof(saddr));
+-		set_enforce(0);
+-		show_prompt(sbuffer);
+-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+-				      (struct sockaddr *) &caddr, &size));
+-
+ 		close(fd2);
+ 		close(fd1);
+ 
+Index: tomoyo_new_network_test.c
+===================================================================
+--- tomoyo_new_network_test.c	(revision 5295)
++++ tomoyo_new_network_test.c	(working copy)
+@@ -82,24 +82,6 @@
+ 	}
+ }
+ 
+-static void show_result2(int result)
+-{
+-	printf("%s : ", policy);
+-	if (result == EOF) {
+-		if (errno == EAGAIN)
+-			printf("OK: Not ready.\n");
+-		else
+-			printf("FAILED: %s\n", strerror(errno));
+-	} else {
+-		char c;
+-		if (recv(result, &c, 1, MSG_DONTWAIT) == EOF &&
+-		    errno == EPERM)
+-			printf("OK: Permission denied.\n");
+-		else
+-			printf("BUG\n");
+-	}
+-}
+-
+ static void stage_network_test(void)
+ {
+ 	int i;
+@@ -111,7 +93,6 @@
+ 		socklen_t size = sizeof(saddr);
+ 		int fd1 = socket(PF_INET, SOCK_STREAM, 0);
+ 		int fd2 = socket(PF_INET, SOCK_STREAM, 0);
+-		int fd3 = EOF;
+ 		memset(buffer, 0, sizeof(buffer));
+ 		policy = buffer;
+ 
+@@ -156,17 +137,6 @@
+ 		}
+ 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+ 
+-		snprintf(buffer, sizeof(buffer) - 1,
+-			 "network inet stream accept 127.0.0.1 %u-%u",
+-			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		errno = 0;
+-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-		show_result2(fd3);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+-		if (fd3 != EOF)
+-			close(fd3);
+-
+ 		close(fd2);
+ 		fd2 = socket(PF_INET, SOCK_STREAM, 0);
+ 		snprintf(buffer, sizeof(buffer) - 1,
+@@ -179,17 +149,6 @@
+ 			delete_policy();
+ 		}
+ 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+-		snprintf(buffer, sizeof(buffer) - 1,
+-			 "network inet stream accept "
+-			 "127.0.0.0-127.255.255.255 %u-%u",
+-			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
+-		if (write_policy()) {
+-			fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-			show_result(fd3, 1);
+-			delete_policy();
+-			if (fd3 != EOF)
+-				close(fd3);
+-		}
+ 
+ 		if (fd2 != EOF)
+ 			close(fd2);
+@@ -253,7 +212,6 @@
+ 		socklen_t size = sizeof(saddr);
+ 		int fd1 = socket(PF_INET6, SOCK_STREAM, 0);
+ 		int fd2 = socket(PF_INET6, SOCK_STREAM, 0);
+-		int fd3 = EOF;
+ 		memset(buffer, 0, sizeof(buffer));
+ 		policy = buffer;
+ 
+@@ -299,18 +257,6 @@
+ 		}
+ 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+ 
+-		snprintf(buffer, sizeof(buffer) - 1,
+-			 "network inet stream accept ::1 %u-%u",
+-			 ntohs(caddr.sin6_port) - 1,
+-			 ntohs(caddr.sin6_port) + 1);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		errno = 0;
+-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-		show_result2(fd3);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+-		if (fd3 != EOF)
+-			close(fd3);
+-
+ 		close(fd2);
+ 		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
+ 		snprintf(buffer, sizeof(buffer) - 1, "network inet stream "
+@@ -323,19 +269,6 @@
+ 			delete_policy();
+ 		}
+ 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
+-		snprintf(buffer, sizeof(buffer) - 1,
+-			 "network inet stream accept ::-::ff %u-%u",
+-			 ntohs(caddr.sin6_port) - 1,
+-			 ntohs(caddr.sin6_port) + 1);
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+-		if (write_policy()) {
+-			fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
+-			show_result(fd3, 1);
+-			delete_policy();
+-			if (fd3 != EOF)
+-				close(fd3);
+-		}
+-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+ 
+ 		if (fd2 != EOF)
+ 			close(fd2);
+@@ -441,75 +374,6 @@
+ 	}
+ }
+ 
+-static void do_unix_recv_test(int named, int should_success)
+-{
+-	struct {
+-		unsigned short int family;
+-		char address[512];
+-	} buf = {
+-		AF_UNIX
+-	};
+-	int fd1 = socket(PF_UNIX, SOCK_DGRAM, 0);
+-	int fd2 = socket(PF_UNIX, SOCK_DGRAM, 0);
+-	socklen_t size = sizeof(buf);
+-	int ret;
+-	int err;
+-	printf("Testing network unix dgram recv (%s): ",
+-	       should_success ? "should success" : "must fail");
+-	errno = 0;
+-	ret = bind(fd1, (struct sockaddr *) &buf.family, sizeof(buf.family));
+-	err = errno;
+-	if (ret) {
+-		printf("Failed to bind(). %s\n", strerror(err));
+-		goto out;
+-	}
+-	if (named) {
+-		buf.address[0] = '\0';
+-		snprintf(buf.address + 1, sizeof(buf.address) - 2,
+-			 "named_unix_domain_socket");
+-		ret = bind(fd2, (struct sockaddr *) &buf, 27);
+-		err = errno;
+-		if (ret) {
+-			printf("Failed to bind(). %s\n", strerror(err));
+-			goto out;
+-		}
+-	}
+-	ret = getsockname(fd1, (struct sockaddr *) &buf, &size);
+-	err = errno;
+-	if (ret) {
+-		printf("Failed to getsockname(). %s\n", strerror(err));
+-		goto out;
+-	}
+-	ret = connect(fd2, (struct sockaddr *) &buf, size);
+-	err = errno;
+-	if (ret) {
+-		printf("Failed to connect(). %s\n", strerror(err));
+-		goto out;
+-	}
+-	ret = write(fd2, &buf, sizeof(buf));
+-	err = errno;
+-	if (ret != sizeof(buf)) {
+-		printf("Failed to send(). %s\n", strerror(err));
+-		goto out;
+-	}
+-	ret = recv(fd1, (char *) &buf, sizeof(buf), 0);
+-	err = errno;
+-	if (should_success) {
+-		if (ret == EOF)
+-			printf("Failed to recv(). %s\n", strerror(err));
+-		else
+-			printf("OK\n");
+-	} else {
+-		if (ret != EOF || err != EAGAIN)
+-			printf("BUG! %s\n", strerror(err));
+-		else
+-			printf("OK: Permission denied.\n");
+-	}
+-out:
+-	close(fd2);
+-	close(fd1);
+-}
+-
+ static void update_policy(int i, const char *proto_str, int is_delete)
+ {
+ 	if (is_delete)
+@@ -570,30 +434,6 @@
+ 		}
+ 		set_profile(0, profile_str);
+ 	}
+-	for (j = 0; j < 2; j++) {
+-		profile_str = "network::unix_dgram_recv";
+-		set_profile(0, profile_str);
+-		do_unix_recv_test(j, 1);
+-		set_profile(3, profile_str);
+-		do_unix_recv_test(j, 0);
+-		set_profile(2, profile_str);
+-		do_unix_recv_test(j, 1);
+-		set_profile(1, profile_str);
+-		do_unix_recv_test(j, 1);
+-		set_profile(3, profile_str);
+-		do_unix_recv_test(j, 1);
+-		fprintf(domain_fp, "delete ");
+-		fprintf(domain_fp, "network unix dgram recv %s\n",
+-			j ? "\\000named_unix_domain_socket" : "anonymous");
+-		do_unix_recv_test(j, 0);
+-		fprintf(domain_fp, "network unix dgram recv %s\n",
+-			j ? "\\000named_unix_domain_socket" : "anonymous");
+-		do_unix_recv_test(j, 1);
+-		fprintf(domain_fp, "delete ");
+-		fprintf(domain_fp, "network unix dgram recv %s\n",
+-			j ? "\\000named_unix_domain_socket" : "anonymous");
+-	}
+-	set_profile(0, profile_str);
+ }
+ 
+ int main(int argc, char *argv[])
+@@ -602,13 +442,10 @@
+ 	set_profile(3, "network::inet_stream_bind");
+ 	set_profile(3, "network::inet_stream_listen");
+ 	set_profile(3, "network::inet_stream_connect");
+-	set_profile(3, "network::inet_stream_accept");
+ 	set_profile(3, "network::inet_dgram_bind");
+ 	set_profile(3, "network::inet_dgram_send");
+-	set_profile(3, "network::inet_dgram_recv");
+ 	set_profile(3, "network::inet_raw_bind");
+ 	set_profile(3, "network::inet_raw_send");
+-	set_profile(3, "network::inet_raw_recv");
+ 	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");
+ 	stage_network_test();
+ 	stage_unix_network_test();
+Index: include.h
+===================================================================
+--- include.h	(revision 5295)
++++ include.h	(working copy)
+@@ -150,13 +150,10 @@
+ 		"network::inet_stream_bind",
+ 		"network::inet_stream_listen",
+ 		"network::inet_stream_connect",
+-		"network::inet_stream_accept",
+ 		"network::inet_dgram_bind",
+ 		"network::inet_dgram_send",
+-		"network::inet_dgram_recv",
+ 		"network::inet_raw_bind",
+ 		"network::inet_raw_send",
+-		"network::inet_raw_recv",
+ 		"network::unix_stream_bind",
+ 		"network::unix_stream_listen",
+ 		"network::unix_stream_connect",
