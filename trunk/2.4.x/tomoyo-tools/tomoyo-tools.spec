@@ -30,7 +30,7 @@ Please see http://tomoyo.sourceforge.jp/2.4/ for documentation.
 
 %prep
 
-%setup -q -n tomoyotools
+%setup -q -n tomoyo-tools
 
 %build
 
