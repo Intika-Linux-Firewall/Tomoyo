@@ -58,5 +58,5 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
-* Sat Aug 08 2011 2.4.0-1
+* Sat Aug 06 2011 2.4.0-1
 - Major update release.
