@@ -147,8 +147,12 @@ $ su
 <p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます。</p>
 
 <pre class="command">
-# wget -O tomoyo-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/2.4.x/tomoyo-tools.tar.gz?root=tomoyo&amp;view=tar'
-# tar -zxf tomoyo-tools.tar.gz
+# wget -O tomoyo-tools-2.4.0-20110806.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110806.tar.gz'
+# wget -O tomoyo-tools-2.4.0-20110806.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110806.tar.gz.asc'
+# wget http://I-love.SAKURA.ne.jp/kumaneko-key
+# gpg --import kumaneko-key
+# gpg tomoyo-tools-2.4.0-20110806.tar.gz.asc
+# tar -zxf tomoyo-tools-2.4.0-20110806.tar.gz
 # make -C tomoyo-tools/ install
 </pre>
 
