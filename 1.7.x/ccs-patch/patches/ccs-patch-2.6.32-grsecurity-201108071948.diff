@@ -1,16 +1,16 @@
-This is TOMOYO Linux patch for Hardened Gentoo.
+This is TOMOYO Linux patch for kernel 2.6.32.43 + grsecurity-2.2.2-2.6.32.43.
 
-Source code for this patch is "emerge hardened-sources"
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.32/linux-2.6.32.43.tar.bz2 + http://www.grsecurity.net/stable/grsecurity-2.2.2-2.6.32.43-201108071948.patch
 ---
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
- fs/exec.c                       |   10 +++++++++-
+ fs/exec.c                       |    3 ++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   36 ++++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   20 ++++++++++++++++++++
- fs/open.c                       |   25 +++++++++++++++++++++++++
- fs/proc/version.c               |    7 +++++++
+ fs/open.c                       |   22 ++++++++++++++++++++++
+ fs/proc/version.c               |    8 ++++++++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
@@ -19,7 +19,7 @@ Source code for this patch is "emerge hardened-sources"
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    9 +++++++++
+ kernel/signal.c                 |   11 +++++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -27,17 +27,17 @@ Source code for this patch is "emerge hardened-sources"
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
  net/ipv4/raw.c                  |    4 ++++
- net/ipv4/udp.c                  |    8 +++++++-
+ net/ipv4/udp.c                  |    7 ++++++-
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
  net/socket.c                    |   21 +++++++++++++++++++++
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 244 insertions(+), 3 deletions(-)
+ 32 files changed, 238 insertions(+), 3 deletions(-)
 
---- linux-2.6.28-hardened-r9.orig/fs/compat.c
-+++ linux-2.6.28-hardened-r9/fs/compat.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/compat.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/compat.c
 @@ -56,6 +56,7 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -46,18 +46,18 @@ Source code for this patch is "emerge hardened-sources"
  
  int compat_log = 1;
  
-@@ -1477,7 +1478,7 @@ int compat_do_execve(char * filename,
- 
- 	gr_set_proc_label(file->f_dentry, file->f_vfsmnt);
+@@ -1591,7 +1592,7 @@ int compat_do_execve(char * filename,
+ 	if (retval < 0)
+ 		goto out_fail;
  
 -	retval = search_binary_handler(bprm, regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
- 	if (retval >= 0) {
+ 	if (retval < 0)
+ 		goto out_fail;
  #ifdef CONFIG_GRKERNSEC
- 		if (old_exec_file)
---- linux-2.6.28-hardened-r9.orig/fs/compat_ioctl.c
-+++ linux-2.6.28-hardened-r9/fs/compat_ioctl.c
-@@ -113,6 +113,7 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/compat_ioctl.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/compat_ioctl.c
+@@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
  #endif
@@ -65,7 +65,7 @@ Source code for this patch is "emerge hardened-sources"
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2788,6 +2789,8 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2780,6 +2781,8 @@ asmlinkage long compat_sys_ioctl(unsigne
  
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
@@ -74,7 +74,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (error)
  		goto out_fput;
  
-@@ -2812,6 +2815,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2816,6 +2819,10 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -85,49 +85,28 @@ Source code for this patch is "emerge hardened-sources"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.28-hardened-r9.orig/fs/exec.c
-+++ linux-2.6.28-hardened-r9/fs/exec.c
-@@ -73,6 +73,8 @@ void (*pax_set_initial_flags_func)(struc
- EXPORT_SYMBOL(pax_set_initial_flags_func);
- #endif
- 
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/exec.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/exec.c
+@@ -68,6 +68,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/tlb.h>
+ #include "internal.h"
 +#include <linux/ccsecurity.h>
-+
- int core_uses_pid;
- char core_pattern[CORENAME_MAX_SIZE] = "core";
- int suid_dumpable = 0;
-@@ -141,6 +143,9 @@ SYSCALL_DEFINE1(uselib, const char __use
- 	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
- 	if (error)
- 		goto exit;
-+	error = ccs_uselib_permission(nd.path.dentry, nd.path.mnt);
-+	if (error)
-+		goto exit;
  
- 	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
- 	error = PTR_ERR(file);
-@@ -711,6 +716,9 @@ struct file *open_exec(const char *name)
- 	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
- 	if (err)
- 		goto out_path_put;
-+	err = ccs_open_exec_permission(nd.path.dentry, nd.path.mnt);
-+	if (err)
-+		goto out_path_put;
- 
- 	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
- 	if (IS_ERR(file))
-@@ -1412,7 +1420,7 @@ int do_execve(char * filename,
+ #ifdef CONFIG_PAX_HOOK_ACL_FLAGS
+ void (*pax_set_initial_flags_func)(struct linux_binprm *bprm);
+@@ -1491,7 +1492,7 @@ int do_execve(char * filename,
  		goto out_fail;
  
  	current->flags &= ~PF_KTHREAD;
 -	retval = search_binary_handler(bprm,regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
- 	if (retval >= 0) {
+ 	if (retval < 0)
+ 		goto out_fail;
  #ifdef CONFIG_GRKERNSEC
- 		if (old_exec_file)
---- linux-2.6.28-hardened-r9.orig/fs/fcntl.c
-+++ linux-2.6.28-hardened-r9/fs/fcntl.c
-@@ -24,6 +24,7 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/fcntl.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/fcntl.c
+@@ -23,6 +23,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
  #include <asm/uaccess.h>
@@ -135,7 +114,7 @@ Source code for this patch is "emerge hardened-sources"
  
  void set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -155,6 +156,9 @@ static int setfl(int fd, struct file * f
+@@ -156,6 +157,9 @@ static int setfl(int fd, struct file * f
  	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
@@ -145,17 +124,17 @@ Source code for this patch is "emerge hardened-sources"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.28-hardened-r9.orig/fs/ioctl.c
-+++ linux-2.6.28-hardened-r9/fs/ioctl.c
-@@ -17,6 +17,7 @@
- #include <linux/buffer_head.h>
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/ioctl.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/ioctl.c
+@@ -18,6 +18,7 @@
+ #include <linux/falloc.h>
  
  #include <asm/ioctls.h>
 +#include <linux/ccsecurity.h>
  
  /* So that the fiemap access checks can't overflow on 32 bit machines. */
  #define FIEMAP_MAX_EXTENTS	(UINT_MAX / sizeof(struct fiemap_extent))
-@@ -40,6 +41,8 @@ static long vfs_ioctl(struct file *filp,
+@@ -41,6 +42,8 @@ static long vfs_ioctl(struct file *filp,
  
  	if (!filp->f_op)
  		goto out;
@@ -164,7 +143,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -483,6 +486,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
+@@ -618,6 +621,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -173,9 +152,9 @@ Source code for this patch is "emerge hardened-sources"
  	if (error)
  		goto out_fput;
  
---- linux-2.6.28-hardened-r9.orig/fs/namei.c
-+++ linux-2.6.28-hardened-r9/fs/namei.c
-@@ -35,6 +35,8 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/namei.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/namei.c
+@@ -37,6 +37,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
@@ -184,29 +163,29 @@ Source code for this patch is "emerge hardened-sources"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1552,6 +1554,11 @@ int may_open(struct nameidata *nd, int a
- 		if (!is_owner_or_cap(inode))
- 			return -EPERM;
+@@ -1591,6 +1593,11 @@ int may_open(struct path *path, int acc_
+ 			goto err_out;
+ 		}
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_open_permission(dentry, nd->path.mnt, flag);
++	error = ccs_open_permission(dentry, path->mnt, flag);
 +	if (error)
-+		return error;
++		goto err_out;
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1603,6 +1610,9 @@ static int __open_namei_create(struct na
- 
+@@ -1665,6 +1672,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
- 		mode &= ~current->fs->umask;
-+	error = ccs_mknod_permission(dir->d_inode, path->dentry, nd->path.mnt,
-+				     mode, 0);
+ 		mode &= ~current_umask();
+ 	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
 +	if (!error)
++		error = ccs_mknod_permission(dir->d_inode, path->dentry,
++					     nd->path.mnt, mode, 0);
+ 	if (error)
+ 		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
- 	if (!error)
- 		gr_handle_create(path->dentry, nd->path.mnt);
-@@ -1757,7 +1767,9 @@ do_last:
+@@ -1835,7 +1845,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -216,90 +195,91 @@ Source code for this patch is "emerge hardened-sources"
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1824,7 +1836,9 @@ ok:
+@@ -1902,7 +1914,9 @@ ok:
  		if (error)
  			goto exit;
  	}
 +	ccs_save_open_mode(open_flag);
- 	error = may_open(&nd, acc_mode, flag);
+ 	error = may_open(&nd.path, acc_mode, flag);
 +	ccs_clear_open_mode();
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2062,6 +2076,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2150,6 +2164,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
-+	error = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
-+				     nd.path.mnt, mode, dev);
+ 	error = security_path_mknod(&nd.path, dentry, mode, dev);
 +	if (!error)
++		error = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
++					     nd.path.mnt, mode, dev);
+ 	if (error)
+ 		goto out_drop_write;
  	switch (mode & S_IFMT) {
- 		case 0: case S_IFREG:
- 			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2141,6 +2158,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2233,6 +2250,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
-+	error = ccs_mkdir_permission(nd.path.dentry->d_inode, dentry,
-+				     nd.path.mnt, mode);
+ 	error = security_path_mkdir(&nd.path, dentry, mode);
 +	if (!error)
++		error = ccs_mkdir_permission(nd.path.dentry->d_inode, dentry,
++					     nd.path.mnt, mode);
+ 	if (error)
+ 		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
- 	mnt_drop_write(nd.path.mnt);
- 
-@@ -2270,6 +2290,9 @@ static long do_rmdir(int dfd, const char
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2366,6 +2386,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
-+	error = ccs_rmdir_permission(nd.path.dentry->d_inode, dentry,
-+				     nd.path.mnt);
+ 	error = security_path_rmdir(&nd.path, dentry);
 +	if (!error)
++		error = ccs_rmdir_permission(nd.path.dentry->d_inode, dentry,
++					     nd.path.mnt);
+ 	if (error)
+ 		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
- 	mnt_drop_write(nd.path.mnt);
- 	if (!error && (saved_dev || saved_ino))
-@@ -2370,6 +2393,9 @@ static long do_unlinkat(int dfd, const c
- 		error = mnt_want_write(nd.path.mnt);
+@@ -2470,6 +2493,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
-+		error = ccs_unlink_permission(nd.path.dentry->d_inode,
-+					      dentry, nd.path.mnt);
+ 		error = security_path_unlink(&nd.path, dentry);
 +		if (!error)
++			error = ccs_unlink_permission(nd.path.dentry->d_inode,
++						      dentry, nd.path.mnt);
+ 		if (error)
+ 			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
- 		if (!error && (saved_ino || saved_dev))
- 			gr_handle_delete(saved_ino, saved_dev);
-@@ -2458,6 +2484,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2562,6 +2588,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
-+	error = ccs_symlink_permission(nd.path.dentry->d_inode, dentry,
-+				       nd.path.mnt, from);
+ 	error = security_path_symlink(&nd.path, dentry, from);
 +	if (!error)
++		error = ccs_symlink_permission(nd.path.dentry->d_inode, dentry,
++					       nd.path.mnt, from);
+ 	if (error)
+ 		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
- 	if (!error)
- 		gr_handle_create(dentry, nd.path.mnt);
-@@ -2570,6 +2599,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
- 	error = mnt_want_write(nd.path.mnt);
+@@ -2678,6 +2707,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
-+	error = ccs_link_permission(old_path.dentry, nd.path.dentry->d_inode,
-+				    new_dentry, nd.path.mnt);
+ 	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
 +	if (!error)
- 	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
- 	if (!error)
- 		gr_handle_create(new_dentry, nd.path.mnt);
-@@ -2814,6 +2846,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
- 	error = mnt_want_write(oldnd.path.mnt);
++		error = ccs_link_permission(old_path.dentry,
++					    nd.path.dentry->d_inode,
++					    new_dentry, nd.path.mnt);
  	if (error)
+ 		goto out_drop_write;
+ 	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
+@@ -2929,6 +2962,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
-+	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
-+				      new_dir->d_inode, new_dentry,
-+				      newnd.path.mnt);
+ 	error = security_path_rename(&oldnd.path, old_dentry,
+ 				     &newnd.path, new_dentry);
 +	if (!error)
++		error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++					      new_dir->d_inode, new_dentry,
++					      newnd.path.mnt);
+ 	if (error)
+ 		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
- 				   new_dir->d_inode, new_dentry);
- 	if (!error)
---- linux-2.6.28-hardened-r9.orig/fs/namespace.c
-+++ linux-2.6.28-hardened-r9/fs/namespace.c
-@@ -31,6 +31,7 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/namespace.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/namespace.c
+@@ -33,6 +33,7 @@
  #include <asm/unistd.h>
  #include "pnode.h"
  #include "internal.h"
@@ -307,7 +287,7 @@ Source code for this patch is "emerge hardened-sources"
  
  #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
  #define HASH_SIZE (1UL << HASH_SHIFT)
-@@ -1038,6 +1039,8 @@ static int do_umount(struct vfsmount *mn
+@@ -1030,6 +1031,8 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
  	retval = security_sb_umount(mnt, flags);
@@ -316,16 +296,16 @@ Source code for this patch is "emerge hardened-sources"
  	if (retval)
  		return retval;
  
-@@ -1137,6 +1140,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
- {
- 	struct path path;
- 	int retval;
+@@ -1133,6 +1136,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
+ 	if (!(flags & UMOUNT_NOFOLLOW))
+ 		lookup_flags |= LOOKUP_FOLLOW;
+ 
 +	if (!ccs_capable(CCS_SYS_UMOUNT))
 +		return -EPERM;
- 
- 	retval = user_path(name, &path);
+ 	retval = user_path_at(AT_FDCWD, name, lookup_flags, &path);
  	if (retval)
-@@ -1485,6 +1490,9 @@ static int do_loopback(struct path *path
+ 		goto out;
+@@ -1480,6 +1485,9 @@ static int do_loopback(struct path *path
  
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
@@ -335,7 +315,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1596,6 +1604,9 @@ static int do_move_mount(struct path *pa
+@@ -1591,6 +1599,9 @@ static int do_move_mount(struct path *pa
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
  
@@ -345,7 +325,7 @@ Source code for this patch is "emerge hardened-sources"
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(path->dentry->d_inode))
-@@ -1699,6 +1710,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1696,6 +1707,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -355,7 +335,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1904,6 +1918,7 @@ int copy_mount_options(const void __user
+@@ -1918,6 +1932,7 @@ int copy_mount_string(const void __user 
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -363,7 +343,7 @@ Source code for this patch is "emerge hardened-sources"
  	struct path path;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1948,6 +1963,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1965,6 +1980,9 @@ long do_mount(char *dev_name, char *dir_
  
  	retval = security_sb_mount(dev_name, &path,
  				   type_page, flags, data_page);
@@ -373,7 +353,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (retval)
  		goto dput_out;
  
-@@ -2209,6 +2227,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2196,6 +2214,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -382,37 +362,37 @@ Source code for this patch is "emerge hardened-sources"
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.28-hardened-r9.orig/fs/open.c
-+++ linux-2.6.28-hardened-r9/fs/open.c
-@@ -29,6 +29,7 @@
- #include <linux/rcupdate.h>
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/open.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/open.c
+@@ -30,6 +30,7 @@
  #include <linux/audit.h>
  #include <linux/falloc.h>
+ #include <linux/fs_struct.h>
 +#include <linux/ccsecurity.h>
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -272,6 +273,9 @@ static long do_sys_truncate(const char _
- 	if (error)
- 		goto put_write_and_out;
- 
-+	error = ccs_truncate_permission(path.dentry, path.mnt, length, 0);
-+	if (error)
-+		goto put_write_and_out;
+@@ -275,6 +276,9 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
- 	if (!error) {
- 		DQUOT_INIT(inode);
-@@ -328,6 +332,9 @@ static long do_sys_ftruncate(unsigned in
- 	if (IS_APPEND(inode))
- 		goto out_putf;
- 
-+	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
-+	if (error)
-+		goto out_putf;
- 	error = locks_verify_truncate(inode, file, length);
  	if (!error)
+ 		error = security_path_truncate(&path, length, 0);
++	if (!error)
++		error = ccs_truncate_permission(path.dentry, path.mnt, length,
++						0);
+ 
+ 	if (!error && !gr_acl_handle_truncate(path.dentry, path.mnt))
+ 		error = -EACCES;
+@@ -338,6 +342,9 @@ static long do_sys_ftruncate(unsigned in
+ 		error = security_path_truncate(&file->f_path, length,
+ 					       ATTR_MTIME|ATTR_CTIME);
+ 	if (!error)
++		error = ccs_truncate_permission(dentry, file->f_vfsmnt, length,
++						ATTR_MTIME|ATTR_CTIME);
++	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -605,6 +612,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+ out_putf:
+ 	fput(file);
+@@ -603,6 +610,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -421,17 +401,25 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -641,6 +650,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
- 	err = mnt_want_write(file->f_path.mnt);
+@@ -643,6 +652,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write_file(file);
  	if (err)
  		goto out_putf;
 +	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
 +	if (err)
 +		goto out_drop_write;
  
- 	if (!gr_acl_handle_fchmod(dentry, file->f_path.mnt, mode)) {
- 		err = -EACCES;
-@@ -685,6 +697,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	mutex_lock(&inode->i_mutex);
+ 
+@@ -665,6 +677,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 
+ out_unlock:
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -687,6 +700,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -439,45 +427,27 @@ Source code for this patch is "emerge hardened-sources"
 +	if (error)
 +		goto out_drop_write;
  
- 	if (!gr_acl_handle_chmod(path.dentry, path.mnt, mode)) {
- 		error = -EACCES;
-@@ -758,6 +773,8 @@ SYSCALL_DEFINE3(chown, const char __user
- 	error = mnt_want_write(path.mnt);
- 	if (error)
- 		goto out_release;
-+	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
-+	if (!error)
- 	error = chown_common(path.dentry, user, group, path.mnt);
+ 	mutex_lock(&inode->i_mutex);
+ 
+@@ -709,6 +725,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 
+ out_unlock:
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
  	mnt_drop_write(path.mnt);
- out_release:
-@@ -783,6 +800,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
- 	error = mnt_want_write(path.mnt);
- 	if (error)
- 		goto out_release;
-+	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
-+	if (!error)
- 	error = chown_common(path.dentry, user, group, path.mnt);
- 	mnt_drop_write(path.mnt);
- out_release:
-@@ -802,6 +821,8 @@ SYSCALL_DEFINE3(lchown, const char __use
- 	error = mnt_want_write(path.mnt);
- 	if (error)
- 		goto out_release;
-+	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
-+	if (!error)
- 	error = chown_common(path.dentry, user, group, path.mnt);
- 	mnt_drop_write(path.mnt);
- out_release:
-@@ -825,6 +846,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
- 		goto out_fput;
- 	dentry = file->f_path.dentry;
- 	audit_inode(NULL, dentry);
-+	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
-+	if (!error)
- 	error = chown_common(dentry, user, group, file->f_path.mnt);
- 	mnt_drop_write(file->f_path.mnt);
- out_fput:
-@@ -1211,6 +1234,8 @@ EXPORT_SYMBOL(sys_close);
+ dput_and_out:
+ 	path_put(&path);
+@@ -727,6 +744,9 @@ static int chown_common(struct dentry * 
+ 	int error;
+ 	struct iattr newattrs;
+ 
++	error = ccs_chown_permission(dentry, mnt, user, group);
++	if (error)
++		return error;
+ 	if (!gr_acl_handle_chown(dentry, mnt))
+ 		return -EACCES;
+ 
+@@ -1223,6 +1243,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -486,23 +456,24 @@ Source code for this patch is "emerge hardened-sources"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.28-hardened-r9.orig/fs/proc/version.c
-+++ linux-2.6.28-hardened-r9/fs/proc/version.c
-@@ -32,3 +32,10 @@ static int __init proc_version_init(void
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/fs/proc/version.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/fs/proc/version.c
+@@ -32,3 +32,11 @@ static int __init proc_version_init(void
  	return 0;
  }
  module_init(proc_version_init);
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2010/09/21\n");
++	printk(KERN_INFO "Hook version: 2.6.32.43+grsecurity-2.2.2-2.6.32.43 "
++	       "2011/08/09\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.28-hardened-r9.orig/include/linux/init_task.h
-+++ linux-2.6.28-hardened-r9/include/linux/init_task.h
-@@ -113,6 +113,14 @@ extern struct group_info init_groups;
- # define CAP_INIT_BSET  CAP_INIT_EFF_SET
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/include/linux/init_task.h
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/include/linux/init_task.h
+@@ -121,6 +121,14 @@ extern struct cred init_cred;
+ # define INIT_PERF_EVENTS(tsk)
  #endif
  
 +#ifdef CONFIG_CCSECURITY
@@ -516,17 +487,17 @@ Source code for this patch is "emerge hardened-sources"
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -180,6 +188,7 @@ extern struct group_info init_groups;
- 	INIT_IDS							\
- 	INIT_TRACE_IRQFLAGS						\
- 	INIT_LOCKDEP							\
+@@ -191,6 +199,7 @@ extern struct cred init_cred;
+ 	INIT_FTRACE_GRAPH						\
+ 	INIT_TRACE_RECURSION						\
+ 	INIT_TASK_RCU_PREEMPT(tsk)					\
 +	INIT_CCSECURITY                                                 \
  }
  
  
---- linux-2.6.28-hardened-r9.orig/include/linux/sched.h
-+++ linux-2.6.28-hardened-r9/include/linux/sched.h
-@@ -41,6 +41,8 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/include/linux/sched.h
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/include/linux/sched.h
+@@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
  
@@ -535,10 +506,10 @@ Source code for this patch is "emerge hardened-sources"
  struct sched_param {
  	int sched_priority;
  };
-@@ -1377,6 +1379,10 @@ struct task_struct {
- 	u8 brute;
- #endif
- 
+@@ -1580,6 +1582,10 @@ struct task_struct {
+ 	/* bitmask of trace recursion */
+ 	unsigned long trace_recursion;
+ #endif /* CONFIG_TRACING */
 +#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
@@ -546,17 +517,17 @@ Source code for this patch is "emerge hardened-sources"
  };
  
  #define MF_PAX_PAGEEXEC		0x01000000	/* Paging based non-executable pages */
---- linux-2.6.28-hardened-r9.orig/kernel/compat.c
-+++ linux-2.6.28-hardened-r9/kernel/compat.c
-@@ -26,6 +26,7 @@
- #include <linux/times.h>
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/compat.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/compat.c
+@@ -28,6 +28,7 @@
+ #include <linux/module.h>
  
  #include <asm/uaccess.h>
 +#include <linux/ccsecurity.h>
  
  /*
   * Note that the native side is already converted to a timespec, because
-@@ -901,6 +902,8 @@ asmlinkage long compat_sys_stime(compat_
+@@ -924,6 +925,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -565,8 +536,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.28-hardened-r9.orig/kernel/kexec.c
-+++ linux-2.6.28-hardened-r9/kernel/kexec.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/kexec.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -584,9 +555,9 @@ Source code for this patch is "emerge hardened-sources"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.28-hardened-r9.orig/kernel/kmod.c
-+++ linux-2.6.28-hardened-r9/kernel/kmod.c
-@@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/kmod.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/kmod.c
+@@ -237,6 +237,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
@@ -598,45 +569,45 @@ Source code for this patch is "emerge hardened-sources"
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.28-hardened-r9.orig/kernel/module.c
-+++ linux-2.6.28-hardened-r9/kernel/module.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/module.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/module.c
 @@ -56,6 +56,7 @@
- #include <asm/sections.h>
- #include <linux/tracepoint.h>
- #include <linux/ftrace.h>
+ #include <linux/percpu.h>
+ #include <linux/kmemleak.h>
+ #include <linux/grsecurity.h>
 +#include <linux/ccsecurity.h>
  
- #if 0
- #define DEBUGP printk
-@@ -769,6 +770,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/module.h>
+@@ -803,6 +804,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
- 	if (!capable(CAP_SYS_MODULE))
+ 	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2449,6 +2452,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2729,6 +2732,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
- 	if (!capable(CAP_SYS_MODULE))
+ 	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
 +	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.28-hardened-r9.orig/kernel/ptrace.c
-+++ linux-2.6.28-hardened-r9/kernel/ptrace.c
-@@ -24,6 +24,7 @@
- 
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/ptrace.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/ptrace.c
+@@ -22,6 +22,7 @@
+ #include <linux/pid_namespace.h>
+ #include <linux/syscalls.h>
+ #include <linux/uaccess.h>
 +#include <linux/ccsecurity.h>
  
+ 
  /*
-  * ptrace a task: make the debugger its new parent and
-@@ -549,6 +550,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -623,6 +624,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -645,7 +616,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -677,6 +680,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -753,6 +756,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -654,9 +625,9 @@ Source code for this patch is "emerge hardened-sources"
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.28-hardened-r9.orig/kernel/sched.c
-+++ linux-2.6.28-hardened-r9/kernel/sched.c
-@@ -76,6 +76,7 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/sched.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/sched.c
+@@ -74,6 +74,7 @@
  
  #include <asm/tlb.h>
  #include <asm/irq_regs.h>
@@ -664,7 +635,7 @@ Source code for this patch is "emerge hardened-sources"
  
  #include "sched_cpupri.h"
  
-@@ -5077,6 +5078,8 @@ int can_nice(const struct task_struct *p
+@@ -6379,6 +6380,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -673,8 +644,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.28-hardened-r9.orig/kernel/signal.c
-+++ linux-2.6.28-hardened-r9/kernel/signal.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/signal.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/signal.c
 @@ -34,6 +34,7 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -683,7 +654,7 @@ Source code for this patch is "emerge hardened-sources"
  
  /*
   * SLAB caches for signal bits.
-@@ -2218,6 +2219,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2282,6 +2283,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -692,7 +663,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2279,6 +2282,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2358,6 +2361,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -701,7 +672,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2291,6 +2296,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2370,6 +2375,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -710,18 +681,27 @@ Source code for this patch is "emerge hardened-sources"
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2308,6 +2315,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
- 	if (info.si_code >= 0)
+@@ -2391,6 +2398,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  		return -EPERM;
+ 	}
  	info.si_signo = sig;
 +	if (ccs_sigqueue_permission(pid, sig))
 +		return -EPERM;
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
---- linux-2.6.28-hardened-r9.orig/kernel/sys.c
-+++ linux-2.6.28-hardened-r9/kernel/sys.c
-@@ -42,6 +42,7 @@
+@@ -2411,6 +2420,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+ 		return -EPERM;
+ 	}
+ 	info->si_signo = sig;
++	if (ccs_tgsigqueue_permission(tgid, pid, sig))
++		return -EPERM;
+ 
+ 	return do_send_specific(tgid, pid, sig, info);
+ }
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/sys.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/sys.c
+@@ -45,6 +45,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/unistd.h>
@@ -729,7 +709,7 @@ Source code for this patch is "emerge hardened-sources"
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -152,6 +153,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+@@ -161,6 +162,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -740,7 +720,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -369,6 +374,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -380,6 +385,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -749,7 +729,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1387,6 +1394,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1167,6 +1174,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -758,7 +738,7 @@ Source code for this patch is "emerge hardened-sources"
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1436,6 +1445,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1216,6 +1225,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -767,9 +747,9 @@ Source code for this patch is "emerge hardened-sources"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.28-hardened-r9.orig/kernel/sysctl.c
-+++ linux-2.6.28-hardened-r9/kernel/sysctl.c
-@@ -51,6 +51,7 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/sysctl.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/sysctl.c
+@@ -53,6 +53,7 @@
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
@@ -777,7 +757,7 @@ Source code for this patch is "emerge hardened-sources"
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1667,6 +1668,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1903,6 +1904,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -787,9 +767,9 @@ Source code for this patch is "emerge hardened-sources"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.28-hardened-r9.orig/kernel/time.c
-+++ linux-2.6.28-hardened-r9/kernel/time.c
-@@ -40,6 +40,7 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/time.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/time.c
+@@ -41,6 +41,7 @@
  
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -797,7 +777,7 @@ Source code for this patch is "emerge hardened-sources"
  
  #include "timeconst.h"
  
-@@ -90,6 +91,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
+@@ -92,6 +93,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -805,8 +785,8 @@ Source code for this patch is "emerge hardened-sources"
 +		return -EPERM;
  
  	do_settimeofday(&tv);
- 
-@@ -164,6 +167,8 @@ int do_sys_settimeofday(struct timespec 
+ 	return 0;
+@@ -163,6 +166,8 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -814,18 +794,18 @@ Source code for this patch is "emerge hardened-sources"
 +		return -EPERM;
  
  	if (tz) {
- 		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.28-hardened-r9.orig/kernel/time/ntp.c
-+++ linux-2.6.28-hardened-r9/kernel/time/ntp.c
-@@ -18,6 +18,7 @@
- #include <linux/clocksource.h>
- #include <linux/workqueue.h>
- #include <asm/timex.h>
+ 		/* we log in do_settimeofday called below, so don't log twice
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/kernel/time/ntp.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/kernel/time/ntp.c
+@@ -14,6 +14,7 @@
+ #include <linux/timex.h>
+ #include <linux/time.h>
+ #include <linux/mm.h>
 +#include <linux/ccsecurity.h>
  
  /*
-  * Timekeeping variables
-@@ -286,10 +287,15 @@ int do_adjtimex(struct timex *txc)
+  * NTP timekeeping variables:
+@@ -456,10 +457,15 @@ int do_adjtimex(struct timex *txc)
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -839,11 +819,11 @@ Source code for this patch is "emerge hardened-sources"
 +		if (txc->modes && !ccs_capable(CCS_SYS_SETTIME))
 +			return -EPERM;
  
- 		/* if the quartz is off by more than 10% something is VERY wrong! */
- 		if (txc->modes & ADJ_TICK &&
---- linux-2.6.28-hardened-r9.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.28-hardened-r9/net/ipv4/inet_connection_sock.c
-@@ -24,6 +24,7 @@
+ 		/*
+ 		 * if the quartz is off by more than 10% then
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/ipv4/inet_connection_sock.c
+@@ -23,6 +23,7 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
  #include <net/xfrm.h>
@@ -851,26 +831,26 @@ Source code for this patch is "emerge hardened-sources"
  
  #ifdef INET_CSK_DEBUG
  const char inet_csk_timer_bug_msg[] = "inet_csk BUG: unknown timer value\n";
-@@ -109,6 +110,8 @@ int inet_csk_get_port(struct sock *sk, u
+@@ -111,6 +112,8 @@ again:
  			head = &hashinfo->bhash[inet_bhashfn(net, rover,
  					hashinfo->bhash_size)];
  			spin_lock(&head->lock);
 +			if (ccs_lport_reserved(rover))
 +				goto next;
  			inet_bind_bucket_for_each(tb, node, &head->chain)
- 				if (tb->ib_net == net && tb->port == rover)
- 					goto next;
---- linux-2.6.28-hardened-r9.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.28-hardened-r9/net/ipv4/inet_hashtables.c
-@@ -23,6 +23,7 @@
- #include <net/inet_connection_sock.h>
+ 				if (ib_net(tb) == net && tb->port == rover) {
+ 					if (tb->fastreuse > 0 &&
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/ipv4/inet_hashtables.c
+@@ -24,6 +24,7 @@
  #include <net/inet_hashtables.h>
+ #include <net/secure_seq.h>
  #include <net/ip.h>
 +#include <linux/ccsecurity.h>
  
  extern void gr_update_task_in_ip_table(struct task_struct *task, const struct inet_sock *inet);
  
-@@ -443,6 +444,8 @@ int __inet_hash_connect(struct inet_time
+@@ -447,6 +448,8 @@ int __inet_hash_connect(struct inet_time
  		local_bh_disable();
  		for (i = 1; i <= remaining; i++) {
  			port = low + (i + offset) % remaining;
@@ -879,8 +859,8 @@ Source code for this patch is "emerge hardened-sources"
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.28-hardened-r9.orig/net/ipv4/raw.c
-+++ linux-2.6.28-hardened-r9/net/ipv4/raw.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/ipv4/raw.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -889,7 +869,7 @@ Source code for this patch is "emerge hardened-sources"
  
  static struct raw_hashinfo raw_v4_hashinfo = {
  	.lock = __RW_LOCK_UNLOCKED(raw_v4_hashinfo.lock),
-@@ -665,6 +666,9 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -681,6 +682,9 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -899,28 +879,27 @@ Source code for this patch is "emerge hardened-sources"
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.28-hardened-r9.orig/net/ipv4/udp.c
-+++ linux-2.6.28-hardened-r9/net/ipv4/udp.c
-@@ -104,6 +104,7 @@
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/ipv4/udp.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/ipv4/udp.c
+@@ -106,6 +106,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
  #include "udp_impl.h"
 +#include <linux/ccsecurity.h>
  
- extern int gr_search_udp_recvmsg(struct sock *sk, const struct sk_buff *skb);
- extern int gr_search_udp_sendmsg(struct sock *sk, struct sockaddr_in *addr);
-@@ -176,7 +177,9 @@ int udp_lib_get_port(struct sock *sk, un
- 		snum = first = rand % remaining + low;
- 		rand |= 1;
- 		while (udp_lib_lport_inuse(net, snum, udptable, sk,
--					   saddr_comp)) {
-+					   saddr_comp)
-+		       || ccs_lport_reserved(snum)
-+		       ) {
+ #ifdef CONFIG_GRKERNSEC_BLACKHOLE
+ extern int grsec_enable_blackhole;
+@@ -201,7 +202,8 @@ int udp_lib_get_port(struct sock *sk, un
+ 			 */
  			do {
- 				snum = snum + rand;
- 			} while (snum < low || snum > high);
-@@ -861,6 +864,9 @@ try_again:
+ 				if (low <= snum && snum <= high &&
+-				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap))
++				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap)
++				    && !ccs_lport_reserved(snum))
+ 					goto found;
+ 				snum += rand;
+ 			} while (snum != first);
+@@ -961,6 +963,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -930,8 +909,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	err = gr_search_udp_recvmsg(sk, skb);
  	if (err)
---- linux-2.6.28-hardened-r9.orig/net/ipv6/raw.c
-+++ linux-2.6.28-hardened-r9/net/ipv6/raw.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/ipv6/raw.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -950,17 +929,17 @@ Source code for this patch is "emerge hardened-sources"
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.28-hardened-r9.orig/net/ipv6/udp.c
-+++ linux-2.6.28-hardened-r9/net/ipv6/udp.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/ipv6/udp.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
  #include "udp_impl.h"
 +#include <linux/ccsecurity.h>
  
- int udp_v6_get_port(struct sock *sk, unsigned short snum)
- {
-@@ -151,6 +152,9 @@ try_again:
+ #ifdef CONFIG_GRKERNSEC_BLACKHOLE
+ extern int grsec_enable_blackhole;
+@@ -215,6 +216,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -970,8 +949,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.28-hardened-r9.orig/net/socket.c
-+++ linux-2.6.28-hardened-r9/net/socket.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/socket.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/socket.c
 @@ -113,6 +113,8 @@ extern int gr_search_accept(struct socke
  extern int gr_search_socket(const int domain, const int type,
  			    const int protocol);
@@ -981,7 +960,7 @@ Source code for this patch is "emerge hardened-sources"
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -574,6 +576,8 @@ static inline int __sock_sendmsg(struct 
+@@ -583,6 +585,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -990,7 +969,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (err)
  		return err;
  
-@@ -1139,6 +1143,8 @@ static int __sock_create(struct net *net
+@@ -1189,6 +1193,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -999,7 +978,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (err)
  		return err;
  
-@@ -1412,6 +1418,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1455,6 +1461,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -1011,7 +990,7 @@ Source code for this patch is "emerge hardened-sources"
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1451,6 +1462,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1494,6 +1505,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1020,7 +999,7 @@ Source code for this patch is "emerge hardened-sources"
  			err = sock->ops->listen(sock, backlog);
  
  error:
-@@ -1533,6 +1546,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1576,6 +1589,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -1032,7 +1011,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1614,6 +1632,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1656,6 +1674,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
@@ -1042,8 +1021,8 @@ Source code for this patch is "emerge hardened-sources"
  	if (err)
  		goto out_put;
  
---- linux-2.6.28-hardened-r9.orig/net/unix/af_unix.c
-+++ linux-2.6.28-hardened-r9/net/unix/af_unix.c
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/net/unix/af_unix.c
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1052,32 +1031,33 @@ Source code for this patch is "emerge hardened-sources"
  
  static struct hlist_head unix_socket_table[UNIX_HASH_SIZE + 1];
  static DEFINE_SPINLOCK(unix_table_lock);
-@@ -849,6 +850,9 @@ static int unix_bind(struct socket *sock
- 			goto out_mknod_dput;
- 		}
- 
-+		err = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
-+					   nd.path.mnt, mode, 0);
-+		if (!err)
- 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
- 		mnt_drop_write(nd.path.mnt);
+@@ -861,6 +862,10 @@ static int unix_bind(struct socket *sock
  		if (err)
---- linux-2.6.28-hardened-r9.orig/security/Kconfig
-+++ linux-2.6.28-hardened-r9/security/Kconfig
-@@ -567,5 +567,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
- source security/selinux/Kconfig
- source security/smack/Kconfig
+ 			goto out_mknod_dput;
+ 		err = security_path_mknod(&nd.path, dentry, mode, 0);
++		if (!err)
++			err = ccs_mknod_permission(nd.path.dentry->d_inode,
++						   dentry, nd.path.mnt, mode,
++						   0);
+ 		if (err)
+ 			goto out_mknod_drop_write;
+ 		if (!gr_acl_handle_mknod(dentry, nd.path.dentry, nd.path.mnt, mode)) {
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/security/Kconfig
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/security/Kconfig
+@@ -714,5 +714,7 @@ source security/tomoyo/Kconfig
+ 
+ source security/integrity/ima/Kconfig
  
 +source security/ccsecurity/Kconfig
 +
  endmenu
  
---- linux-2.6.28-hardened-r9.orig/security/Makefile
-+++ linux-2.6.28-hardened-r9/security/Makefile
-@@ -17,3 +17,6 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
- obj-$(CONFIG_SECURITY_SMACK)		+= smack/built-in.o
- obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o
- obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
+--- linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948.orig/security/Makefile
++++ linux-2.6.32.43+grsecurity-2.2.2-2.6.32.43-201108071948/security/Makefile
+@@ -25,3 +25,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+ # Object integrity file lists
+ subdir-$(CONFIG_IMA)			+= integrity/ima
+ obj-$(CONFIG_IMA)			+= integrity/ima/built-in.o
 +
-+subdir-$(CONFIG_CCSECURITY)+= ccsecurity
-+obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o
++subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
++obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
