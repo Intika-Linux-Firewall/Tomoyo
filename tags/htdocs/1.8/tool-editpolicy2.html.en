@@ -46,7 +46,7 @@
 <li>1.2. <a href="#initial_screen">Specifying initial screen to display</a></li>
 <li>1.3. <a href="#initial_namespace">Specifying initial namespace to display</a></li>
 <li>1.4. <a href="#operation_mode">Specifying operation mode</a></li>
-<li>1.5. <a href="#auto_refresh">Specifying automatic refreshing</a></li>
+<li>1.5. <a href="#auto_refresh">Specifying automatic refresh</a></li>
 </ul></li>
 <li>2. <a href="#commands">Available commands</a><br>
 <ul class="nested">
@@ -65,7 +65,7 @@
 <ul class="nested">
 <li>4.1. <a href="#browse_transition">Browsing domain transition patterns and exceptions</a></li>
 <li>4.2. <a href="#change_profile">Changing profile number</a></li>
-<li>4.3. <a href="#edit_acl_by_domain">Editing ACL by domain's name</a></li>
+<li>4.3. <a href="#edit_acl_by_domain">Editing ACL by domain name</a></li>
 <li>4.4. <a href="#edit_acl_by_task">Editing ACL by currently running task</a></li>
 </ul></li>
 </ul>
@@ -80,11 +80,11 @@
 # /usr/sbin/ccs-editpolicy
 </pre>
 
-<p>Below options can be specified as the command line.</p>
+<p>The options described below can be specified as options on the command line.</p>
 
 <h3>1.1. <a name="policy_directory">Specifying policy directory</a></h3>
 
-<p>The policy editor by default edits policy in the /proc/ccs/ directory.</p>
+<p>By default, the policy editor tool edits policy within the /proc/ccs/ directory.</p>
 
 <div class="simple-table">
 <table>
@@ -96,7 +96,7 @@
 
 <h3>1.2. <a name="initial_screen">Specifying initial screen to display</a></h3>
 
-<p>The policy editor by default displays <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen.</p>
+<p>By default, the policy editor displays <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen.</p>
 
 <div class="simple-table">
 <table>
@@ -145,7 +145,7 @@ The <strong>fourth line</strong> and downwards are the domains currently defined
 <p>Each namespace has its own <a href="#exception_policy_editor">"Exception Policy Editor"</a> screen, <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen and <a href="#profile_editor">"Profile Editor"</a> screen. Currently selected namespace is displayed on the <strong>third line</strong> of each screen.</p>
 <p>You can switch namespaces from <a href="#namespace_selector">"Namespace Selector"</a> screen or from <a href="#domain_jump_across_namespace">Shortcuts displayed on "Domain Transition Editor" screen</a>.</p>
 
-<h3>1.4. <a name="operation_mode">Specifying initial namespace to display</a></h3>
+<h3>1.4. <a name="operation_mode">Specifying operation mode</a></h3>
 
 <p>The policy editor by defaults operates for both browsing and editing mode.</p>
 
@@ -156,7 +156,7 @@ The <strong>fourth line</strong> and downwards are the domains currently defined
 </table>
 </div>
 
-<h3>1.5. <a name="auto_refresh">Specifying automatic refreshing</a></h3>
+<h3>1.5. <a name="auto_refresh">Specifying automatic refresh</a></h3>
 
 <p>The policy editor by default refreshes to the latest information only when the "r" key is pressed.</p>
 
@@ -174,6 +174,8 @@ The <strong>fourth line</strong> and downwards are the domains currently defined
 <p>Since the policy editor uses ncurses interface, all operations can be done from the keyboard.</p>
 
 <h3>2.1. <a name="scroll">Scrolling</a></h3>
+
+<br>
 
 <div class="simple-table">
 <table>
@@ -218,6 +220,8 @@ The <strong>fourth line</strong> and downwards are the domains currently defined
 
 <h3>2.2. <a name="search">Searching</a></h3>
 
+<br>
+
 <div class="simple-table">
 <table>
 <tr>
@@ -234,17 +238,19 @@ The <strong>fourth line</strong> and downwards are the domains currently defined
 <tr>
 <td><p>"n" or "N"</p></td>
 <td><p>Find the next matching entry.</p>
-<p>Continue searching forward direction (downwards) using previously typed string.</p></td>
+<p>Continue searching in a forward direction (downwards) using previously typed string.</p></td>
 </tr>
 <tr>
 <td><p>"p" or "P"</p></td>
 <td><p>Find the previous matching entry.</p>
-<p>Continue searching backward direction (upwards) using previously typed string.</p></td>
+<p>Continue searching in a backward direction (upwards) using previously typed string.</p></td>
 </tr>
 </table>
 </div>
 
 <h3>2.3. <a name="modify">Modifying</a></h3>
+
+<br>
 
 <div class="simple-table">
 <table>
@@ -308,6 +314,8 @@ Set new quota value for selected entries on "Statistics" screen.</p>
 
 <h3>2.4. <a name="misc">Misc</a></h3>
 
+<br>
+
 <div class="simple-table">
 <table>
 <tr>
@@ -355,7 +363,7 @@ Set new quota value for selected entries on "Statistics" screen.</p>
 
 <p>These can now be deleted with the "d" key. This can be repeated for any patterned entries that you add.</p>
 
-<h3>3.3. <a name="sort_acl">Converting ACL entries into patterns</a></h3>
+<h3>3.3. <a name="sort_acl">Sorting ACL entries</a></h3>
 
 <p>You can toggle sort order by pressing the "@" key.</p>
 
@@ -375,44 +383,44 @@ Set new quota value for selected entries on "Statistics" screen.</p>
 
 <p>Lines without a line number at the start of the line (from 4.1.4 to 4.1.7) are information on nonexistent domains. These lines are displayed as an indent keeper when parent domains do not exist or are displayed as a shortcut that indicates the destination domain when domain transition exceptions occur.</p>
 
-<h4>4.1.1. <a name="unreachable_domain">Regarding domains with the "!" mark.</a></h4>
+<h4>4.1.1. <a name="unreachable_domain">Domains with the "!" mark</a></h4>
 
 <p>This mark indicates that this domain is unreachable due to the directive in parenthesis.<br>
 You can delete unreachable domains if you don't wish to make these domains reachable by changing the directive in parenthesis.</p>
 
 <img src="editpolicy2/unreachable.png" alt="unreachable.png" title="Unreachable Domain" width="720" height="400">
 
-<h4>4.1.2. <a name="domain_transition_jump_target">Regarding domains with the "*" mark.</a></h4>
+<h4>4.1.2. <a name="domain_transition_jump_target">Domains with the "*" mark</a></h4>
 
 <p>This mark indicates that this domain may be reachable from other than the parent of this domain.</p>
 
 <img src="editpolicy2/domain_jump_target.png" alt="domain_jump_target.png" title="Domains which can be reachable by domain transition jumps." width="720" height="400">
 
-<h4>4.1.3. <a name="domain_keeper">Regarding domains with the "#" mark.</a></h4>
+<h4>4.1.3. <a name="domain_keeper">Domains with the "#" mark</a></h4>
 
 <p>This mark indicates that multiple programs might belong to this domain.</p>
 
 <img src="editpolicy2/keep_domain.png" alt="keep_domain.png" title="Domains where domain transition may not occur." width="720" height="400">
 
-<h4>4.1.4. <a name="domain_jump_same_namespace">Regarding domains with "( -&gt; n )"</a></h4>
+<h4>4.1.4. <a name="domain_jump_same_namespace">Domains with "( -&gt; n )"</a></h4>
 
 <p>The process transits to the domain that is in the currently displayed namespace at the line number specified by "n" due to domain transition exceptions.</p>
 
 <img src="editpolicy2/domain_jump_source.png" alt="domain_jump_source.png" title="Locations where domain transition jumps within current namespace occur." width="720" height="400">
 
-<h4>4.1.5. <a name="domain_jump_across_namespace">Regarding domains with "( -&gt; Namespace Jump )"</a></h4>
+<h4>4.1.5. <a name="domain_jump_across_namespace">Domains with "( -&gt; Namespace Jump )"</a></h4>
 
 <p>The process transits to the domain that is not in the currently displayed namespace due to domain transition exceptions.</p>
 
 <img src="editpolicy2/domain_jump_across_namespace.png" alt="domain_jump_across_namespace.png" title="Locations where domain transition jumps across namespaces occur." width="720" height="400">
 
-<h4>4.1.6. <a name="domain_jump_no_target">Regarding domains with "( -&gt; Not Found )"</a></h4>
+<h4>4.1.6. <a name="domain_jump_no_target">Domains with "( -&gt; Not Found )"</a></h4>
 
 <p>The destination domain specified by domain transition exceptions does not exist.</p>
 
 <img src="editpolicy2/domain_jump_no_target.png" alt="domain_jump_no_target.png" title="Locations where domain transition targets do not exist." width="720" height="400">
 
-<h4>4.1.7. <a name="missing_domain">Regarding domains in parenthesis</a></h4>
+<h4>4.1.7. <a name="missing_domain">Domains in parenthesis</a></h4>
 
 <p>This domain does not exist. This line is displayed for avoiding tree indent breakage.</p>
 
@@ -424,7 +432,7 @@ You can delete unreachable domains if you don't wish to make these domains reach
 
 <img src="editpolicy2/profile.png" alt="profile.png" title="Setting profile number" width="720" height="400">
 
-<h3>4.3. <a name="edit_acl_by_domain">Editing ACL by domain's name</a></h3>
+<h3>4.3. <a name="edit_acl_by_domain">Editing ACL by domain name</a></h3>
 
 <p>You can enter the <a href="#domain_policy_editor">"Domain Policy Editor"</a> screen by pressing the Enter key (or pressing the "w" key and then pressing the "a" key") after moving the cursor to a domain at the <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen. You can return to the <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen by pressing the Enter key (or pressing the "w" key and then pressing the "d" key") from the <a href="#domain_policy_editor">"Domain Policy Editor"</a> screen.</p>
 
