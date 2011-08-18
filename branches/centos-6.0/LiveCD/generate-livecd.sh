@@ -70,26 +70,26 @@ ln -f cdrom/isolinux/initrd0.img cdrom/EFI/boot/ || die "Can't update initramfs.
 cd ${LIVECD_HOME}
 echo "********** Updating root filesystem for LiveCD. **********"
 
-rm squash/LiveOS/ext3fs.img || die "Can't delete old image file."
-dd if=/dev/zero of=squash/LiveOS/ext3fs.img bs=1048576 count=4096 || die "Can't create image file."
-mkfs.ext4 -m 0 -L "CentOS-6.0-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
-tune2fs -c -1 -i 0 -o user_xattr,acl squash/LiveOS/ext3fs.img || die "Can't tune filesystem."
-mount -o loop,noatime squash/LiveOS/ext3fs.img mnt/ || die "Can't mount filesystem."
-cp -a ext3/* mnt/ || die "Can't copy image file."
-umount -d ext3/ || die "Can't unmount old filesystem." 
+chroot ext3/ mount -t proc none /proc/
+chroot ext3/ mount -t sysfs none /sys/
+chroot ext3/ mount -t selinuxfs none /selinux/
+chroot ext3/ restorecon -R /
+chroot ext3/ umount -l /selinux/
+chroot ext3/ umount -l /proc/
+chroot ext3/ umount -l /sys/
+cat /dev/zero > ext3/zero
+sync
+rm -f ext3/zero
+umount -d ext3/ || die "Can't unmount filesystem."
 
-chroot mnt/ mount -t proc none /proc/
-chroot mnt/ mount -t sysfs none /sys/
-chroot mnt/ mount -t selinuxfs none /selinux/
-chroot mnt/ restorecon -R /
-chroot mnt/ umount -l /selinux/
-chroot mnt/ umount -l /proc/
-chroot mnt/ umount -l /sys/
-umount -d mnt/ || die "Can't unmount new filesystem."
+e2fsck -f squash/LiveOS/ext3fs.img || die "Errors in filesystem."
 
 cd ${LIVECD_HOME}
 echo "********** Generating squashfs image file. **********"
 mksquashfs squash cdrom/LiveOS/squashfs.img -noappend -b 131072 -no-sparse -no-exports -no-recovery || die "Can't generate squashfs image file."
+
+#TODO: How to update cdrom/LiveOS/osmin.img ?
+rm -f cdrom/LiveOS/osmin.img
 
 cd ${LIVECD_HOME}
 echo "********** Generating iso image file. **********"
