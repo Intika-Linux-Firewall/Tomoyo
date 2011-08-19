@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.40-4.fc15.src.rpm ]
+if [ ! -r kernel-2.6.40.3-0.fc15.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.40-4.fc15.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.40.3-0.fc15.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.40-4.fc15.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.40-4.fc15.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.40.3-0.fc15.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.40.3-0.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.2-20110726.tar.gz ]
@@ -42,7 +42,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -419,6 +419,11 @@
+@@ -440,6 +440,11 @@
  # to versions below the minimum
  #
  
@@ -54,7 +54,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -478,7 +483,7 @@
+@@ -499,7 +504,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -63,7 +63,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -804,7 +809,7 @@
+@@ -806,7 +811,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -72,7 +72,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1261,6 +1266,10 @@
+@@ -1256,6 +1261,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -83,7 +83,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1289,6 +1298,9 @@
+@@ -1284,6 +1293,9 @@
  for i in *.config
  do
    mv $i .config
