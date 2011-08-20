@@ -8,3 +8,15 @@ http://tomoyo.sourceforge.jp/
 ChangeLog:
 
 Version 2.4.0   2011/08/06   Major update release.
+
+  Rebased using ccs-tools-1.8.2.
+
+Version 2.4.0p1 2011/08/20   Bug fix release.
+
+  /usr/lib/tomoyo/init_policy
+    Add /proc/self/exe as aggregator entry.
+
+  /usr/lib/libtomoyotools.so.2
+    Fix policy unpacking when multiple namespaces exist.
+
+  Include linux/sched.h if sched.h does not provide CLONE_NEWNS.
