@@ -7,7 +7,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.2
-Release: 4
+Release: 5
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -20,9 +20,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.2-4
+Conflicts: ccs-tools < 1.8.2-5
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110713.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110820.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -58,6 +58,11 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Sat Aug 20 2011 1.8.2-5
+- Add /proc/self/exe as aggregator entry.
+- Fix policy unpacking when multiple namespaces exist.
+- Include linux/sched.h if sched.h does not provide CLONE_NEWNS.
+
 * Wed Jul 13 2011 1.8.2-4
 - Let ccs-init handle profiles in all namespaces.
 - Let ccs-editpolicy print domain's name rather than shortcut's name.
