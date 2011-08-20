@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2   2011/06/20
+ * Version: 1.8.2+   2011/08/20
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -812,6 +812,8 @@ static void make_exception_policy(void)
 	make_init_dir_as_initializers();
 	make_initializers();
 	make_init_scripts_as_aggregators();
+	/* Some applications do execve("/proc/self/exe"). */
+	fprintf(filp, "aggregator proc:/self/exe /proc/self/exe\n");
 	close_file(filp, chdir_policy(), "exception_policy.tmp",
 		   "exception_policy.conf");
 	filp = NULL;
