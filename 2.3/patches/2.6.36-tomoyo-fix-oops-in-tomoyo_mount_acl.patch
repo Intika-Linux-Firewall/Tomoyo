@@ -1,5 +1,7 @@
 TOMOYO: Fix oops in tomoyo_mount_acl().
 
+commit 4e78c724d47e2342aa8fde61f6b8536f662f795f upstream. (CVE-2011-2518)
+
 In tomoyo_mount_acl() since 2.6.36, kern_path() was called without checking
 dev_name != NULL. As a result, an unprivileged user can trigger oops by issuing
 mount(NULL, "/", "ext3", 0, NULL) request.
