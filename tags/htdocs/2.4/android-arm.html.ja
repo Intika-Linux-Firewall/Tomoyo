@@ -92,8 +92,10 @@ make
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O tomoyo-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/2.4.x/tomoyo-tools.tar.gz?root=tomoyo&amp;view=tar'
-tar -zxf tomoyo-tools.tar.gz
+wget -O tomoyo-tools-2.4.0-20110820.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz'
+wget -O tomoyo-tools-2.4.0-20110820.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz.asc'
+gpg tomoyo-tools-2.4.0-20110820.tar.gz.asc
+tar -zxf tomoyo-tools-2.4.0-20110820.tar.gz
 cd tomoyo-tools
 make
 sudo make install
