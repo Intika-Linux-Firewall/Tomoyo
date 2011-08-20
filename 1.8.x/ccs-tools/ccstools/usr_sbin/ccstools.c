@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2+   2011/07/13
+ * Version: 1.8.2+   2011/08/20
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -2153,14 +2153,33 @@ char *ccs_freadline_unpack(FILE *fp)
 		char *line = ccs_freadline(fp);
 		if (!line)
 			return NULL;
-		if (sscanf(line, "acl_group %u", &offset) == 1 && offset < 256)
-			pos = strchr(line + 11, ' ');
+		/*
+		 * Skip
+		 *   <$namespace>
+		 * prefix unless this line represents a domainname.
+		 */
+		if (ccs_domain_def(line) && !ccs_correct_domain(line)) {
+			pos = strchr(line, ' ');
+			if (!pos++)
+				pos = line;
+		} else
+			pos = line;
+		/*
+		 * Skip
+		 *   acl_group $group
+		 * prefix if this line is a line of exception policy.
+		 */
+		if (sscanf(pos, "acl_group %u", &offset) == 1 && offset < 256)
+			pos = strchr(pos + 11, ' ');
 		else
 			pos = NULL;
 		if (pos++)
 			offset = pos - line;
 		else
 			offset = 0;
+		/*
+		 * Only "file " and "network " are subjected to unpacking.
+		 */
 		if (!strncmp(line + offset, "file ", 5)) {
 			char *cp = line + offset + 5;
 			char *cp2 = strchr(cp + 1, ' ');
