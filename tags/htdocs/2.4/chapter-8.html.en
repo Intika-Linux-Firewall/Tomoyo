@@ -40,7 +40,7 @@
 
 <h3><a name="8.1">8.1. Register applications</a></h3>
 
-<p>In order for a application or domain to modify policy in the <a href="policy-specification/proc-interface.html.en">/sys/kernel/security/tomoyo/</a> interface, it must be listed in <a href="policy-specification/proc-interface.html.en#manager">/sys/kernel/security/tomoyo/manager</a>. To register an application, you can for example run the following command:</p>
+<p>In order for a application or domain to modify policy in the <a href="policy-specification/securityfs-interface.html.en">/sys/kernel/security/tomoyo/</a> interface, it must be listed in <a href="policy-specification/securityfs-interface.html.en#manager">/sys/kernel/security/tomoyo/manager</a>. To register an application, you can for example run the following command:</p>
 
 <pre class="command">
 # echo "/usr/sbin/tomoyo-editpolicy" | /usr/sbin/tomoyo-loadpolicy -m
@@ -77,7 +77,7 @@ chown -R tomoyo /sys/kernel/security/tomoyo/
 # chown -R tomoyo /etc/tomoyo/
 </pre>
 
-<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="policy-specification/proc-interface.html.en#self_domain">the domain the process belongs to</a> until <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> has been reached.</p>
+<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="policy-specification/securityfs-interface.html.en#self_domain">the domain the process belongs to</a> until <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> has been reached.</p>
 
 </div><!-- documentation -->
 

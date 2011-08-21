@@ -282,9 +282,9 @@
 </table>
 </div>
 
-<p><a href="policy-specification/proc-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> からアクセスログを読み出して指定されたログファイルに保存するために <code>tomoyo-auditd</code> というデーモンプログラムが提供されています。このデーモンプログラムを利用する場合、 /etc/rc.local 等に /usr/sbin/tomoyo-auditd という行を追加してください。</p>
+<p><a href="policy-specification/securityfs-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> からアクセスログを読み出して指定されたログファイルに保存するために <code>tomoyo-auditd</code> というデーモンプログラムが提供されています。このデーモンプログラムを利用する場合、 /etc/rc.local 等に /usr/sbin/tomoyo-auditd という行を追加してください。</p>
 
-<p>このデーモンの設定ファイルは /etc/tomoyo/tools/auditd.conf です。 <a href="policy-specification/proc-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> から読みだされたアクセスログはこの設定ファイルの内容に従って振り分けが行われ、指定されたファイルへと書き出されます。幾つかの有用なデフォルトルールが定義されていますが、上級者はより管理しやすくするために様々なルールを定義することができます。以下に初期設定を示します：</p>
+<p>このデーモンの設定ファイルは /etc/tomoyo/tools/auditd.conf です。 <a href="policy-specification/securityfs-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> から読みだされたアクセスログはこの設定ファイルの内容に従って振り分けが行われ、指定されたファイルへと書き出されます。幾つかの有用なデフォルトルールが定義されていますが、上級者はより管理しやすくするために様々なルールを定義することができます。以下に初期設定を示します：</p>
 
 <pre>
 # This file contains sorting rules used by tomoyo-auditd command.
