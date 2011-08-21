@@ -282,9 +282,9 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 </table>
 </div>
 
-<p><code>tomoyo-auditd</code> is a daemon program that reads from the <a href="policy-specification/proc-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> interface and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/tomoyo-auditd" to "/etc/rc.local".</p>
+<p><code>tomoyo-auditd</code> is a daemon program that reads from the <a href="policy-specification/securityfs-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> interface and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/tomoyo-auditd" to "/etc/rc.local".</p>
 
-<p>The configuration of this daemon is done in the "/etc/tomoyo/tools/auditd.conf" file. Text read from the <a href="policy-specification/proc-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
+<p>The configuration of this daemon is done in the "/etc/tomoyo/tools/auditd.conf" file. Text read from the <a href="policy-specification/securityfs-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
 
 <pre>
 # This file contains sorting rules used by tomoyo-auditd command.
