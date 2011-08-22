@@ -558,15 +558,14 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 [ ] Enable access key retention support
 [ ] Enable different security models
 [*] CCSecurity support
-[*]   Compile as loadable kernel module
-[ ]   Disable by default
-[ ]   Do not modify 'struct task_struct' in order to keep KABI
+[*] &nbsp;&nbsp;Compile as loadable kernel module
+[ ] &nbsp;&nbsp;Disable by default
+[ ] &nbsp;&nbsp;Do not modify 'struct task_struct' in order to keep KABI
 (2048) Default maximal count for learning mode
-(/sbin/ccs-init) Default policy loader
-(/sbin/ccs-start) Alternative activation trigger
-(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs
-(1024)  Default maximal count for grant log
-(1024)  Default maximal count for reject log
+(1024)&nbsp;&nbsp;Default maximal count for audit log
+[ ] &nbsp;&nbsp;Activate without calling userspace policy loader.
+(/sbin/ccs-init) Location of userspace policy loader
+(/sbin/init) Trigger for calling userspace policy loader
 </pre>
 
 <p>Exit を２回選択し、カーネルコンフィグを保存するかどうかの質問に Yes と答えてください。</p>
