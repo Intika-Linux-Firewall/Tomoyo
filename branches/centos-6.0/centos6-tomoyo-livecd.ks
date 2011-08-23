@@ -279,6 +279,13 @@ mkdir -p /home/$LIVECD_USER/Desktop >/dev/null
 cp /usr/share/applications/gnome-keyboard.desktop           /home/$LIVECD_USER/Desktop/
 cp /usr/share/applications/gnome-display-properties.desktop /home/$LIVECD_USER/Desktop/
 
+### TOMOYO Linux start ###
+mount -t tmpfs -o size=64m none /var/log/tomoyo/
+chown centoslive:centoslive /usr/share/doc/tomoyo/media.centos6/*.desktop
+mv /usr/share/doc/tomoyo/media.centos6/*.desktop /home/$LIVECD_USER/Desktop/
+sed -i -e 's/"kernel"/"ccs-kernel"/' -- /usr/lib/anaconda/packages.py
+### TOMOYO Linux end ###
+
 # disable screensaver locking
 gconftool-2 --direct --config-source=xml:readwrite:/etc/gconf/gconf.xml.defaults -s -t bool   /apps/gnome-screensaver/lock_enabled "false" >/dev/null
 
@@ -493,13 +500,15 @@ rm -f /.readahead_collect
 touch /var/lib/readahead/early.sorted
 
 ### TOMOYO Linux start ###
+# Initialize policy configuration.
 export PATH=/sbin:/bin:$PATH
 /usr/lib/ccs/init_policy --use_profile=1 --use_group=0
+# Install tutorial documents.
 cd /usr/share/doc/
-rm -fR tomoyo/
 mkdir tomoyo/
 cd tomoyo/
 mv /etc/hosts /etc/hosts.tmp
+#export http_proxy=http://proxy:port/
 echo '202.221.179.21 sourceforge.jp' > /etc/hosts
 echo '202.221.179.25 svn.sourceforge.jp' >> /etc/hosts
 wget -O centos6-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
@@ -508,23 +517,45 @@ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.
 mv /etc/hosts.tmp /etc/hosts
 ln -s centos6-live.html.en index.html.en
 ln -s centos6-live.html.ja index.html.ja
+# Create directory for audit logs.
 mkdir -p -m 700 /var/log/tomoyo
-(
-echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/'
-echo /usr/sbin/ccs-auditd
-echo 'mv /usr/share/doc/tomoyo/media.centos6/*.desktop /home/centoslive/Desktop/'
-echo 'chown centoslive:centoslive /home/centoslive/Desktop/*.desktop'
-) >> /etc/rc.d/rc.local
-(
-echo '[ccs]'
-echo 'name=TOMOYO Linux kernels and tools'
-echo 'baseurl=http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/'
-echo 'enabled=1'
-echo 'gpgcheck=1'
-) > /etc/yum.repos.d/ccs.repo
+echo /usr/sbin/ccs-auditd >> /etc/rc.d/rc.local
+# Import PGP key for ccs-kernel and ccs-tools packages.
+cat > kumaneko-key << EOF_kumaneko_key
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: GnuPG v1.4.5 (GNU/Linux)
+
+mQGiBEiPBxkRBACX0ru++8E6vHoVBupTgcEV/1Dk/Dv75AWNomyNJKUr8RaQ3LYs
+LmmEq0ZZSP6pnrba2tnw7dash1HFfqV6Kx0hUjU7gszNlI/tDepYsAexLJQNjVPU
+ppcikPUM1FU/gT+zbTFn3smkgccVRd0Tq8OuDI3ye4yel5NJW+8sNbryvwCg2BWz
+CCft1n9BgRhb4pHbIrgAyzcD/A946hAuc4x3ACopqtaT0Id41tRVhW/3cvXGTvjN
+HQOhnI2oNbO7HYFYZ+Iu9FugQBQ/eArJOgl3jr8A4cNIlk5xc1/yRKVXRZ92ERQm
+NAO1XYbX0BhimXCZdhRHB87/NXFXS0iMX6WB2BezUzsJ0L0mSi/+55ZLKNs5KUst
+tbgNA/9EQcvkm6mr7wPpyHxGUJpPwUf/SOj79sIGNDXuteQfOnql31rWGeF0W3kH
+bmCWiOPFVhhjCjCFr7fnnZdTHs6Ppue8vpneSOc9gzoxVLqBdMR5QwTOtQBpVVSP
+NTeoouQWRNfQIsIvnGKQvVfyDEmIabVBqPFU97El4lEhgczuvbQxVGV0c3VvIEhh
+bmRhIDxwZW5ndWluLWtlcm5lbEBJLWxvdmUuU0FLVVJBLm5lLmpwPohmBBMRAgAm
+AhsDBgsJCAcDAgQVAggDBBYCAwECHgECF4AFAkxDo7QFCQlmt5sACgkQUDraOEuX
+WphZDACg1mj1dxoPmnSUsSOYDs/RODujkqIAoNQiSnUk+g3/6HDeGegcNBoiaWGV
+=eZB3
+-----END PGP PUBLIC KEY BLOCK-----
+EOF_kumaneko_key
+rpm --import kumaneko-key
+rm -f kumaneko-key
+# Enable YUM repository for ccs-kernel and ccs-tools packages.
+cat > /etc/yum.repos.d/ccs.repo << EOF_ccs_repo 
+[ccs]
+name=TOMOYO Linux kernels and tools
+baseurl=http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/
+enabled=1
+gpgcheck=1
+EOF_ccs_repo
+# Clean up.
 rm -f /var/log/yum.log
 rm -fR /var/lib/yum/*/
 rm -fR /var/tmp/*/
+rm -f /var/lib/rpm/__db.00*
+rm -f /boot/initramfs-*
 rm -f /root/.bash_history
 cat /dev/zero > /file || rm -f /file
 ### TOMOYO Linux end ###
