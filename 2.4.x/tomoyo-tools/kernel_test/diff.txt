@@ -1,6 +1,6 @@
 Index: tomoyo_network_test.c
 ===================================================================
---- tomoyo_network_test.c	(revision 5295)
+--- tomoyo_network_test.c	(revision 5385)
 +++ tomoyo_network_test.c	(working copy)
 @@ -48,30 +48,6 @@
  	}
@@ -331,9 +331,50 @@ Index: tomoyo_network_test.c
  		close(fd2);
  		close(fd1);
  
+Index: testall.sh
+===================================================================
+--- testall.sh	(revision 5385)
++++ testall.sh	(working copy)
+@@ -29,12 +29,12 @@
+ newns tomoyo_rewrite_test
+ #newns tomoyo_capability_test
+ #newns tomoyo_signal_test
+-#newns tomoyo_network_test
++newns tomoyo_network_test
+ newns tomoyo_argv0_test
+-#newns tomoyo_env_test
++newns tomoyo_env_test
+ newns tomoyo_new_file_test
+ #newns tomoyo_new_capability_test
+-#newns tomoyo_new_network_test
++newns tomoyo_new_network_test
+ newns tomoyo_new_test
+ #newns tomoyo_bind_test
+ echo
+@@ -48,9 +48,9 @@
+ newns tomoyo_rewrite_test | grep -vF OK | grep -F '('
+ #newns tomoyo_capability_test | grep -vF OK | grep -F '('
+ #newns tomoyo_signal_test | grep -vF OK | grep -F '('
+-#newns tomoyo_network_test | grep -vF OK | grep -F '('
++newns tomoyo_network_test | grep -vF OK | grep -F '('
+ newns tomoyo_argv0_test | grep -vF OK | grep -F '('
+-#newns tomoyo_env_test | grep -vF OK | grep -F '('
++newns tomoyo_env_test | grep -vF OK | grep -F '('
+ newns tomoyo_new_test | grep -vF OK
+ echo
+ echo
+@@ -61,7 +61,7 @@
+ newns tomoyo_policy_io_test | grep -vF OK
+ newns tomoyo_new_file_test | grep -vF OK
+ #newns tomoyo_new_capability_test | grep -vF OK
+-#newns tomoyo_new_network_test | grep -vF OK
++newns tomoyo_new_network_test | grep -vF OK
+ #newns tomoyo_execute_handler_test | grep -vF OK
+ dmesg -c
+ uname -r
 Index: tomoyo_new_network_test.c
 ===================================================================
---- tomoyo_new_network_test.c	(revision 5295)
+--- tomoyo_new_network_test.c	(revision 5385)
 +++ tomoyo_new_network_test.c	(working copy)
 @@ -82,24 +82,6 @@
  	}
@@ -574,9 +615,9 @@ Index: tomoyo_new_network_test.c
  	stage_unix_network_test();
 Index: include.h
 ===================================================================
---- include.h	(revision 5295)
+--- include.h	(revision 5385)
 +++ include.h	(working copy)
-@@ -150,13 +150,10 @@
+@@ -153,13 +153,10 @@
  		"network::inet_stream_bind",
  		"network::inet_stream_listen",
  		"network::inet_stream_connect",
@@ -590,3 +631,60 @@ Index: include.h
  		"network::unix_stream_bind",
  		"network::unix_stream_listen",
  		"network::unix_stream_connect",
+Index: tomoyo_policy_io_test.c
+===================================================================
+--- tomoyo_policy_io_test.c	(revision 5385)
++++ tomoyo_policy_io_test.c	(working copy)
+@@ -120,14 +120,12 @@
+ 		try_io("acl_group 0 file read /tmp/abc/", 1);
+ 		try_io("acl_group 0 file read", 0);
+ 		try_io("acl_group 0 file read *", 1);
+-		/*
+ 		try_io("acl_group 0 misc env FOO", 1);
+ 		try_io("acl_group 0 misc env FOO=", 0);
+ 		try_io("acl_group 0 misc env FOO=BAR", 0);
+ 		try_io("acl_group 0 misc env FOO BAR", 0);
+ 		try_io("acl_group 0 misc env FOO\\040BAR", 1);
+ 		try_io("acl_group 0 misc env FOO;BAR;BUZ", 1);
+-		*/
+ 		try_io("path_group TEST /", 1);
+ 		try_io("path_group TEST /boo", 1);
+ 		try_io("path_group TEST /bar", 1);
+@@ -144,7 +142,6 @@
+ 		try_io("path_group TEST3 /bar", 1);
+ 		try_io("path_group TEST3 boo", 1);
+ 		try_io("path_group TEST3 boo/", 1);
+-		/*
+ 		try_io("address_group TEST 0.0.0.0", 1);
+ 		try_io("address_group TEST 0.0.0.0-1.2.3.4", 1);
+ 		try_io("address_group TEST ::ff", 1);
+@@ -157,7 +154,6 @@
+ 		try_io("address_group TEST2 "
+ 		       "fff0:fff1:fff2:fff3:fff4:fff5:fff6:fff7-"
+ 		       "fff8:fff9:fffa:fffb:fffc:fffd:fffe:ffff", 1);
+-		*/
+ 		try_io("aggregator /boo/\\* /BOO", 1);
+ 		try_io("aggregator /boo/\\* /BOO\\*", 0);
+ 		try_io("aggregator /boo/\\*/ /BOO", 1);
+Index: tomoyo_policy_memory_test.c
+===================================================================
+--- tomoyo_policy_memory_test.c	(revision 5385)
++++ tomoyo_policy_memory_test.c	(working copy)
+@@ -260,17 +260,13 @@
+ 
+ static const char * const exception_testcases[] = {
+ 	"acl_group 0 file read /tmp/mknod_reg_test",
+-	/*
+ 	"acl_group 0 misc env HOME",
+-	*/
+ 	"path_group PG1 /",
+ 	"path_group PG2 /",
+-	/*
+ 	"address_group AG3 0.0.0.0",
+ 	"address_group AG3 1.2.3.4-5.6.7.8",
+ 	"address_group AG3 f:ee:ddd:cccc:b:aa:999:8888",
+ 	"address_group AG4 0:1:2:3:4:5:6:7-8:90:a00:b000:c00:d0:e:f000",
+-	*/
+ 	"number_group NG1 1000",
+ 	"number_group NG2 10-0x100000",
+ 	"number_group NG3 01234567-0xABCDEF89",
