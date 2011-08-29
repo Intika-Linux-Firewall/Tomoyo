@@ -1,0 +1,368 @@
+[PATCH] TOMOYO: Allow domain transition without execve().
+
+To be able to split permissions for Apache's CGI programs which are executed
+without execve(), add special domain transition which is performed by writing
+a TOMOYO's domainname to /sys/kernel/security/tomoyo/self_domain interface.
+
+This is an API for TOMOYO-aware userland applications. However, since I expect
+TOMOYO and other LSM modules to run in parallel, this patch does not use
+/proc/self/attr/ interface in order to avoid conflicts with other LSM modules
+when it became possible to run multiple LSM modules in parallel.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
+---
+ security/tomoyo/common.c        |   75 ++++++++++++++++--------
+ security/tomoyo/common.h        |   16 ++++-
+ security/tomoyo/securityfs_if.c |  123 +++++++++++++++++++++++++++++++++++++++-
+ security/tomoyo/util.c          |   25 ++++++++
+ 4 files changed, 211 insertions(+), 28 deletions(-)
+
+--- linux-3.0.orig/security/tomoyo/common.c
++++ linux-3.0/security/tomoyo/common.c
+@@ -1014,6 +1014,48 @@ static bool tomoyo_select_domain(struct 
+ }
+ 
+ /**
++ * tomoyo_same_task_acl - Check for duplicated "struct tomoyo_task_acl" entry.
++ *
++ * @a: Pointer to "struct tomoyo_acl_info".
++ * @b: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if @a == @b, false otherwise.
++ */
++static bool tomoyo_same_task_acl(const struct tomoyo_acl_info *a,
++			      const struct tomoyo_acl_info *b)
++{
++	const struct tomoyo_task_acl *p1 = container_of(a, typeof(*p1), head);
++	const struct tomoyo_task_acl *p2 = container_of(b, typeof(*p2), head);
++	return p1->domainname == p2->domainname;
++}
++
++/**
++ * tomoyo_write_task - Update task related list.
++ *
++ * @param: Pointer to "struct tomoyo_acl_param".
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static int tomoyo_write_task(struct tomoyo_acl_param *param)
++{
++	int error = -EINVAL;
++	if (tomoyo_str_starts(&param->data, "manual_domain_transition ")) {
++		struct tomoyo_task_acl e = {
++			.head.type = TOMOYO_TYPE_MANUAL_TASK_ACL,
++			.domainname = tomoyo_get_domainname(param),
++		};
++		if (e.domainname)
++			error = tomoyo_update_domain(&e.head, sizeof(e), param,
++						     tomoyo_same_task_acl,
++						     NULL);
++		tomoyo_put_name(e.domainname);
++	}
++	return error;
++}
++
++/**
+  * tomoyo_delete_domain - Delete a domain.
+  *
+  * @domainname: The name of domain.
+@@ -1071,11 +1113,12 @@ static int tomoyo_write_domain2(struct t
+ 	static const struct {
+ 		const char *keyword;
+ 		int (*write) (struct tomoyo_acl_param *);
+-	} tomoyo_callback[4] = {
++	} tomoyo_callback[5] = {
+ 		{ "file ", tomoyo_write_file },
+ 		{ "network inet ", tomoyo_write_inet_network },
+ 		{ "network unix ", tomoyo_write_unix_network },
+ 		{ "misc ", tomoyo_write_misc },
++		{ "task ", tomoyo_write_task },
+ 	};
+ 	u8 i;
+ 
+@@ -1346,6 +1389,12 @@ static bool tomoyo_print_entry(struct to
+ 		if (first)
+ 			return true;
+ 		tomoyo_print_name_union(head, &ptr->name);
++	} else if (acl_type == TOMOYO_TYPE_MANUAL_TASK_ACL) {
++                struct tomoyo_task_acl *ptr =
++                        container_of(acl, typeof(*ptr), head);
++                tomoyo_set_group(head, "task ");
++                tomoyo_set_string(head, "manual_domain_transition ");
++                tomoyo_set_string(head, ptr->domainname->name);
+ 	} else if (head->r.print_transition_related_only) {
+ 		return true;
+ 	} else if (acl_type == TOMOYO_TYPE_PATH2_ACL) {
+@@ -2181,26 +2230,6 @@ static void tomoyo_read_version(struct t
+ 	}
+ }
+ 
+-/**
+- * tomoyo_read_self_domain - Get the current process's domainname.
+- *
+- * @head: Pointer to "struct tomoyo_io_buffer".
+- *
+- * Returns the current process's domainname.
+- */
+-static void tomoyo_read_self_domain(struct tomoyo_io_buffer *head)
+-{
+-	if (!head->r.eof) {
+-		/*
+-		 * tomoyo_domain()->domainname != NULL
+-		 * because every process belongs to a domain and
+-		 * the domain's name cannot be NULL.
+-		 */
+-		tomoyo_io_printf(head, "%s", tomoyo_domain()->domainname->name);
+-		head->r.eof = true;
+-	}
+-}
+-
+ /* String table for /sys/kernel/security/tomoyo/stat interface. */
+ static const char * const tomoyo_policy_headers[TOMOYO_MAX_POLICY_STAT] = {
+ 	[TOMOYO_STAT_POLICY_UPDATES]    = "update:",
+@@ -2331,10 +2360,6 @@ int tomoyo_open_control(const u8 type, s
+ 		head->poll = tomoyo_poll_log;
+ 		head->read = tomoyo_read_log;
+ 		break;
+-	case TOMOYO_SELFDOMAIN:
+-		/* /sys/kernel/security/tomoyo/self_domain */
+-		head->read = tomoyo_read_self_domain;
+-		break;
+ 	case TOMOYO_PROCESS_STATUS:
+ 		/* /sys/kernel/security/tomoyo/.process_status */
+ 		head->write = tomoyo_write_pid;
+--- linux-3.0.orig/security/tomoyo/common.h
++++ linux-3.0/security/tomoyo/common.h
+@@ -227,6 +227,7 @@ enum tomoyo_acl_entry_type_index {
+ 	TOMOYO_TYPE_INET_ACL,
+ 	TOMOYO_TYPE_UNIX_ACL,
+ 	TOMOYO_TYPE_ENV_ACL,
++	TOMOYO_TYPE_MANUAL_TASK_ACL,
+ };
+ 
+ /* Index numbers for access controls with one pathname. */
+@@ -295,7 +296,6 @@ enum tomoyo_securityfs_interface_index {
+ 	TOMOYO_EXCEPTIONPOLICY,
+ 	TOMOYO_PROCESS_STATUS,
+ 	TOMOYO_STAT,
+-	TOMOYO_SELFDOMAIN,
+ 	TOMOYO_AUDIT,
+ 	TOMOYO_VERSION,
+ 	TOMOYO_PROFILE,
+@@ -480,6 +480,9 @@ struct tomoyo_request_info {
+ 			unsigned long flags;
+ 			int need_dev;
+ 		} mount;
++		struct {
++			const struct tomoyo_path_info *domainname;
++		} task;
+ 	} param;
+ 	struct tomoyo_acl_info *matched_acl;
+ 	u8 param_type;
+@@ -680,6 +683,15 @@ struct tomoyo_domain_info {
+ };
+ 
+ /*
++ * Structure for "task manual_domain_transition" directive.
++ */
++struct tomoyo_task_acl {
++        struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_MANUAL_TASK_ACL */
++        /* Pointer to domainname. */
++        const struct tomoyo_path_info *domainname;
++};
++
++/*
+  * Structure for "file execute", "file read", "file write", "file append",
+  * "file unlink", "file getattr", "file rmdir", "file truncate",
+  * "file symlink", "file chroot" and "file unmount" directive.
+@@ -935,6 +947,8 @@ const char *tomoyo_get_exe(void);
+ const char *tomoyo_yesno(const unsigned int value);
+ const struct tomoyo_path_info *tomoyo_compare_name_union
+ (const struct tomoyo_path_info *name, const struct tomoyo_name_union *ptr);
++const struct tomoyo_path_info *tomoyo_get_domainname
++(struct tomoyo_acl_param *param);
+ const struct tomoyo_path_info *tomoyo_get_name(const char *name);
+ const struct tomoyo_path_info *tomoyo_path_matches_group
+ (const struct tomoyo_path_info *pathname, const struct tomoyo_group *group);
+--- linux-3.0.orig/security/tomoyo/securityfs_if.c
++++ linux-3.0/security/tomoyo/securityfs_if.c
+@@ -8,6 +8,125 @@
+ #include "common.h"
+ 
+ /**
++ * tomoyo_check_task_acl - Check permission for task operation.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @ptr: Pointer to "struct tomoyo_acl_info".
++ *
++ * Returns true if granted, false otherwise.
++ */
++static bool tomoyo_check_task_acl(struct tomoyo_request_info *r,
++				  const struct tomoyo_acl_info *ptr)
++{
++	const struct tomoyo_task_acl *acl = container_of(ptr, typeof(*acl),
++							 head);
++	return !tomoyo_pathcmp(r->param.task.domainname, acl->domainname);
++}
++
++/**
++ * tomoyo_write_self - write() for /sys/kernel/security/tomoyo/self_domain interface.
++ *
++ * @file:  Pointer to "struct file".
++ * @buf:   Domainname to transit to.
++ * @count: Size of @buf.
++ * @ppos:  Unused.
++ *
++ * Returns @count on success, negative value otherwise.
++ *
++ * If domain transition was permitted but the domain transition failed, this
++ * function returns error rather than terminating current thread with SIGKILL.
++ */
++static ssize_t tomoyo_write_self(struct file *file, const char __user *buf,
++			      size_t count, loff_t *ppos)
++{
++	char *data;
++	int error;
++	if (!count || count >= TOMOYO_EXEC_TMPSIZE - 10)
++		return -ENOMEM;
++	data = kzalloc(count + 1, GFP_NOFS);
++	if (!data)
++		return -ENOMEM;
++	if (copy_from_user(data, buf, count)) {
++		error = -EFAULT;
++		goto out;
++	}
++	tomoyo_normalize_line(data);
++	if (tomoyo_correct_domain(data)) {
++		const int idx = tomoyo_read_lock();
++		struct tomoyo_path_info name;
++		struct tomoyo_request_info r;
++		name.name = data;
++		tomoyo_fill_path_info(&name);
++		/* Check "task manual_domain_transition" permission. */
++		tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_EXECUTE);
++		r.param_type = TOMOYO_TYPE_MANUAL_TASK_ACL;
++		r.param.task.domainname = &name;
++		tomoyo_check_acl(&r, tomoyo_check_task_acl);
++		if (!r.granted)
++			error = -EPERM;
++		else {
++			struct tomoyo_domain_info *domain =
++				tomoyo_assign_domain(data, true);
++			if (!domain) {
++				error = -ENOENT;
++			} else {
++				struct cred *cred = prepare_creds();
++				if (!cred) {
++					error = -ENOMEM;
++				} else {
++					struct tomoyo_domain_info *old_domain =
++						cred->security;
++					cred->security = domain;
++					atomic_inc(&domain->users);
++					if (old_domain)
++						atomic_dec(&old_domain->users);
++					commit_creds(cred);
++					error = 0;
++				}
++			}
++		}
++		tomoyo_read_unlock(idx);
++	} else
++		error = -EINVAL;
++out:
++	kfree(data);
++	return error ? error : count;
++}
++
++/**
++ * tomoyo_read_self - read() for /sys/kernel/security/tomoyo/self_domain interface.
++ *
++ * @file:  Pointer to "struct file".
++ * @buf:   Domainname which current thread belongs to.
++ * @count: Size of @buf.
++ * @ppos:  Bytes read by now.
++ *
++ * Returns read size on success, negative value otherwise.
++ */
++static ssize_t tomoyo_read_self(struct file *file, char __user *buf, size_t count,
++			     loff_t *ppos)
++{
++	const char *domain = tomoyo_domain()->domainname->name;
++	loff_t len = strlen(domain);
++	loff_t pos = *ppos;
++	if (pos >= len || !count)
++		return 0;
++	len -= pos;
++	if (count < len)
++		len = count;
++	if (copy_to_user(buf, domain + pos, len))
++		return -EFAULT;
++	*ppos += len;
++	return len;
++}
++
++/* Operations for /sys/kernel/security/tomoyo/self_domain interface. */
++static const struct file_operations tomoyo_self_operations = {
++	.write = tomoyo_write_self,
++	.read  = tomoyo_read_self,
++};
++
++/**
+  * tomoyo_open - open() for /sys/kernel/security/tomoyo/ interface.
+  *
+  * @inode: Pointer to "struct inode".
+@@ -135,8 +254,6 @@ static int __init tomoyo_initerface_init
+ 			    TOMOYO_EXCEPTIONPOLICY);
+ 	tomoyo_create_entry("audit",            0400, tomoyo_dir,
+ 			    TOMOYO_AUDIT);
+-	tomoyo_create_entry("self_domain",      0400, tomoyo_dir,
+-			    TOMOYO_SELFDOMAIN);
+ 	tomoyo_create_entry(".process_status",  0600, tomoyo_dir,
+ 			    TOMOYO_PROCESS_STATUS);
+ 	tomoyo_create_entry("stat",             0644, tomoyo_dir,
+@@ -147,6 +264,8 @@ static int __init tomoyo_initerface_init
+ 			    TOMOYO_MANAGER);
+ 	tomoyo_create_entry("version",          0400, tomoyo_dir,
+ 			    TOMOYO_VERSION);
++	securityfs_create_file("self_domain", 0666, tomoyo_dir, NULL,
++			       &tomoyo_self_operations);
+ 	return 0;
+ }
+ 
+--- linux-3.0.orig/security/tomoyo/util.c
++++ linux-3.0/security/tomoyo/util.c
+@@ -159,6 +159,31 @@ char *tomoyo_read_token(struct tomoyo_ac
+ }
+ 
+ /**
++ * tomoyo_get_domainname - Read a domainname from a line.
++ *
++ * @param: Pointer to "struct tomoyo_acl_param".
++ *
++ * Returns a domainname on success, NULL otherwise.
++ */
++const struct tomoyo_path_info *tomoyo_get_domainname
++(struct tomoyo_acl_param *param)
++{
++	char *start = param->data;
++	char *pos = start;
++	while (*pos) {
++		if (*pos++ != ' ' || *pos++ == '/')
++			continue;
++		pos -= 2;
++		*pos++ = '\0';
++		break;
++	}
++	param->data = pos;
++	if (tomoyo_correct_domain(start))
++		return tomoyo_get_name(start);
++	return NULL;
++}
++
++/**
+  * tomoyo_parse_ulong - Parse an "unsigned long" value.
+  *
+  * @result: Pointer to "unsigned long".

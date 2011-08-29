@@ -1,0 +1,138 @@
+[PATCH] TOMOYO: Allow controlling generation of access granted logs for per an entry basis.
+
+Add per-entry flag which controls generation of grant logs because Xen and KVM
+issues ioctl requests so frequently. For example,
+
+  file ioctl /dev/null 0x5401 grant_log=no
+
+will suppress /sys/kernel/security/tomoyo/audit even if preference says
+grant_log=yes .
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
+---
+ security/tomoyo/audit.c     |    7 ++++++-
+ security/tomoyo/common.c    |    4 ++++
+ security/tomoyo/common.h    |   12 ++++++++++++
+ security/tomoyo/condition.c |   15 +++++++++++++++
+ security/tomoyo/domain.c    |    1 +
+ 5 files changed, 38 insertions(+), 1 deletion(-)
+
+--- linux-3.0.orig/security/tomoyo/audit.c
++++ linux-3.0/security/tomoyo/audit.c
+@@ -313,6 +313,7 @@ static unsigned int tomoyo_log_count;
+  */
+ static bool tomoyo_get_audit(const struct tomoyo_policy_namespace *ns,
+ 			     const u8 profile, const u8 index,
++			     const struct tomoyo_acl_info *matched_acl,
+ 			     const bool is_granted)
+ {
+ 	u8 mode;
+@@ -324,6 +325,9 @@ static bool tomoyo_get_audit(const struc
+ 	p = tomoyo_profile(ns, profile);
+ 	if (tomoyo_log_count >= p->pref[TOMOYO_PREF_MAX_AUDIT_LOG])
+ 		return false;
++	if (is_granted && matched_acl && matched_acl->cond &&
++	    matched_acl->cond->grant_log != TOMOYO_GRANTLOG_AUTO)
++		return matched_acl->cond->grant_log == TOMOYO_GRANTLOG_YES;
+ 	mode = p->config[index];
+ 	if (mode == TOMOYO_CONFIG_USE_DEFAULT)
+ 		mode = p->config[category];
+@@ -350,7 +354,8 @@ void tomoyo_write_log2(struct tomoyo_req
+ 	char *buf;
+ 	struct tomoyo_log *entry;
+ 	bool quota_exceeded = false;
+-	if (!tomoyo_get_audit(r->domain->ns, r->profile, r->type, r->granted))
++	if (!tomoyo_get_audit(r->domain->ns, r->profile, r->type,
++			      r->matched_acl, r->granted))
+ 		goto out;
+ 	buf = tomoyo_init_log(r, len, fmt, args);
+ 	if (!buf)
+--- linux-3.0.orig/security/tomoyo/common.c
++++ linux-3.0/security/tomoyo/common.c
+@@ -1275,6 +1275,10 @@ static bool tomoyo_print_condition(struc
+ 		head->r.cond_step++;
+ 		/* fall through */
+ 	case 3:
++		if (cond->grant_log != TOMOYO_GRANTLOG_AUTO)
++                        tomoyo_io_printf(head, " grant_log=%s",
++					 tomoyo_yesno(cond->grant_log ==
++						      TOMOYO_GRANTLOG_YES));
+ 		tomoyo_set_lf(head);
+ 		return true;
+ 	}
+--- linux-3.0.orig/security/tomoyo/common.h
++++ linux-3.0/security/tomoyo/common.h
+@@ -179,6 +179,16 @@ enum tomoyo_domain_info_flags_index {
+ 	TOMOYO_MAX_DOMAIN_INFO_FLAGS
+ };
+ 
++/* Index numbers for audit type. */
++enum tomoyo_grant_log {
++        /* Follow profile's configuration. */
++        TOMOYO_GRANTLOG_AUTO,
++        /* Do not generate grant log. */
++        TOMOYO_GRANTLOG_NO,
++        /* Generate grant_log. */
++        TOMOYO_GRANTLOG_YES,
++};
++
+ /* Index numbers for group entries. */
+ enum tomoyo_group_id {
+ 	TOMOYO_PATH_GROUP,
+@@ -471,6 +481,7 @@ struct tomoyo_request_info {
+ 			int need_dev;
+ 		} mount;
+ 	} param;
++	struct tomoyo_acl_info *matched_acl;
+ 	u8 param_type;
+ 	bool granted;
+ 	u8 retry;
+@@ -635,6 +646,7 @@ struct tomoyo_condition {
+ 	u16 names_count; /* Number of "struct tomoyo_name_union names". */
+ 	u16 argc; /* Number of "struct tomoyo_argv". */
+ 	u16 envc; /* Number of "struct tomoyo_envp". */
++	u8 grant_log; /* One of values in "enum tomoyo_grant_log". */
+ 	/*
+ 	 * struct tomoyo_condition_element condition[condc];
+ 	 * struct tomoyo_number_union values[numbers_count];
+--- linux-3.0.orig/security/tomoyo/condition.c
++++ linux-3.0/security/tomoyo/condition.c
+@@ -348,6 +348,7 @@ static inline bool tomoyo_same_condition
+ 		a->numbers_count == b->numbers_count &&
+ 		a->names_count == b->names_count &&
+ 		a->argc == b->argc && a->envc == b->envc &&
++		a->grant_log == b->grant_log &&
+ 		!memcmp(a + 1, b + 1, a->size - sizeof(*a));
+ }
+ 
+@@ -486,6 +487,20 @@ rerun:
+ 			goto out;
+ 		dprintk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left_word,
+ 			is_not ? "!" : "", right_word);
++		if (!strcmp(left_word, "grant_log")) {
++			if (entry) {
++				if (is_not ||
++				    entry->grant_log != TOMOYO_GRANTLOG_AUTO)
++					goto out;
++				else if (!strcmp(right_word, "yes"))
++					entry->grant_log = TOMOYO_GRANTLOG_YES;
++				else if (!strcmp(right_word, "no"))
++					entry->grant_log = TOMOYO_GRANTLOG_NO;
++				else
++					goto out;
++			}
++			continue;
++		}
+ 		if (!strncmp(left_word, "exec.argv[", 10)) {
+ 			if (!argv) {
+ 				e.argc++;
+--- linux-3.0.orig/security/tomoyo/domain.c
++++ linux-3.0/security/tomoyo/domain.c
+@@ -157,6 +157,7 @@ retry:
+ 			continue;
+ 		if (!tomoyo_condition(r, ptr->cond))
+ 			continue;
++		r->matched_acl = ptr;
+ 		r->granted = true;
+ 		return;
+ 	}

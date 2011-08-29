@@ -31,19 +31,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/domain.c  |   95 +++++++++++++++++++++++++++++++++++
  security/tomoyo/environ.c |  122 ++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/gc.c      |    9 +++
- security/tomoyo/util.c    |    7 +-
- 7 files changed, 262 insertions(+), 7 deletions(-)
+ security/tomoyo/util.c    |   14 +++--
+ 7 files changed, 266 insertions(+), 10 deletions(-)
 
---- security-testing-2.6.orig/security/tomoyo/Makefile
-+++ security-testing-2.6/security/tomoyo/Makefile
+--- linux-3.0.orig/security/tomoyo/Makefile
++++ linux-3.0/security/tomoyo/Makefile
 @@ -1,4 +1,4 @@
 -obj-y = audit.o common.o condition.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
 +obj-y = audit.o common.o condition.o domain.o environ.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
  
  $(obj)/policy/profile.conf:
  	@mkdir -p $(obj)/policy/
---- security-testing-2.6.orig/security/tomoyo/common.c
-+++ security-testing-2.6/security/tomoyo/common.c
+--- linux-3.0.orig/security/tomoyo/common.c
++++ linux-3.0/security/tomoyo/common.c
 @@ -20,6 +20,7 @@ const char * const tomoyo_mode[TOMOYO_CO
  /* String table for /sys/kernel/security/tomoyo/profile */
  const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
@@ -74,7 +74,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Permit policy management by non-root user? */
-@@ -1036,11 +1042,13 @@ static int tomoyo_write_domain2(struct t
+@@ -1039,11 +1045,13 @@ static int tomoyo_write_domain2(struct t
  	static const struct {
  		const char *keyword;
  		int (*write) (struct tomoyo_acl_param *);
@@ -90,7 +90,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!tomoyo_str_starts(&param.data,
  				       tomoyo_callback[i].keyword))
  			continue;
-@@ -1375,6 +1383,12 @@ static bool tomoyo_print_entry(struct to
+@@ -1378,6 +1386,12 @@ static bool tomoyo_print_entry(struct to
  		tomoyo_print_name_union(head, &ptr->dir_name);
  		tomoyo_print_name_union(head, &ptr->fs_type);
  		tomoyo_print_number_union(head, &ptr->flags);
@@ -103,8 +103,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  	if (acl->cond) {
  		head->r.print_cond_part = true;
---- security-testing-2.6.orig/security/tomoyo/common.h
-+++ security-testing-2.6/security/tomoyo/common.h
+--- linux-3.0.orig/security/tomoyo/common.h
++++ linux-3.0/security/tomoyo/common.h
 @@ -196,6 +196,7 @@ enum tomoyo_acl_entry_type_index {
  	TOMOYO_TYPE_PATH_NUMBER_ACL,
  	TOMOYO_TYPE_MKDEV_ACL,
@@ -167,8 +167,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_write_transition_control(struct tomoyo_acl_param *param,
  				    const u8 type);
  ssize_t tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
---- security-testing-2.6.orig/security/tomoyo/domain.c
-+++ security-testing-2.6/security/tomoyo/domain.c
+--- linux-3.0.orig/security/tomoyo/domain.c
++++ linux-3.0/security/tomoyo/domain.c
 @@ -563,6 +563,92 @@ out:
  }
  
@@ -300,7 +300,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		memcpy(dump->data + offset, kaddr + offset,
  		       PAGE_SIZE - offset);
 --- /dev/null
-+++ security-testing-2.6/security/tomoyo/environ.c
++++ linux-3.0/security/tomoyo/environ.c
 @@ -0,0 +1,122 @@
 +/*
 + * security/tomoyo/environ.c
@@ -424,8 +424,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return tomoyo_write_env(param);
 +	return -EINVAL;
 +}
---- security-testing-2.6.orig/security/tomoyo/gc.c
-+++ security-testing-2.6/security/tomoyo/gc.c
+--- linux-3.0.orig/security/tomoyo/gc.c
++++ linux-3.0/security/tomoyo/gc.c
 @@ -36,6 +36,7 @@ static const u8 tomoyo_acl_size[] = {
  	[TOMOYO_TYPE_PATH_NUMBER_ACL] = sizeof(struct tomoyo_path_number_acl),
  	[TOMOYO_TYPE_MKDEV_ACL] = sizeof(struct tomoyo_mkdev_acl),
@@ -449,8 +449,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  }
  
---- security-testing-2.6.orig/security/tomoyo/util.c
-+++ security-testing-2.6/security/tomoyo/util.c
+--- linux-3.0.orig/security/tomoyo/util.c
++++ linux-3.0/security/tomoyo/util.c
 @@ -42,6 +42,8 @@ const u8 tomoyo_index2category[TOMOYO_MA
  	[TOMOYO_MAC_FILE_MOUNT]      = TOMOYO_MAC_CATEGORY_FILE,
  	[TOMOYO_MAC_FILE_UMOUNT]     = TOMOYO_MAC_CATEGORY_FILE,
@@ -460,19 +460,26 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -920,12 +922,13 @@ int tomoyo_get_mode(const struct tomoyo_
+@@ -920,15 +922,17 @@ int tomoyo_get_mode(const struct tomoyo_
  		    const u8 index)
  {
  	u8 mode;
 -	const u8 category = TOMOYO_MAC_CATEGORY_FILE;
++	struct tomoyo_profile *p;
 +
  	if (!tomoyo_policy_loaded)
  		return TOMOYO_CONFIG_DISABLED;
- 	mode = tomoyo_profile(ns, profile)->config[index];
+-	mode = tomoyo_profile(ns, profile)->config[index];
++	p = tomoyo_profile(ns, profile);
++	mode = p->config[index];
  	if (mode == TOMOYO_CONFIG_USE_DEFAULT)
--		mode = tomoyo_profile(ns, profile)->config[category];
-+		mode = tomoyo_profile(ns, profile)->config
-+			[tomoyo_index2category[index] + TOMOYO_MAX_MAC_INDEX];
+-		mode = tomoyo_profile(ns, profile)->config
+-			[category + TOMOYO_MAX_MAC_INDEX];
++		mode = p->config[tomoyo_index2category[index]
++				 + TOMOYO_MAX_MAC_INDEX];
  	if (mode == TOMOYO_CONFIG_USE_DEFAULT)
- 		mode = tomoyo_profile(ns, profile)->default_config;
+-		mode = tomoyo_profile(ns, profile)->default_config;
++		mode = p->default_config;
  	return mode & 3;
+ }
+ 
