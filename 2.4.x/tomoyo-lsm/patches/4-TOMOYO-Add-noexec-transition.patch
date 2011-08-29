@@ -13,12 +13,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c        |   75 ++++++++++++++++--------
  security/tomoyo/common.h        |   16 ++++-
- security/tomoyo/securityfs_if.c |  123 +++++++++++++++++++++++++++++++++++++++-
+ security/tomoyo/securityfs_if.c |  122 +++++++++++++++++++++++++++++++++++++++-
  security/tomoyo/util.c          |   25 ++++++++
- 4 files changed, 211 insertions(+), 28 deletions(-)
+ 4 files changed, 210 insertions(+), 28 deletions(-)
 
---- linux-3.0.orig/security/tomoyo/common.c
-+++ linux-3.0/security/tomoyo/common.c
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
 @@ -1014,6 +1014,48 @@ static bool tomoyo_select_domain(struct 
  }
  
@@ -133,8 +133,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_PROCESS_STATUS:
  		/* /sys/kernel/security/tomoyo/.process_status */
  		head->write = tomoyo_write_pid;
---- linux-3.0.orig/security/tomoyo/common.h
-+++ linux-3.0/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -227,6 +227,7 @@ enum tomoyo_acl_entry_type_index {
  	TOMOYO_TYPE_INET_ACL,
  	TOMOYO_TYPE_UNIX_ACL,
@@ -186,9 +186,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  const struct tomoyo_path_info *tomoyo_get_name(const char *name);
  const struct tomoyo_path_info *tomoyo_path_matches_group
  (const struct tomoyo_path_info *pathname, const struct tomoyo_group *group);
---- linux-3.0.orig/security/tomoyo/securityfs_if.c
-+++ linux-3.0/security/tomoyo/securityfs_if.c
-@@ -8,6 +8,125 @@
+--- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
++++ security-testing-2.6/security/tomoyo/securityfs_if.c
+@@ -8,6 +8,124 @@
  #include "common.h"
  
  /**
@@ -249,9 +249,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!r.granted)
 +			error = -EPERM;
 +		else {
-+			struct tomoyo_domain_info *domain =
++			struct tomoyo_domain_info *new_domain =
 +				tomoyo_assign_domain(data, true);
-+			if (!domain) {
++			if (!new_domain) {
 +				error = -ENOENT;
 +			} else {
 +				struct cred *cred = prepare_creds();
@@ -260,10 +260,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				} else {
 +					struct tomoyo_domain_info *old_domain =
 +						cred->security;
-+					cred->security = domain;
-+					atomic_inc(&domain->users);
-+					if (old_domain)
-+						atomic_dec(&old_domain->users);
++					cred->security = new_domain;
++					atomic_inc(&new_domain->users);
++					atomic_dec(&old_domain->users);
 +					commit_creds(cred);
 +					error = 0;
 +				}
@@ -314,7 +313,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_open - open() for /sys/kernel/security/tomoyo/ interface.
   *
   * @inode: Pointer to "struct inode".
-@@ -135,8 +254,6 @@ static int __init tomoyo_initerface_init
+@@ -135,8 +253,6 @@ static int __init tomoyo_initerface_init
  			    TOMOYO_EXCEPTIONPOLICY);
  	tomoyo_create_entry("audit",            0400, tomoyo_dir,
  			    TOMOYO_AUDIT);
@@ -323,7 +322,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_create_entry(".process_status",  0600, tomoyo_dir,
  			    TOMOYO_PROCESS_STATUS);
  	tomoyo_create_entry("stat",             0644, tomoyo_dir,
-@@ -147,6 +264,8 @@ static int __init tomoyo_initerface_init
+@@ -147,6 +263,8 @@ static int __init tomoyo_initerface_init
  			    TOMOYO_MANAGER);
  	tomoyo_create_entry("version",          0400, tomoyo_dir,
  			    TOMOYO_VERSION);
@@ -332,8 +331,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
---- linux-3.0.orig/security/tomoyo/util.c
-+++ linux-3.0/security/tomoyo/util.c
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
 @@ -159,6 +159,31 @@ char *tomoyo_read_token(struct tomoyo_ac
  }
  

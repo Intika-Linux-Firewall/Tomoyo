@@ -1,21 +1,16 @@
----
- security/tomoyo/gc.c   |    2 +-
- security/tomoyo/util.c |    3 ++-
- 2 files changed, 3 insertions(+), 2 deletions(-)
+[PATCH] TOMOYO: Fix incorrect enforce mode.
 
---- linux-3.0.orig/security/tomoyo/gc.c
-+++ linux-3.0/security/tomoyo/gc.c
-@@ -660,7 +660,7 @@ static int tomoyo_gc_thread(void *unused
- 	static DEFINE_MUTEX(tomoyo_gc_mutex);
- 	if (!mutex_trylock(&tomoyo_gc_mutex))
- 		goto out;
--	daemonize("GC for TOMOYO");
-+
- 	do {
- 		tomoyo_collect_entry();
- 		if (list_empty(&tomoyo_gc_list))
---- linux-3.0.orig/security/tomoyo/util.c
-+++ linux-3.0/security/tomoyo/util.c
+In tomoyo_get_mode() since 2.6.36, CONFIG::file::execute was by error used in
+place of CONFIG::file if CONFIG::file::execute was set to other than default.
+As a result, enforcing mode was not applied in a way documentation says.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/util.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
 @@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(ns, profile)->config[index];

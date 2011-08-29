@@ -34,16 +34,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/util.c    |   14 +++--
  7 files changed, 266 insertions(+), 10 deletions(-)
 
---- linux-3.0.orig/security/tomoyo/Makefile
-+++ linux-3.0/security/tomoyo/Makefile
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
 @@ -1,4 +1,4 @@
 -obj-y = audit.o common.o condition.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
 +obj-y = audit.o common.o condition.o domain.o environ.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
  
  $(obj)/policy/profile.conf:
  	@mkdir -p $(obj)/policy/
---- linux-3.0.orig/security/tomoyo/common.c
-+++ linux-3.0/security/tomoyo/common.c
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
 @@ -20,6 +20,7 @@ const char * const tomoyo_mode[TOMOYO_CO
  /* String table for /sys/kernel/security/tomoyo/profile */
  const char * const tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
@@ -103,8 +103,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  	if (acl->cond) {
  		head->r.print_cond_part = true;
---- linux-3.0.orig/security/tomoyo/common.h
-+++ linux-3.0/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -196,6 +196,7 @@ enum tomoyo_acl_entry_type_index {
  	TOMOYO_TYPE_PATH_NUMBER_ACL,
  	TOMOYO_TYPE_MKDEV_ACL,
@@ -167,8 +167,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_write_transition_control(struct tomoyo_acl_param *param,
  				    const u8 type);
  ssize_t tomoyo_read_control(struct tomoyo_io_buffer *head, char __user *buffer,
---- linux-3.0.orig/security/tomoyo/domain.c
-+++ linux-3.0/security/tomoyo/domain.c
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
 @@ -563,6 +563,92 @@ out:
  }
  
@@ -300,7 +300,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		memcpy(dump->data + offset, kaddr + offset,
  		       PAGE_SIZE - offset);
 --- /dev/null
-+++ linux-3.0/security/tomoyo/environ.c
++++ security-testing-2.6/security/tomoyo/environ.c
 @@ -0,0 +1,122 @@
 +/*
 + * security/tomoyo/environ.c
@@ -424,8 +424,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return tomoyo_write_env(param);
 +	return -EINVAL;
 +}
---- linux-3.0.orig/security/tomoyo/gc.c
-+++ linux-3.0/security/tomoyo/gc.c
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
 @@ -36,6 +36,7 @@ static const u8 tomoyo_acl_size[] = {
  	[TOMOYO_TYPE_PATH_NUMBER_ACL] = sizeof(struct tomoyo_path_number_acl),
  	[TOMOYO_TYPE_MKDEV_ACL] = sizeof(struct tomoyo_mkdev_acl),
@@ -449,8 +449,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  }
  
---- linux-3.0.orig/security/tomoyo/util.c
-+++ linux-3.0/security/tomoyo/util.c
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
 @@ -42,6 +42,8 @@ const u8 tomoyo_index2category[TOMOYO_MA
  	[TOMOYO_MAC_FILE_MOUNT]      = TOMOYO_MAC_CATEGORY_FILE,
  	[TOMOYO_MAC_FILE_UMOUNT]     = TOMOYO_MAC_CATEGORY_FILE,

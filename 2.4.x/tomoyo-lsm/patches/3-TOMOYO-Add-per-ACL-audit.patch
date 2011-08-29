@@ -17,8 +17,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/domain.c    |    1 +
  5 files changed, 38 insertions(+), 1 deletion(-)
 
---- linux-3.0.orig/security/tomoyo/audit.c
-+++ linux-3.0/security/tomoyo/audit.c
+--- security-testing-2.6.orig/security/tomoyo/audit.c
++++ security-testing-2.6/security/tomoyo/audit.c
 @@ -313,6 +313,7 @@ static unsigned int tomoyo_log_count;
   */
  static bool tomoyo_get_audit(const struct tomoyo_policy_namespace *ns,
@@ -47,8 +47,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		goto out;
  	buf = tomoyo_init_log(r, len, fmt, args);
  	if (!buf)
---- linux-3.0.orig/security/tomoyo/common.c
-+++ linux-3.0/security/tomoyo/common.c
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
 @@ -1275,6 +1275,10 @@ static bool tomoyo_print_condition(struc
  		head->r.cond_step++;
  		/* fall through */
@@ -60,8 +60,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		tomoyo_set_lf(head);
  		return true;
  	}
---- linux-3.0.orig/security/tomoyo/common.h
-+++ linux-3.0/security/tomoyo/common.h
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
 @@ -179,6 +179,16 @@ enum tomoyo_domain_info_flags_index {
  	TOMOYO_MAX_DOMAIN_INFO_FLAGS
  };
@@ -95,8 +95,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * struct tomoyo_condition_element condition[condc];
  	 * struct tomoyo_number_union values[numbers_count];
---- linux-3.0.orig/security/tomoyo/condition.c
-+++ linux-3.0/security/tomoyo/condition.c
+--- security-testing-2.6.orig/security/tomoyo/condition.c
++++ security-testing-2.6/security/tomoyo/condition.c
 @@ -348,6 +348,7 @@ static inline bool tomoyo_same_condition
  		a->numbers_count == b->numbers_count &&
  		a->names_count == b->names_count &&
@@ -126,8 +126,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!strncmp(left_word, "exec.argv[", 10)) {
  			if (!argv) {
  				e.argc++;
---- linux-3.0.orig/security/tomoyo/domain.c
-+++ linux-3.0/security/tomoyo/domain.c
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
 @@ -157,6 +157,7 @@ retry:
  			continue;
  		if (!tomoyo_condition(r, ptr->cond))
