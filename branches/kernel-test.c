@@ -266,7 +266,7 @@ static void init_policy(int argc)
 		}
 		fclose(fp);
 	}
-#ifndef TOMOYO_2
+#if 1//ndef TOMOYO_2
 	{
 		FILE *fp1 = fopen2("/proc/ccs/domain_policy", "a");
 		FILE *fp2 = fopen2("/proc/ccs/self_domain", "a");
