@@ -17,8 +17,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/util.c     |   31 +
  10 files changed, 1215 insertions(+), 17 deletions(-)
 
---- security-testing-2.6.orig/security/tomoyo/Kconfig
-+++ security-testing-2.6/security/tomoyo/Kconfig
+--- linux-3.0.orig/security/tomoyo/Kconfig
++++ linux-3.0/security/tomoyo/Kconfig
 @@ -1,8 +1,10 @@
  config SECURITY_TOMOYO
  	bool "TOMOYO Linux Support"
@@ -30,16 +30,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	default n
  	help
  	  This selects TOMOYO Linux, pathname-based access control.
---- security-testing-2.6.orig/security/tomoyo/Makefile
-+++ security-testing-2.6/security/tomoyo/Makefile
+--- linux-3.0.orig/security/tomoyo/Makefile
++++ linux-3.0/security/tomoyo/Makefile
 @@ -1,4 +1,4 @@
 -obj-y = audit.o common.o condition.o domain.o environ.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
 +obj-y = audit.o common.o condition.o domain.o environ.o file.o gc.o group.o load_policy.o memory.o mount.o network.o realpath.o securityfs_if.o tomoyo.o util.o
  
  $(obj)/policy/profile.conf:
  	@mkdir -p $(obj)/policy/
---- security-testing-2.6.orig/security/tomoyo/common.c
-+++ security-testing-2.6/security/tomoyo/common.c
+--- linux-3.0.orig/security/tomoyo/common.c
++++ linux-3.0/security/tomoyo/common.c
 @@ -44,10 +44,27 @@ const char * const tomoyo_mac_keywords[T
  	[TOMOYO_MAC_FILE_MOUNT]      = "mount",
  	[TOMOYO_MAC_FILE_UMOUNT]     = "unmount",
@@ -91,7 +91,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Permit policy management by non-root user? */
-@@ -1042,8 +1068,10 @@ static int tomoyo_write_domain2(struct t
+@@ -1045,8 +1071,10 @@ static int tomoyo_write_domain2(struct t
  	static const struct {
  		const char *keyword;
  		int (*write) (struct tomoyo_acl_param *);
@@ -103,7 +103,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		{ "misc ", tomoyo_write_misc },
  	};
  	u8 i;
-@@ -1375,6 +1403,60 @@ static bool tomoyo_print_entry(struct to
+@@ -1378,6 +1406,60 @@ static bool tomoyo_print_entry(struct to
  		tomoyo_print_number_union(head, &ptr->mode);
  		tomoyo_print_number_union(head, &ptr->major);
  		tomoyo_print_number_union(head, &ptr->minor);
@@ -164,7 +164,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	} else if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
  		struct tomoyo_mount_acl *ptr =
  			container_of(acl, typeof(*ptr), head);
-@@ -1548,8 +1630,9 @@ static const char *tomoyo_transition_typ
+@@ -1551,8 +1633,9 @@ static const char *tomoyo_transition_typ
  
  /* String table for grouping keywords. */
  static const char *tomoyo_group_name[TOMOYO_MAX_GROUP] = {
@@ -176,7 +176,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -1591,7 +1674,7 @@ static int tomoyo_write_exception(struct
+@@ -1594,7 +1677,7 @@ static int tomoyo_write_exception(struct
  }
  
  /**
@@ -185,7 +185,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
   * @idx:  Index number.
-@@ -1628,6 +1711,15 @@ static bool tomoyo_read_group(struct tom
+@@ -1631,6 +1714,15 @@ static bool tomoyo_read_group(struct tom
  							  (ptr,
  						   struct tomoyo_number_group,
  							   head)->number);
@@ -201,8 +201,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			}
  			tomoyo_set_lf(head);
  		}
---- security-testing-2.6.orig/security/tomoyo/common.h
-+++ security-testing-2.6/security/tomoyo/common.h
+--- linux-3.0.orig/security/tomoyo/common.h
++++ linux-3.0/security/tomoyo/common.h
 @@ -23,6 +23,16 @@
  #include <linux/poll.h>
  #include <linux/binfmts.h>
@@ -472,8 +472,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_current_namespace - Get "struct tomoyo_policy_namespace" for current thread.
   *
   * Returns pointer to "struct tomoyo_policy_namespace" for current thread.
---- security-testing-2.6.orig/security/tomoyo/gc.c
-+++ security-testing-2.6/security/tomoyo/gc.c
+--- linux-3.0.orig/security/tomoyo/gc.c
++++ linux-3.0/security/tomoyo/gc.c
 @@ -16,6 +16,7 @@ static DEFINE_SPINLOCK(tomoyo_io_buffer_
  /* Size of an element. */
  static const u8 tomoyo_element_size[TOMOYO_MAX_POLICY] = {
@@ -558,8 +558,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		case TOMOYO_ID_GROUP:
  			tomoyo_del_group(element);
  			break;
---- security-testing-2.6.orig/security/tomoyo/group.c
-+++ security-testing-2.6/security/tomoyo/group.c
+--- linux-3.0.orig/security/tomoyo/group.c
++++ linux-3.0/security/tomoyo/group.c
 @@ -42,7 +42,26 @@ static bool tomoyo_same_number_group(con
  }
  
@@ -640,7 +640,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return matched;
 +}
 --- /dev/null
-+++ security-testing-2.6/security/tomoyo/network.c
++++ linux-3.0/security/tomoyo/network.c
 @@ -0,0 +1,771 @@
 +/*
 + * security/tomoyo/network.c
@@ -1413,8 +1413,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					 msg->msg_namelen,
 +					 sock->sk->sk_protocol, &address);
 +}
---- security-testing-2.6.orig/security/tomoyo/realpath.c
-+++ security-testing-2.6/security/tomoyo/realpath.c
+--- linux-3.0.orig/security/tomoyo/realpath.c
++++ linux-3.0/security/tomoyo/realpath.c
 @@ -15,17 +15,19 @@
  #include "../../fs/internal.h"
  
@@ -1483,8 +1483,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
   *
   * @path:   Pointer to "struct path".
---- security-testing-2.6.orig/security/tomoyo/tomoyo.c
-+++ security-testing-2.6/security/tomoyo/tomoyo.c
+--- linux-3.0.orig/security/tomoyo/tomoyo.c
++++ linux-3.0/security/tomoyo/tomoyo.c
 @@ -442,6 +442,64 @@ static int tomoyo_sb_pivotroot(struct pa
  	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path, old_path);
  }
@@ -1561,8 +1561,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Lock for GC. */
---- security-testing-2.6.orig/security/tomoyo/util.c
-+++ security-testing-2.6/security/tomoyo/util.c
+--- linux-3.0.orig/security/tomoyo/util.c
++++ linux-3.0/security/tomoyo/util.c
 @@ -42,6 +42,37 @@ const u8 tomoyo_index2category[TOMOYO_MA
  	[TOMOYO_MAC_FILE_MOUNT]      = TOMOYO_MAC_CATEGORY_FILE,
  	[TOMOYO_MAC_FILE_UMOUNT]     = TOMOYO_MAC_CATEGORY_FILE,
