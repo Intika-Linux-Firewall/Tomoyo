@@ -20,6 +20,7 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
  */
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -33,7 +34,6 @@
 #include <poll.h>
 #include <signal.h>
 #include <dirent.h>
-#define _GNU_SOURCE
 #include <sched.h>
 #include <sys/mount.h>
 

@@ -8,6 +8,7 @@
  * Version: 2.2.0   2009/06/23
  *
  */
+#define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/kdev_t.h>
