@@ -49,9 +49,6 @@ struct module;
 #include <asm/byteorder.h>
 #include <linux/ip.h>
 #include <sched.h>
-#ifndef CLONE_NEWNS
-#include <linux/sched.h>
-#endif
 #include <sys/ptrace.h>
 #include <sys/ioctl.h>
 #include <net/if.h>

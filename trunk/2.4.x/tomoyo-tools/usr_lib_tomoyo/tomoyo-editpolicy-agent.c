@@ -35,9 +35,6 @@
 #include <dirent.h>
 #define _GNU_SOURCE
 #include <sched.h>
-#ifndef CLONE_NEWNS
-#include <linux/sched.h>
-#endif
 #include <sys/mount.h>
 
 static _Bool wait_data(const int fd)

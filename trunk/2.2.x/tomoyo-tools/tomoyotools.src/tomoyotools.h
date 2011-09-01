@@ -40,9 +40,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <sched.h>
-#ifndef CLONE_NEWNS
-#include <linux/sched.h>
-#endif
 
 #define true     1
 #define false    0

@@ -42,9 +42,6 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <sched.h>
-#ifndef CLONE_NEWNS
-#include <linux/sched.h>
-#endif
 #include <sys/mount.h>
 
 #define s8 __s8

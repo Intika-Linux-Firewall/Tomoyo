@@ -27,9 +27,6 @@
 #include <sys/wait.h>
 #include <sys/mount.h>
 #include <sched.h>
-#ifndef CLONE_NEWNS
-#include <linux/sched.h>
-#endif
 #include <time.h>
 #include <unistd.h>
 #include <utime.h>
