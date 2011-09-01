@@ -24,9 +24,6 @@
 #include <sys/mount.h>
 #include <unistd.h>
 #include <sched.h>
-#ifndef CLONE_NEWNS
-#include <linux/sched.h>
-#endif
 #include <errno.h>
 #include <stdlib.h>
 

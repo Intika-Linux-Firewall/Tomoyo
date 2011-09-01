@@ -11,9 +11,6 @@
 #include <signal.h>
 #include <dirent.h>
 #include <sched.h>
-#ifndef CLONE_NEWNS
-#include <linux/sched.h>
-#endif
 #include <sys/mount.h>
 
 static void show_tasklist(FILE *fp, const _Bool show_all)
