@@ -1,6 +1,6 @@
 Index: security/ccsecurity/domain.c
 ===================================================================
---- security/ccsecurity/domain.c	(revision 5385)
+--- security/ccsecurity/domain.c	(revision 5395)
 +++ security/ccsecurity/domain.c	(working copy)
 @@ -97,6 +97,18 @@
  		new_entry->cond = ccs_get_condition(param);
@@ -21,83 +21,18 @@ Index: security/ccsecurity/domain.c
  	}
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		goto out;
-@@ -573,25 +585,19 @@
- 	struct ccs_domain_info * const old_domain = ccs_current_domain();
- 	struct linux_binprm *bprm = ee->bprm;
- 	struct ccs_security *task = ccs_current_security();
--	struct ccs_path_info rn = { }; /* real name */
-+	const struct ccs_path_info *candidate;
-+	struct ccs_path_info exename;
- 	int retval;
--	bool need_kfree = false;
- 	bool reject_on_transition_failure = false;
--retry:
--	r->matched_acl = NULL;
--	if (need_kfree) {
--		kfree(rn.name);
--		need_kfree = false;
--	}
+@@ -613,7 +625,7 @@
+ 		}
  
- 	/* Get symlink's pathname of program. */
--	retval = ccs_symlink_path(bprm->filename, &rn);
-+	retval = ccs_symlink_path(bprm->filename, &exename);
- 	if (retval < 0)
--		goto out;
--	need_kfree = true;
--
-+		return retval;
- 	if (handler) {
--		if (ccs_pathcmp(&rn, handler)) {
-+		/* No permission check for execute handler. */
-+		candidate = &exename;
-+		if (ccs_pathcmp(candidate, handler)) {
- 			/* Failed to verify execute handler. */
- 			static u8 counter = 20;
- 			if (counter) {
-@@ -603,22 +609,21 @@
- 		}
- 	} else {
- 		struct ccs_aggregator *ptr;
--		struct list_head *list =
--			&old_domain->ns->policy_list[CCS_ID_AGGREGATOR];
-+		struct list_head *list;
-+retry:
- 		/* Check 'aggregator' directive. */
-+		candidate = &exename;
-+		list = &old_domain->ns->policy_list[CCS_ID_AGGREGATOR];
- 		list_for_each_entry_srcu(ptr, list, head.list, &ccs_ss) {
- 			if (ptr->head.is_deleted ||
--			    !ccs_path_matches_pattern(&rn, ptr->original_name))
-+			    !ccs_path_matches_pattern(candidate,
-+						      ptr->original_name))
- 				continue;
--			kfree(rn.name);
--			need_kfree = false;
--			/* This is OK because it is read only. */
--			rn = *ptr->aggregated_name;
-+			candidate = ptr->aggregated_name;
- 			break;
- 		}
--
  		/* Check execute permission. */
--		retval = ccs_path_permission(r, CCS_TYPE_EXECUTE, &rn);
+-		retval = ccs_path_permission(r, CCS_TYPE_EXECUTE, candidate);
 +		retval = ccs_execute_permission(r, candidate);
  		if (retval == CCS_RETRY_REQUEST)
  			goto retry;
  		if (retval < 0)
-@@ -629,21 +634,42 @@
- 		 * wildcard) rather than the pathname passed to execve()
- 		 * (which never contains wildcard).
- 		 */
--		if (r->param.path.matched_path) {
--			if (need_kfree)
--				kfree(rn.name);
--			need_kfree = false;
--			/* This is OK because it is read only. */
--			rn = *r->param.path.matched_path;
--		}
-+		if (r->param.path.matched_path)
-+			candidate = r->param.path.matched_path;
+@@ -627,11 +639,36 @@
+ 		if (r->param.path.matched_path)
+ 			candidate = r->param.path.matched_path;
  	}
 -
 -	/* Calculate domain to transit to. */
@@ -128,39 +63,27 @@ Index: security/ccsecurity/domain.c
 +	 * Calculate domain to transit to.
 +	 */
  	switch (ccs_transition_type(old_domain->ns, old_domain->domainname,
--				    &rn)) {
-+				    candidate)) {
+ 				    candidate)) {
  	case CCS_TRANSITION_CONTROL_RESET:
 +force_reset_domain:
  		/* Transit to the root of specified namespace. */
--		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<%s>", rn.name);
-+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<%s>",
-+			 candidate->name);
- 		/*
- 		 * Make do_execve() fail if domain transition across namespaces
- 		 * has failed.
-@@ -651,11 +677,13 @@
+ 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<%s>",
+ 			 candidate->name);
+@@ -642,11 +679,13 @@
  		reject_on_transition_failure = true;
  		break;
  	case CCS_TRANSITION_CONTROL_INITIALIZE:
 +force_initialize_domain:
  		/* Transit to the child of current namespace's root. */
  		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
--			 old_domain->ns->name, rn.name);
-+			 old_domain->ns->name, candidate->name);
+ 			 old_domain->ns->name, candidate->name);
  		break;
  	case CCS_TRANSITION_CONTROL_KEEP:
 +force_keep_domain:
  		/* Keep current domain. */
  		domain = old_domain;
  		break;
-@@ -671,10 +699,12 @@
- 		} else {
- 			/* Normal domain transition. */
- 			snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
--				 old_domain->domainname->name, rn.name);
-+				 old_domain->domainname->name,
-+				 candidate->name);
+@@ -667,6 +706,7 @@
  		}
  		break;
  	}
@@ -168,17 +91,7 @@ Index: security/ccsecurity/domain.c
  	/*
  	 * Tell GC that I started execve().
  	 * Also, tell open_exec() to check read permission.
-@@ -713,8 +743,7 @@
- 		}
- 	}
- out:
--	if (need_kfree)
--		kfree(rn.name);
-+	kfree(exename.name);
- 	return retval;
- }
- 
-@@ -1136,6 +1165,9 @@
+@@ -1127,6 +1167,9 @@
  		return false;
  	ee->handler = container_of(r->matched_acl, struct ccs_handler_acl,
  				   head)->handler;
@@ -190,7 +103,7 @@ Index: security/ccsecurity/domain.c
  
 Index: security/ccsecurity/file.c
 ===================================================================
---- security/ccsecurity/file.c	(revision 5385)
+--- security/ccsecurity/file.c	(revision 5395)
 +++ security/ccsecurity/file.c	(working copy)
 @@ -614,14 +614,42 @@
  	do {
@@ -242,7 +155,7 @@ Index: security/ccsecurity/file.c
  /**
 Index: security/ccsecurity/internal.h
 ===================================================================
---- security/ccsecurity/internal.h	(revision 5385)
+--- security/ccsecurity/internal.h	(revision 5395)
 +++ security/ccsecurity/internal.h	(working copy)
 @@ -905,6 +905,7 @@
  	u16 argc; /* Number of "struct ccs_argv". */
@@ -271,7 +184,7 @@ Index: security/ccsecurity/internal.h
  int ccs_open_control(const u8 type, struct file *file);
 Index: security/ccsecurity/condition.c
 ===================================================================
---- security/ccsecurity/condition.c	(revision 5385)
+--- security/ccsecurity/condition.c	(revision 5395)
 +++ security/ccsecurity/condition.c	(working copy)
 @@ -355,8 +355,9 @@
  		a->numbers_count == b->numbers_count &&
@@ -356,7 +269,7 @@ Index: security/ccsecurity/condition.c
  
 Index: security/ccsecurity/policy_io.c
 ===================================================================
---- security/ccsecurity/policy_io.c	(revision 5385)
+--- security/ccsecurity/policy_io.c	(revision 5395)
 +++ security/ccsecurity/policy_io.c	(working copy)
 @@ -1383,6 +1383,10 @@
  	case 0:
@@ -378,18 +291,3 @@ Index: security/ccsecurity/policy_io.c
  			const char *name = cond->transit->name;
  			ccs_set_string(head, " auto_domain_transition=\"");
  			ccs_set_string(head, name);
-Index: security/ccsecurity/gc.c
-===================================================================
---- security/ccsecurity/gc.c	(revision 5385)
-+++ security/ccsecurity/gc.c	(working copy)
-@@ -927,7 +927,9 @@
- 	static DEFINE_MUTEX(ccs_gc_mutex);
- 	if (!mutex_trylock(&ccs_gc_mutex))
- 		goto out;
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
-+	/* daemonize() not needed. */
-+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
- 	daemonize("GC for CCS");
- #else
- 	daemonize();
