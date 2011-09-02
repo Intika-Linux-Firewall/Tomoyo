@@ -94,7 +94,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel
  Version:        2.6.34.10
 -Release:        0.2.1
-+Release:        0.2.1_tomoyo_1.8.2p2
++Release:        0.2.1_tomoyo_1.8.2p3
  %if %using_buildservice
  %else
  %endif
