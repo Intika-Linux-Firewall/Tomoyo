@@ -19,9 +19,9 @@ apt-get -y install wget
 # Download TOMOYO Linux patches.
 mkdir -p /root/rpmbuild/SOURCES/
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.2-20110726.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110903.tar.gz ]
 then
-    wget -O ccs-patch-1.8.2-20110726.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110726.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110903.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -33,7 +33,7 @@ for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, "
 
 # Apply patches and create kernel config.
 cd linux-2.6.38/ || die "Can't chdir to linux-2.6.38/ ."
-tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.2-20110726.tar.gz || die "Can't extract patch."
+tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.2-20110903.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.38-ubuntu-11.04.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*'${ORIGINAL_FLAVOUR}'*'`; do cp -p $i `echo $i | sed -e 's/'${ORIGINAL_FLAVOUR}'/'${NEW_FLAVOUR}'/g'`; done
