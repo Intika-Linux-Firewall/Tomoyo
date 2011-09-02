@@ -18,14 +18,9 @@ rpm --checksig kernel-2.6.40.3-0.fc15.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.40.3-0.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.2-20110726.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110903.tar.gz ]
 then
-    wget -O ccs-patch-1.8.2-20110726.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110726.tar.gz' || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.40-fedora-15-20110802.diff ]
-then
-    wget -O ccs-patch-2.6.40-fedora-15-20110802.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110903.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -77,8 +72,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.2-20110726.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.40-fedora-15-20110802.diff
++tar -zxf %_sourcedir/ccs-patch-1.8.2-20110903.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.40-fedora-15.diff
 +
  %endif
  

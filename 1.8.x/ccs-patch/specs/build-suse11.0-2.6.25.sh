@@ -68,9 +68,9 @@ rpm --checksig kernel-source-2.6.25.20-0.7.src.rpm || die "Can't verify signatur
 rpm -ivh kernel-source-2.6.25.20-0.7.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.2-20110726.tar.gz ]
+if [ ! -r ccs-patch-1.8.2-20110903.tar.gz ]
 then
-    wget -O ccs-patch-1.8.2-20110726.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110726.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.2-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.2-20110903.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -96,7 +96,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  cd linux-2.6.25
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.2-20110726.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.2-20110903.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.25-suse-11.0.diff
 +cat config.ccs >> .config
  cp .config .config.orig
