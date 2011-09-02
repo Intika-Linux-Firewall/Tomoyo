@@ -87,7 +87,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.25.20
 -Release: 0.7
-+Release: 0.7_tomoyo_1.8.2p2
++Release: 0.7_tomoyo_1.8.2p3
  License:        GPL v2 or later
  Group:          System/Kernel
  Url:            http://www.kernel.org/

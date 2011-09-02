@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  # (Uncomment the '#' and both spaces below to set the buildid.)
  #
 -# % define buildid .local
-+%define buildid _tomoyo_1.8.2p2
++%define buildid _tomoyo_1.8.2p3
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line

@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define rpmversion 2.6.%{sublevel}
  # %dist is defined in Asianux VPBS
 -%define release 238.2%{?dist}
-+%define release 238.2%{?dist}_tomoyo_1.8.2p2
++%define release 238.2%{?dist}_tomoyo_1.8.2p3
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
