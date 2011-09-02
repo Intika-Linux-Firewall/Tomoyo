@@ -1,0 +1,541 @@
+Index: security/ccsecurity/gc.c
+===================================================================
+--- security/ccsecurity/gc.c	(revision 5401)
++++ security/ccsecurity/gc.c	(working copy)
+@@ -31,6 +31,10 @@
+ 
+ #endif
+ 
++#ifndef list_next_rcu
++#define list_next_rcu(list)     (*((struct list_head **)(&(list)->next)))
++#endif
++
+ #ifndef list_for_each_entry_safe
+ 
+ /**
+@@ -162,86 +166,7 @@
+ 	return in_use;
+ }
+ 
+-/* Structure for garbage collection. */
+-struct ccs_gc {
+-	struct list_head list;
+-	enum ccs_policy_id type;
+-	size_t size;
+-	struct list_head *element;
+-};
+-/* List of entries to be deleted. */
+-static LIST_HEAD(ccs_gc_list);
+-/* Length of ccs_gc_list. */
+-static int ccs_gc_list_len;
+-
+ /**
+- * ccs_add_to_gc - Add an entry to to be deleted list.
+- *
+- * @type:    One of values in "enum ccs_policy_id".
+- * @element: Pointer to "struct list_head".
+- *
+- * Returns true on success, false otherwise.
+- *
+- * Caller holds ccs_policy_lock mutex.
+- *
+- * Adding an entry needs kmalloc(). Thus, if we try to add thousands of
+- * entries at once, it will take too long time. Thus, do not add more than 128
+- * entries per a scan. But to be able to handle worst case where all entries
+- * are in-use, we accept one more entry per a scan.
+- *
+- * If we use singly linked list using "struct list_head"->prev (which is
+- * LIST_POISON2), we can avoid kmalloc().
+- */
+-static bool ccs_add_to_gc(const enum ccs_policy_id type,
+-			  struct list_head *element)
+-{
+-	struct ccs_gc *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+-	if (!entry)
+-		return false;
+-	entry->type = type;
+-	if (type == CCS_ID_ACL)
+-		entry->size =
+-			ccs_acl_size[container_of(element,
+-						  typeof(struct ccs_acl_info),
+-						  list)->type];
+-	else if (type == CCS_ID_NAME)
+-		entry->size =
+-			container_of(element, typeof(struct ccs_name),
+-				     head.list)->size;
+-	else if (type == CCS_ID_CONDITION)
+-		entry->size =
+-			container_of(element, typeof(struct ccs_condition),
+-				     head.list)->size;
+-	else
+-		entry->size = ccs_element_size[type];
+-	entry->element = element;
+-	list_add(&entry->list, &ccs_gc_list);
+-	list_del_rcu(element);
+-	return ccs_gc_list_len++ < 128;
+-}
+-
+-/**
+- * ccs_element_linked_by_gc - Validate next element of an entry.
+- *
+- * @element: Pointer to an element.
+- * @size:    Size of @element in byte.
+- *
+- * Returns true if @element is linked by other elements in the garbage
+- * collector's queue, false otherwise.
+- */
+-static bool ccs_element_linked_by_gc(const u8 *element, const size_t size)
+-{
+-	struct ccs_gc *p;
+-	list_for_each_entry(p, &ccs_gc_list, list) {
+-		const u8 *ptr = (const u8 *) p->element->next;
+-		if (ptr < element || element + size < ptr)
+-			continue;
+-		return true;
+-	}
+-	return false;
+-}
+-
+-/**
+  * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
+  *
+  * @element: Pointer to "struct list_head".
+@@ -479,9 +404,9 @@
+ 	struct ccs_acl_info *acl;
+ 	struct ccs_acl_info *tmp;
+ 	/*
+-	 * Since this domain is referenced from none of "struct ccs_io_buffer"
+-	 * ccs_gc_list, "struct task_struct", we can delete elements without
+-	 * checking for is_deleted flag.
++	 * Since this domain is referenced from neither "struct ccs_io_buffer"
++	 * nor "struct task_struct", we can delete elements without checking
++	 * for is_deleted flag.
+ 	 */
+ 	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
+ 		ccs_del_acl(&acl->list);
+@@ -691,25 +616,27 @@
+ 
+ #endif
+ 
++static void ccs_gc(const enum ccs_policy_id type, struct list_head *element);
++
+ /**
+  * ccs_collect_member - Delete elements with "struct ccs_acl_head".
+  *
+  * @id:          One of values in "enum ccs_policy_id".
+  * @member_list: Pointer to "struct list_head".
+  *
+- * Returns true if some elements are deleted, false otherwise.
++ * Returns nothing.
++ *
++ * Caller holds ccs_policy_lock mutex.
+  */
+-static bool ccs_collect_member(const enum ccs_policy_id id,
++static void ccs_collect_member(const enum ccs_policy_id id,
+ 			       struct list_head *member_list)
+ {
+ 	struct ccs_acl_head *member;
+-	list_for_each_entry(member, member_list, list) {
+-		if (!member->is_deleted)
+-			continue;
+-		if (!ccs_add_to_gc(id, &member->list))
+-			return false;
++	struct ccs_acl_head *tmp;
++	list_for_each_entry_safe(member, tmp, member_list, list) {
++		if (member->is_deleted)
++			ccs_gc(id, &member->list);
+ 	}
+-	return true;
+ }
+ 
+ /**
+@@ -717,20 +644,23 @@
+  *
+  * @list: Pointer to "struct list_head".
+  *
+- * Returns true if some elements are deleted, false otherwise.
++ * Returns nothing.
++ *
++ * Caller holds ccs_policy_lock mutex.
+  */
+-static bool ccs_collect_acl(struct list_head *list)
++static void ccs_collect_acl(struct list_head *list)
+ {
+ 	struct ccs_acl_info *acl;
+-	list_for_each_entry(acl, list, list) {
+-		if (!acl->is_deleted)
+-			continue;
+-		if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
+-			return false;
++	struct ccs_acl_info *tmp;
++	list_for_each_entry_safe(acl, tmp, list, list) {
++		if (acl->is_deleted)
++			ccs_gc(CCS_ID_ACL, &acl->list);
+ 	}
+-	return true;
+ }
+ 
++/* Is ccs_policy_lock mutex held by GC thread? */
++static bool ccs_policy_lock_held;
++
+ /**
+  * ccs_collect_entry - Scan lists for deleted elements.
+  *
+@@ -741,33 +671,29 @@
+ 	int i;
+ 	enum ccs_policy_id id;
+ 	struct ccs_policy_namespace *ns;
+-	int idx;
+ 	if (mutex_lock_interruptible(&ccs_policy_lock))
+ 		return;
+-	idx = ccs_read_lock();
++	ccs_policy_lock_held = true;
+ 	{
+ 		struct ccs_domain_info *domain;
+-		list_for_each_entry(domain, &ccs_domain_list, list) {
+-			if (!ccs_collect_acl(&domain->acl_info_list))
+-				goto unlock;
++		struct ccs_domain_info *tmp;
++		list_for_each_entry_safe(domain, tmp, &ccs_domain_list, list) {
++			ccs_collect_acl(&domain->acl_info_list);
+ 			if (!domain->is_deleted ||
+ 			    ccs_domain_used_by_task(domain))
+ 				continue;
+-			if (!ccs_add_to_gc(CCS_ID_DOMAIN, &domain->list))
+-				goto unlock;
++			ccs_gc(CCS_ID_DOMAIN, &domain->list);
+ 		}
+ 	}
+-	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
+-				 &ccs_ss) {
++	list_for_each_entry(ns, &ccs_namespace_list, namespace_list) {
+ 		for (id = 0; id < CCS_MAX_POLICY; id++)
+-			if (!ccs_collect_member(id, &ns->policy_list[id]))
+-				goto unlock;
++			ccs_collect_member(id, &ns->policy_list[id]);
+ 		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
+-			if (!ccs_collect_acl(&ns->acl_group[i]))
+-				goto unlock;
++			ccs_collect_acl(&ns->acl_group[i]);
+ 		for (i = 0; i < CCS_MAX_GROUP; i++) {
+ 			struct list_head *list = &ns->group_list[i];
+ 			struct ccs_group *group;
++			struct ccs_group *tmp;
+ 			switch (i) {
+ 			case 0:
+ 				id = CCS_ID_PATH_GROUP;
+@@ -779,16 +705,12 @@
+ 				id = CCS_ID_ADDRESS_GROUP;
+ 				break;
+ 			}
+-			list_for_each_entry(group, list, head.list) {
+-				if (!ccs_collect_member(id,
+-							&group->member_list))
+-					goto unlock;
++			list_for_each_entry_safe(group, tmp, list, head.list) {
++				ccs_collect_member(id, &group->member_list);
+ 				if (!list_empty(&group->member_list) ||
+ 				    atomic_read(&group->head.users))
+ 					continue;
+-				if (!ccs_add_to_gc(CCS_ID_GROUP,
+-						   &group->head.list))
+-					goto unlock;
++				ccs_gc(CCS_ID_GROUP, &group->head.list);
+ 			}
+ 		}
+ 	}
+@@ -797,118 +719,167 @@
+ 		struct list_head *list = !i ?
+ 			&ccs_condition_list : &ccs_name_list[i - 1];
+ 		struct ccs_shared_acl_head *ptr;
+-		list_for_each_entry(ptr, list, list) {
+-			if (atomic_read(&ptr->users))
+-				continue;
+-			if (!ccs_add_to_gc(id, &ptr->list))
+-				goto unlock;
++		struct ccs_shared_acl_head *tmp;
++		list_for_each_entry_safe(ptr, tmp, list, list) {
++			if (!atomic_read(&ptr->users))
++				ccs_gc(id, &ptr->list);
+ 		}
+ 		id = CCS_ID_NAME;
+ 	}
+-unlock:
+-	ccs_read_unlock(idx);
+-	mutex_unlock(&ccs_policy_lock);
++	/* Don't unlock if ccs_gc() failed to lock. */
++	if (ccs_policy_lock_held)
++		mutex_unlock(&ccs_policy_lock);
+ }
+ 
++/* Should GC thread retry more reclaim? */
++static bool ccs_gc_retry;
++
+ /**
+- * ccs_kfree_entry - Delete entries in ccs_gc_list.
++ * ccs_gc - Try to kfree() an entry.
+  *
+- * Returns true if some entries were kfree()d, false otherwise.
++ * @type:    One of values in "enum ccs_policy_id".
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
+  */
+-static bool ccs_kfree_entry(void)
++static void ccs_gc(const enum ccs_policy_id type, struct list_head *element)
+ {
+-	struct ccs_gc *p;
+-	struct ccs_gc *tmp;
+-	bool result = false;
+-	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
+-		struct list_head * const element = p->element;
++	static struct {
++		struct list_head *element;
++		struct list_head *prev;
++		struct list_head *next;
++	} pending;
++	size_t size;
++	/*
++	 * Caller may have called this function due to list_empty() returning
++	 * true when previous reinjection has failed. By reinjecting the
++	 * pending element, list_empty() will return false. Therefore, do not
++	 * process this element if previous reinjection has failed.
++	 */
++	if (pending.element)
++		goto reinject;
++	/* Do not process this element if ccs_policy_lock mutex is not held. */
++	if (!ccs_policy_lock_held)
++		return;
++	pending.element = element;
++	pending.prev = element->prev;
++	pending.next = list_next_rcu(element);
++	/*
++	 * list_del_rcu() guarantees that the list element became no longer
++	 * reachable from the list which the element was originally on (e.g.
++	 * ccs_domain_list). Also, synchronize_srcu() guarantees that the list
++	 * element became no longer referenced by syscall users.
++	 */
++	list_del_rcu(element);
++	mutex_unlock(&ccs_policy_lock);
++	ccs_policy_lock_held = false;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
++	synchronize_srcu(&ccs_ss);
++#else
++	ccs_synchronize_counter();
++#endif
++	/*
++	 * However, there are two users which may still be using the list
++	 * element. We need to defer until both users forget this element.
++	 *
++	 * Don't kfree() until "struct ccs_io_buffer"->r.{domain,group,acl} and
++	 * "struct ccs_io_buffer"->w.domain forget this element.
++	 */
++	if (ccs_struct_used_by_io_buffer(element))
++		goto reinject;
++	if (type == CCS_ID_ACL)
++		size = ccs_acl_size[container_of(element,
++						 typeof(struct ccs_acl_info),
++						 list)->type];
++	else if (type == CCS_ID_NAME)
++		size = container_of(element, typeof(struct ccs_name),
++				    head.list)->size;
++	else if (type == CCS_ID_CONDITION)
++		size = container_of(element, typeof(struct ccs_condition),
++				    head.list)->size;
++	else
++		size = ccs_element_size[type];
++	switch (type) {
++	case CCS_ID_TRANSITION_CONTROL:
++		ccs_del_transition_control(element);
++		break;
++	case CCS_ID_MANAGER:
++		ccs_del_manager(element);
++		break;
++	case CCS_ID_AGGREGATOR:
++		ccs_del_aggregator(element);
++		break;
++	case CCS_ID_GROUP:
++		ccs_del_group(element);
++		break;
++	case CCS_ID_PATH_GROUP:
++		ccs_del_path_group(element);
++		break;
++	case CCS_ID_ADDRESS_GROUP:
++		ccs_del_address_group(element);
++		break;
++	case CCS_ID_NUMBER_GROUP:
++		ccs_del_number_group(element);
++		break;
++	case CCS_ID_RESERVEDPORT:
++		ccs_del_reservedport(element);
++		break;
++	case CCS_ID_CONDITION:
++		ccs_del_condition(element);
++		break;
++	case CCS_ID_NAME:
+ 		/*
+-		 * list_del_rcu() in ccs_add_to_gc() guarantees that the list
+-		 * element became no longer reachable from the list which the
+-		 * element was originally on (e.g. ccs_domain_list). Also,
+-		 * synchronize_srcu() in ccs_gc_thread() guarantees that the
+-		 * list element became no longer referenced by syscall users.
+-		 *
+-		 * However, there are three users which may still be using the
+-		 * list element. We need to defer until all of these users
+-		 * forget the list element.
+-		 *
+-		 * Firstly, defer until "struct ccs_io_buffer"->r.{domain,
+-		 * group,acl} and "struct ccs_io_buffer"->w.domain forget the
+-		 * list element.
++		 * Don't kfree() until all "struct ccs_io_buffer"->r.w[] forget
++		 * this element.
+ 		 */
+-		if (ccs_struct_used_by_io_buffer(element))
+-			continue;
++		if (ccs_name_used_by_io_buffer
++		    (container_of(element, typeof(struct ccs_name),
++				  head.list)->entry.name, size))
++			goto reinject;
++		ccs_del_name(element);
++		break;
++	case CCS_ID_ACL:
++		ccs_del_acl(element);
++		break;
++	case CCS_ID_DOMAIN:
+ 		/*
+-		 * Secondly, defer until all other elements in the ccs_gc_list
+-		 * list forget the list element.
++		 * Don't kfree() until all "struct task_struct" forget this
++		 * element.
+ 		 */
+-		if (ccs_element_linked_by_gc((const u8 *) element, p->size))
+-			continue;
+-		switch (p->type) {
+-		case CCS_ID_TRANSITION_CONTROL:
+-			ccs_del_transition_control(element);
+-			break;
+-		case CCS_ID_MANAGER:
+-			ccs_del_manager(element);
+-			break;
+-		case CCS_ID_AGGREGATOR:
+-			ccs_del_aggregator(element);
+-			break;
+-		case CCS_ID_GROUP:
+-			ccs_del_group(element);
+-			break;
+-		case CCS_ID_PATH_GROUP:
+-			ccs_del_path_group(element);
+-			break;
+-		case CCS_ID_ADDRESS_GROUP:
+-			ccs_del_address_group(element);
+-			break;
+-		case CCS_ID_NUMBER_GROUP:
+-			ccs_del_number_group(element);
+-			break;
+-		case CCS_ID_RESERVEDPORT:
+-			ccs_del_reservedport(element);
+-			break;
+-		case CCS_ID_CONDITION:
+-			ccs_del_condition(element);
+-			break;
+-		case CCS_ID_NAME:
+-			/*
+-			 * Thirdly, defer until all "struct ccs_io_buffer"
+-			 * ->r.w[] forget the list element.
+-			 */
+-			if (ccs_name_used_by_io_buffer(
+-			    container_of(element, typeof(struct ccs_name),
+-					 head.list)->entry.name, p->size))
+-				continue;
+-			ccs_del_name(element);
+-			break;
+-		case CCS_ID_ACL:
+-			ccs_del_acl(element);
+-			break;
+-		case CCS_ID_DOMAIN:
+-			/*
+-			 * Thirdly, defer until all "struct task_struct" forget
+-			 * the list element.
+-			 */
+-			if (ccs_domain_used_by_task(
+-			    container_of(element,
+-					 typeof(struct ccs_domain_info),
+-					 list)))
+-				continue;
+-			ccs_del_domain(element);
+-			break;
+-		case CCS_MAX_POLICY:
+-			break;
+-		}
+-		ccs_memory_free(element, p->size);
+-		list_del(&p->list);
+-		kfree(p);
+-		ccs_gc_list_len--;
+-		result = true;
++		if (ccs_domain_used_by_task
++		    (container_of(element, typeof(struct ccs_domain_info),
++				  list)))
++			goto reinject;
++		ccs_del_domain(element);
++		break;
++	case CCS_MAX_POLICY:
++		break;
+ 	}
+-	return result;
++	ccs_memory_free(element, size);
++	pending.element = NULL;
++	/*
++	 * By reclaiming this element, other elements which were not
++	 * reclaimable due to this element might become reclaimable.
++	 * Therefore, retry reclaiming from the beginning.
++	 */
++	ccs_gc_retry = true;
++reinject:
++	/*
++	 * We can safely reinject this element later if we failed to reinject
++	 * now bacause this is the only function that removes list elements and
++	 * other elements won't be removed from the list if there is an element
++	 * to be reinjected.
++	 */
++	if (!ccs_policy_lock_held &&
++	    mutex_lock_interruptible(&ccs_policy_lock))
++		return;
++	ccs_policy_lock_held = true;
++	if (!pending.element)
++		return;
++	printk(KERN_INFO "Failed to gc %p (prev=%p next=%p).\n",
++	       pending.element, pending.prev, pending.next);
++	__list_add_rcu(pending.element, pending.prev, pending.next);
++	pending.element = NULL;
+ }
+ 
+ /**
+@@ -953,16 +924,9 @@
+ #endif
+ 	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
+ #endif
+-	do {
+-		ccs_collect_entry();
+-		if (list_empty(&ccs_gc_list))
+-			break;
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+-		synchronize_srcu(&ccs_ss);
+-#else
+-		ccs_synchronize_counter();
+-#endif
+-	} while (ccs_kfree_entry());
++retry:
++	ccs_gc_retry = false;
++	ccs_collect_entry();
+ 	{
+ 		struct ccs_io_buffer *head;
+ 		struct ccs_io_buffer *tmp;
+@@ -978,6 +942,8 @@
+ 		}
+ 		spin_unlock(&ccs_io_buffer_list_lock);
+ 	}
++	if (ccs_gc_retry)
++		goto retry;
+ 	mutex_unlock(&ccs_gc_mutex);
+ out:
+ 	/* This acts as do_exit(0). */
