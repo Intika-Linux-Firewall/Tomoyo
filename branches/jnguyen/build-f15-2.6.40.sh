@@ -6,25 +6,26 @@ URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.2p2"
-CCSPATCH_VER="1.8.2-20110713"
+CCS_VER="1.8.2p3"
+CCSPATCH_VER="1.8.2-20110903"
 KERNEL_VER="2.6.40.3-0.fc15"
 
-#UPDATED_DIFF=0
-#CCSDIFF_NAME="ccs-patch-3.0.diff"
+UPDATED_DIFF=0
+CCSDIFF_NAME="ccs-patch-3.0.diff"
 
 # only required if using updated revision
-UPDATED_DIFF=1
-CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15-20110802.diff"
-CCSDIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
+#UPDATED_DIFF=1
+#CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15-20110802.diff"
+#CCSDIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
 
 setup_rpmbuild_tree
 enter_dir "${SOURCE_DIR}"
 
 download_file "${URL_CCS}/ccs-patch-${CCSPATCH_VER}.tar.gz" \
 	"ccs-patch-${CCSPATCH_VER}.tar.gz"
-download_file "${URL_CCS_SVN}/${CCSDIFF_REVISION}" \
-	"${CCSDIFF_NAME}"
+if [[ "${UPDATED_DIFF}" = 1 ]]; then
+	download_file "${URL_CCS_SVN}/${CCSDIFF_REVISION}" "${CCSDIFF_NAME}"
+fi
 download_srpm "kernel"
 
 install_dependencies "kernel-${KERNEL_VER}.src.rpm"
