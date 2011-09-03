@@ -76,12 +76,12 @@ cd linux-2.6.31.14<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget -O ccs-patch-1.6.9-20110505.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110505.tar.gz'<br>
+wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz'<br>
 # Check signature.<br>
-wget -O ccs-patch-1.6.9-20110505.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110505.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20110505.tar.gz.asc<br>
+wget -O ccs-patch-1.7.3-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz.asc'<br>
+gpg ccs-patch-1.7.3-20110903.tar.gz.asc<br>
 # Extract.<br>
-tar -zxf ccs-patch-1.6.9-20110505.tar.gz<br>
+tar -zxf ccs-patch-1.7.3-20110903.tar.gz<br>
 # Apply the kernel patch.<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.31.diff<br>
 # Enable options for TOMOYO Linux.<br>
@@ -104,12 +104,12 @@ cd linux-2.4.37.11<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget -O ccs-patch-1.6.9-20110505.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110505.tar.gz'<br>
+wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz'<br>
 # Check signature.<br>
-wget -O ccs-patch-1.6.9-20110505.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110505.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20110505.tar.gz.asc<br>
+wget -O ccs-patch-1.7.3-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz.asc'<br>
+gpg ccs-patch-1.7.3-20110903.tar.gz.asc<br>
 # Extract.<br>
-tar -zxf ccs-patch-1.6.9-20110505.tar.gz<br>
+tar -zxf ccs-patch-1.7.3-20110903.tar.gz<br>
 # Apply the kernel patch.<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.37.diff<br>
 # Enable options for TOMOYO Linux.<br>
