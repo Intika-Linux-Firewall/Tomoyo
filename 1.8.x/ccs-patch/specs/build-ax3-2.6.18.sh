@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
-@@ -288,6 +288,9 @@
+@@ -295,6 +295,9 @@
  # to versions below the minimum
  #
  
@@ -47,7 +47,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -318,7 +321,7 @@
+@@ -325,7 +328,7 @@
  #
  %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
  
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -10765,6 +10768,10 @@
+@@ -12706,6 +12709,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -10832,6 +10839,9 @@
+@@ -12773,6 +12780,9 @@
  for i in `ls *86*.config *ia64*.config`
  do
    mv $i .config
@@ -87,7 +87,7 @@ echo "rpmbuild -bb /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 echo ""
 ARCH=`uname -m`
-echo "I'll start 'rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
+echo "I'll start 'rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo --without source /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
-exec rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /tmp/ccs-kernel.spec
+exec rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo --without source /tmp/ccs-kernel.spec
 exit 0
