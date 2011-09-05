@@ -1,7 +1,21 @@
-Index: security/ccsecurity/domain.c
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c
 ===================================================================
---- security/ccsecurity/domain.c	(revision 5395)
-+++ security/ccsecurity/domain.c	(working copy)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(revision 5411)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/audit.c	(working copy)
+@@ -338,7 +338,8 @@
+ 	const char *cp;
+ 	const struct ccs_acl_info *acl = r->matched_acl;
+ 	r->matched_acl = NULL;
+-	if (!acl || !acl->cond || !acl->cond->transit)
++	if (!acl || !acl->cond || !acl->cond->transit ||
++	    acl->cond->exec_transit)
+ 		return;
+ 	while (1) {
+ 		buf = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(revision 5411)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/domain.c	(working copy)
 @@ -97,6 +97,18 @@
  		new_entry->cond = ccs_get_condition(param);
  		if (!new_entry->cond)
@@ -30,7 +44,7 @@ Index: security/ccsecurity/domain.c
  		if (retval == CCS_RETRY_REQUEST)
  			goto retry;
  		if (retval < 0)
-@@ -627,11 +639,36 @@
+@@ -627,11 +639,45 @@
  		if (r->param.path.matched_path)
  			candidate = r->param.path.matched_path;
  	}
@@ -47,11 +61,20 @@ Index: security/ccsecurity/domain.c
 +		reject_on_transition_failure = true;
 +		if (!strcmp(domainname, "keep"))
 +			goto force_keep_domain;
-+		if (!strcmp(domainname, "initialize"))
-+			goto force_initialize_domain;
++		if (!strcmp(domainname, "child"))
++			goto force_child_domain;
 +		if (!strcmp(domainname, "reset"))
 +			goto force_reset_domain;
-+		if (*domainname == '<')
++		if (!strcmp(domainname, "initialize"))
++			goto force_initialize_domain;
++		if (!strcmp(domainname, "parent")) {
++			char *cp;
++			strncpy(ee->tmp, old_domain->domainname->name,
++				CCS_EXEC_TMPSIZE - 1);
++			cp = strrchr(ee->tmp, ' ');
++			if (cp)
++				*cp = '\0';
++		} else if (*domainname == '<')
 +			strncpy(ee->tmp, domainname, CCS_EXEC_TMPSIZE - 1);
 +		else
 +			snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
@@ -69,7 +92,7 @@ Index: security/ccsecurity/domain.c
  		/* Transit to the root of specified namespace. */
  		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<%s>",
  			 candidate->name);
-@@ -642,11 +679,13 @@
+@@ -642,11 +688,13 @@
  		reject_on_transition_failure = true;
  		break;
  	case CCS_TRANSITION_CONTROL_INITIALIZE:
@@ -83,15 +106,28 @@ Index: security/ccsecurity/domain.c
  		/* Keep current domain. */
  		domain = old_domain;
  		break;
-@@ -667,6 +706,7 @@
+@@ -659,14 +707,15 @@
+ 			 * before /sbin/init.
+ 			 */
+ 			domain = old_domain;
+-		} else {
+-			/* Normal domain transition. */
+-			snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
+-				 old_domain->domainname->name,
+-				 candidate->name);
++			break;
  		}
++force_child_domain:
++		/* Normal domain transition. */
++		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
++			 old_domain->domainname->name, candidate->name);
  		break;
  	}
 +force_jump_domain:
  	/*
  	 * Tell GC that I started execve().
  	 * Also, tell open_exec() to check read permission.
-@@ -1127,6 +1167,9 @@
+@@ -1127,6 +1176,9 @@
  		return false;
  	ee->handler = container_of(r->matched_acl, struct ccs_handler_acl,
  				   head)->handler;
@@ -101,10 +137,10 @@ Index: security/ccsecurity/domain.c
  	return true;
  }
  
-Index: security/ccsecurity/file.c
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/file.c
 ===================================================================
---- security/ccsecurity/file.c	(revision 5395)
-+++ security/ccsecurity/file.c	(working copy)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(revision 5411)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/file.c	(working copy)
 @@ -614,14 +614,42 @@
  	do {
  		ccs_check_acl(r, ccs_check_path_acl);
@@ -133,7 +169,7 @@ Index: security/ccsecurity/file.c
 +{
 +	/*
 +	 * Unlike other permission checks, this check is done regardless of
-+	 * profile mode settings in order check for domain transition
++	 * profile mode settings in order to check for domain transition
 +	 * preference.
 +	 */
 +	r->type = CCS_MAC_FILE_EXECUTE;
@@ -153,10 +189,10 @@ Index: security/ccsecurity/file.c
  #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
  
  /**
-Index: security/ccsecurity/internal.h
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
---- security/ccsecurity/internal.h	(revision 5395)
-+++ security/ccsecurity/internal.h	(working copy)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5411)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
 @@ -905,6 +905,7 @@
  	u16 argc; /* Number of "struct ccs_argv". */
  	u16 envc; /* Number of "struct ccs_envp". */
@@ -182,10 +218,10 @@ Index: security/ccsecurity/internal.h
  int ccs_get_path(const char *pathname, struct path *path);
  int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
  int ccs_open_control(const u8 type, struct file *file);
-Index: security/ccsecurity/condition.c
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c
 ===================================================================
---- security/ccsecurity/condition.c	(revision 5395)
-+++ security/ccsecurity/condition.c	(working copy)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(revision 5411)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/condition.c	(working copy)
 @@ -355,8 +355,9 @@
  		a->numbers_count == b->numbers_count &&
  		a->names_count == b->names_count &&
@@ -198,7 +234,7 @@ Index: security/ccsecurity/condition.c
  }
  
  /**
-@@ -435,6 +436,39 @@
+@@ -435,6 +436,48 @@
  }
  
  /**
@@ -212,21 +248,30 @@ Index: security/ccsecurity/condition.c
 +static char *ccs_get_transit_preference(struct ccs_acl_param *param,
 +					struct ccs_condition *e)
 +{
-+	const char *pos = param->data;
-+	if (*pos == '<' || *pos == '/' || !strcmp(pos, "keep") ||
-+	    !strcmp(pos, "initialize") || !strcmp(pos, "reset"))
-+		e->exec_transit = true;
-+	else
-+		return (char *) pos;
-+	if (*pos == '<')
++	char * const pos = param->data;
++	bool flag;
++	if (*pos == '<') {
 +		e->transit = ccs_get_domainname(param);
-+	else {
-+		pos = ccs_read_token(param);
-+		if (ccs_correct_word(pos))
-+			e->transit = ccs_get_name(pos);
++		goto done;
 +	}
-+	if (e->transit)
++	{
++		char *cp = strchr(pos, ' ');
++		if (cp)
++			*cp = '\0';
++		flag = ccs_correct_path(pos) || !strcmp(pos, "keep") ||
++			!strcmp(pos, "initialize") || !strcmp(pos, "reset") ||
++			!strcmp(pos, "child") || !strcmp(pos, "parent");
++		if (cp)
++			*cp = ' ';
++	}
++	if (!flag)
++		return pos;
++	e->transit = ccs_get_name(ccs_read_token(param));
++done:
++	if (e->transit) {
++		e->exec_transit = true;
 +		return param->data;
++	}
 +	/*
 +	 * Return a bad read-only condition string that will let
 +	 * ccs_get_condition() return NULL.
@@ -238,7 +283,7 @@ Index: security/ccsecurity/condition.c
   * ccs_get_condition - Parse condition part.
   *
   * @param: Pointer to "struct ccs_acl_param".
-@@ -450,7 +484,7 @@
+@@ -450,7 +493,7 @@
  	struct ccs_argv *argv = NULL;
  	struct ccs_envp *envp = NULL;
  	struct ccs_condition e = { };
@@ -247,7 +292,7 @@ Index: security/ccsecurity/condition.c
  	char * const end_of_string = start_of_string + strlen(start_of_string);
  	char *pos;
  rerun:
-@@ -625,8 +659,9 @@
+@@ -625,8 +668,9 @@
  		+ e.envc * sizeof(struct ccs_envp);
  	entry = kzalloc(e.size, CCS_GFP_FLAGS);
  	if (!entry)
@@ -258,7 +303,7 @@ Index: security/ccsecurity/condition.c
  	condp = (struct ccs_condition_element *) (entry + 1);
  	numbers_p = (struct ccs_number_union *) (condp + e.condc);
  	names_p = (struct ccs_name_union *) (numbers_p + e.numbers_count);
-@@ -653,6 +688,8 @@
+@@ -653,6 +697,8 @@
  		ccs_del_condition(&entry->head.list);
  		kfree(entry);
  	}
@@ -267,10 +312,10 @@ Index: security/ccsecurity/condition.c
  	return NULL;
  }
  
-Index: security/ccsecurity/policy_io.c
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 ===================================================================
---- security/ccsecurity/policy_io.c	(revision 5395)
-+++ security/ccsecurity/policy_io.c	(working copy)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5411)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
 @@ -1383,6 +1383,10 @@
  	case 0:
  		head->r.cond_index = 0;
@@ -291,3 +336,329 @@ Index: security/ccsecurity/policy_io.c
  			const char *name = cond->transit->name;
  			ccs_set_string(head, " auto_domain_transition=\"");
  			ccs_set_string(head, name);
+Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5411)
++++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(working copy)
+@@ -1542,7 +1542,128 @@
+ 	ccs_assign_domain3(domainname, line, false);
+ }
+ 
++/* Structure for holding domain transition preference. */
++static struct ccs_transition_preference {
++	int index;
++	char *program;
++	char *domainname;
++} *ccs_transition_preference_list = NULL;
++static int ccs_transition_preference_list_len = 0;
++
+ /**
++ * ccs_parse_transition_preference - Parse transition preference.
++ *
++ * @program:    Pathname or path_group.
++ * @domainname: Domainname or transition preference.
++ * @index:      Current domain's index.
++ *
++ * Returns true if transition preference was found, false otherwise.
++ */
++static _Bool ccs_parse_transition_preference(char *program, char *domainname,
++					     const int index)
++{
++	struct ccs_transition_preference *ptr;
++	char *cp = strchr(domainname, ' ');
++	if (*domainname == '<')
++		goto add;
++	if (cp)
++		*cp = '\0';
++	if (ccs_correct_path(domainname) || !strcmp(domainname, "keep") ||
++	    !strcmp(domainname, "reset") || !strcmp(domainname, "initialize")
++	    || !strcmp(domainname, "child") || !strcmp(domainname, "parent"))
++		goto add;
++	return false;
++add:
++	ccs_transition_preference_list =
++		ccs_realloc(ccs_transition_preference_list, sizeof(*ptr) *
++			    (ccs_transition_preference_list_len + 1));
++	ptr = &ccs_transition_preference_list
++		[ccs_transition_preference_list_len++];
++	ptr->index = index;
++	ptr->domainname = ccs_strdup(domainname);
++	ptr->program = ccs_strdup(program);
++	return true;
++
++}
++
++/**
++ * ccs_make_transition_preference - Create transition preference.
++ *
++ * @program:    Pathname or path_group.
++ * @domainname: Domainname or transition preference.
++ * @index:      Current domain's index.
++ *
++ * Returns true if transition preference was found, false otherwise.
++ */
++static void ccs_make_transition_preference(char *program, char *domainname,
++					   const int index)
++{
++	static char buffer[4096];
++	const char *self = ccs_dp.list[index].domainname->name;
++	int i;
++	struct ccs_path_group_entry *group = *program == '@' ?
++		ccs_find_path_group_ns(ccs_get_ns(self), program + 1) : NULL;
++	const int j = group ? group->member_name_len : 0;
++	buffer[sizeof(buffer) - 1] = '\0';
++	if (*domainname == '<')
++		snprintf(buffer, sizeof(buffer) - 1, "%s", domainname);
++	else if (!strcmp(domainname, "keep"))
++		snprintf(buffer, sizeof(buffer) - 1, "%s", self);
++	else if (!strcmp(domainname, "reset")) {
++		if (*program == '@') {
++			for (i = 0; i < j; i++) {
++				snprintf(buffer, sizeof(buffer) - 1, "<%s>",
++					 group->member_name[i]->name);
++				ccs_add_acl_domain_transition(buffer, index);
++			}
++			return;
++		}
++		snprintf(buffer, sizeof(buffer) - 1, "<%s>", program);
++	} else if (!strcmp(domainname, "initialize")) {
++		char *tmp = ccs_strdup(self);
++		char *cp = strchr(tmp, ' ');
++		if (cp)
++			*cp = '\0';
++		if (*program == '@') {
++			for (i = 0; i < j; i++) {
++				const char *cp2 = group->member_name[i]->name;
++				if (*cp2 != '/')
++					continue;
++				snprintf(buffer, sizeof(buffer) - 1, "%s %s",
++					 tmp, cp2);
++				ccs_add_acl_domain_transition(buffer, index);
++			}
++			free(tmp);
++			return;
++		}
++		snprintf(buffer, sizeof(buffer) - 1, "%s %s", tmp, program);
++		free(tmp);
++	} else if (!strcmp(domainname, "child")) {
++		if (*program == '@') {
++			for (i = 0; i < j; i++) {
++				const char *cp = group->member_name[i]->name;
++				if (*cp != '/')
++					continue;
++				snprintf(buffer, sizeof(buffer) - 1, "%s %s",
++					 self, cp);
++				ccs_add_acl_domain_transition(buffer, index);
++			}
++			return;
++		}
++		snprintf(buffer, sizeof(buffer) - 1, "%s %s", self, program);
++	} else if (!strcmp(domainname, "parent")) {
++		char *cp;
++		snprintf(buffer, sizeof(buffer) - 1, "%s", self);
++		cp = strrchr(buffer, ' ');
++		if (cp)
++			*cp = '\0';
++	} else
++		snprintf(buffer, sizeof(buffer) - 1, "%s %s", self,
++			 domainname);
++	ccs_add_acl_domain_transition(buffer, index);
++}
++
++/**
+  * ccs_parse_domain_line - Parse an ACL entry in domain policy.
+  *
+  * @ns:          Pointer to "const struct ccs_path_info".
+@@ -1556,15 +1677,22 @@
+ static void ccs_parse_domain_line(const struct ccs_path_info *ns, char *line,
+ 				  const int index, const bool parse_flags)
+ {
++	_Bool exec = false;
+ 	ccs_add_condition_domain_transition(line, index);
+ 	if (ccs_str_starts(line, "task auto_execute_handler ") ||
+ 	    ccs_str_starts(line, "task denied_execute_handler ") ||
+-	    ccs_str_starts(line, "file execute ")) {
+-		/* Chop off condition part which follows pathname. */
++	    (exec = true, ccs_str_starts(line, "file execute "))) {
++		/*
++		 * Chop off condition part which follows pathname.
++		 * But check for domain transition preference.
++		 */
+ 		char *cp = strchr(line, ' ');
+-		if (cp)
+-			*cp = '\0';
+-		if (*line == '@' || ccs_correct_path(line))
++		if (cp) {
++			*cp++ = '\0';
++			if (ccs_parse_transition_preference(line, cp, index))
++				return;
++		}
++		if ((exec && *line == '@') || ccs_correct_path(line))
+ 			ccs_add_string_entry3(line, index);
+ 	} else if (ccs_str_starts(line, "task auto_domain_transition ") ||
+ 		   ccs_str_starts(line, "task manual_domain_transition ")) {
+@@ -1721,6 +1849,19 @@
+ 		fclose(fp);
+ 	}
+ 
++	/* Create domain transition preference. */
++	for (i = 0; i < ccs_transition_preference_list_len; i++) {
++		struct ccs_transition_preference *ptr =
++			&ccs_transition_preference_list[i];
++		ccs_make_transition_preference(ptr->program, ptr->domainname,
++					       ptr->index);
++		free(ptr->domainname);
++		free(ptr->program);
++	}
++	free(ccs_transition_preference_list);
++	ccs_transition_preference_list= NULL;
++	ccs_transition_preference_list_len = 0;
++
+ 	/*
+ 	 * Domain jump sources by "task manual_domain_transition" keyword or
+ 	 * "task auto_domain_transition" keyword or "auto_domain_transition="
+Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5411)
++++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
+@@ -566,6 +566,7 @@
+ 	u16 argc; /* Number of "struct ccs_argv". */
+ 	u16 envc; /* Number of "struct ccs_envp". */
+ 	u8 grant_log; /* One of values in "enum ccs_grant_log". */
++	bool exec_transit; /* True if transit is for "file execute". */
+ 	const struct ccs_path_info *transit; /* Maybe NULL. */
+ 	/*
+ 	 * struct ccs_condition_element condition[condc];
+@@ -1905,8 +1906,9 @@
+ 		a->numbers_count == b->numbers_count &&
+ 		a->names_count == b->names_count &&
+ 		a->argc == b->argc && a->envc == b->envc &&
+-		a->grant_log == b->grant_log && a->transit == b->transit &&
+-		!memcmp(a + 1, b + 1, a->size - sizeof(*a));
++		a->grant_log == b->grant_log &&
++		a->exec_transit == b->exec_transit && a->transit == b->transit
++		&& !memcmp(a + 1, b + 1, a->size - sizeof(*a));
+ }
+ 
+ /**
+@@ -1976,6 +1978,48 @@
+ }
+ 
+ /**
++ * ccs_get_transit_preference - Parse domain transition preference for execve().
++ *
++ * @param: Pointer to "struct ccs_acl_param".
++ * @e:     Pointer to "struct ccs_condition".
++ *
++ * Returns the condition string part.
++ */
++static char *ccs_get_transit_preference(struct ccs_acl_param *param,
++					struct ccs_condition *e)
++{
++	char * const pos = param->data;
++	bool flag;
++	if (*pos == '<') {
++		e->transit = ccs_get_domainname(param);
++		goto done;
++	}
++	{
++		char *cp = strchr(pos, ' ');
++		if (cp)
++			*cp = '\0';
++		flag = ccs_correct_path(pos) || !strcmp(pos, "keep") ||
++			!strcmp(pos, "initialize") || !strcmp(pos, "reset") ||
++			!strcmp(pos, "child") || !strcmp(pos, "parent");
++		if (cp)
++			*cp = ' ';
++	}
++	if (!flag)
++		return pos;
++	e->transit = ccs_get_name(ccs_read_token(param));
++done:
++	if (e->transit) {
++		e->exec_transit = true;
++		return param->data;
++	}
++	/*
++	 * Return a bad read-only condition string that will let
++	 * ccs_get_condition() return NULL.
++	 */
++	return "/";
++}
++
++/**
+  * ccs_get_condition - Parse condition part.
+  *
+  * @param: Pointer to "struct ccs_acl_param".
+@@ -1991,7 +2035,7 @@
+ 	struct ccs_argv *argv = NULL;
+ 	struct ccs_envp *envp = NULL;
+ 	struct ccs_condition e = { };
+-	char * const start_of_string = param->data;
++	char * const start_of_string = ccs_get_transit_preference(param, &e);
+ 	char * const end_of_string = start_of_string + strlen(start_of_string);
+ 	char *pos;
+ rerun:
+@@ -2163,6 +2207,7 @@
+ 		+ e.envc * sizeof(struct ccs_envp);
+ 	entry = ccs_malloc(e.size);
+ 	*entry = e;
++	e.transit = NULL;
+ 	condp = (struct ccs_condition_element *) (entry + 1);
+ 	numbers_p = (struct ccs_number_union *) (condp + e.condc);
+ 	names_p = (struct ccs_name_union *) (numbers_p + e.numbers_count);
+@@ -2189,7 +2234,8 @@
+ 		ccs_del_condition(&entry->head.list);
+ 		free(entry);
+ 	}
+-	return NULL;
++	ccs_put_name(e.transit);
++ 	return NULL;
+ }
+ 
+ /**
+@@ -2234,6 +2280,18 @@
+ 		new_entry->cond = ccs_get_condition(param);
+ 		if (!new_entry->cond)
+ 			return -EINVAL;
++		/*
++		 * Domain transition preference is allowed for only 
++		 * "file execute"/"task auto_execute_handler"/
++		 * "task denied_auto_execute_handler" entries.
++		 */
++		if (new_entry->cond->exec_transit &&
++		    !(new_entry->type == CCS_TYPE_PATH_ACL &&
++		      container_of(new_entry, struct ccs_path_acl, head)->perm
++		      == 1 << CCS_TYPE_EXECUTE) &&
++		    new_entry->type != CCS_TYPE_AUTO_EXECUTE_HANDLER &&
++		    new_entry->type != CCS_TYPE_DENIED_EXECUTE_HANDLER)
++			goto out;
+ 	}
+ 	list_for_each_entry(entry, list, list) {
+ 		if (!ccs_same_acl_head(entry, new_entry) ||
+@@ -2252,6 +2310,7 @@
+ 		list_add_tail(&entry->list, list);
+ 		error = 0;
+ 	}
++out:
+ 	ccs_put_condition(new_entry->cond);
+ 	return error;
+ }
+@@ -3993,6 +4052,8 @@
+ 		(typeof(argv)) (names_p + cond->names_count);
+ 	const struct ccs_envp *envp = (typeof(envp)) (argv + cond->argc);
+ 	u16 i;
++	if (cond->transit && cond->exec_transit)
++		cprintf(" %s", cond->transit->name);
+ 	for (i = 0; i < condc; i++) {
+ 		const u8 match = condp->equals;
+ 		const u8 left = condp->left;
+@@ -4037,7 +4098,7 @@
+ 	if (cond->grant_log != CCS_GRANTLOG_AUTO)
+ 		cprintf(" grant_log=%s",
+ 			ccs_yesno(cond->grant_log == CCS_GRANTLOG_YES));
+-	if (cond->transit)
++	if (cond->transit && !cond->exec_transit)
+ 		cprintf(" auto_domain_transition=\"%s\"",
+ 			cond->transit->name);
+ }
