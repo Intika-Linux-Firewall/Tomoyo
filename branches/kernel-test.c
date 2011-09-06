@@ -133,6 +133,54 @@ static void delete_domain_policy(const char *policy)
 	}
 }
 
+static _Bool find_child_domain_policy(const char *policy)
+{
+	static FILE *fp = NULL;
+	if (!fp)
+		fp = fopen2("/proc/ccs/domain_policy", "a+");
+	fseek(fp, 0, SEEK_SET);
+	fprintf(fp, "select domain=</kernel-test> /bin/true\n");
+	fflush(fp);
+	fseek(fp, 0, SEEK_SET);
+	/* printf("Finding <%s>\n", policy); */
+	while (1) {
+		char *line = freadline(fp);
+		if (!line)
+			break;
+		/* printf("Read <%s>\n", line); */
+		if (strcmp(line, policy))
+			continue;
+		return 1;
+	}
+	return 0;
+}
+
+static void write_child_domain_policy(const char *policy)
+{
+	static FILE *fp = NULL;
+	if (!fp)
+		fp = fopen2("/proc/ccs/domain_policy", "a");
+	fprintf(fp, "select </kernel-test> /bin/true\n%s\n", policy);
+	fflush(fp);
+	if (!find_child_domain_policy(policy)) {
+		fprintf(stderr, "Can't write domain policy: %s\n", policy);
+		exit(1);
+	}
+}
+
+static void delete_child_domain_policy(const char *policy)
+{
+	static FILE *fp = NULL;
+	if (!fp)
+		fp = fopen2("/proc/ccs/domain_policy", "a");
+	fprintf(fp, "select </kernel-test> /bin/true\ndelete %s\n", policy);
+	fflush(fp);
+	if (find_child_domain_policy(policy)) {
+		fprintf(stderr, "Can't delete domain policy: %s\n", policy);
+		exit(1);
+	}
+}
+
 static void write_bad_domain_policy(const char *policy)
 {
 	static FILE *fp = NULL;
@@ -266,7 +314,7 @@ static void init_policy(int argc)
 		}
 		fclose(fp);
 	}
-#if 1//ndef TOMOYO_2
+#if 1 //#ifndef TOMOYO_2
 	{
 		FILE *fp1 = fopen2("/proc/ccs/domain_policy", "a");
 		FILE *fp2 = fopen2("/proc/ccs/self_domain", "a");
@@ -276,6 +324,9 @@ static void init_policy(int argc)
 			"select pid=%u\n"
 			"task manual_domain_transition </kernel-test>\n",
 			getpid());
+		fprintf(fp1, "</kernel-test> /bin/true\n"
+			"use_profile 128\n"
+			"use_group 64\n");
 		fflush(fp1);
 		fprintf(fp2, "</kernel-test>\n");
 		fflush(fp2);
@@ -317,7 +368,7 @@ static void init_policy(int argc)
 	write_profile("");
 }
 
-static void show_file_open(const char *prompt, int result,
+static void show_file_exec(const char *prompt, int result,
 			   _Bool should_success)
 {
 	const int err = errno;
@@ -337,6 +388,12 @@ static void show_file_open(const char *prompt, int result,
 			printf("BUG: didn't fail.\n");
 		}
 	}
+}
+
+static void show_file_open(const char *prompt, int result,
+			   _Bool should_success)
+{
+	show_file_exec(prompt, result, should_success);
 	if (result != EOF)
 		close(result);
 }
@@ -634,10 +691,10 @@ static void do_exec_test(void)
 				 j, buf);
 			policy = buffer;
 			write_domain_policy(policy);
-			show_file_open(policy, try_exec(argv, envp),
+			show_file_exec(policy, try_exec(argv, envp),
 				       i <= 4096 - 10 && j < 4);
 			delete_domain_policy(policy);
-			show_file_open(policy, try_exec(argv, envp), 0);
+			show_file_exec(policy, try_exec(argv, envp), 0);
 		}
 	}
 
@@ -659,10 +716,10 @@ static void do_exec_test(void)
 			 buf + k);
 		policy = buffer;
 		write_domain_policy(policy);
-		show_file_open(policy, try_exec(argv, envp),
+		show_file_exec(policy, try_exec(argv, envp),
 			       i <= 4096 - 10 - j);
 		delete_domain_policy(policy);
-		show_file_open(policy, try_exec(argv, envp), 0);
+		show_file_exec(policy, try_exec(argv, envp), 0);
 	}
 
 	memset(argv, 0, sizeof(argv));
@@ -683,11 +740,118 @@ static void do_exec_test(void)
 		envp[3] = buf;
 		policy = buffer;
 		write_domain_policy(policy);
-		show_file_open(policy, try_exec(argv, envp),
+		show_file_exec(policy, try_exec(argv, envp),
 			       i <= 4096 - 10 - 1);
 		delete_domain_policy(policy);
-		show_file_open(policy, try_exec(argv, envp), 0);
+		show_file_exec(policy, try_exec(argv, envp), 0);
 	}
+}
+
+static void do_env_test(void)
+{
+	const char *policy;
+	char *argv[2] = { "/bin/true", NULL };
+	char *envp[16];
+	char buffer[16384];
+	char buf[4100];
+	int i;
+	int j;
+	int k;
+
+	memset(envp, 0, sizeof(envp));
+	memset(buffer, 0, sizeof(buffer));
+	memset(buf, 0, sizeof(buf));
+	memmove(buf, "ENV=", 4);
+	envp[0] = buf;
+	for (i = 4050; i < sizeof(buf) - 1 - 4; i++) {
+		memset(buf + 4, 'a', i);
+		snprintf(buffer, sizeof(buffer) - 1,
+			 "misc env ENV exec.envp[\"ENV\"]=\"%s\"", buf + 4);
+		policy = buffer;
+		write_child_domain_policy(policy);
+		delete_child_domain_policy(policy);
+		write_child_domain_policy(policy);
+		show_file_exec(policy, try_exec(argv, envp), i <= 4096 - 10 - 4);
+		delete_child_domain_policy(policy);
+		show_file_exec(policy, try_exec(argv, envp), 0);
+	}
+
+	memset(buffer, 0, sizeof(buffer));
+	memset(buf, 0, sizeof(buf));
+	j = strlen("name\\040and\\040value=");
+	k = snprintf(buf, sizeof(buf) - 1, "name and value=");
+	for (i = 4050; i < sizeof(buf) - 1 - k; i++) {
+		memset(buf + k, 'a', i);
+		envp[0] = buf;
+		envp[1] = buf;
+		envp[2] = buf;
+		envp[3] = buf;
+		snprintf(buffer, sizeof(buffer) - 1, "misc env "
+			 "name\\040and\\040value "
+			 "exec.envp[\"name\\040and\\040value\"]=\"%s\"",
+			 buf + k);
+		policy = buffer;
+		write_child_domain_policy(policy);
+		show_file_exec(policy, try_exec(argv, envp),
+			       i <= 4096 - 10 - j);
+		delete_child_domain_policy(policy);
+		show_file_exec(policy, try_exec(argv, envp), 0);
+	}
+
+	memset(buffer, 0, sizeof(buffer));
+	memset(buf, 0, sizeof(buf));
+	argv[0] = "/bin/true";
+	for (i = 4050; i < sizeof(buf) - 2; i++) {
+		memset(buf, 'a', i);
+		buf[i] = '\0';
+		snprintf(buffer, sizeof(buffer) - 1, "misc env %s "
+			 "exec.envp[\"%s\"]=\"\"", buf, buf);
+		buf[i] = '=';
+		buf[i + 1] = '\0';
+		envp[0] = buf;
+		envp[1] = buf;
+		envp[2] = buf;
+		envp[3] = buf;
+		policy = buffer;
+		write_child_domain_policy(policy);
+		show_file_exec(policy, try_exec(argv, envp),
+			       i <= 4096 - 10 - 1);
+		delete_child_domain_policy(policy);
+		show_file_exec(policy, try_exec(argv, envp), 0);
+	}
+
+	memset(envp, 0, sizeof(envp));
+	envp[0] = "PWD=/tmp";
+	envp[1] = "OLDPWD=/";
+	policy = "misc env PWD";
+	write_child_domain_policy(policy);
+
+	policy = "misc env OLDPWD exec.envp[\"PWD\"]!=NULL";
+	write_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 1);
+	delete_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 0);
+
+	policy = "misc env OLDPWD exec.envp[\"PWD\"]=\"/tmp\"";
+	write_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 1);
+	delete_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 0);
+
+	policy = "misc env OLDPWD exec.envp[\"PWD\"]!=\"/tmp/\"";
+	write_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 1);
+	delete_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 0);
+
+	policy = "misc env PWD";
+	delete_child_domain_policy(policy);
+
+	policy = "misc env \\*PWD";
+	write_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 1);
+	delete_child_domain_policy(policy);
+	show_file_exec(policy, try_exec(argv, envp), 0);
 }
 
 int main(int argc, char *argv[])
@@ -702,5 +866,8 @@ int main(int argc, char *argv[])
 	write_profile("CONFIG::file::execute={ mode=enforcing }");
 	do_exec_test();
 	write_profile("CONFIG::file::execute={ mode=disabled }");
+	write_profile("CONFIG::misc::env={ mode=enforcing }");
+	do_env_test();
+	write_profile("CONFIG::misc::env={ mode=disabled }");
 	return 0;
 }
