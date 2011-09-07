@@ -394,6 +394,31 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <p>TOMOYO Linux provides a mechanism for querying external userland application when a policy violation in enforcing mode has occurred. You can implement a program like ccs-queryd and daemonize the program instead of ccs-editpolicy-agent .</p>
 
+<h3>Appendix: Hints for not embedding policy into the kernel</h3>
+
+<p>If you want not to embed policy files into your kernel by some reason, you can replace</p>
+
+<pre class="command">
+sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
+cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
+</pre>
+
+<p>with</p>
+
+<pre class="command">
+cat config.ccs &gt;&gt; .config
+</pre>
+
+<p>in Step 7. If you do so, you will need to copy /sbin/ccs-init (as a policy loader, and /system/bin/linker /lib/libc.so /lib/libm.so which /sbin/ccs-init depends on) into ramdisk image. (You cannot use symlinks to files in /system/ partition because /system/ partition is not yet mounted as of /sbin/ccs-init is executed.)</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/
+./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/sbin/ccs-init.c
+chmod 700 ccs-init
+</pre>
+
+<p>Also, please modify ccs-init.c as needed (for example, embed the content of $ANDROID_HOME/tmp/policy/*.conf into ccs-init.c) because it is designed to read policy files from /etc/ccs/ directory.</p>
+
 </div><!-- regular-content -->
 
 </div><!-- content -->
