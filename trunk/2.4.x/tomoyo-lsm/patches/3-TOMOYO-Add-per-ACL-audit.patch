@@ -54,7 +54,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		/* fall through */
  	case 3:
 +		if (cond->grant_log != TOMOYO_GRANTLOG_AUTO)
-+                        tomoyo_io_printf(head, " grant_log=%s",
++			tomoyo_io_printf(head, " grant_log=%s",
 +					 tomoyo_yesno(cond->grant_log ==
 +						      TOMOYO_GRANTLOG_YES));
  		tomoyo_set_lf(head);
@@ -68,12 +68,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 +/* Index numbers for audit type. */
 +enum tomoyo_grant_log {
-+        /* Follow profile's configuration. */
-+        TOMOYO_GRANTLOG_AUTO,
-+        /* Do not generate grant log. */
-+        TOMOYO_GRANTLOG_NO,
-+        /* Generate grant_log. */
-+        TOMOYO_GRANTLOG_YES,
++	/* Follow profile's configuration. */
++	TOMOYO_GRANTLOG_AUTO,
++	/* Do not generate grant log. */
++	TOMOYO_GRANTLOG_NO,
++	/* Generate grant_log. */
++	TOMOYO_GRANTLOG_YES,
 +};
 +
  /* Index numbers for group entries. */
