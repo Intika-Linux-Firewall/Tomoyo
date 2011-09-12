@@ -1,3 +1,35 @@
+Package: linux-image-2.6.32-5-686-ccs
+Priority: optional
+Section: kernel
+Installed-Size: 79576
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-source-2.6.32-5-686-ccs
+Version: 2.6.32-35squeeze2
+Provides: linux-image, linux-image-2.6
+Depends: coreutils (>= 5.96)
+Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
+Suggests: fdutils, linux-doc-2.6.32-5-686-ccs | linux-source-2.6.32-5-686-ccs, ksymoops, linux-image-2.6.32-5-686-ccs-dbg
+Filename: ./linux-image-2.6.32-5-686-ccs1.8.2p3_2.6.32-35squeeze2_i386.deb
+Size: 27717682
+MD5sum: afbb9ee04e2d549e097ec3e85b9ab77f
+SHA1: c940a02a9992fa2db7a244bf896006bbef7e9a29
+SHA256: 218ae01d8e161c0581f19457fcaecc24e463031bb4f273ef69f29a9f6bda6fe8
+Description: Linux kernel binary image for version 2.6.32-5-686-ccs
+ This package contains the Linux kernel image for version
+ 2.6.32-5-686-ccs.
+ .
+ It also contains the corresponding System.map file, and the modules
+ built by the packager.  It also contains scripts that try to ensure
+ that the system is not left in a unbootable state after an update.
+ .
+ Kernel image packages are generally produced using kernel-package,
+ and it is suggested that you install that package if you wish to
+ create a custom kernel from the sources. Please look at kernel-img.conf(5),
+ and /usr/share/doc/kernel-package/README.gz  from the package kernel-package
+ for details on how to tailor the  installation of this or any other kernel
+ image package
+
 Package: ccs-tools
 Priority: extra
 Section: alien
@@ -17,38 +49,6 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.81.)
 
-Package: linux-image-2.6.32-5-686-ccs
-Priority: optional
-Section: kernel
-Installed-Size: 79576
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-source-2.6.32-5-686-ccs
-Version: 2.6.32-35squeeze1
-Provides: linux-image, linux-image-2.6
-Depends: coreutils (>= 5.96)
-Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
-Suggests: fdutils, linux-doc-2.6.32-5-686-ccs | linux-source-2.6.32-5-686-ccs, ksymoops, linux-image-2.6.32-5-686-ccs-dbg
-Filename: ./linux-image-2.6.32-5-686-ccs1.8.2p3_2.6.32-35squeeze1_i386.deb
-Size: 27717576
-MD5sum: 0e14d5db0b00ab021e562c84aa9e9373
-SHA1: 976efb8aa9fbeb705e47c235fb33c7f011168129
-SHA256: 146d61010258fc6ccd5f79e2760981afb9a9a964710cb413fce9a54cb988539a
-Description: Linux kernel binary image for version 2.6.32-5-686-ccs
- This package contains the Linux kernel image for version
- 2.6.32-5-686-ccs.
- .
- It also contains the corresponding System.map file, and the modules
- built by the packager.  It also contains scripts that try to ensure
- that the system is not left in a unbootable state after an update.
- .
- Kernel image packages are generally produced using kernel-package,
- and it is suggested that you install that package if you wish to
- create a custom kernel from the sources. Please look at kernel-img.conf(5),
- and /usr/share/doc/kernel-package/README.gz  from the package kernel-package
- for details on how to tailor the  installation of this or any other kernel
- image package
-
 Package: linux-image-2.6-686-ccs
 Priority: optional
 Section: kernel
@@ -61,9 +61,9 @@ Provides: linux-latest-modules-2.6.32-5-686-ccs
 Depends: linux-image-2.6.32-5-686-ccs
 Filename: ./linux-image-2.6-686-ccs1.8.2p3_2.6.32+29_i386.deb
 Size: 4432
-MD5sum: 95abfcee5dd4e1aade5eb634d33c725b
-SHA1: cb21ad7deee99e6888d14f644ecfa17ba8562e33
-SHA256: a6fdf431f83212d09262eb9d3671ac3c336f2c0d3e56958659ae05fc7dd9d85c
+MD5sum: d41786bd8c98c3ca09cadae99e3d2758
+SHA1: fc37226f1afb350c2438b3a7648350aeaa685d57
+SHA256: 7a4c7a46d7e4aecdb73e8ffca4195f080430d78553d11462027027e6810a323d
 Description: Linux 2.6 for modern PCs (meta-package)
  This package depends on the latest Linux kernel 2.6 and modules for use on
  PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom;
@@ -77,16 +77,16 @@ Installed-Size: 46768
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-source-2.6.32-5-686-ccs
-Version: 2.6.32-35squeeze1
+Version: 2.6.32-35squeeze2
 Provides: linux-headers, linux-headers-2.6
 Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
 Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
 Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
-Filename: ./linux-headers-2.6.32-5-686-ccs1.8.2p3_2.6.32-35squeeze1_i386.deb
-Size: 6446054
-MD5sum: 345adb2c32017afb33f2572095b8c407
-SHA1: bceb361dafec3a100c97be2551fceed4ffcc84a8
-SHA256: 2ee65804d5a8a5752c43d67b1dfcc7b6e1ec55f3e303ba2d53799a832e4f8432
+Filename: ./linux-headers-2.6.32-5-686-ccs1.8.2p3_2.6.32-35squeeze2_i386.deb
+Size: 6450832
+MD5sum: 2bddc6a934aefb2cdeb3f9450cf141b6
+SHA1: 462fa94119e7a5b3b9f0f27b9fe30e84454c6233
+SHA256: d2896d718d7638fe04178cae72d179c9c7491c226d87b001bcc08c4a8cce2a73
 Description: Header files related to Linux kernel, specifically,
  version 2.6.32-5-686-ccs
  .
