@@ -281,10 +281,7 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_ACL_GROUP_253] = { "acl_group 253", NULL, 0, 0 },
 	[CCS_DIRECTIVE_ACL_GROUP_254] = { "acl_group 254", NULL, 0, 0 },
 	[CCS_DIRECTIVE_ACL_GROUP_255] = { "acl_group 255", NULL, 0, 0 },
-	[CCS_DIRECTIVE_ADDRESS_GROUP] = { "address_group", NULL, 0, 0 },
 	[CCS_DIRECTIVE_AGGREGATOR]    = { "aggregator", NULL, 0, 0 },
-	[CCS_DIRECTIVE_CAPABILITY]    = { "capability", NULL, 0, 0 },
-	[CCS_DIRECTIVE_DENY_AUTOBIND] = { "deny_autobind", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_APPEND]   = { "file append", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_CHGRP]    = { "file chgrp", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_CHMOD]    = { "file chmod", NULL, 0, 0 },
@@ -312,11 +309,7 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_FILE_WRITE]    = { "file write", NULL, 0, 0 },
 	[CCS_DIRECTIVE_INITIALIZE_DOMAIN]
 	= { "initialize_domain", NULL, 0, 0 },
-	[CCS_DIRECTIVE_IPC_SIGNAL]    = { "ipc signal", NULL, 0, 0 },
 	[CCS_DIRECTIVE_KEEP_DOMAIN]   = { "keep_domain", NULL, 0, 0 },
-	[CCS_DIRECTIVE_MISC_ENV]      = { "misc env", NULL, 0, 0 },
-	[CCS_DIRECTIVE_NETWORK_INET]  = { "network inet", NULL, 0, 0 },
-	[CCS_DIRECTIVE_NETWORK_UNIX]  = { "network unix", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NONE]          = { "", NULL, 0, 0 },
 	[CCS_DIRECTIVE_NO_INITIALIZE_DOMAIN]
 	= { "no_initialize_domain", NULL, 0, 0 },

@@ -149,19 +149,15 @@ $ su
 
 <h4><a name="3.2.1">3.2.1. バイナリパッケージが提供されているかどうか判断する</a></h4>
 
-<p>tomoyo-tools あるいは tomoyotools というパッケージが提供されており、そのバージョンが 2.4 である場合、それを利用することができます。インストールして <a href="#3.3">3.3. 設定の初期化</a>へと進んでください。</p>
+<p>tomoyo-tools あるいは tomoyotools というパッケージが提供されており、そのバージョンが 2.5 である場合、それを利用することができます。インストールして <a href="#3.3">3.3. 設定の初期化</a>へと進んでください。</p>
 
 <h4><a name="3.2.2">3.2.2. ツールをソースからコンパイルする</a></h4>
 
 <p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます。</p>
 
 <pre class="command">
-# wget -O tomoyo-tools-2.4.0-20110820.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz'
-# wget -O tomoyo-tools-2.4.0-20110820.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz.asc'
-# wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# gpg --import kumaneko-key
-# gpg tomoyo-tools-2.4.0-20110820.tar.gz.asc
-# tar -zxf tomoyo-tools-2.4.0-20110820.tar.gz
+# wget -O tomoyo-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/2.5.x/tomoyo-tools.tar.gz?root=tomoyo&amp;view=tar'
+# tar -zxf tomoyo-tools.tar.gz
 # make -C tomoyo-tools/ install
 </pre>
 
@@ -194,18 +190,7 @@ Creating configuration file for tomoyo-patternize ... OK
 Creating configuration file for tomoyo-notifyd ... OK
 </pre>
 
-<p>なお、 TOMOYO 2.4 用のポリシーと TOMOYO 2.5 用のポリシーとの間には互換性がありません。既に TOMOYO 2.4 用のポリシーを策定済みであっても、 /etc/tomoyo/ ディレクトリを削除（またはリネーム）してから上記のコマンドを実行する必要があります。さもないと、起動時にカーネルパニックに遭遇します。既に TOMOYO 2.4 用のポリシーを策定済みの場合、 /etc/tomoyo/profile.conf に以下の内容を追加することで再利用できるようになります（以下の例はプロファイル 0 ～ 3 という４種類を利用している場合です）：</p>
-
-<pre>
-0-CONFIG::network={ mode=disabled }
-0-CONFIG::misc={ mode=disabled }
-1-CONFIG::network={ mode=disabled }
-1-CONFIG::misc={ mode=disabled }
-2-CONFIG::network={ mode=disabled }
-2-CONFIG::misc={ mode=disabled }
-3-CONFIG::network={ mode=disabled }
-3-CONFIG::misc={ mode=disabled }
-</pre>
+<p>なお、 TOMOYO 2.3 用のポリシーと TOMOYO 2.5 用のポリシーとの間には互換性がありません。既に TOMOYO 2.3 用のポリシーを策定済みであっても、 /etc/tomoyo/ ディレクトリを削除（またはリネーム）してから上記のコマンドを実行する必要があります。さもないと、起動時にカーネルパニックに遭遇します。</p>
 
 <h3><a name="3.4">3.4. ブートローダの設定</a></h3>
 

@@ -1304,8 +1304,7 @@ static void ccs_read_generic_policy(void)
 				continue;
 			/* Remember groups for ccs_editpolicy_optimize(). */
 			if (directive != CCS_DIRECTIVE_PATH_GROUP &&
-			    directive != CCS_DIRECTIVE_NUMBER_GROUP &&
-			    directive != CCS_DIRECTIVE_ADDRESS_GROUP)
+			    directive != CCS_DIRECTIVE_NUMBER_GROUP)
 				break;
 			cp = ccs_strdup(line);
 			if (directive == CCS_DIRECTIVE_PATH_GROUP)
@@ -1313,8 +1312,6 @@ static void ccs_read_generic_policy(void)
 							  false);
 			else if (directive == CCS_DIRECTIVE_NUMBER_GROUP)
 				ccs_add_number_group_policy(cp, false);
-			else
-				ccs_add_address_group_policy(cp, false);
 			free(cp);
 			break;
 		case CCS_SCREEN_ACL_LIST:
@@ -1598,8 +1595,6 @@ static void ccs_parse_exception_line(const struct ccs_path_info *ns,
 	}
 	if (ccs_str_starts(line, "path_group "))
 		ccs_add_path_group_policy(ns, line, false);
-	else if (ccs_str_starts(line, "address_group "))
-		ccs_add_address_group_policy(line, false);
 	else if (ccs_str_starts(line, "number_group "))
 		ccs_add_number_group_policy(line, false);
 	else if (sscanf(line, "acl_group %u", &group) == 1 && group < 256) {

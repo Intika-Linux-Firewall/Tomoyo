@@ -181,7 +181,6 @@ static void clear_status(void)
 				"\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
-	/* fprintf(profile_fp, "255-PREFERENCE={ enforcing_penalty=1 }\n"); */
 	fprintf(profile_fp, "255-PREFERENCE={ max_learning_entry=2048 }\n");
 	fflush(profile_fp);
 	fclose(fp);
