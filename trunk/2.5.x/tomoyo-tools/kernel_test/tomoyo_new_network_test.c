@@ -82,24 +82,6 @@ static void show_result(int result, char should_success)
 	}
 }
 
-static void show_result2(int result)
-{
-	printf("%s : ", policy);
-	if (result == EOF) {
-		if (errno == EAGAIN)
-			printf("OK: Not ready.\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-	} else {
-		char c;
-		if (recv(result, &c, 1, MSG_DONTWAIT) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG\n");
-	}
-}
-
 static void stage_network_test(void)
 {
 	int i;
@@ -111,7 +93,6 @@ static void stage_network_test(void)
 		socklen_t size = sizeof(saddr);
 		int fd1 = socket(PF_INET, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET, SOCK_STREAM, 0);
-		int fd3 = EOF;
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 
@@ -156,17 +137,6 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
-		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream accept 127.0.0.1 %u-%u",
-			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		errno = 0;
-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
-		if (fd3 != EOF)
-			close(fd3);
-
 		close(fd2);
 		fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		snprintf(buffer, sizeof(buffer) - 1,
@@ -179,17 +149,6 @@ static void stage_network_test(void)
 			delete_policy();
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream accept "
-			 "127.0.0.0-127.255.255.255 %u-%u",
-			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
-		if (write_policy()) {
-			fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-			show_result(fd3, 1);
-			delete_policy();
-			if (fd3 != EOF)
-				close(fd3);
-		}
 
 		if (fd2 != EOF)
 			close(fd2);
@@ -253,7 +212,6 @@ static void stage_network_test(void)
 		socklen_t size = sizeof(saddr);
 		int fd1 = socket(PF_INET6, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET6, SOCK_STREAM, 0);
-		int fd3 = EOF;
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 
@@ -299,18 +257,6 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
-		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream accept ::1 %u-%u",
-			 ntohs(caddr.sin6_port) - 1,
-			 ntohs(caddr.sin6_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		errno = 0;
-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
-		if (fd3 != EOF)
-			close(fd3);
-
 		close(fd2);
 		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
 		snprintf(buffer, sizeof(buffer) - 1, "network inet stream "
@@ -323,19 +269,6 @@ static void stage_network_test(void)
 			delete_policy();
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet stream accept ::-::ff %u-%u",
-			 ntohs(caddr.sin6_port) - 1,
-			 ntohs(caddr.sin6_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		if (write_policy()) {
-			fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-			show_result(fd3, 1);
-			delete_policy();
-			if (fd3 != EOF)
-				close(fd3);
-		}
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 
 		if (fd2 != EOF)
 			close(fd2);
@@ -441,75 +374,6 @@ static void do_unix_bind_test(int i, int protocol, const char *proto_str,
 	}
 }
 
-static void do_unix_recv_test(int named, int should_success)
-{
-	struct {
-		unsigned short int family;
-		char address[512];
-	} buf = {
-		AF_UNIX
-	};
-	int fd1 = socket(PF_UNIX, SOCK_DGRAM, 0);
-	int fd2 = socket(PF_UNIX, SOCK_DGRAM, 0);
-	socklen_t size = sizeof(buf);
-	int ret;
-	int err;
-	printf("Testing network unix dgram recv (%s): ",
-	       should_success ? "should success" : "must fail");
-	errno = 0;
-	ret = bind(fd1, (struct sockaddr *) &buf.family, sizeof(buf.family));
-	err = errno;
-	if (ret) {
-		printf("Failed to bind(). %s\n", strerror(err));
-		goto out;
-	}
-	if (named) {
-		buf.address[0] = '\0';
-		snprintf(buf.address + 1, sizeof(buf.address) - 2,
-			 "named_unix_domain_socket");
-		ret = bind(fd2, (struct sockaddr *) &buf, 27);
-		err = errno;
-		if (ret) {
-			printf("Failed to bind(). %s\n", strerror(err));
-			goto out;
-		}
-	}
-	ret = getsockname(fd1, (struct sockaddr *) &buf, &size);
-	err = errno;
-	if (ret) {
-		printf("Failed to getsockname(). %s\n", strerror(err));
-		goto out;
-	}
-	ret = connect(fd2, (struct sockaddr *) &buf, size);
-	err = errno;
-	if (ret) {
-		printf("Failed to connect(). %s\n", strerror(err));
-		goto out;
-	}
-	ret = write(fd2, &buf, sizeof(buf));
-	err = errno;
-	if (ret != sizeof(buf)) {
-		printf("Failed to send(). %s\n", strerror(err));
-		goto out;
-	}
-	ret = recv(fd1, (char *) &buf, sizeof(buf), 0);
-	err = errno;
-	if (should_success) {
-		if (ret == EOF)
-			printf("Failed to recv(). %s\n", strerror(err));
-		else
-			printf("OK\n");
-	} else {
-		if (ret != EOF || err != EAGAIN)
-			printf("BUG! %s\n", strerror(err));
-		else
-			printf("OK: Permission denied.\n");
-	}
-out:
-	close(fd2);
-	close(fd1);
-}
-
 static void update_policy(int i, const char *proto_str, int is_delete)
 {
 	if (is_delete)
@@ -570,30 +434,6 @@ static void stage_unix_network_test(void)
 		}
 		set_profile(0, profile_str);
 	}
-	for (j = 0; j < 2; j++) {
-		profile_str = "network::unix_dgram_recv";
-		set_profile(0, profile_str);
-		do_unix_recv_test(j, 1);
-		set_profile(3, profile_str);
-		do_unix_recv_test(j, 0);
-		set_profile(2, profile_str);
-		do_unix_recv_test(j, 1);
-		set_profile(1, profile_str);
-		do_unix_recv_test(j, 1);
-		set_profile(3, profile_str);
-		do_unix_recv_test(j, 1);
-		fprintf(domain_fp, "delete ");
-		fprintf(domain_fp, "network unix dgram recv %s\n",
-			j ? "\\000named_unix_domain_socket" : "anonymous");
-		do_unix_recv_test(j, 0);
-		fprintf(domain_fp, "network unix dgram recv %s\n",
-			j ? "\\000named_unix_domain_socket" : "anonymous");
-		do_unix_recv_test(j, 1);
-		fprintf(domain_fp, "delete ");
-		fprintf(domain_fp, "network unix dgram recv %s\n",
-			j ? "\\000named_unix_domain_socket" : "anonymous");
-	}
-	set_profile(0, profile_str);
 }
 
 int main(int argc, char *argv[])
@@ -602,13 +442,10 @@ int main(int argc, char *argv[])
 	set_profile(3, "network::inet_stream_bind");
 	set_profile(3, "network::inet_stream_listen");
 	set_profile(3, "network::inet_stream_connect");
-	set_profile(3, "network::inet_stream_accept");
 	set_profile(3, "network::inet_dgram_bind");
 	set_profile(3, "network::inet_dgram_send");
-	set_profile(3, "network::inet_dgram_recv");
 	set_profile(3, "network::inet_raw_bind");
 	set_profile(3, "network::inet_raw_send");
-	set_profile(3, "network::inet_raw_recv");
 	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");
 	stage_network_test();
 	stage_unix_network_test();

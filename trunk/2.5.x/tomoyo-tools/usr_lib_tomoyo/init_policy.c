@@ -881,7 +881,7 @@ static void make_profile(void)
 	fprintf(stderr, "Creating default profile... ");
 	if (file_only_profile)
 		file_only = "::file";
-	fprintf(fp, "PROFILE_VERSION=20100903\n");
+	fprintf(fp, "PROFILE_VERSION=20110903\n");
 	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
 		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
 		"enforcing_penalty=%u }\n"
