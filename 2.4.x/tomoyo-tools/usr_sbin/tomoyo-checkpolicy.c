@@ -351,23 +351,6 @@ static _Bool ccs_check_domain(char *arg)
 	return ccs_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_capability(char *arg)
-{
-	static const char * const list[] = {
-		"use_route", "use_packet", "SYS_REBOOT", "SYS_VHANGUP",
-		"SYS_TIME", "SYS_NICE", "SYS_SETHOSTNAME", "use_kernel_module",
-		"SYS_KEXEC_LOAD", "SYS_PTRACE", NULL
-	};
-	int i;
-	char *cp = strchr(arg, ' ');
-	if (cp)
-		*cp++ = '\0';
-	for (i = 0; list[i]; i++)
-		if (!strcmp(arg, list[i]))
-			return ccs_prune_word(arg, cp);
-	return false;
-}
-
 static _Bool ccs_check_u8(char *arg)
 {
 	char *cp = strchr(arg, ' ');
@@ -375,17 +358,6 @@ static _Bool ccs_check_u8(char *arg)
 	if (cp)
 		*cp++ = '\0';
 	if (sscanf(arg, "%u", &value) != 1 || value >= 256)
-		return false;
-	return ccs_prune_word(arg, cp);
-}
-
-static _Bool ccs_check_u16(char *arg)
-{
-	char *cp = strchr(arg, ' ');
-	unsigned int value;
-	if (cp)
-		*cp++ = '\0';
-	if (sscanf(arg, "%u", &value) != 1 || value >= 65536)
 		return false;
 	return ccs_prune_word(arg, cp);
 }
@@ -420,70 +392,6 @@ static _Bool ccs_check_port(char *arg)
 		return false;
 	}
 	return ccs_prune_word(arg, cp);
-}
-
-
-static _Bool ccs_check_network(char *arg)
-{
-	static const struct {
-		const char *directive;
-		u8 flags;
-	} list[] = {
-		{ "bind", 1 },
-		{ "listen", 2 },
-		{ "connect", 2 },
-		{ "accept", 2 },
-		{ "send", 4 },
-		{ "recv", 4 },
-	};
-	_Bool inet;
-	u8 mask;
-	u8 flags = 0;
-	char *start = arg;
-	if (ccs_str_starts(arg, "inet "))
-		inet = true;
-	else if (ccs_str_starts(arg, "unix "))
-		inet = false;
-	else
-		return false;
-	if ((inet && ccs_str_starts(arg, "stream ")) ||
-	    (!inet && (ccs_str_starts(arg, "stream ") ||
-		       ccs_str_starts(arg, "seqpacket "))))
-		mask = 2;
-	else if ((inet && (ccs_str_starts(arg, "dgram ") ||
-			   ccs_str_starts(arg, "raw "))) ||
-		 (!inet && ccs_str_starts(arg, "dgram ")))
-		mask = 4;
-	else
-		return false;
-	while (1) {
-		u8 type;
-		while (ccs_str_starts(arg, "/"));
-		if (ccs_str_starts(arg, " "))
-			break;
-		for (type = 0; list[type].directive; type++) {
-			if (((list[type].flags | mask) & 6) == 6)
-				continue;
-			if (!ccs_str_starts(arg, list[type].directive))
-				continue;
-			flags |= list[type].flags;
-			break;
-		}
-		if (!list[type].directive) {
-			while (*arg && *arg != ' ' && *arg != '/')
-				arg++;
-			*arg = '\0';
-			goto out;
-		}
-	}
-	if (!flags)
-		goto out;
-	ccs_prune_word(start, arg);
-	return inet ? ccs_check_ip_address(start) && ccs_check_number(start) :
-		ccs_check_path(start);
-out:
-	return false;
-
 }
 
 static _Bool ccs_check_path_domain(char *arg)
@@ -602,15 +510,7 @@ static _Bool ccs_check_domain_policy2(char *policy)
 		_Bool (*arg1) (char *arg);
 		_Bool (*arg2) (char *arg);
 	} list[] = {
-		{ "capability ", ccs_check_capability },
 		{ "file ", ccs_check_file },
-		{ "ipc signal ", ccs_check_u16, ccs_check_domain },
-		{ "misc env ", ccs_check_path },
-		{ "network ", ccs_check_network },
-		{ "task auto_domain_transition ", ccs_check_domain },
-		{ "task auto_execute_handler ", ccs_check_path },
-		{ "task denied_execute_handler ", ccs_check_path },
-		{ "task manual_domain_transition ", ccs_check_domain },
 		{ }
 	};
 	for (type = 0; list[type].directive; type++) {
