@@ -50,7 +50,7 @@
 # service httpd start
 </pre>
 
-<p>Run the policy editor again <strong>without</strong> the "/etc/ccs/" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition Editor" screen.</p>
+<p>Run the policy editor again <strong>without</strong> the "/etc/tomoyo/" option so that the policy loaded by the kernel can be edited directly. If you are already running the policy editor, switch to the "Domain Transition Editor" screen.</p>
 
 <p>In CentOS 5.6, the location of Apache is "/usr/sbin/httpd".</p>
 
@@ -208,24 +208,24 @@ initialize_domain /usr/sbin/httpd from any
 <p>To save policy to disk, use the following command:</p>
 
 <pre class="command">
-# /usr/sbin/ccs-savepolicy
+# /usr/sbin/tomoyo-savepolicy
 </pre>
 
-<p>By executing <code>ccs-savepolicy</code>, four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/ccs/policy/YYYY-MM-DD.hh:mm:ss/" directory. ( YYYY-MM-DD.hh:mm:ss is current timestamp.)</p>
+<p>By executing <code>tomoyo-savepolicy</code>, four files ("exception_policy.conf", "domain_policy.conf", "profile.conf", "manager.conf") are created in the "/etc/tomoyo/policy/YYYY-MM-DD.hh:mm:ss/" directory. ( YYYY-MM-DD.hh:mm:ss is current timestamp.)</p>
 
-<p>To load the policy currently on the disk into the kernel, use the <code>ccs-loadpolicy</code> command:</p>
+<p>To load the policy currently on the disk into the kernel, use the <code>tomoyo-loadpolicy</code> command:</p>
 
 <pre class="command">
-# /usr/sbin/ccs-loadpolicy -df &lt; /etc/ccs/domain_policy.conf
-# /usr/sbin/ccs-loadpolicy -ef &lt; /etc/ccs/exception_policy.conf
-# /usr/sbin/ccs-loadpolicy -p &lt; /etc/ccs/profile.conf
-# /usr/sbin/ccs-loadpolicy -m &lt; /etc/ccs/manager.conf
+# /usr/sbin/tomoyo-loadpolicy -df &lt; /etc/tomoyo/domain_policy.conf
+# /usr/sbin/tomoyo-loadpolicy -ef &lt; /etc/tomoyo/exception_policy.conf
+# /usr/sbin/tomoyo-loadpolicy -p &lt; /etc/tomoyo/profile.conf
+# /usr/sbin/tomoyo-loadpolicy -m &lt; /etc/tomoyo/manager.conf
 </pre>
 
-<p>The <strong>"-df"</strong> option means overwrite "/proc/ccs/domain_policy".<br>
-The <strong>"-ef"</strong> option means overwrite "/proc/ccs/exception_policy".<br>
-The <strong>"-p"</strong> option means append to "/proc/ccs/profile".<br>
-The <strong>"-m"</strong> option means append to "/proc/ccs/manager".</p>
+<p>The <strong>"-df"</strong> option means overwrite "/sys/kernel/security/tomoyo/domain_policy".<br>
+The <strong>"-ef"</strong> option means overwrite "/sys/kernel/security/tomoyo/exception_policy".<br>
+The <strong>"-p"</strong> option means append to "/sys/kernel/security/tomoyo/profile".<br>
+The <strong>"-m"</strong> option means append to "/sys/kernel/security/tomoyo/manager".</p>
 
 <p>To make it harder for fatal mistakes to happen, "-pf" and "-mf" are not supported.</p>
 
@@ -239,7 +239,7 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 
 <p>This is a safeguard to prevent TOMOYO Linux from consuming all the memory available on the system. If "Learning Mode" did not have a limit, the system may become unusably slow due to comparison with already learned permissions. This limit can be increased with the <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> values in each of the profiles. However, care should be taken when increasing this value as this will require more memory. It is recommended to tune policy before increasing this value. Steps for tuning policy are described in the next chapter, and doing so can reduce the size of domain policy to become more manageable. You would then no longer need to increase the <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> value.</p>
 
-<p>The configuration file "/etc/ccs/stat.conf" can be used to specify quotas for memory usage:</p>
+<p>The configuration file "/etc/tomoyo/stat.conf" can be used to specify quotas for memory usage:</p>
 
 <pre>
 # Memory quota (byte). 0 means no quota.
@@ -251,7 +251,7 @@ Memory used by query message:  1048576
 <p>These settings can be loaded into kernel memory by running the following command:</p>
 
 <pre class="command">
-ccs-loadpolicy -s &lt; /etc/ccs/stat.conf
+tomoyo-loadpolicy -s &lt; /etc/tomoyo/stat.conf
 </pre>
 
 <p>It is important to set a limit on the "Memory used by policy", as the creation of domains consumes kernel memory. If enough domains are created, the system will run out of memory and crash. If a limit is set, the creation of new domains can be stopped before the system crashes. At the end of this guide after you have set up a complete policy, view how much memory is being used by policy in the "Statistics" screen. Use this information to set an appropriate limit, such as 25% more than the current memory being used. If you make many additions to policy or create many additional domains, this limit should be changed appropriately.</p>

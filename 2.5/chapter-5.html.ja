@@ -50,7 +50,7 @@
 # service httpd start
 </pre>
 
-<p>現在カーネル内に存在しているポリシーを直接編集するので、 /etc/ccs/ オプションを<strong>指定しないで</strong>ポリシーエディタを実行してください。既にポリシーエディタを実行中であれば、 Domain Transition 画面に切り替えてください。</p>
+<p>現在カーネル内に存在しているポリシーを直接編集するので、 /etc/tomoyo/ オプションを<strong>指定しないで</strong>ポリシーエディタを実行してください。既にポリシーエディタを実行中であれば、 Domain Transition 画面に切り替えてください。</p>
 
 <p>CentOS 5.6 では、 Apache プログラムパス名は /usr/sbin/httpd です。</p>
 
@@ -208,24 +208,24 @@ initialize_domain /usr/sbin/httpd from any
 <p>現在カーネル内のメモリに存在しているポリシーをディスク上に保存するには、以下のコマンドを実行します：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-savepolicy
+# /usr/sbin/tomoyo-savepolicy
 </pre>
 
-<p><code>ccs-savepolicy</code> を実行することにより、４個のファイル（ exception_policy.conf domain_policy.conf profile.conf manager.conf ）が /etc/ccs/policy/YYYY-MM-DD.hh:mm:ss/ ディレクトリ内に作成されます。（ YYYY-MM-DD.hh:mm:ss は現在時刻です。）</p>
+<p><code>tomoyo-savepolicy</code> を実行することにより、４個のファイル（ exception_policy.conf domain_policy.conf profile.conf manager.conf ）が /etc/tomoyo/policy/YYYY-MM-DD.hh:mm:ss/ ディレクトリ内に作成されます。（ YYYY-MM-DD.hh:mm:ss は現在時刻です。）</p>
 
-<p>ディスク上に保存されているポリシーをカーネル内のメモリに読み込ませるには、 <code>ccs-loadpolicy</code> コマンドを利用します：</p>
+<p>ディスク上に保存されているポリシーをカーネル内のメモリに読み込ませるには、 <code>tomoyo-loadpolicy</code> コマンドを利用します：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-loadpolicy -df &lt; /etc/ccs/domain_policy.conf
-# /usr/sbin/ccs-loadpolicy -ef &lt; /etc/ccs/exception_policy.conf
-# /usr/sbin/ccs-loadpolicy -p &lt; /etc/ccs/profile.conf
-# /usr/sbin/ccs-loadpolicy -m &lt; /etc/ccs/manager.conf
+# /usr/sbin/tomoyo-loadpolicy -df &lt; /etc/tomoyo/domain_policy.conf
+# /usr/sbin/tomoyo-loadpolicy -ef &lt; /etc/tomoyo/exception_policy.conf
+# /usr/sbin/tomoyo-loadpolicy -p &lt; /etc/tomoyo/profile.conf
+# /usr/sbin/tomoyo-loadpolicy -m &lt; /etc/tomoyo/manager.conf
 </pre>
 
-<p><strong>-df</strong> オプションは /proc/ccs/domain_policy を上書きします。<br>
-<strong>-ef</strong> オプションは /proc/ccs/exception_policy を上書きします。<br>
-<strong>-p</strong> オプションは /proc/ccs/profile に追記します。<br>
-<strong>-m</strong> オプションは /proc/ccs/manager に追記します。</p>
+<p><strong>-df</strong> オプションは /sys/kernel/security/tomoyo/domain_policy を上書きします。<br>
+<strong>-ef</strong> オプションは /sys/kernel/security/tomoyo/exception_policy を上書きします。<br>
+<strong>-p</strong> オプションは /sys/kernel/security/tomoyo/profile に追記します。<br>
+<strong>-m</strong> オプションは /sys/kernel/security/tomoyo/manager に追記します。</p>
 
 <p>致命的な操作ミスを防ぐために、 -pf および -mf というオプションはサポートされていません。</p>
 
@@ -239,7 +239,7 @@ WARNING: Domain '&lt;kernel&gt; /usr/sbin/httpd' has too many ACLs to hold. Stop
 
 <p>これは、 TOMOYO Linux が全てのメモリを消費してしまうのを予防するための安全装置です。もし、学習モードに対して制限が存在しない場合、学習モードにより学習されたポリシーとの比較処理のために使い物にならないくらい応答が遅くなってしまうかもしれません。この制限はプロファイルの <a href="chapter-9.html.ja#9.2.3">max_learning_entry</a> の値を増やすことで緩めることができます。しかし、 max_learning_entry の値を増やすとメモリ消費が増えるため、注意が必要です。 max_learning_entry の値を増やす前に、ポリシーのチューニングを行ってください。チューニングを行う手順は次章で紹介します。ポリシーのチューニングを行うことで、ドメインポリシーの量を減らして管理しやすくなり、 <a href="chapter-9.html.ja#9.2.3">max_learning_entry</a> の値を増やす必要性も解消できることが期待されます。</p>
 
-<p>メモリ使用量の上限は /etc/ccs/stat.conf で指定することができます：</p>
+<p>メモリ使用量の上限は /etc/tomoyo/stat.conf で指定することができます：</p>
 
 <pre>
 # Memory quota (byte). 0 means no quota.
@@ -251,7 +251,7 @@ Memory used by query message:  1048576
 <p>この設定は以下のコマンドを実行することでカーネル内に反映することができます：</p>
 
 <pre class="command">
-ccs-loadpolicy -s &lt; /etc/ccs/stat.conf
+tomoyo-loadpolicy -s &lt; /etc/tomoyo/stat.conf
 </pre>
 
 <p>ドメインを作成することでカーネル内のメモリを消費するため、 Memory used by policy の制限を行うことは重要です。もし、大量のドメインが作成された場合、メモリ不足に陥ってシステムがクラッシュしてしまうかもしれません。制限を行うことにより、システムがクラッシュしてしまう前に新しいドメインの作成を止めることができます。このガイドに従ってポリシーを完成させた後、 Statistics 画面でどれくらいのメモリを消費しているかを確認してください。そこで得られた情報を、上限（例えば現在の使用量＋２５％程度）を設定するための参考にしてください。大量のアクセス許可を追加したり大量のドメインを作成した場合には、この上限を適切に修正してください。</p>

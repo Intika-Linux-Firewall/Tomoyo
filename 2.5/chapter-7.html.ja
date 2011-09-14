@@ -64,10 +64,10 @@
 
 <img src="media/unix-penguin-rejected.png" alt="unix-penguin-rejected.png" title="This operation was rejected by policy." width="547" height="477">
 
-<p>確認モードと同様、 <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースからポリシー違反の発生回数と最後に発生した時刻について知ることができます：</p>
+<p>確認モードと同様、 <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> インタフェースからポリシー違反の発生回数と最後に発生した時刻について知ることができます：</p>
 
 <pre class="command">
-# cat /proc/ccs/stat
+# cat /sys/kernel/security/tomoyo/stat
 </pre>
 
 <pre class="output">
@@ -107,23 +107,23 @@ file read /bin/cat
 
 <h3><a name="7.2">7.2. 通知デーモン</a></h3>
 
-<p>ポリシー違反の発生を通知するために <code>ccs-notifyd</code> というデーモンプログラムが提供されています。 /etc/rc.local 等から /usr/sbin/ccs-notifyd を起動するようにしてください。</p>
+<p>ポリシー違反の発生を通知するために <code>tomoyo-notifyd</code> というデーモンプログラムが提供されています。 /etc/rc.local 等から /usr/sbin/tomoyo-notifyd を起動するようにしてください。</p>
 
-<p>通知方法は /etc/ccs/tools/notifyd.conf に記録されています。以下に初期設定を示します：</p>
+<p>通知方法は /etc/tomoyo/tools/notifyd.conf に記録されています。以下に初期設定を示します：</p>
 
 <pre>
-# This file contains configuration used by ccs-notifyd command.
+# This file contains configuration used by tomoyo-notifyd command.
 
-# ccs-notifyd is a daemon that notifies the occurrence of policy violation
+# tomoyo-notifyd is a daemon that notifies the occurrence of policy violation
 # in enforcing mode.
 #
 # time_to_wait is grace time in second before rejecting the request that
 # caused policy violation in enforcing mode. For example, if you specify
-# 30, you will be given 30 seconds for starting ccs-queryd command and
+# 30, you will be given 30 seconds for starting tomoyo-queryd command and
 # responding to the policy violation event.
-# If you specify non 0 value, you need to register ccs-notifyd command to
-# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to
-# behave as if ccs-queryd command is running.
+# If you specify non 0 value, you need to register tomoyo-notifyd command to
+# /sys/kernel/security/tomoyo/manager as well as tomoyo-queryd command, for tomoyo-notifyd needs to
+# behave as if tomoyo-queryd command is running.
 # Also, you should avoid specifying too large value (e.g. 3600) because
 # the request will remain pending for that period if you can't respond.
 #
@@ -161,11 +161,11 @@ file read /bin/cat
 #    The occurrence is notified by executing curl command.
 #
 time_to_wait 0
-action_to_take mail -s Notification\040from\040ccs-notifyd root@localhost
+action_to_take mail -s Notification\040from\040tomoyo-notifyd root@localhost
 minimal_interval 60
 </pre>
 
-<p>action_to_take 行を変更して <code>ccs-notifyd</code> を実行してください。</p>
+<p>action_to_take 行を変更して <code>tomoyo-notifyd</code> を実行してください。</p>
 
 <p>ポリシー違反が発生すると以下のようなメールが届くはずです。このメールの内容は、ヘッダにシリアルナンバーが付与されている点を除いてアクセスログと同一内容です：</p>
 
@@ -176,14 +176,14 @@ minimal_interval 60
 <pre class="output">
 Mail version 8.1 6/6/93.  Type ? for help.
 "/var/spool/mail/root": 1 messages 1 new
-&gt;N  1 root@localhost.local  Sun Dec 26 01:08  18/1211 "Notification from ccs-notifyd"
+&gt;N  1 root@localhost.local  Sun Dec 26 01:08  18/1211 "Notification from tomoyo-notifyd"
 &amp;
 Message 1:
 From root@localhost.localdomain  Sun Dec 26 01:08:35 2010
 Date: Sun, 26 Dec 2010 01:08:35 +0900
 From: root &lt;root@localhost.localdomain&gt;
 To: root@localhost.localdomain
-Subject: Notification from ccs-notifyd
+Subject: Notification from tomoyo-notifyd
 
 Q0-0
 #2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
@@ -193,7 +193,7 @@ file execute /bin/cat
 
 <h3><a name="7.3">7.3. ポリシー違反を対話的に処理する</a></h3>
 
-<p>強制モードで発生したポリシー違反は、 <code>ccs-queryd</code> を用いることで対話的に処理することができます。この機能は、ソフトウェアアップデート時に便利です。なぜなら、ソフトウェアのアップデートにより、以下の何れかの状況が発生した場合にポリシーを修正する必要が生じる場合があるからです：</p>
+<p>強制モードで発生したポリシー違反は、 <code>tomoyo-queryd</code> を用いることで対話的に処理することができます。この機能は、ソフトウェアアップデート時に便利です。なぜなら、ソフトウェアのアップデートにより、以下の何れかの状況が発生した場合にポリシーを修正する必要が生じる場合があるからです：</p>
 
 <ul>
 <li>ファイルのパス名が変化した場合 
@@ -203,25 +203,25 @@ file execute /bin/cat
 
 <p>学習モードを使ってポリシーを最初から再取得するのが理想です。しかし、一度強制モードでの運用を開始したシステムを強制モード以外に変更することは、アクセスが制限されていないドメインへの攻撃に対してシステム全体が無防備になってしまうため、望ましくありません。</p>
 
-<p>幸いなことに、 <code>ccs-queryd</code> を使うことで、管理者は強制モードでシステムを稼働させた状態のままポリシーの修正を行うことができます。ただし、この方法は、全てのケースに対応できるとは限らず、最適なポリシーであることを保証するものではありません。</p>
+<p>幸いなことに、 <code>tomoyo-queryd</code> を使うことで、管理者は強制モードでシステムを稼働させた状態のままポリシーの修正を行うことができます。ただし、この方法は、全てのケースに対応できるとは限らず、最適なポリシーであることを保証するものではありません。</p>
 
-<h4><a name="7.3.1">7.3.1. ccs-queryd の操作例</a></h4>
+<h4><a name="7.3.1">7.3.1. tomoyo-queryd の操作例</a></h4>
 
-<p>実際の <code>ccs-queryd</code> の操作手順について以下のムービーで紹介しています。また、以下にテキストでも示します：</p>
+<p>実際の <code>tomoyo-queryd</code> の操作手順について以下のムービーで紹介しています。また、以下にテキストでも示します：</p>
 
 <p><object data="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/t_jZZfmNKpc&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
 
-<p>ポリシーに違反したアクセス要求を処理するために <code>ccs-queryd</code> コマンドを利用します：</p>
+<p>ポリシーに違反したアクセス要求を処理するために <code>tomoyo-queryd</code> コマンドを利用します：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-queryd
+# /usr/sbin/tomoyo-queryd
 </pre>
 
 <pre class="output">
-Monitoring /proc/ccs/query . Press Ctrl-C to terminate.
+Monitoring /sys/kernel/security/tomoyo/query . Press Ctrl-C to terminate.
 </pre>
 
-<p>パッケージのアップデート中に、デーモンの再起動などのように普段行われない動作によりポリシー違反が発生するかもしれません。ポリシー違反が発生した場合、 <code>ccs-queryd</code> にプロンプトが表示されます：</p>
+<p>パッケージのアップデート中に、デーモンの再起動などのように普段行われない動作によりポリシー違反が発生するかもしれません。ポリシー違反が発生した場合、 <code>tomoyo-queryd</code> にプロンプトが表示されます：</p>
 
 <pre class="output">
 #2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
@@ -230,7 +230,7 @@ file execute /bin/sleep
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 
-<p>上記の例は、  &lt;kernel&gt; /etc/rc.d/init.d/sshd というドメインに属しているプロセスが <code>sleep 1</code> というコマンドラインを処理するために <code>/bin/sleep</code> の実行を要求したが、ポリシーによって拒否されたことを示しています。通常であればポリシーに違反したアクセス要求は直ちに拒否されますが、 <code>ccs-queryd</code> が動作しているため、カーネルはあなたの判断を仰いでいることを示しています：</p>
+<p>上記の例は、  &lt;kernel&gt; /etc/rc.d/init.d/sshd というドメインに属しているプロセスが <code>sleep 1</code> というコマンドラインを処理するために <code>/bin/sleep</code> の実行を要求したが、ポリシーによって拒否されたことを示しています。通常であればポリシーに違反したアクセス要求は直ちに拒否されますが、 <code>tomoyo-queryd</code> が動作しているため、カーネルはあなたの判断を仰いでいることを示しています：</p>
 
 <p><strong>Y</strong> を押すと許可します。<br>
 <strong>N</strong> を押すと拒否します。<br>
@@ -242,15 +242,15 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <p>このプログラムが動作している間は、ポリシーによって拒否されたアクセス要求は、あなたが応答するまで永遠に保留状態となりますので、ログアウトしないでください。プログラムが必要とするアクセス許可が与えられるようにするために、出力の監視を忘れないようにしてください。もし、アクセス許可の不足が検出された場合にはプロンプトが表示されます。ポリシーをのアップデートが完了したら、 Ctrl-C を入力して終了させてください。</p>
 
-<p>このプログラムはメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずに <code>ccs-savepolicy</code> を実行してポリシーを保存してください。</p>
+<p>このプログラムはメモリ上のポリシーを直接編集します。シャットダウンすると失われてしまいますので、忘れずに <code>tomoyo-savepolicy</code> を実行してポリシーを保存してください。</p>
 
 <pre class="command">
-# /usr/sbin/ccs-savepolicy
+# /usr/sbin/tomoyo-savepolicy
 </pre>
 
-<h4><a name="7.3.2">7.3.2. ccs-queryd の出力例</a></h4>
+<h4><a name="7.3.2">7.3.2. tomoyo-queryd の出力例</a></h4>
 
-<p>以下は <code>ccs-queryd</code> がどのような出力を行うかの例を示しています：</p>
+<p>以下は <code>tomoyo-queryd</code> がどのような出力を行うかの例を示しています：</p>
 
 <pre class="output">
 #2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }

@@ -33,7 +33,7 @@
 <div id="documentation">
 
 <div id="navheader">
-<p><a href="proc-interface.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="expression-rules.html.en">&lt;Next&gt;</a></p>
+<p><a href="securityfs-interface.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="expression-rules.html.en">&lt;Next&gt;</a></p>
 </div>
 
 <h2>Domain transition procedure</h2>
@@ -122,7 +122,7 @@ Otherwise, the execution is continued without domain transition after marking <a
 
 <p>If the domain has the <a href="domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> directive, the current process automatically transits to the specified domain whenever conditions specified in the conditional part are met. Note that this transition is checked for not only program execution requests but also all requests such as opening files.</p>
 
-<p>If the domain has the <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive and the current process wrote the domainname specified with the directive to <a href="proc-interface.html.en#self_domain">/proc/ccs/self_domain</a> interface, the current process transits to the specified domain.</p>
+<p>If the domain has the <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive and the current process wrote the domainname specified with the directive to <a href="securityfs-interface.html.en#self_domain">/sys/kernel/security/tomoyo/self_domain</a> interface, the current process transits to the specified domain.</p>
 
 <p>If the domain policy contains an ACL with auto_domain_transition="name" condition and the current process requested for an operation that matches the ACL, the current process transits to the child domain which the domainname is the concatenation of "the name of domain which the current process belongs to" and "name" specified by auto_domain_transition= condition part. Note that there is no warantee that the operation that matched the ACL succeeds even if domain transition taken place. Use with caution.</p>
 
@@ -135,7 +135,7 @@ Otherwise, the execution is continued without domain transition after marking <a
 <table>
 <tr>
 <td class="docs-previous">
-<a href="proc-interface.html.en">Prev</a>
+<a href="securityfs-interface.html.en">Prev</a>
 </td>
 <td class="docs-index">
 <a href="index.html.en">Index</a>
@@ -146,7 +146,7 @@ Otherwise, the execution is continued without domain transition after marking <a
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>A1: The /proc/ccs/ interface</p>
+<p>A1: The /sys/kernel/security/tomoyo/ interface</p>
 </td>
 <td class="docs-home">
 <a href="../index.html.en">Main Index</a>

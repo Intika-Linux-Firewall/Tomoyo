@@ -82,7 +82,7 @@ int main(int raw_argc, char *raw_argv[])
 	char **argv;
 	char **envp;
 	{ /* Check that I'm an execute handler process.  */
-		int fd = open("/proc/ccs/.execute_handler", O_RDONLY);
+		int fd = open("/sys/kernel/security/tomoyo/.execute_handler", O_RDONLY);
 		close(fd);
 		if (fd == EOF) {
 			fprintf(stderr, "FATAL: I'm not execute_handler.\n");
@@ -160,24 +160,24 @@ int main(int raw_argc, char *raw_argv[])
 <p><a href="chapter-3.html.en">Install TOMOYO Linux</a> and run below commandline in order to initialize TOMOYO Linux.</p>
 
 <pre class="command">
-# /usr/lib/ccs/init_policy
+# /usr/lib/tomoyo/init_policy
 </pre>
 
 <p>Then, please do below operations before you reboot using TOMOYO Linux kernel.</p>
 
-<p>Append below line to /etc/ccs/exception_policy.conf in order to initialize domain transition when /usr/sbin/sshd is executed.</p>
+<p>Append below line to /etc/tomoyo/exception_policy.conf in order to initialize domain transition when /usr/sbin/sshd is executed.</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<p>Append below line to /etc/ccs/exception_policy.conf in order to suppress domain transition after login shell which is executed by SSH server.</p>
+<p>Append below line to /etc/tomoyo/exception_policy.conf in order to suppress domain transition after login shell which is executed by SSH server.</p>
 
 <pre>
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 
-<p>Append below lines to /etc/ccs/domain_policy.conf so that program execution requests from login shell which is executed by SSH server are passed to /bin/record_cmdline .</p>
+<p>Append below lines to /etc/tomoyo/domain_policy.conf so that program execution requests from login shell which is executed by SSH server are passed to /bin/record_cmdline .</p>
 
 <pre>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash

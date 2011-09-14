@@ -11,8 +11,8 @@
 <!-- .\" Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 NTT DATA Corporation. -->
 <!-- .\" -->
 <!-- .\" You may distribute under the terms of the GNU General Public -->
-<!-- .\" License as specified in the file COPYING.ccs that comes with the -->
-<!-- .\" ccs-tools source tarball. -->
+<!-- .\" License as specified in the file COPYING.tomoyo that comes with the -->
+<!-- .\" tomoyo-tools source tarball. -->
 <!-- .\" -->
 <!-- .TH "INIT_POLICY" "8" "April 2011" "init_policy 1.8.1" "System Administration Utilities" -->
 <CENTER>
@@ -87,7 +87,7 @@ Set the default group number for the "&lt;kernel&gt;" domain to the specified in
 <B>--max_audit_log=&lt;integer&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Set the default maximal audit log entries that the kernel will spool in the <I>/proc/ccs/audit</I> interface. This value must be an integer, and can be set to 0 if audit logs are not required. Maximum memory used can also be controlled via the <I>/proc/ccs/stat</I> interface.
+Set the default maximal audit log entries that the kernel will spool in the <I>/sys/kernel/security/tomoyo/audit</I> interface. This value must be an integer, and can be set to 0 if audit logs are not required. Maximum memory used can also be controlled via the <I>/sys/kernel/security/tomoyo/stat</I> interface.
 <!-- .sp -->
 <P>
 [default=1024]
@@ -98,7 +98,7 @@ Set the default maximal audit log entries that the kernel will spool in the <I>/
 <B>--max_learning_entry=&lt;integer&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to "0" if you do not wawnt to make use of the learning mode. Maximum memory used can also be controlled using the <I>/proc/ccs/stat</I> interface.
+Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to "0" if you do not wawnt to make use of the learning mode. Maximum memory used can also be controlled using the <I>/sys/kernel/security/tomoyo/stat</I> interface.
 <!-- .sp -->
 <P>
 [default=2048]
@@ -139,7 +139,7 @@ Set whether reject logs should be audited. This value can be either "yes" or "no
 <!-- .B Initialize policy: -->
 <B>Initialize policy:</B> <!-- .nf -->
 <PRE>
-/usr/lib/ccs/init_policy
+/usr/lib/tomoyo/init_policy
 <!-- .fi -->
 </PRE>
 <!-- .SH "NOTES" -->
@@ -191,7 +191,7 @@ Other contributers:
 <BLOCKQUOTE>
 <!-- .PP -->
 <P>
-<B>ccs-init</B>(8)
+<B>tomoyo-init</B>(8)
 <!-- .sp -->
 <P>
 See <A HREF="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</A> for more information.

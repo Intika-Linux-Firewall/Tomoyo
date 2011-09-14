@@ -44,10 +44,10 @@
 
 <p>パターン化は、使い捨てのパス名が利用されるテンポラリファイルへの対処を行うのに有効です。以下に紹介する手順で対処することもできますし、ポリシーエディタを用いて対話的に対処することもできます。対話的に対処する手順の詳細については<a href="tool-editpolicy.html.ja#make_pattern">アクセス許可をパターン化する</a>を参照してください。</p>
 
-<p><code>ccs-findtemp</code> コマンドを利用して、テンポラリファイルの可能性があるパス名を抽出します：</p>
+<p><code>tomoyo-findtemp</code> コマンドを利用して、テンポラリファイルの可能性があるパス名を抽出します：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
+# /usr/sbin/tomoyo-findtemp &lt; /sys/kernel/security/tomoyo/domain_policy
 </pre>
 <pre class="output">
 /tmp/RsACr8YD
@@ -65,10 +65,10 @@
 
 <p>最初に、どのようなパターンを利用するかを決めます。この例では、ランダムな文字列が使用されていると考えられます。そのため、 / 以外の任意の１文字に一致する <strong>\?</strong> と / 以外の任意の０文字以上に一致する <strong>\*</strong> が妥当だと考えられます。詳細についてはパターンの表記規則を参照してください。詳細については<a href="policy-specification/expression-rules.html.ja#wildcard">パターンの表記規則</a>を参照してください。</p>
 
-<p><code>ccs-patternize</code> コマンドを利用して、非対話的にパターン化処理を行うことができます。パターン化の規則は /etc/ccs/tools/patternize.conf に記録されています。以下に初期設定を示します：</p>
+<p><code>tomoyo-patternize</code> コマンドを利用して、非対話的にパターン化処理を行うことができます。パターン化の規則は /etc/tomoyo/tools/patternize.conf に記録されています。以下に初期設定を示します：</p>
 
 <pre>
-# This file contains rewriting rules used by ccs-patternize command.
+# This file contains rewriting rules used by tomoyo-patternize command.
 
 # Domain policy consists with domain declaration lines (which start with
 # '&lt;' ,) and acl declaration lines (which do not start with '&lt;' ).
@@ -121,11 +121,11 @@ rewrite path_pattern pipefs:/[\$]
 
 # Files on / partition.
 rewrite tail_pattern /etc/mtab~\$
-rewrite tail_pattern /etc/ccs/policy/\*/domain_policy.conf
-rewrite tail_pattern /etc/ccs/policy/\*/exception_policy.conf
-rewrite tail_pattern /etc/ccs/policy/\*/manager.conf
-rewrite tail_pattern /etc/ccs/policy/\*/profile.conf
-rewrite tail_pattern /etc/ccs/policy/\*/
+rewrite tail_pattern /etc/tomoyo/policy/\*/domain_policy.conf
+rewrite tail_pattern /etc/tomoyo/policy/\*/exception_policy.conf
+rewrite tail_pattern /etc/tomoyo/policy/\*/manager.conf
+rewrite tail_pattern /etc/tomoyo/policy/\*/profile.conf
+rewrite tail_pattern /etc/tomoyo/policy/\*/
 
 # Files on /tmp/ partition.
 rewrite tail_pattern /vte\?\?\?\?\?\?
@@ -161,19 +161,19 @@ rewrite tail_pattern /spool/abrt/pyhook-\*/\{\*\}/
 <strong>head_pattern</strong> ディレクティブはパス名の前方一致をチェックします。<br>
 <strong>tail_pattern</strong> ディレクティブはパス名の後方一致をチェックします。</p>
 
-<p>/tmp/Rs\?\?\?\?\?\? および /var/spool/clientmqueue/\* というパターンを /etc/ccs/tools/patternize.conf に追加してください：</p>
+<p>/tmp/Rs\?\?\?\?\?\? および /var/spool/clientmqueue/\* というパターンを /etc/tomoyo/tools/patternize.conf に追加してください：</p>
 
 <pre>
 rewrite tail_pattern /tmp/Rs\?\?\?\?\?\?
 rewrite tail_pattern /var/spool/clientmqueue/\*
 </pre>
 
-<p>その後、 <code>ccs-patternize</code> コマンドを利用してパターン化を行い、 <code>ccs-diffpolicy</code> コマンドを利用して結果を比較してください：</p>
+<p>その後、 <code>tomoyo-patternize</code> コマンドを利用してパターン化を行い、 <code>tomoyo-diffpolicy</code> コマンドを利用して結果を比較してください：</p>
 
 <pre class="command">
-# ccs-savepolicy -d &gt; /tmp/old
-# ccs-patternize &lt; /tmp/old &gt; /tmp/new
-# ccs-diffpolicy /tmp/old /tmp/new
+# tomoyo-savepolicy -d &gt; /tmp/old
+# tomoyo-patternize &lt; /tmp/old &gt; /tmp/new
+# tomoyo-diffpolicy /tmp/old /tmp/new
 </pre>
 <pre class="output">
 &lt;kernel&gt; /usr/sbin/httpd
@@ -231,23 +231,23 @@ file ioctl pipefs:/[\$] 0x5413
 delete file ioctl pipefs:/[11965] 0x5413
 </pre>
 
-<p>意図したとおりに変換されていない場合には、テキストエディタを利用して /tmp/new を直接編集しても構いませんし、 /etc/ccs/tools/patternize.conf を更新してから再度パターン化を行っても構いません。</p>
+<p>意図したとおりに変換されていない場合には、テキストエディタを利用して /tmp/new を直接編集しても構いませんし、 /etc/tomoyo/tools/patternize.conf を更新してから再度パターン化を行っても構いません。</p>
 
 <p>意図したとおりに変換された場合には、差分をカーネル内に読み込ませることで反映することができます：</p>
 
 <pre class="command">
-# ccs-diffpolicy /tmp/old /tmp/new | /usr/sbin/ccs-loadpolicy -d
+# tomoyo-diffpolicy /tmp/old /tmp/new | /usr/sbin/tomoyo-loadpolicy -d
 </pre>
 
-<p>特定のドメインだけを対象に変換処理を行いたい場合、 <code>ccs-selectpolicy</code> コマンドを利用して特定のドメインのドメインポリシーだけを抽出することができます。例えば、 &lt;kernel&gt; /usr/sbin/httpd ドメインとその子孫ドメインだけを対象にパターン化処理を行いたい場合には、以下のように実行してください：</p>
+<p>特定のドメインだけを対象に変換処理を行いたい場合、 <code>tomoyo-selectpolicy</code> コマンドを利用して特定のドメインのドメインポリシーだけを抽出することができます。例えば、 &lt;kernel&gt; /usr/sbin/httpd ドメインとその子孫ドメインだけを対象にパターン化処理を行いたい場合には、以下のように実行してください：</p>
 
 <pre class="command">
-# ccs-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' &lt; /proc/ccs/domain_policy &gt; /tmp/old-httpd
-# ccs-patternize &lt; /tmp/old-httpd &gt; /tmp/new-httpd
-# ccs-diffpolicy /tmp/old-httpd /tmp/new-httpd | ccs-loadpolicy -d
+# tomoyo-selectpolicy -r '&lt;kernel&gt; /usr/sbin/httpd' &lt; /sys/kernel/security/tomoyo/domain_policy &gt; /tmp/old-httpd
+# tomoyo-patternize &lt; /tmp/old-httpd &gt; /tmp/new-httpd
+# tomoyo-diffpolicy /tmp/old-httpd /tmp/new-httpd | tomoyo-loadpolicy -d
 </pre>
 
-<p>また、 /etc/ccs/tools/patternize.conf を編集することでも特定のドメインだけを対象に変換処理を行わせることができます。以下の行を rewite 行の前に挿入することで、 &lt;kernel&gt; /usr/sbin/httpd ドメインとその子孫ドメインだけを対象にパターン化処理を行わせることができます：</p>
+<p>また、 /etc/tomoyo/tools/patternize.conf を編集することでも特定のドメインだけを対象に変換処理を行わせることができます。以下の行を rewite 行の前に挿入することで、 &lt;kernel&gt; /usr/sbin/httpd ドメインとその子孫ドメインだけを対象にパターン化処理を行わせることができます：</p>
 
 <pre>
 domain.starts &lt;kernel&gt; /usr/sbin/httpd
@@ -318,7 +318,7 @@ path_group WEB-CONTENTS /var/www/html/\{\*\}/\*.jpg
 file read @WEB-CONTENTS
 </pre>
 
-<p>上記の変換処理は <code>ccs-editpolicy</code> を利用して行うことができますが、 <code>ccs-patternize</code> を利用して行うこともできます。上記のように path_group を例外ポリシーに追加し（ ccs-patternize はドメインポリシーしか扱わないので例外ポリシーへの追加は手作業で行う必要があります）、以下の内容を /etc/ccs/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
+<p>上記の変換処理は <code>tomoyo-editpolicy</code> を利用して行うことができますが、 <code>tomoyo-patternize</code> を利用して行うこともできます。上記のように path_group を例外ポリシーに追加し（ tomoyo-patternize はドメインポリシーしか扱わないので例外ポリシーへの追加は手作業で行う必要があります）、以下の内容を /etc/tomoyo/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -381,7 +381,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 network inet stream accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS
 </pre>
 
-<p>上記の変換処理は <code>ccs-editpolicy</code> を利用して行うことができますが、 <code>ccs-patternize</code> を利用して行うこともできます。上記のように number_group を例外ポリシーに追加し、以下の内容を /etc/ccs/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
+<p>上記の変換処理は <code>tomoyo-editpolicy</code> を利用して行うことができますが、 <code>tomoyo-patternize</code> を利用して行うこともできます。上記のように number_group を例外ポリシーに追加し、以下の内容を /etc/tomoyo/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -440,7 +440,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 network inet stream accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </pre>
 
-<p>上記の変換処理は <code>ccs-editpolicy</code> を利用して行うことができますが、 <code>ccs-patternize</code> を利用して行うこともできます。上記のように address_group を例外ポリシーに追加し、以下の内容を /etc/ccs/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
+<p>上記の変換処理は <code>tomoyo-editpolicy</code> を利用して行うことができますが、 <code>tomoyo-patternize</code> を利用して行うこともできます。上記のように address_group を例外ポリシーに追加し、以下の内容を /etc/tomoyo/tools/patternize.conf に追加後、 <a href="#6.1">6.1. テンポラリファイルをパターン化する</a>と同様の手順を行ってください：</p>
 
 <pre>
 domain.equals &lt;kernel&gt; /usr/sbin/httpd
@@ -468,10 +468,10 @@ rewrite address_pattern 10.0.0.1-10.0.0.255 @WEB-CLIENT-ADDRESS
 
 <img src="media/operation-permissive.png" alt="operation-permissive.png" title="Check that Apache has appropriate permissions." width="575" height="475">
 
-<p><a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> からポリシー違反の発生回数と最後に発生した時刻について知ることができます：</p>
+<p><a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> からポリシー違反の発生回数と最後に発生した時刻について知ることができます：</p>
 
 <pre class="command">
-# cat /proc/ccs/stat
+# cat /sys/kernel/security/tomoyo/stat
 </pre>
 <pre class="output">
 Policy update:                              1571 (Last: 2010/12/25 16:10:48)
@@ -589,10 +589,10 @@ file read /etc/group
 file read /etc/group
 </pre>
 
-<p>これらのログは、 <code>ccs-sortpolicy</code> コマンドを使って圧縮することができます：</p>
+<p>これらのログは、 <code>tomoyo-sortpolicy</code> コマンドを使って圧縮することができます：</p>
 
 <pre class="command">
-# cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy
+# cat /var/log/tomoyo/reject_002.log | /usr/sbin/tomoyo-sortpolicy
 </pre>
 <pre class="output">
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh
@@ -631,18 +631,18 @@ network unix stream connect /var/run/setrans/.setrans-unix
 use_group 0
 </pre>
 
-<p>圧縮されたログをテンポラリファイルとして保存し、必要に応じて加工してから、 <code>ccs-loadpolicy</code> コマンドを用いてドメインポリシーに追加することができます：</p>
+<p>圧縮されたログをテンポラリファイルとして保存し、必要に応じて加工してから、 <code>tomoyo-loadpolicy</code> コマンドを用いてドメインポリシーに追加することができます：</p>
 
 <pre class="command">
-# cat /var/log/tomoyo/reject_002.log | /usr/sbin/ccs-sortpolicy &gt; ~/rejected.log
+# cat /var/log/tomoyo/reject_002.log | /usr/sbin/tomoyo-sortpolicy &gt; ~/rejected.log
 # vim ~/rejected.log
-# /usr/sbin/ccs-loadpolicy -d &lt; ~/rejected.log
+# /usr/sbin/tomoyo-loadpolicy -d &lt; ~/rejected.log
 </pre>
 
 <p>カーネル内のメモリに存在しているポリシーを直接編集しているため、ディスク上に保存せずにシャットダウンすると変更内容は失われてしまいます。以下のコマンドを実行して exception_policy.conf domain_policy.conf profile.conf manager.conf をディスク上に保存してください：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-savepolicy
+# /usr/sbin/tomoyo-savepolicy
 </pre>
 
 </div><!-- documentation -->

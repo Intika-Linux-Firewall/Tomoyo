@@ -57,22 +57,22 @@
 
 <p>Let's have a look at the policy editor to get a better understanding of domains. This is the main tool used with TOMOYO Linux and it is important to become comfortable using it. The instructions on this page can be supplemented with this page describing <a href="tool-editpolicy.html.en">How to use the Policy Editor</a>.</p>
 
-<p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with the "/etc/ccs/" option to edit policy files within the "/etc/ccs/" directory:</p>
+<p>Once the system has been rebooted into the TOMOYO Linux kernel, run the policy editor with the "/etc/tomoyo/" option to edit policy files within the "/etc/tomoyo/" directory:</p>
 
 <pre class="command">
-# /usr/sbin/ccs-editpolicy /etc/ccs/
+# /usr/sbin/tomoyo-editpolicy /etc/tomoyo/
 </pre>
 
 <p>The policy editor provides a number of "screens" that each serve a different role. The default screen that greets the user is the <strong>"Domain Transition Editor"</strong>. The picture below describes the domain tree that should be visible after running the above command. As of now, only the "&lt;kernel&gt;" domain is defined:</p>
 
 <img src="media/editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" title="Only one domain is defined" width="675" height="375">
 
-<p>Since this is a newly initialized policy, the policy files in "/etc/ccs/" are empty. <strong>There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/ccs/"</strong>. Many sets of policies can be saved to "/etc/ccs/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in later. Press the "q" key to quit the policy editor.</p>
+<p>Since this is a newly initialized policy, the policy files in "/etc/tomoyo/" are empty. <strong>There are two sets of policy involved in TOMOYO Linux: policy loaded in the kernel, and policy saved to "/etc/tomoyo/"</strong>. Many sets of policies can be saved to "/etc/tomoyo/" and can be loaded into the kernel at boot or on demand. Saving policy to disk will be discussed in later. Press the "q" key to quit the policy editor.</p>
 
-<p>Now run the policy editor again <strong>without</strong> the "/etc/ccs/" option in order to view the policy that is loaded in the kernel:</p>
+<p>Now run the policy editor again <strong>without</strong> the "/etc/tomoyo/" option in order to view the policy that is loaded in the kernel:</p>
 
 <pre class="command">
-# /usr/sbin/ccs-editpolicy
+# /usr/sbin/tomoyo-editpolicy
 </pre>
 
 <p>As the system runs, TOMOYO Linux will record the creation of new domains and add them to the tree. After running the above command, the domain tree should appear populated with all domains created since startup:</p>
@@ -286,12 +286,12 @@ Press the <strong>"?"</strong> key to view the available commands. Press the "?"
 </table>
 </div>
 
-<p><code>ccs-auditd</code> is a daemon program that reads from the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> interface and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/ccs-auditd" to "/etc/rc.local".</p>
+<p><code>tomoyo-auditd</code> is a daemon program that reads from the <a href="policy-specification/securityfs-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> interface and writes to specified log files. To make use of this daemon, it can for example be run by adding "/usr/sbin/tomoyo-auditd" to "/etc/rc.local".</p>
 
-<p>The configuration of this daemon is done in the "/etc/ccs/tools/auditd.conf" file. Text read from the <a href="policy-specification/proc-interface.html.en#audit">/proc/ccs/audit</a> can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
+<p>The configuration of this daemon is done in the "/etc/tomoyo/tools/auditd.conf" file. Text read from the <a href="policy-specification/securityfs-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> can be sorted and sent to different files. Some useful defaults exist, but an advanced user can make use of extensive sorting rules to make administration easier. The default configuration file looks like this:</p>
 
 <pre>
-# This file contains sorting rules used by ccs-auditd command.
+# This file contains sorting rules used by tomoyo-auditd command.
 
 # An audit log consists with three lines. You can refer the first line
 # using 'header' keyword, the second line using 'domain' keyword, and the
@@ -363,9 +363,9 @@ destination     /var/log/tomoyo/reject_003.log
 }
 </pre>
 
-<p>If audit logs are not required, <code>ccs-auditd</code> need not be run. In this case, give <a href="chapter-9.html.en#9.2.3">PREFERENCE={ max_audit_log=0 }</a> for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
+<p>If audit logs are not required, <code>tomoyo-auditd</code> need not be run. In this case, give <a href="chapter-9.html.en#9.2.3">PREFERENCE={ max_audit_log=0 }</a> for profiles to save memory and improve performance. While the use of audit logs can be delayed until a domain has been switched to "Enforcing Mode", it is recommended to store "access rejected logs" at this point for the development of fine-grained policy.</p>
 
-<p>Distributers may wish to create daemon or service to be included with the package. It is very simple to do so, as such a daemon would only need to run a single command: <code>/usr/sbin/ccs-auditd</code>. If you are using systemd, create "/lib/systemd/system/ccs-auditd.service" with the following contents:</p>
+<p>Distributers may wish to create daemon or service to be included with the package. It is very simple to do so, as such a daemon would only need to run a single command: <code>/usr/sbin/tomoyo-auditd</code>. If you are using systemd, create "/lib/systemd/system/tomoyo-auditd.service" with the following contents:</p>
 
 <pre>
 [Unit]
@@ -373,7 +373,7 @@ Description=TOMOYO Linux Auditing Daemon
 
 [Service]
 Type=forking
-ExecStart=/usr/sbin/ccs-auditd
+ExecStart=/usr/sbin/tomoyo-auditd
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
