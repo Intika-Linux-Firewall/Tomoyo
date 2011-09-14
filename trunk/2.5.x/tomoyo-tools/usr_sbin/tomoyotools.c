@@ -2244,9 +2244,9 @@ unpack:
 }
 
 /**
- * ccs_check_remote_host - Check whether the remote host is running with the TOMOYO 2.4 kernel or not.
+ * ccs_check_remote_host - Check whether the remote host is running with the TOMOYO 2.5 kernel or not.
  *
- * Returns true if running with TOMOYO 2.4 kernel, false otherwise.
+ * Returns true if running with TOMOYO 2.5 kernel, false otherwise.
  */
 _Bool ccs_check_remote_host(void)
 {
@@ -2256,7 +2256,7 @@ _Bool ccs_check_remote_host(void)
 	FILE *fp = ccs_open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &major, &minor, &rev) < 2 ||
-	    major != 2 || minor != 4) {
+	    major != 2 || minor != 5) {
 		const u32 ip = ntohl(ccs_network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),
