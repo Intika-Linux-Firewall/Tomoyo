@@ -149,19 +149,15 @@ $ su
 
 <h4><a name="3.2.1">3.2.1. Determine if binary packages are provided</a></h4>
 
-<p>If your repository provides tomoyo-tools or tomoyotools package, and the package's version is 2.4, you can use that package. Install and proceed to <a href="#3.3">3.3. Initialize configuration</a>.</p>
+<p>If your repository provides tomoyo-tools or tomoyotools package, and the package's version is 2.5, you can use that package. Install and proceed to <a href="#3.3">3.3. Initialize configuration</a>.</p>
 
 <h4><a name="3.2.2">3.2.2. Install tools from source</a></h4>
 
 <p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
 
 <pre class="command">
-# wget -O tomoyo-tools-2.4.0-20110820.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz'
-# wget -O tomoyo-tools-2.4.0-20110820.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz.asc'
-# wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# gpg --import kumaneko-key
-# gpg tomoyo-tools-2.4.0-20110820.tar.gz.asc
-# tar -zxf tomoyo-tools-2.4.0-20110820.tar.gz
+# wget -O tomoyo-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/2.5.x/tomoyo-tools.tar.gz?root=tomoyo&amp;view=tar'
+# tar -zxf tomoyo-tools.tar.gz
 # make -C tomoyo-tools/ install
 </pre>
 
@@ -194,18 +190,7 @@ Creating configuration file for tomoyo-patternize ... OK
 Creating configuration file for tomoyo-notifyd ... OK
 </pre>
 
-<p>Note that the policy configuration is not compatible between TOMOYO 2.4 and TOMOYO 2.5. If policy has been developed for TOMOYO 2.3 then the "/etc/tomoyo/" directory needs to be deleted or renamed, otherwise there will be a kernel panic on the next boot. If policy has been developed for TOMOYO 2.4 then you can reuse policy by appending below lines to /etc/tomoyo/profile.conf (below example assumes you have defined profile 0 - 3):</p>
-
-<pre>
-0-CONFIG::network={ mode=disabled }
-0-CONFIG::misc={ mode=disabled }
-1-CONFIG::network={ mode=disabled }
-1-CONFIG::misc={ mode=disabled }
-2-CONFIG::network={ mode=disabled }
-2-CONFIG::misc={ mode=disabled }
-3-CONFIG::network={ mode=disabled }
-3-CONFIG::misc={ mode=disabled }
-</pre>
+<p>Note that the policy configuration is not compatible between TOMOYO 2.3 and TOMOYO 2.5. If policy has been developed for TOMOYO 2.3 then the "/etc/tomoyo/" directory needs to be deleted or renamed, otherwise there will be a kernel panic on the next boot.</p>
 
 <h3><a name="3.4">3.4. Configure bootloader</a></h3>
 
