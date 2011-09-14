@@ -72,7 +72,7 @@ int main(int raw_argc, char *raw_argv[])
 	char **argv;
 	char **envp;
 	{ /* Check that I'm an execute handler process.  */
-		int fd = open("/proc/ccs/.execute_handler", O_RDONLY);
+		int fd = open("/sys/kernel/security/tomoyo/.execute_handler", O_RDONLY);
 		close(fd);
 		if (fd == EOF) {
 			fprintf(stderr, "FATAL: I'm not execute_handler.\n");
@@ -138,18 +138,18 @@ SendEnv CERBERUS
 <p><a href="chapter-3.html.ja">TOMOYO Linux をインストール</a>してから、以下のコマンドを実行して初期設定を行ってください。</p>
 
 <pre class="command">
-# /usr/lib/ccs/init_policy
+# /usr/lib/tomoyo/init_policy
 </pre>
 
 <p>その後、 TOMOYO Linux カーネルで再起動する前に以下の操作を行ってください。</p>
 
-<p>/usr/sbin/sshd が実行された場合にはドメイン遷移が初期化されるようにするために、 /etc/ccs/exception_policy.conf に以下の内容を追加します。</p>
+<p>/usr/sbin/sshd が実行された場合にはドメイン遷移が初期化されるようにするために、 /etc/tomoyo/exception_policy.conf に以下の内容を追加します。</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<p>/usr/sbin/sshd からのプログラムの実行要求が /bin/env_chk に渡されるようにするために、 /etc/ccs/domain_policy.conf に以下の内容を追加します。</p>
+<p>/usr/sbin/sshd からのプログラムの実行要求が /bin/env_chk に渡されるようにするために、 /etc/tomoyo/domain_policy.conf に以下の内容を追加します。</p>
 
 <pre>
 &lt;kernel&gt; /usr/sbin/sshd<br>

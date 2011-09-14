@@ -77,20 +77,20 @@
 <p>ポリシーエディタは以下のように実行することができます：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-editpolicy
+# /usr/sbin/tomoyo-editpolicy
 </pre>
 
 <p>以下のオプションをコマンドラインに指定することができます。</p>
 
 <h3>1.1. <a name="policy_directory">ポリシーディレクトリの指定</a></h3>
 
-<p>ポリシーエディタはデフォルトで /proc/ccs/ ディレクトリにあるポリシーを編集します。</p>
+<p>ポリシーエディタはデフォルトで /sys/kernel/security/tomoyo/ ディレクトリにあるポリシーを編集します。</p>
 
 <div class="simple-table">
 <table>
 <tr><th><p>指定</p></th><th><p>意味</p></th></tr>
 <tr><td><p>$ipaddress:$port</p></td><td><p>$ipaddress という IPv4 アドレスを持つホストのポート $port で待機しているポリシー編集エージェントプロセスに接続します。</p></td></tr>
-<tr><td><p>/$path/$to/$directory</p></td><td><p>/$path/$to/$directory ディレクトリ内の policy/current/ ディレクトリにあるポリシーファイルを編集します。通常は /etc/ccs/ を指定します。</p></td></tr>
+<tr><td><p>/$path/$to/$directory</p></td><td><p>/$path/$to/$directory ディレクトリ内の policy/current/ ディレクトリにあるポリシーファイルを編集します。通常は /etc/tomoyo/ を指定します。</p></td></tr>
 </table>
 </div>
 
@@ -102,31 +102,31 @@
 <table>
 <tr><th><p>指定</p></th><th><p>意味</p></th></tr>
 <tr><td><p>e</p></td><td><p><a name="exception_policy_editor">Exception Policy Editor 画面</a></p>
-<img src="editpolicy/exception_policy.png" alt="exception_policy.png" title="Screen for editing /proc/ccs/exception_policy" width="720" height="400">
-<p>この画面は /proc/ccs/exception_policy を編集するために使用します。</p>
+<img src="editpolicy/exception_policy.png" alt="exception_policy.png" title="Screen for editing /sys/kernel/security/tomoyo/exception_policy" width="720" height="400">
+<p>この画面は /sys/kernel/security/tomoyo/exception_policy を編集するために使用します。</p>
 </td></tr>
 <tr><td><p>d</p></td><td><p><a name="domain_transition_editor">Domain Transition Editor 画面</a></p>
-<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /proc/ccs/domain_policy" width="720" height="400">
-<p>この画面は /proc/ccs/domain_policy を編集するために使用します。<br>
+<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
+<p>この画面は /sys/kernel/security/tomoyo/domain_policy を編集するために使用します。<br>
 <strong>１行目</strong>には現在表示されている画面の名前と定義されているドメインの数が表示されます。<br>
 <strong>２行目</strong>はメッセージ表示領域です。<br>
 <strong>３行目</strong>はカーソルのある行のドメイン名が表示されます。<br>
 <strong>４行目</strong>以降には定義されているドメインの一覧が表示されます。</p>
 </td></tr>
-<tr><td><p>p</p></td><td><p><a name="profile_editor">Profile Editor 画面</a></p><img src="editpolicy/profile.png" alt="profile.png" title="Screen for editing /proc/ccs/profile" width="720" height="400">
-<p>この画面は /proc/ccs/profile を編集するために使用します。</p>
+<tr><td><p>p</p></td><td><p><a name="profile_editor">Profile Editor 画面</a></p><img src="editpolicy/profile.png" alt="profile.png" title="Screen for editing /sys/kernel/security/tomoyo/profile" width="720" height="400">
+<p>この画面は /sys/kernel/security/tomoyo/profile を編集するために使用します。</p>
 </td></tr>
 <tr><td><p>m</p></td><td><p><a name="manager_policy_editor">Manager Policy Editor 画面</a></p>
-<img src="editpolicy/manager.png" alt="manager.png" title="Screen for editing /proc/ccs/manager" width="720" height="400">
-<p>この画面は /proc/ccs/manager を編集するために使用します。</p>
+<img src="editpolicy/manager.png" alt="manager.png" title="Screen for editing /sys/kernel/security/tomoyo/manager" width="720" height="400">
+<p>この画面は /sys/kernel/security/tomoyo/manager を編集するために使用します。</p>
 </td></tr>
 <tr><td><p>n</p></td><td><p><a name="namespace_selector">Namespace Selector 画面</a></p>
 <img src="editpolicy/namespace.png" alt="namespace.png" title="Screen for selecting namespace" width="720" height="400">
 <p>この画面は名前空間を選択するために使用します。</p>
 </td></tr>
 <tr><td><p>s</p></td><td><p><a name="statistics">Statistics 画面</a></p>
-<img src="editpolicy/stat.png" alt="stat.png" title="Screen for editing /proc/ccs/stat" width="720" height="400">
-<p>この画面は /proc/ccs/stat を編集するために使用します。</p>
+<img src="editpolicy/stat.png" alt="stat.png" title="Screen for editing /sys/kernel/security/tomoyo/stat" width="720" height="400">
+<p>この画面は /sys/kernel/security/tomoyo/stat を編集するために使用します。</p>
 </td></tr>
 </table>
 </div>
@@ -349,7 +349,7 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 
 <p>この画面は、 Domain Transition Editor 画面でカーソルをドメイン名に合わせてから、 Enter キーを押すあるいは w キーを押してから a キーを押すことで表示することができます。</p>
 
-<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
 <h3>3.2. <a name="make_pattern">アクセス許可をパターン化する</a></h3>
 
@@ -436,15 +436,15 @@ Statistics 画面では、選択されたエントリのクォータを設定し
 
 <p><a href="#domain_transition_editor">Domain Transition Editor</a> 画面でカーソルをドメイン名に合わせてから、 Enter キーを押す（あるいは w キーを押してから a キーを押す）と、 <a href="#domain_policy_editor">Domain Policy Editor</a> 画面に移動します。<a href="#domain_policy_editor">Domain Policy Editor</a> 画面で Enter キーを押す（あるいは w キーを押してから d キーを押す）と、 <a href="#domain_transition_editor">Domain Transition Editor</a> 画面に戻ります。</p>
 
-<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
-<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
 <h3>4.4. <a name="edit_acl_by_task">現在実行中のプロセスが属しているドメインのアクセス許可を編集する</a></h3>
 
 <p><a href="#domain_transition_editor">Domain Transition Editor</a> 画面で @ キーを押すと、 Process State Viewer 画面に移動します。この画面には、現在実行中のプロセスの一覧と、そのプロセスが属しているドメインの情報が <code>pstree</code> コマンドのように表示されます。カーソルをプロセスに合わせてから、 Enter キーを押す（あるいは w キーを押してから a キーを押す）と、 <a href="#domain_policy_editor">Domain Policy Editor</a> 画面に移動します。 Process State Viewer 画面で @ キーを押すと、 <a href="#domain_transition_editor">Domain Transition Editor</a> 画面に戻ります。</p>
 
-<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
 <img src="editpolicy/process_tree.png" alt="process_tree.png" title="List of runnig processes." width="720" height="400">
 

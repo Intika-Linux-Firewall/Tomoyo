@@ -36,11 +36,11 @@
 <p><a href="chapter-13.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="chapter-15.html.ja">&lt;次&gt;</a></p>
 </div>
 
-<h2>Chapter 14: Apache で mod_ccs モジュールを使用する</h2>
+<h2>Chapter 14: Apache で mod_tomoyo モジュールを使用する</h2>
 
-<h3><a name="14.1">14.1. mod_ccs モジュールについて</a></h3>
+<h3><a name="14.1">14.1. mod_tomoyo モジュールについて</a></h3>
 
-<p>mod_ccs は Apache に対してより詳細なアクセス制御を行うための Apache 2.x 向けのモジュールです。このモジュールはバーチャルホスト名や要求されたファイルのパス名などに応じて（外部のプログラムを実行することなく）ドメイン遷移を行います。そのため、バーチャルホストやＣＧＩプログラムに対して権限を分割することができるようになります。</p>
+<p>mod_tomoyo は Apache に対してより詳細なアクセス制御を行うための Apache 2.x 向けのモジュールです。このモジュールはバーチャルホスト名や要求されたファイルのパス名などに応じて（外部のプログラムを実行することなく）ドメイン遷移を行います。そのため、バーチャルホストやＣＧＩプログラムに対して権限を分割することができるようになります。</p>
 
 <h3><a name="14.2">14.2. モジュールのインストール</a></h3>
 
@@ -64,65 +64,65 @@
 
 <h4><a name="14.2.2">14.2.2. モジュールのダウンロード</a></h4>
 
-<p>mod_ccs モジュールのソースコードをダウンロードします：</p>
+<p>mod_tomoyo モジュールのソースコードをダウンロードします：</p>
 
 <pre class="command">
-# wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=5152&amp;root=tomoyo'
+# wget -O mod_tomoyo.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_tomoyo.c?revision=5152&amp;root=tomoyo'
 </pre>
 
-<p>mod_ccs モジュールをコンパイル／インストール／有効化します：</p>
+<p>mod_tomoyo モジュールをコンパイル／インストール／有効化します：</p>
 
 <h4><a name="14.2.3">14.2.3. モジュールのコンパイルとインストール</a></h4>
 
 <p><strong>RedHat 系の場合</strong></p>
 
 <pre class="command">
-# apxs -i -a -c mod_ccs.c
+# apxs -i -a -c mod_tomoyo.c
 </pre>
 
 <p><strong>Debian 系の場合</strong></p>
 
 <pre class="command">
-# apxs2 -i -a -c mod_ccs.c
+# apxs2 -i -a -c mod_tomoyo.c
 </pre>
 
 <p>正常に終了した場合， Apache の設定ファイルの中に以下のような指定が見つかるはずです：</p>
 
 <pre>
-LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
+LoadModule ccs_module /usr/lib/httpd/modules/mod_tomoyo.so
 </pre>
 
 <h3><a name="14.3">14.3. 設定</a></h3>
 
-<p>Apache の設定ファイルの中で CCS_TransitionMap ディレクティブを用いてパス名とドメイン名の対応表を指定することにより， mod_ccs モジュールは要求されたファイルのパス名に基づくドメイン遷移を行います。以下の例では /etc/hosts で www.tomoyo00.com 等のＩＰアドレスが登録されているものと仮定します：</p>
+<p>Apache の設定ファイルの中で CCS_TransitionMap ディレクティブを用いてパス名とドメイン名の対応表を指定することにより， mod_tomoyo モジュールは要求されたファイルのパス名に基づくドメイン遷移を行います。以下の例では /etc/hosts で www.tomoyo00.com 等のＩＰアドレスが登録されているものと仮定します：</p>
 
 <pre>
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-00
     ServerName www.tomoyo00.com
-    CCS_TransitionMap /etc/ccs/httpd-tomoyo00.conf
+    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo00.conf
 &lt;/VirtualHost&gt;
 
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-01
     ServerName www.tomoyo01.com
-    CCS_TransitionMap /etc/ccs/httpd-tomoyo01.conf
+    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo01.conf
 &lt;/VirtualHost&gt;
 
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-02
     ServerName www.tomoyo02.com
-    CCS_TransitionMap /etc/ccs/httpd-tomoyo02.conf
+    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo02.conf
 &lt;/VirtualHost&gt;
 
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-03
     ServerName www.tomoyo03.com
-    CCS_TransitionMap /etc/ccs/httpd-tomoyo03.conf
+    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo03.conf
 &lt;/VirtualHost&gt;
 </pre>
 
-<p>CCS_TransitionMap キーワードで指定されたファイルには，リクエストされたファイルのパス名と遷移先のドメイン名との対応表を定義しておきます。例えば、 /etc/ccs/httpd-tomoyo00.com には以下のように指定することができます：</p>
+<p>CCS_TransitionMap キーワードで指定されたファイルには，リクエストされたファイルのパス名と遷移先のドメイン名との対応表を定義しておきます。例えば、 /etc/tomoyo/httpd-tomoyo00.com には以下のように指定することができます：</p>
 
 <pre>
 /var/www/cgi-bin/\*         &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-programs
@@ -142,7 +142,7 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /static-
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
 </pre>
 
-<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では <a href="policy-specification/proc-interface.html.ja#self_domain">/proc/ccs/self_domain</a> への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /proc/ccs/self_domain への書き込みを認めるようにしてください． SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．以下の例は CentOS 5.6 では使えますが，それより古いバージョンでは使えないことがあります：</p>
+<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では <a href="policy-specification/securityfs-interface.html.ja#self_domain">/sys/kernel/security/tomoyo/self_domain</a> への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /sys/kernel/security/tomoyo/self_domain への書き込みを認めるようにしてください． SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．以下の例は CentOS 5.6 では使えますが，それより古いバージョンでは使えないことがあります：</p>
 
 <pre class="command">
 # cd /etc/selinux/
@@ -150,16 +150,16 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
 # semodule -i ccsecurity.pp
 </pre>
 
-<p>Apache を再起動してください。 Apache の起動時に <a href="policy-specification/proc-interface.html.ja#self_domain">/proc/ccs/self_domain</a> への書き込みができなかった場合、以下のようなエラーメッセージが表示されます：</p>
+<p>Apache を再起動してください。 Apache の起動時に <a href="policy-specification/securityfs-interface.html.ja#self_domain">/sys/kernel/security/tomoyo/self_domain</a> への書き込みができなかった場合、以下のようなエラーメッセージが表示されます：</p>
 
 <pre class="output">
-mod_ccs: Unable to open /proc/ccs/self_domain for writing. (errno = 13)
+mod_tomoyo: Unable to open /sys/kernel/security/tomoyo/self_domain for writing. (errno = 13)
 </pre>
 
 <p>また、 Apache のエラーログファイル（例えば /var/log/httpd/error_log ）にも記録されているかもしれません：</p>
 
 <pre class="output">
-[Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_ccs: Unable to open /proc/ccs/self_domain for writing.
+[Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_tomoyo: Unable to open /sys/kernel/security/tomoyo/self_domain for writing.
 </pre>
 
 <p>CCS_TransitionMap キーワードで指定されたファイルに問題があった場合、その他のエラーメッセージが表示されるかもしれません。</p>
@@ -177,7 +177,7 @@ print "&lt;TITLE&gt;test&lt;/TITLE&gt;\n";
 print "&lt;/HEAD&gt;\n";
 print "&lt;BODY&gt;\n";
 
-open(IN, "/proc/ccs/self_domain") || print "error";
+open(IN, "/sys/kernel/security/tomoyo/self_domain") || print "error";
 $domain = &lt;IN&gt;;
 $domain =~ s/&amp;/&amp;amp;/g;
 $domain =~ s/&lt;/&amp;lt;/g;

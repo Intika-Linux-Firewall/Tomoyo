@@ -40,10 +40,10 @@
 
 <h3><a name="8.1">8.1. Register applications</a></h3>
 
-<p>In order for a application or domain to modify policy in the <a href="policy-specification/proc-interface.html.en">/proc/ccs/</a> interface, it must be listed in <a href="policy-specification/proc-interface.html.en#manager">/proc/ccs/manager</a>. To register an application, you can for example run the following command:</p>
+<p>In order for a application or domain to modify policy in the <a href="policy-specification/securityfs-interface.html.en">/sys/kernel/security/tomoyo/</a> interface, it must be listed in <a href="policy-specification/securityfs-interface.html.en#manager">/sys/kernel/security/tomoyo/manager</a>. To register an application, you can for example run the following command:</p>
 
 <pre class="command">
-# echo "/usr/sbin/ccs-editpolicy" | /usr/sbin/ccs-loadpolicy -m
+# echo "/usr/sbin/tomoyo-editpolicy" | /usr/sbin/tomoyo-loadpolicy -m
 </pre>
 
 <h3><a name="8.2">8.2. Managing as non-root user</a></h3>
@@ -51,33 +51,33 @@
 <p>By default, only processes with UID=0 and EUID=0 (a.k.a. root user) are allowed to modify policy. In order to allow $USER user to modify policy, run this command:</p>
 
 <pre class="command">
-# echo "manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R $USER /proc/ccs/
+# echo "manage_by_non_root" | /usr/sbin/tomoyo-loadpolicy -m
+# chown -R $USER /sys/kernel/security/tomoyo/
 </pre>
 
 <p>This can be reversed by running this command:</p>
 
 <pre class="command">
-# echo "delete manage_by_non_root" | /usr/sbin/ccs-loadpolicy -m
-# chown -R root /proc/ccs/
+# echo "delete manage_by_non_root" | /usr/sbin/tomoyo-loadpolicy -m
+# chown -R root /sys/kernel/security/tomoyo/
 </pre>
 
-<p>If you want to have a separate user that is able to modify policy, the file "<code>/etc/ccs/ccs-post-init</code>" can be used. If this file exists, it is executed by <code>/sbin/ccs-init</code> at boot. To allow 'tomoyo' user to modify policy, create "<code>/etc/ccs/ccs-post-init</code>" with the following contents:</p>
+<p>If you want to have a separate user that is able to modify policy, the file "<code>/etc/tomoyo/tomoyo-post-init</code>" can be used. If this file exists, it is executed by <code>/sbin/tomoyo-init</code> at boot. To allow 'tomoyo' user to modify policy, create "<code>/etc/tomoyo/tomoyo-post-init</code>" with the following contents:</p>
 
 <pre>
 #! /bin/sh
-echo manage_by_non_root &gt; /proc/ccs/manager
-chown -R tomoyo /proc/ccs/
+echo manage_by_non_root &gt; /sys/kernel/security/tomoyo/manager
+chown -R tomoyo /sys/kernel/security/tomoyo/
 </pre>
 
 <p>Then, make this file executable and make policy directory readable/writable by 'tomoyo' user:</p>
 
 <pre class="command">
-# chmod 755 /etc/ccs/ccs-post-init
-# chown -R tomoyo /etc/ccs/
+# chmod 755 /etc/tomoyo/tomoyo-post-init
+# chown -R tomoyo /etc/tomoyo/
 </pre>
 
-<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="policy-specification/proc-interface.html.en#self_domain">the domain the process belongs to</a> until <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> has been reached.</p>
+<p>The exception to all of the above is for domains in "Learning Mode". Any of these domains can append access permissions to <a href="policy-specification/securityfs-interface.html.en#self_domain">the domain the process belongs to</a> until <a href="chapter-9.html.en#9.2.3">max_learning_entry</a> has been reached.</p>
 
 </div><!-- documentation -->
 

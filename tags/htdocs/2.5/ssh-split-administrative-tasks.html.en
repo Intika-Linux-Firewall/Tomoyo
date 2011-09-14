@@ -67,7 +67,7 @@ int main(int raw_argc, char *raw_argv[])
 	char **argv;
 	char **envp;
 	{ /* Check that I'm an execute handler process.  */
-		int fd = open("/proc/ccs/.execute_handler", O_RDONLY);
+		int fd = open("/sys/kernel/security/tomoyo/.execute_handler", O_RDONLY);
 		close(fd);
 		if (fd == EOF) {
 			fprintf(stderr, "FATAL: I'm not execute_handler.\n");
@@ -173,18 +173,18 @@ exit 1
 <p><a href="chapter-3.html.en">Install TOMOYO Linux</a> and run below commandline in order to initialize TOMOYO Linux.</p>
 
 <pre class="command">
-# /usr/lib/ccs/init_policy
+# /usr/lib/tomoyo/init_policy
 </pre>
 
 <p>Then, please do below operations before you reboot using TOMOYO Linux kernel.</p>
 
-<p>Append below line to /etc/ccs/exception_policy.conf in order to initialize domain transition when /usr/sbin/sshd is executed.</p>
+<p>Append below line to /etc/tomoyo/exception_policy.conf in order to initialize domain transition when /usr/sbin/sshd is executed.</p>
 
 <pre>
 initialize_domain /usr/sbin/sshd from any
 </pre>
 
-<p>Append below lines to /etc/ccs/domain_policy.conf so that program execution requests from /usr/sbin/sshd are passed to /bin/sshd_login .</p>
+<p>Append below lines to /etc/tomoyo/domain_policy.conf so that program execution requests from /usr/sbin/sshd are passed to /bin/sshd_login .</p>
 
 <pre>
 &lt;kernel&gt; /usr/sbin/sshd
@@ -200,7 +200,7 @@ task auto_execute_handler /bin/sshd_login
 <p>Change access control mode to learning mode by assigning profile 1 so that we can restrict operations from /bin/sshd_login .</p>
 
 <pre class="command">
-# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+# /usr/sbin/tomoyo-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
 </pre>
 
 <p>Access the SSH server. Please select 1 for the prompt shown by /bin/sshd_login and enter "webadmin" to the prompt shown by /bin/webadmin-auth . Now, the domain for "Web server administrator" was created as "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash".</p>
@@ -241,13 +241,13 @@ task auto_execute_handler /bin/sshd_login
 <p>Change access control mode to permissive mode by assigning profile 2 and verify that you can do operations you want to allow.</p>
 
 <pre class="command">
-# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+# /usr/sbin/tomoyo-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
 </pre>
 
 <p>Change access control mode to enforcing mode by assigning profile 3. Now, the operations are restricted.</p>
 
 <pre class="command">
-# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
+# /usr/sbin/tomoyo-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login'
 </pre>
 
 <h3>Explanation</h3>
@@ -258,7 +258,7 @@ task auto_execute_handler /bin/sshd_login
 
 <p>The role selection is applied after SSH authentication. Thus, operations without shell execution (e.g. TCP port forwarding) are permitted. If you want to restrict operations without shell execution, you need to develop policy for SSH server process and apply enforcing mode to the SSH server processes.</p>
 
-<p>Regarding within each domain, domain transition occurs whenever a program is executed. If you want to suppress domain transition within each domain,  you can append "keep_domain" lines (like shown below) to /etc/ccs/exception_policy.conf .</p>
+<p>Regarding within each domain, domain transition occurs whenever a program is executed. If you want to suppress domain transition within each domain,  you can append "keep_domain" lines (like shown below) to /etc/tomoyo/exception_policy.conf .</p>
 
 <pre>
 keep_domain any from &lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash

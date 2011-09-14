@@ -57,22 +57,22 @@
 
 <p>よりドメインについて理解するために、ポリシーエディタを見てみましょう。ポリシーエディタは TOMOYO Linux で使用する中心的なツールであり、使い方に慣れることが重要です。このページの説明を補足するものとして、<a href="tool-editpolicy.html.ja">ポリシーエディタの使い方</a>も参照してください。</p>
 
-<p>システムを TOMOYO Linux カーネルで起動させてから、（ /etc/ccs/ ディレクトリに存在しているポリシーファイルを編集するために） /etc/ccs/ というオプションを指定してポリシーエディタを実行してください：</p>
+<p>システムを TOMOYO Linux カーネルで起動させてから、（ /etc/tomoyo/ ディレクトリに存在しているポリシーファイルを編集するために） /etc/tomoyo/ というオプションを指定してポリシーエディタを実行してください：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-editpolicy /etc/ccs/
+# /usr/sbin/tomoyo-editpolicy /etc/tomoyo/
 </pre>
 
 <p>ポリシーエディタにはいくつもの画面が存在し、それぞれが異なる役割を提供しています。デフォルトで最初に表示される画面は <strong>Domain Transition Editor</strong> です。以下の画面は上記のコマンドを実行することで表示されるドメインのツリーです。現時点では &lt;kernel&gt; ドメインだけが定義されています：</p>
 
 <img src="media/editpolicy-domain-list1.png" alt="editpolicy-domain-list1.png" title="Only one domain is defined" width="675" height="375">
 
-<p>初期化されたばかりのポリシーであるため、 /etc/ccs/ ディレクトリに存在するポリシーファイルは空っぽです。<strong>TOMOYO Linux には２種類のポリシーのセットが存在しています：１つは現在カーネル内にロードされているポリシーのセットであり、もう１つは /etc/ccs/ ディレクトリ内に保存されているポリシーのセットです。</strong> /etc/ccs/ ディレクトリには複数のポリシーのセットを保存することができ、起動時または必要な時にカーネル内へと読み込ませることができます。ポリシーをディスクに保存する方法については後述します。 q キーを押してポリシーエディタを終了してください。</p>
+<p>初期化されたばかりのポリシーであるため、 /etc/tomoyo/ ディレクトリに存在するポリシーファイルは空っぽです。<strong>TOMOYO Linux には２種類のポリシーのセットが存在しています：１つは現在カーネル内にロードされているポリシーのセットであり、もう１つは /etc/tomoyo/ ディレクトリ内に保存されているポリシーのセットです。</strong> /etc/tomoyo/ ディレクトリには複数のポリシーのセットを保存することができ、起動時または必要な時にカーネル内へと読み込ませることができます。ポリシーをディスクに保存する方法については後述します。 q キーを押してポリシーエディタを終了してください。</p>
 
-<p>今度は、（現在カーネル内にロードされているポリシーを閲覧するために） /etc/ccs/ というオプションを<strong>指定しない</strong>でポリシーエディタを実行してください：</p>
+<p>今度は、（現在カーネル内にロードされているポリシーを閲覧するために） /etc/tomoyo/ というオプションを<strong>指定しない</strong>でポリシーエディタを実行してください：</p>
 
 <pre class="command">
-# /usr/sbin/ccs-editpolicy
+# /usr/sbin/tomoyo-editpolicy
 </pre>
 
 <p>システムが動作するにつれて、 TOMOYO Linux は新しいドメインが作成されたことを記録して、ドメインのツリーへと追加していきます。上記のコマンドを実行することにより、システム起動時から現在までに作成された全てのドメインを含むドメインのツリーが表示されます：</p>
@@ -286,12 +286,12 @@
 </table>
 </div>
 
-<p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> からアクセスログを読み出して指定されたログファイルに保存するために <code>ccs-auditd</code> というデーモンプログラムが提供されています。このデーモンプログラムを利用する場合、 /etc/rc.local 等に /usr/sbin/ccs-auditd という行を追加してください。</p>
+<p><a href="policy-specification/securityfs-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> からアクセスログを読み出して指定されたログファイルに保存するために <code>tomoyo-auditd</code> というデーモンプログラムが提供されています。このデーモンプログラムを利用する場合、 /etc/rc.local 等に /usr/sbin/tomoyo-auditd という行を追加してください。</p>
 
-<p>このデーモンの設定ファイルは /etc/ccs/tools/auditd.conf です。 <a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> から読みだされたアクセスログはこの設定ファイルの内容に従って振り分けが行われ、指定されたファイルへと書き出されます。幾つかの有用なデフォルトルールが定義されていますが、上級者はより管理しやすくするために様々なルールを定義することができます。以下に初期設定を示します：</p>
+<p>このデーモンの設定ファイルは /etc/tomoyo/tools/auditd.conf です。 <a href="policy-specification/securityfs-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> から読みだされたアクセスログはこの設定ファイルの内容に従って振り分けが行われ、指定されたファイルへと書き出されます。幾つかの有用なデフォルトルールが定義されていますが、上級者はより管理しやすくするために様々なルールを定義することができます。以下に初期設定を示します：</p>
 
 <pre>
-# This file contains sorting rules used by ccs-auditd command.
+# This file contains sorting rules used by tomoyo-auditd command.
 
 # An audit log consists with three lines. You can refer the first line
 # using 'header' keyword, the second line using 'domain' keyword, and the
@@ -363,9 +363,9 @@ destination     /var/log/tomoyo/reject_003.log
 }
 </pre>
 
-<p>アクセスログを保存する必要が無い場合は、  <code>ccs-auditd</code> を実行する必要はありません。また、プロファイルで <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ max_audit_log=0 }</a> という指定をすることにより、消費メモリの節約と応答速度の向上が期待できます。ドメインに対して強制モードを割り当てるまでアクセスログは保存しないという選択肢もありますが、より厳密なアクセス制御を行うためのポリシーを作成できるようにするために、現時点でアクセス拒否ログを保存するように設定しておくことをお勧めします。</p>
+<p>アクセスログを保存する必要が無い場合は、  <code>tomoyo-auditd</code> を実行する必要はありません。また、プロファイルで <a href="chapter-9.html.ja#9.2.3">PREFERENCE={ max_audit_log=0 }</a> という指定をすることにより、消費メモリの節約と応答速度の向上が期待できます。ドメインに対して強制モードを割り当てるまでアクセスログは保存しないという選択肢もありますが、より厳密なアクセス制御を行うためのポリシーを作成できるようにするために、現時点でアクセス拒否ログを保存するように設定しておくことをお勧めします。</p>
 
-<p>ディストリビュータはデーモンやサービスのための設定をパッケージの中に含めたいと思うかもしれません。 <code>/usr/sbin/ccs-auditd</code> という単一のコマンドを実行するだけでデーモンを起動できるので、そのための設定を含めることは簡単です。もし systemd を利用している場合、以下のような内容を含む /lib/systemd/system/ccs-auditd.service というファイルを作成してください：</p>
+<p>ディストリビュータはデーモンやサービスのための設定をパッケージの中に含めたいと思うかもしれません。 <code>/usr/sbin/tomoyo-auditd</code> という単一のコマンドを実行するだけでデーモンを起動できるので、そのための設定を含めることは簡単です。もし systemd を利用している場合、以下のような内容を含む /lib/systemd/system/tomoyo-auditd.service というファイルを作成してください：</p>
 
 <pre>
 [Unit]
@@ -373,7 +373,7 @@ Description=TOMOYO Linux Auditing Daemon
 
 [Service]
 Type=forking
-ExecStart=/usr/sbin/ccs-auditd
+ExecStart=/usr/sbin/tomoyo-auditd
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]

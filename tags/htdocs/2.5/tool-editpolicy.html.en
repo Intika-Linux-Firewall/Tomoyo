@@ -77,20 +77,20 @@
 <p>You can execute the policy editor like below:</p>
 
 <pre class="command">
-# /usr/sbin/ccs-editpolicy
+# /usr/sbin/tomoyo-editpolicy
 </pre>
 
 <p>The options described below can be specified as options on the command line.</p>
 
 <h3>1.1. <a name="policy_directory">Specifying policy directory</a></h3>
 
-<p>By default, the policy editor tool edits policy within the /proc/ccs/ directory.</p>
+<p>By default, the policy editor tool edits policy within the /sys/kernel/security/tomoyo/ directory.</p>
 
 <div class="simple-table">
 <table>
 <tr><th><p>Option</p></th><th><p>Meaning</p></th></tr>
 <tr><td><p>$ipaddress:$port</p></td><td><p>Connect to the policy editing agent process listening at a host with IPv4 address $ipaddress and port $port.</p></td></tr>
-<tr><td><p>/$path/$to/$directory</p></td><td><p>Edit the policy files in the policy/current/ subdirectory of the /$path/$to/$directory directory. Usually, /etc/ccs/ is specified.</p></td></tr>
+<tr><td><p>/$path/$to/$directory</p></td><td><p>Edit the policy files in the policy/current/ subdirectory of the /$path/$to/$directory directory. Usually, /etc/tomoyo/ is specified.</p></td></tr>
 </table>
 </div>
 
@@ -102,31 +102,31 @@
 <table>
 <tr><th><p>Option</p></th><th><p>Meaning</p></th></tr>
 <tr><td><p>e</p></td><td><p><a name="exception_policy_editor">"Exception Policy Editor" screen</a></p>
-<img src="editpolicy/exception_policy.png" alt="exception_policy.png" title="Screen for editing /proc/ccs/exception_policy" width="720" height="400">
-<p>This screen is used for editing /proc/ccs/exception_policy .</p>
+<img src="editpolicy/exception_policy.png" alt="exception_policy.png" title="Screen for editing /sys/kernel/security/tomoyo/exception_policy" width="720" height="400">
+<p>This screen is used for editing /sys/kernel/security/tomoyo/exception_policy .</p>
 </td></tr>
 <tr><td><p>d</p></td><td><p><a name="domain_transition_editor">"Domain Transition Editor" screen</a></p>
-<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /proc/ccs/domain_policy" width="720" height="400">
-<p>This screen is used for editing /proc/ccs/domain_policy .<br>
+<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
+<p>This screen is used for editing /sys/kernel/security/tomoyo/domain_policy .<br>
 <p>The <strong>first line</strong> shows what screen you are on and how many domains are listed.<br>
 The <strong>second line</strong> is the message area.<br>
 The <strong>third line</strong> shows the domain name currently selected by the cursor.<br>
 The <strong>fourth line</strong> and downwards are the domains currently defined.</p>
 </td></tr>
-<tr><td><p>p</p></td><td><p><a name="profile_editor">"Profile Editor" screen</a></p><img src="editpolicy/profile.png" alt="profile.png" title="Screen for editing /proc/ccs/profile" width="720" height="400">
-<p>This screen is used for editing /proc/ccs/profile .</p>
+<tr><td><p>p</p></td><td><p><a name="profile_editor">"Profile Editor" screen</a></p><img src="editpolicy/profile.png" alt="profile.png" title="Screen for editing /sys/kernel/security/tomoyo/profile" width="720" height="400">
+<p>This screen is used for editing /sys/kernel/security/tomoyo/profile .</p>
 </td></tr>
 <tr><td><p>m</p></td><td><p><a name="manager_policy_editor">"Manager Policy Editor" screen</a></p>
-<img src="editpolicy/manager.png" alt="manager.png" title="Screen for editing /proc/ccs/manager" width="720" height="400">
-<p>This screen is used for editing /proc/ccs/manager .</p>
+<img src="editpolicy/manager.png" alt="manager.png" title="Screen for editing /sys/kernel/security/tomoyo/manager" width="720" height="400">
+<p>This screen is used for editing /sys/kernel/security/tomoyo/manager .</p>
 </td></tr>
 <tr><td><p>n</p></td><td><p><a name="namespace_selector">"Namespace Selector" screen</a></p>
 <img src="editpolicy/namespace.png" alt="namespace.png" title="Screen for selecting namespace" width="720" height="400">
 <p>This screen is used for selecting the namespace to display.</p>
 </td></tr>
 <tr><td><p>s</p></td><td><p><a name="statistics">"Statistics" screen</a></p>
-<img src="editpolicy/stat.png" alt="stat.png" title="Screen for editing /proc/ccs/stat" width="720" height="400">
-<p>This screen is used for editing /proc/ccs/stat .</p>
+<img src="editpolicy/stat.png" alt="stat.png" title="Screen for editing /sys/kernel/security/tomoyo/stat" width="720" height="400">
+<p>This screen is used for editing /sys/kernel/security/tomoyo/stat .</p>
 </td></tr>
 </table>
 </div>
@@ -349,7 +349,7 @@ Set new quota value for selected entries on "Statistics" screen.</p>
 
 <p>You can display this screen by pressing the Enter key (or pressing the "w" key and then pressing the "a" key") after moving the cursor to a domain at the "Domain Transition Editor" screen.</p>
 
-<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
 <h3>3.2. <a name="make_pattern">Converting ACL entries into patterns</a></h3>
 
@@ -436,15 +436,15 @@ You can delete unreachable domains if you don't wish to make these domains reach
 
 <p>You can enter the <a href="#domain_policy_editor">"Domain Policy Editor"</a> screen by pressing the Enter key (or pressing the "w" key and then pressing the "a" key") after moving the cursor to a domain at the <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen. You can return to the <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen by pressing the Enter key (or pressing the "w" key and then pressing the "d" key") from the <a href="#domain_policy_editor">"Domain Policy Editor"</a> screen.</p>
 
-<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
-<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_policy.png" alt="domain_policy.png" title="Screen for /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
 <h3>4.4. <a name="edit_acl_by_task">Editing ACL by currently running task</a></h3>
 
 <p>You can enter the "Process State Viewer" screen by pressing the "@" key from the <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen. In this screen, the list of currently running tasks and information on domains which these tasks belong to are displayed like <code>pstree</code> command. You can enter the <a href="#domain_policy_editor">"Domain Policy Editor"</a> screen by moving the cursor to a task that you wish to browse or edit and then pressing the Enter key (or pressing the "w" key and then pressing the "a" key"). You can return to the <a href="#domain_transition_editor">"Domain Transition Editor"</a> screen by pressing the "@" key from the "Process State Viewer" screen.</p>
 
-<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /proc/ccs/domain_policy" width="720" height="400">
+<img src="editpolicy/domain_transition.png" alt="domain_transition.png" title="Screen for editing /sys/kernel/security/tomoyo/domain_policy" width="720" height="400">
 
 <img src="editpolicy/process_tree.png" alt="process_tree.png" title="List of runnig processes." width="720" height="400">
 

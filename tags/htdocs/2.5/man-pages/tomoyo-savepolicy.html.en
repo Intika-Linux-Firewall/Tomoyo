@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
-<TITLE>TOMOYO Linux : ccs-savepolicy man page</TITLE>
+<TITLE>TOMOYO Linux : tomoyo-savepolicy man page</TITLE>
 </head>
 
 <BODY bgcolor=#F0F0F0 text=#000000 link=#0000ff vlink=#C000C0 alink=#ff0000><A NAME=top></A>
@@ -11,10 +11,10 @@
 <!-- .\" Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 NTT DATA Corporation. -->
 <!-- .\" -->
 <!-- .\" You may distribute under the terms of the GNU General Public -->
-<!-- .\" License as specified in the file COPYING.ccs that comes with the -->
-<!-- .\" ccs-tools source tarball. -->
+<!-- .\" License as specified in the file COPYING.tomoyo that comes with the -->
+<!-- .\" tomoyo-tools source tarball. -->
 <!-- .\" -->
-<!-- .TH "CCS-SAVEPOLICY" "8" "April 2011" "ccs-savepolicy 1.8.1" "System Administration Utilities" -->
+<!-- .TH "CCS-SAVEPOLICY" "8" "April 2011" "tomoyo-savepolicy 1.8.1" "System Administration Utilities" -->
 <CENTER>
 <H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>CCS-SAVEPOLICY (8)</NOBR><HR></H1>
 </CENTER>
@@ -25,7 +25,7 @@
 
 </A>
 <BLOCKQUOTE>
-ccs-savepolicy - save TOMOYO Linux policy
+tomoyo-savepolicy - save TOMOYO Linux policy
 <!-- .SH "SYNOPSIS" -->
 </BLOCKQUOTE>
 <A name=1>
@@ -34,17 +34,17 @@ ccs-savepolicy - save TOMOYO Linux policy
 
 </A>
 <BLOCKQUOTE>
-<!-- .B ccs-savepolicy <directory> -->
-<B>ccs-savepolicy &lt;directory&gt;</B> <!-- .sp -->
+<!-- .B tomoyo-savepolicy <directory> -->
+<B>tomoyo-savepolicy &lt;directory&gt;</B> <!-- .sp -->
 <P>
-<!-- .B ccs-savepolicy <directory> <remote_ip:remote_port> -->
-<B>ccs-savepolicy &lt;directory&gt; &lt;remote_ip:remote_port&gt;</B> <!-- .sp -->
+<!-- .B tomoyo-savepolicy <directory> <remote_ip:remote_port> -->
+<B>tomoyo-savepolicy &lt;directory&gt; &lt;remote_ip:remote_port&gt;</B> <!-- .sp -->
 <P>
-<!-- .B ccs-savepolicy {-e|-d|-p|-m|-s} -->
-<B>ccs-savepolicy {-e|-d|-p|-m|-s}</B> <!-- .sp -->
+<!-- .B tomoyo-savepolicy {-e|-d|-p|-m|-s} -->
+<B>tomoyo-savepolicy {-e|-d|-p|-m|-s}</B> <!-- .sp -->
 <P>
-<!-- .B ccs-savepolicy {-e|-d|-p|-m|-s} <remote_ip:remote_port> -->
-<B>ccs-savepolicy {-e|-d|-p|-m|-s} &lt;remote_ip:remote_port&gt;</B> <!-- .SH "DESCRIPTION" -->
+<!-- .B tomoyo-savepolicy {-e|-d|-p|-m|-s} <remote_ip:remote_port> -->
+<B>tomoyo-savepolicy {-e|-d|-p|-m|-s} &lt;remote_ip:remote_port&gt;</B> <!-- .SH "DESCRIPTION" -->
 </BLOCKQUOTE>
 <A name=>
 
@@ -52,13 +52,13 @@ ccs-savepolicy - save TOMOYO Linux policy
 
 </A>
 <BLOCKQUOTE>
-This program saves TOMOYO Linux policy that is in kernel memory onto the disk.  By running this command, a directory in <I>/etc/ccs/policy/YY-MM-DD.hh:mm:ss/</I> format is created and four files named <I>domain_policy.conf</I>, <I>exception_policy.conf</I>, <I>profile.conf</I> and <I>manager.conf</I> are saved into the created directory, and a symbolic link <I>/etc/ccs/policy/previous</I> is updated to point to previous <I>YY-MM-DD.hh:mm:ss/</I> directory and a symbolic link /etc/ccs/policy/current is updated to point to current <I>YY-MM-DD.hh:mm:ss/</I> directory.
+This program saves TOMOYO Linux policy that is in kernel memory onto the disk.  By running this command, a directory in <I>/etc/tomoyo/policy/YY-MM-DD.hh:mm:ss/</I> format is created and four files named <I>domain_policy.conf</I>, <I>exception_policy.conf</I>, <I>profile.conf</I> and <I>manager.conf</I> are saved into the created directory, and a symbolic link <I>/etc/tomoyo/policy/previous</I> is updated to point to previous <I>YY-MM-DD.hh:mm:ss/</I> directory and a symbolic link /etc/tomoyo/policy/current is updated to point to current <I>YY-MM-DD.hh:mm:ss/</I> directory.
 <!-- .PP -->
 <P>
-There should be symbolic links <I>/etc/ccs/domain_policy.conf</I>, <I>/etc/ccs/exception_policy.conf</I>, <I>/etc/ccs/profile.conf</I> and <I>/etc/ccs/manager.conf</I> which respectively point to <I>policy/current/domain_policy.conf</I>, <I>policy/current/exception_policy.conf</I>, <I>policy/current/profile.conf</I>, <I>policy/current/manager.conf</I>. Also, there should be a symbolic link <I>/etc/ccs/policy/current</I> which point to <I>YY-MM-DD.hh:mm:ss/</I> directory.
+There should be symbolic links <I>/etc/tomoyo/domain_policy.conf</I>, <I>/etc/tomoyo/exception_policy.conf</I>, <I>/etc/tomoyo/profile.conf</I> and <I>/etc/tomoyo/manager.conf</I> which respectively point to <I>policy/current/domain_policy.conf</I>, <I>policy/current/exception_policy.conf</I>, <I>policy/current/profile.conf</I>, <I>policy/current/manager.conf</I>. Also, there should be a symbolic link <I>/etc/tomoyo/policy/current</I> which point to <I>YY-MM-DD.hh:mm:ss/</I> directory.
 <!-- .PP -->
 <P>
-As a result, you can access the current policy files using <I>/etc/ccs/domain_policy.conf</I>, <I>/etc/ccs/exception_policy.conf</I>, <I>/etc/ccs/profile.conf</I> and <I>/etc/ccs/manager.conf</I> (or <I>/etc/ccs/policy/current/domain_policy.conf</I>, <I>/etc/ccs/policy/current/exception_policy.conf</I>, <I>/etc/ccs/policy/current/profile.conf</I> and <I>/etc/ccs/policy/current/manager.conf</I> if you prefer). Also, you can access the previous policy files using <I>/etc/ccs/policy/previous/domain_policy.conf</I>, <I>/etc/ccs/policy/previous/exception_policy.conf</I>, <I>/etc/ccs/policy/previous/profile.conf</I> and <I>/etc/ccs/policy/previous/manager.conf</I>.
+As a result, you can access the current policy files using <I>/etc/tomoyo/domain_policy.conf</I>, <I>/etc/tomoyo/exception_policy.conf</I>, <I>/etc/tomoyo/profile.conf</I> and <I>/etc/tomoyo/manager.conf</I> (or <I>/etc/tomoyo/policy/current/domain_policy.conf</I>, <I>/etc/tomoyo/policy/current/exception_policy.conf</I>, <I>/etc/tomoyo/policy/current/profile.conf</I> and <I>/etc/tomoyo/policy/current/manager.conf</I> if you prefer). Also, you can access the previous policy files using <I>/etc/tomoyo/policy/previous/domain_policy.conf</I>, <I>/etc/tomoyo/policy/previous/exception_policy.conf</I>, <I>/etc/tomoyo/policy/previous/profile.conf</I> and <I>/etc/tomoyo/policy/previous/manager.conf</I>.
 <!-- .PP -->
 <P>
 This program works like the <B>cat</B> program, if policy type is specified.
@@ -73,7 +73,7 @@ This program works like the <B>cat</B> program, if policy type is specified.
 <B>-e</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/proc/ccs/exception_policy</I> to standard output.
+Print <I>/sys/kernel/security/tomoyo/exception_policy</I> to standard output.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -81,7 +81,7 @@ Print <I>/proc/ccs/exception_policy</I> to standard output.
 <B>-d</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/proc/ccs/domain_policy</I> to standard output.
+Print <I>/sys/kernel/security/tomoyo/domain_policy</I> to standard output.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -89,7 +89,7 @@ Print <I>/proc/ccs/domain_policy</I> to standard output.
 <B>-p</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/proc/ccs/profile</I> to standard output.
+Print <I>/sys/kernel/security/tomoyo/profile</I> to standard output.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -97,7 +97,7 @@ Print <I>/proc/ccs/profile</I> to standard output.
 <B>-m</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/proc/ccs/manager</I> to standard output.
+Print <I>/sys/kernel/security/tomoyo/manager</I> to standard output.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -105,7 +105,7 @@ Print <I>/proc/ccs/manager</I> to standard output.
 <B>-s</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Print <I>/proc/ccs/stat</I> to standard output.
+Print <I>/sys/kernel/security/tomoyo/stat</I> to standard output.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -113,7 +113,7 @@ Print <I>/proc/ccs/stat</I> to standard output.
 <B>&lt;directory&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Save policy to <I>&lt;directory&gt;/policy/YY-MM-DD.hh:mm:ss/</I> directory instead of the default <I>/etc/ccs/policy/YY-MM-DD.hh:mm:ss/</I> directory.
+Save policy to <I>&lt;directory&gt;/policy/YY-MM-DD.hh:mm:ss/</I> directory instead of the default <I>/etc/tomoyo/policy/YY-MM-DD.hh:mm:ss/</I> directory.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -135,23 +135,23 @@ Instead of saving local policy, save policy via an agent waiting at port <I>&lt;
 <!-- .B Save policy to disk: -->
 <B>Save policy to disk:</B> <!-- .nf -->
 <PRE>
-ccs-savepolicy
+tomoyo-savepolicy
 <!-- .fi -->
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Print /proc/ccs/exception_policy to standard output: -->
-<B>Print /proc/ccs/exception_policy to standard output:</B> <!-- .nf -->
+<!-- .B Print /sys/kernel/security/tomoyo/exception_policy to standard output: -->
+<B>Print /sys/kernel/security/tomoyo/exception_policy to standard output:</B> <!-- .nf -->
 <PRE>
-ccs-savepolicy -e
+tomoyo-savepolicy -e
 <!-- .fi -->
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Retrieve policy from 192.168.1.1:10000 and save into the \&"/etc/ccs/192.168.1.1/policy/YY-MM-DD.hh:mm:ss/\&" directory: -->
-<B>Retrieve policy from 192.168.1.1:10000 and save into the  /etc/ccs/192.168.1.1/policy/YY-MM-DD.hh:mm:ss/ directory:</B> <!-- .nf -->
+<!-- .B Retrieve policy from 192.168.1.1:10000 and save into the \&"/etc/tomoyo/192.168.1.1/policy/YY-MM-DD.hh:mm:ss/\&" directory: -->
+<B>Retrieve policy from 192.168.1.1:10000 and save into the  /etc/tomoyo/192.168.1.1/policy/YY-MM-DD.hh:mm:ss/ directory:</B> <!-- .nf -->
 <PRE>
-ccs-savepolicy /etc/ccs/192.168.1.1/ 192.168.1.1:10000
+tomoyo-savepolicy /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000
 <!-- .fi -->
 </PRE>
 <!-- .SH "BUGS" -->
@@ -192,11 +192,11 @@ Other contributers:
 <BLOCKQUOTE>
 <!-- .PP -->
 <P>
-<B>ccs-editpolicy-agent</B>(8), <B>ccs-loadpolicy</B>(8)
+<B>tomoyo-editpolicy-agent</B>(8), <B>tomoyo-loadpolicy</B>(8)
 <!-- .sp -->
 <P>
 See <A HREF="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</A> for more information.
 </BLOCKQUOTE>
 <P><HR>
-<TABLE width=100%><TR> <TD width=33%><I>ccs-savepolicy 1.8.1</I></TD> <TD width=33% align=center>CCS-SAVEPOLICY (8)</TD> <TD align=right width=33%><I>April 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from ccs-savepolicy using man macros.</FONT>
+<TABLE width=100%><TR> <TD width=33%><I>tomoyo-savepolicy 1.8.1</I></TD> <TD width=33% align=center>CCS-SAVEPOLICY (8)</TD> <TD align=right width=33%><I>April 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from tomoyo-savepolicy using man macros.</FONT>
 </BODY></HTML>

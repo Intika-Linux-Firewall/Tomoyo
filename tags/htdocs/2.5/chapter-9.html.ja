@@ -40,7 +40,7 @@
 
 <h3><a name="9.1">9.1. プロファイルの初期化</a></h3>
 
-<p><code>/usr/lib/ccs/init_policy</code> により実行される初期設定は、アクセスを制限したい内容だけを有効にすることでポリシーの作成を容易にするために、コマンドラインオプションを指定することでカスタマイズすることができます。例えば、ファイルに関するアクセス制御だけを有効にしたい場合には --file-only-profile オプションを指定できます。コマンドラインオプションで指定した内容はポリシーディレクトリに作成されるファイルの内容を変化させるだけであり、ポリシーの作成方法を制約するものではありません。これらのファイルはポリシーエディタを用いて後からあなたの要望に沿うように修正することができます。以下に、指定可能なコマンドラインオプションの一覧を示します：</p>
+<p><code>/usr/lib/tomoyo/init_policy</code> により実行される初期設定は、アクセスを制限したい内容だけを有効にすることでポリシーの作成を容易にするために、コマンドラインオプションを指定することでカスタマイズすることができます。例えば、ファイルに関するアクセス制御だけを有効にしたい場合には --file-only-profile オプションを指定できます。コマンドラインオプションで指定した内容はポリシーディレクトリに作成されるファイルの内容を変化させるだけであり、ポリシーの作成方法を制約するものではありません。これらのファイルはポリシーエディタを用いて後からあなたの要望に沿うように修正することができます。以下に、指定可能なコマンドラインオプションの一覧を示します：</p>
 
 <div class="simple-table-wrap">
 <table>
@@ -62,12 +62,12 @@
 <tr>
 <td><p>--use_profile="$number"</p></td>
 <td><p>0</p></td>
-<td><p>/etc/ccs/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるプロファイルの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
+<td><p>/etc/tomoyo/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるプロファイルの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
 </tr>
 <tr>
 <td><p>--use_group="$number"</p></td>
 <td><p>0</p></td>
-<td><p>/etc/ccs/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるアクセス許可グループの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
+<td><p>/etc/tomoyo/domain_policy.conf の作成時に &lt;kernel&gt; ドメインに割り当てられるアクセス許可グループの番号を指定します。この数値は 0 ～ 255 の間の整数値です。</p></td>
 </tr>
 <tr>
 <td><p>--root="$rootdir"</p></td>
@@ -76,13 +76,13 @@
 </tr>
 <tr>
 <td><p>--policy_dir="$configdir"</p></td>
-<td><p>/etc/ccs/</p></td>
-<td><p>ポリシーファイル用ディレクトリを指定します。もし、このオプションを指定した場合、 $configdir へのシンボリックリンクを /etc/ccs という名前で作成する必要があります。</p></td>
+<td><p>/etc/tomoyo/</p></td>
+<td><p>ポリシーファイル用ディレクトリを指定します。もし、このオプションを指定した場合、 $configdir へのシンボリックリンクを /etc/tomoyo という名前で作成する必要があります。</p></td>
 </tr>
 <tr>
 <td><p>--module_name="$name"</p></td>
 <td><p>ccsecurity</p></td>
-<td><p>TOMOYO Linux がローダブルカーネルモジュールとしてコンパイルされた場合（ CONFIG_CCSECURITY_LKM=y ）に /sbin/ccs-init から実行される /etc/ccs/ccs-load-module を作成時に指定するモジュールの名前を指定します。</p></td>
+<td><p>TOMOYO Linux がローダブルカーネルモジュールとしてコンパイルされた場合（ CONFIG_CCSECURITY_LKM=y ）に /sbin/tomoyo-init から実行される /etc/tomoyo/tomoyo-load-module を作成時に指定するモジュールの名前を指定します。</p></td>
 </tr>
 <tr>
 <td><p>--grant_log="$bool"</p></td>
@@ -97,12 +97,12 @@
 <tr>
 <td><p>--max_audit_log="$number"</p></td>
 <td><p>1024</p></td>
-<td><p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
+<td><p><a href="policy-specification/securityfs-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>--max_learning_entry="$number"</p></td>
 <td><p>2048</p></td>
-<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
+<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>--enforcing_penalty="$number"</p></td>
@@ -112,7 +112,7 @@
 </table>
 </div>
 
-<p>もし --file-only-profile オプションを指定せずに <code>/usr/lib/ccs/init_policy</code> を実行した場合、 /etc/ccs/profile.conf の CONFIG 行は以下のようになります：</p>
+<p>もし --file-only-profile オプションを指定せずに <code>/usr/lib/tomoyo/init_policy</code> を実行した場合、 /etc/tomoyo/profile.conf の CONFIG 行は以下のようになります：</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -129,7 +129,7 @@
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
-<p>もし <code>/usr/lib/ccs/init_policy --file-only-profile</code> のように実行した場合、 /etc/ccs/profile.conf の CONFIG 行は以下のようになります：</p>
+<p>もし <code>/usr/lib/tomoyo/init_policy --file-only-profile</code> のように実行した場合、 /etc/tomoyo/profile.conf の CONFIG 行は以下のようになります：</p>
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
@@ -544,11 +544,11 @@
 </tr>
 <tr>
 <td><p>max_audit_log</p></td>
-<td><p><a href="policy-specification/proc-interface.html.ja#audit">/proc/ccs/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
+<td><p><a href="policy-specification/securityfs-interface.html.ja#audit">/sys/kernel/security/tomoyo/audit</a> インタフェースに保持しておくアクセスログ（許可ログ＋拒否ログ）の件数の上限を指定します。 0 以上の整数値を指定できます。アクセスログが不要な場合には 0 を指定することができます。また、バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>max_learning_entry</p></td>
-<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/proc-interface.html.ja#stat">/proc/ccs/stat</a> インタフェースから指定することもできます。</p></td>
+<td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
 <tr>
 <td><p>enforcing_penalty</p></td>
