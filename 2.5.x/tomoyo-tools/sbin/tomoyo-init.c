@@ -265,6 +265,47 @@ static void disable_profile(void)
 	fclose(fp_out);
 }
 
+/*
+ * Upgrade from TOMOYO 2.4's profile (PROFILE_VERSION=20100903) to TOMOYO 2.5's
+ * profile (PROFILE_VERSION=20110903) as needed.
+ */
+static void upgrade_profile(void)
+{
+	_Bool in_section = 0;
+	FILE *fp_out = fopen(proc_profile, "w");
+	FILE *fp_in = fopen(proc_profile, "r");
+	if (!fp_in || !fp_out)
+		panic();
+	while (memset(buffer, 0, sizeof(buffer)) &&
+	       fgets(buffer, sizeof(buffer) - 1, fp_in)) {
+		char *cp;
+		const char *ns = "";
+		unsigned int version;
+		if (buffer[0] == '<') {
+			cp = strchr(buffer, ' ');
+			if (!cp)
+				continue;
+			*cp++ = '\0';
+			ns = buffer;
+		} else
+			cp = buffer;
+		if (sscanf(cp, "PROFILE_VERSION=%u", &version) == 1)
+			in_section = version == 20100903;
+		if (!in_section)
+			continue;
+		if (sscanf(cp, "%u", &version) != 1) {
+			fprintf(fp_out, "%s PROFILE_VERSION=20110903\n", ns);
+			continue;
+		}
+		fprintf(fp_out, "%s %u-CONFIG::network={ mode=disabled }\n",
+			ns, version);
+		fprintf(fp_out, "%s %u-CONFIG::misc={ mode=disabled }\n",
+			ns, version);
+	}
+	fclose(fp_in);
+	fclose(fp_out);
+}
+
 static void show_domain_usage(void)
 {
 	unsigned int domain = 0;
@@ -412,6 +453,7 @@ int main(int argc, char *argv[])
 		else if (strcmp(profile_name, "disable"))
 			copy_files(profile_name, proc_profile);
 		copy_files("stat.conf", proc_stat);
+		upgrade_profile();
 	}
 
 	/* Use disabled mode? */
