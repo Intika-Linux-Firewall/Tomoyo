@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 3</title>
+<title>TOMOYO Linux 2.5.x : The Official Guide : Chapter 3</title>
 </head>
 
 <body>
@@ -38,245 +38,26 @@
 
 <h2>Chapter 3: How do I install TOMOYO Linux?</h2>
 
-<h3><a name="3.1">3.1. Are binary packages available for my distribution?</a></h3>
+<h3><a name="3.1">3.1. Install the kernel</a></h3>
 
-<p>TOMOYO Linux requires the installation of a separate Linux kernel from the one provided by your distribution. This can be done in one of two ways. A binary package can be installed, or the kernel can be compiled from source and manually patched. If your distribution is listed below, then you can install the binary package very easily without having to do any compilation.</p>
+<h4><a name="3.1.1">3.1.1. Determine if your kernel has TOMOYO Linux enabled</a></h4>
 
-<p>The distributions that we provide binary packages for are:</p>
-
-<ul>
-<li>Fedora 11/12/13/14/15</li>
-<li>CentOS 3.9/4.9/5.6/6.0</li>
-<li>Debian Etch/Lenny/Squeeze</li>
-<li>OpenSUSE 11.0/11.1/11.2/11.3/11.4</li>
-<li>Asianux 2.0/3.0</li>
-<li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04/10.10/11.04</li>
-<li>Vine Linux 4.2/5.2/6.0</li>
-</ul>
-
-<p>If your distribution was listed above then continue to section <a href="chapter-3.html.en#3.2">3.2. Installing binary packages</a>, otherwise you will need to compile your own kernel. If this is the case then proceed to section <a href="chapter-3.html.en#3.3">3.3. Installing from source</a></p>
-
-<h3><a name="3.2">3.2. Installing binary packages</a></h3>
-
-<p>If your distribution uses RPM packages, import the GPG key with these commands:</p>
+<p>TOMOYO Linux 2.5.x is integrated with the upstream kernel source, but is only enabled when certain kernel configuration options are set. You can determine if your kernel has TOMOYO Linux enabled by running the following command:</p>
 
 <pre class="command">
-# wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# rpm --import kumaneko-key
+$ grep tomoyo_write_inet_network /proc/kallsyms
+</pre>
+<pre class="output">
+ffffffff8115e460 T tomoyo_write_inet_network
 </pre>
 
-<p>If your distribution uses DEB packages, import the GPG key with these commands:</p>
+<p>If you found a line containing tomoyo_write_inet_network in "/proc/kallsyms", proceed to <a href="#3.2">3.2. Install the userspace tools</a> because your kernel was built with TOMOYO Linux.</p>
 
-<pre class="command">
-# wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# apt-key add kumaneko-key
-</pre>
+<p>If not, then your kernel was not built with TOMOYO Linux and you should follow the steps below.</p>
 
-<p>The binary packages provided by this project can be manually downloaded from <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=12016" target="_blank">this SourceForge page</a>. A package for the kernel and a package for the userspace tools are required. Alternatively, packages can be installed very easily straight from the repository using the following commands:</p>
+<p>If you wish to obtain the most functionality out of TOMOYO Linux, then you may wish to use either the 1.x branch (which requires you to build your own kernel), or AKARI (which is a module and does not require you to build your own kernel). AKARI module currently provides more functionality than the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="http://akari.sourceforge.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="http://akari.sourceforge.jp/">AKARI website</a>.</p>
 
-<p><strong>Fedora 15 (686-PAE flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora15/ccs.repo
-# yum install tomoyo-kernel-PAE tomoyo-tools
-</pre>
-
-<p><strong>Fedora 14 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora14/ccs.repo
-# yum install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>Fedora 13 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora13/ccs.repo
-# yum install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>Fedora 12 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora12/ccs.repo
-# yum install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>Fedora 11 (686-PAE flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora11/ccs.repo
-# yum install tomoyo-kernel-PAE tomoyo-tools
-</pre>
-
-<p><strong>CentOS 6.0 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/ccs.repo
-# yum install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>CentOS 5.6 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS5/ccs.repo
-# yum install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>CentOS 4.9 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS4/ccs.repo
-# yum install tomoyo-kernel-smp tomoyo-tools
-</pre>
-
-<p><strong>CentOS 3.9 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O - http://tomoyo.sourceforge.jp/repos-1.8/CentOS3/ccs.repo &gt;&gt; /etc/yum.conf
-# yum install tomoyo-kernel-smp tomoyo-tools
-</pre>
-
-<p><strong>Asianux 3.0 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux3/ccs.repo
-# yum install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>Asianux 2.0 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux2/ccs.repo
-# yum install tomoyo-kernel-smp tomoyo-tools
-</pre>
-
-<p><strong>Vine Linux 6.0 (686-pae flavour)</strong></p>
-<pre class="command">
-# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux6/ ./" &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install tomoyo-kernel-pae tomoyo-tools
-</pre>
-
-<p><strong>Vine Linux 5.2 (686 flavour)</strong></p>
-<pre class="command">
-# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux5/ ./" &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>Vine Linux 4.2 (686 flavour)</strong></p>
-<pre class="command">
-# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux4/ ./" &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install tomoyo-kernel tomoyo-tools
-</pre>
-
-<p><strong>OpenSUSE 11.4 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.4/ ccs
-# zypper install tomoyo-kernel-default tomoyo-tools
-</pre>
-
-<p><strong>OpenSUSE 11.3 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.3/ ccs
-# zypper install tomoyo-kernel-default tomoyo-tools
-</pre>
-
-<p><strong>OpenSUSE 11.2 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.2/ ccs
-# zypper install tomoyo-kernel-default tomoyo-tools
-</pre>
-
-<p><strong>OpenSUSE 11.1 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.1/ ccs
-# zypper install tomoyo-kernel-default tomoyo-tools
-</pre>
-
-<p><strong>OpenSUSE 11.0 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.0/ ccs
-# zypper install tomoyo-kernel-default tomoyo-tools
-</pre>
-
-<p><strong>Debian Squeeze (686 flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianSqueeze/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-image-2.6-686-ccs tomoyo-tools
-</pre>
-
-<p><strong>Debian Lenny (686 flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianLenny/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-image-2.6-686-ccs tomoyo-tools
-</pre>
-
-<p><strong>Debian Etch (686 flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianEtch/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-image-2.6-686-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 11.04 (generic-pae flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu11.04/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-generic-pae-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 10.10 (generic-pae flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.10/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-generic-pae-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 10.04 (generic-pae flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.04/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-generic-pae-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 9.10 (generic flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu9.10/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 9.04 (generic flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu9.04/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 8.10 (generic flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu8.10/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 8.04 (generic flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu8.04/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-ccs tomoyo-tools
-</pre>
-
-<p><strong>Ubuntu 6.06 (686 flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu6.06/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-686-ccs tomoyo-tools
-</pre>
-
-<p>You can now proceed to section <a href="chapter-3.html.en#3.4">3.4. Initializing configuration</a>.</p>
-
-<h3><a name="3.3">3.3. Installing from source</a></h3>
-
-<p>If we do not provide binary packages for your distribution, then you will have to compile your own kernel.</p>
-
-<p>If you wish to obtain the most functionality out of TOMOYO Linux possible but do not wish to compile a kernel, the AKARI module can be used. This module provides more functionality that the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="http://akari.sourceforge.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="http://akari.sourceforge.jp/">AKARI website</a>.</p>
-
-<h4><a name="3.3.1">3.3.1. Install dependencies</a></h4>
+<h4><a name="3.1.2">3.1.2. Install dependencies</a></h4>
 
 <p>These packages are required for compiling the kernel and the userspace tools:</p>
 <ul>
@@ -302,92 +83,89 @@
 # yast -i wget patch gcc make ncurses-devel
 </pre>
 
-<h4><a name="3.3.2">3.3.2. Download and patch the kernel</a></h4>
+<h4><a name="3.1.3">3.1.3. Download the kernel</a></h4>
 
-<p>Download the kernel source from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> or <a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a>.<br>
-Linux kernel 2.4.30 and later are supported from the linux-2.4 tree.<br>
-Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.<br>
-Linux kernel 3.0 and later are supported from the linux-3 tree.</p>
+<p>Download the kernel source from "<a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a>" or "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=summary">linux git tree</a>".<br>
+Linux kernel 3.2 and later are supported. (You may use TOMOYO 2.5 on Linux kernels between 2.6.38 and 3.1 provided that you overwrite all files in security/tomoyo/ directory with corresponding files in Linux kernel 3.2. Also, you may use TOMOYO 2.5 on Linux kernels between 2.6.33 and 2.6.37 provided that you apply a backport patch in addition to overwriting.)</p>
 
-<p>Extract the kernel source and go to the extracted directory.<br>
-In the operations below, "$VERSION.$PATCHLEVEL.diff" should for example be replaced with "3.0.diff" if using Linux kernel 3.0.4 :</p>
+<p>Extract the kernel source and go to the extracted directory.</p>
+
+<p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.38 and 3.1, run the following commands:</p>
 
 <pre class="command">
-$ wget -O tomoyo-patch-1.8.2-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110903.tar.gz'
-$ wget -O tomoyo-patch-1.8.2-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/tomoyo-patch-1.8.2-20110903.tar.gz.asc'
-$ gpg tomoyo-patch-1.8.2-20110903.tar.gz.asc
-$ tar -zxf tomoyo-patch-1.8.2-20110903.tar.gz
-$ patch -sp1 &lt; patches/tomoyo-patch-$VERSION.$PATCHLEVEL.diff
+$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.1-rc2.tar.bz2
+$ tar -jxf linux-3.1-rc2.tar.bz2 --strip 1 linux-3.1-rc2/security/tomoyo/
 </pre>
 
-<h4><a name="3.3.3">3.3.3. Configure the kernel</a></h4>
+<p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 2.6.37, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.4/patches/">http://tomoyo.sourceforge.jp/2.4/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
+
+<pre class="command">
+$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.1-rc2.tar.bz2
+$ tar -jxf linux-3.1-rc2.tar.bz2 --strip 1 linux-3.1-rc2/security/tomoyo/
+$ wget http://tomoyo.sourceforge.jp/2.4/patches/tomoyo-2.4-backport-for-$KERNELVERSION.patch
+$ patch -p1 &lt; tomoyo-2.4-backport-for-$KERNELVERSION.patch
+</pre>
+
+<h4><a name="3.1.4">3.1.4. Configure the kernel</a></h4>
 
 <pre class="command">
 $ make -s menuconfig
 </pre>
 
-<p>Choose the following options in "Security options" section:</p>
+<p>Choose the following options in the "Security options" section (although <i>"Default security module"</i> is optional):</p>
 
-<ul>
-<li>[*] CCSecurity support</li>
-<li>[ ] &nbsp;&nbsp;Compile as loadable kernel module</li>
-<li>[ ] &nbsp;&nbsp;Disable by default</li>
-<li>[ ] &nbsp;&nbsp;Do not modify 'struct task_struct' in order to keep KABI</li>
-<li>(2048) Default maximal count for learning mode</li>
-<li>(1024)&nbsp;&nbsp;Default maximal count for audit log</li>
-<li>[ ] &nbsp;&nbsp;Activate without calling userspace policy loader.</li>
-<li>(/sbin/tomoyo-init) Location of userspace policy loader</li>
-<li>(/sbin/init) Trigger for calling userspace policy loader</li>
-</ul>
-
-<p><em>"Compile as loadable kernel module"</em> is useful when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
-
-<p><em>"Disable by default"</em> will enable TOMOYO Linux only when "ccsecurity=on" is passed to the kernel's command line options. If this option is not selected, "ccsecurity=off" will disable TOMOYO Linux.</p>
-
-<p><em>"Do not modify 'struct task_struct' in order to keep KABI"</em> is available to 2.6 kernels and 3 kernels only. This option will manage "struct task_struct" variables outside "struct task_struct" in order to avoid Kernel Application Binary Interface (KABI) breakage. Choose this option if wanting to patch against distributor's kernels without breaking KABI. However, since "struct ccsecurity_operations" must be exported to loadable kernel modules (LKMs) in order to allow them to call TOMOYO's functions, build scripts may still print warning messages.</p>
+<pre>
+[*] Enable different security models
+-*- Enable the securityfs filesystem
+-*- Security hooks for pathname based access control
+[*] TOMOYO Linux Support
+(2048) Default maximal count for learning mode
+(1024) Default maximal count for audit log
+[ ]   Activate without calling userspace policy loader.
+(/sbin/tomoyo-init) Location of userspace policy loader
+(/sbin/init) Trigger for calling userspace policy loader
+    Default security module (TOMOYO)
+</pre>
 
 <p>There are two types of TOMOYO's policy configuration. The former is embedded into the kernel and the latter is saved as files on the filesystems (e.g. /etc/tomoyo/ directory). You will need to rebuild the kernel whenever updating the former, but allows you to load policy without using userspace policy loader (e.g. /sbin/tomoyo-init ). The latter is loaded by executing userspace policy loader when the access control by TOMOYO is about to be activated (e.g. when /sbin/init starts). <em>Activate without calling userspace policy loader.</em> allows you to activate access control by TOMOYO as soon as the former is loaded. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
 
-<p><em>Location of userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the userspace policy loader. You can override this setting via the "CCS_loader=" kernel command-line option.</p>
+<p><em>Location of userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the userspace policy loader. You can override this setting via the "TOMOYO_loader=" kernel command-line option.</p>
 
-<p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "CCS_trigger=" kernel command-line option. For example, if you pass "init=/bin/systemd" option, you may also want to pass "CCS_trigger=/bin/systemd" option.</p>
+<p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "TOMOYO_trigger=" kernel command-line option. For example, if you pass "init=/bin/systemd" option, you may also want to pass "TOMOYO_trigger=/bin/systemd" option.</p>
 
-<h4><a name="3.3.4">3.3.4. Compile and install the kernel</a></h4>
-
-<p>The policy configuration which will be embedded into the kernel needs to be exist as domain_policy.conf, exception_policy.conf, manager.conf, profile.conf and stat.conf under security/ccsecurity/policy/ directory. But you can proceed without creating files under security/ccsecurity/policy/ directory because you don't have the policy configuration to embed as of this step. (You may come back here after you developed policy configuration to embed.)</p>
+<h4><a name="3.1.5">3.1.5. Compile and install the kernel</a></h4>
 
 <p>Once the kernel has been configured, compile and install the kernel with the following commands:</p>
 
 <pre class="command">
-$ make -s dep
 $ make -s
-$ make -s modules
 $ su
 # make -s modules_install install
 </pre>
 
 <p>Create initrd/initramfs if required.</p>
 
-<h4><a name="3.3.5">3.3.5. Install the userspace tools</a></h4>
+<h3><a name="3.2">3.2. Install the userspace tools</a></h3>
+
+<h4><a name="3.2.1">3.2.1. Determine if binary packages are provided</a></h4>
+
+<p>If your repository provides tomoyo-tools or tomoyotools package, and the package's version is 2.4, you can use that package. Install and proceed to <a href="#3.3">3.3. Initialize configuration</a>.</p>
+
+<h4><a name="3.2.2">3.2.2. Install tools from source</a></h4>
 
 <p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
 
 <pre class="command">
-$ wget -O tomoyo-tools-1.8.2-20110820.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110820.tar.gz'
-$ wget -O tomoyo-tools-1.8.2-20110820.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693/tomoyo-tools-1.8.2-20110820.tar.gz.asc'
-$ gpg tomoyo-tools-1.8.2-20110820.tar.gz.asc
-$ tar -zxf tomoyo-tools-1.8.2-20110820.tar.gz
-$ cd ccstools/
-$ make -s
-$ su
-# make -s install
+# wget -O tomoyo-tools-2.4.0-20110820.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz'
+# wget -O tomoyo-tools-2.4.0-20110820.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz.asc'
+# wget http://I-love.SAKURA.ne.jp/kumaneko-key
+# gpg --import kumaneko-key
+# gpg tomoyo-tools-2.4.0-20110820.tar.gz.asc
+# tar -zxf tomoyo-tools-2.4.0-20110820.tar.gz
+# make -C tomoyo-tools/ install
 </pre>
 
-<br>
-
-<p>You can now proceed to section <a href="chapter-3.html.en#3.4">3.4. Initializing configuration</a></p>
-
-<h3><a name="3.4">3.4. Initializing configuration</a></h3>
+<h3><a name="3.3">3.3. Initialize configuration</a></h3>
 
 <p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using <code>/bin/bash</code>, append the following line to ~/.bashrc:</p>
 
@@ -397,21 +175,7 @@ export PATH=$PATH:/usr/sbin
 
 <p>Before you can make use of TOMOYO Linux, an initialization procedure must take place. This prepares the files in which policy information will be stored. All policy files are <strong>stored in the "/etc/tomoyo/" directory</strong>.</p>
 
-<p>One of two commands can be used to initialize configuration. The command you use depends on what operations you wish to analyze or restrict.</p>
-
-<p>Some users may wish to <strong>restrict only file-related operations</strong>, such as read, write and execute. This is suitable for users wanting to keep policy simpler or do not require the full functionality of TOMOYO Linux. If you chose to restrict only file-related operations, then you may ignore parts of this guide that are not relevant, such as network operations. In this case, policy can be initialized using this command:</p>
-
-<pre class="command">
-# /usr/lib/tomoyo/init_policy --file-only-profile
-</pre>
-
-<p>Other users may wish to <strong>make use of all the restrictive capabilities of TOMOYO Linux</strong>, and may want to analyze or restrict all possible operations (e.g. files, networks, capabilities, environment variables, signal transmissions). This is suitable for users wanting to secure their system as much as possible. This is also what this guide generally assumes the reader has chosen. In this case, run the following command:</p>
-
-<pre class="command">
-# /usr/lib/tomoyo/init_policy
-</pre>
-
-<p>After running one of the above commands, you should see the following output:</p>
+<p>You should see the following output by executing <code>/usr/lib/tomoyo/init_policy</code>:</p>
 
 <pre class="command">
 # /usr/lib/tomoyo/init_policy
@@ -424,20 +188,30 @@ Creating domain policy... OK
 Creating manager policy... OK
 Creating default profile... OK
 Creating stat policy... OK
-Creating module loader... OK
 Creating configuration file for tomoyo-editpolicy ... OK
 Creating configuration file for tomoyo-auditd ... OK
 Creating configuration file for tomoyo-patternize ... OK
 Creating configuration file for tomoyo-notifyd ... OK
 </pre>
 
-<h3><a name="3.5">3.5. Configuring your bootloader</a></h3>
+<p>Note that the policy configuration is not compatible between TOMOYO 2.4 and TOMOYO 2.5. If policy has been developed for TOMOYO 2.3 then the "/etc/tomoyo/" directory needs to be deleted or renamed, otherwise there will be a kernel panic on the next boot. If policy has been developed for TOMOYO 2.4 then you can reuse policy by appending below lines to /etc/tomoyo/profile.conf (below example assumes you have defined profile 0 - 3):</p>
 
-<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If the <em>"Disable by default"</em> option was selected during kernel configuration, remember to include "ccsecurity=on" in the kernel boot options. Consult the documentation for your distribution and bootloader to find out how to boot your TOMOYO Linux kernel.</p>
+<pre>
+0-CONFIG::network={ mode=disabled }
+0-CONFIG::misc={ mode=disabled }
+1-CONFIG::network={ mode=disabled }
+1-CONFIG::misc={ mode=disabled }
+2-CONFIG::network={ mode=disabled }
+2-CONFIG::misc={ mode=disabled }
+3-CONFIG::network={ mode=disabled }
+3-CONFIG::misc={ mode=disabled }
+</pre>
 
-<p>TOMOYO Linux supports the kernel boot option "CCS_trigger" from version 1.8.2 and later. This is useful for systems that run a program other than <code>/sbin/init</code> on startup, for example when booting using systemd which uses <code>/bin/systemd</code>. In this case, you should include "CCS_trigger=/bin/systemd" in the kernel boot options.</p>
+<h3><a name="3.4">3.4. Configure bootloader</a></h3>
 
-<h3><a name="3.6">3.6. Rebooting your system</a></h3>
+<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If your kernel config does not contain "CONFIG_DEFAULT_SECURITY_TOMOYO=y", then edit your bootloader to include "security=tomoyo" in the kernel boot options. Depending on your distribution, the bootloader configuration file will probably be one of "/boot/grub/grub.conf" or "/boot/grub/menu.lst" (for GRUB version 1) or "/boot/grub/grub.cfg" (for GRUB version 2). Consult your distribution documentation for information on how to configure the bootloader.</p>
+
+<h3><a name="3.5">3.5. Rebooting your system</a></h3>
 
 <p>Now you have finished all preparation. You can't wait any more? Now it's time to make use of your newly installed kernel. Reboot your system and choose the entry with TOMOYO Linux kernel at the GRUB screen, or at whatever other bootloader you have installed:</p>
 
@@ -447,13 +221,9 @@ Creating configuration file for tomoyo-notifyd ... OK
 
 <img src="media/tomoyo-activated.png" alt="tomoyo-activated.png" title="TOMOYO activated" width="675" height="375">
 
-<p>If something went wrong, the system may halt by kernel panic. Below screenshot is an example of rebooting Ubuntu 11.04 without creating initramfs after <a href="#3.3.4">Compile and install the kernel</a>:</p>
+<h3><a name="3.6">3.6. How can I disable/uninstall TOMOYO Linux?</a></h3>
 
-<img src="media/missing-initramfs.png" alt="missing-initramfs.png" title="Boot failure" width="675" height="375">
-
-<h3><a name="3.7">3.7. How can I disable/uninstall TOMOYO Linux?</a></h3>
-
-<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending "ccsecurity=off" at the kernel command-line parameters.</p>
+<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending "security=none" at the kernel command-line parameters.</p>
 
 <p>TOMOYO Linux fortunately does not require the modification of any existing Linux binaries, libraries or applications. Thus, uninstalling TOMOYO Linux is very easy. It is simply a matter of uninstalling the kernel and userspace tools that you installed above using your package manager (e.g. <code>rpm</code> or <code>apt</code>). You can reboot with the kernel provided by your distribution and then remove the entry from your bootloader.</p>
 

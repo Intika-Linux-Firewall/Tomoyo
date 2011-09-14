@@ -1,5 +1,5 @@
 /*
- * mod_ccs.c - Apache module for TOMOYO Linux.
+ * mod_tomoyo.c - Apache module for TOMOYO Linux.
  *
  * About this module:
  *
@@ -15,18 +15,18 @@
  *
  * Runtime dependency:
  *
- *   TOMOYO Linux 1.8.2 (or later) running on Linux 2.6 (or later) kernels.
+ *   TOMOYO Linux 2.5.0 (or later).
  *
  * How to build and install:
  *
  *   Install packages needed for developing Apache modules and run below
  *   command. If your system has apxs2, use apxs2 rather than apxs.
  *
- *     apxs -i -a -c mod_ccs.c
+ *     apxs -i -a -c mod_tomoyo.c
  *
  * How to configure:
  *
- *   CCS_TransitionMap directive is provided by this module.
+ *   TOMOYO_TransitionMap directive is provided by this module.
  *   You may perform domain transition based on requested resource's pathname
  *   using this directive.
  *
@@ -35,18 +35,18 @@
  *
  *     DocumentRoot /var/www/html/
  *     ServerName www.example.com
- *     CCS_TransitionMap /etc/ccs/apache2_transition_table.conf
+ *     TOMOYO_TransitionMap /etc/tomoyo/apache2_transition_table.conf
  *
  *     <VirtualHost *:80>
  *         DocumentRoot /home/cat/html/
  *         ServerName cat.example.com
- *         CCS_TransitionMap /home/cat/apache2_transition_table.conf
+ *         TOMOYO_TransitionMap /home/cat/apache2_transition_table.conf
  *     </VirtualHost>
  *
  *     <VirtualHost *:80>
  *         DocumentRoot /home/dog/html/
  *         ServerName dog.example.com
- *         CCS_TransitionMap /home/dog/apache2_transition_table.conf
+ *         TOMOYO_TransitionMap /home/dog/apache2_transition_table.conf
  *     </VirtualHost>
  *
  *   This directive takes one parameter which specifies pathname to mapping
@@ -58,7 +58,7 @@
  *     /usr/share/horde/\{\*\}/\* <kernel> //apache /www.example.com /horde
  *     /var/www/html/\{\*\}/\*    <kernel> //apache /www.example.com /static-files
  *
- *   in /etc/ccs/apache2_transition_table.conf and
+ *   in /etc/tomoyo/apache2_transition_table.conf and
  *
  *     /home/cat/html/\*          <kernel> //apache /cat.example.com
  *     /home/cat/html/\{\*\}/\*   <kernel> //apache /cat.example.com
@@ -71,7 +71,7 @@
  *   in /home/dog/apache2_transition_table.conf .
  *
  *   You need to beforehand specify domainnames in the mapping table to
- *   /proc/ccs/domain_policy using "task manual_domain_transition" directive
+ *   /sys/kernel/security/tomoyo/domain_policy using "task manual_domain_transition" directive
  *   (e.g.
  *
  *     <kernel> /usr/sbin/httpd
@@ -94,7 +94,7 @@
  *     /usr/share/horde/\{\*\}/\* <kernel> //apache /www.example.com
  *     /var/www/html/\{\*\}/\*    <kernel> //apache /www.example.com
  *
- *   in /etc/ccs/apache2_transition_table.conf and
+ *   in /etc/tomoyo/apache2_transition_table.conf and
  *
  *     /home/cat/html/\*          <kernel> //apache /cat.example.com
  *     /home/cat/html/\{\*\}/\*   <kernel> //apache /cat.example.com
@@ -726,7 +726,7 @@ static _Bool ccs_set_context(request_rec *r)
 	/* Transit domain by requested pathname. */
 	const char *name = ccs_encode_string(r->filename);
 	if (!name) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_tomoyo: "
 			      "Unable to set security context. "
 			      "Out of memory.");
 		return 0;
@@ -740,19 +740,18 @@ static _Bool ccs_set_context(request_rec *r)
 		len = strlen(name) + 1;
 		if (write(ccs_transition_fd, name, len) == len)
 			return 1;
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_tomoyo: "
 			      "Unable to set security context. "
 			      "Can't transit to %s", name);
 		return 0;
 	}
-	ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
+	ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_tomoyo: "
 		      "Unable to set security context. "
 		      "No matching entry for %s", name);
 	free((void *) name);
 	return 0;
 }
 
-/* This "__thread" keyword does not work on Linux 2.4 kernels. */
 static int __thread volatile am_worker = 0;
 
 static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
@@ -786,7 +785,8 @@ static int ccs_handler(request_rec *r)
 		return DECLINED;
 	if (ccs_open_error) {
 		ap_log_rerror(APLOG_MARK, APLOG_ERR, ccs_open_error, r,
-			      "mod_ccs: Unable to open /proc/ccs/self_domain "
+			      "mod_tomoyo: Unable to open "
+			      "/sys/kernel/security/tomoyo/self_domain "
 			      "for writing.");
 		return HTTP_INTERNAL_SERVER_ERROR;
 	}
@@ -797,13 +797,13 @@ static int ccs_handler(request_rec *r)
 	rv = apr_thread_create(&thread, thread_attr, ccs_worker_handler, r,
 			       r->pool);
 	if (rv != APR_SUCCESS) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r, "mod_ccs: "
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r, "mod_tomoyo: "
 			      "Unable to launch a one-time worker thread.");
 		return HTTP_INTERNAL_SERVER_ERROR;
 	}
 	rv = apr_thread_join(&thread_rv, thread);
 	if (rv != APR_SUCCESS) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r, "mod_ccs: "
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r, "mod_tomoyo: "
 			      "Unable to join the one-time worker thread.");
 		r->connection->aborted = 1;
 		return HTTP_INTERNAL_SERVER_ERROR;
@@ -821,14 +821,19 @@ static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 	void *ptr = apr_palloc(p, sizeof(struct ccs_map_table));
 	if (ptr)
 		memset(ptr, 0, sizeof(struct ccs_map_table));
-	/* We can share because /proc/ccs/self_domain interface has no data. */
+	/*
+	 * We can share because /sys/kernel/security/tomoyo/self_domain
+	 * interface has no data.
+	 */
 	if (ccs_transition_fd == EOF) {
-		ccs_transition_fd = open("/proc/ccs/self_domain", O_WRONLY);
+		ccs_transition_fd =
+			open("/sys/kernel/security/tomoyo/self_domain",
+			     O_WRONLY);
 		/*
 		 * Some access control mechanisms might reject opening
-		 * /proc/ccs/self_domain for writing.
+		 * /sys/kernel/security/tomoyo/self_domain for writing.
 		 * This failure is reported by ccs_parse_table() if
-		 * CCS_TransitionMap keyword is specified, by ccs_handler()
+		 * TOMOYO_TransitionMap keyword is specified, by ccs_handler()
 		 * otherwise.
 		 */
 		if (ccs_transition_fd == EOF && errno != ENOENT)
@@ -879,7 +884,7 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 			goto invalid_line;
 		if (!cp) {
 			fclose(fp);
-			snprintf(buffer, buffer_len - 1, "mod_ccs: "
+			snprintf(buffer, buffer_len - 1, "mod_tomoyo: "
 				 "Line %u of %s : Too long.", line + 1, args);
 			return buffer;
 		}
@@ -890,14 +895,14 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 		*cp++ = '\0';
 		if (!ccs_correct_path(buffer)) {
 			fclose(fp);
-			snprintf(buffer, buffer_len - 1, "mod_ccs: "
+			snprintf(buffer, buffer_len - 1, "mod_tomoyo: "
 				 "Line %u of %s : Bad pathname.", line + 1,
 				 args);
 			return buffer;
 		}
 		if (!ccs_correct_domain(cp)) {
 			fclose(fp);
-			snprintf(buffer, buffer_len - 1, "mod_ccs: "
+			snprintf(buffer, buffer_len - 1, "mod_tomoyo: "
 				 "Line %u of %s : Bad domainname.", line + 1,
 				 args);
 			return buffer;
@@ -916,24 +921,25 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
  no_memory:
 	if (fp)
 		fclose(fp);
-	return "mod_ccs: Out of memory.";
+	return "mod_tomoyo: Out of memory.";
  no_interface:
 	snprintf(buffer, buffer_len - 1,
-		 "mod_ccs: Unable to open /proc/ccs/self_domain for writing. "
+		 "mod_tomoyo: Unable to open "
+		 "/sys/kernel/security/tomoyo/self_domain for writing. "
 		 "(errno = %d)", ccs_open_error);
 	return buffer;
  no_file:
-	snprintf(buffer, buffer_len - 1, "mod_ccs: %s : Can't read.", args);
+	snprintf(buffer, buffer_len - 1, "mod_tomoyo: %s : Can't read.", args);
 	return buffer;
  invalid_line:
 	fclose(fp);
-	snprintf(buffer, buffer_len - 1, "mod_ccs: "
+	snprintf(buffer, buffer_len - 1, "mod_tomoyo: "
 		 "Line %u of %s : Bad line.", line + 1, args);
 	return buffer;
 }
 
 static command_rec ccs_cmds[2] = {
-	AP_INIT_RAW_ARGS("CCS_TransitionMap", ccs_parse_table, NULL,
+	AP_INIT_RAW_ARGS("TOMOYO_TransitionMap", ccs_parse_table, NULL,
 			 RSRC_CONF, "Path to path/domain mapping table."),
 	{ NULL }
 };

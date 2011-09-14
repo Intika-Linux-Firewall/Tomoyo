@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : The Official Guide : Chapter 14</title>
+<title>TOMOYO Linux 2.5.x : The Official Guide : Chapter 14</title>
 </head>
 
 <body>
@@ -89,7 +89,7 @@
 <p>If installation completed successfully, the following should be present in the Apache configuration files:</p>
 
 <pre>
-LoadModule ccs_module /usr/lib/httpd/modules/mod_tomoyo.so
+LoadModule tomoyo_module /usr/lib/httpd/modules/mod_tomoyo.so
 </pre>
 
 <h3><a name="14.3">14.3. Configuration</a></h3>
@@ -140,14 +140,6 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-pro
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /horde
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /static-files
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
-</pre>
-
-<p>If SELinux is enabled, policy must be configured to allow Apache to write to the <a href="policy-specification/securityfs-interface.html.en#self_domain">/sys/kernel/security/tomoyo/self_domain</a> interface. On CentOS 5.6, this may be done with the following commands, though this depends on policy configuration, distribution and package versions:</p>
-
-<pre class="command">
-# cd /etc/selinux/
-# echo 'type=AVC msg=audit(1277948886.369:106): avc:  denied  { write } for pid=32078 comm="httpd" name="self_domain" dev=proc ino=-268435010 scontext=root:system_r:httpd_t:s0 tcontext=system_u:object_r:proc_t:s0 tclass=file' | audit2allow -M ccsecurity
-# semodule -i ccsecurity.pp
 </pre>
 
 <p>Restart Apache. If the following error occurs on startup, then writing to the <a href="policy-specification/securityfs-interface.html.en#self_domain">/sys/kernel/security/tomoyo/self_domain</a> interface failed:</p>

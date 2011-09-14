@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 1.8.x : 導入ガイド : Chapter 14</title>
+<title>TOMOYO Linux 2.5.x : 導入ガイド : Chapter 14</title>
 </head>
 
 <body>
@@ -89,7 +89,7 @@
 <p>正常に終了した場合， Apache の設定ファイルの中に以下のような指定が見つかるはずです：</p>
 
 <pre>
-LoadModule ccs_module /usr/lib/httpd/modules/mod_tomoyo.so
+LoadModule tomoyo_module /usr/lib/httpd/modules/mod_tomoyo.so
 </pre>
 
 <h3><a name="14.3">14.3. 設定</a></h3>
@@ -140,14 +140,6 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-pro
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /horde
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /static-files
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
-</pre>
-
-<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では <a href="policy-specification/securityfs-interface.html.ja#self_domain">/sys/kernel/security/tomoyo/self_domain</a> への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /sys/kernel/security/tomoyo/self_domain への書き込みを認めるようにしてください． SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．以下の例は CentOS 5.6 では使えますが，それより古いバージョンでは使えないことがあります：</p>
-
-<pre class="command">
-# cd /etc/selinux/
-# echo 'type=AVC msg=audit(1277948886.369:106): avc:  denied  { write } for pid=32078 comm="httpd" name="self_domain" dev=proc ino=-268435010 scontext=root:system_r:httpd_t:s0 tcontext=system_u:object_r:proc_t:s0 tclass=file' | audit2allow -M ccsecurity
-# semodule -i ccsecurity.pp
 </pre>
 
 <p>Apache を再起動してください。 Apache の起動時に <a href="policy-specification/securityfs-interface.html.ja#self_domain">/sys/kernel/security/tomoyo/self_domain</a> への書き込みができなかった場合、以下のようなエラーメッセージが表示されます：</p>
