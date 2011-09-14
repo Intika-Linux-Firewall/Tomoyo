@@ -2588,7 +2588,7 @@ static void ccs_add_entry(void)
 			fprintf(fp, "%s ", ccs_current_ns->name);
 		break;
 	case CCS_SCREEN_NS_LIST:
-		fprintf(fp, "%s PROFILE_VERSION=20100903\n", line);
+		fprintf(fp, "%s PROFILE_VERSION=20110903\n", line);
 		line[0] = '\0';
 		break;
 	default:

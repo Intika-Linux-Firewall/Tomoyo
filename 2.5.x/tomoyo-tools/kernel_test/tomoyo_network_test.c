@@ -48,30 +48,6 @@ static void show_result(int result)
 	}
 }
 
-static void show_result2(int result)
-{
-	if (is_enforce) {
-		if (result == EOF) {
-			if (errno == EAGAIN)
-				printf("OK: Permission denied.\n");
-			else
-				printf("FAILED: %s\n", strerror(errno));
-		} else {
-			char c;
-			if (recv(result, &c, 1, MSG_DONTWAIT) == EOF &&
-			    errno == EPERM)
-				printf("OK: Permission denied.\n");
-			else
-				printf("BUG!(%d)\n", result);
-		}
-	} else {
-		if (result != EOF)
-			printf("OK\n");
-		else
-			printf("%s\n", strerror(errno));
-	}
-}
-
 static void show_result3(int result)
 {
 	if (result == EOF) {
@@ -96,13 +72,10 @@ static void set_enforce(int flag)
 	set_profile(flag, "network::inet_stream_bind");
 	set_profile(flag, "network::inet_stream_listen");
 	set_profile(flag, "network::inet_stream_connect");
-	set_profile(flag, "network::inet_stream_accept");
 	set_profile(flag, "network::inet_dgram_bind");
 	set_profile(flag, "network::inet_dgram_send");
-	set_profile(flag, "network::inet_dgram_recv");
 	set_profile(flag, "network::inet_raw_bind");
 	set_profile(flag, "network::inet_raw_send");
-	set_profile(flag, "network::inet_raw_recv");
 }
 
 static void stage_network_test(void)
@@ -117,11 +90,9 @@ static void stage_network_test(void)
 
 	{ /* IPv4 TCP */
 		struct sockaddr_in saddr;
-		struct sockaddr_in caddr;
 		socklen_t size = sizeof(saddr);
 		int fd1 = EOF;
 		int fd2 = EOF;
-		int fd3 = EOF;
 
 		fd1 = socket(PF_INET, SOCK_STREAM, 0);
 
@@ -164,42 +135,12 @@ static void stage_network_test(void)
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
 				    sizeof(saddr)));
-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Accepting TCP 127.0.0.1 %d",
-			 ntohs(caddr.sin_port));
-		set_enforce(1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		show_prompt(sbuffer);
-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
-
-		set_enforce(0);
-		close(fd2);
-		fd2 = socket(PF_INET, SOCK_STREAM, 0);
-		connect(fd2, (struct sockaddr *) &saddr, sizeof(saddr));
-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Accepting TCP 127.0.0.1 %d",
-			 ntohs(caddr.sin_port));
-		set_enforce(0);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		show_prompt(sbuffer);
-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
-
-		close(fd3);
 		close(fd2);
 		close(fd1);
 	}
 
 	{ /* IPv4 UDP */
 		struct sockaddr_in saddr;
-		struct sockaddr_in caddr;
 		socklen_t size = sizeof(saddr);
 		int fd1 = EOF;
 		int fd2 = EOF;
@@ -262,17 +203,12 @@ static void stage_network_test(void)
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
 				    sizeof(saddr)));
-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		/* sendto() -> recvfrom() */
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
 			 "Client: Sending UDP 127.0.0.1 %d using sendto()",
 			 ntohs(saddr.sin_port));
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Receiving UDP 127.0.0.1 %d using recvfrom()",
-			 ntohs(caddr.sin_port));
-
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
@@ -281,26 +217,12 @@ static void stage_network_test(void)
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
 				   sizeof(saddr)));
-		set_enforce(1);
-		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
-				      (struct sockaddr *) &caddr, &size));
-		set_enforce(0);
-		sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
-		       sizeof(saddr));
-		set_enforce(0);
-		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
-				      (struct sockaddr *) &caddr, &size));
 
 		/* send() -> recv() */
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
 			 "Client: Sending UDP 127.0.0.1 %d using send()",
 			 ntohs(saddr.sin_port));
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Receiving UDP 127.0.0.1 %d using recv()",
-			 ntohs(caddr.sin_port));
 		if (0) {
 			set_enforce(1);
 			show_prompt(cbuffer);
@@ -311,23 +233,12 @@ static void stage_network_test(void)
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(send(fd2, "", 1, 0));
-		set_enforce(1);
-		show_prompt(sbuffer);
-		show_result2(recv(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT));
-		set_enforce(0);
-		send(fd2, "", 1, 0);
-		set_enforce(0);
-		show_prompt(sbuffer);
-		show_result2(recv(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT));
 
 		/* write() -> read() */
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
 			 "Client: Sending UDP 127.0.0.1 %d using write()",
 			 ntohs(saddr.sin_port));
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Receiving UDP 127.0.0.1 %d using read()",
-			 ntohs(caddr.sin_port));
 		if (0) {
 			set_enforce(1);
 			show_prompt(cbuffer);
@@ -338,16 +249,8 @@ static void stage_network_test(void)
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(write(fd2, "", 1));
-		set_enforce(1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		show_prompt(sbuffer);
-		show_result2(read(fd1, buf, sizeof(buf) - 1));
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 		set_enforce(0);
 		ret_ignored = write(fd2, "", 1);
-		set_enforce(0);
-		show_prompt(sbuffer);
-		show_result2(read(fd1, buf, sizeof(buf) - 1));
 
 		/* sendmsg() -> recvmsg() */
 		{
@@ -370,23 +273,14 @@ static void stage_network_test(void)
 			snprintf(cbuffer, sizeof(cbuffer) - 1,
 				 "Client: Sending UDP 127.0.0.1 %d using "
 				 "sendmsg()", ntohs(saddr.sin_port));
-			snprintf(sbuffer, sizeof(sbuffer) - 1,
-				 "Server: Receiving UDP 127.0.0.1 %d using "
-				 "recvmsg()", ntohs(caddr.sin_port));
 			set_enforce(1);
 			show_prompt(cbuffer);
 			show_result(sendmsg(fd1, &msg1, 0));
 			set_enforce(0);
 			show_prompt(cbuffer);
 			show_result(sendmsg(fd1, &msg1, 0));
-			set_enforce(1);
-			show_prompt(sbuffer);
-			show_result2(recvmsg(fd1, &msg2, MSG_DONTWAIT));
 			set_enforce(0);
 			sendmsg(fd1, &msg1, 0);
-			set_enforce(0);
-			show_prompt(sbuffer);
-			show_result2(recvmsg(fd1, &msg2, MSG_DONTWAIT));
 		}
 
 		close(fd2);
@@ -397,7 +291,6 @@ static void stage_network_test(void)
 	{ /* IPv4 RAW */
 		static struct iphdr ip;
 		struct sockaddr_in saddr;
-		struct sockaddr_in caddr;
 		socklen_t size = sizeof(saddr);
 		int fd1 = EOF;
 		int fd2 = EOF;
@@ -453,22 +346,6 @@ static void stage_network_test(void)
 		show_result(sendto(fd2, &ip, sizeof(ip), 0,
 				   (struct sockaddr *) &saddr, sizeof(saddr)));
 
-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Receiving RAW 127.0.0.1 %d",
-			 ntohs(caddr.sin_port));
-		set_enforce(1);
-		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
-				      (struct sockaddr *) &caddr, &size));
-		set_enforce(0);
-		sendto(fd2, &ip, sizeof(ip), 0, (struct sockaddr *) &saddr,
-		       sizeof(saddr));
-		set_enforce(0);
-		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
-				      (struct sockaddr *) &caddr, &size));
-
 		close(fd2);
 		close(fd1);
 
@@ -481,11 +358,9 @@ static void stage_network_test(void)
 
 	{
 		struct sockaddr_in6 saddr;
-		struct sockaddr_in6 caddr;
 		socklen_t size = sizeof(saddr);
 		int fd1 = EOF;
 		int fd2 = EOF;
-		int fd3 = EOF;
 
 		fd1 = socket(PF_INET6, SOCK_STREAM, 0);
 
@@ -529,41 +404,12 @@ static void stage_network_test(void)
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
 				    sizeof(saddr)));
 
-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Accepting TCP ::1 %d",
-			 ntohs(caddr.sin6_port));
-		set_enforce(1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		show_prompt(sbuffer);
-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
-
-		set_enforce(0);
-		close(fd2);
-		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
-		connect(fd2, (struct sockaddr *) &saddr, sizeof(saddr));
-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Accepting TCP ::1 %d",
-			 ntohs(caddr.sin6_port));
-		set_enforce(0);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
-		show_prompt(sbuffer);
-		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
-
-		close(fd3);
 		close(fd2);
 		close(fd1);
 	}
 
 	{
 		struct sockaddr_in6 saddr;
-		struct sockaddr_in6 caddr;
 		socklen_t size = sizeof(saddr);
 		int fd1 = EOF;
 		int fd2 = EOF;
@@ -599,14 +445,10 @@ static void stage_network_test(void)
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
 				    sizeof(saddr)));
-		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
 			 "Client: Sending UDP ::1 %d",
 			 ntohs(saddr.sin6_port));
-		snprintf(sbuffer, sizeof(sbuffer) - 1,
-			 "Server: Receiving UDP ::1 %d",
-			 ntohs(caddr.sin6_port));
 
 		set_enforce(1);
 		show_prompt(cbuffer);
@@ -616,18 +458,6 @@ static void stage_network_test(void)
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
 				   sizeof(saddr)));
-		set_enforce(1);
-		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
-				      (struct sockaddr *) &caddr, &size));
-		set_enforce(0);
-		sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
-		       sizeof(saddr));
-		set_enforce(0);
-		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
-				      (struct sockaddr *) &caddr, &size));
-
 		close(fd2);
 		close(fd1);
 

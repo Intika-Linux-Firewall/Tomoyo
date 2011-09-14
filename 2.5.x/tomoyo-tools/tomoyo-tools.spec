@@ -6,8 +6,8 @@ Summary: Userspace tools for TOMOYO Linux 2.4.x
 %define usrlibdir /usr/lib
 
 Name: tomoyo-tools
-Version: 2.4.0
-Release: 2
+Version: 2.5.0
+Release: 1
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -20,13 +20,13 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.4.0-2
+Conflicts: tomoyo-tools < 2.5.0-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/????/tomoyo-tools-2.5.0-2011????.tar.gz
 
 %description
-This package contains userspace tools for administrating TOMOYO Linux 2.4.
-Please see http://tomoyo.sourceforge.jp/2.4/ for documentation.
+This package contains userspace tools for administrating TOMOYO Linux 2.5.
+Please see http://tomoyo.sourceforge.jp/2.5/ for documentation.
 
 %prep
 
