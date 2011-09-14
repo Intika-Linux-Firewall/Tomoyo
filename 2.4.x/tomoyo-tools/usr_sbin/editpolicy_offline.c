@@ -88,40 +88,6 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_PATH_NUMBER_ACL,
 	CCS_TYPE_MKDEV_ACL,
 	CCS_TYPE_MOUNT_ACL,
-	CCS_TYPE_ENV_ACL,
-	CCS_TYPE_CAPABILITY_ACL,
-	CCS_TYPE_INET_ACL,
-	CCS_TYPE_UNIX_ACL,
-	CCS_TYPE_SIGNAL_ACL,
-	CCS_TYPE_AUTO_EXECUTE_HANDLER,
-	CCS_TYPE_DENIED_EXECUTE_HANDLER,
-	CCS_TYPE_AUTO_TASK_ACL,
-	CCS_TYPE_MANUAL_TASK_ACL,
-};
-
-/* Index numbers for Capability Controls. */
-enum ccs_capability_acl_index {
-	/* socket(PF_ROUTE, *, *)                                      */
-	CCS_USE_ROUTE_SOCKET,
-	/* socket(PF_PACKET, *, *)                                     */
-	CCS_USE_PACKET_SOCKET,
-	/* sys_reboot()                                                */
-	CCS_SYS_REBOOT,
-	/* sys_vhangup()                                               */
-	CCS_SYS_VHANGUP,
-	/* do_settimeofday(), sys_adjtimex()                           */
-	CCS_SYS_SETTIME,
-	/* sys_nice(), sys_setpriority()                               */
-	CCS_SYS_NICE,
-	/* sys_sethostname(), sys_setdomainname()                      */
-	CCS_SYS_SETHOSTNAME,
-	/* sys_create_module(), sys_init_module(), sys_delete_module() */
-	CCS_USE_KERNEL_MODULE,
-	/* sys_kexec_load()                                            */
-	CCS_SYS_KEXEC_LOAD,
-	/* sys_ptrace()                                                */
-	CCS_SYS_PTRACE,
-	CCS_MAX_CAPABILITY_INDEX
 };
 
 /* Index numbers for "struct ccs_condition". */
@@ -157,9 +123,6 @@ enum ccs_conditions_index {
 	CCS_MODE_OTHERS_READ,     /* S_IROTH */
 	CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
 	CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-	CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
-				     CCS_TASK_IS_EXECUTE_HANDLER */
-	CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
 	CCS_EXEC_REALPATH,
 	CCS_SYMLINK_TARGET,
 	CCS_PATH1_UID,
@@ -209,31 +172,16 @@ enum ccs_domain_info_flags_index {
 	CCS_MAX_DOMAIN_INFO_FLAGS
 };
 
-/* Index numbers for audit type. */
-enum ccs_grant_log {
-	/* Follow profile's configuration. */
-	CCS_GRANTLOG_AUTO,
-	/* Do not generate grant log. */
-	CCS_GRANTLOG_NO,
-	/* Generate grant_log. */
-	CCS_GRANTLOG_YES,
-};
-
 /* Index numbers for group entries. */
 enum ccs_group_id {
 	CCS_PATH_GROUP,
 	CCS_NUMBER_GROUP,
-	CCS_ADDRESS_GROUP,
 	CCS_MAX_GROUP
 };
 
 /* Index numbers for category of functionality. */
 enum ccs_mac_category_index {
 	CCS_MAC_CATEGORY_FILE,
-	CCS_MAC_CATEGORY_NETWORK,
-	CCS_MAC_CATEGORY_MISC,
-	CCS_MAC_CATEGORY_IPC,
-	CCS_MAC_CATEGORY_CAPABILITY,
 	CCS_MAX_MAC_CATEGORY_INDEX
 };
 
@@ -262,39 +210,6 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_MOUNT,
 	CCS_MAC_FILE_UMOUNT,
 	CCS_MAC_FILE_PIVOT_ROOT,
-	CCS_MAC_NETWORK_INET_STREAM_BIND,
-	CCS_MAC_NETWORK_INET_STREAM_LISTEN,
-	CCS_MAC_NETWORK_INET_STREAM_CONNECT,
-	CCS_MAC_NETWORK_INET_STREAM_ACCEPT,
-	CCS_MAC_NETWORK_INET_DGRAM_BIND,
-	CCS_MAC_NETWORK_INET_DGRAM_SEND,
-	CCS_MAC_NETWORK_INET_DGRAM_RECV,
-	CCS_MAC_NETWORK_INET_RAW_BIND,
-	CCS_MAC_NETWORK_INET_RAW_SEND,
-	CCS_MAC_NETWORK_INET_RAW_RECV,
-	CCS_MAC_NETWORK_UNIX_STREAM_BIND,
-	CCS_MAC_NETWORK_UNIX_STREAM_LISTEN,
-	CCS_MAC_NETWORK_UNIX_STREAM_CONNECT,
-	CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT,
-	CCS_MAC_NETWORK_UNIX_DGRAM_BIND,
-	CCS_MAC_NETWORK_UNIX_DGRAM_SEND,
-	CCS_MAC_NETWORK_UNIX_DGRAM_RECV,
-	CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND,
-	CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
-	CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
-	CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
-	CCS_MAC_ENVIRON,
-	CCS_MAC_SIGNAL,
-	CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET,
-	CCS_MAC_CAPABILITY_USE_PACKET_SOCKET,
-	CCS_MAC_CAPABILITY_SYS_REBOOT,
-	CCS_MAC_CAPABILITY_SYS_VHANGUP,
-	CCS_MAC_CAPABILITY_SYS_SETTIME,
-	CCS_MAC_CAPABILITY_SYS_NICE,
-	CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
-	CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
-	CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
-	CCS_MAC_CAPABILITY_SYS_PTRACE,
 	CCS_MAX_MAC_INDEX
 };
 
@@ -323,17 +238,6 @@ enum ccs_mode_value {
 	CCS_CONFIG_WANT_REJECT_LOG =  64,
 	CCS_CONFIG_WANT_GRANT_LOG  = 128,
 	CCS_CONFIG_USE_DEFAULT     = 255,
-};
-
-/* Index numbers for socket operations. */
-enum ccs_network_acl_index {
-	CCS_NETWORK_BIND,    /* bind() operation. */
-	CCS_NETWORK_LISTEN,  /* listen() operation. */
-	CCS_NETWORK_CONNECT, /* connect() operation. */
-	CCS_NETWORK_ACCEPT,  /* accept() operation. */
-	CCS_NETWORK_SEND,    /* send() operation. */
-	CCS_NETWORK_RECV,    /* recv() operation. */
-	CCS_MAX_NETWORK_OPERATION
 };
 
 /* Index numbers for access controls with two pathnames. */
@@ -412,7 +316,6 @@ enum ccs_proc_interface_index {
 	CCS_PROFILE,
 	CCS_QUERY,
 	CCS_MANAGER,
-	CCS_EXECUTE_HANDLER,
 };
 
 /* Index numbers for special mount operations. */
@@ -444,12 +347,6 @@ enum ccs_value_type {
  */
 #define CCS_HASH_BITS 8
 #define CCS_MAX_HASH (1u << CCS_HASH_BITS)
-
-/*
- * TOMOYO checks only SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_SEQPACKET.
- * Therefore, we don't need SOCK_MAX.
- */
-#define CCS_SOCK_MAX 6
 
 /* Size of temporary buffer for execve() operation. */
 #define CCS_EXEC_TMPSIZE     4096
@@ -506,16 +403,13 @@ struct ccs_ipaddr_union {
 	bool is_ipv6; /* Valid only if @group == NULL. */
 };
 
-/* Structure for "path_group"/"number_group"/"address_group" directive. */
+/* Structure for "path_group"/"number_group" directive. */
 struct ccs_group {
 	struct ccs_shared_acl_head head;
 	struct ccs_policy_namespace *ns;
 	/* Name of group (without leading '@'). */
 	const struct ccs_path_info *group_name;
-	/*
-	 * List of "struct ccs_path_group" or "struct ccs_number_group" or
-	 * "struct ccs_address_group".
-	 */
+	/* List of "struct ccs_path_group" or "struct ccs_number_group". */
 	struct list_head member_list;
 };
 
@@ -529,13 +423,6 @@ struct ccs_path_group {
 struct ccs_number_group {
 	struct ccs_acl_head head;
 	struct ccs_number_union number;
-};
-
-/* Structure for "address_group" directive. */
-struct ccs_address_group {
-	struct ccs_acl_head head;
-	/* Structure for holding an IP address. */
-	struct ccs_ipaddr_union address;
 };
 
 /* Structure for entries which follows "struct ccs_condition". */
@@ -565,8 +452,6 @@ struct ccs_condition {
 	u16 names_count; /* Number of "struct ccs_name_union names". */
 	u16 argc; /* Number of "struct ccs_argv". */
 	u16 envc; /* Number of "struct ccs_envp". */
-	u8 grant_log; /* One of values in "enum ccs_grant_log". */
-	const struct ccs_path_info *transit; /* Maybe NULL. */
 	/*
 	 * struct ccs_condition_element condition[condc];
 	 * struct ccs_number_union values[numbers_count];
@@ -597,13 +482,6 @@ struct ccs_aggregator {
 	struct ccs_policy_namespace *ns;
 };
 
-/* Structure for "deny_autobind" keyword. */
-struct ccs_reserved {
-	struct ccs_acl_head head;
-	struct ccs_number_union port;
-	struct ccs_policy_namespace *ns;
-};
-
 /* Structure for policy manager. */
 struct ccs_manager {
 	struct ccs_acl_head head;
@@ -624,29 +502,6 @@ struct ccs_envp {
 	const struct ccs_path_info *name;
 	const struct ccs_path_info *value;
 	bool is_not;
-};
-
-/*
- * Structure for "task auto_execute_handler" and "task denied_execute_handler"
- * directive.
- *
- * If "task auto_execute_handler" directive exists and the current process is
- * not an execute handler, all execve() requests are replaced by execve()
- * requests of a program specified by "task auto_execute_handler" directive.
- * If the current process is an execute handler, "task auto_execute_handler"
- * and "task denied_execute_handler" directives are ignored.
- * The program specified by "task execute_handler" validates execve()
- * parameters and executes the original execve() requests if appropriate.
- *
- * "task denied_execute_handler" directive is used only when execve() request
- * was rejected in enforcing mode (i.e. CONFIG::file::execute={ mode=enforcing
- * }). The program specified by "task denied_execute_handler" does whatever it
- * wants to do (e.g. silently terminate, change firewall settings, redirect the
- * user to honey pot etc.).
- */
-struct ccs_handler_acl {
-	struct ccs_acl_info head;       /* type = CCS_TYPE_*_EXECUTE_HANDLER */
-	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
 };
 
 /*
@@ -708,43 +563,6 @@ struct ccs_mount_acl {
 	struct ccs_name_union dir_name;
 	struct ccs_name_union fs_type;
 	struct ccs_number_union flags;
-};
-
-/* Structure for "misc env" directive in domain policy. */
-struct ccs_env_acl {
-	struct ccs_acl_info head;        /* type = CCS_TYPE_ENV_ACL  */
-	const struct ccs_path_info *env; /* environment variable */
-};
-
-/* Structure for "capability" directive. */
-struct ccs_capability_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_CAPABILITY_ACL */
-	u8 operation; /* One of values in "enum ccs_capability_acl_index". */
-};
-
-/* Structure for "ipc signal" directive. */
-struct ccs_signal_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_SIGNAL_ACL */
-	struct ccs_number_union sig;
-	/* Pointer to destination pattern. */
-	const struct ccs_path_info *domainname;
-};
-
-/* Structure for "network inet" directive. */
-struct ccs_inet_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_INET_ACL */
-	u8 protocol;
-	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
-	struct ccs_ipaddr_union address;
-	struct ccs_number_union port;
-};
-
-/* Structure for "network unix" directive. */
-struct ccs_unix_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_UNIX_ACL */
-	u8 protocol;
-	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
-	struct ccs_name_union name;
 };
 
 /* Structure for holding string data. */
@@ -854,49 +672,8 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 	[CCS_MAC_FILE_MOUNT]      = "mount",
 	[CCS_MAC_FILE_UMOUNT]     = "unmount",
 	[CCS_MAC_FILE_PIVOT_ROOT] = "pivot_root",
-	/* CONFIG::misc group */
-	[CCS_MAC_ENVIRON] = "env",
-	/* CONFIG::network group */
-	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = "inet_stream_bind",
-	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = "inet_stream_listen",
-	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]    = "inet_stream_connect",
-	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]     = "inet_stream_accept",
-	[CCS_MAC_NETWORK_INET_DGRAM_BIND]        = "inet_dgram_bind",
-	[CCS_MAC_NETWORK_INET_DGRAM_SEND]        = "inet_dgram_send",
-	[CCS_MAC_NETWORK_INET_DGRAM_RECV]        = "inet_dgram_recv",
-	[CCS_MAC_NETWORK_INET_RAW_BIND]          = "inet_raw_bind",
-	[CCS_MAC_NETWORK_INET_RAW_SEND]          = "inet_raw_send",
-	[CCS_MAC_NETWORK_INET_RAW_RECV]          = "inet_raw_recv",
-	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]       = "unix_stream_bind",
-	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]     = "unix_stream_listen",
-	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]    = "unix_stream_connect",
-	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = "unix_stream_accept",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]        = "unix_dgram_bind",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]        = "unix_dgram_send",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]        = "unix_dgram_recv",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = "unix_seqpacket_bind",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = "unix_seqpacket_listen",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
-	/* CONFIG::ipc group */
-	[CCS_MAC_SIGNAL] = "signal",
-	/* CONFIG::capability group */
-	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = "use_route",
-	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = "use_packet",
-	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = "SYS_REBOOT",
-	[CCS_MAC_CAPABILITY_SYS_VHANGUP]       = "SYS_VHANGUP",
-	[CCS_MAC_CAPABILITY_SYS_SETTIME]       = "SYS_TIME",
-	[CCS_MAC_CAPABILITY_SYS_NICE]          = "SYS_NICE",
-	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = "SYS_SETHOSTNAME",
-	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = "use_kernel_module",
-	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = "SYS_KEXEC_LOAD",
-	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = "SYS_PTRACE",
 	/* CONFIG group */
 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_FILE]       = "file",
-	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_NETWORK]    = "network",
-	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_MISC]       = "misc",
-	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_IPC]        = "ipc",
-	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_CAPABILITY] = "capability",
 };
 
 /* String table for path operation. */
@@ -914,23 +691,9 @@ static const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_UMOUNT]     = "unmount",
 };
 
-/* String table for socket's operation. */
-static const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
-	[CCS_NETWORK_BIND]    = "bind",
-	[CCS_NETWORK_LISTEN]  = "listen",
-	[CCS_NETWORK_CONNECT] = "connect",
-	[CCS_NETWORK_ACCEPT]  = "accept",
-	[CCS_NETWORK_SEND]    = "send",
-	[CCS_NETWORK_RECV]    = "recv",
-};
-
 /* String table for categories. */
 static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
 	[CCS_MAC_CATEGORY_FILE]       = "file",
-	[CCS_MAC_CATEGORY_NETWORK]    = "network",
-	[CCS_MAC_CATEGORY_MISC]       = "misc",
-	[CCS_MAC_CATEGORY_IPC]        = "ipc",
-	[CCS_MAC_CATEGORY_CAPABILITY] = "capability",
 };
 
 /* String table for conditions. */
@@ -966,8 +729,6 @@ static const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 	[CCS_MODE_OTHERS_READ]     = "others_read",
 	[CCS_MODE_OTHERS_WRITE]    = "others_write",
 	[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
-	[CCS_TASK_TYPE]            = "task.type",
-	[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
 	[CCS_EXEC_REALPATH]        = "exec.realpath",
 	[CCS_SYMLINK_TARGET]       = "symlink.target",
 	[CCS_PATH1_UID]            = "path1.uid",
@@ -1047,79 +808,6 @@ static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
 	[CCS_TYPE_CHGRP]  = CCS_MAC_FILE_CHGRP,
 };
 
-/*
- * Mapping table from "enum ccs_network_acl_index" to "enum ccs_mac_index" for
- * inet domain socket.
- */
-static const u8 ccs_inet2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
-	[SOCK_STREAM] = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_STREAM_BIND,
-		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_INET_STREAM_LISTEN,
-		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_INET_STREAM_CONNECT,
-		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_INET_STREAM_ACCEPT,
-	},
-	[SOCK_DGRAM] = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_DGRAM_BIND,
-		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_DGRAM_SEND,
-		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_DGRAM_RECV,
-	},
-	[SOCK_RAW]    = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_RAW_BIND,
-		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_RAW_SEND,
-		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_RAW_RECV,
-	},
-};
-
-/*
- * Mapping table from "enum ccs_network_acl_index" to "enum ccs_mac_index" for
- * unix domain socket.
- */
-static const u8 ccs_unix2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
-	[SOCK_STREAM] = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_STREAM_BIND,
-		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_UNIX_STREAM_LISTEN,
-		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_UNIX_STREAM_CONNECT,
-		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT,
-	},
-	[SOCK_DGRAM] = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_DGRAM_BIND,
-		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_UNIX_DGRAM_SEND,
-		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_UNIX_DGRAM_RECV,
-	},
-	[SOCK_SEQPACKET] = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND,
-		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
-		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
-		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
-	},
-};
-
-/* String table for socket's protocols. */
-static const char * const ccs_proto_keyword[CCS_SOCK_MAX] = {
-	[SOCK_STREAM]    = "stream",
-	[SOCK_DGRAM]     = "dgram",
-	[SOCK_RAW]       = "raw",
-	[SOCK_SEQPACKET] = "seqpacket",
-	[0] = " ", /* Dummy for avoiding NULL pointer dereference. */
-	[4] = " ", /* Dummy for avoiding NULL pointer dereference. */
-};
-
-/*
- * Mapping table from "enum ccs_capability_acl_index" to "enum ccs_mac_index".
- */
-static const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX] = {
-	[CCS_USE_ROUTE_SOCKET]  = CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET,
-	[CCS_USE_PACKET_SOCKET] = CCS_MAC_CAPABILITY_USE_PACKET_SOCKET,
-	[CCS_SYS_REBOOT]        = CCS_MAC_CAPABILITY_SYS_REBOOT,
-	[CCS_SYS_VHANGUP]       = CCS_MAC_CAPABILITY_SYS_VHANGUP,
-	[CCS_SYS_SETTIME]       = CCS_MAC_CAPABILITY_SYS_SETTIME,
-	[CCS_SYS_NICE]          = CCS_MAC_CAPABILITY_SYS_NICE,
-	[CCS_SYS_SETHOSTNAME]   = CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
-	[CCS_USE_KERNEL_MODULE] = CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
-	[CCS_SYS_KEXEC_LOAD]    = CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
-	[CCS_SYS_PTRACE]        = CCS_MAC_CAPABILITY_SYS_PTRACE,
-};
-
 /* String table for /sys/kernel/security/tomoyo/stat interface. */
 static const char * const ccs_memory_headers[CCS_MAX_MEMORY_STAT] = {
 	[CCS_MEMORY_POLICY]     = "policy:",
@@ -1141,7 +829,6 @@ static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
 static const char * const ccs_group_name[CCS_MAX_GROUP] = {
 	[CCS_PATH_GROUP]    = "path_group ",
 	[CCS_NUMBER_GROUP]  = "number_group ",
-	[CCS_ADDRESS_GROUP] = "address_group ",
 };
 
 /* String table for domain flags. */
@@ -1176,43 +863,6 @@ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_FILE_MOUNT]      = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_UMOUNT]     = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_PIVOT_ROOT] = CCS_MAC_CATEGORY_FILE,
-	/* CONFIG::misc group */
-	[CCS_MAC_ENVIRON]         = CCS_MAC_CATEGORY_MISC,
-	/* CONFIG::network group */
-	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]    = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_DGRAM_BIND]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_DGRAM_SEND]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_DGRAM_RECV]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_RAW_BIND]          = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_RAW_SEND]          = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_RAW_RECV]          = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]       = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]    = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = CCS_MAC_CATEGORY_NETWORK,
-	/* CONFIG::ipc group */
-	[CCS_MAC_SIGNAL]          = CCS_MAC_CATEGORY_IPC,
-	/* CONFIG::capability group */
-	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_VHANGUP]       = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_SETTIME]       = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_NICE]          = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = CCS_MAC_CATEGORY_CAPABILITY,
 };
 
 static struct ccs_io_buffer head;
@@ -1222,10 +872,8 @@ static LIST_HEAD(ccs_domain_list);
 static LIST_HEAD(ccs_manager_list);
 static LIST_HEAD(ccs_path_group);
 static LIST_HEAD(ccs_number_group);
-static LIST_HEAD(ccs_address_group);
 static LIST_HEAD(ccs_transition_list);
 static LIST_HEAD(ccs_aggregator_list);
-static LIST_HEAD(ccs_reserved_list);
 static LIST_HEAD(ccs_namespace_list);
 static bool ccs_namespace_enabled;
 static struct list_head ccs_name_list[CCS_MAX_HASH];
@@ -1332,7 +980,6 @@ static void ccs_del_condition(struct list_head *element)
 		ccs_put_name(envp->name);
 		ccs_put_name(envp->value);
 	}
-	ccs_put_name(cond->transit);
 }
 
 /**
@@ -1524,32 +1171,7 @@ static char *ccs_read_token(struct ccs_acl_param *param)
 }
 
 /**
- * ccs_get_domainname - Read a domainname from a line.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns a domainname on success, NULL otherwise.
- */
-static const struct ccs_path_info *ccs_get_domainname
-(struct ccs_acl_param *param)
-{
-	char *start = param->data;
-	char *pos = start;
-	while (*pos) {
-		if (*pos++ != ' ' || *pos++ == '/')
-			continue;
-		pos -= 2;
-		*pos++ = '\0';
-		break;
-	}
-	param->data = pos;
-	if (ccs_correct_domain(start))
-		return ccs_get_name(start);
-	return NULL;
-}
-
-/**
- * ccs_get_group - Allocate memory for "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group".
+ * ccs_get_group - Allocate memory for "struct ccs_path_group"/"struct ccs_number_group".
  *
  * @param: Pointer to "struct ccs_acl_param".
  * @list:  List to use.
@@ -1905,7 +1527,6 @@ static inline bool ccs_same_condition(const struct ccs_condition *a,
 		a->numbers_count == b->numbers_count &&
 		a->names_count == b->names_count &&
 		a->argc == b->argc && a->envc == b->envc &&
-		a->grant_log == b->grant_log && a->transit == b->transit &&
 		!memcmp(a + 1, b + 1, a->size - sizeof(*a));
 }
 
@@ -2034,32 +1655,6 @@ rerun:
 			goto out;
 		dprintk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left_word,
 			is_not ? "!" : "", right_word);
-		if (!strcmp(left_word, "grant_log")) {
-			if (entry) {
-				if (is_not ||
-				    entry->grant_log != CCS_GRANTLOG_AUTO)
-					goto out;
-				else if (!strcmp(right_word, "yes"))
-					entry->grant_log = CCS_GRANTLOG_YES;
-				else if (!strcmp(right_word, "no"))
-					entry->grant_log = CCS_GRANTLOG_NO;
-				else
-					goto out;
-			}
-			continue;
-		}
-		if (!strcmp(left_word, "auto_domain_transition")) {
-			if (entry) {
-				if (is_not || entry->transit)
-					goto out;
-				entry->transit = ccs_get_dqword(right_word);
-				if (!entry->transit ||
-				    (entry->transit->name[0] != '/' &&
-				     !ccs_domain_def(entry->transit->name)))
-					goto out;
-			}
-			continue;
-		}
 		if (!strncmp(left_word, "exec.argv[", 10)) {
 			if (!argv) {
 				e.argc++;
@@ -2812,527 +2407,6 @@ static int ccs_write_file(struct ccs_acl_param *param)
 }
 
 /**
- * ccs_parse_ipaddr_union - Parse an IP address.
- *
- * @param: Pointer to "struct ccs_acl_param".
- * @ptr:   Pointer to "struct ccs_ipaddr_union".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
-				   struct ccs_ipaddr_union *ptr)
-{
-	struct ccs_ip_address_entry e;
-	memset(ptr, 0, sizeof(ptr));
-	if (ccs_parse_ip(ccs_read_token(param), &e) == 0) {
-		memmove(&ptr->ip[0], e.min, sizeof(ptr->ip[0]));
-		memmove(&ptr->ip[1], e.max, sizeof(ptr->ip[1]));
-		ptr->is_ipv6 = e.is_ipv6;
-		return true;
-	}
-	return false;
-}
-
-/*
- * Routines for printing IPv4 or IPv6 address.
- * These are copied from include/linux/kernel.h include/net/ipv6.h
- * include/net/addrconf.h lib/hexdump.c lib/vsprintf.c and simplified.
- */
-static const char hex_asc[] = "0123456789abcdef";
-#define hex_asc_lo(x)   hex_asc[((x) & 0x0f)]
-#define hex_asc_hi(x)   hex_asc[((x) & 0xf0) >> 4]
-
-static inline char *pack_hex_byte(char *buf, u8 byte)
-{
-	*buf++ = hex_asc_hi(byte);
-	*buf++ = hex_asc_lo(byte);
-	return buf;
-}
-
-static inline int ipv6_addr_v4mapped(const struct in6_addr *a)
-{
-	return (a->s6_addr32[0] | a->s6_addr32[1] |
-		(a->s6_addr32[2] ^ htonl(0x0000ffff))) == 0;
-}
-
-static inline int ipv6_addr_is_isatap(const struct in6_addr *addr)
-{
-	return (addr->s6_addr32[2] | htonl(0x02000000)) == htonl(0x02005EFE);
-}
-
-static char *ip4_string(char *p, const u8 *addr)
-{
-	/*
-	 * Since this function is called outside vsnprintf(), I can use
-	 * sprintf() here.
-	 */
-	return p +
-		sprintf(p, "%u.%u.%u.%u", addr[0], addr[1], addr[2], addr[3]);
-}
-
-static char *ip6_compressed_string(char *p, const char *addr)
-{
-	int i, j, range;
-	unsigned char zerolength[8];
-	int longest = 1;
-	int colonpos = -1;
-	u16 word;
-	u8 hi, lo;
-	bool needcolon = false;
-	bool useIPv4;
-	struct in6_addr in6;
-
-	memcpy(&in6, addr, sizeof(struct in6_addr));
-
-	useIPv4 = ipv6_addr_v4mapped(&in6) || ipv6_addr_is_isatap(&in6);
-
-	memset(zerolength, 0, sizeof(zerolength));
-
-	if (useIPv4)
-		range = 6;
-	else
-		range = 8;
-
-	/* find position of longest 0 run */
-	for (i = 0; i < range; i++) {
-		for (j = i; j < range; j++) {
-			if (in6.s6_addr16[j] != 0)
-				break;
-			zerolength[i]++;
-		}
-	}
-	for (i = 0; i < range; i++) {
-		if (zerolength[i] > longest) {
-			longest = zerolength[i];
-			colonpos = i;
-		}
-	}
-	if (longest == 1)		/* don't compress a single 0 */
-		colonpos = -1;
-
-	/* emit address */
-	for (i = 0; i < range; i++) {
-		if (i == colonpos) {
-			if (needcolon || i == 0)
-				*p++ = ':';
-			*p++ = ':';
-			needcolon = false;
-			i += longest - 1;
-			continue;
-		}
-		if (needcolon) {
-			*p++ = ':';
-			needcolon = false;
-		}
-		/* hex u16 without leading 0s */
-		word = ntohs(in6.s6_addr16[i]);
-		hi = word >> 8;
-		lo = word & 0xff;
-		if (hi) {
-			if (hi > 0x0f)
-				p = pack_hex_byte(p, hi);
-			else
-				*p++ = hex_asc_lo(hi);
-			p = pack_hex_byte(p, lo);
-		}
-		else if (lo > 0x0f)
-			p = pack_hex_byte(p, lo);
-		else
-			*p++ = hex_asc_lo(lo);
-		needcolon = true;
-	}
-
-	if (useIPv4) {
-		if (needcolon)
-			*p++ = ':';
-		p = ip4_string(p, &in6.s6_addr[12]);
-	}
-	*p = '\0';
-
-	return p;
-}
-
-/**
- * ccs_print_ipv4 - Print an IPv4 address.
- *
- * @min_ip: Pointer to "u32 in network byte order".
- * @max_ip: Pointer to "u32 in network byte order".
- *
- * Returns nothing.
- */
-static void ccs_print_ipv4(const u32 *min_ip, const u32 *max_ip)
-{
-	char addr[sizeof("255.255.255.255")];
-	ip4_string(addr, (const u8 *) min_ip);
-	cprintf("%s", addr);
-	if (*min_ip == *max_ip)
-		return;
-	ip4_string(addr, (const u8 *) max_ip);
-	cprintf("-%s", addr);
-}
-
-/**
- * ccs_print_ipv6 - Print an IPv6 address.
- *
- * @min_ip: Pointer to "struct in6_addr".
- * @max_ip: Pointer to "struct in6_addr".
- *
- * Returns nothing.
- */
-static void ccs_print_ipv6(const struct in6_addr *min_ip,
-			   const struct in6_addr *max_ip)
-{
-	char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
-	ip6_compressed_string(addr, (const char *) min_ip);
-	cprintf("%s", addr);
-	if (!memcmp(min_ip, max_ip, 16))
-		return;
-	ip6_compressed_string(addr, (const char *) max_ip);
-	cprintf("-%s", addr);
-}
-
-/**
- * ccs_print_ip - Print an IP address.
- *
- * @ptr: Pointer to "struct ccs_ipaddr_union".
- *
- * Returns nothing.
- */
-static void ccs_print_ip(const struct ccs_ipaddr_union *ptr)
-{
-	if (ptr->is_ipv6)
-		ccs_print_ipv6(&ptr->ip[0], &ptr->ip[1]);
-	else
-		ccs_print_ipv4(&ptr->ip[0].s6_addr32[0],
-			       &ptr->ip[1].s6_addr32[0]);
-}
-
-/**
- * ccs_same_inet_acl - Check for duplicated "struct ccs_inet_acl" entry.
- *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
- *
- * Returns true if @a == @b except permission bits, false otherwise.
- */
-static bool ccs_same_inet_acl(const struct ccs_acl_info *a,
-			      const struct ccs_acl_info *b)
-{
-	const struct ccs_inet_acl *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_inet_acl *p2 = container_of(b, typeof(*p2), head);
-	return p1->protocol == p2->protocol &&
-		ccs_same_ipaddr_union(&p1->address, &p2->address) &&
-		ccs_same_number_union(&p1->port, &p2->port);
-}
-
-/**
- * ccs_same_unix_acl - Check for duplicated "struct ccs_unix_acl" entry.
- *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
- *
- * Returns true if @a == @b except permission bits, false otherwise.
- */
-static bool ccs_same_unix_acl(const struct ccs_acl_info *a,
-			      const struct ccs_acl_info *b)
-{
-	const struct ccs_unix_acl *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_unix_acl *p2 = container_of(b, typeof(*p2), head);
-	return p1->protocol == p2->protocol &&
-		ccs_same_name_union(&p1->name, &p2->name);
-}
-
-/**
- * ccs_merge_inet_acl - Merge duplicated "struct ccs_inet_acl" entry.
- *
- * @a:         Pointer to "struct ccs_acl_info".
- * @b:         Pointer to "struct ccs_acl_info".
- * @is_delete: True for @a &= ~@b, false for @a |= @b.
- *
- * Returns true if @a is empty, false otherwise.
- */
-static bool ccs_merge_inet_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
-			       const bool is_delete)
-{
-	u8 * const a_perm = &container_of(a, struct ccs_inet_acl, head)->perm;
-	u8 perm = *a_perm;
-	const u8 b_perm = container_of(b, struct ccs_inet_acl, head)->perm;
-	if (is_delete)
-		perm &= ~b_perm;
-	else
-		perm |= b_perm;
-	*a_perm = perm;
-	return !perm;
-}
-
-/**
- * ccs_merge_unix_acl - Merge duplicated "struct ccs_unix_acl" entry.
- *
- * @a:         Pointer to "struct ccs_acl_info".
- * @b:         Pointer to "struct ccs_acl_info".
- * @is_delete: True for @a &= ~@b, false for @a |= @b.
- *
- * Returns true if @a is empty, false otherwise.
- */
-static bool ccs_merge_unix_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
-			       const bool is_delete)
-{
-	u8 * const a_perm = &container_of(a, struct ccs_unix_acl, head)->perm;
-	u8 perm = *a_perm;
-	const u8 b_perm = container_of(b, struct ccs_unix_acl, head)->perm;
-	if (is_delete)
-		perm &= ~b_perm;
-	else
-		perm |= b_perm;
-	*a_perm = perm;
-	return !perm;
-}
-
-/**
- * ccs_write_inet_network - Write "struct ccs_inet_acl" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_inet_network(struct ccs_acl_param *param)
-{
-	struct ccs_inet_acl e = { .head.type = CCS_TYPE_INET_ACL };
-	int error = -EINVAL;
-	u8 type;
-	const char *protocol = ccs_read_token(param);
-	const char *operation = ccs_read_token(param);
-	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
-		if (!strcmp(protocol, ccs_proto_keyword[e.protocol]))
-			break;
-	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(operation, ccs_socket_keyword[type]))
-			e.perm |= 1 << type;
-	if (e.protocol == CCS_SOCK_MAX || !e.perm)
-		return -EINVAL;
-	if (param->data[0] == '@') {
-		param->data++;
-		e.address.group = ccs_get_group(param, &ccs_address_group);
-		if (!e.address.group)
-			return -ENOMEM;
-	} else {
-		if (!ccs_parse_ipaddr_union(param, &e.address))
-			goto out;
-	}
-	if (!ccs_parse_number_union(param, &e.port) ||
-	    e.port.values[1] > 65535)
-		goto out;
-	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_inet_acl,
-				  ccs_merge_inet_acl);
-out:
-	ccs_put_group(e.address.group);
-	ccs_put_number_union(&e.port);
-	return error;
-}
-
-/**
- * ccs_write_unix_network - Write "struct ccs_unix_acl" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_unix_network(struct ccs_acl_param *param)
-{
-	struct ccs_unix_acl e = { .head.type = CCS_TYPE_UNIX_ACL };
-	int error;
-	u8 type;
-	const char *protocol = ccs_read_token(param);
-	const char *operation = ccs_read_token(param);
-	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
-		if (!strcmp(protocol, ccs_proto_keyword[e.protocol]))
-			break;
-	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(operation, ccs_socket_keyword[type]))
-			e.perm |= 1 << type;
-	if (e.protocol == CCS_SOCK_MAX || !e.perm)
-		return -EINVAL;
-	if (!ccs_parse_name_union(param, &e.name))
-		return -EINVAL;
-	error = ccs_update_domain(&e.head, sizeof(e), param, ccs_same_unix_acl,
-				  ccs_merge_unix_acl);
-	ccs_put_name_union(&e.name);
-	return error;
-}
-
-/**
- * ccs_same_capability_acl - Check for duplicated "struct ccs_capability_acl" entry.
- *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_capability_acl(const struct ccs_acl_info *a,
-				    const struct ccs_acl_info *b)
-{
-	const struct ccs_capability_acl *p1 = container_of(a, typeof(*p1),
-							   head);
-	const struct ccs_capability_acl *p2 = container_of(b, typeof(*p2),
-							   head);
-	return p1->operation == p2->operation;
-}
-
-/**
- * ccs_write_capability - Write "struct ccs_capability_acl" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_capability(struct ccs_acl_param *param)
-{
-	struct ccs_capability_acl e = { .head.type = CCS_TYPE_CAPABILITY_ACL };
-	const char *operation = ccs_read_token(param);
-	for (e.operation = 0; e.operation < CCS_MAX_CAPABILITY_INDEX;
-	     e.operation++) {
-		if (strcmp(operation,
-			   ccs_mac_keywords[ccs_c2mac[e.operation]]))
-			continue;
-		return ccs_update_domain(&e.head, sizeof(e), param,
-					 ccs_same_capability_acl, NULL);
-	}
-	return -EINVAL;
-}
-
-/**
- * ccs_same_env_acl - Check for duplicated "struct ccs_env_acl" entry.
- *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_env_acl(const struct ccs_acl_info *a,
-			     const struct ccs_acl_info *b)
-{
-	const struct ccs_env_acl *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_env_acl *p2 = container_of(b, typeof(*p2), head);
-	return p1->env == p2->env;
-}
-
-/**
- * ccs_write_env - Write "struct ccs_env_acl" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_env(struct ccs_acl_param *param)
-{
-	struct ccs_env_acl e = { .head.type = CCS_TYPE_ENV_ACL };
-	int error = -ENOMEM;
-	const char *data = ccs_read_token(param);
-	if (!ccs_correct_word(data) || strchr(data, '='))
-		return -EINVAL;
-	e.env = ccs_get_name(data);
-	error = ccs_update_domain(&e.head, sizeof(e), param,
-				  ccs_same_env_acl, NULL);
-	ccs_put_name(e.env);
-	return error;
-}
-
-/**
- * ccs_write_misc - Update environment variable list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_misc(struct ccs_acl_param *param)
-{
-	if (ccs_str_starts(param->data, "env "))
-		return ccs_write_env(param);
-	return -EINVAL;
-}
-
-/**
- * ccs_same_signal_acl - Check for duplicated "struct ccs_signal_acl" entry.
- *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_signal_acl(const struct ccs_acl_info *a,
-				const struct ccs_acl_info *b)
-{
-	const struct ccs_signal_acl *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_signal_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_number_union(&p1->sig, &p2->sig) &&
-		p1->domainname == p2->domainname;
-}
-
-/**
- * ccs_write_ipc - Update "struct ccs_signal_acl" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_ipc(struct ccs_acl_param *param)
-{
-	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL };
-	int error;
-	if (!ccs_parse_number_union(param, &e.sig))
-		return -EINVAL;
-	e.domainname = ccs_get_domainname(param);
-	if (!e.domainname)
-		error = -EINVAL;
-	else
-		error = ccs_update_domain(&e.head, sizeof(e), param,
-					  ccs_same_signal_acl, NULL);
-	ccs_put_name(e.domainname);
-	ccs_put_number_union(&e.sig);
-	return error;
-}
-
-
-/**
- * ccs_same_reserved - Check for duplicated "struct ccs_reserved" entry.
- *
- * @a: Pointer to "struct ccs_acl_head".
- * @b: Pointer to "struct ccs_acl_head".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_reserved(const struct ccs_acl_head *a,
-			      const struct ccs_acl_head *b)
-{
-	const struct ccs_reserved *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_reserved *p2 = container_of(b, typeof(*p2), head);
-	return p1->ns == p2->ns && ccs_same_number_union(&p1->port, &p2->port);
-}
-
-/**
- * ccs_write_reserved_port - Update "struct ccs_reserved" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_reserved_port(struct ccs_acl_param *param)
-{
-	struct ccs_reserved e = { .ns = param->ns };
-	int error;
-	if (param->data[0] == '@' || !ccs_parse_number_union(param, &e.port) ||
-	    e.port.values[1] > 65535 || param->data[0])
-		return -EINVAL;
-	param->list = &ccs_reserved_list;
-	error = ccs_update_policy(&e.head, sizeof(e), param,
-				  ccs_same_reserved);
-	/*
-	 * ccs_put_number_union() is not needed because param->data[0] != '@'.
-	 */
-	return error;
-}
-
-/**
  * ccs_print_namespace - Print namespace header.
  *
  * @ns: Pointer to "struct ccs_policy_namespace".
@@ -3701,87 +2775,6 @@ static bool ccs_select_domain(const char *data)
 }
 
 /**
- * ccs_same_handler_acl - Check for duplicated "struct ccs_handler_acl" entry.
- *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_handler_acl(const struct ccs_acl_info *a,
-				 const struct ccs_acl_info *b)
-{
-	const struct ccs_handler_acl *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_handler_acl *p2 = container_of(b, typeof(*p2), head);
-	return p1->handler == p2->handler;
-}
-
-/**
- * ccs_same_task_acl - Check for duplicated "struct ccs_task_acl" entry.
- *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_task_acl(const struct ccs_acl_info *a,
-			      const struct ccs_acl_info *b)
-{
-	const struct ccs_task_acl *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_task_acl *p2 = container_of(b, typeof(*p2), head);
-	return p1->domainname == p2->domainname;
-}
-
-/**
- * ccs_write_task - Update task related list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_task(struct ccs_acl_param *param)
-{
-	int error;
-	const bool is_auto = ccs_str_starts(param->data,
-					    "auto_domain_transition ");
-	if (!is_auto && !ccs_str_starts(param->data,
-					"manual_domain_transition ")) {
-		struct ccs_handler_acl e = { };
-		char *handler;
-		if (ccs_str_starts(param->data, "auto_execute_handler "))
-			e.head.type = CCS_TYPE_AUTO_EXECUTE_HANDLER;
-		else if (ccs_str_starts(param->data,
-					"denied_execute_handler "))
-			e.head.type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
-		else
-			return -EINVAL;
-		handler = ccs_read_token(param);
-		if (!ccs_correct_path(handler))
-			return -EINVAL;
-		e.handler = ccs_get_name(handler);
-		if (e.handler->is_patterned)
-			error = -EINVAL; /* No patterns allowed. */
-		else
-			error = ccs_update_domain(&e.head, sizeof(e), param,
-						  ccs_same_handler_acl, NULL);
-		ccs_put_name(e.handler);
-	} else {
-		struct ccs_task_acl e = {
-			.head.type = is_auto ?
-			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL,
-			.domainname = ccs_get_domainname(param),
-		};
-		if (!e.domainname)
-			error = -EINVAL;
-		else
-			error = ccs_update_domain(&e.head, sizeof(e), param,
-						  ccs_same_task_acl, NULL);
-		ccs_put_name(e.domainname);
-	}
-	return error;
-}
-
-/**
  * ccs_write_domain2 - Write domain policy.
  *
  * @ns:        Pointer to "struct ccs_policy_namespace".
@@ -3804,17 +2797,11 @@ static int ccs_write_domain2(struct ccs_policy_namespace *ns,
 	static const struct {
 		const char *keyword;
 		int (*write) (struct ccs_acl_param *);
-	} ccs_callback[7] = {
+	} ccs_callback[1] = {
 		{ "file ", ccs_write_file },
-		{ "network inet ", ccs_write_inet_network },
-		{ "network unix ", ccs_write_unix_network },
-		{ "misc ", ccs_write_misc },
-		{ "capability ", ccs_write_capability },
-		{ "ipc signal ", ccs_write_ipc },
-		{ "task ", ccs_write_task },
 	};
 	u8 i;
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < 1; i++) {
 		if (!ccs_str_starts(param.data, ccs_callback[i].keyword))
 			continue;
 		return ccs_callback[i].write(&param);
@@ -4034,12 +3021,6 @@ static void ccs_print_condition(const struct ccs_condition *cond)
 			break;
 		}
 	}
-	if (cond->grant_log != CCS_GRANTLOG_AUTO)
-		cprintf(" grant_log=%s",
-			ccs_yesno(cond->grant_log == CCS_GRANTLOG_YES));
-	if (cond->transit)
-		cprintf(" auto_domain_transition=\"%s\"",
-			cond->transit->name);
 }
 
 /**
@@ -4068,7 +3049,6 @@ static void ccs_set_group(const char *category)
 static void ccs_print_entry(const struct ccs_acl_info *acl)
 {
 	const u8 acl_type = acl->type;
-	const bool may_trigger_transition = acl->cond && acl->cond->transit;
 	bool first = true;
 	u8 bit;
 	if (acl->is_deleted)
@@ -4081,7 +3061,7 @@ static void ccs_print_entry(const struct ccs_acl_info *acl)
 			if (!(perm & (1 << bit)))
 				continue;
 			if (head.print_transition_related_only &&
-			    bit != CCS_TYPE_EXECUTE && !may_trigger_transition)
+			    bit != CCS_TYPE_EXECUTE)
 				continue;
 			if (first) {
 				ccs_set_group("file ");
@@ -4094,25 +3074,7 @@ static void ccs_print_entry(const struct ccs_acl_info *acl)
 		if (first)
 			return;
 		ccs_print_name_union(&ptr->name);
-	} else if (acl_type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
-		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
-		struct ccs_handler_acl *ptr
-			= container_of(acl, typeof(*ptr), head);
-		ccs_set_group("task ");
-		cprintf(acl_type == CCS_TYPE_AUTO_EXECUTE_HANDLER ?
-			"auto_execute_handler " : "denied_execute_handler ");
-		cprintf("%s", ptr->handler->name);
-	} else if (acl_type == CCS_TYPE_AUTO_TASK_ACL ||
-		   acl_type == CCS_TYPE_MANUAL_TASK_ACL) {
-		struct ccs_task_acl *ptr =
-			container_of(acl, typeof(*ptr), head);
-		ccs_set_group("task ");
-		cprintf(acl_type == CCS_TYPE_AUTO_TASK_ACL ?
-			"auto_domain_transition " :
-			"manual_domain_transition ");
-		cprintf("%s", ptr->domainname->name);
-	} else if (head.print_transition_related_only &&
-		   !may_trigger_transition) {
+	} else if (head.print_transition_related_only) {
 		return;
 	} else if (acl_type == CCS_TYPE_MKDEV_ACL) {
 		struct ccs_mkdev_acl *ptr =
@@ -4173,67 +3135,6 @@ static void ccs_print_entry(const struct ccs_acl_info *acl)
 			return;
 		ccs_print_name_union(&ptr->name);
 		ccs_print_number_union(&ptr->number);
-	} else if (acl_type == CCS_TYPE_ENV_ACL) {
-		struct ccs_env_acl *ptr =
-			container_of(acl, typeof(*ptr), head);
-		ccs_set_group("misc env ");
-		cprintf("%s", ptr->env->name);
-	} else if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
-		struct ccs_capability_acl *ptr =
-			container_of(acl, typeof(*ptr), head);
-		ccs_set_group("capability ");
-		cprintf("%s", ccs_mac_keywords[ccs_c2mac[ptr->operation]]);
-	} else if (acl_type == CCS_TYPE_INET_ACL) {
-		struct ccs_inet_acl *ptr =
-			container_of(acl, typeof(*ptr), head);
-		const u8 perm = ptr->perm;
-		for (bit = 0; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
-			if (!(perm & (1 << bit)))
-				continue;
-			if (first) {
-				ccs_set_group("network inet ");
-				cprintf("%s ",
-					ccs_proto_keyword[ptr->protocol]);
-				first = false;
-			} else {
-				cprintf("/");
-			}
-			cprintf("%s", ccs_socket_keyword[bit]);
-		}
-		if (first)
-			return;
-		cprintf(" ");
-		if (ptr->address.group)
-			cprintf("@%s", ptr->address.group->group_name->name);
-		else
-			ccs_print_ip(&ptr->address);
-		ccs_print_number_union(&ptr->port);
-	} else if (acl_type == CCS_TYPE_UNIX_ACL) {
-		struct ccs_unix_acl *ptr =
-			container_of(acl, typeof(*ptr), head);
-		const u8 perm = ptr->perm;
-		for (bit = 0; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
-			if (!(perm & (1 << bit)))
-				continue;
-			if (first) {
-				ccs_set_group("network unix ");
-				cprintf("%s ",
-					ccs_proto_keyword[ptr->protocol]);
-				first = false;
-			} else {
-				cprintf("/");
-			}
-			cprintf("%s", ccs_socket_keyword[bit]);
-		}
-		if (first)
-			return;
-		ccs_print_name_union(&ptr->name);
-	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
-		struct ccs_signal_acl *ptr =
-			container_of(acl, typeof(*ptr), head);
-		ccs_set_group("ipc signal ");
-		ccs_print_number_union_nospace(&ptr->sig);
-		cprintf(" %s", ptr->domainname->name);
 	} else if (acl_type == CCS_TYPE_MOUNT_ACL) {
 		struct ccs_mount_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
@@ -4326,25 +3227,7 @@ static bool ccs_same_number_group(const struct ccs_acl_head *a,
 }
 
 /**
- * ccs_same_address_group - Check for duplicated "struct ccs_address_group" entry.
- *
- * @a: Pointer to "struct ccs_acl_head".
- * @b: Pointer to "struct ccs_acl_head".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_address_group(const struct ccs_acl_head *a,
-				   const struct ccs_acl_head *b)
-{
-	const struct ccs_address_group *p1 = container_of(a, typeof(*p1),
-							  head);
-	const struct ccs_address_group *p2 = container_of(b, typeof(*p2),
-							  head);
-	return ccs_same_ipaddr_union(&p1->address, &p2->address);
-}
-
-/**
- * ccs_write_group - Write "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
+ * ccs_write_group - Write "struct ccs_path_group"/"struct ccs_number_group" list.
  *
  * @param: Pointer to "struct ccs_acl_param".
  * @type:  Type of this group.
@@ -4355,9 +3238,7 @@ static int ccs_write_group(struct ccs_acl_param *param, const u8 type)
 {
 	struct ccs_group *group = ccs_get_group(param, type == CCS_PATH_GROUP ?
 						&ccs_path_group :
-						type == CCS_NUMBER_GROUP ?
-						&ccs_number_group :
-						&ccs_address_group);
+						&ccs_number_group);
 	int error = -EINVAL;
 	if (!group)
 		return -ENOMEM;
@@ -4379,13 +3260,6 @@ static int ccs_write_group(struct ccs_acl_param *param, const u8 type)
 		 * ccs_put_number_union() is not needed because
 		 * param->data[0] != '@'.
 		 */
-	} else {
-		struct ccs_address_group e = { };
-		if (param->data[0] == '@' ||
-		    !ccs_parse_ipaddr_union(param, &e.address))
-			goto out;
-		error = ccs_update_policy(&e.head, sizeof(e), param,
-					  ccs_same_address_group);
 	}
 out:
 	ccs_put_group(group);
@@ -4408,8 +3282,6 @@ static int ccs_write_exception(void)
 	u8 i;
 	if (ccs_str_starts(param.data, "aggregator "))
 		return ccs_write_aggregator(&param);
-	if (ccs_str_starts(param.data, "deny_autobind "))
-		return ccs_write_reserved_port(&param);
 	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
 		if (ccs_str_starts(param.data, ccs_transition_type[i]))
 			return ccs_write_transition_control(&param, i);
@@ -4429,7 +3301,7 @@ static int ccs_write_exception(void)
 }
 
 /**
- * ccs_read_group - Read "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
+ * ccs_read_group - Read "struct ccs_path_group"/"struct ccs_number_group" list.
  *
  * @ns: Pointer to "struct ccs_policy_namespace".
  *
@@ -4470,23 +3342,6 @@ static void ccs_read_group(const struct ccs_policy_namespace *ns)
 			cprintf("\n");
 		}
 	}
-	list_for_each_entry(group, &ccs_address_group, head.list) {
-		struct ccs_acl_head *ptr;
-		list_for_each_entry(ptr, &group->member_list, list) {
-			if (group->ns != ns)
-				continue;
-			if (ptr->is_deleted)
-				continue;
-			ccs_print_namespace(group->ns);
-			cprintf("%s%s", ccs_group_name[CCS_ADDRESS_GROUP],
-				group->group_name->name);
-			cprintf(" ");
-			ccs_print_ip(&container_of
-				     (ptr, struct ccs_address_group, head)->
-				     address);
-			cprintf("\n");
-		}
-	}
 }
 
 /**
@@ -4501,16 +3356,6 @@ static void ccs_read_policy(const struct ccs_policy_namespace *ns)
 	struct ccs_acl_head *acl;
 	if (head.print_transition_related_only)
 		goto transition_only;
-	list_for_each_entry(acl, &ccs_reserved_list, list) {
-		struct ccs_reserved *ptr =
-			container_of(acl, typeof(*ptr), head);
-		if (acl->is_deleted || ptr->ns != ns)
-			continue;
-		ccs_print_namespace(ptr->ns);
-		cprintf("deny_autobind ");
-		ccs_print_number_union_nospace(&ptr->port);
-		cprintf("\n");
-	}
 	list_for_each_entry(acl, &ccs_aggregator_list, list) {
 		struct ccs_aggregator *ptr =
 			container_of(acl, typeof(*ptr), head);
