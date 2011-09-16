@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0   2011/08/06
+ * Version: 2.4.0   2011/09/16
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1609,7 +1609,8 @@ static void ccs_parse_exception_line(const struct ccs_path_info *ns,
 			return;
 		for (index = 0; index < ccs_dp.list_len; index++) {
 			char *cp;
-			if (ccs_dp.list[index].group != group)
+			const struct ccs_domain *ptr = &ccs_dp.list[index];
+			if (ptr->group != group || ptr->target || ptr->is_dd)
 				continue;
 			cp = ccs_strdup(line);
 			ccs_parse_domain_line(ns, cp, index, false);
