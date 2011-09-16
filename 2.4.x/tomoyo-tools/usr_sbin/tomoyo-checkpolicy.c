@@ -99,9 +99,6 @@ static void ccs_check_condition(char *condition)
 		CCS_MODE_OTHERS_READ,     /* S_IROTH */
 		CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
 		CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-		CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
-					     CCS_TASK_IS_EXECUTE_HANDLER */
-		CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
 		CCS_EXEC_REALPATH,
 		CCS_SYMLINK_TARGET,
 		CCS_PATH1_UID,
@@ -168,8 +165,6 @@ static void ccs_check_condition(char *condition)
 		[CCS_MODE_OTHERS_READ]     = "others_read",
 		[CCS_MODE_OTHERS_WRITE]    = "others_write",
 		[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
-		[CCS_TASK_TYPE]            = "task.type",
-		[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
 		[CCS_EXEC_REALPATH]        = "exec.realpath",
 		[CCS_SYMLINK_TARGET]       = "symlink.target",
 		[CCS_PATH1_UID]            = "path1.uid",
@@ -362,38 +357,6 @@ static _Bool ccs_check_u8(char *arg)
 	return ccs_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_ip_address(char *arg)
-{
-	char *cp = strchr(arg, ' ');
-	struct ccs_ip_address_entry entry = { };
-	if (cp)
-		*cp++ = '\0';
-	if (*arg == '@') /* Don't reject address_group. */
-		goto found;
-	if (ccs_parse_ip(arg, &entry) ||
-	    memcmp(entry.min, entry.max, 16) > 0)
-		return false;
-found:
-	return ccs_prune_word(arg, cp);
-}
-
-static _Bool ccs_check_port(char *arg)
-{
-	char *cp = strchr(arg, ' ');
-	unsigned int min_value;
-	unsigned int max_value;
-	if (cp)
-		*cp++ = '\0';
-	switch (sscanf(arg, "%u-%u", &min_value, &max_value)) {
-	case 2:
-	case 1:
-		break;
-	default:
-		return false;
-	}
-	return ccs_prune_word(arg, cp);
-}
-
 static _Bool ccs_check_path_domain(char *arg)
 {
 	if (!strncmp(arg, "any ", 4))
@@ -564,9 +527,7 @@ static void ccs_check_exception_policy(char *policy)
 		_Bool (*arg2) (char *arg);
 	} list[] = {
 		{ "acl_group ", ccs_check_u8, ccs_check_domain_policy2 },
-		{ "address_group ", ccs_check_path, ccs_check_ip_address },
 		{ "aggregator ", ccs_check_path, ccs_check_path },
-		{ "deny_autobind ", ccs_check_port },
 		{ "initialize_domain ", ccs_check_path_domain },
 		{ "keep_domain ", ccs_check_path_domain },
 		{ "no_initialize_domain ", ccs_check_path_domain },

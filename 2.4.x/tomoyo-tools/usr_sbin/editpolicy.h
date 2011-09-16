@@ -331,7 +331,6 @@ enum ccs_editpolicy_directives {
 	CCS_DIRECTIVE_FILE_UNMOUNT,
 	CCS_DIRECTIVE_FILE_WRITE,
 	CCS_DIRECTIVE_INITIALIZE_DOMAIN,
-	CCS_DIRECTIVE_IPC_SIGNAL,
 	CCS_DIRECTIVE_KEEP_DOMAIN,
 	CCS_DIRECTIVE_NO_INITIALIZE_DOMAIN,
 	CCS_DIRECTIVE_NO_KEEP_DOMAIN,
@@ -340,10 +339,6 @@ enum ccs_editpolicy_directives {
 	CCS_DIRECTIVE_PATH_GROUP,
 	CCS_DIRECTIVE_QUOTA_EXCEEDED,
 	CCS_DIRECTIVE_RESET_DOMAIN,
-	CCS_DIRECTIVE_TASK_AUTO_DOMAIN_TRANSITION,
-	CCS_DIRECTIVE_TASK_AUTO_EXECUTE_HANDLER,
-	CCS_DIRECTIVE_TASK_DENIED_EXECUTE_HANDLER,
-	CCS_DIRECTIVE_TASK_MANUAL_DOMAIN_TRANSITION,
 	CCS_DIRECTIVE_TRANSITION_FAILED,
 	CCS_DIRECTIVE_USE_GROUP,
 	CCS_DIRECTIVE_USE_PROFILE,
@@ -426,7 +421,6 @@ struct ccs_screen {
 enum ccs_color_pair ccs_editpolicy_color_head(void);
 enum ccs_editpolicy_directives ccs_find_directive(const _Bool forward,
 						  char *line);
-int ccs_add_address_group_policy(char *data, const _Bool is_delete);
 int ccs_add_number_group_policy(char *data, const _Bool is_delete);
 int ccs_editpolicy_get_current(void);
 void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg);

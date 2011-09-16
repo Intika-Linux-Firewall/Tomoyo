@@ -319,14 +319,6 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_PATH_GROUP]    = { "path_group", NULL, 0, 0 },
 	[CCS_DIRECTIVE_QUOTA_EXCEEDED] = { "quota_exceeded", NULL, 0, 0 },
 	[CCS_DIRECTIVE_RESET_DOMAIN]  = { "reset_domain", NULL, 0, 0 },
-	[CCS_DIRECTIVE_TASK_AUTO_DOMAIN_TRANSITION]
-	= { "task auto_domain_transition", NULL, 0, 0 },
-	[CCS_DIRECTIVE_TASK_AUTO_EXECUTE_HANDLER]
-	= { "task auto_execute_handler", NULL, 0, 0 },
-	[CCS_DIRECTIVE_TASK_DENIED_EXECUTE_HANDLER]
-	= { "task denied_execute_handler", NULL, 0, 0 },
-	[CCS_DIRECTIVE_TASK_MANUAL_DOMAIN_TRANSITION]
-	= { "task manual_domain_transition", NULL, 0, 0 },
 	[CCS_DIRECTIVE_TRANSITION_FAILED]
 	= { "transition_failed", NULL, 0, 0 },
 	[CCS_DIRECTIVE_USE_GROUP]     = { "use_group", NULL, 0, 0 },

@@ -395,13 +395,6 @@ struct ccs_number_union {
 	u8 value_type[2];
 };
 
-/* Structure for holding an IP address. */
-struct ccs_ipaddr_union {
-	struct in6_addr ip[2]; /* Big endian. */
-	struct ccs_group *group; /* Pointer to address group. */
-	bool is_ipv6; /* Valid only if @group == NULL. */
-};
-
 /* Structure for "path_group"/"number_group" directive. */
 struct ccs_group {
 	struct ccs_shared_acl_head head;
@@ -1020,21 +1013,6 @@ static inline bool ccs_same_number_union(const struct ccs_number_union *a,
 	return a->values[0] == b->values[0] && a->values[1] == b->values[1] &&
 		a->group == b->group && a->value_type[0] == b->value_type[0] &&
 		a->value_type[1] == b->value_type[1];
-}
-
-/**
- * ccs_same_ipaddr_union - Check for duplicated "struct ccs_ipaddr_union" entry.
- *
- * @a: Pointer to "struct ccs_ipaddr_union".
- * @b: Pointer to "struct ccs_ipaddr_union".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static inline bool ccs_same_ipaddr_union(const struct ccs_ipaddr_union *a,
-					 const struct ccs_ipaddr_union *b)
-{
-	return !memcmp(a->ip, b->ip, sizeof(a->ip)) && a->group == b->group &&
-		a->is_ipv6 == b->is_ipv6;
 }
 
 /**

@@ -69,7 +69,6 @@ enum ccs_target_types {
 	CCS_REWRITE_HEAD,
 	CCS_REWRITE_TAIL,
 	CCS_REWRITE_NUMBER,
-	CCS_REWRITE_ADDRESS,
 };
 
 enum ccs_operator_types {
@@ -88,8 +87,6 @@ struct ccs_replace_rules {
 		} cond;
 		/* Used by CCS_REWRITE_NUMBER */
 		struct ccs_number_entry number;
-		/* Used by CCS_REWRITE_ADDRESS */
-		struct ccs_ip_address_entry ip;
 		/* Used by CCS_REWRITE_{PATH,HEAD,TAIL} */
 		struct ccs_path_info path;
 	} u;
@@ -172,19 +169,6 @@ static _Bool ccs_number_pattern(const char *string,
 	return false;
 }
 
-static _Bool ccs_address_pattern(const char *string,
-				 const struct ccs_replace_rules *ptr)
-{
-	struct ccs_ip_address_entry entry;
-	if (!ccs_parse_ip(string, &entry) && ptr->u.ip.is_ipv6 == entry.is_ipv6
-	    && memcmp(entry.min, ptr->u.ip.min, 16) >= 0 &&
-	    memcmp(ptr->u.ip.max, entry.max, 16) >= 0) {
-		printf("%s", ptr->string);
-		return true;
-	}
-	return false;
-}
-
 static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 {
 	unsigned int i;
@@ -225,12 +209,6 @@ static _Bool ccs_check_rule(char *string, const enum ccs_target_types type)
 		case CCS_REWRITE_NUMBER:
 			if (type == CCS_REWRITE_NUMBER && matched &&
 			    ccs_number_pattern(string, ptr))
-				return true;
-			matched = true;
-			continue;
-		case CCS_REWRITE_ADDRESS:
-			if (type == CCS_REWRITE_ADDRESS && matched &&
-			    ccs_address_pattern(string, ptr))
 				return true;
 			matched = true;
 			continue;
@@ -337,15 +315,10 @@ static void ccs_patternize_init_rules(const char *filename)
 				if (ccs_parse_number(line, &ptr->u.number))
 					goto invalid_rule;
 				ptr->type = CCS_REWRITE_NUMBER;
-			} else if (ccs_str_starts(line, "address_pattern ")) {
-				if (ccs_parse_ip(line, &ptr->u.ip))
-					goto invalid_rule;
-				ptr->type = CCS_REWRITE_ADDRESS;
 			} else {
 				goto invalid_rule;
 			}
-			if (ptr->type != CCS_REWRITE_NUMBER &&
-			    ptr->type != CCS_REWRITE_ADDRESS) {
+			if (ptr->type != CCS_REWRITE_NUMBER) {
 				if (!*line)
 					goto invalid_rule;
 				if (!ccs_correct_word(line))
@@ -413,28 +386,13 @@ static void ccs_process_line(char *sp)
 	_Bool first = true;
 	u8 path_count = 0;
 	u8 number_count = 0;
-	u8 address_count = 0;
 	u8 skip_count = 0;
 	while (true) {
 		cp = strsep(&sp, " ");
 		if (!cp)
 			break;
 		if (first) {
-			if (!strcmp(cp, "network")) {
-				printf("network ");
-				cp = strsep(&sp, " ");
-				if (!cp)
-					break;
-				if (strstr(cp, "unix")) {
-					path_count = 1;
-				} else if (strstr(cp, "inet")) {
-					address_count = 1;
-					number_count = 1;
-				} else {
-					break;
-				}
-				skip_count = 2;
-			} else if (!strcmp(cp, "file")) {
+			if (!strcmp(cp, "file")) {
 				printf("file ");
 				cp = strsep(&sp, " ");
 				if (!cp)
@@ -485,10 +443,6 @@ static void ccs_process_line(char *sp)
 			path_count--;
 			if (!ccs_path_contains_pattern(cp) &&
 			    ccs_check_rule(cp, CCS_REWRITE_PATH))
-				continue;
-		} else if (address_count) {
-			address_count--;
-			if (ccs_check_rule(cp, CCS_REWRITE_ADDRESS))
 				continue;
 		} else if (number_count) {
 			number_count--;

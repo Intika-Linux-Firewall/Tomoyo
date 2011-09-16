@@ -2178,24 +2178,11 @@ char *ccs_freadline_unpack(FILE *fp)
 		else
 			offset = 0;
 		/*
-		 * Only "file " and "network " are subjected to unpacking.
+		 * Only "file " is subjected to unpacking.
 		 */
 		if (!strncmp(line + offset, "file ", 5)) {
 			char *cp = line + offset + 5;
 			char *cp2 = strchr(cp + 1, ' ');
-			len = cp2 - cp;
-			if (cp2 && memchr(cp, '/', len)) {
-				pack_start = cp - line;
-				goto prepare;
-			}
-		} else if (!strncmp(line + offset, "network ", 8)) {
-			char *cp = strchr(line + offset + 8, ' ');
-			char *cp2 = NULL;
-			if (cp)
-				cp = strchr(cp + 1, ' ');
-			if (cp)
-				cp2 = strchr(cp + 1, ' ');
-			cp++;
 			len = cp2 - cp;
 			if (cp2 && memchr(cp, '/', len)) {
 				pack_start = cp - line;

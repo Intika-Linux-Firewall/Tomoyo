@@ -1,7 +1,7 @@
 include ../Include.make
 
-BUILD_FILES = audit-exec-param tomoyo-editpolicy-agent convert-audit-log \
-	convert-exec-param init_policy
+BUILD_FILES = tomoyo-editpolicy-agent convert-audit-log convert-exec-param \
+	init_policy
 
 all: $(BUILD_FILES)
 
