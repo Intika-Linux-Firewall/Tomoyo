@@ -1604,7 +1604,8 @@ static void ccs_parse_exception_line(const struct ccs_path_info *ns,
 			return;
 		for (index = 0; index < ccs_dp.list_len; index++) {
 			char *cp;
-			if (ccs_dp.list[index].group != group)
+			const struct ccs_domain *ptr = &ccs_dp.list[index];
+			if (ptr->group != group || ptr->target || ptr->is_dd)
 				continue;
 			cp = ccs_strdup(line);
 			ccs_parse_domain_line(ns, cp, index, false);

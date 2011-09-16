@@ -7,7 +7,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.2
-Release: 5
+Release: 6
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -20,9 +20,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.2-5
+Conflicts: ccs-tools < 1.8.2-6
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110820.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.2-20110916.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -58,6 +58,10 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Fri Sep 16 2011 1.8.2-6
+- Fix infinite recursion when parsing acl_group entries in exception policy.
+- Revert include/sched.h inclusion and bring "#define _GNU_SOURCE" to the top.
+
 * Sat Aug 20 2011 1.8.2-5
 - Add /proc/self/exe as aggregator entry.
 - Fix policy unpacking when multiple namespaces exist.
