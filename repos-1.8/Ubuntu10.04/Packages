@@ -1,93 +1,21 @@
-Package: linux-image-2.6.32-33-generic-pae-ccs
-Priority: optional
-Section: admin
-Installed-Size: 97344
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.32-33.72
-Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
-Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
-Pre-Depends: dpkg (>= 1.10.24)
-Recommends: grub-pc | grub | lilo (>= 19.1)
-Suggests: fdutils, linux-doc-2.6.32 | linux-source-2.6.32, linux-tools
-Conflicts: hotplug (<< 0.0.20040105-1)
-Breaks: lvm2 (<< 2.02.54-1ubuntu3)
-Filename: ./linux-image-2.6.32-33-generic-pae-ccs1.8.2p2_2.6.32-33.72_i386.deb
-Size: 35516224
-MD5sum: 1d492d0a8f9ccaafeca9477b9704a946
-SHA1: 567e45d2149d945031d4b0753e47e49009acb8e2
-SHA256: 5d482bea10f1297c2552153cca502ef04148cc5a3826a4684ca3fda4b412a955
-Description: Linux kernel image for version 2.6.32 on x86
- This package contains the Linux kernel image for version 2.6.32 on
- x86.
- .
- Also includes the corresponding System.map file, the modules built by the
- packager, and scripts that try to ensure that the system is not left in an
- unbootable state after an update.
- .
- Supports Generic processors.
- .
- Geared toward 32 bit desktop systems with more then 4GB RAM.
- .
- You likely do not want to install this package directly. Instead, install
- the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
- correctly, and that supporting packages are also installed.
-
 Package: ccs-tools
 Priority: extra
 Section: alien
 Installed-Size: 656
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Version: 1.8.2-5
+Version: 1.8.2-6
 Depends: libc6 (>= 2.7), libncurses5 (>= 5.6+20071006-3)
-Filename: ./ccs-tools_1.8.2-5_i386.deb
-Size: 191116
-MD5sum: 01b49b973d7fe29d779c87e4f72e2e6c
-SHA1: f2b33679225201d0b83224982446291d425d1845
-SHA256: aa203ee3d450943616dea767c06861229dddfd42535fbb740317d80116f33aec
+Filename: ./ccs-tools_1.8.2-6_i386.deb
+Size: 191196
+MD5sum: 6ad4c277817d66370a1ba6167a902366
+SHA1: 7834bf513497b4a0416e51d937831976fe4b28de
+SHA256: c8dde7e3c1307508c0e990c133145676277fe62e392fe2810b7672e957eb6264
 Description: Userspace tools for TOMOYO Linux 1.8.x
  This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
  Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
  .
  (Converted from a rpm package by alien version 8.79ubuntu0.1.)
-
-Package: linux-generic-pae-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.32.33.39
-Depends: linux-image-generic-pae-ccs (= 2.6.32.33.39)
-Filename: ./linux-generic-pae-ccs1.8.2p2_2.6.32.33.39_i386.deb
-Size: 4596
-MD5sum: 28a46b1aa2e5e312351224c8a67c9bbe
-SHA1: 90a2c722d916866c96b0dbcd4092a3258d9be18e
-SHA256: d6eabb7b725c7861273cce860cdf22cbbe44ef97795faee05326bfcc65955fd5
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete generic Linux kernel
- available.
-
-Package: linux-headers-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.32.33.39
-Depends: linux-headers-2.6.32-33-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.2p2_2.6.32.33.39_i386.deb
-Size: 4590
-MD5sum: b543c8a400def06d14c0118537cc507a
-SHA1: 98a816efa27e697871ac6739e3d7ad9cd60535fa
-SHA256: c7abc1cff67f6dea8c28ca57695140b07b541158a0a8b93c773baf54536680d5
-Description: Generic Linux kernel headers
- This package will always depend on the latest generic kernel headers
- available.
 
 Package: linux-headers-2.6.32-33-generic-pae-ccs
 Priority: optional
@@ -99,7 +27,7 @@ Source: linux
 Version: 2.6.32-33.72
 Provides: linux-headers, linux-headers-2.6
 Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.32-33, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.32-33-generic-pae-ccs1.8.2p2_2.6.32-33.72_i386.deb
+Filename: ./linux-headers-2.6.32-33-generic-pae-ccs1.8.2p31.8.2p2_2.6.32-33.72_i386.deb
 Size: 864512
 MD5sum: 0a8ce63a3367bd9dee56a1af35923977
 SHA1: 5fb631c824fb87aac572574096b1aeb9ca04c112
@@ -120,12 +48,84 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.32.33.39
 Depends: linux-image-2.6.32-33-generic-pae-ccs, linux-firmware
-Filename: ./linux-image-generic-pae-ccs1.8.2p2_2.6.32.33.39_i386.deb
+Filename: ./linux-image-generic-pae-ccs1.8.2p31.8.2p2_2.6.32.33.39_i386.deb
 Size: 4602
 MD5sum: df00066ccbdfd6f560454eb86bb081ba
 SHA1: e8b3b7e2dcae33d5e23c015c4234cd42f151e3d5
 SHA256: c32130a31d7d41eff52a04366301d3aefac187662b049061abb834ab55cd84d5
 Description: Generic Linux kernel image
  This package will always depend on the latest generic kernel image
+ available.
+
+Package: linux-image-2.6.32-33-generic-pae-ccs
+Priority: optional
+Section: admin
+Installed-Size: 97344
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.32-33.72
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
+Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
+Pre-Depends: dpkg (>= 1.10.24)
+Recommends: grub-pc | grub | lilo (>= 19.1)
+Suggests: fdutils, linux-doc-2.6.32 | linux-source-2.6.32, linux-tools
+Conflicts: hotplug (<< 0.0.20040105-1)
+Breaks: lvm2 (<< 2.02.54-1ubuntu3)
+Filename: ./linux-image-2.6.32-33-generic-pae-ccs1.8.2p31.8.2p2_2.6.32-33.72_i386.deb
+Size: 35516224
+MD5sum: 1d492d0a8f9ccaafeca9477b9704a946
+SHA1: 567e45d2149d945031d4b0753e47e49009acb8e2
+SHA256: 5d482bea10f1297c2552153cca502ef04148cc5a3826a4684ca3fda4b412a955
+Description: Linux kernel image for version 2.6.32 on x86
+ This package contains the Linux kernel image for version 2.6.32 on
+ x86.
+ .
+ Also includes the corresponding System.map file, the modules built by the
+ packager, and scripts that try to ensure that the system is not left in an
+ unbootable state after an update.
+ .
+ Supports Generic processors.
+ .
+ Geared toward 32 bit desktop systems with more then 4GB RAM.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
+
+Package: linux-headers-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.32.33.39
+Depends: linux-headers-2.6.32-33-generic-pae-ccs
+Filename: ./linux-headers-generic-pae-ccs1.8.2p31.8.2p2_2.6.32.33.39_i386.deb
+Size: 4590
+MD5sum: b543c8a400def06d14c0118537cc507a
+SHA1: 98a816efa27e697871ac6739e3d7ad9cd60535fa
+SHA256: c7abc1cff67f6dea8c28ca57695140b07b541158a0a8b93c773baf54536680d5
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
+Package: linux-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.32.33.39
+Depends: linux-image-generic-pae-ccs (= 2.6.32.33.39)
+Filename: ./linux-generic-pae-ccs1.8.2p31.8.2p2_2.6.32.33.39_i386.deb
+Size: 4596
+MD5sum: 28a46b1aa2e5e312351224c8a67c9bbe
+SHA1: 90a2c722d916866c96b0dbcd4092a3258d9be18e
+SHA256: d6eabb7b725c7861273cce860cdf22cbbe44ef97795faee05326bfcc65955fd5
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete generic Linux kernel
  available.
 
