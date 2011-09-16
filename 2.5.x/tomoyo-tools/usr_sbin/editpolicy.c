@@ -1542,6 +1542,127 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 	ccs_assign_domain3(domainname, line, false);
 }
 
+/* Structure for holding domain transition preference. */
+static struct ccs_transition_preference {
+	int index;
+	char *program;
+	char *domainname;
+} *ccs_transition_preference_list = NULL;
+static int ccs_transition_preference_list_len = 0;
+
+/**
+ * ccs_parse_transition_preference - Parse transition preference.
+ *
+ * @program:    Pathname or path_group.
+ * @domainname: Domainname or transition preference.
+ * @index:      Current domain's index.
+ *
+ * Returns true if transition preference was found, false otherwise.
+ */
+static _Bool ccs_parse_transition_preference(char *program, char *domainname,
+					     const int index)
+{
+	struct ccs_transition_preference *ptr;
+	char *cp = strchr(domainname, ' ');
+	if (*domainname == '<')
+		goto add;
+	if (cp)
+		*cp = '\0';
+	if (ccs_correct_path(domainname) || !strcmp(domainname, "keep") ||
+	    !strcmp(domainname, "reset") || !strcmp(domainname, "initialize")
+	    || !strcmp(domainname, "child") || !strcmp(domainname, "parent"))
+		goto add;
+	return false;
+add:
+	ccs_transition_preference_list =
+		ccs_realloc(ccs_transition_preference_list, sizeof(*ptr) *
+			    (ccs_transition_preference_list_len + 1));
+	ptr = &ccs_transition_preference_list
+		[ccs_transition_preference_list_len++];
+	ptr->index = index;
+	ptr->domainname = ccs_strdup(domainname);
+	ptr->program = ccs_strdup(program);
+	return true;
+
+}
+
+/**
+ * ccs_make_transition_preference - Create transition preference.
+ *
+ * @program:    Pathname or path_group.
+ * @domainname: Domainname or transition preference.
+ * @index:      Current domain's index.
+ *
+ * Returns true if transition preference was found, false otherwise.
+ */
+static void ccs_make_transition_preference(char *program, char *domainname,
+					   const int index)
+{
+	static char buffer[4096];
+	const char *self = ccs_dp.list[index].domainname->name;
+	int i;
+	struct ccs_path_group_entry *group = *program == '@' ?
+		ccs_find_path_group_ns(ccs_get_ns(self), program + 1) : NULL;
+	const int j = group ? group->member_name_len : 0;
+	buffer[sizeof(buffer) - 1] = '\0';
+	if (*domainname == '<')
+		snprintf(buffer, sizeof(buffer) - 1, "%s", domainname);
+	else if (!strcmp(domainname, "keep"))
+		snprintf(buffer, sizeof(buffer) - 1, "%s", self);
+	else if (!strcmp(domainname, "reset")) {
+		if (*program == '@') {
+			for (i = 0; i < j; i++) {
+				snprintf(buffer, sizeof(buffer) - 1, "<%s>",
+					 group->member_name[i]->name);
+				ccs_add_acl_domain_transition(buffer, index);
+			}
+			return;
+		}
+		snprintf(buffer, sizeof(buffer) - 1, "<%s>", program);
+	} else if (!strcmp(domainname, "initialize")) {
+		char *tmp = ccs_strdup(self);
+		char *cp = strchr(tmp, ' ');
+		if (cp)
+			*cp = '\0';
+		if (*program == '@') {
+			for (i = 0; i < j; i++) {
+				const char *cp2 = group->member_name[i]->name;
+				if (*cp2 != '/')
+					continue;
+				snprintf(buffer, sizeof(buffer) - 1, "%s %s",
+					 tmp, cp2);
+				ccs_add_acl_domain_transition(buffer, index);
+			}
+			free(tmp);
+			return;
+		}
+		snprintf(buffer, sizeof(buffer) - 1, "%s %s", tmp, program);
+		free(tmp);
+	} else if (!strcmp(domainname, "child")) {
+		if (*program == '@') {
+			for (i = 0; i < j; i++) {
+				const char *cp = group->member_name[i]->name;
+				if (*cp != '/')
+					continue;
+				snprintf(buffer, sizeof(buffer) - 1, "%s %s",
+					 self, cp);
+				ccs_add_acl_domain_transition(buffer, index);
+			}
+			return;
+		}
+		snprintf(buffer, sizeof(buffer) - 1, "%s %s", self, program);
+	} else if (!strcmp(domainname, "parent")) {
+		char *cp;
+		snprintf(buffer, sizeof(buffer) - 1, "%s", self);
+		cp = strrchr(buffer, ' ');
+		if (cp)
+			*cp = '\0';
+	} else
+		snprintf(buffer, sizeof(buffer) - 1, "%s %s", self,
+			 domainname);
+	ccs_add_acl_domain_transition(buffer, index);
+}
+
 /**
  * ccs_parse_domain_line - Parse an ACL entry in domain policy.
  *
@@ -1556,15 +1677,22 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 static void ccs_parse_domain_line(const struct ccs_path_info *ns, char *line,
 				  const int index, const bool parse_flags)
 {
+	_Bool exec = false;
 	ccs_add_condition_domain_transition(line, index);
 	if (ccs_str_starts(line, "task auto_execute_handler ") ||
 	    ccs_str_starts(line, "task denied_execute_handler ") ||
-	    ccs_str_starts(line, "file execute ")) {
-		/* Chop off condition part which follows pathname. */
+	    (exec = true, ccs_str_starts(line, "file execute "))) {
+		/*
+		 * Chop off condition part which follows pathname.
+		 * But check for domain transition preference.
+		 */
 		char *cp = strchr(line, ' ');
-		if (cp)
-			*cp = '\0';
-		if (*line == '@' || ccs_correct_path(line))
+		if (cp) {
+			*cp++ = '\0';
+			if (ccs_parse_transition_preference(line, cp, index))
+				return;
+		}
+		if ((exec && *line == '@') || ccs_correct_path(line))
 			ccs_add_string_entry3(line, index);
 	} else if (ccs_str_starts(line, "task auto_domain_transition ") ||
 		   ccs_str_starts(line, "task manual_domain_transition ")) {
@@ -1721,6 +1849,19 @@ static void ccs_read_domain_and_exception_policy(void)
 		ccs_put();
 		fclose(fp);
 	}
+
+	/* Create domain transition preference. */
+	for (i = 0; i < ccs_transition_preference_list_len; i++) {
+		struct ccs_transition_preference *ptr =
+			&ccs_transition_preference_list[i];
+		ccs_make_transition_preference(ptr->program, ptr->domainname,
+					       ptr->index);
+		free(ptr->domainname);
+		free(ptr->program);
+	}
+	free(ccs_transition_preference_list);
+	ccs_transition_preference_list= NULL;
+	ccs_transition_preference_list_len = 0;
 
 	/*
 	 * Domain jump sources by "task manual_domain_transition" keyword or
