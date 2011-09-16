@@ -160,20 +160,6 @@ static void ccs_tokenize(char *buffer, char *w[5],
 		w[i] = buffer;
 		if (!cp)
 			return;
-		if (index == CCS_DIRECTIVE_IPC_SIGNAL && i == 1 &&
-		    ccs_domain_def(buffer)) {
-			cp = strchr(buffer, ' ');
-			if (!cp)
-				return;
-			while (*cp) {
-				if (*cp++ != ' ' || *cp++ == '/')
-					continue;
-				cp -= 2;
-				break;
-			}
-			if (!*cp)
-				return;
-		}
 		*cp = '\0';
 		buffer = cp + 1;
 	}

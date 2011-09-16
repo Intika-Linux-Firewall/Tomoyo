@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0   2011/08/06
+ * Version: 2.4.0+   2011/09/16
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1469,76 +1469,6 @@ static int ccs_add_path_group_entry(const struct ccs_path_info *ns,
 	return 0;
 }
 
-/*
- * List of "task auto_domain_transition" "task manual_domain_transition"
- * "auto_domain_transition=" part.
- */
-static char **ccs_jump_list = NULL;
-static int ccs_jump_list_len = 0;
-
-/**
- * ccs_add_condition_domain_transition - Add auto_domain_transition= part.
- *
- * @line:  Line to parse.
- * @index: Current domain's index.
- *
- * Returns nothing.
- */
-static void ccs_add_condition_domain_transition(char *line, const int index)
-{
-	static char domainname[4096];
-	int source;
-	char *cp = strrchr(line, ' ');
-	if (!cp)
-		return;
-	if (strncmp(cp, " auto_domain_transition=\"", 25))
-		return;
-	*cp = '\0';
-	cp += 25;
-	source = strlen(cp);
-	if (!source)
-		return;
-	cp[source - 1] = '\0';
-	snprintf(domainname, sizeof(domainname) - 1, "%s  %s",
-		 ccs_dp.list[index].domainname->name, cp);
-	domainname[sizeof(domainname) - 1] = '\0';
-	ccs_normalize_line(domainname);
-	ccs_jump_list = ccs_realloc(ccs_jump_list,
-				    (ccs_jump_list_len + 1) * sizeof(char *));
-	ccs_jump_list[ccs_jump_list_len++] = ccs_strdup(domainname);
-	ccs_assign_domain3(domainname, *cp == '<' ? cp : domainname, false);
-}
-
-/**
- * ccs_add_acl_domain_transition - Add task acl.
- *
- * @line:  Line to parse.
- * @index: Current domain's index.
- *
- * Returns nothing.
- */
-static void ccs_add_acl_domain_transition(char *line, const int index)
-{
-	static char domainname[4096];
-	int pos;
-	/* Chop off condition part which follows domainname. */
-	for (pos = 0; line[pos]; pos++)
-		if (line[pos] == ' ' && line[pos + 1] != '/') {
-			line[pos] = '\0';
-			break;
-		}
-	if (!ccs_correct_domain(line))
-		return;
-	ccs_jump_list = ccs_realloc(ccs_jump_list,
-				    (ccs_jump_list_len + 1) * sizeof(char *));
-	ccs_jump_list[ccs_jump_list_len++] = ccs_strdup(line);
-	snprintf(domainname, sizeof(domainname) - 1, "%s  %s",
-		 ccs_dp.list[index].domainname->name, ccs_get_last_word(line));
-	domainname[sizeof(domainname) - 1] = '\0';
-	ccs_normalize_line(domainname);
-	ccs_assign_domain3(domainname, line, false);
-}
-
 /**
  * ccs_parse_domain_line - Parse an ACL entry in domain policy.
  *
@@ -1553,19 +1483,13 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 static void ccs_parse_domain_line(const struct ccs_path_info *ns, char *line,
 				  const int index, const bool parse_flags)
 {
-	ccs_add_condition_domain_transition(line, index);
-	if (ccs_str_starts(line, "task auto_execute_handler ") ||
-	    ccs_str_starts(line, "task denied_execute_handler ") ||
-	    ccs_str_starts(line, "file execute ")) {
+	if (ccs_str_starts(line, "file execute ")) {
 		/* Chop off condition part which follows pathname. */
 		char *cp = strchr(line, ' ');
 		if (cp)
 			*cp = '\0';
 		if (*line == '@' || ccs_correct_path(line))
 			ccs_add_string_entry3(line, index);
-	} else if (ccs_str_starts(line, "task auto_domain_transition ") ||
-		   ccs_str_starts(line, "task manual_domain_transition ")) {
-		ccs_add_acl_domain_transition(line, index);
 	} else if (parse_flags) {
 		unsigned int profile;
 		if (sscanf(line, "use_profile %u", &profile) == 1)
@@ -1633,8 +1557,6 @@ static void ccs_read_domain_and_exception_policy(void)
 	static const struct ccs_path_info *ccs_kernel_ns = NULL;
 	const struct ccs_path_info *ns;
 
-	while (ccs_jump_list_len)
-		free(ccs_jump_list[--ccs_jump_list_len]);
 	ccs_clear_domain_policy3();
 	ccs_transition_control_list_len = 0;
 	ccs_editpolicy_clear_groups();
@@ -1724,11 +1646,10 @@ static void ccs_read_domain_and_exception_policy(void)
 	 * keywords do not depend on domain transition control directives
 	 * defined in the exception policy.
 	 *
-	 * Create domain jump sources for "task auto_execute_handler" keyword
-	 * or "task denied_execute_handler" keyword or "file execute" keyword
-	 * now because these keywords depend on domain transition control
-	 * directives defined in the exception policy. Note that "file execute"
-	 * allows referring "path_group" directives.
+	 * Create domain jump sources for "file execute" keyword now because
+	 * this keywords depend on domain transition control directives
+	 * defined in the exception policy. Note that this keyword allows
+	 * referring "path_group" directives.
 	 */
 	max_index = ccs_dp.list_len;
 	for (index = 0; index < max_index; index++) {
@@ -1779,20 +1700,6 @@ static void ccs_read_domain_and_exception_policy(void)
 	 * Let's markup domain jump targets and unreachable domains.
 	 */
 	max_index = ccs_dp.list_len;
-
-	/*
-	 * Find domains that might be reachable via
-	 * "task manual_domain_transition" keyword or
-	 * "task auto_domain_transition" keyword or
-	 * "auto_domain_transition=" part of conditional ACL.
-	 * Such domains are marked with '*'.
-	 */
-	for (i = 0; i < ccs_jump_list_len; i++) {
-		struct ccs_domain *ptr =
-			ccs_find_domain3_by_name(ccs_jump_list[i]);
-		if (ptr)
-			ptr->is_djt = true;
-	}
 
 	/*
 	 * Find domains that might be reachable via "initialize_domain"

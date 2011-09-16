@@ -329,19 +329,6 @@ static char *ccs_freadline_unpack(FILE *fp)
 				pack_start = cp - line;
 				goto prepare;
 			}
-		} else if (!strncmp(line + offset, "network ", 8)) {
-			char *cp = strchr(line + offset + 8, ' ');
-			char *cp2 = NULL;
-			if (cp)
-				cp = strchr(cp + 1, ' ');
-			if (cp)
-				cp2 = strchr(cp + 1, ' ');
-			cp++;
-			len = cp2 - cp;
-			if (cp2 && memchr(cp, '/', len)) {
-				pack_start = cp - line;
-				goto prepare;
-			}
 		}
 		return line;
 prepare:
