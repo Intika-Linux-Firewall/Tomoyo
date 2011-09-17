@@ -1,11 +1,11 @@
 #!/bin/sh
 
 LIVECD_HOME=~/LiveCD/
-CD_LABEL="CentOS-5.6-i386-TOMOYO-LiveCD"
-ISOIMAGE_NAME=../CentOS-5.6-i386-TOMOYO-LiveCD.iso
-ORIGINAL_VERSION=2.6.18-238.el5
+CD_LABEL="CentOS-5.7-i386-TOMOYO-LiveCD"
+ISOIMAGE_NAME=../CentOS-5.7-i386-TOMOYO-LiveCD.iso
+ORIGINAL_VERSION=2.6.18-274.el5
 ORIGINAL_VERSION_REGEXP=2\.6\.18-238\.el5
-KERNEL_VERSION=2.6.18-238.19.1.el5_tomoyo_1.8.2p2
+KERNEL_VERSION=2.6.18-274.3.1.el5_tomoyo_1.8.2p3
 
 set -v
 
@@ -75,7 +75,7 @@ echo "********** Updating root filesystem for LiveCD. **********"
 
 rm squash/LiveOS/ext3fs.img || die "Can't delete old image file."
 dd if=/dev/zero of=squash/LiveOS/ext3fs.img bs=1048576 count=4096 || die "Can't create image file."
-mke2fs -j -m 0 -L "CentOS-5.6-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
+mke2fs -j -m 0 -L "CentOS-5.7-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
 tune2fs -c -1 -i 0 -o user_xattr,acl squash/LiveOS/ext3fs.img || die "Can't tune filesystem."
 mount -o loop,noatime squash/LiveOS/ext3fs.img mnt/ || die "Can't mount filesystem."
 cp -a ext3/* mnt/ || die "Can't copy image file."
