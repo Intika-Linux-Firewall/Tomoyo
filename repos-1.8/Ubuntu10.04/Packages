@@ -1,7 +1,65 @@
+Package: linux-headers-2.6.32-33-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 9508
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.32-33.72
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.32-33, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
+Filename: ./linux-headers-2.6.32-33-generic-pae-ccs1.8.2p3_2.6.32-33.72_i386.deb
+Size: 850418
+MD5sum: aef9f36e278bad4031b721d11a2bd6f6
+SHA1: bd7cde16a6d2c3f431a7c339dbda17f30c243f92
+SHA256: 6aa7524207e9d0b66d8a3d2ab7cf67cc0b5a92b4d57f149c1a67964344445f2b
+Description: Linux kernel headers for version 2.6.32 on x86
+ This package provides kernel header files for version 2.6.32 on
+ x86.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.32-33/debian.README.gz for details.
+
+Package: linux-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.32.33.39
+Depends: linux-image-generic-pae-ccs (= 2.6.32.33.39)
+Filename: ./linux-generic-pae-ccs1.8.2p3_2.6.32.33.39_i386.deb
+Size: 4590
+MD5sum: 0cf8446e3f9d88e94448f5c7fece7e2e
+SHA1: 63bcb11661c84b34dc2ff493f9d020413f6cb1d7
+SHA256: 7fcd32e54d3e26340ce5fed2a5c04f9719e0f85ea36fad9ec3c3119c8dc487b6
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete generic Linux kernel
+ available.
+
+Package: linux-image-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.32.33.39
+Depends: linux-image-2.6.32-33-generic-pae-ccs, linux-firmware
+Filename: ./linux-image-generic-pae-ccs1.8.2p3_2.6.32.33.39_i386.deb
+Size: 4592
+MD5sum: ed0d1027b7c8f41f807b48570fc9eafb
+SHA1: a52f8b880d5ae8033eaeb822af2698cf8ec4cdeb
+SHA256: 5cfec75e443402c2fb0dace6dff201f6a9d2e7194144dd4bc799468befdc89ac
+Description: Generic Linux kernel image
+ This package will always depend on the latest generic kernel image
+ available.
+
 Package: linux-image-2.6.32-33-generic-pae-ccs
 Priority: optional
 Section: admin
-Installed-Size: 97344
+Installed-Size: 97304
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
@@ -13,11 +71,11 @@ Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.32 | linux-source-2.6.32, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
 Breaks: lvm2 (<< 2.02.54-1ubuntu3)
-Filename: ./linux-image-2.6.32-33-generic-pae-ccs1.8.2p2_2.6.32-33.72_i386.deb
-Size: 35516224
-MD5sum: 1d492d0a8f9ccaafeca9477b9704a946
-SHA1: 567e45d2149d945031d4b0753e47e49009acb8e2
-SHA256: 5d482bea10f1297c2552153cca502ef04148cc5a3826a4684ca3fda4b412a955
+Filename: ./linux-image-2.6.32-33-generic-pae-ccs1.8.2p3_2.6.32-33.72_i386.deb
+Size: 35506102
+MD5sum: 19dd6d36eb63e2b0bf562ef7eb24fbe2
+SHA1: 9f47b149fe8b55a07cf9afa86c1d7a34420eeb5f
+SHA256: 718fe5f787cd9b0ea428e27450e31097f32f9c75ab00c59f6346b6795916823f
 Description: Linux kernel image for version 2.6.32 on x86
  This package contains the Linux kernel image for version 2.6.32 on
  x86.
@@ -53,24 +111,6 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.79ubuntu0.1.)
 
-Package: linux-generic-pae-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.32.33.39
-Depends: linux-image-generic-pae-ccs (= 2.6.32.33.39)
-Filename: ./linux-generic-pae-ccs1.8.2p2_2.6.32.33.39_i386.deb
-Size: 4596
-MD5sum: 28a46b1aa2e5e312351224c8a67c9bbe
-SHA1: 90a2c722d916866c96b0dbcd4092a3258d9be18e
-SHA256: d6eabb7b725c7861273cce860cdf22cbbe44ef97795faee05326bfcc65955fd5
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete generic Linux kernel
- available.
-
 Package: linux-headers-generic-pae-ccs
 Priority: optional
 Section: devel
@@ -80,52 +120,12 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.32.33.39
 Depends: linux-headers-2.6.32-33-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.2p2_2.6.32.33.39_i386.deb
-Size: 4590
-MD5sum: b543c8a400def06d14c0118537cc507a
-SHA1: 98a816efa27e697871ac6739e3d7ad9cd60535fa
-SHA256: c7abc1cff67f6dea8c28ca57695140b07b541158a0a8b93c773baf54536680d5
+Filename: ./linux-headers-generic-pae-ccs1.8.2p3_2.6.32.33.39_i386.deb
+Size: 4582
+MD5sum: 6cb5060be3a3f280b83318b5f5f76bef
+SHA1: dc4615d98ec02e71d57fddae7a405b6b270498a4
+SHA256: 91c7b94c53bbee5c524094105f55c80c28c96e88e3a1fdefd67b7e49e9301c8c
 Description: Generic Linux kernel headers
  This package will always depend on the latest generic kernel headers
- available.
-
-Package: linux-headers-2.6.32-33-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 9540
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.32-33.72
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.32-33, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.32-33-generic-pae-ccs1.8.2p2_2.6.32-33.72_i386.deb
-Size: 864512
-MD5sum: 0a8ce63a3367bd9dee56a1af35923977
-SHA1: 5fb631c824fb87aac572574096b1aeb9ca04c112
-SHA256: 03ea2715dc9520e5092a713859ac11072c516b26650fe7919e271858ce643673
-Description: Linux kernel headers for version 2.6.32 on x86
- This package provides kernel header files for version 2.6.32 on
- x86.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.32-33/debian.README.gz for details.
-
-Package: linux-image-generic-pae-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.32.33.39
-Depends: linux-image-2.6.32-33-generic-pae-ccs, linux-firmware
-Filename: ./linux-image-generic-pae-ccs1.8.2p2_2.6.32.33.39_i386.deb
-Size: 4602
-MD5sum: df00066ccbdfd6f560454eb86bb081ba
-SHA1: e8b3b7e2dcae33d5e23c015c4234cd42f151e3d5
-SHA256: c32130a31d7d41eff52a04366301d3aefac187662b049061abb834ab55cd84d5
-Description: Generic Linux kernel image
- This package will always depend on the latest generic kernel image
  available.
 
