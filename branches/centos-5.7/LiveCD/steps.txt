@@ -1,10 +1,10 @@
 cd
-wget http://ftp.riken.jp/Linux/centos/5.7/isos/i386/CentOS-5.7-i386-LiveCD.iso
+wget http://ftp.riken.jp/Linux/centos/5.6/isos/i386/CentOS-5.6-i386-LiveCD.iso
 wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/centos-5.7/LiveCD.tar.gz?root=tomoyo&view=tar' | tar -zxf -
 cd LiveCD/
 chmod +x *.sh
 mkdir -p mnt cdrom squash initrd ext3
-mount -o loop ~/CentOS-5.7-i386-LiveCD.iso mnt/
+mount -o loop ~/CentOS-5.6-i386-LiveCD.iso mnt/
 cp -a mnt/* cdrom/
 umount -d mnt/
 mount -t squashfs -o loop cdrom/LiveOS/squashfs.img mnt/

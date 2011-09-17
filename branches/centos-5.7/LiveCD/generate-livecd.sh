@@ -3,7 +3,7 @@
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="CentOS-5.7-i386-TOMOYO-LiveCD"
 ISOIMAGE_NAME=../CentOS-5.7-i386-TOMOYO-LiveCD.iso
-ORIGINAL_VERSION=2.6.18-274.el5
+ORIGINAL_VERSION=2.6.18-238.el5
 ORIGINAL_VERSION_REGEXP=2\.6\.18-238\.el5
 KERNEL_VERSION=2.6.18-274.3.1.el5_tomoyo_1.8.2p3
 
@@ -103,6 +103,7 @@ cd ${LIVECD_HOME}
 echo "********** Generating iso image file. **********"
 cd cdrom/
 grep -q TOMOYO -- isolinux/isolinux.cfg || sed -i -e 's/i386/i386-TOMOYO/' -- isolinux/isolinux.cfg
+sed -i -e 's/5\.6-/5.7-/g' -e 's/quiet //g' -- isolinux/isolinux.cfg
 mkisofs -r -V "${CD_LABEL}" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o ${ISOIMAGE_NAME} . || die "Can't generate iso image file."
 
 echo "********** Done. **********"
