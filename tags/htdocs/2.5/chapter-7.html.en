@@ -101,10 +101,6 @@ file read /bin/cat
 
 <p>The second log reports that opening <code>/bin/cat</code> for reading requested by <code>/bin/sh</code> which was invoked by <code>/usr/sbin/httpd</code>. This was rejected because <code>/bin/sh</code> tried to open the requested program for reading when that program was not executed.</p>
 
-<p>If the "Enforcing Mode" profile is configured with <a href="chapter-9.html.en#9.2.3">PREFERENCE={ enforcing_penalty=1 }</a> then domains that violate policy will be made to sleep for 0.1 seconds. This is useful for avoiding infinite loops that can cause CPU usage to reach 100%. The video below demonstrates a hijacked Samba server process consuming CPU by repeating a request that is not permitted by policy:</p>
-
-<p><object data="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" width="425" height="344"><param name="movie" value="http://www.youtube.com/v/I8fF5mueWTw&amp;hl=en_US&amp;fs=1"><param name="allowFullScreen" value="true"><param name="allowscriptaccess" value="always"></object></p>
-
 <h3><a name="7.2">7.2. Notification daemon</a></h3>
 
 <p><code>tomoyo-notifyd</code> is a daemon program that can be used to report the occurrence of a policy violation. For example, run "/usr/sbin/tomoyo-notifyd" from "/etc/rc.local".</p>

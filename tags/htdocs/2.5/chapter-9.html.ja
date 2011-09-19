@@ -99,11 +99,6 @@
 <td><p>2048</p></td>
 <td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> インタフェースから指定することもできます。</p></td>
 </tr>
-<tr>
-<td><p>--enforcing_penalty="$number"</p></td>
-<td><p>0</p></td>
-<td><p>強制モードでポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。 0 以上の整数値を指定できます。ＣＰＵ時間を浪費してしまうのを避けるのに有効です。</p></td>
-</tr>
 </table>
 </div>
 
@@ -111,16 +106,16 @@
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
 1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 1-CONFIG={ mode=learning grant_log=no reject_log=yes }
 2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
 3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -128,16 +123,16 @@
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }
 1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
 2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
 3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -237,16 +232,8 @@
 <td><p>全ての機能</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::capability</p></td>
-<td><p>非 POSIX ケイパビリティのみ</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::file</p></td>
 <td><p>ファイルに関する操作のみ</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc</p></td>
-<td><p>プロセス間通信に関する操作のみ</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::misc</p></td>
@@ -263,7 +250,7 @@
 
 <pre>
 4-COMMENT=-----Enforcing file and network-----
-4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 4-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
@@ -272,7 +259,7 @@
 
 <pre>
 5-COMMENT=-----Learning file and Enforcing network-----
-5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 5-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
 5-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
@@ -284,46 +271,6 @@
 <tr>
 <th><p>名前</p></th>
 <th><p>アクセス制御モードが設定される範囲</p></th>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_kernel_module</p></td>
-<td><p>create_module(2) init_module(2) delete_module(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_packet</p></td>
-<td><p>PACKET ソケットの使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_route</p></td>
-<td><p>ROUTE ソケットの使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_KEXEC_LOAD</p></td>
-<td><p>kexec_load(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_NICE</p></td>
-<td><p>nice(2) setpriority(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_PTRACE</p></td>
-<td><p>ptrace(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_REBOOT</p></td>
-<td><p>reboot(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_SETHOSTNAME</p></td>
-<td><p>sethostname(2) setdomainname(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_TIME</p></td>
-<td><p>stime(2) settimeofday(2) adjtimex(2) の使用</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_VHANGUP</p></td>
-<td><p>vhangup(2) の使用</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::execute</p></td>
@@ -422,10 +369,6 @@
 <td><p>UDP ソケットが送信時に使用するリモートアドレス</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::inet_dgram_recv</p></td>
-<td><p>UDP ソケットが受信時に使用するリモートアドレス</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::inet_stream_bind</p></td>
 <td><p>TCP ソケットの bind() 操作</p></td>
 </tr>
@@ -438,10 +381,6 @@
 <td><p>TCP ソケットの connect() 操作</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::inet_stream_accept</p></td>
-<td><p>TCP ソケットの accept() 操作</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::inet_raw_bind</p></td>
 <td><p>RAW ソケットが使用するローカルアドレス</p></td>
 </tr>
@@ -450,20 +389,12 @@
 <td><p>RAW ソケットが送信時に使用するリモートアドレス</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::inet_raw_recv</p></td>
-<td><p>RAW ソケットが受信時に使用するリモートアドレス</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::unix_dgram_bind</p></td>
 <td><p>同一ホスト内でのデータグラムソケットが使用するローカルアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_dgram_send</p></td>
 <td><p>同一ホスト内でのデータグラムソケットが送信してよいリモートアドレス</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_recv</p></td>
-<td><p>同一ホスト内でのデータグラムソケットが受信してよいリモートアドレス</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_stream_bind</p></td>
@@ -478,10 +409,6 @@
 <td><p>同一ホスト内でのストリームソケットが接続するリモートアドレス</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::unix_stream_accept</p></td>
-<td><p>同一ホスト内でのストリームソケットが受け付けるリモートアドレス</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::unix_seqpacket_bind</p></td>
 <td><p>同一ホスト内での SEQPACKET ソケットが使用するローカルアドレス</p></td>
 </tr>
@@ -494,16 +421,8 @@
 <td><p>同一ホスト内での SEQPACKET ソケットが接続するリモートアドレス</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::unix_seqpacket_accept</p></td>
-<td><p>同一ホスト内での SEQPACKET ソケットが受け付けるリモートアドレス</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::misc::env</p></td>
 <td><p>プログラム実行時の環境変数名</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc::signal</p></td>
-<td><p>シグナルの送信</p></td>
 </tr>
 </table>
 </div>
@@ -512,7 +431,7 @@
 
 <pre>
 6-COMMENT=-----Enforcing file::execute only-----
-6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 6-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -520,7 +439,7 @@
 
 <pre>
 7-COMMENT=-----Enforcing file operations without getattr-----
-7-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+7-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 7-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 7-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
 </pre>
@@ -544,10 +463,6 @@
 <tr>
 <td><p>max_learning_entry</p></td>
 <td><p>学習モードで動作中にカーネルが自動的に追加することができるアクセス許可の件数の上限を指定します。 0 以上の整数値を指定できます。 0 を指定すると学習モードは確認モードと同様に振舞うようになります。バイト数での上限を <a href="policy-specification/securityfs-interface.html.ja#stat">/sys/kernel/security/tomoyo/stat</a> インタフェースから指定することもできます。</p></td>
-</tr>
-<tr>
-<td><p>enforcing_penalty</p></td>
-<td><p>強制モードでポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。 0 以上の整数値を指定できます。ＣＰＵ時間を浪費してしまうのを避けるのに有効です。</p></td>
 </tr>
 </table>
 </div>

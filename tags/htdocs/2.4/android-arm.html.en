@@ -308,9 +308,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h3>Appendix: Hints for allowing policy updates after boot</h3>
 
-<p>Regarding Android devices, users can add applications which are not shipped with the device. Above procedure assumed there will be no need for updating policy when applications are added by categorizing into 3 groups based on the Linux's UID value.</p>
-
-<p>However, you may want to allow updating policy when special applications are added. In that case, you can split policy files into the "fixed" part which will be embedded into the kernel for use at the boot stage and the "variant" part which will not be embedded into the kernel for use after the boot stage.</p>
+<p>Regarding Android devices, users can add applications which are not shipped with the device. Therefore, you may want to allow updating policy when special applications are added. In that case, you can split policy files into the "fixed" part which will be embedded into the kernel for use at the boot stage and the "variant" part which will not be embedded into the kernel for use after the boot stage.</p>
 
 <p>You can reduce the risk of tampering the "fixed" part by deploying the kernel into the read-only partition. But you may not be able to reduce the risk of tampering the "variant" part because the "variant" part will likely be located into the read-write partition. In that case, you can use (e.g.) GPG signature and append the policy into the kernel only when you verified that the "variant" part is not tampered.</p>
 

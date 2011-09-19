@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 2.4.x : TOMOYO Linux on Android</title>
+<title>TOMOYO Linux 2.5.x : TOMOYO Linux on Android</title>
 </head>
 
 <body>
@@ -92,10 +92,8 @@ make
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O tomoyo-tools-2.4.0-20110820.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz'
-wget -O tomoyo-tools-2.4.0-20110820.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz.asc'
-gpg tomoyo-tools-2.4.0-20110820.tar.gz.asc
-tar -zxf tomoyo-tools-2.4.0-20110820.tar.gz
+wget -O tomoyo-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/2.5.x/tomoyo-tools.tar.gz?root=tomoyo&amp;view=tar'
+tar -zxf tomoyo-tools.tar.gz
 cd tomoyo-tools
 make
 sudo make install
@@ -166,6 +164,26 @@ acl_group 0 file ioctl @ANY_PATHNAME 0-0xFFFFFFFF
 acl_group 0 file read /dev/urandom
 acl_group 0 file read /system/bin/linker
 acl_group 0 file read /system/lib/lib\*.so
+acl_group 0 misc env _
+acl_group 0 misc env ANDROID_ASSETS
+acl_group 0 misc env ANDROID_BOOTLOGO
+acl_group 0 misc env ANDROID_DATA
+acl_group 0 misc env ANDROID_DNS_MODE
+acl_group 0 misc env ANDROID_PROPERTY_WORKSPACE
+acl_group 0 misc env ANDROID_ROOT
+acl_group 0 misc env ANDROID_SOCKET_\*
+acl_group 0 misc env ASEC_MOUNTPOINT
+acl_group 0 misc env BOOTCLASSPATH
+acl_group 0 misc env EXTERNAL_STORAGE
+acl_group 0 misc env HOME
+acl_group 0 misc env LD_LIBRARY_PATH
+acl_group 0 misc env LOOP_MOUNTPOINT
+acl_group 0 misc env ndns
+acl_group 0 misc env PATH
+acl_group 0 misc env qemu
+acl_group 0 misc env RANDOM
+acl_group 0 misc env SHELL
+acl_group 0 misc env TERM
 EOF
 cat &gt; domain_policy.conf &lt;&lt; "EOF"
 &lt;kernel&gt;
@@ -178,7 +196,7 @@ echo &gt; stat.conf
 
 <h3>ステップ７： Android 用カーネルの構築</h3>
 
-<p><a href="http://android.git.kernel.org/?p=kernel/common.git">http://android.git.kernel.org/?p=kernel/common.git</a> から Linux 3.1 以降のカーネルのソースコードをダウンロードして展開して、そのディレクトリへと移動します。以後、そのディレクトリを $ANDROID_HOME/tmp/common/ と表記します。</p>
+<p><a href="http://android.git.kernel.org/?p=kernel/common.git">http://android.git.kernel.org/?p=kernel/common.git</a> から Linux 3.2 以降のカーネルのソースコードをダウンロードして展開して、そのディレクトリへと移動します。以後、そのディレクトリを $ANDROID_HOME/tmp/common/ と表記します。</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common/
@@ -308,9 +326,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h3>補足：ポリシーの更新を認めたい場合のヒント</h3>
 
-<p>Android ではユーザがアプリケーションを追加することができます。上記手順では、ユーザＩＤに基づいて３つのカテゴリに分類するという方法により、アプリケーションが追加されてもポリシーを更新する必要が無いような仕様になっています。</p>
-
-<p>しかし、追加されるアプリケーションによっては、ポリシーを更新したい場合があるかもしれません。そのような場合、起動時に必要になるポリシーとしてカーネル内に埋め込む固定分と、起動後に必要になるポリシーとしてカーネル内には埋め込まない変動分とを分離することで対処するという方法が考えられます。</p>
+<p>Android ではユーザがアプリケーションを追加することができます。そのため、追加されるアプリケーションによっては、ポリシーを更新したい場合があるかもしれません。そのような場合、起動時に必要になるポリシーとしてカーネル内に埋め込む固定分と、起動後に必要になるポリシーとしてカーネル内には埋め込まない変動分とを分離することで対処するという方法が考えられます。</p>
 
 <p>起動時に必要となるポリシーはカーネルを読み込み専用のパーティションに配置することで、改ざんされる可能性を減らすことができます。起動後に必要になるポリシーは読み書きが可能なパーティションに配置することになるので改ざんされる可能性が高くなります。そのため、例えば GPG で署名し、改ざんされていないことを確認できた場合にのみポリシーを追加読み込みするという方法が考えられます。</p>
 
