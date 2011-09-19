@@ -1,9 +1,9 @@
-[PATCH] TOMOYO 2.4 backport patch for Linux 2.6.36
+[PATCH] TOMOYO 2.5 backport patch for Linux 2.6.36
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget -O linux-3.1-rc6.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc6
- $ tar -zxf linux-3.1-rc6.tar.gz --strip 1 torvalds-linux-8ff0291/security/tomoyo/
+ $ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/HEAD
+ $ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/'
 
 .
 
@@ -14,7 +14,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- linux-2.6.36.4.orig/security/tomoyo/realpath.c
 +++ linux-2.6.36.4/security/tomoyo/realpath.c
-@@ -85,7 +85,9 @@ static char *tomoyo_get_absolute_path(st
+@@ -103,7 +103,9 @@ static char *tomoyo_get_absolute_path(st
  	if (buflen >= 256) {
  		struct path ns_root = { };
  		/* go to whatever namespace root we are under */
@@ -24,7 +24,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
  			struct inode *inode = path->dentry->d_inode;
  			if (inode && S_ISDIR(inode->i_mode)) {
-@@ -111,17 +113,27 @@ static char *tomoyo_get_absolute_path(st
+@@ -129,17 +131,27 @@ static char *tomoyo_get_absolute_path(st
  static char *tomoyo_get_dentry_path(struct dentry *dentry, char * const buffer,
  				    const int buflen)
  {

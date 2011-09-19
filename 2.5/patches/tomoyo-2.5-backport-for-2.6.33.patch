@@ -1,9 +1,9 @@
-[PATCH] TOMOYO 2.4 backport patch for Linux 2.6.33
+[PATCH] TOMOYO 2.5 backport patch for Linux 2.6.33
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget -O linux-3.1-rc6.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc6
- $ tar -zxf linux-3.1-rc6.tar.gz --strip 1 torvalds-linux-8ff0291/security/tomoyo/
+ $ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/HEAD
+ $ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/'
 
 .
 
@@ -15,9 +15,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/tomoyo.c        |    3 -
  4 files changed, 70 insertions(+), 25 deletions(-)
 
---- linux-2.6.33.18.orig/security/tomoyo/common.h
-+++ linux-2.6.33.18/security/tomoyo/common.h
-@@ -1158,7 +1158,7 @@ static inline int tomoyo_round2(size_t s
+--- linux-2.6.33.19.orig/security/tomoyo/common.h
++++ linux-2.6.33.19/security/tomoyo/common.h
+@@ -1323,7 +1323,7 @@ static inline int tomoyo_round2(size_t s
   */
  #define list_for_each_cookie(pos, head)					\
  	if (!pos)							\
@@ -27,9 +27,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	for ( ; pos != (head); pos = rcu_dereference(pos->next))
  
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
---- linux-2.6.33.18.orig/security/tomoyo/realpath.c
-+++ linux-2.6.33.18/security/tomoyo/realpath.c
-@@ -76,25 +76,55 @@ char *tomoyo_encode(const char *str)
+--- linux-2.6.33.19.orig/security/tomoyo/realpath.c
++++ linux-2.6.33.19/security/tomoyo/realpath.c
+@@ -94,25 +94,55 @@ char *tomoyo_encode(const char *str)
   *
   * Returns the buffer on success, an error code otherwise.
   *
@@ -96,7 +96,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -111,17 +141,27 @@ static char *tomoyo_get_absolute_path(st
+@@ -129,17 +159,27 @@ static char *tomoyo_get_absolute_path(st
  static char *tomoyo_get_dentry_path(struct dentry *dentry, char * const buffer,
  				    const int buflen)
  {
@@ -133,7 +133,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return pos;
  }
  
-@@ -276,8 +316,13 @@ char *tomoyo_realpath_from_path(struct p
+@@ -294,8 +334,13 @@ char *tomoyo_realpath_from_path(struct p
  			pos = tomoyo_get_local_path(path->dentry, buf,
  						    buf_len - 1);
  		/* Get absolute name for the rest. */
@@ -148,9 +148,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  encode:
  		if (IS_ERR(pos))
  			continue;
---- linux-2.6.33.18.orig/security/tomoyo/securityfs_if.c
-+++ linux-2.6.33.18/security/tomoyo/securityfs_if.c
-@@ -93,7 +93,6 @@ static const struct file_operations tomo
+--- linux-2.6.33.19.orig/security/tomoyo/securityfs_if.c
++++ linux-2.6.33.19/security/tomoyo/securityfs_if.c
+@@ -211,7 +211,6 @@ static const struct file_operations tomo
  	.poll    = tomoyo_poll,
  	.read    = tomoyo_read,
  	.write   = tomoyo_write,
@@ -158,8 +158,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
---- linux-2.6.33.18.orig/security/tomoyo/tomoyo.c
-+++ linux-2.6.33.18/security/tomoyo/tomoyo.c
+--- linux-2.6.33.19.orig/security/tomoyo/tomoyo.c
++++ linux-2.6.33.19/security/tomoyo/tomoyo.c
 @@ -157,7 +157,8 @@ static int tomoyo_inode_getattr(struct v
   *
   * Returns 0 on success, negative value otherwise.
