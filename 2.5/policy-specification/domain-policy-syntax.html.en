@@ -456,79 +456,6 @@ file pivot_root proc:/ proc:/ccs/
 misc env LD_PRELOAD
 </pre>
 
-<h3><a name="capability">capability</a></h3>
-
-<p>This directive allows the domain to make use of the specified non-POSIX Capability.</p>
-
-<p>The syntax is summarised in this table:</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Directive</p></th>
-<th><p>Function</p></th>
-</tr>
-<tr>
-<td><p>capability use_kernel_module</p></td>
-<td><p>Use of the create_module(2), init_module(2) and delete_module(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>capability use_packet</p></td>
-<td><p>Use of PACKET sockets</p></td>
-</tr>
-<tr>
-<td><p>capability use_route</p></td>
-<td><p>Use of ROUTE sockets</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_KEXEC_LOAD</p></td>
-<td><p>Use of kexec_load(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_NICE</p></td>
-<td><p>Use of nice(2) and setpriority(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_PTRACE</p></td>
-<td><p>Use of ptrace(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_REBOOT</p></td>
-<td><p>Use of reboot(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_SETHOSTNAME</p></td>
-<td><p>Use of sethostname(2) and setdomainname(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_TIME</p></td>
-<td><p>Use of stime(2), settimeofday(2) and adjtimex(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_VHANGUP</p></td>
-<td><p>Use of vhangup(2) syscall</p></td>
-</tr>
-</table>
-</div>
-
-<p>This example allows the domain to use the SYS_REBOOT capability:</p>
-
-<pre>
-capability SYS_REBOOT
-</pre>
-
-<h3><a name="ipc_signal">ipc signal</a></h3>
-
-<p>This directive allows the domain to use the inter-process communication signal number specified and the target domain specified.</p>
-
-<p>All domains that start with the target domain are matched. Thus, a target domain of "&lt;kernel&gt;" will match all domains. A signal number of 0 is always granted, and if the source and target destination are the same it is always granted.</p>
-
-<p>This example allows the domain to send ipc signal number 10 to the specified domain:</p>
-
-<pre>
-ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
-</pre>
-
 <h3><a name="network_inet">network inet</a></h3>
 
 <p>This directive allows the domain to perform network socket operations.</p>
@@ -552,10 +479,6 @@ ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
 <td><p>Listen TCP sockets at specified local IP address and port</p></td>
 </tr>
 <tr>
-<td><p>network inet stream accept $ADDRESS $PORT</p></td>
-<td><p>Accept TCP sockets from specified remote IP address and port</p></td>
-</tr>
-<tr>
 <td><p>network inet stream connect $ADDRESS $PORT</p></td>
 <td><p>Connect TCP sockets to specified remote IP address and port</p></td>
 </tr>
@@ -564,20 +487,12 @@ ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
 <td><p>Bind UDP sockets to specified local IP address and port</p></td>
 </tr>
 <tr>
-<td><p>network inet dgram recv $ADDRESS $PORT</p></td>
-<td><p>Receive UDP packets from specified remote IP address and port</p></td>
-</tr>
-<tr>
 <td><p>network inet dgram send $ADDRESS $PORT</p></td>
 <td><p>Send UDP packets to specified remote IP address and port</p></td>
 </tr>
 <tr>
 <td><p>network inet raw bind $ADDRESS $PROTOCOL</p></td>
 <td><p>Bind IP sockets for specified protocol to specified local IP address</p></td>
-</tr>
-<tr>
-<td><p>network inet raw recv $ADDRESS $PROTOCOL</p></td>
-<td><p>Receive IP packets for specified protocol from specified remote IP address</p></td>
 </tr>
 <tr>
 <td><p>network inet raw send $ADDRESS $PROTOCOL</p></td>
@@ -618,20 +533,12 @@ network inet stream connect 202.221.179.21 80
 <td><p>Listen byte stream sockets at specified address</p></td>
 </tr>
 <tr>
-<td><p>network unix stream accept $ADDRESS</p></td>
-<td><p>Accept byte stream sockets from specified address</p></td>
-</tr>
-<tr>
 <td><p>network unix stream connect $ADDRESS</p></td>
 <td><p>Connect byte stream sockets to specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix dgram bind $ADDRESS</p></td>
 <td><p>Bind datagram sockets to specified address</p></td>
-</tr>
-<tr>
-<td><p>network unix dgram recv $ADDRESS</p></td>
-<td><p>Receive datagrams from specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix dgram send $ADDRESS</p></td>
@@ -644,10 +551,6 @@ network inet stream connect 202.221.179.21 80
 <tr>
 <td><p>network unix seqpacket listen $ADDRESS</p></td>
 <td><p>Listen seqpacket sockets at specified address</p></td>
-</tr>
-<tr>
-<td><p>network unix seqpacket accept $ADDRESS</p></td>
-<td><p>Accept seqpacket sockets from specified address</p></td>
 </tr>
 <tr>
 <td><p>network unix seqpacket connect $ADDRESS</p></td>
@@ -694,26 +597,6 @@ use_group 2
 use_profile 3
 </pre>
 
-<h3><a name="task_auto_execute_handler">task auto_execute_handler</a></h3>
-
-<p>This directive causes executions from the domain to be handled by an external program, as specified by the directive. When an execute request is made within this domain, the specified external program is executed instead. This then decides whether it is appropriate to continue.</p>
-
-<p>This example causes the program <code>/usr/sbin/check-and-exec</code> to be launched whenever the domain makes an execute request:</p>
-
-<pre>
-task auto_execute_handler /usr/sbin/check-and-exec
-</pre>
-
-<h3><a name="task_denied_execute_handler">task denied_execute_handler</a></h3>
-
-<p>This directive causes an external program, as specified by the directive, to be launched when executions within the domain have been rejected by policy. Note that this directive takes effect only when an execute request was rejected by policy in enforcing mode. Even if an execute request was rejected by policy, the request will be accepted unless in enforcing mode. Use <a href="#task_auto_execute_handler">task auto_execute_handler</a> (optionally with <a href="exception-policy-syntax.html.en#keep_domain">keep_domain</a>) if you want to execute an external program regardless of access control mode.</p>
-
-<p>This example causes the program <code>/bin/true</code> to be launched whenever an execution request from the domain is rejected by policy:</p>
-
-<pre>
-task denied_execute_handler /bin/true
-</pre>
-
 <h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
 
 <p>This directive causes a domain transition to occur when the application writes a domain name to the "/sys/kernel/security/tomoyo/self_domain" interface. This can be used to split permissions without requiring an execution, but the application must be modified to write to the interface at the appropriate time.</p>
@@ -722,16 +605,6 @@ task denied_execute_handler /bin/true
 
 <pre>
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
-</pre>
-
-<h3><a name="task_auto_domain_transition">task auto_domain_transition</a></h3>
-
-<p>This directive causes a domain transition to occur when the specified conditions have been met. This can be used to split permissions without requiring an execution.</p>
-
-<p>This example causes a domain transition to the "&lt;kernel&gt; //non-root-session" domain to occur when the task UID becomes non-root:</p>
-
-<pre>
-task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
 </pre>
 
 <h3><a name="quota_exceeded">quota_exceeded</a></h3>

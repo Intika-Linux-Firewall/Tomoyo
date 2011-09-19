@@ -99,11 +99,6 @@
 <td><p>2048</p></td>
 <td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/securityfs-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface.</p></td>
 </tr>
-<tr>
-<td><p>--enforcing_penalty="$number"</p></td>
-<td><p>0</p></td>
-<td><p>Set the sleep penalty in deciseconds (1 decisecond = 0.1 seconds) that occurs when a process violates policy in "Enforcing Mode". This value must be an integer. This is useful to prevent CPU consumption issues.</p></td>
-</tr>
 </table>
 </div>
 
@@ -111,16 +106,16 @@
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
 1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 1-CONFIG={ mode=learning grant_log=no reject_log=yes }
 2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
 3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -128,16 +123,16 @@
 
 <pre>
 0-COMMENT=-----Disabled Mode-----
-0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 0-CONFIG::file={ mode=disabled grant_log=no reject_log=yes }
 1-COMMENT=-----Learning Mode-----
-1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 1-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
 2-COMMENT=-----Permissive Mode-----
-2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 2-CONFIG::file={ mode=permissive grant_log=no reject_log=yes }
 3-COMMENT=-----Enforcing Mode-----
-3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 3-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -237,16 +232,8 @@
 <td><p>All operations</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::capability</p></td>
-<td><p>Non-POSIX Capabilities only</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::file</p></td>
 <td><p>File related operations only</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc</p></td>
-<td><p>Inter-process communications only</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::misc</p></td>
@@ -263,7 +250,7 @@
 
 <pre>
 4-COMMENT=-----Enforcing file and network-----
-4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+4-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 4-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 4-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
@@ -272,7 +259,7 @@
 
 <pre>
 5-COMMENT=-----Learning file and Enforcing network-----
-5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+5-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 5-CONFIG::file={ mode=learning grant_log=no reject_log=yes }
 5-CONFIG::network={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
@@ -284,46 +271,6 @@
 <tr>
 <th><p>Name</p></th>
 <th><p>Functionality to specify operation mode for</p></th>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_kernel_module</p></td>
-<td><p>Use of the create_module(2), init_module(2) and delete_module(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_packet</p></td>
-<td><p>Use of PACKET sockets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::use_route</p></td>
-<td><p>Use of ROUTE sockets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_KEXEC_LOAD</p></td>
-<td><p>Use of kexec_load(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_NICE</p></td>
-<td><p>Use of nice(2) and setpriority(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_PTRACE</p></td>
-<td><p>Use of ptrace(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_REBOOT</p></td>
-<td><p>Use of reboot(2) syscall</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_SETHOSTNAME</p></td>
-<td><p>Use of sethostname(2) and setdomainname(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_TIME</p></td>
-<td><p>Use of stime(2), settimeofday(2) and adjtimex(2) syscalls</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::capability::SYS_VHANGUP</p></td>
-<td><p>Use of vhangup(2) syscall</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::file::execute</p></td>
@@ -422,10 +369,6 @@
 <td><p>UDP socket remote address restriction for outgoing packets</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::inet_dgram_recv</p></td>
-<td><p>UDP socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::inet_stream_bind</p></td>
 <td><p>TCP socket bind() operation</p></td>
 </tr>
@@ -438,10 +381,6 @@
 <td><p>TCP socket connect() operation</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::inet_stream_accept</p></td>
-<td><p>TCP socket's accept() operation</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::inet_raw_bind</p></td>
 <td><p>RAW socket local address restriction</p></td>
 </tr>
@@ -450,20 +389,12 @@
 <td><p>RAW socket remote address restriction for outgoing packets</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::inet_raw_recv</p></td>
-<td><p>RAW socket remote address restriction for incoming packets</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::unix_dgram_bind</p></td>
 <td><p>UNIX domain datagram socket local address restriction</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_dgram_send</p></td>
 <td><p>UNIX domain datagram socket remote address restriction for outgoing packets</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::network::unix_dgram_recv</p></td>
-<td><p>UNIX domain datagram socket remote address restriction for incoming packets</p></td>
 </tr>
 <tr>
 <td><p>CONFIG::network::unix_stream_bind</p></td>
@@ -478,10 +409,6 @@
 <td><p>UNIX domain stream socket connect() operation</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::unix_stream_accept</p></td>
-<td><p>UNIX domain stream socket accept() operation</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::network::unix_seqpacket_bind</p></td>
 <td><p>UNIX domain seqpacket socket bind() operation</p></td>
 </tr>
@@ -494,16 +421,8 @@
 <td><p>UNIX domain seqpacket socket connect() operation</p></td>
 </tr>
 <tr>
-<td><p>CONFIG::network::unix_seqpacket_accept</p></td>
-<td><p>UNIX domain seqpacket socket accept() operation</p></td>
-</tr>
-<tr>
 <td><p>CONFIG::misc::env</p></td>
 <td><p>Environment variable names</p></td>
-</tr>
-<tr>
-<td><p>CONFIG::ipc::signal</p></td>
-<td><p>Use of signal transmission requests</p></td>
 </tr>
 </table>
 </div>
@@ -512,7 +431,7 @@
 
 <pre>
 6-COMMENT=-----Enforcing file::execute only-----
-6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+6-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 6-CONFIG::file::execute={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -520,7 +439,7 @@
 
 <pre>
 7-COMMENT=-----Enforcing file operations without getattr-----
-7-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+7-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 7-CONFIG::file={ mode=enforcing grant_log=no reject_log=yes }
 7-CONFIG::file::getattr={ mode=disabled grant_log=no reject_log=yes }
 </pre>
@@ -544,10 +463,6 @@
 <tr>
 <td><p>max_learning_entry</p></td>
 <td><p>Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and setting to "0" makes the "Learning Mode" as if "Permissive Mode". Maximum memory used can also be controlled using the <a href="policy-specification/securityfs-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface.</p></td>
-</tr>
-<tr>
-<td><p>enforcing_penalty</p></td>
-<td><p>Set the sleep penalty in deciseconds (1 decisecond = 0.1 seconds) that occurs when a process violates policy in "Enforcing Mode". This value must be an integer. This is useful to prevent CPU consumption issues.</p></td>
 </tr>
 </table>
 </div>

@@ -456,79 +456,6 @@ file pivot_root proc:/ proc:/ccs/
 misc env LD_PRELOAD
 </pre>
 
-<h3><a name="capability">capability</a></h3>
-
-<p>このディレクティブは、（ POSIX ではない）ケイパビリティを使用することを許可します。</p>
-
-<p>構文を以下の表に示します：</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th><p>構文</p></th>
-<th><p>意味</p></th>
-</tr>
-<tr>
-<td><p>capability use_kernel_module</p></td>
-<td><p>create_module(2), init_module(2) および delete_module(2) の使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability use_packet</p></td>
-<td><p>PACKET ソケットの使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability use_route</p></td>
-<td><p>ROUTE ソケットの使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_KEXEC_LOAD</p></td>
-<td><p>kexec_load(2) の使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_NICE</p></td>
-<td><p>nice(2) および setpriority(2) の使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_PTRACE</p></td>
-<td><p>ptrace(2) の使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_REBOOT</p></td>
-<td><p>reboot(2) の使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_SETHOSTNAME</p></td>
-<td><p>sethostname(2) および setdomainname(2) の使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_TIME</p></td>
-<td><p>stime(2), settimeofday(2) および adjtimex(2) の使用を許可</p></td>
-</tr>
-<tr>
-<td><p>capability SYS_VHANGUP</p></td>
-<td><p>vhangup(2) の使用を許可</p></td>
-</tr>
-</table>
-</div>
-
-<p>以下の例では SYS_REBOOT ケイパビリティの使用を許可しています：</p>
-
-<pre>
-capability SYS_REBOOT
-</pre>
-
-<h3><a name="ipc_signal">ipc signal</a></h3>
-
-<p>このディレクティブは、指定されたドメインに対して指定された番号のシグナルを送信することを許可します。</p>
-
-<p>指定されたドメインとその子孫ドメインに対して許可されます。そのため、 &lt;kernel&gt; ドメインを指定した場合、全てのドメインに対して許可されるようになります。また、 0 番のシグナルは常に許可されます。また、送信元プロセスのドメインと送信先プロセスのドメインが同じ場合も常に許可されます。</p>
-
-<p>以下の例では &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm およびその子孫ドメインに対して 10 番のシグナルを送信することを許可しています：</p>
-
-<pre>
-ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
-</pre>
-
 <h3><a name="network_inet">network inet</a></h3>
 
 <p>このディレクティブは、インターネットドメインのネットワークソケットを用いた操作を許可します。</p>
@@ -552,10 +479,6 @@ ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
 <td><p>ＴＣＰソケットが指定されたアドレスおよびポート番号で接続要求を待つことを許可します。</p></td>
 </tr>
 <tr>
-<td><p>network inet stream accept $ADDRESS $PORT</p></td>
-<td><p>ＴＣＰソケットが指定されたアドレスおよびポート番号からの接続要求を受け入れることを許可します。</p></td>
-</tr>
-<tr>
 <td><p>network inet stream connect $ADDRESS $PORT</p></td>
 <td><p>ＴＣＰソケットが指定されたアドレスおよびポート番号へ接続することを許可します。</p></td>
 </tr>
@@ -564,20 +487,12 @@ ipc signal 10 &lt;kernel&gt; /sbin/init /etc/rc.sysinit /sbin/udevadm
 <td><p>ＵＤＰソケットを指定されたアドレスおよびポート番号にバインドすることを許可します。</p></td>
 </tr>
 <tr>
-<td><p>network inet dgram recv $ADDRESS $PORT</p></td>
-<td><p>ＵＤＰソケットが指定されたアドレスおよびポート番号からのデータを受信することを許可します。</p></td>
-</tr>
-<tr>
 <td><p>network inet dgram send $ADDRESS $PORT</p></td>
 <td><p>ＵＤＰソケットが指定されたアドレスおよびポート番号へデータを送信することを許可します。</p></td>
 </tr>
 <tr>
 <td><p>network inet raw bind $ADDRESS $PROTOCOL</p></td>
 <td><p>指定されたプロトコル番号のＩＰソケットを指定されたアドレスにバインドすることを許可します。</p></td>
-</tr>
-<tr>
-<td><p>network inet raw recv $ADDRESS $PROTOCOL</p></td>
-<td><p>指定されたプロトコル番号のＩＰソケットが指定されたアドレスからのデータを受信することを許可します。</p></td>
 </tr>
 <tr>
 <td><p>network inet raw send $ADDRESS $PROTOCOL</p></td>
@@ -618,20 +533,12 @@ network inet stream connect 202.221.179.21 80
 <td><p>STREAM ソケットが指定されたアドレスで接続要求を待つことを許可します。</p></td>
 </tr>
 <tr>
-<td><p>network unix stream accept $ADDRESS</p></td>
-<td><p>STREAM ソケットが指定されたアドレスからの接続要求を受け入れることを許可します。</p></td>
-</tr>
-<tr>
 <td><p>network unix stream connect $ADDRESS</p></td>
 <td><p>STREAM ソケットが指定されたアドレスへ接続することを許可します。</p></td>
 </tr>
 <tr>
 <td><p>network unix dgram bind $ADDRESS</p></td>
 <td><p>DATAGRAM ソケットを指定されたアドレスにバインドすることを許可します。</p></td>
-</tr>
-<tr>
-<td><p>network unix dgram recv $ADDRESS</p></td>
-<td><p>DATAGRAM ソケットが指定されたアドレスからのデータを受信することを許可します。</p></td>
 </tr>
 <tr>
 <td><p>network unix dgram send $ADDRESS</p></td>
@@ -644,10 +551,6 @@ network inet stream connect 202.221.179.21 80
 <tr>
 <td><p>network unix seqpacket listen $ADDRESS</p></td>
 <td><p>SEQPACKET ソケットが指定されたアドレスで接続要求を待つことを許可します。</p></td>
-</tr>
-<tr>
-<td><p>network unix seqpacket accept $ADDRESS</p></td>
-<td><p>SEQPACKET ソケットが指定されたアドレスからの接続要求を受け入れることを許可します。</p></td>
 </tr>
 <tr>
 <td><p>network unix seqpacket connect $ADDRESS</p></td>
@@ -694,26 +597,6 @@ use_group 2
 use_profile 3
 </pre>
 
-<h3><a name="task_auto_execute_handler">task auto_execute_handler</a></h3>
-
-<p>このディレクティブは、このディレクティブが割り当てられたドメインからのプログラムの実行要求がこのディレクティブで指定されたプログラムによって処理されるようになります。このドメインでプログラムの実行要求が発生すると、要求されたプログラムの代わりにこのディレクティブで指定されたプログラムが実行されます。そして、このディレクティブで指定されたプログラムが要求されたプログラムを実行すべきかどうかを判断し、実行すべきと判断した場合だけ要求されたプログラムが実行されます。</p>
-
-<p>以下の例では <code>/usr/sbin/check-and-exec</code> というプログラムが要求されたプログラムの代わりに実行されます：</p>
-
-<pre>
-task auto_execute_handler /usr/sbin/check-and-exec
-</pre>
-
-<h3><a name="task_denied_execute_handler">task denied_execute_handler</a></h3>
-
-<p>このディレクティブは、このディレクティブが割り当てられているドメインからのプログラムの実行要求がポリシーによって拒否された場合に、要求されたプログラムの代わりにこのディレクティブで指定されたプログラムが実行されるようになります。このディレクティブは強制モードが割り当てられている状態でポリシーによって拒否された場合のみ機能することに注意してください。ポリシーによって拒否されたとしても、強制モードではない限りプログラムの実行要求は受け入れられます。アクセス制御モードに関わらず別のプログラムを実行させたい場合には、 <a href="#task_auto_execute_handler">task auto_execute_handler</a> を（必要であれば <a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> と組み合わせて）使ってください。</p>
-
-<p>以下の例では、プログラムの実行要求がポリシーによって拒否された場合に <code>/bin/true</code> というプログラムが要求されたプログラムの代わりに実行されます：</p>
-
-<pre>
-task denied_execute_handler /bin/true
-</pre>
-
 <h3><a name="task_manual_domain_transition">task manual_domain_transition</a></h3>
 
 <p>このディレクティブは、アプリケーションがこのディレクティブで指定されたドメイン名を /sys/kernel/security/tomoyo/self_domain インタフェースに書き込むことにより、そのドメインへと遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができますが、アプリケーションからドメイン遷移を行うべきタイミングにこのインタフェースへの書き込みを行うようにアプリケーションを修正することが必要になります。</p>
@@ -722,16 +605,6 @@ task denied_execute_handler /bin/true
 
 <pre>
 task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com
-</pre>
-
-<h3><a name="task_auto_domain_transition">task auto_domain_transition</a></h3>
-
-<p>このディレクティブは、指定された条件に一致した場合にこのディレクティブで指定されたドメイン名に自動的に遷移するようになります。これは、プログラムの実行要求を伴わずに権限を分割するために使用することができます。</p>
-
-<p>以下の例では、プロセスのＵＩＤが０ではなくなった時点で &lt;kernel&gt; //non-root-session ドメインへと自動的に遷移することを示しています：</p>
-
-<pre>
-task auto_domain_transition &lt;kernel&gt; //non-root-session task.uid!=0
 </pre>
 
 <h3><a name="quota_exceeded">quota_exceeded</a></h3>
