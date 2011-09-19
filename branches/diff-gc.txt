@@ -1,6 +1,6 @@
 Index: security/ccsecurity/domain.c
 ===================================================================
---- security/ccsecurity/domain.c	(revision 5408)
+--- security/ccsecurity/domain.c	(revision 5454)
 +++ security/ccsecurity/domain.c	(working copy)
 @@ -37,6 +37,8 @@
  	if (mutex_lock_interruptible(&ccs_policy_lock))
@@ -11,7 +11,7 @@ Index: security/ccsecurity/domain.c
  		if (!check_duplicate(entry, new_entry))
  			continue;
  		entry->is_deleted = param->is_delete;
-@@ -101,6 +103,8 @@
+@@ -113,6 +115,8 @@
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		goto out;
  	list_for_each_entry_srcu(entry, list, list, &ccs_ss) {
@@ -22,7 +22,7 @@ Index: security/ccsecurity/domain.c
  			continue;
 Index: security/ccsecurity/gc.c
 ===================================================================
---- security/ccsecurity/gc.c	(revision 5408)
+--- security/ccsecurity/gc.c	(revision 5450)
 +++ security/ccsecurity/gc.c	(working copy)
 @@ -31,6 +31,10 @@
  
