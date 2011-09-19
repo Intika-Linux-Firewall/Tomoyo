@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 2.5.x : 導入ガイド : Chapter 14</title>
+<title>TOMOYO Linux 2.5.x : 導入ガイド : Chapter 13</title>
 </head>
 
 <body>
@@ -24,7 +24,7 @@
 <li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
 </ul>
 <ul id="switch-language">
-<li id="tomoyo-switch-language"><a href="chapter-14.html.en" title="Go to English page">English page</a></li>
+<li id="tomoyo-switch-language"><a href="chapter-13.html.en" title="Go to English page">English page</a></li>
 </ul>
 </div>
 
@@ -33,18 +33,18 @@
 <div id="documentation">
 
 <div class="navheader">
-<p><a href="chapter-13.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="chapter-15.html.ja">&lt;次&gt;</a></p>
+<p><a href="chapter-12.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="chapter-14.html.ja">&lt;次&gt;</a></p>
 </div>
 
-<h2>Chapter 14: Apache で mod_tomoyo モジュールを使用する</h2>
+<h2>Chapter 13: Apache で mod_tomoyo モジュールを使用する</h2>
 
-<h3><a name="14.1">14.1. mod_tomoyo モジュールについて</a></h3>
+<h3><a name="13.1">13.1. mod_tomoyo モジュールについて</a></h3>
 
 <p>mod_tomoyo は Apache に対してより詳細なアクセス制御を行うための Apache 2.x 向けのモジュールです。このモジュールはバーチャルホスト名や要求されたファイルのパス名などに応じて（外部のプログラムを実行することなく）ドメイン遷移を行います。そのため、バーチャルホストやＣＧＩプログラムに対して権限を分割することができるようになります。</p>
 
-<h3><a name="14.2">14.2. モジュールのインストール</a></h3>
+<h3><a name="13.2">13.2. モジュールのインストール</a></h3>
 
-<h4><a name="14.2.1">14.2.1. 依存するパッケージのインストール</a></h4>
+<h4><a name="13.2.1">13.2.1. 依存するパッケージのインストール</a></h4>
 
 <p>このモジュールは Linux 2.6 カーネル専用です。 Linux 2.4 カーネルでは動作しません。</p>
 
@@ -62,7 +62,7 @@
 # apt-get -y install apache2-threaded-dev apache2-prefork-dev
 </pre>
 
-<h4><a name="14.2.2">14.2.2. モジュールのダウンロード</a></h4>
+<h4><a name="13.2.2">13.2.2. モジュールのダウンロード</a></h4>
 
 <p>mod_tomoyo モジュールのソースコードをダウンロードします：</p>
 
@@ -72,7 +72,7 @@
 
 <p>mod_tomoyo モジュールをコンパイル／インストール／有効化します：</p>
 
-<h4><a name="14.2.3">14.2.3. モジュールのコンパイルとインストール</a></h4>
+<h4><a name="13.2.3">13.2.3. モジュールのコンパイルとインストール</a></h4>
 
 <p><strong>RedHat 系の場合</strong></p>
 
@@ -92,7 +92,7 @@
 LoadModule tomoyo_module /usr/lib/httpd/modules/mod_tomoyo.so
 </pre>
 
-<h3><a name="14.3">14.3. 設定</a></h3>
+<h3><a name="13.3">13.3. 設定</a></h3>
 
 <p>Apache の設定ファイルの中で CCS_TransitionMap ディレクティブを用いてパス名とドメイン名の対応表を指定することにより， mod_tomoyo モジュールは要求されたファイルのパス名に基づくドメイン遷移を行います。以下の例では /etc/hosts で www.tomoyo00.com 等のＩＰアドレスが登録されているものと仮定します：</p>
 
@@ -239,30 +239,30 @@ EOF
 <table>
 <tr>
 <td class="docs-previous">
-<a href="chapter-13.html.ja">前</a>
+<a href="chapter-12.html.ja">前</a>
 </td>
 <td class="docs-index">
 <a href="index.html.ja">目次</a>
 </td>
 <td class="docs-next">
-<a href="chapter-15.html.ja">次</a>
+<a href="chapter-14.html.ja">次</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 13: カーネルの外部でプログラムの実行可否を判断する</p>
+<p>Chapter 12: ユーザ認証の強化</p>
 </td>
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
-<p>Chapter 15: 名前空間の管理はどのように行いますか？</p>
+<p>Chapter 14: 名前空間の管理はどのように行いますか？</p>
 </td>
 </tr>
 </table>
 </div>
 
 <div id="footer">
-<p class="language">Go to <a href="chapter-14.html.en">English page</a>.</p>
+<p class="language">Go to <a href="chapter-13.html.en">English page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>

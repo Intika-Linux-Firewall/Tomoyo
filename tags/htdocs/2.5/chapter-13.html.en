@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 2.5.x : The Official Guide : Chapter 14</title>
+<title>TOMOYO Linux 2.5.x : The Official Guide : Chapter 13</title>
 </head>
 
 <body>
@@ -24,7 +24,7 @@
 <li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
 </ul>
 <ul id="switch-language">
-<li id="tomoyo-switch-language"><a href="chapter-14.html.ja" title="Go to Japanese page">Japanese page</a></li>
+<li id="tomoyo-switch-language"><a href="chapter-13.html.ja" title="Go to Japanese page">Japanese page</a></li>
 </ul>
 </div>
 
@@ -33,18 +33,18 @@
 <div id="documentation">
 
 <div class="navheader">
-<p><a href="chapter-13.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-15.html.en">&lt;Next&gt;</a></p>
+<p><a href="chapter-12.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-14.html.en">&lt;Next&gt;</a></p>
 </div>
 
-<h2>Chapter 14: Securing Apache with the mod_tomoyo module</h2>
+<h2>Chapter 13: Securing Apache with the mod_tomoyo module</h2>
 
-<h3><a name="14.1">14.1. The mod_tomoyo module</a></h3>
+<h3><a name="13.1">13.1. The mod_tomoyo module</a></h3>
 
 <p>mod_tomoyo is an Apache 2.x module that allows more precise control over Apache. This module allows domain transition based on virtual host names and CGI pathnames without requiring program execution. This way, each virtual host or CGI script can be isolated from each other and given different permissions in policy.</p>
 
-<h3><a name="14.2">14.2. Installing the module</a></h3>
+<h3><a name="13.2">13.2. Installing the module</a></h3>
 
-<h4><a name="14.2.1">14.2.1. Install dependencies</a></h4>
+<h4><a name="13.2.1">13.2.1. Install dependencies</a></h4>
 
 <p>This module is available for Linux 2.6 kernels only, and will not work with Linux 2.4 kernels.</p>
 
@@ -62,7 +62,7 @@
 # apt-get -y install apache2-threaded-dev apache2-prefork-dev
 </pre>
 
-<h4><a name="14.2.2">14.2.2. Downloading the module</a></h4>
+<h4><a name="13.2.2">13.2.2. Downloading the module</a></h4>
 
 <p>Download the source code for the mod_tomoyo:</p>
 
@@ -72,7 +72,7 @@
 
 <p>Compile, install and activate mod_tomoyo:</p>
 
-<h4><a name="14.2.3">14.2.3. Installing the module</a></h4>
+<h4><a name="13.2.3">13.2.3. Installing the module</a></h4>
 
 <p><strong>RedHat distributions</strong></p>
 
@@ -92,7 +92,7 @@
 LoadModule tomoyo_module /usr/lib/httpd/modules/mod_tomoyo.so
 </pre>
 
-<h3><a name="14.3">14.3. Configuration</a></h3>
+<h3><a name="13.3">13.3. Configuration</a></h3>
 
 <p>The mod_tomoyo module performs domain transition based on the pathname of a requested file by specifying the mapping table of pathnames and domain names using the CCS_TransitionMap directive. This can be placed in the Apache configuration files like this (assuming that IP addresses for www.tomoyo00.com etc. are specified in "/etc/hosts"):</p>
 
@@ -239,30 +239,30 @@ EOF
 <table>
 <tr>
 <td class="docs-previous">
-<a href="chapter-13.html.en">Prev</a>
+<a href="chapter-12.html.en">Prev</a>
 </td>
 <td class="docs-index">
 <a href="index.html.en">Index</a>
 </td>
 <td class="docs-next">
-<a href="chapter-15.html.en">Next</a>
+<a href="chapter-14.html.en">Next</a>
 </td>
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 13: Judging execute requests outside of the kernel</p>
+<p>Chapter 12: Reinforced authentication</p>
 </td>
 <td class="docs-home">
 </td>
 <td class="docs-next-description">
-<p>Chapter 15: How do I manage policy namespace?</p>
+<p>Chapter 14: How do I manage policy namespace?</p>
 </td>
 </tr>
 </table>
 </div>
 
 <div id="footer">
-<p class="language">Go to <a href="chapter-14.html.ja">Japanese page</a>.</p>
+<p class="language">Go to <a href="chapter-13.html.ja">Japanese page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
