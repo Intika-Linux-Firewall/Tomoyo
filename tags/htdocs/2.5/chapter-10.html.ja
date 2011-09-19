@@ -308,28 +308,9 @@ file create /tmp/file 0644 path1.parent.uid=0
 </table>
 </div>
 
-<p>２つの例外があります。 exec.argv[n] exec.envp[var] exec.realpath および symlink.target は常に文字列が比較の対象です。 task.type は常に execute_handler が比較の対象です。</P>
+<p>１つの例外があります。 exec.argv[n] exec.envp[var] exec.realpath および symlink.target は常に文字列が比較の対象です。</P>
 
 <h3><a name="10.4">10.4. プロセスの種類</a></h3>
-
-<p>プロセスの種類については以下の値をとることができます：</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th><p>条件</p></th>
-<th><p>内容</p></th>
-</tr>
-<tr>
-<td><p>task.type=execute_handler</p></td>
-<td><p>カレントプロセスは <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブにより実行されたプログラムである</p></td>
-</tr>
-<tr>
-<td><p>task.type!=execute_handler</p></td>
-<td><p>カレントプロセスは <a href="policy-specification/domain-policy-syntax.html.ja#task_auto_execute_handler">task auto_execute_handler</a> ディレクティブまたは <a href="policy-specification/domain-policy-syntax.html.ja#task_denied_execute_handler">task denied_execute_handler</a> ディレクティブにより実行されたプログラムではない</p></td>
-</tr>
-</table>
-</div>
 
 <h3><a name="10.5">10.5. ファイルの種類</a></h3>
 
@@ -547,8 +528,6 @@ file read /tmp/file001.tmp task.uid=path1.uid
 file execute /usr/bin/ssh exec.realpath="/usr/bin/ssh" exec.argv[0]="ssh"
 file execute /usr/bin/firefox exec.realpath="/usr/lib/firefox-3.6/firefox" exec.argv[0]="/usr/bin/firefox" exec.envc=0
 </pre>
-
-<p>より複雑な判断を行いたい場合には、 <a href="chapter-13.html.ja">Chapter 13: カーネルの外部でプログラムの実行可否を判断する</a>で説明している execute_handler 機能を利用してください。</p>
 
 </div><!-- documentation -->
 

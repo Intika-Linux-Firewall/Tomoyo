@@ -93,15 +93,15 @@ ffffffff8115e460 T tomoyo_write_inet_network
 <p>カーネル 2.6.38 ～ 3.1 で TOMOYO 2.5 を利用したい場合、以下のコマンドを実行してください：</p>
 
 <pre class="command">
-$ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/HEAD
-$ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/'
+$ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/next-20110919
+$ tar -zxf linux-next.tar.gz --strip 1 sfrothwell-linux-next-80c58b7/security/tomoyo/
 </pre>
 
 <p>カーネル 2.6.33 ～ 2.6.37 で TOMOYO 2.5 を利用したい場合、利用するカーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
 
 <pre class="command">
-$ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/HEAD
-$ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/'
+$ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/next-20110919
+$ tar -zxf linux-next.tar.gz --strip 1 sfrothwell-linux-next-80c58b7/security/tomoyo/
 $ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
 </pre>
