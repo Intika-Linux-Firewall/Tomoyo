@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 2.5.x : The Official Guide : Chapter 15</title>
+<title>TOMOYO Linux 2.5.x : The Official Guide : Chapter 14</title>
 </head>
 
 <body>
@@ -24,7 +24,7 @@
 <li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
 </ul>
 <ul id="switch-language">
-<li id="tomoyo-switch-language"><a href="chapter-15.html.ja" title="Go to Japanese page">Japanese page</a></li>
+<li id="tomoyo-switch-language"><a href="chapter-14.html.ja" title="Go to Japanese page">Japanese page</a></li>
 </ul>
 </div>
 
@@ -33,18 +33,18 @@
 <div id="documentation">
 
 <div class="navheader">
-<p><a href="chapter-14.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="index.html.en#appendix">&lt;Next&gt;</a></p>
+<p><a href="chapter-13.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="index.html.en#appendix">&lt;Next&gt;</a></p>
 </div>
 
-<h2>Chapter 15: How do I manage policy namespace?</h2>
+<h2>Chapter 14: How do I manage policy namespace?</h2>
 
-<h3><a name="15.1">15.1. About policy namespace</a></h3>
+<h3><a name="14.1">14.1. About policy namespace</a></h3>
 
 <p>The documentation so far has only shown domains that begin with "&lt;kernel&gt;". A new feature introduced in TOMOYO 1.8.2 introduces the concept of namespaces. Domains that start with "&lt;kernel&gt;" belong to the "&lt;kernel&gt;" namespace, but different namespaces can now be used with domains that start with "&lt;$namespace&gt;", where $namespace can be any arbitrary name.</p>
 
 <p>Each policy namespace has its own set of domain policy, exception policy and profiles, which are all independent of other namespaces. This independency allows you (and those who want to develop and distribute policy for specific applications) to develop policy files without worrying interference among namespaces, except that directives for jumping to different namespaces need to be added to other namespaces.</p>
 
-<h3><a name="15.2">15.2. How to specify namespaces?</a></h3>
+<h3><a name="14.2">14.2. How to specify namespaces?</a></h3>
 
 <p>The notation "&lt;$namespace&gt;" will be used hereafter, in which $namespace can be a any word (e.g. "/usr/sbin/sshd", "/usr/bin/httpd", "Apache") in TOMOYO's string representation rule. The "&lt;kernel&gt;" namespace is the built-in namespace. As long as you use only "&lt;kernel&gt;" namespace, policy files remain compatible with TOMOYO 1.8.1.</p>
 
@@ -108,7 +108,7 @@ use_profile 1
 use_group 0
 </pre>
 
-<h3><a name="15.3">15.3. How to specify domain transition across namespaces?</a></h3>
+<h3><a name="14.3">14.3. How to specify domain transition across namespaces?</a></h3>
 
 <p>As explained above, directives for jumping to different namespaces needs to be added to other namespaces. Two more directives are added.</p>
 
@@ -140,7 +140,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <p>While "reset_domain" directive and "auto_domain_transition=" part in the conditional ACL allow only transition to the domain where the name of the domain is equal to the name of the domain's namespace, "task auto_domain_transition" directive and "task manual_domain_transition" directive allow transition to arbitrary domains. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi".</p>
 
-<h3><a name="15.4">15.4. How to use namespace from policy editor?</a></h3>
+<h3><a name="14.4">14.4. How to use namespace from policy editor?</a></h3>
 
 <p><code>tomoyo-editpolicy</code> supports new command line option <strong>&lt;$namespace&gt;</strong> which sets the initial namespace to edit to &lt;$namespace&gt; namespace. The default namespace is "&lt;kernel&gt;". Be careful not to typo the namespace. Entries will not be shown as you expect if you typo, for <code>tomoyo-editpolicy</code> filters entries based on the namespace currently editing.</p>
 
@@ -160,7 +160,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <p>Note that the purpose of namespace is to allow having independent set of domain policy, exception policy and profile. You don't have to clone from existing files.</p>
 
-<h3><a name="15.5">15.5. Pitfalls when using namespaces</a></h3>
+<h3><a name="14.5">14.5. Pitfalls when using namespaces</a></h3>
 
 <p>Namespace is convenient, but there are a few pitfalls that you need to take care.</p>
 
@@ -183,7 +183,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 <table>
 <tr>
 <td class="docs-previous">
-<a href="chapter-14.html.en">Prev</a>
+<a href="chapter-13.html.en">Prev</a>
 </td>
 <td class="docs-index">
 <a href="index.html.en">Index</a>
@@ -194,7 +194,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 14: Securing Apache with the mod_tomoyo module</p>
+<p>Chapter 13: Securing Apache with the mod_tomoyo module</p>
 </td>
 <td class="docs-home">
 </td>
@@ -206,7 +206,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </div>
 
 <div id="footer">
-<p class="language">Go to <a href="chapter-15.html.ja">Japanese page</a>.</p>
+<p class="language">Go to <a href="chapter-14.html.ja">Japanese page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>

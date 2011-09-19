@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 2.5.x : 導入ガイド : Chapter 15</title>
+<title>TOMOYO Linux 2.5.x : 導入ガイド : Chapter 14</title>
 </head>
 
 <body>
@@ -24,7 +24,7 @@
 <li id="tomoyo-links"><a href="../links.html.ja" title="Links">リンク</a></li>
 </ul>
 <ul id="switch-language">
-<li id="tomoyo-switch-language"><a href="chapter-15.html.en" title="Go to English page">English page</a></li>
+<li id="tomoyo-switch-language"><a href="chapter-14.html.en" title="Go to English page">English page</a></li>
 </ul>
 </div>
 
@@ -33,18 +33,18 @@
 <div id="documentation">
 
 <div class="navheader">
-<p><a href="chapter-14.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="index.html.ja#appendix">&lt;次&gt;</a></p>
+<p><a href="chapter-13.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="index.html.ja#appendix">&lt;次&gt;</a></p>
 </div>
 
-<h2>Chapter 15: 名前空間の管理はどのように行いますか？</h2>
+<h2>Chapter 14: 名前空間の管理はどのように行いますか？</h2>
 
-<h3><a name="15.1">15.1. ポリシー名前空間について</a></h3>
+<h3><a name="14.1">14.1. ポリシー名前空間について</a></h3>
 
 <p>この導入ガイドでは今まで、ドメインの名前は &lt;kernel&gt; で始まると説明してきました。しかし、それが正しいのは &lt;kernel&gt; 名前空間においてのみです。 TOMOYO 1.8.2 で導入されたポリシー名前空間を利用すると、 &lt;kernel&gt; 以外の名前空間を利用することができる（つまり、ドメインの名前が &lt;kernel&gt; 以外で始まることができる）ようになります。</p>
 
 <p>それぞれのポリシー名前空間は、独立したドメインポリシー、例外ポリシー、プロファイルのセットを持っています。ある名前空間が持つセットは他の名前空間が持つセットとは独立しています。この独立性により、あなた（および特定のアプリケーション向けのポリシーを作成して配布したい人）は、（他の名前空間へとジャンプするためのディレクティブを他の名前空間用のポリシーファイルに追加する必要があるという点を除いて）他の名前空間との干渉を心配することなくポリシーファイルを作成することが可能になります。</p>
 
-<h3><a name="15.2">15.2. 名前空間はどのように指定しますか？</a></h3>
+<h3><a name="14.2">14.2. 名前空間はどのように指定しますか？</a></h3>
 
 <p>この導入ガイドでは、これ以降、名前空間であることを示すために &lt;$namespace&gt; という表記を用います。 $namespace は TOMOYO の文字列表現規則に沿った任意の単語（例： /usr/sbin/sshd 、 /usr/bin/httpd 、 Apache ）です。 &lt;kernel&gt; 名前空間は最初から定義されている名前空間です。 &lt;kernel&gt; 名前空間だけを利用する限り、ポリシーファイルは TOMOYO 1.8.1 と互換性があります。</p>
 
@@ -108,7 +108,7 @@ use_profile 1
 use_group 0
 </pre>
 
-<h3><a name="15.3">15.3. 名前空間の異なるドメインへの遷移はどのように行いますか？</a></h3>
+<h3><a name="14.3">14.3. 名前空間の異なるドメインへの遷移はどのように行いますか？</a></h3>
 
 <p>上で説明したように、ある名前空間から他の名前空間へとジャンプするためのディレクティブを追加する必要があります。そのために２つのディレクティブが定義されています。</p>
 
@@ -140,7 +140,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <p>reset_domain ディレクティブおよび条件付きアクセス許可の auto_domain_transition= という指定は名前空間と同じ名前のドメインへしか遷移できないのに対して、 task auto_domain_transition ディレクティブおよび task manual_domain_transition ディレクティブは任意のドメインへと遷移することができます。言い換えると、前者は &lt;/usr/sbin/httpd&gt; のようなドメインへしか遷移できないのに対して、後者は &lt;/usr/sbin/httpd&gt; や &lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi のようなドメインへ遷移できます。</p>
 
-<h3><a name="15.4">15.4. ポリシーエディタから名前空間をどのように指定しますか？</a></h3>
+<h3><a name="14.4">14.4. ポリシーエディタから名前空間をどのように指定しますか？</a></h3>
 
 <p><code>tomoyo-editpolicy</code> は最初に編集する名前空間を &lt;$namespace&gt; に設定するための新しいコマンドラインオプションとして <strong>&lt;$namespace&gt;</strong> がサポートされています。デフォルトの名前空間は &lt;kernel&gt; です。名前空間の指定間違いに注意してください。 <code>tomoyo-editpolicy</code> は現在編集中の名前空間に基づいて表示内容をフィルタリングするため、指定を間違えた場合、期待したとおりにエントリが表示されなくなります。</p>
 
@@ -160,7 +160,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <p>名前空間の目的は、独立したドメインポリシー、例外ポリシー、プロファイルのセットを利用可能にすることであることを忘れないでください。既存のセットから複製しても構いませんが、既存のセットから複製しなければいけないわけではありません。</p>
 
-<h3><a name="15.5">15.5. 名前空間を利用する上での注意点</a></h3>
+<h3><a name="14.5">14.5. 名前空間を利用する上での注意点</a></h3>
 
 <p>名前空間は便利ですが、注意すべき点が幾つかあります。</p>
 
@@ -183,7 +183,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 <table>
 <tr>
 <td class="docs-previous">
-<a href="chapter-14.html.ja">前</a>
+<a href="chapter-13.html.ja">前</a>
 </td>
 <td class="docs-index">
 <a href="index.html.ja">目次</a>
@@ -194,7 +194,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </tr>
 <tr>
 <td class="docs-previous-description">
-<p>Chapter 14: Apache で mod_tomoyo モジュールを使用する</p>
+<p>Chapter 13: Apache で mod_tomoyo モジュールを使用する</p>
 </td>
 <td class="docs-home">
 </td>
@@ -206,7 +206,7 @@ ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </div>
 
 <div id="footer">
-<p class="language">Go to <a href="chapter-15.html.en">English page</a>.</p>
+<p class="language">Go to <a href="chapter-14.html.en">English page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
