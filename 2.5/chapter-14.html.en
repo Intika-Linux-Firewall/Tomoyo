@@ -161,7 +161,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
-<li>Although you can develop policy for specific applications independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "reset_domain" directive will not be useful</strong> unless or "task manual_domain_transition" directive is specified.</li>
+<li>Although you can develop policy for specific applications independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "reset_domain" directive will not be useful</strong> unless "task manual_domain_transition" directive is specified.</li>
 <li>Memory allocated for creating namespaces cannot be released just like memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /sys/kernel/security/tomoyo/stat interface.</li>
 </ul>
 
