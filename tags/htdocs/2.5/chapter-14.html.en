@@ -60,29 +60,29 @@
 <pre>
 &lt;kernel&gt; PROFILE_VERSION=20100903
 &lt;kernel&gt; 0-COMMENT=-----Disabled Mode-----
-&lt;kernel&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
 &lt;kernel&gt; 1-COMMENT=-----Learning Mode-----
-&lt;kernel&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 1-CONFIG={ mode=learning grant_log=no reject_log=yes }
 &lt;kernel&gt; 2-COMMENT=-----Permissive Mode-----
-&lt;kernel&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
 &lt;kernel&gt; 3-COMMENT=-----Enforcing Mode-----
-&lt;kernel&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;kernel&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;kernel&gt; 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; PROFILE_VERSION=20100903
 &lt;/usr/sbin/httpd&gt; 0-COMMENT=-----Disabled Mode-----
-&lt;/usr/sbin/httpd&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; 1-COMMENT=-----Learning Mode-----
-&lt;/usr/sbin/httpd&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 1-CONFIG={ mode=learning grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; 2-COMMENT=-----Permissive Mode-----
-&lt;/usr/sbin/httpd&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
 &lt;/usr/sbin/httpd&gt; 3-COMMENT=-----Enforcing Mode-----
-&lt;/usr/sbin/httpd&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 enforcing_penalty=0 }
+&lt;/usr/sbin/httpd&gt; 3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048 }
 &lt;/usr/sbin/httpd&gt; 3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
 </pre>
 
@@ -120,16 +120,7 @@ reset_domain /usr/sbin/sshd from any
 
 <p>The "no_reset_domain" directive cancels the effect of "reset_domain" directive. The syntax is same with <a href="policy-specification/exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> directive.</p>
 
-<p>Also, "auto_domain_transition=" part in the conditional ACL allows transition to arbitrary namespaces upon permitted by policy (but use with caution because there is no guarantee that the access request that was permitted by policy never fails after the domain transition).</p>
-
-<pre>
-file pivot_root /usr/lxc/lxc1/ /usr/lxc/lxc1/oldroot/ auto_domain_transition="&lt;lxc1&gt;"
-file pivot_root /usr/lxc/lxc2/ /usr/lxc/lxc2/oldroot/ auto_domain_transition="&lt;lxc2&gt;"
-</pre>
-
-<p>While "reset_domain" directive allows only transition to the domain where the name of the namespace is equals to the name of the program, "auto_domain_transition=" part in the conditional ACL allows transition to the domain where the name of the namespace is an arbitrary word. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;Apache&gt;".</p>
-
-<p>Regarding "task auto_domain_transition" directive and "task manual_domain_transition" directive, there is no change because these directives receive a domainname which already contains the name of the namespace. Thus, you can specify like below:</p>
+<p>Regarding "task manual_domain_transition" directive, there is no change because these directives receive a domainname which already contains the name of the namespace. Thus, you can specify like below:</p>
 
 <pre>
 task manual_domain_transition &lt;Apache&gt; /www.tomoyo00.com
@@ -138,7 +129,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo02.com
 task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 </pre>
 
-<p>While "reset_domain" directive and "auto_domain_transition=" part in the conditional ACL allow only transition to the domain where the name of the domain is equal to the name of the domain's namespace, "task auto_domain_transition" directive and "task manual_domain_transition" directive allow transition to arbitrary domains. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi".</p>
+<p>While "reset_domain" directive allows only transition to the domain where the name of the domain is equal to the name of the domain's namespace, "task manual_domain_transition" directive allow transition to arbitrary domains. In other words, the former can transit to domains like "&lt;/usr/sbin/httpd&gt;" whereas the latter can transit to domains like "&lt;/usr/sbin/httpd&gt;" and "&lt;/usr/sbin/httpd&gt; /var/www/cgi-bin/counter.cgi".</p>
 
 <h3><a name="14.4">14.4. How to use namespace from policy editor?</a></h3>
 
@@ -170,7 +161,7 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
-<li>Although you can develop policy for specific applications independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "reset_domain" directive will not be useful</strong> unless one of "auto_domain_transition=" part in the conditional ACL, "task auto_domain_transition" directive or "task manual_domain_transition" directive is specified.</li>
+<li>Although you can develop policy for specific applications independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "reset_domain" directive will not be useful</strong> unless or "task manual_domain_transition" directive is specified.</li>
 <li>Memory allocated for creating namespaces cannot be released just like memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /sys/kernel/security/tomoyo/stat interface.</li>
 </ul>
 

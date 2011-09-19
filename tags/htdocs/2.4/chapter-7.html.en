@@ -88,11 +88,11 @@ Total memory used:                        165728
 </pre>
 
 <pre class="output">
-#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
+#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh
 file execute /bin/cat
 
-#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 }
+#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh
 file read /bin/cat
 </pre>
@@ -182,7 +182,7 @@ To: root@localhost.localdomain
 Subject: Notification from tomoyo-notifyd
 
 Q0-0
-#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 type!=execute_handler } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
+#2010/12/25 16:08:35# profile=3 mode=enforcing granted=no (global-pid=3628) task={ pid=3628 ppid=3627 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 } path1={ uid=0 gid=0 ino=688153 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=688129 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh
 file execute /bin/cat
 </pre>
@@ -220,7 +220,7 @@ Monitoring /sys/kernel/security/tomoyo/query . Press Ctrl-C to terminate.
 <p>Policy violations may occur while updating packages due to unusual behaviour (e.g. restarting daemons). When a policy violation occurs, a prompt appears in the <code>tomoyo-queryd</code> console:</p>
 
 <pre class="output">
-#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
+#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
 &lt;kernel&gt; /etc/rc.d/init.d/sshd
 file execute /bin/sleep
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
@@ -249,7 +249,7 @@ Press <strong>"A"</strong> to append the request to domain policy and retry (a c
 <p>This is an example of what the output might look like while running <code>tomoyo-queryd</code>:</p>
 
 <pre class="output">
-#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
+#2010/12/30 00:21:11# profile=3 mode=enforcing granted=no (global-pid=11788) task={ pid=11788 ppid=11779 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 } path1={ uid=0 gid=0 ino=753729 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=753665 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }
 &lt;kernel&gt; /etc/rc.d/init.d/sshd
 file execute /bin/sleep
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
@@ -257,7 +257,7 @@ Enter new entry&gt; file execute /bin/sleep
 Added 'file execute /bin/sleep'.
 
 ----------------------------------------
-#2010/12/30 00:22:12# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }
+#2010/12/30 00:22:12# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }
 &lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
 file read /usr/share/zoneinfo/posix/Pacific/Pohnpei
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s
@@ -323,7 +323,7 @@ file write /var/lib/pgsql/data/global/pg_auth.\$
 file write /var/lib/pgsql/data/global/pg_database.\$
 
 
-#2010/12/30 00:22:26# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }
+#2010/12/30 00:22:26# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 } path1={ uid=0 gid=0 ino=690602 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=690114 perm=0755 }
 &lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
 file read /usr/share/zoneinfo/posix/Pacific/Pohnpei
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
@@ -331,7 +331,7 @@ Enter new entry&gt; file read /usr/share/zoneinfo/\{\*\}/\*
 Added 'file read /usr/share/zoneinfo/\{\*\}/\*'.
 
 ----------------------------------------
-#2010/12/30 00:22:23# profile=3 mode=enforcing granted=no (global-pid=11974) task={ pid=11974 ppid=11968 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 type!=execute_handler } path1={ uid=0 gid=0 ino=524564 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=524555 perm=0755 }
+#2010/12/30 00:22:23# profile=3 mode=enforcing granted=no (global-pid=11974) task={ pid=11974 ppid=11968 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 } path1={ uid=0 gid=0 ino=524564 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=524555 perm=0755 }
 &lt;kernel&gt; /usr/sbin/sshd
 file read /etc/pki/tls/openssl.cnf
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
@@ -339,14 +339,14 @@ Enter new entry&gt; file read /etc/pki/tls/openssl.cnf
 Added 'file read /etc/pki/tls/openssl.cnf'.
 
 ----------------------------------------
-#2010/12/30 00:22:53# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }
+#2010/12/30 00:22:53# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }
 &lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
 file create /var/lib/pgsql/data/pg_log/postgresql-Thu.log 0666
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
 Enter new entry&gt; file create /var/lib/pgsql/data/pg_log/postgresql-\*
 Added 'file create /var/lib/pgsql/data/pg_log/postgresql-\*.log 0666'.
 
-#2010/12/30 00:23:04# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 type!=execute_handler } path1={ uid=26 gid=26 ino=426434 major=253 minor=0 perm=0600 type=file } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }
+#2010/12/30 00:23:04# profile=3 mode=enforcing granted=no (global-pid=11937) task={ pid=11937 ppid=1 uid=26 gid=26 euid=26 egid=26 suid=26 sgid=26 fsuid=26 fsgid=26 } path1={ uid=26 gid=26 ino=426434 major=253 minor=0 perm=0600 type=file } path1.parent={ uid=26 gid=26 ino=426399 perm=0700 }
 &lt;kernel&gt; /etc/rc.d/init.d/postgresql /sbin/runuser /bin/bash /usr/bin/postmaster
 file append /var/lib/pgsql/data/pg_log/postgresql-Thu.log
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a
