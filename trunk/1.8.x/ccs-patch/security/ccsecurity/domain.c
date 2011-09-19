@@ -1205,7 +1205,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump)
 {
 	struct page *page;
-	/* dump->data is released by ccs_finish_execve(). */
+	/* dump->data is released by ccs_start_execve(). */
 	if (!dump->data) {
 		dump->data = kzalloc(PAGE_SIZE, CCS_GFP_FLAGS);
 		if (!dump->data)
@@ -1252,6 +1252,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	int retval;
 	struct ccs_security *task = ccs_current_security();
 	struct ccs_execve *ee;
+	int idx;
 	*eep = NULL;
 	ee = kzalloc(sizeof(*ee), CCS_GFP_FLAGS);
 	if (!ee)
@@ -1261,7 +1262,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 		kfree(ee);
 		return -ENOMEM;
 	}
-	ee->reader_idx = ccs_read_lock();
+	idx = ccs_read_lock();
 	/* ee->dump->data is allocated by ccs_dump_page(). */
 	ee->previous_domain = task->ccs_domain_info;
 	/* Clear manager flag. */
@@ -1277,16 +1278,24 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	 * No need to call ccs_environ() for execute handler because envp[] is
 	 * moved to argv[].
 	 */
-	if (ccs_find_execute_handler(ee, CCS_TYPE_AUTO_EXECUTE_HANDLER))
-		return ccs_try_alt_exec(ee);
+	if (ccs_find_execute_handler(ee, CCS_TYPE_AUTO_EXECUTE_HANDLER)) {
+		retval = ccs_try_alt_exec(ee);
+		goto done;
+	}
 	retval = ccs_find_next_domain(ee);
-	if (retval == -EPERM) {
-		if (ccs_find_execute_handler(ee,
-					     CCS_TYPE_DENIED_EXECUTE_HANDLER))
-			return ccs_try_alt_exec(ee);
+	if (retval == -EPERM &&
+	    ccs_find_execute_handler(ee, CCS_TYPE_DENIED_EXECUTE_HANDLER)) {
+		retval = ccs_try_alt_exec(ee);
+		goto done;
 	}
 	if (!retval)
 		retval = ccs_environ(ee);
+done:
+	ccs_read_unlock(idx);
+	kfree(ee->tmp);
+	ee->tmp = NULL;
+	kfree(ee->dump.data);
+	ee->dump.data = NULL;
 	return retval;
 }
 
@@ -1297,8 +1306,6 @@ static int ccs_start_execve(struct linux_binprm *bprm,
  * @ee:     Pointer to "struct ccs_execve".
  *
  * Returns nothing.
- *
- * Caller holds ccs_read_lock().
  */
 static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 {
@@ -1322,10 +1329,7 @@ static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 	}
 	/* Tell GC that I finished execve(). */
 	task->ccs_flags &= ~CCS_TASK_IS_IN_EXECVE;
-	ccs_read_unlock(ee->reader_idx);
 	kfree(ee->handler_path);
-	kfree(ee->tmp);
-	kfree(ee->dump.data);
 	kfree(ee);
 }
 
