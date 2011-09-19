@@ -97,12 +97,12 @@ $ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/HEA
 $ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/'
 </pre>
 
-<p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 2.6.37, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.4/patches/">http://tomoyo.sourceforge.jp/2.4/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
+<p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 2.6.37, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
 
 <pre class="command">
 $ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/HEAD
 $ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/'
-$ wget http://tomoyo.sourceforge.jp/2.4/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
+$ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
 </pre>
 
