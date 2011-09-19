@@ -100,10 +100,10 @@ $ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/
 <p>カーネル 2.6.33 ～ 2.6.37 で TOMOYO 2.5 を利用したい場合、利用するカーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.sourceforge.jp/2.4/patches/">http://tomoyo.sourceforge.jp/2.4/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
 
 <pre class="command">
-$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.1-rc2.tar.bz2
-$ tar -jxf linux-3.1-rc2.tar.bz2 --strip 1 linux-3.1-rc2/security/tomoyo/
-$ wget http://tomoyo.sourceforge.jp/2.4/patches/tomoyo-2.4-backport-for-$KERNELVERSION.patch
-$ patch -p1 &lt; tomoyo-2.4-backport-for-$KERNELVERSION.patch
+$ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/HEAD
+$ tar -zxf linux-next.tar.gz --strip 1 'sfrothwell-linux-next-*/security/tomoyo/'
+$ wget http://tomoyo.sourceforge.jp/2.4/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
+$ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
 </pre>
 
 <h4><a name="3.1.4">3.1.4. カーネルコンパイルオプションの設定</a></h4>
