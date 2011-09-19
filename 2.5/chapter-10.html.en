@@ -308,28 +308,9 @@ file create /tmp/file 0644 path1.parent.uid=0
 </table>
 </div>
 
-<p>There are two exceptions. the "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" variables can be compared with only string values. The "task.type" variable can be compared with only execute_handler .</p>
+<p>There are one exception. the "exec.argv[n]", "exec.envp[var]", "exec.realpath" and "symlink.target" variables can be compared with only string values.</p>
 
 <h3><a name="10.4">10.4. Types of task</a></h3>
-
-<p>The following types of task are available:</p>
-
-<div class="simple-table">
-<table>
-<tr>
-<th><p>Type of task</p></th>
-<th><p>Meaning</p></th>
-</tr>
-<tr>
-<td><p>task.type=execute_handler</p></td>
-<td><p>The current process is a program specified by either <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> or <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives.</p></td>
-</tr>
-<tr>
-<td><p>task.type!=execute_handler</p></td>
-<td><p>The current process is a program specified by neither <a href="policy-specification/domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> nor <a href="policy-specification/domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directives.</p></td>
-</tr>
-</table>
-</div>
 
 <h3><a name="10.5">10.5. Types of file</a></h3>
 
@@ -547,8 +528,6 @@ file read /tmp/file001.tmp task.uid=path1.uid
 file execute /usr/bin/ssh exec.realpath="/usr/bin/ssh" exec.argv[0]="ssh"
 file execute /usr/bin/firefox exec.realpath="/usr/lib/firefox-3.6/firefox" exec.argv[0]="/usr/bin/firefox" exec.envc=0
 </pre>
-
-<p>If you wish to perform more complicated checks, you can use execute_handler feature described in <a href="chapter-13.html.en">Chapter 13: Judging execute requests outside of the kernel</a>.</p>
 
 </div><!-- documentation -->
 
