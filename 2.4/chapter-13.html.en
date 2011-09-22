@@ -40,13 +40,13 @@
 
 <h3><a name="13.1">13.1. About policy namespace</a></h3>
 
-<p>The documentation so far has only shown domains that begin with "&lt;kernel&gt;". A new feature introduced in TOMOYO 1.8.2 introduces the concept of namespaces. Domains that start with "&lt;kernel&gt;" belong to the "&lt;kernel&gt;" namespace, but different namespaces can now be used with domains that start with "&lt;$namespace&gt;", where $namespace can be any arbitrary name.</p>
+<p>The documentation so far has only shown domains that begin with "&lt;kernel&gt;". TOMOYO has the concept of namespaces. Domains that start with "&lt;kernel&gt;" belong to the "&lt;kernel&gt;" namespace, but different namespaces can now be used with domains that start with "&lt;$namespace&gt;", where $namespace can be any arbitrary name.</p>
 
 <p>Each policy namespace has its own set of domain policy, exception policy and profiles, which are all independent of other namespaces. This independency allows you (and those who want to develop and distribute policy for specific applications) to develop policy files without worrying interference among namespaces, except that directives for jumping to different namespaces need to be added to other namespaces.</p>
 
 <h3><a name="13.2">13.2. How to specify namespaces?</a></h3>
 
-<p>The notation "&lt;$namespace&gt;" will be used hereafter, in which $namespace can be a any word (e.g. "/usr/sbin/sshd", "/usr/bin/httpd", "Apache") in TOMOYO's string representation rule. The "&lt;kernel&gt;" namespace is the built-in namespace. As long as you use only "&lt;kernel&gt;" namespace, policy files remain compatible with TOMOYO 1.8.1.</p>
+<p>The notation "&lt;$namespace&gt;" will be used hereafter, in which $namespace can be a any word (e.g. "/usr/sbin/sshd", "/usr/bin/httpd", "Apache") in TOMOYO's string representation rule. The "&lt;kernel&gt;" namespace is the built-in namespace.</p>
 
 <p>A domain name starts with "&lt;$namespace&gt;". For example, "&lt;kernel&gt;" domain and "&lt;kernel&gt; /sbin/init" domain belong to "&lt;kernel&gt;" namespace whereas "&lt;/usr/sbin/sshd&gt;" domain and "&lt;/usr/sbin/sshd&gt; /bin/bash" domain belong to "&lt;/usr/sbin/sshd&gt;" namespace.</p>
 

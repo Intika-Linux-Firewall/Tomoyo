@@ -71,7 +71,7 @@ Create profiles with all functionality enabled [default].
 <B>--use_profile=&lt;integer&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Set the default profile number for the "&lt;kernel&gt;" domain to the specified integer, which must be between 0 and 2.5.0 [default=0].
+Set the default profile number for the "&lt;kernel&gt;" domain to the specified integer, which must be between 0 and 255 [default=0].
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -79,7 +79,7 @@ Set the default profile number for the "&lt;kernel&gt;" domain to the specified 
 <B>--use_group=&lt;integer&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Set the default group number for the "&lt;kernel&gt;" domain to the specified integer, which must be between 0 and 2.5.0 [default=0].
+Set the default group number for the "&lt;kernel&gt;" domain to the specified integer, which must be between 0 and 255 [default=0].
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -87,7 +87,7 @@ Set the default group number for the "&lt;kernel&gt;" domain to the specified in
 <B>--max_audit_log=&lt;integer&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Set the default maximal audit log entries that the kernel will spool in the <I>/sys/kernel/security/tomoyo/tomoyo/audit</I> interface. This value must be an integer, and can be set to 0 if audit logs are not required. Maximum memory used can also be controlled via the <I>/sys/kernel/security/tomoyo/tomoyo/stat</I> interface.
+Set the default maximal audit log entries that the kernel will spool in the <I>/sys/kernel/security/tomoyo/audit</I> interface. This value must be an integer, and can be set to 0 if audit logs are not required. Maximum memory used can also be controlled via the <I>/sys/kernel/security/tomoyo/stat</I> interface.
 <!-- .sp -->
 <P>
 [default=1024]
@@ -98,7 +98,7 @@ Set the default maximal audit log entries that the kernel will spool in the <I>/
 <B>--max_learning_entry=&lt;integer&gt;</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to "0" if you do not wawnt to make use of the learning mode. Maximum memory used can also be controlled using the <I>/sys/kernel/security/tomoyo/tomoyo/stat</I> interface.
+Set the maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to "0" if you do not wawnt to make use of the learning mode. Maximum memory used can also be controlled using the <I>/sys/kernel/security/tomoyo/stat</I> interface.
 <!-- .sp -->
 <P>
 [default=2048]
