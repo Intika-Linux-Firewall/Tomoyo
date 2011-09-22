@@ -40,7 +40,7 @@
 
 <h3><a name="14.1">14.1. About policy namespace</a></h3>
 
-<p>The documentation so far has only shown domains that begin with "&lt;kernel&gt;". A new feature introduced in TOMOYO 2.5 introduces the concept of namespaces. Domains that start with "&lt;kernel&gt;" belong to the "&lt;kernel&gt;" namespace, but different namespaces can now be used with domains that start with "&lt;$namespace&gt;", where $namespace can be any arbitrary name.</p>
+<p>The documentation so far has only shown domains that begin with "&lt;kernel&gt;". TOMOYO has the concept of namespaces. Domains that start with "&lt;kernel&gt;" belong to the "&lt;kernel&gt;" namespace, but different namespaces can now be used with domains that start with "&lt;$namespace&gt;", where $namespace can be any arbitrary name.</p>
 
 <p>Each policy namespace has its own set of domain policy, exception policy and profiles, which are all independent of other namespaces. This independency allows you (and those who want to develop and distribute policy for specific applications) to develop policy files without worrying interference among namespaces, except that directives for jumping to different namespaces need to be added to other namespaces.</p>
 

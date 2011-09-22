@@ -58,7 +58,7 @@ This program reads TOMOYO Linux policy from standard input and loads it into the
 <B>-e</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/tomoyo/exception_policy</I>.
+Append to <I>/sys/kernel/security/tomoyo/exception_policy</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -66,7 +66,7 @@ Append to <I>/sys/kernel/security/tomoyo/tomoyo/exception_policy</I>.
 <B>-ef</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Overwrite to <I>/sys/kernel/security/tomoyo/tomoyo/exception_policy</I>.
+Overwrite to <I>/sys/kernel/security/tomoyo/exception_policy</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -74,7 +74,7 @@ Overwrite to <I>/sys/kernel/security/tomoyo/tomoyo/exception_policy</I>.
 <B>-d</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/tomoyo/domain_policy</I>.
+Append to <I>/sys/kernel/security/tomoyo/domain_policy</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -82,7 +82,7 @@ Append to <I>/sys/kernel/security/tomoyo/tomoyo/domain_policy</I>.
 <B>-df</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Overwrite to <I>/sys/kernel/security/tomoyo/tomoyo/domain_policy</I>.
+Overwrite to <I>/sys/kernel/security/tomoyo/domain_policy</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -90,7 +90,7 @@ Overwrite to <I>/sys/kernel/security/tomoyo/tomoyo/domain_policy</I>.
 <B>-m</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/tomoyo/manager</I>.
+Append to <I>/sys/kernel/security/tomoyo/manager</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -98,7 +98,7 @@ Append to <I>/sys/kernel/security/tomoyo/tomoyo/manager</I>.
 <B>-p</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/tomoyo/profile</I>.
+Append to <I>/sys/kernel/security/tomoyo/profile</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -106,7 +106,7 @@ Append to <I>/sys/kernel/security/tomoyo/tomoyo/profile</I>.
 <B>-s</B>
 <!-- .RS 4 -->
 <BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/tomoyo/stat</I>.
+Append to <I>/sys/kernel/security/tomoyo/stat</I>.
 <!-- .RE -->
 </BLOCKQUOTE>
 <!-- .PP -->
@@ -167,8 +167,8 @@ tomoyo-loadpolicy -d 192.2.5.1:10000 &lt; /etc/tomoyo/192.168.1.1/domain_policy.
 </PRE>
 <!-- .PP -->
 <P>
-<!-- .B Remove \&"/usr/sbin/tomoyo-queryd\&" from \&"/sys/kernel/security/tomoyo/tomoyo/manager\&": -->
-<B>Remove  /usr/sbin/tomoyo-queryd from  /sys/kernel/security/tomoyo/tomoyo/manager :</B> <!-- .nf -->
+<!-- .B Remove \&"/usr/sbin/tomoyo-queryd\&" from \&"/sys/kernel/security/tomoyo/manager\&": -->
+<B>Remove  /usr/sbin/tomoyo-queryd from  /sys/kernel/security/tomoyo/manager :</B> <!-- .nf -->
 <PRE>
 echo "delete /usr/sbin/tomoyo-queryd" | tomoyo-loadpolicy -m
 <!-- .fi -->
@@ -181,7 +181,7 @@ echo "delete /usr/sbin/tomoyo-queryd" | tomoyo-loadpolicy -m
 
 </A>
 <BLOCKQUOTE>
-Before this program can be invoked, it must be registered in <I>/sys/kernel/security/tomoyo/tomoyo/manager</I>. After initializing policy, this is usually as simple as rebooting the system.
+Before this program can be invoked, it must be registered in <I>/sys/kernel/security/tomoyo/manager</I>. After initializing policy, this is usually as simple as rebooting the system.
 <!-- .SH "BUGS" -->
 </BLOCKQUOTE>
 <A name=>
