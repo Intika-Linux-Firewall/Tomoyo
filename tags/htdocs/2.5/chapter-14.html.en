@@ -40,22 +40,22 @@
 
 <h3><a name="14.1">14.1. About policy namespace</a></h3>
 
-<p>The documentation so far has only shown domains that begin with "&lt;kernel&gt;". A new feature introduced in TOMOYO 1.8.2 introduces the concept of namespaces. Domains that start with "&lt;kernel&gt;" belong to the "&lt;kernel&gt;" namespace, but different namespaces can now be used with domains that start with "&lt;$namespace&gt;", where $namespace can be any arbitrary name.</p>
+<p>The documentation so far has only shown domains that begin with "&lt;kernel&gt;". A new feature introduced in TOMOYO 2.5 introduces the concept of namespaces. Domains that start with "&lt;kernel&gt;" belong to the "&lt;kernel&gt;" namespace, but different namespaces can now be used with domains that start with "&lt;$namespace&gt;", where $namespace can be any arbitrary name.</p>
 
 <p>Each policy namespace has its own set of domain policy, exception policy and profiles, which are all independent of other namespaces. This independency allows you (and those who want to develop and distribute policy for specific applications) to develop policy files without worrying interference among namespaces, except that directives for jumping to different namespaces need to be added to other namespaces.</p>
 
 <h3><a name="14.2">14.2. How to specify namespaces?</a></h3>
 
-<p>The notation "&lt;$namespace&gt;" will be used hereafter, in which $namespace can be a any word (e.g. "/usr/sbin/sshd", "/usr/bin/httpd", "Apache") in TOMOYO's string representation rule. The "&lt;kernel&gt;" namespace is the built-in namespace. As long as you use only "&lt;kernel&gt;" namespace, policy files remain compatible with TOMOYO 1.8.1.</p>
+<p>The notation "&lt;$namespace&gt;" will be used hereafter, in which $namespace can be a any word (e.g. "/usr/sbin/sshd", "/usr/bin/httpd", "Apache") in TOMOYO's string representation rule. The "&lt;kernel&gt;" namespace is the built-in namespace.</p>
 
 <p>A domain name starts with "&lt;$namespace&gt;". For example, "&lt;kernel&gt;" domain and "&lt;kernel&gt; /sbin/init" domain belong to "&lt;kernel&gt;" namespace whereas "&lt;/usr/sbin/sshd&gt;" domain and "&lt;/usr/sbin/sshd&gt; /bin/bash" domain belong to "&lt;/usr/sbin/sshd&gt;" namespace.</p>
 
 <img src="media/kernel_namespace.png" alt="kernel_namespace.png" title="Default namespace" width="400" height="300">
 <img src="media/sshd_namespace.png" alt="sshd_namespace.png" title="Namespace for SSH session" width="400" height="300">
 
-<p>Although each namespace has its own set of domain policy, exception policy and profiles, the policy for all namespaces are still contained within the same files within /sys/kernel/security/tomoyo/ and /etc/tomoyo/policy/ for simplicity and compatibility reasons. In other words, the policy for each namespace is not split into separate files.</p>
+<p>Although each namespace has its own set of domain policy, exception policy and profiles, the policy for all namespaces are still contained within the same files within "/sys/kernel/security/tomoyo/" and "/etc/tomoyo/policy/" for simplicity and compatibility reasons. In other words, the policy for each namespace is not split into separate files.</p>
 
-<p>To specify namespace in /sys/kernel/security/tomoyo/exception_policy and /sys/kernel/security/tomoyo/profile , add "&lt;$namespace&gt;" prefix to each line. An example of /sys/kernel/security/tomoyo/profile containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like below:</p>
+<p>To specify namespace in "/sys/kernel/security/tomoyo/exception_policy" and "/sys/kernel/security/tomoyo/profile", add "&lt;$namespace&gt;" prefix to each line. An example of /sys/kernel/security/tomoyo/profile containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like below:</p>
 
 <pre>
 &lt;kernel&gt; PROFILE_VERSION=20100903
@@ -88,7 +88,7 @@
 
 <p>For compatibility, "&lt;kernel&gt;" prefix can be omitted when specifying "&lt;kernel&gt;" namespace.</p>
 
-<p>To specify namespace in /sys/kernel/security/tomoyo/domain_policy , no special care needs to be taken. This is because domain policy consists with blocks where a block starts with a domainname declaration line and the domain name contains namespace which the domain belongs to. An example of /sys/kernel/security/tomoyo/domain_policy containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like this:</p>
+<p>To specify namespace in "/sys/kernel/security/tomoyo/domain_policy", no special care needs to be taken. This is because domain policy consists with blocks where a block starts with a domainname declaration line and the domain name contains namespace which the domain belongs to. An example of "/sys/kernel/security/tomoyo/domain_policy" containing "&lt;kernel&gt;" and "&lt;/usr/sbin/httpd&gt;" namespace looks like this:</p>
 
 <pre>
 &lt;kernel&gt;
@@ -133,9 +133,9 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 
 <h3><a name="14.4">14.4. How to use namespace from policy editor?</a></h3>
 
-<p><code>tomoyo-editpolicy</code> supports new command line option <strong>&lt;$namespace&gt;</strong> which sets the initial namespace to edit to &lt;$namespace&gt; namespace. The default namespace is "&lt;kernel&gt;". Be careful not to typo the namespace. Entries will not be shown as you expect if you typo, for <code>tomoyo-editpolicy</code> filters entries based on the namespace currently editing.</p>
+<p><code>tomoyo-editpolicy</code> supports new command line option <strong>&lt;$namespace&gt;</strong>, which sets the initial namespace to edit to &lt;$namespace&gt; namespace. The default namespace is "&lt;kernel&gt;". Be careful not to typo the namespace. Entries will not be shown as you expect if you typo, because <code>tomoyo-editpolicy</code> filters entries based on the namespace currently editing.</p>
 
-<p>Regarding &lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; screen and &lt;&lt;&lt; Profile Editor &gt;&gt;&gt; screen, the name of namespace currently editing is shown on the third line of the screen as with the name of domainname currently selected is shown on the third line of the &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; screen. You can jump to &lt;&lt;&lt; Namespace Selector &gt;&gt;&gt; screen by pressing "n" key after pressing "w" key in order to select namespace to edit.</p>
+<p>Regarding "Exception Policy Editor" screen and "Profile Editor" screen, the name of namespace currently being edited is shown on the third line of the screen, just as the name of domain currently selected is shown on the third line of the "Domain Transition Editor" screen. You can jump to "Namespace Selector" screen by pressing the "w" key and then the "n" key.</p>
 
 <p>Although it is possible to create a new namespace and create profiles for the new namespace and add entries using <code>tomoyo-editpolicy</code>, it is recommended to use <code>tomoyo-loadpolicy</code> for your convenience. For example, to clone profile for "&lt;kernel&gt;" namespace in order to use for "&lt;/usr/sbin/httpd&gt;" namespace, you can use an <code>awk</code> script like below:</p>
 
@@ -143,26 +143,27 @@ task manual_domain_transition &lt;Apache&gt; /www.tomoyo03.com
 # awk ' { print "&lt;/usr/sbin/httpd&gt; " $0 } ' /etc/tomoyo/profile.conf | tomoyo-loadpolicy -p
 </pre>
 
-<p>If /etc/tomoyo/profile.conf already contains the "&lt;kernel&gt;" prefix, the script will look like below:</p>
+<p>If "/etc/tomoyo/profile.conf" already contains the "&lt;kernel&gt;" prefix, the script will look like below:</p>
 
 <pre class="command">
 # grep '^&lt;kernel&gt; ' /etc/tomoyo/profile.conf | awk ' { $1 = "&lt;/usr/sbin/httpd&gt; "; print $0 } ' | tomoyo-loadpolicy -p
 </pre>
 
-<p>Note that the purpose of namespace is to allow having independent set of domain policy, exception policy and profile. You don't have to clone from existing files.</p>
+<p>Note that the purpose of namespace is to allow having independent set of domain policy, exception policy and profile. You do not have to clone from existing files.</p>
 
 <h3><a name="14.5">14.5. Pitfalls when using namespaces</a></h3>
 
-<p>Namespace is convenient, but there are a few pitfalls that you need to take care.</p>
+<p>Namespace is convenient, but there are a few pitfalls that you should be aware of.</p>
 
 <ul>
-<li>Program execution request that causes domain transition by "reset_domain" directive will be denied (with error messages like below printed on the console) regardless of profile configurations if either "the domain to transit to is not defined" or "the profile for the domain to transit to is not defined" is true. This is because "reset_domain" directive is considered as a clear sign for applying different set of policy files and therefore should not automatically inherit configuration from current namespace. <strong>You have to explicitly load domain policy, exception policy and profile for the namespace by the moment a process attempts to transit to that namespace.</strong>
+<li>When using the "reset_domain" directive, if the domain to transit to is not defined then the execution request will fail with an error message like below. This will also happen if the profile for the namespace to transit to is not defined. <strong>You have to explicitly load domain policy, exception policy and profile for the namespace before a process can transit to that namespace.</strong>
+
 <pre class="output">
 ERROR: Domain '&lt;/usr/sbin/httpd&gt;' not ready.
 </pre>
 </li>
-<li>Although you can develop policy for specific applications independently, the process will not transit to different namespaces unless explictly specified. <strong>When using namespaces, exception policy without "reset_domain" directive will not be useful</strong> unless "task manual_domain_transition" directive is specified.</li>
-<li>Memory allocated for creating namespaces cannot be released just like memory allocated for creating profiles cannot be released. This should not matter for normal usage, for the memory quota can be controlled via /sys/kernel/security/tomoyo/stat interface.</li>
+<li>Although you can develop policy for specific applications independently, the process will not transit to a different namespace unless explictly specified. <strong>When using namespaces, exception policy without "reset_domain" directive will not be useful unless "task manual_domain_transition" directive is specified.</strong></li>
+<li>Memory allocated for creating namespaces cannot be released just like memory allocated for creating profiles cannot be released. This should not matter for normal usage, as the memory quota can be controlled via <a href="policy-specification/securityfs-interface.html.en#stat">/sys/kernel/security/tomoyo/stat</a> interface.</li>
 </ul>
 
 </div><!-- documentation -->
