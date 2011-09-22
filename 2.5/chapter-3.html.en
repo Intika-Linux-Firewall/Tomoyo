@@ -51,9 +51,9 @@ $ grep tomoyo_write_inet_network /proc/kallsyms
 ffffffff8115e460 T tomoyo_write_inet_network
 </pre>
 
-<p>If you found a line containing tomoyo_write_inet_network in "/proc/kallsyms", proceed to <a href="#3.2">3.2. Install the userspace tools</a> because your kernel was built with TOMOYO Linux.</p>
+<p>If the output of the above command includes a line with "tomoyo_write_inet_network", then the running kernel was built with TOMOYO Linux support and you can proceed to <a href="#3.2">3.2 Install the userspace tools</a>.</p>
 
-<p>If not, then your kernel was not built with TOMOYO Linux and you should follow the steps below.</p>
+<p>If not, then the running kernel was not built with TOMOYO Linux support and you should follow the steps below.</p>
 
 <p>If you wish to obtain the most functionality out of TOMOYO Linux, then you may wish to use either the 1.x branch (which requires you to build your own kernel), or AKARI (which is a module and does not require you to build your own kernel). AKARI module currently provides more functionality than the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="http://akari.sourceforge.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="http://akari.sourceforge.jp/">AKARI website</a>.</p>
 
@@ -127,7 +127,7 @@ $ make -s menuconfig
     Default security module (TOMOYO)
 </pre>
 
-<p>There are two types of TOMOYO's policy configuration. The former is embedded into the kernel and the latter is saved as files on the filesystems (e.g. /etc/tomoyo/ directory). You will need to rebuild the kernel whenever updating the former, but allows you to load policy without using userspace policy loader (e.g. /sbin/tomoyo-init ). The latter is loaded by executing userspace policy loader when the access control by TOMOYO is about to be activated (e.g. when /sbin/init starts). <em>Activate without calling userspace policy loader.</em> allows you to activate access control by TOMOYO as soon as the former is loaded. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
+<p>There are two types of TOMOYO policy configuration. The former is embedded into the kernel and the latter is saved as files on the filesystem (e.g. /etc/tomoyo/ directory). You will need to rebuild the kernel whenever updating the former, but allows you to load policy without using userspace policy loader (e.g. /sbin/tomoyo-init ). The latter is loaded by executing userspace policy loader when the access control by TOMOYO is about to be activated (e.g. when /sbin/init starts). <em>Activate without calling userspace policy loader.</em> allows you to activate access control by TOMOYO as soon as the former is loaded. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
 
 <p><em>Location of userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the userspace policy loader. You can override this setting via the "TOMOYO_loader=" kernel command-line option.</p>
 
