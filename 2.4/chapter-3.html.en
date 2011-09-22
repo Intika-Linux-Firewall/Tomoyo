@@ -93,15 +93,15 @@ Linux kernel 3.1 is supported. (You may use TOMOYO 2.4 on Linux kernels between 
 <p>If you want to use TOMOYO 2.4 on Linux kernels between 2.6.38 and 3.0, run the following commands:</p>
 
 <pre class="command">
-$ wget -O linux-3.1-rc6.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc6
-$ tar -zxf linux-3.1-rc6.tar.gz --strip 1 torvalds-linux-8ff0291/security/tomoyo/
+$ wget -O linux-3.1-rc7.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc7
+$ tar -zxf linux-3.1-rc7.tar.gz --strip 1 torvalds-linux-4cf670b/security/tomoyo/
 </pre>
 
 <p>If you want to use TOMOYO 2.4 on Linux kernels between 2.6.33 and 2.6.37, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.4/patches/">http://tomoyo.sourceforge.jp/2.4/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
 
 <pre class="command">
-$ wget -O linux-3.1-rc6.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc6
-$ tar -zxf linux-3.1-rc6.tar.gz --strip 1 torvalds-linux-8ff0291/security/tomoyo/
+$ wget -O linux-3.1-rc7.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc7
+$ tar -zxf linux-3.1-rc7.tar.gz --strip 1 torvalds-linux-4cf670b/security/tomoyo/
 $ wget http://tomoyo.sourceforge.jp/2.4/patches/tomoyo-2.4-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.4-backport-for-$KERNELVERSION.patch
 </pre>
