@@ -1,6 +1,6 @@
 Index: security/ccsecurity/domain.c
 ===================================================================
---- security/ccsecurity/domain.c	(revision 5474)
+--- security/ccsecurity/domain.c	(revision 5479)
 +++ security/ccsecurity/domain.c	(working copy)
 @@ -37,6 +37,8 @@
  	if (mutex_lock_interruptible(&ccs_policy_lock))
@@ -22,7 +22,7 @@ Index: security/ccsecurity/domain.c
  			continue;
 Index: security/ccsecurity/memory.c
 ===================================================================
---- security/ccsecurity/memory.c	(revision 5474)
+--- security/ccsecurity/memory.c	(revision 5479)
 +++ security/ccsecurity/memory.c	(working copy)
 @@ -130,7 +130,8 @@
  		goto out;
@@ -30,84 +30,70 @@ Index: security/ccsecurity/memory.c
  	list_for_each_entry(group, list, head.list) {
 -		if (e.group_name != group->group_name)
 +		if (e.group_name != group->group_name ||
-+		    !atomic_read(&group->head.users))
++		    atomic_read(&group->head.users) == CCS_GC_IN_PROGRESS)
  			continue;
  		atomic_inc(&group->head.users);
  		found = true;
-@@ -141,7 +142,7 @@
- 		if (entry) {
- 			INIT_LIST_HEAD(&entry->member_list);
- 			atomic_set(&entry->head.users, 1);
--			list_add_tail_rcu(&entry->head.list, list);
-+			list_add_rcu(&entry->head.list, list);
- 			group = entry;
- 			found = true;
- 		}
 @@ -182,7 +183,8 @@
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		return NULL;
  	list_for_each_entry(ptr, head, head.list) {
 -		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
 +		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name) ||
-+		    !atomic_read(&ptr->head.users))
++		    atomic_read(&ptr->head.users) == CCS_GC_IN_PROGRESS)
  			continue;
  		atomic_inc(&ptr->head.users);
  		goto out;
-@@ -195,7 +197,7 @@
- 		atomic_set(&ptr->head.users, 1);
- 		ccs_fill_path_info(&ptr->entry);
- 		ptr->size = allocated_len;
--		list_add_tail(&ptr->head.list, head);
-+		list_add(&ptr->head.list, head);
- 	} else {
- 		kfree(ptr);
- 		ptr = NULL;
 Index: security/ccsecurity/internal.h
 ===================================================================
---- security/ccsecurity/internal.h	(revision 5474)
+--- security/ccsecurity/internal.h	(revision 5479)
 +++ security/ccsecurity/internal.h	(working copy)
-@@ -717,6 +717,8 @@
+@@ -717,6 +717,9 @@
  /* Size of temporary buffer for execve() operation. */
  #define CCS_EXEC_TMPSIZE     4096
  
-+#define CCS_GC_IN_PROGRESS 255
++/* Garbage collector is trying to kfree() this element. */
++#define CCS_GC_IN_PROGRESS -1
 +
  /* Profile number is an integer between 0 and 255. */
  #define CCS_MAX_PROFILES 256
  
-@@ -769,7 +771,7 @@
+@@ -769,7 +772,7 @@
  /* Common header for holding ACL entries. */
  struct ccs_acl_head {
  	struct list_head list;
 -	bool is_deleted;
-+	u8 is_deleted; /* 0 or 1 or CCS_GC_IN_PROGRESS */
++	s8 is_deleted; /* true or false or CCS_GC_IN_PROGRESS */
  } __attribute__((__packed__));
  
  /* Common header for shared entries. */
-@@ -782,7 +784,7 @@
+@@ -782,7 +785,7 @@
  struct ccs_acl_info {
  	struct list_head list;
  	struct ccs_condition *cond; /* Maybe NULL. */
 -	bool is_deleted;
-+	u8 is_deleted; /* 0 or 1 or CCS_GC_IN_PROGRESS */
++	s8 is_deleted; /* true or false or CCS_GC_IN_PROGRESS */
  	u8 type; /* One of values in "enum ccs_acl_entry_type_index". */
  } __attribute__((__packed__));
  
 Index: security/ccsecurity/condition.c
 ===================================================================
---- security/ccsecurity/condition.c	(revision 5474)
+--- security/ccsecurity/condition.c	(revision 5479)
 +++ security/ccsecurity/condition.c	(working copy)
-@@ -409,7 +409,8 @@
+@@ -407,9 +407,9 @@
+ 		found = true;
+ 		goto out;
  	}
- 	list_for_each_entry_srcu(ptr, &ccs_condition_list, head.list,
- 				 &ccs_ss) {
+-	list_for_each_entry_srcu(ptr, &ccs_condition_list, head.list,
+-				 &ccs_ss) {
 -		if (!ccs_same_condition(ptr, entry))
++	list_for_each_entry(ptr, &ccs_condition_list, head.list) {
 +		if (!ccs_same_condition(ptr, entry) ||
-+		    !atomic_read(&ptr->head.users))
++		    atomic_read(&ptr->head.users) == CCS_GC_IN_PROGRESS)
  			continue;
  		/* Same entry found. Share this entry. */
  		atomic_inc(&ptr->head.users);
-@@ -419,7 +420,7 @@
+@@ -419,7 +419,7 @@
  	if (!found) {
  		if (ccs_memory_ok(entry, entry->size)) {
  			atomic_set(&entry->head.users, 1);
@@ -118,9 +104,38 @@ Index: security/ccsecurity/condition.c
  			ptr = NULL;
 Index: security/ccsecurity/gc.c
 ===================================================================
---- security/ccsecurity/gc.c	(revision 5474)
+--- security/ccsecurity/gc.c	(revision 5479)
 +++ security/ccsecurity/gc.c	(working copy)
-@@ -105,15 +105,11 @@
+@@ -8,14 +8,10 @@
+ 
+ #include "internal.h"
+ 
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 38)
+ 
+-#ifndef LIST_POISON2
+-#define LIST_POISON2  ((void *) 0x00200200)
+-#endif
+-
+ /**
+- * list_del_rcu - Deletes entry from list without re-initialization.
++ * __list_del_entry - Deletes entry from list without re-initialization.
+  *
+  * @entry: Pointer to "struct list_head".
+  *
+@@ -23,10 +19,9 @@
+  *
+  * This is for compatibility with older kernels.
+  */
+-static inline void list_del_rcu(struct list_head *entry)
++static inline void __list_del_entry(struct list_head *entry)
+ {
+ 	__list_del(entry->prev, entry->next);
+-	entry->prev = LIST_POISON2;
+ }
+ 
+ #endif
+@@ -105,15 +100,11 @@
  	list_for_each_entry(head, &ccs_io_buffer_list, list) {
  		head->users++;
  		spin_unlock(&ccs_io_buffer_list_lock);
@@ -137,7 +152,7 @@ Index: security/ccsecurity/gc.c
  		spin_lock(&ccs_io_buffer_list_lock);
  		head->users--;
  		if (in_use)
-@@ -140,10 +136,7 @@
+@@ -140,10 +131,7 @@
  		int i;
  		head->users++;
  		spin_unlock(&ccs_io_buffer_list_lock);
@@ -149,7 +164,7 @@ Index: security/ccsecurity/gc.c
  		for (i = 0; i < CCS_MAX_IO_READ_QUEUE; i++) {
  			const char *w = head->r.w[i];
  			if (w < string || w > string + size)
-@@ -152,7 +145,6 @@
+@@ -152,7 +140,6 @@
  			break;
  		}
  		mutex_unlock(&head->io_sem);
@@ -157,7 +172,7 @@ Index: security/ccsecurity/gc.c
  		spin_lock(&ccs_io_buffer_list_lock);
  		head->users--;
  		if (in_use)
-@@ -162,86 +154,7 @@
+@@ -162,86 +149,7 @@
  	return in_use;
  }
  
@@ -244,7 +259,7 @@ Index: security/ccsecurity/gc.c
   * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
   *
   * @element: Pointer to "struct list_head".
-@@ -479,9 +392,9 @@
+@@ -479,9 +387,9 @@
  	struct ccs_acl_info *acl;
  	struct ccs_acl_info *tmp;
  	/*
@@ -257,7 +272,7 @@ Index: security/ccsecurity/gc.c
  	 */
  	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
  		ccs_del_acl(&acl->list);
-@@ -692,24 +605,145 @@
+@@ -692,24 +600,148 @@
  #endif
  
  /**
@@ -274,14 +289,13 @@ Index: security/ccsecurity/gc.c
 +			  struct list_head *element)
 +{
 +	size_t size;
-+	struct list_head *original_prev = element->prev;
 +	/*
-+	 * list_del_rcu() guarantees that the list element became no longer
++	 * __list_del_entry() guarantees that the list element became no longer
 +	 * reachable from the list which the element was originally on (e.g.
 +	 * ccs_domain_list). Also, synchronize_srcu() guarantees that the list
 +	 * element became no longer referenced by syscall users.
 +	 */
-+	list_del_rcu(element);
++	__list_del_entry(element);
 +	mutex_unlock(&ccs_policy_lock);
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 +	synchronize_srcu(&ccs_ss);
@@ -372,11 +386,15 @@ Index: security/ccsecurity/gc.c
 +	if (!element)
 +		return;
 +	/*
-+	 * We can safely reinject this element bacause I am the only thread
-+	 * that removes list elements.
++	 * We can safely reinject this element here bacause
++	 * (1) Appending list elements and removing list elements are protected
++	 *     by ccs_policy_lock mutex.
++	 * (2) Only this function removes list elements and this function is
++	 *     exclusively executed by ccs_gc_mutex mutex.
++	 * are true.
 +	 */
 +	printk(KERN_INFO "Failed to gc %p.\n", element);
-+	list_add_rcu(element, original_prev);
++	list_add_rcu(element, element->prev);
 +}
 +
 +/**
@@ -409,7 +427,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -717,22 +751,24 @@
+@@ -717,22 +749,24 @@
   *
   * @list: Pointer to "struct list_head".
   *
@@ -441,7 +459,7 @@ Index: security/ccsecurity/gc.c
   *
   * Returns nothing.
   */
-@@ -741,33 +777,38 @@
+@@ -741,33 +775,39 @@
  	int i;
  	enum ccs_policy_id id;
  	struct ccs_policy_namespace *ns;
@@ -482,8 +500,9 @@ Index: security/ccsecurity/gc.c
 +		struct ccs_shared_acl_head *ptr;
 +		struct ccs_shared_acl_head *tmp;
 +		list_for_each_entry_safe(ptr, tmp, &ccs_condition_list, list) {
-+			if (atomic_read(&ptr->users))
++			if (atomic_read(&ptr->users) > 0)
 +				continue;
++			atomic_set(&ptr->users, CCS_GC_IN_PROGRESS);
 +			ccs_try_to_gc(CCS_ID_CONDITION, &ptr->list);
 +		}
 +	}
@@ -495,7 +514,7 @@ Index: security/ccsecurity/gc.c
  			switch (i) {
  			case 0:
  				id = CCS_ID_PATH_GROUP;
-@@ -779,154 +820,45 @@
+@@ -779,154 +819,48 @@
  				id = CCS_ID_ADDRESS_GROUP;
  				break;
  			}
@@ -506,11 +525,14 @@ Index: security/ccsecurity/gc.c
 +			list_for_each_entry_safe(group, tmp, list, head.list) {
 +				ccs_collect_member(id, &group->member_list);
  				if (!list_empty(&group->member_list) ||
- 				    atomic_read(&group->head.users))
+-				    atomic_read(&group->head.users))
++				    atomic_read(&group->head.users) > 0)
  					continue;
 -				if (!ccs_add_to_gc(CCS_ID_GROUP,
 -						   &group->head.list))
 -					goto unlock;
++				atomic_set(&group->head.users,
++					   CCS_GC_IN_PROGRESS);
 +				ccs_try_to_gc(CCS_ID_GROUP, &group->head.list);
  			}
  		}
@@ -523,12 +545,14 @@ Index: security/ccsecurity/gc.c
 +		struct list_head *list = &ccs_name_list[i];
  		struct ccs_shared_acl_head *ptr;
 -		list_for_each_entry(ptr, list, list) {
+-			if (atomic_read(&ptr->users))
 +		struct ccs_shared_acl_head *tmp;
 +		list_for_each_entry_safe(ptr, tmp, list, list) {
- 			if (atomic_read(&ptr->users))
++			if (atomic_read(&ptr->users) > 0)
  				continue;
 -			if (!ccs_add_to_gc(id, &ptr->list))
 -				goto unlock;
++			atomic_set(&ptr->users, CCS_GC_IN_PROGRESS);
 +			ccs_try_to_gc(CCS_ID_NAME, &ptr->list);
  		}
 -		id = CCS_ID_NAME;
@@ -664,7 +688,7 @@ Index: security/ccsecurity/gc.c
  #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
  	/* daemonize() not needed. */
  #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-@@ -954,15 +886,9 @@
+@@ -954,15 +888,9 @@
  	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
  #endif
  	do {
@@ -682,7 +706,7 @@ Index: security/ccsecurity/gc.c
  	{
  		struct ccs_io_buffer *head;
  		struct ccs_io_buffer *tmp;
-@@ -979,7 +905,6 @@
+@@ -979,7 +907,6 @@
  		spin_unlock(&ccs_io_buffer_list_lock);
  	}
  	mutex_unlock(&ccs_gc_mutex);
