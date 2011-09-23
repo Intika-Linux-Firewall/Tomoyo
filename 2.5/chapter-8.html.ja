@@ -62,7 +62,7 @@
 # chown -R root /sys/kernel/security/tomoyo/
 </pre>
 
-<p>もし、特定のユーザに対してポリシーの変更を認めたい場合、 <code>/etc/tomoyo-post-init</code> を使うことができます。このファイルが存在する場合、起動時に <code>/sbin/tomoyo-init</code> から実行されます。 tomoyo ユーザによる変更を認めたい場合、以下の内容で <code>/etc/tomoyo-post-init</code> を作成してください：</p>
+<p>もし、特定のユーザに対してポリシーの変更を認めたい場合、 <code>/etc/tomoyo/tomoyo-post-init</code> を使うことができます。このファイルが存在する場合、起動時に <code>/sbin/tomoyo-init</code> から実行されます。 tomoyo ユーザによる変更を認めたい場合、以下の内容で <code>/etc/tomoyo/tomoyo-post-init</code> を作成してください：</p>
 
 <pre>
 #! /bin/sh
@@ -73,7 +73,7 @@ chown -R tomoyo /sys/kernel/security/tomoyo/
 <p>そして、このファイル実行可能にして、ポリシーディレクトリ以下を tomoyo ユーザが読み書きできるようにしてください：</p>
 
 <pre class="command">
-# chmod 755 /etc/tomoyo-post-init
+# chmod 755 /etc/tomoyo/tomoyo-post-init
 # chown -R tomoyo /etc/tomoyo/
 </pre>
 
