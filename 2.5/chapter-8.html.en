@@ -62,7 +62,7 @@
 # chown -R root /sys/kernel/security/tomoyo/
 </pre>
 
-<p>If you want to have a separate user that is able to modify policy, the file "<code>/etc/tomoyo-post-init</code>" can be used. If this file exists, it is executed by <code>/sbin/tomoyo-init</code> at boot. To allow 'tomoyo' user to modify policy, create "<code>/etc/tomoyo-post-init</code>" with the following contents:</p>
+<p>If you want to have a separate user that is able to modify policy, the file "<code>/etc/tomoyo/tomoyo-post-init</code>" can be used. If this file exists, it is executed by <code>/sbin/tomoyo-init</code> at boot. To allow 'tomoyo' user to modify policy, create "<code>/etc/tomoyo/tomoyo-post-init</code>" with the following contents:</p>
 
 <pre>
 #! /bin/sh
@@ -73,7 +73,7 @@ chown -R tomoyo /sys/kernel/security/tomoyo/
 <p>Then, make this file executable and make policy directory readable/writable by 'tomoyo' user:</p>
 
 <pre class="command">
-# chmod 755 /etc/tomoyo-post-init
+# chmod 755 /etc/tomoyo/tomoyo-post-init
 # chown -R tomoyo /etc/tomoyo/
 </pre>
 
