@@ -20,11 +20,119 @@ Index: security/ccsecurity/domain.c
  		if (!ccs_same_acl_head(entry, new_entry) ||
  		    !check_duplicate(entry, new_entry))
  			continue;
+@@ -449,7 +453,8 @@
+ 	if (mutex_lock_interruptible(&ccs_policy_lock))
+ 		goto out;
+ 	ptr = ccs_find_namespace(domainname, len);
+-	if (!ptr && ccs_memory_ok(entry, sizeof(*entry) + len + 1)) {
++	ccs_set_memory_size(sizeof(*entry) + len + 1);
++	if (!ptr && ccs_memory_ok(entry)) {
+ 		char *name = (char *) (entry + 1);
+ 		ptr = entry;
+ 		memmove(name, domainname, len);
 Index: security/ccsecurity/memory.c
 ===================================================================
 --- security/ccsecurity/memory.c	(revision 5479)
 +++ security/ccsecurity/memory.c	(working copy)
-@@ -130,7 +130,8 @@
+@@ -29,40 +29,38 @@
+ 		panic("MAC Initialization failed.\n");
+ }
+ 
+-/*
+- * Lock for protecting ccs_memory_used.
+- *
+- * I don't use atomic_t because it can handle only 16MB in 2.4 kernels.
+- */
+-static DEFINE_SPINLOCK(ccs_policy_memory_lock);
+ /* Memoy currently used by policy/audit log/query. */
+ unsigned int ccs_memory_used[CCS_MAX_MEMORY_STAT];
+ /* Memory quota for "policy"/"audit log"/"query". */
+ unsigned int ccs_memory_quota[CCS_MAX_MEMORY_STAT];
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
++/* Protected by ccs_policy_lock mutex. */
++unsigned int ccs_memory_size; /* = ksize(ptr) */
++#endif
+ 
+ /**
+  * ccs_memory_ok - Check memory quota.
+  *
+- * @ptr:  Pointer to allocated memory. Maybe NULL.
+- * @size: Size in byte. Not used if @ptr is NULL.
++ * @ptr: Pointer to allocated memory. Maybe NULL.
+  *
+  * Returns true if @ptr is not NULL and quota not exceeded, false otherwise.
++ *
++ * Caller holds ccs_policy_lock mutex.
+  */
+-bool ccs_memory_ok(const void *ptr, const unsigned int size)
++bool ccs_memory_ok(const void *ptr)
+ {
+ 	if (ptr) {
+-		const size_t s = ccs_round2(size);
+-		bool result;
+-		spin_lock(&ccs_policy_memory_lock);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
++		const size_t s = ksize(ptr);
++#else
++		const size_t s = ccs_memory_size;
++#endif
+ 		ccs_memory_used[CCS_MEMORY_POLICY] += s;
+-		result = !ccs_memory_quota[CCS_MEMORY_POLICY] ||
+-			ccs_memory_used[CCS_MEMORY_POLICY] <=
+-			ccs_memory_quota[CCS_MEMORY_POLICY];
+-		if (!result)
+-			ccs_memory_used[CCS_MEMORY_POLICY] -= s;
+-		spin_unlock(&ccs_policy_memory_lock);
+-		if (result)
++		if (!ccs_memory_quota[CCS_MEMORY_POLICY] ||
++		    ccs_memory_used[CCS_MEMORY_POLICY] <=
++		    ccs_memory_quota[CCS_MEMORY_POLICY])
+ 			return true;
++		ccs_memory_used[CCS_MEMORY_POLICY] -= s;
+ 	}
+ 	ccs_warn_oom(__func__);
+ 	return false;
+@@ -76,11 +74,14 @@
+  *
+  * Returns pointer to allocated memory on success, NULL otherwise.
+  * @data is zero-cleared on success.
++ *
++ * Caller holds ccs_policy_lock mutex.
+  */
+ void *ccs_commit_ok(void *data, const unsigned int size)
+ {
+ 	void *ptr = kmalloc(size, CCS_GFP_FLAGS);
+-	if (ccs_memory_ok(ptr, size)) {
++	ccs_set_memory_size(size);
++	if (ccs_memory_ok(ptr)) {
+ 		memmove(ptr, data, size);
+ 		memset(data, 0, size);
+ 		return ptr;
+@@ -90,23 +91,6 @@
+ }
+ 
+ /**
+- * ccs_memory_free - Free memory for elements.
+- *
+- * @ptr:  Pointer to allocated memory.
+- * @size: Size in byte.
+- *
+- * Returns nothing.
+- */
+-void ccs_memory_free(const void *ptr, size_t size)
+-{
+-	size_t s = ccs_round2(size);
+-	spin_lock(&ccs_policy_memory_lock);
+-	ccs_memory_used[CCS_MEMORY_POLICY] -= s;
+-	spin_unlock(&ccs_policy_memory_lock);
+-	kfree(ptr);
+-}
+-
+-/**
+  * ccs_get_group - Allocate memory for "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group".
+  *
+  * @param: Pointer to "struct ccs_acl_param".
+@@ -130,7 +114,8 @@
  		goto out;
  	list = &param->ns->group_list[idx];
  	list_for_each_entry(group, list, head.list) {
@@ -34,7 +142,7 @@ Index: security/ccsecurity/memory.c
  			continue;
  		atomic_inc(&group->head.users);
  		found = true;
-@@ -182,7 +183,8 @@
+@@ -182,14 +167,16 @@
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		return NULL;
  	list_for_each_entry(ptr, head, head.list) {
@@ -44,11 +152,80 @@ Index: security/ccsecurity/memory.c
  			continue;
  		atomic_inc(&ptr->head.users);
  		goto out;
+ 	}
+ 	allocated_len = sizeof(*ptr) + len;
+ 	ptr = kzalloc(allocated_len, CCS_GFP_FLAGS);
+-	if (ccs_memory_ok(ptr, allocated_len)) {
++	ccs_set_memory_size(allocated_len);
++	if (ccs_memory_ok(ptr)) {
+ 		ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
+ 		memmove((char *) ptr->entry.name, name, len);
+ 		atomic_set(&ptr->head.users, 1);
+Index: security/ccsecurity/file.c
+===================================================================
+--- security/ccsecurity/file.c	(revision 5479)
++++ security/ccsecurity/file.c	(working copy)
+@@ -600,8 +600,8 @@
+  *
+  * Caller holds ccs_read_lock().
+  */
+-int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+-			const struct ccs_path_info *filename)
++static int ccs_path_permission(struct ccs_request_info *r, u8 operation,
++			       const struct ccs_path_info *filename)
+ {
+ 	int error;
+ 	r->type = ccs_p2mac[operation];
 Index: security/ccsecurity/internal.h
 ===================================================================
 --- security/ccsecurity/internal.h	(revision 5479)
 +++ security/ccsecurity/internal.h	(working copy)
-@@ -717,6 +717,9 @@
+@@ -270,6 +270,44 @@
+ 
+ #endif
+ 
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 38)
++
++/**
++ * __list_del_entry - Deletes entry from list without re-initialization.
++ *
++ * @entry: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ *
++ * This is for compatibility with older kernels.
++ */
++static inline void __list_del_entry(struct list_head *entry)
++{
++	__list_del(entry->prev, entry->next);
++}
++
++#endif
++
++#ifndef list_for_each_entry_safe
++
++/**
++ * list_for_each_entry_safe - Iterate over list of given type safe against removal of list entry.
++ *
++ * @pos:    The "type *" to use as a loop cursor.
++ * @n:      Another "type *" to use as temporary storage.
++ * @head:   Pointer to "struct list_head".
++ * @member: The name of the list_struct within the struct.
++ *
++ * This is for compatibility with older kernels.
++ */
++#define list_for_each_entry_safe(pos, n, head, member)                  \
++	for (pos = list_entry((head)->next, typeof(*pos), member),      \
++		     n = list_entry(pos->member.next, typeof(*pos), member); \
++	     &pos->member != (head);					\
++	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
++
++#endif
++
+ #ifndef srcu_dereference
+ 
+ /**
+@@ -717,6 +755,9 @@
  /* Size of temporary buffer for execve() operation. */
  #define CCS_EXEC_TMPSIZE     4096
  
@@ -58,7 +235,7 @@ Index: security/ccsecurity/internal.h
  /* Profile number is an integer between 0 and 255. */
  #define CCS_MAX_PROFILES 256
  
-@@ -769,7 +772,7 @@
+@@ -769,7 +810,7 @@
  /* Common header for holding ACL entries. */
  struct ccs_acl_head {
  	struct list_head list;
@@ -67,7 +244,7 @@ Index: security/ccsecurity/internal.h
  } __attribute__((__packed__));
  
  /* Common header for shared entries. */
-@@ -782,7 +785,7 @@
+@@ -782,7 +823,7 @@
  struct ccs_acl_info {
  	struct list_head list;
  	struct ccs_condition *cond; /* Maybe NULL. */
@@ -76,6 +253,72 @@ Index: security/ccsecurity/internal.h
  	u8 type; /* One of values in "enum ccs_acl_entry_type_index". */
  } __attribute__((__packed__));
  
+@@ -1380,7 +1421,7 @@
+ bool ccs_domain_quota_ok(struct ccs_request_info *r);
+ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
+ 		   struct ccs_page_dump *dump);
+-bool ccs_memory_ok(const void *ptr, const unsigned int size);
++bool ccs_memory_ok(const void *ptr);
+ bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
+ 			      const struct ccs_group *group);
+ bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
+@@ -1415,8 +1456,6 @@
+ int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+ int ccs_open_control(const u8 type, struct file *file);
+ int ccs_parse_ip_address(struct ccs_acl_param *param, u16 *min, u16 *max);
+-int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+-			const struct ccs_path_info *filename);
+ int ccs_poll_control(struct file *file, poll_table *wait);
+ int ccs_poll_log(struct file *file, poll_table *wait);
+ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
+@@ -1465,7 +1504,6 @@
+ void ccs_fill_path_info(struct ccs_path_info *ptr);
+ void ccs_get_attributes(struct ccs_obj_info *obj);
+ void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
+-void ccs_memory_free(const void *ptr, size_t size);
+ void ccs_normalize_line(unsigned char *buffer);
+ void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
+ void ccs_print_ip(char *buf, const unsigned int size,
+@@ -1828,7 +1866,39 @@
+ 
+ #endif
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+ /**
++ * ccs_set_memory_size - Set memory size to be allocated.
++ *
++ * @size: Unused.
++ *
++ * Returns nothing.
++ *
++ * Caller holds ccs_policy_lock mutex.
++ */
++static inline void ccs_set_memory_size(const unsigned int size)
++{
++	/* ccs_memory_ok() uses ksize(). */
++}
++#else
++extern unsigned int ccs_memory_size;
++/**
++ * ccs_set_memory_size - Set memory size to be allocated.
++ *
++ * @size: Memory size in byte.
++ *
++ * Returns nothing.
++ *
++ * Caller holds ccs_policy_lock mutex.
++ */
++static inline void ccs_set_memory_size(const unsigned int size)
++{
++	/* ccs_memory_ok() uses ccs_round2(size). */
++	ccs_memory_size = size;
++}
++#endif
++
++/**
+  * ccs_put_condition - Drop reference on "struct ccs_condition".
+  *
+  * @cond: Pointer to "struct ccs_condition". Maybe NULL.
 Index: security/ccsecurity/condition.c
 ===================================================================
 --- security/ccsecurity/condition.c	(revision 5479)
@@ -93,49 +336,190 @@ Index: security/ccsecurity/condition.c
  			continue;
  		/* Same entry found. Share this entry. */
  		atomic_inc(&ptr->head.users);
-@@ -419,7 +419,7 @@
+@@ -417,9 +417,10 @@
+ 		break;
+ 	}
  	if (!found) {
- 		if (ccs_memory_ok(entry, entry->size)) {
+-		if (ccs_memory_ok(entry, entry->size)) {
++		ccs_set_memory_size(entry->size);
++		if (ccs_memory_ok(entry)) {
  			atomic_set(&entry->head.users, 1);
 -			list_add_rcu(&entry->head.list, &ccs_condition_list);
 +			list_add(&entry->head.list, &ccs_condition_list);
  		} else {
  			found = true;
  			ptr = NULL;
+Index: security/ccsecurity/policy_io.c
+===================================================================
+--- security/ccsecurity/policy_io.c	(revision 5479)
++++ security/ccsecurity/policy_io.c	(working copy)
+@@ -498,7 +498,8 @@
+ 	if (mutex_lock_interruptible(&ccs_policy_lock))
+ 		goto out;
+ 	ptr = ns->profile_ptr[profile];
+-	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
++	ccs_set_memory_size(sizeof(*entry));
++	if (!ptr && ccs_memory_ok(entry)) {
+ 		ptr = entry;
+ 		ptr->default_config = CCS_CONFIG_DISABLED |
+ 			CCS_CONFIG_WANT_GRANT_LOG | CCS_CONFIG_WANT_REJECT_LOG;
 Index: security/ccsecurity/gc.c
 ===================================================================
 --- security/ccsecurity/gc.c	(revision 5479)
 +++ security/ccsecurity/gc.c	(working copy)
-@@ -8,14 +8,10 @@
+@@ -8,83 +8,88 @@
  
  #include "internal.h"
  
 -#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 38)
- 
+-
 -#ifndef LIST_POISON2
 -#define LIST_POISON2  ((void *) 0x00200200)
 -#endif
 -
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
  /**
 - * list_del_rcu - Deletes entry from list without re-initialization.
-+ * __list_del_entry - Deletes entry from list without re-initialization.
++ * ccs_memory_free - Free memory for elements.
   *
-  * @entry: Pointer to "struct list_head".
+- * @entry: Pointer to "struct list_head".
++ * @ptr: Pointer to allocated memory.
   *
-@@ -23,10 +19,9 @@
+  * Returns nothing.
   *
-  * This is for compatibility with older kernels.
+- * This is for compatibility with older kernels.
++ * Caller holds ccs_policy_lock mutex.
   */
 -static inline void list_del_rcu(struct list_head *entry)
-+static inline void __list_del_entry(struct list_head *entry)
++static inline void ccs_memory_free(const void *ptr)
  {
- 	__list_del(entry->prev, entry->next);
+-	__list_del(entry->prev, entry->next);
 -	entry->prev = LIST_POISON2;
++	ccs_memory_used[CCS_MEMORY_POLICY] -= ksize(ptr);
++	kfree(ptr);
  }
- 
+-
+-#endif
+-
+-#ifndef list_for_each_entry_safe
+-
++#else
+ /**
+- * list_for_each_entry_safe - Iterate over list of given type safe against removal of list entry.
++ * ccs_memory_free - Free memory for elements.
+  *
+- * @pos:    The "type *" to use as a loop cursor.
+- * @n:      Another "type *" to use as temporary storage.
+- * @head:   Pointer to "struct list_head".
+- * @member: The name of the list_struct within the struct.
++ * @ptr:  Pointer to allocated memory.
++ * @type: One of values in "enum ccs_policy_id".
+  *
+- * This is for compatibility with older kernels.
++ * Returns nothing.
++ *
++ * Caller holds ccs_policy_lock mutex.
+  */
+-#define list_for_each_entry_safe(pos, n, head, member)                  \
+-	for (pos = list_entry((head)->next, typeof(*pos), member),      \
+-		     n = list_entry(pos->member.next, typeof(*pos), member); \
+-	     &pos->member != (head);					\
+-	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
+-
++static inline void ccs_memory_free(const void *ptr,
++				   const enum ccs_policy_id type)
++{
++	/* Size of an element. */
++	static const u8 element[CCS_MAX_POLICY] = {
++		[CCS_ID_RESERVEDPORT] = sizeof(struct ccs_reserved),
++		[CCS_ID_GROUP] = sizeof(struct ccs_group),
++		[CCS_ID_ADDRESS_GROUP] = sizeof(struct ccs_address_group),
++		[CCS_ID_PATH_GROUP] = sizeof(struct ccs_path_group),
++		[CCS_ID_NUMBER_GROUP] = sizeof(struct ccs_number_group),
++		[CCS_ID_AGGREGATOR] = sizeof(struct ccs_aggregator),
++		[CCS_ID_TRANSITION_CONTROL]
++		= sizeof(struct ccs_transition_control),
++		[CCS_ID_MANAGER] = sizeof(struct ccs_manager),
++		/* [CCS_ID_CONDITION] = "struct ccs_condition"->size, */
++		/* [CCS_ID_NAME] = "struct ccs_name"->size, */
++		/* [CCS_ID_ACL] = acl["struct ccs_acl_info"->type], */
++		[CCS_ID_DOMAIN] = sizeof(struct ccs_domain_info),
++	};
++	/* Size of a domain ACL element. */
++	static const u8 acl[] = {
++		[CCS_TYPE_PATH_ACL] = sizeof(struct ccs_path_acl),
++		[CCS_TYPE_PATH2_ACL] = sizeof(struct ccs_path2_acl),
++		[CCS_TYPE_PATH_NUMBER_ACL]
++		= sizeof(struct ccs_path_number_acl),
++		[CCS_TYPE_MKDEV_ACL] = sizeof(struct ccs_mkdev_acl),
++		[CCS_TYPE_MOUNT_ACL] = sizeof(struct ccs_mount_acl),
++		[CCS_TYPE_INET_ACL] = sizeof(struct ccs_inet_acl),
++		[CCS_TYPE_UNIX_ACL] = sizeof(struct ccs_unix_acl),
++		[CCS_TYPE_ENV_ACL] = sizeof(struct ccs_env_acl),
++		[CCS_TYPE_CAPABILITY_ACL] = sizeof(struct ccs_capability_acl),
++		[CCS_TYPE_SIGNAL_ACL] = sizeof(struct ccs_signal_acl),
++		[CCS_TYPE_AUTO_EXECUTE_HANDLER]
++		= sizeof(struct ccs_handler_acl),
++		[CCS_TYPE_DENIED_EXECUTE_HANDLER]
++		= sizeof(struct ccs_handler_acl),
++		[CCS_TYPE_AUTO_TASK_ACL] = sizeof(struct ccs_task_acl),
++		[CCS_TYPE_MANUAL_TASK_ACL] = sizeof(struct ccs_task_acl),
++	};
++	size_t size;
++	if (type == CCS_ID_ACL)
++		size = acl[container_of(ptr, typeof(struct ccs_acl_info),
++					list)->type];
++	else if (type == CCS_ID_NAME)
++		size = container_of(ptr, typeof(struct ccs_name),
++				    head.list)->size;
++	else if (type == CCS_ID_CONDITION)
++		size = container_of(ptr, typeof(struct ccs_condition),
++				    head.list)->size;
++	else
++		size = element[type];
++	ccs_memory_used[CCS_MEMORY_POLICY] -= ccs_round2(size);
++	kfree(ptr);
++}
  #endif
-@@ -105,15 +100,11 @@
+ 
+-/* Size of an element. */
+-static const u8 ccs_element_size[CCS_MAX_POLICY] = {
+-	[CCS_ID_RESERVEDPORT] = sizeof(struct ccs_reserved),
+-	[CCS_ID_GROUP] = sizeof(struct ccs_group),
+-	[CCS_ID_ADDRESS_GROUP] = sizeof(struct ccs_address_group),
+-	[CCS_ID_PATH_GROUP] = sizeof(struct ccs_path_group),
+-	[CCS_ID_NUMBER_GROUP] = sizeof(struct ccs_number_group),
+-	[CCS_ID_AGGREGATOR] = sizeof(struct ccs_aggregator),
+-	[CCS_ID_TRANSITION_CONTROL] = sizeof(struct ccs_transition_control),
+-	[CCS_ID_MANAGER] = sizeof(struct ccs_manager),
+-	/* [CCS_ID_CONDITION] = "struct ccs_condition"->size, */
+-	/* [CCS_ID_NAME] = "struct ccs_name"->size, */
+-	/* [CCS_ID_ACL] = ccs_acl_size["struct ccs_acl_info"->type], */
+-	[CCS_ID_DOMAIN] = sizeof(struct ccs_domain_info),
+-};
+-
+-/* Size of a domain ACL element. */
+-static const u8 ccs_acl_size[] = {
+-	[CCS_TYPE_PATH_ACL] = sizeof(struct ccs_path_acl),
+-	[CCS_TYPE_PATH2_ACL] = sizeof(struct ccs_path2_acl),
+-	[CCS_TYPE_PATH_NUMBER_ACL] = sizeof(struct ccs_path_number_acl),
+-	[CCS_TYPE_MKDEV_ACL] = sizeof(struct ccs_mkdev_acl),
+-	[CCS_TYPE_MOUNT_ACL] = sizeof(struct ccs_mount_acl),
+-	[CCS_TYPE_INET_ACL] = sizeof(struct ccs_inet_acl),
+-	[CCS_TYPE_UNIX_ACL] = sizeof(struct ccs_unix_acl),
+-	[CCS_TYPE_ENV_ACL] = sizeof(struct ccs_env_acl),
+-	[CCS_TYPE_CAPABILITY_ACL] = sizeof(struct ccs_capability_acl),
+-	[CCS_TYPE_SIGNAL_ACL] = sizeof(struct ccs_signal_acl),
+-	[CCS_TYPE_AUTO_EXECUTE_HANDLER] = sizeof(struct ccs_handler_acl),
+-	[CCS_TYPE_DENIED_EXECUTE_HANDLER] = sizeof(struct ccs_handler_acl),
+-	[CCS_TYPE_AUTO_TASK_ACL] = sizeof(struct ccs_task_acl),
+-	[CCS_TYPE_MANUAL_TASK_ACL] = sizeof(struct ccs_task_acl),
+-};
+-
+ /* The list for "struct ccs_io_buffer". */
+ static LIST_HEAD(ccs_io_buffer_list);
+ /* Lock for protecting ccs_io_buffer_list. */
+@@ -105,15 +110,11 @@
  	list_for_each_entry(head, &ccs_io_buffer_list, list) {
  		head->users++;
  		spin_unlock(&ccs_io_buffer_list_lock);
@@ -152,7 +536,22 @@ Index: security/ccsecurity/gc.c
  		spin_lock(&ccs_io_buffer_list_lock);
  		head->users--;
  		if (in_use)
-@@ -140,10 +131,7 @@
+@@ -127,23 +128,20 @@
+  * ccs_name_used_by_io_buffer - Check whether the string is used by /proc/ccs/ users or not.
+  *
+  * @string: String to check.
+- * @size:   Memory allocated for @string .
+  *
+  * Returns true if @string is used by /proc/ccs/ users, false otherwise.
+  */
+-static bool ccs_name_used_by_io_buffer(const char *string, const size_t size)
++static bool ccs_name_used_by_io_buffer(const char *string)
+ {
+ 	struct ccs_io_buffer *head;
+ 	bool in_use = false;
++	const size_t size = strlen(string) + 1;
+ 	spin_lock(&ccs_io_buffer_list_lock);
+ 	list_for_each_entry(head, &ccs_io_buffer_list, list) {
  		int i;
  		head->users++;
  		spin_unlock(&ccs_io_buffer_list_lock);
@@ -164,7 +563,7 @@ Index: security/ccsecurity/gc.c
  		for (i = 0; i < CCS_MAX_IO_READ_QUEUE; i++) {
  			const char *w = head->r.w[i];
  			if (w < string || w > string + size)
-@@ -152,7 +140,6 @@
+@@ -152,7 +150,6 @@
  			break;
  		}
  		mutex_unlock(&head->io_sem);
@@ -172,7 +571,7 @@ Index: security/ccsecurity/gc.c
  		spin_lock(&ccs_io_buffer_list_lock);
  		head->users--;
  		if (in_use)
-@@ -162,86 +149,7 @@
+@@ -162,86 +159,7 @@
  	return in_use;
  }
  
@@ -259,7 +658,16 @@ Index: security/ccsecurity/gc.c
   * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
   *
   * @element: Pointer to "struct list_head".
-@@ -479,9 +387,9 @@
+@@ -471,6 +389,8 @@
+  * @element: Pointer to "struct list_head".
+  *
+  * Returns nothing.
++ *
++ * Caller holds ccs_policy_lock mutex.
+  */
+ static inline void ccs_del_domain(struct list_head *element)
+ {
+@@ -479,13 +399,17 @@
  	struct ccs_acl_info *acl;
  	struct ccs_acl_info *tmp;
  	/*
@@ -272,7 +680,16 @@ Index: security/ccsecurity/gc.c
  	 */
  	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
  		ccs_del_acl(&acl->list);
-@@ -692,24 +600,148 @@
+-		ccs_memory_free(acl, ccs_acl_size[acl->type]);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
++		ccs_memory_free(acl);
++#else
++		ccs_memory_free(acl, CCS_ID_ACL);
++#endif
+ 	}
+ 	ccs_put_name(domain->domainname);
+ }
+@@ -692,24 +616,138 @@
  #endif
  
  /**
@@ -288,7 +705,6 @@ Index: security/ccsecurity/gc.c
 +static void ccs_try_to_gc(const enum ccs_policy_id type,
 +			  struct list_head *element)
 +{
-+	size_t size;
 +	/*
 +	 * __list_del_entry() guarantees that the list element became no longer
 +	 * reachable from the list which the element was originally on (e.g.
@@ -311,18 +727,6 @@ Index: security/ccsecurity/gc.c
 +	 */
 +	if (ccs_struct_used_by_io_buffer(element))
 +		goto reinject;
-+	if (type == CCS_ID_ACL)
-+		size = ccs_acl_size[container_of(element,
-+						 typeof(struct ccs_acl_info),
-+						 list)->type];
-+	else if (type == CCS_ID_NAME)
-+		size = container_of(element, typeof(struct ccs_name),
-+				    head.list)->size;
-+	else if (type == CCS_ID_CONDITION)
-+		size = container_of(element, typeof(struct ccs_condition),
-+				    head.list)->size;
-+	else
-+		size = ccs_element_size[type];
 +	switch (type) {
 +	case CCS_ID_TRANSITION_CONTROL:
 +		ccs_del_transition_control(element);
@@ -358,7 +762,7 @@ Index: security/ccsecurity/gc.c
 +		 */
 +		if (ccs_name_used_by_io_buffer
 +		    (container_of(element, typeof(struct ccs_name),
-+				  head.list)->entry.name, size))
++				  head.list)->entry.name))
 +			goto reinject;
 +		ccs_del_name(element);
 +		break;
@@ -374,17 +778,20 @@ Index: security/ccsecurity/gc.c
 +		    (container_of(element, typeof(struct ccs_domain_info),
 +				  list)))
 +			goto reinject;
-+		ccs_del_domain(element);
 +		break;
 +	case CCS_MAX_POLICY:
 +		break;
 +	}
-+	ccs_memory_free(element, size);
-+	element = NULL;
-+reinject:
 +	mutex_lock(&ccs_policy_lock);
-+	if (!element)
-+		return;
++	if (type == CCS_ID_DOMAIN)
++		ccs_del_domain(element);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
++	ccs_memory_free(element);
++#else
++	ccs_memory_free(element, type);
++#endif
++	return;
++reinject:
 +	/*
 +	 * We can safely reinject this element here bacause
 +	 * (1) Appending list elements and removing list elements are protected
@@ -393,7 +800,7 @@ Index: security/ccsecurity/gc.c
 +	 *     exclusively executed by ccs_gc_mutex mutex.
 +	 * are true.
 +	 */
-+	printk(KERN_INFO "Failed to gc %p.\n", element);
++	mutex_lock(&ccs_policy_lock);
 +	list_add_rcu(element, element->prev);
 +}
 +
@@ -427,7 +834,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -717,22 +749,24 @@
+@@ -717,22 +755,24 @@
   *
   * @list: Pointer to "struct list_head".
   *
@@ -459,7 +866,7 @@ Index: security/ccsecurity/gc.c
   *
   * Returns nothing.
   */
-@@ -741,33 +775,39 @@
+@@ -741,33 +781,39 @@
  	int i;
  	enum ccs_policy_id id;
  	struct ccs_policy_namespace *ns;
@@ -514,7 +921,7 @@ Index: security/ccsecurity/gc.c
  			switch (i) {
  			case 0:
  				id = CCS_ID_PATH_GROUP;
-@@ -779,154 +819,48 @@
+@@ -779,154 +825,48 @@
  				id = CCS_ID_ADDRESS_GROUP;
  				break;
  			}
@@ -688,7 +1095,7 @@ Index: security/ccsecurity/gc.c
  #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
  	/* daemonize() not needed. */
  #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-@@ -954,15 +888,9 @@
+@@ -954,15 +894,9 @@
  	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
  #endif
  	do {
@@ -706,7 +1113,7 @@ Index: security/ccsecurity/gc.c
  	{
  		struct ccs_io_buffer *head;
  		struct ccs_io_buffer *tmp;
-@@ -979,7 +907,6 @@
+@@ -979,7 +913,6 @@
  		spin_unlock(&ccs_io_buffer_list_lock);
  	}
  	mutex_unlock(&ccs_gc_mutex);
