@@ -367,7 +367,7 @@ Index: security/ccsecurity/gc.c
 ===================================================================
 --- security/ccsecurity/gc.c	(revision 5479)
 +++ security/ccsecurity/gc.c	(working copy)
-@@ -8,83 +8,88 @@
+@@ -8,83 +8,87 @@
  
  #include "internal.h"
  
@@ -426,11 +426,10 @@ Index: security/ccsecurity/gc.c
 -	     &pos->member != (head);					\
 -	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
 -
-+static inline void ccs_memory_free(const void *ptr,
-+				   const enum ccs_policy_id type)
++static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type)
 +{
 +	/* Size of an element. */
-+	static const u8 element[CCS_MAX_POLICY] = {
++	static const u8 e[CCS_MAX_POLICY] = {
 +		[CCS_ID_RESERVEDPORT] = sizeof(struct ccs_reserved),
 +		[CCS_ID_GROUP] = sizeof(struct ccs_group),
 +		[CCS_ID_ADDRESS_GROUP] = sizeof(struct ccs_address_group),
@@ -442,11 +441,11 @@ Index: security/ccsecurity/gc.c
 +		[CCS_ID_MANAGER] = sizeof(struct ccs_manager),
 +		/* [CCS_ID_CONDITION] = "struct ccs_condition"->size, */
 +		/* [CCS_ID_NAME] = "struct ccs_name"->size, */
-+		/* [CCS_ID_ACL] = acl["struct ccs_acl_info"->type], */
++		/* [CCS_ID_ACL] = a["struct ccs_acl_info"->type], */
 +		[CCS_ID_DOMAIN] = sizeof(struct ccs_domain_info),
 +	};
 +	/* Size of a domain ACL element. */
-+	static const u8 acl[] = {
++	static const u8 a[] = {
 +		[CCS_TYPE_PATH_ACL] = sizeof(struct ccs_path_acl),
 +		[CCS_TYPE_PATH2_ACL] = sizeof(struct ccs_path2_acl),
 +		[CCS_TYPE_PATH_NUMBER_ACL]
@@ -467,8 +466,8 @@ Index: security/ccsecurity/gc.c
 +	};
 +	size_t size;
 +	if (type == CCS_ID_ACL)
-+		size = acl[container_of(ptr, typeof(struct ccs_acl_info),
-+					list)->type];
++		size = a[container_of(ptr, typeof(struct ccs_acl_info),
++				      list)->type];
 +	else if (type == CCS_ID_NAME)
 +		size = container_of(ptr, typeof(struct ccs_name),
 +				    head.list)->size;
@@ -476,7 +475,7 @@ Index: security/ccsecurity/gc.c
 +		size = container_of(ptr, typeof(struct ccs_condition),
 +				    head.list)->size;
 +	else
-+		size = element[type];
++		size = e[type];
 +	ccs_memory_used[CCS_MEMORY_POLICY] -= ccs_round2(size);
 +	kfree(ptr);
 +}
@@ -519,7 +518,7 @@ Index: security/ccsecurity/gc.c
  /* The list for "struct ccs_io_buffer". */
  static LIST_HEAD(ccs_io_buffer_list);
  /* Lock for protecting ccs_io_buffer_list. */
-@@ -105,15 +110,11 @@
+@@ -105,15 +109,11 @@
  	list_for_each_entry(head, &ccs_io_buffer_list, list) {
  		head->users++;
  		spin_unlock(&ccs_io_buffer_list_lock);
@@ -536,22 +535,7 @@ Index: security/ccsecurity/gc.c
  		spin_lock(&ccs_io_buffer_list_lock);
  		head->users--;
  		if (in_use)
-@@ -127,23 +128,20 @@
-  * ccs_name_used_by_io_buffer - Check whether the string is used by /proc/ccs/ users or not.
-  *
-  * @string: String to check.
-- * @size:   Memory allocated for @string .
-  *
-  * Returns true if @string is used by /proc/ccs/ users, false otherwise.
-  */
--static bool ccs_name_used_by_io_buffer(const char *string, const size_t size)
-+static bool ccs_name_used_by_io_buffer(const char *string)
- {
- 	struct ccs_io_buffer *head;
- 	bool in_use = false;
-+	const size_t size = strlen(string) + 1;
- 	spin_lock(&ccs_io_buffer_list_lock);
- 	list_for_each_entry(head, &ccs_io_buffer_list, list) {
+@@ -140,10 +140,7 @@
  		int i;
  		head->users++;
  		spin_unlock(&ccs_io_buffer_list_lock);
@@ -563,7 +547,7 @@ Index: security/ccsecurity/gc.c
  		for (i = 0; i < CCS_MAX_IO_READ_QUEUE; i++) {
  			const char *w = head->r.w[i];
  			if (w < string || w > string + size)
-@@ -152,7 +150,6 @@
+@@ -152,7 +149,6 @@
  			break;
  		}
  		mutex_unlock(&head->io_sem);
@@ -571,7 +555,7 @@ Index: security/ccsecurity/gc.c
  		spin_lock(&ccs_io_buffer_list_lock);
  		head->users--;
  		if (in_use)
-@@ -162,86 +159,7 @@
+@@ -162,86 +158,7 @@
  	return in_use;
  }
  
@@ -658,7 +642,7 @@ Index: security/ccsecurity/gc.c
   * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
   *
   * @element: Pointer to "struct list_head".
-@@ -471,6 +389,8 @@
+@@ -471,6 +388,8 @@
   * @element: Pointer to "struct list_head".
   *
   * Returns nothing.
@@ -667,7 +651,7 @@ Index: security/ccsecurity/gc.c
   */
  static inline void ccs_del_domain(struct list_head *element)
  {
-@@ -479,13 +399,17 @@
+@@ -479,13 +398,17 @@
  	struct ccs_acl_info *acl;
  	struct ccs_acl_info *tmp;
  	/*
@@ -689,7 +673,7 @@ Index: security/ccsecurity/gc.c
  	}
  	ccs_put_name(domain->domainname);
  }
-@@ -692,24 +616,138 @@
+@@ -692,24 +615,140 @@
  #endif
  
  /**
@@ -762,7 +746,9 @@ Index: security/ccsecurity/gc.c
 +		 */
 +		if (ccs_name_used_by_io_buffer
 +		    (container_of(element, typeof(struct ccs_name),
-+				  head.list)->entry.name))
++				  head.list)->entry.name,
++		     container_of(element, typeof(struct ccs_name),
++				  head.list)->size))
 +			goto reinject;
 +		ccs_del_name(element);
 +		break;
@@ -834,7 +820,7 @@ Index: security/ccsecurity/gc.c
  }
  
  /**
-@@ -717,22 +755,24 @@
+@@ -717,22 +756,24 @@
   *
   * @list: Pointer to "struct list_head".
   *
@@ -866,7 +852,7 @@ Index: security/ccsecurity/gc.c
   *
   * Returns nothing.
   */
-@@ -741,33 +781,39 @@
+@@ -741,33 +782,39 @@
  	int i;
  	enum ccs_policy_id id;
  	struct ccs_policy_namespace *ns;
@@ -921,7 +907,7 @@ Index: security/ccsecurity/gc.c
  			switch (i) {
  			case 0:
  				id = CCS_ID_PATH_GROUP;
-@@ -779,154 +825,48 @@
+@@ -779,146 +826,36 @@
  				id = CCS_ID_ADDRESS_GROUP;
  				break;
  			}
@@ -1081,26 +1067,12 @@ Index: security/ccsecurity/gc.c
   * Returns 0.
   */
  static int ccs_gc_thread(void *unused)
- {
- 	/* Garbage collector thread is exclusive. */
- 	static DEFINE_MUTEX(ccs_gc_mutex);
--	if (!mutex_trylock(&ccs_gc_mutex))
--		goto out;
-+	static atomic_t ccs_gc_retry = ATOMIC_INIT(0);
-+	if (!mutex_trylock(&ccs_gc_mutex)) {
-+		atomic_set(&ccs_gc_retry, 1);
-+		/* This acts as do_exit(0). */
-+		return 0;
-+	}
- #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
- 	/* daemonize() not needed. */
- #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-@@ -954,15 +894,9 @@
+@@ -953,16 +890,7 @@
+ #endif
  	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
  #endif
- 	do {
-+		atomic_set(&ccs_gc_retry, 0);
- 		ccs_collect_entry();
+-	do {
+-		ccs_collect_entry();
 -		if (list_empty(&ccs_gc_list))
 -			break;
 -#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
@@ -1109,15 +1081,7 @@ Index: security/ccsecurity/gc.c
 -		ccs_synchronize_counter();
 -#endif
 -	} while (ccs_kfree_entry());
-+	} while (atomic_read(&ccs_gc_retry));
++	ccs_collect_entry();
  	{
  		struct ccs_io_buffer *head;
  		struct ccs_io_buffer *tmp;
-@@ -979,7 +913,6 @@
- 		spin_unlock(&ccs_io_buffer_list_lock);
- 	}
- 	mutex_unlock(&ccs_gc_mutex);
--out:
- 	/* This acts as do_exit(0). */
- 	return 0;
- }
