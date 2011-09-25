@@ -157,3 +157,35 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path, NULL);
  }
+--- linux-3.1.0.orig/security/tomoyo/util.c
++++ linux-3.1.0/security/tomoyo/util.c
+@@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
+ 		return TOMOYO_CONFIG_DISABLED;
+ 	mode = tomoyo_profile(ns, profile)->config[index];
+ 	if (mode == TOMOYO_CONFIG_USE_DEFAULT)
+-		mode = tomoyo_profile(ns, profile)->config[category];
++		mode = tomoyo_profile(ns, profile)->config
++			[category + TOMOYO_MAX_MAC_INDEX];
+ 	if (mode == TOMOYO_CONFIG_USE_DEFAULT)
+ 		mode = tomoyo_profile(ns, profile)->default_config;
+ 	return mode & 3;
+--- linux-3.1.0.orig/security/tomoyo/securityfs_if.c
++++ linux-3.1.0/security/tomoyo/securityfs_if.c
+@@ -147,6 +147,7 @@ static int __init tomoyo_initerface_init
+ 			    TOMOYO_MANAGER);
+ 	tomoyo_create_entry("version",          0400, tomoyo_dir,
+ 			    TOMOYO_VERSION);
++	tomoyo_load_builtin_policy();
+ 	return 0;
+ }
+ 
+--- linux-3.1.0.orig/security/tomoyo/domain.c
++++ linux-3.1.0/security/tomoyo/domain.c
+@@ -557,6 +557,7 @@ out:
+ 			tomoyo_write_log(&r, "use_profile %u\n",
+ 					 entry->profile);
+ 			tomoyo_write_log(&r, "use_group %u\n", entry->group);
++			tomoyo_update_stat(TOMOYO_STAT_POLICY_UPDATES);
+ 		}
+ 	}
+ 	return entry;
