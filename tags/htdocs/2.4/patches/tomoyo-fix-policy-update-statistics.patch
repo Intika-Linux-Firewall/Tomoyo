@@ -1,0 +1,22 @@
+[PATCH] TOMOYO: Fix policy update statistics count.
+
+Commit b22b8b9f "TOMOYO: Rename meminfo to stat and show more statistics."
+introduced tomoyo_update_stat() but was by error not called from
+tomoyo_assign_domain(). As a result, statistics counter was not updated
+when a new domain was created by execve().
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/domain.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- linux-3.1.0.orig/security/tomoyo/domain.c
++++ linux-3.1.0/security/tomoyo/domain.c
+@@ -557,6 +557,7 @@ out:
+ 			tomoyo_write_log(&r, "use_profile %u\n",
+ 					 entry->profile);
+ 			tomoyo_write_log(&r, "use_group %u\n", entry->group);
++			tomoyo_update_stat(TOMOYO_STAT_POLICY_UPDATES);
+ 		}
+ 	}
+ 	return entry;
