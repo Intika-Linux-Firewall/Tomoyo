@@ -2,18 +2,30 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget -O linux-3.1-rc6.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc6
- $ tar -zxf linux-3.1-rc6.tar.gz --strip 1 torvalds-linux-8ff0291/security/tomoyo/
+ $ wget -O linux-3.1-rc7.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc7
+ $ tar -zxf linux-3.1-rc7.tar.gz --strip 1 torvalds-linux-4cf670b/security/tomoyo/
 
 .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
+ security/tomoyo/domain.c        |    1 
  security/tomoyo/realpath.c      |   87 ++++++++++++++++++++++++++++++----------
- security/tomoyo/securityfs_if.c |    1 
+ security/tomoyo/securityfs_if.c |    2 
  security/tomoyo/tomoyo.c        |    3 -
- 3 files changed, 68 insertions(+), 23 deletions(-)
+ security/tomoyo/util.c          |    3 -
+ 5 files changed, 72 insertions(+), 24 deletions(-)
 
+--- linux-2.6.34.10.orig/security/tomoyo/domain.c
++++ linux-2.6.34.10/security/tomoyo/domain.c
+@@ -557,6 +557,7 @@ out:
+ 			tomoyo_write_log(&r, "use_profile %u\n",
+ 					 entry->profile);
+ 			tomoyo_write_log(&r, "use_group %u\n", entry->group);
++			tomoyo_update_stat(TOMOYO_STAT_POLICY_UPDATES);
+ 		}
+ 	}
+ 	return entry;
 --- linux-2.6.34.10.orig/security/tomoyo/realpath.c
 +++ linux-2.6.34.10/security/tomoyo/realpath.c
 @@ -76,25 +76,55 @@ char *tomoyo_encode(const char *str)
@@ -145,6 +157,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
+@@ -147,6 +146,7 @@ static int __init tomoyo_initerface_init
+ 			    TOMOYO_MANAGER);
+ 	tomoyo_create_entry("version",          0400, tomoyo_dir,
+ 			    TOMOYO_VERSION);
++	tomoyo_load_builtin_policy();
+ 	return 0;
+ }
+ 
 --- linux-2.6.34.10.orig/security/tomoyo/tomoyo.c
 +++ linux-2.6.34.10/security/tomoyo/tomoyo.c
 @@ -157,7 +157,8 @@ static int tomoyo_inode_getattr(struct v
@@ -157,8 +177,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path, NULL);
  }
---- linux-3.1.0.orig/security/tomoyo/util.c
-+++ linux-3.1.0/security/tomoyo/util.c
+--- linux-2.6.34.10.orig/security/tomoyo/util.c
++++ linux-2.6.34.10/security/tomoyo/util.c
 @@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(ns, profile)->config[index];
@@ -169,23 +189,3 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (mode == TOMOYO_CONFIG_USE_DEFAULT)
  		mode = tomoyo_profile(ns, profile)->default_config;
  	return mode & 3;
---- linux-3.1.0.orig/security/tomoyo/securityfs_if.c
-+++ linux-3.1.0/security/tomoyo/securityfs_if.c
-@@ -147,6 +147,7 @@ static int __init tomoyo_initerface_init
- 			    TOMOYO_MANAGER);
- 	tomoyo_create_entry("version",          0400, tomoyo_dir,
- 			    TOMOYO_VERSION);
-+	tomoyo_load_builtin_policy();
- 	return 0;
- }
- 
---- linux-3.1.0.orig/security/tomoyo/domain.c
-+++ linux-3.1.0/security/tomoyo/domain.c
-@@ -557,6 +557,7 @@ out:
- 			tomoyo_write_log(&r, "use_profile %u\n",
- 					 entry->profile);
- 			tomoyo_write_log(&r, "use_group %u\n", entry->group);
-+			tomoyo_update_stat(TOMOYO_STAT_POLICY_UPDATES);
- 		}
- 	}
- 	return entry;
