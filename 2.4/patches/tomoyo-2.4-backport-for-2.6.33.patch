@@ -2,21 +2,23 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget -O linux-3.1-rc6.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc6
- $ tar -zxf linux-3.1-rc6.tar.gz --strip 1 torvalds-linux-8ff0291/security/tomoyo/
+ $ wget -O linux-3.1-rc7.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc7
+ $ tar -zxf linux-3.1-rc7.tar.gz --strip 1 torvalds-linux-4cf670b/security/tomoyo/
 
 .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.h        |    4 -
+ security/tomoyo/domain.c        |    1 
  security/tomoyo/realpath.c      |   87 ++++++++++++++++++++++++++++++----------
- security/tomoyo/securityfs_if.c |    1 
+ security/tomoyo/securityfs_if.c |    2 
  security/tomoyo/tomoyo.c        |    3 -
- 4 files changed, 70 insertions(+), 25 deletions(-)
+ security/tomoyo/util.c          |    3 -
+ 6 files changed, 74 insertions(+), 26 deletions(-)
 
---- linux-2.6.33.18.orig/security/tomoyo/common.h
-+++ linux-2.6.33.18/security/tomoyo/common.h
+--- linux-2.6.33.19.orig/security/tomoyo/common.h
++++ linux-2.6.33.19/security/tomoyo/common.h
 @@ -1158,7 +1158,7 @@ static inline int tomoyo_round2(size_t s
   */
  #define list_for_each_cookie(pos, head)					\
@@ -27,8 +29,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	for ( ; pos != (head); pos = rcu_dereference(pos->next))
  
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
---- linux-2.6.33.18.orig/security/tomoyo/realpath.c
-+++ linux-2.6.33.18/security/tomoyo/realpath.c
+--- linux-2.6.33.19.orig/security/tomoyo/domain.c
++++ linux-2.6.33.19/security/tomoyo/domain.c
+@@ -557,6 +557,7 @@ out:
+ 			tomoyo_write_log(&r, "use_profile %u\n",
+ 					 entry->profile);
+ 			tomoyo_write_log(&r, "use_group %u\n", entry->group);
++			tomoyo_update_stat(TOMOYO_STAT_POLICY_UPDATES);
+ 		}
+ 	}
+ 	return entry;
+--- linux-2.6.33.19.orig/security/tomoyo/realpath.c
++++ linux-2.6.33.19/security/tomoyo/realpath.c
 @@ -76,25 +76,55 @@ char *tomoyo_encode(const char *str)
   *
   * Returns the buffer on success, an error code otherwise.
@@ -148,8 +160,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  encode:
  		if (IS_ERR(pos))
  			continue;
---- linux-2.6.33.18.orig/security/tomoyo/securityfs_if.c
-+++ linux-2.6.33.18/security/tomoyo/securityfs_if.c
+--- linux-2.6.33.19.orig/security/tomoyo/securityfs_if.c
++++ linux-2.6.33.19/security/tomoyo/securityfs_if.c
 @@ -93,7 +93,6 @@ static const struct file_operations tomo
  	.poll    = tomoyo_poll,
  	.read    = tomoyo_read,
@@ -158,8 +170,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
---- linux-2.6.33.18.orig/security/tomoyo/tomoyo.c
-+++ linux-2.6.33.18/security/tomoyo/tomoyo.c
+@@ -147,6 +146,7 @@ static int __init tomoyo_initerface_init
+ 			    TOMOYO_MANAGER);
+ 	tomoyo_create_entry("version",          0400, tomoyo_dir,
+ 			    TOMOYO_VERSION);
++	tomoyo_load_builtin_policy();
+ 	return 0;
+ }
+ 
+--- linux-2.6.33.19.orig/security/tomoyo/tomoyo.c
++++ linux-2.6.33.19/security/tomoyo/tomoyo.c
 @@ -157,7 +157,8 @@ static int tomoyo_inode_getattr(struct v
   *
   * Returns 0 on success, negative value otherwise.
@@ -170,8 +190,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path, NULL);
  }
---- linux-3.1.0.orig/security/tomoyo/util.c
-+++ linux-3.1.0/security/tomoyo/util.c
+--- linux-2.6.33.19.orig/security/tomoyo/util.c
++++ linux-2.6.33.19/security/tomoyo/util.c
 @@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(ns, profile)->config[index];
@@ -182,23 +202,3 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (mode == TOMOYO_CONFIG_USE_DEFAULT)
  		mode = tomoyo_profile(ns, profile)->default_config;
  	return mode & 3;
---- linux-3.1.0.orig/security/tomoyo/securityfs_if.c
-+++ linux-3.1.0/security/tomoyo/securityfs_if.c
-@@ -147,6 +147,7 @@ static int __init tomoyo_initerface_init
- 			    TOMOYO_MANAGER);
- 	tomoyo_create_entry("version",          0400, tomoyo_dir,
- 			    TOMOYO_VERSION);
-+	tomoyo_load_builtin_policy();
- 	return 0;
- }
- 
---- linux-3.1.0.orig/security/tomoyo/domain.c
-+++ linux-3.1.0/security/tomoyo/domain.c
-@@ -557,6 +557,7 @@ out:
- 			tomoyo_write_log(&r, "use_profile %u\n",
- 					 entry->profile);
- 			tomoyo_write_log(&r, "use_group %u\n", entry->group);
-+			tomoyo_update_stat(TOMOYO_STAT_POLICY_UPDATES);
- 		}
- 	}
- 	return entry;
