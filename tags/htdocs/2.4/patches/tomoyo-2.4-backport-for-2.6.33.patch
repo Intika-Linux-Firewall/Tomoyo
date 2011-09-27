@@ -10,12 +10,12 @@ Apply this patch after overwriting security/tomoyo/ directory by doing
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.h        |    4 -
- security/tomoyo/domain.c        |    1 
+ security/tomoyo/domain.c        |    4 +
  security/tomoyo/realpath.c      |   87 ++++++++++++++++++++++++++++++----------
  security/tomoyo/securityfs_if.c |    2 
  security/tomoyo/tomoyo.c        |    3 -
  security/tomoyo/util.c          |    3 -
- 6 files changed, 74 insertions(+), 26 deletions(-)
+ 6 files changed, 76 insertions(+), 27 deletions(-)
 
 --- linux-2.6.33.19.orig/security/tomoyo/common.h
 +++ linux-2.6.33.19/security/tomoyo/common.h
@@ -31,7 +31,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
 --- linux-2.6.33.19.orig/security/tomoyo/domain.c
 +++ linux-2.6.33.19/security/tomoyo/domain.c
-@@ -557,6 +557,7 @@ out:
+@@ -501,7 +501,8 @@ struct tomoyo_domain_info *tomoyo_assign
+ 			 * that domain. Do not perform domain transition if
+ 			 * profile for that domain is not yet created.
+ 			 */
+-			if (!entry->ns->profile_ptr[entry->profile])
++			if (tomoyo_policy_loaded &&
++			    !entry->ns->profile_ptr[entry->profile])
+ 				return NULL;
+ 		}
+ 		return entry;
+@@ -557,6 +558,7 @@ out:
  			tomoyo_write_log(&r, "use_profile %u\n",
  					 entry->profile);
  			tomoyo_write_log(&r, "use_group %u\n", entry->group);
