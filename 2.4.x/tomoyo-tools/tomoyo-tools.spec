@@ -7,7 +7,7 @@ Summary: Userspace tools for TOMOYO Linux 2.4.x
 
 Name: tomoyo-tools
 Version: 2.4.0
-Release: 2
+Release: 3
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -20,9 +20,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.4.0-2
+Conflicts: tomoyo-tools < 2.4.0-3
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/52848/tomoyo-tools-2.4.0-20110820.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/52848/tomoyo-tools-2.4.0-20110929.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.4.
@@ -58,6 +58,11 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Thu Sep 29 2011 2.4.0-3
+- Fix build failure with --as-needed option.
+- Remove redundant/unused code.
+- Revert include/sched.h inclusion and bring "#define _GNU_SOURCE" to the top.
+
 * Sat Aug 20 2011 2.4.0-2
 - Add /proc/self/exe as aggregator entry.
 - Fix policy unpacking when multiple namespaces exist.

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0+   2011/08/20
+ * Version: 2.4.0+   2011/09/29
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -118,7 +118,6 @@ static FILE *profile_fp = NULL;
 static FILE *domain_fp = NULL;
 static FILE *exception_fp = NULL;
 static char self_domain[4096] = "";
-static int is_kernel26 = 0;
 static pid_t pid = 0;
 
 static void clear_status(void)
@@ -220,18 +219,6 @@ static void ccs_test_init(void)
 		exit(1);
 	}
 	clear_status();
-	{
-		FILE *fp = fopen("/proc/sys/kernel/osrelease", "r");
-		int version = 0;
-		if (!fp || (fscanf(fp, "2.%d.", &version) != 1 &&
-			    fscanf(fp, "%d.", &version) != 1) || fclose(fp)) {
-			fprintf(stderr, "Can't read /proc/sys/kernel/osrelease"
-				"\n");
-			exit(1);
-		}
-		if (version == 6 || version == 3)
-			is_kernel26 = 1;
-	}
 	{
 		FILE *fp = fopen(proc_policy_self_domain, "r");
 		memset(self_domain, 0, sizeof(self_domain));
