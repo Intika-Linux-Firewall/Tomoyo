@@ -5,7 +5,7 @@
  *
  * Version: 1.8.2   2011/06/20
  *
- * This dummy filesystem is for 2.6.29. Build with "obj-y += dummyfs.o
+ * This dummy filesystem is for 2.6.29. Build with "obj-y += dummyfs.o".
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
