@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.2+   2011/08/20
+ * Version: 1.8.3   2011/09/29
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1237,24 +1237,18 @@ int ccs_open_stream(const char *filename)
  *
  * @dp:          Pointer to "const struct ccs_domain_policy".
  * @domainname0: Name of domain to find.
- * @is_dis:      True if the domain acts as domain initialize source, false
- *               otherwise.
- * @is_dd:       True if the domain is marked as deleted, false otherwise.
  *
  * Returns index number (>= 0) in the @dp array if found, EOF otherwise.
  */
 int ccs_find_domain(const struct ccs_domain_policy *dp,
-		    const char *domainname0, const _Bool is_dis,
-		    const _Bool is_dd)
+		    const char *domainname0)
 {
 	int i;
 	struct ccs_path_info domainname;
 	domainname.name = domainname0;
 	ccs_fill_path_info(&domainname);
 	for (i = 0; i < dp->list_len; i++) {
-		if (dp->list[i].is_dis == is_dis &&
-		    dp->list[i].is_dd == is_dd &&
-		    !ccs_pathcmp(&domainname, dp->list[i].domainname))
+		if (!ccs_pathcmp(&domainname, dp->list[i].domainname))
 			return i;
 	}
 	return EOF;
@@ -1265,20 +1259,16 @@ int ccs_find_domain(const struct ccs_domain_policy *dp,
  *
  * @dp:         Pointer to "struct ccs_domain_policy".
  * @domainname: Name of domain to find.
- * @is_dis:     True if the domain acts as domain initialize source, false
- *              otherwise.
- * @is_dd:      True if the domain is marked as deleted, false otherwise.
  *
  * Returns index number (>= 0) in the @dp array if created or already exists,
  * abort otherwise.
  */
-int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
-		      const _Bool is_dis, const _Bool is_dd)
+int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname)
 {
-	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
+	int index = ccs_find_domain(dp, domainname);
 	if (index >= 0)
 		return index;
-	if (!is_dis && !ccs_correct_domain(domainname)) {
+	if (!ccs_correct_domain(domainname)) {
 		fprintf(stderr, "Invalid domainname '%s'\n", domainname);
 		ccs_out_of_memory();
 	}
@@ -1287,8 +1277,6 @@ int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
 			       sizeof(struct ccs_domain_info));
 	memset(&dp->list[index], 0, sizeof(struct ccs_domain_info));
 	dp->list[index].domainname = ccs_savename(domainname);
-	dp->list[index].is_dis = is_dis;
-	dp->list[index].is_dd = is_dd;
 	return index;
 }
 
@@ -1983,19 +1971,17 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 		ccs_str_starts(line, "domain=");
 		if (ccs_domain_def(line)) {
 			if (is_delete) {
-				index = ccs_find_domain(dp, line, false,
-							false);
+				index = ccs_find_domain(dp, line);
 				if (index >= 0)
 					ccs_delete_domain(dp, index);
 				index = EOF;
 				continue;
 			}
 			if (is_select) {
-				index = ccs_find_domain(dp, line, false,
-							false);
+				index = ccs_find_domain(dp, line);
 				continue;
 			}
-			index = ccs_assign_domain(dp, line, false, false);
+			index = ccs_assign_domain(dp, line);
 			continue;
 		}
 		if (index == EOF || !line[0])

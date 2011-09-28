@@ -89,17 +89,9 @@ struct ccs_number_entry {
 
 struct ccs_domain_info {
 	const struct ccs_path_info *domainname;
-	const char *target_domainname; /* This may be NULL */
-	const struct ccs_transition_control_entry *d_t; /* This may be NULL */
 	const struct ccs_path_info **string_ptr;
 	int string_count;
-	int number;   /* domain number (-1 if is_dis or is_dd) */
 	u8 profile;
-	_Bool is_dis; /* domain initializer source */
-	_Bool is_dit; /* domain initializer target */
-	_Bool is_dk;  /* domain keeper */
-	_Bool is_du;  /* unreachable domain */
-	_Bool is_dd;  /* deleted domain */
 	_Bool profile_assigned;
 	u8 group;
 };
@@ -150,13 +142,11 @@ const char *ccs_domain_name(const struct ccs_domain_policy *dp,
 const struct ccs_path_info *ccs_savename(const char *name);
 int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index);
-int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
-		      const _Bool is_dis, const _Bool is_dd);
+int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname);
 int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 			 const int index);
 int ccs_find_domain(const struct ccs_domain_policy *dp,
-		    const char *domainname0, const _Bool is_dis,
-		    const _Bool is_dd);
+		    const char *domainname0);
 int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
 			   const struct ccs_path_info *domainname);
 int ccs_open_stream(const char *filename);
