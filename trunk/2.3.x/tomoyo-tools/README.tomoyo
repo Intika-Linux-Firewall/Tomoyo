@@ -37,3 +37,24 @@ Version 2.3.0p2 2011/05/11   Minor update release.
 
   /usr/sbin/tomoyo-editpolicy
      Allow configuring background color.
+
+Version 2.3.0p3 2011/09/29   Minor update release.
+
+  Fix build failure with --as-needed option.
+
+  Bring "#define _GNU_SOURCE" to the top in order to make sure that CLONE_NEWNS is defined.
+
+  Remove redundant/unused code.
+
+  /usr/lib/tomoyo/init_policy
+    Print library file's pathnames using wildcard patterns.
+
+  /usr/sbin/tomoyo-editpolicy
+    Allow use of 'O' key from to exception policy editor screen.
+    Fix segmentation fault error when '@' key is pressed from process viewer screen.
+
+  /usr/sbin/tomoyo-checkpolicy
+    Fix validation with "number_group" lines.
+
+  /usr/sbin/tomoyo-queryd
+    Ignore patterned "allow_read" lines in exception policy.

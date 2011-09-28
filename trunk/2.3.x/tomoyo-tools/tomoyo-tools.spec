@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: tomoyo-tools
 Version: 2.3.0
-Release: 3
+Release: 4
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: tomoyo-tools < 2.3.0-3
+Conflicts: tomoyo-tools < 2.3.0-4
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/48663/tomoyo-tools-2.3.0-20110511.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/48663/tomoyo-tools-2.3.0-20110929.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.3.x.
@@ -41,6 +41,16 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
+* Thu Sep 29 2011 2.3.0-4
+- Fix build failure with --as-needed option.
+- Bring "#define _GNU_SOURCE" to the top in order to make sure that CLONE_NEWNS is defined.
+- Remove redundant/unused code.
+- init_policy: Print library file's pathnames using wildcard patterns.
+- tomoyo-editpolicy: Allow use of 'O' key from to exception policy editor screen.
+- tomoyo-editpolicy: Fix segmentation fault error when '@' key is pressed from process viewer screen.
+- tomoyo-checkpolicy: Fix validation with "number_group" lines.
+- tomoyo-queryd: Ignore patterned "allow_read" lines in exception policy.
+
 * Wed May 11 2011 2.3.0-3
 - Fix build error on parallel build.
 - Fix wrong domainname validation.

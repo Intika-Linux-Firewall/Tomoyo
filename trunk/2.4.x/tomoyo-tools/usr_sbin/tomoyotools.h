@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0+   2011/08/20
+ * Version: 2.4.0+   2011/09/29
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -160,7 +160,6 @@ int ccs_find_domain(const struct ccs_domain_policy *dp,
 int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
 			   const struct ccs_path_info *domainname);
 int ccs_open_stream(const char *filename);
-int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry);
 int ccs_parse_number(const char *number, struct ccs_number_entry *entry);
 int ccs_string_compare(const void *a, const void *b);
 int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd);
