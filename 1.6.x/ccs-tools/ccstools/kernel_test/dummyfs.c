@@ -1,4 +1,4 @@
-/* This dummy filesystem is for 2.6.29. Build with "obj-y += dummyfs.o" */
+/* This dummy filesystem is for 2.6.29. Build with "obj-y += dummyfs.o". */
 #include <linux/fs.h>
 #include <linux/init.h>
 

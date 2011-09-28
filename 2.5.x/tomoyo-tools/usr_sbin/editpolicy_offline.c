@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0   2011/08/06
+ * Version: 2.5.0   2011/09/29
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -790,7 +790,7 @@ struct ccs_policy_namespace {
 	struct list_head acl_group[CCS_MAX_ACL_GROUPS];
 	/* List for connecting to ccs_namespace_list list. */
 	struct list_head namespace_list;
-	/* Profile version. 20100903 and 20110903 are defined. */
+	/* Profile version. Currently only 20110903 is defined. */
 	unsigned int profile_version;
 	/* Name of this namespace (e.g. "<kernel>", "</usr/sbin/httpd>" ). */
 	const char *name;
