@@ -19,7 +19,7 @@ libccstools.so: ccstools.c ccstools.h
 	ln -sf libccstools.so.2.0.2 libccstools.so
 
 .c:
-	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
+	$(CC) $(CFLAGS) -o $@ $< -lccstools -L. 
 
 ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so
 	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON

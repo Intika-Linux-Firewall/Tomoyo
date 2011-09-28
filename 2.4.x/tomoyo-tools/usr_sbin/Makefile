@@ -19,7 +19,7 @@ libtomoyotools.so: tomoyotools.c tomoyotools.h
 	ln -sf libtomoyotools.so.2.0.1 libtomoyotools.so
 
 .c:
-	$(CC) $(CFLAGS) -o $@ -ltomoyotools -L. $<
+	$(CC) $(CFLAGS) -o $@ $< -ltomoyotools -L. 
 
 tomoyo-editpolicy: tomoyotools.h editpolicy*.c readline.h /usr/include/curses.h libtomoyotools.so
 	$(CC) $(CFLAGS) -o tomoyo-editpolicy editpolicy*.c -lncurses -ltomoyotools -L. -DCOLOR_ON
