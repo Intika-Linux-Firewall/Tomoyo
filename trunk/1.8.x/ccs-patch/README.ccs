@@ -2945,3 +2945,38 @@ Fix 2011/09/03
       Garbage collector thread is created using kthread_create() since 2.6.7.
       Kernel threads created by kthread_create() does not need to call
       daemonize().
+
+Fix 2011/09/16
+
+    @ Allow specifying domain transition preference.
+
+      I got an opinion that it is difficult to use exception policy's domain
+      transition control directives because they need to match the pathname
+      specified to "file execute" directives. For example, if "file execute
+      /bin/\*\-ls\-cat" is given, corresponding domain transition control
+      directive needs to be like "no_keep_domain /bin/\*\-ls\-cat from any".
+
+      To solve this difficulty, I introduced optional argument that supersedes
+      exception policy's domain transition control directives.
+
+        file execute /bin/ls keep exec.realpath="/bin/ls" exec.argv[0]="ls"
+        file execute /bin/cat keep exec.realpath="/bin/cat" exec.argv[0]="cat"
+        file execute /bin/\*\-ls\-cat child
+        file execute /usr/sbin/httpd <apache> exec.realpath="/usr/sbin/httpd" exec.argv[0]="/usr/sbin/httpd"
+
+      This argument allows transition to different domains based on conditions.
+
+        <kernel> /usr/sbin/sshd
+        file execute /bin/bash <kernel> /usr/sbin/sshd //batch-session exec.argc=2 exec.argv[1]="-c"
+        file execute /bin/bash <kernel> /usr/sbin/sshd //root-session task.uid=0
+        file execute /bin/bash <kernel> /usr/sbin/sshd //nonroot-session task.uid!=0
+
+Fix 2011/09/25
+
+    @ Simplify garbage collector.
+
+      It turned out that use of batched processing tends to choke garbage
+      collector when certain pattern of entries are queued. Thus, I replaced it
+      with sequential processing.
+
+Version 1.8.3   2011/XX/XX   Usability enhancement release.
