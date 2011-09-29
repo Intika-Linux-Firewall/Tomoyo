@@ -61,6 +61,7 @@ ldconfig || true
 * Thu Sep 29 2011 1.8.3-1
 - Fix build failure with --as-needed option.
 - Let ccs-editpolicy handle domain transition preference.
+- Let ccs-checkpolicy handle domain transition preference.
 
 * Fri Sep 16 2011 1.8.2-6
 - Fix infinite recursion when parsing acl_group entries in exception policy.
