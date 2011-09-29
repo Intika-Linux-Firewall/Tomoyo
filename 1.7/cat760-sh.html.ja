@@ -371,6 +371,8 @@ mount -o remount,rw /
 mount -o remount,ro /
 </pre>
 
+<p>ccs-savepolicy コマンドは ccs-savepolicy コマンドが実行された時点のポリシーしか保存できません。そのため、 ccs-savepolicy コマンド自身が必要とするアクセス許可を学習させるために、 ccs-savepolicy コマンドを２回実行しています。また、 ccs-savepolicy コマンドが実行されるタイミングでは既にファイルシステムが読み込み専用モードになってしまっているため、そのままではポリシーディレクトリに書き込みができません。そのため、一時的に読み書きモードに変更するためのアクセス許可と読み込み専用モードに戻すためのアクセス許可を学習させるために、 mount コマンドを ccs-savepolicy コマンドの実行前に２回実行しています。同様に halt コマンドのアクセス許可も学習させるために、 halt コマンドを ccs-savepolicy コマンドの実行前に１回実行しています。</p>
+
 <p>同様に、 etc/init.d/reboot の reboot -d -f -i の直前に以下の内容を追加します。</p>
 
 <pre>
