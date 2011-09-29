@@ -48,9 +48,13 @@
 
 <p>Any occurrence of <strong>[source]</strong> represents either the current domain name (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash ), or the last part of the current domain name (e.g. /bin/bash ).</p>
 
+<p>Any occurrence of <strong>[current_domain]</strong> represents the current domain name (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash ).</p>
+
+<p>Any occurrence of <strong>[current_namespace]</strong> represents the current domain's namespace name (e.g. &lt;kernel&gt; if &lt;kernel&gt; /usr/sbin/sshd /bin/bash ).</p>
+
 <p>Any occurrence of <strong>[destination]</strong> represents domainname to transit to when the program execution request succeeds (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat ).</p>
 
-<p>Any occurrence of <strong>[candidate]</strong> represents a pathname which is subjected to permission checks (e.g. /bin/cat ) and is used or calculating [destination] .</p>
+<p>Any occurrence of <strong>[candidate]</strong> represents a pathname which is subjected to permission checks (e.g. /bin/cat ).</p>
 
 <div class="simple-table-wrap">
 <table>
@@ -73,27 +77,31 @@ then set the [pathname] as the [candidate] .</p></td>
 <td><p>(3) Check for file execute directive</p></td>
 <td><p>If domain policy contains<br>
 &nbsp;&nbsp;"<a href="domain-policy-syntax.html.en#file_execute">file execute</a> [candidate] keep"<br>
-then set the current domain as the [destination] and jump to step (5).</p>
+then set the [current_domain] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
 &nbsp;&nbsp;"file execute [candidate] child"<br>
-then set concatenation of "the current domain name" and "[candidate]" as the [destination] and jump to step (5).</p>
+then set the [current_domain] [candidate] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
 &nbsp;&nbsp;"file execute [candidate] reset"<br>
-then set the "&lt;candidate&gt;" domain as the [destination] and jump to step (5).</p>
+then set the &lt;[candidate]&gt; as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
 &nbsp;&nbsp;"file execute [candidate] initialize"<br>
-then set the parent of current domain as the [destination] and jump to step (5).</p>
+then set the [current_namespace] [candidate] as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;"file execute [candidate] parent"<br>
+then set the parent of [current_domain] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
 &nbsp;&nbsp;"file execute [candidate] [domainname]"<br>
-then set the "[domainname]" domain as the [destination] and jump to step (5).</p>
+then set the [domainname] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
 &nbsp;&nbsp;"file execute [candidate] [pathname]"<br>
-then set concatenation of "the current domain name" and "[pathname]" as the [destination] and jump to step (5).</p>
+then set the [current_domain] [pathname] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
 &nbsp;&nbsp;"file execute [candidate]"<br>
@@ -112,7 +120,7 @@ and contains none of<br>
 &nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#no_reset_domain">no_reset_domain</a> [candidate] from [source]"<br>
 &nbsp;&nbsp;"no_reset_domain any from [source]"<br>
 &nbsp;&nbsp;"no_reset_domain any from any"<br>
-then set "&lt;[candidate]&gt;" as the [destination] and jump to step (5).</p>
+then set the &lt;[candidate]&gt; as the [destination] and jump to step (5).</p>
 <br>
 <p>
 Secondly, if exception policy contains one of<br>
@@ -123,7 +131,7 @@ and contains none of<br>
 &nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> [candidate] from [source]"<br>
 &nbsp;&nbsp;"no_initialize_domain any from [source]"<br>
 &nbsp;&nbsp;"no_initialize_domain any from any"<br>
-then set "&lt;kernel&gt; [candidate]" as the [destination] and jump to step (5).</p>
+then set the [current_namespace] [candidate] as the [destination] and jump to step (5).</p>
 <br>
 <p>
 Thirdly, if exception policy contains one of<br>
@@ -134,10 +142,10 @@ and cintains none of<br>
 &nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> [candidate] from [source]"<br>
 &nbsp;&nbsp;"no_keep_domain any from [source]"<br>
 &nbsp;&nbsp;"no_keep_domain any from any"<br>
-then set the current domain as the [destination] and jump to step (5).
+then set the [current_domain] as the [destination] and jump to step (5).
 </p>
 <br>
-<p>Fourthly, set concatenation of "the current domain name" and "[candidate]" as the [destination] .</p></td>
+<p>Fourthly, set the [current_domain] [candidate] as the [destination] .</p></td>
 </tr>
 <tr>
 <td><p>(5) Create destination domain</p></td>
