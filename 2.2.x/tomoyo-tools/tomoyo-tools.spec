@@ -1,4 +1,4 @@
-Summary: TOMOYO Linux tools
+Summary: Userspace tools for TOMOYO Linux 2.2.x
 
 Name: tomoyo-tools
 Version: 2.2.0
@@ -13,7 +13,8 @@ Conflicts: tomoyo-tools < 2.2.0-3
 Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20110211.tar.gz
 
 %description
-This is TOMOYO Linux tools.
+This package contains userspace tools for administrating TOMOYO Linux 2.2.x.
+Please see http://tomoyo.sourceforge.jp/2.2/ for documentation.
 
 %prep
 

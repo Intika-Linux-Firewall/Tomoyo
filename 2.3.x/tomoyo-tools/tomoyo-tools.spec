@@ -1,4 +1,4 @@
-Summary: TOMOYO Linux tools
+Summary: Userspace tools for TOMOYO Linux 2.3.x
 
 Name: tomoyo-tools
 Version: 2.3.0
