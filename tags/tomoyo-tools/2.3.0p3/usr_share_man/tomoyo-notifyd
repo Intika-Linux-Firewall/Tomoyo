@@ -1,0 +1,45 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+tomoyo-notifyd 2.3.0
+
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: tomoyo-notifyd timeout action
+
+This program detects policy violation in enforcing mode and notify users (e.g. send a mail). You can know the first occurence of policy violation in enforcing mode as soon as possible. You may use this program for holding your judgement of the request that violates policy in enforcing mode provided that you can login to the system and start "tomoyo-queryd" command for responding within timeout seconds.
+
+Examples:
+
+# tomoyo-notifyd 180 'mail admin@example.com'
+        Wait for 180 seconds before rejecting the request. The occurrence is notified by sending mail to admin@example.com (if SMTP service is available).
+
+# tomoyo-notifyd 0 'curl --data-binary @- https://your.server/path_to_cgi'
+        Reject the request immediately. The occurrence is notified by executing curl command.
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "Notify TOMOYO Linux's policy violation" $0 | gzip -9 > man8/tomoyo-notifyd.8.gz
+[SEE ALSO]
+
+ tomoyo-queryd (8)
+
+[NOTES]
+
+ You need to register either path to this program ( /usr/lib/tomoyo/tomoyo-notifyd ) or a domain for this program in /sys/kernel/security/tomoyo/manager before invoking this program if you set non-zero value for timeout.
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0

@@ -1,0 +1,56 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+tomoyo-editpolicy-agent 2.3.0
+
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: tomoyo-editpolicy-agent listen_ip:listen_port
+
+This is an agent program for tomoyo-editpolicy tomoyo-loadpolicy tomoyo-savepolicy tomoyo-tomoyotree tomoyo-queryd tomoyo-auditd .
+
+ listen_ip:listen_port     Listen at specified IP address and port number. 
+
+Examples:
+
+# tomoyo-editpolicy-agent 192.168.1.1:10000
+ Listen at 192.168.1.1 port 10000 .
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "Agent for editing TOMOYO Linux's policy" $0 | gzip -9 > man8/tomoyo-editpolicy-agent.8.gz
+[SEE ALSO]
+
+ tomoyo-editpolicy (8)
+ tomoyo-loadpolicy (8)
+ tomoyo-savepolicy (8)
+ tomoyo-pstree (8)
+ tomoyo-queryd (8)
+ tomoyo-auditd (8)
+
+[NOTES]
+
+ Don't run this program unless you know what you are doing.
+
+ This program allows anonymous users to edit policy. No user authentication is performed.
+
+ This program is designed for systems which running tomoyo-editpolicy is difficult due to resource limitation.
+ This program is not designed for PC and servers.
+
+ You need to register either path to this program or a domain for this program in /sys/kernel/security/tomoyo/manager before invoking this program.
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0
