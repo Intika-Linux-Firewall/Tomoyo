@@ -36,7 +36,9 @@ struct module;
 #include <net/if.h>
 #include <stdarg.h>
 
-#define TOMOYO_2
+#if (!defined(TOMOYO_2) && !defined(TOMOYO_1)) || (defined(TOMOYO_2) && defined(TOMOYO_1))
+#error Pass either -DTOMOYO_2 or -DTOMOYO_1
+#endif
 
 static char *freadline(FILE *fp)
 {
