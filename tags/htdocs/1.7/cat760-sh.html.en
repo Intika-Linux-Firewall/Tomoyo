@@ -371,6 +371,8 @@ mount -o remount,rw /
 mount -o remount,ro /
 </pre>
 
+<p>ccs-savepolicy command can save only policy snapshot as of ccs-savepolicy command is executed. Therefore, ccs-savepolicy command needs to be executed twice in order to make sure that permissions needed by ccs-savepolicy command itself are included into the policy snapshot. Also, policy files cannot be saved as of ccs-savepolicy is executed because the filesystem is already remounted as read-only. Therefore, mount command needs to be executed twice before ccs-savepolicy command is executed in order to make sure that permissions needed for temporarily remounting the filesystem as read-write and again remounting the filesystem as read-only are included into the policy snapshot. Likewise, halt command is executed once before ccs-savepolicy command is executed.</p>
+
 <p>Similarly, add below lines to just before "reboot -d -f -i" in etc/init.d/reboot .</p>
 
 <pre>
