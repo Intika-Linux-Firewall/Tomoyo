@@ -351,6 +351,31 @@ static _Bool ccs_check_domain(char *arg)
 	return ccs_prune_word(arg, cp);
 }
 
+static _Bool ccs_check_transition(char *arg)
+{
+	char *cp;
+	_Bool conflict = strstr(arg, " auto_domain_transition=") != NULL;
+	if (*arg == '<')
+		return !conflict && ccs_check_domain(arg);
+	cp = strchr(arg, ' ');
+	if (cp)
+		*cp++ = '\0';
+	if (ccs_correct_path(arg) || !strcmp(arg, "keep") ||
+	    !strcmp(arg, "initialize") || !strcmp(arg, "reset") ||
+	    !strcmp(arg, "child") || !strcmp(arg, "parent"))
+		return !conflict && ccs_prune_word(arg, cp);
+	if (cp)
+		*--cp = ' ';
+	return true;
+}
+
+static _Bool ccs_check_path_transition(char *arg)
+{
+	if (!ccs_check_path(arg))
+		return false;
+	return ccs_check_transition(arg);
+}
+
 static _Bool ccs_check_capability(char *arg)
 {
 	static const char * const list[] = {
@@ -544,7 +569,7 @@ static _Bool ccs_check_file(char *arg)
 		{ "chown", ccs_check_path_number },
 		{ "chroot", ccs_check_path },
 		{ "create", ccs_check_path_number },
-		{ "execute", ccs_check_path },
+		{ "execute", ccs_check_path_transition },
 		{ "getattr", ccs_check_path },
 		{ "ioctl", ccs_check_path_number },
 		{ "link", ccs_check_path2 },
@@ -608,8 +633,8 @@ static _Bool ccs_check_domain_policy2(char *policy)
 		{ "misc env ", ccs_check_path },
 		{ "network ", ccs_check_network },
 		{ "task auto_domain_transition ", ccs_check_domain },
-		{ "task auto_execute_handler ", ccs_check_path },
-		{ "task denied_execute_handler ", ccs_check_path },
+		{ "task auto_execute_handler ", ccs_check_path_transition },
+		{ "task denied_execute_handler ", ccs_check_path_transition },
 		{ "task manual_domain_transition ", ccs_check_domain },
 		{ }
 	};
