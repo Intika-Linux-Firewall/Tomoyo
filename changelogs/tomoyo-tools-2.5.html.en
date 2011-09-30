@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux tomoyo-tools 2.3.x ChangeLog</title>
+<title>TOMOYO Linux tomoyo-tools 2.5.x ChangeLog</title>
 </head>
 
 <body>
@@ -29,52 +29,12 @@
 
 <div id="changelogs">
 
-<h4>ChangeLog for tomoyo-tools 2.3.0</h4>
+<h4>ChangeLog for tomoyo-tools 2.5.0</h4>
 
 <pre>
-Version 2.3.0p3 2011/09/29   Minor update release.
+Version 2.5.0   2011/09/29   Major update release.
 
-  Fix build failure with --as-needed option.
-
-  Bring "#define _GNU_SOURCE" to the top in order to make sure that CLONE_NEWNS is defined.
-
-  Remove redundant/unused code.
-
-  /usr/lib/tomoyo/init_policy
-    Print library file's pathnames using wildcard patterns.
-
-  /usr/sbin/tomoyo-editpolicy
-    Allow use of 'O' key from to exception policy editor screen.
-    Fix segmentation fault error when '@' key is pressed from process viewer screen.
-
-  /usr/sbin/tomoyo-checkpolicy
-    Fix validation with "number_group" lines.
-
-  /usr/sbin/tomoyo-queryd
-    Ignore patterned "allow_read" lines in exception policy.
-
-Version 2.3.0p2 2011/05/11   Minor update release.
-
-  Fix build error on parallel build.
-
-  /usr/lib/libtomoyotools.so.1
-    Fix wrong domainname validation.
-
-  /usr/sbin/tomoyo-editpolicy
-     Allow configuring background color.
-
-Version 2.3.0p1 2011/02/11   Bugfix release.
-
-  /sbin/tomoyo-init
-    Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.
-    Wait for /etc/tomoyo/tomoyo-post-init in a more reliable way.
-
-  /usr/sbin/tomoyo-diffpolicy
-    Fix regression introduced when fixing old/new inversion bug.
-
-Version 2.3.0 2010/08/20   Major update release.
-
-  Various enhancements were added to kernel 2.6.36.
+  Rebased using ccs-tools-1.8.3.
 </pre>
 
 </div><!-- changelog -->
