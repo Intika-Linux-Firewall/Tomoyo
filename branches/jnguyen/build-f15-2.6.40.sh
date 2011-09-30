@@ -6,12 +6,12 @@ URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.2p3"
-CCSPATCH_VER="1.8.2-20110903"
+CCS_VER="1.8.3"
+CCSPATCH_VER="1.8.3-20110929"
 KERNEL_VER="2.6.40.4-5.fc15"
 
 UPDATED_DIFF=0
-CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15.diff"
+CCSDIFF_NAME="ccs-patch-3.0.diff"
 
 # only required if using updated revision
 #UPDATED_DIFF=1
@@ -39,7 +39,7 @@ patch_spec() {
 	cat << "EOF"
 --- ccs-kernel.spec
 +++ ccs-kernel.spec
-@@ -23,7 +23,7 @@
+@@ -18,7 +18,7 @@
  #
  # (Uncomment the '#' and both spaces below to set the buildid.)
  #
@@ -48,7 +48,7 @@ patch_spec() {
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -427,6 +427,11 @@
+@@ -402,6 +402,11 @@
  # to versions below the minimum
  #
  
@@ -60,7 +60,7 @@ patch_spec() {
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -486,7 +491,7 @@
+@@ -461,7 +466,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -69,7 +69,7 @@ patch_spec() {
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -870,7 +875,7 @@
+@@ -803,7 +808,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -78,7 +78,7 @@ patch_spec() {
  This package provides kernel headers and 
  makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
-@@ -1397,6 +1402,10 @@
+@@ -1239,6 +1244,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch_spec() {
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1425,6 +1434,9 @@
+@@ -1267,6 +1276,9 @@
  for i in *.config
  do
    mv $i .config
@@ -102,7 +102,7 @@ patch_spec() {
 EOF
 }
 
-# before applying the patch, replace the placeholder variables with the real values
+# Before applying the patch, replace the placeholder variables with the real values.
 msg "Patching ccs-kernel.spec ..."
 if [[ "${UPDATED_DIFF}" = 0 ]]; then
 	patch_spec | sed -e "s#\${CCS_VER}#${CCS_VER}#g" \

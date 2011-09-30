@@ -5,7 +5,7 @@
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49693"
 
 ARCH="$(uname -m)"
-CCSTOOLS_VER="1.8.2-20110820"
+CCSTOOLS_VER="1.8.3-20110929"
 
 setup_rpmbuild_tree
 enter_dir "${SOURCE_DIR}"
