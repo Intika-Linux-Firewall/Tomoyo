@@ -74,35 +74,35 @@
 <tr>
 <td><p>(3) file execute ディレクティブのチェック</p></td>
 <td><p>ドメインポリシーに<br>
-&nbsp;&nbsp;"<a href="domain-policy-syntax.html.ja#file_execute">file execute</a> [candidate] keep"<br>
+&nbsp;&nbsp;<a href="domain-policy-syntax.html.ja#file_execute">file execute</a> [candidate] keep<br>
 というエントリが存在している場合、 [current_domain] を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>ドメインポリシーに<br>
-&nbsp;&nbsp;"file execute [candidate] child"<br>
+&nbsp;&nbsp;file execute [candidate] child<br>
 というエントリが存在している場合、 [current_domain] [candidate] を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>ドメインポリシーに<br>
-&nbsp;&nbsp;"file execute [candidate] reset"<br>
+&nbsp;&nbsp;file execute [candidate] reset<br>
 というエントリが存在している場合、 &lt;[candidate]&gt; を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>ドメインポリシーに<br>
-&nbsp;&nbsp;"file execute [candidate] initialize"<br>
+&nbsp;&nbsp;file execute [candidate] initialize<br>
 というエントリが存在している場合、 [current_namespace] [candidate] を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>ドメインポリシーに<br>
-&nbsp;&nbsp;"file execute [candidate] parent"<br>
+&nbsp;&nbsp;file execute [candidate] parent<br>
 というエントリが存在している場合、 [current_domain] の親ドメインを [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>ドメインポリシーに<br>
-&nbsp;&nbsp;"file execute [candidate] [domainname]"<br>
+&nbsp;&nbsp;file execute [candidate] [domainname]<br>
 というエントリが存在している場合、 [domainname] を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>ドメインポリシーに<br>
-&nbsp;&nbsp;"file execute [candidate] [pathname]"<br>
+&nbsp;&nbsp;file execute [candidate] [pathname]<br>
 というエントリが存在している場合、 [current_domain] [pathname] を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>ドメインポリシーに<br>
-&nbsp;&nbsp;"file execute [candidate]"<br>
+&nbsp;&nbsp;file execute [candidate]<br>
 というエントリが存在している場合、ステップ (4) に進みます。</p>
 <br>
 <p>その他の場合、プロファイルの <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::file または CONFIG::file::execute</a> （後者が前者より優先されます）で mode=enforcing という設定が行われていた場合にはプログラムの実行要求は拒否されます。</p></td>
@@ -111,35 +111,35 @@
 <td><p>(4) デフォルトのドメイン遷移の決定</p></td>
 <td><p>
 １番最初に、例外ポリシーに<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.ja#reset_domain">reset_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"reset_domain any from [source]"<br>
-&nbsp;&nbsp;"reset_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#reset_domain">reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;reset_domain any from [source]<br>
+&nbsp;&nbsp;reset_domain any from any<br>
 の何れかのエントリが存在しており、かつ、<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.ja#no_reset_domain">no_reset_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"no_reset_domain any from [source]"<br>
-&nbsp;&nbsp;"no_reset_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#no_reset_domain">no_reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from any<br>
 の何れのエントリも存在しない場合、 &lt;[candidate]&gt; を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>
 ２番目に、例外ポリシーに<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"initialize_domain any from [source]"<br>
-&nbsp;&nbsp;"initialize_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;initialize_domain any from [source]<br>
+&nbsp;&nbsp;initialize_domain any from any<br>
 の何れかのエントリが存在しており、かつ、<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"no_initialize_domain any from [source]"<br>
-&nbsp;&nbsp;"no_initialize_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from any<br>
 の何れのエントリも存在しない場合、 [current_namespace] [candidate] を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>
 ３番目に、例外ポリシーに<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"keep_domain any from [source]"<br>
-&nbsp;&nbsp;"keep_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;keep_domain any from [source]<br>
+&nbsp;&nbsp;keep_domain any from any<br>
 の何れかのエントリが存在しており、かつ、<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"no_keep_domain any from [source]"<br>
-&nbsp;&nbsp;"no_keep_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from any<br>
 の何れのエントリも存在しない場合、 [current_domain] を [destination] にしてステップ (5) へ進みます。</p>
 <br>
 <p>４番目に、 [current_domain] [candidate] を [destination] にします。</p></td>
