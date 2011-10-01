@@ -68,41 +68,41 @@ To accept programs provided using symbolic links, the last component of the path
 <tr>
 <td><p>(2) Check for aggregator directive</p></td>
 <td><p>If exception policy contains<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#aggregator">aggregator</a> [candidate] [pathname]"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#aggregator">aggregator</a> [candidate] [pathname]<br>
 then set the [pathname] as the [candidate] .</p></td>
 </tr>
 <tr>
 <td><p>(3) Check for file execute directive</p></td>
 <td><p>If domain policy contains<br>
-&nbsp;&nbsp;"<a href="domain-policy-syntax.html.en#file_execute">file execute</a> [candidate] keep"<br>
+&nbsp;&nbsp;<a href="domain-policy-syntax.html.en#file_execute">file execute</a> [candidate] keep<br>
 then set the [current_domain] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
-&nbsp;&nbsp;"file execute [candidate] child"<br>
+&nbsp;&nbsp;file execute [candidate] child<br>
 then set the [current_domain] [candidate] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
-&nbsp;&nbsp;"file execute [candidate] reset"<br>
+&nbsp;&nbsp;file execute [candidate] reset<br>
 then set the &lt;[candidate]&gt; as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
-&nbsp;&nbsp;"file execute [candidate] initialize"<br>
+&nbsp;&nbsp;file execute [candidate] initialize<br>
 then set the [current_namespace] [candidate] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
-&nbsp;&nbsp;"file execute [candidate] parent"<br>
+&nbsp;&nbsp;file execute [candidate] parent<br>
 then set the parent of [current_domain] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
-&nbsp;&nbsp;"file execute [candidate] [domainname]"<br>
+&nbsp;&nbsp;file execute [candidate] [domainname]<br>
 then set the [domainname] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
-&nbsp;&nbsp;"file execute [candidate] [pathname]"<br>
+&nbsp;&nbsp;file execute [candidate] [pathname]<br>
 then set the [current_domain] [pathname] as the [destination] and jump to step (5).</p>
 <br>
 <p>If domain policy contains<br>
-&nbsp;&nbsp;"file execute [candidate]"<br>
+&nbsp;&nbsp;file execute [candidate]<br>
 then jump to step (4).</p>
 <br>
 <p>Otherwise, the execution request is denied if the profile's <a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::execute</a> (with the latter overwriting the previous) is set to "mode=enforcing".</p></td>
@@ -111,35 +111,35 @@ then jump to step (4).</p>
 <td><p>(4) Determine default domain transition</p></td>
 <td><p>
 Firstly, if exception policy contains one of<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#reset_domain">reset_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"reset_domain any from [source]"<br>
-&nbsp;&nbsp;"reset_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#reset_domain">reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;reset_domain any from [source]<br>
+&nbsp;&nbsp;reset_domain any from any<br>
 and contains none of<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#no_reset_domain">no_reset_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"no_reset_domain any from [source]"<br>
-&nbsp;&nbsp;"no_reset_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#no_reset_domain">no_reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from any<br>
 then set the &lt;[candidate]&gt; as the [destination] and jump to step (5).</p>
 <br>
 <p>
 Secondly, if exception policy contains one of<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"initialize_domain any from [source]"<br>
-&nbsp;&nbsp;"initialize_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;initialize_domain any from [source]<br>
+&nbsp;&nbsp;initialize_domain any from any<br>
 and contains none of<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"no_initialize_domain any from [source]"<br>
-&nbsp;&nbsp;"no_initialize_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from any<br>
 then set the [current_namespace] [candidate] as the [destination] and jump to step (5).</p>
 <br>
 <p>
 Thirdly, if exception policy contains one of<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#keep_domain">keep_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"keep_domain any from [source]"<br>
-&nbsp;&nbsp;"keep_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#keep_domain">keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;keep_domain any from [source]<br>
+&nbsp;&nbsp;keep_domain any from any<br>
 and cintains none of<br>
-&nbsp;&nbsp;"<a href="exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> [candidate] from [source]"<br>
-&nbsp;&nbsp;"no_keep_domain any from [source]"<br>
-&nbsp;&nbsp;"no_keep_domain any from any"<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from any<br>
 then set the [current_domain] as the [destination] and jump to step (5).</p>
 <br>
 <p>Fourthly, set the [current_domain] [candidate] as the [destination] .</p></td>
