@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.1-rc7.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v3.0/next/patch-v3.1-rc7-next-20110922.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.1-rc8.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v3.0/next/patch-v3.1-rc8-next-20111004.bz2
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -30,7 +30,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
 
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
-@@ -1536,7 +1536,7 @@ static int do_execve_common(const char *
+@@ -1532,7 +1532,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
  
@@ -59,7 +59,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.1-rc7-next-20110922 2011/09/22\n");
++	printk(KERN_INFO "Hook version: 3.1-rc8-next-20111004 2011/10/05\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -331,7 +331,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1251,6 +1252,9 @@ static struct task_struct *copy_process(
+@@ -1249,6 +1250,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -341,7 +341,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1439,6 +1443,7 @@ bad_fork_cleanup_semundo:
+@@ -1432,6 +1436,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -398,7 +398,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	mod = load_module(umod, len, uargs);
 --- linux-next.orig/kernel/ptrace.c
 +++ linux-next/kernel/ptrace.c
-@@ -860,6 +860,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -857,6 +857,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -407,7 +407,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1005,6 +1007,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1002,6 +1004,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -429,7 +429,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	 * Setpriority might change our priority at the same moment.
 --- linux-next.orig/kernel/signal.c
 +++ linux-next/kernel/signal.c
-@@ -2753,6 +2753,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2761,6 +2761,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -438,7 +438,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2821,6 +2823,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2829,6 +2831,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -447,7 +447,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2837,6 +2841,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2845,6 +2849,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -456,7 +456,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2864,6 +2870,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2872,6 +2878,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  		return -EPERM;
  	}
  	info.si_signo = sig;
@@ -465,7 +465,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2884,6 +2892,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2892,6 +2900,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -505,7 +505,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1327,6 +1335,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1328,6 +1336,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -551,7 +551,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  		result = timekeeping_inject_offset(&delta);
 --- linux-next.orig/net/ipv4/raw.c
 +++ linux-next/net/ipv4/raw.c
-@@ -694,6 +694,10 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -695,6 +695,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -577,7 +577,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	if (len > ulen)
 --- linux-next.orig/net/ipv6/raw.c
 +++ linux-next/net/ipv6/raw.c
-@@ -468,6 +468,10 @@ static int rawv6_recvmsg(struct kiocb *i
+@@ -469,6 +469,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -616,7 +616,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  					  &len, 2) < 0) {
 --- linux-next.orig/net/unix/af_unix.c
 +++ linux-next/net/unix/af_unix.c
-@@ -1758,6 +1758,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1780,6 +1780,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
