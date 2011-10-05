@@ -10,11 +10,11 @@ Provides: linux-image, linux-image-2.6
 Depends: initramfs-tools (>= 0.53) | yaird (>= 0.0.11) | linux-initramfs-tool, coreutils (>= 5.96)
 Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
 Suggests: lilo (>= 19.1) | grub, fdutils, linux-doc-2.6.18-6-686-ccs | linux-source-2.6.18-6-686-ccs
-Filename: ./linux-image-2.6.18-6-686-ccs1.8.2p2_2.6.18-26etch2_i386.deb
-Size: 16436684
-MD5sum: ae802ca6231d44ac433bb04526e8cd90
-SHA1: 71eab29ec43a4bb27749720780e6a39a2228c5a1
-SHA256: f4573d54ae598a5521dd38952be90fc858005920105f3cc81c21fa64f1343d73
+Filename: ./linux-image-2.6.18-6-686-ccs1.8.3_2.6.18-26etch2_i386.deb
+Size: 16438338
+MD5sum: fb1a0101a47bfddb224e0d207d8b8d89
+SHA1: c66b4f3f6e3d3864870ebaae6f9dafb57079c430
+SHA256: fe5f628af55f837cf366a9c3036ade5597ae6c77119fce468aa402735913fde5
 Description: Linux kernel binary image for version 2.6.18-6-686-ccs
  This package contains the Linux kernel image for version
  2.6.18-6-686-ccs.
@@ -30,19 +30,37 @@ Description: Linux kernel binary image for version 2.6.18-6-686-ccs
  for details on how to tailor the  installation of this or any other kernel
  image package
 
+Package: linux-image-2.6-686-ccs
+Priority: optional
+Section: admin
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-latest-2.6 (6etch3)
+Version: 2.6.18+6etch3
+Depends: linux-image-2.6.18-6-686-ccs
+Filename: ./linux-image-2.6-686-ccs1.8.3_2.6.18+6etch3_i386.deb
+Size: 2322
+MD5sum: 3121a45327c73f799f415c50001b2c4a
+SHA1: 105256325797aa17cfe965daf45e5c7ca575b3ae
+SHA256: d6979e12e3d8074f7d18e82befb8cbc2ee5330a52653a27a9b0dd27159777e88
+Description: Linux kernel 2.6 image on PPro/Celeron/PII/PIII/P4
+ This package depends on the latest binary image for Linux kernel 2.6 on
+ Pentium Pro/Celeron/Pentium II/Pentium III/Pentium 4 machines.
+
 Package: ccs-tools
 Priority: extra
 Section: alien
-Installed-Size: 640
+Installed-Size: 644
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Version: 1.8.2-6
+Version: 1.8.3-1
 Depends: libc6 (>= 2.3.6-6), libncurses5 (>= 5.4-5)
-Filename: ./ccs-tools_1.8.2-6_i386.deb
-Size: 191492
-MD5sum: 31d2c3474aa5b91b324e846507ef9911
-SHA1: 4758f847cd995f4a01f3382abf4be76a0e7c9ba4
-SHA256: add38e586b2a43b333f0e1fd97df7f4c03a69f2b476a12f8655038d4a4a41062
+Filename: ./ccs-tools_1.8.3-1_i386.deb
+Size: 192638
+MD5sum: bcfdb6d43e8986bc7bb36db76c9434f8
+SHA1: e4d76fe4a691bc7d6ff21bce17f1e5c8436bcd68
+SHA256: a5da1ec4d779532de3a4e4bbec971c617d54c1a1e9b904c1cc57e729cee773cd
 Description: Userspace tools for TOMOYO Linux 1.8.x
  This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
  Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
@@ -59,11 +77,11 @@ Source: linux-source-2.6.18-6-686-ccs
 Version: 2.6.18-26etch2
 Provides: linux-headers, linux-headers-2.6
 Depends: libc6 (>= 2.3.6-6)
-Filename: ./linux-headers-2.6.18-6-686-ccs1.8.2p2_2.6.18-26etch2_i386.deb
-Size: 7875888
-MD5sum: bc33e396df2a6573add79cb6d7bc8d77
-SHA1: 8b2c27547c7fb7ac67b05db951c0fce05e02cc33
-SHA256: b399efb69f0cd730f52fd669a03c632e393d60b148dddefb37c729f7c87efba1
+Filename: ./linux-headers-2.6.18-6-686-ccs1.8.3_2.6.18-26etch2_i386.deb
+Size: 7876010
+MD5sum: 302a0bd98e0d289c7cdc41a53df2f20d
+SHA1: e778818ae70d757fabb4e0d2e007db877e60524b
+SHA256: 0238086e5b10cc1ac785fa979a757f16a55e3c52a650674d6694a26afbff82c5
 Description: Header files related to Linux kernel, specifically,
  version 2.6.18-6-686-ccs
  .
@@ -73,22 +91,4 @@ Description: Header files related to Linux kernel, specifically,
  Please read
  /usr/share/doc/linux-headers-2.6.18-6-686-ccs/debian.README.gz
  for details
-
-Package: linux-image-2.6-686-ccs
-Priority: optional
-Section: admin
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-latest-2.6 (6etch3)
-Version: 2.6.18+6etch3
-Depends: linux-image-2.6.18-6-686-ccs
-Filename: ./linux-image-2.6-686-ccs1.8.2p2_2.6.18+6etch3_i386.deb
-Size: 2320
-MD5sum: b686cd81f7d945d298c7bd9f9d78cb79
-SHA1: 64b89dfbb62b1430926efa649cd9566744987d41
-SHA256: a56d772726ab746483e0240c58a42d7d04b777c81e3b620321e0d3ddedd51d6c
-Description: Linux kernel 2.6 image on PPro/Celeron/PII/PIII/P4
- This package depends on the latest binary image for Linux kernel 2.6 on
- Pentium Pro/Celeron/Pentium II/Pentium III/Pentium 4 machines.
 
