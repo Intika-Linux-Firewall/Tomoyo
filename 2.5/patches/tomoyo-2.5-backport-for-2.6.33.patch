@@ -10,10 +10,11 @@ Apply this patch after overwriting security/tomoyo/ directory by doing
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.h        |    4 -
+ security/tomoyo/gc.c            |   12 +++++
  security/tomoyo/realpath.c      |   87 ++++++++++++++++++++++++++++++----------
  security/tomoyo/securityfs_if.c |    1 
  security/tomoyo/tomoyo.c        |    3 -
- 4 files changed, 70 insertions(+), 25 deletions(-)
+ 5 files changed, 82 insertions(+), 25 deletions(-)
 
 --- linux-2.6.33.19.orig/security/tomoyo/common.h
 +++ linux-2.6.33.19/security/tomoyo/common.h
@@ -27,6 +28,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	for ( ; pos != (head); pos = rcu_dereference(pos->next))
  
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
+--- linux-2.6.33.19.orig/security/tomoyo/gc.c
++++ linux-2.6.33.19/security/tomoyo/gc.c
+@@ -355,6 +355,18 @@ static inline void tomoyo_del_number_gro
+ }
+ 
+ /**
++ * __list_del_entry - Deletes entry from list without re-initialization.
++ *
++ * @entry: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
++static inline void __list_del_entry(struct list_head *entry)
++{
++	__list_del(entry->prev, entry->next);
++}
++
++/**
+  * tomoyo_try_to_gc - Try to kfree() an entry.
+  *
+  * @type:    One of values in "enum tomoyo_policy_id".
 --- linux-2.6.33.19.orig/security/tomoyo/realpath.c
 +++ linux-2.6.33.19/security/tomoyo/realpath.c
 @@ -94,25 +94,55 @@ char *tomoyo_encode(const char *str)
