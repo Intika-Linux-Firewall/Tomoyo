@@ -5,16 +5,38 @@ Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 3.0.0.12.13
-Depends: linux-image-generic-pae-ccs (= 3.0.0.12.13)
-Filename: ./linux-generic-pae-ccs1.8.3_3.0.0.12.13_i386.deb
-Size: 5948
-MD5sum: 62adee84b31045ed3e065520c9d9c7d5
-SHA1: 801c0a502ff8404353796ff744f25df1b0875d78
-SHA256: 446a4d2f94000bea6a2cb252333afe4a1e752f24489b588f3534dd51291a4f86
+Version: 3.0.0.12.14
+Depends: linux-image-generic-pae-ccs (= 3.0.0.12.14)
+Filename: ./linux-generic-pae-ccs1.8.3_3.0.0.12.14_i386.deb
+Size: 5998
+MD5sum: ac573af92ef3b867b05c3d21c511ffab
+SHA1: 9d47769a75a1f0ea269166253b786cce33ff1681
+SHA256: 18653d216d5d2d61e16e7a6303471e4124cbece32e3625ffce1b9e788814d8f5
 Description: Complete Generic Linux kernel
  This package will always depend on the latest complete generic Linux kernel
  available.
+
+Package: linux-headers-3.0.0-12-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 13148
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 3.0.0-12.20
+Provides: linux-headers, linux-headers-3.0
+Depends: coreutils | fileutils (>= 4.0), linux-headers-3.0.0-12, libc6 (>= 2.11)
+Filename: ./linux-headers-3.0.0-12-generic-pae-ccs1.8.3_3.0.0-12.20_i386.deb
+Size: 1397404
+MD5sum: c86e486a1217a61b0fb17d27555b649b
+SHA1: 1ab249bd15d55911ac283a7ef58ee317087144a9
+SHA256: 9b59d9a1dc1bdd971ded5690de3572a0598b8cd75c6e643adcca8f5649f6f502
+Description: Linux kernel headers for version 3.0.0 on x86
+ This package provides kernel header files for version 3.0.0 on
+ x86.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-3.0.0-12/debian.README.gz for details.
 
 Package: linux-image-3.0.0-12-generic-pae-ccs
 Priority: optional
@@ -23,18 +45,18 @@ Installed-Size: 114420
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 3.0.0-12.19
+Version: 3.0.0-12.20
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-3.0, ndiswrapper-modules-1.9, redhat-cluster-modules
 Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-3.0.0 | linux-source-3.0.0, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-3.0.0-12-generic-pae-ccs1.8.3_3.0.0-12.19_i386.deb
-Size: 41231824
-MD5sum: 26e4ffb838ef6e48b83828593ff00461
-SHA1: 0b2d653ec3ca1aff6c9d40a5fa066184e2151c53
-SHA256: 4f334ceeefd4641fb7802c3b9c54298c6e45e3c7da3ed72d3a3d14baaf125003
+Filename: ./linux-image-3.0.0-12-generic-pae-ccs1.8.3_3.0.0-12.20_i386.deb
+Size: 41232200
+MD5sum: 70cd1ac9212196aa13120cd18bf7f872
+SHA1: 4d571359e8f96e04ab009e5a8224a04b6bdb6ca6
+SHA256: 230c8ca25a682a02358c7853c5c32dec3779f88c724fef0c47c381fa7bc906c5
 Description: Linux kernel image for version 3.0.0 on x86
  This package contains the Linux kernel image for version 3.0.0 on
  x86.
@@ -51,6 +73,24 @@ Description: Linux kernel image for version 3.0.0 on x86
  the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
+Package: linux-headers-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 3.0.0.12.14
+Depends: linux-headers-3.0.0-12-generic-pae-ccs
+Filename: ./linux-headers-generic-pae-ccs1.8.3_3.0.0.12.14_i386.deb
+Size: 5996
+MD5sum: 265bc48da08c8f963134da96f6847f86
+SHA1: 1e2b73d5a0dc8ba507c5f10f648f78c462a24349
+SHA256: 3460cb53b0856d25629ee2db2e479954f1d477b8f730fd9a9167fb6e345ee061
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
 Package: linux-image-generic-pae-ccs
 Priority: optional
 Section: metapackages
@@ -58,13 +98,13 @@ Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 3.0.0.12.13
+Version: 3.0.0.12.14
 Depends: linux-image-3.0.0-12-generic-pae-ccs, linux-firmware
-Filename: ./linux-image-generic-pae-ccs1.8.3_3.0.0.12.13_i386.deb
-Size: 5956
-MD5sum: 0e41ab9d530a80b45ccace777e760b3a
-SHA1: 90de70ec3315cffad882a862eb6b4254b634cfdc
-SHA256: 26399b258e889738d9047b29f02d53a4e2e6bd72bca9f342447d6bf4b592d8f0
+Filename: ./linux-image-generic-pae-ccs1.8.3_3.0.0.12.14_i386.deb
+Size: 6004
+MD5sum: 01808a18af7b3489c053a0191e860b4a
+SHA1: d7bc34d754df9ade17e811c725a67175daac60a6
+SHA256: 818de8c26c44a0abaa00be1c3b7bdb18b43f39eb41ea225348f9c5c40bb5a6b2
 Description: Generic Linux kernel image
  This package will always depend on the latest generic kernel image
  available.
@@ -87,44 +127,4 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
  .
  (Converted from a rpm package by alien version 8.85.)
-
-Package: linux-headers-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 3.0.0.12.13
-Depends: linux-headers-3.0.0-12-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.3_3.0.0.12.13_i386.deb
-Size: 5946
-MD5sum: c6d697ea351ede3b5f7f940f950465bc
-SHA1: 4392ecce78af1bb76c0fcd053ca6e48b27973778
-SHA256: 26c5a59a10c3ccb20a420fbf085d99646ae16c667d945620aee16d41271c1c31
-Description: Generic Linux kernel headers
- This package will always depend on the latest generic kernel headers
- available.
-
-Package: linux-headers-3.0.0-12-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 13148
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 3.0.0-12.19
-Provides: linux-headers, linux-headers-3.0
-Depends: coreutils | fileutils (>= 4.0), linux-headers-3.0.0-12, libc6 (>= 2.11)
-Filename: ./linux-headers-3.0.0-12-generic-pae-ccs1.8.3_3.0.0-12.19_i386.deb
-Size: 1397228
-MD5sum: 9d1f2df40cdec0780add025e98152671
-SHA1: c62f9b6dc074c5f90acef86971524fcbbd8878f0
-SHA256: 13a46e383a0fc7b947ddd6c9acdc509906fb8ac30ebf28569363052ffd037af4
-Description: Linux kernel headers for version 3.0.0 on x86
- This package provides kernel header files for version 3.0.0 on
- x86.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-3.0.0-12/debian.README.gz for details.
 
