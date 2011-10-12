@@ -8,7 +8,7 @@ URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patc
 ARCH="$(uname -m)"
 CCS_VER="1.8.3"
 CCSPATCH_VER="1.8.3-20110929"
-KERNEL_VER="2.6.40.4-5.fc15"
+KERNEL_VER="2.6.40.6-0.fc15"
 
 UPDATED_DIFF=0
 CCSDIFF_NAME="ccs-patch-3.0.diff"
