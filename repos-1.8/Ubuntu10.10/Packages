@@ -1,22 +1,98 @@
-Package: linux-image-2.6.35-30-generic-pae-ccs
+Package: linux-headers-2.6.35-30-generic-pae-ccs
 Priority: optional
-Section: admin
-Installed-Size: 105132
+Section: devel
+Installed-Size: 12352
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 2.6.35-30.59
+Version: 2.6.35-30.60
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.35-30, libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
+Filename: ./linux-headers-2.6.35-30-generic-pae-ccs1.8.3_2.6.35-30.60_i386.deb
+Size: 1272204
+MD5sum: 51f249dca12e9e8ec2347eb051a73460
+SHA1: 4c5eaa7c7d0036b354eb7ac10a5cb20c9ad5d940
+SHA256: 0fc9616b2d4e74ce347eb6cdfcdcb0fe832853e05d6be175208a0aa8e4bd40c4
+Description: Linux kernel headers for version 2.6.35 on x86
+ This package provides kernel header files for version 2.6.35 on
+ x86.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.35-30/debian.README.gz for details.
+
+Package: linux-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.35.30.38
+Depends: linux-image-generic-pae-ccs (= 2.6.35.30.38)
+Filename: ./linux-generic-pae-ccs1.8.3_2.6.35.30.38_i386.deb
+Size: 5572
+MD5sum: bb431e2bc9172ce5f69f9e7e36a39d7e
+SHA1: b88a4db8fd2c9cd0c00bb8ae4d1f8e6f665551a5
+SHA256: 1f2b1b7401645f90eb092640806f291f780bc0ab4ac869fbc5b990cbb237901b
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete generic Linux kernel
+ available.
+
+Package: linux-image-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.35.30.38
+Depends: linux-image-2.6.35-30-generic-pae-ccs, linux-firmware
+Filename: ./linux-image-generic-pae-ccs1.8.3_2.6.35.30.38_i386.deb
+Size: 5580
+MD5sum: 0076c8fa1bcb8e12c8258a2bf786b89c
+SHA1: 36abf4bba3f0c4c8197368eebd7fefc616d6f07e
+SHA256: 0a028c68d941f9ff9e7fd26459f3d9e66ce8c9edae616871df83fc6b03bd8bb9
+Description: Generic Linux kernel image
+ This package will always depend on the latest generic kernel image
+ available.
+
+Package: linux-headers-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.35.30.38
+Depends: linux-headers-2.6.35-30-generic-pae-ccs
+Filename: ./linux-headers-generic-pae-ccs1.8.3_2.6.35.30.38_i386.deb
+Size: 5568
+MD5sum: f4099683d9736632ce728a419246777b
+SHA1: bf8aef6be7b2fa527d90951fef5265a170dd2ab4
+SHA256: 2a43c7adf5a54d62e4252ae4699249855cc6f18a1c6c35f2a2b42a47f2c7bacf
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
+Package: linux-image-2.6.35-30-generic-pae-ccs
+Priority: optional
+Section: admin
+Installed-Size: 105136
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.35-30.60
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
 Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.35 | linux-source-2.6.35, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.35-30-generic-pae-ccs1.8.3_2.6.35-30.59_i386.deb
-Size: 38275310
-MD5sum: 166e9d957ef55e55a287877095e12089
-SHA1: 1b64dde30e074cdeeff403da3255f3041c4b6ceb
-SHA256: dc83ed4ed9533ca29fed136a607017fce6aa71602ef3d4ac323b4d4bcc120bbf
+Filename: ./linux-image-2.6.35-30-generic-pae-ccs1.8.3_2.6.35-30.60_i386.deb
+Size: 38278292
+MD5sum: 686ce351c36798a4d68a4de25702c0d3
+SHA1: d54c205a089c838375b2472b5b5885c0c34e08be
+SHA256: 738c5cf2293e64cd7b1268383cc7f5b56b7e56e27c914ddea72afca38fec6fa7
 Description: Linux kernel image for version 2.6.35 on x86
  This package contains the Linux kernel image for version 2.6.35 on
  x86.
@@ -32,82 +108,6 @@ Description: Linux kernel image for version 2.6.35 on x86
  You likely do not want to install this package directly. Instead, install
  the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
-
-Package: linux-generic-pae-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.35.30.38
-Depends: linux-image-generic-pae-ccs (= 2.6.35.30.38)
-Filename: ./linux-generic-pae-ccs1.8.3_2.6.35.30.38_i386.deb
-Size: 5576
-MD5sum: 6d578151751d1146d8a417b64a052b6e
-SHA1: a3c99221f601749d4ab5892ac37c0ebac8698169
-SHA256: 7148885fb00ad4b161dc28e3cb90ebc01cbcd3cac543bc219d50ef24ee514a75
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete generic Linux kernel
- available.
-
-Package: linux-image-generic-pae-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.35.30.38
-Depends: linux-image-2.6.35-30-generic-pae-ccs, linux-firmware
-Filename: ./linux-image-generic-pae-ccs1.8.3_2.6.35.30.38_i386.deb
-Size: 5582
-MD5sum: ceb02b9e66d992bb164dea6a7531d59c
-SHA1: 0279e3f693ca09fd7ffc2f836f204ede1bbbc159
-SHA256: 10b56ed0b5c7ef9f640daf96d76d349f016eeb67b0951ef199175b4e7c60044f
-Description: Generic Linux kernel image
- This package will always depend on the latest generic kernel image
- available.
-
-Package: linux-headers-2.6.35-30-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 12348
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.35-30.59
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.35-30, libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
-Filename: ./linux-headers-2.6.35-30-generic-pae-ccs1.8.3_2.6.35-30.59_i386.deb
-Size: 1278996
-MD5sum: 3601740dfb4ab698033fb9620999c43a
-SHA1: 25567daa279257e9d2bd9be56a82870fd0ef6567
-SHA256: 8593bbc43e66a6a3590ce3732daa9f4ea437880f7405827da703e8df714b3cf9
-Description: Linux kernel headers for version 2.6.35 on x86
- This package provides kernel header files for version 2.6.35 on
- x86.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.35-30/debian.README.gz for details.
-
-Package: linux-headers-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.35.30.38
-Depends: linux-headers-2.6.35-30-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.3_2.6.35.30.38_i386.deb
-Size: 5572
-MD5sum: 2bf84bb99bb803eee0402e6ec7ff4048
-SHA1: 1a1849b76374d3a87fbd70456367b97f3f64c828
-SHA256: 9d67aa2d8964a030626e5deab5cf0d14feea26d879ec8701b679e4faaea2ee57
-Description: Generic Linux kernel headers
- This package will always depend on the latest generic kernel headers
- available.
 
 Package: ccs-tools
 Priority: extra
