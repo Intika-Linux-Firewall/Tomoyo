@@ -85,7 +85,7 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <h4><a name="3.1.3">3.1.3. Download the kernel</a></h4>
 
-<p><!--Download the kernel source from "<a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a>" or "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=summary">linux git tree</a>".-->Download the kernel source from "<a href="https://github.com/sfrothwell/linux-next">linux-next git tree</a>".<br>
+<p>Download the kernel source from "<a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a>" or "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=summary">linux git tree</a>".<br>
 Linux kernel 2.6.33 and later are supported.</p>
 
 <p>Extract the kernel source and go to the extracted directory.</p>
@@ -93,15 +93,15 @@ Linux kernel 2.6.33 and later are supported.</p>
 <p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.38 and 3.1, run the following commands:</p>
 
 <pre class="command">
-$ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/next-20110929
-$ tar -zxf linux-next.tar.gz --strip 1 sfrothwell-linux-next-5a1a27c/security/tomoyo/
+$ wget -O linux-next.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/next/linux-next-history.git;a=snapshot;h=next-20111013;sf=tgz'
+$ tar -zxf linux-next.tar.gz --strip 1 'linux-next-*/security/tomoyo/'
 </pre>
 
 <p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 2.6.37, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
 
 <pre class="command">
-$ wget -O linux-next.tar.gz https://github.com/sfrothwell/linux-next/tarball/next-20110929
-$ tar -zxf linux-next.tar.gz --strip 1 sfrothwell-linux-next-5a1a27c/security/tomoyo/
+$ wget -O linux-next.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/next/linux-next-history.git;a=snapshot;h=next-20111013;sf=tgz'
+$ tar -zxf linux-next.tar.gz --strip 1 'linux-next-*/security/tomoyo/'
 $ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
 </pre>
