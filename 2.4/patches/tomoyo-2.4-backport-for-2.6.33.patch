@@ -9,14 +9,60 @@ Apply this patch after overwriting security/tomoyo/ directory by doing
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
+ security/tomoyo/common.c        |   10 +---
  security/tomoyo/common.h        |    4 -
  security/tomoyo/domain.c        |    4 +
  security/tomoyo/realpath.c      |   87 ++++++++++++++++++++++++++++++----------
  security/tomoyo/securityfs_if.c |    2 
  security/tomoyo/tomoyo.c        |    3 -
  security/tomoyo/util.c          |    3 -
- 6 files changed, 76 insertions(+), 27 deletions(-)
+ 7 files changed, 80 insertions(+), 33 deletions(-)
 
+--- linux-2.6.33.19.orig/security/tomoyo/common.c
++++ linux-2.6.33.19/security/tomoyo/common.c
+@@ -466,8 +466,10 @@ static struct tomoyo_profile *tomoyo_ass
+ 			TOMOYO_CONFIG_WANT_REJECT_LOG;
+ 		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
+ 		       sizeof(ptr->config));
+-		ptr->pref[TOMOYO_PREF_MAX_AUDIT_LOG] = 1024;
+-		ptr->pref[TOMOYO_PREF_MAX_LEARNING_ENTRY] = 2048;
++		ptr->pref[TOMOYO_PREF_MAX_AUDIT_LOG] =
++			CONFIG_SECURITY_TOMOYO_MAX_AUDIT_LOG;
++		ptr->pref[TOMOYO_PREF_MAX_LEARNING_ENTRY] =
++			CONFIG_SECURITY_TOMOYO_MAX_ACCEPT_ENTRY;
+ 		mb(); /* Avoid out-of-order execution. */
+ 		ns->profile_ptr[profile] = ptr;
+ 		entry = NULL;
+@@ -951,14 +953,12 @@ static bool tomoyo_select_domain(struct 
+ 	    (global_pid = true, sscanf(data, "global-pid=%u", &pid) == 1)) {
+ 		struct task_struct *p;
+ 		rcu_read_lock();
+-		read_lock(&tasklist_lock);
+ 		if (global_pid)
+ 			p = find_task_by_pid_ns(pid, &init_pid_ns);
+ 		else
+ 			p = find_task_by_vpid(pid);
+ 		if (p)
+ 			domain = tomoyo_real_domain(p);
+-		read_unlock(&tasklist_lock);
+ 		rcu_read_unlock();
+ 	} else if (!strncmp(data, "domain=", 7)) {
+ 		if (tomoyo_domain_def(data + 7))
+@@ -1510,14 +1510,12 @@ static void tomoyo_read_pid(struct tomoy
+ 		global_pid = true;
+ 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
+ 	rcu_read_lock();
+-	read_lock(&tasklist_lock);
+ 	if (global_pid)
+ 		p = find_task_by_pid_ns(pid, &init_pid_ns);
+ 	else
+ 		p = find_task_by_vpid(pid);
+ 	if (p)
+ 		domain = tomoyo_real_domain(p);
+-	read_unlock(&tasklist_lock);
+ 	rcu_read_unlock();
+ 	if (!domain)
+ 		return;
 --- linux-2.6.33.19.orig/security/tomoyo/common.h
 +++ linux-2.6.33.19/security/tomoyo/common.h
 @@ -1158,7 +1158,7 @@ static inline int tomoyo_round2(size_t s
