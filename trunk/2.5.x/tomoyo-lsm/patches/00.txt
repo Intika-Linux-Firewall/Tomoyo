@@ -1,0 +1,39 @@
+[PATCH 0/2] TOMOYO: Detach security context from credentials.
+
+TOMOYO has 2 problems regarding checking permissions for execve() operation.
+
+One is that permission for binary loader (e.g. /lib/ld-linux.so.2 ) cannot be
+checked. This problem comes from the limitation that security_dentry_open()
+cannot receive "struct linux_binprm"->cred .
+A patchset that makes it possible has been proposed at
+http://www.spinics.net/linux/fedora/linux-security-module/msg10844.html .
+But the patchset has a side effect that changes current DAC behavior
+http://www.spinics.net/linux/fedora/linux-security-module/msg10856.html
+and the discussion seems to be stalled. I don't mean to change current DAC
+behavior.
+
+The other is that interactive judgment feature cannot be used when the target
+process's subjective credentials and objective credentials differ. Regarding
+execve(), checking permission for binary loader and environment variables are
+impossible because the process that provides interactive judgment feature
+cannot reach the target process's proposed credentials. This problem comes
+ from the limitation that process's objective credentials do not change until
+the point of no return of do_execve() operation.
+
+Even if the patchset that solves the former problem is accepted, the latter
+problem remains unresolved. To solve the latter problem, TOMOYO cannot help
+violating distinction between subjective credentials and objective credentials.
+Removing distinction between subjective credentials and objective credentials
+will not be acceptable for SELinux/Smack/AppArmor. Therefore, I believe that
+making TOMOYO to manage security context without depending on "struct cred"->
+security is the only acceptable approach.
+
+This patchset removes dependency on "struct cred"->security from TOMOYO by
+reviving security_task_alloc()/security_task_free()/security_bprm_free() hooks.
+(If we can also agree on reviving "struct task_struct"->security in addition to
+these 3 hooks, [PATCH 2/2] will become simpler and cleaner. For now I'm
+managing without "struct task_struct"->security .)
+
+[PATCH 1/2] LSM: Revive security_task_alloc()/security_task_free()/security_bprm_free() hooks.
+
+[PATCH 2/2] TOMOYO: Use per "struct task_struct" variables.
