@@ -9,9 +9,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/security.c      |   15 +++++++++++++++
  5 files changed, 69 insertions(+)
 
---- linux-next.orig/fs/exec.c
-+++ linux-next/fs/exec.c
-@@ -1197,7 +1197,9 @@ void free_bprm(struct linux_binprm *bprm
+--- security-testing-2.6.orig/fs/exec.c
++++ security-testing-2.6/fs/exec.c
+@@ -1201,7 +1201,9 @@ void free_bprm(struct linux_binprm *bprm
  	if (bprm->cred) {
  		mutex_unlock(&current->signal->cred_guard_mutex);
  		abort_creds(bprm->cred);
@@ -21,8 +21,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(bprm);
  }
  
---- linux-next.orig/include/linux/security.h
-+++ linux-next/include/linux/security.h
+--- security-testing-2.6.orig/include/linux/security.h
++++ security-testing-2.6/include/linux/security.h
 @@ -234,6 +234,9 @@ static inline void security_free_mnt_opt
   *	on the initial stack to the ELF interpreter to indicate whether libc
   *	should enable secure mode.
@@ -110,9 +110,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_task_create(unsigned long clone_flags)
  {
  	return 0;
---- linux-next.orig/kernel/fork.c
-+++ linux-next/kernel/fork.c
-@@ -195,6 +195,7 @@ void __put_task_struct(struct task_struc
+--- security-testing-2.6.orig/kernel/fork.c
++++ security-testing-2.6/kernel/fork.c
+@@ -194,6 +194,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -120,7 +120,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1250,6 +1251,9 @@ static struct task_struct *copy_process(
+@@ -1223,6 +1224,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -130,7 +130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1438,6 +1442,7 @@ bad_fork_cleanup_semundo:
+@@ -1411,6 +1415,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -138,8 +138,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-next.orig/security/capability.c
-+++ linux-next/security/capability.c
+--- security-testing-2.6.orig/security/capability.c
++++ security-testing-2.6/security/capability.c
 @@ -40,6 +40,10 @@ static void cap_bprm_committed_creds(str
  {
  }
@@ -184,8 +184,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_cap_if_null(ops, cred_alloc_blank);
  	set_to_cap_if_null(ops, cred_free);
  	set_to_cap_if_null(ops, cred_prepare);
---- linux-next.orig/security/security.c
-+++ linux-next/security/security.c
+--- security-testing-2.6.orig/security/security.c
++++ security-testing-2.6/security/security.c
 @@ -255,6 +255,11 @@ int security_bprm_secureexec(struct linu
  	return security_ops->bprm_secureexec(bprm);
  }
