@@ -1,0 +1,217 @@
+[PATCH] LSM: Revive security_task_alloc()/security_task_free()/security_bprm_free() hooks.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ fs/exec.c                |    2 ++
+ include/linux/security.h |   31 +++++++++++++++++++++++++++++++
+ kernel/fork.c            |    5 +++++
+ security/capability.c    |   16 ++++++++++++++++
+ security/security.c      |   15 +++++++++++++++
+ 5 files changed, 69 insertions(+)
+
+--- linux-next.orig/fs/exec.c
++++ linux-next/fs/exec.c
+@@ -1197,7 +1197,9 @@ void free_bprm(struct linux_binprm *bprm
+ 	if (bprm->cred) {
+ 		mutex_unlock(&current->signal->cred_guard_mutex);
+ 		abort_creds(bprm->cred);
++		bprm->cred = NULL;
+ 	}
++	security_bprm_free(bprm);
+ 	kfree(bprm);
+ }
+ 
+--- linux-next.orig/include/linux/security.h
++++ linux-next/include/linux/security.h
+@@ -234,6 +234,9 @@ static inline void security_free_mnt_opt
+  *	on the initial stack to the ELF interpreter to indicate whether libc
+  *	should enable secure mode.
+  *	@bprm contains the linux_binprm structure.
++ * @bprm_free_security:
++ *	Tell current thread that do_execve() has finished.
++ *	@bprm contains the linux_binprm structure.
+  *
+  * Security hooks for filesystem operations.
+  *
+@@ -650,6 +653,15 @@ static inline void security_free_mnt_opt
+  *	manual page for definitions of the @clone_flags.
+  *	@clone_flags contains the flags indicating what should be shared.
+  *	Return 0 if permission is granted.
++ * @task_alloc_security:
++ *      Copy current thread's per task_struct variables to a chlid thread.
++ *      Note that the task_struct does not provide ->security field.
++ *      @p contains the task_struct for child process.
++ *      Return 0 on success, negative value otherwise.
++ * @task_free_security:
++ *      Clean up per task_struct variables.
++ *      Note that this hook is also called when security_task_alloc() failed.
++ *      @p contains the task_struct.
+  * @cred_alloc_blank:
+  *	@cred points to the credentials.
+  *	@gfp indicates the atomicity of any memory allocations.
+@@ -1403,6 +1415,7 @@ struct security_operations {
+ 	int (*bprm_secureexec) (struct linux_binprm *bprm);
+ 	void (*bprm_committing_creds) (struct linux_binprm *bprm);
+ 	void (*bprm_committed_creds) (struct linux_binprm *bprm);
++	void (*bprm_free_security) (struct linux_binprm *bprm);
+ 
+ 	int (*sb_alloc_security) (struct super_block *sb);
+ 	void (*sb_free_security) (struct super_block *sb);
+@@ -1500,6 +1513,8 @@ struct security_operations {
+ 	int (*dentry_open) (struct file *file, const struct cred *cred);
+ 
+ 	int (*task_create) (unsigned long clone_flags);
++	int (*task_alloc_security) (struct task_struct *p);
++	void (*task_free_security) (struct task_struct *p);
+ 	int (*cred_alloc_blank) (struct cred *cred, gfp_t gfp);
+ 	void (*cred_free) (struct cred *cred);
+ 	int (*cred_prepare)(struct cred *new, const struct cred *old,
+@@ -1692,6 +1707,7 @@ int security_bprm_check(struct linux_bin
+ void security_bprm_committing_creds(struct linux_binprm *bprm);
+ void security_bprm_committed_creds(struct linux_binprm *bprm);
+ int security_bprm_secureexec(struct linux_binprm *bprm);
++void security_bprm_free(struct linux_binprm *bprm);
+ int security_sb_alloc(struct super_block *sb);
+ void security_sb_free(struct super_block *sb);
+ int security_sb_copy_data(char *orig, char *copy);
+@@ -1762,6 +1778,8 @@ int security_file_send_sigiotask(struct 
+ int security_file_receive(struct file *file);
+ int security_dentry_open(struct file *file, const struct cred *cred);
+ int security_task_create(unsigned long clone_flags);
++int security_task_alloc(struct task_struct *p);
++void security_task_free(struct task_struct *p);
+ int security_cred_alloc_blank(struct cred *cred, gfp_t gfp);
+ void security_cred_free(struct cred *cred);
+ int security_prepare_creds(struct cred *new, const struct cred *old, gfp_t gfp);
+@@ -1966,6 +1984,10 @@ static inline int security_bprm_secureex
+ 	return cap_bprm_secureexec(bprm);
+ }
+ 
++static inline void security_bprm_free(struct linux_binprm *bprm)
++{
++}
++
+ static inline int security_sb_alloc(struct super_block *sb)
+ {
+ 	return 0;
+@@ -2268,6 +2290,15 @@ static inline int security_dentry_open(s
+ 	return 0;
+ }
+ 
++static inline int security_task_alloc(struct task_struct *p)
++{
++	return 0;
++}
++
++static inline void security_task_free(struct task_struct *p)
++{
++}
++
+ static inline int security_task_create(unsigned long clone_flags)
+ {
+ 	return 0;
+--- linux-next.orig/kernel/fork.c
++++ linux-next/kernel/fork.c
+@@ -195,6 +195,7 @@ void __put_task_struct(struct task_struc
+ 	delayacct_tsk_free(tsk);
+ 	put_signal_struct(tsk->signal);
+ 
++	security_task_free(tsk);
+ 	if (!profile_handoff_task(tsk))
+ 		free_task(tsk);
+ }
+@@ -1250,6 +1251,9 @@ static struct task_struct *copy_process(
+ 	retval = audit_alloc(p);
+ 	if (retval)
+ 		goto bad_fork_cleanup_policy;
++	retval = security_task_alloc(p);
++	if (retval)
++		goto bad_fork_cleanup_audit;
+ 	/* copy all the process information */
+ 	retval = copy_semundo(clone_flags, p);
+ 	if (retval)
+@@ -1438,6 +1442,7 @@ bad_fork_cleanup_semundo:
+ 	exit_sem(p);
+ bad_fork_cleanup_audit:
+ 	audit_free(p);
++	security_task_free(p);
+ bad_fork_cleanup_policy:
+ 	perf_event_free_task(p);
+ #ifdef CONFIG_NUMA
+--- linux-next.orig/security/capability.c
++++ linux-next/security/capability.c
+@@ -40,6 +40,10 @@ static void cap_bprm_committed_creds(str
+ {
+ }
+ 
++static void cap_bprm_free_security(struct linux_binprm *bprm)
++{
++}
++
+ static int cap_sb_alloc_security(struct super_block *sb)
+ {
+ 	return 0;
+@@ -359,6 +363,15 @@ static int cap_task_create(unsigned long
+ 	return 0;
+ }
+ 
++static int cap_task_alloc_security(struct task_struct *p)
++{
++	return 0;
++}
++
++static void cap_task_free_security(struct task_struct *p)
++{
++}
++
+ static int cap_cred_alloc_blank(struct cred *cred, gfp_t gfp)
+ {
+ 	return 0;
+@@ -889,6 +902,7 @@ void __init security_fixup_ops(struct se
+ 	set_to_cap_if_null(ops, bprm_committed_creds);
+ 	set_to_cap_if_null(ops, bprm_check_security);
+ 	set_to_cap_if_null(ops, bprm_secureexec);
++	set_to_cap_if_null(ops, bprm_free_security);
+ 	set_to_cap_if_null(ops, sb_alloc_security);
+ 	set_to_cap_if_null(ops, sb_free_security);
+ 	set_to_cap_if_null(ops, sb_copy_data);
+@@ -955,6 +969,8 @@ void __init security_fixup_ops(struct se
+ 	set_to_cap_if_null(ops, file_receive);
+ 	set_to_cap_if_null(ops, dentry_open);
+ 	set_to_cap_if_null(ops, task_create);
++	set_to_cap_if_null(ops, task_alloc_security);
++	set_to_cap_if_null(ops, task_free_security);
+ 	set_to_cap_if_null(ops, cred_alloc_blank);
+ 	set_to_cap_if_null(ops, cred_free);
+ 	set_to_cap_if_null(ops, cred_prepare);
+--- linux-next.orig/security/security.c
++++ linux-next/security/security.c
+@@ -255,6 +255,11 @@ int security_bprm_secureexec(struct linu
+ 	return security_ops->bprm_secureexec(bprm);
+ }
+ 
++void security_bprm_free(struct linux_binprm *bprm)
++{
++	security_ops->bprm_free_security(bprm);
++}
++
+ int security_sb_alloc(struct super_block *sb)
+ {
+ 	return security_ops->sb_alloc_security(sb);
+@@ -749,6 +754,16 @@ int security_task_create(unsigned long c
+ 	return security_ops->task_create(clone_flags);
+ }
+ 
++int security_task_alloc(struct task_struct *p)
++{
++	return security_ops->task_alloc_security(p);
++}
++
++void security_task_free(struct task_struct *p)
++{
++	security_ops->task_free_security(p);
++}
++
+ int security_cred_alloc_blank(struct cred *cred, gfp_t gfp)
+ {
+ 	return security_ops->cred_alloc_blank(cred, gfp);
