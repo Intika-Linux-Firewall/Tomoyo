@@ -1,13 +1,12 @@
-[PATCH] TOMOYO: Use per "struct task_struct" variables.
+[PATCH 2/2] TOMOYO: Use per "struct task_struct" variables.
 
-This patch removes distinction between subjective credentials
-("struct task_struct"->cred) and objective credentials ("struct task_struct"->
-real_cred) from TOMOYO. This is needed for fixing below bugs.
+This patch removes distinction between subjective credentials and objective
+credentials from TOMOYO. This is needed for fixing below bugs.
 
 (1) Upon do_execve(), binary loader's permission cannot be checked because the
     proposed subjective credentials which will be used if do_execve() succeeds
     is not passed to security_dentry_open(). Fix this bug by allowing updating
-    security context stored into a "struct task_struct" variable at
+    security context associated with "struct task_struct" variable at
     security_bprm_check() before do_execve() succeeds, and reverting at
     security_bprm_free() if do_execve() failed.
 
@@ -16,16 +15,15 @@ real_cred) from TOMOYO. This is needed for fixing below bugs.
     variable's permissions upon do_execve(), for /usr/sbin/tomoyo-queryd cannot
     see the proposed subjective credentials until do_execve() succeeds. Also,
     interactive judgment functionality cannot be used whenever the target
-    thread is between override_creds() and revert_creds().
+    thread is between override_creds() and revert_creds(). Fix this bug by
+    using security context associated with "struct task_struct".
 
-(3) Future patches that triggers domain transition cannot be proposed because
+(3) Future patches that trigger domain transition cannot be implemented because
     domain transition cannot be done when the current thread is between
-    override_creds() and revert_creds().
+    override_creds() and revert_creds(). Fix this bug by using security context
+    associated with "struct task_struct".
 
 By applying this patch, TOMOYO no longer depends on "struct cred"->security.
-This is correct for TOMOYO because TOMOYO's security context is defined as
-what did each "struct task_struct" has requested by now. Overriding security
-context of some other "struct task_struct" on behalf of that thread is wrong.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
 ---

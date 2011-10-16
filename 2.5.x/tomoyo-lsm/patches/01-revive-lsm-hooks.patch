@@ -1,4 +1,27 @@
-[PATCH] LSM: Revive security_task_alloc()/security_task_free()/security_bprm_free() hooks.
+[PATCH 1/2] LSM: Revive security_task_alloc()/security_task_free()/security_bprm_free() hooks.
+
+The "void *security" variable which is used by LSM modules is embedded into
+"struct cred". This approach is useful when the security context is defined
+based on "who" (user-centric attributes) because bundling DAC attributes (e.g.
+uid) and MAC attributes (e.g. user_t in SELinux) into "struct cred" allows
+atomic switching of user credentials.
+
+However, TOMOYO's security context is defined based on "struct task_struct"
+(user-neutral attributes) rather than "who". TOMOYO's security context is
+defined as "what has each thread requested by now". Thus, TOMOYO needs to use
+"struct task_struct"->security which is defined based on "struct task_struct"
+rather than "struct cred"->security which is defined based on "who".
+
+Unfortunately, "struct task_struct"->security and related hooks have gone
+before TOMOYO is accepted. Therefore, until now, TOMOYO was forced to use
+inaccurate security context based on user-centric attributes; resulting
+several functionality being unimplementable due to disturbance by credential's
+override mechanism.
+
+As TOMOYO is becoming functional, I want to start using accurate security
+context based on "struct task_struct" (user-neutral attributes) in order to
+implement these functionality. This patch revives hooks that have gone before
+TOMOYO is accepted.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
