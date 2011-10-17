@@ -29,11 +29,9 @@ making TOMOYO to manage security context without depending on "struct cred"->
 security is the only acceptable approach.
 
 This patchset removes dependency on "struct cred"->security from TOMOYO by
-reviving security_task_alloc()/security_task_free()/security_bprm_free() hooks.
-(If we can also agree on reviving "struct task_struct"->security in addition to
-these 3 hooks, [PATCH 2/2] will become simpler and cleaner. For now I'm
-managing without "struct task_struct"->security .)
+reviving "struct task_struct"->security and security_task_alloc()/
+security_task_free()/security_bprm_free() hooks.
 
-[PATCH 1/2] LSM: Revive security_task_alloc()/security_task_free()/security_bprm_free() hooks.
+[PATCH 1/2] LSM: Revive "struct task_struct"->security and related hooks.
 
 [PATCH 2/2] TOMOYO: Use per "struct task_struct" variables.

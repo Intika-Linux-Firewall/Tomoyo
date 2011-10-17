@@ -28,21 +28,20 @@ By applying this patch, TOMOYO no longer depends on "struct cred"->security.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
 ---
  security/tomoyo/audit.c         |   11 -
- security/tomoyo/common.c        |   28 +--
- security/tomoyo/common.h        |  106 ++++++++----
- security/tomoyo/domain.c        |   43 ++---
- security/tomoyo/file.c          |   19 --
- security/tomoyo/gc.c            |   54 +++++-
- security/tomoyo/memory.c        |    2 
+ security/tomoyo/common.c        |   28 ++--
+ security/tomoyo/common.h        |   98 +++++++++------
+ security/tomoyo/domain.c        |   43 +++---
+ security/tomoyo/file.c          |   19 +-
+ security/tomoyo/gc.c            |   52 ++++++-
  security/tomoyo/mount.c         |    2 
  security/tomoyo/network.c       |    4 
- security/tomoyo/securityfs_if.c |   28 ---
- security/tomoyo/tomoyo.c        |  340 +++++++++++++++++++++++-----------------
- security/tomoyo/util.c          |   22 --
- 12 files changed, 385 insertions(+), 274 deletions(-)
+ security/tomoyo/securityfs_if.c |   28 ----
+ security/tomoyo/tomoyo.c        |  261 ++++++++++++++++++----------------------
+ security/tomoyo/util.c          |   22 +--
+ 11 files changed, 294 insertions(+), 274 deletions(-)
 
---- security-testing-2.6.orig/security/tomoyo/audit.c
-+++ security-testing-2.6/security/tomoyo/audit.c
+--- linux-next.orig/security/tomoyo/audit.c
++++ linux-next/security/tomoyo/audit.c
 @@ -240,7 +240,7 @@ char *tomoyo_init_log(struct tomoyo_requ
  	char *realpath = NULL;
  	const char *symlink = NULL;
@@ -88,9 +87,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		goto out;
  	buf = tomoyo_init_log(r, len, fmt, args);
  	if (!buf)
---- security-testing-2.6.orig/security/tomoyo/common.c
-+++ security-testing-2.6/security/tomoyo/common.c
-@@ -519,16 +519,15 @@ static struct tomoyo_profile *tomoyo_ass
+--- linux-next.orig/security/tomoyo/common.c
++++ linux-next/security/tomoyo/common.c
+@@ -517,16 +517,15 @@ static struct tomoyo_profile *tomoyo_ass
  /**
   * tomoyo_profile - Find a profile.
   *
@@ -110,7 +109,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!ptr)
  		ptr = &tomoyo_null_profile;
  	return ptr;
-@@ -925,7 +924,8 @@ static bool tomoyo_manager(void)
+@@ -923,7 +922,8 @@ static bool tomoyo_manager(void)
  	struct tomoyo_manager *ptr;
  	const char *exe;
  	const struct task_struct *task = current;
@@ -120,7 +119,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bool found = false;
  
  	if (!tomoyo_policy_loaded)
-@@ -994,7 +994,7 @@ static bool tomoyo_select_domain(struct 
+@@ -992,7 +992,7 @@ static bool tomoyo_select_domain(struct 
  		else
  			p = find_task_by_vpid(pid);
  		if (p)
@@ -129,7 +128,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		rcu_read_unlock();
  	} else if (!strncmp(data, "domain=", 7)) {
  		if (tomoyo_domain_def(data + 7))
-@@ -1672,7 +1672,7 @@ static void tomoyo_read_pid(struct tomoy
+@@ -1670,7 +1670,7 @@ static void tomoyo_read_pid(struct tomoy
  	else
  		p = find_task_by_vpid(pid);
  	if (p)
@@ -138,7 +137,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	rcu_read_unlock();
  	if (!domain)
  		return;
-@@ -1933,12 +1933,11 @@ static int tomoyo_truncate(char *str)
+@@ -1931,12 +1931,11 @@ static int tomoyo_truncate(char *str)
  /**
   * tomoyo_add_entry - Add an ACL to current thread's domain. Used by learning mode.
   *
@@ -152,7 +151,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	char *buffer;
  	char *realpath = NULL;
-@@ -1980,9 +1979,12 @@ static void tomoyo_add_entry(struct tomo
+@@ -1978,9 +1977,12 @@ static void tomoyo_add_entry(struct tomo
  	if (symlink)
  		tomoyo_addprintf(buffer, len, "%s", symlink);
  	tomoyo_normalize_line(buffer);
@@ -168,7 +167,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(buffer);
  }
  
-@@ -2040,7 +2042,7 @@ int tomoyo_supervisor(struct tomoyo_requ
+@@ -2038,7 +2040,7 @@ int tomoyo_supervisor(struct tomoyo_requ
  		goto out;
  	entry.query_len = strlen(entry.query) + 1;
  	if (!error) {
@@ -177,19 +176,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		goto out;
  	}
  	len = tomoyo_round2(entry.query_len);
---- security-testing-2.6.orig/security/tomoyo/common.h
-+++ security-testing-2.6/security/tomoyo/common.h
-@@ -44,6 +44,9 @@
- #define TOMOYO_HASH_BITS  8
- #define TOMOYO_MAX_HASH (1u<<TOMOYO_HASH_BITS)
- 
-+#define TOMOYO_TASK_SECURITY_HASH_BITS 12
-+#define TOMOYO_MAX_TASK_SECURITY_HASH (1u << TOMOYO_TASK_SECURITY_HASH_BITS)
-+
- /*
-  * TOMOYO checks only SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_SEQPACKET.
-  * Therefore, we don't need SOCK_MAX.
-@@ -424,7 +427,6 @@ struct tomoyo_request_info {
+--- linux-next.orig/security/tomoyo/common.h
++++ linux-next/security/tomoyo/common.h
+@@ -424,7 +424,6 @@ struct tomoyo_request_info {
  	 * NULL if not dealing do_execve().
  	 */
  	struct tomoyo_execve *ee;
@@ -197,7 +186,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* For holding parameters. */
  	union {
  		struct {
-@@ -684,7 +686,6 @@ struct tomoyo_domain_info {
+@@ -684,7 +683,6 @@ struct tomoyo_domain_info {
  	u8 group;          /* Group number to use.   */
  	bool is_deleted;   /* Delete flag.           */
  	bool flags[TOMOYO_MAX_DOMAIN_INFO_FLAGS];
@@ -205,7 +194,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /*
-@@ -912,6 +913,27 @@ struct tomoyo_policy_namespace {
+@@ -912,6 +910,24 @@ struct tomoyo_policy_namespace {
  	const char *name;
  };
  
@@ -214,8 +203,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * "struct task_struct".
 + */
 +struct tomoyo_security {
-+	struct list_head list;
-+	const struct task_struct *task; /* == current */
 +	/*
 +	 * Holds current thread's domain. Only current thread can modify this
 +	 * member but any threads can read this member under RCU.
@@ -223,17 +210,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_domain_info *tomoyo_domain_info;
 +	/*
 +	 * Holds previous tomoyo_domain_info during do_execve() in case
-+	 * do_execve() failed, NULL otherwise. Only current thread can access
-+	 * this member.
++	 * do_execve() failed, NULL otherwise. Only current thread can modify
++	 * this member but any threads can compare address under RCU.
 +	 */
 +	struct tomoyo_domain_info *previous_domain_info;
-+	struct rcu_head rcu;
 +};
 +
  /********** Function prototypes. **********/
  
  bool tomoyo_address_matches_group(const bool is_ipv6, const __be32 *address,
-@@ -957,18 +979,14 @@ const struct tomoyo_path_info *tomoyo_ge
+@@ -957,18 +973,14 @@ const struct tomoyo_path_info *tomoyo_ge
  const struct tomoyo_path_info *tomoyo_get_name(const char *name);
  const struct tomoyo_path_info *tomoyo_path_matches_group
  (const struct tomoyo_path_info *pathname, const struct tomoyo_group *group);
@@ -255,19 +241,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int tomoyo_mkdev_perm(const u8 operation, struct path *path,
  		      const unsigned int mode, unsigned int dev);
  int tomoyo_mount_permission(char *dev_name, struct path *path,
-@@ -1025,8 +1043,9 @@ struct tomoyo_group *tomoyo_get_group(st
+@@ -1025,8 +1037,7 @@ struct tomoyo_group *tomoyo_get_group(st
  				      const u8 idx);
  struct tomoyo_policy_namespace *tomoyo_assign_namespace
  (const char *domainname);
 -struct tomoyo_profile *tomoyo_profile(const struct tomoyo_policy_namespace *ns,
 -				      const u8 profile);
 +struct tomoyo_profile *tomoyo_profile(const u8 profile);
-+struct tomoyo_security *tomoyo_find_task_security
-+(const struct task_struct *task);
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
  				const u8 index);
  u8 tomoyo_parse_ulong(unsigned long *result, char **str);
-@@ -1062,6 +1081,7 @@ void tomoyo_write_log2(struct tomoyo_req
+@@ -1062,6 +1073,7 @@ void tomoyo_write_log2(struct tomoyo_req
  /********** External variable definitions. **********/
  
  extern bool tomoyo_policy_loaded;
@@ -275,16 +259,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern const char * const tomoyo_condition_keyword
  [TOMOYO_MAX_CONDITION_KEYWORD];
  extern const char * const tomoyo_dif[TOMOYO_MAX_DOMAIN_INFO_FLAGS];
-@@ -1079,6 +1099,8 @@ extern struct list_head tomoyo_condition
- extern struct list_head tomoyo_domain_list;
- extern struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
- extern struct list_head tomoyo_namespace_list;
-+extern struct list_head
-+tomoyo_task_security_list[TOMOYO_MAX_TASK_SECURITY_HASH];
- extern struct mutex tomoyo_policy_lock;
- extern struct srcu_struct tomoyo_ss;
- extern struct tomoyo_domain_info tomoyo_kernel_domain;
-@@ -1197,29 +1219,6 @@ static inline void tomoyo_put_group(stru
+@@ -1197,29 +1209,6 @@ static inline void tomoyo_put_group(stru
  }
  
  /**
@@ -314,7 +289,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_same_name_union - Check for duplicated "struct tomoyo_name_union" entry.
   *
   * @a: Pointer to "struct tomoyo_name_union".
-@@ -1265,13 +1264,50 @@ static inline bool tomoyo_same_ipaddr_un
+@@ -1265,13 +1254,52 @@ static inline bool tomoyo_same_ipaddr_un
  }
  
  /**
@@ -324,7 +299,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static inline struct tomoyo_security *tomoyo_current_security(void)
 +{
-+	return tomoyo_find_task_security(current);
++	return current->security;
 +}
 +
 +/**
@@ -339,7 +314,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	struct tomoyo_domain_info *domain;
 +	rcu_read_lock();
-+	domain = tomoyo_find_task_security(task)->tomoyo_domain_info;
++	domain = ((struct tomoyo_security *) task->security)->
++		tomoyo_domain_info;
 +	rcu_read_unlock();
 +	return domain;
 +}
@@ -351,7 +327,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static inline struct tomoyo_domain_info *tomoyo_current_domain(void)
 +{
-+	return tomoyo_find_task_security(current)->tomoyo_domain_info;
++	return ((struct tomoyo_security *) current->security)->
++		tomoyo_domain_info;
 +}
 +
 +/**
@@ -366,8 +343,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  #if defined(CONFIG_SLOB)
---- security-testing-2.6.orig/security/tomoyo/domain.c
-+++ security-testing-2.6/security/tomoyo/domain.c
+--- linux-next.orig/security/tomoyo/domain.c
++++ linux-next/security/tomoyo/domain.c
 @@ -157,7 +157,7 @@ void tomoyo_check_acl(struct tomoyo_requ
  		      bool (*check_entry) (struct tomoyo_request_info *,
  					   const struct tomoyo_acl_info *))
@@ -484,8 +461,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(ee->tmp);
  	kfree(ee->dump.data);
  	kfree(ee);
---- security-testing-2.6.orig/security/tomoyo/file.c
-+++ security-testing-2.6/security/tomoyo/file.c
+--- linux-next.orig/security/tomoyo/file.c
++++ linux-next/security/tomoyo/file.c
 @@ -561,7 +561,7 @@ static int tomoyo_path_permission(struct
  	int error;
  
@@ -566,9 +543,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    == TOMOYO_CONFIG_DISABLED)
  		return 0;
  	buf1.name = NULL;
---- security-testing-2.6.orig/security/tomoyo/gc.c
-+++ security-testing-2.6/security/tomoyo/gc.c
-@@ -232,6 +232,44 @@ static void tomoyo_del_acl(struct list_h
+--- linux-next.orig/security/tomoyo/gc.c
++++ linux-next/security/tomoyo/gc.c
+@@ -232,6 +232,42 @@ static void tomoyo_del_acl(struct list_h
  }
  
  /**
@@ -589,21 +566,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 * that GC first checks previous_domain_info and then checks
 +	 * tomoyo_domain_info.
 +	 */
-+	int idx;
++	struct task_struct *g;
++	struct task_struct *t;
 +	rcu_read_lock();
-+	for (idx = 0; idx < TOMOYO_MAX_TASK_SECURITY_HASH; idx++) {
-+		struct tomoyo_security *ptr;
-+		struct list_head *list = &tomoyo_task_security_list[idx];
-+		list_for_each_entry_rcu(ptr, list, list) {
-+			if (ptr->previous_domain_info != domain) {
-+				smp_rmb(); /* Avoid out of order execution. */
-+				if (ptr->tomoyo_domain_info != domain)
-+					continue;
-+			}
-+			in_use = true;
-+			goto out;
++	do_each_thread(g, t) {
++		struct tomoyo_security *security = t->security;
++		if (security->previous_domain_info != domain) {
++			smp_rmb(); /* Avoid out of order execution. */
++			if (security->tomoyo_domain_info != domain)
++				continue;
 +		}
-+	}
++		in_use = true;
++		goto out;
++	} while_each_thread(g, t);
 +out:
 +	rcu_read_unlock();
 +	return in_use;
@@ -613,7 +588,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_del_domain - Delete members in "struct tomoyo_domain_info".
   *
   * @element: Pointer to "struct list_head".
-@@ -248,7 +286,8 @@ static inline void tomoyo_del_domain(str
+@@ -248,7 +284,8 @@ static inline void tomoyo_del_domain(str
  	struct tomoyo_acl_info *tmp;
  	/*
  	 * Since this domain is referenced from neither
@@ -623,7 +598,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	 * elements without checking for is_deleted flag.
  	 */
  	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
-@@ -433,12 +472,12 @@ static void tomoyo_try_to_gc(const enum 
+@@ -433,12 +470,12 @@ static void tomoyo_try_to_gc(const enum 
  		break;
  	case TOMOYO_ID_DOMAIN:
  		/*
@@ -641,7 +616,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			goto reinject;
  		break;
  	case TOMOYO_MAX_POLICY:
-@@ -519,7 +558,8 @@ static void tomoyo_collect_entry(void)
+@@ -519,7 +556,8 @@ static void tomoyo_collect_entry(void)
  		list_for_each_entry_safe(domain, tmp, &tomoyo_domain_list,
  					 list) {
  			tomoyo_collect_acl(&domain->acl_info_list);
@@ -651,19 +626,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				continue;
  			tomoyo_try_to_gc(TOMOYO_ID_DOMAIN, &domain->list);
  		}
---- security-testing-2.6.orig/security/tomoyo/memory.c
-+++ security-testing-2.6/security/tomoyo/memory.c
-@@ -192,6 +192,8 @@ void __init tomoyo_mm_init(void)
- 	int idx;
- 	for (idx = 0; idx < TOMOYO_MAX_HASH; idx++)
- 		INIT_LIST_HEAD(&tomoyo_name_list[idx]);
-+	for (idx = 0; idx < TOMOYO_MAX_TASK_SECURITY_HASH; idx++)
-+                INIT_LIST_HEAD(&tomoyo_task_security_list[idx]);
- 	tomoyo_kernel_namespace.name = "<kernel>";
- 	tomoyo_init_policy_namespace(&tomoyo_kernel_namespace);
- 	tomoyo_kernel_domain.ns = &tomoyo_kernel_namespace;
---- security-testing-2.6.orig/security/tomoyo/mount.c
-+++ security-testing-2.6/security/tomoyo/mount.c
+--- linux-next.orig/security/tomoyo/mount.c
++++ linux-next/security/tomoyo/mount.c
 @@ -191,7 +191,7 @@ int tomoyo_mount_permission(char *dev_na
  	int error;
  	int idx;
@@ -673,8 +637,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    == TOMOYO_CONFIG_DISABLED)
  		return 0;
  	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
---- security-testing-2.6.orig/security/tomoyo/network.c
-+++ security-testing-2.6/security/tomoyo/network.c
+--- linux-next.orig/security/tomoyo/network.c
++++ linux-next/security/tomoyo/network.c
 @@ -470,7 +470,7 @@ static int tomoyo_inet_entry(const struc
  	int error = 0;
  	const u8 type = tomoyo_inet2mac[address->protocol][address->operation];
@@ -693,8 +657,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    != TOMOYO_CONFIG_DISABLED) {
  		char *buf = address->unix0.addr;
  		int len = address->unix0.addr_len - sizeof(sa_family_t);
---- security-testing-2.6.orig/security/tomoyo/securityfs_if.c
-+++ security-testing-2.6/security/tomoyo/securityfs_if.c
+--- linux-next.orig/security/tomoyo/securityfs_if.c
++++ linux-next/security/tomoyo/securityfs_if.c
 @@ -58,32 +58,14 @@ static ssize_t tomoyo_write_self(struct 
  		name.name = data;
  		tomoyo_fill_path_info(&name);
@@ -749,13 +713,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  
  	tomoyo_dir = securityfs_create_dir("tomoyo", NULL);
---- security-testing-2.6.orig/security/tomoyo/tomoyo.c
-+++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -5,138 +5,10 @@
-  */
- 
- #include <linux/security.h>
-+#include <linux/hash.h>
+--- linux-next.orig/security/tomoyo/tomoyo.c
++++ linux-next/security/tomoyo/tomoyo.c
+@@ -8,135 +8,6 @@
  #include "common.h"
  
  /**
@@ -891,7 +851,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_inode_getattr - Target for security_inode_getattr().
   *
   * @mnt:    Pointer to "struct vfsmount".
-@@ -314,7 +186,7 @@ static int tomoyo_file_fcntl(struct file
+@@ -314,7 +185,7 @@ static int tomoyo_file_fcntl(struct file
  {
  	if (!(cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND)))
  		return 0;
@@ -900,7 +860,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  					    O_WRONLY | (arg & O_APPEND));
  }
  
-@@ -328,11 +200,15 @@ static int tomoyo_file_fcntl(struct file
+@@ -328,11 +199,15 @@ static int tomoyo_file_fcntl(struct file
   */
  static int tomoyo_dentry_open(struct file *f, const struct cred *cred)
  {
@@ -920,119 +880,44 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -500,17 +376,192 @@ static int tomoyo_socket_sendmsg(struct 
+@@ -500,17 +375,117 @@ static int tomoyo_socket_sendmsg(struct 
  	return tomoyo_socket_sendmsg_permission(sock, msg, size);
  }
  
-+/* Dummy security context for avoiding NULL pointer dereference. */
-+static struct tomoyo_security tomoyo_null_security = {
-+	.tomoyo_domain_info = &tomoyo_kernel_domain,
-+};
-+
 +/* Security context for init_task task. */
 +static struct tomoyo_security tomoyo_init_security = {
-+	.task = &init_task,
 +	.tomoyo_domain_info = &tomoyo_kernel_domain,
 +};
 +
-+/* List of "struct tomoyo_security". */
-+struct list_head tomoyo_task_security_list[TOMOYO_MAX_TASK_SECURITY_HASH];
-+/* Lock for protecting tomoyo_task_security_list[]. */
-+static DEFINE_SPINLOCK(tomoyo_task_security_list_lock);
-+
 +/**
-+ * tomoyo_add_task_security - Add "struct tomoyo_security" to list.
-+ *
-+ * @ptr:  Pointer to "struct tomoyo_security".
-+ * @list: Pointer to "struct list_head".
-+ *
-+ * Returns nothing.
-+ */
-+static void tomoyo_add_task_security(struct tomoyo_security *ptr,
-+				     struct list_head *list)
-+{
-+	unsigned long flags;
-+	spin_lock_irqsave(&tomoyo_task_security_list_lock, flags);
-+	list_add_rcu(&ptr->list, list);
-+	spin_unlock_irqrestore(&tomoyo_task_security_list_lock, flags);
-+}
-+
-+/**
-+ * tomoyo_alloc_task_security - Allocate memory for new tasks.
++ * tomoyo_task_alloc_security - Allocate memory for new tasks.
 + *
 + * @task: Pointer to "struct task_struct".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int tomoyo_alloc_task_security(struct task_struct *task)
++static int tomoyo_task_alloc_security(struct task_struct *task)
 +{
-+	struct tomoyo_security *old_security = tomoyo_current_security();
++	struct tomoyo_security *old_security = current->security;
 +	struct tomoyo_security *new_security = kzalloc(sizeof(*new_security),
 +						       GFP_KERNEL);
-+	struct list_head *list = &tomoyo_task_security_list
-+		[hash_ptr((void *) task, TOMOYO_TASK_SECURITY_HASH_BITS)];
 +	if (!new_security)
 +		return -ENOMEM;
 +	*new_security = *old_security;
-+	new_security->task = task;
-+	tomoyo_add_task_security(new_security, list);
++	task->security = new_security;
 +	return 0;
 +}
 +
 +/**
-+ * tomoyo_find_task_security - Find "struct tomoyo_security" for given task.
-+ *
-+ * @task: Pointer to "struct task_struct".
-+ *
-+ * Returns pointer to "struct tomoyo_security".
-+ */
-+struct tomoyo_security *tomoyo_find_task_security
-+(const struct task_struct *task)
-+{
-+	struct tomoyo_security *ptr;
-+	struct list_head *list = &tomoyo_task_security_list
-+		[hash_ptr((void *) task, TOMOYO_TASK_SECURITY_HASH_BITS)];
-+	rcu_read_lock();
-+	list_for_each_entry_rcu(ptr, list, list) {
-+		if (ptr->task != task)
-+			continue;
-+		rcu_read_unlock();
-+		return ptr;
-+	}
-+	rcu_read_unlock();
-+	return &tomoyo_null_security;
-+}
-+
-+/**
-+ * tomoyo_rcu_free - RCU callback for releasing "struct tomoyo_security".
-+ *
-+ * @rcu: Pointer to "struct rcu_head".
-+ *
-+ * Returns nothing.
-+ */
-+static void tomoyo_rcu_free(struct rcu_head *rcu)
-+{
-+	struct tomoyo_security *ptr = container_of(rcu, typeof(*ptr), rcu);
-+	kfree(ptr);
-+}
-+
-+/**
-+ * tomoyo_free_task_security - Release memory associated with "struct task_struct".
++ * tomoyo_task_free_security - Release memory associated with "struct task_struct".
 + *
 + * @task: Pointer to "struct task_struct".
 + *
 + * Returns nothing.
 + */
-+static void tomoyo_free_task_security(struct task_struct *task)
++static void tomoyo_task_free_security(struct task_struct *task)
 +{
-+	unsigned long flags;
-+	struct tomoyo_security *ptr = tomoyo_find_task_security(task);
-+	if (ptr == &tomoyo_init_security || ptr == &tomoyo_null_security)
-+		return;
-+	spin_lock_irqsave(&tomoyo_task_security_list_lock, flags);
-+	list_del_rcu(&ptr->list);
-+	spin_unlock_irqrestore(&tomoyo_task_security_list_lock, flags);
-+	call_rcu(&ptr->rcu, tomoyo_rcu_free);
++	kfree(task->security);
 +}
 +
 +/**
@@ -1111,14 +996,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	.cred_transfer	     = tomoyo_cred_transfer,
 -	.cred_free           = tomoyo_cred_free,
 -	.bprm_set_creds      = tomoyo_bprm_set_creds,
-+	.task_alloc_security = tomoyo_alloc_task_security,
-+	.task_free_security  = tomoyo_free_task_security,
++	.task_alloc_security = tomoyo_task_alloc_security,
++	.task_free_security  = tomoyo_task_free_security,
 +	.bprm_committing_creds = tomoyo_bprm_committing_creds,
 +	.bprm_free_security  = tomoyo_bprm_free_security,
  	.bprm_check_security = tomoyo_bprm_check_security,
  	.file_fcntl          = tomoyo_file_fcntl,
  	.dentry_open         = tomoyo_dentry_open,
-@@ -539,6 +590,9 @@ static struct security_operations tomoyo
+@@ -539,6 +514,9 @@ static struct security_operations tomoyo
  /* Lock for GC. */
  struct srcu_struct tomoyo_ss;
  
@@ -1128,7 +1013,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_init - Register TOMOYO Linux as a LSM module.
   *
-@@ -546,8 +600,6 @@ struct srcu_struct tomoyo_ss;
+@@ -546,8 +524,6 @@ struct srcu_struct tomoyo_ss;
   */
  static int __init tomoyo_init(void)
  {
@@ -1137,22 +1022,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!security_module_enable(&tomoyo_security_ops))
  		return 0;
  	/* register ourselves with the security framework */
-@@ -555,8 +607,12 @@ static int __init tomoyo_init(void)
+@@ -555,7 +531,8 @@ static int __init tomoyo_init(void)
  	    init_srcu_struct(&tomoyo_ss))
  		panic("Failure registering TOMOYO Linux");
  	printk(KERN_INFO "TOMOYO Linux initialized\n");
 -	cred->security = &tomoyo_kernel_domain;
++	init_task.security = &tomoyo_init_security;
 +	tomoyo_registered = true;
  	tomoyo_mm_init();
-+	tomoyo_add_task_security(&tomoyo_init_security,
-+				 &tomoyo_task_security_list
-+				 [hash_ptr((void *) &init_task,
-+					   TOMOYO_TASK_SECURITY_HASH_BITS)]);
  	return 0;
  }
- 
---- security-testing-2.6.orig/security/tomoyo/util.c
-+++ security-testing-2.6/security/tomoyo/util.c
+--- linux-next.orig/security/tomoyo/util.c
++++ linux-next/security/tomoyo/util.c
 @@ -968,21 +968,19 @@ const char *tomoyo_get_exe(void)
  /**
   * tomoyo_get_mode - Get MAC mode.
