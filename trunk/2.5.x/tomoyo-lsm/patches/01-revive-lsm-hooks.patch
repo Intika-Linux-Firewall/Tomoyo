@@ -1,4 +1,4 @@
-[PATCH 1/2] LSM: Revive security_task_alloc()/security_task_free()/security_bprm_free() hooks.
+[PATCH 1/2] LSM: Revive "struct task_struct"->security and related hooks.
 
 The "void *security" variable which is used by LSM modules is embedded into
 "struct cred". This approach is useful when the security context is defined
@@ -14,27 +14,27 @@ rather than "struct cred"->security which is defined based on "who".
 
 Unfortunately, "struct task_struct"->security and related hooks have gone
 before TOMOYO is accepted. Therefore, until now, TOMOYO was forced to use
-inaccurate security context based on user-centric attributes; resulting
-several functionality being unimplementable due to disturbance by credential's
-override mechanism.
+inaccurate security context based on user-centric attributes. Also several
+functionality remains being unimplementable.
 
 As TOMOYO is becoming functional, I want to start using accurate security
 context based on "struct task_struct" (user-neutral attributes) in order to
-implement these functionality. This patch revives hooks that have gone before
-TOMOYO is accepted.
+implement remaining functionality. This patch revives "struct task_struct"->
+security and related hooks that have gone before TOMOYO is accepted.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  fs/exec.c                |    2 ++
- include/linux/security.h |   31 +++++++++++++++++++++++++++++++
- kernel/fork.c            |    5 +++++
+ include/linux/sched.h    |    3 +++
+ include/linux/security.h |   30 ++++++++++++++++++++++++++++++
+ kernel/fork.c            |    8 +++++++-
  security/capability.c    |   16 ++++++++++++++++
  security/security.c      |   15 +++++++++++++++
- 5 files changed, 69 insertions(+)
+ 6 files changed, 73 insertions(+), 1 deletion(-)
 
---- security-testing-2.6.orig/fs/exec.c
-+++ security-testing-2.6/fs/exec.c
-@@ -1201,7 +1201,9 @@ void free_bprm(struct linux_binprm *bprm
+--- linux-next.orig/fs/exec.c
++++ linux-next/fs/exec.c
+@@ -1197,7 +1197,9 @@ void free_bprm(struct linux_binprm *bprm
  	if (bprm->cred) {
  		mutex_unlock(&current->signal->cred_guard_mutex);
  		abort_creds(bprm->cred);
@@ -44,8 +44,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(bprm);
  }
  
---- security-testing-2.6.orig/include/linux/security.h
-+++ security-testing-2.6/include/linux/security.h
+--- linux-next.orig/include/linux/sched.h
++++ linux-next/include/linux/sched.h
+@@ -1396,6 +1396,9 @@ struct task_struct {
+ 	int (*notifier)(void *priv);
+ 	void *notifier_data;
+ 	sigset_t *notifier_mask;
++#ifdef CONFIG_SECURITY
++	void *security;
++#endif
+ 	struct audit_context *audit_context;
+ #ifdef CONFIG_AUDITSYSCALL
+ 	uid_t loginuid;
+--- linux-next.orig/include/linux/security.h
++++ linux-next/include/linux/security.h
 @@ -234,6 +234,9 @@ static inline void security_free_mnt_opt
   *	on the initial stack to the ELF interpreter to indicate whether libc
   *	should enable secure mode.
@@ -56,7 +68,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Security hooks for filesystem operations.
   *
-@@ -650,6 +653,15 @@ static inline void security_free_mnt_opt
+@@ -650,6 +653,14 @@ static inline void security_free_mnt_opt
   *	manual page for definitions of the @clone_flags.
   *	@clone_flags contains the flags indicating what should be shared.
   *	Return 0 if permission is granted.
@@ -67,12 +79,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *      Return 0 on success, negative value otherwise.
 + * @task_free_security:
 + *      Clean up per task_struct variables.
-+ *      Note that this hook is also called when security_task_alloc() failed.
 + *      @p contains the task_struct.
   * @cred_alloc_blank:
   *	@cred points to the credentials.
   *	@gfp indicates the atomicity of any memory allocations.
-@@ -1403,6 +1415,7 @@ struct security_operations {
+@@ -1403,6 +1414,7 @@ struct security_operations {
  	int (*bprm_secureexec) (struct linux_binprm *bprm);
  	void (*bprm_committing_creds) (struct linux_binprm *bprm);
  	void (*bprm_committed_creds) (struct linux_binprm *bprm);
@@ -80,7 +91,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	int (*sb_alloc_security) (struct super_block *sb);
  	void (*sb_free_security) (struct super_block *sb);
-@@ -1500,6 +1513,8 @@ struct security_operations {
+@@ -1500,6 +1512,8 @@ struct security_operations {
  	int (*dentry_open) (struct file *file, const struct cred *cred);
  
  	int (*task_create) (unsigned long clone_flags);
@@ -89,7 +100,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	int (*cred_alloc_blank) (struct cred *cred, gfp_t gfp);
  	void (*cred_free) (struct cred *cred);
  	int (*cred_prepare)(struct cred *new, const struct cred *old,
-@@ -1692,6 +1707,7 @@ int security_bprm_check(struct linux_bin
+@@ -1692,6 +1706,7 @@ int security_bprm_check(struct linux_bin
  void security_bprm_committing_creds(struct linux_binprm *bprm);
  void security_bprm_committed_creds(struct linux_binprm *bprm);
  int security_bprm_secureexec(struct linux_binprm *bprm);
@@ -97,7 +108,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_sb_alloc(struct super_block *sb);
  void security_sb_free(struct super_block *sb);
  int security_sb_copy_data(char *orig, char *copy);
-@@ -1762,6 +1778,8 @@ int security_file_send_sigiotask(struct 
+@@ -1762,6 +1777,8 @@ int security_file_send_sigiotask(struct 
  int security_file_receive(struct file *file);
  int security_dentry_open(struct file *file, const struct cred *cred);
  int security_task_create(unsigned long clone_flags);
@@ -106,7 +117,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  int security_cred_alloc_blank(struct cred *cred, gfp_t gfp);
  void security_cred_free(struct cred *cred);
  int security_prepare_creds(struct cred *new, const struct cred *old, gfp_t gfp);
-@@ -1966,6 +1984,10 @@ static inline int security_bprm_secureex
+@@ -1966,6 +1983,10 @@ static inline int security_bprm_secureex
  	return cap_bprm_secureexec(bprm);
  }
  
@@ -117,7 +128,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_sb_alloc(struct super_block *sb)
  {
  	return 0;
-@@ -2268,6 +2290,15 @@ static inline int security_dentry_open(s
+@@ -2268,6 +2289,15 @@ static inline int security_dentry_open(s
  	return 0;
  }
  
@@ -133,36 +144,41 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_task_create(unsigned long clone_flags)
  {
  	return 0;
---- security-testing-2.6.orig/kernel/fork.c
-+++ security-testing-2.6/kernel/fork.c
-@@ -194,6 +194,7 @@ void __put_task_struct(struct task_struc
- 	delayacct_tsk_free(tsk);
- 	put_signal_struct(tsk->signal);
+--- linux-next.orig/kernel/fork.c
++++ linux-next/kernel/fork.c
+@@ -191,6 +191,7 @@ void __put_task_struct(struct task_struc
+ 	WARN_ON(atomic_read(&tsk->usage));
+ 	WARN_ON(tsk == current);
  
 +	security_task_free(tsk);
- 	if (!profile_handoff_task(tsk))
- 		free_task(tsk);
- }
-@@ -1223,6 +1224,9 @@ static struct task_struct *copy_process(
- 	retval = audit_alloc(p);
+ 	exit_creds(tsk);
+ 	delayacct_tsk_free(tsk);
+ 	put_signal_struct(tsk->signal);
+@@ -1247,9 +1248,12 @@ static struct task_struct *copy_process(
+ 	retval = perf_event_init_task(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
+-	retval = audit_alloc(p);
 +	retval = security_task_alloc(p);
+ 	if (retval)
+ 		goto bad_fork_cleanup_policy;
++	retval = audit_alloc(p);
 +	if (retval)
-+		goto bad_fork_cleanup_audit;
++		goto bad_fork_cleanup_security;
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1411,6 +1415,7 @@ bad_fork_cleanup_semundo:
+@@ -1438,6 +1442,8 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
++bad_fork_cleanup_security:
 +	security_task_free(p);
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- security-testing-2.6.orig/security/capability.c
-+++ security-testing-2.6/security/capability.c
+--- linux-next.orig/security/capability.c
++++ linux-next/security/capability.c
 @@ -40,6 +40,10 @@ static void cap_bprm_committed_creds(str
  {
  }
@@ -207,8 +223,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_cap_if_null(ops, cred_alloc_blank);
  	set_to_cap_if_null(ops, cred_free);
  	set_to_cap_if_null(ops, cred_prepare);
---- security-testing-2.6.orig/security/security.c
-+++ security-testing-2.6/security/security.c
+--- linux-next.orig/security/security.c
++++ linux-next/security/security.c
 @@ -255,6 +255,11 @@ int security_bprm_secureexec(struct linu
  	return security_ops->bprm_secureexec(bprm);
  }
