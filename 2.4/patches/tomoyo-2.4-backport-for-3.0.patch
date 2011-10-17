@@ -15,8 +15,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/util.c          |    3 ++-
  4 files changed, 10 insertions(+), 8 deletions(-)
 
---- linux-3.0.6.orig/security/tomoyo/common.c
-+++ linux-3.0.6/security/tomoyo/common.c
+--- linux-3.0.7.orig/security/tomoyo/common.c
++++ linux-3.0.7/security/tomoyo/common.c
 @@ -466,8 +466,10 @@ static struct tomoyo_profile *tomoyo_ass
  			TOMOYO_CONFIG_WANT_REJECT_LOG;
  		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
@@ -60,8 +60,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	rcu_read_unlock();
  	if (!domain)
  		return;
---- linux-3.0.6.orig/security/tomoyo/domain.c
-+++ linux-3.0.6/security/tomoyo/domain.c
+--- linux-3.0.7.orig/security/tomoyo/domain.c
++++ linux-3.0.7/security/tomoyo/domain.c
 @@ -501,7 +501,8 @@ struct tomoyo_domain_info *tomoyo_assign
  			 * that domain. Do not perform domain transition if
  			 * profile for that domain is not yet created.
@@ -80,8 +80,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	return entry;
---- linux-3.0.6.orig/security/tomoyo/securityfs_if.c
-+++ linux-3.0.6/security/tomoyo/securityfs_if.c
+--- linux-3.0.7.orig/security/tomoyo/securityfs_if.c
++++ linux-3.0.7/security/tomoyo/securityfs_if.c
 @@ -147,6 +147,7 @@ static int __init tomoyo_initerface_init
  			    TOMOYO_MANAGER);
  	tomoyo_create_entry("version",          0400, tomoyo_dir,
@@ -90,8 +90,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
---- linux-3.0.6.orig/security/tomoyo/util.c
-+++ linux-3.0.6/security/tomoyo/util.c
+--- linux-3.0.7.orig/security/tomoyo/util.c
++++ linux-3.0.7/security/tomoyo/util.c
 @@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(ns, profile)->config[index];
