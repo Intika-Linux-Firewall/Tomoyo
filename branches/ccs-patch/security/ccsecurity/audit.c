@@ -8,22 +8,6 @@
 
 #include "internal.h"
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
-
-/**
- * fatal_signal_pending - Check whether SIGKILL is pending or not.
- *
- * @p: Pointer to "struct task_struct".
- *
- * Returns true if SIGKILL is pending on @p, false otherwise.
- *
- * This is for compatibility with older kernels.
- */
-#define fatal_signal_pending(p) (signal_pending(p) &&			\
-				 sigismember(&p->pending.signal, SIGKILL))
-
-#endif
-
 /**
  * ccs_print_bprm - Print "struct linux_binprm" for auditing.
  *
@@ -165,11 +149,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 	struct ccs_time stamp;
 	struct ccs_obj_info *obj = r->obj;
 	const u32 ccs_flags = ccs_current_flags();
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-	const pid_t gpid = ccs_sys_getpid();
-#else
 	const pid_t gpid = task_pid_nr(current);
-#endif
 	static const int ccs_buffer_len = 4096;
 	char *buffer = kmalloc(ccs_buffer_len, CCS_GFP_FLAGS);
 	int pos;
@@ -267,12 +247,7 @@ char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
 	len += strlen(domainname) + strlen(header) + 10;
 	if (r->ee) {
 		struct file *file = r->ee->bprm->file;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-		struct path path = { file->f_vfsmnt, file->f_dentry };
-		realpath = ccs_realpath_from_path(&path);
-#else
 		realpath = ccs_realpath_from_path(&file->f_path);
-#endif
 		bprm_info = ccs_print_bprm(r->ee->bprm, &r->ee->dump);
 		if (!realpath || !bprm_info)
 			goto out;

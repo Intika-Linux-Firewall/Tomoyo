@@ -39,7 +39,7 @@ const char * const ccs_proto_keyword[CCS_SOCK_MAX] = {
 	[4] = " ", /* Dummy for avoiding NULL pointer dereference. */
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19) && defined(CONFIG_NET)
+#if defined(CONFIG_NET)
 #define ccs_in4_pton in4_pton
 #define ccs_in6_pton in6_pton
 #else
@@ -262,132 +262,6 @@ out:
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
-
-/*
- * Routines for printing IPv4 or IPv6 address.
- * These are copied from include/linux/kernel.h include/net/ipv6.h
- * include/net/addrconf.h lib/hexdump.c lib/vsprintf.c and simplified.
- */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
-static const char hex_asc[] = "0123456789abcdef";
-#define hex_asc_lo(x)   hex_asc[((x) & 0x0f)]
-#define hex_asc_hi(x)   hex_asc[((x) & 0xf0) >> 4]
-
-static inline char *pack_hex_byte(char *buf, u8 byte)
-{
-	*buf++ = hex_asc_hi(byte);
-	*buf++ = hex_asc_lo(byte);
-	return buf;
-}
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-static inline int ipv6_addr_v4mapped(const struct in6_addr *a)
-{
-	return (a->s6_addr32[0] | a->s6_addr32[1] |
-		(a->s6_addr32[2] ^ htonl(0x0000ffff))) == 0;
-}
-#endif
-
-static inline int ipv6_addr_is_isatap(const struct in6_addr *addr)
-{
-	return (addr->s6_addr32[2] | htonl(0x02000000)) == htonl(0x02005EFE);
-}
-
-static char *ip4_string(char *p, const u8 *addr)
-{
-	/*
-	 * Since this function is called outside vsnprintf(), I can use
-	 * sprintf() here.
-	 */
-	return p +
-		sprintf(p, "%u.%u.%u.%u", addr[0], addr[1], addr[2], addr[3]);
-}
-
-static char *ip6_compressed_string(char *p, const char *addr)
-{
-	int i, j, range;
-	unsigned char zerolength[8];
-	int longest = 1;
-	int colonpos = -1;
-	u16 word;
-	u8 hi, lo;
-	bool needcolon = false;
-	bool useIPv4;
-	struct in6_addr in6;
-
-	memcpy(&in6, addr, sizeof(struct in6_addr));
-
-	useIPv4 = ipv6_addr_v4mapped(&in6) || ipv6_addr_is_isatap(&in6);
-
-	memset(zerolength, 0, sizeof(zerolength));
-
-	if (useIPv4)
-		range = 6;
-	else
-		range = 8;
-
-	/* find position of longest 0 run */
-	for (i = 0; i < range; i++) {
-		for (j = i; j < range; j++) {
-			if (in6.s6_addr16[j] != 0)
-				break;
-			zerolength[i]++;
-		}
-	}
-	for (i = 0; i < range; i++) {
-		if (zerolength[i] > longest) {
-			longest = zerolength[i];
-			colonpos = i;
-		}
-	}
-	if (longest == 1)		/* don't compress a single 0 */
-		colonpos = -1;
-
-	/* emit address */
-	for (i = 0; i < range; i++) {
-		if (i == colonpos) {
-			if (needcolon || i == 0)
-				*p++ = ':';
-			*p++ = ':';
-			needcolon = false;
-			i += longest - 1;
-			continue;
-		}
-		if (needcolon) {
-			*p++ = ':';
-			needcolon = false;
-		}
-		/* hex u16 without leading 0s */
-		word = ntohs(in6.s6_addr16[i]);
-		hi = word >> 8;
-		lo = word & 0xff;
-		if (hi) {
-			if (hi > 0x0f)
-				p = pack_hex_byte(p, hi);
-			else
-				*p++ = hex_asc_lo(hi);
-			p = pack_hex_byte(p, lo);
-		}
-		else if (lo > 0x0f)
-			p = pack_hex_byte(p, lo);
-		else
-			*p++ = hex_asc_lo(lo);
-		needcolon = true;
-	}
-
-	if (useIPv4) {
-		if (needcolon)
-			*p++ = ':';
-		p = ip4_string(p, &in6.s6_addr[12]);
-	}
-	*p = '\0';
-
-	return p;
-}
-#endif
-
 /**
  * ccs_parse_ipaddr_union - Parse an IP address.
  *
@@ -438,17 +312,8 @@ bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
 static void ccs_print_ipv4(char *buffer, const unsigned int buffer_len,
 			   const u32 *min_ip, const u32 *max_ip)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
 	snprintf(buffer, buffer_len, "%pI4%c%pI4", min_ip,
 		 *min_ip == *max_ip ? '\0' : '-', max_ip);
-#else
-	char min_addr[sizeof("255.255.255.255")];
-	char max_addr[sizeof("255.255.255.255")];
-	ip4_string(min_addr, (const u8 *) min_ip);
-	ip4_string(max_addr, (const u8 *) max_ip);
-	snprintf(buffer, buffer_len, "%s%c%s", min_addr,
-		 *min_ip == *max_ip ? '\0' : '-', max_addr);
-#endif
 }
 
 /**
@@ -465,17 +330,8 @@ static void ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
 			   const struct in6_addr *min_ip,
 			   const struct in6_addr *max_ip)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
 	snprintf(buffer, buffer_len, "%pI6c%c%pI6c", min_ip,
 		 !memcmp(min_ip, max_ip, 16) ? '\0' : '-', max_ip);
-#else
-	char min_addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
-	char max_addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
-	ip6_compressed_string(min_addr, (const u8 *) min_ip);
-	ip6_compressed_string(max_addr, (const u8 *) max_ip);
-	snprintf(buffer, buffer_len, "%s%c%s", min_addr,
-		 !memcmp(min_ip, max_ip, 16) ? '\0' : '-', max_addr);
-#endif
 }
 
 /**
@@ -1172,145 +1028,6 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 				      &address);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
-#if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
-#if !defined(AX_MAJOR) || AX_MAJOR != 3
-
-/**
- * ip_hdr - Get "struct iphdr".
- *
- * @skb: Pointer to "struct sk_buff".
- *
- * Returns pointer to "struct iphdr".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
-{
-	return skb->nh.iph;
-}
-
-/**
- * udp_hdr - Get "struct udphdr".
- *
- * @skb: Pointer to "struct sk_buff".
- *
- * Returns pointer to "struct udphdr".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
-{
-	return skb->h.uh;
-}
-
-/**
- * ipv6_hdr - Get "struct ipv6hdr".
- *
- * @skb: Pointer to "struct sk_buff".
- *
- * Returns pointer to "struct ipv6hdr".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
-{
-	return skb->nh.ipv6h;
-}
-
-#endif
-#endif
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * skb_kill_datagram - Kill a datagram forcibly.
- *
- * @sk:    Pointer to "struct sock".
- * @skb:   Pointer to "struct sk_buff".
- * @flags: Flags passed to skb_recv_datagram().
- *
- * Returns nothing.
- */
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_irq(&sk->receive_queue.lock);
-		if (skb == skb_peek(&sk->receive_queue)) {
-			__skb_unlink(skb, &sk->receive_queue);
-			clear = 1;
-		}
-		spin_unlock_irq(&sk->receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
-
-/**
- * skb_kill_datagram - Kill a datagram forcibly.
- *
- * @sk:    Pointer to "struct sock".
- * @skb:   Pointer to "struct sk_buff".
- * @flags: Flags passed to skb_recv_datagram().
- *
- * Returns nothing.
- */
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_irq(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_irq(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-
-/**
- * skb_kill_datagram - Kill a datagram forcibly.
- *
- * @sk:    Pointer to "struct sock".
- * @skb:   Pointer to "struct sk_buff".
- * @flags: Flags passed to skb_recv_datagram().
- *
- * Returns nothing.
- */
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_bh(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_bh(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-
-#endif
-
 /**
  * __ccs_socket_post_recvmsg_permission - Check permission for receiving a datagram.
  *
@@ -1360,12 +1077,7 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 		}
 	default: /* == PF_UNIX */
 		{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 			struct unix_address *u = unix_sk(skb->sk)->addr;
-#else
-			struct unix_address *u =
-				skb->sk->protinfo.af_unix.addr;
-#endif
 			unsigned int addr_len;
 			if (u && u->len <= sizeof(addr)) {
 				addr_len = u->len;
@@ -1400,7 +1112,7 @@ out:
 		bool slow = false;
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			slow = lock_sock_fast(sk);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+#else
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			lock_sock(sk);
 #endif
@@ -1408,7 +1120,7 @@ out:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			unlock_sock_fast(sk, slow);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+#else
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			release_sock(sk);
 #endif

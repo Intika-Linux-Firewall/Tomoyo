@@ -944,13 +944,7 @@ const char *ccs_get_exe(void)
 	down_read(&mm->mmap_sem);
 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-			struct path path = { vma->vm_file->f_vfsmnt,
-					     vma->vm_file->f_dentry };
-			cp = ccs_realpath_from_path(&path);
-#else
 			cp = ccs_realpath_from_path(&vma->vm_file->f_path);
-#endif
 			break;
 		}
 	}

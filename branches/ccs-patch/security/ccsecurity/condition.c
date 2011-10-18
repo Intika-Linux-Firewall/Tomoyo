@@ -228,18 +228,9 @@ static bool ccs_scan_exec_realpath(struct file *file,
 {
 	bool result;
 	struct ccs_path_info exe;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-	struct path path;
-#endif
 	if (!file)
 		return false;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 	exe.name = ccs_realpath_from_path(&file->f_path);
-#else
-	path.mnt = file->f_vfsmnt;
-	path.dentry = file->f_dentry;
-	exe.name = ccs_realpath_from_path(&path);
-#endif
 	if (!exe.name)
 		return false;
 	ccs_fill_path_info(&exe);
@@ -730,13 +721,7 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 		default:
 			if (!dentry)
 				continue;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-			spin_lock(&dcache_lock);
-			dentry = dget(dentry->d_parent);
-			spin_unlock(&dcache_lock);
-#else
 			dentry = dget_parent(dentry);
-#endif
 			break;
 		}
 		inode = dentry->d_inode;
@@ -746,11 +731,7 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 			stat->gid  = inode->i_gid;
 			stat->ino  = inode->i_ino;
 			stat->mode = inode->i_mode;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-			stat->dev  = inode->i_dev;
-#else
 			stat->dev  = inode->i_sb->s_dev;
-#endif
 			stat->rdev = inode->i_rdev;
 			obj->stat_valid[i] = true;
 		}

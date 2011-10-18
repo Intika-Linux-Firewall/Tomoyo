@@ -54,25 +54,6 @@ static bool ccs_check_mount_acl(struct ccs_request_info *r,
 		 ccs_compare_name_union(r->param.mount.dev, &acl->dev_name));
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * module_put - Put a reference on module.
- *
- * @module: Pointer to "struct module". Maybe NULL.
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void module_put(struct module *module)
-{
-	if (module)
-		__MOD_DEC_USE_COUNT(module);
-}
-
-#endif
-
 /**
  * ccs_put_filesystem - Wrapper for put_filesystem().
  *
@@ -257,29 +238,6 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	return error;
 }
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-
-/**
- * ccs_old_mount_permission - Check permission for mount() operation.
- *
- * @dev_name:  Name of device file.
- * @nd:        Pointer to "struct nameidata".
- * @type:      Name of filesystem type. Maybe NULL.
- * @flags:     Mount options.
- * @data_page: Optional data. Maybe NULL.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
-				    const char *type, unsigned long flags,
-				    void *data_page)
-{
-	struct path path = { nd->mnt, nd->dentry };
-	return __ccs_mount_permission(dev_name, &path, type, flags, data_page);
-}
-
-#endif
-
 /**
  * ccs_mount_init - Register hooks for mount() operation.
  *
@@ -290,9 +248,5 @@ static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
  */
 void __init ccs_mount_init(void)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.mount_permission = __ccs_mount_permission;
-#else
-	ccsecurity_ops.mount_permission = ccs_old_mount_permission;
-#endif
 }

@@ -102,34 +102,10 @@ static ssize_t ccs_read_self(struct file *file, char __user *buf, size_t count,
 }
 
 /* Operations for /proc/ccs/self_domain interface. */
-static
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
-const
-#endif
-struct file_operations ccs_self_operations = {
+static const struct file_operations ccs_self_operations = {
 	.write = ccs_write_self,
 	.read  = ccs_read_self,
 };
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
-#if !defined(RHEL_VERSION) || RHEL_VERSION != 3
-
-/**
- * PDE - Get "struct proc_dir_entry".
- *
- * @inode: Pointer to "struct inode".
- *
- * Returns pointer to "struct proc_dir_entry".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct proc_dir_entry *PDE(const struct inode *inode)
-{
-	return (struct proc_dir_entry *) inode->u.generic_ip;
-}
-
-#endif
-#endif
 
 /**
  * ccs_open - open() for /proc/ccs/ interface.
@@ -204,64 +180,13 @@ static ssize_t ccs_write(struct file *file, const char __user *buf,
 }
 
 /* Operations for /proc/ccs/ interface. */
-static
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
-const
-#endif
-struct file_operations ccs_operations = {
+static const struct file_operations ccs_operations = {
 	.open    = ccs_open,
 	.release = ccs_release,
 	.poll    = ccs_poll,
 	.read    = ccs_read,
 	.write   = ccs_write,
 };
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-struct iattr;
-
-/**
- * proc_notify_change - Update inode's attributes and reflect to the dentry.
- *
- * @dentry: Pointer to "struct dentry".
- * @iattr:  Pointer to "struct iattr".
- *
- * Returns 0 on success, negative value otherwise.
- *
- * The 2.4 kernels don't allow chmod()/chown() for files in /proc,
- * while the 2.6 kernels allow.
- * To permit management of /proc/ccs/ interface by non-root user,
- * I modified to allow chmod()/chown() of /proc/ccs/ interface like 2.6 kernels
- * by adding "struct inode_operations"->setattr hook.
- */
-static int proc_notify_change(struct dentry *dentry, struct iattr *iattr)
-{
-	struct inode *inode = dentry->d_inode;
-	struct proc_dir_entry *de = PDE(inode);
-	int error;
-
-	error = inode_change_ok(inode, iattr);
-	if (error)
-		goto out;
-
-	error = inode_setattr(inode, iattr);
-	if (error)
-		goto out;
-
-	de->uid = inode->i_uid;
-	de->gid = inode->i_gid;
-	de->mode = inode->i_mode;
-out:
-	return error;
-}
-
-/* The inode operations for /proc/ccs/ directory. */
-static struct inode_operations ccs_dir_inode_operations;
-
-/* The inode operations for files under /proc/ccs/ directory. */
-static struct inode_operations ccs_file_inode_operations;
-
-#endif
 
 /**
  * ccs_create_entry - Create interface files under /proc/ccs/ directory.
@@ -281,13 +206,6 @@ static void __init ccs_create_entry(const char *name, const mode_t mode,
 	if (entry) {
 		entry->proc_fops = &ccs_operations;
 		entry->data = ((u8 *) NULL) + key;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-		if (entry->proc_iops)
-			ccs_file_inode_operations = *entry->proc_iops;
-		if (!ccs_file_inode_operations.setattr)
-			ccs_file_inode_operations.setattr = proc_notify_change;
-		entry->proc_iops = &ccs_file_inode_operations;
-#endif
 	}
 }
 
@@ -299,13 +217,6 @@ static void __init ccs_create_entry(const char *name, const mode_t mode,
 static void __init ccs_proc_init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	if (ccs_dir->proc_iops)
-		ccs_dir_inode_operations = *ccs_dir->proc_iops;
-	if (!ccs_dir_inode_operations.setattr)
-		ccs_dir_inode_operations.setattr = proc_notify_change;
-	ccs_dir->proc_iops = &ccs_dir_inode_operations;
-#endif
 	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
 	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
 	ccs_create_entry("exception_policy", 0600, ccs_dir,
@@ -336,13 +247,8 @@ static int __init ccs_init_module(void)
 {
 	if (ccsecurity_ops.disabled)
 		return -EINVAL;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-	MOD_INC_USE_COUNT;
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 	if (init_srcu_struct(&ccs_ss))
 		panic("Out of memory.");
-#endif
 	ccs_mm_init();
 	ccs_capability_init();
 	ccs_file_init();

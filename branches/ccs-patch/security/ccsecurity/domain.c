@@ -938,13 +938,8 @@ static int ccs_copy_argv(char *arg, struct linux_binprm *bprm)
 static inline void get_fs_root(struct fs_struct *fs, struct path *root)
 {
 	read_lock(&fs->lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	*root = fs->root;
 	path_get(root);
-#else
-	root->dentry = dget(fs->root);
-	root->mnt = mntget(fs->rootmnt);
-#endif
 	read_unlock(&fs->lock);
 }
 
@@ -1124,11 +1119,6 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 		if (retval < 0)
 			goto out;
 	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-	bprm->argv_len = bprm->exec - bprm->p;
-#endif
-#endif
 
 	/*
 	 * OK, now restart the process with execute handler program's dentry.
@@ -1142,9 +1132,7 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 	ee->obj.path1.mnt = filp->f_vfsmnt;
 	bprm->file = filp;
 	bprm->filename = ee->handler_path;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	bprm->interp = bprm->filename;
-#endif
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
@@ -1186,16 +1174,6 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 	return true;
 }
 
-#ifdef CONFIG_MMU
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
-#define CCS_BPRM_MMU
-#elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5
-#define CCS_BPRM_MMU
-#elif defined(AX_MAJOR) && AX_MAJOR == 3
-#define CCS_BPRM_MMU
-#endif
-#endif
-
 /**
  * ccs_dump_page - Dump a page to buffer.
  *
@@ -1216,7 +1194,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 			return false;
 	}
 	/* Same with get_arg_page(bprm, pos, 0) in fs/exec.c */
-#ifdef CCS_BPRM_MMU
+#ifdef CONFIG_MMU
 	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
 		return false;
 #else
@@ -1236,7 +1214,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		kunmap_atomic(kaddr, KM_USER0);
 	}
 	/* Same with put_arg_page(page) in fs/exec.c */
-#ifdef CCS_BPRM_MMU
+#ifdef CONFIG_MMU
 	put_page(page);
 #endif
 	return true;

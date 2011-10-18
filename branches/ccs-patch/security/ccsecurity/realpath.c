@@ -7,33 +7,7 @@
  */
 
 #include "internal.h"
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #define ccs_lookup_flags LOOKUP_FOLLOW
-#else
-#define ccs_lookup_flags (LOOKUP_FOLLOW | LOOKUP_POSITIVE)
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#define s_fs_info u.generic_sbp
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * SOCKET_I - Get "struct socket".
- *
- * @inode: Pointer to "struct inode".
- *
- * Returns pointer to "struct socket".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct socket *SOCKET_I(struct inode *inode)
-{
-	return inode->i_sock ? &inode->u.socket_i : NULL;
-}
-
-#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 
@@ -83,68 +57,6 @@ static inline void ccs_realpath_unlock(void)
 	spin_unlock(&dcache_lock);
 }
 
-#elif defined(D_PATH_DISCONNECT) && !defined(CONFIG_SUSE_KERNEL)
-
-/**
- * ccs_realpath_lock - Take locks for __d_path().
- *
- * Returns nothing.
- *
- * Original unambiguous-__d_path.diff in patches.apparmor.tar.bz2 inversed the
- * order of holding dcache_lock and vfsmount_lock. That patch was applied on
- * (at least) SUSE 11.1 and Ubuntu 8.10 and Ubuntu 9.04 kernels.
- *
- * However, that patch was updated to use original order and the updated patch
- * is applied to (as far as I know) only SUSE kernels.
- *
- * Therefore, I need to use original order for SUSE 11.1 kernels and inversed
- * order for other kernels. I detect it by checking D_PATH_DISCONNECT and
- * CONFIG_SUSE_KERNEL. I don't know whether other distributions are using the
- * updated patch or not. If you got deadlock, check fs/dcache.c for locking
- * order, and add " && 0" to this "#elif " block if fs/dcache.c uses original
- * order.
- */
-static inline void ccs_realpath_lock(void)
-{
-	spin_lock(ccsecurity_exports.vfsmount_lock);
-	spin_lock(&dcache_lock);
-}
-
-/**
- * ccs_realpath_unlock - Release locks for __d_path().
- *
- * Returns nothing.
- */
-static inline void ccs_realpath_unlock(void)
-{
-	spin_unlock(&dcache_lock);
-	spin_unlock(ccsecurity_exports.vfsmount_lock);
-}
-
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-
-/**
- * ccs_realpath_lock - Take locks for __d_path().
- *
- * Returns nothing.
- */
-static inline void ccs_realpath_lock(void)
-{
-	spin_lock(&dcache_lock);
-	spin_lock(ccsecurity_exports.vfsmount_lock);
-}
-
-/**
- * ccs_realpath_unlock - Release locks for __d_path().
- *
- * Returns nothing.
- */
-static inline void ccs_realpath_unlock(void)
-{
-	spin_unlock(ccsecurity_exports.vfsmount_lock);
-	spin_unlock(&dcache_lock);
-}
-
 #else
 
 /**
@@ -155,6 +67,7 @@ static inline void ccs_realpath_unlock(void)
 static inline void ccs_realpath_lock(void)
 {
 	spin_lock(&dcache_lock);
+	spin_lock(ccsecurity_exports.vfsmount_lock);
 }
 
 /**
@@ -164,6 +77,7 @@ static inline void ccs_realpath_lock(void)
  */
 static inline void ccs_realpath_unlock(void)
 {
+	spin_unlock(ccsecurity_exports.vfsmount_lock);
 	spin_unlock(&dcache_lock);
 }
 
@@ -180,20 +94,8 @@ static inline void ccs_realpath_unlock(void)
  */
 static int ccs_kern_path(const char *pathname, int flags, struct path *path)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
 	if (!pathname || kern_path(pathname, flags, path))
 		return -ENOENT;
-#else
-	struct nameidata nd;
-	if (!pathname || path_lookup(pathname, flags, &nd))
-		return -ENOENT;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	*path = nd.path;
-#else
-	path->dentry = nd.dentry;
-	path->mnt = nd.mnt;
-#endif
-#endif
 	return 0;
 }
 
@@ -350,7 +252,6 @@ static char *ccs_get_local_path(struct dentry *dentry, char * const buffer,
 	if (sb->s_magic == PROC_SUPER_MAGIC && *pos == '/') {
 		char *ep;
 		const pid_t pid = (pid_t) simple_strtoul(pos + 1, &ep, 10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		if (*ep == '/' && pid && pid ==
 		    task_tgid_nr_ns(current, sb->s_fs_info)) {
 			pos = ep - 5;
@@ -358,14 +259,6 @@ static char *ccs_get_local_path(struct dentry *dentry, char * const buffer,
 				goto out;
 			memmove(pos, "/self", 5);
 		}
-#else
-		if (*ep == '/' && pid == ccs_sys_getpid()) {
-			pos = ep - 5;
-			if (pos < buffer)
-				goto out;
-			memmove(pos, "/self", 5);
-		}
-#endif
 		goto prepend_filesystem_name;
 	}
 	/* Use filesystem name for unnamed devices. */
@@ -473,13 +366,11 @@ char *ccs_realpath_from_path(struct path *path)
 			pos = ccs_get_socket_name(path, buf, buf_len - 1);
 			goto encode;
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 		/* For "pipe:[\$]". */
 		if (dentry->d_op && dentry->d_op->d_dname) {
 			pos = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
 			goto encode;
 		}
-#endif
 		inode = sb->s_root->d_inode;
 		/*
 		 * Get local name for filesystems without rename() operation

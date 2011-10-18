@@ -9,9 +9,7 @@
 #include "internal.h"
 
 /* To support PID namespace. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 #define find_task_by_pid ccsecurity_exports.find_task_by_vpid
-#endif
 
 /**
  * ccs_audit_signal_log - Audit signal log.

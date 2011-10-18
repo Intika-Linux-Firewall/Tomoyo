@@ -8,67 +8,6 @@
 
 #include "internal.h"
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * __wait_event_interruptible_timeout - Sleep until a condition gets true or a timeout elapses.
- *
- * @wq:        The waitqueue to wait on.
- * @condition: A C expression for the event to wait for.
- * @ret:       Timeout, in jiffies.
- *
- * Returns 0 if the @timeout elapsed, -ERESTARTSYS if it was interrupted by a
- * signal, and the remaining jiffies otherwise if the condition evaluated to
- * true before the timeout elapsed.
- *
- * This is for compatibility with older kernels.
- */
-#define __wait_event_interruptible_timeout(wq, condition, ret)		\
-do {									\
-	wait_queue_t __wait;						\
-	init_waitqueue_entry(&__wait, current);				\
-									\
-	add_wait_queue(&wq, &__wait);					\
-	for (;;) {							\
-		set_current_state(TASK_INTERRUPTIBLE);			\
-		if (condition)						\
-			break;						\
-		if (!signal_pending(current)) {				\
-			ret = schedule_timeout(ret);			\
-			if (!ret)					\
-				break;					\
-			continue;					\
-		}							\
-		ret = -ERESTARTSYS;					\
-		break;							\
-	}								\
-	current->state = TASK_RUNNING;					\
-	remove_wait_queue(&wq, &__wait);				\
-} while (0)
-
-/**
- * wait_event_interruptible_timeout - Sleep until a condition gets true or a timeout elapses.
- *
- * @wq:        The waitqueue to wait on.
- * @condition: A C expression for the event to wait for.
- * @timeout:   Timeout, in jiffies.
- *
- * Returns 0 if the @timeout elapsed, -ERESTARTSYS if it was interrupted by a
- * signal, and the remaining jiffies otherwise if the condition evaluated to
- * true before the timeout elapsed.
- *
- * This is for compatibility with older kernels.
- */
-#define wait_event_interruptible_timeout(wq, condition, timeout)	\
-({									\
-	long __ret = timeout;						\
-	if (!(condition))						\
-		__wait_event_interruptible_timeout(wq, condition, __ret); \
-	__ret;								\
-})
-
-#endif
-
 /**
  * list_for_each_cookie - iterate over a list with cookie.
  *
@@ -1014,15 +953,11 @@ static bool ccs_select_domain(struct ccs_io_buffer *head, const char *data)
 	    (global_pid = true, sscanf(data, "global-pid=%u", &pid) == 1)) {
 		struct task_struct *p;
 		ccs_tasklist_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		if (global_pid)
 			p = ccsecurity_exports.find_task_by_pid_ns(pid,
 							       &init_pid_ns);
 		else
 			p = ccsecurity_exports.find_task_by_vpid(pid);
-#else
-		p = find_task_by_pid(pid);
-#endif
 		if (p)
 			domain = ccs_task_domain(p);
 		ccs_tasklist_unlock();
@@ -1869,14 +1804,10 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 		global_pid = true;
 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
 	ccs_tasklist_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 	if (global_pid)
 		p = ccsecurity_exports.find_task_by_pid_ns(pid, &init_pid_ns);
 	else
 		p = ccsecurity_exports.find_task_by_vpid(pid);
-#else
-	p = find_task_by_pid(pid);
-#endif
 	if (p) {
 		domain = ccs_task_domain(p);
 		ccs_flags = ccs_task_flags(p);

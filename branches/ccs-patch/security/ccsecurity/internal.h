@@ -34,28 +34,11 @@
 #include <linux/in.h>
 #include <linux/in6.h>
 #include <linux/un.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#include <linux/fs.h>
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 #include <linux/fs_struct.h>
-#endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-#include <linux/namespace.h>
-#endif
 #include <linux/proc_fs.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) || defined(RHEL_MAJOR)
 #include <linux/hash.h>
-#endif
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
-#include <linux/sysctl.h>
-#endif
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
 #include <linux/kthread.h>
-#endif
 #include <stdarg.h>
 #include <asm/uaccess.h>
 #include <net/sock.h>
@@ -63,212 +46,6 @@
 #include <net/ip.h>
 #include <net/ipv6.h>
 #include <net/udp.h>
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#define sk_family family
-#define sk_protocol protocol
-#define sk_type type
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-
-/* Structure for holding "struct vfsmount *" and "struct dentry *". */
-struct path {
-	struct vfsmount *mnt;
-	struct dentry *dentry;
-};
-
-#endif
-
-#ifndef bool
-#define bool _Bool
-#endif
-#ifndef false
-#define false 0
-#endif
-#ifndef true
-#define true 1
-#endif
-
-#ifndef __user
-#define __user
-#endif
-
-#ifndef current_uid
-#define current_uid()   (current->uid)
-#endif
-#ifndef current_gid
-#define current_gid()   (current->gid)
-#endif
-#ifndef current_euid
-#define current_euid()  (current->euid)
-#endif
-#ifndef current_egid
-#define current_egid()  (current->egid)
-#endif
-#ifndef current_suid
-#define current_suid()  (current->suid)
-#endif
-#ifndef current_sgid
-#define current_sgid()  (current->sgid)
-#endif
-#ifndef current_fsuid
-#define current_fsuid() (current->fsuid)
-#endif
-#ifndef current_fsgid
-#define current_fsgid() (current->fsgid)
-#endif
-
-#ifndef DEFINE_SPINLOCK
-#define DEFINE_SPINLOCK(x) spinlock_t x = SPIN_LOCK_UNLOCKED
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-#define mutex semaphore
-#define mutex_init(mutex) init_MUTEX(mutex)
-#define mutex_unlock(mutex) up(mutex)
-#define mutex_lock(mutex) down(mutex)
-#define mutex_lock_interruptible(mutex) down_interruptible(mutex)
-#define mutex_trylock(mutex) (!down_trylock(mutex))
-#define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
-#define MS_UNBINDABLE	(1<<17)	/* change to unbindable */
-#define MS_PRIVATE	(1<<18)	/* change to private */
-#define MS_SLAVE	(1<<19)	/* change to slave */
-#define MS_SHARED	(1<<20)	/* change to shared */
-#endif
-
-#ifndef container_of
-#define container_of(ptr, type, member) ({				\
-			const typeof(((type *)0)->member) *__mptr = (ptr); \
-			(type *)((char *)__mptr - offsetof(type, member)); })
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-#define smp_read_barrier_depends smp_rmb
-#endif
-
-#ifndef ACCESS_ONCE
-#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
-#endif
-
-#ifndef rcu_dereference
-#define rcu_dereference(p)     ({					\
-			typeof(p) _________p1 = ACCESS_ONCE(p);		\
-			smp_read_barrier_depends(); /* see RCU */	\
-			(_________p1);					\
-		})
-#endif
-
-#ifndef rcu_assign_pointer
-#define rcu_assign_pointer(p, v)			\
-	({						\
-		if (!__builtin_constant_p(v) ||		\
-		    ((v) != NULL))			\
-			smp_wmb(); /* see RCU */	\
-		(p) = (v);				\
-	})
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-
-/**
- * kzalloc() - Allocate memory. The memory is set to zero.
- *
- * @size:  Size to allocate.
- * @flags: GFP flags.
- *
- * Returns pointer to allocated memory on success, NULL otherwise.
- *
- * This is for compatibility with older kernels.
- *
- * Since several distributions backported kzalloc(), I define it as a macro
- * rather than an inlined function in order to avoid multiple definition error.
- */
-#define kzalloc(size, flags) ({					\
-			void *ret = kmalloc((size), (flags));	\
-			if (ret)				\
-				memset(ret, 0, (size));		\
-			ret; })
-
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
-
-/**
- * path_put - Drop reference on "struct path".
- *
- * @path: Pointer to "struct path".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void path_put(struct path *path)
-{
-	dput(path->dentry);
-	mntput(path->mnt);
-}
-
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * __list_add_rcu - Insert a new entry between two known consecutive entries.
- *
- * @new:  Pointer to "struct list_head".
- * @prev: Pointer to "struct list_head".
- * @next: Pointer to "struct list_head".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void __list_add_rcu(struct list_head *new,
-				  struct list_head *prev,
-				  struct list_head *next)
-{
-	new->next = next;
-	new->prev = prev;
-	rcu_assign_pointer(prev->next, new);
-	next->prev = new;
-}
-
-/**
- * list_add_tail_rcu - Add a new entry to rcu-protected list.
- *
- * @new:  Pointer to "struct list_head".
- * @head: Pointer to "struct list_head".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void list_add_tail_rcu(struct list_head *new,
-				     struct list_head *head)
-{
-	__list_add_rcu(new, head->prev, head);
-}
-
-/**
- * list_add_rcu - Add a new entry to rcu-protected list.
- *
- * @new:  Pointer to "struct list_head".
- * @head: Pointer to "struct list_head".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void list_add_rcu(struct list_head *new, struct list_head *head)
-{
-	__list_add_rcu(new, head, head->next);
-}
-
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 38)
 
@@ -285,26 +62,6 @@ static inline void __list_del_entry(struct list_head *entry)
 {
 	__list_del(entry->prev, entry->next);
 }
-
-#endif
-
-#ifndef list_for_each_entry_safe
-
-/**
- * list_for_each_entry_safe - Iterate over list of given type safe against removal of list entry.
- *
- * @pos:    The "type *" to use as a loop cursor.
- * @n:      Another "type *" to use as temporary storage.
- * @head:   Pointer to "struct list_head".
- * @member: The name of the list_struct within the struct.
- *
- * This is for compatibility with older kernels.
- */
-#define list_for_each_entry_safe(pos, n, head, member)                  \
-	for (pos = list_entry((head)->next, typeof(*pos), member),      \
-		     n = list_entry(pos->member.next, typeof(*pos), member); \
-	     &pos->member != (head);					\
-	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
 
 #endif
 
@@ -342,31 +99,6 @@ static inline void __list_del_entry(struct list_head *entry)
 	     prefetch(pos->member.next), &pos->member != (head);      \
 	     pos = list_entry(srcu_dereference(pos->member.next, ss), \
 			      typeof(*pos), member))
-
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 30) || (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9))
-
-#ifndef ssleep
-
-/**
- * ssleep - Sleep for specified seconds.
- *
- * @secs: Seconds to sleep.
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- *
- * Since several distributions backported ssleep(), I define it as a macro
- * rather than an inlined function in order to avoid multiple definition error.
- */
-#define ssleep(secs) {						\
-		set_current_state(TASK_UNINTERRUPTIBLE);	\
-		schedule_timeout((HZ * secs) + 1);		\
-	}
-
-#endif
 
 #endif
 
@@ -764,10 +496,6 @@ enum ccs_value_type {
 /* Group number is an integer between 0 and 255. */
 #define CCS_MAX_ACL_GROUPS 256
 
-/* Current thread is doing open(O_RDONLY | O_TRUNC) ? */
-#define CCS_OPEN_FOR_READ_TRUNCATE        1
-/* Current thread is doing open(3) ? */
-#define CCS_OPEN_FOR_IOCTL_ONLY           2
 /* Current thread is doing do_execve() ? */
 #define CCS_TASK_IS_IN_EXECVE             4
 /* Current thread is running as an execute handler program? */
@@ -1545,9 +1273,7 @@ extern struct list_head ccs_manager_list;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern struct list_head ccs_namespace_list;
 extern struct mutex ccs_policy_lock;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 extern struct srcu_struct ccs_ss;
-#endif
 extern unsigned int ccs_memory_quota[CCS_MAX_MEMORY_STAT];
 extern unsigned int ccs_memory_used[CCS_MAX_MEMORY_STAT];
 
@@ -1612,8 +1338,6 @@ static inline bool ccs_same_ipaddr_union(const struct ccs_ipaddr_union *a,
 		a->is_ipv6 == b->is_ipv6;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-
 /**
  * ccs_read_lock - Take lock for protecting policy.
  *
@@ -1636,37 +1360,6 @@ static inline void ccs_read_unlock(const int idx)
 	srcu_read_unlock(&ccs_ss, idx);
 }
 
-#else
-
-int ccs_lock(void);
-void ccs_unlock(const int idx);
-
-/**
- * ccs_read_lock - Take lock for protecting policy.
- *
- * Returns index number for ccs_read_unlock().
- */
-static inline int ccs_read_lock(void)
-{
-	return ccs_lock();
-}
-
-/**
- * ccs_read_unlock - Release lock for protecting policy.
- *
- * @idx: Index number returned by ccs_read_lock().
- *
- * Returns nothing.
- */
-static inline void ccs_read_unlock(const int idx)
-{
-	ccs_unlock(idx);
-}
-
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
-
 /**
  * ccs_tasklist_lock - Take lock for reading list of "struct task_struct".
  *
@@ -1686,32 +1379,6 @@ static inline void ccs_tasklist_unlock(void)
 {
 	rcu_read_unlock();
 }
-
-#else
-
-/**
- * ccs_tasklist_lock - Take lock for reading list of "struct task_struct".
- *
- * Returns nothing.
- */
-static inline void ccs_tasklist_lock(void)
-{
-	read_lock(&tasklist_lock);
-}
-
-/**
- * ccs_tasklist_unlock - Release lock for reading list of "struct task_struct".
- *
- * Returns nothing.
- */
-static inline void ccs_tasklist_unlock(void)
-{
-	read_unlock(&tasklist_lock);
-}
-
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 
 /**
  * ccs_sys_getppid - Copy of getppid().
@@ -1730,58 +1397,6 @@ static inline pid_t ccs_sys_getppid(void)
 	return pid;
 }
 
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-
-/**
- * ccs_sys_getppid - Copy of getppid().
- *
- * Returns parent process's PID.
- *
- * This function was rewritten to use RCU in 2.6.16.34. However, distributors
- * which use earlier kernels (e.g. 2.6.8/2.6.9) did not backport the bugfix.
- * Therefore, I'm using code for 2.6.16.34 for earlier kernels.
- */
-static inline pid_t ccs_sys_getppid(void)
-{
-	pid_t pid;
-	rcu_read_lock();
-#if (defined(RHEL_MAJOR) && RHEL_MAJOR == 5) || (defined(AX_MAJOR) && AX_MAJOR == 3)
-	pid = rcu_dereference(current->parent)->tgid;
-#else
-	pid = rcu_dereference(current->real_parent)->tgid;
-#endif
-	rcu_read_unlock();
-	return pid;
-}
-
-#else
-
-/**
- * ccs_sys_getppid - Copy of getppid().
- *
- * Returns parent process's PID.
- *
- * I can't use code for 2.6.16.34 for 2.4 kernels because 2.4 kernels does not
- * have RCU. Therefore, I'm using pessimistic lock (i.e. tasklist_lock
- * spinlock).
- */
-static inline pid_t ccs_sys_getppid(void)
-{
-	pid_t pid;
-	read_lock(&tasklist_lock);
-#ifdef TASK_DEAD
-	pid = current->group_leader->real_parent->tgid;
-#else
-	pid = current->p_opptr->pid;
-#endif
-	read_unlock(&tasklist_lock);
-	return pid;
-}
-
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-
 /**
  * ccs_sys_getpid - Copy of getpid().
  *
@@ -1794,20 +1409,6 @@ static inline pid_t ccs_sys_getpid(void)
 {
 	return task_tgid_vnr(current);
 }
-
-#else
-
-/**
- * ccs_sys_getpid - Copy of getpid().
- *
- * Returns current thread's PID.
- */
-static inline pid_t ccs_sys_getpid(void)
-{
-	return current->tgid;
-}
-
-#endif
 
 /**
  * ccs_get_mode - Get mode for specified functionality.

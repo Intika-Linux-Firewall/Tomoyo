@@ -7,26 +7,6 @@
  */
 
 #include "internal.h"
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
-
-/*
- * may_open() receives open flags modified by open_to_namei_flags() until
- * 2.6.32. We stop here in case some distributions backported ACC_MODE changes,
- * for we can't determine whether may_open() receives open flags modified by
- * open_to_namei_flags() or not.
- */
-#ifdef ACC_MODE
-#error ACC_MODE already defined.
-#endif
-#define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
-
-#if defined(RHEL_MAJOR) && RHEL_MAJOR == 6
-/* RHEL6 passes unmodified flags since 2.6.32-71.14.1.el6 . */
-#undef ACC_MODE
-#define ACC_MODE(x) ("\004\002\006"[(x)&O_ACCMODE])
-#endif
-
-#endif
 
 /* Mapping table from "enum ccs_path_acl_index" to "enum ccs_mac_index". */
 static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
@@ -650,48 +630,6 @@ int ccs_execute_permission(struct ccs_request_info *r,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
-
-/**
- * __ccs_save_open_mode - Remember original flags passed to sys_open().
- *
- * @mode: Flags passed to sys_open().
- *
- * Returns nothing.
- *
- * TOMOYO does not check "file write" if open(path, O_TRUNC | O_RDONLY) was
- * requested because write() is not permitted. Instead, TOMOYO checks
- * "file truncate" if O_TRUNC is passed.
- *
- * TOMOYO does not check "file read" and "file write" if open(path, 3) was
- * requested because read()/write() are not permitted. Instead, TOMOYO checks
- * "file ioctl" when ioctl() is requested.
- */
-static void __ccs_save_open_mode(int mode)
-{
-	if ((mode & 3) == 3)
-		ccs_current_security()->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
-	/* O_TRUNC passes MAY_WRITE to ccs_open_permission(). */
-	else if (!(mode & 3) && (mode & O_TRUNC))
-		ccs_current_security()->ccs_flags |=
-			CCS_OPEN_FOR_READ_TRUNCATE;
-#endif
-}
-
-/**
- * __ccs_clear_open_mode - Forget original flags passed to sys_open().
- *
- * Returns nothing.
- */
-static void __ccs_clear_open_mode(void)
-{
-	ccs_current_security()->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
-					       CCS_OPEN_FOR_READ_TRUNCATE);
-}
-
-#endif
-
 /**
  * __ccs_open_permission - Check permission for "read" and "write".
  *
@@ -710,22 +648,12 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		.path1.mnt = mnt,
 	};
 	const u32 ccs_flags = ccs_current_flags();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
-#else
-	const u8 acc_mode = (ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY) ? 0 :
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
-		(ccs_flags & CCS_OPEN_FOR_READ_TRUNCATE) ? 4 :
-#endif
-		ACC_MODE(flag);
-#endif
 	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		return 0;
-#endif
 	buf.name = NULL;
 	r.mode = CCS_CONFIG_DISABLED;
 	idx = ccs_read_lock();
@@ -743,18 +671,6 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 						    CCS_TYPE_APPEND :
 						    CCS_TYPE_WRITE, &buf);
 	}
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
-	if (!error && (flag & O_TRUNC) &&
-	    ccs_init_request_info(&r, CCS_MAC_FILE_TRUNCATE)
-	    != CCS_CONFIG_DISABLED) {
-		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
-			error = -ENOMEM;
-			goto out;
-		}
-		r.obj = &obj;
-		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE, &buf);
-	}
-#endif
 out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
@@ -762,8 +678,6 @@ out:
 		error = 0;
 	return error;
 }
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 
 /**
  * ccs_new_open_permission - Check permission for "read" and "write".
@@ -777,8 +691,6 @@ static int ccs_new_open_permission(struct file *filp)
 	return __ccs_open_permission(filp->f_path.dentry, filp->f_path.mnt,
 				     filp->f_flags);
 }
-
-#endif
 
 /**
  * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "append", "getattr", "chroot" and "unmount".
@@ -875,9 +787,7 @@ static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
 	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
 	r.obj = &obj;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	dev = new_decode_dev(dev);
-#endif
 	r.param_type = CCS_TYPE_MKDEV_ACL;
 	r.param.mkdev.filename = &buf;
 	r.param.mkdev.operation = operation;
@@ -1158,16 +1068,8 @@ static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
 {
 	if (!(cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND)))
 		return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
 				     O_WRONLY | (arg & O_APPEND));
-#elif defined(RHEL_MAJOR) && RHEL_MAJOR == 6
-	return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
-				     O_WRONLY | (arg & O_APPEND));
-#else
-	return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
-				     (O_WRONLY + 1) | (arg & O_APPEND));
-#endif
 }
 
 /**
@@ -1408,201 +1310,6 @@ static int __ccs_link_permission(struct dentry *old_dentry,
 	return ccs_path2_perm(CCS_TYPE_LINK, old_dentry, mnt, new_dentry, mnt);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
-
-/**
- * __ccs_open_exec_permission - Check permission for open_exec().
- *
- * @dentry: Pointer to "struct dentry".
- * @mnt:    Pointer to "struct vfsmount".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int __ccs_open_exec_permission(struct dentry *dentry,
-				      struct vfsmount *mnt)
-{
-	return (ccs_current_flags() & CCS_TASK_IS_IN_EXECVE) ?
-		__ccs_open_permission(dentry, mnt, O_RDONLY + 1) : 0;
-}
-
-/**
- * __ccs_uselib_permission - Check permission for sys_uselib().
- *
- * @dentry: Pointer to "struct dentry".
- * @mnt:    Pointer to "struct vfsmount".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int __ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
-{
-	return __ccs_open_permission(dentry, mnt, O_RDONLY + 1);
-}
-
-#endif
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
-
-/**
- * __ccs_parse_table - Check permission for parse_table().
- *
- * @name:   Pointer to "int __user".
- * @nlen:   Number of elements in @name.
- * @oldval: Pointer to "void __user".
- * @newval: Pointer to "void __user".
- * @table:  Pointer to "struct ctl_table".
- *
- * Returns 0 on success, negative value otherwise.
- *
- * Note that this function is racy because this function checks values in
- * userspace memory which could be changed after permission check.
- */
-static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
-			     void __user *newval, struct ctl_table *table)
-{
-	int n;
-	int error = -ENOMEM;
-	int op = 0;
-	struct ccs_path_info buf;
-	char *buffer = NULL;
-	struct ccs_request_info r;
-	int idx;
-	if (oldval)
-		op |= 004;
-	if (newval)
-		op |= 002;
-	if (!op) /* Neither read nor write */
-		return 0;
-	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
-	    == CCS_CONFIG_DISABLED) {
-		error = 0;
-		goto out;
-	}
-	buffer = kmalloc(PAGE_SIZE, CCS_GFP_FLAGS);
-	if (!buffer)
-		goto out;
-	snprintf(buffer, PAGE_SIZE - 1, "proc:/sys");
-repeat:
-	if (!nlen) {
-		error = -ENOTDIR;
-		goto out;
-	}
-	if (get_user(n, name)) {
-		error = -EFAULT;
-		goto out;
-	}
-	for ( ; table->ctl_name
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
-		      || table->procname
-#endif
-		      ; table++) {
-		int pos;
-		const char *cp;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
-		if (n != table->ctl_name && table->ctl_name != CTL_ANY)
-			continue;
-#else
-		if (!n || n != table->ctl_name)
-			continue;
-#endif
-		pos = strlen(buffer);
-		cp = table->procname;
-		error = -ENOMEM;
-		if (cp) {
-			int len = strlen(cp);
-			if (len + 2 > PAGE_SIZE - 1)
-				goto out;
-			buffer[pos++] = '/';
-			memmove(buffer + pos, cp, len + 1);
-		} else {
-			/* Assume nobody assigns "=\$=" for procname. */
-			snprintf(buffer + pos, PAGE_SIZE - pos - 1,
-				 "/=%d=", table->ctl_name);
-			if (!memchr(buffer, '\0', PAGE_SIZE - 2))
-				goto out;
-		}
-		if (!table->child)
-			goto no_child;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
-		if (!table->strategy)
-			goto no_strategy;
-		/* printk("sysctl='%s'\n", buffer); */
-		buf.name = ccs_encode(buffer);
-		if (!buf.name)
-			goto out;
-		ccs_fill_path_info(&buf);
-		if (op & MAY_READ)
-			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
-		else
-			error = 0;
-		if (!error && (op & MAY_WRITE))
-			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
-		kfree(buf.name);
-		if (error)
-			goto out;
-no_strategy:
-#endif
-		name++;
-		nlen--;
-		table = table->child;
-		goto repeat;
-no_child:
-		/* printk("sysctl='%s'\n", buffer); */
-		buf.name = ccs_encode(buffer);
-		if (!buf.name)
-			goto out;
-		ccs_fill_path_info(&buf);
-		if (op & MAY_READ)
-			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
-		else
-			error = 0;
-		if (!error && (op & MAY_WRITE))
-			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
-		kfree(buf.name);
-		goto out;
-	}
-	error = -ENOTDIR;
-out:
-	ccs_read_unlock(idx);
-	kfree(buffer);
-	return error;
-}
-
-#endif
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-
-/**
- * ccs_old_pivot_root_permission - Check permission for pivot_root().
- *
- * @old_nd: Pointer to "struct nameidata".
- * @new_nd: Pointer to "struct nameidata".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_old_pivot_root_permission(struct nameidata *old_nd,
-					 struct nameidata *new_nd)
-{
-	struct path old_path = { old_nd->mnt, old_nd->dentry };
-	struct path new_path = { new_nd->mnt, new_nd->dentry };
-	return __ccs_pivot_root_permission(&old_path, &new_path);
-}
-
-/**
- * ccs_old_chroot_permission - Check permission for chroot().
- *
- * @nd: Pointer to "struct nameidata".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_old_chroot_permission(struct nameidata *nd)
-{
-	struct path path = { nd->mnt, nd->dentry };
-	return __ccs_chroot_permission(&path);
-}
-
-#endif
-
 /**
  * ccs_file_init - Register file related hooks.
  *
@@ -1610,25 +1317,14 @@ static int ccs_old_chroot_permission(struct nameidata *nd)
  */
 void __init ccs_file_init(void)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
-	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;
-	ccsecurity_ops.clear_open_mode = __ccs_clear_open_mode;
-	ccsecurity_ops.open_permission = __ccs_open_permission;
-#else
 	ccsecurity_ops.open_permission = ccs_new_open_permission;
-#endif
 	ccsecurity_ops.fcntl_permission = __ccs_fcntl_permission;
 	ccsecurity_ops.ioctl_permission = __ccs_ioctl_permission;
 	ccsecurity_ops.chmod_permission = __ccs_chmod_permission;
 	ccsecurity_ops.chown_permission = __ccs_chown_permission;
 	ccsecurity_ops.getattr_permission = __ccs_getattr_permission;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.pivot_root_permission = __ccs_pivot_root_permission;
 	ccsecurity_ops.chroot_permission = __ccs_chroot_permission;
-#else
-	ccsecurity_ops.pivot_root_permission = ccs_old_pivot_root_permission;
-	ccsecurity_ops.chroot_permission = ccs_old_chroot_permission;
-#endif
 	ccsecurity_ops.umount_permission = __ccs_umount_permission;
 	ccsecurity_ops.mknod_permission = __ccs_mknod_permission;
 	ccsecurity_ops.mkdir_permission = __ccs_mkdir_permission;
@@ -1638,11 +1334,4 @@ void __init ccs_file_init(void)
 	ccsecurity_ops.truncate_permission = __ccs_truncate_permission;
 	ccsecurity_ops.rename_permission = __ccs_rename_permission;
 	ccsecurity_ops.link_permission = __ccs_link_permission;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
-	ccsecurity_ops.open_exec_permission = __ccs_open_exec_permission;
-	ccsecurity_ops.uselib_permission = __ccs_uselib_permission;
-#endif
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
-	ccsecurity_ops.parse_table = __ccs_parse_table;
-#endif
 };
