@@ -1,0 +1,633 @@
+Index: branches/ccs-patch/security/ccsecurity/realpath.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/realpath.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/realpath.c	(working copy)
+@@ -7,7 +7,6 @@
+  */
+ 
+ #include "internal.h"
+-#define ccs_lookup_flags LOOKUP_FOLLOW
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+ 
+@@ -412,7 +411,7 @@
+ {
+ 	char *buf;
+ 	struct path path;
+-	if (ccs_kern_path(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW, &path))
++	if (ccs_kern_path(pathname, 0, &path))
+ 		return -ENOENT;
+ 	buf = ccs_realpath_from_path(&path);
+ 	path_put(&path);
+@@ -502,5 +501,5 @@
+  */
+ int ccs_get_path(const char *pathname, struct path *path)
+ {
+-	return ccs_kern_path(pathname, ccs_lookup_flags, path);
++	return ccs_kern_path(pathname, LOOKUP_FOLLOW, path);
+ }
+Index: branches/ccs-patch/security/ccsecurity/mount.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/mount.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/mount.c	(working copy)
+@@ -196,7 +196,7 @@
+ 				  void *data_page)
+ {
+ 	struct ccs_request_info r;
+-	int error = 0;
++	int error;
+ 	int idx;
+ 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
+ 		flags &= ~MS_MGC_MSK;
+@@ -231,9 +231,8 @@
+ 	if (!type)
+ 		type = "<NULL>";
+ 	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
+-	    != CCS_CONFIG_DISABLED)
+-		error = ccs_mount_acl(&r, dev_name, path, type, flags);
++	ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT);
++	error = ccs_mount_acl(&r, dev_name, path, type, flags);
+ 	ccs_read_unlock(idx);
+ 	return error;
+ }
+Index: branches/ccs-patch/security/ccsecurity/domain.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/domain.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/domain.c	(working copy)
+@@ -839,8 +839,6 @@
+ 		offset = 0;
+ 	}
+ out:
+-	if (r->mode != CCS_CONFIG_ENFORCING)
+-		error = 0;
+ 	kfree(env_page.data);
+ 	kfree(arg_ptr);
+ 	return error;
+Index: branches/ccs-patch/security/ccsecurity/util.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/util.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/util.c	(working copy)
+@@ -18,7 +18,9 @@
+ const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
+ 	/* CONFIG::file group */
+ 	[CCS_MAC_FILE_EXECUTE]    = CCS_MAC_CATEGORY_FILE,
+-	[CCS_MAC_FILE_OPEN]       = CCS_MAC_CATEGORY_FILE,
++	[CCS_MAC_FILE_READ]       = CCS_MAC_CATEGORY_FILE,
++	[CCS_MAC_FILE_WRITE]      = CCS_MAC_CATEGORY_FILE,
++	[CCS_MAC_FILE_APPEND]     = CCS_MAC_CATEGORY_FILE,
+ 	[CCS_MAC_FILE_CREATE]     = CCS_MAC_CATEGORY_FILE,
+ 	[CCS_MAC_FILE_UNLINK]     = CCS_MAC_CATEGORY_FILE,
+ 	[CCS_MAC_FILE_GETATTR]    = CCS_MAC_CATEGORY_FILE,
+@@ -987,14 +989,14 @@
+  * @r:     Pointer to "struct ccs_request_info" to initialize.
+  * @index: Index number of functionality.
+  *
+- * Returns mode.
++ * Returns nothing.
+  *
+  * "task auto_domain_transition" keyword is evaluated before returning mode for
+  * @index. If "task auto_domain_transition" keyword was specified and
+  * transition to that domain failed, the current thread will be killed by
+  * SIGKILL. Note that if current->pid == 1, sending SIGKILL won't work.
+  */
+-int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
++void ccs_init_request_info(struct ccs_request_info *r, const u8 index)
+ {
+ 	u8 i;
+ 	const char *buf;
+@@ -1007,14 +1009,13 @@
+ 		r->param_type = CCS_TYPE_AUTO_TASK_ACL;
+ 		ccs_check_acl(r, NULL);
+ 		if (!r->granted)
+-			return r->mode;
++			return;
+ 		buf = container_of(r->matched_acl, typeof(struct ccs_task_acl),
+ 				   head)->domainname->name;
+ 		if (!ccs_assign_domain(buf, true))
+ 			break;
+ 	}
+ 	ccs_transition_failed(buf);
+-	return CCS_CONFIG_DISABLED;
+ }
+ 
+ /**
+Index: branches/ccs-patch/security/ccsecurity/signal.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/signal.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/signal.c	(working copy)
+@@ -67,8 +67,7 @@
+ 	struct ccs_domain_info *dest = NULL;
+ 	int error;
+ 	const struct ccs_domain_info * const domain = ccs_current_domain();
+-	if (ccs_init_request_info(&r, CCS_MAC_SIGNAL) == CCS_CONFIG_DISABLED)
+-		return 0;
++	ccs_init_request_info(&r, CCS_MAC_SIGNAL);
+ 	if (!sig)
+ 		return 0;                /* No check for NULL signal. */
+ 	r.param_type = CCS_TYPE_SIGNAL_ACL;
+Index: branches/ccs-patch/security/ccsecurity/file.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/file.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/file.c	(working copy)
+@@ -9,11 +9,11 @@
+ #include "internal.h"
+ 
+ /* Mapping table from "enum ccs_path_acl_index" to "enum ccs_mac_index". */
+-static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
++const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
+ 	[CCS_TYPE_EXECUTE]    = CCS_MAC_FILE_EXECUTE,
+-	[CCS_TYPE_READ]       = CCS_MAC_FILE_OPEN,
+-	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_OPEN,
+-	[CCS_TYPE_APPEND]     = CCS_MAC_FILE_OPEN,
++	[CCS_TYPE_READ]       = CCS_MAC_FILE_READ,
++	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_WRITE,
++	[CCS_TYPE_APPEND]     = CCS_MAC_FILE_APPEND,
+ 	[CCS_TYPE_UNLINK]     = CCS_MAC_FILE_UNLINK,
+ 	[CCS_TYPE_GETATTR]    = CCS_MAC_FILE_GETATTR,
+ 	[CCS_TYPE_RMDIR]      = CCS_MAC_FILE_RMDIR,
+@@ -131,17 +131,14 @@
+ /**
+  * ccs_get_realpath - Get realpath.
+  *
+- * @buf:    Pointer to "struct ccs_path_info".
+- * @dentry: Pointer to "struct dentry".
+- * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
++ * @buf:  Pointer to "struct ccs_path_info".
++ * @path: Pointer to "struct path".
+  *
+  * Returns true on success, false otherwise.
+  */
+-static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
+-			     struct vfsmount *mnt)
++static bool ccs_get_realpath(struct ccs_path_info *buf, struct path *path)
+ {
+-	struct path path = { mnt, dentry };
+-	buf->name = ccs_realpath_from_path(&path);
++	buf->name = ccs_realpath_from_path(path);
+ 	if (buf->name) {
+ 		ccs_fill_path_info(buf);
+ 		return true;
+@@ -158,8 +155,7 @@
+  */
+ static int ccs_audit_path_log(struct ccs_request_info *r)
+ {
+-	return ccs_supervisor(r, "file %s %s\n", ccs_path_keyword
+-			      [r->param.path.operation],
++	return ccs_supervisor(r, "file %s %s\n", ccs_mac_keywords[r->type],
+ 			      r->param.path.filename->name);
+ }
+ 
+@@ -172,8 +168,7 @@
+  */
+ static int ccs_audit_path2_log(struct ccs_request_info *r)
+ {
+-	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+-			      [ccs_pp2mac[r->param.path2.operation]],
++	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords[r->type],
+ 			      r->param.path2.filename1->name,
+ 			      r->param.path2.filename2->name);
+ }
+@@ -187,8 +182,8 @@
+  */
+ static int ccs_audit_mkdev_log(struct ccs_request_info *r)
+ {
+-	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", ccs_mac_keywords
+-			      [ccs_pnnn2mac[r->param.mkdev.operation]],
++	return ccs_supervisor(r, "file %s %s 0%o %u %u\n",
++			      ccs_mac_keywords[r->type],
+ 			      r->param.mkdev.filename->name,
+ 			      r->param.mkdev.mode, r->param.mkdev.major,
+ 			      r->param.mkdev.minor);
+@@ -223,8 +218,7 @@
+ 	}
+ 	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
+ 			radix);
+-	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+-			      [ccs_pn2mac[type]],
++	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords[r->type],
+ 			      r->param.path_number.filename->name, buffer);
+ }
+ 
+@@ -576,7 +570,7 @@
+  * @operation: Type of operation.
+  * @filename:  Filename to check.
+  *
+- * Returns 0 on success, CCS_RETRY_REQUEST on retry, negative value otherwise.
++ * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds ccs_read_lock().
+  */
+@@ -586,8 +580,6 @@
+ 	int error;
+ 	r->type = ccs_p2mac[operation];
+ 	r->mode = ccs_get_mode(r->profile, r->type);
+-	if (r->mode == CCS_CONFIG_DISABLED)
+-		return 0;
+ 	r->param_type = CCS_TYPE_PATH_ACL;
+ 	r->param.path.filename = filename;
+ 	r->param.path.operation = operation;
+@@ -611,11 +603,6 @@
+ int ccs_execute_permission(struct ccs_request_info *r,
+ 			   const struct ccs_path_info *filename)
+ {
+-	/*
+-	 * Unlike other permission checks, this check is done regardless of
+-	 * profile mode settings in order to check for domain transition
+-	 * preference.
+-	 */
+ 	r->type = CCS_MAC_FILE_EXECUTE;
+ 	r->mode = ccs_get_mode(r->profile, r->type);
+ 	r->param_type = CCS_TYPE_PATH_ACL;
+@@ -625,57 +612,61 @@
+ 	r->ee->transition = r->matched_acl && r->matched_acl->cond &&
+ 		r->matched_acl->cond->exec_transit ?
+ 		r->matched_acl->cond->transit : NULL;
+-	if (r->mode != CCS_CONFIG_DISABLED)
+-		return ccs_audit_path_log(r);
+-	return 0;
++	return ccs_audit_path_log(r);
+ }
+ 
+ /**
+  * __ccs_open_permission - Check permission for "read" and "write".
+  *
+- * @dentry: Pointer to "struct dentry".
+- * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+- * @flag:   Flags for open().
++ * @path: Pointer to "struct path".
++ * @flag: Flags for open().
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
+-				 const int flag)
++static int __ccs_open_permission(struct path *path, const int flag)
+ {
+ 	struct ccs_request_info r;
+ 	struct ccs_obj_info obj = {
+-		.path1.dentry = dentry,
+-		.path1.mnt = mnt,
++		.path1 = *path,
+ 	};
+-	const u32 ccs_flags = ccs_current_flags();
+ 	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
+-	int error = 0;
++	int error;
+ 	struct ccs_path_info buf;
+ 	int idx;
+-	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
++	if (current->in_execve &&
++	    !(ccs_current_flags() & CCS_TASK_IS_IN_EXECVE))
+ 		return 0;
++	if (!acc_mode)
++		return 0;
+ 	buf.name = NULL;
+-	r.mode = CCS_CONFIG_DISABLED;
+ 	idx = ccs_read_lock();
+-	if (acc_mode && ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
+-	    != CCS_CONFIG_DISABLED) {
+-		if (!ccs_get_realpath(&buf, dentry, mnt)) {
++	if (acc_mode & MAY_READ) {
++		ccs_init_request_info(&r, CCS_MAC_FILE_READ);
++		if (!ccs_get_realpath(&buf, path)) {
+ 			error = -ENOMEM;
+ 			goto out;
+ 		}
+ 		r.obj = &obj;
+-		if (acc_mode & MAY_READ)
+-			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+-		if (!error && (acc_mode & MAY_WRITE))
+-			error = ccs_path_permission(&r, (flag & O_APPEND) ?
+-						    CCS_TYPE_APPEND :
+-						    CCS_TYPE_WRITE, &buf);
++		error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
++		if (error)
++			goto out;
+ 	}
++	if (acc_mode & MAY_WRITE) {
++		ccs_init_request_info(&r, (flag & O_APPEND) ?
++				      CCS_MAC_FILE_APPEND :
++				      CCS_MAC_FILE_WRITE);
++		if (!buf.name && !ccs_get_realpath(&buf, path)) {
++			error = -ENOMEM;
++			goto out;
++		}
++		r.obj = &obj;
++		error = ccs_path_permission(&r, (flag & O_APPEND) ?
++					    CCS_TYPE_APPEND : CCS_TYPE_WRITE,
++					    &buf);
++	}
+ out:
+ 	kfree(buf.name);
+ 	ccs_read_unlock(idx);
+-	if (r.mode != CCS_CONFIG_ENFORCING)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -688,8 +679,7 @@
+  */
+ static int ccs_new_open_permission(struct file *filp)
+ {
+-	return __ccs_open_permission(filp->f_path.dentry, filp->f_path.mnt,
+-				     filp->f_flags);
++	return __ccs_open_permission(&filp->f_path, filp->f_flags);
+ }
+ 
+ /**
+@@ -713,18 +703,14 @@
+ 	};
+ 	int error = 0;
+ 	struct ccs_path_info buf;
+-	bool is_enforce = false;
+ 	struct ccs_path_info symlink_target;
+ 	int idx;
+ 	buf.name = NULL;
+ 	symlink_target.name = NULL;
+ 	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_p2mac[operation])
+-	    == CCS_CONFIG_DISABLED)
+-		goto out;
+-	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
++	ccs_init_request_info(&r, ccs_p2mac[operation]);
+ 	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf, dentry, mnt))
++	if (!ccs_get_realpath(&buf, &obj.path1))
+ 		goto out;
+ 	r.obj = &obj;
+ 	switch (operation) {
+@@ -746,8 +732,6 @@
+ out:
+ 	kfree(buf.name);
+ 	ccs_read_unlock(idx);
+-	if (!is_enforce)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -773,18 +757,11 @@
+ 	};
+ 	int error = 0;
+ 	struct ccs_path_info buf;
+-	bool is_enforce = false;
+ 	int idx;
+ 	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_pnnn2mac[operation])
+-	    == CCS_CONFIG_DISABLED)
+-		goto out;
+-	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+-	error = -EPERM;
+-	if (!capable(CAP_MKNOD))
+-		goto out;
++	ccs_init_request_info(&r, ccs_pnnn2mac[operation]);
+ 	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf, dentry, mnt))
++	if (!ccs_get_realpath(&buf, &obj.path1))
+ 		goto out;
+ 	r.obj = &obj;
+ 	dev = new_decode_dev(dev);
+@@ -801,8 +778,6 @@
+ 	kfree(buf.name);
+ out:
+ 	ccs_read_unlock(idx);
+-	if (!is_enforce)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -825,7 +800,6 @@
+ 	int error = 0;
+ 	struct ccs_path_info buf1;
+ 	struct ccs_path_info buf2;
+-	bool is_enforce = false;
+ 	struct ccs_obj_info obj = {
+ 		.path1.dentry = dentry1,
+ 		.path1.mnt = mnt1,
+@@ -836,13 +810,10 @@
+ 	buf1.name = NULL;
+ 	buf2.name = NULL;
+ 	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_pp2mac[operation])
+-	    == CCS_CONFIG_DISABLED)
+-		goto out;
+-	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
++	ccs_init_request_info(&r, ccs_pp2mac[operation]);
+ 	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf1, dentry1, mnt1) ||
+-	    !ccs_get_realpath(&buf2, dentry2, mnt2))
++	if (!ccs_get_realpath(&buf1, &obj.path1) ||
++	    !ccs_get_realpath(&buf2, &obj.path2))
+ 		goto out;
+ 	switch (operation) {
+ 	case CCS_TYPE_RENAME:
+@@ -868,8 +839,6 @@
+ 	kfree(buf1.name);
+ 	kfree(buf2.name);
+ 	ccs_read_unlock(idx);
+-	if (!is_enforce)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -964,17 +933,17 @@
+ 		.path1.dentry = dentry,
+ 		.path1.mnt = vfsmnt,
+ 	};
+-	int error = 0;
++	int error;
+ 	struct ccs_path_info buf;
+ 	int idx;
+ 	if (!dentry)
+ 		return 0;
+ 	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_pn2mac[type]) == CCS_CONFIG_DISABLED)
++	ccs_init_request_info(&r, ccs_pn2mac[type]);
++	if (!ccs_get_realpath(&buf, &obj.path1)) {
++		error = -ENOMEM;
+ 		goto out;
+-	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
+-		goto out;
++	}
+ 	r.obj = &obj;
+ 	if (type == CCS_TYPE_MKDIR)
+ 		ccs_add_slash(&buf);
+@@ -989,8 +958,6 @@
+ 	kfree(buf.name);
+ out:
+ 	ccs_read_unlock(idx);
+-	if (r.mode != CCS_CONFIG_ENFORCING)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -1068,7 +1035,7 @@
+ {
+ 	if (!(cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND)))
+ 		return 0;
+-	return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
++	return __ccs_open_permission(&file->f_path,
+ 				     O_WRONLY | (arg & O_APPEND));
+ }
+ 
+@@ -1127,7 +1094,7 @@
+ 	u8 type;
+ 	const char *operation = ccs_read_token(param);
+ 	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
+-		if (ccs_permstr(operation, ccs_path_keyword[type]))
++		if (ccs_permstr(operation, ccs_mac_keywords[ccs_p2mac[type]))
+ 			perm |= 1 << type;
+ 	if (perm)
+ 		return ccs_update_path_acl(perm, param);
+Index: branches/ccs-patch/security/ccsecurity/capability.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/capability.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/capability.c	(working copy)
+@@ -63,17 +63,15 @@
+ static bool __ccs_capable(const u8 operation)
+ {
+ 	struct ccs_request_info r;
+-	int error = 0;
++	int error;
+ 	const int idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_c2mac[operation])
+-	    != CCS_CONFIG_DISABLED) {
+-		r.param_type = CCS_TYPE_CAPABILITY_ACL;
+-		r.param.capability.operation = operation;
+-		do {
+-			ccs_check_acl(&r, ccs_check_capability_acl);
+-			error = ccs_audit_capability_log(&r);
+-		} while (error == CCS_RETRY_REQUEST);
+-	}
++	ccs_init_request_info(&r, ccs_c2mac[operation]);
++	r.param_type = CCS_TYPE_CAPABILITY_ACL;
++	r.param.capability.operation = operation;
++	do {
++		ccs_check_acl(&r, ccs_check_capability_acl);
++		error = ccs_audit_capability_log(&r);
++	} while (error == CCS_RETRY_REQUEST);
+ 	ccs_read_unlock(idx);
+ 	return !error;
+ }
+Index: branches/ccs-patch/security/ccsecurity/internal.h
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/internal.h	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/internal.h	(working copy)
+@@ -244,7 +244,9 @@
+ /* Index numbers for functionality. */
+ enum ccs_mac_index {
+ 	CCS_MAC_FILE_EXECUTE,
+-	CCS_MAC_FILE_OPEN,
++	CCS_MAC_FILE_READ,
++	CCS_MAC_FILE_WRITE,
++	CCS_MAC_FILE_APPEND,
+ 	CCS_MAC_FILE_CREATE,
+ 	CCS_MAC_FILE_UNLINK,
+ 	CCS_MAC_FILE_GETATTR,
+@@ -1181,7 +1183,6 @@
+ int ccs_execute_permission(struct ccs_request_info *r,
+ 			   const struct ccs_path_info *filename);
+ int ccs_get_path(const char *pathname, struct path *path);
+-int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+ int ccs_open_control(const u8 type, struct file *file);
+ int ccs_parse_ip_address(struct ccs_acl_param *param, u16 *min, u16 *max);
+ int ccs_poll_control(struct file *file, poll_table *wait);
+@@ -1232,6 +1233,7 @@
+ void ccs_fill_path_info(struct ccs_path_info *ptr);
+ void ccs_get_attributes(struct ccs_obj_info *obj);
+ void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
++void ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+ void ccs_normalize_line(unsigned char *buffer);
+ void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
+ void ccs_print_ip(char *buf, const unsigned int size,
+@@ -1257,11 +1259,11 @@
+ extern const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
+ 					   + CCS_MAX_MAC_CATEGORY_INDEX];
+ extern const char * const ccs_mode[CCS_CONFIG_MAX_MODE];
+-extern const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION];
+ extern const char * const ccs_proto_keyword[CCS_SOCK_MAX];
+ extern const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION];
+ extern const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX];
+ extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX];
++extern const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION];
+ extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
+ extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
+ extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
+Index: branches/ccs-patch/security/ccsecurity/policy_io.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/policy_io.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
+@@ -31,7 +31,9 @@
+ 				    + CCS_MAX_MAC_CATEGORY_INDEX] = {
+ 	/* CONFIG::file group */
+ 	[CCS_MAC_FILE_EXECUTE]    = "execute",
+-	[CCS_MAC_FILE_OPEN]       = "open",
++	[CCS_MAC_FILE_READ]       = "read",
++	[CCS_MAC_FILE_WRITE]      = "write",
++	[CCS_MAC_FILE_APPEND]     = "append",
+ 	[CCS_MAC_FILE_CREATE]     = "create",
+ 	[CCS_MAC_FILE_UNLINK]     = "unlink",
+ 	[CCS_MAC_FILE_GETATTR]    = "getattr",
+@@ -98,21 +100,6 @@
+ 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_CAPABILITY] = "capability",
+ };
+ 
+-/* String table for path operation. */
+-const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
+-	[CCS_TYPE_EXECUTE]    = "execute",
+-	[CCS_TYPE_READ]       = "read",
+-	[CCS_TYPE_WRITE]      = "write",
+-	[CCS_TYPE_APPEND]     = "append",
+-	[CCS_TYPE_UNLINK]     = "unlink",
+-	[CCS_TYPE_GETATTR]    = "getattr",
+-	[CCS_TYPE_RMDIR]      = "rmdir",
+-	[CCS_TYPE_TRUNCATE]   = "truncate",
+-	[CCS_TYPE_SYMLINK]    = "symlink",
+-	[CCS_TYPE_CHROOT]     = "chroot",
+-	[CCS_TYPE_UMOUNT]     = "unmount",
+-};
+-
+ /* String table for socket's operation. */
+ const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
+ 	[CCS_NETWORK_BIND]    = "bind",
+@@ -1501,7 +1488,7 @@
+ 			} else {
+ 				ccs_set_slash(head);
+ 			}
+-			ccs_set_string(head, ccs_path_keyword[bit]);
++			ccs_set_string(head, ccs_mac_keywords[ccs_p2mac[bit]]);
+ 		}
+ 		if (first)
+ 			return true;
+Index: branches/ccs-patch/security/ccsecurity/network.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/network.c	(revision 5550)
++++ branches/ccs-patch/security/ccsecurity/network.c	(working copy)
+@@ -683,7 +683,8 @@
+ 	struct ccs_request_info r;
+ 	int error = 0;
+ 	const u8 type = ccs_inet2mac[address->protocol][address->operation];
+-	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
++	if (type) {
++		ccs_init_request_info(&r, type);
+ 		r.param_type = CCS_TYPE_INET_ACL;
+ 		r.param.inet_network.protocol = address->protocol;
+ 		r.param.inet_network.operation = address->operation;
+@@ -756,7 +757,7 @@
+ 	struct ccs_request_info r;
+ 	int error = 0;
+ 	const u8 type = ccs_unix2mac[address->protocol][address->operation];
+-	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
++	if (type) {
+ 		char *buf = address->unix0.addr;
+ 		int len = address->unix0.addr_len - sizeof(sa_family_t);
+ 		if (len <= 0) {
+@@ -770,6 +771,7 @@
+ 			struct ccs_path_info addr;
+ 			addr.name = buf;
+ 			ccs_fill_path_info(&addr);
++			ccs_init_request_info(&r, type);
+ 			r.param_type = CCS_TYPE_UNIX_ACL;
+ 			r.param.unix_network.protocol = address->protocol;
+ 			r.param.unix_network.operation = address->operation;

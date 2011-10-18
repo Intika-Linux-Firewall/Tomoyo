@@ -25,7 +25,7 @@ fi
 
 if [ ! -r ccs-patch-2.6.18-asianux-3-1.7-20111018.diff ]
 then
-    wget -O ccs-patch-2.6.18-centos-5.7-1.7-20111018.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?root=tomoyo&revision=5551' || die "Can't download patch."
+    wget -O ccs-patch-2.6.18-asianux-3-1.7-20111018.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?root=tomoyo&revision=5551' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
