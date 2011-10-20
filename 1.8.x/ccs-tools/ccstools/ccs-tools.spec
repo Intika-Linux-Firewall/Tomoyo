@@ -1,10 +1,5 @@
 Summary: Userspace tools for TOMOYO Linux 1.8.x
 
-##
-## Change to /usr/lib64 if needed.
-##
-%define usrlibdir /usr/lib
-
 Name: ccs-tools
 Version: 1.8.3
 Release: 1
@@ -34,13 +29,12 @@ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
 
 %build
 
-make USRLIBDIR=%{usrlibdir} CFLAGS="-Wall $RPM_OPT_FLAGS"
+make USRLIBDIR=%_libdir CFLAGS="-Wall $RPM_OPT_FLAGS"
 
 %install
 
 rm -rf $RPM_BUILD_ROOT
-make INSTALLDIR=$RPM_BUILD_ROOT USRLIBDIR=%{usrlibdir} \
-    CFLAGS="-Wall $RPM_OPT_FLAGS" install
+make INSTALLDIR=$RPM_BUILD_ROOT USRLIBDIR=%_libdir install
 
 %clean
 
@@ -52,8 +46,8 @@ ldconfig || true
 %files
 %defattr(-,root,root)
 /sbin/
-%{usrlibdir}/ccs/
-%{usrlibdir}/libccs*
+%_libdir/ccs/
+%_libdir/libccs*
 /usr/sbin/
 /usr/share/man/man8/
 
