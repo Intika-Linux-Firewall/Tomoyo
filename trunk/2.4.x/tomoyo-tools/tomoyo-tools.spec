@@ -1,10 +1,5 @@
 Summary: Userspace tools for TOMOYO Linux 2.4.x
 
-##
-## Change to /usr/lib64 if needed.
-##
-%define usrlibdir /usr/lib
-
 Name: tomoyo-tools
 Version: 2.4.0
 Release: 3
@@ -34,13 +29,12 @@ Please see http://tomoyo.sourceforge.jp/2.4/ for documentation.
 
 %build
 
-make USRLIBDIR=%{usrlibdir} CFLAGS="-Wall $RPM_OPT_FLAGS"
+make USRLIBDIR=%_libdir CFLAGS="-Wall $RPM_OPT_FLAGS"
 
 %install
 
 rm -rf $RPM_BUILD_ROOT
-make INSTALLDIR=$RPM_BUILD_ROOT USRLIBDIR=%{usrlibdir} \
-    CFLAGS="-Wall $RPM_OPT_FLAGS" install
+make INSTALLDIR=$RPM_BUILD_ROOT USRLIBDIR=%_libdir install
 
 %clean
 
@@ -52,8 +46,8 @@ ldconfig || true
 %files
 %defattr(-,root,root)
 /sbin/
-%{usrlibdir}/tomoyo/
-%{usrlibdir}/libtomoyo*
+%_libdir/tomoyo/
+%_libdir/libtomoyo*
 /usr/sbin/
 /usr/share/man/man8/
 
