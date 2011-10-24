@@ -107,7 +107,7 @@ static _Bool ccs_handle_query(unsigned int serial)
 	if (strstr(ccs_buffer, "\n#"))
 		goto not_domain_query;
 	memset(pidbuf, 0, sizeof(pidbuf));
-	snprintf(pidbuf, sizeof(pidbuf) - 1, "select global-pid=%u\n", pid);
+	snprintf(pidbuf, sizeof(pidbuf) - 1, "select Q=%u\n", serial);
 	ccs_printw("Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy "
 		   "and retry):");
 	while (true) {
