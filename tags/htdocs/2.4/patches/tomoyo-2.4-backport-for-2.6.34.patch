@@ -2,20 +2,20 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget -O linux-3.1-rc8.tar.gz https://github.com/torvalds/linux/tarball/v3.1-rc8
- $ tar -zxf linux-3.1-rc8.tar.gz --strip 1 torvalds-linux-e7f2a88/security/tomoyo/
+ $ wget -O linux-3.1.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.tar.bz2
+ $ tar -zxf linux-3.1.tar.bz2 --strip 1 linux-3.1/security/tomoyo/
 
 .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c        |   10 +---
+ security/tomoyo/common.c        |   11 ++---
  security/tomoyo/domain.c        |    4 +
  security/tomoyo/realpath.c      |   87 ++++++++++++++++++++++++++++++----------
  security/tomoyo/securityfs_if.c |    2 
  security/tomoyo/tomoyo.c        |    3 -
  security/tomoyo/util.c          |    3 -
- 6 files changed, 78 insertions(+), 31 deletions(-)
+ 6 files changed, 79 insertions(+), 31 deletions(-)
 
 --- linux-2.6.34.10.orig/security/tomoyo/common.c
 +++ linux-2.6.34.10/security/tomoyo/common.c
@@ -62,6 +62,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	rcu_read_unlock();
  	if (!domain)
  		return;
+@@ -2453,6 +2451,7 @@ ssize_t tomoyo_write_control(struct tomo
+ 		return -EFAULT;
+ 	if (mutex_lock_interruptible(&head->io_sem))
+ 		return -EINTR;
++	head->read_user_buf_avail = 0;
+ 	idx = tomoyo_read_lock();
+ 	/* Read a line and dispatch it to the policy handler. */
+ 	while (avail_len > 0) {
 --- linux-2.6.34.10.orig/security/tomoyo/domain.c
 +++ linux-2.6.34.10/security/tomoyo/domain.c
 @@ -501,7 +501,8 @@ struct tomoyo_domain_info *tomoyo_assign

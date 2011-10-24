@@ -20,13 +20,20 @@ In tomoyo_get_mode() since 2.6.36, CONFIG::file::execute was by error used in
 place of CONFIG::file if CONFIG::file::execute was set to other than default.
 As a result, enforcing mode was not applied in a way documentation says.
 
+Commit f23571e8 "TOMOYO: Copy directly to userspace buffer." introduced
+tomoyo_flush() that flushes data to be read as soon as possible.
+tomoyo_select_domain() (which is called by write()) enqueues data which meant
+to be read by next read(), but previous read()'s read buffer's size was not
+cleared. As a result, since 2.6.36, enqueued data was by error flushed to
+previous read()'s read buffer.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c        |   10 ++++------
+ security/tomoyo/common.c        |   11 +++++------
  security/tomoyo/domain.c        |    4 +++-
  security/tomoyo/securityfs_if.c |    1 +
  security/tomoyo/util.c          |    3 ++-
- 4 files changed, 10 insertions(+), 8 deletions(-)
+ 4 files changed, 11 insertions(+), 8 deletions(-)
 
 --- linux-3.1.0.orig/security/tomoyo/common.c
 +++ linux-3.1.0/security/tomoyo/common.c
@@ -73,6 +80,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	rcu_read_unlock();
  	if (!domain)
  		return;
+@@ -2453,6 +2451,7 @@ ssize_t tomoyo_write_control(struct tomo
+ 		return -EFAULT;
+ 	if (mutex_lock_interruptible(&head->io_sem))
+ 		return -EINTR;
++	head->read_user_buf_avail = 0;
+ 	idx = tomoyo_read_lock();
+ 	/* Read a line and dispatch it to the policy handler. */
+ 	while (avail_len > 0) {
 --- linux-3.1.0.orig/security/tomoyo/domain.c
 +++ linux-3.1.0/security/tomoyo/domain.c
 @@ -501,7 +501,8 @@ struct tomoyo_domain_info *tomoyo_assign
