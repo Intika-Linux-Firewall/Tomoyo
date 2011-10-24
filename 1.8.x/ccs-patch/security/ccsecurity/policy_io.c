@@ -992,6 +992,8 @@ static bool ccs_manager(void)
 	return found;
 }
 
+static struct ccs_domain_info *ccs_find_domain_by_qid(unsigned int serial);
+
 /**
  * ccs_select_domain - Parse select command.
  *
@@ -1029,6 +1031,8 @@ static bool ccs_select_domain(struct ccs_io_buffer *head, const char *data)
 	} else if (!strncmp(data, "domain=", 7)) {
 		if (*(data + 7) == '<')
 			domain = ccs_find_domain(data + 7);
+	} else if (sscanf(data, "Q=%u", &pid) == 1) {
+		domain = ccs_find_domain_by_qid(pid);
 	} else
 		return false;
 	head->w.domain = domain;
@@ -2121,6 +2125,7 @@ static DECLARE_WAIT_QUEUE_HEAD(ccs_answer_wait);
 /* Structure for query. */
 struct ccs_query {
 	struct list_head list;
+	struct ccs_domain_info *domain;
 	char *query;
 	size_t query_len;
 	unsigned int serial;
@@ -2286,6 +2291,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		goto out;
 	}
 	len = ccs_round2(entry.query_len);
+	entry.domain = ccs_current_domain();
 	spin_lock(&ccs_query_list_lock);
 	if (ccs_memory_quota[CCS_MEMORY_QUERY] &&
 	    ccs_memory_used[CCS_MEMORY_QUERY] + len
@@ -2330,6 +2336,28 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 out:
 	kfree(entry.query);
 	return error;
+}
+
+/**
+ * ccs_find_domain_by_qid - Get domain by query id.
+ *
+ * @serial: Query ID assigned by ccs_supervisor().
+ *
+ * Returns pointer to "struct ccs_domain_info" if found, NULL otherwise.
+ */
+static struct ccs_domain_info *ccs_find_domain_by_qid(unsigned int serial)
+{
+	struct ccs_query *ptr;
+	struct ccs_domain_info *domain = NULL;
+	spin_lock(&ccs_query_list_lock);
+	list_for_each_entry(ptr, &ccs_query_list, list) {
+		if (ptr->serial != serial || ptr->answer)
+			continue;
+		domain = ptr->domain;
+		break;
+	}
+	spin_unlock(&ccs_query_list_lock);
+	return domain;
 }
 
 /**
