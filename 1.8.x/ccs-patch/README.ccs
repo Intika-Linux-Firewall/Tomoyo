@@ -2980,3 +2980,34 @@ Fix 2011/09/25
       with sequential processing.
 
 Version 1.8.3   2011/09/29   Usability enhancement release.
+
+Fix 2011/10/24
+
+    @ Fix incomplete read after seek.
+
+      ccs_flush() tries to flush data to be read as soon as possible.
+      ccs_select_domain() (which is called by write()) enqueues data which
+      meant to be read by next read(), but previous read()'s read buffer's
+      size was not cleared. As a result, since 1.8.0, sequence like
+
+        char *cp = "select global-pid=1\n";
+        read(fd, buf1, sizeof(buf1));
+        write(fd, cp, strlen(cp));
+        read(fd, buf2, sizeof(buf2));
+
+      causes enqueued data to be flushed to buf1 rather than buf2.
+
+    @ Use query id for reaching target process's domain policy.
+
+      Use query id for reaching target process's domain policy rather than
+      target process's global PID. This is for synchronizing with TOMOYO 2.x,
+      but this change makes /usr/sbin/ccs-queryd more reliable because the
+      kernel will return empty domain policy when the query has expired before
+      ccs-queryd reaches target process's domain policy.
+
+    @ Fix quota counting.
+
+      "task manual_domain_transition" should not be counted for quota as with
+      "task auto_domain_transition"/"task auto_execute_handler"/
+      "task denied_execute_handler" because these are not appended by learning
+      mode.
