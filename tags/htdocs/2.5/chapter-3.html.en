@@ -156,14 +156,19 @@ $ su
 <p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
 
 <pre class="command">
-# wget -O tomoyo-tools-2.5.0-20110929.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/53357/tomoyo-tools-2.5.0-20110929.tar.gz'
-# wget -O tomoyo-tools-2.5.0-20110929.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/53357/tomoyo-tools-2.5.0-20110929.tar.gz.asc'
-# wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# gpg --import kumaneko-key
-# gpg tomoyo-tools-2.5.0-20110929.tar.gz.asc
-# tar -zxf tomoyo-tools-2.5.0-20110929.tar.gz
-# make -C tomoyo-tools/ install
+$ wget -O tomoyo-tools-2.5.0-20110929.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/53357/tomoyo-tools-2.5.0-20110929.tar.gz'
+$ wget -O tomoyo-tools-2.5.0-20110929.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/53357/tomoyo-tools-2.5.0-20110929.tar.gz.asc'
+$ wget http://I-love.SAKURA.ne.jp/kumaneko-key
+$ gpg --import kumaneko-key
+$ gpg tomoyo-tools-2.5.0-20110929.tar.gz.asc
+$ tar -zxf tomoyo-tools-2.5.0-20110929.tar.gz
+$ cd tomoyo-tools/
+$ make -s USRLIBDIR=/usr/lib
+$ su
+# make -s USRLIBDIR=/usr/lib install
 </pre>
+
+<p>Please change USRLIBDIR=/usr/lib to USRLIBDIR=/usr/lib64 (for 64bits userspace) or USRLIBDIR=/usr/lib32 (for 32bits userspace) if needed.</p>
 
 <h3><a name="3.3">3.3. Initialize configuration</a></h3>
 

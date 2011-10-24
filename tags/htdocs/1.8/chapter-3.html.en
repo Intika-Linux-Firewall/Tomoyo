@@ -317,7 +317,7 @@ Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.<br>
 Linux kernel 3.0 and later are supported from the linux-3 tree.</p>
 
 <p>Extract the kernel source and go to the extracted directory.<br>
-In the operations below, "$VERSION.$PATCHLEVEL.diff" should for example be replaced with "3.0.diff" if using Linux kernel 3.0.4 :</p>
+In the operations below, "$VERSION.$PATCHLEVEL.diff" should for example be replaced with "3.0.diff" if using Linux kernel 3.0.7 :</p>
 
 <pre class="command">
 $ wget -O ccs-patch-1.8.3-20110929.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20110929.tar.gz'
@@ -385,10 +385,12 @@ $ wget -O ccs-tools-1.8.3-20110929.tar.gz.asc 'http://sourceforge.jp/frs/redir.p
 $ gpg ccs-tools-1.8.3-20110929.tar.gz.asc
 $ tar -zxf ccs-tools-1.8.3-20110929.tar.gz
 $ cd ccstools/
-$ make -s
+$ make -s USRLIBDIR=/usr/lib
 $ su
-# make -s install
+# make -s USRLIBDIR=/usr/lib install
 </pre>
+
+<p>Please change USRLIBDIR=/usr/lib to USRLIBDIR=/usr/lib64 (for 64bits userspace) or USRLIBDIR=/usr/lib32 (for 32bits userspace) if needed.</p>
 
 <br>
 
