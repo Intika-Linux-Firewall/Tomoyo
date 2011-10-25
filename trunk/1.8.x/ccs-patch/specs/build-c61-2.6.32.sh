@@ -16,6 +16,8 @@ then
 fi
 rpm --checksig kernel-2.6.32-131.17.1.el6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.32-131.17.1.el6.src.rpm || die "Can't install source package."
+sed -i -e 's@--keyring \./kernel\.pub Red@--keyring ./kernel.pub CentOS@' -- /root/rpmbuild/SPECS/kernel.spec || die "Can't update spec file"
+sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20110929.tar.gz ]
@@ -93,7 +95,6 @@ echo "Edit /root/rpmbuild/SPECS/ccs-kernel.spec if needed, and run"
 echo "rpmbuild -bb /root/rpmbuild/SPECS/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 echo ""
-# sed -i -e 's@%{?dist}@.el6@g' /root/rpmbuild/SPECS/ccs-kernel.spec
 ARCH=`uname -m`
 echo "I'll start 'rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
