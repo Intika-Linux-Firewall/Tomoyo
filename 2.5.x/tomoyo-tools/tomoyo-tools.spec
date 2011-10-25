@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 2.5.x
 
 Name: tomoyo-tools
 Version: 2.5.0
-Release: 1
+Release: 2
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.5.0-1
+Conflicts: tomoyo-tools < 2.5.0-2
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/53357/tomoyo-tools-2.5.0-20110929.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/53357/tomoyo-tools-2.5.0-20111025.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.5.
@@ -52,5 +52,10 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Tue Oct 25 2011 2.5.0-2
+- Let tomoyo-queryd use query id rather than global PID when reaching target
+  process's domain policy.
+- Add "socket:[family=\\$:type=\\$:protocol=\\$]" to ANY_PATHNAME group.
+
 * Thu Sep 29 2011 2.5.0-1
 - Major update release.
