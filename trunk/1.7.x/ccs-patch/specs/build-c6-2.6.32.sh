@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 6.0's 2.6.32 kernel.
+# This is a kernel build script for CentOS 6.1's 2.6.32 kernel.
 #
 
 die () {
@@ -10,12 +10,14 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-71.29.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-131.17.1.el6.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/6.0/updates/SRPMS/kernel-2.6.32-71.29.1.el6.src.rpm || die "Can't download source package."
+    wget http://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/kernel-2.6.32-131.17.1.el6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32-71.29.1.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-71.29.1.el6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32-131.17.1.el6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-131.17.1.el6.src.rpm || die "Can't install source package."
+sed -i -e 's@--keyring \./kernel\.pub Red@--keyring ./kernel.pub CentOS@' -- /root/rpmbuild/SPECS/kernel.spec || die "Can't update spec file"
+sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20110903.tar.gz ]
@@ -37,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  %define rhel 1
  %if %{rhel}
-@@ -453,7 +453,7 @@
+@@ -451,7 +451,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -46,7 +48,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut-kernel >= 002-18.git413bcf78
  %else
-@@ -489,7 +489,7 @@
+@@ -487,7 +487,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -55,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -715,7 +715,7 @@
+@@ -727,7 +727,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -64,18 +66,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -881,6 +881,10 @@
+@@ -893,6 +893,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.3-20110903.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.32-centos-6.0.diff
++patch -sp1 < patches/ccs-patch-2.6.32-centos-6.1.diff
 +
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -905,6 +909,9 @@
+@@ -917,6 +921,9 @@
  for i in *.config
  do
    mv $i .config
