@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.3
-Release: 1
+Release: 2
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.3-1
+Conflicts: ccs-tools < 1.8.3-2
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20110929.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20111025.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -52,6 +52,11 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Tue Oct 25 2011 1.8.3-2
+- Let ccs-queryd use query id rather than global PID when reaching target
+  process's domain policy (this change requires ccs-patch 1.8.3-20111025 ).
+- Add "socket:[family=\\$:type=\\$:protocol=\\$]" to ANY_PATHNAME group.
+
 * Thu Sep 29 2011 1.8.3-1
 - Fix build failure with --as-needed option.
 - Let ccs-editpolicy handle domain transition preference.
