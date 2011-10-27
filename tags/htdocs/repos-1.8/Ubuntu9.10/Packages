@@ -1,39 +1,3 @@
-Package: linux-headers-ccs
-Priority: optional
-Section: devel
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.31.23.36
-Depends: linux-headers-2.6.31-23-ccs
-Filename: ./linux-headers-ccs1.8.3_2.6.31.23.36_i386.deb
-Size: 3488
-MD5sum: 9b0f3c2879edcde43f647012762a0d7f
-SHA1: 21a09d9257e78239737e75d6fec887b90979ee0e
-SHA256: 2aa5851d091416ec490f1f650cf60dcd45c0e5d62534b7497326381923b0cce1
-Description: Generic Linux kernel headers
- This package will always depend on the latest ccs kernel headers
- available.
-
-Package: linux-image-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.31.23.36
-Depends: linux-image-2.6.31-23-ccs, linux-firmware
-Filename: ./linux-image-ccs1.8.3_2.6.31.23.36_i386.deb
-Size: 3498
-MD5sum: 20fc4087f788eea5edfd312ea8054956
-SHA1: 70b2a0a75b6ae81ff22597a5ebbcfc8d66a6b2bf
-SHA256: ade56261a3aab55a84c98ddd7663b51b91210b707d1e8d92d6e692f1622f8f01
-Description: Generic Linux kernel image
- This package will always depend on the latest ccs kernel image
- available.
-
 Package: linux-headers-2.6.31-23-ccs
 Priority: optional
 Section: devel
@@ -44,11 +8,11 @@ Source: linux
 Version: 2.6.31-23.75
 Provides: linux-headers, linux-headers-2.6
 Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.31-23, libc6 (>= 2.8), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.31-23-ccs1.8.3_2.6.31-23.75_i386.deb
-Size: 767536
-MD5sum: 902ff76c529c75e3ca0f070e63e593f1
-SHA1: 5563e55f2ffc0db0ff3235f9e39222d788663bc9
-SHA256: 3350667ae18592f62ec8ccf75a3fec15bf93d1fbe8269a1fcae25f9294bea91f
+Filename: ./linux-headers-2.6.31-23-ccs1.8.3p1_2.6.31-23.75_i386.deb
+Size: 767090
+MD5sum: f752d1301071332f05be380c8a94eca9
+SHA1: 68bb59fb7f10ca2878a4172a332af478278a7e16
+SHA256: fbc90e94679c48ad0bee236e34d455bd0ac005671e0cfc34dda386aa0ffab129
 Description: Linux kernel headers for version 2.6.31 on x86/x86_64
  This package provides kernel header files for version 2.6.31 on
  x86/x86_64.
@@ -56,10 +20,28 @@ Description: Linux kernel headers for version 2.6.31 on x86/x86_64
  This is for sites that want the latest kernel headers.  Please read
  /usr/share/doc/linux-headers-2.6.31-23/debian.README.gz for details.
 
+Package: linux-image-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.31.23.36
+Depends: linux-image-2.6.31-23-ccs, linux-firmware
+Filename: ./linux-image-ccs1.8.3p1_2.6.31.23.36_i386.deb
+Size: 3498
+MD5sum: 434be9846d0b597b10e7e6a2f92eb4b5
+SHA1: 2b3da87f5a98d99f1ff10cd19af5016530b603fa
+SHA256: 1b6ee713ac0b2c05bb5304975e748367364c5fc097d73e45d3fff44d41a59e57
+Description: Generic Linux kernel image
+ This package will always depend on the latest ccs kernel image
+ available.
+
 Package: linux-image-2.6.31-23-ccs
 Priority: optional
 Section: admin
-Installed-Size: 88232
+Installed-Size: 88236
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
@@ -70,11 +52,11 @@ Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.31 | linux-source-2.6.31
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.31-23-ccs1.8.3_2.6.31-23.75_i386.deb
-Size: 32483012
-MD5sum: d350225f18c51fcb34b7d07b97799c27
-SHA1: b77250af7ebe0b4c2c07f7a6a01e365ad3f95c97
-SHA256: 741e06ed8964841edcc382be19fc56eed0c84ac1de4e94fde126824d2093402c
+Filename: ./linux-image-2.6.31-23-ccs1.8.3p1_2.6.31-23.75_i386.deb
+Size: 32483558
+MD5sum: 14a66a46cb795e1ac51c60d9f7c218f3
+SHA1: c4158a8f1a81b2370be2157bc4a1835e4ec9d3cc
+SHA256: 7cc1ff7aa1c8568a4191f196ea27353b2b26a37a8269e1d097627404995b2e43
 Description: Linux kernel image for version 2.6.31 on x86/x86_64
  This package contains the Linux kernel image for version 2.6.31 on
  x86/x86_64.
@@ -91,22 +73,22 @@ Description: Linux kernel image for version 2.6.31 on x86/x86_64
  the linux-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-ccs
+Package: linux-headers-ccs
 Priority: optional
-Section: metapackages
+Section: devel
 Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
 Version: 2.6.31.23.36
-Depends: linux-image-ccs (= 2.6.31.23.36)
-Filename: ./linux-ccs1.8.3_2.6.31.23.36_i386.deb
-Size: 3494
-MD5sum: 976b5b3f0c950fb4774e44764cd54150
-SHA1: 9ae1ecc35f052d033be66f5e353eb5cfb5bf8ddb
-SHA256: d245a302813e028924054f893f6b657a8914a4bd1b38e38a91a4b9bbaf2e16ff
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete ccs Linux kernel
+Depends: linux-headers-2.6.31-23-ccs
+Filename: ./linux-headers-ccs1.8.3p1_2.6.31.23.36_i386.deb
+Size: 3488
+MD5sum: 32abbc1a812c27793a324989220a07fd
+SHA1: 58098de3aedcbb838efaaa52c599561251aedc05
+SHA256: 18799e3149a39e290a79fdbce7be082bcebf075b99209cdf6d314803e1b1700b
+Description: Generic Linux kernel headers
+ This package will always depend on the latest ccs kernel headers
  available.
 
 Package: ccs-tools
@@ -127,4 +109,22 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
  .
  (Converted from a rpm package by alien version 8.78.)
+
+Package: linux-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.31.23.36
+Depends: linux-image-ccs (= 2.6.31.23.36)
+Filename: ./linux-ccs1.8.3p1_2.6.31.23.36_i386.deb
+Size: 3492
+MD5sum: 5a93bdf0046243bc847b29e78d9566c7
+SHA1: 40c96aba93a5d17c42bd5ad15e7c5a47ee45ef49
+SHA256: fed233bb07a4b123ea7e74af42a9fc54590458b83c8432b2f9c3df6515166ead
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete ccs Linux kernel
+ available.
 

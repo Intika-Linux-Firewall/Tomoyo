@@ -1,3 +1,47 @@
+Package: linux-image-2.6-686-ccs
+Priority: optional
+Section: kernel
+Installed-Size: 48
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-latest-2.6 (29)
+Version: 2.6.32+29
+Provides: linux-latest-modules-2.6.32-5-686-ccs
+Depends: linux-image-2.6.32-5-686-ccs
+Filename: ./linux-image-2.6-686-ccs1.8.3p1_2.6.32+29_i386.deb
+Size: 4430
+MD5sum: eb62e418a007a5bc9492b05be31c599e
+SHA1: 4416da8e8083f7eab7b3749fb5db680b3d3df710
+SHA256: e32a07126445ad5cc3def63e66c11a8f58e509eabebcddad651ef65a6aad0047
+Description: Linux 2.6 for modern PCs (meta-package)
+ This package depends on the latest Linux kernel 2.6 and modules for use on
+ PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom;
+ AMD Geode LX/NX, Athlon (K7), Duron, Opteron, Sempron, Turion or Phenom;
+ Transmeta Efficeon; VIA C3 "Nehemiah" or C7 processors.
+
+Package: linux-image-2.6.32-5-686-ccs-dbg
+Priority: optional
+Section: debug
+Installed-Size: 42444
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-source-2.6.32-5-686-ccs
+Version: 2.6.32-35squeeze2
+Provides: linux-debug, linux-debug-2.6, linux-debug-2.6.32-5-686-ccs
+Depends: linux-image-2.6.32-5-686-ccs
+Suggests: systemtap
+Filename: ./linux-image-2.6.32-5-686-ccs1.8.3p1-dbg_2.6.32-35squeeze2_i386.deb
+Size: 11542728
+MD5sum: fc183c0862d8c21e21e2d71ff157e5bc
+SHA1: 0b22d46fabeab9ff2e04cf9b7a2bc031ab152f26
+SHA256: caa7b5a67830a9942162d965618b7641680c7e0f3eaf8eb0d988d8816ef1d23f
+Description: Linux kernel debug image for version 2.6.32-5-686-ccs
+ This package contains the Linux kernel debug image for version
+  2.6.32-5-686-ccs.
+ This means the debugging information for the modules in the kernel
+ image package, and the uncompressed vmlinux image; it is not intended
+ to be bootable. This is useful for debugging the Linux kernel.
+
 Package: linux-headers-2.6.32-5-686-ccs
 Priority: optional
 Section: devel
@@ -10,11 +54,11 @@ Provides: linux-headers, linux-headers-2.6
 Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
 Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
 Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
-Filename: ./linux-headers-2.6.32-5-686-ccs1.8.3_2.6.32-35squeeze2_i386.deb
-Size: 6448436
-MD5sum: b9f27bbfc9f2c1f29dcad4570615db49
-SHA1: d072ae30a638c5f7494a9951de874b78ccf70f1f
-SHA256: c767a8292f286c07cb5c71657cd7f3122c3d6b558f7f784cd97315f9328cb5b6
+Filename: ./linux-headers-2.6.32-5-686-ccs1.8.3p1_2.6.32-35squeeze2_i386.deb
+Size: 6446654
+MD5sum: 7467706ae41f7ed77017d85c7a00af5e
+SHA1: 3869c1ed4e8ce3e91c7d080a38d8d338506bdf9e
+SHA256: 6225c2cee5e1f0a97c7f1074be0fe94607b5926def670a95bdf3ce8266ed6835
 Description: Header files related to Linux kernel, specifically,
  version 2.6.32-5-686-ccs
  .
@@ -37,11 +81,11 @@ Provides: linux-image, linux-image-2.6
 Depends: coreutils (>= 5.96)
 Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
 Suggests: fdutils, linux-doc-2.6.32-5-686-ccs | linux-source-2.6.32-5-686-ccs, ksymoops, linux-image-2.6.32-5-686-ccs-dbg
-Filename: ./linux-image-2.6.32-5-686-ccs1.8.3_2.6.32-35squeeze2_i386.deb
-Size: 27717706
-MD5sum: b8751082432c52dfbf5457208d57bdad
-SHA1: 9de982c717a2c9acc6d0a195d2182eecf4efdf64
-SHA256: 76404c09c4fc197eda274d9df550acd0751473d7d163c8ac2778d892d923d4e3
+Filename: ./linux-image-2.6.32-5-686-ccs1.8.3p1_2.6.32-35squeeze2_i386.deb
+Size: 27717520
+MD5sum: e5f5592ff1273b3433e82c0fee2b0291
+SHA1: 49d75d414106e9ed3c33409a274947450bce18d1
+SHA256: d4032af7b7cfbbe81a6ebfac7ec651d0d361fd74e9ae998c661f99c779c616b3
 Description: Linux kernel binary image for version 2.6.32-5-686-ccs
  This package contains the Linux kernel image for version
  2.6.32-5-686-ccs.
@@ -56,27 +100,6 @@ Description: Linux kernel binary image for version 2.6.32-5-686-ccs
  and /usr/share/doc/kernel-package/README.gz  from the package kernel-package
  for details on how to tailor the  installation of this or any other kernel
  image package
-
-Package: linux-image-2.6-686-ccs
-Priority: optional
-Section: kernel
-Installed-Size: 48
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-latest-2.6 (29)
-Version: 2.6.32+29
-Provides: linux-latest-modules-2.6.32-5-686-ccs
-Depends: linux-image-2.6.32-5-686-ccs
-Filename: ./linux-image-2.6-686-ccs1.8.3_2.6.32+29_i386.deb
-Size: 4432
-MD5sum: dd961c056ff6c6c836214d86cc3df0dd
-SHA1: 53185159b9e06a926577f2a34c5fbddd608f4cec
-SHA256: 13e80b4107d80ae4d561198e0c6bf6bc824d7ec59225857c9ab8ddac57296135
-Description: Linux 2.6 for modern PCs (meta-package)
- This package depends on the latest Linux kernel 2.6 and modules for use on
- PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom;
- AMD Geode LX/NX, Athlon (K7), Duron, Opteron, Sempron, Turion or Phenom;
- Transmeta Efficeon; VIA C3 "Nehemiah" or C7 processors.
 
 Package: ccs-tools
 Priority: extra
