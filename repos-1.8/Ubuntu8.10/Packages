@@ -1,55 +1,28 @@
-Package: linux-image-2.6.27-17-ccs
+Package: linux-restricted-modules-2.6.27-17-ccs
 Priority: optional
 Section: base
-Installed-Size: 92272
+Installed-Size: 2376
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux
-Version: 2.6.27-17.46
-Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
-Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3)
+Source: linux-restricted-modules
+Version: 2.6.27-17.23
+Depends: linux-image-2.6.27-17-ccs, linux-restricted-modules-common
 Pre-Depends: dpkg (>= 1.10.24)
-Recommends: lilo (>= 19.1) | grub
-Suggests: fdutils, linux-doc-2.6.27 | linux-source-2.6.27
-Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.27-17-ccs1.8.3_2.6.27-17.46_i386.deb
-Size: 26983788
-MD5sum: ea3f8398961dc662582c975d68487319
-SHA1: 0b2bc79e54d2690fa0e320ecfa0b2d538af41496
-SHA256: be6ec375ff7d3399ccb2e9233f9dd16cdf2c78e4d4f0a42dbfae8dd9a93e019c
-Description: Linux kernel image for version 2.6.27 on x86/x86_64
- This package contains the Linux kernel image for version 2.6.27 on
+Filename: ./linux-restricted-modules-2.6.27-17-ccs1.8.3p1_2.6.27-17.23_i386.deb
+Size: 852914
+MD5sum: 2f4b565bf725b89b930ddd79a5bf8d6b
+SHA1: 56529749bcb271b322e970732ee31f441d5e2186
+SHA256: 88f5f43cf9ae6ba06ab5250bdc0cda899c3c0b683134c92230cf0df44ef188df
+Description: Non-free Linux kernel modules for version 2.6.27 on x86/x86_64
+ This package provides restricted modules for Linux version 2.6.27 on
  x86/x86_64.
  .
- Also includes the corresponding System.map file, the modules built by the
- packager, and scripts that try to ensure that the system is not left in an
- unbootable state after an update.
- .
- Supports Generic processors.
- .
- Geared toward desktop systems.
+ These modules are "restricted" because they are not available under a
+ completely Free licence.
  .
  You likely do not want to install this package directly. Instead, install
- the linux-ccs meta-package, which will ensure that upgrades work
- correctly, and that supporting packages are also installed.
-
-Package: linux-headers-ccs
-Priority: optional
-Section: devel
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.27.17.21
-Depends: linux-headers-2.6.27-17-ccs
-Filename: ./linux-headers-ccs1.8.3_2.6.27.17.21_i386.deb
-Size: 3154
-MD5sum: 3ec832b0953bc203553af4d62d424d47
-SHA1: 7019e44802c83aa5f60ed2318607698a75fbc242
-SHA256: aedb443a0b81f64bc74696be9ef31610bf78a3920c5c5bf1ba2a8c2d1862f017
-Description: Generic Linux kernel headers
- This package will always depend on the latest ccs kernel headers
- available.
+ the linux-restricted-modules-ccs meta-package, which will ensure that
+ upgrades work correctly, and that supporting packages are also installed.
 
 Package: linux-headers-2.6.27-17-ccs
 Priority: optional
@@ -61,17 +34,53 @@ Source: linux
 Version: 2.6.27-17.46
 Provides: linux-headers, linux-headers-2.6
 Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.27-17, libc6 (>= 2.8~20080505), libncurses5 (>= 5.6+20071006-3)
-Filename: ./linux-headers-2.6.27-17-ccs1.8.3_2.6.27-17.46_i386.deb
-Size: 712732
-MD5sum: eee06db4b21965d4539eb324a6cb10a6
-SHA1: 0aa75b0d47a367026a2802f90120b315cb77767b
-SHA256: 2f902a8daf2b91dcaaefd1ef79f9bf6230c48d628fdfe582ed40673390435829
+Filename: ./linux-headers-2.6.27-17-ccs1.8.3p1_2.6.27-17.46_i386.deb
+Size: 712904
+MD5sum: 8f8edf07f5c9955f14bc32b29f7378ee
+SHA1: a438929ffad78415f9fb7d21d3c9c233082bede0
+SHA256: c442ab196ad302a2e5cc6890ff3e8b001c4f4206041156990bd736c04ed4da5e
 Description: Linux kernel headers for version 2.6.27 on x86/x86_64
  This package provides kernel header files for version 2.6.27 on
  x86/x86_64.
  .
  This is for sites that want the latest kernel headers.  Please read
  /usr/share/doc/linux-headers-2.6.27-17/debian.README.gz for details.
+
+Package: linux-headers-ccs
+Priority: optional
+Section: devel
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.27.17.21
+Depends: linux-headers-2.6.27-17-ccs
+Filename: ./linux-headers-ccs1.8.3p1_2.6.27.17.21_i386.deb
+Size: 3154
+MD5sum: 54e2bdc1074bd4d6e748c5cbd5c3e661
+SHA1: 4d4c4f626b7b83a5ff1ae1ac2b1812e6b23cf22e
+SHA256: 809c122ef3d0a0ebc0bce4c4b7b8d68b493a4cb5bead6fe1c3e3bf582c075b17
+Description: Generic Linux kernel headers
+ This package will always depend on the latest ccs kernel headers
+ available.
+
+Package: linux-ccs
+Priority: optional
+Section: restricted/metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.27.17.21
+Depends: linux-image-ccs (= 2.6.27.17.21), linux-restricted-modules-ccs (= 2.6.27.17.21)
+Filename: ./linux-ccs1.8.3p1_2.6.27.17.21_i386.deb
+Size: 3182
+MD5sum: 9018e6d4e81d01867ee4023991685a35
+SHA1: 0e447cb4f4bf7acdae92a02b49da52ab3437a7d6
+SHA256: 0fb3323026618011bc2be67b138306e9c305af45fd999c02c0a6db9f743405ce
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete ccs Linux kernel
+ available.
 
 Package: linux-image-ccs
 Priority: optional
@@ -82,11 +91,11 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.27.17.21
 Depends: linux-image-2.6.27-17-ccs, linux-firmware
-Filename: ./linux-image-ccs1.8.3_2.6.27.17.21_i386.deb
+Filename: ./linux-image-ccs1.8.3p1_2.6.27.17.21_i386.deb
 Size: 3164
-MD5sum: 9e011fdd1d50f9940c7052c5f36f752c
-SHA1: 41a0c0a016553901d31b016e311469c6c3f64439
-SHA256: b2d592ca4e71eecde932b078a1929842ff9fd9d1860706871cf364a19cd2f759
+MD5sum: 48ce64fbd8ee091b85d4006873cf923e
+SHA1: ad56e5d96a56b38dda0630f500ef0f9309f1c426
+SHA256: 0013da10ca34ea4a8eaa466856d47f364b369ebcec10daf875129af904296f34
 Description: Generic Linux kernel image
  This package will always depend on the latest ccs kernel image
  available.
@@ -110,50 +119,6 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.72.)
 
-Package: linux-restricted-modules-2.6.27-17-ccs
-Priority: optional
-Section: base
-Installed-Size: 2376
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-restricted-modules
-Version: 2.6.27-17.23
-Depends: linux-image-2.6.27-17-ccs, linux-restricted-modules-common
-Pre-Depends: dpkg (>= 1.10.24)
-Filename: ./linux-restricted-modules-2.6.27-17-ccs1.8.3_2.6.27-17.23_i386.deb
-Size: 852928
-MD5sum: ecde1274142d1aed94bbf8644eb226f9
-SHA1: 1d2c4ae2f7589542100476a9013e0e10cd8126f5
-SHA256: 53f512fe14fed2ff225b87c2e0e74ee11aaf88875a0a179963a5908414a3aee8
-Description: Non-free Linux kernel modules for version 2.6.27 on x86/x86_64
- This package provides restricted modules for Linux version 2.6.27 on
- x86/x86_64.
- .
- These modules are "restricted" because they are not available under a
- completely Free licence.
- .
- You likely do not want to install this package directly. Instead, install
- the linux-restricted-modules-ccs meta-package, which will ensure that
- upgrades work correctly, and that supporting packages are also installed.
-
-Package: linux-ccs
-Priority: optional
-Section: restricted/metapackages
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.27.17.21
-Depends: linux-image-ccs (= 2.6.27.17.21), linux-restricted-modules-ccs (= 2.6.27.17.21)
-Filename: ./linux-ccs1.8.3_2.6.27.17.21_i386.deb
-Size: 3182
-MD5sum: 9e9819c0cb05c773ab05ce6fcf625476
-SHA1: 357e1439f2f141edc16b8e3e293de139eb5a9c3e
-SHA256: 967a55224d129d29e98fd49c34877a9e6605f0dd242d11511b043a6714f8fb3a
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete ccs Linux kernel
- available.
-
 Package: linux-restricted-modules-ccs
 Priority: optional
 Section: restricted/metapackages
@@ -163,12 +128,47 @@ Architecture: i386
 Source: linux-meta
 Version: 2.6.27.17.21
 Depends: linux-restricted-modules-2.6.27-17-ccs
-Filename: ./linux-restricted-modules-ccs1.8.3_2.6.27.17.21_i386.deb
-Size: 3180
-MD5sum: 15de81af8bb91a5e3d0df53e70b04f7f
-SHA1: 44c498b19e86c45186e8d9ca2b974494c497dc90
-SHA256: b5ea403595c497c0f5ff7acbef885a67da2dc53c1bb45b329e8557a6bde1b93e
+Filename: ./linux-restricted-modules-ccs1.8.3p1_2.6.27.17.21_i386.deb
+Size: 3184
+MD5sum: 898b7dcae6c6556da60638fa77321ade
+SHA1: 89a075357dae343f5cd14e80491d55aebe765560
+SHA256: 75886389fc0301eb2acb053ef9d8b2e0e5474d259eb1238e82022f4db5b1fc31
 Description: Restricted Linux modules for ccs kernels
  This package will always depend on the latest restricted modules available
  for ccs kernels.
+
+Package: linux-image-2.6.27-17-ccs
+Priority: optional
+Section: base
+Installed-Size: 92272
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.27-17.46
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
+Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3)
+Pre-Depends: dpkg (>= 1.10.24)
+Recommends: lilo (>= 19.1) | grub
+Suggests: fdutils, linux-doc-2.6.27 | linux-source-2.6.27
+Conflicts: hotplug (<< 0.0.20040105-1)
+Filename: ./linux-image-2.6.27-17-ccs1.8.3p1_2.6.27-17.46_i386.deb
+Size: 26985912
+MD5sum: 72ef2a19d3f83560ab98c50b2525df17
+SHA1: 0852d9a95e44a68e1f287e400f8e05797944904c
+SHA256: 36aaabe7484c54eca675342ad3b686fabed5e64de9c0d0b7f1cab0c7f5473f9b
+Description: Linux kernel image for version 2.6.27 on x86/x86_64
+ This package contains the Linux kernel image for version 2.6.27 on
+ x86/x86_64.
+ .
+ Also includes the corresponding System.map file, the modules built by the
+ packager, and scripts that try to ensure that the system is not left in an
+ unbootable state after an update.
+ .
+ Supports Generic processors.
+ .
+ Geared toward desktop systems.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-ccs meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
 
