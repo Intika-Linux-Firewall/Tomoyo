@@ -63,7 +63,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <table border="1">
 <tr><td>
 <a name="2.6-vanilla">Vanilla 2.6 kernels</a><br>
-(2.6.11 and later are supported.)
+(2.6.27 to 2.6.31 are supported.)
 </td><td>
 # Move to the source directory.<br>
 cd /usr/src/<br>
@@ -76,12 +76,12 @@ cd linux-2.6.31.14<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz'<br>
 # Check signature.<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz.asc'<br>
-gpg ccs-patch-1.7.3-20110903.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20110903.tar.gz.asc<br>
 # Extract.<br>
-tar -zxf ccs-patch-1.7.3-20110903.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20110903.tar.gz<br>
 # Apply the kernel patch.<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.31.diff<br>
 # Enable options for TOMOYO Linux.<br>
@@ -91,7 +91,7 @@ make -s<br>
 make -s modules modules_install install
 </td></tr><tr><td>
 <a name="2.4-vanilla">Vanilla 2.4 kernels</a><br>
-(2.4.30 and later are supported.)
+(2.4.37 is supported.)
 </td><td>
 # Move to the source directory.<br>
 cd /usr/src/<br>
@@ -104,12 +104,12 @@ cd linux-2.4.37.11<br>
 # Remove world writable permissions from the source code.<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # Download TOMOYO Linux's kernel patch.<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz'<br>
 # Check signature.<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz.asc'<br>
-gpg ccs-patch-1.7.3-20110903.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20110903.tar.gz.asc<br>
 # Extract.<br>
-tar -zxf ccs-patch-1.7.3-20110903.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20110903.tar.gz<br>
 # Apply the kernel patch.<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.37.diff<br>
 # Enable options for TOMOYO Linux.<br>
@@ -118,15 +118,6 @@ make -s menuconfig<br>
 make -s dep<br>
 make -s<br>
 make -s modules modules_install install
-</td></tr><tr><td>
-<a name="Fedora11">Fedora 11</a>
-</td><td>
-# Download build script.<br>
-wget -O build-f11-2.6.30.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f11-2.6.30.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-f11-2.6.30.sh<br>
-# Start compilation.<br>
-rpmbuild -bb --target i586 /root/rpmbuild/SPECS/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="CentOS3.9">CentOS 3.9</a>
 </td><td>
@@ -155,37 +146,12 @@ sh build-c5-2.6.18.sh<br>
 # Start compilation.<br>
 rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 </td></tr><tr><td>
-<a name="Etch">Debian Etch</a>
-</td><td>
-# Download build script.<br>
-wget -O build-debian_etch.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_etch.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-debian_etch.sh<br>
-</td></tr><tr><td>
 <a name="Lenny">Debian Lenny</a>
 </td><td>
 # Download build script.<br>
 wget -O build-debian_lenny.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_lenny.sh?root=tomoyo'<br>
 # Run build script.<br>
 sh build-debian_lenny.sh<br>
-</td></tr><tr><td>
-<a name="OpenSUSE11.0">OpenSUSE 11.0</a>
-</td><td>
-# Download build script.<br>
-wget -O build-suse11.0-2.6.25.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse11.0-2.6.25.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-suse11.0-2.6.25.sh<br>
-# Start compilation.<br>
-rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
-</td></tr><tr><td>
-<a name="OpenSUSE11.1">OpenSUSE 11.1</a>
-</td><td>
-# Download build script.<br>
-wget -O build-suse11.1-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse11.1-2.6.27.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-suse11.1-2.6.27.sh<br>
-# Start compilation.<br>
-rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="Asianux2">Asianux 2.0</a>
 </td><td>
@@ -205,42 +171,12 @@ sh build-ax3-2.6.18.sh<br>
 # Start compilation.<br>
 rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 </td></tr><tr><td>
-<a name="Ubuntu6.06">Ubuntu 6.06</a>
-</td><td>
-# Download build script.<br>
-wget -O build-ubuntu_6.06.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_6.06.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-ubuntu_6.06.sh<br>
-</td></tr><tr><td>
 <a name="Ubuntu8.04">Ubuntu 8.04</a>
 </td><td>
 # Download build script.<br>
 wget -O build-ubuntu_8.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.04.sh?root=tomoyo'<br>
 # Run build script.<br>
 sh build-ubuntu_8.04.sh<br>
-</td></tr><tr><td>
-<a name="Ubuntu8.10">Ubuntu 8.10</a>
-</td><td>
-# Download build script.<br>
-wget -O build-ubuntu_8.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.10.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-ubuntu_8.10.sh<br>
-</td></tr><tr><td>
-<a name="Ubuntu9.04">Ubuntu 9.04</a>
-</td><td>
-# Download build script.<br>
-wget -O build-ubuntu_9.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_9.04.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-ubuntu_9.04.sh<br>
-</td></tr><tr><td>
-<a name="VineLinux4.2">VineLinux 4.2</a>
-</td><td>
-# Download build script.<br>
-wget -O build-vl4.2-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-vl4.2-2.6.16.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-vl4.2-2.6.16.sh<br>
-# Start compilation.<br>
-rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="VineLinux5.2">VineLinux 5.2</a>
 </td><td>
