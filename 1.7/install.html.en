@@ -28,13 +28,13 @@
 <p>TOMOYO Linux provides some binary kernel packages and binary tool packages for i686 architecture. If your environment matches the list below and CPU is i686, you can install using binary packages.</p>
 
 <ul>
-<li>Fedora 11/12/13/14</li>
+<li>Fedora 14</li>
 <li>CentOS 3.9/4.9/5.7/6.0</li>
-<li>OpenSUSE 11.0/11.1/11.2/11.3</li>
-<li>Vine Linux 4.2/5.2</li>
+<li>OpenSUSE 11.3</li>
+<li>Vine Linux 5.2</li>
 <li>Asianux 2.0/3.0</li>
-<li>Debian Etch/Lenny</li>
-<li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04/10.10</li>
+<li>Debian Lenny</li>
+<li>Ubuntu 8.04/10.04/10.10</li>
 </ul>
 
 <p>If you use RPM packages, please import GPG key by doing the following operation.</p>
@@ -59,18 +59,6 @@
 
 <table border="1">
 <tr><td>
-Fedora 11 (for i586 and later)</td><td>
-[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora11/ccs.repo<br>
-[root@tomoyo ~]# yum install ccs-kernel ccs-tools
-</td></tr><tr><td>
-Fedora 12 (for i686 and later)</td><td>
-[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora12/ccs.repo<br>
-[root@tomoyo ~]# yum install ccs-kernel ccs-tools
-</td></tr><tr><td>
-Fedora 13 (for i686 and later)</td><td>
-[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora13/ccs.repo<br>
-[root@tomoyo ~]# yum install ccs-kernel ccs-tools
-</td></tr><tr><td>
 Fedora 14 (for i686 and later)</td><td>
 [root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora14/ccs.repo<br>
 [root@tomoyo ~]# yum install ccs-kernel ccs-tools
@@ -99,64 +87,22 @@ Asianux 3.0 (for i686 and later)</td><td>
 [root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Asianux3/ccs.repo<br>
 [root@tomoyo ~]# yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
-Vine Linux 4.2 (for i686 and later)</td><td>
-[root@tomoyo ~]# echo "repomd http://tomoyo.sourceforge.jp/ repos-1.7/VineLinux4/" &gt;&gt; /etc/apt/sources.list<br>
-[root@tomoyo ~]# apt-get update<br>
-[root@tomoyo ~]# apt-get install ccs-kernel ccs-tools
-</td></tr><tr><td>
 Vine Linux 5.2 (for i586 and later)</td><td>
 [root@tomoyo ~]# echo "repomd http://tomoyo.sourceforge.jp/ repos-1.7/VineLinux5/" &gt;&gt; /etc/apt/sources.list<br>
 [root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install ccs-kernel ccs-tools
 </td></tr><tr><td>
-OpenSUSE 11.0 (for i586 and later)</td><td>
-[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE11.0/ ccs<br>
-[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
-</td></tr><tr><td>
-OpenSUSE 11.1 (for i586 and later)</td><td>
-[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE11.1/ ccs<br>
-[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
-</td></tr><tr><td>
-OpenSUSE 11.2 (for i586 and later)</td><td>
-[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE11.2/ ccs<br>
-[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
-</td></tr><tr><td>
 OpenSUSE 11.3 (for i586 and later)</td><td>
 [root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE11.3/ ccs<br>
 [root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
-</td></tr><tr><td>
-Debian Etch (for 686 flavour)</td><td>
-[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45230/ ./' &gt;&gt; /etc/apt/sources.list<br>
-[root@tomoyo ~]# apt-get update<br>
-[root@tomoyo ~]# apt-get install linux-image-2.6-686-ccs ccs-tools
 </td></tr><tr><td>
 Debian Lenny (for 686 flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45231/ ./' &gt;&gt; /etc/apt/sources.list<br>
 [root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-image-2.6-686-ccs ccs-tools
 </td></tr><tr><td>
-Ubuntu 6.06 (for 686 flavour)</td><td>
-[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45064/ ./' &gt;&gt; /etc/apt/sources.list<br>
-[root@tomoyo ~]# apt-get update<br>
-[root@tomoyo ~]# apt-get install linux-686-ccs ccs-tools
-</td></tr><tr><td>
 Ubuntu 8.04 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45068/ ./' &gt;&gt; /etc/apt/sources.list<br>
-[root@tomoyo ~]# apt-get update<br>
-[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
-</td></tr><tr><td>
-Ubuntu 8.10 (for generic flavour)</td><td>
-[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45069/ ./' &gt;&gt; /etc/apt/sources.list<br>
-[root@tomoyo ~]# apt-get update<br>
-[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
-</td></tr><tr><td>
-Ubuntu 9.04 (for generic flavour)</td><td>
-[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45070/ ./' &gt;&gt; /etc/apt/sources.list<br>
-[root@tomoyo ~]# apt-get update<br>
-[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
-</td></tr><tr><td>
-Ubuntu 9.10 (for generic flavour)</td><td>
-[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45071/ ./' &gt;&gt; /etc/apt/sources.list<br>
 [root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr><tr><td>
@@ -187,7 +133,7 @@ Ubuntu 10.10 (for generic-pae flavour)</td><td>
 </ul>
 
 <p>Download source code from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> and extract it and goto the extracted directory.<br>
-Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.37.6 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.37 in the below operations.</p>
+Regarding linux-2.4 , 2.4.37 is supported. Regarding linux-2.6 , 2.6.27 to 2.6.37 are supported. If you use kernel 2.6.37.6 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.37 in the below operations.</p>
 
 <table border="1">
 <tr><td>
@@ -237,27 +183,6 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 
 <table border="1">
 <tr><td>
-<a name="Fedora11">Fedora 11</a>
-</td><td>
-# Download build script.<br>
-wget -O build-f11-2.6.30.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f11-2.6.30.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-f11-2.6.30.sh<br>
-</td></tr><tr><td>
-<a name="Fedora12">Fedora 12</a>
-</td><td>
-# Download build script.<br>
-wget -O build-f12-2.6.32.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f12-2.6.32.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-f12-2.6.32.sh<br>
-</td></tr><tr><td>
-<a name="Fedora13">Fedora 13</a>
-</td><td>
-# Download build script.<br>
-wget -O build-f13-2.6.34.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f13-2.6.34.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-f13-2.6.34.sh<br>
-</td></tr><tr><td>
 <a name="Fedora14">Fedora 14</a>
 </td><td>
 # Download build script.<br>
@@ -293,40 +218,12 @@ wget -O build-c6-2.6.32.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*check
 # Run build script.<br>
 sh build-c6-2.6.32.sh<br>
 </td></tr><tr><td>
-<a name="Etch">Debian Etch</a>
-</td><td>
-# Download build script.<br>
-wget -O build-debian_etch.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-debian_etch.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-debian_etch.sh<br>
-</td></tr><tr><td>
 <a name="Lenny">Debian Lenny</a>
 </td><td>
 # Download build script.<br>
 wget -O build-debian_lenny.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-debian_lenny.sh?root=tomoyo'<br>
 # Run build script.<br>
 sh build-debian_lenny.sh<br>
-</td></tr><tr><td>
-<a name="OpenSUSE11.0">OpenSUSE 11.0</a>
-</td><td>
-# Download build script.<br>
-wget -O build-suse11.0-2.6.25.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse11.0-2.6.25.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-suse11.0-2.6.25.sh<br>
-</td></tr><tr><td>
-<a name="OpenSUSE11.1">OpenSUSE 11.1</a>
-</td><td>
-# Download build script.<br>
-wget -O build-suse11.1-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse11.1-2.6.27.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-suse11.1-2.6.27.sh<br>
-</td></tr><tr><td>
-<a name="OpenSUSE11.2">OpenSUSE 11.2</a>
-</td><td>
-# Download build script.<br>
-wget -O build-suse11.2-2.6.31.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse11.2-2.6.31.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-suse11.2-2.6.31.sh<br>
 </td></tr><tr><td>
 <a name="OpenSUSE11.3">OpenSUSE 11.3</a>
 </td><td>
@@ -349,40 +246,12 @@ wget -O build-ax3-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*chec
 # Run build script.<br>
 sh build-ax3-2.6.18.sh<br>
 </td></tr><tr><td>
-<a name="Ubuntu6.06">Ubuntu 6.06</a>
-</td><td>
-# Download build script.<br>
-wget -O build-ubuntu_6.06.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_6.06.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-ubuntu_6.06.sh<br>
-</td></tr><tr><td>
 <a name="Ubuntu8.04">Ubuntu 8.04</a>
 </td><td>
 # Download build script.<br>
 wget -O build-ubuntu_8.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.04.sh?root=tomoyo'<br>
 # Run build script.<br>
 sh build-ubuntu_8.04.sh<br>
-</td></tr><tr><td>
-<a name="Ubuntu8.10">Ubuntu 8.10</a>
-</td><td>
-# Download build script.<br>
-wget -O build-ubuntu_8.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.10.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-ubuntu_8.10.sh<br>
-</td></tr><tr><td>
-<a name="Ubuntu9.04">Ubuntu 9.04</a>
-</td><td>
-# Download build script.<br>
-wget -O build-ubuntu_9.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.04.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-ubuntu_9.04.sh<br>
-</td></tr><tr><td>
-<a name="Ubuntu9.10">Ubuntu 9.10</a>
-</td><td>
-# Download build script.<br>
-wget -O build-ubuntu_9.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.10.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-ubuntu_9.10.sh<br>
 </td></tr><tr><td>
 <a name="Ubuntu10.04">Ubuntu 10.04</a>
 </td><td>
@@ -397,13 +266,6 @@ sh build-ubuntu_10.04.sh<br>
 wget -O build-ubuntu_10.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_10.10.sh?root=tomoyo'<br>
 # Run build script.<br>
 sh build-ubuntu_10.10.sh<br>
-</td></tr><tr><td>
-<a name="VineLinux4.2">VineLinux 4.2</a>
-</td><td>
-# Download build script.<br>
-wget -O build-vl4.2-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-vl4.2-2.6.16.sh?root=tomoyo'<br>
-# Run build script.<br>
-sh build-vl4.2-2.6.16.sh<br>
 </td></tr><tr><td>
 <a name="VineLinux5.2">VineLinux 5.2</a>
 </td><td>

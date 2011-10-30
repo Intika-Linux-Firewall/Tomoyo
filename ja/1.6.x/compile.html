@@ -45,21 +45,13 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <p>以下の一覧から、該当するバージョンを選択してください。</p>
 
 <ul>
-<li><a href="#Fedora11">Fedora 11</a>
 <li><a href="#CentOS3.9">CentOS 3.9</a>
 <li><a href="#CentOS4.9">CentOS 4.9</a>
 <li><a href="#CentOS5.6">CentOS 5.6</a>
-<li><a href="#Etch">Debian Etch</a>
 <li><a href="#Lenny">Debian Lenny</a>
-<li><a href="#OpenSUSE11.0">OpenSUSE 11.0</a>
-<li><a href="#OpenSUSE11.1">OpenSUSE 11.1</a>
 <li><a href="#Asianux2">Asianux 2.0</a>
 <li><a href="#Asianux3">Asianux 3.0</a>
-<li><a href="#Ubuntu6.06">Ubuntu 6.06</a>
 <li><a href="#Ubuntu8.04">Ubuntu 8.04</a>
-<li><a href="#Ubuntu8.10">Ubuntu 8.10</a>
-<li><a href="#Ubuntu9.04">Ubuntu 9.04</a>
-<li><a href="#VineLinux4.2">VineLinux 4.2</a>
 <li><a href="#VineLinux5.2">VineLinux 5.2</a>
 <li><a href="#Gentoo">Gentoo</a>
 <li><a href="#2.6-vanilla">バニラ 2.6 カーネル</a>
@@ -67,19 +59,6 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 </ul>
 
 <hr>
-
-<h2><a name="Fedora11">Fedora 11</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-f11-2.6.30.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f11-2.6.30.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-f11-2.6.30.sh<br>
-# パッケージを作成する。<br>
-rpmbuild -bb --target i586 /root/rpmbuild/SPECS/ccs-kernel.spec
-</td></tr>
-</table>
 
 <h2><a name="CentOS3.9">CentOS 3.9</a></h2>
 
@@ -120,17 +99,6 @@ rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 </td></tr>
 </table>
 
-<h2><a name="Etch">Debian Etch</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-debian_etch.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_etch.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-debian_etch.sh<br>
-</td></tr>
-</table>
-
 <h2><a name="Lenny">Debian Lenny</a></h2>
 
 <table border="1">
@@ -139,32 +107,6 @@ sh build-debian_etch.sh<br>
 wget -O build-debian_lenny.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_lenny.sh?root=tomoyo'<br>
 # ビルドスクリプトを実行する。<br>
 sh build-debian_lenny.sh<br>
-</td></tr>
-</table>
-
-<h2><a name="OpenSUSE11.0">OpenSUSE 11.0</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-suse11.0-2.6.25.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse11.0-2.6.25.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-suse11.0-2.6.25.sh<br>
-# パッケージを作成する。<br>
-rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
-</td></tr>
-</table>
-
-<h2><a name="OpenSUSE11.0">OpenSUSE 11.1</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-suse11.1-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse11.1-2.6.27.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-suse11.1-2.6.27.sh<br>
-# パッケージを作成する。<br>
-rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr>
 </table>
 
@@ -194,17 +136,6 @@ rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 </td></tr>
 </table>
 
-<h2><a name="Ubuntu6.06">Ubuntu 6.06</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-ubuntu_6.06.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_6.06.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-ubuntu_6.06.sh<br>
-</td></tr>
-</table>
-
 <h2><a name="Ubuntu8.04">Ubuntu 8.04</a></h2>
 
 <table border="1">
@@ -213,41 +144,6 @@ sh build-ubuntu_6.06.sh<br>
 wget -O build-ubuntu_8.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.04.sh?root=tomoyo'<br>
 # ビルドスクリプトを実行する。<br>
 sh build-ubuntu_8.04.sh<br>
-</td></tr>
-</table>
-
-<h2><a name="Ubuntu8.10">Ubuntu 8.10</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-ubuntu_8.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.10.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-ubuntu_8.10.sh<br>
-</td></tr>
-</table>
-
-<h2><a name="Ubuntu9.04">Ubuntu 9.04</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-ubuntu_9.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_9.04.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-ubuntu_9.04.sh<br>
-</td></tr>
-</table>
-
-<h2><a name="VineLinux4.2">VineLinux 4.2</a></h2>
-
-<table border="1">
-<tr><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-vl4.2-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-vl4.2-2.6.16.sh?root=tomoyo'<br>
-# ビルドスクリプトを実行する。<br>
-sh build-vl4.2-2.6.16.sh<br>
-# パッケージを作成する。<br>
-rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr>
 </table>
 
@@ -286,7 +182,7 @@ genkernel --menuconfig all<br>
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.31.14 を使用するものとします。</p>
+<p>2.6.27 ～ 2.6.31 に対応しています。以下の手順では 2.6.31.14 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
@@ -301,12 +197,12 @@ cd linux-2.6.31.14<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz.asc'<br>
-gpg ccs-patch-1.7.3-20110903.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20110903.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.7.3-20110903.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20110903.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.31.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
@@ -319,7 +215,7 @@ make -s modules modules_install install
 
 <h2><a name="2.4-vanilla">バニラ 2.4 カーネル</a></h2>
 
-<p>2.4.30 以降に対応しています。以下の手順では 2.4.37.11 を使用するものとします。</p>
+<p>2.4.37 に対応しています。以下の手順では 2.4.37.11 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
@@ -334,12 +230,12 @@ cd linux-2.4.37.11<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.7.3-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.7.3-20110903.tar.gz.asc'<br>
-gpg ccs-patch-1.7.3-20110903.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20110903.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20110903.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.7.3-20110903.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20110903.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.37.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
