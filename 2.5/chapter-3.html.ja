@@ -93,14 +93,14 @@ ffffffff8115e460 T tomoyo_write_inet_network
 <p>カーネル 2.6.38 ～ 3.1 で TOMOYO 2.5 を利用したい場合、以下のコマンドを実行してください：</p>
 
 <pre class="command">
-$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=1be025d3cb40cd295123af2c394f7229ef9b30ca;sf=tgz'
+$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=2380078cdb7e6d520e33dcf834e0be979d542e48;sf=tgz'
 $ tar -zxf linux.tar.gz --strip 1 'linux-*/security/tomoyo/'
 </pre>
 
 <p>カーネル 2.6.33 ～ 2.6.37 で TOMOYO 2.5 を利用したい場合、カーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
 
 <pre class="command">
-$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=1be025d3cb40cd295123af2c394f7229ef9b30ca;sf=tgz'
+$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=2380078cdb7e6d520e33dcf834e0be979d542e48;sf=tgz'
 $ tar -zxf linux.tar.gz --strip 1 'linux-*/security/tomoyo/'
 $ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
