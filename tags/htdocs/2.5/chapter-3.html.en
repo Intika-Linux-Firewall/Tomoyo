@@ -93,14 +93,14 @@ Linux kernel 2.6.33 and later are supported.</p>
 <p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.38 and 3.1, run the following commands:</p>
 
 <pre class="command">
-$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=1be025d3cb40cd295123af2c394f7229ef9b30ca;sf=tgz'
+$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=2380078cdb7e6d520e33dcf834e0be979d542e48;sf=tgz'
 $ tar -zxf linux.tar.gz --strip 1 'linux-*/security/tomoyo/'
 </pre>
 
 <p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 2.6.37, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
 
 <pre class="command">
-$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=1be025d3cb40cd295123af2c394f7229ef9b30ca;sf=tgz'
+$ wget -O linux.tar.gz 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=snapshot;h=2380078cdb7e6d520e33dcf834e0be979d542e48;sf=tgz'
 $ tar -zxf linux.tar.gz --strip 1 'linux-*/security/tomoyo/'
 $ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
