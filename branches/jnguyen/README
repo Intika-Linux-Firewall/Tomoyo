@@ -1,0 +1,57 @@
+About
+----------------------------------------
+
+These scripts are used to generate SRPMS of the TOMOYO Linux kernel, based on
+the associated upstream kernel package. For each package, the official SRPM is
+downloaded and the SPEC file is modified using a patch.
+
+
+
+Dependencies
+----------------------------------------
+
+  patch
+  rpmdevtools
+  rpm-build
+
+
+
+Installation
+----------------------------------------
+
+Put the scripts into a folder and specify the folder in $HOME/.bashrc:
+
+  export RPM_SCRIPT_DIR="$HOME/buildscripts"
+
+All sources are downloaded and kept in the $RPM_SOURCE_DIR folder:
+
+  export RPM_SOURCE_DIR="$HOME/sources"
+
+The following variable should also be exported:
+
+  export RPM_BUILD_DIR="$HOME/rpmbuild"
+
+
+
+Usage
+----------------------------------------
+
+To build the kernel RPM package for Enterprise Linux 6, run this script:
+
+  ./build-el6.sh
+
+To build the kernel RPM package for Fedora 16, run this script:
+
+  ./build-f16.sh
+
+To build the userspace tools RPM package:
+
+  ./build-tools.sh
+
+
+
+Contact
+----------------------------------------
+
+If you find any bugs, or have any comments, criticisms or requests, then send
+an email to: jamie tomoyolinux co uk

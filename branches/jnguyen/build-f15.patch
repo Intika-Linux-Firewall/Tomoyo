@@ -1,0 +1,69 @@
+--- ccs-kernel.spec
++++ ccs-kernel.spec
+@@ -18,7 +18,7 @@
+ #
+ # (Uncomment the '#' and both spaces below to set the buildid.)
+ #
+-# % define buildid .local
++%define buildid _tomoyo_${CCS_VER}
+ ###################################################################
+ 
+ # The buildid can also be specified on the rpmbuild command line
+@@ -402,6 +402,11 @@
+ # to versions below the minimum
+ #
+ 
++# TOMOYO Linux
++%define with_modsign 0
++%define _enable_debug_packages 0
++%define with_debuginfo 0
++
+ #
+ # First the general kernel 2.6 required versions as per
+ # Documentation/Changes
+@@ -461,7 +466,7 @@
+ AutoProv: yes\
+ %{nil}
+ 
+-Name: kernel%{?variant}
++Name: ccs-kernel%{?variant}
+ Group: System Environment/Kernel
+ License: GPLv2
+ URL: http://www.kernel.org/
+@@ -803,7 +808,7 @@
+ AutoReqProv: no\
+ Requires(pre): /usr/bin/find\
+ Requires: perl\
+-%description -n kernel%{?variant}%{?1:-%{1}}-devel\
++%description -n ccs-kernel%{?variant}%{?1:-%{1}}-devel\
+ This package provides kernel headers and 
+ makefiles sufficient to build modules\
+ against the %{?2:%{2} }kernel package.\
+@@ -1239,6 +1244,10 @@
+ 
+ # END OF PATCH APPLICATIONS
+ 
++# TOMOYO Linux
++tar -xzf %_sourcedir/ccs-patch-${CCSPATCH_VER}.tar.gz
++patch -sp1 < patches/${CCSDIFF_NAME}
++
+ %endif
+ 
+ # Any further pre-build tree manipulations happen here.
+@@ -1267,6 +1276,9 @@
+ for i in *.config
+ do
+   mv $i .config
++  # TOMOYO Linux
++  cat config.ccs >> .config
++  sed -i -e 's:CONFIG_DEBUG_INFO=.*:# CONFIG_DEBUG_INFO is not set:' -- .config
+   Arch=`head -1 .config | cut -b 3-`
+   make ARCH=$Arch listnewconfig | grep -E '^CONFIG_' >.newoptions || true
+ %if %{listnewconfig_fail}
+@@ -1353,6 +1365,7 @@
+     echo USING ARCH=$Arch
+ 
+     make -s ARCH=$Arch oldnoconfig >/dev/null
++    make -s ARCH=$Arch menuconfig
+     make -s ARCH=$Arch V=1 %{?_smp_mflags} $MakeTarget %{?sparse_mflags}
+     make -s ARCH=$Arch V=1 %{?_smp_mflags} modules %{?sparse_mflags} || exit 1

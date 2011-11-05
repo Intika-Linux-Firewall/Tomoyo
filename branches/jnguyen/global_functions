@@ -1,9 +1,5 @@
 #!/bin/bash
 
-RPM_BUILD_DIR="/home/build/rpmbuild"
-SOURCE_DIR="/home/build/sources"
-COLOUR=1
-
 if tput setaf 0 &>/dev/null; then
 	ALL_OFF="$(tput sgr0)"
 	BOLD="$(tput bold)"
@@ -17,18 +13,10 @@ else
 fi
 
 msg() {
-	if [[ "${COLOUR}" = 1 ]]; then
-    	printf '%s\n' "${GREEN}==>${ALL_OFF}${BOLD} ${@}${ALL_OFF}" >&2
-	else
-	    printf '%s\n' "==> ${@}" >&2
-	fi
+   	printf '%s\n' "${GREEN}==>${ALL_OFF}${BOLD} ${@}${ALL_OFF}" >&2
 }
 error() {
-	if [[ "${COLOUR}" = 1 ]]; then
-    	printf '%s\n' "${RED}==>${ALL_OFF}${BOLD} ${@}${ALL_OFF}" >&2
-	else
-    	printf '%s\n' "==> ${@}" >&2
-	fi
+    printf '%s\n' "${RED}==>${ALL_OFF}${BOLD} ${@}${ALL_OFF}" >&2
 	exit 1
 }
 
@@ -37,28 +25,20 @@ setup_rpmbuild_tree() {
 	rm -rf "${RPM_BUILD_DIR}"
 	rpmdev-setuptree || error "ERROR: rpmbuild tree setup failed"
 	rm -rf "${RPM_BUILD_DIR}/SOURCES" \
-		&& ln -sf "${SOURCE_DIR}" "${RPM_BUILD_DIR}/SOURCES"
+		&& ln -sf "${RPM_SOURCE_DIR}" "${RPM_BUILD_DIR}/SOURCES"
 }
-enter_dir() {
-	msg "Entering '${1}' directory ..."
-	cd "${1}" || error "ERROR: chdir to '${1}' failed"
-}
+setup_source_dir() {
+	msg "Setting up source directory ..."
+	if [[ ! -d "${1}" ]]; then
+		mkdir "${1}" || error "ERROR: directory creation failed"
+	fi
+	rm -rf "${RPM_BUILD_DIR}/SOURCES"
+	ln -sf "${1}" "${RPM_BUILD_DIR}/SOURCES" || error "ERROR: symlink creation failed"
+}	
 download_file() {
 	if [[ ! -f "${2}" ]]; then
 		msg "Downloading ${1} ..."
 		wget "${1}" -O "${2}" || error "ERROR: file download failed"
-	fi
-}
-download_srpm() {
-	msg "Downloading ${1} SRPM ..."
-	yumdownloader --source ${1} || error "ERROR: ${1} SRPM download failed"
-}
-install_dependencies() {
-	msg "Waiting 10 seconds ..."
-	read -t 10 -r -e -p "Run yum-builddep [y/N]?: " builddep
-	if [[ "${builddep}" = "y" || "${builddep}" = "Y" ]]; then
-		msg "Installing build dependencies for ${1} ..."
-		su -c "yum-builddep ${1}" || error "ERROR: dependency installation failed"
 	fi
 }
 verify_signature() {
@@ -69,13 +49,3 @@ install_srpm() {
 	msg "Installing ${1} SRPM ..."
 	rpm -ivh "${1}" || error "ERROR: ${1} SRPM installation failed"
 }
-copy_file() {
-	[[ ! -f "${1}" ]] && error "ERROR: '${1}': no such file"
-	msg "Copying ${1} file to ${2} ..."
-	cp -vp "${1}" "${2}" || error "ERROR: copy failed"
-}
-run_build() {
-	msg "Running rpmbuild -bb in 5 seconds ..."
-	sleep 5 && rpmbuild -bb ${@}
-}
-# }}}
