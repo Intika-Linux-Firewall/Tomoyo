@@ -4,15 +4,15 @@
 
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
-URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/16/SRPMS"
+URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/development/16/source/SRPMS"
 
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p1"
 CCSPATCH_VER="1.8.3-20111025"
-KERNEL_VER="2.6.40.6-0.fc15"
+KERNEL_VER="3.1.0-7.fc16"
 
 UPDATED_DIFF=0
-CCSDIFF_NAME="ccs-patch-3.0.diff"
+CCSDIFF_NAME="ccs-patch-3.1.diff"
 #CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15-20110802.diff"
 #CCSDIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
 
@@ -28,7 +28,7 @@ fi
 download_file "${URL_KERNEL}/kernel-${KERNEL_VER}.src.rpm" \
 	"kernel-${KERNEL_VER}.src.rpm"
 
-verify_signature "kernel-${KERNEL_VER}.src.rpm"
+#verify_signature "kernel-${KERNEL_VER}.src.rpm"
 install_srpm "kernel-${KERNEL_VER}.src.rpm"
 
 cd "${RPM_BUILD_DIR}/SPECS"
