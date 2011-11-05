@@ -1,0 +1,81 @@
+Current version: http://www.youtube.com/watch?v=qxVFOXnE-YQ
+
+TOMOYO Linux demonstration: Kickstarting on openSUSE 12.1
+
+TOMOYO Linux is an access recording and restricting mechanism for Linux systems.
+
+In a normal Linux system, every application is unmonitored and it is difficult to determine what is happening in that system.
+
+In a TOMOYO enabled Linux system, each application can be monitored to determine exactly what it is doing.
+
+The learning mode automatically records every action that an application performs as a policy configuration. Browsing the policy configuration can allow a precise understanding of what each application is doing.
+
+The enforcing mode restricts each application to do only what the policy configuration has allowed it to do.
+
+This movie demonstrates how to setup TOMOYO Linux on openSUSE 12.1, and then demonstrates how to analyze and restrict shell sessions.
+
+openSUSE 12.1 is distributed with TOMOYO Linux enabled kernels. Therefore, you can use TOMOYO Linux by installing tools package and changing kernel boot command line options.
+
+Initialize policy configuration.
+
+Start TOMOYO Linux's policy editor.
+
+Since you've just initialized policy configuration, only <kernel> domain is defined and policy configuration for <kernel> domain is empty.
+
+You can change access control level using profiles. Currently 4 profiles are defined.
+
+Profile 0 is for disabled mode, 1 is for learning mode, 2 is for permissive mode, 3 is for enforcing mode.
+
+Assign profile 1 to <kernel> domain so that TOMOYO Linux records access requests occurred in the <kernel> domain.
+
+Quit the policy editor.
+
+You've finished all preparations. Now, reboot the system.
+
+In order to enable TOMOYO Linux, add security equals tomoyo.
+
+The system is booting like normal Linux. But in the background, TOMOYO Linux is recording access requests occurred in the system.
+
+TOMOYO Linux records what programs were executed, what files were read, what files were written.
+
+You can record access requests occurred in the system using learning mode and restrict access requests occurred in the system using enforcing mode.
+
+You've finished rebooting the system. Let's browse what TOMOYO Linux has recorded.
+
+Start konsole and start the policy editor.
+
+All activities from boot till now are recorded as policy configuration by TOMOYO Linux.
+
+Thus, policy configuration for <kernel> domain is no longer empty.
+
+You can see that kernel executed /sbin/init, /lib/systemd/systemd-cgroups-agent and /sbin/modprobe.
+
+This screen shows domain transition tree from sbin init.
+
+You can see what sbin init has requested.
+
+Go to domain for policy editor.
+
+You can see that the policy editor is executed from sudo executed by bash executed by kdeinit4.
+
+Do something in this terminal.
+
+For example, execute bin ls and bin ps and usr bin id.
+
+Read etc fstab using bin cat.
+
+Refresh the screen on the policy editor. You can find commands you executed are appended.
+
+Also, you can find files accessed by these commands.
+
+You will notice that random values are in the pathnames. You can convert such pathnames to patterns using wildcards.
+
+Assign profile 3 to bash executed by sudo and its descendent domains so that TOMOYO Linux restricts access requests occurred in this terminal.
+
+Do something in this terminal.
+
+You can see that only operations you did with profile 1 are permitted with profile 3.
+
+By using TOMOYO Linux, you can restrict operations for improving security.
+
+For more information, visit TOMOYO Linux project's website at tomoyo.sourceforge.jp.
