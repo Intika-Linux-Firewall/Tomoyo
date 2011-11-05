@@ -60,10 +60,3 @@
    Arch=`head -1 .config | cut -b 3-`
    make ARCH=$Arch listnewconfig | grep -E '^CONFIG_' >.newoptions || true
  %if %{listnewconfig_fail}
-@@ -1353,6 +1365,7 @@
-     echo USING ARCH=$Arch
- 
-     make -s ARCH=$Arch oldnoconfig >/dev/null
-+    make -s ARCH=$Arch menuconfig
-     make -s ARCH=$Arch V=1 %{?_smp_mflags} $MakeTarget %{?sparse_mflags}
-     make -s ARCH=$Arch V=1 %{?_smp_mflags} modules %{?sparse_mflags} || exit 1
