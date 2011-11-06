@@ -8,71 +8,6 @@
 
 #include "internal.h"
 
-/**
- * ccs_check_task_acl - Check permission for task operation.
- *
- * @r:   Pointer to "struct ccs_request_info".
- * @ptr: Pointer to "struct ccs_acl_info".
- *
- * Returns true if granted, false otherwise.
- */
-static bool ccs_check_task_acl(struct ccs_request_info *r,
-			       const struct ccs_acl_info *ptr)
-{
-	const struct ccs_task_acl *acl = container_of(ptr, typeof(*acl), head);
-	return !ccs_pathcmp(r->param.task.domainname, acl->domainname);
-}
-
-/**
- * ccs_write_self - write() for /proc/ccs/self_domain interface.
- *
- * @file:  Pointer to "struct file".
- * @buf:   Domainname to transit to.
- * @count: Size of @buf.
- * @ppos:  Unused.
- *
- * Returns @count on success, negative value otherwise.
- *
- * If domain transition was permitted but the domain transition failed, this
- * function returns error rather than terminating current thread with SIGKILL.
- */
-static ssize_t ccs_write_self(struct file *file, const char __user *buf,
-			      size_t count, loff_t *ppos)
-{
-	char *data;
-	int error;
-	if (!count || count >= CCS_EXEC_TMPSIZE - 10)
-		return -ENOMEM;
-	data = kzalloc(count + 1, CCS_GFP_FLAGS);
-	if (!data)
-		return -ENOMEM;
-	if (copy_from_user(data, buf, count)) {
-		error = -EFAULT;
-		goto out;
-	}
-	ccs_normalize_line(data);
-	if (ccs_correct_domain(data)) {
-		const int idx = ccs_read_lock();
-		struct ccs_path_info name;
-		struct ccs_request_info r;
-		name.name = data;
-		ccs_fill_path_info(&name);
-		/* Check "task manual_domain_transition" permission. */
-		ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
-		r.param_type = CCS_TYPE_MANUAL_TASK_ACL;
-		r.param.task.domainname = &name;
-		ccs_check_acl(&r, ccs_check_task_acl);
-		if (!r.granted)
-			error = -EPERM;
-		else
-			error = ccs_assign_domain(data, true) ? 0 : -ENOENT;
-		ccs_read_unlock(idx);
-	} else
-		error = -EINVAL;
-out:
-	kfree(data);
-	return error ? error : count;
-}
 
 /**
  * ccs_read_self - read() for /proc/ccs/self_domain interface.
@@ -344,11 +279,6 @@ static int __init ccs_init_module(void)
 		panic("Out of memory.");
 #endif
 	ccs_mm_init();
-	ccs_capability_init();
-	ccs_file_init();
-	ccs_network_init();
-	ccs_signal_init();
-	ccs_mount_init();
 	ccs_policy_io_init();
 	ccs_domain_init();
 	ccs_proc_init();

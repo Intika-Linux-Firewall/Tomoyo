@@ -825,6 +825,7 @@ struct ccs_acl_info {
 	struct ccs_condition *cond; /* Maybe NULL. */
 	s8 is_deleted; /* true or false or CCS_GC_IN_PROGRESS */
 	u8 type; /* One of values in "enum ccs_acl_entry_type_index". */
+	u16 perm;
 } __attribute__((__packed__));
 
 /* Structure for holding a word. */
@@ -1214,7 +1215,6 @@ struct ccs_task_acl {
  */
 struct ccs_path_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_ACL */
-	u16 perm; /* Bitmask of values in "enum ccs_path_acl_index". */
 	struct ccs_name_union name;
 };
 
@@ -1223,7 +1223,6 @@ struct ccs_path_acl {
  */
 struct ccs_path2_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH2_ACL */
-	u8 perm; /* Bitmask of values in "enum ccs_path2_acl_index". */
 	struct ccs_name_union name1;
 	struct ccs_name_union name2;
 };
@@ -1234,7 +1233,6 @@ struct ccs_path2_acl {
  */
 struct ccs_path_number_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_ACL */
-	u8 perm; /* Bitmask of values in "enum ccs_path_number_acl_index". */
 	struct ccs_name_union name;
 	struct ccs_number_union number;
 };
@@ -1242,7 +1240,6 @@ struct ccs_path_number_acl {
 /* Structure for "file mkblock" and "file mkchar" directive. */
 struct ccs_mkdev_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_MKDEV_ACL */
-	u8 perm; /* Bitmask of values in "enum ccs_mkdev_acl_index". */
 	struct ccs_name_union name;
 	struct ccs_number_union mode;
 	struct ccs_number_union major;
@@ -1282,7 +1279,6 @@ struct ccs_signal_acl {
 struct ccs_inet_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_INET_ACL */
 	u8 protocol;
-	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
 	struct ccs_ipaddr_union address;
 	struct ccs_number_union port;
 };
@@ -1291,7 +1287,6 @@ struct ccs_inet_acl {
 struct ccs_unix_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_UNIX_ACL */
 	u8 protocol;
-	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
 	struct ccs_name_union name;
 };
 
@@ -1308,6 +1303,30 @@ struct ccs_acl_param {
 	struct list_head *list; /* List to add or remove. */
 	struct ccs_policy_namespace *ns; /* Namespace to use. */
 	bool is_delete; /* True if it is a delete request. */
+	union ccs_acl_union {
+		struct ccs_acl_info acl_info;
+		struct ccs_handler_acl handler_acl;
+		struct ccs_task_acl task_acl;
+		struct ccs_path_acl path_acl;
+		struct ccs_path2_acl path2_acl;
+		struct ccs_path_number_acl path_number_acl;
+		struct ccs_mkdev_acl mkdev_acl;
+		struct ccs_mount_acl mount_acl;
+		struct ccs_env_acl env_acl;
+		struct ccs_capability_acl capability_acl;
+		struct ccs_signal_acl signal_acl;
+		struct ccs_inet_acl inet_acl;
+		struct ccs_unix_acl unix_acl;
+		/**/
+		struct ccs_acl_head acl_head;
+		struct ccs_transition_control transition_control;
+		struct ccs_aggregator aggregator;
+		struct ccs_reserved reserved;
+		struct ccs_manager manager;
+		struct ccs_path_group path_group;
+		struct ccs_number_group number_group;
+		struct ccs_address_group address_group;
+	} e;
 };
 
 /* Structure for reading/writing policy via /proc/ccs/ interfaces. */
@@ -1396,24 +1415,13 @@ struct ccs_policy_namespace {
 
 /* Prototype definition for "struct ccsecurity_operations". */
 
-void __init ccs_capability_init(void);
 void __init ccs_domain_init(void);
-void __init ccs_file_init(void);
 void __init ccs_load_builtin_policy(void);
 void __init ccs_mm_init(void);
-void __init ccs_mount_init(void);
-void __init ccs_network_init(void);
 void __init ccs_policy_io_init(void);
-void __init ccs_signal_init(void);
 
 /* Prototype definition for internal use. */
 
-bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
-			       const struct ccs_group *group);
-bool ccs_compare_number_union(const unsigned long value,
-			      const struct ccs_number_union *ptr);
-bool ccs_condition(struct ccs_request_info *r,
-		   const struct ccs_condition *cond);
 bool ccs_correct_domain(const unsigned char *domainname);
 bool ccs_correct_path(const char *filename);
 bool ccs_correct_word(const char *string);
@@ -1422,14 +1430,6 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
-bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
-			      const struct ccs_group *group);
-bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
-			    struct ccs_ipaddr_union *ptr);
-bool ccs_parse_name_union(struct ccs_acl_param *param,
-			  struct ccs_name_union *ptr);
-bool ccs_parse_number_union(struct ccs_acl_param *param,
-			    struct ccs_number_union *ptr);
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
 bool ccs_permstr(const char *string, const char *keyword);
@@ -1442,51 +1442,20 @@ char *ccs_read_token(struct ccs_acl_param *param);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_get_exe(void);
 const char *ccs_yesno(const unsigned int value);
-const struct ccs_path_info *ccs_compare_name_union
-(const struct ccs_path_info *name, const struct ccs_name_union *ptr);
 const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
 const struct ccs_path_info *ccs_get_name(const char *name);
-const struct ccs_path_info *ccs_path_matches_group
-(const struct ccs_path_info *pathname, const struct ccs_group *group);
 int ccs_close_control(struct ccs_io_buffer *head);
-int ccs_env_perm(struct ccs_request_info *r, const char *env);
-int ccs_execute_permission(struct ccs_request_info *r,
-			   const struct ccs_path_info *filename);
 int ccs_get_path(const char *pathname, struct path *path);
-int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
 int ccs_open_control(const u8 type, struct file *file);
-int ccs_parse_ip_address(struct ccs_acl_param *param, u16 *min, u16 *max);
 int ccs_poll_control(struct file *file, poll_table *wait);
 int ccs_poll_log(struct file *file, poll_table *wait);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
-int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
-		      struct ccs_acl_param *param,
-		      bool (*check_duplicate) (const struct ccs_acl_info *,
-					       const struct ccs_acl_info *),
-		      bool (*merge_duplicate) (struct ccs_acl_info *,
-					       struct ccs_acl_info *,
-					       const bool));
-int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
-		      struct ccs_acl_param *param,
-		      bool (*check_duplicate) (const struct ccs_acl_head *,
-					       const struct ccs_acl_head *));
-int ccs_write_aggregator(struct ccs_acl_param *param);
-int ccs_write_capability(struct ccs_acl_param *param);
-int ccs_write_file(struct ccs_acl_param *param);
-int ccs_write_group(struct ccs_acl_param *param, const u8 type);
-int ccs_write_inet_network(struct ccs_acl_param *param);
-int ccs_write_ipc(struct ccs_acl_param *param);
-int ccs_write_misc(struct ccs_acl_param *param);
-int ccs_write_reserved_port(struct ccs_acl_param *param);
-int ccs_write_transition_control(struct ccs_acl_param *param, const u8 type);
-int ccs_write_unix_network(struct ccs_acl_param *param);
 ssize_t ccs_read_control(struct ccs_io_buffer *head, char __user *buffer,
 			 const size_t buffer_len);
 ssize_t ccs_write_control(struct ccs_io_buffer *head,
 			  const char __user *buffer, const size_t buffer_len);
-struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const bool transit);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
@@ -1496,22 +1465,19 @@ struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_get_config(const u8 profile, const u8 index);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
 void *ccs_commit_ok(void *data, const unsigned int size);
-void ccs_check_acl(struct ccs_request_info *r,
-		   bool (*check_entry) (struct ccs_request_info *,
-					const struct ccs_acl_info *));
 void ccs_convert_time(time_t time, struct ccs_time *p);
+void ccs_del_acl(struct list_head *element);
 void ccs_del_condition(struct list_head *element);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_get_attributes(struct ccs_obj_info *obj);
 void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
 void ccs_normalize_line(unsigned char *buffer);
 void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
-void ccs_print_ip(char *buf, const unsigned int size,
-		  const struct ccs_ipaddr_union *ptr);
+int ccs_print_ipv4(char *buffer, const unsigned int buffer_len, const u32 *ip);
+int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
+		   const struct in6_addr *ip);
 void ccs_print_ulong(char *buffer, const int buffer_len,
 		     const unsigned long value, const u8 type);
-void ccs_put_name_union(struct ccs_name_union *ptr);
-void ccs_put_number_union(struct ccs_number_union *ptr);
 void ccs_read_log(struct ccs_io_buffer *head);
 void ccs_transition_failed(const char *domainname);
 void ccs_update_stat(const u8 index);
@@ -1520,6 +1486,8 @@ void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 void ccs_write_log2(struct ccs_request_info *r, int len, const char *fmt,
 		    va_list args);
+ssize_t ccs_write_self(struct file *file, const char __user *buf,
+		       size_t count, loff_t *ppos);
 
 /* Variable definition for internal use. */
 
@@ -1565,51 +1533,6 @@ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 			       const struct ccs_path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
-}
-
-/**
- * ccs_same_name_union - Check for duplicated "struct ccs_name_union" entry.
- *
- * @a: Pointer to "struct ccs_name_union".
- * @b: Pointer to "struct ccs_name_union".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static inline bool ccs_same_name_union(const struct ccs_name_union *a,
-				       const struct ccs_name_union *b)
-{
-	return a->filename == b->filename && a->group == b->group;
-}
-
-/**
- * ccs_same_number_union - Check for duplicated "struct ccs_number_union" entry.
- *
- * @a: Pointer to "struct ccs_number_union".
- * @b: Pointer to "struct ccs_number_union".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static inline bool ccs_same_number_union(const struct ccs_number_union *a,
-					 const struct ccs_number_union *b)
-{
-	return a->values[0] == b->values[0] && a->values[1] == b->values[1] &&
-		a->group == b->group && a->value_type[0] == b->value_type[0] &&
-		a->value_type[1] == b->value_type[1];
-}
-
-/**
- * ccs_same_ipaddr_union - Check for duplicated "struct ccs_ipaddr_union" entry.
- *
- * @a: Pointer to "struct ccs_ipaddr_union".
- * @b: Pointer to "struct ccs_ipaddr_union".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static inline bool ccs_same_ipaddr_union(const struct ccs_ipaddr_union *a,
-					 const struct ccs_ipaddr_union *b)
-{
-	return !memcmp(a->ip, b->ip, sizeof(a->ip)) && a->group == b->group &&
-		a->is_ipv6 == b->is_ipv6;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)

@@ -245,71 +245,6 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
 }
 
 /**
- * ccs_parse_name_union - Parse a ccs_name_union.
- *
- * @param: Pointer to "struct ccs_acl_param".
- * @ptr:   Pointer to "struct ccs_name_union".
- *
- * Returns true on success, false otherwise.
- */
-bool ccs_parse_name_union(struct ccs_acl_param *param,
-			  struct ccs_name_union *ptr)
-{
-	char *filename;
-	if (param->data[0] == '@') {
-		param->data++;
-		ptr->group = ccs_get_group(param, CCS_PATH_GROUP);
-		return ptr->group != NULL;
-	}
-	filename = ccs_read_token(param);
-	if (!ccs_correct_word(filename))
-		return false;
-	ptr->filename = ccs_get_name(filename);
-	return ptr->filename != NULL;
-}
-
-/**
- * ccs_parse_number_union - Parse a ccs_number_union.
- *
- * @param: Pointer to "struct ccs_acl_param".
- * @ptr:   Pointer to "struct ccs_number_union".
- *
- * Returns true on success, false otherwise.
- */
-bool ccs_parse_number_union(struct ccs_acl_param *param,
-			    struct ccs_number_union *ptr)
-{
-	char *data;
-	u8 type;
-	unsigned long v;
-	memset(ptr, 0, sizeof(*ptr));
-	if (param->data[0] == '@') {
-		param->data++;
-		ptr->group = ccs_get_group(param, CCS_NUMBER_GROUP);
-		return ptr->group != NULL;
-	}
-	data = ccs_read_token(param);
-	type = ccs_parse_ulong(&v, &data);
-	if (type == CCS_VALUE_TYPE_INVALID)
-		return false;
-	ptr->values[0] = v;
-	ptr->value_type[0] = type;
-	if (!*data) {
-		ptr->values[1] = v;
-		ptr->value_type[1] = type;
-		return true;
-	}
-	if (*data++ != '-')
-		return false;
-	type = ccs_parse_ulong(&v, &data);
-	if (type == CCS_VALUE_TYPE_INVALID || *data || ptr->values[0] > v)
-		return false;
-	ptr->values[1] = v;
-	ptr->value_type[1] = type;
-	return true;
-}
-
-/**
  * ccs_byte_range - Check whether the string is a \ooo style octal value.
  *
  * @str: Pointer to the string.
@@ -988,42 +923,6 @@ u8 ccs_get_config(const u8 profile, const u8 index)
 }
 
 /**
- * ccs_init_request_info - Initialize "struct ccs_request_info" members.
- *
- * @r:     Pointer to "struct ccs_request_info" to initialize.
- * @index: Index number of functionality.
- *
- * Returns mode.
- *
- * "task auto_domain_transition" keyword is evaluated before returning mode for
- * @index. If "task auto_domain_transition" keyword was specified and
- * transition to that domain failed, the current thread will be killed by
- * SIGKILL. Note that if current->pid == 1, sending SIGKILL won't work.
- */
-int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
-{
-	u8 i;
-	const char *buf;
-	for (i = 0; i < 255; i++) {
-		const u8 profile = ccs_current_domain()->profile;
-		memset(r, 0, sizeof(*r));
-		r->profile = profile;
-		r->type = index;
-		r->mode = ccs_get_mode(profile, index);
-		r->param_type = CCS_TYPE_AUTO_TASK_ACL;
-		ccs_check_acl(r, NULL);
-		if (!r->granted)
-			return r->mode;
-		buf = container_of(r->matched_acl, typeof(struct ccs_task_acl),
-				   head)->domainname->name;
-		if (!ccs_assign_domain(buf, true))
-			break;
-	}
-	ccs_transition_failed(buf);
-	return CCS_CONFIG_DISABLED;
-}
-
-/**
  * ccs_domain_quota_ok - Check for domain's quota.
  *
  * @r: Pointer to "struct ccs_request_info".
@@ -1048,28 +947,12 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			continue;
 		switch (ptr->type) {
 		case CCS_TYPE_PATH_ACL:
-			perm = container_of(ptr, struct ccs_path_acl,
-					    head)->perm;
-			break;
 		case CCS_TYPE_PATH2_ACL:
-			perm = container_of(ptr, struct ccs_path2_acl,
-					    head)->perm;
-			break;
 		case CCS_TYPE_PATH_NUMBER_ACL:
-			perm = container_of(ptr, struct ccs_path_number_acl,
-					    head)->perm;
-			break;
 		case CCS_TYPE_MKDEV_ACL:
-			perm = container_of(ptr, struct ccs_mkdev_acl,
-					    head)->perm;
-			break;
 		case CCS_TYPE_INET_ACL:
-			perm = container_of(ptr, struct ccs_inet_acl,
-					    head)->perm;
-			break;
 		case CCS_TYPE_UNIX_ACL:
-			perm = container_of(ptr, struct ccs_unix_acl,
-					    head)->perm;
+			perm = ptr->perm;
 			break;
 		case CCS_TYPE_AUTO_EXECUTE_HANDLER:
 		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
