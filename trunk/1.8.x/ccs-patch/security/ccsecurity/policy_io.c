@@ -5311,8 +5311,6 @@ static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
 	struct ccs_io_buffer *head = file->private_data;
 	int len;
 	int idx;
-	if (!access_ok(VERIFY_WRITE, buf, count))
-		return -EFAULT;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
 	head->read_user_buf = buf;
@@ -5374,17 +5372,14 @@ static ssize_t ccs_write(struct file *file, const char __user *buf,
 {
 	struct ccs_io_buffer *head = file->private_data;
 	int error = count;
-	size_t avail_len = count;
 	char *cp0 = head->write_buf;
 	int idx;
-	if (!access_ok(VERIFY_READ, buf, count))
-		return -EFAULT;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
 	head->read_user_buf_avail = 0;
 	idx = ccs_read_lock();
 	/* Read a line and dispatch it to the policy handler. */
-	while (avail_len > 0) {
+	while (count) {
 		char c;
 		if (head->w.avail >= head->writebuf_size - 1) {
 			const int len = head->writebuf_size * 2;
