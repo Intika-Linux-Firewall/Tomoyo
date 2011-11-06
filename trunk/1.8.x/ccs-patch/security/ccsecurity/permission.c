@@ -1830,11 +1830,11 @@ static int __ccs_search_binary_handler(struct linux_binprm *bprm,
 }
 
 /**
- * ccs_domain_init - Register program execution hook.
+ * ccs_permission_init - Register permission check hooks.
  *
  * Returns nothing.
  */
-void __init ccs_domain_init(void)
+void __init ccs_permission_init(void)
 {
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
 	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;

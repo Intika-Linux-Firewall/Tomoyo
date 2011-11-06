@@ -76,6 +76,7 @@ const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 };
 
 /***** SECTION2: Structure definition *****/
+
 /***** SECTION3: Prototype definition section *****/
 
 bool ccs_correct_domain(const unsigned char *domainname);

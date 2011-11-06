@@ -8,6 +8,87 @@
 
 #include "internal.h"
 
+/***** SECTION1: Constants definition *****/
+
+/* For compatibility with older kernels. */
+#ifndef for_each_process
+#define for_each_process for_each_task
+#endif
+
+/* The list for "struct ccs_io_buffer". */
+static LIST_HEAD(ccs_io_buffer_list);
+/* Lock for protecting ccs_io_buffer_list. */
+static DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
+
+/***** SECTION2: Structure definition *****/
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+
+/*
+ * Lock for syscall users.
+ *
+ * This lock is used for protecting single SRCU section for 2.6.18 and
+ * earlier kernels because they don't have SRCU support.
+ */
+struct ccs_lock_struct {
+	int counter_idx; /* Currently active index (0 or 1). */
+	int counter[2];  /* Current users. Protected by ccs_counter_lock. */
+};
+
+#endif
+
+/***** SECTION3: Prototype definition section *****/
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+int ccs_lock(void);
+#endif
+void ccs_del_acl(struct list_head *element);
+void ccs_del_condition(struct list_head *element);
+void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+void ccs_unlock(const int idx);
+#endif
+
+static bool ccs_domain_used_by_task(struct ccs_domain_info *domain);
+static bool ccs_name_used_by_io_buffer(const char *string, const size_t size);
+static bool ccs_struct_used_by_io_buffer(const struct list_head *element);
+static int ccs_gc_thread(void *unused);
+static void ccs_collect_acl(struct list_head *list);
+static void ccs_collect_entry(void);
+static void ccs_collect_member(const enum ccs_policy_id id,
+			       struct list_head *member_list);
+static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type);
+static void ccs_put_name_union(struct ccs_name_union *ptr);
+static void ccs_put_number_union(struct ccs_number_union *ptr);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+static void ccs_synchronize_counter(void);
+#endif
+static void ccs_try_to_gc(const enum ccs_policy_id type,
+			  struct list_head *element);
+
+/***** SECTION4: Standalone functions section *****/
+
+/***** SECTION5: Variables definition section *****/
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+
+/*
+ * Lock for syscall users.
+ *
+ * This lock is held for only protecting single SRCU section.
+ */
+struct srcu_struct ccs_ss;
+
+#else
+
+static struct ccs_lock_struct ccs_counter;
+/* Lock for protecting ccs_counter. */
+static DEFINE_SPINLOCK(ccs_counter_lock);
+
+#endif
+
+/***** SECTION6: Dependent functions section *****/
+
 /**
  * ccs_memory_free - Free memory for elements.
  *
@@ -96,11 +177,6 @@ static void ccs_put_number_union(struct ccs_number_union *ptr)
 {
 	ccs_put_group(ptr->group);
 }
-
-/* The list for "struct ccs_io_buffer". */
-static LIST_HEAD(ccs_io_buffer_list);
-/* Lock for protecting ccs_io_buffer_list. */
-static DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
 
 /**
  * ccs_struct_used_by_io_buffer - Check whether the list element is used by /proc/ccs/ users or not.
@@ -209,11 +285,6 @@ static inline void ccs_del_manager(struct list_head *element)
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->manager);
 }
-
-/* For compatibility with older kernels. */
-#ifndef for_each_process
-#define for_each_process for_each_task
-#endif
 
 /**
  * ccs_domain_used_by_task - Check whether the given pointer is referenced by a task.
@@ -534,29 +605,7 @@ static inline void ccs_del_name(struct list_head *element)
 	/* Nothing to do. */
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-
-/*
- * Lock for syscall users.
- *
- * This lock is held for only protecting single SRCU section.
- */
-struct srcu_struct ccs_ss;
-
-#else
-
-/*
- * Lock for syscall users.
- *
- * This lock is used for protecting single SRCU section for 2.6.18 and
- * earlier kernels because they don't have SRCU support.
- */
-static struct {
-	int counter_idx; /* Currently active index (0 or 1). */
-	int counter[2];  /* Current users. Protected by ccs_counter_lock. */
-} ccs_counter;
-/* Lock for protecting ccs_counter. */
-static DEFINE_SPINLOCK(ccs_counter_lock);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 
 /**
  * ccs_lock - Alternative for srcu_read_lock().

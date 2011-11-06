@@ -1,4 +1,4 @@
-ccsecurity-objs := audit.o permission.o gc.o memory.o policy_io.o realpath.o util.o
+ccsecurity-objs := permission.o gc.o memory.o policy_io.o realpath.o util.o
 
 ifeq ($(PATCHLEVEL),4)
 
