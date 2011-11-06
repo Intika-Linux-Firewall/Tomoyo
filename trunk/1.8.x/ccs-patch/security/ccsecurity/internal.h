@@ -1424,14 +1424,9 @@ bool ccs_correct_domain(const unsigned char *domainname);
 bool ccs_correct_path(const char *filename);
 bool ccs_correct_word(const char *string);
 bool ccs_domain_def(const unsigned char *buffer);
-bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
-bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
-			      const struct ccs_path_info *pattern);
-bool ccs_permstr(const char *string, const char *keyword);
-bool ccs_str_starts(char **src, const char *find);
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
 char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
@@ -1440,13 +1435,17 @@ char *ccs_read_token(struct ccs_acl_param *param);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_get_exe(void);
 const char *ccs_yesno(const unsigned int value);
-const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
 const struct ccs_path_info *ccs_get_name(const char *name);
 int ccs_get_path(const char *pathname, struct path *path);
 int ccs_poll_log(struct file *file, poll_table *wait);
+int ccs_print_ipv4(char *buffer, const unsigned int buffer_len, const u32 *ip);
+int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
+		   const struct in6_addr *ip);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
+ssize_t ccs_write_self(struct file *file, const char __user *buf, size_t count,
+		       loff_t *ppos);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const bool transit);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
@@ -1454,7 +1453,6 @@ struct ccs_group *ccs_get_group(struct ccs_acl_param *param, const u8 idx);
 struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
 struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_get_config(const u8 profile, const u8 index);
-u8 ccs_parse_ulong(unsigned long *result, char **str);
 void *ccs_commit_ok(void *data, const unsigned int size);
 void ccs_convert_time(time_t time, struct ccs_time *p);
 void ccs_del_acl(struct list_head *element);
@@ -1464,11 +1462,6 @@ void ccs_get_attributes(struct ccs_obj_info *obj);
 void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
 void ccs_normalize_line(unsigned char *buffer);
 void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
-int ccs_print_ipv4(char *buffer, const unsigned int buffer_len, const u32 *ip);
-int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
-		   const struct in6_addr *ip);
-void ccs_print_ulong(char *buffer, const int buffer_len,
-		     const unsigned long value, const u8 type);
 void ccs_read_log(struct ccs_io_buffer *head);
 void ccs_transition_failed(const char *domainname);
 void ccs_update_stat(const u8 index);
@@ -1477,8 +1470,6 @@ void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 void ccs_write_log2(struct ccs_request_info *r, int len, const char *fmt,
 		    va_list args);
-ssize_t ccs_write_self(struct file *file, const char __user *buf,
-		       size_t count, loff_t *ppos);
 
 /* Variable definition for internal use. */
 

@@ -31,11 +31,6 @@
 
 #endif
 
-/* To support PID namespace. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-#define find_task_by_pid ccsecurity_exports.find_task_by_vpid
-#endif
-
 /* String table for special mount operations. */
 static const char * const ccs_mounts[CCS_MAX_SPECIAL_MOUNT] = {
 	[CCS_MOUNT_BIND]            = "--bind",
@@ -187,126 +182,224 @@ struct ccs_addr_info {
 
 /***** SECTION3: Prototype definition section *****/
 
-static const struct ccs_path_info *ccs_path_matches_group(const struct ccs_path_info *pathname, const struct ccs_group *group);
-static bool ccs_number_matches_group(const unsigned long min, const unsigned long max, const struct ccs_group *group);
-static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address, const struct ccs_group *group);
-static void ccs_check_acl(struct ccs_request_info *r);
-static const char *ccs_last_word(const char *name);
-static bool ccs_scan_transition(const struct list_head *list, const struct ccs_path_info *domainname, const struct ccs_path_info *program, const char *last_name, const enum ccs_transition_type type);
-static enum ccs_transition_type ccs_transition_type(const struct ccs_policy_namespace *ns, const struct ccs_path_info *domainname, const struct ccs_path_info *program);
-static struct ccs_policy_namespace *ccs_find_namespace(const char *name, const unsigned int len);
-struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
-static bool ccs_namespace_jump(const char *domainname);
-struct ccs_domain_info *ccs_assign_domain(const char *domainname, const bool transit);
-static int ccs_find_next_domain(struct ccs_execve *ee);
-static int ccs_environ(struct ccs_execve *ee);
-static void ccs_unescape(unsigned char *dest);
-static int ccs_try_alt_exec(struct ccs_execve *ee);
-static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
-static int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve **eep);
-static void ccs_finish_execve(int retval, struct ccs_execve *ee);
-static int __ccs_search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
-static int ccs_audit_mount_log(struct ccs_request_info *r);
-static bool ccs_check_mount_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name, struct path *dir, const char *type, unsigned long flags);
-static int __ccs_mount_permission(char *dev_name, struct path *path, const char *type, unsigned long flags, void *data_page);
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd, const char *type, unsigned long flags, void *data_page);
-#endif
-static bool ccs_compare_number_union(const unsigned long value, const struct ccs_number_union *ptr);
+struct ccs_domain_info *ccs_assign_domain(const char *domainname, const bool transit);
+struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
+void ccs_get_attributes(struct ccs_obj_info *obj);
+
+static bool __ccs_capable(const u8 operation);
+static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
+				      const struct ccs_group *group);
+static bool ccs_alphabet_char(const char c);
+static bool ccs_argv(const unsigned int index, const char *arg_ptr,
+		     const int argc, const struct ccs_argv *argv, u8 *checked);
+static bool ccs_byte_range(const char *str);
+static bool ccs_check_capability_acl(struct ccs_request_info *r,
+				     const struct ccs_acl_info *ptr);
+static bool ccs_check_env_acl(struct ccs_request_info *r,
+			      const struct ccs_acl_info *ptr);
+static bool ccs_check_inet_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr);
+static bool ccs_check_mkdev_acl(struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr);
+static bool ccs_check_mount_acl(struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr);
+static bool ccs_check_path2_acl(struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr);
+static bool ccs_check_path_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr);
+static bool ccs_check_path_number_acl(struct ccs_request_info *r,
+				      const struct ccs_acl_info *ptr);
+static bool ccs_check_signal_acl(struct ccs_request_info *r,
+				 const struct ccs_acl_info *ptr);
+static bool ccs_check_task_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr);
+static bool ccs_check_unix_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr);
+static bool ccs_compare_number_union(const unsigned long value,
+				     const struct ccs_number_union *ptr);
+static bool ccs_condition(struct ccs_request_info *r,
+			  const struct ccs_condition *cond);
+static bool ccs_decimal(const char c);
+static bool ccs_envp(const char *env_name, const char *env_value,
+		     const int envc, const struct ccs_envp *envp, u8 *checked);
+static bool ccs_file_matches_pattern(const char *filename,
+				     const char *filename_end,
+				     const char *pattern,
+				     const char *pattern_end);
+static bool ccs_file_matches_pattern2(const char *filename,
+				      const char *filename_end,
+				      const char *pattern,
+				      const char *pattern_end);
+static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type);
+static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
+			     struct vfsmount *mnt);
+static bool ccs_hexadecimal(const char c);
+static bool ccs_kernel_service(void);
+static bool ccs_namespace_jump(const char *domainname);
+static bool ccs_number_matches_group(const unsigned long min,
+				     const unsigned long max,
+				     const struct ccs_group *group);
+static bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
+				     const struct ccs_path_info *pattern);
+static bool ccs_path_matches_pattern2(const char *f, const char *p);
+static bool ccs_scan_bprm(struct ccs_execve *ee, const u16 argc,
+			  const struct ccs_argv *argv, const u16 envc,
+			  const struct ccs_envp *envp);
+static bool ccs_scan_exec_realpath(struct file *file,
+				   const struct ccs_name_union *ptr,
+				   const bool match);
+static bool ccs_scan_transition(const struct list_head *list,
+				const struct ccs_path_info *domainname,
+				const struct ccs_path_info *program,
+				const char *last_name,
+				const enum ccs_transition_type type);
+static const char *ccs_last_word(const char *name);
 static const struct ccs_path_info *ccs_compare_name_union
 (const struct ccs_path_info *name, const struct ccs_name_union *ptr);
-static void ccs_add_slash(struct ccs_path_info *buf);
-static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry, struct vfsmount *mnt);
-static int ccs_audit_path_log(struct ccs_request_info *r);
-static int ccs_audit_path2_log(struct ccs_request_info *r);
-static int ccs_audit_mkdev_log(struct ccs_request_info *r);
-static int ccs_audit_path_number_log(struct ccs_request_info *r);
-static bool ccs_check_path_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static bool ccs_check_path_number_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static bool ccs_check_path2_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static bool ccs_check_mkdev_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static int ccs_path_permission(struct ccs_request_info *r, u8 operation, const struct ccs_path_info *filename);
-static int ccs_execute_permission(struct ccs_request_info *r, const struct ccs_path_info *filename);
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
-static void __ccs_save_open_mode(int mode);
-static void __ccs_clear_open_mode(void);
+static const struct ccs_path_info *ccs_path_matches_group
+(const struct ccs_path_info *pathname, const struct ccs_group *group);
+static enum ccs_transition_type ccs_transition_type
+(const struct ccs_policy_namespace *ns, const struct ccs_path_info *domainname,
+ const struct ccs_path_info *program);
+static int __ccs_chmod_permission(struct dentry *dentry,
+				  struct vfsmount *vfsmnt, mode_t mode);
+static int __ccs_chown_permission(struct dentry *dentry,
+				  struct vfsmount *vfsmnt, uid_t user,
+				  gid_t group);
+static int __ccs_chroot_permission(struct path *path);
+static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
+				  unsigned long arg);
+static int __ccs_getattr_permission(struct vfsmount *mnt,
+				    struct dentry *dentry);
+static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
+				  unsigned long arg);
+static int __ccs_link_permission(struct dentry *old_dentry,
+				 struct dentry *new_dentry,
+				 struct vfsmount *mnt);
+static int __ccs_mkdir_permission(struct dentry *dentry, struct vfsmount *mnt,
+				  unsigned int mode);
+static int __ccs_mknod_permission(struct dentry *dentry, struct vfsmount *mnt,
+				  const unsigned int mode, unsigned int dev);
+static int __ccs_mount_permission(char *dev_name, struct path *path,
+				  const char *type, unsigned long flags,
+				  void *data_page);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+static int __ccs_open_exec_permission(struct dentry *dentry,
+				      struct vfsmount *mnt);
 #endif
-static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt, const int flag);
+static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
+				 const int flag);
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
+static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
+			     void __user *newval, struct ctl_table *table);
+#endif
+static int __ccs_pivot_root_permission(struct path *old_path,
+				       struct path *new_path);
+static int __ccs_ptrace_permission(long request, long pid);
+static int __ccs_rename_permission(struct dentry *old_dentry,
+				   struct dentry *new_dentry,
+				   struct vfsmount *mnt);
+static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt);
+static int __ccs_search_binary_handler(struct linux_binprm *bprm,
+				       struct pt_regs *regs);
+static int __ccs_socket_bind_permission(struct socket *sock,
+					struct sockaddr *addr, int addr_len);
+static int __ccs_socket_connect_permission(struct socket *sock,
+					   struct sockaddr *addr,
+					   int addr_len);
+static int __ccs_socket_create_permission(int family, int type, int protocol);
+static int __ccs_socket_listen_permission(struct socket *sock);
+static int __ccs_socket_post_accept_permission(struct socket *sock,
+					       struct socket *newsock);
+static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb,
+						int flags);
+static int __ccs_socket_sendmsg_permission(struct socket *sock,
+					   struct msghdr *msg, int size);
+static int __ccs_symlink_permission(struct dentry *dentry,
+				    struct vfsmount *mnt, const char *from);
+static int __ccs_truncate_permission(struct dentry *dentry,
+				     struct vfsmount *mnt);
+static int __ccs_umount_permission(struct vfsmount *mnt, int flags);
+static int __ccs_unlink_permission(struct dentry *dentry,
+				   struct vfsmount *mnt);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+static int __ccs_uselib_permission(struct dentry *dentry,
+				   struct vfsmount *mnt);
+#endif
+static int ccs_audit_capability_log(struct ccs_request_info *r);
+static int ccs_audit_env_log(struct ccs_request_info *r);
+static int ccs_audit_inet_log(struct ccs_request_info *r);
+static int ccs_audit_mkdev_log(struct ccs_request_info *r);
+static int ccs_audit_mount_log(struct ccs_request_info *r);
+static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
+			     const u8 protocol, const u8 operation,
+			     const char *address);
+static int ccs_audit_path2_log(struct ccs_request_info *r);
+static int ccs_audit_path_log(struct ccs_request_info *r);
+static int ccs_audit_path_number_log(struct ccs_request_info *r);
+static int ccs_audit_signal_log(struct ccs_request_info *r);
+static int ccs_audit_unix_log(struct ccs_request_info *r);
+static int ccs_check_inet_address(const struct sockaddr *addr,
+				  const unsigned int addr_len, const u16 port,
+				  struct ccs_addr_info *address);
+static int ccs_check_unix_address(struct sockaddr *addr,
+				  const unsigned int addr_len,
+				  struct ccs_addr_info *address);
+static int ccs_env_perm(struct ccs_request_info *r, const char *env);
+static int ccs_environ(struct ccs_execve *ee);
+static int ccs_execute_permission(struct ccs_request_info *r,
+				  const struct ccs_path_info *filename);
+static int ccs_find_next_domain(struct ccs_execve *ee);
+static int ccs_inet_entry(const struct ccs_addr_info *address);
+static int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
+			  struct vfsmount *mnt, const unsigned int mode,
+			  unsigned int dev);
+static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
+			 struct path *dir, const char *type,
+			 unsigned long flags);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 static int ccs_new_open_permission(struct file *filp);
 #endif
-static int ccs_path_perm(const u8 operation, struct dentry *dentry, struct vfsmount *mnt, const char *target);
-static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry, struct vfsmount *mnt, const unsigned int mode, unsigned int dev);
-static int ccs_path2_perm(const u8 operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
-static int ccs_path_number_perm(const u8 type, struct dentry *dentry, struct vfsmount *vfsmnt, unsigned long number);
-static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd, unsigned long arg);
-static int __ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt, mode_t mode);
-static int __ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt, uid_t user, gid_t group);
-static int __ccs_fcntl_permission(struct file *file, unsigned int cmd, unsigned long arg);
-static int __ccs_pivot_root_permission(struct path *old_path, struct path *new_path);
-static int __ccs_chroot_permission(struct path *path);
-static int __ccs_umount_permission(struct vfsmount *mnt, int flags);
-static int __ccs_mknod_permission(struct dentry *dentry, struct vfsmount *mnt, const unsigned int mode, unsigned int dev);
-static int __ccs_mkdir_permission(struct dentry *dentry, struct vfsmount *mnt, unsigned int mode);
-static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt);
-static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt);
-static int __ccs_getattr_permission(struct vfsmount *mnt, struct dentry *dentry);
-static int __ccs_symlink_permission(struct dentry *dentry, struct vfsmount *mnt, const char *from);
-static int __ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt);
-static int __ccs_rename_permission(struct dentry *old_dentry, struct dentry *new_dentry, struct vfsmount *mnt);
-static int __ccs_link_permission(struct dentry *old_dentry, struct dentry *new_dentry, struct vfsmount *mnt);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
-static int __ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
-static int __ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
-#endif
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
-static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval, void __user *newval, struct ctl_table *table);
-#endif
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-static int ccs_old_pivot_root_permission(struct nameidata *old_nd, struct nameidata *new_nd);
 static int ccs_old_chroot_permission(struct nameidata *nd);
+static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
+				    const char *type, unsigned long flags,
+				    void *data_page);
+static int ccs_old_pivot_root_permission(struct nameidata *old_nd,
+					 struct nameidata *new_nd);
 #endif
-static int ccs_audit_net_log(struct ccs_request_info *r, const char *family, const u8 protocol, const u8 operation, const char *address);
-static int ccs_audit_inet_log(struct ccs_request_info *r);
-static int ccs_audit_unix_log(struct ccs_request_info *r);
-static bool ccs_check_inet_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static bool ccs_check_unix_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static int ccs_inet_entry(const struct ccs_addr_info *address);
-static int ccs_check_inet_address(const struct sockaddr *addr, const unsigned int addr_len, const u16 port, struct ccs_addr_info *address);
-static int ccs_unix_entry(const struct ccs_addr_info *address);
-static int ccs_check_unix_address(struct sockaddr *addr, const unsigned int addr_len, struct ccs_addr_info *address);
-static bool ccs_kernel_service(void);
-static u8 ccs_sock_family(struct sock *sk);
-static int __ccs_socket_create_permission(int family, int type, int protocol);
-static int __ccs_socket_listen_permission(struct socket *sock);
-static int __ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr, int addr_len);
-static int __ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr, int addr_len);
-static int __ccs_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg, int size);
-static int __ccs_socket_post_accept_permission(struct socket *sock, struct socket *newsock);
-static int __ccs_socket_post_recvmsg_permission(struct sock *sk, struct sk_buff *skb, int flags);
-static int ccs_audit_capability_log(struct ccs_request_info *r);
-static bool ccs_check_capability_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static bool __ccs_capable(const u8 operation);
-static int __ccs_ptrace_permission(long request, long pid);
-static int ccs_audit_signal_log(struct ccs_request_info *r);
-static bool ccs_check_signal_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static int ccs_signal_acl2(const int sig, const int pid);
+static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
+			  struct vfsmount *mnt1, struct dentry *dentry2,
+			  struct vfsmount *mnt2);
+static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
+				struct vfsmount *vfsmnt, unsigned long number);
+static int ccs_path_perm(const u8 operation, struct dentry *dentry,
+			 struct vfsmount *mnt, const char *target);
+static int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+			       const struct ccs_path_info *filename);
 static int ccs_signal_acl(const int pid, const int sig);
 static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig);
-static bool ccs_check_env_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static int ccs_audit_env_log(struct ccs_request_info *r);
-static int ccs_env_perm(struct ccs_request_info *r, const char *env);
-static bool ccs_argv(const unsigned int index, const char *arg_ptr, const int argc, const struct ccs_argv *argv, u8 *checked);
-static bool ccs_envp(const char *env_name, const char *env_value, const int envc, const struct ccs_envp *envp, u8 *checked);
-static bool ccs_scan_bprm(struct ccs_execve *ee, const u16 argc, const struct ccs_argv *argv, const u16 envc, const struct ccs_envp *envp);
-static bool ccs_scan_exec_realpath(struct file *file, const struct ccs_name_union *ptr, const bool match);
-void ccs_get_attributes(struct ccs_obj_info *obj);
-static bool ccs_condition(struct ccs_request_info *r, const struct ccs_condition *cond);
-static bool ccs_check_task_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
-static int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
-
+static int ccs_signal_acl2(const int sig, const int pid);
+static int ccs_start_execve(struct linux_binprm *bprm,
+			    struct ccs_execve **eep);
+static int ccs_try_alt_exec(struct ccs_execve *ee);
+static int ccs_unix_entry(const struct ccs_addr_info *address);
+static struct ccs_policy_namespace *ccs_find_namespace(const char *name,
+						       const unsigned int len);
+static u8 ccs_sock_family(struct sock *sk);
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+static void __ccs_clear_open_mode(void);
+static void __ccs_save_open_mode(int mode);
+#endif
+static void ccs_add_slash(struct ccs_path_info *buf);
+static void ccs_check_acl(struct ccs_request_info *r);
+static void ccs_finish_execve(int retval, struct ccs_execve *ee);
+static void ccs_print_ulong(char *buffer, const int buffer_len,
+			    const unsigned long value, const u8 type);
+static void ccs_unescape(unsigned char *dest);
 
 /***** SECTION4: Standalone functions section *****/
 
@@ -2154,6 +2247,27 @@ static int ccs_audit_mkdev_log(struct ccs_request_info *r)
 }
 
 /**
+ * ccs_print_ulong - Print an "unsigned long" value.
+ *
+ * @buffer:     Pointer to buffer.
+ * @buffer_len: Size of @buffer.
+ * @value:      An "unsigned long" value.
+ * @type:       Type of @value.
+ *
+ * Returns nothing.
+ */
+static void ccs_print_ulong(char *buffer, const int buffer_len,
+			    const unsigned long value, const u8 type)
+{
+	if (type == CCS_VALUE_TYPE_DECIMAL)
+		snprintf(buffer, buffer_len, "%lu", value);
+	else if (type == CCS_VALUE_TYPE_OCTAL)
+		snprintf(buffer, buffer_len, "0%lo", value);
+	else
+		snprintf(buffer, buffer_len, "0x%lX", value);
+}
+
+/**
  * ccs_audit_path_number_log - Audit path/number request log.
  *
  * @r: Pointer to "struct ccs_request_info".
@@ -3883,6 +3997,16 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
 		ccs_tasklist_lock();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+		if (pid > 0)
+			p = ccsecurity_exports.find_task_by_vpid((pid_t) pid);
+		else if (pid == 0)
+			p = current;
+		else if (pid == -1)
+			dest = &ccs_kernel_domain;
+		else
+			p = ccsecurity_exports.find_task_by_vpid((pid_t) -pid);
+#else
 		if (pid > 0)
 			p = find_task_by_pid((pid_t) pid);
 		else if (pid == 0)
@@ -3891,6 +4015,7 @@ static int ccs_signal_acl2(const int sig, const int pid)
 			dest = &ccs_kernel_domain;
 		else
 			p = find_task_by_pid((pid_t) -pid);
+#endif
 		if (p)
 			dest = ccs_task_domain(p);
 		ccs_tasklist_unlock();
@@ -4770,4 +4895,321 @@ static int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 	}
 	ccs_transition_failed(buf);
 	return CCS_CONFIG_DISABLED;
+}
+
+/**
+ * ccs_byte_range - Check whether the string is a \ooo style octal value.
+ *
+ * @str: Pointer to the string.
+ *
+ * Returns true if @str is a \ooo style octal value, false otherwise.
+ */
+static bool ccs_byte_range(const char *str)
+{
+	return *str >= '0' && *str++ <= '3' &&
+		*str >= '0' && *str++ <= '7' &&
+		*str >= '0' && *str <= '7';
+}
+
+/**
+ * ccs_decimal - Check whether the character is a decimal character.
+ *
+ * @c: The character to check.
+ *
+ * Returns true if @c is a decimal character, false otherwise.
+ */
+static bool ccs_decimal(const char c)
+{
+	return c >= '0' && c <= '9';
+}
+
+/**
+ * ccs_hexadecimal - Check whether the character is a hexadecimal character.
+ *
+ * @c: The character to check.
+ *
+ * Returns true if @c is a hexadecimal character, false otherwise.
+ */
+static bool ccs_hexadecimal(const char c)
+{
+	return (c >= '0' && c <= '9') ||
+		(c >= 'A' && c <= 'F') ||
+		(c >= 'a' && c <= 'f');
+}
+
+/**
+ * ccs_alphabet_char - Check whether the character is an alphabet.
+ *
+ * @c: The character to check.
+ *
+ * Returns true if @c is an alphabet character, false otherwise.
+ */
+static bool ccs_alphabet_char(const char c)
+{
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+/**
+ * ccs_file_matches_pattern2 - Pattern matching without '/' character and "\-" pattern.
+ *
+ * @filename:     The start of string to check.
+ * @filename_end: The end of string to check.
+ * @pattern:      The start of pattern to compare.
+ * @pattern_end:  The end of pattern to compare.
+ *
+ * Returns true if @filename matches @pattern, false otherwise.
+ */
+static bool ccs_file_matches_pattern2(const char *filename,
+				      const char *filename_end,
+				      const char *pattern,
+				      const char *pattern_end)
+{
+	while (filename < filename_end && pattern < pattern_end) {
+		char c;
+		if (*pattern != '\\') {
+			if (*filename++ != *pattern++)
+				return false;
+			continue;
+		}
+		c = *filename;
+		pattern++;
+		switch (*pattern) {
+			int i;
+			int j;
+		case '?':
+			if (c == '/') {
+				return false;
+			} else if (c == '\\') {
+				if (filename[1] == '\\')
+					filename++;
+				else if (ccs_byte_range(filename + 1))
+					filename += 3;
+				else
+					return false;
+			}
+			break;
+		case '\\':
+			if (c != '\\')
+				return false;
+			if (*++filename != '\\')
+				return false;
+			break;
+		case '+':
+			if (!ccs_decimal(c))
+				return false;
+			break;
+		case 'x':
+			if (!ccs_hexadecimal(c))
+				return false;
+			break;
+		case 'a':
+			if (!ccs_alphabet_char(c))
+				return false;
+			break;
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+			if (c == '\\' && ccs_byte_range(filename + 1)
+			    && !strncmp(filename + 1, pattern, 3)) {
+				filename += 3;
+				pattern += 2;
+				break;
+			}
+			return false; /* Not matched. */
+		case '*':
+		case '@':
+			for (i = 0; i <= filename_end - filename; i++) {
+				if (ccs_file_matches_pattern2(filename + i,
+							      filename_end,
+							      pattern + 1,
+							      pattern_end))
+					return true;
+				c = filename[i];
+				if (c == '.' && *pattern == '@')
+					break;
+				if (c != '\\')
+					continue;
+				if (filename[i + 1] == '\\')
+					i++;
+				else if (ccs_byte_range(filename + i + 1))
+					i += 3;
+				else
+					break; /* Bad pattern. */
+			}
+			return false; /* Not matched. */
+		default:
+			j = 0;
+			c = *pattern;
+			if (c == '$') {
+				while (ccs_decimal(filename[j]))
+					j++;
+			} else if (c == 'X') {
+				while (ccs_hexadecimal(filename[j]))
+					j++;
+			} else if (c == 'A') {
+				while (ccs_alphabet_char(filename[j]))
+					j++;
+			}
+			for (i = 1; i <= j; i++) {
+				if (ccs_file_matches_pattern2(filename + i,
+							      filename_end,
+							      pattern + 1,
+							      pattern_end))
+					return true;
+			}
+			return false; /* Not matched or bad pattern. */
+		}
+		filename++;
+		pattern++;
+	}
+	while (*pattern == '\\' &&
+	       (*(pattern + 1) == '*' || *(pattern + 1) == '@'))
+		pattern += 2;
+	return filename == filename_end && pattern == pattern_end;
+}
+
+/**
+ * ccs_file_matches_pattern - Pattern matching without '/' character.
+ *
+ * @filename:     The start of string to check.
+ * @filename_end: The end of string to check.
+ * @pattern:      The start of pattern to compare.
+ * @pattern_end:  The end of pattern to compare.
+ *
+ * Returns true if @filename matches @pattern, false otherwise.
+ */
+static bool ccs_file_matches_pattern(const char *filename,
+				     const char *filename_end,
+				     const char *pattern,
+				     const char *pattern_end)
+{
+	const char *pattern_start = pattern;
+	bool first = true;
+	bool result;
+	while (pattern < pattern_end - 1) {
+		/* Split at "\-" pattern. */
+		if (*pattern++ != '\\' || *pattern++ != '-')
+			continue;
+		result = ccs_file_matches_pattern2(filename, filename_end,
+						   pattern_start, pattern - 2);
+		if (first)
+			result = !result;
+		if (result)
+			return false;
+		first = false;
+		pattern_start = pattern;
+	}
+	result = ccs_file_matches_pattern2(filename, filename_end,
+					   pattern_start, pattern_end);
+	return first ? result : !result;
+}
+
+/**
+ * ccs_path_matches_pattern2 - Do pathname pattern matching.
+ *
+ * @f: The start of string to check.
+ * @p: The start of pattern to compare.
+ *
+ * Returns true if @f matches @p, false otherwise.
+ */
+static bool ccs_path_matches_pattern2(const char *f, const char *p)
+{
+	const char *f_delimiter;
+	const char *p_delimiter;
+	while (*f && *p) {
+		f_delimiter = strchr(f, '/');
+		if (!f_delimiter)
+			f_delimiter = f + strlen(f);
+		p_delimiter = strchr(p, '/');
+		if (!p_delimiter)
+			p_delimiter = p + strlen(p);
+		if (*p == '\\' && *(p + 1) == '{')
+			goto recursive;
+		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
+			return false;
+		f = f_delimiter;
+		if (*f)
+			f++;
+		p = p_delimiter;
+		if (*p)
+			p++;
+	}
+	/* Ignore trailing "\*" and "\@" in @pattern. */
+	while (*p == '\\' &&
+	       (*(p + 1) == '*' || *(p + 1) == '@'))
+		p += 2;
+	return !*f && !*p;
+recursive:
+	/*
+	 * The "\{" pattern is permitted only after '/' character.
+	 * This guarantees that below "*(p - 1)" is safe.
+	 * Also, the "\}" pattern is permitted only before '/' character
+	 * so that "\{" + "\}" pair will not break the "\-" operator.
+	 */
+	if (*(p - 1) != '/' || p_delimiter <= p + 3 || *p_delimiter != '/' ||
+	    *(p_delimiter - 1) != '}' || *(p_delimiter - 2) != '\\')
+		return false; /* Bad pattern. */
+	do {
+		/* Compare current component with pattern. */
+		if (!ccs_file_matches_pattern(f, f_delimiter, p + 2,
+					      p_delimiter - 2))
+			break;
+		/* Proceed to next component. */
+		f = f_delimiter;
+		if (!*f)
+			break;
+		f++;
+		/* Continue comparison. */
+		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
+			return true;
+		f_delimiter = strchr(f, '/');
+	} while (f_delimiter);
+	return false; /* Not matched. */
+}
+
+/**
+ * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
+ *
+ * @filename: The filename to check.
+ * @pattern:  The pattern to compare.
+ *
+ * Returns true if matches, false otherwise.
+ *
+ * The following patterns are available.
+ *   \\     \ itself.
+ *   \ooo   Octal representation of a byte.
+ *   \*     Zero or more repetitions of characters other than '/'.
+ *   \@     Zero or more repetitions of characters other than '/' or '.'.
+ *   \?     1 byte character other than '/'.
+ *   \$     One or more repetitions of decimal digits.
+ *   \+     1 decimal digit.
+ *   \X     One or more repetitions of hexadecimal digits.
+ *   \x     1 hexadecimal digit.
+ *   \A     One or more repetitions of alphabet characters.
+ *   \a     1 alphabet character.
+ *
+ *   \-     Subtraction operator.
+ *
+ *   /\{dir\}/   '/' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
+ *               /dir/dir/dir/ ).
+ */
+static bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
+				     const struct ccs_path_info *pattern)
+{
+	const char *f = filename->name;
+	const char *p = pattern->name;
+	const int len = pattern->const_len;
+	/* If @pattern doesn't contain pattern, I can use strcmp(). */
+	if (!pattern->is_patterned)
+		return !ccs_pathcmp(filename, pattern);
+	/* Don't compare directory and non-directory. */
+	if (filename->is_dir != pattern->is_dir)
+		return false;
+	/* Compare the initial length without patterns. */
+	if (strncmp(f, p, len))
+		return false;
+	f += len;
+	p += len;
+	return ccs_path_matches_pattern2(f, p);
 }

@@ -268,24 +268,38 @@ void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
 void ccs_update_stat(const u8 index);
 
 static bool __ccs_lport_reserved(const u16 port);
+static bool ccs_domain_quota_ok(struct ccs_request_info *r);
 static bool ccs_flush(struct ccs_io_buffer *head);
 static bool ccs_has_more_namespace(struct ccs_io_buffer *head);
 static bool ccs_manager(void);
 static bool ccs_parse_argv(char *left, char *right, struct ccs_argv *argv);
 static bool ccs_parse_envp(char *left, char *right, struct ccs_envp *envp);
-static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param, struct ccs_ipaddr_union *ptr);
-static bool ccs_parse_name_union(struct ccs_acl_param *param, struct ccs_name_union *ptr);
-static bool ccs_parse_name_union_quoted(struct ccs_acl_param *param, struct ccs_name_union *ptr);
-static bool ccs_parse_number_union(struct ccs_acl_param *param, struct ccs_number_union *ptr);
-static bool ccs_print_condition(struct ccs_io_buffer *head, const struct ccs_condition *cond);
-static bool ccs_print_entry(struct ccs_io_buffer *head, const struct ccs_acl_info *acl);
-static bool ccs_read_domain2(struct ccs_io_buffer *head, struct list_head *list);
+static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
+				   struct ccs_ipaddr_union *ptr);
+static bool ccs_parse_name_union(struct ccs_acl_param *param,
+				 struct ccs_name_union *ptr);
+static bool ccs_parse_name_union_quoted(struct ccs_acl_param *param,
+					struct ccs_name_union *ptr);
+static bool ccs_parse_number_union(struct ccs_acl_param *param,
+				   struct ccs_number_union *ptr);
+static bool ccs_permstr(const char *string, const char *keyword);
+static bool ccs_print_condition(struct ccs_io_buffer *head,
+				const struct ccs_condition *cond);
+static bool ccs_print_entry(struct ccs_io_buffer *head,
+			    const struct ccs_acl_info *acl);
+static bool ccs_read_domain2(struct ccs_io_buffer *head,
+			     struct list_head *list);
 static bool ccs_read_group(struct ccs_io_buffer *head, const int idx);
 static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx);
-static bool ccs_same_condition(const struct ccs_condition *a, const struct ccs_condition *b);
+static bool ccs_same_condition(const struct ccs_condition *a,
+			       const struct ccs_condition *b);
 static bool ccs_select_domain(struct ccs_io_buffer *head, const char *data);
 static bool ccs_set_lf(struct ccs_io_buffer *head);
-static char *ccs_get_transit_preference(struct ccs_acl_param *param, struct ccs_condition *e);
+static bool ccs_str_starts(char **src, const char *find);
+static char *ccs_get_transit_preference(struct ccs_acl_param *param,
+					struct ccs_condition *e);
+static const struct ccs_path_info *ccs_get_domainname
+(struct ccs_acl_param *param);
 static const struct ccs_path_info *ccs_get_dqword(char *start);
 static int __init ccs_init_module(void);
 static int ccs_delete_domain(char *domainname);
@@ -293,7 +307,8 @@ static int ccs_open(struct inode *inode, struct file *file);
 static int ccs_parse_policy(struct ccs_io_buffer *head, char *line);
 static int ccs_poll_query(struct file *file, poll_table *wait);
 static int ccs_release(struct inode *inode, struct file *file);
-static int ccs_set_mode(char *name, const char *value, struct ccs_profile *profile);
+static int ccs_set_mode(char *name, const char *value,
+			struct ccs_profile *profile);
 static int ccs_truncate(char *str);
 static int ccs_update_domain(const int size, struct ccs_acl_param *param);
 static int ccs_update_manager_entry(const char *manager, const bool is_delete);
@@ -302,7 +317,9 @@ static int ccs_write_aggregator(struct ccs_acl_param *param);
 static int ccs_write_answer(struct ccs_io_buffer *head);
 static int ccs_write_capability(struct ccs_acl_param *param);
 static int ccs_write_domain(struct ccs_io_buffer *head);
-static int ccs_write_domain2(struct ccs_policy_namespace *ns, struct list_head *list, char *data, const bool is_delete);
+static int ccs_write_domain2(struct ccs_policy_namespace *ns,
+			     struct list_head *list, char *data,
+			     const bool is_delete);
 static int ccs_write_exception(struct ccs_io_buffer *head);
 static int ccs_write_file(struct ccs_acl_param *param);
 static int ccs_write_group(struct ccs_acl_param *param, const u8 type);
@@ -315,35 +332,49 @@ static int ccs_write_profile(struct ccs_io_buffer *head);
 static int ccs_write_reserved_port(struct ccs_acl_param *param);
 static int ccs_write_stat(struct ccs_io_buffer *head);
 static int ccs_write_task(struct ccs_acl_param *param);
-static int ccs_write_transition_control(struct ccs_acl_param *param, const u8 type);
+static int ccs_write_transition_control(struct ccs_acl_param *param,
+					const u8 type);
 static int ccs_write_unix_network(struct ccs_acl_param *param);
 static s8 ccs_find_yesno(const char *string, const char *find);
-static ssize_t ccs_read(struct file *file, char __user *buf, size_t count, loff_t *ppos);
-static ssize_t ccs_read_self(struct file *file, char __user *buf, size_t count, loff_t *ppos);
-static ssize_t ccs_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos);
+static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
+			loff_t *ppos);
+static ssize_t ccs_read_self(struct file *file, char __user *buf, size_t count,
+			     loff_t *ppos);
+static ssize_t ccs_write(struct file *file, const char __user *buf,
+			 size_t count, loff_t *ppos);
 static struct ccs_condition *ccs_commit_condition(struct ccs_condition *entry);
 static struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param);
 static struct ccs_domain_info *ccs_find_domain_by_qid(unsigned int serial);
-static struct ccs_profile *ccs_assign_profile(struct ccs_policy_namespace *ns, const unsigned int profile);
+static struct ccs_profile *ccs_assign_profile(struct ccs_policy_namespace *ns,
+					      const unsigned int profile);
 static u8 ccs_condition_type(const char *word);
+static u8 ccs_parse_ulong(unsigned long *result, char **str);
 static unsigned int ccs_poll(struct file *file, poll_table *wait);
-static void __init ccs_create_entry(const char *name, const mode_t mode, struct proc_dir_entry *parent, const u8 key);
+static void __init ccs_create_entry(const char *name, const mode_t mode,
+				    struct proc_dir_entry *parent,
+				    const u8 key);
 static void __init ccs_load_builtin_policy(void);
 static void __init ccs_policy_io_init(void);
 static void __init ccs_proc_init(void);
 static void ccs_add_entry(char *header);
-static void ccs_addprintf(char *buffer, int len, const char *fmt, ...) __attribute__ ((format(printf, 3, 4)));
+static void ccs_addprintf(char *buffer, int len, const char *fmt, ...)
+	__attribute__ ((format(printf, 3, 4)));
 static void ccs_addprintf(char *buffer, int len, const char *fmt, ...);
 static void ccs_check_profile(void);
-static void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
-static void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...);
+static void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
+	__attribute__ ((format(printf, 2, 3)));
 static void ccs_print_config(struct ccs_io_buffer *head, const u8 config);
-static void ccs_print_ip(char *buf, const unsigned int size, const struct ccs_ipaddr_union *ptr);
-static void ccs_print_name_union(struct ccs_io_buffer *head, const struct ccs_name_union *ptr);
-static void ccs_print_name_union_quoted(struct ccs_io_buffer *head, const struct ccs_name_union *ptr);
+static void ccs_print_ip(char *buf, const unsigned int size,
+			 const struct ccs_ipaddr_union *ptr);
+static void ccs_print_name_union(struct ccs_io_buffer *head,
+				 const struct ccs_name_union *ptr);
+static void ccs_print_name_union_quoted(struct ccs_io_buffer *head,
+					const struct ccs_name_union *ptr);
 static void ccs_print_namespace(struct ccs_io_buffer *head);
-static void ccs_print_number_union(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
-static void ccs_print_number_union_nospace(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
+static void ccs_print_number_union(struct ccs_io_buffer *head,
+				   const struct ccs_number_union *ptr);
+static void ccs_print_number_union_nospace(struct ccs_io_buffer *head,
+					   const struct ccs_number_union *ptr);
 static void ccs_read_domain(struct ccs_io_buffer *head);
 static void ccs_read_exception(struct ccs_io_buffer *head);
 static void ccs_read_manager(struct ccs_io_buffer *head);
@@ -357,7 +388,8 @@ static void ccs_set_namespace_cursor(struct ccs_io_buffer *head);
 static void ccs_set_slash(struct ccs_io_buffer *head);
 static void ccs_set_space(struct ccs_io_buffer *head);
 static void ccs_set_string(struct ccs_io_buffer *head, const char *string);
-static void ccs_set_uint(unsigned int *i, const char *string, const char *find);
+static void ccs_set_uint(unsigned int *i, const char *string,
+			 const char *find);
 
 /***** SECTION4: Standalone functions section *****/
 
@@ -994,6 +1026,46 @@ static bool ccs_parse_name_union(struct ccs_acl_param *param,
 }
 
 /**
+ * ccs_parse_ulong - Parse an "unsigned long" value.
+ *
+ * @result: Pointer to "unsigned long".
+ * @str:    Pointer to string to parse.
+ *
+ * Returns one of values in "enum ccs_value_type".
+ *
+ * The @src is updated to point the first character after the value
+ * on success.
+ */
+static u8 ccs_parse_ulong(unsigned long *result, char **str)
+{
+	const char *cp = *str;
+	char *ep;
+	int base = 10;
+	if (*cp == '0') {
+		char c = *(cp + 1);
+		if (c == 'x' || c == 'X') {
+			base = 16;
+			cp += 2;
+		} else if (c >= '0' && c <= '7') {
+			base = 8;
+			cp++;
+		}
+	}
+	*result = simple_strtoul(cp, &ep, base);
+	if (cp == ep)
+		return CCS_VALUE_TYPE_INVALID;
+	*str = ep;
+	switch (base) {
+	case 16:
+		return CCS_VALUE_TYPE_HEXADECIMAL;
+	case 8:
+		return CCS_VALUE_TYPE_OCTAL;
+	default:
+		return CCS_VALUE_TYPE_DECIMAL;
+	}
+}
+
+/**
  * ccs_parse_number_union - Parse a ccs_number_union.
  *
  * @param: Pointer to "struct ccs_acl_param".
@@ -1247,6 +1319,31 @@ out:
 		entry = ptr;
 	}
 	return entry;
+}
+
+/**
+ * ccs_get_domainname - Read a domainname from a line.
+ *
+ * @param: Pointer to "struct ccs_acl_param".
+ *
+ * Returns a domainname on success, NULL otherwise.
+ */
+static const struct ccs_path_info *ccs_get_domainname
+(struct ccs_acl_param *param)
+{
+	char *start = param->data;
+	char *pos = start;
+	while (*pos) {
+		if (*pos++ != ' ' || *pos++ == '/')
+			continue;
+		pos -= 2;
+		*pos++ = '\0';
+		break;
+	}
+	param->data = pos;
+	if (ccs_correct_domain(start))
+		return ccs_get_name(start);
+	return NULL;
 }
 
 /**
@@ -1846,6 +1943,28 @@ static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
 }
 
 /**
+ * ccs_str_starts - Check whether the given string starts with the given keyword.
+ *
+ * @src:  Pointer to pointer to the string.
+ * @find: Pointer to the keyword.
+ *
+ * Returns true if @src starts with @find, false otherwise.
+ *
+ * The @src is updated to point the first character after the @find
+ * if @src starts with @find.
+ */
+static bool ccs_str_starts(char **src, const char *find)
+{
+	const int len = strlen(find);
+	char *tmp = *src;
+	if (strncmp(tmp, find, len))
+		return false;
+	tmp += len;
+	*src = tmp;
+	return true;
+}
+
+/**
  * ccs_set_mode - Set mode for specified profile.
  *
  * @name:    Name of functionality.
@@ -2372,6 +2491,24 @@ static int ccs_update_domain(const int size, struct ccs_acl_param *param)
 	}
 	mutex_unlock(&ccs_policy_lock);
 	return error;
+}
+
+/**
+ * ccs_permstr - Find permission keywords.
+ *
+ * @string: String representation for permissions in foo/bar/buz format.
+ * @keyword: Keyword to find from @string/
+ *
+ * Returns ture if @keyword was found in @string, false otherwise.
+ *
+ * This function assumes that strncmp(w1, w2, strlen(w1)) != 0 if w1 != w2.
+ */
+static bool ccs_permstr(const char *string, const char *keyword)
+{
+	const char *cp = strstr(string, keyword);
+	if (cp)
+		return cp == string || *(cp - 1) == '/';
+	return false;
 }
 
 /**
@@ -3859,6 +3996,64 @@ static void ccs_add_entry(char *header)
 			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
 	}
 	kfree(buffer);
+}
+
+/**
+ * ccs_domain_quota_ok - Check for domain's quota.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns true if the domain is not exceeded quota, false otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static bool ccs_domain_quota_ok(struct ccs_request_info *r)
+{
+	unsigned int count = 0;
+	struct ccs_domain_info * const domain = ccs_current_domain();
+	struct ccs_acl_info *ptr;
+	if (r->mode != CCS_CONFIG_LEARNING)
+		return false;
+	if (!domain)
+		return true;
+	list_for_each_entry_srcu(ptr, &domain->acl_info_list, list, &ccs_ss) {
+		u16 perm;
+		u8 i;
+		if (ptr->is_deleted)
+			continue;
+		switch (ptr->type) {
+		case CCS_TYPE_PATH_ACL:
+		case CCS_TYPE_PATH2_ACL:
+		case CCS_TYPE_PATH_NUMBER_ACL:
+		case CCS_TYPE_MKDEV_ACL:
+		case CCS_TYPE_INET_ACL:
+		case CCS_TYPE_UNIX_ACL:
+			perm = ptr->perm;
+			break;
+		case CCS_TYPE_AUTO_EXECUTE_HANDLER:
+		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
+		case CCS_TYPE_AUTO_TASK_ACL:
+		case CCS_TYPE_MANUAL_TASK_ACL:
+			perm = 0;
+			break;
+		default:
+			perm = 1;
+		}
+		for (i = 0; i < 16; i++)
+			if (perm & (1 << i))
+				count++;
+	}
+	if (count < ccs_profile(r->profile)->pref[CCS_PREF_MAX_LEARNING_ENTRY])
+		return true;
+	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
+		domain->flags[CCS_DIF_QUOTA_WARNED] = true;
+		/* r->granted = false; */
+		ccs_write_log(r, "%s", ccs_dif[CCS_DIF_QUOTA_WARNED]);
+		printk(KERN_WARNING "WARNING: "
+		       "Domain '%s' has too many ACLs to hold. "
+		       "Stopped learning mode.\n", domain->domainname->name);
+	}
+	return false;
 }
 
 /**

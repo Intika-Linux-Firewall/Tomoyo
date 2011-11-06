@@ -8,11 +8,7 @@
 
 #include "internal.h"
 
-/* Lock for protecting policy. */
-DEFINE_MUTEX(ccs_policy_lock);
-
-/* Has /sbin/init started? */
-bool ccs_policy_loaded;
+/***** SECTION1: Constants definition *****/
 
 /* Mapping table from "enum ccs_mac_index" to "enum ccs_mac_category_index". */
 const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
@@ -79,6 +75,27 @@ const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = CCS_MAC_CATEGORY_CAPABILITY,
 };
 
+/***** SECTION2: Structure definition *****/
+/***** SECTION3: Prototype definition section *****/
+
+bool ccs_correct_domain(const unsigned char *domainname);
+bool ccs_correct_path(const char *filename);
+bool ccs_correct_word(const char *string);
+bool ccs_domain_def(const unsigned char *buffer);
+char *ccs_read_token(struct ccs_acl_param *param);
+const char *ccs_get_exe(void);
+struct ccs_domain_info *ccs_find_domain(const char *domainname);
+u8 ccs_get_config(const u8 profile, const u8 index);
+void ccs_convert_time(time_t time, struct ccs_time *stamp);
+void ccs_fill_path_info(struct ccs_path_info *ptr);
+void ccs_normalize_line(unsigned char *buffer);
+
+static bool ccs_correct_word2(const char *string, size_t len);
+static int ccs_const_part_length(const char *filename);
+static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
+
+/***** SECTION4: Standalone functions section *****/
+
 /**
  * ccs_convert_time - Convert time_t to YYYY/MM/DD hh/mm/ss.
  *
@@ -119,23 +136,15 @@ void ccs_convert_time(time_t time, struct ccs_time *stamp)
 	stamp->day = ++time;
 }
 
-/**
- * ccs_permstr - Find permission keywords.
- *
- * @string: String representation for permissions in foo/bar/buz format.
- * @keyword: Keyword to find from @string/
- *
- * Returns ture if @keyword was found in @string, false otherwise.
- *
- * This function assumes that strncmp(w1, w2, strlen(w1)) != 0 if w1 != w2.
- */
-bool ccs_permstr(const char *string, const char *keyword)
-{
-	const char *cp = strstr(string, keyword);
-	if (cp)
-		return cp == string || *(cp - 1) == '/';
-	return false;
-}
+/***** SECTION5: Variables definition section *****/
+
+/* Lock for protecting policy. */
+DEFINE_MUTEX(ccs_policy_lock);
+
+/* Has /sbin/init started? */
+bool ccs_policy_loaded;
+
+/***** SECTION6: Dependent functions section *****/
 
 /**
  * ccs_read_token - Read a word from a line.
@@ -160,143 +169,6 @@ char *ccs_read_token(struct ccs_acl_param *param)
 }
 
 /**
- * ccs_get_domainname - Read a domainname from a line.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns a domainname on success, NULL otherwise.
- */
-const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param)
-{
-	char *start = param->data;
-	char *pos = start;
-	while (*pos) {
-		if (*pos++ != ' ' || *pos++ == '/')
-			continue;
-		pos -= 2;
-		*pos++ = '\0';
-		break;
-	}
-	param->data = pos;
-	if (ccs_correct_domain(start))
-		return ccs_get_name(start);
-	return NULL;
-}
-
-/**
- * ccs_parse_ulong - Parse an "unsigned long" value.
- *
- * @result: Pointer to "unsigned long".
- * @str:    Pointer to string to parse.
- *
- * Returns one of values in "enum ccs_value_type".
- *
- * The @src is updated to point the first character after the value
- * on success.
- */
-u8 ccs_parse_ulong(unsigned long *result, char **str)
-{
-	const char *cp = *str;
-	char *ep;
-	int base = 10;
-	if (*cp == '0') {
-		char c = *(cp + 1);
-		if (c == 'x' || c == 'X') {
-			base = 16;
-			cp += 2;
-		} else if (c >= '0' && c <= '7') {
-			base = 8;
-			cp++;
-		}
-	}
-	*result = simple_strtoul(cp, &ep, base);
-	if (cp == ep)
-		return CCS_VALUE_TYPE_INVALID;
-	*str = ep;
-	switch (base) {
-	case 16:
-		return CCS_VALUE_TYPE_HEXADECIMAL;
-	case 8:
-		return CCS_VALUE_TYPE_OCTAL;
-	default:
-		return CCS_VALUE_TYPE_DECIMAL;
-	}
-}
-
-/**
- * ccs_print_ulong - Print an "unsigned long" value.
- *
- * @buffer:     Pointer to buffer.
- * @buffer_len: Size of @buffer.
- * @value:      An "unsigned long" value.
- * @type:       Type of @value.
- *
- * Returns nothing.
- */
-void ccs_print_ulong(char *buffer, const int buffer_len,
-		     const unsigned long value, const u8 type)
-{
-	if (type == CCS_VALUE_TYPE_DECIMAL)
-		snprintf(buffer, buffer_len, "%lu", value);
-	else if (type == CCS_VALUE_TYPE_OCTAL)
-		snprintf(buffer, buffer_len, "0%lo", value);
-	else
-		snprintf(buffer, buffer_len, "0x%lX", value);
-}
-
-/**
- * ccs_byte_range - Check whether the string is a \ooo style octal value.
- *
- * @str: Pointer to the string.
- *
- * Returns true if @str is a \ooo style octal value, false otherwise.
- */
-static bool ccs_byte_range(const char *str)
-{
-	return *str >= '0' && *str++ <= '3' &&
-		*str >= '0' && *str++ <= '7' &&
-		*str >= '0' && *str <= '7';
-}
-
-/**
- * ccs_decimal - Check whether the character is a decimal character.
- *
- * @c: The character to check.
- *
- * Returns true if @c is a decimal character, false otherwise.
- */
-static bool ccs_decimal(const char c)
-{
-	return c >= '0' && c <= '9';
-}
-
-/**
- * ccs_hexadecimal - Check whether the character is a hexadecimal character.
- *
- * @c: The character to check.
- *
- * Returns true if @c is a hexadecimal character, false otherwise.
- */
-static bool ccs_hexadecimal(const char c)
-{
-	return (c >= '0' && c <= '9') ||
-		(c >= 'A' && c <= 'F') ||
-		(c >= 'a' && c <= 'f');
-}
-
-/**
- * ccs_alphabet_char - Check whether the character is an alphabet.
- *
- * @c: The character to check.
- *
- * Returns true if @c is an alphabet character, false otherwise.
- */
-static bool ccs_alphabet_char(const char c)
-{
-	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-}
-
-/**
  * ccs_make_byte - Make byte value from three octal characters.
  *
  * @c1: The first character.
@@ -308,28 +180,6 @@ static bool ccs_alphabet_char(const char c)
 static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
 {
 	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
-}
-
-/**
- * ccs_str_starts - Check whether the given string starts with the given keyword.
- *
- * @src:  Pointer to pointer to the string.
- * @find: Pointer to the keyword.
- *
- * Returns true if @src starts with @find, false otherwise.
- *
- * The @src is updated to point the first character after the @find
- * if @src starts with @find.
- */
-bool ccs_str_starts(char **src, const char *find)
-{
-	const int len = strlen(find);
-	char *tmp = *src;
-	if (strncmp(tmp, find, len))
-		return false;
-	tmp += len;
-	*src = tmp;
-	return true;
 }
 
 /**
@@ -597,271 +447,6 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 }
 
 /**
- * ccs_file_matches_pattern2 - Pattern matching without '/' character and "\-" pattern.
- *
- * @filename:     The start of string to check.
- * @filename_end: The end of string to check.
- * @pattern:      The start of pattern to compare.
- * @pattern_end:  The end of pattern to compare.
- *
- * Returns true if @filename matches @pattern, false otherwise.
- */
-static bool ccs_file_matches_pattern2(const char *filename,
-				      const char *filename_end,
-				      const char *pattern,
-				      const char *pattern_end)
-{
-	while (filename < filename_end && pattern < pattern_end) {
-		char c;
-		if (*pattern != '\\') {
-			if (*filename++ != *pattern++)
-				return false;
-			continue;
-		}
-		c = *filename;
-		pattern++;
-		switch (*pattern) {
-			int i;
-			int j;
-		case '?':
-			if (c == '/') {
-				return false;
-			} else if (c == '\\') {
-				if (filename[1] == '\\')
-					filename++;
-				else if (ccs_byte_range(filename + 1))
-					filename += 3;
-				else
-					return false;
-			}
-			break;
-		case '\\':
-			if (c != '\\')
-				return false;
-			if (*++filename != '\\')
-				return false;
-			break;
-		case '+':
-			if (!ccs_decimal(c))
-				return false;
-			break;
-		case 'x':
-			if (!ccs_hexadecimal(c))
-				return false;
-			break;
-		case 'a':
-			if (!ccs_alphabet_char(c))
-				return false;
-			break;
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-			if (c == '\\' && ccs_byte_range(filename + 1)
-			    && !strncmp(filename + 1, pattern, 3)) {
-				filename += 3;
-				pattern += 2;
-				break;
-			}
-			return false; /* Not matched. */
-		case '*':
-		case '@':
-			for (i = 0; i <= filename_end - filename; i++) {
-				if (ccs_file_matches_pattern2(filename + i,
-							      filename_end,
-							      pattern + 1,
-							      pattern_end))
-					return true;
-				c = filename[i];
-				if (c == '.' && *pattern == '@')
-					break;
-				if (c != '\\')
-					continue;
-				if (filename[i + 1] == '\\')
-					i++;
-				else if (ccs_byte_range(filename + i + 1))
-					i += 3;
-				else
-					break; /* Bad pattern. */
-			}
-			return false; /* Not matched. */
-		default:
-			j = 0;
-			c = *pattern;
-			if (c == '$') {
-				while (ccs_decimal(filename[j]))
-					j++;
-			} else if (c == 'X') {
-				while (ccs_hexadecimal(filename[j]))
-					j++;
-			} else if (c == 'A') {
-				while (ccs_alphabet_char(filename[j]))
-					j++;
-			}
-			for (i = 1; i <= j; i++) {
-				if (ccs_file_matches_pattern2(filename + i,
-							      filename_end,
-							      pattern + 1,
-							      pattern_end))
-					return true;
-			}
-			return false; /* Not matched or bad pattern. */
-		}
-		filename++;
-		pattern++;
-	}
-	while (*pattern == '\\' &&
-	       (*(pattern + 1) == '*' || *(pattern + 1) == '@'))
-		pattern += 2;
-	return filename == filename_end && pattern == pattern_end;
-}
-
-/**
- * ccs_file_matches_pattern - Pattern matching without '/' character.
- *
- * @filename:     The start of string to check.
- * @filename_end: The end of string to check.
- * @pattern:      The start of pattern to compare.
- * @pattern_end:  The end of pattern to compare.
- *
- * Returns true if @filename matches @pattern, false otherwise.
- */
-static bool ccs_file_matches_pattern(const char *filename,
-				     const char *filename_end,
-				     const char *pattern,
-				     const char *pattern_end)
-{
-	const char *pattern_start = pattern;
-	bool first = true;
-	bool result;
-	while (pattern < pattern_end - 1) {
-		/* Split at "\-" pattern. */
-		if (*pattern++ != '\\' || *pattern++ != '-')
-			continue;
-		result = ccs_file_matches_pattern2(filename, filename_end,
-						   pattern_start, pattern - 2);
-		if (first)
-			result = !result;
-		if (result)
-			return false;
-		first = false;
-		pattern_start = pattern;
-	}
-	result = ccs_file_matches_pattern2(filename, filename_end,
-					   pattern_start, pattern_end);
-	return first ? result : !result;
-}
-
-/**
- * ccs_path_matches_pattern2 - Do pathname pattern matching.
- *
- * @f: The start of string to check.
- * @p: The start of pattern to compare.
- *
- * Returns true if @f matches @p, false otherwise.
- */
-static bool ccs_path_matches_pattern2(const char *f, const char *p)
-{
-	const char *f_delimiter;
-	const char *p_delimiter;
-	while (*f && *p) {
-		f_delimiter = strchr(f, '/');
-		if (!f_delimiter)
-			f_delimiter = f + strlen(f);
-		p_delimiter = strchr(p, '/');
-		if (!p_delimiter)
-			p_delimiter = p + strlen(p);
-		if (*p == '\\' && *(p + 1) == '{')
-			goto recursive;
-		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
-			return false;
-		f = f_delimiter;
-		if (*f)
-			f++;
-		p = p_delimiter;
-		if (*p)
-			p++;
-	}
-	/* Ignore trailing "\*" and "\@" in @pattern. */
-	while (*p == '\\' &&
-	       (*(p + 1) == '*' || *(p + 1) == '@'))
-		p += 2;
-	return !*f && !*p;
-recursive:
-	/*
-	 * The "\{" pattern is permitted only after '/' character.
-	 * This guarantees that below "*(p - 1)" is safe.
-	 * Also, the "\}" pattern is permitted only before '/' character
-	 * so that "\{" + "\}" pair will not break the "\-" operator.
-	 */
-	if (*(p - 1) != '/' || p_delimiter <= p + 3 || *p_delimiter != '/' ||
-	    *(p_delimiter - 1) != '}' || *(p_delimiter - 2) != '\\')
-		return false; /* Bad pattern. */
-	do {
-		/* Compare current component with pattern. */
-		if (!ccs_file_matches_pattern(f, f_delimiter, p + 2,
-					      p_delimiter - 2))
-			break;
-		/* Proceed to next component. */
-		f = f_delimiter;
-		if (!*f)
-			break;
-		f++;
-		/* Continue comparison. */
-		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
-			return true;
-		f_delimiter = strchr(f, '/');
-	} while (f_delimiter);
-	return false; /* Not matched. */
-}
-
-/**
- * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
- *
- * @filename: The filename to check.
- * @pattern:  The pattern to compare.
- *
- * Returns true if matches, false otherwise.
- *
- * The following patterns are available.
- *   \\     \ itself.
- *   \ooo   Octal representation of a byte.
- *   \*     Zero or more repetitions of characters other than '/'.
- *   \@     Zero or more repetitions of characters other than '/' or '.'.
- *   \?     1 byte character other than '/'.
- *   \$     One or more repetitions of decimal digits.
- *   \+     1 decimal digit.
- *   \X     One or more repetitions of hexadecimal digits.
- *   \x     1 hexadecimal digit.
- *   \A     One or more repetitions of alphabet characters.
- *   \a     1 alphabet character.
- *
- *   \-     Subtraction operator.
- *
- *   /\{dir\}/   '/' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
- *               /dir/dir/dir/ ).
- */
-bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
-			      const struct ccs_path_info *pattern)
-{
-	const char *f = filename->name;
-	const char *p = pattern->name;
-	const int len = pattern->const_len;
-	/* If @pattern doesn't contain pattern, I can use strcmp(). */
-	if (!pattern->is_patterned)
-		return !ccs_pathcmp(filename, pattern);
-	/* Don't compare directory and non-directory. */
-	if (filename->is_dir != pattern->is_dir)
-		return false;
-	/* Compare the initial length without patterns. */
-	if (strncmp(f, p, len))
-		return false;
-	f += len;
-	p += len;
-	return ccs_path_matches_pattern2(f, p);
-}
-
-/**
  * ccs_get_exe - Get ccs_realpath() of current process.
  *
  * Returns the ccs_realpath() of current process on success, NULL otherwise.
@@ -922,60 +507,3 @@ u8 ccs_get_config(const u8 profile, const u8 index)
 	return config;
 }
 
-/**
- * ccs_domain_quota_ok - Check for domain's quota.
- *
- * @r: Pointer to "struct ccs_request_info".
- *
- * Returns true if the domain is not exceeded quota, false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-bool ccs_domain_quota_ok(struct ccs_request_info *r)
-{
-	unsigned int count = 0;
-	struct ccs_domain_info * const domain = ccs_current_domain();
-	struct ccs_acl_info *ptr;
-	if (r->mode != CCS_CONFIG_LEARNING)
-		return false;
-	if (!domain)
-		return true;
-	list_for_each_entry_srcu(ptr, &domain->acl_info_list, list, &ccs_ss) {
-		u16 perm;
-		u8 i;
-		if (ptr->is_deleted)
-			continue;
-		switch (ptr->type) {
-		case CCS_TYPE_PATH_ACL:
-		case CCS_TYPE_PATH2_ACL:
-		case CCS_TYPE_PATH_NUMBER_ACL:
-		case CCS_TYPE_MKDEV_ACL:
-		case CCS_TYPE_INET_ACL:
-		case CCS_TYPE_UNIX_ACL:
-			perm = ptr->perm;
-			break;
-		case CCS_TYPE_AUTO_EXECUTE_HANDLER:
-		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
-		case CCS_TYPE_AUTO_TASK_ACL:
-		case CCS_TYPE_MANUAL_TASK_ACL:
-			perm = 0;
-			break;
-		default:
-			perm = 1;
-		}
-		for (i = 0; i < 16; i++)
-			if (perm & (1 << i))
-				count++;
-	}
-	if (count < ccs_profile(r->profile)->pref[CCS_PREF_MAX_LEARNING_ENTRY])
-		return true;
-	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
-		domain->flags[CCS_DIF_QUOTA_WARNED] = true;
-		/* r->granted = false; */
-		ccs_write_log(r, "%s", ccs_dif[CCS_DIF_QUOTA_WARNED]);
-		printk(KERN_WARNING "WARNING: "
-		       "Domain '%s' has too many ACLs to hold. "
-		       "Stopped learning mode.\n", domain->domainname->name);
-	}
-	return false;
-}
