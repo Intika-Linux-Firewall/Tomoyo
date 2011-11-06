@@ -1416,9 +1416,7 @@ struct ccs_policy_namespace {
 /* Prototype definition for "struct ccsecurity_operations". */
 
 void __init ccs_domain_init(void);
-void __init ccs_load_builtin_policy(void);
 void __init ccs_mm_init(void);
-void __init ccs_policy_io_init(void);
 
 /* Prototype definition for internal use. */
 
@@ -1444,18 +1442,11 @@ const char *ccs_get_exe(void);
 const char *ccs_yesno(const unsigned int value);
 const struct ccs_path_info *ccs_get_domainname(struct ccs_acl_param *param);
 const struct ccs_path_info *ccs_get_name(const char *name);
-int ccs_close_control(struct ccs_io_buffer *head);
 int ccs_get_path(const char *pathname, struct path *path);
-int ccs_open_control(const u8 type, struct file *file);
-int ccs_poll_control(struct file *file, poll_table *wait);
 int ccs_poll_log(struct file *file, poll_table *wait);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	__attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
-ssize_t ccs_read_control(struct ccs_io_buffer *head, char __user *buffer,
-			 const size_t buffer_len);
-ssize_t ccs_write_control(struct ccs_io_buffer *head,
-			  const char __user *buffer, const size_t buffer_len);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const bool transit);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);

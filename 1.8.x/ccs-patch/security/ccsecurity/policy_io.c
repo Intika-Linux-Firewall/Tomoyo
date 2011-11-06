@@ -245,6 +245,8 @@ static const char * const ccs_memory_headers[CCS_MAX_MEMORY_STAT] = {
 
 /***** SECTION2: Structure definition *****/
 
+struct iattr;
+
 /* Structure for query. */
 struct ccs_query {
 	struct list_head list;
@@ -260,99 +262,102 @@ struct ccs_query {
 /***** SECTION3: Prototype definition section *****/
 
 const char *ccs_yesno(const unsigned int value);
-void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
-struct ccs_profile *ccs_profile(const u8 profile);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...);
+struct ccs_profile *ccs_profile(const u8 profile);
+void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
 void ccs_update_stat(const u8 index);
-int ccs_open_control(const u8 type, struct file *file);
-int ccs_poll_control(struct file *file, poll_table *wait);
-ssize_t ccs_read_control(struct ccs_io_buffer *head, char __user *buffer, const size_t buffer_len);
-ssize_t ccs_write_control(struct ccs_io_buffer *head, const char __user *buffer, const size_t buffer_len);
-int ccs_close_control(struct ccs_io_buffer *head);
-void __init ccs_policy_io_init(void);
-void __init ccs_load_builtin_policy(void);
 
-static void ccs_print_ip(char *buf, const unsigned int size,
-			 const struct ccs_ipaddr_union *ptr);
-static bool ccs_parse_name_union(struct ccs_acl_param *param, struct ccs_name_union *ptr);
-static bool ccs_parse_number_union(struct ccs_acl_param *param, struct ccs_number_union *ptr);
-static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param, struct ccs_ipaddr_union *ptr);
-static const struct ccs_path_info *ccs_get_dqword(char *start);
-static bool ccs_parse_name_union_quoted(struct ccs_acl_param *param, struct ccs_name_union *ptr);
+static bool __ccs_lport_reserved(const u16 port);
+static bool ccs_flush(struct ccs_io_buffer *head);
+static bool ccs_has_more_namespace(struct ccs_io_buffer *head);
+static bool ccs_manager(void);
 static bool ccs_parse_argv(char *left, char *right, struct ccs_argv *argv);
 static bool ccs_parse_envp(char *left, char *right, struct ccs_envp *envp);
-static bool ccs_same_condition(const struct ccs_condition *a, const struct ccs_condition *b);
-static u8 ccs_condition_type(const char *word);
-static struct ccs_condition *ccs_commit_condition(struct ccs_condition *entry);
-static char *ccs_get_transit_preference(struct ccs_acl_param *param, struct ccs_condition *e);
-static struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param);
-static void ccs_addprintf(char *buffer, int len, const char *fmt, ...) __attribute__ ((format(printf, 3, 4)));
-static void ccs_addprintf(char *buffer, int len, const char *fmt, ...);
-static bool ccs_flush(struct ccs_io_buffer *head);
-static void ccs_set_string(struct ccs_io_buffer *head, const char *string);
-static void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
-static void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...);
-static void ccs_set_space(struct ccs_io_buffer *head);
-static bool ccs_set_lf(struct ccs_io_buffer *head);
-static void ccs_set_slash(struct ccs_io_buffer *head);
-static void ccs_print_namespace(struct ccs_io_buffer *head);
-static struct ccs_profile *ccs_assign_profile(struct ccs_policy_namespace *ns, const unsigned int profile);
-static void ccs_check_profile(void);
-static s8 ccs_find_yesno(const char *string, const char *find);
-static void ccs_set_uint(unsigned int *i, const char *string, const char *find);
-static int ccs_set_mode(char *name, const char *value, struct ccs_profile *profile);
-static int ccs_write_profile(struct ccs_io_buffer *head);
-static void ccs_print_config(struct ccs_io_buffer *head, const u8 config);
-static void ccs_read_profile(struct ccs_io_buffer *head);
-static int ccs_update_policy(const int size, struct ccs_acl_param *param);
-static int ccs_update_manager_entry(const char *manager, const bool is_delete);
-static int ccs_write_manager(struct ccs_io_buffer *head);
-static void ccs_read_manager(struct ccs_io_buffer *head);
-static bool ccs_manager(void);
-static bool ccs_select_domain(struct ccs_io_buffer *head, const char *data);
-static int ccs_update_domain(const int size, struct ccs_acl_param *param);
-static int ccs_write_task(struct ccs_acl_param *param);
-static int ccs_write_inet_network(struct ccs_acl_param *param);
-static int ccs_write_unix_network(struct ccs_acl_param *param);
-static int ccs_write_file(struct ccs_acl_param *param);
-static int ccs_write_misc(struct ccs_acl_param *param);
-static int ccs_write_ipc(struct ccs_acl_param *param);
-static int ccs_write_capability(struct ccs_acl_param *param);
-static int ccs_write_domain2(struct ccs_policy_namespace *ns, struct list_head *list, char *data, const bool is_delete);
-static int ccs_delete_domain(char *domainname);
-static int ccs_write_domain(struct ccs_io_buffer *head);
-static void ccs_print_name_union(struct ccs_io_buffer *head, const struct ccs_name_union *ptr);
-static void ccs_print_name_union_quoted(struct ccs_io_buffer *head, const struct ccs_name_union *ptr);
-static void ccs_print_number_union_nospace(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
-static void ccs_print_number_union(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
+static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param, struct ccs_ipaddr_union *ptr);
+static bool ccs_parse_name_union(struct ccs_acl_param *param, struct ccs_name_union *ptr);
+static bool ccs_parse_name_union_quoted(struct ccs_acl_param *param, struct ccs_name_union *ptr);
+static bool ccs_parse_number_union(struct ccs_acl_param *param, struct ccs_number_union *ptr);
 static bool ccs_print_condition(struct ccs_io_buffer *head, const struct ccs_condition *cond);
-static void ccs_set_group(struct ccs_io_buffer *head, const char *category);
 static bool ccs_print_entry(struct ccs_io_buffer *head, const struct ccs_acl_info *acl);
 static bool ccs_read_domain2(struct ccs_io_buffer *head, struct list_head *list);
-static void ccs_read_domain(struct ccs_io_buffer *head);
-static int ccs_write_pid(struct ccs_io_buffer *head);
-static void ccs_read_pid(struct ccs_io_buffer *head);
-static int ccs_write_group(struct ccs_acl_param *param, const u8 type);
-static bool __ccs_lport_reserved(const u16 port);
-static int ccs_write_reserved_port(struct ccs_acl_param *param);
-static int ccs_write_aggregator(struct ccs_acl_param *param);
-static int ccs_write_transition_control(struct ccs_acl_param *param, const u8 type);
-static int ccs_write_exception(struct ccs_io_buffer *head);
 static bool ccs_read_group(struct ccs_io_buffer *head, const int idx);
 static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx);
-static void ccs_read_exception(struct ccs_io_buffer *head);
-static int ccs_truncate(char *str);
-static void ccs_add_entry(char *header);
-static struct ccs_domain_info *ccs_find_domain_by_qid(unsigned int serial);
-static int ccs_poll_query(struct file *file, poll_table *wait);
-static void ccs_read_query(struct ccs_io_buffer *head);
-static int ccs_write_answer(struct ccs_io_buffer *head);
-static void ccs_read_version(struct ccs_io_buffer *head);
-static void ccs_read_stat(struct ccs_io_buffer *head);
-static int ccs_write_stat(struct ccs_io_buffer *head);
-static void ccs_set_namespace_cursor(struct ccs_io_buffer *head);
-static bool ccs_has_more_namespace(struct ccs_io_buffer *head);
+static bool ccs_same_condition(const struct ccs_condition *a, const struct ccs_condition *b);
+static bool ccs_select_domain(struct ccs_io_buffer *head, const char *data);
+static bool ccs_set_lf(struct ccs_io_buffer *head);
+static char *ccs_get_transit_preference(struct ccs_acl_param *param, struct ccs_condition *e);
+static const struct ccs_path_info *ccs_get_dqword(char *start);
+static int __init ccs_init_module(void);
+static int ccs_delete_domain(char *domainname);
+static int ccs_open(struct inode *inode, struct file *file);
 static int ccs_parse_policy(struct ccs_io_buffer *head, char *line);
+static int ccs_poll_query(struct file *file, poll_table *wait);
+static int ccs_release(struct inode *inode, struct file *file);
+static int ccs_set_mode(char *name, const char *value, struct ccs_profile *profile);
+static int ccs_truncate(char *str);
+static int ccs_update_domain(const int size, struct ccs_acl_param *param);
+static int ccs_update_manager_entry(const char *manager, const bool is_delete);
+static int ccs_update_policy(const int size, struct ccs_acl_param *param);
+static int ccs_write_aggregator(struct ccs_acl_param *param);
+static int ccs_write_answer(struct ccs_io_buffer *head);
+static int ccs_write_capability(struct ccs_acl_param *param);
+static int ccs_write_domain(struct ccs_io_buffer *head);
+static int ccs_write_domain2(struct ccs_policy_namespace *ns, struct list_head *list, char *data, const bool is_delete);
+static int ccs_write_exception(struct ccs_io_buffer *head);
+static int ccs_write_file(struct ccs_acl_param *param);
+static int ccs_write_group(struct ccs_acl_param *param, const u8 type);
+static int ccs_write_inet_network(struct ccs_acl_param *param);
+static int ccs_write_ipc(struct ccs_acl_param *param);
+static int ccs_write_manager(struct ccs_io_buffer *head);
+static int ccs_write_misc(struct ccs_acl_param *param);
+static int ccs_write_pid(struct ccs_io_buffer *head);
+static int ccs_write_profile(struct ccs_io_buffer *head);
+static int ccs_write_reserved_port(struct ccs_acl_param *param);
+static int ccs_write_stat(struct ccs_io_buffer *head);
+static int ccs_write_task(struct ccs_acl_param *param);
+static int ccs_write_transition_control(struct ccs_acl_param *param, const u8 type);
+static int ccs_write_unix_network(struct ccs_acl_param *param);
+static s8 ccs_find_yesno(const char *string, const char *find);
+static ssize_t ccs_read(struct file *file, char __user *buf, size_t count, loff_t *ppos);
+static ssize_t ccs_read_self(struct file *file, char __user *buf, size_t count, loff_t *ppos);
+static ssize_t ccs_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos);
+static struct ccs_condition *ccs_commit_condition(struct ccs_condition *entry);
+static struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param);
+static struct ccs_domain_info *ccs_find_domain_by_qid(unsigned int serial);
+static struct ccs_profile *ccs_assign_profile(struct ccs_policy_namespace *ns, const unsigned int profile);
+static u8 ccs_condition_type(const char *word);
+static unsigned int ccs_poll(struct file *file, poll_table *wait);
+static void __init ccs_create_entry(const char *name, const mode_t mode, struct proc_dir_entry *parent, const u8 key);
+static void __init ccs_load_builtin_policy(void);
+static void __init ccs_policy_io_init(void);
+static void __init ccs_proc_init(void);
+static void ccs_add_entry(char *header);
+static void ccs_addprintf(char *buffer, int len, const char *fmt, ...) __attribute__ ((format(printf, 3, 4)));
+static void ccs_addprintf(char *buffer, int len, const char *fmt, ...);
+static void ccs_check_profile(void);
+static void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
+static void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...);
+static void ccs_print_config(struct ccs_io_buffer *head, const u8 config);
+static void ccs_print_ip(char *buf, const unsigned int size, const struct ccs_ipaddr_union *ptr);
+static void ccs_print_name_union(struct ccs_io_buffer *head, const struct ccs_name_union *ptr);
+static void ccs_print_name_union_quoted(struct ccs_io_buffer *head, const struct ccs_name_union *ptr);
+static void ccs_print_namespace(struct ccs_io_buffer *head);
+static void ccs_print_number_union(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
+static void ccs_print_number_union_nospace(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
+static void ccs_read_domain(struct ccs_io_buffer *head);
+static void ccs_read_exception(struct ccs_io_buffer *head);
+static void ccs_read_manager(struct ccs_io_buffer *head);
+static void ccs_read_pid(struct ccs_io_buffer *head);
+static void ccs_read_profile(struct ccs_io_buffer *head);
+static void ccs_read_query(struct ccs_io_buffer *head);
+static void ccs_read_stat(struct ccs_io_buffer *head);
+static void ccs_read_version(struct ccs_io_buffer *head);
+static void ccs_set_group(struct ccs_io_buffer *head, const char *category);
+static void ccs_set_namespace_cursor(struct ccs_io_buffer *head);
+static void ccs_set_slash(struct ccs_io_buffer *head);
+static void ccs_set_space(struct ccs_io_buffer *head);
+static void ccs_set_string(struct ccs_io_buffer *head, const char *string);
+static void ccs_set_uint(unsigned int *i, const char *string, const char *find);
 
 /***** SECTION4: Standalone functions section *****/
 
@@ -414,6 +419,65 @@ do {									\
 		__wait_event_interruptible_timeout(wq, condition, __ret); \
 	__ret;								\
 })
+
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
+#if !defined(RHEL_VERSION) || RHEL_VERSION != 3
+
+/**
+ * PDE - Get "struct proc_dir_entry".
+ *
+ * @inode: Pointer to "struct inode".
+ *
+ * Returns pointer to "struct proc_dir_entry".
+ *
+ * This is for compatibility with older kernels.
+ */
+static inline struct proc_dir_entry *PDE(const struct inode *inode)
+{
+	return (struct proc_dir_entry *) inode->u.generic_ip;
+}
+
+#endif
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+/**
+ * proc_notify_change - Update inode's attributes and reflect to the dentry.
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @iattr:  Pointer to "struct iattr".
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * The 2.4 kernels don't allow chmod()/chown() for files in /proc,
+ * while the 2.6 kernels allow.
+ * To permit management of /proc/ccs/ interface by non-root user,
+ * I modified to allow chmod()/chown() of /proc/ccs/ interface like 2.6 kernels
+ * by adding "struct inode_operations"->setattr hook.
+ */
+static int proc_notify_change(struct dentry *dentry, struct iattr *iattr)
+{
+	struct inode *inode = dentry->d_inode;
+	struct proc_dir_entry *de = PDE(inode);
+	int error;
+
+	error = inode_change_ok(inode, iattr);
+	if (error)
+		goto out;
+
+	error = inode_setattr(inode, iattr);
+	if (error)
+		goto out;
+
+	de->uid = inode->i_uid;
+	de->gid = inode->i_gid;
+	de->mode = inode->i_mode;
+out:
+	return error;
+}
 
 #endif
 
@@ -831,6 +895,40 @@ static atomic_t ccs_query_observers = ATOMIC_INIT(0);
 static unsigned int ccs_stat_updated[CCS_MAX_POLICY_STAT];
 /* Counter for number of updates. */
 static unsigned int ccs_stat_modified[CCS_MAX_POLICY_STAT];
+
+/* Operations for /proc/ccs/self_domain interface. */
+static
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
+const
+#endif
+struct file_operations ccs_self_operations = {
+	.write = ccs_write_self,
+	.read  = ccs_read_self,
+};
+
+/* Operations for /proc/ccs/ interface. */
+static
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
+const
+#endif
+struct file_operations ccs_operations = {
+	.open    = ccs_open,
+	.release = ccs_release,
+	.poll    = ccs_poll,
+	.read    = ccs_read,
+	.write   = ccs_write,
+};
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+/* The inode operations for /proc/ccs/ directory. */
+static struct inode_operations ccs_dir_inode_operations;
+
+/* The inode operations for files under /proc/ccs/ directory. */
+static struct inode_operations ccs_file_inode_operations;
+
+#endif
+
 
 /***** SECTION6: Dependent functions section *****/
 
@@ -4129,84 +4227,6 @@ static int ccs_write_stat(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_open_control - open() for /proc/ccs/ interface.
- *
- * @type: Type of interface.
- * @file: Pointer to "struct file".
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_open_control(const u8 type, struct file *file)
-{
-	struct ccs_io_buffer *head = kzalloc(sizeof(*head), CCS_GFP_FLAGS);
-	if (!head)
-		return -ENOMEM;
-	mutex_init(&head->io_sem);
-	head->type = type;
-	if (type == CCS_EXECUTE_HANDLER) {
-		/* Allow execute_handler to read process's status. */
-		if (!(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
-			kfree(head);
-			return -EPERM;
-		}
-	}
-	if ((file->f_mode & FMODE_READ) && type != CCS_AUDIT &&
-	    type != CCS_QUERY) {
-		/* Don't allocate read_buf for poll() access. */
-		head->readbuf_size = 4096;
-		head->read_buf = kzalloc(head->readbuf_size, CCS_GFP_FLAGS);
-		if (!head->read_buf) {
-			kfree(head);
-			return -ENOMEM;
-		}
-	}
-	if (file->f_mode & FMODE_WRITE) {
-		head->writebuf_size = 4096;
-		head->write_buf = kzalloc(head->writebuf_size, CCS_GFP_FLAGS);
-		if (!head->write_buf) {
-			kfree(head->read_buf);
-			kfree(head);
-			return -ENOMEM;
-		}
-	}
-	/*
-	 * If the file is /proc/ccs/query, increment the observer counter.
-	 * The obserber counter is used by ccs_supervisor() to see if
-	 * there is some process monitoring /proc/ccs/query.
-	 */
-	if (type == CCS_QUERY)
-		atomic_inc(&ccs_query_observers);
-	file->private_data = head;
-	ccs_notify_gc(head, true);
-	return 0;
-}
-
-/**
- * ccs_poll_control - poll() for /proc/ccs/ interface.
- *
- * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
- *
- * Returns return value of poll().
- *
- * Waits for read readiness.
- * /proc/ccs/query is handled by /usr/sbin/ccs-queryd and
- * /proc/ccs/audit is handled by /usr/sbin/ccs-auditd.
- */
-int ccs_poll_control(struct file *file, poll_table *wait)
-{
-	struct ccs_io_buffer *head = file->private_data;
-	switch (head->type) {
-	case CCS_AUDIT:
-		return ccs_poll_log(file, wait);
-	case CCS_QUERY:
-		return ccs_poll_query(file, wait);
-	default:
-		return -ENOSYS;
-	}
-}
-
-/**
  * ccs_set_namespace_cursor - Set namespace to read.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -4242,68 +4262,6 @@ static bool ccs_has_more_namespace(struct ccs_io_buffer *head)
 	return (head->type == CCS_EXCEPTIONPOLICY ||
 		head->type == CCS_PROFILE) && head->r.eof &&
 		head->r.ns->next != &ccs_namespace_list;
-}
-
-/**
- * ccs_read_control - read() for /proc/ccs/ interface.
- *
- * @head:       Pointer to "struct ccs_io_buffer".
- * @buffer:     Poiner to buffer to write to.
- * @buffer_len: Size of @buffer.
- *
- * Returns bytes read on success, negative value otherwise.
- */
-ssize_t ccs_read_control(struct ccs_io_buffer *head, char __user *buffer,
-			 const size_t buffer_len)
-{
-	int len;
-	int idx;
-	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
-		return -EFAULT;
-	if (mutex_lock_interruptible(&head->io_sem))
-		return -EINTR;
-	head->read_user_buf = buffer;
-	head->read_user_buf_avail = buffer_len;
-	idx = ccs_read_lock();
-	if (ccs_flush(head))
-		/* Call the policy handler. */
-		do {
-			ccs_set_namespace_cursor(head);
-			switch (head->type) {
-			case CCS_DOMAINPOLICY:
-				ccs_read_domain(head);
-				break;
-			case CCS_EXCEPTIONPOLICY:
-				ccs_read_exception(head);
-				break;
-			case CCS_AUDIT:
-				ccs_read_log(head);
-				break;
-			case CCS_EXECUTE_HANDLER:
-			case CCS_PROCESS_STATUS:
-				ccs_read_pid(head);
-				break;
-			case CCS_VERSION:
-				ccs_read_version(head);
-				break;
-			case CCS_STAT:
-				ccs_read_stat(head);
-				break;
-			case CCS_PROFILE:
-				ccs_read_profile(head);
-				break;
-			case CCS_QUERY:
-				ccs_read_query(head);
-				break;
-			case CCS_MANAGER:
-				ccs_read_manager(head);
-				break;
-			}
-		} while (ccs_flush(head) && ccs_has_more_namespace(head));
-	ccs_read_unlock(idx);
-	len = head->read_user_buf - buffer;
-	mutex_unlock(&head->io_sem);
-	return len;
 }
 
 /**
@@ -4361,22 +4319,279 @@ static int ccs_parse_policy(struct ccs_io_buffer *head, char *line)
 }
 
 /**
- * ccs_write_control - write() for /proc/ccs/ interface.
+ * ccs_policy_io_init - Register hooks for policy I/O.
  *
- * @head:       Pointer to "struct ccs_io_buffer".
- * @buffer:     Pointer to buffer to read from.
- * @buffer_len: Size of @buffer.
- *
- * Returns @buffer_len on success, negative value otherwise.
+ * Returns nothing.
  */
-ssize_t ccs_write_control(struct ccs_io_buffer *head,
-			  const char __user *buffer, const size_t buffer_len)
+static void __init ccs_policy_io_init(void)
 {
-	int error = buffer_len;
-	size_t avail_len = buffer_len;
+	ccsecurity_ops.check_profile = ccs_check_profile;
+}
+
+/**
+ * ccs_load_builtin_policy - Load built-in policy.
+ *
+ * Returns nothing.
+ */
+static void __init ccs_load_builtin_policy(void)
+{
+	/*
+	 * This include file is manually created and contains built-in policy
+	 * named "ccs_builtin_profile", "ccs_builtin_exception_policy",
+	 * "ccs_builtin_domain_policy", "ccs_builtin_manager",
+	 * "ccs_builtin_stat" in the form of "static char [] __initdata".
+	 */
+#include "builtin-policy.h"
+	u8 i;
+	const int idx = ccs_read_lock();
+	for (i = 0; i < 5; i++) {
+		struct ccs_io_buffer head = { };
+		char *start = "";
+		switch (i) {
+		case 0:
+			start = ccs_builtin_profile;
+			head.type = CCS_PROFILE;
+			break;
+		case 1:
+			start = ccs_builtin_exception_policy;
+			head.type = CCS_EXCEPTIONPOLICY;
+			break;
+		case 2:
+			start = ccs_builtin_domain_policy;
+			head.type = CCS_DOMAINPOLICY;
+			break;
+		case 3:
+			start = ccs_builtin_manager;
+			head.type = CCS_MANAGER;
+			break;
+		case 4:
+			start = ccs_builtin_stat;
+			head.type = CCS_STAT;
+			break;
+		}
+		while (1) {
+			char *end = strchr(start, '\n');
+			if (!end)
+				break;
+			*end = '\0';
+			ccs_normalize_line(start);
+			head.write_buf = start;
+			ccs_parse_policy(&head, start);
+			start = end + 1;
+		}
+	}
+	ccs_read_unlock(idx);
+#ifdef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
+	ccs_check_profile();
+#endif
+}
+
+/**
+ * ccs_read_self - read() for /proc/ccs/self_domain interface.
+ *
+ * @file:  Pointer to "struct file".
+ * @buf:   Domainname which current thread belongs to.
+ * @count: Size of @buf.
+ * @ppos:  Bytes read by now.
+ *
+ * Returns read size on success, negative value otherwise.
+ */
+static ssize_t ccs_read_self(struct file *file, char __user *buf, size_t count,
+			     loff_t *ppos)
+{
+	const char *domain = ccs_current_domain()->domainname->name;
+	loff_t len = strlen(domain);
+	loff_t pos = *ppos;
+	if (pos >= len || !count)
+		return 0;
+	len -= pos;
+	if (count < len)
+		len = count;
+	if (copy_to_user(buf, domain + pos, len))
+		return -EFAULT;
+	*ppos += len;
+	return len;
+}
+
+/**
+ * ccs_open - open() for /proc/ccs/ interface.
+ *
+ * @inode: Pointer to "struct inode".
+ * @file:  Pointer to "struct file".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_open(struct inode *inode, struct file *file)
+{
+	const u8 type = (unsigned long) PDE(inode)->data;
+	struct ccs_io_buffer *head = kzalloc(sizeof(*head), CCS_GFP_FLAGS);
+	if (!head)
+		return -ENOMEM;
+	mutex_init(&head->io_sem);
+	head->type = type;
+	if (type == CCS_EXECUTE_HANDLER) {
+		/* Allow execute_handler to read process's status. */
+		if (!(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
+			kfree(head);
+			return -EPERM;
+		}
+	}
+	if ((file->f_mode & FMODE_READ) && type != CCS_AUDIT &&
+	    type != CCS_QUERY) {
+		/* Don't allocate read_buf for poll() access. */
+		head->readbuf_size = 4096;
+		head->read_buf = kzalloc(head->readbuf_size, CCS_GFP_FLAGS);
+		if (!head->read_buf) {
+			kfree(head);
+			return -ENOMEM;
+		}
+	}
+	if (file->f_mode & FMODE_WRITE) {
+		head->writebuf_size = 4096;
+		head->write_buf = kzalloc(head->writebuf_size, CCS_GFP_FLAGS);
+		if (!head->write_buf) {
+			kfree(head->read_buf);
+			kfree(head);
+			return -ENOMEM;
+		}
+	}
+	/*
+	 * If the file is /proc/ccs/query, increment the observer counter.
+	 * The obserber counter is used by ccs_supervisor() to see if
+	 * there is some process monitoring /proc/ccs/query.
+	 */
+	if (type == CCS_QUERY)
+		atomic_inc(&ccs_query_observers);
+	file->private_data = head;
+	ccs_notify_gc(head, true);
+	return 0;
+}
+
+/**
+ * ccs_release - close() for /proc/ccs/ interface.
+ *
+ * @inode: Pointer to "struct inode".
+ * @file:  Pointer to "struct file".
+ *
+ * Returns 0.
+ */
+static int ccs_release(struct inode *inode, struct file *file)
+{
+	struct ccs_io_buffer *head = file->private_data;
+	/*
+	 * If the file is /proc/ccs/query, decrement the observer counter.
+	 */
+	if (head->type == CCS_QUERY &&
+	    atomic_dec_and_test(&ccs_query_observers))
+		wake_up_all(&ccs_answer_wait);
+	ccs_notify_gc(head, false);
+	return 0;
+}
+
+/**
+ * ccs_poll - poll() for /proc/ccs/ interface.
+ *
+ * @file: Pointer to "struct file".
+ * @wait: Pointer to "poll_table".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static unsigned int ccs_poll(struct file *file, poll_table *wait)
+{
+	struct ccs_io_buffer *head = file->private_data;
+	switch (head->type) {
+	case CCS_AUDIT:
+		return ccs_poll_log(file, wait);
+	case CCS_QUERY:
+		return ccs_poll_query(file, wait);
+	default:
+		return -ENOSYS;
+	}
+}
+
+/**
+ * ccs_read - read() for /proc/ccs/ interface.
+ *
+ * @file:  Pointer to "struct file".
+ * @buf:   Pointer to buffer.
+ * @count: Size of @buf.
+ * @ppos:  Unused.
+ *
+ * Returns bytes read on success, negative value otherwise.
+ */
+static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
+			loff_t *ppos)
+{
+	struct ccs_io_buffer *head = file->private_data;
+	int len;
+	int idx;
+	if (!access_ok(VERIFY_WRITE, buf, count))
+		return -EFAULT;
+	if (mutex_lock_interruptible(&head->io_sem))
+		return -EINTR;
+	head->read_user_buf = buf;
+	head->read_user_buf_avail = count;
+	idx = ccs_read_lock();
+	if (ccs_flush(head))
+		/* Call the policy handler. */
+		do {
+			ccs_set_namespace_cursor(head);
+			switch (head->type) {
+			case CCS_DOMAINPOLICY:
+				ccs_read_domain(head);
+				break;
+			case CCS_EXCEPTIONPOLICY:
+				ccs_read_exception(head);
+				break;
+			case CCS_AUDIT:
+				ccs_read_log(head);
+				break;
+			case CCS_EXECUTE_HANDLER:
+			case CCS_PROCESS_STATUS:
+				ccs_read_pid(head);
+				break;
+			case CCS_VERSION:
+				ccs_read_version(head);
+				break;
+			case CCS_STAT:
+				ccs_read_stat(head);
+				break;
+			case CCS_PROFILE:
+				ccs_read_profile(head);
+				break;
+			case CCS_QUERY:
+				ccs_read_query(head);
+				break;
+			case CCS_MANAGER:
+				ccs_read_manager(head);
+				break;
+			}
+		} while (ccs_flush(head) && ccs_has_more_namespace(head));
+	ccs_read_unlock(idx);
+	len = head->read_user_buf - buf;
+	mutex_unlock(&head->io_sem);
+	return len;
+}
+
+/**
+ * ccs_write - write() for /proc/ccs/ interface.
+ *
+ * @file:  Pointer to "struct file".
+ * @buf:   Pointer to buffer.
+ * @count: Size of @buf.
+ * @ppos:  Unused.
+ *
+ * Returns @count on success, negative value otherwise.
+ */
+static ssize_t ccs_write(struct file *file, const char __user *buf,
+			 size_t count, loff_t *ppos)
+{
+	struct ccs_io_buffer *head = file->private_data;
+	int error = count;
+	size_t avail_len = count;
 	char *cp0 = head->write_buf;
 	int idx;
-	if (!access_ok(VERIFY_READ, buffer, buffer_len))
+	if (!access_ok(VERIFY_READ, buf, count))
 		return -EFAULT;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
@@ -4398,12 +4613,12 @@ ssize_t ccs_write_control(struct ccs_io_buffer *head,
 			cp0 = cp;
 			head->writebuf_size = len;
 		}
-		if (get_user(c, buffer)) {
+		if (get_user(c, buf)) {
 			error = -EFAULT;
 			break;
 		}
-		buffer++;
-		avail_len--;
+		buf++;
+		count--;
 		cp0[head->w.avail++] = c;
 		if (c != '\n')
 			continue;
@@ -4464,88 +4679,92 @@ out:
 }
 
 /**
- * ccs_close_control - close() for /proc/ccs/ interface.
+ * ccs_create_entry - Create interface files under /proc/ccs/ directory.
  *
- * @head: Pointer to "struct ccs_io_buffer".
+ * @name:   The name of the interface file.
+ * @mode:   The permission of the interface file.
+ * @parent: The parent directory.
+ * @key:    Type of interface.
+ *
+ * Returns nothing.
+ */
+static void __init ccs_create_entry(const char *name, const mode_t mode,
+				    struct proc_dir_entry *parent,
+				    const u8 key)
+{
+	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
+	if (entry) {
+		entry->proc_fops = &ccs_operations;
+		entry->data = ((u8 *) NULL) + key;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+		if (entry->proc_iops)
+			ccs_file_inode_operations = *entry->proc_iops;
+		if (!ccs_file_inode_operations.setattr)
+			ccs_file_inode_operations.setattr = proc_notify_change;
+		entry->proc_iops = &ccs_file_inode_operations;
+#endif
+	}
+}
+
+/**
+ * ccs_proc_init - Initialize /proc/ccs/ interface.
  *
  * Returns 0.
  */
-int ccs_close_control(struct ccs_io_buffer *head)
+static void __init ccs_proc_init(void)
 {
-	/*
-	 * If the file is /proc/ccs/query, decrement the observer counter.
-	 */
-	if (head->type == CCS_QUERY &&
-	    atomic_dec_and_test(&ccs_query_observers))
-		wake_up_all(&ccs_answer_wait);
-	ccs_notify_gc(head, false);
+	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+	if (ccs_dir->proc_iops)
+		ccs_dir_inode_operations = *ccs_dir->proc_iops;
+	if (!ccs_dir_inode_operations.setattr)
+		ccs_dir_inode_operations.setattr = proc_notify_change;
+	ccs_dir->proc_iops = &ccs_dir_inode_operations;
+#endif
+	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
+	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
+	ccs_create_entry("exception_policy", 0600, ccs_dir,
+			 CCS_EXCEPTIONPOLICY);
+	ccs_create_entry("audit",            0400, ccs_dir, CCS_AUDIT);
+	ccs_create_entry(".process_status",  0600, ccs_dir,
+			 CCS_PROCESS_STATUS);
+	ccs_create_entry("stat",             0644, ccs_dir, CCS_STAT);
+	ccs_create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
+	ccs_create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
+	ccs_create_entry("version",          0400, ccs_dir, CCS_VERSION);
+	ccs_create_entry(".execute_handler", 0666, ccs_dir,
+			 CCS_EXECUTE_HANDLER);
+	{
+		struct proc_dir_entry *e = create_proc_entry("self_domain",
+							     0666, ccs_dir);
+		if (e)
+			e->proc_fops = &ccs_self_operations;
+	}
+}
+
+/**
+ * ccs_init_module - Initialize this module.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __init ccs_init_module(void)
+{
+	if (ccsecurity_ops.disabled)
+		return -EINVAL;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
+	MOD_INC_USE_COUNT;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+	if (init_srcu_struct(&ccs_ss))
+		panic("Out of memory.");
+#endif
+	ccs_mm_init();
+	ccs_policy_io_init();
+	ccs_domain_init();
+	ccs_proc_init();
+	ccs_load_builtin_policy();
 	return 0;
 }
 
-/**
- * ccs_policy_io_init - Register hooks for policy I/O.
- *
- * Returns nothing.
- */
-void __init ccs_policy_io_init(void)
-{
-	ccsecurity_ops.check_profile = ccs_check_profile;
-}
-
-/**
- * ccs_load_builtin_policy - Load built-in policy.
- *
- * Returns nothing.
- */
-void __init ccs_load_builtin_policy(void)
-{
-	/*
-	 * This include file is manually created and contains built-in policy
-	 * named "ccs_builtin_profile", "ccs_builtin_exception_policy",
-	 * "ccs_builtin_domain_policy", "ccs_builtin_manager",
-	 * "ccs_builtin_stat" in the form of "static char [] __initdata".
-	 */
-#include "builtin-policy.h"
-	u8 i;
-	const int idx = ccs_read_lock();
-	for (i = 0; i < 5; i++) {
-		struct ccs_io_buffer head = { };
-		char *start = "";
-		switch (i) {
-		case 0:
-			start = ccs_builtin_profile;
-			head.type = CCS_PROFILE;
-			break;
-		case 1:
-			start = ccs_builtin_exception_policy;
-			head.type = CCS_EXCEPTIONPOLICY;
-			break;
-		case 2:
-			start = ccs_builtin_domain_policy;
-			head.type = CCS_DOMAINPOLICY;
-			break;
-		case 3:
-			start = ccs_builtin_manager;
-			head.type = CCS_MANAGER;
-			break;
-		case 4:
-			start = ccs_builtin_stat;
-			head.type = CCS_STAT;
-			break;
-		}
-		while (1) {
-			char *end = strchr(start, '\n');
-			if (!end)
-				break;
-			*end = '\0';
-			ccs_normalize_line(start);
-			head.write_buf = start;
-			ccs_parse_policy(&head, start);
-			start = end + 1;
-		}
-	}
-	ccs_read_unlock(idx);
-#ifdef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
-	ccs_check_profile();
-#endif
-}
+MODULE_LICENSE("GPL");
+module_init(ccs_init_module);
