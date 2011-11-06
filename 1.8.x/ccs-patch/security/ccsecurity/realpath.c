@@ -7,6 +7,11 @@
  */
 
 #include "internal.h"
+
+/***** SECTION1: Constants definition *****/
+
+#define SOCKFS_MAGIC 0x534F434B
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #define ccs_lookup_flags LOOKUP_FOLLOW
 #else
@@ -16,6 +21,28 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define s_fs_info u.generic_sbp
 #endif
+
+/***** SECTION2: Structure definition *****/
+
+/***** SECTION3: Prototype definition section *****/
+
+char *ccs_encode(const char *str);
+char *ccs_encode2(const char *str, int str_len);
+char *ccs_realpath_from_path(struct path *path);
+int ccs_get_path(const char *pathname, struct path *path);
+int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
+
+static char *ccs_get_absolute_path(struct path *path, char * const buffer,
+				   const int buflen);
+static char *ccs_get_dentry_path(struct dentry *dentry, char * const buffer,
+				 const int buflen);
+static char *ccs_get_local_path(struct dentry *dentry, char * const buffer,
+				const int buflen);
+static char *ccs_get_socket_name(struct path *path, char * const buffer,
+				 const int buflen);
+static int ccs_kern_path(const char *pathname, int flags, struct path *path);
+
+/***** SECTION4: Standalone functions section *****/
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
@@ -168,6 +195,10 @@ static inline void ccs_realpath_unlock(void)
 }
 
 #endif
+
+/***** SECTION5: Variables definition section *****/
+
+/***** SECTION6: Dependent functions section *****/
 
 /**
  * ccs_kern_path - Wrapper for kern_path().

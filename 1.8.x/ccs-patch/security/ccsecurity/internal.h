@@ -80,6 +80,12 @@ struct path {
 
 #endif
 
+#ifndef __printf
+#define __printf(a,b) __attribute__((format(printf,a,b)))
+#endif
+#ifndef __packed
+#define __packed __attribute__((__packed__))
+#endif
 #ifndef bool
 #define bool _Bool
 #endif
@@ -811,13 +817,13 @@ enum ccs_value_type {
 struct ccs_acl_head {
 	struct list_head list;
 	s8 is_deleted; /* true or false or CCS_GC_IN_PROGRESS */
-} __attribute__((__packed__));
+} __packed;
 
 /* Common header for shared entries. */
 struct ccs_shared_acl_head {
 	struct list_head list;
 	atomic_t users;
-} __attribute__((__packed__));
+} __packed;
 
 /* Common header for individual entries. */
 struct ccs_acl_info {
@@ -826,7 +832,7 @@ struct ccs_acl_info {
 	s8 is_deleted; /* true or false or CCS_GC_IN_PROGRESS */
 	u8 type; /* One of values in "enum ccs_acl_entry_type_index". */
 	u16 perm;
-} __attribute__((__packed__));
+} __packed;
 
 /* Structure for holding a word. */
 struct ccs_name_union {
@@ -1415,7 +1421,7 @@ struct ccs_policy_namespace {
 
 /* Prototype definition for "struct ccsecurity_operations". */
 
-void __init ccs_domain_init(void);
+void __init ccs_permission_init(void);
 void __init ccs_mm_init(void);
 
 /* Prototype definition for internal use. */
@@ -1429,27 +1435,22 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
-char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
-		   va_list args);
 char *ccs_read_token(struct ccs_acl_param *param);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_get_exe(void);
-const char *ccs_yesno(const unsigned int value);
 const struct ccs_path_info *ccs_get_name(const char *name);
 int ccs_get_path(const char *pathname, struct path *path);
-int ccs_poll_log(struct file *file, poll_table *wait);
 int ccs_print_ipv4(char *buffer, const unsigned int buffer_len, const u32 *ip);
 int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
 		   const struct in6_addr *ip);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
-	__attribute__ ((format(printf, 2, 3)));
+	__printf(2, 3);
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 ssize_t ccs_write_self(struct file *file, const char __user *buf, size_t count,
 		       loff_t *ppos);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const bool transit);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
-struct ccs_group *ccs_get_group(struct ccs_acl_param *param, const u8 idx);
 struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
 struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_get_config(const u8 profile, const u8 index);
@@ -1462,23 +1463,18 @@ void ccs_get_attributes(struct ccs_obj_info *obj);
 void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
 void ccs_normalize_line(unsigned char *buffer);
 void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
-void ccs_read_log(struct ccs_io_buffer *head);
 void ccs_transition_failed(const char *domainname);
 void ccs_update_stat(const u8 index);
 void ccs_warn_oom(const char *function);
 void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
-	__attribute__ ((format(printf, 2, 3)));
-void ccs_write_log2(struct ccs_request_info *r, int len, const char *fmt,
-		    va_list args);
+	__printf(2, 3);
 
 /* Variable definition for internal use. */
 
 extern bool ccs_policy_loaded;
-extern const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 extern const char * const ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS];
 extern const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 					   + CCS_MAX_MAC_CATEGORY_INDEX];
-extern const char * const ccs_mode[CCS_CONFIG_MAX_MODE];
 extern const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION];
 extern const char * const ccs_proto_keyword[CCS_SOCK_MAX];
 extern const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION];
@@ -1491,7 +1487,6 @@ extern struct ccs_domain_info ccs_kernel_domain;
 extern struct ccs_policy_namespace ccs_kernel_namespace;
 extern struct list_head ccs_condition_list;
 extern struct list_head ccs_domain_list;
-extern struct list_head ccs_manager_list;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern struct list_head ccs_namespace_list;
 extern struct mutex ccs_policy_lock;
