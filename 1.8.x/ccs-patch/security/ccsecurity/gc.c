@@ -72,6 +72,31 @@ static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type)
 	kfree(ptr);
 }
 
+/**
+ * ccs_put_name_union - Drop reference on "struct ccs_name_union".
+ *
+ * @ptr: Pointer to "struct ccs_name_union".
+ *
+ * Returns nothing.
+ */
+static void ccs_put_name_union(struct ccs_name_union *ptr)
+{
+	ccs_put_group(ptr->group);
+	ccs_put_name(ptr->filename);
+}
+
+/**
+ * ccs_put_number_union - Drop reference on "struct ccs_number_union".
+ *
+ * @ptr: Pointer to "struct ccs_number_union".
+ *
+ * Returns nothing.
+ */
+static void ccs_put_number_union(struct ccs_number_union *ptr)
+{
+	ccs_put_group(ptr->group);
+}
+
 /* The list for "struct ccs_io_buffer". */
 static LIST_HEAD(ccs_io_buffer_list);
 /* Lock for protecting ccs_io_buffer_list. */
@@ -264,7 +289,7 @@ out:
  *
  * Returns nothing.
  */
-static void ccs_del_acl(struct list_head *element)
+void ccs_del_acl(struct list_head *element)
 {
 	struct ccs_acl_info *acl = container_of(element, typeof(*acl), list);
 	ccs_put_condition(acl->cond);
@@ -343,6 +368,7 @@ static void ccs_del_acl(struct list_head *element)
 		{
 			struct ccs_signal_acl *entry =
 				container_of(acl, typeof(*entry), head);
+			ccs_put_number_union(&entry->sig);
 			ccs_put_name(entry->domainname);
 		}
 		break;

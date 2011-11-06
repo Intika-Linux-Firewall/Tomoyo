@@ -8,153 +8,656 @@
 
 #include "internal.h"
 
+/***** SECTION1: Constants definition *****/
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+
+/*
+ * may_open() receives open flags modified by open_to_namei_flags() until
+ * 2.6.32. We stop here in case some distributions backported ACC_MODE changes,
+ * for we can't determine whether may_open() receives open flags modified by
+ * open_to_namei_flags() or not.
+ */
+#ifdef ACC_MODE
+#error ACC_MODE already defined.
+#endif
+#define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
+
+#if defined(RHEL_MAJOR) && RHEL_MAJOR == 6
+/* RHEL6 passes unmodified flags since 2.6.32-71.14.1.el6 . */
+#undef ACC_MODE
+#define ACC_MODE(x) ("\004\002\006"[(x)&O_ACCMODE])
+#endif
+
+#endif
+
+/* To support PID namespace. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+#define find_task_by_pid ccsecurity_exports.find_task_by_vpid
+#endif
+
+/* String table for special mount operations. */
+static const char * const ccs_mounts[CCS_MAX_SPECIAL_MOUNT] = {
+	[CCS_MOUNT_BIND]            = "--bind",
+	[CCS_MOUNT_MOVE]            = "--move",
+	[CCS_MOUNT_REMOUNT]         = "--remount",
+	[CCS_MOUNT_MAKE_UNBINDABLE] = "--make-unbindable",
+	[CCS_MOUNT_MAKE_PRIVATE]    = "--make-private",
+	[CCS_MOUNT_MAKE_SLAVE]      = "--make-slave",
+	[CCS_MOUNT_MAKE_SHARED]     = "--make-shared",
+};
+
+/* Mapping table from "enum ccs_path_acl_index" to "enum ccs_mac_index". */
+static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
+	[CCS_TYPE_EXECUTE]    = CCS_MAC_FILE_EXECUTE,
+	[CCS_TYPE_READ]       = CCS_MAC_FILE_OPEN,
+	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_OPEN,
+	[CCS_TYPE_APPEND]     = CCS_MAC_FILE_OPEN,
+	[CCS_TYPE_UNLINK]     = CCS_MAC_FILE_UNLINK,
+	[CCS_TYPE_GETATTR]    = CCS_MAC_FILE_GETATTR,
+	[CCS_TYPE_RMDIR]      = CCS_MAC_FILE_RMDIR,
+	[CCS_TYPE_TRUNCATE]   = CCS_MAC_FILE_TRUNCATE,
+	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
+	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
+	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
+};
+
+/* Mapping table from "enum ccs_mkdev_acl_index" to "enum ccs_mac_index". */
+const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION] = {
+	[CCS_TYPE_MKBLOCK] = CCS_MAC_FILE_MKBLOCK,
+	[CCS_TYPE_MKCHAR]  = CCS_MAC_FILE_MKCHAR,
+};
+
+/* Mapping table from "enum ccs_path2_acl_index" to "enum ccs_mac_index". */
+const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION] = {
+	[CCS_TYPE_LINK]       = CCS_MAC_FILE_LINK,
+	[CCS_TYPE_RENAME]     = CCS_MAC_FILE_RENAME,
+	[CCS_TYPE_PIVOT_ROOT] = CCS_MAC_FILE_PIVOT_ROOT,
+};
+
+/*
+ * Mapping table from "enum ccs_path_number_acl_index" to "enum ccs_mac_index".
+ */
+const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
+	[CCS_TYPE_CREATE] = CCS_MAC_FILE_CREATE,
+	[CCS_TYPE_MKDIR]  = CCS_MAC_FILE_MKDIR,
+	[CCS_TYPE_MKFIFO] = CCS_MAC_FILE_MKFIFO,
+	[CCS_TYPE_MKSOCK] = CCS_MAC_FILE_MKSOCK,
+	[CCS_TYPE_IOCTL]  = CCS_MAC_FILE_IOCTL,
+	[CCS_TYPE_CHMOD]  = CCS_MAC_FILE_CHMOD,
+	[CCS_TYPE_CHOWN]  = CCS_MAC_FILE_CHOWN,
+	[CCS_TYPE_CHGRP]  = CCS_MAC_FILE_CHGRP,
+};
+
+/* String table for socket's protocols. */
+const char * const ccs_proto_keyword[CCS_SOCK_MAX] = {
+	[SOCK_STREAM]    = "stream",
+	[SOCK_DGRAM]     = "dgram",
+	[SOCK_RAW]       = "raw",
+	[SOCK_SEQPACKET] = "seqpacket",
+	[0] = " ", /* Dummy for avoiding NULL pointer dereference. */
+	[4] = " ", /* Dummy for avoiding NULL pointer dereference. */
+};
+
+/*
+ * Mapping table from "enum ccs_network_acl_index" to "enum ccs_mac_index" for
+ * inet domain socket.
+ */
+static const u8 ccs_inet2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
+	[SOCK_STREAM] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_STREAM_BIND,
+		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_INET_STREAM_LISTEN,
+		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_INET_STREAM_CONNECT,
+		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_INET_STREAM_ACCEPT,
+	},
+	[SOCK_DGRAM] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_DGRAM_BIND,
+		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_DGRAM_SEND,
+		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_DGRAM_RECV,
+	},
+	[SOCK_RAW]    = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_RAW_BIND,
+		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_RAW_SEND,
+		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_RAW_RECV,
+	},
+};
+
+/*
+ * Mapping table from "enum ccs_network_acl_index" to "enum ccs_mac_index" for
+ * unix domain socket.
+ */
+static const u8 ccs_unix2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
+	[SOCK_STREAM] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_STREAM_BIND,
+		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_UNIX_STREAM_LISTEN,
+		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_UNIX_STREAM_CONNECT,
+		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT,
+	},
+	[SOCK_DGRAM] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_DGRAM_BIND,
+		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_UNIX_DGRAM_SEND,
+		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_UNIX_DGRAM_RECV,
+	},
+	[SOCK_SEQPACKET] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND,
+		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
+		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
+		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
+	},
+};
+
+/*
+ * Mapping table from "enum ccs_capability_acl_index" to "enum ccs_mac_index".
+ */
+const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX] = {
+	[CCS_USE_ROUTE_SOCKET]  = CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET,
+	[CCS_USE_PACKET_SOCKET] = CCS_MAC_CAPABILITY_USE_PACKET_SOCKET,
+	[CCS_SYS_REBOOT]        = CCS_MAC_CAPABILITY_SYS_REBOOT,
+	[CCS_SYS_VHANGUP]       = CCS_MAC_CAPABILITY_SYS_VHANGUP,
+	[CCS_SYS_SETTIME]       = CCS_MAC_CAPABILITY_SYS_SETTIME,
+	[CCS_SYS_NICE]          = CCS_MAC_CAPABILITY_SYS_NICE,
+	[CCS_SYS_SETHOSTNAME]   = CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
+	[CCS_USE_KERNEL_MODULE] = CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
+	[CCS_SYS_KEXEC_LOAD]    = CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
+	[CCS_SYS_PTRACE]        = CCS_MAC_CAPABILITY_SYS_PTRACE,
+};
+
+/***** SECTION2: Structure definition *****/
+
+/* Structure for holding inet domain socket's address. */
+struct ccs_inet_addr_info {
+	u16 port;           /* In network byte order. */
+	const u32 *address; /* In network byte order. */
+	bool is_ipv6;
+};
+
+/* Structure for holding unix domain socket's address. */
+struct ccs_unix_addr_info {
+	u8 *addr; /* This may not be '\0' terminated string. */
+	unsigned int addr_len;
+};
+
+/* Structure for holding socket address. */
+struct ccs_addr_info {
+	u8 protocol;
+	u8 operation;
+	struct ccs_inet_addr_info inet;
+	struct ccs_unix_addr_info unix0;
+};
+
+/***** SECTION3: Prototype definition section *****/
+
+static const struct ccs_path_info *ccs_path_matches_group(const struct ccs_path_info *pathname, const struct ccs_group *group);
+static bool ccs_number_matches_group(const unsigned long min, const unsigned long max, const struct ccs_group *group);
+static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address, const struct ccs_group *group);
+static void ccs_check_acl(struct ccs_request_info *r);
+static const char *ccs_last_word(const char *name);
+static bool ccs_scan_transition(const struct list_head *list, const struct ccs_path_info *domainname, const struct ccs_path_info *program, const char *last_name, const enum ccs_transition_type type);
+static enum ccs_transition_type ccs_transition_type(const struct ccs_policy_namespace *ns, const struct ccs_path_info *domainname, const struct ccs_path_info *program);
+static struct ccs_policy_namespace *ccs_find_namespace(const char *name, const unsigned int len);
+struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
+static bool ccs_namespace_jump(const char *domainname);
+struct ccs_domain_info *ccs_assign_domain(const char *domainname, const bool transit);
+static int ccs_find_next_domain(struct ccs_execve *ee);
+static int ccs_environ(struct ccs_execve *ee);
+static void ccs_unescape(unsigned char *dest);
+static int ccs_try_alt_exec(struct ccs_execve *ee);
+static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type);
+bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
+static int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve **eep);
+static void ccs_finish_execve(int retval, struct ccs_execve *ee);
+static int __ccs_search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
+static int ccs_audit_mount_log(struct ccs_request_info *r);
+static bool ccs_check_mount_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name, struct path *dir, const char *type, unsigned long flags);
+static int __ccs_mount_permission(char *dev_name, struct path *path, const char *type, unsigned long flags, void *data_page);
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd, const char *type, unsigned long flags, void *data_page);
+#endif
+static bool ccs_compare_number_union(const unsigned long value, const struct ccs_number_union *ptr);
+static const struct ccs_path_info *ccs_compare_name_union
+(const struct ccs_path_info *name, const struct ccs_name_union *ptr);
+static void ccs_add_slash(struct ccs_path_info *buf);
+static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry, struct vfsmount *mnt);
+static int ccs_audit_path_log(struct ccs_request_info *r);
+static int ccs_audit_path2_log(struct ccs_request_info *r);
+static int ccs_audit_mkdev_log(struct ccs_request_info *r);
+static int ccs_audit_path_number_log(struct ccs_request_info *r);
+static bool ccs_check_path_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static bool ccs_check_path_number_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static bool ccs_check_path2_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static bool ccs_check_mkdev_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static int ccs_path_permission(struct ccs_request_info *r, u8 operation, const struct ccs_path_info *filename);
+static int ccs_execute_permission(struct ccs_request_info *r, const struct ccs_path_info *filename);
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+static void __ccs_save_open_mode(int mode);
+static void __ccs_clear_open_mode(void);
+#endif
+static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt, const int flag);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+static int ccs_new_open_permission(struct file *filp);
+#endif
+static int ccs_path_perm(const u8 operation, struct dentry *dentry, struct vfsmount *mnt, const char *target);
+static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry, struct vfsmount *mnt, const unsigned int mode, unsigned int dev);
+static int ccs_path2_perm(const u8 operation, struct dentry *dentry1, struct vfsmount *mnt1, struct dentry *dentry2, struct vfsmount *mnt2);
+static int ccs_path_number_perm(const u8 type, struct dentry *dentry, struct vfsmount *vfsmnt, unsigned long number);
+static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd, unsigned long arg);
+static int __ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt, mode_t mode);
+static int __ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt, uid_t user, gid_t group);
+static int __ccs_fcntl_permission(struct file *file, unsigned int cmd, unsigned long arg);
+static int __ccs_pivot_root_permission(struct path *old_path, struct path *new_path);
+static int __ccs_chroot_permission(struct path *path);
+static int __ccs_umount_permission(struct vfsmount *mnt, int flags);
+static int __ccs_mknod_permission(struct dentry *dentry, struct vfsmount *mnt, const unsigned int mode, unsigned int dev);
+static int __ccs_mkdir_permission(struct dentry *dentry, struct vfsmount *mnt, unsigned int mode);
+static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt);
+static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt);
+static int __ccs_getattr_permission(struct vfsmount *mnt, struct dentry *dentry);
+static int __ccs_symlink_permission(struct dentry *dentry, struct vfsmount *mnt, const char *from);
+static int __ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt);
+static int __ccs_rename_permission(struct dentry *old_dentry, struct dentry *new_dentry, struct vfsmount *mnt);
+static int __ccs_link_permission(struct dentry *old_dentry, struct dentry *new_dentry, struct vfsmount *mnt);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+static int __ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
+static int __ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
+#endif
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
+static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval, void __user *newval, struct ctl_table *table);
+#endif
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+static int ccs_old_pivot_root_permission(struct nameidata *old_nd, struct nameidata *new_nd);
+static int ccs_old_chroot_permission(struct nameidata *nd);
+#endif
+static int ccs_audit_net_log(struct ccs_request_info *r, const char *family, const u8 protocol, const u8 operation, const char *address);
+static int ccs_audit_inet_log(struct ccs_request_info *r);
+static int ccs_audit_unix_log(struct ccs_request_info *r);
+static bool ccs_check_inet_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static bool ccs_check_unix_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static int ccs_inet_entry(const struct ccs_addr_info *address);
+static int ccs_check_inet_address(const struct sockaddr *addr, const unsigned int addr_len, const u16 port, struct ccs_addr_info *address);
+static int ccs_unix_entry(const struct ccs_addr_info *address);
+static int ccs_check_unix_address(struct sockaddr *addr, const unsigned int addr_len, struct ccs_addr_info *address);
+static bool ccs_kernel_service(void);
+static u8 ccs_sock_family(struct sock *sk);
+static int __ccs_socket_create_permission(int family, int type, int protocol);
+static int __ccs_socket_listen_permission(struct socket *sock);
+static int __ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr, int addr_len);
+static int __ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr, int addr_len);
+static int __ccs_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg, int size);
+static int __ccs_socket_post_accept_permission(struct socket *sock, struct socket *newsock);
+static int __ccs_socket_post_recvmsg_permission(struct sock *sk, struct sk_buff *skb, int flags);
+static int ccs_audit_capability_log(struct ccs_request_info *r);
+static bool ccs_check_capability_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static bool __ccs_capable(const u8 operation);
+static int __ccs_ptrace_permission(long request, long pid);
+static int ccs_audit_signal_log(struct ccs_request_info *r);
+static bool ccs_check_signal_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static int ccs_signal_acl2(const int sig, const int pid);
+static int ccs_signal_acl(const int pid, const int sig);
+static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig);
+static bool ccs_check_env_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static int ccs_audit_env_log(struct ccs_request_info *r);
+static int ccs_env_perm(struct ccs_request_info *r, const char *env);
+static bool ccs_argv(const unsigned int index, const char *arg_ptr, const int argc, const struct ccs_argv *argv, u8 *checked);
+static bool ccs_envp(const char *env_name, const char *env_value, const int envc, const struct ccs_envp *envp, u8 *checked);
+static bool ccs_scan_bprm(struct ccs_execve *ee, const u16 argc, const struct ccs_argv *argv, const u16 envc, const struct ccs_envp *envp);
+static bool ccs_scan_exec_realpath(struct file *file, const struct ccs_name_union *ptr, const bool match);
+void ccs_get_attributes(struct ccs_obj_info *obj);
+static bool ccs_condition(struct ccs_request_info *r, const struct ccs_condition *cond);
+static bool ccs_check_task_acl(struct ccs_request_info *r, const struct ccs_acl_info *ptr);
+static int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+
+
+/***** SECTION4: Standalone functions section *****/
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+
+/**
+ * ccs_copy_argv - Wrapper for copy_strings_kernel().
+ *
+ * @arg:  String to copy.
+ * @bprm: Pointer to "struct linux_binprm".
+ *
+ * Returns return value of copy_strings_kernel().
+ */
+static int ccs_copy_argv(const char *arg, struct linux_binprm *bprm)
+{
+	const int ret = copy_strings_kernel(1, &arg, bprm);
+	if (ret >= 0)
+		bprm->argc++;
+	return ret;
+}
+
+#else
+
+/**
+ * ccs_copy_argv - Wrapper for copy_strings_kernel().
+ *
+ * @arg:  String to copy.
+ * @bprm: Pointer to "struct linux_binprm".
+ *
+ * Returns return value of copy_strings_kernel().
+ */
+static int ccs_copy_argv(char *arg, struct linux_binprm *bprm)
+{
+	const int ret = copy_strings_kernel(1, &arg, bprm);
+	if (ret >= 0)
+		bprm->argc++;
+	return ret;
+}
+
+#endif
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
+
+/**
+ * get_fs_root - Get reference on root directory.
+ *
+ * @fs:   Pointer to "struct fs_struct".
+ * @root: Pointer to "struct path".
+ *
+ * Returns nothing.
+ *
+ * This is for compatibility with older kernels.
+ */
+static inline void get_fs_root(struct fs_struct *fs, struct path *root)
+{
+	read_lock(&fs->lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	*root = fs->root;
+	path_get(root);
+#else
+	root->dentry = dget(fs->root);
+	root->mnt = mntget(fs->rootmnt);
+#endif
+	read_unlock(&fs->lock);
+}
+
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+/**
+ * module_put - Put a reference on module.
+ *
+ * @module: Pointer to "struct module". Maybe NULL.
+ *
+ * Returns nothing.
+ *
+ * This is for compatibility with older kernels.
+ */
+static inline void module_put(struct module *module)
+{
+	if (module)
+		__MOD_DEC_USE_COUNT(module);
+}
+
+#endif
+
+/**
+ * ccs_put_filesystem - Wrapper for put_filesystem().
+ *
+ * @fstype: Pointer to "struct file_system_type".
+ *
+ * Returns nothing.
+ *
+ * Since put_filesystem() is not exported, I embed put_filesystem() here.
+ */
+static inline void ccs_put_filesystem(struct file_system_type *fstype)
+{
+	module_put(fstype->owner);
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
+#if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
+#if !defined(AX_MAJOR) || AX_MAJOR != 3
+
+/**
+ * ip_hdr - Get "struct iphdr".
+ *
+ * @skb: Pointer to "struct sk_buff".
+ *
+ * Returns pointer to "struct iphdr".
+ *
+ * This is for compatibility with older kernels.
+ */
+static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
+{
+	return skb->nh.iph;
+}
+
+/**
+ * udp_hdr - Get "struct udphdr".
+ *
+ * @skb: Pointer to "struct sk_buff".
+ *
+ * Returns pointer to "struct udphdr".
+ *
+ * This is for compatibility with older kernels.
+ */
+static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
+{
+	return skb->h.uh;
+}
+
+/**
+ * ipv6_hdr - Get "struct ipv6hdr".
+ *
+ * @skb: Pointer to "struct sk_buff".
+ *
+ * Returns pointer to "struct ipv6hdr".
+ *
+ * This is for compatibility with older kernels.
+ */
+static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
+{
+	return skb->nh.ipv6h;
+}
+
+#endif
+#endif
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+/**
+ * skb_kill_datagram - Kill a datagram forcibly.
+ *
+ * @sk:    Pointer to "struct sock".
+ * @skb:   Pointer to "struct sk_buff".
+ * @flags: Flags passed to skb_recv_datagram().
+ *
+ * Returns nothing.
+ */
+static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
+				     int flags)
+{
+	/* Clear queue. */
+	if (flags & MSG_PEEK) {
+		int clear = 0;
+		spin_lock_irq(&sk->receive_queue.lock);
+		if (skb == skb_peek(&sk->receive_queue)) {
+			__skb_unlink(skb, &sk->receive_queue);
+			clear = 1;
+		}
+		spin_unlock_irq(&sk->receive_queue.lock);
+		if (clear)
+			kfree_skb(skb);
+	}
+	skb_free_datagram(sk, skb);
+}
+
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
+
+/**
+ * skb_kill_datagram - Kill a datagram forcibly.
+ *
+ * @sk:    Pointer to "struct sock".
+ * @skb:   Pointer to "struct sk_buff".
+ * @flags: Flags passed to skb_recv_datagram().
+ *
+ * Returns nothing.
+ */
+static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
+				     int flags)
+{
+	/* Clear queue. */
+	if (flags & MSG_PEEK) {
+		int clear = 0;
+		spin_lock_irq(&sk->sk_receive_queue.lock);
+		if (skb == skb_peek(&sk->sk_receive_queue)) {
+			__skb_unlink(skb, &sk->sk_receive_queue);
+			clear = 1;
+		}
+		spin_unlock_irq(&sk->sk_receive_queue.lock);
+		if (clear)
+			kfree_skb(skb);
+	}
+	skb_free_datagram(sk, skb);
+}
+
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
+
+/**
+ * skb_kill_datagram - Kill a datagram forcibly.
+ *
+ * @sk:    Pointer to "struct sock".
+ * @skb:   Pointer to "struct sk_buff".
+ * @flags: Flags passed to skb_recv_datagram().
+ *
+ * Returns nothing.
+ */
+static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
+				     int flags)
+{
+	/* Clear queue. */
+	if (flags & MSG_PEEK) {
+		int clear = 0;
+		spin_lock_bh(&sk->sk_receive_queue.lock);
+		if (skb == skb_peek(&sk->sk_receive_queue)) {
+			__skb_unlink(skb, &sk->sk_receive_queue);
+			clear = 1;
+		}
+		spin_unlock_bh(&sk->sk_receive_queue.lock);
+		if (clear)
+			kfree_skb(skb);
+	}
+	skb_free_datagram(sk, skb);
+}
+
+#endif
+
+/***** SECTION5: Variables definition section *****/
+
 /* The initial domain. */
 struct ccs_domain_info ccs_kernel_domain;
 
 /* The list for "struct ccs_domain_info". */
 LIST_HEAD(ccs_domain_list);
 
+/* List of "struct ccs_condition". */
+LIST_HEAD(ccs_condition_list);
+
+/***** SECTION6: Dependent functions section *****/
+
 /**
- * ccs_update_policy - Update an entry for exception policy.
+ * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
  *
- * @new_entry:       Pointer to "struct ccs_acl_info".
- * @size:            Size of @new_entry in bytes.
- * @param:           Pointer to "struct ccs_acl_param".
- * @check_duplicate: Callback function to find duplicated entry.
+ * @pathname: The name of pathname.
+ * @group:    Pointer to "struct ccs_path_group".
  *
- * Returns 0 on success, negative value otherwise.
+ * Returns matched member's pathname if @pathname matches pathnames in @group,
+ * NULL otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
-		      struct ccs_acl_param *param,
-		      bool (*check_duplicate) (const struct ccs_acl_head *,
-					       const struct ccs_acl_head *))
+static const struct ccs_path_info *ccs_path_matches_group
+(const struct ccs_path_info *pathname, const struct ccs_group *group)
 {
-	int error = param->is_delete ? -ENOENT : -ENOMEM;
-	struct ccs_acl_head *entry;
-	struct list_head *list = param->list;
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		return -ENOMEM;
-	list_for_each_entry_srcu(entry, list, list, &ccs_ss) {
-		if (entry->is_deleted == CCS_GC_IN_PROGRESS)
+	struct ccs_path_group *member;
+	list_for_each_entry_srcu(member, &group->member_list, head.list,
+				 &ccs_ss) {
+		if (member->head.is_deleted)
 			continue;
-		if (!check_duplicate(entry, new_entry))
+		if (!ccs_path_matches_pattern(pathname, member->member_name))
 			continue;
-		entry->is_deleted = param->is_delete;
-		error = 0;
-		break;
+		return member->member_name;
 	}
-	if (error && !param->is_delete) {
-		entry = ccs_commit_ok(new_entry, size);
-		if (entry) {
-			list_add_tail_rcu(&entry->list, list);
-			error = 0;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	return error;
+	return NULL;
 }
 
 /**
- * ccs_same_acl_head - Check for duplicated "struct ccs_acl_info" entry.
+ * ccs_number_matches_group - Check whether the given number matches members of the given number group.
  *
- * @a: Pointer to "struct ccs_acl_info".
- * @b: Pointer to "struct ccs_acl_info".
+ * @min:   Min number.
+ * @max:   Max number.
+ * @group: Pointer to "struct ccs_number_group".
  *
- * Returns true if @a == @b, false otherwise.
- */
-static inline bool ccs_same_acl_head(const struct ccs_acl_info *a,
-				     const struct ccs_acl_info *b)
-{
-	return a->type == b->type && a->cond == b->cond;
-}
-
-/**
- * ccs_update_domain - Update an entry for domain policy.
- *
- * @new_entry:       Pointer to "struct ccs_acl_info".
- * @size:            Size of @new_entry in bytes.
- * @param:           Pointer to "struct ccs_acl_param".
- * @check_duplicate: Callback function to find duplicated entry.
- * @merge_duplicate: Callback function to merge duplicated entry. Maybe NULL.
- *
- * Returns 0 on success, negative value otherwise.
+ * Returns true if @min and @max partially overlaps @group, false otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
-		      struct ccs_acl_param *param,
-		      bool (*check_duplicate) (const struct ccs_acl_info *,
-					       const struct ccs_acl_info *),
-		      bool (*merge_duplicate) (struct ccs_acl_info *,
-					       struct ccs_acl_info *,
-					       const bool))
+static bool ccs_number_matches_group(const unsigned long min,
+				     const unsigned long max,
+				     const struct ccs_group *group)
 {
-	const bool is_delete = param->is_delete;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	struct ccs_acl_info *entry;
-	struct list_head * const list = param->list;
-	if (param->data[0]) {
-		new_entry->cond = ccs_get_condition(param);
-		if (!new_entry->cond)
-			return -EINVAL;
-		/*
-		 * Domain transition preference is allowed for only
-		 * "file execute"/"task auto_execute_handler"/
-		 * "task denied_auto_execute_handler" entries.
-		 */
-		if (new_entry->cond->exec_transit &&
-		    !(new_entry->type == CCS_TYPE_PATH_ACL &&
-		      container_of(new_entry, struct ccs_path_acl, head)->perm
-		      == 1 << CCS_TYPE_EXECUTE) &&
-		    new_entry->type != CCS_TYPE_AUTO_EXECUTE_HANDLER &&
-		    new_entry->type != CCS_TYPE_DENIED_EXECUTE_HANDLER)
-			goto out;
-	}
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		goto out;
-	list_for_each_entry_srcu(entry, list, list, &ccs_ss) {
-		if (entry->is_deleted == CCS_GC_IN_PROGRESS)
+	struct ccs_number_group *member;
+	bool matched = false;
+	list_for_each_entry_srcu(member, &group->member_list, head.list,
+				 &ccs_ss) {
+		if (member->head.is_deleted)
 			continue;
-		if (!ccs_same_acl_head(entry, new_entry) ||
-		    !check_duplicate(entry, new_entry))
+		if (min > member->number.values[1] ||
+		    max < member->number.values[0])
 			continue;
-		if (merge_duplicate)
-			entry->is_deleted = merge_duplicate(entry, new_entry,
-							    is_delete);
-		else
-			entry->is_deleted = is_delete;
-		error = 0;
+		matched = true;
 		break;
 	}
-	if (error && !is_delete) {
-		entry = ccs_commit_ok(new_entry, size);
-		if (entry) {
-			list_add_tail_rcu(&entry->list, list);
-			error = 0;
-		}
+	return matched;
+}
+
+/**
+ * ccs_address_matches_group - Check whether the given address matches members of the given address group.
+ *
+ * @is_ipv6: True if @address is an IPv6 address.
+ * @address: An IPv4 or IPv6 address.
+ * @group:   Pointer to "struct ccs_address_group".
+ *
+ * Returns true if @address matches addresses in @group group, false otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
+				      const struct ccs_group *group)
+{
+	struct ccs_address_group *member;
+	bool matched = false;
+	const u8 size = is_ipv6 ? 16 : 4;
+	list_for_each_entry_srcu(member, &group->member_list, head.list,
+				 &ccs_ss) {
+		if (member->head.is_deleted)
+			continue;
+		if (member->address.is_ipv6 != is_ipv6)
+			continue;
+		if (memcmp(&member->address.ip[0], address, size) > 0 ||
+		    memcmp(address, &member->address.ip[1], size) > 0)
+			continue;
+		matched = true;
+		break;
 	}
-	mutex_unlock(&ccs_policy_lock);
-out:
-	ccs_put_condition(new_entry->cond);
-	return error;
+	return matched;
 }
 
 /**
  * ccs_check_acl - Do permission check.
  *
- * @r:           Pointer to "struct ccs_request_info".
- * @check_entry: Callback function to check type specific parameters.
- *               Maybe NULL.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-void ccs_check_acl(struct ccs_request_info *r,
-		   bool (*check_entry) (struct ccs_request_info *,
-					const struct ccs_acl_info *))
+static void ccs_check_acl(struct ccs_request_info *r)
 {
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
@@ -166,8 +669,52 @@ retry:
 			continue;
 		if (ptr->type != r->param_type)
 			continue;
-		if (check_entry && !check_entry(r, ptr))
+		switch (r->param_type) {
+		case CCS_TYPE_PATH_ACL:
+			if (ccs_check_path_acl(r, ptr))
+				break;
 			continue;
+		case CCS_TYPE_PATH2_ACL:
+			if (ccs_check_path2_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_PATH_NUMBER_ACL:
+			if (ccs_check_path_number_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_MKDEV_ACL:
+			if (ccs_check_mkdev_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_MOUNT_ACL:
+			if (ccs_check_mount_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_ENV_ACL:
+			if (ccs_check_env_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_CAPABILITY_ACL:
+			if (ccs_check_capability_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_INET_ACL:
+			if (ccs_check_inet_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_UNIX_ACL:
+			if (ccs_check_unix_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_SIGNAL_ACL:
+			if (ccs_check_signal_acl(r, ptr))
+				break;
+			continue;
+		case CCS_TYPE_MANUAL_TASK_ACL:
+			if (ccs_check_task_acl(r, ptr))
+				break;
+			continue;
+		}
 		if (!ccs_condition(r, ptr->cond))
 			continue;
 		r->matched_acl = ptr;
@@ -180,74 +727,6 @@ retry:
 		goto retry;
 	}
 	r->granted = false;
-}
-
-/**
- * ccs_same_transition_control - Check for duplicated "struct ccs_transition_control" entry.
- *
- * @a: Pointer to "struct ccs_acl_head".
- * @b: Pointer to "struct ccs_acl_head".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_transition_control(const struct ccs_acl_head *a,
-					const struct ccs_acl_head *b)
-{
-	const struct ccs_transition_control *p1 = container_of(a, typeof(*p1),
-							       head);
-	const struct ccs_transition_control *p2 = container_of(b, typeof(*p2),
-							       head);
-	return p1->type == p2->type && p1->is_last_name == p2->is_last_name
-		&& p1->domainname == p2->domainname
-		&& p1->program == p2->program;
-}
-
-/**
- * ccs_write_transition_control - Write "struct ccs_transition_control" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- * @type:  Type of this entry.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_transition_control(struct ccs_acl_param *param, const u8 type)
-{
-	struct ccs_transition_control e = { .type = type };
-	int error = param->is_delete ? -ENOENT : -ENOMEM;
-	char *program = param->data;
-	char *domainname = strstr(program, " from ");
-	if (domainname) {
-		*domainname = '\0';
-		domainname += 6;
-	} else if (type == CCS_TRANSITION_CONTROL_NO_KEEP ||
-		   type == CCS_TRANSITION_CONTROL_KEEP) {
-		domainname = program;
-		program = NULL;
-	}
-	if (program && strcmp(program, "any")) {
-		if (!ccs_correct_path(program))
-			return -EINVAL;
-		e.program = ccs_get_name(program);
-		if (!e.program)
-			goto out;
-	}
-	if (domainname && strcmp(domainname, "any")) {
-		if (!ccs_correct_domain(domainname)) {
-			if (!ccs_correct_path(domainname))
-				goto out;
-			e.is_last_name = true;
-		}
-		e.domainname = ccs_get_name(domainname);
-		if (!e.domainname)
-			goto out;
-	}
-	param->list = &param->ns->policy_list[CCS_ID_TRANSITION_CONTROL];
-	error = ccs_update_policy(&e.head, sizeof(e), param,
-				  ccs_same_transition_control);
-out:
-	ccs_put_name(e.domainname);
-	ccs_put_name(e.program);
-	return error;
 }
 
 /**
@@ -278,11 +757,11 @@ static const char *ccs_last_word(const char *name)
  *
  * Caller holds ccs_read_lock().
  */
-static inline bool ccs_scan_transition(const struct list_head *list,
-				       const struct ccs_path_info *domainname,
-				       const struct ccs_path_info *program,
-				       const char *last_name,
-				       const enum ccs_transition_type type)
+static bool ccs_scan_transition(const struct list_head *list,
+				const struct ccs_path_info *domainname,
+				const struct ccs_path_info *program,
+				const char *last_name,
+				const enum ccs_transition_type type)
 {
 	const struct ccs_transition_control *ptr;
 	list_for_each_entry_srcu(ptr, list, head.list, &ccs_ss) {
@@ -349,53 +828,6 @@ static enum ccs_transition_type ccs_transition_type
 		type++;
 	}
 	return type;
-}
-
-/**
- * ccs_same_aggregator - Check for duplicated "struct ccs_aggregator" entry.
- *
- * @a: Pointer to "struct ccs_acl_head".
- * @b: Pointer to "struct ccs_acl_head".
- *
- * Returns true if @a == @b, false otherwise.
- */
-static bool ccs_same_aggregator(const struct ccs_acl_head *a,
-				const struct ccs_acl_head *b)
-{
-	const struct ccs_aggregator *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_aggregator *p2 = container_of(b, typeof(*p2), head);
-	return p1->original_name == p2->original_name &&
-		p1->aggregated_name == p2->aggregated_name;
-}
-
-/**
- * ccs_write_aggregator - Write "struct ccs_aggregator" list.
- *
- * @param: Pointer to "struct ccs_acl_param".
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_aggregator(struct ccs_acl_param *param)
-{
-	struct ccs_aggregator e = { };
-	int error = param->is_delete ? -ENOENT : -ENOMEM;
-	const char *original_name = ccs_read_token(param);
-	const char *aggregated_name = ccs_read_token(param);
-	if (!ccs_correct_word(original_name) ||
-	    !ccs_correct_path(aggregated_name))
-		return -EINVAL;
-	e.original_name = ccs_get_name(original_name);
-	e.aggregated_name = ccs_get_name(aggregated_name);
-	if (!e.original_name || !e.aggregated_name ||
-	    e.aggregated_name->is_patterned) /* No patterns allowed. */
-		goto out;
-	param->list = &param->ns->policy_list[CCS_ID_AGGREGATOR];
-	error = ccs_update_policy(&e.head, sizeof(e), param,
-				  ccs_same_aggregator);
-out:
-	ccs_put_name(e.original_name);
-	ccs_put_name(e.aggregated_name);
-	return error;
 }
 
 /* Domain create handler. */
@@ -885,71 +1317,6 @@ static void ccs_unescape(unsigned char *dest)
 	*dest = '\0';
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
-
-/**
- * ccs_copy_argv - Wrapper for copy_strings_kernel().
- *
- * @arg:  String to copy.
- * @bprm: Pointer to "struct linux_binprm".
- *
- * Returns return value of copy_strings_kernel().
- */
-static int ccs_copy_argv(const char *arg, struct linux_binprm *bprm)
-{
-	const int ret = copy_strings_kernel(1, &arg, bprm);
-	if (ret >= 0)
-		bprm->argc++;
-	return ret;
-}
-
-#else
-
-/**
- * ccs_copy_argv - Wrapper for copy_strings_kernel().
- *
- * @arg:  String to copy.
- * @bprm: Pointer to "struct linux_binprm".
- *
- * Returns return value of copy_strings_kernel().
- */
-static int ccs_copy_argv(char *arg, struct linux_binprm *bprm)
-{
-	const int ret = copy_strings_kernel(1, &arg, bprm);
-	if (ret >= 0)
-		bprm->argc++;
-	return ret;
-}
-
-#endif
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
-
-/**
- * get_fs_root - Get reference on root directory.
- *
- * @fs:   Pointer to "struct fs_struct".
- * @root: Pointer to "struct path".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void get_fs_root(struct fs_struct *fs, struct path *root)
-{
-	read_lock(&fs->lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	*root = fs->root;
-	path_get(root);
-#else
-	root->dentry = dget(fs->root);
-	root->mnt = mntget(fs->rootmnt);
-#endif
-	read_unlock(&fs->lock);
-}
-
-#endif
-
 /**
  * ccs_try_alt_exec - Try to start execute handler.
  *
@@ -1175,7 +1542,7 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 	if (ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
 	r->param_type = type;
-	ccs_check_acl(r, NULL);
+	ccs_check_acl(r);
 	if (!r->granted)
 		return false;
 	ee->handler = container_of(r->matched_acl, struct ccs_handler_acl,
@@ -1376,5 +1743,3031 @@ static int __ccs_search_binary_handler(struct linux_binprm *bprm,
  */
 void __init ccs_domain_init(void)
 {
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;
+	ccsecurity_ops.clear_open_mode = __ccs_clear_open_mode;
+	ccsecurity_ops.open_permission = __ccs_open_permission;
+#else
+	ccsecurity_ops.open_permission = ccs_new_open_permission;
+#endif
+	ccsecurity_ops.fcntl_permission = __ccs_fcntl_permission;
+	ccsecurity_ops.ioctl_permission = __ccs_ioctl_permission;
+	ccsecurity_ops.chmod_permission = __ccs_chmod_permission;
+	ccsecurity_ops.chown_permission = __ccs_chown_permission;
+	ccsecurity_ops.getattr_permission = __ccs_getattr_permission;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	ccsecurity_ops.pivot_root_permission = __ccs_pivot_root_permission;
+	ccsecurity_ops.chroot_permission = __ccs_chroot_permission;
+#else
+	ccsecurity_ops.pivot_root_permission = ccs_old_pivot_root_permission;
+	ccsecurity_ops.chroot_permission = ccs_old_chroot_permission;
+#endif
+	ccsecurity_ops.umount_permission = __ccs_umount_permission;
+	ccsecurity_ops.mknod_permission = __ccs_mknod_permission;
+	ccsecurity_ops.mkdir_permission = __ccs_mkdir_permission;
+	ccsecurity_ops.rmdir_permission = __ccs_rmdir_permission;
+	ccsecurity_ops.unlink_permission = __ccs_unlink_permission;
+	ccsecurity_ops.symlink_permission = __ccs_symlink_permission;
+	ccsecurity_ops.truncate_permission = __ccs_truncate_permission;
+	ccsecurity_ops.rename_permission = __ccs_rename_permission;
+	ccsecurity_ops.link_permission = __ccs_link_permission;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+	ccsecurity_ops.open_exec_permission = __ccs_open_exec_permission;
+	ccsecurity_ops.uselib_permission = __ccs_uselib_permission;
+#endif
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
+	ccsecurity_ops.parse_table = __ccs_parse_table;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	ccsecurity_ops.mount_permission = __ccs_mount_permission;
+#else
+	ccsecurity_ops.mount_permission = ccs_old_mount_permission;
+#endif
+	ccsecurity_ops.socket_create_permission =
+		__ccs_socket_create_permission;
+	ccsecurity_ops.socket_listen_permission =
+		__ccs_socket_listen_permission;
+	ccsecurity_ops.socket_connect_permission =
+		__ccs_socket_connect_permission;
+	ccsecurity_ops.socket_bind_permission = __ccs_socket_bind_permission;
+	ccsecurity_ops.socket_post_accept_permission =
+		__ccs_socket_post_accept_permission;
+	ccsecurity_ops.socket_sendmsg_permission =
+		__ccs_socket_sendmsg_permission;
+	ccsecurity_ops.socket_post_recvmsg_permission =
+		__ccs_socket_post_recvmsg_permission;
+	ccsecurity_ops.kill_permission = ccs_signal_acl;
+	ccsecurity_ops.tgkill_permission = ccs_signal_acl0;
+	ccsecurity_ops.tkill_permission = ccs_signal_acl;
+	ccsecurity_ops.sigqueue_permission = ccs_signal_acl;
+	ccsecurity_ops.tgsigqueue_permission = ccs_signal_acl0;
+	ccsecurity_ops.capable = __ccs_capable;
+	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
 	ccsecurity_ops.search_binary_handler = __ccs_search_binary_handler;
+}
+
+/**
+ * ccs_audit_mount_log - Audit mount log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_mount_log(struct ccs_request_info *r)
+{
+	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
+			      r->param.mount.dev->name,
+			      r->param.mount.dir->name,
+			      r->param.mount.type->name, r->param.mount.flags);
+}
+
+/**
+ * ccs_check_mount_acl - Check permission for path path path number operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_mount_acl(struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr)
+{
+	const struct ccs_mount_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	return ccs_compare_number_union(r->param.mount.flags, &acl->flags) &&
+		ccs_compare_name_union(r->param.mount.type, &acl->fs_type) &&
+		ccs_compare_name_union(r->param.mount.dir, &acl->dir_name) &&
+		(!r->param.mount.need_dev ||
+		 ccs_compare_name_union(r->param.mount.dev, &acl->dev_name));
+}
+
+/**
+ * ccs_mount_acl - Check permission for mount() operation.
+ *
+ * @r:        Pointer to "struct ccs_request_info".
+ * @dev_name: Name of device file. Maybe NULL.
+ * @dir:      Pointer to "struct path".
+ * @type:     Name of filesystem type.
+ * @flags:    Mount options.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
+			 struct path *dir, const char *type,
+			 unsigned long flags)
+{
+	struct ccs_obj_info obj = { };
+	struct file_system_type *fstype = NULL;
+	const char *requested_type = NULL;
+	const char *requested_dir_name = NULL;
+	const char *requested_dev_name = NULL;
+	struct ccs_path_info rtype;
+	struct ccs_path_info rdev;
+	struct ccs_path_info rdir;
+	int need_dev = 0;
+	int error = -ENOMEM;
+	r->obj = &obj;
+
+	/* Get fstype. */
+	requested_type = ccs_encode(type);
+	if (!requested_type)
+		goto out;
+	rtype.name = requested_type;
+	ccs_fill_path_info(&rtype);
+
+	/* Get mount point. */
+	obj.path2 = *dir;
+	requested_dir_name = ccs_realpath_from_path(dir);
+	if (!requested_dir_name) {
+		error = -ENOMEM;
+		goto out;
+	}
+	rdir.name = requested_dir_name;
+	ccs_fill_path_info(&rdir);
+
+	/* Compare fs name. */
+	if (type == ccs_mounts[CCS_MOUNT_REMOUNT]) {
+		/* dev_name is ignored. */
+	} else if (type == ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_PRIVATE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_SLAVE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_SHARED]) {
+		/* dev_name is ignored. */
+	} else if (type == ccs_mounts[CCS_MOUNT_BIND] ||
+		   type == ccs_mounts[CCS_MOUNT_MOVE]) {
+		need_dev = -1; /* dev_name is a directory */
+	} else {
+		fstype = get_fs_type(type);
+		if (!fstype) {
+			error = -ENODEV;
+			goto out;
+		}
+		if (fstype->fs_flags & FS_REQUIRES_DEV)
+			/* dev_name is a block device file. */
+			need_dev = 1;
+	}
+	if (need_dev) {
+		/* Get mount point or device file. */
+		if (ccs_get_path(dev_name, &obj.path1)) {
+			error = -ENOENT;
+			goto out;
+		}
+		requested_dev_name = ccs_realpath_from_path(&obj.path1);
+		if (!requested_dev_name) {
+			error = -ENOENT;
+			goto out;
+		}
+	} else {
+		/* Map dev_name to "<NULL>" if no dev_name given. */
+		if (!dev_name)
+			dev_name = "<NULL>";
+		requested_dev_name = ccs_encode(dev_name);
+		if (!requested_dev_name) {
+			error = -ENOMEM;
+			goto out;
+		}
+	}
+	rdev.name = requested_dev_name;
+	ccs_fill_path_info(&rdev);
+	r->param_type = CCS_TYPE_MOUNT_ACL;
+	r->param.mount.need_dev = need_dev;
+	r->param.mount.dev = &rdev;
+	r->param.mount.dir = &rdir;
+	r->param.mount.type = &rtype;
+	r->param.mount.flags = flags;
+	do {
+		ccs_check_acl(r);
+		error = ccs_audit_mount_log(r);
+	} while (error == CCS_RETRY_REQUEST);
+out:
+	kfree(requested_dev_name);
+	kfree(requested_dir_name);
+	if (fstype)
+		ccs_put_filesystem(fstype);
+	kfree(requested_type);
+	/* Drop refcount obtained by ccs_get_path(). */
+	if (obj.path1.dentry)
+		path_put(&obj.path1);
+	return error;
+}
+
+/**
+ * __ccs_mount_permission - Check permission for mount() operation.
+ *
+ * @dev_name:  Name of device file. Maybe NULL.
+ * @path:      Pointer to "struct path".
+ * @type:      Name of filesystem type. Maybe NULL.
+ * @flags:     Mount options.
+ * @data_page: Optional data. Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_mount_permission(char *dev_name, struct path *path,
+				  const char *type, unsigned long flags,
+				  void *data_page)
+{
+	struct ccs_request_info r;
+	int error = 0;
+	int idx;
+	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
+		flags &= ~MS_MGC_MSK;
+	if (flags & MS_REMOUNT) {
+		type = ccs_mounts[CCS_MOUNT_REMOUNT];
+		flags &= ~MS_REMOUNT;
+	}
+	if (flags & MS_MOVE) {
+		type = ccs_mounts[CCS_MOUNT_MOVE];
+		flags &= ~MS_MOVE;
+	}
+	if (flags & MS_BIND) {
+		type = ccs_mounts[CCS_MOUNT_BIND];
+		flags &= ~MS_BIND;
+	}
+	if (flags & MS_UNBINDABLE) {
+		type = ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE];
+		flags &= ~MS_UNBINDABLE;
+	}
+	if (flags & MS_PRIVATE) {
+		type = ccs_mounts[CCS_MOUNT_MAKE_PRIVATE];
+		flags &= ~MS_PRIVATE;
+	}
+	if (flags & MS_SLAVE) {
+		type = ccs_mounts[CCS_MOUNT_MAKE_SLAVE];
+		flags &= ~MS_SLAVE;
+	}
+	if (flags & MS_SHARED) {
+		type = ccs_mounts[CCS_MOUNT_MAKE_SHARED];
+		flags &= ~MS_SHARED;
+	}
+	if (!type)
+		type = "<NULL>";
+	idx = ccs_read_lock();
+	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
+	    != CCS_CONFIG_DISABLED)
+		error = ccs_mount_acl(&r, dev_name, path, type, flags);
+	ccs_read_unlock(idx);
+	return error;
+}
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+
+/**
+ * ccs_old_mount_permission - Check permission for mount() operation.
+ *
+ * @dev_name:  Name of device file.
+ * @nd:        Pointer to "struct nameidata".
+ * @type:      Name of filesystem type. Maybe NULL.
+ * @flags:     Mount options.
+ * @data_page: Optional data. Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
+				    const char *type, unsigned long flags,
+				    void *data_page)
+{
+	struct path path = { nd->mnt, nd->dentry };
+	return __ccs_mount_permission(dev_name, &path, type, flags, data_page);
+}
+
+#endif
+
+/**
+ * ccs_compare_number_union - Check whether a value matches "struct ccs_number_union" or not.
+ *
+ * @value: Number to check.
+ * @ptr:   Pointer to "struct ccs_number_union".
+ *
+ * Returns true if @value matches @ptr, false otherwise.
+ */
+static bool ccs_compare_number_union(const unsigned long value,
+				     const struct ccs_number_union *ptr)
+{
+	if (ptr->group)
+		return ccs_number_matches_group(value, value, ptr->group);
+	return value >= ptr->values[0] && value <= ptr->values[1];
+}
+
+/**
+ * ccs_compare_name_union - Check whether a name matches "struct ccs_name_union" or not.
+ *
+ * @name: Pointer to "struct ccs_path_info".
+ * @ptr:  Pointer to "struct ccs_name_union".
+ *
+ * Returns "struct ccs_path_info" if @name matches @ptr, NULL otherwise.
+ */
+static const struct ccs_path_info *ccs_compare_name_union
+(const struct ccs_path_info *name, const struct ccs_name_union *ptr)
+{
+	if (ptr->group)
+		return ccs_path_matches_group(name, ptr->group);
+	if (ccs_path_matches_pattern(name, ptr->filename))
+		return ptr->filename;
+	return NULL;
+}
+
+/**
+ * ccs_add_slash - Add trailing '/' if needed.
+ *
+ * @buf: Pointer to "struct ccs_path_info".
+ *
+ * Returns nothing.
+ *
+ * @buf must be generated by ccs_encode() because this function does not
+ * allocate memory for adding '/'.
+ */
+static void ccs_add_slash(struct ccs_path_info *buf)
+{
+	if (buf->is_dir)
+		return;
+	/* This is OK because ccs_encode() reserves space for appending "/". */
+	strcat((char *) buf->name, "/");
+	ccs_fill_path_info(buf);
+}
+
+/**
+ * ccs_get_realpath - Get realpath.
+ *
+ * @buf:    Pointer to "struct ccs_path_info".
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
+			     struct vfsmount *mnt)
+{
+	struct path path = { mnt, dentry };
+	buf->name = ccs_realpath_from_path(&path);
+	if (buf->name) {
+		ccs_fill_path_info(buf);
+		return true;
+	}
+	return false;
+}
+
+/**
+ * ccs_audit_path_log - Audit path request log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_path_log(struct ccs_request_info *r)
+{
+	return ccs_supervisor(r, "file %s %s\n", ccs_path_keyword
+			      [r->param.path.operation],
+			      r->param.path.filename->name);
+}
+
+/**
+ * ccs_audit_path2_log - Audit path/path request log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_path2_log(struct ccs_request_info *r)
+{
+	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+			      [ccs_pp2mac[r->param.path2.operation]],
+			      r->param.path2.filename1->name,
+			      r->param.path2.filename2->name);
+}
+
+/**
+ * ccs_audit_mkdev_log - Audit path/number/number/number request log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_mkdev_log(struct ccs_request_info *r)
+{
+	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", ccs_mac_keywords
+			      [ccs_pnnn2mac[r->param.mkdev.operation]],
+			      r->param.mkdev.filename->name,
+			      r->param.mkdev.mode, r->param.mkdev.major,
+			      r->param.mkdev.minor);
+}
+
+/**
+ * ccs_audit_path_number_log - Audit path/number request log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_path_number_log(struct ccs_request_info *r)
+{
+	const u8 type = r->param.path_number.operation;
+	u8 radix;
+	char buffer[64];
+	switch (type) {
+	case CCS_TYPE_CREATE:
+	case CCS_TYPE_MKDIR:
+	case CCS_TYPE_MKFIFO:
+	case CCS_TYPE_MKSOCK:
+	case CCS_TYPE_CHMOD:
+		radix = CCS_VALUE_TYPE_OCTAL;
+		break;
+	case CCS_TYPE_IOCTL:
+		radix = CCS_VALUE_TYPE_HEXADECIMAL;
+		break;
+	default:
+		radix = CCS_VALUE_TYPE_DECIMAL;
+		break;
+	}
+	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
+			radix);
+	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+			      [ccs_pn2mac[type]],
+			      r->param.path_number.filename->name, buffer);
+}
+
+/**
+ * ccs_check_path_acl - Check permission for path operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ *
+ * To be able to use wildcard for domain transition, this function sets
+ * matching entry on success. Since the caller holds ccs_read_lock(),
+ * it is safe to set matching entry.
+ */
+static bool ccs_check_path_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr)
+{
+	const struct ccs_path_acl *acl = container_of(ptr, typeof(*acl), head);
+	if (ptr->perm & (1 << r->param.path.operation)) {
+		r->param.path.matched_path =
+			ccs_compare_name_union(r->param.path.filename,
+					       &acl->name);
+		return r->param.path.matched_path != NULL;
+	}
+	return false;
+}
+
+/**
+ * ccs_check_path_number_acl - Check permission for path number operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_path_number_acl(struct ccs_request_info *r,
+				      const struct ccs_acl_info *ptr)
+{
+	const struct ccs_path_number_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	return (ptr->perm & (1 << r->param.path_number.operation)) &&
+		ccs_compare_number_union(r->param.path_number.number,
+					 &acl->number) &&
+		ccs_compare_name_union(r->param.path_number.filename,
+				       &acl->name);
+}
+
+/**
+ * ccs_check_path2_acl - Check permission for path path operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_path2_acl(struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr)
+{
+	const struct ccs_path2_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	return (ptr->perm & (1 << r->param.path2.operation)) &&
+		ccs_compare_name_union(r->param.path2.filename1, &acl->name1)
+		&& ccs_compare_name_union(r->param.path2.filename2,
+					  &acl->name2);
+}
+
+/**
+ * ccs_check_mkdev_acl - Check permission for path number number number operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_mkdev_acl(struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr)
+{
+	const struct ccs_mkdev_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	return (ptr->perm & (1 << r->param.mkdev.operation)) &&
+		ccs_compare_number_union(r->param.mkdev.mode, &acl->mode) &&
+		ccs_compare_number_union(r->param.mkdev.major, &acl->major) &&
+		ccs_compare_number_union(r->param.mkdev.minor, &acl->minor) &&
+		ccs_compare_name_union(r->param.mkdev.filename, &acl->name);
+}
+
+/**
+ * ccs_path_permission - Check permission for path operation.
+ *
+ * @r:         Pointer to "struct ccs_request_info".
+ * @operation: Type of operation.
+ * @filename:  Filename to check.
+ *
+ * Returns 0 on success, CCS_RETRY_REQUEST on retry, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+			       const struct ccs_path_info *filename)
+{
+	int error;
+	r->type = ccs_p2mac[operation];
+	r->mode = ccs_get_mode(r->profile, r->type);
+	if (r->mode == CCS_CONFIG_DISABLED)
+		return 0;
+	r->param_type = CCS_TYPE_PATH_ACL;
+	r->param.path.filename = filename;
+	r->param.path.operation = operation;
+	do {
+		ccs_check_acl(r);
+		error = ccs_audit_path_log(r);
+	} while (error == CCS_RETRY_REQUEST);
+	return error;
+}
+
+/**
+ * ccs_execute_permission - Check permission for execute operation.
+ *
+ * @r:         Pointer to "struct ccs_request_info".
+ * @filename:  Filename to check.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+int ccs_execute_permission(struct ccs_request_info *r,
+			   const struct ccs_path_info *filename)
+{
+	/*
+	 * Unlike other permission checks, this check is done regardless of
+	 * profile mode settings in order to check for domain transition
+	 * preference.
+	 */
+	r->type = CCS_MAC_FILE_EXECUTE;
+	r->mode = ccs_get_mode(r->profile, r->type);
+	r->param_type = CCS_TYPE_PATH_ACL;
+	r->param.path.filename = filename;
+	r->param.path.operation = CCS_TYPE_EXECUTE;
+	ccs_check_acl(r);
+	r->ee->transition = r->matched_acl && r->matched_acl->cond &&
+		r->matched_acl->cond->exec_transit ?
+		r->matched_acl->cond->transit : NULL;
+	if (r->mode != CCS_CONFIG_DISABLED)
+		return ccs_audit_path_log(r);
+	return 0;
+}
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+
+/**
+ * __ccs_save_open_mode - Remember original flags passed to sys_open().
+ *
+ * @mode: Flags passed to sys_open().
+ *
+ * Returns nothing.
+ *
+ * TOMOYO does not check "file write" if open(path, O_TRUNC | O_RDONLY) was
+ * requested because write() is not permitted. Instead, TOMOYO checks
+ * "file truncate" if O_TRUNC is passed.
+ *
+ * TOMOYO does not check "file read" and "file write" if open(path, 3) was
+ * requested because read()/write() are not permitted. Instead, TOMOYO checks
+ * "file ioctl" when ioctl() is requested.
+ */
+static void __ccs_save_open_mode(int mode)
+{
+	if ((mode & 3) == 3)
+		ccs_current_security()->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
+	/* O_TRUNC passes MAY_WRITE to ccs_open_permission(). */
+	else if (!(mode & 3) && (mode & O_TRUNC))
+		ccs_current_security()->ccs_flags |=
+			CCS_OPEN_FOR_READ_TRUNCATE;
+#endif
+}
+
+/**
+ * __ccs_clear_open_mode - Forget original flags passed to sys_open().
+ *
+ * Returns nothing.
+ */
+static void __ccs_clear_open_mode(void)
+{
+	ccs_current_security()->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
+					       CCS_OPEN_FOR_READ_TRUNCATE);
+}
+
+#endif
+
+/**
+ * __ccs_open_permission - Check permission for "read" and "write".
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ * @flag:   Flags for open().
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
+				 const int flag)
+{
+	struct ccs_request_info r;
+	struct ccs_obj_info obj = {
+		.path1.dentry = dentry,
+		.path1.mnt = mnt,
+	};
+	const u32 ccs_flags = ccs_current_flags();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
+#else
+	const u8 acc_mode = (ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY) ? 0 :
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
+		(ccs_flags & CCS_OPEN_FOR_READ_TRUNCATE) ? 4 :
+#endif
+		ACC_MODE(flag);
+#endif
+	int error = 0;
+	struct ccs_path_info buf;
+	int idx;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
+		return 0;
+#endif
+	buf.name = NULL;
+	r.mode = CCS_CONFIG_DISABLED;
+	idx = ccs_read_lock();
+	if (acc_mode && ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
+	    != CCS_CONFIG_DISABLED) {
+		if (!ccs_get_realpath(&buf, dentry, mnt)) {
+			error = -ENOMEM;
+			goto out;
+		}
+		r.obj = &obj;
+		if (acc_mode & MAY_READ)
+			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+		if (!error && (acc_mode & MAY_WRITE))
+			error = ccs_path_permission(&r, (flag & O_APPEND) ?
+						    CCS_TYPE_APPEND :
+						    CCS_TYPE_WRITE, &buf);
+	}
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+	if (!error && (flag & O_TRUNC) &&
+	    ccs_init_request_info(&r, CCS_MAC_FILE_TRUNCATE)
+	    != CCS_CONFIG_DISABLED) {
+		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
+			error = -ENOMEM;
+			goto out;
+		}
+		r.obj = &obj;
+		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE, &buf);
+	}
+#endif
+out:
+	kfree(buf.name);
+	ccs_read_unlock(idx);
+	if (r.mode != CCS_CONFIG_ENFORCING)
+		error = 0;
+	return error;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+
+/**
+ * ccs_new_open_permission - Check permission for "read" and "write".
+ *
+ * @filp: Pointer to "struct file".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_new_open_permission(struct file *filp)
+{
+	return __ccs_open_permission(filp->f_path.dentry, filp->f_path.mnt,
+				     filp->f_flags);
+}
+
+#endif
+
+/**
+ * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "append", "getattr", "chroot" and "unmount".
+ *
+ * @operation: Type of operation.
+ * @dentry:    Pointer to "struct dentry".
+ * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
+ * @target:    Symlink's target if @operation is CCS_TYPE_SYMLINK,
+ *             NULL otherwise.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_path_perm(const u8 operation, struct dentry *dentry,
+			 struct vfsmount *mnt, const char *target)
+{
+	struct ccs_request_info r;
+	struct ccs_obj_info obj = {
+		.path1.dentry = dentry,
+		.path1.mnt = mnt,
+	};
+	int error = 0;
+	struct ccs_path_info buf;
+	bool is_enforce = false;
+	struct ccs_path_info symlink_target;
+	int idx;
+	buf.name = NULL;
+	symlink_target.name = NULL;
+	idx = ccs_read_lock();
+	if (ccs_init_request_info(&r, ccs_p2mac[operation])
+	    == CCS_CONFIG_DISABLED)
+		goto out;
+	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf, dentry, mnt))
+		goto out;
+	r.obj = &obj;
+	switch (operation) {
+	case CCS_TYPE_RMDIR:
+	case CCS_TYPE_CHROOT:
+		ccs_add_slash(&buf);
+		break;
+	case CCS_TYPE_SYMLINK:
+		symlink_target.name = ccs_encode(target);
+		if (!symlink_target.name)
+			goto out;
+		ccs_fill_path_info(&symlink_target);
+		obj.symlink_target = &symlink_target;
+		break;
+	}
+	error = ccs_path_permission(&r, operation, &buf);
+	if (operation == CCS_TYPE_SYMLINK)
+		kfree(symlink_target.name);
+out:
+	kfree(buf.name);
+	ccs_read_unlock(idx);
+	if (!is_enforce)
+		error = 0;
+	return error;
+}
+
+/**
+ * ccs_mkdev_perm - Check permission for "mkblock" and "mkchar".
+ *
+ * @operation: Type of operation. (CCS_TYPE_MKCHAR or CCS_TYPE_MKBLOCK)
+ * @dentry:    Pointer to "struct dentry".
+ * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
+ * @mode:      Create mode.
+ * @dev:       Device number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
+			  struct vfsmount *mnt, const unsigned int mode,
+			  unsigned int dev)
+{
+	struct ccs_request_info r;
+	struct ccs_obj_info obj = {
+		.path1.dentry = dentry,
+		.path1.mnt = mnt,
+	};
+	int error = 0;
+	struct ccs_path_info buf;
+	bool is_enforce = false;
+	int idx;
+	idx = ccs_read_lock();
+	if (ccs_init_request_info(&r, ccs_pnnn2mac[operation])
+	    == CCS_CONFIG_DISABLED)
+		goto out;
+	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+	error = -EPERM;
+	if (!capable(CAP_MKNOD))
+		goto out;
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf, dentry, mnt))
+		goto out;
+	r.obj = &obj;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	dev = new_decode_dev(dev);
+#endif
+	r.param_type = CCS_TYPE_MKDEV_ACL;
+	r.param.mkdev.filename = &buf;
+	r.param.mkdev.operation = operation;
+	r.param.mkdev.mode = mode;
+	r.param.mkdev.major = MAJOR(dev);
+	r.param.mkdev.minor = MINOR(dev);
+	do {
+		ccs_check_acl(&r);
+		error = ccs_audit_mkdev_log(&r);
+	} while (error == CCS_RETRY_REQUEST);
+	kfree(buf.name);
+out:
+	ccs_read_unlock(idx);
+	if (!is_enforce)
+		error = 0;
+	return error;
+}
+
+/**
+ * ccs_path2_perm - Check permission for "rename", "link" and "pivot_root".
+ *
+ * @operation: Type of operation.
+ * @dentry1:   Pointer to "struct dentry".
+ * @mnt1:      Pointer to "struct vfsmount". Maybe NULL.
+ * @dentry2:   Pointer to "struct dentry".
+ * @mnt2:      Pointer to "struct vfsmount". Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
+			  struct vfsmount *mnt1, struct dentry *dentry2,
+			  struct vfsmount *mnt2)
+{
+	struct ccs_request_info r;
+	int error = 0;
+	struct ccs_path_info buf1;
+	struct ccs_path_info buf2;
+	bool is_enforce = false;
+	struct ccs_obj_info obj = {
+		.path1.dentry = dentry1,
+		.path1.mnt = mnt1,
+		.path2.dentry = dentry2,
+		.path2.mnt = mnt2,
+	};
+	int idx;
+	buf1.name = NULL;
+	buf2.name = NULL;
+	idx = ccs_read_lock();
+	if (ccs_init_request_info(&r, ccs_pp2mac[operation])
+	    == CCS_CONFIG_DISABLED)
+		goto out;
+	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf1, dentry1, mnt1) ||
+	    !ccs_get_realpath(&buf2, dentry2, mnt2))
+		goto out;
+	switch (operation) {
+	case CCS_TYPE_RENAME:
+	case CCS_TYPE_LINK:
+		if (!dentry1->d_inode || !S_ISDIR(dentry1->d_inode->i_mode))
+			break;
+		/* fall through */
+	case CCS_TYPE_PIVOT_ROOT:
+		ccs_add_slash(&buf1);
+		ccs_add_slash(&buf2);
+		break;
+	}
+	r.obj = &obj;
+	r.param_type = CCS_TYPE_PATH2_ACL;
+	r.param.path2.operation = operation;
+	r.param.path2.filename1 = &buf1;
+	r.param.path2.filename2 = &buf2;
+	do {
+		ccs_check_acl(&r);
+		error = ccs_audit_path2_log(&r);
+	} while (error == CCS_RETRY_REQUEST);
+out:
+	kfree(buf1.name);
+	kfree(buf2.name);
+	ccs_read_unlock(idx);
+	if (!is_enforce)
+		error = 0;
+	return error;
+}
+
+/**
+ * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
+ *
+ * @type:   Type of operation.
+ * @dentry: Pointer to "struct dentry".
+ * @vfsmnt: Pointer to "struct vfsmount". Maybe NULL.
+ * @number: Number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
+				struct vfsmount *vfsmnt, unsigned long number)
+{
+	struct ccs_request_info r;
+	struct ccs_obj_info obj = {
+		.path1.dentry = dentry,
+		.path1.mnt = vfsmnt,
+	};
+	int error = 0;
+	struct ccs_path_info buf;
+	int idx;
+	if (!dentry)
+		return 0;
+	idx = ccs_read_lock();
+	if (ccs_init_request_info(&r, ccs_pn2mac[type]) == CCS_CONFIG_DISABLED)
+		goto out;
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
+		goto out;
+	r.obj = &obj;
+	if (type == CCS_TYPE_MKDIR)
+		ccs_add_slash(&buf);
+	r.param_type = CCS_TYPE_PATH_NUMBER_ACL;
+	r.param.path_number.operation = type;
+	r.param.path_number.filename = &buf;
+	r.param.path_number.number = number;
+	do {
+		ccs_check_acl(&r);
+		error = ccs_audit_path_number_log(&r);
+	} while (error == CCS_RETRY_REQUEST);
+	kfree(buf.name);
+out:
+	ccs_read_unlock(idx);
+	if (r.mode != CCS_CONFIG_ENFORCING)
+		error = 0;
+	return error;
+}
+
+/**
+ * __ccs_ioctl_permission - Check permission for "ioctl".
+ *
+ * @filp: Pointer to "struct file".
+ * @cmd:  Ioctl command number.
+ * @arg:  Param for @cmd.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
+				  unsigned long arg)
+{
+	return ccs_path_number_perm(CCS_TYPE_IOCTL, filp->f_dentry,
+				    filp->f_vfsmnt, cmd);
+}
+
+/**
+ * __ccs_chmod_permission - Check permission for "chmod".
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @vfsmnt: Pointer to "struct vfsmount". Maybe NULL.
+ * @mode:   Mode.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_chmod_permission(struct dentry *dentry,
+				  struct vfsmount *vfsmnt, mode_t mode)
+{
+	if (mode == (mode_t) -1)
+		return 0;
+	return ccs_path_number_perm(CCS_TYPE_CHMOD, dentry, vfsmnt,
+				    mode & S_IALLUGO);
+}
+
+/**
+ * __ccs_chown_permission - Check permission for "chown/chgrp".
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @vfsmnt: Pointer to "struct vfsmount". Maybe NULL.
+ * @user:   User ID.
+ * @group:  Group ID.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_chown_permission(struct dentry *dentry,
+				  struct vfsmount *vfsmnt, uid_t user,
+				  gid_t group)
+{
+	int error = 0;
+	if (user == (uid_t) -1 && group == (gid_t) -1)
+		return 0;
+	if (user != (uid_t) -1)
+		error = ccs_path_number_perm(CCS_TYPE_CHOWN, dentry, vfsmnt,
+					     user);
+	if (!error && group != (gid_t) -1)
+		error = ccs_path_number_perm(CCS_TYPE_CHGRP, dentry, vfsmnt,
+					     group);
+	return error;
+}
+
+/**
+ * __ccs_fcntl_permission - Check permission for changing O_APPEND flag.
+ *
+ * @file: Pointer to "struct file".
+ * @cmd:  Command number.
+ * @arg:  Value for @cmd.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
+				  unsigned long arg)
+{
+	if (!(cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND)))
+		return 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+	return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
+				     O_WRONLY | (arg & O_APPEND));
+#elif defined(RHEL_MAJOR) && RHEL_MAJOR == 6
+	return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
+				     O_WRONLY | (arg & O_APPEND));
+#else
+	return __ccs_open_permission(file->f_dentry, file->f_vfsmnt,
+				     (O_WRONLY + 1) | (arg & O_APPEND));
+#endif
+}
+
+/**
+ * __ccs_pivot_root_permission - Check permission for pivot_root().
+ *
+ * @old_path: Pointer to "struct path".
+ * @new_path: Pointer to "struct path".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_pivot_root_permission(struct path *old_path,
+				       struct path *new_path)
+{
+	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, new_path->dentry,
+			      new_path->mnt, old_path->dentry, old_path->mnt);
+}
+
+/**
+ * __ccs_chroot_permission - Check permission for chroot().
+ *
+ * @path: Pointer to "struct path".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_chroot_permission(struct path *path)
+{
+	return ccs_path_perm(CCS_TYPE_CHROOT, path->dentry, path->mnt, NULL);
+}
+
+/**
+ * __ccs_umount_permission - Check permission for unmount.
+ *
+ * @mnt:   Pointer to "struct vfsmount".
+ * @flags: Unused.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
+{
+	return ccs_path_perm(CCS_TYPE_UMOUNT, mnt->mnt_root, mnt, NULL);
+}
+
+/**
+ * __ccs_mknod_permission - Check permission for vfs_mknod().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ * @mode:   Device type and permission.
+ * @dev:    Device number for block or character device.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_mknod_permission(struct dentry *dentry, struct vfsmount *mnt,
+				  const unsigned int mode, unsigned int dev)
+{
+	int error = 0;
+	const unsigned int perm = mode & S_IALLUGO;
+	switch (mode & S_IFMT) {
+	case S_IFCHR:
+		error = ccs_mkdev_perm(CCS_TYPE_MKCHAR, dentry, mnt, perm,
+				       dev);
+		break;
+	case S_IFBLK:
+		error = ccs_mkdev_perm(CCS_TYPE_MKBLOCK, dentry, mnt, perm,
+				       dev);
+		break;
+	case S_IFIFO:
+		error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dentry, mnt,
+					     perm);
+		break;
+	case S_IFSOCK:
+		error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dentry, mnt,
+					     perm);
+		break;
+	case 0:
+	case S_IFREG:
+		error = ccs_path_number_perm(CCS_TYPE_CREATE, dentry, mnt,
+					     perm);
+		break;
+	}
+	return error;
+}
+
+/**
+ * __ccs_mkdir_permission - Check permission for vfs_mkdir().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ * @mode:   Create mode.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_mkdir_permission(struct dentry *dentry, struct vfsmount *mnt,
+				  unsigned int mode)
+{
+	return ccs_path_number_perm(CCS_TYPE_MKDIR, dentry, mnt, mode);
+}
+
+/**
+ * __ccs_rmdir_permission - Check permission for vfs_rmdir().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt)
+{
+	return ccs_path_perm(CCS_TYPE_RMDIR, dentry, mnt, NULL);
+}
+
+/**
+ * __ccs_unlink_permission - Check permission for vfs_unlink().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt)
+{
+	return ccs_path_perm(CCS_TYPE_UNLINK, dentry, mnt, NULL);
+}
+
+/**
+ * __ccs_getattr_permission - Check permission for vfs_getattr().
+ *
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ * @dentry: Pointer to "struct dentry".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_getattr_permission(struct vfsmount *mnt,
+				    struct dentry *dentry)
+{
+	return ccs_path_perm(CCS_TYPE_GETATTR, dentry, mnt, NULL);
+}
+
+/**
+ * __ccs_symlink_permission - Check permission for vfs_symlink().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ * @from:   Content of symlink.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_symlink_permission(struct dentry *dentry,
+				    struct vfsmount *mnt, const char *from)
+{
+	return ccs_path_perm(CCS_TYPE_SYMLINK, dentry, mnt, from);
+}
+
+/**
+ * __ccs_truncate_permission - Check permission for notify_change().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_truncate_permission(struct dentry *dentry,
+				     struct vfsmount *mnt)
+{
+	return ccs_path_perm(CCS_TYPE_TRUNCATE, dentry, mnt, NULL);
+}
+
+/**
+ * __ccs_rename_permission - Check permission for vfs_rename().
+ *
+ * @old_dentry: Pointer to "struct dentry".
+ * @new_dentry: Pointer to "struct dentry".
+ * @mnt:        Pointer to "struct vfsmount". Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_rename_permission(struct dentry *old_dentry,
+				   struct dentry *new_dentry,
+				   struct vfsmount *mnt)
+{
+	return ccs_path2_perm(CCS_TYPE_RENAME, old_dentry, mnt, new_dentry,
+			      mnt);
+}
+
+/**
+ * __ccs_link_permission - Check permission for vfs_link().
+ *
+ * @old_dentry: Pointer to "struct dentry".
+ * @new_dentry: Pointer to "struct dentry".
+ * @mnt:        Pointer to "struct vfsmount". Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_link_permission(struct dentry *old_dentry,
+				 struct dentry *new_dentry,
+				 struct vfsmount *mnt)
+{
+	return ccs_path2_perm(CCS_TYPE_LINK, old_dentry, mnt, new_dentry, mnt);
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+
+/**
+ * __ccs_open_exec_permission - Check permission for open_exec().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_open_exec_permission(struct dentry *dentry,
+				      struct vfsmount *mnt)
+{
+	return (ccs_current_flags() & CCS_TASK_IS_IN_EXECVE) ?
+		__ccs_open_permission(dentry, mnt, O_RDONLY + 1) : 0;
+}
+
+/**
+ * __ccs_uselib_permission - Check permission for sys_uselib().
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @mnt:    Pointer to "struct vfsmount".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
+{
+	return __ccs_open_permission(dentry, mnt, O_RDONLY + 1);
+}
+
+#endif
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
+
+/**
+ * __ccs_parse_table - Check permission for parse_table().
+ *
+ * @name:   Pointer to "int __user".
+ * @nlen:   Number of elements in @name.
+ * @oldval: Pointer to "void __user".
+ * @newval: Pointer to "void __user".
+ * @table:  Pointer to "struct ctl_table".
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Note that this function is racy because this function checks values in
+ * userspace memory which could be changed after permission check.
+ */
+static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
+			     void __user *newval, struct ctl_table *table)
+{
+	int n;
+	int error = -ENOMEM;
+	int op = 0;
+	struct ccs_path_info buf;
+	char *buffer = NULL;
+	struct ccs_request_info r;
+	int idx;
+	if (oldval)
+		op |= 004;
+	if (newval)
+		op |= 002;
+	if (!op) /* Neither read nor write */
+		return 0;
+	idx = ccs_read_lock();
+	if (ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
+	    == CCS_CONFIG_DISABLED) {
+		error = 0;
+		goto out;
+	}
+	buffer = kmalloc(PAGE_SIZE, CCS_GFP_FLAGS);
+	if (!buffer)
+		goto out;
+	snprintf(buffer, PAGE_SIZE - 1, "proc:/sys");
+repeat:
+	if (!nlen) {
+		error = -ENOTDIR;
+		goto out;
+	}
+	if (get_user(n, name)) {
+		error = -EFAULT;
+		goto out;
+	}
+	for ( ; table->ctl_name
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
+		      || table->procname
+#endif
+		      ; table++) {
+		int pos;
+		const char *cp;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
+		if (n != table->ctl_name && table->ctl_name != CTL_ANY)
+			continue;
+#else
+		if (!n || n != table->ctl_name)
+			continue;
+#endif
+		pos = strlen(buffer);
+		cp = table->procname;
+		error = -ENOMEM;
+		if (cp) {
+			int len = strlen(cp);
+			if (len + 2 > PAGE_SIZE - 1)
+				goto out;
+			buffer[pos++] = '/';
+			memmove(buffer + pos, cp, len + 1);
+		} else {
+			/* Assume nobody assigns "=\$=" for procname. */
+			snprintf(buffer + pos, PAGE_SIZE - pos - 1,
+				 "/=%d=", table->ctl_name);
+			if (!memchr(buffer, '\0', PAGE_SIZE - 2))
+				goto out;
+		}
+		if (!table->child)
+			goto no_child;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
+		if (!table->strategy)
+			goto no_strategy;
+		/* printk("sysctl='%s'\n", buffer); */
+		buf.name = ccs_encode(buffer);
+		if (!buf.name)
+			goto out;
+		ccs_fill_path_info(&buf);
+		if (op & MAY_READ)
+			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+		else
+			error = 0;
+		if (!error && (op & MAY_WRITE))
+			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
+		kfree(buf.name);
+		if (error)
+			goto out;
+no_strategy:
+#endif
+		name++;
+		nlen--;
+		table = table->child;
+		goto repeat;
+no_child:
+		/* printk("sysctl='%s'\n", buffer); */
+		buf.name = ccs_encode(buffer);
+		if (!buf.name)
+			goto out;
+		ccs_fill_path_info(&buf);
+		if (op & MAY_READ)
+			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+		else
+			error = 0;
+		if (!error && (op & MAY_WRITE))
+			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
+		kfree(buf.name);
+		goto out;
+	}
+	error = -ENOTDIR;
+out:
+	ccs_read_unlock(idx);
+	kfree(buffer);
+	return error;
+}
+
+#endif
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+
+/**
+ * ccs_old_pivot_root_permission - Check permission for pivot_root().
+ *
+ * @old_nd: Pointer to "struct nameidata".
+ * @new_nd: Pointer to "struct nameidata".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_old_pivot_root_permission(struct nameidata *old_nd,
+					 struct nameidata *new_nd)
+{
+	struct path old_path = { old_nd->mnt, old_nd->dentry };
+	struct path new_path = { new_nd->mnt, new_nd->dentry };
+	return __ccs_pivot_root_permission(&old_path, &new_path);
+}
+
+/**
+ * ccs_old_chroot_permission - Check permission for chroot().
+ *
+ * @nd: Pointer to "struct nameidata".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_old_chroot_permission(struct nameidata *nd)
+{
+	struct path path = { nd->mnt, nd->dentry };
+	return __ccs_chroot_permission(&path);
+}
+
+#endif
+
+#ifdef CONFIG_NET
+
+/**
+ * ccs_audit_net_log - Audit network log.
+ *
+ * @r:         Pointer to "struct ccs_request_info".
+ * @family:    Name of socket family ("inet" or "unix").
+ * @protocol:  Name of protocol in @family.
+ * @operation: Name of socket operation.
+ * @address:   Name of address.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
+			     const u8 protocol, const u8 operation,
+			     const char *address)
+{
+	return ccs_supervisor(r, "network %s %s %s %s\n", family,
+			      ccs_proto_keyword[protocol],
+			      ccs_socket_keyword[operation], address);
+}
+
+/**
+ * ccs_audit_inet_log - Audit INET network log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_inet_log(struct ccs_request_info *r)
+{
+	char buf[128];
+	int len;
+	const u32 *address = r->param.inet_network.address;
+	if (r->param.inet_network.is_ipv6)
+		ccs_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
+			       address);
+	else
+		ccs_print_ipv4(buf, sizeof(buf), address);
+	len = strlen(buf);
+	snprintf(buf + len, sizeof(buf) - len, " %u",
+		 r->param.inet_network.port);
+	return ccs_audit_net_log(r, "inet", r->param.inet_network.protocol,
+				 r->param.inet_network.operation, buf);
+}
+
+/**
+ * ccs_audit_unix_log - Audit UNIX network log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_unix_log(struct ccs_request_info *r)
+{
+	return ccs_audit_net_log(r, "unix", r->param.unix_network.protocol,
+				 r->param.unix_network.operation,
+				 r->param.unix_network.address->name);
+}
+
+/**
+ * ccs_check_inet_acl - Check permission for inet domain socket operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_inet_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr)
+{
+	const struct ccs_inet_acl *acl = container_of(ptr, typeof(*acl), head);
+	const u8 size = r->param.inet_network.is_ipv6 ? 16 : 4;
+	if (!(ptr->perm & (1 << r->param.inet_network.operation)) ||
+	    !ccs_compare_number_union(r->param.inet_network.port, &acl->port))
+		return false;
+	if (acl->address.group)
+		return ccs_address_matches_group(r->param.inet_network.is_ipv6,
+						 r->param.inet_network.address,
+						 acl->address.group);
+	return acl->address.is_ipv6 == r->param.inet_network.is_ipv6 &&
+		memcmp(&acl->address.ip[0],
+		       r->param.inet_network.address, size) <= 0 &&
+		memcmp(r->param.inet_network.address,
+		       &acl->address.ip[1], size) <= 0;
+}
+
+/**
+ * ccs_check_unix_acl - Check permission for unix domain socket operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_unix_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr)
+{
+	const struct ccs_unix_acl *acl = container_of(ptr, typeof(*acl), head);
+	return (ptr->perm & (1 << r->param.unix_network.operation)) &&
+		ccs_compare_name_union(r->param.unix_network.address,
+				       &acl->name);
+}
+
+/**
+ * ccs_inet_entry - Check permission for INET network operation.
+ *
+ * @address: Pointer to "struct ccs_addr_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_inet_entry(const struct ccs_addr_info *address)
+{
+	const int idx = ccs_read_lock();
+	struct ccs_request_info r;
+	int error = 0;
+	const u8 type = ccs_inet2mac[address->protocol][address->operation];
+	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
+		r.param_type = CCS_TYPE_INET_ACL;
+		r.param.inet_network.protocol = address->protocol;
+		r.param.inet_network.operation = address->operation;
+		r.param.inet_network.is_ipv6 = address->inet.is_ipv6;
+		r.param.inet_network.address = address->inet.address;
+		r.param.inet_network.port = ntohs(address->inet.port);
+		r.dont_sleep_on_enforce_error =
+			address->operation == CCS_NETWORK_ACCEPT ||
+			address->operation == CCS_NETWORK_RECV;
+		do {
+			ccs_check_acl(&r);
+			error = ccs_audit_inet_log(&r);
+		} while (error == CCS_RETRY_REQUEST);
+	}
+	ccs_read_unlock(idx);
+	return error;
+}
+
+/**
+ * ccs_check_inet_address - Check permission for inet domain socket's operation.
+ *
+ * @addr:     Pointer to "struct sockaddr".
+ * @addr_len: Size of @addr.
+ * @port:     Port number.
+ * @address:  Pointer to "struct ccs_addr_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_check_inet_address(const struct sockaddr *addr,
+				  const unsigned int addr_len, const u16 port,
+				  struct ccs_addr_info *address)
+{
+	struct ccs_inet_addr_info *i = &address->inet;
+	switch (addr->sa_family) {
+	case AF_INET6:
+		if (addr_len < SIN6_LEN_RFC2133)
+			goto skip;
+		i->is_ipv6 = true;
+		i->address = (u32 *)
+			((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr;
+		i->port = ((struct sockaddr_in6 *) addr)->sin6_port;
+		break;
+	case AF_INET:
+		if (addr_len < sizeof(struct sockaddr_in))
+			goto skip;
+		i->is_ipv6 = false;
+		i->address = (u32 *) &((struct sockaddr_in *) addr)->sin_addr;
+		i->port = ((struct sockaddr_in *) addr)->sin_port;
+		break;
+	default:
+		goto skip;
+	}
+	if (address->protocol == SOCK_RAW)
+		i->port = htons(port);
+	return ccs_inet_entry(address);
+skip:
+	return 0;
+}
+
+/**
+ * ccs_unix_entry - Check permission for UNIX network operation.
+ *
+ * @address: Pointer to "struct ccs_addr_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_unix_entry(const struct ccs_addr_info *address)
+{
+	const int idx = ccs_read_lock();
+	struct ccs_request_info r;
+	int error = 0;
+	const u8 type = ccs_unix2mac[address->protocol][address->operation];
+	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
+		char *buf = address->unix0.addr;
+		int len = address->unix0.addr_len - sizeof(sa_family_t);
+		if (len <= 0) {
+			buf = "anonymous";
+			len = 9;
+		} else if (buf[0]) {
+			len = strnlen(buf, len);
+		}
+		buf = ccs_encode2(buf, len);
+		if (buf) {
+			struct ccs_path_info addr;
+			addr.name = buf;
+			ccs_fill_path_info(&addr);
+			r.param_type = CCS_TYPE_UNIX_ACL;
+			r.param.unix_network.protocol = address->protocol;
+			r.param.unix_network.operation = address->operation;
+			r.param.unix_network.address = &addr;
+			r.dont_sleep_on_enforce_error =
+				address->operation == CCS_NETWORK_ACCEPT ||
+				address->operation == CCS_NETWORK_RECV;
+			do {
+				ccs_check_acl(&r);
+				error = ccs_audit_unix_log(&r);
+			} while (error == CCS_RETRY_REQUEST);
+			kfree(buf);
+		} else
+			error = -ENOMEM;
+	}
+	ccs_read_unlock(idx);
+	return error;
+}
+
+/**
+ * ccs_check_unix_address - Check permission for unix domain socket's operation.
+ *
+ * @addr:     Pointer to "struct sockaddr".
+ * @addr_len: Size of @addr.
+ * @address:  Pointer to "struct ccs_addr_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_check_unix_address(struct sockaddr *addr,
+				  const unsigned int addr_len,
+				  struct ccs_addr_info *address)
+{
+	struct ccs_unix_addr_info *u = &address->unix0;
+	if (addr->sa_family != AF_UNIX)
+		return 0;
+	u->addr = ((struct sockaddr_un *) addr)->sun_path;
+	u->addr_len = addr_len;
+	return ccs_unix_entry(address);
+}
+
+/**
+ * ccs_kernel_service - Check whether I'm kernel service or not.
+ *
+ * Returns true if I'm kernel service, false otherwise.
+ */
+static bool ccs_kernel_service(void)
+{
+	/* Nothing to do if I am a kernel service. */
+	return segment_eq(get_fs(), KERNEL_DS);
+}
+
+/**
+ * ccs_sock_family - Get socket's family.
+ *
+ * @sk: Pointer to "struct sock".
+ *
+ * Returns one of PF_INET, PF_INET6, PF_UNIX or 0.
+ */
+static u8 ccs_sock_family(struct sock *sk)
+{
+	u8 family;
+	if (ccs_kernel_service())
+		return 0;
+	family = sk->sk_family;
+	switch (family) {
+	case PF_INET:
+	case PF_INET6:
+	case PF_UNIX:
+		return family;
+	default:
+		return 0;
+	}
+}
+
+/**
+ * __ccs_socket_create_permission - Check permission for creating a socket.
+ *
+ * @family:   Protocol family.
+ * @type:     Unused.
+ * @protocol: Unused.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_socket_create_permission(int family, int type, int protocol)
+{
+	if (ccs_kernel_service())
+		return 0;
+	if (family == PF_PACKET && !ccs_capable(CCS_USE_PACKET_SOCKET))
+		return -EPERM;
+	if (family == PF_ROUTE && !ccs_capable(CCS_USE_ROUTE_SOCKET))
+		return -EPERM;
+	return 0;
+}
+
+/**
+ * __ccs_socket_listen_permission - Check permission for listening a socket.
+ *
+ * @sock: Pointer to "struct socket".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_socket_listen_permission(struct socket *sock)
+{
+	struct ccs_addr_info address;
+	const u8 family = ccs_sock_family(sock->sk);
+	const unsigned int type = sock->type;
+	struct sockaddr_storage addr;
+	int addr_len;
+	if (!family || (type != SOCK_STREAM && type != SOCK_SEQPACKET))
+		return 0;
+	{
+		const int error = sock->ops->getname(sock, (struct sockaddr *)
+						     &addr, &addr_len, 0);
+		if (error)
+			return error;
+	}
+	address.protocol = type;
+	address.operation = CCS_NETWORK_LISTEN;
+	if (family == PF_UNIX)
+		return ccs_check_unix_address((struct sockaddr *) &addr,
+					      addr_len, &address);
+	return ccs_check_inet_address((struct sockaddr *) &addr, addr_len, 0,
+				      &address);
+}
+
+/**
+ * __ccs_socket_connect_permission - Check permission for setting the remote address of a socket.
+ *
+ * @sock:     Pointer to "struct socket".
+ * @addr:     Pointer to "struct sockaddr".
+ * @addr_len: Size of @addr.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_socket_connect_permission(struct socket *sock,
+					   struct sockaddr *addr, int addr_len)
+{
+	struct ccs_addr_info address;
+	const u8 family = ccs_sock_family(sock->sk);
+	const unsigned int type = sock->type;
+	if (!family)
+		return 0;
+	address.protocol = type;
+	switch (type) {
+	case SOCK_DGRAM:
+	case SOCK_RAW:
+		address.operation = CCS_NETWORK_SEND;
+		break;
+	case SOCK_STREAM:
+	case SOCK_SEQPACKET:
+		address.operation = CCS_NETWORK_CONNECT;
+		break;
+	default:
+		return 0;
+	}
+	if (family == PF_UNIX)
+		return ccs_check_unix_address(addr, addr_len, &address);
+	return ccs_check_inet_address(addr, addr_len, sock->sk->sk_protocol,
+				      &address);
+}
+
+/**
+ * __ccs_socket_bind_permission - Check permission for setting the local address of a socket.
+ *
+ * @sock:     Pointer to "struct socket".
+ * @addr:     Pointer to "struct sockaddr".
+ * @addr_len: Size of @addr.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_socket_bind_permission(struct socket *sock,
+					struct sockaddr *addr, int addr_len)
+{
+	struct ccs_addr_info address;
+	const u8 family = ccs_sock_family(sock->sk);
+	const unsigned int type = sock->type;
+	if (!family)
+		return 0;
+	switch (type) {
+	case SOCK_STREAM:
+	case SOCK_DGRAM:
+	case SOCK_RAW:
+	case SOCK_SEQPACKET:
+		address.protocol = type;
+		address.operation = CCS_NETWORK_BIND;
+		break;
+	default:
+		return 0;
+	}
+	if (family == PF_UNIX)
+		return ccs_check_unix_address(addr, addr_len, &address);
+	return ccs_check_inet_address(addr, addr_len, sock->sk->sk_protocol,
+				      &address);
+}
+
+/**
+ * __ccs_socket_sendmsg_permission - Check permission for sending a datagram.
+ *
+ * @sock: Pointer to "struct socket".
+ * @msg:  Pointer to "struct msghdr".
+ * @size: Unused.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_socket_sendmsg_permission(struct socket *sock,
+					   struct msghdr *msg, int size)
+{
+	struct ccs_addr_info address;
+	const u8 family = ccs_sock_family(sock->sk);
+	const unsigned int type = sock->type;
+	if (!msg->msg_name || !family ||
+	    (type != SOCK_DGRAM && type != SOCK_RAW))
+		return 0;
+	address.protocol = type;
+	address.operation = CCS_NETWORK_SEND;
+	if (family == PF_UNIX)
+		return ccs_check_unix_address((struct sockaddr *)
+					      msg->msg_name, msg->msg_namelen,
+					      &address);
+	return ccs_check_inet_address((struct sockaddr *) msg->msg_name,
+				      msg->msg_namelen, sock->sk->sk_protocol,
+				      &address);
+}
+
+/**
+ * __ccs_socket_post_accept_permission - Check permission for accepting a socket.
+ *
+ * @sock:    Pointer to "struct socket".
+ * @newsock: Pointer to "struct socket".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_socket_post_accept_permission(struct socket *sock,
+					       struct socket *newsock)
+{
+	struct ccs_addr_info address;
+	const u8 family = ccs_sock_family(sock->sk);
+	const unsigned int type = sock->type;
+	struct sockaddr_storage addr;
+	int addr_len;
+	if (!family || (type != SOCK_STREAM && type != SOCK_SEQPACKET))
+		return 0;
+	{
+		const int error = newsock->ops->getname(newsock,
+							(struct sockaddr *)
+							&addr, &addr_len, 2);
+		if (error)
+			return error;
+	}
+	address.protocol = type;
+	address.operation = CCS_NETWORK_ACCEPT;
+	if (family == PF_UNIX)
+		return ccs_check_unix_address((struct sockaddr *) &addr,
+					      addr_len, &address);
+	return ccs_check_inet_address((struct sockaddr *) &addr, addr_len, 0,
+				      &address);
+}
+
+/**
+ * __ccs_socket_post_recvmsg_permission - Check permission for receiving a datagram.
+ *
+ * @sk:    Pointer to "struct sock".
+ * @skb:   Pointer to "struct sk_buff".
+ * @flags: Flags passed to skb_recv_datagram().
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb, int flags)
+{
+	struct ccs_addr_info address;
+	const u8 family = ccs_sock_family(sk);
+	const unsigned int type = sk->sk_type;
+	struct sockaddr_storage addr;
+	if (!family)
+		return 0;
+	switch (type) {
+	case SOCK_DGRAM:
+	case SOCK_RAW:
+		address.protocol = type;
+		break;
+	default:
+		return 0;
+	}
+	address.operation = CCS_NETWORK_RECV;
+	switch (family) {
+	case PF_INET6:
+		{
+			struct in6_addr *sin6 = (struct in6_addr *) &addr;
+			address.inet.is_ipv6 = true;
+			if (type == SOCK_DGRAM &&
+			    skb->protocol == htons(ETH_P_IP))
+				ipv6_addr_set(sin6, 0, 0, htonl(0xffff),
+					      ip_hdr(skb)->saddr);
+			else
+				ipv6_addr_copy(sin6, &ipv6_hdr(skb)->saddr);
+			break;
+		}
+	case PF_INET:
+		{
+			struct in_addr *sin4 = (struct in_addr *) &addr;
+			address.inet.is_ipv6 = false;
+			sin4->s_addr = ip_hdr(skb)->saddr;
+			break;
+		}
+	default: /* == PF_UNIX */
+		{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+			struct unix_address *u = unix_sk(skb->sk)->addr;
+#else
+			struct unix_address *u =
+				skb->sk->protinfo.af_unix.addr;
+#endif
+			unsigned int addr_len;
+			if (u && u->len <= sizeof(addr)) {
+				addr_len = u->len;
+				memcpy(&addr, u->name, addr_len);
+			} else {
+				addr_len = 0;
+				addr.ss_family = AF_UNIX;
+			}
+			if (ccs_check_unix_address((struct sockaddr *) &addr,
+						   addr_len, &address))
+				goto out;
+			return 0;
+		}
+	}
+	address.inet.address = (u32 *) &addr;
+	if (type == SOCK_DGRAM)
+		address.inet.port = udp_hdr(skb)->source;
+	else
+		address.inet.port = htons(sk->sk_protocol);
+	if (ccs_inet_entry(&address))
+		goto out;
+	return 0;
+out:
+	/*
+	 * Remove from queue if MSG_PEEK is used so that
+	 * the head message from unwanted source in receive queue will not
+	 * prevent the caller from picking up next message from wanted source
+	 * when the caller is using MSG_PEEK flag for picking up.
+	 */
+	{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
+		bool slow = false;
+		if (type == SOCK_DGRAM && family != PF_UNIX)
+			slow = lock_sock_fast(sk);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		if (type == SOCK_DGRAM && family != PF_UNIX)
+			lock_sock(sk);
+#endif
+		skb_kill_datagram(sk, skb, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
+		if (type == SOCK_DGRAM && family != PF_UNIX)
+			unlock_sock_fast(sk, slow);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		if (type == SOCK_DGRAM && family != PF_UNIX)
+			release_sock(sk);
+#endif
+	}
+	return -EPERM;
+}
+
+#endif
+
+/**
+ * ccs_audit_capability_log - Audit capability log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_capability_log(struct ccs_request_info *r)
+{
+	return ccs_supervisor(r, "capability %s\n", ccs_mac_keywords
+			      [ccs_c2mac[r->param.capability.operation]]);
+}
+
+/**
+ * ccs_check_capability_acl - Check permission for capability operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_capability_acl(struct ccs_request_info *r,
+				     const struct ccs_acl_info *ptr)
+{
+	const struct ccs_capability_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	return acl->operation == r->param.capability.operation;
+}
+
+/**
+ * ccs_capable - Check permission for capability.
+ *
+ * @operation: Type of operation.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool __ccs_capable(const u8 operation)
+{
+	struct ccs_request_info r;
+	int error = 0;
+	const int idx = ccs_read_lock();
+	if (ccs_init_request_info(&r, ccs_c2mac[operation])
+	    != CCS_CONFIG_DISABLED) {
+		r.param_type = CCS_TYPE_CAPABILITY_ACL;
+		r.param.capability.operation = operation;
+		do {
+			ccs_check_acl(&r);
+			error = ccs_audit_capability_log(&r);
+		} while (error == CCS_RETRY_REQUEST);
+	}
+	ccs_read_unlock(idx);
+	return !error;
+}
+
+/**
+ * __ccs_ptrace_permission - Check permission for ptrace().
+ *
+ * @request: Unused.
+ * @pid:     Unused.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Since this function is called from location where it is permitted to sleep,
+ * it is racy to check target process's domainname anyway. Therefore, we don't
+ * use target process's domainname.
+ */
+static int __ccs_ptrace_permission(long request, long pid)
+{
+	return __ccs_capable(CCS_SYS_PTRACE) ? 0 : -EPERM;
+}
+
+/**
+ * ccs_audit_signal_log - Audit signal log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_signal_log(struct ccs_request_info *r)
+{
+	return ccs_supervisor(r, "ipc signal %d %s\n", r->param.signal.sig,
+			      r->param.signal.dest_pattern);
+}
+
+/**
+ * ccs_check_signal_acl - Check permission for signal operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_signal_acl(struct ccs_request_info *r,
+				 const struct ccs_acl_info *ptr)
+{
+	const struct ccs_signal_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	if (ccs_compare_number_union(r->param.signal.sig, &acl->sig)) {
+		const int len = acl->domainname->total_len;
+		if (!strncmp(acl->domainname->name,
+			     r->param.signal.dest_pattern, len)) {
+			switch (r->param.signal.dest_pattern[len]) {
+			case ' ':
+			case '\0':
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/**
+ * ccs_signal_acl2 - Check permission for signal.
+ *
+ * @sig: Signal number.
+ * @pid: Target's PID.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static int ccs_signal_acl2(const int sig, const int pid)
+{
+	struct ccs_request_info r;
+	struct ccs_domain_info *dest = NULL;
+	int error;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
+	if (ccs_init_request_info(&r, CCS_MAC_SIGNAL) == CCS_CONFIG_DISABLED)
+		return 0;
+	if (!sig)
+		return 0;                /* No check for NULL signal. */
+	r.param_type = CCS_TYPE_SIGNAL_ACL;
+	r.param.signal.sig = sig;
+	r.param.signal.dest_pattern = domain->domainname->name;
+	r.granted = true;
+	if (ccs_sys_getpid() == pid) {
+		ccs_audit_signal_log(&r);
+		return 0;                /* No check for self process. */
+	}
+	{ /* Simplified checking. */
+		struct task_struct *p = NULL;
+		ccs_tasklist_lock();
+		if (pid > 0)
+			p = find_task_by_pid((pid_t) pid);
+		else if (pid == 0)
+			p = current;
+		else if (pid == -1)
+			dest = &ccs_kernel_domain;
+		else
+			p = find_task_by_pid((pid_t) -pid);
+		if (p)
+			dest = ccs_task_domain(p);
+		ccs_tasklist_unlock();
+	}
+	if (!dest)
+		return 0; /* I can't find destinatioin. */
+	if (domain == dest) {
+		ccs_audit_signal_log(&r);
+		return 0;                /* No check for self domain. */
+	}
+	r.param.signal.dest_pattern = dest->domainname->name;
+	do {
+		ccs_check_acl(&r);
+		error = ccs_audit_signal_log(&r);
+	} while (error == CCS_RETRY_REQUEST);
+	return error;
+}
+
+/**
+ * ccs_signal_acl - Check permission for signal.
+ *
+ * @pid: Target's PID.
+ * @sig: Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_signal_acl(const int pid, const int sig)
+{
+	int error;
+	if (!sig)
+		error = 0;
+	else {
+		const int idx = ccs_read_lock();
+		error = ccs_signal_acl2(sig, pid);
+		ccs_read_unlock(idx);
+	}
+	return error;
+}
+
+/**
+ * ccs_signal_acl0 - Permission check for signal().
+ *
+ * @tgid: Unused.
+ * @pid:  Target's PID.
+ * @sig:  Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig)
+{
+	return ccs_signal_acl(pid, sig);
+}
+
+/*
+ * security/ccsecurity/environ.c
+ *
+ * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ *
+ * Version: 1.8.3   2011/09/29
+ */
+
+#include "internal.h"
+
+/**
+ * ccs_check_env_acl - Check permission for environment variable's name.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_env_acl(struct ccs_request_info *r,
+			      const struct ccs_acl_info *ptr)
+{
+	const struct ccs_env_acl *acl = container_of(ptr, typeof(*acl), head);
+	return ccs_path_matches_pattern(r->param.environ.name, acl->env);
+}
+
+/**
+ * ccs_audit_env_log - Audit environment variable name log.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_env_log(struct ccs_request_info *r)
+{
+	return ccs_supervisor(r, "misc env %s\n", r->param.environ.name->name);
+}
+
+/**
+ * ccs_env_perm - Check permission for environment variable's name.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @env: The name of environment variable.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+int ccs_env_perm(struct ccs_request_info *r, const char *env)
+{
+	struct ccs_path_info environ;
+	int error;
+	if (!env || !*env)
+		return 0;
+	environ.name = env;
+	ccs_fill_path_info(&environ);
+	r->param_type = CCS_TYPE_ENV_ACL;
+	r->param.environ.name = &environ;
+	do {
+		ccs_check_acl(r);
+		error = ccs_audit_env_log(r);
+	} while (error == CCS_RETRY_REQUEST);
+	return error;
+}
+
+/**
+ * ccs_argv - Check argv[] in "struct linux_binbrm".
+ *
+ * @index:   Index number of @arg_ptr.
+ * @arg_ptr: Contents of argv[@index].
+ * @argc:    Length of @argv.
+ * @argv:    Pointer to "struct ccs_argv".
+ * @checked: Set to true if @argv[@index] was found.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_argv(const unsigned int index, const char *arg_ptr,
+		     const int argc, const struct ccs_argv *argv,
+		     u8 *checked)
+{
+	int i;
+	struct ccs_path_info arg;
+	arg.name = arg_ptr;
+	for (i = 0; i < argc; argv++, checked++, i++) {
+		bool result;
+		if (index != argv->index)
+			continue;
+		*checked = 1;
+		ccs_fill_path_info(&arg);
+		result = ccs_path_matches_pattern(&arg, argv->value);
+		if (argv->is_not)
+			result = !result;
+		if (!result)
+			return false;
+	}
+	return true;
+}
+
+/**
+ * ccs_envp - Check envp[] in "struct linux_binbrm".
+ *
+ * @env_name:  The name of environment variable.
+ * @env_value: The value of environment variable.
+ * @envc:      Length of @envp.
+ * @envp:      Pointer to "struct ccs_envp".
+ * @checked:   Set to true if @envp[@env_name] was found.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_envp(const char *env_name, const char *env_value,
+		     const int envc, const struct ccs_envp *envp,
+		     u8 *checked)
+{
+	int i;
+	struct ccs_path_info name;
+	struct ccs_path_info value;
+	name.name = env_name;
+	ccs_fill_path_info(&name);
+	value.name = env_value;
+	ccs_fill_path_info(&value);
+	for (i = 0; i < envc; envp++, checked++, i++) {
+		bool result;
+		if (!ccs_path_matches_pattern(&name, envp->name))
+			continue;
+		*checked = 1;
+		if (envp->value) {
+			result = ccs_path_matches_pattern(&value, envp->value);
+			if (envp->is_not)
+				result = !result;
+		} else {
+			result = true;
+			if (!envp->is_not)
+				result = !result;
+		}
+		if (!result)
+			return false;
+	}
+	return true;
+}
+
+/**
+ * ccs_scan_bprm - Scan "struct linux_binprm".
+ *
+ * @ee:   Pointer to "struct ccs_execve".
+ * @argc: Length of @argc.
+ * @argv: Pointer to "struct ccs_argv".
+ * @envc: Length of @envp.
+ * @envp: Poiner to "struct ccs_envp".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_scan_bprm(struct ccs_execve *ee,
+			  const u16 argc, const struct ccs_argv *argv,
+			  const u16 envc, const struct ccs_envp *envp)
+{
+	struct linux_binprm *bprm = ee->bprm;
+	struct ccs_page_dump *dump = &ee->dump;
+	char *arg_ptr = ee->tmp;
+	int arg_len = 0;
+	unsigned long pos = bprm->p;
+	int offset = pos % PAGE_SIZE;
+	int argv_count = bprm->argc;
+	int envp_count = bprm->envc;
+	bool result = true;
+	u8 local_checked[32];
+	u8 *checked;
+	if (argc + envc <= sizeof(local_checked)) {
+		checked = local_checked;
+		memset(local_checked, 0, sizeof(local_checked));
+	} else {
+		checked = kzalloc(argc + envc, CCS_GFP_FLAGS);
+		if (!checked)
+			return false;
+	}
+	while (argv_count || envp_count) {
+		if (!ccs_dump_page(bprm, pos, dump)) {
+			result = false;
+			goto out;
+		}
+		pos += PAGE_SIZE - offset;
+		while (offset < PAGE_SIZE) {
+			/* Read. */
+			const char *kaddr = dump->data;
+			const unsigned char c = kaddr[offset++];
+			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
+				if (c == '\\') {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = '\\';
+				} else if (c > ' ' && c < 127) {
+					arg_ptr[arg_len++] = c;
+				} else {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = (c >> 6) + '0';
+					arg_ptr[arg_len++] =
+						((c >> 3) & 7) + '0';
+					arg_ptr[arg_len++] = (c & 7) + '0';
+				}
+			} else {
+				arg_ptr[arg_len] = '\0';
+			}
+			if (c)
+				continue;
+			/* Check. */
+			if (argv_count) {
+				if (!ccs_argv(bprm->argc - argv_count,
+					      arg_ptr, argc, argv,
+					      checked)) {
+					result = false;
+					break;
+				}
+				argv_count--;
+			} else if (envp_count) {
+				char *cp = strchr(arg_ptr, '=');
+				if (cp) {
+					*cp = '\0';
+					if (!ccs_envp(arg_ptr, cp + 1,
+						      envc, envp,
+						      checked + argc)) {
+						result = false;
+						break;
+					}
+				}
+				envp_count--;
+			} else {
+				break;
+			}
+			arg_len = 0;
+		}
+		offset = 0;
+		if (!result)
+			break;
+	}
+out:
+	if (result) {
+		int i;
+		/* Check not-yet-checked entries. */
+		for (i = 0; i < argc; i++) {
+			if (checked[i])
+				continue;
+			/*
+			 * Return true only if all unchecked indexes in
+			 * bprm->argv[] are not matched.
+			 */
+			if (argv[i].is_not)
+				continue;
+			result = false;
+			break;
+		}
+		for (i = 0; i < envc; envp++, i++) {
+			if (checked[argc + i])
+				continue;
+			/*
+			 * Return true only if all unchecked environ variables
+			 * in bprm->envp[] are either undefined or not matched.
+			 */
+			if ((!envp->value && !envp->is_not) ||
+			    (envp->value && envp->is_not))
+				continue;
+			result = false;
+			break;
+		}
+	}
+	if (checked != local_checked)
+		kfree(checked);
+	return result;
+}
+
+/**
+ * ccs_scan_exec_realpath - Check "exec.realpath" parameter of "struct ccs_condition".
+ *
+ * @file:  Pointer to "struct file".
+ * @ptr:   Pointer to "struct ccs_name_union".
+ * @match: True if "exec.realpath=", false if "exec.realpath!=".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_scan_exec_realpath(struct file *file,
+				   const struct ccs_name_union *ptr,
+				   const bool match)
+{
+	bool result;
+	struct ccs_path_info exe;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+	struct path path;
+#endif
+	if (!file)
+		return false;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
+	exe.name = ccs_realpath_from_path(&file->f_path);
+#else
+	path.mnt = file->f_vfsmnt;
+	path.dentry = file->f_dentry;
+	exe.name = ccs_realpath_from_path(&path);
+#endif
+	if (!exe.name)
+		return false;
+	ccs_fill_path_info(&exe);
+	result = ccs_compare_name_union(&exe, ptr);
+	kfree(exe.name);
+	return result == match;
+}
+
+/**
+ * ccs_get_attributes - Revalidate "struct inode".
+ *
+ * @obj: Pointer to "struct ccs_obj_info".
+ *
+ * Returns nothing.
+ */
+void ccs_get_attributes(struct ccs_obj_info *obj)
+{
+	u8 i;
+	struct dentry *dentry = NULL;
+
+	for (i = 0; i < CCS_MAX_PATH_STAT; i++) {
+		struct inode *inode;
+		switch (i) {
+		case CCS_PATH1:
+			dentry = obj->path1.dentry;
+			if (!dentry)
+				continue;
+			break;
+		case CCS_PATH2:
+			dentry = obj->path2.dentry;
+			if (!dentry)
+				continue;
+			break;
+		default:
+			if (!dentry)
+				continue;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+			spin_lock(&dcache_lock);
+			dentry = dget(dentry->d_parent);
+			spin_unlock(&dcache_lock);
+#else
+			dentry = dget_parent(dentry);
+#endif
+			break;
+		}
+		inode = dentry->d_inode;
+		if (inode) {
+			struct ccs_mini_stat *stat = &obj->stat[i];
+			stat->uid  = inode->i_uid;
+			stat->gid  = inode->i_gid;
+			stat->ino  = inode->i_ino;
+			stat->mode = inode->i_mode;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+			stat->dev  = inode->i_dev;
+#else
+			stat->dev  = inode->i_sb->s_dev;
+#endif
+			stat->rdev = inode->i_rdev;
+			obj->stat_valid[i] = true;
+		}
+		if (i & 1) /* i == CCS_PATH1_PARENT || i == CCS_PATH2_PARENT */
+			dput(dentry);
+	}
+}
+
+/**
+ * ccs_condition - Check condition part.
+ *
+ * @r:    Pointer to "struct ccs_request_info".
+ * @cond: Pointer to "struct ccs_condition". Maybe NULL.
+ *
+ * Returns true on success, false otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+bool ccs_condition(struct ccs_request_info *r,
+		   const struct ccs_condition *cond)
+{
+	const u32 ccs_flags = ccs_current_flags();
+	u32 i;
+	unsigned long min_v[2] = { 0, 0 };
+	unsigned long max_v[2] = { 0, 0 };
+	const struct ccs_condition_element *condp;
+	const struct ccs_number_union *numbers_p;
+	const struct ccs_name_union *names_p;
+	const struct ccs_argv *argv;
+	const struct ccs_envp *envp;
+	struct ccs_obj_info *obj;
+	u16 condc;
+	u16 argc;
+	u16 envc;
+	struct linux_binprm *bprm = NULL;
+	if (!cond)
+		return true;
+	condc = cond->condc;
+	argc = cond->argc;
+	envc = cond->envc;
+	obj = r->obj;
+	if (r->ee)
+		bprm = r->ee->bprm;
+	if (!bprm && (argc || envc))
+		return false;
+	condp = (struct ccs_condition_element *) (cond + 1);
+	numbers_p = (const struct ccs_number_union *) (condp + condc);
+	names_p = (const struct ccs_name_union *)
+		(numbers_p + cond->numbers_count);
+	argv = (const struct ccs_argv *) (names_p + cond->names_count);
+	envp = (const struct ccs_envp *) (argv + argc);
+	for (i = 0; i < condc; i++) {
+		const bool match = condp->equals;
+		const u8 left = condp->left;
+		const u8 right = condp->right;
+		bool is_bitop[2] = { false, false };
+		u8 j;
+		condp++;
+		/* Check argv[] and envp[] later. */
+		if (left == CCS_ARGV_ENTRY || left == CCS_ENVP_ENTRY)
+			continue;
+		/* Check string expressions. */
+		if (right == CCS_NAME_UNION) {
+			const struct ccs_name_union *ptr = names_p++;
+			switch (left) {
+				struct ccs_path_info *symlink;
+				struct ccs_execve *ee;
+				struct file *file;
+			case CCS_SYMLINK_TARGET:
+				symlink = obj ? obj->symlink_target : NULL;
+				if (!symlink ||
+				    !ccs_compare_name_union(symlink, ptr)
+				    == match)
+					goto out;
+				break;
+			case CCS_EXEC_REALPATH:
+				ee = r->ee;
+				file = ee ? ee->bprm->file : NULL;
+				if (!ccs_scan_exec_realpath(file, ptr, match))
+					goto out;
+				break;
+			}
+			continue;
+		}
+		/* Check numeric or bit-op expressions. */
+		for (j = 0; j < 2; j++) {
+			const u8 index = j ? right : left;
+			unsigned long value = 0;
+			switch (index) {
+			case CCS_TASK_UID:
+				value = current_uid();
+				break;
+			case CCS_TASK_EUID:
+				value = current_euid();
+				break;
+			case CCS_TASK_SUID:
+				value = current_suid();
+				break;
+			case CCS_TASK_FSUID:
+				value = current_fsuid();
+				break;
+			case CCS_TASK_GID:
+				value = current_gid();
+				break;
+			case CCS_TASK_EGID:
+				value = current_egid();
+				break;
+			case CCS_TASK_SGID:
+				value = current_sgid();
+				break;
+			case CCS_TASK_FSGID:
+				value = current_fsgid();
+				break;
+			case CCS_TASK_PID:
+				value = ccs_sys_getpid();
+				break;
+			case CCS_TASK_PPID:
+				value = ccs_sys_getppid();
+				break;
+			case CCS_TYPE_IS_SOCKET:
+				value = S_IFSOCK;
+				break;
+			case CCS_TYPE_IS_SYMLINK:
+				value = S_IFLNK;
+				break;
+			case CCS_TYPE_IS_FILE:
+				value = S_IFREG;
+				break;
+			case CCS_TYPE_IS_BLOCK_DEV:
+				value = S_IFBLK;
+				break;
+			case CCS_TYPE_IS_DIRECTORY:
+				value = S_IFDIR;
+				break;
+			case CCS_TYPE_IS_CHAR_DEV:
+				value = S_IFCHR;
+				break;
+			case CCS_TYPE_IS_FIFO:
+				value = S_IFIFO;
+				break;
+			case CCS_MODE_SETUID:
+				value = S_ISUID;
+				break;
+			case CCS_MODE_SETGID:
+				value = S_ISGID;
+				break;
+			case CCS_MODE_STICKY:
+				value = S_ISVTX;
+				break;
+			case CCS_MODE_OWNER_READ:
+				value = S_IRUSR;
+				break;
+			case CCS_MODE_OWNER_WRITE:
+				value = S_IWUSR;
+				break;
+			case CCS_MODE_OWNER_EXECUTE:
+				value = S_IXUSR;
+				break;
+			case CCS_MODE_GROUP_READ:
+				value = S_IRGRP;
+				break;
+			case CCS_MODE_GROUP_WRITE:
+				value = S_IWGRP;
+				break;
+			case CCS_MODE_GROUP_EXECUTE:
+				value = S_IXGRP;
+				break;
+			case CCS_MODE_OTHERS_READ:
+				value = S_IROTH;
+				break;
+			case CCS_MODE_OTHERS_WRITE:
+				value = S_IWOTH;
+				break;
+			case CCS_MODE_OTHERS_EXECUTE:
+				value = S_IXOTH;
+				break;
+			case CCS_EXEC_ARGC:
+				if (!bprm)
+					goto out;
+				value = bprm->argc;
+				break;
+			case CCS_EXEC_ENVC:
+				if (!bprm)
+					goto out;
+				value = bprm->envc;
+				break;
+			case CCS_TASK_TYPE:
+				value = ((u8) ccs_flags)
+					& CCS_TASK_IS_EXECUTE_HANDLER;
+				break;
+			case CCS_TASK_EXECUTE_HANDLER:
+				value = CCS_TASK_IS_EXECUTE_HANDLER;
+				break;
+			case CCS_NUMBER_UNION:
+				/* Fetch values later. */
+				break;
+			default:
+				if (!obj)
+					goto out;
+				if (!obj->validate_done) {
+					ccs_get_attributes(obj);
+					obj->validate_done = true;
+				}
+				{
+					u8 stat_index;
+					struct ccs_mini_stat *stat;
+					switch (index) {
+					case CCS_PATH1_UID:
+					case CCS_PATH1_GID:
+					case CCS_PATH1_INO:
+					case CCS_PATH1_MAJOR:
+					case CCS_PATH1_MINOR:
+					case CCS_PATH1_TYPE:
+					case CCS_PATH1_DEV_MAJOR:
+					case CCS_PATH1_DEV_MINOR:
+					case CCS_PATH1_PERM:
+						stat_index = CCS_PATH1;
+						break;
+					case CCS_PATH2_UID:
+					case CCS_PATH2_GID:
+					case CCS_PATH2_INO:
+					case CCS_PATH2_MAJOR:
+					case CCS_PATH2_MINOR:
+					case CCS_PATH2_TYPE:
+					case CCS_PATH2_DEV_MAJOR:
+					case CCS_PATH2_DEV_MINOR:
+					case CCS_PATH2_PERM:
+						stat_index = CCS_PATH2;
+						break;
+					case CCS_PATH1_PARENT_UID:
+					case CCS_PATH1_PARENT_GID:
+					case CCS_PATH1_PARENT_INO:
+					case CCS_PATH1_PARENT_PERM:
+						stat_index = CCS_PATH1_PARENT;
+						break;
+					case CCS_PATH2_PARENT_UID:
+					case CCS_PATH2_PARENT_GID:
+					case CCS_PATH2_PARENT_INO:
+					case CCS_PATH2_PARENT_PERM:
+						stat_index = CCS_PATH2_PARENT;
+						break;
+					default:
+						goto out;
+					}
+					if (!obj->stat_valid[stat_index])
+						goto out;
+					stat = &obj->stat[stat_index];
+					switch (index) {
+					case CCS_PATH1_UID:
+					case CCS_PATH2_UID:
+					case CCS_PATH1_PARENT_UID:
+					case CCS_PATH2_PARENT_UID:
+						value = stat->uid;
+						break;
+					case CCS_PATH1_GID:
+					case CCS_PATH2_GID:
+					case CCS_PATH1_PARENT_GID:
+					case CCS_PATH2_PARENT_GID:
+						value = stat->gid;
+						break;
+					case CCS_PATH1_INO:
+					case CCS_PATH2_INO:
+					case CCS_PATH1_PARENT_INO:
+					case CCS_PATH2_PARENT_INO:
+						value = stat->ino;
+						break;
+					case CCS_PATH1_MAJOR:
+					case CCS_PATH2_MAJOR:
+						value = MAJOR(stat->dev);
+						break;
+					case CCS_PATH1_MINOR:
+					case CCS_PATH2_MINOR:
+						value = MINOR(stat->dev);
+						break;
+					case CCS_PATH1_TYPE:
+					case CCS_PATH2_TYPE:
+						value = stat->mode & S_IFMT;
+						break;
+					case CCS_PATH1_DEV_MAJOR:
+					case CCS_PATH2_DEV_MAJOR:
+						value = MAJOR(stat->rdev);
+						break;
+					case CCS_PATH1_DEV_MINOR:
+					case CCS_PATH2_DEV_MINOR:
+						value = MINOR(stat->rdev);
+						break;
+					case CCS_PATH1_PERM:
+					case CCS_PATH2_PERM:
+					case CCS_PATH1_PARENT_PERM:
+					case CCS_PATH2_PARENT_PERM:
+						value = stat->mode & S_IALLUGO;
+						break;
+					}
+				}
+				break;
+			}
+			max_v[j] = value;
+			min_v[j] = value;
+			switch (index) {
+			case CCS_MODE_SETUID:
+			case CCS_MODE_SETGID:
+			case CCS_MODE_STICKY:
+			case CCS_MODE_OWNER_READ:
+			case CCS_MODE_OWNER_WRITE:
+			case CCS_MODE_OWNER_EXECUTE:
+			case CCS_MODE_GROUP_READ:
+			case CCS_MODE_GROUP_WRITE:
+			case CCS_MODE_GROUP_EXECUTE:
+			case CCS_MODE_OTHERS_READ:
+			case CCS_MODE_OTHERS_WRITE:
+			case CCS_MODE_OTHERS_EXECUTE:
+				is_bitop[j] = true;
+			}
+		}
+		if (left == CCS_NUMBER_UNION) {
+			/* Fetch values now. */
+			const struct ccs_number_union *ptr = numbers_p++;
+			min_v[0] = ptr->values[0];
+			max_v[0] = ptr->values[1];
+		}
+		if (right == CCS_NUMBER_UNION) {
+			/* Fetch values now. */
+			const struct ccs_number_union *ptr = numbers_p++;
+			if (ptr->group) {
+				if (ccs_number_matches_group(min_v[0],
+							     max_v[0],
+							     ptr->group)
+				    == match)
+					continue;
+			} else {
+				if ((min_v[0] <= ptr->values[1] &&
+				     max_v[0] >= ptr->values[0]) == match)
+					continue;
+			}
+			goto out;
+		}
+		/*
+		 * Bit operation is valid only when counterpart value
+		 * represents permission.
+		 */
+		if (is_bitop[0] && is_bitop[1]) {
+			goto out;
+		} else if (is_bitop[0]) {
+			switch (right) {
+			case CCS_PATH1_PERM:
+			case CCS_PATH1_PARENT_PERM:
+			case CCS_PATH2_PERM:
+			case CCS_PATH2_PARENT_PERM:
+				if (!(max_v[0] & max_v[1]) == !match)
+					continue;
+			}
+			goto out;
+		} else if (is_bitop[1]) {
+			switch (left) {
+			case CCS_PATH1_PERM:
+			case CCS_PATH1_PARENT_PERM:
+			case CCS_PATH2_PERM:
+			case CCS_PATH2_PARENT_PERM:
+				if (!(max_v[0] & max_v[1]) == !match)
+					continue;
+			}
+			goto out;
+		}
+		/* Normal value range comparison. */
+		if ((min_v[0] <= max_v[1] && max_v[0] >= min_v[1]) == match)
+			continue;
+out:
+		return false;
+	}
+	/* Check argv[] and envp[] now. */
+	if (r->ee && (argc || envc))
+		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
+	return true;
+}
+
+
+/**
+ * ccs_check_task_acl - Check permission for task operation.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @ptr: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true if granted, false otherwise.
+ */
+static bool ccs_check_task_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr)
+{
+	const struct ccs_task_acl *acl = container_of(ptr, typeof(*acl), head);
+	return !ccs_pathcmp(r->param.task.domainname, acl->domainname);
+}
+
+/**
+ * ccs_write_self - write() for /proc/ccs/self_domain interface.
+ *
+ * @file:  Pointer to "struct file".
+ * @buf:   Domainname to transit to.
+ * @count: Size of @buf.
+ * @ppos:  Unused.
+ *
+ * Returns @count on success, negative value otherwise.
+ *
+ * If domain transition was permitted but the domain transition failed, this
+ * function returns error rather than terminating current thread with SIGKILL.
+ */
+ssize_t ccs_write_self(struct file *file, const char __user *buf,
+		       size_t count, loff_t *ppos)
+{
+	char *data;
+	int error;
+	if (!count || count >= CCS_EXEC_TMPSIZE - 10)
+		return -ENOMEM;
+	data = kzalloc(count + 1, CCS_GFP_FLAGS);
+	if (!data)
+		return -ENOMEM;
+	if (copy_from_user(data, buf, count)) {
+		error = -EFAULT;
+		goto out;
+	}
+	ccs_normalize_line(data);
+	if (ccs_correct_domain(data)) {
+		const int idx = ccs_read_lock();
+		struct ccs_path_info name;
+		struct ccs_request_info r;
+		name.name = data;
+		ccs_fill_path_info(&name);
+		/* Check "task manual_domain_transition" permission. */
+		ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
+		r.param_type = CCS_TYPE_MANUAL_TASK_ACL;
+		r.param.task.domainname = &name;
+		ccs_check_acl(&r);
+		if (!r.granted)
+			error = -EPERM;
+		else
+			error = ccs_assign_domain(data, true) ? 0 : -ENOENT;
+		ccs_read_unlock(idx);
+	} else
+		error = -EINVAL;
+out:
+	kfree(data);
+	return error ? error : count;
+}
+
+/**
+ * ccs_init_request_info - Initialize "struct ccs_request_info" members.
+ *
+ * @r:     Pointer to "struct ccs_request_info" to initialize.
+ * @index: Index number of functionality.
+ *
+ * Returns mode.
+ *
+ * "task auto_domain_transition" keyword is evaluated before returning mode for
+ * @index. If "task auto_domain_transition" keyword was specified and
+ * transition to that domain failed, the current thread will be killed by
+ * SIGKILL. Note that if current->pid == 1, sending SIGKILL won't work.
+ */
+static int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
+{
+	u8 i;
+	const char *buf;
+	for (i = 0; i < 255; i++) {
+		const u8 profile = ccs_current_domain()->profile;
+		memset(r, 0, sizeof(*r));
+		r->profile = profile;
+		r->type = index;
+		r->mode = ccs_get_mode(profile, index);
+		r->param_type = CCS_TYPE_AUTO_TASK_ACL;
+		ccs_check_acl(r);
+		if (!r->granted)
+			return r->mode;
+		buf = container_of(r->matched_acl, typeof(struct ccs_task_acl),
+				   head)->domainname->name;
+		if (!ccs_assign_domain(buf, true))
+			break;
+	}
+	ccs_transition_failed(buf);
+	return CCS_CONFIG_DISABLED;
 }
