@@ -1,4 +1,4 @@
-Current version: http://www.youtube.com/watch?v=qxVFOXnE-YQ
+Current version: http://www.youtube.com/watch?v=MkBXGUb6RPo
 
 TOMOYO Linux demonstration: Kickstarting on openSUSE 12.1
 
@@ -30,15 +30,19 @@ Assign profile 1 to <kernel> domain so that TOMOYO Linux records access requests
 
 Quit the policy editor.
 
-You've finished all preparations. Now, reboot the system.
+You've finished all preparations. Now, reboot the system so that TOMOYO Linux can start analysing.
 
 In order to enable TOMOYO Linux, add security equals tomoyo.
 
 The system is booting like normal Linux. But in the background, TOMOYO Linux is recording access requests occurred in the system.
 
-TOMOYO Linux records what programs were executed, what files were read, what files were written.
+Every application is placed into a separate domain.
+
+TOMOYO Linux records what programs were executed, what files were read, what files were written, for each domain.
 
 You can record access requests occurred in the system using learning mode and restrict access requests occurred in the system using enforcing mode.
+
+Each domain can have different access requests and different profiles, to allow for fine grained control.
 
 You've finished rebooting the system. Let's browse what TOMOYO Linux has recorded.
 
