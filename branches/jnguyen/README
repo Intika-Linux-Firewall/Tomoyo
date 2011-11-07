@@ -21,32 +21,36 @@ Installation
 
 Put the scripts into a folder and specify the folder in $HOME/.bashrc:
 
-  export RPM_SCRIPT_DIR="$HOME/buildscripts"
+  export CCS_SCRIPT_DIR="$HOME/buildscripts"
 
-All sources are downloaded and kept in the $RPM_SOURCE_DIR folder:
+All sources are downloaded and kept in the $CCS_SOURCE_DIR folder:
 
-  export RPM_SOURCE_DIR="$HOME/sources"
+  export CCS_SOURCE_DIR="$HOME/sources"
 
 The following variable should also be exported:
 
-  export RPM_BUILD_DIR="$HOME/rpmbuild"
+  export CCS_BUILD_DIR="$HOME/rpmbuild"
 
 
 
 Usage
 ----------------------------------------
 
-To build the kernel RPM package for Enterprise Linux 6, run this script:
+To build the kernel RPM package for Enterprise Linux 6:
 
   ./build-el6.sh
 
-To build the kernel RPM package for Fedora 16, run this script:
+To build the kernel RPM package for Fedora 16:
 
   ./build-f16.sh
 
-To build the userspace tools RPM package:
+To build the userspace tools RPM package for Enterprise Linux 6:
 
-  ./build-tools.sh
+  ./build-tools-el6.sh
+
+To build the userspace tools RPM package for Fedora 16:
+
+  ./build-tools-f16.sh
 
 
 
