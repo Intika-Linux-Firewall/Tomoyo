@@ -18,8 +18,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/util.c          |    3 -
  7 files changed, 81 insertions(+), 33 deletions(-)
 
---- linux-2.6.33.19.orig/security/tomoyo/common.c
-+++ linux-2.6.33.19/security/tomoyo/common.c
+--- linux-2.6.33.20.orig/security/tomoyo/common.c
++++ linux-2.6.33.20/security/tomoyo/common.c
 @@ -466,8 +466,10 @@ static struct tomoyo_profile *tomoyo_ass
  			TOMOYO_CONFIG_WANT_REJECT_LOG;
  		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
@@ -63,7 +63,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	rcu_read_unlock();
  	if (!domain)
  		return;
-@@ -2453,6 +2451,7 @@ ssize_t tomoyo_write_control(struct tomo
+@@ -2453,7 +2451,8 @@ ssize_t tomoyo_write_control(struct tomo
  		return -EFAULT;
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
@@ -71,9 +71,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	idx = tomoyo_read_lock();
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
---- linux-2.6.33.19.orig/security/tomoyo/common.h
-+++ linux-2.6.33.19/security/tomoyo/common.h
-@@ -1158,7 +1158,7 @@ static inline int tomoyo_round2(size_t s
+--- linux-2.6.33.20.orig/security/tomoyo/common.h
++++ linux-2.6.33.20/security/tomoyo/common.h
+@@ -1158,8 +1158,8 @@ static inline int tomoyo_round2(size_t s
   */
  #define list_for_each_cookie(pos, head)					\
  	if (!pos)							\
@@ -83,8 +83,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	for ( ; pos != (head); pos = rcu_dereference(pos->next))
  
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
---- linux-2.6.33.19.orig/security/tomoyo/domain.c
-+++ linux-2.6.33.19/security/tomoyo/domain.c
+--- linux-2.6.33.20.orig/security/tomoyo/domain.c
++++ linux-2.6.33.20/security/tomoyo/domain.c
 @@ -501,7 +501,8 @@ struct tomoyo_domain_info *tomoyo_assign
  			 * that domain. Do not perform domain transition if
  			 * profile for that domain is not yet created.
@@ -95,7 +95,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				return NULL;
  		}
  		return entry;
-@@ -557,6 +558,7 @@ out:
+@@ -557,7 +558,8 @@ out:
  			tomoyo_write_log(&r, "use_profile %u\n",
  					 entry->profile);
  			tomoyo_write_log(&r, "use_group %u\n", entry->group);
@@ -103,8 +103,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	return entry;
---- linux-2.6.33.19.orig/security/tomoyo/realpath.c
-+++ linux-2.6.33.19/security/tomoyo/realpath.c
+--- linux-2.6.33.20.orig/security/tomoyo/realpath.c
++++ linux-2.6.33.20/security/tomoyo/realpath.c
 @@ -76,25 +76,55 @@ char *tomoyo_encode(const char *str)
   *
   * Returns the buffer on success, an error code otherwise.
@@ -209,7 +209,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return pos;
  }
  
-@@ -276,8 +316,13 @@ char *tomoyo_realpath_from_path(struct p
+@@ -276,9 +316,14 @@ char *tomoyo_realpath_from_path(struct p
  			pos = tomoyo_get_local_path(path->dentry, buf,
  						    buf_len - 1);
  		/* Get absolute name for the rest. */
@@ -224,8 +224,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  encode:
  		if (IS_ERR(pos))
  			continue;
---- linux-2.6.33.19.orig/security/tomoyo/securityfs_if.c
-+++ linux-2.6.33.19/security/tomoyo/securityfs_if.c
+--- linux-2.6.33.20.orig/security/tomoyo/securityfs_if.c
++++ linux-2.6.33.20/security/tomoyo/securityfs_if.c
 @@ -93,7 +93,6 @@ static const struct file_operations tomo
  	.poll    = tomoyo_poll,
  	.read    = tomoyo_read,
@@ -234,7 +234,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
-@@ -147,6 +146,7 @@ static int __init tomoyo_initerface_init
+@@ -147,7 +146,8 @@ static int __init tomoyo_initerface_init
  			    TOMOYO_MANAGER);
  	tomoyo_create_entry("version",          0400, tomoyo_dir,
  			    TOMOYO_VERSION);
@@ -242,9 +242,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
---- linux-2.6.33.19.orig/security/tomoyo/tomoyo.c
-+++ linux-2.6.33.19/security/tomoyo/tomoyo.c
-@@ -157,7 +157,8 @@ static int tomoyo_inode_getattr(struct v
+--- linux-2.6.33.20.orig/security/tomoyo/tomoyo.c
++++ linux-2.6.33.20/security/tomoyo/tomoyo.c
+@@ -157,8 +157,9 @@ static int tomoyo_inode_getattr(struct v
   *
   * Returns 0 on success, negative value otherwise.
   */
@@ -254,8 +254,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path, NULL);
  }
---- linux-2.6.33.19.orig/security/tomoyo/util.c
-+++ linux-2.6.33.19/security/tomoyo/util.c
+--- linux-2.6.33.20.orig/security/tomoyo/util.c
++++ linux-2.6.33.20/security/tomoyo/util.c
 @@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(ns, profile)->config[index];
