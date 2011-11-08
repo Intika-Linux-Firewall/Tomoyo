@@ -16,7 +16,7 @@ static in_addr_t get_addr(const char *hostname)
 }
 
 /*
- * QUERY_STRING is in "f=/tomoyo/$ReleaseID/$Filename" format.
+ * QUERY_STRING is in "m=$Mirror&f=/tomoyo/$ReleaseID/$Filename" format.
  * $ReleaseID is known to be a decimal integer.
  * Since $Filename may contain '+' character, we need to encode it.
  */
@@ -30,7 +30,7 @@ static char *encode(const char *query) {
 		const unsigned char c = * (const unsigned char *) query++;
 		if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
 		    (c >= '0' && c <= '9') || c == '-' || c == '.' ||
-		    c == '_' || c == '~' || c == '/' || c == '=') {
+		    c == '_' || c == '~' || c == '/' || c == '=' || c == '&') {
 			*cp++ = c;
 		} else if (c) {
 			const unsigned char h = c >> 4;
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 	memset(buffer, 0, sizeof(buffer));
 	/* Call redir.php to determine download server. */
 	snprintf(buffer, sizeof(buffer) - 1,
-		 "GET /frs/redir.php?%s HTTP/1.0\r\n\r\n", query);
+		 "GET /frs/redir.php?m=jaist&%s HTTP/1.0\r\n\r\n", query);
 	len = strlen(buffer);
 	fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
@@ -96,10 +96,13 @@ int main(int argc, char *argv[]) {
 	if (!query)
 		goto file_error;
 	*query++ = '\0';
+	server = strdup(server);
+	if (!server)
+		goto file_error;
 	addr.sin_addr.s_addr = get_addr(server);
 	/* Call download server. */
-	snprintf(buffer, sizeof(buffer) - 1, "GET /%s HTTP/1.0\r\n\r\n",
-		 query);
+	snprintf(buffer, sizeof(buffer) - 1, "GET /%s HTTP/1.0\r\n"
+		 "Host: %s\r\n\r\n", server, query);
 	len = strlen(buffer);
 	fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
