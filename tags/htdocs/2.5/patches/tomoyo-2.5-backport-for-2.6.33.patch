@@ -16,9 +16,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/tomoyo.c        |    3 -
  5 files changed, 82 insertions(+), 25 deletions(-)
 
---- linux-2.6.33.19.orig/security/tomoyo/common.h
-+++ linux-2.6.33.19/security/tomoyo/common.h
-@@ -1325,7 +1325,7 @@ static inline int tomoyo_round2(size_t s
+--- linux-2.6.33.20.orig/security/tomoyo/common.h
++++ linux-2.6.33.20/security/tomoyo/common.h
+@@ -1325,8 +1325,8 @@ static inline int tomoyo_round2(size_t s
   */
  #define list_for_each_cookie(pos, head)					\
  	if (!pos)							\
@@ -28,9 +28,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	for ( ; pos != (head); pos = rcu_dereference(pos->next))
  
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
---- linux-2.6.33.19.orig/security/tomoyo/gc.c
-+++ linux-2.6.33.19/security/tomoyo/gc.c
-@@ -362,6 +362,18 @@ static inline void tomoyo_del_number_gro
+--- linux-2.6.33.20.orig/security/tomoyo/gc.c
++++ linux-2.6.33.20/security/tomoyo/gc.c
+@@ -362,7 +362,19 @@ static inline void tomoyo_del_number_gro
  }
  
  /**
@@ -49,8 +49,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_try_to_gc - Try to kfree() an entry.
   *
   * @type:    One of values in "enum tomoyo_policy_id".
---- linux-2.6.33.19.orig/security/tomoyo/realpath.c
-+++ linux-2.6.33.19/security/tomoyo/realpath.c
+--- linux-2.6.33.20.orig/security/tomoyo/realpath.c
++++ linux-2.6.33.20/security/tomoyo/realpath.c
 @@ -94,25 +94,55 @@ char *tomoyo_encode(const char *str)
   *
   * Returns the buffer on success, an error code otherwise.
@@ -155,7 +155,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return pos;
  }
  
-@@ -294,8 +334,13 @@ char *tomoyo_realpath_from_path(struct p
+@@ -294,9 +334,14 @@ char *tomoyo_realpath_from_path(struct p
  			pos = tomoyo_get_local_path(path->dentry, buf,
  						    buf_len - 1);
  		/* Get absolute name for the rest. */
@@ -170,9 +170,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  encode:
  		if (IS_ERR(pos))
  			continue;
---- linux-2.6.33.19.orig/security/tomoyo/securityfs_if.c
-+++ linux-2.6.33.19/security/tomoyo/securityfs_if.c
-@@ -211,7 +211,6 @@ static const struct file_operations tomo
+--- linux-2.6.33.20.orig/security/tomoyo/securityfs_if.c
++++ linux-2.6.33.20/security/tomoyo/securityfs_if.c
+@@ -211,8 +211,7 @@ static const struct file_operations tomo
  	.poll    = tomoyo_poll,
  	.read    = tomoyo_read,
  	.write   = tomoyo_write,
@@ -180,8 +180,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /**
---- linux-2.6.33.19.orig/security/tomoyo/tomoyo.c
-+++ linux-2.6.33.19/security/tomoyo/tomoyo.c
+--- linux-2.6.33.20.orig/security/tomoyo/tomoyo.c
++++ linux-2.6.33.20/security/tomoyo/tomoyo.c
 @@ -157,7 +157,8 @@ static int tomoyo_inode_getattr(struct v
   *
   * Returns 0 on success, negative value otherwise.
