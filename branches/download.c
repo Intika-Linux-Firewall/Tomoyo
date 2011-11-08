@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 	memset(buffer, 0, sizeof(buffer));
 	/* Call redir.php to determine download server. */
 	snprintf(buffer, sizeof(buffer) - 1,
-		 "GET /frs/redir.php?m=jaist&%s HTTP/1.0\r\n\r\n", query);
+		 "GET /frs/redir.php?%s HTTP/1.0\r\n\r\n", query);
 	len = strlen(buffer);
 	fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
 	addr.sin_addr.s_addr = get_addr(server);
 	/* Call download server. */
 	snprintf(buffer, sizeof(buffer) - 1, "GET /%s HTTP/1.0\r\n"
-		 "Host: %s\r\n\r\n", server, query);
+		 "Host: %s\r\n\r\n", query, server);
 	len = strlen(buffer);
 	fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
