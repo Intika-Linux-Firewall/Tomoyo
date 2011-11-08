@@ -947,8 +947,10 @@ LIST_HEAD(ccs_namespace_list);
 /* True if namespace other than ccs_kernel_namespace is defined. */
 static bool ccs_namespace_enabled;
 
+#ifdef CONFIG_CCSECURITY_PORTRESERVE
 /* Bitmap for reserved local port numbers.*/
 static u8 ccs_reserved_port_map[8192];
+#endif
 
 /* Wait queue for kernel -> userspace notification. */
 static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
@@ -3673,9 +3675,7 @@ out:
 	return error;
 }
 
-/* Bitmap for reserved local port numbers.*/
-static u8 ccs_reserved_port_map[8192];
-
+#ifdef CONFIG_CCSECURITY_PORTRESERVE
 /**
  * ccs_lport_reserved - Check whether local port is reserved or not.
  *
@@ -3736,6 +3736,7 @@ static int ccs_write_reserved_port(struct ccs_acl_param *param)
 	ccsecurity_ops.lport_reserved = __ccs_lport_reserved;
 	return 0;
 }
+#endif
 
 /**
  * ccs_write_aggregator - Write "struct ccs_aggregator" list.
@@ -3835,8 +3836,10 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 	memset(&param.e, 0, sizeof(param.e));
 	if (ccs_str_starts(&param.data, "aggregator "))
 		return ccs_write_aggregator(&param);
+#ifdef CONFIG_CCSECURITY_PORTRESERVE
 	if (ccs_str_starts(&param.data, "deny_autobind "))
 		return ccs_write_reserved_port(&param);
+#endif
 	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
 		if (ccs_str_starts(&param.data, ccs_transition_type[i]))
 			return ccs_write_transition_control(&param, i);
@@ -3961,6 +3964,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 					       ptr->aggregated_name->name);
 			}
 			break;
+#ifdef CONFIG_CCSECURITY_PORTRESERVE
 		case CCS_ID_RESERVEDPORT:
 			{
 				struct ccs_reserved *ptr =
@@ -3971,6 +3975,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 							       &ptr->port);
 			}
 			break;
+#endif
 		default:
 			continue;
 		}
