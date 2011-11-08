@@ -791,6 +791,7 @@ retry:
 			if (ccs_check_capability_acl(r, ptr))
 				break;
 			continue;
+#ifdef CONFIG_CCSECURITY_NETWORK
 		case CCS_TYPE_INET_ACL:
 			if (ccs_check_inet_acl(r, ptr))
 				break;
@@ -799,6 +800,7 @@ retry:
 			if (ccs_check_unix_acl(r, ptr))
 				break;
 			continue;
+#endif
 		case CCS_TYPE_SIGNAL_ACL:
 			if (ccs_check_signal_acl(r, ptr))
 				break;
@@ -1847,7 +1849,9 @@ void __init ccs_permission_init(void)
 	ccsecurity_ops.ioctl_permission = __ccs_ioctl_permission;
 	ccsecurity_ops.chmod_permission = __ccs_chmod_permission;
 	ccsecurity_ops.chown_permission = __ccs_chown_permission;
+#ifdef CONFIG_CCSECURITY_FILE_GETATTR
 	ccsecurity_ops.getattr_permission = __ccs_getattr_permission;
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.pivot_root_permission = __ccs_pivot_root_permission;
 	ccsecurity_ops.chroot_permission = __ccs_chroot_permission;
@@ -1876,8 +1880,11 @@ void __init ccs_permission_init(void)
 #else
 	ccsecurity_ops.mount_permission = ccs_old_mount_permission;
 #endif
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	ccsecurity_ops.socket_create_permission =
 		__ccs_socket_create_permission;
+#endif
+#ifdef CONFIG_CCSECURITY_NETWORK
 	ccsecurity_ops.socket_listen_permission =
 		__ccs_socket_listen_permission;
 	ccsecurity_ops.socket_connect_permission =
@@ -1889,13 +1896,18 @@ void __init ccs_permission_init(void)
 		__ccs_socket_sendmsg_permission;
 	ccsecurity_ops.socket_post_recvmsg_permission =
 		__ccs_socket_post_recvmsg_permission;
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
 	ccsecurity_ops.kill_permission = ccs_signal_acl;
 	ccsecurity_ops.tgkill_permission = ccs_signal_acl0;
 	ccsecurity_ops.tkill_permission = ccs_signal_acl;
 	ccsecurity_ops.sigqueue_permission = ccs_signal_acl;
 	ccsecurity_ops.tgsigqueue_permission = ccs_signal_acl0;
+#endif
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	ccsecurity_ops.capable = __ccs_capable;
 	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
+#endif
 	ccsecurity_ops.search_binary_handler = __ccs_search_binary_handler;
 }
 
@@ -2520,6 +2532,10 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
+		return 0;
+#endif
+#ifndef CONFIG_CCSECURITY_FILE_GETATTR
+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
 		return 0;
 #endif
 	buf.name = NULL;
@@ -3286,7 +3302,7 @@ static int ccs_old_chroot_permission(struct nameidata *nd)
 
 #endif
 
-#ifdef CONFIG_NET
+#ifdef CONFIG_CCSECURITY_NETWORK
 
 /**
  * ccs_audit_net_log - Audit network log.

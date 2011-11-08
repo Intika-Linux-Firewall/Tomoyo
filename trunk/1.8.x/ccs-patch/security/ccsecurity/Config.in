@@ -36,6 +36,32 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
 
   fi
 
+  [ -z "CONFIG_CCSECURITY_FILE_READDIR" ] && define_bool CONFIG_CCSECURITY_FILE_READDIR y
+  bool "Enable readdir operation restriction." CONFIG_CCSECURITY_FILE_READDIR
+
+  [ -z "CONFIG_CCSECURITY_FILE_GETATTR" ] && define_bool CONFIG_CCSECURITY_FILE_GETATTR y
+  bool "Enable getattr operation restriction." CONFIG_CCSECURITY_FILE_GETATTR
+
+  if [ "$CONFIG_NET" = "y" ]; then
+
+     [ -z "CONFIG_CCSECURITY_NETWORK" ] && define_bool CONFIG_CCSECURITY_NETWORK y
+     bool "Enable socket operation restriction." CONFIG_CCSECURITY_NETWORK
+
+  fi
+
+  [ -z "CONFIG_CCSECURITY_CAPABILITY" ] && define_bool CONFIG_CCSECURITY_CAPABILITY y
+  bool "Enable non-POSIX capability operation restriction." CONFIG_CCSECURITY_CAPABILITY
+
+  [ -z "CONFIG_CCSECURITY_IPC" ] && define_bool CONFIG_CCSECURITY_IPC y
+  bool "Enable IPC operation restriction." CONFIG_CCSECURITY_IPC
+
+  if [ "$CONFIG_NET" = "y" ]; then
+
+     [ -z "CONFIG_CCSECURITY_PORTRESERVE" ] && define_bool CONFIG_CCSECURITY_PORTRESERVE y
+     bool "Enable local port reserver." CONFIG_CCSECURITY_PORTRESERVE
+
+  fi
+
 fi
 
 endmenu

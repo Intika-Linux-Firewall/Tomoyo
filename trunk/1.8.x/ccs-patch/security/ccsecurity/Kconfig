@@ -105,3 +105,60 @@ config CCSECURITY_ACTIVATION_TRIGGER
 	  You can override this setting via CCS_trigger= kernel command line
 	  option. For example, if you pass init=/bin/systemd option, you may
 	  want to also pass CCS_trigger=/bin/systemd option.
+
+	  Say Y here if you want to enable only specific functionality in order
+	  to reduce object file size.
+
+config CCSECURITY_FILE_READDIR
+	bool "Enable readdir operation restriction."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable analysis/restriction of opening
+	  directories for reading. Reading directory entries is a commonly
+	  requested operation and damage caused by not restricting it as MAC
+	  might be acceptable for you.
+
+config CCSECURITY_FILE_GETATTR
+	bool "Enable getattr operation restriction."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable analysis/restriction of getting
+	  information of files. Getting file's information is a commonly
+	  requested operation and damage caused by not restricting it as MAC
+	  might be acceptable for you.
+
+config CCSECURITY_NETWORK
+	bool "Enable socket operation restriction."
+	default y
+	depends on NET
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable analysis/restriction of INET and
+	  UNIX domain socket's operations.
+
+config CCSECURITY_CAPABILITY
+	bool "Enable non-POSIX capability operation restriction."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable analysis/restriction of non-POSIX
+	  capabilities.
+
+config CCSECURITY_IPC
+	bool "Enable IPC operation restriction."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable analysis/restriction of sending
+	  signals.
+
+config CCSECURITY_PORTRESERVE
+       bool "Enable local port reserver."
+       default y
+       depends on NET
+       depends on CCSECURITY
+       ---help---
+	 Say Y here if you want to implement
+	 /proc/sys/net/ipv4/ip_local_reserved_ports as a MAC policy.
