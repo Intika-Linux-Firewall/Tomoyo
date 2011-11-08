@@ -1,0 +1,130 @@
+Package: linux-headers-3.0.0-12-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 13148
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 3.0.0-12.20
+Provides: linux-headers, linux-headers-3.0
+Depends: coreutils | fileutils (>= 4.0), linux-headers-3.0.0-12, libc6 (>= 2.11)
+Filename: ./linux-headers-3.0.0-12-generic-pae-ccs1.8.3p1_3.0.0-12.20_i386.deb
+Size: 1396568
+MD5sum: fedb599b667cad8a8cdd8c8da3376361
+SHA1: e81b2b707be5790f440ebe5eb3aa29831b2e650c
+SHA256: 927f2862f2bfee841962b4e6246ae61cf3f5abe066bf8e1a88f421abc9f16c7c
+Description: Linux kernel headers for version 3.0.0 on x86
+ This package provides kernel header files for version 3.0.0 on
+ x86.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-3.0.0-12/debian.README.gz for details.
+
+Package: linux-headers-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 3.0.0.12.14
+Depends: linux-headers-3.0.0-12-generic-pae-ccs
+Filename: ./linux-headers-generic-pae-ccs1.8.3p1_3.0.0.12.14_i386.deb
+Size: 5998
+MD5sum: 48db7b82210258281ea76796f47fd7d5
+SHA1: 97ee1040f11aee7fd382c8e5388d238383de1442
+SHA256: 2d43d4057da1fe1b54126762743b0b50483798611979442cf227427c4beae034
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
+Package: linux-image-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 3.0.0.12.14
+Depends: linux-image-3.0.0-12-generic-pae-ccs, linux-firmware
+Filename: ./linux-image-generic-pae-ccs1.8.3p1_3.0.0.12.14_i386.deb
+Size: 6008
+MD5sum: 0697aef46fd07a97666eaf75169c5379
+SHA1: 430cf67ec0a34140bd3054d4b3825fd948f3da22
+SHA256: 6abe6308ed5e16983e012923587f82268eb4adb63a786b7130f85aca4c9d37ca
+Description: Generic Linux kernel image
+ This package will always depend on the latest generic kernel image
+ available.
+
+Package: linux-image-3.0.0-12-generic-pae-ccs
+Priority: optional
+Section: admin
+Installed-Size: 114420
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 3.0.0-12.20
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-3.0, ndiswrapper-modules-1.9, redhat-cluster-modules
+Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
+Pre-Depends: dpkg (>= 1.10.24)
+Recommends: grub-pc | grub | lilo (>= 19.1)
+Suggests: fdutils, linux-doc-3.0.0 | linux-source-3.0.0, linux-tools
+Conflicts: hotplug (<< 0.0.20040105-1)
+Filename: ./linux-image-3.0.0-12-generic-pae-ccs1.8.3p1_3.0.0-12.20_i386.deb
+Size: 41232344
+MD5sum: 57572d2509ac0aec417f43218d162a10
+SHA1: 5253744badf44fc8168ec6f8fef16de35f66b224
+SHA256: c3dd60c59d7c5161398157c5e29987f3ffe5e9f274cc1b9c1300a7986cda5140
+Description: Linux kernel image for version 3.0.0 on x86
+ This package contains the Linux kernel image for version 3.0.0 on
+ x86.
+ .
+ Also includes the corresponding System.map file, the modules built by the
+ packager, and scripts that try to ensure that the system is not left in an
+ unbootable state after an update.
+ .
+ Supports Generic processors.
+ .
+ Geared toward 32 bit desktop systems with more then 4GB RAM.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
+
+Package: ccs-tools
+Priority: extra
+Section: alien
+Installed-Size: 680
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Version: 1.8.3-1
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.5-5~), libtinfo5 (>= 5.6+20070908)
+Filename: ./ccs-tools_1.8.3-1_i386.deb
+Size: 200676
+MD5sum: 78b0fd2ceac88993984e638c386b5437
+SHA1: bca6f01102d1c87a416c366bd9fa3c7737221b51
+SHA256: 878cd2471fc90528af98824c329ab58a83b59cf23c015856b16ef30d2e6b2b74
+Description: Userspace tools for TOMOYO Linux 1.8.x
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+ .
+ (Converted from a rpm package by alien version 8.85.)
+
+Package: linux-generic-pae-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 3.0.0.12.14
+Depends: linux-image-generic-pae-ccs (= 3.0.0.12.14)
+Filename: ./linux-generic-pae-ccs1.8.3p1_3.0.0.12.14_i386.deb
+Size: 6000
+MD5sum: b70a1e6237c536cb2a82bcd73e977cef
+SHA1: 1963b0f390ad89b8c4474ffcbcde7c0635d78cc6
+SHA256: b321af4062686090361edecf85fb139fc9212fa2833605a2141588435500d645
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete generic Linux kernel
+ available.
+
