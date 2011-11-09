@@ -153,7 +153,8 @@ static const u8 ccs_unix2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
 
 #endif
 
-#ifdef CONGFIG_CCSECURITY_CAPABILITY 
+#ifdef CONFIG_CCSECURITY_CAPABILITY 
+
 /*
  * Mapping table from "enum ccs_capability_acl_index" to "enum ccs_mac_index".
  */
