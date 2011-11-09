@@ -138,6 +138,9 @@ config CCSECURITY_NETWORK
 	  Say Y here if you want to enable analysis/restriction of INET and
 	  UNIX domain socket's operations.
 
+config CCSECURITY_NETWORK_RECVMSG
+	def_bool CCSECURITY_NETWORK
+
 config CCSECURITY_CAPABILITY
 	bool "Enable non-POSIX capability operation restriction."
 	default y

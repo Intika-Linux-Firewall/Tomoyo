@@ -1426,45 +1426,31 @@ void __init ccs_mm_init(void);
 
 /* Prototype definition for internal use. */
 
-bool ccs_correct_domain(const unsigned char *domainname);
-bool ccs_correct_path(const char *filename);
-bool ccs_correct_word(const char *string);
-bool ccs_domain_def(const unsigned char *buffer);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
-char *ccs_read_token(struct ccs_acl_param *param);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_get_exe(void);
 const struct ccs_path_info *ccs_get_name(const char *name);
-int ccs_get_path(const char *pathname, struct path *path);
+int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
 int ccs_print_ipv4(char *buffer, const unsigned int buffer_len, const u32 *ip);
 int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
 		   const struct in6_addr *ip);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	__printf(2, 3);
-int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
-ssize_t ccs_write_self(struct file *file, const char __user *buf, size_t count,
-		       loff_t *ppos);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const bool transit);
-struct ccs_domain_info *ccs_find_domain(const char *domainname);
-struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
-struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_get_config(const u8 profile, const u8 index);
 void *ccs_commit_ok(void *data, const unsigned int size);
-void ccs_convert_time(time_t time, struct ccs_time *p);
+void ccs_check_acl(struct ccs_request_info *r);
 void ccs_del_acl(struct list_head *element);
 void ccs_del_condition(struct list_head *element);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_get_attributes(struct ccs_obj_info *obj);
-void ccs_init_policy_namespace(struct ccs_policy_namespace *ns);
-void ccs_normalize_line(unsigned char *buffer);
 void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
 void ccs_transition_failed(const char *domainname);
-void ccs_update_stat(const u8 index);
 void ccs_warn_oom(const char *function);
 void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	__printf(2, 3);
@@ -1479,12 +1465,10 @@ extern const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION];
 extern const char * const ccs_proto_keyword[CCS_SOCK_MAX];
 extern const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION];
 extern const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX];
-extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX];
 extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
 extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
 extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
 extern struct ccs_domain_info ccs_kernel_domain;
-extern struct ccs_policy_namespace ccs_kernel_namespace;
 extern struct list_head ccs_condition_list;
 extern struct list_head ccs_domain_list;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];

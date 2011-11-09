@@ -47,6 +47,13 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
      [ -z "CONFIG_CCSECURITY_NETWORK" ] && define_bool CONFIG_CCSECURITY_NETWORK y
      bool "Enable socket operation restriction." CONFIG_CCSECURITY_NETWORK
 
+     if [ "$CONFIG_CCSECURITY_NETWORK" = "y" ]; then
+
+	#[ -z "CONFIG_CCSECURITY_NETWORK_RECVMSG" ] &&
+	define_bool CONFIG_CCSECURITY_NETWORK_RECVMSG y
+
+     fi
+
   fi
 
   [ -z "CONFIG_CCSECURITY_CAPABILITY" ] && define_bool CONFIG_CCSECURITY_CAPABILITY y
