@@ -49,7 +49,9 @@ static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_OPEN,
 	[CCS_TYPE_APPEND]     = CCS_MAC_FILE_OPEN,
 	[CCS_TYPE_UNLINK]     = CCS_MAC_FILE_UNLINK,
+#ifdef CONFIG_CCSECURITY_GETATTR
 	[CCS_TYPE_GETATTR]    = CCS_MAC_FILE_GETATTR,
+#endif
 	[CCS_TYPE_RMDIR]      = CCS_MAC_FILE_RMDIR,
 	[CCS_TYPE_TRUNCATE]   = CCS_MAC_FILE_TRUNCATE,
 	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
@@ -84,6 +86,8 @@ const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
 	[CCS_TYPE_CHGRP]  = CCS_MAC_FILE_CHGRP,
 };
 
+#ifdef CONFIG_CCSECURITY_NETWORK
+
 /* String table for socket's protocols. */
 const char * const ccs_proto_keyword[CCS_SOCK_MAX] = {
 	[SOCK_STREAM]    = "stream",
@@ -108,12 +112,16 @@ static const u8 ccs_inet2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
 	[SOCK_DGRAM] = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_DGRAM_BIND,
 		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_DGRAM_SEND,
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_DGRAM_RECV,
+#endif
 	},
 	[SOCK_RAW]    = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_RAW_BIND,
 		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_RAW_SEND,
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_RAW_RECV,
+#endif
 	},
 };
 
@@ -131,7 +139,9 @@ static const u8 ccs_unix2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
 	[SOCK_DGRAM] = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_DGRAM_BIND,
 		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_UNIX_DGRAM_SEND,
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_UNIX_DGRAM_RECV,
+#endif
 	},
 	[SOCK_SEQPACKET] = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND,
@@ -141,6 +151,9 @@ static const u8 ccs_unix2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
 	},
 };
 
+#endif
+
+#ifdef CONGFIG_CCSECURITY_CAPABILITY 
 /*
  * Mapping table from "enum ccs_capability_acl_index" to "enum ccs_mac_index".
  */
@@ -156,6 +169,8 @@ const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX] = {
 	[CCS_SYS_KEXEC_LOAD]    = CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
 	[CCS_SYS_PTRACE]        = CCS_MAC_CAPABILITY_SYS_PTRACE,
 };
+
+#endif
 
 /***** SECTION2: Structure definition *****/
 
@@ -498,6 +513,8 @@ static inline void ccs_put_filesystem(struct file_system_type *fstype)
 	module_put(fstype->owner);
 }
 
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
 #if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
 #if !defined(AX_MAJOR) || AX_MAJOR != 3
@@ -637,6 +654,8 @@ static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
 
 #endif
 
+#endif
+
 /***** SECTION5: Variables definition section *****/
 
 /* The initial domain. */
@@ -704,38 +723,6 @@ static bool ccs_number_matches_group(const unsigned long min,
 }
 
 /**
- * ccs_address_matches_group - Check whether the given address matches members of the given address group.
- *
- * @is_ipv6: True if @address is an IPv6 address.
- * @address: An IPv4 or IPv6 address.
- * @group:   Pointer to "struct ccs_address_group".
- *
- * Returns true if @address matches addresses in @group group, false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
-				      const struct ccs_group *group)
-{
-	struct ccs_address_group *member;
-	bool matched = false;
-	const u8 size = is_ipv6 ? 16 : 4;
-	list_for_each_entry_srcu(member, &group->member_list, head.list,
-				 &ccs_ss) {
-		if (member->head.is_deleted)
-			continue;
-		if (member->address.is_ipv6 != is_ipv6)
-			continue;
-		if (memcmp(&member->address.ip[0], address, size) > 0 ||
-		    memcmp(address, &member->address.ip[1], size) > 0)
-			continue;
-		matched = true;
-		break;
-	}
-	return matched;
-}
-
-/**
  * ccs_check_acl - Do permission check.
  *
  * @r: Pointer to "struct ccs_request_info".
@@ -781,10 +768,12 @@ retry:
 			if (ccs_check_env_acl(r, ptr))
 				break;
 			continue;
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 		case CCS_TYPE_CAPABILITY_ACL:
 			if (ccs_check_capability_acl(r, ptr))
 				break;
 			continue;
+#endif
 #ifdef CONFIG_CCSECURITY_NETWORK
 		case CCS_TYPE_INET_ACL:
 			if (ccs_check_inet_acl(r, ptr))
@@ -795,10 +784,12 @@ retry:
 				break;
 			continue;
 #endif
+#ifdef CONFIG_CCSECURITY_IPC
 		case CCS_TYPE_SIGNAL_ACL:
 			if (ccs_check_signal_acl(r, ptr))
 				break;
 			continue;
+#endif
 		case CCS_TYPE_MANUAL_TASK_ACL:
 			if (ccs_check_task_acl(r, ptr))
 				break;
@@ -3262,6 +3253,38 @@ static int ccs_audit_unix_log(struct ccs_request_info *r)
 }
 
 /**
+ * ccs_address_matches_group - Check whether the given address matches members of the given address group.
+ *
+ * @is_ipv6: True if @address is an IPv6 address.
+ * @address: An IPv4 or IPv6 address.
+ * @group:   Pointer to "struct ccs_address_group".
+ *
+ * Returns true if @address matches addresses in @group group, false otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
+				      const struct ccs_group *group)
+{
+	struct ccs_address_group *member;
+	bool matched = false;
+	const u8 size = is_ipv6 ? 16 : 4;
+	list_for_each_entry_srcu(member, &group->member_list, head.list,
+				 &ccs_ss) {
+		if (member->head.is_deleted)
+			continue;
+		if (member->address.is_ipv6 != is_ipv6)
+			continue;
+		if (memcmp(&member->address.ip[0], address, size) > 0 ||
+		    memcmp(address, &member->address.ip[1], size) > 0)
+			continue;
+		matched = true;
+		break;
+	}
+	return matched;
+}
+
+/**
  * ccs_check_inet_acl - Check permission for inet domain socket operation.
  *
  * @r:   Pointer to "struct ccs_request_info".
@@ -3326,8 +3349,11 @@ static int ccs_inet_entry(const struct ccs_addr_info *address)
 		r.param.inet_network.address = address->inet.address;
 		r.param.inet_network.port = ntohs(address->inet.port);
 		r.dont_sleep_on_enforce_error =
-			address->operation == CCS_NETWORK_ACCEPT ||
-			address->operation == CCS_NETWORK_RECV;
+			address->operation == CCS_NETWORK_ACCEPT
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+			|| address->operation == CCS_NETWORK_RECV
+#endif
+			;
 		do {
 			ccs_check_acl(&r);
 			error = ccs_audit_inet_log(&r);
@@ -3410,8 +3436,11 @@ static int ccs_unix_entry(const struct ccs_addr_info *address)
 			r.param.unix_network.operation = address->operation;
 			r.param.unix_network.address = &addr;
 			r.dont_sleep_on_enforce_error =
-				address->operation == CCS_NETWORK_ACCEPT ||
-				address->operation == CCS_NETWORK_RECV;
+				address->operation == CCS_NETWORK_ACCEPT
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+				|| address->operation == CCS_NETWORK_RECV
+#endif
+				;
 			do {
 				ccs_check_acl(&r);
 				error = ccs_audit_unix_log(&r);
@@ -3663,6 +3692,8 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 				      &address);
 }
 
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+
 /**
  * __ccs_socket_post_recvmsg_permission - Check permission for receiving a datagram.
  *
@@ -3770,6 +3801,10 @@ out:
 
 #endif
 
+#endif
+
+#ifdef CONFIG_CCSECURITY_CAPABILITY
+
 /**
  * ccs_audit_capability_log - Audit capability log.
  *
@@ -3840,6 +3875,10 @@ static int __ccs_ptrace_permission(long request, long pid)
 {
 	return __ccs_capable(CCS_SYS_PTRACE) ? 0 : -EPERM;
 }
+
+#endif
+
+#ifdef CONFIG_CCSECURITY_IPC
 
 /**
  * ccs_audit_signal_log - Audit signal log.
@@ -3984,15 +4023,7 @@ static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig)
 	return ccs_signal_acl(pid, sig);
 }
 
-/*
- * security/ccsecurity/environ.c
- *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
- *
- * Version: 1.8.3   2011/09/29
- */
-
-#include "internal.h"
+#endif
 
 /**
  * ccs_check_env_acl - Check permission for environment variable's name.
