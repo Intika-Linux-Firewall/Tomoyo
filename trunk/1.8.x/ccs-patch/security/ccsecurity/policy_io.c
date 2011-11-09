@@ -26,7 +26,9 @@ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_FILE_OPEN]       = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_CREATE]     = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_UNLINK]     = CCS_MAC_CATEGORY_FILE,
+#ifdef CONFIG_CCSECURITY_FILE_GETATTR
 	[CCS_MAC_FILE_GETATTR]    = CCS_MAC_CATEGORY_FILE,
+#endif
 	[CCS_MAC_FILE_MKDIR]      = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_RMDIR]      = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_MKFIFO]     = CCS_MAC_CATEGORY_FILE,
@@ -47,6 +49,7 @@ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_FILE_PIVOT_ROOT] = CCS_MAC_CATEGORY_FILE,
 	/* CONFIG::misc group */
 	[CCS_MAC_ENVIRON]         = CCS_MAC_CATEGORY_MISC,
+#ifdef CONFIG_CCSECURITY_NETWORK
 	/* CONFIG::network group */
 	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = CCS_MAC_CATEGORY_NETWORK,
@@ -54,23 +57,33 @@ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]     = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_INET_DGRAM_BIND]        = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_INET_DGRAM_SEND]        = CCS_MAC_CATEGORY_NETWORK,
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	[CCS_MAC_NETWORK_INET_DGRAM_RECV]        = CCS_MAC_CATEGORY_NETWORK,
+#endif
 	[CCS_MAC_NETWORK_INET_RAW_BIND]          = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_INET_RAW_SEND]          = CCS_MAC_CATEGORY_NETWORK,
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	[CCS_MAC_NETWORK_INET_RAW_RECV]          = CCS_MAC_CATEGORY_NETWORK,
+#endif
 	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]       = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]     = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]    = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]        = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]        = CCS_MAC_CATEGORY_NETWORK,
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]        = CCS_MAC_CATEGORY_NETWORK,
+#endif
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = CCS_MAC_CATEGORY_NETWORK,
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = CCS_MAC_CATEGORY_NETWORK,
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
 	/* CONFIG::ipc group */
 	[CCS_MAC_SIGNAL]          = CCS_MAC_CATEGORY_IPC,
+#endif
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	/* CONFIG::capability group */
 	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = CCS_MAC_CATEGORY_CAPABILITY,
 	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = CCS_MAC_CATEGORY_CAPABILITY,
@@ -82,6 +95,7 @@ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = CCS_MAC_CATEGORY_CAPABILITY,
 	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = CCS_MAC_CATEGORY_CAPABILITY,
 	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = CCS_MAC_CATEGORY_CAPABILITY,
+#endif
 };
 
 /* String table for operation mode. */
@@ -100,7 +114,9 @@ const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 	[CCS_MAC_FILE_OPEN]       = "open",
 	[CCS_MAC_FILE_CREATE]     = "create",
 	[CCS_MAC_FILE_UNLINK]     = "unlink",
+#ifdef CONFIG_CCSECURITY_FILE_GETATTR
 	[CCS_MAC_FILE_GETATTR]    = "getattr",
+#endif
 	[CCS_MAC_FILE_MKDIR]      = "mkdir",
 	[CCS_MAC_FILE_RMDIR]      = "rmdir",
 	[CCS_MAC_FILE_MKFIFO]     = "mkfifo",
@@ -121,6 +137,7 @@ const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 	[CCS_MAC_FILE_PIVOT_ROOT] = "pivot_root",
 	/* CONFIG::misc group */
 	[CCS_MAC_ENVIRON] = "env",
+#ifdef CONFIG_CCSECURITY_NETWORK
 	/* CONFIG::network group */
 	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = "inet_stream_bind",
 	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = "inet_stream_listen",
@@ -128,23 +145,33 @@ const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]     = "inet_stream_accept",
 	[CCS_MAC_NETWORK_INET_DGRAM_BIND]        = "inet_dgram_bind",
 	[CCS_MAC_NETWORK_INET_DGRAM_SEND]        = "inet_dgram_send",
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	[CCS_MAC_NETWORK_INET_DGRAM_RECV]        = "inet_dgram_recv",
+#endif
 	[CCS_MAC_NETWORK_INET_RAW_BIND]          = "inet_raw_bind",
 	[CCS_MAC_NETWORK_INET_RAW_SEND]          = "inet_raw_send",
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	[CCS_MAC_NETWORK_INET_RAW_RECV]          = "inet_raw_recv",
+#endif
 	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]       = "unix_stream_bind",
 	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]     = "unix_stream_listen",
 	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]    = "unix_stream_connect",
 	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = "unix_stream_accept",
 	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]        = "unix_dgram_bind",
 	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]        = "unix_dgram_send",
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]        = "unix_dgram_recv",
+#endif
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = "unix_seqpacket_bind",
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = "unix_seqpacket_listen",
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
 	/* CONFIG::ipc group */
 	[CCS_MAC_SIGNAL] = "signal",
+#endif
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	/* CONFIG::capability group */
 	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = "use_route",
 	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = "use_packet",
@@ -156,12 +183,19 @@ const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = "use_kernel_module",
 	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = "SYS_KEXEC_LOAD",
 	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = "SYS_PTRACE",
+#endif
 	/* CONFIG group */
 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_FILE]       = "file",
+#ifdef CONFIG_CCSECURITY_NETWORK
 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_NETWORK]    = "network",
+#endif
 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_MISC]       = "misc",
+#ifdef CONFIG_CCSECURITY_IPC
 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_IPC]        = "ipc",
+#endif
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_CAPABILITY] = "capability",
+#endif
 };
 
 /* String table for path operation. */
@@ -171,7 +205,9 @@ const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_WRITE]      = "write",
 	[CCS_TYPE_APPEND]     = "append",
 	[CCS_TYPE_UNLINK]     = "unlink",
+#ifdef CONFIG_CCSECURITY_FILE_GETATTR
 	[CCS_TYPE_GETATTR]    = "getattr",
+#endif
 	[CCS_TYPE_RMDIR]      = "rmdir",
 	[CCS_TYPE_TRUNCATE]   = "truncate",
 	[CCS_TYPE_SYMLINK]    = "symlink",
@@ -179,6 +215,7 @@ const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_UMOUNT]     = "unmount",
 };
 
+#ifdef CONFIG_CCSECURITY_NETWORK
 /* String table for socket's operation. */
 const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
 	[CCS_NETWORK_BIND]    = "bind",
@@ -186,16 +223,25 @@ const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
 	[CCS_NETWORK_CONNECT] = "connect",
 	[CCS_NETWORK_ACCEPT]  = "accept",
 	[CCS_NETWORK_SEND]    = "send",
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	[CCS_NETWORK_RECV]    = "recv",
+#endif
 };
+#endif
 
 /* String table for categories. */
 static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
 	[CCS_MAC_CATEGORY_FILE]       = "file",
+#ifdef CONFIG_CCSECURITY_NETWORK
 	[CCS_MAC_CATEGORY_NETWORK]    = "network",
+#endif
 	[CCS_MAC_CATEGORY_MISC]       = "misc",
+#ifdef CONFIG_CCSECURITY_IPC
 	[CCS_MAC_CATEGORY_IPC]        = "ipc",
+#endif
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	[CCS_MAC_CATEGORY_CAPABILITY] = "capability",
+#endif
 };
 
 /* String table for conditions. */
@@ -290,7 +336,9 @@ static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
 static const char * const ccs_group_name[CCS_MAX_GROUP] = {
 	[CCS_PATH_GROUP]    = "path_group ",
 	[CCS_NUMBER_GROUP]  = "number_group ",
+#ifdef CONFIG_CCSECURITY_NETWORK
 	[CCS_ADDRESS_GROUP] = "address_group ",
+#endif
 };
 
 /* String table for /proc/ccs/stat interface. */
@@ -339,7 +387,7 @@ void ccs_transition_failed(const char *domainname);
 void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...);
 
 static char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
-		   va_list args);
+			  va_list args);
 static const char *ccs_yesno(const unsigned int value);
 static int ccs_poll_log(struct file *file, poll_table *wait);
 static void ccs_read_log(struct ccs_io_buffer *head);
@@ -676,6 +724,8 @@ out:
 }
 
 #endif
+
+#ifdef CONFIG_CCSECURITY_NETWORK
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19) && defined(CONFIG_NET)
 #define ccs_in4_pton in4_pton
@@ -1060,6 +1110,8 @@ int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
 #endif
 }
 
+#endif
+
 /***** SECTION5: Variables definition section *****/
 
 /* Permit policy management by non-root user? */
@@ -1164,6 +1216,8 @@ static struct inode_operations ccs_file_inode_operations;
 	for (pos = pos ? pos : srcu_dereference((head)->next, &ccs_ss); \
 	     pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
 
+#ifdef CONFIG_CCSECURITY_NETWORK
+
 /**
  * ccs_print_ip - Print an IP address.
  *
@@ -1190,6 +1244,8 @@ static void ccs_print_ip(char *buf, const unsigned int size,
 		ccs_print_ipv4(buf + len, size - len,
 			       &ptr->ip[1].s6_addr32[0]);
 }
+
+#endif
 
 /**
  * ccs_read_token - Read a word from a line.
@@ -1469,6 +1525,8 @@ static bool ccs_parse_number_union(struct ccs_acl_param *param,
 	return true;
 }
 
+#ifdef CONFIG_CCSECURITY_NETWORK
+
 /**
  * ccs_parse_ipaddr_union - Parse an IP address.
  *
@@ -1505,6 +1563,8 @@ static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
 	}
 	return false;
 }
+
+#endif
 
 /**
  * ccs_get_dqword - ccs_get_name() for a quoted string.
@@ -3060,6 +3120,8 @@ static int ccs_write_task(struct ccs_acl_param *param)
 	return error;
 }
 
+#ifdef CONFIG_CCSECURITY_NETWORK
+
 /**
  * ccs_write_inet_network - Write "struct ccs_inet_acl" list.
  *
@@ -3133,6 +3195,8 @@ static int ccs_write_unix_network(struct ccs_acl_param *param)
 		return -EINVAL;
 	return ccs_update_domain(sizeof(*e), param);
 }
+
+#endif
 
 /**
  * ccs_write_file - Update file related list.
@@ -3234,6 +3298,8 @@ static int ccs_write_misc(struct ccs_acl_param *param)
 	return -EINVAL;
 }
 
+#ifdef CONFIG_CCSECURITY_IPC
+
 /**
  * ccs_write_ipc - Update "struct ccs_signal_acl" list.
  *
@@ -3252,6 +3318,10 @@ static int ccs_write_ipc(struct ccs_acl_param *param)
 		return -EINVAL;
 	return ccs_update_domain(sizeof(*e), param);
 }
+
+#endif
+
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 
 /**
  * ccs_write_capability - Write "struct ccs_capability_acl" list.
@@ -3276,6 +3346,8 @@ static int ccs_write_capability(struct ccs_acl_param *param)
 	}
 	return -EINVAL;
 }
+
+#endif
 
 /**
  * ccs_write_domain2 - Write domain policy.
@@ -3302,13 +3374,19 @@ static int ccs_write_domain2(struct ccs_policy_namespace *ns,
 	static const struct {
 		const char *keyword;
 		int (*write) (struct ccs_acl_param *);
-	} ccs_callback[7] = {
+	} ccs_callback[] = {
 		{ "file ", ccs_write_file },
+#ifdef CONFIG_CCSECURITY_NETWORK
 		{ "network inet ", ccs_write_inet_network },
 		{ "network unix ", ccs_write_unix_network },
+#endif
 		{ "misc ", ccs_write_misc },
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 		{ "capability ", ccs_write_capability },
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
 		{ "ipc signal ", ccs_write_ipc },
+#endif
 		{ "task ", ccs_write_task },
 	};
 	u8 i;
@@ -3800,12 +3878,15 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			container_of(acl, typeof(*ptr), head);
 		ccs_set_group(head, "misc env ");
 		ccs_set_string(head, ptr->env->name);
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	} else if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
 		struct ccs_capability_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
 		ccs_set_group(head, "capability ");
 		ccs_set_string(head, ccs_mac_keywords
 			       [ccs_c2mac[ptr->operation]]);
+#endif
+#ifdef CONFIG_CCSECURITY_NETWORK
 	} else if (acl_type == CCS_TYPE_INET_ACL) {
 		struct ccs_inet_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
@@ -3856,6 +3937,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		if (first)
 			return true;
 		ccs_print_name_union(head, &ptr->name);
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
 	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
 		struct ccs_signal_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
@@ -3863,6 +3946,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		ccs_print_number_union_nospace(head, &ptr->sig);
 		ccs_set_space(head);
 		ccs_set_string(head, ptr->domainname->name);
+#endif
 	} else if (acl_type == CCS_TYPE_MOUNT_ACL) {
 		struct ccs_mount_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
@@ -4065,12 +4149,14 @@ static int ccs_write_group(struct ccs_acl_param *param, const u8 type)
 		    !ccs_parse_number_union(param, &e->number))
 			goto out;
 		error = ccs_update_policy(sizeof(*e), param);
+#ifdef CONFIG_CCSECURITY_NETWORK
 	} else {
 		struct ccs_address_group *e = &param->e.address_group;
 		if (param->data[0] == '@' ||
 		    !ccs_parse_ipaddr_union(param, &e->address))
 			goto out;
 		error = ccs_update_policy(sizeof(*e), param);
+#endif
 	}
 out:
 	ccs_put_group(group);
@@ -4297,6 +4383,7 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 				ccs_print_number_union(head, &container_of
 					       (ptr, struct ccs_number_group,
 						head)->number);
+#ifdef CONFIG_CCSECURITY_NETWORK
 			} else if (idx == CCS_ADDRESS_GROUP) {
 				char buffer[128];
 				struct ccs_address_group *member =
@@ -4305,6 +4392,7 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 				ccs_print_ip(buffer, sizeof(buffer),
 					     &member->address);
 				ccs_io_printf(head, " %s", buffer);
+#endif
 			}
 			ccs_set_lf(head);
 		}
@@ -4532,8 +4620,10 @@ static bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		case CCS_TYPE_PATH2_ACL:
 		case CCS_TYPE_PATH_NUMBER_ACL:
 		case CCS_TYPE_MKDEV_ACL:
+#ifdef CONFIG_CCSECURITY_NETWORK
 		case CCS_TYPE_INET_ACL:
 		case CCS_TYPE_UNIX_ACL:
+#endif
 			perm = ptr->perm;
 			break;
 		case CCS_TYPE_AUTO_EXECUTE_HANDLER:

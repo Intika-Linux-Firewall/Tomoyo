@@ -103,9 +103,13 @@ static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type)
 {
 	/* Size of an element. */
 	static const u8 e[CCS_MAX_POLICY] = {
+#ifdef CONFIG_CCSECURITY_PORTRESERVE
 		[CCS_ID_RESERVEDPORT] = sizeof(struct ccs_reserved),
+#endif
 		[CCS_ID_GROUP] = sizeof(struct ccs_group),
+#ifdef CONFIG_CCSECURITY_NETWORK
 		[CCS_ID_ADDRESS_GROUP] = sizeof(struct ccs_address_group),
+#endif
 		[CCS_ID_PATH_GROUP] = sizeof(struct ccs_path_group),
 		[CCS_ID_NUMBER_GROUP] = sizeof(struct ccs_number_group),
 		[CCS_ID_AGGREGATOR] = sizeof(struct ccs_aggregator),
@@ -125,11 +129,17 @@ static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type)
 		= sizeof(struct ccs_path_number_acl),
 		[CCS_TYPE_MKDEV_ACL] = sizeof(struct ccs_mkdev_acl),
 		[CCS_TYPE_MOUNT_ACL] = sizeof(struct ccs_mount_acl),
+#ifdef CONFIG_CCSECURITY_NETWORK
 		[CCS_TYPE_INET_ACL] = sizeof(struct ccs_inet_acl),
 		[CCS_TYPE_UNIX_ACL] = sizeof(struct ccs_unix_acl),
+#endif
 		[CCS_TYPE_ENV_ACL] = sizeof(struct ccs_env_acl),
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 		[CCS_TYPE_CAPABILITY_ACL] = sizeof(struct ccs_capability_acl),
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
 		[CCS_TYPE_SIGNAL_ACL] = sizeof(struct ccs_signal_acl),
+#endif
 		[CCS_TYPE_AUTO_EXECUTE_HANDLER]
 		= sizeof(struct ccs_handler_acl),
 		[CCS_TYPE_DENIED_EXECUTE_HANDLER]
@@ -408,6 +418,7 @@ void ccs_del_acl(struct list_head *element)
 			ccs_put_number_union(&entry->flags);
 		}
 		break;
+#ifdef CONFIG_CCSECURITY_NETWORK
 	case CCS_TYPE_INET_ACL:
 		{
 			struct ccs_inet_acl *entry =
@@ -423,6 +434,7 @@ void ccs_del_acl(struct list_head *element)
 			ccs_put_name_union(&entry->name);
 		}
 		break;
+#endif
 	case CCS_TYPE_ENV_ACL:
 		{
 			struct ccs_env_acl *entry =
@@ -430,11 +442,14 @@ void ccs_del_acl(struct list_head *element)
 			ccs_put_name(entry->env);
 		}
 		break;
+#ifdef CONFIG_CCSECURITY_CAPABILITY
 	case CCS_TYPE_CAPABILITY_ACL:
 		{
 			/* Nothing to do. */
 		}
 		break;
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
 	case CCS_TYPE_SIGNAL_ACL:
 		{
 			struct ccs_signal_acl *entry =
@@ -443,6 +458,7 @@ void ccs_del_acl(struct list_head *element)
 			ccs_put_name(entry->domainname);
 		}
 		break;
+#endif
 	case CCS_TYPE_AUTO_EXECUTE_HANDLER:
 	case CCS_TYPE_DENIED_EXECUTE_HANDLER:
 		{
@@ -719,15 +735,19 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 	case CCS_ID_PATH_GROUP:
 		ccs_del_path_group(element);
 		break;
+#ifdef CONFIG_CCSECURITY_NETWORK
 	case CCS_ID_ADDRESS_GROUP:
 		ccs_del_address_group(element);
 		break;
+#endif
 	case CCS_ID_NUMBER_GROUP:
 		ccs_del_number_group(element);
 		break;
+#ifdef CONFIG_CCSECURITY_PORTRESERVE
 	case CCS_ID_RESERVEDPORT:
 		ccs_del_reservedport(element);
 		break;
+#endif
 	case CCS_ID_CONDITION:
 		ccs_del_condition(element);
 		break;
@@ -873,7 +893,11 @@ static void ccs_collect_entry(void)
 				id = CCS_ID_NUMBER_GROUP;
 				break;
 			default:
+#ifdef CONFIG_CCSECURITY_NETWORK
 				id = CCS_ID_ADDRESS_GROUP;
+#else
+				continue;
+#endif
 				break;
 			}
 			list_for_each_entry_safe(group, tmp, list, head.list) {
