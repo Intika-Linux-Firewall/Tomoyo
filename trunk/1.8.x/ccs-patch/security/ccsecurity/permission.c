@@ -184,7 +184,6 @@ struct ccs_addr_info {
 
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname, const bool transit);
-struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname);
 void ccs_get_attributes(struct ccs_obj_info *obj);
 
 static bool __ccs_capable(const u8 operation);
@@ -236,7 +235,6 @@ static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
 			     struct vfsmount *mnt);
 static bool ccs_hexadecimal(const char c);
 static bool ccs_kernel_service(void);
-static bool ccs_namespace_jump(const char *domainname);
 static bool ccs_number_matches_group(const unsigned long min,
 				     const unsigned long max,
 				     const struct ccs_group *group);
@@ -352,8 +350,9 @@ static int ccs_environ(struct ccs_execve *ee);
 static int ccs_execute_permission(struct ccs_request_info *r,
 				  const struct ccs_path_info *filename);
 static int ccs_find_next_domain(struct ccs_execve *ee);
+static int ccs_get_path(const char *pathname, struct path *path);
 static int ccs_inet_entry(const struct ccs_addr_info *address);
-static int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+static int ccs_kern_path(const char *pathname, int flags, struct path *path);
 static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
 			  struct vfsmount *mnt, const unsigned int mode,
 			  unsigned int dev);
@@ -385,17 +384,15 @@ static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig);
 static int ccs_signal_acl2(const int sig, const int pid);
 static int ccs_start_execve(struct linux_binprm *bprm,
 			    struct ccs_execve **eep);
+static int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 static int ccs_try_alt_exec(struct ccs_execve *ee);
 static int ccs_unix_entry(const struct ccs_addr_info *address);
-static struct ccs_policy_namespace *ccs_find_namespace(const char *name,
-						       const unsigned int len);
 static u8 ccs_sock_family(struct sock *sk);
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
 static void __ccs_clear_open_mode(void);
 static void __ccs_save_open_mode(int mode);
 #endif
 static void ccs_add_slash(struct ccs_path_info *buf);
-static void ccs_check_acl(struct ccs_request_info *r);
 static void ccs_finish_execve(int retval, struct ccs_execve *ee);
 static void ccs_print_ulong(char *buffer, const int buffer_len,
 			    const unsigned long value, const u8 type);
@@ -648,9 +645,6 @@ struct ccs_domain_info ccs_kernel_domain;
 /* The list for "struct ccs_domain_info". */
 LIST_HEAD(ccs_domain_list);
 
-/* List of "struct ccs_condition". */
-LIST_HEAD(ccs_condition_list);
-
 /***** SECTION6: Dependent functions section *****/
 
 /**
@@ -750,7 +744,7 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
  *
  * Caller holds ccs_read_lock().
  */
-static void ccs_check_acl(struct ccs_request_info *r)
+void ccs_check_acl(struct ccs_request_info *r)
 {
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
@@ -923,180 +917,6 @@ static enum ccs_transition_type ccs_transition_type
 		type++;
 	}
 	return type;
-}
-
-/* Domain create handler. */
-
-/**
- * ccs_find_namespace - Find specified namespace.
- *
- * @name: Name of namespace to find.
- * @len:  Length of @name.
- *
- * Returns pointer to "struct ccs_policy_namespace" if found, NULL otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static struct ccs_policy_namespace *ccs_find_namespace(const char *name,
-						       const unsigned int len)
-{
-	struct ccs_policy_namespace *ns;
-	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
-				 &ccs_ss) {
-		if (strncmp(name, ns->name, len) ||
-		    (name[len] && name[len] != ' '))
-			continue;
-		return ns;
-	}
-	return NULL;
-}
-
-
-/**
- * ccs_assign_namespace - Create a new namespace.
- *
- * @domainname: Name of namespace to create.
- *
- * Returns pointer to "struct ccs_policy_namespace" on success, NULL otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname)
-{
-	struct ccs_policy_namespace *ptr;
-	struct ccs_policy_namespace *entry;
-	const char *cp = domainname;
-	unsigned int len = 0;
-	while (*cp && *cp++ != ' ')
-		len++;
-	ptr = ccs_find_namespace(domainname, len);
-	if (ptr)
-		return ptr;
-	if (len >= CCS_EXEC_TMPSIZE - 10 || !ccs_domain_def(domainname))
-		return NULL;
-	entry = kzalloc(sizeof(*entry) + len + 1, CCS_GFP_FLAGS);
-	if (!entry)
-		return NULL;
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		goto out;
-	ptr = ccs_find_namespace(domainname, len);
-	if (!ptr && ccs_memory_ok(entry, sizeof(*entry) + len + 1)) {
-		char *name = (char *) (entry + 1);
-		ptr = entry;
-		memmove(name, domainname, len);
-		name[len] = '\0';
-		entry->name = name;
-		ccs_init_policy_namespace(entry);
-		entry = NULL;
-	}
-	mutex_unlock(&ccs_policy_lock);
-out:
-	kfree(entry);
-	return ptr;
-}
-
-/**
- * ccs_namespace_jump - Check for namespace jump.
- *
- * @domainname: Name of domain.
- *
- * Returns true if namespace differs, false otherwise.
- */
-static bool ccs_namespace_jump(const char *domainname)
-{
-	const char *namespace = ccs_current_namespace()->name;
-	const int len = strlen(namespace);
-	return strncmp(domainname, namespace, len) ||
-		(domainname[len] && domainname[len] != ' ');
-}
-
-/**
- * ccs_assign_domain - Create a domain or a namespace.
- *
- * @domainname: The name of domain.
- * @transit:    True if transit to domain found or created.
- *
- * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const bool transit)
-{
-	struct ccs_security *security = ccs_current_security();
-	struct ccs_domain_info e = { };
-	struct ccs_domain_info *entry = ccs_find_domain(domainname);
-	bool created = false;
-	if (entry) {
-		if (transit) {
-			/*
-			 * Since namespace is created at runtime, profiles may
-			 * not be created by the moment the process transits to
-			 * that domain. Do not perform domain transition if
-			 * profile for that domain is not yet created.
-			 */
-			if (ccs_policy_loaded &&
-			    !entry->ns->profile_ptr[entry->profile])
-				return NULL;
-			security->ccs_domain_info = entry;
-		}
-		return entry;
-	}
-	/* Requested domain does not exist. */
-	/* Don't create requested domain if domainname is invalid. */
-	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
-	    !ccs_correct_domain(domainname))
-		return NULL;
-	/*
-	 * Since definition of profiles and acl_groups may differ across
-	 * namespaces, do not inherit "use_profile" and "use_group" settings
-	 * by automatically creating requested domain upon domain transition.
-	 */
-	if (transit && ccs_namespace_jump(domainname))
-		return NULL;
-	e.ns = ccs_assign_namespace(domainname);
-	if (!e.ns)
-		return NULL;
-	/*
-	 * "use_profile" and "use_group" settings for automatically created
-	 * domains are inherited from current domain. These are 0 for manually
-	 * created domains.
-	 */
-	if (transit) {
-		const struct ccs_domain_info *domain =
-			security->ccs_domain_info;
-		e.profile = domain->profile;
-		e.group = domain->group;
-	}
-	e.domainname = ccs_get_name(domainname);
-	if (!e.domainname)
-		return NULL;
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		goto out;
-	entry = ccs_find_domain(domainname);
-	if (!entry) {
-		entry = ccs_commit_ok(&e, sizeof(e));
-		if (entry) {
-			INIT_LIST_HEAD(&entry->acl_info_list);
-			list_add_tail_rcu(&entry->list, &ccs_domain_list);
-			created = true;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-out:
-	ccs_put_name(e.domainname);
-	if (entry && transit) {
-		security->ccs_domain_info = entry;
-		if (created) {
-			struct ccs_request_info r;
-			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
-			r.granted = false;
-			ccs_write_log(&r, "use_profile %u\n", entry->profile);
-			ccs_write_log(&r, "use_group %u\n", entry->group);
-			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
-		}
-	}
-	return entry;
 }
 
 /**
@@ -1894,6 +1714,8 @@ void __init ccs_permission_init(void)
 		__ccs_socket_post_accept_permission;
 	ccsecurity_ops.socket_sendmsg_permission =
 		__ccs_socket_sendmsg_permission;
+#endif
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
 	ccsecurity_ops.socket_post_recvmsg_permission =
 		__ccs_socket_post_recvmsg_permission;
 #endif
@@ -1909,6 +1731,83 @@ void __init ccs_permission_init(void)
 	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
 #endif
 	ccsecurity_ops.search_binary_handler = __ccs_search_binary_handler;
+}
+
+/**
+ * ccs_kern_path - Wrapper for kern_path().
+ *
+ * @pathname: Pathname to resolve. Maybe NULL.
+ * @flags:    Lookup flags.
+ * @path:     Pointer to "struct path".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_kern_path(const char *pathname, int flags, struct path *path)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
+	if (!pathname || kern_path(pathname, flags, path))
+		return -ENOENT;
+#else
+	struct nameidata nd;
+	if (!pathname || path_lookup(pathname, flags, &nd))
+		return -ENOENT;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	*path = nd.path;
+#else
+	path->dentry = nd.dentry;
+	path->mnt = nd.mnt;
+#endif
+#endif
+	return 0;
+}
+
+/**
+ * ccs_get_path - Get dentry/vfsmmount of a pathname.
+ *
+ * @pathname: The pathname to solve. Maybe NULL.
+ * @path:     Pointer to "struct path".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_get_path(const char *pathname, struct path *path)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	return ccs_kern_path(pathname, LOOKUP_FOLLOW, path);
+#else
+	return ccs_kern_path(pathname, LOOKUP_FOLLOW | LOOKUP_POSITIVE, path);
+#endif
+}
+
+/**
+ * ccs_symlink_path - Get symlink's pathname.
+ *
+ * @pathname: The pathname to solve. Maybe NULL.
+ * @name:     Pointer to "struct ccs_path_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * This function uses kzalloc(), so caller must kfree() if this function
+ * didn't return NULL.
+ */
+static int ccs_symlink_path(const char *pathname, struct ccs_path_info *name)
+{
+	char *buf;
+	struct path path;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	if (ccs_kern_path(pathname, 0, &path))
+		return -ENOENT;
+#else
+	if (ccs_kern_path(pathname, LOOKUP_POSITIVE, &path))
+		return -ENOENT;
+#endif
+	buf = ccs_realpath_from_path(&path);
+	path_put(&path);
+	if (buf) {
+		name->name = buf;
+		ccs_fill_path_info(name);
+		return 0;
+	}
+	return -ENOMEM;
 }
 
 /**
@@ -4827,57 +4726,6 @@ static bool ccs_check_task_acl(struct ccs_request_info *r,
 }
 
 /**
- * ccs_write_self - write() for /proc/ccs/self_domain interface.
- *
- * @file:  Pointer to "struct file".
- * @buf:   Domainname to transit to.
- * @count: Size of @buf.
- * @ppos:  Unused.
- *
- * Returns @count on success, negative value otherwise.
- *
- * If domain transition was permitted but the domain transition failed, this
- * function returns error rather than terminating current thread with SIGKILL.
- */
-ssize_t ccs_write_self(struct file *file, const char __user *buf,
-		       size_t count, loff_t *ppos)
-{
-	char *data;
-	int error;
-	if (!count || count >= CCS_EXEC_TMPSIZE - 10)
-		return -ENOMEM;
-	data = kzalloc(count + 1, CCS_GFP_FLAGS);
-	if (!data)
-		return -ENOMEM;
-	if (copy_from_user(data, buf, count)) {
-		error = -EFAULT;
-		goto out;
-	}
-	ccs_normalize_line(data);
-	if (ccs_correct_domain(data)) {
-		const int idx = ccs_read_lock();
-		struct ccs_path_info name;
-		struct ccs_request_info r;
-		name.name = data;
-		ccs_fill_path_info(&name);
-		/* Check "task manual_domain_transition" permission. */
-		ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
-		r.param_type = CCS_TYPE_MANUAL_TASK_ACL;
-		r.param.task.domainname = &name;
-		ccs_check_acl(&r);
-		if (!r.granted)
-			error = -EPERM;
-		else
-			error = ccs_assign_domain(data, true) ? 0 : -ENOENT;
-		ccs_read_unlock(idx);
-	} else
-		error = -EINVAL;
-out:
-	kfree(data);
-	return error ? error : count;
-}
-
-/**
  * ccs_init_request_info - Initialize "struct ccs_request_info" members.
  *
  * @r:     Pointer to "struct ccs_request_info" to initialize.
@@ -4890,7 +4738,7 @@ out:
  * transition to that domain failed, the current thread will be killed by
  * SIGKILL. Note that if current->pid == 1, sending SIGKILL won't work.
  */
-static int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
+int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 {
 	u8 i;
 	const char *buf;

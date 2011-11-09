@@ -48,9 +48,6 @@ unsigned int ccs_memory_quota[CCS_MAX_MEMORY_STAT];
 /* The list for "struct ccs_name". */
 struct list_head ccs_name_list[CCS_MAX_HASH];
 
-/* Initial namespace.*/
-struct ccs_policy_namespace ccs_kernel_namespace;
-
 #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
 
 /* Dummy security context for avoiding NULL pointer dereference. */
@@ -344,10 +341,6 @@ void __init ccs_mm_init(void)
 	int idx;
 	for (idx = 0; idx < CCS_MAX_HASH; idx++)
 		INIT_LIST_HEAD(&ccs_name_list[idx]);
-	ccs_kernel_namespace.name = "<kernel>";
-	ccs_init_policy_namespace(&ccs_kernel_namespace);
-	ccs_kernel_domain.ns = &ccs_kernel_namespace;
-	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
 #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
 	for (idx = 0; idx < CCS_MAX_TASK_SECURITY_HASH; idx++)
 		INIT_LIST_HEAD(&ccs_task_security_list[idx]);
