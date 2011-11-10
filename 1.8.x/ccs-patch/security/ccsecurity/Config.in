@@ -62,6 +62,15 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
   [ -z "CONFIG_CCSECURITY_IPC" ] && define_bool CONFIG_CCSECURITY_IPC y
   bool "Enable IPC operation restriction." CONFIG_CCSECURITY_IPC
 
+  [ -z "CONFIG_CCSECURITY_MISC" ] && define_bool CONFIG_CCSECURITY_MISC y
+  bool "Enable environment variable names restriction." CONFIG_CCSECURITY_MISC
+
+  [ -z "CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER" ] && define_bool CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER y
+  bool "Enable execute handler functionality." CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+
+  [ -z "CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION" ] && define_bool CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION y
+  bool "Enable domain transition without program execution request." CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+
   if [ "$CONFIG_NET" = "y" ]; then
 
      [ -z "CONFIG_CCSECURITY_PORTRESERVE" ] && define_bool CONFIG_CCSECURITY_PORTRESERVE y

@@ -154,6 +154,29 @@ config CCSECURITY_IPC
 	  Say Y here if you want to enable analysis/restriction of sending
 	  signals.
 
+config CCSECURITY_MISC
+	bool "Enable environment variable names restriction."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable analysis/restriction of environment
+	  variable names passed upon program execution request.
+
+config CCSECURITY_TASK_EXECUTE_HANDLER
+	bool "Enable execute handler functionality."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable execute handler functionality.
+
+config CCSECURITY_TASK_DOMAIN_TRANSITION
+	bool "Enable domain transition without program execution request."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable domain transition without involving
+	  program execution request.
+
 config CCSECURITY_PORTRESERVE
        bool "Enable local port reserver."
        default y
