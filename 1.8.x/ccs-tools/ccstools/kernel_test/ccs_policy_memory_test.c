@@ -202,6 +202,7 @@ static void domain_policy_test(const unsigned int before)
 	unsigned int after;
 	int j;
 	policy_file = "/proc/ccs/domain_policy";
+	printf("Processing domain policy\n");
 	for (j = 0; domain_testcases[j]; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");
@@ -246,6 +247,71 @@ static void domain_policy_test(const unsigned int before)
 		fprintf(fp, "delete <kernel> /sbin/init\n");
 		fclose(fp);
 		for (i = 0; i < 500; i++) {
+			usleep(100000);
+			get_meminfo(&after);
+			if (before == after)
+				break;
+		}
+		if (before != after) {
+			printf("Policy: %d\n", after - before);
+			BUG("Policy read/write test: Fail\n");
+		}
+	}
+}
+
+static const char * const domain_random_args[] = {
+	"file", "file execute", "file execute @", "file execute @1",
+	"file execute @1 @2", "file create", "file create @", "file create @1",
+	"file create @1 @", "file create @1 @2", "file create @1 @2 @3",
+	"file mkblock", "file mkblock @", "file mkblock @1",
+	"file mkblock @1 @", "file mkblock @1 @2", "file mkblock @1 @2 @",
+	"file mkblock @1 @2 @3", "file mkblock @1 @2 @3 @",
+	"file mkblock @1 @2 @3 @4", "file mkblock @1 @2 @3 @4 @5", "file link",
+	"file link @", "file link @1", "file link @1 @", "file link @1 @2",
+	"file link @1 @2 @3", "file mount", "file mount @", "file mount @1",
+	"file mount @1 @", "file mount @1 @2", "file mount @1 @2 @",
+	"file mount @1 @2 @3", "file mount @1 @2 @3 @",
+	"file mount @1 @2 @3 @4", "file mount @1 @2 @3 @4 @5", "network",
+	"network inet", "network inet stream", "network inet stream bind",
+	"network inet stream bind @", "network inet stream bind @1",
+	"network inet stream bind @1 @", "network inet stream bind @1 @2",
+	"network inet stream bind @1 @2 @3", "network unix",
+	"network unix stream", "network unix stream bind",
+	"network unix stream bind @", "network unix stream bind @1",
+	"network unix stream bind @1 @2", "capability", "capability use_route",
+	"capability use_route @1", "misc", "misc env", "misc env @",
+	"misc env @1", "misc env @1 @2", "ipc", "ipc signal", "ipc signal @",
+	"ipc signal @1", "ipc signal @1 <kernel>", "ipc signal @1 <kernel> @2",
+	"task", "task auto_execute_handler", "task auto_execute_handler /",
+	"task auto_execute_handler / @1", "task auto_domain_transition",
+	"task auto_domain_transition <kernel> 0=1",
+	"task manual_domain_transition <kernel> @1", NULL
+};
+
+static void domain_random_test(const unsigned int before)
+{
+	unsigned int after;
+	int j;
+	policy_file = "/proc/ccs/domain_policy";
+	printf("Processing random policy\n");
+	for (j = 0; domain_random_args[j]; j++) {
+		int i;
+		FILE *fp = fopen(policy_file, "w");
+		if (!fp)
+			BUG("BUG: Policy write error\n");
+		fprintf(fp, "<kernel>\n");
+		policy = domain_random_args[j];
+		printf("Processing: %s\n", policy);
+		for (i = 0; i < 100; i++) {
+			fprintf(fp, "%s\n", policy);
+			fprintf(fp, "delete %s\n", policy);
+		}
+		for (i = 0; i < 100; i++)
+			fprintf(fp, "%s\n", policy);
+		for (i = 0; i < 100; i++)
+			fprintf(fp, "delete %s\n", policy);
+		fclose(fp);
+		for (i = 0; i < 300; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
@@ -306,6 +372,7 @@ static void exception_policy_test(const unsigned int before)
 	int j;
 	ignore_ns = 1;
 	policy_file = "/proc/ccs/exception_policy";
+	printf("Processing exception policy\n");
 	for (j = 0; exception_testcases[j]; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");
@@ -363,12 +430,22 @@ static void exception_policy_test(const unsigned int before)
 
 int main(int argc, char *argv[])
 {
-	unsigned int before;
+	unsigned int before = 0;;
 	mount("/proc", "/proc/", "proc", 0, NULL);
 	printf("Waiting for stabilized.\n");
+	while (1) {
+		unsigned int prev = before;
+		get_meminfo(&before);
+		printf("Memory used by policy: %10u\r", before);
+		fflush(stdout);
+		sleep(3);
+		if (prev == before)
+			break;
+	}
+	printf("\n");
 	get_meminfo(&before);
-	sleep(3);
 	domain_policy_test(before);
+	domain_random_test(before);
 	exception_policy_test(before);
 	BUG("Policy read/write test: Success\n");
 	return 0;
