@@ -18,14 +18,9 @@ rpm --checksig kernel-2.6.18-274.2.AXS3.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.18-274.2.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.3-20110903.tar.gz ]
+if [ ! -r ccs-patch-1.7.3-20111111.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20110903.tar.gz' || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.18-asianux-3-1.7-20111018.diff ]
-then
-    wget -O ccs-patch-2.6.18-asianux-3-1.7-20111018.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?root=tomoyo&revision=5551' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20111111.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -66,8 +61,8 @@ patch << "EOF" || die "Can't patch spec file."
  # end of Asianux patches
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.3-20110903.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.18-asianux-3-1.7-20111018.diff
++tar -zxf %_sourcedir/ccs-patch-1.7.3-20111111.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
 +
  cp %{SOURCE10} Documentation/
  

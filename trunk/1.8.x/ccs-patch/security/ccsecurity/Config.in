@@ -36,44 +36,44 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
 
   fi
 
-  [ -z "CONFIG_CCSECURITY_FILE_READDIR" ] && define_bool CONFIG_CCSECURITY_FILE_READDIR y
+  [ -z "$CONFIG_CCSECURITY_FILE_READDIR" ] && define_bool CONFIG_CCSECURITY_FILE_READDIR y
   bool "Enable readdir operation restriction." CONFIG_CCSECURITY_FILE_READDIR
 
-  [ -z "CONFIG_CCSECURITY_FILE_GETATTR" ] && define_bool CONFIG_CCSECURITY_FILE_GETATTR y
+  [ -z "$CONFIG_CCSECURITY_FILE_GETATTR" ] && define_bool CONFIG_CCSECURITY_FILE_GETATTR y
   bool "Enable getattr operation restriction." CONFIG_CCSECURITY_FILE_GETATTR
 
   if [ "$CONFIG_NET" = "y" ]; then
 
-     [ -z "CONFIG_CCSECURITY_NETWORK" ] && define_bool CONFIG_CCSECURITY_NETWORK y
+     [ -z "$CONFIG_CCSECURITY_NETWORK" ] && define_bool CONFIG_CCSECURITY_NETWORK y
      bool "Enable socket operation restriction." CONFIG_CCSECURITY_NETWORK
 
      if [ "$CONFIG_CCSECURITY_NETWORK" = "y" ]; then
 
-	#[ -z "CONFIG_CCSECURITY_NETWORK_RECVMSG" ] &&
+	#[ -z "$CONFIG_CCSECURITY_NETWORK_RECVMSG" ] &&
 	define_bool CONFIG_CCSECURITY_NETWORK_RECVMSG y
 
      fi
 
   fi
 
-  [ -z "CONFIG_CCSECURITY_CAPABILITY" ] && define_bool CONFIG_CCSECURITY_CAPABILITY y
+  [ -z "$CONFIG_CCSECURITY_CAPABILITY" ] && define_bool CONFIG_CCSECURITY_CAPABILITY y
   bool "Enable non-POSIX capability operation restriction." CONFIG_CCSECURITY_CAPABILITY
 
-  [ -z "CONFIG_CCSECURITY_IPC" ] && define_bool CONFIG_CCSECURITY_IPC y
+  [ -z "$CONFIG_CCSECURITY_IPC" ] && define_bool CONFIG_CCSECURITY_IPC y
   bool "Enable IPC operation restriction." CONFIG_CCSECURITY_IPC
 
-  [ -z "CONFIG_CCSECURITY_MISC" ] && define_bool CONFIG_CCSECURITY_MISC y
+  [ -z "$CONFIG_CCSECURITY_MISC" ] && define_bool CONFIG_CCSECURITY_MISC y
   bool "Enable environment variable names restriction." CONFIG_CCSECURITY_MISC
 
-  [ -z "CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER" ] && define_bool CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER y
+  [ -z "$CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER" ] && define_bool CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER y
   bool "Enable execute handler functionality." CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
 
-  [ -z "CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION" ] && define_bool CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION y
+  [ -z "$CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION" ] && define_bool CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION y
   bool "Enable domain transition without program execution request." CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 
   if [ "$CONFIG_NET" = "y" ]; then
 
-     [ -z "CONFIG_CCSECURITY_PORTRESERVE" ] && define_bool CONFIG_CCSECURITY_PORTRESERVE y
+     [ -z "$CONFIG_CCSECURITY_PORTRESERVE" ] && define_bool CONFIG_CCSECURITY_PORTRESERVE y
      bool "Enable local port reserver." CONFIG_CCSECURITY_PORTRESERVE
 
   fi

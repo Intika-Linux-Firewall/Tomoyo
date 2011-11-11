@@ -21,9 +21,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.9-20110903.tar.gz ]
+if [ ! -r ccs-patch-1.6.9-20111111.tar.gz ]
 then
-    wget -O ccs-patch-1.6.9-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -42,7 +42,7 @@ cd linux-2.6.24/ || die "Can't chdir to linux-2.6.24/ ."
 mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
 mkdir -p ccs-patch/ || die "Can't create directory."
 cd ccs-patch/ || die "Can't chdir to ccs-patch/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.9-20110903.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.9-20111111.tar.gz || die "Can't extract patch."
 cp -p patches/ccs-patch-2.6.24-ubuntu-8.04.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-8.04.patch || die "Can't copy patch."
 rm -fR specs/ patches/ || die "Can't delete directory."
 for i in `find . -type f`; do diff -u /dev/null $i; done > ../debian/binary-custom.d/ccs/patchset/ccs.patch
