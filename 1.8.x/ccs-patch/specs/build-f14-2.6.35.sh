@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.35.14-103.fc14.src.rpm || die "Can't verify signature.
 rpm -ivh kernel-2.6.35.14-103.fc14.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20111025.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20111111.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20111025.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20111025.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20111111.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  # (Uncomment the '#' and both spaces below to set the buildid.)
  #
 -# % define buildid .local
-+%define buildid _tomoyo_1.8.3p1
++%define buildid _tomoyo_1.8.3p2
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
@@ -72,7 +72,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20111025.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20111111.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.35-fedora-14.diff
 +
  %endif

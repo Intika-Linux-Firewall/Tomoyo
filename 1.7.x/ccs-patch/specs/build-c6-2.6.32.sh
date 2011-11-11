@@ -20,9 +20,9 @@ sed -i -e 's@--keyring \./kernel\.pub Red@--keyring ./kernel.pub CentOS@' -- /ro
 sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.3-20110903.tar.gz ]
+if [ ! -r ccs-patch-1.7.3-20111111.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20110903.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20111111.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -71,7 +71,7 @@ patch << "EOF" || die "Can't patch spec file."
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.3-20110903.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.3-20111111.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.32-centos-6.1.diff
 +
  # Any further pre-build tree manipulations happen here.

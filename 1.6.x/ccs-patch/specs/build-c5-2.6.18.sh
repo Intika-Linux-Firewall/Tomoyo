@@ -18,14 +18,9 @@ rpm --checksig kernel-2.6.18-274.7.1.el5.src.rpm || die "Can't verify signature.
 rpm -ivh kernel-2.6.18-274.7.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.9-20110903.tar.gz ]
+if [ ! -r ccs-patch-1.6.9-20111111.tar.gz ]
 then
-    wget -O ccs-patch-1.6.9-20110903.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20110903.tar.gz' || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.18-centos-5.7-1.6-20110913.diff ]
-then
-    wget -O ccs-patch-2.6.18-centos-5.7-1.6-20110913.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-centos-5.7.diff?root=tomoyo&revision=5421' || die "Can't download patch."
+    wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -66,8 +61,8 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.9-20110903.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.18-centos-5.7-1.6-20110913.diff
++tar -zxf %_sourcedir/ccs-patch-1.6.9-20111111.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.18-centos-5.7.diff
 +
  cp %{SOURCE10} Documentation/
  
