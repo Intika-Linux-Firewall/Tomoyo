@@ -2,7 +2,7 @@
 
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
-URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/development/16/source/SRPMS"
+URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/16/SRPMS"
 
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p2"
