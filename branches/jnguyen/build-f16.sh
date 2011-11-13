@@ -5,8 +5,8 @@ URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patc
 URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/development/16/source/SRPMS"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.3p1"
-CCSPATCH_VER="1.8.3-20111025"
+CCS_VER="1.8.3p2"
+CCSPATCH_VER="1.8.3-20111111"
 KERNEL_VER="3.1.0-7.fc16"
 
 UPDATED_DIFF=0
