@@ -121,69 +121,109 @@ make -s modules modules_install install
 </td></tr><tr><td>
 <a name="CentOS3.9">CentOS 3.9</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-c3-2.4.21.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-c3-2.4.21.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-c3-2.4.21.sh<br>
+sh specs/build-c3-2.4.21.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="CentOS4.9">CentOS 4.9</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-c4-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-c4-2.6.9.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-c4-2.6.9.sh<br>
+sh specs/build-c4-2.6.9.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="CentOS5.6">CentOS 5.6</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-c5-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-c5-2.6.18.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-c5-2.6.18.sh<br>
+sh specs/build-c5-2.6.18.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="Lenny">Debian Lenny</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-debian_lenny.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_lenny.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-debian_lenny.sh<br>
+sh specs/build-debian_lenny.sh<br>
 </td></tr><tr><td>
 <a name="Asianux2">Asianux 2.0</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-ax2-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ax2-2.6.9.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-ax2-2.6.9.sh<br>
+sh specs/build-ax2-2.6.9.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i686 /tmp/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="Asianux3">Asianux 3.0</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-ax3-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ax3-2.6.18.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-ax3-2.6.18.sh<br>
+sh specs/build-ax3-2.6.18.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 </td></tr><tr><td>
 <a name="Ubuntu8.04">Ubuntu 8.04</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-ubuntu_8.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.04.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-ubuntu_8.04.sh<br>
+sh specs/build-ubuntu_8.04.sh<br>
 </td></tr><tr><td>
 <a name="VineLinux5.2">VineLinux 5.2</a>
 </td><td>
-# ビルドスクリプトをダウンロードする。<br>
-wget -O build-vl5.2-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-vl5.2-2.6.27.sh?root=tomoyo'<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz'<br>
+# 署名を確認する。<br>
+wget -O ccs-patch-1.6.9-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20111111.tar.gz.asc<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.9-20111111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
-sh build-vl5.2-2.6.27.sh<br>
+sh specs/build-vl5.2-2.6.27.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr><tr><td>

@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.1.0-7.fc16.src.rpm ]
+if [ ! -r kernel-3.1.1-1.fc16.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/development/16/source/SRPMS/kernel-3.1.0-7.fc16.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.1.1-1.fc16.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.1.0-7.fc16.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.1.0-7.fc16.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.1.1-1.fc16.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.1.1-1.fc16.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20111111.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -905,7 +910,7 @@
+@@ -907,7 +912,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1412,6 +1417,10 @@
+@@ -1415,6 +1420,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -80,7 +80,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1441,6 +1450,9 @@
+@@ -1444,6 +1453,9 @@
  for i in *.config
  do
    mv $i .config
