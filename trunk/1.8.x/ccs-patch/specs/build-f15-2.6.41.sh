@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 15's 2.6.40 kernel.
+# This is a kernel build script for Fedora 15's 2.6.41 kernel.
 #
 
 die () {
@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.40.6-0.fc15.src.rpm ]
+if [ ! -r kernel-2.6.41.1-1.fc15.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.40.6-0.fc15.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.41.1-1.fc15.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.40.6-0.fc15.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.40.6-0.fc15.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.41.1-1.fc15.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.41.1-1.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20111111.tar.gz ]
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -402,6 +402,11 @@
+@@ -388,6 +388,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +49,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -461,7 +466,7 @@
+@@ -447,7 +452,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -58,27 +58,27 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -817,7 +822,7 @@
+@@ -794,7 +799,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
 -%description -n kernel%{?variant}%{?1:-%{1}}-devel\
 +%description -n ccs-kernel%{?variant}%{?1:-%{1}}-devel\
- This package provides kernel headers and 
- makefiles sufficient to build modules\
+ This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
-@@ -1267,6 +1272,10 @@
+ %{nil}
+@@ -1240,6 +1245,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20111111.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.40-fedora-15.diff
++patch -sp1 < patches/ccs-patch-3.1.0-fedora-16.diff # ccs-patch-2.6.41-fedora-15.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1295,6 +1304,9 @@
+@@ -1268,6 +1277,9 @@
  for i in *.config
  do
    mv $i .config
