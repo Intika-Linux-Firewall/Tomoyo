@@ -32,6 +32,16 @@
 <h4>ChangeLog for ccs-patch 1.8.3</h4>
 
 <pre>
+Fix 2011/11/18
+
+    @ Fix kernel config mapping error.
+
+      Due to a typo in ccs_p2mac definition, mode for CONFIG::file::execute was
+      by error used when checking "file getattr" permission. Most users will
+      not be affected by this error because CONFIG::file::execute and
+      CONFIG::file::getattr are by default configured to use CONFIG::file or
+      CONFIG settings.
+
 Fix 2011/11/11
 
     @ Optimize for object's size.
