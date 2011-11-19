@@ -5,7 +5,7 @@ URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patc
 URL_KERNEL="http://www.mirrorservice.org/sites/ftp.scientificlinux.org/linux/scientific/6.1/SRPMS/vendor"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.3p2"
+CCS_VER="1.8.3p3"
 CCSPATCH_VER="1.8.3-20111111"
 KERNEL_VER="2.6.32-131.17.1.el6"
 
