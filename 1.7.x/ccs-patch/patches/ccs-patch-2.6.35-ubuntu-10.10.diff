@@ -32,8 +32,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  security/security.c       |  134 ++++++++++++++++++++++++++++++++++++++--------
  28 files changed, 259 insertions(+), 47 deletions(-)
 
---- linux-2.6.35-30.61.orig/fs/compat.c
-+++ linux-2.6.35-30.61/fs/compat.c
+--- linux-2.6.35-31.62.orig/fs/compat.c
++++ linux-2.6.35-31.62/fs/compat.c
 @@ -1551,7 +1551,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
@@ -43,8 +43,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.35-30.61.orig/fs/compat_ioctl.c
-+++ linux-2.6.35-30.61/fs/compat_ioctl.c
+--- linux-2.6.35-31.62.orig/fs/compat_ioctl.c
++++ linux-2.6.35-31.62/fs/compat_ioctl.c
 @@ -1723,6 +1723,10 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
@@ -56,8 +56,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.35-30.61.orig/fs/exec.c
-+++ linux-2.6.35-30.61/fs/exec.c
+--- linux-2.6.35-31.62.orig/fs/exec.c
++++ linux-2.6.35-31.62/fs/exec.c
 @@ -1432,7 +1432,7 @@ int do_execve(char * filename,
  		goto out;
  
@@ -67,8 +67,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.35-30.61.orig/fs/ioctl.c
-+++ linux-2.6.35-30.61/fs/ioctl.c
+--- linux-2.6.35-31.62.orig/fs/ioctl.c
++++ linux-2.6.35-31.62/fs/ioctl.c
 @@ -41,6 +41,8 @@ static long vfs_ioctl(struct file *filp,
  
  	if (!filp->f_op)
@@ -78,8 +78,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.35-30.61.orig/fs/namei.c
-+++ linux-2.6.35-30.61/fs/namei.c
+--- linux-2.6.35-31.62.orig/fs/namei.c
++++ linux-2.6.35-31.62/fs/namei.c
 @@ -1470,6 +1470,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
@@ -92,8 +92,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
---- linux-2.6.35-30.61.orig/fs/namespace.c
-+++ linux-2.6.35-30.61/fs/namespace.c
+--- linux-2.6.35-31.62.orig/fs/namespace.c
++++ linux-2.6.35-31.62/fs/namespace.c
 @@ -1497,6 +1497,9 @@ static int do_loopback(struct path *path
  
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
@@ -124,8 +124,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
---- linux-2.6.35-30.61.orig/fs/open.c
-+++ linux-2.6.35-30.61/fs/open.c
+--- linux-2.6.35-31.62.orig/fs/open.c
++++ linux-2.6.35-31.62/fs/open.c
 @@ -1012,6 +1012,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -135,8 +135,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.35-30.61.orig/fs/proc/version.c
-+++ linux-2.6.35-30.61/fs/proc/version.c
+--- linux-2.6.35-31.62.orig/fs/proc/version.c
++++ linux-2.6.35-31.62/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -144,12 +144,12 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.35-30.61 2011/10/26\n");
++	printk(KERN_INFO "Hook version: 2.6.35-31.62 2011/11/22\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.35-30.61.orig/include/linux/init_task.h
-+++ linux-2.6.35-30.61/include/linux/init_task.h
+--- linux-2.6.35-31.62.orig/include/linux/init_task.h
++++ linux-2.6.35-31.62/include/linux/init_task.h
 @@ -102,6 +102,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
@@ -173,8 +173,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  
  
---- linux-2.6.35-30.61.orig/include/linux/sched.h
-+++ linux-2.6.35-30.61/include/linux/sched.h
+--- linux-2.6.35-31.62.orig/include/linux/sched.h
++++ linux-2.6.35-31.62/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -195,8 +195,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.35-30.61.orig/include/linux/security.h
-+++ linux-2.6.35-30.61/include/linux/security.h
+--- linux-2.6.35-31.62.orig/include/linux/security.h
++++ linux-2.6.35-31.62/include/linux/security.h
 @@ -35,6 +35,7 @@
  #include <linux/xfrm.h>
  #include <linux/slab.h>
@@ -385,8 +385,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-2.6.35-30.61.orig/include/net/ip.h
-+++ linux-2.6.35-30.61/include/net/ip.h
+--- linux-2.6.35-31.62.orig/include/net/ip.h
++++ linux-2.6.35-31.62/include/net/ip.h
 @@ -187,6 +187,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
@@ -396,8 +396,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.35-30.61.orig/kernel/kexec.c
-+++ linux-2.6.35-30.61/kernel/kexec.c
+--- linux-2.6.35-31.62.orig/kernel/kexec.c
++++ linux-2.6.35-31.62/kernel/kexec.c
 @@ -39,6 +39,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -415,8 +415,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.35-30.61.orig/kernel/kmod.c
-+++ linux-2.6.35-30.61/kernel/kmod.c
+--- linux-2.6.35-31.62.orig/kernel/kmod.c
++++ linux-2.6.35-31.62/kernel/kmod.c
 @@ -153,6 +153,11 @@ static int ____call_usermodehelper(void 
  			goto fail;
  	}
@@ -429,8 +429,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.35-30.61.orig/kernel/module.c
-+++ linux-2.6.35-30.61/kernel/module.c
+--- linux-2.6.35-31.62.orig/kernel/module.c
++++ linux-2.6.35-31.62/kernel/module.c
 @@ -55,6 +55,7 @@
  #include <linux/async.h>
  #include <linux/percpu.h>
@@ -457,8 +457,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	/* Do all the hard work */
  	mod = load_module(umod, len, uargs);
---- linux-2.6.35-30.61.orig/kernel/ptrace.c
-+++ linux-2.6.35-30.61/kernel/ptrace.c
+--- linux-2.6.35-31.62.orig/kernel/ptrace.c
++++ linux-2.6.35-31.62/kernel/ptrace.c
 @@ -689,6 +689,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -477,8 +477,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.35-30.61.orig/kernel/sched.c
-+++ linux-2.6.35-30.61/kernel/sched.c
+--- linux-2.6.35-31.62.orig/kernel/sched.c
++++ linux-2.6.35-31.62/kernel/sched.c
 @@ -4516,6 +4516,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -488,8 +488,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.35-30.61.orig/kernel/signal.c
-+++ linux-2.6.35-30.61/kernel/signal.c
+--- linux-2.6.35-31.62.orig/kernel/signal.c
++++ linux-2.6.35-31.62/kernel/signal.c
 @@ -2317,6 +2317,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -535,8 +535,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.35-30.61.orig/kernel/sys.c
-+++ linux-2.6.35-30.61/kernel/sys.c
+--- linux-2.6.35-31.62.orig/kernel/sys.c
++++ linux-2.6.35-31.62/kernel/sys.c
 @@ -156,6 +156,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -575,8 +575,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.35-30.61.orig/kernel/time/ntp.c
-+++ linux-2.6.35-30.61/kernel/time/ntp.c
+--- linux-2.6.35-31.62.orig/kernel/time/ntp.c
++++ linux-2.6.35-31.62/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -601,8 +601,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.35-30.61.orig/net/ipv4/raw.c
-+++ linux-2.6.35-30.61/net/ipv4/raw.c
+--- linux-2.6.35-31.62.orig/net/ipv4/raw.c
++++ linux-2.6.35-31.62/net/ipv4/raw.c
 @@ -679,6 +679,9 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -613,8 +613,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.35-30.61.orig/net/ipv4/udp.c
-+++ linux-2.6.35-30.61/net/ipv4/udp.c
+--- linux-2.6.35-31.62.orig/net/ipv4/udp.c
++++ linux-2.6.35-31.62/net/ipv4/udp.c
 @@ -1140,6 +1140,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
@@ -625,8 +625,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	if (len > ulen)
---- linux-2.6.35-30.61.orig/net/ipv6/raw.c
-+++ linux-2.6.35-30.61/net/ipv6/raw.c
+--- linux-2.6.35-31.62.orig/net/ipv6/raw.c
++++ linux-2.6.35-31.62/net/ipv6/raw.c
 @@ -467,6 +467,9 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -637,8 +637,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.35-30.61.orig/net/ipv6/udp.c
-+++ linux-2.6.35-30.61/net/ipv6/udp.c
+--- linux-2.6.35-31.62.orig/net/ipv6/udp.c
++++ linux-2.6.35-31.62/net/ipv6/udp.c
 @@ -353,6 +353,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
@@ -649,8 +649,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	if (len > ulen)
---- linux-2.6.35-30.61.orig/net/socket.c
-+++ linux-2.6.35-30.61/net/socket.c
+--- linux-2.6.35-31.62.orig/net/socket.c
++++ linux-2.6.35-31.62/net/socket.c
 @@ -1501,6 +1501,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -663,8 +663,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-2.6.35-30.61.orig/security/Kconfig
-+++ linux-2.6.35-30.61/security/Kconfig
+--- linux-2.6.35-31.62.orig/security/Kconfig
++++ linux-2.6.35-31.62/security/Kconfig
 @@ -187,5 +187,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -673,8 +673,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +
  endmenu
  
---- linux-2.6.35-30.61.orig/security/Makefile
-+++ linux-2.6.35-30.61/security/Makefile
+--- linux-2.6.35-31.62.orig/security/Makefile
++++ linux-2.6.35-31.62/security/Makefile
 @@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
@@ -682,8 +682,8 @@ Source code for this patch is "apt-get install linux-source-2.6.35"
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-2.6.35-30.61.orig/security/security.c
-+++ linux-2.6.35-30.61/security/security.c
+--- linux-2.6.35-31.62.orig/security/security.c
++++ linux-2.6.35-31.62/security/security.c
 @@ -230,7 +230,10 @@ int security_syslog(int type, bool from_
  
  int security_settime(struct timespec *ts, struct timezone *tz)
