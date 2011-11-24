@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 3.2-rc2.
+This is TOMOYO Linux patch for kernel 3.2-rc3.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.2-rc2.tar.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.2-rc3.tar.bz2
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -28,8 +28,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  security/security.c       |  134 +++++++++++++++++++++++++++++++++++++---------
  24 files changed, 241 insertions(+), 49 deletions(-)
 
---- linux-3.2.0-rc2.orig/fs/exec.c
-+++ linux-3.2.0-rc2/fs/exec.c
+--- linux-3.2.0-rc3.orig/fs/exec.c
++++ linux-3.2.0-rc3/fs/exec.c
 @@ -1532,7 +1532,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
@@ -39,8 +39,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	if (retval < 0)
  		goto out;
  
---- linux-3.2.0-rc2.orig/fs/open.c
-+++ linux-3.2.0-rc2/fs/open.c
+--- linux-3.2.0-rc3.orig/fs/open.c
++++ linux-3.2.0-rc3/fs/open.c
 @@ -1106,6 +1106,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.2.0-rc2.orig/fs/proc/version.c
-+++ linux-3.2.0-rc2/fs/proc/version.c
+--- linux-3.2.0-rc3.orig/fs/proc/version.c
++++ linux-3.2.0-rc3/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.2-rc2 2011/11/16\n");
++	printk(KERN_INFO "Hook version: 3.2-rc3 2011/11/24\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-3.2.0-rc2.orig/include/linux/init_task.h
-+++ linux-3.2.0-rc2/include/linux/init_task.h
+--- linux-3.2.0-rc3.orig/include/linux/init_task.h
++++ linux-3.2.0-rc3/include/linux/init_task.h
 @@ -126,6 +126,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
@@ -80,7 +80,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -192,6 +200,7 @@ extern struct cred init_cred;
+@@ -191,6 +199,7 @@ extern struct cred init_cred;
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
  	INIT_TASK_RCU_PREEMPT(tsk)					\
@@ -88,8 +88,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  }
  
  
---- linux-3.2.0-rc2.orig/include/linux/sched.h
-+++ linux-3.2.0-rc2/include/linux/sched.h
+--- linux-3.2.0-rc3.orig/include/linux/sched.h
++++ linux-3.2.0-rc3/include/linux/sched.h
 @@ -44,6 +44,8 @@
  
  #ifdef __KERNEL__
@@ -99,7 +99,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  struct sched_param {
  	int sched_priority;
  };
-@@ -1573,6 +1575,10 @@ struct task_struct {
+@@ -1572,6 +1574,10 @@ struct task_struct {
  #ifdef CONFIG_HAVE_HW_BREAKPOINT
  	atomic_t ptrace_bp_refcnt;
  #endif
@@ -110,8 +110,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.2.0-rc2.orig/include/linux/security.h
-+++ linux-3.2.0-rc2/include/linux/security.h
+--- linux-3.2.0-rc3.orig/include/linux/security.h
++++ linux-3.2.0-rc3/include/linux/security.h
 @@ -38,6 +38,7 @@
  #include <linux/slab.h>
  #include <linux/xattr.h>
@@ -310,8 +310,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.2.0-rc2.orig/include/net/ip.h
-+++ linux-3.2.0-rc2/include/net/ip.h
+--- linux-3.2.0-rc3.orig/include/net/ip.h
++++ linux-3.2.0-rc3/include/net/ip.h
 @@ -217,6 +217,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
@@ -321,9 +321,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-3.2.0-rc2.orig/kernel/fork.c
-+++ linux-3.2.0-rc2/kernel/fork.c
-@@ -194,6 +194,7 @@ void __put_task_struct(struct task_struc
+--- linux-3.2.0-rc3.orig/kernel/fork.c
++++ linux-3.2.0-rc3/kernel/fork.c
+@@ -193,6 +193,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -331,7 +331,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1220,6 +1221,9 @@ static struct task_struct *copy_process(
+@@ -1215,6 +1216,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -341,7 +341,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1406,6 +1410,7 @@ bad_fork_cleanup_semundo:
+@@ -1401,6 +1405,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -349,8 +349,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-3.2.0-rc2.orig/kernel/kexec.c
-+++ linux-3.2.0-rc2/kernel/kexec.c
+--- linux-3.2.0-rc3.orig/kernel/kexec.c
++++ linux-3.2.0-rc3/kernel/kexec.c
 @@ -40,6 +40,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -368,8 +368,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-3.2.0-rc2.orig/kernel/module.c
-+++ linux-3.2.0-rc2/kernel/module.c
+--- linux-3.2.0-rc3.orig/kernel/module.c
++++ linux-3.2.0-rc3/kernel/module.c
 @@ -58,6 +58,7 @@
  #include <linux/jump_label.h>
  #include <linux/pfn.h>
@@ -396,8 +396,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	/* Do all the hard work */
  	mod = load_module(umod, len, uargs);
---- linux-3.2.0-rc2.orig/kernel/ptrace.c
-+++ linux-3.2.0-rc2/kernel/ptrace.c
+--- linux-3.2.0-rc3.orig/kernel/ptrace.c
++++ linux-3.2.0-rc3/kernel/ptrace.c
 @@ -857,6 +857,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -416,8 +416,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.2.0-rc2.orig/kernel/sched.c
-+++ linux-3.2.0-rc2/kernel/sched.c
+--- linux-3.2.0-rc3.orig/kernel/sched.c
++++ linux-3.2.0-rc3/kernel/sched.c
 @@ -5100,6 +5100,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -427,8 +427,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.2.0-rc2.orig/kernel/signal.c
-+++ linux-3.2.0-rc2/kernel/signal.c
+--- linux-3.2.0-rc3.orig/kernel/signal.c
++++ linux-3.2.0-rc3/kernel/signal.c
 @@ -2739,6 +2739,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -474,8 +474,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.2.0-rc2.orig/kernel/sys.c
-+++ linux-3.2.0-rc2/kernel/sys.c
+--- linux-3.2.0-rc3.orig/kernel/sys.c
++++ linux-3.2.0-rc3/kernel/sys.c
 @@ -180,6 +180,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -514,8 +514,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.2.0-rc2.orig/kernel/time/ntp.c
-+++ linux-3.2.0-rc2/kernel/time/ntp.c
+--- linux-3.2.0-rc3.orig/kernel/time/ntp.c
++++ linux-3.2.0-rc3/kernel/time/ntp.c
 @@ -15,6 +15,7 @@
  #include <linux/time.h>
  #include <linux/mm.h>
@@ -549,8 +549,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  		if (!(txc->modes & ADJ_NANO))
  			delta.tv_nsec *= 1000;
  		result = timekeeping_inject_offset(&delta);
---- linux-3.2.0-rc2.orig/net/ipv4/raw.c
-+++ linux-3.2.0-rc2/net/ipv4/raw.c
+--- linux-3.2.0-rc3.orig/net/ipv4/raw.c
++++ linux-3.2.0-rc3/net/ipv4/raw.c
 @@ -695,6 +695,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -562,8 +562,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.2.0-rc2.orig/net/ipv4/udp.c
-+++ linux-3.2.0-rc2/net/ipv4/udp.c
+--- linux-3.2.0-rc3.orig/net/ipv4/udp.c
++++ linux-3.2.0-rc3/net/ipv4/udp.c
 @@ -1184,6 +1184,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
@@ -575,8 +575,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	ulen = skb->len - sizeof(struct udphdr);
  	if (len > ulen)
---- linux-3.2.0-rc2.orig/net/ipv6/raw.c
-+++ linux-3.2.0-rc2/net/ipv6/raw.c
+--- linux-3.2.0-rc3.orig/net/ipv6/raw.c
++++ linux-3.2.0-rc3/net/ipv6/raw.c
 @@ -469,6 +469,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -588,8 +588,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.2.0-rc2.orig/net/ipv6/udp.c
-+++ linux-3.2.0-rc2/net/ipv6/udp.c
+--- linux-3.2.0-rc3.orig/net/ipv6/udp.c
++++ linux-3.2.0-rc3/net/ipv6/udp.c
 @@ -361,6 +361,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
@@ -601,8 +601,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  
  	ulen = skb->len - sizeof(struct udphdr);
  	if (len > ulen)
---- linux-3.2.0-rc2.orig/net/socket.c
-+++ linux-3.2.0-rc2/net/socket.c
+--- linux-3.2.0-rc3.orig/net/socket.c
++++ linux-3.2.0-rc3/net/socket.c
 @@ -1530,6 +1530,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -614,8 +614,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.2.0-rc2.orig/net/unix/af_unix.c
-+++ linux-3.2.0-rc2/net/unix/af_unix.c
+--- linux-3.2.0-rc3.orig/net/unix/af_unix.c
++++ linux-3.2.0-rc3/net/unix/af_unix.c
 @@ -1780,6 +1780,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
@@ -627,8 +627,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.2.0-rc2.orig/security/Kconfig
-+++ linux-3.2.0-rc2/security/Kconfig
+--- linux-3.2.0-rc3.orig/security/Kconfig
++++ linux-3.2.0-rc3/security/Kconfig
 @@ -227,5 +227,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
@@ -637,8 +637,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
 +
  endmenu
  
---- linux-3.2.0-rc2.orig/security/Makefile
-+++ linux-3.2.0-rc2/security/Makefile
+--- linux-3.2.0-rc3.orig/security/Makefile
++++ linux-3.2.0-rc3/security/Makefile
 @@ -26,3 +26,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -646,8 +646,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-3.2.0-rc2.orig/security/security.c
-+++ linux-3.2.0-rc2/security/security.c
+--- linux-3.2.0-rc3.orig/security/security.c
++++ linux-3.2.0-rc3/security/security.c
 @@ -203,7 +203,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
