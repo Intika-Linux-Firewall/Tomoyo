@@ -1,0 +1,5478 @@
+Index: include/linux/ccsecurity.h
+===================================================================
+--- include/linux/ccsecurity.h	(revision 5665)
++++ include/linux/ccsecurity.h	(working copy)
+@@ -68,7 +68,6 @@
+ 				 void *data_page);
+ #endif
+ 	int (*umount_permission) (struct vfsmount *mnt, int flags);
+-	_Bool (*lport_reserved) (const u16 port);
+ #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+ 	void (*save_open_mode) (int mode);
+ 	void (*clear_open_mode) (void);
+@@ -106,9 +105,6 @@
+ #endif
+ 	int (*fcntl_permission) (struct file *file, unsigned int cmd,
+ 				 unsigned long arg);
+-	int (*kill_permission) (pid_t pid, int sig);
+-	int (*tgkill_permission) (pid_t tgid, pid_t pid, int sig);
+-	int (*tkill_permission) (pid_t pid, int sig);
+ 	int (*socket_create_permission) (int family, int type, int protocol);
+ 	int (*socket_listen_permission) (struct socket *sock);
+ 	int (*socket_connect_permission) (struct socket *sock,
+@@ -127,8 +123,6 @@
+ 				 mode_t mode);
+ 	int (*getattr_permission) (struct vfsmount *mnt,
+ 				   struct dentry *dentry);
+-	int (*sigqueue_permission) (pid_t pid, int sig);
+-	int (*tgsigqueue_permission) (pid_t tgid, pid_t pid, int sig);
+ 	int (*search_binary_handler) (struct linux_binprm *bprm,
+ 				      struct pt_regs *regs);
+ #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
+@@ -701,23 +695,11 @@
+ 
+ #endif
+ 
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-
+ static inline _Bool ccs_lport_reserved(const u16 port)
+ {
+-	_Bool (*func) (const u16) = ccsecurity_ops.lport_reserved;
+-	return func ? func(port) : 0;
+-}
+-
+-#else
+-
+-static inline _Bool ccs_lport_reserved(const u16 port)
+-{
+ 	return 0;
+ }
+ 
+-#endif
+-
+ #ifdef CONFIG_CCSECURITY_CAPABILITY
+ 
+ static inline _Bool ccs_capable(const u8 operation)
+@@ -759,42 +741,8 @@
+ 
+ #endif
+ 
+-#ifdef CONFIG_CCSECURITY_IPC
+-
+ static inline int ccs_kill_permission(pid_t pid, int sig)
+ {
+-	int (*func) (pid_t, int) = ccsecurity_ops.kill_permission;
+-	return func ? func(pid, sig) : 0;
+-}
+-
+-static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
+-{
+-	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgkill_permission;
+-	return func ? func(tgid, pid, sig) : 0;
+-}
+-
+-static inline int ccs_tkill_permission(pid_t pid, int sig)
+-{
+-	int (*func) (pid_t, int) = ccsecurity_ops.tkill_permission;
+-	return func ? func(pid, sig) : 0;
+-}
+-
+-static inline int ccs_sigqueue_permission(pid_t pid, int sig)
+-{
+-	int (*func) (pid_t, int) = ccsecurity_ops.sigqueue_permission;
+-	return func ? func(pid, sig) : 0;
+-}
+-
+-static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+-{
+-	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgsigqueue_permission;
+-	return func ? func(tgid, pid, sig) : 0;
+-}
+-
+-#else
+-
+-static inline int ccs_kill_permission(pid_t pid, int sig)
+-{
+ 	return 0;
+ }
+ 
+@@ -818,8 +766,6 @@
+ 	return 0;
+ }
+ 
+-#endif
+-
+ /* Index numbers for Capability Controls. */
+ enum ccs_capability_acl_index {
+ 	/* socket(PF_ROUTE, *, *)                                      */
+@@ -840,8 +786,6 @@
+ 	CCS_USE_KERNEL_MODULE,
+ 	/* sys_kexec_load()                                            */
+ 	CCS_SYS_KEXEC_LOAD,
+-	/* sys_ptrace()                                                */
+-	CCS_SYS_PTRACE,
+ 	CCS_MAX_CAPABILITY_INDEX
+ };
+ 
+Index: security/ccsecurity/Kconfig
+===================================================================
+--- security/ccsecurity/Kconfig	(revision 5665)
++++ security/ccsecurity/Kconfig	(working copy)
+@@ -177,14 +177,5 @@
+ 	  Say Y here if you want to enable domain transition without involving
+ 	  program execution request.
+ 
+-config CCSECURITY_PORTRESERVE
+-       bool "Enable local port reserver."
+-       default y
+-       depends on NET
+-       depends on CCSECURITY
+-       ---help---
+-	 Say Y here if you want to implement
+-	 /proc/sys/net/ipv4/ip_local_reserved_ports as a MAC policy.
+-
+ config CCSECURITY_NETWORK_RECVMSG
+ 	def_bool CCSECURITY_NETWORK
+Index: security/ccsecurity/realpath.c
+===================================================================
+--- security/ccsecurity/realpath.c	(revision 5665)
++++ security/ccsecurity/realpath.c	(working copy)
+@@ -22,7 +22,8 @@
+ 
+ char *ccs_encode(const char *str);
+ char *ccs_encode2(const char *str, int str_len);
+-char *ccs_realpath_from_path(struct path *path);
++char *ccs_realpath(struct path *path);
++char *ccs_realpath2(struct path *path, bool force_no_fsname);
+ const char *ccs_get_exe(void);
+ void ccs_fill_path_info(struct ccs_path_info *ptr);
+ 
+@@ -436,16 +437,17 @@
+ #define SOCKFS_MAGIC 0x534F434B
+ 
+ /**
+- * ccs_realpath_from_path - Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ * ccs_realpath2 - Returns realpath(3) of the given pathname but ignores chroot'ed root.
+  *
+- * @path: Pointer to "struct path".
++ * @path:            Pointer to "struct path".
++ * @force_no_fsname: Force use of normal pathname if true, may use fsname otherwise.
+  *
+  * Returns the realpath of the given @path on success, NULL otherwise.
+  *
+  * This function uses kzalloc(), so caller must kfree() if this function
+  * didn't return NULL.
+  */
+-char *ccs_realpath_from_path(struct path *path)
++char *ccs_realpath2(struct path *path, bool force_no_fsname)
+ {
+ 	char *buf = NULL;
+ 	char *name = NULL;
+@@ -465,6 +467,8 @@
+ 			break;
+ 		/* To make sure that pos is '\0' terminated. */
+ 		buf[buf_len - 1] = '\0';
++		if (force_no_fsname)
++			goto absolute_path;
+ 		/* Get better name for socket. */
+ 		if (sb->s_magic == SOCKFS_MAGIC) {
+ 			pos = ccs_get_socket_name(path, buf, buf_len - 1);
+@@ -487,6 +491,7 @@
+ 						 buf_len - 1);
+ 			goto encode;
+ 		}
++absolute_path:
+ 		/* Get absolute name for the rest. */
+ 		ccs_realpath_lock();
+ 		pos = ccs_get_absolute_path(path, buf, buf_len - 1);
+@@ -504,6 +509,21 @@
+ }
+ 
+ /**
++ * ccs_realpath - Returns realpath(3) of the given pathname but ignores chroot'ed root.
++ *
++ * @path: Pointer to "struct path".
++ *
++ * Returns the realpath of the given @path on success, NULL otherwise.
++ *
++ * This function uses kzalloc(), so caller must kfree() if this function
++ * didn't return NULL.
++ */
++char *ccs_realpath(struct path *path)
++{
++	return ccs_realpath2(path, false);
++}
++
++/**
+  * ccs_encode2 - Encode binary string to ascii string.
+  *
+  * @str:     String in binary format.
+@@ -654,9 +674,9 @@
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+ 			struct path path = { vma->vm_file->f_vfsmnt,
+ 					     vma->vm_file->f_dentry };
+-			cp = ccs_realpath_from_path(&path);
++			cp = ccs_realpath(&path);
+ #else
+-			cp = ccs_realpath_from_path(&vma->vm_file->f_path);
++			cp = ccs_realpath(&vma->vm_file->f_path);
+ #endif
+ 			break;
+ 		}
+Index: security/ccsecurity/internal.h
+===================================================================
+--- security/ccsecurity/internal.h	(revision 5665)
++++ security/ccsecurity/internal.h	(working copy)
+@@ -386,6 +386,7 @@
+ 
+ /* Index numbers for Access Controls. */
+ enum ccs_acl_entry_type_index {
++	CCS_TYPE_EXECUTE_ACL,
+ 	CCS_TYPE_PATH_ACL,
+ 	CCS_TYPE_PATH2_ACL,
+ 	CCS_TYPE_PATH_NUMBER_ACL,
+@@ -402,7 +403,7 @@
+ 	CCS_TYPE_UNIX_ACL,
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-	CCS_TYPE_SIGNAL_ACL,
++	CCS_TYPE_PTRACE_ACL,
+ #endif
+ #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+ 	CCS_TYPE_AUTO_EXECUTE_HANDLER,
+@@ -451,7 +452,6 @@
+ 				     CCS_TASK_IS_EXECUTE_HANDLER */
+ 	CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
+ 	CCS_EXEC_REALPATH,
+-	CCS_SYMLINK_TARGET,
+ 	CCS_PATH1_UID,
+ 	CCS_PATH1_GID,
+ 	CCS_PATH1_INO,
+@@ -485,20 +485,6 @@
+ 	CCS_ENVP_ENTRY,
+ };
+ 
+-/* Index numbers for domain's attributes. */
+-enum ccs_domain_info_flags_index {
+-	/* Quota warnning flag.   */
+-	CCS_DIF_QUOTA_WARNED,
+-	/*
+-	 * This domain was unable to create a new domain at
+-	 * ccs_find_next_domain() because the name of the domain to be created
+-	 * was too long or it could not allocate memory.
+-	 * More than one process continued execve() without domain transition.
+-	 */
+-	CCS_DIF_TRANSITION_FAILED,
+-	CCS_MAX_DOMAIN_INFO_FLAGS
+-};
+-
+ /* Index numbers for audit type. */
+ enum ccs_grant_log {
+ 	/* Follow profile's configuration. */
+@@ -540,7 +526,9 @@
+ /* Index numbers for functionality. */
+ enum ccs_mac_index {
+ 	CCS_MAC_FILE_EXECUTE,
+-	CCS_MAC_FILE_OPEN,
++	CCS_MAC_FILE_READ,
++	CCS_MAC_FILE_WRITE,
++	CCS_MAC_FILE_APPEND,
+ 	CCS_MAC_FILE_CREATE,
+ 	CCS_MAC_FILE_UNLINK,
+ #ifdef CONFIG_CCSECURITY_FILE_GETATTR
+@@ -597,7 +585,7 @@
+ 	CCS_MAC_ENVIRON,
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-	CCS_MAC_SIGNAL,
++	CCS_MAC_PTRACE,
+ #endif
+ #ifdef CONFIG_CCSECURITY_CAPABILITY
+ 	CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET,
+@@ -609,7 +597,6 @@
+ 	CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
+ 	CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
+ 	CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
+-	CCS_MAC_CAPABILITY_SYS_PTRACE,
+ #endif
+ 	CCS_MAX_MAC_INDEX
+ };
+@@ -631,11 +618,7 @@
+ 
+ /* Index numbers for operation mode. */
+ enum ccs_mode_value {
+-	CCS_CONFIG_DISABLED,
+-	CCS_CONFIG_LEARNING,
+-	CCS_CONFIG_PERMISSIVE,
+-	CCS_CONFIG_ENFORCING,
+-	CCS_CONFIG_MAX_MODE,
++	CCS_CONFIG_ENFORCING       =   1,
+ 	CCS_CONFIG_WANT_REJECT_LOG =  64,
+ 	CCS_CONFIG_WANT_GRANT_LOG  = 128,
+ 	CCS_CONFIG_USE_DEFAULT     = 255,
+@@ -659,12 +642,12 @@
+ 	CCS_TYPE_LINK,
+ 	CCS_TYPE_RENAME,
+ 	CCS_TYPE_PIVOT_ROOT,
++	CCS_TYPE_SYMLINK,
+ 	CCS_MAX_PATH2_OPERATION
+ };
+ 
+ /* Index numbers for access controls with one pathname. */
+ enum ccs_path_acl_index {
+-	CCS_TYPE_EXECUTE,
+ 	CCS_TYPE_READ,
+ 	CCS_TYPE_WRITE,
+ 	CCS_TYPE_APPEND,
+@@ -674,7 +657,6 @@
+ #endif
+ 	CCS_TYPE_RMDIR,
+ 	CCS_TYPE_TRUNCATE,
+-	CCS_TYPE_SYMLINK,
+ 	CCS_TYPE_CHROOT,
+ 	CCS_TYPE_UMOUNT,
+ 	CCS_MAX_PATH_OPERATION
+@@ -705,16 +687,12 @@
+ 
+ /* Index numbers for entry type. */
+ enum ccs_policy_id {
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-	CCS_ID_RESERVEDPORT,
+-#endif
+ 	CCS_ID_GROUP,
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 	CCS_ID_ADDRESS_GROUP,
+ #endif
+ 	CCS_ID_PATH_GROUP,
+ 	CCS_ID_NUMBER_GROUP,
+-	CCS_ID_AGGREGATOR,
+ 	CCS_ID_TRANSITION_CONTROL,
+ 	CCS_ID_MANAGER,
+ 	CCS_ID_CONDITION,
+@@ -726,26 +704,23 @@
+ 
+ /* Index numbers for /proc/ccs/stat interface. */
+ enum ccs_policy_stat_type {
+-	/* Do not change this order. */
+ 	CCS_STAT_POLICY_UPDATES,
+-	CCS_STAT_POLICY_LEARNING,   /* == CCS_CONFIG_LEARNING */
+-	CCS_STAT_POLICY_PERMISSIVE, /* == CCS_CONFIG_PERMISSIVE */
+-	CCS_STAT_POLICY_ENFORCING,  /* == CCS_CONFIG_ENFORCING */
++	CCS_STAT_POLICY_PERMISSIVE,
++	CCS_STAT_POLICY_ENFORCING,
+ 	CCS_MAX_POLICY_STAT
+ };
+ 
+ /* Index numbers for profile's PREFERENCE values. */
+ enum ccs_pref_index {
+ 	CCS_PREF_MAX_AUDIT_LOG,
+-	CCS_PREF_MAX_LEARNING_ENTRY,
+ 	CCS_PREF_ENFORCING_PENALTY,
+ 	CCS_MAX_PREF
+ };
+ 
+ /* Index numbers for /proc/ccs/ interfaces. */
+ enum ccs_proc_interface_index {
+-	CCS_DOMAINPOLICY,
+-	CCS_EXCEPTIONPOLICY,
++	CCS_DOMAIN_POLICY,
++	CCS_EXCEPTION_POLICY,
+ 	CCS_PROCESS_STATUS,
+ 	CCS_STAT,
+ 	CCS_AUDIT,
+@@ -756,6 +731,7 @@
+ #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+ 	CCS_EXECUTE_HANDLER,
+ #endif
++	CCS_INVERSE_POLICY,
+ };
+ 
+ /* Index numbers for special mount operations. */
+@@ -770,18 +746,6 @@
+ 	CCS_MAX_SPECIAL_MOUNT
+ };
+ 
+-/* Index numbers for domain transition control keywords. */
+-enum ccs_transition_type {
+-	/* Do not change this order, */
+-	CCS_TRANSITION_CONTROL_NO_RESET,
+-	CCS_TRANSITION_CONTROL_RESET,
+-	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
+-	CCS_TRANSITION_CONTROL_INITIALIZE,
+-	CCS_TRANSITION_CONTROL_NO_KEEP,
+-	CCS_TRANSITION_CONTROL_KEEP,
+-	CCS_MAX_TRANSITION_TYPE
+-};
+-
+ /* Index numbers for type of numeric values. */
+ enum ccs_value_type {
+ 	CCS_VALUE_TYPE_INVALID,
+@@ -876,9 +840,11 @@
+ /* Common header for individual entries. */
+ struct ccs_acl_info {
+ 	struct list_head list;
++	struct list_head domain_list; /* Used by inverse mode. */
+ 	struct ccs_condition *cond; /* Maybe NULL. */
+ 	s8 is_deleted; /* true or false or CCS_GC_IN_PROGRESS */
+ 	u8 type; /* One of values in "enum ccs_acl_entry_type_index". */
++	bool is_enforce; /* Used by inverse mode. */
+ 	u16 perm;
+ } __packed;
+ 
+@@ -907,7 +873,7 @@
+ /* Structure for "path_group"/"number_group"/"address_group" directive. */
+ struct ccs_group {
+ 	struct ccs_shared_acl_head head;
+-	/* Name of group (without leading '@'). */
++	/* Name of group (without leading "\\="). */
+ 	const struct ccs_path_info *group_name;
+ 	/*
+ 	 * List of "struct ccs_path_group" or "struct ccs_number_group" or
+@@ -966,11 +932,6 @@
+ 	 * parent directory.
+ 	 */
+ 	struct ccs_mini_stat stat[CCS_MAX_PATH_STAT];
+-	/*
+-	 * Content of symbolic link to be created. NULL for operations other
+-	 * than symlink().
+-	 */
+-	struct ccs_path_info *symlink_target;
+ };
+ 
+ /* Structure for entries which follows "struct ccs_condition". */
+@@ -1001,8 +962,6 @@
+ 	u16 argc; /* Number of "struct ccs_argv". */
+ 	u16 envc; /* Number of "struct ccs_envp". */
+ 	u8 grant_log; /* One of values in "enum ccs_grant_log". */
+-	bool exec_transit; /* True if transit is for "file execute". */
+-	const struct ccs_path_info *transit; /* Maybe NULL. */
+ 	/*
+ 	 * struct ccs_condition_element condition[condc];
+ 	 * struct ccs_number_union values[numbers_count];
+@@ -1027,22 +986,13 @@
+ 	 * NULL if not dealing do_execve().
+ 	 */
+ 	struct ccs_execve *ee;
+-	/*
+-	 * For holding parameters.
+-	 * Pointers in this union are not NULL except path->matched_path.
+-	 */
++	/* For holding parameters. Pointers in this union are not NULL. */
+ 	union {
+ 		struct {
++			const struct ccs_path_info *program;
++		} execute;
++		struct {
+ 			const struct ccs_path_info *filename;
+-			/*
+-			 * For using wildcards at ccs_find_next_domain().
+-			 *
+-			 * The matched_acl cannot be used because it may refer
+-			 * a "struct ccs_path_acl" with ->is_group == true.
+-			 * We want to use exact "struct ccs_path_info" rather
+-			 * than "struct ccs_path_acl".
+-			 */
+-			const struct ccs_path_info *matched_path;
+ 			/* One of values in "enum ccs_path_acl_index". */
+ 			u8 operation;
+ 		} path;
+@@ -1099,9 +1049,9 @@
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+ 		struct {
+-			const char *dest_pattern;
+-			int sig;
+-		} signal;
++			const char *domainname;
++			unsigned long request;
++		} ptrace;
+ #endif
+ 		struct {
+ 			const struct ccs_path_info *type;
+@@ -1117,14 +1067,14 @@
+ #endif
+ 	} param;
+ 	/*
+-	 * For updating current->ccs_domain_info at ccs_update_task_domain().
+-	 * Initialized to NULL at ccs_init_request_info().
+ 	 * Matching "struct ccs_acl_info" is copied if access request was
+-	 * granted. Re-initialized to NULL at ccs_update_task_domain().
++	 * granted.
+ 	 */
+ 	struct ccs_acl_info *matched_acl;
+ 	u8 param_type; /* One of values in "enum ccs_acl_entry_type_index". */
+ 	bool granted; /* True if granted, false otherwise. */
++	/* True if rejected by inverse mode match, false otherwise. */
++	bool inversed;
+ 	/* True if current thread should not be carried sleep penalty. */
+ 	bool dont_sleep_on_enforce_error;
+ 	/*
+@@ -1138,16 +1088,12 @@
+ 	 * One of values between 0 and CCS_MAX_PROFILES - 1.
+ 	 */
+ 	u8 profile;
++	/* For holding operation mode used for this request. */
++	bool enforcing;
+ 	/*
+-	 * For holding operation mode used for this request.
+-	 * One of CCS_CONFIG_DISABLED, CCS_CONFIG_LEARNING,
+-	 * CCS_CONFIG_PERMISSIVE, CCS_CONFIG_ENFORCING.
+-	 */
+-	u8 mode;
+-	/*
+ 	 * For holding operation index used for this request.
+-	 * Used by ccs_init_request_info() / ccs_get_mode() /
+-	 * ccs_write_log(). One of values in "enum ccs_mac_index".
++	 * Used by ccs_write_log().
++	 * One of values in "enum ccs_mac_index".
+ 	 */
+ 	u8 type;
+ };
+@@ -1186,37 +1132,14 @@
+ 	const struct ccs_path_info *domainname;
+ 	/* Namespace for this domain. Never NULL. */
+ 	struct ccs_policy_namespace *ns;
++	/* Default domain transition. Never NULL. */
++	const struct ccs_path_info *default_transition;
+ 	u8 profile;        /* Profile number to use. */
+ 	u8 group;          /* Group number to use.   */
+-	bool is_deleted;   /* Delete flag.           */
+-	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
++	s8 is_deleted;     /* Delete flag.           */
++	struct ccs_condition *cond; /* Used by inverse mode. */
+ };
+ 
+-/*
+- * Structure for "reset_domain"/"no_reset_domain"/"initialize_domain"/
+- * "no_initialize_domain"/"keep_domain"/"no_keep_domain" keyword.
+- */
+-struct ccs_transition_control {
+-	struct ccs_acl_head head;
+-	u8 type; /* One of values in "enum ccs_transition_type" */
+-	bool is_last_name; /* True if the domainname is ccs_last_word(). */
+-	const struct ccs_path_info *domainname; /* Maybe NULL */
+-	const struct ccs_path_info *program;    /* Maybe NULL */
+-};
+-
+-/* Structure for "aggregator" keyword. */
+-struct ccs_aggregator {
+-	struct ccs_acl_head head;
+-	const struct ccs_path_info *original_name;
+-	const struct ccs_path_info *aggregated_name;
+-};
+-
+-/* Structure for "deny_autobind" keyword. */
+-struct ccs_reserved {
+-	struct ccs_acl_head head;
+-	struct ccs_number_union port;
+-};
+-
+ /* Structure for policy manager. */
+ struct ccs_manager {
+ 	struct ccs_acl_head head;
+@@ -1260,6 +1183,7 @@
+ struct ccs_handler_acl {
+ 	struct ccs_acl_info head;       /* type = CCS_TYPE_*_EXECUTE_HANDLER */
+ 	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
++	const struct ccs_path_info *transit; /* Maybe NULL. */
+ };
+ 
+ /*
+@@ -1272,10 +1196,17 @@
+ 	const struct ccs_path_info *domainname;
+ };
+ 
++/* Structure for "file execute" directive. */
++struct ccs_execute_acl {
++	struct ccs_acl_info head; /* type = CCS_TYPE_EXECUTE_ACL */
++	struct ccs_name_union program;
++	const struct ccs_path_info *transit; /* Maybe NULL. */
++};
++
+ /*
+- * Structure for "file execute", "file read", "file write", "file append",
+- * "file unlink", "file getattr", "file rmdir", "file truncate",
+- * "file symlink", "file chroot" and "file unmount" directive.
++ * Structure for "file read", "file write", "file append", "file unlink",
++ * "file getattr", "file rmdir", "file truncate", "file chroot" and
++ * "file unmount" directive.
+  */
+ struct ccs_path_acl {
+ 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_ACL */
+@@ -1283,7 +1214,8 @@
+ };
+ 
+ /*
+- * Structure for "file rename", "file link" and "file pivot_root" directive.
++ * Structure for "file rename", "file link", "file pivot_root" and
++ * "file symlink" directive.
+  */
+ struct ccs_path2_acl {
+ 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH2_ACL */
+@@ -1331,11 +1263,10 @@
+ 	u8 operation; /* One of values in "enum ccs_capability_acl_index". */
+ };
+ 
+-/* Structure for "ipc signal" directive. */
+-struct ccs_signal_acl {
+-	struct ccs_acl_info head; /* type = CCS_TYPE_SIGNAL_ACL */
+-	struct ccs_number_union sig;
+-	/* Pointer to destination pattern. */
++/* Structure for "ipc ptrace" directive. */
++struct ccs_ptrace_acl {
++	struct ccs_acl_info head; /* type = CCS_TYPE_PTRACE_ACL */
++	struct ccs_number_union request;
+ 	const struct ccs_path_info *domainname;
+ };
+ 
+@@ -1371,6 +1302,7 @@
+ 		struct ccs_acl_info acl_info;
+ 		struct ccs_handler_acl handler_acl;
+ 		struct ccs_task_acl task_acl;
++		struct ccs_execute_acl execute_acl;
+ 		struct ccs_path_acl path_acl;
+ 		struct ccs_path2_acl path2_acl;
+ 		struct ccs_path_number_acl path_number_acl;
+@@ -1378,19 +1310,18 @@
+ 		struct ccs_mount_acl mount_acl;
+ 		struct ccs_env_acl env_acl;
+ 		struct ccs_capability_acl capability_acl;
+-		struct ccs_signal_acl signal_acl;
++		struct ccs_ptrace_acl ptrace_acl;
+ 		struct ccs_inet_acl inet_acl;
+ 		struct ccs_unix_acl unix_acl;
+ 		/**/
+ 		struct ccs_acl_head acl_head;
+-		struct ccs_transition_control transition_control;
+-		struct ccs_aggregator aggregator;
+-		struct ccs_reserved reserved;
++		//struct ccs_transition_control transition_control;
+ 		struct ccs_manager manager;
+ 		struct ccs_path_group path_group;
+ 		struct ccs_number_group number_group;
+ 		struct ccs_address_group address_group;
+ 	} e;
++	struct ccs_acl_info *matched_entry; /* Used by inverse mode. */
+ };
+ 
+ /* Structure for reading/writing policy via /proc/ccs/ interfaces. */
+@@ -1422,6 +1353,7 @@
+ 	struct {
+ 		struct ccs_policy_namespace *ns;
+ 		struct ccs_domain_info *domain;
++		struct ccs_acl_info *acl; /* Used by inverse mode. */
+ 		size_t avail;
+ 		bool is_delete;
+ 	} w;
+@@ -1489,20 +1421,15 @@
+ bool ccs_memory_ok(const void *ptr, const unsigned int size);
+ char *ccs_encode(const char *str);
+ char *ccs_encode2(const char *str, int str_len);
+-char *ccs_realpath_from_path(struct path *path);
++char *ccs_realpath(struct path *path);
++char *ccs_realpath2(struct path *path, bool force_no_fsname);
+ const char *ccs_get_exe(void);
+ const struct ccs_path_info *ccs_get_name(const char *name);
+-int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
+-int ccs_print_ipv4(char *buffer, const unsigned int buffer_len, const u32 *ip);
+-int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
+-		   const struct in6_addr *ip);
+-int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
+-	__printf(2, 3);
++int ccs_audit_log(struct ccs_request_info *r);
++int ccs_check_acl(struct ccs_request_info *r);
+ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
+ 					  const bool transit);
+-u8 ccs_get_config(const u8 profile, const u8 index);
+ void *ccs_commit_ok(void *data, const unsigned int size);
+-void ccs_check_acl(struct ccs_request_info *r);
+ void ccs_del_acl(struct list_head *element);
+ void ccs_del_condition(struct list_head *element);
+ void ccs_fill_path_info(struct ccs_path_info *ptr);
+@@ -1510,25 +1437,20 @@
+ void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
+ void ccs_transition_failed(const char *domainname);
+ void ccs_warn_oom(const char *function);
+-void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+-	__printf(2, 3);
+ 
+ /* Variable definition for internal use. */
+ 
+ extern bool ccs_policy_loaded;
+-extern const char * const ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS];
+-extern const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
+-					   + CCS_MAX_MAC_CATEGORY_INDEX];
+-extern const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION];
+-extern const char * const ccs_proto_keyword[CCS_SOCK_MAX];
+-extern const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION];
+ extern const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX];
++extern const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION];
+ extern const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION];
+ extern const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION];
+ extern const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION];
+ extern struct ccs_domain_info ccs_kernel_domain;
++extern struct ccs_group ccs_group_any;
+ extern struct list_head ccs_condition_list;
+ extern struct list_head ccs_domain_list;
++extern struct list_head ccs_inversed_acl_list;
+ extern struct list_head ccs_name_list[CCS_MAX_HASH];
+ extern struct list_head ccs_namespace_list;
+ extern struct mutex ccs_policy_lock;
+@@ -1751,19 +1673,6 @@
+ 
+ #endif
+ 
+-/**
+- * ccs_get_mode - Get mode for specified functionality.
+- *
+- * @profile: Profile number.
+- * @index:   Functionality number.
+- *
+- * Returns mode.
+- */
+-static inline u8 ccs_get_mode(const u8 profile, const u8 index)
+-{
+-	return ccs_get_config(profile, index) & (CCS_CONFIG_MAX_MODE - 1);
+-}
+-
+ #if defined(CONFIG_SLOB)
+ 
+ /**
+Index: security/ccsecurity/policy_io.c
+===================================================================
+--- security/ccsecurity/policy_io.c	(revision 5665)
++++ security/ccsecurity/policy_io.c	(working copy)
+@@ -23,7 +23,9 @@
+ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
+ 	/* CONFIG::file group */
+ 	[CCS_MAC_FILE_EXECUTE]    = CCS_MAC_CATEGORY_FILE,
+-	[CCS_MAC_FILE_OPEN]       = CCS_MAC_CATEGORY_FILE,
++	[CCS_MAC_FILE_READ]       = CCS_MAC_CATEGORY_FILE,
++	[CCS_MAC_FILE_WRITE]      = CCS_MAC_CATEGORY_FILE,
++	[CCS_MAC_FILE_APPEND]     = CCS_MAC_CATEGORY_FILE,
+ 	[CCS_MAC_FILE_CREATE]     = CCS_MAC_CATEGORY_FILE,
+ 	[CCS_MAC_FILE_UNLINK]     = CCS_MAC_CATEGORY_FILE,
+ #ifdef CONFIG_CCSECURITY_FILE_GETATTR
+@@ -83,7 +85,7 @@
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+ 	/* CONFIG::ipc group */
+-	[CCS_MAC_SIGNAL]          = CCS_MAC_CATEGORY_IPC,
++	[CCS_MAC_PTRACE]          = CCS_MAC_CATEGORY_IPC,
+ #endif
+ #ifdef CONFIG_CCSECURITY_CAPABILITY
+ 	/* CONFIG::capability group */
+@@ -96,24 +98,17 @@
+ 	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = CCS_MAC_CATEGORY_CAPABILITY,
+ 	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = CCS_MAC_CATEGORY_CAPABILITY,
+ 	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = CCS_MAC_CATEGORY_CAPABILITY,
+-	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = CCS_MAC_CATEGORY_CAPABILITY,
+ #endif
+ };
+ 
+-/* String table for operation mode. */
+-static const char * const ccs_mode[CCS_CONFIG_MAX_MODE] = {
+-	[CCS_CONFIG_DISABLED]   = "disabled",
+-	[CCS_CONFIG_LEARNING]   = "learning",
+-	[CCS_CONFIG_PERMISSIVE] = "permissive",
+-	[CCS_CONFIG_ENFORCING]  = "enforcing"
+-};
+-
+ /* String table for /proc/ccs/profile interface. */
+-const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
+-				    + CCS_MAX_MAC_CATEGORY_INDEX] = {
++static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
++					   + CCS_MAX_MAC_CATEGORY_INDEX] = {
+ 	/* CONFIG::file group */
+ 	[CCS_MAC_FILE_EXECUTE]    = "execute",
+-	[CCS_MAC_FILE_OPEN]       = "open",
++	[CCS_MAC_FILE_READ]       = "read",
++	[CCS_MAC_FILE_WRITE]      = "write",
++	[CCS_MAC_FILE_APPEND]     = "append",
+ 	[CCS_MAC_FILE_CREATE]     = "create",
+ 	[CCS_MAC_FILE_UNLINK]     = "unlink",
+ #ifdef CONFIG_CCSECURITY_FILE_GETATTR
+@@ -173,7 +168,7 @@
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+ 	/* CONFIG::ipc group */
+-	[CCS_MAC_SIGNAL] = "signal",
++	[CCS_MAC_PTRACE] = "ptrace",
+ #endif
+ #ifdef CONFIG_CCSECURITY_CAPABILITY
+ 	/* CONFIG::capability group */
+@@ -186,7 +181,6 @@
+ 	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = "SYS_SETHOSTNAME",
+ 	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = "use_kernel_module",
+ 	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = "SYS_KEXEC_LOAD",
+-	[CCS_MAC_CAPABILITY_SYS_PTRACE]        = "SYS_PTRACE",
+ #endif
+ 	/* CONFIG group */
+ 	[CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_FILE]       = "file",
+@@ -204,26 +198,10 @@
+ #endif
+ };
+ 
+-/* String table for path operation. */
+-const char * const ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
+-	[CCS_TYPE_EXECUTE]    = "execute",
+-	[CCS_TYPE_READ]       = "read",
+-	[CCS_TYPE_WRITE]      = "write",
+-	[CCS_TYPE_APPEND]     = "append",
+-	[CCS_TYPE_UNLINK]     = "unlink",
+-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+-	[CCS_TYPE_GETATTR]    = "getattr",
+-#endif
+-	[CCS_TYPE_RMDIR]      = "rmdir",
+-	[CCS_TYPE_TRUNCATE]   = "truncate",
+-	[CCS_TYPE_SYMLINK]    = "symlink",
+-	[CCS_TYPE_CHROOT]     = "chroot",
+-	[CCS_TYPE_UMOUNT]     = "unmount",
+-};
+-
+ #ifdef CONFIG_CCSECURITY_NETWORK
++
+ /* String table for socket's operation. */
+-const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
++static const char * const ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
+ 	[CCS_NETWORK_BIND]    = "bind",
+ 	[CCS_NETWORK_LISTEN]  = "listen",
+ 	[CCS_NETWORK_CONNECT] = "connect",
+@@ -233,6 +211,17 @@
+ 	[CCS_NETWORK_RECV]    = "recv",
+ #endif
+ };
++
++/* String table for socket's protocols. */
++static const char * const ccs_proto_keyword[CCS_SOCK_MAX] = {
++	[SOCK_STREAM]    = "stream",
++	[SOCK_DGRAM]     = "dgram",
++	[SOCK_RAW]       = "raw",
++	[SOCK_SEQPACKET] = "seqpacket",
++	[0] = " ", /* Dummy for avoiding NULL pointer dereference. */
++	[4] = " ", /* Dummy for avoiding NULL pointer dereference. */
++};
++
+ #endif
+ 
+ /* String table for categories. */
+@@ -288,7 +277,6 @@
+ 	[CCS_TASK_TYPE]            = "task.type",
+ 	[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
+ 	[CCS_EXEC_REALPATH]        = "exec.realpath",
+-	[CCS_SYMLINK_TARGET]       = "symlink.target",
+ 	[CCS_PATH1_UID]            = "path1.uid",
+ 	[CCS_PATH1_GID]            = "path1.gid",
+ 	[CCS_PATH1_INO]            = "path1.ino",
+@@ -320,26 +308,9 @@
+ /* String table for PREFERENCE keyword. */
+ static const char * const ccs_pref_keywords[CCS_MAX_PREF] = {
+ 	[CCS_PREF_MAX_AUDIT_LOG]      = "max_audit_log",
+-	[CCS_PREF_MAX_LEARNING_ENTRY] = "max_learning_entry",
+ 	[CCS_PREF_ENFORCING_PENALTY]  = "enforcing_penalty",
+ };
+ 
+-/* String table for domain flags. */
+-const char * const ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
+-	[CCS_DIF_QUOTA_WARNED]      = "quota_exceeded\n",
+-	[CCS_DIF_TRANSITION_FAILED] = "transition_failed\n",
+-};
+-
+-/* String table for domain transition control keywords. */
+-static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
+-	[CCS_TRANSITION_CONTROL_NO_RESET]      = "no_reset_domain ",
+-	[CCS_TRANSITION_CONTROL_RESET]         = "reset_domain ",
+-	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
+-	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
+-	[CCS_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
+-	[CCS_TRANSITION_CONTROL_KEEP]          = "keep_domain ",
+-};
+-
+ /* String table for grouping keywords. */
+ static const char * const ccs_group_name[CCS_MAX_GROUP] = {
+ 	[CCS_PATH_GROUP]    = "path_group ",
+@@ -352,7 +323,6 @@
+ /* String table for /proc/ccs/stat interface. */
+ static const char * const ccs_policy_headers[CCS_MAX_POLICY_STAT] = {
+ 	[CCS_STAT_POLICY_UPDATES]    = "update:",
+-	[CCS_STAT_POLICY_LEARNING]   = "violation in learning mode:",
+ 	[CCS_STAT_POLICY_PERMISSIVE] = "violation in permissive mode:",
+ 	[CCS_STAT_POLICY_ENFORCING]  = "violation in enforcing mode:",
+ };
+@@ -389,33 +359,14 @@
+ 
+ /***** SECTION3: Prototype definition section *****/
+ 
+-int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...);
+-u8 ccs_get_config(const u8 profile, const u8 index);
+-void ccs_transition_failed(const char *domainname);
+-void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...);
++int ccs_audit_log(struct ccs_request_info *r);
+ 
+-static char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
+-			  va_list args);
+-static const char *ccs_yesno(const unsigned int value);
+-static int ccs_poll_log(struct file *file, poll_table *wait);
+-static void ccs_read_log(struct ccs_io_buffer *head);
+-static void ccs_write_log2(struct ccs_request_info *r, int len,
+-			   const char *fmt, va_list args);
+-static bool ccs_get_audit(const u8 profile, const u8 index,
+-			  const struct ccs_acl_info *matched_acl,
+-			  const bool is_granted);
+-static char *ccs_print_bprm(struct linux_binprm *bprm,
+-			    struct ccs_page_dump *dump);
+-static char *ccs_print_header(struct ccs_request_info *r);
+-static char *ccs_read_token(struct ccs_acl_param *param);
+-static void ccs_update_task_domain(struct ccs_request_info *r);
+-
++static bool ccs_get_audit(const struct ccs_request_info *r);
+ static bool ccs_correct_domain(const unsigned char *domainname);
+ static bool ccs_correct_path(const char *filename);
+ static bool ccs_correct_word(const char *string);
+ static bool ccs_correct_word2(const char *string, size_t len);
+ static bool ccs_domain_def(const unsigned char *buffer);
+-static bool ccs_domain_quota_ok(struct ccs_request_info *r);
+ static bool ccs_flush(struct ccs_io_buffer *head);
+ static bool ccs_has_more_namespace(struct ccs_io_buffer *head);
+ static bool ccs_manager(void);
+@@ -443,7 +394,14 @@
+ static bool ccs_set_lf(struct ccs_io_buffer *head);
+ static bool ccs_str_starts(char **src, const char *find);
+ static char *ccs_get_transit_preference(struct ccs_acl_param *param,
+-					struct ccs_condition *e);
++					struct ccs_execute_acl *e);
++static char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
++			  va_list args);
++static char *ccs_print_bprm(struct linux_binprm *bprm,
++			    struct ccs_page_dump *dump);
++static char *ccs_print_header(struct ccs_request_info *r);
++static char *ccs_read_token(struct ccs_acl_param *param);
++static const char *ccs_yesno(const unsigned int value);
+ static const struct ccs_path_info *ccs_get_domainname
+ (struct ccs_acl_param *param);
+ static const struct ccs_path_info *ccs_get_dqword(char *start);
+@@ -451,15 +409,19 @@
+ static int ccs_delete_domain(char *domainname);
+ static int ccs_open(struct inode *inode, struct file *file);
+ static int ccs_parse_policy(struct ccs_io_buffer *head, char *line);
++static int ccs_poll_log(struct file *file, poll_table *wait);
+ static int ccs_poll_query(struct file *file, poll_table *wait);
+ static int ccs_release(struct inode *inode, struct file *file);
+ static int ccs_set_mode(char *name, const char *value,
+ 			struct ccs_profile *profile);
+-static int ccs_truncate(char *str);
++static int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
++	__printf(2, 3);
+ static int ccs_update_domain(const int size, struct ccs_acl_param *param);
++static int ccs_update_inverse_list(struct ccs_acl_info *new_entry,
++				   const int size,
++				   struct ccs_acl_param *param);
+ static int ccs_update_manager_entry(const char *manager, const bool is_delete);
+ static int ccs_update_policy(const int size, struct ccs_acl_param *param);
+-static int ccs_write_aggregator(struct ccs_acl_param *param);
+ static int ccs_write_answer(struct ccs_io_buffer *head);
+ static int ccs_write_domain(struct ccs_io_buffer *head);
+ static int ccs_write_domain2(struct ccs_policy_namespace *ns,
+@@ -468,13 +430,13 @@
+ static int ccs_write_exception(struct ccs_io_buffer *head);
+ static int ccs_write_file(struct ccs_acl_param *param);
+ static int ccs_write_group(struct ccs_acl_param *param, const u8 type);
++static int ccs_write_inverse_policy(struct ccs_io_buffer *head);
+ static int ccs_write_manager(struct ccs_io_buffer *head);
+ static int ccs_write_pid(struct ccs_io_buffer *head);
+ static int ccs_write_profile(struct ccs_io_buffer *head);
+ static int ccs_write_stat(struct ccs_io_buffer *head);
+ static int ccs_write_task(struct ccs_acl_param *param);
+-static int ccs_write_transition_control(struct ccs_acl_param *param,
+-					const u8 type);
++static int ccs_write_transition_control(struct ccs_acl_param *param);
+ static s8 ccs_find_yesno(const char *string, const char *find);
+ static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
+ 			loff_t *ppos);
+@@ -496,6 +458,7 @@
+ 					      const unsigned int profile);
+ static struct ccs_profile *ccs_profile(const u8 profile);
+ static u8 ccs_condition_type(const char *word);
++static u8 ccs_get_config(const u8 profile, const u8 index);
+ static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
+ static u8 ccs_parse_ulong(unsigned long *result, char **str);
+ static unsigned int ccs_poll(struct file *file, poll_table *wait);
+@@ -505,7 +468,6 @@
+ static void __init ccs_load_builtin_policy(void);
+ static void __init ccs_policy_io_init(void);
+ static void __init ccs_proc_init(void);
+-static void ccs_add_entry(char *header);
+ static void ccs_addprintf(char *buffer, int len, const char *fmt, ...)
+ 	__printf(3, 4);
+ static void ccs_addprintf(char *buffer, int len, const char *fmt, ...);
+@@ -527,6 +489,8 @@
+ 					   const struct ccs_number_union *ptr);
+ static void ccs_read_domain(struct ccs_io_buffer *head);
+ static void ccs_read_exception(struct ccs_io_buffer *head);
++static void ccs_read_inverse_policy(struct ccs_io_buffer *head);
++static void ccs_read_log(struct ccs_io_buffer *head);
+ static void ccs_read_manager(struct ccs_io_buffer *head);
+ static void ccs_read_pid(struct ccs_io_buffer *head);
+ static void ccs_read_profile(struct ccs_io_buffer *head);
+@@ -541,15 +505,19 @@
+ static void ccs_set_uint(unsigned int *i, const char *string,
+ 			 const char *find);
+ static void ccs_update_stat(const u8 index);
++static void ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
++	__printf(2, 3);
++static void ccs_write_log2(struct ccs_request_info *r, int len,
++			   const char *fmt, va_list args);
+ 
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-static bool __ccs_lport_reserved(const u16 port);
+-static int ccs_write_reserved_port(struct ccs_acl_param *param);
+-#endif
+ 
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
+ 				   struct ccs_ipaddr_union *ptr);
++static int ccs_print_ipv4(char *buffer, const unsigned int buffer_len,
++			  const u32 *ip);
++static int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
++			  const struct in6_addr *ip);
+ static int ccs_write_inet_network(struct ccs_acl_param *param);
+ static int ccs_write_unix_network(struct ccs_acl_param *param);
+ static void ccs_print_ip(char *buf, const unsigned int size,
+@@ -1104,7 +1072,8 @@
+  *
+  * Returns written length.
+  */
+-int ccs_print_ipv4(char *buffer, const unsigned int buffer_len, const u32 *ip)
++static int ccs_print_ipv4(char *buffer, const unsigned int buffer_len,
++			  const u32 *ip)
+ {
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
+ 	return snprintf(buffer, buffer_len, "%pI4", ip);
+@@ -1124,8 +1093,8 @@
+  *
+  * Returns written length.
+  */
+-int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
+-		   const struct in6_addr *ip)
++static int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
++			  const struct in6_addr *ip)
+ {
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
+ 	return snprintf(buffer, buffer_len, "%pI6c", ip);
+@@ -1156,15 +1125,13 @@
+ 
+ /* Initial namespace.*/
+ static struct ccs_policy_namespace ccs_kernel_namespace;
++static struct ccs_path_info ccs_kernel_transition;
+ 
++struct ccs_group ccs_group_any;
++
+ /* List of "struct ccs_condition". */
+ LIST_HEAD(ccs_condition_list);
+ 
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-/* Bitmap for reserved local port numbers.*/
+-static u8 ccs_reserved_port_map[8192];
+-#endif
+-
+ /* Wait queue for kernel -> userspace notification. */
+ static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
+ /* Wait queue for userspace -> kernel notification. */
+@@ -1416,6 +1383,8 @@
+ 	struct list_head *list;
+ 	const char *group_name = ccs_read_token(param);
+ 	bool found = false;
++	if (!strcmp(group_name, "any"))
++		return &ccs_group_any;
+ 	if (!ccs_correct_word(group_name) || idx >= CCS_MAX_GROUP)
+ 		return NULL;
+ 	e.group_name = ccs_get_name(group_name);
+@@ -1460,8 +1429,7 @@
+ 				 struct ccs_name_union *ptr)
+ {
+ 	char *filename;
+-	if (param->data[0] == '@') {
+-		param->data++;
++	if (ccs_str_starts(&param->data, "\\=")) {
+ 		ptr->group = ccs_get_group(param, CCS_PATH_GROUP);
+ 		return ptr->group != NULL;
+ 	}
+@@ -1527,8 +1495,7 @@
+ 	u8 type;
+ 	unsigned long v;
+ 	memset(ptr, 0, sizeof(*ptr));
+-	if (param->data[0] == '@') {
+-		param->data++;
++	if (ccs_str_starts(&param->data, "\\=")) {
+ 		ptr->group = ccs_get_group(param, CCS_NUMBER_GROUP);
+ 		return ptr->group != NULL;
+ 	}
+@@ -1624,7 +1591,7 @@
+ 					struct ccs_name_union *ptr)
+ {
+ 	char *filename = param->data;
+-	if (*filename == '@')
++	if (!strncmp(filename, "\\=", 2))
+ 		return ccs_parse_name_union(param, ptr);
+ 	ptr->filename = ccs_get_dqword(filename);
+ 	return ptr->filename != NULL;
+@@ -1702,8 +1669,7 @@
+ 		a->names_count == b->names_count &&
+ 		a->argc == b->argc && a->envc == b->envc &&
+ 		a->grant_log == b->grant_log &&
+-		a->exec_transit == b->exec_transit && a->transit == b->transit
+-		&& !memcmp(a + 1, b + 1, a->size - sizeof(*a));
++		!memcmp(a + 1, b + 1, a->size - sizeof(*a));
+ }
+ 
+ /**
+@@ -1896,7 +1862,7 @@
+  * Returns the condition string part.
+  */
+ static char *ccs_get_transit_preference(struct ccs_acl_param *param,
+-					struct ccs_condition *e)
++					struct ccs_execute_acl *e)
+ {
+ 	char * const pos = param->data;
+ 	bool flag;
+@@ -1918,15 +1884,9 @@
+ 		return pos;
+ 	e->transit = ccs_get_name(ccs_read_token(param));
+ done:
+-	if (e->transit) {
+-		e->exec_transit = true;
++	if (e->transit)
+ 		return param->data;
+-	}
+-	/*
+-	 * Return a bad read-only condition string that will let
+-	 * ccs_get_condition() return NULL.
+-	 */
+-	return "/";
++	return NULL;
+ }
+ 
+ /**
+@@ -1945,7 +1905,7 @@
+ 	struct ccs_argv *argv = NULL;
+ 	struct ccs_envp *envp = NULL;
+ 	struct ccs_condition e = { };
+-	char * const start_of_string = ccs_get_transit_preference(param, &e);
++	char * const start_of_string = param->data;
+ 	char * const end_of_string = start_of_string + strlen(start_of_string);
+ 	char *pos;
+ rerun:
+@@ -2002,18 +1962,6 @@
+ 			}
+ 			continue;
+ 		}
+-		if (!strcmp(left_word, "auto_domain_transition")) {
+-			if (entry) {
+-				if (is_not || entry->transit)
+-					goto out;
+-				entry->transit = ccs_get_dqword(right_word);
+-				if (!entry->transit ||
+-				    (entry->transit->name[0] != '/' &&
+-				     !ccs_domain_def(entry->transit->name)))
+-					goto out;
+-			}
+-			continue;
+-		}
+ 		if (!strncmp(left_word, "exec.argv[", 10)) {
+ 			if (!argv) {
+ 				e.argc++;
+@@ -2054,7 +2002,7 @@
+ 				e.numbers_count--;
+ 				left = CCS_NUMBER_UNION;
+ 				param->data = left_word;
+-				if (*left_word == '@' ||
++				if (ccs_str_starts(&param->data, "\\=") ||
+ 				    !ccs_parse_number_union(param,
+ 							    numbers_p++))
+ 					goto out;
+@@ -2064,7 +2012,7 @@
+ 			e.condc++;
+ 		else
+ 			e.condc--;
+-		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
++		if (left == CCS_EXEC_REALPATH) {
+ 			if (!names_p) {
+ 				e.names_count++;
+ 			} else {
+@@ -2120,9 +2068,8 @@
+ 		+ e.envc * sizeof(struct ccs_envp);
+ 	entry = kzalloc(e.size, CCS_GFP_FLAGS);
+ 	if (!entry)
+-		goto out2;
++		return NULL;
+ 	*entry = e;
+-	e.transit = NULL;
+ 	condp = (struct ccs_condition_element *) (entry + 1);
+ 	numbers_p = (struct ccs_number_union *) (condp + e.condc);
+ 	names_p = (struct ccs_name_union *) (numbers_p + e.numbers_count);
+@@ -2149,8 +2096,6 @@
+ 		ccs_del_condition(&entry->head.list);
+ 		kfree(entry);
+ 	}
+-out2:
+-	ccs_put_name(e.transit);
+ 	return NULL;
+ }
+ 
+@@ -2373,14 +2318,12 @@
+ 	ptr = ns->profile_ptr[profile];
+ 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
+ 		ptr = entry;
+-		ptr->default_config = CCS_CONFIG_DISABLED |
++		ptr->default_config =
+ 			CCS_CONFIG_WANT_GRANT_LOG | CCS_CONFIG_WANT_REJECT_LOG;
+ 		memset(ptr->config, CCS_CONFIG_USE_DEFAULT,
+ 		       sizeof(ptr->config));
+ 		ptr->pref[CCS_PREF_MAX_AUDIT_LOG] =
+ 			CONFIG_CCSECURITY_MAX_AUDIT_LOG;
+-		ptr->pref[CCS_PREF_MAX_LEARNING_ENTRY] =
+-			CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY;
+ 		mb(); /* Avoid out-of-order execution. */
+ 		ns->profile_ptr[profile] = ptr;
+ 		entry = NULL;
+@@ -2443,7 +2386,6 @@
+ 	return ptr;
+ }
+ 
+-
+ /**
+  * ccs_get_config - Get config for specified profile's specified functionality.
+  *
+@@ -2457,12 +2399,12 @@
+  * CONFIG::category. If CONFIG::category is set to use default, then use
+  * CONFIG. CONFIG cannot be set to use default.
+  */
+-u8 ccs_get_config(const u8 profile, const u8 index)
++static u8 ccs_get_config(const u8 profile, const u8 index)
+ {
+ 	u8 config;
+ 	const struct ccs_profile *p;
+ 	if (!ccs_policy_loaded)
+-		return CCS_CONFIG_DISABLED;
++		return 0;
+ 	p = ccs_profile(profile);
+ 	config = p->config[index];
+ 	if (config == CCS_CONFIG_USE_DEFAULT)
+@@ -2576,14 +2518,18 @@
+ 	if (strstr(value, "use_default")) {
+ 		config = CCS_CONFIG_USE_DEFAULT;
+ 	} else {
+-		u8 mode;
+-		for (mode = 0; mode < CCS_CONFIG_MAX_MODE; mode++)
+-			if (strstr(value, ccs_mode[mode]))
+-				/*
+-				 * Update lower 3 bits in order to distinguish
+-				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
+-				 */
+-				config = (config & ~7) | mode;
++		/*
++		 * Update lower 2 bits in order to distinguish
++		 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
++		 */
++		switch (ccs_find_yesno(value, "enforcing")) {
++		case 1:
++			config = (config & ~3) | CCS_CONFIG_ENFORCING;
++			break;
++		case 0:
++			config &= (config & ~3) & ~ CCS_CONFIG_ENFORCING;
++			break;
++		}
+ 		if (config != CCS_CONFIG_USE_DEFAULT) {
+ 			switch (ccs_find_yesno(value, "grant_log")) {
+ 			case 1:
+@@ -2671,8 +2617,8 @@
+  */
+ static void ccs_print_config(struct ccs_io_buffer *head, const u8 config)
+ {
+-	ccs_io_printf(head, "={ mode=%s grant_log=%s reject_log=%s }\n",
+-		      ccs_mode[config & 3],
++	ccs_io_printf(head, "={ enforcing=%s grant_log=%s reject_log=%s }\n",
++		      ccs_yesno(config & 1),
+ 		      ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG),
+ 		      ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG));
+ }
+@@ -3023,6 +2969,45 @@
+ }
+ 
+ /**
++ * ccs_update_inverse_list - Update an entry for domain policy.
++ *
++ * @new_entry: Pointer to "struct ccs_acl_info".
++ * @size:      Size of @new_entry in bytes.
++ * @param:     Pointer to "struct ccs_acl_param".
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds ccs_read_lock().
++ */
++static int ccs_update_inverse_list(struct ccs_acl_info *new_entry,
++				   const int size, struct ccs_acl_param *param)
++{
++	const bool is_delete = param->is_delete;
++	struct ccs_acl_info *entry;
++	list_for_each_entry_srcu(entry, &ccs_inversed_acl_list, list,
++				 &ccs_ss) {
++		if (entry->is_deleted == CCS_GC_IN_PROGRESS ||
++		    entry->perm != new_entry->perm ||
++		    entry->type != new_entry->type ||
++		    entry->cond != new_entry->cond ||
++		    memcmp(entry + 1, new_entry + 1, size - sizeof(*entry)))
++			continue;
++		entry->is_deleted = is_delete;
++		param->matched_entry = entry;
++		return 0;
++	}
++	if (is_delete)
++		return -ENOENT;
++	entry = ccs_commit_ok(new_entry, size);
++	if (!entry)
++		return -ENOMEM;
++	INIT_LIST_HEAD(&entry->domain_list);
++	list_add_tail_rcu(&entry->list, &ccs_inversed_acl_list);
++	param->matched_entry = entry;
++	return 0;
++}
++
++/**
+  * ccs_update_domain - Update an entry for domain policy.
+  *
+  * @size:  Size of new entry in bytes.
+@@ -3044,23 +3029,13 @@
+ 		new_entry->cond = ccs_get_condition(param);
+ 		if (!new_entry->cond)
+ 			return -EINVAL;
+-		/*
+-		 * Domain transition preference is allowed for only
+-		 * "file execute"/"task auto_execute_handler"/
+-		 * "task denied_auto_execute_handler" entries.
+-		 */
+-		if (new_entry->cond->exec_transit &&
+-		    !(new_entry->type == CCS_TYPE_PATH_ACL &&
+-		      new_entry->perm == 1 << CCS_TYPE_EXECUTE)
+-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+-		    && new_entry->type != CCS_TYPE_AUTO_EXECUTE_HANDLER &&
+-		    new_entry->type != CCS_TYPE_DENIED_EXECUTE_HANDLER
+-#endif
+-		    )
+-			return -EINVAL;
+ 	}
+ 	if (mutex_lock_interruptible(&ccs_policy_lock))
+ 		return -ENOMEM;
++	if (!list) {
++		error = ccs_update_inverse_list(new_entry, size, param);
++		goto unlock;
++	}
+ 	list_for_each_entry_srcu(entry, list, list, &ccs_ss) {
+ 		if (entry->is_deleted == CCS_GC_IN_PROGRESS)
+ 			continue;
+@@ -3083,6 +3058,7 @@
+ 			error = 0;
+ 		}
+ 	}
++unlock:
+ 	mutex_unlock(&ccs_policy_lock);
+ 	return error;
+ }
+@@ -3189,8 +3165,7 @@
+ 			e->head.perm |= 1 << type;
+ 	if (!e->head.perm)
+ 		return -EINVAL;
+-	if (param->data[0] == '@') {
+-		param->data++;
++	if (ccs_str_starts(&param->data, "\\=")) {
+ 		e->address.group = ccs_get_group(param, CCS_ADDRESS_GROUP);
+ 		if (!e->address.group)
+ 			return -ENOMEM;
+@@ -3238,6 +3213,28 @@
+ #endif
+ 
+ /**
++ * ccs_update_execute_acl - Update execute entry.
++ *
++ * @param: Pointer to "struct ccs_acl_param".
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds ccs_read_lock().
++ */
++static int ccs_update_execute_acl(struct ccs_acl_param *param)
++{
++	struct ccs_execute_acl *e = &param->e.execute_acl;
++	e->head.type = CCS_TYPE_EXECUTE_ACL;
++	e->head.perm = 1;
++	if (!ccs_parse_name_union(param, &e->program))
++		return -EINVAL;
++	param->data = ccs_get_transit_preference(param, e);
++	if (!param->data)
++		return -EINVAL;
++	return ccs_update_domain(sizeof(*e), param);
++}
++	
++/**
+  * ccs_write_file - Update file related list.
+  *
+  * @param: Pointer to "struct ccs_acl_param".
+@@ -3251,8 +3248,10 @@
+ 	u16 perm = 0;
+ 	u8 type;
+ 	const char *operation = ccs_read_token(param);
++	if (ccs_permstr(operation, ccs_mac_keywords[CCS_MAC_FILE_EXECUTE]))
++		return ccs_update_execute_acl(param);
+ 	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
+-		if (ccs_permstr(operation, ccs_path_keyword[type]))
++		if (ccs_permstr(operation, ccs_mac_keywords[ccs_p2mac[type]]))
+ 			perm |= 1 << type;
+ 	if (perm) {
+ 		struct ccs_path_acl *e = &param->e.path_acl;
+@@ -3344,7 +3343,7 @@
+ #ifdef CONFIG_CCSECURITY_IPC
+ 
+ /**
+- * ccs_write_ipc - Update "struct ccs_signal_acl" list.
++ * ccs_write_ipc - Update "struct ccs_ptrace_acl" list.
+  *
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+@@ -3352,9 +3351,9 @@
+  */
+ static int ccs_write_ipc(struct ccs_acl_param *param)
+ {
+-	struct ccs_signal_acl *e = &param->e.signal_acl;
+-	e->head.type = CCS_TYPE_SIGNAL_ACL;
+-	if (!ccs_parse_number_union(param, &e->sig))
++	struct ccs_ptrace_acl *e = &param->e.ptrace_acl;
++	e->head.type = CCS_TYPE_PTRACE_ACL;
++	if (!ccs_parse_number_union(param, &e->request))
+ 		return -EINVAL;
+ 	e->domainname = ccs_get_domainname(param);
+ 	if (!e->domainname)
+@@ -3430,7 +3429,7 @@
+ 		{ "capability ", ccs_write_capability },
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-		{ "ipc signal ", ccs_write_ipc },
++		{ "ipc ptrace ", ccs_write_ipc },
+ #endif
+ 		{ "task ", ccs_write_task },
+ 	};
+@@ -3523,11 +3522,24 @@
+ 			domain->group = (u8) profile;
+ 		return 0;
+ 	}
+-	for (profile = 0; profile < CCS_MAX_DOMAIN_INFO_FLAGS; profile++) {
+-		const char *cp = ccs_dif[profile];
+-		if (strncmp(data, cp, strlen(cp) - 1))
+-			continue;
+-		domain->flags[profile] = !is_delete;
++	if (ccs_str_starts(&data, "default_transition ")) {
++		static DEFINE_SPINLOCK(lock);
++		const struct ccs_path_info *new_transition = NULL;
++		const struct ccs_path_info *old_transition;
++		if (is_delete)
++			return 0;
++		if (ccs_correct_domain(data) || ccs_correct_path(data) ||
++		    !strcmp(data, "keep") || !strcmp(data, "initialize") ||
++		    !strcmp(data, "reset") || !strcmp(data, "child") ||
++		    !strcmp(data, "parent"))
++			new_transition = ccs_get_name(data);
++		if (!new_transition)
++			return -EINVAL;
++		spin_lock(&lock);
++		old_transition = domain->default_transition;
++		domain->default_transition = new_transition;
++		spin_unlock(&lock);
++		ccs_put_name(old_transition);
+ 		return 0;
+ 	}
+ 	return ccs_write_domain2(ns, &domain->acl_info_list, data, is_delete);
+@@ -3546,7 +3558,7 @@
+ {
+ 	ccs_set_space(head);
+ 	if (ptr->group) {
+-		ccs_set_string(head, "@");
++		ccs_set_string(head, "\\=");
+ 		ccs_set_string(head, ptr->group->group_name->name);
+ 	} else {
+ 		ccs_set_string(head, ptr->filename->name);
+@@ -3565,7 +3577,7 @@
+ 					const struct ccs_name_union *ptr)
+ {
+ 	if (ptr->group) {
+-		ccs_set_string(head, "@");
++		ccs_set_string(head, "\\=");
+ 		ccs_set_string(head, ptr->group->group_name->name);
+ 	} else {
+ 		ccs_set_string(head, "\"");
+@@ -3586,7 +3598,7 @@
+ 					   const struct ccs_number_union *ptr)
+ {
+ 	if (ptr->group) {
+-		ccs_set_string(head, "@");
++		ccs_set_string(head, "\\=");
+ 		ccs_set_string(head, ptr->group->group_name->name);
+ 	} else {
+ 		int i;
+@@ -3651,10 +3663,6 @@
+ 	case 0:
+ 		head->r.cond_index = 0;
+ 		head->r.cond_step++;
+-		if (cond->transit && cond->exec_transit) {
+-			ccs_set_space(head);
+-			ccs_set_string(head, cond->transit->name);
+-		}
+ 		/* fall through */
+ 	case 1:
+ 		{
+@@ -3768,12 +3776,6 @@
+ 			ccs_io_printf(head, " grant_log=%s",
+ 				      ccs_yesno(cond->grant_log ==
+ 						CCS_GRANTLOG_YES));
+-		if (cond->transit && !cond->exec_transit) {
+-			const char *name = cond->transit->name;
+-			ccs_set_string(head, " auto_domain_transition=\"");
+-			ccs_set_string(head, name);
+-			ccs_set_string(head, "\"");
+-		}
+ 		ccs_set_lf(head);
+ 		return true;
+ 	}
+@@ -3790,9 +3792,11 @@
+  */
+ static void ccs_set_group(struct ccs_io_buffer *head, const char *category)
+ {
+-	if (head->type == CCS_EXCEPTIONPOLICY) {
++	if (head->type == CCS_EXCEPTION_POLICY) {
+ 		ccs_print_namespace(head);
+ 		ccs_io_printf(head, "acl_group %u ", head->r.acl_group_index);
++	} else if (head->type == CCS_INVERSE_POLICY) {
++		ccs_set_string(head, "allow ");
+ 	}
+ 	ccs_set_string(head, category);
+ }
+@@ -3809,7 +3813,6 @@
+ 			    const struct ccs_acl_info *acl)
+ {
+ 	const u8 acl_type = acl->type;
+-	const bool may_trigger_transition = acl->cond && acl->cond->transit;
+ 	bool first = true;
+ 	u8 bit;
+ 	if (head->r.print_cond_part)
+@@ -3818,26 +3821,16 @@
+ 		return true;
+ 	if (!ccs_flush(head))
+ 		return false;
+-	else if (acl_type == CCS_TYPE_PATH_ACL) {
+-		struct ccs_path_acl *ptr
++	else if (acl_type == CCS_TYPE_EXECUTE_ACL) {
++		struct ccs_execute_acl *ptr
+ 			= container_of(acl, typeof(*ptr), head);
+-		for (bit = 0; bit < CCS_MAX_PATH_OPERATION; bit++) {
+-			if (!(acl->perm & (1 << bit)))
+-				continue;
+-			if (head->r.print_transition_related_only &&
+-			    bit != CCS_TYPE_EXECUTE && !may_trigger_transition)
+-				continue;
+-			if (first) {
+-				ccs_set_group(head, "file ");
+-				first = false;
+-			} else {
+-				ccs_set_slash(head);
+-			}
+-			ccs_set_string(head, ccs_path_keyword[bit]);
++		ccs_set_group(head, "file ");
++		ccs_set_string(head, "execute");
++		ccs_print_name_union(head, &ptr->program);
++		if (ptr->transit) {
++			ccs_set_space(head);
++			ccs_set_string(head, ptr->transit->name);
+ 		}
+-		if (first)
+-			return true;
+-		ccs_print_name_union(head, &ptr->name);
+ #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+ 	} else if (acl_type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
+ 		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
+@@ -3848,6 +3841,10 @@
+ 			       ? "auto_execute_handler " :
+ 			       "denied_execute_handler ");
+ 		ccs_set_string(head, ptr->handler->name);
++		if (ptr->transit) {
++			ccs_set_space(head);
++			ccs_set_string(head, ptr->transit->name);
++		}
+ #endif
+ #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+ 	} else if (acl_type == CCS_TYPE_AUTO_TASK_ACL ||
+@@ -3860,9 +3857,25 @@
+ 			       "manual_domain_transition ");
+ 		ccs_set_string(head, ptr->domainname->name);
+ #endif
+-	} else if (head->r.print_transition_related_only &&
+-		   !may_trigger_transition) {
++	} else if (head->r.print_transition_related_only) {
+ 		return true;
++	} else if (acl_type == CCS_TYPE_PATH_ACL) {
++		struct ccs_path_acl *ptr
++			= container_of(acl, typeof(*ptr), head);
++		for (bit = 0; bit < CCS_MAX_PATH_OPERATION; bit++) {
++			if (!(acl->perm & (1 << bit)))
++				continue;
++			if (first) {
++				ccs_set_group(head, "file ");
++				first = false;
++			} else {
++				ccs_set_slash(head);
++			}
++			ccs_set_string(head, ccs_mac_keywords[ccs_p2mac[bit]]);
++		}
++		if (first)
++			return true;
++		ccs_print_name_union(head, &ptr->name);
+ 	} else if (acl_type == CCS_TYPE_MKDEV_ACL) {
+ 		struct ccs_mkdev_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+@@ -3959,7 +3972,7 @@
+ 			return true;
+ 		ccs_set_space(head);
+ 		if (ptr->address.group) {
+-			ccs_set_string(head, "@");
++			ccs_set_string(head, "\\=");
+ 			ccs_set_string(head,
+ 				       ptr->address.group->group_name->name);
+ 		} else {
+@@ -3990,11 +4003,11 @@
+ 		ccs_print_name_union(head, &ptr->name);
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
+-		struct ccs_signal_acl *ptr =
++	} else if (acl_type == CCS_TYPE_PTRACE_ACL) {
++		struct ccs_ptrace_acl *ptr =
+ 			container_of(acl, typeof(*ptr), head);
+-		ccs_set_group(head, "ipc signal ");
+-		ccs_print_number_union_nospace(head, &ptr->sig);
++		ccs_set_group(head, "ipc ptrace ");
++		ccs_print_number_union_nospace(head, &ptr->request);
+ 		ccs_set_space(head);
+ 		ccs_set_string(head, ptr->domainname->name);
+ #endif
+@@ -4062,7 +4075,6 @@
+ 		struct ccs_domain_info *domain =
+ 			list_entry(head->r.domain, typeof(*domain), list);
+ 		switch (head->r.step) {
+-			u8 i;
+ 		case 0:
+ 			if (domain->is_deleted &&
+ 			    !head->r.print_this_domain_only)
+@@ -4073,11 +4085,11 @@
+ 			ccs_io_printf(head, "use_profile %u\n",
+ 				      domain->profile);
+ 			ccs_io_printf(head, "use_group %u\n", domain->group);
+-			for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
+-				if (domain->flags[i])
+-					ccs_set_string(head, ccs_dif[i]);
+-			head->r.step++;
++			ccs_set_string(head, "default_transition ");
++			ccs_set_string(head, domain->default_transition->name);
+ 			ccs_set_lf(head);
++			ccs_set_lf(head);
++			head->r.step++;
+ 			/* fall through */
+ 		case 1:
+ 			if (!ccs_read_domain2(head, &domain->acl_info_list))
+@@ -4182,7 +4194,7 @@
+ {
+ 	struct ccs_group *group = ccs_get_group(param, type);
+ 	int error = -EINVAL;
+-	if (!group)
++	if (!group || group == &ccs_group_any)
+ 		return -ENOMEM;
+ 	param->list = &group->member_list;
+ 	if (type == CCS_PATH_GROUP) {
+@@ -4196,14 +4208,14 @@
+ 		ccs_put_name(e->member_name);
+ 	} else if (type == CCS_NUMBER_GROUP) {
+ 		struct ccs_number_group *e = &param->e.number_group;
+-		if (param->data[0] == '@' ||
++		if (ccs_str_starts(&param->data, "\\=") ||
+ 		    !ccs_parse_number_union(param, &e->number))
+ 			goto out;
+ 		error = ccs_update_policy(sizeof(*e), param);
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 	} else {
+ 		struct ccs_address_group *e = &param->e.address_group;
+-		if (param->data[0] == '@' ||
++		if (ccs_str_starts(&param->data, "\\=") ||
+ 		    !ccs_parse_ipaddr_union(param, &e->address))
+ 			goto out;
+ 		error = ccs_update_policy(sizeof(*e), param);
+@@ -4214,145 +4226,130 @@
+ 	return error;
+ }
+ 
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+ /**
+- * ccs_lport_reserved - Check whether local port is reserved or not.
++ * ccs_write_transition_control - Write default domain transition rules.
+  *
+- * @port: Port number.
+- *
+- * Returns true if local port is reserved, false otherwise.
+- */
+-static bool __ccs_lport_reserved(const u16 port)
+-{
+-	return ccs_reserved_port_map[port >> 3] & (1 << (port & 7))
+-		? true : false;
+-}
+-
+-/**
+- * ccs_write_reserved_port - Update "struct ccs_reserved" list.
+- *
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
+  */
+-static int ccs_write_reserved_port(struct ccs_acl_param *param)
++static int ccs_write_transition_control(struct ccs_acl_param *param)
+ {
+-	struct ccs_reserved *e = &param->e.reserved;
+-	struct ccs_policy_namespace *ns = param->ns;
+-	int error;
+-	u8 *tmp;
+-	if (param->data[0] == '@' || !ccs_parse_number_union(param, &e->port) ||
+-	    e->port.values[1] > 65535 || param->data[0])
+-		return -EINVAL;
+-	param->list = &ns->policy_list[CCS_ID_RESERVEDPORT];
+-	error = ccs_update_policy(sizeof(*e), param);
+-	if (error)
+-		return error;
+-	tmp = kzalloc(sizeof(ccs_reserved_port_map), CCS_GFP_FLAGS);
+-	if (!tmp)
+-		return -ENOMEM;
+-	list_for_each_entry_srcu(ns, &ccs_namespace_list, namespace_list,
+-				 &ccs_ss) {
+-		struct ccs_reserved *ptr;
+-		struct list_head *list = &ns->policy_list[CCS_ID_RESERVEDPORT];
+-		list_for_each_entry_srcu(ptr, list, head.list, &ccs_ss) {
+-			unsigned int port;
+-			if (ptr->head.is_deleted)
+-				continue;
+-			for (port = ptr->port.values[0];
+-			     port <= ptr->port.values[1]; port++)
+-				tmp[port >> 3] |= 1 << (port & 7);
+-		}
+-	}
+-	memmove(ccs_reserved_port_map, tmp, sizeof(ccs_reserved_port_map));
+-	kfree(tmp);
+-	/*
+-	 * Since this feature is no-op by default, we don't need to register
+-	 * this callback hook unless the first entry is added.
+-	 */
+-	ccsecurity_ops.lport_reserved = __ccs_lport_reserved;
+-	return 0;
++	param->list = &param->ns->policy_list[CCS_ID_TRANSITION_CONTROL];
++	return ccs_update_execute_acl(param);
+ }
+-#endif
+ 
+ /**
+- * ccs_write_aggregator - Write "struct ccs_aggregator" list.
++ * ccs_update_domain_in_acl - Update "struct ccs_domain_info" in "struct ccs_acl_info".
+  *
++ * @acl:   Pointer to "struct ccs_acl_info".
+  * @param: Pointer to "struct ccs_acl_param".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_write_aggregator(struct ccs_acl_param *param)
++static int ccs_update_domain_in_acl(struct ccs_acl_info *acl,
++				        struct ccs_acl_param *param)
+ {
+-	struct ccs_aggregator *e = &param->e.aggregator;
++	struct ccs_domain_info *ptr;
++	struct ccs_domain_info domain = { };
+ 	int error = param->is_delete ? -ENOENT : -ENOMEM;
+-	const char *original_name = ccs_read_token(param);
+-	const char *aggregated_name = ccs_read_token(param);
+-	if (!ccs_correct_word(original_name) ||
+-	    !ccs_correct_path(aggregated_name))
+-		return -EINVAL;
+-	e->original_name = ccs_get_name(original_name);
+-	e->aggregated_name = ccs_get_name(aggregated_name);
+-	if (!e->original_name || !e->aggregated_name ||
+-	    e->aggregated_name->is_patterned) /* No patterns allowed. */
+-		goto out;
+-	param->list = &param->ns->policy_list[CCS_ID_AGGREGATOR];
+-	error = ccs_update_policy(sizeof(*e), param);
++	domain.domainname = ccs_get_domainname(param);
++	if (!domain.domainname)
++		return error;
++	if (param->data[0]) {
++		domain.cond = ccs_get_condition(param);
++		if (!domain.cond)
++			goto out;
++	}
++	mutex_lock(&ccs_policy_lock);
++	list_for_each_entry_srcu(ptr, &acl->domain_list, list, &ccs_ss) {
++		if (ptr->cond != domain.cond ||
++		    ptr->domainname != domain.domainname)
++			continue;
++		ptr->is_deleted = param->is_delete;
++		error = 0;
++		break;
++	}
++	if (!param->is_delete && error) {
++		struct ccs_domain_info *entry =
++			ccs_commit_ok(&domain, sizeof(domain));
++		if (entry) {
++			INIT_LIST_HEAD(&entry->acl_info_list);
++			list_add_tail_rcu(&entry->list, &acl->domain_list);
++			error = 0;
++		}
++	}
++	mutex_unlock(&ccs_policy_lock);
+ out:
+-	ccs_put_name(e->original_name);
+-	ccs_put_name(e->aggregated_name);
++	ccs_put_name(domain.domainname);
++	ccs_put_condition(domain.cond);
+ 	return error;
+ }
+ 
+ /**
+- * ccs_write_transition_control - Write "struct ccs_transition_control" list.
++ * ccs_write_inverse_policy - Write inverse mode policy.
+  *
+- * @param: Pointer to "struct ccs_acl_param".
+- * @type:  Type of this entry.
++ * @head: Pointer to "struct ccs_io_buffer".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_write_transition_control(struct ccs_acl_param *param,
+-					const u8 type)
++static int ccs_write_inverse_policy(struct ccs_io_buffer *head)
+ {
+-	struct ccs_transition_control *e = &param->e.transition_control;
+-	int error = param->is_delete ? -ENOENT : -ENOMEM;
+-	char *program = param->data;
+-	char *domainname = strstr(program, " from ");
+-	e->type = type;
+-	if (domainname) {
+-		*domainname = '\0';
+-		domainname += 6;
+-	} else if (type == CCS_TRANSITION_CONTROL_NO_KEEP ||
+-		   type == CCS_TRANSITION_CONTROL_KEEP) {
+-		domainname = program;
+-		program = NULL;
++	static const struct {
++		const char *keyword;
++		int (*write) (struct ccs_acl_param *);
++	} ccs_callback[] = {
++		{ "file ", ccs_write_file },
++#ifdef CONFIG_CCSECURITY_NETWORK
++		{ "network inet ", ccs_write_inet_network },
++		{ "network unix ", ccs_write_unix_network },
++#endif
++#ifdef CONFIG_CCSECURITY_MISC
++		{ "misc ", ccs_write_misc },
++#endif
++#ifdef CONFIG_CCSECURITY_CAPABILITY
++		{ "capability ", ccs_write_capability },
++#endif
++#ifdef CONFIG_CCSECURITY_IPC
++		{ "ipc ptrace ", ccs_write_ipc },
++#endif
++	};
++	struct ccs_acl_param param = {
++		.data = head->write_buf,
++		.is_delete = head->w.is_delete,
++		.e.acl_info.perm = 1,
++	};
++	u8 i;
++	if (ccs_str_starts(&param.data, "by ")) {
++		if (!head->w.acl)
++			return -EINVAL;
++		return ccs_update_domain_in_acl(head->w.acl, &param);
+ 	}
+-	if (program && strcmp(program, "any")) {
+-		if (!ccs_correct_path(program))
++	if (ccs_str_starts(&param.data, "mode ")) {
++		if (!head->w.acl)
+ 			return -EINVAL;
+-		e->program = ccs_get_name(program);
+-		if (!e->program)
+-			goto out;
++		if (!strcmp(param.data, "enforcing"))
++			head->w.acl->is_enforce = true;
++		else if (!strcmp(param.data, "permissive"))
++			head->w.acl->is_enforce = false;
++		else
++			return -EINVAL;
++		return 0;
+ 	}
+-	if (domainname && strcmp(domainname, "any")) {
+-		if (!ccs_correct_domain(domainname)) {
+-			if (!ccs_correct_path(domainname))
+-				goto out;
+-			e->is_last_name = true;
+-		}
+-		e->domainname = ccs_get_name(domainname);
+-		if (!e->domainname)
+-			goto out;
++	head->w.acl = NULL;
++	if (!ccs_str_starts(&param.data, "allow "))
++		return -EINVAL;
++	for (i = 0; i < ARRAY_SIZE(ccs_callback); i++) {
++		int error;
++		if (!ccs_str_starts(&param.data, ccs_callback[i].keyword))
++			continue;
++		error = ccs_callback[i].write(&param);
++		if (!error && !head->w.is_delete)
++			head->w.acl = param.matched_entry;
++		ccs_del_acl(&param.e.acl_info.list);
++		return error;
+ 	}
+-	param->list = &param->ns->policy_list[CCS_ID_TRANSITION_CONTROL];
+-	error = ccs_update_policy(sizeof(*e), param);
+-out:
+-	ccs_put_name(e->domainname);
+-	ccs_put_name(e->program);
+-	return error;
++	return -EINVAL;
+ }
+ 
+ /**
+@@ -4373,15 +4370,9 @@
+ 	u8 i;
+ 	/* Forced zero clear for using memcmp() at ccs_update_policy(). */
+ 	memset(&param.e, 0, sizeof(param.e));
+-	if (ccs_str_starts(&param.data, "aggregator "))
+-		return ccs_write_aggregator(&param);
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-	if (ccs_str_starts(&param.data, "deny_autobind "))
+-		return ccs_write_reserved_port(&param);
+-#endif
+-	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
+-		if (ccs_str_starts(&param.data, ccs_transition_type[i]))
+-			return ccs_write_transition_control(&param, i);
++	param.e.acl_info.perm = 1;
++	if (ccs_str_starts(&param.data, "default_transition "))
++		return ccs_write_transition_control(&param);
+ 	for (i = 0; i < CCS_MAX_GROUP; i++)
+ 		if (ccs_str_starts(&param.data, ccs_group_name[i]))
+ 			return ccs_write_group(&param, i);
+@@ -4480,6 +4471,7 @@
+ 			return false;
+ 		switch (idx) {
+ 		case CCS_ID_TRANSITION_CONTROL:
++			/*
+ 			{
+ 				struct ccs_transition_control *ptr =
+ 					container_of(acl, typeof(*ptr), head);
+@@ -4492,31 +4484,8 @@
+ 				ccs_set_string(head, ptr->domainname ?
+ 					       ptr->domainname->name : "any");
+ 			}
++			*/
+ 			break;
+-		case CCS_ID_AGGREGATOR:
+-			{
+-				struct ccs_aggregator *ptr =
+-					container_of(acl, typeof(*ptr), head);
+-				ccs_print_namespace(head);
+-				ccs_set_string(head, "aggregator ");
+-				ccs_set_string(head, ptr->original_name->name);
+-				ccs_set_space(head);
+-				ccs_set_string(head,
+-					       ptr->aggregated_name->name);
+-			}
+-			break;
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-		case CCS_ID_RESERVEDPORT:
+-			{
+-				struct ccs_reserved *ptr =
+-					container_of(acl, typeof(*ptr), head);
+-				ccs_print_namespace(head);
+-				ccs_set_string(head, "deny_autobind ");
+-				ccs_print_number_union_nospace(head,
+-							       &ptr->port);
+-			}
+-			break;
+-#endif
+ 		default:
+ 			continue;
+ 		}
+@@ -4564,156 +4533,6 @@
+ }
+ 
+ /**
+- * ccs_truncate - Truncate a line.
+- *
+- * @str: String to truncate.
+- *
+- * Returns length of truncated @str.
+- */
+-static int ccs_truncate(char *str)
+-{
+-	char *start = str;
+-	while (*(unsigned char *) str > (unsigned char) ' ')
+-		str++;
+-	*str = '\0';
+-	return strlen(start) + 1;
+-}
+-
+-/**
+- * ccs_add_entry - Add an ACL to current thread's domain. Used by learning mode.
+- *
+- * @header: Lines containing ACL.
+- *
+- * Returns nothing.
+- */
+-static void ccs_add_entry(char *header)
+-{
+-	char *buffer;
+-	char *realpath = NULL;
+-	char *argv0 = NULL;
+-	char *symlink = NULL;
+-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+-	char *handler;
+-#endif
+-	char *cp = strchr(header, '\n');
+-	int len;
+-	if (!cp)
+-		return;
+-	cp = strchr(cp + 1, '\n');
+-	if (!cp)
+-		return;
+-	*cp++ = '\0';
+-	len = strlen(cp) + 1;
+-	/* strstr() will return NULL if ordering is wrong. */
+-	if (*cp == 'f') {
+-		argv0 = strstr(header, " argv[]={ \"");
+-		if (argv0) {
+-			argv0 += 10;
+-			len += ccs_truncate(argv0) + 14;
+-		}
+-		realpath = strstr(header, " exec={ realpath=\"");
+-		if (realpath) {
+-			realpath += 8;
+-			len += ccs_truncate(realpath) + 6;
+-		}
+-		symlink = strstr(header, " symlink.target=\"");
+-		if (symlink)
+-			len += ccs_truncate(symlink + 1) + 1;
+-	}
+-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+-	handler = strstr(header, "type=execute_handler");
+-	if (handler)
+-		len += ccs_truncate(handler) + 6;
+-#endif
+-	buffer = kmalloc(len, CCS_GFP_FLAGS);
+-	if (!buffer)
+-		return;
+-	snprintf(buffer, len - 1, "%s", cp);
+-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+-	if (handler)
+-		ccs_addprintf(buffer, len, " task.%s", handler);
+-#endif
+-	if (realpath)
+-		ccs_addprintf(buffer, len, " exec.%s", realpath);
+-	if (argv0)
+-		ccs_addprintf(buffer, len, " exec.argv[0]=%s", argv0);
+-	if (symlink)
+-		ccs_addprintf(buffer, len, "%s", symlink);
+-	ccs_normalize_line(buffer);
+-	{
+-		struct ccs_domain_info *domain = ccs_current_domain();
+-		if (!ccs_write_domain2(domain->ns, &domain->acl_info_list,
+-				       buffer, false))
+-			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
+-	}
+-	kfree(buffer);
+-}
+-
+-/**
+- * ccs_domain_quota_ok - Check for domain's quota.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns true if the domain is not exceeded quota, false otherwise.
+- *
+- * Caller holds ccs_read_lock().
+- */
+-static bool ccs_domain_quota_ok(struct ccs_request_info *r)
+-{
+-	unsigned int count = 0;
+-	struct ccs_domain_info * const domain = ccs_current_domain();
+-	struct ccs_acl_info *ptr;
+-	if (r->mode != CCS_CONFIG_LEARNING)
+-		return false;
+-	if (!domain)
+-		return true;
+-	list_for_each_entry_srcu(ptr, &domain->acl_info_list, list, &ccs_ss) {
+-		u16 perm;
+-		u8 i;
+-		if (ptr->is_deleted)
+-			continue;
+-		switch (ptr->type) {
+-		case CCS_TYPE_PATH_ACL:
+-		case CCS_TYPE_PATH2_ACL:
+-		case CCS_TYPE_PATH_NUMBER_ACL:
+-		case CCS_TYPE_MKDEV_ACL:
+-#ifdef CONFIG_CCSECURITY_NETWORK
+-		case CCS_TYPE_INET_ACL:
+-		case CCS_TYPE_UNIX_ACL:
+-#endif
+-			perm = ptr->perm;
+-			break;
+-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+-		case CCS_TYPE_AUTO_EXECUTE_HANDLER:
+-		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
+-#endif
+-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+-		case CCS_TYPE_AUTO_TASK_ACL:
+-		case CCS_TYPE_MANUAL_TASK_ACL:
+-#endif
+-			perm = 0;
+-			break;
+-		default:
+-			perm = 1;
+-		}
+-		for (i = 0; i < 16; i++)
+-			if (perm & (1 << i))
+-				count++;
+-	}
+-	if (count < ccs_profile(r->profile)->pref[CCS_PREF_MAX_LEARNING_ENTRY])
+-		return true;
+-	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
+-		domain->flags[CCS_DIF_QUOTA_WARNED] = true;
+-		/* r->granted = false; */
+-		ccs_write_log(r, "%s", ccs_dif[CCS_DIF_QUOTA_WARNED]);
+-		printk(KERN_WARNING "WARNING: "
+-		       "Domain '%s' has too many ACLs to hold. "
+-		       "Stopped learning mode.\n", domain->domainname->name);
+-	}
+-	return false;
+-}
+-
+-/**
+  * ccs_supervisor - Ask for the supervisor's decision.
+  *
+  * @r:   Pointer to "struct ccs_request_info".
+@@ -4724,7 +4543,7 @@
+  * decided to retry the access request which violated the policy in enforcing
+  * mode, 0 if it is not in enforcing mode, -EPERM otherwise.
+  */
+-int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
++static int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
+ {
+ 	va_list args;
+ 	int error;
+@@ -4732,6 +4551,10 @@
+ 	static unsigned int ccs_serial;
+ 	struct ccs_query entry = { };
+ 	bool quota_exceeded = false;
++	if (!r->inversed){
++		r->profile = ccs_current_domain()->profile;
++		r->enforcing = ccs_get_config(r->profile, r->type) & 1;
++	}
+ 	va_start(args, fmt);
+ 	len = vsnprintf((char *) &len, 1, fmt, args) + 1;
+ 	va_end(args);
+@@ -4742,15 +4565,14 @@
+ 	/* Nothing more to do if granted. */
+ 	if (r->granted)
+ 		return 0;
+-	if (r->mode)
+-		ccs_update_stat(r->mode);
+-	switch (r->mode) {
++	ccs_update_stat(r->enforcing ? CCS_STAT_POLICY_ENFORCING  :
++			CCS_STAT_POLICY_PERMISSIVE);
++	if (!r->enforcing)
++		return 0;
++	error = -EPERM;
++	if (!atomic_read(&ccs_query_observers)) {
+ 		int i;
+ 		struct ccs_profile *p;
+-	case CCS_CONFIG_ENFORCING:
+-		error = -EPERM;
+-		if (atomic_read(&ccs_query_observers))
+-			break;
+ 		if (r->dont_sleep_on_enforce_error)
+ 			goto out;
+ 		p = ccs_profile(r->profile);
+@@ -4760,14 +4582,6 @@
+ 			schedule_timeout(HZ / 10);
+ 		}
+ 		goto out;
+-	case CCS_CONFIG_LEARNING:
+-		error = 0;
+-		/* Check max_learning_entry parameter. */
+-		if (ccs_domain_quota_ok(r))
+-			break;
+-		/* fall through */
+-	default:
+-		return 0;
+ 	}
+ 	/* Get message. */
+ 	va_start(args, fmt);
+@@ -4776,10 +4590,6 @@
+ 	if (!entry.query)
+ 		goto out;
+ 	entry.query_len = strlen(entry.query) + 1;
+-	if (!error) {
+-		ccs_add_entry(entry.query);
+-		goto out;
+-	}
+ 	len = ccs_round2(entry.query_len);
+ 	entry.domain = ccs_current_domain();
+ 	spin_lock(&ccs_query_list_lock);
+@@ -4829,6 +4639,114 @@
+ }
+ 
+ /**
++ * ccs_audit_log - Audit permission check log.
++ *
++ * @r: Pointer to "struct ccs_request_info".
++ *
++ * Returns return value of ccs_supervisor().
++ */
++int ccs_audit_log(struct ccs_request_info *r)
++{
++	switch (r->param_type) {
++		u8 type;
++		char buf[48];
++#ifdef CONFIG_CCSECURITY_NETWORK
++		const u32 *address;
++#endif
++	case CCS_TYPE_EXECUTE_ACL:
++		return ccs_supervisor(r, "file execute %s\n",
++				      r->param.path.filename->name);
++	case CCS_TYPE_PATH_ACL:
++		return ccs_supervisor(r, "file %s %s\n", ccs_mac_keywords
++				      [ccs_p2mac[r->param.path.operation]],
++				      r->param.path.filename->name);
++	case CCS_TYPE_PATH2_ACL:
++		return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
++				      [ccs_pp2mac[r->param.path2.operation]],
++				      r->param.path2.filename1->name,
++				      r->param.path2.filename2->name);
++	case CCS_TYPE_PATH_NUMBER_ACL:
++		type = r->param.path_number.operation;
++		switch (type) {
++		case CCS_TYPE_CREATE:
++		case CCS_TYPE_MKDIR:
++		case CCS_TYPE_MKFIFO:
++		case CCS_TYPE_MKSOCK:
++		case CCS_TYPE_CHMOD:
++			snprintf(buf, sizeof(buf), "0%lo",
++				 r->param.path_number.number);
++			break;
++		case CCS_TYPE_IOCTL:
++			snprintf(buf, sizeof(buf), "0x%lX",
++				 r->param.path_number.number);
++			break;
++		default:
++			snprintf(buf, sizeof(buf), "%lu",
++				 r->param.path_number.number);
++			break;
++		}
++		return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
++				      [ccs_pn2mac[type]],
++				      r->param.path_number.filename->name,
++				      buf);
++	case CCS_TYPE_MKDEV_ACL:
++		return ccs_supervisor(r, "file %s %s 0%o %u %u\n",
++				      ccs_mac_keywords
++				      [ccs_pnnn2mac[r->param.mkdev.operation]],
++				      r->param.mkdev.filename->name,
++				      r->param.mkdev.mode,
++				      r->param.mkdev.major,
++				      r->param.mkdev.minor);
++	case CCS_TYPE_MOUNT_ACL:
++		return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
++				      r->param.mount.dev->name,
++				      r->param.mount.dir->name,
++				      r->param.mount.type->name,
++				      r->param.mount.flags);
++#ifdef CONFIG_CCSECURITY_MISC
++	case CCS_TYPE_ENV_ACL:
++		return ccs_supervisor(r, "misc env %s\n",
++				      r->param.environ.name->name);
++#endif
++#ifdef CONFIG_CCSECURITY_CAPABILITY
++	case CCS_TYPE_CAPABILITY_ACL:
++		return ccs_supervisor(r, "capability %s\n", ccs_mac_keywords
++				      [ccs_c2mac[r->param.capability.
++						 operation]]);
++#endif
++#ifdef CONFIG_CCSECURITY_NETWORK
++	case CCS_TYPE_INET_ACL:
++		address = r->param.inet_network.address;
++		if (r->param.inet_network.is_ipv6)
++			ccs_print_ipv6(buf, sizeof(buf),
++				       (const struct in6_addr *) address);
++		else
++			ccs_print_ipv4(buf, sizeof(buf), address);
++		return ccs_supervisor(r, "network inet %s %s %s %u\n",
++				      ccs_proto_keyword[r->param.inet_network.
++							protocol],
++				      ccs_socket_keyword[r->param.inet_network.
++							 operation],
++				      buf, r->param.inet_network.port);
++	case CCS_TYPE_UNIX_ACL:
++		return ccs_supervisor(r, "network unix %s %s %s\n",
++				      ccs_proto_keyword[r->param.
++							unix_network.protocol],
++				      ccs_socket_keyword[r->param.unix_network.
++							 operation],
++				      r->param.unix_network.address->name);
++#endif
++#ifdef CONFIG_CCSECURITY_IPC
++	case CCS_TYPE_PTRACE_ACL:
++		return ccs_supervisor(r, "ipc ptrace %lu %s\n",
++				      r->param.ptrace.request,
++				      r->param.ptrace.domainname);
++#endif
++	}
++	return 0;
++}
++
++/**
+  * ccs_find_domain_by_qid - Get domain by query id.
+  *
+  * @serial: Query ID assigned by ccs_supervisor().
+@@ -5235,18 +5153,25 @@
+ 		do_gettimeofday(&tv);
+ 		ccs_convert_time(tv.tv_sec, &stamp);
+ 	}
+-	pos = snprintf(buffer, ccs_buffer_len - 1,
+-		       "#%04u/%02u/%02u %02u:%02u:%02u# profile=%u mode=%s "
+-		       "granted=%s (global-pid=%u) task={ pid=%u ppid=%u "
+-		       "uid=%u gid=%u euid=%u egid=%u suid=%u sgid=%u "
+-		       "fsuid=%u fsgid=%u type%s=execute_handler }",
+-		       stamp.year, stamp.month, stamp.day, stamp.hour,
+-		       stamp.min, stamp.sec, r->profile, ccs_mode[r->mode],
+-		       ccs_yesno(r->granted), gpid, ccs_sys_getpid(),
+-		       ccs_sys_getppid(), current_uid(), current_gid(),
+-		       current_euid(), current_egid(), current_suid(),
+-		       current_sgid(), current_fsuid(), current_fsgid(),
+-		       ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER ? "" : "!");
++	pos = snprintf(buffer, ccs_buffer_len - 1, "#%04u/%02u/%02u "
++		       "%02u:%02u:%02u# ", stamp.year, stamp.month, stamp.day,
++		       stamp.hour, stamp.min, stamp.sec);
++	if (r->inversed)
++		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
++				"type=inverse");
++	else
++		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
++				"profile=%u", r->profile);
++	pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
++			" enforcing=%s granted=%s (global-pid=%u) task={ "
++			"pid=%u ppid=%u uid=%u gid=%u euid=%u egid=%u suid=%u "
++			"sgid=%u fsuid=%u fsgid=%u type%s=execute_handler }",
++			ccs_yesno(r->enforcing), ccs_yesno(r->granted), gpid,
++			ccs_sys_getpid(), ccs_sys_getppid(), current_uid(),
++			current_gid(), current_euid(), current_egid(),
++			current_suid(), current_sgid(), current_fsuid(),
++			current_fsgid(),
++			ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER ? "" : "!");
+ 	if (!obj)
+ 		goto no_obj_info;
+ 	if (!obj->validate_done) {
+@@ -5310,7 +5235,6 @@
+ 	char *buf = NULL;
+ 	char *bprm_info = NULL;
+ 	char *realpath = NULL;
+-	const char *symlink = NULL;
+ 	const char *header = NULL;
+ 	int pos;
+ 	const char *domainname = ccs_current_domain()->domainname->name;
+@@ -5323,19 +5247,15 @@
+ 		struct file *file = r->ee->bprm->file;
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+ 		struct path path = { file->f_vfsmnt, file->f_dentry };
+-		realpath = ccs_realpath_from_path(&path);
++		realpath = ccs_realpath(&path);
+ #else
+-		realpath = ccs_realpath_from_path(&file->f_path);
++		realpath = ccs_realpath(&file->f_path);
+ #endif
+ 		bprm_info = ccs_print_bprm(r->ee->bprm, &r->ee->dump);
+ 		if (!realpath || !bprm_info)
+ 			goto out;
+ 		/* +80 is for " exec={ realpath=\"%s\" argc=%d envc=%d %s }" */
+ 		len += strlen(realpath) + 80 + strlen(bprm_info);
+-	} else if (r->obj && r->obj->symlink_target) {
+-		symlink = r->obj->symlink_target->name;
+-		/* +18 is for " symlink.target=\"%s\"" */
+-		len += 18 + strlen(symlink);
+ 	}
+ 	len = ccs_round2(len);
+ 	buf = kzalloc(len, CCS_GFP_FLAGS);
+@@ -5348,9 +5268,7 @@
+ 		pos += snprintf(buf + pos, len - pos,
+ 				" exec={ realpath=\"%s\" argc=%d envc=%d %s }",
+ 				realpath, bprm->argc, bprm->envc, bprm_info);
+-	} else if (symlink)
+-		pos += snprintf(buf + pos, len - pos, " symlink.target=\"%s\"",
+-				symlink);
++	}
+ 	pos += snprintf(buf + pos, len - pos, "\n%s\n", domainname);
+ 	vsnprintf(buf + pos, len - pos, fmt, args);
+ out:
+@@ -5361,92 +5279,31 @@
+ }
+ 
+ /**
+- * ccs_transition_failed - Print waning message and send signal when domain transition failed.
++ * ccs_get_audit - Get audit mode.
+  *
+- * @domainname: Name of domain to transit.
+- *
+- * Returns nothing.
+- *
+- * Note that if current->pid == 1, sending SIGKILL won't work.
+- */
+-void ccs_transition_failed(const char *domainname)
+-{
+-	printk(KERN_WARNING
+-	       "ERROR: Unable to transit to '%s' domain.\n", domainname);
+-	force_sig(SIGKILL, current);
+-}
+-
+-/**
+- * ccs_update_task_domain - Update task's domain.
+- *
+  * @r: Pointer to "struct ccs_request_info".
+  *
+- * Returns nothing.
+- *
+- * The task will retry as hard as possible. But if domain transition failed,
+- * the task will be killed by SIGKILL.
+- */
+-static void ccs_update_task_domain(struct ccs_request_info *r)
+-{
+-	char *buf;
+-	const char *cp;
+-	const struct ccs_acl_info *acl = r->matched_acl;
+-	r->matched_acl = NULL;
+-	if (!acl || !acl->cond || !acl->cond->transit ||
+-	    acl->cond->exec_transit)
+-		return;
+-	while (1) {
+-		buf = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+-		if (buf)
+-			break;
+-		ssleep(1);
+-		if (fatal_signal_pending(current))
+-			return;
+-	}
+-	cp = acl->cond->transit->name;
+-	if (*cp == '/')
+-		snprintf(buf, CCS_EXEC_TMPSIZE - 1, "%s %s",
+-			 ccs_current_domain()->domainname->name, cp);
+-	else
+-		strncpy(buf, cp, CCS_EXEC_TMPSIZE - 1);
+-	if (!ccs_assign_domain(buf, true))
+-		ccs_transition_failed(buf);
+-	kfree(buf);
+-}
+-
+-/**
+- * ccs_get_audit - Get audit mode.
+- *
+- * @profile:     Profile number.
+- * @index:       Index number of functionality.
+- * @matched_acl: Pointer to "struct ccs_acl_info". Maybe NULL.
+- * @is_granted:  True if granted log, false otherwise.
+- *
+  * Returns true if this request should be audited, false otherwise.
+  */
+-static bool ccs_get_audit(const u8 profile, const u8 index,
+-			  const struct ccs_acl_info *matched_acl,
+-			  const bool is_granted)
++static bool ccs_get_audit(const struct ccs_request_info *r)
+ {
+-	u8 mode;
+-	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX;
+-	struct ccs_profile *p;
++	const u8 profile = r->profile;
++	const bool is_granted = r->granted;
+ 	if (!ccs_policy_loaded)
+ 		return false;
+-	p = ccs_profile(profile);
+-	if (ccs_log_count >= p->pref[CCS_PREF_MAX_AUDIT_LOG])
++	if (ccs_log_count >=
++	    ccs_profile(profile)->pref[CCS_PREF_MAX_AUDIT_LOG])
+ 		return false;
+-	if (is_granted && matched_acl && matched_acl->cond &&
+-	    matched_acl->cond->grant_log != CCS_GRANTLOG_AUTO)
+-		return matched_acl->cond->grant_log == CCS_GRANTLOG_YES;
+-	mode = p->config[index];
+-	if (mode == CCS_CONFIG_USE_DEFAULT)
+-		mode = p->config[category];
+-	if (mode == CCS_CONFIG_USE_DEFAULT)
+-		mode = p->default_config;
+-	if (is_granted)
+-		return mode & CCS_CONFIG_WANT_GRANT_LOG;
+-	return mode & CCS_CONFIG_WANT_REJECT_LOG;
++	if (is_granted) {
++		const struct ccs_acl_info *matched_acl = r->matched_acl;
++		if (matched_acl && matched_acl->cond &&
++		    matched_acl->cond->grant_log != CCS_GRANTLOG_AUTO)
++			return matched_acl->cond->grant_log ==
++				CCS_GRANTLOG_YES;
++	}
++	return ccs_get_config(profile, r->type) & (is_granted ?
++						   CCS_CONFIG_WANT_GRANT_LOG :
++						   CCS_CONFIG_WANT_REJECT_LOG);
+ }
+ 
+ /**
+@@ -5465,15 +5322,15 @@
+ 	char *buf;
+ 	struct ccs_log *entry;
+ 	bool quota_exceeded = false;
+-	if (!ccs_get_audit(r->profile, r->type, r->matched_acl, r->granted))
+-		goto out;
++	if (!ccs_get_audit(r))
++		return;
+ 	buf = ccs_init_log(r, len, fmt, args);
+ 	if (!buf)
+-		goto out;
++		return;
+ 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+ 	if (!entry) {
+ 		kfree(buf);
+-		goto out;
++		return;
+ 	}
+ 	entry->log = buf;
+ 	len = ccs_round2(strlen(buf) + 1);
+@@ -5496,11 +5353,9 @@
+ 	if (quota_exceeded) {
+ 		kfree(buf);
+ 		kfree(entry);
+-		goto out;
++		return;
+ 	}
+ 	wake_up(&ccs_log_wait);
+-out:
+-	ccs_update_task_domain(r);
+ }
+ 
+ /**
+@@ -5580,7 +5435,7 @@
+ static void ccs_set_namespace_cursor(struct ccs_io_buffer *head)
+ {
+ 	struct list_head *ns;
+-	if (head->type != CCS_EXCEPTIONPOLICY && head->type != CCS_PROFILE)
++	if (head->type != CCS_EXCEPTION_POLICY && head->type != CCS_PROFILE)
+ 		return;
+ 	/*
+ 	 * If this is the first read, or reading previous namespace finished
+@@ -5603,7 +5458,7 @@
+  */
+ static bool ccs_has_more_namespace(struct ccs_io_buffer *head)
+ {
+-	return (head->type == CCS_EXCEPTIONPOLICY ||
++	return (head->type == CCS_EXCEPTION_POLICY ||
+ 		head->type == CCS_PROFILE) && head->r.eof &&
+ 		head->r.ns->next != &ccs_namespace_list;
+ }
+@@ -5752,6 +5607,9 @@
+ 	e.domainname = ccs_get_name(domainname);
+ 	if (!e.domainname)
+ 		return NULL;
++	e.default_transition = ccs_get_name("child");
++	if (!e.default_transition)
++		goto out;
+ 	if (mutex_lock_interruptible(&ccs_policy_lock))
+ 		goto out;
+ 	entry = ccs_find_domain(domainname);
+@@ -5765,13 +5623,13 @@
+ 	}
+ 	mutex_unlock(&ccs_policy_lock);
+ out:
++	ccs_put_name(e.default_transition);
+ 	ccs_put_name(e.domainname);
+ 	if (entry && transit) {
+ 		security->ccs_domain_info = entry;
+ 		if (created) {
+-			struct ccs_request_info r;
+-			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
+-			r.granted = false;
++			struct ccs_request_info r = { };
++			r.type = CCS_MAC_FILE_EXECUTE;
+ 			ccs_write_log(&r, "use_profile %u\n", entry->profile);
+ 			ccs_write_log(&r, "use_group %u\n", entry->group);
+ 			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
+@@ -5797,7 +5655,7 @@
+ 	if (head->w.is_delete)
+ 		memmove(line, line + 7, strlen(line + 7) + 1);
+ 	/* Selecting namespace to update. */
+-	if (head->type == CCS_EXCEPTIONPOLICY || head->type == CCS_PROFILE) {
++	if (head->type == CCS_EXCEPTION_POLICY || head->type == CCS_PROFILE) {
+ 		if (*line == '<') {
+ 			char *cp = strchr(line, ' ');
+ 			if (cp) {
+@@ -5814,9 +5672,9 @@
+ 	}
+ 	/* Do the update. */
+ 	switch (head->type) {
+-	case CCS_DOMAINPOLICY:
++	case CCS_DOMAIN_POLICY:
+ 		return ccs_write_domain(head);
+-	case CCS_EXCEPTIONPOLICY:
++	case CCS_EXCEPTION_POLICY:
+ 		return ccs_write_exception(head);
+ #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+ 	case CCS_EXECUTE_HANDLER:
+@@ -5831,6 +5689,8 @@
+ 		return ccs_write_answer(head);
+ 	case CCS_MANAGER:
+ 		return ccs_write_manager(head);
++	case CCS_INVERSE_POLICY:
++		return ccs_write_inverse_policy(head);
+ 	default:
+ 		return -ENOSYS;
+ 	}
+@@ -5872,11 +5732,11 @@
+ 			break;
+ 		case 1:
+ 			start = ccs_builtin_exception_policy;
+-			head.type = CCS_EXCEPTIONPOLICY;
++			head.type = CCS_EXCEPTION_POLICY;
+ 			break;
+ 		case 2:
+ 			start = ccs_builtin_domain_policy;
+-			head.type = CCS_DOMAINPOLICY;
++			head.type = CCS_DOMAIN_POLICY;
+ 			break;
+ 		case 3:
+ 			start = ccs_builtin_manager;
+@@ -5932,6 +5792,100 @@
+ }
+ 
+ /**
++ * ccs_read_domain_in_acl - Read domainname and condition.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ * @list: Pointer to "struct list_head".
++ *
++ * Returns true on success, false otherwise.
++ *
++ * Caller holds ccs_read_lock().
++ */
++static bool ccs_read_domain_in_acl(struct ccs_io_buffer *head,
++				   struct list_head *list)
++{
++	list_for_each_cookie(head->r.domain, list) {
++		struct ccs_domain_info *domain =
++			list_entry(head->r.domain, typeof(*domain), list);
++		switch (head->r.step) {
++		case 3:
++			if (domain->is_deleted)
++				continue;
++			if (!ccs_flush(head))
++				return false;
++			ccs_set_string(head, "    by ");
++			ccs_set_string(head, domain->domainname->name);
++			head->r.cond_step = 0;
++			head->r.step++;
++			/* fall through */
++		case 4:
++			if (!ccs_flush(head))
++				return false;
++			if (domain->cond) {
++				if (!ccs_print_condition(head, domain->cond))
++					return false;
++			} else {
++				ccs_set_lf(head);
++			}
++			head->r.step--;
++		}
++	}
++	return true;
++}
++
++/**
++ * ccs_read_inverse_policy - Read inversed mode policy.
++ *
++ * @head: Pointer to "struct ccs_io_buffer".
++ *
++ * Caller holds ccs_read_lock().
++ */
++static void ccs_read_inverse_policy(struct ccs_io_buffer *head)
++{
++	if (head->r.eof)
++		return;
++	list_for_each_cookie(head->r.acl, &ccs_inversed_acl_list) {
++		struct ccs_acl_info *ptr =
++			list_entry(head->r.acl, typeof(*ptr), list);
++		switch (head->r.step) {
++		case 0:
++			if (ptr->is_deleted)
++				continue;
++			head->r.step++;
++			/* fall through */
++		case 1:
++			if (!ccs_print_entry(head, ptr))
++				return;
++			head->r.step++;
++			/* fall through */
++		case 2:
++			if (!ccs_flush(head))
++				return;
++			ccs_set_string(head, "    mode ");
++			ccs_set_string(head, ptr->is_enforce ?
++				       "enforcing" : "permissive");
++			ccs_set_lf(head);
++			head->r.domain = NULL;
++			head->r.step++;
++			/* fall through */
++		case 3:
++		case 4:
++			if (!ccs_read_domain_in_acl(head, &ptr->domain_list))
++				return;
++			head->r.domain = NULL;
++			head->r.step = 5;
++			/* fall through */
++		case 5:
++			if (!ccs_flush(head))
++				return;
++			ccs_set_lf(head);
++			head->r.step = 0;
++		}
++	}
++	head->r.eof = true;
++}
++
++/**
+  * ccs_open - open() for /proc/ccs/ interface.
+  *
+  * @inode: Pointer to "struct inode".
+@@ -6055,10 +6009,10 @@
+ 		do {
+ 			ccs_set_namespace_cursor(head);
+ 			switch (head->type) {
+-			case CCS_DOMAINPOLICY:
++			case CCS_DOMAIN_POLICY:
+ 				ccs_read_domain(head);
+ 				break;
+-			case CCS_EXCEPTIONPOLICY:
++			case CCS_EXCEPTION_POLICY:
+ 				ccs_read_exception(head);
+ 				break;
+ 			case CCS_AUDIT:
+@@ -6085,6 +6039,9 @@
+ 			case CCS_MANAGER:
+ 				ccs_read_manager(head);
+ 				break;
++			case CCS_INVERSE_POLICY:
++				ccs_read_inverse_policy(head);
++				break;
+ 			}
+ 		} while (ccs_flush(head) && ccs_has_more_namespace(head));
+ 	ccs_read_unlock(idx);
+@@ -6126,11 +6083,11 @@
+ 	if (ccs_correct_domain(data)) {
+ 		const int idx = ccs_read_lock();
+ 		struct ccs_path_info name;
+-		struct ccs_request_info r;
++		struct ccs_request_info r = { };
+ 		name.name = data;
+ 		ccs_fill_path_info(&name);
+ 		/* Check "task manual_domain_transition" permission. */
+-		ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
++		r.type = CCS_MAC_FILE_EXECUTE;
+ 		r.param_type = CCS_TYPE_MANUAL_TASK_ACL;
+ 		r.param.task.domainname = &name;
+ 		ccs_check_acl(&r);
+@@ -6208,11 +6165,11 @@
+ 		case CCS_PROCESS_STATUS:
+ 			/* This does not write anything. */
+ 			break;
+-		case CCS_DOMAINPOLICY:
++		case CCS_DOMAIN_POLICY:
+ 			if (ccs_select_domain(head, cp0))
+ 				continue;
+ 			/* fall through */
+-		case CCS_EXCEPTIONPOLICY:
++		case CCS_EXCEPTION_POLICY:
+ 			if (!strcmp(cp0, "select transition_only")) {
+ 				head->r.print_transition_related_only = true;
+ 				continue;
+@@ -6231,11 +6188,12 @@
+ 		case 0:
+ 			/* Update statistics. */
+ 			switch (head->type) {
+-			case CCS_DOMAINPOLICY:
+-			case CCS_EXCEPTIONPOLICY:
++			case CCS_DOMAIN_POLICY:
++			case CCS_EXCEPTION_POLICY:
+ 			case CCS_STAT:
+ 			case CCS_PROFILE:
+ 			case CCS_MANAGER:
++			case CCS_INVERSE_POLICY:
+ 				ccs_update_stat(CCS_STAT_POLICY_UPDATES);
+ 				break;
+ 			default:
+@@ -6294,9 +6252,9 @@
+ 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
+ #endif
+ 	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
+-	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
++	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAIN_POLICY);
+ 	ccs_create_entry("exception_policy", 0600, ccs_dir,
+-			 CCS_EXCEPTIONPOLICY);
++			 CCS_EXCEPTION_POLICY);
+ 	ccs_create_entry("audit",            0400, ccs_dir, CCS_AUDIT);
+ 	ccs_create_entry(".process_status",  0600, ccs_dir,
+ 			 CCS_PROCESS_STATUS);
+@@ -6308,6 +6266,8 @@
+ 	ccs_create_entry(".execute_handler", 0666, ccs_dir,
+ 			 CCS_EXECUTE_HANDLER);
+ #endif
++	ccs_create_entry("inverse_policy",   0600, ccs_dir,
++			 CCS_INVERSE_POLICY);
+ 	{
+ 		struct proc_dir_entry *e = create_proc_entry("self_domain",
+ 							     0666, ccs_dir);
+@@ -6332,8 +6292,19 @@
+ 	if (init_srcu_struct(&ccs_ss))
+ 		panic("Out of memory.");
+ #endif
++	{
++		static struct ccs_path_info any;
++		any.name = "any";
++		ccs_fill_path_info(&any);
++		ccs_group_any.group_name = &any;
++		INIT_LIST_HEAD(&ccs_group_any.head.list);
++		INIT_LIST_HEAD(&ccs_group_any.member_list);
++	}
+ 	ccs_kernel_namespace.name = "<kernel>";
+ 	ccs_init_policy_namespace(&ccs_kernel_namespace);
++	ccs_kernel_transition.name = "child";
++	ccs_fill_path_info(&ccs_kernel_transition);
++	ccs_kernel_domain.default_transition = &ccs_kernel_transition;
+ 	ccs_kernel_domain.ns = &ccs_kernel_namespace;
+ 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
+ 	ccs_mm_init();
+Index: security/ccsecurity/permission.c
+===================================================================
+--- security/ccsecurity/permission.c	(revision 5665)
++++ security/ccsecurity/permission.c	(working copy)
+@@ -43,18 +43,16 @@
+ };
+ 
+ /* Mapping table from "enum ccs_path_acl_index" to "enum ccs_mac_index". */
+-static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
+-	[CCS_TYPE_EXECUTE]    = CCS_MAC_FILE_EXECUTE,
+-	[CCS_TYPE_READ]       = CCS_MAC_FILE_OPEN,
+-	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_OPEN,
+-	[CCS_TYPE_APPEND]     = CCS_MAC_FILE_OPEN,
++const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
++	[CCS_TYPE_READ]       = CCS_MAC_FILE_READ,
++	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_WRITE,
++	[CCS_TYPE_APPEND]     = CCS_MAC_FILE_APPEND,
+ 	[CCS_TYPE_UNLINK]     = CCS_MAC_FILE_UNLINK,
+ #ifdef CONFIG_CCSECURITY_FILE_GETATTR
+ 	[CCS_TYPE_GETATTR]    = CCS_MAC_FILE_GETATTR,
+ #endif
+ 	[CCS_TYPE_RMDIR]      = CCS_MAC_FILE_RMDIR,
+ 	[CCS_TYPE_TRUNCATE]   = CCS_MAC_FILE_TRUNCATE,
+-	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
+ 	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
+ 	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
+ };
+@@ -70,6 +68,7 @@
+ 	[CCS_TYPE_LINK]       = CCS_MAC_FILE_LINK,
+ 	[CCS_TYPE_RENAME]     = CCS_MAC_FILE_RENAME,
+ 	[CCS_TYPE_PIVOT_ROOT] = CCS_MAC_FILE_PIVOT_ROOT,
++	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
+ };
+ 
+ /*
+@@ -88,16 +87,6 @@
+ 
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 
+-/* String table for socket's protocols. */
+-const char * const ccs_proto_keyword[CCS_SOCK_MAX] = {
+-	[SOCK_STREAM]    = "stream",
+-	[SOCK_DGRAM]     = "dgram",
+-	[SOCK_RAW]       = "raw",
+-	[SOCK_SEQPACKET] = "seqpacket",
+-	[0] = " ", /* Dummy for avoiding NULL pointer dereference. */
+-	[4] = " ", /* Dummy for avoiding NULL pointer dereference. */
+-};
+-
+ /*
+  * Mapping table from "enum ccs_network_acl_index" to "enum ccs_mac_index" for
+  * inet domain socket.
+@@ -168,7 +157,6 @@
+ 	[CCS_SYS_SETHOSTNAME]   = CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
+ 	[CCS_USE_KERNEL_MODULE] = CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
+ 	[CCS_SYS_KEXEC_LOAD]    = CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
+-	[CCS_SYS_PTRACE]        = CCS_MAC_CAPABILITY_SYS_PTRACE,
+ };
+ 
+ #endif
+@@ -206,6 +194,8 @@
+ static bool ccs_argv(const unsigned int index, const char *arg_ptr,
+ 		     const int argc, const struct ccs_argv *argv, u8 *checked);
+ static bool ccs_byte_range(const char *str);
++static bool ccs_check_execute_acl(struct ccs_request_info *r,
++				  const struct ccs_acl_info *ptr);
+ static bool ccs_check_mkdev_acl(struct ccs_request_info *r,
+ 				const struct ccs_acl_info *ptr);
+ static bool ccs_check_mount_acl(struct ccs_request_info *r,
+@@ -231,8 +221,7 @@
+ 				      const char *filename_end,
+ 				      const char *pattern,
+ 				      const char *pattern_end);
+-static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
+-			     struct vfsmount *mnt);
++static bool ccs_get_realpath(struct ccs_path_info *buf, struct path *path);
+ static bool ccs_hexadecimal(const char c);
+ static bool ccs_number_matches_group(const unsigned long min,
+ 				     const unsigned long max,
+@@ -246,19 +235,12 @@
+ static bool ccs_scan_exec_realpath(struct file *file,
+ 				   const struct ccs_name_union *ptr,
+ 				   const bool match);
+-static bool ccs_scan_transition(const struct list_head *list,
+-				const struct ccs_path_info *domainname,
+-				const struct ccs_path_info *program,
+-				const char *last_name,
+-				const enum ccs_transition_type type);
+-static const char *ccs_last_word(const char *name);
+-static const struct ccs_path_info *ccs_compare_name_union
+-(const struct ccs_path_info *name, const struct ccs_name_union *ptr);
+-static const struct ccs_path_info *ccs_path_matches_group
+-(const struct ccs_path_info *pathname, const struct ccs_group *group);
+-static enum ccs_transition_type ccs_transition_type
+-(const struct ccs_policy_namespace *ns, const struct ccs_path_info *domainname,
+- const struct ccs_path_info *program);
++static bool ccs_compare_name_union(const struct ccs_path_info *name,
++				   const struct ccs_name_union *ptr);
++static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
++				   const struct ccs_group *group);
++static const struct ccs_path_info *ccs_transition_type
++(struct ccs_request_info *r);
+ static int __ccs_chmod_permission(struct dentry *dentry,
+ 				  struct vfsmount *vfsmnt, mode_t mode);
+ static int __ccs_chown_permission(struct dentry *dentry,
+@@ -308,11 +290,8 @@
+ static int __ccs_uselib_permission(struct dentry *dentry,
+ 				   struct vfsmount *mnt);
+ #endif
+-static int ccs_audit_mkdev_log(struct ccs_request_info *r);
+-static int ccs_audit_mount_log(struct ccs_request_info *r);
+-static int ccs_audit_path2_log(struct ccs_request_info *r);
+-static int ccs_audit_path_log(struct ccs_request_info *r);
+-static int ccs_audit_path_number_log(struct ccs_request_info *r);
++static int ccs_execute_path(struct linux_binprm *bprm,
++			    struct ccs_path_info *name);
+ static int ccs_execute_permission(struct ccs_request_info *r,
+ 				  const struct ccs_path_info *filename);
+ static int ccs_find_next_domain(struct ccs_execve *ee);
+@@ -321,8 +300,7 @@
+ static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
+ 			  struct vfsmount *mnt, const unsigned int mode,
+ 			  unsigned int dev);
+-static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
+-			 struct path *dir, const char *type,
++static int ccs_mount_acl(char *dev_name, struct path *dir, const char *type,
+ 			 unsigned long flags);
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+ static int ccs_new_open_permission(struct file *filp);
+@@ -341,25 +319,23 @@
+ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
+ 				struct vfsmount *vfsmnt, unsigned long number);
+ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
+-			 struct vfsmount *mnt, const char *target);
+-static int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+-			       const struct ccs_path_info *filename);
++			 struct vfsmount *mnt);
++static int ccs_path_permission(u8 operation,
++			       const struct ccs_path_info *filename,
++			       struct ccs_obj_info *obj);
+ static int ccs_start_execve(struct linux_binprm *bprm,
+ 			    struct ccs_execve **eep);
+-static int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
+ #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+ static void __ccs_clear_open_mode(void);
+ static void __ccs_save_open_mode(int mode);
+ #endif
+ static void ccs_add_slash(struct ccs_path_info *buf);
++static void ccs_check_auto_domain_transition(void);
+ static void ccs_finish_execve(int retval, struct ccs_execve *ee);
+-static void ccs_print_ulong(char *buffer, const int buffer_len,
+-			    const unsigned long value, const u8 type);
+ 
+ #ifdef CONFIG_CCSECURITY_MISC
+ static bool ccs_check_env_acl(struct ccs_request_info *r,
+ 			      const struct ccs_acl_info *ptr);
+-static int ccs_audit_env_log(struct ccs_request_info *r);
+ static int ccs_env_perm(struct ccs_request_info *r, const char *env);
+ static int ccs_environ(struct ccs_execve *ee);
+ #endif
+@@ -371,7 +347,6 @@
+ static bool ccs_kernel_service(void);
+ static int __ccs_ptrace_permission(long request, long pid);
+ static int __ccs_socket_create_permission(int family, int type, int protocol);
+-static int ccs_audit_capability_log(struct ccs_request_info *r);
+ #endif
+ 
+ #ifdef CONFIG_CCSECURITY_NETWORK
+@@ -392,11 +367,6 @@
+ 					       struct socket *newsock);
+ static int __ccs_socket_sendmsg_permission(struct socket *sock,
+ 					   struct msghdr *msg, int size);
+-static int ccs_audit_inet_log(struct ccs_request_info *r);
+-static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
+-			     const u8 protocol, const u8 operation,
+-			     const char *address);
+-static int ccs_audit_unix_log(struct ccs_request_info *r);
+ static int ccs_check_inet_address(const struct sockaddr *addr,
+ 				  const unsigned int addr_len, const u16 port,
+ 				  struct ccs_addr_info *address);
+@@ -415,12 +385,9 @@
+ #endif
+ 
+ #ifdef CONFIG_CCSECURITY_IPC
+-static bool ccs_check_signal_acl(struct ccs_request_info *r,
++static bool ccs_check_ptrace_acl(struct ccs_request_info *r,
+ 				 const struct ccs_acl_info *ptr);
+-static int ccs_audit_signal_log(struct ccs_request_info *r);
+-static int ccs_signal_acl(const int pid, const int sig);
+-static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig);
+-static int ccs_signal_acl2(const int sig, const int pid);
++static int __ccs_ptrace_permission(long request, long pid);
+ #endif
+ 
+ #ifdef CONFIG_CCSECURITY_FILE_GETATTR
+@@ -690,6 +657,9 @@
+ /* The list for "struct ccs_domain_info". */
+ LIST_HEAD(ccs_domain_list);
+ 
++/* The list for inverse mode. */
++LIST_HEAD(ccs_inversed_acl_list);
++
+ /***** SECTION6: Dependent functions section *****/
+ 
+ /**
+@@ -698,24 +668,25 @@
+  * @pathname: The name of pathname.
+  * @group:    Pointer to "struct ccs_path_group".
+  *
+- * Returns matched member's pathname if @pathname matches pathnames in @group,
+- * NULL otherwise.
++ * Returns true if @pathname matches pathnames in @group, false otherwise.
+  *
+  * Caller holds ccs_read_lock().
+  */
+-static const struct ccs_path_info *ccs_path_matches_group
+-(const struct ccs_path_info *pathname, const struct ccs_group *group)
++static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
++				   const struct ccs_group *group)
+ {
+ 	struct ccs_path_group *member;
++	if (group == &ccs_group_any)
++		return true;
+ 	list_for_each_entry_srcu(member, &group->member_list, head.list,
+ 				 &ccs_ss) {
+ 		if (member->head.is_deleted)
+ 			continue;
+ 		if (!ccs_path_matches_pattern(pathname, member->member_name))
+ 			continue;
+-		return member->member_name;
++		return true;
+ 	}
+-	return NULL;
++	return false;
+ }
+ 
+ /**
+@@ -735,6 +706,8 @@
+ {
+ 	struct ccs_number_group *member;
+ 	bool matched = false;
++	if (group == &ccs_group_any)
++		return true;
+ 	list_for_each_entry_srcu(member, &group->member_list, head.list,
+ 				 &ccs_ss) {
+ 		if (member->head.is_deleted)
+@@ -749,195 +722,176 @@
+ }
+ 
+ /**
+- * ccs_check_acl - Do permission check.
++ * ccs_check_entry - Do permission check.
+  *
+- * @r: Pointer to "struct ccs_request_info".
++ * @r:   Pointer to "struct ccs_request_info".
++ * @ptr: Pointer to "struct ccs_acl_info".
+  *
+- * Returns 0 on success, negative value otherwise.
++ * Returns true on match, false otherwise.
+  *
+  * Caller holds ccs_read_lock().
+  */
+-void ccs_check_acl(struct ccs_request_info *r)
++static bool ccs_check_entry(struct ccs_request_info *r,
++			    struct ccs_acl_info *ptr)
+ {
+-	const struct ccs_domain_info *domain = ccs_current_domain();
+-	struct ccs_acl_info *ptr;
+-	bool retried = false;
+-	const struct list_head *list = &domain->acl_info_list;
+-retry:
+-	list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
+-		if (ptr->is_deleted)
+-			continue;
+-		if (ptr->type != r->param_type)
+-			continue;
+-		switch (r->param_type) {
+-		case CCS_TYPE_PATH_ACL:
+-			if (ccs_check_path_acl(r, ptr))
+-				break;
+-			continue;
+-		case CCS_TYPE_PATH2_ACL:
+-			if (ccs_check_path2_acl(r, ptr))
+-				break;
+-			continue;
+-		case CCS_TYPE_PATH_NUMBER_ACL:
+-			if (ccs_check_path_number_acl(r, ptr))
+-				break;
+-			continue;
+-		case CCS_TYPE_MKDEV_ACL:
+-			if (ccs_check_mkdev_acl(r, ptr))
+-				break;
+-			continue;
+-		case CCS_TYPE_MOUNT_ACL:
+-			if (ccs_check_mount_acl(r, ptr))
+-				break;
+-			continue;
++	if (ptr->is_deleted || ptr->type != r->param_type)
++		return false;
++	switch (r->param_type) {
++	case CCS_TYPE_EXECUTE_ACL:
++		return ccs_check_execute_acl(r, ptr);
++	case CCS_TYPE_PATH_ACL:
++		return ccs_check_path_acl(r, ptr);
++	case CCS_TYPE_PATH2_ACL:
++		return ccs_check_path2_acl(r, ptr);
++	case CCS_TYPE_PATH_NUMBER_ACL:
++		return ccs_check_path_number_acl(r, ptr);
++	case CCS_TYPE_MKDEV_ACL:
++		return ccs_check_mkdev_acl(r, ptr);
++	case CCS_TYPE_MOUNT_ACL:
++		return ccs_check_mount_acl(r, ptr);
+ #ifdef CONFIG_CCSECURITY_MISC
+-		case CCS_TYPE_ENV_ACL:
+-			if (ccs_check_env_acl(r, ptr))
+-				break;
+-			continue;
++	case CCS_TYPE_ENV_ACL:
++		return ccs_check_env_acl(r, ptr);
+ #endif
+ #ifdef CONFIG_CCSECURITY_CAPABILITY
+-		case CCS_TYPE_CAPABILITY_ACL:
+-			if (ccs_check_capability_acl(r, ptr))
+-				break;
+-			continue;
++	case CCS_TYPE_CAPABILITY_ACL:
++		return ccs_check_capability_acl(r, ptr);
+ #endif
+ #ifdef CONFIG_CCSECURITY_NETWORK
+-		case CCS_TYPE_INET_ACL:
+-			if (ccs_check_inet_acl(r, ptr))
+-				break;
+-			continue;
+-		case CCS_TYPE_UNIX_ACL:
+-			if (ccs_check_unix_acl(r, ptr))
+-				break;
+-			continue;
++	case CCS_TYPE_INET_ACL:
++		return ccs_check_inet_acl(r, ptr);
++	case CCS_TYPE_UNIX_ACL:
++		return ccs_check_unix_acl(r, ptr);
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-		case CCS_TYPE_SIGNAL_ACL:
+-			if (ccs_check_signal_acl(r, ptr))
+-				break;
+-			continue;
++	case CCS_TYPE_PTRACE_ACL:
++		return ccs_check_ptrace_acl(r, ptr);
+ #endif
+ #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+-		case CCS_TYPE_MANUAL_TASK_ACL:
+-			if (ccs_check_task_acl(r, ptr))
+-				break;
+-			continue;
++	case CCS_TYPE_MANUAL_TASK_ACL:
++		return ccs_check_task_acl(r, ptr);
+ #endif
+-		}
+-		if (!ccs_condition(r, ptr->cond))
+-			continue;
+-		r->matched_acl = ptr;
+-		r->granted = true;
+-		return;
+ 	}
+-	if (!retried) {
+-		retried = true;
+-		list = &domain->ns->acl_group[domain->group];
+-		goto retry;
+-	}
+-	r->granted = false;
++	return true;
+ }
+ 
+ /**
+- * ccs_last_word - Get last component of a domainname.
++ * ccs_check_inverselist - Do permission check.
+  *
+- * @name: Domainname to check.
++ * @r: Pointer to "struct ccs_request_info".
+  *
+- * Returns the last word of @name.
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds ccs_read_lock().
+  */
+-static const char *ccs_last_word(const char *name)
++static int ccs_check_inverselist(struct ccs_request_info *r)
+ {
+-	const char *cp = strrchr(name, ' ');
+-	if (cp)
+-		return cp + 1;
+-	return name;
++	struct ccs_acl_info *ptr;
++	const struct ccs_path_info *self = ccs_current_domain()->domainname;
++retry_all:
++	list_for_each_entry_srcu(ptr, &ccs_inversed_acl_list, list, &ccs_ss) {
++		struct ccs_domain_info *domain;
++		int error;
++		if (!ccs_check_entry(r, ptr))
++			continue;
++		if (!ccs_condition(r, ptr->cond))
++			continue;
++		r->enforcing = ptr->is_enforce;
++		list_for_each_entry_srcu(domain, &ptr->domain_list, list,
++					 &ccs_ss) {
++			if (!ccs_pathcmp(self, domain->domainname) &&
++			    ccs_condition(r, domain->cond))
++				goto next;
++		}
++		/* Did not match. */
++		r->granted = false;
++		error = ccs_audit_log(r);
++		if (error == CCS_RETRY_REQUEST)
++			goto retry_all;
++		if (error)
++			return error;
++next:
++		r->granted = true;
++		ccs_audit_log(r);
++	}
++	return 0;
+ }
+ 
+ /**
+- * ccs_scan_transition - Try to find specific domain transition type.
++ * ccs_check_acl - Do permission check.
+  *
+- * @list:       Pointer to "struct list_head".
+- * @domainname: The name of current domain.
+- * @program:    The name of requested program.
+- * @last_name:  The last component of @domainname.
+- * @type:       One of values in "enum ccs_transition_type".
++ * @r: Pointer to "struct ccs_request_info".
+  *
+- * Returns true if found one, false otherwise.
+- *
+- * Caller holds ccs_read_lock().
++ * Returns 0 on success, negative value otherwise.
+  */
+-static bool ccs_scan_transition(const struct list_head *list,
+-				const struct ccs_path_info *domainname,
+-				const struct ccs_path_info *program,
+-				const char *last_name,
+-				const enum ccs_transition_type type)
++int ccs_check_acl(struct ccs_request_info *r)
+ {
+-	const struct ccs_transition_control *ptr;
+-	list_for_each_entry_srcu(ptr, list, head.list, &ccs_ss) {
+-		if (ptr->head.is_deleted || ptr->type != type)
++	const struct ccs_domain_info *domain = ccs_current_domain();
++	struct ccs_acl_info *ptr;
++	bool retried;
++	const struct list_head *list;
++	int error;
++	const int idx = ccs_read_lock();
++	r->inversed = true;
++	error = ccs_check_inverselist(r);
++	if (error)
++		goto done;
++	r->inversed = false;
++retry_all:
++	retried = false;
++	list = &domain->acl_info_list;
++retry:
++	list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
++		if (!ccs_check_entry(r, ptr))
+ 			continue;
+-		if (ptr->domainname) {
+-			if (!ptr->is_last_name) {
+-				if (ptr->domainname != domainname)
+-					continue;
+-			} else {
+-				/*
+-				 * Use direct strcmp() since this is
+-				 * unlikely used.
+-				 */
+-				if (strcmp(ptr->domainname->name, last_name))
+-					continue;
+-			}
+-		}
+-		if (ptr->program && ccs_pathcmp(ptr->program, program))
++		if (!ccs_condition(r, ptr->cond))
+ 			continue;
+-		return true;
++		r->matched_acl = ptr;
++		r->granted = true;
++		ccs_audit_log(r);
++		error = 0;
++		goto done;
+ 	}
+-	return false;
++	if (!retried) {
++		retried = true;
++		list = &domain->ns->acl_group[domain->group];
++		goto retry;
++	}
++	r->granted = false;
++	error = ccs_audit_log(r);
++	if (error == CCS_RETRY_REQUEST)
++		goto retry_all;
++done:
++	ccs_read_unlock(idx);
++	return error;
+ }
+ 
+ /**
+  * ccs_transition_type - Get domain transition type.
+  *
+- * @ns:         Pointer to "struct ccs_policy_namespace".
+- * @domainname: The name of current domain.
+- * @program:    The name of requested program.
++ * @r: Pointer to "struct ccs_request_info".
+  *
+- * Returns CCS_TRANSITION_CONTROL_TRANSIT if executing @program causes domain
+- * transition across namespaces, CCS_TRANSITION_CONTROL_INITIALIZE if executing
+- * @program reinitializes domain transition within that namespace,
+- * CCS_TRANSITION_CONTROL_KEEP if executing @program stays at @domainname ,
+- * others otherwise.
++ * Returns pointer to "struct ccs_path_info" if found one, NULL otheriwse.
+  *
+  * Caller holds ccs_read_lock().
+  */
+-static enum ccs_transition_type ccs_transition_type
+-(const struct ccs_policy_namespace *ns, const struct ccs_path_info *domainname,
+- const struct ccs_path_info *program)
++static const struct ccs_path_info *ccs_transition_type
++(struct ccs_request_info *r)
+ {
+-	const char *last_name = ccs_last_word(domainname->name);
+-	enum ccs_transition_type type = CCS_TRANSITION_CONTROL_NO_RESET;
+-	while (type < CCS_MAX_TRANSITION_TYPE) {
+-		const struct list_head * const list =
+-			&ns->policy_list[CCS_ID_TRANSITION_CONTROL];
+-		if (!ccs_scan_transition(list, domainname, program, last_name,
+-					 type)) {
+-			type++;
++	const struct list_head * const list = &ccs_current_namespace()->
++		policy_list[CCS_ID_TRANSITION_CONTROL];
++	struct ccs_acl_info *ptr;
++	list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
++		if (ptr->is_deleted)
+ 			continue;
+-		}
+-		if (type != CCS_TRANSITION_CONTROL_NO_RESET &&
+-		    type != CCS_TRANSITION_CONTROL_NO_INITIALIZE)
+-			break;
+-		/*
+-		 * Do not check for reset_domain if no_reset_domain matched.
+-		 * Do not check for initialize_domain if no_initialize_domain
+-		 * matched.
+-		 */
+-		type++;
+-		type++;
++		if (!ccs_check_execute_acl(r, ptr))
++			continue;
++		if (!ccs_condition(r, ptr->cond))
++			continue;
++		return container_of(ptr, struct ccs_execute_acl, head)->
++			transit;
+ 	}
+-	return type;
++	return NULL;
+ }
+ 
+ /**
+@@ -957,23 +911,20 @@
+ #endif
+ 	struct ccs_domain_info *domain = NULL;
+ 	struct ccs_domain_info * const old_domain = ccs_current_domain();
+-	struct linux_binprm *bprm = ee->bprm;
+ 	struct ccs_security *task = ccs_current_security();
+-	const struct ccs_path_info *candidate;
+ 	struct ccs_path_info exename;
+ 	int retval;
+-	bool reject_on_transition_failure = false;
++	const char *domainname;
+ 
+ 	/* Get symlink's pathname of program. */
+-	retval = ccs_symlink_path(bprm->filename, &exename);
++	retval = ccs_execute_path(ee->bprm, &exename);
+ 	if (retval < 0)
+ 		return retval;
+ 
+ #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+ 	if (handler) {
+ 		/* No permission check for execute handler. */
+-		candidate = &exename;
+-		if (ccs_pathcmp(candidate, handler)) {
++		if (ccs_pathcmp(&exename, handler)) {
+ 			/* Failed to verify execute handler. */
+ 			static u8 counter = 20;
+ 			if (counter) {
+@@ -986,35 +937,10 @@
+ 	} else 
+ #endif
+ 	{
+-		struct ccs_aggregator *ptr;
+-		struct list_head *list;
+-retry:
+-		/* Check 'aggregator' directive. */
+-		candidate = &exename;
+-		list = &old_domain->ns->policy_list[CCS_ID_AGGREGATOR];
+-		list_for_each_entry_srcu(ptr, list, head.list, &ccs_ss) {
+-			if (ptr->head.is_deleted ||
+-			    !ccs_path_matches_pattern(candidate,
+-						      ptr->original_name))
+-				continue;
+-			candidate = ptr->aggregated_name;
+-			break;
+-		}
+-
+ 		/* Check execute permission. */
+-		retval = ccs_execute_permission(r, candidate);
+-		if (retval == CCS_RETRY_REQUEST)
+-			goto retry;
++		retval = ccs_execute_permission(r, &exename);
+ 		if (retval < 0)
+ 			goto out;
+-		/*
+-		 * To be able to specify domainnames with wildcards, use the
+-		 * pathname specified in the policy (which may contain
+-		 * wildcard) rather than the pathname passed to execve()
+-		 * (which never contains wildcard).
+-		 */
+-		if (r->param.path.matched_path)
+-			candidate = r->param.path.matched_path;
+ 	}
+ 	/*
+ 	 * Check for domain transition preference if "file execute" matched.
+@@ -1022,77 +948,44 @@
+ 	 * has failed, for domain transition preference should be used with
+ 	 * destination domain defined.
+ 	 */
+-	if (r->ee->transition) {
+-		const char *domainname = r->ee->transition->name;
+-		reject_on_transition_failure = true;
+-		if (!strcmp(domainname, "keep"))
+-			goto force_keep_domain;
+-		if (!strcmp(domainname, "child"))
+-			goto force_child_domain;
+-		if (!strcmp(domainname, "reset"))
+-			goto force_reset_domain;
+-		if (!strcmp(domainname, "initialize"))
+-			goto force_initialize_domain;
+-		if (!strcmp(domainname, "parent")) {
+-			char *cp;
+-			strncpy(ee->tmp, old_domain->domainname->name,
+-				CCS_EXEC_TMPSIZE - 1);
+-			cp = strrchr(ee->tmp, ' ');
+-			if (cp)
+-				*cp = '\0';
+-		} else if (*domainname == '<')
+-			strncpy(ee->tmp, domainname, CCS_EXEC_TMPSIZE - 1);
+-		else
+-			snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
+-				 old_domain->domainname->name, domainname);
+-		goto force_jump_domain;
+-	}
+-	/*
+-	 * No domain transition preference specified.
+-	 * Calculate domain to transit to.
+-	 */
+-	switch (ccs_transition_type(old_domain->ns, old_domain->domainname,
+-				    candidate)) {
+-	case CCS_TRANSITION_CONTROL_RESET:
+-force_reset_domain:
++	if (!ee->transition)
++		ee->transition = ccs_transition_type(r);
++	if (!ee->transition)
++		ee->transition = old_domain->default_transition;
++	BUG_ON(!ee->transition);
++	domainname = ee->transition->name;
++	if (!strcmp(domainname, "keep")) {
++		/* Keep current domain. */
++		domain = old_domain;
++	} else if (!strcmp(domainname, "child")) {
++		/* Normal domain transition. */
++		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
++			 old_domain->domainname->name, exename.name);
++	} else if (!strcmp(domainname, "reset"))
+ 		/* Transit to the root of specified namespace. */
+-		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<%s>",
+-			 candidate->name);
+-		/*
+-		 * Make do_execve() fail if domain transition across namespaces
+-		 * has failed.
+-		 */
+-		reject_on_transition_failure = true;
+-		break;
+-	case CCS_TRANSITION_CONTROL_INITIALIZE:
+-force_initialize_domain:
++		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<%s>", exename.name);
++	else if (!strcmp(domainname, "initialize"))
+ 		/* Transit to the child of current namespace's root. */
+ 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
+-			 old_domain->ns->name, candidate->name);
+-		break;
+-	case CCS_TRANSITION_CONTROL_KEEP:
+-force_keep_domain:
+-		/* Keep current domain. */
++			 old_domain->ns->name, exename.name);
++	else if (!strcmp(domainname, "parent")) {
++		/* Transit to the parent of current domain. */
++		char *cp;
++		strncpy(ee->tmp, old_domain->domainname->name,
++			CCS_EXEC_TMPSIZE - 1);
++		cp = strrchr(ee->tmp, ' ');
++		if (cp)
++			*cp = '\0';
++	} else if (*domainname == '<')
++		/* Transit to the specified domain. */
++		strncpy(ee->tmp, domainname, CCS_EXEC_TMPSIZE - 1);
++	else if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded)
++		/* Do not transit before starting /sbin/init. */
+ 		domain = old_domain;
+-		break;
+-	default:
+-		if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded) {
+-			/*
+-			 * Needn't to transit from kernel domain before
+-			 * starting /sbin/init. But transit from kernel domain
+-			 * if executing initializers because they might start
+-			 * before /sbin/init.
+-			 */
+-			domain = old_domain;
+-			break;
+-		}
+-force_child_domain:
+-		/* Normal domain transition. */
++	else
++		/* Transit to the child domain. */
+ 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
+-			 old_domain->domainname->name, candidate->name);
+-		break;
+-	}
+-force_jump_domain:
++			 old_domain->domainname->name, exename.name);
+ 	/*
+ 	 * Tell GC that I started execve().
+ 	 * Also, tell open_exec() to check read permission.
+@@ -1111,25 +1004,12 @@
+ 	 */
+ 	if (!domain)
+ 		domain = ccs_assign_domain(ee->tmp, true);
+-	if (domain)
++	if (domain) {
+ 		retval = 0;
+-	else if (reject_on_transition_failure) {
+-		printk(KERN_WARNING
+-		       "ERROR: Domain '%s' not ready.\n", ee->tmp);
+-		retval = -ENOMEM;
+-	} else if (r->mode == CCS_CONFIG_ENFORCING)
+-		retval = -ENOMEM;
+-	else {
+-		retval = 0;
+-		if (!old_domain->flags[CCS_DIF_TRANSITION_FAILED]) {
+-			old_domain->flags[CCS_DIF_TRANSITION_FAILED] = true;
+-			r->granted = false;
+-			ccs_write_log(r, "%s",
+-				      ccs_dif[CCS_DIF_TRANSITION_FAILED]);
+-			printk(KERN_WARNING
+-			       "ERROR: Domain '%s' not defined.\n", ee->tmp);
+-		}
++		goto out;
+ 	}
++	printk(KERN_WARNING "ERROR: Domain '%s' not ready.\n", ee->tmp);
++	retval = -ENOMEM;
+ out:
+ 	kfree(exename.name);
+ 	return retval;
+@@ -1317,7 +1197,7 @@
+ 		int root_len;
+ 		int handler_len;
+ 		get_fs_root(current->fs, &root);
+-		cp = ccs_realpath_from_path(&root);
++		cp = ccs_realpath(&root);
+ 		path_put(&root);
+ 		if (!cp) {
+ 			retval = -ENOMEM;
+@@ -1406,9 +1286,8 @@
+ 		return false;
+ 	ee->handler = container_of(r->matched_acl, struct ccs_handler_acl,
+ 				   head)->handler;
+-	ee->transition = r->matched_acl && r->matched_acl->cond &&
+-		r->matched_acl->cond->exec_transit ?
+-		r->matched_acl->cond->transit : NULL;
++	ee->transition = container_of(r->matched_acl, struct ccs_handler_acl,
++				      head)->transit;
+ 	return true;
+ }
+ 
+@@ -1486,6 +1365,7 @@
+ 	struct ccs_execve *ee;
+ 	int idx;
+ 	*eep = NULL;
++	ccs_check_auto_domain_transition();
+ 	ee = kzalloc(sizeof(*ee), CCS_GFP_FLAGS);
+ 	if (!ee)
+ 		return -ENOMEM;
+@@ -1500,7 +1380,6 @@
+ 	/* Clear manager flag. */
+ 	task->ccs_flags &= ~CCS_TASK_IS_MANAGER;
+ 	*eep = ee;
+-	ccs_init_request_info(&ee->r, CCS_MAC_FILE_EXECUTE);
+ 	ee->r.ee = ee;
+ 	ee->bprm = bprm;
+ 	ee->r.obj = &ee->obj;
+@@ -1525,7 +1404,7 @@
+ 	}
+ #endif
+ #ifdef CONFIG_CCSECURITY_MISC
+-	if (!retval)
++	if (!retval && bprm->envc)
+ 		retval = ccs_environ(ee);
+ #endif
+ #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+@@ -1582,8 +1461,7 @@
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Performs permission checks for do_execve() and domain transition.
+- * Domain transition by "struct ccs_domain_transition_control" and
+- * "auto_domain_transition=" parameter of "struct ccs_condition" are reverted
++ * Domain transition by "struct ccs_domain_transition_control" will be reverted
+  * if do_execve() failed.
+  * Garbage collector does not remove "struct ccs_domain_info" from
+  * ccs_domain_list nor kfree("struct ccs_domain_info") if the current thread is
+@@ -1674,15 +1552,10 @@
+ 		__ccs_socket_post_recvmsg_permission;
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-	ccsecurity_ops.kill_permission = ccs_signal_acl;
+-	ccsecurity_ops.tgkill_permission = ccs_signal_acl0;
+-	ccsecurity_ops.tkill_permission = ccs_signal_acl;
+-	ccsecurity_ops.sigqueue_permission = ccs_signal_acl;
+-	ccsecurity_ops.tgsigqueue_permission = ccs_signal_acl0;
++	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
+ #endif
+ #ifdef CONFIG_CCSECURITY_CAPABILITY
+ 	ccsecurity_ops.capable = __ccs_capable;
+-	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
+ #endif
+ 	ccsecurity_ops.search_binary_handler = __ccs_search_binary_handler;
+ }
+@@ -1733,53 +1606,56 @@
+ }
+ 
+ /**
+- * ccs_symlink_path - Get symlink's pathname.
++ * ccs_execute_path - Get program's pathname.
+  *
+- * @pathname: The pathname to solve. Maybe NULL.
+- * @name:     Pointer to "struct ccs_path_info".
++ * @bprm: Pointer to "struct linux_binprm".
++ * @name: Pointer to "struct ccs_path_info".
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * This function uses kzalloc(), so caller must kfree() if this function
+  * didn't return NULL.
+  */
+-static int ccs_symlink_path(const char *pathname, struct ccs_path_info *name)
++static int ccs_execute_path(struct linux_binprm *bprm,
++			    struct ccs_path_info *name)
+ {
+ 	char *buf;
+-	struct path path;
++	/*
++	 * Follow symlinks if the requested pathname is on procfs, for
++	 * /proc/\$/exe is meaningless.
++	 */
++	/*
++	 * Force use of normal pathnames in order to use this pathname for
++	 * making domainnames.
++	 */
++	if (bprm->file->f_dentry->d_sb->s_magic == PROC_SUPER_MAGIC) {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
++		struct path path = { bprm->file->f_vfsmnt,
++				     bprm->file->f_dentry };
++		buf = ccs_realpath2(&path, true);
++#else
++		buf = ccs_realpath2(&bprm->file->f_path, true);
++#endif
++	} else {
++		struct path path;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+-	if (ccs_kern_path(pathname, 0, &path))
+-		return -ENOENT;
++		if (ccs_kern_path(bprm->filename, 0, &path))
++			return -ENOENT;
+ #else
+-	if (ccs_kern_path(pathname, LOOKUP_POSITIVE, &path))
+-		return -ENOENT;
++		if (ccs_kern_path(bprm->filename, LOOKUP_POSITIVE, &path))
++			return -ENOENT;
+ #endif
+-	buf = ccs_realpath_from_path(&path);
+-	path_put(&path);
+-	if (buf) {
+-		name->name = buf;
+-		ccs_fill_path_info(name);
+-		return 0;
++		buf = ccs_realpath2(&path, true);
++		path_put(&path);
+ 	}
+-	return -ENOMEM;
++	if (!buf)
++		return -ENOMEM;
++	name->name = buf;
++	ccs_fill_path_info(name);
++	return 0;
+ }
+ 
+ /**
+- * ccs_audit_mount_log - Audit mount log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_mount_log(struct ccs_request_info *r)
+-{
+-	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
+-			      r->param.mount.dev->name,
+-			      r->param.mount.dir->name,
+-			      r->param.mount.type->name, r->param.mount.flags);
+-}
+-
+-/**
+  * ccs_check_mount_acl - Check permission for path path path number operation.
+  *
+  * @r:   Pointer to "struct ccs_request_info".
+@@ -1802,20 +1678,17 @@
+ /**
+  * ccs_mount_acl - Check permission for mount() operation.
+  *
+- * @r:        Pointer to "struct ccs_request_info".
+  * @dev_name: Name of device file. Maybe NULL.
+  * @dir:      Pointer to "struct path".
+  * @type:     Name of filesystem type.
+  * @flags:    Mount options.
+  *
+  * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
+  */
+-static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
+-			 struct path *dir, const char *type,
++static int ccs_mount_acl(char *dev_name, struct path *dir, const char *type,
+ 			 unsigned long flags)
+ {
++	struct ccs_request_info r = { };
+ 	struct ccs_obj_info obj = { };
+ 	struct file_system_type *fstype = NULL;
+ 	const char *requested_type = NULL;
+@@ -1826,7 +1699,7 @@
+ 	struct ccs_path_info rdir;
+ 	int need_dev = 0;
+ 	int error = -ENOMEM;
+-	r->obj = &obj;
++	r.obj = &obj;
+ 
+ 	/* Get fstype. */
+ 	requested_type = ccs_encode(type);
+@@ -1837,7 +1710,7 @@
+ 
+ 	/* Get mount point. */
+ 	obj.path2 = *dir;
+-	requested_dir_name = ccs_realpath_from_path(dir);
++	requested_dir_name = ccs_realpath(dir);
+ 	if (!requested_dir_name) {
+ 		error = -ENOMEM;
+ 		goto out;
+@@ -1872,7 +1745,7 @@
+ 			error = -ENOENT;
+ 			goto out;
+ 		}
+-		requested_dev_name = ccs_realpath_from_path(&obj.path1);
++		requested_dev_name = ccs_realpath(&obj.path1);
+ 		if (!requested_dev_name) {
+ 			error = -ENOENT;
+ 			goto out;
+@@ -1889,16 +1762,14 @@
+ 	}
+ 	rdev.name = requested_dev_name;
+ 	ccs_fill_path_info(&rdev);
+-	r->param_type = CCS_TYPE_MOUNT_ACL;
+-	r->param.mount.need_dev = need_dev;
+-	r->param.mount.dev = &rdev;
+-	r->param.mount.dir = &rdir;
+-	r->param.mount.type = &rtype;
+-	r->param.mount.flags = flags;
+-	do {
+-		ccs_check_acl(r);
+-		error = ccs_audit_mount_log(r);
+-	} while (error == CCS_RETRY_REQUEST);
++	r.type = CCS_MAC_FILE_MOUNT;
++	r.param_type = CCS_TYPE_MOUNT_ACL;
++	r.param.mount.need_dev = need_dev;
++	r.param.mount.dev = &rdev;
++	r.param.mount.dir = &rdir;
++	r.param.mount.type = &rtype;
++	r.param.mount.flags = flags;
++	error = ccs_check_acl(&r);
+ out:
+ 	kfree(requested_dev_name);
+ 	kfree(requested_dir_name);
+@@ -1926,9 +1797,6 @@
+ 				  const char *type, unsigned long flags,
+ 				  void *data_page)
+ {
+-	struct ccs_request_info r;
+-	int error = 0;
+-	int idx;
+ 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
+ 		flags &= ~MS_MGC_MSK;
+ 	if (flags & MS_REMOUNT) {
+@@ -1961,12 +1829,7 @@
+ 	}
+ 	if (!type)
+ 		type = "<NULL>";
+-	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
+-	    != CCS_CONFIG_DISABLED)
+-		error = ccs_mount_acl(&r, dev_name, path, type, flags);
+-	ccs_read_unlock(idx);
+-	return error;
++	return ccs_mount_acl(dev_name, path, type, flags);
+ }
+ 
+ #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+@@ -2014,16 +1877,14 @@
+  * @name: Pointer to "struct ccs_path_info".
+  * @ptr:  Pointer to "struct ccs_name_union".
+  *
+- * Returns "struct ccs_path_info" if @name matches @ptr, NULL otherwise.
++ * Returns true if @name matches @ptr, false otherwise.
+  */
+-static const struct ccs_path_info *ccs_compare_name_union
+-(const struct ccs_path_info *name, const struct ccs_name_union *ptr)
++static bool ccs_compare_name_union(const struct ccs_path_info *name,
++				   const struct ccs_name_union *ptr)
+ {
+ 	if (ptr->group)
+ 		return ccs_path_matches_group(name, ptr->group);
+-	if (ccs_path_matches_pattern(name, ptr->filename))
+-		return ptr->filename;
+-	return NULL;
++	return ccs_path_matches_pattern(name, ptr->filename);
+ }
+ 
+ /**
+@@ -2048,17 +1909,14 @@
+ /**
+  * ccs_get_realpath - Get realpath.
+  *
+- * @buf:    Pointer to "struct ccs_path_info".
+- * @dentry: Pointer to "struct dentry".
+- * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
++ * @buf:  Pointer to "struct ccs_path_info".
++ * @path: Pointer to "struct path". @path->mnt may be NULL.
+  *
+  * Returns true on success, false otherwise.
+  */
+-static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
+-			     struct vfsmount *mnt)
++static bool ccs_get_realpath(struct ccs_path_info *buf, struct path *path)
+ {
+-	struct path path = { mnt, dentry };
+-	buf->name = ccs_realpath_from_path(&path);
++	buf->name = ccs_realpath(path);
+ 	if (buf->name) {
+ 		ccs_fill_path_info(buf);
+ 		return true;
+@@ -2067,128 +1925,35 @@
+ }
+ 
+ /**
+- * ccs_audit_path_log - Audit path request log.
++ * ccs_check_execute_acl - Check permission for execute operation.
+  *
+- * @r: Pointer to "struct ccs_request_info".
++ * @r:   Pointer to "struct ccs_request_info".
++ * @ptr: Pointer to "struct ccs_acl_info".
+  *
+- * Returns 0 on success, negative value otherwise.
++ * Returns true if granted, false otherwise.
+  */
+-static int ccs_audit_path_log(struct ccs_request_info *r)
++static bool ccs_check_execute_acl(struct ccs_request_info *r,
++				  const struct ccs_acl_info *ptr)
+ {
+-	return ccs_supervisor(r, "file %s %s\n", ccs_path_keyword
+-			      [r->param.path.operation],
+-			      r->param.path.filename->name);
++	const struct ccs_execute_acl *acl = container_of(ptr, typeof(*acl),
++							 head);
++	return ccs_compare_name_union(r->param.execute.program, &acl->program);
+ }
+ 
+ /**
+- * ccs_audit_path2_log - Audit path/path request log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_path2_log(struct ccs_request_info *r)
+-{
+-	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+-			      [ccs_pp2mac[r->param.path2.operation]],
+-			      r->param.path2.filename1->name,
+-			      r->param.path2.filename2->name);
+-}
+-
+-/**
+- * ccs_audit_mkdev_log - Audit path/number/number/number request log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_mkdev_log(struct ccs_request_info *r)
+-{
+-	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", ccs_mac_keywords
+-			      [ccs_pnnn2mac[r->param.mkdev.operation]],
+-			      r->param.mkdev.filename->name,
+-			      r->param.mkdev.mode, r->param.mkdev.major,
+-			      r->param.mkdev.minor);
+-}
+-
+-/**
+- * ccs_print_ulong - Print an "unsigned long" value.
+- *
+- * @buffer:     Pointer to buffer.
+- * @buffer_len: Size of @buffer.
+- * @value:      An "unsigned long" value.
+- * @type:       Type of @value.
+- *
+- * Returns nothing.
+- */
+-static void ccs_print_ulong(char *buffer, const int buffer_len,
+-			    const unsigned long value, const u8 type)
+-{
+-	if (type == CCS_VALUE_TYPE_DECIMAL)
+-		snprintf(buffer, buffer_len, "%lu", value);
+-	else if (type == CCS_VALUE_TYPE_OCTAL)
+-		snprintf(buffer, buffer_len, "0%lo", value);
+-	else
+-		snprintf(buffer, buffer_len, "0x%lX", value);
+-}
+-
+-/**
+- * ccs_audit_path_number_log - Audit path/number request log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_path_number_log(struct ccs_request_info *r)
+-{
+-	const u8 type = r->param.path_number.operation;
+-	u8 radix;
+-	char buffer[64];
+-	switch (type) {
+-	case CCS_TYPE_CREATE:
+-	case CCS_TYPE_MKDIR:
+-	case CCS_TYPE_MKFIFO:
+-	case CCS_TYPE_MKSOCK:
+-	case CCS_TYPE_CHMOD:
+-		radix = CCS_VALUE_TYPE_OCTAL;
+-		break;
+-	case CCS_TYPE_IOCTL:
+-		radix = CCS_VALUE_TYPE_HEXADECIMAL;
+-		break;
+-	default:
+-		radix = CCS_VALUE_TYPE_DECIMAL;
+-		break;
+-	}
+-	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
+-			radix);
+-	return ccs_supervisor(r, "file %s %s %s\n", ccs_mac_keywords
+-			      [ccs_pn2mac[type]],
+-			      r->param.path_number.filename->name, buffer);
+-}
+-
+-/**
+  * ccs_check_path_acl - Check permission for path operation.
+  *
+  * @r:   Pointer to "struct ccs_request_info".
+  * @ptr: Pointer to "struct ccs_acl_info".
+  *
+  * Returns true if granted, false otherwise.
+- *
+- * To be able to use wildcard for domain transition, this function sets
+- * matching entry on success. Since the caller holds ccs_read_lock(),
+- * it is safe to set matching entry.
+  */
+ static bool ccs_check_path_acl(struct ccs_request_info *r,
+ 			       const struct ccs_acl_info *ptr)
+ {
+ 	const struct ccs_path_acl *acl = container_of(ptr, typeof(*acl), head);
+-	if (ptr->perm & (1 << r->param.path.operation)) {
+-		r->param.path.matched_path =
+-			ccs_compare_name_union(r->param.path.filename,
+-					       &acl->name);
+-		return r->param.path.matched_path != NULL;
+-	}
+-	return false;
++	return (ptr->perm & (1 << r->param.path.operation)) &&
++		ccs_compare_name_union(r->param.path.filename, &acl->name);
+ }
+ 
+ /**
+@@ -2253,62 +2018,40 @@
+ /**
+  * ccs_path_permission - Check permission for path operation.
+  *
+- * @r:         Pointer to "struct ccs_request_info".
+  * @operation: Type of operation.
+  * @filename:  Filename to check.
++ * @obj:       Pointer to "struct ccs_obj_info". Maybe NULL.
+  *
+- * Returns 0 on success, CCS_RETRY_REQUEST on retry, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
++ * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+-			       const struct ccs_path_info *filename)
++static int ccs_path_permission(u8 operation,
++			       const struct ccs_path_info *filename,
++			       struct ccs_obj_info *obj)
+ {
+-	int error;
+-	r->type = ccs_p2mac[operation];
+-	r->mode = ccs_get_mode(r->profile, r->type);
+-	if (r->mode == CCS_CONFIG_DISABLED)
+-		return 0;
+-	r->param_type = CCS_TYPE_PATH_ACL;
+-	r->param.path.filename = filename;
+-	r->param.path.operation = operation;
+-	do {
+-		ccs_check_acl(r);
+-		error = ccs_audit_path_log(r);
+-	} while (error == CCS_RETRY_REQUEST);
+-	return error;
++	struct ccs_request_info r = { };
++	r.type = ccs_p2mac[operation];
++	r.obj = obj;
++	r.param_type = CCS_TYPE_PATH_ACL;
++	r.param.path.filename = filename;
++	r.param.path.operation = operation;
++	return ccs_check_acl(&r);
+ }
+ 
+ /**
+  * ccs_execute_permission - Check permission for execute operation.
+  *
+- * @r:         Pointer to "struct ccs_request_info".
+- * @filename:  Filename to check.
++ * @r:        Pointer to "struct ccs_request_info".
++ * @filename: Filename to check.
+  *
+  * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
+  */
+-int ccs_execute_permission(struct ccs_request_info *r,
+-			   const struct ccs_path_info *filename)
++static int ccs_execute_permission(struct ccs_request_info *r,
++				  const struct ccs_path_info *filename)
+ {
+-	/*
+-	 * Unlike other permission checks, this check is done regardless of
+-	 * profile mode settings in order to check for domain transition
+-	 * preference.
+-	 */
+ 	r->type = CCS_MAC_FILE_EXECUTE;
+-	r->mode = ccs_get_mode(r->profile, r->type);
+-	r->param_type = CCS_TYPE_PATH_ACL;
+-	r->param.path.filename = filename;
+-	r->param.path.operation = CCS_TYPE_EXECUTE;
+-	ccs_check_acl(r);
+-	r->ee->transition = r->matched_acl && r->matched_acl->cond &&
+-		r->matched_acl->cond->exec_transit ?
+-		r->matched_acl->cond->transit : NULL;
+-	if (r->mode != CCS_CONFIG_DISABLED)
+-		return ccs_audit_path_log(r);
+-	return 0;
++	r->param_type = CCS_TYPE_EXECUTE_ACL;
++	r->param.execute.program = filename;
++	return ccs_check_acl(r);
+ }
+ 
+ #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+@@ -2365,7 +2108,6 @@
+ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
+ 				 const int flag)
+ {
+-	struct ccs_request_info r;
+ 	struct ccs_obj_info obj = {
+ 		.path1.dentry = dentry,
+ 		.path1.mnt = mnt,
+@@ -2382,7 +2124,6 @@
+ #endif
+ 	int error = 0;
+ 	struct ccs_path_info buf;
+-	int idx;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+ 	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
+ 		return 0;
+@@ -2392,39 +2133,37 @@
+ 		return 0;
+ #endif
+ 	buf.name = NULL;
+-	r.mode = CCS_CONFIG_DISABLED;
+-	idx = ccs_read_lock();
+-	if (acc_mode && ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
+-	    != CCS_CONFIG_DISABLED) {
+-		if (!ccs_get_realpath(&buf, dentry, mnt)) {
++	if (!(ccs_flags & CCS_TASK_IS_IN_EXECVE))
++		ccs_check_auto_domain_transition();
++	if (acc_mode & MAY_READ) {
++		if (!ccs_get_realpath(&buf, &obj.path1)) {
+ 			error = -ENOMEM;
+ 			goto out;
+ 		}
+-		r.obj = &obj;
+-		if (acc_mode & MAY_READ)
+-			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+-		if (!error && (acc_mode & MAY_WRITE))
+-			error = ccs_path_permission(&r, (flag & O_APPEND) ?
+-						    CCS_TYPE_APPEND :
+-						    CCS_TYPE_WRITE, &buf);
++		error = ccs_path_permission(CCS_TYPE_READ, &buf, &obj);
++		if (error)
++			goto out;
+ 	}
++	if (acc_mode & MAY_WRITE) {
++		if (!buf.name && !ccs_get_realpath(&buf, &obj.path1)) {
++			error = -ENOMEM;
++			goto out;
++		}
++		error = ccs_path_permission((flag & O_APPEND) ?
++					    CCS_TYPE_APPEND :
++					    CCS_TYPE_WRITE, &buf, &obj);
++	}
+ #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
+-	if (!error && (flag & O_TRUNC) &&
+-	    ccs_init_request_info(&r, CCS_MAC_FILE_TRUNCATE)
+-	    != CCS_CONFIG_DISABLED) {
+-		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
++	if (!error && (flag & O_TRUNC)) {
++		if (!buf.name && !ccs_get_realpath(&buf, &obj.path1)) {
+ 			error = -ENOMEM;
+ 			goto out;
+ 		}
+-		r.obj = &obj;
+-		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE, &buf);
++		error = ccs_path_permission(CCS_TYPE_TRUNCATE, &buf, &obj);
+ 	}
+ #endif
+ out:
+ 	kfree(buf.name);
+-	ccs_read_unlock(idx);
+-	if (r.mode != CCS_CONFIG_ENFORCING)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -2446,61 +2185,33 @@
+ #endif
+ 
+ /**
+- * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "append", "getattr", "chroot" and "unmount".
++ * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "append", "getattr", "chroot" and "unmount".
+  *
+  * @operation: Type of operation.
+  * @dentry:    Pointer to "struct dentry".
+  * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
+- * @target:    Symlink's target if @operation is CCS_TYPE_SYMLINK,
+- *             NULL otherwise.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
+-			 struct vfsmount *mnt, const char *target)
++			 struct vfsmount *mnt)
+ {
+-	struct ccs_request_info r;
+ 	struct ccs_obj_info obj = {
+ 		.path1.dentry = dentry,
+ 		.path1.mnt = mnt,
+ 	};
+-	int error = 0;
++	int error;
+ 	struct ccs_path_info buf;
+-	bool is_enforce = false;
+-	struct ccs_path_info symlink_target;
+-	int idx;
+-	buf.name = NULL;
+-	symlink_target.name = NULL;
+-	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_p2mac[operation])
+-	    == CCS_CONFIG_DISABLED)
+-		goto out;
+-	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+-	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf, dentry, mnt))
+-		goto out;
+-	r.obj = &obj;
++	if (!ccs_get_realpath(&buf, &obj.path1))
++		return -ENOMEM;
+ 	switch (operation) {
+ 	case CCS_TYPE_RMDIR:
+ 	case CCS_TYPE_CHROOT:
+ 		ccs_add_slash(&buf);
+ 		break;
+-	case CCS_TYPE_SYMLINK:
+-		symlink_target.name = ccs_encode(target);
+-		if (!symlink_target.name)
+-			goto out;
+-		ccs_fill_path_info(&symlink_target);
+-		obj.symlink_target = &symlink_target;
+-		break;
+ 	}
+-	error = ccs_path_permission(&r, operation, &buf);
+-	if (operation == CCS_TYPE_SYMLINK)
+-		kfree(symlink_target.name);
+-out:
++	error = ccs_path_permission(operation, &buf, &obj);
+ 	kfree(buf.name);
+-	ccs_read_unlock(idx);
+-	if (!is_enforce)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -2519,45 +2230,31 @@
+ 			  struct vfsmount *mnt, const unsigned int mode,
+ 			  unsigned int dev)
+ {
+-	struct ccs_request_info r;
+ 	struct ccs_obj_info obj = {
+ 		.path1.dentry = dentry,
+ 		.path1.mnt = mnt,
+ 	};
+-	int error = 0;
++	int error;
+ 	struct ccs_path_info buf;
+-	bool is_enforce = false;
+-	int idx;
+-	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_pnnn2mac[operation])
+-	    == CCS_CONFIG_DISABLED)
+-		goto out;
+-	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+-	error = -EPERM;
+-	if (!capable(CAP_MKNOD))
+-		goto out;
+-	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf, dentry, mnt))
+-		goto out;
+-	r.obj = &obj;
++	ccs_check_auto_domain_transition();
++	if (!ccs_get_realpath(&buf, &obj.path1))
++		return -ENOMEM;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+ 	dev = new_decode_dev(dev);
+ #endif
+-	r.param_type = CCS_TYPE_MKDEV_ACL;
+-	r.param.mkdev.filename = &buf;
+-	r.param.mkdev.operation = operation;
+-	r.param.mkdev.mode = mode;
+-	r.param.mkdev.major = MAJOR(dev);
+-	r.param.mkdev.minor = MINOR(dev);
+-	do {
+-		ccs_check_acl(&r);
+-		error = ccs_audit_mkdev_log(&r);
+-	} while (error == CCS_RETRY_REQUEST);
++	{
++		struct ccs_request_info r = { };
++		r.type = ccs_pnnn2mac[operation];
++		r.obj = &obj;
++		r.param_type = CCS_TYPE_MKDEV_ACL;
++		r.param.mkdev.filename = &buf;
++		r.param.mkdev.operation = operation;
++		r.param.mkdev.mode = mode;
++		r.param.mkdev.major = MAJOR(dev);
++		r.param.mkdev.minor = MINOR(dev);
++		error = ccs_check_acl(&r);
++	}
+ 	kfree(buf.name);
+-out:
+-	ccs_read_unlock(idx);
+-	if (!is_enforce)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -2576,29 +2273,22 @@
+ 			  struct vfsmount *mnt1, struct dentry *dentry2,
+ 			  struct vfsmount *mnt2)
+ {
+-	struct ccs_request_info r;
+-	int error = 0;
+-	struct ccs_path_info buf1;
+-	struct ccs_path_info buf2;
+-	bool is_enforce = false;
+ 	struct ccs_obj_info obj = {
+ 		.path1.dentry = dentry1,
+ 		.path1.mnt = mnt1,
+ 		.path2.dentry = dentry2,
+ 		.path2.mnt = mnt2,
+ 	};
+-	int idx;
+-	buf1.name = NULL;
+-	buf2.name = NULL;
+-	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_pp2mac[operation])
+-	    == CCS_CONFIG_DISABLED)
+-		goto out;
+-	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+-	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf1, dentry1, mnt1) ||
+-	    !ccs_get_realpath(&buf2, dentry2, mnt2))
+-		goto out;
++	int error;
++	struct ccs_path_info buf1;
++	struct ccs_path_info buf2;
++	ccs_check_auto_domain_transition();
++	if (!ccs_get_realpath(&buf1, &obj.path1))
++		return -ENOMEM;
++	if (!ccs_get_realpath(&buf2, &obj.path2)) {
++		kfree(buf1.name);
++		return -ENOMEM;
++	}
+ 	switch (operation) {
+ 	case CCS_TYPE_RENAME:
+ 	case CCS_TYPE_LINK:
+@@ -2610,25 +2300,65 @@
+ 		ccs_add_slash(&buf2);
+ 		break;
+ 	}
+-	r.obj = &obj;
+-	r.param_type = CCS_TYPE_PATH2_ACL;
+-	r.param.path2.operation = operation;
+-	r.param.path2.filename1 = &buf1;
+-	r.param.path2.filename2 = &buf2;
+-	do {
+-		ccs_check_acl(&r);
+-		error = ccs_audit_path2_log(&r);
+-	} while (error == CCS_RETRY_REQUEST);
+-out:
++	{
++		struct ccs_request_info r = { };
++		r.type = ccs_pp2mac[operation];
++		r.obj = &obj;
++		r.param_type = CCS_TYPE_PATH2_ACL;
++		r.param.path2.operation = operation;
++		r.param.path2.filename1 = &buf1;
++		r.param.path2.filename2 = &buf2;
++		error = ccs_check_acl(&r);
++	}
+ 	kfree(buf1.name);
+ 	kfree(buf2.name);
+-	ccs_read_unlock(idx);
+-	if (!is_enforce)
+-		error = 0;
+ 	return error;
+ }
+ 
+ /**
++ * __ccs_symlink_permission - Check permission for "symlink".
++ *
++ * @dentry: Pointer to "struct dentry".
++ * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
++ * @target: Content of symlink.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int __ccs_symlink_permission(struct dentry *dentry,
++				    struct vfsmount *mnt, const char *target)
++{
++	struct ccs_obj_info obj = {
++		.path1.dentry = dentry,
++		.path1.mnt = mnt,
++	};
++	int error;
++	struct ccs_path_info buf1;
++	struct ccs_path_info buf2;
++	ccs_check_auto_domain_transition();
++	if (!ccs_get_realpath(&buf1, &obj.path1))
++		return -ENOMEM;
++	buf2.name = ccs_encode(target);
++	if (!buf2.name) {
++		kfree(buf1.name);
++		return -ENOMEM;
++	}
++	ccs_fill_path_info(&buf2);
++	{
++		struct ccs_request_info r = { };
++		r.type = CCS_MAC_FILE_SYMLINK;
++		r.obj = &obj;
++		r.param_type = CCS_TYPE_PATH2_ACL;
++		r.param.path2.operation = CCS_TYPE_SYMLINK;
++		r.param.path2.filename1 = &buf1;
++		r.param.path2.filename2 = &buf2;
++		error = ccs_check_acl(&r);
++	}
++	kfree(buf1.name);
++	kfree(buf2.name);
++	return error;
++}
++
++/**
+  * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
+  *
+  * @type:   Type of operation.
+@@ -2641,38 +2371,30 @@
+ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
+ 				struct vfsmount *vfsmnt, unsigned long number)
+ {
+-	struct ccs_request_info r;
+ 	struct ccs_obj_info obj = {
+ 		.path1.dentry = dentry,
+ 		.path1.mnt = vfsmnt,
+ 	};
+-	int error = 0;
++	int error;
+ 	struct ccs_path_info buf;
+-	int idx;
+ 	if (!dentry)
+ 		return 0;
+-	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_pn2mac[type]) == CCS_CONFIG_DISABLED)
+-		goto out;
+-	error = -ENOMEM;
+-	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
+-		goto out;
+-	r.obj = &obj;
++	ccs_check_auto_domain_transition();
++	if (!ccs_get_realpath(&buf, &obj.path1))
++		return -ENOMEM;
+ 	if (type == CCS_TYPE_MKDIR)
+ 		ccs_add_slash(&buf);
+-	r.param_type = CCS_TYPE_PATH_NUMBER_ACL;
+-	r.param.path_number.operation = type;
+-	r.param.path_number.filename = &buf;
+-	r.param.path_number.number = number;
+-	do {
+-		ccs_check_acl(&r);
+-		error = ccs_audit_path_number_log(&r);
+-	} while (error == CCS_RETRY_REQUEST);
++	{
++		struct ccs_request_info r = { };
++		r.type = ccs_pn2mac[type];
++		r.obj = &obj;
++		r.param_type = CCS_TYPE_PATH_NUMBER_ACL;
++		r.param.path_number.operation = type;
++		r.param.path_number.filename = &buf;
++		r.param.path_number.number = number;
++		error = ccs_check_acl(&r);
++	}
+ 	kfree(buf.name);
+-out:
+-	ccs_read_unlock(idx);
+-	if (r.mode != CCS_CONFIG_ENFORCING)
+-		error = 0;
+ 	return error;
+ }
+ 
+@@ -2786,7 +2508,7 @@
+  */
+ static int __ccs_chroot_permission(struct path *path)
+ {
+-	return ccs_path_perm(CCS_TYPE_CHROOT, path->dentry, path->mnt, NULL);
++	return ccs_path_perm(CCS_TYPE_CHROOT, path->dentry, path->mnt);
+ }
+ 
+ /**
+@@ -2799,7 +2521,7 @@
+  */
+ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
+ {
+-	return ccs_path_perm(CCS_TYPE_UMOUNT, mnt->mnt_root, mnt, NULL);
++	return ccs_path_perm(CCS_TYPE_UMOUNT, mnt->mnt_root, mnt);
+ }
+ 
+ /**
+@@ -2868,7 +2590,7 @@
+  */
+ static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt)
+ {
+-	return ccs_path_perm(CCS_TYPE_RMDIR, dentry, mnt, NULL);
++	return ccs_path_perm(CCS_TYPE_RMDIR, dentry, mnt);
+ }
+ 
+ /**
+@@ -2881,7 +2603,7 @@
+  */
+ static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt)
+ {
+-	return ccs_path_perm(CCS_TYPE_UNLINK, dentry, mnt, NULL);
++	return ccs_path_perm(CCS_TYPE_UNLINK, dentry, mnt);
+ }
+ 
+ #ifdef CONFIG_CCSECURITY_FILE_GETATTR
+@@ -2897,27 +2619,12 @@
+ static int __ccs_getattr_permission(struct vfsmount *mnt,
+ 				    struct dentry *dentry)
+ {
+-	return ccs_path_perm(CCS_TYPE_GETATTR, dentry, mnt, NULL);
++	return ccs_path_perm(CCS_TYPE_GETATTR, dentry, mnt);
+ }
+ 
+ #endif
+ 
+ /**
+- * __ccs_symlink_permission - Check permission for vfs_symlink().
+- *
+- * @dentry: Pointer to "struct dentry".
+- * @mnt:    Pointer to "struct vfsmount". Maybe NULL.
+- * @from:   Content of symlink.
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int __ccs_symlink_permission(struct dentry *dentry,
+-				    struct vfsmount *mnt, const char *from)
+-{
+-	return ccs_path_perm(CCS_TYPE_SYMLINK, dentry, mnt, from);
+-}
+-
+-/**
+  * __ccs_truncate_permission - Check permission for notify_change().
+  *
+  * @dentry: Pointer to "struct dentry".
+@@ -2928,7 +2635,7 @@
+ static int __ccs_truncate_permission(struct dentry *dentry,
+ 				     struct vfsmount *mnt)
+ {
+-	return ccs_path_perm(CCS_TYPE_TRUNCATE, dentry, mnt, NULL);
++	return ccs_path_perm(CCS_TYPE_TRUNCATE, dentry, mnt);
+ }
+ 
+ /**
+@@ -3020,20 +2727,12 @@
+ 	int op = 0;
+ 	struct ccs_path_info buf;
+ 	char *buffer = NULL;
+-	struct ccs_request_info r;
+-	int idx;
+ 	if (oldval)
+ 		op |= 004;
+ 	if (newval)
+ 		op |= 002;
+ 	if (!op) /* Neither read nor write */
+ 		return 0;
+-	idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
+-	    == CCS_CONFIG_DISABLED) {
+-		error = 0;
+-		goto out;
+-	}
+ 	buffer = kmalloc(PAGE_SIZE, CCS_GFP_FLAGS);
+ 	if (!buffer)
+ 		goto out;
+@@ -3088,11 +2787,12 @@
+ 			goto out;
+ 		ccs_fill_path_info(&buf);
+ 		if (op & MAY_READ)
+-			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
++			error = ccs_path_permission(CCS_TYPE_READ, &buf, NULL);
+ 		else
+ 			error = 0;
+ 		if (!error && (op & MAY_WRITE))
+-			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
++			error = ccs_path_permission(CCS_TYPE_WRITE, &buf,
++						    NULL);
+ 		kfree(buf.name);
+ 		if (error)
+ 			goto out;
+@@ -3109,17 +2809,17 @@
+ 			goto out;
+ 		ccs_fill_path_info(&buf);
+ 		if (op & MAY_READ)
+-			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
++			error = ccs_path_permission(CCS_TYPE_READ, &buf, NULL);
+ 		else
+ 			error = 0;
+ 		if (!error && (op & MAY_WRITE))
+-			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
++			error = ccs_path_permission(CCS_TYPE_WRITE, &buf,
++						    NULL);
+ 		kfree(buf.name);
+ 		goto out;
+ 	}
+ 	error = -ENOTDIR;
+ out:
+-	ccs_read_unlock(idx);
+ 	kfree(buffer);
+ 	return error;
+ }
+@@ -3162,64 +2862,6 @@
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 
+ /**
+- * ccs_audit_net_log - Audit network log.
+- *
+- * @r:         Pointer to "struct ccs_request_info".
+- * @family:    Name of socket family ("inet" or "unix").
+- * @protocol:  Name of protocol in @family.
+- * @operation: Name of socket operation.
+- * @address:   Name of address.
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
+-			     const u8 protocol, const u8 operation,
+-			     const char *address)
+-{
+-	return ccs_supervisor(r, "network %s %s %s %s\n", family,
+-			      ccs_proto_keyword[protocol],
+-			      ccs_socket_keyword[operation], address);
+-}
+-
+-/**
+- * ccs_audit_inet_log - Audit INET network log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_inet_log(struct ccs_request_info *r)
+-{
+-	char buf[128];
+-	int len;
+-	const u32 *address = r->param.inet_network.address;
+-	if (r->param.inet_network.is_ipv6)
+-		ccs_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
+-			       address);
+-	else
+-		ccs_print_ipv4(buf, sizeof(buf), address);
+-	len = strlen(buf);
+-	snprintf(buf + len, sizeof(buf) - len, " %u",
+-		 r->param.inet_network.port);
+-	return ccs_audit_net_log(r, "inet", r->param.inet_network.protocol,
+-				 r->param.inet_network.operation, buf);
+-}
+-
+-/**
+- * ccs_audit_unix_log - Audit UNIX network log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_unix_log(struct ccs_request_info *r)
+-{
+-	return ccs_audit_net_log(r, "unix", r->param.unix_network.protocol,
+-				 r->param.unix_network.operation,
+-				 r->param.unix_network.address->name);
+-}
+-
+-/**
+  * ccs_address_matches_group - Check whether the given address matches members of the given address group.
+  *
+  * @is_ipv6: True if @address is an IPv6 address.
+@@ -3236,6 +2878,8 @@
+ 	struct ccs_address_group *member;
+ 	bool matched = false;
+ 	const u8 size = is_ipv6 ? 16 : 4;
++	if (group == &ccs_group_any)
++		return true;
+ 	list_for_each_entry_srcu(member, &group->member_list, head.list,
+ 				 &ccs_ss) {
+ 		if (member->head.is_deleted)
+@@ -3304,11 +2948,11 @@
+  */
+ static int ccs_inet_entry(const struct ccs_addr_info *address)
+ {
+-	const int idx = ccs_read_lock();
+-	struct ccs_request_info r;
+-	int error = 0;
+ 	const u8 type = ccs_inet2mac[address->protocol][address->operation];
+-	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
++	ccs_check_auto_domain_transition();
++	if (type) {
++		struct ccs_request_info r = { };
++		r.type = type;
+ 		r.param_type = CCS_TYPE_INET_ACL;
+ 		r.param.inet_network.protocol = address->protocol;
+ 		r.param.inet_network.operation = address->operation;
+@@ -3321,13 +2965,9 @@
+ 			|| address->operation == CCS_NETWORK_RECV
+ #endif
+ 			;
+-		do {
+-			ccs_check_acl(&r);
+-			error = ccs_audit_inet_log(&r);
+-		} while (error == CCS_RETRY_REQUEST);
++		return ccs_check_acl(&r);
+ 	}
+-	ccs_read_unlock(idx);
+-	return error;
++	return 0;
+ }
+ 
+ /**
+@@ -3380,11 +3020,9 @@
+  */
+ static int ccs_unix_entry(const struct ccs_addr_info *address)
+ {
+-	const int idx = ccs_read_lock();
+-	struct ccs_request_info r;
+ 	int error = 0;
+ 	const u8 type = ccs_unix2mac[address->protocol][address->operation];
+-	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
++	if (type) {
+ 		char *buf = address->unix0.addr;
+ 		int len = address->unix0.addr_len - sizeof(sa_family_t);
+ 		if (len <= 0) {
+@@ -3396,8 +3034,10 @@
+ 		buf = ccs_encode2(buf, len);
+ 		if (buf) {
+ 			struct ccs_path_info addr;
++			struct ccs_request_info r = { };
+ 			addr.name = buf;
+ 			ccs_fill_path_info(&addr);
++			r.type = type;
+ 			r.param_type = CCS_TYPE_UNIX_ACL;
+ 			r.param.unix_network.protocol = address->protocol;
+ 			r.param.unix_network.operation = address->operation;
+@@ -3408,15 +3048,11 @@
+ 				|| address->operation == CCS_NETWORK_RECV
+ #endif
+ 				;
+-			do {
+-				ccs_check_acl(&r);
+-				error = ccs_audit_unix_log(&r);
+-			} while (error == CCS_RETRY_REQUEST);
++			error = ccs_check_acl(&r);
+ 			kfree(buf);
+ 		} else
+ 			error = -ENOMEM;
+ 	}
+-	ccs_read_unlock(idx);
+ 	return error;
+ }
+ 
+@@ -3757,19 +3393,6 @@
+ #ifdef CONFIG_CCSECURITY_CAPABILITY
+ 
+ /**
+- * ccs_audit_capability_log - Audit capability log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_capability_log(struct ccs_request_info *r)
+-{
+-	return ccs_supervisor(r, "capability %s\n", ccs_mac_keywords
+-			      [ccs_c2mac[r->param.capability.operation]]);
+-}
+-
+-/**
+  * ccs_check_capability_acl - Check permission for capability operation.
+  *
+  * @r:   Pointer to "struct ccs_request_info".
+@@ -3794,20 +3417,11 @@
+  */
+ static bool __ccs_capable(const u8 operation)
+ {
+-	struct ccs_request_info r;
+-	int error = 0;
+-	const int idx = ccs_read_lock();
+-	if (ccs_init_request_info(&r, ccs_c2mac[operation])
+-	    != CCS_CONFIG_DISABLED) {
+-		r.param_type = CCS_TYPE_CAPABILITY_ACL;
+-		r.param.capability.operation = operation;
+-		do {
+-			ccs_check_acl(&r);
+-			error = ccs_audit_capability_log(&r);
+-		} while (error == CCS_RETRY_REQUEST);
+-	}
+-	ccs_read_unlock(idx);
+-	return !error;
++	struct ccs_request_info r = { };
++	r.type = ccs_c2mac[operation];
++	r.param_type = CCS_TYPE_CAPABILITY_ACL;
++	r.param.capability.operation = operation;
++	return !ccs_check_acl(&r);
+ }
+ 
+ /**
+@@ -3830,170 +3444,67 @@
+ 	return 0;
+ }
+ 
+-/**
+- * __ccs_ptrace_permission - Check permission for ptrace().
+- *
+- * @request: Unused.
+- * @pid:     Unused.
+- *
+- * Returns 0 on success, negative value otherwise.
+- *
+- * Since this function is called from location where it is permitted to sleep,
+- * it is racy to check target process's domainname anyway. Therefore, we don't
+- * use target process's domainname.
+- */
+-static int __ccs_ptrace_permission(long request, long pid)
+-{
+-	return __ccs_capable(CCS_SYS_PTRACE) ? 0 : -EPERM;
+-}
+-
+ #endif
+ 
+ #ifdef CONFIG_CCSECURITY_IPC
+ 
+ /**
+- * ccs_audit_signal_log - Audit signal log.
++ * ccs_check_ptrace_acl - Check permission for ptrace operation.
+  *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_signal_log(struct ccs_request_info *r)
+-{
+-	return ccs_supervisor(r, "ipc signal %d %s\n", r->param.signal.sig,
+-			      r->param.signal.dest_pattern);
+-}
+-
+-/**
+- * ccs_check_signal_acl - Check permission for signal operation.
+- *
+  * @r:   Pointer to "struct ccs_request_info".
+  * @ptr: Pointer to "struct ccs_acl_info".
+  *
+  * Returns true if granted, false otherwise.
+  */
+-static bool ccs_check_signal_acl(struct ccs_request_info *r,
++static bool ccs_check_ptrace_acl(struct ccs_request_info *r,
+ 				 const struct ccs_acl_info *ptr)
+ {
+-	const struct ccs_signal_acl *acl =
++	const struct ccs_ptrace_acl *acl =
+ 		container_of(ptr, typeof(*acl), head);
+-	if (ccs_compare_number_union(r->param.signal.sig, &acl->sig)) {
+-		const int len = acl->domainname->total_len;
+-		if (!strncmp(acl->domainname->name,
+-			     r->param.signal.dest_pattern, len)) {
+-			switch (r->param.signal.dest_pattern[len]) {
+-			case ' ':
+-			case '\0':
+-				return true;
+-			}
+-		}
+-	}
+-	return false;
++	return ccs_compare_number_union(r->param.ptrace.request,
++					&acl->request) &&
++		!strcmp(acl->domainname->name, r->param.ptrace.domainname);
+ }
+ 
+ /**
+- * ccs_signal_acl2 - Check permission for signal.
++ * __ccs_ptrace_permission - Check permission for ptrace().
+  *
+- * @sig: Signal number.
+- * @pid: Target's PID.
++ * @request: Command number.
++ * @pid:     Target's PID.
+  *
+  * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
+  */
+-static int ccs_signal_acl2(const int sig, const int pid)
++static int __ccs_ptrace_permission(long request, long pid)
+ {
+-	struct ccs_request_info r;
+ 	struct ccs_domain_info *dest = NULL;
+-	int error;
+-	const struct ccs_domain_info * const domain = ccs_current_domain();
+-	if (ccs_init_request_info(&r, CCS_MAC_SIGNAL) == CCS_CONFIG_DISABLED)
+-		return 0;
+-	if (!sig)
+-		return 0;                /* No check for NULL signal. */
+-	r.param_type = CCS_TYPE_SIGNAL_ACL;
+-	r.param.signal.sig = sig;
+-	r.param.signal.dest_pattern = domain->domainname->name;
+-	r.granted = true;
+-	if (ccs_sys_getpid() == pid) {
+-		ccs_audit_signal_log(&r);
+-		return 0;                /* No check for self process. */
+-	}
+-	{ /* Simplified checking. */
++	struct ccs_request_info r = { };
++	int error = -ESRCH;
++	const int idx = ccs_read_lock();
++	ccs_check_auto_domain_transition();
++	{
+ 		struct task_struct *p = NULL;
+ 		ccs_tasklist_lock();
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+-		if (pid > 0)
+-			p = ccsecurity_exports.find_task_by_vpid((pid_t) pid);
+-		else if (pid == 0)
+-			p = current;
+-		else if (pid == -1)
+-			dest = &ccs_kernel_domain;
+-		else
+-			p = ccsecurity_exports.find_task_by_vpid((pid_t) -pid);
++		p = ccsecurity_exports.find_task_by_vpid((pid_t) pid);
+ #else
+-		if (pid > 0)
+-			p = find_task_by_pid((pid_t) pid);
+-		else if (pid == 0)
+-			p = current;
+-		else if (pid == -1)
+-			dest = &ccs_kernel_domain;
+-		else
+-			p = find_task_by_pid((pid_t) -pid);
++		p = find_task_by_pid((pid_t) -pid);
+ #endif
+ 		if (p)
+ 			dest = ccs_task_domain(p);
+ 		ccs_tasklist_unlock();
++		if (!dest)
++			goto out;
+ 	}
+-	if (!dest)
+-		return 0; /* I can't find destinatioin. */
+-	if (domain == dest) {
+-		ccs_audit_signal_log(&r);
+-		return 0;                /* No check for self domain. */
+-	}
+-	r.param.signal.dest_pattern = dest->domainname->name;
+-	do {
+-		ccs_check_acl(&r);
+-		error = ccs_audit_signal_log(&r);
+-	} while (error == CCS_RETRY_REQUEST);
++	r.type = CCS_MAC_PTRACE;
++	r.param_type = CCS_TYPE_PTRACE_ACL;
++	r.param.ptrace.request = request;
++	r.param.ptrace.domainname = dest->domainname->name;
++	error = ccs_check_acl(&r);
++out:
++	ccs_read_unlock(idx);
+ 	return error;
+ }
+ 
+-/**
+- * ccs_signal_acl - Check permission for signal.
+- *
+- * @pid: Target's PID.
+- * @sig: Signal number.
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_signal_acl(const int pid, const int sig)
+-{
+-	int error;
+-	if (!sig)
+-		error = 0;
+-	else {
+-		const int idx = ccs_read_lock();
+-		error = ccs_signal_acl2(sig, pid);
+-		ccs_read_unlock(idx);
+-	}
+-	return error;
+-}
+-
+-/**
+- * ccs_signal_acl0 - Permission check for signal().
+- *
+- * @tgid: Unused.
+- * @pid:  Target's PID.
+- * @sig:  Signal number.
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig)
+-{
+-	return ccs_signal_acl(pid, sig);
+-}
+-
+ #endif
+ 
+ #ifdef CONFIG_CCSECURITY_MISC
+@@ -4014,42 +3525,24 @@
+ }
+ 
+ /**
+- * ccs_audit_env_log - Audit environment variable name log.
+- *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-static int ccs_audit_env_log(struct ccs_request_info *r)
+-{
+-	return ccs_supervisor(r, "misc env %s\n", r->param.environ.name->name);
+-}
+-
+-/**
+  * ccs_env_perm - Check permission for environment variable's name.
+  *
+  * @r:   Pointer to "struct ccs_request_info".
+  * @env: The name of environment variable.
+  *
+  * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds ccs_read_lock().
+  */
+ static int ccs_env_perm(struct ccs_request_info *r, const char *env)
+ {
+ 	struct ccs_path_info environ;
+-	int error;
+ 	if (!env || !*env)
+ 		return 0;
+ 	environ.name = env;
+ 	ccs_fill_path_info(&environ);
++	r->type = CCS_MAC_ENVIRON;
+ 	r->param_type = CCS_TYPE_ENV_ACL;
+ 	r->param.environ.name = &environ;
+-	do {
+-		ccs_check_acl(r);
+-		error = ccs_audit_env_log(r);
+-	} while (error == CCS_RETRY_REQUEST);
+-	return error;
++	return ccs_check_acl(r);
+ }
+ 
+ /**
+@@ -4071,13 +3564,7 @@
+ 	int offset = pos % PAGE_SIZE;
+ 	int argv_count = bprm->argc;
+ 	int envp_count = bprm->envc;
+-	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
+ 	int error = -ENOMEM;
+-	ee->r.type = CCS_MAC_ENVIRON;
+-	ee->r.profile = ccs_current_domain()->profile;
+-	ee->r.mode = ccs_get_mode(ee->r.profile, CCS_MAC_ENVIRON);
+-	if (!r->mode || !envp_count)
+-		return 0;
+ 	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+ 	if (!arg_ptr)
+ 		goto out;
+@@ -4129,8 +3616,6 @@
+ 		offset = 0;
+ 	}
+ out:
+-	if (r->mode != CCS_CONFIG_ENFORCING)
+-		error = 0;
+ 	kfree(env_page.data);
+ 	kfree(arg_ptr);
+ 	return error;
+@@ -4361,11 +3846,11 @@
+ 	if (!file)
+ 		return false;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
+-	exe.name = ccs_realpath_from_path(&file->f_path);
++	exe.name = ccs_realpath(&file->f_path);
+ #else
+ 	path.mnt = file->f_vfsmnt;
+ 	path.dentry = file->f_dentry;
+-	exe.name = ccs_realpath_from_path(&path);
++	exe.name = ccs_realpath(&path);
+ #endif
+ 	if (!exe.name)
+ 		return false;
+@@ -4488,23 +3973,11 @@
+ 		/* Check string expressions. */
+ 		if (right == CCS_NAME_UNION) {
+ 			const struct ccs_name_union *ptr = names_p++;
+-			switch (left) {
+-				struct ccs_path_info *symlink;
+-				struct ccs_execve *ee;
+-				struct file *file;
+-			case CCS_SYMLINK_TARGET:
+-				symlink = obj ? obj->symlink_target : NULL;
+-				if (!symlink ||
+-				    !ccs_compare_name_union(symlink, ptr)
+-				    == match)
+-					goto out;
+-				break;
+-			case CCS_EXEC_REALPATH:
+-				ee = r->ee;
+-				file = ee ? ee->bprm->file : NULL;
++			if (left == CCS_EXEC_REALPATH) {
++				struct ccs_execve *ee = r->ee;
++				struct file *file = ee ? ee->bprm->file : NULL;
+ 				if (!ccs_scan_exec_realpath(file, ptr, match))
+ 					goto out;
+-				break;
+ 			}
+ 			continue;
+ 		}
+@@ -4819,47 +4292,35 @@
+ #endif
+ 
+ /**
+- * ccs_init_request_info - Initialize "struct ccs_request_info" members.
++ * ccs_check_auto_domain_transition - Check "task auto_domain_transition" entry.
+  *
+- * @r:     Pointer to "struct ccs_request_info" to initialize.
+- * @index: Index number of functionality.
++ * Returns nothing.
+  *
+- * Returns mode.
+- *
+- * "task auto_domain_transition" keyword is evaluated before returning mode for
+- * @index. If "task auto_domain_transition" keyword was specified and
+- * transition to that domain failed, the current thread will be killed by
+- * SIGKILL. Note that if current->pid == 1, sending SIGKILL won't work.
++ * If "task auto_domain_transition" keyword was specified and transition to
++ * that domain failed, the current thread will be killed by SIGKILL. Note that
++ * if current->pid == 1, sending SIGKILL won't work.
+  */
+-int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
++static void ccs_check_auto_domain_transition(void)
+ {
+ #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+ 	u8 i;
+ 	const char *buf;
++	const int idx = ccs_read_lock();
+ 	for (i = 0; i < 255; i++) {
+-		const u8 profile = ccs_current_domain()->profile;
+-		memset(r, 0, sizeof(*r));
+-		r->profile = profile;
+-		r->type = index;
+-		r->mode = ccs_get_mode(profile, index);
+-		r->param_type = CCS_TYPE_AUTO_TASK_ACL;
+-		ccs_check_acl(r);
+-		if (!r->granted)
+-			return r->mode;
+-		buf = container_of(r->matched_acl, typeof(struct ccs_task_acl),
++		struct ccs_request_info r = { };
++		r.param_type = CCS_TYPE_AUTO_TASK_ACL;
++		ccs_check_acl(&r);
++		if (!r.granted)
++			goto done;
++		buf = container_of(r.matched_acl, typeof(struct ccs_task_acl),
+ 				   head)->domainname->name;
+ 		if (!ccs_assign_domain(buf, true))
+ 			break;
+ 	}
+-	ccs_transition_failed(buf);
+-	return CCS_CONFIG_DISABLED;
+-#else
+-	const u8 profile = ccs_current_domain()->profile;
+-	memset(r, 0, sizeof(*r));
+-	r->profile = profile;
+-	r->type = index;
+-	r->mode = ccs_get_mode(profile, index);
+-	return r->mode;
++	printk(KERN_WARNING "ERROR: Unable to transit to '%s' domain.\n", buf);
++	force_sig(SIGKILL, current);
++done:
++	ccs_read_unlock(idx);
+ #endif
+ }
+ 
+Index: security/ccsecurity/gc.c
+===================================================================
+--- security/ccsecurity/gc.c	(revision 5665)
++++ security/ccsecurity/gc.c	(working copy)
+@@ -54,6 +54,7 @@
+ static bool ccs_struct_used_by_io_buffer(const struct list_head *element);
+ static int ccs_gc_thread(void *unused);
+ static void ccs_collect_acl(struct list_head *list);
++static void ccs_collect_domain(struct list_head *list);
+ static void ccs_collect_entry(void);
+ static void ccs_collect_member(const enum ccs_policy_id id,
+ 			       struct list_head *member_list);
+@@ -103,18 +104,14 @@
+ {
+ 	/* Size of an element. */
+ 	static const u8 e[CCS_MAX_POLICY] = {
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-		[CCS_ID_RESERVEDPORT] = sizeof(struct ccs_reserved),
+-#endif
+ 		[CCS_ID_GROUP] = sizeof(struct ccs_group),
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 		[CCS_ID_ADDRESS_GROUP] = sizeof(struct ccs_address_group),
+ #endif
+ 		[CCS_ID_PATH_GROUP] = sizeof(struct ccs_path_group),
+ 		[CCS_ID_NUMBER_GROUP] = sizeof(struct ccs_number_group),
+-		[CCS_ID_AGGREGATOR] = sizeof(struct ccs_aggregator),
+-		[CCS_ID_TRANSITION_CONTROL]
+-		= sizeof(struct ccs_transition_control),
++		//[CCS_ID_TRANSITION_CONTROL]
++		//= sizeof(struct ccs_transition_control),
+ 		[CCS_ID_MANAGER] = sizeof(struct ccs_manager),
+ 		/* [CCS_ID_CONDITION] = "struct ccs_condition"->size, */
+ 		/* [CCS_ID_NAME] = "struct ccs_name"->size, */
+@@ -140,7 +137,7 @@
+ 		[CCS_TYPE_CAPABILITY_ACL] = sizeof(struct ccs_capability_acl),
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-		[CCS_TYPE_SIGNAL_ACL] = sizeof(struct ccs_signal_acl),
++		[CCS_TYPE_PTRACE_ACL] = sizeof(struct ccs_ptrace_acl),
+ #endif
+ #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+ 		[CCS_TYPE_AUTO_EXECUTE_HANDLER]
+@@ -211,7 +208,8 @@
+ 		spin_unlock(&ccs_io_buffer_list_lock);
+ 		mutex_lock(&head->io_sem);
+ 		if (head->r.domain == element || head->r.group == element ||
+-		    head->r.acl == element || &head->w.domain->list == element)
++		    head->r.acl == element || &head->w.domain->list == element
++		    || &head->w.acl->list == element)
+ 			in_use = true;
+ 		mutex_unlock(&head->io_sem);
+ 		spin_lock(&ccs_io_buffer_list_lock);
+@@ -259,36 +257,6 @@
+ }
+ 
+ /**
+- * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
+- *
+- * @element: Pointer to "struct list_head".
+- *
+- * Returns nothing.
+- */
+-static inline void ccs_del_transition_control(struct list_head *element)
+-{
+-	struct ccs_transition_control *ptr =
+-		container_of(element, typeof(*ptr), head.list);
+-	ccs_put_name(ptr->domainname);
+-	ccs_put_name(ptr->program);
+-}
+-
+-/**
+- * ccs_del_aggregator - Delete members in "struct ccs_aggregator".
+- *
+- * @element: Pointer to "struct list_head".
+- *
+- * Returns nothing.
+- */
+-static inline void ccs_del_aggregator(struct list_head *element)
+-{
+-	struct ccs_aggregator *ptr =
+-		container_of(element, typeof(*ptr), head.list);
+-	ccs_put_name(ptr->original_name);
+-	ccs_put_name(ptr->aggregated_name);
+-}
+-
+-/**
+  * ccs_del_manager - Delete members in "struct ccs_manager".
+  *
+  * @element: Pointer to "struct list_head".
+@@ -458,11 +426,11 @@
+ 		break;
+ #endif
+ #ifdef CONFIG_CCSECURITY_IPC
+-	case CCS_TYPE_SIGNAL_ACL:
++	case CCS_TYPE_PTRACE_ACL:
+ 		{
+-			struct ccs_signal_acl *entry =
++			struct ccs_ptrace_acl *entry =
+ 				container_of(acl, typeof(*entry), head);
+-			ccs_put_number_union(&entry->sig);
++			ccs_put_number_union(&entry->request);
+ 			ccs_put_name(entry->domainname);
+ 		}
+ 		break;
+@@ -515,6 +483,7 @@
+ 		ccs_memory_free(acl, CCS_ID_ACL);
+ 	}
+ 	ccs_put_name(domain->domainname);
++	ccs_put_condition(domain->cond);
+ }
+ 
+ /**
+@@ -570,18 +539,6 @@
+ }
+ 
+ /**
+- * ccs_del_reservedport - Delete members in "struct ccs_reserved".
+- *
+- * @element: Pointer to "struct list_head".
+- *
+- * Returns nothing.
+- */
+-static inline void ccs_del_reservedport(struct list_head *element)
+-{
+-	/* Nothing to do. */
+-}
+-
+-/**
+  * ccs_del_condition - Delete members in "struct ccs_condition".
+  *
+  * @element: Pointer to "struct list_head".
+@@ -618,7 +575,6 @@
+ 		ccs_put_name(envp->name);
+ 		ccs_put_name(envp->value);
+ 	}
+-	ccs_put_name(cond->transit);
+ }
+ 
+ /**
+@@ -732,15 +688,9 @@
+ 	if (ccs_struct_used_by_io_buffer(element))
+ 		goto reinject;
+ 	switch (type) {
+-	case CCS_ID_TRANSITION_CONTROL:
+-		ccs_del_transition_control(element);
+-		break;
+ 	case CCS_ID_MANAGER:
+ 		ccs_del_manager(element);
+ 		break;
+-	case CCS_ID_AGGREGATOR:
+-		ccs_del_aggregator(element);
+-		break;
+ 	case CCS_ID_GROUP:
+ 		ccs_del_group(element);
+ 		break;
+@@ -755,11 +705,6 @@
+ 	case CCS_ID_NUMBER_GROUP:
+ 		ccs_del_number_group(element);
+ 		break;
+-#ifdef CONFIG_CCSECURITY_PORTRESERVE
+-	case CCS_ID_RESERVEDPORT:
+-		ccs_del_reservedport(element);
+-		break;
+-#endif
+ 	case CCS_ID_CONDITION:
+ 		ccs_del_condition(element);
+ 		break;
+@@ -776,6 +721,7 @@
+ 			goto reinject;
+ 		ccs_del_name(element);
+ 		break;
++	case CCS_ID_TRANSITION_CONTROL:
+ 	case CCS_ID_ACL:
+ 		ccs_del_acl(element);
+ 		break;
+@@ -855,6 +801,27 @@
+ }
+ 
+ /**
++ * ccs_collect_domain - Delete domains in "struct ccs_acl_info".
++ *
++ * @list: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ *
++ * Caller holds ccs_policy_lock mutex.
++ */
++static void ccs_collect_domain(struct list_head *list)
++{
++	struct ccs_domain_info *domain;
++	struct ccs_domain_info *tmp;
++	list_for_each_entry_safe(domain, tmp, list, list) {
++		if (!domain->is_deleted)
++			continue;
++		domain->is_deleted = CCS_GC_IN_PROGRESS;
++		ccs_try_to_gc(CCS_ID_DOMAIN, &domain->list);
++	}
++}
++
++/**
+  * ccs_collect_entry - Try to kfree() deleted elements.
+  *
+  * Returns nothing.
+@@ -883,6 +850,18 @@
+ 			ccs_collect_acl(&ns->acl_group[i]);
+ 	}
+ 	{
++		struct ccs_acl_info *ptr;
++		struct ccs_acl_info *tmp;
++		list_for_each_entry_safe(ptr, tmp, &ccs_inversed_acl_list,
++					  list) {
++			ccs_collect_domain(&ptr->domain_list);
++			if (!ptr->is_deleted || !list_empty(&ptr->domain_list))
++				continue;
++			ptr->is_deleted = CCS_GC_IN_PROGRESS;
++			ccs_try_to_gc(CCS_ID_ACL, &ptr->list);
++		}
++	}
++	{
+ 		struct ccs_shared_acl_head *ptr;
+ 		struct ccs_shared_acl_head *tmp;
+ 		list_for_each_entry_safe(ptr, tmp, &ccs_condition_list, list) {
+Index: security/ccsecurity/Config.in
+===================================================================
+--- security/ccsecurity/Config.in	(revision 5665)
++++ security/ccsecurity/Config.in	(working copy)
+@@ -71,13 +71,6 @@
+   [ -z "$CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION" ] && define_bool CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION y
+   bool "Enable domain transition without program execution request." CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+ 
+-  if [ "$CONFIG_NET" = "y" ]; then
+-
+-     [ -z "$CONFIG_CCSECURITY_PORTRESERVE" ] && define_bool CONFIG_CCSECURITY_PORTRESERVE y
+-     bool "Enable local port reserver." CONFIG_CCSECURITY_PORTRESERVE
+-
+-  fi
+-
+ fi
+ 
+ endmenu

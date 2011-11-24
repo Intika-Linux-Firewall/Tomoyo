@@ -1,0 +1,200 @@
+Index: security/ccsecurity/internal.h
+===================================================================
+--- security/ccsecurity/internal.h	(revision 5665)
++++ security/ccsecurity/internal.h	(working copy)
+@@ -412,6 +412,7 @@
+ 	CCS_TYPE_AUTO_TASK_ACL,
+ 	CCS_TYPE_MANUAL_TASK_ACL,
+ #endif
++	CCS_TYPE_USE_GROUP_ACL,
+ };
+ 
+ /* Index numbers for "struct ccs_condition". */
+@@ -513,6 +514,7 @@
+ enum ccs_group_id {
+ 	CCS_PATH_GROUP,
+ 	CCS_NUMBER_GROUP,
++	CCS_ACL_GROUP,
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 	CCS_ADDRESS_GROUP,
+ #endif
+@@ -714,6 +716,7 @@
+ #endif
+ 	CCS_ID_PATH_GROUP,
+ 	CCS_ID_NUMBER_GROUP,
++	CCS_ID_ACL_GROUP,
+ 	CCS_ID_AGGREGATOR,
+ 	CCS_ID_TRANSITION_CONTROL,
+ 	CCS_ID_MANAGER,
+@@ -928,6 +931,12 @@
+ 	struct ccs_number_union number;
+ };
+ 
++/* Structure for "acl_group" directive. */
++struct ccs_acl_group {
++	struct ccs_acl_head head;
++	struct ccs_acl_info *acl;
++};
++
+ /* Structure for "address_group" directive. */
+ struct ccs_address_group {
+ 	struct ccs_acl_head head;
+@@ -1354,6 +1363,12 @@
+ 	struct ccs_name_union name;
+ };
+ 
++/* Structure for "use_group_acl" directive. */
++struct ccs_use_group_acl {
++	struct ccs_acl_info head; /* type = CCS_TYPE_USE_GROUP_ACL */
++	struct ccs_group *group;
++};
++
+ /* Structure for holding string data. */
+ struct ccs_name {
+ 	struct ccs_shared_acl_head head;
+@@ -1381,6 +1396,7 @@
+ 		struct ccs_signal_acl signal_acl;
+ 		struct ccs_inet_acl inet_acl;
+ 		struct ccs_unix_acl unix_acl;
++		struct ccs_use_group_acl use_group_acl;
+ 		/**/
+ 		struct ccs_acl_head acl_head;
+ 		struct ccs_transition_control transition_control;
+@@ -1389,6 +1405,7 @@
+ 		struct ccs_manager manager;
+ 		struct ccs_path_group path_group;
+ 		struct ccs_number_group number_group;
++		struct ccs_acl_group acl_group;
+ 		struct ccs_address_group address_group;
+ 	} e;
+ };
+Index: security/ccsecurity/policy_io.c
+===================================================================
+--- security/ccsecurity/policy_io.c	(revision 5665)
++++ security/ccsecurity/policy_io.c	(working copy)
+@@ -344,6 +344,7 @@
+ static const char * const ccs_group_name[CCS_MAX_GROUP] = {
+ 	[CCS_PATH_GROUP]    = "path_group ",
+ 	[CCS_NUMBER_GROUP]  = "number_group ",
++	[CCS_ACL_GROUP]     = "acl_group ",
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 	[CCS_ADDRESS_GROUP] = "address_group ",
+ #endif
+@@ -3393,6 +3394,26 @@
+ #endif
+ 
+ /**
++ * ccs_write_use_group_acl - Write "struct ccs_use_group_acl" list.
++ *
++ * @param: Pointer to "struct ccs_acl_param".
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds ccs_read_lock().
++ */
++static int ccs_write_use_group_acl(struct ccs_acl_param *param)
++{
++	struct ccs_use_group_acl *e = &param->e.use_group_acl;
++	if (!ccs_correct_word(param->data))
++		return -EINVAL;
++	e->group = ccs_get_group(param, CCS_ACL_GROUP);
++	if (!e->group)
++		return -ENOMEM;
++	return ccs_update_domain(sizeof(*e), param);
++}
++
++/**
+  * ccs_write_domain2 - Write domain policy.
+  *
+  * @ns:        Pointer to "struct ccs_policy_namespace".
+@@ -3433,6 +3454,7 @@
+ 		{ "ipc signal ", ccs_write_ipc },
+ #endif
+ 		{ "task ", ccs_write_task },
++		{ "use_acl_group ", ccs_write_use_group_acl },
+ 	};
+ 	u8 i;
+ 	/* Forced zero clear for using memcmp() at ccs_update_domain(). */
+@@ -4200,6 +4222,9 @@
+ 		    !ccs_parse_number_union(param, &e->number))
+ 			goto out;
+ 		error = ccs_update_policy(sizeof(*e), param);
++	} else if (type == CCS_ACL_GROUP) {
++		error = ccs_write_domain2(param->ns, param->list, param->data,
++					  param->is_delete);
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 	} else {
+ 		struct ccs_address_group *e = &param->e.address_group;
+@@ -4434,6 +4459,10 @@
+ 				ccs_print_number_union(head, &container_of
+ 					       (ptr, struct ccs_number_group,
+ 						head)->number);
++			} else if (idx == CCS_ACL_GROUP) {
++				ccs_print_entry(head, container_of
++						(ptr, struct ccs_acl_group,
++						 head)->acl); // BUG
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 			} else if (idx == CCS_ADDRESS_GROUP) {
+ 				char buffer[128];
+Index: security/ccsecurity/gc.c
+===================================================================
+--- security/ccsecurity/gc.c	(revision 5665)
++++ security/ccsecurity/gc.c	(working copy)
+@@ -112,6 +112,7 @@
+ #endif
+ 		[CCS_ID_PATH_GROUP] = sizeof(struct ccs_path_group),
+ 		[CCS_ID_NUMBER_GROUP] = sizeof(struct ccs_number_group),
++		[CCS_ID_ACL_GROUP] = sizeof(struct ccs_acl_group),
+ 		[CCS_ID_AGGREGATOR] = sizeof(struct ccs_aggregator),
+ 		[CCS_ID_TRANSITION_CONTROL]
+ 		= sizeof(struct ccs_transition_control),
+@@ -152,6 +153,7 @@
+ 		[CCS_TYPE_AUTO_TASK_ACL] = sizeof(struct ccs_task_acl),
+ 		[CCS_TYPE_MANUAL_TASK_ACL] = sizeof(struct ccs_task_acl),
+ #endif
++		[CCS_TYPE_USE_GROUP_ACL] = sizeof(struct ccs_use_group_acl),
+ 	};
+ 	size_t size;
+ 	if (type == CCS_ID_ACL)
+@@ -532,6 +534,21 @@
+ }
+ 
+ /**
++ * ccs_del_acl_group - Delete members in "struct ccs_acl_group".
++ *
++ * @element: Pointer to "struct list_head".
++ *
++ * Returns nothing.
++ */
++static inline void ccs_del_acl_group(struct list_head *element)
++{
++	struct ccs_acl_group *member =
++		container_of(element, typeof(*member), head.list);
++	ccs_del_acl(&member->acl->list);
++	ccs_memory_free(member->acl, CCS_ID_ACL);
++}
++
++/**
+  * ccs_del_group - Delete "struct ccs_group".
+  *
+  * @element: Pointer to "struct list_head".
+@@ -744,6 +761,9 @@
+ 	case CCS_ID_GROUP:
+ 		ccs_del_group(element);
+ 		break;
++	case CCS_ID_ACL_GROUP:
++		ccs_del_acl_group(element);
++		break;
+ 	case CCS_ID_PATH_GROUP:
+ 		ccs_del_path_group(element);
+ 		break;
+@@ -904,6 +924,9 @@
+ 			case 1:
+ 				id = CCS_ID_NUMBER_GROUP;
+ 				break;
++			case 2:
++				id = CCS_ID_ACL_GROUP;
++				break;
+ 			default:
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 				id = CCS_ID_ADDRESS_GROUP;
