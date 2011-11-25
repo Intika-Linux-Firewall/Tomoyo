@@ -7,7 +7,7 @@ URL_KERNEL="http://www.mirrorservice.org/sites/ftp.scientificlinux.org/linux/sci
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p3"
 CCSPATCH_VER="1.8.3-20111118"
-KERNEL_VER="2.6.32-131.17.1.el6"
+KERNEL_VER="2.6.32-131.21.1.el6"
 
 UPDATED_DIFF=0
 CCSDIFF_NAME="ccs-patch-2.6.32-centos-6.1.diff"
