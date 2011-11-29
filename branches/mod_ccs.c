@@ -747,7 +747,8 @@ static _Bool ccs_set_context(request_rec *r)
 	}
 	ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
 		      "Unable to set security context. "
-		      "No matching entry for %s", name);
+		      "No matching entry for %s (%u entries for %s)", name,
+		      ptr->len, r->hostname);
 	free((void *) name);
 	return 0;
 }
