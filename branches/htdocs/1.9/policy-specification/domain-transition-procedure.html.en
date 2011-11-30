@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 1.8.x : Policy specification : Domain transition procedure</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../../index.html.en"><img src="../../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left" title="TOMOYO Linux"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="domain-transition-procedure.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<div id="navheader">
+<p><a href="proc-interface.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="expression-rules.html.en">&lt;Next&gt;</a></p>
+</div>
+
+<h2>Domain transition procedure</h2>
+
+<p>There are two types of domain transitions. One is domain transition that involves program execution requests (a.k.a. execve() system call). The other is domain transition that does not involve program execution requests.</p>
+
+<h3><a name="transition_by_execute">Transition by program execution requests</a></h3>
+
+<p>This type of domain transition is controlled by below five directives (with the latter overwriting the previous):</p>
+
+<ul>
+<li><a href="domain-policy-syntax.html.en#default_transition">default_transition</a> directive in the current domain</li>
+<li><a href="exception-policy-syntax.html.en#default_transition">default_transition</a> directive in the exception policy</li>
+<li><a href="domain-policy-syntax.html.en#file_execute">file execute</a> directive in the current domain</li>
+<a href="domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> directive in the current domain<br>
+<a href="domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> directive in the current domain<br>
+</ul>
+
+<p>When a process in a domain issued a program execution request, the steps below are performed.</p>
+
+<p>Any occurrence of <strong>[current_domain]</strong> represents the current domain name (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash ).</p>
+
+<p>Any occurrence of <strong>[destination]</strong> represents domainname to transit to when the program execution request succeeds (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat ).</p>
+
+<p>Any occurrence of <strong>[candidate]</strong> represents a pathname which is subjected to permission checks (e.g. /bin/cat ).</p>
+
+<div class="simple-table-wrap">
+<table>
+<tr>
+<th><p>Step</p></th>
+<th><p>Procedure</p></th>
+</tr>
+<tr>
+<td><p>(1) Check for task auto_execute_handler directive</p></td>
+<td><p>If domain policy contains<br>
+&nbsp;&nbsp;<a href="domain-policy-syntax.html.en#task_auto_execute_handler">task auto_execute_handler</a> [pathname] keep<br>
+then set the [current_domain] as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task auto_execute_handler [pathname] child<br>
+then set the [current_domain] [pathname] as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task auto_execute_handler [pathname] $domainname<br>
+then set the $domainname as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task auto_execute_handler [pathname] $program<br>
+then set the [current_domain] $program as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task auto_execute_handler [pathname]<br>
+then set the [pathname] as the [candidate] and jump to step (5).</p></td>
+</tr>
+<tr>
+<td><p>(2) Obtain program pathname</p></td>
+<td><p>Calculate the pathname of the requested program and set the pathname as the [candidate].<br>
+To accept programs provided using symbolic links, the last component of the pathname accepts symbolic links.</p></td>
+</tr>
+<tr>
+<td><p>(3) Check for file execute directive</p></td>
+<td><p>If domain policy contains<br>
+&nbsp;&nbsp;<a href="domain-policy-syntax.html.en#file_execute">file execute</a> [candidate] keep<br>
+then set the [current_domain] as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] child<br>
+then set the [current_domain] [candidate] as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] $domainname<br>
+then set the $domainname as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] [pathname]<br>
+then set the [current_domain] [pathname] as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate]<br>
+then jump to step (5).</p>
+<br>
+<p>Otherwise, jump to step (4) if the profile's <a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::execute</a> (with the latter overwriting the previous) is set to "enforcing=yes". Otherwise, jump to step (5).</p></td>
+</tr>
+<tr>
+<td><p>(4) Check for task denied_execute_handler directive</p></td>
+<td><p>If domain policy contains<br>
+&nbsp;&nbsp;<a href="domain-policy-syntax.html.en#task_denied_execute_handler">task denied_execute_handler</a> [pathname] keep<br>
+then set the [current_domain] as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task denied_execute_handler [pathname] child<br>
+then set the [current_domain] [pathname] as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task denied_execute_handler [pathname] $domainname<br>
+then set the $domainname as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task denied_execute_handler [pathname] $program<br>
+then set the [current_domain] $program as the [destination] and jump to step (6).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;task denied_execute_handler [pathname]<br>
+then set the [pathname] as the [candidate] and jump to step (5).</p>
+<br>
+<p>Otherwise, the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(5) Determine default domain transition</p></td>
+<td><p>
+Firstly, if exception policy contains<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#default_transition">default_transition</a> [candidate] $domainspec<br>
+then set the $domainspec as the [destination] and jump to step (6).</p>
+<br>
+<p>Otherwise, set the "default_transition" setting of the [current_domain] as the [destination] .</p></td>
+</tr>
+<tr>
+<td><p>(6) Create destination domain</p></td>
+<td><p>Create the [destination] as determined by step (1) or (3) or (4) or (5) if the [destination] does not exist.</p>
+<br>
+<p>If the [destination] cannot be created, the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(7) Check environment variables</p></td>
+<td><p>If more than one environment variable is rejected in the [destination] and the profile (<a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::misc, or CONFIG::misc::env</a> (with the latter overwriting the previous)) for the [destination] is "enforcing=yes", the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(8) Check binary loaders</p></td>
+<td><p>If read permission for the binary loader (if any) is rejected in the [destination] and the profile (<a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::open</a> (with the latter overwriting the previous)) for the [destination] is "enforcing=yes", the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(9) Execute the program</p></td>
+<td><p>If the current process was successfully replaced by the requested program, the current process transits to the [destination] .</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="transition_by_non_execute">Transition by non program execution requests</a></h3>
+
+<p>This type of domain transition is controlled by below two directives:</p>
+
+<ul>
+<li><a href="domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> directive in the current domain</li>
+<li><a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive in the current domain</li>
+</ul>
+
+<p>Domain transition requests that are not permitted by the policy are always rejected.</p>
+
+<p>If the domain has the <a href="domain-policy-syntax.html.en#task_auto_domain_transition">task auto_domain_transition</a> directive, the current process automatically transits to the specified domain whenever conditions specified in the conditional part are met. Note that this transition is checked for not only program execution requests but also all requests such as opening files.</p>
+
+<p>If the domain has the <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive and the current process wrote the domainname specified with the directive to <a href="proc-interface.html.en#self_domain">/proc/ccs/self_domain</a> interface, the current process transits to the specified domain.</p>
+
+<!--
+<p>If the domain policy contains an ACL with auto_domain_transition="name" condition and the current process requested for an operation that matches the ACL, the current process transits to the child domain which the domainname is the concatenation of "the name of domain which the current process belongs to" and "name" specified by auto_domain_transition= condition part. Note that there is no warantee that the operation that matched the ACL succeeds even if domain transition taken place. Use with caution.</p>
+-->
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="proc-interface.html.en">Prev</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+<a href="expression-rules.html.en">Next</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>A1: The /proc/ccs/ interface</p>
+</td>
+<td class="docs-home">
+<a href="../index.html.en">Main Index</a>
+</td>
+<td class="docs-next-description">
+<p>A3: Expression rules</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="domain-transition-procedure.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date: 2011-10-01 12:01:22 +0900 (Sat, 01 Oct 2011) $</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.co.jp/en/">NTT DATA Corporation</a>.</p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>
