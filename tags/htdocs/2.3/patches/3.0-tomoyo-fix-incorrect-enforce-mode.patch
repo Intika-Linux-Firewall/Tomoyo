@@ -1,5 +1,7 @@
 [PATCH] TOMOYO: Fix incorrect enforce mode.
 
+commit 852584157c55c1689bcf3809ea44b79870c3e409 upstream.
+
 In tomoyo_get_mode() since 2.6.36, CONFIG::file::execute was by error used in
 place of CONFIG::file if CONFIG::file::execute was set to other than default.
 As a result, enforcing mode was not applied in a way documentation says.
@@ -9,8 +11,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/util.c |    3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
---- linux-3.0.3.orig/security/tomoyo/util.c
-+++ linux-3.0.3/security/tomoyo/util.c
+--- linux-3.0.12.orig/security/tomoyo/util.c
++++ linux-3.0.12/security/tomoyo/util.c
 @@ -807,7 +807,8 @@ int tomoyo_get_mode(const u8 profile, co
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(profile)->config[index];

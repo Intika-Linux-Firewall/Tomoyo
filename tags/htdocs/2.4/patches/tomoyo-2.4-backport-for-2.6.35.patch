@@ -3,7 +3,7 @@
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
  $ wget -O linux-3.1.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.tar.bz2
- $ tar -zxf linux-3.1.tar.bz2 --strip 1 linux-3.1/security/tomoyo/
+ $ tar -jxf linux-3.1.tar.bz2 --strip 1 linux-3.1/security/tomoyo/
 
 .
 
@@ -13,8 +13,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/domain.c        |    4 +
  security/tomoyo/realpath.c      |   87 ++++++++++++++++++++++++++++++----------
  security/tomoyo/securityfs_if.c |    1 
+ security/tomoyo/tomoyo.c        |    3 -
  security/tomoyo/util.c          |    3 -
- 5 files changed, 77 insertions(+), 29 deletions(-)
+ 6 files changed, 79 insertions(+), 30 deletions(-)
 
 --- linux-2.6.35.14.orig/security/tomoyo/common.c
 +++ linux-2.6.35.14/security/tomoyo/common.c
@@ -220,6 +221,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
+--- linux-2.6.35.14.orig/security/tomoyo/tomoyo.c
++++ linux-2.6.35.14/security/tomoyo/tomoyo.c
+@@ -157,7 +157,8 @@ static int tomoyo_inode_getattr(struct v
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int tomoyo_path_truncate(struct path *path)
++static int tomoyo_path_truncate(struct path *path, loff_t length,
++				unsigned int time_attrs))
+ {
+ 	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path, NULL);
+ }
 --- linux-2.6.35.14.orig/security/tomoyo/util.c
 +++ linux-2.6.35.14/security/tomoyo/util.c
 @@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
