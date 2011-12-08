@@ -3029,3 +3029,28 @@ Fix 2011/11/18
       not be affected by this error because CONFIG::file::execute and
       CONFIG::file::getattr are by default configured to use CONFIG::file or
       CONFIG settings.
+
+Fix 2011/12/08
+
+    @ Follow __d_path() behavior change. (Only 2.6.36 and later)
+
+      The behavior of __d_path() has changed in 3.2-rc5. __d_path() now returns
+      NULL when the pathname cannot be calculated. You must update to this
+      version when using with 3.2-rc5 and later kernels, or the kernel will
+      panic because ccs_get_absolute_path() triggers NULL pointer dereference.
+
+      The patch that changed the behavior of __d_path() might be backported to
+      2.6.36 to 3.1 kernels. You must update to this version if the patch was
+      backported, for you will experience the kernel panic as with 3.2-rc5.
+
+      The patch that changed the behavior of __d_path() also changed the way of
+      handling pathnames under lazy-unmounted directory. Until now, TOMOYO was
+      using incomplete pathnames returned by __d_path() when the pathname is
+      under lazy-unmounted directory. But from now on, TOMOYO uses different
+      pathnames returned by ccs_get_local_path() when the pathname is under
+      lazy-unmounted directory (because __d_path() no longer returns it).
+
+      Since applications unlikely do lazy unmounts, requesting pathnames under
+      lazy-unmounted directory should not happen unless the administrator
+      explicitly does lazy unmounts. But pathnames which is defined for such
+      conditions in the policy file (if any) will need to be rewritten.
