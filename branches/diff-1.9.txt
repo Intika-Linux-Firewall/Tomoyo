@@ -1,8 +1,8 @@
 Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
 ===================================================================
---- trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h	(revision 5686)
+--- trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h	(working copy)
-@@ -68,7 +68,6 @@
+@@ -77,7 +77,6 @@
  				 void *data_page);
  #endif
  	int (*umount_permission) (struct vfsmount *mnt, int flags);
@@ -10,7 +10,7 @@ Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
  #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
  	void (*save_open_mode) (int mode);
  	void (*clear_open_mode) (void);
-@@ -106,9 +105,6 @@
+@@ -115,9 +114,6 @@
  #endif
  	int (*fcntl_permission) (struct file *file, unsigned int cmd,
  				 unsigned long arg);
@@ -20,7 +20,7 @@ Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
  	int (*socket_create_permission) (int family, int type, int protocol);
  	int (*socket_listen_permission) (struct socket *sock);
  	int (*socket_connect_permission) (struct socket *sock,
-@@ -127,8 +123,6 @@
+@@ -136,8 +132,6 @@
  				 mode_t mode);
  	int (*getattr_permission) (struct vfsmount *mnt,
  				   struct dentry *dentry);
@@ -29,7 +29,7 @@ Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
  	int (*search_binary_handler) (struct linux_binprm *bprm,
  				      struct pt_regs *regs);
  #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
-@@ -701,23 +695,11 @@
+@@ -710,23 +704,11 @@
  
  #endif
  
@@ -53,7 +53,7 @@ Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
  #ifdef CONFIG_CCSECURITY_CAPABILITY
  
  static inline _Bool ccs_capable(const u8 operation)
-@@ -759,42 +741,8 @@
+@@ -768,42 +750,8 @@
  
  #endif
  
@@ -96,7 +96,7 @@ Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
  	return 0;
  }
  
-@@ -818,8 +766,6 @@
+@@ -827,8 +775,6 @@
  	return 0;
  }
  
@@ -105,7 +105,7 @@ Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
  /* Index numbers for Capability Controls. */
  enum ccs_capability_acl_index {
  	/* socket(PF_ROUTE, *, *)                                      */
-@@ -840,8 +786,6 @@
+@@ -849,8 +795,6 @@
  	CCS_USE_KERNEL_MODULE,
  	/* sys_kexec_load()                                            */
  	CCS_SYS_KEXEC_LOAD,
@@ -116,7 +116,7 @@ Index: trunk/1.8.x/ccs-patch/include/linux/ccsecurity.h
  
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/Kconfig
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/Kconfig	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/Kconfig	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/Kconfig	(working copy)
 @@ -177,14 +177,5 @@
  	  Say Y here if you want to enable domain transition without involving
@@ -135,9 +135,9 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/Kconfig
  	def_bool CCSECURITY_NETWORK
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c	(working copy)
-@@ -23,6 +23,7 @@
+@@ -28,6 +28,7 @@
  char *ccs_encode(const char *str);
  char *ccs_encode2(const char *str, int str_len);
  char *ccs_realpath(struct path *path);
@@ -145,7 +145,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c
  const char *ccs_get_exe(void);
  void ccs_fill_path_info(struct ccs_path_info *ptr);
  
-@@ -436,16 +437,17 @@
+@@ -492,16 +493,17 @@
  #define SOCKFS_MAGIC 0x534F434B
  
  /**
@@ -166,7 +166,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c
  {
  	char *buf = NULL;
  	char *name = NULL;
-@@ -465,6 +467,8 @@
+@@ -521,6 +523,8 @@
  			break;
  		/* To make sure that pos is '\0' terminated. */
  		buf[buf_len - 1] = '\0';
@@ -175,15 +175,15 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c
  		/* Get better name for socket. */
  		if (sb->s_magic == SOCKFS_MAGIC) {
  			pos = ccs_get_socket_name(path, buf, buf_len - 1);
-@@ -487,6 +491,7 @@
- 						 buf_len - 1);
- 			goto encode;
- 		}
+@@ -542,6 +546,7 @@
+ 		if (!path->mnt || (inode->i_op && !inode->i_op->rename))
+ 			pos = ERR_PTR(-EINVAL);
+ 		else {
 +absolute_path:
- 		/* Get absolute name for the rest. */
- 		ccs_realpath_lock();
- 		pos = ccs_get_absolute_path(path, buf, buf_len - 1);
-@@ -504,6 +509,21 @@
+ 			/* Get absolute name for the rest. */
+ 			ccs_realpath_lock();
+ 			pos = ccs_get_absolute_path(path, buf, buf_len - 1);
+@@ -563,6 +568,21 @@
  }
  
  /**
@@ -207,7 +207,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/realpath.c
   * @str:     String in binary format.
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
 @@ -386,6 +386,7 @@
  
@@ -820,7 +820,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  /**
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
 @@ -23,7 +23,9 @@
  static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
@@ -3074,7 +3074,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	ccs_mm_init();
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(working copy)
 @@ -43,18 +43,16 @@
  };
@@ -3416,7 +3416,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c
 -		else
 -			error = 0;
 -	} while (error == CCS_RETRY_REQUEST &&
--		 r->type == CCS_MAC_FILE_EXECUTE);
+-		 r->type != CCS_MAC_FILE_EXECUTE);
 +		error = ccs_audit_log(r);
 +	} while (error == CCS_RETRY_REQUEST);
 +done:
@@ -5032,7 +5032,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c
  
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c	(working copy)
 @@ -54,6 +54,7 @@
  static bool ccs_struct_used_by_io_buffer(const struct list_head *element);
@@ -5346,7 +5346,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/gc.c
  		}
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/Config.in
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/Config.in	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/Config.in	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/Config.in	(working copy)
 @@ -71,13 +71,6 @@
    [ -z "$CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION" ] && define_bool CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION y
@@ -5364,7 +5364,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/Config.in
  endmenu
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/Makefile
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/Makefile	(revision 5687)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/Makefile	(revision 5694)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/Makefile	(working copy)
 @@ -24,8 +24,8 @@
  policy/exception_policy.conf:
@@ -5390,7 +5390,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/Makefile
  	@mkdir -p $(obj)/policy/
 Index: trunk/1.8.x/ccs-tools/ccstools/Include.make
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/Include.make	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/Include.make	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/Include.make	(working copy)
 @@ -4,4 +4,5 @@
  USRSBINDIR      := /usr/sbin
@@ -5401,7 +5401,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/Include.make
 +#CFLAGS          := -Wall -O2
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h	(working copy)
 @@ -53,6 +53,7 @@
  
@@ -5421,7 +5421,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccstools.h
  struct ccs_domain_policy {
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c	(working copy)
 @@ -103,7 +103,6 @@
  					     CCS_TASK_IS_EXECUTE_HANDLER */
@@ -5606,7 +5606,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-checkpolicy.c
  	u8 type;
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c	(working copy)
 @@ -30,6 +30,22 @@
  /* Readline history. */
@@ -6568,7 +6568,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.c
  		if (ret)
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c	(working copy)
 @@ -192,8 +192,8 @@
  			if (*ptr++ != '-')
@@ -6611,7 +6611,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-loadpolicy.c
  	       "-df : Read from stdin and overwrite /proc/ccs/domain_policy "
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c	(working copy)
 @@ -211,7 +211,7 @@
  	case CCS_DIRECTIVE_FILE_LINK:
@@ -6711,7 +6711,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_optimizer.c
  		}
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c	(working copy)
 @@ -24,6 +24,8 @@
  #include "editpolicy.h"
@@ -12616,7 +12616,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_offline.c
  			case CCS_STAT:
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c	(working copy)
 @@ -25,266 +25,12 @@
  
@@ -12914,7 +12914,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy_keyword.c
  	[CCS_DIRECTIVE_TASK_AUTO_EXECUTE_HANDLER]
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h	(working copy)
 @@ -35,279 +35,13 @@
  	CCS_MAXSCREEN
@@ -13252,7 +13252,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/editpolicy.h
  	_Bool is_du;  /* unreachable domain */
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-savepolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-savepolicy.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-savepolicy.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-savepolicy.c	(working copy)
 @@ -78,6 +78,8 @@
  	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
@@ -13301,7 +13301,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/ccs-savepolicy.c
  	       "-m : Print /proc/ccs/manager to stdout.\n"
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile	(working copy)
 @@ -15,13 +15,13 @@
  	sleep 10
@@ -13333,7 +13333,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_sbin/Makefile
  endif
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c	(working copy)
 @@ -212,11 +212,10 @@
   *
@@ -14010,7 +14010,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/init_policy.c
  			fprintf(stderr, "Unknown option: '%s'\n", argv[i]);
 Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c	(working copy)
 @@ -123,10 +123,7 @@
  			handle_path_condition("path2.parent.");
@@ -14026,7 +14026,7 @@ Index: trunk/1.8.x/ccs-tools/ccstools/usr_lib_ccs/convert-audit-log.c
  			namespace = strdup(buffer);
 Index: trunk/1.8.x/ccs-tools/ccstools/sbin/ccs-init.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/ccstools/sbin/ccs-init.c	(revision 5686)
+--- trunk/1.8.x/ccs-tools/ccstools/sbin/ccs-init.c	(revision 5694)
 +++ trunk/1.8.x/ccs-tools/ccstools/sbin/ccs-init.c	(working copy)
 @@ -50,114 +50,15 @@
  
