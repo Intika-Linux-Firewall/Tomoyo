@@ -1,6 +1,6 @@
 Index: internal.h
 ===================================================================
---- internal.h	(revision 5686)
+--- internal.h	(revision 5696)
 +++ internal.h	(working copy)
 @@ -412,6 +412,7 @@
  	CCS_TYPE_AUTO_TASK_ACL,
@@ -49,7 +49,7 @@ Index: internal.h
  		unsigned int query_index;
 Index: policy_io.c
 ===================================================================
---- policy_io.c	(revision 5686)
+--- policy_io.c	(revision 5698)
 +++ policy_io.c	(working copy)
 @@ -356,6 +356,7 @@
  static const char * const ccs_group_name[CCS_MAX_GROUP] = {
@@ -181,7 +181,7 @@ Index: policy_io.c
  #ifdef CONFIG_CCSECURITY_NETWORK
  	} else {
  		struct ccs_address_group *e = &param->e.address_group;
-@@ -4403,15 +4455,6 @@
+@@ -4404,15 +4456,6 @@
  	for (i = 0; i < CCS_MAX_GROUP; i++)
  		if (ccs_str_starts(&param.data, ccs_group_name[i]))
  			return ccs_write_group(&param, i);
@@ -197,7 +197,7 @@ Index: policy_io.c
  	return -EINVAL;
  }
  
-@@ -4430,6 +4473,22 @@
+@@ -4431,6 +4474,22 @@
  	struct ccs_policy_namespace *ns = container_of(head->r.ns, typeof(*ns),
  						       namespace_list);
  	struct list_head *list = &ns->group_list[idx];
@@ -222,7 +222,7 @@ Index: policy_io.c
  			list_entry(head->r.group, typeof(*group), head.list);
 Index: gc.c
 ===================================================================
---- gc.c	(revision 5686)
+--- gc.c	(revision 5696)
 +++ gc.c	(working copy)
 @@ -152,6 +152,7 @@
  		[CCS_TYPE_AUTO_TASK_ACL] = sizeof(struct ccs_task_acl),
