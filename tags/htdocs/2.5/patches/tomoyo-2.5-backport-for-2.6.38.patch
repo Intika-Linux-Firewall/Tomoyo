@@ -1,0 +1,48 @@
+[PATCH] TOMOYO 2.5 backport patch for Linux 2.6.38
+
+Apply this patch after overwriting security/tomoyo/ directory by doing
+
+ $ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.2-rc5.tar.bz2
+ $ tar -jxf linux-3.2-rc5.tar.bz2 --strip 1 linux-3.2-rc5/security/tomoyo/
+
+.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/realpath.c |   25 +++++++++++++++++++++++--
+ 1 file changed, 23 insertions(+), 2 deletions(-)
+
+--- linux-2.6.38.8.orig/security/tomoyo/realpath.c
++++ linux-2.6.38.8/security/tomoyo/realpath.c
+@@ -101,8 +101,29 @@ static char *tomoyo_get_absolute_path(st
+ {
+ 	char *pos = ERR_PTR(-ENOMEM);
+ 	if (buflen >= 256) {
+-		/* go to whatever namespace root we are under */
+-		pos = d_absolute_path(path, buffer, buflen - 1);
++		/*
++		 * Determine whether d_absolute_path() is provided or not,
++		 * based on the type of __d_path() arguments. If the second
++		 * argument of __d_path() is "const struct path *", it means
++		 * that d_namespace_path() is provided. If the second argument
++		 * of __d_path() is "struct path *", it means that
++		 * d_namespace_path() is not provided.
++		 */
++		pos = __builtin_choose_expr
++			(__builtin_types_compatible_p
++			 (typeof(__d_path),
++			  char *(const struct path *, const struct path *,
++				 char *, int)),
++			 ({
++				 extern char *d_absolute_path
++					 (const struct path *, char *, int);
++				 d_absolute_path(path, buffer, buflen - 1);
++			 }),
++			 ({
++				 struct path ns_root = { };
++				 __d_path(path, &ns_root, buffer, buflen - 1);
++			 })
++			 );
+ 		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
+ 			struct inode *inode = path->dentry->d_inode;
+ 			if (inode && S_ISDIR(inode->i_mode)) {
