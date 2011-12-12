@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.41.1-1.fc15.src.rpm ]
+if [ ! -r kernel-2.6.41.4-1.fc15.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.41.1-1.fc15.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.41.4-1.fc15.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.41.1-1.fc15.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.41.1-1.fc15.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.41.4-1.fc15.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.41.4-1.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20111118.tar.gz ]
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -388,6 +388,11 @@
+@@ -389,6 +389,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +49,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -447,7 +452,7 @@
+@@ -448,7 +453,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -58,7 +58,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -794,7 +799,7 @@
+@@ -809,7 +814,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1240,6 +1245,10 @@
+@@ -1272,6 +1277,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1268,6 +1277,9 @@
+@@ -1300,6 +1309,9 @@
  for i in *.config
  do
    mv $i .config
