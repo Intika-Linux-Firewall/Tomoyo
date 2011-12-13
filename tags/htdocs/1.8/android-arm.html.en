@@ -262,10 +262,10 @@ ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common-b0d93fb/
-wget -O ccs-patch-1.8.3-20111118.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111118.tar.gz'
-wget -O ccs-patch-1.8.3-20111118.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111118.tar.gz.asc'
-gpg ccs-patch-1.8.3-20111118.tar.gz.asc
-tar -zxf ccs-patch-1.8.3-20111118.tar.gz
+wget -O ccs-patch-1.8.3-20111213.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz'
+wget -O ccs-patch-1.8.3-20111213.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz.asc'
+gpg ccs-patch-1.8.3-20111213.tar.gz.asc
+tar -zxf ccs-patch-1.8.3-20111213.tar.gz
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
 sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
