@@ -20,47 +20,132 @@
  */
 #include "include.h"
 
+static void check_self_domain(const char *expected)
+{
+	static char buffer[4096];
+	static int fd = EOF;
+	int ret_ignored;
+	if (fd == EOF)
+		fd = open("/proc/ccs/self_domain", O_RDONLY);
+	memset(buffer, 0, sizeof(buffer));
+	ret_ignored = lseek(fd, 0, SEEK_SET);
+	ret_ignored = read(fd, buffer, sizeof(buffer) - 1);
+	if (!strcmp(buffer, expected))
+		printf("OK\n");
+	else
+		printf("FAILED (expected='%s' result='%s')\n", expected,
+		       buffer);
+}
+
+static void write_self_domain(const char *domain)
+{
+	static int fd = EOF;
+	int ret_ignored;
+	if (fd == EOF)
+		fd = open("/proc/ccs/self_domain", O_WRONLY);
+	ret_ignored = write(fd, domain, strlen(domain));
+}
+
+static void write_policy(const char *policy, _Bool delete)
+{	
+	static int fd = EOF;
+	static char buf[64];
+	int ret_ignored;
+	memset(buf, 0, sizeof(buf));
+	if (fd == EOF)
+		fd = open("/proc/ccs/domain_policy", O_WRONLY);
+	if (delete)
+		snprintf(buf, sizeof(buf) - 1, "delete ");
+	else
+		snprintf(buf, sizeof(buf) - 1, "select pid=%u\n", pid);
+	ret_ignored = write(fd, buf, strlen(buf));
+	ret_ignored = write(fd, policy, strlen(policy));
+	ret_ignored = write(fd, "\n", 1);
+	if (!delete)
+		printf("%s : ", policy);
+}
+
 static void stage_transit_test(void)
 {
 	char buffer[1024];
-	int ret_ignored;
-	int fdd;
-	int fds;
-	set_profile(1, "file::open");
 	memset(buffer, 0, sizeof(buffer));
-	fdd = open("/proc/ccs/domain_policy", O_RDWR);
-	snprintf(buffer, sizeof(buffer) - 1, "select pid=%u\n"
-		 "task auto_domain_transition <kernel> //transition_test "
-		 "task.pid=%u\n", pid, pid);
-	ret_ignored = write(fdd, buffer, strlen(buffer));
-	fds = open("/proc/ccs/self_domain", O_RDWR);
-	memset(buffer, 0, sizeof(buffer));
-	ret_ignored = read(fds, buffer, sizeof(buffer));
-	printf("task auto_domain_transition <kernel> //transition_test : ");
-	if (!strcmp(buffer, "<kernel> //transition_test"))
-		printf("OK\n");
-	else
-		printf("FAILED ('%s')\n", buffer);
-	snprintf(buffer, sizeof(buffer) - 1, "delete "
-		 "task auto_domain_transition <kernel> //transition_test "
-		 "task.pid=%u\n", pid);
-	ret_ignored = write(fdd, buffer, strlen(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "select pid=%u\n"
-		 "file read /dev/null auto_domain_transition=\"/dev/null\"\n",
-		 pid);
-	ret_ignored = write(fdd, buffer, strlen(buffer));
+	set_profile(2, "file::open");
+
+	/* task auto_domain_transition with matched condition */
+	snprintf(buffer, sizeof(buffer) - 1, "task auto_domain_transition "
+		 "<kernel> //transition_test task.pid=%u", pid);
+	write_policy(buffer, 0);
 	close(open("/dev/null", O_RDONLY));
-	ret_ignored = lseek(fds, 0, SEEK_SET);
-	memset(buffer, 0, sizeof(buffer));
-	ret_ignored = read(fds, buffer, sizeof(buffer));
-	printf("file read /dev/null auto_domain_transition=\"/dev/null\" : ");
-	if (!strcmp(buffer, "<kernel> //transition_test /dev/null"))
-		printf("OK\n");
-	else
-		printf("FAILED ('%s')\n", buffer);
-	snprintf(buffer, sizeof(buffer) - 1, "delete file read /dev/null "
-		 "auto_domain_transition=\"/dev/null\"\n");
-	ret_ignored = write(fdd, buffer, strlen(buffer));
+	check_self_domain("<kernel> //transition_test");
+	write_policy(buffer, 1);
+
+	/* task auto_domain_transition with unmatched condition */
+	snprintf(buffer, sizeof(buffer) - 1, "task auto_domain_transition "
+		 "<kernel> /bad task.pid=0");
+	write_policy(buffer, 0);
+	close(open("/dev/null", O_RDONLY));
+	check_self_domain("<kernel> //transition_test");
+	write_policy(buffer, 1);
+
+	/* auto_domain_transition= with matched condition */
+	snprintf(buffer, sizeof(buffer) - 1, "file read /dev/null "
+		 "auto_domain_transition=\"/dev/null\"");
+	write_policy(buffer, 0);
+	close(open("/dev/null", O_RDONLY));
+	check_self_domain("<kernel> //transition_test /dev/null");
+	write_policy(buffer, 1);
+
+	/* auto_domain_transition= with unmatched condition */
+	snprintf(buffer, sizeof(buffer) - 1, "file read /dev/null "
+		 "auto_domain_transition=\"/dev/null\" task.pid=0");
+	write_policy(buffer, 0);
+	close(open("/dev/null", O_RDONLY));
+	check_self_domain("<kernel> //transition_test /dev/null");
+	write_policy(buffer, 1);
+
+	/*
+	 * task manual_domain_transition with
+	 * matched domain and matched condition
+	 */
+	snprintf(buffer, sizeof(buffer) - 1, "task manual_domain_transition "
+		 "<kernel> //transition_test task.pid=%u", pid);
+	write_policy(buffer, 0);
+	write_self_domain("<kernel> //transition_test");
+	check_self_domain("<kernel> //transition_test");
+	write_policy(buffer, 1);
+
+	/*
+	 * task manual_domain_transition with
+	 * matched domain and unmatched condition
+	 */
+	snprintf(buffer, sizeof(buffer) - 1, "task manual_domain_transition "
+		 "<kernel> task.pid=%u", pid + 1);
+	write_policy(buffer, 0);
+	write_self_domain("<kernel>");
+	check_self_domain("<kernel> //transition_test");
+	write_policy(buffer, 1);
+
+	/*
+	 * task manual_domain_transition with
+	 * unmatched domain and matched condition
+	 */
+	snprintf(buffer, sizeof(buffer) - 1, "task manual_domain_transition "
+		 "<kernel> /bad task.pid=%u", pid);
+	write_policy(buffer, 0);
+	write_self_domain("<kernel>");
+	check_self_domain("<kernel> //transition_test");
+	write_policy(buffer, 1);
+
+	/*
+	 * task manual_domain_transition with
+	 * unmatched domain and unmatched condition
+	 */
+	snprintf(buffer, sizeof(buffer) - 1, "task manual_domain_transition "
+		 "<kernel> /bad task.pid=%u", pid + 2);
+	write_policy(buffer, 0);
+	write_self_domain("<kernel>");
+	check_self_domain("<kernel> //transition_test");
+	write_policy(buffer, 1);
 }
 
 int main(int argc, char *argv[])
