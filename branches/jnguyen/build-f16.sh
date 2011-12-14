@@ -5,12 +5,12 @@ URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patc
 URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/16/SRPMS"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.3p3"
-CCSPATCH_VER="1.8.3-20111118"
-KERNEL_VER="3.1.4-1.fc16"
+CCS_VER="1.8.3p4"
+CCSPATCH_VER="1.8.3-20111213"
+KERNEL_VER="3.1.5-1.fc16"
 
 UPDATED_DIFF=0
-CCSDIFF_NAME="ccs-patch-3.1.diff"
+CCSDIFF_NAME="ccs-patch-3.1.0-fedora-16.diff"
 #CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15-20110802.diff"
 #CCSDIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
 

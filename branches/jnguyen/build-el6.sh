@@ -5,13 +5,13 @@ URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patc
 URL_KERNEL="http://www.mirrorservice.org/sites/ftp.scientificlinux.org/linux/scientific/6.1/SRPMS/vendor"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.3p3"
-CCSPATCH_VER="1.8.3-20111118"
+CCS_VER="1.8.3p4"
+CCSPATCH_VER="1.8.3-20111213"
 KERNEL_VER="2.6.32-131.21.1.el6"
 
-UPDATED_DIFF=0
+UPDATED_DIFF=1
 CCSDIFF_NAME="ccs-patch-2.6.32-centos-6.1.diff"
-#CCSDIFF_REVISION=""
+CCSDIFF_REVISION="ccs-patch-2.6.32-centos-6.1.diff?view=co&revision=5710&root=tomoyo&pathrev=5710"
 
 if [[ "x${CCS_SCRIPT_DIR}" = "x" ]]; then
 	printf '%s\n' 'Variable $CCS_SCRIPT_DIR not defined.'; exit 1
