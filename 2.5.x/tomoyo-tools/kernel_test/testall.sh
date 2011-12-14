@@ -33,6 +33,7 @@ newns tomoyo_env_test
 newns tomoyo_new_file_test
 newns tomoyo_new_network_test
 newns tomoyo_new_test
+newns tomoyo_transition_test
 echo
 echo
 echo
@@ -45,6 +46,7 @@ newns tomoyo_network_test | grep -vF OK | grep -F '('
 newns tomoyo_argv0_test | grep -vF OK | grep -F '('
 newns tomoyo_env_test | grep -vF OK | grep -F '('
 newns tomoyo_new_test | grep -vF OK
+newns tomoyo_transition_test | grep -vF OK
 echo
 echo
 echo
