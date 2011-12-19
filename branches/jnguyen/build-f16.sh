@@ -28,7 +28,7 @@ fi
 cd "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
 
 if [[ ! -e "ccs-patch-${CCS_PATCH_VER}.tar.gz" ]]; then
-	wget "${URL_CSS}/ccs-patch-${CCS_PATCH_VER}.tar.gz" \
+	wget "${URL_CCS}/ccs-patch-${CCS_PATCH_VER}.tar.gz" \
 		-O "ccs-patch-${CCS_PATCH_VER}.tar.gz"
 fi
 
