@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/bin/bash -x
+set -e
+
+DOWNLOAD_DIR="${HOME}/sources"
 
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
@@ -6,53 +9,142 @@ URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/16/SRPMS"
 
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p4"
-CCSPATCH_VER="1.8.3-20111213"
-KERNEL_VER="3.1.5-1.fc16"
+CCS_PATCH_VER="1.8.3-20111213"
+KERNEL_VER="3.1.5-2.fc16"
+
+CCS_DIFF_NAME="ccs-patch-3.1.0-fedora-16.diff"
 
 UPDATED_DIFF=0
-CCSDIFF_NAME="ccs-patch-3.1.0-fedora-16.diff"
-#CCSDIFF_NAME="ccs-patch-2.6.40-fedora-15-20110802.diff"
-#CCSDIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
+#CCS_DIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
 
-if [[ "x${CCS_SCRIPT_DIR}" = "x" ]]; then
-	printf '%s\n' 'Variable $CCS_SCRIPT_DIR not defined.'; exit 1
+rm -rf "${HOME}/rpmbuild"
+rpmdev-setuptree
+rm -rf "${HOME}/rpmbuild/SOURCES"
+ln -sf "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}" ${HOME}/rpmbuild/SOURCES
+
+if [[ ! -d "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}" ]]; then
+	mkdir "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
+fi
+cd "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
+
+if [[ ! -e "ccs-patch-${CCS_PATCH_VER}.tar.gz" ]]; then
+	wget "${URL_CSS}/ccs-patch-${CCS_PATCH_VER}.tar.gz" \
+		-O "ccs-patch-${CCS_PATCH_VER}.tar.gz"
 fi
 
-. "${CCS_SCRIPT_DIR}/global_functions" || exit 1
-
-check_variables
-setup_rpmbuild_tree
-setup_source_dir "${CCS_SOURCE_DIR}/ccs-kernel-${KERNEL_VER}"
-cd "${CCS_SOURCE_DIR}/ccs-kernel-${KERNEL_VER}"
-
-download_file "${URL_CCS}/ccs-patch-${CCSPATCH_VER}.tar.gz" \
-	"ccs-patch-${CCSPATCH_VER}.tar.gz"
 if [[ "${UPDATED_DIFF}" = 1 ]]; then
-	download_file "${URL_CCS_SVN}/${CCSDIFF_REVISION}" "${CCSDIFF_NAME}"
+	if [[ ! -e "${CCS_DIFF_NAME}" ]]; then
+		wget "${URL_CCS_SVN}/${CCS_DIFF_REVISION}" -O "${CCS_DIFF_NAME}"
+	fi
 fi
-download_file "${URL_KERNEL}/kernel-${KERNEL_VER}.src.rpm" \
-	"kernel-${KERNEL_VER}.src.rpm"
 
-#verify_signature "kernel-${KERNEL_VER}.src.rpm"
-install_srpm "kernel-${KERNEL_VER}.src.rpm"
+if [[ ! -e "kernel-${KERNEL_VER}.src.rpm" ]]; then
+	if [[ ! -e "kernel-${KERNEL_VER}.src.rpm" ]]; then
+		wget "${URL_KERNEL}/kernel-${KERNEL_VER}.src.rpm" \
+			-O "kernel-${KERNEL_VER}.src.rpm"
+	fi
+fi
 
-cd "${CCS_BUILD_DIR}/SPECS"
+rpm -ivh "kernel-${KERNEL_VER}.src.rpm"
+
+cd "${HOME}/rpmbuild/SPECS"
 cp -v "kernel.spec" "ccs-kernel.spec"
 
+cat_patch() {
+	cat << 'EOF'
+--- ccs-kernel.spec
++++ ccs-kernel.spec
+@@ -23,7 +23,7 @@
+ #
+ # (Uncomment the '#' and both spaces below to set the buildid.)
+ #
+-# % define buildid .local
++%define buildid _tomoyo_${CCS_VER}
+ ###################################################################
+ 
+ # The buildid can also be specified on the rpmbuild command line
+@@ -109,7 +109,7 @@
+ # kernel-PAE (only valid for i686)
+ %define with_pae       %{?_without_pae:       0} %{?!_without_pae:       1}
+ # kernel-debug
+-%define with_debug     %{?_without_debug:     0} %{?!_without_debug:     1}
++%define with_debug     %{?_without_debug:     1} %{?!_without_debug:     0}
+ # kernel-doc
+ %define with_doc       %{?_without_doc:       0} %{?!_without_doc:       1}
+ # kernel-headers
+@@ -117,7 +117,7 @@
+ # kernel-firmware
+ %define with_firmware  %{?_with_firmware:     1} %{?!_with_firmware:     0}
+ # tools
+-%define with_tools     %{?_without_tools:     0} %{?!_without_tools:     1}
++%define with_tools     %{?_without_tools:     1} %{?!_without_tools:     0}
+ # kernel-debuginfo
+ %define with_debuginfo %{?_without_debuginfo: 0} %{?!_without_debuginfo: 1}
+ # kernel-bootwrapper (for creating zImages from kernel + initrd)
+@@ -522,7 +522,7 @@
+ AutoProv: yes\
+ %{nil}
+ 
+-Name: kernel%{?variant}
++Name: ccs-kernel%{?variant}
+ Group: System Environment/Kernel
+ License: GPLv2
+ URL: http://www.kernel.org/
+@@ -606,6 +606,8 @@
+ Source2000: cpupower.service
+ Source2001: cpupower.config
+ 
++Source99999: ccs-patch-${CCS_PATCH_VER}.tar.gz
++
+ # Here should be only the patches up to the upstream canonical Linus tree.
+ 
+ # For a stable release kernel
+@@ -943,7 +945,7 @@
+ AutoReqProv: no\
+ Requires(pre): /usr/bin/find\
+ Requires: perl\
+-%description -n kernel%{?variant}%{?1:-%{1}}-devel\
++%description -n ccs-kernel%{?variant}%{?1:-%{1}}-devel\
+ This package provides kernel headers and makefiles sufficient to build modules\
+ against the %{?2:%{2} }kernel package.\
+ %{nil}
+@@ -1481,6 +1483,10 @@
+ 
+ %endif
+ 
++# TOMOYO Linux
++tar -zxf  %_sourcedir/ccs-patch-${CCS_PATCH_VER}.tar.gz
++patch -sp1 < patches/${CCS_DIFF_NAME}
++
+ # Any further pre-build tree manipulations happen here.
+ 
+ chmod +x scripts/checkpatch.pl
+@@ -1508,6 +1514,9 @@
+ for i in *.config
+ do
+   mv $i .config
++  # TOMOYO Linux
++  cat config.ccs >> .config
++  sed -i -e "s/CONFIG_DEBUG_INFO=.*/# CONFIG_DEBUG_INFO is not set/" -- .config
+   Arch=`head -1 .config | cut -b 3-`
+   make ARCH=$Arch listnewconfig | grep -E '^CONFIG_' >.newoptions || true
+ %if %{listnewconfig_fail}
+EOF
+}
+ 
 # Before applying the patch, replace the placeholder variables with the real values.
-msg "Patching ccs-kernel.spec ..."
-PATCH_NAME="$(basename ${0%.*}).patch"
 if [[ "${UPDATED_DIFF}" = 0 ]]; then
-	sed -e "s#\${CCS_VER}#${CCS_VER}#g" \
-		-e "s#\${CCSPATCH_VER}#${CCSPATCH_VER}#g" \
-		-e "s#patches/\${CCSDIFF_NAME}#patches/${CCSDIFF_NAME}#g" \
-		"${CCS_SCRIPT_DIR}/${PATCH_NAME}" | patch
+	cat_patch | sed \
+		-e "s#\${CCS_VER}#${CCS_VER}#g" \
+		-e "s#\${CCS_PATCH_VER}#${CCS_PATCH_VER}#g" \
+		-e "s#patches/\${CCS_DIFF_NAME}#patches/${CCS_DIFF_NAME}#g" \
+		| patch
 elif [[ "${UPDATED_DIFF}" = 1 ]]; then
-	sed -e "s#\${CCS_VER}#${CCS_VER}#g" \
-		-e "s#\${CCSPATCH_VER}#${CCSPATCH_VER}#g" \
-		-e "s#patches/\${CCSDIFF_NAME}#%_sourcedir/${CCSDIFF_NAME}#g" \
-		"${CCS_SCRIPT_DIR}/${PATCH_NAME}" | patch
+	cat_patch | sed \
+		-e "s#\${CCS_VER}#${CCS_VER}#g" \
+		-e "s#\${CCS_PATCH_VER}#${CCS_PATCH_VER}#g" \
+		-e "s#patches/\${CCS_DIFF_NAME}#%_sourcedir/${CCS_DIFF_NAME}#g" \
+		| patch
 fi
-[[ $? != 0 ]] && error "ERROR: patching ccs-kernel.spec failed"
 
-rpmbuild -bs "${CCS_BUILD_DIR}/SPECS/ccs-kernel.spec"
+rpmbuild -bs "${HOME}/rpmbuild/SPECS/ccs-kernel.spec"
