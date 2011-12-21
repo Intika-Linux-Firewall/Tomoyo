@@ -78,6 +78,8 @@ static _Bool ccs_save_policy(void)
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
 				   "exception_policy.conf") ||
+	    !ccs_move_proc_to_file(CCS_PROC_POLICY_ACL_POLICY,
+				   "acl_policy.conf") ||
 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
 				   "domain_policy.conf") ||
 	    chdir("..") ||
@@ -117,8 +119,8 @@ int main(int argc, char *argv[])
 			ccs_network_mode = true;
 		} else if (*ptr++ == '-' && !target) {
 			target = *ptr++;
-			if (target != 'e' && target != 'd' && target != 'p' &&
-			    target != 'm' && target != 's')
+			if (target != 'e' && target != 'a' && target != 'd' &&
+			    target != 'p' && target != 'm' && target != 's')
 				goto usage;
 			if (*ptr || ccs_policy_dir) {
 				fprintf(stderr, "You cannot specify multiple "
@@ -149,6 +151,9 @@ int main(int argc, char *argv[])
 		case 'e':
 			file = CCS_PROC_POLICY_EXCEPTION_POLICY;
 			break;
+		case 'a':
+			file = CCS_PROC_POLICY_ACL_POLICY;
+			break;
 		case 'd':
 			file = CCS_PROC_POLICY_DOMAIN_POLICY;
 			break;
@@ -174,12 +179,13 @@ int main(int argc, char *argv[])
 	return !ccs_save_policy();
 usage:
 	printf("%s [policy_dir [remote_ip:remote_port]]\n"
-	       "%s [{-e|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"
+	       "%s [{-e|-a|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"
 	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
 	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
 	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
 	       "directory.\n"
 	       "-e : Print /proc/ccs/exception_policy to stdout.\n"
+	       "-a : Print /proc/ccs/acl_policy to stdout.\n"
 	       "-d : Print /proc/ccs/domain_policy to stdout.\n"
 	       "-p : Print /proc/ccs/profile to stdout.\n"
 	       "-m : Print /proc/ccs/manager to stdout.\n"

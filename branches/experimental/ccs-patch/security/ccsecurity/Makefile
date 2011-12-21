@@ -24,8 +24,8 @@ policy/profile.conf:
 policy/exception_policy.conf:
 	@mkdir -p policy/
 	@echo Creating a default policy/exception_policy.conf
-	@echo initialize_domain /sbin/modprobe from any >> $@
-	@echo initialize_domain /sbin/hotplug from any >> $@
+	@echo default_transition /sbin/modprobe <kernel> /sbin/modprobe >> $@
+	@echo default_transition /sbin/hotplug <kernel> /sbin/hotplug >> $@
 
 policy/domain_policy.conf:
 	@mkdir -p policy/
@@ -80,8 +80,8 @@ $(obj)/policy/profile.conf:
 $(obj)/policy/exception_policy.conf:
 	@mkdir -p $(obj)/policy/
 	@echo Creating a default policy/exception_policy.conf
-	@echo initialize_domain /sbin/modprobe from any >> $@
-	@echo initialize_domain /sbin/hotplug from any >> $@
+	@echo default_transition /sbin/modprobe <kernel> /sbin/modprobe >> $@
+	@echo default_transition /sbin/hotplug <kernel> /sbin/hotplug >> $@
 
 $(obj)/policy/domain_policy.conf:
 	@mkdir -p $(obj)/policy/

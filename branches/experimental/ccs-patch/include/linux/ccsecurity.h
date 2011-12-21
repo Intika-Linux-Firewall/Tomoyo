@@ -77,7 +77,6 @@ struct ccsecurity_operations {
 				 void *data_page);
 #endif
 	int (*umount_permission) (struct vfsmount *mnt, int flags);
-	_Bool (*lport_reserved) (const u16 port);
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
 	void (*save_open_mode) (int mode);
 	void (*clear_open_mode) (void);
@@ -115,9 +114,6 @@ struct ccsecurity_operations {
 #endif
 	int (*fcntl_permission) (struct file *file, unsigned int cmd,
 				 unsigned long arg);
-	int (*kill_permission) (pid_t pid, int sig);
-	int (*tgkill_permission) (pid_t tgid, pid_t pid, int sig);
-	int (*tkill_permission) (pid_t pid, int sig);
 	int (*socket_create_permission) (int family, int type, int protocol);
 	int (*socket_listen_permission) (struct socket *sock);
 	int (*socket_connect_permission) (struct socket *sock,
@@ -136,8 +132,6 @@ struct ccsecurity_operations {
 				 mode_t mode);
 	int (*getattr_permission) (struct vfsmount *mnt,
 				   struct dentry *dentry);
-	int (*sigqueue_permission) (pid_t pid, int sig);
-	int (*tgsigqueue_permission) (pid_t tgid, pid_t pid, int sig);
 	int (*search_binary_handler) (struct linux_binprm *bprm,
 				      struct pt_regs *regs);
 #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
@@ -710,22 +704,10 @@ static inline int ccs_socket_post_recvmsg_permission(struct sock *sk,
 
 #endif
 
-#ifdef CONFIG_CCSECURITY_PORTRESERVE
-
-static inline _Bool ccs_lport_reserved(const u16 port)
-{
-	_Bool (*func) (const u16) = ccsecurity_ops.lport_reserved;
-	return func ? func(port) : 0;
-}
-
-#else
-
 static inline _Bool ccs_lport_reserved(const u16 port)
 {
 	return 0;
 }
-
-#endif
 
 #ifdef CONFIG_CCSECURITY_CAPABILITY
 
@@ -768,40 +750,6 @@ static inline int ccs_ptrace_permission(long request, long pid)
 
 #endif
 
-#ifdef CONFIG_CCSECURITY_IPC
-
-static inline int ccs_kill_permission(pid_t pid, int sig)
-{
-	int (*func) (pid_t, int) = ccsecurity_ops.kill_permission;
-	return func ? func(pid, sig) : 0;
-}
-
-static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
-{
-	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgkill_permission;
-	return func ? func(tgid, pid, sig) : 0;
-}
-
-static inline int ccs_tkill_permission(pid_t pid, int sig)
-{
-	int (*func) (pid_t, int) = ccsecurity_ops.tkill_permission;
-	return func ? func(pid, sig) : 0;
-}
-
-static inline int ccs_sigqueue_permission(pid_t pid, int sig)
-{
-	int (*func) (pid_t, int) = ccsecurity_ops.sigqueue_permission;
-	return func ? func(pid, sig) : 0;
-}
-
-static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
-{
-	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgsigqueue_permission;
-	return func ? func(tgid, pid, sig) : 0;
-}
-
-#else
-
 static inline int ccs_kill_permission(pid_t pid, int sig)
 {
 	return 0;
@@ -826,8 +774,6 @@ static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 {
 	return 0;
 }
-
-#endif
 
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {
@@ -849,8 +795,6 @@ enum ccs_capability_acl_index {
 	CCS_USE_KERNEL_MODULE,
 	/* sys_kexec_load()                                            */
 	CCS_SYS_KEXEC_LOAD,
-	/* sys_ptrace()                                                */
-	CCS_SYS_PTRACE,
 	CCS_MAX_CAPABILITY_INDEX
 };
 

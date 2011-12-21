@@ -123,10 +123,7 @@ int main(int argc, char *argv[])
 			handle_path_condition("path2.parent.");
 		else if (!strcmp(buffer, "exec={"))
 			handle_exec_condition();
-		else if (!strncmp(buffer, "symlink.target=", 15)) {
-			realloc_buffer(strlen(buffer) + 2);
-			cond_len += sprintf(cond + cond_len, " %s", buffer);
-		} else if (buffer[0] == '<' /* ccs_domain_def(buffer) */) {
+		else if (buffer[0] == '<' /* ccs_domain_def(buffer) */) {
 			char *cp;
 			free(namespace);
 			namespace = strdup(buffer);

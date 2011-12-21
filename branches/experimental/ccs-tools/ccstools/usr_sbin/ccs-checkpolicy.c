@@ -103,7 +103,6 @@ static void ccs_check_condition(char *condition)
 					     CCS_TASK_IS_EXECUTE_HANDLER */
 		CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
 		CCS_EXEC_REALPATH,
-		CCS_SYMLINK_TARGET,
 		CCS_PATH1_UID,
 		CCS_PATH1_GID,
 		CCS_PATH1_INO,
@@ -171,7 +170,6 @@ static void ccs_check_condition(char *condition)
 		[CCS_TASK_TYPE]            = "task.type",
 		[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
 		[CCS_EXEC_REALPATH]        = "exec.realpath",
-		[CCS_SYMLINK_TARGET]       = "symlink.target",
 		[CCS_PATH1_UID]            = "path1.uid",
 		[CCS_PATH1_GID]            = "path1.gid",
 		[CCS_PATH1_INO]            = "path1.ino",
@@ -268,10 +266,10 @@ static void ccs_check_condition(char *condition)
 				goto out;
 		}
 		pos = eq + 1;
-		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
+		if (left == CCS_EXEC_REALPATH) {
 			if (r_len < 2)
 				goto out;
-			if (pos[0] == '@')
+			if (pos[0] == '\\' && (pos[1] == '=' || pos[1] == '!'))
 				goto next;
 			if (pos[0] == '"' && pos[r_len - 1] == '"')
 				goto next;
@@ -283,7 +281,8 @@ static void ccs_check_condition(char *condition)
 				continue;
 			goto next;
 		}
-		if (pos[0] == '@' && pos[1])
+		if (pos[0] == '\\' && (pos[1] == '=' || pos[1] == '!') &&
+		    pos[2])
 			goto next;
 		if (!ccs_check_number_range(pos))
 			goto out;
@@ -323,7 +322,7 @@ static _Bool ccs_check_number(char *arg)
 	unsigned long max_value;
 	if (cp)
 		*cp++ = '\0';
-	if (*arg == '@')
+	if (*arg == '\\' && (*(arg + 1) == '=' || *(arg + 1) == '!'))
 		goto ok;
 	if (!ccs_parse_ulong(&min_value, &arg))
 		return false;
@@ -354,16 +353,14 @@ static _Bool ccs_check_domain(char *arg)
 static _Bool ccs_check_transition(char *arg)
 {
 	char *cp;
-	_Bool conflict = strstr(arg, " auto_domain_transition=") != NULL;
 	if (*arg == '<')
-		return !conflict && ccs_check_domain(arg);
+		return ccs_check_domain(arg);
 	cp = strchr(arg, ' ');
 	if (cp)
 		*cp++ = '\0';
 	if (ccs_correct_path(arg) || !strcmp(arg, "keep") ||
-	    !strcmp(arg, "initialize") || !strcmp(arg, "reset") ||
-	    !strcmp(arg, "child") || !strcmp(arg, "parent"))
-		return !conflict && ccs_prune_word(arg, cp);
+	    !strcmp(arg, "child"))
+		return ccs_prune_word(arg, cp);
 	if (cp)
 		*--cp = ' ';
 	return true;
@@ -381,7 +378,7 @@ static _Bool ccs_check_capability(char *arg)
 	static const char * const list[] = {
 		"use_route", "use_packet", "SYS_REBOOT", "SYS_VHANGUP",
 		"SYS_TIME", "SYS_NICE", "SYS_SETHOSTNAME", "use_kernel_module",
-		"SYS_KEXEC_LOAD", "SYS_PTRACE", NULL
+		"SYS_KEXEC_LOAD", NULL
 	};
 	int i;
 	char *cp = strchr(arg, ' ');
@@ -404,24 +401,14 @@ static _Bool ccs_check_u8(char *arg)
 	return ccs_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_u16(char *arg)
-{
-	char *cp = strchr(arg, ' ');
-	unsigned int value;
-	if (cp)
-		*cp++ = '\0';
-	if (sscanf(arg, "%u", &value) != 1 || value >= 65536)
-		return false;
-	return ccs_prune_word(arg, cp);
-}
-
 static _Bool ccs_check_ip_address(char *arg)
 {
 	char *cp = strchr(arg, ' ');
 	struct ccs_ip_address_entry entry = { };
 	if (cp)
 		*cp++ = '\0';
-	if (*arg == '@') /* Don't reject address_group. */
+	if (*arg == '\\' && (*(arg + 1) == '=' || *(arg + 1) == '!'))
+		/* Don't reject address_group. */
 		goto found;
 	if (ccs_parse_ip(arg, &entry) ||
 	    memcmp(entry.min, entry.max, 16) > 0)
@@ -513,19 +500,9 @@ out:
 
 static _Bool ccs_check_path_domain(char *arg)
 {
-	if (!strncmp(arg, "any ", 4))
-		ccs_prune_word(arg, arg + 4);
-	else if (*arg != '/' || !ccs_check_path(arg))
+	if (*arg != '/' || !ccs_check_path(arg))
 		return false;
-	if (!strncmp(arg, "from ", 5))
-		ccs_prune_word(arg, arg + 5);
-	else if (!*arg)
-		return true;
-	else
-		return false;
-	if (!strncmp(arg, "any", 3)) {
-		ccs_prune_word(arg, arg + 3);
-	} else if (*arg == '/') {
+	if (*arg == '/') {
 		if (!ccs_check_path(arg))
 			return false;
 	} else {
@@ -583,7 +560,7 @@ static _Bool ccs_check_file(char *arg)
 		{ "read", ccs_check_path },
 		{ "rename", ccs_check_path2 },
 		{ "rmdir", ccs_check_path },
-		{ "symlink", ccs_check_path },
+		{ "symlink", ccs_check_path2 },
 		{ "truncate", ccs_check_path },
 		{ "unlink", ccs_check_path },
 		{ "unmount", ccs_check_path },
@@ -629,7 +606,7 @@ static _Bool ccs_check_domain_policy2(char *policy)
 	} list[] = {
 		{ "capability ", ccs_check_capability },
 		{ "file ", ccs_check_file },
-		{ "ipc signal ", ccs_check_u16, ccs_check_domain },
+		{ "ipc ptrace ", ccs_check_number, ccs_check_domain },
 		{ "misc env ", ccs_check_path },
 		{ "network ", ccs_check_network },
 		{ "task auto_domain_transition ", ccs_check_domain },
@@ -662,11 +639,10 @@ static void ccs_check_domain_policy(char *policy)
 			ccs_errors++;
 		}
 		return;
-	} else if (!strcmp(policy, "quota_exceeded") ||
-		   !strcmp(policy, "transition_failed")) {
-		return;
-	} else if (ccs_str_starts(policy, "use_group ") ||
-		   ccs_str_starts(policy, "use_profile ")) {
+	} else if (ccs_str_starts(policy, "default_transition ")) {
+		if (ccs_check_domain(policy) && !*policy)
+			return;
+	} else if (ccs_str_starts(policy, "use_profile ")) {
 		if (ccs_check_u8(policy))
 			return;
 	} else if (ccs_check_domain_policy2(policy))
@@ -688,18 +664,11 @@ static void ccs_check_exception_policy(char *policy)
 		_Bool (*arg1) (char *arg);
 		_Bool (*arg2) (char *arg);
 	} list[] = {
-		{ "acl_group ", ccs_check_u8, ccs_check_domain_policy2 },
+		{ "acl_group ", ccs_check_path, ccs_check_domain_policy2 },
 		{ "address_group ", ccs_check_path, ccs_check_ip_address },
-		{ "aggregator ", ccs_check_path, ccs_check_path },
-		{ "deny_autobind ", ccs_check_port },
-		{ "initialize_domain ", ccs_check_path_domain },
-		{ "keep_domain ", ccs_check_path_domain },
-		{ "no_initialize_domain ", ccs_check_path_domain },
-		{ "no_keep_domain ", ccs_check_path_domain },
-		{ "no_reset_domain ", ccs_check_path_domain },
+		{ "default_transition ", ccs_check_path_domain },
 		{ "number_group ", ccs_check_path, ccs_check_number },
 		{ "path_group ", ccs_check_path, ccs_check_path },
-		{ "reset_domain ", ccs_check_path_domain },
 		{ }
 	};
 	u8 type;

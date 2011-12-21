@@ -71,13 +71,6 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
   [ -z "$CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION" ] && define_bool CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION y
   bool "Enable domain transition without program execution request." CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 
-  if [ "$CONFIG_NET" = "y" ]; then
-
-     [ -z "$CONFIG_CCSECURITY_PORTRESERVE" ] && define_bool CONFIG_CCSECURITY_PORTRESERVE y
-     bool "Enable local port reserver." CONFIG_CCSECURITY_PORTRESERVE
-
-  fi
-
 fi
 
 endmenu

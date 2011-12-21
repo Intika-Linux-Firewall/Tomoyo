@@ -192,8 +192,8 @@ int main(int argc, char *argv[])
 			if (*ptr++ != '-')
 				goto usage;
 			target = *ptr++;
-			if (target != 'e' && target != 'd' && target != 'p' &&
-			    target != 'm' && target != 's')
+			if (target != 'e' && target != 'a' && target != 'd' &&
+			    target != 'p' && target != 'm' && target != 's')
 				goto usage;
 			if (*ptr) {
 				if ((target != 'e' && target != 'd') ||
@@ -233,6 +233,12 @@ int main(int argc, char *argv[])
 		result = ccs_move_file_to_proc
 			(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		break;
+	case 'a':
+		if (refresh_policy)
+			result = ccs_delete_proc_policy
+				(CCS_PROC_POLICY_ACL_POLICY);
+		result = ccs_move_file_to_proc(CCS_PROC_POLICY_ACL_POLICY);
+		break;
 	case 'd':
 		if (!refresh_policy) {
 			result = ccs_move_file_to_proc
@@ -248,11 +254,13 @@ int main(int argc, char *argv[])
 	}
 	return !result;
 usage:
-	printf("%s {-e|-ef|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
+	printf("%s {-e|-ef|-a|-af|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
 	       "-e  : Read from stdin and append to "
 	       "/proc/ccs/exception_policy .\n"
 	       "-ef : Read from stdin and overwrite "
 	       "/proc/ccs/exception_policy .\n"
+	       "-a  : Read from stdin and append to /proc/ccs/acl_policy .\n"
+	       "-af : Read from stdin and overwrite /proc/ccs/acl_policy .\n"
 	       "-d  : Read from stdin and append to /proc/ccs/domain_policy "
 	       ".\n"
 	       "-df : Read from stdin and overwrite /proc/ccs/domain_policy "

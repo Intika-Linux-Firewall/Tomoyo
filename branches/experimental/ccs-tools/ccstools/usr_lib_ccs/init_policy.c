@@ -212,11 +212,10 @@ static const char *keyword = NULL;
  *
  * If @str starts with "/proc/", it is converted with "proc:/".
  * If keyword is not NULL, keyword is printed before printing @str.
- * If keyword is "initialize_domain", " from any" is printed after printing
- * @str.
  */
 static void printf_encoded(const char *str)
 {
+	const char *str0 = str;
 	if (keyword)
 		fprintf(filp, "%s ", keyword);
 	if (!strncmp(str, "/proc/", 6)) {
@@ -237,8 +236,24 @@ static void printf_encoded(const char *str)
 				((c >> 3) & 7) + '0', (c & 7) + '0');
 		}
 	}
-	if (keyword && !strcmp(keyword, "initialize_domain"))
-		fprintf(filp, " from any");
+	if (keyword && !strcmp(keyword, "default_transition")) {
+		str = str0;
+		fprintf(filp, " <kernel> ");
+		while (1) {
+			const char c = *str++;
+			if (!c)
+				break;
+			if (c == '\\') {
+				fputc('\\', filp);
+				fputc('\\', filp);
+			} else if (c > ' ' && c < 127) {
+				fputc(c, filp);
+			} else {
+				fprintf(filp, "\\%c%c%c", (c >> 6) + '0',
+					((c >> 3) & 7) + '0', (c & 7) + '0');
+			}
+		}
+	}
 	if (keyword)
 		fputc('\n', filp);
 }
@@ -247,7 +262,7 @@ static void printf_encoded(const char *str)
 static char path[8192];
 
 /**
- * scan_init_scripts - Scan /etc/rc\?.d/ directories for initialize_domain entries.
+ * scan_init_scripts - Scan /etc/rc\?.d/ directories for default_transition entries.
  *
  * Returns nothing.
  */
@@ -277,7 +292,7 @@ static void scan_init_scripts(void)
 			path[len] = '\0';
 			if (entity) {
 				char *cp = strrchr(path, '/');
-				fprintf(filp, "aggregator ");
+				fprintf(filp, "default_transition ");
 				/*
 				 * Use /rc\?.d/ rather than /rc0.d/ /rc1.d/
 				 * /rc2.d/ /rc3.d/ /rc4.d/ /rc5.d/ /rc6.d/
@@ -295,6 +310,7 @@ static void scan_init_scripts(void)
 				fprintf(filp, "/\\?\\+\\+");
 				printf_encoded(name + 3);
 				fputc(' ', filp);
+				fprintf(filp, "<kernel> ");
 				printf_encoded(entity);
 				fputc('\n', filp);
 				free(entity);
@@ -306,13 +322,13 @@ static void scan_init_scripts(void)
 }
 
 /**
- * make_init_scripts_as_aggregators - Use realpath for startup/shutdown scripts in /etc/ directory.
+ * make_init_scripts_as_default_transitions - Use realpath for startup/shutdown scripts in /etc/ directory.
  *
  * Returns nothing.
  */
-static void make_init_scripts_as_aggregators(void)
+static void make_init_scripts_as_default_transitions(void)
 {
-	/* Mark symlinks under /etc/rc\?.d/ directory as aggregator. */
+	/* Mark symlinks under /etc/rc\?.d/ directory as default_transition. */
 	static const char * const dirs[] = {
 		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
 		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
@@ -363,7 +379,7 @@ static void scan_executable_files(const char *dir)
 }
 
 /**
- * scan_modprobe_and_hotplug - Mark modprobe and hotplug as initialize_domain entries.
+ * scan_modprobe_and_hotplug - Mark modprobe and hotplug as default_transition entries.
  *
  * Returns nothing.
  */
@@ -393,7 +409,7 @@ static void scan_modprobe_and_hotplug(void)
 			continue;
 		/* We ignore /bin/true if /proc/sys/kernel/modprobe said so. */
 		if (strcmp(cp, "/bin/true") && !access(cp, X_OK)) {
-			keyword = "initialize_domain";
+			keyword = "default_transition";
 			printf_encoded(cp);
 		}
 		free(cp);
@@ -417,7 +433,7 @@ static void make_globally_readable_files(void)
 		"/usr/share/locale/locale.alias"
 	};
 	int i;
-	keyword = "acl_group 0 file read";
+	keyword = "acl_group GLOBALLY_GRANTED_PERMISSIONS file read";
 	for (i = 0; i < elementof(files); i++) {
 		char *cp = get_realpath(files[i]);
 		if (!cp)
@@ -435,8 +451,10 @@ static void make_globally_readable_files(void)
 static void make_self_readable_files(void)
 {
 	/* Allow reading information for current process. */
-	echo("acl_group 0 file read proc:/self/\\*");
-	echo("acl_group 0 file read proc:/self/\\{\\*\\}/\\*");
+	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read "
+	     "proc:/self/\\*");
+	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read "
+	     "proc:/self/\\{\\*\\}/\\*");
 }
 
 /**
@@ -472,7 +490,8 @@ static void make_ldconfig_readable_files(void)
 		char *cp = get_realpath(dirs[i]);
 		if (!cp)
 			continue;
-		fprintf(filp, "acl_group 0 file read ");
+		fprintf(filp, "acl_group GLOBALLY_GRANTED_PERMISSIONS "
+			"file read ");
 		printf_encoded(cp);
 		fprintf(filp, "/lib\\*.so\\*\n");
 		free(cp);
@@ -501,7 +520,8 @@ static void make_ldconfig_readable_files(void)
 			const int len = strlen(cp);
 			char buf[16];
 			memset(buf, 0, sizeof(buf));
-			fprintf(filp, "acl_group 0 file read ");
+			fprintf(filp, "acl_group GLOBALLY_GRANTED_PERMISSIONS "
+				"file read ");
 			if (cp2 && !strncmp(cp2, "/ld-2.", 6) &&
 			    len > 3 && !strcmp(cp + len - 3, ".so"))
 				*(cp2 + 6) = '\0';
@@ -518,26 +538,26 @@ static void make_ldconfig_readable_files(void)
 }
 
 /**
- * make_init_dir_as_initializers - Mark programs under /etc/init.d/ directory as initialize_domain entries.
+ * make_init_dir_as_default_transitions - Mark programs under /etc/init.d/ directory as default_transition entries.
  *
  * Returns nothing.
  */
-static void make_init_dir_as_initializers(void)
+static void make_init_dir_as_default_transitions(void)
 {
 	char *dir = get_realpath("/etc/init.d/");
 	if (!dir)
 		return;
-	keyword = "initialize_domain";
+	keyword = "default_transition";
 	scan_executable_files(dir);
 	free(dir);
 }
 
 /**
- * make_initializers - Mark daemon programs as initialize_domain entries.
+ * make_daemons_as_default_transitions - Mark daemon programs as default_transition entries.
  *
  * Returns nothing.
  */
-static void make_initializers(void)
+static void make_daemons_as_default_transitions(void)
 {
 	static const char * const files[] = {
 		"/sbin/cardmgr",
@@ -592,7 +612,7 @@ static void make_initializers(void)
 		"/usr/sbin/xinetd"
 	};
 	int i;
-	keyword = "initialize_domain";
+	keyword = "default_transition";
 	for (i = 0; i < elementof(files); i++) {
 		char *cp = get_realpath(files[i]);
 		if (!cp)
@@ -688,30 +708,6 @@ tools_dir:
 }
 
 /**
- * make_path_group - Make path_group entries.
- *
- * Returns nothing.
- */
-static void make_path_group(void)
-{
-	echo("path_group ANY_PATHNAME /");
-	echo("path_group ANY_PATHNAME /\\*");
-	echo("path_group ANY_PATHNAME /\\{\\*\\}/");
-	echo("path_group ANY_PATHNAME /\\{\\*\\}/\\*");
-	echo("path_group ANY_PATHNAME \\*:/");
-	echo("path_group ANY_PATHNAME \\*:/\\*");
-	echo("path_group ANY_PATHNAME \\*:/\\{\\*\\}/");
-	echo("path_group ANY_PATHNAME \\*:/\\{\\*\\}/\\*");
-	echo("path_group ANY_PATHNAME \\*:[\\$]");
-	echo("path_group ANY_PATHNAME "
-	     "socket:[family=\\$:type=\\$:protocol=\\$]");
-	echo("path_group ANY_DIRECTORY /");
-	echo("path_group ANY_DIRECTORY /\\{\\*\\}/");
-	echo("path_group ANY_DIRECTORY \\*:/");
-	echo("path_group ANY_DIRECTORY \\*:/\\{\\*\\}/");
-}
-
-/**
  * make_number_group - Make number_group entries.
  *
  * Returns nothing.
@@ -728,7 +724,8 @@ static void make_number_group(void)
  */
 static void make_ioctl(void)
 {
-	echo("acl_group 0 file ioctl @ANY_PATHNAME @COMMON_IOCTL_CMDS");
+	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file ioctl \\=any "
+	     "@COMMON_IOCTL_CMDS");
 }
 
 /**
@@ -738,7 +735,7 @@ static void make_ioctl(void)
  */
 static void make_getattr(void)
 {
-	echo("acl_group 0 file getattr @ANY_PATHNAME");
+	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file getattr \\=any");
 }
 
 /**
@@ -748,7 +745,8 @@ static void make_getattr(void)
  */
 static void make_readdir(void)
 {
-	echo("acl_group 0 file read @ANY_DIRECTORY");
+	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read \\=any "
+	     "path1.type=directory");
 }
 
 /**
@@ -805,17 +803,14 @@ static void make_exception_policy(void)
 	make_globally_readable_files();
 	make_self_readable_files();
 	make_ldconfig_readable_files();
-	make_path_group();
 	make_number_group();
 	make_ioctl();
 	make_readdir();
 	make_getattr();
 	scan_modprobe_and_hotplug();
-	make_init_dir_as_initializers();
-	make_initializers();
-	make_init_scripts_as_aggregators();
-	/* Some applications do execve("/proc/self/exe"). */
-	fprintf(filp, "aggregator proc:/self/exe /proc/self/exe\n");
+	make_daemons_as_default_transitions();
+	make_init_dir_as_default_transitions();
+	make_init_scripts_as_default_transitions();
 	close_file(filp, chdir_policy(), "exception_policy.tmp",
 		   "exception_policy.conf");
 	filp = NULL;
@@ -913,8 +908,6 @@ static void make_profile(void)
 
 /* Which profile number does <kernel> domain use? */
 static unsigned char default_profile = 0;
-/* Which ACL group does <kernel> domain use? */
-static unsigned char default_group = 0;
 
 /**
  * make_domain_policy - Make /etc/ccs/policy/current/domain_policy.conf .
@@ -934,8 +927,9 @@ static void make_domain_policy(void)
 		return;
 	}
 	fprintf(stderr, "Creating domain policy... ");
-	fprintf(fp, "<kernel>\nuse_profile %u\nuse_group %u\n",
-		default_profile, default_group);
+	fprintf(fp, "<kernel>\nuse_profile %u\n"
+		"use_group \\=GLOBALLY_GRANTED_PERMISSIONS\n",
+		default_profile);
 	close_file(fp, 1, "domain_policy.tmp", "domain_policy.conf");
 }
 
@@ -994,266 +988,10 @@ static const char editpolicy_data[] =
 "# This file contains configuration used by ccs-editpolicy command.\n"
 "\n"
 "# Keyword alias. ( directive-name = display-name )\n"
-"keyword_alias acl_group   0                 = acl_group   0\n"
-"keyword_alias acl_group   1                 = acl_group   1\n"
-"keyword_alias acl_group   2                 = acl_group   2\n"
-"keyword_alias acl_group   3                 = acl_group   3\n"
-"keyword_alias acl_group   4                 = acl_group   4\n"
-"keyword_alias acl_group   5                 = acl_group   5\n"
-"keyword_alias acl_group   6                 = acl_group   6\n"
-"keyword_alias acl_group   7                 = acl_group   7\n"
-"keyword_alias acl_group   8                 = acl_group   8\n"
-"keyword_alias acl_group   9                 = acl_group   9\n"
-"keyword_alias acl_group  10                 = acl_group  10\n"
-"keyword_alias acl_group  11                 = acl_group  11\n"
-"keyword_alias acl_group  12                 = acl_group  12\n"
-"keyword_alias acl_group  13                 = acl_group  13\n"
-"keyword_alias acl_group  14                 = acl_group  14\n"
-"keyword_alias acl_group  15                 = acl_group  15\n"
-"keyword_alias acl_group  16                 = acl_group  16\n"
-"keyword_alias acl_group  17                 = acl_group  17\n"
-"keyword_alias acl_group  18                 = acl_group  18\n"
-"keyword_alias acl_group  19                 = acl_group  19\n"
-"keyword_alias acl_group  20                 = acl_group  20\n"
-"keyword_alias acl_group  21                 = acl_group  21\n"
-"keyword_alias acl_group  22                 = acl_group  22\n"
-"keyword_alias acl_group  23                 = acl_group  23\n"
-"keyword_alias acl_group  24                 = acl_group  24\n"
-"keyword_alias acl_group  25                 = acl_group  25\n"
-"keyword_alias acl_group  26                 = acl_group  26\n"
-"keyword_alias acl_group  27                 = acl_group  27\n"
-"keyword_alias acl_group  28                 = acl_group  28\n"
-"keyword_alias acl_group  29                 = acl_group  29\n"
-"keyword_alias acl_group  30                 = acl_group  30\n"
-"keyword_alias acl_group  31                 = acl_group  31\n"
-"keyword_alias acl_group  32                 = acl_group  32\n"
-"keyword_alias acl_group  33                 = acl_group  33\n"
-"keyword_alias acl_group  34                 = acl_group  34\n"
-"keyword_alias acl_group  35                 = acl_group  35\n"
-"keyword_alias acl_group  36                 = acl_group  36\n"
-"keyword_alias acl_group  37                 = acl_group  37\n"
-"keyword_alias acl_group  38                 = acl_group  38\n"
-"keyword_alias acl_group  39                 = acl_group  39\n"
-"keyword_alias acl_group  40                 = acl_group  40\n"
-"keyword_alias acl_group  41                 = acl_group  41\n"
-"keyword_alias acl_group  42                 = acl_group  42\n"
-"keyword_alias acl_group  43                 = acl_group  43\n"
-"keyword_alias acl_group  44                 = acl_group  44\n"
-"keyword_alias acl_group  45                 = acl_group  45\n"
-"keyword_alias acl_group  46                 = acl_group  46\n"
-"keyword_alias acl_group  47                 = acl_group  47\n"
-"keyword_alias acl_group  48                 = acl_group  48\n"
-"keyword_alias acl_group  49                 = acl_group  49\n"
-"keyword_alias acl_group  50                 = acl_group  50\n"
-"keyword_alias acl_group  51                 = acl_group  51\n"
-"keyword_alias acl_group  52                 = acl_group  52\n"
-"keyword_alias acl_group  53                 = acl_group  53\n"
-"keyword_alias acl_group  54                 = acl_group  54\n"
-"keyword_alias acl_group  55                 = acl_group  55\n"
-"keyword_alias acl_group  56                 = acl_group  56\n"
-"keyword_alias acl_group  57                 = acl_group  57\n"
-"keyword_alias acl_group  58                 = acl_group  58\n"
-"keyword_alias acl_group  59                 = acl_group  59\n"
-"keyword_alias acl_group  60                 = acl_group  60\n"
-"keyword_alias acl_group  61                 = acl_group  61\n"
-"keyword_alias acl_group  62                 = acl_group  62\n"
-"keyword_alias acl_group  63                 = acl_group  63\n"
-"keyword_alias acl_group  64                 = acl_group  64\n"
-"keyword_alias acl_group  65                 = acl_group  65\n"
-"keyword_alias acl_group  66                 = acl_group  66\n"
-"keyword_alias acl_group  67                 = acl_group  67\n"
-"keyword_alias acl_group  68                 = acl_group  68\n"
-"keyword_alias acl_group  69                 = acl_group  69\n"
-"keyword_alias acl_group  70                 = acl_group  70\n"
-"keyword_alias acl_group  71                 = acl_group  71\n"
-"keyword_alias acl_group  72                 = acl_group  72\n"
-"keyword_alias acl_group  73                 = acl_group  73\n"
-"keyword_alias acl_group  74                 = acl_group  74\n"
-"keyword_alias acl_group  75                 = acl_group  75\n"
-"keyword_alias acl_group  76                 = acl_group  76\n"
-"keyword_alias acl_group  77                 = acl_group  77\n"
-"keyword_alias acl_group  78                 = acl_group  78\n"
-"keyword_alias acl_group  79                 = acl_group  79\n"
-"keyword_alias acl_group  80                 = acl_group  80\n"
-"keyword_alias acl_group  81                 = acl_group  81\n"
-"keyword_alias acl_group  82                 = acl_group  82\n"
-"keyword_alias acl_group  83                 = acl_group  83\n"
-"keyword_alias acl_group  84                 = acl_group  84\n"
-"keyword_alias acl_group  85                 = acl_group  85\n"
-"keyword_alias acl_group  86                 = acl_group  86\n"
-"keyword_alias acl_group  87                 = acl_group  87\n"
-"keyword_alias acl_group  88                 = acl_group  88\n"
-"keyword_alias acl_group  89                 = acl_group  89\n"
-"keyword_alias acl_group  90                 = acl_group  90\n"
-"keyword_alias acl_group  91                 = acl_group  91\n"
-"keyword_alias acl_group  92                 = acl_group  92\n"
-"keyword_alias acl_group  93                 = acl_group  93\n"
-"keyword_alias acl_group  94                 = acl_group  94\n"
-"keyword_alias acl_group  95                 = acl_group  95\n"
-"keyword_alias acl_group  96                 = acl_group  96\n"
-"keyword_alias acl_group  97                 = acl_group  97\n"
-"keyword_alias acl_group  98                 = acl_group  98\n"
-"keyword_alias acl_group  99                 = acl_group  99\n"
-"keyword_alias acl_group 100                 = acl_group 100\n"
-"keyword_alias acl_group 101                 = acl_group 101\n"
-"keyword_alias acl_group 102                 = acl_group 102\n"
-"keyword_alias acl_group 103                 = acl_group 103\n"
-"keyword_alias acl_group 104                 = acl_group 104\n"
-"keyword_alias acl_group 105                 = acl_group 105\n"
-"keyword_alias acl_group 106                 = acl_group 106\n"
-"keyword_alias acl_group 107                 = acl_group 107\n"
-"keyword_alias acl_group 108                 = acl_group 108\n"
-"keyword_alias acl_group 109                 = acl_group 109\n"
-"keyword_alias acl_group 110                 = acl_group 110\n"
-"keyword_alias acl_group 111                 = acl_group 111\n"
-"keyword_alias acl_group 112                 = acl_group 112\n"
-"keyword_alias acl_group 113                 = acl_group 113\n"
-"keyword_alias acl_group 114                 = acl_group 114\n"
-"keyword_alias acl_group 115                 = acl_group 115\n"
-"keyword_alias acl_group 116                 = acl_group 116\n"
-"keyword_alias acl_group 117                 = acl_group 117\n"
-"keyword_alias acl_group 118                 = acl_group 118\n"
-"keyword_alias acl_group 119                 = acl_group 119\n"
-"keyword_alias acl_group 120                 = acl_group 120\n"
-"keyword_alias acl_group 121                 = acl_group 121\n"
-"keyword_alias acl_group 122                 = acl_group 122\n"
-"keyword_alias acl_group 123                 = acl_group 123\n"
-"keyword_alias acl_group 124                 = acl_group 124\n"
-"keyword_alias acl_group 125                 = acl_group 125\n"
-"keyword_alias acl_group 126                 = acl_group 126\n"
-"keyword_alias acl_group 127                 = acl_group 127\n"
-"keyword_alias acl_group 128                 = acl_group 128\n"
-"keyword_alias acl_group 129                 = acl_group 129\n"
-"keyword_alias acl_group 130                 = acl_group 130\n"
-"keyword_alias acl_group 131                 = acl_group 131\n"
-"keyword_alias acl_group 132                 = acl_group 132\n"
-"keyword_alias acl_group 133                 = acl_group 133\n"
-"keyword_alias acl_group 134                 = acl_group 134\n"
-"keyword_alias acl_group 135                 = acl_group 135\n"
-"keyword_alias acl_group 136                 = acl_group 136\n"
-"keyword_alias acl_group 137                 = acl_group 137\n"
-"keyword_alias acl_group 138                 = acl_group 138\n"
-"keyword_alias acl_group 139                 = acl_group 139\n"
-"keyword_alias acl_group 140                 = acl_group 140\n"
-"keyword_alias acl_group 141                 = acl_group 141\n"
-"keyword_alias acl_group 142                 = acl_group 142\n"
-"keyword_alias acl_group 143                 = acl_group 143\n"
-"keyword_alias acl_group 144                 = acl_group 144\n"
-"keyword_alias acl_group 145                 = acl_group 145\n"
-"keyword_alias acl_group 146                 = acl_group 146\n"
-"keyword_alias acl_group 147                 = acl_group 147\n"
-"keyword_alias acl_group 148                 = acl_group 148\n"
-"keyword_alias acl_group 149                 = acl_group 149\n"
-"keyword_alias acl_group 150                 = acl_group 150\n"
-"keyword_alias acl_group 151                 = acl_group 151\n"
-"keyword_alias acl_group 152                 = acl_group 152\n"
-"keyword_alias acl_group 153                 = acl_group 153\n"
-"keyword_alias acl_group 154                 = acl_group 154\n"
-"keyword_alias acl_group 155                 = acl_group 155\n"
-"keyword_alias acl_group 156                 = acl_group 156\n"
-"keyword_alias acl_group 157                 = acl_group 157\n"
-"keyword_alias acl_group 158                 = acl_group 158\n"
-"keyword_alias acl_group 159                 = acl_group 159\n"
-"keyword_alias acl_group 160                 = acl_group 160\n"
-"keyword_alias acl_group 161                 = acl_group 161\n"
-"keyword_alias acl_group 162                 = acl_group 162\n"
-"keyword_alias acl_group 163                 = acl_group 163\n"
-"keyword_alias acl_group 164                 = acl_group 164\n"
-"keyword_alias acl_group 165                 = acl_group 165\n"
-"keyword_alias acl_group 166                 = acl_group 166\n"
-"keyword_alias acl_group 167                 = acl_group 167\n"
-"keyword_alias acl_group 168                 = acl_group 168\n"
-"keyword_alias acl_group 169                 = acl_group 169\n"
-"keyword_alias acl_group 170                 = acl_group 170\n"
-"keyword_alias acl_group 171                 = acl_group 171\n"
-"keyword_alias acl_group 172                 = acl_group 172\n"
-"keyword_alias acl_group 173                 = acl_group 173\n"
-"keyword_alias acl_group 174                 = acl_group 174\n"
-"keyword_alias acl_group 175                 = acl_group 175\n"
-"keyword_alias acl_group 176                 = acl_group 176\n"
-"keyword_alias acl_group 177                 = acl_group 177\n"
-"keyword_alias acl_group 178                 = acl_group 178\n"
-"keyword_alias acl_group 179                 = acl_group 179\n"
-"keyword_alias acl_group 180                 = acl_group 180\n"
-"keyword_alias acl_group 181                 = acl_group 181\n"
-"keyword_alias acl_group 182                 = acl_group 182\n"
-"keyword_alias acl_group 183                 = acl_group 183\n"
-"keyword_alias acl_group 184                 = acl_group 184\n"
-"keyword_alias acl_group 185                 = acl_group 185\n"
-"keyword_alias acl_group 186                 = acl_group 186\n"
-"keyword_alias acl_group 187                 = acl_group 187\n"
-"keyword_alias acl_group 188                 = acl_group 188\n"
-"keyword_alias acl_group 189                 = acl_group 189\n"
-"keyword_alias acl_group 190                 = acl_group 190\n"
-"keyword_alias acl_group 191                 = acl_group 191\n"
-"keyword_alias acl_group 192                 = acl_group 192\n"
-"keyword_alias acl_group 193                 = acl_group 193\n"
-"keyword_alias acl_group 194                 = acl_group 194\n"
-"keyword_alias acl_group 195                 = acl_group 195\n"
-"keyword_alias acl_group 196                 = acl_group 196\n"
-"keyword_alias acl_group 197                 = acl_group 197\n"
-"keyword_alias acl_group 198                 = acl_group 198\n"
-"keyword_alias acl_group 199                 = acl_group 199\n"
-"keyword_alias acl_group 200                 = acl_group 200\n"
-"keyword_alias acl_group 201                 = acl_group 201\n"
-"keyword_alias acl_group 202                 = acl_group 202\n"
-"keyword_alias acl_group 203                 = acl_group 203\n"
-"keyword_alias acl_group 204                 = acl_group 204\n"
-"keyword_alias acl_group 205                 = acl_group 205\n"
-"keyword_alias acl_group 206                 = acl_group 206\n"
-"keyword_alias acl_group 207                 = acl_group 207\n"
-"keyword_alias acl_group 208                 = acl_group 208\n"
-"keyword_alias acl_group 209                 = acl_group 209\n"
-"keyword_alias acl_group 210                 = acl_group 210\n"
-"keyword_alias acl_group 211                 = acl_group 211\n"
-"keyword_alias acl_group 212                 = acl_group 212\n"
-"keyword_alias acl_group 213                 = acl_group 213\n"
-"keyword_alias acl_group 214                 = acl_group 214\n"
-"keyword_alias acl_group 215                 = acl_group 215\n"
-"keyword_alias acl_group 216                 = acl_group 216\n"
-"keyword_alias acl_group 217                 = acl_group 217\n"
-"keyword_alias acl_group 218                 = acl_group 218\n"
-"keyword_alias acl_group 219                 = acl_group 219\n"
-"keyword_alias acl_group 220                 = acl_group 220\n"
-"keyword_alias acl_group 221                 = acl_group 221\n"
-"keyword_alias acl_group 222                 = acl_group 222\n"
-"keyword_alias acl_group 223                 = acl_group 223\n"
-"keyword_alias acl_group 224                 = acl_group 224\n"
-"keyword_alias acl_group 225                 = acl_group 225\n"
-"keyword_alias acl_group 226                 = acl_group 226\n"
-"keyword_alias acl_group 227                 = acl_group 227\n"
-"keyword_alias acl_group 228                 = acl_group 228\n"
-"keyword_alias acl_group 229                 = acl_group 229\n"
-"keyword_alias acl_group 230                 = acl_group 230\n"
-"keyword_alias acl_group 231                 = acl_group 231\n"
-"keyword_alias acl_group 232                 = acl_group 232\n"
-"keyword_alias acl_group 233                 = acl_group 233\n"
-"keyword_alias acl_group 234                 = acl_group 234\n"
-"keyword_alias acl_group 235                 = acl_group 235\n"
-"keyword_alias acl_group 236                 = acl_group 236\n"
-"keyword_alias acl_group 237                 = acl_group 237\n"
-"keyword_alias acl_group 238                 = acl_group 238\n"
-"keyword_alias acl_group 239                 = acl_group 239\n"
-"keyword_alias acl_group 240                 = acl_group 240\n"
-"keyword_alias acl_group 241                 = acl_group 241\n"
-"keyword_alias acl_group 242                 = acl_group 242\n"
-"keyword_alias acl_group 243                 = acl_group 243\n"
-"keyword_alias acl_group 244                 = acl_group 244\n"
-"keyword_alias acl_group 245                 = acl_group 245\n"
-"keyword_alias acl_group 246                 = acl_group 246\n"
-"keyword_alias acl_group 247                 = acl_group 247\n"
-"keyword_alias acl_group 248                 = acl_group 248\n"
-"keyword_alias acl_group 249                 = acl_group 249\n"
-"keyword_alias acl_group 250                 = acl_group 250\n"
-"keyword_alias acl_group 251                 = acl_group 251\n"
-"keyword_alias acl_group 252                 = acl_group 252\n"
-"keyword_alias acl_group 253                 = acl_group 253\n"
-"keyword_alias acl_group 254                 = acl_group 254\n"
-"keyword_alias acl_group 255                 = acl_group 255\n"
+"keyword_alias acl_group                     = acl_group\n"
 "keyword_alias address_group                 = address_group\n"
-"keyword_alias aggregator                    = aggregator\n"
 "keyword_alias capability                    = capability\n"
-"keyword_alias deny_autobind                 = deny_autobind\n"
+"keyword_alias default_transition            = default_transition\n"
 "keyword_alias file append                   = file append\n"
 "keyword_alias file chgrp                    = file chgrp\n"
 "keyword_alias file chmod                    = file chmod\n"
@@ -1279,24 +1017,17 @@ static const char editpolicy_data[] =
 "keyword_alias file unlink                   = file unlink\n"
 "keyword_alias file unmount                  = file unmount\n"
 "keyword_alias file write                    = file write\n"
-"keyword_alias initialize_domain             = initialize_domain\n"
-"keyword_alias ipc signal                    = ipc signal\n"
-"keyword_alias keep_domain                   = keep_domain\n"
+"keyword_alias ipc ptrace                    = ipc ptrace\n"
 "keyword_alias misc env                      = misc env\n"
 "keyword_alias network inet                  = network inet\n"
 "keyword_alias network unix                  = network unix\n"
-"keyword_alias no_initialize_domain          = no_initialize_domain\n"
-"keyword_alias no_keep_domain                = no_keep_domain\n"
-"keyword_alias no_reset_domain               = no_reset_domain\n"
 "keyword_alias number_group                  = number_group\n"
 "keyword_alias path_group                    = path_group\n"
 "keyword_alias quota_exceeded                = quota_exceeded\n"
-"keyword_alias reset_domain                  = reset_domain\n"
 "keyword_alias task auto_domain_transition   = task auto_domain_transition\n"
 "keyword_alias task auto_execute_handler     = task auto_execute_handler\n"
 "keyword_alias task denied_execute_handler   = task denied_execute_handler\n"
 "keyword_alias task manual_domain_transition = task manual_domain_transition\n"
-"keyword_alias transition_failed             = transition_failed\n"
 "keyword_alias use_group                     = use_group\n"
 "keyword_alias use_profile                   = use_profile\n"
 "\n"
@@ -1380,6 +1111,23 @@ static const char auditd_data[] =
 "# Discard all granted logs.\n"
 "header.contains granted=yes\n"
 "destination     /dev/null\n"
+"\n"
+"# Save rejected logs with profile=acl mode=learning to\n"
+"# /var/log/tomoyo/reject_learning_acl.log\n"
+"header.contains profile=acl\n"
+"header.contains mode=learning\n"
+"destination     /var/log/tomoyo/reject_learning_acl.log\n"
+"# Save rejected logs with profile=acl mode=permissive to\n"
+"# /var/log/tomoyo/reject_permissive_acl.log\n"
+"header.contains profile=acl\n"
+"header.contains mode=permissive\n"
+"destination     /var/log/tomoyo/reject_permissive_acl.log\n"
+"\n"
+"# Save rejected logs with profile=acl mode=enforcing to\n"
+"# /var/log/tomoyo/reject_acl.log\n"
+"header.contains profile=acl\n"
+"header.contains mode=enforcing\n"
+"destination     /var/log/tomoyo/reject_enforcing_acl.log\n"
 "\n"
 "# Save rejected logs with profile=0 to /var/log/tomoyo/reject_000.log\n"
 "header.contains profile=0\n"
@@ -1641,8 +1389,6 @@ int main(int argc, char *argv[])
 			module_name = arg + 12;
 		} else if (!strncmp(arg, "use_profile=", 12)) {
 			default_profile = atoi(arg + 12);
-		} else if (!strncmp(arg, "use_group=", 10)) {
-			default_group = atoi(arg + 10);
 		} else if (!strncmp(arg, "grant_log=", 10)) {
 			grant_log = arg + 10;
 		} else if (!strncmp(arg, "reject_log=", 11)) {

@@ -177,14 +177,5 @@ config CCSECURITY_TASK_DOMAIN_TRANSITION
 	  Say Y here if you want to enable domain transition without involving
 	  program execution request.
 
-config CCSECURITY_PORTRESERVE
-       bool "Enable local port reserver."
-       default y
-       depends on NET
-       depends on CCSECURITY
-       ---help---
-	 Say Y here if you want to implement
-	 /proc/sys/net/ipv4/ip_local_reserved_ports as a MAC policy.
-
 config CCSECURITY_NETWORK_RECVMSG
 	def_bool CCSECURITY_NETWORK

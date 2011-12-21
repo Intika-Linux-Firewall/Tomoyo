@@ -28,6 +28,7 @@
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
 char *ccs_realpath(struct path *path);
+char *ccs_realpath2(struct path *path, bool force_no_fsname);
 const char *ccs_get_exe(void);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 
@@ -492,16 +493,18 @@ static char *ccs_get_socket_name(struct path *path, char * const buffer,
 #define SOCKFS_MAGIC 0x534F434B
 
 /**
- * ccs_realpath - Returns realpath(3) of the given pathname but ignores chroot'ed root.
+ * ccs_realpath2 - Returns realpath(3) of the given pathname but ignores chroot'ed root.
  *
- * @path: Pointer to "struct path".
+ * @path:            Pointer to "struct path".
+ * @force_no_fsname: Force use of normal pathname if true, may use fsname
+ *                   otherwise.
  *
  * Returns the realpath of the given @path on success, NULL otherwise.
  *
  * This function uses kzalloc(), so caller must kfree() if this function
  * didn't return NULL.
  */
-char *ccs_realpath(struct path *path)
+char *ccs_realpath2(struct path *path, bool force_no_fsname)
 {
 	char *buf = NULL;
 	char *name = NULL;
@@ -521,6 +524,8 @@ char *ccs_realpath(struct path *path)
 			break;
 		/* To make sure that pos is '\0' terminated. */
 		buf[buf_len - 1] = '\0';
+		if (force_no_fsname)
+			goto absolute_path;
 		/* Get better name for socket. */
 		if (sb->s_magic == SOCKFS_MAGIC) {
 			pos = ccs_get_socket_name(path, buf, buf_len - 1);
@@ -542,6 +547,7 @@ char *ccs_realpath(struct path *path)
 		if (!path->mnt || (inode->i_op && !inode->i_op->rename))
 			pos = ERR_PTR(-EINVAL);
 		else {
+absolute_path:
 			/* Get absolute name for the rest. */
 			ccs_realpath_lock();
 			pos = ccs_get_absolute_path(path, buf, buf_len - 1);
@@ -560,6 +566,21 @@ encode:
 	if (!name)
 		ccs_warn_oom(__func__);
 	return name;
+}
+
+/**
+ * ccs_realpath - Returns realpath(3) of the given pathname but ignores chroot'ed root.
+ *
+ * @path: Pointer to "struct path".
+ *
+ * Returns the realpath of the given @path on success, NULL otherwise.
+ *
+ * This function uses kzalloc(), so caller must kfree() if this function
+ * didn't return NULL.
+ */
+char *ccs_realpath(struct path *path)
+{
+	return ccs_realpath2(path, false);
 }
 
 /**

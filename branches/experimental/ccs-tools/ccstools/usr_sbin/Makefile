@@ -15,13 +15,13 @@ $(BUILD_FILES): libccstools.so
 	sleep 10
 
 libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.3 -o libccstools.so.3.0.0
-	ln -sf libccstools.so.3.0.0 libccstools.so
+	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.4 -o libccstools.so.4.0.0
+	ln -sf libccstools.so.4.0.0 libccstools.so
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $< -lccstools -L. 
 
-ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so
+ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so editpolicy.h
 	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
 
 ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools.so
@@ -29,8 +29,8 @@ ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
-	$(INSTALL) -m 0755 libccstools.so.3.0.0 $(INSTALLDIR)$(USRLIBDIR)
-	ln -sf libccstools.so.3.0.0 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.3
+	$(INSTALL) -m 0755 libccstools.so.4.0.0 $(INSTALLDIR)$(USRLIBDIR)
+	ln -sf libccstools.so.4.0.0 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.4
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif

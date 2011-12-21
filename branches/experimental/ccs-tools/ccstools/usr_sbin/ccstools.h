@@ -53,6 +53,7 @@
 
 #define CCS_PROC_POLICY_DIR              "/proc/ccs/"
 #define CCS_PROC_POLICY_DOMAIN_POLICY    "/proc/ccs/domain_policy"
+#define CCS_PROC_POLICY_ACL_POLICY       "/proc/ccs/acl_policy"
 #define CCS_PROC_POLICY_EXCEPTION_POLICY "/proc/ccs/exception_policy"
 #define CCS_PROC_POLICY_AUDIT            "/proc/ccs/audit"
 #define CCS_PROC_POLICY_MANAGER          "/proc/ccs/manager"
@@ -91,7 +92,6 @@ struct ccs_domain_info {
 	int string_count;
 	u8 profile;
 	_Bool profile_assigned;
-	u8 group;
 };
 
 struct ccs_domain_policy {

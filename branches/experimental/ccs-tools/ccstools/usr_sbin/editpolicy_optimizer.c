@@ -211,7 +211,7 @@ static void ccs_tokenize(char *buffer, char *w[5],
 	case CCS_DIRECTIVE_FILE_LINK:
 	case CCS_DIRECTIVE_FILE_RENAME:
 	case CCS_DIRECTIVE_FILE_PIVOT_ROOT:
-	case CCS_DIRECTIVE_IPC_SIGNAL:
+	case CCS_DIRECTIVE_IPC_PTRACE:
 		words = 2;
 		break;
 	case CCS_DIRECTIVE_FILE_EXECUTE:
@@ -239,7 +239,7 @@ static void ccs_tokenize(char *buffer, char *w[5],
 		w[i] = buffer;
 		if (!cp)
 			return;
-		if (index == CCS_DIRECTIVE_IPC_SIGNAL && i == 1 &&
+		if (index == CCS_DIRECTIVE_IPC_PTRACE && i == 1 &&
 		    ccs_domain_def(buffer)) {
 			cp = strchr(buffer, ' ');
 			if (!cp)
@@ -336,9 +336,7 @@ void ccs_editpolicy_optimize(const int current)
 	if (s_index == CCS_DIRECTIVE_NONE)
 		return;
 	/* Allow acl_group lines to be optimized. */
-	if (is_exception_list &&
-	    (s_index < CCS_DIRECTIVE_ACL_GROUP_000 ||
-	     s_index > CCS_DIRECTIVE_ACL_GROUP_255))
+	if (is_exception_list && s_index != CCS_DIRECTIVE_ACL_GROUP)
 		return;
 	cp = strdup(ccs_gacl_list[current].operand);
 	if (!cp)
@@ -388,10 +386,6 @@ void ccs_editpolicy_optimize(const int current)
 			fclose(fp);
 		}
 		switch (d_index) {
-			struct ccs_path_info sarg;
-			struct ccs_path_info darg;
-			char c;
-			int len;
 		case CCS_DIRECTIVE_FILE_MKBLOCK:
 		case CCS_DIRECTIVE_FILE_MKCHAR:
 			if (!ccs_compare_number(s[3], d[3]) ||
@@ -419,7 +413,7 @@ void ccs_editpolicy_optimize(const int current)
 		case CCS_DIRECTIVE_FILE_APPEND:
 		case CCS_DIRECTIVE_FILE_UNMOUNT:
 		case CCS_DIRECTIVE_FILE_CHROOT:
-		case CCS_DIRECTIVE_FILE_SYMLINK:
+		case CCS_DIRECTIVE_MISC_ENV:
 			if (!ccs_compare_path(s[0], d[0]))
 				continue;
 			break;
@@ -431,20 +425,17 @@ void ccs_editpolicy_optimize(const int current)
 		case CCS_DIRECTIVE_FILE_LINK:
 		case CCS_DIRECTIVE_FILE_RENAME:
 		case CCS_DIRECTIVE_FILE_PIVOT_ROOT:
+		case CCS_DIRECTIVE_FILE_SYMLINK:
 			if (!ccs_compare_path(s[1], d[1]) ||
 			    !ccs_compare_path(s[0], d[0]))
 				continue;
 			break;
-		case CCS_DIRECTIVE_IPC_SIGNAL:
-			/* Signal number component. */
+		case CCS_DIRECTIVE_IPC_PTRACE:
+			/* Command number component. */
 			if (strcmp(s[0], d[0]))
 				continue;
 			/* Domainname component. */
-			len = strlen(s[1]);
-			if (strncmp(s[1], d[1], len))
-				continue;
-			c = d[1][len];
-			if (c && c != ' ')
+			if (!ccs_compare_path(s[1], d[1]))
 				continue;
 			break;
 		case CCS_DIRECTIVE_NETWORK_INET:
@@ -456,20 +447,6 @@ void ccs_editpolicy_optimize(const int current)
 		case CCS_DIRECTIVE_NETWORK_UNIX:
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
 			    !ccs_compare_path(s[2], d[2]))
-				continue;
-			break;
-		case CCS_DIRECTIVE_MISC_ENV:
-			/* An environemnt variable name component. */
-			sarg.name = s[0];
-			ccs_fill_path_info(&sarg);
-			darg.name = d[0];
-			ccs_fill_path_info(&darg);
-			if (!ccs_pathcmp(&sarg, &darg))
-				break;
-			/* "misc env" doesn't interpret leading @ as
-			   path_group. */
-			if (darg.is_patterned ||
-			    !ccs_path_matches_pattern(&darg, &sarg))
 				continue;
 			break;
 		default:
