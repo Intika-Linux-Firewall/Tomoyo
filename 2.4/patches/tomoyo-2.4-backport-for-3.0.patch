@@ -2,8 +2,8 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget -O linux-3.1.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.tar.bz2
- $ tar -jxf linux-3.1.tar.bz2 --strip 1 linux-3.1/security/tomoyo/
+ $ wget -O linux-3.1.6.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.6.tar.bz2
+ $ tar -jxf linux-3.1.6.tar.bz2 --strip 1 linux-3.1.6/security/tomoyo/
 
 .
 
@@ -11,12 +11,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c        |   11 +++++------
  security/tomoyo/domain.c        |    4 +++-
+ security/tomoyo/realpath.c      |   25 +++++++++++++++++++++++--
  security/tomoyo/securityfs_if.c |    1 +
  security/tomoyo/util.c          |    3 ++-
- 4 files changed, 11 insertions(+), 8 deletions(-)
+ 5 files changed, 34 insertions(+), 10 deletions(-)
 
---- linux-3.0.12.orig/security/tomoyo/common.c
-+++ linux-3.0.12/security/tomoyo/common.c
+--- linux-3.0.14.orig/security/tomoyo/common.c
++++ linux-3.0.14/security/tomoyo/common.c
 @@ -466,8 +466,10 @@ static struct tomoyo_profile *tomoyo_ass
  			TOMOYO_CONFIG_WANT_REJECT_LOG;
  		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
@@ -68,8 +69,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	idx = tomoyo_read_lock();
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
---- linux-3.0.12.orig/security/tomoyo/domain.c
-+++ linux-3.0.12/security/tomoyo/domain.c
+--- linux-3.0.14.orig/security/tomoyo/domain.c
++++ linux-3.0.14/security/tomoyo/domain.c
 @@ -501,7 +501,8 @@ struct tomoyo_domain_info *tomoyo_assign
  			 * that domain. Do not perform domain transition if
  			 * profile for that domain is not yet created.
@@ -88,8 +89,42 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	return entry;
---- linux-3.0.12.orig/security/tomoyo/securityfs_if.c
-+++ linux-3.0.12/security/tomoyo/securityfs_if.c
+--- linux-3.0.14.orig/security/tomoyo/realpath.c
++++ linux-3.0.14/security/tomoyo/realpath.c
+@@ -83,8 +83,29 @@ static char *tomoyo_get_absolute_path(st
+ {
+ 	char *pos = ERR_PTR(-ENOMEM);
+ 	if (buflen >= 256) {
+-		/* go to whatever namespace root we are under */
+-		pos = d_absolute_path(path, buffer, buflen - 1);
++		/*
++		 * Determine whether d_absolute_path() is provided or not,
++		 * based on the type of __d_path() arguments. If the second
++		 * argument of __d_path() is "const struct path *", it means
++		 * that d_namespace_path() is provided. If the second argument
++		 * of __d_path() is "struct path *", it means that
++		 * d_namespace_path() is not provided.
++		 */
++		pos = __builtin_choose_expr
++			(__builtin_types_compatible_p
++			 (typeof(__d_path),
++			  char *(const struct path *, const struct path *,
++				 char *, int)),
++			 ({
++				 extern char *d_absolute_path
++					 (const struct path *, char *, int);
++				 d_absolute_path(path, buffer, buflen - 1);
++			 }),
++			 ({
++				 struct path ns_root = { };
++				 __d_path(path, &ns_root, buffer, buflen - 1);
++			 })
++			 );
+ 		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
+ 			struct inode *inode = path->dentry->d_inode;
+ 			if (inode && S_ISDIR(inode->i_mode)) {
+--- linux-3.0.14.orig/security/tomoyo/securityfs_if.c
++++ linux-3.0.14/security/tomoyo/securityfs_if.c
 @@ -147,6 +147,7 @@ static int __init tomoyo_initerface_init
  			    TOMOYO_MANAGER);
  	tomoyo_create_entry("version",          0400, tomoyo_dir,
@@ -98,8 +133,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
---- linux-3.0.12.orig/security/tomoyo/util.c
-+++ linux-3.0.12/security/tomoyo/util.c
+--- linux-3.0.14.orig/security/tomoyo/util.c
++++ linux-3.0.14/security/tomoyo/util.c
 @@ -925,7 +925,8 @@ int tomoyo_get_mode(const struct tomoyo_
  		return TOMOYO_CONFIG_DISABLED;
  	mode = tomoyo_profile(ns, profile)->config[index];

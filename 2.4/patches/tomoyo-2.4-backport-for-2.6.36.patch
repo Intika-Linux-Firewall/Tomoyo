@@ -2,19 +2,19 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget -O linux-3.1.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.tar.bz2
- $ tar -jxf linux-3.1.tar.bz2 --strip 1 linux-3.1/security/tomoyo/
+ $ wget -O linux-3.1.6.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.6.tar.bz2
+ $ tar -jxf linux-3.1.6.tar.bz2 --strip 1 linux-3.1.6/security/tomoyo/
 
 .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c        |   11 +++++------
- security/tomoyo/domain.c        |    4 +++-
- security/tomoyo/realpath.c      |   30 +++++++++++++++++++++---------
- security/tomoyo/securityfs_if.c |    1 +
- security/tomoyo/util.c          |    3 ++-
- 5 files changed, 32 insertions(+), 17 deletions(-)
+ security/tomoyo/common.c        |   11 +++-----
+ security/tomoyo/domain.c        |    4 ++
+ security/tomoyo/realpath.c      |   55 ++++++++++++++++++++++++++++++++--------
+ security/tomoyo/securityfs_if.c |    1 
+ security/tomoyo/util.c          |    3 +-
+ 5 files changed, 55 insertions(+), 19 deletions(-)
 
 --- linux-2.6.36.4.orig/security/tomoyo/common.c
 +++ linux-2.6.36.4/security/tomoyo/common.c
@@ -91,17 +91,41 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return entry;
 --- linux-2.6.36.4.orig/security/tomoyo/realpath.c
 +++ linux-2.6.36.4/security/tomoyo/realpath.c
-@@ -85,7 +85,9 @@ static char *tomoyo_get_absolute_path(st
+@@ -83,8 +83,31 @@ static char *tomoyo_get_absolute_path(st
+ {
+ 	char *pos = ERR_PTR(-ENOMEM);
  	if (buflen >= 256) {
- 		struct path ns_root = { };
- 		/* go to whatever namespace root we are under */
+-		/* go to whatever namespace root we are under */
+-		pos = d_absolute_path(path, buffer, buflen - 1);
 +		spin_lock(&dcache_lock);
- 		pos = __d_path(path, &ns_root, buffer, buflen - 1);
++		/*
++		 * Determine whether d_absolute_path() is provided or not,
++		 * based on the type of __d_path() arguments. If the second
++		 * argument of __d_path() is "const struct path *", it means
++		 * that d_namespace_path() is provided. If the second argument
++		 * of __d_path() is "struct path *", it means that
++		 * d_namespace_path() is not provided.
++		 */
++		pos = __builtin_choose_expr
++			(__builtin_types_compatible_p
++			 (typeof(__d_path),
++			  char *(const struct path *, const struct path *,
++				 char *, int)),
++			 ({
++				 extern char *d_absolute_path
++					 (const struct path *, char *, int);
++				 d_absolute_path(path, buffer, buflen - 1);
++			 }),
++			 ({
++				 struct path ns_root = { };
++				 __d_path(path, &ns_root, buffer, buflen - 1);
++			 })
++			 );
 +		spin_unlock(&dcache_lock);
  		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
  			struct inode *inode = path->dentry->d_inode;
  			if (inode && S_ISDIR(inode->i_mode)) {
-@@ -111,17 +113,27 @@ static char *tomoyo_get_absolute_path(st
+@@ -110,17 +133,27 @@ static char *tomoyo_get_absolute_path(st
  static char *tomoyo_get_dentry_path(struct dentry *dentry, char * const buffer,
  				    const int buflen)
  {
