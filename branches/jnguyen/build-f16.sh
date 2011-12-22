@@ -90,10 +90,11 @@ cat_patch() {
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -606,6 +606,8 @@
+@@ -606,6 +606,9 @@
  Source2000: cpupower.service
  Source2001: cpupower.config
  
++Source99998: ${CCS_DIFF_NAME}
 +Source99999: ccs-patch-${CCS_PATCH_VER}.tar.gz
 +
  # Here should be only the patches up to the upstream canonical Linus tree.
@@ -136,12 +137,14 @@ EOF
 if [[ "${UPDATED_DIFF}" = 0 ]]; then
 	cat_patch | sed \
 		-e "s#\${CCS_VER}#${CCS_VER}#g" \
+		-e "s#Source99998.*##g" \
 		-e "s#\${CCS_PATCH_VER}#${CCS_PATCH_VER}#g" \
 		-e "s#patches/\${CCS_DIFF_NAME}#patches/${CCS_DIFF_NAME}#g" \
 		| patch
 elif [[ "${UPDATED_DIFF}" = 1 ]]; then
 	cat_patch | sed \
 		-e "s#\${CCS_VER}#${CCS_VER}#g" \
+		-e "s#Source99998: \${CCS_DIFF_NAME}#Source99998: ${CCS_DIFF_NAME}#g" \
 		-e "s#\${CCS_PATCH_VER}#${CCS_PATCH_VER}#g" \
 		-e "s#patches/\${CCS_DIFF_NAME}#%_sourcedir/${CCS_DIFF_NAME}#g" \
 		| patch

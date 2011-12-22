@@ -5,17 +5,18 @@ DOWNLOAD_DIR="${HOME}/sources"
 
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
-URL_KERNEL="http://www.mirrorservice.org/sites/ftp.scientificlinux.org/linux/scientific/6.1/SRPMS/vendor"
+#URL_KERNEL="http://www.mirrorservice.org/sites/ftp.scientificlinux.org/linux/scientific/6.1/SRPMS/vendor"
+URL_KERNEL="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/"
 
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p4"
 CCS_PATCH_VER="1.8.3-20111213"
-KERNEL_VER="2.6.32-131.21.1.el6"
+KERNEL_VER="2.6.32-220.el6"
 
-CCS_DIFF_NAME="ccs-patch-2.6.32-centos-6.1.diff"
+CCS_DIFF_NAME="ccs-patch-2.6.32-centos-6.2.diff"
 
-UPDATED_DIFF=1
-CCS_DIFF_REVISION="ccs-patch-2.6.32-centos-6.1.diff?view=co&revision=5710&root=tomoyo&pathrev=5710"
+UPDATED_DIFF=0
+#CCS_DIFF_REVISION="ccs-patch-2.6.32-centos-6.1.diff?view=co&revision=5710&root=tomoyo&pathrev=5710"
 
 rm -rf "${HOME}/rpmbuild"
 rpmdev-setuptree
@@ -103,8 +104,8 @@ cat_patch() {
  Source82: config-generic
  Source83: config-x86_64-debug-rhel
  
-+Source998: ccs-patch-2.6.32-centos-6.1.diff
-+Source999: ccs-patch-${CCS_PATCH_VER}.tar.gz
++Source99998: ${CCS_DIFF_NAME}
++Source99999: ccs-patch-${CCS_PATCH_VER}.tar.gz
 +
  # empty final patch file to facilitate testing of kernel patches
  Patch999999: linux-kernel-test.patch
@@ -146,12 +147,14 @@ EOF
 if [[ "${UPDATED_DIFF}" = 0 ]]; then
 	cat_patch | sed \
 		-e "s#\${CCS_VER}#${CCS_VER}#g" \
+		-e "s#Source99998.*##g" \
 		-e "s#\${CCS_PATCH_VER}#${CCS_PATCH_VER}#g" \
 		-e "s#patches/\${CCS_DIFF_NAME}#patches/${CCS_DIFF_NAME}#g" \
 		| patch -Np0
 elif [[ "${UPDATED_DIFF}" = 1 ]]; then
 	cat_patch | sed \
 		-e "s#\${CCS_VER}#${CCS_VER}#g" \
+		-e "s#Source99998: \${CCS_DIFF_NAME}#Source99998: ${CCS_DIFF_NAME}#g" \
 		-e "s#\${CCS_PATCH_VER}#${CCS_PATCH_VER}#g" \
 		-e "s#patches/\${CCS_DIFF_NAME}#%_sourcedir/${CCS_DIFF_NAME}#g" \
 		| patch -Np0
