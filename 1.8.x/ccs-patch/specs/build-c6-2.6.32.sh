@@ -12,12 +12,12 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.32-220.el6.src.rpm ]
 then
-    wget http://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/kernel-2.6.32-220.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.2/os/Source/SPackages/kernel-2.6.32-220.el6.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-2.6.32-220.el6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.32-220.el6.src.rpm || die "Can't install source package."
-sed -i -e 's@--keyring \./kernel\.pub Red@--keyring ./kernel.pub CentOS@' -- /root/rpmbuild/SPECS/kernel.spec || die "Can't update spec file"
-sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
+# sed -i -e 's@--keyring \./kernel\.pub Red@--keyring ./kernel.pub CentOS@' -- /root/rpmbuild/SPECS/kernel.spec || die "Can't update spec file"
+# sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20111213.tar.gz ]
