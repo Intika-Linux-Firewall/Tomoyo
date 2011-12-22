@@ -102,8 +102,8 @@ $ patch -p1 &lt; tomoyo-2.4-backport-for-3.1.patch
 <p>If you want to use TOMOYO 2.4 on Linux kernels between 2.6.33 and 3.0, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.4/patches/">http://tomoyo.sourceforge.jp/2.4/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
 
 <pre class="command">
-$ wget -O linux-3.1.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.tar.bz2
-$ tar -jxf linux-3.1.tar.bz2 --strip 1 linux-3.1/security/tomoyo/
+$ wget -O linux-3.1.6.tar.bz2 http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.1.6.tar.bz2
+$ tar -jxf linux-3.1.6.tar.bz2 --strip 1 linux-3.1.6/security/tomoyo/
 $ wget http://tomoyo.sourceforge.jp/2.4/patches/tomoyo-2.4-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.4-backport-for-$KERNELVERSION.patch
 </pre>
