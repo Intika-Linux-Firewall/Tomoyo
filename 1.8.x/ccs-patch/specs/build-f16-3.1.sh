@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.1.5-6.fc16.src.rpm ]
+if [ ! -r kernel-3.1.6-1.fc16.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.1.5-6.fc16.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.1.6-1.fc16.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.1.5-6.fc16.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.1.5-6.fc16.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.1.6-1.fc16.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.1.6-1.fc16.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20111213.tar.gz ]
@@ -39,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -463,6 +463,11 @@
+@@ -474,6 +474,11 @@
  # to versions below the minimum
  #
  
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -522,7 +527,7 @@
+@@ -533,7 +538,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -946,7 +951,7 @@
+@@ -975,7 +980,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1485,6 +1490,10 @@
+@@ -1538,6 +1543,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -80,7 +80,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1514,6 +1523,9 @@
+@@ -1567,6 +1576,9 @@
  for i in *.config
  do
    mv $i .config
