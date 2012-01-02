@@ -1,0 +1,361 @@
+Index: include/linux/ccsecurity.h
+===================================================================
+--- a/include/linux/ccsecurity.h	(revision 5749)
++++ b/include/linux/ccsecurity.h	(working copy)
+@@ -34,12 +34,18 @@
+ 
+ #ifdef CONFIG_CCSECURITY
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
++/* Obtain prototype of __d_path() or d_absolute_path(). */
++#include <linux/dcache.h>
++#endif
++
+ /* For exporting variables and functions. */
+ struct ccsecurity_exports {
+ 	void (*load_policy) (const char *filename);
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+-	char *(*__d_path) (const struct path *path, struct path *root,
+-			   char *buf, int buflen);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
++	typeof(d_absolute_path) (*d_absolute_path);
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
++	typeof(__d_path) (*__d_path);
+ #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+ 	spinlock_t *vfsmount_lock;
+ #endif
+@@ -279,8 +285,7 @@
+ 	return func ? func(operation) : 1;
+ }
+ 
+-static inline int ccs_mknod_permission(struct inode *dir,
+-				       struct dentry *dentry,
++static inline int ccs_mknod_permission(struct dentry *dentry,
+ 				       struct vfsmount *mnt, unsigned int mode,
+ 				       unsigned int dev)
+ {
+@@ -289,8 +294,7 @@
+ 	return func ? func(dentry, mnt, mode, dev) : 0;
+ }
+ 
+-static inline int ccs_mkdir_permission(struct inode *dir,
+-				       struct dentry *dentry,
++static inline int ccs_mkdir_permission(struct dentry *dentry,
+ 				       struct vfsmount *mnt, unsigned int mode)
+ {
+ 	int (*func) (struct dentry *, struct vfsmount *, unsigned int)
+@@ -298,8 +302,7 @@
+ 	return func ? func(dentry, mnt, mode) : 0;
+ }
+ 
+-static inline int ccs_rmdir_permission(struct inode *dir,
+-				       struct dentry *dentry,
++static inline int ccs_rmdir_permission(struct dentry *dentry,
+ 				       struct vfsmount *mnt)
+ {
+ 	int (*func) (struct dentry *, struct vfsmount *)
+@@ -307,8 +310,7 @@
+ 	return func ? func(dentry, mnt) : 0;
+ }
+ 
+-static inline int ccs_unlink_permission(struct inode *dir,
+-					struct dentry *dentry,
++static inline int ccs_unlink_permission(struct dentry *dentry,
+ 					struct vfsmount *mnt)
+ {
+ 	int (*func) (struct dentry *, struct vfsmount *)
+@@ -316,8 +318,7 @@
+ 	return func ? func(dentry, mnt) : 0;
+ }
+ 
+-static inline int ccs_symlink_permission(struct inode *dir,
+-					 struct dentry *dentry,
++static inline int ccs_symlink_permission(struct dentry *dentry,
+ 					 struct vfsmount *mnt,
+ 					 const char *from)
+ {
+@@ -334,9 +335,7 @@
+ 	return func ? func(dentry, mnt) : 0;
+ }
+ 
+-static inline int ccs_rename_permission(struct inode *old_dir,
+-					struct dentry *old_dentry,
+-					struct inode *new_dir,
++static inline int ccs_rename_permission(struct dentry *old_dentry,
+ 					struct dentry *new_dentry,
+ 					struct vfsmount *mnt)
+ {
+@@ -346,7 +345,6 @@
+ }
+ 
+ static inline int ccs_link_permission(struct dentry *old_dentry,
+-				      struct inode *new_dir,
+ 				      struct dentry *new_dentry,
+ 				      struct vfsmount *mnt)
+ {
+@@ -626,37 +624,32 @@
+ 	return 1;
+ }
+ 
+-static inline int ccs_mknod_permission(struct inode *dir,
+-				       struct dentry *dentry,
++static inline int ccs_mknod_permission(struct dentry *dentry,
+ 				       struct vfsmount *mnt, unsigned int mode,
+ 				       unsigned int dev)
+ {
+ 	return 0;
+ }
+ 
+-static inline int ccs_mkdir_permission(struct inode *dir,
+-				       struct dentry *dentry,
++static inline int ccs_mkdir_permission(struct dentry *dentry,
+ 				       struct vfsmount *mnt, unsigned int mode)
+ {
+ 	return 0;
+ }
+ 
+-static inline int ccs_rmdir_permission(struct inode *dir,
+-				       struct dentry *dentry,
++static inline int ccs_rmdir_permission(struct dentry *dentry,
+ 				       struct vfsmount *mnt)
+ {
+ 	return 0;
+ }
+ 
+-static inline int ccs_unlink_permission(struct inode *dir,
+-					struct dentry *dentry,
++static inline int ccs_unlink_permission(struct dentry *dentry,
+ 					struct vfsmount *mnt)
+ {
+ 	return 0;
+ }
+ 
+-static inline int ccs_symlink_permission(struct inode *dir,
+-					 struct dentry *dentry,
++static inline int ccs_symlink_permission(struct dentry *dentry,
+ 					 struct vfsmount *mnt,
+ 					 const char *from)
+ {
+@@ -669,9 +662,7 @@
+ 	return 0;
+ }
+ 
+-static inline int ccs_rename_permission(struct inode *old_dir,
+-					struct dentry *old_dentry,
+-					struct inode *new_dir,
++static inline int ccs_rename_permission(struct dentry *old_dentry,
+ 					struct dentry *new_dentry,
+ 					struct vfsmount *mnt)
+ {
+@@ -679,7 +670,6 @@
+ }
+ 
+ static inline int ccs_link_permission(struct dentry *old_dentry,
+-				      struct inode *new_dir,
+ 				      struct dentry *new_dentry,
+ 				      struct vfsmount *mnt)
+ {
+Index: README.ccs
+===================================================================
+--- a/README.ccs	(revision 5749)
++++ b/README.ccs	(working copy)
+@@ -2854,3 +2854,55 @@
+       "<kernel>" + "/foo/\" + "/bar" was by error checked when
+       "<kernel> /foo/\* /bar" was given. As a result, legal domainnames like
+       "<kernel> /foo/\* /bar" are rejected.
++
++Backports for ccs-patch-1.8.1-20110511
++
++    @ Remove unused "struct inode *" parameter from ccs-patch-\*.diff .
++
++      To follow changes I made on 2011/04/20, I removed "struct inode *" from
++      ccs_mknod_permission(), ccs_mkdir_permission(), ccs_rmdir_permission(),
++      ccs_unlink_permission(), ccs_symlink_permission(), ccs_link_permission(),
++      ccs_rename_permission() that are called from fs/namei.c
++      net/unix/af_unix.c include/linux/security.c security/security.c .
++      If you have your own ccs-patch-*.diff , please update accordingly.
++
++    @ Fix incomplete read after seek.
++
++      ccs_flush() tries to flush data to be read as soon as possible.
++      ccs_select_domain() (which is called by write()) enqueues data which
++      meant to be read by next read(), but previous read()'s read buffer's
++      size was not cleared. As a result, since 1.8.0, sequence like
++
++        char *cp = "select global-pid=1\n";
++        read(fd, buf1, sizeof(buf1));
++        write(fd, cp, strlen(cp));
++        read(fd, buf2, sizeof(buf2));
++
++      causes enqueued data to be flushed to buf1 rather than buf2.
++
++    @ Follow __d_path() behavior change. (Only 2.6.36 and later)
++
++      The behavior of __d_path() has changed in 3.2-rc5. __d_path() now returns
++      NULL when the pathname cannot be calculated. You must update to this
++      version when using with 3.2-rc5 and later kernels, or the kernel will
++      panic because ccs_get_absolute_path() triggers NULL pointer dereference.
++
++      The patch that changed the behavior of __d_path() might be backported to
++      2.6.36 to 3.1 kernels. You must update to this version if the patch was
++      backported, or you will experience the kernel panic as with 3.2-rc5.
++
++      The patch that changed the behavior of __d_path() also changed the way of
++      handling pathnames under lazy-unmounted directory. Until now, TOMOYO was
++      using incomplete pathnames returned by __d_path() when the pathname is
++      under lazy-unmounted directory. But from now on, TOMOYO uses different
++      pathnames returned by ccs_get_local_path() when the pathname is under
++      lazy-unmounted directory (because __d_path() no longer returns it).
++
++      Since applications unlikely do lazy unmounts, requesting pathnames under
++      lazy-unmounted directory should not happen unless the administrator
++      explicitly does lazy unmounts. But pathnames which is defined for such
++      conditions in the policy file (if any) will need to be rewritten.
++
++    @ Remove ipv6_addr_copy().
++
++      ipv6_addr_copy() will be removed in 3.3.
+Index: security/ccsecurity/load_policy.c
+===================================================================
+--- a/security/ccsecurity/load_policy.c	(revision 5749)
++++ b/security/ccsecurity/load_policy.c	(working copy)
+@@ -268,7 +268,9 @@
+ #ifndef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
+ 	.load_policy = ccs_load_policy,
+ #endif
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
++	.d_absolute_path = d_absolute_path,
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+ 	.__d_path = __d_path,
+ #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+ 	.vfsmount_lock = &vfsmount_lock,
+Index: security/ccsecurity/realpath.c
+===================================================================
+--- a/security/ccsecurity/realpath.c	(revision 5749)
++++ b/security/ccsecurity/realpath.c	(working copy)
+@@ -214,12 +214,11 @@
+ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
+ 				   const int buflen)
+ {
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
+ 	char *pos = ERR_PTR(-ENOMEM);
+ 	if (buflen >= 256) {
+-		struct path root = { };
+-		pos = ccsecurity_exports.__d_path(path, &root, buffer,
+-						  buflen - 1);
++		pos = ccsecurity_exports.d_absolute_path(path, buffer,
++							 buflen - 1);
+ 		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
+ 			struct inode *inode = path->dentry->d_inode;
+ 			if (inode && S_ISDIR(inode->i_mode)) {
+@@ -229,6 +228,58 @@
+ 		}
+ 	}
+ 	return pos;
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
++	/*
++	 * __d_path() will start returning NULL by backporting commit 02125a82
++	 * "fix apparmor dereferencing potentially freed dentry, sanitize
++	 * __d_path() API".
++	 *
++	 * Unfortunately, __d_path() after applying that commit always returns
++	 * NULL when root is empty. d_absolute_path() is provided for TOMOYO
++	 * 2.x and AppArmor but TOMOYO 1.x does not use it, for TOMOYO 1.x
++	 * might be built as a loadable kernel module and there is no warrantee
++	 * that TOMOYO 1.x is recompiled after applying that commit. Also,
++	 * I don't want to search /proc/kallsyms for d_absolute_path() because
++	 * I want to keep TOMOYO 1.x architecture independent. Thus, supply
++	 * non empty root like AppArmor's d_namespace_path() did.
++	 */
++	char *pos = ERR_PTR(-ENOMEM);
++	if (buflen >= 256) {
++		static bool ccs_no_empty;
++		if (!ccs_no_empty) {
++			struct path root = { };
++			pos = ccsecurity_exports.__d_path(path, &root, buffer,
++							  buflen - 1);
++		} else {
++			pos = NULL;
++		}
++		if (!pos) {
++			struct task_struct *task = current;
++			struct path root;
++			struct path tmp;
++			spin_lock(&task->fs->lock);
++			root.mnt = task->nsproxy->mnt_ns->root;
++			root.dentry = root.mnt->mnt_root;
++			path_get(&root);
++			spin_unlock(&task->fs->lock);
++			tmp = root;
++			pos = ccsecurity_exports.__d_path(path, &tmp, buffer,
++							  buflen - 1);
++			path_put(&root);
++			if (!pos)
++				return ERR_PTR(-EINVAL);
++			/* Remember if __d_path() needs non empty root. */
++			ccs_no_empty = true;
++		}
++		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
++			struct inode *inode = path->dentry->d_inode;
++			if (inode && S_ISDIR(inode->i_mode)) {
++				buffer[buflen - 2] = '/';
++				buffer[buflen - 1] = '\0';
++			}
++		}
++	}
++	return pos;
+ #else
+ 	char *pos = buffer + buflen - 1;
+ 	struct dentry *dentry = path->dentry;
+@@ -485,15 +536,17 @@
+ 		 * Get local name for filesystems without rename() operation
+ 		 * or dentry without vfsmount.
+ 		 */
+-		if (!path->mnt || (inode->i_op && !inode->i_op->rename)) {
++		if (!path->mnt || (inode->i_op && !inode->i_op->rename))
++			pos = ERR_PTR(-EINVAL);
++		else {
++			/* Get absolute name for the rest. */
++			ccs_realpath_lock();
++			pos = ccs_get_absolute_path(path, buf, buf_len - 1);
++			ccs_realpath_unlock();
++		}
++		if (pos == ERR_PTR(-EINVAL))
+ 			pos = ccs_get_local_path(path->dentry, buf,
+ 						 buf_len - 1);
+-			goto encode;
+-		}
+-		/* Get absolute name for the rest. */
+-		ccs_realpath_lock();
+-		pos = ccs_get_absolute_path(path, buf, buf_len - 1);
+-		ccs_realpath_unlock();
+ encode:
+ 		if (IS_ERR(pos))
+ 			continue;
+Index: security/ccsecurity/policy_io.c
+===================================================================
+--- a/security/ccsecurity/policy_io.c	(revision 5749)
++++ b/security/ccsecurity/policy_io.c	(working copy)
+@@ -2751,6 +2751,7 @@
+ 		return -EFAULT;
+ 	if (mutex_lock_interruptible(&head->io_sem))
+ 		return -EINTR;
++	head->read_user_buf_avail = 0;
+ 	idx = ccs_read_lock();
+ 	/* Don't allow updating policies by non manager programs. */
+ 	if (head->write != ccs_write_pid && head->write != ccs_write_domain &&
+Index: security/ccsecurity/network.c
+===================================================================
+--- a/security/ccsecurity/network.c	(revision 5749)
++++ b/security/ccsecurity/network.c	(working copy)
+@@ -1059,7 +1059,7 @@
+ 				ipv6_addr_set(sin6, 0, 0, htonl(0xffff),
+ 					      ip_hdr(skb)->saddr);
+ 			else
+-				ipv6_addr_copy(sin6, &ipv6_hdr(skb)->saddr);
++				*sin6 = ipv6_hdr(skb)->saddr;
+ 			break;
+ 		}
+ 	case PF_INET:
