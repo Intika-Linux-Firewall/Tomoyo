@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for linux-next-20111228.
+This is TOMOYO Linux patch for linux-next-20120106.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=a71ddbca46dff8ac0e1fa550be3fd90f75e28d1b;sf=tgz
+Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=6118c64c168fab5a6550fe6c60ad2f2526e2dc93;sf=tgz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -59,7 +59,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.2-rc7+next-20111228 2011/12/31\n");
++	printk(KERN_INFO "Hook version: 3.2+next-20120106 2012/01/06\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -120,7 +120,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -1922,7 +1923,10 @@ static inline int security_syslog(int ty
+@@ -1893,7 +1894,10 @@ static inline int security_syslog(int ty
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -132,7 +132,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_vm_enough_memory(long pages)
-@@ -2005,18 +2009,18 @@ static inline int security_sb_mount(char
+@@ -1976,18 +1980,18 @@ static inline int security_sb_mount(char
  				    char *type, unsigned long flags,
  				    void *data)
  {
@@ -154,7 +154,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -2140,7 +2144,7 @@ static inline int security_inode_setattr
+@@ -2111,7 +2115,7 @@ static inline int security_inode_setattr
  static inline int security_inode_getattr(struct vfsmount *mnt,
  					  struct dentry *dentry)
  {
@@ -163,7 +163,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -2216,7 +2220,7 @@ static inline void security_file_free(st
+@@ -2187,7 +2191,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -172,7 +172,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -2243,7 +2247,7 @@ static inline int security_file_lock(str
+@@ -2214,7 +2218,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -181,7 +181,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_file_set_fowner(struct file *file)
-@@ -2266,7 +2270,7 @@ static inline int security_file_receive(
+@@ -2237,7 +2241,7 @@ static inline int security_file_receive(
  static inline int security_dentry_open(struct file *file,
  				       const struct cred *cred)
  {
@@ -190,7 +190,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -2611,7 +2615,7 @@ static inline int security_unix_may_send
+@@ -2577,7 +2581,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -199,7 +199,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2626,19 +2630,19 @@ static inline int security_socket_bind(s
+@@ -2592,19 +2596,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -222,7 +222,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2650,7 +2654,7 @@ static inline int security_socket_accept
+@@ -2616,7 +2620,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -231,7 +231,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2873,42 +2877,42 @@ int security_path_chroot(struct path *pa
+@@ -2839,42 +2843,42 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
@@ -281,7 +281,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2916,22 +2920,22 @@ static inline int security_path_rename(s
+@@ -2882,22 +2886,22 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -396,7 +396,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	mod = load_module(umod, len, uargs);
 --- linux-next.orig/kernel/ptrace.c
 +++ linux-next/kernel/ptrace.c
-@@ -857,6 +857,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -876,6 +876,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -405,7 +405,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1002,6 +1004,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1021,6 +1023,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -416,7 +416,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		ret = ptrace_traceme();
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3866,6 +3866,8 @@ int can_nice(const struct task_struct *p
+@@ -3875,6 +3875,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -427,7 +427,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	 * Setpriority might change our priority at the same moment.
 --- linux-next.orig/kernel/signal.c
 +++ linux-next/kernel/signal.c
-@@ -2787,6 +2787,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2785,6 +2785,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -436,7 +436,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2855,6 +2857,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2853,6 +2855,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -445,7 +445,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2871,6 +2875,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2869,6 +2873,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -454,7 +454,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2898,6 +2904,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2896,6 +2902,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  		return -EPERM;
  	}
  	info.si_signo = sig;
@@ -463,7 +463,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2918,6 +2926,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2916,6 +2924,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -646,7 +646,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
 --- linux-next.orig/security/security.c
 +++ linux-next/security/security.c
-@@ -203,7 +203,10 @@ int security_syslog(int type)
+@@ -184,7 +184,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
  {
@@ -658,7 +658,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  int security_vm_enough_memory(long pages)
-@@ -294,17 +297,27 @@ int security_sb_statfs(struct dentry *de
+@@ -275,17 +278,27 @@ int security_sb_statfs(struct dentry *de
  int security_sb_mount(char *dev_name, struct path *path,
                         char *type, unsigned long flags, void *data)
  {
@@ -689,7 +689,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -391,86 +404,132 @@ EXPORT_SYMBOL(security_old_inode_init_se
+@@ -372,86 +385,132 @@ EXPORT_SYMBOL(security_old_inode_init_se
  int security_path_mknod(struct path *dir, struct dentry *dentry, umode_t mode,
  			unsigned int dev)
  {
@@ -834,7 +834,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  #endif
  
-@@ -573,9 +632,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+@@ -554,9 +613,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
  
  int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
  {
@@ -849,7 +849,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  int security_inode_setxattr(struct dentry *dentry, const char *name,
-@@ -685,7 +748,10 @@ void security_file_free(struct file *fil
+@@ -666,7 +729,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -861,7 +861,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -713,7 +779,10 @@ int security_file_lock(struct file *file
+@@ -694,7 +760,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -873,7 +873,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -737,6 +806,8 @@ int security_dentry_open(struct file *fi
+@@ -718,6 +787,8 @@ int security_dentry_open(struct file *fi
  	int ret;
  
  	ret = security_ops->dentry_open(file, cred);
@@ -882,7 +882,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (ret)
  		return ret;
  
-@@ -1052,7 +1123,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1027,7 +1098,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -894,7 +894,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1064,17 +1138,26 @@ int security_socket_post_create(struct s
+@@ -1039,17 +1113,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -924,7 +924,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1084,7 +1167,10 @@ int security_socket_accept(struct socket
+@@ -1059,7 +1142,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
