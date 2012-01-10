@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.35-21vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.0/SRPMS/SRPMS.main/kernel-2.6.35-21vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.0/updates/SRPMS/kernel-2.6.35-21vl6.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-2.6.35-21vl6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.35-21vl6.src.rpm || die "Can't install source package."
