@@ -24,8 +24,8 @@ policy/profile.conf:
 policy/exception_policy.conf:
 	@mkdir -p policy/
 	@echo Creating a default policy/exception_policy.conf
-	echo 'default_transition /sbin/modprobe <kernel> /sbin/modprobe' >> $@
-	echo 'default_transition /sbin/hotplug <kernel> /sbin/hotplug' >> $@
+	@echo 'default_transition /sbin/modprobe <kernel> /sbin/modprobe' >> $@
+	@echo 'default_transition /sbin/hotplug <kernel> /sbin/hotplug' >> $@
 
 policy/domain_policy.conf:
 	@mkdir -p policy/
