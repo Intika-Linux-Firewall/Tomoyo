@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.4.21-63.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-63.EL.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/3.9/updates/SRPMS/kernel-2.4.21-63.EL.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-2.4.21-63.EL.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.4.21-63.EL.src.rpm || die "Can't install source package."
