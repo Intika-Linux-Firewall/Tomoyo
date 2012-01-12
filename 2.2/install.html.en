@@ -18,11 +18,28 @@
 
 <h2>Step 1: Compiling the kernel.</h2>
 
-<p>NOTE: If you are using one of Ubuntu 9.10 and later, Debian Squeeze and later, Mandriva Linux 2010.0 and later, you don't need to compile kernel because TOMOYO Linux is already built into their kernels. Adding security=tomoyo to kernel's command line parameters will enable TOMOYO Linux.</p>
+<h3>Determine if your kernel has TOMOYO Linux enabled</h3>
 
-<p>NOTE: If you are using CentOS 6, you don't need to compile kernel because you can install TOMOYO Linux enabled binary kernels from CentOS+ repository. To install, change from enabled=0 to enabled=1 in the [centosplus] section of /etc/yum.repos.d/CentOS-Base.repo and run "yum update". Then, to enable TOMOYO Linux, add security=tomoyo to kernel's command line parameters in /boot/grub/grub.conf .</p>
+<p>TOMOYO Linux 2.2.x is integrated with the upstream kernel source, but is only enabled when certain kernel configuration options are set. You can determine if your kernel has TOMOYO Linux enabled by running the following command:</p>
+
+<table border="1">
+<tr><td>
+$ grep tomoyo_io_printf /proc/kallsyms<br>
+ffffffff8115e460 T tomoyo_io_printf
+</td></tr>
+</table>
+
+<p>If you found a line containing tomoyo_io_printf in "/proc/kallsyms", proceed to <a href="#bootloader">Update bootloader configuration</a> because your kernel was built with TOMOYO Linux.</p>
+
+<p>If you are using CentOS 6, you don't need to compile kernel because you can install TOMOYO Linux enabled binary kernels from CentOS+ repository. To install, change from enabled=0 to enabled=1 in the [centosplus] section of /etc/yum.repos.d/CentOS-Base.repo and run "yum update". Then, proceed to <a href="#bootloader">Update bootloader configuration</a>.</p>
+
+<p>If not, then your kernel was not built with TOMOYO Linux and you should follow the steps below.</p>
+
+<p>If you wish to obtain the most functionality out of TOMOYO Linux, then you may wish to use either the 1.x branch (which requires you to build your own kernel), or AKARI (which is a module and does not require you to build your own kernel). AKARI module currently provides more functionality than the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="http://akari.sourceforge.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="http://akari.sourceforge.jp/">AKARI website</a>.</p>
 
 <p>If you are planning to compile 2.6.33 and later kernels but have no reason not to use <a href="../2.5/">TOMOYO 2.5</a>, use of TOMOYO 2.5 is recommended. TOMOYO 2.5 is more powerful and user friendly.</p>
+
+<h3>Compile TOMOYO Linux enabled kernel</h3>
 
 <p>To compile kernel, the following packages are needed.</p>
 
@@ -76,7 +93,9 @@
 
 <p>Create initrd if you need.</p>
 
-<p>Edit /boot/grub/grub.conf or /boot/grub/menu.lst to add security=tomoyo to the kernel command line parameters.</p>
+<h3><a name="bootloader">Update bootloader configuration</a></h3>
+
+<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If your kernel config does not contain "CONFIG_DEFAULT_SECURITY_TOMOYO=y", then edit your bootloader to include "security=tomoyo" in the kernel boot options. Depending on your distribution, the bootloader configuration file will probably be one of "/boot/grub/grub.conf" or "/boot/grub/menu.lst" (for GRUB version 1) or "/boot/grub/grub.cfg" (for GRUB version 2). Consult your distribution documentation for information on how to configure the bootloader.</p>
 
 <hr>
 
@@ -91,12 +110,6 @@
 [root@tomoyo ~]# make -C tomoyo-tools/ install
 </td></tr>
 </table>
-
-<!--
-<p>If you are using Gentoo, you can do "emerge ccs-tools".</p>
-
-<p>If you are using Debian Sid or Ubuntu 9.10, you may be able to find the package by "apt-get install tomoyo-ccstools". But be sure to check that the version is 1.6.8 and later.</p>
--->
 
 <hr>
 

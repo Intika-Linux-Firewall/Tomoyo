@@ -18,11 +18,28 @@
 
 <h2>ステップ１：カーネルのコンパイル</h2>
 
-<p>注意：もし Ubuntu 9.10 以降または Debian Squeeze 以降または Mandriva Linux 2010.0 以降を使用している場合、既に TOMOYO Linux がカーネルに組み込まれているのでカーネルをコンパイルする必要はありません。 security=tomoyo というパラメータをカーネルのコマンドラインに追加するだけで TOMOYO Linux が有効になります。</p>
+<h3>既に TOMOYO Linux 対応カーネルであるかどうか判断する</h3>
 
-<p>注意：もし CentOS 6 を使用している場合、 TOMOYO Linux が組み込まれたカーネルを CentOS+ レポジトリからインストールできるので、カーネルをコンパイルする必要はありません。インストールするには、 /etc/yum.repos.d/CentOS-Base.repo の [centosplus] セクションの enabled=0 を enabled=1 に変更して、 yum update を実行してください。そして、 TOMOYO を選択するために /boot/grub/grub.conf の kernel 行に security=tomoyo を追加してください。</p>
+<p>TOMOYO Linux 2.2 はメインラインカーネルのソースに既に含まれていますが、特定のカーネルコンフィグオプションを有効にしないと利用できません。以下の手順により利用中のカーネルで TOMOYO Linux を利用できるかどうかを判断することができます。</p>
+
+<table border="1">
+<tr><td>
+$ grep tomoyo_io_printf /proc/kallsyms<br>
+ffffffff8115e460 T tomoyo_io_printf
+</td></tr>
+</table>
+
+<p>/proc/kallsyms の中に tomoyo_io_printf を含む行が存在していた場合、既に TOMOYO Linux 対応カーネルですので、<a href="#bootloader">ブートローダ設定のアップデート</a>へと進んでください。</p>
+
+<p>もし CentOS 6 を使用している場合、 TOMOYO Linux 対応カーネルを CentOS+ レポジトリからインストールできるので、カーネルをコンパイルする必要はありません。インストールするには、 /etc/yum.repos.d/CentOS-Base.repo の [centosplus] セクションの enabled=0 を enabled=1 に変更して、 yum update を実行してください。そして、<a href="#bootloader">ブートローダ設定のアップデート</a>へと進んでください。</p>
+
+<p>存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。</p>
+
+<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.sourceforge.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.sourceforge.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
 
 <p>もし、カーネル 2.6.33 以降を使うつもりであり、 <a href="../2.5/">TOMOYO 2.5</a> を使いたくない理由が無いのであれば、 TOMOYO 2.5 を利用することを推奨します。 TOMOYO 2.5 はより強力で使いやすいものになっています。</p>
+
+<h3>TOMOYO Linux 対応カーネルのコンパイル</h3>
 
 <p>カーネルをコンパイルするためには、以下のパッケージが必要です。</p>
 
@@ -76,7 +93,9 @@
 
 <p>必要であれば initrd を作成してください。</p>
 
-<p>security=tomoyo というパラメータをカーネルのコマンドラインに追加するために /boot/grub/grub.conf または /boot/grub/menu.lst を編集してください。</p>
+<h3><a name="bootloader">ブートローダ設定のアップデート</a></h3>
+
+<p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合、 security=tomoyo という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg であると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
 
 <hr>
 
@@ -91,12 +110,6 @@
 [root@tomoyo ~]# make -C tomoyo-tools/ install
 </td></tr>
 </table>
-
-<!--
-<p> Gentoo ディストリビューション向けのツールパッケージをインストールするには、 emerge ccs-tools を実行してください。</p>
-
-<p>Debian Sid または Ubuntu 9.10 ディストリビューションの場合、 apt-get install tomoyo-ccstools でインストールできるかもしれませんが、バージョンが 1.6.8 以降であることを確認してください。</p>
--->
 
 <hr>
 
