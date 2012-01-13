@@ -252,16 +252,16 @@ echo &gt; stat.conf
 <pre class="command">
 cd $ANDROID_HOME/tmp/
 wget -O kernel-source.tar.gz \
-'http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=b0d93fb0426911d0329f861f22c59f1c72cff815;sf=tgz'
+'http://android.git.r3pek.org/?p=kernel/goldfish.git;a=snapshot;h=46b05b2fc0594fd6db7ea88c1e9f02ec395c33a0;sf=tgz'
 tar -zxf kernel-source.tar.gz
-cd common-b0d93fb/
+cd goldfish-46b05b2/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig
 </pre>
 
 <p>Apply TOMOYO Linux patch.</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
+cd $ANDROID_HOME/tmp/goldfish-46b05b2/
 wget -O ccs-patch-1.8.3-20111213.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz'
 wget -O ccs-patch-1.8.3-20111213.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz.asc'
 gpg ccs-patch-1.8.3-20111213.tar.gz.asc
@@ -274,7 +274,7 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 <p>Compile the kernel.</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
+cd $ANDROID_HOME/tmp/goldfish-46b05b2/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>
@@ -364,13 +364,13 @@ cd $ANDROID_HOME/tmp/policy/
 <p>Run below commands to update policy which will be embedded into the kernel.</p>
 
 <pre class="command">
-cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/common-b0d93fb/security/ccsecurity/policy/
+cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/goldfish-46b05b2/security/ccsecurity/policy/
 </pre>
 
 <p>Recompile the Android kernel.</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/common-b0d93fb/
+cd $ANDROID_HOME/tmp/goldfish-46b05b2/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>
