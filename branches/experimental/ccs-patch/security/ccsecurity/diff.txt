@@ -1,6 +1,6 @@
 Index: internal.h
 ===================================================================
---- internal.h	(revision 5772)
+--- internal.h	(revision 5774)
 +++ internal.h	(working copy)
 @@ -384,38 +384,6 @@
  
@@ -41,7 +41,7 @@ Index: internal.h
  /* Index numbers for "struct ccs_condition". */
  enum ccs_conditions_index {
  	CCS_TASK_UID,             /* current_uid()   */
-@@ -428,8 +396,19 @@
+@@ -428,6 +396,8 @@
  	CCS_TASK_FSGID,           /* current_fsgid() */
  	CCS_TASK_PID,             /* sys_getpid()   */
  	CCS_TASK_PPID,            /* sys_getppid()  */
@@ -49,19 +49,8 @@ Index: internal.h
 +				     CCS_TASK_IS_EXECUTE_HANDLER */
  	CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
  	CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-+	CCS_COND_SARG0,
-+	CCS_COND_SARG1,
-+	CCS_COND_SARG2,
-+	CCS_COND_NARG0,
-+	CCS_COND_NARG1,
-+	CCS_COND_NARG2,
-+	CCS_COND_IPARG,
-+	CCS_COND_IPV6,
-+	CCS_COND_DOMAIN,
  	CCS_TYPE_IS_SOCKET,       /* S_IFSOCK */
- 	CCS_TYPE_IS_SYMLINK,      /* S_IFLNK */
- 	CCS_TYPE_IS_FILE,         /* S_IFREG */
-@@ -449,43 +428,33 @@
+@@ -449,41 +419,40 @@
  	CCS_MODE_OTHERS_READ,     /* S_IROTH */
  	CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
  	CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
@@ -98,6 +87,15 @@ Index: internal.h
  	CCS_MAX_CONDITION_KEYWORD,
 -	CCS_NUMBER_UNION,
 -	CCS_NAME_UNION,
++	CCS_COND_SARG0,
++	CCS_COND_SARG1,
++	CCS_COND_SARG2,
++	CCS_COND_NARG0,
++	CCS_COND_NARG1,
++	CCS_COND_NARG2,
++	CCS_COND_IPARG,
++	CCS_COND_IPV6,
++	CCS_COND_DOMAIN,
 +	CCS_IMM_GROUP,
 +	CCS_IMM_NAME_ENTRY,
 +	CCS_IMM_NUMBER_ENTRY1,
@@ -108,8 +106,8 @@ Index: internal.h
  	CCS_ENVP_ENTRY,
 +	CCS_PATH_ATTRIBUTE_START = 192,
 +	CCS_PATH_ATTRIBUTE_END = 255,
- };
- 
++} __packed;
++
 +enum ccs_path_attribute_index {
 +	CCS_PATH_ATTRIBUTE_UID,
 +	CCS_PATH_ATTRIBUTE_GID,
@@ -121,11 +119,9 @@ Index: internal.h
 +	CCS_PATH_ATTRIBUTE_DEV_MAJOR,
 +	CCS_PATH_ATTRIBUTE_DEV_MINOR,
 +	CCS_MAX_PATH_ATTRIBUTE,
-+};
-+
+ };
+ 
  /* Index numbers for audit type. */
- enum ccs_grant_log {
- 	/* Follow profile's configuration. */
 @@ -600,7 +569,16 @@
  	CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
  	CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
@@ -300,8 +296,8 @@ Index: internal.h
 -	bool equals;
 +union ccs_condition_element {
 +	struct {
-+		u8 left;
-+		u8 right;
++		enum ccs_conditions_index left;
++		enum ccs_conditions_index right;
 +		bool equals;
 +		u8 radix;
 +	};
@@ -620,7 +616,7 @@ Index: internal.h
  extern struct list_head ccs_condition_list;
 Index: policy_io.c
 ===================================================================
---- policy_io.c	(revision 5772)
+--- policy_io.c	(revision 5774)
 +++ policy_io.c	(working copy)
 @@ -206,32 +206,6 @@
  #endif
@@ -655,10 +651,13 @@ Index: policy_io.c
  /* String table for categories. */
  static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
  	[CCS_MAC_CATEGORY_FILE]       = "file",
-@@ -251,18 +225,7 @@
+@@ -249,20 +223,22 @@
+ #endif
+ };
  
++
  /* String table for conditions. */
- static const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
+-static const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 -	[CCS_TASK_UID]             = "task.uid",
 -	[CCS_TASK_EUID]            = "task.euid",
 -	[CCS_TASK_SUID]            = "task.suid",
@@ -671,13 +670,28 @@ Index: policy_io.c
 -	[CCS_TASK_PPID]            = "task.ppid",
 -	[CCS_EXEC_ARGC]            = "exec.argc",
 -	[CCS_EXEC_ENVC]            = "exec.envc",
-+	/*
++static const char *const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
++	[CCS_TASK_UID]             = "uid",
++	[CCS_TASK_EUID]            = "euid",
++	[CCS_TASK_SUID]            = "suid",
++	[CCS_TASK_FSUID]           = "fsuid",
++	[CCS_TASK_GID]             = "gid",
++	[CCS_TASK_EGID]            = "egid",
++	[CCS_TASK_SGID]            = "sgid",
++	[CCS_TASK_FSGID]           = "fsgid",
++	[CCS_TASK_PID]             = "pid",
++	[CCS_TASK_PPID]            = "ppid",
++	[CCS_TASK_TYPE]            = "type",
++	[CCS_EXEC_ARGC]            = "argc",
++	[CCS_EXEC_ENVC]            = "envc",
  	[CCS_TYPE_IS_SOCKET]       = "socket",
  	[CCS_TYPE_IS_SYMLINK]      = "symlink",
  	[CCS_TYPE_IS_FILE]         = "file",
-@@ -284,33 +247,8 @@
+@@ -282,35 +258,7 @@
+ 	[CCS_MODE_OTHERS_READ]     = "others_read",
+ 	[CCS_MODE_OTHERS_WRITE]    = "others_write",
  	[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
- 	[CCS_TASK_TYPE]            = "task.type",
+-	[CCS_TASK_TYPE]            = "task.type",
  	[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
 -	[CCS_EXEC_REALPATH]        = "exec.realpath",
 -	[CCS_PATH1_UID]            = "path1.uid",
@@ -706,12 +720,10 @@ Index: policy_io.c
 -	[CCS_PATH2_PARENT_GID]     = "path2.parent.gid",
 -	[CCS_PATH2_PARENT_INO]     = "path2.parent.ino",
 -	[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
-+	*/
-+	[CCS_COND_DOMAIN]          = "domain",
  };
  
  /* String table for PREFERENCE keyword. */
-@@ -388,25 +326,13 @@
+@@ -388,25 +336,13 @@
  static bool ccs_has_more_namespace(struct ccs_io_buffer *head);
  static bool ccs_manager(void);
  static bool ccs_namespace_jump(const char *domainname);
@@ -738,7 +750,7 @@ Index: policy_io.c
  static bool ccs_select_domain(struct ccs_io_buffer *head, const char *data);
  static bool ccs_set_lf(struct ccs_io_buffer *head);
  static bool ccs_str_starts(char **src, const char *find);
-@@ -433,7 +359,6 @@
+@@ -433,7 +369,6 @@
  			struct ccs_profile *profile);
  static int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
  	__printf(2, 3);
@@ -746,7 +758,7 @@ Index: policy_io.c
  static int ccs_update_inverse_list(struct ccs_acl_info *new_entry,
  				   const int size,
  				   struct ccs_acl_param *param);
-@@ -462,7 +387,6 @@
+@@ -462,7 +397,6 @@
  			     loff_t *ppos);
  static ssize_t ccs_write(struct file *file, const char __user *buf,
  			 size_t count, loff_t *ppos);
@@ -754,7 +766,7 @@ Index: policy_io.c
  static struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param);
  static struct ccs_domain_info *ccs_find_domain(const char *domainname);
  static struct ccs_domain_info *ccs_find_domain_by_qid(unsigned int serial);
-@@ -475,9 +399,7 @@
+@@ -475,9 +409,7 @@
  static struct ccs_profile *ccs_assign_profile(struct ccs_policy_namespace *ns,
  					      const unsigned int profile);
  static struct ccs_profile *ccs_profile(const u8 profile);
@@ -764,7 +776,7 @@ Index: policy_io.c
  static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
  static u8 ccs_parse_ulong(unsigned long *result, char **str);
  static unsigned int ccs_poll(struct file *file, poll_table *wait);
-@@ -498,15 +420,7 @@
+@@ -498,15 +430,7 @@
  	__printf(2, 3);
  static void ccs_normalize_line(unsigned char *buffer);
  static void ccs_print_config(struct ccs_io_buffer *head, const u8 config);
@@ -780,7 +792,7 @@ Index: policy_io.c
  static void ccs_read_domain(struct ccs_io_buffer *head);
  static void ccs_read_exception(struct ccs_io_buffer *head);
  static void ccs_read_inverse_policy(struct ccs_io_buffer *head);
-@@ -519,7 +433,6 @@
+@@ -519,7 +443,6 @@
  static void ccs_read_version(struct ccs_io_buffer *head);
  static void ccs_set_group(struct ccs_io_buffer *head, const char *category);
  static void ccs_set_namespace_cursor(struct ccs_io_buffer *head);
@@ -788,7 +800,7 @@ Index: policy_io.c
  static void ccs_set_space(struct ccs_io_buffer *head);
  static void ccs_set_string(struct ccs_io_buffer *head, const char *string);
  static void ccs_set_uint(unsigned int *i, const char *string,
-@@ -532,16 +445,14 @@
+@@ -532,16 +455,14 @@
  
  
  #ifdef CONFIG_CCSECURITY_NETWORK
@@ -807,7 +819,7 @@ Index: policy_io.c
  #endif
  
  #ifdef CONFIG_CCSECURITY_CAPABILITY
-@@ -1088,18 +999,18 @@
+@@ -1088,18 +1009,18 @@
   *
   * @buffer:     Buffer to write to.
   * @buffer_len: Size of @buffer.
@@ -829,7 +841,7 @@ Index: policy_io.c
  	return snprintf(buffer, buffer_len, "%s", addr);
  #endif
  }
-@@ -1128,32 +1039,174 @@
+@@ -1128,32 +1049,222 @@
  /**
   * ccs_print_ip - Print an IP address.
   *
@@ -937,6 +949,50 @@ Index: policy_io.c
 +		if (index == 0)
 +			return "path";
 +		break;
++	case CCS_MAC_ENVIRON:
++	case CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET:
++	case CCS_MAC_CAPABILITY_USE_PACKET_SOCKET:
++	case CCS_MAC_CAPABILITY_SYS_REBOOT:
++	case CCS_MAC_CAPABILITY_SYS_VHANGUP:
++	case CCS_MAC_CAPABILITY_SYS_SETTIME:
++	case CCS_MAC_CAPABILITY_SYS_NICE:
++	case CCS_MAC_CAPABILITY_SYS_SETHOSTNAME:
++	case CCS_MAC_CAPABILITY_USE_KERNEL_MODULE:
++	case CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD:
++		if (index == 0)
++			return "name";
++		break;
++	case CCS_MAC_NETWORK_INET_STREAM_BIND:
++        case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
++        case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
++        case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
++        case CCS_MAC_NETWORK_INET_DGRAM_BIND:
++        case CCS_MAC_NETWORK_INET_DGRAM_SEND:
++        case CCS_MAC_NETWORK_INET_DGRAM_RECV:
++        case CCS_MAC_NETWORK_INET_RAW_BIND:
++        case CCS_MAC_NETWORK_INET_RAW_SEND:
++        case CCS_MAC_NETWORK_INET_RAW_RECV:
++                if (index == 0)
++                        return "ip";
++		break;
++	case CCS_MAC_NETWORK_UNIX_STREAM_BIND:
++	case CCS_MAC_NETWORK_UNIX_STREAM_LISTEN:
++	case CCS_MAC_NETWORK_UNIX_STREAM_CONNECT:
++	case CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT:
++	case CCS_MAC_NETWORK_UNIX_DGRAM_BIND:
++	case CCS_MAC_NETWORK_UNIX_DGRAM_SEND:
++	case CCS_MAC_NETWORK_UNIX_DGRAM_RECV:
++	case CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND:
++	case CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN:
++	case CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT:
++	case CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT:
++		if (index == 0)
++			return "addr";
++		break;
++	case CCS_MAC_PTRACE:
++		if (index == 0)
++			return "domain";
++		break;
 +	default:
 +		break;
 +	}
@@ -961,7 +1017,7 @@ Index: policy_io.c
 +		break;
 +	case CCS_MAC_FILE_CHMOD:
 +		if (index == 0)
-+			return "mode";
++			return "perm";
 +		break;
 +	case CCS_MAC_FILE_CHOWN:
 +		if (index == 0)
@@ -980,16 +1036,16 @@ Index: policy_io.c
 +	case CCS_MAC_FILE_MKFIFO:
 +	case CCS_MAC_FILE_MKSOCK:
 +		if (index == 0)
-+			return "mode";
++			return "perm";
 +		break;
 +	case CCS_MAC_FILE_MKBLOCK:
 +	case CCS_MAC_FILE_MKCHAR:
 +		if (index == 0)
-+			return "mode";
++			return "perm";
 +		if (index == 1)
-+			return "major";
++			return "dev_major";
 +		if (index == 2)
-+			return "minor";
++			return "dev_minor";
 +		break;
 +	case CCS_MAC_NETWORK_INET_STREAM_BIND:
 +        case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
@@ -1007,6 +1063,10 @@ Index: policy_io.c
 +                if (index == 0)
 +			return "proto";
 +		break;
++	case CCS_MAC_PTRACE:
++		if (index == 0)
++			return "cmd";
++		break;
 +	default:
 +		break;
 +	}
@@ -1016,7 +1076,7 @@ Index: policy_io.c
  /***** SECTION5: Variables definition section *****/
  
  /* Permit policy management by non-root user? */
-@@ -1437,33 +1490,6 @@
+@@ -1437,33 +1548,6 @@
  }
  
  /**
@@ -1050,7 +1110,7 @@ Index: policy_io.c
   * ccs_parse_ulong - Parse an "unsigned long" value.
   *
   * @result: Pointer to "unsigned long".
-@@ -1504,100 +1530,6 @@
+@@ -1504,100 +1588,6 @@
  }
  
  /**
@@ -1151,7 +1211,7 @@ Index: policy_io.c
   * ccs_get_dqword - ccs_get_name() for a quoted string.
   *
   * @start: String to save.
-@@ -1616,80 +1548,6 @@
+@@ -1616,80 +1606,6 @@
  }
  
  /**
@@ -1232,7 +1292,7 @@ Index: policy_io.c
   * ccs_same_condition - Check for duplicated "struct ccs_condition" entry.
   *
   * @a: Pointer to "struct ccs_condition".
-@@ -1700,33 +1558,11 @@
+@@ -1700,33 +1616,11 @@
  static bool ccs_same_condition(const struct ccs_condition *a,
  			       const struct ccs_condition *b)
  {
@@ -1268,89 +1328,10 @@ Index: policy_io.c
   * ccs_commit_condition - Commit "struct ccs_condition".
   *
   * @entry: Pointer to "struct ccs_condition".
-@@ -1924,6 +1760,481 @@
+@@ -1924,6 +1818,521 @@
  	return NULL;
  }
  
-+static u8 ccs_find_path1_attributes(char *word)
-+{
-+	static const char *const k[CCS_MAX_PATH_ATTRIBUTE] = {
-+		[CCS_PATH_ATTRIBUTE_UID]       = "uid",
-+		[CCS_PATH_ATTRIBUTE_GID]       = "gid",
-+		[CCS_PATH_ATTRIBUTE_INO]       = "ino",
-+		[CCS_PATH_ATTRIBUTE_MAJOR]     = "major",
-+		[CCS_PATH_ATTRIBUTE_MINOR]     = "minor",
-+		[CCS_PATH_ATTRIBUTE_PERM]      = "perm",
-+		[CCS_PATH_ATTRIBUTE_TYPE]      = "type",
-+		[CCS_PATH_ATTRIBUTE_DEV_MAJOR] = "dev_major",
-+		[CCS_PATH_ATTRIBUTE_DEV_MINOR] = "dev_minor",
-+	};
-+	u8 i;
-+	u8 index = CCS_PATH_ATTRIBUTE_START;
-+	if (!*word)
-+		return CCS_COND_SARG0;
-+	if (ccs_str_starts(&word, ".parent"))
-+		index += 16;
-+	if (*word++ == '.')
-+		for (i = 0; i < CCS_MAX_PATH_ATTRIBUTE; i++)
-+			if (!strcmp(word, k[i]))
-+				return index + i;
-+	return CCS_MAX_CONDITION_KEYWORD;
-+}
-+
-+static u8 ccs_find_path2_attributes(char *word)
-+{
-+	static const char *const k[CCS_MAX_PATH_ATTRIBUTE] = {
-+		[CCS_PATH_ATTRIBUTE_UID]       = "uid",
-+		[CCS_PATH_ATTRIBUTE_GID]       = "gid",
-+		[CCS_PATH_ATTRIBUTE_INO]       = "ino",
-+		[CCS_PATH_ATTRIBUTE_MAJOR]     = "major",
-+		[CCS_PATH_ATTRIBUTE_MINOR]     = "minor",
-+		[CCS_PATH_ATTRIBUTE_PERM]      = "perm",
-+		[CCS_PATH_ATTRIBUTE_TYPE]      = "type",
-+		[CCS_PATH_ATTRIBUTE_DEV_MAJOR] = "dev_major",
-+		[CCS_PATH_ATTRIBUTE_DEV_MINOR] = "dev_minor",
-+	};
-+	u8 i;
-+	u8 index = CCS_PATH_ATTRIBUTE_START + 32;
-+	if (!*word)
-+		return CCS_COND_SARG1;
-+	if (ccs_str_starts(&word, ".parent"))
-+		index += 16;
-+	if (*word++ == '.')
-+		for (i = 0; i < CCS_MAX_PATH_ATTRIBUTE; i++)
-+			if (!strcmp(word, k[i]))
-+				return index + i;
-+	return CCS_MAX_CONDITION_KEYWORD;
-+}
-+
-+static u8 ccs_find_mkpath_attributes(char *word, const bool first)
-+{
-+	static const char *const k[CCS_MAX_PATH_ATTRIBUTE] = {
-+		[CCS_PATH_ATTRIBUTE_UID]       = "uid",
-+		[CCS_PATH_ATTRIBUTE_GID]       = "gid",
-+		[CCS_PATH_ATTRIBUTE_INO]       = "ino",
-+		[CCS_PATH_ATTRIBUTE_MAJOR]     = "major",
-+		[CCS_PATH_ATTRIBUTE_MINOR]     = "minor",
-+		[CCS_PATH_ATTRIBUTE_PERM]      = "perm",
-+		[CCS_PATH_ATTRIBUTE_TYPE]      = "type",
-+		[CCS_PATH_ATTRIBUTE_DEV_MAJOR] = "dev_major",
-+		[CCS_PATH_ATTRIBUTE_DEV_MINOR] = "dev_minor",
-+	};
-+	u8 i;
-+	u8 index = CCS_PATH_ATTRIBUTE_START + 16;
-+	if (!*word)
-+		return first ? CCS_COND_SARG0 : CCS_COND_SARG1;
-+	if (!first)
-+		index += 32;
-+	if (ccs_str_starts(&word, ".parent"))
-+		if (*word++ == '.')
-+			for (i = 0; i < CCS_MAX_PATH_ATTRIBUTE; i++)
-+				if (!strcmp(word, k[i]))
-+					return index + i;
-+	return CCS_MAX_CONDITION_KEYWORD;
-+}
-+
 +struct ccs_cond_tmp {
 +	u8 left;
 +	u8 right;
@@ -1372,7 +1353,7 @@ Index: policy_io.c
 +		return CCS_VALUE_TYPE_INVALID;
 +	if (!*value) {
 +		v[1] = v[0];
-+		return radix1 | (radix1 << 2);
++		return radix1;
 +	}
 +	if (*value++ != '-')
 +		return CCS_VALUE_TYPE_INVALID;
@@ -1411,77 +1392,39 @@ Index: policy_io.c
 +	return 0;
 +}
 +
-+static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
-+			   struct ccs_acl_param *param)
++static enum ccs_conditions_index ccs_parse_task_cond(const char *word)
 +{
-+	enum ccs_group_id g;
-+	char *left = param->data;
-+	char *right = strchr(left, ' ');
-+	const enum ccs_mac_index type = param->e.acl_info.type;
-+	memset(tmp, 0, sizeof(*tmp));
-+	if (right)
-+		*right = '\0';
-+	right = strchr(left, '=');
-+	if (!right || right == left)
-+		return false;
-+	*right++ = '\0';
-+	tmp->equals = *(right - 2) != '!';
-+	if (!tmp->equals)
-+		*(right - 2) = '\0';
-+	printk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left,
-+	       tmp->equals ? "" : "!", right);
-+	if (ccs_str_starts(&left, "argv[")) {
-+		tmp->left = CCS_ARGV_ENTRY;
-+		if (ccs_parse_ulong(&tmp->argv, &left) !=
-+		    CCS_VALUE_TYPE_DECIMAL || *left++ != ']' || *left)
-+			goto out;
-+		goto check_right;
-+	} else if (ccs_str_starts(&left, "envp[\"")) {
-+		char *cp = left + strlen(left) - 1;
-+		tmp->left = CCS_ENVP_ENTRY;
-+		if (*cp-- != ']' || *cp != '"')
-+			goto out;
-+		*cp = '\0';
-+		if (!ccs_correct_word(left))
-+			goto out;
-+		tmp->envp = ccs_get_name(left);
-+		if (!tmp->envp)
-+			goto out;
-+		goto check_right;
-+	} else if (!strcmp(left, "argc")) {
-+		tmp->left = CCS_EXEC_ARGC;
-+		goto check_right;
-+	} else if (!strcmp(left, "envc")) {
-+		tmp->left = CCS_EXEC_ENVC;
-+		goto check_right;
-+	} else if (ccs_str_starts(&left, "task.")) {
-+		if (!strcmp(left, "uid"))
-+			tmp->left = CCS_TASK_UID;
-+		else if (!strcmp(left, "euid"))
-+			tmp->left = CCS_TASK_EUID;
-+		else if (!strcmp(left, "suid"))
-+			tmp->left = CCS_TASK_SUID;
-+		else if (!strcmp(left, "fsuid"))
-+			tmp->left = CCS_TASK_FSUID;
-+		else if (!strcmp(left, "gid"))
-+			tmp->left = CCS_TASK_GID;
-+		else if (!strcmp(left, "egid"))
-+			tmp->left = CCS_TASK_EGID;
-+		else if (!strcmp(left, "sgid"))
-+			tmp->left = CCS_TASK_SGID;
-+		else if (!strcmp(left, "fsgid"))
-+			tmp->left = CCS_TASK_FSGID;
-+		else if (!strcmp(left, "pid"))
-+			tmp->left = CCS_TASK_PID;
-+		else if (!strcmp(left, "ppid"))
-+			tmp->left = CCS_TASK_PPID;
-+		else if (!strcmp(left, "type"))
-+			tmp->left = CCS_TASK_TYPE;
-+		else
-+			goto out;
-+		goto check_right;
++	if (!strncmp(word, "task.", 5)) {
++		word += 5;
++		if (!strcmp(word, "uid"))
++			return CCS_TASK_UID;
++		if (!strcmp(word, "euid"))
++			return  CCS_TASK_EUID;
++		if (!strcmp(word, "suid"))
++			return CCS_TASK_SUID;
++		if (!strcmp(word, "fsuid"))
++			return  CCS_TASK_FSUID;
++		if (!strcmp(word, "gid"))
++			return CCS_TASK_GID;
++		if (!strcmp(word, "egid"))
++			return CCS_TASK_EGID;
++		if (!strcmp(word, "sgid"))
++			return CCS_TASK_SGID;
++		if (!strcmp(word, "fsgid"))
++			return CCS_TASK_FSGID;
++		if (!strcmp(word, "pid"))
++			return CCS_TASK_PID;
++		if (!strcmp(word, "ppid"))
++			return CCS_TASK_PPID;
++		if (!strcmp(word, "type"))
++			return CCS_TASK_TYPE;
 +	}
-+	tmp->left = CCS_MAX_CONDITION_KEYWORD;
++	return CCS_MAX_CONDITION_KEYWORD;
++}
++
++static enum ccs_conditions_index ccs_parse_syscall_arg
++(const char *word, const enum ccs_mac_index type)
++{
 +	switch (type) {
 +	case CCS_MAC_FILE_READ:
 +	case CCS_MAC_FILE_WRITE:
@@ -1495,22 +1438,22 @@ Index: policy_io.c
 +	case CCS_MAC_FILE_CHOWN:
 +	case CCS_MAC_FILE_CHGRP:
 +	case CCS_MAC_FILE_IOCTL:
-+		if (ccs_str_starts(&left, "path"))
-+			tmp->left = ccs_find_path1_attributes(left);
-+		else if (type == CCS_MAC_FILE_CHMOD && !strcmp(left, "mode"))
-+			tmp->left = CCS_COND_NARG0;
-+		else if (type == CCS_MAC_FILE_CHOWN && !strcmp(left, "uid"))
-+			tmp->left = CCS_COND_NARG0;
-+		else if (type == CCS_MAC_FILE_CHGRP && !strcmp(left, "gid"))
-+			tmp->left = CCS_COND_NARG0;
-+		else if (type == CCS_MAC_FILE_IOCTL && !strcmp(left, "cmd"))
-+			tmp->left = CCS_COND_NARG0;
++		if (!strcmp(word, "path"))
++			return CCS_COND_SARG0;
++		if (type == CCS_MAC_FILE_CHMOD && !strcmp(word, "perm"))
++			return CCS_COND_NARG0;
++		if (type == CCS_MAC_FILE_CHOWN && !strcmp(word, "uid"))
++			return CCS_COND_NARG0;
++		if (type == CCS_MAC_FILE_CHGRP && !strcmp(word, "gid"))
++			return CCS_COND_NARG0;
++		if (type == CCS_MAC_FILE_IOCTL && !strcmp(word, "cmd"))
++			return CCS_COND_NARG0;
 +		break;
 +	case CCS_MAC_FILE_EXECUTE:
-+		if (ccs_str_starts(&left, "path"))
-+			tmp->left = ccs_find_path1_attributes(left);
-+		else if (!strcmp(left, "symlink"))
-+			tmp->left = CCS_COND_SARG1;
++		if (!strcmp(word, "path"))
++			return CCS_COND_SARG0;
++		if (!strcmp(word, "exec"))
++			return CCS_COND_SARG1;
 +		break;
 +	case CCS_MAC_FILE_MKDIR:
 +	case CCS_MAC_FILE_CREATE:
@@ -1519,50 +1462,49 @@ Index: policy_io.c
 +	case CCS_MAC_FILE_MKBLOCK:
 +	case CCS_MAC_FILE_MKCHAR:
 +	case CCS_MAC_FILE_SYMLINK:
-+		if (ccs_str_starts(&left, "path"))
-+			tmp->left = ccs_find_mkpath_attributes(left, true);
-+		else if (type != CCS_MAC_FILE_SYMLINK && !strcmp(left, "mode"))
-+			tmp->left = CCS_COND_NARG0;
-+		else if ((type == CCS_MAC_FILE_MKBLOCK ||
-+			  type == CCS_MAC_FILE_MKCHAR) &&
-+			 !strcmp(left, "major"))
-+			tmp->left = CCS_COND_NARG1;
-+		else if ((type == CCS_MAC_FILE_MKBLOCK ||
-+			  type == CCS_MAC_FILE_MKCHAR) &&
-+			 !strcmp(left, "minor"))
-+			tmp->left = CCS_COND_NARG2;
-+		else if (type == CCS_MAC_FILE_SYMLINK &&
-+			 !strcmp(left, "target"))
-+			tmp->left = CCS_COND_SARG1;
++		if (!strcmp(word, "path"))
++			return CCS_COND_SARG0;
++		if (type != CCS_MAC_FILE_SYMLINK && !strcmp(word, "perm"))
++			return CCS_COND_NARG0;
++		if ((type == CCS_MAC_FILE_MKBLOCK ||
++		     type == CCS_MAC_FILE_MKCHAR) &&
++		    !strcmp(word, "dev_major"))
++			return CCS_COND_NARG1;
++		if ((type == CCS_MAC_FILE_MKBLOCK ||
++		     type == CCS_MAC_FILE_MKCHAR) &&
++		    !strcmp(word, "dev_minor"))
++			return CCS_COND_NARG2;
++		if (type == CCS_MAC_FILE_SYMLINK && !strcmp(word, "target"))
++			return CCS_COND_SARG1;
 +		break;
 +	case CCS_MAC_FILE_LINK:
 +	case CCS_MAC_FILE_RENAME:
-+		if (ccs_str_starts(&left, "old_path"))
-+			tmp->left = ccs_find_path1_attributes(left);
-+		else if (!strcmp(left, "new_path"))
-+			tmp->left = ccs_find_mkpath_attributes(left, false);
++		if (!strcmp(word, "old_path"))
++			return CCS_COND_SARG0;
++		if (!strcmp(word, "new_path"))
++			return CCS_COND_SARG1;
 +		break;
 +	case CCS_MAC_FILE_MOUNT:
-+		if (ccs_str_starts(&left, "source"))
-+			tmp->left = ccs_find_path1_attributes(left);
-+		else if (ccs_str_starts(&left, "target"))
-+			tmp->left = ccs_find_path2_attributes(left);
-+		else if (!strcmp(left, "fstype"))
-+			tmp->left = CCS_COND_SARG2;
-+		else if (!strcmp(left, "flags"))
-+			tmp->left = CCS_COND_NARG0;
++		if (!strcmp(word, "source"))
++			return CCS_COND_SARG0;
++		if (!strcmp(word, "target"))
++			return CCS_COND_SARG1;
++		if (!strcmp(word, "fstype"))
++			return CCS_COND_SARG2;
++		if (!strcmp(word, "flags"))
++			return CCS_COND_NARG0;
 +		break;
 +	case CCS_MAC_FILE_UMOUNT:
-+		if (ccs_str_starts(&left, "path"))
-+			tmp->left = ccs_find_path1_attributes(left);
-+		else if (!strcmp(left, "flags"))
-+			tmp->left = CCS_COND_NARG0;
++		if (!strcmp(word, "path"))
++			return CCS_COND_SARG0;
++		if (!strcmp(word, "flags"))
++			return CCS_COND_NARG0;
 +		break;
 +	case CCS_MAC_FILE_PIVOT_ROOT:
-+		if (ccs_str_starts(&left, "new_root"))
-+			tmp->left = ccs_find_path1_attributes(left);
-+		else if (ccs_str_starts(&left, "put_old"))
-+			tmp->left = ccs_find_path2_attributes(left);
++		if (!strcmp(word, "new_root"))
++			return CCS_COND_SARG0;
++		if (!strcmp(word, "put_old"))
++			return CCS_COND_SARG1;
 +		break;
 +	case CCS_MAC_NETWORK_INET_STREAM_BIND:
 +	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
@@ -1571,18 +1513,18 @@ Index: policy_io.c
 +	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
 +	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
 +	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
-+		if (!strcmp(left, "ip"))
-+			tmp->left = CCS_COND_IPARG;
-+		else if (!strcmp(left, "port"))
-+			tmp->left = CCS_COND_NARG0;
++		if (!strcmp(word, "ip"))
++			return CCS_COND_IPARG;
++		if (!strcmp(word, "port"))
++			return CCS_COND_NARG0;
 +		break;
 +	case CCS_MAC_NETWORK_INET_RAW_BIND:
 +	case CCS_MAC_NETWORK_INET_RAW_SEND:
 +	case CCS_MAC_NETWORK_INET_RAW_RECV:
-+		if (!strcmp(left, "ip"))
-+			tmp->left = CCS_COND_IPARG;
-+		else if (!strcmp(left, "proto"))
-+			tmp->left = CCS_COND_NARG0;
++		if (!strcmp(word, "ip"))
++			return CCS_COND_IPARG;
++		if (!strcmp(word, "proto"))
++			return CCS_COND_NARG0;
 +		break;
 +	case CCS_MAC_NETWORK_UNIX_STREAM_BIND:
 +	case CCS_MAC_NETWORK_UNIX_STREAM_LISTEN:
@@ -1595,12 +1537,12 @@ Index: policy_io.c
 +	case CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN:
 +	case CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT:
 +	case CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT:
-+		if (!strcmp(left, "addr"))
-+			tmp->left = CCS_COND_SARG0;
++		if (!strcmp(word, "addr"))
++			return CCS_COND_SARG0;
 +		break;
 +	case CCS_MAC_ENVIRON:
-+		if (!strcmp(left, "name"))
-+			tmp->left = CCS_COND_SARG0;
++		if (!strcmp(word, "name"))
++			return CCS_COND_SARG0;
 +		break;
 +	case CCS_MAC_PTRACE:
 +		break;
@@ -1622,9 +1564,197 @@ Index: policy_io.c
 +	case CCS_TYPE_USE_GROUP_ACL:
 +		break;
 +	}
++	return CCS_MAX_CONDITION_KEYWORD;
++}
++
++static enum ccs_conditions_index ccs_parse_path_attribute
++(char *word, const enum ccs_mac_index type)
++{
++	u8 i;
++	enum ccs_conditions_index start;
++	static const char *const ccs_path_attribute[CCS_MAX_PATH_ATTRIBUTE] = {
++		[CCS_PATH_ATTRIBUTE_UID]       = "uid",
++		[CCS_PATH_ATTRIBUTE_GID]       = "gid",
++		[CCS_PATH_ATTRIBUTE_INO]       = "ino",
++		[CCS_PATH_ATTRIBUTE_MAJOR]     = "major",
++		[CCS_PATH_ATTRIBUTE_MINOR]     = "minor",
++		[CCS_PATH_ATTRIBUTE_PERM]      = "perm",
++		[CCS_PATH_ATTRIBUTE_TYPE]      = "type",
++		[CCS_PATH_ATTRIBUTE_DEV_MAJOR] = "dev_major",
++		[CCS_PATH_ATTRIBUTE_DEV_MINOR] = "dev_minor",
++	};
++	switch (type) {
++	case CCS_MAC_FILE_READ:
++	case CCS_MAC_FILE_WRITE:
++	case CCS_MAC_FILE_APPEND:
++	case CCS_MAC_FILE_UNLINK:
++	case CCS_MAC_FILE_GETATTR:
++	case CCS_MAC_FILE_RMDIR:
++	case CCS_MAC_FILE_TRUNCATE:
++	case CCS_MAC_FILE_CHROOT:
++	case CCS_MAC_FILE_CHMOD:
++	case CCS_MAC_FILE_CHOWN:
++	case CCS_MAC_FILE_CHGRP:
++	case CCS_MAC_FILE_IOCTL:
++	case CCS_MAC_FILE_EXECUTE:
++	case CCS_MAC_FILE_UMOUNT:
++		if (ccs_str_starts(&word, "path"))
++			goto path1;
++		break;
++	case CCS_MAC_FILE_MKDIR:
++	case CCS_MAC_FILE_CREATE:
++	case CCS_MAC_FILE_MKFIFO:
++	case CCS_MAC_FILE_MKSOCK:
++	case CCS_MAC_FILE_MKBLOCK:
++	case CCS_MAC_FILE_MKCHAR:
++	case CCS_MAC_FILE_SYMLINK:
++		if (ccs_str_starts(&word, "path"))
++			goto path1_parent;
++		break;
++	case CCS_MAC_FILE_LINK:
++	case CCS_MAC_FILE_RENAME:
++		if (ccs_str_starts(&word, "old_path"))
++			goto path1;
++		if (ccs_str_starts(&word, "new_path"))
++			goto path2_parent;
++		break;
++	case CCS_MAC_FILE_MOUNT:
++		if (ccs_str_starts(&word, "source"))
++			goto path1;
++		if (ccs_str_starts(&word, "target"))
++			goto path2;
++		break;
++	case CCS_MAC_FILE_PIVOT_ROOT:
++		if (ccs_str_starts(&word, "new_root"))
++			goto path1;
++		if (ccs_str_starts(&word, "put_old"))
++			goto path2;
++		break;
++	default:
++		break;
++	}
++	goto out;
++path1_parent:
++	if (strncmp(word, ".parent", 7))
++		goto out;
++path1:
++	start = CCS_PATH_ATTRIBUTE_START;
++	goto check;
++path2_parent:
++	if (strncmp(word, ".parent", 7))
++		goto out;
++path2:
++	start = CCS_PATH_ATTRIBUTE_START + 32;
++check:
++	if (ccs_str_starts(&word, ".parent"))
++		start += 16;
++	if (*word++ == '.')
++		for (i = 0; i < CCS_MAX_PATH_ATTRIBUTE; i++)
++			if (!strcmp(word, ccs_path_attribute[i]))
++				return start + i;
++out:
++	return CCS_MAX_CONDITION_KEYWORD;
++}
++
++static enum ccs_conditions_index ccs_find_path_type(const char *word)
++{
++	if (!strcmp(word, "socket"))
++		return CCS_TYPE_IS_SOCKET;
++	if (!strcmp(word, "symlink"))
++		return CCS_TYPE_IS_SYMLINK;
++	if (!strcmp(word, "file"))
++		return CCS_TYPE_IS_FILE;
++	if (!strcmp(word, "block"))
++		return CCS_TYPE_IS_BLOCK_DEV;
++	if (!strcmp(word, "directory"))
++		return CCS_TYPE_IS_DIRECTORY;
++	if (!strcmp(word, "char"))
++		return CCS_TYPE_IS_CHAR_DEV;
++	if (!strcmp(word, "fifo"))
++		return CCS_TYPE_IS_FIFO;
++	return CCS_MAX_CONDITION_KEYWORD;
++}
++
++static enum ccs_conditions_index ccs_find_path_perm(const char *word)
++{
++	if (!strcmp(word, "setuid"))
++		return CCS_MODE_SETUID;
++	if (!strcmp(word, "setgid"))
++		return CCS_MODE_SETGID;
++	if (!strcmp(word, "sticky"))
++		return CCS_MODE_STICKY;
++	if (!strcmp(word, "owner_read"))
++		return CCS_MODE_OWNER_READ;
++	if (!strcmp(word, "owner_write"))
++		return CCS_MODE_OWNER_WRITE;
++	if (!strcmp(word, "owner_execute"))
++		return CCS_MODE_OWNER_EXECUTE;
++	if (!strcmp(word, "group_read"))
++		return CCS_MODE_GROUP_READ;
++	if (!strcmp(word, "group_write"))
++		return CCS_MODE_GROUP_WRITE;
++	if (!strcmp(word, "group_execute"))
++		return CCS_MODE_GROUP_EXECUTE;
++	if (!strcmp(word, "others_read"))
++		return CCS_MODE_OTHERS_READ;
++	if (!strcmp(word, "others_write"))
++		return CCS_MODE_OTHERS_WRITE;
++	if (!strcmp(word, "others_execute"))
++		return CCS_MODE_OTHERS_EXECUTE;
++	return CCS_MAX_CONDITION_KEYWORD;
++}
++	
++static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
++			   struct ccs_acl_param *param)
++{
++	enum ccs_group_id g;
++	char *left = param->data;
++	char *right = strchr(left, ' ');
++	const enum ccs_mac_index type = param->e.acl_info.type;
++	memset(tmp, 0, sizeof(*tmp));
++	tmp->left = CCS_MAX_CONDITION_KEYWORD;
++	tmp->right = CCS_MAX_CONDITION_KEYWORD;
++	if (right)
++		*right = '\0';
++	right = strchr(left, '=');
++	if (!right || right == left)
++		return false;
++	*right++ = '\0';
++	tmp->equals = *(right - 2) != '!';
++	if (!tmp->equals)
++		*(right - 2) = '\0';
++	printk(KERN_WARNING "%u: <%s>%s=<%s>\n", __LINE__, left,
++	       tmp->equals ? "" : "!", right);
++	if (type == CCS_MAC_FILE_EXECUTE || type == CCS_MAC_ENVIRON) {
++		if (ccs_str_starts(&left, "argv[")) {
++			tmp->left = CCS_ARGV_ENTRY;
++			if (ccs_parse_ulong(&tmp->argv, &left) !=
++			    CCS_VALUE_TYPE_DECIMAL || *left++ != ']' || *left)
++				goto out;
++		} else if (ccs_str_starts(&left, "envp[\"")) {
++			char *cp = left + strlen(left) - 1;
++			tmp->left = CCS_ENVP_ENTRY;
++			if (*cp-- != ']' || *cp != '"')
++				goto out;
++			*cp = '\0';
++			if (!ccs_correct_word(left))
++				goto out;
++			tmp->envp = ccs_get_name(left);
++			if (!tmp->envp)
++				goto out;
++		} else if (!strcmp(left, "argc"))
++			tmp->left = CCS_EXEC_ARGC;
++		else if (!strcmp(left, "envc"))
++			tmp->left = CCS_EXEC_ENVC;
++	}
++	if (tmp->left == CCS_MAX_CONDITION_KEYWORD)
++		tmp->left = ccs_parse_syscall_arg(left, type);
++	if (tmp->left == CCS_MAX_CONDITION_KEYWORD)
++		tmp->left = ccs_parse_task_cond(left);
++	if (tmp->left == CCS_MAX_CONDITION_KEYWORD)
++		tmp->left = ccs_parse_path_attribute(left, type);
 +	if (tmp->left == CCS_MAX_CONDITION_KEYWORD)
 +		goto out;
-+check_right:
 +	switch (tmp->left) {
 +	case CCS_ARGV_ENTRY:
 +	case CCS_ENVP_ENTRY:
@@ -1645,55 +1775,18 @@ Index: policy_io.c
 +	case CCS_PATH_ATTRIBUTE_START + 16 + CCS_PATH_ATTRIBUTE_TYPE:
 +	case CCS_PATH_ATTRIBUTE_START + 32 + CCS_PATH_ATTRIBUTE_TYPE:
 +	case CCS_PATH_ATTRIBUTE_START + 48 + CCS_PATH_ATTRIBUTE_TYPE:
-+		if (!strcmp(right, "socket"))
-+			tmp->right = CCS_TYPE_IS_SOCKET;
-+		else if (!strcmp(right, "symlink"))
-+			tmp->right = CCS_TYPE_IS_SYMLINK;
-+		else if (!strcmp(right, "file"))
-+			tmp->right = CCS_TYPE_IS_FILE;
-+		else if (!strcmp(right, "block"))
-+			tmp->right = CCS_TYPE_IS_BLOCK_DEV;
-+		else if (!strcmp(right, "directory"))
-+			tmp->right = CCS_TYPE_IS_DIRECTORY;
-+		else if (!strcmp(right, "char"))
-+			tmp->right = CCS_TYPE_IS_CHAR_DEV;
-+		else if (!strcmp(right, "fifo"))
-+			tmp->right = CCS_TYPE_IS_FIFO;
-+		else
-+			goto out;
-+		return true;
++		tmp->right = ccs_find_path_type(right);
++		if (tmp->right != CCS_MAX_CONDITION_KEYWORD)
++			return true;
++		goto out;
 +	case CCS_PATH_ATTRIBUTE_START + CCS_PATH_ATTRIBUTE_PERM:
 +	case CCS_PATH_ATTRIBUTE_START + 16 + CCS_PATH_ATTRIBUTE_PERM:
 +	case CCS_PATH_ATTRIBUTE_START + 32 + CCS_PATH_ATTRIBUTE_PERM:
 +	case CCS_PATH_ATTRIBUTE_START + 48 + CCS_PATH_ATTRIBUTE_PERM:
-+		if (!strcmp(right, "setuid"))
-+			tmp->right = CCS_MODE_SETUID;
-+		else if (!strcmp(right, "setgid"))
-+			tmp->right = CCS_MODE_SETGID;
-+		else if (!strcmp(right, "sticky"))
-+			tmp->right = CCS_MODE_STICKY;
-+		else if (!strcmp(right, "owner_read"))
-+			tmp->right = CCS_MODE_OWNER_READ;
-+		else if (!strcmp(right, "owner_write"))
-+			tmp->right = CCS_MODE_OWNER_WRITE;
-+		else if (!strcmp(right, "owner_execute"))
-+			tmp->right = CCS_MODE_OWNER_EXECUTE;
-+		else if (!strcmp(right, "group_read"))
-+			tmp->right = CCS_MODE_GROUP_READ;
-+		else if (!strcmp(right, "group_write"))
-+			tmp->right = CCS_MODE_GROUP_WRITE;
-+		else if (!strcmp(right, "group_execute"))
-+			tmp->right = CCS_MODE_GROUP_EXECUTE;
-+		else if (!strcmp(right, "others_read"))
-+			tmp->right = CCS_MODE_OTHERS_READ;
-+		else if (!strcmp(right, "others_write"))
-+			tmp->right = CCS_MODE_OTHERS_WRITE;
-+		else if (!strcmp(right, "others_execute"))
-+			tmp->right = CCS_MODE_OTHERS_EXECUTE;
-+		else
-+			goto check_value;
-+		return true;
-+check_value:
++		tmp->right = ccs_find_path_perm(right);
++		if (tmp->right != CCS_MAX_CONDITION_KEYWORD)
++			return true;
++		/* fall through */
 +	default:
 +		g = CCS_NUMBER_GROUP;
 +	}
@@ -1715,6 +1808,11 @@ Index: policy_io.c
 +		if (strcmp(right, "NULL"))
 +			goto out;
 +	} else if (g == CCS_NUMBER_GROUP) {
++		tmp->right = ccs_parse_task_cond(right);
++		if (tmp->right == CCS_MAX_CONDITION_KEYWORD)
++			tmp->right = ccs_parse_path_attribute(right, type);
++		if (tmp->right != CCS_MAX_CONDITION_KEYWORD)
++			return true;
 +		tmp->radix = ccs_parse_values(right, tmp->value);
 +		if (tmp->radix == CCS_VALUE_TYPE_INVALID)
 +			goto out;
@@ -1725,8 +1823,10 @@ Index: policy_io.c
 +	} else if (g == CCS_ADDRESS_GROUP) {
 +		switch (ccs_parse_ipaddr(right, tmp->ipv6)) {
 +		case 1:
++			// ???
 +			break;
 +		case 2:
++			// ???
 +			break;
 +		case 3:
 +			tmp->right = CCS_IMM_IPV6ADDR_ENTRY1;
@@ -1750,7 +1850,7 @@ Index: policy_io.c
  /**
   * ccs_get_condition - Parse condition part.
   *
-@@ -1933,201 +2244,82 @@
+@@ -1933,201 +2342,82 @@
   */
  struct ccs_condition *ccs_get_condition(struct ccs_acl_param *param)
  {
@@ -2017,7 +2117,7 @@ Index: policy_io.c
  		ccs_del_condition(&entry->head.list);
  		kfree(entry);
  	}
-@@ -2280,18 +2472,6 @@
+@@ -2280,18 +2570,6 @@
  }
  
  /**
@@ -2036,7 +2136,7 @@ Index: policy_io.c
   * ccs_init_policy_namespace - Initialize namespace.
   *
   * @ns: Pointer to "struct ccs_policy_namespace".
-@@ -2509,46 +2689,6 @@
+@@ -2509,46 +2787,6 @@
  }
  
  /**
@@ -2083,7 +2183,7 @@ Index: policy_io.c
   * ccs_set_mode - Set mode for specified profile.
   *
   * @name:    Name of functionality.
-@@ -3054,9 +3194,10 @@
+@@ -3054,9 +3292,10 @@
  	list_for_each_entry_srcu(entry, &ccs_inversed_acl_list, list,
  				 &ccs_ss) {
  		if (entry->is_deleted == CCS_GC_IN_PROGRESS ||
@@ -2096,7 +2196,7 @@ Index: policy_io.c
  		    memcmp(entry + 1, new_entry + 1, size - sizeof(*entry)))
  			continue;
  		entry->is_deleted = is_delete;
-@@ -3084,13 +3225,15 @@
+@@ -3084,13 +3323,15 @@
   *
   * Caller holds ccs_read_lock().
   */
@@ -2113,7 +2213,7 @@ Index: policy_io.c
  	BUG_ON(size < sizeof(*entry));
  	if (param->data[0]) {
  		new_entry->cond = ccs_get_condition(param);
-@@ -3099,6 +3242,7 @@
+@@ -3099,6 +3340,7 @@
  	}
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		return -ENOMEM;
@@ -2121,7 +2221,7 @@ Index: policy_io.c
  	if (!list) {
  		error = ccs_update_inverse_list(new_entry, size, param);
  		goto unlock;
-@@ -3110,11 +3254,7 @@
+@@ -3110,11 +3352,7 @@
  		    entry->cond != new_entry->cond ||
  		    memcmp(entry + 1, new_entry + 1, size - sizeof(*entry)))
  			continue;
@@ -2134,7 +2234,7 @@ Index: policy_io.c
  		error = 0;
  		break;
  	}
-@@ -3131,24 +3271,6 @@
+@@ -3131,24 +3369,6 @@
  }
  
  /**
@@ -2159,7 +2259,7 @@ Index: policy_io.c
   * ccs_write_task - Update task related list.
   *
   * @param: Pointer to "struct ccs_acl_param".
-@@ -3215,29 +3337,16 @@
+@@ -3215,29 +3435,16 @@
   */
  static int ccs_write_inet_network(struct ccs_acl_param *param)
  {
@@ -2197,7 +2297,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -3249,26 +3358,16 @@
+@@ -3249,26 +3456,16 @@
   */
  static int ccs_write_unix_network(struct ccs_acl_param *param)
  {
@@ -2232,7 +2332,7 @@ Index: policy_io.c
  }
  
  #endif
-@@ -3284,15 +3383,9 @@
+@@ -3284,15 +3481,9 @@
   */
  static int ccs_update_execute_acl(struct ccs_acl_param *param)
  {
@@ -2251,7 +2351,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -3306,71 +3399,17 @@
+@@ -3306,71 +3497,17 @@
   */
  static int ccs_write_file(struct ccs_acl_param *param)
  {
@@ -2330,7 +2430,7 @@ Index: policy_io.c
  	return -EINVAL;
  }
  
-@@ -3386,11 +3425,8 @@
+@@ -3386,11 +3523,8 @@
  static int ccs_write_misc(struct ccs_acl_param *param)
  {
  	if (ccs_str_starts(&param->data, "env ")) {
@@ -2344,7 +2444,7 @@ Index: policy_io.c
  	}
  	return -EINVAL;
  }
-@@ -3408,14 +3444,8 @@
+@@ -3408,14 +3542,8 @@
   */
  static int ccs_write_ipc(struct ccs_acl_param *param)
  {
@@ -2361,7 +2461,7 @@ Index: policy_io.c
  }
  
  #endif
-@@ -3433,15 +3463,13 @@
+@@ -3433,15 +3561,13 @@
   */
  static int ccs_write_capability(struct ccs_acl_param *param)
  {
@@ -2380,7 +2480,7 @@ Index: policy_io.c
  	}
  	return -EINVAL;
  }
-@@ -3461,15 +3489,9 @@
+@@ -3461,15 +3587,9 @@
  {
  	struct ccs_use_group_acl *e = &param->e.use_group_acl;
  	e->head.type = CCS_TYPE_USE_GROUP_ACL;
@@ -2399,7 +2499,7 @@ Index: policy_io.c
  	return -EINVAL;
  }
  
-@@ -3519,7 +3541,6 @@
+@@ -3519,7 +3639,6 @@
  	u8 i;
  	/* Forced zero clear for using memcmp() at ccs_update_acl(). */
  	memset(&param.e, 0, sizeof(param.e));
@@ -2407,7 +2507,7 @@ Index: policy_io.c
  	for (i = 0; i < ARRAY_SIZE(ccs_callback); i++) {
  		int error;
  		if (!ccs_str_starts(&param.data, ccs_callback[i].keyword))
-@@ -3625,228 +3646,247 @@
+@@ -3625,228 +3744,215 @@
  	return ccs_write_acl(ns, &domain->acl_info_list, data, is_delete);
  }
  
@@ -2427,8 +2527,18 @@ Index: policy_io.c
 -	ccs_set_space(head);
 -	if (!ccs_print_group(head, ptr->is_not, ptr->group))
 -		ccs_set_string(head, ptr->filename->name);
--}
--
++	switch (radix) {
++	case CCS_VALUE_TYPE_HEXADECIMAL:
++		ccs_io_printf(head, "0x%lX", value);
++		break;
++	case CCS_VALUE_TYPE_OCTAL:
++		ccs_io_printf(head, "0%lo", value);
++		break;
++	default:
++		ccs_io_printf(head, "%lu", value);
++	}
+ }
+ 
 -/**
 - * ccs_print_name_union_quoted - Print a ccs_name_union with a quote.
 - *
@@ -2439,23 +2549,66 @@ Index: policy_io.c
 - */
 -static void ccs_print_name_union_quoted(struct ccs_io_buffer *head,
 -					const struct ccs_name_union *ptr)
--{
++static void ccs_print_misc_attribute(struct ccs_io_buffer *head,
++				     const enum ccs_mac_index type,
++				     const enum ccs_conditions_index cond)
+ {
 -	if (!ccs_print_group(head, ptr->is_not, ptr->group)) {
 -		ccs_set_string(head, "\"");
 -		ccs_set_string(head, ptr->filename->name);
 -		ccs_set_string(head, "\"");
-+	switch (radix) {
-+	case CCS_VALUE_TYPE_HEXADECIMAL:
-+		ccs_io_printf(head, "0x%lX", value);
-+		break;
-+	case CCS_VALUE_TYPE_OCTAL:
-+		ccs_io_printf(head, "0%lo", value);
-+		break;
-+	default:
-+		ccs_io_printf(head, "%lu", value);
++	static const char *const k[CCS_MAX_PATH_ATTRIBUTE] = {
++		[CCS_PATH_ATTRIBUTE_UID]       = "uid",
++		[CCS_PATH_ATTRIBUTE_GID]       = "gid",
++		[CCS_PATH_ATTRIBUTE_INO]       = "ino",
++		[CCS_PATH_ATTRIBUTE_MAJOR]     = "major",
++		[CCS_PATH_ATTRIBUTE_MINOR]     = "minor",
++		[CCS_PATH_ATTRIBUTE_PERM]      = "perm",
++		[CCS_PATH_ATTRIBUTE_TYPE]      = "type",
++		[CCS_PATH_ATTRIBUTE_DEV_MAJOR] = "dev_major",
++		[CCS_PATH_ATTRIBUTE_DEV_MINOR] = "dev_minor",
++	};
++	if (cond >= CCS_PATH_ATTRIBUTE_START) {
++		const u8 pos = cond - CCS_PATH_ATTRIBUTE_START;
++		ccs_io_printf(head, "%s.%s%s", ccs_get_sarg(type, pos >= 32),
++			      pos % 32 >= 16 ? "parent." : "", k[pos % 16]);
++		return;
  	}
++	switch (cond) {
++	case CCS_TASK_UID:
++	case CCS_TASK_EUID:
++	case CCS_TASK_SUID:
++	case CCS_TASK_FSUID:
++	case CCS_TASK_GID:
++	case CCS_TASK_EGID:
++	case CCS_TASK_SGID:
++	case CCS_TASK_FSGID:
++	case CCS_TASK_PID:
++	case CCS_TASK_PPID:
++	case CCS_TASK_TYPE:
++		ccs_set_string(head, "task.");
++		/* fall through */
++	default:
++		if (cond < CCS_MAX_CONDITION_KEYWORD)
++			ccs_set_string(head, ccs_condition_keyword[cond]);
++		else
++			ccs_io_printf(head, "unknown(%u)", cond);
++	}
  }
  
++static void ccs_print_ipv6_address(struct ccs_io_buffer *head,
++				   const struct in6_addr *ip)
++{
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
++	ccs_io_printf(head, "%pI6c", ip);
++#else
++	char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:"
++			 "255.255.255.255")];
++	ip6_compressed_string(addr, (const u8 *) ip);
++	ccs_io_printf(head, "%s", addr);
++#endif
++}
++
  /**
 - * ccs_print_number_union_nospace - Print a ccs_number_union without a space.
 + * ccs_print_condition_loop - Print condition part.
@@ -2489,9 +2642,9 @@ Index: policy_io.c
 -					      min);
 +	const union ccs_condition_element *condp = head->r.cond;
 +	while ((void *) condp < (void *) ((u8 *) cond) + cond->size) {
-+		const u8 match = condp->equals;
-+		const u8 left = condp->left;
-+		const u8 right = condp->right;
++		const bool match = condp->equals;
++		const enum ccs_conditions_index left = condp->left;
++		const enum ccs_conditions_index right = condp->right;
 +		const u8 radix = condp->radix;
 +		if (!ccs_flush(head)) {
 +			head->r.cond = condp;
@@ -2499,54 +2652,46 @@ Index: policy_io.c
 +		}
 +		condp++;
 +		ccs_set_space(head);
-+		if (left >= CCS_PATH_ATTRIBUTE_START) {
-+			const u8 pos = left - CCS_PATH_ATTRIBUTE_START;
-+			static const char *const k[CCS_MAX_PATH_ATTRIBUTE] = {
-+				[CCS_PATH_ATTRIBUTE_UID]       = "uid",
-+				[CCS_PATH_ATTRIBUTE_GID]       = "gid",
-+				[CCS_PATH_ATTRIBUTE_INO]       = "ino",
-+				[CCS_PATH_ATTRIBUTE_MAJOR]     = "major",
-+				[CCS_PATH_ATTRIBUTE_MINOR]     = "minor",
-+				[CCS_PATH_ATTRIBUTE_PERM]      = "perm",
-+				[CCS_PATH_ATTRIBUTE_TYPE]      = "type",
-+				[CCS_PATH_ATTRIBUTE_DEV_MAJOR] = "dev_major",
-+				[CCS_PATH_ATTRIBUTE_DEV_MINOR] = "dev_minor",
-+			};
-+			ccs_io_printf(head, "%s.%s%s",
-+				      ccs_get_sarg(type, pos >= 32),
-+				      pos % 32 >= 16 ? "parent" : "",
-+				      k[pos % 16]);
-+		} else if (left == CCS_ARGV_ENTRY) {
-+			ccs_io_printf(head, "exec.argv[%lu]", condp->value);
++		switch (left) {
++		case CCS_ARGV_ENTRY:
++			ccs_io_printf(head, "argv[%lu]", condp->value);
 +			condp++;
-+		} else if (left == CCS_ENVP_ENTRY) {
-+			ccs_set_string(head, "exec.envp[\"");
++			break;
++		case CCS_ENVP_ENTRY:
++			ccs_set_string(head, "envp[\"");
 +			ccs_set_string(head, condp->path->name);
 +			condp++;
 +			ccs_set_string(head, "\"]");
-+		} else if (left == CCS_COND_SARG0)
++			break;
++		case CCS_COND_SARG0:
 +			ccs_set_string(head, ccs_get_sarg(type, 0));
-+		else if (left == CCS_COND_SARG1)
++			break;
++		case CCS_COND_SARG1:
 +			ccs_set_string(head, ccs_get_sarg(type, 1));
-+		else if (left == CCS_COND_SARG2)
++			break;
++		case CCS_COND_SARG2:
 +			ccs_set_string(head, ccs_get_sarg(type, 2));
-+		else if (left == CCS_COND_NARG0)
++			break;
++		case CCS_COND_NARG0:
 +			ccs_set_string(head, ccs_get_narg(type, 0));
-+		else if (left == CCS_COND_NARG1)
++			break;
++		case CCS_COND_NARG1:
 +			ccs_set_string(head, ccs_get_narg(type, 1));
-+		else if (left == CCS_COND_NARG2)
++			break;
++		case CCS_COND_NARG2:
 +			ccs_set_string(head, ccs_get_narg(type, 2));
-+		else if (left == CCS_TASK_TYPE)
-+			ccs_set_string(head, "task.type");
-+		else
-+			ccs_io_printf(head, "unknown(%u)", left);
-+		//ccs_set_string(head, ccs_condition_keyword[left]);
++			break;
++		default:
++			ccs_print_misc_attribute(head, type, left);
++		}
 +		ccs_set_string(head, match ? "=" : "!=");
-+		if (right == CCS_IMM_GROUP) {
++		switch (right) {
++		case CCS_IMM_GROUP:
 +			ccs_set_string(head, "@");
 +			ccs_set_string(head, condp->group->group_name->name);
 +			condp++;
-+		} else if (right == CCS_IMM_NAME_ENTRY) {
++			break;
++		case CCS_IMM_NAME_ENTRY:
 +			if (condp->path) {
 +				ccs_set_string(head, "\"");
 +				ccs_set_string(head, condp->path->name);
@@ -2555,127 +2700,48 @@ Index: policy_io.c
 +				ccs_set_string(head, "NULL");
 +			}
 +			condp++;
-+		} else if (right == CCS_IMM_NUMBER_ENTRY1) {
++			break;
++		case CCS_IMM_NUMBER_ENTRY1:
++		case CCS_IMM_NUMBER_ENTRY2:
 +			ccs_print_number(head, radix & 3, condp->value);
 +			condp++;
-+		} else if (right == CCS_IMM_NUMBER_ENTRY2) {
-+			ccs_print_number(head, radix & 3, condp->value);
-+			condp++;
-+			ccs_set_string(head, "-");
-+			ccs_print_number(head, (radix >> 2) & 3, condp->value);
-+			condp++;
-+		} else if (right == CCS_IMM_IPV6ADDR_ENTRY1) {
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-+			ccs_io_printf(head, "%pI6c", condp->ip);
-+#else
-+			char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:"
-+					 "255.255.255.255")];
-+			ip6_compressed_string(addr, (const u8 *) condp->ip);
-+			ccs_io_printf(head, "%s", addr);
-+#endif
-+			condp = (void *)
-+				((u8 *) condp) + sizeof(struct in6_addr);
-+		} else if (right == CCS_IMM_IPV6ADDR_ENTRY2) {
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-+			ccs_io_printf(head, "%pI6c", condp->ip);
-+#else
-+			char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:"
-+					 "255.255.255.255")];
-+			ip6_compressed_string(addr, (const u8 *) condp->ip);
-+			ccs_io_printf(head, "%s", addr);
-+#endif
-+			condp = (void *)
-+				((u8 *) condp) + sizeof(struct in6_addr);
-+			ccs_set_string(head, "-");
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-+			ccs_io_printf(head, "%pI6c", condp->ip);
-+#else
-+			ip6_compressed_string(addr, (const u8 *) condp->ip);
-+			ccs_io_printf(head, "%s", addr);
-+#endif
-+			condp = (void *)
-+				((u8 *) condp) + sizeof(struct in6_addr);
-+		} else if (right >= CCS_PATH_ATTRIBUTE_START) {
-+			const u8 pos = right - CCS_PATH_ATTRIBUTE_START;
-+			static const char *const k[CCS_MAX_PATH_ATTRIBUTE] = {
-+				[CCS_PATH_ATTRIBUTE_UID]       = "uid",
-+				[CCS_PATH_ATTRIBUTE_GID]       = "gid",
-+				[CCS_PATH_ATTRIBUTE_INO]       = "ino",
-+				[CCS_PATH_ATTRIBUTE_MAJOR]     = "major",
-+				[CCS_PATH_ATTRIBUTE_MINOR]     = "minor",
-+				[CCS_PATH_ATTRIBUTE_PERM]      = "perm",
-+				[CCS_PATH_ATTRIBUTE_TYPE]      = "type",
-+				[CCS_PATH_ATTRIBUTE_DEV_MAJOR] = "dev_major",
-+				[CCS_PATH_ATTRIBUTE_DEV_MINOR] = "dev_minor",
-+			};
-+			ccs_io_printf(head, "%s.%s%s",
-+				      ccs_get_sarg(type, pos >= 32),
-+				      pos % 32 >= 16 ? "parent" : "",
-+				      k[pos % 16]);
-+		} else {
-+			static const char *const k[] = {
-+				[CCS_TYPE_IS_SOCKET]       = "socket",
-+				[CCS_TYPE_IS_SYMLINK]      = "symlink",
-+				[CCS_TYPE_IS_FILE]         = "file",
-+				[CCS_TYPE_IS_BLOCK_DEV]    = "block",
-+				[CCS_TYPE_IS_DIRECTORY]    = "directory",
-+				[CCS_TYPE_IS_CHAR_DEV]     = "char",
-+				[CCS_TYPE_IS_FIFO]         = "fifo",
-+				[CCS_MODE_SETUID]          = "setuid",
-+				[CCS_MODE_SETGID]          = "setgid",
-+				[CCS_MODE_STICKY]          = "sticky",
-+				[CCS_MODE_OWNER_READ]      = "owner_read",
-+				[CCS_MODE_OWNER_WRITE]     = "owner_write",
-+				[CCS_MODE_OWNER_EXECUTE]   = "owner_execute",
-+				[CCS_MODE_GROUP_READ]      = "group_read",
-+				[CCS_MODE_GROUP_WRITE]     = "group_write",
-+				[CCS_MODE_GROUP_EXECUTE]   = "group_execute",
-+				[CCS_MODE_OTHERS_READ]     = "others_read",
-+				[CCS_MODE_OTHERS_WRITE]    = "others_write",
-+				[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
-+				[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
-+			};
-+			switch (right) {
-+			case CCS_TYPE_IS_SOCKET:
-+			case CCS_TYPE_IS_SYMLINK:
-+			case CCS_TYPE_IS_FILE:
-+			case CCS_TYPE_IS_BLOCK_DEV:
-+			case CCS_TYPE_IS_DIRECTORY:
-+			case CCS_TYPE_IS_CHAR_DEV:
-+			case CCS_TYPE_IS_FIFO:
-+			case CCS_MODE_SETUID:
-+			case CCS_MODE_SETGID:
-+			case CCS_MODE_STICKY:
-+			case CCS_MODE_OWNER_READ:
-+			case CCS_MODE_OWNER_WRITE:
-+			case CCS_MODE_OWNER_EXECUTE:
-+			case CCS_MODE_GROUP_READ:
-+			case CCS_MODE_GROUP_WRITE:
-+			case CCS_MODE_GROUP_EXECUTE:
-+			case CCS_MODE_OTHERS_READ:
-+			case CCS_MODE_OTHERS_WRITE:
-+			case CCS_MODE_OTHERS_EXECUTE:
-+			case CCS_TASK_EXECUTE_HANDLER:
-+				ccs_set_string(head, k[right]);
++			if (right == CCS_IMM_NUMBER_ENTRY1)
  				break;
 -			case CCS_VALUE_TYPE_OCTAL:
 -				ccs_addprintf(buffer, sizeof(buffer), "0%lo",
 -					      min);
--				break;
- 			default:
++			ccs_set_string(head, "-");
++			ccs_print_number(head, (radix >> 2) & 3, condp->value);
++			condp++;
++			break;
++		case CCS_IMM_IPV6ADDR_ENTRY1:
++		case CCS_IMM_IPV6ADDR_ENTRY2:
++			ccs_print_ipv6_address(head, (const struct in6_addr *)
++					       condp);
++			condp = (void *)
++				((u8 *) condp) + sizeof(struct in6_addr);
++			if (right == CCS_IMM_IPV6ADDR_ENTRY1)
+ 				break;
+-			default:
 -				ccs_addprintf(buffer, sizeof(buffer), "%lu",
 -					      min);
 -				break;
-+				ccs_io_printf(head, "unknown(%u)", right);
- 			}
+-			}
 -			if (min == max && min_type == max_type)
 -				break;
 -			ccs_addprintf(buffer, sizeof(buffer), "-");
 -			min_type = max_type;
 -			min = max;
++			ccs_set_string(head, "-");
++			ccs_print_ipv6_address(head, (const struct in6_addr *)
++					       condp);
++			condp = (void *)
++				((u8 *) condp) + sizeof(struct in6_addr);
++			break;
++		default:
++			ccs_print_misc_attribute(head, type, right);
  		}
 -		ccs_io_printf(head, "%s", buffer);
-+		//ccs_set_string(head, ccs_condition_keyword[right]);
  	}
 +	head->r.cond = NULL;
 +	return true;
@@ -2841,7 +2907,7 @@ Index: policy_io.c
  		return true;
  	}
  	return false;
-@@ -3884,22 +3924,21 @@
+@@ -3884,22 +3990,21 @@
  static bool ccs_print_entry(struct ccs_io_buffer *head,
  			    const struct ccs_acl_info *acl)
  {
@@ -2870,7 +2936,7 @@ Index: policy_io.c
  		if (head->r.print_default_transition) {
  			ccs_print_namespace(head);
  			ccs_set_string(head, "default_transition");
-@@ -3907,11 +3946,10 @@
+@@ -3907,11 +4012,10 @@
  			ccs_set_group(head, "file ");
  			ccs_set_string(head, "execute");
  		}
@@ -2886,7 +2952,7 @@ Index: policy_io.c
  #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
  	} else if (acl_type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
  		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
-@@ -3942,179 +3980,95 @@
+@@ -3942,179 +4046,95 @@
  		struct ccs_use_group_acl *ptr =
  			container_of(acl, typeof(*ptr), head);
  		ccs_set_group(head, "use_group ");
@@ -3137,7 +3203,7 @@ Index: policy_io.c
  	return true;
  }
  
-@@ -4279,7 +4233,7 @@
+@@ -4279,7 +4299,7 @@
  	struct ccs_group *group = ccs_get_group(param, type);
  	if (!group || group == &ccs_group_any)
  		return -ENOMEM;
@@ -3146,7 +3212,7 @@ Index: policy_io.c
  		goto out;
  	param->list = &group->member_list;
  	if (type == CCS_PATH_GROUP) {
-@@ -4293,8 +4247,10 @@
+@@ -4293,8 +4313,10 @@
  		ccs_put_name(e->member_name);
  	} else if (type == CCS_NUMBER_GROUP) {
  		struct ccs_number_group *e = &param->e.number_group;
@@ -3159,7 +3225,7 @@ Index: policy_io.c
  	} else if (type == CCS_ACL_GROUP) {
  		error = ccs_write_acl(param->ns, param->list, param->data,
  				      param->is_delete);
-@@ -4305,8 +4261,19 @@
+@@ -4305,8 +4327,19 @@
  #ifdef CONFIG_CCSECURITY_NETWORK
  	} else {
  		struct ccs_address_group *e = &param->e.address_group;
@@ -3181,7 +3247,7 @@ Index: policy_io.c
  #endif
  	}
  out:
-@@ -4405,7 +4372,6 @@
+@@ -4405,7 +4438,6 @@
  	struct ccs_acl_param param = {
  		.data = head->write_buf,
  		.is_delete = head->w.is_delete,
@@ -3189,7 +3255,7 @@ Index: policy_io.c
  	};
  	u8 i;
  	if (ccs_str_starts(&param.data, "by ")) {
-@@ -4458,7 +4424,6 @@
+@@ -4458,7 +4490,6 @@
  	u8 i;
  	/* Forced zero clear for using memcmp() at ccs_update_policy(). */
  	memset(&param.e, 0, sizeof(param.e));
@@ -3197,7 +3263,7 @@ Index: policy_io.c
  	if (ccs_str_starts(&param.data, "default_transition "))
  		return ccs_write_transition_control(&param);
  	for (i = 0; i < CCS_MAX_GROUP; i++)
-@@ -4491,11 +4456,9 @@
+@@ -4491,11 +4522,9 @@
  			printk(KERN_INFO "%s ptr=%p\n", __func__, group);
  			*/
  			head->r.acl_group_name = group->group_name;
@@ -3210,7 +3276,7 @@ Index: policy_io.c
  		}
  		head->r.group = NULL;
  		return true;
-@@ -4519,9 +4482,20 @@
+@@ -4519,9 +4548,19 @@
  					       (ptr, struct ccs_path_group,
  						head)->member_name->name);
  			} else if (idx == CCS_NUMBER_GROUP) {
@@ -3224,8 +3290,7 @@ Index: policy_io.c
 +						     head);
 +				ccs_print_number(head, e->radix & 3,
 +						 e->value[0]);
-+				if ((e->radix & 3) != ((e->radix >> 2) & 3) ||
-+				    e->value[0] != e->value[1]) {
++				if (e->radix >> 2) {
 +					ccs_set_string(head, "-");
 +					ccs_print_number(head,
 +							 (e->radix >> 2) & 3,
@@ -3234,7 +3299,7 @@ Index: policy_io.c
  #ifdef CONFIG_CCSECURITY_NETWORK
  			} else if (idx == CCS_ADDRESS_GROUP) {
  				char buffer[128];
-@@ -4529,7 +4503,7 @@
+@@ -4529,7 +4568,7 @@
  					container_of(ptr, typeof(*member),
  						     head);
  				ccs_print_ip(buffer, sizeof(buffer),
@@ -3243,7 +3308,7 @@ Index: policy_io.c
  				ccs_io_printf(head, " %s", buffer);
  #endif
  			}
-@@ -4592,7 +4566,7 @@
+@@ -4592,7 +4631,7 @@
  static void ccs_add_entry(char *header)
  {
  	char *buffer;
@@ -3252,7 +3317,7 @@ Index: policy_io.c
  	char *argv0 = NULL;
  #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
  	char *handler;
-@@ -4613,10 +4587,10 @@
+@@ -4613,10 +4652,10 @@
  			argv0 += 10;
  			len += ccs_truncate(argv0) + 14;
  		}
@@ -3267,7 +3332,7 @@ Index: policy_io.c
  		}
  	}
  #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-@@ -4632,10 +4606,10 @@
+@@ -4632,10 +4671,10 @@
  	if (handler)
  		ccs_addprintf(buffer, len, " task.%s", handler);
  #endif
@@ -3281,7 +3346,7 @@ Index: policy_io.c
  	ccs_normalize_line(buffer);
  	{
  		struct ccs_domain_info *domain = ccs_current_domain();
-@@ -4665,21 +4639,9 @@
+@@ -4665,21 +4704,9 @@
  	if (!domain)
  		return true;
  	list_for_each_entry_srcu(ptr, &domain->acl_info_list, list, &ccs_ss) {
@@ -3303,7 +3368,7 @@ Index: policy_io.c
  #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
  		case CCS_TYPE_AUTO_EXECUTE_HANDLER:
  		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
-@@ -4688,14 +4650,10 @@
+@@ -4688,14 +4715,10 @@
  		case CCS_TYPE_AUTO_TASK_ACL:
  		case CCS_TYPE_MANUAL_TASK_ACL:
  #endif
@@ -3319,7 +3384,7 @@ Index: policy_io.c
  	}
  	if (count < ccs_profile(r->profile)->pref[CCS_PREF_MAX_LEARNING_ENTRY])
  		return true;
-@@ -4839,101 +4797,152 @@
+@@ -4839,101 +4862,152 @@
   */
  int ccs_audit_log(struct ccs_request_info *r)
  {
@@ -3555,7 +3620,7 @@ Index: policy_io.c
  	}
  	return 0;
  }
-@@ -5297,19 +5306,19 @@
+@@ -5297,19 +5371,19 @@
  	switch (mode & S_IFMT) {
  	case S_IFREG:
  	case 0:
@@ -3582,7 +3647,7 @@ Index: policy_io.c
  	}
  	return "unknown"; /* This should not happen. */
  }
-@@ -5370,6 +5379,7 @@
+@@ -5370,6 +5444,7 @@
  		obj->validate_done = true;
  	}
  	for (i = 0; i < CCS_MAX_PATH_STAT; i++) {
@@ -3590,7 +3655,7 @@ Index: policy_io.c
  		struct ccs_mini_stat *stat;
  		unsigned int dev;
  		umode_t mode;
-@@ -5378,17 +5388,18 @@
+@@ -5378,17 +5453,18 @@
  		stat = &obj->stat[i];
  		dev = stat->dev;
  		mode = stat->mode;
@@ -3615,7 +3680,7 @@ Index: policy_io.c
  				stat->uid, stat->gid, (unsigned long)
  				stat->ino, MAJOR(dev), MINOR(dev),
  				mode & S_IALLUGO, ccs_filetype(mode));
-@@ -5425,7 +5436,7 @@
+@@ -5425,7 +5501,7 @@
  {
  	char *buf = NULL;
  	char *bprm_info = NULL;
@@ -3624,7 +3689,7 @@ Index: policy_io.c
  	const char *header = NULL;
  	int pos;
  	const char *domainname = ccs_current_domain()->domainname->name;
-@@ -5438,15 +5449,15 @@
+@@ -5438,15 +5514,15 @@
  		struct file *file = r->ee->bprm->file;
  #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
  		struct path path = { file->f_vfsmnt, file->f_dentry };
@@ -3645,7 +3710,7 @@ Index: policy_io.c
  	}
  	len = ccs_round2(len);
  	buf = kzalloc(len, CCS_GFP_FLAGS);
-@@ -5454,16 +5465,16 @@
+@@ -5454,16 +5530,16 @@
  		goto out;
  	len--;
  	pos = snprintf(buf, len, "%s", header);
@@ -3666,7 +3731,7 @@ Index: policy_io.c
  	kfree(bprm_info);
  	kfree(header);
  	return buf;
-@@ -5488,13 +5499,6 @@
+@@ -5488,13 +5564,6 @@
  	p = ccs_profile(profile);
  	if (ccs_log_count >= p->pref[CCS_PREF_MAX_AUDIT_LOG])
  		return false;
@@ -3680,7 +3745,7 @@ Index: policy_io.c
  	mode = p->config[index];
  	if (mode == CCS_CONFIG_USE_DEFAULT)
  		mode = p->config
-@@ -6050,12 +6054,11 @@
+@@ -6050,12 +6119,11 @@
  		case 4:
  			if (!ccs_flush(head))
  				return false;
@@ -3698,7 +3763,7 @@ Index: policy_io.c
  			head->r.step--;
  		}
  	}
-@@ -6315,9 +6318,8 @@
+@@ -6315,9 +6383,8 @@
  		name.name = data;
  		ccs_fill_path_info(&name);
  		/* Check "task manual_domain_transition" permission. */
@@ -3712,7 +3777,7 @@ Index: policy_io.c
  			error = -EPERM;
 Index: permission.c
 ===================================================================
---- permission.c	(revision 5772)
+--- permission.c	(revision 5774)
 +++ permission.c	(working copy)
 @@ -42,112 +42,12 @@
  	[CCS_MOUNT_MAKE_SHARED]     = "--make-shared",
@@ -4260,17 +4325,18 @@ Index: permission.c
  	return ccs_check_acl(&r);
  }
  
-@@ -2054,8 +1740,7 @@
+@@ -2054,8 +1740,8 @@
  				  const struct ccs_path_info *filename)
  {
  	r->type = CCS_MAC_FILE_EXECUTE;
 -	r->param_type = CCS_TYPE_EXECUTE_ACL;
 -	r->param.execute.program = filename;
-+	r->param.s[0] = filename;
++	//r->param.s[0] = realpath();
++	r->param.s[1] = filename;
  	return ccs_check_acl(r);
  }
  
-@@ -2145,7 +1830,7 @@
+@@ -2145,7 +1831,7 @@
  			error = -ENOMEM;
  			goto out;
  		}
@@ -4279,7 +4345,7 @@ Index: permission.c
  		if (error)
  			goto out;
  	}
-@@ -2155,8 +1840,8 @@
+@@ -2155,8 +1841,8 @@
  			goto out;
  		}
  		error = ccs_path_permission((flag & O_APPEND) ?
@@ -4290,7 +4356,7 @@ Index: permission.c
  	}
  #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
  	if (!error && (flag & O_TRUNC)) {
-@@ -2164,7 +1849,7 @@
+@@ -2164,7 +1850,7 @@
  			error = -ENOMEM;
  			goto out;
  		}
@@ -4299,7 +4365,7 @@ Index: permission.c
  	}
  #endif
  out:
-@@ -2192,14 +1877,14 @@
+@@ -2192,14 +1878,14 @@
  /**
   * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "append", "getattr", "chroot" and "unmount".
   *
@@ -4317,7 +4383,7 @@ Index: permission.c
  {
  	struct ccs_obj_info obj = {
  		.path1.dentry = dentry,
-@@ -2210,10 +1895,12 @@
+@@ -2210,10 +1896,12 @@
  	if (!ccs_get_realpath(&buf, &obj.path1))
  		return -ENOMEM;
  	switch (operation) {
@@ -4332,7 +4398,7 @@ Index: permission.c
  	}
  	error = ccs_path_permission(operation, &buf, &obj);
  	kfree(buf.name);
-@@ -2223,7 +1910,7 @@
+@@ -2223,7 +1911,7 @@
  /**
   * ccs_mkdev_perm - Check permission for "mkblock" and "mkchar".
   *
@@ -4341,7 +4407,7 @@ Index: permission.c
   * @dentry:    Pointer to "struct dentry".
   * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
   * @mode:      Create mode.
-@@ -2249,14 +1936,12 @@
+@@ -2249,14 +1937,12 @@
  #endif
  	{
  		struct ccs_request_info r = { };
@@ -4361,7 +4427,7 @@ Index: permission.c
  		error = ccs_check_acl(&r);
  	}
  	kfree(buf.name);
-@@ -2266,7 +1951,7 @@
+@@ -2266,7 +1952,7 @@
  /**
   * ccs_path2_perm - Check permission for "rename", "link" and "pivot_root".
   *
@@ -4370,7 +4436,7 @@ Index: permission.c
   * @dentry1:   Pointer to "struct dentry".
   * @mnt1:      Pointer to "struct vfsmount". Maybe NULL.
   * @dentry2:   Pointer to "struct dentry".
-@@ -2274,9 +1959,9 @@
+@@ -2274,9 +1960,9 @@
   *
   * Returns 0 on success, negative value otherwise.
   */
@@ -4383,7 +4449,7 @@ Index: permission.c
  {
  	struct ccs_obj_info obj = {
  		.path1.dentry = dentry1,
-@@ -2295,24 +1980,24 @@
+@@ -2295,24 +1981,24 @@
  		return -ENOMEM;
  	}
  	switch (operation) {
@@ -4416,7 +4482,7 @@ Index: permission.c
  		error = ccs_check_acl(&r);
  	}
  	kfree(buf1.name);
-@@ -2352,10 +2037,8 @@
+@@ -2352,10 +2038,8 @@
  		struct ccs_request_info r = { };
  		r.type = CCS_MAC_FILE_SYMLINK;
  		r.obj = &obj;
@@ -4429,7 +4495,7 @@ Index: permission.c
  		error = ccs_check_acl(&r);
  	}
  	kfree(buf1.name);
-@@ -2366,15 +2049,16 @@
+@@ -2366,15 +2050,16 @@
  /**
   * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
   *
@@ -4449,7 +4515,7 @@ Index: permission.c
  {
  	struct ccs_obj_info obj = {
  		.path1.dentry = dentry,
-@@ -2387,16 +2071,14 @@
+@@ -2387,16 +2072,14 @@
  	ccs_check_auto_domain_transition();
  	if (!ccs_get_realpath(&buf, &obj.path1))
  		return -ENOMEM;
@@ -4470,7 +4536,7 @@ Index: permission.c
  		error = ccs_check_acl(&r);
  	}
  	kfree(buf.name);
-@@ -2415,7 +2097,7 @@
+@@ -2415,7 +2098,7 @@
  static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
  				  unsigned long arg)
  {
@@ -4479,7 +4545,7 @@ Index: permission.c
  				    filp->f_vfsmnt, cmd);
  }
  
-@@ -2433,7 +2115,7 @@
+@@ -2433,7 +2116,7 @@
  {
  	if (mode == (mode_t) -1)
  		return 0;
@@ -4488,7 +4554,7 @@ Index: permission.c
  				    mode & S_IALLUGO);
  }
  
-@@ -2455,11 +2137,11 @@
+@@ -2455,11 +2138,11 @@
  	if (user == (uid_t) -1 && group == (gid_t) -1)
  		return 0;
  	if (user != (uid_t) -1)
@@ -4504,7 +4570,7 @@ Index: permission.c
  	return error;
  }
  
-@@ -2500,7 +2182,7 @@
+@@ -2500,7 +2183,7 @@
  static int __ccs_pivot_root_permission(struct path *old_path,
  				       struct path *new_path)
  {
@@ -4513,7 +4579,7 @@ Index: permission.c
  			      new_path->mnt, old_path->dentry, old_path->mnt);
  }
  
-@@ -2513,7 +2195,7 @@
+@@ -2513,7 +2196,7 @@
   */
  static int __ccs_chroot_permission(struct path *path)
  {
@@ -4522,7 +4588,7 @@ Index: permission.c
  }
  
  /**
-@@ -2526,7 +2208,7 @@
+@@ -2526,7 +2209,7 @@
   */
  static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
  {
@@ -4531,7 +4597,7 @@ Index: permission.c
  }
  
  /**
-@@ -2546,24 +2228,24 @@
+@@ -2546,24 +2229,24 @@
  	const unsigned int perm = mode & S_IALLUGO;
  	switch (mode & S_IFMT) {
  	case S_IFCHR:
@@ -4561,7 +4627,7 @@ Index: permission.c
  					     perm);
  		break;
  	}
-@@ -2582,7 +2264,7 @@
+@@ -2582,7 +2265,7 @@
  static int __ccs_mkdir_permission(struct dentry *dentry, struct vfsmount *mnt,
  				  unsigned int mode)
  {
@@ -4570,7 +4636,7 @@ Index: permission.c
  }
  
  /**
-@@ -2595,7 +2277,7 @@
+@@ -2595,7 +2278,7 @@
   */
  static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt)
  {
@@ -4579,7 +4645,7 @@ Index: permission.c
  }
  
  /**
-@@ -2608,7 +2290,7 @@
+@@ -2608,7 +2291,7 @@
   */
  static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt)
  {
@@ -4588,7 +4654,7 @@ Index: permission.c
  }
  
  #ifdef CONFIG_CCSECURITY_FILE_GETATTR
-@@ -2624,7 +2306,7 @@
+@@ -2624,7 +2307,7 @@
  static int __ccs_getattr_permission(struct vfsmount *mnt,
  				    struct dentry *dentry)
  {
@@ -4597,7 +4663,7 @@ Index: permission.c
  }
  
  #endif
-@@ -2640,7 +2322,7 @@
+@@ -2640,7 +2323,7 @@
  static int __ccs_truncate_permission(struct dentry *dentry,
  				     struct vfsmount *mnt)
  {
@@ -4606,7 +4672,7 @@ Index: permission.c
  }
  
  /**
-@@ -2656,7 +2338,7 @@
+@@ -2656,7 +2339,7 @@
  				   struct dentry *new_dentry,
  				   struct vfsmount *mnt)
  {
@@ -4615,7 +4681,7 @@ Index: permission.c
  			      mnt);
  }
  
-@@ -2673,7 +2355,8 @@
+@@ -2673,7 +2356,8 @@
  				 struct dentry *new_dentry,
  				 struct vfsmount *mnt)
  {
@@ -4625,7 +4691,7 @@ Index: permission.c
  }
  
  #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
-@@ -2792,11 +2475,12 @@
+@@ -2792,11 +2476,12 @@
  			goto out;
  		ccs_fill_path_info(&buf);
  		if (op & MAY_READ)
@@ -4640,7 +4706,7 @@ Index: permission.c
  						    NULL);
  		kfree(buf.name);
  		if (error)
-@@ -2814,11 +2498,12 @@
+@@ -2814,11 +2499,12 @@
  			goto out;
  		ccs_fill_path_info(&buf);
  		if (op & MAY_READ)
@@ -4655,7 +4721,7 @@ Index: permission.c
  						    NULL);
  		kfree(buf.name);
  		goto out;
-@@ -2877,7 +2562,7 @@
+@@ -2877,7 +2563,7 @@
   *
   * Caller holds ccs_read_lock().
   */
@@ -4664,7 +4730,7 @@ Index: permission.c
  				      const struct ccs_group *group)
  {
  	struct ccs_address_group *member;
-@@ -2889,10 +2574,10 @@
+@@ -2889,10 +2575,10 @@
  				 &ccs_ss) {
  		if (member->head.is_deleted)
  			continue;
@@ -4678,7 +4744,7 @@ Index: permission.c
  			continue;
  		matched = true;
  		break;
-@@ -2901,51 +2586,6 @@
+@@ -2901,51 +2587,6 @@
  }
  
  /**
@@ -4730,7 +4796,7 @@ Index: permission.c
   * ccs_inet_entry - Check permission for INET network operation.
   *
   * @address: Pointer to "struct ccs_addr_info".
-@@ -2954,26 +2594,20 @@
+@@ -2954,26 +2595,20 @@
   */
  static int ccs_inet_entry(const struct ccs_addr_info *address)
  {
@@ -4768,7 +4834,7 @@ Index: permission.c
  }
  
  /**
-@@ -2996,7 +2630,7 @@
+@@ -2996,7 +2631,7 @@
  		if (addr_len < SIN6_LEN_RFC2133)
  			goto skip;
  		i->is_ipv6 = true;
@@ -4777,7 +4843,7 @@ Index: permission.c
  			((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr;
  		i->port = ((struct sockaddr_in6 *) addr)->sin6_port;
  		break;
-@@ -3004,13 +2638,15 @@
+@@ -3004,13 +2639,15 @@
  		if (addr_len < sizeof(struct sockaddr_in))
  			goto skip;
  		i->is_ipv6 = false;
@@ -4795,7 +4861,7 @@ Index: permission.c
  		i->port = htons(port);
  	return ccs_inet_entry(address);
  skip:
-@@ -3026,39 +2662,34 @@
+@@ -3026,39 +2663,34 @@
   */
  static int ccs_unix_entry(const struct ccs_addr_info *address)
  {
@@ -4861,7 +4927,7 @@ Index: permission.c
  	return error;
  }
  
-@@ -3128,8 +2759,12 @@
+@@ -3128,8 +2760,12 @@
  		if (error)
  			return error;
  	}
@@ -4876,7 +4942,7 @@ Index: permission.c
  	if (family == PF_UNIX)
  		return ccs_check_unix_address((struct sockaddr *) &addr,
  					      addr_len, &address);
-@@ -3151,18 +2786,24 @@
+@@ -3151,18 +2787,24 @@
  {
  	struct ccs_addr_info address;
  	const u8 family = ccs_sock_family(sock->sk);
@@ -4906,7 +4972,7 @@ Index: permission.c
  		break;
  	default:
  		return 0;
-@@ -3192,11 +2833,20 @@
+@@ -3192,11 +2834,20 @@
  		return 0;
  	switch (type) {
  	case SOCK_STREAM:
@@ -4929,7 +4995,7 @@ Index: permission.c
  		break;
  	default:
  		return 0;
-@@ -3225,9 +2875,13 @@
+@@ -3225,9 +2876,13 @@
  	if (!msg->msg_name || !family ||
  	    (type != SOCK_DGRAM && type != SOCK_RAW))
  		return 0;
@@ -4945,7 +5011,7 @@ Index: permission.c
  		return ccs_check_unix_address((struct sockaddr *)
  					      msg->msg_name, msg->msg_namelen,
  					      &address);
-@@ -3261,8 +2915,12 @@
+@@ -3261,8 +2916,12 @@
  		if (error)
  			return error;
  	}
@@ -4960,7 +5026,7 @@ Index: permission.c
  	if (family == PF_UNIX)
  		return ccs_check_unix_address((struct sockaddr *) &addr,
  					      addr_len, &address);
-@@ -3288,17 +2946,14 @@
+@@ -3288,17 +2947,14 @@
  	const u8 family = ccs_sock_family(sk);
  	const unsigned int type = sk->sk_type;
  	struct sockaddr_storage addr;
@@ -4985,7 +5051,7 @@ Index: permission.c
  	switch (family) {
  	case PF_INET6:
  		{
-@@ -3309,7 +2964,7 @@
+@@ -3309,7 +2965,7 @@
  				ipv6_addr_set(sin6, 0, 0, htonl(0xffff),
  					      ip_hdr(skb)->saddr);
  			else
@@ -4994,7 +5060,7 @@ Index: permission.c
  			break;
  		}
  	case PF_INET:
-@@ -3341,7 +2996,7 @@
+@@ -3341,7 +2997,7 @@
  			return 0;
  		}
  	}
@@ -5003,7 +5069,7 @@ Index: permission.c
  	if (type == SOCK_DGRAM)
  		address.inet.port = udp_hdr(skb)->source;
  	else
-@@ -3399,22 +3054,6 @@
+@@ -3399,22 +3055,6 @@
  #ifdef CONFIG_CCSECURITY_CAPABILITY
  
  /**
@@ -5026,7 +5092,7 @@ Index: permission.c
   * ccs_capable - Check permission for capability.
   *
   * @operation: Type of operation.
-@@ -3425,8 +3064,6 @@
+@@ -3425,8 +3065,6 @@
  {
  	struct ccs_request_info r = { };
  	r.type = ccs_c2mac[operation];
@@ -5035,7 +5101,7 @@ Index: permission.c
  	return !ccs_check_acl(&r);
  }
  
-@@ -3455,24 +3092,6 @@
+@@ -3455,24 +3093,6 @@
  #ifdef CONFIG_CCSECURITY_IPC
  
  /**
@@ -5060,7 +5126,7 @@ Index: permission.c
   * __ccs_ptrace_permission - Check permission for ptrace().
   *
   * @request: Command number.
-@@ -3502,9 +3121,8 @@
+@@ -3502,9 +3122,8 @@
  			goto out;
  	}
  	r.type = CCS_MAC_PTRACE;
@@ -5072,7 +5138,7 @@ Index: permission.c
  	error = ccs_check_acl(&r);
  out:
  	ccs_read_unlock(idx);
-@@ -3516,21 +3134,6 @@
+@@ -3516,21 +3135,6 @@
  #ifdef CONFIG_CCSECURITY_MISC
  
  /**
@@ -5094,7 +5160,7 @@ Index: permission.c
   * ccs_env_perm - Check permission for environment variable's name.
   *
   * @r:   Pointer to "struct ccs_request_info".
-@@ -3546,8 +3149,7 @@
+@@ -3546,8 +3150,7 @@
  	environ.name = env;
  	ccs_fill_path_info(&environ);
  	r->type = CCS_MAC_ENVIRON;
@@ -5104,7 +5170,7 @@ Index: permission.c
  	return ccs_check_acl(r);
  }
  
-@@ -3630,94 +3232,77 @@
+@@ -3630,94 +3233,77 @@
  #endif
  
  /**
@@ -5254,7 +5320,7 @@ Index: permission.c
  {
  	struct linux_binprm *bprm = ee->bprm;
  	struct ccs_page_dump *dump = &ee->dump;
-@@ -3727,27 +3312,21 @@
+@@ -3727,27 +3313,21 @@
  	int offset = pos % PAGE_SIZE;
  	int argv_count = bprm->argc;
  	int envp_count = bprm->envc;
@@ -5295,7 +5361,7 @@ Index: permission.c
  			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
  				if (c == '\\') {
  					arg_ptr[arg_len++] = '\\';
-@@ -3766,83 +3345,35 @@
+@@ -3766,83 +3346,35 @@
  			}
  			if (c)
  				continue;
@@ -5399,7 +5465,7 @@ Index: permission.c
  {
  	bool result;
  	struct ccs_path_info exe;
-@@ -3861,10 +3392,10 @@
+@@ -3861,10 +3393,10 @@
  	if (!exe.name)
  		return false;
  	ccs_fill_path_info(&exe);
@@ -5411,7 +5477,7 @@ Index: permission.c
  
  /**
   * ccs_get_attributes - Revalidate "struct inode".
-@@ -3918,11 +3449,255 @@
+@@ -3918,11 +3450,256 @@
  			stat->rdev = inode->i_rdev;
  			obj->stat_valid[i] = true;
  		}
@@ -5437,7 +5503,8 @@ Index: permission.c
 +	struct in6_addr ipv6[2];
 +};
 +
-+static bool ccs_cond2arg(struct ccs_cond_arg *arg, const u8 cmd,
++static bool ccs_cond2arg(struct ccs_cond_arg *arg,
++			 const enum ccs_conditions_index cmd,
 +			 const union ccs_condition_element **condp,
 +			 struct ccs_request_info *r)
 +{
@@ -5668,7 +5735,7 @@ Index: permission.c
  /**
   * ccs_condition - Check condition part.
   *
-@@ -3936,345 +3711,122 @@
+@@ -3936,345 +3713,122 @@
  bool ccs_condition(struct ccs_request_info *r,
  		   const struct ccs_condition *cond)
  {
@@ -5710,8 +5777,8 @@ Index: permission.c
 +	while ((void *) condp < (void *) ((u8 *) cond) + cond->size) {
 +		struct ccs_cond_arg left;
 +		struct ccs_cond_arg right;
-+		const u8 left_op = condp->left;
-+		const u8 right_op = condp->right;
++		const enum ccs_conditions_index left_op = condp->left;
++		const enum ccs_conditions_index right_op = condp->right;
  		const bool match = condp->equals;
 -		const u8 left = condp->left;
 -		const u8 right = condp->right;
@@ -6108,7 +6175,7 @@ Index: permission.c
  	return true;
  }
  
-@@ -4292,7 +3844,7 @@
+@@ -4292,7 +3846,7 @@
  			       const struct ccs_acl_info *ptr)
  {
  	const struct ccs_task_acl *acl = container_of(ptr, typeof(*acl), head);
@@ -6117,7 +6184,7 @@ Index: permission.c
  }
  
  #endif
-@@ -4314,7 +3866,7 @@
+@@ -4314,7 +3868,7 @@
  	const int idx = ccs_read_lock();
  	for (i = 0; i < 255; i++) {
  		struct ccs_request_info r = { };
@@ -6128,7 +6195,7 @@ Index: permission.c
  			goto done;
 Index: gc.c
 ===================================================================
---- gc.c	(revision 5772)
+--- gc.c	(revision 5774)
 +++ gc.c	(working copy)
 @@ -59,8 +59,6 @@
  static void ccs_collect_member(const enum ccs_policy_id id,
@@ -6317,7 +6384,7 @@ Index: gc.c
  	}
  }
  
-@@ -555,31 +422,24 @@
+@@ -555,31 +422,33 @@
  {
  	struct ccs_condition *cond = container_of(element, typeof(*cond),
  						  head.list);
@@ -6348,8 +6415,8 @@ Index: gc.c
 -		ccs_put_name(envp->value);
 +	const union ccs_condition_element *condp = (typeof(condp)) (cond + 1);
 +	while ((void *) condp < (void *) ((u8 *) cond) + cond->size) {
-+		const u8 left = condp->left;
-+		const u8 right = condp->right;
++		const enum ccs_conditions_index left = condp->left;
++		const enum ccs_conditions_index right = condp->right;
 +		condp++;
 +		if (left == CCS_ARGV_ENTRY)
 +			condp++;
@@ -6363,7 +6430,16 @@ Index: gc.c
 +		} else if (right == CCS_IMM_NAME_ENTRY) {
 +			ccs_put_name(condp->path);
 +			condp++;
-+		}
++		} else if (right == CCS_IMM_NUMBER_ENTRY1)
++			condp++;
++		else if (right == CCS_IMM_NUMBER_ENTRY2)
++			condp += 2;
++		else if (right == CCS_IMM_IPV6ADDR_ENTRY1)
++			condp = (void *)
++				(((u8 *) condp) + sizeof(struct in6_addr));
++		else if (right == CCS_IMM_IPV6ADDR_ENTRY2)
++			condp = (void *)
++				(((u8 *) condp) + sizeof(struct in6_addr) * 2);
  	}
  }
  
