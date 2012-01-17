@@ -29,13 +29,13 @@ sudo apt-get install git-core gnupg sun-java5-jdk flex bison gperf libsdl-dev li
 
 <h2>Step 2: Set environment variables.</h2>
 
-<p>Set environment variables shown below. Adding to user's initrc script (e.g. ~/.bashrc ) is recommended. You may try arm-eabi-4.3.1 or arm-eabi-4.4.0 instead of arm-eabi-4.2.1 .</p>
+<p>Set environment variables shown below. Adding to user's initrc script (e.g. ~/.bashrc ) is recommended.</p>
 
 <table border="1">
 <tr><td>
 export ANDROID_HOME=$HOME/mydroid/<br>
 export ANDROID_IMG=$ANDROID_HOME/image/<br>
-export ANDROID_TOOLCHAIN=$ANDROID_HOME/prebuilt/linux-x86/toolchain/arm-eabi-4.2.1/bin/<br>
+export ANDROID_TOOLCHAIN=$ANDROID_HOME/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/<br>
 export PATH=$PATH:$ANDROID_HOME/out/host/linux-x86/bin/:$ANDROID_TOOLCHAIN
 </td></tr>
 </table>
@@ -73,7 +73,7 @@ gpg ccs-patch-1.7.3-20111111.tar.gz.asc<br>
 tar -zxf ccs-patch-1.7.3-20111111.tar.gz<br>
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff<br>
 sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig<br>
-ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig<br>
+ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_armv7_defconfig<br>
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s<br>
 mkdir -p $ANDROID_IMG/tmp<br>
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
