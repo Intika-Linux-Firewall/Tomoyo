@@ -34,7 +34,7 @@
 
 <h2>TOMOYO Linux on Android</h2>
 
-<p>このページでは、 TOMOYO Linux を arm 用 Android エミュレータ上で動作させる手順について説明します。ホスト環境として x86_64 上で動作している Ubuntu 10.04.2 を使用します。</p>
+<p>このページでは、 TOMOYO Linux を arm 用 Android エミュレータ上で動作させる手順について説明します。ホスト環境として x86_64 上で動作している Ubuntu 10.04.3 を使用します。</p>
 
 <h3>ステップ１：必要なパッケージのインストール</h3>
 
@@ -45,7 +45,6 @@ sudo add-apt-repository "deb http://archive.canonical.com/ lucid partner"
 sudo add-apt-repository "deb-src http://archive.canonical.com/ubuntu lucid partner"
 sudo apt-get update
 sudo apt-get install sun-java6-jdk 
-sudo update-java-alternatives -s java-6-sun
 sudo apt-get install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev gcc-multilib \
 g++-multilib libc6-dev-i386 lib32ncurses5-dev ia32-libs x11proto-core-dev libx11-dev lib32readline5-dev lib32z-dev
 </pre>
@@ -79,9 +78,9 @@ sudo chown -R `id -u` /var/log/tomoyo/
 
 <pre class="command">
 cd $ANDROID_HOME
-wget http://android.git.kernel.org/repo
+wget https://dl-ssl.google.com/dl/googlesource/git-repo/repo
 chmod 755 repo
-./repo init -u git://android.git.kernel.org/platform/manifest.git
+./repo init -u https://android.googlesource.com/platform/manifest
 ./repo sync
 make
 </pre>
@@ -241,6 +240,7 @@ cd $ANDROID_IMG/tmp/
 zcat ../ramdisk.img | cpio -id
 echo &gt;&gt; init.rc
 echo 'service tomoyo_agent /sbin/tomoyo-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
+echo '&nbsp;&nbsp;&nbsp;&nbsp;class core' &gt;&gt; init.rc
 echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc
 cp -p $ANDROID_HOME/tmp/tomoyo-editpolicy-agent sbin/
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
