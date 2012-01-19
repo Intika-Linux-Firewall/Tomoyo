@@ -117,6 +117,7 @@ sudo make install
 <tr><td>
 cd $ANDROID_HOME/tmp/<br>
 wget -O agcc http://plausible.org/andy/agcc<br>
+sed -i -e 's@4\.2\.1@4.4.3@g' -e 's@interwork/@@g' -- agcc<br>
 chmod 755 agcc<br>
 ./agcc -o init_policy $ANDROID_HOME/tmp/ccstools/init_policy.c<br>
 ./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/ccs-editpolicy-agent.c<br>
