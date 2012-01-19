@@ -251,17 +251,16 @@ echo &gt; stat.conf
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O kernel-source.tar.gz \
-'http://android.git.r3pek.org/?p=kernel/goldfish.git;a=snapshot;h=46b05b2fc0594fd6db7ea88c1e9f02ec395c33a0;sf=tgz'
-tar -zxf kernel-source.tar.gz
-cd goldfish-46b05b2/
+git clone https://android.googlesource.com/kernel/goldfish
+cd goldfish/
+git checkout origin/android-goldfish-2.6.29
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_armv7_defconfig
 </pre>
 
 <p>TOMOYO Linux パッチを適用します。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/goldfish-46b05b2/
+cd $ANDROID_HOME/tmp/goldfish/
 wget -O ccs-patch-1.8.3-20111213.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz'
 wget -O ccs-patch-1.8.3-20111213.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz.asc'
 gpg ccs-patch-1.8.3-20111213.tar.gz.asc
@@ -274,7 +273,7 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 <p>カーネルをコンパイルします。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/goldfish-46b05b2/
+cd $ANDROID_HOME/tmp/goldfish/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>
@@ -365,13 +364,13 @@ cd $ANDROID_HOME/tmp/policy/
 <p>また、保存したポリシーをカーネル内に埋め込むには以下のように行ってください。</p>
 
 <pre class="command">
-cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/goldfish-46b05b2/security/ccsecurity/policy/
+cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/goldfish/security/ccsecurity/policy/
 </pre>
 
 <p>カーネルを再コンパイルします。</p>
 
 <pre class="command">
-cd $ANDROID_HOME/tmp/goldfish-46b05b2/
+cd $ANDROID_HOME/tmp/goldfish/
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>
