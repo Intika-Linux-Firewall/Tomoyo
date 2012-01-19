@@ -64,9 +64,9 @@ make
 <tr><td>
 mkdir -p $ANDROID_HOME/tmp<br>
 cd $ANDROID_HOME/tmp/<br>
-wget -O kernel-source.tar.gz 'http://android.git.r3pek.org/?p=kernel/goldfish.git;a=snapshot;h=46b05b2fc0594fd6db7ea88c1e9f02ec395c33a0;sf=tgz'<br>
-tar -zxf kernel-source.tar.gz<br>
-cd goldfish-46b05b2/<br>
+git clone https://android.googlesource.com/kernel/goldfish<br>
+cd goldfish/<br>
+git checkout origin/android-goldfish-2.6.29<br>
 wget -O ccs-patch-1.7.3-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20111111.tar.gz'<br>
 wget -O ccs-patch-1.7.3-20111111.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20111111.tar.gz.asc'<br>
 gpg ccs-patch-1.7.3-20111111.tar.gz.asc<br>
