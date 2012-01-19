@@ -116,6 +116,7 @@ echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/ccs/tools/patternize.con
 <pre class="command">
 cd $ANDROID_HOME/tmp/
 wget -O agcc http://plausible.org/andy/agcc
+sed -i -e 's@4\.2\.1@4.4.3@g' -e 's@interwork/@@g' -- agcc
 chmod 755 agcc
 ./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/ccs-editpolicy-agent.c
 chmod 700 ccs-editpolicy-agent
@@ -267,6 +268,7 @@ gpg ccs-patch-1.8.3-20111213.tar.gz.asc
 tar -zxf ccs-patch-1.8.3-20111213.tar.gz
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff
 sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
+mkdir -p security/ccsecurity/policy/
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 </pre>
 
