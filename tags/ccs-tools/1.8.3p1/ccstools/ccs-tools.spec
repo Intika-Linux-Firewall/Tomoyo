@@ -9,7 +9,7 @@ ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
-## This spec file is intended for distribution independent.
+## This spec file is intended to be distribution independent.
 ## I don't enable "BuildRequires:" line because rpmbuild will fail on
 ## environments where packages are managed by (e.g.) apt.
 ##
