@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.32-220.2.1.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.2/os/Source/SPackages/kernel-2.6.32-220.2.1.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.2/updates/Source/SPackages/kernel-2.6.32-220.2.1.el6.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-2.6.32-220.2.1.el6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.32-220.2.1.el6.src.rpm || die "Can't install source package."
