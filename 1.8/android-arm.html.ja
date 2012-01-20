@@ -69,7 +69,7 @@ mkdir -p $ANDROID_HOME/tmp
 mkdir -p $ANDROID_HOME/tmp/policy
 mkdir -p $ANDROID_IMG
 mkdir -p $ANDROID_IMG/tmp
-sudo mkdir /var/log/tomoyo
+sudo mkdir -p /var/log/tomoyo
 sudo chown -R `id -u` /var/log/tomoyo/
 </pre>
 
@@ -81,8 +81,10 @@ sudo chown -R `id -u` /var/log/tomoyo/
 cd $ANDROID_HOME
 wget https://dl-ssl.google.com/dl/googlesource/git-repo/repo
 chmod 755 repo
-./repo init -u https://android.googlesource.com/platform/manifest
+./repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1
 ./repo sync
+source build/envsetup.sh
+lunch full-eng
 make
 </pre>
 
@@ -94,6 +96,8 @@ make
 cd $ANDROID_HOME/tmp/
 wget -O ccs-tools-1.8.3-20111025.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20111025.tar.gz'
 wget -O ccs-tools-1.8.3-20111025.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20111025.tar.gz.asc'
+wget http://I-love.SAKURA.ne.jp/kumaneko-key
+gpg --import kumaneko-key
 gpg ccs-tools-1.8.3-20111025.tar.gz.asc
 tar -zxf ccs-tools-1.8.3-20111025.tar.gz
 cd ccstools

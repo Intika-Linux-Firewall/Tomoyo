@@ -69,7 +69,7 @@ mkdir -p $ANDROID_HOME/tmp
 mkdir -p $ANDROID_HOME/tmp/policy
 mkdir -p $ANDROID_IMG
 mkdir -p $ANDROID_IMG/tmp
-sudo mkdir /var/log/tomoyo
+sudo mkdir -p /var/log/tomoyo
 sudo chown -R `id -u` /var/log/tomoyo/
 </pre>
 
@@ -81,8 +81,10 @@ sudo chown -R `id -u` /var/log/tomoyo/
 cd $ANDROID_HOME
 wget https://dl-ssl.google.com/dl/googlesource/git-repo/repo
 chmod 755 repo
-./repo init -u https://android.googlesource.com/platform/manifest
+./repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1
 ./repo sync
+source build/envsetup.sh
+lunch full-eng
 make
 </pre>
 
