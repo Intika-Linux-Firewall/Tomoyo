@@ -20,9 +20,9 @@ rpm -ivh kernel-2.6.32-220.2.1.el6.src.rpm || die "Can't install source package.
 # sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20111213.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20120120.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20111213.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20120120.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120120.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -71,7 +71,7 @@ patch << "EOF" || die "Can't patch spec file."
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20111213.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20120120.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.32-centos-6.2.diff
 +
  # Any further pre-build tree manipulations happen here.
