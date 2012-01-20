@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.27-74vl5.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.27-74vl5.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20111213.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20120120.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20111213.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20111213.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20120120.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120120.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20111213.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20120120.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.27-vine-linux-5.2.diff
 +
  cp %{SOURCE10} Documentation/
