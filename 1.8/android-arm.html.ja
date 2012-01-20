@@ -402,6 +402,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <pre class="command">
 sed -e 's/# CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER is not set/CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER=y/' -- config.ccs &gt;&gt; .config
+mkdir -p security/ccsecurity/policy/
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 </pre>
 
