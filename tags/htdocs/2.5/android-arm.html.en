@@ -339,6 +339,32 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <p>TOMOYO Linux provides a mechanism for querying external userland application when a policy violation in enforcing mode has occurred. You can implement a program like tomoyo-queryd and daemonize the program instead of tomoyo-editpolicy-agent .</p>
 
+<h3>Appendix: Hints for not embedding policy into the kernel</h3>
+
+<p>If you want not to embed policy files into your kernel by some reason, you can replace</p>
+
+<pre class="command">
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
+mkdir -p security/tomoyo/policy/
+cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
+</pre>
+
+<p>with</p>
+
+<pre class="command">
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
+</pre>
+
+<p>in Step 7. If you do so, you will need to copy /sbin/tomoyo-init (as a policy loader, and /system/bin/linker /lib/libc.so /lib/libm.so which /sbin/tomoyo-init depends on) into ramdisk image. (You cannot use symlinks to files in /system/ partition because /system/ partition is not yet mounted as of /sbin/tomoyo-init is executed.)</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/
+./agcc -o tomoyo-init $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init.c
+chmod 700 tomoyo-init
+</pre>
+
+<p>Also, please modify tomoyo-init.c as needed (for example, embed the content of $ANDROID_HOME/tmp/policy/*.conf into tomoyo-init.c) because it is designed to read policy files from /etc/tomoyo/ directory.</p>
+
 </div><!-- regular-content -->
 
 </div><!-- content -->
