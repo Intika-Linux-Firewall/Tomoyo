@@ -57,8 +57,6 @@ libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xslt
 <pre class="command">
 export ANDROID_HOME=$HOME/mydroid/
 export ANDROID_IMG=$ANDROID_HOME/image/
-export ANDROID_TOOLCHAIN=$ANDROID_HOME/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/
-export PATH=$PATH:$ANDROID_HOME/out/host/linux-x86/bin/:$ANDROID_TOOLCHAIN
 </pre>
 
 <p>必要なディレクトリを作成します。</p>
@@ -259,7 +257,7 @@ cd $ANDROID_HOME/tmp/
 git clone https://android.googlesource.com/kernel/goldfish
 cd goldfish/
 git checkout origin/android-goldfish-2.6.29
-ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_armv7_defconfig
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make goldfish_armv7_defconfig
 </pre>
 
 <p>TOMOYO Linux パッチを適用します。</p>
@@ -280,7 +278,7 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/goldfish/
-ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>
 
@@ -377,7 +375,7 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/goldfish/security/ccsecu
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/goldfish/
-ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </pre>
 
