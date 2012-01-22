@@ -44,7 +44,7 @@
 sudo add-apt-repository "deb http://archive.canonical.com/ lucid partner"
 sudo add-apt-repository "deb-src http://archive.canonical.com/ubuntu lucid partner"
 sudo apt-get update
-sudo apt-get install sun-java6-jdk 
+sudo apt-get install sun-java6-jdk
 sudo apt-get install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libc6-dev \
 lib32ncurses5-dev ia32-libs x11proto-core-dev libx11-dev lib32readline5-dev lib32z-dev \
 libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xsltproc
@@ -414,7 +414,7 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 cat config.ccs &gt;&gt; .config
 </pre>
 
-<p>に置き換えてください。このようにした場合、ポリシーローダとして /sbin/ccs-init （および /sbin/ccs-init が依存するファイルとして /system/bin/linker /lib/libc.so /lib/libm.so ）もＲＡＭディスク内にコピーしてください。（ /sbin/ccs-init が実行される時点では /system/ パーティションがマウントされていないため、シンボリックリンクでの代用はできません。）</p>
+<p>に置き換えてください。このようにした場合、ポリシーローダとして /sbin/ccs-init （および /sbin/ccs-init が依存するファイルとして /system/bin/linker /system/lib/libc.so /system/lib/libm.so ）もＲＡＭディスク内にコピーしてください。（ /sbin/ccs-init が実行される時点では /system/ パーティションがマウントされていないため、シンボリックリンクでの代用はできません。）</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
