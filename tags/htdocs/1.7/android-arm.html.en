@@ -13,7 +13,7 @@
 
 <h1>TOMOYO Linux on Android</h1>
 
-<p>This page describes how to run TOMOYO Linux on Android emulator for ARM architecture. This page assumes Ubuntu 8.04.3 for x86 architecture as the host environment.</p>
+<p>This page describes how to run TOMOYO Linux on Android emulator for ARM architecture. This page assumes Ubuntu 10.04.3 for x86_64 architecture as the host environment.</p>
 
 <hr>
 
@@ -23,7 +23,13 @@
 
 <table border="1">
 <tr><td>
-sudo apt-get install git-core gnupg sun-java5-jdk flex bison gperf libsdl-dev libesd0-dev libwxgtk2.6-dev build-essential zip curl libncurses5-dev zlib1g-dev
+sudo add-apt-repository "deb http://archive.canonical.com/ lucid partner"<br>
+sudo add-apt-repository "deb-src http://archive.canonical.com/ubuntu lucid partner"<br>
+sudo apt-get update<br>
+sudo apt-get install sun-java6-jdk<br>
+sudo apt-get install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libc6-dev \<br>
+lib32ncurses5-dev ia32-libs x11proto-core-dev libx11-dev lib32readline5-dev lib32z-dev \<br>
+libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xsltproc
 </td></tr>
 </table>
 
@@ -35,8 +41,6 @@ sudo apt-get install git-core gnupg sun-java5-jdk flex bison gperf libsdl-dev li
 <tr><td>
 export ANDROID_HOME=$HOME/mydroid/<br>
 export ANDROID_IMG=$ANDROID_HOME/image/<br>
-export ANDROID_TOOLCHAIN=$ANDROID_HOME/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/<br>
-export PATH=$PATH:$ANDROID_HOME/out/host/linux-x86/bin/:$ANDROID_TOOLCHAIN
 </td></tr>
 </table>
 
@@ -50,8 +54,10 @@ mkdir -p $ANDROID_HOME<br>
 cd $ANDROID_HOME<br>
 wget https://dl-ssl.google.com/dl/googlesource/git-repo/repo<br>
 chmod 755 repo<br>
-./repo init -u https://android.googlesource.com/platform/manifest -b froyo<br>
+./repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1<br>
 ./repo sync<br>
+source build/envsetup.sh<br>
+lunch full-eng<br>
 make
 </td></tr>
 </table>
@@ -155,16 +161,16 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h2>Step 10: Pull files needed for policy loader.</h2>
 
-<p>Copy files needed by /sbin/ccs-init . On Android environment, /system/bin/loader is used for loading dynamically linked library files. But /system/ partition is not yet mounted when /sbin/ccs-init is executed. Therefore, you need to copy /bin/loader in the /system/ partition to /system/bin/ directory in the ramdisk's image. Likewise, you need to copy /lib/libc.so and /lib/libm.so in the /system/ partition to /lib/ directory in the ramdisk's image.</p>
+<p>Copy files needed by /sbin/ccs-init . On Android environment, /system/bin/loader is used for loading dynamically linked library files. But /system/ partition is not yet mounted when /sbin/ccs-init is executed. Therefore, you need to copy /bin/loader in the /system/ partition to /system/bin/ directory in the ramdisk's image. Likewise, you need to copy /lib/libc.so and /lib/libm.so in the /system/ partition to /system/lib/ directory in the ramdisk's image.</p>
 
 <table border="1">
 <tr><td>
 cd $ANDROID_IMG/tmp/<br>
-mkdir -p system/bin lib<br>
+mkdir -p system/bin system/lib<br>
 adb pull /system/bin/linker system/bin/<br>
-adb pull /system/lib/libc.so lib/<br>
-adb pull /system/lib/libm.so lib/<br>
-chmod 755 system/bin/linker lib/libc.so lib/libm.so<br>
+adb pull /system/lib/libc.so system/lib/<br>
+adb pull /system/lib/libm.so system/lib/<br>
+chmod 755 system/bin/linker system/lib/libc.so system/lib/libm.so<br>
 </td></tr>
 </table>
 
