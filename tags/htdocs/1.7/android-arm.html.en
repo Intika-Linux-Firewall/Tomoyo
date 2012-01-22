@@ -117,7 +117,7 @@ sudo make install
 
 <p>Install TOMOYO Linux's userland tools into Android emulator environment.</p>
 
-<p>Since /init.rc in Android emulator's ramdisk creates /etc as a symlink to /system/etc/ directory, /sbin/ccs-init (TOMOYO Linux's policy loader which will be added at Step 13) can't reserve /etc/ccs/ directory for storing policy which is loaded upon boot. Thus, use /ccs/ directory rather than /etc/ccs/ directory.</p>
+<p>Since /init.rc in Android emulator's ramdisk creates /etc as a symlink to /system/etc/ directory, /sbin/ccs-init (TOMOYO Linux's policy loader which will be added at Step 12) can't reserve /etc/ccs/ directory for storing policy which is loaded upon boot. Thus, use /ccs/ directory rather than /etc/ccs/ directory.</p>
 
 <table border="1">
 <tr><td>
@@ -142,11 +142,12 @@ chmod 700 init_policy ccs-editpolicy-agent ccs-init
 cd $ANDROID_IMG/tmp/<br>
 zcat ../ramdisk.img | cpio -id<br>
 echo 'service ccs_agent /sbin/ccs-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc<br>
-echo '&nbsp;&nbsp;&nbsp;&nbsp;class core' &gt;&gt; init.rc
+echo '&nbsp;&nbsp;&nbsp;&nbsp;class core' &gt;&gt; init.rc<br>
 echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc<br>
 echo &gt;&gt; init.rc<br>
 cp -p $ANDROID_HOME/tmp/init_policy $ANDROID_HOME/tmp/ccs-editpolicy-agent sbin/<br>
-find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img<br>
+rm sbin/init_policy
 </td></tr>
 </table>
 
@@ -160,22 +161,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 </td></tr>
 </table>
 
-<h2>Step 10: Pull files needed for policy loader.</h2>
-
-<p>Copy files needed by /sbin/ccs-init . On Android environment, /system/bin/loader is used for loading dynamically linked library files. But /system/ partition is not yet mounted when /sbin/ccs-init is executed. Therefore, you need to copy /bin/loader in the /system/ partition to /system/bin/ directory in the ramdisk's image. Likewise, you need to copy /lib/libc.so and /lib/libm.so in the /system/ partition to /system/lib/ directory in the ramdisk's image.</p>
-
-<table border="1">
-<tr><td>
-cd $ANDROID_IMG/tmp/<br>
-mkdir -p system/bin system/lib<br>
-adb pull /system/bin/linker system/bin/<br>
-adb pull /system/lib/libc.so system/lib/<br>
-adb pull /system/lib/libm.so system/lib/<br>
-chmod 755 system/bin/linker system/lib/libc.so system/lib/libm.so<br>
-</td></tr>
-</table>
-
-<h2>Step 11: Initialize policy and pull.</h2>
+<h2>Step 10: Initialize policy and pull.</h2>
 
 <p>Create initial policy used by TOMOYO Linux. Then, copy the initial policy to ramdisk's /ccs/ directory.</p>
 
@@ -190,7 +176,7 @@ adb emu kill
 </td></tr>
 </table>
 
-<h2>Step 12: Edit initialized policy.</h2>
+<h2>Step 11: Edit initialized policy.</h2>
 
 <p>Add missing entries (e.g. file_pattern / allow_read ) to exception policy. Below is just an example. Domain policy is configured to use profile 1 (which is a profile for "learning mode"). Manager is configured to allow only agent program.</p>
 
@@ -256,22 +242,26 @@ echo /sbin/ccs-editpolicy-agent &gt; ccs/manager.conf
 </td></tr>
 </table>
 
-<h2>Step 13: Add policy loader to Android's ramdisk image.</h2>
+<h2>Step 12: Add policy loader to Android's ramdisk image.</h2>
 
-<p>Add ccs-init into ramdisk in order to enable TOMOYO Linux.</p>
+<p>Add /sbin/ccs-init into ramdisk in order to enable TOMOYO Linux. Also, copy files needed by /sbin/ccs-init . On Android environment, /system/bin/loader is used for loading dynamically linked library files. But /system/ partition is not yet mounted when /sbin/ccs-init is executed. Therefore, you need to copy /bin/loader in the /system/ partition to /system/bin/ directory in the ramdisk's image. Likewise, you need to copy /lib/libc.so and /lib/libm.so in the /system/ partition to /system/lib/ directory in the ramdisk's image.</p>
 
 <table border="1">
 <tr><td>
 cd $ANDROID_IMG/tmp/<br>
-rm sbin/init_policy<br>
+mkdir -p system/bin system/lib<br>
 cp -p $ANDROID_HOME/tmp/ccs-init sbin/<br>
+cp -p $ANDROID_HOME/out/target/product/generic/system/bin/linker system/bin/<br>
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libc.so system/lib/<br>
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libm.so system/lib/<br>
+chmod 755 system/bin/linker system/lib/libc.so system/lib/libm.so<br>
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </td></tr>
 </table>
 
-<h2>Step 14: Start the Android emulator.</h2>
+<h2>Step 13: Start the Android emulator.</h2>
 
-<p>Start the Android emulator. Specify the kernel made at step 4 and the ramdisk made at step 13.</p>
+<p>Start the Android emulator. Specify the kernel made at step 4 and the ramdisk made at step 12.</p>
 
 <table border="1">
 <tr><td>
@@ -279,7 +269,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 </td></tr>
 </table>
 
-<h2>Step 15: Enable TCP port forwarding.</h2>
+<h2>Step 14: Enable TCP port forwarding.</h2>
 
 <p>Configure port forwarding in order to communicate with the agent program running in the emulator. Below line makes TCP connection requests sent to host environment's port 10000 are forwarded to emulator environment's port 7000. As you have configures ccs-editpolicy-agent to listen at port 7000 at step 8, you can communicate with the agent program by connecting to host environment's port 10000.</p>
 
@@ -289,7 +279,7 @@ adb forward tcp:10000 tcp:7000
 </td></tr>
 </table>
 
-<h2>Step 16: Operate via agent.</h2>
+<h2>Step 15: Operate via agent.</h2>
 
 <p>You can browse/edit policy via agent program by starting ccs-editpolicy as shown below.</p>
 

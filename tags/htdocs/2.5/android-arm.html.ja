@@ -212,7 +212,8 @@ ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s go
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common/
-sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -- .config
 mkdir -p security/tomoyo/policy/
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
 </pre>
@@ -344,7 +345,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 <p>何かの理由によりポリシーをカーネル内に埋め込みたくない場合、ステップ７の</p>
 
 <pre class="command">
-sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -- .config
 mkdir -p security/tomoyo/policy/
 cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
 </pre>
@@ -352,18 +353,24 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
 <p>という部分を</p>
 
 <pre class="command">
-sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
+sed -i -e 's@CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER="/sbin/init"@CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER="/init"@' -- .config
 </pre>
 
-<p>に置き換えてください。このようにした場合、ポリシーローダとして /sbin/tomoyo-init （および /sbin/tomoyo-init が依存するファイルとして /system/bin/linker /system/lib/libc.so /system/lib/libm.so ）もＲＡＭディスク内にコピーしてください。（ /sbin/tomoyo-init が実行される時点では /system/ パーティションがマウントされていないため、シンボリックリンクでの代用はできません。）</p>
+<p>に置き換えてください。このようにした場合、ポリシーローダとして /sbin/tomoyo-init （および /sbin/tomoyo-init が依存するファイルとして /system/bin/linker /system/lib/libc.so /system/lib/libm.so ）もＲＡＭディスク内にコピーしてください。 /sbin/tomoyo-init が実行される時点では /system/ パーティションがマウントされていないため、シンボリックリンクでの代用はできません。また、 tomoyo-init.c はポリシーを /etc/tomoyo/ から読み込むようになっていますので、適宜修正（例えば $ANDROID_HOME/tmp/policy/*.conf の内容を tomoyo-init.c に埋め込んでしまうなど）してください。 Android エミュレータで使用するＲＡＭディスクに含まれている /init.rc が /etc という名前で /system/etc/ ディレクトリへのシンボリックリンクを作成するため、以下の例では、ポリシーを /tomoyo/ ディレクトリから読み込むように修正しています。</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-./agcc -o tomoyo-init $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init.c
-chmod 700 tomoyo-init
+sed -e 's:etc/tomoyo:tomoyo:g' $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init.c &gt; $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init2.c
+./agcc -o tomoyo-init $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init2.c
+cd $ANDROID_IMG/tmp/
+mkdir -p sbin system/bin system/lib
+cp -p $ANDROID_HOME/tmp/tomoyo-init sbin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/bin/linker system/bin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libc.so system/lib/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libm.so system/lib/
+chmod 700 sbin/tomoyo-init system/bin/linker system/lib/libc.so system/lib/libm.so
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </pre>
-
-<p>また、 tomoyo-init.c はポリシーを /etc/tomoyo/ から読み込むようになっていますので、適宜修正（例えば $ANDROID_HOME/tmp/policy/*.conf の内容を tomoyo-init.c に埋め込んでしまうなど）してください。</p>
 
 </div><!-- regular-content -->
 

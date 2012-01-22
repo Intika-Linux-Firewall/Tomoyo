@@ -414,15 +414,21 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 sed -e 's:/sbin/init:/init:' -- config.ccs &gt;&gt; .config
 </pre>
 
-<p>in Step 7. If you do so, you will need to copy /sbin/ccs-init (as a policy loader, and /system/bin/linker /system/lib/libc.so /system/lib/libm.so which /sbin/ccs-init depends on) into ramdisk image. (You cannot use symlinks to files in /system/ partition because /system/ partition is not yet mounted as of /sbin/ccs-init is executed.)</p>
+<p>in Step 7. If you do so, you will need to copy /sbin/ccs-init (as a policy loader, and /system/bin/linker /system/lib/libc.so /system/lib/libm.so which /sbin/ccs-init depends on) into ramdisk image. You cannot use symlinks to files in /system/ partition because /system/ partition is not yet mounted as of /sbin/ccs-init is executed. Also, please modify ccs-init.c as needed (for example, embed the content of $ANDROID_HOME/tmp/policy/*.conf into ccs-init.c) because it is designed to read policy files from /etc/ccs/ directory. Below example changes ccs-init.c to read policy files from /ccs/ directory because /init.rc in Android emulator's ramdisk creates /etc as a symlink to /system/etc/ directory.</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/sbin/ccs-init.c
-chmod 700 ccs-init
+sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccstools/sbin/ccs-init.c &gt; $ANDROID_HOME/tmp/ccstools/sbin/ccs-init2.c
+./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/sbin/ccs-init2.c
+cd $ANDROID_IMG/tmp/
+mkdir -p sbin system/bin system/lib
+cp -p $ANDROID_HOME/tmp/ccs-init sbin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/bin/linker system/bin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libc.so system/lib/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libm.so system/lib/
+chmod 700 sbin/ccs-init system/bin/linker system/lib/libc.so system/lib/libm.so
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </pre>
-
-<p>Also, please modify ccs-init.c as needed (for example, embed the content of $ANDROID_HOME/tmp/policy/*.conf into ccs-init.c) because it is designed to read policy files from /etc/ccs/ directory.</p>
 
 </div><!-- regular-content -->
 
