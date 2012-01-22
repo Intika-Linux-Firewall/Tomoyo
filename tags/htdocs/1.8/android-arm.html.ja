@@ -411,7 +411,7 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 <p>という部分を</p>
 
 <pre class="command">
-cat config.ccs &gt;&gt; .config
+sed -e 's:/sbin/init:/init:' -- config.ccs &gt;&gt; .config
 </pre>
 
 <p>に置き換えてください。このようにした場合、ポリシーローダとして /sbin/ccs-init （および /sbin/ccs-init が依存するファイルとして /system/bin/linker /system/lib/libc.so /system/lib/libm.so ）もＲＡＭディスク内にコピーしてください。（ /sbin/ccs-init が実行される時点では /system/ パーティションがマウントされていないため、シンボリックリンクでの代用はできません。）</p>

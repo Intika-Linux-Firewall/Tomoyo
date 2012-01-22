@@ -142,6 +142,7 @@ chmod 700 init_policy ccs-editpolicy-agent ccs-init
 cd $ANDROID_IMG/tmp/<br>
 zcat ../ramdisk.img | cpio -id<br>
 echo 'service ccs_agent /sbin/ccs-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc<br>
+echo '&nbsp;&nbsp;&nbsp;&nbsp;class core' &gt;&gt; init.rc
 echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc<br>
 echo &gt;&gt; init.rc<br>
 cp -p $ANDROID_HOME/tmp/init_policy $ANDROID_HOME/tmp/ccs-editpolicy-agent sbin/<br>
