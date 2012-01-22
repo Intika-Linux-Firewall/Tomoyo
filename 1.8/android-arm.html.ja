@@ -414,15 +414,21 @@ cp -p $ANDROID_HOME/tmp/policy/*.conf security/ccsecurity/policy/
 sed -e 's:/sbin/init:/init:' -- config.ccs &gt;&gt; .config
 </pre>
 
-<p>に置き換えてください。このようにした場合、ポリシーローダとして /sbin/ccs-init （および /sbin/ccs-init が依存するファイルとして /system/bin/linker /system/lib/libc.so /system/lib/libm.so ）もＲＡＭディスク内にコピーしてください。（ /sbin/ccs-init が実行される時点では /system/ パーティションがマウントされていないため、シンボリックリンクでの代用はできません。）</p>
+<p>に置き換えてください。このようにした場合、ポリシーローダとして /sbin/ccs-init （および /sbin/ccs-init が依存するファイルとして /system/bin/linker /system/lib/libc.so /system/lib/libm.so ）もＲＡＭディスク内にコピーしてください。 /sbin/ccs-init が実行される時点では /system/ パーティションがマウントされていないため、シンボリックリンクでの代用はできません。また、 ccs-init.c はポリシーを /etc/ccs/ から読み込むようになっていますので、適宜修正（例えば $ANDROID_HOME/tmp/policy/*.conf の内容を ccs-init.c に埋め込んでしまうなど）してください。 Android エミュレータで使用するＲＡＭディスクに含まれている /init.rc が /etc という名前で /system/etc/ ディレクトリへのシンボリックリンクを作成するため、以下の例では、ポリシーを /ccs/ ディレクトリから読み込むように修正しています。</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/sbin/ccs-init.c
-chmod 700 ccs-init
+sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccstools/sbin/ccs-init.c &gt; $ANDROID_HOME/tmp/ccstools/sbin/ccs-init2.c
+./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/sbin/ccs-init2.c
+cd $ANDROID_IMG/tmp/
+mkdir -p sbin system/bin system/lib
+cp -p $ANDROID_HOME/tmp/ccs-init sbin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/bin/linker system/bin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libc.so system/lib/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libm.so system/lib/
+chmod 700 sbin/ccs-init system/bin/linker system/lib/libc.so system/lib/libm.so
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </pre>
-
-<p>また、 ccs-init.c はポリシーを /etc/ccs/ から読み込むようになっていますので、適宜修正（例えば $ANDROID_HOME/tmp/policy/*.conf の内容を ccs-init.c に埋め込んでしまうなど）してください。</p>
 
 </div><!-- regular-content -->
 

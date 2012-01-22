@@ -117,7 +117,7 @@ sudo make install
 
 <p>Android エミュレータ側にインストールするためのエージェントをコンパイルします。</p>
 
-<p>Android エミュレータで使用するＲＡＭディスクに含まれている /init.rc が  /etc という名前で /system/etc/ ディレクトリへのシンボリックリンクを作成するため、（ステップ１３で追加する TOMOYO Linux のポリシーローダである） /sbin/ccs-init が /etc/ccs/ ディレクトリを起動時に読み込むポリシーを保存しておくためのディレクトリとして使用することができません。そのため、 /etc/ccs/ の代わりに /ccs/ をポリシー用ディレクトリとして使用します。</p>
+<p>Android エミュレータで使用するＲＡＭディスクに含まれている /init.rc が  /etc という名前で /system/etc/ ディレクトリへのシンボリックリンクを作成するため、（ステップ１２で追加する TOMOYO Linux のポリシーローダである） /sbin/ccs-init が /etc/ccs/ ディレクトリを起動時に読み込むポリシーを保存しておくためのディレクトリとして使用することができません。そのため、 /etc/ccs/ の代わりに /ccs/ をポリシー用ディレクトリとして使用します。</p>
 
 <table border="1">
 <tr><td>
@@ -142,11 +142,12 @@ chmod 700 init_policy ccs-editpolicy-agent ccs-init
 cd $ANDROID_IMG/tmp/<br>
 zcat ../ramdisk.img | cpio -id<br>
 echo 'service ccs_agent /sbin/ccs-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc<br>
-echo '&nbsp;&nbsp;&nbsp;&nbsp;class core' &gt;&gt; init.rc
+echo '&nbsp;&nbsp;&nbsp;&nbsp;class core' &gt;&gt; init.rc<br>
 echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc<br>
 echo &gt;&gt; init.rc<br>
 cp -p $ANDROID_HOME/tmp/init_policy $ANDROID_HOME/tmp/ccs-editpolicy-agent sbin/<br>
-find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img<br>
+rm sbin/init_policy
 </td></tr>
 </table>
 
@@ -160,22 +161,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 </td></tr>
 </table>
 
-<h2>ステップ１０：必要なファイルのコピー</h2>
-
-<p>/sbin/ccs-init の動作に必要なファイルをＲＡＭディスクにコピーします。 Android 環境では、ダイナミックリンクライブラリをロードするために /system/bin/loader が使われます。しかし、 /sbin/ccs-init が実行される時点では /system/ パーティションはまだマウントされていません。そのため、 /system/ パーティションの中にある /bin/loader をＲＡＭディスク内の /system/bin/ ディレクトリにコピーしておく必要があります。同様に、 /system/ パーティションの中にある /lib/libc.so と /lib/libm.so をＲＡＭディスク内の /system/lib/ ディレクトリにコピーしておく必要があります。</p>
-
-<table border="1">
-<tr><td>
-cd $ANDROID_IMG/tmp/<br>
-mkdir -p system/bin system/lib<br>
-adb pull /system/bin/linker system/bin/<br>
-adb pull /system/lib/libc.so system/lib/<br>
-adb pull /system/lib/libm.so system/lib/<br>
-chmod 755 system/bin/linker system/lib/libc.so system/lib/libm.so<br>
-</td></tr>
-</table>
-
-<h2>ステップ１１：ポリシーの初期化</h2>
+<h2>ステップ１０：ポリシーの初期化</h2>
 
 <p>TOMOYO Linux が使用するための初期状態のポリシーを作成します。初期状態のポリシーファイルをＲＡＭディスクの中の /ccs/ ディレクトリにコピーします。</p>
 
@@ -190,7 +176,7 @@ adb emu kill
 </td></tr>
 </table>
 
-<h2>ステップ１２：ポリシーの修正</h2>
+<h2>ステップ１１：ポリシーの修正</h2>
 
 <p>不足している file_pattern や allow_read などを例外ポリシーに追加します。以下の内容は一例です。ドメインポリシーでは全体をプロファイル１（学習モード）で動作させるように指定しています。マネージャにはエージェントプログラムだけを指定しています。</p>
 
@@ -256,22 +242,26 @@ echo /sbin/ccs-editpolicy-agent &gt; ccs/manager.conf
 </td></tr>
 </table>
 
-<h2>ステップ１３：ポリシーローダの追加</h2>
+<h2>ステップ１２：ポリシーローダの追加</h2>
 
-<p>TOMOYO Linux を有効にするために、 ccs-init を追加します。</p>
+<p>TOMOYO Linux を有効にするために、 /sbin/ccs-init を追加します。また、 /sbin/ccs-init の動作に必要なファイルも追加します。 Android 環境では、ダイナミックリンクライブラリをロードするために /system/bin/loader が使われます。しかし、 /sbin/ccs-init が実行される時点では /system/ パーティションはまだマウントされていません。そのため、 /system/ パーティションの中にある /bin/loader をＲＡＭディスク内の /system/bin/ ディレクトリにコピーしておく必要があります。同様に、 /system/ パーティションの中にある /lib/libc.so と /lib/libm.so をＲＡＭディスク内の /system/lib/ ディレクトリにコピーしておく必要があります。</p>
 
 <table border="1">
 <tr><td>
 cd $ANDROID_IMG/tmp/<br>
-rm sbin/init_policy<br>
+mkdir -p system/bin system/lib<br>
 cp -p $ANDROID_HOME/tmp/ccs-init sbin/<br>
+cp -p $ANDROID_HOME/out/target/product/generic/system/bin/linker system/bin/<br>
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libc.so system/lib/<br>
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libm.so system/lib/<br>
+chmod 755 system/bin/linker system/lib/libc.so system/lib/libm.so<br>
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </td></tr>
 </table>
 
-<h2>ステップ１４：エミュレータの起動</h2>
+<h2>ステップ１３：エミュレータの起動</h2>
 
-<p>Android エミュレータを起動します。カーネルはステップ４で作成したものを、ＲＡＭディスクはステップ１３で作成したものを指定します。</p>
+<p>Android エミュレータを起動します。カーネルはステップ４で作成したものを、ＲＡＭディスクはステップ１２で作成したものを指定します。</p>
 
 <table border="1">
 <tr><td>
@@ -279,7 +269,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 </td></tr>
 </table>
 
-<h2>ステップ１５：ポート転送の指定</h2>
+<h2>ステップ１４：ポート転送の指定</h2>
 
 <p>エミュレータ内で動作しているエージェントと通信するために、ポート転送を指定します。以下のように指定した場合、ホスト側でのポート 10000 への TCP 接続は、エミュレータ側でのポート 7000 へと転送されます。ステップ８で ccs-editpolicy-agent をポート 7000 で待機するように指定しているので、ホスト側でポート 10000 へ接続することにより、エージェントとの通信が可能になります。</p>
 
@@ -289,7 +279,7 @@ adb forward tcp:10000 tcp:7000
 </td></tr>
 </table>
 
-<h2>ステップ１６：エージェント経由での操作</h2>
+<h2>ステップ１５：エージェント経由での操作</h2>
 
 <p>以下のように ccs-editpolicy を起動すると、エミュレータ内のエージェント経由で ポリシーを閲覧／編集できます。</p>
 
