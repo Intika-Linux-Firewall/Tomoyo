@@ -79,8 +79,8 @@ gpg ccs-patch-1.7.3-20111111.tar.gz.asc<br>
 tar -zxf ccs-patch-1.7.3-20111111.tar.gz<br>
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff<br>
 sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig<br>
-ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_armv7_defconfig<br>
-ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s<br>
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s goldfish_armv7_defconfig<br>
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s<br>
 mkdir -p $ANDROID_IMG/tmp<br>
 cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
 </td></tr>
