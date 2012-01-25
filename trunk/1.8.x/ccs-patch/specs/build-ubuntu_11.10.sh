@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is kernel build script for ubuntu 11.10's 3.0.0 kernel.
+# This is kernel build script for ubuntu 11.10's 3.0 kernel.
 #
 
 die () {
@@ -34,7 +34,7 @@ for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, "
 # Apply patches and create kernel config.
 cd linux-3.0.0/ || die "Can't chdir to linux-3.0.0/ ."
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.3-20120120.tar.gz || die "Can't extract patch."
-patch -p1 < patches/ccs-patch-3.0.0-ubuntu-11.10.diff || die "Can't apply patch."
+patch -p1 < patches/ccs-patch-3.0-ubuntu-11.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*'${ORIGINAL_FLAVOUR}'*'`; do cp -p $i `echo $i | sed -e 's/'${ORIGINAL_FLAVOUR}'/'${NEW_FLAVOUR}'/g'`; done
 for i in debian.master/config/*/config.common.*; do cat config.ccs >> $i; done
