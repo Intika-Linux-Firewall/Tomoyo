@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for openSUSE 12.1's 3.1.0 kernel.
+# This is a kernel build script for openSUSE 12.1's 3.1 kernel.
 #
 
 die () {
@@ -104,7 +104,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120120.tar.gz
-+patch -sp1 < patches/ccs-patch-3.1.diff
++patch -sp1 < patches/ccs-patch-3.1-suse-12.1.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
 +
  cd %kernel_build_dir
