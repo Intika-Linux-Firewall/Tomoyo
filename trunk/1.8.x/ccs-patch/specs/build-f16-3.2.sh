@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 16's 3.1.0 kernel.
+# This is a kernel build script for Fedora 16's 3.2 kernel.
 #
 
 die () {
@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.1.9-1.fc16.src.rpm ]
+if [ ! -r kernel-3.2.1-3.fc16.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.1.9-1.fc16.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.2.1-3.fc16.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.1.9-1.fc16.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.1.9-1.fc16.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.2.1-3.fc16.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.2.1-3.fc16.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120120.tar.gz ]
@@ -39,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -488,6 +488,11 @@
+@@ -481,6 +481,11 @@
  # to versions below the minimum
  #
  
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -547,7 +552,7 @@
+@@ -540,7 +545,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -1014,7 +1019,7 @@
+@@ -962,7 +967,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,18 +69,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1614,6 +1619,10 @@
+@@ -1512,6 +1517,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120120.tar.gz
-+patch -sp1 < patches/ccs-patch-3.1.0-fedora-16.diff
++patch -sp1 < patches/ccs-patch-3.2.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1643,6 +1652,9 @@
+@@ -1541,6 +1550,9 @@
  for i in *.config
  do
    mv $i .config
