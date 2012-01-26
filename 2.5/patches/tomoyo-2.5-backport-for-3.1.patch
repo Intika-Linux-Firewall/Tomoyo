@@ -2,8 +2,8 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.2.tar.bz2
- $ tar -jxf linux-3.2.tar.bz2 --strip 1 linux-3.2/security/tomoyo/
+ $ wget http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.2.2.tar.bz2
+ $ tar -jxf linux-3.2.2.tar.bz2 --strip 1 linux-3.2.2/security/tomoyo/
 
 .
 
@@ -12,8 +12,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.c |   25 +++++++++++++++++++++++--
  1 file changed, 23 insertions(+), 2 deletions(-)
 
---- linux-3.1.7.orig/security/tomoyo/realpath.c
-+++ linux-3.1.7/security/tomoyo/realpath.c
+--- linux-3.1.10.orig/security/tomoyo/realpath.c
++++ linux-3.1.10/security/tomoyo/realpath.c
 @@ -101,8 +101,29 @@ static char *tomoyo_get_absolute_path(st
  {
  	char *pos = ERR_PTR(-ENOMEM);
