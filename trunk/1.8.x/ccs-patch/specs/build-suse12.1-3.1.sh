@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-3.1.0-2.2.src.rpm ]
+if [ ! -r kernel-source-3.1.9-1.5.1.src.rpm ]
 then
-    wget http://download.opensuse.org/factory-snapshot/repo/source/suse/src/kernel-source-3.1.0-2.2.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.1/src/kernel-source-3.1.9-1.5.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.1.0-2.2.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-3.1.0-2.2.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.1.9-1.5.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.1.9-1.5.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-3.1.0-2.2.nosrc.rpm ]
+if [ ! -r kernel-default-3.1.9-1.5.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/factory-snapshot/repo/source/suse/nosrc/kernel-default-3.1.0-2.2.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.1/nosrc/kernel-default-3.1.9-1.5.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.1.0-2.2.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-3.1.0-2.2.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.1.9-1.5.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.1.9-1.5.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120120.tar.gz ]
@@ -85,20 +85,20 @@ cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec
 +++ kernel-default.spec
-@@ -53,10 +53,10 @@
+@@ -54,10 +54,10 @@
  %define install_vdso 0
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        3.1.0
--Release:        2.2
-+Release:        2.2_tomoyo_1.8.3p4
- License:        GPL v2 only
+ Version:        3.1.9
+-Release:        1.5.1
++Release:        1.5.1_tomoyo_1.8.3p4
+ License:        GPL-2.0
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -303,6 +303,11 @@
+@@ -327,6 +327,11 @@
  %endif
  	%_sourcedir/series.conf .. $SYMBOLS
  
