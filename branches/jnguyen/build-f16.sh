@@ -120,11 +120,20 @@ cat_patch() {
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -1508,6 +1514,9 @@
+@@ -1508,6 +1514,18 @@
  for i in *.config
  do
    mv $i .config
-+  # TOMOYO Linux
++  # TOMOYO Linux 2.5
++  sed -i -e 's/# CONFIG_SECURITY_PATH is not set/CONFIG_SECURITY_PATH=y/' -- .config
++  sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -- .config
++  echo 'CONFIG_SECURITY_TOMOYO_MAX_ACCEPT_ENTRY=2048' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_MAX_AUDIT_LOG=1024' >> .config
++  echo '# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_POLICY_LOADER="/sbin/tomoyo-init"' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER="/sbin/init"' >> .config
++  echo '# CONFIG_DEFAULT_SECURITY_TOMOYO is not set' >> .config
++  # TOMOYO Linux 1.8  
 +  cat config.ccs >> .config
 +  sed -i -e "s/CONFIG_DEBUG_INFO=.*/# CONFIG_DEBUG_INFO is not set/" -- .config
    Arch=`head -1 .config | cut -b 3-`
