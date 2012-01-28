@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.2.1-3.fc16.src.rpm ]
+if [ ! -r kernel-3.2.2-1.fc16.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.2.1-3.fc16.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.2.2-1.fc16.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.2.1-3.fc16.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.2.1-3.fc16.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.2.2-1.fc16.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.2.2-1.fc16.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120120.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -962,7 +967,7 @@
+@@ -964,7 +969,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1512,6 +1517,10 @@
+@@ -1516,6 +1521,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -80,7 +80,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1541,6 +1550,9 @@
+@@ -1545,6 +1554,9 @@
  for i in *.config
  do
    mv $i .config
@@ -91,6 +91,32 @@ patch << "EOF" || die "Can't patch spec file."
    make ARCH=$Arch listnewconfig | grep -E '^CONFIG_' >.newoptions || true
  %if %{listnewconfig_fail}
 EOF
+
+### Optional: Also enable TOMOYO 2.5. ###
+patch << "EOF" || die "Can't patch spec file."
+--- ccs-kernel.spec
++++ ccs-kernel.spec
+@@ -1554,7 +1554,16 @@
+ for i in *.config
+ do
+   mv $i .config
+-  # TOMOYO Linux
++  # TOMOYO Linux 2.5
++  sed -i -e 's/# CONFIG_SECURITY_PATH is not set/CONFIG_SECURITY_PATH=y/' -- .config
++  sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -- .config
++  echo 'CONFIG_SECURITY_TOMOYO_MAX_ACCEPT_ENTRY=2048' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_MAX_AUDIT_LOG=1024' >> .config
++  echo '# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_POLICY_LOADER="/sbin/tomoyo-init"' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER="/sbin/init"' >> .config
++  echo '# CONFIG_DEFAULT_SECURITY_TOMOYO is not set' >> .config
++  # TOMOYO Linux 1.8
+   cat config.ccs >> .config
+   sed -i -e 's:CONFIG_DEBUG_INFO=.*:# CONFIG_DEBUG_INFO is not set:' -- .config
+   Arch=`head -1 .config | cut -b 3-`
+EOF
+### Optional: Also enable TOMOYO 2.5. ###
+
 echo ""
 echo ""
 echo ""
