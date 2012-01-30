@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-3.1.9-1.5.1.src.rpm ]
+if [ ! -r kernel-source-3.1.9-1.4.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/12.1/src/kernel-source-3.1.9-1.5.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.1/src/kernel-source-3.1.9-1.4.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.1.9-1.5.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-3.1.9-1.5.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.1.9-1.4.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.1.9-1.4.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-3.1.9-1.5.1.nosrc.rpm ]
+if [ ! -r kernel-default-3.1.9-1.4.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/12.1/nosrc/kernel-default-3.1.9-1.5.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.1/nosrc/kernel-default-3.1.9-1.4.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.1.9-1.5.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-3.1.9-1.5.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.1.9-1.4.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.1.9-1.4.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120120.tar.gz ]
@@ -93,8 +93,8 @@ patch << "EOF" || die "Can't patch spec file."
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
  Version:        3.1.9
--Release:        1.5.1
-+Release:        1.5.1_tomoyo_1.8.3p4
+-Release:        1.4.1
++Release:        1.4.1_tomoyo_1.8.3p4
  License:        GPL-2.0
  Group:          System/Kernel
  Url:            http://www.kernel.org/
