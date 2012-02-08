@@ -1,0 +1,2867 @@
+Index: usr_sbin/ccs-diffpolicy.c
+===================================================================
+--- usr_sbin/ccs-diffpolicy.c	(revision 5824)
++++ usr_sbin/ccs-diffpolicy.c	(working copy)
+@@ -68,9 +68,6 @@
+ 			continue;
+ 		/* This domain was added. */
+ 		printf("%s\n\n", domainname->name);
+-		if (new_policy.list[new_index].profile_assigned)
+-			printf("use_profile %u\n",
+-			       new_policy.list[new_index].profile);
+ 		new_string_ptr = new_policy.list[new_index].string_ptr;
+ 		new_string_count = new_policy.list[new_index].string_count;
+ 		for (i = 0; i < new_string_count; i++)
+@@ -112,15 +109,6 @@
+ 			first = false;
+ 			printf("delete %s\n", old_string_ptr[i]->name);
+ 		}
+-		if (old_policy.list[old_index].profile !=
+-		    new_policy.list[new_index].profile) {
+-			if (first)
+-				printf("%s\n\n", domainname->name);
+-			first = false;
+-			if (new_policy.list[new_index].profile_assigned)
+-				printf("use_profile %u\n",
+-				       new_policy.list[new_index].profile);
+-		}
+ 		if (!first)
+ 			printf("\n");
+ 	}
+Index: usr_sbin/ccstools.h
+===================================================================
+--- usr_sbin/ccstools.h	(revision 5824)
++++ usr_sbin/ccstools.h	(working copy)
+@@ -52,14 +52,11 @@
+ /***** CONSTANTS DEFINITION START *****/
+ 
+ #define CCS_PROC_POLICY_DIR              "/proc/ccs/"
+-#define CCS_PROC_POLICY_DOMAIN_POLICY    "/proc/ccs/domain_policy"
+ #define CCS_PROC_POLICY_ACL_POLICY       "/proc/ccs/acl_policy"
+-#define CCS_PROC_POLICY_EXCEPTION_POLICY "/proc/ccs/exception_policy"
+ #define CCS_PROC_POLICY_AUDIT            "/proc/ccs/audit"
+ #define CCS_PROC_POLICY_MANAGER          "/proc/ccs/manager"
+ #define CCS_PROC_POLICY_STAT             "/proc/ccs/stat"
+ #define CCS_PROC_POLICY_PROCESS_STATUS   "/proc/ccs/.process_status"
+-#define CCS_PROC_POLICY_PROFILE          "/proc/ccs/profile"
+ #define CCS_PROC_POLICY_QUERY            "/proc/ccs/query"
+ 
+ /***** CONSTANTS DEFINITION END *****/
+@@ -90,8 +87,6 @@
+ 	const struct ccs_path_info *domainname;
+ 	const struct ccs_path_info **string_ptr;
+ 	int string_count;
+-	u8 profile;
+-	_Bool profile_assigned;
+ };
+ 
+ struct ccs_domain_policy {
+@@ -105,7 +100,6 @@
+ 	pid_t ppid;
+ 	char *name;
+ 	char *domain;
+-	u8 profile;
+ 	_Bool selected;
+ 	int index;
+ 	int depth;
+Index: usr_sbin/editpolicy_color.c
+===================================================================
+--- usr_sbin/editpolicy_color.c	(revision 5824)
++++ usr_sbin/editpolicy_color.c	(working copy)
+@@ -42,18 +42,10 @@
+ 		  COLOR_GREEN,      "DOMAIN_HEAD" },
+ 		{ CCS_DOMAIN_CURSOR,    COLOR_BLACK,
+ 		  COLOR_GREEN,      "DOMAIN_CURSOR" },
+-		{ CCS_EXCEPTION_HEAD,   COLOR_BLACK,
+-		  COLOR_CYAN,       "EXCEPTION_HEAD" },
+-		{ CCS_EXCEPTION_CURSOR, COLOR_BLACK,
+-		  COLOR_CYAN,       "EXCEPTION_CURSOR" },
+ 		{ CCS_ACL_HEAD,         COLOR_BLACK,
+ 		  COLOR_YELLOW,     "ACL_HEAD" },
+ 		{ CCS_ACL_CURSOR,       COLOR_BLACK,
+ 		  COLOR_YELLOW,     "ACL_CURSOR" },
+-		{ CCS_PROFILE_HEAD,     COLOR_WHITE,
+-		  COLOR_RED,        "PROFILE_HEAD" },
+-		{ CCS_PROFILE_CURSOR,   COLOR_WHITE,
+-		  COLOR_RED,        "PROFILE_CURSOR" },
+ 		{ CCS_MANAGER_HEAD,     COLOR_WHITE,
+ 		  COLOR_GREEN,      "MANAGER_HEAD" },
+ 		{ CCS_MANAGER_CURSOR,   COLOR_WHITE,
+@@ -193,12 +185,6 @@
+ enum ccs_color_pair ccs_editpolicy_color_head(void)
+ {
+ 	switch (ccs_current_screen) {
+-	case CCS_SCREEN_DOMAIN_LIST:
+-		return CCS_DOMAIN_HEAD;
+-	case CCS_SCREEN_EXCEPTION_LIST:
+-		return CCS_EXCEPTION_HEAD;
+-	case CCS_SCREEN_PROFILE_LIST:
+-		return CCS_PROFILE_HEAD;
+ 	case CCS_SCREEN_MANAGER_LIST:
+ 		return CCS_MANAGER_HEAD;
+ 	case CCS_SCREEN_STAT_LIST:
+@@ -216,12 +202,6 @@
+ static inline enum ccs_color_pair ccs_editpolicy_color_cursor(void)
+ {
+ 	switch (ccs_current_screen) {
+-	case CCS_SCREEN_DOMAIN_LIST:
+-		return CCS_DOMAIN_CURSOR;
+-	case CCS_SCREEN_EXCEPTION_LIST:
+-		return CCS_EXCEPTION_CURSOR;
+-	case CCS_SCREEN_PROFILE_LIST:
+-		return CCS_PROFILE_CURSOR;
+ 	case CCS_SCREEN_MANAGER_LIST:
+ 		return CCS_MANAGER_CURSOR;
+ 	case CCS_SCREEN_STAT_LIST:
+Index: usr_sbin/ccs-loadpolicy.c
+===================================================================
+--- usr_sbin/ccs-loadpolicy.c	(revision 5824)
++++ usr_sbin/ccs-loadpolicy.c	(working copy)
+@@ -82,88 +82,8 @@
+ 	return result;
+ }
+ 
+-static _Bool ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
+-				      struct ccs_domain_policy *file_policy,
+-				      const char *src, const char *dest)
+-{
+-	int file_index;
+-	int proc_index;
+-	FILE *proc_fp;
+-	_Bool result = true;
+-	_Bool nm = ccs_network_mode;
+-	/* Load disk policy to file_policy->list. */
+-	ccs_network_mode = false;
+-	ccs_read_domain_policy(file_policy, src);
+-	ccs_network_mode = nm;
+-	/* Load proc policy to proc_policy->list. */
+-	ccs_read_domain_policy(proc_policy, dest);
+-	proc_fp = ccs_open_write(dest);
+-	if (!proc_fp) {
+-		fprintf(stderr, "Can't open %s for writing.\n", dest);
+-		return false;
+-	}
+-	for (file_index = 0; file_index < file_policy->list_len;
+-	     file_index++) {
+-		int i;
+-		int j;
+-		const struct ccs_path_info *domainname
+-			= file_policy->list[file_index].domainname;
+-		const struct ccs_path_info **file_string_ptr
+-			= file_policy->list[file_index].string_ptr;
+-		const int file_string_count
+-			= file_policy->list[file_index].string_count;
+-		const struct ccs_path_info **proc_string_ptr;
+-		int proc_string_count;
+-		proc_index = ccs_find_domain_by_ptr(proc_policy, domainname);
+-		if (fprintf(proc_fp, "%s\n", domainname->name) < 0)
+-			result = false;
+-		if (proc_index == EOF)
+-			goto not_found;
+-
+-		/* Proc policy for this domain found. */
+-		proc_string_ptr = proc_policy->list[proc_index].string_ptr;
+-		proc_string_count = proc_policy->list[proc_index].string_count;
+-		for (j = 0; j < proc_string_count; j++) {
+-			for (i = 0; i < file_string_count; i++) {
+-				if (file_string_ptr[i] == proc_string_ptr[j])
+-					break;
+-			}
+-			/* Delete this entry from proc policy if not found
+-			   in disk policy. */
+-			if (i == file_string_count)
+-				if (fprintf(proc_fp, "delete %s\n",
+-					    proc_string_ptr[j]->name) < 0)
+-					result = false;
+-		}
+-		ccs_delete_domain(proc_policy, proc_index);
+-not_found:
+-		/* Append entries defined in disk policy. */
+-		for (i = 0; i < file_string_count; i++)
+-			if (fprintf(proc_fp, "%s\n", file_string_ptr[i]->name)
+-			    < 0)
+-				result = false;
+-		if (file_policy->list[file_index].profile_assigned)
+-			if (fprintf(proc_fp, "use_profile %u\n",
+-				    file_policy->list[file_index].profile)
+-			    < 0)
+-				result = false;
+-	}
+-	/* Delete all domains that are not defined in disk policy. */
+-	for (proc_index = 0; proc_index < proc_policy->list_len;
+-	     proc_index++)
+-		if (fprintf(proc_fp, "delete %s\n",
+-			    proc_policy->list[proc_index].domainname->name)
+-		    < 0)
+-			result = false;
+-	if (!ccs_close_write(proc_fp))
+-		result = false;
+-	return result;
+-}
+-
+ int main(int argc, char *argv[])
+ {
+-	struct ccs_domain_policy proc_policy = { NULL, 0, NULL };
+-	struct ccs_domain_policy file_policy = { NULL, 0, NULL };
+ 	_Bool refresh_policy = false;
+ 	_Bool result = true;
+ 	char target = 0;
+@@ -192,8 +112,7 @@
+ 			if (*ptr++ != '-')
+ 				goto usage;
+ 			target = *ptr++;
+-			if (target != 'e' && target != 'a' && target != 'd' &&
+-			    target != 'p' && target != 'm' && target != 's')
++			if (target != 'a' && target != 'm' && target != 's')
+ 				goto usage;
+ 			if (*ptr) {
+ 				if ((target != 'e' && target != 'd') ||
+@@ -217,56 +136,25 @@
+ 		return 1;
+ 	}
+ 	switch (target) {
+-	case 'p':
+-		result = ccs_move_file_to_proc(CCS_PROC_POLICY_PROFILE);
+-		break;
+ 	case 'm':
+ 		result = ccs_move_file_to_proc(CCS_PROC_POLICY_MANAGER);
+ 		break;
+ 	case 's':
+ 		result = ccs_move_file_to_proc(CCS_PROC_POLICY_STAT);
+ 		break;
+-	case 'e':
+-		if (refresh_policy)
+-			result = ccs_delete_proc_policy
+-				(CCS_PROC_POLICY_EXCEPTION_POLICY);
+-		result = ccs_move_file_to_proc
+-			(CCS_PROC_POLICY_EXCEPTION_POLICY);
+-		break;
+ 	case 'a':
+ 		if (refresh_policy)
+ 			result = ccs_delete_proc_policy
+ 				(CCS_PROC_POLICY_ACL_POLICY);
+ 		result = ccs_move_file_to_proc(CCS_PROC_POLICY_ACL_POLICY);
+ 		break;
+-	case 'd':
+-		if (!refresh_policy) {
+-			result = ccs_move_file_to_proc
+-				(CCS_PROC_POLICY_DOMAIN_POLICY);
+-			break;
+-		}
+-		result = ccs_update_domain_policy
+-			(&proc_policy, &file_policy, NULL,
+-			 CCS_PROC_POLICY_DOMAIN_POLICY);
+-		ccs_clear_domain_policy(&proc_policy);
+-		ccs_clear_domain_policy(&file_policy);
+-		break;
+ 	}
+ 	return !result;
+ usage:
+-	printf("%s {-e|-ef|-a|-af|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
+-	       "-e  : Read from stdin and append to "
+-	       "/proc/ccs/exception_policy .\n"
+-	       "-ef : Read from stdin and overwrite "
+-	       "/proc/ccs/exception_policy .\n"
++	printf("%s {-a|-af|-m|-s} [remote_ip:remote_port]\n\n"
+ 	       "-a  : Read from stdin and append to /proc/ccs/acl_policy .\n"
+ 	       "-af : Read from stdin and overwrite /proc/ccs/acl_policy .\n"
+-	       "-d  : Read from stdin and append to /proc/ccs/domain_policy "
+-	       ".\n"
+-	       "-df : Read from stdin and overwrite /proc/ccs/domain_policy "
+-	       ".\n"
+ 	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
+-	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
+ 	       "-s  : Read from stdin and append to /proc/ccs/stat .\n"
+ 	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
+ 	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+Index: usr_sbin/editpolicy.c
+===================================================================
+--- usr_sbin/editpolicy.c	(revision 5824)
++++ usr_sbin/editpolicy.c	(working copy)
+@@ -40,7 +40,6 @@
+ 
+ /* Structure for holding implicit domain transition. */
+ struct ccs_implicit_transition {
+-	const struct ccs_path_info *ns;
+ 	char *program;
+ 	char *transit;
+ } *ccs_implicit_transition_list = NULL;
+@@ -74,11 +73,7 @@
+ /* Currently selected PID. */
+ static unsigned int ccs_current_pid = 0;
+ /* Currently active screen's index. */
+-enum ccs_screen_type ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+-/* Previously active screen's index. */
+-static enum ccs_screen_type ccs_previous_screen = CCS_SCREEN_DOMAIN_LIST;
+-/* Sort profiles by value? */
+-static _Bool ccs_profile_sort_type = false;
++enum ccs_screen_type ccs_current_screen = CCS_SCREEN_ACL_LIST;
+ /* Number of domain jump source domains. */
+ static int ccs_unnumbered_domain_count = 0;
+ /* Width of CUI screen. */
+@@ -105,9 +100,6 @@
+ static _Bool ccs_no_restore_cursor = false;
+ static _Bool ccs_force_move_cursor = false;
+ 
+-/* Namespace to use. */
+-const struct ccs_path_info *ccs_current_ns = NULL;
+-
+ static FILE *ccs_editpolicy_open_write(const char *filename);
+ static _Bool ccs_deleted_domain(const int index);
+ static _Bool ccs_domain_unreachable(const int index);
+@@ -124,12 +116,10 @@
+ //const char *program);
+ static enum ccs_screen_type ccs_generic_list_loop(void);
+ static enum ccs_screen_type ccs_select_window(const int current);
+-static int ccs_add_path_group_entry(const struct ccs_path_info *ns,
+-				    const char *group_name,
++static int ccs_add_path_group_entry(const char *group_name,
+ 				    const char *member_name,
+ 				    const _Bool is_delete);
+-static int ccs_add_path_group_policy(const struct ccs_path_info *ns,
+-				     char *data, const _Bool is_delete);
++static int ccs_add_path_group_policy(char *data, const _Bool is_delete);
+ //static int ccs_add_transition_control_entry(const struct ccs_path_info *ns,
+ //const char *domainname,
+ //					    const char *program);
+@@ -144,7 +134,6 @@
+ static int ccs_show_acl_line(const int index, const int list_indent);
+ static int ccs_show_domain_line(const int index);
+ static int ccs_show_literal_line(const int index);
+-static int ccs_show_profile_line(const int index);
+ static int ccs_show_stat_line(const int index);
+ static int ccs_string_acl_compare(const void *a, const void *b);
+ static void ccs_add_entry(void);
+@@ -304,33 +293,6 @@
+ }
+ 
+ /**
+- * ccs_is_same_namespace - Check namespace.
+- *
+- * @domain: Domainname.
+- * @ns:     Namespace.
+- *
+- * Returns true if same namespace, false otherwise.
+- */
+-static _Bool ccs_is_same_namespace(const char *domain,
+-				   const struct ccs_path_info *ns)
+-{
+-	return !strncmp(domain, ns->name, ns->total_len) &&
+-		(domain[ns->total_len] == ' ' || !domain[ns->total_len]);
+-}
+-
+-/**
+- * ccs_is_current_namespace - Check namespace.
+- *
+- * @line: Line to check namespace.
+- *
+- * Returns true if this line deals current namespace, false otherwise.
+- */
+-static _Bool ccs_is_current_namespace(const char *line)
+-{
+-	return ccs_is_same_namespace(line, ccs_current_ns);
+-}
+-
+-/**
+  * ccs_copy_file - Copy local file to local or remote file.
+  *
+  * @source: Local file.
+@@ -355,26 +317,6 @@
+ }
+ 
+ /**
+- * ccs_get_ns - Get namespace component from domainname.
+- *
+- * @domainname: A domainname.
+- *
+- * Returns the namespace component of @domainname.
+- */
+-static const struct ccs_path_info *ccs_get_ns(const char *domainname)
+-{
+-	const struct ccs_path_info *ns;
+-	char *line = ccs_strdup(domainname);
+-	char *cp;
+-	cp = strchr(line, ' ');
+-	if (cp)
+-		*cp = '\0';
+-	ns = ccs_savename(line);
+-	free(line);
+-	return ns;
+-}
+-
+-/**
+  * ccs_get_last_word - Get last component of a line.
+  *
+  * @line: A line of words.
+@@ -575,20 +517,18 @@
+ /**
+  * ccs_add_path_group_policy - Add "path_group" entry.
+  *
+- * @ns:        Pointer to "const struct ccs_path_info".
+  * @data:      Line to parse.
+  * @is_delete: True if it is delete request, false otherwise.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_add_path_group_policy(const struct ccs_path_info *ns,
+-				     char *data, const _Bool is_delete)
++static int ccs_add_path_group_policy(char *data, const _Bool is_delete)
+ {
+ 	char *cp = strchr(data, ' ');
+ 	if (!cp)
+ 		return -EINVAL;
+ 	*cp++ = '\0';
+-	return ccs_add_path_group_entry(ns, data, cp, is_delete);
++	return ccs_add_path_group_entry(data, cp, is_delete);
+ }
+ 
+ /**
+@@ -688,17 +628,11 @@
+  *
+  * @index: Index in the domain policy.
+  *
+- * Returns index of the domain if found in a current namespace,
+- * -2 if found in a different namespace, EOF otherwise.
++ * Returns index of the domain if found, EOF otherwise.
+  */
+ static int ccs_find_target_domain(const int index)
+ {
+ 	const char *cp = ccs_dp.list[index].target->name;
+-	if (!ccs_is_current_namespace(cp)) {
+-		if (ccs_dp.list[index].is_du)
+-			return EOF;
+-		return -2;
+-	}
+ 	return ccs_find_domain3(cp, NULL, false);
+ }
+ 
+@@ -720,8 +654,8 @@
+ 	const bool is_djs = ccs_jump_source(index);
+ 	const bool is_deleted = ccs_deleted_domain(index);
+ 	if (number >= 0)
+-		printw("%c%4d:%3u %c%c%c ", ccs_dp.list_selected[index] ? '&' :
+-		       ' ', number, ccs_dp.list[index].profile,
++		printw("%c%4d: %c%c%c ", ccs_dp.list_selected[index] ? '&' :
++		       ' ', number,
+ 		       ccs_keeper_domain(index) ? '#' : ' ',
+ 		       ccs_jump_target(index) ? '*' : ' ',
+ 		       ccs_domain_unreachable(index) ? '!' : ' ');
+@@ -779,8 +713,6 @@
+ 				    ccs_dp.list[redirect_index].number);
+ 	else if (redirect_index == EOF)
+ 		line = ccs_shprintf(" ( -> Not Found )");
+-	else
+-		line = ccs_shprintf(" ( -> Namespace jump )");
+ 	printw("%s", ccs_eat(line));
+ 	tmp_col += strlen(line);
+ 	ccs_put();
+@@ -813,26 +745,6 @@
+ }
+ 
+ /**
+- * ccs_show_profile_line - Print a profile line.
+- *
+- * @index: Index in the generic list.
+- *
+- * Returns length of the printed line.
+- */
+-static int ccs_show_profile_line(const int index)
+-{
+-	const char *cp = ccs_gacl_list[index].operand;
+-	const u16 profile = ccs_gacl_list[index].directive;
+-	char number[8] = "";
+-	if (profile <= 256)
+-		snprintf(number, sizeof(number) - 1, "%3u-", profile);
+-	printw("%c%4d: %s", ccs_gacl_list[index].selected ? '&' : ' ',
+-	       index, ccs_eat(number));
+-	printw("%s ", ccs_eat(cp));
+-	return strlen(number) + strlen(cp) + 8;
+-}
+-
+-/**
+  * ccs_show_literal_line - Print a literal line.
+  *
+  * @index: Index in the generic list.
+@@ -907,26 +819,17 @@
+ 		       "position.\n");
+ 	}
+ 	switch (screen) {
+-	case CCS_SCREEN_NS_LIST:
+-		if (!readonly)
+-			printw("A/a        Add a new namespace.\n");
+-		break;
+-	case CCS_SCREEN_DOMAIN_LIST:
++	case CCS_SCREEN_ACL_LIST:
+ 		if (ccs_domain_sort_type) {
+-			printw("S/s        Set profile number of selected "
+-			       "processes.\n");
+ 			printw("Enter      Edit ACLs of a process at the "
+ 			       "cursor position.\n");
+ 		} else {
+ 			if (!readonly) {
+-				printw("A/a        Add a new domain.\n");
+-				printw("D/d        Delete selected domains."
+-				       "\n");
+-				printw("S/s        Set profile number of "
+-				       "selected domains.\n");
++				printw("A/a        Add a new ACL.\n");
++				printw("D/d        Delete selected ACLs.\n");
+ 			}
+-			printw("Enter      Edit ACLs of a domain at the "
+-			       "cursor position.\n");
++			//printw("Enter      Edit ACLs of a domain at the "
++			//     "cursor position.\n");
+ 		}
+ 		break;
+ 	case CCS_SCREEN_STAT_LIST:
+@@ -934,15 +837,10 @@
+ 			printw("S/s        Set memory quota of selected "
+ 			       "items.\n");
+ 		break;
+-	case CCS_SCREEN_PROFILE_LIST:
+-		if (!readonly)
+-			printw("S/s        Set mode of selected items.\n");
+-		break;
+ 	default:
+ 		break;
+ 	}
+ 	switch (screen) {
+-	case CCS_SCREEN_EXCEPTION_LIST:
+ 	case CCS_SCREEN_ACL_LIST:
+ 	case CCS_SCREEN_MANAGER_LIST:
+ 		if (!readonly) {
+@@ -952,27 +850,6 @@
+ 	default:
+ 		break;
+ 	}
+-	switch (screen) {
+-	case CCS_SCREEN_PROFILE_LIST:
+-		if (!readonly)
+-			printw("A/a        Define a new profile.\n");
+-	default:
+-		break;
+-	}
+-	switch (screen) {
+-	case CCS_SCREEN_ACL_LIST:
+-		printw("O/o        Set selection state to other entries "
+-		       "included in an entry at the cursor position.\n");
+-		/* Fall through. */
+-	case CCS_SCREEN_PROFILE_LIST:
+-		printw("@          Switch sort type.\n");
+-		break;
+-	case CCS_SCREEN_DOMAIN_LIST:
+-		if (!ccs_offline_mode)
+-			printw("@          Switch domain/process list.\n");
+-	default:
+-		break;
+-	}
+ 	printw("Arrow-keys and PageUp/PageDown/Home/End keys "
+ 	       "for scroll.\n\n");
+ 	printw("Press '?' to escape from this help.\n");
+@@ -1123,53 +1000,12 @@
+ }
+ #endif
+ 
+-/**
+- * ccs_profile_entry_compare -  strcmp() for qsort() callback.
+- *
+- * @a: Pointer to "void".
+- * @b: Pointer to "void".
+- *
+- * Returns return value of strcmp().
+- */
+-static int ccs_profile_entry_compare(const void *a, const void *b)
+-{
+-	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
+-	const struct ccs_generic_acl *b0 = (struct ccs_generic_acl *) b;
+-	const char *a1 = a0->operand;
+-	const char *b1 = b0->operand;
+-	const int a2 = a0->directive;
+-	const int b2 = b0->directive;
+-	if (a2 >= 256 || b2 >= 256) {
+-		if (a1[0] == 'P')
+-			return -1;
+-		if (b1[0] == 'P')
+-			return 1;
+-	}
+-	if (!ccs_profile_sort_type) {
+-		if (a2 == b2)
+-			return strcmp(a1, b1);
+-		else
+-			return a2 - b2;
+-	} else {
+-		const int a3 = strcspn(a1, "=");
+-		const int b3 = strcspn(b1, "=");
+-		const int c = strncmp(a1, b1, a3 >= b3 ? b3 : a3);
+-		if (c)
+-			return c;
+-		if (a3 != b3)
+-			return a3 - b3;
+-		else
+-			return a2 - b2;
+-	}
+-}
+ 
+ /**
+  * ccs_add_generic_entry - Add text lines.
+  *
+  * @line:      Line to add.
+  * @directive: One of values in "enum ccs_editpolicy_directives".
+- *
+- * Returns true if this line deals current namespace, false otherwise.
+  */
+ static void ccs_add_generic_entry(const char *line, const enum
+ 				  ccs_editpolicy_directives directive)
+@@ -1196,7 +1032,6 @@
+ {
+ 	FILE *fp = NULL;
+ 	_Bool flag = false;
+-	const _Bool is_kernel_ns = !strcmp(ccs_current_ns->name, "<kernel>");
+ 	while (ccs_gacl_list_count)
+ 		free((void *) ccs_gacl_list[--ccs_gacl_list_count].operand);
+ 	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
+@@ -1217,8 +1052,6 @@
+ 				fputc(0, fp);
+ 			fflush(fp);
+ 		}
+-	} else if (ccs_current_screen == CCS_SCREEN_NS_LIST) {
+-		ccs_add_generic_entry("<kernel>", CCS_DIRECTIVE_NONE);
+ 	}
+ 	if (!fp)
+ 		fp = ccs_editpolicy_open_read(ccs_policy_file);
+@@ -1231,7 +1064,6 @@
+ 	while (true) {
+ 		char *line = ccs_freadline_unpack(fp);
+ 		enum ccs_editpolicy_directives directive;
+-		char *cp;
+ 		if (!line)
+ 			break;
+ 		if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
+@@ -1239,24 +1071,14 @@
+ 				flag = !strcmp(line, ccs_current_domain);
+ 				continue;
+ 			}
+-			if (!flag || !line[0] ||
+-			    !strncmp(line, "use_profile ", 12))
++			if (!flag || !line[0])
+ 				continue;
+ 		} else {
+ 			if (!line[0])
+ 				continue;
+ 		}
+-		if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
+-		    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
+-			if (*line == '<') {
+-				cp = strchr(line, ' ');
+-				if (!cp++ || !ccs_is_current_namespace(line))
+-					continue;
+-				memmove(line, cp, strlen(cp) + 1);
+-			} else if (!is_kernel_ns)
+-				continue;
+-		}
+ 		switch (ccs_current_screen) {
++#if 0
+ 		case CCS_SCREEN_EXCEPTION_LIST:
+ 			directive = ccs_find_directive(true, line);
+ 			if (directive == CCS_DIRECTIVE_NONE)
+@@ -1268,38 +1090,19 @@
+ 				break;
+ 			cp = ccs_strdup(line);
+ 			if (directive == CCS_DIRECTIVE_PATH_GROUP)
+-				ccs_add_path_group_policy(ccs_current_ns, cp,
+-							  false);
++				ccs_add_path_group_policy(cp, false);
+ 			else if (directive == CCS_DIRECTIVE_NUMBER_GROUP)
+ 				ccs_add_number_group_policy(cp, false);
+ 			else
+ 				ccs_add_address_group_policy(cp, false);
+ 			free(cp);
+ 			break;
++#endif
+ 		case CCS_SCREEN_ACL_LIST:
+ 			directive = ccs_find_directive(true, line);
+ 			if (directive == CCS_DIRECTIVE_NONE)
+ 				continue;
+ 			break;
+-		case CCS_SCREEN_PROFILE_LIST:
+-			cp = strchr(line, '-');
+-			if (cp) {
+-				*cp++ = '\0';
+-				directive = atoi(line);
+-				memmove(line, cp, strlen(cp) + 1);
+-			} else
+-				directive = (u16) -1;
+-			break;
+-		case CCS_SCREEN_NS_LIST:
+-			if (*line != '<')
+-				continue;
+-			cp = strchr(line, ' ');
+-			if (!cp)
+-				continue;
+-			*cp = '\0';
+-			if (!ccs_domain_def(line))
+-				continue;
+-			/* Fall through. */
+ 		default:
+ 			directive = CCS_DIRECTIVE_NONE;
+ 			break;
+@@ -1314,16 +1117,13 @@
+ 		qsort(ccs_gacl_list, ccs_gacl_list_count,
+ 		      sizeof(struct ccs_generic_acl), ccs_gacl_compare);
+ 		break;
++#if 0
+ 	case CCS_SCREEN_EXCEPTION_LIST:
+ 		qsort(ccs_gacl_list, ccs_gacl_list_count,
+ 		      sizeof(struct ccs_generic_acl),
+ 		      ccs_gacl_compare0);
+ 		break;
+-	case CCS_SCREEN_PROFILE_LIST:
+-		qsort(ccs_gacl_list, ccs_gacl_list_count,
+-		      sizeof(struct ccs_generic_acl),
+-		      ccs_profile_entry_compare);
+-		break;
++#endif
+ 	case CCS_SCREEN_STAT_LIST:
+ 		break;
+ 	default:
+@@ -1335,15 +1135,13 @@
+ /**
+  * ccs_add_path_group_entry - Add "path_group" entry.
+  *
+- * @ns:          Pointer to "const struct ccs_path_info".
+  * @group_name:  Name of address group.
+  * @member_name: Address string.
+  * @is_delete:   True if it is delete request, false otherwise.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_add_path_group_entry(const struct ccs_path_info *ns,
+-				    const char *group_name,
++static int ccs_add_path_group_entry(const char *group_name,
+ 				    const char *member_name,
+ 				    const _Bool is_delete)
+ {
+@@ -1358,8 +1156,6 @@
+ 	saved_member_name = ccs_savename(member_name);
+ 	for (i = 0; i < ccs_path_group_list_len; i++) {
+ 		group = &ccs_path_group_list[i];
+-		if (group->ns != ns)
+-			continue;
+ 		if (saved_group_name != group->group_name)
+ 			continue;
+ 		for (j = 0; j < group->member_name_len; j++) {
+@@ -1384,7 +1180,6 @@
+ 				    sizeof(struct ccs_path_group_entry));
+ 		group = &ccs_path_group_list[ccs_path_group_list_len++];
+ 		memset(group, 0, sizeof(*group));
+-		group->ns = ns;
+ 		group->group_name = saved_group_name;
+ 	}
+ 	group->member_name =
+@@ -1477,14 +1272,12 @@
+ /**
+  * ccs_add_implicit_transition - Add "default_transition" entries.
+  *
+- * @ns:      Pointer to "const struct ccs_path_info".
+  * @program: Program name.
+  * @transit: Transition control.
+  *
+  * Returns 0 on success, -EINVAL otherwise.
+  */
+-static int ccs_add_implicit_transition(const struct ccs_path_info *ns,
+-				       const char *program, char *transit)
++static int ccs_add_implicit_transition(const char *program, char *transit)
+ {
+ 	struct ccs_implicit_transition *ptr;
+ 	if (!ccs_correct_path(program))
+@@ -1499,7 +1292,6 @@
+ 	ptr = &ccs_implicit_transition_list
+ 		[ccs_implicit_transition_list_len++];
+ 	memset(ptr, 0, sizeof(*ptr));
+-	ptr->ns = ns;
+ 	ptr->program = ccs_strdup(program);
+ 	ptr->transit = ccs_strdup(transit);
+ 	return 0;
+@@ -1525,10 +1317,9 @@
+ 	else if (!strcmp(domainname, "keep"))
+ 		snprintf(buffer, sizeof(buffer) - 1, "%s", self);
+ 	else if (!strcmp(domainname, "child")) {
+-		if (!strncmp(program, "\\=", 2)) {
++		if (program[0] == '@') {
+ 			struct ccs_path_group_entry *group =
+-				ccs_find_path_group_ns(ccs_get_ns(self),
+-						       program + 2);
++				ccs_find_path_group(program + 1);
+ 			const int j = group ? group->member_name_len : 0;
+ 			int i;
+ 			for (i = 0; i < j; i++) {
+@@ -1555,9 +1346,7 @@
+ 	for (i = 0; i < ccs_implicit_transition_list_len; i++) {
+ 		struct ccs_implicit_transition *ptr2 =
+ 			&ccs_implicit_transition_list[i];
+-		if (strcmp(ptr->program, ptr2->program) ||
+-		    !ccs_is_same_namespace(ccs_dp.list[ptr->index].
+-					   domainname->name, ptr2->ns))
++		if (strcmp(ptr->program, ptr2->program))
+ 			continue;
+ 		ccs_make_explicit_transition(ptr->index, ptr->program,
+ 					     ptr2->transit);
+@@ -1571,16 +1360,12 @@
+ /**
+  * ccs_parse_domain_line - Parse an ACL entry in domain policy.
+  *
+- * @ns:          Pointer to "const struct ccs_path_info".
+- * @line:        Line to parse.
+- * @index:       Current domain's index.
+- * @parse_flags: True if parse use_profile and use_group lines, false
+- *               otherwise.
++ * @line:  Line to parse.
++ * @index: Current domain's index.
+  *
+  * Returns nothing.
+  */
+-static void ccs_parse_domain_line(const struct ccs_path_info *ns, char *line,
+-				  const int index, const bool parse_flags)
++static void ccs_parse_domain_line(char *line, const int index)
+ {
+ 	_Bool exec = false;
+ 	if (ccs_str_starts(line, "task auto_execute_handler ") ||
+@@ -1595,29 +1380,20 @@
+ 	} else if (ccs_str_starts(line, "task auto_domain_transition ") ||
+ 		   ccs_str_starts(line, "task manual_domain_transition ")) {
+ 		ccs_add_acl_domain_transition(line, index);
+-	} else if (parse_flags) {
+-		unsigned int profile;
+-		if (sscanf(line, "use_profile %u", &profile) == 1)
+-			ccs_dp.list[index].profile = (u8) profile;
+-		else if (ccs_str_starts(line, "use_group ")) {
+-			//ccs_dp.list[index].group = (u8) profile;
+-		}
+ 	}
+ }
+ 
+ /**
+  * ccs_parse_exception_line - Parse an ACL entry in exception policy.
+  *
+- * @ns:   Pointer to "const struct ccs_path_info".
+  * @line: Line to parse.
+  *
+  * Returns nothing.
+  */
+-static void ccs_parse_exception_line(const struct ccs_path_info *ns,
+-				     char *line)
++static void ccs_parse_exception_line(char *line)
+ {
+ 	if (ccs_str_starts(line, "path_group "))
+-		ccs_add_path_group_policy(ns, line, false);
++		ccs_add_path_group_policy(line, false);
+ 	else if (ccs_str_starts(line, "address_group "))
+ 		ccs_add_address_group_policy(line, false);
+ 	else if (ccs_str_starts(line, "number_group "))
+@@ -1627,7 +1403,7 @@
+ 		if (!cp)
+ 			return;
+ 		*cp++ = '\0';
+-		ccs_add_implicit_transition(ns, line, cp);
++		ccs_add_implicit_transition(line, cp);
+ 	} else if (ccs_str_starts(line, "acl_group ")) {
+ 		unsigned int index;
+ 		char *cp = strchr(line, ' ');
+@@ -1641,7 +1417,7 @@
+ 			if (ptr->target || ptr->is_dd)
+ 				continue;
+ 			cp = ccs_strdup(line);
+-			ccs_parse_domain_line(ns, cp, index, false);
++			ccs_parse_domain_line(cp, index);
+ 			free(cp);
+ 		}
+ 	}
+@@ -1664,7 +1440,6 @@
+ 	int index;
+ 	int max_index;
+ 	static const struct ccs_path_info *ccs_kernel_ns = NULL;
+-	const struct ccs_path_info *ns;
+ 
+ 	while (ccs_jump_list_len)
+ 		free(ccs_jump_list[--ccs_jump_list_len]);
+@@ -1672,23 +1447,22 @@
+ 	ccs_editpolicy_clear_groups();
+ 	if (!ccs_kernel_ns)
+ 		ccs_kernel_ns = ccs_savename("<kernel>");
+-	ns = ccs_kernel_ns;
+ 
+ 	/* Load all domain transition related entries. */
+ 	fp = NULL;
+ 	if (ccs_network_mode)
+ 		/* We can read after write. */
+-		fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
++		fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_ACL_POLICY);
+ 	else
+ 		/* Don't set error message if failed. */
+-		fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r+");
++		fp = fopen(CCS_PROC_POLICY_ACL_POLICY, "r+");
+ 	if (fp) {
+ 		fprintf(fp, "select transition_only\n");
+ 		if (ccs_network_mode)
+ 			fputc(0, fp);
+ 		fflush(fp);
+ 	} else {
+-		fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_DOMAIN_POLICY);
++		fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_ACL_POLICY);
+ 	}
+ 	if (fp) {
+ 		index = EOF;
+@@ -1698,13 +1472,12 @@
+ 			if (!line)
+ 				break;
+ 			if (*line == '<') {
+-				ns = ccs_get_ns(line);
+ 				index = ccs_assign_domain3(line, NULL, false);
+ 				continue;
+ 			} else if (index == EOF) {
+ 				continue;
+ 			}
+-			ccs_parse_domain_line(ns, line, index, true);
++			ccs_parse_domain_line(line, index);
+ 		}
+ 		ccs_put();
+ 		fclose(fp);
+@@ -1715,10 +1488,10 @@
+ 	if (ccs_network_mode)
+ 		/* We can read after write. */
+ 		fp = ccs_editpolicy_open_write
+-			(CCS_PROC_POLICY_EXCEPTION_POLICY);
++			(CCS_PROC_POLICY_ACL_POLICY);
+ 	else
+ 		/* Don't set error message if failed. */
+-		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
++		fp = fopen(CCS_PROC_POLICY_ACL_POLICY, "r+");
+ 	if (fp) {
+ 		fprintf(fp, "select transition_only\n");
+ 		if (ccs_network_mode)
+@@ -1726,7 +1499,7 @@
+ 		fflush(fp);
+ 	} else {
+ 		fp = ccs_editpolicy_open_read
+-			(CCS_PROC_POLICY_EXCEPTION_POLICY);
++			(CCS_PROC_POLICY_ACL_POLICY);
+ 	}
+ 	if (fp) {
+ 		ccs_get();
+@@ -1734,16 +1507,7 @@
+ 			char *line = ccs_freadline_unpack(fp);
+ 			if (!line)
+ 				break;
+-			if (*line == '<') {
+-				char *cp = strchr(line, ' ');
+-				if (!cp)
+-					continue;
+-				*cp++ = '\0';
+-				ns = ccs_savename(line);
+-				memmove(line, cp, strlen(cp) + 1);
+-			} else
+-				ns = ccs_kernel_ns;
+-			ccs_parse_exception_line(ns, line);
++			ccs_parse_exception_line(line);
+ 		}
+ 		ccs_put();
+ 		fclose(fp);
+@@ -1801,12 +1565,11 @@
+ 		for (i = 0; i < max_count; i++) {
+ 			const char *name = string_ptr[i]->name;
+ 			struct ccs_path_group_entry *group;
+-			if (strncmp(name, "\\=", 2)) {
++			if (name[0] != '@') {
+ 				ccs_assign_djs(ns, domainname, name);
+ 				continue;
+-			} else if (!strncmp(name, "\\!", 2))
+-				continue;
+-			group = ccs_find_path_group_ns(ns, name + 2);
++			}
++			group = ccs_find_path_group(name + 1);
+ 			if (!group)
+ 				continue;
+ 			for (j = 0; j < group->member_name_len; j++) {
+@@ -1869,7 +1632,7 @@
+ 		/* Ignore if already marked as domain jump targets. */
+ 		if (domain->is_djt)
+ 			continue;
+-		/* Ignore if not a namespace's root's child domain. */
++		/* Ignore if not root's child domain. */
+ 		cp = strchr(domainname, ' ');
+ 		if (!cp++ || strchr(cp, ' '))
+ 			continue;
+@@ -1879,8 +1642,6 @@
+ 		for (i = 0; i < ccs_transition_control_list_len; i++) {
+ 			struct ccs_transition_control_entry *ptr
+ 				= &ccs_transition_control_list[i];
+-			if (!ccs_is_same_namespace(domainname, ptr->ns))
+-				continue;
+ 			if (ptr->program && strcmp(ptr->program->name, cp))
+ 				continue;
+ 			break;
+@@ -1907,8 +1668,6 @@
+ 				= &ccs_transition_control_list[i];
+ 			if (ptr->type != CCS_TRANSITION_CONTROL_KEEP)
+ 				continue;
+-			if (!ccs_is_same_namespace(name->name, ptr->ns))
+-				continue;
+ 			if (!ptr->domainname ||
+ 			    !ccs_pathcmp(ptr->domainname, name) ||
+ 			    !strcmp(ptr->domainname->name, last_name))
+@@ -1975,22 +1734,6 @@
+ 	qsort(ccs_dp.list, ccs_dp.list_len, sizeof(struct ccs_domain),
+ 	      ccs_domainname_attribute_compare);
+ 
+-	/*
+-	 * Since this screen shows domain transition tree within current
+-	 * namespace, purge domains that are not in current namespace.
+-	 */
+-	for (index = 0; index < ccs_dp.list_len; index++) {
+-		int i;
+-		if (ccs_is_current_namespace(ccs_dp.list[index].
+-					     domainname->name))
+-			continue;
+-		//free(ccs_dp.list[index].string_ptr);
+-		ccs_dp.list_len--;
+-		for (i = index; i < ccs_dp.list_len; i++)
+-			ccs_dp.list[i] = ccs_dp.list[i + 1];
+-		index--;
+-	}
+-
+ 	/* Assign domain numbers. */
+ 	{
+ 		int number = 0;
+@@ -2025,8 +1768,7 @@
+ 	char *line;
+ 	int tmp_col = 0;
+ 	int i;
+-	printw("%c%4d:%3u ", ccs_task_list[index].selected ? '&' : ' ', index,
+-	       ccs_task_list[index].profile);
++	printw("%c%4d: ", ccs_task_list[index].selected ? '&' : ' ', index);
+ 	tmp_col += 10;
+ 	for (i = 0; i < ccs_task_list[index].depth - 1; i++) {
+ 		printw("%s", ccs_eat("    "));
+@@ -2105,7 +1847,6 @@
+ 	}
+ 	ccs_list_indent = 0;
+ 	switch (ccs_current_screen) {
+-	case CCS_SCREEN_EXCEPTION_LIST:
+ 	case CCS_SCREEN_ACL_LIST:
+ 		for (i = 0; i < ccs_list_item_count; i++) {
+ 			const enum ccs_editpolicy_directives directive =
+@@ -2131,13 +1872,9 @@
+ 			else
+ 				tmp_col = ccs_show_process_line(index);
+ 			break;
+-		case CCS_SCREEN_EXCEPTION_LIST:
+ 		case CCS_SCREEN_ACL_LIST:
+ 			tmp_col = ccs_show_acl_line(index, ccs_list_indent);
+ 			break;
+-		case CCS_SCREEN_PROFILE_LIST:
+-			tmp_col = ccs_show_profile_line(index);
+-			break;
+ 		case CCS_SCREEN_STAT_LIST:
+ 			tmp_col = ccs_show_stat_line(index);
+ 			break;
+@@ -2315,8 +2052,7 @@
+ 				if (cp)
+ 					*cp = '\0';
+ 			}
+-		} else
+-			line = ccs_shprintf("%s", ccs_current_ns->name);
++		}
+ 		if (ccs_window_width < strlen(line))
+ 			line[ccs_window_width] = '\0';
+ 		move(2, 0);
+@@ -2326,21 +2062,6 @@
+ 		ccs_editpolicy_attr_change(A_REVERSE, false); /* add color */
+ 		ccs_put();
+ 	}
+-	if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST ||
+-	    ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
+-		char *line;
+-		ccs_get();
+-		ccs_eat_col = ptr->x;
+-		line = ccs_shprintf("%s", ccs_current_ns->name);
+-		if (ccs_window_width < strlen(line))
+-			line[ccs_window_width] = '\0';
+-		move(2, 0);
+-		clrtoeol();
+-		ccs_editpolicy_attr_change(A_REVERSE, true);  /* add color */
+-		printw("%s", line);
+-		ccs_editpolicy_attr_change(A_REVERSE, false); /* add color */
+-		ccs_put();
+-	}
+ 	move(CCS_HEADER_LINES + ptr->y, 0);
+ 	ccs_editpolicy_line_draw();     /* add color */
+ 	refresh();
+@@ -2451,9 +2172,9 @@
+ 		if (ret)
+ 			return ret;
+ 		return strcmp(a2, b2);
+-	} else if (a0->directive == CCS_DIRECTIVE_DEFAULT_TRANSITION) {
++	} else if (a0->directive == CCS_DIRECTIVE_DOMAIN_TRANSITION) {
+ 		return 1;
+-	} else if (b0->directive == CCS_DIRECTIVE_DEFAULT_TRANSITION) {
++	} else if (b0->directive == CCS_DIRECTIVE_DOMAIN_TRANSITION) {
+ 		return -1;
+ 	} else {
+ 		const int ret = strcmp(a2, b2);
+@@ -2511,7 +2232,7 @@
+ 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
+ 		int i;
+ 		FILE *fp = ccs_editpolicy_open_write
+-			(CCS_PROC_POLICY_DOMAIN_POLICY);
++			(CCS_PROC_POLICY_ACL_POLICY);
+ 		if (!fp)
+ 			return;
+ 		for (i = 0; i < ccs_dp.list_len; i++) {
+@@ -2523,8 +2244,6 @@
+ 		ccs_close_write(fp);
+ 	} else {
+ 		int i;
+-		const _Bool is_kernel_ns = !strcmp(ccs_current_ns->name,
+-						   "<kernel>");
+ 		FILE *fp = ccs_editpolicy_open_write(ccs_policy_file);
+ 		if (!fp)
+ 			return;
+@@ -2541,9 +2260,7 @@
+ 			if (!ccs_gacl_list[i].selected)
+ 				continue;
+ 			directive = ccs_gacl_list[i].directive;
+-			fprintf(fp, "delete %s %s %s\n",
+-				ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST
+-				&& !is_kernel_ns ? ccs_current_ns->name : "",
++			fprintf(fp, "delete %s %s\n",
+ 				ccs_directives[directive].original,
+ 				ccs_gacl_list[i].operand);
+ 		}
+@@ -2560,7 +2277,6 @@
+ {
+ 	FILE *fp;
+ 	char *line;
+-	const _Bool is_kernel_ns = !strcmp(ccs_current_ns->name, "<kernel>");
+ 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
+ 	line = ccs_readline(ccs_window_height - 1, 0, "Enter new entry> ",
+ 			    ccs_rl.history, ccs_rl.count, 128000, 8);
+@@ -2573,6 +2289,7 @@
+ 	if (!fp)
+ 		goto out;
+ 	switch (ccs_current_screen) {
++#if 0
+ 		enum ccs_editpolicy_directives directive;
+ 	case CCS_SCREEN_DOMAIN_LIST:
+ 		if (!ccs_correct_domain(line)) {
+@@ -2583,32 +2300,20 @@
+ 			line[0] = '\0';
+ 		}
+ 		break;
++#endif
+ 	case CCS_SCREEN_ACL_LIST:
+ 		if (ccs_domain_sort_type)
+ 			fprintf(fp, "select pid=%u\n", ccs_current_pid);
+ 		else
+ 			fprintf(fp, "select domain=%s\n", ccs_current_domain);
+ 		/* Fall through. */
++#if 0
+ 	case CCS_SCREEN_EXCEPTION_LIST:
+-		if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST &&
+-		    !is_kernel_ns)
+-			fprintf(fp, "%s ", ccs_current_ns->name);
+ 		directive = ccs_find_directive(false, line);
+ 		if (directive != CCS_DIRECTIVE_NONE)
+ 			fprintf(fp, "%s ", ccs_directives[directive].original);
+ 		break;
+-	case CCS_SCREEN_PROFILE_LIST:
+-		if (!strchr(line, '='))
+-			fprintf(fp, "%s %s-COMMENT=\n",
+-				!is_kernel_ns ? ccs_current_ns->name : "",
+-				line);
+-		if (!is_kernel_ns)
+-			fprintf(fp, "%s ", ccs_current_ns->name);
+-		break;
+-	case CCS_SCREEN_NS_LIST:
+-		fprintf(fp, "%s PROFILE_VERSION=20100903\n", line);
+-		line[0] = '\0';
+-		break;
++#endif
+ 	default:
+ 		break;
+ 	}
+@@ -2664,10 +2369,6 @@
+ 				cp = ccs_task_list[index].name;
+ 			else
+ 				cp = ccs_get_last_name(index);
+-		} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
+-			cp = ccs_shprintf("%u-%s",
+-					  ccs_gacl_list[index].directive,
+-					  ccs_gacl_list[index].operand);
+ 		} else {
+ 			const enum ccs_editpolicy_directives directive =
+ 				ccs_gacl_list[index].directive;
+@@ -2723,7 +2424,7 @@
+ 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
+ 	if (!line || !*line)
+ 		goto out;
+-	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
++	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_ACL_POLICY);
+ 	if (!fp)
+ 		goto out;
+ 	if (!ccs_domain_sort_type) {
+@@ -2778,7 +2479,7 @@
+ 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
+ 	if (!line || !*line)
+ 		goto out;
+-	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_PROFILE);
++	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_ACL_POLICY);
+ 	if (!fp)
+ 		goto out;
+ 	for (index = 0; index < ccs_gacl_list_count; index++) {
+@@ -2793,7 +2494,6 @@
+ 		if (cp)
+ 			*cp = '\0';
+ 		directive = ccs_gacl_list[index].directive;
+-		fprintf(fp, "%s ", ccs_current_ns->name);
+ 		if (directive < 256)
+ 			fprintf(fp, "%u-", directive);
+ 		fprintf(fp, "%s=%s\n", buf, line);
+@@ -2850,22 +2550,13 @@
+  *
+  * @current: Index in the domain policy.
+  *
+- * Returns true if next window is ACL list or namespace list, false otherwise.
++ * Returns true if next window is ACL list, false otherwise.
+  */
+ static _Bool ccs_select_acl_window(const int current)
+ {
+ 	char *old_domain;
+ 	if (current == EOF)
+ 		return false;
+-	if (ccs_current_screen == CCS_SCREEN_NS_LIST) {
+-		const char *namespace = ccs_gacl_list[current].operand;
+-		if (ccs_previous_screen == CCS_SCREEN_ACL_LIST &&
+-		    strcmp(ccs_current_ns->name, namespace))
+-			ccs_previous_screen = CCS_SCREEN_DOMAIN_LIST;
+-		ccs_current_ns = ccs_savename(namespace);
+-		ccs_current_screen = ccs_previous_screen;
+-		return true;
+-	}
+ 	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST)
+ 		return false;
+ 	ccs_current_pid = 0;
+@@ -2882,16 +2573,6 @@
+ 			}
+ 			ccs_show_list();
+ 		}
+-		if (redirect_index == -2) {
+-			const char *domainname =
+-				ccs_dp.list[current].target->name;
+-			ccs_current_ns = ccs_get_ns(domainname);
+-			free(ccs_current_domain);
+-			ccs_current_domain = ccs_strdup(domainname);
+-			ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+-			ccs_force_move_cursor = true;
+-			return true;
+-		}
+ 		return false;
+ 	} else if (ccs_deleted_domain(current)) {
+ 		return false;
+@@ -2927,7 +2608,6 @@
+ 		printw("a     <<< Domain Policy Editor >>>\n");
+ 	printw("p     <<< Profile Editor >>>\n");
+ 	printw("m     <<< Manager Policy Editor >>>\n");
+-	printw("n     <<< Namespace Selector >>>\n");
+ 	if (!ccs_offline_mode) {
+ 		/* printw("i     <<< Interactive Enforcing Mode >>>\n"); */
+ 		printw("s     <<< Statistics >>>\n");
+@@ -2937,21 +2617,13 @@
+ 	refresh();
+ 	while (true) {
+ 		int c = ccs_getch2();
+-		if (c == 'E' || c == 'e')
+-			return CCS_SCREEN_EXCEPTION_LIST;
+ 		if (c == 'D' || c == 'd')
+ 			return CCS_SCREEN_DOMAIN_LIST;
+ 		if (c == 'A' || c == 'a')
+ 			if (ccs_select_acl_window(current))
+ 				return ccs_current_screen;
+-		if (c == 'P' || c == 'p')
+-			return CCS_SCREEN_PROFILE_LIST;
+ 		if (c == 'M' || c == 'm')
+ 			return CCS_SCREEN_MANAGER_LIST;
+-		if (c == 'N' || c == 'n') {
+-			ccs_previous_screen = ccs_current_screen;
+-			return CCS_SCREEN_NS_LIST;
+-		}
+ 		if (!ccs_offline_mode) {
+ 			/*
+ 			if (c == 'I' || c == 'i')
+@@ -3031,7 +2703,6 @@
+ 		} else
+ 			line = ccs_task_list[current].domain;
+ 		break;
+-	case CCS_SCREEN_EXCEPTION_LIST:
+ 	case CCS_SCREEN_ACL_LIST:
+ 		directive = ccs_gacl_list[current].directive;
+ 		line = ccs_shprintf("%s %s", ccs_directives[directive].alias,
+@@ -3061,23 +2732,14 @@
+ 		int y;
+ 		int current;
+ 	} saved_cursor[CCS_MAXSCREEN] = { };
+-	if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST) {
+-		ccs_policy_file = CCS_PROC_POLICY_EXCEPTION_POLICY;
+-		ccs_list_caption = "Exception Policy Editor";
+-	} else if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
+-		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
+-		ccs_list_caption = "Domain Policy Editor";
++	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
++		ccs_policy_file = CCS_PROC_POLICY_ACL_POLICY;
++		ccs_list_caption = "ACL Policy Editor";
+ 		/*
+ 	} else if (ccs_current_screen == CCS_SCREEN_QUERY_LIST) {
+ 		ccs_policy_file = CCS_PROC_POLICY_QUERY;
+ 		ccs_list_caption = "Interactive Enforcing Mode";
+ 		*/
+-	} else if (ccs_current_screen == CCS_SCREEN_NS_LIST) {
+-		ccs_policy_file = CCS_PROC_POLICY_PROFILE;
+-		ccs_list_caption = "Namespace Selector";
+-	} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
+-		ccs_policy_file = CCS_PROC_POLICY_PROFILE;
+-		ccs_list_caption = "Profile Editor";
+ 	} else if (ccs_current_screen == CCS_SCREEN_MANAGER_LIST) {
+ 		ccs_policy_file = CCS_PROC_POLICY_MANAGER;
+ 		ccs_list_caption = "Manager Policy Editor";
+@@ -3085,7 +2747,7 @@
+ 		ccs_policy_file = CCS_PROC_POLICY_STAT;
+ 		ccs_list_caption = "Statistics";
+ 	} else {
+-		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
++		ccs_policy_file = CCS_PROC_POLICY_ACL_POLICY;
+ 		/* ccs_list_caption = "Domain Transition Editor"; */
+ 	}
+ 	ptr = &ccs_screen[ccs_current_screen];
+@@ -3140,15 +2802,6 @@
+ 		saved_cursor[ccs_current_screen].y = ptr->y;
+ 		if (c == 'q' || c == 'Q')
+ 			return CCS_MAXSCREEN;
+-		if ((c == '\r' || c == '\n') &&
+-		    ccs_current_screen == CCS_SCREEN_ACL_LIST)
+-			return CCS_SCREEN_DOMAIN_LIST;
+-		if (c == '\t') {
+-			if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST)
+-				return CCS_SCREEN_EXCEPTION_LIST;
+-			else
+-				return CCS_SCREEN_DOMAIN_LIST;
+-		}
+ 		if (ccs_need_reload) {
+ 			ccs_need_reload = false;
+ 			goto start;
+@@ -3210,10 +2863,11 @@
+ 			if (ccs_readonly_mode)
+ 				break;
+ 			switch (ccs_current_screen) {
++				/*
+ 			case CCS_SCREEN_DOMAIN_LIST:
+ 				if (ccs_domain_sort_type)
+ 					break;
+-			case CCS_SCREEN_EXCEPTION_LIST:
++				*/
+ 			case CCS_SCREEN_ACL_LIST:
+ 			case CCS_SCREEN_MANAGER_LIST:
+ 				ccs_delete_entry(current);
+@@ -3230,11 +2884,8 @@
+ 			case CCS_SCREEN_DOMAIN_LIST:
+ 				if (ccs_domain_sort_type)
+ 					break;
+-			case CCS_SCREEN_EXCEPTION_LIST:
+ 			case CCS_SCREEN_ACL_LIST:
+-			case CCS_SCREEN_PROFILE_LIST:
+ 			case CCS_SCREEN_MANAGER_LIST:
+-			case CCS_SCREEN_NS_LIST:
+ 				ccs_add_entry();
+ 				goto start;
+ 			default:
+@@ -3254,9 +2905,6 @@
+ 			case CCS_SCREEN_DOMAIN_LIST:
+ 				ccs_set_profile(current);
+ 				goto start;
+-			case CCS_SCREEN_PROFILE_LIST:
+-				ccs_set_level(current);
+-				goto start;
+ 			case CCS_SCREEN_STAT_LIST:
+ 				ccs_set_quota(current);
+ 				goto start;
+@@ -3284,22 +2932,11 @@
+ 		case KEY_IC:
+ 			ccs_copy_to_history(current);
+ 			break;
+-		case 'o':
+-		case 'O':
+-			if (ccs_current_screen == CCS_SCREEN_ACL_LIST ||
+-			    ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST) {
+-				ccs_editpolicy_optimize(current);
+-				ccs_show_list();
+-			}
+-			break;
+ 		case '@':
+ 			switch (ccs_current_screen) {
+ 			case CCS_SCREEN_ACL_LIST:
+ 				ccs_acl_sort_type = !ccs_acl_sort_type;
+ 				goto start;
+-			case CCS_SCREEN_PROFILE_LIST:
+-				ccs_profile_sort_type = !ccs_profile_sort_type;
+-				goto start;
+ 			case CCS_SCREEN_DOMAIN_LIST:
+ 				if (ccs_offline_mode)
+ 					break;
+@@ -3375,11 +3012,6 @@
+ 				goto usage;
+ 			ccs_policy_dir = ptr;
+ 			ccs_offline_mode = true;
+-		} else if (*ptr == '<') {
+-			if (ccs_current_ns || strchr(ptr, ' ') ||
+-			    !ccs_domain_def(ptr))
+-				goto usage;
+-			ccs_current_ns = ccs_savename(ptr);
+ 		} else if (cp) {
+ 			*cp++ = '\0';
+ 			if (ccs_network_mode || ccs_offline_mode)
+@@ -3389,32 +3021,25 @@
+ 			ccs_network_mode = true;
+ 			if (!ccs_check_remote_host())
+ 				exit(1);
+-		} else if (!strcmp(ptr, "e"))
+-			ccs_current_screen = CCS_SCREEN_EXCEPTION_LIST;
+-		else if (!strcmp(ptr, "d"))
+-			ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+-		else if (!strcmp(ptr, "p"))
+-			ccs_current_screen = CCS_SCREEN_PROFILE_LIST;
++		}
++		else if (!strcmp(ptr, "a"))
++			ccs_current_screen = CCS_SCREEN_ACL_LIST;
+ 		else if (!strcmp(ptr, "m"))
+ 			ccs_current_screen = CCS_SCREEN_MANAGER_LIST;
+ 		else if (!strcmp(ptr, "s"))
+ 			ccs_current_screen = CCS_SCREEN_STAT_LIST;
+-		else if (!strcmp(ptr, "n"))
+-			ccs_current_screen = CCS_SCREEN_NS_LIST;
+ 		else if (!strcmp(ptr, "readonly"))
+ 			ccs_readonly_mode = true;
+ 		else if (sscanf(ptr, "refresh=%u", &ccs_refresh_interval)
+ 			 != 1) {
+ usage:
+-			printf("Usage: %s [e|d|p|m|s|n] [readonly] "
+-			       "[refresh=interval] [<namespace>]"
++			printf("Usage: %s [a|m|s] [readonly] "
++			       "[refresh=interval] "
+ 			       "[{policy_dir|remote_ip:remote_port}]\n",
+ 			       argv[0]);
+ 			exit(1);
+ 		}
+ 	}
+-	if (!ccs_current_ns)
+-		ccs_current_ns = ccs_savename("<kernel>");
+ }
+ 
+ /**
+@@ -3466,7 +3091,7 @@
+ 		if (close(pipe_fd[1]) ||
+ 		    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_NONBLOCK))
+ 			_exit(1);
+-		ccs_editpolicy_offline_daemon(fd, pipe_fd[0]);
++		//ccs_editpolicy_offline_daemon(fd, pipe_fd[0]);
+ 		_exit(1);
+ 	case -1:
+ 		fprintf(stderr, "fork()\n");
+@@ -3474,10 +3099,7 @@
+ 	}
+ 	if (close(fd) || close(pipe_fd[0]))
+ 		exit(1);
+-	ccs_copy_file("profile.conf", CCS_PROC_POLICY_PROFILE);
+-	ccs_copy_file("exception_policy.conf",
+-		      CCS_PROC_POLICY_EXCEPTION_POLICY);
+-	ccs_copy_file("domain_policy.conf", CCS_PROC_POLICY_DOMAIN_POLICY);
++	ccs_copy_file("acl_policy.conf", CCS_PROC_POLICY_ACL_POLICY);
+ 	ccs_copy_file("manager.conf", CCS_PROC_POLICY_MANAGER);
+ 	if (chdir("..")) {
+ 		fprintf(stderr, "Directory %s/policy/ doesn't exist.\n",
+@@ -3493,17 +3115,14 @@
+  */
+ static void ccs_load_readwrite(void)
+ {
+-	const int fd1 = ccs_open2(CCS_PROC_POLICY_EXCEPTION_POLICY, O_RDWR);
+-	const int fd2 = ccs_open2(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
+-	if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
+-	    (fd2 != EOF && write(fd2, "", 0) != 0)) {
++	const int fd = ccs_open2(CCS_PROC_POLICY_ACL_POLICY, O_RDWR);
++	if (fd != EOF && write(fd, "", 0) != 0) {
+ 		fprintf(stderr, "In order to run this program, it must be "
+ 			"registered to %s . "
+ 			"Please reboot.\n", CCS_PROC_POLICY_MANAGER);
+ 		exit(1);
+ 	}
+-	close(fd1);
+-	close(fd2);
++	close(fd);
+ }
+ 
+ /**
+@@ -3531,21 +3150,13 @@
+ 			exit(1);
+ 		}
+ 	}
+-	if ((symlink("policy/current/profile.conf", "../profile.conf") &&
++	if ((symlink("policy/current/manager.conf", "../manager.conf") &&
+ 	     errno != EEXIST) ||
+-	    (symlink("policy/current/manager.conf", "../manager.conf") &&
++	    (symlink("policy/current/acl_policy.conf", "../acl_policy.conf") &&
+ 	     errno != EEXIST) ||
+-	    (symlink("policy/current/exception_policy.conf",
+-		     "../exception_policy.conf") && errno != EEXIST) ||
+-	    (symlink("policy/current/domain_policy.conf",
+-		     "../domain_policy.conf") && errno != EEXIST) ||
+ 	    chdir(stamp) ||
+-	    !ccs_save_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
+ 	    !ccs_save_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
+-	    !ccs_save_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
+-			      "exception_policy.conf") ||
+-	    !ccs_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
+-			      "domain_policy.conf") ||
++	    !ccs_save_to_file(CCS_PROC_POLICY_ACL_POLICY, "acl_policy.conf") ||
+ 	    chdir("..") ||
+ 	    (rename("current", "previous") && errno != ENOENT) ||
+ 	    symlink(stamp, "current")) {
+Index: usr_sbin/editpolicy_offline.c
+===================================================================
+--- usr_sbin/editpolicy_offline.c	(revision 5824)
++++ usr_sbin/editpolicy_offline.c	(working copy)
+@@ -1,3 +1,4 @@
++#if 0
+ /*
+  * editpolicy_offline.c
+  *
+@@ -4591,3 +4592,4 @@
+ 		close(fd);
+ 	}
+ }
++#endif
+Index: usr_sbin/editpolicy_optimizer.c
+===================================================================
+--- usr_sbin/editpolicy_optimizer.c	(revision 5824)
++++ usr_sbin/editpolicy_optimizer.c	(working copy)
+@@ -59,20 +59,17 @@
+ (const char *group_name);
+ 
+ /**
+- * ccs_find_path_group_ns - Find "path_group" entry.
++ * ccs_find_path_group - Find "path_group" entry.
+  *
+- * @ns:         Pointer to "const struct ccs_path_info".
+  * @group_name: Name of path group.
+  *
+  * Returns pointer to "struct ccs_path_group_entry" if found, NULL otherwise.
+  */
+-struct ccs_path_group_entry *ccs_find_path_group_ns
+-(const struct ccs_path_info *ns, const char *group_name)
++struct ccs_path_group_entry *ccs_find_path_group(const char *group_name)
+ {
+ 	int i;
+ 	for (i = 0; i < ccs_path_group_list_len; i++) {
+-		if (!ccs_pathcmp(ccs_path_group_list[i].ns, ns) &&
+-		    !strcmp(group_name,
++		if (!strcmp(group_name,
+ 			    ccs_path_group_list[i].group_name->name))
+ 			return &ccs_path_group_list[i];
+ 	}
+@@ -122,7 +119,7 @@
+ 		/* Pathname component. */
+ 		return ccs_path_matches_pattern(&d, &s);
+ 	/* path_group component. */
+-	group = ccs_find_path_group_ns(ccs_current_ns, s.name + 1);
++	group = ccs_find_path_group(s.name + 1);
+ 	if (!group)
+ 		return false;
+ 	for (i = 0; i < group->member_name_len; i++) {
+@@ -313,6 +310,7 @@
+ 	return false;
+ }
+ 
++#if 0
+ /**
+  * ccs_editpolicy_optimize - Try to merge entries included in other entries.
+  *
+@@ -457,6 +455,7 @@
+ 	ccs_put();
+ 	free(cp);
+ }
++#endif
+ 
+ /**
+  * ccs_add_address_group_entry - Add "address_group" entry.
+Index: usr_sbin/ccs-pstree.c
+===================================================================
+--- usr_sbin/ccs-pstree.c	(revision 5824)
++++ usr_sbin/ccs-pstree.c	(working copy)
+@@ -29,7 +29,6 @@
+ 		int j;
+ 		if (pid != ccs_task_list[i].pid)
+ 			continue;
+-		printf("%3d", ccs_task_list[i].profile);
+ 		for (j = 0; j < depth - 1; j++)
+ 			printf("    ");
+ 		for (; j < depth; j++)
+@@ -85,8 +84,7 @@
+ 	for (i = 0; i < ccs_task_list_len; i++) {
+ 		if (ccs_task_list[i].selected)
+ 			continue;
+-		printf("%3d %s (%u) %s\n",
+-		       ccs_task_list[i].profile, ccs_task_list[i].name,
++		printf(" %s (%u) %s\n", ccs_task_list[i].name,
+ 		       ccs_task_list[i].pid, ccs_task_list[i].domain);
+ 		ccs_task_list[i].selected = true;
+ 	}
+Index: usr_sbin/editpolicy_keyword.c
+===================================================================
+--- usr_sbin/editpolicy_keyword.c	(revision 5824)
++++ usr_sbin/editpolicy_keyword.c	(working copy)
+@@ -25,12 +25,10 @@
+ 
+ /* keyword array for rewriting keywords upon display. */
+ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
+-	[CCS_DIRECTIVE_ACL_GROUP] = { "acl_group", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_ADDRESS_GROUP] = { "address_group", NULL, 0, 0 },
+-	[CCS_DIRECTIVE_AGGREGATOR]    = { "aggregator", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_CAPABILITY]    = { "capability", NULL, 0, 0 },
+-	[CCS_DIRECTIVE_DEFAULT_TRANSITION]
+-	= { "default_transition", NULL, 0, 0 },
++	[CCS_DIRECTIVE_DOMAIN_TRANSITION]
++	= { "domain_transition", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_FILE_APPEND]   = { "file append", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_FILE_CHGRP]    = { "file chgrp", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_FILE_CHMOD]    = { "file chmod", NULL, 0, 0 },
+@@ -63,7 +61,6 @@
+ 	[CCS_DIRECTIVE_NONE]          = { "", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_NUMBER_GROUP]  = { "number_group", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_PATH_GROUP]    = { "path_group", NULL, 0, 0 },
+-	[CCS_DIRECTIVE_QUOTA_EXCEEDED] = { "quota_exceeded", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_TASK_AUTO_DOMAIN_TRANSITION]
+ 	= { "task auto_domain_transition", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_TASK_AUTO_EXECUTE_HANDLER]
+@@ -72,10 +69,6 @@
+ 	= { "task denied_execute_handler", NULL, 0, 0 },
+ 	[CCS_DIRECTIVE_TASK_MANUAL_DOMAIN_TRANSITION]
+ 	= { "task manual_domain_transition", NULL, 0, 0 },
+-	[CCS_DIRECTIVE_TRANSITION_FAILED]
+-	= { "transition_failed", NULL, 0, 0 },
+-	[CCS_DIRECTIVE_USE_GROUP]     = { "use_group", NULL, 0, 0 },
+-	[CCS_DIRECTIVE_USE_PROFILE]   = { "use_profile", NULL, 0, 0 },
+ };
+ 
+ /**
+Index: usr_sbin/editpolicy.h
+===================================================================
+--- usr_sbin/editpolicy.h	(revision 5824)
++++ usr_sbin/editpolicy.h	(working copy)
+@@ -24,24 +24,19 @@
+ #include <curses.h>
+ 
+ enum ccs_screen_type {
+-	CCS_SCREEN_EXCEPTION_LIST,
+-	CCS_SCREEN_DOMAIN_LIST,
+ 	CCS_SCREEN_ACL_LIST,
+-	CCS_SCREEN_PROFILE_LIST,
+ 	CCS_SCREEN_MANAGER_LIST,
+ 	/* CCS_SCREEN_QUERY_LIST, */
+-	CCS_SCREEN_NS_LIST,
+ 	CCS_SCREEN_STAT_LIST,
++	CCS_SCREEN_DOMAIN_LIST,
+ 	CCS_MAXSCREEN
+ };
+ 
+ enum ccs_editpolicy_directives {
+ 	CCS_DIRECTIVE_NONE,
+-	CCS_DIRECTIVE_ACL_GROUP,
+ 	CCS_DIRECTIVE_ADDRESS_GROUP,
+-	CCS_DIRECTIVE_AGGREGATOR,
+ 	CCS_DIRECTIVE_CAPABILITY,
+-	CCS_DIRECTIVE_DEFAULT_TRANSITION,
++	CCS_DIRECTIVE_DOMAIN_TRANSITION,
+ 	CCS_DIRECTIVE_FILE_APPEND,
+ 	CCS_DIRECTIVE_FILE_CHGRP,
+ 	CCS_DIRECTIVE_FILE_CHMOD,
+@@ -73,14 +68,10 @@
+ 	CCS_DIRECTIVE_NETWORK_UNIX,
+ 	CCS_DIRECTIVE_NUMBER_GROUP,
+ 	CCS_DIRECTIVE_PATH_GROUP,
+-	CCS_DIRECTIVE_QUOTA_EXCEEDED,
+ 	CCS_DIRECTIVE_TASK_AUTO_DOMAIN_TRANSITION,
+ 	CCS_DIRECTIVE_TASK_AUTO_EXECUTE_HANDLER,
+ 	CCS_DIRECTIVE_TASK_DENIED_EXECUTE_HANDLER,
+ 	CCS_DIRECTIVE_TASK_MANUAL_DOMAIN_TRANSITION,
+-	CCS_DIRECTIVE_TRANSITION_FAILED,
+-	CCS_DIRECTIVE_USE_GROUP,
+-	CCS_DIRECTIVE_USE_PROFILE,
+ 	CCS_MAX_DIRECTIVE_INDEX
+ };
+ 
+@@ -121,7 +112,6 @@
+ };
+ 
+ struct ccs_path_group_entry {
+-	const struct ccs_path_info *ns;
+ 	const struct ccs_path_info *group_name;
+ 	const struct ccs_path_info **member_name;
+ 	int member_name_len;
+@@ -166,8 +156,7 @@
+ void ccs_editpolicy_optimize(const int current);
+ void ccs_editpolicy_sttr_restore(void);
+ void ccs_editpolicy_sttr_save(void);
+-struct ccs_path_group_entry *ccs_find_path_group_ns
+-(const struct ccs_path_info *ns, const char *group_name);
++struct ccs_path_group_entry *ccs_find_path_group(const char *group_name);
+ 
+ struct ccs_domain {
+ 	const struct ccs_path_info *domainname;
+@@ -198,4 +187,3 @@
+ extern struct ccs_generic_acl *ccs_gacl_list;
+ extern struct ccs_path_group_entry *ccs_path_group_list;
+ extern struct ccs_screen ccs_screen[CCS_MAXSCREEN];
+-extern const struct ccs_path_info *ccs_current_ns;
+Index: usr_sbin/ccs-queryd.c
+===================================================================
+--- usr_sbin/ccs-queryd.c	(revision 5824)
++++ usr_sbin/ccs-queryd.c	(working copy)
+@@ -66,8 +66,8 @@
+ 
+ static unsigned short int ccs_retries = 0;
+ 
+-static FILE *ccs_domain_fp = NULL;
+-static int ccs_domain_policy_fd = EOF;
++static FILE *ccs_acl_fp = NULL;
++static int ccs_acl_policy_fd = EOF;
+ #define CCS_MAX_READLINE_HISTORY 20
+ static const char **ccs_readline_history = NULL;
+ static int ccs_readline_history_count = 0;
+@@ -121,25 +121,24 @@
+ 
+ 	if (c == 'S' || c == 's') {
+ 		if (ccs_network_mode) {
+-			fprintf(ccs_domain_fp, "%s", pidbuf);
+-			fputc(0, ccs_domain_fp);
+-			fflush(ccs_domain_fp);
+-			rewind(ccs_domain_fp);
++			fprintf(ccs_acl_fp, "%s", pidbuf);
++			fputc(0, ccs_acl_fp);
++			fflush(ccs_acl_fp);
++			rewind(ccs_acl_fp);
+ 			while (1) {
+ 				char c;
+-				if (fread(&c, 1, 1, ccs_domain_fp) != 1 || !c)
++				if (fread(&c, 1, 1, ccs_acl_fp) != 1 || !c)
+ 					break;
+ 				addch(c);
+ 				refresh();
+ 				ccs_send_keepalive();
+ 			}
+ 		} else {
+-			ret_ignored = write(ccs_domain_policy_fd, pidbuf,
++			ret_ignored = write(ccs_acl_policy_fd, pidbuf,
+ 					    strlen(pidbuf));
+ 			while (1) {
+ 				int i;
+-				int len = read(ccs_domain_policy_fd,
+-					       ccs_buffer,
++				int len = read(ccs_acl_policy_fd, ccs_buffer,
+ 					       sizeof(ccs_buffer) - 1);
+ 				if (len <= 0)
+ 					break;
+@@ -180,13 +179,12 @@
+ 				ccs_readline_history_count,
+ 				CCS_MAX_READLINE_HISTORY);
+ 	if (ccs_network_mode) {
+-		fprintf(ccs_domain_fp, "%s%s\n", pidbuf, line);
+-		fflush(ccs_domain_fp);
++		fprintf(ccs_acl_fp, "%s%s\n", pidbuf, line);
++		fflush(ccs_acl_fp);
+ 	} else {
+-		ret_ignored = write(ccs_domain_policy_fd, pidbuf,
+-				    strlen(pidbuf));
+-		ret_ignored = write(ccs_domain_policy_fd, line, strlen(line));
+-		ret_ignored = write(ccs_domain_policy_fd, "\n", 1);
++		ret_ignored = write(ccs_acl_policy_fd, pidbuf, strlen(pidbuf));
++		ret_ignored = write(ccs_acl_policy_fd, line, strlen(line));
++		ret_ignored = write(ccs_acl_policy_fd, "\n", 1);
+ 	}
+ 	ccs_printw("Added '%s'.\n", line);
+ not_append:
+@@ -247,11 +245,10 @@
+ ok:
+ 	if (ccs_network_mode) {
+ 		ccs_query_fd = ccs_open_stream("proc:query");
+-		ccs_domain_fp = ccs_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
++		ccs_acl_fp = ccs_open_write(CCS_PROC_POLICY_ACL_POLICY);
+ 	} else {
+ 		ccs_query_fd = open(CCS_PROC_POLICY_QUERY, O_RDWR);
+-		ccs_domain_policy_fd = open(CCS_PROC_POLICY_DOMAIN_POLICY,
+-					    O_RDWR);
++		ccs_acl_policy_fd = open(CCS_PROC_POLICY_ACL_POLICY, O_RDWR);
+ 	}
+ 	if (ccs_query_fd == EOF) {
+ 		fprintf(stderr,
+Index: usr_sbin/ccs-setprofile.c
+===================================================================
+--- usr_sbin/ccs-setprofile.c	(revision 5824)
++++ usr_sbin/ccs-setprofile.c	(working copy)
+@@ -1,107 +0,0 @@
+-/*
+- * ccs-setprofile.c
+- *
+- * TOMOYO Linux's utilities.
+- *
+- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+- *
+- * Version: 1.8.3   2011/09/29
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License v2 as published by the
+- * Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful, but WITHOUT
+- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+- * more details.
+- *
+- * You should have received a copy of the GNU General Public License along with
+- * this program; if not, write to the Free Software Foundation, Inc.,
+- * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+- */
+-#include "ccstools.h"
+-
+-int main(int argc, char *argv[])
+-{
+-	unsigned int profile = 0;
+-	_Bool recursive = false;
+-	int try;
+-	int i;
+-	int start = 2;
+-	if (argc > 1 && !strcmp(argv[1], "-r")) {
+-		recursive = true;
+-		start = 3;
+-	}
+-	if (argc <= start || sscanf(argv[start - 1], "%u", &profile) != 1) {
+-		fprintf(stderr,
+-			"%s [-r] profile domainname [domainname ...]\n",
+-			argv[0]);
+-		return 0;
+-	}
+-	for (i = start; i < argc; i++)
+-		ccs_normalize_line(argv[i]);
+-	{
+-		const int fd = open(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
+-		if (fd == EOF) {
+-			fprintf(stderr, "You can't run this command for this "
+-				"kernel.\n");
+-			return 1;
+-		} else if (write(fd, "", 0) != 0) {
+-			fprintf(stderr, "You need to register this program to "
+-				"%s to run this program.\n",
+-				CCS_PROC_POLICY_MANAGER);
+-			return 1;
+-		}
+-		close(fd);
+-	}
+-	for (try = 0; try < 2; try++) {
+-		FILE *fp_in = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r");
+-		FILE *fp_out = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "w");
+-		char *domainname = NULL;
+-		if (!fp_in || !fp_out) {
+-			fprintf(stderr, "Can't open policy file.\n");
+-			exit(1);
+-		}
+-		ccs_get();
+-		while (true) {
+-			char *line = ccs_freadline(fp_in);
+-			if (!line)
+-				break;
+-			if (domainname) {
+-				if (sscanf(line, "use_profile %u", &profile)
+-				    != 1)
+-					continue;
+-				printf("%u %s\n", profile, domainname);
+-				free(domainname);
+-				domainname = NULL;
+-				continue;
+-			}
+-			if (*line != '<')
+-				continue;
+-			for (i = start; i < argc; i++) {
+-				const int len = strlen(argv[i]);
+-				if (strncmp(line, argv[i], len))
+-					continue;
+-				if (!recursive) {
+-					if (line[len])
+-						continue;
+-				} else {
+-					if (line[len] && line[len] != ' ')
+-						continue;
+-				}
+-				if (try) {
+-					domainname = ccs_strdup(line);
+-					break;
+-				}
+-				fprintf(fp_out, "select %s\nuse_profile %u\n",
+-					line, profile);
+-				break;
+-			}
+-		}
+-		ccs_put();
+-		fclose(fp_in);
+-		fclose(fp_out);
+-	}
+-	return 0;
+-}
+Index: usr_sbin/ccs-savepolicy.c
+===================================================================
+--- usr_sbin/ccs-savepolicy.c	(revision 5824)
++++ usr_sbin/ccs-savepolicy.c	(working copy)
+@@ -65,23 +65,14 @@
+ 			return false;
+ 		}
+ 	}
+-	if ((symlink("policy/current/profile.conf", "../profile.conf") &&
++	if ((symlink("policy/current/manager.conf", "../manager.conf") &&
+ 	     errno != EEXIST) ||
+-	    (symlink("policy/current/manager.conf", "../manager.conf") &&
+-	     errno != EEXIST) ||
+-	    (symlink("policy/current/exception_policy.conf",
+-		     "../exception_policy.conf") && errno != EEXIST) ||
+-	    (symlink("policy/current/domain_policy.conf",
+-		     "../domain_policy.conf") && errno != EEXIST) ||
++	    (symlink("policy/current/acl_policy.conf",
++		     "../acl_policy.conf") && errno != EEXIST) ||
+ 	    chdir(stamp) ||
+-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
+ 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
+-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
+-				   "exception_policy.conf") ||
+ 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_ACL_POLICY,
+ 				   "acl_policy.conf") ||
+-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
+-				   "domain_policy.conf") ||
+ 	    chdir("..") ||
+ 	    (rename("current", "previous") && errno != ENOENT) ||
+ 	    symlink(stamp, "current")) {
+@@ -119,8 +110,7 @@
+ 			ccs_network_mode = true;
+ 		} else if (*ptr++ == '-' && !target) {
+ 			target = *ptr++;
+-			if (target != 'e' && target != 'a' && target != 'd' &&
+-			    target != 'p' && target != 'm' && target != 's')
++			if (target != 'a' && target != 'm' && target != 's')
+ 				goto usage;
+ 			if (*ptr || ccs_policy_dir) {
+ 				fprintf(stderr, "You cannot specify multiple "
+@@ -142,21 +132,12 @@
+ 	if (target) {
+ 		const char *file;
+ 		switch (target) {
+-		case 'p':
+-			file = CCS_PROC_POLICY_PROFILE;
+-			break;
+ 		case 'm':
+ 			file = CCS_PROC_POLICY_MANAGER;
+ 			break;
+-		case 'e':
+-			file = CCS_PROC_POLICY_EXCEPTION_POLICY;
+-			break;
+ 		case 'a':
+ 			file = CCS_PROC_POLICY_ACL_POLICY;
+ 			break;
+-		case 'd':
+-			file = CCS_PROC_POLICY_DOMAIN_POLICY;
+-			break;
+ 		default:
+ 			file = CCS_PROC_POLICY_STAT;
+ 			break;
+@@ -179,15 +160,12 @@
+ 	return !ccs_save_policy();
+ usage:
+ 	printf("%s [policy_dir [remote_ip:remote_port]]\n"
+-	       "%s [{-e|-a|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"
++	       "%s [{-a|-m|-s} [remote_ip:remote_port]]\n\n"
+ 	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
+ 	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
+ 	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+ 	       "directory.\n"
+-	       "-e : Print /proc/ccs/exception_policy to stdout.\n"
+ 	       "-a : Print /proc/ccs/acl_policy to stdout.\n"
+-	       "-d : Print /proc/ccs/domain_policy to stdout.\n"
+-	       "-p : Print /proc/ccs/profile to stdout.\n"
+ 	       "-m : Print /proc/ccs/manager to stdout.\n"
+ 	       "-s : Print /proc/ccs/stat to stdout.\n",
+ 	       argv[0], argv[0]);
+Index: usr_sbin/ccs-setlevel.c
+===================================================================
+--- usr_sbin/ccs-setlevel.c	(revision 5824)
++++ usr_sbin/ccs-setlevel.c	(working copy)
+@@ -1,80 +0,0 @@
+-/*
+- * ccs-setlevel.c
+- *
+- * TOMOYO Linux's utilities.
+- *
+- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+- *
+- * Version: 1.8.3   2011/09/29
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License v2 as published by the
+- * Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful, but WITHOUT
+- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+- * more details.
+- *
+- * You should have received a copy of the GNU General Public License along with
+- * this program; if not, write to the Free Software Foundation, Inc.,
+- * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+- */
+-#include "ccstools.h"
+-
+-int main(int argc, char *argv[])
+-{
+-	const char *policy_file = CCS_PROC_POLICY_PROFILE;
+-	int i;
+-	int fd;
+-	char c;
+-	if (access(CCS_PROC_POLICY_DIR, F_OK)) {
+-		fprintf(stderr, "You can't use this command for this "
+-			"kernel.\n");
+-		return 1;
+-	}
+-	fd = open(policy_file, O_RDWR);
+-	if (fd == EOF) {
+-		fprintf(stderr, "Can't open %s\n", policy_file);
+-		return 1;
+-	} else if (write(fd, "", 0) != 0) {
+-		fprintf(stderr, "You need to register this program to %s to "
+-			"run this program.\n", CCS_PROC_POLICY_MANAGER);
+-		return 1;
+-	}
+-	if (argc == 1) {
+-		printf("<<< Access Control Status >>>\n");
+-		while (read(fd, &c, 1) == 1)
+-			putchar(c);
+-	} else {
+-		FILE *fp = fdopen(fd, "r+");
+-		if (!fp) {
+-			fprintf(stderr, "Can't open %s\n", policy_file);
+-			close(fd);
+-			return 1;
+-		}
+-		for (i = 1; i < argc; i++) {
+-			char *cp = strchr(argv[i], '=');
+-			fprintf(fp, "%s\n", argv[i]);
+-			if (cp)
+-				*(cp + 1) = '\0';
+-		}
+-		fflush(fp);
+-		ccs_get();
+-		while (true) {
+-			char *line = ccs_freadline(fp);
+-			if (!line)
+-				break;
+-			for (i = 1; i < argc; i++) {
+-				if (strncmp(line, argv[i], strlen(argv[i])))
+-					continue;
+-				printf("%s\n", line);
+-				break;
+-			}
+-		}
+-		ccs_put();
+-		fclose(fp);
+-	}
+-	close(fd);
+-	return 0;
+-}
+Index: usr_sbin/ccstools.c
+===================================================================
+--- usr_sbin/ccstools.c	(revision 5824)
++++ usr_sbin/ccstools.c	(working copy)
+@@ -1417,7 +1417,7 @@
+ /**
+  * ccs_add_process_entry - Add entry for running processes.
+  *
+- * @line:    A line containing PID and profile and domainname.
++ * @line:    A line containing PID and domainname.
+  * @ppid:    Parent PID.
+  * @name:    Comm name (allocated by strdup()).
+  *
+@@ -1430,9 +1430,8 @@
+ {
+ 	int index;
+ 	unsigned int pid = 0;
+-	int profile = -1;
+ 	char *domain;
+-	if (!line || sscanf(line, "%u %u", &pid, &profile) != 2) {
++	if (!line || sscanf(line, "%u", &pid) != 1) {
+ 		free(name);
+ 		return;
+ 	}
+@@ -1447,7 +1446,6 @@
+ 	memset(&ccs_task_list[index], 0, sizeof(ccs_task_list[0]));
+ 	ccs_task_list[index].pid = pid;
+ 	ccs_task_list[index].ppid = ppid;
+-	ccs_task_list[index].profile = profile;
+ 	ccs_task_list[index].name = name;
+ 	ccs_task_list[index].domain = domain;
+ }
+@@ -1823,14 +1821,7 @@
+ 		ret_ignored = write(fd, dp->list[i].domainname->name,
+ 				    dp->list[i].domainname->total_len);
+ 		ret_ignored = write(fd, "\n", 1);
+-		if (dp->list[i].profile_assigned) {
+-			char buf[128];
+-			memset(buf, 0, sizeof(buf));
+-			snprintf(buf, sizeof(buf) - 1, "use_profile %u\n\n",
+-				 dp->list[i].profile);
+-			ret_ignored = write(fd, buf, strlen(buf));
+-		} else
+-			ret_ignored = write(fd, "\n", 1);
++		ret_ignored = write(fd, "\n", 1);
+ 		for (j = 0; j < string_count; j++) {
+ 			ret_ignored = write(fd, string_ptr[j]->name,
+ 					    string_ptr[j]->total_len);
+@@ -1961,7 +1952,6 @@
+ 		char *line = ccs_freadline_unpack(fp);
+ 		_Bool is_delete = false;
+ 		_Bool is_select = false;
+-		unsigned int profile;
+ 		if (!line)
+ 			break;
+ 		if (ccs_str_starts(line, "delete "))
+@@ -1986,10 +1976,7 @@
+ 		}
+ 		if (index == EOF || !line[0])
+ 			continue;
+-		if (sscanf(line, "use_profile %u", &profile) == 1) {
+-			dp->list[index].profile = (u8) profile;
+-			dp->list[index].profile_assigned = 1;
+-		} else if (is_delete)
++		if (is_delete)
+ 			ccs_del_string_entry(dp, line, index);
+ 		else
+ 			ccs_add_string_entry(dp, line, index);
+@@ -2002,8 +1989,6 @@
+ 			= dp->list[i].string_ptr;
+ 		const int string_count = dp->list[i].string_count;
+ 		fprintf(fp, "%s\n", ccs_domain_name(dp, i));
+-		if (dp->list[i].profile_assigned)
+-			fprintf(fp, "use_profile %u\n", dp->list[i].profile);
+ 		fprintf(fp, "\n");
+ 		for (j = 0; j < string_count; j++)
+ 			fprintf(fp, "%s\n", string_ptr[j]->name);
+Index: usr_sbin/ccs-domainmatch.c
+===================================================================
+--- usr_sbin/ccs-domainmatch.c	(revision 5824)
++++ usr_sbin/ccs-domainmatch.c	(working copy)
+@@ -32,7 +32,7 @@
+ 		printf("%s string_to_find\n\n", argv[0]);
+ 		return 0;
+ 	}
+-	fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r");
++	fp = fopen(CCS_PROC_POLICY_ACL_POLICY, "r");
+ 	if (!fp) {
+ 		fprintf(stderr,
+ 			"You can't run this program for this kernel.\n");
+Index: usr_sbin/Makefile
+===================================================================
+--- usr_sbin/Makefile	(revision 5824)
++++ usr_sbin/Makefile	(working copy)
+@@ -2,8 +2,7 @@
+ 
+ BUILD_FILES := ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
+ 	ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize \
+-	ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-setlevel \
+-	ccs-setprofile ccs-sortpolicy
++	ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-sortpolicy
+ 
+ all: libccstools.so $(BUILD_FILES)
+ 
+Index: usr_lib_ccs/init_policy.c
+===================================================================
+--- usr_lib_ccs/init_policy.c	(revision 5824)
++++ usr_lib_ccs/init_policy.c	(working copy)
+@@ -236,9 +236,9 @@
+ 				((c >> 3) & 7) + '0', (c & 7) + '0');
+ 		}
+ 	}
+-	if (keyword && !strcmp(keyword, "default_transition")) {
++	if (keyword && !strcmp(keyword, "domain_transition")) {
+ 		str = str0;
+-		fprintf(filp, " <kernel> ");
++		fprintf(filp, " ");
+ 		while (1) {
+ 			const char c = *str++;
+ 			if (!c)
+@@ -262,7 +262,7 @@
+ static char path[8192];
+ 
+ /**
+- * scan_init_scripts - Scan /etc/rc\?.d/ directories for default_transition entries.
++ * scan_init_scripts - Scan /etc/rc\?.d/ directories for domain_transition entries.
+  *
+  * Returns nothing.
+  */
+@@ -292,7 +292,7 @@
+ 			path[len] = '\0';
+ 			if (entity) {
+ 				char *cp = strrchr(path, '/');
+-				fprintf(filp, "default_transition ");
++				fprintf(filp, "domain_transition ");
+ 				/*
+ 				 * Use /rc\?.d/ rather than /rc0.d/ /rc1.d/
+ 				 * /rc2.d/ /rc3.d/ /rc4.d/ /rc5.d/ /rc6.d/
+@@ -310,9 +310,8 @@
+ 				fprintf(filp, "/\\?\\+\\+");
+ 				printf_encoded(name + 3);
+ 				fputc(' ', filp);
+-				fprintf(filp, "<kernel> ");
+ 				printf_encoded(entity);
+-				fputc('\n', filp);
++				fprintf(filp, "\n");
+ 				free(entity);
+ 			}
+ 		}
+@@ -322,13 +321,13 @@
+ }
+ 
+ /**
+- * make_init_scripts_as_default_transitions - Use realpath for startup/shutdown scripts in /etc/ directory.
++ * make_init_scripts_as_domain_transitions - Use realpath for startup/shutdown scripts in /etc/ directory.
+  *
+  * Returns nothing.
+  */
+-static void make_init_scripts_as_default_transitions(void)
++static void make_init_scripts_as_domain_transitions(void)
+ {
+-	/* Mark symlinks under /etc/rc\?.d/ directory as default_transition. */
++	/* Mark symlinks under /etc/rc\?.d/ directory as domain_transition. */
+ 	static const char * const dirs[] = {
+ 		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
+ 		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
+@@ -379,7 +378,7 @@
+ }
+ 
+ /**
+- * scan_modprobe_and_hotplug - Mark modprobe and hotplug as default_transition entries.
++ * scan_modprobe_and_hotplug - Mark modprobe and hotplug as domain_transition entries.
+  *
+  * Returns nothing.
+  */
+@@ -409,7 +408,7 @@
+ 			continue;
+ 		/* We ignore /bin/true if /proc/sys/kernel/modprobe said so. */
+ 		if (strcmp(cp, "/bin/true") && !access(cp, X_OK)) {
+-			keyword = "default_transition";
++			keyword = "domain_transition";
+ 			printf_encoded(cp);
+ 		}
+ 		free(cp);
+@@ -417,147 +416,26 @@
+ }
+ 
+ /**
+- * make_globally_readable_files - Mark some files as globally readable.
++ * make_init_dir_as_domain_transitions - Mark programs under /etc/init.d/ directory as domain_transition entries.
+  *
+  * Returns nothing.
+  */
+-static void make_globally_readable_files(void)
++static void make_init_dir_as_domain_transitions(void)
+ {
+-	/* Allow reading some data files. */
+-	static const char * const files[] = {
+-		"/etc/ld.so.cache", "/proc/meminfo",
+-		"/proc/sys/kernel/version", "/etc/localtime",
+-		"/usr/lib/gconv/gconv-modules.cache",
+-		"/usr/lib32/gconv/gconv-modules.cache",
+-		"/usr/lib64/gconv/gconv-modules.cache",
+-		"/usr/share/locale/locale.alias"
+-	};
+-	int i;
+-	keyword = "acl_group GLOBALLY_GRANTED_PERMISSIONS file read";
+-	for (i = 0; i < elementof(files); i++) {
+-		char *cp = get_realpath(files[i]);
+-		if (!cp)
+-			continue;
+-		printf_encoded(cp);
+-		free(cp);
+-	}
+-}
+-
+-/**
+- * make_self_readable_files - Mark /proc/self/ files as globally readable.
+- *
+- * Returns nothing.
+- */
+-static void make_self_readable_files(void)
+-{
+-	/* Allow reading information for current process. */
+-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read "
+-	     "proc:/self/\\*");
+-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read "
+-	     "proc:/self/\\{\\*\\}/\\*");
+-}
+-
+-/**
+- * make_ldconfig_readable_files - Mark shared library files as globally readable.
+- *
+- * Returns nothing.
+- *
+- * We don't scan predefined directories if ldconfig does not exist (e.g.
+- * embedded environment).
+- */
+-static void make_ldconfig_readable_files(void)
+-{
+-	/* Allow reading DLL files registered with ldconfig(8). */
+-	static const char * const dirs[] = {
+-		"/lib/", "/lib/i486/", "/lib/i586/", "/lib/i686/",
+-		"/lib/i686/cmov/", "/lib/tls/", "/lib/tls/i486/",
+-		"/lib/tls/i586/", "/lib/tls/i686/", "/lib/tls/i686/cmov/",
+-		"/lib/i686/nosegneg/", "/usr/lib/", "/usr/lib/i486/",
+-		"/usr/lib/i586/", "/usr/lib/i686/", "/usr/lib/i686/cmov/",
+-		"/usr/lib/tls/", "/usr/lib/tls/i486/", "/usr/lib/tls/i586/",
+-		"/usr/lib/tls/i686/", "/usr/lib/tls/i686/cmov/",
+-		"/usr/lib/sse2/", "/usr/X11R6/lib/", "/usr/lib32/",
+-		"/usr/lib64/", "/lib64/", "/lib64/tls/",
+-	};
+-	int i;
+-	FILE *fp = !access("/sbin/ldconfig", X_OK) ||
+-		!access("/bin/ldconfig", X_OK)
+-		? popen("ldconfig -NXp", "r") : NULL;
+-	if (!fp)
+-		return;
+-	keyword = NULL;
+-	for (i = 0; i < elementof(dirs); i++) {
+-		char *cp = get_realpath(dirs[i]);
+-		if (!cp)
+-			continue;
+-		fprintf(filp, "acl_group GLOBALLY_GRANTED_PERMISSIONS "
+-			"file read ");
+-		printf_encoded(cp);
+-		fprintf(filp, "/lib\\*.so\\*\n");
+-		free(cp);
+-	}
+-	while (memset(path, 0, sizeof(path)) &&
+-	       fgets(path, sizeof(path) - 1, fp)) {
+-		char *cp = strchr(path, '\n');
+-		if (!cp)
+-			break;
+-		*cp = '\0';
+-		cp = strstr(path, " => ");
+-		if (!cp)
+-			continue;
+-		cp = get_realpath(cp + 4);
+-		if (!cp)
+-			continue;
+-		for (i = 0; i < elementof(dirs); i++) {
+-			const int len = strlen(dirs[i]);
+-			if (!strncmp(cp, dirs[i], len) &&
+-			    !strncmp(cp + len, "lib", 3) &&
+-			    strstr(cp + len + 3, ".so"))
+-				break;
+-		}
+-		if (i == elementof(dirs)) {
+-			char *cp2 = strrchr(cp, '/');
+-			const int len = strlen(cp);
+-			char buf[16];
+-			memset(buf, 0, sizeof(buf));
+-			fprintf(filp, "acl_group GLOBALLY_GRANTED_PERMISSIONS "
+-				"file read ");
+-			if (cp2 && !strncmp(cp2, "/ld-2.", 6) &&
+-			    len > 3 && !strcmp(cp + len - 3, ".so"))
+-				*(cp2 + 6) = '\0';
+-			else
+-				cp2 = NULL;
+-			printf_encoded(cp);
+-			if (cp2)
+-				fprintf(filp, "\\*.so");
+-			fputc('\n', filp);
+-		}
+-		free(cp);
+-	}
+-	pclose(fp);
+-}
+-
+-/**
+- * make_init_dir_as_default_transitions - Mark programs under /etc/init.d/ directory as default_transition entries.
+- *
+- * Returns nothing.
+- */
+-static void make_init_dir_as_default_transitions(void)
+-{
+ 	char *dir = get_realpath("/etc/init.d/");
+ 	if (!dir)
+ 		return;
+-	keyword = "default_transition";
++	keyword = "domain_transition";
+ 	scan_executable_files(dir);
+ 	free(dir);
+ }
+ 
+ /**
+- * make_daemons_as_default_transitions - Mark daemon programs as default_transition entries.
++ * make_daemons_as_domain_transitions - Mark daemon programs as domain_transition entries.
+  *
+  * Returns nothing.
+  */
+-static void make_daemons_as_default_transitions(void)
++static void make_daemons_as_domain_transitions(void)
+ {
+ 	static const char * const files[] = {
+ 		"/sbin/cardmgr",
+@@ -612,7 +490,7 @@
+ 		"/usr/sbin/xinetd"
+ 	};
+ 	int i;
+-	keyword = "default_transition";
++	keyword = "domain_transition";
+ 	for (i = 0; i < elementof(files); i++) {
+ 		char *cp = get_realpath(files[i]);
+ 		if (!cp)
+@@ -680,11 +558,7 @@
+ 		*(dir - 1) = '/';
+ 	}
+ 	if (mkdir2(policy_dir, 0700) || chdir(policy_dir) ||
+-	    symlink2("policy/current/exception_policy.conf",
+-		     "exception_policy.conf") ||
+-	    symlink2("policy/current/domain_policy.conf",
+-		     "domain_policy.conf") ||
+-	    symlink2("policy/current/profile.conf", "profile.conf") ||
++	    symlink2("policy/current/acl_policy.conf", "acl_policy.conf") ||
+ 	    symlink2("policy/current/manager.conf", "manager.conf") ||
+ 	    mkdir2("policy", 0700) || chdir("policy") || mkdir2(stamp, 0700) ||
+ 	    symlink2(stamp, "previous") || symlink2(stamp, "current") ||
+@@ -708,48 +582,6 @@
+ }
+ 
+ /**
+- * make_number_group - Make number_group entries.
+- *
+- * Returns nothing.
+- */
+-static void make_number_group(void)
+-{
+-	echo("number_group COMMON_IOCTL_CMDS 0x5401");
+-}
+-
+-/**
+- * make_ioctl - Allow ioctl with common ioctl numbers.
+- *
+- * Returns nothing.
+- */
+-static void make_ioctl(void)
+-{
+-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file ioctl \\=any "
+-	     "@COMMON_IOCTL_CMDS");
+-}
+-
+-/**
+- * make_getattr - Allow getting attributes.
+- *
+- * Returns nothing.
+- */
+-static void make_getattr(void)
+-{
+-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file getattr \\=any");
+-}
+-
+-/**
+- * make_readdir - Allow reading directories.
+- *
+- * Returns nothing.
+- */
+-static void make_readdir(void)
+-{
+-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read \\=any "
+-	     "path1.type=directory");
+-}
+-
+-/**
+  * chdir_policy - Change to policy directory.
+  *
+  * Returns 1 on success, 0 otherwise.
+@@ -784,35 +616,28 @@
+ }
+ 
+ /**
+- * make_exception_policy - Make /etc/ccs/policy/current/exception_policy.conf .
++ * make_acl_policy - Make /etc/ccs/policy/current/acl_policy.conf .
+  *
+  * Returns nothing.
+  */
+-static void make_exception_policy(void)
++static void make_acl_policy(void)
+ {
+ 	if (!chdir_policy())
+ 		return;
+-	if (!access("exception_policy.conf", R_OK))
++	if (!access("acl_policy.conf", R_OK))
+ 		return;
+-	filp = fopen("exception_policy.tmp", "w");
++	filp = fopen("acl_policy.tmp", "w");
+ 	if (!filp) {
+-		fprintf(stderr, "ERROR: Can't create exception policy.\n");
++		fprintf(stderr, "ERROR: Can't create acl policy.\n");
+ 		return;
+ 	}
+-	fprintf(stderr, "Creating exception policy... ");
+-	make_globally_readable_files();
+-	make_self_readable_files();
+-	make_ldconfig_readable_files();
+-	make_number_group();
+-	make_ioctl();
+-	make_readdir();
+-	make_getattr();
++	fprintf(stderr, "Creating acl policy... ");
++	fprintf(filp, "POLICY_VERSION=20100903\n");
+ 	scan_modprobe_and_hotplug();
+-	make_daemons_as_default_transitions();
+-	make_init_dir_as_default_transitions();
+-	make_init_scripts_as_default_transitions();
+-	close_file(filp, chdir_policy(), "exception_policy.tmp",
+-		   "exception_policy.conf");
++	make_daemons_as_domain_transitions();
++	make_init_dir_as_domain_transitions();
++	make_init_scripts_as_domain_transitions();
++	close_file(filp, chdir_policy(), "acl_policy.tmp", "acl_policy.conf");
+ 	filp = NULL;
+ }
+ 
+@@ -836,104 +661,13 @@
+ 	}
+ 	fprintf(stderr, "Creating manager policy... ");
+ 	tools_dir = get_realpath("/usr/sbin");
+-	fprintf(fp, "%s/ccs-loadpolicy\n", tools_dir);
+-	fprintf(fp, "%s/ccs-editpolicy\n", tools_dir);
+-	fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
+-	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
+-	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
++	fprintf(fp, "path %s/ccs-loadpolicy\n", tools_dir);
++	fprintf(fp, "path %s/ccs-editpolicy\n", tools_dir);
++	fprintf(fp, "path %s/ccs-queryd\n", tools_dir);
+ 	close_file(fp, 1, "manager.tmp", "manager.conf");
+ }
+ 
+-/* Should we create profiles that restricts file only? */
+-static _Bool file_only_profile = 0;
+-/* Should we audit access granted logs? */
+-static const char *grant_log = "no";
+-/* Should we audit access rejected logs? */
+-static const char *reject_log = "yes";
+-/* How many audit log entries to spool in the kenrel memory? */
+-static unsigned int max_audit_log = 1024;
+-/* How many ACL entries to add automatically by learning mode? */
+-static unsigned int max_learning_entry = 2048;
+-/* How long should we carry sleep penalty? */
+-static unsigned int enforcing_penalty = 0;
+-
+ /**
+- * make_profile - Make /etc/ccs/policy/current/profile.conf .
+- *
+- * Returns nothing.
+- */
+-static void make_profile(void)
+-{
+-	static const char *file_only = "";
+-	FILE *fp;
+-	if (!chdir_policy())
+-		return;
+-	if (!access("profile.conf", R_OK))
+-		return;
+-	fp = fopen("profile.tmp", "w");
+-	if (!fp) {
+-		fprintf(stderr, "ERROR: Can't create profile policy.\n");
+-		return;
+-	}
+-	fprintf(stderr, "Creating default profile... ");
+-	if (file_only_profile)
+-		file_only = "::file";
+-	fprintf(fp, "PROFILE_VERSION=20100903\n");
+-	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
+-		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+-		"enforcing_penalty=%u }\n"
+-		"0-CONFIG%s={ mode=disabled grant_log=%s reject_log=%s }\n",
+-		max_audit_log, max_learning_entry, enforcing_penalty,
+-		file_only, grant_log, reject_log);
+-	fprintf(fp, "1-COMMENT=-----Learning Mode-----\n"
+-		"1-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+-		"enforcing_penalty=%u }\n"
+-		"1-CONFIG%s={ mode=learning grant_log=%s reject_log=%s }\n",
+-		max_audit_log, max_learning_entry, enforcing_penalty,
+-		file_only, grant_log, reject_log);
+-	fprintf(fp, "2-COMMENT=-----Permissive Mode-----\n"
+-		"2-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+-		"enforcing_penalty=%u }\n"
+-		"2-CONFIG%s={ mode=permissive grant_log=%s reject_log=%s }\n",
+-		max_audit_log, max_learning_entry, enforcing_penalty,
+-		file_only, grant_log, reject_log);
+-	fprintf(fp, "3-COMMENT=-----Enforcing Mode-----\n"
+-		"3-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
+-		"enforcing_penalty=%u }\n"
+-		"3-CONFIG%s={ mode=enforcing grant_log=%s reject_log=%s }\n",
+-		max_audit_log, max_learning_entry, enforcing_penalty,
+-		file_only, grant_log, reject_log);
+-	close_file(fp, 1, "profile.tmp", "profile.conf");
+-}
+-
+-/* Which profile number does <kernel> domain use? */
+-static unsigned char default_profile = 0;
+-
+-/**
+- * make_domain_policy - Make /etc/ccs/policy/current/domain_policy.conf .
+- *
+- * Returns nothing.
+- */
+-static void make_domain_policy(void)
+-{
+-	FILE *fp;
+-	if (!chdir_policy())
+-		return;
+-	if (!access("domain_policy.conf", R_OK))
+-		return;
+-	fp = fopen("domain_policy.tmp", "w");
+-	if (!fp) {
+-		fprintf(stderr, "ERROR: Can't create domain policy.\n");
+-		return;
+-	}
+-	fprintf(stderr, "Creating domain policy... ");
+-	fprintf(fp, "<kernel>\nuse_profile %u\n"
+-		"use_group \\=GLOBALLY_GRANTED_PERMISSIONS\n",
+-		default_profile);
+-	close_file(fp, 1, "domain_policy.tmp", "domain_policy.conf");
+-}
+-
+-/**
+  * make_stat - Make /etc/ccs/stat.conf .
+  *
+  * Returns nothing.
+@@ -988,10 +722,9 @@
+ "# This file contains configuration used by ccs-editpolicy command.\n"
+ "\n"
+ "# Keyword alias. ( directive-name = display-name )\n"
+-"keyword_alias acl_group                     = acl_group\n"
+ "keyword_alias address_group                 = address_group\n"
+ "keyword_alias capability                    = capability\n"
+-"keyword_alias default_transition            = default_transition\n"
++"keyword_alias domain_transition             = domain_transition\n"
+ "keyword_alias file append                   = file append\n"
+ "keyword_alias file chgrp                    = file chgrp\n"
+ "keyword_alias file chmod                    = file chmod\n"
+@@ -1023,28 +756,19 @@
+ "keyword_alias network unix                  = network unix\n"
+ "keyword_alias number_group                  = number_group\n"
+ "keyword_alias path_group                    = path_group\n"
+-"keyword_alias quota_exceeded                = quota_exceeded\n"
+ "keyword_alias task auto_domain_transition   = task auto_domain_transition\n"
+ "keyword_alias task auto_execute_handler     = task auto_execute_handler\n"
+ "keyword_alias task denied_execute_handler   = task denied_execute_handler\n"
+ "keyword_alias task manual_domain_transition = task manual_domain_transition\n"
+-"keyword_alias use_group                     = use_group\n"
+-"keyword_alias use_profile                   = use_profile\n"
+ "\n"
+ "# Line color. 0 = BLACK, 1 = RED, 2 = GREEN, 3 = YELLOW, 4 = BLUE, "
+ "5 = MAGENTA, 6 = CYAN, 7 = WHITE\n"
+ "line_color ACL_CURSOR       = 03\n"
+ "line_color ACL_HEAD         = 03\n"
+-"line_color DOMAIN_CURSOR    = 02\n"
+-"line_color DOMAIN_HEAD      = 02\n"
+-"line_color EXCEPTION_CURSOR = 06\n"
+-"line_color EXCEPTION_HEAD   = 06\n"
+ "line_color MANAGER_CURSOR   = 72\n"
+ "line_color MANAGER_HEAD     = 72\n"
+ "line_color STAT_CURSOR      = 03\n"
+ "line_color STAT_HEAD        = 03\n"
+-"line_color PROFILE_CURSOR   = 71\n"
+-"line_color PROFILE_HEAD     = 71\n"
+ "line_color DEFAULT_COLOR    = 70\n";
+ 
+ /**
+@@ -1097,13 +821,13 @@
+ "# More specific matches should be placed before less specific matches.\n"
+ "# For example:\n"
+ "#\n"
+-"# header.contains profile=3\n"
++"# header.contains mode=enforcing\n"
+ "# domain.contains /usr/sbin/httpd\n"
+-"# destination     /var/log/tomoyo/reject_003_httpd.log\n"
++"# destination     /var/log/tomoyo/reject_enforcing_httpd.log\n"
+ "#\n"
+ "# This chunk should be placed before the chunk that matches logs with\n"
+-"# profile=3. If placed after, the audit logs for /usr/sbin/httpd will be\n"
+-"# sent to /var/log/tomoyo/reject_003.log .\n"
++"# mode=enforcing. If placed after, the audit logs for /usr/sbin/httpd will "
++"# be sent to /var/log/tomoyo/reject_enforcing.log .\n"
+ "\n"
+ "# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
+ "# representing a ' ' in a word).\n"
+@@ -1112,38 +836,17 @@
+ "header.contains granted=yes\n"
+ "destination     /dev/null\n"
+ "\n"
+-"# Save rejected logs with profile=acl mode=learning to\n"
+-"# /var/log/tomoyo/reject_learning_acl.log\n"
+-"header.contains profile=acl\n"
+-"header.contains mode=learning\n"
+-"destination     /var/log/tomoyo/reject_learning_acl.log\n"
+-"# Save rejected logs with profile=acl mode=permissive to\n"
+-"# /var/log/tomoyo/reject_permissive_acl.log\n"
+-"header.contains profile=acl\n"
++"# Save rejected logs with mode=disabled to /var/log/tomoyo/reject_disabled.log\n"
++"header.contains mode=disabled\n"
++"destination     /var/log/tomoyo/reject_disabled.log\n"
++"\n"
++"# Save rejected logs with mode=permissive to /var/log/tomoyo/reject_permissive.log\n"
+ "header.contains mode=permissive\n"
+-"destination     /var/log/tomoyo/reject_permissive_acl.log\n"
++"destination     /var/log/tomoyo/reject_permissive.log\n"
+ "\n"
+-"# Save rejected logs with profile=acl mode=enforcing to\n"
+-"# /var/log/tomoyo/reject_acl.log\n"
+-"header.contains profile=acl\n"
++"# Save rejected logs with mode=enforcing to /var/log/tomoyo/reject_enforcing.log\n"
+ "header.contains mode=enforcing\n"
+-"destination     /var/log/tomoyo/reject_enforcing_acl.log\n"
+-"\n"
+-"# Save rejected logs with profile=0 to /var/log/tomoyo/reject_000.log\n"
+-"header.contains profile=0\n"
+-"destination     /var/log/tomoyo/reject_000.log\n"
+-"\n"
+-"# Save rejected logs with profile=1 to /var/log/tomoyo/reject_001.log\n"
+-"header.contains profile=1\n"
+-"destination     /var/log/tomoyo/reject_001.log\n"
+-"\n"
+-"# Save rejected logs with profile=2 to /var/log/tomoyo/reject_002.log\n"
+-"header.contains profile=2\n"
+-"destination     /var/log/tomoyo/reject_002.log\n"
+-"\n"
+-"# Save rejected logs with profile=3 to /var/log/tomoyo/reject_003.log\n"
+-"header.contains profile=3\n"
+-"destination     /var/log/tomoyo/reject_003.log\n"
++"destination     /var/log/tomoyo/reject_enforcing.log\n"
+ "\n";
+ 
+ /**
+@@ -1228,10 +931,8 @@
+ "\n"
+ "# Files on / partition.\n"
+ "rewrite tail_pattern /etc/mtab~\\$\n"
+-"rewrite tail_pattern /etc/ccs/policy/\\*/domain_policy.conf\n"
+-"rewrite tail_pattern /etc/ccs/policy/\\*/exception_policy.conf\n"
++"rewrite tail_pattern /etc/ccs/policy/\\*/acl_policy.conf\n"
+ "rewrite tail_pattern /etc/ccs/policy/\\*/manager.conf\n"
+-"rewrite tail_pattern /etc/ccs/policy/\\*/profile.conf\n"
+ "rewrite tail_pattern /etc/ccs/policy/\\*/\n"
+ "\n"
+ "# Files on /tmp/ partition.\n"
+@@ -1381,23 +1082,9 @@
+ 			}
+ 		} else if (!strncmp(arg, "policy_dir=", 11)) {
+ 			dir = arg + 11;
+-		} else if (!strcmp(arg, "file-only-profile")) {
+-			file_only_profile = 1;
+-		} else if (!strcmp(arg, "full-profile")) {
+-			file_only_profile = 0;
+ 		} else if (!strncmp(arg, "module_name=", 12)) {
+ 			module_name = arg + 12;
+-		} else if (!strncmp(arg, "use_profile=", 12)) {
+-			default_profile = atoi(arg + 12);
+-		} else if (!strncmp(arg, "grant_log=", 10)) {
+-			grant_log = arg + 10;
+-		} else if (!strncmp(arg, "reject_log=", 11)) {
+-			reject_log = arg + 11;
+-		} else if (!sscanf(arg, "max_audit_log=%u", &max_audit_log) &&
+-			   !sscanf(arg, "max_learning_entry=%u",
+-				   &max_learning_entry) &&
+-			   !sscanf(arg, "enforcing_penalty=%u",
+-				   &enforcing_penalty)) {
++		} else {
+ 			fprintf(stderr, "Unknown option: '%s'\n", argv[i]);
+ 			return 1;
+ 		}
+@@ -1407,10 +1094,8 @@
+ 	policy_dir = strdup(dir);
+ 	memset(path, 0, sizeof(path));
+ 	make_policy_dir();
+-	make_exception_policy();
+-	make_domain_policy();
++	make_acl_policy();
+ 	make_manager();
+-	make_profile();
+ 	make_stat();
+ 	make_module_loader();
+ 	make_editpolicy_conf();
+Index: sbin/ccs-init.c
+===================================================================
+--- sbin/ccs-init.c	(revision 5824)
++++ sbin/ccs-init.c	(working copy)
+@@ -51,9 +51,6 @@
+ #define policy_dir            "/etc/ccs/"
+ #define proc_manager          "/proc/ccs/manager"
+ #define proc_acl_policy       "/proc/ccs/acl_policy"
+-#define proc_exception_policy "/proc/ccs/exception_policy"
+-#define proc_domain_policy    "/proc/ccs/domain_policy"
+-#define proc_profile          "/proc/ccs/profile"
+ #define proc_stat             "/proc/ccs/stat"
+ static _Bool proc_unmount = 0;
+ 
+@@ -82,23 +79,19 @@
+ 	close(dfd);
+ }
+ 
+-static void show_domain_usage(void)
++static void show_acl_usage(void)
+ {
+-	unsigned int domain = 0;
+ 	unsigned int acl = 0;
+-	FILE *fp = fopen(proc_domain_policy, "r");
++	FILE *fp = fopen(proc_acl_policy, "r");
+ 	if (!fp)
+ 		return;
+ 	while (memset(buffer, 0, sizeof(buffer)) &&
+ 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
+-		if (buffer[0] == '<')
+-			domain++;
+-		else if (buffer[0] > ' ' && strncmp(buffer, "use_", 4))
++		if (!strncmp(buffer, "acl ", 4))
+ 			acl++;
+ 	}
+ 	fclose(fp);
+-	printf("%u domain%s. %u ACL entr%s.\n", domain, domain > 1 ? "s" : "",
+-	       acl, acl > 1 ? "ies" : "y");
++	printf("%u ACL entr%s.\n", acl, acl > 1 ? "ies" : "y");
+ }
+ 
+ static void show_memory_usage(void)
+@@ -190,9 +183,6 @@
+ 	if (!chdir(policy_dir)) {
+ 		copy_files("manager.conf", proc_manager);
+ 		copy_files("acl_policy.conf", proc_acl_policy);
+-		copy_files("exception_policy.conf", proc_exception_policy);
+-		copy_files("domain_policy.conf", proc_domain_policy);
+-		copy_files("profile.conf", proc_profile);
+ 		copy_files("stat.conf", proc_stat);
+ 	}
+ 
+@@ -211,7 +201,7 @@
+ 		       errno == EINTR);
+ 	}
+ 
+-	show_domain_usage();
++	show_acl_usage();
+ 
+ 	/* Show memory usage. */
+ 	show_memory_usage();
