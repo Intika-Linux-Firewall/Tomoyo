@@ -1949,23 +1949,25 @@ static void ccs_show_list(void)
 	ccs_editpolicy_color_change(ccs_editpolicy_color_head(), true);
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (ccs_domain_sort_type) {
+			i = ccs_task_list_len;
 			printw("<<< Process State Viewer >>>"
-			       "      %d process%s    '?' for help",
-			       ccs_task_list_len,
-			       ccs_task_list_len > 1 ? "es" : "");
+			       "      %d process%s ", i, i > 1 ? "es" : "");
+			i = ccs_count3(ccs_task_list, i);
 		} else {
-			int i = ccs_list_item_count
-				- ccs_unnumbered_domain_count;
+			i = ccs_list_item_count - ccs_unnumbered_domain_count;
 			printw("<<< Domain Transition Editor >>>"
-			       "      %d domain%c    '?' for help",
-			       i, i > 1 ? 's' : ' ');
+			       "      %d domain%c ", i, i > 1 ? 's' : ' ');
+			i = ccs_count(ccs_dp.list_selected, ccs_dp.list_len);
 		}
 	} else {
-		int i = ccs_list_item_count;
-		printw("<<< %s >>>"
-		       "      %d entr%s    '?' for help", ccs_list_caption,
+		i = ccs_list_item_count;
+		printw("<<< %s >>>      %d entr%s ", ccs_list_caption,
 		       i, i > 1 ? "ies" : "y");
+		i = ccs_count2(ccs_gacl_list, ccs_gacl_list_count);
 	}
+	if (i)
+		printw("(%u selected)", i);
+	printw("   '?' for help");
 	/* add color */
 	ccs_editpolicy_color_change(ccs_editpolicy_color_head(), false);
 	ccs_eat_col = ptr->x;
