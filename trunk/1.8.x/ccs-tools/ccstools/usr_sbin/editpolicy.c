@@ -1210,7 +1210,7 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
  * @line:      Line to add.
  * @directive: One of values in "enum ccs_editpolicy_directives".
  *
- * Returns true if this line deals current namespace, false otherwise.
+ * Returns nothing.
  */
 static void ccs_add_generic_entry(const char *line, const enum
 				  ccs_editpolicy_directives directive)
@@ -1593,7 +1593,7 @@ add:
  * @domainname: Domainname or transition preference.
  * @index:      Current domain's index.
  *
- * Returns true if transition preference was found, false otherwise.
+ * Returns nothing.
  */
 static void ccs_make_transition_preference(char *program, char *domainname,
 					   const int index)

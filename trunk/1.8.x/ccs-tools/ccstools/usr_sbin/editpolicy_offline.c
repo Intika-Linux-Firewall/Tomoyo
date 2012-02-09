@@ -4038,7 +4038,7 @@ static void ccs_print_number_union(const struct ccs_number_union *ptr)
  *
  * @cond: Pointer to "struct ccs_condition".
  *
- * Returns true on success, false otherwise.
+ * Returns nothing.
  */
 static void ccs_print_condition(const struct ccs_condition *cond)
 {
@@ -4699,7 +4699,7 @@ static int ccs_parse_policy(char *line)
  * @buffer:     Pointer to buffer to read from.
  * @buffer_len: Size of @buffer.
  *
- * Returns @buffer_len on success, negative value otherwise.
+ * Returns nothing.
  */
 static void ccs_write_control(char *buffer, const size_t buffer_len)
 {
