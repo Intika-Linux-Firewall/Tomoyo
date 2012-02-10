@@ -1,6 +1,6 @@
 Index: usr_sbin/ccs-diffpolicy.c
 ===================================================================
---- usr_sbin/ccs-diffpolicy.c	(revision 5824)
+--- usr_sbin/ccs-diffpolicy.c	(revision 5831)
 +++ usr_sbin/ccs-diffpolicy.c	(working copy)
 @@ -68,9 +68,6 @@
  			continue;
@@ -30,24 +30,31 @@ Index: usr_sbin/ccs-diffpolicy.c
  	}
 Index: usr_sbin/ccstools.h
 ===================================================================
---- usr_sbin/ccstools.h	(revision 5824)
+--- usr_sbin/ccstools.h	(revision 5831)
 +++ usr_sbin/ccstools.h	(working copy)
-@@ -52,14 +52,11 @@
+@@ -51,16 +51,11 @@
+ 
  /***** CONSTANTS DEFINITION START *****/
  
- #define CCS_PROC_POLICY_DIR              "/proc/ccs/"
+-#define CCS_PROC_POLICY_DIR              "/proc/ccs/"
 -#define CCS_PROC_POLICY_DOMAIN_POLICY    "/proc/ccs/domain_policy"
- #define CCS_PROC_POLICY_ACL_POLICY       "/proc/ccs/acl_policy"
+-#define CCS_PROC_POLICY_ACL_POLICY       "/proc/ccs/acl_policy"
 -#define CCS_PROC_POLICY_EXCEPTION_POLICY "/proc/ccs/exception_policy"
- #define CCS_PROC_POLICY_AUDIT            "/proc/ccs/audit"
- #define CCS_PROC_POLICY_MANAGER          "/proc/ccs/manager"
- #define CCS_PROC_POLICY_STAT             "/proc/ccs/stat"
- #define CCS_PROC_POLICY_PROCESS_STATUS   "/proc/ccs/.process_status"
+-#define CCS_PROC_POLICY_AUDIT            "/proc/ccs/audit"
+-#define CCS_PROC_POLICY_MANAGER          "/proc/ccs/manager"
+-#define CCS_PROC_POLICY_STAT             "/proc/ccs/stat"
+-#define CCS_PROC_POLICY_PROCESS_STATUS   "/proc/ccs/.process_status"
 -#define CCS_PROC_POLICY_PROFILE          "/proc/ccs/profile"
- #define CCS_PROC_POLICY_QUERY            "/proc/ccs/query"
+-#define CCS_PROC_POLICY_QUERY            "/proc/ccs/query"
++#define CCS_PROC_POLICY_DIR            "/proc/ccs/"
++#define CCS_PROC_POLICY_POLICY         "/proc/ccs/policy"
++#define CCS_PROC_POLICY_AUDIT          "/proc/ccs/audit"
++#define CCS_PROC_POLICY_PROCESS_STATUS "/proc/ccs/.process_status"
++#define CCS_PROC_POLICY_QUERY          "/proc/ccs/query"
  
  /***** CONSTANTS DEFINITION END *****/
-@@ -90,8 +87,6 @@
+ 
+@@ -90,8 +85,6 @@
  	const struct ccs_path_info *domainname;
  	const struct ccs_path_info **string_ptr;
  	int string_count;
@@ -56,7 +63,7 @@ Index: usr_sbin/ccstools.h
  };
  
  struct ccs_domain_policy {
-@@ -105,7 +100,6 @@
+@@ -105,7 +98,6 @@
  	pid_t ppid;
  	char *name;
  	char *domain;
@@ -66,7 +73,7 @@ Index: usr_sbin/ccstools.h
  	int depth;
 Index: usr_sbin/editpolicy_color.c
 ===================================================================
---- usr_sbin/editpolicy_color.c	(revision 5824)
+--- usr_sbin/editpolicy_color.c	(revision 5831)
 +++ usr_sbin/editpolicy_color.c	(working copy)
 @@ -42,18 +42,10 @@
  		  COLOR_GREEN,      "DOMAIN_HEAD" },
@@ -115,12 +122,49 @@ Index: usr_sbin/editpolicy_color.c
  	case CCS_SCREEN_STAT_LIST:
 Index: usr_sbin/ccs-loadpolicy.c
 ===================================================================
---- usr_sbin/ccs-loadpolicy.c	(revision 5824)
+--- usr_sbin/ccs-loadpolicy.c	(revision 5831)
 +++ usr_sbin/ccs-loadpolicy.c	(working copy)
-@@ -82,88 +82,8 @@
+@@ -45,169 +45,25 @@
  	return result;
  }
  
+-static _Bool ccs_delete_proc_policy(const char *name)
+-{
+-	FILE *fp_in;
+-	FILE *fp_out;
+-	_Bool result = false;
+-	if (ccs_network_mode) {
+-		fp_in = ccs_open_read(name);
+-		fp_out = ccs_open_write(name);
+-	} else {
+-		fp_in = fopen(name, "r");
+-		fp_out = fopen(name, "w");
+-	}
+-	if (!fp_in || !fp_out) {
+-		fprintf(stderr, "Can't open %s for reading and writing.\n",
+-			name);
+-		if (fp_in)
+-			fclose(fp_in);
+-		if (fp_out)
+-			fclose(fp_out);
+-		return false;
+-	}
+-	ccs_get();
+-	while (true) {
+-		char *line = ccs_freadline(fp_in);
+-		if (!line)
+-			break;
+-		if (fprintf(fp_out, "delete %s\n", line) < 0)
+-			result = false;
+-	}
+-	ccs_put();
+-	if (fclose(fp_in))
+-		result = false;
+-	if (!ccs_close_write(fp_out))
+-		result = false;
+-	return result;
+-}
+-
 -static _Bool ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 -				      struct ccs_domain_policy *file_policy,
 -				      const char *src, const char *dest)
@@ -203,32 +247,78 @@ Index: usr_sbin/ccs-loadpolicy.c
  {
 -	struct ccs_domain_policy proc_policy = { NULL, 0, NULL };
 -	struct ccs_domain_policy file_policy = { NULL, 0, NULL };
- 	_Bool refresh_policy = false;
- 	_Bool result = true;
- 	char target = 0;
-@@ -192,8 +112,7 @@
- 			if (*ptr++ != '-')
- 				goto usage;
- 			target = *ptr++;
+-	_Bool refresh_policy = false;
+-	_Bool result = true;
+-	char target = 0;
+ 	int i;
+ 	for (i = 1; i < argc; i++) {
+ 		char *ptr = argv[i];
+ 		char *cp = strchr(ptr, ':');
+-		if (cp) {
+-			*cp++ = '\0';
+-			ccs_network_ip = inet_addr(ptr);
+-			ccs_network_port = htons(atoi(cp));
+-			if (ccs_network_mode) {
+-				fprintf(stderr, "You cannot specify multiple "
+-					"%s at the same time.\n\n",
+-					"remote agents");
+-				goto usage;
+-			}
+-			ccs_network_mode = true;
+-		} else {
+-			if (target) {
+-				fprintf(stderr, "You cannot specify multiple "
+-					"%s at the same time.\n\n",
+-					"policies");
+-				goto usage;
+-			}
+-			if (*ptr++ != '-')
+-				goto usage;
+-			target = *ptr++;
 -			if (target != 'e' && target != 'a' && target != 'd' &&
 -			    target != 'p' && target != 'm' && target != 's')
-+			if (target != 'a' && target != 'm' && target != 's')
- 				goto usage;
- 			if (*ptr) {
- 				if ((target != 'e' && target != 'd') ||
-@@ -217,56 +136,25 @@
+-				goto usage;
+-			if (*ptr) {
+-				if ((target != 'e' && target != 'd') ||
+-				    strcmp(ptr, "f"))
+-					goto usage;
+-				refresh_policy = true;
+-			}
++		if (!cp)
++			goto usage;
++		*cp++ = '\0';
++		ccs_network_ip = inet_addr(ptr);
++		ccs_network_port = htons(atoi(cp));
++		if (ccs_network_mode) {
++			fprintf(stderr, "You cannot specify multiple "
++				"%s at the same time.\n\n",
++				"remote agents");
++			goto usage;
+ 		}
++		ccs_network_mode = true;
+ 	}
+-	if (!target) {
+-		fprintf(stderr, "You need to specify %s.\n\n",
+-			"policy to load");
+-		goto usage;
+-	}
+ 	if (ccs_network_mode) {
+ 		if (!ccs_check_remote_host())
+ 			return 1;
+@@ -216,58 +72,9 @@
+ 			"You can't run this program for this kernel.\n");
  		return 1;
  	}
- 	switch (target) {
+-	switch (target) {
 -	case 'p':
 -		result = ccs_move_file_to_proc(CCS_PROC_POLICY_PROFILE);
 -		break;
- 	case 'm':
- 		result = ccs_move_file_to_proc(CCS_PROC_POLICY_MANAGER);
- 		break;
- 	case 's':
- 		result = ccs_move_file_to_proc(CCS_PROC_POLICY_STAT);
- 		break;
+-	case 'm':
+-		result = ccs_move_file_to_proc(CCS_PROC_POLICY_MANAGER);
+-		break;
+-	case 's':
+-		result = ccs_move_file_to_proc(CCS_PROC_POLICY_STAT);
+-		break;
 -	case 'e':
 -		if (refresh_policy)
 -			result = ccs_delete_proc_policy
@@ -236,12 +326,12 @@ Index: usr_sbin/ccs-loadpolicy.c
 -		result = ccs_move_file_to_proc
 -			(CCS_PROC_POLICY_EXCEPTION_POLICY);
 -		break;
- 	case 'a':
- 		if (refresh_policy)
- 			result = ccs_delete_proc_policy
- 				(CCS_PROC_POLICY_ACL_POLICY);
- 		result = ccs_move_file_to_proc(CCS_PROC_POLICY_ACL_POLICY);
- 		break;
+-	case 'a':
+-		if (refresh_policy)
+-			result = ccs_delete_proc_policy
+-				(CCS_PROC_POLICY_ACL_POLICY);
+-		result = ccs_move_file_to_proc(CCS_PROC_POLICY_ACL_POLICY);
+-		break;
 -	case 'd':
 -		if (!refresh_policy) {
 -			result = ccs_move_file_to_proc
@@ -254,29 +344,31 @@ Index: usr_sbin/ccs-loadpolicy.c
 -		ccs_clear_domain_policy(&proc_policy);
 -		ccs_clear_domain_policy(&file_policy);
 -		break;
- 	}
- 	return !result;
+-	}
+-	return !result;
++	return !ccs_move_file_to_proc(CCS_PROC_POLICY_POLICY);
  usage:
 -	printf("%s {-e|-ef|-a|-af|-d|-df|-m|-p|-s} [remote_ip:remote_port]\n\n"
 -	       "-e  : Read from stdin and append to "
 -	       "/proc/ccs/exception_policy .\n"
 -	       "-ef : Read from stdin and overwrite "
 -	       "/proc/ccs/exception_policy .\n"
-+	printf("%s {-a|-af|-m|-s} [remote_ip:remote_port]\n\n"
- 	       "-a  : Read from stdin and append to /proc/ccs/acl_policy .\n"
- 	       "-af : Read from stdin and overwrite /proc/ccs/acl_policy .\n"
+-	       "-a  : Read from stdin and append to /proc/ccs/acl_policy .\n"
+-	       "-af : Read from stdin and overwrite /proc/ccs/acl_policy .\n"
 -	       "-d  : Read from stdin and append to /proc/ccs/domain_policy "
 -	       ".\n"
 -	       "-df : Read from stdin and overwrite /proc/ccs/domain_policy "
 -	       ".\n"
- 	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
+-	       "-m  : Read from stdin and append to /proc/ccs/manager .\n"
 -	       "-p  : Read from stdin and append to /proc/ccs/profile .\n"
- 	       "-s  : Read from stdin and append to /proc/ccs/stat .\n"
+-	       "-s  : Read from stdin and append to /proc/ccs/stat .\n"
++	printf("%s [remote_ip:remote_port]\n\n"
  	       "remote_ip:remote_port : Write to ccs-editpolicy-agent "
  	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
+ 	       "directory.\n", argv[0]);
 Index: usr_sbin/editpolicy.c
 ===================================================================
---- usr_sbin/editpolicy.c	(revision 5824)
+--- usr_sbin/editpolicy.c	(revision 5831)
 +++ usr_sbin/editpolicy.c	(working copy)
 @@ -40,7 +40,6 @@
  
@@ -1507,34 +1599,34 @@ Index: usr_sbin/editpolicy.c
  }
  
  /**
-@@ -3531,21 +3150,13 @@
+@@ -3531,21 +3150,9 @@
  			exit(1);
  		}
  	}
 -	if ((symlink("policy/current/profile.conf", "../profile.conf") &&
-+	if ((symlink("policy/current/manager.conf", "../manager.conf") &&
- 	     errno != EEXIST) ||
+-	     errno != EEXIST) ||
 -	    (symlink("policy/current/manager.conf", "../manager.conf") &&
-+	    (symlink("policy/current/acl_policy.conf", "../acl_policy.conf") &&
- 	     errno != EEXIST) ||
+-	     errno != EEXIST) ||
 -	    (symlink("policy/current/exception_policy.conf",
 -		     "../exception_policy.conf") && errno != EEXIST) ||
 -	    (symlink("policy/current/domain_policy.conf",
 -		     "../domain_policy.conf") && errno != EEXIST) ||
- 	    chdir(stamp) ||
+-	    chdir(stamp) ||
 -	    !ccs_save_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
- 	    !ccs_save_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
+-	    !ccs_save_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
 -	    !ccs_save_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
 -			      "exception_policy.conf") ||
 -	    !ccs_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
 -			      "domain_policy.conf") ||
-+	    !ccs_save_to_file(CCS_PROC_POLICY_ACL_POLICY, "acl_policy.conf") ||
++	if ((symlink("policy/current/policy.conf", "../policy.conf") &&
++	     errno != EEXIST) || chdir(stamp) ||
++	    !ccs_save_to_file(CCS_PROC_POLICY, "policy.conf") ||
  	    chdir("..") ||
  	    (rename("current", "previous") && errno != ENOENT) ||
  	    symlink(stamp, "current")) {
 Index: usr_sbin/editpolicy_offline.c
 ===================================================================
---- usr_sbin/editpolicy_offline.c	(revision 5824)
+--- usr_sbin/editpolicy_offline.c	(revision 5831)
 +++ usr_sbin/editpolicy_offline.c	(working copy)
 @@ -1,3 +1,4 @@
 +#if 0
@@ -1548,7 +1640,7 @@ Index: usr_sbin/editpolicy_offline.c
 +#endif
 Index: usr_sbin/editpolicy_optimizer.c
 ===================================================================
---- usr_sbin/editpolicy_optimizer.c	(revision 5824)
+--- usr_sbin/editpolicy_optimizer.c	(revision 5831)
 +++ usr_sbin/editpolicy_optimizer.c	(working copy)
 @@ -59,20 +59,17 @@
  (const char *group_name);
@@ -1601,7 +1693,7 @@ Index: usr_sbin/editpolicy_optimizer.c
   * ccs_add_address_group_entry - Add "address_group" entry.
 Index: usr_sbin/ccs-pstree.c
 ===================================================================
---- usr_sbin/ccs-pstree.c	(revision 5824)
+--- usr_sbin/ccs-pstree.c	(revision 5831)
 +++ usr_sbin/ccs-pstree.c	(working copy)
 @@ -29,7 +29,6 @@
  		int j;
@@ -1623,7 +1715,7 @@ Index: usr_sbin/ccs-pstree.c
  	}
 Index: usr_sbin/editpolicy_keyword.c
 ===================================================================
---- usr_sbin/editpolicy_keyword.c	(revision 5824)
+--- usr_sbin/editpolicy_keyword.c	(revision 5831)
 +++ usr_sbin/editpolicy_keyword.c	(working copy)
 @@ -25,12 +25,10 @@
  
@@ -1661,7 +1753,7 @@ Index: usr_sbin/editpolicy_keyword.c
  /**
 Index: usr_sbin/editpolicy.h
 ===================================================================
---- usr_sbin/editpolicy.h	(revision 5824)
+--- usr_sbin/editpolicy.h	(revision 5831)
 +++ usr_sbin/editpolicy.h	(working copy)
 @@ -24,24 +24,19 @@
  #include <curses.h>
@@ -1730,7 +1822,7 @@ Index: usr_sbin/editpolicy.h
 -extern const struct ccs_path_info *ccs_current_ns;
 Index: usr_sbin/ccs-queryd.c
 ===================================================================
---- usr_sbin/ccs-queryd.c	(revision 5824)
+--- usr_sbin/ccs-queryd.c	(revision 5831)
 +++ usr_sbin/ccs-queryd.c	(working copy)
 @@ -66,8 +66,8 @@
  
@@ -1738,8 +1830,8 @@ Index: usr_sbin/ccs-queryd.c
  
 -static FILE *ccs_domain_fp = NULL;
 -static int ccs_domain_policy_fd = EOF;
-+static FILE *ccs_acl_fp = NULL;
-+static int ccs_acl_policy_fd = EOF;
++static FILE *ccs_policy_fp = NULL;
++static int ccs_policy_fd = EOF;
  #define CCS_MAX_READLINE_HISTORY 20
  static const char **ccs_readline_history = NULL;
  static int ccs_readline_history_count = 0;
@@ -1751,14 +1843,14 @@ Index: usr_sbin/ccs-queryd.c
 -			fputc(0, ccs_domain_fp);
 -			fflush(ccs_domain_fp);
 -			rewind(ccs_domain_fp);
-+			fprintf(ccs_acl_fp, "%s", pidbuf);
-+			fputc(0, ccs_acl_fp);
-+			fflush(ccs_acl_fp);
-+			rewind(ccs_acl_fp);
++			fprintf(ccs_policy_fp, "%s", pidbuf);
++			fputc(0, ccs_policy_fp);
++			fflush(ccs_policy_fp);
++			rewind(ccs_policy_fp);
  			while (1) {
  				char c;
 -				if (fread(&c, 1, 1, ccs_domain_fp) != 1 || !c)
-+				if (fread(&c, 1, 1, ccs_acl_fp) != 1 || !c)
++				if (fread(&c, 1, 1, ccs_policy_fp) != 1 || !c)
  					break;
  				addch(c);
  				refresh();
@@ -1766,13 +1858,13 @@ Index: usr_sbin/ccs-queryd.c
  			}
  		} else {
 -			ret_ignored = write(ccs_domain_policy_fd, pidbuf,
-+			ret_ignored = write(ccs_acl_policy_fd, pidbuf,
++			ret_ignored = write(ccs_policy_fd, pidbuf,
  					    strlen(pidbuf));
  			while (1) {
  				int i;
 -				int len = read(ccs_domain_policy_fd,
 -					       ccs_buffer,
-+				int len = read(ccs_acl_policy_fd, ccs_buffer,
++				int len = read(ccs_policy_fd, ccs_buffer,
  					       sizeof(ccs_buffer) - 1);
  				if (len <= 0)
  					break;
@@ -1782,16 +1874,16 @@ Index: usr_sbin/ccs-queryd.c
  	if (ccs_network_mode) {
 -		fprintf(ccs_domain_fp, "%s%s\n", pidbuf, line);
 -		fflush(ccs_domain_fp);
-+		fprintf(ccs_acl_fp, "%s%s\n", pidbuf, line);
-+		fflush(ccs_acl_fp);
++		fprintf(ccs_policy_fp, "%s%s\n", pidbuf, line);
++		fflush(ccs_policy_fp);
  	} else {
 -		ret_ignored = write(ccs_domain_policy_fd, pidbuf,
 -				    strlen(pidbuf));
 -		ret_ignored = write(ccs_domain_policy_fd, line, strlen(line));
 -		ret_ignored = write(ccs_domain_policy_fd, "\n", 1);
-+		ret_ignored = write(ccs_acl_policy_fd, pidbuf, strlen(pidbuf));
-+		ret_ignored = write(ccs_acl_policy_fd, line, strlen(line));
-+		ret_ignored = write(ccs_acl_policy_fd, "\n", 1);
++		ret_ignored = write(ccs_policy_fd, pidbuf, strlen(pidbuf));
++		ret_ignored = write(ccs_policy_fd, line, strlen(line));
++		ret_ignored = write(ccs_policy_fd, "\n", 1);
  	}
  	ccs_printw("Added '%s'.\n", line);
  not_append:
@@ -1800,18 +1892,27 @@ Index: usr_sbin/ccs-queryd.c
  	if (ccs_network_mode) {
  		ccs_query_fd = ccs_open_stream("proc:query");
 -		ccs_domain_fp = ccs_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
-+		ccs_acl_fp = ccs_open_write(CCS_PROC_POLICY_ACL_POLICY);
++		ccs_policy_fp = ccs_open_write(CCS_PROC_POLICY_POLICY);
  	} else {
  		ccs_query_fd = open(CCS_PROC_POLICY_QUERY, O_RDWR);
 -		ccs_domain_policy_fd = open(CCS_PROC_POLICY_DOMAIN_POLICY,
 -					    O_RDWR);
-+		ccs_acl_policy_fd = open(CCS_PROC_POLICY_ACL_POLICY, O_RDWR);
++		ccs_policy_fd = open(CCS_PROC_POLICY_POLICY, O_RDWR);
  	}
  	if (ccs_query_fd == EOF) {
  		fprintf(stderr,
+@@ -259,7 +256,7 @@
+ 		return 1;
+ 	} else if (!ccs_network_mode && write(ccs_query_fd, "", 0) != 0) {
+ 		fprintf(stderr, "You need to register this program to %s to "
+-			"run this program.\n", CCS_PROC_POLICY_MANAGER);
++			"run this program.\n", CCS_PROC_POLICY_POLICY);
+ 		return 1;
+ 	}
+ 	ccs_readline_history = ccs_malloc(CCS_MAX_READLINE_HISTORY *
 Index: usr_sbin/ccs-setprofile.c
 ===================================================================
---- usr_sbin/ccs-setprofile.c	(revision 5824)
+--- usr_sbin/ccs-setprofile.c	(revision 5831)
 +++ usr_sbin/ccs-setprofile.c	(working copy)
 @@ -1,107 +0,0 @@
 -/*
@@ -1923,87 +2024,138 @@ Index: usr_sbin/ccs-setprofile.c
 -}
 Index: usr_sbin/ccs-savepolicy.c
 ===================================================================
---- usr_sbin/ccs-savepolicy.c	(revision 5824)
+--- usr_sbin/ccs-savepolicy.c	(revision 5831)
 +++ usr_sbin/ccs-savepolicy.c	(working copy)
-@@ -65,23 +65,14 @@
+@@ -65,23 +65,9 @@
  			return false;
  		}
  	}
 -	if ((symlink("policy/current/profile.conf", "../profile.conf") &&
-+	if ((symlink("policy/current/manager.conf", "../manager.conf") &&
- 	     errno != EEXIST) ||
+-	     errno != EEXIST) ||
 -	    (symlink("policy/current/manager.conf", "../manager.conf") &&
 -	     errno != EEXIST) ||
 -	    (symlink("policy/current/exception_policy.conf",
 -		     "../exception_policy.conf") && errno != EEXIST) ||
 -	    (symlink("policy/current/domain_policy.conf",
 -		     "../domain_policy.conf") && errno != EEXIST) ||
-+	    (symlink("policy/current/acl_policy.conf",
-+		     "../acl_policy.conf") && errno != EEXIST) ||
- 	    chdir(stamp) ||
+-	    chdir(stamp) ||
 -	    !ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
- 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
+-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
 -	    !ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
 -				   "exception_policy.conf") ||
- 	    !ccs_move_proc_to_file(CCS_PROC_POLICY_ACL_POLICY,
- 				   "acl_policy.conf") ||
+-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_ACL_POLICY,
+-				   "acl_policy.conf") ||
 -	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
 -				   "domain_policy.conf") ||
++	if ((symlink("policy/current/policy.conf", "../policy.conf") &&
++	     errno != EEXIST) || chdir(stamp) ||
++	    !ccs_move_proc_to_file(CCS_PROC_POLICY_POLICY, "policy.conf") ||
  	    chdir("..") ||
  	    (rename("current", "previous") && errno != ENOENT) ||
  	    symlink(stamp, "current")) {
-@@ -119,8 +110,7 @@
+@@ -93,18 +79,14 @@
+ 
+ int main(int argc, char *argv[])
+ {
+-	char target = 0;
++	_Bool use_stdout = false;
+ 	int i;
+ 	for (i = 1; i < argc; i++) {
+ 		char *ptr = argv[i];
+ 		char *cp = strchr(ptr, ':');
+ 		if (*ptr == '/') {
+-			if (ccs_policy_dir || target) {
+-				fprintf(stderr, "You cannot specify multiple "
+-					"%s at the same time.\n\n",
+-					"policy directories");
++			if (ccs_policy_dir || use_stdout)
+ 				goto usage;
+-			}
+ 			ccs_policy_dir = ptr;
+ 		} else if (cp) {
+ 			*cp++ = '\0';
+@@ -117,17 +99,10 @@
+ 				goto usage;
+ 			}
  			ccs_network_mode = true;
- 		} else if (*ptr++ == '-' && !target) {
- 			target = *ptr++;
+-		} else if (*ptr++ == '-' && !target) {
+-			target = *ptr++;
 -			if (target != 'e' && target != 'a' && target != 'd' &&
 -			    target != 'p' && target != 'm' && target != 's')
-+			if (target != 'a' && target != 'm' && target != 's')
++		} else if (*ptr++ == '-' && !*ptr) {
++			if (ccs_policy_dir || use_stdout)
  				goto usage;
- 			if (*ptr || ccs_policy_dir) {
- 				fprintf(stderr, "You cannot specify multiple "
-@@ -142,21 +132,12 @@
- 	if (target) {
- 		const char *file;
- 		switch (target) {
+-			if (*ptr || ccs_policy_dir) {
+-				fprintf(stderr, "You cannot specify multiple "
+-					"%s at the same time.\n\n",
+-					"policies");
+-				goto usage;
+-			}
++			use_stdout = true;
+ 		} else
+ 			goto usage;
+ 	}
+@@ -139,32 +114,10 @@
+ 			"You can't run this program for this kernel.\n");
+ 		return 1;
+ 	}
+-	if (target) {
+-		const char *file;
+-		switch (target) {
 -		case 'p':
 -			file = CCS_PROC_POLICY_PROFILE;
 -			break;
- 		case 'm':
- 			file = CCS_PROC_POLICY_MANAGER;
- 			break;
+-		case 'm':
+-			file = CCS_PROC_POLICY_MANAGER;
+-			break;
 -		case 'e':
 -			file = CCS_PROC_POLICY_EXCEPTION_POLICY;
 -			break;
- 		case 'a':
- 			file = CCS_PROC_POLICY_ACL_POLICY;
- 			break;
+-		case 'a':
+-			file = CCS_PROC_POLICY_ACL_POLICY;
+-			break;
 -		case 'd':
 -			file = CCS_PROC_POLICY_DOMAIN_POLICY;
 -			break;
- 		default:
- 			file = CCS_PROC_POLICY_STAT;
- 			break;
-@@ -179,15 +160,12 @@
+-		default:
+-			file = CCS_PROC_POLICY_STAT;
+-			break;
+-		}
+-		return !ccs_cat_file(file);
+-	}
++	if (use_stdout)
++		return !ccs_cat_file(CCS_PROC_POLICY_POLICY);
+ 	if (!ccs_policy_dir) {
+-		if (ccs_network_mode && !target) {
++		if (ccs_network_mode && !use_stdout) {
+ 			fprintf(stderr, "You need to specify %s.\n\n",
+ 				"policy directory");
+ 			goto usage;
+@@ -178,18 +131,11 @@
+ 	}
  	return !ccs_save_policy();
  usage:
- 	printf("%s [policy_dir [remote_ip:remote_port]]\n"
+-	printf("%s [policy_dir [remote_ip:remote_port]]\n"
 -	       "%s [{-e|-a|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"
-+	       "%s [{-a|-m|-s} [remote_ip:remote_port]]\n\n"
++	printf("%s [policy_dir|-] [remote_ip:remote_port]]\n\n"
  	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
++	       "- : Print /proc/ccs/policy to stdout.\n"
  	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
  	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
- 	       "directory.\n"
+-	       "directory.\n"
 -	       "-e : Print /proc/ccs/exception_policy to stdout.\n"
- 	       "-a : Print /proc/ccs/acl_policy to stdout.\n"
+-	       "-a : Print /proc/ccs/acl_policy to stdout.\n"
 -	       "-d : Print /proc/ccs/domain_policy to stdout.\n"
 -	       "-p : Print /proc/ccs/profile to stdout.\n"
- 	       "-m : Print /proc/ccs/manager to stdout.\n"
- 	       "-s : Print /proc/ccs/stat to stdout.\n",
- 	       argv[0], argv[0]);
+-	       "-m : Print /proc/ccs/manager to stdout.\n"
+-	       "-s : Print /proc/ccs/stat to stdout.\n",
+-	       argv[0], argv[0]);
++	       "directory.\n", argv[0]);
+ 	return 1;
+ }
 Index: usr_sbin/ccs-setlevel.c
 ===================================================================
---- usr_sbin/ccs-setlevel.c	(revision 5824)
+--- usr_sbin/ccs-setlevel.c	(revision 5831)
 +++ usr_sbin/ccs-setlevel.c	(working copy)
 @@ -1,80 +0,0 @@
 -/*
@@ -2088,7 +2240,7 @@ Index: usr_sbin/ccs-setlevel.c
 -}
 Index: usr_sbin/ccstools.c
 ===================================================================
---- usr_sbin/ccstools.c	(revision 5824)
+--- usr_sbin/ccstools.c	(revision 5831)
 +++ usr_sbin/ccstools.c	(working copy)
 @@ -1417,7 +1417,7 @@
  /**
@@ -2165,34 +2317,46 @@ Index: usr_sbin/ccstools.c
  			fprintf(fp, "%s\n", string_ptr[j]->name);
 Index: usr_sbin/ccs-domainmatch.c
 ===================================================================
---- usr_sbin/ccs-domainmatch.c	(revision 5824)
+--- usr_sbin/ccs-domainmatch.c	(revision 5831)
 +++ usr_sbin/ccs-domainmatch.c	(working copy)
 @@ -32,7 +32,7 @@
  		printf("%s string_to_find\n\n", argv[0]);
  		return 0;
  	}
 -	fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r");
-+	fp = fopen(CCS_PROC_POLICY_ACL_POLICY, "r");
++	fp = fopen(CCS_PROC_POLICY_POLICY, "r");
  	if (!fp) {
  		fprintf(stderr,
  			"You can't run this program for this kernel.\n");
 Index: usr_sbin/Makefile
 ===================================================================
---- usr_sbin/Makefile	(revision 5824)
+--- usr_sbin/Makefile	(revision 5831)
 +++ usr_sbin/Makefile	(working copy)
-@@ -2,8 +2,7 @@
+@@ -1,9 +1,8 @@
+ include ../Include.make
  
  BUILD_FILES := ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
- 	ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize \
+-	ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize \
 -	ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-setlevel \
 -	ccs-setprofile ccs-sortpolicy
-+	ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-sortpolicy
++	ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize ccs-pstree \
++	ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-sortpolicy
  
  all: libccstools.so $(BUILD_FILES)
  
+@@ -21,9 +20,6 @@
+ .c:
+ 	$(CC) $(CFLAGS) -o $@ $< -lccstools -L. 
+ 
+-ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so editpolicy.h
+-	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
+-
+ ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools.so
+ 	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
+ 
 Index: usr_lib_ccs/init_policy.c
 ===================================================================
---- usr_lib_ccs/init_policy.c	(revision 5824)
+--- usr_lib_ccs/init_policy.c	(revision 5831)
 +++ usr_lib_ccs/init_policy.c	(working copy)
 @@ -236,9 +236,9 @@
  				((c >> 3) & 7) + '0', (c & 7) + '0');
@@ -2432,7 +2596,7 @@ Index: usr_lib_ccs/init_policy.c
  	for (i = 0; i < elementof(files); i++) {
  		char *cp = get_realpath(files[i]);
  		if (!cp)
-@@ -680,11 +558,7 @@
+@@ -680,12 +558,7 @@
  		*(dir - 1) = '/';
  	}
  	if (mkdir2(policy_dir, 0700) || chdir(policy_dir) ||
@@ -2441,11 +2605,12 @@ Index: usr_lib_ccs/init_policy.c
 -	    symlink2("policy/current/domain_policy.conf",
 -		     "domain_policy.conf") ||
 -	    symlink2("policy/current/profile.conf", "profile.conf") ||
-+	    symlink2("policy/current/acl_policy.conf", "acl_policy.conf") ||
- 	    symlink2("policy/current/manager.conf", "manager.conf") ||
+-	    symlink2("policy/current/manager.conf", "manager.conf") ||
++	    symlink2("policy/current/policy.conf", "policy.conf") ||
  	    mkdir2("policy", 0700) || chdir("policy") || mkdir2(stamp, 0700) ||
  	    symlink2(stamp, "previous") || symlink2(stamp, "current") ||
-@@ -708,48 +582,6 @@
+ 	    chdir(policy_dir) || chdir("policy/current/")) {
+@@ -708,48 +581,6 @@
  }
  
  /**
@@ -2494,28 +2659,28 @@ Index: usr_lib_ccs/init_policy.c
   * chdir_policy - Change to policy directory.
   *
   * Returns 1 on success, 0 otherwise.
-@@ -784,35 +616,28 @@
+@@ -784,178 +615,40 @@
  }
  
  /**
 - * make_exception_policy - Make /etc/ccs/policy/current/exception_policy.conf .
-+ * make_acl_policy - Make /etc/ccs/policy/current/acl_policy.conf .
++ * make_policy - Make /etc/ccs/policy/current/policy.conf .
   *
   * Returns nothing.
   */
 -static void make_exception_policy(void)
-+static void make_acl_policy(void)
++static void make_policy(void)
  {
  	if (!chdir_policy())
  		return;
 -	if (!access("exception_policy.conf", R_OK))
-+	if (!access("acl_policy.conf", R_OK))
++	if (!access("policy.conf", R_OK))
  		return;
 -	filp = fopen("exception_policy.tmp", "w");
-+	filp = fopen("acl_policy.tmp", "w");
++	filp = fopen("policy.tmp", "w");
  	if (!filp) {
 -		fprintf(stderr, "ERROR: Can't create exception policy.\n");
-+		fprintf(stderr, "ERROR: Can't create acl policy.\n");
++		fprintf(stderr, "ERROR: Can't create policy.\n");
  		return;
  	}
 -	fprintf(stderr, "Creating exception policy... ");
@@ -2526,8 +2691,17 @@ Index: usr_lib_ccs/init_policy.c
 -	make_ioctl();
 -	make_readdir();
 -	make_getattr();
-+	fprintf(stderr, "Creating acl policy... ");
++	fprintf(stderr, "Creating default policy... ");
 +	fprintf(filp, "POLICY_VERSION=20100903\n");
++	{
++		char *tools_dir = get_realpath("/usr/sbin");
++		fprintf(filp, "manager path %s/ccs-loadpolicy\n", tools_dir);
++		fprintf(filp, "manager path %s/ccs-editpolicy\n", tools_dir);
++		fprintf(filp, "manager path %s/ccs-queryd\n", tools_dir);
++	}
++	fprintf(filp, "memory quota policy 0\n");
++	fprintf(filp, "memory quota audit 16777216\n");
++	fprintf(filp, "memory quota query 1048576\n");
  	scan_modprobe_and_hotplug();
 -	make_daemons_as_default_transitions();
 -	make_init_dir_as_default_transitions();
@@ -2537,25 +2711,38 @@ Index: usr_lib_ccs/init_policy.c
 +	make_daemons_as_domain_transitions();
 +	make_init_dir_as_domain_transitions();
 +	make_init_scripts_as_domain_transitions();
-+	close_file(filp, chdir_policy(), "acl_policy.tmp", "acl_policy.conf");
++	close_file(filp, chdir_policy(), "policy.tmp", "policy.conf");
  	filp = NULL;
  }
  
-@@ -836,104 +661,13 @@
- 	}
- 	fprintf(stderr, "Creating manager policy... ");
- 	tools_dir = get_realpath("/usr/sbin");
+-/**
+- * make_manager - Make /etc/ccs/policy/current/manager.conf .
+- *
+- * Returns nothing.
+- */
+-static void make_manager(void)
+-{
+-	char *tools_dir;
+-	FILE *fp;
+-	if (!chdir_policy())
+-		return;
+-	if (!access("manager.conf", R_OK))
+-		return;
+-	fp = fopen("manager.tmp", "w");
+-	if (!fp) {
+-		fprintf(stderr, "ERROR: Can't create manager policy.\n");
+-		return;
+-	}
+-	fprintf(stderr, "Creating manager policy... ");
+-	tools_dir = get_realpath("/usr/sbin");
 -	fprintf(fp, "%s/ccs-loadpolicy\n", tools_dir);
 -	fprintf(fp, "%s/ccs-editpolicy\n", tools_dir);
 -	fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
 -	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
 -	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
-+	fprintf(fp, "path %s/ccs-loadpolicy\n", tools_dir);
-+	fprintf(fp, "path %s/ccs-editpolicy\n", tools_dir);
-+	fprintf(fp, "path %s/ccs-queryd\n", tools_dir);
- 	close_file(fp, 1, "manager.tmp", "manager.conf");
- }
- 
+-	close_file(fp, 1, "manager.tmp", "manager.conf");
+-}
+-
 -/* Should we create profiles that restricts file only? */
 -static _Bool file_only_profile = 0;
 -/* Should we audit access granted logs? */
@@ -2569,7 +2756,7 @@ Index: usr_lib_ccs/init_policy.c
 -/* How long should we carry sleep penalty? */
 -static unsigned int enforcing_penalty = 0;
 -
- /**
+-/**
 - * make_profile - Make /etc/ccs/policy/current/profile.conf .
 - *
 - * Returns nothing.
@@ -2646,10 +2833,32 @@ Index: usr_lib_ccs/init_policy.c
 -}
 -
 -/**
-  * make_stat - Make /etc/ccs/stat.conf .
-  *
-  * Returns nothing.
-@@ -988,10 +722,9 @@
+- * make_stat - Make /etc/ccs/stat.conf .
+- *
+- * Returns nothing.
+- */
+-static void make_stat(void)
+-{
+-	FILE *fp;
+-	if (chdir(policy_dir) || !access("stat.conf", R_OK))
+-		return;
+-	fp = fopen("stat.tmp", "w");
+-	if (!fp) {
+-		fprintf(stderr, "ERROR: Can't create stat policy.\n");
+-		return;
+-	}
+-	fprintf(stderr, "Creating stat policy... ");
+-	fprintf(fp, "# Memory quota (byte). 0 means no quota.\n");
+-	fprintf(fp, "Memory used by policy:               0\n");
+-	fprintf(fp, "Memory used by audit log:     16777216\n");
+-	fprintf(fp, "Memory used by query message:  1048576\n");
+-	close_file(fp, 1, "stat.tmp", "stat.conf");
+-}
+-
+ /* The name of loadable kernel module to load. */
+ static const char *module_name = "ccsecurity";
+ 
+@@ -988,10 +681,9 @@
  "# This file contains configuration used by ccs-editpolicy command.\n"
  "\n"
  "# Keyword alias. ( directive-name = display-name )\n"
@@ -2661,7 +2870,7 @@ Index: usr_lib_ccs/init_policy.c
  "keyword_alias file append                   = file append\n"
  "keyword_alias file chgrp                    = file chgrp\n"
  "keyword_alias file chmod                    = file chmod\n"
-@@ -1023,28 +756,19 @@
+@@ -1023,28 +715,19 @@
  "keyword_alias network unix                  = network unix\n"
  "keyword_alias number_group                  = number_group\n"
  "keyword_alias path_group                    = path_group\n"
@@ -2690,7 +2899,7 @@ Index: usr_lib_ccs/init_policy.c
  "line_color DEFAULT_COLOR    = 70\n";
  
  /**
-@@ -1097,13 +821,13 @@
+@@ -1097,13 +780,13 @@
  "# More specific matches should be placed before less specific matches.\n"
  "# For example:\n"
  "#\n"
@@ -2708,7 +2917,7 @@ Index: usr_lib_ccs/init_policy.c
  "\n"
  "# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
  "# representing a ' ' in a word).\n"
-@@ -1112,38 +836,17 @@
+@@ -1112,38 +795,17 @@
  "header.contains granted=yes\n"
  "destination     /dev/null\n"
  "\n"
@@ -2755,19 +2964,28 @@ Index: usr_lib_ccs/init_policy.c
  "\n";
  
  /**
-@@ -1228,10 +931,8 @@
+@@ -1228,10 +890,7 @@
  "\n"
  "# Files on / partition.\n"
  "rewrite tail_pattern /etc/mtab~\\$\n"
 -"rewrite tail_pattern /etc/ccs/policy/\\*/domain_policy.conf\n"
 -"rewrite tail_pattern /etc/ccs/policy/\\*/exception_policy.conf\n"
-+"rewrite tail_pattern /etc/ccs/policy/\\*/acl_policy.conf\n"
- "rewrite tail_pattern /etc/ccs/policy/\\*/manager.conf\n"
+-"rewrite tail_pattern /etc/ccs/policy/\\*/manager.conf\n"
 -"rewrite tail_pattern /etc/ccs/policy/\\*/profile.conf\n"
++"rewrite tail_pattern /etc/ccs/policy/\\*/policy.conf\n"
  "rewrite tail_pattern /etc/ccs/policy/\\*/\n"
  "\n"
  "# Files on /tmp/ partition.\n"
-@@ -1381,23 +1082,9 @@
+@@ -1300,7 +959,7 @@
+ "# 30, you will be given 30 seconds for starting ccs-queryd command and\n"
+ "# responding to the policy violation event.\n"
+ "# If you specify non 0 value, you need to register ccs-notifyd command to\n"
+-"# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to\n"
++"# /proc/ccs/policy as well as ccs-queryd command, for ccs-notifyd needs to\n"
+ "# behave as if ccs-queryd command is running.\n"
+ "# Also, you should avoid specifying too large value (e.g. 3600) because\n"
+ "# the request will remain pending for that period if you can't respond.\n"
+@@ -1381,23 +1040,9 @@
  			}
  		} else if (!strncmp(arg, "policy_dir=", 11)) {
  			dir = arg + 11;
@@ -2792,43 +3010,51 @@ Index: usr_lib_ccs/init_policy.c
  			fprintf(stderr, "Unknown option: '%s'\n", argv[i]);
  			return 1;
  		}
-@@ -1407,10 +1094,8 @@
+@@ -1407,11 +1052,7 @@
  	policy_dir = strdup(dir);
  	memset(path, 0, sizeof(path));
  	make_policy_dir();
 -	make_exception_policy();
 -	make_domain_policy();
-+	make_acl_policy();
- 	make_manager();
+-	make_manager();
 -	make_profile();
- 	make_stat();
+-	make_stat();
++	make_policy();
  	make_module_loader();
  	make_editpolicy_conf();
+ 	make_auditd_conf();
 Index: sbin/ccs-init.c
 ===================================================================
---- sbin/ccs-init.c	(revision 5824)
+--- sbin/ccs-init.c	(revision 5831)
 +++ sbin/ccs-init.c	(working copy)
-@@ -51,9 +51,6 @@
- #define policy_dir            "/etc/ccs/"
- #define proc_manager          "/proc/ccs/manager"
- #define proc_acl_policy       "/proc/ccs/acl_policy"
+@@ -48,13 +48,8 @@
+ 		sleep(100);
+ }
+ 
+-#define policy_dir            "/etc/ccs/"
+-#define proc_manager          "/proc/ccs/manager"
+-#define proc_acl_policy       "/proc/ccs/acl_policy"
 -#define proc_exception_policy "/proc/ccs/exception_policy"
 -#define proc_domain_policy    "/proc/ccs/domain_policy"
 -#define proc_profile          "/proc/ccs/profile"
- #define proc_stat             "/proc/ccs/stat"
+-#define proc_stat             "/proc/ccs/stat"
++#define policy_dir  "/etc/ccs/"
++#define proc_policy "/proc/ccs/policy"
  static _Bool proc_unmount = 0;
  
-@@ -82,23 +79,19 @@
+ static char buffer[8192];
+@@ -82,44 +77,27 @@
  	close(dfd);
  }
  
 -static void show_domain_usage(void)
-+static void show_acl_usage(void)
++static void show_stat(void)
  {
 -	unsigned int domain = 0;
  	unsigned int acl = 0;
 -	FILE *fp = fopen(proc_domain_policy, "r");
-+	FILE *fp = fopen(proc_acl_policy, "r");
++	unsigned int size = -1;
++	FILE *fp = fopen(proc_policy, "r");
  	if (!fp)
  		return;
  	while (memset(buffer, 0, sizeof(buffer)) &&
@@ -2838,30 +3064,67 @@ Index: sbin/ccs-init.c
 -		else if (buffer[0] > ' ' && strncmp(buffer, "use_", 4))
 +		if (!strncmp(buffer, "acl ", 4))
  			acl++;
++		else if (size == -1)
++			sscanf(buffer, "stat Memory used by policy: %u",
++			       &size);
  	}
  	fclose(fp);
 -	printf("%u domain%s. %u ACL entr%s.\n", domain, domain > 1 ? "s" : "",
 -	       acl, acl > 1 ? "ies" : "y");
 +	printf("%u ACL entr%s.\n", acl, acl > 1 ? "ies" : "y");
++	if (size != -1)
++		printf("%u KB used by policy.\n", (size + 1023) / 1024);
  }
  
- static void show_memory_usage(void)
-@@ -190,9 +183,6 @@
- 	if (!chdir(policy_dir)) {
- 		copy_files("manager.conf", proc_manager);
- 		copy_files("acl_policy.conf", proc_acl_policy);
+-static void show_memory_usage(void)
+-{
+-	FILE *fp = fopen(proc_stat, "r");
+-	if (!fp)
+-		return;
+-	while (memset(buffer, 0, sizeof(buffer)) &&
+-	       fgets(buffer, sizeof(buffer) - 1, fp)) {
+-		unsigned int size;
+-		if (sscanf(buffer, "Shared: %u", &size) == 1)
+-			printf("%u KB shared. ", (size + 1023) / 1024);
+-		else if (sscanf(buffer, "Private: %u", &size) == 1)
+-			printf("%u KB private. ", (size + 1023) / 1024);
+-		else if (sscanf(buffer, "Policy: %u", &size) == 1)
+-			printf("%u KB used by policy.", (size + 1023) / 1024);
+-	}
+-	fclose(fp);
+-	putchar('\n');
+-}
+-
+ int main(int argc, char *argv[])
+ {
+ 	struct stat buf;
+@@ -187,14 +165,8 @@
+ 	}
+ 
+ 	/* Load policy. */
+-	if (!chdir(policy_dir)) {
+-		copy_files("manager.conf", proc_manager);
+-		copy_files("acl_policy.conf", proc_acl_policy);
 -		copy_files("exception_policy.conf", proc_exception_policy);
 -		copy_files("domain_policy.conf", proc_domain_policy);
 -		copy_files("profile.conf", proc_profile);
- 		copy_files("stat.conf", proc_stat);
- 	}
+-		copy_files("stat.conf", proc_stat);
+-	}
++	if (!chdir(policy_dir))
++		copy_files("policy.conf", proc_policy);
  
-@@ -211,7 +201,7 @@
+ 	/* Do additional initialization. */
+ 	if (!access("/etc/ccs/ccs-post-init", X_OK)) {
+@@ -211,11 +183,8 @@
  		       errno == EINTR);
  	}
  
 -	show_domain_usage();
-+	show_acl_usage();
++	show_stat();
  
- 	/* Show memory usage. */
- 	show_memory_usage();
+-	/* Show memory usage. */
+-	show_memory_usage();
+-
+ 	if (proc_unmount)
+ 		umount("/proc");
+ 
