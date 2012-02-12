@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 15's 2.6.41 kernel.
+# This is a kernel build script for Fedora 15's 2.6.42 kernel.
 #
 
 die () {
@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.41.10-3.fc15.src.rpm ]
+if [ ! -r kernel-2.6.42.3-2.fc15.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.41.10-3.fc15.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.42.3-2.fc15.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.41.10-3.fc15.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.41.10-3.fc15.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.42.3-2.fc15.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.42.3-2.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120120.tar.gz ]
@@ -58,7 +58,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -874,7 +879,7 @@
+@@ -824,7 +829,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -67,22 +67,31 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1403,6 +1408,10 @@
+@@ -1301,6 +1306,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120120.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.41-fedora-15.diff
++patch -sp1 < patches/ccs-patch-3.2.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1431,6 +1440,9 @@
+@@ -1329,6 +1338,18 @@
  for i in *.config
  do
    mv $i .config
-+  # TOMOYO Linux
++  # TOMOYO Linux 2.5
++  sed -i -e 's/# CONFIG_SECURITY_PATH is not set/CONFIG_SECURITY_PATH=y/' -- .config
++  sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -- .config
++  echo 'CONFIG_SECURITY_TOMOYO_MAX_ACCEPT_ENTRY=2048' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_MAX_AUDIT_LOG=1024' >> .config
++  echo '# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_POLICY_LOADER="/sbin/tomoyo-init"' >> .config
++  echo 'CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER="/sbin/init"' >> .config
++  echo '# CONFIG_DEFAULT_SECURITY_TOMOYO is not set' >> .config
++  # TOMOYO Linux 1.8
 +  cat config.ccs >> .config
 +  sed -i -e 's:CONFIG_DEBUG_INFO=.*:# CONFIG_DEBUG_INFO is not set:' -- .config
    Arch=`head -1 .config | cut -b 3-`
