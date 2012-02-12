@@ -51,7 +51,16 @@ $ grep tomoyo_write_inet_network /proc/kallsyms
 ffffffff8115e460 T tomoyo_write_inet_network
 </pre>
 
-<p>/proc/kallsyms の中に tomoyo_write_inet_network を含む行が存在していた場合、既に TOMOYO Linux 対応カーネルですので、<a href="#3.2">3.2. 管理ツールのインストール</a>へと進んでください。</p>
+<p>/proc/kallsyms の中に tomoyo_write_inet_network を含む行が存在していた場合、既に TOMOYO Linux 対応カーネルですので、 <a href="#3.2">3.2. 管理ツールのインストール</a>へと進んでください。</p>
+
+<p>もし Fedora 16  (i686, i686-PAE and x86_64) を使用している場合、 TOMOYO Linux 対応カーネルを <a href="http://repo.tomoyolinux.co.uk/">http://repo.tomoyolinux.co.uk</a> からインストールできるので、カーネルをコンパイルする必要はありません。インストールするには、</p>
+
+<pre class="command">$ wget http://cdn.tomoyolinux.co.uk/pub/fedora/16/i386/tomoyolinux-release-16-1.noarch.rpm
+# yum install tomoyolinux-release-16-1.noarch.rpm
+# yum install ccs-kernel
+</pre>
+
+<p>を実行してください。そして、 <a href="#3.2">3.2. 管理ツールのインストール</a>へと進んでください。なお、 ccs-kernel パッケージには TOMOYO 2.5 と <a href="../1.8/">TOMOYO 1.8</a> の両方が含まれているため、 TOMOYO 2.5 だけを有効にするために <a href="#3.4">3.4. ブートローダの設定</a>において security=tomoyo の代わりに security=tomoyo ccsecurity=off のように指定してください。</p>
 
 <p>存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。</p>
 
