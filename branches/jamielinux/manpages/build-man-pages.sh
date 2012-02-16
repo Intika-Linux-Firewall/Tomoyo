@@ -14,4 +14,5 @@ for i in *.pod; do
 	pod2man --center="System Administration Utilities" \
 		--release="${name} ${version}" "${i}" \
 		| gzip -9 > "${i%pod}8.gz"
+	pod2html --title="${i%.pod}" "${i}" > "${i%pod}html"
 done
