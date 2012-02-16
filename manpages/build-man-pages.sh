@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if (( $# != 1 )); then
+if (( $# != 2 )); then
 	printf '%s\n' "Usage: build-man-pages.sh NAME VERSION"
 	printf '%s\n' "    Example: build-man-pages.sh ccs-tools 1.8.3"
 	printf '%s\n' "    Example: build-man-pages.sh tomoyo-tools 2.5.0"
