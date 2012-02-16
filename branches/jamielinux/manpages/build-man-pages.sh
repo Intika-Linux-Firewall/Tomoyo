@@ -12,7 +12,8 @@ version="${2}"
 
 for i in *.pod; do
 	# Convert to man page.
-	pod2man --center="System Administration Utilities" \
+	pod2man --section=8 \
+		--center="System Administration Utilities" \
 		--release="${name} ${version}" "${i}" \
 		| gzip -9 > "${i%pod}8.gz"
 	# Convert to html.
