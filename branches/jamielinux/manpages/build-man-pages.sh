@@ -11,8 +11,12 @@ name="${1}"
 version="${2}"
 
 for i in *.pod; do
+	# Convert to man page.
 	pod2man --center="System Administration Utilities" \
 		--release="${name} ${version}" "${i}" \
 		| gzip -9 > "${i%pod}8.gz"
-	pod2html --title="${i%.pod}" "${i}" > "${i%pod}html"
+	# Convert to html.
+	pod2html --title="${i%.pod}" "${i}" > "${i%pod}html.en"
+	# Remove temporary files.
+	rm -v pod2htm*
 done
