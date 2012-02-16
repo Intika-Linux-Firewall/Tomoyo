@@ -1,0 +1,104 @@
+=head1 NAME
+
+tomoyo-savepolicy - save TOMOYO Linux policy
+
+=head1 SYNOPSIS
+
+B<tomoyo-savepolicy> [I<directory>]
+
+B<tomoyo-savepolicy> [I<directory>] [I<remote_ip:remote:port>]
+
+=head1 DESCRIPTION
+
+This program saves TOMOYO Linux policy onto disk from kernel memory.
+
+The directory F</etc/tomoyo/policy/YY-MM-DD.hh:mm:ss> is created with four files inside: F<domain_policy.conf>, F<exception_policy.conf>, F<profile.conf>, and F<manager.conf>. The symbolic links F</etc/tomoyo/policy/previous> and F</etc/tomoyo/policy/current> are updated to point to the previous and current F<YY-MM-DD.hh:mm:ss> directories respectively.
+
+The following symbolic links should exist within the F</etc/tomoyo> directory:
+
+  domain_policy.conf -> policy/current/domain_policy.conf
+  exception_policy.conf -> policy/current/exception_policy.conf
+  profile.conf -> policy/current/profile.conf
+  manager.conf -> policy/current/manager.conf
+  policy/current -> policy/YY-MM-DD.hh:mm:ss
+  policy/previous -> policy/YY-MM-DD.hh:mm:ss
+
+You can therefore access the current policy files without having to descend into subdirectories, and without having to determine which F<YY-MM-DD.hh:mm:ss> directory is the most recent.
+
+If the policy type is specified, this program works similar to B<cat>(1).
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-e>
+
+Print F</sys/kernel/security/tomoyo/exception_policy> to standard output.
+
+=item B<-d>
+
+Print F</sys/kernel/security/tomoyo/domain_policy> to standard output.
+
+=item B<-p>
+
+Print F</sys/kernel/security/tomoyo/profile> to standard output.
+
+=item B<-m>
+
+Print F</sys/kernel/security/tomoyo/manager> to standard output.
+
+=item B<-s>
+
+Print F</sys/kernel/security/tomoyo/stat> to standard output.
+
+=item I<directory>
+
+Save policy to an alternative directory, rather than the default F</etc/tomoyo> directory.
+
+=item I<remote_ip:remote_port>
+
+Save policy on a remote system via an agent waiting at port I<remote_port> on IP address I<remote_ip>.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Save policy to disk>
+
+  tomoyo-savepolicy
+
+=item B<Print C</sys/kernel/security/tomoyo/exception_policy> to standard output>
+
+  tomoyo-savepolicy -e
+
+=item B<Retrieve policy from a remote system and save in a local directory>
+
+  tomoyo-savepolicy /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-editpolicy-agent>(8), B<tomoyo-loadpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

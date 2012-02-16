@@ -1,0 +1,59 @@
+=head1 NAME
+
+ccs-selectpolicy - policy selection utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<ccs-selectpolicy> [I<options>] I<E<lt>domainE<gt>> ...
+
+=head1 DESCRIPTION
+
+This program reads domain policy from standard input, and outputs policy from the specified domain to standard output.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-r>
+
+Pick up all domains whose domain name starts with the specified string.
+
+=item I<E<lt>domainE<gt>>
+
+The string must be quoted or escaped to avoid misinterpretation by the shell. It only matches an exact string unless the C<-r> option is specified.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Pick up domain policy for sshd and its descendents>
+
+  ccs-selectpolicy -r '<kernel> /usr/sbin/sshd' < /proc/ccs/domain_policy
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<ccs-sortpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

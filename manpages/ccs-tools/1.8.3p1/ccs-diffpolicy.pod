@@ -1,0 +1,53 @@
+=head1 NAME
+
+ccs-diffpolicy - domain policy comparison utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<ccs-diffpolicy> I<old_domain_policy> I<new_domain_policy>
+
+=head1 DESCRIPTION
+
+This program works similar to B<diff>(1), but is specialized for handling domain policy. The resulting diff can be applied to existing policy.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Generate a diff of domain policy>
+
+  ccs-diffpolicy /etc/ccs/domain_policy.old /etc/ccs/domain_policy.new
+
+=item B<Generate a diff of domain policy, using standard input for old_domain_policy>
+
+  ccs-diffpolicy - /etc/ccs/domain_policy.new
+
+=item B<Generate a diff of domain policy, using standard input for new_domain_policy>
+
+  ccs-diffpolicy /etc/ccs/domain_policy.old -
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<ccs-loadpolicy>(8), B<ccs-patternize>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

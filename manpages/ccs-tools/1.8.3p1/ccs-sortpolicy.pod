@@ -1,0 +1,45 @@
+=head1 NAME
+
+ccs-sortpolicy - domain policy sorting utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<ccs-sortpolicy>
+
+=head1 DESCRIPTION
+
+This program reads domain policy from standard input and send the sorted contents to standard output. This is similar to B<sort>(1), except that sorting is done per domain.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Sort domain policy>
+
+  ccs-sortpolicy < /proc/ccs/domain_policy
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<sort>(1), B<ccs-selectpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

@@ -1,0 +1,118 @@
+=head1 NAME
+
+ccs-editpolicy - policy editor for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<ccs-editpolicy> [I<options>]
+
+B<ccs-editpolicy> [I<options>] [I<directory>]
+
+B<ccs-editpolicy> [I<options>] [I<remote_ip:remote_port>]
+
+=head1 DESCRIPTION
+
+This program is the primary tool for policy management. It provides an ncurses interface for editing either policy saved to disk, or policy currently loaded into kernel memory.
+
+If no directory or remote address is specified, the policy loaded in kernel memory will be edited.
+
+Before this program can be invoked, you must register it in F</proc/ccs/manager>. After initializing policy, this is usually as simple as rebooting the system.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<e>
+
+Set initial screen to be the Exception Policy Editor.
+
+=item B<d>
+
+Set initial screen to be the Domain Transition Editor [default].
+
+=item B<p>
+
+Set initial screen to be the Profile Editor.
+
+=item B<m>
+
+Set initial screen to be the Manager Editor.
+
+=item B<s>
+
+Set initial screen to be the Statistics.
+
+=item B<n>
+
+Set initial screen to be the Namespace Selector.
+
+=item B<readonly>
+
+Start the policy editor in browse-only mode. No editing is allowed.
+
+=item B<refresh>=I<integer>
+
+Refresh the screen automatically at the interval specified in seconds.
+
+=item I<directory>
+
+Edit policy stored in the F<directory>/policy/current/ directory, instead of the policy loaded in kernel memory. This must be the full path to the directory.
+
+=item I<remote_ip:remote_port>
+
+Edit policy on a remote system via an agent waiting at port I<remote_port> on IP address I<remote_ip>.
+
+=item I<E<lt>namespaceE<gt>>
+
+Set initial namespace to be the I<E<lt>namespaceE<gt>> namespace [default=C<E<lt>kernelE<gt>>].
+
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Start the policy editor>
+
+  ccs-editpolicy
+
+=item B<Edit policy stored in the C</etc/ccs/192.168.1.1/policy/current> directory>
+
+  ccs-editpolicy /etc/ccs/192.168.1.1/
+
+=item B<Edit policy via an agent connecting to 192.168.1.1 at port 10000>
+
+  ccs-editpolicy 192.168.1.1:10000
+
+=back
+
+An usage guide with screenshots is available at E<lt>http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.htmlE<gt>.
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=item Yoshihiro Kusuno E<lt>yocto@users.sourceforge.jpE<gt>
+
+Line coloring feature.
+
+=back
+
+=head1 SEE ALSO
+
+B<ccs-loadpolicy>(8), B<ccs-editpolicy-agent>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

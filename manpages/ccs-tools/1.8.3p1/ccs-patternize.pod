@@ -1,0 +1,73 @@
+=head1 NAME
+
+ccs-patternize - utility to convert pathnames in policy into patterns
+
+=head1 SYNOPSIS
+
+B<ccs-patternize>
+
+B<ccs-patternize> I<configfile>
+
+=head1 DESCRIPTION
+
+This program reads domain policy from standard input and replaces pathnames with patterns. Replacement rules are defined in F</etc/ccs/tools/patternize.conf>. The resulting policy is sent to standard output and is useful to shorten and simplify domain or exception policy.
+
+Pathnames used for domain names themselves will not be replaced. Only the first matching rule is used for any particular pathname. If a pathname does not match any rules, it is left unchanged.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Replace C<proc:/self/fd/0> with C<proc:/self/fd/\$>>
+
+  rewrite path_pattern proc:/self/fd/\$
+
+=item B<Replace C<proc:/123/status> with C<proc/\$/status>>
+
+  rewrite head_pattern proc:/\$
+
+=item B<Replace C<dev(8,1):/etc/mtab~456> with C<dev(8,1):/etc/mtab~\$>>
+
+  rewrite tail_pattern /etc/mtab~\$
+
+=item B<Replace C</tmp/phpZjk1k3> with C<@GROUP1>>
+
+  rewrite path_pattern /tmp/php\?\?\?\?\?\? @GROUP1
+
+=item B<Replace integers between 0-100 or 100-200 with C<@GROUP2>>
+
+  rewrite number_pattern 0-100 @GROUP2
+  rewrite number_pattern 100-200 @GROUP2
+
+=item B<Replace loopback addresses with C<@LOCALHOST>>
+
+  rewrite address_pattern 127.0.0.1 @LOCALHOST
+  rewrite address_pattern 0:0:0:0:0:0:0:1 @LOCALHOST
+
+=back
+
+See the configuration file for more information on rule syntax.
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<ccs-findtemp>(8), B<ccs-diffpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

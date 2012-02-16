@@ -1,0 +1,63 @@
+=head1 NAME
+
+tomoyo-checkpolicy - policy validator utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-checkpolicy> [I<option>]
+
+=head1 DESCRIPTION
+
+This program reads domain policy or exception policy from standard input, and checks for errors. Use this during policy development to ensure that you are implementing correct policy.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<d>
+
+Interpret input as domain policy.
+
+=item B<e>
+
+Interpret input as exception policy.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Check for errors in domain policy>
+
+  tomoyo-checkpolicy d < /etc/tomoyo/domain_policy.conf
+
+=item B<Check for errors in exception policy>
+
+  tomoyo-checkpolicy e < /etc/tomoyo/domain_policy.conf
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-editpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.
