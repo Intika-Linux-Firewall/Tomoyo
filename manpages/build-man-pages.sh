@@ -1,15 +1,17 @@
 #!/bin/bash
 
 if (( $# != 1 )); then
-	printf '%s\n' "Usage: build-man-pages.sh VERSION"
-	printf '%s\n' "    Example: build-man-pages.sh 1.8.3"
+	printf '%s\n' "Usage: build-man-pages.sh NAME VERSION"
+	printf '%s\n' "    Example: build-man-pages.sh ccs-tools 1.8.3"
+	printf '%s\n' "    Example: build-man-pages.sh tomoyo-tools 2.5.0"
 	exit 1
 fi
 
-version="${1}"
+name="${1}"
+version="${2}"
 
 for i in *.pod; do
 	pod2man --center="System Administration Utilities" \
-		--release="ccs-tools ${version}" "${i}" \
+		--release="${name} ${version}" "${i}" \
 		| gzip -9 > "${i%pod}8.gz"
 done
