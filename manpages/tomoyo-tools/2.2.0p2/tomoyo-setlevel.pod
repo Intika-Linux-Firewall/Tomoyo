@@ -1,0 +1,47 @@
+=head1 NAME
+
+tomoyo-setlevel - profile management utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-setlevel> I<name=value>
+
+=head1 DESCRIPTION
+
+This program can be used to edit the profiles currently defined in F</sys/kernel/security/tomoyo/profile>. The output must be quoted or escaped to avoid misinterpretation by the shell.
+
+Before this program can be invoked, you must register it in F</sys/kernel/security/tomoyo/manager>. After initializing policy, this is usually as simple as rebooting the system.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Change mode for profile number 3 to enforcing mode>
+
+  tomoyo-setlevel "3-CONFIG={ mode=enforcing }"
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-loadpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

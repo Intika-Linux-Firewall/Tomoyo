@@ -1,0 +1,51 @@
+=head1 NAME
+
+tomoyo-editpolicy-agent - agent for remotely editing TOMOYO Linux policy
+
+=head1 SYNOPSIS
+
+B<tomoyo-editpolicy-agent> I<listen_ip:listen_port>
+
+=head1 DESCRIPTION
+
+This program is an agent for B<tomoyo-editpolicy>, B<tomoyo-loadpolicy>, B<tomoyo-savepolicy> and B<tomoyo-pstree>.
+
+It listens on the specified IP address at the specified port.
+
+Do not run this program unless you know what you are doing. It allows anonymous users to edit policy, as no user authentication is performed. It is designed for systems with resource limitations that make it difficult to run the TOMOYO Linux userspace tools. Do not use this for normal desktops or servers.
+
+Before this program can be invoked, you must register it in F</sys/kernel/security/tomoyo/manager>.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Listen to 192.168.1.1 at port 10000>
+
+  tomoyo-editpolicy-agent 192.168.1.1:10000
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-editpolicy>(8), B<tomoyo-loadpolicy>(8), B<tomoyo-savepolicy>(8), B<tomoyo-pstree>(8), B<tomoyo-queryd>(8), B<tomoyo-auditd>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.
