@@ -1,0 +1,104 @@
+=head1 NAME
+
+ccs-savepolicy - save TOMOYO Linux policy
+
+=head1 SYNOPSIS
+
+B<ccs-savepolicy> [I<directory>]
+
+B<ccs-savepolicy> [I<directory>] [I<remote_ip:remote:port>]
+
+=head1 DESCRIPTION
+
+This program saves TOMOYO Linux policy onto disk from kernel memory.
+
+The directory F</etc/ccs/policy/YY-MM-DD.hh:mm:ss> is created with four files inside: F<domain_policy.conf>, F<exception_policy.conf>, F<profile.conf>, and F<manager.conf>. The symbolic links F</etc/ccs/policy/previous> and F</etc/ccs/policy/current> are updated to point to the previous and current F<YY-MM-DD.hh:mm:ss> directories respectively.
+
+The following symbolic links should exist within the F</etc/ccs> directory:
+
+  domain_policy.conf -> policy/current/domain_policy.conf
+  exception_policy.conf -> policy/current/exception_policy.conf
+  profile.conf -> policy/current/profile.conf
+  manager.conf -> policy/current/manager.conf
+  policy/current -> policy/YY-MM-DD.hh:mm:ss
+  policy/previous -> policy/YY-MM-DD.hh:mm:ss
+
+You can therefore access the current policy files without having to descend into subdirectories, and without having to determine which F<YY-MM-DD.hh:mm:ss> directory is the most recent.
+
+If the policy type is specified, this program works similar to B<cat>(1).
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-e>
+
+Print F</proc/ccs/exception_policy> to standard output.
+
+=item B<-d>
+
+Print F</proc/ccs/domain_policy> to standard output.
+
+=item B<-p>
+
+Print F</proc/ccs/profile> to standard output.
+
+=item B<-m>
+
+Print F</proc/ccs/manager> to standard output.
+
+=item B<-s>
+
+Print F</proc/ccs/stat> to standard output.
+
+=item I<directory>
+
+Save policy to an alternative directory, rather than the default F</etc/ccs> directory.
+
+=item I<remote_ip:remote_port>
+
+Save policy on a remote system via an agent waiting at port I<remote_port> on IP address I<remote_ip>.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Save policy to disk>
+
+  ccs-savepolicy
+
+=item B<Print C</proc/ccs/exception_policy> to standard output>
+
+  ccs-savepolicy -e
+
+=item B<Retrieve policy from a remote system and save in a local directory>
+
+  ccs-savepolicy /etc/ccs/192.168.1.1/ 192.168.1.1:10000
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<ccs-editpolicy-agent>(8), B<ccs-loadpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

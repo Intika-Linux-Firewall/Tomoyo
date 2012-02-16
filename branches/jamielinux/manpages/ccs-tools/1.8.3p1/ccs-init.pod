@@ -1,0 +1,63 @@
+=head1 NAME
+
+ccs-init - load TOMOYO Linux policy automatically
+
+=head1 SYNOPSIS
+
+B<ccs-init>
+
+=head1 DESCRIPTION
+
+When F</sbin/init> starts, the kernel automatically calls this program. Policy files that have been saved to disk are subsequently loaded into kernel memory.
+
+This program copies the following files:
+
+  /etc/ccs/exception_policy.conf => /proc/ccs/exception_policy
+
+  /etc/ccs/domain_policy.conf => /proc/ccs/domain_policy
+
+  /etc/ccs/profile.conf => /proc/ccs/profile
+
+  /etc/ccs/manager.conf => /proc/ccs/manager
+
+  /etc/ccs/stat.conf => /proc/ccs/stat
+
+If F</etc/ccs/ccs-post-init> exists and is executable, then it will also be executed. This allows additional control over what happens at startup.
+
+You will not usually need to invoke this program manually.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Contents of C</etc/ccs/ccs-post-init> allowing non-root C<demo> user to edit policy>
+
+  #!/bin/bash
+  echo manage_by_non_root > /proc/ccs/manager
+  chown -R demo /proc/ccs
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<ccs-loadpolicy>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

@@ -1,0 +1,67 @@
+=head1 NAME
+
+tomoyo-queryd - real-time access request management utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-queryd>
+
+B<tomoyo-queryd> [I<remote_ip:remote_port>]
+
+=head1 DESCRIPTION
+
+This program detects policy violations that occur in domains set to enforcing mode. The violation is displayed and a number of options are given to either grant or reject this request. Programs are frozen until a response is provided by the administrator.
+
+This is useful when upgrading packages on the system, as errors due to changes in permissions can be avoided.
+
+Carefully analyze access requests before you grant them, as they could be coming from a compromised process or malicious attacker.
+
+Before this program can be invoked, you must register it in F</sys/kernel/security/tomoyo/manager>. After initializing policy, this is usually as simple as rebooting the system.
+
+=head1 OPTIONS
+
+=over 4
+
+=item I<remote_ip:remote_port>
+
+Instead of managing local policy violations, manage remote policy via an agent waiting at port I<remote_port> on IP address I<remote_ip>.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Handle policy violations on the local system>
+
+  tomoyo-queryd
+
+=item B<Handle policy violations on a remote system>
+
+  tomoyo-queryd 192.168.1.1:10000
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-editpolicy-agent>(8), B<tomoyo-notifyd>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

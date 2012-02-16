@@ -1,0 +1,55 @@
+=head1 NAME
+
+tomoyo-notifyd - policy violation notification daemon for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-notifyd>
+
+=head1 DESCRIPTION
+
+This program notifies the system administrator of policy violations that occur in domains set to enforcing mode.
+
+The notification method can be any arbitrary command, such as sending mail. Configure this daemon in F</etc/tomoyo/tools/notifyd.conf>. This makes it possible to be notified about policy violations as soon as possible, allowing subsequent action to be taken.
+
+Start this program from an appropriate stage during startup (e.g. F</etc/rc.local>).
+
+If you wish to freeze a process using the C<time_to_wait> directive, you must register this program in F</sys/kernel/security/tomoyo/manager>.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Send mail to root>
+
+  time_to_wait 0
+  action_to_take mail -s Notification\040from\040tomoyo-notifyd root@localhost
+  minimal_interval 60
+
+=back
+
+See the configuration file for more information about the syntax.
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-queryd>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.
