@@ -1,127 +1,97 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html lang="en-US">
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<meta http-equiv="content-style-type" content="text/css">
-<TITLE>TOMOYO Linux : tomoyo-notifyd man page</TITLE>
+<title>tomoyo-notifyd</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
 </head>
 
-<BODY bgcolor=#F0F0F0 text=#000000 link=#0000ff vlink=#C000C0 alink=#ff0000><A NAME=top></A>
-<!-- .\" -->
-<!-- .\" Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 NTT DATA Corporation. -->
-<!-- .\" -->
-<!-- .\" You may distribute under the terms of the GNU General Public -->
-<!-- .\" License as specified in the file COPYING.tomoyo that comes with the -->
-<!-- .\" tomoyo-tools source tarball. -->
-<!-- .\" -->
-<!-- .TH "TOMOYO-NOTIFYD" "8" "February 2011" "tomoyo-notifyd 2.3.0" "System Administration Utilities" -->
-<CENTER>
-<H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>TOMOYO-NOTIFYD (8)</NOBR><HR></H1>
-</CENTER>
-<!-- .SH "NAME" -->
-<A name=>
+<body style="background-color: white">
 
-     <H3>NAME</H3>
 
-</A>
-<BLOCKQUOTE>
-tomoyo-notifyd - policy violation notification daemon for TOMOYO Linux
-<!-- .SH "SYNOPSIS" -->
-</BLOCKQUOTE>
-<A name=1>
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
 
-     <H3>SYNOPSIS</H3>
+<ul>
 
-</A>
-<BLOCKQUOTE>
-<!-- .B tomoyo-notifyd -->
-<B>tomoyo-notifyd</B> <!-- .SH "DESCRIPTION" -->
-</BLOCKQUOTE>
-<A name=>
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#authors">AUTHORS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
 
-     <H3>DESCRIPTION</H3>
+<hr name="index" />
+</div>
+<!-- INDEX END -->
 
-</A>
-<BLOCKQUOTE>
-This program detects policy violations that occur in domains set to enforcing mode and notifies the system administrator. The notification method can for example be by sending a mail, but any command can be specified in the configuration file, which is found at <I>/etc/tomoyo/tools/notifyd.conf</I>. This makes it possible to be notified about policy violations as soon as possible, and allows subsequent action to be taken within a short period of time.
-<!-- .SH "EXAMPLES" -->
-</BLOCKQUOTE>
-<A name=>
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>tomoyo-notifyd - policy violation notification daemon for TOMOYO Linux</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>tomoyo-notifyd</strong> <em>timeout</em> <em>action</em></p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This program notifies the system administrator of policy violations that occur in domains set to enforcing mode.</p>
+<p>The notification method can be any arbitrary command, such as sending mail. This makes it possible to be notified about policy violations as soon as possible, allowing subsequent action to be taken. You can freeze the program and hold for judgement by specifying the number of seconds to wait for when a violation occurs. However, you should login to the system and start <strong>tomoyo-queryd</strong> within this time, so that the request can be dealt with.</p>
+<p>If you wish to freeze a process, you must register this program in <em class="file">/sys/kernel/security/tomoyo/manager</em>.</p>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<dl>
+<dt><strong><a name="send_mail_notification_and_freeze_the_process_for_180_seconds" class="item"><strong>Send mail notification and freeze the process for 180 seconds</strong></a></strong></dt>
 
-     <H3>EXAMPLES</H3>
+<dd>
+<pre>
+  tomoyo-notifyd 180 'mail admin@example.com'</pre>
+</dd>
+<dt><strong><a name="reject_the_request_immediately_and_send_a_notification_via_curl" class="item"><strong>Reject the request immediately and send a notification via curl</strong></a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-<!-- .B Wait for 180 seconds before rejecting the request and send a notification mail: -->
-<B>Wait for 180 seconds before rejecting the request and send a notification mail:</B> <!-- .nf -->
-<PRE>
-tomoyo-notifyd 180 &#146;mail <A HREF="mailto:admin@example.com">admin@example.com</A>&#146;
-<!-- .fi -->
-</PRE>
-<!-- .PP -->
-<P>
-<!-- .B Reject the request immediately and send a notification using curl: -->
-<B>Reject the request immediately and send a notification using curl:</B> <!-- .nf -->
-<PRE>
-tomoyo-notifyd 0 &#146;curl --data-binary @- <A HREF="https://your.server/path_to_cgi">https://your.server/path_to_cgi</A>&#146;
-<!-- .fi -->
-</PRE>
-<!-- .SH "NOTES" -->
-</BLOCKQUOTE>
-<A name=>
+<dd>
+<pre>
+  tomoyo-notifyd 0 'curl --data-binary @- https://your.server/path_to_cgi'</pre>
+</dd>
+</dl>
+<p>See the configuration file for more information about the syntax.</p>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>If you find any bugs, send an email to &lt;<a href="mailto:tomoyo-users-en@lists.sourceforge.jp">tomoyo-users-en@lists.sourceforge.jp</a>&gt;.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<dl>
+<dt><strong><a name="tetsuo_handa_penguin_kernel_i_love_sakura_ne_jp" class="item">Tetsuo Handa &lt;<a href="mailto:penguin-kernel@I-love.SAKURA.ne.jp">penguin-kernel@I-love.SAKURA.ne.jp</a>&gt;</a></strong></dt>
 
-     <H3>NOTES</H3>
+<dd>
+<p>Main author.</p>
+</dd>
+<dt><strong><a name="jamie_nguyen_jamie_tomoyolinux_co_uk" class="item">Jamie Nguyen &lt;<a href="mailto:jamie@tomoyolinux.co.uk">jamie@tomoyolinux.co.uk</a>&gt;</a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-This program should be started from the appropriate stage during startup, for example in <I>/etc/rc.local</I>.
-<!-- .PP -->
-<P>
-Before this program can be invoked, it must be registered in <I>/sys/kernel/security/tomoyo/manager</I>. After initializing policy, this is usually as simple as rebooting the system.
-<!-- .SH "BUGS" -->
-</BLOCKQUOTE>
-<A name=>
+<dd>
+<p>Documentation and website.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><strong>tomoyo-queryd</strong>(8)</p>
+<p>See &lt;<a href="http://tomoyo.sourceforge.jp">http://tomoyo.sourceforge.jp</a>&gt; for more information.</p>
 
-     <H3>BUGS</H3>
+</body>
 
-</A>
-<BLOCKQUOTE>
-If there are any bugs, send an email with as much detail as possible to
-<A HREF="mailto:tomoyo-users-en@lists.sourceforge.jp">tomoyo-users-en@lists.sourceforge.jp</A>
-<!-- .SH "AUTHORS" -->
-</BLOCKQUOTE>
-<A name=>
-
-     <H3>AUTHORS</H3>
-
-</A>
-<BLOCKQUOTE>
-<!-- .sp -->
-Main authors:
-<BLOCKQUOTE>
-Tetsuo Handa &lt;penguin-kernel AT I-love.SAKURA.ne.jp&gt;
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<BLOCKQUOTE>
-Other contributers:
-<BLOCKQUOTE>
-<P>Jamie Nguyen &lt;jamie AT tomoyolinux.co.uk&gt;</P>
-<P>Man pages, documentation and website.</P>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<A name=>
-
-     <H3>SEE ALSO</H3>
-
-</A>
-<BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>tomoyo-queryd</B>(8)
-<!-- .sp -->
-<P>
-See <A HREF="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</A> for more information.
-</BLOCKQUOTE>
-<P><HR>
-<TABLE width=100%><TR> <TD width=33%><I>tomoyo-notifyd 2.3.0</I></TD> <TD width=33% align=center>TOMOYO-NOTIFYD (8)</TD> <TD align=right width=33%><I>February 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from tomoyo-notifyd using man macros.</FONT>
-</BODY></HTML>
+</html>
