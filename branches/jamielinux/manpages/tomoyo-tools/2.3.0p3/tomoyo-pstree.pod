@@ -1,0 +1,63 @@
+=head1 NAME
+
+tomoyo-pstree - process tree viewer utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-pstree> [I<option>]
+
+=head1 DESCRIPTION
+
+This program is similar to B<pstree>(1), but shows the domain names and profile numbers of currently running processes.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-a>
+
+Show all processes, including kernel threads.
+
+=item I<remote_ip:remote_port>
+
+Show processes on a remote system via an agent waiting at port I<remote_port> on IP address I<remote_ip>.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Show process tree>
+
+  tomoyo-pstree
+
+=item B<Shwo process tree for remote policy>
+
+  tomoyo-pstree 192.168.1.1:10000
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-setprofile>(8), B<tomoyo-editpolicy-agent>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

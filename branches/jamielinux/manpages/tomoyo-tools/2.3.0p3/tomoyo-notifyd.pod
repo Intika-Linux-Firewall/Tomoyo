@@ -1,0 +1,55 @@
+=head1 NAME
+
+tomoyo-notifyd - policy violation notification daemon for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-notifyd> I<timeout> I<action>
+
+=head1 DESCRIPTION
+
+This program notifies the system administrator of policy violations that occur in domains set to enforcing mode.
+
+The notification method can be any arbitrary command, such as sending mail. This makes it possible to be notified about policy violations as soon as possible, allowing subsequent action to be taken. You can freeze the program and hold for judgement by specifying the number of seconds to wait for when a violation occurs. However, you should login to the system and start B<tomoyo-queryd> within this time, so that the request can be dealt with.
+
+If you wish to freeze a process, you must register this program in F</sys/kernel/security/tomoyo/manager>.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Send mail notification and freeze the process for 180 seconds>
+
+  tomoyo-notifyd 180 'mail admin@example.com'
+
+=item B<Reject the request immediately and send a notification via curl>
+
+  tomoyo-notifyd 0 'curl --data-binary @- https://your.server/path_to_cgi'
+
+=back
+
+See the configuration file for more information about the syntax.
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-queryd>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.
