@@ -50,43 +50,51 @@
 <hr />
 <h1><a name="options">OPTIONS</a></h1>
 <dl>
-<dt><strong><a name="e" class="item"><strong>-e</strong></a></strong></dt>
+<dt><strong><a name="e" class="item"><strong>e</strong></a></strong></dt>
 
 <dd>
-<p>Append to <em class="file">/sys/kernel/security/tomoyo/exception_policy</em>.</p>
+<p>Load exception policy from <em class="file">/etc/tomoyo/exception_policy.conf</em>.</p>
 </dd>
-<dt><strong><a name="ef" class="item"><strong>-ef</strong></a></strong></dt>
+<dt><strong><a name="d" class="item"><strong>d</strong></a></strong></dt>
 
 <dd>
-<p>Overwrite <em class="file">/sys/kernel/security/tomoyo/exception_policy</em>.</p>
+<p>Load domain policy from <em class="file">/etc/tomoyo/domain_policy.conf</em>.</p>
 </dd>
-<dt><strong><a name="d" class="item"><strong>-d</strong></a></strong></dt>
+<dt><strong><a name="a" class="item"><strong>a</strong></a></strong></dt>
 
 <dd>
-<p>Append to <em class="file">/sys/kernel/security/tomoyo/domain_policy</em>.</p>
+<p>Load exception policy and domain policy. [default]</p>
 </dd>
-<dt><strong><a name="df" class="item"><strong>-df</strong></a></strong></dt>
+<dt><strong><a name="p" class="item"><strong>p</strong></a></strong></dt>
 
 <dd>
-<p>Overwrite <em class="file">/sys/kernel/security/tomoyo/domain_policy</em>.</p>
+<p>Load profile from <em class="file">/etc/tomoyo/profile.conf</em>.</p>
 </dd>
-<dt><strong><a name="m" class="item"><strong>-m</strong></a></strong></dt>
+<dt><strong><a name="s" class="item"><strong>s</strong></a></strong></dt>
 
 <dd>
-<p>Append to <em class="file">/sys/kernel/security/tomoyo/manager</em>.</p>
+<p>Load manager from <em class="file">/etc/tomoyo/manager.conf</em>.</p>
 </dd>
-<dt><strong><a name="p" class="item"><strong>-p</strong></a></strong></dt>
+<dt><strong><a name="u" class="item"><strong>u</strong></a></strong></dt>
 
 <dd>
-<p>Append to <em class="file">/sys/kernel/security/tomoyo/profile</em>.</p>
+<p>Load meminfo from <em class="file">/etc/tomoyo/meminfo.conf</em>.</p>
 </dd>
-<dt><strong><a name="s" class="item"><strong>-s</strong></a></strong></dt>
+<dt><strong><a name="f" class="item"><strong>f</strong></a></strong></dt>
 
 <dd>
-<p>Append to <em class="file">/sys/kernel/security/tomoyo/stat</em>.</p>
+<p>Erase policy loaded in memory before loading policy from the file. This can be used with the <a href="#e"><code>e</code></a>, <a href="#d"><code>d</code></a>, and <a href="#a"><code>a</code></a> options.</p>
+</dd>
+<dt><strong><a name="_" class="item"><strong>-</strong></a></strong></dt>
+
+<dd>
+<p>Read policy from standard input. This can bs used with the <a href="#e"><code>e</code></a>, <a href="#d"><code>d</code></a>, <code>m</code>, and <a href="#u"><code>u</code></a> options.</p>
 </dd>
 <dt><strong><a name="directory" class="item"><em>directory</em></a></strong></dt>
 
+<dd>
+<p>Load policy stored in the <em class="file">directory</em> directory, instead of the default <code>/etc/tomoyo</code> directory. This must be the full path to the directory.</p>
+</dd>
 <dt><strong><a name="remote_ip_remote_port" class="item"><em>remote_ip:remote_port</em></a></strong></dt>
 
 <dd>
@@ -120,13 +128,13 @@
 
 <dd>
 <pre>
-  tomoyo-loadpolicy -df</pre>
+  tomoyo-loadpolicy df</pre>
 </dd>
 <dt><strong><a name="append_to_policy_remotely_from_the_specified_directory" class="item"><strong>Append to policy remotely from the specified directory</strong></a></strong></dt>
 
 <dd>
 <pre>
-  tomoyo-loadpolicy -d /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000</pre>
+  tomoyo-loadpolicy d /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000</pre>
 </dd>
 </dl>
 <p>
