@@ -1,0 +1,69 @@
+=head1 NAME
+
+tomoyo-setprofile - profile assignment utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-setprofile> [I<option>] I<number> I<E<lt>domainE<gt>> [I<E<lt>domainE<gt> ...>]
+
+=head1 DESCRIPTION
+
+This program assigns the specified profile number to the specified domain.
+
+Before this program can be invoked, you must register it in F</sys/kernel/security/tomoyo/manager>. After initializing policy, this is usually as simple as rebooting the system.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-r>
+
+Apply the specified profile number to all domains whose domain name starts with the specified string.
+
+=item I<number>
+
+The profile number must be an integer between 0 and 255.
+
+=item I<E<lt>domainE<gt>>
+
+The string must be quoted or escaped to avoid misinterpretation by the shell. It only matches an exact string unless the C<-r> option is specified.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Assign profile 0 to all domains>
+
+  tomoyo-setprofile -r 0 '<kernel>'
+
+=item B<Assign profile 1 to sshd and httpd domains>
+
+  tomoyo-setprofile 1 '<kernel> /usr/sbin/sshd' '<kernel> /usr/sbin/httpd'
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-pstree>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

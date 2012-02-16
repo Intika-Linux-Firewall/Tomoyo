@@ -1,0 +1,45 @@
+=head1 NAME
+
+tomoyo-domainmatch - domain policy scanning utility for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-domainmatch> I<string>
+
+=head1 DESCRIPTION
+
+This program scans domain policy loaded in kernel memory for lines that contain the specified string. This is similar to B<fgrep>(1), except that the domain name is printed before the matching lines.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Search for domains that access C</etc/fstab>>
+
+  tomoyo-domainmatch /etc/fstab
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-findtemp>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

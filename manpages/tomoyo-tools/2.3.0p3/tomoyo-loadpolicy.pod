@@ -1,0 +1,103 @@
+=head1 NAME
+
+tomoyo-loadpolicy - load TOMOYO Linux manually
+
+=head1 SYNOPSIS
+
+B<tomoyo-loadpolicy> [I<option>]
+
+B<tomoyo-loadpolicy> [I<option>] [I<directory>] [I<remote_ip:remote_port>]
+
+=head1 DESCRIPTION
+
+This program reads TOMOYO Linux policy from standard input and loads it into the kernel.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-e>
+
+Append to F</sys/kernel/security/tomoyo/exception_policy>.
+
+=item B<-ef>
+
+Overwrite F</sys/kernel/security/tomoyo/exception_policy>.
+
+=item B<-d>
+
+Append to F</sys/kernel/security/tomoyo/domain_policy>.
+
+=item B<-df>
+
+Overwrite F</sys/kernel/security/tomoyo/domain_policy>.
+
+=item B<-m>
+
+Append to F</sys/kernel/security/tomoyo/manager>.
+
+=item B<-p>
+
+Append to F</sys/kernel/security/tomoyo/profile>.
+
+=item B<-s>
+
+Append to F</sys/kernel/security/tomoyo/stat>.
+
+=item I<directory>
+
+=item I<remote_ip:remote_port>
+
+Write to policy on a remote system via an agent waiting at port I<remote_port> on IP address I<remote_ip>.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Append a line to exception policy>
+
+  echo "allow_read /proc/meminfo | tomoyo-loadpolicy -e
+
+=item B<Remove a line from exception policy>
+
+  echo "delete allow_read /proc/meminfo" | tomoyo-loadpolicy -e
+
+=item B<Append a line to domain policy>
+
+  ( echo "<kernel>"; echo "allow_execute /sbin/init" ) | tomoyo-loadpolicy -d
+
+=item B<Replace currently loaded domain policy with C</etc/tomoyo/domain_policy.conf>>
+
+  tomoyo-loadpolicy -df
+
+=item B<Append to policy remotely from the specified directory>
+
+  tomoyo-loadpolicy -d /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-savepolicy>(8), B<tomoyo-editpolicy>(8), B<tomoyo-editpolicy-agent>(8), B<tomoyo-init>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.

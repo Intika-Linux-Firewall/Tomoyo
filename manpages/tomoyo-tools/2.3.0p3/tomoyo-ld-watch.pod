@@ -1,0 +1,39 @@
+=head1 NAME
+
+tomoyo-ld-watch - utility for TOMOYO Linux to update library pathnames automatically
+
+=head1 SYNOPSIS
+
+B<tomoyo-ld-watch>
+
+=head1 DESCRIPTION
+
+This program detects changed to the location of shared libraries in F</etc/ld.so.cache> and automatically appends C<allow_read> directives to policy.
+
+This is useful when upgrading packages on a system, as errors due to changes in permissions can be avoided.
+
+Before this program can be invoked, you must register it in F</sys/kernel/security/tomoyo/manager>.
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-queryd>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.
