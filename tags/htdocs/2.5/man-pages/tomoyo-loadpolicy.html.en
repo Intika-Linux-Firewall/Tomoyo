@@ -1,230 +1,166 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html lang="en-US">
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<meta http-equiv="content-style-type" content="text/css">
-<TITLE>TOMOYO Linux : tomoyo-loadpolicy man page</TITLE>
+<title>tomoyo-loadpolicy</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
 </head>
 
-<BODY bgcolor=#F0F0F0 text=#000000 link=#0000ff vlink=#C000C0 alink=#ff0000><A NAME=top></A>
-<!-- .\" -->
-<!-- .\" Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011 NTT DATA Corporation. -->
-<!-- .\" -->
-<!-- .\" You may distribute under the terms of the GNU General Public -->
-<!-- .\" License as specified in the file COPYING.tomoyo that comes with the -->
-<!-- .\" tomoyo-tools source tarball. -->
-<!-- .\" -->
-<!-- .TH "CCS-LOADPOLICY" "8" "September 2011" "tomoyo-loadpolicy 2.5.0" "System Administration Utilities" -->
-<CENTER>
-<H1><HR><I>Manual Reference Pages &nbsp;-&nbsp;</I><NOBR>CCS-LOADPOLICY (8)</NOBR><HR></H1>
-</CENTER>
-<!-- .SH "NAME" -->
-<A name=>
+<body style="background-color: white">
 
-     <H3>NAME</H3>
 
-</A>
-<BLOCKQUOTE>
-tomoyo-loadpolicy - load TOMOYO Linux policy manually
-<!-- .SH "SYNOPSIS" -->
-</BLOCKQUOTE>
-<A name=1>
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
 
-     <H3>SYNOPSIS</H3>
+<ul>
 
-</A>
-<BLOCKQUOTE>
-<!-- .B tomoyo-loadpolicy [options] -->
-<B>tomoyo-loadpolicy [options]</B> <!-- .sp -->
-<P>
-<!-- .B tomoyo-loadpolicy [options] <remote_ip:remote_port> -->
-<B>tomoyo-loadpolicy [options] &lt;remote_ip:remote_port&gt;</B> <!-- .SH "DESCRIPTION" -->
-</BLOCKQUOTE>
-<A name=>
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#authors">AUTHORS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
 
-     <H3>DESCRIPTION</H3>
+<hr name="index" />
+</div>
+<!-- INDEX END -->
 
-</A>
-<BLOCKQUOTE>
-This program reads TOMOYO Linux policy from standard input and loads it into the kernel.
-<!-- .SH "OPTIONS" -->
-</BLOCKQUOTE>
-<A name=>
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>tomoyo-loadpolicy - load TOMOYO Linux manually</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>tomoyo-loadpolicy</strong> [<em>option</em>]</p>
+<p><strong>tomoyo-loadpolicy</strong> [<em>option</em>] [<em>remote_ip:remote_port</em>]</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This program reads TOMOYO Linux policy from standard input and loads it into the kernel.</p>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<dl>
+<dt><strong><a name="e" class="item"><strong>-e</strong></a></strong></dt>
 
-     <H3>OPTIONS</H3>
+<dd>
+<p>Append to <em class="file">/sys/kernel/security/tomoyo/exception_policy</em>.</p>
+</dd>
+<dt><strong><a name="ef" class="item"><strong>-ef</strong></a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-<B>-e</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/exception_policy</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>-ef</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Overwrite to <I>/sys/kernel/security/tomoyo/exception_policy</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>-d</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/domain_policy</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>-df</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Overwrite to <I>/sys/kernel/security/tomoyo/domain_policy</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>-m</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/manager</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>-p</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/profile</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>-s</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Append to <I>/sys/kernel/security/tomoyo/stat</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>&lt;remote_ip:remote_port&gt;</B>
-<!-- .RS 4 -->
-<BLOCKQUOTE>
-Instead of writing to local kernel memory, write to an agent waiting at port <I>&lt;remote_port&gt;</I> on IP address <I>&lt;remote_ip&gt;</I>.
-<!-- .RE -->
-</BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<!-- .SH "EXAMPLES" -->
-</BLOCKQUOTE>
-<A name=>
+<dd>
+<p>Overwrite <em class="file">/sys/kernel/security/tomoyo/exception_policy</em>.</p>
+</dd>
+<dt><strong><a name="d" class="item"><strong>-d</strong></a></strong></dt>
 
-     <H3>EXAMPLES</H3>
+<dd>
+<p>Append to <em class="file">/sys/kernel/security/tomoyo/domain_policy</em>.</p>
+</dd>
+<dt><strong><a name="df" class="item"><strong>-df</strong></a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-<!-- .B Add \&"file read proc:/meminfo\&" to acl_group 0: -->
-<B>Add  file read proc:/meminfo to acl_group 0:</B> <!-- .nf -->
-<PRE>
-echo "acl_group 0 file read proc:/meminfo" | tomoyo-loadpolicy -e
-<!-- .fi -->
-</PRE>
-<!-- .PP -->
-<P>
-<!-- .B Remove \&"file read proc:/meminfo\&" from acl_group 0: -->
-<B>Remove  file read proc:/meminfo from acl_group 0:</B> <!-- .nf -->
-<PRE>
-echo "delete acl_group 0 file read proc:/meminfo" | tomoyo-loadpolicy -e
-<!-- .fi -->
-</PRE>
-<!-- .PP -->
-<P>
-<!-- .B Add \&"file execute /sbin/init\&" to <kernel> domain: -->
-<B>Add  file execute /sbin/init to &lt;kernel&gt; domain:</B> <!-- .nf -->
-<PRE>
-( echo "&lt;kernel&gt;"; echo "file execute /sbin/init" ) | tomoyo-loadpolicy -d
-<!-- .fi -->
-</PRE>
-<!-- .PP -->
-<P>
-<!-- .B Replace currently loaded domain policy with \&"/etc/tomoyo/domain_policy.conf\&": -->
-<B>Replace currently loaded domain policy with  /etc/tomoyo/domain_policy.conf :</B> <!-- .nf -->
-<PRE>
-tomoyo-loadpolicy -df &lt; /etc/tomoyo/domain_policy.conf
-<!-- .fi -->
-</PRE>
-<!-- .PP -->
-<P>
-<!-- .B Append \&"/etc/tomoyo/192.2.5.1/domain_policy.conf to 192.168.1.1:10000: -->
-<B>Append /etc/tomoyo/192.2.5.1/domain_policy.conf to 192.168.1.1:10000:</B> <!-- .nf -->
-<PRE>
-tomoyo-loadpolicy -d 192.2.5.1:10000 &lt; /etc/tomoyo/192.168.1.1/domain_policy.conf
-<!-- .fi -->
-</PRE>
-<!-- .PP -->
-<P>
-<!-- .B Remove \&"/usr/sbin/tomoyo-queryd\&" from \&"/sys/kernel/security/tomoyo/manager\&": -->
-<B>Remove  /usr/sbin/tomoyo-queryd from  /sys/kernel/security/tomoyo/manager :</B> <!-- .nf -->
-<PRE>
-echo "delete /usr/sbin/tomoyo-queryd" | tomoyo-loadpolicy -m
-<!-- .fi -->
-</PRE>
-<!-- .SH "NOTES" -->
-</BLOCKQUOTE>
-<A name=>
+<dd>
+<p>Overwrite <em class="file">/sys/kernel/security/tomoyo/domain_policy</em>.</p>
+</dd>
+<dt><strong><a name="m" class="item"><strong>-m</strong></a></strong></dt>
 
-     <H3>NOTES</H3>
+<dd>
+<p>Append to <em class="file">/sys/kernel/security/tomoyo/manager</em>.</p>
+</dd>
+<dt><strong><a name="p" class="item"><strong>-p</strong></a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-Before this program can be invoked, it must be registered in <I>/sys/kernel/security/tomoyo/manager</I>. After initializing policy, this is usually as simple as rebooting the system.
-<!-- .SH "BUGS" -->
-</BLOCKQUOTE>
-<A name=>
+<dd>
+<p>Append to <em class="file">/sys/kernel/security/tomoyo/profile</em>.</p>
+</dd>
+<dt><strong><a name="s" class="item"><strong>-s</strong></a></strong></dt>
 
-     <H3>BUGS</H3>
+<dd>
+<p>Append to <em class="file">/sys/kernel/security/tomoyo/stat</em>.</p>
+</dd>
+<dt><strong><a name="remote_ip_remote_port" class="item"><strong>remote_ip:remote_port</strong></a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-If there are any bugs, send an email with as much detail as possible to <A HREF="mailto:tomoyo-users-en@lists.sourceforge.jp">tomoyo-users-en@lists.sourceforge.jp</A>
-<!-- .SH "AUTHORS" -->
-</BLOCKQUOTE>
-<A name=>
+<dd>
+<p>Write to policy on a remote system via an agent waiting at port <em>remote_port</em> on IP address <em>remote_ip</em>.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<dl>
+<dt><strong><a name="append_a_line_to_exception_policy" class="item"><strong>Append a line to exception policy</strong></a></strong></dt>
 
-     <H3>AUTHORS</H3>
+<dd>
+<pre>
+  echo &quot;acl_group 0 file read proc:/meminfo&quot; | tomoyo-loadpolicy -e</pre>
+</dd>
+<dt><strong><a name="remove_a_line_from_exception_policy" class="item"><strong>Remove a line from exception policy</strong></a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-<!-- .sp -->
-Main authors:
-<BLOCKQUOTE>
-Tetsuo Handa &lt;penguin-kernel AT I-love.SAKURA.ne.jp&gt;
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<BLOCKQUOTE>
-Other contributers:
-<BLOCKQUOTE>
-<P>Jamie Nguyen &lt;jamie AT tomoyolinux.co.uk&gt;</P>
-<P>Man pages, documentation and website.</P>
-</BLOCKQUOTE>
-</BLOCKQUOTE>
-<A name=>
+<dd>
+<pre>
+  echo &quot;delete acl_group 0 file read proc:/meminfo&quot; | tomoyo-loadpolicy -e</pre>
+</dd>
+<dt><strong><a name="append_a_line_to_domain_policy" class="item"><strong>Append a line to domain policy</strong></a></strong></dt>
 
-     <H3>SEE ALSO</H3>
+<dd>
+<pre>
+  ( echo &quot;&lt;kernel&gt;&quot;; echo &quot;file execute /sbin/init&quot; ) | tomoyo-loadpolicy -d</pre>
+</dd>
+<dt><strong><a name="replace_currently_loaded_domain_policy" class="item"><strong>Replace currently loaded domain policy</strong></a></strong></dt>
 
-</A>
-<BLOCKQUOTE>
-<!-- .PP -->
-<P>
-<B>tomoyo-savepolicy</B>(8), <B>tomoyo-editpolicy</B>(8), <B>tomoyo-editpolicy-agent</B>(8), <B>tomoyo-init</B>(8)
-<!-- .sp -->
-<P>
-See <A HREF="http://tomoyo.sourceforge.jp/">http://tomoyo.sourceforge.jp/</A> for more information.
-</BLOCKQUOTE>
-<P><HR>
-<TABLE width=100%><TR> <TD width=33%><I>tomoyo-loadpolicy 2.5.0</I></TD> <TD width=33% align=center>TOMOYO-LOADPOLICY (8)</TD> <TD align=right width=33%><I>September 2011</I></TD> </TR></TABLE><FONT SIZE=-1>Generated by <A HREF="http://www.squarebox.co.uk/users/rolf/download/manServer.shtml">manServer 1.07+ma1</A> from tomoyo-loadpolicy using man macros.</FONT>
-</BODY></HTML>
+<dd>
+<pre>
+  tomoyo-loadpolicy -df &lt; /etc/tomoyo/domain_policy.conf</pre>
+</dd>
+<dt><strong><a name="append_to_policy_remotely" class="item"><strong>Append to policy remotely</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-loadpolicy -d 192.168.1.1:10000 &lt; /etc/tomoyo/192.168.1.1/domain_policy.conf</pre>
+</dd>
+<dt><strong><a name="remove_a_line_from_sys_kernel_security_tomoyo_manager" class="item"><strong>Remove a line from <code>/sys/kernel/security/tomoyo/manager</code></strong></a></strong></dt>
+
+<dd>
+<pre>
+  echo &quot;delete /usr/sbin/tomoyo-queryd&quot; | tomoyo-loadpolicy -m</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>If you find any bugs, send an email to &lt;<a href="mailto:tomoyo-users-en@lists.sourceforge.jp">tomoyo-users-en@lists.sourceforge.jp</a>&gt;.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<dl>
+<dt><strong><a name="tetsuo_handa_penguin_kernel_i_love_sakura_ne_jp" class="item">Tetsuo Handa &lt;<a href="mailto:penguin-kernel@I-love.SAKURA.ne.jp">penguin-kernel@I-love.SAKURA.ne.jp</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Main author.</p>
+</dd>
+<dt><strong><a name="jamie_nguyen_jamie_tomoyolinux_co_uk" class="item">Jamie Nguyen &lt;<a href="mailto:jamie@tomoyolinux.co.uk">jamie@tomoyolinux.co.uk</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Documentation and website.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><strong>tomoyo-savepolicy</strong>(8), <strong>tomoyo-editpolicy</strong>(8), <strong>tomoyo-editpolicy-agent</strong>(8), <strong>tomoyo-init</strong>(8)</p>
+<p>See &lt;<a href="http://tomoyo.sourceforge.jp">http://tomoyo.sourceforge.jp</a>&gt; for more information.</p>
+
+</body>
+
+</html>
