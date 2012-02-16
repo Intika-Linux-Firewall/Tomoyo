@@ -1,0 +1,53 @@
+=head1 NAME
+
+tomoyo-auditd - access request log recording daemon for TOMOYO Linux
+
+=head1 SYNOPSIS
+
+B<tomoyo-auditd>
+
+B<tomoyo-auditd> [I<remote_ip:remote_port>]
+
+=head1 DESCRIPTION
+
+This program reads access request logs from the kernel and writes to the locations specified in the configuration file. By running this program at startup, access request logs for either all domains or selected domains can be stored.
+
+The format of the stored logs is similar to domain policy, so they can be used to help develop policy.
+
+Configure this daemon in F</etc/tomoyo/tools/auditd.conf>. If an access request matches a rule, it will be written to the specified log file. This can be used to split access request logs into multiple files. Only the first matching rule is used, so any single access request log will be written to a maximum of one output file. If an access request log does not match any rules, it will be discarded.
+
+Start this program from an appropriate stage during startup (e.g. F</etc/rc.local>).
+
+=head1 OPTIONS
+
+=over 4
+
+=item I<remote_ip:remote_port>
+
+Retrieve access request logs from a remote system via an agent, connecting to the specified IP address and port number.
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-editpolicy-agent>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.
