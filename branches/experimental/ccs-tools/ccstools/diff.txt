@@ -1,3 +1,33 @@
+Index: usr_sbin/ccs-diffpolicy.c
+===================================================================
+--- usr_sbin/ccs-diffpolicy.c	(revision 5869)
++++ usr_sbin/ccs-diffpolicy.c	(working copy)
+@@ -68,9 +68,6 @@
+ 			continue;
+ 		/* This domain was added. */
+ 		printf("%s\n\n", domainname->name);
+-		if (new_policy.list[new_index].profile_assigned)
+-			printf("use_profile %u\n",
+-			       new_policy.list[new_index].profile);
+ 		new_string_ptr = new_policy.list[new_index].string_ptr;
+ 		new_string_count = new_policy.list[new_index].string_count;
+ 		for (i = 0; i < new_string_count; i++)
+@@ -112,15 +109,6 @@
+ 			first = false;
+ 			printf("delete %s\n", old_string_ptr[i]->name);
+ 		}
+-		if (old_policy.list[old_index].profile !=
+-		    new_policy.list[new_index].profile) {
+-			if (first)
+-				printf("%s\n\n", domainname->name);
+-			first = false;
+-			if (new_policy.list[new_index].profile_assigned)
+-				printf("use_profile %u\n",
+-				       new_policy.list[new_index].profile);
+-		}
+ 		if (!first)
+ 			printf("\n");
+ 	}
 Index: usr_sbin/ccstools.h
 ===================================================================
 --- usr_sbin/ccstools.h	(revision 5869)
@@ -41,36 +71,6 @@ Index: usr_sbin/ccstools.h
  	_Bool selected;
  	int index;
  	int depth;
-Index: usr_sbin/ccs-diffpolicy.c
-===================================================================
---- usr_sbin/ccs-diffpolicy.c	(revision 5869)
-+++ usr_sbin/ccs-diffpolicy.c	(working copy)
-@@ -68,9 +68,6 @@
- 			continue;
- 		/* This domain was added. */
- 		printf("%s\n\n", domainname->name);
--		if (new_policy.list[new_index].profile_assigned)
--			printf("use_profile %u\n",
--			       new_policy.list[new_index].profile);
- 		new_string_ptr = new_policy.list[new_index].string_ptr;
- 		new_string_count = new_policy.list[new_index].string_count;
- 		for (i = 0; i < new_string_count; i++)
-@@ -112,15 +109,6 @@
- 			first = false;
- 			printf("delete %s\n", old_string_ptr[i]->name);
- 		}
--		if (old_policy.list[old_index].profile !=
--		    new_policy.list[new_index].profile) {
--			if (first)
--				printf("%s\n\n", domainname->name);
--			first = false;
--			if (new_policy.list[new_index].profile_assigned)
--				printf("use_profile %u\n",
--				       new_policy.list[new_index].profile);
--		}
- 		if (!first)
- 			printf("\n");
- 	}
 Index: usr_sbin/ccs-loadpolicy.c
 ===================================================================
 --- usr_sbin/ccs-loadpolicy.c	(revision 5869)
@@ -770,7 +770,7 @@ Index: usr_sbin/ccstools.c
   * @ppid:    Parent PID.
   * @name:    Comm name (allocated by strdup()).
   *
-@@ -1430,9 +1430,8 @@
+@@ -1430,14 +1430,13 @@
  {
  	int index;
  	unsigned int pid = 0;
@@ -781,6 +781,13 @@ Index: usr_sbin/ccstools.c
  		free(name);
  		return;
  	}
+-	domain = strchr(line, '<');
+-	if (domain)
++	domain = strchr(line, ' ');
++	if (domain++)
+ 		domain = ccs_strdup(domain);
+ 	else
+ 		domain = ccs_strdup("<UNKNOWN>");
 @@ -1447,7 +1446,6 @@
  	memset(&ccs_task_list[index], 0, sizeof(ccs_task_list[0]));
  	ccs_task_list[index].pid = pid;
