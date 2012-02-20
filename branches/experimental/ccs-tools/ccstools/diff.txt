@@ -1,36 +1,6 @@
-Index: usr_sbin/ccs-diffpolicy.c
-===================================================================
---- usr_sbin/ccs-diffpolicy.c	(revision 5869)
-+++ usr_sbin/ccs-diffpolicy.c	(working copy)
-@@ -68,9 +68,6 @@
- 			continue;
- 		/* This domain was added. */
- 		printf("%s\n\n", domainname->name);
--		if (new_policy.list[new_index].profile_assigned)
--			printf("use_profile %u\n",
--			       new_policy.list[new_index].profile);
- 		new_string_ptr = new_policy.list[new_index].string_ptr;
- 		new_string_count = new_policy.list[new_index].string_count;
- 		for (i = 0; i < new_string_count; i++)
-@@ -112,15 +109,6 @@
- 			first = false;
- 			printf("delete %s\n", old_string_ptr[i]->name);
- 		}
--		if (old_policy.list[old_index].profile !=
--		    new_policy.list[new_index].profile) {
--			if (first)
--				printf("%s\n\n", domainname->name);
--			first = false;
--			if (new_policy.list[new_index].profile_assigned)
--				printf("use_profile %u\n",
--				       new_policy.list[new_index].profile);
--		}
- 		if (!first)
- 			printf("\n");
- 	}
 Index: usr_sbin/ccstools.h
 ===================================================================
---- usr_sbin/ccstools.h	(revision 5869)
+--- usr_sbin/ccstools.h	(revision 5872)
 +++ usr_sbin/ccstools.h	(working copy)
 @@ -51,16 +51,11 @@
  
@@ -71,9 +41,39 @@ Index: usr_sbin/ccstools.h
  	_Bool selected;
  	int index;
  	int depth;
+Index: usr_sbin/ccs-diffpolicy.c
+===================================================================
+--- usr_sbin/ccs-diffpolicy.c	(revision 5872)
++++ usr_sbin/ccs-diffpolicy.c	(working copy)
+@@ -68,9 +68,6 @@
+ 			continue;
+ 		/* This domain was added. */
+ 		printf("%s\n\n", domainname->name);
+-		if (new_policy.list[new_index].profile_assigned)
+-			printf("use_profile %u\n",
+-			       new_policy.list[new_index].profile);
+ 		new_string_ptr = new_policy.list[new_index].string_ptr;
+ 		new_string_count = new_policy.list[new_index].string_count;
+ 		for (i = 0; i < new_string_count; i++)
+@@ -112,15 +109,6 @@
+ 			first = false;
+ 			printf("delete %s\n", old_string_ptr[i]->name);
+ 		}
+-		if (old_policy.list[old_index].profile !=
+-		    new_policy.list[new_index].profile) {
+-			if (first)
+-				printf("%s\n\n", domainname->name);
+-			first = false;
+-			if (new_policy.list[new_index].profile_assigned)
+-				printf("use_profile %u\n",
+-				       new_policy.list[new_index].profile);
+-		}
+ 		if (!first)
+ 			printf("\n");
+ 	}
 Index: usr_sbin/ccs-loadpolicy.c
 ===================================================================
---- usr_sbin/ccs-loadpolicy.c	(revision 5869)
+--- usr_sbin/ccs-loadpolicy.c	(revision 5872)
 +++ usr_sbin/ccs-loadpolicy.c	(working copy)
 @@ -45,169 +45,25 @@
  	return result;
@@ -319,7 +319,7 @@ Index: usr_sbin/ccs-loadpolicy.c
  	       "directory.\n", argv[0]);
 Index: usr_sbin/ccs-pstree.c
 ===================================================================
---- usr_sbin/ccs-pstree.c	(revision 5869)
+--- usr_sbin/ccs-pstree.c	(revision 5872)
 +++ usr_sbin/ccs-pstree.c	(working copy)
 @@ -29,7 +29,6 @@
  		int j;
@@ -341,7 +341,7 @@ Index: usr_sbin/ccs-pstree.c
  	}
 Index: usr_sbin/ccs-queryd.c
 ===================================================================
---- usr_sbin/ccs-queryd.c	(revision 5869)
+--- usr_sbin/ccs-queryd.c	(revision 5872)
 +++ usr_sbin/ccs-queryd.c	(working copy)
 @@ -66,8 +66,8 @@
  
@@ -431,7 +431,7 @@ Index: usr_sbin/ccs-queryd.c
  	ccs_readline_history = ccs_malloc(CCS_MAX_READLINE_HISTORY *
 Index: usr_sbin/ccs-setprofile.c
 ===================================================================
---- usr_sbin/ccs-setprofile.c	(revision 5869)
+--- usr_sbin/ccs-setprofile.c	(revision 5872)
 +++ usr_sbin/ccs-setprofile.c	(working copy)
 @@ -1,107 +0,0 @@
 -/*
@@ -543,7 +543,7 @@ Index: usr_sbin/ccs-setprofile.c
 -}
 Index: usr_sbin/ccs-savepolicy.c
 ===================================================================
---- usr_sbin/ccs-savepolicy.c	(revision 5869)
+--- usr_sbin/ccs-savepolicy.c	(revision 5872)
 +++ usr_sbin/ccs-savepolicy.c	(working copy)
 @@ -65,23 +65,9 @@
  			return false;
@@ -674,7 +674,7 @@ Index: usr_sbin/ccs-savepolicy.c
  }
 Index: usr_sbin/ccs-setlevel.c
 ===================================================================
---- usr_sbin/ccs-setlevel.c	(revision 5869)
+--- usr_sbin/ccs-setlevel.c	(revision 5872)
 +++ usr_sbin/ccs-setlevel.c	(working copy)
 @@ -1,80 +0,0 @@
 -/*
@@ -759,7 +759,7 @@ Index: usr_sbin/ccs-setlevel.c
 -}
 Index: usr_sbin/ccstools.c
 ===================================================================
---- usr_sbin/ccstools.c	(revision 5869)
+--- usr_sbin/ccstools.c	(revision 5872)
 +++ usr_sbin/ccstools.c	(working copy)
 @@ -1417,7 +1417,7 @@
  /**
@@ -843,7 +843,7 @@ Index: usr_sbin/ccstools.c
  			fprintf(fp, "%s\n", string_ptr[j]->name);
 Index: usr_sbin/ccs-domainmatch.c
 ===================================================================
---- usr_sbin/ccs-domainmatch.c	(revision 5869)
+--- usr_sbin/ccs-domainmatch.c	(revision 5872)
 +++ usr_sbin/ccs-domainmatch.c	(working copy)
 @@ -32,7 +32,7 @@
  		printf("%s string_to_find\n\n", argv[0]);
@@ -856,7 +856,7 @@ Index: usr_sbin/ccs-domainmatch.c
  			"You can't run this program for this kernel.\n");
 Index: usr_sbin/Makefile
 ===================================================================
---- usr_sbin/Makefile	(revision 5869)
+--- usr_sbin/Makefile	(revision 5872)
 +++ usr_sbin/Makefile	(working copy)
 @@ -1,9 +1,8 @@
  include ../Include.make
@@ -882,7 +882,7 @@ Index: usr_sbin/Makefile
  
 Index: usr_lib_ccs/init_policy.c
 ===================================================================
---- usr_lib_ccs/init_policy.c	(revision 5869)
+--- usr_lib_ccs/init_policy.c	(revision 5872)
 +++ usr_lib_ccs/init_policy.c	(working copy)
 @@ -145,23 +145,6 @@
  }
@@ -1056,8 +1056,8 @@ Index: usr_lib_ccs/init_policy.c
 +	fprintf(filp, "\" transition=\"");
 +	printf_encoded(path);
 +	fprintf(filp, "\"\n");
-+	fprintf(filp, "    config mode=permissive grant_log=0 reject_log=0\n");
-+	fprintf(filp, "\n");
++	//fprintf(filp, "    audit allowed=0 unmatched=0 denied=0\n");
++	//fprintf(filp, "\n");
  }
  
 -/**
@@ -1354,7 +1354,7 @@ Index: usr_lib_ccs/init_policy.c
   * chdir_policy - Change to policy directory.
   *
   * Returns 1 on success, 0 otherwise.
-@@ -784,178 +474,42 @@
+@@ -784,178 +474,44 @@
  }
  
  /**
@@ -1403,10 +1403,12 @@ Index: usr_lib_ccs/init_policy.c
 +	{
 +		char *tools_dir = get_realpath("/usr/sbin");
 +		fprintf(filp, "0 acl capability modify_policy\n"
-+			"    config mode=enforcing grant_log=0 reject_log=0\n"
-+			"    allow task.exe=\"%s/ccs-loadpolicy\"\n"
-+			"    allow task.exe=\"%s/ccs-queryd\"\n\n", tools_dir,
-+			tools_dir);
++			"    audit allowed=0 unmatched=0 denied=0\n"
++			"    1 deny task.uid!=0\n"
++			"    1 deny task.euid!=0\n"
++			"    100 allow task.exe=\"%s/ccs-loadpolicy\"\n"
++			"    100 allow task.exe=\"%s/ccs-queryd\"\n"
++			"    10000 deny\n", tools_dir, tools_dir);
 +	}
 +	close_file(filp, chdir_policy(), "policy.tmp", "policy.conf");
  	filp = NULL;
@@ -1555,7 +1557,7 @@ Index: usr_lib_ccs/init_policy.c
  /* The name of loadable kernel module to load. */
  static const char *module_name = "ccsecurity";
  
-@@ -983,92 +537,6 @@
+@@ -983,92 +539,6 @@
  		   "ccs-load-module.tmp", "ccs-load-module");
  }
  
@@ -1648,7 +1650,7 @@ Index: usr_lib_ccs/init_policy.c
  /* Content of /etc/ccs/tools/auditd.conf . */
  static const char auditd_data[] =
  "# This file contains sorting rules used by ccs-auditd command.\n"
-@@ -1097,13 +565,13 @@
+@@ -1097,13 +567,13 @@
  "# More specific matches should be placed before less specific matches.\n"
  "# For example:\n"
  "#\n"
@@ -1666,7 +1668,7 @@ Index: usr_lib_ccs/init_policy.c
  "\n"
  "# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
  "# representing a ' ' in a word).\n"
-@@ -1112,38 +580,17 @@
+@@ -1112,38 +582,17 @@
  "header.contains granted=yes\n"
  "destination     /dev/null\n"
  "\n"
@@ -1713,7 +1715,7 @@ Index: usr_lib_ccs/init_policy.c
  "\n";
  
  /**
-@@ -1228,10 +675,7 @@
+@@ -1228,10 +677,7 @@
  "\n"
  "# Files on / partition.\n"
  "rewrite tail_pattern /etc/mtab~\\$\n"
@@ -1725,7 +1727,7 @@ Index: usr_lib_ccs/init_policy.c
  "rewrite tail_pattern /etc/ccs/policy/\\*/\n"
  "\n"
  "# Files on /tmp/ partition.\n"
-@@ -1300,7 +744,7 @@
+@@ -1300,7 +746,7 @@
  "# 30, you will be given 30 seconds for starting ccs-queryd command and\n"
  "# responding to the policy violation event.\n"
  "# If you specify non 0 value, you need to register ccs-notifyd command to\n"
@@ -1734,7 +1736,7 @@ Index: usr_lib_ccs/init_policy.c
  "# behave as if ccs-queryd command is running.\n"
  "# Also, you should avoid specifying too large value (e.g. 3600) because\n"
  "# the request will remain pending for that period if you can't respond.\n"
-@@ -1381,23 +825,9 @@
+@@ -1381,23 +827,9 @@
  			}
  		} else if (!strncmp(arg, "policy_dir=", 11)) {
  			dir = arg + 11;
@@ -1759,7 +1761,7 @@ Index: usr_lib_ccs/init_policy.c
  			fprintf(stderr, "Unknown option: '%s'\n", argv[i]);
  			return 1;
  		}
-@@ -1407,13 +837,8 @@
+@@ -1407,13 +839,8 @@
  	policy_dir = strdup(dir);
  	memset(path, 0, sizeof(path));
  	make_policy_dir();
@@ -1776,7 +1778,7 @@ Index: usr_lib_ccs/init_policy.c
  	make_notifyd_conf();
 Index: usr_lib_ccs/Makefile
 ===================================================================
---- usr_lib_ccs/Makefile	(revision 5869)
+--- usr_lib_ccs/Makefile	(revision 5872)
 +++ usr_lib_ccs/Makefile	(working copy)
 @@ -1,7 +1,6 @@
  include ../Include.make
@@ -1789,7 +1791,7 @@ Index: usr_lib_ccs/Makefile
  
 Index: sbin/ccs-init.c
 ===================================================================
---- sbin/ccs-init.c	(revision 5869)
+--- sbin/ccs-init.c	(revision 5872)
 +++ sbin/ccs-init.c	(working copy)
 @@ -48,13 +48,8 @@
  		sleep(100);

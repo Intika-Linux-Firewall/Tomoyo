@@ -1,6 +1,6 @@
 Index: realpath.c
 ===================================================================
---- realpath.c	(revision 5869)
+--- realpath.c	(revision 5872)
 +++ realpath.c	(working copy)
 @@ -28,7 +28,6 @@
  char *ccs_encode(const char *str);
@@ -134,7 +134,7 @@ Index: realpath.c
 +}
 Index: internal.h
 ===================================================================
---- internal.h	(revision 5869)
+--- internal.h	(revision 5872)
 +++ internal.h	(working copy)
 @@ -34,6 +34,7 @@
  #include <linux/in.h>
@@ -295,7 +295,7 @@ Index: internal.h
  	CCS_ENVP_ENTRY,
 -};
 +	CCS_PATH_ATTRIBUTE_START = 192,
-+	CCS_PATH_ATTRIBUTE_END = 255,
++	CCS_PATH_ATTRIBUTE_END = 255
 +} __packed;
  
 -/* Index numbers for audit type. */
@@ -317,7 +317,7 @@ Index: internal.h
 +	CCS_PATH_ATTRIBUTE_DEV_MAJOR,
 +	CCS_PATH_ATTRIBUTE_DEV_MINOR,
 +	CCS_PATH_ATTRIBUTE_FSMAGIC,
-+	CCS_MAX_PATH_ATTRIBUTE,
++	CCS_MAX_PATH_ATTRIBUTE
  };
  
  /* Index numbers for group entries. */
@@ -359,7 +359,6 @@ Index: internal.h
  	CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
  	CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
  #endif
--	CCS_MAX_MAC_INDEX
 +#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
 +	CCS_MAC_AUTO_EXECUTE_HANDLER,
 +	CCS_MAC_DENIED_EXECUTE_HANDLER,
@@ -368,7 +367,7 @@ Index: internal.h
 +	CCS_MAC_AUTO_TASK_TRANSITION,
 +	CCS_MAC_MANUAL_TASK_TRANSITION,
 +#endif
-+	CCS_MAX_MAC_INDEX,
+ 	CCS_MAX_MAC_INDEX
  };
  
 -/* Index numbers for /proc/ccs/stat interface. */
@@ -376,7 +375,7 @@ Index: internal.h
  enum ccs_memory_stat_type {
  	CCS_MEMORY_POLICY,
  	CCS_MEMORY_AUDIT,
-@@ -611,76 +594,14 @@
+@@ -611,76 +594,13 @@
  	CCS_MAX_MEMORY_STAT
  };
  
@@ -385,21 +384,25 @@ Index: internal.h
 -	CCS_TYPE_MKBLOCK,
 -	CCS_TYPE_MKCHAR,
 -	CCS_MAX_MKDEV_OPERATION
--};
--
- /* Index numbers for operation mode. */
- enum ccs_mode_value {
- 	CCS_CONFIG_DISABLED,
++enum ccs_matching_result {
++	CCS_MATCHING_UNMATCHED,
++	CCS_MATCHING_ALLOWED,
++	CCS_MATCHING_DENIED,
++	CCS_MAX_MATCHING
+ };
+ 
+-/* Index numbers for operation mode. */
+-enum ccs_mode_value {
+-	CCS_CONFIG_DISABLED,
 -	CCS_CONFIG_LEARNING,
- 	CCS_CONFIG_PERMISSIVE,
- 	CCS_CONFIG_ENFORCING,
- 	CCS_CONFIG_MAX_MODE,
+-	CCS_CONFIG_PERMISSIVE,
+-	CCS_CONFIG_ENFORCING,
+-	CCS_CONFIG_MAX_MODE,
 -	CCS_CONFIG_WANT_REJECT_LOG =  64,
 -	CCS_CONFIG_WANT_GRANT_LOG  = 128,
 -	CCS_CONFIG_USE_DEFAULT     = 255,
 -};
-+} __packed;
- 
+-
 -/* Index numbers for socket operations. */
 -enum ccs_network_acl_index {
 -	CCS_NETWORK_BIND,    /* bind() operation. */
@@ -454,7 +457,7 @@ Index: internal.h
  /* Index numbers for stat(). */
  enum ccs_path_stat_index {
  	/* Do not change this order. */
-@@ -699,7 +620,6 @@
+@@ -699,7 +619,6 @@
  #endif
  	CCS_ID_PATH_GROUP,
  	CCS_ID_NUMBER_GROUP,
@@ -462,18 +465,19 @@ Index: internal.h
  	CCS_ID_CONDITION,
  	CCS_ID_NAME,
  	CCS_ID_ACL,
-@@ -707,39 +627,25 @@
+@@ -707,39 +626,23 @@
  	CCS_MAX_POLICY
  };
  
 -/* Index numbers for /proc/ccs/stat interface. */
 +/* Index numbers for statistic information. */
  enum ccs_policy_stat_type {
- 	/* Do not change this order. */
+-	/* Do not change this order. */
  	CCS_STAT_POLICY_UPDATES,
 -	CCS_STAT_POLICY_LEARNING,   /* == CCS_CONFIG_LEARNING */
- 	CCS_STAT_POLICY_PERMISSIVE, /* == CCS_CONFIG_PERMISSIVE */
- 	CCS_STAT_POLICY_ENFORCING,  /* == CCS_CONFIG_ENFORCING */
+-	CCS_STAT_POLICY_PERMISSIVE, /* == CCS_CONFIG_PERMISSIVE */
+-	CCS_STAT_POLICY_ENFORCING,  /* == CCS_CONFIG_ENFORCING */
++	CCS_STAT_REQUEST_DENIED,
  	CCS_MAX_POLICY_STAT
  };
  
@@ -504,7 +508,7 @@ Index: internal.h
  };
  
  /* Index numbers for special mount operations. */
-@@ -760,7 +666,7 @@
+@@ -760,7 +663,7 @@
  	CCS_VALUE_TYPE_DECIMAL,
  	CCS_VALUE_TYPE_OCTAL,
  	CCS_VALUE_TYPE_HEXADECIMAL,
@@ -513,7 +517,7 @@ Index: internal.h
  
  /* Constants definition for internal use. */
  
-@@ -784,9 +690,6 @@
+@@ -784,9 +687,6 @@
  /* Garbage collector is trying to kfree() this element. */
  #define CCS_GC_IN_PROGRESS -1
  
@@ -523,7 +527,7 @@ Index: internal.h
  /* Current thread is doing open(O_RDONLY | O_TRUNC) ? */
  #define CCS_OPEN_FOR_READ_TRUNCATE        1
  /* Current thread is doing open(3) ? */
-@@ -845,43 +748,20 @@
+@@ -845,43 +745,18 @@
  /* Common header for individual entries. */
  struct ccs_acl_info {
  	struct list_head list;
@@ -542,11 +546,9 @@ Index: internal.h
 -	const struct ccs_path_info *filename;
 -	struct ccs_group *group;
 -	bool is_not;
-+	enum ccs_mode_value mode;
 +	bool is_deny;
 +	u16 priority;
-+	u16 max_grant_log;
-+	u16 max_reject_log;
++	u16 max_log[CCS_MAX_MATCHING];
  };
  
 -/* Structure for holding a number. */
@@ -574,7 +576,7 @@ Index: internal.h
  	const struct ccs_path_info *group_name;
  	/*
  	 * List of "struct ccs_path_group" or "struct ccs_number_group" or
-@@ -899,15 +779,16 @@
+@@ -899,15 +774,16 @@
  /* Structure for "number_group" directive. */
  struct ccs_number_group {
  	struct ccs_acl_head head;
@@ -594,7 +596,7 @@ Index: internal.h
  };
  
  /* Subset of "struct stat". Used by conditional ACL and audit logs. */
-@@ -918,6 +799,7 @@
+@@ -918,6 +794,7 @@
  	umode_t mode;
  	dev_t dev;
  	dev_t rdev;
@@ -602,7 +604,7 @@ Index: internal.h
  };
  
  /* Structure for dumping argv[] and envp[] of "struct linux_binprm". */
-@@ -926,166 +808,101 @@
+@@ -926,384 +803,120 @@
  	char *data;           /* Contents of "page". Size is PAGE_SIZE. */
  };
  
@@ -819,54 +821,54 @@ Index: internal.h
 +	 * Name of current thread's executable.
 +	 * Cleared by ccs_crear_request_info().
  	 */
-+	struct ccs_path_info exename;
-+	/*
-+	 * Matching "struct ccs_acl_info" is copied.
-+	 * Valid until ccs_read_unlock().
-+	 */
- 	struct ccs_acl_info *matched_acl;
+-	struct ccs_acl_info *matched_acl;
 -	u8 param_type; /* One of values in "enum ccs_acl_entry_type_index". */
-+	/*
-+	 * Matching handler and domain transition are copied.
-+	 * Valid until ccs_read_unlock().
-+	 */
-+	const struct ccs_path_info *handler_path;
-+	const struct ccs_path_info *transition;
-+	/*
-+	 * For holding operation index used for this request.
-+	 * One of values in "enum ccs_mac_index".
-+	 */
-+	enum ccs_mac_index type;
- 	bool granted; /* True if granted, false otherwise. */
+-	bool granted; /* True if granted, false otherwise. */
 -	/* True if rejected by inverse mode match, false otherwise. */
 -	bool inversed;
 -	/* True if current thread should not be carried sleep penalty. */
 -	bool dont_sleep_on_enforce_error;
++	struct ccs_path_info exename;
  	/*
- 	 * For counting number of retries made for this request.
- 	 * This counter is incremented whenever ccs_supervisor() returned
-@@ -1093,217 +910,21 @@
+-	 * For counting number of retries made for this request.
+-	 * This counter is incremented whenever ccs_supervisor() returned
+-	 * CCS_RETRY_REQUEST.
++	 * Matching "struct ccs_acl_info" is copied. Used for ccs-queryd.
++	 * Valid until ccs_read_unlock().
  	 */
- 	u8 retry;
+-	u8 retry;
++	struct ccs_acl_info *matched_acl;
  	/*
 -	 * For holding profile number used for this request.
 -	 * One of values between 0 and CCS_MAX_PROFILES - 1.
--	 */
++	 * Matching handler and domain transition are copied.
++	 * Valid until ccs_read_unlock().
+ 	 */
 -	u8 profile;
--	/*
- 	 * For holding operation mode used for this request.
++	const struct ccs_path_info *handler_path;
++	const struct ccs_path_info *transition;
+ 	/*
+-	 * For holding operation mode used for this request.
 -	 * One of CCS_CONFIG_DISABLED, CCS_CONFIG_LEARNING,
 -	 * CCS_CONFIG_PERMISSIVE, CCS_CONFIG_ENFORCING.
-+	 * One of CCS_CONFIG_DISABLED, CCS_CONFIG_PERMISSIVE,
-+	 * CCS_CONFIG_ENFORCING.
- 	 */
+-	 */
 -	u8 mode;
 -	/*
--	 * For holding operation index used for this request.
--	 * One of values in "enum ccs_mac_index".
--	 */
+ 	 * For holding operation index used for this request.
+ 	 * One of values in "enum ccs_mac_index".
+ 	 */
 -	u8 type;
-+	enum ccs_mode_value mode;
++	enum ccs_mac_index type;
++	/* For holding matching result. */
++	enum ccs_matching_result result;
++	/*
++	 * For counting number of retries made for this request.
++	 * This counter is incremented whenever ccs_supervisor() returned
++	 * CCS_RETRY_REQUEST.
++	 */
++	u8 retry;
++	/* For holding max audit log count for this matching entry. */
++	u16 max_log;
  };
  
 -/* Structure for holding a token. */
@@ -1066,7 +1068,7 @@ Index: internal.h
  /* Structure for holding string data. */
  struct ccs_name {
  	struct ccs_shared_acl_head head;
-@@ -1311,38 +932,6 @@
+@@ -1311,38 +924,6 @@
  	struct ccs_path_info entry;
  };
  
@@ -1105,7 +1107,7 @@ Index: internal.h
  /* Structure for reading/writing policy via /proc/ccs/ interfaces. */
  struct ccs_io_buffer {
  	/* Exclusive lock for this structure.   */
-@@ -1350,32 +939,32 @@
+@@ -1350,32 +931,32 @@
  	char __user *read_user_buf;
  	size_t read_user_buf_avail;
  	struct {
@@ -1150,7 +1152,7 @@ Index: internal.h
  	} w;
  	/* Buffer for reading.                  */
  	char *read_buf;
-@@ -1393,14 +982,6 @@
+@@ -1393,14 +974,6 @@
  	struct list_head list;
  };
  
@@ -1165,7 +1167,7 @@ Index: internal.h
  /* Structure for representing YYYY/MM/DD hh/mm/ss. */
  struct ccs_time {
  	u16 year;
-@@ -1411,22 +992,6 @@
+@@ -1411,22 +984,6 @@
  	u8 sec;
  };
  
@@ -1188,7 +1190,7 @@ Index: internal.h
  /* Prototype definition for "struct ccsecurity_operations". */
  
  void __init ccs_permission_init(void);
-@@ -1436,42 +1001,35 @@
+@@ -1436,42 +993,35 @@
  
  bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
  		   struct ccs_page_dump *dump);
@@ -1239,7 +1241,7 @@ Index: internal.h
  extern struct mutex ccs_policy_lock;
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
  extern struct srcu_struct ccs_ss;
-@@ -1782,8 +1340,8 @@
+@@ -1782,8 +1332,8 @@
  #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
  
  /*
@@ -1250,7 +1252,7 @@ Index: internal.h
   *
   * "struct ccs_domain_info *" and "u32 ccs_flags" for each "struct task_struct"
   * are maintained outside that "struct task_struct". Therefore, ccs_security
-@@ -1957,14 +1515,4 @@
+@@ -1957,14 +1507,4 @@
  
  #endif
  
@@ -1267,7 +1269,7 @@ Index: internal.h
  #endif
 Index: policy_io.c
 ===================================================================
---- policy_io.c	(revision 5869)
+--- policy_io.c	(revision 5872)
 +++ policy_io.c	(working copy)
 @@ -21,7 +21,7 @@
  
@@ -1309,7 +1311,7 @@ Index: policy_io.c
  	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = CCS_MAC_CATEGORY_CAPABILITY,
  	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = CCS_MAC_CATEGORY_CAPABILITY,
  	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = CCS_MAC_CATEGORY_CAPABILITY,
-@@ -99,20 +100,26 @@
+@@ -99,20 +100,19 @@
  	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = CCS_MAC_CATEGORY_CAPABILITY,
  	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = CCS_MAC_CATEGORY_CAPABILITY,
  #endif
@@ -1323,14 +1325,14 @@ Index: policy_io.c
 +#endif
  };
  
- /* String table for operation mode. */
- static const char * const ccs_mode[CCS_CONFIG_MAX_MODE] = {
- 	[CCS_CONFIG_DISABLED]   = "disabled",
+-/* String table for operation mode. */
+-static const char * const ccs_mode[CCS_CONFIG_MAX_MODE] = {
+-	[CCS_CONFIG_DISABLED]   = "disabled",
 -	[CCS_CONFIG_LEARNING]   = "learning",
- 	[CCS_CONFIG_PERMISSIVE] = "permissive",
- 	[CCS_CONFIG_ENFORCING]  = "enforcing"
- };
- 
+-	[CCS_CONFIG_PERMISSIVE] = "permissive",
+-	[CCS_CONFIG_ENFORCING]  = "enforcing"
+-};
+-
 -/* String table for /proc/ccs/profile interface. */
 -static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 -					   + CCS_MAX_MAC_CATEGORY_INDEX] = {
@@ -1341,7 +1343,7 @@ Index: policy_io.c
  	[CCS_MAC_FILE_EXECUTE]    = "execute",
  	[CCS_MAC_FILE_READ]       = "read",
  	[CCS_MAC_FILE_WRITE]      = "write",
-@@ -140,12 +147,12 @@
+@@ -140,12 +140,12 @@
  	[CCS_MAC_FILE_MOUNT]      = "mount",
  	[CCS_MAC_FILE_UMOUNT]     = "unmount",
  	[CCS_MAC_FILE_PIVOT_ROOT] = "pivot_root",
@@ -1356,7 +1358,7 @@ Index: policy_io.c
  	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = "inet_stream_bind",
  	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = "inet_stream_listen",
  	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]    = "inet_stream_connect",
-@@ -174,12 +181,13 @@
+@@ -174,12 +174,13 @@
  	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
  	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
  #endif
@@ -1372,7 +1374,7 @@ Index: policy_io.c
  	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = "use_route",
  	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = "use_packet",
  	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = "SYS_REBOOT",
-@@ -190,48 +198,17 @@
+@@ -190,48 +191,17 @@
  	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = "use_kernel_module",
  	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = "SYS_KEXEC_LOAD",
  #endif
@@ -1428,7 +1430,7 @@ Index: policy_io.c
  /* String table for categories. */
  static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
  	[CCS_MAC_CATEGORY_FILE]       = "file",
-@@ -244,32 +221,37 @@
+@@ -244,32 +214,37 @@
  #ifdef CONFIG_CCSECURITY_IPC
  	[CCS_MAC_CATEGORY_IPC]        = "ipc",
  #endif
@@ -1487,7 +1489,7 @@ Index: policy_io.c
  	[CCS_MODE_SETUID]          = "setuid",
  	[CCS_MODE_SETGID]          = "setgid",
  	[CCS_MODE_STICKY]          = "sticky",
-@@ -282,70 +264,39 @@
+@@ -282,70 +257,39 @@
  	[CCS_MODE_OTHERS_READ]     = "others_read",
  	[CCS_MODE_OTHERS_WRITE]    = "others_write",
  	[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
@@ -1579,7 +1581,7 @@ Index: policy_io.c
  };
  
  /***** SECTION2: Structure definition *****/
-@@ -355,7 +306,7 @@
+@@ -355,7 +299,7 @@
  /* Structure for query. */
  struct ccs_query {
  	struct list_head list;
@@ -1588,11 +1590,11 @@ Index: policy_io.c
  	char *query;
  	size_t query_len;
  	unsigned int serial;
-@@ -369,117 +320,63 @@
+@@ -369,117 +313,62 @@
  	struct list_head list;
  	char *log;
  	int size;
-+	bool is_granted;
++	enum ccs_matching_result result;
  };
  
  /***** SECTION3: Prototype definition section *****/
@@ -1610,7 +1612,7 @@ Index: policy_io.c
 -static bool ccs_domain_def(const unsigned char *buffer);
 -static bool ccs_domain_quota_ok(struct ccs_request_info *r);
  static bool ccs_flush(struct ccs_io_buffer *head);
- static bool ccs_get_audit(const struct ccs_request_info *r);
+-static bool ccs_get_audit(const struct ccs_request_info *r);
 -static bool ccs_has_more_namespace(struct ccs_io_buffer *head);
 -static bool ccs_manager(void);
 -static bool ccs_namespace_jump(const char *domainname);
@@ -1722,7 +1724,7 @@ Index: policy_io.c
  static unsigned int ccs_poll(struct file *file, poll_table *wait);
  static void __init ccs_create_entry(const char *name, const umode_t mode,
  				    struct proc_dir_entry *parent,
-@@ -487,75 +384,33 @@
+@@ -487,75 +376,33 @@
  static void __init ccs_load_builtin_policy(void);
  static void __init ccs_policy_io_init(void);
  static void __init ccs_proc_init(void);
@@ -1805,7 +1807,7 @@ Index: policy_io.c
  #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
  static ssize_t ccs_write_self(struct file *file, const char __user *buf,
  			      size_t count, loff_t *ppos);
-@@ -1088,18 +943,18 @@
+@@ -1088,18 +935,18 @@
   *
   * @buffer:     Buffer to write to.
   * @buffer_len: Size of @buffer.
@@ -1827,7 +1829,7 @@ Index: policy_io.c
  	return snprintf(buffer, buffer_len, "%s", addr);
  #endif
  }
-@@ -1128,60 +983,255 @@
+@@ -1128,60 +975,255 @@
  /**
   * ccs_print_ip - Print an IP address.
   *
@@ -2117,17 +2119,16 @@ Index: policy_io.c
  /* Wait queue for kernel -> userspace notification. */
  static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
  /* Wait queue for userspace -> kernel notification. */
-@@ -1206,7 +1256,8 @@
+@@ -1206,7 +1248,7 @@
  static DEFINE_SPINLOCK(ccs_log_lock);
  
  /* Length of "stuct list_head ccs_log". */
 -static unsigned int ccs_log_count;
-+static unsigned int ccs_grant_log_count;
-+static unsigned int ccs_reject_log_count;
++static unsigned int ccs_log_count[CCS_MAX_MATCHING];
  
  /* Timestamp counter for last updated. */
  static unsigned int ccs_stat_updated[CCS_MAX_POLICY_STAT];
-@@ -1264,22 +1315,22 @@
+@@ -1264,22 +1306,22 @@
  /**
   * ccs_read_token - Read a word from a line.
   *
@@ -2154,7 +2155,7 @@ Index: policy_io.c
  	return pos;
  }
  
-@@ -1321,8 +1372,6 @@
+@@ -1321,8 +1363,6 @@
  				goto out;
  			c = *string++;
  			switch (c) {
@@ -2163,7 +2164,7 @@ Index: policy_io.c
  			case '$':   /* "\$" */
  			case '+':   /* "\+" */
  			case '?':   /* "\?" */
-@@ -1357,7 +1406,7 @@
+@@ -1357,7 +1397,7 @@
  				if (d < '0' || d > '7' || e < '0' || e > '7')
  					break;
  				c = ccs_make_byte(c, d, e);
@@ -2172,7 +2173,7 @@ Index: policy_io.c
  					continue;
  			}
  			goto out;
-@@ -1389,21 +1438,19 @@
+@@ -1389,21 +1429,19 @@
  /**
   * ccs_get_group - Allocate memory for "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group".
   *
@@ -2199,7 +2200,7 @@ Index: policy_io.c
  	if (!ccs_correct_word(group_name) || idx >= CCS_MAX_GROUP)
  		return NULL;
  	e.group_name = ccs_get_name(group_name);
-@@ -1411,7 +1458,7 @@
+@@ -1411,7 +1449,7 @@
  		return NULL;
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		goto out;
@@ -2208,7 +2209,7 @@ Index: policy_io.c
  	list_for_each_entry(group, list, head.list) {
  		if (e.group_name != group->group_name ||
  		    atomic_read(&group->head.users) == CCS_GC_IN_PROGRESS)
-@@ -1437,33 +1484,6 @@
+@@ -1437,33 +1475,6 @@
  }
  
  /**
@@ -2242,7 +2243,7 @@ Index: policy_io.c
   * ccs_parse_ulong - Parse an "unsigned long" value.
   *
   * @result: Pointer to "unsigned long".
-@@ -1474,7 +1494,7 @@
+@@ -1474,7 +1485,7 @@
   * The @src is updated to point the first character after the value
   * on success.
   */
@@ -2251,7 +2252,7 @@ Index: policy_io.c
  {
  	const char *cp = *str;
  	char *ep;
-@@ -1504,100 +1524,6 @@
+@@ -1504,100 +1515,6 @@
  }
  
  /**
@@ -2352,7 +2353,7 @@ Index: policy_io.c
   * ccs_get_dqword - ccs_get_name() for a quoted string.
   *
   * @start: String to save.
-@@ -1616,80 +1542,6 @@
+@@ -1616,80 +1533,6 @@
  }
  
  /**
@@ -2433,7 +2434,7 @@ Index: policy_io.c
   * ccs_same_condition - Check for duplicated "struct ccs_condition" entry.
   *
   * @a: Pointer to "struct ccs_condition".
-@@ -1700,33 +1552,11 @@
+@@ -1700,33 +1543,11 @@
  static bool ccs_same_condition(const struct ccs_condition *a,
  			       const struct ccs_condition *b)
  {
@@ -2468,7 +2469,7 @@ Index: policy_io.c
   * ccs_commit_condition - Commit "struct ccs_condition".
   *
   * @entry: Pointer to "struct ccs_condition".
-@@ -1775,41 +1605,6 @@
+@@ -1775,41 +1596,6 @@
  }
  
  /**
@@ -2510,7 +2511,7 @@ Index: policy_io.c
   * ccs_correct_domain - Check whether the given domainname follows the naming rules.
   *
   * @domainname: The domainname to check.
-@@ -1818,21 +1613,17 @@
+@@ -1818,21 +1604,17 @@
   */
  static bool ccs_correct_domain(const unsigned char *domainname)
  {
@@ -2537,7 +2538,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1864,273 +1655,722 @@
+@@ -1864,273 +1646,722 @@
  	*dp = '\0';
  }
  
@@ -3494,7 +3495,7 @@ Index: policy_io.c
  	return NULL;
  }
  
-@@ -2147,24 +2387,6 @@
+@@ -2147,24 +2378,6 @@
  }
  
  /**
@@ -3519,7 +3520,7 @@ Index: policy_io.c
   * ccs_flush - Flush queued string to userspace's buffer.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-@@ -2280,213 +2502,28 @@
+@@ -2280,213 +2493,28 @@
  }
  
  /**
@@ -3743,7 +3744,7 @@ Index: policy_io.c
   * ccs_str_starts - Check whether the given string starts with the given keyword.
   *
   * @src:  Pointer to pointer to the string.
-@@ -2509,453 +2546,6 @@
+@@ -2509,453 +2537,6 @@
  }
  
  /**
@@ -4197,7 +4198,7 @@ Index: policy_io.c
   * ccs_find_domain - Find a domain by the given name.
   *
   * @domainname: The domainname to find.
-@@ -2979,7 +2569,7 @@
+@@ -2979,7 +2560,7 @@
  }
  
  /**
@@ -4206,7 +4207,7 @@ Index: policy_io.c
   *
   * @head: Pointer to "struct ccs_io_buffer".
   * @data: String to parse.
-@@ -2988,737 +2578,331 @@
+@@ -2988,737 +2569,329 @@
   *
   * Caller holds ccs_read_lock().
   */
@@ -4391,8 +4392,6 @@ Index: policy_io.c
 -			list_add_tail_rcu(&entry->list, list);
 -			error = 0;
 +			INIT_LIST_HEAD(&entry->acl_info_list);
-+			entry->mode = CCS_CONFIG_PERMISSIVE;
-+			entry->max_reject_log = 1024;
 +			list_add_tail_rcu(&entry->list, &ptr->list);
 +			if (update)
 +				head->w.acl = entry;
@@ -5185,7 +5184,7 @@ Index: policy_io.c
   * ccs_print_condition - Print condition part.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-@@ -3731,467 +2915,64 @@
+@@ -3731,467 +2904,64 @@
  {
  	switch (head->r.cond_step) {
  	case 0:
@@ -5677,7 +5676,7 @@ Index: policy_io.c
   * ccs_write_pid - Specify PID to obtain domainname.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-@@ -4254,7 +3035,7 @@
+@@ -4254,7 +3024,7 @@
  	if (!domain)
  		return;
  	if (!task_info) {
@@ -5686,7 +5685,7 @@ Index: policy_io.c
  		ccs_set_string(head, domain->domainname->name);
  	} else {
  		ccs_io_printf(head, "%u manager=%s execute_handler=%s ", pid,
-@@ -4266,204 +3047,150 @@
+@@ -4266,204 +3036,149 @@
  }
  
  /**
@@ -5924,23 +5923,22 @@ Index: policy_io.c
 +	if (head->w.is_deny || !strcmp(word, "allow"))
 +		return ccs_update_acl(&head->w.acl->acl_info_list, head,
 +				      false);
-+	if (!strcmp(word, "config")) {
++	if (!strcmp(word, "audit")) {
 +		char *cp = head->w.data;
 +		while (1) {
 +			unsigned short int logs;
 +			char *cp2 = strchr(cp, ' ');
 +			if (cp2)
 +				*cp2++ = '\0';
-+			if (!strcmp(cp, "mode=disabled"))
-+				head->w.acl->mode = CCS_CONFIG_DISABLED;
-+			else if (!strcmp(cp, "mode=permissive"))
-+				head->w.acl->mode = CCS_CONFIG_PERMISSIVE;
-+			else if (!strcmp(cp, "mode=enforcing"))
-+				head->w.acl->mode = CCS_CONFIG_ENFORCING;
-+			else if (sscanf(cp, "grant_log=%hu", &logs) == 1)
-+				head->w.acl->max_grant_log = logs;
-+			else if (sscanf(cp, "reject_log=%hu", &logs) == 1)
-+				head->w.acl->max_reject_log = logs;
++			if (sscanf(cp, "allowed=%hu", &logs) == 1)
++				head->w.acl->max_log[CCS_MATCHING_ALLOWED] =
++					logs;
++			else if (sscanf(cp, "denied=%hu", &logs) == 1)
++				head->w.acl->max_log[CCS_MATCHING_DENIED] =
++					logs;
++			else if (sscanf(cp, "unmatched=%hu", &logs) == 1)
++				head->w.acl->max_log[CCS_MATCHING_UNMATCHED] =
++					logs;
 +			if (!cp2)
 +				break;
 +			cp = cp2;
@@ -6001,7 +5999,7 @@ Index: policy_io.c
  	return -EINVAL;
  }
  
-@@ -4479,27 +3206,7 @@
+@@ -4479,27 +3194,7 @@
   */
  static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
  {
@@ -6030,7 +6028,7 @@ Index: policy_io.c
  	list_for_each_cookie(head->r.group, list) {
  		struct ccs_group *group =
  			list_entry(head->r.group, typeof(*group), head.list);
-@@ -4510,27 +3217,30 @@
+@@ -4510,27 +3205,30 @@
  				continue;
  			if (!ccs_flush(head))
  				return false;
@@ -6073,7 +6071,7 @@ Index: policy_io.c
  #endif
  			}
  			ccs_set_lf(head);
-@@ -4538,179 +3248,11 @@
+@@ -4538,179 +3236,11 @@
  		head->r.acl = NULL;
  	}
  	head->r.group = NULL;
@@ -6254,7 +6252,7 @@ Index: policy_io.c
   * ccs_supervisor - Ask for the supervisor's decision.
   *
   * @r:   Pointer to "struct ccs_request_info".
-@@ -4729,48 +3271,26 @@
+@@ -4729,48 +3259,23 @@
  	static unsigned int ccs_serial;
  	struct ccs_query entry = { };
  	bool quota_exceeded = false;
@@ -6263,8 +6261,6 @@ Index: policy_io.c
 -		r->mode = ccs_get_config(r->profile, r->type) &
 -			(CCS_CONFIG_MAX_MODE - 1);
 -	}
-+	if (WARN_ON(!r->matched_acl))
-+		return 0;
  	va_start(args, fmt);
  	len = vsnprintf((char *) &len, 1, fmt, args) + 1;
  	va_end(args);
@@ -6272,14 +6268,9 @@ Index: policy_io.c
 -	va_start(args, fmt);
 -	ccs_write_log2(r, len, fmt, args);
 -	va_end(args);
-+	if (ccs_get_audit(r)) {
-+		va_start(args, fmt);
-+		ccs_write_log(r, len, fmt, args);
-+		va_end(args);
-+	}
- 	/* Nothing more to do if granted. */
- 	if (r->granted)
- 		return 0;
+-	/* Nothing more to do if granted. */
+-	if (r->granted)
+-		return 0;
 -	if (r->mode)
 -		ccs_update_stat(r->mode);
 -	switch (r->mode) {
@@ -6305,17 +6296,24 @@ Index: policy_io.c
 -			break;
 -		/* fall through */
 -	default:
-+	/* Nothing more to do if not enforcing mode. */
-+	if (r->mode != CCS_CONFIG_ENFORCING)
- 		return 0;
--	}
+-		return 0;
++	if (ccs_log_count[r->result] < r->max_log) {
++		va_start(args, fmt);
++		ccs_write_log(r, len, fmt, args);
++		va_end(args);
+ 	}
++	/* Nothing more to do unless denied. */
++	if (r->result != CCS_MATCHING_DENIED)
++		return 0;
 +	error = -EPERM;
 +	if (!atomic_read(&ccs_query_observers))
++		return error;
++	if (WARN_ON(!r->matched_acl))
 +		return error;
  	/* Get message. */
  	va_start(args, fmt);
  	entry.query = ccs_init_log(r, len, fmt, args);
-@@ -4778,12 +3298,8 @@
+@@ -4778,12 +3283,8 @@
  	if (!entry.query)
  		goto out;
  	entry.query_len = strlen(entry.query) + 1;
@@ -6329,7 +6327,7 @@ Index: policy_io.c
  	spin_lock(&ccs_query_list_lock);
  	if (ccs_memory_quota[CCS_MEMORY_QUERY] &&
  	    ccs_memory_used[CCS_MEMORY_QUERY] + len
-@@ -4839,125 +3355,296 @@
+@@ -4839,125 +3340,286 @@
   */
  int ccs_audit_log(struct ccs_request_info *r)
  {
@@ -6344,28 +6342,18 @@ Index: policy_io.c
 +	/* Do not audit "task auto_domain_transition". */
 +	if (WARN_ON(r->type == CCS_MAC_AUTO_TASK_TRANSITION))
 +		return 0;
-+	if (r->granted) {
-+		/* Nothing to do if granted and no audit mode. */
-+		if (r->matched_acl &&
-+		    ccs_grant_log_count >= r->matched_acl->max_grant_log)
++	if (r->result != CCS_MATCHING_DENIED) {
++		/* Nothing to do if no audit mode. */
++		if (ccs_log_count[r->result] >= r->max_log)
 +			return 0;
 +	} else {
 +		/* Update policy violation counter. */
-+		if (r->mode)
-+			ccs_update_stat(r->mode);
++		ccs_update_stat(CCS_STAT_REQUEST_DENIED);
 +		/*
-+		 * Nothing to do if no audit mode and rejected in non enforcing
-+		 * mode.
++		 * Nothing to do if no audit mode and ccs-queryd is not
++		 * running.
 +		 */
-+		if (r->mode != CCS_CONFIG_ENFORCING && r->matched_acl &&
-+		    ccs_reject_log_count >= r->matched_acl->max_reject_log)
-+			return 0;
-+		/*
-+		 * Nothing to do if no audit mode and rejected in enforcing
-+		 * mode and ccs-queryd is not running.
-+		 */
-+		if (r->mode == CCS_CONFIG_ENFORCING && r->matched_acl &&
-+		    ccs_reject_log_count >= r->matched_acl->max_reject_log &&
++		if (ccs_log_count[CCS_MATCHING_DENIED] >= r->max_log &&
 +		    !atomic_read(&ccs_query_observers))
 +			return -EPERM;
 +	}
@@ -6715,7 +6703,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -5130,16 +3817,20 @@
+@@ -5130,16 +3792,17 @@
   *
   * @head: Pointer to "struct ccs_io_buffer".
   *
@@ -6732,17 +6720,14 @@ Index: policy_io.c
  	for (i = 0; i < CCS_MAX_POLICY_STAT; i++) {
 -		ccs_io_printf(head, "Policy %-30s %10u", ccs_policy_headers[i],
 +		static const char * const k[CCS_MAX_POLICY_STAT] = {
-+			[CCS_STAT_POLICY_UPDATES]    = "update:",
-+			[CCS_STAT_POLICY_PERMISSIVE] =
-+			"violation in permissive mode:",
-+			[CCS_STAT_POLICY_ENFORCING]  =
-+			"violation in enforcing mode:",
++			[CCS_STAT_POLICY_UPDATES] = "Policy update:",
++			[CCS_STAT_REQUEST_DENIED]  = "Requests denied:",
 +		};
-+		ccs_io_printf(head, "stat Policy %-30s %10u", k[i],
++		ccs_io_printf(head, "stat %-16s %10u", k[i],
  			      ccs_stat_updated[i]);
  		if (ccs_stat_modified[i]) {
  			struct ccs_time stamp;
-@@ -5151,40 +3842,35 @@
+@@ -5151,40 +3814,35 @@
  		}
  		ccs_set_lf(head);
  	}
@@ -6803,7 +6788,7 @@ Index: policy_io.c
  	return 0;
  }
  
-@@ -5214,7 +3900,8 @@
+@@ -5214,7 +3872,8 @@
  	bool truncated = false;
  	if (!buffer)
  		return NULL;
@@ -6813,7 +6798,7 @@ Index: policy_io.c
  	cp = buffer + len;
  	if (!argv_count) {
  		memmove(cp, "} envp[]={ ", 11);
-@@ -5234,10 +3921,7 @@
+@@ -5234,10 +3893,7 @@
  			if (cp >= buffer + ccs_buffer_len - 32) {
  				/* Reserve some room for "..." string. */
  				truncated = true;
@@ -6825,7 +6810,7 @@ Index: policy_io.c
  				*cp++ = c;
  			} else if (!c) {
  				*cp++ = '"';
-@@ -5297,19 +3981,19 @@
+@@ -5297,19 +3953,19 @@
  	switch (mode & S_IFMT) {
  	case S_IFREG:
  	case 0:
@@ -6852,7 +6837,7 @@ Index: policy_io.c
  	}
  	return "unknown"; /* This should not happen. */
  }
-@@ -5327,14 +4011,15 @@
+@@ -5327,14 +3983,15 @@
  static char *ccs_print_header(struct ccs_request_info *r)
  {
  	struct ccs_time stamp;
@@ -6871,7 +6856,7 @@ Index: policy_io.c
  	char *buffer = kmalloc(ccs_buffer_len, CCS_GFP_FLAGS);
  	int pos;
  	u8 i;
-@@ -5346,52 +4031,38 @@
+@@ -5346,52 +4003,38 @@
  		ccs_convert_time(tv.tv_sec, &stamp);
  	}
  	pos = snprintf(buffer, ccs_buffer_len - 1, "#%04u/%02u/%02u "
@@ -6893,16 +6878,16 @@ Index: policy_io.c
 -			current_fsgid(),
 -			ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER ? "" : "!");
 -	if (!obj)
-+		       "%02u:%02u:%02u# mode=%s granted=%s (global-pid=%u) "
-+		       "task={ pid=%u ppid=%u uid=%u gid=%u euid=%u egid=%u "
-+		       "suid=%u sgid=%u fsuid=%u fsgid=%u "
-+		       "type%s=execute_handler exe=\"%s\" }", stamp.year,
-+		       stamp.month, stamp.day, stamp.hour, stamp.min,
-+		       stamp.sec, ccs_mode[r->mode], ccs_yesno(r->granted),
-+		       gpid, ccs_sys_getpid(), ccs_sys_getppid(),
-+		       current_uid(), current_gid(), current_euid(),
-+		       current_egid(), current_suid(), current_sgid(),
-+		       current_fsuid(), current_fsgid(), handler, exe);
++		       "%02u:%02u:%02u# (global-pid=%u) task={ pid=%u ppid=%u "
++		       "uid=%u gid=%u euid=%u egid=%u suid=%u sgid=%u "
++		       "fsuid=%u fsgid=%u type%s=execute_handler exe=\"%s\" "
++		       "domain=\"%s\" }", stamp.year, stamp.month, stamp.day,
++		       stamp.hour, stamp.min, stamp.sec, gpid,
++		       ccs_sys_getpid(), ccs_sys_getppid(), current_uid(),
++		       current_gid(), current_euid(), current_egid(),
++		       current_suid(), current_sgid(), current_fsuid(),
++		       current_fsgid(), handler, exe,
++		       ccs_current_domain()->domainname->name);
 +	if (!r->obj.path[0].dentry && !r->obj.path[1].dentry)
  		goto no_obj_info;
 -	if (!obj->validate_done) {
@@ -6945,7 +6930,7 @@ Index: policy_io.c
  		if (S_ISCHR(mode) || S_ISBLK(mode)) {
  			dev = stat->rdev;
  			pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-@@ -5425,28 +4096,22 @@
+@@ -5425,28 +4068,22 @@
  {
  	char *buf = NULL;
  	char *bprm_info = NULL;
@@ -6981,7 +6966,7 @@ Index: policy_io.c
  	}
  	len = ccs_round2(len);
  	buf = kzalloc(len, CCS_GFP_FLAGS);
-@@ -5454,16 +4119,11 @@
+@@ -5454,61 +4091,26 @@
  		goto out;
  	len--;
  	pos = snprintf(buf, len, "%s", header);
@@ -6990,20 +6975,35 @@ Index: policy_io.c
 -		pos += snprintf(buf + pos, len - pos,
 -				" exec={ realpath=\"%s\" argc=%d envc=%d %s }",
 -				realpath, bprm->argc, bprm->envc, bprm_info);
--	}
 +	if (bprm_info)
 +		pos += snprintf(buf + pos, len - pos, "%s ", bprm_info);
- 	pos += snprintf(buf + pos, len - pos, "\n%s\n", domainname);
++	{
++		static const char *k[CCS_MAX_MATCHING] = {
++			[CCS_MATCHING_UNMATCHED] = "unmatched",
++			[CCS_MATCHING_ALLOWED] = "allowed",
++			[CCS_MATCHING_DENIED] = "denied",
++		};
++		pos += snprintf(buf + pos, len - pos, " / %s ", k[r->result]);
+ 	}
+-	pos += snprintf(buf + pos, len - pos, "\n%s\n", domainname);
  	vsnprintf(buf + pos, len - pos, fmt, args);
  out:
 -	kfree(realpath);
  	kfree(bprm_info);
  	kfree(header);
  	return buf;
-@@ -5478,36 +4138,15 @@
-  */
- static bool ccs_get_audit(const struct ccs_request_info *r)
- {
+ }
+ 
+ /**
+- * ccs_get_audit - Get audit mode.
++ * ccs_write_log - Write an audit log.
+  *
+- * @r: Pointer to "struct ccs_request_info".
+- *
+- * Returns true if this request should be audited, false otherwise.
+- */
+-static bool ccs_get_audit(const struct ccs_request_info *r)
+-{
 -	const u8 profile = r->profile;
 -	const u8 index = r->type;
 -	const bool is_granted = r->granted;
@@ -7030,20 +7030,15 @@ Index: policy_io.c
 -	if (is_granted)
 -		return mode & CCS_CONFIG_WANT_GRANT_LOG;
 -	return mode & CCS_CONFIG_WANT_REJECT_LOG;
-+	struct ccs_acl_info *matched_acl = r->matched_acl;
-+	if (r->granted)
-+		return ccs_grant_log_count < matched_acl->max_grant_log;
-+	else
-+		return ccs_reject_log_count < matched_acl->max_reject_log;
- }
- 
- /**
+-}
+-
+-/**
 - * ccs_write_log2 - Write an audit log.
-+ * ccs_write_log - Write an audit log.
-  *
+- *
   * @r:    Pointer to "struct ccs_request_info".
   * @len:  Buffer size needed for @fmt and @args.
-@@ -5516,15 +4155,12 @@
+  * @fmt:  The printf()'s format string.
+@@ -5516,15 +4118,12 @@
   *
   * Returns nothing.
   */
@@ -7062,27 +7057,24 @@ Index: policy_io.c
  	if (!buf)
  		return;
  	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-@@ -5539,6 +4175,7 @@
+@@ -5539,6 +4138,7 @@
  	 * Don't go beyond strlen(entry->log).
  	 */
  	entry->size = len + ccs_round2(sizeof(*entry));
-+	entry->is_granted = r->granted;
++	entry->result = r->result;
  	spin_lock(&ccs_log_lock);
  	if (ccs_memory_quota[CCS_MEMORY_AUDIT] &&
  	    ccs_memory_used[CCS_MEMORY_AUDIT] + entry->size >=
-@@ -5547,7 +4184,10 @@
+@@ -5547,7 +4147,7 @@
  	} else {
  		ccs_memory_used[CCS_MEMORY_AUDIT] += entry->size;
  		list_add_tail(&entry->list, &ccs_log);
 -		ccs_log_count++;
-+		if (entry->is_granted)
-+			ccs_grant_log_count++;
-+		else
-+			ccs_reject_log_count++;
++		ccs_log_count[entry->result]++;
  	}
  	spin_unlock(&ccs_log_lock);
  	if (quota_exceeded) {
-@@ -5559,26 +4199,6 @@
+@@ -5559,26 +4159,6 @@
  }
  
  /**
@@ -7109,29 +7101,31 @@ Index: policy_io.c
   * ccs_read_log - Read an audit log.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-@@ -5596,7 +4216,10 @@
+@@ -5596,7 +4176,7 @@
  	if (!list_empty(&ccs_log)) {
  		ptr = list_entry(ccs_log.next, typeof(*ptr), list);
  		list_del(&ptr->list);
 -		ccs_log_count--;
-+		if (ptr->is_granted)
-+			ccs_grant_log_count--;
-+		else
-+			ccs_reject_log_count--;
++		ccs_log_count[ptr->result]--;
  		ccs_memory_used[CCS_MEMORY_AUDIT] -= ptr->size;
  	}
  	spin_unlock(&ccs_log_lock);
-@@ -5617,188 +4240,39 @@
+@@ -5617,188 +4197,42 @@
   */
  static int ccs_poll_log(struct file *file, poll_table *wait)
  {
 -	if (ccs_log_count)
-+	if (ccs_grant_log_count || ccs_reject_log_count)
- 		return POLLIN | POLLRDNORM;
+-		return POLLIN | POLLRDNORM;
++	enum ccs_matching_result i;
++	for (i = 0; i < CCS_MAX_MATCHING; i++)
++		if (ccs_log_count[i])
++			return POLLIN | POLLRDNORM;
  	poll_wait(file, &ccs_log_wait, wait);
 -	if (ccs_log_count)
-+	if (ccs_grant_log_count || ccs_reject_log_count)
- 		return POLLIN | POLLRDNORM;
+-		return POLLIN | POLLRDNORM;
++	for (i = 0; i < CCS_MAX_MATCHING; i++)
++		if (ccs_log_count[i])
++			return POLLIN | POLLRDNORM;
  	return 0;
  }
  
@@ -7316,7 +7310,7 @@ Index: policy_io.c
  	if (mutex_lock_interruptible(&ccs_policy_lock))
  		goto out;
  	entry = ccs_find_domain(domainname);
-@@ -5807,63 +4281,13 @@
+@@ -5807,63 +4241,13 @@
  	entry = ccs_commit_ok(&e, sizeof(e));
  	if (!entry)
  		goto done;
@@ -7381,7 +7375,7 @@ Index: policy_io.c
  	return entry;
  }
  
-@@ -5879,47 +4303,25 @@
+@@ -5879,47 +4263,25 @@
   */
  static int ccs_parse_policy(struct ccs_io_buffer *head, char *line)
  {
@@ -7435,7 +7429,7 @@ Index: policy_io.c
  	default:
  		return -ENOSYS;
  	}
-@@ -5943,49 +4345,24 @@
+@@ -5943,49 +4305,24 @@
  static void __init ccs_load_builtin_policy(void)
  {
  	/*
@@ -7499,7 +7493,7 @@ Index: policy_io.c
  	}
  	ccs_read_unlock(idx);
  #ifdef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
-@@ -6021,7 +4398,7 @@
+@@ -6021,7 +4358,7 @@
  }
  
  /**
@@ -7508,7 +7502,7 @@ Index: policy_io.c
   *
   * @head: Pointer to "struct ccs_io_buffer".
   * @list: Pointer to "struct list_head".
-@@ -6030,85 +4407,126 @@
+@@ -6030,85 +4367,128 @@
   *
   * Caller holds ccs_read_lock().
   */
@@ -7653,12 +7647,14 @@ Index: policy_io.c
 +			case 2:
 +				if (!ccs_flush(head))
 +					return;
-+				ccs_set_string(head, "    config mode=");
-+				ccs_set_string(head, ccs_mode[ptr->mode]);
-+				ccs_io_printf(head,
-+					      " grant_log=%u reject_log=%u\n",
-+					      ptr->max_grant_log,
-+					      ptr->max_reject_log);
++				ccs_io_printf(head, "    audit allowed=%u "
++					      "unmatched=%u denied=%u\n",
++					      ptr->max_log
++					      [CCS_MATCHING_ALLOWED],
++					      ptr->max_log
++					      [CCS_MATCHING_UNMATCHED],
++					      ptr->max_log
++					      [CCS_MATCHING_DENIED]);
 +				head->r.step++;
 +				/* fall through */
 +			case 3:
@@ -7685,7 +7681,7 @@ Index: policy_io.c
  	}
  	head->r.eof = true;
  }
-@@ -6232,46 +4650,30 @@
+@@ -6232,46 +4612,30 @@
  	head->read_user_buf = buf;
  	head->read_user_buf_avail = count;
  	idx = ccs_read_lock();
@@ -7753,7 +7749,7 @@ Index: policy_io.c
  	ccs_read_unlock(idx);
  	len = head->read_user_buf - buf;
  	mutex_unlock(&head->io_sem);
-@@ -6315,14 +4717,13 @@
+@@ -6315,14 +4679,13 @@
  		name.name = data;
  		ccs_fill_path_info(&name);
  		/* Check "task manual_domain_transition" permission. */
@@ -7765,7 +7761,7 @@ Index: policy_io.c
 +		r.type = CCS_MAC_MANUAL_TASK_TRANSITION;
 +		r.param.s[0] = &name;
 +		ccs_check_acl(&r, true);
-+		if (!r.granted || !r.matched_acl)
++		if (r.result != CCS_MATCHING_ALLOWED)
  			error = -EPERM;
  		else
 -			error = ccs_assign_domain(data, true) ? 0 : -ENOENT;
@@ -7773,7 +7769,7 @@ Index: policy_io.c
  		ccs_read_unlock(idx);
  	} else
  		error = -EINVAL;
-@@ -6382,32 +4783,10 @@
+@@ -6382,32 +4745,10 @@
  		cp0[head->w.avail - 1] = '\0';
  		head->w.avail = 0;
  		ccs_normalize_line(cp0);
@@ -7809,7 +7805,7 @@ Index: policy_io.c
  		}
  		switch (ccs_parse_policy(head, cp0)) {
  		case -EPERM:
-@@ -6415,18 +4794,8 @@
+@@ -6415,18 +4756,8 @@
  			goto out;
  		case 0:
  			/* Update statistics. */
@@ -7829,7 +7825,7 @@ Index: policy_io.c
  			break;
  		}
  	}
-@@ -6480,21 +4849,15 @@
+@@ -6480,21 +4811,15 @@
  	ccs_dir->proc_iops = &ccs_dir_inode_operations;
  #endif
  	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
@@ -7852,7 +7848,7 @@ Index: policy_io.c
  	{
  		struct proc_dir_entry *e = create_proc_entry("self_domain",
  							     0666, ccs_dir);
-@@ -6510,6 +4873,7 @@
+@@ -6510,6 +4835,7 @@
   */
  static int __init ccs_init_module(void)
  {
@@ -7860,7 +7856,7 @@ Index: policy_io.c
  	if (ccsecurity_ops.disabled)
  		return -EINVAL;
  #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-@@ -6519,21 +4883,10 @@
+@@ -6519,21 +4845,10 @@
  	if (init_srcu_struct(&ccs_ss))
  		panic("Out of memory.");
  #endif
@@ -7888,7 +7884,7 @@ Index: policy_io.c
  	ccs_permission_init();
 Index: memory.c
 ===================================================================
---- memory.c	(revision 5869)
+--- memory.c	(revision 5872)
 +++ memory.c	(working copy)
 @@ -162,8 +162,11 @@
  #else
@@ -7905,7 +7901,7 @@ Index: memory.c
  		    atomic_read(&ptr->head.users) == CCS_GC_IN_PROGRESS)
 Index: permission.c
 ===================================================================
---- permission.c	(revision 5869)
+--- permission.c	(revision 5872)
 +++ permission.c	(working copy)
 @@ -42,112 +42,12 @@
  	[CCS_MOUNT_MAKE_SHARED]     = "--make-shared",
@@ -8357,6 +8353,7 @@ Index: permission.c
 -		struct ccs_domain_info *domain;
 -		int error;
 -		if (ptr->mode == CCS_CONFIG_DISABLED)
+-			continue;
 +	int error = 0;
 +	const struct ccs_path_info *transition = NULL;
 +	const struct ccs_path_info *handler_path = NULL;
@@ -8365,17 +8362,14 @@ Index: permission.c
 +	list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
 +		struct ccs_acl_info *ptr2;
 +retry:
-+		if (ptr->mode == CCS_CONFIG_DISABLED ||
-+		    !ccs_check_entry(r, ptr))
+ 		if (!ccs_check_entry(r, ptr))
  			continue;
--		if (!ccs_check_entry(r, ptr))
--			continue;
 -		if (!ccs_condition(r, ptr->cond))
 -			continue;
-+		r->matched_acl = ptr;
- 		r->mode = ptr->mode;
+-		r->mode = ptr->mode;
 -		list_for_each_entry_srcu(domain, &ptr->domain_list, list,
-+		r->granted = false;
++		r->matched_acl = ptr;
++		r->result = CCS_MATCHING_UNMATCHED;
 +		if (0 && r->type == CCS_MAC_FILE_EXECUTE)
 +			printk(KERN_INFO "Checking sub ACL for %p\n", ptr);
 +		list_for_each_entry_srcu(ptr2, &ptr->acl_info_list, list,
@@ -8385,20 +8379,22 @@ Index: permission.c
 -				goto next;
 +			if (!ccs_check_entry(r, ptr2))
 +				continue;
-+			if (ptr2->is_deny) {
-+				/* Use enforcing mode for deny lines. */
-+				r->mode = CCS_CONFIG_ENFORCING;
-+				r->granted = false;
-+			} else {
-+				r->granted = true;
-+			}
++			r->result = ptr2->is_deny ? CCS_MATCHING_DENIED :
++				CCS_MATCHING_ALLOWED;
 +			break;
  		}
 -		/* Did not match. */
 -		r->granted = false;
-+		if (0 && r->type == CCS_MAC_FILE_EXECUTE)
-+			printk(KERN_INFO "%s sub ACL for %p\n",
-+			       r->granted ? "Matched" : "Not matched", ptr);
++		if (0 && r->type == CCS_MAC_FILE_EXECUTE) {
++			static const char *k[CCS_MAX_MATCHING] = {
++				[CCS_MATCHING_UNMATCHED] = "Unmatched",
++				[CCS_MATCHING_ALLOWED] = "Allowed",
++				[CCS_MATCHING_DENIED] = "Denied",
++			};
++			printk(KERN_INFO "%s sub ACL for %p\n", k[r->result],
++			       ptr);
++		}
++		r->max_log = ptr->max_log[r->result];
  		error = ccs_audit_log(r);
 +		if (!error) {
 +			/* Use the first matching domain transition entry. */
@@ -8848,7 +8844,7 @@ Index: permission.c
 -	return true;
 +	r->type = type;
 +	ccs_check_acl(r, false);
-+	return r->granted && r->matched_acl;
++	return r->result == CCS_MATCHING_ALLOWED;
  }
  
  #endif
@@ -11774,9 +11770,10 @@ Index: permission.c
 -		struct ccs_request_info r = { };
 -		r.param_type = CCS_TYPE_AUTO_TASK_ACL;
 -		ccs_check_acl(&r);
+-		if (!r.granted)
 +		r.type = CCS_MAC_AUTO_TASK_TRANSITION;
 +		ccs_check_acl(&r, false);
- 		if (!r.granted)
++		if (r.result != CCS_MATCHING_ALLOWED)
  			goto done;
 -		buf = container_of(r.matched_acl, typeof(struct ccs_task_acl),
 -				   head)->domainname->name;
@@ -11842,7 +11839,7 @@ Index: permission.c
 +}
 Index: gc.c
 ===================================================================
---- gc.c	(revision 5869)
+--- gc.c	(revision 5872)
 +++ gc.c	(working copy)
 @@ -42,7 +42,6 @@
  #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
@@ -12379,7 +12376,7 @@ Index: gc.c
  		}
 Index: Makefile
 ===================================================================
---- Makefile	(revision 5869)
+--- Makefile	(revision 5872)
 +++ Makefile	(working copy)
 @@ -16,49 +16,16 @@
  endif
