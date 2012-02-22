@@ -48,13 +48,8 @@ static void panic(void)
 		sleep(100);
 }
 
-#define policy_dir            "/etc/ccs/"
-#define proc_manager          "/proc/ccs/manager"
-#define proc_acl_policy       "/proc/ccs/acl_policy"
-#define proc_exception_policy "/proc/ccs/exception_policy"
-#define proc_domain_policy    "/proc/ccs/domain_policy"
-#define proc_profile          "/proc/ccs/profile"
-#define proc_stat             "/proc/ccs/stat"
+#define policy_dir  "/etc/ccs/"
+#define proc_policy "/proc/ccs/policy"
 static _Bool proc_unmount = 0;
 
 static char buffer[8192];
@@ -82,42 +77,25 @@ static void copy_files(const char *src, const char *dest)
 	close(dfd);
 }
 
-static void show_domain_usage(void)
+static void show_stat(void)
 {
-	unsigned int domain = 0;
 	unsigned int acl = 0;
-	FILE *fp = fopen(proc_domain_policy, "r");
+	unsigned int size = -1;
+	FILE *fp = fopen(proc_policy, "r");
 	if (!fp)
 		return;
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
-		if (buffer[0] == '<')
-			domain++;
-		else if (buffer[0] > ' ' && strncmp(buffer, "use_", 4))
+		if (!strncmp(buffer, "acl ", 4))
 			acl++;
+		else if (size == -1)
+			sscanf(buffer, "stat Memory used by policy: %u",
+			       &size);
 	}
 	fclose(fp);
-	printf("%u domain%s. %u ACL entr%s.\n", domain, domain > 1 ? "s" : "",
-	       acl, acl > 1 ? "ies" : "y");
-}
-
-static void show_memory_usage(void)
-{
-	FILE *fp = fopen(proc_stat, "r");
-	if (!fp)
-		return;
-	while (memset(buffer, 0, sizeof(buffer)) &&
-	       fgets(buffer, sizeof(buffer) - 1, fp)) {
-		unsigned int size;
-		if (sscanf(buffer, "Shared: %u", &size) == 1)
-			printf("%u KB shared. ", (size + 1023) / 1024);
-		else if (sscanf(buffer, "Private: %u", &size) == 1)
-			printf("%u KB private. ", (size + 1023) / 1024);
-		else if (sscanf(buffer, "Policy: %u", &size) == 1)
-			printf("%u KB used by policy.", (size + 1023) / 1024);
-	}
-	fclose(fp);
-	putchar('\n');
+	printf("%u ACL entr%s.\n", acl, acl > 1 ? "ies" : "y");
+	if (size != -1)
+		printf("%u KB used by policy.\n", (size + 1023) / 1024);
 }
 
 int main(int argc, char *argv[])
@@ -187,14 +165,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* Load policy. */
-	if (!chdir(policy_dir)) {
-		copy_files("manager.conf", proc_manager);
-		copy_files("acl_policy.conf", proc_acl_policy);
-		copy_files("exception_policy.conf", proc_exception_policy);
-		copy_files("domain_policy.conf", proc_domain_policy);
-		copy_files("profile.conf", proc_profile);
-		copy_files("stat.conf", proc_stat);
-	}
+	if (!chdir(policy_dir))
+		copy_files("policy.conf", proc_policy);
 
 	/* Do additional initialization. */
 	if (!access("/etc/ccs/ccs-post-init", X_OK)) {
@@ -211,10 +183,7 @@ int main(int argc, char *argv[])
 		       errno == EINTR);
 	}
 
-	show_domain_usage();
-
-	/* Show memory usage. */
-	show_memory_usage();
+	show_stat();
 
 	if (proc_unmount)
 		umount("/proc");

@@ -42,7 +42,6 @@ struct ccs_lock_struct {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 int ccs_lock(void);
 #endif
-void ccs_del_acl(struct list_head *element);
 void ccs_del_condition(struct list_head *element);
 void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
@@ -54,13 +53,11 @@ static bool ccs_name_used_by_io_buffer(const char *string, const size_t size);
 static bool ccs_struct_used_by_io_buffer(const struct list_head *element);
 static int ccs_gc_thread(void *unused);
 static void ccs_collect_acl(struct list_head *list);
-static void ccs_collect_domain(struct list_head *list);
 static void ccs_collect_entry(void);
 static void ccs_collect_member(const enum ccs_policy_id id,
 			       struct list_head *member_list);
+static void ccs_del_acl(struct list_head *element);
 static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type);
-static void ccs_put_name_union(struct ccs_name_union *ptr);
-static void ccs_put_number_union(struct ccs_number_union *ptr);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 static void ccs_synchronize_counter(void);
 #endif
@@ -110,49 +107,14 @@ static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type)
 #endif
 		[CCS_ID_PATH_GROUP] = sizeof(struct ccs_path_group),
 		[CCS_ID_NUMBER_GROUP] = sizeof(struct ccs_number_group),
-		[CCS_ID_MANAGER] = sizeof(struct ccs_manager),
 		/* [CCS_ID_CONDITION] = "struct ccs_condition"->size, */
 		/* [CCS_ID_NAME] = "struct ccs_name"->size, */
-		/* [CCS_ID_ACL] = a["struct ccs_acl_info"->type], */
+		/* [CCS_ID_ACL] = sizeof(struct ccs_acl_info), */
 		[CCS_ID_DOMAIN] = sizeof(struct ccs_domain_info),
-	};
-	/* Size of a domain ACL element. */
-	static const u8 a[] = {
-		[CCS_TYPE_PATH_ACL] = sizeof(struct ccs_path_acl),
-		[CCS_TYPE_PATH2_ACL] = sizeof(struct ccs_path2_acl),
-		[CCS_TYPE_PATH_NUMBER_ACL]
-		= sizeof(struct ccs_path_number_acl),
-		[CCS_TYPE_MKDEV_ACL] = sizeof(struct ccs_mkdev_acl),
-		[CCS_TYPE_MOUNT_ACL] = sizeof(struct ccs_mount_acl),
-#ifdef CONFIG_CCSECURITY_NETWORK
-		[CCS_TYPE_INET_ACL] = sizeof(struct ccs_inet_acl),
-		[CCS_TYPE_UNIX_ACL] = sizeof(struct ccs_unix_acl),
-#endif
-#ifdef CONFIG_CCSECURITY_MISC
-		[CCS_TYPE_ENV_ACL] = sizeof(struct ccs_env_acl),
-#endif
-#ifdef CONFIG_CCSECURITY_CAPABILITY
-		[CCS_TYPE_CAPABILITY_ACL] = sizeof(struct ccs_capability_acl),
-#endif
-#ifdef CONFIG_CCSECURITY_IPC
-		[CCS_TYPE_PTRACE_ACL] = sizeof(struct ccs_ptrace_acl),
-#endif
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-		[CCS_TYPE_AUTO_EXECUTE_HANDLER]
-		= sizeof(struct ccs_handler_acl),
-		[CCS_TYPE_DENIED_EXECUTE_HANDLER]
-		= sizeof(struct ccs_handler_acl),
-#endif
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-		[CCS_TYPE_AUTO_TASK_ACL] = sizeof(struct ccs_task_acl),
-		[CCS_TYPE_MANUAL_TASK_ACL] = sizeof(struct ccs_task_acl),
-#endif
-		[CCS_TYPE_USE_GROUP_ACL] = sizeof(struct ccs_use_group_acl),
 	};
 	size_t size;
 	if (type == CCS_ID_ACL)
-		size = a[container_of(ptr, typeof(struct ccs_acl_info),
-				      list)->type];
+		size = sizeof(struct ccs_acl_info);
 	else if (type == CCS_ID_NAME)
 		size = container_of(ptr, typeof(struct ccs_name),
 				    head.list)->size;
@@ -163,31 +125,6 @@ static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type)
 		size = e[type];
 	ccs_memory_used[CCS_MEMORY_POLICY] -= ccs_round2(size);
 	kfree(ptr);
-}
-
-/**
- * ccs_put_name_union - Drop reference on "struct ccs_name_union".
- *
- * @ptr: Pointer to "struct ccs_name_union".
- *
- * Returns nothing.
- */
-static void ccs_put_name_union(struct ccs_name_union *ptr)
-{
-	ccs_put_group(ptr->group);
-	ccs_put_name(ptr->filename);
-}
-
-/**
- * ccs_put_number_union - Drop reference on "struct ccs_number_union".
- *
- * @ptr: Pointer to "struct ccs_number_union".
- *
- * Returns nothing.
- */
-static void ccs_put_number_union(struct ccs_number_union *ptr)
-{
-	ccs_put_group(ptr->group);
 }
 
 /**
@@ -206,9 +143,8 @@ static bool ccs_struct_used_by_io_buffer(const struct list_head *element)
 		head->users++;
 		spin_unlock(&ccs_io_buffer_list_lock);
 		mutex_lock(&head->io_sem);
-		if (head->r.domain == element || head->r.group == element ||
-		    head->r.acl == element || &head->w.domain->list == element
-		    || &head->w.acl->list == element)
+		if (head->r.acl == element || head->r.subacl == element ||
+		    head->r.group == element || &head->w.acl->list == element)
 			in_use = true;
 		mutex_unlock(&head->io_sem);
 		spin_lock(&ccs_io_buffer_list_lock);
@@ -253,20 +189,6 @@ static bool ccs_name_used_by_io_buffer(const char *string, const size_t size)
 	}
 	spin_unlock(&ccs_io_buffer_list_lock);
 	return in_use;
-}
-
-/**
- * ccs_del_manager - Delete members in "struct ccs_manager".
- *
- * @element: Pointer to "struct list_head".
- *
- * Returns nothing.
- */
-static inline void ccs_del_manager(struct list_head *element)
-{
-	struct ccs_manager *ptr =
-		container_of(element, typeof(*ptr), head.list);
-	ccs_put_name(ptr->manager);
 }
 
 /**
@@ -343,123 +265,13 @@ out:
  *
  * Returns nothing.
  */
-void ccs_del_acl(struct list_head *element)
+static void ccs_del_acl(struct list_head *element)
 {
 	struct ccs_acl_info *acl = container_of(element, typeof(*acl), list);
+	struct ccs_acl_info *ptr;
 	ccs_put_condition(acl->cond);
-	switch (acl->type) {
-	case CCS_TYPE_PATH_ACL:
-		{
-			struct ccs_path_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->name);
-		}
-		break;
-	case CCS_TYPE_PATH2_ACL:
-		{
-			struct ccs_path2_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->name1);
-			ccs_put_name_union(&entry->name2);
-		}
-		break;
-	case CCS_TYPE_PATH_NUMBER_ACL:
-		{
-			struct ccs_path_number_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->name);
-			ccs_put_number_union(&entry->number);
-		}
-		break;
-	case CCS_TYPE_MKDEV_ACL:
-		{
-			struct ccs_mkdev_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->name);
-			ccs_put_number_union(&entry->mode);
-			ccs_put_number_union(&entry->major);
-			ccs_put_number_union(&entry->minor);
-		}
-		break;
-	case CCS_TYPE_MOUNT_ACL:
-		{
-			struct ccs_mount_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->dev_name);
-			ccs_put_name_union(&entry->dir_name);
-			ccs_put_name_union(&entry->fs_type);
-			ccs_put_number_union(&entry->flags);
-		}
-		break;
-#ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_TYPE_INET_ACL:
-		{
-			struct ccs_inet_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_group(entry->address.group);
-			ccs_put_number_union(&entry->port);
-		}
-		break;
-	case CCS_TYPE_UNIX_ACL:
-		{
-			struct ccs_unix_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->name);
-		}
-		break;
-#endif
-#ifdef CONFIG_CCSECURITY_MISC
-	case CCS_TYPE_ENV_ACL:
-		{
-			struct ccs_env_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->env);
-		}
-		break;
-#endif
-#ifdef CONFIG_CCSECURITY_CAPABILITY
-	case CCS_TYPE_CAPABILITY_ACL:
-		{
-			/* Nothing to do. */
-		}
-		break;
-#endif
-#ifdef CONFIG_CCSECURITY_IPC
-	case CCS_TYPE_PTRACE_ACL:
-		{
-			struct ccs_ptrace_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_number_union(&entry->request);
-			ccs_put_name(entry->domainname);
-		}
-		break;
-#endif
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-	case CCS_TYPE_AUTO_EXECUTE_HANDLER:
-	case CCS_TYPE_DENIED_EXECUTE_HANDLER:
-		{
-			struct ccs_handler_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name(entry->handler);
-		}
-		break;
-#endif
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-	case CCS_TYPE_AUTO_TASK_ACL:
-	case CCS_TYPE_MANUAL_TASK_ACL:
-		{
-			struct ccs_task_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_name(entry->domainname);
-		}
-		break;
-#endif
-	case CCS_TYPE_USE_GROUP_ACL:
-		{
-			struct ccs_use_group_acl *entry =
-				container_of(acl, typeof(*entry), head);
-			ccs_put_group(entry->group);
-		}
+	list_for_each_entry(ptr, &acl->acl_info_list, list) {
+		ccs_put_condition(ptr->cond);
 	}
 }
 
@@ -476,20 +288,7 @@ static inline void ccs_del_domain(struct list_head *element)
 {
 	struct ccs_domain_info *domain =
 		container_of(element, typeof(*domain), list);
-	struct ccs_acl_info *acl;
-	struct ccs_acl_info *tmp;
-	/*
-	 * Since this domain is referenced from neither "struct ccs_io_buffer"
-	 * nor "struct task_struct", we can delete elements without checking
-	 * for is_deleted flag.
-	 */
-	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
-		ccs_del_acl(&acl->list);
-		ccs_memory_free(acl, CCS_ID_ACL);
-	}
-	ccs_put_name(domain->default_transition);
 	ccs_put_name(domain->domainname);
-	ccs_put_condition(domain->cond);
 }
 
 /**
@@ -555,31 +354,35 @@ void ccs_del_condition(struct list_head *element)
 {
 	struct ccs_condition *cond = container_of(element, typeof(*cond),
 						  head.list);
-	const u16 condc = cond->condc;
-	const u16 numbers_count = cond->numbers_count;
-	const u16 names_count = cond->names_count;
-	const u16 argc = cond->argc;
-	const u16 envc = cond->envc;
-	unsigned int i;
-	const struct ccs_condition_element *condp
-		= (const struct ccs_condition_element *) (cond + 1);
-	struct ccs_number_union *numbers_p
-		= (struct ccs_number_union *) (condp + condc);
-	struct ccs_name_union *names_p
-		= (struct ccs_name_union *) (numbers_p + numbers_count);
-	const struct ccs_argv *argv
-		= (const struct ccs_argv *) (names_p + names_count);
-	const struct ccs_envp *envp
-		= (const struct ccs_envp *) (argv + argc);
-	for (i = 0; i < numbers_count; i++)
-		ccs_put_number_union(numbers_p++);
-	for (i = 0; i < names_count; i++)
-		ccs_put_name_union(names_p++);
-	for (i = 0; i < argc; argv++, i++)
-		ccs_put_name(argv->value);
-	for (i = 0; i < envc; envp++, i++) {
-		ccs_put_name(envp->name);
-		ccs_put_name(envp->value);
+	const union ccs_condition_element *condp = (typeof(condp)) (cond + 1);
+	while ((void *) condp < (void *) ((u8 *) cond) + cond->size) {
+		const enum ccs_conditions_index left = condp->left;
+		const enum ccs_conditions_index right = condp->right;
+		condp++;
+		if (left == CCS_ARGV_ENTRY)
+			condp++;
+		else if (left == CCS_ENVP_ENTRY) {
+			ccs_put_name(condp->path);
+			condp++;
+		}
+		if (right == CCS_IMM_GROUP) {
+			ccs_put_group(condp->group);
+			condp++;
+		} else if (right == CCS_IMM_NAME_ENTRY ||
+			   right == CCS_IMM_DOMAINNAME_ENTRY) {
+			if (condp->path != &ccs_null_name)
+				ccs_put_name(condp->path);
+			condp++;
+		} else if (right == CCS_IMM_NUMBER_ENTRY1)
+			condp++;
+		else if (right == CCS_IMM_NUMBER_ENTRY2)
+			condp += 2;
+		else if (right == CCS_IMM_IPV6ADDR_ENTRY1)
+			condp = (void *)
+				(((u8 *) condp) + sizeof(struct in6_addr));
+		else if (right == CCS_IMM_IPV6ADDR_ENTRY2)
+			condp = (void *)
+				(((u8 *) condp) + sizeof(struct in6_addr) * 2);
 	}
 }
 
@@ -688,15 +491,12 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 	 * However, there are two users which may still be using the list
 	 * element. We need to defer until both users forget this element.
 	 *
-	 * Don't kfree() until "struct ccs_io_buffer"->r.{domain,group,acl} and
-	 * "struct ccs_io_buffer"->w.domain forget this element.
+	 * Don't kfree() until "struct ccs_io_buffer"->r.{group,acl,subacl} and
+	 * "struct ccs_io_buffer"->w.acl forget this element.
 	 */
 	if (ccs_struct_used_by_io_buffer(element))
 		goto reinject;
 	switch (type) {
-	case CCS_ID_MANAGER:
-		ccs_del_manager(element);
-		break;
 	case CCS_ID_GROUP:
 		ccs_del_group(element);
 		break;
@@ -806,27 +606,6 @@ static void ccs_collect_acl(struct list_head *list)
 }
 
 /**
- * ccs_collect_domain - Delete domains in "struct ccs_acl_info".
- *
- * @list: Pointer to "struct list_head".
- *
- * Returns nothing.
- *
- * Caller holds ccs_policy_lock mutex.
- */
-static void ccs_collect_domain(struct list_head *list)
-{
-	struct ccs_domain_info *domain;
-	struct ccs_domain_info *tmp;
-	list_for_each_entry_safe(domain, tmp, list, list) {
-		if (!domain->is_deleted)
-			continue;
-		domain->is_deleted = CCS_GC_IN_PROGRESS;
-		ccs_try_to_gc(CCS_ID_DOMAIN, &domain->list);
-	}
-}
-
-/**
  * ccs_collect_entry - Try to kfree() deleted elements.
  *
  * Returns nothing.
@@ -834,30 +613,25 @@ static void ccs_collect_domain(struct list_head *list)
 static void ccs_collect_entry(void)
 {
 	int i;
-	struct ccs_policy_namespace *ns;
 	mutex_lock(&ccs_policy_lock);
 	{
 		struct ccs_domain_info *domain;
 		struct ccs_domain_info *tmp;
 		list_for_each_entry_safe(domain, tmp, &ccs_domain_list, list) {
-			ccs_collect_acl(&domain->acl_info_list);
 			if (!domain->is_deleted ||
 			    ccs_domain_used_by_task(domain))
 				continue;
 			ccs_try_to_gc(CCS_ID_DOMAIN, &domain->list);
 		}
 	}
-	ccs_collect_member(CCS_ID_MANAGER, &ccs_manager_list);
-	list_for_each_entry(ns, &ccs_namespace_list, namespace_list) {
-		ccs_collect_acl(&ns->default_transition_list);
-	}
-	{
+	for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
 		struct ccs_acl_info *ptr;
 		struct ccs_acl_info *tmp;
-		list_for_each_entry_safe(ptr, tmp, &ccs_inversed_acl_list,
-					  list) {
-			ccs_collect_domain(&ptr->domain_list);
-			if (!ptr->is_deleted || !list_empty(&ptr->domain_list))
+		struct list_head * const list = &ccs_acl_list[i];
+		list_for_each_entry_safe(ptr, tmp, list, list) {
+			ccs_collect_acl(&ptr->acl_info_list);
+			if (!ptr->is_deleted ||
+			    !list_empty(&ptr->acl_info_list))
 				continue;
 			ptr->is_deleted = CCS_GC_IN_PROGRESS;
 			ccs_try_to_gc(CCS_ID_ACL, &ptr->list);
@@ -867,53 +641,56 @@ static void ccs_collect_entry(void)
 		struct ccs_shared_acl_head *ptr;
 		struct ccs_shared_acl_head *tmp;
 		list_for_each_entry_safe(ptr, tmp, &ccs_condition_list, list) {
-			if (atomic_read(&ptr->users) > 0)
+			if (atomic_read(&ptr->users)) {
+				/*
+				printk(KERN_INFO "Users=%u condition=%p\n",
+				     atomic_read(&ptr->users), ptr);
+				*/
 				continue;
+			}
 			atomic_set(&ptr->users, CCS_GC_IN_PROGRESS);
 			ccs_try_to_gc(CCS_ID_CONDITION, &ptr->list);
 		}
 	}
-	list_for_each_entry(ns, &ccs_namespace_list, namespace_list) {
-		for (i = 0; i < CCS_MAX_GROUP; i++) {
-			struct list_head *list = &ns->group_list[i];
-			struct ccs_group *group;
-			struct ccs_group *tmp;
-			enum ccs_policy_id id;
-			if (i == CCS_PATH_GROUP)
-				id = CCS_ID_PATH_GROUP;
-			else if (i == CCS_NUMBER_GROUP)
-				id = CCS_ID_NUMBER_GROUP;
-			else if (i == CCS_ACL_GROUP)
-				id = CCS_ID_ACL;
+	for (i = 0; i < CCS_MAX_GROUP; i++) {
+		struct list_head *list = &ccs_group_list[i];
+		struct ccs_group *group;
+		struct ccs_group *tmp;
+		enum ccs_policy_id id = CCS_ID_PATH_GROUP;
+		if (i == CCS_NUMBER_GROUP)
+			id = CCS_ID_NUMBER_GROUP;
 #ifdef CONFIG_CCSECURITY_NETWORK
-			else
-				id = CCS_ID_ADDRESS_GROUP;
+		else if (i == CCS_ADDRESS_GROUP)
+			id = CCS_ID_ADDRESS_GROUP;
 #endif
-			list_for_each_entry_safe(group, tmp, list, head.list) {
-				if (id == CCS_ID_ACL)
-					ccs_collect_acl(&group->member_list);
-				else
-					ccs_collect_member(id, &group->
-							   member_list);
-				if (!list_empty(&group->member_list) ||
-				    atomic_read(&group->head.users) > 0) {
-					/*
-					if (id == CCS_ID_ACL)
-						printk("%s users=%d\n",
-			       __func__, atomic_read(&group->head.users));
-					*/
-					continue;
-				}
-				atomic_set(&group->head.users,
-					   CCS_GC_IN_PROGRESS);
+		list_for_each_entry_safe(group, tmp, list, head.list) {
+			if (id == CCS_ID_ACL)
+				ccs_collect_acl(&group->member_list);
+			else
+				ccs_collect_member(id, &group->
+						   member_list);
+			if (!list_empty(&group->member_list) ||
+			    atomic_read(&group->head.users)) {
 				/*
-				if (id == CCS_ID_ACL)
-					printk("%s trying to gc %s\n",
-					       __func__,
-					       group->group_name->name);
+				  printk(KERN_INFO "Users=%u group=%p\n",
+				  atomic_read(&group->head.users),
+				  group);
 				*/
-				ccs_try_to_gc(CCS_ID_GROUP, &group->head.list);
+				/*
+				  if (id == CCS_ID_ACL)
+				  printk("%s users=%d\n",
+				  __func__, atomic_read(&group->head.users));
+				*/
+				continue;
 			}
+			atomic_set(&group->head.users, CCS_GC_IN_PROGRESS);
+			/*
+			if (id == CCS_ID_ACL)
+				printk("%s trying to gc %s\n",
+				       __func__,
+				       group->group_name->name);
+			*/
+			ccs_try_to_gc(CCS_ID_GROUP, &group->head.list);
 		}
 	}
 	for (i = 0; i < CCS_MAX_HASH; i++) {
@@ -921,8 +698,15 @@ static void ccs_collect_entry(void)
 		struct ccs_shared_acl_head *ptr;
 		struct ccs_shared_acl_head *tmp;
 		list_for_each_entry_safe(ptr, tmp, list, list) {
-			if (atomic_read(&ptr->users) > 0)
+			if (atomic_read(&ptr->users)) {
+				/*
+				  printk(KERN_INFO "Users=%u Name='%s'\n",
+				       atomic_read(&ptr->users),
+				       container_of(ptr, struct ccs_name,
+						    head)->entry.name);
+				*/
 				continue;
+			}
 			atomic_set(&ptr->users, CCS_GC_IN_PROGRESS);
 			ccs_try_to_gc(CCS_ID_NAME, &ptr->list);
 		}

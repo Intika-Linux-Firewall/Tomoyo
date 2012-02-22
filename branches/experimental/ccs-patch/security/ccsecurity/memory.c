@@ -162,8 +162,11 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 #else
 	head = &ccs_name_list[hash % CCS_MAX_HASH];
 #endif
-	if (mutex_lock_interruptible(&ccs_policy_lock))
+	if (mutex_lock_interruptible(&ccs_policy_lock)) {
+		printk(KERN_INFO "ccs_get_name('%s') interrupted\n", name);
+		WARN_ON(1);
 		return NULL;
+	}
 	list_for_each_entry(ptr, head, head.list) {
 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name) ||
 		    atomic_read(&ptr->head.users) == CCS_GC_IN_PROGRESS)

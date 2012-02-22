@@ -66,8 +66,8 @@ static void ccs_send_keepalive(void)
 
 static unsigned short int ccs_retries = 0;
 
-static FILE *ccs_domain_fp = NULL;
-static int ccs_domain_policy_fd = EOF;
+static FILE *ccs_policy_fp = NULL;
+static int ccs_policy_fd = EOF;
 #define CCS_MAX_READLINE_HISTORY 20
 static const char **ccs_readline_history = NULL;
 static int ccs_readline_history_count = 0;
@@ -121,25 +121,24 @@ static _Bool ccs_handle_query(unsigned int serial)
 
 	if (c == 'S' || c == 's') {
 		if (ccs_network_mode) {
-			fprintf(ccs_domain_fp, "%s", pidbuf);
-			fputc(0, ccs_domain_fp);
-			fflush(ccs_domain_fp);
-			rewind(ccs_domain_fp);
+			fprintf(ccs_policy_fp, "%s", pidbuf);
+			fputc(0, ccs_policy_fp);
+			fflush(ccs_policy_fp);
+			rewind(ccs_policy_fp);
 			while (1) {
 				char c;
-				if (fread(&c, 1, 1, ccs_domain_fp) != 1 || !c)
+				if (fread(&c, 1, 1, ccs_policy_fp) != 1 || !c)
 					break;
 				addch(c);
 				refresh();
 				ccs_send_keepalive();
 			}
 		} else {
-			ret_ignored = write(ccs_domain_policy_fd, pidbuf,
+			ret_ignored = write(ccs_policy_fd, pidbuf,
 					    strlen(pidbuf));
 			while (1) {
 				int i;
-				int len = read(ccs_domain_policy_fd,
-					       ccs_buffer,
+				int len = read(ccs_policy_fd, ccs_buffer,
 					       sizeof(ccs_buffer) - 1);
 				if (len <= 0)
 					break;
@@ -180,13 +179,12 @@ static _Bool ccs_handle_query(unsigned int serial)
 				ccs_readline_history_count,
 				CCS_MAX_READLINE_HISTORY);
 	if (ccs_network_mode) {
-		fprintf(ccs_domain_fp, "%s%s\n", pidbuf, line);
-		fflush(ccs_domain_fp);
+		fprintf(ccs_policy_fp, "%s%s\n", pidbuf, line);
+		fflush(ccs_policy_fp);
 	} else {
-		ret_ignored = write(ccs_domain_policy_fd, pidbuf,
-				    strlen(pidbuf));
-		ret_ignored = write(ccs_domain_policy_fd, line, strlen(line));
-		ret_ignored = write(ccs_domain_policy_fd, "\n", 1);
+		ret_ignored = write(ccs_policy_fd, pidbuf, strlen(pidbuf));
+		ret_ignored = write(ccs_policy_fd, line, strlen(line));
+		ret_ignored = write(ccs_policy_fd, "\n", 1);
 	}
 	ccs_printw("Added '%s'.\n", line);
 not_append:
@@ -247,11 +245,10 @@ int main(int argc, char *argv[])
 ok:
 	if (ccs_network_mode) {
 		ccs_query_fd = ccs_open_stream("proc:query");
-		ccs_domain_fp = ccs_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
+		ccs_policy_fp = ccs_open_write(CCS_PROC_POLICY_POLICY);
 	} else {
 		ccs_query_fd = open(CCS_PROC_POLICY_QUERY, O_RDWR);
-		ccs_domain_policy_fd = open(CCS_PROC_POLICY_DOMAIN_POLICY,
-					    O_RDWR);
+		ccs_policy_fd = open(CCS_PROC_POLICY_POLICY, O_RDWR);
 	}
 	if (ccs_query_fd == EOF) {
 		fprintf(stderr,
@@ -259,7 +256,7 @@ ok:
 		return 1;
 	} else if (!ccs_network_mode && write(ccs_query_fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", CCS_PROC_POLICY_MANAGER);
+			"run this program.\n", CCS_PROC_POLICY_POLICY);
 		return 1;
 	}
 	ccs_readline_history = ccs_malloc(CCS_MAX_READLINE_HISTORY *

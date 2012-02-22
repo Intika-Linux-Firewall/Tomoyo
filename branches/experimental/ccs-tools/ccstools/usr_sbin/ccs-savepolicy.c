@@ -65,23 +65,9 @@ static _Bool ccs_save_policy(void)
 			return false;
 		}
 	}
-	if ((symlink("policy/current/profile.conf", "../profile.conf") &&
-	     errno != EEXIST) ||
-	    (symlink("policy/current/manager.conf", "../manager.conf") &&
-	     errno != EEXIST) ||
-	    (symlink("policy/current/exception_policy.conf",
-		     "../exception_policy.conf") && errno != EEXIST) ||
-	    (symlink("policy/current/domain_policy.conf",
-		     "../domain_policy.conf") && errno != EEXIST) ||
-	    chdir(stamp) ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, "profile.conf") ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, "manager.conf") ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY,
-				   "exception_policy.conf") ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_ACL_POLICY,
-				   "acl_policy.conf") ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY,
-				   "domain_policy.conf") ||
+	if ((symlink("policy/current/policy.conf", "../policy.conf") &&
+	     errno != EEXIST) || chdir(stamp) ||
+	    !ccs_move_proc_to_file(CCS_PROC_POLICY_POLICY, "policy.conf") ||
 	    chdir("..") ||
 	    (rename("current", "previous") && errno != ENOENT) ||
 	    symlink(stamp, "current")) {
@@ -93,18 +79,14 @@ static _Bool ccs_save_policy(void)
 
 int main(int argc, char *argv[])
 {
-	char target = 0;
+	_Bool use_stdout = false;
 	int i;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
 		if (*ptr == '/') {
-			if (ccs_policy_dir || target) {
-				fprintf(stderr, "You cannot specify multiple "
-					"%s at the same time.\n\n",
-					"policy directories");
+			if (ccs_policy_dir || use_stdout)
 				goto usage;
-			}
 			ccs_policy_dir = ptr;
 		} else if (cp) {
 			*cp++ = '\0';
@@ -117,17 +99,10 @@ int main(int argc, char *argv[])
 				goto usage;
 			}
 			ccs_network_mode = true;
-		} else if (*ptr++ == '-' && !target) {
-			target = *ptr++;
-			if (target != 'e' && target != 'a' && target != 'd' &&
-			    target != 'p' && target != 'm' && target != 's')
+		} else if (*ptr++ == '-' && !*ptr) {
+			if (ccs_policy_dir || use_stdout)
 				goto usage;
-			if (*ptr || ccs_policy_dir) {
-				fprintf(stderr, "You cannot specify multiple "
-					"%s at the same time.\n\n",
-					"policies");
-				goto usage;
-			}
+			use_stdout = true;
 		} else
 			goto usage;
 	}
@@ -139,32 +114,10 @@ int main(int argc, char *argv[])
 			"You can't run this program for this kernel.\n");
 		return 1;
 	}
-	if (target) {
-		const char *file;
-		switch (target) {
-		case 'p':
-			file = CCS_PROC_POLICY_PROFILE;
-			break;
-		case 'm':
-			file = CCS_PROC_POLICY_MANAGER;
-			break;
-		case 'e':
-			file = CCS_PROC_POLICY_EXCEPTION_POLICY;
-			break;
-		case 'a':
-			file = CCS_PROC_POLICY_ACL_POLICY;
-			break;
-		case 'd':
-			file = CCS_PROC_POLICY_DOMAIN_POLICY;
-			break;
-		default:
-			file = CCS_PROC_POLICY_STAT;
-			break;
-		}
-		return !ccs_cat_file(file);
-	}
+	if (use_stdout)
+		return !ccs_cat_file(CCS_PROC_POLICY_POLICY);
 	if (!ccs_policy_dir) {
-		if (ccs_network_mode && !target) {
+		if (ccs_network_mode && !use_stdout) {
 			fprintf(stderr, "You need to specify %s.\n\n",
 				"policy directory");
 			goto usage;
@@ -178,18 +131,11 @@ int main(int argc, char *argv[])
 	}
 	return !ccs_save_policy();
 usage:
-	printf("%s [policy_dir [remote_ip:remote_port]]\n"
-	       "%s [{-e|-a|-d|-p|-m|-s} [remote_ip:remote_port]]\n\n"
+	printf("%s [policy_dir|-] [remote_ip:remote_port]]\n\n"
 	       "policy_dir : Use policy_dir rather than /etc/ccs/ directory.\n"
+	       "- : Print /proc/ccs/policy to stdout.\n"
 	       "remote_ip:remote_port : Read from ccs-editpolicy-agent "
 	       "listening at remote_ip:remote_port rather than /proc/ccs/ "
-	       "directory.\n"
-	       "-e : Print /proc/ccs/exception_policy to stdout.\n"
-	       "-a : Print /proc/ccs/acl_policy to stdout.\n"
-	       "-d : Print /proc/ccs/domain_policy to stdout.\n"
-	       "-p : Print /proc/ccs/profile to stdout.\n"
-	       "-m : Print /proc/ccs/manager to stdout.\n"
-	       "-s : Print /proc/ccs/stat to stdout.\n",
-	       argv[0], argv[0]);
+	       "directory.\n", argv[0]);
 	return 1;
 }

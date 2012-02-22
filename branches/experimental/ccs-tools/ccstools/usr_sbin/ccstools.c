@@ -1417,7 +1417,7 @@ static int ccs_task_entry_compare(const void *a, const void *b)
 /**
  * ccs_add_process_entry - Add entry for running processes.
  *
- * @line:    A line containing PID and profile and domainname.
+ * @line:    A line containing PID and domainname.
  * @ppid:    Parent PID.
  * @name:    Comm name (allocated by strdup()).
  *
@@ -1430,14 +1430,13 @@ static void ccs_add_process_entry(const char *line, const pid_t ppid,
 {
 	int index;
 	unsigned int pid = 0;
-	int profile = -1;
 	char *domain;
-	if (!line || sscanf(line, "%u %u", &pid, &profile) != 2) {
+	if (!line || sscanf(line, "%u", &pid) != 1) {
 		free(name);
 		return;
 	}
-	domain = strchr(line, '<');
-	if (domain)
+	domain = strchr(line, ' ');
+	if (domain++)
 		domain = ccs_strdup(domain);
 	else
 		domain = ccs_strdup("<UNKNOWN>");
@@ -1447,7 +1446,6 @@ static void ccs_add_process_entry(const char *line, const pid_t ppid,
 	memset(&ccs_task_list[index], 0, sizeof(ccs_task_list[0]));
 	ccs_task_list[index].pid = pid;
 	ccs_task_list[index].ppid = ppid;
-	ccs_task_list[index].profile = profile;
 	ccs_task_list[index].name = name;
 	ccs_task_list[index].domain = domain;
 }
@@ -1823,14 +1821,7 @@ int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
 		ret_ignored = write(fd, dp->list[i].domainname->name,
 				    dp->list[i].domainname->total_len);
 		ret_ignored = write(fd, "\n", 1);
-		if (dp->list[i].profile_assigned) {
-			char buf[128];
-			memset(buf, 0, sizeof(buf));
-			snprintf(buf, sizeof(buf) - 1, "use_profile %u\n\n",
-				 dp->list[i].profile);
-			ret_ignored = write(fd, buf, strlen(buf));
-		} else
-			ret_ignored = write(fd, "\n", 1);
+		ret_ignored = write(fd, "\n", 1);
 		for (j = 0; j < string_count; j++) {
 			ret_ignored = write(fd, string_ptr[j]->name,
 					    string_ptr[j]->total_len);
@@ -1961,7 +1952,6 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 		char *line = ccs_freadline_unpack(fp);
 		_Bool is_delete = false;
 		_Bool is_select = false;
-		unsigned int profile;
 		if (!line)
 			break;
 		if (ccs_str_starts(line, "delete "))
@@ -1986,10 +1976,7 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp,
 		}
 		if (index == EOF || !line[0])
 			continue;
-		if (sscanf(line, "use_profile %u", &profile) == 1) {
-			dp->list[index].profile = (u8) profile;
-			dp->list[index].profile_assigned = 1;
-		} else if (is_delete)
+		if (is_delete)
 			ccs_del_string_entry(dp, line, index);
 		else
 			ccs_add_string_entry(dp, line, index);
@@ -2002,8 +1989,6 @@ read_policy:
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
 		fprintf(fp, "%s\n", ccs_domain_name(dp, i));
-		if (dp->list[i].profile_assigned)
-			fprintf(fp, "use_profile %u\n", dp->list[i].profile);
 		fprintf(fp, "\n");
 		for (j = 0; j < string_count; j++)
 			fprintf(fp, "%s\n", string_ptr[j]->name);

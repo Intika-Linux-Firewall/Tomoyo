@@ -145,23 +145,6 @@ static int scandir_file_filter(const struct dirent *buf)
 }
 
 /**
- * scandir_symlink_and_dir_filter - Callback for scandir().
- *
- * @buf: Pointer to "const struct dirent".
- *
- * Returns non 0 if @buf seems to be a symlink or a directory, 0 otherwise.
- *
- * Since several kernels have a bug that leaves @buf->d_type == DT_UNKNOWN,
- * we allow it for now and recheck it later.
- */
-static int scandir_symlink_and_dir_filter(const struct dirent *buf)
-{
-	return (buf->d_type == DT_LNK || buf->d_type == DT_DIR ||
-		buf->d_type == DT_UNKNOWN) &&
-		strcmp(buf->d_name, ".") && strcmp(buf->d_name, "..");
-}
-
-/**
  * revalidate_path - Recheck file's attribute.
  *
  * @path: Pathname to check.
@@ -185,39 +168,20 @@ static unsigned char revalidate_path(const char *path)
 	return type;
 }
 
-/* File handle to /etc/ccs/current/policy/exception_policy.conf . */
+/* File handle to /etc/ccs/policy/current/policy.conf . */
 static FILE *filp = NULL;
 
 /**
- * echo - Print a line to the policy file, without escaping.
+ * printf_encoded - Print a word to the policy file, with escaping as needed.
  *
- * @str: Line to print. Must follow TOMOYO's escape rules.
- *
- * Returns nothing.
- */
-static inline void echo(const char *str)
-{
-	fprintf(filp, "%s\n", str);
-}
-
-/* Keyword before printing a line. */
-static const char *keyword = NULL;
-
-/**
- * printf_encoded - Print a line to the policy file, with escaping as needed.
- *
- * @str: Line to print. Needn't to follow TOMOYO's escape rules.
+ * @str: Word to print. Needn't to follow TOMOYO's escape rules.
  *
  * Returns nothing.
  *
  * If @str starts with "/proc/", it is converted with "proc:/".
- * If keyword is not NULL, keyword is printed before printing @str.
  */
 static void printf_encoded(const char *str)
 {
-	const char *str0 = str;
-	if (keyword)
-		fprintf(filp, "%s ", keyword);
 	if (!strncmp(str, "/proc/", 6)) {
 		fprintf(filp, "proc:");
 		str += 5;
@@ -226,130 +190,28 @@ static void printf_encoded(const char *str)
 		const char c = *str++;
 		if (!c)
 			break;
-		if (c == '\\') {
-			fputc('\\', filp);
-			fputc('\\', filp);
-		} else if (c > ' ' && c < 127) {
+		if (c > ' ' && c < 127 && c != '\\')
 			fputc(c, filp);
-		} else {
+		else
 			fprintf(filp, "\\%c%c%c", (c >> 6) + '0',
 				((c >> 3) & 7) + '0', (c & 7) + '0');
-		}
 	}
-	if (keyword && !strcmp(keyword, "default_transition")) {
-		str = str0;
-		fprintf(filp, " <kernel> ");
-		while (1) {
-			const char c = *str++;
-			if (!c)
-				break;
-			if (c == '\\') {
-				fputc('\\', filp);
-				fputc('\\', filp);
-			} else if (c > ' ' && c < 127) {
-				fputc(c, filp);
-			} else {
-				fprintf(filp, "\\%c%c%c", (c >> 6) + '0',
-					((c >> 3) & 7) + '0', (c & 7) + '0');
-			}
-		}
-	}
-	if (keyword)
-		fputc('\n', filp);
 }
+
+static void make_default_domain_transition(const char *path)
+{
+	fprintf(filp, "10000 acl file execute path=\"");
+	printf_encoded(path);
+	fprintf(filp, "\" transition=\"");
+	printf_encoded(path);
+	fprintf(filp, "\"\n");
+	//fprintf(filp, "    audit allowed=0 unmatched=0 denied=0\n");
+	//fprintf(filp, "\n");
+}
+
 
 /* Shared buffer for scandir(). */
 static char path[8192];
-
-/**
- * scan_init_scripts - Scan /etc/rc\?.d/ directories for default_transition entries.
- *
- * Returns nothing.
- */
-static void scan_init_scripts(void)
-{
-	struct dirent **namelist;
-	int n = scandir(path, &namelist, scandir_symlink_and_dir_filter, 0);
-	int len;
-	int i;
-	if (n < 0)
-		return;
-	len = strlen(path);
-	for (i = 0; i < n; i++) {
-		const char *name = namelist[i]->d_name;
-		unsigned char type = namelist[i]->d_type;
-		snprintf(path + len, sizeof(path) - len - 1, "/%s", name);
-		if (type == DT_UNKNOWN)
-			type = revalidate_path(path);
-		if (type == DT_DIR)
-			scan_init_scripts();
-		else if (type == DT_LNK
-			 && (name[0] == 'S' || name[0] == 'K')
-			 && (name[1] >= '0' && name[1] <= '9')
-			 && (name[2] >= '0' && name[2] <= '9')
-			 && !access(path, X_OK)) {
-			char *entity = get_realpath(path);
-			path[len] = '\0';
-			if (entity) {
-				char *cp = strrchr(path, '/');
-				fprintf(filp, "default_transition ");
-				/*
-				 * Use /rc\?.d/ rather than /rc0.d/ /rc1.d/
-				 * /rc2.d/ /rc3.d/ /rc4.d/ /rc5.d/ /rc6.d/
-				 * /rcS.d/ .
-				 */
-				if (cp && !strncmp(cp, "/rc", 3) &&
-				    ((cp[3] >= '0' && cp[3] <= '6') ||
-				     cp[3] == 'S') && !strcmp(cp + 4, ".d")) {
-					*cp = '\0';
-					printf_encoded(path);
-					fprintf(filp, "/rc\\?.d");
-					*cp = '/';
-				} else
-					printf_encoded(path);
-				fprintf(filp, "/\\?\\+\\+");
-				printf_encoded(name + 3);
-				fputc(' ', filp);
-				fprintf(filp, "<kernel> ");
-				printf_encoded(entity);
-				fputc('\n', filp);
-				free(entity);
-			}
-		}
-		free(namelist[i]);
-	}
-	free(namelist);
-}
-
-/**
- * make_init_scripts_as_default_transitions - Use realpath for startup/shutdown scripts in /etc/ directory.
- *
- * Returns nothing.
- */
-static void make_init_scripts_as_default_transitions(void)
-{
-	/* Mark symlinks under /etc/rc\?.d/ directory as default_transition. */
-	static const char * const dirs[] = {
-		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
-		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
-		"/etc/rc4.d", "/etc/rc5.d", "/etc/rc6.d", "/etc/rcS.d",
-		"/etc/rc.d/rc0.d", "/etc/rc.d/rc1.d", "/etc/rc.d/rc2.d",
-		"/etc/rc.d/rc3.d", "/etc/rc.d/rc4.d", "/etc/rc.d/rc5.d",
-		"/etc/rc.d/rc6.d",
-	};
-	int i;
-	keyword = NULL;
-	memset(path, 0, sizeof(path));
-	for (i = 0; i < elementof(dirs); i++) {
-		char *dir = get_realpath(dirs[i]);
-		if (!dir)
-			continue;
-		strncpy(path, dir, sizeof(path) - 1);
-		free(dir);
-		if (!strcmp(path, dirs[i]))
-			scan_init_scripts();
-	}
-}
 
 /**
  * scan_executable_files - Find executable files in the specific directory.
@@ -372,14 +234,14 @@ static void scan_executable_files(const char *dir)
 		if (type == DT_UNKNOWN)
 			type = revalidate_path(path);
 		if (type == DT_REG && !access(path, X_OK))
-			printf_encoded(path);
+			make_default_domain_transition(path);
 		free(namelist[i]);
 	}
 	free(namelist);
 }
 
 /**
- * scan_modprobe_and_hotplug - Mark modprobe and hotplug as default_transition entries.
+ * scan_modprobe_and_hotplug - Mark modprobe and hotplug as domain_transition entries.
  *
  * Returns nothing.
  */
@@ -408,156 +270,32 @@ static void scan_modprobe_and_hotplug(void)
 		if (!cp)
 			continue;
 		/* We ignore /bin/true if /proc/sys/kernel/modprobe said so. */
-		if (strcmp(cp, "/bin/true") && !access(cp, X_OK)) {
-			keyword = "default_transition";
-			printf_encoded(cp);
-		}
+		if (strcmp(cp, "/bin/true") && !access(cp, X_OK))
+			make_default_domain_transition(cp);
 		free(cp);
 	}
 }
 
 /**
- * make_globally_readable_files - Mark some files as globally readable.
+ * scan_init_dir - Mark programs under /etc/init.d/ directory as default domain transition entries.
  *
  * Returns nothing.
  */
-static void make_globally_readable_files(void)
-{
-	/* Allow reading some data files. */
-	static const char * const files[] = {
-		"/etc/ld.so.cache", "/proc/meminfo",
-		"/proc/sys/kernel/version", "/etc/localtime",
-		"/usr/lib/gconv/gconv-modules.cache",
-		"/usr/lib32/gconv/gconv-modules.cache",
-		"/usr/lib64/gconv/gconv-modules.cache",
-		"/usr/share/locale/locale.alias"
-	};
-	int i;
-	keyword = "acl_group GLOBALLY_GRANTED_PERMISSIONS file read";
-	for (i = 0; i < elementof(files); i++) {
-		char *cp = get_realpath(files[i]);
-		if (!cp)
-			continue;
-		printf_encoded(cp);
-		free(cp);
-	}
-}
-
-/**
- * make_self_readable_files - Mark /proc/self/ files as globally readable.
- *
- * Returns nothing.
- */
-static void make_self_readable_files(void)
-{
-	/* Allow reading information for current process. */
-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read "
-	     "proc:/self/\\*");
-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read "
-	     "proc:/self/\\{\\*\\}/\\*");
-}
-
-/**
- * make_ldconfig_readable_files - Mark shared library files as globally readable.
- *
- * Returns nothing.
- *
- * We don't scan predefined directories if ldconfig does not exist (e.g.
- * embedded environment).
- */
-static void make_ldconfig_readable_files(void)
-{
-	/* Allow reading DLL files registered with ldconfig(8). */
-	static const char * const dirs[] = {
-		"/lib/", "/lib/i486/", "/lib/i586/", "/lib/i686/",
-		"/lib/i686/cmov/", "/lib/tls/", "/lib/tls/i486/",
-		"/lib/tls/i586/", "/lib/tls/i686/", "/lib/tls/i686/cmov/",
-		"/lib/i686/nosegneg/", "/usr/lib/", "/usr/lib/i486/",
-		"/usr/lib/i586/", "/usr/lib/i686/", "/usr/lib/i686/cmov/",
-		"/usr/lib/tls/", "/usr/lib/tls/i486/", "/usr/lib/tls/i586/",
-		"/usr/lib/tls/i686/", "/usr/lib/tls/i686/cmov/",
-		"/usr/lib/sse2/", "/usr/X11R6/lib/", "/usr/lib32/",
-		"/usr/lib64/", "/lib64/", "/lib64/tls/",
-	};
-	int i;
-	FILE *fp = !access("/sbin/ldconfig", X_OK) ||
-		!access("/bin/ldconfig", X_OK)
-		? popen("ldconfig -NXp", "r") : NULL;
-	if (!fp)
-		return;
-	keyword = NULL;
-	for (i = 0; i < elementof(dirs); i++) {
-		char *cp = get_realpath(dirs[i]);
-		if (!cp)
-			continue;
-		fprintf(filp, "acl_group GLOBALLY_GRANTED_PERMISSIONS "
-			"file read ");
-		printf_encoded(cp);
-		fprintf(filp, "/lib\\*.so\\*\n");
-		free(cp);
-	}
-	while (memset(path, 0, sizeof(path)) &&
-	       fgets(path, sizeof(path) - 1, fp)) {
-		char *cp = strchr(path, '\n');
-		if (!cp)
-			break;
-		*cp = '\0';
-		cp = strstr(path, " => ");
-		if (!cp)
-			continue;
-		cp = get_realpath(cp + 4);
-		if (!cp)
-			continue;
-		for (i = 0; i < elementof(dirs); i++) {
-			const int len = strlen(dirs[i]);
-			if (!strncmp(cp, dirs[i], len) &&
-			    !strncmp(cp + len, "lib", 3) &&
-			    strstr(cp + len + 3, ".so"))
-				break;
-		}
-		if (i == elementof(dirs)) {
-			char *cp2 = strrchr(cp, '/');
-			const int len = strlen(cp);
-			char buf[16];
-			memset(buf, 0, sizeof(buf));
-			fprintf(filp, "acl_group GLOBALLY_GRANTED_PERMISSIONS "
-				"file read ");
-			if (cp2 && !strncmp(cp2, "/ld-2.", 6) &&
-			    len > 3 && !strcmp(cp + len - 3, ".so"))
-				*(cp2 + 6) = '\0';
-			else
-				cp2 = NULL;
-			printf_encoded(cp);
-			if (cp2)
-				fprintf(filp, "\\*.so");
-			fputc('\n', filp);
-		}
-		free(cp);
-	}
-	pclose(fp);
-}
-
-/**
- * make_init_dir_as_default_transitions - Mark programs under /etc/init.d/ directory as default_transition entries.
- *
- * Returns nothing.
- */
-static void make_init_dir_as_default_transitions(void)
+static void scan_init_dir(void)
 {
 	char *dir = get_realpath("/etc/init.d/");
 	if (!dir)
 		return;
-	keyword = "default_transition";
 	scan_executable_files(dir);
 	free(dir);
 }
 
 /**
- * make_daemons_as_default_transitions - Mark daemon programs as default_transition entries.
+ * scan_daemons - Mark daemon programs as default domain transition entries.
  *
  * Returns nothing.
  */
-static void make_daemons_as_default_transitions(void)
+static void scan_daemons(void)
 {
 	static const char * const files[] = {
 		"/sbin/cardmgr",
@@ -612,13 +350,12 @@ static void make_daemons_as_default_transitions(void)
 		"/usr/sbin/xinetd"
 	};
 	int i;
-	keyword = "default_transition";
 	for (i = 0; i < elementof(files); i++) {
 		char *cp = get_realpath(files[i]);
 		if (!cp)
 			continue;
 		if (!access(cp, X_OK))
-			printf_encoded(cp);
+			make_default_domain_transition(cp);
 		free(cp);
 	}
 }
@@ -680,12 +417,7 @@ static void make_policy_dir(void)
 		*(dir - 1) = '/';
 	}
 	if (mkdir2(policy_dir, 0700) || chdir(policy_dir) ||
-	    symlink2("policy/current/exception_policy.conf",
-		     "exception_policy.conf") ||
-	    symlink2("policy/current/domain_policy.conf",
-		     "domain_policy.conf") ||
-	    symlink2("policy/current/profile.conf", "profile.conf") ||
-	    symlink2("policy/current/manager.conf", "manager.conf") ||
+	    symlink2("policy/current/policy.conf", "policy.conf") ||
 	    mkdir2("policy", 0700) || chdir("policy") || mkdir2(stamp, 0700) ||
 	    symlink2(stamp, "previous") || symlink2(stamp, "current") ||
 	    chdir(policy_dir) || chdir("policy/current/")) {
@@ -705,48 +437,6 @@ tools_dir:
 		fprintf(stderr, "failed.\n");
 		exit(1);
 	}
-}
-
-/**
- * make_number_group - Make number_group entries.
- *
- * Returns nothing.
- */
-static void make_number_group(void)
-{
-	echo("number_group COMMON_IOCTL_CMDS 0x5401");
-}
-
-/**
- * make_ioctl - Allow ioctl with common ioctl numbers.
- *
- * Returns nothing.
- */
-static void make_ioctl(void)
-{
-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file ioctl \\=any "
-	     "@COMMON_IOCTL_CMDS");
-}
-
-/**
- * make_getattr - Allow getting attributes.
- *
- * Returns nothing.
- */
-static void make_getattr(void)
-{
-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file getattr \\=any");
-}
-
-/**
- * make_readdir - Allow reading directories.
- *
- * Returns nothing.
- */
-static void make_readdir(void)
-{
-	echo("acl_group GLOBALLY_GRANTED_PERMISSIONS file read \\=any "
-	     "path1.type=directory");
 }
 
 /**
@@ -784,176 +474,42 @@ static void close_file(FILE *fp, _Bool condition, const char *old,
 }
 
 /**
- * make_exception_policy - Make /etc/ccs/policy/current/exception_policy.conf .
+ * make_policy - Make /etc/ccs/policy/current/policy.conf .
  *
  * Returns nothing.
  */
-static void make_exception_policy(void)
+static void make_policy(void)
 {
 	if (!chdir_policy())
 		return;
-	if (!access("exception_policy.conf", R_OK))
+	if (!access("policy.conf", R_OK))
 		return;
-	filp = fopen("exception_policy.tmp", "w");
+	filp = fopen("policy.tmp", "w");
 	if (!filp) {
-		fprintf(stderr, "ERROR: Can't create exception policy.\n");
+		fprintf(stderr, "ERROR: Can't create policy.\n");
 		return;
 	}
-	fprintf(stderr, "Creating exception policy... ");
-	make_globally_readable_files();
-	make_self_readable_files();
-	make_ldconfig_readable_files();
-	make_number_group();
-	make_ioctl();
-	make_readdir();
-	make_getattr();
+	fprintf(stderr, "Creating default policy... ");
+	fprintf(filp, "POLICY_VERSION=20100903\n");
+	fprintf(filp, "\n");
+	fprintf(filp, "memory quota audit 16777216\n");
+	fprintf(filp, "memory quota query 1048576\n");
+	fprintf(filp, "\n");
 	scan_modprobe_and_hotplug();
-	make_daemons_as_default_transitions();
-	make_init_dir_as_default_transitions();
-	make_init_scripts_as_default_transitions();
-	close_file(filp, chdir_policy(), "exception_policy.tmp",
-		   "exception_policy.conf");
+	scan_daemons();
+	scan_init_dir();
+	{
+		char *tools_dir = get_realpath("/usr/sbin");
+		fprintf(filp, "0 acl capability modify_policy\n"
+			"    audit allowed=0 unmatched=0 denied=0\n"
+			"    1 deny task.uid!=0\n"
+			"    1 deny task.euid!=0\n"
+			"    100 allow task.exe=\"%s/ccs-loadpolicy\"\n"
+			"    100 allow task.exe=\"%s/ccs-queryd\"\n"
+			"    10000 deny\n", tools_dir, tools_dir);
+	}
+	close_file(filp, chdir_policy(), "policy.tmp", "policy.conf");
 	filp = NULL;
-}
-
-/**
- * make_manager - Make /etc/ccs/policy/current/manager.conf .
- *
- * Returns nothing.
- */
-static void make_manager(void)
-{
-	char *tools_dir;
-	FILE *fp;
-	if (!chdir_policy())
-		return;
-	if (!access("manager.conf", R_OK))
-		return;
-	fp = fopen("manager.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create manager policy.\n");
-		return;
-	}
-	fprintf(stderr, "Creating manager policy... ");
-	tools_dir = get_realpath("/usr/sbin");
-	fprintf(fp, "%s/ccs-loadpolicy\n", tools_dir);
-	fprintf(fp, "%s/ccs-editpolicy\n", tools_dir);
-	fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
-	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
-	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
-	close_file(fp, 1, "manager.tmp", "manager.conf");
-}
-
-/* Should we create profiles that restricts file only? */
-static _Bool file_only_profile = 0;
-/* Should we audit access granted logs? */
-static const char *grant_log = "no";
-/* Should we audit access rejected logs? */
-static const char *reject_log = "yes";
-/* How many audit log entries to spool in the kenrel memory? */
-static unsigned int max_audit_log = 1024;
-/* How many ACL entries to add automatically by learning mode? */
-static unsigned int max_learning_entry = 2048;
-/* How long should we carry sleep penalty? */
-static unsigned int enforcing_penalty = 0;
-
-/**
- * make_profile - Make /etc/ccs/policy/current/profile.conf .
- *
- * Returns nothing.
- */
-static void make_profile(void)
-{
-	static const char *file_only = "";
-	FILE *fp;
-	if (!chdir_policy())
-		return;
-	if (!access("profile.conf", R_OK))
-		return;
-	fp = fopen("profile.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create profile policy.\n");
-		return;
-	}
-	fprintf(stderr, "Creating default profile... ");
-	if (file_only_profile)
-		file_only = "::file";
-	fprintf(fp, "PROFILE_VERSION=20100903\n");
-	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
-		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
-		"0-CONFIG%s={ mode=disabled grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
-	fprintf(fp, "1-COMMENT=-----Learning Mode-----\n"
-		"1-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
-		"1-CONFIG%s={ mode=learning grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
-	fprintf(fp, "2-COMMENT=-----Permissive Mode-----\n"
-		"2-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
-		"2-CONFIG%s={ mode=permissive grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
-	fprintf(fp, "3-COMMENT=-----Enforcing Mode-----\n"
-		"3-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
-		"3-CONFIG%s={ mode=enforcing grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
-	close_file(fp, 1, "profile.tmp", "profile.conf");
-}
-
-/* Which profile number does <kernel> domain use? */
-static unsigned char default_profile = 0;
-
-/**
- * make_domain_policy - Make /etc/ccs/policy/current/domain_policy.conf .
- *
- * Returns nothing.
- */
-static void make_domain_policy(void)
-{
-	FILE *fp;
-	if (!chdir_policy())
-		return;
-	if (!access("domain_policy.conf", R_OK))
-		return;
-	fp = fopen("domain_policy.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create domain policy.\n");
-		return;
-	}
-	fprintf(stderr, "Creating domain policy... ");
-	fprintf(fp, "<kernel>\nuse_profile %u\n"
-		"use_group \\=GLOBALLY_GRANTED_PERMISSIONS\n",
-		default_profile);
-	close_file(fp, 1, "domain_policy.tmp", "domain_policy.conf");
-}
-
-/**
- * make_stat - Make /etc/ccs/stat.conf .
- *
- * Returns nothing.
- */
-static void make_stat(void)
-{
-	FILE *fp;
-	if (chdir(policy_dir) || !access("stat.conf", R_OK))
-		return;
-	fp = fopen("stat.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create stat policy.\n");
-		return;
-	}
-	fprintf(stderr, "Creating stat policy... ");
-	fprintf(fp, "# Memory quota (byte). 0 means no quota.\n");
-	fprintf(fp, "Memory used by policy:               0\n");
-	fprintf(fp, "Memory used by audit log:     16777216\n");
-	fprintf(fp, "Memory used by query message:  1048576\n");
-	close_file(fp, 1, "stat.tmp", "stat.conf");
 }
 
 /* The name of loadable kernel module to load. */
@@ -981,92 +537,6 @@ static void make_module_loader(void)
 	fprintf(fp, "exec modprobe %s\n", module_name);
 	close_file(fp, !chmod("ccs-load-module.tmp", 0700),
 		   "ccs-load-module.tmp", "ccs-load-module");
-}
-
-/* Content of /etc/ccs/tools/editpolicy.conf . */
-static const char editpolicy_data[] =
-"# This file contains configuration used by ccs-editpolicy command.\n"
-"\n"
-"# Keyword alias. ( directive-name = display-name )\n"
-"keyword_alias acl_group                     = acl_group\n"
-"keyword_alias address_group                 = address_group\n"
-"keyword_alias capability                    = capability\n"
-"keyword_alias default_transition            = default_transition\n"
-"keyword_alias file append                   = file append\n"
-"keyword_alias file chgrp                    = file chgrp\n"
-"keyword_alias file chmod                    = file chmod\n"
-"keyword_alias file chown                    = file chown\n"
-"keyword_alias file chroot                   = file chroot\n"
-"keyword_alias file create                   = file create\n"
-"keyword_alias file execute                  = file execute\n"
-"keyword_alias file getattr                  = file getattr\n"
-"keyword_alias file ioctl                    = file ioctl\n"
-"keyword_alias file link                     = file link\n"
-"keyword_alias file mkblock                  = file mkblock\n"
-"keyword_alias file mkchar                   = file mkchar\n"
-"keyword_alias file mkdir                    = file mkdir\n"
-"keyword_alias file mkfifo                   = file mkfifo\n"
-"keyword_alias file mksock                   = file mksock\n"
-"keyword_alias file mount                    = file mount\n"
-"keyword_alias file pivot_root               = file pivot_root\n"
-"keyword_alias file read                     = file read\n"
-"keyword_alias file rename                   = file rename\n"
-"keyword_alias file rmdir                    = file rmdir\n"
-"keyword_alias file symlink                  = file symlink\n"
-"keyword_alias file truncate                 = file truncate\n"
-"keyword_alias file unlink                   = file unlink\n"
-"keyword_alias file unmount                  = file unmount\n"
-"keyword_alias file write                    = file write\n"
-"keyword_alias ipc ptrace                    = ipc ptrace\n"
-"keyword_alias misc env                      = misc env\n"
-"keyword_alias network inet                  = network inet\n"
-"keyword_alias network unix                  = network unix\n"
-"keyword_alias number_group                  = number_group\n"
-"keyword_alias path_group                    = path_group\n"
-"keyword_alias quota_exceeded                = quota_exceeded\n"
-"keyword_alias task auto_domain_transition   = task auto_domain_transition\n"
-"keyword_alias task auto_execute_handler     = task auto_execute_handler\n"
-"keyword_alias task denied_execute_handler   = task denied_execute_handler\n"
-"keyword_alias task manual_domain_transition = task manual_domain_transition\n"
-"keyword_alias use_group                     = use_group\n"
-"keyword_alias use_profile                   = use_profile\n"
-"\n"
-"# Line color. 0 = BLACK, 1 = RED, 2 = GREEN, 3 = YELLOW, 4 = BLUE, "
-"5 = MAGENTA, 6 = CYAN, 7 = WHITE\n"
-"line_color ACL_CURSOR       = 03\n"
-"line_color ACL_HEAD         = 03\n"
-"line_color DOMAIN_CURSOR    = 02\n"
-"line_color DOMAIN_HEAD      = 02\n"
-"line_color EXCEPTION_CURSOR = 06\n"
-"line_color EXCEPTION_HEAD   = 06\n"
-"line_color MANAGER_CURSOR   = 72\n"
-"line_color MANAGER_HEAD     = 72\n"
-"line_color STAT_CURSOR      = 03\n"
-"line_color STAT_HEAD        = 03\n"
-"line_color PROFILE_CURSOR   = 71\n"
-"line_color PROFILE_HEAD     = 71\n"
-"line_color DEFAULT_COLOR    = 70\n";
-
-/**
- * make_editpolicy_conf - Make /etc/ccs/tools/editpolicy.conf .
- *
- * Returns nothing.
- */
-static void make_editpolicy_conf(void)
-{
-	FILE *fp;
-	if (chdir(policy_dir) || chdir("tools") ||
-	    !access("editpolicy.conf", R_OK))
-		return;
-	fp = fopen("editpolicy.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create configuration file.\n");
-		return;
-	}
-	fprintf(stderr, "Creating configuration file for ccs-editpolicy ... ");
-	fprintf(fp, "%s", editpolicy_data);
-	close_file(fp, !chmod("editpolicy.tmp", 0644), "editpolicy.tmp",
-		   "editpolicy.conf");
 }
 
 /* Content of /etc/ccs/tools/auditd.conf . */
@@ -1097,13 +567,13 @@ static const char auditd_data[] =
 "# More specific matches should be placed before less specific matches.\n"
 "# For example:\n"
 "#\n"
-"# header.contains profile=3\n"
+"# header.contains mode=enforcing\n"
 "# domain.contains /usr/sbin/httpd\n"
-"# destination     /var/log/tomoyo/reject_003_httpd.log\n"
+"# destination     /var/log/tomoyo/reject_enforcing_httpd.log\n"
 "#\n"
 "# This chunk should be placed before the chunk that matches logs with\n"
-"# profile=3. If placed after, the audit logs for /usr/sbin/httpd will be\n"
-"# sent to /var/log/tomoyo/reject_003.log .\n"
+"# mode=enforcing. If placed after, the audit logs for /usr/sbin/httpd will "
+"# be sent to /var/log/tomoyo/reject_enforcing.log .\n"
 "\n"
 "# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
 "# representing a ' ' in a word).\n"
@@ -1112,38 +582,17 @@ static const char auditd_data[] =
 "header.contains granted=yes\n"
 "destination     /dev/null\n"
 "\n"
-"# Save rejected logs with profile=acl mode=learning to\n"
-"# /var/log/tomoyo/reject_learning_acl.log\n"
-"header.contains profile=acl\n"
-"header.contains mode=learning\n"
-"destination     /var/log/tomoyo/reject_learning_acl.log\n"
-"# Save rejected logs with profile=acl mode=permissive to\n"
-"# /var/log/tomoyo/reject_permissive_acl.log\n"
-"header.contains profile=acl\n"
+"# Save rejected logs with mode=disabled to /var/log/tomoyo/reject_disabled.log\n"
+"header.contains mode=disabled\n"
+"destination     /var/log/tomoyo/reject_disabled.log\n"
+"\n"
+"# Save rejected logs with mode=permissive to /var/log/tomoyo/reject_permissive.log\n"
 "header.contains mode=permissive\n"
-"destination     /var/log/tomoyo/reject_permissive_acl.log\n"
+"destination     /var/log/tomoyo/reject_permissive.log\n"
 "\n"
-"# Save rejected logs with profile=acl mode=enforcing to\n"
-"# /var/log/tomoyo/reject_acl.log\n"
-"header.contains profile=acl\n"
+"# Save rejected logs with mode=enforcing to /var/log/tomoyo/reject_enforcing.log\n"
 "header.contains mode=enforcing\n"
-"destination     /var/log/tomoyo/reject_enforcing_acl.log\n"
-"\n"
-"# Save rejected logs with profile=0 to /var/log/tomoyo/reject_000.log\n"
-"header.contains profile=0\n"
-"destination     /var/log/tomoyo/reject_000.log\n"
-"\n"
-"# Save rejected logs with profile=1 to /var/log/tomoyo/reject_001.log\n"
-"header.contains profile=1\n"
-"destination     /var/log/tomoyo/reject_001.log\n"
-"\n"
-"# Save rejected logs with profile=2 to /var/log/tomoyo/reject_002.log\n"
-"header.contains profile=2\n"
-"destination     /var/log/tomoyo/reject_002.log\n"
-"\n"
-"# Save rejected logs with profile=3 to /var/log/tomoyo/reject_003.log\n"
-"header.contains profile=3\n"
-"destination     /var/log/tomoyo/reject_003.log\n"
+"destination     /var/log/tomoyo/reject_enforcing.log\n"
 "\n";
 
 /**
@@ -1228,10 +677,7 @@ static const char patternize_data[] =
 "\n"
 "# Files on / partition.\n"
 "rewrite tail_pattern /etc/mtab~\\$\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/domain_policy.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/exception_policy.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/manager.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/profile.conf\n"
+"rewrite tail_pattern /etc/ccs/policy/\\*/policy.conf\n"
 "rewrite tail_pattern /etc/ccs/policy/\\*/\n"
 "\n"
 "# Files on /tmp/ partition.\n"
@@ -1300,7 +746,7 @@ static const char notifyd_data[] =
 "# 30, you will be given 30 seconds for starting ccs-queryd command and\n"
 "# responding to the policy violation event.\n"
 "# If you specify non 0 value, you need to register ccs-notifyd command to\n"
-"# /proc/ccs/manager as well as ccs-queryd command, for ccs-notifyd needs to\n"
+"# /proc/ccs/policy as well as ccs-queryd command, for ccs-notifyd needs to\n"
 "# behave as if ccs-queryd command is running.\n"
 "# Also, you should avoid specifying too large value (e.g. 3600) because\n"
 "# the request will remain pending for that period if you can't respond.\n"
@@ -1381,23 +827,9 @@ int main(int argc, char *argv[])
 			}
 		} else if (!strncmp(arg, "policy_dir=", 11)) {
 			dir = arg + 11;
-		} else if (!strcmp(arg, "file-only-profile")) {
-			file_only_profile = 1;
-		} else if (!strcmp(arg, "full-profile")) {
-			file_only_profile = 0;
 		} else if (!strncmp(arg, "module_name=", 12)) {
 			module_name = arg + 12;
-		} else if (!strncmp(arg, "use_profile=", 12)) {
-			default_profile = atoi(arg + 12);
-		} else if (!strncmp(arg, "grant_log=", 10)) {
-			grant_log = arg + 10;
-		} else if (!strncmp(arg, "reject_log=", 11)) {
-			reject_log = arg + 11;
-		} else if (!sscanf(arg, "max_audit_log=%u", &max_audit_log) &&
-			   !sscanf(arg, "max_learning_entry=%u",
-				   &max_learning_entry) &&
-			   !sscanf(arg, "enforcing_penalty=%u",
-				   &enforcing_penalty)) {
+		} else {
 			fprintf(stderr, "Unknown option: '%s'\n", argv[i]);
 			return 1;
 		}
@@ -1407,13 +839,8 @@ int main(int argc, char *argv[])
 	policy_dir = strdup(dir);
 	memset(path, 0, sizeof(path));
 	make_policy_dir();
-	make_exception_policy();
-	make_domain_policy();
-	make_manager();
-	make_profile();
-	make_stat();
+	make_policy();
 	make_module_loader();
-	make_editpolicy_conf();
 	make_auditd_conf();
 	make_patternize_conf();
 	make_notifyd_conf();

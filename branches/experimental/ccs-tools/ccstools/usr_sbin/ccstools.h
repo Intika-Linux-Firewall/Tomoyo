@@ -51,16 +51,11 @@
 
 /***** CONSTANTS DEFINITION START *****/
 
-#define CCS_PROC_POLICY_DIR              "/proc/ccs/"
-#define CCS_PROC_POLICY_DOMAIN_POLICY    "/proc/ccs/domain_policy"
-#define CCS_PROC_POLICY_ACL_POLICY       "/proc/ccs/acl_policy"
-#define CCS_PROC_POLICY_EXCEPTION_POLICY "/proc/ccs/exception_policy"
-#define CCS_PROC_POLICY_AUDIT            "/proc/ccs/audit"
-#define CCS_PROC_POLICY_MANAGER          "/proc/ccs/manager"
-#define CCS_PROC_POLICY_STAT             "/proc/ccs/stat"
-#define CCS_PROC_POLICY_PROCESS_STATUS   "/proc/ccs/.process_status"
-#define CCS_PROC_POLICY_PROFILE          "/proc/ccs/profile"
-#define CCS_PROC_POLICY_QUERY            "/proc/ccs/query"
+#define CCS_PROC_POLICY_DIR            "/proc/ccs/"
+#define CCS_PROC_POLICY_POLICY         "/proc/ccs/policy"
+#define CCS_PROC_POLICY_AUDIT          "/proc/ccs/audit"
+#define CCS_PROC_POLICY_PROCESS_STATUS "/proc/ccs/.process_status"
+#define CCS_PROC_POLICY_QUERY          "/proc/ccs/query"
 
 /***** CONSTANTS DEFINITION END *****/
 
@@ -90,8 +85,6 @@ struct ccs_domain_info {
 	const struct ccs_path_info *domainname;
 	const struct ccs_path_info **string_ptr;
 	int string_count;
-	u8 profile;
-	_Bool profile_assigned;
 };
 
 struct ccs_domain_policy {
@@ -105,7 +98,6 @@ struct ccs_task_entry {
 	pid_t ppid;
 	char *name;
 	char *domain;
-	u8 profile;
 	_Bool selected;
 	int index;
 	int depth;

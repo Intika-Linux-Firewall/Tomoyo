@@ -1,9 +1,8 @@
 include ../Include.make
 
 BUILD_FILES := ccs-auditd ccs-checkpolicy ccs-diffpolicy ccs-domainmatch \
-	ccs-editpolicy ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize \
-	ccs-pstree ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-setlevel \
-	ccs-setprofile ccs-sortpolicy
+	ccs-findtemp ccs-loadpolicy ccs-notifyd ccs-patternize ccs-pstree \
+	ccs-queryd ccs-savepolicy ccs-selectpolicy ccs-sortpolicy
 
 all: libccstools.so $(BUILD_FILES)
 
@@ -20,9 +19,6 @@ libccstools.so: ccstools.c ccstools.h
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $< -lccstools -L. 
-
-ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so editpolicy.h
-	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
 
 ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools.so
 	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.

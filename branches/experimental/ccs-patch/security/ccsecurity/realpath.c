@@ -28,7 +28,6 @@
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
 char *ccs_realpath(struct path *path);
-char *ccs_realpath2(struct path *path, bool force_no_fsname);
 const char *ccs_get_exe(void);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 
@@ -493,18 +492,16 @@ static char *ccs_get_socket_name(struct path *path, char * const buffer,
 #define SOCKFS_MAGIC 0x534F434B
 
 /**
- * ccs_realpath2 - Returns realpath(3) of the given pathname but ignores chroot'ed root.
+ * ccs_realpath - Returns realpath(3) of the given pathname but ignores chroot'ed root.
  *
- * @path:            Pointer to "struct path".
- * @force_no_fsname: Force use of normal pathname if true, may use fsname
- *                   otherwise.
+ * @path: Pointer to "struct path".
  *
  * Returns the realpath of the given @path on success, NULL otherwise.
  *
  * This function uses kzalloc(), so caller must kfree() if this function
  * didn't return NULL.
  */
-char *ccs_realpath2(struct path *path, bool force_no_fsname)
+char *ccs_realpath(struct path *path)
 {
 	char *buf = NULL;
 	char *name = NULL;
@@ -524,8 +521,6 @@ char *ccs_realpath2(struct path *path, bool force_no_fsname)
 			break;
 		/* To make sure that pos is '\0' terminated. */
 		buf[buf_len - 1] = '\0';
-		if (force_no_fsname)
-			goto absolute_path;
 		/* Get better name for socket. */
 		if (sb->s_magic == SOCKFS_MAGIC) {
 			pos = ccs_get_socket_name(path, buf, buf_len - 1);
@@ -547,7 +542,6 @@ char *ccs_realpath2(struct path *path, bool force_no_fsname)
 		if (!path->mnt || (inode->i_op && !inode->i_op->rename))
 			pos = ERR_PTR(-EINVAL);
 		else {
-absolute_path:
 			/* Get absolute name for the rest. */
 			ccs_realpath_lock();
 			pos = ccs_get_absolute_path(path, buf, buf_len - 1);
@@ -569,21 +563,6 @@ encode:
 }
 
 /**
- * ccs_realpath - Returns realpath(3) of the given pathname but ignores chroot'ed root.
- *
- * @path: Pointer to "struct path".
- *
- * Returns the realpath of the given @path on success, NULL otherwise.
- *
- * This function uses kzalloc(), so caller must kfree() if this function
- * didn't return NULL.
- */
-char *ccs_realpath(struct path *path)
-{
-	return ccs_realpath2(path, false);
-}
-
-/**
  * ccs_encode2 - Encode binary string to ascii string.
  *
  * @str:     String in binary format.
@@ -597,20 +576,17 @@ char *ccs_realpath(struct path *path)
 char *ccs_encode2(const char *str, int str_len)
 {
 	int i;
-	int len = 0;
+	int len;
 	const char *p = str;
 	char *cp;
 	char *cp0;
 	if (!p)
 		return NULL;
+	len = str_len;
 	for (i = 0; i < str_len; i++) {
 		const unsigned char c = p[i];
-		if (c == '\\')
-			len += 2;
-		else if (c > ' ' && c < 127)
-			len++;
-		else
-			len += 4;
+		if (!(c > ' ' && c < 127 && c != '\\'))
+			len += 3;
 	}
 	len++;
 	/* Reserve space for appending "/". */
@@ -621,10 +597,7 @@ char *ccs_encode2(const char *str, int str_len)
 	p = str;
 	for (i = 0; i < str_len; i++) {
 		const unsigned char c = p[i];
-		if (c == '\\') {
-			*cp++ = '\\';
-			*cp++ = '\\';
-		} else if (c > ' ' && c < 127) {
+		if (c > ' ' && c < 127 && c != '\\') {
 			*cp++ = c;
 		} else {
 			*cp++ = '\\';
@@ -674,9 +647,6 @@ static int ccs_const_part_length(const char *filename)
 		}
 		c = *filename++;
 		switch (c) {
-		case '\\':  /* "\\" */
-			len += 2;
-			continue;
 		case '0':   /* "\ooo" */
 		case '1':
 		case '2':
@@ -743,4 +713,14 @@ const char *ccs_get_exe(void)
 	}
 	up_read(&mm->mmap_sem);
 	return cp;
+}
+
+bool ccs_get_exename(struct ccs_path_info *buf)
+{
+	buf->name = ccs_get_exe();
+	if (buf->name) {
+		ccs_fill_path_info(buf);
+		return true;
+	}
+	return false;
 }

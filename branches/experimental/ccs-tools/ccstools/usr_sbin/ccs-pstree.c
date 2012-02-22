@@ -29,7 +29,6 @@ static void ccs_dump(const pid_t pid, const int depth)
 		int j;
 		if (pid != ccs_task_list[i].pid)
 			continue;
-		printf("%3d", ccs_task_list[i].profile);
 		for (j = 0; j < depth - 1; j++)
 			printf("    ");
 		for (; j < depth; j++)
@@ -85,8 +84,7 @@ usage:
 	for (i = 0; i < ccs_task_list_len; i++) {
 		if (ccs_task_list[i].selected)
 			continue;
-		printf("%3d %s (%u) %s\n",
-		       ccs_task_list[i].profile, ccs_task_list[i].name,
+		printf(" %s (%u) %s\n", ccs_task_list[i].name,
 		       ccs_task_list[i].pid, ccs_task_list[i].domain);
 		ccs_task_list[i].selected = true;
 	}

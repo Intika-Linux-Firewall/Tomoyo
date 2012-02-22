@@ -16,48 +16,15 @@ export-objs := load_policy.o
 endif
 include $(TOPDIR)/Rules.make
 
-policy/profile.conf:
+policy/policy.conf:
 	@mkdir -p policy/
-	@echo Creating an empty policy/profile.conf
+	@echo Creating an empty policy/policy.conf
 	@touch $@
 
-policy/exception_policy.conf:
-	@mkdir -p policy/
-	@echo Creating a default policy/exception_policy.conf
-	@echo 'default_transition /sbin/modprobe <kernel> /sbin/modprobe' >> $@
-	@echo 'default_transition /sbin/hotplug <kernel> /sbin/hotplug' >> $@
-
-policy/domain_policy.conf:
-	@mkdir -p policy/
-	@echo Creating an empty policy/domain_policy.conf
-	@touch $@
-
-policy/manager.conf:
-	@mkdir -p policy/
-	@echo Creating an empty policy/manager.conf
-	@touch $@
-
-policy/stat.conf:
-	@mkdir -p policy/
-	@echo Creating an empty policy/stat.conf
-	@touch $@
-
-builtin-policy.h: policy/profile.conf policy/exception_policy.conf policy/domain_policy.conf policy/manager.conf policy/stat.conf
+builtin-policy.h: policy/policy.conf
 	@echo Generating built-in policy for TOMOYO 1.8.x.
-	@echo "static char ccs_builtin_profile[] __initdata =" > $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/profile.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_exception_policy[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/exception_policy.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_domain_policy[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/domain_policy.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_manager[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/manager.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_stat[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/stat.conf >> $@.tmp
+	@echo "static char ccs_builtin_policy[] __initdata =" > $@.tmp
+	@sed -e 's/\\/\\134/g' -e 's/"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < policy/policy.conf >> $@.tmp
 	@echo "\"\";" >> $@.tmp
 	@mv $@.tmp $@
 
@@ -72,48 +39,15 @@ else
 obj-y += ccsecurity.o
 endif
 
-$(obj)/policy/profile.conf:
+$(obj)/policy/policy.conf:
 	@mkdir -p $(obj)/policy/
-	@echo Creating an empty policy/profile.conf
+	@echo Creating an empty policy/policy.conf
 	@touch $@
 
-$(obj)/policy/exception_policy.conf:
-	@mkdir -p $(obj)/policy/
-	@echo Creating a default policy/exception_policy.conf
-	@echo 'default_transition /sbin/modprobe <kernel> /sbin/modprobe' >> $@
-	@echo 'default_transition /sbin/hotplug <kernel> /sbin/hotplug' >> $@
-
-$(obj)/policy/domain_policy.conf:
-	@mkdir -p $(obj)/policy/
-	@echo Creating an empty policy/domain_policy.conf
-	@touch $@
-
-$(obj)/policy/manager.conf:
-	@mkdir -p $(obj)/policy/
-	@echo Creating an empty policy/manager.conf
-	@touch $@
-
-$(obj)/policy/stat.conf:
-	@mkdir -p $(obj)/policy/
-	@echo Creating an empty policy/stat.conf
-	@touch $@
-
-$(obj)/builtin-policy.h: $(obj)/policy/profile.conf $(obj)/policy/exception_policy.conf $(obj)/policy/domain_policy.conf $(obj)/policy/manager.conf $(obj)/policy/stat.conf
+$(obj)/builtin-policy.h: $(obj)/policy/policy.conf
 	@echo Generating built-in policy for TOMOYO 1.8.x.
-	@echo "static char ccs_builtin_profile[] __initdata =" > $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/profile.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_exception_policy[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/exception_policy.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_domain_policy[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/domain_policy.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_manager[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/manager.conf >> $@.tmp
-	@echo "\"\";" >> $@.tmp
-	@echo "static char ccs_builtin_stat[] __initdata =" >> $@.tmp
-	@sed -e 's/\\/\\\\/g' -e 's/\"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/stat.conf >> $@.tmp
+	@echo "static char ccs_builtin_policy[] __initdata =" > $@.tmp
+	@sed -e 's/\\/\\134/g' -e 's/"/\\"/g' -e 's/\(.*\)/"\1\\n"/' < $(obj)/policy/policy.conf >> $@.tmp
 	@echo "\"\";" >> $@.tmp
 	@mv $@.tmp $@
 

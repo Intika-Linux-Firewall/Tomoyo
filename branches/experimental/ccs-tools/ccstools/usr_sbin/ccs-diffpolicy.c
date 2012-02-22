@@ -68,9 +68,6 @@ usage:
 			continue;
 		/* This domain was added. */
 		printf("%s\n\n", domainname->name);
-		if (new_policy.list[new_index].profile_assigned)
-			printf("use_profile %u\n",
-			       new_policy.list[new_index].profile);
 		new_string_ptr = new_policy.list[new_index].string_ptr;
 		new_string_count = new_policy.list[new_index].string_count;
 		for (i = 0; i < new_string_count; i++)
@@ -111,15 +108,6 @@ usage:
 				printf("%s\n\n", domainname->name);
 			first = false;
 			printf("delete %s\n", old_string_ptr[i]->name);
-		}
-		if (old_policy.list[old_index].profile !=
-		    new_policy.list[new_index].profile) {
-			if (first)
-				printf("%s\n\n", domainname->name);
-			first = false;
-			if (new_policy.list[new_index].profile_assigned)
-				printf("use_profile %u\n",
-				       new_policy.list[new_index].profile);
 		}
 		if (!first)
 			printf("\n");
