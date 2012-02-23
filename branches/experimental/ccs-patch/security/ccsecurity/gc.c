@@ -268,11 +268,8 @@ out:
 static void ccs_del_acl(struct list_head *element)
 {
 	struct ccs_acl_info *acl = container_of(element, typeof(*acl), list);
-	struct ccs_acl_info *ptr;
 	ccs_put_condition(acl->cond);
-	list_for_each_entry(ptr, &acl->acl_info_list, list) {
-		ccs_put_condition(ptr->cond);
-	}
+	WARN_ON(!list_empty(&acl->acl_info_list));
 }
 
 /**
@@ -600,7 +597,7 @@ static void ccs_collect_acl(struct list_head *list)
 	list_for_each_entry_safe(acl, tmp, list, list) {
 		if (!acl->is_deleted)
 			continue;
-		acl->is_deleted = CCS_GC_IN_PROGRESS;
+		/* acl->is_deleted = CCS_GC_IN_PROGRESS; */
 		ccs_try_to_gc(CCS_ID_ACL, &acl->list);
 	}
 }
@@ -633,7 +630,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted ||
 			    !list_empty(&ptr->acl_info_list))
 				continue;
-			ptr->is_deleted = CCS_GC_IN_PROGRESS;
+			/* ptr->is_deleted = CCS_GC_IN_PROGRESS; */
 			ccs_try_to_gc(CCS_ID_ACL, &ptr->list);
 		}
 	}
@@ -641,13 +638,8 @@ static void ccs_collect_entry(void)
 		struct ccs_shared_acl_head *ptr;
 		struct ccs_shared_acl_head *tmp;
 		list_for_each_entry_safe(ptr, tmp, &ccs_condition_list, list) {
-			if (atomic_read(&ptr->users)) {
-				/*
-				printk(KERN_INFO "Users=%u condition=%p\n",
-				     atomic_read(&ptr->users), ptr);
-				*/
+			if (atomic_read(&ptr->users) > 0)
 				continue;
-			}
 			atomic_set(&ptr->users, CCS_GC_IN_PROGRESS);
 			ccs_try_to_gc(CCS_ID_CONDITION, &ptr->list);
 		}
@@ -664,32 +656,11 @@ static void ccs_collect_entry(void)
 			id = CCS_ID_ADDRESS_GROUP;
 #endif
 		list_for_each_entry_safe(group, tmp, list, head.list) {
-			if (id == CCS_ID_ACL)
-				ccs_collect_acl(&group->member_list);
-			else
-				ccs_collect_member(id, &group->
-						   member_list);
+			ccs_collect_member(id, &group->member_list);
 			if (!list_empty(&group->member_list) ||
-			    atomic_read(&group->head.users)) {
-				/*
-				  printk(KERN_INFO "Users=%u group=%p\n",
-				  atomic_read(&group->head.users),
-				  group);
-				*/
-				/*
-				  if (id == CCS_ID_ACL)
-				  printk("%s users=%d\n",
-				  __func__, atomic_read(&group->head.users));
-				*/
+			    atomic_read(&group->head.users) > 0)
 				continue;
-			}
 			atomic_set(&group->head.users, CCS_GC_IN_PROGRESS);
-			/*
-			if (id == CCS_ID_ACL)
-				printk("%s trying to gc %s\n",
-				       __func__,
-				       group->group_name->name);
-			*/
 			ccs_try_to_gc(CCS_ID_GROUP, &group->head.list);
 		}
 	}
@@ -698,15 +669,8 @@ static void ccs_collect_entry(void)
 		struct ccs_shared_acl_head *ptr;
 		struct ccs_shared_acl_head *tmp;
 		list_for_each_entry_safe(ptr, tmp, list, list) {
-			if (atomic_read(&ptr->users)) {
-				/*
-				  printk(KERN_INFO "Users=%u Name='%s'\n",
-				       atomic_read(&ptr->users),
-				       container_of(ptr, struct ccs_name,
-						    head)->entry.name);
-				*/
+			if (atomic_read(&ptr->users) > 0)
 				continue;
-			}
 			atomic_set(&ptr->users, CCS_GC_IN_PROGRESS);
 			ccs_try_to_gc(CCS_ID_NAME, &ptr->list);
 		}

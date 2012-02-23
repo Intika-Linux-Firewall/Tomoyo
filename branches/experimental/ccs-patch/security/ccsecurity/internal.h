@@ -748,7 +748,7 @@ struct ccs_acl_info {
 	struct list_head list;
 	struct list_head acl_info_list;
 	struct ccs_condition *cond; /* Maybe NULL. */
-	s8 is_deleted; /* true or false or CCS_GC_IN_PROGRESS */
+	bool is_deleted;
 	bool is_deny;
 	u16 priority;
 	u16 max_log[CCS_MAX_MATCHING];

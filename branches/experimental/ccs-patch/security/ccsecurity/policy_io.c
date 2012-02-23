@@ -335,8 +335,7 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx);
 static bool ccs_select_acl(struct ccs_io_buffer *head, const char *data);
 static bool ccs_set_lf(struct ccs_io_buffer *head);
 static bool ccs_str_starts(char **src, const char *find);
-static char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
-			  va_list args);
+static char *ccs_init_log(struct ccs_request_info *r);
 static char *ccs_print_bprm(struct linux_binprm *bprm,
 			    struct ccs_page_dump *dump);
 static char *ccs_print_trailer(struct ccs_request_info *r);
@@ -349,8 +348,7 @@ static int ccs_parse_policy(struct ccs_io_buffer *head, char *line);
 static int ccs_poll_log(struct file *file, poll_table *wait);
 static int ccs_poll_query(struct file *file, poll_table *wait);
 static int ccs_release(struct inode *inode, struct file *file);
-static int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
-	__printf(2, 3);
+static int ccs_supervisor(struct ccs_request_info *r);
 static int ccs_update_group(struct ccs_io_buffer *head,
 			    const enum ccs_group_id type);
 static int ccs_write_answer(struct ccs_io_buffer *head);
@@ -391,8 +389,7 @@ static void ccs_read_version(struct ccs_io_buffer *head);
 static void ccs_set_space(struct ccs_io_buffer *head);
 static void ccs_set_string(struct ccs_io_buffer *head, const char *string);
 static void ccs_update_stat(const u8 index);
-static void ccs_write_log(struct ccs_request_info *r, int len, const char *fmt,
-			  va_list args);
+static void ccs_write_log(struct ccs_request_info *r);
 
 
 #ifdef CONFIG_CCSECURITY_NETWORK
@@ -2612,7 +2609,7 @@ static int ccs_update_acl(struct list_head * const list,
 		if (ptr->priority > new_entry.priority)
 			break;
 		/*
-		 * We cannot reuse delete "struct ccs_acl_info" entry because
+		 * We cannot reuse deleted "struct ccs_acl_info" entry because
 		 * somebody might be referencing children of this deleted entry
 		 * from srcu section. We cannot delete children of this deleted
 		 * entry until all children are no longer referenced. Thus, let
@@ -3230,45 +3227,26 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 /**
  * ccs_supervisor - Ask for the supervisor's decision.
  *
- * @r:   Pointer to "struct ccs_request_info".
- * @fmt: The printf()'s format string, followed by parameters.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 if the supervisor decided to permit the access request which
  * violated the policy in enforcing mode, CCS_RETRY_REQUEST if the supervisor
  * decided to retry the access request which violated the policy in enforcing
  * mode, 0 if it is not in enforcing mode, -EPERM otherwise.
  */
-static int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
+static int ccs_supervisor(struct ccs_request_info *r)
 {
-	va_list args;
-	int error;
+	int error = -EPERM;
 	int len;
 	static unsigned int ccs_serial;
 	struct ccs_query entry = { };
 	bool quota_exceeded = false;
-	va_start(args, fmt);
-	len = vsnprintf((char *) &len, 1, fmt, args) + 1;
-	va_end(args);
-	/* Write /proc/ccs/audit. */
-	if (ccs_log_count[r->result] < r->max_log) {
-		va_start(args, fmt);
-		ccs_write_log(r, len, fmt, args);
-		va_end(args);
-	}
-	/* Nothing more to do unless denied. */
-	if (r->result != CCS_MATCHING_DENIED)
-		return 0;
-	error = -EPERM;
-	if (!atomic_read(&ccs_query_observers))
-		return error;
 	if (WARN_ON(!r->matched_acl))
-		return error;
+		return -EPERM;
 	/* Get message. */
-	va_start(args, fmt);
-	entry.query = ccs_init_log(r, len, fmt, args);
-	va_end(args);
+	entry.query = ccs_init_log(r);
 	if (!entry.query)
-		goto out;
+		return -EPERM;
 	entry.query_len = strlen(entry.query) + 1;
 	len = ccs_round2(entry.query_len);
 	entry.acl = r->matched_acl;
@@ -3323,253 +3301,27 @@ out:
  *
  * @r: Pointer to "struct ccs_request_info".
  *
- * Returns return value of ccs_supervisor().
+ * Returns 0 to grant the request, CCS_RETRY_REQUEST to retry the permission
+ * check, -EPERM otherwise.
  */
 int ccs_audit_log(struct ccs_request_info *r)
 {
+	/* Do not reject if not yet activated. */
 	if (!ccs_policy_loaded)
 		return 0;
-	/* Do not audit "task auto_domain_transition". */
-	if (WARN_ON(r->type == CCS_MAC_AUTO_TASK_TRANSITION))
+	/* Write /proc/ccs/audit unless quota exceeded. */
+	if (ccs_log_count[r->result] < r->max_log)
+		ccs_write_log(r);
+	/* Nothing more to do unless denied. */
+	if (r->result != CCS_MATCHING_DENIED)
 		return 0;
-	if (r->result != CCS_MATCHING_DENIED) {
-		/* Nothing to do if no audit mode. */
-		if (ccs_log_count[r->result] >= r->max_log)
-			return 0;
-	} else {
-		/* Update policy violation counter. */
-		ccs_update_stat(CCS_STAT_REQUEST_DENIED);
-		/*
-		 * Nothing to do if no audit mode and ccs-queryd is not
-		 * running.
-		 */
-		if (ccs_log_count[CCS_MATCHING_DENIED] >= r->max_log &&
-		    !atomic_read(&ccs_query_observers))
-			return -EPERM;
-	}
-	/* We want audit logs. Make sure that string arguments are ready. */
-	if (!r->param.s[0])
-		ccs_populate_patharg(r, true);
-	if (!r->param.s[1])
-		ccs_populate_patharg(r, false);
-	switch (r->type) {
-#ifdef CONFIG_CCSECURITY_NETWORK
-		char buf[48];
-#endif
-	case CCS_MAC_FILE_EXECUTE:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
-		return ccs_supervisor(r, " exec=\"%s\" path=\"%s\"",
-				      r->param.s[1]->name,
-				      r->param.s[0]->name);
-	case CCS_MAC_FILE_READ:
-	case CCS_MAC_FILE_WRITE:
-	case CCS_MAC_FILE_APPEND:
-	case CCS_MAC_FILE_UNLINK:
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
-	case CCS_MAC_FILE_GETATTR:
-#endif
-	case CCS_MAC_FILE_RMDIR:
-	case CCS_MAC_FILE_TRUNCATE:
-	case CCS_MAC_FILE_CHROOT:
-	case CCS_MAC_FILE_UMOUNT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " path=\"%s\"", r->param.s[0]->name);
-	case CCS_MAC_FILE_CREATE:
-	case CCS_MAC_FILE_MKDIR:
-	case CCS_MAC_FILE_MKFIFO:
-	case CCS_MAC_FILE_MKSOCK:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " path=\"%s\" perm=0%lo",
-				      r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_SYMLINK:
-		return ccs_supervisor(r, " path=\"%s\" target=\"%s\"",
-				      r->param.s[0]->name,
-				      r->param.s[1]->name);
-	case CCS_MAC_FILE_MKBLOCK:
-	case CCS_MAC_FILE_MKCHAR:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " path=\"%s\" perm=0%lo "
-				      "dev_major=%lu dev_minor=%lu",
-				      r->param.s[0]->name, r->param.i[0],
-				      r->param.i[1], r->param.i[2]);
-	case CCS_MAC_FILE_LINK:
-	case CCS_MAC_FILE_RENAME:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
-		return ccs_supervisor(r, " old_path=\"%s\" new_path=\"%s\"",
-				      r->param.s[0]->name,
-				      r->param.s[1]->name);
-	case CCS_MAC_FILE_CHMOD:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " path=\"%s\" perm=0%lo",
-				      r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_CHOWN:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " path=\"%s\" uid=%lu",
-				      r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_CHGRP:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " path=\"%s\" gid=%lu",
-				      r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_IOCTL:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " path=\"%s\" cmd=0x%lX",
-				      r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_MOUNT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[2]))
-			return 0;
-		if (WARN_ON(!r->param.s[2]->name))
-			return 0;
-		return ccs_supervisor(r, " source=\"%s\" target=\"%s\" "
-				      "fstype=\"%s\" flags=0x%lX",
-				      r->param.s[0]->name, r->param.s[1]->name,
-				      r->param.s[2]->name, r->param.i[0]);
-	case CCS_MAC_FILE_PIVOT_ROOT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
-		return ccs_supervisor(r, " new_root=\"%s\" put_old=\"%s\"",
-				      r->param.s[0]->name,
-				      r->param.s[1]->name);
-#ifdef CONFIG_CCSECURITY_MISC
-	case CCS_MAC_ENVIRON:
-		if (WARN_ON(!r->param.s[2]))
-			return 0;
-		if (WARN_ON(!r->param.s[2]->name))
-			return 0;
-		return ccs_supervisor(r, " name=\"%s\"", r->param.s[2]->name);
-#endif
-	case CCS_MAC_CAPABILITY_MODIFY_POLICY:
-#ifdef CONFIG_CCSECURITY_CAPABILITY
-	case CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET:
-	case CCS_MAC_CAPABILITY_USE_PACKET_SOCKET:
-	case CCS_MAC_CAPABILITY_SYS_REBOOT:
-	case CCS_MAC_CAPABILITY_SYS_VHANGUP:
-	case CCS_MAC_CAPABILITY_SYS_SETTIME:
-	case CCS_MAC_CAPABILITY_SYS_NICE:
-	case CCS_MAC_CAPABILITY_SYS_SETHOSTNAME:
-	case CCS_MAC_CAPABILITY_USE_KERNEL_MODULE:
-	case CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD:
-#endif
-		return ccs_supervisor(r, "");
-#ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_MAC_NETWORK_INET_STREAM_BIND:
-	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
-	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
-#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
-#endif
-		if (WARN_ON(!r->param.ip))
-			return 0;
-		if (r->param.is_ipv6)
-			ccs_print_ipv6(buf, sizeof(buf),
-				       (const struct in6_addr *) r->param.ip);
-		else
-			ccs_print_ipv4(buf, sizeof(buf), r->param.ip);
-		return ccs_supervisor(r, " ip=%s port=%lu", buf,
-				      r->param.i[0]);
-	case CCS_MAC_NETWORK_INET_RAW_BIND:
-	case CCS_MAC_NETWORK_INET_RAW_SEND:
-#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	case CCS_MAC_NETWORK_INET_RAW_RECV:
-#endif
-		if (WARN_ON(!r->param.ip))
-			return 0;
-		if (r->param.is_ipv6)
-			ccs_print_ipv6(buf, sizeof(buf),
-				       (const struct in6_addr *) r->param.ip);
-		else
-			ccs_print_ipv4(buf, sizeof(buf), r->param.ip);
-		return ccs_supervisor(r, " ip=%s proto=%lu", buf,
-				      r->param.i[0]);
-	case CCS_MAC_NETWORK_UNIX_STREAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_SEND:
-#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	case CCS_MAC_NETWORK_UNIX_DGRAM_RECV:
-#endif
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " addr=\"%s\"", r->param.s[0]->name);
-#endif
-#ifdef CONFIG_CCSECURITY_IPC
-	case CCS_MAC_PTRACE:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		return ccs_supervisor(r, " cmd=%lu domain=\"%s\"",
-				      r->param.i[0], r->param.s[0]->name);
-#endif
-	case CCS_MAX_MAC_INDEX:
-#if defined(CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER) || defined(CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION)
-	case CCS_MAC_AUTO_EXECUTE_HANDLER:
-	case CCS_MAC_DENIED_EXECUTE_HANDLER:
-	case CCS_MAC_AUTO_TASK_TRANSITION:
-	case CCS_MAC_MANUAL_TASK_TRANSITION:
-#endif
-		break;
-	}
-	return 0;
+	/* Update policy violation counter if denied. */
+	ccs_update_stat(CCS_STAT_REQUEST_DENIED);
+	/* Nothing more to do unless ccs-queryd is running. */
+	if (!atomic_read(&ccs_query_observers))
+		return -EPERM;
+	/* Ask the ccs-queryd for decision. */
+	return ccs_supervisor(r);
 }
 
 /**
@@ -4020,73 +3772,307 @@ no_obj_info:
 }
 
 /**
+ * ccs_print_param -  Get arg info of audit log.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @buf: Buffer to write.
+ * @len: Size of @buf in bytes.
+ */
+static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
+{
+#ifdef CONFIG_CCSECURITY_NETWORK
+	/* Make sure that IP address argument is ready. */
+	char ip[48];
+	switch (r->type) {
+	case CCS_MAC_NETWORK_INET_STREAM_BIND:
+	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
+	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
+	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
+	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
+	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
+	case CCS_MAC_NETWORK_INET_RAW_BIND:
+	case CCS_MAC_NETWORK_INET_RAW_SEND:
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
+	case CCS_MAC_NETWORK_INET_RAW_RECV:
+#endif
+		if (WARN_ON(!r->param.ip))
+			return 0;
+		if (r->param.is_ipv6)
+			ccs_print_ipv6(ip, sizeof(ip),
+				       (const struct in6_addr *) r->param.ip);
+		else
+			ccs_print_ipv4(ip, sizeof(ip), r->param.ip);
+		break;
+	default:
+		//ip[0] = '\0';
+		break;
+	}
+#endif
+	/* Make sure that string arguments are ready. */
+	if (!r->param.s[0])
+		ccs_populate_patharg(r, true);
+	if (!r->param.s[1])
+		ccs_populate_patharg(r, false);
+	switch (r->type) {
+	case CCS_MAC_FILE_EXECUTE:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		if (WARN_ON(!r->param.s[1]))
+			return 0;
+		if (WARN_ON(!r->param.s[1]->name))
+			return 0;
+		return snprintf(buf, len, " exec=\"%s\" path=\"%s\"",
+				r->param.s[1]->name, r->param.s[0]->name);
+	case CCS_MAC_FILE_READ:
+	case CCS_MAC_FILE_WRITE:
+	case CCS_MAC_FILE_APPEND:
+	case CCS_MAC_FILE_UNLINK:
+#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+	case CCS_MAC_FILE_GETATTR:
+#endif
+	case CCS_MAC_FILE_RMDIR:
+	case CCS_MAC_FILE_TRUNCATE:
+	case CCS_MAC_FILE_CHROOT:
+	case CCS_MAC_FILE_UMOUNT:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " path=\"%s\"", r->param.s[0]->name);
+	case CCS_MAC_FILE_CREATE:
+	case CCS_MAC_FILE_MKDIR:
+	case CCS_MAC_FILE_MKFIFO:
+	case CCS_MAC_FILE_MKSOCK:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " path=\"%s\" perm=0%lo",
+				r->param.s[0]->name, r->param.i[0]);
+	case CCS_MAC_FILE_SYMLINK:
+		return snprintf(buf, len, " path=\"%s\" target=\"%s\"",
+				r->param.s[0]->name, r->param.s[1]->name);
+	case CCS_MAC_FILE_MKBLOCK:
+	case CCS_MAC_FILE_MKCHAR:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " path=\"%s\" perm=0%lo "
+				"dev_major=%lu dev_minor=%lu",
+				r->param.s[0]->name, r->param.i[0],
+				r->param.i[1], r->param.i[2]);
+	case CCS_MAC_FILE_LINK:
+	case CCS_MAC_FILE_RENAME:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		if (WARN_ON(!r->param.s[1]))
+			return 0;
+		if (WARN_ON(!r->param.s[1]->name))
+			return 0;
+		return snprintf(buf, len, " old_path=\"%s\" new_path=\"%s\"",
+				r->param.s[0]->name, r->param.s[1]->name);
+	case CCS_MAC_FILE_CHMOD:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " path=\"%s\" perm=0%lo",
+				r->param.s[0]->name, r->param.i[0]);
+	case CCS_MAC_FILE_CHOWN:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " path=\"%s\" uid=%lu",
+				r->param.s[0]->name, r->param.i[0]);
+	case CCS_MAC_FILE_CHGRP:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " path=\"%s\" gid=%lu",
+				r->param.s[0]->name, r->param.i[0]);
+	case CCS_MAC_FILE_IOCTL:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " path=\"%s\" cmd=0x%lX",
+				r->param.s[0]->name, r->param.i[0]);
+	case CCS_MAC_FILE_MOUNT:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		if (WARN_ON(!r->param.s[1]))
+			return 0;
+		if (WARN_ON(!r->param.s[1]->name))
+			return 0;
+		if (WARN_ON(!r->param.s[2]))
+			return 0;
+		if (WARN_ON(!r->param.s[2]->name))
+			return 0;
+		return snprintf(buf, len, " source=\"%s\" target=\"%s\""
+				" fstype=\"%s\" flags=0x%lX",
+				r->param.s[0]->name, r->param.s[1]->name,
+				r->param.s[2]->name, r->param.i[0]);
+	case CCS_MAC_FILE_PIVOT_ROOT:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		if (WARN_ON(!r->param.s[1]))
+			return 0;
+		if (WARN_ON(!r->param.s[1]->name))
+			return 0;
+		return snprintf(buf, len, " new_root=\"%s\" put_old=\"%s\"",
+				r->param.s[0]->name, r->param.s[1]->name);
+#ifdef CONFIG_CCSECURITY_MISC
+	case CCS_MAC_ENVIRON:
+		if (WARN_ON(!r->param.s[2]))
+			return 0;
+		if (WARN_ON(!r->param.s[2]->name))
+			return 0;
+		return snprintf(buf, len, " name=\"%s\"", r->param.s[2]->name);
+#endif
+	case CCS_MAC_CAPABILITY_MODIFY_POLICY:
+#ifdef CONFIG_CCSECURITY_CAPABILITY
+	case CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET:
+	case CCS_MAC_CAPABILITY_USE_PACKET_SOCKET:
+	case CCS_MAC_CAPABILITY_SYS_REBOOT:
+	case CCS_MAC_CAPABILITY_SYS_VHANGUP:
+	case CCS_MAC_CAPABILITY_SYS_SETTIME:
+	case CCS_MAC_CAPABILITY_SYS_NICE:
+	case CCS_MAC_CAPABILITY_SYS_SETHOSTNAME:
+	case CCS_MAC_CAPABILITY_USE_KERNEL_MODULE:
+	case CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD:
+#endif
+		return 0;
+#ifdef CONFIG_CCSECURITY_NETWORK
+	case CCS_MAC_NETWORK_INET_STREAM_BIND:
+	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
+	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
+	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
+	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
+	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
+#endif
+		return snprintf(buf, len, " ip=%s port=%lu", ip,
+				r->param.i[0]);
+	case CCS_MAC_NETWORK_INET_RAW_BIND:
+	case CCS_MAC_NETWORK_INET_RAW_SEND:
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+	case CCS_MAC_NETWORK_INET_RAW_RECV:
+#endif
+		return snprintf(buf, len, " ip=%s proto=%lu", ip,
+				r->param.i[0]);
+	case CCS_MAC_NETWORK_UNIX_STREAM_BIND:
+	case CCS_MAC_NETWORK_UNIX_STREAM_LISTEN:
+	case CCS_MAC_NETWORK_UNIX_STREAM_CONNECT:
+	case CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT:
+	case CCS_MAC_NETWORK_UNIX_DGRAM_BIND:
+	case CCS_MAC_NETWORK_UNIX_DGRAM_SEND:
+#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
+	case CCS_MAC_NETWORK_UNIX_DGRAM_RECV:
+#endif
+	case CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND:
+	case CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN:
+	case CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT:
+	case CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " addr=\"%s\"", r->param.s[0]->name);
+#endif
+#ifdef CONFIG_CCSECURITY_IPC
+	case CCS_MAC_PTRACE:
+		if (WARN_ON(!r->param.s[0]))
+			return 0;
+		if (WARN_ON(!r->param.s[0]->name))
+			return 0;
+		return snprintf(buf, len, " cmd=%lu domain=\"%s\"",
+				r->param.i[0], r->param.s[0]->name);
+#endif
+	default:
+		break;
+	}
+	return 0;
+}
+
+
+/**
  * ccs_init_log - Allocate buffer for audit logs.
  *
- * @r:    Pointer to "struct ccs_request_info".
- * @len:  Buffer size needed for @fmt and @args.
- * @fmt:  The printf()'s format string.
- * @args: va_list structure for @fmt.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns pointer to allocated memory.
  *
  * This function uses kzalloc(), so caller must kfree() if this function
  * didn't return NULL.
  */
-static char *ccs_init_log(struct ccs_request_info *r, int len, const char *fmt,
-			  va_list args)
+static char *ccs_init_log(struct ccs_request_info *r)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
+	const pid_t gpid = ccs_sys_getpid();
+#else
+	const pid_t gpid = task_pid_nr(current);
+#endif
+	struct timeval tv;
+	struct ccs_time stamp;
+	static const char * const k[CCS_MAX_MATCHING] = {
+		[CCS_MATCHING_UNMATCHED] = "unmatched",
+		[CCS_MATCHING_ALLOWED] = "allowed",
+		[CCS_MATCHING_DENIED] = "denied",
+	};
 	char *buf;
 	const char *bprm_info;
 	const char *trailer;
-	int pos;
+	int len;
 	if (!r->exename.name && !ccs_get_exename(&r->exename))
 		return NULL;
-	/* +128 is for timestamp etc. */
-	len += 128;
+	do_gettimeofday(&tv);
+	ccs_convert_time(tv.tv_sec, &stamp);
 	trailer = ccs_print_trailer(r);
-	if (trailer)
-		len += strlen(trailer);
-	if (r->bprm) {
+	if (r->bprm)
 		bprm_info = ccs_print_bprm(r->bprm, &r->dump);
-		if (bprm_info)
-			len += strlen(bprm_info);
-	} else
+	else
 		bprm_info = NULL;
-	//len = ccs_round2(len);
-	buf = kzalloc(len, CCS_GFP_FLAGS);
-	if (!buf)
-		goto out;
-	len--;
-	{
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-		const pid_t gpid = ccs_sys_getpid();
-#else
-		const pid_t gpid = task_pid_nr(current);
-#endif
-		struct timeval tv;
-		struct ccs_time stamp;
-		static const char *k[CCS_MAX_MATCHING] = {
-			[CCS_MATCHING_UNMATCHED] = "unmatched",
-			[CCS_MATCHING_ALLOWED] = "allowed",
-			[CCS_MATCHING_DENIED] = "denied",
-		};
-		do_gettimeofday(&tv);
-		ccs_convert_time(tv.tv_sec, &stamp);
+	len = 0;
+	while (1) {
+		int pos;
+		buf = kzalloc(len, CCS_GFP_FLAGS);
+		if (!buf)
+			break;
 		pos = snprintf(buf, len, "#%04u/%02u/%02u %02u:%02u:%02u# "
 			       "global-pid=%u result=%s / %s %s", stamp.year,
 			       stamp.month, stamp.day, stamp.hour, stamp.min,
 			       stamp.sec, gpid, k[r->result],
-			       ccs_category_keywords
-			       [ccs_index2category[r->type]],
+			       ccs_category_keywords[ccs_index2category
+						     [r->type]],
 			       ccs_mac_keywords[r->type]);
+		pos += ccs_print_param(r, buf + pos,
+				       pos < len ? len - pos : 0);
+		if (bprm_info)
+			pos += snprintf(buf + pos, pos < len ? len - pos : 0,
+					"%s", bprm_info);
+		if (trailer)
+			pos += snprintf(buf + pos, pos < len ? len - pos : 0,
+					"%s", trailer);
+		pos += snprintf(buf + pos, pos < len ? len - pos : 0,
+				"\n") + 1;
+		if (pos <= len)
+			break;
+		kfree(buf);
+		len = pos;
 	}
-	pos += vsnprintf(buf + pos, len - pos, fmt, args);
-	if (bprm_info)
-		pos += snprintf(buf + pos, len - pos, "%s", bprm_info);
-	if (trailer)
-		pos += snprintf(buf + pos, len - pos, "%s", trailer);
-	pos += snprintf(buf + pos, len - pos, "\n");
-out:
 	kfree(bprm_info);
 	kfree(trailer);
 	return buf;
@@ -4095,19 +4081,16 @@ out:
 /**
  * ccs_write_log - Write an audit log.
  *
- * @r:    Pointer to "struct ccs_request_info".
- * @len:  Buffer size needed for @fmt and @args.
- * @fmt:  The printf()'s format string.
- * @args: va_list structure for @fmt.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns nothing.
  */
-static void ccs_write_log(struct ccs_request_info *r, int len, const char *fmt,
-			  va_list args)
+static void ccs_write_log(struct ccs_request_info *r)
 {
 	struct ccs_log *entry;
 	bool quota_exceeded = false;
-	char *buf = ccs_init_log(r, len, fmt, args);
+	int len;
+	char *buf = ccs_init_log(r);
 	if (!buf)
 		return;
 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
