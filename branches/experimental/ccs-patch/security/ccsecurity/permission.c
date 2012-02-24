@@ -691,23 +691,7 @@ static int ccs_find_next_domain(struct ccs_request_info *r)
 	if (!r->param.s[1])
 		goto out;
 
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-	if (r->handler_path) {
-		/* No permission check for execute handler. */
-		if (ccs_pathcmp(r->param.s[1], r->handler_path)) {
-			/* Failed to verify execute handler. */
-			static u8 counter = 20;
-			if (counter) {
-				counter--;
-				printk(KERN_WARNING "Failed to verify: %s\n",
-				       r->handler_path->name);
-			}
-			retval = -EINVAL;
-			goto out;
-		}
-	} else
-#endif
-	{
+	if (!r->handler_path) {
 		/* Check execute permission. */
 		r->type = CCS_MAC_FILE_EXECUTE;
 		retval = ccs_check_acl(r, false);
@@ -914,12 +898,7 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 			retval = ccs_copy_argv(exe, bprm);
 			kfree(exe);
 		} else {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
-			retval = ccs_copy_argv("<unknown>", bprm);
-#else
-			snprintf(r->tmp, CCS_EXEC_TMPSIZE - 1, "<unknown>");
-			retval = ccs_copy_argv(r->tmp, bprm);
-#endif
+			retval = -ENOMEM;
 		}
 		if (retval < 0)
 			goto out;
@@ -1002,6 +981,18 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
+	ccs_populate_patharg(r, true);
+	if (!r->param.s[0] || ccs_pathcmp(r->param.s[0], r->handler_path)) {
+		/* Failed to verify execute handler. */
+		static u8 counter = 20;
+		if (counter) {
+			counter--;
+			printk(KERN_WARNING "Failed to verify: %s\n",
+			       r->handler_path->name);
+		}
+		retval = -EINVAL;
+		goto out;
+	}
 	retval = ccs_find_next_domain(r);
 out:
 	return retval;
@@ -1188,7 +1179,7 @@ static void ccs_finish_execve(int retval, struct ccs_request_info *r)
 	/* Tell GC that I finished execve(). */
 	task->ccs_flags &= ~CCS_TASK_IS_IN_EXECVE;
 	ccs_clear_request_info(r);
-	kfree(r->handler_path);
+	kfree(r->handler);
 	kfree(r);
 }
 
@@ -2903,9 +2894,6 @@ static int ccs_environ(struct ccs_request_info *r)
 			char *value;
 			const unsigned char c = env_page.data[offset++];
 			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
-				//if (c == '=') {
-				//arg_ptr[arg_len++] = '\0';
-				//} else 
 				if (c > ' ' && c < 127 && c != '\\') {
 					arg_ptr[arg_len++] = c;
 				} else {
@@ -3077,7 +3065,7 @@ static bool ccs_check_envp(struct ccs_request_info *r,
 	int offset = pos % PAGE_SIZE;
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
-	bool result = false; //!value == !is_not;
+	bool result = (value != &ccs_null_name) == match;
 	struct ccs_path_info env;
 	char *cp;
 	while (envp_count) {
@@ -3680,9 +3668,6 @@ bool ccs_condition(struct ccs_request_info *r,
 		if (left_op == CCS_HANDLER_PATH) {
 			BUG_ON(right.type != CCS_ARG_TYPE_NAME);
 			r->handler_path = right.name;
-			if (0)
-				printk(KERN_INFO "r->handler_path=%p\n",
-				       r->handler_path);
 			continue;
 		}
 		if (left_op == CCS_TRANSIT_DOMAIN) {

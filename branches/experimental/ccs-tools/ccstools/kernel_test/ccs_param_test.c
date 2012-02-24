@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/ptrace.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -1091,6 +1092,167 @@ static void test_ptrace(void)
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 }
 
+static int fork_exec(char *envp[])
+{
+	int ret_ignored;
+	int pipe_fd[2] = { EOF, EOF };
+	int err = 0;
+	pid_t pid;
+	if (pipe(pipe_fd)) {
+		fprintf(stderr, "Err: %s(%d)\n", strerror(err), err);
+		exit(1);
+	}
+	pid = fork();
+	if (pid == 0) {
+		char *argv[2] = { "/bin/true", NULL };
+		execve("/bin/true", argv, envp);
+		err = errno;
+		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
+		_exit(0);
+	}
+	close(pipe_fd[1]);
+	ret_ignored = read(pipe_fd[0], &err, sizeof(err));
+	close(pipe_fd[0]);
+	wait(NULL);
+	errno = err;
+	return err ? EOF : 0;
+}
+
+static void test_environ(void)
+{
+	char *policy;
+	char *envp[2];
+	envp[1] = NULL;
+
+	policy = "100 acl misc env name=\"PATH2\"\n"
+		"0 allow value=\"/\"\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl misc env name=\"PATH2\"\n"
+		"0 allow value!=\"/\"\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl misc env name=\"PATH2\"\n"
+		"0 deny value!=\"/\"\n"
+		"1 allow\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl misc env name=\"PATH2\"\n"
+		"0 deny value=\"/\"\n"
+		"1 allow\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]=\"/\"\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]!=\"/\"\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]!=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]!=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]!=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2";
+	check(policy, fork_exec(envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=";
+	check(policy, fork_exec(envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH2\"]=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "PATH2=/";
+	check(policy, fork_exec(envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"\"]=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "";
+	check(policy, fork_exec(envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"\"]!=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"\"]!=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "=";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+
+	policy = "100 acl file execute path=\"/bin/true\"\n"
+		"0 allow envp[\"\"]!=NULL\n"
+		"1 deny\n";
+	set(policy);
+	envp[0] = "=/";
+	check(policy, fork_exec(envp) == 0);
+	unset(policy);
+}
+
 int main(int argc, char *argv[])
 {
 	fp = fopen("/proc/ccs/policy", "w");
@@ -1100,6 +1262,7 @@ int main(int argc, char *argv[])
 	}
 	fprintf(fp, "quota audit[0]"
 		" allowed=1024 unmatched=1024 denied=1024\n");
+
 	test_file_read();
 	test_file_write();
 	test_file_create();
@@ -1112,5 +1275,6 @@ int main(int argc, char *argv[])
 	test_network_inet6_dgram();
 	test_capability();
 	test_ptrace();
+	test_environ();
 	return 0;
 }

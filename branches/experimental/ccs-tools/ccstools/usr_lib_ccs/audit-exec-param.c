@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 
 int main(int raw_argc, char *raw_argv[])
 {
@@ -40,21 +41,7 @@ int main(int raw_argc, char *raw_argv[])
 	if (1) {
 		int fd = open("/proc/ccs/.execute_handler", 0);
 		close(fd);
-		if (fd == EOF) {
-			fprintf(stderr, "FATAL: I'm not execute_handler.\n");
-			return 1;
-		}
-	} else {
-		int ret_ignored;
-		char buffer[1024];
-		int fd = open("/proc/ccs/.process_status", O_RDWR);
-		memset(buffer, 0, sizeof(buffer));
-		snprintf(buffer, sizeof(buffer) - 1, "info %d\n", getpid());
-		ret_ignored = write(fd, buffer, strlen(buffer));
-		buffer[0] = '\0';
-		ret_ignored = read(fd, buffer, sizeof(buffer) - 1);
-		close(fd);
-		if (!strstr(buffer, " execute_handler=yes")) {
+		if (fd == EOF && errno != ENOENT) {
 			fprintf(stderr, "FATAL: I'm not execute_handler.\n");
 			return 1;
 		}

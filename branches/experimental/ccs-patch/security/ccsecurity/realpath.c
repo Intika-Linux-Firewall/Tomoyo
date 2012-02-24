@@ -695,9 +695,10 @@ const char *ccs_get_exe(void)
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
+	bool done = false;
 	const char *cp = NULL;
 	if (!mm)
-		return NULL;
+		goto task_has_no_mm;
 	down_read(&mm->mmap_sem);
 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
@@ -708,11 +709,21 @@ const char *ccs_get_exe(void)
 #else
 			cp = ccs_realpath(&vma->vm_file->f_path);
 #endif
+			done = true;
 			break;
 		}
 	}
 	up_read(&mm->mmap_sem);
-	return cp;
+	if (done)
+		return cp;
+task_has_no_mm:
+	{
+		/* Probably I'm a kernel thread. But I'm not sure. */
+		char *exe = kzalloc(16, CCS_GFP_FLAGS);
+		if (exe)
+			memcpy(exe, "<unknown>", 10);
+		return exe;
+	}
 }
 
 bool ccs_get_exename(struct ccs_path_info *buf)
