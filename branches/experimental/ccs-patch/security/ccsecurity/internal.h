@@ -434,6 +434,7 @@ enum ccs_conditions_index {
 	CCS_COND_SARG1,
 	/* 40 */
 	CCS_COND_SARG2,
+	CCS_COND_SARG3,
 	CCS_COND_NARG0,
 	CCS_COND_NARG1,
 	CCS_COND_NARG2,
@@ -442,8 +443,8 @@ enum ccs_conditions_index {
 	CCS_IMM_GROUP,
 	CCS_IMM_NAME_ENTRY,
 	CCS_IMM_DOMAINNAME_ENTRY,
-	CCS_IMM_NUMBER_ENTRY1,
 	/* 50 */
+	CCS_IMM_NUMBER_ENTRY1,
 	CCS_IMM_NUMBER_ENTRY2,
 	CCS_IMM_IPV4ADDR_ENTRY1,
 	CCS_IMM_IPV4ADDR_ENTRY2,
@@ -467,7 +468,7 @@ enum ccs_path_attribute_index {
 	CCS_PATH_ATTRIBUTE_DEV_MINOR,
 	CCS_PATH_ATTRIBUTE_FSMAGIC,
 	CCS_MAX_PATH_ATTRIBUTE
-};
+} __packed;
 
 /* Index numbers for group entries. */
 enum ccs_group_id {
@@ -498,7 +499,7 @@ enum ccs_mac_category_index {
 #endif
 	CCS_MAC_CATEGORY_NONE,
 	CCS_MAX_MAC_CATEGORY_INDEX
-};
+} __packed;
 
 /* Index numbers for functionality. */
 enum ccs_mac_index {
@@ -585,7 +586,7 @@ enum ccs_mac_index {
 	CCS_MAC_MANUAL_TASK_TRANSITION,
 #endif
 	CCS_MAX_MAC_INDEX
-};
+} __packed;
 
 /* Index numbers for statistic information. */
 enum ccs_memory_stat_type {
@@ -593,14 +594,14 @@ enum ccs_memory_stat_type {
 	CCS_MEMORY_AUDIT,
 	CCS_MEMORY_QUERY,
 	CCS_MAX_MEMORY_STAT
-};
+} __packed;
 
 enum ccs_matching_result {
 	CCS_MATCHING_UNMATCHED,
 	CCS_MATCHING_ALLOWED,
 	CCS_MATCHING_DENIED,
 	CCS_MAX_MATCHING
-};
+} __packed;
 
 /* Index numbers for stat(). */
 enum ccs_path_stat_index {
@@ -610,7 +611,7 @@ enum ccs_path_stat_index {
 	CCS_PATH2,
 	CCS_PATH2_PARENT,
 	CCS_MAX_PATH_STAT
-};
+} __packed;
 
 /* Index numbers for entry type. */
 enum ccs_policy_id {
@@ -625,14 +626,14 @@ enum ccs_policy_id {
 	CCS_ID_ACL,
 	CCS_ID_DOMAIN,
 	CCS_MAX_POLICY
-};
+} __packed;
 
 /* Index numbers for statistic information. */
 enum ccs_policy_stat_type {
 	CCS_STAT_POLICY_UPDATES,
 	CCS_STAT_REQUEST_DENIED,
 	CCS_MAX_POLICY_STAT
-};
+} __packed;
 
 /* Index numbers for /proc/ccs/ interfaces. */
 enum ccs_proc_interface_index {
@@ -644,7 +645,7 @@ enum ccs_proc_interface_index {
 #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
 	CCS_EXECUTE_HANDLER,
 #endif
-};
+} __packed;
 
 /* Index numbers for special mount operations. */
 enum ccs_special_mount {
@@ -656,7 +657,7 @@ enum ccs_special_mount {
 	CCS_MOUNT_MAKE_SLAVE,      /* mount --make-slave /dir      */
 	CCS_MOUNT_MAKE_SHARED,     /* mount --make-shared /dir     */
 	CCS_MAX_SPECIAL_MOUNT
-};
+} __packed;
 
 /* Index numbers for type of numeric values. */
 enum ccs_value_type {
@@ -684,6 +685,9 @@ enum ccs_value_type {
 
 /* Size of temporary buffer for execve() operation. */
 #define CCS_EXEC_TMPSIZE     4096
+
+/* Patterns for auditing logs quota. */
+#define CCS_MAX_LOG_QUOTA 256
 
 /* Garbage collector is trying to kfree() this element. */
 #define CCS_GC_IN_PROGRESS -1
@@ -751,7 +755,7 @@ struct ccs_acl_info {
 	bool is_deleted;
 	bool is_deny;
 	u16 priority;
-	u16 max_log[CCS_MAX_MATCHING];
+	u8 audit;
 };
 
 /*
@@ -842,7 +846,7 @@ struct ccs_path_info {
 struct ccs_request_info {
 	/* For holding parameters. */
 	struct ccs_request_param {
-		const struct ccs_path_info *s[3];
+		const struct ccs_path_info *s[4];
 		unsigned long i[3];
 #ifdef CONFIG_CCSECURITY_NETWORK
 		const u8 *ip; /* Big endian. */
@@ -910,7 +914,7 @@ struct ccs_request_info {
 	 */
 	u8 retry;
 	/* For holding max audit log count for this matching entry. */
-	u16 max_log;
+	u8 audit;
 };
 
 /* Structure for domain information. */
@@ -950,6 +954,7 @@ struct ccs_io_buffer {
 		bool print_this_acl_only;
 		bool version_done;
 		bool stat_done;
+		bool quota_done;
 		bool group_done;
 		const char *w[CCS_MAX_IO_READ_QUEUE];
 	} r;

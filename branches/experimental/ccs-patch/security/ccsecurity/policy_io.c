@@ -331,7 +331,7 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 				const struct ccs_condition *cond);
 static bool ccs_read_acl(struct ccs_io_buffer *head,
 			 const struct ccs_acl_info *acl);
-static bool ccs_read_group(struct ccs_io_buffer *head, const int idx);
+static bool ccs_read_group(struct ccs_io_buffer *head);
 static bool ccs_select_acl(struct ccs_io_buffer *head, const char *data);
 static bool ccs_set_lf(struct ccs_io_buffer *head);
 static bool ccs_str_starts(char **src, const char *find);
@@ -352,9 +352,10 @@ static int ccs_supervisor(struct ccs_request_info *r);
 static int ccs_update_group(struct ccs_io_buffer *head,
 			    const enum ccs_group_id type);
 static int ccs_write_answer(struct ccs_io_buffer *head);
+static int ccs_write_audit_quota(char *data);
+static int ccs_write_memory_quota(char *data);
 static int ccs_write_pid(struct ccs_io_buffer *head);
 static int ccs_write_policy(struct ccs_io_buffer *head);
-static int ccs_write_quota(char *data);
 static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
 			loff_t *ppos);
 static ssize_t ccs_read_self(struct file *file, char __user *buf, size_t count,
@@ -384,6 +385,7 @@ static void ccs_read_log(struct ccs_io_buffer *head);
 static void ccs_read_pid(struct ccs_io_buffer *head);
 static void ccs_read_policy(struct ccs_io_buffer *head);
 static void ccs_read_query(struct ccs_io_buffer *head);
+static bool ccs_read_quota(struct ccs_io_buffer *head);
 static bool ccs_read_stat(struct ccs_io_buffer *head);
 static void ccs_read_version(struct ccs_io_buffer *head);
 static void ccs_set_space(struct ccs_io_buffer *head);
@@ -1036,6 +1038,8 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 	case CCS_MAC_ENVIRON:
 		if (index == 2)
 			return "name";
+		if (index == 3)
+			return "value";
 		/* fall through */
 #endif
 	case CCS_MAC_FILE_EXECUTE:
@@ -1247,6 +1251,8 @@ static DEFINE_SPINLOCK(ccs_log_lock);
 
 /* Length of "stuct list_head ccs_log". */
 static unsigned int ccs_log_count[CCS_MAX_MATCHING];
+/* Quota for audit logs. */
+static unsigned int ccs_log_quota[CCS_MAX_LOG_QUOTA][CCS_MAX_MATCHING];
 
 /* Timestamp counter for last updated. */
 static unsigned int ccs_stat_updated[CCS_MAX_POLICY_STAT];
@@ -1684,6 +1690,7 @@ static u8 ccs_parse_ipaddr(char *address, struct in6_addr ipv6[2])
 	    ccs_in4_pton(address, -1, ipv6[0].s6_addr, '-', &end) > 0) {
 		if (!*end) {
 			ipv6[0].s6_addr32[0] = ipv6[0].s6_addr32[0];
+			ipv6[1].s6_addr32[0] = ipv6[0].s6_addr32[0];
 			return 1;
 		}
 		if (*end++ != '-' ||
@@ -1862,6 +1869,8 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 	case CCS_MAC_ENVIRON:
 		if (!strcmp(word, "name"))
 			return CCS_COND_SARG2;
+		if (!strcmp(word, "value"))
+			return CCS_COND_SARG3;
 		break;
 #endif
 #ifdef CONFIG_CCSECURITY_IPC
@@ -2128,6 +2137,7 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 	case CCS_COND_SARG0:
 	case CCS_COND_SARG1:
 	case CCS_COND_SARG2:
+	case CCS_COND_SARG3:
 	case CCS_SELF_EXE:
 		g = CCS_PATH_GROUP;
 		break;
@@ -2573,7 +2583,7 @@ static bool ccs_select_acl(struct ccs_io_buffer *head, const char *data)
 		head->r.acl = &acl->list;
 	else
 		head->r.eof = true;
-	ccs_io_printf(head, "# select %s\n", data);
+	ccs_io_printf(head, "# Q=%u\n", qid);
 	return true;
 }
 
@@ -2801,6 +2811,9 @@ static bool ccs_print_condition_loop(struct ccs_io_buffer *head,
 			break;
 		case CCS_COND_SARG2:
 			ccs_set_string(head, ccs_get_sarg(type, 2));
+			break;
+		case CCS_COND_SARG3:
+			ccs_set_string(head, ccs_get_sarg(type, 3));
 			break;
 		case CCS_COND_NARG0:
 			ccs_set_string(head, ccs_get_narg(type, 0));
@@ -3038,8 +3051,8 @@ static int ccs_update_group(struct ccs_io_buffer *head,
 	} e = { };
 	if (!group)
 		return -ENOMEM;
-	if (*word == '@')
-		goto out;
+	if (!*word)
+		return -EINVAL;
 	if (type == CCS_PATH_GROUP || type == CCS_DOMAIN_GROUP) {
 		if ((type == CCS_PATH_GROUP && !ccs_correct_word(word)) ||
 		    (type == CCS_DOMAIN_GROUP && !ccs_correct_domain(word))) {
@@ -3129,25 +3142,7 @@ static int ccs_write_policy(struct ccs_io_buffer *head)
 		return ccs_update_acl(&head->w.acl->acl_info_list, head,
 				      false);
 	if (!strcmp(word, "audit")) {
-		char *cp = head->w.data;
-		while (1) {
-			unsigned short int logs;
-			char *cp2 = strchr(cp, ' ');
-			if (cp2)
-				*cp2++ = '\0';
-			if (sscanf(cp, "allowed=%hu", &logs) == 1)
-				head->w.acl->max_log[CCS_MATCHING_ALLOWED] =
-					logs;
-			else if (sscanf(cp, "denied=%hu", &logs) == 1)
-				head->w.acl->max_log[CCS_MATCHING_DENIED] =
-					logs;
-			else if (sscanf(cp, "unmatched=%hu", &logs) == 1)
-				head->w.acl->max_log[CCS_MATCHING_UNMATCHED] =
-					logs;
-			if (!cp2)
-				break;
-			cp = cp2;
-		}
+		head->w.acl->audit = simple_strtoul(head->w.data, NULL, 10);
 		return 0;
 	}
 	head->w.acl = NULL;
@@ -3159,68 +3154,92 @@ no_acl_selected:
 	for (i = 0; i < CCS_MAX_GROUP; i++)
 		if (!strcmp(word, ccs_group_name[i]))
 			return ccs_update_group(head, i);
-	if (!strcmp(word, "memory") && ccs_str_starts(&head->w.data, "quota "))
-		return ccs_write_quota(head->w.data);
 	if (sscanf(word, "POLICY_VERSION=%u", &ccs_policy_version) == 1)
 		return 0;
-	return -EINVAL;
+	if (strcmp(word, "quota"))
+		return -EINVAL;
+	if (ccs_str_starts(&head->w.data, "memory "))
+		return ccs_write_memory_quota(head->w.data);
+	return ccs_write_audit_quota(head->w.data);
+}
+
+
+/**
+ * ccs_read_subgroup - Read "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
+ *
+ * @head:  Pointer to "struct ccs_io_buffer".
+ * @group: Pointer to "struct ccs_group".
+ * @idx:   One of values in "enum ccs_group_id".
+ *
+ * Returns true on success, false otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static bool ccs_read_subgroup(struct ccs_io_buffer *head,
+			      struct ccs_group *group,
+			      const enum ccs_group_id idx)
+{
+	list_for_each_cookie(head->r.acl, &group->member_list) {
+		struct ccs_acl_head *ptr =
+			list_entry(head->r.acl, typeof(*ptr), list);
+		if (ptr->is_deleted)
+			continue;
+		if (!ccs_flush(head))
+			return false;
+		ccs_set_string(head, ccs_group_name[idx]);
+		ccs_set_space(head);
+		ccs_set_string(head, group->group_name->name);
+		ccs_set_space(head);
+		if (idx == CCS_PATH_GROUP || idx == CCS_DOMAIN_GROUP) {
+			ccs_set_string(head, container_of
+				       (ptr, struct ccs_path_group,
+					head)->member_name->name);
+		} else if (idx == CCS_NUMBER_GROUP) {
+			struct ccs_number_group *e =
+				container_of(ptr, typeof(*e), head);
+			ccs_print_number(head, e->radix & 3, e->value[0]);
+			if (e->radix >> 2) {
+				ccs_set_string(head, "-");
+				ccs_print_number(head, (e->radix >> 2) & 3,
+						 e->value[1]);
+			}
+#ifdef CONFIG_CCSECURITY_NETWORK
+		} else if (idx == CCS_ADDRESS_GROUP) {
+			ccs_print_ip(head, container_of
+				     (ptr, struct ccs_address_group, head));
+#endif
+		}
+		ccs_set_lf(head);
+	}
+	head->r.acl = NULL;
+	return true;
 }
 
 /**
  * ccs_read_group - Read "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @idx:  Index number.
  *
  * Returns true on success, false otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
+static bool ccs_read_group(struct ccs_io_buffer *head)
 {
-	struct list_head *list = &ccs_group_list[idx];
-	list_for_each_cookie(head->r.group, list) {
-		struct ccs_group *group =
-			list_entry(head->r.group, typeof(*group), head.list);
-		list_for_each_cookie(head->r.acl, &group->member_list) {
-			struct ccs_acl_head *ptr =
-				list_entry(head->r.acl, typeof(*ptr), list);
-			if (ptr->is_deleted)
-				continue;
-			if (!ccs_flush(head))
+	while (head->r.step < CCS_MAX_GROUP) {
+		const enum ccs_group_id idx = head->r.step;
+		struct list_head *list = &ccs_group_list[idx];
+		list_for_each_cookie(head->r.group, list) {
+			struct ccs_group *group =
+				list_entry(head->r.group, typeof(*group),
+					   head.list);
+			if (!ccs_read_subgroup(head, group, idx))
 				return false;
-			ccs_set_string(head, ccs_group_name[idx]);
-			ccs_set_space(head);
-			ccs_set_string(head, group->group_name->name);
-			ccs_set_space(head);
-			if (idx == CCS_PATH_GROUP || idx == CCS_DOMAIN_GROUP) {
-				ccs_set_string(head, container_of
-					       (ptr, struct ccs_path_group,
-						head)->member_name->name);
-			} else if (idx == CCS_NUMBER_GROUP) {
-				struct ccs_number_group *e =
-					container_of(ptr, typeof(*e), head);
-				ccs_print_number(head, e->radix & 3,
-						 e->value[0]);
-				if (e->radix >> 2) {
-					ccs_set_string(head, "-");
-					ccs_print_number(head,
-							 (e->radix >> 2) & 3,
-							 e->value[1]);
-				}
-#ifdef CONFIG_CCSECURITY_NETWORK
-			} else if (idx == CCS_ADDRESS_GROUP) {
-				ccs_print_ip(head, container_of
-					     (ptr, struct ccs_address_group,
-					      head));
-#endif
-			}
-			ccs_set_lf(head);
 		}
-		head->r.acl = NULL;
+		head->r.group = NULL;
+		head->r.step++;
 	}
-	head->r.group = NULL;
-	ccs_set_lf(head);
+	head->r.step = 0;
 	return true;
 }
 
@@ -3310,7 +3329,7 @@ int ccs_audit_log(struct ccs_request_info *r)
 	if (!ccs_policy_loaded)
 		return 0;
 	/* Write /proc/ccs/audit unless quota exceeded. */
-	if (ccs_log_count[r->result] < r->max_log)
+	if (ccs_log_count[r->result] < ccs_log_quota[r->audit][r->result])
 		ccs_write_log(r);
 	/* Nothing more to do unless denied. */
 	if (r->result != CCS_MATCHING_DENIED)
@@ -3526,8 +3545,7 @@ static bool ccs_read_stat(struct ccs_io_buffer *head)
 			[CCS_STAT_POLICY_UPDATES] = "Policy update:",
 			[CCS_STAT_REQUEST_DENIED]  = "Requests denied:",
 		};
-		ccs_io_printf(head, "stat %-16s %10u", k[i],
-			      ccs_stat_updated[i]);
+		ccs_io_printf(head, "stat %s %u", k[i], ccs_stat_updated[i]);
 		if (ccs_stat_modified[i]) {
 			struct ccs_time stamp;
 			ccs_convert_time(ccs_stat_modified[i], &stamp);
@@ -3541,23 +3559,53 @@ static bool ccs_read_stat(struct ccs_io_buffer *head)
 	for (i = 0; i < CCS_MAX_MEMORY_STAT; i++)
 		ccs_io_printf(head, "stat Memory used by %s: %u\n",
 			      ccs_memory_headers[i], ccs_memory_used[i]);
-	for (i = 0; i < CCS_MAX_MEMORY_STAT; i++)
-		if (ccs_memory_quota[i])
-			ccs_io_printf(head, "memory quota %s %u\n",
-				      ccs_memory_headers[i],
-				      ccs_memory_quota[i]);
-	ccs_set_lf(head);
 	return true;
 }
 
 /**
- * ccs_write_quota - Set memory quota.
+ * ccs_read_quota - Read quota data.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_read_quota(struct ccs_io_buffer *head)
+{
+	unsigned int i;
+	while (head->r.step < CCS_MAX_MEMORY_STAT) {
+		i = head->r.step++;
+		if (!ccs_memory_quota[i])
+			continue;
+		ccs_io_printf(head, "quota memory %s %u\n",
+			      ccs_memory_headers[i], ccs_memory_quota[i]);
+	}
+	while (head->r.step < CCS_MAX_GROUP + CCS_MAX_MEMORY_STAT) {
+		unsigned int a;
+		unsigned int d;
+		unsigned int u;
+		if (!ccs_flush(head))
+			return false;
+		i = head->r.step - CCS_MAX_MEMORY_STAT;
+		a = ccs_log_quota[i][CCS_MATCHING_ALLOWED];
+		d = ccs_log_quota[i][CCS_MATCHING_DENIED];
+		u = ccs_log_quota[i][CCS_MATCHING_UNMATCHED];
+		if (a || d || u)
+			ccs_io_printf(head, "quota audit[%u] allowed=%u"
+				      " denied=%u unmatched=%u\n", i, a, d, u);
+		head->r.step++;
+	}
+	head->r.step = 0;
+	return true;
+}
+
+/**
+ * ccs_write_memory_quota - Set memory quota.
  *
  * @data: Line to parse.
  *
- * Returns 0.
+ * Returns 0 on success, -EINVAL otherwise.
  */
-static int ccs_write_quota(char *data)
+static int ccs_write_memory_quota(char *data)
 {
 	u8 i;
 	for (i = 0; i < CCS_MAX_MEMORY_STAT; i++)
@@ -3566,7 +3614,41 @@ static int ccs_write_quota(char *data)
 				data++;
 			ccs_memory_quota[i] =
 				simple_strtoul(data, NULL, 10);
+			return 0;
 		}
+	return -EINVAL;
+}
+
+/**
+ * ccs_write_audit_quota - Set audit log quota.
+ *
+ * @data: Line to parse.
+ *
+ * Returns 0 on success, -EINVAL otherwise.
+ */
+static int ccs_write_audit_quota(char *data)
+{
+	unsigned int i;
+	if (sscanf(data, "audit[%u]", &i) != 1 || i >= CCS_MAX_LOG_QUOTA)
+		return -EINVAL;
+	data = strchr(data, ' ');
+	if (!data++)
+		return -EINVAL;
+	while (1) {
+		unsigned int logs;
+		char *cp = strchr(data, ' ');
+		if (cp)
+			*cp++ = '\0';
+		if (sscanf(data, "allowed=%u", &logs) == 1)
+			ccs_log_quota[i][CCS_MATCHING_ALLOWED] = logs;
+		else if (sscanf(data, "denied=%u", &logs) == 1)
+			ccs_log_quota[i][CCS_MATCHING_DENIED] = logs;
+		else if (sscanf(data, "unmatched=%u", &logs) == 1)
+			ccs_log_quota[i][CCS_MATCHING_UNMATCHED] = logs;
+		if (!cp)
+			break;
+		data = cp;
+	}
 	return 0;
 }
 
@@ -3939,7 +4021,12 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 			return 0;
 		if (WARN_ON(!r->param.s[2]->name))
 			return 0;
-		return snprintf(buf, len, " name=\"%s\"", r->param.s[2]->name);
+		if (WARN_ON(!r->param.s[3]))
+			return 0;
+		if (WARN_ON(!r->param.s[3]->name))
+			return 0;
+		return snprintf(buf, len, " name=\"%s\" value=\"%s\"",
+				r->param.s[2]->name, r->param.s[3]->name);
 #endif
 	case CCS_MAC_CAPABILITY_MODIFY_POLICY:
 #ifdef CONFIG_CCSECURITY_CAPABILITY
@@ -4383,27 +4470,30 @@ static void ccs_read_policy(struct ccs_io_buffer *head)
 		goto skip;
 	if (!head->r.version_done) {
 		ccs_io_printf(head, "POLICY_VERSION=%u\n", ccs_policy_version);
-		ccs_set_lf(head);
 		head->r.version_done = true;
 	}
-	if (!head->r.stat_done)
-		head->r.stat_done = ccs_read_stat(head);
-	if (!head->r.group_done) {
-		while (head->r.step < CCS_MAX_GROUP)
-			if (!ccs_read_group(head, head->r.step))
-				return;
-			else
-				head->r.step++;
-		head->r.step = 0;
-		head->r.group_done = true;
+	if (!head->r.stat_done) {
+		ccs_read_stat(head);
+		head->r.stat_done = true;
 	}
-skip:
+	if (!head->r.quota_done) {
+		if (!ccs_read_quota(head))
+			return;
+		head->r.quota_done = true;
+	}
+	if (!head->r.group_done) {
+		if (!ccs_read_group(head))
+			return;
+		head->r.group_done = true;
+		ccs_set_lf(head);
+	}
 	while (head->r.acl_index < CCS_MAX_MAC_INDEX) {
 		struct list_head * const list =
 			&ccs_acl_list[head->r.acl_index];
 		list_for_each_cookie(head->r.acl, list) {
-			struct ccs_acl_info *ptr =
-				list_entry(head->r.acl, typeof(*ptr), list);
+			struct ccs_acl_info *ptr;
+skip:
+			ptr = list_entry(head->r.acl, typeof(*ptr), list);
 			switch (head->r.step) {
 			case 0:
 				if (ptr->is_deleted &&
@@ -4419,14 +4509,8 @@ skip:
 			case 2:
 				if (!ccs_flush(head))
 					return;
-				ccs_io_printf(head, "    audit allowed=%u "
-					      "unmatched=%u denied=%u\n",
-					      ptr->max_log
-					      [CCS_MATCHING_ALLOWED],
-					      ptr->max_log
-					      [CCS_MATCHING_UNMATCHED],
-					      ptr->max_log
-					      [CCS_MATCHING_DENIED]);
+				ccs_io_printf(head, "    audit %u\n",
+					      ptr->audit);
 				head->r.step++;
 				/* fall through */
 			case 3:
@@ -4440,15 +4524,15 @@ skip:
 				if (!ccs_flush(head))
 					return;
 				ccs_set_lf(head);
+				head->r.step = 0;
 				if (head->r.print_this_acl_only)
-					head->r.step = 6;
-				else
-					head->r.step = 0;
+					goto done;
 			}
 		}
 		head->r.acl = NULL;
 		head->r.acl_index++;
 	}
+done:
 	head->r.eof = true;
 }
 

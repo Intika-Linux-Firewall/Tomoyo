@@ -168,7 +168,7 @@ static unsigned char revalidate_path(const char *path)
 	return type;
 }
 
-/* File handle to /etc/ccs/policy/current/policy.conf . */
+/* File handle to /etc/ccs/policy/current . */
 static FILE *filp = NULL;
 
 /**
@@ -205,7 +205,7 @@ static void make_default_domain_transition(const char *path)
 	fprintf(filp, "\" transition=\"");
 	printf_encoded(path);
 	fprintf(filp, "\"\n");
-	//fprintf(filp, "    audit allowed=0 unmatched=0 denied=0\n");
+	//fprintf(filp, "    audit 0\n");
 	//fprintf(filp, "\n");
 }
 
@@ -373,19 +373,6 @@ static int mkdir2(const char *dir, int mode)
 	return mkdir(dir, mode) == 0 || errno == EEXIST ? 0 : EOF;
 }
 
-/**
- * symlink2 - symlink() with ignoring EEXIST error.
- *
- * @old: Symlink's content.
- * @new: Symlink to create.
- *
- * Returns 0 on success, EOF otehrwise.
- */
-static int symlink2(const char *old, const char *new)
-{
-	return symlink(old, new) == 0 || errno == EEXIST ? 0 : EOF;
-}
-
 /* Policy directory. Default is "/etc/ccs/". */
 static char *policy_dir = NULL;
 
@@ -403,7 +390,7 @@ static void make_policy_dir(void)
 	snprintf(stamp, sizeof(stamp) - 1, "%02d-%02d-%02d.%02d:%02d:%02d",
 		 tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour,
 		 tm->tm_min, tm->tm_sec);
-	if (!chdir(policy_dir) && !chdir("policy/current/"))
+	if (!chdir(policy_dir) && !chdir("policy"))
 		goto tools_dir;
 	fprintf(stderr, "Creating policy directory... ");
 	while (1) {
@@ -417,10 +404,7 @@ static void make_policy_dir(void)
 		*(dir - 1) = '/';
 	}
 	if (mkdir2(policy_dir, 0700) || chdir(policy_dir) ||
-	    symlink2("policy/current/policy.conf", "policy.conf") ||
-	    mkdir2("policy", 0700) || chdir("policy") || mkdir2(stamp, 0700) ||
-	    symlink2(stamp, "previous") || symlink2(stamp, "current") ||
-	    chdir(policy_dir) || chdir("policy/current/")) {
+	    mkdir2("policy", 0700) || chdir("policy")) {
 		fprintf(stderr, "failed.\n");
 		exit(1);
 	} else {
@@ -446,8 +430,8 @@ tools_dir:
  */
 static _Bool chdir_policy(void)
 {
-	if (chdir(policy_dir) || chdir("policy/current/")) {
-		fprintf(stderr, "ERROR: Can't chdir to %s/policy/current/ "
+	if (chdir(policy_dir) || chdir("policy")) {
+		fprintf(stderr, "ERROR: Can't chdir to %s/policy/ "
 			"directory.\n", policy_dir);
 		return 0;
 	}
@@ -474,7 +458,7 @@ static void close_file(FILE *fp, _Bool condition, const char *old,
 }
 
 /**
- * make_policy - Make /etc/ccs/policy/current/policy.conf .
+ * make_policy - Make /etc/ccs/policy/current .
  *
  * Returns nothing.
  */
@@ -482,9 +466,9 @@ static void make_policy(void)
 {
 	if (!chdir_policy())
 		return;
-	if (!access("policy.conf", R_OK))
+	if (!access("current", R_OK))
 		return;
-	filp = fopen("policy.tmp", "w");
+	filp = fopen("current.tmp", "w");
 	if (!filp) {
 		fprintf(stderr, "ERROR: Can't create policy.\n");
 		return;
@@ -492,8 +476,9 @@ static void make_policy(void)
 	fprintf(stderr, "Creating default policy... ");
 	fprintf(filp, "POLICY_VERSION=20100903\n");
 	fprintf(filp, "\n");
-	fprintf(filp, "memory quota audit 16777216\n");
-	fprintf(filp, "memory quota query 1048576\n");
+	fprintf(filp, "quota memory audit 16777216\n");
+	fprintf(filp, "quota memory query 1048576\n");
+	fprintf(filp, "quota audit[0] allowed=0 denied=1024 unmatched=1024\n");
 	fprintf(filp, "\n");
 	scan_modprobe_and_hotplug();
 	scan_daemons();
@@ -501,14 +486,14 @@ static void make_policy(void)
 	{
 		char *tools_dir = get_realpath("/usr/sbin");
 		fprintf(filp, "0 acl capability modify_policy\n"
-			"    audit allowed=0 unmatched=0 denied=0\n"
+			"    audit 0\n"
 			"    1 deny task.uid!=0\n"
 			"    1 deny task.euid!=0\n"
 			"    100 allow task.exe=\"%s/ccs-loadpolicy\"\n"
 			"    100 allow task.exe=\"%s/ccs-queryd\"\n"
 			"    10000 deny\n", tools_dir, tools_dir);
 	}
-	close_file(filp, chdir_policy(), "policy.tmp", "policy.conf");
+	close_file(filp, chdir_policy(), "current.tmp", "current");
 	filp = NULL;
 }
 
@@ -543,14 +528,15 @@ static void make_module_loader(void)
 static const char auditd_data[] =
 "# This file contains sorting rules used by ccs-auditd command.\n"
 "\n"
-"# An audit log consists with three lines. You can refer the first line\n"
-"# using 'header' keyword, the second line using 'domain' keyword, and the\n"
-"# third line using 'acl' keyword.\n"
+"# An audit log consists with two parts delimited by \" / \" sequence.\n"
+"# You can refer the former part using 'header' keyword, the latter part\n"
+"# using 'acl' keyword.\n"
 "#\n"
-"# Words in each line are separated by a space character. Therefore, you can\n"
-"# use 'header[index]', 'domain[index]', 'acl[index]' for referring index'th\n"
-"# word of the line. The index starts from 1, and 0 refers the whole line\n"
-"# (i.e. 'header[0]' = 'header', 'domain[0]' = 'domain', 'acl[0]' = 'acl').\n"
+"# Words in each part are separated by a space character. Therefore, you can\n"
+"# use 'header[index]', 'acl[index]' for referring index'th word of the\n"
+"# part.\n"
+"# The index starts from 1, and 0 refers the whole line\n"
+"# (i.e. 'header[0]' = 'header', 'acl[0]' = 'acl').\n"
 "#\n"
 "# Three operators are provided for conditional sorting.\n"
 "# '.contains' is for 'fgrep keyword' match.\n"
@@ -559,40 +545,36 @@ static const char auditd_data[] =
 "#\n"
 "# Sorting rules are defined using multi-lined chunks. A chunk is terminated\n"
 "# by a 'destination' line which specifies the pathname to write the audit\n"
-"# log. A 'destination' line is processed only when all preceding 'header',\n"
-"# 'domain' and 'acl' lines in that chunk have matched.\n"
+"# log. A 'destination' line is processed only when all preceding 'header'\n"
+"# and 'acl' lines in that chunk have matched.\n"
 "# Evaluation stops at the first processed 'destination' line.\n"
 "# Therefore, no audit logs are written more than once.\n"
 "#\n"
 "# More specific matches should be placed before less specific matches.\n"
 "# For example:\n"
 "#\n"
-"# header.contains mode=enforcing\n"
-"# domain.contains /usr/sbin/httpd\n"
-"# destination     /var/log/tomoyo/reject_enforcing_httpd.log\n"
+"# header.contains result=denied\n"
+"# acl.contains    task.domain=\"/usr/sbin/httpd\"\n"
+"# destination     /var/log/tomoyo/httpd_denied.log\n"
 "#\n"
 "# This chunk should be placed before the chunk that matches logs with\n"
-"# mode=enforcing. If placed after, the audit logs for /usr/sbin/httpd will "
-"# be sent to /var/log/tomoyo/reject_enforcing.log .\n"
+"# result=denied. If placed after, the audit logs for /usr/sbin/httpd will\n"
+"# be sent to /var/log/tomoyo/denied.log .\n"
 "\n"
 "# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
 "# representing a ' ' in a word).\n"
 "\n"
-"# Discard all granted logs.\n"
-"header.contains granted=yes\n"
+"# Send all allowed logs to /dev/null.\n"
+"header.contains result=allowed\n"
 "destination     /dev/null\n"
 "\n"
-"# Save rejected logs with mode=disabled to /var/log/tomoyo/reject_disabled.log\n"
-"header.contains mode=disabled\n"
-"destination     /var/log/tomoyo/reject_disabled.log\n"
+"# Send all unmatched logs to /var/log/tomoyo/unmatched.log\n"
+"header.contains result=unmatched\n"
+"destination     /var/log/tomoyo/unmatched.log\n"
 "\n"
-"# Save rejected logs with mode=permissive to /var/log/tomoyo/reject_permissive.log\n"
-"header.contains mode=permissive\n"
-"destination     /var/log/tomoyo/reject_permissive.log\n"
-"\n"
-"# Save rejected logs with mode=enforcing to /var/log/tomoyo/reject_enforcing.log\n"
-"header.contains mode=enforcing\n"
-"destination     /var/log/tomoyo/reject_enforcing.log\n"
+"# Send all denied logs to /var/log/tomoyo/denied.log\n"
+"header.contains result=denied\n"
+"destination     /var/log/tomoyo/denied.log\n"
 "\n";
 
 /**
@@ -677,8 +659,7 @@ static const char patternize_data[] =
 "\n"
 "# Files on / partition.\n"
 "rewrite tail_pattern /etc/mtab~\\$\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/policy.conf\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*/\n"
+"rewrite tail_pattern /etc/ccs/policy/\\*\n"
 "\n"
 "# Files on /tmp/ partition.\n"
 "rewrite tail_pattern /vte\\?\\?\\?\\?\\?\\?\n"

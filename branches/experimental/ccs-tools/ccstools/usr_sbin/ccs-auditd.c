@@ -37,7 +37,6 @@ static unsigned int destination_list_len = 0;
 
 enum ccs_rule_types {
 	CCS_SORT_RULE_HEADER,
-	CCS_SORT_RULE_DOMAIN,
 	CCS_SORT_RULE_ACL,
 	CCS_SORT_RULE_DESTINATION,
 };
@@ -123,8 +122,6 @@ store_destination:
 		}
 		if (ccs_str_starts(line, "header"))
 			ptr->type = CCS_SORT_RULE_HEADER;
-		else if (ccs_str_starts(line, "domain"))
-			ptr->type = CCS_SORT_RULE_DOMAIN;
 		else if (ccs_str_starts(line, "acl"))
 			ptr->type = CCS_SORT_RULE_ACL;
 		else
@@ -205,7 +202,7 @@ invalid_rule:
 	exit(1);
 }
 
-static int ccs_check_rules(char *header, char *domain, char *acl)
+static int ccs_check_rules(char *header, char *acl)
 {
 	unsigned int i;
 	_Bool matched = true;
@@ -218,9 +215,6 @@ static int ccs_check_rules(char *header, char *domain, char *acl)
 		switch (ptr->type) {
 		case CCS_SORT_RULE_HEADER:
 			line = header;
-			break;
-		case CCS_SORT_RULE_DOMAIN:
-			line = domain;
 			break;
 		case CCS_SORT_RULE_ACL:
 			line = acl;
@@ -309,10 +303,6 @@ static _Bool ccs_write_log(const int i, char *buffer)
 			return 0;
 		}
 	}
-	/*
-	 * This is OK because we read only up to sizeof(buffer) - 1 bytes.
-	 */
-	buffer[len++] = '\n';
 	do {
 		ret = write(ptr->fd, buffer, len);
 		if (ret == len)
@@ -413,7 +403,6 @@ start:
 	signal(SIGHUP, ccs_reload_config);
 	while (true) {
 		static char buffer[32768];
-		char *domain;
 		char *acl;
 		char *tail;
 		int ret;
@@ -442,26 +431,22 @@ start:
 					goto out;
 			}
 		}
-		/* Split into three lines. */
-		domain = strchr(buffer, '\n');
-		if (!domain)
-			continue;
-		*domain++ = '\0';
-		acl = strchr(domain, '\n');
+		/* Split into two parts. */
+		acl = strstr(buffer, " / ");
 		if (!acl)
 			continue;
-		*acl++ = '\0';
+		*acl = '\0';
+		acl += 3;
 		tail = strchr(acl, '\n');
 		if (!tail)
 			continue;
 		*tail = '\0';
 		block_sighup(1);
 		/* Check for filtering rules. */
-		i = ccs_check_rules(buffer, domain, acl);
+		i = ccs_check_rules(buffer, acl);
 		if (i != EOF) {
 			*tail = '\n';
-			*--acl = '\n';
-			*--domain = '\n';
+			*(acl - 3) = ' ';
 			/* Write the audit log. */
 			if (!ccs_write_log(i, buffer))
 				break;

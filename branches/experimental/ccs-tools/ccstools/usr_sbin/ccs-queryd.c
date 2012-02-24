@@ -84,8 +84,8 @@ static _Bool ccs_handle_query(unsigned int serial)
 	char *line = NULL;
 	static unsigned int prev_pid = 0;
 	unsigned int pid;
-	char pidbuf[128];
-	char *cp = strstr(ccs_buffer, " (global-pid=");
+	char qidbuf[128];
+	char *cp = strstr(ccs_buffer, " global-pid=");
 	if (!cp || sscanf(cp + 13, "%u", &pid) != 1) {
 		ccs_printw("ERROR: Unsupported query.\n");
 		return false;
@@ -103,11 +103,8 @@ static _Bool ccs_handle_query(unsigned int serial)
 		prev_pid = pid;
 	}
 	ccs_printw("%s\n", ccs_buffer);
-	/* Is this domain query? */
-	if (strstr(ccs_buffer, "\n#"))
-		goto not_domain_query;
-	memset(pidbuf, 0, sizeof(pidbuf));
-	snprintf(pidbuf, sizeof(pidbuf) - 1, "select Q=%u\n", serial);
+	memset(qidbuf, 0, sizeof(qidbuf));
+	snprintf(qidbuf, sizeof(qidbuf) - 1, "Q=%u\n", serial);
 	ccs_printw("Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy "
 		   "and retry):");
 	while (true) {
@@ -121,7 +118,7 @@ static _Bool ccs_handle_query(unsigned int serial)
 
 	if (c == 'S' || c == 's') {
 		if (ccs_network_mode) {
-			fprintf(ccs_policy_fp, "%s", pidbuf);
+			fprintf(ccs_policy_fp, "%s", qidbuf);
 			fputc(0, ccs_policy_fp);
 			fflush(ccs_policy_fp);
 			rewind(ccs_policy_fp);
@@ -134,8 +131,8 @@ static _Bool ccs_handle_query(unsigned int serial)
 				ccs_send_keepalive();
 			}
 		} else {
-			ret_ignored = write(ccs_policy_fd, pidbuf,
-					    strlen(pidbuf));
+			ret_ignored = write(ccs_policy_fd, qidbuf,
+					    strlen(qidbuf));
 			while (1) {
 				int i;
 				int len = read(ccs_policy_fd, ccs_buffer,
@@ -152,16 +149,21 @@ static _Bool ccs_handle_query(unsigned int serial)
 		c = 'r';
 	}
 
-	/* Append to domain policy. */
+	/* Append to policy. */
 	if (c != 'A' && c != 'a')
 		goto not_append;
 	c = 'r';
 	getyx(stdscr, y, x);
-	cp = strrchr(ccs_buffer, '\n');
-	if (!cp)
+	cp = strstr(ccs_buffer, " / ");
+	if (!cp++)
 		return false;
-	*cp++ = '\0';
-	ccs_initial_readline_data = cp;
+	cp = strchr(cp + 2, ' ');
+	if (!cp++)
+		return false;
+	cp = strchr(cp, ' ');
+	if (!cp++)
+		return false;
+	ccs_initial_readline_data = NULL;
 	ccs_readline_history_count =
 		ccs_add_history(cp, ccs_readline_history,
 				ccs_readline_history_count,
@@ -179,17 +181,16 @@ static _Bool ccs_handle_query(unsigned int serial)
 				ccs_readline_history_count,
 				CCS_MAX_READLINE_HISTORY);
 	if (ccs_network_mode) {
-		fprintf(ccs_policy_fp, "%s%s\n", pidbuf, line);
+		fprintf(ccs_policy_fp, "%s%s\n", qidbuf, line);
 		fflush(ccs_policy_fp);
 	} else {
-		ret_ignored = write(ccs_policy_fd, pidbuf, strlen(pidbuf));
+		ret_ignored = write(ccs_policy_fd, qidbuf, strlen(qidbuf));
 		ret_ignored = write(ccs_policy_fd, line, strlen(line));
 		ret_ignored = write(ccs_policy_fd, "\n", 1);
 	}
 	ccs_printw("Added '%s'.\n", line);
 not_append:
 	free(line);
-write_answer:
 	/* Write answer. */
 	if (c == 'Y' || c == 'y' || c == 'A' || c == 'a')
 		c = 1;
@@ -201,17 +202,6 @@ write_answer:
 	ret_ignored = write(ccs_query_fd, ccs_buffer, strlen(ccs_buffer));
 	ccs_printw("\n");
 	return true;
-not_domain_query:
-	ccs_printw("Allow? ('Y'es/'N'o/'R'etry):");
-	while (true) {
-		c = ccs_getch2();
-		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n' ||
-		    c == 'R' || c == 'r')
-			break;
-		ccs_send_keepalive();
-	}
-	ccs_printw("%c\n", c);
-	goto write_answer;
 }
 
 int main(int argc, char *argv[])

@@ -204,7 +204,8 @@ static void ccs_clear_request_info(struct ccs_request_info *r);
 static void ccs_finish_execve(int retval, struct ccs_request_info *r);
 
 #ifdef CONFIG_CCSECURITY_MISC
-static int ccs_env_perm(struct ccs_request_info *r, const char *env);
+static int ccs_env_perm(struct ccs_request_info *r, const char *name,
+			const char *value);
 static int ccs_environ(struct ccs_request_info *r);
 #endif
 
@@ -614,6 +615,7 @@ retry:
 		if (!ccs_check_entry(r, ptr))
 			continue;
 		r->matched_acl = ptr;
+		r->audit = ptr->audit;
 		r->result = CCS_MATCHING_UNMATCHED;
 		list_for_each_entry_srcu(ptr2, &ptr->acl_info_list, list,
 					 &ccs_ss) {
@@ -623,7 +625,6 @@ retry:
 				CCS_MATCHING_ALLOWED;
 			break;
 		}
-		r->max_log = ptr->max_log[r->result];
 		error = ccs_audit_log(r);
 		if (!error) {
 			/* Use the first matching domain transition entry. */
@@ -2842,20 +2843,24 @@ static int __ccs_ptrace_permission(long request, long pid)
 /**
  * ccs_env_perm - Check permission for environment variable's name.
  *
- * @r:   Pointer to "struct ccs_request_info".
- * @env: The name of environment variable.
+ * @r:     Pointer to "struct ccs_request_info".
+ * @name:  Name of environment variable. Maybe "".
+ * @value: Value of environment variable. Maybe "".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_env_perm(struct ccs_request_info *r, const char *env)
+static int ccs_env_perm(struct ccs_request_info *r, const char *name,
+			const char *value)
 {
-	struct ccs_path_info environ;
-	if (!env || !*env)
-		return 0;
-	environ.name = env;
-	ccs_fill_path_info(&environ);
+	struct ccs_path_info n;
+	struct ccs_path_info v;
+	n.name = name;
+	ccs_fill_path_info(&n);
+	v.name = value;
+	ccs_fill_path_info(&v);
 	r->type = CCS_MAC_ENVIRON;
-	r->param.s[2] = &environ;
+	r->param.s[2] = &n;
+	r->param.s[3] = &v;
 	return ccs_check_acl(r, false);
 }
 
@@ -2895,11 +2900,13 @@ static int ccs_environ(struct ccs_request_info *r)
 			continue;
 		}
 		while (offset < PAGE_SIZE) {
+			char *value;
 			const unsigned char c = env_page.data[offset++];
 			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
-				if (c == '=') {
-					arg_ptr[arg_len++] = '\0';
-				} else if (c > ' ' && c < 127 && c != '\\') {
+				//if (c == '=') {
+				//arg_ptr[arg_len++] = '\0';
+				//} else 
+				if (c > ' ' && c < 127 && c != '\\') {
 					arg_ptr[arg_len++] = c;
 				} else {
 					arg_ptr[arg_len++] = '\\';
@@ -2913,7 +2920,12 @@ static int ccs_environ(struct ccs_request_info *r)
 			}
 			if (c)
 				continue;
-			if (ccs_env_perm(r, arg_ptr)) {
+			value = strchr(arg_ptr, '=');
+			if (value)
+				*value++ = '\0';
+			else
+				value = "";
+			if (ccs_env_perm(r, arg_ptr, value)) {
 				error = -EPERM;
 				break;
 			}
@@ -3366,6 +3378,9 @@ not_single_value:
 		break;
 	case CCS_COND_SARG2:
 		arg->name = r->param.s[2];
+		break;
+	case CCS_COND_SARG3:
+		arg->name = r->param.s[3];
 		break;
 	case CCS_ENVP_ENTRY:
 	case CCS_IMM_NAME_ENTRY:

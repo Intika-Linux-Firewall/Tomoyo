@@ -52,23 +52,20 @@ static _Bool ccs_save_policy(void)
 	while (1) {
 		struct tm *tm = localtime(&now);
 		snprintf(stamp, sizeof(stamp) - 1,
-			 "%02d-%02d-%02d.%02d:%02d:%02d/",
+			 "%02d-%02d-%02d.%02d:%02d:%02d",
 			 tm->tm_year % 100, tm->tm_mon + 1, tm->tm_mday,
 			 tm->tm_hour, tm->tm_min, tm->tm_sec);
-		if (!mkdir(stamp, 0700))
+		if (access(stamp, F_OK))
 			break;
 		else if (errno == EEXIST)
 			now++;
 		else {
-			fprintf(stderr, "Can't create %s/%s .\n",
+			fprintf(stderr, "Can't create %s/policy/%s .\n",
 				ccs_policy_dir, stamp);
 			return false;
 		}
 	}
-	if ((symlink("policy/current/policy.conf", "../policy.conf") &&
-	     errno != EEXIST) || chdir(stamp) ||
-	    !ccs_move_proc_to_file(CCS_PROC_POLICY_POLICY, "policy.conf") ||
-	    chdir("..") ||
+	if (!ccs_move_proc_to_file(CCS_PROC_POLICY_POLICY, stamp) ||
 	    (rename("current", "previous") && errno != ENOENT) ||
 	    symlink(stamp, "current")) {
 		fprintf(stderr, "Failed to save policy.\n");

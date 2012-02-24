@@ -48,7 +48,7 @@ static void panic(void)
 		sleep(100);
 }
 
-#define policy_dir  "/etc/ccs/"
+#define policy_dir  "/etc/ccs/policy"
 #define proc_policy "/proc/ccs/policy"
 static _Bool proc_unmount = 0;
 
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 
 	/* Load policy. */
 	if (!chdir(policy_dir))
-		copy_files("policy.conf", proc_policy);
+		copy_files("current", proc_policy);
 
 	/* Do additional initialization. */
 	if (!access("/etc/ccs/ccs-post-init", X_OK)) {
