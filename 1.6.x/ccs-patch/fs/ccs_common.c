@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.6.9+   2011/05/05
+ * Version: 1.6.9+   2012/02/29
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2612,7 +2612,7 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.9+   2011/05/05\n");
+	printk(KERN_INFO "SAKURA: 1.6.9+   2012/02/29\n");
 #endif
 #ifdef CONFIG_TOMOYO
 	printk(KERN_INFO "TOMOYO: 1.6.9+   2011/05/05\n");

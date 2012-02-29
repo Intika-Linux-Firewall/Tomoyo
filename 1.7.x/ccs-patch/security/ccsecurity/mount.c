@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/mount.c
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.7.3   2011/04/01
+ * Version: 1.7.3+   2012/02/29
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -231,71 +231,43 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 			 struct path *dir, char *type, unsigned long flags)
 {
 	int error;
-	error = -EPERM;
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;
-	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
-	case MS_REMOUNT:
-	case MS_MOVE:
-	case MS_BIND:
-	case 0:
-		break;
-	default:
-		printk(KERN_WARNING "ERROR: "
-		       "%s%s%sare given for single mount operation.\n",
-		       flags & MS_REMOUNT ? "'remount' " : "",
-		       flags & MS_MOVE    ? "'move' " : "",
-		       flags & MS_BIND    ? "'bind' " : "");
-		return -EINVAL;
+	if (flags & MS_REMOUNT) {
+		type = CCS_MOUNT_REMOUNT_KEYWORD;
+		flags &= ~MS_REMOUNT;
+	} else if (flags & MS_BIND) {
+		type = CCS_MOUNT_BIND_KEYWORD;
+		flags &= ~MS_BIND;
+	} else if (flags & MS_SHARED) {
+		if (flags & (MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
+			return -EINVAL;
+		type = CCS_MOUNT_MAKE_SHARED_KEYWORD;
+		flags &= ~MS_SHARED;
+	} else if (flags & MS_PRIVATE) {
+		if (flags & (MS_SHARED | MS_SLAVE | MS_UNBINDABLE))
+			return -EINVAL;
+		type = CCS_MOUNT_MAKE_PRIVATE_KEYWORD;
+		flags &= ~MS_PRIVATE;
+	} else if (flags & MS_SLAVE) {
+		if (flags & (MS_SHARED | MS_PRIVATE | MS_UNBINDABLE))
+			return -EINVAL;
+		type = CCS_MOUNT_MAKE_SLAVE_KEYWORD;
+		flags &= ~MS_SLAVE;
+	} else if (flags & MS_UNBINDABLE) {
+		if (flags & (MS_SHARED | MS_PRIVATE | MS_SLAVE))
+			return -EINVAL;
+		type = CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD;
+		flags &= ~MS_UNBINDABLE;
+	} else if (flags & MS_MOVE) {
+		type = CCS_MOUNT_MOVE_KEYWORD;
+		flags &= ~MS_MOVE;
 	}
-	switch (flags & (MS_UNBINDABLE | MS_PRIVATE | MS_SLAVE | MS_SHARED)) {
-	case MS_UNBINDABLE:
-	case MS_PRIVATE:
-	case MS_SLAVE:
-	case MS_SHARED:
-	case 0:
-		break;
-	default:
-		printk(KERN_WARNING "ERROR: "
-		       "%s%s%s%sare given for single mount operation.\n",
-		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
-		       flags & MS_PRIVATE    ? "'private' " : "",
-		       flags & MS_SLAVE      ? "'slave' " : "",
-		       flags & MS_SHARED     ? "'shared' " : "");
-		return -EINVAL;
-	}
-	if (flags & MS_REMOUNT)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_REMOUNT_KEYWORD,
-				      flags & ~MS_REMOUNT);
-	else if (flags & MS_MOVE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MOVE_KEYWORD,
-				      flags & ~MS_MOVE);
-	else if (flags & MS_BIND)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_BIND_KEYWORD,
-				      flags & ~MS_BIND);
-	else if (flags & MS_UNBINDABLE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD,
-				      flags & ~MS_UNBINDABLE);
-	else if (flags & MS_PRIVATE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_PRIVATE_KEYWORD,
-				      flags & ~MS_PRIVATE);
-	else if (flags & MS_SLAVE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_SLAVE_KEYWORD,
-				      flags & ~MS_SLAVE);
-	else if (flags & MS_SHARED)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_SHARED_KEYWORD,
-				      flags & ~MS_SHARED);
-	else
-		do {
-			error = ccs_mount_acl2(r, dev_name, dir, type, flags);
-		} while (error == CCS_RETRY_REQUEST);
+	if (!type)
+		type = "<NULL>";
+	do {
+		error = ccs_mount_acl2(r, dev_name, dir, type, flags);
+	} while (error == CCS_RETRY_REQUEST);
 	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
