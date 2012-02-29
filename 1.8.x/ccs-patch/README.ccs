@@ -3080,7 +3080,7 @@ Fix 2012/02/25
       started to experience the kernel panic, please check whether renumbering
       was backported or not.
 
-Fix 2012/02/28
+Fix 2012/02/29
 
     @ Fix mount flags checking order.
 
@@ -3095,6 +3095,10 @@ Fix 2012/02/28
       which should not be checked for MS_REMOUNT was checked because MS_BIND/
       MS_MOVE had higher priority than MS_REMOUNT.
 
-      Fix these bugs by changing priority to MS_REMOUNT -> MS_BIND -> MS_SHARED
-      -> MS_PRIVATE -> MS_SLAVE -> MS_UNBINDABLE -> MS_MOVE as with do_mount()
-      does.
+      Fix these bugs by changing priority to MS_REMOUNT -> MS_BIND ->
+      MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE -> MS_MOVE as with do_mount()
+      does. Also, I changed to unconditionally return -EINVAL if more than one
+      of MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE is passed so that TOMOYO
+      will not generate inaccurate audit logs, for commit 7a2e8a8f "VFS: Sanity
+      check mount flags passed to change_mnt_propagation()" clarified that
+      these flags must be exclusively passed.
