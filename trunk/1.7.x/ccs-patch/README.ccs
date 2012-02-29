@@ -2486,3 +2486,22 @@ Fix 2011/05/05
 
       Profile number used for "allow_execute" permission was by error reused
       when generating audit logs for "allow_env" permission.
+
+Fix 2012/02/29
+
+    @ Fix mount flags checking order.
+
+      Userspace can pass in arbitrary combinations of MS_* flags to mount().
+
+      If both MS_BIND and one of MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE
+      are passed, device name which should be checked for MS_BIND was not
+      checked because MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE had higher
+      priority than MS_BIND.
+
+      If both one of MS_BIND/MS_MOVE and MS_REMOUNT are passed, device name
+      which should not be checked for MS_REMOUNT was checked because MS_BIND/
+      MS_MOVE had higher priority than MS_REMOUNT.
+
+      Fix these bugs by changing priority to MS_REMOUNT -> MS_BIND ->
+      MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE -> MS_MOVE as with do_mount()
+      does.

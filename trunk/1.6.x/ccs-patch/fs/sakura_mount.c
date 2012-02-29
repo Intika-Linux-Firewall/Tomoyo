@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Free Mandatory Access Control.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.6.9   2011/04/01
+ * Version: 1.6.9+   2012/02/29
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -319,69 +319,41 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 	int error;
  retry:
 	error = -EPERM;
-	if (!type)
-		type = "<NULL>";
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;
-	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
-	case MS_REMOUNT:
-	case MS_MOVE:
-	case MS_BIND:
-	case 0:
-		break;
-	default:
-		printk(KERN_WARNING "SAKURA-ERROR: "
-		       "%s%s%sare given for single mount operation.\n",
-		       flags & MS_REMOUNT ? "'remount' " : "",
-		       flags & MS_MOVE    ? "'move' " : "",
-		       flags & MS_BIND    ? "'bind' " : "");
-		return -EINVAL;
-	}
-	switch (flags & (MS_UNBINDABLE | MS_PRIVATE | MS_SLAVE | MS_SHARED)) {
-	case MS_UNBINDABLE:
-	case MS_PRIVATE:
-	case MS_SLAVE:
-	case MS_SHARED:
-	case 0:
-		break;
-	default:
-		printk(KERN_WARNING "SAKURA-ERROR: "
-		       "%s%s%s%sare given for single mount operation.\n",
-		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
-		       flags & MS_PRIVATE    ? "'private' " : "",
-		       flags & MS_SLAVE      ? "'slave' " : "",
-		       flags & MS_SHARED     ? "'shared' " : "");
-		return -EINVAL;
-	}
 	if (flags & MS_REMOUNT) {
-		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_REMOUNT_KEYWORD,
-						    flags & ~MS_REMOUNT);
-	} else if (flags & MS_MOVE) {
-		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MOVE_KEYWORD,
-						    flags & ~MS_MOVE);
+		type = MOUNT_REMOUNT_KEYWORD;
+		flags &= ~MS_REMOUNT;
 	} else if (flags & MS_BIND) {
-		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_BIND_KEYWORD,
-						    flags & ~MS_BIND);
-	} else if (flags & MS_UNBINDABLE) {
-		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-					    MOUNT_MAKE_UNBINDABLE_KEYWORD,
-						    flags & ~MS_UNBINDABLE);
-	} else if (flags & MS_PRIVATE) {
-		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MAKE_PRIVATE_KEYWORD,
-						    flags & ~MS_PRIVATE);
-	} else if (flags & MS_SLAVE) {
-		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MAKE_SLAVE_KEYWORD,
-						    flags & ~MS_SLAVE);
+		type = MOUNT_BIND_KEYWORD;
+		flags &= ~MS_BIND;
 	} else if (flags & MS_SHARED) {
-		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MAKE_SHARED_KEYWORD,
-						    flags & ~MS_SHARED);
-	} else {
+		if (flags & (MS_PRIVATE | MS_SLAVE | MS_UNBINDABLE))
+			return -EINVAL;
+		type = MOUNT_MAKE_SHARED_KEYWORD;
+		flags &= ~MS_SHARED;
+	} else if (flags & MS_PRIVATE) {
+		if (flags & (MS_SHARED | MS_SLAVE | MS_UNBINDABLE))
+			return -EINVAL;
+		type = MOUNT_MAKE_PRIVATE_KEYWORD;
+		flags &= ~MS_PRIVATE;
+	} else if (flags & MS_SLAVE) {
+		if (flags & (MS_SHARED | MS_PRIVATE | MS_UNBINDABLE))
+			return -EINVAL;
+		type = MOUNT_MAKE_SLAVE_KEYWORD;
+		flags &= ~MS_SLAVE;
+	} else if (flags & MS_UNBINDABLE) {
+		if (flags & (MS_SHARED | MS_PRIVATE | MS_SLAVE))
+			return -EINVAL;
+		type = MOUNT_MAKE_UNBINDABLE_KEYWORD;
+		flags &= ~MS_UNBINDABLE;
+	} else if (flags & MS_MOVE) {
+		type = MOUNT_MOVE_KEYWORD;
+		flags &= ~MS_MOVE;
+	}
+	if (!type)
+		type = "<NULL>";
+	{
 		struct ccs_mount_entry *ptr;
 		struct file_system_type *fstype = NULL;
 		const char *requested_type = NULL;
