@@ -2055,14 +2055,9 @@ Fix 2012/02/29
 
       Userspace can pass in arbitrary combinations of MS_* flags to mount().
 
-      If both MS_BIND and one of MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE
-      are passed, device name which should be checked for MS_BIND was not
-      checked because MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE had higher
-      priority than MS_BIND.
-
-      If both one of MS_BIND/MS_MOVE and MS_REMOUNT are passed, device name
-      which should not be checked for MS_REMOUNT was checked because MS_BIND/
-      MS_MOVE had higher priority than MS_REMOUNT.
+      It is legal to pass both MS_BIND and MS_REMOUNT at the same time, but
+      current code was rejecting such request. Also, if multiple MS_* flags are
+      passed, the resulting permission check was inaccurate.
 
       Fix these bugs by changing priority to MS_REMOUNT -> MS_BIND ->
       MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE -> MS_MOVE as with do_mount()
