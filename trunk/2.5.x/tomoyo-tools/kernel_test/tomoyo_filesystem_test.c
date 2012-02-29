@@ -1,9 +1,9 @@
 /*
  * ccs_filesystem_test.c
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2012/02/29
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -30,6 +30,18 @@ static void show_prompt(const char *str, const int should_fail)
 
 #ifndef MS_MOVE
 #define MS_MOVE         8192
+#endif
+#ifndef MS_UNBINDABLE
+#define MS_UNBINDABLE   (1<<17)
+#endif
+#ifndef MS_PRIVATE
+#define MS_PRIVATE      (1<<18)
+#endif
+#ifndef MS_SLAVE
+#define MS_SLAVE        (1<<19)
+#endif
+#ifndef MS_SHARED
+#define MS_SHARED       (1<<20)
 #endif
 
 static int child(void *arg)
@@ -458,6 +470,94 @@ int main(int argc, char *argv[])
 		fprintf(domain_fp, "delete file unmount /tmp/mount/\n");
 		fprintf(domain_fp, "delete file mount /tmp/mount/ "
 			"/tmp/mount_move/ --move 0\n");
+
+		fprintf(domain_fp, "file mount something /tmp/mount/ tmpfs"
+			" 0\n");
+		mount2("none", "/tmp/mount/", "tmpfs");
+		fprintf(domain_fp, "delete file mount something /tmp/mount/"
+			" tmpfs 0\n");
+
+		/* Tests for shared subtree case. */
+		set_profile(0, "file::mount");
+		mount2("none", "/tmp/mount/", "tmpfs");
+		set_profile(3, "file::mount");
+		/* Test private case */
+		fprintf(domain_fp, "file mount something /tmp/mount/"
+			" --make-private 0\n");
+		show_prompt("mount('/tmp/mount/', MS_PRIVATE)", 0);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE, NULL))
+			printf("BUG: %s\n", strerror(errno));
+		else
+			printf("OK: Success.\n");
+		fprintf(domain_fp, "delete file mount something"
+			" /tmp/mount/ --make-private 0\n");
+		show_prompt("mount('/tmp/mount/', MS_PRIVATE)", 1);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE, NULL) == EOF
+		    && errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+		
+		/* Test shared case */
+		fprintf(domain_fp, "file mount something /tmp/mount/"
+			" --make-shared 0\n");
+		show_prompt("mount('/tmp/mount/', MS_SHARED)", 0);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_SHARED, NULL))
+			printf("BUG: %s\n", strerror(errno));
+		else
+			printf("OK: Success.\n");
+		fprintf(domain_fp, "delete file mount something"
+			" /tmp/mount/ --make-shared 0\n");
+		show_prompt("mount('/tmp/mount/', MS_SHARED)", 1);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_SHARED, NULL) == EOF &&
+		    errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+		
+		/* Test slave case */
+		fprintf(domain_fp, "file mount something /tmp/mount/"
+			" --make-slave 0\n");
+		show_prompt("mount('/tmp/mount/', MS_SLAVE)", 0);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_SLAVE, NULL))
+			printf("BUG: %s\n", strerror(errno));
+		else
+			printf("OK: Success.\n");
+		fprintf(domain_fp, "delete file mount something"
+			" /tmp/mount/ --make-slave 0\n");
+		show_prompt("mount('/tmp/mount/', MS_SLAVE)", 1);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_SLAVE, NULL) == EOF &&
+		    errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+
+		/* Test unbindable case */
+		fprintf(domain_fp, "file mount something /tmp/mount/"
+			" --make-unbindable 0\n");
+		show_prompt("mount('/tmp/mount/', MS_UNBINDABLE)", 0);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_UNBINDABLE, NULL))
+			printf("BUG: %s\n", strerror(errno));
+		else
+			printf("OK: Success.\n");
+		fprintf(domain_fp, "delete file mount something"
+			" /tmp/mount/ --make-unbindable 0\n");
+		show_prompt("mount('/tmp/mount/', MS_UNBINDABLE)", 1);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_UNBINDABLE,
+			  NULL) == EOF && errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+
+		/* Test invalid case */
+		show_prompt("mount('/tmp/mount/', MS_PRIVATE | MS_SHARED)", 1);
+		if (mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE | MS_SHARED,
+			  NULL) == EOF && errno == EINVAL)
+			printf("OK: Invalid argument.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+
+		set_profile(0, "file::mount");
 
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
