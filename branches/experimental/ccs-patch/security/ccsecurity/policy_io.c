@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2011/12/13
+ * Version: 1.8.3+   2012/02/29
  */
 
 #include "internal.h"
@@ -2497,7 +2497,7 @@ static bool ccs_set_lf(struct ccs_io_buffer *head)
 static void ccs_check_profile(void)
 {
 	ccs_policy_loaded = true;
-	printk(KERN_INFO "CCSecurity: 1.8.3+   2011/12/13\n");
+	printk(KERN_INFO "CCSecurity: 1.8.3+   2012/02/29\n");
 	if (ccs_policy_version == 20100903) {
 		printk(KERN_INFO "Mandatory Access Control activated.\n");
 		return;
