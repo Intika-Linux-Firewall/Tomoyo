@@ -39,7 +39,7 @@ static _Bool ccs_cat_file(const char *path)
 		if (c == EOF)
 			break;
 		if (putchar(c) == EOF)
-			result = false;;
+			result = false;
 	}
 	fclose(fp);
 	return result;
