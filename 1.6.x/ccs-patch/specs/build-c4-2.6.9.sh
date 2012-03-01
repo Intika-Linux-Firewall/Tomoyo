@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.9-103.EL.src.rpm ]
 then
-    wget http://vault.centos.org/4.8/updates/SRPMS/kernel-2.6.9-103.EL.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/4.9/updates/SRPMS/kernel-2.6.9-103.EL.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-2.6.9-103.EL.src.rpm || die "Can't install source package."
 

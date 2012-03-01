@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.7.3
-Release: 1
+Release: 2
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.3-1
+Conflicts: ccs-tools < 1.7.3-2
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.3-20110401.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.3-20120301.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,6 +41,12 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Thu Mar 01 2012 1.7.3-2
+- Fix ccs-checkpolicy number_group validation failure.
+- Let ccs-editpolicy allow optimization command to exception policy.
+- Fix ccs-editpolicy wrong copy to buffer command from Process State Viewer mode.
+- Let init_policy generate wildcarded allow_read entries.
+
 * Fri Apr 01 2011 1.7.3-1
 - Fix convert-audit-log bad exec.envp[] handling.
 

@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.7.3   2011/04/01
+ * Version: 1.7.3+   2012/03/01
  *
  */
 #include "ccstools.h"
