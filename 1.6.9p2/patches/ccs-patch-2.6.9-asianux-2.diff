@@ -1,0 +1,1613 @@
+This is TOMOYO Linux patch for Asianux 2.0.
+
+Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-89.19.AXS2.src.rpm
+---
+ arch/alpha/kernel/ptrace.c         |    3 ++
+ arch/arm/kernel/ptrace.c           |    3 ++
+ arch/arm26/kernel/ptrace.c         |    3 ++
+ arch/cris/arch-v10/kernel/ptrace.c |    3 ++
+ arch/h8300/kernel/ptrace.c         |    3 ++
+ arch/i386/kernel/ptrace.c          |    3 ++
+ arch/ia64/ia32/sys_ia32.c          |    3 ++
+ arch/ia64/kernel/ptrace.c          |    3 ++
+ arch/m32r/kernel/ptrace.c          |    3 ++
+ arch/m68k/kernel/ptrace.c          |    3 ++
+ arch/m68knommu/kernel/ptrace.c     |    3 ++
+ arch/mips/kernel/ptrace.c          |    3 ++
+ arch/mips/kernel/ptrace32.c        |    3 ++
+ arch/parisc/kernel/ptrace.c        |    3 ++
+ arch/ppc/kernel/ptrace.c           |    3 ++
+ arch/ppc64/kernel/ptrace.c         |    3 ++
+ arch/ppc64/kernel/ptrace32.c       |    3 ++
+ arch/s390/kernel/ptrace.c          |    3 ++
+ arch/sh/kernel/ptrace.c            |    3 ++
+ arch/sh64/kernel/ptrace.c          |    3 ++
+ arch/sparc/kernel/ptrace.c         |    5 ++++
+ arch/sparc64/kernel/ptrace.c       |    5 ++++
+ arch/um/kernel/ptrace.c            |    3 ++
+ arch/v850/kernel/ptrace.c          |    3 ++
+ arch/x86_64/ia32/ptrace32.c        |    3 ++
+ arch/x86_64/kernel/ptrace.c        |    3 ++
+ fs/Kconfig                         |    2 +
+ fs/Makefile                        |    1 
+ fs/attr.c                          |   13 ++++++++++++
+ fs/compat.c                        |   12 +++++++++--
+ fs/exec.c                          |   17 ++++++++++++++--
+ fs/fcntl.c                         |    4 +++
+ fs/ioctl.c                         |    7 ++++++
+ fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                     |   29 +++++++++++++++++++++++++++-
+ fs/open.c                          |   15 ++++++++++++++
+ fs/proc/Makefile                   |    3 ++
+ fs/proc/proc_misc.c                |    3 ++
+ include/linux/init_task.h          |    2 +
+ include/linux/sched.h              |    4 +++
+ kernel/compat.c                    |    3 ++
+ kernel/kmod.c                      |    3 ++
+ kernel/module.c                    |    7 ++++--
+ kernel/sched.c                     |    3 ++
+ kernel/signal.c                    |   14 +++++++++++++
+ kernel/sys.c                       |   11 ++++++++++
+ kernel/sysctl.c                    |   13 +++++++++++-
+ kernel/time.c                      |    7 ++++++
+ net/ipv4/raw.c                     |    4 +++
+ net/ipv4/tcp_ipv4.c                |    5 ++++
+ net/ipv4/udp.c                     |   11 +++++++++-
+ net/ipv6/raw.c                     |    4 +++
+ net/ipv6/tcp_ipv6.c                |    3 ++
+ net/ipv6/udp.c                     |    9 ++++++++
+ net/socket.c                       |   29 +++++++++++++++++++++++++---
+ net/unix/af_unix.c                 |    4 +++
+ 56 files changed, 350 insertions(+), 12 deletions(-)
+
+--- linux-2.6.9-89.19.AXS2.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/alpha/kernel/ptrace.c
+@@ -19,6 +19,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/fpu.h>
++#include <linux/tomoyo.h>
+ 
+ #include "proto.h"
+ 
+@@ -260,6 +261,8 @@ do_sys_ptrace(long request, long pid, lo
+ 	unsigned long tmp;
+ 	size_t copied;
+ 	long ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
+--- linux-2.6.9-89.19.AXS2.orig/arch/arm/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/arm/kernel/ptrace.c
+@@ -23,6 +23,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/traps.h>
++#include <linux/tomoyo.h>
+ 
+ #include "ptrace.h"
+ 
+@@ -731,6 +732,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/arm26/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/arm26/kernel/ptrace.c
+@@ -23,6 +23,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ //#include <asm/processor.h>
++#include <linux/tomoyo.h>
+ 
+ #include "ptrace.h"
+ 
+@@ -668,6 +669,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/cris/arch-v10/kernel/ptrace.c
+@@ -16,6 +16,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++#include <linux/tomoyo.h>
+ 
+ /* 
+  * Determines which bits in DCCR the user has access to.
+@@ -50,6 +51,8 @@ sys_ptrace(long request, long pid, long 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/h8300/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/h8300/kernel/ptrace.c
+@@ -31,6 +31,7 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/signal.h>
++#include <linux/tomoyo.h>
+ 
+ /* cpu depend functions */
+ extern long h8300_get_reg(struct task_struct *task, int regno);
+@@ -60,6 +61,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/i386/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/i386/kernel/ptrace.c
+@@ -24,6 +24,7 @@
+ #include <asm/debugreg.h>
+ #include <asm/ldt.h>
+ #include <asm/desc.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -237,6 +238,8 @@ asmlinkage int sys_ptrace(long request, 
+ 	struct user * dummy = NULL;
+ 	int i, ret;
+ 	unsigned long __user *datap = (unsigned long __user *)data;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.9-89.19.AXS2/arch/ia64/ia32/sys_ia32.c
+@@ -56,6 +56,7 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/tomoyo.h>
+ 
+ #include "ia32priv.h"
+ 
+@@ -1769,6 +1770,8 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.9-89.19.AXS2.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/ia64/kernel/ptrace.c
+@@ -29,6 +29,7 @@
+ #ifdef CONFIG_PERFMON
+ #include <asm/perfmon.h>
+ #endif
++#include <linux/tomoyo.h>
+ 
+ #include "entry.h"
+ 
+@@ -1288,6 +1289,8 @@ sys_ptrace (long request, pid_t pid, uns
+ 	struct task_struct *rbs_child;
+ 	struct switch_stack *sw;
+ 	long ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/m32r/kernel/ptrace.c
+@@ -32,6 +32,7 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * Get the address of the live pt_regs for the specified task.
+@@ -787,6 +788,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/m68k/kernel/ptrace.c
+@@ -25,6 +25,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -120,6 +121,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/m68knommu/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/m68knommu/kernel/ptrace.c
+@@ -25,6 +25,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/processor.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -104,6 +105,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/mips/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/mips/kernel/ptrace.c
+@@ -34,6 +34,7 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * Called by kernel/ptrace.c when detaching..
+@@ -49,6 +50,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.9-89.19.AXS2.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.9-89.19.AXS2/arch/mips/kernel/ptrace32.c
+@@ -33,6 +33,7 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * Tracing a 32-bit process with a 64-bit strace and vice versa will not
+@@ -42,6 +43,8 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.9-89.19.AXS2.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/parisc/kernel/ptrace.c
+@@ -23,6 +23,7 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/offsets.h>
++#include <linux/tomoyo.h>
+ 
+ /* PSW bits we allow the debugger to modify */
+ #define USER_PSW_BITS	(PSW_N | PSW_V | PSW_CB)
+@@ -84,6 +85,8 @@ long sys_ptrace(long request, pid_t pid,
+ #ifdef DEBUG_PTRACE
+ 	long oaddr=addr, odata=data;
+ #endif
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/ppc/kernel/ptrace.c
+@@ -31,6 +31,7 @@
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * Set of msr bits that gdb can change on behalf of a process.
+@@ -239,6 +240,8 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.9-89.19.AXS2.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/ppc64/kernel/ptrace.c
+@@ -33,6 +33,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/ptrace-common.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -54,6 +55,8 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.9-89.19.AXS2.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.9-89.19.AXS2/arch/ppc64/kernel/ptrace32.c
+@@ -32,6 +32,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/ptrace-common.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -42,6 +43,8 @@ int sys32_ptrace(long request, long pid,
+ {
+ 	struct task_struct *child;
+ 	int ret = -EPERM;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.9-89.19.AXS2.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/s390/kernel/ptrace.c
+@@ -39,6 +39,7 @@
+ #include <asm/pgalloc.h>
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
++#include <linux/tomoyo.h>
+ 
+ #ifdef CONFIG_S390_SUPPORT
+ #include "compat_ptrace.h"
+@@ -733,6 +734,8 @@ sys_ptrace(long request, long pid, long 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 
+--- linux-2.6.9-89.19.AXS2.orig/arch/sh/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/sh/kernel/ptrace.c
+@@ -28,6 +28,7 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -85,6 +86,8 @@ asmlinkage int sys_ptrace(long request, 
+ 	struct task_struct *child;
+ 	struct user * dummy = NULL;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/sh64/kernel/ptrace.c
+@@ -34,6 +34,7 @@
+ #include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
++#include <linux/tomoyo.h>
+ 
+ /* This mask defines the bits of the SR which the user is not allowed to
+    change, which are everything except S, Q, M, PR, SZ, FR. */
+@@ -124,6 +125,8 @@ asmlinkage int sys_ptrace(long request, 
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/sparc/kernel/ptrace.c
+@@ -22,6 +22,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
++#include <linux/tomoyo.h>
+ 
+ #define MAGIC_CONSTANT 0x80000000
+ 
+@@ -266,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
+ 
+ 	lock_kernel();
+ #ifdef DEBUG_PTRACE
+--- linux-2.6.9-89.19.AXS2.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/sparc64/kernel/ptrace.c
+@@ -27,6 +27,7 @@
+ #include <asm/psrcompat.h>
+ #include <asm/visasm.h>
+ #include <asm/spitfire.h>
++#include <linux/tomoyo.h>
+ 
+ /* Returning from ptrace is a bit tricky because the syscall return
+  * low level code assumes any value returned which is negative and
+@@ -112,6 +113,10 @@ asmlinkage void do_ptrace(struct pt_regs
+ 	unsigned long addr2 = regs->u_regs[UREG_I4];
+ 	struct task_struct *child;
+ 	int ret;
++	if (!ccs_capable(CCS_SYS_PTRACE)) {
++		pt_error_return(regs, EPERM);
++		return;
++	}
+ 
+ 	if (test_thread_flag(TIF_32BIT)) {
+ 		addr &= 0xffffffffUL;
+--- linux-2.6.9-89.19.AXS2.orig/arch/um/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/um/kernel/ptrace.c
+@@ -16,6 +16,7 @@
+ #include "asm/uaccess.h"
+ #include "kern_util.h"
+ #include "ptrace_user.h"
++#include <linux/tomoyo.h>
+ 
+ /*
+  * Called by kernel/ptrace.c when detaching..
+@@ -28,6 +29,8 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int i, ret;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	ret = -EPERM;
+--- linux-2.6.9-89.19.AXS2.orig/arch/v850/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/v850/kernel/ptrace.c
+@@ -28,6 +28,7 @@
+ #include <asm/ptrace.h>
+ #include <asm/processor.h>
+ #include <asm/uaccess.h>
++#include <linux/tomoyo.h>
+ 
+ /* Returns the address where the register at REG_OFFS in P is stashed away.  */
+ static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
+@@ -116,6 +117,8 @@ int sys_ptrace(long request, long pid, l
+ {
+ 	struct task_struct *child;
+ 	int rval;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 
+--- linux-2.6.9-89.19.AXS2.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.9-89.19.AXS2/arch/x86_64/ia32/ptrace32.c
+@@ -27,6 +27,7 @@
+ #include <asm/debugreg.h>
+ #include <asm/i387.h>
+ #include <asm/fpu32.h>
++#include <linux/tomoyo.h>
+ 
+ /* determines which flags the user has access to. */
+ /* 1 = access 0 = no access */
+@@ -240,6 +241,8 @@ asmlinkage long sys32_ptrace(long reques
+ 	void __user *datap = compat_ptr(data);
+ 	int ret;
+ 	__u32 val;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	switch (request) { 
+ 	default:
+--- linux-2.6.9-89.19.AXS2.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.6.9-89.19.AXS2/arch/x86_64/kernel/ptrace.c
+@@ -28,6 +28,7 @@
+ #include <asm/desc.h>
+ #include <asm/proto.h>
+ #include <asm/ia32.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * does not yet catch signals sent when the child dies.
+@@ -203,6 +204,8 @@ asmlinkage long sys_ptrace(long request,
+ 	struct task_struct *child;
+ 	long i, ret;
+ 	unsigned ui;
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
+ 
+ 	/* This lock_kernel fixes a subtle race with suid exec */
+ 	lock_kernel();
+--- linux-2.6.9-89.19.AXS2.orig/fs/Kconfig
++++ linux-2.6.9-89.19.AXS2/fs/Kconfig
+@@ -1972,5 +1972,7 @@ endmenu
+ 
+ source "fs/nls/Kconfig"
+ 
++source "fs/Kconfig.ccs"
++
+ endmenu
+ 
+--- linux-2.6.9-89.19.AXS2.orig/fs/Makefile
++++ linux-2.6.9-89.19.AXS2/fs/Makefile
+@@ -97,3 +97,4 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+ obj-$(CONFIG_RELAYFS_FS)	+= relayfs/
+ obj-$(CONFIG_CONFIGFS_FS)	+= configfs/
+ obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
++include $(srctree)/fs/Makefile-2.6.ccs
+--- linux-2.6.9-89.19.AXS2.orig/fs/attr.c
++++ linux-2.6.9-89.19.AXS2/fs/attr.c
+@@ -16,6 +16,7 @@
+ #include <linux/security.h>
+ #include <linux/time.h>
+ #include <linux/audit.h>
++#include <linux/tomoyo.h>
+ 
+ /* Taken over from the old code... */
+ 
+@@ -195,12 +196,24 @@ int notify_change(struct dentry * dentry
+ 	if (inode->i_op && inode->i_op->setattr) {
+ 		audit_notify_watch(inode, MAY_WRITE);
+ 		error = security_inode_setattr(dentry, attr);
++		if (!error && (ia_valid & ATTR_MODE) &&
++		    !ccs_capable(CCS_SYS_CHMOD))
++			error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) &&
++		    !ccs_capable(CCS_SYS_CHOWN))
++			error = -EPERM;
+ 		if (!error)
+ 			error = inode->i_op->setattr(dentry, attr);
+ 	} else {
+ 		error = inode_change_ok(inode, attr);
+ 		if (!error)
+ 			error = security_inode_setattr(dentry, attr);
++		if (!error && (ia_valid & ATTR_MODE) &&
++		    !ccs_capable(CCS_SYS_CHMOD))
++			error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) &&
++		    !ccs_capable(CCS_SYS_CHOWN))
++			error = -EPERM;
+ 		if (!error) {
+ 			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
+ 			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
+--- linux-2.6.9-89.19.AXS2.orig/fs/compat.c
++++ linux-2.6.9-89.19.AXS2/fs/compat.c
+@@ -48,6 +48,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/mmu_context.h>
++#include <linux/tomoyo.h>
+ 
+ /*
+  * Not all architectures have sys_utime, so implement this in terms
+@@ -383,6 +384,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 		error = sys_ioctl (fd, cmd, arg);
+ 		goto out;
+ 	}
++	if (!ccs_capable(CCS_SYS_IOCTL)) {
++		error = -EPERM;
++		goto out;
++	}
+ 
+ 	down_read(&ioctl32_sem);
+ 
+@@ -1447,8 +1452,11 @@ int compat_do_execve(char * filename,
+ 
+ 	retval = -ENOMEM;
+ 	bprm = kmalloc(sizeof(*bprm), GFP_KERNEL);
+-	if (!bprm)
++	if (!bprm) {
++		allow_write_access(file);
++		fput(file);
+ 		goto out_ret;
++	}
+ 	memset(bprm, 0, sizeof(*bprm));
+ 
+ 	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
+@@ -1492,7 +1500,7 @@ int compat_do_execve(char * filename,
+ 	if (retval < 0)
+ 		goto out;
+ 
+-	retval = search_binary_handler(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
+ 	if (retval >= 0) {
+ 		free_arg_pages(bprm);
+ 
+--- linux-2.6.9-89.19.AXS2.orig/fs/exec.c
++++ linux-2.6.9-89.19.AXS2/fs/exec.c
+@@ -59,6 +59,8 @@
+ #include <linux/kmod.h>
+ #endif
+ 
++#include <linux/tomoyo.h>
++
+ int core_uses_pid;
+ char core_pattern[65] = "core";
+ int suid_dumpable = 0;
+@@ -147,6 +149,10 @@ asmlinkage long sys_uselib(const char __
+ 	if (error)
+ 		goto exit;
+ 
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
++	if (error)
++		goto exit;
++
+ 	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
+ 	error = PTR_ERR(file);
+ 	if (IS_ERR(file))
+@@ -505,6 +511,9 @@ struct file *open_exec(const char *name)
+ 		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
+ 		    S_ISREG(inode->i_mode)) {
+ 			int err = permission(inode, MAY_EXEC, &nd);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
+ 			file = ERR_PTR(err);
+ 			if (!err) {
+ 				file = dentry_open(nd.dentry, nd.mnt, 
+@@ -1205,8 +1214,11 @@ int do_execve(char * filename,
+ 
+ 	retval = -ENOMEM;
+ 	bprm = kmalloc(sizeof(*bprm), GFP_KERNEL);
+-	if (!bprm)
++	if (!bprm) {
++		allow_write_access(file);
++		fput(file);
+ 		goto out_ret;
++	}
+ 	memset(bprm, 0, sizeof(*bprm));
+ 
+ 	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
+@@ -1251,7 +1263,8 @@ int do_execve(char * filename,
+ 	if (retval < 0)
+ 		goto out;
+ 
+-	retval = search_binary_handler(bprm,regs);
++	retval = ccs_search_binary_handler(bprm, regs);
++
+ 	if (retval >= 0) {
+ 		free_arg_pages(bprm);
+ 
+--- linux-2.6.9-89.19.AXS2.orig/fs/fcntl.c
++++ linux-2.6.9-89.19.AXS2/fs/fcntl.c
+@@ -18,6 +18,7 @@
+ #include <asm/poll.h>
+ #include <asm/siginfo.h>
+ #include <asm/uaccess.h>
++#include <linux/tomoyo.h>
+ 
+ void fastcall set_close_on_exec(unsigned int fd, int flag)
+ {
+@@ -248,6 +249,9 @@ static int setfl(int fd, struct file * f
+ 	if (!(arg & O_APPEND) && IS_APPEND(inode))
+ 		return -EPERM;
+ 
++	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp))
++		return -EPERM;
++
+ 	/* O_NOATIME can only be set by the owner or superuser */
+ 	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
+ 		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
+--- linux-2.6.9-89.19.AXS2.orig/fs/ioctl.c
++++ linux-2.6.9-89.19.AXS2/fs/ioctl.c
+@@ -14,6 +14,7 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/ioctls.h>
++#include <linux/tomoyo.h>
+ 
+ static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
+ {
+@@ -62,6 +63,8 @@ asmlinkage long sys_ioctl(unsigned int f
+ 		goto out;
+ 
+ 	error = security_file_ioctl(filp, cmd, arg);
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
+ 	if (error) {
+                 fput(filp);
+                 goto out;
+@@ -131,6 +134,10 @@ asmlinkage long sys_ioctl(unsigned int f
+ 				error = -ENOTTY;
+ 			break;
+ 		default:
++			if (!ccs_capable(CCS_SYS_IOCTL)) {
++				error = -EPERM;
++				break;
++			}
+ 			error = -ENOTTY;
+ 			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
+ 				error = file_ioctl(filp, cmd, arg);
+--- linux-2.6.9-89.19.AXS2.orig/fs/namei.c
++++ linux-2.6.9-89.19.AXS2/fs/namei.c
+@@ -35,6 +35,8 @@
+ 
+ #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
+ 
++#include <linux/tomoyo.h>
++
+ /* [Feb-1997 T. Schoebel-Theuer]
+  * Fundamental changes in the pathname lookup mechanisms (namei)
+  * were necessary because of omirr.  The reason is that omirr needs
+@@ -1544,6 +1546,11 @@ int may_open(struct nameidata *nd, int a
+ 		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
+ 			return -EPERM;
+ 
++	/* includes O_APPEND and O_TRUNC checks */
++	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	if (error)
++		return error;
++
+ 	/*
+ 	 * Ensure there are no outstanding leases on the file.
+ 	 */
+@@ -1588,6 +1595,7 @@ do_lookup_undo(struct nameidata *nd)
+ 	}
+ }
+ 
++#include <linux/tomoyo_vfs.h>
+ /*
+  *	open_namei()
+  *
+@@ -1667,6 +1675,9 @@ do_last:
+ 	if (!dentry->d_inode) {
+ 		if (!IS_POSIXACL(dir->d_inode))
+ 			mode &= ~current->fs->umask;
++		error = ccs_check_mknod_permission(dir->d_inode, dentry,
++						   nd->mnt, mode, 0);
++		if (!error)
+ 		error = vfs_create(dir->d_inode, dentry, mode, nd);
+ 		up(&dir->d_inode->i_sem);
+ 		dput(nd->dentry);
+@@ -1869,6 +1880,10 @@ asmlinkage long sys_mknod(const char __u
+ 	if (!IS_POSIXACL(nd.dentry->d_inode))
+ 		mode &= ~current->fs->umask;
+ 	if (!IS_ERR(dentry)) {
++		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
++						   nd.mnt, mode,
++						   new_decode_dev(dev));
++		if (!error)
+ 		switch (mode & S_IFMT) {
+ 		case 0: case S_IFREG:
+ 			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
+@@ -1946,6 +1961,10 @@ asmlinkage long sys_mkdir(const char __u
+ 		if (!IS_ERR(dentry)) {
+ 			if (!IS_POSIXACL(nd.dentry->d_inode))
+ 				mode &= ~current->fs->umask;
++			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
++							   dentry, nd.mnt,
++							   mode);
++			if (!error)
+ 			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
+ 			dput(dentry);
+ 		}
+@@ -2060,6 +2079,9 @@ asmlinkage long sys_rmdir(const char __u
+ 	dentry = lookup_hash(&nd.last, nd.dentry);
+ 	error = PTR_ERR(dentry);
+ 	if (!IS_ERR(dentry)) {
++		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
++						   nd.mnt);
++		if (!error)
+ 		error = vfs_rmdir(nd.dentry->d_inode, dentry);
+ 		dput(dentry);
+ 	}
+@@ -2141,6 +2163,9 @@ asmlinkage long sys_unlink(const char __
+ 		inode = dentry->d_inode;
+ 		if (inode)
+ 			atomic_inc(&inode->i_count);
++		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
++						    nd.mnt);
++		if (!error)
+ 		error = vfs_unlink(nd.dentry->d_inode, dentry);
+ 	exit2:
+ 		dput(dentry);
+@@ -2211,6 +2236,10 @@ asmlinkage long sys_symlink(const char _
+ 		dentry = lookup_create(&nd, 0);
+ 		error = PTR_ERR(dentry);
+ 		if (!IS_ERR(dentry)) {
++			error = ccs_check_symlink_permission(nd.dentry->d_inode,
++							     dentry, nd.mnt,
++							     from);
++			if (!error)
+ 			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
+ 			dput(dentry);
+ 		}
+@@ -2302,6 +2331,10 @@ asmlinkage long sys_link(const char __us
+ 	new_dentry = lookup_create(&nd, 0);
+ 	error = PTR_ERR(new_dentry);
+ 	if (!IS_ERR(new_dentry)) {
++		error = ccs_check_link_permission(old_nd.dentry,
++						  nd.dentry->d_inode,
++						  new_dentry, nd.mnt);
++		if (!error)
+ 		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
+ 		dput(new_dentry);
+ 	}
+@@ -2532,6 +2565,11 @@ static inline int do_rename(const char *
+ 	if (new_dentry == trap)
+ 		goto exit5;
+ 
++	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
++					    new_dir->d_inode, new_dentry,
++					    newnd.mnt);
++	if (!error)
++
+ 	error = vfs_rename(old_dir->d_inode, old_dentry,
+ 				   new_dir->d_inode, new_dentry);
+ exit5:
+--- linux-2.6.9-89.19.AXS2.orig/fs/namespace.c
++++ linux-2.6.9-89.19.AXS2/fs/namespace.c
+@@ -23,6 +23,8 @@
+ #include <linux/mount.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <linux/sakura.h>
++#include <linux/tomoyo.h>
+ 
+ extern int __init init_rootfs(void);
+ 
+@@ -427,6 +429,9 @@ static int do_umount(struct vfsmount *mn
+ 	if (retval)
+ 		return retval;
+ 
++	if (ccs_may_umount(mnt))
++		return -EPERM;
++
+ 	/*
+ 	 * Allow userspace to request a mountpoint be expired rather than
+ 	 * unmounting unconditionally. Unmount only happens if:
+@@ -672,6 +677,8 @@ asmlinkage long sys_umount(char __user *
+ {
+ 	struct nameidata nd;
+ 	int retval;
++	if (!ccs_capable(CCS_SYS_UMOUNT))
++		return -EPERM;
+ 
+ #ifdef CONFIG_FUMOUNT
+         if (flags & MNT_FFORCE) {
+@@ -844,6 +851,9 @@ static int do_loopback(struct nameidata 
+ 	down_write(&current->namespace->sem);
+ 	err = -EINVAL;
+ 	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
++		err = -EPERM;
++		if (ccs_may_mount(nd))
++			goto out;
+ 		err = -ENOMEM;
+ 		if (recurse)
+ 			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
+@@ -866,6 +876,7 @@ static int do_loopback(struct nameidata 
+ 			mntput(mnt);
+ 	}
+ 
++ out:
+ 	up_write(&current->namespace->sem);
+ 	path_release(&old_nd);
+ 	return err;
+@@ -926,7 +937,9 @@ static int do_move_mount(struct nameidat
+ 	err = -EINVAL;
+ 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
+ 		goto out;
+-
++	err = -EPERM;
++	if (ccs_may_umount(old_nd.mnt) || ccs_may_mount(nd))
++		goto out;
+ 	err = -ENOENT;
+ 	down(&nd->dentry->d_inode->i_sem);
+ 	if (IS_DEADDIR(nd->dentry->d_inode))
+@@ -1025,6 +1038,9 @@ int do_add_mount(struct vfsmount *newmnt
+ 	err = -EINVAL;
+ 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
+ 		goto unlock;
++	err = -EPERM;
++	if (ccs_may_mount(nd))
++		goto unlock;
+ 
+ 	newmnt->mnt_flags = mnt_flags;
+ 	err = graft_tree(newmnt, nd);
+@@ -1248,6 +1264,13 @@ long do_mount(char * dev_name, char * di
+ 	if (data_page)
+ 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+ 
++	if (!ccs_capable(CCS_SYS_MOUNT))
++		return -EPERM;
++	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
++					    &flags);
++	if (retval)
++		return retval;
++
+ 	/* Separate the per-mountpoint flags */
+ 	if (flags & MS_NOSUID)
+ 		mnt_flags |= MNT_NOSUID;
+@@ -1505,6 +1528,8 @@ asmlinkage long sys_pivot_root(const cha
+ 
+ 	if (!capable(CAP_SYS_ADMIN))
+ 		return -EPERM;
++	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 
+@@ -1520,6 +1545,8 @@ asmlinkage long sys_pivot_root(const cha
+ 		goto out1;
+ 
+ 	error = security_sb_pivotroot(&old_nd, &new_nd);
++	if (!error)
++		error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
+ 	if (error) {
+ 		path_release(&old_nd);
+ 		goto out1;
+--- linux-2.6.9-89.19.AXS2.orig/fs/open.c
++++ linux-2.6.9-89.19.AXS2/fs/open.c
+@@ -29,6 +29,9 @@
+ 
+ #include <asm/unistd.h>
+ 
++#include <linux/sakura.h>
++#include <linux/tomoyo.h>
++
+ int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
+ {
+ 	int retval = -ENODEV;
+@@ -274,6 +277,8 @@ static inline long do_sys_truncate(const
+ 	if (error)
+ 		goto dput_and_out;
+ 
++	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	if (!error)
+ 	error = locks_verify_truncate(inode, NULL, length);
+ 	if (!error) {
+ 		DQUOT_INIT(inode);
+@@ -330,6 +335,10 @@ static inline long do_sys_ftruncate(unsi
+ 	if (IS_APPEND(inode))
+ 		goto out_putf;
+ 
++	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
++					      0);
++	if (error)
++		goto out_putf;
+ 	error = locks_verify_truncate(inode, file, length);
+ 	if (!error)
+ 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME);
+@@ -622,6 +631,10 @@ asmlinkage long sys_chroot(const char __
+ 	error = -EPERM;
+ 	if (!capable(CAP_SYS_CHROOT))
+ 		goto dput_and_out;
++	if (!ccs_capable(CCS_SYS_CHROOT))
++		goto dput_and_out;
++	if (ccs_check_chroot_permission(&nd))
++		goto dput_and_out;
+ 
+ 	set_fs_root(current->fs, nd.mnt, nd.dentry);
+ 	set_fs_altroot();
+@@ -1228,6 +1241,8 @@ EXPORT_SYMBOL(sys_close);
+  */
+ asmlinkage long sys_vhangup(void)
+ {
++	if (!ccs_capable(CCS_SYS_VHANGUP))
++		return -EPERM;
+ 	if (capable(CAP_SYS_TTY_CONFIG)) {
+ 		tty_vhangup(current->signal->tty);
+ 		return 0;
+--- linux-2.6.9-89.19.AXS2.orig/fs/proc/Makefile
++++ linux-2.6.9-89.19.AXS2/fs/proc/Makefile
+@@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
+ 
+ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
+ proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
++
++proc-$(CONFIG_SAKURA) += ccs_proc.o
++proc-$(CONFIG_TOMOYO) += ccs_proc.o
+--- linux-2.6.9-89.19.AXS2.orig/fs/proc/proc_misc.c
++++ linux-2.6.9-89.19.AXS2/fs/proc/proc_misc.c
+@@ -794,4 +794,7 @@ void __init proc_misc_init(void)
+ 			entry->proc_fops = &ppc_htab_operations;
+ 	}
+ #endif
++#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
++	printk(KERN_INFO "Hook version: 2.6.9-89.19.AXS2 2011/03/11\n");
++#endif
+ }
+--- linux-2.6.9-89.19.AXS2.orig/include/linux/init_task.h
++++ linux-2.6.9-89.19.AXS2/include/linux/init_task.h
+@@ -112,6 +112,8 @@ extern struct group_info init_groups;
+ 	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
+ 	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
+ 	.journal_info	= NULL,						\
++	.ccs_domain_info = NULL,                 \
++	.ccs_flags = 0,                          \
+ }
+ 
+ 
+--- linux-2.6.9-89.19.AXS2.orig/include/linux/sched.h
++++ linux-2.6.9-89.19.AXS2/include/linux/sched.h
+@@ -35,6 +35,8 @@ extern int exec_shield;
+ extern int exec_shield_randomize;
+ extern int print_fatal_signals;
+ 
++struct ccs_domain_info;
++
+ /*
+  * cloning flags:
+  */
+@@ -655,6 +657,8 @@ struct task_struct {
+   	struct mempolicy *mempolicy;
+   	short il_next;		/* could be shared with used_math */
+ #endif
++	struct ccs_domain_info *ccs_domain_info;
++	u32 ccs_flags;
+ };
+ 
+ static inline pid_t process_group(struct task_struct *tsk)
+--- linux-2.6.9-89.19.AXS2.orig/kernel/compat.c
++++ linux-2.6.9-89.19.AXS2/kernel/compat.c
+@@ -24,6 +24,7 @@
+ #include <linux/module.h>
+ 
+ #include <asm/uaccess.h>
++#include <linux/tomoyo.h>
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -791,6 +792,8 @@ asmlinkage long compat_sys_stime(compat_
+ 		return -EPERM;
+ 	if (get_user(tv.tv_sec, tptr))
+ 		return -EFAULT;
++	if (!ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
+ 
+ 	tv.tv_nsec = 0;
+ 
+--- linux-2.6.9-89.19.AXS2.orig/kernel/kmod.c
++++ linux-2.6.9-89.19.AXS2/kernel/kmod.c
+@@ -169,6 +169,9 @@ static int ____exec_usermodehelper(char 
+ 
+ 	key_put(old_session);
+ 
++	current->ccs_domain_info = NULL;
++	current->ccs_flags = 0;
++
+ 	retval = -EPERM;
+ 	if (current->fs->root)
+ 		retval = execve(path, argv, envp);
+--- linux-2.6.9-89.19.AXS2.orig/kernel/module.c
++++ linux-2.6.9-89.19.AXS2/kernel/module.c
+@@ -38,6 +38,7 @@
+ #include <asm/semaphore.h>
+ #include <asm/cacheflush.h>
+ #include "module-verify.h"
++#include <linux/tomoyo.h>
+ 
+ #if 0
+ #define DEBUGP printk
+@@ -547,7 +548,8 @@ sys_delete_module(const char __user *nam
+ 
+ 	if (!capable(CAP_SYS_MODULE))
+ 		return -EPERM;
+-
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
++		return -EPERM;
+ 	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
+ 		return -EFAULT;
+ 	name[MODULE_NAME_LEN-1] = '\0';
+@@ -1878,7 +1880,8 @@ sys_init_module(void __user *umod,
+ 	/* Must have permission */
+ 	if (!capable(CAP_SYS_MODULE))
+ 		return -EPERM;
+-
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
++		return -EPERM;
+ 	/* Only one module load at a time, please */
+ 	if (down_interruptible(&module_mutex) != 0)
+ 		return -EINTR;
+--- linux-2.6.9-89.19.AXS2.orig/kernel/sched.c
++++ linux-2.6.9-89.19.AXS2/kernel/sched.c
+@@ -48,6 +48,7 @@
+ #include <asm/tlb.h>
+ 
+ #include <asm/unistd.h>
++#include <linux/tomoyo.h>
+ 
+ #ifdef CONFIG_NUMA
+ #define cpu_to_node_mask(cpu) node_to_cpumask(cpu_to_node(cpu))
+@@ -3277,6 +3278,8 @@ asmlinkage long sys_nice(int increment)
+ {
+ 	int retval;
+ 	long nice;
++	if (!ccs_capable(CCS_SYS_NICE))
++		return -EPERM;
+ 
+ 	/*
+ 	 * Setpriority might change our priority at the same moment.
+--- linux-2.6.9-89.19.AXS2.orig/kernel/signal.c
++++ linux-2.6.9-89.19.AXS2/kernel/signal.c
+@@ -27,6 +27,7 @@
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+ #include <asm/siginfo.h>
++#include <linux/tomoyo.h>
+ 
+ extern void k_getrusage(struct task_struct *, int, struct rusage *);
+ 
+@@ -2334,6 +2335,10 @@ asmlinkage long
+ sys_kill(int pid, int sig)
+ {
+ 	struct siginfo info;
++	if (sig && !ccs_capable(CCS_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
+ 
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+@@ -2364,6 +2369,11 @@ asmlinkage long sys_tgkill(int tgid, int
+ 	if (pid <= 0 || tgid <= 0)
+ 		return -EINVAL;
+ 
++	if (sig && !ccs_capable(CCS_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
++
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+ 	info.si_code = SI_TKILL;
+@@ -2404,6 +2414,10 @@ sys_tkill(int pid, int sig)
+ 	if (pid <= 0)
+ 		return -EINVAL;
+ 
++	if (sig && !ccs_capable(CCS_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+ 	info.si_code = SI_TKILL;
+--- linux-2.6.9-89.19.AXS2.orig/kernel/sys.c
++++ linux-2.6.9-89.19.AXS2/kernel/sys.c
+@@ -31,6 +31,7 @@
+ #include <asm/io.h>
+ #include <asm/unistd.h>
+ #include <linux/getcpu.h>
++#include <linux/tomoyo.h>
+ 
+ #ifndef SET_UNALIGN_CTL
+ # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
+@@ -330,6 +331,10 @@ asmlinkage long sys_setpriority(int whic
+ 
+ 	if (which > 2 || which < 0)
+ 		goto out;
++	if (!ccs_capable(CCS_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
+ 
+ 	/* normalize: avoid signed division (rounding problems) */
+ 	error = -ESRCH;
+@@ -461,6 +466,8 @@ asmlinkage long sys_reboot(int magic1, i
+ 			magic2 != LINUX_REBOOT_MAGIC2B &&
+ 	                magic2 != LINUX_REBOOT_MAGIC2C))
+ 		return -EINVAL;
++	if (!ccs_capable(CCS_SYS_REBOOT))
++		return -EPERM;
+ 
+ 	lock_kernel();
+ 	switch (cmd) {
+@@ -1462,6 +1469,8 @@ asmlinkage long sys_sethostname(char __u
+ 		return -EPERM;
+ 	if (len < 0 || len > __NEW_UTS_LEN)
+ 		return -EINVAL;
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
++		return -EPERM;
+ 	down_write(&uts_sem);
+ 	errno = -EFAULT;
+ 	if (!copy_from_user(tmp, name, len)) {
+@@ -1507,6 +1516,8 @@ asmlinkage long sys_setdomainname(char _
+ 		return -EPERM;
+ 	if (len < 0 || len > __NEW_UTS_LEN)
+ 		return -EINVAL;
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
++		return -EPERM;
+ 
+ 	down_write(&uts_sem);
+ 	errno = -EFAULT;
+--- linux-2.6.9-89.19.AXS2.orig/kernel/sysctl.c
++++ linux-2.6.9-89.19.AXS2/kernel/sysctl.c
+@@ -48,6 +48,7 @@
+ static int proc_do_kdb(ctl_table *table, int write, struct file *filp, void *buffer, size_t *lenp, loff_t *ppos);
+ #endif	/* CONFIG_KDB */
+ 
++#include <linux/tomoyo.h>
+ #ifdef CONFIG_ROOT_NFS
+ #include <linux/nfs_fs.h>
+ #endif
+@@ -1252,6 +1253,9 @@ int do_sysctl(int __user *name, int nlen
+ 
+ 		spin_unlock(&sysctl_lock);
+ 
++		error = ccs_parse_table(name, nlen, oldval, newval,
++					head->ctl_table);
++		if (!error)
+ 		error = parse_table(name, nlen, oldval, oldlenp, 
+ 					newval, newlen, head->ctl_table,
+ 					&context);
+@@ -1325,6 +1329,13 @@ repeat:
+ 				if (ctl_perm(table, 001))
+ 					return -EPERM;
+ 				if (table->strategy) {
++					int op = 0;
++					if (oldval)
++						op |= 004;
++					if (newval)
++						op |= 002;
++					if (ctl_perm(table, op))
++						return -EPERM;
+ 					error = table->strategy(
+ 						table, name, nlen,
+ 						oldval, oldlenp,
+@@ -2352,7 +2363,7 @@ int sysctl_string(ctl_table *table, int 
+ 			len--;
+ 		((char *) table->data)[len] = 0;
+ 	}
+-	return 0;
++	return 1;
+ }
+ 
+ /*
+--- linux-2.6.9-89.19.AXS2.orig/kernel/time.c
++++ linux-2.6.9-89.19.AXS2/kernel/time.c
+@@ -34,6 +34,7 @@
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+ #include <linux/fs.h>
++#include <linux/tomoyo.h>
+ 
+ /* 
+  * The timezone where the local system is located.  Used as a default by some
+@@ -81,6 +82,8 @@ asmlinkage long sys_stime(time_t __user 
+ 
+ 	if (!capable(CAP_SYS_TIME))
+ 		return -EPERM;
++	if (!ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
+ 	if (get_user(tv.tv_sec, tptr))
+ 		return -EFAULT;
+ 
+@@ -149,6 +152,8 @@ int do_sys_settimeofday(struct timespec 
+ 
+ 	if (!capable(CAP_SYS_TIME))
+ 		return -EPERM;
++	if (!ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
+ 		
+ 	if (tz) {
+ 		/* SMP safe, global irq locking makes it work. */
+@@ -219,6 +224,8 @@ int do_adjtimex(struct timex *txc)
+ 	/* In order to modify anything, you gotta be super-user! */
+ 	if (txc->modes && !capable(CAP_SYS_TIME))
+ 		return -EPERM;
++	if (txc->modes && !ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
+ 		
+ 	/* Now we validate the data before disabling interrupts */
+ 
+--- linux-2.6.9-89.19.AXS2.orig/net/ipv4/raw.c
++++ linux-2.6.9-89.19.AXS2/net/ipv4/raw.c
+@@ -79,6 +79,7 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
++#include <linux/tomoyo_socket.h>
+ 
+ struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
+ rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
+@@ -585,6 +586,9 @@ int raw_recvmsg(struct kiocb *iocb, stru
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
+ 
+ 	copied = skb->len;
+ 	if (len < copied) {
+--- linux-2.6.9-89.19.AXS2.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.6.9-89.19.AXS2/net/ipv4/tcp_ipv4.c
+@@ -75,6 +75,7 @@
+ #include <linux/stddef.h>
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++#include <linux/sakura.h>
+ 
+ extern int sysctl_ip_dynaddr;
+ int sysctl_tcp_tw_reuse;
+@@ -230,6 +231,8 @@ static int tcp_v4_get_port(struct sock *
+ 				rover = low;
+ 			head = &tcp_bhash[tcp_bhashfn(rover)];
+ 			spin_lock(&head->lock);
++			if (ccs_lport_reserved(rover))
++				goto next;
+ 			tb_for_each(tb, node, &head->chain)
+ 				if (tb->port == rover)
+ 					goto next;
+@@ -677,6 +680,8 @@ static int tcp_v4_hash_connect(struct so
+  				rover = low;
+  			head = &tcp_bhash[tcp_bhashfn(rover)];
+  			spin_lock(&head->lock);
++			if (ccs_lport_reserved(rover))
++				goto next_port;
+ 
+  			/* Does not bother with rcv_saddr checks,
+  			 * because the established check is already
+--- linux-2.6.9-89.19.AXS2.orig/net/ipv4/udp.c
++++ linux-2.6.9-89.19.AXS2/net/ipv4/udp.c
+@@ -107,6 +107,8 @@
+ #include <net/inet_common.h>
+ #include <net/checksum.h>
+ #include <net/xfrm.h>
++#include <linux/sakura.h>
++#include <linux/tomoyo_socket.h>
+ 
+ /*
+  *	Snmp MIB for the UDP layer
+@@ -137,6 +139,7 @@ static int udp_v4_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
++		if (!ccs_lport_reserved(rover))
+ 		if (!udp_lport_inuse(rover))
+ 			goto gotit;
+ 
+@@ -144,6 +147,8 @@ static int udp_v4_get_port(struct sock *
+ 		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
+ 			struct hlist_head *list;
+ 			int size = 0;
++			if (ccs_lport_reserved(rover))
++				goto next;
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+ 			if (hlist_empty(list))
+@@ -163,6 +168,7 @@ static int udp_v4_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
++			if (!ccs_lport_reserved(rover))
+ 			if (!udp_lport_inuse(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+@@ -799,7 +805,10 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
+-  
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
+ 		copied = len;
+--- linux-2.6.9-89.19.AXS2.orig/net/ipv6/raw.c
++++ linux-2.6.9-89.19.AXS2/net/ipv6/raw.c
+@@ -54,6 +54,7 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++#include <linux/tomoyo_socket.h>
+ 
+ struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
+ rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
+@@ -384,6 +385,9 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
+--- linux-2.6.9-89.19.AXS2.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.6.9-89.19.AXS2/net/ipv6/tcp_ipv6.c
+@@ -67,6 +67,7 @@ DEFINE_PER_CPU(struct dma_chan *, net_dm
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++#include <linux/sakura.h>
+ 
+ static void	tcp_v6_send_reset(struct sk_buff *skb);
+ static void	tcp_v6_or_send_ack(struct sk_buff *skb, struct open_request *req);
+@@ -149,6 +150,8 @@ static int tcp_v6_get_port(struct sock *
+ 				rover = low;
+ 			head = &tcp_bhash[tcp_bhashfn(rover)];
+ 			spin_lock(&head->lock);
++			if (ccs_lport_reserved(rover))
++				goto next;
+ 			tb_for_each(tb, node, &head->chain)
+ 				if (tb->port == rover)
+ 					goto next;
+--- linux-2.6.9-89.19.AXS2.orig/net/ipv6/udp.c
++++ linux-2.6.9-89.19.AXS2/net/ipv6/udp.c
+@@ -57,6 +57,8 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++#include <linux/sakura.h>
++#include <linux/tomoyo_socket.h>
+ 
+ DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
+ 
+@@ -79,6 +81,7 @@ static int udp_v6_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
++		if (!ccs_lport_reserved(rover))
+ 		if (!udp_lport_inuse(rover))
+ 			goto gotit;
+ 
+@@ -86,6 +89,8 @@ static int udp_v6_get_port(struct sock *
+ 		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
+ 			int size = 0;
+ 			struct hlist_head *list;
++			if (ccs_lport_reserved(rover))
++				goto next;
+ 
+ 			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
+ 			if (hlist_empty(list))
+@@ -105,6 +110,7 @@ static int udp_v6_get_port(struct sock *
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
++			if (!ccs_lport_reserved(rover))
+ 			if (!udp_lport_inuse(rover))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+@@ -241,6 +247,9 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
+--- linux-2.6.9-89.19.AXS2.orig/net/socket.c
++++ linux-2.6.9-89.19.AXS2/net/socket.c
+@@ -96,6 +96,9 @@
+ #include <net/sock.h>
+ #include <linux/netfilter.h>
+ 
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++
+ static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
+ static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
+ 			 size_t size, loff_t pos);
+@@ -554,7 +557,10 @@ static inline int __sock_sendmsg(struct 
+ 	err = security_socket_sendmsg(sock, msg, size);
+ 	if (err)
+ 		return err;
+-
++	if (ccs_socket_sendmsg_permission(sock,
++					  (struct sockaddr *) msg->msg_name,
++					  msg->msg_namelen))
++		return -EPERM;
+ 	return sock->ops->sendmsg(iocb, sock, msg, size);
+ }
+ 
+@@ -1117,6 +1123,10 @@ static int __sock_create(int family, int
+ 		family = PF_PACKET;
+ 	}
+ 
++	err = ccs_socket_create_permission(family, type, protocol);
++	if (err)
++		return err;
++
+ 	err = security_socket_create(family, type, protocol, kern);
+ 	if (err)
+ 		return err;
+@@ -1314,6 +1324,10 @@ asmlinkage long sys_bind(int fd, struct 
+ 				sockfd_put(sock);
+ 				return err;
+ 			}
++			err = ccs_socket_bind_permission(sock,
++							 (struct sockaddr *)
++							 address, addrlen);
++			if (!err)
+ 			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
+ 		}
+ 		sockfd_put(sock);
+@@ -1344,7 +1358,8 @@ asmlinkage long sys_listen(int fd, int b
+ 			sockfd_put(sock);
+ 			return err;
+ 		}
+-
++		err = ccs_socket_listen_permission(sock);
++		if (!err)
+ 		err=sock->ops->listen(sock, backlog);
+ 		sockfd_put(sock);
+ 	}
+@@ -1395,6 +1410,11 @@ asmlinkage long sys_accept(int fd, struc
+ 	if (err < 0)
+ 		goto out_release;
+ 
++	if (ccs_socket_accept_permission(newsock,
++					 (struct sockaddr *) address)) {
++		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
++		goto out_release;
++	}
+ 	if (upeer_sockaddr) {
+ 		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
+ 			err = -ECONNABORTED;
+@@ -1450,7 +1470,10 @@ asmlinkage long sys_connect(int fd, stru
+ 	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
+ 	if (err)
+ 		goto out_put;
+-
++	err = ccs_socket_connect_permission(sock, (struct sockaddr *) address,
++					    addrlen);
++	if (err)
++		goto out_put;
+ 	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
+ 				 sock->file->f_flags);
+ out_put:
+--- linux-2.6.9-89.19.AXS2.orig/net/unix/af_unix.c
++++ linux-2.6.9-89.19.AXS2/net/unix/af_unix.c
+@@ -118,6 +118,7 @@
+ #include <linux/mount.h>
+ #include <net/checksum.h>
+ #include <linux/security.h>
++#include <linux/tomoyo.h>
+ 
+ int sysctl_unix_max_dgram_qlen = 10;
+ 
+@@ -806,6 +807,9 @@ static int unix_bind(struct socket *sock
+ 		 */
+ 		mode = S_IFSOCK |
+ 		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
++		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
++						 nd.mnt, mode, 0);
++		if (!err)
+ 		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
+ 		if (err)
+ 			goto out_mknod_dput;
