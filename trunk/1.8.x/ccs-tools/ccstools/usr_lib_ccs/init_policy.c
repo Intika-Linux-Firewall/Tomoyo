@@ -185,7 +185,7 @@ static unsigned char revalidate_path(const char *path)
 	return type;
 }
 
-/* File handle to /etc/ccs/current/policy/exception_policy.conf . */
+/* File handle to /etc/ccs/policy/current/exception_policy.conf . */
 static FILE *filp = NULL;
 
 /**

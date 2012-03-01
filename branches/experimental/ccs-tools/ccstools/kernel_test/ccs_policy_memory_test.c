@@ -430,7 +430,7 @@ static void exception_policy_test(const unsigned int before)
 
 int main(int argc, char *argv[])
 {
-	unsigned int before = 0;;
+	unsigned int before = 0;
 	mount("/proc", "/proc/", "proc", 0, NULL);
 	printf("Waiting for stabilized.\n");
 	while (1) {
