@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.9-89.19.AXS2.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.9-20111111.tar.gz ]
+if [ ! -r ccs-patch-1.6.9-20120301.tar.gz ]
 then
-    wget -O ccs-patch-1.6.9-20111111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20111111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.6.9-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20120301.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 89.19%{?dist}
-+%define release 89.19%{?dist}_tomoyo_1.6.9p1
++%define release 89.19%{?dist}_tomoyo_1.6.9p2
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.9-20111111.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.9-20120301.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.9-asianux-2.diff
 +
  cp %{SOURCE10} Documentation/
