@@ -1,0 +1,66 @@
+#! /bin/sh
+
+if [ "$1" = "--version" ]
+then
+cat << EOF
+ccs-savepolicy 1.7.3
+
+Copyright (C) 2005-2011 NTT DATA CORPORATION.
+
+This program is free software; you may redistribute it under the terms of
+the GNU General Public License. This program has absolutely no warranty.
+EOF
+elif [ "$1" = "--help" ]
+then
+cat << EOF
+Usage: ccs-savepolicy [e][d][a][f][p][m][u] [{-|policy_dir} [remote_ip:remote_port]]
+
+This program saves TOMOYO Linux's policy from kernel into files.
+
+ e     Save exception policy. ( /proc/ccs/exception_policy => policy_dir/exception_policy.conf )
+
+ d     Save domain policy. ( /proc/ccs/domain_policy => policy_dir/domain_policy.conf )
+
+ a     Save exception policy and domain policy. This is default.
+
+ p     Save profile. ( /proc/ccs/profile => policy_dir/profile.conf )
+
+ m     Save manager. ( /proc/ccs/manager => policy_dir/manager.conf )
+
+ u     Print meminfo. Implies '-' option. ( /proc/ccs/meminfo )
+
+ f     Forcefully save even if the on-memory policy and the on-disk policy are identical.
+
+ -     Write policy to stdout. Specify only one of "edpmu" option when you use this option.
+
+ policy_dir     Save policy files into policy_dir directory. Must starts with / .
+                Default is none if remote_ip:remote_port is specified, /etc/ccs/ otherwise.
+
+ remote_ip:remote_port     Receive policy from agent listening at specified IP address and port number. 
+
+Examples:
+
+# ccs-savepolicy
+ Save exception policy and domain policy.
+
+# ccs-savepolicy e
+ Save exception policy.
+
+# ccs-savepolicy /etc/ccs/192.168.1.1/ 192.168.1.1:10000
+ Receive policy from 192.168.1.1:10000 and save into /etc/ccs/192.168.1.1/ directory.
+
+EOF
+else
+cat << EOF | help2man -i - -N -s 8 -n "Save TOMOYO Linux's policy" $0 | gzip -9 > man8/ccs-savepolicy.8.gz
+[SEE ALSO]
+
+ ccs-loadpolicy (8)
+ ccs-editpolicy-agent (8)
+
+[AUTHORS]
+
+ penguin-kernel _at_ I-love.SAKURA.ne.jp
+
+EOF
+fi
+exit 0
