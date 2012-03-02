@@ -100,10 +100,6 @@ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = CCS_MAC_CATEGORY_CAPABILITY,
 	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = CCS_MAC_CATEGORY_CAPABILITY,
 #endif
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-	[CCS_MAC_AUTO_EXECUTE_HANDLER]   = CCS_MAC_CATEGORY_TASK,
-	[CCS_MAC_DENIED_EXECUTE_HANDLER] = CCS_MAC_CATEGORY_TASK,
-#endif
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 	[CCS_MAC_AUTO_TASK_TRANSITION]   = CCS_MAC_CATEGORY_TASK,
 	[CCS_MAC_MANUAL_TASK_TRANSITION] = CCS_MAC_CATEGORY_TASK,
@@ -191,11 +187,7 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = "use_kernel_module",
 	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = "SYS_KEXEC_LOAD",
 #endif
-	/* No corresponding profile line. */
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-	[CCS_MAC_AUTO_EXECUTE_HANDLER]   = "auto_execute_handler",
-	[CCS_MAC_DENIED_EXECUTE_HANDLER] = "denied_execute_handler",
-#endif
+	/* task group */
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 	[CCS_MAC_AUTO_TASK_TRANSITION]   = "auto_domain_transition",
 	[CCS_MAC_MANUAL_TASK_TRANSITION] = "manual_domain_transition",
@@ -215,7 +207,7 @@ static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
 	[CCS_MAC_CATEGORY_IPC]        = "ipc",
 #endif
 	[CCS_MAC_CATEGORY_CAPABILITY] = "capability",
-#if defined(CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER) || defined(CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION)
+#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 	[CCS_MAC_CATEGORY_TASK]       = "task",
 #endif
 	[CCS_MAC_CATEGORY_NONE]       = "",
@@ -1608,18 +1600,17 @@ out:
  */
 static bool ccs_correct_domain(const unsigned char *domainname)
 {
-	if (!domainname)
+	if (!*domainname || !ccs_correct_word(domainname))
 		return false;
-	while (1) {
-		const unsigned char *cp = strstr(domainname, "\\_");
-		if (!cp)
-			break;
-		if (!ccs_correct_word2(domainname, cp - domainname))
+	while (*domainname) {
+		if (*domainname++ != '\\')
+			continue;
+		if (*domainname < '0' || *domainname++ > '3')
 			return false;
-		domainname = cp + 2;
 	}
-	return ccs_correct_word(domainname);
+	return true;
 }
+
 
 /**
  * ccs_normalize_line - Format string.
@@ -1895,9 +1886,7 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 #endif
 		break;
 	case CCS_MAX_MAC_INDEX:
-#if defined(CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER) || defined(CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION)
-	case CCS_MAC_AUTO_EXECUTE_HANDLER:
-	case CCS_MAC_DENIED_EXECUTE_HANDLER:
+#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 	case CCS_MAC_AUTO_TASK_TRANSITION:
 	case CCS_MAC_MANUAL_TASK_TRANSITION:
 #endif
@@ -2037,19 +2026,14 @@ static enum ccs_conditions_index ccs_find_path_perm(const char *word)
 	return CCS_MAX_CONDITION_KEYWORD;
 }
 
-static const struct ccs_path_info *ccs_get_dqdomain(char *start,
-						    const bool must_domainname)
+static const struct ccs_path_info *ccs_get_dqdomain(char *start)
 {
-	char *cp = start + strlen(start) - 1;
-	if (!must_domainname &&
-	    (!strcmp(start, "keep") || !strcmp(start, "child")))
-		return ccs_get_name(start);
-	if (*start++ != '"' || cp < start + 1 || *cp != '"')
+	const struct ccs_path_info *domain = ccs_get_dqword(start);
+	if (domain && !ccs_correct_domain(domain->name)) {
+		ccs_put_name(domain);
 		return NULL;
-	*cp = '\0';
-	if (ccs_correct_domain(start))
-		return ccs_get_name(start);
-	return NULL;
+	}
+	return domain;
 }
 
 static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
@@ -2116,7 +2100,7 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 		if (!strcmp(left, "transition")) {
 			tmp->left = CCS_TRANSIT_DOMAIN;
 			tmp->right = CCS_IMM_DOMAINNAME_ENTRY;
-			tmp->path = ccs_get_dqdomain(right, false);
+			tmp->path = ccs_get_dqdomain(right);
 			return tmp->path != NULL;
 		}
 	}
@@ -2130,7 +2114,7 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 			break;
 		}
 		tmp->right = CCS_IMM_DOMAINNAME_ENTRY;
-		tmp->path = ccs_get_dqdomain(right, true);
+		tmp->path = ccs_get_dqdomain(right);
 		return tmp->path != NULL;
 	case CCS_ARGV_ENTRY:
 	case CCS_ENVP_ENTRY:
@@ -2240,18 +2224,18 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 	struct ccs_cond_tmp tmp;
 	const enum ccs_mac_index type = head->w.acl_index;
 #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-	bool handler_path_done =
-		type != CCS_MAC_AUTO_EXECUTE_HANDLER &&
-		type != CCS_MAC_DENIED_EXECUTE_HANDLER;
+	bool handler_path_done = head->w.is_deny ||
+		type != CCS_MAC_FILE_EXECUTE;
 #else
 	bool handler_path_done = true;
 #endif
-	bool transit_domain_done = type != CCS_MAC_FILE_EXECUTE
+	bool transit_domain_done = head->w.is_deny ||
+		(type != CCS_MAC_FILE_EXECUTE
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-		&& type != CCS_MAC_MANUAL_TASK_TRANSITION
-		&& type != CCS_MAC_AUTO_TASK_TRANSITION
+		 && type != CCS_MAC_MANUAL_TASK_TRANSITION
+		 && type != CCS_MAC_AUTO_TASK_TRANSITION
 #endif
-		;
+		 );
 	char *pos = head->w.data;
 	if (!entry)
 		return NULL;
@@ -2341,10 +2325,12 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 			}
 		}
 	}
-	if (!handler_path_done)
+#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+	if (!transit_domain_done &&
+	    (type == CCS_MAC_MANUAL_TASK_TRANSITION ||
+	     type == CCS_MAC_AUTO_TASK_TRANSITION))
 		goto out;
-	//if (!transit_domain_done)
-	//	goto out;
+#endif
 	entry->size = (void *) condp - (void *) entry;
 	return ccs_commit_condition(entry);
 out:

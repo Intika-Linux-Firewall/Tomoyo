@@ -1069,7 +1069,7 @@ static void test_ptrace(void)
 
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
-	policy = "domain_group DOMAINS <kernel>\\_/sbin/init\n"
+	policy = "domain_group DOMAINS /sbin/init\n"
 		"100 acl ipc ptrace\n"
 		"0 allow cmd=16 domain=@DOMAINS\n"
 		"0 allow cmd=17\n"
@@ -1080,7 +1080,7 @@ static void test_ptrace(void)
 
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
-	policy = "domain_group DOMAINS <kernel>\\_/sbin/init\n"
+	policy = "domain_group DOMAINS /sbin/init\n"
 		"100 acl ipc ptrace\n"
 		"0 allow cmd=16 domain!=@DOMAINS\n"
 		"0 allow cmd=17\n"

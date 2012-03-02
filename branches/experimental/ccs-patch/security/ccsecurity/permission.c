@@ -166,7 +166,7 @@ static int __ccs_uselib_permission(struct dentry *dentry,
 				   struct vfsmount *mnt);
 #endif
 static int ccs_execute_path(struct linux_binprm *bprm, struct path *path);
-static int ccs_find_next_domain(struct ccs_request_info *r);
+static int ccs_execute(struct ccs_request_info *r);
 static int ccs_get_path(const char *pathname, struct path *path);
 static int ccs_kern_path(const char *pathname, int flags, struct path *path);
 static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
@@ -257,8 +257,6 @@ static int __ccs_getattr_permission(struct vfsmount *mnt,
 #endif
 
 #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-static bool ccs_find_execute_handler(struct ccs_request_info *r,
-				     const enum ccs_mac_index type);
 static int ccs_try_alt_exec(struct ccs_request_info *r);
 static void ccs_unescape(unsigned char *dest);
 #endif
@@ -666,7 +664,7 @@ int ccs_check_acl(struct ccs_request_info *r, const bool clear)
 }
 
 /**
- * ccs_find_next_domain - Find a domain.
+ * ccs_execute - Check permission for "execute".
  *
  * @r: Pointer to "struct ccs_request_info".
  *
@@ -674,13 +672,9 @@ int ccs_check_acl(struct ccs_request_info *r, const bool clear)
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_find_next_domain(struct ccs_request_info *r)
+static int ccs_execute(struct ccs_request_info *r)
 {
-	struct ccs_domain_info *domain = NULL;
-	struct ccs_domain_info * const old_domain = ccs_current_domain();
-	struct ccs_security *task = ccs_current_security();
 	int retval;
-	const char *domainname;
 
 	/* Get symlink's dentry/vfsmount. */
 	retval = ccs_execute_path(r->bprm, &r->obj.path[1]);
@@ -691,56 +685,48 @@ static int ccs_find_next_domain(struct ccs_request_info *r)
 	if (!r->param.s[1])
 		goto out;
 
-	if (!r->handler_path) {
-		/* Check execute permission. */
-		r->type = CCS_MAC_FILE_EXECUTE;
-		retval = ccs_check_acl(r, false);
+	/* Check execute permission. */
+	r->type = CCS_MAC_FILE_EXECUTE;
+	retval = ccs_check_acl(r, false);
+	if (retval < 0)
+		goto out;
+#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+	/*
+	 * Switch to execute handler if matched. To avoid infinite execute
+	 * handler loop, don't use execute handler if the current process is
+	 * marked as execute handler.
+	 */
+	if (r->handler_path &&
+	    !(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
+		retval = ccs_try_alt_exec(r);
 		if (retval < 0)
 			goto out;
 	}
-
-	if (r->transition)
-		domainname = r->transition->name;
-	else
-		domainname = "child";
-	if (!strcmp(domainname, "keep"))
-		/* Keep current domain. */
-		domain = old_domain;
-	else if (!strcmp(domainname, "child"))
-		/* Normal domain transition. */
-		snprintf(r->tmp, CCS_EXEC_TMPSIZE - 1, "%s\\_%s",
-			 old_domain->domainname->name, r->param.s[1]->name);
-	else if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded)
-		/* Do not transit before starting /sbin/init. */
-		domain = old_domain;
-	else
-		/* Transit to the specified domain. */
-		strncpy(r->tmp, domainname, CCS_EXEC_TMPSIZE - 1);
+#endif
 	/*
 	 * Tell GC that I started execve().
 	 * Also, tell open_exec() to check read permission.
 	 */
-	task->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
+	ccs_current_security()->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
+	retval = 0;
+	if (!r->transition)
+		/* Keep current domain. */
+		goto done;
 	/*
-	 * Make task->ccs_flags visible to GC before changing
-	 * task->ccs_domain_info.
+	 * Make ccs_current_security()->ccs_flags visible to GC before changing
+	 * ccs_current_security()->ccs_domain_info.
 	 */
 	smp_wmb();
 	/*
-	 * Proceed to the next domain in order to allow reaching via PID.
-	 * It will be reverted if execve() failed. Reverting is not good.
-	 * But it is better than being unable to reach via PID in interactive
-	 * enforcing mode.
+	 * Transit to the specified domain.
+	 * It will be reverted if execve() failed.
 	 */
-	if (!domain)
-		domain = ccs_assign_domain(r->tmp);
-	if (domain) {
-		retval = 0;
-		ccs_clear_request_info(r);
-		goto out;
-	}
-	printk(KERN_WARNING "ERROR: Domain '%s' not ready.\n", r->tmp);
-	retval = -ENOMEM;
+	if (ccs_assign_domain(r->transition->name))
+		goto done;
+	printk(KERN_WARNING "ERROR: Domain '%s' not ready.\n",
+	       r->transition->name);
+done:
+	ccs_clear_request_info(r);
 out:
 	/* Drop refcount obtained by ccs_execute_path(). */
 	if (r->obj.path[1].dentry) {
@@ -991,35 +977,9 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 			       r->handler_path->name);
 		}
 		retval = -EINVAL;
-		goto out;
 	}
-	retval = ccs_find_next_domain(r);
 out:
 	return retval;
-}
-
-/**
- * ccs_find_execute_handler - Find an execute handler.
- *
- * @r:    Pointer to "struct ccs_request_info".
- * @type: Type of execute handler.
- *
- * Returns true if found, false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static bool ccs_find_execute_handler(struct ccs_request_info *r,
-				     const enum ccs_mac_index type)
-{
-	/*
-	 * To avoid infinite execute handler loop, don't use execute handler
-	 * if the current process is marked as execute handler.
-	 */
-	if (ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)
-		return false;
-	r->type = type;
-	ccs_check_acl(r, false);
-	return r->result == CCS_MATCHING_ALLOWED;
 }
 
 #endif
@@ -1114,30 +1074,10 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	r->bprm = bprm;
 	r->obj.path[0].dentry = bprm->file->f_dentry;
 	r->obj.path[0].mnt = bprm->file->f_vfsmnt;
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-	/*
-	 * No need to call ccs_environ() for execute handler because envp[] is
-	 * moved to argv[].
-	 */
-	if (ccs_find_execute_handler(r, CCS_MAC_AUTO_EXECUTE_HANDLER)) {
-		retval = ccs_try_alt_exec(r);
-		goto done;
-	}
-#endif
-	retval = ccs_find_next_domain(r);
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-	if (retval == -EPERM &&
-	    ccs_find_execute_handler(r, CCS_MAC_DENIED_EXECUTE_HANDLER)) {
-		retval = ccs_try_alt_exec(r);
-		goto done;
-	}
-#endif
+	retval = ccs_execute(r);
 #ifdef CONFIG_CCSECURITY_MISC
 	if (!retval && bprm->envc)
 		retval = ccs_environ(r);
-#endif
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
-done:
 #endif
 	ccs_read_unlock(idx);
 	kfree(r->tmp);
