@@ -48,15 +48,15 @@ static const char * const ccs_mounts[CCS_MAX_SPECIAL_MOUNT] = {
  * Mapping table from "enum ccs_capability_acl_index" to "enum ccs_mac_index".
  */
 static const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX] = {
-	[CCS_USE_ROUTE_SOCKET]  = CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET,
-	[CCS_USE_PACKET_SOCKET] = CCS_MAC_CAPABILITY_USE_PACKET_SOCKET,
-	[CCS_SYS_REBOOT]        = CCS_MAC_CAPABILITY_SYS_REBOOT,
-	[CCS_SYS_VHANGUP]       = CCS_MAC_CAPABILITY_SYS_VHANGUP,
-	[CCS_SYS_SETTIME]       = CCS_MAC_CAPABILITY_SYS_SETTIME,
-	[CCS_SYS_NICE]          = CCS_MAC_CAPABILITY_SYS_NICE,
-	[CCS_SYS_SETHOSTNAME]   = CCS_MAC_CAPABILITY_SYS_SETHOSTNAME,
-	[CCS_USE_KERNEL_MODULE] = CCS_MAC_CAPABILITY_USE_KERNEL_MODULE,
-	[CCS_SYS_KEXEC_LOAD]    = CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD,
+	[CCS_USE_ROUTE_SOCKET]  = CCS_MAC_USE_NETLINK_SOCKET,
+	[CCS_USE_PACKET_SOCKET] = CCS_MAC_USE_PACKET_SOCKET,
+	[CCS_SYS_REBOOT]        = CCS_MAC_USE_REBOOT,
+	[CCS_SYS_VHANGUP]       = CCS_MAC_USE_VHANGUP,
+	[CCS_SYS_SETTIME]       = CCS_MAC_SET_TIME,
+	[CCS_SYS_NICE]          = CCS_MAC_SET_PRIORITY,
+	[CCS_SYS_SETHOSTNAME]   = CCS_MAC_SET_HOSTNAME,
+	[CCS_USE_KERNEL_MODULE] = CCS_MAC_USE_KERNEL_MODULE,
+	[CCS_SYS_KEXEC_LOAD]    = CCS_MAC_USE_NEW_KERNEL,
 };
 
 #endif
@@ -686,7 +686,7 @@ static int ccs_execute(struct ccs_request_info *r)
 		goto out;
 
 	/* Check execute permission. */
-	r->type = CCS_MAC_FILE_EXECUTE;
+	r->type = CCS_MAC_EXECUTE;
 	retval = ccs_check_acl(r, false);
 	if (retval < 0)
 		goto out;
@@ -1358,7 +1358,7 @@ static int ccs_mount_acl(char *dev_name, struct path *dir, const char *type,
 	rtype.name = ccs_encode(type);
 	if (rtype.name) {
 		ccs_fill_path_info(&rtype);
-		r.type = CCS_MAC_FILE_MOUNT;
+		r.type = CCS_MAC_MOUNT;
 		r.param.s[2] = &rtype;
 		r.param.i[0] = flags;
 		r.param.i[1] = need_dev;
@@ -1526,17 +1526,17 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	if (!(ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		ccs_check_auto_domain_transition();
 	if (acc_mode & MAY_READ) {
-		r.type = CCS_MAC_FILE_READ;
+		r.type = CCS_MAC_READ;
 		error = ccs_check_acl(&r, false);
 	}
 	if (!error && (acc_mode & MAY_WRITE)) {
-		r.type = (flag & O_APPEND) ? CCS_MAC_FILE_APPEND :
-			CCS_MAC_FILE_WRITE;
+		r.type = (flag & O_APPEND) ? CCS_MAC_APPEND :
+			CCS_MAC_WRITE;
 		error = ccs_check_acl(&r, false);
 	}
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
 	if (!error && (flag & O_TRUNC)) {
-		r.type = CCS_MAC_FILE_TRUNCATE;
+		r.type = CCS_MAC_TRUNCATE;
 		error = ccs_check_acl(&r, false);
 	}
 #endif
@@ -1583,7 +1583,7 @@ static int ccs_path_perm(const enum ccs_mac_index operation,
 /**
  * ccs_mkdev_perm - Check permission for "mkblock" and "mkchar".
  *
- * @operation: Type of operation. (CCS_MAC_FILE_MKCHAR or CCS_MAC_FILE_MKBLOCK)
+ * @operation: Type of operation. (CCS_MAC_MKCHAR or CCS_MAC_MKBLOCK)
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount". Maybe NULL.
  * @mode:      Create mode.
@@ -1648,7 +1648,7 @@ static int __ccs_symlink_permission(struct dentry *dentry,
 {
 	struct ccs_request_info r = { };
 	ccs_check_auto_domain_transition();
-	r.type = CCS_MAC_FILE_SYMLINK;
+	r.type = CCS_MAC_SYMLINK;
 	r.obj.path[0].dentry = dentry;
 	r.obj.path[0].mnt = mnt;
 	r.obj.pathname[1].name = ccs_encode(target);
@@ -1695,7 +1695,7 @@ static int ccs_path_number_perm(const enum ccs_mac_index type,
 static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 				  unsigned long arg)
 {
-	return ccs_path_number_perm(CCS_MAC_FILE_IOCTL, filp->f_dentry,
+	return ccs_path_number_perm(CCS_MAC_IOCTL, filp->f_dentry,
 				    filp->f_vfsmnt, cmd);
 }
 
@@ -1713,7 +1713,7 @@ static int __ccs_chmod_permission(struct dentry *dentry,
 {
 	if (mode == (mode_t) -1)
 		return 0;
-	return ccs_path_number_perm(CCS_MAC_FILE_CHMOD, dentry, vfsmnt,
+	return ccs_path_number_perm(CCS_MAC_CHMOD, dentry, vfsmnt,
 				    mode & S_IALLUGO);
 }
 
@@ -1735,10 +1735,10 @@ static int __ccs_chown_permission(struct dentry *dentry,
 	if (user == (uid_t) -1 && group == (gid_t) -1)
 		return 0;
 	if (user != (uid_t) -1)
-		error = ccs_path_number_perm(CCS_MAC_FILE_CHOWN, dentry,
+		error = ccs_path_number_perm(CCS_MAC_CHOWN, dentry,
 					     vfsmnt, user);
 	if (!error && group != (gid_t) -1)
-		error = ccs_path_number_perm(CCS_MAC_FILE_CHGRP, dentry,
+		error = ccs_path_number_perm(CCS_MAC_CHGRP, dentry,
 					     vfsmnt, group);
 	return error;
 }
@@ -1780,7 +1780,7 @@ static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
 static int __ccs_pivot_root_permission(struct path *old_path,
 				       struct path *new_path)
 {
-	return ccs_path2_perm(CCS_MAC_FILE_PIVOT_ROOT, new_path->dentry,
+	return ccs_path2_perm(CCS_MAC_PIVOT_ROOT, new_path->dentry,
 			      new_path->mnt, old_path->dentry, old_path->mnt);
 }
 
@@ -1793,7 +1793,7 @@ static int __ccs_pivot_root_permission(struct path *old_path,
  */
 static int __ccs_chroot_permission(struct path *path)
 {
-	return ccs_path_perm(CCS_MAC_FILE_CHROOT, path->dentry, path->mnt);
+	return ccs_path_perm(CCS_MAC_CHROOT, path->dentry, path->mnt);
 }
 
 /**
@@ -1806,7 +1806,7 @@ static int __ccs_chroot_permission(struct path *path)
  */
 static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
-	return ccs_path_perm(CCS_MAC_FILE_UMOUNT, mnt->mnt_root, mnt);
+	return ccs_path_perm(CCS_MAC_UMOUNT, mnt->mnt_root, mnt);
 }
 
 /**
@@ -1826,24 +1826,24 @@ static int __ccs_mknod_permission(struct dentry *dentry, struct vfsmount *mnt,
 	const unsigned int perm = mode & S_IALLUGO;
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-		error = ccs_mkdev_perm(CCS_MAC_FILE_MKCHAR, dentry, mnt, perm,
+		error = ccs_mkdev_perm(CCS_MAC_MKCHAR, dentry, mnt, perm,
 				       dev);
 		break;
 	case S_IFBLK:
-		error = ccs_mkdev_perm(CCS_MAC_FILE_MKBLOCK, dentry, mnt, perm,
+		error = ccs_mkdev_perm(CCS_MAC_MKBLOCK, dentry, mnt, perm,
 				       dev);
 		break;
 	case S_IFIFO:
-		error = ccs_path_number_perm(CCS_MAC_FILE_MKFIFO, dentry, mnt,
+		error = ccs_path_number_perm(CCS_MAC_MKFIFO, dentry, mnt,
 					     perm);
 		break;
 	case S_IFSOCK:
-		error = ccs_path_number_perm(CCS_MAC_FILE_MKSOCK, dentry, mnt,
+		error = ccs_path_number_perm(CCS_MAC_MKSOCK, dentry, mnt,
 					     perm);
 		break;
 	case 0:
 	case S_IFREG:
-		error = ccs_path_number_perm(CCS_MAC_FILE_CREATE, dentry, mnt,
+		error = ccs_path_number_perm(CCS_MAC_CREATE, dentry, mnt,
 					     perm);
 		break;
 	}
@@ -1862,7 +1862,7 @@ static int __ccs_mknod_permission(struct dentry *dentry, struct vfsmount *mnt,
 static int __ccs_mkdir_permission(struct dentry *dentry, struct vfsmount *mnt,
 				  unsigned int mode)
 {
-	return ccs_path_number_perm(CCS_MAC_FILE_MKDIR, dentry, mnt, mode);
+	return ccs_path_number_perm(CCS_MAC_MKDIR, dentry, mnt, mode);
 }
 
 /**
@@ -1875,7 +1875,7 @@ static int __ccs_mkdir_permission(struct dentry *dentry, struct vfsmount *mnt,
  */
 static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
-	return ccs_path_perm(CCS_MAC_FILE_RMDIR, dentry, mnt);
+	return ccs_path_perm(CCS_MAC_RMDIR, dentry, mnt);
 }
 
 /**
@@ -1888,7 +1888,7 @@ static int __ccs_rmdir_permission(struct dentry *dentry, struct vfsmount *mnt)
  */
 static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
-	return ccs_path_perm(CCS_MAC_FILE_UNLINK, dentry, mnt);
+	return ccs_path_perm(CCS_MAC_UNLINK, dentry, mnt);
 }
 
 #ifdef CONFIG_CCSECURITY_FILE_GETATTR
@@ -1904,7 +1904,7 @@ static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt)
 static int __ccs_getattr_permission(struct vfsmount *mnt,
 				    struct dentry *dentry)
 {
-	return ccs_path_perm(CCS_MAC_FILE_GETATTR, dentry, mnt);
+	return ccs_path_perm(CCS_MAC_GETATTR, dentry, mnt);
 }
 
 #endif
@@ -1920,7 +1920,7 @@ static int __ccs_getattr_permission(struct vfsmount *mnt,
 static int __ccs_truncate_permission(struct dentry *dentry,
 				     struct vfsmount *mnt)
 {
-	return ccs_path_perm(CCS_MAC_FILE_TRUNCATE, dentry, mnt);
+	return ccs_path_perm(CCS_MAC_TRUNCATE, dentry, mnt);
 }
 
 /**
@@ -1936,7 +1936,7 @@ static int __ccs_rename_permission(struct dentry *old_dentry,
 				   struct dentry *new_dentry,
 				   struct vfsmount *mnt)
 {
-	return ccs_path2_perm(CCS_MAC_FILE_RENAME, old_dentry, mnt, new_dentry,
+	return ccs_path2_perm(CCS_MAC_RENAME, old_dentry, mnt, new_dentry,
 			      mnt);
 }
 
@@ -1953,7 +1953,7 @@ static int __ccs_link_permission(struct dentry *old_dentry,
 				 struct dentry *new_dentry,
 				 struct vfsmount *mnt)
 {
-	return ccs_path2_perm(CCS_MAC_FILE_LINK, old_dentry, mnt, new_dentry,
+	return ccs_path2_perm(CCS_MAC_LINK, old_dentry, mnt, new_dentry,
 			      mnt);
 }
 
@@ -2090,11 +2090,11 @@ repeat:
 			goto out;
 		ccs_fill_path_info(&buf);
 		if (op & MAY_READ)
-			error = ccs_sysctl_permission(CCS_MAC_FILE_READ, &buf);
+			error = ccs_sysctl_permission(CCS_MAC_READ, &buf);
 		else
 			error = 0;
 		if (!error && (op & MAY_WRITE))
-			error = ccs_sysctl_permission(CCS_MAC_FILE_WRITE,
+			error = ccs_sysctl_permission(CCS_MAC_WRITE,
 						      &buf);
 		kfree(buf.name);
 		if (error)
@@ -2112,11 +2112,11 @@ no_child:
 			goto out;
 		ccs_fill_path_info(&buf);
 		if (op & MAY_READ)
-			error = ccs_sysctl_permission(CCS_MAC_FILE_READ, &buf);
+			error = ccs_sysctl_permission(CCS_MAC_READ, &buf);
 		else
 			error = 0;
 		if (!error && (op & MAY_WRITE))
-			error = ccs_sysctl_permission(CCS_MAC_FILE_WRITE,
+			error = ccs_sysctl_permission(CCS_MAC_WRITE,
 						      &buf);
 		kfree(buf.name);
 		goto out;
@@ -2248,9 +2248,9 @@ static int ccs_check_inet_address(const struct sockaddr *addr,
 	default:
 		goto skip;
 	}
-	if (address->operation == CCS_MAC_NETWORK_INET_RAW_BIND ||
-	    address->operation == CCS_MAC_NETWORK_INET_RAW_SEND ||
-	    address->operation == CCS_MAC_NETWORK_INET_RAW_RECV)
+	if (address->operation == CCS_MAC_INET_RAW_BIND ||
+	    address->operation == CCS_MAC_INET_RAW_SEND ||
+	    address->operation == CCS_MAC_INET_RAW_RECV)
 		i->port = htons(port);
 	return ccs_inet_entry(address);
 skip:
@@ -2357,11 +2357,11 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 			return error;
 	}
 	if (family == PF_INET || family == PF_INET6)
-		address.operation = CCS_MAC_NETWORK_INET_STREAM_LISTEN;
+		address.operation = CCS_MAC_INET_STREAM_LISTEN;
 	else if (type == SOCK_STREAM)
-		address.operation = CCS_MAC_NETWORK_UNIX_STREAM_LISTEN;
+		address.operation = CCS_MAC_UNIX_STREAM_LISTEN;
 	else
-		address.operation = CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN;
+		address.operation = CCS_MAC_UNIX_SEQPACKET_LISTEN;
 	if (family == PF_UNIX)
 		return ccs_check_unix_address((struct sockaddr *) &addr,
 					      addr_len, &address);
@@ -2388,19 +2388,19 @@ static int __ccs_socket_connect_permission(struct socket *sock,
 	switch (sock->type) {
 	case SOCK_DGRAM:
 		address.operation = family == PF_UNIX ?
-			CCS_MAC_NETWORK_UNIX_DGRAM_SEND :
-			CCS_MAC_NETWORK_INET_DGRAM_SEND;
+			CCS_MAC_UNIX_DGRAM_SEND :
+			CCS_MAC_INET_DGRAM_SEND;
 		break;
 	case SOCK_RAW:
-		address.operation = CCS_MAC_NETWORK_INET_RAW_SEND;
+		address.operation = CCS_MAC_INET_RAW_SEND;
 		break;
 	case SOCK_STREAM:
 		address.operation = family == PF_UNIX ?
-			CCS_MAC_NETWORK_UNIX_STREAM_CONNECT :
-			CCS_MAC_NETWORK_INET_STREAM_CONNECT;
+			CCS_MAC_UNIX_STREAM_CONNECT :
+			CCS_MAC_INET_STREAM_CONNECT;
 		break;
 	case SOCK_SEQPACKET:
-		address.operation = CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT;
+		address.operation = CCS_MAC_UNIX_SEQPACKET_CONNECT;
 		break;
 	default:
 		return 0;
@@ -2431,19 +2431,19 @@ static int __ccs_socket_bind_permission(struct socket *sock,
 	switch (type) {
 	case SOCK_STREAM:
 		address.operation = family == PF_UNIX ?
-			CCS_MAC_NETWORK_UNIX_STREAM_BIND :
-			CCS_MAC_NETWORK_INET_STREAM_BIND;
+			CCS_MAC_UNIX_STREAM_BIND :
+			CCS_MAC_INET_STREAM_BIND;
 		break;
 	case SOCK_DGRAM:
 		address.operation = family == PF_UNIX ?
-			CCS_MAC_NETWORK_UNIX_DGRAM_BIND :
-			CCS_MAC_NETWORK_INET_DGRAM_BIND;
+			CCS_MAC_UNIX_DGRAM_BIND :
+			CCS_MAC_INET_DGRAM_BIND;
 		break;
 	case SOCK_RAW:
-		address.operation = CCS_MAC_NETWORK_INET_RAW_BIND;
+		address.operation = CCS_MAC_INET_RAW_BIND;
 		break;
 	case SOCK_SEQPACKET:
-		address.operation = CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND;
+		address.operation = CCS_MAC_UNIX_SEQPACKET_BIND;
 		break;
 	default:
 		return 0;
@@ -2473,11 +2473,11 @@ static int __ccs_socket_sendmsg_permission(struct socket *sock,
 	    (type != SOCK_DGRAM && type != SOCK_RAW))
 		return 0;
 	if (family == PF_UNIX)
-		address.operation = CCS_MAC_NETWORK_UNIX_DGRAM_SEND;
+		address.operation = CCS_MAC_UNIX_DGRAM_SEND;
 	else if (type == SOCK_DGRAM)
-		address.operation = CCS_MAC_NETWORK_INET_DGRAM_SEND;
+		address.operation = CCS_MAC_INET_DGRAM_SEND;
 	else
-		address.operation = CCS_MAC_NETWORK_INET_RAW_SEND;
+		address.operation = CCS_MAC_INET_RAW_SEND;
 	if (family == PF_UNIX)
 		return ccs_check_unix_address((struct sockaddr *)
 					      msg->msg_name, msg->msg_namelen,
@@ -2513,11 +2513,11 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 			return error;
 	}
 	if (family == PF_INET || family == PF_INET6)
-		address.operation = CCS_MAC_NETWORK_INET_STREAM_ACCEPT;
+		address.operation = CCS_MAC_INET_STREAM_ACCEPT;
 	else if (type == SOCK_STREAM)
-		address.operation = CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT;
+		address.operation = CCS_MAC_UNIX_STREAM_ACCEPT;
 	else
-		address.operation = CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT;
+		address.operation = CCS_MAC_UNIX_SEQPACKET_ACCEPT;
 	if (family == PF_UNIX)
 		return ccs_check_unix_address((struct sockaddr *) &addr,
 					      addr_len, &address);
@@ -2546,11 +2546,11 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 	if (!family || (type != SOCK_DGRAM && type != SOCK_RAW))
 		return 0;
 	if (family == PF_UNIX)
-		address.operation = CCS_MAC_NETWORK_UNIX_DGRAM_RECV;
+		address.operation = CCS_MAC_UNIX_DGRAM_RECV;
 	else if (type == SOCK_DGRAM)
-		address.operation = CCS_MAC_NETWORK_INET_DGRAM_RECV;
+		address.operation = CCS_MAC_INET_DGRAM_RECV;
 	else
-		address.operation = CCS_MAC_NETWORK_INET_RAW_RECV;
+		address.operation = CCS_MAC_INET_RAW_RECV;
 	switch (family) {
 	case PF_INET6:
 		{
@@ -2679,7 +2679,7 @@ static int __ccs_socket_create_permission(int family, int type, int protocol)
 		return 0;
 	if (family == PF_PACKET && !ccs_capable(CCS_USE_PACKET_SOCKET))
 		return -EPERM;
-	if (family == PF_ROUTE && !ccs_capable(CCS_USE_ROUTE_SOCKET))
+	if (family == PF_NETLINK && !ccs_capable(CCS_USE_ROUTE_SOCKET))
 		return -EPERM;
 	return 0;
 }
@@ -2705,7 +2705,7 @@ bool ccs_manager(void)
 		return true;
 	{
 		struct ccs_request_info r = { };
-		r.type = CCS_MAC_CAPABILITY_MODIFY_POLICY;
+		r.type = CCS_MAC_MODIFY_POLICY;
 		allowed = !ccs_check_acl(&r, true);
 	}
 	if (allowed) {
@@ -3160,12 +3160,12 @@ void ccs_populate_patharg(struct ccs_request_info *r, const bool first)
 			return;
 		len = strlen(buf->name) - 1;
 		if (len >= 0 && buf->name[len] != '/' &&
-		    (r->type == CCS_MAC_FILE_MKDIR ||
-		     r->type == CCS_MAC_FILE_RMDIR ||
-		     r->type == CCS_MAC_FILE_CHROOT ||
-		     r->type == CCS_MAC_FILE_PIVOT_ROOT ||
-		     ((r->type == CCS_MAC_FILE_RENAME ||
-		       r->type == CCS_MAC_FILE_LINK) &&
+		    (r->type == CCS_MAC_MKDIR ||
+		     r->type == CCS_MAC_RMDIR ||
+		     r->type == CCS_MAC_CHROOT ||
+		     r->type == CCS_MAC_PIVOT_ROOT ||
+		     ((r->type == CCS_MAC_RENAME ||
+		       r->type == CCS_MAC_LINK) &&
 		      r->obj.path[0].dentry && r->obj.path[0].dentry->d_inode
 		      && S_ISDIR(r->obj.path[0].dentry->d_inode->i_mode)))) {
 			/*
@@ -3639,7 +3639,7 @@ static void ccs_check_auto_domain_transition(void)
 	const int idx = ccs_read_lock();
 	struct ccs_request_info r = { };
 	for (i = 0; i < 255; i++) {
-		r.type = CCS_MAC_AUTO_TASK_TRANSITION;
+		r.type = CCS_MAC_AUTO_DOMAIN_TRANSITION;
 		ccs_check_acl(&r, false);
 		if (r.result != CCS_MATCHING_ALLOWED)
 			goto done;

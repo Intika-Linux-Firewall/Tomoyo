@@ -56,14 +56,14 @@ static void test_file_read(void)
 	int fd;
 	char *policy;
 
-	policy = "100 acl file read\n";
+	policy = "100 acl read\n";
 	set(policy);
 	fd = open("/dev/null", O_RDONLY);
 	check(policy, fd != EOF);
 	close(fd);
 	unset(policy);
 	
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 allow\n"
 		"1 deny\n";
 	set(policy);
@@ -72,7 +72,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 	
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 deny\n"
 		"1 allow\n";
 	set(policy);
@@ -81,7 +81,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 	
-	policy = "100 acl file read path=\"/dev/null\"\n"
+	policy = "100 acl read path=\"/dev/null\"\n"
 		"0 allow\n"
 		"1 deny\n";
 	set(policy);
@@ -90,7 +90,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file read path=\"/dev/null\"\n"
+	policy = "100 acl read path=\"/dev/null\"\n"
 		"0 deny\n"
 		"1 allow\n";
 	set(policy);
@@ -99,7 +99,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 allow path=\"/dev/null\"\n"
 		"1 deny\n";
 	set(policy);
@@ -108,7 +108,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 deny path=\"/dev/null\"\n"
 		"1 allow\n";
 	set(policy);
@@ -117,7 +117,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 allow path.type=char path.dev_major=1 path.dev_minor=3\n"
 		"1 deny\n";
 	set(policy);
@@ -126,7 +126,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 deny path.type=char path.dev_major=1 path.dev_minor=3\n"
 		"1 allow\n";
 	set(policy);
@@ -135,7 +135,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 allow path.type=char path.dev_major=1 path.dev_minor!=3\n"
 		"1 deny\n";
 	set(policy);
@@ -144,7 +144,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file read\n"
+	policy = "100 acl read\n"
 		"0 deny path.type=char path.dev_major=1 path.dev_minor!=3\n"
 		"1 allow\n";
 	set(policy);
@@ -154,7 +154,7 @@ static void test_file_read(void)
 	unset(policy);
 
 	policy = "path_group GROUP1 /dev/null\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 allow path=@GROUP1\n"
 		"1 deny\n";
 	set(policy);
@@ -164,7 +164,7 @@ static void test_file_read(void)
 	unset2(policy);
 
 	policy = "path_group GROUP1 /dev/null\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 deny path=@GROUP1\n"
 		"1 allow\n";
 	set(policy);
@@ -174,7 +174,7 @@ static void test_file_read(void)
 	unset2(policy);
 
 	policy = "path_group GROUP1 /dev/null\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 allow path!=@GROUP1\n"
 		"1 deny\n";
 	set(policy);
@@ -184,7 +184,7 @@ static void test_file_read(void)
 	unset2(policy);
 
 	policy = "path_group GROUP1 /dev/null\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 deny path!=@GROUP1\n"
 		"1 allow\n";
 	set(policy);
@@ -196,7 +196,7 @@ static void test_file_read(void)
 	policy = "path_group GROUP1 /dev/null\n"
 		"number_group MAJOR 1\n"
 		"number_group MINOR 3\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 allow path=@GROUP1 path.dev_major=@MAJOR"
 		" path.dev_minor=@MINOR\n"
 		"1 deny\n";
@@ -209,7 +209,7 @@ static void test_file_read(void)
 	policy = "path_group GROUP1 /dev/null\n"
 		"number_group MAJOR 1\n"
 		"number_group MINOR 3\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 deny path=@GROUP1 path.dev_major=@MAJOR"
 		" path.dev_minor=@MINOR\n"
 		"1 allow\n";
@@ -226,7 +226,7 @@ static void test_file_read(void)
 		"number_group MAJOR 2-255\n"
 		"number_group MINOR 00-0x2\n"
 		"number_group MINOR 255\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 allow path=@GROUP1 path.dev_major=@MAJOR"
 		" path.dev_minor=@MINOR\n"
 		"1 deny\n";
@@ -243,7 +243,7 @@ static void test_file_read(void)
 		"number_group MAJOR 2-255\n"
 		"number_group MINOR 00-0x2\n"
 		"number_group MINOR 255\n"
-		"100 acl file read\n"
+		"100 acl read\n"
 		"0 allow path=@GROUP1 path.dev_major!=@MAJOR"
 		" path.dev_minor!=@MINOR\n"
 		"1 deny\n";
@@ -259,9 +259,9 @@ static void test_file_write(void)
 	int fd;
 	char *policy;
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 allow\n"
-		"100 acl file append\n"
+		"100 acl append\n"
 		"0 deny\n";
 	set(policy);
 	fd = open("/dev/null", O_WRONLY);
@@ -269,9 +269,9 @@ static void test_file_write(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 deny\n"
-		"100 acl file append\n"
+		"100 acl append\n"
 		"0 allow\n";
 	set(policy);
 	fd = open("/dev/null", O_WRONLY);
@@ -279,9 +279,9 @@ static void test_file_write(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 allow\n"
-		"100 acl file append\n"
+		"100 acl append\n"
 		"0 deny\n";
 	set(policy);
 	fd = open("/dev/null", O_WRONLY | O_APPEND);
@@ -289,9 +289,9 @@ static void test_file_write(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 deny\n"
-		"100 acl file append\n"
+		"100 acl append\n"
 		"0 append\n";
 	set(policy);
 	fd = open("/dev/null", O_WRONLY | O_APPEND);
@@ -299,7 +299,7 @@ static void test_file_write(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 allow path.type=char path.dev_major=1 path.dev_minor=3\n"
 		"1 deny\n";
 	set(policy);
@@ -308,7 +308,7 @@ static void test_file_write(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 allow path.type=char path.dev_major=1"
 		" path.dev_minor=@MINOR\n"
 		"1 deny\n";
@@ -318,7 +318,7 @@ static void test_file_write(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 allow path.parent.type=directory path.parent.uid=0"
 		" path.parent.perm=0755\n"
 		"1 deny\n";
@@ -328,7 +328,7 @@ static void test_file_write(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 allow path.parent.uid=task.uid path.parent.gid=task.gid\n"
 		"1 deny\n";
 	set(policy);
@@ -337,7 +337,7 @@ static void test_file_write(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file write\n"
+	policy = "100 acl write\n"
 		"0 allow task.uid=path.parent.uid task.gid=path.parent.gid\n"
 		"1 deny\n";
 	set(policy);
@@ -352,7 +352,7 @@ static void test_file_create(void)
 	int fd;
 	char *policy;
 
-	policy = "100 acl file create\n"
+	policy = "100 acl create\n"
 		"0 allow path.uid=0\n"
 		"1 deny\n";
 	set(policy);
@@ -362,7 +362,7 @@ static void test_file_create(void)
 	close(fd);
 	unset(policy);
 
-	policy = "100 acl file create\n"
+	policy = "100 acl create\n"
 		"0 allow path=\"/tmp/file\" path.parent.uid=0\n"
 		"1 deny\n";
 	set(policy);
@@ -373,7 +373,7 @@ static void test_file_create(void)
 	unset(policy);
 
 	policy = "number_group GROUP1 1-0xFFFFFFFF\n"
-		"100 acl file create\n"
+		"100 acl create\n"
 		"0 allow path.parent.uid!=@GROUP1 perm=0600\n"
 		"1 deny\n";
 	set(policy);
@@ -384,7 +384,7 @@ static void test_file_create(void)
 	unset2(policy);
 
 	policy = "number_group GROUP1 1-0xFFFFFFFF\n"
-		"100 acl file create\n"
+		"100 acl create\n"
 		"0 allow path.parent.uid!=@GROUP1 perm!=0600\n"
 		"1 deny\n";
 	set(policy);
@@ -394,7 +394,7 @@ static void test_file_create(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "100 acl file create\n"
+	policy = "100 acl create\n"
 		"0 allow path.parent.uid=task.uid\n"
 		"1 deny\n";
 	set(policy);
@@ -409,7 +409,7 @@ static void test_file_unlink(void)
 {
 	char *policy;
 
-	policy = "100 acl file unlink\n"
+	policy = "100 acl unlink\n"
 		"0 allow path.uid=0 path.uid=path.parent.uid\n"
 		"1 deny\n";
 	set(policy);
@@ -417,7 +417,7 @@ static void test_file_unlink(void)
 	check(policy, unlink("/tmp/file") == 0);
 	unset(policy);
 
-	policy = "100 acl file unlink\n"
+	policy = "100 acl unlink\n"
 		"0 deny path.uid=0 path.uid=path.parent.uid\n"
 		"1 allow\n";
 	set(policy);
@@ -430,7 +430,7 @@ static void test_file_link(void)
 {
 	char *policy;
 
-	policy = "100 acl file link\n"
+	policy = "100 acl link\n"
 		"0 allow old_path.uid=0 old_path.uid=old_path.parent.uid"
 		" old_path.parent.ino=new_path.parent.ino\n"
 		"1 deny\n";
@@ -440,7 +440,7 @@ static void test_file_link(void)
 	check(policy, link("/tmp/file", "/tmp/file2") == 0);
 	unset(policy);
 	
-	policy = "100 acl file link\n"
+	policy = "100 acl link\n"
 		"0 deny old_path.uid=0 old_path.uid=old_path.parent.uid\n"
 		"1 allow\n";
 	set(policy);
@@ -454,7 +454,7 @@ static void test_file_rename(void)
 {
 	char *policy;
 
-	policy = "100 acl file rename\n"
+	policy = "100 acl rename\n"
 		"0 allow old_path.uid=0 old_path.uid=old_path.parent.uid"
 		" old_path.parent.ino=new_path.parent.ino\n"
 		"1 deny\n";
@@ -464,7 +464,7 @@ static void test_file_rename(void)
 	check(policy, rename("/tmp/file", "/tmp/file2") == 0);
 	unset(policy);
 	
-	policy = "100 acl file rename\n"
+	policy = "100 acl rename\n"
 		"0 deny old_path.uid=0 old_path.uid=old_path.parent.uid\n"
 		"1 allow\n";
 	set(policy);
@@ -491,7 +491,7 @@ static void test_network_inet_stream(void)
 	addr1.sin_family = AF_INET;
 	addr1.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip=127.0.0.1 port!=0\n"
 		"1 deny\n";
 	set(policy);
@@ -499,7 +499,7 @@ static void test_network_inet_stream(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip!=127.0.0.1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -507,7 +507,7 @@ static void test_network_inet_stream(void)
 	      EOF);
 	unset(policy);
 
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip=127.0.0.1 port=0 path.uid=task.uid\n"
 		"1 deny\n";
 	set(policy);
@@ -515,7 +515,7 @@ static void test_network_inet_stream(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip=127.0.0.1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -526,7 +526,7 @@ static void test_network_inet_stream(void)
 	getsockname(fd1, (struct sockaddr *) &addr1, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_listen\n"
+		 "100 acl inet_stream_listen\n"
 		 "0 allow ip=127.0.0.1 port!=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -535,7 +535,7 @@ static void test_network_inet_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_listen\n"
+		 "100 acl inet_stream_listen\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -544,7 +544,7 @@ static void test_network_inet_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_connect\n"
+		 "100 acl inet_stream_connect\n"
 		 "0 allow ip=127.0.0.1 port!=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -554,7 +554,7 @@ static void test_network_inet_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_connect\n"
+		 "100 acl inet_stream_connect\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -566,7 +566,7 @@ static void test_network_inet_stream(void)
 	getsockname(fd2, (struct sockaddr *) &addr2, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_accept\n"
+		 "100 acl inet_stream_accept\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin_port));
 	policy = buffer;
@@ -577,7 +577,7 @@ static void test_network_inet_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_connect\n"
+		 "100 acl inet_stream_connect\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -591,7 +591,7 @@ static void test_network_inet_stream(void)
 	getsockname(fd2, (struct sockaddr *) &addr2, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_accept\n"
+		 "100 acl inet_stream_accept\n"
 		 "0 allow ip=127.0.0.1 port!=%u\n"
 		 "1 deny\n", ntohs(addr2.sin_port));
 	policy = buffer;
@@ -622,7 +622,7 @@ static void test_network_inet_dgram(void)
 	addr1.sin_family = AF_INET;
 	addr1.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip=127.0.0.1 port!=0\n"
 		"1 deny\n";
 	set(policy);
@@ -630,7 +630,7 @@ static void test_network_inet_dgram(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip!=127.0.0.1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -638,7 +638,7 @@ static void test_network_inet_dgram(void)
 	      EOF);
 	unset(policy);
 
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip=127.0.0.1 port=0 path.uid=task.uid\n"
 		"1 deny\n";
 	set(policy);
@@ -646,7 +646,7 @@ static void test_network_inet_dgram(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip=127.0.0.1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -657,7 +657,7 @@ static void test_network_inet_dgram(void)
 	getsockname(fd1, (struct sockaddr *) &addr1, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=127.0.0.1 port!=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -667,7 +667,7 @@ static void test_network_inet_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -679,7 +679,7 @@ static void test_network_inet_dgram(void)
 	getsockname(fd2, (struct sockaddr *) &addr2, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -688,7 +688,7 @@ static void test_network_inet_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_recv\n"
+		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin_port));
 	policy = buffer;
@@ -697,7 +697,7 @@ static void test_network_inet_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=127.0.0.1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -706,7 +706,7 @@ static void test_network_inet_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_recv\n"
+		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip=127.0.0.1 port!=%u\n"
 		 "1 deny\n", ntohs(addr2.sin_port));
 	policy = buffer;
@@ -716,7 +716,7 @@ static void test_network_inet_dgram(void)
 
 	snprintf(buffer, sizeof(buffer) - 1,
 		 "address_group LOCALHOST 127.0.0.0-127.255.255.255\n"
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
 	policy = buffer;
@@ -726,7 +726,7 @@ static void test_network_inet_dgram(void)
 
 	snprintf(buffer, sizeof(buffer) - 1,
 		 "address_group LOCALHOST 127.0.0.0-127.255.255.255\n"
-		 "100 acl network inet_dgram_recv\n"
+		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip!=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin_port));
 	policy = buffer;
@@ -755,7 +755,7 @@ static void test_network_inet6_stream(void)
 	addr1.sin6_family = AF_INET6;
 	addr1.sin6_addr = in6addr_loopback;
 
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip=::1 port!=0\n"
 		"1 deny\n";
 	set(policy);
@@ -763,7 +763,7 @@ static void test_network_inet6_stream(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip!=::1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -771,7 +771,7 @@ static void test_network_inet6_stream(void)
 	      EOF);
 	unset(policy);
 
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip=::1 port=0 path.uid=task.uid\n"
 		"1 deny\n";
 	set(policy);
@@ -779,7 +779,7 @@ static void test_network_inet6_stream(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_stream_bind\n"
+	policy = "100 acl inet_stream_bind\n"
 		"0 allow ip=::1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -790,7 +790,7 @@ static void test_network_inet6_stream(void)
 	getsockname(fd1, (struct sockaddr *) &addr1, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_listen\n"
+		 "100 acl inet_stream_listen\n"
 		 "0 allow ip=::1 port!=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -799,7 +799,7 @@ static void test_network_inet6_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_listen\n"
+		 "100 acl inet_stream_listen\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -808,7 +808,7 @@ static void test_network_inet6_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_connect\n"
+		 "100 acl inet_stream_connect\n"
 		 "0 allow ip=::1 port!=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -818,7 +818,7 @@ static void test_network_inet6_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_connect\n"
+		 "100 acl inet_stream_connect\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -830,7 +830,7 @@ static void test_network_inet6_stream(void)
 	getsockname(fd2, (struct sockaddr *) &addr2, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_accept\n"
+		 "100 acl inet_stream_accept\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin6_port));
 	policy = buffer;
@@ -841,7 +841,7 @@ static void test_network_inet6_stream(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_connect\n"
+		 "100 acl inet_stream_connect\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -855,7 +855,7 @@ static void test_network_inet6_stream(void)
 	getsockname(fd2, (struct sockaddr *) &addr2, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_stream_accept\n"
+		 "100 acl inet_stream_accept\n"
 		 "0 allow ip=::1 port!=%u\n"
 		 "1 deny\n", ntohs(addr2.sin6_port));
 	policy = buffer;
@@ -886,7 +886,7 @@ static void test_network_inet6_dgram(void)
 	addr1.sin6_family = AF_INET6;
 	addr1.sin6_addr = in6addr_loopback;
 
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip=::1 port!=0\n"
 		"1 deny\n";
 	set(policy);
@@ -894,7 +894,7 @@ static void test_network_inet6_dgram(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip!=::1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -902,7 +902,7 @@ static void test_network_inet6_dgram(void)
 	      EOF);
 	unset(policy);
 
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip=::1 port=0 path.uid=task.uid\n"
 		"1 deny\n";
 	set(policy);
@@ -910,7 +910,7 @@ static void test_network_inet6_dgram(void)
 	      EOF);
 	unset(policy);
 	
-	policy = "100 acl network inet_dgram_bind\n"
+	policy = "100 acl inet_dgram_bind\n"
 		"0 allow ip=::1 port=0\n"
 		"1 deny\n";
 	set(policy);
@@ -921,7 +921,7 @@ static void test_network_inet6_dgram(void)
 	getsockname(fd1, (struct sockaddr *) &addr1, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=::1 port!=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -931,7 +931,7 @@ static void test_network_inet6_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -943,7 +943,7 @@ static void test_network_inet6_dgram(void)
 	getsockname(fd2, (struct sockaddr *) &addr2, &size);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -952,7 +952,7 @@ static void test_network_inet6_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_recv\n"
+		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin6_port));
 	policy = buffer;
@@ -961,7 +961,7 @@ static void test_network_inet6_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=::1 port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -970,7 +970,7 @@ static void test_network_inet6_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1, 
-		 "100 acl network inet_dgram_recv\n"
+		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip=::1 port!=%u\n"
 		 "1 deny\n", ntohs(addr2.sin6_port));
 	policy = buffer;
@@ -980,7 +980,7 @@ static void test_network_inet6_dgram(void)
 
 	snprintf(buffer, sizeof(buffer) - 1,
 		 "address_group LOCALHOST ::-::ffff\n"
-		 "100 acl network inet_dgram_send\n"
+		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
 	policy = buffer;
@@ -990,7 +990,7 @@ static void test_network_inet6_dgram(void)
 
 	snprintf(buffer, sizeof(buffer) - 1,
 		 "address_group LOCALHOST ::-::ffff\n"
-		 "100 acl network inet_dgram_recv\n"
+		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip!=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin6_port));
 	policy = buffer;
@@ -1006,28 +1006,28 @@ static void test_capability(void)
 {
 	char *policy;
 
-	policy = "100 acl capability SYS_NICE\n"
+	policy = "100 acl set_priority\n"
 		"0 allow task.uid=0\n"
 		"1 deny\n";
 	set(policy);
 	check(policy, nice(0) == 0);
 	unset(policy);
 
-	policy = "100 acl capability SYS_NICE\n"
+	policy = "100 acl set_priority\n"
 		"0 allow task.uid=task.gid task.type!=execute_handler\n"
 		"1 deny\n";
 	set(policy);
 	check(policy, nice(0) == 0);
 	unset(policy);
 
-	policy = "100 acl capability SYS_NICE\n"
+	policy = "100 acl set_priority\n"
 		"0 deny task.uid=0\n"
 		"1 allow\n";
 	set(policy);
 	check(policy, nice(0) == EOF);
 	unset(policy);
 
-	policy = "100 acl capability SYS_NICE\n"
+	policy = "100 acl set_priority\n"
 		"0 allow task.uid=task.gid task.type=execute_handler\n"
 		"1 deny\n";
 	set(policy);
@@ -1039,7 +1039,7 @@ static void test_ptrace(void)
 {
 	char *policy;
 
-	policy = "100 acl ipc ptrace\n"
+	policy = "100 acl ptrace\n"
 		"0 allow cmd=1 domain!=\"foo\"\n"
 		"0 allow cmd=17\n"
 		"1 deny\n";
@@ -1049,7 +1049,7 @@ static void test_ptrace(void)
 
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
-	policy = "100 acl ipc ptrace\n"
+	policy = "100 acl ptrace\n"
 		"0 allow cmd=16 domain=\"foo\"\n"
 		"0 allow cmd=17\n"
 		"1 deny\n";
@@ -1059,7 +1059,7 @@ static void test_ptrace(void)
 
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
-	policy = "100 acl ipc ptrace\n"
+	policy = "100 acl ptrace\n"
 		"0 allow cmd=16 domain!=\"foo\"\n"
 		"0 allow cmd=17\n"
 		"1 deny\n";
@@ -1070,7 +1070,7 @@ static void test_ptrace(void)
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
 	policy = "domain_group DOMAINS /sbin/init\n"
-		"100 acl ipc ptrace\n"
+		"100 acl ptrace\n"
 		"0 allow cmd=16 domain=@DOMAINS\n"
 		"0 allow cmd=17\n"
 		"1 deny\n";
@@ -1081,7 +1081,7 @@ static void test_ptrace(void)
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
 	policy = "domain_group DOMAINS /sbin/init\n"
-		"100 acl ipc ptrace\n"
+		"100 acl ptrace\n"
 		"0 allow cmd=16 domain!=@DOMAINS\n"
 		"0 allow cmd=17\n"
 		"1 deny\n";
@@ -1124,7 +1124,7 @@ static void test_environ(void)
 	char *envp[2];
 	envp[1] = NULL;
 
-	policy = "100 acl misc env name=\"PATH2\"\n"
+	policy = "100 acl environ name=\"PATH2\"\n"
 		"0 allow value=\"/\"\n"
 		"1 deny\n";
 	set(policy);
@@ -1132,7 +1132,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl misc env name=\"PATH2\"\n"
+	policy = "100 acl environ name=\"PATH2\"\n"
 		"0 allow value!=\"/\"\n"
 		"1 deny\n";
 	set(policy);
@@ -1140,7 +1140,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == EOF);
 	unset(policy);
 
-	policy = "100 acl misc env name=\"PATH2\"\n"
+	policy = "100 acl environ name=\"PATH2\"\n"
 		"0 deny value!=\"/\"\n"
 		"1 allow\n";
 	set(policy);
@@ -1148,7 +1148,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl misc env name=\"PATH2\"\n"
+	policy = "100 acl environ name=\"PATH2\"\n"
 		"0 deny value=\"/\"\n"
 		"1 allow\n";
 	set(policy);
@@ -1156,7 +1156,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == EOF);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]=\"/\"\n"
 		"1 deny\n";
 	set(policy);
@@ -1164,7 +1164,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]!=\"/\"\n"
 		"1 deny\n";
 	set(policy);
@@ -1172,7 +1172,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == EOF);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]!=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1180,7 +1180,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]!=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1188,7 +1188,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]!=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1196,7 +1196,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1204,7 +1204,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == EOF);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1212,7 +1212,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == EOF);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"PATH2\"]=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1220,7 +1220,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == EOF);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"\"]=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1228,7 +1228,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == EOF);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"\"]!=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1236,7 +1236,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"\"]!=NULL\n"
 		"1 deny\n";
 	set(policy);
@@ -1244,7 +1244,7 @@ static void test_environ(void)
 	check(policy, fork_exec(envp) == 0);
 	unset(policy);
 
-	policy = "100 acl file execute path=\"/bin/true\"\n"
+	policy = "100 acl execute path=\"/bin/true\"\n"
 		"0 allow envp[\"\"]!=NULL\n"
 		"1 deny\n";
 	set(policy);

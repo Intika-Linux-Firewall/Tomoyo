@@ -19,198 +19,86 @@
 #define dprintk(...) do { } while (0)
 #endif
 
-/* Mapping table from "enum ccs_mac_index" to "enum ccs_mac_category_index". */
-static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
-	/* file group */
-	[CCS_MAC_FILE_EXECUTE]    = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_READ]       = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_WRITE]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_APPEND]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_CREATE]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_UNLINK]     = CCS_MAC_CATEGORY_FILE,
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
-	[CCS_MAC_FILE_GETATTR]    = CCS_MAC_CATEGORY_FILE,
-#endif
-	[CCS_MAC_FILE_MKDIR]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_RMDIR]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_MKFIFO]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_MKSOCK]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_TRUNCATE]   = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_SYMLINK]    = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_MKBLOCK]    = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_MKCHAR]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_LINK]       = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_RENAME]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_CHMOD]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_CHOWN]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_CHGRP]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_IOCTL]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_CHROOT]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_MOUNT]      = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_UMOUNT]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_PIVOT_ROOT] = CCS_MAC_CATEGORY_FILE,
-	/* misc group */
-#ifdef CONFIG_CCSECURITY_MISC
-	[CCS_MAC_ENVIRON]         = CCS_MAC_CATEGORY_MISC,
-#endif
-	/* network group */
-#ifdef CONFIG_CCSECURITY_NETWORK
-	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]    = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_DGRAM_BIND]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_DGRAM_SEND]        = CCS_MAC_CATEGORY_NETWORK,
-#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	[CCS_MAC_NETWORK_INET_DGRAM_RECV]        = CCS_MAC_CATEGORY_NETWORK,
-#endif
-	[CCS_MAC_NETWORK_INET_RAW_BIND]          = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_INET_RAW_SEND]          = CCS_MAC_CATEGORY_NETWORK,
-#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	[CCS_MAC_NETWORK_INET_RAW_RECV]          = CCS_MAC_CATEGORY_NETWORK,
-#endif
-	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]       = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]    = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]        = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]        = CCS_MAC_CATEGORY_NETWORK,
-#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]        = CCS_MAC_CATEGORY_NETWORK,
-#endif
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = CCS_MAC_CATEGORY_NETWORK,
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = CCS_MAC_CATEGORY_NETWORK,
-#endif
-	/* ipc group */
-#ifdef CONFIG_CCSECURITY_IPC
-	[CCS_MAC_PTRACE]          = CCS_MAC_CATEGORY_IPC,
-#endif
-	/* capability group */
-	[CCS_MAC_CAPABILITY_MODIFY_POLICY]     = CCS_MAC_CATEGORY_CAPABILITY,
-#ifdef CONFIG_CCSECURITY_CAPABILITY
-	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_VHANGUP]       = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_SETTIME]       = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_NICE]          = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = CCS_MAC_CATEGORY_CAPABILITY,
-	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = CCS_MAC_CATEGORY_CAPABILITY,
-#endif
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-	[CCS_MAC_AUTO_TASK_TRANSITION]   = CCS_MAC_CATEGORY_TASK,
-	[CCS_MAC_MANUAL_TASK_TRANSITION] = CCS_MAC_CATEGORY_TASK,
-#endif
-};
-
 /* String table for operation. */
 static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
-	/* file group */
-	[CCS_MAC_FILE_EXECUTE]    = "execute",
-	[CCS_MAC_FILE_READ]       = "read",
-	[CCS_MAC_FILE_WRITE]      = "write",
-	[CCS_MAC_FILE_APPEND]     = "append",
-	[CCS_MAC_FILE_CREATE]     = "create",
-	[CCS_MAC_FILE_UNLINK]     = "unlink",
+	[CCS_MAC_EXECUTE]    = "execute",
+	[CCS_MAC_READ]       = "read",
+	[CCS_MAC_WRITE]      = "write",
+	[CCS_MAC_APPEND]     = "append",
+	[CCS_MAC_CREATE]     = "create",
+	[CCS_MAC_UNLINK]     = "unlink",
 #ifdef CONFIG_CCSECURITY_FILE_GETATTR
-	[CCS_MAC_FILE_GETATTR]    = "getattr",
+	[CCS_MAC_GETATTR]    = "getattr",
 #endif
-	[CCS_MAC_FILE_MKDIR]      = "mkdir",
-	[CCS_MAC_FILE_RMDIR]      = "rmdir",
-	[CCS_MAC_FILE_MKFIFO]     = "mkfifo",
-	[CCS_MAC_FILE_MKSOCK]     = "mksock",
-	[CCS_MAC_FILE_TRUNCATE]   = "truncate",
-	[CCS_MAC_FILE_SYMLINK]    = "symlink",
-	[CCS_MAC_FILE_MKBLOCK]    = "mkblock",
-	[CCS_MAC_FILE_MKCHAR]     = "mkchar",
-	[CCS_MAC_FILE_LINK]       = "link",
-	[CCS_MAC_FILE_RENAME]     = "rename",
-	[CCS_MAC_FILE_CHMOD]      = "chmod",
-	[CCS_MAC_FILE_CHOWN]      = "chown",
-	[CCS_MAC_FILE_CHGRP]      = "chgrp",
-	[CCS_MAC_FILE_IOCTL]      = "ioctl",
-	[CCS_MAC_FILE_CHROOT]     = "chroot",
-	[CCS_MAC_FILE_MOUNT]      = "mount",
-	[CCS_MAC_FILE_UMOUNT]     = "unmount",
-	[CCS_MAC_FILE_PIVOT_ROOT] = "pivot_root",
-	/* misc group */
+	[CCS_MAC_MKDIR]      = "mkdir",
+	[CCS_MAC_RMDIR]      = "rmdir",
+	[CCS_MAC_MKFIFO]     = "mkfifo",
+	[CCS_MAC_MKSOCK]     = "mksock",
+	[CCS_MAC_TRUNCATE]   = "truncate",
+	[CCS_MAC_SYMLINK]    = "symlink",
+	[CCS_MAC_MKBLOCK]    = "mkblock",
+	[CCS_MAC_MKCHAR]     = "mkchar",
+	[CCS_MAC_LINK]       = "link",
+	[CCS_MAC_RENAME]     = "rename",
+	[CCS_MAC_CHMOD]      = "chmod",
+	[CCS_MAC_CHOWN]      = "chown",
+	[CCS_MAC_CHGRP]      = "chgrp",
+	[CCS_MAC_IOCTL]      = "ioctl",
+	[CCS_MAC_CHROOT]     = "chroot",
+	[CCS_MAC_MOUNT]      = "mount",
+	[CCS_MAC_UMOUNT]     = "unmount",
+	[CCS_MAC_PIVOT_ROOT] = "pivot_root",
 #ifdef CONFIG_CCSECURITY_MISC
-	[CCS_MAC_ENVIRON] = "env",
+	[CCS_MAC_ENVIRON] = "environ",
 #endif
-	/* network group */
 #ifdef CONFIG_CCSECURITY_NETWORK
-	[CCS_MAC_NETWORK_INET_STREAM_BIND]       = "inet_stream_bind",
-	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]     = "inet_stream_listen",
-	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]    = "inet_stream_connect",
-	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]     = "inet_stream_accept",
-	[CCS_MAC_NETWORK_INET_DGRAM_BIND]        = "inet_dgram_bind",
-	[CCS_MAC_NETWORK_INET_DGRAM_SEND]        = "inet_dgram_send",
+	[CCS_MAC_INET_STREAM_BIND]       = "inet_stream_bind",
+	[CCS_MAC_INET_STREAM_LISTEN]     = "inet_stream_listen",
+	[CCS_MAC_INET_STREAM_CONNECT]    = "inet_stream_connect",
+	[CCS_MAC_INET_STREAM_ACCEPT]     = "inet_stream_accept",
+	[CCS_MAC_INET_DGRAM_BIND]        = "inet_dgram_bind",
+	[CCS_MAC_INET_DGRAM_SEND]        = "inet_dgram_send",
 #ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	[CCS_MAC_NETWORK_INET_DGRAM_RECV]        = "inet_dgram_recv",
+	[CCS_MAC_INET_DGRAM_RECV]        = "inet_dgram_recv",
 #endif
-	[CCS_MAC_NETWORK_INET_RAW_BIND]          = "inet_raw_bind",
-	[CCS_MAC_NETWORK_INET_RAW_SEND]          = "inet_raw_send",
+	[CCS_MAC_INET_RAW_BIND]          = "inet_raw_bind",
+	[CCS_MAC_INET_RAW_SEND]          = "inet_raw_send",
 #ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	[CCS_MAC_NETWORK_INET_RAW_RECV]          = "inet_raw_recv",
+	[CCS_MAC_INET_RAW_RECV]          = "inet_raw_recv",
 #endif
-	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]       = "unix_stream_bind",
-	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]     = "unix_stream_listen",
-	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]    = "unix_stream_connect",
-	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]     = "unix_stream_accept",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]        = "unix_dgram_bind",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]        = "unix_dgram_send",
+	[CCS_MAC_UNIX_STREAM_BIND]       = "unix_stream_bind",
+	[CCS_MAC_UNIX_STREAM_LISTEN]     = "unix_stream_listen",
+	[CCS_MAC_UNIX_STREAM_CONNECT]    = "unix_stream_connect",
+	[CCS_MAC_UNIX_STREAM_ACCEPT]     = "unix_stream_accept",
+	[CCS_MAC_UNIX_DGRAM_BIND]        = "unix_dgram_bind",
+	[CCS_MAC_UNIX_DGRAM_SEND]        = "unix_dgram_send",
 #ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]        = "unix_dgram_recv",
+	[CCS_MAC_UNIX_DGRAM_RECV]        = "unix_dgram_recv",
 #endif
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]    = "unix_seqpacket_bind",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]  = "unix_seqpacket_listen",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
-	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
+	[CCS_MAC_UNIX_SEQPACKET_BIND]    = "unix_seqpacket_bind",
+	[CCS_MAC_UNIX_SEQPACKET_LISTEN]  = "unix_seqpacket_listen",
+	[CCS_MAC_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
+	[CCS_MAC_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
 #endif
-	/* ipc group */
 #ifdef CONFIG_CCSECURITY_IPC
 	[CCS_MAC_PTRACE] = "ptrace",
 #endif
-	/* capability group */
-	[CCS_MAC_CAPABILITY_MODIFY_POLICY]     = "modify_policy",
+	[CCS_MAC_MODIFY_POLICY]      = "modify_policy",
 #ifdef CONFIG_CCSECURITY_CAPABILITY
-	[CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET]  = "use_route",
-	[CCS_MAC_CAPABILITY_USE_PACKET_SOCKET] = "use_packet",
-	[CCS_MAC_CAPABILITY_SYS_REBOOT]        = "SYS_REBOOT",
-	[CCS_MAC_CAPABILITY_SYS_VHANGUP]       = "SYS_VHANGUP",
-	[CCS_MAC_CAPABILITY_SYS_SETTIME]       = "SYS_TIME",
-	[CCS_MAC_CAPABILITY_SYS_NICE]          = "SYS_NICE",
-	[CCS_MAC_CAPABILITY_SYS_SETHOSTNAME]   = "SYS_SETHOSTNAME",
-	[CCS_MAC_CAPABILITY_USE_KERNEL_MODULE] = "use_kernel_module",
-	[CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD]    = "SYS_KEXEC_LOAD",
+	[CCS_MAC_USE_NETLINK_SOCKET] = "use_netlink_socket",
+	[CCS_MAC_USE_PACKET_SOCKET]  = "use_packet_socket",
+	[CCS_MAC_USE_REBOOT]         = "use_reboot",
+	[CCS_MAC_USE_VHANGUP]        = "use_vhangup",
+	[CCS_MAC_SET_TIME]           = "set_time",
+	[CCS_MAC_SET_PRIORITY]       = "set_priority",
+	[CCS_MAC_SET_HOSTNAME]       = "set_hostname",
+	[CCS_MAC_USE_KERNEL_MODULE]  = "use_kernel_module",
+	[CCS_MAC_USE_NEW_KERNEL]     = "use_new_kernel",
 #endif
-	/* task group */
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-	[CCS_MAC_AUTO_TASK_TRANSITION]   = "auto_domain_transition",
-	[CCS_MAC_MANUAL_TASK_TRANSITION] = "manual_domain_transition",
+	[CCS_MAC_AUTO_DOMAIN_TRANSITION]   = "auto_domain_transition",
+	[CCS_MAC_MANUAL_DOMAIN_TRANSITION] = "manual_domain_transition",
 #endif
-};
-
-/* String table for categories. */
-static const char * const ccs_category_keywords[CCS_MAX_MAC_CATEGORY_INDEX] = {
-	[CCS_MAC_CATEGORY_FILE]       = "file",
-#ifdef CONFIG_CCSECURITY_NETWORK
-	[CCS_MAC_CATEGORY_NETWORK]    = "network",
-#endif
-#ifdef CONFIG_CCSECURITY_MISC
-	[CCS_MAC_CATEGORY_MISC]       = "misc",
-#endif
-#ifdef CONFIG_CCSECURITY_IPC
-	[CCS_MAC_CATEGORY_IPC]        = "ipc",
-#endif
-	[CCS_MAC_CATEGORY_CAPABILITY] = "capability",
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-	[CCS_MAC_CATEGORY_TASK]       = "task",
-#endif
-	[CCS_MAC_CATEGORY_NONE]       = "",
 };
 
 /* String table for conditions. */
@@ -1005,14 +893,14 @@ static void ccs_print_ip(struct ccs_io_buffer *head,
 static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 {
 	switch (type) {
-	case CCS_MAC_FILE_LINK:
-	case CCS_MAC_FILE_RENAME:
+	case CCS_MAC_LINK:
+	case CCS_MAC_RENAME:
 		if (index == 0)
 			return "old_path";
 		if (index == 1)
 			return "new_path";
 		break;
-	case CCS_MAC_FILE_MOUNT:
+	case CCS_MAC_MOUNT:
 		if (index == 0)
 			return "source";
 		if (index == 1)
@@ -1020,7 +908,7 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 		if (index == 2)
 			return "fstype";
 		break;
-	case CCS_MAC_FILE_PIVOT_ROOT:
+	case CCS_MAC_PIVOT_ROOT:
 		if (index == 0)
 			return "new_root";
 		if (index == 1)
@@ -1034,80 +922,80 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 			return "value";
 		/* fall through */
 #endif
-	case CCS_MAC_FILE_EXECUTE:
+	case CCS_MAC_EXECUTE:
 		if (index == 0)
 			return "path";
 		if (index == 1)
 			return "exec";
 		break;
-	case CCS_MAC_FILE_SYMLINK:
+	case CCS_MAC_SYMLINK:
 		if (index == 0)
 			return "path";
 		if (index == 1)
 			return "target";
 		break;
-	case CCS_MAC_FILE_READ:
-	case CCS_MAC_FILE_WRITE:
-	case CCS_MAC_FILE_APPEND:
-	case CCS_MAC_FILE_UNLINK:
+	case CCS_MAC_READ:
+	case CCS_MAC_WRITE:
+	case CCS_MAC_APPEND:
+	case CCS_MAC_UNLINK:
 #ifdef CONFIG_CCSECURITY_FILE_GETATTR
-	case CCS_MAC_FILE_GETATTR:
+	case CCS_MAC_GETATTR:
 #endif
-	case CCS_MAC_FILE_RMDIR:
-	case CCS_MAC_FILE_TRUNCATE:
-	case CCS_MAC_FILE_CHROOT:
-	case CCS_MAC_FILE_CHMOD:
-	case CCS_MAC_FILE_CHOWN:
-	case CCS_MAC_FILE_CHGRP:
-	case CCS_MAC_FILE_IOCTL:
-	case CCS_MAC_FILE_MKDIR:
-	case CCS_MAC_FILE_CREATE:
-	case CCS_MAC_FILE_MKFIFO:
-	case CCS_MAC_FILE_MKSOCK:
-	case CCS_MAC_FILE_MKBLOCK:
-	case CCS_MAC_FILE_MKCHAR:
-	case CCS_MAC_FILE_UMOUNT:
+	case CCS_MAC_RMDIR:
+	case CCS_MAC_TRUNCATE:
+	case CCS_MAC_CHROOT:
+	case CCS_MAC_CHMOD:
+	case CCS_MAC_CHOWN:
+	case CCS_MAC_CHGRP:
+	case CCS_MAC_IOCTL:
+	case CCS_MAC_MKDIR:
+	case CCS_MAC_CREATE:
+	case CCS_MAC_MKFIFO:
+	case CCS_MAC_MKSOCK:
+	case CCS_MAC_MKBLOCK:
+	case CCS_MAC_MKCHAR:
+	case CCS_MAC_UMOUNT:
 		if (index == 0)
 			return "path";
 		break;
-	case CCS_MAC_CAPABILITY_MODIFY_POLICY:
+	case CCS_MAC_MODIFY_POLICY:
 #ifdef CONFIG_CCSECURITY_CAPABILITY
-	case CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET:
-	case CCS_MAC_CAPABILITY_USE_PACKET_SOCKET:
-	case CCS_MAC_CAPABILITY_SYS_REBOOT:
-	case CCS_MAC_CAPABILITY_SYS_VHANGUP:
-	case CCS_MAC_CAPABILITY_SYS_SETTIME:
-	case CCS_MAC_CAPABILITY_SYS_NICE:
-	case CCS_MAC_CAPABILITY_SYS_SETHOSTNAME:
-	case CCS_MAC_CAPABILITY_USE_KERNEL_MODULE:
-	case CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD:
+	case CCS_MAC_USE_NETLINK_SOCKET:
+	case CCS_MAC_USE_PACKET_SOCKET:
+	case CCS_MAC_USE_REBOOT:
+	case CCS_MAC_USE_VHANGUP:
+	case CCS_MAC_SET_TIME:
+	case CCS_MAC_SET_PRIORITY:
+	case CCS_MAC_SET_HOSTNAME:
+	case CCS_MAC_USE_KERNEL_MODULE:
+	case CCS_MAC_USE_NEW_KERNEL:
 #endif
 		break;
 #ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_MAC_NETWORK_INET_STREAM_BIND:
-	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
-	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
-	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
-	case CCS_MAC_NETWORK_INET_RAW_BIND:
-	case CCS_MAC_NETWORK_INET_RAW_SEND:
-	case CCS_MAC_NETWORK_INET_RAW_RECV:
+	case CCS_MAC_INET_STREAM_BIND:
+	case CCS_MAC_INET_STREAM_LISTEN:
+	case CCS_MAC_INET_STREAM_CONNECT:
+	case CCS_MAC_INET_STREAM_ACCEPT:
+	case CCS_MAC_INET_DGRAM_BIND:
+	case CCS_MAC_INET_DGRAM_SEND:
+	case CCS_MAC_INET_DGRAM_RECV:
+	case CCS_MAC_INET_RAW_BIND:
+	case CCS_MAC_INET_RAW_SEND:
+	case CCS_MAC_INET_RAW_RECV:
 		if (index == 0)
 			return "ip";
 		break;
-	case CCS_MAC_NETWORK_UNIX_STREAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_SEND:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_RECV:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT:
+	case CCS_MAC_UNIX_STREAM_BIND:
+	case CCS_MAC_UNIX_STREAM_LISTEN:
+	case CCS_MAC_UNIX_STREAM_CONNECT:
+	case CCS_MAC_UNIX_STREAM_ACCEPT:
+	case CCS_MAC_UNIX_DGRAM_BIND:
+	case CCS_MAC_UNIX_DGRAM_SEND:
+	case CCS_MAC_UNIX_DGRAM_RECV:
+	case CCS_MAC_UNIX_SEQPACKET_BIND:
+	case CCS_MAC_UNIX_SEQPACKET_LISTEN:
+	case CCS_MAC_UNIX_SEQPACKET_CONNECT:
+	case CCS_MAC_UNIX_SEQPACKET_ACCEPT:
 		if (index == 0)
 			return "addr";
 		break;
@@ -1135,36 +1023,36 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 static const char *ccs_get_narg(const enum ccs_mac_index type, const u8 index)
 {
 	switch (type) {
-	case CCS_MAC_FILE_MOUNT:
-	case CCS_MAC_FILE_UMOUNT:
+	case CCS_MAC_MOUNT:
+	case CCS_MAC_UMOUNT:
 		if (index == 0)
 			return "flags";
 		break;
-	case CCS_MAC_FILE_CHMOD:
+	case CCS_MAC_CHMOD:
 		if (index == 0)
 			return "perm";
 		break;
-	case CCS_MAC_FILE_CHOWN:
+	case CCS_MAC_CHOWN:
 		if (index == 0)
 			return "uid";
 		break;
-	case CCS_MAC_FILE_CHGRP:
+	case CCS_MAC_CHGRP:
 		if (index == 0)
 			return "gid";
 		break;
-	case CCS_MAC_FILE_IOCTL:
+	case CCS_MAC_IOCTL:
 		if (index == 0)
 			return "cmd";
 		break;
-	case CCS_MAC_FILE_MKDIR:
-	case CCS_MAC_FILE_CREATE:
-	case CCS_MAC_FILE_MKFIFO:
-	case CCS_MAC_FILE_MKSOCK:
+	case CCS_MAC_MKDIR:
+	case CCS_MAC_CREATE:
+	case CCS_MAC_MKFIFO:
+	case CCS_MAC_MKSOCK:
 		if (index == 0)
 			return "perm";
 		break;
-	case CCS_MAC_FILE_MKBLOCK:
-	case CCS_MAC_FILE_MKCHAR:
+	case CCS_MAC_MKBLOCK:
+	case CCS_MAC_MKCHAR:
 		if (index == 0)
 			return "perm";
 		if (index == 1)
@@ -1173,19 +1061,19 @@ static const char *ccs_get_narg(const enum ccs_mac_index type, const u8 index)
 			return "dev_minor";
 		break;
 #ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_MAC_NETWORK_INET_STREAM_BIND:
-	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
-	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
-	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
+	case CCS_MAC_INET_STREAM_BIND:
+	case CCS_MAC_INET_STREAM_LISTEN:
+	case CCS_MAC_INET_STREAM_CONNECT:
+	case CCS_MAC_INET_STREAM_ACCEPT:
+	case CCS_MAC_INET_DGRAM_BIND:
+	case CCS_MAC_INET_DGRAM_SEND:
+	case CCS_MAC_INET_DGRAM_RECV:
 		if (index == 0)
 			return "port";
 		break;
-	case CCS_MAC_NETWORK_INET_RAW_BIND:
-	case CCS_MAC_NETWORK_INET_RAW_SEND:
-	case CCS_MAC_NETWORK_INET_RAW_RECV:
+	case CCS_MAC_INET_RAW_BIND:
+	case CCS_MAC_INET_RAW_SEND:
+	case CCS_MAC_INET_RAW_RECV:
 		if (index == 0)
 			return "proto";
 		break;
@@ -1744,61 +1632,61 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 (const char *word, const enum ccs_mac_index type)
 {
 	switch (type) {
-	case CCS_MAC_FILE_READ:
-	case CCS_MAC_FILE_WRITE:
-	case CCS_MAC_FILE_APPEND:
-	case CCS_MAC_FILE_UNLINK:
+	case CCS_MAC_READ:
+	case CCS_MAC_WRITE:
+	case CCS_MAC_APPEND:
+	case CCS_MAC_UNLINK:
 #ifdef CONFIG_CCSECURITY_FILE_GETATTR
-	case CCS_MAC_FILE_GETATTR:
+	case CCS_MAC_GETATTR:
 #endif
-	case CCS_MAC_FILE_RMDIR:
-	case CCS_MAC_FILE_TRUNCATE:
-	case CCS_MAC_FILE_CHROOT:
-	case CCS_MAC_FILE_CHOWN:
-	case CCS_MAC_FILE_CHGRP:
-	case CCS_MAC_FILE_IOCTL:
-	case CCS_MAC_FILE_EXECUTE:
-	case CCS_MAC_FILE_SYMLINK:
+	case CCS_MAC_RMDIR:
+	case CCS_MAC_TRUNCATE:
+	case CCS_MAC_CHROOT:
+	case CCS_MAC_CHOWN:
+	case CCS_MAC_CHGRP:
+	case CCS_MAC_IOCTL:
+	case CCS_MAC_EXECUTE:
+	case CCS_MAC_SYMLINK:
 		if (!strcmp(word, "path"))
 			return CCS_COND_SARG0;
-		if (type == CCS_MAC_FILE_CHOWN && !strcmp(word, "uid"))
+		if (type == CCS_MAC_CHOWN && !strcmp(word, "uid"))
 			return CCS_COND_NARG0;
-		if (type == CCS_MAC_FILE_CHGRP && !strcmp(word, "gid"))
+		if (type == CCS_MAC_CHGRP && !strcmp(word, "gid"))
 			return CCS_COND_NARG0;
-		if (type == CCS_MAC_FILE_IOCTL && !strcmp(word, "cmd"))
+		if (type == CCS_MAC_IOCTL && !strcmp(word, "cmd"))
 			return CCS_COND_NARG0;
-		if (type == CCS_MAC_FILE_EXECUTE && !strcmp(word, "exec"))
+		if (type == CCS_MAC_EXECUTE && !strcmp(word, "exec"))
 			return CCS_COND_SARG1;
-		if (type == CCS_MAC_FILE_SYMLINK && !strcmp(word, "target"))
+		if (type == CCS_MAC_SYMLINK && !strcmp(word, "target"))
 			return CCS_COND_SARG1;
 		break;
-	case CCS_MAC_FILE_CHMOD:
-	case CCS_MAC_FILE_MKDIR:
-	case CCS_MAC_FILE_CREATE:
-	case CCS_MAC_FILE_MKFIFO:
-	case CCS_MAC_FILE_MKSOCK:
-	case CCS_MAC_FILE_MKBLOCK:
-	case CCS_MAC_FILE_MKCHAR:
+	case CCS_MAC_CHMOD:
+	case CCS_MAC_MKDIR:
+	case CCS_MAC_CREATE:
+	case CCS_MAC_MKFIFO:
+	case CCS_MAC_MKSOCK:
+	case CCS_MAC_MKBLOCK:
+	case CCS_MAC_MKCHAR:
 		if (!strcmp(word, "path"))
 			return CCS_COND_SARG0;
 		if (!strcmp(word, "perm"))
 			return CCS_COND_NARG0;
-		if (type == CCS_MAC_FILE_MKBLOCK ||
-		    type == CCS_MAC_FILE_MKCHAR) {
+		if (type == CCS_MAC_MKBLOCK ||
+		    type == CCS_MAC_MKCHAR) {
 			if (!strcmp(word, "dev_major"))
 				return CCS_COND_NARG1;
 			if (!strcmp(word, "dev_minor"))
 				return CCS_COND_NARG2;
 		}
 		break;
-	case CCS_MAC_FILE_LINK:
-	case CCS_MAC_FILE_RENAME:
+	case CCS_MAC_LINK:
+	case CCS_MAC_RENAME:
 		if (!strcmp(word, "old_path"))
 			return CCS_COND_SARG0;
 		if (!strcmp(word, "new_path"))
 			return CCS_COND_SARG1;
 		break;
-	case CCS_MAC_FILE_MOUNT:
+	case CCS_MAC_MOUNT:
 		if (!strcmp(word, "source"))
 			return CCS_COND_SARG0;
 		if (!strcmp(word, "target"))
@@ -1808,50 +1696,50 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 		if (!strcmp(word, "flags"))
 			return CCS_COND_NARG0;
 		break;
-	case CCS_MAC_FILE_UMOUNT:
+	case CCS_MAC_UMOUNT:
 		if (!strcmp(word, "path"))
 			return CCS_COND_SARG0;
 		if (!strcmp(word, "flags"))
 			return CCS_COND_NARG0;
 		break;
-	case CCS_MAC_FILE_PIVOT_ROOT:
+	case CCS_MAC_PIVOT_ROOT:
 		if (!strcmp(word, "new_root"))
 			return CCS_COND_SARG0;
 		if (!strcmp(word, "put_old"))
 			return CCS_COND_SARG1;
 		break;
 #ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_MAC_NETWORK_INET_STREAM_BIND:
-	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
-	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
-	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
+	case CCS_MAC_INET_STREAM_BIND:
+	case CCS_MAC_INET_STREAM_LISTEN:
+	case CCS_MAC_INET_STREAM_CONNECT:
+	case CCS_MAC_INET_STREAM_ACCEPT:
+	case CCS_MAC_INET_DGRAM_BIND:
+	case CCS_MAC_INET_DGRAM_SEND:
+	case CCS_MAC_INET_DGRAM_RECV:
 		if (!strcmp(word, "ip"))
 			return CCS_COND_IPARG;
 		if (!strcmp(word, "port"))
 			return CCS_COND_NARG0;
 		break;
-	case CCS_MAC_NETWORK_INET_RAW_BIND:
-	case CCS_MAC_NETWORK_INET_RAW_SEND:
-	case CCS_MAC_NETWORK_INET_RAW_RECV:
+	case CCS_MAC_INET_RAW_BIND:
+	case CCS_MAC_INET_RAW_SEND:
+	case CCS_MAC_INET_RAW_RECV:
 		if (!strcmp(word, "ip"))
 			return CCS_COND_IPARG;
 		if (!strcmp(word, "proto"))
 			return CCS_COND_NARG0;
 		break;
-	case CCS_MAC_NETWORK_UNIX_STREAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_SEND:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_RECV:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT:
+	case CCS_MAC_UNIX_STREAM_BIND:
+	case CCS_MAC_UNIX_STREAM_LISTEN:
+	case CCS_MAC_UNIX_STREAM_CONNECT:
+	case CCS_MAC_UNIX_STREAM_ACCEPT:
+	case CCS_MAC_UNIX_DGRAM_BIND:
+	case CCS_MAC_UNIX_DGRAM_SEND:
+	case CCS_MAC_UNIX_DGRAM_RECV:
+	case CCS_MAC_UNIX_SEQPACKET_BIND:
+	case CCS_MAC_UNIX_SEQPACKET_LISTEN:
+	case CCS_MAC_UNIX_SEQPACKET_CONNECT:
+	case CCS_MAC_UNIX_SEQPACKET_ACCEPT:
 		if (!strcmp(word, "addr"))
 			return CCS_COND_SARG0;
 		break;
@@ -1872,23 +1760,23 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 			return CCS_COND_NARG0;
 		break;
 #endif
-	case CCS_MAC_CAPABILITY_MODIFY_POLICY:
+	case CCS_MAC_MODIFY_POLICY:
 #ifdef CONFIG_CCSECURITY_CAPABILITY
-	case CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET:
-	case CCS_MAC_CAPABILITY_USE_PACKET_SOCKET:
-	case CCS_MAC_CAPABILITY_SYS_REBOOT:
-	case CCS_MAC_CAPABILITY_SYS_VHANGUP:
-	case CCS_MAC_CAPABILITY_SYS_SETTIME:
-	case CCS_MAC_CAPABILITY_SYS_NICE:
-	case CCS_MAC_CAPABILITY_SYS_SETHOSTNAME:
-	case CCS_MAC_CAPABILITY_USE_KERNEL_MODULE:
-	case CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD:
+	case CCS_MAC_USE_NETLINK_SOCKET:
+	case CCS_MAC_USE_PACKET_SOCKET:
+	case CCS_MAC_USE_REBOOT:
+	case CCS_MAC_USE_VHANGUP:
+	case CCS_MAC_SET_TIME:
+	case CCS_MAC_SET_PRIORITY:
+	case CCS_MAC_SET_HOSTNAME:
+	case CCS_MAC_USE_KERNEL_MODULE:
+	case CCS_MAC_USE_NEW_KERNEL:
 #endif
 		break;
 	case CCS_MAX_MAC_INDEX:
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-	case CCS_MAC_AUTO_TASK_TRANSITION:
-	case CCS_MAC_MANUAL_TASK_TRANSITION:
+	case CCS_MAC_AUTO_DOMAIN_TRANSITION:
+	case CCS_MAC_MANUAL_DOMAIN_TRANSITION:
 #endif
 		break;
 	}
@@ -1901,52 +1789,52 @@ static enum ccs_conditions_index ccs_parse_path_attribute
 	u8 i;
 	enum ccs_conditions_index start;
 	switch (type) {
-	case CCS_MAC_FILE_READ:
-	case CCS_MAC_FILE_WRITE:
-	case CCS_MAC_FILE_APPEND:
-	case CCS_MAC_FILE_UNLINK:
+	case CCS_MAC_READ:
+	case CCS_MAC_WRITE:
+	case CCS_MAC_APPEND:
+	case CCS_MAC_UNLINK:
 #ifdef CONFIG_CCSECURITY_FILE_GETATTR
-	case CCS_MAC_FILE_GETATTR:
+	case CCS_MAC_GETATTR:
 #endif
-	case CCS_MAC_FILE_RMDIR:
-	case CCS_MAC_FILE_TRUNCATE:
-	case CCS_MAC_FILE_CHROOT:
-	case CCS_MAC_FILE_CHMOD:
-	case CCS_MAC_FILE_CHOWN:
-	case CCS_MAC_FILE_CHGRP:
-	case CCS_MAC_FILE_IOCTL:
-	case CCS_MAC_FILE_EXECUTE:
-	case CCS_MAC_FILE_UMOUNT:
+	case CCS_MAC_RMDIR:
+	case CCS_MAC_TRUNCATE:
+	case CCS_MAC_CHROOT:
+	case CCS_MAC_CHMOD:
+	case CCS_MAC_CHOWN:
+	case CCS_MAC_CHGRP:
+	case CCS_MAC_IOCTL:
+	case CCS_MAC_EXECUTE:
+	case CCS_MAC_UMOUNT:
 		if (ccs_str_starts(&word, "path"))
 			goto path1;
-		if (type == CCS_MAC_FILE_EXECUTE &&
+		if (type == CCS_MAC_EXECUTE &&
 		    ccs_str_starts(&word, "exec"))
 			goto path2;
 		break;
-	case CCS_MAC_FILE_MKDIR:
-	case CCS_MAC_FILE_CREATE:
-	case CCS_MAC_FILE_MKFIFO:
-	case CCS_MAC_FILE_MKSOCK:
-	case CCS_MAC_FILE_MKBLOCK:
-	case CCS_MAC_FILE_MKCHAR:
-	case CCS_MAC_FILE_SYMLINK:
+	case CCS_MAC_MKDIR:
+	case CCS_MAC_CREATE:
+	case CCS_MAC_MKFIFO:
+	case CCS_MAC_MKSOCK:
+	case CCS_MAC_MKBLOCK:
+	case CCS_MAC_MKCHAR:
+	case CCS_MAC_SYMLINK:
 		if (ccs_str_starts(&word, "path"))
 			goto path1_parent;
 		break;
-	case CCS_MAC_FILE_LINK:
-	case CCS_MAC_FILE_RENAME:
+	case CCS_MAC_LINK:
+	case CCS_MAC_RENAME:
 		if (ccs_str_starts(&word, "old_path"))
 			goto path1;
 		if (ccs_str_starts(&word, "new_path"))
 			goto path2_parent;
 		break;
-	case CCS_MAC_FILE_MOUNT:
+	case CCS_MAC_MOUNT:
 		if (ccs_str_starts(&word, "source"))
 			goto path1;
 		if (ccs_str_starts(&word, "target"))
 			goto path2;
 		break;
-	case CCS_MAC_FILE_PIVOT_ROOT:
+	case CCS_MAC_PIVOT_ROOT:
 		if (ccs_str_starts(&word, "new_root"))
 			goto path1;
 		if (ccs_str_starts(&word, "put_old"))
@@ -2052,7 +1940,7 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 		*(right - 2) = '\0';
 	if (!*left || !*right)
 		return false;
-	if (type == CCS_MAC_FILE_EXECUTE
+	if (type == CCS_MAC_EXECUTE
 #ifdef CONFIG_CCSECURITY_MISC
 	    || type == CCS_MAC_ENVIRON
 #endif
@@ -2225,15 +2113,15 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 	const enum ccs_mac_index type = head->w.acl_index;
 #ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
 	bool handler_path_done = head->w.is_deny ||
-		type != CCS_MAC_FILE_EXECUTE;
+		type != CCS_MAC_EXECUTE;
 #else
 	bool handler_path_done = true;
 #endif
 	bool transit_domain_done = head->w.is_deny ||
-		(type != CCS_MAC_FILE_EXECUTE
+		(type != CCS_MAC_EXECUTE
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-		 && type != CCS_MAC_MANUAL_TASK_TRANSITION
-		 && type != CCS_MAC_AUTO_TASK_TRANSITION
+		 && type != CCS_MAC_MANUAL_DOMAIN_TRANSITION
+		 && type != CCS_MAC_AUTO_DOMAIN_TRANSITION
 #endif
 		 );
 	char *pos = head->w.data;
@@ -2327,8 +2215,8 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 	}
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 	if (!transit_domain_done &&
-	    (type == CCS_MAC_MANUAL_TASK_TRANSITION ||
-	     type == CCS_MAC_AUTO_TASK_TRANSITION))
+	    (type == CCS_MAC_MANUAL_DOMAIN_TRANSITION ||
+	     type == CCS_MAC_AUTO_DOMAIN_TRANSITION))
 		goto out;
 #endif
 	entry->size = (void *) condp - (void *) entry;
@@ -2650,22 +2538,13 @@ out:
 static int ccs_parse_entry(struct ccs_io_buffer *head)
 {
 	enum ccs_mac_index type;
-	const char *category = ccs_read_token(head);
 	const char *operation = ccs_read_token(head);
-	for (type = CCS_MAC_FILE_EXECUTE; type < CCS_MAX_MAC_INDEX; type++) {
-		if (!ccs_category_keywords[ccs_index2category[type]]) {
-			printk(KERN_INFO
-			       "ccs_category_keywords[ccs_index2category[%u]]"
-			       "==NULL\n", type);
-			continue;
-		}
+	for (type = CCS_MAC_EXECUTE; type < CCS_MAX_MAC_INDEX; type++) {
 		if (!ccs_mac_keywords[type]) {
 			printk(KERN_INFO "ccs_mac_keywords[%u]==NULL\n", type);
 			continue;
 		}
-		if (strcmp(category, ccs_category_keywords
-			   [ccs_index2category[type]]) ||
-		    strcmp(operation, ccs_mac_keywords[type]))
+		if (strcmp(operation, ccs_mac_keywords[type]))
 			continue;
 		head->w.acl_index = type;
 		return ccs_update_acl(&ccs_acl_list[type], head, true);
@@ -2926,8 +2805,6 @@ static bool ccs_read_acl(struct ccs_io_buffer *head,
 	BUG_ON(type >= CCS_MAX_MAC_INDEX);
 	ccs_io_printf(head, "%u ", acl->priority);
 	ccs_set_string(head, "acl ");
-	ccs_set_string(head, ccs_category_keywords[ccs_index2category[type]]);
-	ccs_set_space(head);
 	ccs_set_string(head, ccs_mac_keywords[type]);
 	if (acl->cond) {
 		head->r.cond_step = 0;
@@ -3852,17 +3729,17 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	/* Make sure that IP address argument is ready. */
 	char ip[48];
 	switch (r->type) {
-	case CCS_MAC_NETWORK_INET_STREAM_BIND:
-	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
-	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
-	case CCS_MAC_NETWORK_INET_RAW_BIND:
-	case CCS_MAC_NETWORK_INET_RAW_SEND:
+	case CCS_MAC_INET_STREAM_BIND:
+	case CCS_MAC_INET_STREAM_LISTEN:
+	case CCS_MAC_INET_STREAM_CONNECT:
+	case CCS_MAC_INET_STREAM_ACCEPT:
+	case CCS_MAC_INET_DGRAM_BIND:
+	case CCS_MAC_INET_DGRAM_SEND:
+	case CCS_MAC_INET_RAW_BIND:
+	case CCS_MAC_INET_RAW_SEND:
 #ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
-	case CCS_MAC_NETWORK_INET_RAW_RECV:
+	case CCS_MAC_INET_DGRAM_RECV:
+	case CCS_MAC_INET_RAW_RECV:
 #endif
 		if (WARN_ON(!r->param.ip))
 			return 0;
@@ -3883,7 +3760,7 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	if (!r->param.s[1])
 		ccs_populate_patharg(r, false);
 	switch (r->type) {
-	case CCS_MAC_FILE_EXECUTE:
+	case CCS_MAC_EXECUTE:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
@@ -3894,37 +3771,37 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 			return 0;
 		return snprintf(buf, len, " exec=\"%s\" path=\"%s\"",
 				r->param.s[1]->name, r->param.s[0]->name);
-	case CCS_MAC_FILE_READ:
-	case CCS_MAC_FILE_WRITE:
-	case CCS_MAC_FILE_APPEND:
-	case CCS_MAC_FILE_UNLINK:
+	case CCS_MAC_READ:
+	case CCS_MAC_WRITE:
+	case CCS_MAC_APPEND:
+	case CCS_MAC_UNLINK:
 #ifdef CONFIG_CCSECURITY_FILE_GETATTR
-	case CCS_MAC_FILE_GETATTR:
+	case CCS_MAC_GETATTR:
 #endif
-	case CCS_MAC_FILE_RMDIR:
-	case CCS_MAC_FILE_TRUNCATE:
-	case CCS_MAC_FILE_CHROOT:
-	case CCS_MAC_FILE_UMOUNT:
+	case CCS_MAC_RMDIR:
+	case CCS_MAC_TRUNCATE:
+	case CCS_MAC_CHROOT:
+	case CCS_MAC_UMOUNT:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
 			return 0;
 		return snprintf(buf, len, " path=\"%s\"", r->param.s[0]->name);
-	case CCS_MAC_FILE_CREATE:
-	case CCS_MAC_FILE_MKDIR:
-	case CCS_MAC_FILE_MKFIFO:
-	case CCS_MAC_FILE_MKSOCK:
+	case CCS_MAC_CREATE:
+	case CCS_MAC_MKDIR:
+	case CCS_MAC_MKFIFO:
+	case CCS_MAC_MKSOCK:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
 			return 0;
 		return snprintf(buf, len, " path=\"%s\" perm=0%lo",
 				r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_SYMLINK:
+	case CCS_MAC_SYMLINK:
 		return snprintf(buf, len, " path=\"%s\" target=\"%s\"",
 				r->param.s[0]->name, r->param.s[1]->name);
-	case CCS_MAC_FILE_MKBLOCK:
-	case CCS_MAC_FILE_MKCHAR:
+	case CCS_MAC_MKBLOCK:
+	case CCS_MAC_MKCHAR:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
@@ -3933,8 +3810,8 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 				"dev_major=%lu dev_minor=%lu",
 				r->param.s[0]->name, r->param.i[0],
 				r->param.i[1], r->param.i[2]);
-	case CCS_MAC_FILE_LINK:
-	case CCS_MAC_FILE_RENAME:
+	case CCS_MAC_LINK:
+	case CCS_MAC_RENAME:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
@@ -3945,35 +3822,35 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 			return 0;
 		return snprintf(buf, len, " old_path=\"%s\" new_path=\"%s\"",
 				r->param.s[0]->name, r->param.s[1]->name);
-	case CCS_MAC_FILE_CHMOD:
+	case CCS_MAC_CHMOD:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
 			return 0;
 		return snprintf(buf, len, " path=\"%s\" perm=0%lo",
 				r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_CHOWN:
+	case CCS_MAC_CHOWN:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
 			return 0;
 		return snprintf(buf, len, " path=\"%s\" uid=%lu",
 				r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_CHGRP:
+	case CCS_MAC_CHGRP:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
 			return 0;
 		return snprintf(buf, len, " path=\"%s\" gid=%lu",
 				r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_IOCTL:
+	case CCS_MAC_IOCTL:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
 			return 0;
 		return snprintf(buf, len, " path=\"%s\" cmd=0x%lX",
 				r->param.s[0]->name, r->param.i[0]);
-	case CCS_MAC_FILE_MOUNT:
+	case CCS_MAC_MOUNT:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
@@ -3990,7 +3867,7 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 				" fstype=\"%s\" flags=0x%lX",
 				r->param.s[0]->name, r->param.s[1]->name,
 				r->param.s[2]->name, r->param.i[0]);
-	case CCS_MAC_FILE_PIVOT_ROOT:
+	case CCS_MAC_PIVOT_ROOT:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
@@ -4014,51 +3891,51 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 		return snprintf(buf, len, " name=\"%s\" value=\"%s\"",
 				r->param.s[2]->name, r->param.s[3]->name);
 #endif
-	case CCS_MAC_CAPABILITY_MODIFY_POLICY:
+	case CCS_MAC_MODIFY_POLICY:
 #ifdef CONFIG_CCSECURITY_CAPABILITY
-	case CCS_MAC_CAPABILITY_USE_ROUTE_SOCKET:
-	case CCS_MAC_CAPABILITY_USE_PACKET_SOCKET:
-	case CCS_MAC_CAPABILITY_SYS_REBOOT:
-	case CCS_MAC_CAPABILITY_SYS_VHANGUP:
-	case CCS_MAC_CAPABILITY_SYS_SETTIME:
-	case CCS_MAC_CAPABILITY_SYS_NICE:
-	case CCS_MAC_CAPABILITY_SYS_SETHOSTNAME:
-	case CCS_MAC_CAPABILITY_USE_KERNEL_MODULE:
-	case CCS_MAC_CAPABILITY_SYS_KEXEC_LOAD:
+	case CCS_MAC_USE_NETLINK_SOCKET:
+	case CCS_MAC_USE_PACKET_SOCKET:
+	case CCS_MAC_USE_REBOOT:
+	case CCS_MAC_USE_VHANGUP:
+	case CCS_MAC_SET_TIME:
+	case CCS_MAC_SET_PRIORITY:
+	case CCS_MAC_SET_HOSTNAME:
+	case CCS_MAC_USE_KERNEL_MODULE:
+	case CCS_MAC_USE_NEW_KERNEL:
 #endif
 		return 0;
 #ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_MAC_NETWORK_INET_STREAM_BIND:
-	case CCS_MAC_NETWORK_INET_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_INET_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_INET_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_INET_DGRAM_BIND:
-	case CCS_MAC_NETWORK_INET_DGRAM_SEND:
+	case CCS_MAC_INET_STREAM_BIND:
+	case CCS_MAC_INET_STREAM_LISTEN:
+	case CCS_MAC_INET_STREAM_CONNECT:
+	case CCS_MAC_INET_STREAM_ACCEPT:
+	case CCS_MAC_INET_DGRAM_BIND:
+	case CCS_MAC_INET_DGRAM_SEND:
 #ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	case CCS_MAC_NETWORK_INET_DGRAM_RECV:
+	case CCS_MAC_INET_DGRAM_RECV:
 #endif
 		return snprintf(buf, len, " ip=%s port=%lu", ip,
 				r->param.i[0]);
-	case CCS_MAC_NETWORK_INET_RAW_BIND:
-	case CCS_MAC_NETWORK_INET_RAW_SEND:
+	case CCS_MAC_INET_RAW_BIND:
+	case CCS_MAC_INET_RAW_SEND:
 #ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	case CCS_MAC_NETWORK_INET_RAW_RECV:
+	case CCS_MAC_INET_RAW_RECV:
 #endif
 		return snprintf(buf, len, " ip=%s proto=%lu", ip,
 				r->param.i[0]);
-	case CCS_MAC_NETWORK_UNIX_STREAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_STREAM_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_STREAM_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_BIND:
-	case CCS_MAC_NETWORK_UNIX_DGRAM_SEND:
+	case CCS_MAC_UNIX_STREAM_BIND:
+	case CCS_MAC_UNIX_STREAM_LISTEN:
+	case CCS_MAC_UNIX_STREAM_CONNECT:
+	case CCS_MAC_UNIX_STREAM_ACCEPT:
+	case CCS_MAC_UNIX_DGRAM_BIND:
+	case CCS_MAC_UNIX_DGRAM_SEND:
 #ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-	case CCS_MAC_NETWORK_UNIX_DGRAM_RECV:
+	case CCS_MAC_UNIX_DGRAM_RECV:
 #endif
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT:
-	case CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT:
+	case CCS_MAC_UNIX_SEQPACKET_BIND:
+	case CCS_MAC_UNIX_SEQPACKET_LISTEN:
+	case CCS_MAC_UNIX_SEQPACKET_CONNECT:
+	case CCS_MAC_UNIX_SEQPACKET_ACCEPT:
 		if (WARN_ON(!r->param.s[0]))
 			return 0;
 		if (WARN_ON(!r->param.s[0]->name))
@@ -4125,11 +4002,9 @@ static char *ccs_init_log(struct ccs_request_info *r)
 		if (!buf)
 			break;
 		pos = snprintf(buf, len, "#%04u/%02u/%02u %02u:%02u:%02u# "
-			       "global-pid=%u result=%s / %s %s", stamp.year,
+			       "global-pid=%u result=%s / %s", stamp.year,
 			       stamp.month, stamp.day, stamp.hour, stamp.min,
 			       stamp.sec, gpid, k[r->result],
-			       ccs_category_keywords[ccs_index2category
-						     [r->type]],
 			       ccs_mac_keywords[r->type]);
 		pos += ccs_print_param(r, buf + pos,
 				       pos < len ? len - pos : 0);
@@ -4708,7 +4583,7 @@ static ssize_t ccs_write_self(struct file *file, const char __user *buf,
 		name.name = data;
 		ccs_fill_path_info(&name);
 		/* Check "task manual_domain_transition" permission. */
-		r.type = CCS_MAC_MANUAL_TASK_TRANSITION;
+		r.type = CCS_MAC_MANUAL_DOMAIN_TRANSITION;
 		r.param.s[0] = &name;
 		ccs_check_acl(&r, true);
 		if (r.result != CCS_MATCHING_ALLOWED)

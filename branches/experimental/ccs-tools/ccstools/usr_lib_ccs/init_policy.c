@@ -200,7 +200,7 @@ static void printf_encoded(const char *str)
 
 static void make_default_domain_transition(const char *path)
 {
-	fprintf(filp, "10000 acl file execute path=\"");
+	fprintf(filp, "10000 acl execute path=\"");
 	printf_encoded(path);
 	fprintf(filp, "\" transition=\"");
 	printf_encoded(path);
@@ -485,7 +485,7 @@ static void make_policy(void)
 	scan_init_dir();
 	{
 		char *tools_dir = get_realpath("/usr/sbin");
-		fprintf(filp, "0 acl capability modify_policy\n"
+		fprintf(filp, "0 acl modify_policy\n"
 			"    audit 0\n"
 			"    1 deny task.uid!=0\n"
 			"    1 deny task.euid!=0\n"
