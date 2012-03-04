@@ -653,7 +653,7 @@ number_group IDGROUP 200-500
 <p>When checking permissions for file related operations, it is possible to check its DAC permissions if the file already exists as of permission check.
 Below table assumes that the variable name for referencing the requested pathname is "path".</p>
 
-<p>Value of DAC permission can be referenced using variable "path.perm", and its value is between 0 and 07777. Although it is possible to do normal <a href="#integer_comparison">numeric comparison</a>, below constants are provided in order to make it easier to compare whether specific bit is set or not.</p>
+<p>Value of DAC permissions can be referenced using variable "path.perm", and its value is between 0 and 07777. Although it is possible to do normal <a href="#integer_comparison">numeric comparison</a>, below constants are provided in order to make it easier to compare whether specific bit is set or not.</p>
 
 <table border="1">
 <tr><td>Constant</td><td>Value ranges that match </td></tr>
@@ -674,7 +674,7 @@ Below table assumes that the variable name for referencing the requested pathnam
 <p>Below are some examples that use constants.</p>
 
 <table border="1">
-<tr><td>Conditions example</td><td>Permission of file referenced by variable "path"</td><td>Comparison result</td></tr>
+<tr><td>Conditions example</td><td>Permissions of file referenced by variable "path"</td><td>Comparison result</td></tr>
 <tr><td>path.perm=setuid</td><td>04755</td><td>Matches</td></tr>
 <tr><td>path.perm!=setuid</td><td>04755</td><td>Does not match</td></tr>
 <tr><td>path.perm=setuid path.perm=setgid path.perm=sticky</td><td>0755</td><td>Does not match</td></tr>
@@ -744,93 +744,268 @@ Below table assumes that the variable name for referencing the requested pathnam
 <h2><a name="syntax_list">3. List of syntaxes sorted by operations</a></h2>
 
 <table border="1">
-<tr><td>Operation</td><td>Meaning</td><td>Related man pages</td></tr>
-<tr><td>execute</td><td>Execution of program</td><td>execve(2)</td></tr>
-<tr><td>read</td><td>Opening a file for reading</td><td>open(2)</td></tr>
-<tr><td>write</td><td>Opening a file for writing</td><td>open(2)</td></tr>
-<tr><td>append</td><td>Opening a file for appending</td><td>open(2)</td></tr>
-<tr><td>create</td><td>Creating a regular file</td><td>open(2), mknod(2)</td></tr>
-<tr><td>unlink</td><td>Deleting a non directory</td><td>unlink(2)</td></tr>
-<tr><td>getattr</td><td>Getting attributes of a file</td><td>stat(2)</td></tr>
-<tr><td>mkdir</td><td>Creating a directory</td><td>mkdir(2)</td></tr>
-<tr><td>rmdir</td><td>Deleting a directory</td><td>rmdir(2)</td></tr>
-<tr><td>mkfifo</td><td>Creating a FIFO</td><td>mknod(2)</td></tr>
-<tr><td>mksock</td><td>Creating a Unix domain socket</td><td>mknod(2)</td></tr>
-<tr><td>truncate</td><td>Truncating a file</td><td>open(2), truncate(2)</td></tr>
-<tr><td>symlink</td><td>Creating a symbolic link</td><td>symlink(2)</td></tr>
-<tr><td>mkblock</td><td>Creating a block device file</td><td>mknod(2)</td></tr>
-<tr><td>mkchar</td><td>Creating a character device file</td><td>mknod(2)</td></tr>
-<tr><td>link</td><td>Creating a link</td><td>link(2)</td></tr>
-<tr><td>rename</td><td>Renaming a file</td><td>rename(2)</td></tr>
-<tr><td>chmod</td><td>Changing DAC's mode</td><td>chmod(2)</td></tr>
-<tr><td>chown</td><td>Changing DAC's owner ID</td><td>chown(2)</td></tr>
-<tr><td>chgrp</td><td>Changing DAC's group ID</td><td>chown(2)</td></tr>
-<tr><td>ioctl</td><td>Using ioctl requests</td><td>ioctl(2)</td></tr>
-<tr><td>chroot</td><td>Changing root directory</td><td>chroot(2)</td></tr>
-<tr><td>mount</td><td>Mounting a filesystem</td><td>mount(2)</td></tr>
-<tr><td>unmount</td><td>Unmounting a filesystem</td><td>umount(2)</td></tr>
-<tr><td>pivot_root</td><td>Exchanging root directory</td><td>pivot_root(2)</td></tr>
-<tr><td>inet_stream_bind</td><td>Binding PF_INET/PF_INET6+SOCK_STREAM socket</td><td>bind(2), ip(7), ipv6(7)</td></tr>
-<tr><td>inet_stream_listen</td><td>Listening PF_INET/PF_INET6+SOCK_STREAM socket</td><td>listen(2), ip(7), ipv6(7)</td></tr>
-<tr><td>inet_stream_connect</td><td>Connecting PF_INET/PF_INET6+SOCK_STREAM socket</td><td>connect(2), ip(7), ipv6(7)</td></tr>
-<tr><td>inet_stream_accept</td><td>Accepting PF_INET/PF_INET6+SOCK_STREAM socket</td><td>accept(2), ip(7), ipv6(7)</td></tr>
-<tr><td>inet_dgram_bind</td><td>Binding PF_INET/PF_INET6+SOCK_DGRAM socket</td><td>bind(2), ip(7), ipv6(7)</td></tr>
-<tr><td>inet_dgram_send</td><td>Sending AF_INET/AF_INET6 datagrams</td><td>sendmsg(2), ip(7), ipv6(7)</td></tr>
-<tr><td>inet_dgram_recv</td><td>Receiving AF_INET/AF_INET6 datagrams</td><td>recvmsg(2), ip(7), ipv6(7)</td></tr>
-<tr><td>inet_raw_bind</td><td>Binding PF_INET/PF_INET6+SOCK_RAW socket</td><td>bind(2), raw(7)</td></tr>
-<tr><td>inet_raw_send</td><td>Sending AF_INET/AF_INET6 packets</td><td>sendmsg(2), raw(7)</td></tr>
-<tr><td>inet_raw_recv</td><td>Receiving AF_INET/AF_INET6 packets</td><td>recvmsg(2), raw(7)</td></tr>
-<tr><td>unix_stream_bind</td><td>Binding PF_UNIX+SOCK_STREAM socket</td><td>bind(2), unix(7)</td></tr>
-<tr><td>unix_stream_listen</td><td>Listening PF_UNIX+SOCK_STREAM socket</td><td>listen(2), unix(7)</td></tr>
-<tr><td>unix_stream_connect</td><td>Connecting PF_UNIX+SOCK_STREAM socket</td><td>connect(2), unix(7)</td></tr>
-<tr><td>unix_stream_accept</td><td>Accepting PF_UNIX+SOCK_STREAM socket</td><td>accept(2), unix(7)</td></tr>
-<tr><td>unix_dgram_bind</td><td>Binding PF_UNIX+SOCK_DGRAM socket</td><td>bind(2), unix(7)</td></tr>
-<tr><td>unix_dgram_send</td><td>Sending AF_UNIX datagrams</td><td>sendmsg(2), unix(7)</td></tr>
-<tr><td>unix_dgram_recv</td><td>Receiving AF_UNIX datagrams</td><td>recvmsg(2), unix(7)</td></tr>
-<tr><td>unix_seqpacket_bind</td><td>Binding PF_UNIX+SOCK_SEQPACKET socket</td><td>bind(2), unix(7)</td></tr>
-<tr><td>unix_seqpacket_listen</td><td>Listening PF_UNIX+SOCK_SEQPACKET socket</td><td>listen(2), unix(7)</td></tr>
-<tr><td>unix_seqpacket_connect</td><td>Connecting PF_UNIX+SOCK_SEQPACKET socket</td><td>connect(2), unix(7)</td></tr>
-<tr><td>unix_seqpacket_accept</td><td>Accepting PF_UNIX+SOCK_SEQPACKET socket</td><td>accept(2), unix(7)</td></tr>
-<tr><td>ptrace</td><td>Call ptrace() system call</td><td>ptrace(2)</td></tr>
-<tr><td>environ</td><td>Receive environment variables upon program execution</td><td>execve(2)</td></tr>
-<tr><td>modify_policy</td><td>Modify policy configuration</td><td></td></tr>
-<tr><td>use_netlink_socket</td><td>Create PF_NETLINK socket</td><td>socket(2), netlink(7)</td></tr>
-<tr><td>use_packet_socket</td><td>Create PF_PACKET socket</td><td>socket(2), packet(7)</td></tr>
-<tr><td>use_reboot</td><td>Call reboot() system call</td><td>reboot(2)</td></tr>
-<tr><td>use_vhangup</td><td>Call vhangup() system call</td><td>vhangup(2)</td></tr>
-<tr><td>set_time</td><td>Set system's time</td><td>stime(2), settimeofday(2), adjtimex(2)</td></tr>
-<tr><td>set_priority</td><td>Change process's priority</td><td>nice(2), setpriority(2)</td></tr>
-<tr><td>set_hostname</td><td>Set host's name</td><td>sethostname(2), setdomainname(2)</td></tr>
-<tr><td>use_kernel_module</td><td>Load or unload kernel modules</td><td>init_module(2), delete_module(2)</td></tr>
-<tr><td>use_new_kernel</td><td>Load a new kernel</td><td>kexec_load(2)</td></tr>
-<tr><td>manual_domain_transition</td><td>Change domains by writing to /proc/ccs/self_domain</td><td></td></tr>
-<tr><td>auto_domain_transition</td><td>Change domains automatically upon conditions are met</td><td></td></tr>
-</table>
+<tr><td>Operation</td><td>Meaning</td><td>Available variables</td><td>Content of variable</td><td>Related man pages</td></tr>
 
-<table border="1">
-<tr><td>Operation</td><td>Meaning</td><td>Available variables</td><td>Comparison method</td><td>Content of variable</td></tr>
-<tr><td rowspan="10">file execute</td><td rowspan="10">Execute a program</td><td>path</td><td><a href="#string_comparison">String</a></td><td>Requested pathname</td></tr>
-<tr><td>path.$attribute</td><td><a href="#file_attributes_comparison">Requested program's attributes</a></td><td>Attribute $attribute of a file object referenced by variable "path"</td></tr>
-<tr><td>task.$attribute</td><td><a href="#task_attributes_comparison">Current thread's attributes</a></td><td>Current thread's attributes</td></tr>
-<tr><td>exec</td><td><a href="#string_comparison">String</a></td><td>Requested pathname, but may be a symbolic link</td></tr>
-<tr><td>argc</td><td><a href="#integer_comparison">Numeric</a></td><td>Number of command line arguments passed to this request</td></tr>
-<tr><td>envc</td><td><a href="#integer_comparison">Numeric</a></td><td>Number of environment variables arguments</td></tr>
-<tr><td>argv[$index]</td><td><a href="#argv_comparison">Command line arguments</a></td><td>$index'th (0 &lt;= $index &lt; argc) value of command line arguments</td></tr>
-<tr><td>envp["$name"]</td><td><a href="#envp_comparison">Environment variable arguments</a></td><td>Value of environment variable named $name</td></tr>
-<tr><td>handler</td><td>None</td><td>Pathname of a wrapper program for preprocessing</td></tr>
-<tr><td>transition</td><td>None</td><td>New domainname to transit to if operation was successful</td></tr>
+<tr><td rowspan="11">execute</td><td rowspan="11">Execute a program</td><td><a href="#string_comparison">path</a></td><td>Requested program's pathname</td><td rowspan="11">execve(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+<tr><td><a href="#string_comparison">exec</a></td><td>Requested program's pathname, but maybe a symbolic link</td></tr>
+<tr><td><a href="#integer_comparison">argc</a></td><td>Number of command line arguments passed to this request</td></tr>
+<tr><td><a href="#integer_comparison">envc</a></td><td>Number of environment variables arguments</td></tr>
+<tr><td><a href="#argv_comparison">argv[$index]</a></td><td>$index'th (0 &lt;= $index &lt; argc) value of command line arguments</td></tr>
+<tr><td><a href="#envp_comparison">envp["$name"]</a></td><td>Value of environment variable named $name</td></tr>
+<tr><td>handler</td><td>Pathname of a wrapper program for preprocessing</td></tr>
+<tr><td>transition</td><td>New domainname to transit to if operation was successful</td></tr>
 
-<tr><td rowspan="3">file read</td><td rowspan="3">Open for reading</td><td>path</td><td><a href="#string_comparison">String</a></td><td>Requested pathname</td></tr>
-<tr><td>path.$attribute</td><td><a href="#file_attributes_comparison">File's attributes</a></td><td>Attribute $attribute of a file object referenced by variable "path"</td></tr>
-<tr><td>task.$attribute</td><td><a href="#task_attributes_comparison">Current thread's attributes</a></td><td>Current thread's attributes</td></tr>
+<tr><td rowspan="4">read</td><td rowspan="4">Open a pathname for reading</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">open(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">file write</td><td rowspan="3">Open for writing</td><td>path</td><td><a href="#string_comparison">String</a></td><td>Requested pathname</td></tr>
-<tr><td>path.$attribute</td><td><a href="#file_attributes_comparison">File's attributes</a></td><td>Attribute $attribute of a file object referenced by variable "path"</td></tr>
-<tr><td>task.$attribute</td><td><a href="#task_attributes_comparison">Current thread's attributes</a></td><td>Current thread's attributes</td></tr>
+<tr><td rowspan="4">write</td><td rowspan="4">Open a pathname for writing</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">open(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">file append</td><td rowspan="3">Open for appending</td><td>path</td><td><a href="#string_comparison">String</a></td><td>Requested pathname</td></tr>
-<tr><td>path.$attribute</td><td><a href="#file_attributes_comparison">File's attributes</a></td><td>Attribute $attribute of a file object referenced by variable "path"</td></tr>
-<tr><td>task.$attribute</td><td><a href="#task_attributes_comparison">Current thread's attributes</a></td><td>Current thread's attributes</td></tr>
+<tr><td rowspan="4">append</td><td rowspan="4">Open a pathname for appending</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">open(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">create</td><td rowspan="4">Create a regular file</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">open(2), mknod(2)</td></tr>
+<tr><td><a href="#integer_comparison">perm</a></td><td>DAC permissions of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">unlink</td><td rowspan="4">Delete a non directory pathname</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">unlink(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">getattr</td><td rowspan="4">Get attributes of a pathname</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">stat(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">mkdir</td><td rowspan="4">Create a directory</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">mkdir(2)</td></tr>
+<tr><td><a href="#integer_comparison">perm</a></td><td>DAC permissions of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">rmdir</td><td rowspan="4">Delete a directory pathname</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">rmdir(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">mkfifo</td><td rowspan="4">Create a FIFO</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">mknod(2)</td></tr>
+<tr><td><a href="#integer_comparison">perm</a></td><td>DAC permissions of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">mksock</td><td rowspan="4">Create a Unix domain socket</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">mknod(2)</td></tr>
+<tr><td><a href="#integer_comparison">perm</a></td><td>DAC permissions of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">truncate</td><td rowspan="4">Truncate a regular file</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">open(2), truncate(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">symlink</td><td rowspan="4">Create a  symbolic link</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">symlink(2)</td></tr>
+<tr><td><a href="#string_comparison">target</a></td><td>Symbolic link's content</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="6">mkblock</td><td rowspan="6">Create a block device file</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="6">mknod(2)</td></tr>
+<tr><td><a href="#integer_comparison">perm</a></td><td>DAC permissions of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#integer_comparison">dev_major</a></td><td>Major device number of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#integer_comparison">dev_minor</a></td><td>Minor device number of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="6">mkchar</td><td rowspan="6">Create a character device file</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="6">mknod(2)</td></tr>
+<tr><td><a href="#integer_comparison">perm</a></td><td>DAC permissions of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#integer_comparison">dev_major</a></td><td>Major device number of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#integer_comparison">dev_minor</a></td><td>Minor device number of a new object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="6">link</td><td rowspan="6">Create a link</td><td><a href="#string_comparison">old_path</a></td><td>Link source's pathname</td><td rowspan="6">link(2)</td></tr>
+<tr><td><a href="#string_comparison">new_path</a></td><td>Link target's pathname</td></tr>
+<tr><td><a href="#file_attributes_comparison">old_path.$attribute</a></td><td>Attributes of an object referenced by variable "old_path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">old_path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#file_attributes_comparison">new_path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="6">rename</td><td rowspan="6">Rename a pathname</td><td><a href="#string_comparison">old_path</a></td><td>Old pathname</td><td rowspan="6">rename(2)</td></tr>
+<tr><td><a href="#string_comparison">new_path</a></td><td>New pathname</td></tr>
+<tr><td><a href="#file_attributes_comparison">old_path.$attribute</a></td><td>Attributes of an object referenced by variable "old_path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">old_path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#file_attributes_comparison">new_path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="5">chmod</td><td rowspan="5">Change DAC's permission</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="5">chmod(2)</td></tr>
+<tr><td><a href="#integer_comparison">perm</a></td><td>New DAC permissions of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="5">chown</td><td rowspan="5">Change DAC's owner ID</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="5">chown(2)</td></tr>
+<tr><td><a href="#integer_comparison">uid</a></td><td>New DAC owner ID of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="5">chgrp</td><td rowspan="5">Change DAC's group ID</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="5">chown(2)</td></tr>
+<tr><td><a href="#integer_comparison">gid</a></td><td>New DAC group ID of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="5">ioctl</td><td rowspan="5">Use ioctl request</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="5">ioctl(2)</td></tr>
+<tr><td><a href="#integer_comparison">cmd</a></td><td>Command number for ioctl request</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="4">chroot</td><td rowspan="4">Change root directory</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">chroot(2)</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="9">mount</td><td rowspan="9">Mount a filesystem</td><td><a href="#string_comparison">source</a></td><td>Device name if mount operation requires device file, source name if bind or move mount.</td><td rowspan="9">mount(2)</td></tr>
+<tr><td><a href="#string_comparison">target</a></td><td>Mount point</td></tr>
+<tr><td><a href="#string_comparison">fstype</a></td><td>Filesystem name</td></tr>
+<tr><td><a href="#integer_comparison">flags</a></td><td>Mount flags</td></tr>
+<tr><td><a href="#file_attributes_comparison">source.$attribute</a></td><td>Attributes of an object referenced by variable "source" when variable "source" references a valid pathname</td></tr>
+<tr><td><a href="#file_attributes_comparison">source.parent.$attribute</a></td><td>Attributes of parent directory of an object referenced by variable "source" when variable "source" references a valid pathname</td></tr>
+<tr><td><a href="#file_attributes_comparison">target.$attribute</a></td><td>Attributes of an object referenced by variable "target"</td></tr>
+<tr><td><a href="#file_attributes_comparison">target.parent.$attribute</a></td><td>Attributes of parent directory of an object referenced by variable "target"</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="5">unmount</td><td rowspan="5">Unmount a filesystem</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="5">umount(2)</td></tr>
+<tr><td><a href="#integer_comparison">flags</a></td><td>Unmount flags</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="7">pivot_root</td><td rowspan="7">Exchange root directory</td><td><a href="#string_comparison">new_root</a></td><td>New root directory</td><td rowspan="7">pivot_root(2)</td></tr>
+<tr><td><a href="#string_comparison">put_old</a></td><td>Location to place old root directory</td></tr>
+<tr><td><a href="#file_attributes_comparison">new_root.$attribute</a></td><td>Attributes of an object referenced by variable "new_root"</td></tr>
+<tr><td><a href="#file_attributes_comparison">new_root.parent.$attribute</a></td><td>Attributes of parent directory of an object referenced by variable "new_root"</td></tr>
+<tr><td><a href="#file_attributes_comparison">put_old.$attribute</a></td><td>Attributes of an object referenced by variable "put_old"</td></tr>
+<tr><td><a href="#file_attributes_comparison">put_old.parent.$attribute</a></td><td>Attributes of parent directory of an object referenced by variable "put_old"</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_stream_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), ip(7), ipv6(7)</td></tr>
+<tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_stream_listen</td><td rowspan="3">Listening PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">listen(2), ip(7), ipv6(7)</td></tr>
+<tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_stream_connect</td><td rowspan="3">Connecting PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">connect(2), ip(7), ipv6(7)</td></tr>
+<tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_stream_accept</td><td rowspan="3">Accepting PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">accept(2), ip(7), ipv6(7)</td></tr>
+<tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_dgram_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_DGRAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), ip(7), ipv6(7)</td></tr>
+<tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_dgram_send</td><td rowspan="3">Sending AF_INET/AF_INET6 datagrams</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">sendmsg(2), ip(7), ipv6(7)</td></tr>
+<tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_dgram_recv</td><td rowspan="3">Receiving AF_INET/AF_INET6 datagrams</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">recvmsg(2), ip(7), ipv6(7)</td></tr>
+<tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_raw_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_RAW socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), raw(7)</td></tr>
+<tr><td><a href="#integer_comparison">proto</a></td><td>Protocol number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_raw_send</td><td rowspan="3">Sending AF_INET/AF_INET6 packets</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">sendmsg(2), raw(7)</td></tr>
+<tr><td><a href="#integer_comparison">proto</a></td><td>Protocol number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">inet_raw_recv</td><td rowspan="3">Receiving AF_INET/AF_INET6 packets</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">recvmsg(2), raw(7)</td></tr>
+<tr><td><a href="#integer_comparison">proto</a></td><td>Protocol number</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_stream_bind</td><td rowspan="2">Binding PF_UNIX+SOCK_STREAM socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">bind(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_stream_listen</td><td rowspan="2">Listening PF_UNIX+SOCK_STREAM socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">listen(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_stream_connect</td><td rowspan="2">Connecting PF_UNIX+SOCK_STREAM socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">connect(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_stream_accept</td><td rowspan="2">Accepting PF_UNIX+SOCK_STREAM socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">accept(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_dgram_bind</td><td rowspan="2">Binding PF_UNIX+SOCK_DGRAM socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">bind(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_dgram_send</td><td rowspan="2">Sending AF_UNIX datagrams</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">sendmsg(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_dgram_recv</td><td rowspan="2">Receiving AF_UNIX datagrams</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">recvmsg(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_seqpacket_bind</td><td rowspan="2">Binding PF_UNIX+SOCK_SEQPACKET socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">bind(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_seqpacket_listen</td><td rowspan="2">Listening PF_UNIX+SOCK_SEQPACKET socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">listen(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_seqpacket_connect</td><td rowspan="2">Connecting PF_UNIX+SOCK_SEQPACKET socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">connect(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="2">unix_seqpacket_accept</td><td rowspan="2">Accepting PF_UNIX+SOCK_SEQPACKET socket</td><td><a href="#string_comparison">addr</a></td><td>Unix domain socket address</td><td rowspan="2">accept(2), unix(7)</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">ptrace</td><td rowspan="3">Call ptrace() system call</td><td><a href="#integer_comparison">cmd</a></td><td>Command number</td><td rowspan="3">ptrace(2)</td></tr>
+<tr><td>domain</td><td>Traget process's domainname</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="3">environ</td><td rowspan="3">Receive environment variables upon program execution</td><td><a href="#string_comparison">name</a></td><td>Environment variable's name</td><td rowspan="3">execve(2)</td></tr>
+<tr><td><a href="#string_comparison">value</a></td><td>Environment variable's value</td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
+
+<tr><td rowspan="1">modify_policy</td><td rowspan="1">Modify policy configuration</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1"></td></tr>
+
+<tr><td rowspan="1">use_netlink_socket</td><td rowspan="1">Create PF_NETLINK socket</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">socket(2), netlink(7)</td></tr>
+
+<tr><td rowspan="1">use_packet_socket</td><td rowspan="1">Create PF_PACKET socket</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">socket(2), packet(7)</td></tr>
+
+<tr><td rowspan="1">use_reboot</td><td rowspan="1">Call reboot() system call</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">reboot(2)</td></tr>
+
+<tr><td rowspan="1">use_vhangup</td><td rowspan="1">Call vhangup() system call</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">vhangup(2)</td></tr>
+
+<tr><td rowspan="1">set_time</td><td rowspan="1">Set system's time</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">stime(2), settimeofday(2), adjtimex(2)</td></tr>
+
+<tr><td rowspan="1">set_priority</td><td rowspan="1">Change process's priority</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">nice(2), setpriority(2)</td></tr>
+
+<tr><td rowspan="1">set_hostname</td><td rowspan="1">Set host's name</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">sethostname(2), setdomainname(2)</td></tr>
+
+<tr><td rowspan="1">use_kernel_module</td><td rowspan="1">Load or unload kernel modules</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">init_module(2), delete_module(2)</td></tr>
+
+<tr><td rowspan="1">use_new_kernel</td><td rowspan="1">Load a new kernel</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">kexec_load(2)</td></tr>
+
+<tr><td rowspan="2">manual_domain_transition</td><td rowspan="2">Change domains by writing to /proc/ccs/self_domain</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="2"></td></tr>
+<tr><td>transition</td><td>New domainname to transit to if operation was successful</td></tr>
+
+<tr><td rowspan="2">auto_domain_transition</td><td rowspan="2">Change domains automatically upon conditions are met</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="2"></td></tr>
+<tr><td>transition</td><td>New domainname to transit to if conditions are met</td></tr>
+
 </table>
 
 <h2><a name="policy_syntaxes">4. Policy syntaxes</a></h2>
@@ -1033,7 +1208,7 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 </td></tr>
 </table>
 
-<p>/etc/shadow may have DAC permission 0400 if it is owned by root user and root group. In that case, you might want to use a rule like below. (You should check whether there are other files with DAC permission 0400.)</p>
+<p>/etc/shadow may have DAC permissions 0400 if it is owned by root user and root group. In that case, you might want to use a rule like below. (You should check whether there are other files with DAC permissions 0400.)</p>
 
 <table border="1">
 <tr><td>
