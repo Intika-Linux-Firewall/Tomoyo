@@ -45,10 +45,84 @@ static void check(const char *prompt, int result)
 	printf("%s%s\n", prompt, result ? "Success" : "Failed");
 	if (!result) {
 		fprintf(stderr, "Err: %s(%d)\n", strerror(err), err);
+		{
+			int fd2 = open("/proc/ccs/self_domain", O_RDONLY);
+			char c;
+			fprintf(stderr, "task.domain=\"");
+			while (read(fd2, &c, 1) == 1)
+				fprintf(stderr, "%c", c);
+			close(fd2);
+			fprintf(stderr, "\"\n");
+		}
 		exit(1);
 	}
 	printf("\n");
 	fflush(stdout);
+}
+
+static void check_init(const char *prompt, const char *expected)
+{
+	int result;
+	int fd = open("/proc/ccs/.process_status", O_RDWR);
+	char buffer[1024];
+	char *cp;
+	memset(buffer, 0, sizeof(buffer));
+	write(fd, "1\n", 2);
+	read(fd, buffer, sizeof(buffer) - 1);
+	close(fd);
+	cp = strchr(buffer, ' ');
+	if (cp++)
+		memmove(buffer, cp, strlen(cp) + 1);
+	result = !strcmp(buffer, expected);
+	printf("%s%s\n", prompt, result ? "Success" : "Failed");
+	if (!result) {
+		fprintf(stderr, "Err: expected='%s' result='%s'\n",
+			expected, buffer);
+		exit(1);
+	}
+	printf("\n");
+	fflush(stdout);
+}
+
+static void test_task_transition(void)
+{
+	int fd = open("/proc/ccs/self_domain", O_WRONLY);
+	char *policy;
+
+	policy = "100 acl manual_domain_transition\n"
+		"0 allow domain=\"domain\\$\"\n";
+	set(policy);
+	check(policy, write(fd, "domain0", 7) != EOF);
+	check(policy, write(fd, "domain10", 7) != EOF);
+	check(policy, write(fd, "domain200", 7) != EOF);
+	check(policy, write(fd, "domainXYX", 7) == EOF);
+	unset(policy);
+
+	policy = "100 acl auto_domain_transition\n"
+		"0 allow task.pid=1 transition=\"<init3>\"\n";
+	set(policy);
+	kill(1, SIGHUP);
+	sleep(1);
+	check_init(policy, "<init3>");
+	unset(policy);
+
+	policy = "100 acl auto_domain_transition\n"
+		"0 allow task.pid=1 task.uid!=0 transition=\"<init2>\"\n";
+	set(policy);
+	kill(1, SIGHUP);
+	sleep(1);
+	check_init(policy, "<init3>");
+	unset(policy);
+	
+	policy = "100 acl auto_domain_transition\n"
+		"0 allow task.pid=1 transition=\"<init>\"\n";
+	set(policy);
+	kill(1, SIGHUP);
+	sleep(1);
+	check_init(policy, "<init>");
+	unset(policy);
+
+	close(fd);
 }
 
 static void test_file_read(void)
@@ -153,7 +227,7 @@ static void test_file_read(void)
 	close(fd);
 	unset(policy);
 
-	policy = "path_group GROUP1 /dev/null\n"
+	policy = "string_group GROUP1 /dev/null\n"
 		"100 acl read\n"
 		"0 allow path=@GROUP1\n"
 		"1 deny\n";
@@ -163,7 +237,7 @@ static void test_file_read(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "path_group GROUP1 /dev/null\n"
+	policy = "string_group GROUP1 /dev/null\n"
 		"100 acl read\n"
 		"0 deny path=@GROUP1\n"
 		"1 allow\n";
@@ -173,7 +247,7 @@ static void test_file_read(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "path_group GROUP1 /dev/null\n"
+	policy = "string_group GROUP1 /dev/null\n"
 		"100 acl read\n"
 		"0 allow path!=@GROUP1\n"
 		"1 deny\n";
@@ -183,7 +257,7 @@ static void test_file_read(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "path_group GROUP1 /dev/null\n"
+	policy = "string_group GROUP1 /dev/null\n"
 		"100 acl read\n"
 		"0 deny path!=@GROUP1\n"
 		"1 allow\n";
@@ -193,7 +267,7 @@ static void test_file_read(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "path_group GROUP1 /dev/null\n"
+	policy = "string_group GROUP1 /dev/null\n"
 		"number_group MAJOR 1\n"
 		"number_group MINOR 3\n"
 		"100 acl read\n"
@@ -206,7 +280,7 @@ static void test_file_read(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "path_group GROUP1 /dev/null\n"
+	policy = "string_group GROUP1 /dev/null\n"
 		"number_group MAJOR 1\n"
 		"number_group MINOR 3\n"
 		"100 acl read\n"
@@ -219,9 +293,9 @@ static void test_file_read(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "path_group GROUP1 /dev/zero\n"
-		"path_group GROUP1 /dev/null\n"
-		"path_group GROUP1 /dev/urandom\n"
+	policy = "string_group GROUP1 /dev/zero\n"
+		"string_group GROUP1 /dev/null\n"
+		"string_group GROUP1 /dev/urandom\n"
 		"number_group MAJOR 0\n"
 		"number_group MAJOR 2-255\n"
 		"number_group MINOR 00-0x2\n"
@@ -236,9 +310,9 @@ static void test_file_read(void)
 	close(fd);
 	unset2(policy);
 
-	policy = "path_group GROUP1 /dev/zero\n"
-		"path_group GROUP1 /dev/null\n"
-		"path_group GROUP1 /dev/urandom\n"
+	policy = "string_group GROUP1 /dev/zero\n"
+		"string_group GROUP1 /dev/null\n"
+		"string_group GROUP1 /dev/urandom\n"
 		"number_group MAJOR 0\n"
 		"number_group MAJOR 2-255\n"
 		"number_group MINOR 00-0x2\n"
@@ -715,7 +789,7 @@ static void test_network_inet_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1,
-		 "address_group LOCALHOST 127.0.0.0-127.255.255.255\n"
+		 "ip_group LOCALHOST 127.0.0.0-127.255.255.255\n"
 		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin_port));
@@ -725,7 +799,7 @@ static void test_network_inet_dgram(void)
 	unset2(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1,
-		 "address_group LOCALHOST 127.0.0.0-127.255.255.255\n"
+		 "ip_group LOCALHOST 127.0.0.0-127.255.255.255\n"
 		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip!=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin_port));
@@ -979,7 +1053,7 @@ static void test_network_inet6_dgram(void)
 	unset(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1,
-		 "address_group LOCALHOST ::-::ffff\n"
+		 "ip_group LOCALHOST ::-::ffff\n"
 		 "100 acl inet_dgram_send\n"
 		 "0 allow ip=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr1.sin6_port));
@@ -989,7 +1063,7 @@ static void test_network_inet6_dgram(void)
 	unset2(policy);
 
 	snprintf(buffer, sizeof(buffer) - 1,
-		 "address_group LOCALHOST ::-::ffff\n"
+		 "ip_group LOCALHOST ::-::ffff\n"
 		 "100 acl inet_dgram_recv\n"
 		 "0 allow ip!=@LOCALHOST port=%u\n"
 		 "1 deny\n", ntohs(addr2.sin6_port));
@@ -1069,7 +1143,7 @@ static void test_ptrace(void)
 
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
-	policy = "domain_group DOMAINS /sbin/init\n"
+	policy = "string_group DOMAINS <init>\n"
 		"100 acl ptrace\n"
 		"0 allow cmd=16 domain=@DOMAINS\n"
 		"0 allow cmd=17\n"
@@ -1080,7 +1154,7 @@ static void test_ptrace(void)
 
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
 
-	policy = "domain_group DOMAINS /sbin/init\n"
+	policy = "string_group DOMAINS <init>\n"
 		"100 acl ptrace\n"
 		"0 allow cmd=16 domain!=@DOMAINS\n"
 		"0 allow cmd=17\n"
@@ -1090,6 +1164,9 @@ static void test_ptrace(void)
 	unset2(policy);
 
 	ptrace(PTRACE_DETACH, 1, NULL, NULL);
+
+	sleep(1);
+	kill(1, SIGCONT);
 }
 
 static int fork_exec(char *envp[])
@@ -1263,6 +1340,7 @@ int main(int argc, char *argv[])
 	fprintf(fp, "quota audit[0]"
 		" allowed=1024 unmatched=1024 denied=1024\n");
 
+	test_task_transition();
 	test_file_read();
 	test_file_write();
 	test_file_create();

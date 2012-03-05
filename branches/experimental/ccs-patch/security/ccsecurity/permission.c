@@ -217,8 +217,8 @@ static int __ccs_socket_create_permission(int family, int type, int protocol);
 #endif
 
 #ifdef CONFIG_CCSECURITY_NETWORK
-static bool ccs_address_matches_group(const bool is_ipv6, const u8 *address,
-				      const struct ccs_group *group);
+static bool ccs_ip_matches_group(const bool is_ipv6, const u8 *address,
+				 const struct ccs_group *group);
 static bool ccs_kernel_service(void);
 static int __ccs_socket_bind_permission(struct socket *sock,
 					struct sockaddr *addr, int addr_len);
@@ -524,7 +524,7 @@ struct ccs_path_info ccs_null_name;
  * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
  *
  * @pathname: The name of pathname.
- * @group:    Pointer to "struct ccs_path_group".
+ * @group:    Pointer to "struct ccs_string_group".
  *
  * Returns true if @pathname matches pathnames in @group, false otherwise.
  *
@@ -533,7 +533,7 @@ struct ccs_path_info ccs_null_name;
 static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 				   const struct ccs_group *group)
 {
-	struct ccs_path_group *member;
+	struct ccs_string_group *member;
 	list_for_each_entry_srcu(member, &group->member_list, head.list,
 				 &ccs_ss) {
 		if (member->head.is_deleted)
@@ -721,7 +721,7 @@ static int ccs_execute(struct ccs_request_info *r)
 	 * Transit to the specified domain.
 	 * It will be reverted if execve() failed.
 	 */
-	if (ccs_assign_domain(r->transition->name))
+	if (ccs_transit_domain(r->transition->name))
 		goto done;
 	printk(KERN_WARNING "ERROR: Domain '%s' not ready.\n",
 	       r->transition->name);
@@ -2165,20 +2165,20 @@ static int ccs_old_chroot_permission(struct nameidata *nd)
 #ifdef CONFIG_CCSECURITY_NETWORK
 
 /**
- * ccs_address_matches_group - Check whether the given address matches members of the given address group.
+ * ccs_ip_matches_group - Check whether the given IP address matches members of the given IP group.
  *
  * @is_ipv6: True if @address is an IPv6 address.
  * @address: An IPv4 or IPv6 address.
- * @group:   Pointer to "struct ccs_address_group".
+ * @group:   Pointer to "struct ccs_ip_group".
  *
  * Returns true if @address matches addresses in @group group, false otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_address_matches_group(const bool is_ipv6, const u8 *address,
-				      const struct ccs_group *group)
+static bool ccs_ip_matches_group(const bool is_ipv6, const u8 *address,
+				 const struct ccs_group *group)
 {
-	struct ccs_address_group *member;
+	struct ccs_ip_group *member;
 	bool matched = false;
 	const u8 size = is_ipv6 ? 16 : 4;
 	list_for_each_entry_srcu(member, &group->member_list, head.list,
@@ -2706,7 +2706,8 @@ bool ccs_manager(void)
 	{
 		struct ccs_request_info r = { };
 		r.type = CCS_MAC_MODIFY_POLICY;
-		allowed = !ccs_check_acl(&r, true);
+		ccs_check_acl(&r, true);
+		allowed =  r.result == CCS_MATCHING_ALLOWED;
 	}
 	if (allowed) {
 		/* Set manager flag. */
@@ -2716,9 +2717,9 @@ bool ccs_manager(void)
 		const pid_t pid = current->pid;
 		if (ccs_last_pid != pid) {
 			const char *exe = ccs_get_exe();
-			printk(KERN_WARNING "%s ( %s ) is not permitted to "
-			       "update policies.\n",
-			       task->ccs_domain_info->domainname->name, exe);
+			printk(KERN_WARNING "Pid %u (exe='%s' domain='%s') is"
+			       " not permitted to update policies.\n", pid,
+			       exe, task->ccs_domain_info->domainname->name);
 			ccs_last_pid = pid;
 			kfree(exe);
 		}
@@ -2895,33 +2896,6 @@ static bool ccs_path_matches_group_or_pattern
 		return ccs_path_matches_pattern(path, pattern) == match;
 	else
 		return !match;
-}
-
-/**
- * ccs_domain_matches_group_or_name - Check whether the given domainname matches the given group or the given name.
- *
- * @path:  Pointer to "struct ccs_path_info".
- * @group: Pointer to "struct ccs_group". NULL if @value != NULL.
- * @value: Poiner to "struct ccs_path_info". NULL if @group != NULL.
- * @match: True if positive match, false othwerwise.
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_domain_matches_group_or_name
-(const struct ccs_path_info *domainname, const struct ccs_group *group,
- const struct ccs_path_info *name, const bool match)
-{
-	struct ccs_path_group *member;
-	if (name)
-		return !ccs_pathcmp(domainname, name) == match;
-	list_for_each_entry_srcu(member, &group->member_list, head.list,
-				 &ccs_ss) {
-		if (member->head.is_deleted)
-			continue;
-		if (!ccs_pathcmp(domainname, member->member_name))
-			return match;
-	}
-	return !match;
 }
 
 /**
@@ -3125,7 +3099,6 @@ enum ccs_arg_type {
 	CCS_ARG_TYPE_NONE,
 	CCS_ARG_TYPE_NUMBER,
 	CCS_ARG_TYPE_NAME,
-	CCS_ARG_TYPE_DOMAINNAME,
 	CCS_ARG_TYPE_GROUP,
 	CCS_ARG_TYPE_BITOP,
 	CCS_ARG_TYPE_IPV4ADDR,
@@ -3136,7 +3109,6 @@ struct ccs_cond_arg {
 	enum ccs_arg_type type;
 	unsigned long value[2];
 	const struct ccs_path_info *name;
-	const struct ccs_path_info *domainname;
 	const struct ccs_group *group;
 	struct in6_addr ip[2];
 };
@@ -3322,6 +3294,12 @@ not_single_value:
 			ccs_get_exename(&r->exename);
 		arg->name = &r->exename;
 		break;
+	case CCS_COND_DOMAIN:
+		arg->name = r->param.s[0];
+		break;
+	case CCS_SELF_DOMAIN:
+		arg->name = ccs_current_domain()->domainname;
+		break;
 	default:
 		goto not_single_name;
 	}
@@ -3330,22 +3308,6 @@ not_single_value:
 	arg->type = CCS_ARG_TYPE_NAME;
 	return true;
 not_single_name:
-	if (cmd == CCS_COND_DOMAIN) {
-		arg->type = CCS_ARG_TYPE_DOMAINNAME;
-		arg->domainname = r->param.s[0];
-		return arg->domainname != NULL;
-	}
-	if (cmd == CCS_IMM_DOMAINNAME_ENTRY) {
-		arg->type = CCS_ARG_TYPE_DOMAINNAME;
-		arg->domainname = (*condp)->path;
-		(*condp)++;
-		return true;
-	}
-	if (cmd == CCS_SELF_DOMAIN) {
-		arg->type = CCS_ARG_TYPE_DOMAINNAME;
-		arg->domainname = ccs_current_domain()->domainname;
-		return true;
-	}
 	if (cmd == CCS_IMM_GROUP) {
 		arg->type = CCS_ARG_TYPE_GROUP;
 		arg->group = (*condp)->group;
@@ -3566,26 +3528,13 @@ bool ccs_condition(struct ccs_request_info *r,
 				continue;
 			return false;
 		}
-		if (left.type == CCS_ARG_TYPE_DOMAINNAME) {
-			if (right.type == CCS_ARG_TYPE_DOMAINNAME)
-				right.group = NULL;
-			else if (right.type == CCS_ARG_TYPE_GROUP)
-				right.domainname = NULL;
-			else
-				return false;
-			if (ccs_domain_matches_group_or_name
-			    (left.domainname, right.group, right.domainname,
-			     match))
-				continue;
-			return false;
-		}
 		if (left.type != CCS_ARG_TYPE_NONE)
 			return false;
 		/* Check IPv4 or IPv6 address expressions. */
 		if (left_op == CCS_COND_IPARG) {
 #ifdef CONFIG_CCSECURITY_NETWORK
 			if (right.type == CCS_ARG_TYPE_GROUP) {
-				if (ccs_address_matches_group
+				if (ccs_ip_matches_group
 				    (r->param.is_ipv6, r->param.ip,
 				     right.group) == match)
 					continue;
@@ -3613,8 +3562,8 @@ bool ccs_condition(struct ccs_request_info *r,
 			continue;
 		}
 		if (left_op == CCS_TRANSIT_DOMAIN) {
-			BUG_ON(right.type != CCS_ARG_TYPE_DOMAINNAME);
-			r->transition = right.domainname;
+			BUG_ON(right.type != CCS_ARG_TYPE_NAME);
+			r->transition = right.name;
 			continue;
 		}
 		return false;
@@ -3623,34 +3572,27 @@ bool ccs_condition(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_auto_domain_transition - Check "task auto_domain_transition" entry.
+ * ccs_check_auto_domain_transition - Check "auto_domain_transition" entry.
  *
  * Returns nothing.
  *
- * If "task auto_domain_transition" keyword was specified and transition to
- * that domain failed, the current thread will be killed by SIGKILL. Note that
- * if current->pid == 1, sending SIGKILL won't work.
+ * If "auto_domain_transition" keyword was specified and transition to that
+ * domain failed, the current thread will be killed by SIGKILL.
  */
 static void ccs_check_auto_domain_transition(void)
 {
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
-	u8 i;
-	const char *buf;
-	const int idx = ccs_read_lock();
 	struct ccs_request_info r = { };
-	for (i = 0; i < 255; i++) {
-		r.type = CCS_MAC_AUTO_DOMAIN_TRANSITION;
-		ccs_check_acl(&r, false);
-		if (r.result != CCS_MATCHING_ALLOWED)
-			goto done;
-		buf = r.transition->name;
-		if (!ccs_assign_domain(buf))
-			break;
-	}
-	printk(KERN_WARNING "ERROR: Unable to transit to '%s' domain.\n", buf);
+	const int idx = ccs_read_lock();
+	r.type = CCS_MAC_AUTO_DOMAIN_TRANSITION;
+	ccs_check_acl(&r, true);
+	if (r.result != CCS_MATCHING_ALLOWED ||
+	    ccs_transit_domain(r.transition->name))
+		goto done;
+	printk(KERN_WARNING "ERROR: Unable to transit to '%s' domain.\n",
+	       r.transition->name);
 	force_sig(SIGKILL, current);
 done:
-	ccs_clear_request_info(&r);
 	ccs_read_unlock(idx);
 #endif
 }

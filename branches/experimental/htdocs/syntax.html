@@ -447,7 +447,7 @@
 </tr>
 </table>
 
-<p>It is possible to group string data using "path_group" syntax.</p>
+<p>It is possible to group string data using "string_group" syntax.</p>
 
 <h3><a name="numeric_expression">1.2. Numeric parameters representation rule</a></h3>
 
@@ -467,7 +467,7 @@
 
 <p>It is possible to specify IP address ranges in $min_address-$max_address form. If specifying in range, $min_address has to be smaller or equals to $max_address. For example, 1.2.3.4-5.6.7.8 is valid but 5.6.7.8-1.2.3.4 is invalid.</p>
 
-<p>It is possible to group IP address and IP address range using "address_group" syntax.</p>
+<p>It is possible to group IP address and IP address range using "ip_group" syntax.</p>
 
 <h2><a name="conditions">2. About conditional expressions</a></h2>
 
@@ -511,14 +511,14 @@
 <tr><td>/tmp/349gy08t/y8024fgf</td><td>Matches</td></tr>
 </table>
 
-<p>If a path_group group named TMPDIR is defined as</p>
+<p>If a string_group group named TMPDIR is defined as</p>
 
 <table border="1">
 <tr><td>
-path_group TMPDIR /tmp/<br>
-path_group TMPDIR /tmp/\*<br>
-path_group TMPDIR /tmp/\{\*\}/<br>
-path_group TMPDIR /tmp/\{\*\}/\*
+string_group TMPDIR /tmp/<br>
+string_group TMPDIR /tmp/\*<br>
+string_group TMPDIR /tmp/\{\*\}/<br>
+string_group TMPDIR /tmp/\{\*\}/\*
 </td></tr>
 </table>
 
@@ -637,7 +637,7 @@ number_group IDGROUP 200-500
 <tr><td>task.pid</td><td><a href="#integer_comparison">Numeric</a></td><td>Current thread's process ID </td></tr>
 <tr><td>task.ppid</td><td><a href="#integer_comparison">Numeric</a></td><td>Process ID of current thread's parent process</td></tr>
 <tr><td>task.exe</td><td><a href="#string_comparison">String</a></td><td>Current thread's program name (the content of /proc/self/exe)</td></tr>
-<tr><td>task.domain</td><td>Literal</td><td>Current thread's domainname (the content of /proc/ccs/self_domain)</td></tr>
+<tr><td>task.domain</td><td><a href="#string_comparison">String</a></td><td>Current thread's domainname (the content of /proc/ccs/self_domain)</td></tr>
 </table>
 
 <h3><a name="argv_comparison">2.5. Conditional expressions which handle command line arguments</a></h3>
@@ -973,7 +973,7 @@ Below table assumes that the variable name for referencing the requested pathnam
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
 <tr><td rowspan="3">ptrace</td><td rowspan="3">Call ptrace() system call</td><td><a href="#integer_comparison">cmd</a></td><td>Command number</td><td rowspan="3">ptrace(2)</td></tr>
-<tr><td>domain</td><td>Traget process's domainname</td></tr>
+<tr><td><a href="#string_comparison">domain</a></td><td>Traget process's domainname</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
 <tr><td rowspan="3">environ</td><td rowspan="3">Receive environment variables upon program execution</td><td><a href="#string_comparison">name</a></td><td>Environment variable's name</td><td rowspan="3">execve(2)</td></tr>
@@ -1000,8 +1000,8 @@ Below table assumes that the variable name for referencing the requested pathnam
 
 <tr><td rowspan="1">use_new_kernel</td><td rowspan="1">Load a new kernel</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">kexec_load(2)</td></tr>
 
-<tr><td rowspan="2">manual_domain_transition</td><td rowspan="2">Change domains by writing to /proc/ccs/self_domain</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="2"></td></tr>
-<tr><td>transition</td><td>New domainname to transit to if operation was successful</td></tr>
+<tr><td rowspan="2">manual_domain_transition</td><td rowspan="2">Change domains by writing to /proc/ccs/self_domain</td><td><a href="#string_comparison">domain</a></td><td>Domainname to allow transition to</td><td rowspan="2"></td></tr>
+<tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
 <tr><td rowspan="2">auto_domain_transition</td><td rowspan="2">Change domains automatically upon conditions are met</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="2"></td></tr>
 <tr><td>transition</td><td>New domainname to transit to if conditions are met</td></tr>
@@ -1023,10 +1023,9 @@ quota memory policy $max_byte_for_policy<br>
 quota memory audit $max_byte_for_audit_logs<br>
 quota memory query $max_byte_for_query<br>
 quota audit[$audit_index] allowed=$max_logs_for_allowed_request unmatched=$max_logs_for_unmatched_request denied=$max_logs_for_denied_request<br>
-path_group $path_group_name $path_group_member<br>
+string_group $string_group_name $string_group_member<br>
 number_group $number_group_name $number_group_member<br>
-address_group $address_group_name $address_group_member<br>
-domain_group $domain_group_name $domain_group_member
+ip_group $ip_group_name $ip_group_member<br>
 </td></tr>
 </table>
 
@@ -1036,10 +1035,9 @@ domain_group $domain_group_name $domain_group_member
 <li>$max_byte_for_audit_logs is max amount of memory in byte which can be allocated for audit logs. Default is unlimited. $max_byte_for_audit_logs=16777216 should be sufficient.</li>
 <li>$max_byte_for_query is max amount of memory in byte which can be allocated for interactive enforcement. Default is unlimited. $max_byte_for_audit_logs=1048576 should be sufficient.</li>
 <li>quota audit[$audit_index] lines (0 &lt;= $audit_index &lt;= 255) are max number of audit logs which can be held in the kernel space. $max_logs_for_allowed_request is for allowed requests. $max_logs_for_unmatched_request is for unmatched requests. $max_logs_for_denied_request is for denied requests. Default is 0. Unless you have special reasons, you should set 0 to $max_logs_for_allowed_request. Regarding $max_logs_for_unmatched_request and $max_logs_for_denied_request, 1024 should be sufficient.</li>
-<li>path_group $path_group_name lines define group of pathnames. $path_group_member is a member for $path_group_name group.</li>
+<li>string_group $string_group_name lines define group of strings. $string_group_member is a member for $string_group_name group.</li>
 <li>number_group $number_group_name lines define group of numbers. $number_group_member is a member for $number_group_name group.</li>
-<li>address_group $address_group_name lines define group of IP addresses. $address_group_member is a member for $address_group_name group.</li>
-<li>domain_group $domain_group_name lines define group of domainnames. $domain_group_member is a member for $domain_group_name group.</li>
+<li>ip_group $ip_group_name lines define group of IP addresses. $ip_group_member is a member for $ip_group_name group.</li>
 </ul>
 
 <p>ACL part is consists with 0 or more repetitions of below block.</p>

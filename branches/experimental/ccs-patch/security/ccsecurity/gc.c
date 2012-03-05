@@ -103,9 +103,9 @@ static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type)
 	static const u8 e[CCS_MAX_POLICY] = {
 		[CCS_ID_GROUP] = sizeof(struct ccs_group),
 #ifdef CONFIG_CCSECURITY_NETWORK
-		[CCS_ID_ADDRESS_GROUP] = sizeof(struct ccs_address_group),
+		[CCS_ID_IP_GROUP] = sizeof(struct ccs_ip_group),
 #endif
-		[CCS_ID_PATH_GROUP] = sizeof(struct ccs_path_group),
+		[CCS_ID_STRING_GROUP] = sizeof(struct ccs_string_group),
 		[CCS_ID_NUMBER_GROUP] = sizeof(struct ccs_number_group),
 		/* [CCS_ID_CONDITION] = "struct ccs_condition"->size, */
 		/* [CCS_ID_NAME] = "struct ccs_name"->size, */
@@ -289,15 +289,15 @@ static inline void ccs_del_domain(struct list_head *element)
 }
 
 /**
- * ccs_del_path_group - Delete members in "struct ccs_path_group".
+ * ccs_del_string_group - Delete members in "struct ccs_string_group".
  *
  * @element: Pointer to "struct list_head".
  *
  * Returns nothing.
  */
-static inline void ccs_del_path_group(struct list_head *element)
+static inline void ccs_del_string_group(struct list_head *element)
 {
-	struct ccs_path_group *member =
+	struct ccs_string_group *member =
 		container_of(element, typeof(*member), head.list);
 	ccs_put_name(member->member_name);
 }
@@ -317,13 +317,13 @@ static inline void ccs_del_group(struct list_head *element)
 }
 
 /**
- * ccs_del_address_group - Delete members in "struct ccs_address_group".
+ * ccs_del_ip_group - Delete members in "struct ccs_ip_group".
  *
  * @element: Pointer to "struct list_head".
  *
  * Returns nothing.
  */
-static inline void ccs_del_address_group(struct list_head *element)
+static inline void ccs_del_ip_group(struct list_head *element)
 {
 	/* Nothing to do. */
 }
@@ -365,8 +365,7 @@ void ccs_del_condition(struct list_head *element)
 		if (right == CCS_IMM_GROUP) {
 			ccs_put_group(condp->group);
 			condp++;
-		} else if (right == CCS_IMM_NAME_ENTRY ||
-			   right == CCS_IMM_DOMAINNAME_ENTRY) {
+		} else if (right == CCS_IMM_NAME_ENTRY) {
 			if (condp->path != &ccs_null_name)
 				ccs_put_name(condp->path);
 			condp++;
@@ -497,12 +496,12 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 	case CCS_ID_GROUP:
 		ccs_del_group(element);
 		break;
-	case CCS_ID_PATH_GROUP:
-		ccs_del_path_group(element);
+	case CCS_ID_STRING_GROUP:
+		ccs_del_string_group(element);
 		break;
 #ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_ID_ADDRESS_GROUP:
-		ccs_del_address_group(element);
+	case CCS_ID_IP_GROUP:
+		ccs_del_ip_group(element);
 		break;
 #endif
 	case CCS_ID_NUMBER_GROUP:
@@ -615,7 +614,7 @@ static void ccs_collect_entry(void)
 		struct ccs_domain_info *domain;
 		struct ccs_domain_info *tmp;
 		list_for_each_entry_safe(domain, tmp, &ccs_domain_list, list) {
-			if (!domain->is_deleted ||
+			if (/* !domain->is_deleted || */
 			    ccs_domain_used_by_task(domain))
 				continue;
 			ccs_try_to_gc(CCS_ID_DOMAIN, &domain->list);
@@ -648,12 +647,12 @@ static void ccs_collect_entry(void)
 		struct list_head *list = &ccs_group_list[i];
 		struct ccs_group *group;
 		struct ccs_group *tmp;
-		enum ccs_policy_id id = CCS_ID_PATH_GROUP;
+		enum ccs_policy_id id = CCS_ID_STRING_GROUP;
 		if (i == CCS_NUMBER_GROUP)
 			id = CCS_ID_NUMBER_GROUP;
 #ifdef CONFIG_CCSECURITY_NETWORK
-		else if (i == CCS_ADDRESS_GROUP)
-			id = CCS_ID_ADDRESS_GROUP;
+		else if (i == CCS_IP_GROUP)
+			id = CCS_ID_IP_GROUP;
 #endif
 		list_for_each_entry_safe(group, tmp, list, head.list) {
 			ccs_collect_member(id, &group->member_list);

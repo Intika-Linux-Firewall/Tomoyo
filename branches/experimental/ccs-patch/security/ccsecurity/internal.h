@@ -442,9 +442,8 @@ enum ccs_conditions_index {
 	CCS_COND_DOMAIN,
 	CCS_IMM_GROUP,
 	CCS_IMM_NAME_ENTRY,
-	CCS_IMM_DOMAINNAME_ENTRY,
-	/* 50 */
 	CCS_IMM_NUMBER_ENTRY1,
+	/* 50 */
 	CCS_IMM_NUMBER_ENTRY2,
 	CCS_IMM_IPV4ADDR_ENTRY1,
 	CCS_IMM_IPV4ADDR_ENTRY2,
@@ -472,11 +471,10 @@ enum ccs_path_attribute_index {
 
 /* Index numbers for group entries. */
 enum ccs_group_id {
-	CCS_PATH_GROUP,
-	CCS_DOMAIN_GROUP,
+	CCS_STRING_GROUP,
 	CCS_NUMBER_GROUP,
 #ifdef CONFIG_CCSECURITY_NETWORK
-	CCS_ADDRESS_GROUP,
+	CCS_IP_GROUP,
 #endif
 	CCS_MAX_GROUP
 } __packed;
@@ -593,9 +591,9 @@ enum ccs_path_stat_index {
 enum ccs_policy_id {
 	CCS_ID_GROUP,
 #ifdef CONFIG_CCSECURITY_NETWORK
-	CCS_ID_ADDRESS_GROUP,
+	CCS_ID_IP_GROUP,
 #endif
-	CCS_ID_PATH_GROUP,
+	CCS_ID_STRING_GROUP,
 	CCS_ID_NUMBER_GROUP,
 	CCS_ID_CONDITION,
 	CCS_ID_NAME,
@@ -734,23 +732,20 @@ struct ccs_acl_info {
 	u8 audit;
 };
 
-/*
- * Structure for "path_group"/"domain_group"/"number_group"/"address_group"
- * directive.
- */
+/* Structure for "string_group"/"number_group"/"ip_group" directive. */
 struct ccs_group {
 	struct ccs_shared_acl_head head;
 	/* Name of group (without leading "@"). */
 	const struct ccs_path_info *group_name;
 	/*
-	 * List of "struct ccs_path_group" or "struct ccs_number_group" or
-	 * "struct ccs_address_group".
+	 * List of "struct ccs_string_group" or "struct ccs_number_group" or
+	 * "struct ccs_ip_group".
 	 */
 	struct list_head member_list;
 };
 
-/* Structure for "path_group"/"domain_group" directive. */
-struct ccs_path_group {
+/* Structure for "string_group" directive. */
+struct ccs_string_group {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *member_name;
 };
@@ -762,8 +757,8 @@ struct ccs_number_group {
 	unsigned long value[2];
 };
 
-/* Structure for "address_group" directive. */
-struct ccs_address_group {
+/* Structure for "ip_group" directive. */
+struct ccs_ip_group {
 	struct ccs_acl_head head;
 	bool is_ipv6;
 	/* Structure for holding an IP address. */
@@ -980,16 +975,13 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
 bool ccs_get_exename(struct ccs_path_info *buf);
 bool ccs_manager(void);
-bool ccs_memory_ok(const void *ptr, const unsigned int size);
+bool ccs_transit_domain(const char *domainname);
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
 char *ccs_realpath(struct path *path);
 const char *ccs_get_exe(void);
-const struct ccs_path_info *ccs_get_name(const char *name);
 int ccs_audit_log(struct ccs_request_info *r);
 int ccs_check_acl(struct ccs_request_info *r, const bool clear);
-struct ccs_domain_info *ccs_assign_domain(const char *domainname);
-void *ccs_commit_ok(void *data, const unsigned int size);
 void ccs_del_condition(struct list_head *element);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_get_attributes(struct ccs_request_info *r);
@@ -1012,7 +1004,6 @@ extern struct mutex ccs_policy_lock;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 extern struct srcu_struct ccs_ss;
 #endif
-extern unsigned int ccs_memory_quota[CCS_MAX_MEMORY_STAT];
 extern unsigned int ccs_memory_used[CCS_MAX_MEMORY_STAT];
 
 /* Inlined functions for internal use. */
