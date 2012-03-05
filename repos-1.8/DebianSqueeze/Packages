@@ -1,3 +1,43 @@
+Package: ccs-tools
+Priority: extra
+Section: alien
+Installed-Size: 640
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Version: 1.8.3-3
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
+Filename: ./ccs-tools_1.8.3-3_i386.deb
+Size: 218216
+MD5sum: 4e0bb17745bc2142abe6c9c9da161788
+SHA1: c423e703988f5d5619b9c32b77c8963c1e542a32
+SHA256: b2413d261073c38a784c0312fe822881c48bbd86346e51ea61e63c64f59d39ab
+Description: Userspace tools for TOMOYO Linux 1.8.x
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+ .
+ (Converted from a rpm package by alien version 8.81.)
+
+Package: linux-image-2.6-686-ccs
+Priority: optional
+Section: kernel
+Installed-Size: 48
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-latest-2.6 (29)
+Version: 2.6.32+29
+Provides: linux-latest-modules-2.6.32-5-686-ccs
+Depends: linux-image-2.6.32-5-686-ccs
+Filename: ./linux-image-2.6-686-ccs1.8.3p5_2.6.32+29_i386.deb
+Size: 4428
+MD5sum: 137da753049bb7ac0d51c88059568ea2
+SHA1: 10e7ab5c779c4f949a88274f18d73e4351f0e4a5
+SHA256: f2538480dd91da962c8e522b0d19819765dabc5f157d2fcb21cb042e736af4ec
+Description: Linux 2.6 for modern PCs (meta-package)
+ This package depends on the latest Linux kernel 2.6 and modules for use on
+ PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom;
+ AMD Geode LX/NX, Athlon (K7), Duron, Opteron, Sempron, Turion or Phenom;
+ Transmeta Efficeon; VIA C3 "Nehemiah" or C7 processors.
+
 Package: linux-image-2.6.32-5-686-ccs
 Priority: optional
 Section: kernel
@@ -10,11 +50,11 @@ Provides: linux-image, linux-image-2.6
 Depends: coreutils (>= 5.96)
 Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
 Suggests: fdutils, linux-doc-2.6.32-5-686-ccs | linux-source-2.6.32-5-686-ccs, ksymoops, linux-image-2.6.32-5-686-ccs-dbg
-Filename: ./linux-image-2.6.32-5-686-ccs1.8.3p4_2.6.32-41_i386.deb
-Size: 27790290
-MD5sum: 506d511a5b8fe186e20622123ad6ffb4
-SHA1: 67f23e46c14955069590ed98dc7c9a1c06dd7d1b
-SHA256: 5725d93a5daa7c270e6fe583ff9c2de1d894f08f6bb72e737cc710dbcc2d8daf
+Filename: ./linux-image-2.6.32-5-686-ccs1.8.3p5_2.6.32-41_i386.deb
+Size: 27790396
+MD5sum: aa4bd0ce8e26b73fc0ff227cd2491c75
+SHA1: e80a7b04f43b39166127e4af9f8aabfed6cb0b37
+SHA256: 3ae4da11a9ae1a921997bcb26ab00ed5b60fe8c4069d65ab7c94bf34a887224f
 Description: Linux kernel binary image for version 2.6.32-5-686-ccs
  This package contains the Linux kernel image for version
  2.6.32-5-686-ccs.
@@ -30,31 +70,10 @@ Description: Linux kernel binary image for version 2.6.32-5-686-ccs
  for details on how to tailor the  installation of this or any other kernel
  image package
 
-Package: linux-image-2.6-686-ccs
-Priority: optional
-Section: kernel
-Installed-Size: 48
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-latest-2.6 (29)
-Version: 2.6.32+29
-Provides: linux-latest-modules-2.6.32-5-686-ccs
-Depends: linux-image-2.6.32-5-686-ccs
-Filename: ./linux-image-2.6-686-ccs1.8.3p4_2.6.32+29_i386.deb
-Size: 4432
-MD5sum: 6da42916e028cc7ae41ea5d67b84758e
-SHA1: 09c28b3fe72d9a81b1e246fc22a787f82e9b5177
-SHA256: e658eee7420d19f045af348eea7241af2bc2309ffa0045e25a37a125ec38a56f
-Description: Linux 2.6 for modern PCs (meta-package)
- This package depends on the latest Linux kernel 2.6 and modules for use on
- PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom;
- AMD Geode LX/NX, Athlon (K7), Duron, Opteron, Sempron, Turion or Phenom;
- Transmeta Efficeon; VIA C3 "Nehemiah" or C7 processors.
-
 Package: linux-headers-2.6.32-5-686-ccs
 Priority: optional
 Section: devel
-Installed-Size: 46896
+Installed-Size: 46812
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-source-2.6.32-5-686-ccs
@@ -63,11 +82,11 @@ Provides: linux-headers, linux-headers-2.6
 Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
 Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
 Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
-Filename: ./linux-headers-2.6.32-5-686-ccs1.8.3p4_2.6.32-41_i386.deb
-Size: 6470184
-MD5sum: 83c5aeb586b34e25d23447c5485cbf22
-SHA1: aa6460d717b4baf2a658acacda8ee486dd0a0417
-SHA256: d963bd30a95e635e2f711fc15bceaa0bbdbeab2e26253772909774c2d95455af
+Filename: ./linux-headers-2.6.32-5-686-ccs1.8.3p5_2.6.32-41_i386.deb
+Size: 6449022
+MD5sum: 18300535f36ce0caf938df8760445779
+SHA1: 2c06b05ea28c688707da4c8aeb288f31c04aee58
+SHA256: f5535aca872f9b21e0e9de142533f59d5d7f9abe5ee0bcf344c9d00f74a6a7f9
 Description: Header files related to Linux kernel, specifically,
  version 2.6.32-5-686-ccs
  .
@@ -77,23 +96,4 @@ Description: Header files related to Linux kernel, specifically,
  Please read
  /usr/share/doc/linux-headers-2.6.32-5-686-ccs/debian.README.gz
  for details
-
-Package: ccs-tools
-Priority: extra
-Section: alien
-Installed-Size: 640
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Version: 1.8.3-1
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
-Filename: ./ccs-tools_1.8.3-1_i386.deb
-Size: 191920
-MD5sum: ba062053ab6408b1ac6ccd896c6b1f4d
-SHA1: 4f560c4c7b030841b4accab54494274e138db1af
-SHA256: 6274a11b2869cb6178c8947854eb36c7cb7dc02fa6b53b04f5ecdd6b7628d564
-Description: Userspace tools for TOMOYO Linux 1.8.x
- This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
- Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
- .
- (Converted from a rpm package by alien version 8.81.)
 
