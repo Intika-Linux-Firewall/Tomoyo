@@ -212,7 +212,6 @@ static int ccs_environ(struct ccs_request_info *r);
 #ifdef CONFIG_CCSECURITY_CAPABILITY
 static bool __ccs_capable(const u8 operation);
 static bool ccs_kernel_service(void);
-static int __ccs_ptrace_permission(long request, long pid);
 static int __ccs_socket_create_permission(int family, int type, int protocol);
 #endif
 
@@ -249,6 +248,9 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 
 #ifdef CONFIG_CCSECURITY_IPC
 static int __ccs_ptrace_permission(long request, long pid);
+static int __ccs_signal_permission(const int sig);
+static int ccs_signal_permission0(const int pid, const int sig);
+static int ccs_signal_permission1(pid_t tgid, pid_t pid, int sig);
 #endif
 
 #ifdef CONFIG_CCSECURITY_FILE_GETATTR
@@ -1204,6 +1206,7 @@ void __init ccs_permission_init(void)
 	ccsecurity_ops.mount_permission = ccs_old_mount_permission;
 #endif
 #ifdef CONFIG_CCSECURITY_CAPABILITY
+	ccsecurity_ops.capable = __ccs_capable;
 	ccsecurity_ops.socket_create_permission =
 		__ccs_socket_create_permission;
 #endif
@@ -1224,9 +1227,11 @@ void __init ccs_permission_init(void)
 #endif
 #ifdef CONFIG_CCSECURITY_IPC
 	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
-#endif
-#ifdef CONFIG_CCSECURITY_CAPABILITY
-	ccsecurity_ops.capable = __ccs_capable;
+	ccsecurity_ops.kill_permission = ccs_signal_permission0;
+	ccsecurity_ops.tgkill_permission = ccs_signal_permission1;
+	ccsecurity_ops.tkill_permission = ccs_signal_permission0;
+	ccsecurity_ops.sigqueue_permission = ccs_signal_permission0;
+	ccsecurity_ops.tgsigqueue_permission = ccs_signal_permission1;
 #endif
 	ccsecurity_ops.search_binary_handler = __ccs_search_binary_handler;
 }
@@ -2751,7 +2756,7 @@ static int __ccs_ptrace_permission(long request, long pid)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		p = ccsecurity_exports.find_task_by_vpid((pid_t) pid);
 #else
-		p = find_task_by_pid((pid_t) -pid);
+		p = find_task_by_pid((pid_t) pid);
 #endif
 		if (p)
 			dest = ccs_task_domain(p);
@@ -2768,6 +2773,55 @@ static int __ccs_ptrace_permission(long request, long pid)
 	}
 	ccs_read_unlock(idx);
 	return error;
+}
+
+/**
+ * __ccs_signal_permission - Check permission for signal.
+ *
+ * @sig: Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static int __ccs_signal_permission(const int sig)
+{
+	struct ccs_request_info r = { };
+	const int idx = ccs_read_lock();
+	int error;
+	ccs_check_auto_domain_transition();
+	r.type = CCS_MAC_SIGNAL;
+	r.param.i[0] = sig;
+	error = ccs_check_acl(&r, true);
+	ccs_read_unlock(idx);
+	return error;
+}
+
+/**
+ * ccs_signal_permission0 - Check permission for signal.
+ *
+ * @pid: Unused.
+ * @sig: Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_signal_permission0(const int pid, const int sig)
+{
+	return __ccs_signal_permission(sig);
+}
+
+/**
+ * ccs_signal_permission1 - Permission check for signal().
+ *
+ * @tgid: Unused.
+ * @pid:  Unused.
+ * @sig:  Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_signal_permission1(pid_t tgid, pid_t pid, int sig)
+{
+	return __ccs_signal_permission(sig);
 }
 
 #endif

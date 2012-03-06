@@ -114,6 +114,9 @@ struct ccsecurity_operations {
 #endif
 	int (*fcntl_permission) (struct file *file, unsigned int cmd,
 				 unsigned long arg);
+	int (*kill_permission) (pid_t pid, int sig);
+	int (*tgkill_permission) (pid_t tgid, pid_t pid, int sig);
+	int (*tkill_permission) (pid_t pid, int sig);
 	int (*socket_create_permission) (int family, int type, int protocol);
 	int (*socket_listen_permission) (struct socket *sock);
 	int (*socket_connect_permission) (struct socket *sock,
@@ -132,6 +135,8 @@ struct ccsecurity_operations {
 				 mode_t mode);
 	int (*getattr_permission) (struct vfsmount *mnt,
 				   struct dentry *dentry);
+	int (*sigqueue_permission) (pid_t pid, int sig);
+	int (*tgsigqueue_permission) (pid_t tgid, pid_t pid, int sig);
 	int (*search_binary_handler) (struct linux_binprm *bprm,
 				      struct pt_regs *regs);
 #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
@@ -724,12 +729,6 @@ static inline int ccs_socket_create_permission(int family, int type,
 	return func ? func(family, type, protocol) : 0;
 }
 
-static inline int ccs_ptrace_permission(long request, long pid)
-{
-	int (*func) (long, long) = ccsecurity_ops.ptrace_permission;
-	return func ? func(request, pid) : 0;
-}
-
 #else
 
 static inline _Bool ccs_capable(const u8 operation)
@@ -743,12 +742,52 @@ static inline int ccs_socket_create_permission(int family, int type,
 	return 0;
 }
 
+#endif
+
+#ifdef CONFIG_CCSECURITY_IPC
+
+static inline int ccs_ptrace_permission(long request, long pid)
+{
+	int (*func) (long, long) = ccsecurity_ops.ptrace_permission;
+	return func ? func(request, pid) : 0;
+}
+
+static inline int ccs_kill_permission(pid_t pid, int sig)
+{
+	int (*func) (pid_t, int) = ccsecurity_ops.kill_permission;
+	return func ? func(pid, sig) : 0;
+}
+
+static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
+{
+	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgkill_permission;
+	return func ? func(tgid, pid, sig) : 0;
+}
+
+static inline int ccs_tkill_permission(pid_t pid, int sig)
+{
+	int (*func) (pid_t, int) = ccsecurity_ops.tkill_permission;
+	return func ? func(pid, sig) : 0;
+}
+
+static inline int ccs_sigqueue_permission(pid_t pid, int sig)
+{
+	int (*func) (pid_t, int) = ccsecurity_ops.sigqueue_permission;
+	return func ? func(pid, sig) : 0;
+}
+
+static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+{
+	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgsigqueue_permission;
+	return func ? func(tgid, pid, sig) : 0;
+}
+
+#else
+
 static inline int ccs_ptrace_permission(long request, long pid)
 {
 	return 0;
 }
-
-#endif
 
 static inline int ccs_kill_permission(pid_t pid, int sig)
 {
@@ -774,6 +813,8 @@ static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 {
 	return 0;
 }
+
+#endif
 
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {

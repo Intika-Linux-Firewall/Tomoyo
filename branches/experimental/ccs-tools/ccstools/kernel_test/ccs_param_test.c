@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+#include <linux/ip.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -67,6 +68,8 @@ static void check_init(const char *prompt, const char *expected)
 	char buffer[1024];
 	char *cp;
 	memset(buffer, 0, sizeof(buffer));
+	kill(1, SIGHUP);
+	sleep(1);
 	write(fd, "1\n", 2);
 	read(fd, buffer, sizeof(buffer) - 1);
 	close(fd);
@@ -93,32 +96,26 @@ static void test_task_transition(void)
 		"0 allow domain=\"domain\\$\"\n";
 	set(policy);
 	check(policy, write(fd, "domain0", 7) != EOF);
-	check(policy, write(fd, "domain10", 7) != EOF);
-	check(policy, write(fd, "domain200", 7) != EOF);
-	check(policy, write(fd, "domainXYX", 7) == EOF);
+	check(policy, write(fd, "domain10", 8) != EOF);
+	check(policy, write(fd, "domainXYX", 9) == EOF);
+	check(policy, write(fd, "domain200", 9) != EOF);
 	unset(policy);
 
 	policy = "100 acl auto_domain_transition\n"
 		"0 allow task.pid=1 transition=\"<init3>\"\n";
 	set(policy);
-	kill(1, SIGHUP);
-	sleep(1);
 	check_init(policy, "<init3>");
 	unset(policy);
 
 	policy = "100 acl auto_domain_transition\n"
 		"0 allow task.pid=1 task.uid!=0 transition=\"<init2>\"\n";
 	set(policy);
-	kill(1, SIGHUP);
-	sleep(1);
 	check_init(policy, "<init3>");
 	unset(policy);
 	
 	policy = "100 acl auto_domain_transition\n"
 		"0 allow task.pid=1 transition=\"<init>\"\n";
 	set(policy);
-	kill(1, SIGHUP);
-	sleep(1);
 	check_init(policy, "<init>");
 	unset(policy);
 
@@ -812,6 +809,119 @@ static void test_network_inet_dgram(void)
 	close(fd2);
 }
 
+static void test_network_inet_raw(void)
+{
+	struct sockaddr_in addr = { };
+	static struct iphdr ip = { };
+	int fd1;
+	int fd2;
+	char *policy;
+	fd1 = socket(PF_INET, SOCK_RAW, 1);
+	fd2 = socket(PF_INET, SOCK_RAW, 1);
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	ip.version = 4;
+	ip.ihl = sizeof(struct iphdr) / 4;
+	ip.protocol = IPPROTO_RAW;
+	ip.daddr = htonl(INADDR_LOOPBACK);
+	ip.saddr = ip.daddr;
+
+	policy = "100 acl inet_raw_bind\n"
+		"0 allow ip=127.0.0.1 proto!=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, bind(fd1, (struct sockaddr *) &addr, sizeof(addr)) ==
+	      EOF);
+	unset(policy);
+
+	policy = "100 acl inet_raw_bind\n"
+		"0 allow ip!=127.0.0.1 proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, bind(fd1, (struct sockaddr *) &addr, sizeof(addr)) ==
+	      EOF);
+	unset(policy);
+
+	policy = "100 acl inet_raw_bind\n"
+		"0 allow ip=127.0.0.1 proto=1 path.uid=task.uid\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, bind(fd1, (struct sockaddr *) &addr, sizeof(addr)) ==
+	      EOF);
+	unset(policy);
+
+	policy = "100 acl inet_raw_bind\n"
+		"0 allow ip=127.0.0.1 proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, bind(fd2, (struct sockaddr *) &addr, sizeof(addr)) ==
+	      0);
+	unset(policy);
+
+	policy = "100 acl inet_raw_send\n"
+		"0 allow ip=127.0.0.1 proto!=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, connect(fd2, (struct sockaddr *) &addr, sizeof(addr))
+	      == EOF);
+	unset(policy);
+
+	policy = "100 acl inet_raw_send\n"
+		"0 allow ip=127.0.0.1 proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, connect(fd2, (struct sockaddr *) &addr, sizeof(addr))
+	      == 0);
+	unset(policy);
+
+	policy = "100 acl inet_raw_send\n"
+		"0 allow ip=127.0.0.1 proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, send(fd2, &ip, sizeof(ip), 0) != EOF);
+	unset(policy);
+
+	policy = "100 acl inet_raw_recv\n"
+		"0 allow ip=127.0.0.1 proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, recv(fd1, &ip, sizeof(ip), MSG_DONTWAIT) != EOF);
+	unset(policy);
+
+	policy = "100 acl inet_raw_send\n"
+		 "0 allow ip=127.0.0.1 proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, send(fd2, &ip, sizeof(ip), 0) != EOF);
+	unset(policy);
+
+	policy = "100 acl inet_raw_recv\n"
+		"0 allow ip=127.0.0.1 proto!=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, recv(fd1, &ip, sizeof(ip), MSG_DONTWAIT) == EOF);
+	unset(policy);
+
+	policy = "ip_group LOCALHOST 127.0.0.0-127.255.255.255\n"
+		"100 acl inet_raw_send\n"
+		"0 allow ip=@LOCALHOST proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, send(fd2, &ip, sizeof(ip), 0) != EOF);
+	unset2(policy);
+
+	policy = "ip_group LOCALHOST 127.0.0.0-127.255.255.255\n"
+		"100 acl inet_raw_recv\n"
+		"0 allow ip!=@LOCALHOST proto=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, recv(fd1, &ip, sizeof(ip), MSG_DONTWAIT) == EOF);
+	unset2(policy);
+
+	close(fd1);
+	close(fd2);
+}
+
 static void test_network_inet6_stream(void)
 {
 	struct sockaddr_in6 addr1 = { };
@@ -1109,6 +1219,13 @@ static void test_capability(void)
 	unset(policy);
 }
 
+static void detach_init(void)
+{
+	ptrace(PTRACE_DETACH, 1, NULL, NULL);
+	kill(1, SIGCONT);
+	sleep(1);
+}
+
 static void test_ptrace(void)
 {
 	char *policy;
@@ -1120,8 +1237,7 @@ static void test_ptrace(void)
 	set(policy);
 	check(policy, ptrace(PTRACE_ATTACH, 1, NULL, NULL) == EOF);
 	unset(policy);
-
-	ptrace(PTRACE_DETACH, 1, NULL, NULL);
+	detach_init();
 
 	policy = "100 acl ptrace\n"
 		"0 allow cmd=16 domain=\"foo\"\n"
@@ -1130,8 +1246,7 @@ static void test_ptrace(void)
 	set(policy);
 	check(policy, ptrace(PTRACE_ATTACH, 1, NULL, NULL) == EOF);
 	unset(policy);
-
-	ptrace(PTRACE_DETACH, 1, NULL, NULL);
+	detach_init();
 
 	policy = "100 acl ptrace\n"
 		"0 allow cmd=16 domain!=\"foo\"\n"
@@ -1140,8 +1255,7 @@ static void test_ptrace(void)
 	set(policy);
 	check(policy, ptrace(PTRACE_ATTACH, 1, NULL, NULL) == 0);
 	unset(policy);
-
-	ptrace(PTRACE_DETACH, 1, NULL, NULL);
+	detach_init();
 
 	policy = "string_group DOMAINS <init>\n"
 		"100 acl ptrace\n"
@@ -1151,9 +1265,8 @@ static void test_ptrace(void)
 	set(policy);
 	check(policy, ptrace(PTRACE_ATTACH, 1, NULL, NULL) == 0);
 	unset2(policy);
-
-	ptrace(PTRACE_DETACH, 1, NULL, NULL);
-
+	detach_init();
+	
 	policy = "string_group DOMAINS <init>\n"
 		"100 acl ptrace\n"
 		"0 allow cmd=16 domain!=@DOMAINS\n"
@@ -1162,11 +1275,48 @@ static void test_ptrace(void)
 	set(policy);
 	check(policy, ptrace(PTRACE_ATTACH, 1, NULL, NULL) == EOF);
 	unset2(policy);
+	detach_init();
+}
 
-	ptrace(PTRACE_DETACH, 1, NULL, NULL);
+static void test_signal(void)
+{
+	char *policy;
 
-	sleep(1);
-	kill(1, SIGCONT);
+	policy = "100 acl signal task.domain=\"domain200\"\n"
+		"0 allow sig=1 task.uid=0\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, kill(1, 1) == 0);
+	unset(policy);
+
+	policy = "100 acl signal task.domain=\"domain200\"\n"
+		"0 allow sig!=1 task.uid=0\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, kill(1, 1) == EOF);
+	unset(policy);
+
+	policy = "100 acl signal\n"
+		"0 allow task.domain!=\"domain200\"\n"
+		"0 allow sig=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, kill(1, 1) == 0);
+	unset(policy);
+
+	policy = "100 acl signal\n"
+		"0 deny task.domain=\"domain200\"\n"
+		"0 allow\n";
+	set(policy);
+	check(policy, kill(1, 1) == EOF);
+	unset(policy);
+
+	policy = "100 acl signal\n"
+		"0 deny sig=1 task.domain=\"domain200\"\n"
+		"0 allow\n";
+	set(policy);
+	check(policy, kill(1, 1) == EOF);
+	unset(policy);
 }
 
 static int fork_exec(char *envp[])
@@ -1330,6 +1480,259 @@ static void test_environ(void)
 	unset(policy);
 }
 
+static int fork_exec2(char *argv[], char *envp[])
+{
+	int ret_ignored;
+	int pipe_fd[2] = { EOF, EOF };
+	int err = 0;
+	pid_t pid;
+	if (pipe(pipe_fd)) {
+		fprintf(stderr, "Err: %s(%d)\n", strerror(err), err);
+		exit(1);
+	}
+	pid = fork();
+	if (pid == 0) {
+		execve("/bin/true", argv, envp);
+		err = errno;
+		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
+		_exit(0);
+	}
+	close(pipe_fd[1]);
+	ret_ignored = read(pipe_fd[0], &err, sizeof(err));
+	close(pipe_fd[0]);
+	wait(NULL);
+	errno = err;
+	return err ? EOF : 0;
+}
+
+static void test_file_execute(void)
+{
+	char *policy;
+	char *argv[5];
+	char *envp[5];
+	memset(argv, 0, sizeof(argv));
+	memset(envp, 0, sizeof(envp));
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow argc=1\n"
+		"1 deny\n";
+	set(policy);
+	argv[0]="true";
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow argc!=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny argc!=1\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny argc=1\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny argv[0]!=\"true\"\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny argv[0]=\"true\"\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow argv[0]!=\"true\"\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow argv[0]=\"true\"\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "string_group EXEC_ARGV0 false\n"
+		"string_group EXEC_ARGV0 true\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 deny argv[0]!=@EXEC_ARGV0\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset2(policy);
+
+	policy = "string_group EXEC_ARGV0 false\n"
+		"string_group EXEC_ARGV0 true\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 deny argv[0]=@EXEC_ARGV0\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset2(policy);
+
+	policy = "string_group EXEC_ARGV0 false\n"
+		"string_group EXEC_ARGV0 true\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 allow argv[0]!=@EXEC_ARGV0\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset2(policy);
+
+	policy = "string_group EXEC_ARGV0 false\n"
+		"string_group EXEC_ARGV0 true\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 allow argv[0]=@EXEC_ARGV0\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset2(policy);
+
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow envc=1\n"
+		"1 deny\n";
+	set(policy);
+	envp[0]="PATH=/";
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow envc!=1\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny envc!=1\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny envc=1\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny envp[\"PATH\"]!=\"/\"\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny envp[\"PATH\"]=\"/\"\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH\"]!=\"/\"\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH\"]=\"/\"\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "string_group PATH_VALUES /bin\n"
+		"string_group PATH_VALUES /\n"
+		"string_group PATH_VALUES /sbin\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 deny envp[\"PATH\"]!=@PATH_VALUES\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset2(policy);
+
+	policy = "string_group PATH_VALUES /bin\n"
+		"string_group PATH_VALUES /\n"
+		"string_group PATH_VALUES /sbin\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 deny envp[\"PATH\"]=@PATH_VALUES\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset2(policy);
+
+	policy = "string_group PATH_VALUES /bin\n"
+		"string_group PATH_VALUES /\n"
+		"string_group PATH_VALUES /sbin\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH\"]!=@PATH_VALUES\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset2(policy);
+
+	policy = "string_group PATH_VALUES /bin\n"
+		"string_group PATH_VALUES /\n"
+		"string_group PATH_VALUES /sbin\n"
+		"100 acl execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH\"]=@PATH_VALUES\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset2(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny envp[\"PATH\"]!=NULL\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 deny envp[\"PATH\"]=NULL\n"
+		"1 allow\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH\"]!=NULL\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == 0);
+	unset(policy);
+
+	policy = "100 acl execute path=\"/bin/true\"\n"
+		"0 allow envp[\"PATH\"]=NULL\n"
+		"1 deny\n";
+	set(policy);
+	check(policy, fork_exec2(argv, envp) == EOF);
+	unset(policy);
+}
+
 int main(int argc, char *argv[])
 {
 	fp = fopen("/proc/ccs/policy", "w");
@@ -1349,10 +1752,13 @@ int main(int argc, char *argv[])
 	test_file_rename();
 	test_network_inet_stream();
 	test_network_inet_dgram();
+	test_network_inet_raw();
 	test_network_inet6_stream();
 	test_network_inet6_dgram();
 	test_capability();
 	test_ptrace();
+	test_signal();
 	test_environ();
+	test_file_execute();
 	return 0;
 }

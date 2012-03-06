@@ -82,6 +82,7 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 #endif
 #ifdef CONFIG_CCSECURITY_IPC
 	[CCS_MAC_PTRACE] = "ptrace",
+	[CCS_MAC_SIGNAL] = "signal",
 #endif
 	[CCS_MAC_MODIFY_POLICY]      = "modify_policy",
 #ifdef CONFIG_CCSECURITY_CAPABILITY
@@ -1086,6 +1087,10 @@ static const char *ccs_get_narg(const enum ccs_mac_index type, const u8 index)
 		if (index == 0)
 			return "cmd";
 		break;
+	case CCS_MAC_SIGNAL:
+		if (index == 0)
+			return "cmd";
+		break;
 #endif
 	default:
 		break;
@@ -1888,6 +1893,10 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 		if (!strcmp(word, "domain"))
 			return CCS_COND_DOMAIN;
 		if (!strcmp(word, "cmd"))
+			return CCS_COND_NARG0;
+		break;
+	case CCS_MAC_SIGNAL:
+		if (!strcmp(word, "sig"))
 			return CCS_COND_NARG0;
 		break;
 #endif
@@ -4029,6 +4038,8 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 			return 0;
 		return snprintf(buf, len, " cmd=%lu domain=\"%s\"",
 				r->param.i[0], r->param.s[0]->name);
+	case CCS_MAC_SIGNAL:
+		return snprintf(buf, len, " sig=%lu", r->param.i[0]);
 #endif
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 	case CCS_MAC_MANUAL_DOMAIN_TRANSITION:
