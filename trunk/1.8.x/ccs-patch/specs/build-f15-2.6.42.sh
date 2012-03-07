@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.42.7-1.fc15.src.rpm ]
+if [ ! -r kernel-2.6.42.9-1.fc15.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.42.7-1.fc15.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.42.9-1.fc15.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.42.7-1.fc15.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.42.7-1.fc15.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.42.9-1.fc15.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.42.9-1.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120301.tar.gz ]
@@ -58,7 +58,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -834,7 +839,7 @@
+@@ -841,7 +846,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1323,6 +1328,10 @@
+@@ -1337,6 +1342,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1351,6 +1360,18 @@
+@@ -1365,6 +1374,18 @@
  for i in *.config
  do
    mv $i .config
