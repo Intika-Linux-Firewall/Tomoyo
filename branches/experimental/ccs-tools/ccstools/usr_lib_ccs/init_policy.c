@@ -200,13 +200,11 @@ static void printf_encoded(const char *str)
 
 static void make_default_domain_transition(const char *path)
 {
-	fprintf(filp, "10000 acl execute path=\"");
+	fprintf(filp, "    10 allow path=\"");
 	printf_encoded(path);
 	fprintf(filp, "\" transition=\"");
 	printf_encoded(path);
 	fprintf(filp, "\"\n");
-	//fprintf(filp, "    audit 0\n");
-	//fprintf(filp, "\n");
 }
 
 
@@ -478,15 +476,18 @@ static void make_policy(void)
 	fprintf(filp, "\n");
 	fprintf(filp, "quota memory audit 16777216\n");
 	fprintf(filp, "quota memory query 1048576\n");
-	fprintf(filp, "quota audit[0] allowed=0 denied=1024 unmatched=1024\n");
+	fprintf(filp, "quota audit[1] allowed=0 denied=1024 unmatched=1024\n");
 	fprintf(filp, "\n");
+	fprintf(filp, "10000 acl execute\n"
+		"    audit 0\n");
 	scan_modprobe_and_hotplug();
 	scan_daemons();
 	scan_init_dir();
+	fprintf(filp, "\n");
 	{
 		char *tools_dir = get_realpath("/usr/sbin");
 		fprintf(filp, "0 acl modify_policy\n"
-			"    audit 0\n"
+			"    audit 1\n"
 			"    1 deny task.uid!=0\n"
 			"    1 deny task.euid!=0\n"
 			"    100 allow task.exe=\"%s/ccs-loadpolicy\"\n"
@@ -599,122 +600,6 @@ static void make_auditd_conf(void)
 		   "auditd.conf");
 }
 
-/* Content of /etc/ccs/tools/patternize.conf . */
-static const char patternize_data[] =
-"# This file contains rewriting rules used by ccs-patternize command.\n"
-"\n"
-"# Domain policy consists with domain declaration lines (which start with\n"
-"# '<' ,) and acl declaration lines (which do not start with '<' ).\n"
-"# You can refer the former using 'domain' keyword and the latter using 'acl'"
-"\n"
-"# keyword.\n"
-"#\n"
-"# Words in each line are separated by a space character. Therefore, you can\n"
-"# use 'domain[index]', 'acl[index]' for referring index'th word of the line."
-"\n"
-"# The index starts from 1, and 0 refers the whole line (i.e.\n"
-"# 'domain[0]' = 'domain', 'acl[0]' = 'acl').\n"
-"#\n"
-"# Three operators are provided for conditional rewriting.\n"
-"# '.contains' is for 'fgrep keyword' match.\n"
-"# '.equals' is for 'grep ^keyword$' match.\n"
-"# '.starts' is for 'grep ^keyword' match.\n"
-"#\n"
-"# Rewriting rules are defined using multi-lined chunks. A chunk is terminated"
-"\n"
-"# by a 'rewrite' line which specifies old pattern and new pattern.\n"
-"# A 'rewrite' line is evaluated only when all preceding 'domain' and 'acl'\n"
-"# lines in that chunk have matched.\n"
-"# Evaluation stops at first 'rewrite' line where a word matched old pattern."
-"\n"
-"# Therefore, no words are rewritten more than once.\n"
-"#\n"
-"# For user's convenience, new pattern can be omitted if old pattern is reused"
-"\n"
-"# for new pattern.\n"
-"\n"
-"# Please use TOMOYO Linux's escape rule (e.g. '\\040' rather than '\\ ' for\n"
-"# representing a ' ' in a word).\n"
-"\n"
-"# Files on proc filesystem.\n"
-"rewrite path_pattern proc:/self/task/\\$/fdinfo/\\$\n"
-"rewrite path_pattern proc:/self/task/\\$/fd/\\$\n"
-"rewrite head_pattern proc:/self/task/\\$/\n"
-"rewrite path_pattern proc:/self/fdinfo/\\$\n"
-"rewrite path_pattern proc:/self/fd/\\$\n"
-"rewrite head_pattern proc:/self/\n"
-"rewrite path_pattern proc:/\\$/task/\\$/fdinfo/\\$\n"
-"rewrite path_pattern proc:/\\$/task/\\$/fd/\\$\n"
-"rewrite head_pattern proc:/\\$/task/\\$/\n"
-"rewrite path_pattern proc:/\\$/fdinfo/\\$\n"
-"rewrite path_pattern proc:/\\$/fd/\\$\n"
-"rewrite head_pattern proc:/\\$/\n"
-"\n"
-"# Files on devpts filesystem.\n"
-"rewrite path_pattern devpts:/\\$\n"
-"\n"
-"# Files on pipe filesystem.\n"
-"rewrite path_pattern pipe:[\\$]\n"
-"rewrite path_pattern pipefs:/[\\$]\n"
-"\n"
-"# Files on / partition.\n"
-"rewrite tail_pattern /etc/mtab~\\$\n"
-"rewrite tail_pattern /etc/ccs/policy/\\*\n"
-"\n"
-"# Files on /tmp/ partition.\n"
-"rewrite tail_pattern /vte\\?\\?\\?\\?\\?\\?\n"
-"rewrite tail_pattern /.ICE-unix/\\$\n"
-"rewrite tail_pattern /keyring-\\?\\?\\?\\?\\?\\?/socket.ssh\n"
-"rewrite tail_pattern /orbit-\\*/bonobo-activation-register-\\X.lock\n"
-"rewrite tail_pattern /orbit-\\*/bonobo-activation-server-\\X-ior\n"
-"rewrite tail_pattern /orbit-\\*/linc-\\*\n"
-"rewrite tail_pattern /orbit-\\*/\n"
-"rewrite tail_pattern /sh-thd-\\$\n"
-"rewrite tail_pattern /zman\\?\\?\\?\\?\\?\\?\n"
-"\n"
-"# Files on home directory.\n"
-"rewrite tail_pattern /.ICEauthority-\\?\n"
-"rewrite tail_pattern /.xauth\\?\\?\\?\\?\\?\\?\n"
-"rewrite tail_pattern /.xauth\\?\\?\\?\\?\\?\\?-?\n"
-"rewrite tail_pattern "
-"/.local/share/applications/preferred-mail-reader.desktop.\\?\\?\\?\\?\\?\\?\n"
-"rewrite tail_pattern "
-"/.local/share/applications/preferred-web-browser.desktop.\\?\\?\\?\\?\\?\\?\n"
-"\n"
-"# Files on /var/ partition.\n"
-"rewrite tail_pattern /cache/fontconfig/\\X-le64.cache-3\n"
-"rewrite tail_pattern /lib/gdm/.pulse/\\X-default-source\n"
-"rewrite tail_pattern /lib/gdm/.pulse/\\X-default-sink\n"
-"rewrite tail_pattern /lib/gdm/.dbus/session-bus/\\X-\\X\n"
-"rewrite tail_pattern /run/gdm/auth-for-\\*/database-\\?\n"
-"rewrite tail_pattern /run/gdm/auth-for-\\*/database\n"
-"rewrite tail_pattern /run/gdm/auth-for-\\*/\n"
-"rewrite tail_pattern /spool/abrt/pyhook-\\*/\\{\\*\\}/\\*\n"
-"rewrite tail_pattern /spool/abrt/pyhook-\\*/\\{\\*\\}/\n"
-"\n";
-
-/**
- * make_patternize_conf - Make /etc/ccs/tools/patternize.conf .
- *
- * Returns nothing.
- */
-static void make_patternize_conf(void)
-{
-	FILE *fp;
-	if (chdir(policy_dir) || chdir("tools") ||
-	    !access("patternize.conf", R_OK))
-		return;
-	fp = fopen("patternize.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create configuration file.\n");
-		return;
-	}
-	fprintf(stderr, "Creating configuration file for ccs-patternize ... ");
-	fprintf(fp, "%s", patternize_data);
-	close_file(fp, !chmod("patternize.tmp", 0644), "patternize.tmp",
-		   "patternize.conf");
-}
-
 /* Content of /etc/ccs/tools/notifyd.conf . */
 static const char notifyd_data[] =
 "# This file contains configuration used by ccs-notifyd command.\n"
@@ -823,7 +708,6 @@ int main(int argc, char *argv[])
 	make_policy();
 	make_module_loader();
 	make_auditd_conf();
-	make_patternize_conf();
 	make_notifyd_conf();
 	return 0;
 }

@@ -2103,9 +2103,13 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 		else
 			return false;
 		tmp->right = CCS_IMM_NAME_ENTRY;
-		tmp->path = ccs_get_dqword(right);
-		if (!tmp->path || tmp->path->is_patterned)
-			return false;
+		if (!strcmp(right, "NULL")) {
+			tmp->path = &ccs_null_name;
+		} else {
+			tmp->path = ccs_get_dqword(right);
+			if (!tmp->path || tmp->path->is_patterned)
+				return false;
+		}
 		return true;
 	}
 	switch (tmp->left) {
@@ -2650,6 +2654,12 @@ static int ccs_parse_entry(struct ccs_io_buffer *head)
 		if (strcmp(operation, ccs_mac_keywords[type]))
 			continue;
 		head->w.acl_index = type;
+		/*
+		 * This is_deny is for rejecting handler= and transition=
+		 * arguments in "acl" line. handler= and transition= arguments
+		 * are accepted for only "allow" line. 
+		 */
+		head->w.is_deny = true;
 		return ccs_update_acl(&ccs_acl_list[type], head, true);
 	}
 	return -EINVAL;
@@ -4857,6 +4867,8 @@ static int __init ccs_init_module(void)
 #ifdef CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY
 	ccs_mm_init();
 #endif
+	ccs_null_name.name = "NULL";
+	ccs_fill_path_info(&ccs_null_name);
 	ccs_kernel_domain.domainname = ccs_get_name("<kernel>");
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
 	ccs_policy_io_init();

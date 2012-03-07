@@ -25,14 +25,16 @@
 <li><a href="#file_attributes_comparison">2.9. Conditional expressions which handle file's attributes</a></li>
 <li><a href="#syntax_list">3. List of syntaxes sorted by operations</a></li>
 <li><a href="#policy_syntaxes">4. Policy syntaxes</a></li>
-<li>4.1. Definition</li>
-<li>4.2. Examples</li>
-<li>4.3. How to develop policy</li>
+<li><a href="#policy_structure_definition">4.1. Definition</a></li>
+<li><a href="#policy_examples">4.2. Examples</a></li>
+<li><a href="#how_to_develop_policy">4.3. How to develop policy</a></li>
+<li><a href="#difference_with_existing_versions">Appendix: Difference with existing versions (for existing users)</a></li>
+<li><a href="#how_to_install">Appendix: How to install</a></li>
 </ul>
 
 <h2><a name="available_parameters">1. About parameters which can be handled via policy</a></h2>
 
-<p>Each entry in the policy has a syntax that specifies "operation", and can optionally have "conditional expressions".</p>
+<p>Each entry in the policy has a keyword that specifies "operation", and can optionally have "conditional expressions".</p>
 
 <p>It is possible to check parameters which can be represented as string data or numeric data using "conditional expressions".</p>
 
@@ -755,8 +757,8 @@ Below table assumes that the variable name for referencing the requested pathnam
 <tr><td><a href="#integer_comparison">envc</a></td><td>Number of environment variables arguments</td></tr>
 <tr><td><a href="#argv_comparison">argv[$index]</a></td><td>$index'th (0 &lt;= $index &lt; argc) value of command line arguments</td></tr>
 <tr><td><a href="#envp_comparison">envp["$name"]</a></td><td>Value of environment variable named $name</td></tr>
-<tr><td>handler</td><td>Pathname of a wrapper program for preprocessing</td></tr>
-<tr><td>transition</td><td>New domainname to transit to if operation was successful</td></tr>
+<tr><td>handler</td><td>Pathname of a wrapper program for preprocessing (available to only "allow" lines)</td></tr>
+<tr><td>transition</td><td>New domainname to transit to if operation was successful (available to only "allow" lines)</td></tr>
 
 <tr><td rowspan="4">read</td><td rowspan="4">Open a pathname for reading</td><td><a href="#string_comparison">path</a></td><td>Requested pathname</td><td rowspan="4">open(2)</td></tr>
 <tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
@@ -973,7 +975,7 @@ Below table assumes that the variable name for referencing the requested pathnam
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
 <tr><td rowspan="3">ptrace</td><td rowspan="3">Call ptrace() system call</td><td><a href="#integer_comparison">cmd</a></td><td>Command number</td><td rowspan="3">ptrace(2)</td></tr>
-<tr><td><a href="#string_comparison">domain</a></td><td>Traget process's domainname</td></tr>
+<tr><td><a href="#string_comparison">domain</a></td><td>Target process's domainname</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
 <tr><td rowspan="2">signal</td><td rowspan="2">Send signals</td><td><a href="#integer_comparison">sig</a></td><td>Signal number</td><td rowspan="2">kill(2), tkill(2), tgkill(2), rt_sigqueueinfo(2)</td></tr>
@@ -1003,17 +1005,17 @@ Below table assumes that the variable name for referencing the requested pathnam
 
 <tr><td rowspan="1">use_new_kernel</td><td rowspan="1">Load a new kernel</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1">kexec_load(2)</td></tr>
 
-<tr><td rowspan="2">manual_domain_transition</td><td rowspan="2">Change domains by writing to /proc/ccs/self_domain</td><td><a href="#string_comparison">domain</a></td><td>Domainname to allow transition to</td><td rowspan="2"></td></tr>
+<tr><td rowspan="2">manual_domain_transition</td><td rowspan="2">Change domains by writing to /proc/ccs/self_domain</td><td><a href="#string_comparison">domain</a></td><td>Domainname to allow transition to </td><td rowspan="2"></td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
 <tr><td rowspan="2">auto_domain_transition</td><td rowspan="2">Change domains automatically upon conditions are met</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="2"></td></tr>
-<tr><td>transition</td><td>New domainname to transit to if conditions are met</td></tr>
+<tr><td>transition</td><td>New domainname to transit to if conditions are met (available to only "allow" lines)</td></tr>
 
 </table>
 
 <h2><a name="policy_syntaxes">4. Policy syntaxes</a></h2>
 
-<h3>4.1. Definition</h3>
+<h3><a name="policy_structure_definition">4.1. Definition</a></h3>
 
 <p>Policy consists with two parts.</p>
 
@@ -1084,7 +1086,54 @@ $acl_priority acl $operation $conditions_to_filter<br>
 <li>If none of $conditions_to_allow_or_deny matches, the evaluation of this block ends and proceeds to next block. At the same time, access unmatched log is generated if memory used for audit logs is smaller than $max_byte_for_audit_logs bytes and number of unmatched logs which is in the kernel is smaller than $max_logs_for_unmatched_request of quota audit[$audit_index] line where $audit_index is specified by audit line of this block.</li>
 </ul>
 
-<h3>4.2. Examples</h3>
+<p>Access requests will be denied only when "deny" line of "acl" block matched. The only exception is permission to modify policy (i.e. "acl modify_policy" blocks), which will be granted only when "allow" line of all "acl modify_policy" blocks match, in order to avoid unintended modification of policy.</p>
+
+<p>$acl_priority and $cond_priority values are used for two purposes. One is for selectively deny operations using "deny" lines. For example,</p>
+
+<table border="1">
+<tr><td>
+10 acl write path.fsmagic=0x9FA0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 deny path="proc:/cmdline"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;20 allow
+</td></tr>
+</table>
+
+<p>denies opening /proc/cmdline on the proc filesystem (proc filesystem's magic number is 0x9FA0) for reading while allowing opening all other files.</p>
+
+<p>The other is for controlling which "transition=" and "handler=" arguments should be used when these arguments matched more than once. For example, 2 "acl execute" blocks with 5 transition= arguments are defined (conditions$X is <a href="#conditions">"conditional expressions"</a> such as path.uid=task.uid and path.uid!=task.uid).</p>
+
+<table border="1">
+<tr><td>
+10 acl execute conditions1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow conditions2 transition="domainname1" <br>
+&nbsp;&nbsp;&nbsp;&nbsp;20 allow conditions3<br>
+&nbsp;&nbsp;&nbsp;&nbsp;20 allow conditions4 transition="domainname2" <br>
+<br>
+20 acl execute conditions5<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow conditions6 transition="domainname3" <br>
+&nbsp;&nbsp;&nbsp;&nbsp;20 allow conditions7 transition=NULL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;20 allow conditions8 transition="domainname4"
+</td></tr>
+</table>
+
+<p>Domain transition is determined from the first matching transition= argument of allow lines, and keeps current domain if none of matching transition= argument was found. In other words,</p>
+
+<ul>
+<li>If conditions1 and conditions2 are met, then transit to domainname1 domain when execute request succeeded.</li>
+<li>Otherwise, if conditions1 and conditions3 are met, then proceed to next block.</li>
+<li>Otherwise, if conditions1 and conditions4 are met, then transit to domainname3 domain when execute request succeeded.</li>
+<li>Otherwise, if conditions5 and conditions6 are met, then transit to domainname5 domain when execute request succeeded.</li>
+<li>Otherwise, if conditions5 and conditions7 are met, then keep current domain even if execute request succeeded.</li>
+<li>Otherwise, if conditions5 and conditions8 are met, then transit to domainname7 domain when execute request succeeded.</li>
+<li>Otherwise, keep current domain even if execute request succeeded.</li>
+</ul>
+
+<p>Same rule applies to handler= argument. That is, execute handler is determined from the first matching handler= argument of allow lines, and does not use execute handler if none of matching handler= argument was found.</p>
+
+<h3><a name="policy_examples">4.2. Examples</a></h3>
 
 <p>Below example restricts mount operation to allow by only /bin/mount program with one of</p>
 
@@ -1116,7 +1165,7 @@ $acl_priority acl $operation $conditions_to_filter<br>
 </td></tr>
 </table>
 
-<h3>4.3. How to develop policy</h3>
+<h3><a name="how_to_develop_policy">4.3. How to develop policy</a></h3>
 
 <p>Firstly, create a "quota audit[$audit_index]" line with non 0 $max_logs_for_unmatched_request value.</p>
 
@@ -1231,6 +1280,76 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 &nbsp;&nbsp;&nbsp;&nbsp;100 deny
 </td></tr>
 </table>
+
+<h2><a name="difference_with_existing_versions">Appendix: Difference with existing versions (for existing users)</a></h2>
+
+<h3>About pathnames and management programs</h3>
+
+<p>/proc/ccs/domain_policy /proc/ccs/exception_policy /proc/ccs/profile /proc/ccs/manager /proc/ccs/stat has been aggregated into /proc/ccs/policy</p>
+
+<p>/etc/ccs/policy/current/domain_policy.conf /etc/ccs/policy/current/exception_policy.conf /etc/ccs/policy/current/profile.conf /etc/ccs/policy/current/manager.conf /etc/ccs/policy/current/stat.conf has been aggregated into /etc/ccs/policy/current</p>
+
+<p>Built-in policy files which are located in security/ccsecurity/policy/domain_policy.conf security/ccsecurity/policy/exception_policy.conf security/ccsecurity/policy/profile.conf security/ccsecurity/policy/manager.conf security/ccsecurity/policy/stat.conf under kernel source directory have been aggregated into security/ccsecurity/policy/policy.conf</p>
+
+<p>Only /sbin/ccs-init /usr/sbin/ccs-auditd /usr/sbin/ccs-loadpolicy /usr/sbin/ccs-notifyd /usr/sbin/ccs-pstree /usr/sbin/ccs-queryd /usr/sbin/ccs-savepolicy /usr/lib/ccs/audit-exec-param /usr/lib/ccs/ccs-editpolicy-agent /usr/lib/ccs/init_policy are provided for managing policy. (In other words, programs such as /usr/sbin/ccs-editpolicy and /usr/sbin/ccs-setprofile have been removed.)</p>
+
+<p>Command line arguments for specifying type of policy to load/save has been removed from /usr/sbin/ccs-loadpolicy and /usr/sbin/ccs-savepolicy</p>
+
+<p>Command line arguments for specifying profile type has been removed from /usr/lib/ccs/init_policy</p>
+
+<h3>About policy syntax</h3>
+
+<p>Policy syntax has been drastically changed. Existing versions used process's domainname as a key for grouping permissions to do some operations. In other words, existing version's policy is collection of "which domain can do ..." rules. On the other hand, this version uses operation as a key for checking permission. In other words, this version's policy is collection of "which operation can be done by ..." rules. This change is intended for allowing users to protect resources using blacklisting approach. In this version, process's domainname is nothing but one of optional parameters that can be used for controlling whether to grant or deny specific operations. Users can write rules without managing domainnames unless needed.</p>
+
+<p>Process's domainname representation has changed from space delimited multiple words with wildcards (e.g. "&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit") to a single word without wildcards (e.g. "/sbin/init").</p>
+
+<p>Domain transitions no longer happen unless explicitly specified by policy.</p>
+
+<p>Distinction of disabled/learning/permissive/enforcing mode has been removed.</p>
+
+<p>Local port reserve functionality (i.e. "deny_autobind" keyword) has been removed.</p>
+
+<p>Domain argument has been removed from permission to send signals (i.e. "signal" directive), for kill() system call accepts negative number for specifying multiple processes. It is impossible to selectively deny sending signals because it is not permitted to sleep while sending signals.</p>
+
+<p>"path_group" keyword has been renamed to "string_group", and "address_group" keyword has been renamed to "ip_group".</p>
+
+<p>Representation of \ character has been changed from \\ to \134.</p>
+
+<p>Category keywords (i.e. "file", "network", "ipc", "misc", "capability", "task") have been removed because access control levels which was specified using profile has been removed. Some of operation keywords have been renamed (e.g. "network inet stream connect" became "inet_stream_connect", "misc env" became "environ").</p>
+
+<p>"task auto_execute_handler" keyword has been renamed to "handler=" argument of "execute" keyword. This is intended for using execute handler for preprocessing purpose when executing specific programs rather than when executing from specific domains. "task denied_execute_handler" keyword has been removed.</p>
+
+<h2><a name="how_to_install">Appendix: How to install</a></h2>
+
+<p>Same with <a href="http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3">http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3</a> except that you need to overwrite kernel patches by doing</p>
+
+<table border="1">
+<tr><td>
+$ wget -O - http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-patch/?root=tomoyo&amp;view=tar | tar -zxf - --strip 1
+</td></tr>
+</table>
+
+<p>after doing</p>
+
+<table border="1">
+<tr><td>
+$ tar -zxf ccs-patch-1.8.3-20120301.tar.gz
+</td></tr>
+</table>
+
+<p>To install tools, do below operation.</p>
+
+<table border="1">
+<tr><td>
+$ wget -O - http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-tools/ccstools/?root=tomoyo&amp;view=tar | tar -zxf -<br>
+$ cd ccstools/<br>
+$ make -s USRLIBDIR=/usr/lib<br>
+$ su<br>
+# make -s USRLIBDIR=/usr/lib install
+</td></tr>
+</table>
+
+<p>To initialize, run /usr/lib/ccs/init_policy as root user. Be sure to remove (or rename) /etc/ccs/ directory if it already exists, for tools are not compatible with existing versions.</p>
 
 </body>
 </html>

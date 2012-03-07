@@ -872,6 +872,8 @@ struct ccs_request_info {
 	 */
 	const struct ccs_path_info *handler_path;
 	const struct ccs_path_info *transition;
+	const struct ccs_path_info *handler_path_candidate;
+	const struct ccs_path_info *transition_candidate;
 	/*
 	 * For holding operation index used for this request.
 	 * One of values in "enum ccs_mac_index".

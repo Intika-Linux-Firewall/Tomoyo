@@ -517,7 +517,7 @@ LIST_HEAD(ccs_domain_list);
 /* The list for ACL policy. */
 struct list_head ccs_acl_list[CCS_MAX_MAC_INDEX];
 
-/* NULL value used for environment variables. */
+/* NULL value. */
 struct ccs_path_info ccs_null_name;
 
 /***** SECTION6: Dependent functions section *****/
@@ -605,8 +605,6 @@ static int ccs_check_acl_list(struct ccs_request_info *r)
 {
 	struct ccs_acl_info *ptr;
 	int error = 0;
-	const struct ccs_path_info *transition = NULL;
-	const struct ccs_path_info *handler_path = NULL;
 	struct list_head * const list = &ccs_acl_list[r->type];
 	r->matched_acl = NULL;
 	list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
@@ -619,26 +617,26 @@ retry:
 		r->result = CCS_MATCHING_UNMATCHED;
 		list_for_each_entry_srcu(ptr2, &ptr->acl_info_list, list,
 					 &ccs_ss) {
+			r->transition_candidate = NULL;
+			r->handler_path_candidate = NULL;
 			if (!ccs_check_entry(r, ptr2))
 				continue;
-			r->result = ptr2->is_deny ? CCS_MATCHING_DENIED :
-				CCS_MATCHING_ALLOWED;
+			if (ptr2->is_deny) {
+				r->result = CCS_MATCHING_DENIED;
+				break;
+			}
+			r->result = CCS_MATCHING_ALLOWED;
+			/* Set the first matching domain transition entry. */
+			if (r->transition_candidate && !r->transition)
+				r->transition = r->transition_candidate;
+			/* Set the first matching execute handler entry. */
+			if (r->handler_path_candidate && !r->handler_path)
+				r->handler_path = r->handler_path_candidate;
 			break;
 		}
 		error = ccs_audit_log(r);
-		if (!error) {
-			/* Use the first matching domain transition entry. */
-			if (!transition)
-				transition = r->transition;
-			else
-				r->transition = transition;
-			/* Use the first matching execute handler entry. */
-			if (!handler_path)
-				handler_path = r->handler_path;
-			else
-				r->handler_path = handler_path;
+		if (!error)
 			continue;
-		}
 		if (error == CCS_RETRY_REQUEST)
 			goto retry;
 		break;
@@ -698,7 +696,7 @@ static int ccs_execute(struct ccs_request_info *r)
 	 * handler loop, don't use execute handler if the current process is
 	 * marked as execute handler.
 	 */
-	if (r->handler_path &&
+	if (r->handler_path && r->handler_path != &ccs_null_name &&
 	    !(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
 		retval = ccs_try_alt_exec(r);
 		if (retval < 0)
@@ -711,7 +709,7 @@ static int ccs_execute(struct ccs_request_info *r)
 	 */
 	ccs_current_security()->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
 	retval = 0;
-	if (!r->transition)
+	if (!r->transition || r->transition == &ccs_null_name)
 		/* Keep current domain. */
 		goto done;
 	/*
@@ -3612,12 +3610,12 @@ bool ccs_condition(struct ccs_request_info *r,
 		}
 		if (left_op == CCS_HANDLER_PATH) {
 			BUG_ON(right.type != CCS_ARG_TYPE_NAME);
-			r->handler_path = right.name;
+			r->handler_path_candidate = right.name;
 			continue;
 		}
 		if (left_op == CCS_TRANSIT_DOMAIN) {
 			BUG_ON(right.type != CCS_ARG_TYPE_NAME);
-			r->transition = right.name;
+			r->transition_candidate = right.name;
 			continue;
 		}
 		return false;
