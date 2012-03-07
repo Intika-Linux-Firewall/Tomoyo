@@ -27,9 +27,9 @@
 <li><a href="#policy_syntaxes">4. Policy syntaxes</a></li>
 <li><a href="#policy_structure_definition">4.1. Definition</a></li>
 <li><a href="#policy_examples">4.2. Examples</a></li>
-<li><a href="#how_to_develop_policy">4.3. How to develop policy</a></li>
 <li><a href="#difference_with_existing_versions">Appendix: Difference with existing versions (for existing users)</a></li>
 <li><a href="#how_to_install">Appendix: How to install</a></li>
+<li><a href="#how_to_develop_policy">Appendix: How to develop policy</a></li>
 </ul>
 
 <h2><a name="available_parameters">1. About parameters which can be handled via policy</a></h2>
@@ -1086,7 +1086,7 @@ $acl_priority acl $operation $conditions_to_filter<br>
 <li>If none of $conditions_to_allow_or_deny matches, the evaluation of this block ends and proceeds to next block. At the same time, access unmatched log is generated if memory used for audit logs is smaller than $max_byte_for_audit_logs bytes and number of unmatched logs which is in the kernel is smaller than $max_logs_for_unmatched_request of quota audit[$audit_index] line where $audit_index is specified by audit line of this block.</li>
 </ul>
 
-<p>Access requests will be denied only when "deny" line of "acl" block matched. The only exception is permission to modify policy (i.e. "acl modify_policy" blocks), which will be granted only when "allow" line of all "acl modify_policy" blocks match, in order to avoid unintended modification of policy.</p>
+<p>Access requests will be denied only when "deny" line of "acl" block matched. There are three exceptions. Regarding permission to modify policy (i.e. "acl modify_policy" blocks), permission to change domains manually (i.e. "acl manual_domain_transition" blocks) and permission to change domains automatically (i.e. "acl auto_domain_transition" blocks), access requests will be granted only when "allow" line of all blocks match, in order to avoid unintended modification of policy or domain transition.</p>
 
 <p>$acl_priority and $cond_priority values are used for two purposes. One is for selectively deny operations using "deny" lines. For example,</p>
 
@@ -1165,9 +1165,92 @@ $acl_priority acl $operation $conditions_to_filter<br>
 </td></tr>
 </table>
 
-<h3><a name="how_to_develop_policy">4.3. How to develop policy</a></h3>
+<h2><a name="difference_with_existing_versions">Appendix: Difference with existing versions (for existing users)</a></h2>
 
-<p>Firstly, create a "quota audit[$audit_index]" line with non 0 $max_logs_for_unmatched_request value.</p>
+<h3>About pathnames and management programs</h3>
+
+<p>/proc/ccs/domain_policy /proc/ccs/exception_policy /proc/ccs/profile /proc/ccs/manager /proc/ccs/stat has been aggregated into /proc/ccs/policy</p>
+
+<p>/etc/ccs/policy/current/domain_policy.conf /etc/ccs/policy/current/exception_policy.conf /etc/ccs/policy/current/profile.conf /etc/ccs/policy/current/manager.conf /etc/ccs/policy/current/stat.conf has been aggregated into /etc/ccs/policy/current</p>
+
+<p>Built-in policy files which are located in security/ccsecurity/policy/domain_policy.conf security/ccsecurity/policy/exception_policy.conf security/ccsecurity/policy/profile.conf security/ccsecurity/policy/manager.conf security/ccsecurity/policy/stat.conf under kernel source directory have been aggregated into security/ccsecurity/policy/policy.conf</p>
+
+<p>Only /sbin/ccs-init /usr/sbin/ccs-auditd /usr/sbin/ccs-loadpolicy /usr/sbin/ccs-notifyd /usr/sbin/ccs-pstree /usr/sbin/ccs-queryd /usr/sbin/ccs-savepolicy /usr/lib/ccs/audit-exec-param /usr/lib/ccs/ccs-editpolicy-agent /usr/lib/ccs/init_policy are provided for managing policy. (In other words, programs such as /usr/sbin/ccs-editpolicy and /usr/sbin/ccs-setprofile have been removed.)</p>
+
+<p>Command line arguments for specifying type of policy to load/save has been removed from /usr/sbin/ccs-loadpolicy and /usr/sbin/ccs-savepolicy</p>
+
+<p>Command line arguments for specifying profile type has been removed from /usr/lib/ccs/init_policy</p>
+
+<h3>About policy syntax</h3>
+
+<p>Policy syntax has been drastically changed. Existing versions used process's domainname as a key for grouping permissions to do some operations. In other words, existing version's policy is collection of "which domain can do ..." rules. On the other hand, this version uses operation as a key for checking permission. In other words, this version's policy is collection of "which operation can be done by ..." rules. This change is intended for allowing users to protect resources using blacklisting approach. In this version, process's domainname is nothing but one of optional parameters that can be used for controlling whether to grant or deny specific operations. Users can write rules without managing domainnames unless needed.</p>
+
+<p>Process's domainname representation has changed from space delimited multiple words with wildcards (e.g. "&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit") to a single word without wildcards (e.g. "/sbin/init").</p>
+
+<p>Domain transitions no longer happen unless explicitly specified by policy.</p>
+
+<p>Distinction of disabled/learning/permissive/enforcing mode has been removed.</p>
+
+<p>"path_group" keyword has been renamed to "string_group", and "address_group" keyword has been renamed to "ip_group".</p>
+
+<p>Representation of \ character has been changed from \\ to \134.</p>
+
+<p>Category keywords (i.e. "file", "network", "ipc", "misc", "capability", "task") have been removed because access control levels which was specified using profile has been removed. Some of operation keywords have been renamed (e.g. "network inet stream connect" became "inet_stream_connect", "misc env" became "environ").</p>
+
+<p>"task auto_execute_handler" keyword has been renamed to "handler=" argument of "execute" keyword. This is intended for using execute handler for preprocessing purpose when executing specific programs rather than when executing from specific domains. "task denied_execute_handler" keyword has been removed.</p>
+
+<p>Domain argument has been removed from permission to send signals (i.e. "signal" directive), for kill() system call accepts negative number for specifying multiple processes. It is impossible to selectively deny sending signals because it is not permitted to sleep while sending signals.</p>
+
+<p>Local port reserve functionality (i.e. "deny_autobind" keyword) has been removed.</p>
+
+<h2><a name="how_to_install">Appendix: How to install</a></h2>
+
+<p>Same with <a href="http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3">http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3</a> except that you need to replace</p>
+
+<table border="1">
+<tr><td>
+$ wget -O ccs-patch-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz'<br>
+$ wget -O ccs-patch-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz.asc'<br>
+$ gpg ccs-patch-1.8.3-20120301.tar.gz.asc<br>
+$ tar -zxf ccs-patch-1.8.3-20120301.tar.gz
+</td></tr>
+</table>
+
+<p>with</p>
+
+<table border="1">
+<tr><td>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-patch/?root=tomoyo&amp;view=tar' | tar -zxf - --strip 1
+</td></tr>
+</table>
+
+<p>and replace</p>
+
+<table border="1">
+<tr><td>
+$ wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'<br>
+$ wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'<br>
+$ gpg ccs-tools-1.8.3-20120301.tar.gz.asc<br>
+$ tar -zxf ccs-tools-1.8.3-20120301.tar.gz
+</td></tr>
+</table>
+
+<p>with</p>
+
+<table border="1">
+<tr><td>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-tools/ccstools/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
+</td></tr>
+</table>
+
+<p>. To initialize, run /usr/lib/ccs/init_policy without --file-only-profile option. Be sure to remove (or rename) /etc/ccs/ directory if it already exists, for tools are not compatible with existing versions.</p>
+
+<p>To save /proc/ccs/audit automatically, run /usr/sbin/ccs-auditd from somewhere. Default setting (specified in /etc/ccs/tools/auditd.conf) sends access matched logs to /dev/null, access unmatched logs to /var/log/tomoyo/unmatched.log, access denied logs to /var/log/tomoyo/denied.log.</p>
+
+<h2><a name="how_to_develop_policy">Appendix: How to develop policy</a></h2>
+
+<p>Firstly, create a "quota audit[$audit_index]" line with non 0 $max_logs_for_unmatched_request value. You can use /usr/sbin/ccs-loadpolicy to update policy.</p>
 
 <table border="1">
 <tr><td>
@@ -1184,7 +1267,7 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 </td></tr>
 </table>
 
-<p>By operating the system,  access unmatched logs are generated and spooled in /proc/ccs/audit interface when access request of opening /etc/shadow for reading is happens.</p>
+<p>By operating the system,  access unmatched logs are generated and spooled in /proc/ccs/audit interface (or saved to /var/log/tomoyo/unmatched.log if /usr/sbin/ccs-auditd is running) when access request of opening /etc/shadow for reading happens.</p>
 
 <table border="1">
 <tr><td>
@@ -1223,7 +1306,8 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 </td></tr>
 </table>
 
-<p>From now on, attempt to read /etc/shadow using /bin/cat should be denied and access denied logs should be generated.</p>
+<p>From now on, attempt to read /etc/shadow using /bin/cat should be denied and access denied logs should be generated. (It will be saved to /var/log/tomoyo/denied.log if /usr/sbin/ccs-auditd is running.) </p>
+
 <table border="1">
 <tr><td>
 #2012/03/02 08:14:38# global-pid=2842 result=denied / read path="/etc/shadow" task.pid=2842 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
@@ -1271,7 +1355,7 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 </td></tr>
 </table>
 
-<p>It is recommended to restrict other operations such as mount, linking and rename. For example, a rule to deny creation of hard links which is now owned by the user would look like below. (Note that the variable which refers source pathname of link operation is "old_path" rather than "path" because the operation is "link".)</p>
+<p>It is recommended to restrict other operations such as mount, link and rename. For example, a rule to deny creation of hard links which is not owned by the user would look like below. (Note that the variable which refers source pathname of link operation is "old_path" rather than "path" because the operation is "link".)</p>
 
 <table border="1">
 <tr><td>
@@ -1280,87 +1364,6 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 &nbsp;&nbsp;&nbsp;&nbsp;100 deny
 </td></tr>
 </table>
-
-<h2><a name="difference_with_existing_versions">Appendix: Difference with existing versions (for existing users)</a></h2>
-
-<h3>About pathnames and management programs</h3>
-
-<p>/proc/ccs/domain_policy /proc/ccs/exception_policy /proc/ccs/profile /proc/ccs/manager /proc/ccs/stat has been aggregated into /proc/ccs/policy</p>
-
-<p>/etc/ccs/policy/current/domain_policy.conf /etc/ccs/policy/current/exception_policy.conf /etc/ccs/policy/current/profile.conf /etc/ccs/policy/current/manager.conf /etc/ccs/policy/current/stat.conf has been aggregated into /etc/ccs/policy/current</p>
-
-<p>Built-in policy files which are located in security/ccsecurity/policy/domain_policy.conf security/ccsecurity/policy/exception_policy.conf security/ccsecurity/policy/profile.conf security/ccsecurity/policy/manager.conf security/ccsecurity/policy/stat.conf under kernel source directory have been aggregated into security/ccsecurity/policy/policy.conf</p>
-
-<p>Only /sbin/ccs-init /usr/sbin/ccs-auditd /usr/sbin/ccs-loadpolicy /usr/sbin/ccs-notifyd /usr/sbin/ccs-pstree /usr/sbin/ccs-queryd /usr/sbin/ccs-savepolicy /usr/lib/ccs/audit-exec-param /usr/lib/ccs/ccs-editpolicy-agent /usr/lib/ccs/init_policy are provided for managing policy. (In other words, programs such as /usr/sbin/ccs-editpolicy and /usr/sbin/ccs-setprofile have been removed.)</p>
-
-<p>Command line arguments for specifying type of policy to load/save has been removed from /usr/sbin/ccs-loadpolicy and /usr/sbin/ccs-savepolicy</p>
-
-<p>Command line arguments for specifying profile type has been removed from /usr/lib/ccs/init_policy</p>
-
-<h3>About policy syntax</h3>
-
-<p>Policy syntax has been drastically changed. Existing versions used process's domainname as a key for grouping permissions to do some operations. In other words, existing version's policy is collection of "which domain can do ..." rules. On the other hand, this version uses operation as a key for checking permission. In other words, this version's policy is collection of "which operation can be done by ..." rules. This change is intended for allowing users to protect resources using blacklisting approach. In this version, process's domainname is nothing but one of optional parameters that can be used for controlling whether to grant or deny specific operations. Users can write rules without managing domainnames unless needed.</p>
-
-<p>Process's domainname representation has changed from space delimited multiple words with wildcards (e.g. "&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit") to a single word without wildcards (e.g. "/sbin/init").</p>
-
-<p>Domain transitions no longer happen unless explicitly specified by policy.</p>
-
-<p>Distinction of disabled/learning/permissive/enforcing mode has been removed.</p>
-
-<p>Local port reserve functionality (i.e. "deny_autobind" keyword) has been removed.</p>
-
-<p>Domain argument has been removed from permission to send signals (i.e. "signal" directive), for kill() system call accepts negative number for specifying multiple processes. It is impossible to selectively deny sending signals because it is not permitted to sleep while sending signals.</p>
-
-<p>"path_group" keyword has been renamed to "string_group", and "address_group" keyword has been renamed to "ip_group".</p>
-
-<p>Representation of \ character has been changed from \\ to \134.</p>
-
-<p>Category keywords (i.e. "file", "network", "ipc", "misc", "capability", "task") have been removed because access control levels which was specified using profile has been removed. Some of operation keywords have been renamed (e.g. "network inet stream connect" became "inet_stream_connect", "misc env" became "environ").</p>
-
-<p>"task auto_execute_handler" keyword has been renamed to "handler=" argument of "execute" keyword. This is intended for using execute handler for preprocessing purpose when executing specific programs rather than when executing from specific domains. "task denied_execute_handler" keyword has been removed.</p>
-
-<h2><a name="how_to_install">Appendix: How to install</a></h2>
-
-<p>Same with <a href="http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3">http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3</a> except that you need to replace</p>
-
-<table border="1">
-<tr><td>
-$ wget -O ccs-patch-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz'<br>
-$ wget -O ccs-patch-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz.asc'<br>
-$ gpg ccs-patch-1.8.3-20120301.tar.gz.asc<br>
-$ tar -zxf ccs-patch-1.8.3-20120301.tar.gz
-</td></tr>
-</table>
-
-<p>with</p>
-
-<table border="1">
-<tr><td>
-$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
-$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-patch/?root=tomoyo&amp;view=tar' | tar -zxf - --strip 1
-</td></tr>
-</table>
-
-<p>and replace</p>
-
-<table border="1">
-<tr><td>
-$ wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'<br>
-$ wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'<br>
-$ gpg ccs-tools-1.8.3-20120301.tar.gz.asc<br>
-$ tar -zxf ccs-tools-1.8.3-20120301.tar.gz
-</td></tr>
-</table>
-
-<p>with</p>
-
-<table border="1">
-<tr><td>
-$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-tools/ccstools/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
-</td></tr>
-</table>
-
-<p>. To initialize, run /usr/lib/ccs/init_policy without --file-only-profile option. Be sure to remove (or rename) /etc/ccs/ directory if it already exists, for tools are not compatible with existing versions.</p>
 
 </body>
 </html>
