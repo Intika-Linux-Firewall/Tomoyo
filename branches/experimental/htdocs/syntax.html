@@ -1321,35 +1321,46 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 
 <h2><a name="how_to_install">Appendix: How to install</a></h2>
 
-<p>Same with <a href="http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3">http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3</a> except that you need to overwrite kernel patches by doing</p>
+<p>Same with <a href="http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3">http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3</a> except that you need to replace</p>
 
 <table border="1">
 <tr><td>
-$ wget -O - http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-patch/?root=tomoyo&amp;view=tar | tar -zxf - --strip 1
-</td></tr>
-</table>
-
-<p>after doing</p>
-
-<table border="1">
-<tr><td>
+$ wget -O ccs-patch-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz'<br>
+$ wget -O ccs-patch-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz.asc'<br>
+$ gpg ccs-patch-1.8.3-20120301.tar.gz.asc<br>
 $ tar -zxf ccs-patch-1.8.3-20120301.tar.gz
 </td></tr>
 </table>
 
-<p>To install tools, do below operation.</p>
+<p>with</p>
 
 <table border="1">
 <tr><td>
-$ wget -O - http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-tools/ccstools/?root=tomoyo&amp;view=tar | tar -zxf -<br>
-$ cd ccstools/<br>
-$ make -s USRLIBDIR=/usr/lib<br>
-$ su<br>
-# make -s USRLIBDIR=/usr/lib install
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-patch/?root=tomoyo&amp;view=tar' | tar -zxf - --strip 1
 </td></tr>
 </table>
 
-<p>To initialize, run /usr/lib/ccs/init_policy as root user. Be sure to remove (or rename) /etc/ccs/ directory if it already exists, for tools are not compatible with existing versions.</p>
+<p>and replace</p>
+
+<table border="1">
+<tr><td>
+$ wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'<br>
+$ wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'<br>
+$ gpg ccs-tools-1.8.3-20120301.tar.gz.asc<br>
+$ tar -zxf ccs-tools-1.8.3-20120301.tar.gz
+</td></tr>
+</table>
+
+<p>with</p>
+
+<table border="1">
+<tr><td>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-tools/ccstools/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
+</td></tr>
+</table>
+
+<p>. To initialize, run /usr/lib/ccs/init_policy without --file-only-profile option. Be sure to remove (or rename) /etc/ccs/ directory if it already exists, for tools are not compatible with existing versions.</p>
 
 </body>
 </html>

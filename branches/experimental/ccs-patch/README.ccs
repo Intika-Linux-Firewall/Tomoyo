@@ -3061,3 +3061,44 @@ Fix 2012/01/20
 
       Use umode_t rather than mode_t.
       Remove ipv6_addr_copy() usage.
+
+Fix 2012/02/25
+
+    @ Follow changes in linux-next.
+
+      UMH_WAIT_PROC constant (currently 1) is scheduled for renumbering in 3.4.
+
+      Use UMH_WAIT_PROC constant instead of hardcoded constant in preparation
+      for backporting call_usermodehelper() related changes. If renumbering was
+      backported, you will start experiencing the kernel panic upon execution
+      of external policy loader (i.e. /sbin/ccs-init), for the kernel will no
+      longer wait for completion of external policy loader process.
+
+      Although I changed to use UMH_WAIT_PROC constant, this change could fail
+      to detect renumbering in 2.6.22 and earlier kernels, for UMH_WAIT_PROC
+      constant is currently available to only 2.6.23 and later kernels. If you
+      started to experience the kernel panic, please check whether renumbering
+      was backported or not.
+
+Fix 2012/02/29
+
+    @ Fix mount flags checking order.
+
+      Userspace can pass in arbitrary combinations of MS_* flags to mount().
+
+      If both MS_BIND and one of MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE
+      are passed, device name which should be checked for MS_BIND was not
+      checked because MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE had higher
+      priority than MS_BIND.
+
+      If both one of MS_BIND/MS_MOVE and MS_REMOUNT are passed, device name
+      which should not be checked for MS_REMOUNT was checked because MS_BIND/
+      MS_MOVE had higher priority than MS_REMOUNT.
+
+      Fix these bugs by changing priority to MS_REMOUNT -> MS_BIND ->
+      MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE -> MS_MOVE as with do_mount()
+      does. Also, I changed to unconditionally return -EINVAL if more than one
+      of MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE is passed so that TOMOYO
+      will not generate inaccurate audit logs, for commit 7a2e8a8f "VFS: Sanity
+      check mount flags passed to change_mnt_propagation()" clarified that
+      these flags must be exclusively passed.
