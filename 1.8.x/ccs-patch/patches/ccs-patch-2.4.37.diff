@@ -3,27 +3,27 @@ This is TOMOYO Linux patch for kernel 2.4.37.11.
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.37.11.tar.bz2
 ---
  Makefile                     |    8 ++++++++
- arch/alpha/kernel/ptrace.c   |    3 +++
- arch/arm/kernel/ptrace.c     |    3 +++
- arch/cris/kernel/ptrace.c    |    3 +++
- arch/i386/kernel/ptrace.c    |    3 +++
+ arch/alpha/kernel/ptrace.c   |    6 ++++++
+ arch/arm/kernel/ptrace.c     |    6 ++++++
+ arch/cris/kernel/ptrace.c    |    6 ++++++
+ arch/i386/kernel/ptrace.c    |    6 ++++++
  arch/ia64/ia32/sys_ia32.c    |    3 +++
- arch/ia64/kernel/ptrace.c    |    3 +++
- arch/m68k/kernel/ptrace.c    |    3 +++
- arch/mips/kernel/ptrace.c    |    3 +++
- arch/mips64/kernel/ptrace.c  |    5 +++++
- arch/parisc/kernel/ptrace.c  |    3 +++
- arch/ppc/kernel/ptrace.c     |    3 +++
- arch/ppc64/kernel/ptrace.c   |    3 +++
- arch/ppc64/kernel/ptrace32.c |    3 +++
- arch/s390/kernel/ptrace.c    |    3 +++
- arch/s390x/kernel/ptrace.c   |    3 +++
- arch/sh/kernel/ptrace.c      |    3 +++
- arch/sh64/kernel/ptrace.c    |    3 +++
- arch/sparc/kernel/ptrace.c   |    5 +++++
- arch/sparc64/kernel/ptrace.c |    5 +++++
- arch/x86_64/ia32/ptrace32.c  |    3 +++
- arch/x86_64/kernel/ptrace.c  |    3 +++
+ arch/ia64/kernel/ptrace.c    |    6 ++++++
+ arch/m68k/kernel/ptrace.c    |    6 ++++++
+ arch/mips/kernel/ptrace.c    |    6 ++++++
+ arch/mips64/kernel/ptrace.c  |   11 +++++++++++
+ arch/parisc/kernel/ptrace.c  |    6 ++++++
+ arch/ppc/kernel/ptrace.c     |    6 ++++++
+ arch/ppc64/kernel/ptrace.c   |    6 ++++++
+ arch/ppc64/kernel/ptrace32.c |    6 ++++++
+ arch/s390/kernel/ptrace.c    |    6 ++++++
+ arch/s390x/kernel/ptrace.c   |    7 +++++++
+ arch/sh/kernel/ptrace.c      |    6 ++++++
+ arch/sh64/kernel/ptrace.c    |    6 ++++++
+ arch/sparc/kernel/ptrace.c   |    8 ++++++++
+ arch/sparc64/kernel/ptrace.c |    8 ++++++++
+ arch/x86_64/ia32/ptrace32.c  |    6 ++++++
+ arch/x86_64/kernel/ptrace.c  |    6 ++++++
  fs/Config.in                 |    3 +++
  fs/exec.c                    |   11 ++++++++++-
  fs/fcntl.c                   |    5 +++++
@@ -48,7 +48,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    9 +++++++++
  net/socket.c                 |   22 +++++++++++++++++++++-
  net/unix/af_unix.c           |    7 +++++++
- 46 files changed, 319 insertions(+), 3 deletions(-)
+ 46 files changed, 383 insertions(+), 3 deletions(-)
 
 --- linux-2.4.37.11.orig/Makefile
 +++ linux-2.4.37.11/Makefile
@@ -77,12 +77,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #include "proto.h"
  
-@@ -251,6 +252,8 @@ sys_ptrace(long request, long pid, long 
+@@ -251,6 +252,11 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
@@ -96,12 +99,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #include "ptrace.h"
  
-@@ -695,6 +696,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -695,6 +696,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -115,12 +121,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +105,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +105,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -134,12 +143,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -152,6 +153,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -152,6 +153,11 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int i, ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -172,12 +184,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #define offsetof(type,field)    ((unsigned long) &((type *) 0)->field)
  
-@@ -1273,6 +1274,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1273,6 +1274,11 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -191,12 +206,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +105,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +105,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -210,12 +228,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -43,6 +44,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -43,6 +44,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  #if 0
@@ -229,21 +250,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -49,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -49,6 +50,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
-@@ -288,6 +291,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -288,6 +294,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  #if 0
@@ -257,12 +284,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /* These are used in entry.S, syscall_restore_rfi.  We need to record the
   * current stepping mode somewhere other than in PSW, because there is no
-@@ -94,6 +95,8 @@ long sys_ptrace(long request, pid_t pid,
+@@ -94,6 +95,11 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -276,12 +306,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -171,6 +172,8 @@ int sys_ptrace(long request, long pid, l
+@@ -171,6 +172,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -295,12 +328,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -120,6 +121,8 @@ int sys_ptrace(long request, long pid, l
+@@ -120,6 +121,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -314,12 +350,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #ifdef CONFIG_ALTIVEC
  /*
-@@ -121,6 +122,8 @@ int sys32_ptrace(long request, long pid,
+@@ -121,6 +122,11 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -333,12 +372,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -221,6 +222,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -221,6 +222,11 @@ asmlinkage int sys_ptrace(long request, 
  	unsigned long tmp;
  	int copied;
  	ptrace_area   parea; 
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
@@ -352,12 +394,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -431,6 +432,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -431,6 +432,12 @@ asmlinkage int sys_ptrace(long request, 
  #define sizeof_parent_long 8
  #define dataptr (u8 *)&data
  #endif
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
++
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
  	{
@@ -371,12 +417,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -144,6 +145,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -144,6 +145,11 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child, *tsk = current;
  	struct user * dummy = NULL;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -390,12 +439,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -122,6 +123,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -122,6 +123,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child, *tsk = current;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -409,13 +461,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -262,6 +263,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -262,6 +263,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	lock_kernel();
@@ -430,13 +485,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -108,6 +109,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -108,6 +109,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	if (current->thread.flags & SPARC_FLAG_32BIT) {
@@ -451,12 +509,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
-@@ -203,6 +204,8 @@ asmlinkage long sys32_ptrace(long reques
+@@ -203,6 +204,11 @@ asmlinkage long sys32_ptrace(long reques
  	struct pt_regs *childregs; 
  	int ret;
  	__u32 val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	switch (request) { 
  	case PTRACE_TRACEME:
@@ -470,12 +531,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -180,6 +181,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -180,6 +181,11 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	long i, ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
@@ -870,7 +934,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.37.11 2011/06/14\n");
++	printk(KERN_INFO "Hook version: 2.4.37.11 2012/03/08\n");
  }
 --- linux-2.4.37.11.orig/fs/stat.c
 +++ linux-2.4.37.11/fs/stat.c

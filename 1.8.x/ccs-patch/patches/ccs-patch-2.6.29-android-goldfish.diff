@@ -19,7 +19,7 @@ Source code for this patch is http://android.git.r3pek.org/?p=kernel/goldfish.gi
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |    4 ++++
+ kernel/ptrace.c                 |   10 ++++++++++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
  kernel/sys.c                    |   10 ++++++++++
@@ -36,7 +36,7 @@ Source code for this patch is http://android.git.r3pek.org/?p=kernel/goldfish.gi
  net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 212 insertions(+), 3 deletions(-)
+ 34 files changed, 218 insertions(+), 3 deletions(-)
 
 --- android-goldfish-2.6.29.orig/fs/compat.c
 +++ android-goldfish-2.6.29/fs/compat.c
@@ -396,7 +396,7 @@ Source code for this patch is http://android.git.r3pek.org/?p=kernel/goldfish.gi
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: android-goldfish-2.6.29 2012/01/13\n");
++	printk(KERN_INFO "Hook version: android-goldfish-2.6.29 2012/03/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -556,21 +556,27 @@ Source code for this patch is http://android.git.r3pek.org/?p=kernel/goldfish.gi
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- android-goldfish-2.6.29.orig/kernel/ptrace.c
 +++ android-goldfish-2.6.29/kernel/ptrace.c
-@@ -578,6 +578,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -578,6 +578,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -701,6 +703,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -701,6 +706,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec

@@ -2,11 +2,11 @@ This is TOMOYO Linux patch for CentOS 5.8.
 
 Source code for this patch is http://vault.centos.org/5.8/os/SRPMS/kernel-2.6.18-308.el5.src.rpm
 ---
- arch/alpha/kernel/ptrace.c  |    2 ++
+ arch/alpha/kernel/ptrace.c  |    5 +++++
  arch/ia64/ia32/sys_ia32.c   |    3 +++
- arch/m32r/kernel/ptrace.c   |    3 +++
- arch/mips/kernel/ptrace32.c |    2 ++
- arch/sparc/kernel/ptrace.c  |    4 ++++
+ arch/m32r/kernel/ptrace.c   |    6 ++++++
+ arch/mips/kernel/ptrace32.c |    5 +++++
+ arch/sparc/kernel/ptrace.c  |    7 +++++++
  fs/compat.c                 |    5 ++++-
  fs/exec.c                   |    9 ++++++++-
  fs/fcntl.c                  |    4 ++++
@@ -24,7 +24,7 @@ Source code for this patch is http://vault.centos.org/5.8/os/SRPMS/kernel-2.6.18
  kernel/fork.c               |    5 +++++
  kernel/kexec.c              |    3 +++
  kernel/module.c             |    5 +++++
- kernel/ptrace.c             |    4 ++++
+ kernel/ptrace.c             |   10 ++++++++++
  kernel/sched.c              |    2 ++
  kernel/signal.c             |    8 ++++++++
  kernel/sys.c                |   10 ++++++++++
@@ -38,16 +38,19 @@ Source code for this patch is http://vault.centos.org/5.8/os/SRPMS/kernel-2.6.18
  net/unix/af_unix.c          |    6 ++++++
  security/Kconfig            |    2 ++
  security/Makefile           |    3 +++
- 36 files changed, 213 insertions(+), 2 deletions(-)
+ 36 files changed, 231 insertions(+), 2 deletions(-)
 
 --- linux-2.6.18-308.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-308.el5/arch/alpha/kernel/ptrace.c
-@@ -268,6 +268,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -268,6 +268,11 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
@@ -80,35 +83,44 @@ Source code for this patch is http://vault.centos.org/5.8/os/SRPMS/kernel-2.6.18
  
  /*
   * This routine will get a word off of the process kernel stack.
-@@ -742,6 +743,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -742,6 +743,11 @@ asmlinkage long sys_ptrace(long request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.18-308.el5.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.18-308.el5/arch/mips/kernel/ptrace32.c
-@@ -50,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +50,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.18-308.el5.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.18-308.el5/arch/sparc/kernel/ptrace.c
-@@ -267,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +267,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	lock_kernel();
@@ -440,7 +452,7 @@ Source code for this patch is http://vault.centos.org/5.8/os/SRPMS/kernel-2.6.18
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-308.el5 2012/02/23\n");
++	printk(KERN_INFO "Hook version: 2.6.18-308.el5 2012/03/08\n");
  }
 --- linux-2.6.18-308.el5.orig/fs/stat.c
 +++ linux-2.6.18-308.el5/fs/stat.c
@@ -612,21 +624,27 @@ Source code for this patch is http://vault.centos.org/5.8/os/SRPMS/kernel-2.6.18
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.18-308.el5.orig/kernel/ptrace.c
 +++ linux-2.6.18-308.el5/kernel/ptrace.c
-@@ -1135,6 +1135,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -1135,6 +1135,11 @@ asmlinkage long sys_ptrace(long request,
  	struct utrace_attached_engine *engine = NULL;
  	struct ptrace_state *state = NULL;
  	long ret, val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	pr_debug("%d sys_ptrace(%ld, %ld, %lx, %lx)\n",
  		 current->pid, request, pid, addr, data);
-@@ -1223,6 +1225,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1223,6 +1228,11 @@ asmlinkage long compat_sys_ptrace(compat
  	struct utrace_attached_engine *engine;
  	struct ptrace_state *state;
  	compat_long_t ret, val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
  		 current->pid, request, pid, addr, cdata);

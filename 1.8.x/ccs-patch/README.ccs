@@ -3102,3 +3102,11 @@ Fix 2012/02/29
       will not generate inaccurate audit logs, for commit 7a2e8a8f "VFS: Sanity
       check mount flags passed to change_mnt_propagation()" clarified that
       these flags must be exclusively passed.
+
+Fix 2012/03/08
+
+    @ Allow returning other errors when ptrace permission cannot be checked.
+
+      Currently -EPERM is returned when ccs_ptrace_permission() returned an
+      error code. I changed to return return value from ccs_ptrace_permission()
+      so that we can return -ESRCH when target process was not found.
