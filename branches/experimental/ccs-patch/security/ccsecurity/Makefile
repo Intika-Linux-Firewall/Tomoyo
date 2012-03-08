@@ -1,6 +1,6 @@
 ccsecurity-objs := permission.o gc.o memory.o policy_io.o realpath.o
 
-ifeq ($(PATCHLEVEL),4)
+ifeq ($(VERSION)$(PATCHLEVEL),24)
 
 ifdef CONFIG_CCSECURITY
 O_TARGET := ccsecurity.o
