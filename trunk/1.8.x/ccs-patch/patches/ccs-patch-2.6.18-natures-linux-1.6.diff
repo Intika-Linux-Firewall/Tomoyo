@@ -2,16 +2,16 @@ This is TOMOYO Linux patch for Nature's Linux 1.6 .
 
 Source code for this patch is http://packages.n-linux.com/release/deb/kernel-source-2.6.18.8p9_nl1_all.deb
 ---
- arch/alpha/kernel/ptrace.c      |    2 ++
+ arch/alpha/kernel/ptrace.c      |    5 +++++
  arch/ia64/ia32/sys_ia32.c       |    3 +++
- arch/ia64/kernel/ptrace.c       |    2 ++
- arch/m32r/kernel/ptrace.c       |    3 +++
- arch/mips/kernel/ptrace32.c     |    2 ++
- arch/powerpc/kernel/ptrace32.c  |    2 ++
- arch/s390/kernel/ptrace.c       |    2 ++
- arch/sparc/kernel/ptrace.c      |    4 ++++
- arch/sparc64/kernel/ptrace.c    |    4 ++++
- arch/x86_64/ia32/ptrace32.c     |    3 +++
+ arch/ia64/kernel/ptrace.c       |    5 +++++
+ arch/m32r/kernel/ptrace.c       |    6 ++++++
+ arch/mips/kernel/ptrace32.c     |    5 +++++
+ arch/powerpc/kernel/ptrace32.c  |    5 +++++
+ arch/s390/kernel/ptrace.c       |    5 +++++
+ arch/sparc/kernel/ptrace.c      |    7 +++++++
+ arch/sparc64/kernel/ptrace.c    |    7 +++++++
+ arch/x86_64/ia32/ptrace32.c     |    6 ++++++
  fs/compat.c                     |    5 ++++-
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
@@ -28,7 +28,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |    2 ++
+ kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
  kernel/sys.c                    |   10 ++++++++++
@@ -45,16 +45,19 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  net/unix/af_unix.c              |    6 ++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 240 insertions(+), 4 deletions(-)
+ 43 files changed, 270 insertions(+), 4 deletions(-)
 
 --- linux-2.6.18.8p9.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/alpha/kernel/ptrace.c
-@@ -268,6 +268,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -268,6 +268,11 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
@@ -79,12 +82,15 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.18.8p9.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/ia64/kernel/ptrace.c
-@@ -1417,6 +1417,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1417,6 +1417,11 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -98,70 +104,88 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
  /*
   * This routine will get a word off of the process kernel stack.
-@@ -742,6 +743,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -742,6 +743,11 @@ asmlinkage long sys_ptrace(long request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.18.8p9.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.18.8p9/arch/mips/kernel/ptrace32.c
-@@ -50,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +50,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.18.8p9.orig/arch/powerpc/kernel/ptrace32.c
 +++ linux-2.6.18.8p9/arch/powerpc/kernel/ptrace32.c
-@@ -45,6 +45,8 @@ long compat_sys_ptrace(int request, int 
+@@ -45,6 +45,11 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.18.8p9.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/s390/kernel/ptrace.c
-@@ -711,6 +711,8 @@ sys_ptrace(long request, long pid, long 
+@@ -710,6 +710,11 @@ sys_ptrace(long request, long pid, long 
+ {
  	struct task_struct *child;
  	int ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
- 		 ret = ptrace_traceme();
 --- linux-2.6.18.8p9.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/sparc/kernel/ptrace.c
-@@ -267,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +267,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
 --- linux-2.6.18.8p9.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/sparc64/kernel/ptrace.c
-@@ -176,6 +176,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -176,6 +176,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	if (test_thread_flag(TIF_32BIT)) {
@@ -176,12 +200,15 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
  /*
   * Determines which flags the user has access to [1 = access, 0 = no access].
-@@ -230,6 +231,8 @@ asmlinkage long sys32_ptrace(long reques
+@@ -230,6 +231,11 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	switch (request) { 
  	case PTRACE_TRACEME:
@@ -512,7 +539,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18.8p9 2011/06/14\n");
++	printk(KERN_INFO "Hook version: 2.6.18.8p9 2012/03/08\n");
  }
 --- linux-2.6.18.8p9.orig/fs/stat.c
 +++ linux-2.6.18.8p9/fs/stat.c
@@ -670,15 +697,18 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.18.8p9.orig/kernel/ptrace.c
 +++ linux-2.6.18.8p9/kernel/ptrace.c
-@@ -509,6 +509,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -505,6 +505,11 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
 --- linux-2.6.18.8p9.orig/kernel/sched.c
 +++ linux-2.6.18.8p9/kernel/sched.c
 @@ -3976,6 +3976,8 @@ int can_nice(const struct task_struct *p

@@ -13,7 +13,7 @@ Source code for this patch is "apt-get install linux-source-2.6.38"
  kernel/fork.c             |    5 +
  kernel/kexec.c            |    3 +
  kernel/module.c           |    5 +
- kernel/ptrace.c           |    4 +
+ kernel/ptrace.c           |   10 +++
  kernel/sched.c            |    2 
  kernel/signal.c           |   10 +++
  kernel/sys.c              |   10 +++
@@ -27,7 +27,7 @@ Source code for this patch is "apt-get install linux-source-2.6.38"
  security/Kconfig          |    2 
  security/Makefile         |    3 +
  security/security.c       |  133 +++++++++++++++++++++++++++++++++++++---------
- 25 files changed, 239 insertions(+), 50 deletions(-)
+ 25 files changed, 245 insertions(+), 50 deletions(-)
 
 --- linux-2.6.38-13.56.orig/fs/compat.c
 +++ linux-2.6.38-13.56/fs/compat.c
@@ -71,7 +71,7 @@ Source code for this patch is "apt-get install linux-source-2.6.38"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.38-13.56 2012/03/01\n");
++	printk(KERN_INFO "Hook version: 2.6.38-13.56 2012/03/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -410,21 +410,27 @@ Source code for this patch is "apt-get install linux-source-2.6.38"
  	mod = load_module(umod, len, uargs);
 --- linux-2.6.38-13.56.orig/kernel/ptrace.c
 +++ linux-2.6.38-13.56/kernel/ptrace.c
-@@ -700,6 +700,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -700,6 +700,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -844,6 +846,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -844,6 +849,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();

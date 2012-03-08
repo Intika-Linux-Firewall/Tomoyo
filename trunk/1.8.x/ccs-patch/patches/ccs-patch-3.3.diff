@@ -12,7 +12,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  kernel/fork.c             |    5 +
  kernel/kexec.c            |    3 +
  kernel/module.c           |    5 +
- kernel/ptrace.c           |    4 +
+ kernel/ptrace.c           |   10 +++
  kernel/sched/core.c       |    2 
  kernel/signal.c           |   10 +++
  kernel/sys.c              |   10 +++
@@ -26,7 +26,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  security/Kconfig          |    2 
  security/Makefile         |    3 +
  security/security.c       |  134 +++++++++++++++++++++++++++++++++++++---------
- 24 files changed, 241 insertions(+), 49 deletions(-)
+ 24 files changed, 247 insertions(+), 49 deletions(-)
 
 --- linux-3.3.0-rc6.orig/fs/exec.c
 +++ linux-3.3.0-rc6/fs/exec.c
@@ -59,7 +59,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.3-rc6 2012/03/04\n");
++	printk(KERN_INFO "Hook version: 3.3-rc6 2012/03/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -396,21 +396,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testin
  	mod = load_module(umod, len, uargs);
 --- linux-3.3.0-rc6.orig/kernel/ptrace.c
 +++ linux-3.3.0-rc6/kernel/ptrace.c
-@@ -876,6 +876,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -876,6 +876,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1021,6 +1023,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1021,6 +1026,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();

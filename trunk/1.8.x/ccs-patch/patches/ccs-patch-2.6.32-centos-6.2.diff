@@ -20,7 +20,7 @@ Source code for this patch is http://vault.centos.org/6.2/updates/Source/SPackag
  kernel/fork.c             |    5 +++++
  kernel/kexec.c            |    3 +++
  kernel/module.c           |    5 +++++
- kernel/ptrace.c           |    4 ++++
+ kernel/ptrace.c           |   10 ++++++++++
  kernel/sched.c            |    2 ++
  kernel/signal.c           |   10 ++++++++++
  kernel/sys.c              |   10 ++++++++++
@@ -35,7 +35,7 @@ Source code for this patch is http://vault.centos.org/6.2/updates/Source/SPackag
  net/unix/af_unix.c        |    7 +++++++
  security/Kconfig          |    2 ++
  security/Makefile         |    3 +++
- 33 files changed, 199 insertions(+), 2 deletions(-)
+ 33 files changed, 205 insertions(+), 2 deletions(-)
 
 --- linux-2.6.32-220.7.1.el6.orig/fs/compat.c
 +++ linux-2.6.32-220.7.1.el6/fs/compat.c
@@ -534,21 +534,27 @@ Source code for this patch is http://vault.centos.org/6.2/updates/Source/SPackag
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.32-220.7.1.el6.orig/kernel/ptrace.c
 +++ linux-2.6.32-220.7.1.el6/kernel/ptrace.c
-@@ -195,6 +195,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -195,6 +195,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -264,6 +266,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -264,6 +269,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec

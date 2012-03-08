@@ -1,16 +1,16 @@
 This is TOMOYO Linux patch for Turbolinux 11 Server.
 ---
- arch/alpha/kernel/ptrace.c      |   10 ----
+ arch/alpha/kernel/ptrace.c      |   13 ++----
  arch/ia64/ia32/sys_ia32.c       |   11 +----
- arch/ia64/kernel/ptrace.c       |   10 ----
- arch/m32r/kernel/ptrace.c       |   11 +----
- arch/mips/kernel/ptrace32.c     |   10 ----
- arch/powerpc/kernel/ptrace32.c  |   10 ----
- arch/s390/kernel/ptrace.c       |   10 ----
+ arch/ia64/kernel/ptrace.c       |   13 ++----
+ arch/m32r/kernel/ptrace.c       |   14 ++----
+ arch/mips/kernel/ptrace32.c     |   13 ++----
+ arch/powerpc/kernel/ptrace32.c  |   13 ++----
+ arch/s390/kernel/ptrace.c       |   13 ++----
  arch/sh64/kernel/ptrace.c       |    8 ---
- arch/sparc/kernel/ptrace.c      |    9 ----
- arch/sparc64/kernel/ptrace.c    |    9 ----
- arch/x86_64/ia32/ptrace32.c     |   11 +----
+ arch/sparc/kernel/ptrace.c      |   16 ++-----
+ arch/sparc64/kernel/ptrace.c    |   16 ++-----
+ arch/x86_64/ia32/ptrace32.c     |   14 ++----
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   11 -----
@@ -33,7 +33,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  kernel/kexec.c                  |    9 +---
  kernel/kmod.c                   |    5 --
  kernel/module.c                 |   14 ++----
- kernel/ptrace.c                 |   10 ----
+ kernel/ptrace.c                 |   13 ++----
  kernel/sched.c                  |    8 ---
  kernel/signal.c                 |   23 +++-------
  kernel/sys.c                    |   25 ++++-------
@@ -52,7 +52,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  net/unix/af_unix.c              |   16 ++-----
  security/Kconfig                |    2 
  security/Makefile               |    3 +
- 52 files changed, 218 insertions(+), 519 deletions(-)
+ 52 files changed, 252 insertions(+), 523 deletions(-)
 
 --- linux-2.6.23-12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23-12/arch/alpha/kernel/ptrace.c
@@ -66,7 +66,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  #include "proto.h"
  
-@@ -271,11 +268,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -271,11 +268,11 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
@@ -75,8 +75,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
@@ -119,7 +122,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  #include "entry.h"
  
-@@ -1425,11 +1422,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1425,11 +1422,11 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
@@ -128,8 +131,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -146,7 +152,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  /*
   * This routine will get a word off of the process kernel stack.
-@@ -735,11 +733,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -735,11 +733,11 @@ asmlinkage long sys_ptrace(long request,
  {
  	struct task_struct *child;
  	int ret;
@@ -155,8 +161,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -172,7 +181,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  int ptrace_getregs (struct task_struct *child, __s64 __user *data);
  int ptrace_setregs (struct task_struct *child, __s64 __user *data);
-@@ -53,11 +50,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -53,11 +50,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
@@ -181,8 +190,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
@@ -198,7 +210,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -90,11 +87,8 @@ long compat_sys_ptrace(int request, int 
+@@ -90,11 +87,11 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
@@ -207,8 +219,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -224,17 +239,21 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  #ifdef CONFIG_COMPAT
  #include "compat_ptrace.h"
-@@ -709,11 +706,8 @@ sys_ptrace(long request, long pid, long 
+@@ -708,12 +705,12 @@ sys_ptrace(long request, long pid, long 
+ {
  	struct task_struct *child;
  	int ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
 -	/***** TOMOYO Linux start. *****/
 -#ifdef TOMOYO_SYS_PTRACE
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
@@ -274,16 +293,21 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -270,14 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -270,14 +267,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 -	/***** TOMOYO Linux start. *****/
 -#ifdef TOMOYO_SYS_PTRACE
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
-+	if (ccs_ptrace_permission(request, pid)) {
- 		pt_error_return(regs, EPERM);
- 		return;
+-		pt_error_return(regs, EPERM);
+-		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
  	}
 -#endif
 -	/***** TOMOYO Linux end. *****/
@@ -302,16 +326,21 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -179,14 +176,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -179,14 +176,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 -	/***** TOMOYO Linux start. *****/
 -#ifdef TOMOYO_SYS_PTRACE
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) {
-+	if (ccs_ptrace_permission(request, pid)) {
- 		pt_error_return(regs, EPERM);
- 		return;
+-		pt_error_return(regs, EPERM);
+-		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
  	}
 -#endif
 -	/***** TOMOYO Linux end. *****/
@@ -331,7 +360,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  /*
   * Determines which flags the user has access to [1 = access, 0 = no access].
-@@ -238,11 +236,8 @@ asmlinkage long sys32_ptrace(long reques
+@@ -238,11 +236,11 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
@@ -340,8 +369,11 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	switch (request) { 
  	case PTRACE_TRACEME:
@@ -1066,7 +1098,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.23-12 2011/06/14\n");
++	printk(KERN_INFO "Hook version: 2.6.23-12 2012/03/08\n");
  }
 --- linux-2.6.23-12.orig/fs/stat.c
 +++ linux-2.6.23-12/fs/stat.c
@@ -1298,7 +1330,16 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -462,11 +459,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -458,15 +455,15 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -1307,8 +1348,6 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
 -	if (CheckCapabilityACL(TOMOYO_SYS_PTRACE)) return -EPERM;
 -#endif
 -	/***** TOMOYO Linux end. *****/
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();

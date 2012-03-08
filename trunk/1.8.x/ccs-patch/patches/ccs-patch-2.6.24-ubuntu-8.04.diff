@@ -3,13 +3,13 @@ This is TOMOYO Linux patch for Ubuntu 8.04.
 Source code for this patch is "apt-get install linux-source-2.6.24"
 ---
  arch/ia64/ia32/sys_ia32.c       |    3 +++
- arch/ia64/kernel/ptrace.c       |    2 ++
- arch/mips/kernel/ptrace32.c     |    2 ++
- arch/powerpc/kernel/ptrace32.c  |    2 ++
- arch/s390/kernel/ptrace.c       |    2 ++
- arch/sparc/kernel/ptrace.c      |    4 ++++
- arch/sparc64/kernel/ptrace.c    |    4 ++++
- arch/x86/ia32/ptrace32.c        |    3 +++
+ arch/ia64/kernel/ptrace.c       |    5 +++++
+ arch/mips/kernel/ptrace32.c     |    5 +++++
+ arch/powerpc/kernel/ptrace32.c  |    5 +++++
+ arch/s390/kernel/ptrace.c       |    5 +++++
+ arch/sparc/kernel/ptrace.c      |    7 +++++++
+ arch/sparc64/kernel/ptrace.c    |    7 +++++++
+ arch/x86/ia32/ptrace32.c        |    6 ++++++
  fs/compat.c                     |    2 +-
  fs/compat_ioctl.c               |    3 +++
  fs/exec.c                       |    9 ++++++++-
@@ -27,7 +27,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |    2 ++
+ kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
  kernel/sys.c                    |   10 ++++++++++
@@ -45,7 +45,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  net/unix/af_unix.c              |    6 ++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 222 insertions(+), 2 deletions(-)
+ 43 files changed, 246 insertions(+), 2 deletions(-)
 
 --- linux-2.6.24-31.99.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-31.99/arch/ia64/ia32/sys_ia32.c
@@ -68,70 +68,88 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.24-31.99.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.24-31.99/arch/ia64/kernel/ptrace.c
-@@ -1422,6 +1422,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1422,6 +1422,11 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.24-31.99.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.24-31.99/arch/mips/kernel/ptrace32.c
-@@ -50,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +50,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.24-31.99.orig/arch/powerpc/kernel/ptrace32.c
 +++ linux-2.6.24-31.99/arch/powerpc/kernel/ptrace32.c
-@@ -89,6 +89,8 @@ long compat_sys_ptrace(int request, int 
+@@ -89,6 +89,11 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.24-31.99.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.24-31.99/arch/s390/kernel/ptrace.c
-@@ -701,6 +701,8 @@ sys_ptrace(long request, long pid, long 
+@@ -700,6 +700,11 @@ sys_ptrace(long request, long pid, long 
+ {
  	struct task_struct *child;
  	int ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
- 		 ret = ptrace_traceme();
 --- linux-2.6.24-31.99.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.24-31.99/arch/sparc/kernel/ptrace.c
-@@ -267,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +267,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
 --- linux-2.6.24-31.99.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.24-31.99/arch/sparc64/kernel/ptrace.c
-@@ -180,6 +180,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -180,6 +180,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	if (test_thread_flag(TIF_32BIT)) {
@@ -146,12 +164,15 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  /*
   * Determines which flags the user has access to [1 = access, 0 = no access].
-@@ -235,6 +236,8 @@ asmlinkage long sys32_ptrace(long reques
+@@ -235,6 +236,11 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	switch (request) { 
  	case PTRACE_TRACEME:
@@ -484,7 +505,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24-31.99 2012/03/06\n");
++	printk(KERN_INFO "Hook version: 2.6.24-31.99 2012/03/08\n");
  }
 --- linux-2.6.24-31.99.orig/fs/stat.c
 +++ linux-2.6.24-31.99/fs/stat.c
@@ -642,15 +663,18 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.24-31.99.orig/kernel/ptrace.c
 +++ linux-2.6.24-31.99/kernel/ptrace.c
-@@ -467,6 +467,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -463,6 +463,11 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
 --- linux-2.6.24-31.99.orig/kernel/sched.c
 +++ linux-2.6.24-31.99/kernel/sched.c
 @@ -4181,6 +4181,8 @@ int can_nice(const struct task_struct *p

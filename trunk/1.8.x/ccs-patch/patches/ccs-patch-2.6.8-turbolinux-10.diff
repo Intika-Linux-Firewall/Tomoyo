@@ -1,30 +1,30 @@
 This is TOMOYO Linux patch for Turbolinux 10 Server.
 ---
- arch/alpha/kernel/ptrace.c         |    2 
- arch/arm/kernel/ptrace.c           |    2 
- arch/arm26/kernel/ptrace.c         |    2 
- arch/cris/arch-v10/kernel/ptrace.c |    3 +
- arch/h8300/kernel/ptrace.c         |    3 +
- arch/i386/kernel/ptrace.c          |    2 
+ arch/alpha/kernel/ptrace.c         |    5 +
+ arch/arm/kernel/ptrace.c           |    5 +
+ arch/arm26/kernel/ptrace.c         |    5 +
+ arch/cris/arch-v10/kernel/ptrace.c |    6 ++
+ arch/h8300/kernel/ptrace.c         |    6 ++
+ arch/i386/kernel/ptrace.c          |    5 +
  arch/ia64/ia32/sys_ia32.c          |    3 +
- arch/ia64/kernel/ptrace.c          |    2 
- arch/m68k/kernel/ptrace.c          |    3 +
- arch/m68knommu/kernel/ptrace.c     |    3 +
- arch/mips/kernel/ptrace.c          |    2 
- arch/mips/kernel/ptrace32.c        |    2 
- arch/parisc/kernel/ptrace.c        |    2 
- arch/ppc/kernel/ptrace.c           |    2 
- arch/ppc64/kernel/ptrace.c         |    2 
- arch/ppc64/kernel/ptrace32.c       |    2 
- arch/s390/kernel/ptrace.c          |    2 
- arch/sh/kernel/ptrace.c            |    2 
- arch/sh64/kernel/ptrace.c          |    3 +
- arch/sparc/kernel/ptrace.c         |    4 +
- arch/sparc64/kernel/ptrace.c       |    4 +
- arch/um/kernel/ptrace.c            |    2 
- arch/v850/kernel/ptrace.c          |    3 +
- arch/x86_64/ia32/ptrace32.c        |    3 +
- arch/x86_64/kernel/ptrace.c        |    2 
+ arch/ia64/kernel/ptrace.c          |    5 +
+ arch/m68k/kernel/ptrace.c          |    6 ++
+ arch/m68knommu/kernel/ptrace.c     |    6 ++
+ arch/mips/kernel/ptrace.c          |    5 +
+ arch/mips/kernel/ptrace32.c        |    5 +
+ arch/parisc/kernel/ptrace.c        |    5 +
+ arch/ppc/kernel/ptrace.c           |    5 +
+ arch/ppc64/kernel/ptrace.c         |    5 +
+ arch/ppc64/kernel/ptrace32.c       |    5 +
+ arch/s390/kernel/ptrace.c          |    5 +
+ arch/sh/kernel/ptrace.c            |    5 +
+ arch/sh64/kernel/ptrace.c          |    6 ++
+ arch/sparc/kernel/ptrace.c         |    7 ++
+ arch/sparc64/kernel/ptrace.c       |    7 ++
+ arch/um/kernel/ptrace.c            |    5 +
+ arch/v850/kernel/ptrace.c          |    6 ++
+ arch/x86_64/ia32/ptrace32.c        |    6 ++
+ arch/x86_64/kernel/ptrace.c        |    5 +
  fs/Kconfig                         |    2 
  fs/Makefile                        |    2 
  fs/attr.c                          |   11 ----
@@ -59,38 +59,47 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |   20 ++-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 59 files changed, 261 insertions(+), 517 deletions(-)
+ 59 files changed, 333 insertions(+), 517 deletions(-)
 
 --- linux-2.6.8-22.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/alpha/kernel/ptrace.c
-@@ -259,6 +259,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -259,6 +259,11 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
 --- linux-2.6.8-22.orig/arch/arm/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/arm/kernel/ptrace.c
-@@ -731,6 +731,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -731,6 +731,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.8-22.orig/arch/arm26/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/arm26/kernel/ptrace.c
-@@ -668,6 +668,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -668,6 +668,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -104,12 +113,15 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  /* 
   * Determines which bits in DCCR the user has access to.
-@@ -50,6 +51,8 @@ sys_ptrace(long request, long pid, long 
+@@ -50,6 +51,11 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -123,23 +135,29 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  /* cpu depend functions */
  extern long h8300_get_reg(struct task_struct *task, int regno);
-@@ -60,6 +61,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -60,6 +61,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.8-22.orig/arch/i386/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/i386/kernel/ptrace.c
-@@ -237,6 +237,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -237,6 +237,11 @@ asmlinkage int sys_ptrace(long request, 
  	struct user * dummy = NULL;
  	int i, ret;
  	unsigned long __user *datap = (unsigned long __user *)data;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -164,12 +182,15 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.8-22.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/ia64/kernel/ptrace.c
-@@ -1280,6 +1280,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1280,6 +1280,11 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -183,12 +204,15 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -120,6 +121,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -120,6 +121,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -202,100 +226,127 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +105,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +105,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.8-22.orig/arch/mips/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/mips/kernel/ptrace.c
-@@ -49,6 +49,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -49,6 +49,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.8-22.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.8-22/arch/mips/kernel/ptrace32.c
-@@ -42,6 +42,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -42,6 +42,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.8-22.orig/arch/parisc/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/parisc/kernel/ptrace.c
-@@ -84,6 +84,8 @@ long sys_ptrace(long request, pid_t pid,
+@@ -84,6 +84,11 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.8-22.orig/arch/ppc/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/ppc/kernel/ptrace.c
-@@ -239,6 +239,8 @@ int sys_ptrace(long request, long pid, l
+@@ -239,6 +239,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.8-22.orig/arch/ppc64/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/ppc64/kernel/ptrace.c
-@@ -54,6 +54,8 @@ int sys_ptrace(long request, long pid, l
+@@ -54,6 +54,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.8-22.orig/arch/ppc64/kernel/ptrace32.c
 +++ linux-2.6.8-22/arch/ppc64/kernel/ptrace32.c
-@@ -42,6 +42,8 @@ int sys32_ptrace(long request, long pid,
+@@ -42,6 +42,11 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.8-22.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/s390/kernel/ptrace.c
-@@ -667,6 +667,8 @@ sys_ptrace(long request, long pid, long 
+@@ -667,6 +667,11 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  
 --- linux-2.6.8-22.orig/arch/sh/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/sh/kernel/ptrace.c
-@@ -85,6 +85,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -85,6 +85,11 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -309,49 +360,61 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -124,6 +125,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -124,6 +125,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.8-22.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/sparc/kernel/ptrace.c
-@@ -266,6 +266,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -266,6 +266,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
 --- linux-2.6.8-22.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/sparc64/kernel/ptrace.c
-@@ -112,6 +112,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -112,6 +112,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
 --- linux-2.6.8-22.orig/arch/um/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/um/kernel/ptrace.c
-@@ -28,6 +28,8 @@ int sys_ptrace(long request, long pid, l
+@@ -28,6 +28,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int i, ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -365,12 +428,15 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  /* Returns the address where the register at REG_OFFS in P is stashed away.  */
  static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
-@@ -116,6 +117,8 @@ int sys_ptrace(long request, long pid, l
+@@ -116,6 +117,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int rval;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  
@@ -384,23 +450,29 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
-@@ -232,6 +233,8 @@ asmlinkage long sys32_ptrace(long reques
+@@ -232,6 +233,11 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	switch (request) { 
  	default:
 --- linux-2.6.8-22.orig/arch/x86_64/kernel/ptrace.c
 +++ linux-2.6.8-22/arch/x86_64/kernel/ptrace.c
-@@ -185,6 +185,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -185,6 +185,11 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	long i, ret;
  	unsigned ui;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
@@ -1303,7 +1375,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.8-22 2011/06/14\n");
++	printk(KERN_INFO "Hook version: 2.6.8-22 2012/03/08\n");
  }
 --- linux-2.6.8-22.orig/fs/stat.c
 +++ linux-2.6.8-22/fs/stat.c

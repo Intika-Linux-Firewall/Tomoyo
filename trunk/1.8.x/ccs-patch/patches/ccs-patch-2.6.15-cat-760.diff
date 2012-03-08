@@ -2,16 +2,16 @@ This is TOMOYO Linux patch for CAT-760.
 
 Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
 ---
- arch/alpha/kernel/ptrace.c      |    2 ++
+ arch/alpha/kernel/ptrace.c      |    5 +++++
  arch/ia64/ia32/sys_ia32.c       |    3 +++
- arch/ia64/kernel/ptrace.c       |    2 ++
- arch/m32r/kernel/ptrace.c       |    3 +++
- arch/mips/kernel/ptrace32.c     |    2 ++
- arch/powerpc/kernel/ptrace32.c  |    2 ++
- arch/s390/kernel/ptrace.c       |    2 ++
- arch/sparc/kernel/ptrace.c      |    4 ++++
- arch/sparc64/kernel/ptrace.c    |    4 ++++
- arch/x86_64/ia32/ptrace32.c     |    3 +++
+ arch/ia64/kernel/ptrace.c       |    5 +++++
+ arch/m32r/kernel/ptrace.c       |    6 ++++++
+ arch/mips/kernel/ptrace32.c     |    5 +++++
+ arch/powerpc/kernel/ptrace32.c  |    5 +++++
+ arch/s390/kernel/ptrace.c       |    5 +++++
+ arch/sparc/kernel/ptrace.c      |    7 +++++++
+ arch/sparc64/kernel/ptrace.c    |    7 +++++++
+ arch/x86_64/ia32/ptrace32.c     |    6 ++++++
  fs/compat.c                     |    5 ++++-
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
@@ -28,7 +28,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |    2 ++
+ kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
  kernel/sys.c                    |   10 ++++++++++
@@ -45,16 +45,19 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  net/unix/af_unix.c              |    6 ++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 238 insertions(+), 2 deletions(-)
+ 43 files changed, 268 insertions(+), 2 deletions(-)
 
 --- linux-2.6.15-cat.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-cat/arch/alpha/kernel/ptrace.c
-@@ -261,6 +261,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -261,6 +261,11 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
@@ -79,12 +82,15 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.15-cat.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.15-cat/arch/ia64/kernel/ptrace.c
-@@ -1418,6 +1418,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1418,6 +1418,11 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -98,70 +104,88 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  
  /*
   * Get the address of the live pt_regs for the specified task.
-@@ -760,6 +761,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -760,6 +761,11 @@ asmlinkage long sys_ptrace(long request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.15-cat.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.15-cat/arch/mips/kernel/ptrace32.c
-@@ -50,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +50,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.15-cat.orig/arch/powerpc/kernel/ptrace32.c
 +++ linux-2.6.15-cat/arch/powerpc/kernel/ptrace32.c
-@@ -46,6 +46,8 @@ long compat_sys_ptrace(int request, int 
+@@ -46,6 +46,11 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.15-cat.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.15-cat/arch/s390/kernel/ptrace.c
-@@ -711,6 +711,8 @@ sys_ptrace(long request, long pid, long 
+@@ -710,6 +710,11 @@ sys_ptrace(long request, long pid, long 
+ {
  	struct task_struct *child;
  	int ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
  	lock_kernel();
  
- 	if (request == PTRACE_TRACEME) {
 --- linux-2.6.15-cat.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.15-cat/arch/sparc/kernel/ptrace.c
-@@ -267,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +267,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
 --- linux-2.6.15-cat.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.15-cat/arch/sparc64/kernel/ptrace.c
-@@ -173,6 +173,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -173,6 +173,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	if (test_thread_flag(TIF_32BIT)) {
@@ -176,12 +200,15 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
-@@ -233,6 +234,8 @@ asmlinkage long sys32_ptrace(long reques
+@@ -233,6 +234,11 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	switch (request) { 
  	default:
@@ -503,7 +530,7 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.15-cat_20100921 2011/06/14\n");
++	printk(KERN_INFO "Hook version: 2.6.15-cat_20100921 2012/03/08\n");
  }
 --- linux-2.6.15-cat.orig/fs/stat.c
 +++ linux-2.6.15-cat/fs/stat.c
@@ -661,15 +688,18 @@ Source code for this patch is linux-2.6.15-cat_20100921.tar.bz2
  	if (down_interruptible(&module_mutex) != 0)
 --- linux-2.6.15-cat.orig/kernel/ptrace.c
 +++ linux-2.6.15-cat/kernel/ptrace.c
-@@ -464,6 +464,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -460,6 +460,11 @@ asmlinkage long sys_ptrace(long request,
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
- 	lock_kernel();
- 	ret = ptrace_get_task_struct(request, pid, &child);
- 	if (!child)
 --- linux-2.6.15-cat.orig/kernel/sched.c
 +++ linux-2.6.15-cat/kernel/sched.c
 @@ -3603,6 +3603,8 @@ asmlinkage long sys_nice(int increment)

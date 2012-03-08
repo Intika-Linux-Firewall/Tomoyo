@@ -12,7 +12,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  kernel/fork.c                   |    5 +
  kernel/kexec.c                  |    3 
  kernel/module.c                 |    5 +
- kernel/ptrace.c                 |    4 +
+ kernel/ptrace.c                 |   10 ++
  kernel/sched.c                  |    2 
  kernel/signal.c                 |   10 ++
  kernel/sys.c                    |   10 ++
@@ -28,7 +28,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  security/Kconfig                |    2 
  security/Makefile               |    3 
  security/security.c             |  157 +++++++++++++++++++++++++++++++---------
- 26 files changed, 255 insertions(+), 61 deletions(-)
+ 26 files changed, 261 insertions(+), 61 deletions(-)
 
 --- linux-2.6.33.20.orig/fs/compat.c
 +++ linux-2.6.33.20/fs/compat.c
@@ -72,7 +72,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33.20 2011/11/08\n");
++	printk(KERN_INFO "Hook version: 2.6.33.20 2012/03/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -406,21 +406,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.33.20.orig/kernel/ptrace.c
 +++ linux-2.6.33.20/kernel/ptrace.c
-@@ -604,6 +604,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -604,6 +604,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -725,6 +727,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -725,6 +730,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec

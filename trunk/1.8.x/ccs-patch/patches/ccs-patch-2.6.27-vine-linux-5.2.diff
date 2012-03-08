@@ -3,7 +3,7 @@ This is TOMOYO Linux patch for VineLinux 5.2.
 Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPMS/kernel-2.6.27-74vl5.src.rpm
 ---
  arch/ia64/ia32/sys_ia32.c       |    3 +++
- arch/mips/kernel/ptrace32.c     |    2 ++
+ arch/mips/kernel/ptrace32.c     |    5 +++++
  fs/compat.c                     |    2 +-
  fs/compat_ioctl.c               |    3 +++
  fs/exec.c                       |    8 +++++++-
@@ -21,7 +21,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  kernel/fork.c                   |    5 +++++
  kernel/kexec.c                  |    3 +++
  kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |    4 ++++
+ kernel/ptrace.c                 |   10 ++++++++++
  kernel/sched.c                  |    2 ++
  kernel/signal.c                 |    8 ++++++++
  kernel/sys.c                    |   10 ++++++++++
@@ -38,7 +38,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  net/unix/af_unix.c              |    6 ++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 207 insertions(+), 2 deletions(-)
+ 36 files changed, 216 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27-74vl5.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-74vl5/arch/ia64/ia32/sys_ia32.c
@@ -61,12 +61,15 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.27-74vl5.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.27-74vl5/arch/mips/kernel/ptrace32.c
-@@ -50,6 +50,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +50,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
@@ -424,7 +427,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27-74vl5 2011/11/04\n");
++	printk(KERN_INFO "Hook version: 2.6.27-74vl5 2012/03/08\n");
  }
 --- linux-2.6.27-74vl5.orig/fs/stat.c
 +++ linux-2.6.27-74vl5/fs/stat.c
@@ -582,24 +585,30 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.2/updates/SRPM
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-2.6.27-74vl5.orig/kernel/ptrace.c
 +++ linux-2.6.27-74vl5/kernel/ptrace.c
-@@ -553,6 +553,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -549,6 +549,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
-@@ -676,6 +678,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -672,6 +677,11 @@ asmlinkage long compat_sys_ptrace(compat
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
- 	 */
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
- 	lock_kernel();
- 	if (request == PTRACE_TRACEME) {
- 		ret = ptrace_traceme();
 --- linux-2.6.27-74vl5.orig/kernel/sched.c
 +++ linux-2.6.27-74vl5/kernel/sched.c
 @@ -4944,6 +4944,8 @@ int can_nice(const struct task_struct *p

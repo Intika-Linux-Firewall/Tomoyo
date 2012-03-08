@@ -2,33 +2,33 @@ This is TOMOYO Linux patch for Armadillo-9.
 
 Source code for this patch is http://download.atmark-techno.com/armadillo-9/source/linux-2.6.12.3-a9-17.tar.gz
 ---
- arch/alpha/kernel/ptrace.c         |    2 ++
- arch/arm/kernel/ptrace.c           |    2 ++
- arch/arm26/kernel/ptrace.c         |    2 ++
- arch/cris/arch-v10/kernel/ptrace.c |    3 +++
- arch/frv/kernel/ptrace.c           |    2 ++
- arch/h8300/kernel/ptrace.c         |    3 +++
- arch/i386/kernel/ptrace.c          |    2 ++
+ arch/alpha/kernel/ptrace.c         |    5 +++++
+ arch/arm/kernel/ptrace.c           |    5 +++++
+ arch/arm26/kernel/ptrace.c         |    5 +++++
+ arch/cris/arch-v10/kernel/ptrace.c |    6 ++++++
+ arch/frv/kernel/ptrace.c           |    5 +++++
+ arch/h8300/kernel/ptrace.c         |    6 ++++++
+ arch/i386/kernel/ptrace.c          |    5 +++++
  arch/ia64/ia32/sys_ia32.c          |    3 +++
- arch/ia64/kernel/ptrace.c          |    2 ++
- arch/m32r/kernel/ptrace.c          |    3 +++
- arch/m68k/kernel/ptrace.c          |    3 +++
- arch/m68knommu/kernel/ptrace.c     |    3 +++
- arch/mips/kernel/ptrace.c          |    2 ++
- arch/mips/kernel/ptrace32.c        |    2 ++
- arch/parisc/kernel/ptrace.c        |    2 ++
- arch/ppc/kernel/ptrace.c           |    2 ++
- arch/ppc64/kernel/ptrace.c         |    2 ++
- arch/ppc64/kernel/ptrace32.c       |    2 ++
- arch/s390/kernel/ptrace.c          |    2 ++
- arch/sh/kernel/ptrace.c            |    2 ++
- arch/sh64/kernel/ptrace.c          |    3 +++
- arch/sparc/kernel/ptrace.c         |    4 ++++
- arch/sparc64/kernel/ptrace.c       |    4 ++++
- arch/um/kernel/ptrace.c            |    2 ++
- arch/v850/kernel/ptrace.c          |    3 +++
- arch/x86_64/ia32/ptrace32.c        |    3 +++
- arch/x86_64/kernel/ptrace.c        |    2 ++
+ arch/ia64/kernel/ptrace.c          |    5 +++++
+ arch/m32r/kernel/ptrace.c          |    6 ++++++
+ arch/m68k/kernel/ptrace.c          |    6 ++++++
+ arch/m68knommu/kernel/ptrace.c     |    6 ++++++
+ arch/mips/kernel/ptrace.c          |    5 +++++
+ arch/mips/kernel/ptrace32.c        |    5 +++++
+ arch/parisc/kernel/ptrace.c        |    5 +++++
+ arch/ppc/kernel/ptrace.c           |    5 +++++
+ arch/ppc64/kernel/ptrace.c         |    5 +++++
+ arch/ppc64/kernel/ptrace32.c       |    5 +++++
+ arch/s390/kernel/ptrace.c          |    5 +++++
+ arch/sh/kernel/ptrace.c            |    5 +++++
+ arch/sh64/kernel/ptrace.c          |    6 ++++++
+ arch/sparc/kernel/ptrace.c         |    7 +++++++
+ arch/sparc64/kernel/ptrace.c       |    7 +++++++
+ arch/um/kernel/ptrace.c            |    5 +++++
+ arch/v850/kernel/ptrace.c          |    6 ++++++
+ arch/x86_64/ia32/ptrace32.c        |    6 ++++++
+ arch/x86_64/kernel/ptrace.c        |    5 +++++
  fs/compat.c                        |    5 ++++-
  fs/exec.c                          |    9 ++++++++-
  fs/fcntl.c                         |    4 ++++
@@ -59,38 +59,47 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/unix/af_unix.c                 |    6 ++++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 57 files changed, 275 insertions(+), 4 deletions(-)
+ 57 files changed, 353 insertions(+), 4 deletions(-)
 
 --- linux-2.6.12.3-a9-17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/alpha/kernel/ptrace.c
-@@ -261,6 +261,8 @@ do_sys_ptrace(long request, long pid, lo
+@@ -261,6 +261,11 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
 --- linux-2.6.12.3-a9-17.orig/arch/arm/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/arm/kernel/ptrace.c
-@@ -786,6 +786,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -786,6 +786,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.12.3-a9-17.orig/arch/arm26/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/arm26/kernel/ptrace.c
-@@ -669,6 +669,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -669,6 +669,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -104,26 +113,32 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* 
   * Determines which bits in DCCR the user has access to.
-@@ -81,6 +82,8 @@ sys_ptrace(long request, long pid, long 
+@@ -81,6 +82,11 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  	unsigned long __user *datap = (unsigned long __user *)data;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.12.3-a9-17.orig/arch/frv/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/frv/kernel/ptrace.c
-@@ -112,6 +112,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -111,6 +111,11 @@ asmlinkage int sys_ptrace(long request, 
+ 	struct task_struct *child;
  	unsigned long tmp;
  	int ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
  	lock_kernel();
  	ret = -EPERM;
- 	if (request == PTRACE_TRACEME) {
 --- linux-2.6.12.3-a9-17.orig/arch/h8300/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/h8300/kernel/ptrace.c
 @@ -32,6 +32,7 @@
@@ -134,23 +149,29 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* cpu depend functions */
  extern long h8300_get_reg(struct task_struct *task, int regno);
-@@ -61,6 +62,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -61,6 +62,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.12.3-a9-17.orig/arch/i386/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/i386/kernel/ptrace.c
-@@ -358,6 +358,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -358,6 +358,11 @@ asmlinkage int sys_ptrace(long request, 
  	struct user * dummy = NULL;
  	int i, ret;
  	unsigned long __user *datap = (unsigned long __user *)data;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -175,12 +196,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.12.3-a9-17.orig/arch/ia64/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/ia64/kernel/ptrace.c
-@@ -1404,6 +1404,8 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1404,6 +1404,11 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -194,12 +218,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * Get the address of the live pt_regs for the specified task.
-@@ -760,6 +761,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -760,6 +761,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -213,12 +240,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -121,6 +122,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -121,6 +122,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -232,100 +262,127 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -105,6 +106,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -105,6 +106,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.12.3-a9-17.orig/arch/mips/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/mips/kernel/ptrace.c
-@@ -51,6 +51,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -51,6 +51,11 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.12.3-a9-17.orig/arch/mips/kernel/ptrace32.c
 +++ linux-2.6.12.3-a9-17/arch/mips/kernel/ptrace32.c
-@@ -43,6 +43,8 @@ asmlinkage int sys32_ptrace(int request,
+@@ -43,6 +43,11 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
 --- linux-2.6.12.3-a9-17.orig/arch/parisc/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/parisc/kernel/ptrace.c
-@@ -85,6 +85,8 @@ long sys_ptrace(long request, pid_t pid,
+@@ -85,6 +85,11 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
 --- linux-2.6.12.3-a9-17.orig/arch/ppc/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/ppc/kernel/ptrace.c
-@@ -241,6 +241,8 @@ int sys_ptrace(long request, long pid, l
+@@ -241,6 +241,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.12.3-a9-17.orig/arch/ppc64/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/ppc64/kernel/ptrace.c
-@@ -56,6 +56,8 @@ int sys_ptrace(long request, long pid, l
+@@ -56,6 +56,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.12.3-a9-17.orig/arch/ppc64/kernel/ptrace32.c
 +++ linux-2.6.12.3-a9-17/arch/ppc64/kernel/ptrace32.c
-@@ -43,6 +43,8 @@ int sys32_ptrace(long request, long pid,
+@@ -43,6 +43,11 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
 --- linux-2.6.12.3-a9-17.orig/arch/s390/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/s390/kernel/ptrace.c
-@@ -710,6 +710,8 @@ sys_ptrace(long request, long pid, long 
+@@ -710,6 +710,11 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  
 --- linux-2.6.12.3-a9-17.orig/arch/sh/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/sh/kernel/ptrace.c
-@@ -85,6 +85,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -85,6 +85,11 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -339,49 +396,61 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -128,6 +129,8 @@ asmlinkage int sys_ptrace(long request, 
+@@ -128,6 +129,11 @@ asmlinkage int sys_ptrace(long request, 
  #define WPC_DBRMODE 0x0d104008
  	static int first_call = 1;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  
 --- linux-2.6.12.3-a9-17.orig/arch/sparc/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/sparc/kernel/ptrace.c
-@@ -267,6 +267,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +267,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
 --- linux-2.6.12.3-a9-17.orig/arch/sparc64/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/sparc64/kernel/ptrace.c
-@@ -162,6 +162,10 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -162,6 +162,13 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (ccs_ptrace_permission(request, pid)) {
-+		pt_error_return(regs, EPERM);
-+		return;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc) {
++			pt_error_return(regs, -rc);
++			return;
++		}
 +	}
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
 --- linux-2.6.12.3-a9-17.orig/arch/um/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/um/kernel/ptrace.c
-@@ -47,6 +47,8 @@ long sys_ptrace(long request, long pid, 
+@@ -47,6 +47,11 @@ long sys_ptrace(long request, long pid, 
  {
  	struct task_struct *child;
  	int i, ret;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  	ret = -EPERM;
@@ -395,12 +464,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* Returns the address where the register at REG_OFFS in P is stashed away.  */
  static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
-@@ -117,6 +118,8 @@ int sys_ptrace(long request, long pid, l
+@@ -117,6 +118,11 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int rval;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	lock_kernel();
  
@@ -414,23 +486,29 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
-@@ -233,6 +234,8 @@ asmlinkage long sys32_ptrace(long reques
+@@ -233,6 +234,11 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	switch (request) { 
  	default:
 --- linux-2.6.12.3-a9-17.orig/arch/x86_64/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/x86_64/kernel/ptrace.c
-@@ -318,6 +318,8 @@ asmlinkage long sys_ptrace(long request,
+@@ -318,6 +318,11 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	long i, ret;
  	unsigned ui;
-+	if (ccs_ptrace_permission(request, pid))
-+		return -EPERM;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
@@ -752,7 +830,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2011/06/14\n");
++	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2012/03/08\n");
  }
 --- linux-2.6.12.3-a9-17.orig/fs/stat.c
 +++ linux-2.6.12.3-a9-17/fs/stat.c
