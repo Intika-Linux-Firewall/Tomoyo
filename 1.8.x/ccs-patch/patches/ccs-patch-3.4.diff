@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=8ac57b29bb947f00cce7c9736589af8ca74d0fa4;sf=tgz
+Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=185b7fcd33fea8f86cdd31bbbec61127806ea0a3;sf=tgz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -30,7 +30,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
-@@ -1537,7 +1537,7 @@ static int do_execve_common(const char *
+@@ -1540,7 +1540,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
  
@@ -59,7 +59,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.3-rc3-next-20120217 2012/02/18\n");
++	printk(KERN_INFO "Hook version: 3.3-rc6-next-20120307 2012/03/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -99,7 +99,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  struct sched_param {
  	int sched_priority;
  };
-@@ -1615,6 +1617,10 @@ struct task_struct {
+@@ -1622,6 +1624,10 @@ struct task_struct {
  	struct uprobe_task *utask;
  	int uprobes_srcu_id;
  #endif
@@ -321,7 +321,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
 --- linux-next.orig/kernel/fork.c
 +++ linux-next/kernel/fork.c
-@@ -198,6 +198,7 @@ void __put_task_struct(struct task_struc
+@@ -199,6 +199,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -329,7 +329,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1266,6 +1267,9 @@ static struct task_struct *copy_process(
+@@ -1287,6 +1288,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -339,7 +339,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1460,6 +1464,7 @@ bad_fork_cleanup_semundo:
+@@ -1481,6 +1485,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -385,7 +385,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3014,6 +3017,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -3015,6 +3018,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -416,7 +416,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		ret = ptrace_traceme();
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3870,6 +3870,8 @@ int can_nice(const struct task_struct *p
+@@ -3898,6 +3898,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -427,7 +427,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	 * Setpriority might change our priority at the same moment.
 --- linux-next.orig/kernel/signal.c
 +++ linux-next/kernel/signal.c
-@@ -2816,6 +2816,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2817,6 +2817,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -436,7 +436,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2884,6 +2886,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2885,6 +2887,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -445,7 +445,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2900,6 +2904,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2901,6 +2905,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -454,7 +454,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2927,6 +2933,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2928,6 +2934,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  		return -EPERM;
  	}
  	info.si_signo = sig;
@@ -463,7 +463,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2947,6 +2955,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2948,6 +2956,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -522,7 +522,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  #include "tick-internal.h"
  
-@@ -630,10 +631,15 @@ int do_adjtimex(struct timex *txc)
+@@ -673,10 +674,15 @@ int do_adjtimex(struct timex *txc)
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -538,7 +538,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  		/*
  		 * if the quartz is off by more than 10% then
-@@ -654,6 +660,8 @@ int do_adjtimex(struct timex *txc)
+@@ -697,6 +703,8 @@ int do_adjtimex(struct timex *txc)
  		delta.tv_nsec = txc->time.tv_usec;
  		if (!capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -563,7 +563,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 --- linux-next.orig/net/ipv4/udp.c
 +++ linux-next/net/ipv4/udp.c
 @@ -1186,6 +1186,10 @@ try_again:
- 				  &peeked, &err);
+ 				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
 +	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
@@ -589,7 +589,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 --- linux-next.orig/net/ipv6/udp.c
 +++ linux-next/net/ipv6/udp.c
 @@ -362,6 +362,10 @@ try_again:
- 				  &peeked, &err);
+ 				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
 +	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
@@ -614,7 +614,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  					  &len, 2) < 0) {
 --- linux-next.orig/net/unix/af_unix.c
 +++ linux-next/net/unix/af_unix.c
-@@ -1783,6 +1783,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1799,6 +1799,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
