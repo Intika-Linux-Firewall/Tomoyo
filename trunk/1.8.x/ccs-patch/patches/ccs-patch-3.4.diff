@@ -7,7 +7,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  fs/proc/version.c         |    7 ++
  include/linux/init_task.h |    9 +++
  include/linux/sched.h     |    6 ++
- include/linux/security.h  |   52 +++++++++--------
+ include/linux/security.h  |   55 ++++++++++--------
  include/net/ip.h          |    2 
  kernel/fork.c             |    5 +
  kernel/kexec.c            |    3 +
@@ -26,7 +26,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  security/Kconfig          |    2 
  security/Makefile         |    3 +
  security/security.c       |  134 +++++++++++++++++++++++++++++++++++++---------
- 24 files changed, 247 insertions(+), 49 deletions(-)
+ 24 files changed, 250 insertions(+), 49 deletions(-)
 
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
@@ -231,8 +231,13 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2835,42 +2839,42 @@ int security_path_chroot(struct path *pa
+@@ -2833,44 +2837,47 @@ int security_path_chmod(struct path *pat
+ int security_path_chown(struct path *path, uid_t uid, gid_t gid);
+ int security_path_chroot(struct path *path);
  #else	/* CONFIG_SECURITY_PATH */
++
++#include <linux/path.h>
++
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
 -	return 0;
@@ -281,7 +286,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2878,22 +2882,22 @@ static inline int security_path_rename(s
+@@ -2878,22 +2885,22 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {

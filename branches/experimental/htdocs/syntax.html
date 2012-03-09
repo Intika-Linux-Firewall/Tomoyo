@@ -2,11 +2,19 @@
 <html lang="en-US">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<title>Policy Specification</title>
+<title>Documentation</title>
 </head>
 <body>
 
-<h1>Policy Specification</h1>
+<h1><a href="#how_to_use">How to use</a></h1>
+
+<ul>
+<li><a href="#difference_with_existing_versions">1. Difference with existing versions (for existing users)</a></li>
+<li><a href="#how_to_install">2. How to install</a></li>
+<li><a href="#how_to_develop_policy">3. How to develop policy</a></li>
+</ul>
+
+<h1><a href="#policy_specification">Policy Specification</a></h1>
 
 <ul>
 <li><a href="#available_parameters">1. About parameters which can be handled via policy</a></li>
@@ -16,7 +24,7 @@
 <li><a href="#conditions">2. About conditional expressions</a></li>
 <li><a href="#string_comparison">2.1. Conditional expressions which handle string parameters</a></li>
 <li><a href="#integer_comparison">2.2. Conditional expressions which handle numeric parameters</a></li>
-<li><a href="#ipaddress_comparison">2.3. Conditional expressions which handle IP address parameters</a></li>
+<li><a href="#ipaddr_comparison">2.3. Conditional expressions which handle IP address parameters</a></li>
 <li><a href="#task_attributes_comparison">2.4. Conditional expressions which handle current thread's attributes</a></li>
 <li><a href="#argv_comparison">2.5. Conditional expressions which handle command line arguments</a></li>
 <li><a href="#envp_comparison">2.6. Conditional expressions which handle environment variable arguments</a></li>
@@ -27,10 +35,243 @@
 <li><a href="#policy_syntaxes">4. Policy syntaxes</a></li>
 <li><a href="#policy_structure_definition">4.1. Definition</a></li>
 <li><a href="#policy_examples">4.2. Examples</a></li>
-<li><a href="#difference_with_existing_versions">Appendix: Difference with existing versions (for existing users)</a></li>
-<li><a href="#how_to_install">Appendix: How to install</a></li>
-<li><a href="#how_to_develop_policy">Appendix: How to develop policy</a></li>
 </ul>
+
+<hr>
+
+<h1><a name="how_to_use">How to use</a></h1>
+
+<h2><a name="difference_with_existing_versions">1. Difference with existing versions (for existing users)</a></h2>
+
+<h3>About pathnames and management programs</h3>
+
+<p>/proc/ccs/domain_policy /proc/ccs/exception_policy /proc/ccs/profile /proc/ccs/manager /proc/ccs/stat has been aggregated into /proc/ccs/policy</p>
+
+<p>/etc/ccs/policy/current/domain_policy.conf /etc/ccs/policy/current/exception_policy.conf /etc/ccs/policy/current/profile.conf /etc/ccs/policy/current/manager.conf /etc/ccs/policy/current/stat.conf has been aggregated into /etc/ccs/policy/current</p>
+
+<p>Built-in policy files which are located in security/ccsecurity/policy/domain_policy.conf security/ccsecurity/policy/exception_policy.conf security/ccsecurity/policy/profile.conf security/ccsecurity/policy/manager.conf security/ccsecurity/policy/stat.conf under kernel source directory have been aggregated into security/ccsecurity/policy/policy.conf</p>
+
+<p>Only /sbin/ccs-init /usr/sbin/ccs-auditd /usr/sbin/ccs-loadpolicy /usr/sbin/ccs-notifyd /usr/sbin/ccs-pstree /usr/sbin/ccs-queryd /usr/sbin/ccs-savepolicy /usr/lib/ccs/audit-exec-param /usr/lib/ccs/ccs-editpolicy-agent /usr/lib/ccs/init_policy are provided for managing policy. (In other words, programs such as /usr/sbin/ccs-editpolicy and /usr/sbin/ccs-setprofile have been removed.)</p>
+
+<p>Command line arguments for specifying type of policy to load/save has been removed from /usr/sbin/ccs-loadpolicy and /usr/sbin/ccs-savepolicy</p>
+
+<p>Command line arguments for specifying profile type has been removed from /usr/lib/ccs/init_policy</p>
+
+<h3>About policy syntax</h3>
+
+<p>Policy syntax has been drastically changed. Existing versions used process's domainname as a key for grouping permissions to do some operations. In other words, existing version's policy is collection of "which domain can do ..." rules. On the other hand, this version uses operation as a key for checking permission. In other words, this version's policy is collection of "which operation can be done by ..." rules. This change is intended for allowing users to protect resources using blacklisting approach. In this version, process's domainname is nothing but one of optional parameters that can be used for controlling whether to grant or deny specific operations. Users can write rules without managing domainnames unless needed.</p>
+
+<p>Process's domainname representation has changed from space delimited multiple words (e.g. "&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit") to a single word (e.g. "/sbin/init").</p>
+
+<p>Domain transitions no longer happen unless explicitly specified by policy.</p>
+
+<p>Distinction of disabled/learning/permissive/enforcing mode has been removed.</p>
+
+<p>"path_group" keyword has been renamed to "string_group", and "address_group" keyword has been renamed to "ip_group".</p>
+
+<p>Representation of \ character has been changed from \\ to \134.</p>
+
+<p>Category keywords (i.e. "file", "network", "ipc", "misc", "capability", "task") have been removed because access control levels which was specified using profile has been removed. Some of operation keywords have been renamed (e.g. "network inet stream connect" became "inet_stream_connect", "misc env" became "environ").</p>
+
+<p>"task auto_execute_handler" keyword has been renamed to "handler=" argument of "execute" keyword. This is intended for using execute handler for preprocessing purpose when executing specific programs rather than when executing from specific domains. "task denied_execute_handler" keyword has been removed.</p>
+
+<p>Domain argument has been removed from permission to send signals (i.e. "signal" directive), for kill() system call accepts negative number for specifying multiple processes. It is impossible to selectively deny sending signals because it is not permitted to sleep while sending signals.</p>
+
+<p>Restriction granularity for ptrace operation has changed from boolean (i.e. "capability SYS_PTRACE") to command number + domainname.</p>
+
+<p>Restriction granularity for environment variables has changed from name only to both name and values.</p>
+
+<p>Several variables for referencing file's attributes have been added.</p>
+
+<p>Local port reserve functionality (i.e. "deny_autobind" keyword) has been removed.</p>
+
+<h2><a name="how_to_install">2. How to install</a></h2>
+
+<p>Same with <a href="http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3">http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3</a> except that you need to replace</p>
+
+<table border="1">
+<tr><td>
+$ wget -O ccs-patch-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz'<br>
+$ wget -O ccs-patch-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz.asc'<br>
+$ gpg ccs-patch-1.8.3-20120301.tar.gz.asc<br>
+$ tar -zxf ccs-patch-1.8.3-20120301.tar.gz
+</td></tr>
+</table>
+
+<p>with</p>
+
+<table border="1">
+<tr><td>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-patch/?root=tomoyo&amp;view=tar' | tar -zxf - --strip 1
+</td></tr>
+</table>
+
+<p>and replace</p>
+
+<table border="1">
+<tr><td>
+$ wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'<br>
+$ wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'<br>
+$ gpg ccs-tools-1.8.3-20120301.tar.gz.asc<br>
+$ tar -zxf ccs-tools-1.8.3-20120301.tar.gz
+</td></tr>
+</table>
+
+<p>with</p>
+
+<table border="1">
+<tr><td>
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-tools/ccstools/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
+</td></tr>
+</table>
+
+<p>. To initialize, run /usr/lib/ccs/init_policy without --file-only-profile option. Be sure to remove (or rename) /etc/ccs/ directory if it already exists, for tools are not compatible with existing versions.</p>
+
+<p>To save /proc/ccs/audit automatically, run /usr/sbin/ccs-auditd from somewhere. Default setting (specified in /etc/ccs/tools/auditd.conf) sends access matched logs to /dev/null, access unmatched logs to /var/log/tomoyo/unmatched.log, access denied logs to /var/log/tomoyo/denied.log.</p>
+
+<h2><a name="how_to_develop_policy">3. How to develop policy</a></h2>
+
+<p>Please read <a href="#policy_specification">Policy Specification</a> before continue.</p>
+
+<p>Firstly, create a "quota audit[$audit_index]" line with non 0 $max_logs_for_unmatched_request value.</p>
+
+<table border="1">
+<tr><td>
+quota audit[1] allowed=0 unmatched=1024 denied=1024
+</td></tr>
+</table>
+
+<p>You can use /usr/sbin/ccs-loadpolicy to update policy.</p>
+
+<table border="1">
+<tr><td>
+# echo 'quota audit[1] allowed=0 unmatched=1024 denied=1024' | /usr/sbin/ccs-loadpolicy
+</td></tr>
+</table>
+
+<p>Then, decide conditions to restrict access. Below example restricts opening /etc/shadow for reading.</p>
+
+<table border="1">
+<tr><td>
+100 acl read path="/etc/shadow"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1
+</td></tr>
+</table>
+
+<p>By operating the system, access unmatched logs are generated and spooled in /proc/ccs/audit interface when access request of opening /etc/shadow for reading happens. If /usr/sbin/ccs-auditd is running , access unmatched logs will be moved to /var/log/tomoyo/unmatched.log .</p>
+
+<table border="1">
+<tr><td>
+#2012/03/02 08:11:51# global-pid=2826 result=unmatched / read path="/etc/shadow" task.pid=2826 task.ppid=2814 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/bin/passwd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33708 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
+</td></tr>
+</table>
+
+<p>Examine the log and decide whether to grant this access request or not. To grant this request, add an allow line. Below example grants this request to /usr/bin/passwd program.</p>
+
+<table border="1">
+<tr><td>
+100 acl read path="/etc/shadow"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"
+</td></tr>
+</table>
+
+<p>Operate the system again. For example, /usr/sbin/sshd program and /bin/cat program have requested opening /etc/shadow for reading.</p>
+
+<table border="1">
+<tr><td>
+#2012/03/02 08:13:06# global-pid=2831 result=unmatched / read path="/etc/shadow" task.pid=2831 task.ppid=2691 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/sbin/sshd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53<br>
+#2012/03/02 08:13:12# global-pid=2837 result=unmatched / read path="/etc/shadow" task.pid=2837 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
+</td></tr>
+</table>
+
+<p>Add an allow line with /usr/sbin/sshd program in order to allow access by /usr/sbin/sshd program. Also, add a deny line with /bin/cat program in order to deny access by /bin/cat program. Give higher priority (i.e. smaller $cond_priority value) to deny line than allow line so that deny lines are checked before allow lines are checked.</p>
+
+<table border="1">
+<tr><td>
+100 acl read path="/etc/shadow"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"
+</td></tr>
+</table>
+
+<p>From now on, attempt to read /etc/shadow using /bin/cat should be denied and access denied logs should be generated. If /usr/sbin/ccs-auditd is running , access denied logs will be moved to /var/log/tomoyo/denied.log .</p>
+
+<table border="1">
+<tr><td>
+#2012/03/02 08:14:38# global-pid=2842 result=denied / read path="/etc/shadow" task.pid=2842 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
+</td></tr>
+</table>
+
+<p>After you have finished enumerating all allow lines and deny lines, add a deny line with lowest priority (i.e. largest $cond_priority value within this block).</p>
+
+<table border="1">
+<tr><td>
+100 acl read path="/etc/shadow"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10000 deny
+</td></tr>
+</table>
+
+<p>A rule for restricting /etc/shadow for opening is now completed.</p>
+
+<p>Note that the rule explained above alone cannot prevent diverted accesses such as creating a hard link of /etc/shadow . If the resource to protect has characteristic attribute, it is recommended to utilize such attributes. On several distributions, /etc/shadow is owned by shadow group. In that case, this rule can be modified to below. (Below example assumes that shadow group's group ID is 42.)</p>
+
+<table border="1">
+<tr><td>
+100 acl read path.gid=42<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10000 deny
+</td></tr>
+</table>
+
+<p>On several distributions, /etc/shadow is owned by root user and root group and has DAC permissions 0400. In that case, you might want to use a rule like below. (You should check whether there are other files with such attributes.)</p>
+
+<table border="1">
+<tr><td>
+100 acl read path.uid=0 path.gid=0 path.perm=0400<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10000 deny
+</td></tr>
+</table>
+
+<p>It is recommended to restrict other operations such as mount, link and rename. For example, a rule to deny creation of hard links which is not owned by the user would look like below. (Note that the variable which refers source pathname of link operation is "old_path" rather than "path" because the operation is "link".)</p>
+
+<table border="1">
+<tr><td>
+100 acl link old_path.uid!=task.uid<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;100 deny
+</td></tr>
+</table>
+
+<p>If you can split files into different filesystems or different partitions, you might be able to utilize more variables. For example, rules for denying creation of hard links on tmpfs filesystem (tmpfs filesystem's magic number is 0x01021994) would look like below.</p>
+
+<table border="1">
+<tr><td>
+100 acl link old_path.fsmagic=0x01021994<br>
+&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 deny
+</td></tr>
+</table>
+
+<p>Splitting into different partitions and defining rules based on partition's attributes will help preventing diverted access via creating hard links, for hard links cannot be created across partitions. Separating /home partition from / partition will be useful when protecting resources in /home partition.</p>
+
+<hr>
+
+<h1><a name="policy_specification">Policy Specification</a></h1>
 
 <h2><a name="available_parameters">1. About parameters which can be handled via policy</a></h2>
 
@@ -449,7 +690,7 @@
 </tr>
 </table>
 
-<p>It is possible to group string data using "string_group" syntax.</p>
+<p>It is possible to group string data using "<a href="#string_comparison">string_group</a>" syntax.</p>
 
 <h3><a name="numeric_expression">1.2. Numeric parameters representation rule</a></h3>
 
@@ -461,7 +702,7 @@
 
 <p>It is possible to specify numeric data ranges in $min_value-$max_value form. If specifying in range, $min_value has to be smaller or equals to $max_value. For example, 0-100 is valid but 100-0 is invalid.</p>
 
-<p>It is possible to group numeric data or numeric data range using "number_group" syntax.</p>
+<p>It is possible to group numeric data or numeric data range using "<a href="#integer_comparison">number_group</a>" syntax.</p>
 
 <h3><a name="ipaddress_expression">1.3. IP address parameters representation rule</a></h3>
 
@@ -469,7 +710,7 @@
 
 <p>It is possible to specify IP address ranges in $min_address-$max_address form. If specifying in range, $min_address has to be smaller or equals to $max_address. For example, 1.2.3.4-5.6.7.8 is valid but 5.6.7.8-1.2.3.4 is invalid.</p>
 
-<p>It is possible to group IP address and IP address range using "ip_group" syntax.</p>
+<p>It is possible to group IP address and IP address range using "<a href="#ipaddr_comparison">ip_group</a>" syntax.</p>
 
 <h2><a name="conditions">2. About conditional expressions</a></h2>
 
@@ -496,7 +737,7 @@
 <p>Comparison with string data is defined as below. Note that one string which ends with / and another string which does not end with / never matches.</p>
 
 <table border="1">
-<tr><td>Conditions example</td><td>Value of variable "path"</td><td>Comparison result with /tmp/\*</td></tr>
+<tr><td>Conditions example</td><td>Value of variable "path"</td><td>Comparison result</td></tr>
 <tr><td rowspan="6">path="/tmp/\*"</td>
 <td>/</td><td>Does not match</td></tr>
 <tr><td>/tmp/</td><td>Does not match</td></tr>
@@ -553,7 +794,7 @@ string_group TMPDIR /tmp/\{\*\}/\*
 <p>Comparison with numeric value is defined as below.</p>
 
 <table border="1">
-<tr><td>Conditions example</td><td>Value of variable "task.uid"</td><td>Comparison result with 0</td></tr>
+<tr><td>Conditions example</td><td>Value of variable "task.uid"</td><td>Comparison result</td></tr>
 <tr><td rowspan="3">task.uid=0</td>
 <td>0</td><td>Matches</td></tr>
 <tr><td>100</td><td>Does not match</td></tr>
@@ -567,7 +808,7 @@ string_group TMPDIR /tmp/\{\*\}/\*
 <p>Comparison with numeric value range is defined as below.</p>
 
 <table border="1">
-<tr><td>Conditions example</td><td>Value of variable "task.gid"</td><td>Comparison result with 0-100</td></tr>
+<tr><td>Conditions example</td><td>Value of variable "task.gid"</td><td>Comparison result</td></tr>
 <tr><td rowspan="3">task.gid=0-100</td>
 <td>0</td><td>Matches</td></tr>
 <tr><td>100</td><td>Matches</td></tr>
@@ -593,25 +834,25 @@ string_group TMPDIR /tmp/\{\*\}/\*
 <tr><td>100</td><td>100</td><td>Does not match</td></tr>
 </table>
 
-<p>If a number_group named IDGROUP is defined as</p>
+<p>If a number_group named ID_GROUP is defined as</p>
 
 <table border="1">
 <tr><td>
-number_group IDGROUP 100<br>
-number_group IDGROUP 200-500
+number_group ID_GROUP 100<br>
+number_group ID_GROUP 200-500
 </td></tr>
 </table>
 
 <p>it is possible to define conditions like below.</p>
 
 <table border="1">
-<tr><td>Conditions example</td><td>Value of task.uid</td><td>Values in IDGROUP group</td><td>Comparison result</td></tr>
-<tr><td rowspan="4">task.uid=@IDGROUP</td>
+<tr><td>Conditions example</td><td>Value of variable "task.uid"</td><td>Values in ID_GROUP group</td><td>Comparison result</td></tr>
+<tr><td rowspan="4">task.uid=@ID_GROUP</td>
 <td>0</td><td rowspan="4">100<br>200-500</td><td>Does not match</td></tr>
 <tr><td>100</td><td>Matches</td></tr>
 <tr><td>500</td><td>Matches</td></tr>
 <tr><td>1000</td><td>Does not match</td></tr>
-<tr><td rowspan="4">task.uid!=@IDGROUP</td>
+<tr><td rowspan="4">task.uid!=@ID_GROUP</td>
 <td>0</td><td rowspan="4">100<br>200-500</td><td>Matches</td></tr>
 <tr><td>100</td><td>Does not match</td></tr>
 <tr><td>500</td><td>Does not match</td></tr>
@@ -620,7 +861,63 @@ number_group IDGROUP 200-500
 
 <p>See <a href="#syntax_list">List of syntaxes sorted by operations</a> for name of variables that handle numeric data.</p>
 
-<h3><a name="ipaddress_comparison">2.3. Conditional expressions which handle IP address parameters</a></h3>
+<h3><a name="ipaddr_comparison">2.3. Conditional expressions which handle IP address parameters</a></h3>
+
+<p>Any "operation" which handle IPv4/IPv6 network address can check IP address using variable "ip".</p>
+
+<p>Comparison with IP address value is defined as below. Note that comparison between an IPv4 address and an IPv6 address does not match.</p>
+
+<table border="1">
+<tr><td>Conditions example</td><td>Value of variable "ip"</td><td>Comparison result</td></tr>
+<tr><td rowspan="3">ip=127.0.0.1</td><td>127.0.0.1</td><td>Matches</td></tr>
+<tr><td>0.0.0.0</td><td>Does not match</td></tr>
+<tr><td>::1</td><td>Does not match</td></tr>
+<tr><td rowspan="3">ip=::1</td>
+<td>::1</td><td>Matches</td></tr>
+<tr><td>127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+</table>
+
+<p>Comparison with IP address range is defined as below.</p>
+
+<table border="1">
+<tr><td>Conditions example</td><td>Value of variable "ip"</td><td>Comparison result</td></tr>
+<tr><td rowspan="3">ip=127.0.0.0-127.255.255.255</td>
+<td>127.0.0.1</td><td>Matches</td></tr>
+<tr><td>10.0.0.1</td><td>Does not match</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+<tr><td rowspan="3">ip=::-::1</td><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>::1</td><td>Matches</td></tr>
+</table>
+
+<p>If an ip_group named PRIVATE_ADDRESS is defined as</p>
+
+<table border="1">
+<tr><td>
+ip_group PRIVATE_ADDRESS 10.0.0.0-10.255.255.255<br>
+ip_group PRIVATE_ADDRESS 172.16.0.0-172.31.255.255<br>
+ip_group PRIVATE_ADDRESS 192.168.0.0-192.168.255.255
+</td></tr>
+</table>
+
+<p>it is possible to define conditions like below.</p>
+
+<table border="1">
+<tr><td>Conditions example</td><td>Value of variable "ip"</td><td>Values in PRIVATE_ADDRESS group</td><td>Comparison result</td></tr>
+<tr><td rowspan="4">ip=@PRIVATE_ADDRESS</td>
+<td>127.0.0.1</td><td rowspan="4">10.0.0.0-10.255.255.255<br>172.16.0.0-172.31.255.255<br>192.168.0.0-192.168.255.255</td><td>Does not match</td></tr>
+<tr><td>10.0.0.1</td><td>Matches</td></tr>
+<tr><td>192.168.0.1</td><td>Matches</td></tr>
+<tr><td>::ffff:172.16.0.1</td><td>Does not match</td></tr>
+<tr><td rowspan="4">ip!=@PRIVATE_ADDRESS</td>
+<td>0</td><td rowspan="4">10.0.0.0-10.255.255.255<br>172.16.0.0-172.31.255.255<br>192.168.0.0-192.168.255.255</td><td>Matches</td></tr>
+<tr><td>10.255.255.254</td><td>Does not match</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>127.0.0.1</td><td>Matches</td></tr>
+</table>
+
+<p>See <a href="#syntax_list">List of syntaxes sorted by operations</a> for operations that can handle IP address.</p>
 
 <h3><a name="task_attributes_comparison">2.4. Conditional expressions which handle current thread's attributes</a></h3>
 
@@ -640,6 +937,7 @@ number_group IDGROUP 200-500
 <tr><td>task.ppid</td><td><a href="#integer_comparison">Numeric</a></td><td>Process ID of current thread's parent process</td></tr>
 <tr><td>task.exe</td><td><a href="#string_comparison">String</a></td><td>Current thread's program name (the content of /proc/self/exe)</td></tr>
 <tr><td>task.domain</td><td><a href="#string_comparison">String</a></td><td>Current thread's domainname (the content of /proc/ccs/self_domain)</td></tr>
+<tr><td>task.type</td><td>Literal</td><td>Matches execute_handler if running as an execute handler, does not match execute_handler otherwise</td></tr>
 </table>
 
 <h3><a name="argv_comparison">2.5. Conditional expressions which handle command line arguments</a></h3>
@@ -901,43 +1199,43 @@ Below table assumes that the variable name for referencing the requested pathnam
 <tr><td><a href="#file_attributes_comparison">put_old.parent.$attribute</a></td><td>Attributes of parent directory of an object referenced by variable "put_old"</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_stream_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), ip(7), ipv6(7)</td></tr>
+<tr><td rowspan="3">inet_stream_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), ip(7), ipv6(7)</td></tr>
 <tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_stream_listen</td><td rowspan="3">Listening PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">listen(2), ip(7), ipv6(7)</td></tr>
+<tr><td rowspan="3">inet_stream_listen</td><td rowspan="3">Listening PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">listen(2), ip(7), ipv6(7)</td></tr>
 <tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_stream_connect</td><td rowspan="3">Connecting PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">connect(2), ip(7), ipv6(7)</td></tr>
+<tr><td rowspan="3">inet_stream_connect</td><td rowspan="3">Connecting PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">connect(2), ip(7), ipv6(7)</td></tr>
 <tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_stream_accept</td><td rowspan="3">Accepting PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">accept(2), ip(7), ipv6(7)</td></tr>
+<tr><td rowspan="3">inet_stream_accept</td><td rowspan="3">Accepting PF_INET/PF_INET6+SOCK_STREAM socket</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">accept(2), ip(7), ipv6(7)</td></tr>
 <tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_dgram_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_DGRAM socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), ip(7), ipv6(7)</td></tr>
+<tr><td rowspan="3">inet_dgram_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_DGRAM socket</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), ip(7), ipv6(7)</td></tr>
 <tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_dgram_send</td><td rowspan="3">Sending AF_INET/AF_INET6 datagrams</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">sendmsg(2), ip(7), ipv6(7)</td></tr>
+<tr><td rowspan="3">inet_dgram_send</td><td rowspan="3">Sending AF_INET/AF_INET6 datagrams</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">sendmsg(2), ip(7), ipv6(7)</td></tr>
 <tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_dgram_recv</td><td rowspan="3">Receiving AF_INET/AF_INET6 datagrams</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">recvmsg(2), ip(7), ipv6(7)</td></tr>
+<tr><td rowspan="3">inet_dgram_recv</td><td rowspan="3">Receiving AF_INET/AF_INET6 datagrams</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">recvmsg(2), ip(7), ipv6(7)</td></tr>
 <tr><td><a href="#integer_comparison">port</a></td><td>Port number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_raw_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_RAW socket</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), raw(7)</td></tr>
+<tr><td rowspan="3">inet_raw_bind</td><td rowspan="3">Binding PF_INET/PF_INET6+SOCK_RAW socket</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">bind(2), raw(7)</td></tr>
 <tr><td><a href="#integer_comparison">proto</a></td><td>Protocol number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_raw_send</td><td rowspan="3">Sending AF_INET/AF_INET6 packets</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">sendmsg(2), raw(7)</td></tr>
+<tr><td rowspan="3">inet_raw_send</td><td rowspan="3">Sending AF_INET/AF_INET6 packets</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">sendmsg(2), raw(7)</td></tr>
 <tr><td><a href="#integer_comparison">proto</a></td><td>Protocol number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">inet_raw_recv</td><td rowspan="3">Receiving AF_INET/AF_INET6 packets</td><td><a href="#ipaddress_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">recvmsg(2), raw(7)</td></tr>
+<tr><td rowspan="3">inet_raw_recv</td><td rowspan="3">Receiving AF_INET/AF_INET6 packets</td><td><a href="#ipaddr_comparison">ip</a></td><td>IPv4 or IPv6 address</td><td rowspan="3">recvmsg(2), raw(7)</td></tr>
 <tr><td><a href="#integer_comparison">proto</a></td><td>Protocol number</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
@@ -1162,206 +1460,6 @@ $acl_priority acl $operation $conditions_to_filter<br>
 &nbsp;&nbsp;&nbsp;&nbsp;10 allow source="/dev/sda1" target="/" fstype="--remount" flags=0x400<br>
 &nbsp;&nbsp;&nbsp;&nbsp;10 allow source="securityfs" target="sysfs:/kernel/security/" fstype="securityfs" flags=0x0<br>
 &nbsp;&nbsp;&nbsp;&nbsp;10 deny
-</td></tr>
-</table>
-
-<h2><a name="difference_with_existing_versions">Appendix: Difference with existing versions (for existing users)</a></h2>
-
-<h3>About pathnames and management programs</h3>
-
-<p>/proc/ccs/domain_policy /proc/ccs/exception_policy /proc/ccs/profile /proc/ccs/manager /proc/ccs/stat has been aggregated into /proc/ccs/policy</p>
-
-<p>/etc/ccs/policy/current/domain_policy.conf /etc/ccs/policy/current/exception_policy.conf /etc/ccs/policy/current/profile.conf /etc/ccs/policy/current/manager.conf /etc/ccs/policy/current/stat.conf has been aggregated into /etc/ccs/policy/current</p>
-
-<p>Built-in policy files which are located in security/ccsecurity/policy/domain_policy.conf security/ccsecurity/policy/exception_policy.conf security/ccsecurity/policy/profile.conf security/ccsecurity/policy/manager.conf security/ccsecurity/policy/stat.conf under kernel source directory have been aggregated into security/ccsecurity/policy/policy.conf</p>
-
-<p>Only /sbin/ccs-init /usr/sbin/ccs-auditd /usr/sbin/ccs-loadpolicy /usr/sbin/ccs-notifyd /usr/sbin/ccs-pstree /usr/sbin/ccs-queryd /usr/sbin/ccs-savepolicy /usr/lib/ccs/audit-exec-param /usr/lib/ccs/ccs-editpolicy-agent /usr/lib/ccs/init_policy are provided for managing policy. (In other words, programs such as /usr/sbin/ccs-editpolicy and /usr/sbin/ccs-setprofile have been removed.)</p>
-
-<p>Command line arguments for specifying type of policy to load/save has been removed from /usr/sbin/ccs-loadpolicy and /usr/sbin/ccs-savepolicy</p>
-
-<p>Command line arguments for specifying profile type has been removed from /usr/lib/ccs/init_policy</p>
-
-<h3>About policy syntax</h3>
-
-<p>Policy syntax has been drastically changed. Existing versions used process's domainname as a key for grouping permissions to do some operations. In other words, existing version's policy is collection of "which domain can do ..." rules. On the other hand, this version uses operation as a key for checking permission. In other words, this version's policy is collection of "which operation can be done by ..." rules. This change is intended for allowing users to protect resources using blacklisting approach. In this version, process's domainname is nothing but one of optional parameters that can be used for controlling whether to grant or deny specific operations. Users can write rules without managing domainnames unless needed.</p>
-
-<p>Process's domainname representation has changed from space delimited multiple words with wildcards (e.g. "&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit") to a single word without wildcards (e.g. "/sbin/init").</p>
-
-<p>Domain transitions no longer happen unless explicitly specified by policy.</p>
-
-<p>Distinction of disabled/learning/permissive/enforcing mode has been removed.</p>
-
-<p>"path_group" keyword has been renamed to "string_group", and "address_group" keyword has been renamed to "ip_group".</p>
-
-<p>Representation of \ character has been changed from \\ to \134.</p>
-
-<p>Category keywords (i.e. "file", "network", "ipc", "misc", "capability", "task") have been removed because access control levels which was specified using profile has been removed. Some of operation keywords have been renamed (e.g. "network inet stream connect" became "inet_stream_connect", "misc env" became "environ").</p>
-
-<p>"task auto_execute_handler" keyword has been renamed to "handler=" argument of "execute" keyword. This is intended for using execute handler for preprocessing purpose when executing specific programs rather than when executing from specific domains. "task denied_execute_handler" keyword has been removed.</p>
-
-<p>Domain argument has been removed from permission to send signals (i.e. "signal" directive), for kill() system call accepts negative number for specifying multiple processes. It is impossible to selectively deny sending signals because it is not permitted to sleep while sending signals.</p>
-
-<p>Local port reserve functionality (i.e. "deny_autobind" keyword) has been removed.</p>
-
-<h2><a name="how_to_install">Appendix: How to install</a></h2>
-
-<p>Same with <a href="http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3">http://tomoyo.sourceforge.jp/1.8/chapter-3.html#3.3</a> except that you need to replace</p>
-
-<table border="1">
-<tr><td>
-$ wget -O ccs-patch-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz'<br>
-$ wget -O ccs-patch-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz.asc'<br>
-$ gpg ccs-patch-1.8.3-20120301.tar.gz.asc<br>
-$ tar -zxf ccs-patch-1.8.3-20120301.tar.gz
-</td></tr>
-</table>
-
-<p>with</p>
-
-<table border="1">
-<tr><td>
-$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
-$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-patch/?root=tomoyo&amp;view=tar' | tar -zxf - --strip 1
-</td></tr>
-</table>
-
-<p>and replace</p>
-
-<table border="1">
-<tr><td>
-$ wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'<br>
-$ wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'<br>
-$ gpg ccs-tools-1.8.3-20120301.tar.gz.asc<br>
-$ tar -zxf ccs-tools-1.8.3-20120301.tar.gz
-</td></tr>
-</table>
-
-<p>with</p>
-
-<table border="1">
-<tr><td>
-$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/experimental/ccs-tools/ccstools/?root=tomoyo&amp;view=tar' | tar -zxf -<br>
-</td></tr>
-</table>
-
-<p>. To initialize, run /usr/lib/ccs/init_policy without --file-only-profile option. Be sure to remove (or rename) /etc/ccs/ directory if it already exists, for tools are not compatible with existing versions.</p>
-
-<p>To save /proc/ccs/audit automatically, run /usr/sbin/ccs-auditd from somewhere. Default setting (specified in /etc/ccs/tools/auditd.conf) sends access matched logs to /dev/null, access unmatched logs to /var/log/tomoyo/unmatched.log, access denied logs to /var/log/tomoyo/denied.log.</p>
-
-<h2><a name="how_to_develop_policy">Appendix: How to develop policy</a></h2>
-
-<p>Firstly, create a "quota audit[$audit_index]" line with non 0 $max_logs_for_unmatched_request value. You can use /usr/sbin/ccs-loadpolicy to update policy.</p>
-
-<table border="1">
-<tr><td>
-quota audit[1] allowed=0 unmatched=1024 denied=1024
-</td></tr>
-</table>
-
-<p>Then, decide conditions to restrict access. Below example restricts opening /etc/shadow for reading.</p>
-
-<table border="1">
-<tr><td>
-100 acl read path="/etc/shadow"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;audit 1
-</td></tr>
-</table>
-
-<p>By operating the system,  access unmatched logs are generated and spooled in /proc/ccs/audit interface (or saved to /var/log/tomoyo/unmatched.log if /usr/sbin/ccs-auditd is running) when access request of opening /etc/shadow for reading happens.</p>
-
-<table border="1">
-<tr><td>
-#2012/03/02 08:11:51# global-pid=2826 result=unmatched / read path="/etc/shadow" task.pid=2826 task.ppid=2814 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/bin/passwd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33708 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
-</td></tr>
-</table>
-
-<p>Examine the log and decide whether to grant this access request or not. To grant this request, add an allow line. Below example grants this request to /usr/bin/passwd program.</p>
-
-<table border="1">
-<tr><td>
-100 acl read path="/etc/shadow"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"
-</td></tr>
-</table>
-
-<p>Operate the system again. For example, /usr/sbin/sshd program and /bin/cat program have requested opening /etc/shadow for reading.</p>
-
-<table border="1">
-<tr><td>
-#2012/03/02 08:13:06# global-pid=2831 result=unmatched / read path="/etc/shadow" task.pid=2831 task.ppid=2691 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/sbin/sshd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53<br>
-#2012/03/02 08:13:12# global-pid=2837 result=unmatched / read path="/etc/shadow" task.pid=2837 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
-</td></tr>
-</table>
-
-<p>Add an allow line with /usr/sbin/sshd program in order to allow access by /usr/sbin/sshd program. Also, add a deny line with /bin/cat program in order to deny access by /bin/cat program. Give higher priority (i.e. smaller $cond_priority value) to deny line than allow line so that deny lines are checked before allow lines are checked.</p>
-
-<table border="1">
-<tr><td>
-100 acl read path="/etc/shadow"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"
-</td></tr>
-</table>
-
-<p>From now on, attempt to read /etc/shadow using /bin/cat should be denied and access denied logs should be generated. (It will be saved to /var/log/tomoyo/denied.log if /usr/sbin/ccs-auditd is running.) </p>
-
-<table border="1">
-<tr><td>
-#2012/03/02 08:14:38# global-pid=2842 result=denied / read path="/etc/shadow" task.pid=2842 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
-</td></tr>
-</table>
-
-<p>After you have finished enumerating all allow lines and deny lines, add a deny line with lowest priority (i.e. largest $cond_priority value within this block).</p>
-
-<table border="1">
-<tr><td>
-100 acl read path="/etc/shadow"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10000 deny
-</td></tr>
-</table>
-
-<p>A rule for restricting /etc/shadow for opening is now completed.</p>
-
-<p>Note that the rule explained above alone cannot prevent diverted accesses such as creating a hard link of /etc/shadow. If the resource to protect has characteristic attribute, it is recommended to utilize such attributes. On several distributions, /etc/shadow is owned by shadow group. In that case, this rule can be modified to below. (Below example assumes that shadow group's group ID is 42.)</p>
-
-<table border="1">
-<tr><td>
-100 acl read path.gid=42<br>
-&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10000 deny
-</td></tr>
-</table>
-
-<p>/etc/shadow may have DAC permissions 0400 if it is owned by root user and root group. In that case, you might want to use a rule like below. (You should check whether there are other files with DAC permissions 0400.)</p>
-
-<table border="1">
-<tr><td>
-100 acl read path.perm=0400<br>
-&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 deny task.exe="/bin/cat"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/bin/passwd"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 allow task.exe="/usr/sbin/sshd"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10000 deny
-</td></tr>
-</table>
-
-<p>It is recommended to restrict other operations such as mount, link and rename. For example, a rule to deny creation of hard links which is not owned by the user would look like below. (Note that the variable which refers source pathname of link operation is "old_path" rather than "path" because the operation is "link".)</p>
-
-<table border="1">
-<tr><td>
-100 acl link old_path.uid!=task.uid<br>
-&nbsp;&nbsp;&nbsp;&nbsp;audit 1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;100 deny
 </td></tr>
 </table>
 
