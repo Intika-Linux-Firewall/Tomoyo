@@ -8,10 +8,10 @@ Source: linux-meta
 Version: 3.0.0.16.19
 Depends: linux-image-3.0.0-16-generic-pae-ccs, linux-firmware
 Filename: ./linux-image-generic-pae-ccs1.8.3p5_3.0.0.16.19_i386.deb
-Size: 6240
-MD5sum: 3dcaf83c3738b0057ecafa5798c56e08
-SHA1: b5cca534c27411cd9fb9b902db8128ea6fe395f0
-SHA256: 98c4ca1da5b6d8dfb28443b630cd3b4b3067ff620bc69bdfabaf3b57c6b60910
+Size: 6246
+MD5sum: e85ca824cee2519904c34d39befee506
+SHA1: 86a316a3c92a216aa69d5d8b32d82365f2372b9a
+SHA256: 945d8fa1af190317212d9692dee7fb99427a5871e7bcc2d764689c8a1c12bc20
 Description: Generic Linux kernel image
  This package will always depend on the latest generic kernel image
  available.
@@ -35,6 +35,28 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.85.)
 
+Package: linux-headers-3.0.0-16-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 13212
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 3.0.0-16.29
+Provides: linux-headers, linux-headers-3.0
+Depends: coreutils | fileutils (>= 4.0), linux-headers-3.0.0-16, libc6 (>= 2.11)
+Filename: ./linux-headers-3.0.0-16-generic-pae-ccs1.8.3p5_3.0.0-16.29_i386.deb
+Size: 1426534
+MD5sum: 963d160139885ff16ed28a7b3813ead1
+SHA1: 200c7ffb2f5517fd84140741b0af3f97d61ff974
+SHA256: aa65ebc2c597a7ed453614a3899b6788b9be718e6828a63a2f99bd1ea051c038
+Description: Linux kernel headers for version 3.0.0 on x86
+ This package provides kernel header files for version 3.0.0 on
+ x86.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-3.0.0-16/debian.README.gz for details.
+
 Package: linux-generic-pae-ccs
 Priority: optional
 Section: metapackages
@@ -45,55 +67,33 @@ Source: linux-meta
 Version: 3.0.0.16.19
 Depends: linux-image-generic-pae-ccs (= 3.0.0.16.19)
 Filename: ./linux-generic-pae-ccs1.8.3p5_3.0.0.16.19_i386.deb
-Size: 6238
-MD5sum: 551bb07db5f403ad76037309d4ce9f6a
-SHA1: 05b97ad40e19772c448edae0e052944dc159d2f8
-SHA256: 1401c2c99b756751c9d6d56bfde753590bf735d804d372a7793ead0e15c91093
+Size: 6240
+MD5sum: d42a5f1362dcba764c8ea6a79b29262d
+SHA1: 6a9131f3a93271509bf88b9f8629189143fa9104
+SHA256: 563c747ea99726d388e501673c1775d17104e9398ce6cf732492d4b10eb7cc52
 Description: Complete Generic Linux kernel
  This package will always depend on the latest complete generic Linux kernel
  available.
 
-Package: linux-headers-3.0.0-16-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 13212
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 3.0.0-16.28
-Provides: linux-headers, linux-headers-3.0
-Depends: coreutils | fileutils (>= 4.0), linux-headers-3.0.0-16, libc6 (>= 2.11)
-Filename: ./linux-headers-3.0.0-16-generic-pae-ccs1.8.3p5_3.0.0-16.28_i386.deb
-Size: 1410544
-MD5sum: 87ee300a6b3f66c6f8c86de41829273b
-SHA1: 83c73e88dd6532a254e312130644f9d683207de2
-SHA256: f5b83fc7b0c9c84151a746131a52d22dfaba67dd879dfd60629f1e39f8bc8514
-Description: Linux kernel headers for version 3.0.0 on x86
- This package provides kernel header files for version 3.0.0 on
- x86.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-3.0.0-16/debian.README.gz for details.
-
 Package: linux-image-3.0.0-16-generic-pae-ccs
 Priority: optional
 Section: admin
-Installed-Size: 114716
+Installed-Size: 114728
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 3.0.0-16.28
+Version: 3.0.0-16.29
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-3.0, ndiswrapper-modules-1.9, redhat-cluster-modules
 Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-3.0.0 | linux-source-3.0.0, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-3.0.0-16-generic-pae-ccs1.8.3p5_3.0.0-16.28_i386.deb
-Size: 41351490
-MD5sum: 7bf88002c56e96f9d18b00acb20fbcb2
-SHA1: 35cca7df8e4ce96a39e3a427aded3a10e26df797
-SHA256: 97c390960b510a9685c60d615785d2e96f928591b2d469da14fc977432e3b867
+Filename: ./linux-image-3.0.0-16-generic-pae-ccs1.8.3p5_3.0.0-16.29_i386.deb
+Size: 41367294
+MD5sum: 668c290d5c3d4d14e7ac872211a69147
+SHA1: f430974cbec1e3684d503ecf691498e4ec153ff1
+SHA256: fb04d5ddfc344811b7aee4159767fbd6720d921341ccb71c7d7d95db00ac076e
 Description: Linux kernel image for version 3.0.0 on x86
  This package contains the Linux kernel image for version 3.0.0 on
  x86.
@@ -120,10 +120,10 @@ Source: linux-meta
 Version: 3.0.0.16.19
 Depends: linux-headers-3.0.0-16-generic-pae-ccs
 Filename: ./linux-headers-generic-pae-ccs1.8.3p5_3.0.0.16.19_i386.deb
-Size: 6232
-MD5sum: 9a9b3912774a257bfc7c804b27829778
-SHA1: 3d117f0f6dd7ad8e9356d0c14b1c4ae22432e442
-SHA256: 202b505dfe1b2d1dc9fc64351ce43dae848493b4d8c09257dd6fd75f5ad9fd3e
+Size: 6234
+MD5sum: 2126f263ab40d110b5c253f0d18e22ec
+SHA1: 0e9983f65023a28e94e670c6901f2e0cb8f0c764
+SHA256: 795b2ff56553d8ca8191cbd5b33a5ef77b88a1c9d062b65763b387380a107bca
 Description: Generic Linux kernel headers
  This package will always depend on the latest generic kernel headers
  available.
