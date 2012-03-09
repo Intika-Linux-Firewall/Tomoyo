@@ -732,7 +732,7 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 
 <h3><a name="string_comparison">2.1. Conditional expressions which handle string parameters</a></h3>
 
-<p>Number of parameters which is represented as string data depends on "operation". For example, "read" operation has one and "rename" operation has two. Thus, the name of variables which reference string parameters varies on "operation". Below description assumes that the name of variable is "path".</p>
+<p>Number of parameters which is represented as string data depends on "operation". For example, "read" operation has one and "rename" operation has two. Thus, the name of variables which references string data varies on "operation". Below description assumes that the name of variable is "path".</p>
 
 <p>Comparison with string data is defined as below. Note that one string which ends with / and another string which does not end with / never matches.</p>
 
@@ -771,7 +771,7 @@ string_group TMPDIR /tmp/\{\*\}/\*
 <tr><td>Conditions example</td><td>Value of variable "path"</td><td>Value of TMPDIR group</td><td>Comparison result</td></tr>
 <tr><td rowspan="6">path=@TMPDIR</td>
 <td>/</td><td rowspan="6">/tmp/<br>/tmp/\*<br>/tmp/\{\*\}/<br>/tmp/\{\*\}/\*</td><td>Does not match</td></tr>
-<tr><td>/tmp/</td><td>Does not match</td></tr>
+<tr><td>/tmp/</td><td>Matches</td></tr>
 <tr><td>/tmp/rt6bh84t</td><td>Matches</td></tr>
 <tr><td>/tmp/hbrt4768</td><td>Matches</td></tr>
 <tr><td>/tmp/349gy08t/</td><td>Matches</td></tr>
@@ -789,7 +789,7 @@ string_group TMPDIR /tmp/\{\*\}/\*
 
 <h3><a name="integer_comparison">2.2. Conditional expressions which handle numeric parameters</a></h3>
 
-<p>Number of parameters which is represented as numeric data depends on "operation". For example, "create" operation has one and "mkblock" operation has three. Thus, the name of variables which reference numeric parameters varies on "operation". Below description uses "task.uid" which references current thread's user ID and "task.gid" which references current thread's group ID (these variables are always available) as an example.</p>
+<p>Number of parameters which is represented as numeric data depends on "operation". For example, "create" operation has one and "mkblock" operation has three. Thus, the name of variables which references numeric parameters varies on "operation". Below description uses "task.uid" (which references current thread's user ID) and "task.gid" (which references current thread's group ID) as an example.</p>
 
 <p>Comparison with numeric value is defined as below.</p>
 
@@ -818,7 +818,7 @@ string_group TMPDIR /tmp/\{\*\}/\*
 <tr><td>500</td><td>Matches</td></tr>
 </table>
 
-<p>It is possible to compare one variable which holds numeric value with another variable which holds numeric value.</p>
+<p>It is possible to compare one variable which references numeric value with another variable which references numeric value.</p>
 
 <table border="1">
 <tr><td>Conditions example</td><td>Value of variable "task.uid"</td><td>Value of variable "task.gid"</td><td>Comparison result</td></tr>
@@ -834,7 +834,7 @@ string_group TMPDIR /tmp/\{\*\}/\*
 <tr><td>100</td><td>100</td><td>Does not match</td></tr>
 </table>
 
-<p>If a number_group named ID_GROUP is defined as</p>
+<p>If a number_group group named ID_GROUP is defined as</p>
 
 <table border="1">
 <tr><td>
@@ -863,19 +863,28 @@ number_group ID_GROUP 200-500
 
 <h3><a name="ipaddr_comparison">2.3. Conditional expressions which handle IP address parameters</a></h3>
 
-<p>Any "operation" which handle IPv4/IPv6 network address can check IP address using variable "ip".</p>
+<p>Any "operation" which handles IPv4/IPv6 network address can check IP address using variable "ip".</p>
 
 <p>Comparison with IP address value is defined as below. Note that comparison between an IPv4 address and an IPv6 address does not match.</p>
 
 <table border="1">
 <tr><td>Conditions example</td><td>Value of variable "ip"</td><td>Comparison result</td></tr>
-<tr><td rowspan="3">ip=127.0.0.1</td><td>127.0.0.1</td><td>Matches</td></tr>
+<tr><td rowspan="4">ip=127.0.0.1</td><td>127.0.0.1</td><td>Matches</td></tr>
 <tr><td>0.0.0.0</td><td>Does not match</td></tr>
 <tr><td>::1</td><td>Does not match</td></tr>
-<tr><td rowspan="3">ip=::1</td>
-<td>::1</td><td>Matches</td></tr>
-<tr><td>127.0.0.1</td><td>Does not match</td></tr>
 <tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+<tr><td rowspan="4">ip!=127.0.0.1</td><td>127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>0.0.0.0</td><td>Matches</td></tr>
+<tr><td>::1</td><td>Does not match</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+<tr><td rowspan="4">ip=::1</td><td>127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>0.0.0.0</td><td>Does not match</td></tr>
+<tr><td>::1</td><td>Matches</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+<tr><td rowspan="4">ip!=::1</td><td>127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>0.0.0.0</td><td>Does not match</td></tr>
+<tr><td>::1</td><td>Does not match</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Matches</td></tr>
 </table>
 
 <p>Comparison with IP address range is defined as below.</p>
@@ -886,18 +895,26 @@ number_group ID_GROUP 200-500
 <td>127.0.0.1</td><td>Matches</td></tr>
 <tr><td>10.0.0.1</td><td>Does not match</td></tr>
 <tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
+<tr><td rowspan="3">ip!=127.0.0.0-127.255.255.255</td>
+<td>127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>10.0.0.1</td><td>Matches</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
 <tr><td rowspan="3">ip=::-::1</td><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
 <tr><td>127.0.0.1</td><td>Does not match</td></tr>
 <tr><td>::1</td><td>Matches</td></tr>
+<tr><td rowspan="3">ip!=::-::1</td><td>::ffff:127.0.0.1</td><td>Matches</td></tr>
+<tr><td>127.0.0.1</td><td>Does not match</td></tr>
+<tr><td>::1</td><td>Does not match</td></tr>
 </table>
 
-<p>If an ip_group named PRIVATE_ADDRESS is defined as</p>
+<p>If an ip_group group named PRIVATE_ADDRESS is defined as</p>
 
 <table border="1">
 <tr><td>
 ip_group PRIVATE_ADDRESS 10.0.0.0-10.255.255.255<br>
 ip_group PRIVATE_ADDRESS 172.16.0.0-172.31.255.255<br>
-ip_group PRIVATE_ADDRESS 192.168.0.0-192.168.255.255
+ip_group PRIVATE_ADDRESS 192.168.0.0-192.168.255.255<br>
+ip_group PRIVATE_ADDRESS fd00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
 </td></tr>
 </table>
 
@@ -905,16 +922,17 @@ ip_group PRIVATE_ADDRESS 192.168.0.0-192.168.255.255
 
 <table border="1">
 <tr><td>Conditions example</td><td>Value of variable "ip"</td><td>Values in PRIVATE_ADDRESS group</td><td>Comparison result</td></tr>
-<tr><td rowspan="4">ip=@PRIVATE_ADDRESS</td>
-<td>127.0.0.1</td><td rowspan="4">10.0.0.0-10.255.255.255<br>172.16.0.0-172.31.255.255<br>192.168.0.0-192.168.255.255</td><td>Does not match</td></tr>
+<tr><td rowspan="5">ip=@PRIVATE_ADDRESS</td>
+<td>127.0.0.1</td><td rowspan="5">10.0.0.0-10.255.255.255<br>172.16.0.0-172.31.255.255<br>192.168.0.0-192.168.255.255<br>fd00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff</td><td>Does not match</td></tr>
 <tr><td>10.0.0.1</td><td>Matches</td></tr>
 <tr><td>192.168.0.1</td><td>Matches</td></tr>
 <tr><td>::ffff:172.16.0.1</td><td>Does not match</td></tr>
-<tr><td rowspan="4">ip!=@PRIVATE_ADDRESS</td>
-<td>0</td><td rowspan="4">10.0.0.0-10.255.255.255<br>172.16.0.0-172.31.255.255<br>192.168.0.0-192.168.255.255</td><td>Matches</td></tr>
-<tr><td>10.255.255.254</td><td>Does not match</td></tr>
-<tr><td>::ffff:127.0.0.1</td><td>Does not match</td></tr>
-<tr><td>127.0.0.1</td><td>Matches</td></tr>
+<tr><td>fd01::</td><td>Matches</td></tr>
+<tr><td rowspan="5">ip!=@PRIVATE_ADDRESS</td><td>127.0.0.1</td><td rowspan="5">10.0.0.0-10.255.255.255<br>172.16.0.0-172.31.255.255<br>192.168.0.0-192.168.255.255<br>fd00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff</td><td>Matches</td></tr>
+<tr><td>10.0.0.1</td><td>Does not match</td></tr>
+<tr><td>::ffff:192.168.0.1</td><td>Matches</td></tr>
+<tr><td>::ffff:127.0.0.1</td><td>Matches</td></tr>
+<tr><td>fd01::</td><td>Does not match</td></tr>
 </table>
 
 <p>See <a href="#syntax_list">List of syntaxes sorted by operations</a> for operations that can handle IP address.</p>
@@ -944,9 +962,31 @@ ip_group PRIVATE_ADDRESS 192.168.0.0-192.168.255.255
 
 <p>It is possible to check command line arguments (a.k.a. argv[]) when checking permissions for program execution.</p>
 
+<table border="1">
+<tr><td>Conditions example</td><td>Comparison method</td><td>Meaning</td><td></td></tr>
+<tr><td>argv[0]="true"</td><td><a href="#string_comparison">String</a></td><td>argv[0] matches "true"</td></tr>
+<tr><td>argv[0]!="false"</td><td><a href="#string_comparison">String</a></td><td>argv[0] does not match "false"</td></tr>
+<tr><td>argv[1]=@ARGV1_GROUPS</td><td><a href="#string_comparison">String</a></td><td>argv[0] matches one of strings in string_group ARGV1_GROUPS group</td></tr>
+<tr><td>argv[1]!=@ARGV1_GROUPS</td><td><a href="#string_comparison">String</a></td><td>argv[0] matches none of strings in string_group ARGV1_GROUPS group</td></tr>
+</table>
+
+<p>Applications can pass a string data up to 32 * PAGE_SIZE bytes to each argv[]. But due to difficulty of allocating contiguous memory in the kernel, only up to 4085 bytes can be checked using variable "argv[$index]". If you want to check strictly, please consider using handler= argument of "allow " lines in "acl execute" block.</p>
+
 <h3><a name="envp_comparison">2.6. Conditional expressions which handle environment variable arguments</a></h3>
 
 <p>It is possible to check environment variables (a.k.a. envp[]) when checking permissions for program execution.</p>
+
+<table border="1">
+<tr><td>Conditions example</td><td>Comparison method</td><td>Meaning</td><td></td></tr>
+<tr><td>envp["PATH"]="/"</td><td><a href="#string_comparison">String</a></td><td>Environment variable PATH is defined and its value is "/"</td></tr>
+<tr><td>envp["PATH"]!="/"</td><td><a href="#string_comparison">String</a></td><td>Either<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is not defined<br>or<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is defined but its value is not "/"</td></tr>
+<tr><td>envp["PATH"]=@ENV_PATH_VALUES"/"</td><td><a href="#string_comparison">String</a></td><td>Environment variable PATH is defined and its value matches one of strings in string_group ENVP_PATH_VALUES group</td></tr>
+<tr><td>envp["PATH"]!=@ENV_PATH_VALUES"/"</td><td><a href="#string_comparison">String</a></td><td>Either<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is not defined<br>or<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is defined but its value matches none of strings in string_group ENVP_PATH_VALUES group</td></tr>
+<tr><td>envp["PATH"]=NULL</td><td>None</td><td>Environment variable PATH is not defined</td></tr>
+<tr><td>envp["PATH"]!=NULL</td><td>None</td><td>Environment variable PATH is not defined</td></tr>
+</table>
+
+<p>Applications can pass a string data up to 32 * PAGE_SIZE bytes to each envp[]. But due to difficulty of allocating contiguous memory in the kernel, only up to 4085 bytes can be checked using variable "envp["$name"]". If you want to check strictly, please consider using handler= argument of "allow " lines in "acl execute" block.</p>
 
 <h3><a name="dac_permission_comparison">2.7. Conditional expressions which handle file's DAC permissions</a></h3>
 
