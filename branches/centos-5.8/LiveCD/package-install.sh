@@ -11,11 +11,11 @@ rm -f /var/lib/rpm/__db*
 rpm --rebuilddb
 rpm -ivh /*.rpm
 rpm -e kernel
-tar -zcf /locale.tar.gz /usr/lib/locale/ /usr/share/locale/
+# Due to CD-R's capacity limit (700MB), remove openoffice.org packages.
+yum -y remove 'openoffice.org-*'
+# Install Japanese fonts needed for TOMOYO tutorial.
+yum -y install fonts-japanese
 yum -y update
-rm -fR /usr/lib/locale/ /usr/share/locale/
-tar -zxf /locale.tar.gz
-rm -f /locale.tar.gz
 yum clean all
 rpm --rebuilddb
 rm -f /var/log/yum.log
