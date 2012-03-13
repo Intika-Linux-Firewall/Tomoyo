@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2012/03/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1184,7 +1184,7 @@ int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
 	u8 * const min = entry->min;
 	u8 * const max = entry->max;
 	const char *end;
-	memset(entry, 0, sizeof(entry));
+	memset(entry, 0, sizeof(*entry));
 	if (!strchr(address, ':') &&
 	    in4_pton(address, -1, min, '-', &end) > 0) {
 		entry->is_ipv6 = false;
