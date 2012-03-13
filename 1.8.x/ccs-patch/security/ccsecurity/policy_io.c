@@ -6404,7 +6404,7 @@ static void __init ccs_create_entry(const char *name, const umode_t mode,
 /**
  * ccs_proc_init - Initialize /proc/ccs/ interface.
  *
- * Returns 0.
+ * Returns nothing.
  */
 static void __init ccs_proc_init(void)
 {

@@ -197,10 +197,23 @@ struct ccs_log {
 	enum ccs_matching_result result;
 };
 
+/* Structure for holding single condition component. */
+struct ccs_cond_tmp {
+	u8 left;
+	u8 right;
+	bool is_not;
+	u8 radix;
+	struct ccs_group *group;
+	const struct ccs_path_info *path;
+	struct in6_addr ipv6[2];
+	unsigned long value[2];
+	unsigned long argv;
+	const struct ccs_path_info *envp;
+};
+
 /***** SECTION3: Prototype definition section *****/
 
 int ccs_audit_log(struct ccs_request_info *r);
-bool ccs_manager(void);
 bool ccs_transit_domain(const char *domainname);
 void ccs_warn_oom(const char *function);
 
@@ -277,12 +290,10 @@ static void ccs_set_string(struct ccs_io_buffer *head, const char *string);
 static void ccs_update_stat(const u8 index);
 static void ccs_write_log(struct ccs_request_info *r);
 
-
 #ifdef CONFIG_CCSECURITY_NETWORK
-static int ccs_print_ipv4(char *buffer, const unsigned int buffer_len,
-			  const u8 *ip);
-static int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
-			  const struct in6_addr *ip);
+static void ccs_print_ipv4(struct ccs_io_buffer *head, const u32 *ip);
+static void ccs_print_ipv6(struct ccs_io_buffer *head,
+			   const struct in6_addr *ip);
 static void ccs_print_ip(struct ccs_io_buffer *head,
 			 struct ccs_ip_group *member);
 #endif
@@ -815,48 +826,6 @@ static char *ip6_compressed_string(char *p, const char *addr)
 #endif
 
 /**
- * ccs_print_ipv4 - Print an IPv4 address.
- *
- * @buffer:     Buffer to write to.
- * @buffer_len: Size of @buffer.
- * @ip:         Pointer to "u8" in network byte order.
- *
- * Returns written length.
- */
-static int ccs_print_ipv4(char *buffer, const unsigned int buffer_len,
-			  const u8 *ip)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-	return snprintf(buffer, buffer_len, "%pI4", ip);
-#else
-	char addr[sizeof("255.255.255.255")];
-	ip4_string(addr, ip);
-	return snprintf(buffer, buffer_len, "%s", addr);
-#endif
-}
-
-/**
- * ccs_print_ipv6 - Print an IPv6 address.
- *
- * @buffer:     Buffer to write to.
- * @buffer_len: Size of @buffer.
- * @ip:         Pointer to "struct in6_addr".
- *
- * Returns written length.
- */
-static int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
-			  const struct in6_addr *ip)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-	return snprintf(buffer, buffer_len, "%pI6c", ip);
-#else
-	char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
-	ip6_compressed_string(addr, (const u8 *) ip);
-	return snprintf(buffer, buffer_len, "%s", addr);
-#endif
-}
-
-/**
  * ccs_print_ip - Print an IP address.
  *
  * @head:   Pointer to "struct ccs_io_buffer".
@@ -867,15 +836,12 @@ static int ccs_print_ipv6(char *buffer, const unsigned int buffer_len,
 static void ccs_print_ip(struct ccs_io_buffer *head,
 			 struct ccs_ip_group *member)
 {
-	char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
 	u8 i;
 	for (i = 0; i < 2; i++) {
 		if (member->is_ipv6)
-			ccs_print_ipv6(addr, sizeof(addr), &member->ip[i]);
+			ccs_print_ipv6(head, &member->ip[i]);
 		else
-			ccs_print_ipv4(addr, sizeof(addr),
-				       member->ip[i].s6_addr);
-		ccs_io_printf(head, "%s", addr);
+			ccs_print_ipv4(head, (const u32 *) &member->ip[i]);
 		if (i)
 			break;
 		if (!memcmp(&member->ip[0], &member->ip[1], 16))
@@ -1636,7 +1602,6 @@ static bool ccs_correct_domain(const unsigned char *domainname)
 	return true;
 }
 
-
 /**
  * ccs_normalize_line - Format string.
  *
@@ -1666,19 +1631,15 @@ static void ccs_normalize_line(unsigned char *buffer)
 	*dp = '\0';
 }
 
-struct ccs_cond_tmp {
-	u8 left;
-	u8 right;
-	bool is_not;
-	u8 radix;
-	struct ccs_group *group;
-	const struct ccs_path_info *path;
-	struct in6_addr ipv6[2];
-	unsigned long value[2];
-	unsigned long argv;
-	const struct ccs_path_info *envp;
-};
-
+/**
+ * ccs_parse_values - Parse an numeric argument.
+ *
+ * @value: Values to parse.
+ * @v:     Pointer to "unsigned long".
+ *
+ * Returns "enum ccs_value_type" if @value is a single value, bitwise-OR-ed
+ * value if @value is value range.
+ */
 static u8 ccs_parse_values(char *value, unsigned long v[2])
 {
 	enum ccs_value_type radix1 = ccs_parse_ulong(&v[0], &value);
@@ -1699,6 +1660,16 @@ static u8 ccs_parse_values(char *value, unsigned long v[2])
 
 #ifdef CONFIG_CCSECURITY_NETWORK
 
+/**
+ * ccs_parse_ipaddr - Parse an IP address.
+ *
+ * @address: Address to parse.
+ * @ipv6:    Pointer to "struct in6_addr".
+ *
+ * Returns 1 if @address is an IPv6 address, 2 if @address is IPv6 address
+ * range, 3 if @address is an IPv4 address, 4 if @address is IPv4 address
+ * range, 0 otherwise.
+ */
 static u8 ccs_parse_ipaddr(char *address, struct in6_addr ipv6[2])
 {
 	const char *end;
@@ -1731,6 +1702,13 @@ static u8 ccs_parse_ipaddr(char *address, struct in6_addr ipv6[2])
 
 #endif
 
+/**
+ * ccs_parse_task_cond - Find index for variable's name.
+ *
+ * @word: Keyword to search.
+ *
+ * Returns one of "ccs_conditions_index" value.
+ */
 static enum ccs_conditions_index ccs_parse_task_cond(const char *word)
 {
 	if (!strncmp(word, "task.", 5)) {
@@ -1765,6 +1743,14 @@ static enum ccs_conditions_index ccs_parse_task_cond(const char *word)
 	return CCS_MAX_CONDITION_KEYWORD;
 }
 
+/**
+ * ccs_parse_syscall_arg - Find index for variable's name.
+ *
+ * @word: Keyword to search.
+ * @type: One of values in "enum ccs_mac_index".
+ *
+ * Returns one of "ccs_conditions_index" value.
+ */
 static enum ccs_conditions_index ccs_parse_syscall_arg
 (const char *word, const enum ccs_mac_index type)
 {
@@ -1912,6 +1898,14 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 	return CCS_MAX_CONDITION_KEYWORD;
 }
 
+/**
+ * ccs_parse_path_attributes - Find index for variable's name.
+ *
+ * @word: Keyword to search.
+ * @type: One of values in "enum ccs_mac_index".
+ *
+ * Returns one of "ccs_conditions_index" value.
+ */
 static enum ccs_conditions_index ccs_parse_path_attribute
 (char *word, const enum ccs_mac_index type)
 {
@@ -1995,6 +1989,13 @@ out:
 	return CCS_MAX_CONDITION_KEYWORD;
 }
 
+/**
+ * ccs_find_pathtype -  Find index for file's type.
+ *
+ * @word: Keyword to search.
+ *
+ * Returns one of "ccs_conditions_index" value.
+ */
 static enum ccs_conditions_index ccs_find_path_type(const char *word)
 {
 	if (!strcmp(word, "socket"))
@@ -2014,6 +2015,13 @@ static enum ccs_conditions_index ccs_find_path_type(const char *word)
 	return CCS_MAX_CONDITION_KEYWORD;
 }
 
+/**
+ * ccs_find_path_perm - Find index for file's DAC attribute.
+ *
+ * @word: Keyword to search.
+ *
+ * Returns one of "ccs_conditions_index" value.
+ */
 static enum ccs_conditions_index ccs_find_path_perm(const char *word)
 {
 	if (!strcmp(word, "setuid"))
@@ -2043,6 +2051,14 @@ static enum ccs_conditions_index ccs_find_path_perm(const char *word)
 	return CCS_MAX_CONDITION_KEYWORD;
 }
 
+/**
+ * ccs_parse_cond - Parse single condition.
+ *
+ * @tmp:  Pointer to "struct ccs_cond_tmp".
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns true on success, false otherwise.
+ */
 static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 			   struct ccs_io_buffer *head)
 {
@@ -2278,15 +2294,9 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 		if (tmp.left == CCS_ARGV_ENTRY) {
 			condp->value = tmp.argv;
 			condp++;
-			WARN_ON(tmp.right != CCS_IMM_NAME_ENTRY &&
-				tmp.right != CCS_IMM_GROUP);
-			WARN_ON(!tmp.group && !tmp.path);
 		} else if (tmp.left == CCS_ENVP_ENTRY) {
 			condp->path = tmp.envp;
 			condp++;
-			WARN_ON(tmp.right != CCS_IMM_NAME_ENTRY &&
-				tmp.right != CCS_IMM_GROUP);
-			WARN_ON(!tmp.group && !tmp.path);
 		}
 		if (tmp.right == CCS_IMM_GROUP) {
 			condp->group = tmp.group;
@@ -2329,10 +2339,10 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 	entry->size = (void *) condp - (void *) entry;
 	return ccs_commit_condition(entry);
 out:
-	printk(KERN_WARNING "%u: type=%u env='%s' path='%s' group='%s'\n",
-	       __LINE__, type, tmp.envp ? tmp.envp->name : "",
-	       tmp.path ? tmp.path->name : "",
-	       tmp.group ? tmp.group->group_name->name : "");
+	dprintk(KERN_WARNING "%u: type=%u env='%s' path='%s' group='%s'\n",
+		__LINE__, type, tmp.envp ? tmp.envp->name : "",
+		tmp.path ? tmp.path->name : "",
+		tmp.group ? tmp.group->group_name->name : "");
 	ccs_put_name(tmp.envp);
 	if (tmp.path != &ccs_null_name)
 		ccs_put_name(tmp.path);
@@ -2646,11 +2656,7 @@ static int ccs_parse_entry(struct ccs_io_buffer *head)
 {
 	enum ccs_mac_index type;
 	const char *operation = ccs_read_token(head);
-	for (type = CCS_MAC_EXECUTE; type < CCS_MAX_MAC_INDEX; type++) {
-		if (!ccs_mac_keywords[type]) {
-			printk(KERN_INFO "ccs_mac_keywords[%u]==NULL\n", type);
-			continue;
-		}
+	for (type = 0; type < CCS_MAX_MAC_INDEX; type++) {
 		if (strcmp(operation, ccs_mac_keywords[type]))
 			continue;
 		head->w.acl_index = type;
@@ -2665,6 +2671,15 @@ static int ccs_parse_entry(struct ccs_io_buffer *head)
 	return -EINVAL;
 }
 
+/**
+ * ccs_print_number - Print number argument.
+ *
+ * @head:  Pointer to "struct ccs_io_buffer".
+ * @radix: One of values in "enum ccs_value_type".
+ * @value: Value to print.
+ *
+ * Returns nothing.
+ */
 static void ccs_print_number(struct ccs_io_buffer *head,
 			     const enum ccs_value_type radix,
 			     const unsigned long value)
@@ -2681,6 +2696,15 @@ static void ccs_print_number(struct ccs_io_buffer *head,
 	}
 }
 
+/**
+ * ccs_print_misc_attribute - Print misc attribute's name.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @type: One of values in "enum ccs_mac_index".
+ * @cond: One of values in "enum ccs_condition_index".
+ *
+ * Returns nothing.
+ */
 static void ccs_print_misc_attribute(struct ccs_io_buffer *head,
 				     const enum ccs_mac_index type,
 				     const enum ccs_conditions_index cond)
@@ -2720,8 +2744,15 @@ static void ccs_print_misc_attribute(struct ccs_io_buffer *head,
 	}
 }
 
-static void ccs_print_ipv4_address(struct ccs_io_buffer *head,
-				   const u32 *ip)
+/**
+ * ccs_print_ipv4 - Print an IPv4 address.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ip:   Pointer to "u32" in network byte order.
+ *
+ * Returns nothing.
+ */
+static void ccs_print_ipv4(struct ccs_io_buffer *head, const u32 *ip)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
 	ccs_io_printf(head, "%pI4", ip);
@@ -2732,8 +2763,16 @@ static void ccs_print_ipv4_address(struct ccs_io_buffer *head,
 #endif
 }
 
-static void ccs_print_ipv6_address(struct ccs_io_buffer *head,
-				   const struct in6_addr *ip)
+/**
+ * ccs_print_ipv6 - Print an IPv6 address.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ip:   Pointer to "struct in6_addr".
+ *
+ * Returns nothing.
+ */
+static void ccs_print_ipv6(struct ccs_io_buffer *head,
+			   const struct in6_addr *ip)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
 	ccs_io_printf(head, "%pI6c", ip);
@@ -2749,7 +2788,6 @@ static void ccs_print_ipv6_address(struct ccs_io_buffer *head,
  * ccs_print_condition_loop - Print condition part.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @type: One of values in "enum ccs_mac_index".
  * @cond: Pointer to "struct ccs_condition".
  *
  * Returns true on success, false otherwise.
@@ -2837,25 +2875,23 @@ static bool ccs_print_condition_loop(struct ccs_io_buffer *head,
 			break;
 		case CCS_IMM_IPV4ADDR_ENTRY1:
 		case CCS_IMM_IPV4ADDR_ENTRY2:
-			ccs_print_ipv4_address(head, &condp->ip);
+			ccs_print_ipv4(head, &condp->ip);
 			condp++;
 			if (right == CCS_IMM_IPV4ADDR_ENTRY1)
 				break;
 			ccs_set_string(head, "-");
-			ccs_print_ipv4_address(head, &condp->ip);
+			ccs_print_ipv4(head, &condp->ip);
 			condp++;
 			break;
 		case CCS_IMM_IPV6ADDR_ENTRY1:
 		case CCS_IMM_IPV6ADDR_ENTRY2:
-			ccs_print_ipv6_address(head, (const struct in6_addr *)
-					       condp);
+			ccs_print_ipv6(head, (const struct in6_addr *) condp);
 			condp = (void *)
 				((u8 *) condp) + sizeof(struct in6_addr);
 			if (right == CCS_IMM_IPV6ADDR_ENTRY1)
 				break;
 			ccs_set_string(head, "-");
-			ccs_print_ipv6_address(head, (const struct in6_addr *)
-					       condp);
+			ccs_print_ipv6(head, (const struct in6_addr *) condp);
 			condp = (void *)
 				((u8 *) condp) + sizeof(struct in6_addr);
 			break;
@@ -2914,7 +2950,6 @@ static bool ccs_read_acl(struct ccs_io_buffer *head,
 		return true;
 	if (!ccs_flush(head))
 		return false;
-	BUG_ON(type >= CCS_MAX_MAC_INDEX);
 	ccs_io_printf(head, "%u ", acl->priority);
 	ccs_set_string(head, "acl ");
 	ccs_set_string(head, ccs_mac_keywords[type]);
@@ -3234,7 +3269,7 @@ static int ccs_supervisor(struct ccs_request_info *r)
 	static unsigned int ccs_serial;
 	struct ccs_query entry = { };
 	bool quota_exceeded = false;
-	if (WARN_ON(!r->matched_acl))
+	if (!r->matched_acl)
 		return -EPERM;
 	/* Get message. */
 	entry.query = ccs_init_log(r);
@@ -3838,7 +3873,7 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 {
 #ifdef CONFIG_CCSECURITY_NETWORK
 	/* Make sure that IP address argument is ready. */
-	char ip[48];
+	char ip[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255")];
 	switch (r->type) {
 	case CCS_MAC_INET_STREAM_BIND:
 	case CCS_MAC_INET_STREAM_LISTEN:
@@ -3852,34 +3887,40 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	case CCS_MAC_INET_DGRAM_RECV:
 	case CCS_MAC_INET_RAW_RECV:
 #endif
-		if (WARN_ON(!r->param.ip))
+		if (!r->param.ip)
 			return 0;
-		if (r->param.is_ipv6)
-			ccs_print_ipv6(ip, sizeof(ip),
-				       (const struct in6_addr *) r->param.ip);
-		else
-			ccs_print_ipv4(ip, sizeof(ip), r->param.ip);
+		if (r->param.is_ipv6) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
+			snprintf(ip, sizeof(ip), "%pI6c",
+				 (const struct in6_addr *) r->param.ip);
+#else
+			ip6_compressed_string(ip, (const u8 *) r->param.ipip);
+#endif
+		} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
+			snprintf(ip, sizeof(ip), "%pI4", r->param.ip);
+#else
+			ip4_string(ip, r->param.ip);
+#endif
+		}
 		break;
 	default:
-		//ip[0] = '\0';
 		break;
 	}
 #endif
 	/* Make sure that string arguments are ready. */
-	if (!r->param.s[0])
+	if (!r->param.s[0]) {
 		ccs_populate_patharg(r, true);
-	if (!r->param.s[1])
+		if (!r->param.s[0])
+			return 0;
+	}
+	if (!r->param.s[1]) {
 		ccs_populate_patharg(r, false);
+		if (!r->param.s[1])
+			return 0;
+	}
 	switch (r->type) {
 	case CCS_MAC_EXECUTE:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
 		return snprintf(buf, len, " exec=\"%s\" path=\"%s\"",
 				r->param.s[1]->name, r->param.s[0]->name);
 	case CCS_MAC_READ:
@@ -3893,19 +3934,11 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	case CCS_MAC_TRUNCATE:
 	case CCS_MAC_CHROOT:
 	case CCS_MAC_UMOUNT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " path=\"%s\"", r->param.s[0]->name);
 	case CCS_MAC_CREATE:
 	case CCS_MAC_MKDIR:
 	case CCS_MAC_MKFIFO:
 	case CCS_MAC_MKSOCK:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " path=\"%s\" perm=0%lo",
 				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_SYMLINK:
@@ -3913,92 +3946,36 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 				r->param.s[0]->name, r->param.s[1]->name);
 	case CCS_MAC_MKBLOCK:
 	case CCS_MAC_MKCHAR:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " path=\"%s\" perm=0%lo "
 				"dev_major=%lu dev_minor=%lu",
 				r->param.s[0]->name, r->param.i[0],
 				r->param.i[1], r->param.i[2]);
 	case CCS_MAC_LINK:
 	case CCS_MAC_RENAME:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
 		return snprintf(buf, len, " old_path=\"%s\" new_path=\"%s\"",
 				r->param.s[0]->name, r->param.s[1]->name);
 	case CCS_MAC_CHMOD:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " path=\"%s\" perm=0%lo",
 				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_CHOWN:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " path=\"%s\" uid=%lu",
 				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_CHGRP:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " path=\"%s\" gid=%lu",
 				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_IOCTL:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " path=\"%s\" cmd=0x%lX",
 				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_MOUNT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[2]))
-			return 0;
-		if (WARN_ON(!r->param.s[2]->name))
-			return 0;
 		return snprintf(buf, len, " source=\"%s\" target=\"%s\""
 				" fstype=\"%s\" flags=0x%lX",
 				r->param.s[0]->name, r->param.s[1]->name,
 				r->param.s[2]->name, r->param.i[0]);
 	case CCS_MAC_PIVOT_ROOT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[1]))
-			return 0;
-		if (WARN_ON(!r->param.s[1]->name))
-			return 0;
 		return snprintf(buf, len, " new_root=\"%s\" put_old=\"%s\"",
 				r->param.s[0]->name, r->param.s[1]->name);
 #ifdef CONFIG_CCSECURITY_MISC
 	case CCS_MAC_ENVIRON:
-		if (WARN_ON(!r->param.s[2]))
-			return 0;
-		if (WARN_ON(!r->param.s[2]->name))
-			return 0;
-		if (WARN_ON(!r->param.s[3]))
-			return 0;
-		if (WARN_ON(!r->param.s[3]->name))
-			return 0;
 		return snprintf(buf, len, " name=\"%s\" value=\"%s\"",
 				r->param.s[2]->name, r->param.s[3]->name);
 #endif
@@ -4034,18 +4011,10 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	case CCS_MAC_UNIX_SEQPACKET_LISTEN:
 	case CCS_MAC_UNIX_SEQPACKET_CONNECT:
 	case CCS_MAC_UNIX_SEQPACKET_ACCEPT:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " addr=\"%s\"", r->param.s[0]->name);
 #endif
 #ifdef CONFIG_CCSECURITY_IPC
 	case CCS_MAC_PTRACE:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " cmd=%lu domain=\"%s\"",
 				r->param.i[0], r->param.s[0]->name);
 	case CCS_MAC_SIGNAL:
@@ -4053,10 +4022,6 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 #endif
 #ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
 	case CCS_MAC_MANUAL_DOMAIN_TRANSITION:
-		if (WARN_ON(!r->param.s[0]))
-			return 0;
-		if (WARN_ON(!r->param.s[0]->name))
-			return 0;
 		return snprintf(buf, len, " domain=\"%s\"",
 				r->param.s[0]->name);
 #endif
@@ -4811,7 +4776,7 @@ static void __init ccs_create_entry(const char *name, const umode_t mode,
 /**
  * ccs_proc_init - Initialize /proc/ccs/ interface.
  *
- * Returns 0.
+ * Returns nothing.
  */
 static void __init ccs_proc_init(void)
 {
@@ -4851,6 +4816,12 @@ static int __init ccs_init_module(void)
 	u16 idx;
 	if (ccsecurity_ops.disabled)
 		return -EINVAL;
+	for (idx = 0; idx < CCS_MAX_MAC_INDEX; idx++) {
+		if (ccs_mac_keywords[idx])
+			continue;
+		printk(KERN_INFO "ccs_mac_keywords[%u]==NULL\n", idx);
+		return -EINVAL;
+	}
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
 	MOD_INC_USE_COUNT;
 #endif

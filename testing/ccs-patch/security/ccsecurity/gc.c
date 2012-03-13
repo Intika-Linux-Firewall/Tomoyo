@@ -269,7 +269,6 @@ static void ccs_del_acl(struct list_head *element)
 {
 	struct ccs_acl_info *acl = container_of(element, typeof(*acl), list);
 	ccs_put_condition(acl->cond);
-	WARN_ON(!list_empty(&acl->acl_info_list));
 }
 
 /**

@@ -726,6 +726,16 @@ task_has_no_mm:
 	}
 }
 
+/**
+ * ccs_get_exename - Get ccs_realpath() of current process.
+ *
+ * @buf: Pointer to "struct ccs_path_info".
+ *
+ * Returns true on success, false otherwise.
+ *
+ * This function uses kzalloc(), so the caller must kfree()
+ * if this function didn't return NULL.
+ */
 bool ccs_get_exename(struct ccs_path_info *buf)
 {
 	buf->name = ccs_get_exe();
