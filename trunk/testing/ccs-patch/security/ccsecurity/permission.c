@@ -61,6 +61,17 @@ static const u8 ccs_c2mac[CCS_MAX_CAPABILITY_INDEX] = {
 
 #endif
 
+/* Type of condition argument. */
+enum ccs_arg_type {
+	CCS_ARG_TYPE_NONE,
+	CCS_ARG_TYPE_NUMBER,
+	CCS_ARG_TYPE_NAME,
+	CCS_ARG_TYPE_GROUP,
+	CCS_ARG_TYPE_BITOP,
+	CCS_ARG_TYPE_IPV4ADDR,
+	CCS_ARG_TYPE_IPV6ADDR,
+} __packed;
+
 /***** SECTION2: Structure definition *****/
 
 /* Structure for holding inet domain socket's address. */
@@ -83,17 +94,27 @@ struct ccs_addr_info {
 	struct ccs_unix_addr_info unix0;
 };
 
+/* Structure for holding single condition component. */
+struct ccs_cond_arg {
+	enum ccs_arg_type type;
+	unsigned long value[2];
+	const struct ccs_path_info *name;
+	const struct ccs_group *group;
+	struct in6_addr ip[2];
+};
+
 /***** SECTION3: Prototype definition section *****/
 
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
+bool ccs_manager(void);
 void ccs_get_attributes(struct ccs_request_info *r);
 void ccs_populate_patharg(struct ccs_request_info *r, const bool first);
 
 static bool ccs_alphabet_char(const char c);
 static bool ccs_byte_range(const char *str);
 static bool ccs_check_entry(struct ccs_request_info *r,
-			    struct ccs_acl_info *ptr);
+			    const struct ccs_acl_info *ptr);
 static bool ccs_condition(struct ccs_request_info *r,
 			  const struct ccs_condition *cond);
 static bool ccs_decimal(const char c);
@@ -587,7 +608,7 @@ static bool ccs_number_matches_group(const unsigned long min,
  * Caller holds ccs_read_lock().
  */
 static bool ccs_check_entry(struct ccs_request_info *r,
-			    struct ccs_acl_info *ptr)
+			    const struct ccs_acl_info *ptr)
 {
 	return !ptr->is_deleted && ccs_condition(r, ptr->cond);
 }
@@ -2931,10 +2952,10 @@ out:
 /**
  * ccs_path_matches_group_or_pattern - Check whether the given pathname matches the given group or the given pattern.
  *
- * @path:  Pointer to "struct ccs_path_info".
- * @group: Pointer to "struct ccs_group". Maybe NULL.
- * @value: Poiner to "struct ccs_path_info". Maybe NULL.
- * @match: True if positive match, false othwerwise.
+ * @path:    Pointer to "struct ccs_path_info".
+ * @group:   Pointer to "struct ccs_group". Maybe NULL.
+ * @pattern: Poiner to "struct ccs_path_info". Maybe NULL.
+ * @match:   True if positive match, false othwerwise.
  *
  * Returns true on success, false otherwise.
  */
@@ -3147,24 +3168,6 @@ void ccs_get_attributes(struct ccs_request_info *r)
 	r->obj.validate_done = true;
 }
 
-enum ccs_arg_type {
-	CCS_ARG_TYPE_NONE,
-	CCS_ARG_TYPE_NUMBER,
-	CCS_ARG_TYPE_NAME,
-	CCS_ARG_TYPE_GROUP,
-	CCS_ARG_TYPE_BITOP,
-	CCS_ARG_TYPE_IPV4ADDR,
-	CCS_ARG_TYPE_IPV6ADDR,
-} __packed;
-
-struct ccs_cond_arg {
-	enum ccs_arg_type type;
-	unsigned long value[2];
-	const struct ccs_path_info *name;
-	const struct ccs_group *group;
-	struct in6_addr ip[2];
-};
-
 /**
  * ccs_populate_patharg - Calculate pathname for permission check and audit logs.
  *
@@ -3205,6 +3208,20 @@ void ccs_populate_patharg(struct ccs_request_info *r, const bool first)
 		r->param.s[!first] = buf;
 }
 
+/**
+ * ccs_cond2arg - Assign values to condition variables.
+ *
+ * @arg:   Pointer to "struct ccs_cond_arg".
+ * @cmd:   One of values in "enum ccs_conditions_index".
+ * @condp: Pointer to "union ccs_condition_element *".
+ * @r:     Pointer to "struct ccs_request_info".
+ *
+ * Returns true on success, false othwerwise.
+ *
+ * This function should not fail. But it can fail if (for example) out of
+ * memory has occured while calculating ccs_populate_patharg() or
+ * ccs_get_exename().
+ */
 static bool ccs_cond2arg(struct ccs_cond_arg *arg,
 			 const enum ccs_conditions_index cmd,
 			 const union ccs_condition_element **condp,
@@ -3502,8 +3519,8 @@ not_bitop:
  *
  * Caller holds ccs_read_lock().
  */
-bool ccs_condition(struct ccs_request_info *r,
-		   const struct ccs_condition *cond)
+static bool ccs_condition(struct ccs_request_info *r,
+			  const struct ccs_condition *cond)
 {
 	const union ccs_condition_element *condp;
 	if (!cond)
@@ -3516,14 +3533,12 @@ bool ccs_condition(struct ccs_request_info *r,
 		const enum ccs_conditions_index right_op = condp->right;
 		const bool match = !condp->is_not;
 		condp++;
-		if (!ccs_cond2arg(&left, left_op, &condp, r)) {
-			printk(KERN_INFO "Failed to decode left_op=%u\n",
-			       left_op);
-			return false;
-		}
-		if (!ccs_cond2arg(&right, right_op, &condp, r)) {
-			printk(KERN_INFO "Failed to decode right_op=%u\n",
-			       right_op);
+		if (!ccs_cond2arg(&left, left_op, &condp, r) ||
+		    !ccs_cond2arg(&right, right_op, &condp, r)) {
+			/*
+			 * Something wrong (e.g. out of memory or invalid
+			 * argument) occured. We can't check permission.
+			 */
 			return false;
 		}
 		if (left.type == CCS_ARG_TYPE_NUMBER) {
@@ -3609,12 +3624,10 @@ bool ccs_condition(struct ccs_request_info *r,
 			return false;
 		}
 		if (left_op == CCS_HANDLER_PATH) {
-			BUG_ON(right.type != CCS_ARG_TYPE_NAME);
 			r->handler_path_candidate = right.name;
 			continue;
 		}
 		if (left_op == CCS_TRANSIT_DOMAIN) {
-			BUG_ON(right.type != CCS_ARG_TYPE_NAME);
 			r->transition_candidate = right.name;
 			continue;
 		}
@@ -3919,7 +3932,6 @@ recursive:
  * Returns true if matches, false otherwise.
  *
  * The following patterns are available.
- *   \\     \ itself.
  *   \ooo   Octal representation of a byte.
  *   \*     Zero or more repetitions of characters other than '/'.
  *   \@     Zero or more repetitions of characters other than '/' or '.'.
@@ -3956,9 +3968,28 @@ static bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 	return ccs_path_matches_pattern2(f, p);
 }
 
+/**
+ * ccs_clear_request_info - Release memory allocated during permission check.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns nothing.
+ */
 static void ccs_clear_request_info(struct ccs_request_info *r)
 {
 	u8 i;
+	/*
+	 * r->obj.pathname[0] (which is referenced by r->obj.s[0]) and
+	 * r->obj.pathname[1] (which is referenced by r->obj.s[1]) may contain
+	 * pathnames allocated using ccs_populate_patharg() or ccs_mount_acl().
+	 * Their callers do not allocate memory until pathnames becomes needed
+	 * for checking condition or auditing requests.
+	 *
+	 * r->obj.s[2] is used by ccs_mount_acl()/ccs_env_perm() and is
+	 * allocated/released by their callers.
+	 * r->obj.s[3] is used by ccs_env_perm() and is allocated/released by
+	 * its caller.
+	 */
 	for (i = 0; i < 2; i++) {
 		kfree(r->obj.pathname[i].name);
 		r->obj.pathname[i].name = NULL;

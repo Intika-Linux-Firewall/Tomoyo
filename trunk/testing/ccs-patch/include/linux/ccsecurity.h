@@ -77,6 +77,7 @@ struct ccsecurity_operations {
 				 void *data_page);
 #endif
 	int (*umount_permission) (struct vfsmount *mnt, int flags);
+	_Bool (*lport_reserved) (const u16 port); /* Not implemented. */
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
 	void (*save_open_mode) (int mode);
 	void (*clear_open_mode) (void);
