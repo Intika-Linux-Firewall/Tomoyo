@@ -241,8 +241,6 @@ static const struct ccs_path_info *ccs_get_name(const char *name);
 static int __init ccs_init_module(void);
 static int ccs_open(struct inode *inode, struct file *file);
 static int ccs_parse_policy(struct ccs_io_buffer *head, char *line);
-static int ccs_poll_log(struct file *file, poll_table *wait);
-static int ccs_poll_query(struct file *file, poll_table *wait);
 static int ccs_release(struct inode *inode, struct file *file);
 static int ccs_supervisor(struct ccs_request_info *r);
 static int ccs_update_group(struct ccs_io_buffer *head,
@@ -3365,48 +3363,13 @@ static struct ccs_acl_info *ccs_find_acl_by_qid(unsigned int serial)
 	struct ccs_acl_info *acl = NULL;
 	spin_lock(&ccs_query_list_lock);
 	list_for_each_entry(ptr, &ccs_query_list, list) {
-		if (ptr->serial != serial || ptr->answer)
+		if (ptr->serial != serial)
 			continue;
 		acl = ptr->acl;
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
 	return acl;
-}
-
-/**
- * ccs_poll_query - poll() for /proc/ccs/query.
- *
- * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
- *
- * Returns POLLIN | POLLRDNORM when ready to read, 0 otherwise.
- *
- * Waits for access requests which violated policy in enforcing mode.
- */
-static int ccs_poll_query(struct file *file, poll_table *wait)
-{
-	struct list_head *tmp;
-	bool found = false;
-	u8 i;
-	for (i = 0; i < 2; i++) {
-		spin_lock(&ccs_query_list_lock);
-		list_for_each(tmp, &ccs_query_list) {
-			struct ccs_query *ptr =
-				list_entry(tmp, typeof(*ptr), list);
-			if (ptr->answer)
-				continue;
-			found = true;
-			break;
-		}
-		spin_unlock(&ccs_query_list_lock);
-		if (found)
-			return POLLIN | POLLRDNORM;
-		if (i)
-			break;
-		poll_wait(file, &ccs_query_wait, wait);
-	}
-	return 0;
 }
 
 /**
@@ -3429,8 +3392,6 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
-		if (ptr->answer)
-			continue;
 		if (pos++ != head->r.query_index)
 			continue;
 		len = ptr->query_len;
@@ -3448,8 +3409,6 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
-		if (ptr->answer)
-			continue;
 		if (pos++ != head->r.query_index)
 			continue;
 		/*
@@ -3497,8 +3456,10 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
 		if (ptr->serial != serial)
 			continue;
-		if (!ptr->answer)
-			ptr->answer = (u8) answer;
+		ptr->answer = (u8) answer;
+		/* Remove from ccs_query_list. */
+		list_del(&ptr->list);
+		INIT_LIST_HEAD(&ptr->list);
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
@@ -4177,27 +4138,6 @@ static void ccs_read_log(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_poll_log - Wait for an audit log.
- *
- * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
- *
- * Returns POLLIN | POLLRDNORM when ready to read an audit log.
- */
-static int ccs_poll_log(struct file *file, poll_table *wait)
-{
-	enum ccs_matching_result i;
-	for (i = 0; i < CCS_MAX_MATCHING; i++)
-		if (ccs_log_count[i])
-			return POLLIN | POLLRDNORM;
-	poll_wait(file, &ccs_log_wait, wait);
-	for (i = 0; i < CCS_MAX_MATCHING; i++)
-		if (ccs_log_count[i])
-			return POLLIN | POLLRDNORM;
-	return 0;
-}
-
-/**
  * ccs_transit_domain - Transit to other domain.
  *
  * @domainname: The name of domain.
@@ -4552,21 +4492,30 @@ static int ccs_release(struct inode *inode, struct file *file)
  * ccs_poll - poll() for /proc/ccs/ interface.
  *
  * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
+ * @wait: Pointer to "poll_table". Maybe NULL.
  *
- * Returns 0 on success, negative value otherwise.
+ * Returns POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM if ready to read/write,
+ * POLLOUT | POLLWRNORM otherwise.
  */
 static unsigned int ccs_poll(struct file *file, poll_table *wait)
 {
 	struct ccs_io_buffer *head = file->private_data;
-	switch (head->type) {
-	case CCS_AUDIT:
-		return ccs_poll_log(file, wait);
-	case CCS_QUERY:
-		return ccs_poll_query(file, wait);
-	default:
-		return -ENOSYS;
+	if (head->type == CCS_AUDIT) {
+		if (!ccs_memory_used[CCS_MEMORY_AUDIT]) {
+			poll_wait(file, &ccs_log_wait, wait);
+			/* Recheck in case we raced. */
+			if (!ccs_memory_used[CCS_MEMORY_AUDIT])
+				return POLLOUT | POLLWRNORM;
+		}
+	} else if (head->type == CCS_QUERY) {
+		if (list_empty(&ccs_query_list)) {
+			poll_wait(file, &ccs_query_wait, wait);
+			/* Recheck in case we raced. */
+			if (list_empty(&ccs_query_list))
+				return POLLOUT | POLLWRNORM;
+		}
 	}
+	return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
 }
 
 /**
