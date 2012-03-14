@@ -3458,8 +3458,10 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 			continue;
 		ptr->answer = (u8) answer;
 		/* Remove from ccs_query_list. */
-		list_del(&ptr->list);
-		INIT_LIST_HEAD(&ptr->list);
+		if (ptr->answer) {
+			list_del(&ptr->list);
+			INIT_LIST_HEAD(&ptr->list);
+		}
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
