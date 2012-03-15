@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2011/11/11
+ * Version: 1.8.3+   2012/03/15
  */
 
 #include "internal.h"
@@ -39,15 +39,6 @@ struct ccs_lock_struct {
 
 /***** SECTION3: Prototype definition section *****/
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-int ccs_lock(void);
-#endif
-void ccs_del_condition(struct list_head *element);
-void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-void ccs_unlock(const int idx);
-#endif
-
 static bool ccs_domain_used_by_task(struct ccs_domain_info *domain);
 static bool ccs_name_used_by_io_buffer(const char *string, const size_t size);
 static bool ccs_struct_used_by_io_buffer(const struct list_head *element);
@@ -56,7 +47,6 @@ static void ccs_collect_acl(struct list_head *list);
 static void ccs_collect_entry(void);
 static void ccs_collect_member(const enum ccs_policy_id id,
 			       struct list_head *member_list);
-static void ccs_del_acl(struct list_head *element);
 static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 static void ccs_synchronize_counter(void);
@@ -226,7 +216,7 @@ static bool ccs_domain_used_by_task(struct ccs_domain_info *domain)
 	}
 out:
 	rcu_read_unlock();
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
+#else
 	struct task_struct *g;
 	struct task_struct *t;
 	ccs_tasklist_lock();
@@ -241,19 +231,6 @@ out:
 	} while_each_thread(g, t);
 out:
 	ccs_tasklist_unlock();
-#else
-	struct task_struct *p;
-	ccs_tasklist_lock();
-	for_each_process(p) {
-		if (!(p->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
-			smp_rmb(); /* Avoid out of order execution. */
-			if (p->ccs_domain_info != domain)
-				continue;
-		}
-		in_use = true;
-		break;
-	}
-	ccs_tasklist_unlock();
 #endif
 	return in_use;
 }
@@ -265,7 +242,7 @@ out:
  *
  * Returns nothing.
  */
-static void ccs_del_acl(struct list_head *element)
+static inline void ccs_del_acl(struct list_head *element)
 {
 	struct ccs_acl_info *acl = container_of(element, typeof(*acl), list);
 	ccs_put_condition(acl->cond);
@@ -316,30 +293,6 @@ static inline void ccs_del_group(struct list_head *element)
 }
 
 /**
- * ccs_del_ip_group - Delete members in "struct ccs_ip_group".
- *
- * @element: Pointer to "struct list_head".
- *
- * Returns nothing.
- */
-static inline void ccs_del_ip_group(struct list_head *element)
-{
-	/* Nothing to do. */
-}
-
-/**
- * ccs_del_number_group - Delete members in "struct ccs_number_group".
- *
- * @element: Pointer to "struct list_head".
- *
- * Returns nothing.
- */
-static inline void ccs_del_number_group(struct list_head *element)
-{
-	/* Nothing to do. */
-}
-
-/**
  * ccs_del_condition - Delete members in "struct ccs_condition".
  *
  * @element: Pointer to "struct list_head".
@@ -379,18 +332,6 @@ void ccs_del_condition(struct list_head *element)
 			condp = (void *)
 				(((u8 *) condp) + sizeof(struct in6_addr) * 2);
 	}
-}
-
-/**
- * ccs_del_name - Delete members in "struct ccs_name".
- *
- * @element: Pointer to "struct list_head".
- *
- * Returns nothing.
- */
-static inline void ccs_del_name(struct list_head *element)
-{
-	/* Nothing to do. */
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
@@ -498,14 +439,6 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 	case CCS_ID_STRING_GROUP:
 		ccs_del_string_group(element);
 		break;
-#ifdef CONFIG_CCSECURITY_NETWORK
-	case CCS_ID_IP_GROUP:
-		ccs_del_ip_group(element);
-		break;
-#endif
-	case CCS_ID_NUMBER_GROUP:
-		ccs_del_number_group(element);
-		break;
 	case CCS_ID_CONDITION:
 		ccs_del_condition(element);
 		break;
@@ -520,7 +453,6 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 		     container_of(element, typeof(struct ccs_name),
 				  head.list)->size))
 			goto reinject;
-		ccs_del_name(element);
 		break;
 	case CCS_ID_ACL:
 		ccs_del_acl(element);
@@ -534,13 +466,12 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 		    (container_of(element, typeof(struct ccs_domain_info),
 				  list)))
 			goto reinject;
+		ccs_del_domain(element);
 		break;
-	case CCS_MAX_POLICY:
+	default:
 		break;
 	}
 	mutex_lock(&ccs_policy_lock);
-	if (type == CCS_ID_DOMAIN)
-		ccs_del_domain(element);
 	ccs_memory_free(element, type);
 	return;
 reinject:
@@ -580,7 +511,7 @@ static void ccs_collect_member(const enum ccs_policy_id id,
 }
 
 /**
- * ccs_collect_acl - Delete elements in "struct ccs_domain_info".
+ * ccs_collect_acl - Delete elements in "struct ccs_acl_info".
  *
  * @list: Pointer to "struct list_head".
  *
@@ -595,7 +526,6 @@ static void ccs_collect_acl(struct list_head *list)
 	list_for_each_entry_safe(acl, tmp, list, list) {
 		if (!acl->is_deleted)
 			continue;
-		/* acl->is_deleted = CCS_GC_IN_PROGRESS; */
 		ccs_try_to_gc(CCS_ID_ACL, &acl->list);
 	}
 }
@@ -613,8 +543,7 @@ static void ccs_collect_entry(void)
 		struct ccs_domain_info *domain;
 		struct ccs_domain_info *tmp;
 		list_for_each_entry_safe(domain, tmp, &ccs_domain_list, list) {
-			if (/* !domain->is_deleted || */
-			    ccs_domain_used_by_task(domain))
+			if (ccs_domain_used_by_task(domain))
 				continue;
 			ccs_try_to_gc(CCS_ID_DOMAIN, &domain->list);
 		}
@@ -691,29 +620,8 @@ static int ccs_gc_thread(void *unused)
 		goto out;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
 	/* daemonize() not needed. */
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#else
 	daemonize("GC for CCS");
-#else
-	daemonize();
-	reparent_to_init();
-#if defined(TASK_DEAD)
-	{
-		struct task_struct *task = current;
-		spin_lock_irq(&task->sighand->siglock);
-		siginitsetinv(&task->blocked, 0);
-		recalc_sigpending();
-		spin_unlock_irq(&task->sighand->siglock);
-	}
-#else
-	{
-		struct task_struct *task = current;
-		spin_lock_irq(&task->sigmask_lock);
-		siginitsetinv(&task->blocked, 0);
-		recalc_sigpending(task);
-		spin_unlock_irq(&task->sigmask_lock);
-	}
-#endif
-	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
 #endif
 	ccs_collect_entry();
 	{

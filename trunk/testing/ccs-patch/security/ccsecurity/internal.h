@@ -3,13 +3,16 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2011/11/11
+ * Version: 1.8.3+   2012/03/15
  */
 
 #ifndef _SECURITY_CCSECURITY_INTERNAL_H
 #define _SECURITY_CCSECURITY_INTERNAL_H
 
 #include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
+#error This module supports only 2.6.0 and later kernels.
+#endif
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/string.h>
@@ -35,12 +38,7 @@
 #include <linux/in6.h>
 #include <linux/un.h>
 #include <linux/ptrace.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#include <linux/fs.h>
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
-#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 #include <linux/fs_struct.h>
 #endif
@@ -48,9 +46,7 @@
 #include <linux/namespace.h>
 #endif
 #include <linux/proc_fs.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) || defined(RHEL_MAJOR)
 #include <linux/hash.h>
-#endif
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
 #include <linux/sysctl.h>
 #endif
@@ -64,12 +60,6 @@
 #include <net/ip.h>
 #include <net/ipv6.h>
 #include <net/udp.h>
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#define sk_family family
-#define sk_protocol protocol
-#define sk_type type
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 
@@ -153,10 +143,6 @@ struct path {
 			(type *)((char *)__mptr - offsetof(type, member)); })
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-#define smp_read_barrier_depends smp_rmb
-#endif
-
 #ifndef ACCESS_ONCE
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 #endif
@@ -217,62 +203,6 @@ static inline void path_put(struct path *path)
 {
 	dput(path->dentry);
 	mntput(path->mnt);
-}
-
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * __list_add_rcu - Insert a new entry between two known consecutive entries.
- *
- * @new:  Pointer to "struct list_head".
- * @prev: Pointer to "struct list_head".
- * @next: Pointer to "struct list_head".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void __list_add_rcu(struct list_head *new,
-				  struct list_head *prev,
-				  struct list_head *next)
-{
-	new->next = next;
-	new->prev = prev;
-	rcu_assign_pointer(prev->next, new);
-	next->prev = new;
-}
-
-/**
- * list_add_tail_rcu - Add a new entry to rcu-protected list.
- *
- * @new:  Pointer to "struct list_head".
- * @head: Pointer to "struct list_head".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void list_add_tail_rcu(struct list_head *new,
-				     struct list_head *head)
-{
-	__list_add_rcu(new, head->prev, head);
-}
-
-/**
- * list_add_rcu - Add a new entry to rcu-protected list.
- *
- * @new:  Pointer to "struct list_head".
- * @head: Pointer to "struct list_head".
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void list_add_rcu(struct list_head *new, struct list_head *head)
-{
-	__list_add_rcu(new, head, head->next);
 }
 
 #endif
@@ -352,7 +282,7 @@ static inline void __list_del_entry(struct list_head *entry)
 
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 30) || (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9)
 
 #ifndef ssleep
 
@@ -487,7 +417,7 @@ enum ccs_mac_index {
 	CCS_MAC_APPEND,
 	CCS_MAC_CREATE,
 	CCS_MAC_UNLINK,
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 	CCS_MAC_GETATTR,
 #endif
 	CCS_MAC_MKDIR,
@@ -537,11 +467,13 @@ enum ccs_mac_index {
 	CCS_MAC_UNIX_SEQPACKET_CONNECT,
 	CCS_MAC_UNIX_SEQPACKET_ACCEPT,
 #endif
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	CCS_MAC_ENVIRON,
 #endif
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 	CCS_MAC_PTRACE,
+#endif
+#ifdef CONFIG_CCSECURITY_SIGNAL
 	CCS_MAC_SIGNAL,
 #endif
 	CCS_MAC_MODIFY_POLICY,
@@ -556,8 +488,10 @@ enum ccs_mac_index {
 	CCS_MAC_USE_KERNEL_MODULE,
 	CCS_MAC_USE_NEW_KERNEL,
 #endif
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_AUTO_DOMAIN_TRANSITION
 	CCS_MAC_AUTO_DOMAIN_TRANSITION,
+#endif
+#ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 	CCS_MAC_MANUAL_DOMAIN_TRANSITION,
 #endif
 	CCS_MAX_MAC_INDEX
@@ -617,7 +551,7 @@ enum ccs_proc_interface_index {
 	CCS_AUDIT,
 	CCS_VERSION,
 	CCS_QUERY,
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 	CCS_EXECUTE_HANDLER,
 #endif
 } __packed;
@@ -640,6 +574,15 @@ enum ccs_value_type {
 	CCS_VALUE_TYPE_DECIMAL,
 	CCS_VALUE_TYPE_OCTAL,
 	CCS_VALUE_TYPE_HEXADECIMAL,
+} __packed;
+
+/* Index numbers for type of IP addresses. */
+enum ccs_ipaddr_type {
+	CCS_ADDRESS_TYPE_INVALID,
+	CCS_ADDRESS_TYPE_IPV4,
+	CCS_ADDRESS_TYPE_IPV4_RANGE,
+	CCS_ADDRESS_TYPE_IPV6,
+	CCS_ADDRESS_TYPE_IPV6_RANGE,
 } __packed;
 
 /* Constants definition for internal use. */
@@ -894,9 +837,8 @@ struct ccs_request_info {
 /* Structure for domain information. */
 struct ccs_domain_info {
 	struct list_head list;
-	/* Name of this domain. Never NULL.          */
+	/* Name of this domain. Never NULL. */
 	const struct ccs_path_info *domainname;
-	s8 is_deleted;     /* Delete flag.           */
 };
 
 /* Structure for holding string data. */
@@ -1143,7 +1085,7 @@ static inline pid_t ccs_sys_getppid(void)
 	return pid;
 }
 
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#else
 
 /**
  * ccs_sys_getppid - Copy of getppid().
@@ -1164,30 +1106,6 @@ static inline pid_t ccs_sys_getppid(void)
 	pid = rcu_dereference(current->real_parent)->tgid;
 #endif
 	rcu_read_unlock();
-	return pid;
-}
-
-#else
-
-/**
- * ccs_sys_getppid - Copy of getppid().
- *
- * Returns parent process's PID.
- *
- * I can't use code for 2.6.16.34 for 2.4 kernels because 2.4 kernels does not
- * have RCU. Therefore, I'm using pessimistic lock (i.e. tasklist_lock
- * spinlock).
- */
-static inline pid_t ccs_sys_getppid(void)
-{
-	pid_t pid;
-	read_lock(&tasklist_lock);
-#ifdef TASK_DEAD
-	pid = current->group_leader->real_parent->tgid;
-#else
-	pid = current->p_opptr->pid;
-#endif
-	read_unlock(&tasklist_lock);
 	return pid;
 }
 

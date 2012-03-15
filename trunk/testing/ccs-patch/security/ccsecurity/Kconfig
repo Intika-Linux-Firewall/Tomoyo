@@ -40,30 +40,6 @@ config CCSECURITY_USE_EXTERNAL_TASK_SECURITY
 	  but accessing these variables becomes slower because lookup operation
 	  is performed every time the current thread needs to access them.
 
-config CCSECURITY_MAX_ACCEPT_ENTRY
-	int "Default maximal count for learning mode"
-	default 2048
-	range 0 2147483647
-	depends on CCSECURITY
-	help
-	  This is the default value for maximal ACL entries
-	  that are automatically appended into policy at "learning mode".
-	  Some programs access thousands of objects, so running
-	  such programs in "learning mode" dulls the system response
-	  and consumes much memory.
-	  This is the safeguard for such programs.
-
-config CCSECURITY_MAX_AUDIT_LOG
-	int "Default maximal count for audit log"
-	default 1024
-	range 0 2147483647
-	depends on CCSECURITY
-	help
-	  This is the default value for maximal entries for
-	  audit logs that the kernel can hold on memory.
-	  You can read the log via /proc/ccs/audit.
-	  If you don't need audit logs, you may set this value to 0.
-
 config CCSECURITY_OMIT_USERSPACE_LOADER
 	bool "Activate without calling userspace policy loader."
 	default n
@@ -109,25 +85,25 @@ config CCSECURITY_ACTIVATION_TRIGGER
 	  Say Y here if you want to enable only specific functionality in order
 	  to reduce object file size.
 
-config CCSECURITY_FILE_READDIR
+config CCSECURITY_READDIR
 	bool "Enable readdir operation restriction."
 	default y
 	depends on CCSECURITY
 	---help---
-	  Say Y here if you want to enable analysis/restriction of opening
-	  directories for reading. Reading directory entries is a commonly
-	  requested operation and damage caused by not restricting it as MAC
-	  might be acceptable for you.
+	  Say Y here if you want to enable restriction of opening directories
+	  for reading. Reading directory entries is a commonly requested
+	  operation and damage caused by not restricting it might be acceptable
+	  for you.
 
-config CCSECURITY_FILE_GETATTR
+config CCSECURITY_GETATTR
 	bool "Enable getattr operation restriction."
 	default y
 	depends on CCSECURITY
 	---help---
-	  Say Y here if you want to enable analysis/restriction of getting
-	  information of files. Getting file's information is a commonly
-	  requested operation and damage caused by not restricting it as MAC
-	  might be acceptable for you.
+	  Say Y here if you want to enable restriction of getting information
+	  of files. Getting file's information is a commonly requested
+	  operation and damage caused by not restricting it might be acceptable
+	  for you.
 
 config CCSECURITY_NETWORK
 	bool "Enable socket operation restriction."
@@ -135,47 +111,61 @@ config CCSECURITY_NETWORK
 	depends on NET
 	depends on CCSECURITY
 	---help---
-	  Say Y here if you want to enable analysis/restriction of INET and
-	  UNIX domain socket's operations.
+	  Say Y here if you want to enable restriction of INET/INET6/UNIX
+	  socket's operations.
 
 config CCSECURITY_CAPABILITY
 	bool "Enable non-POSIX capability operation restriction."
 	default y
 	depends on CCSECURITY
 	---help---
-	  Say Y here if you want to enable analysis/restriction of non-POSIX
+	  Say Y here if you want to enable restriction of non-POSIX
 	  capabilities.
 
-config CCSECURITY_IPC
-	bool "Enable IPC operation restriction."
+config CCSECURITY_PTRACE
+	bool "Enable ptrace operation restriction."
 	default y
 	depends on CCSECURITY
 	---help---
-	  Say Y here if you want to enable analysis/restriction of sending
-	  signals.
+	  Say Y here if you want to enable restriction of ptrace() operation.
 
-config CCSECURITY_MISC
-	bool "Enable environment variable names restriction."
+config CCSECURITY_SIGNAL
+	bool "Enable kill operation restriction."
 	default y
 	depends on CCSECURITY
 	---help---
-	  Say Y here if you want to enable analysis/restriction of environment
-	  variable names passed upon program execution request.
+	  Say Y here if you want to enable restriction of kill() operation.
 
-config CCSECURITY_TASK_EXECUTE_HANDLER
+config CCSECURITY_ENVIRON
+	bool "Enable environment variable names/values restriction."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable restriction of environment variable
+	  names/values passed upon program execution request.
+
+config CCSECURITY_EXECUTE_HANDLER
 	bool "Enable execute handler functionality."
 	default y
 	depends on CCSECURITY
 	---help---
 	  Say Y here if you want to enable execute handler functionality.
 
-config CCSECURITY_TASK_DOMAIN_TRANSITION
+config CCSECURITY_MANUAL_DOMAIN_TRANSITION
 	bool "Enable domain transition without program execution request."
 	default y
 	depends on CCSECURITY
 	---help---
 	  Say Y here if you want to enable domain transition without involving
 	  program execution request.
+
+config CCSECURITY_AUTO_DOMAIN_TRANSITION
+	bool "Enable automatic domain transition."
+	default y
+	depends on CCSECURITY
+	---help---
+	  Say Y here if you want to enable automatic domain transition when
+	  conditions are met.
 
 config CCSECURITY_NETWORK_RECVMSG
 	def_bool CCSECURITY_NETWORK

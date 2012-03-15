@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2011/12/13
+ * Version: 1.8.3+   2012/03/15
  */
 
 #include "internal.h"
@@ -17,19 +17,9 @@
 
 #define SOCKFS_MAGIC 0x534F434B
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#define s_fs_info u.generic_sbp
-#endif
-
 /***** SECTION2: Structure definition *****/
 
 /***** SECTION3: Prototype definition section *****/
-
-char *ccs_encode(const char *str);
-char *ccs_encode2(const char *str, int str_len);
-char *ccs_realpath(struct path *path);
-const char *ccs_get_exe(void);
-void ccs_fill_path_info(struct ccs_path_info *ptr);
 
 static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 				   const int buflen);
@@ -42,24 +32,6 @@ static char *ccs_get_socket_name(struct path *path, char * const buffer,
 static int ccs_const_part_length(const char *filename);
 
 /***** SECTION4: Standalone functions section *****/
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * SOCKET_I - Get "struct socket".
- *
- * @inode: Pointer to "struct inode".
- *
- * Returns pointer to "struct socket".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct socket *SOCKET_I(struct inode *inode)
-{
-	return inode->i_sock ? &inode->u.socket_i : NULL;
-}
-
-#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 
@@ -147,7 +119,7 @@ static inline void ccs_realpath_unlock(void)
 	spin_unlock(ccsecurity_exports.vfsmount_lock);
 }
 
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#else
 
 /**
  * ccs_realpath_lock - Take locks for __d_path().
@@ -168,28 +140,6 @@ static inline void ccs_realpath_lock(void)
 static inline void ccs_realpath_unlock(void)
 {
 	spin_unlock(ccsecurity_exports.vfsmount_lock);
-	spin_unlock(&dcache_lock);
-}
-
-#else
-
-/**
- * ccs_realpath_lock - Take locks for __d_path().
- *
- * Returns nothing.
- */
-static inline void ccs_realpath_lock(void)
-{
-	spin_lock(&dcache_lock);
-}
-
-/**
- * ccs_realpath_unlock - Release locks for __d_path().
- *
- * Returns nothing.
- */
-static inline void ccs_realpath_unlock(void)
-{
 	spin_unlock(&dcache_lock);
 }
 
@@ -489,8 +439,6 @@ static char *ccs_get_socket_name(struct path *path, char * const buffer,
 	return buffer;
 }
 
-#define SOCKFS_MAGIC 0x534F434B
-
 /**
  * ccs_realpath - Returns realpath(3) of the given pathname but ignores chroot'ed root.
  *
@@ -565,7 +513,7 @@ encode:
 /**
  * ccs_encode2 - Encode binary string to ascii string.
  *
- * @str:     String in binary format.
+ * @str:     String in binary format. Maybe NULL.
  * @str_len: Size of @str in byte.
  *
  * Returns pointer to @str in ascii format on success, NULL otherwise.
@@ -612,7 +560,7 @@ char *ccs_encode2(const char *str, int str_len)
 /**
  * ccs_encode - Encode binary string to ascii string.
  *
- * @str: String in binary format.
+ * @str: String in binary format. Maybe NULL.
  *
  * Returns pointer to @str in ascii format on success, NULL otherwise.
  *
@@ -627,7 +575,7 @@ char *ccs_encode(const char *str)
 /**
  * ccs_const_part_length - Evaluate the initial length without a pattern in a token.
  *
- * @filename: The string to evaluate.
+ * @filename: The string to evaluate. Maybe NULL.
  *
  * Returns the initial length without a pattern in @filename.
  */
@@ -669,6 +617,8 @@ static int ccs_const_part_length(const char *filename)
  * ccs_fill_path_info - Fill in "struct ccs_path_info" members.
  *
  * @ptr: Pointer to "struct ccs_path_info" to fill in.
+ *
+ * Returns nothing.
  *
  * The caller sets "struct ccs_path_info"->name.
  */
@@ -734,7 +684,7 @@ task_has_no_mm:
  * Returns true on success, false otherwise.
  *
  * This function uses kzalloc(), so the caller must kfree()
- * if this function didn't return NULL.
+ * if this function returned true.
  */
 bool ccs_get_exename(struct ccs_path_info *buf)
 {

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2012/02/29
+ * Version: 1.8.3+   2012/03/15
  */
 
 #include "internal.h"
@@ -104,12 +104,6 @@ struct ccs_cond_arg {
 };
 
 /***** SECTION3: Prototype definition section *****/
-
-bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
-		   struct ccs_page_dump *dump);
-bool ccs_manager(void);
-void ccs_get_attributes(struct ccs_request_info *r);
-void ccs_populate_patharg(struct ccs_request_info *r, const bool first);
 
 static bool ccs_alphabet_char(const char c);
 static bool ccs_byte_range(const char *str);
@@ -224,7 +218,7 @@ static void ccs_check_auto_domain_transition(void);
 static void ccs_clear_request_info(struct ccs_request_info *r);
 static void ccs_finish_execve(int retval, struct ccs_request_info *r);
 
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 static int ccs_env_perm(struct ccs_request_info *r, const char *name,
 			const char *value);
 static int ccs_environ(struct ccs_request_info *r);
@@ -267,19 +261,21 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 						int flags);
 #endif
 
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 static int __ccs_ptrace_permission(long request, long pid);
+#endif
+#ifdef CONFIG_CCSECURITY_SIGNAL
 static int __ccs_signal_permission(const int sig);
 static int ccs_signal_permission0(const int pid, const int sig);
 static int ccs_signal_permission1(pid_t tgid, pid_t pid, int sig);
 #endif
 
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 static int __ccs_getattr_permission(struct vfsmount *mnt,
 				    struct dentry *dentry);
 #endif
 
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 static int ccs_try_alt_exec(struct ccs_request_info *r);
 static void ccs_unescape(unsigned char *dest);
 #endif
@@ -351,25 +347,6 @@ static inline void get_fs_root(struct fs_struct *fs, struct path *root)
 
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * module_put - Put a reference on module.
- *
- * @module: Pointer to "struct module". Maybe NULL.
- *
- * Returns nothing.
- *
- * This is for compatibility with older kernels.
- */
-static inline void module_put(struct module *module)
-{
-	if (module)
-		__MOD_DEC_USE_COUNT(module);
-}
-
-#endif
-
 /**
  * ccs_put_filesystem - Wrapper for put_filesystem().
  *
@@ -436,36 +413,7 @@ static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
 #endif
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * skb_kill_datagram - Kill a datagram forcibly.
- *
- * @sk:    Pointer to "struct sock".
- * @skb:   Pointer to "struct sk_buff".
- * @flags: Flags passed to skb_recv_datagram().
- *
- * Returns nothing.
- */
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_irq(&sk->receive_queue.lock);
-		if (skb == skb_peek(&sk->receive_queue)) {
-			__skb_unlink(skb, &sk->receive_queue);
-			clear = 1;
-		}
-		spin_unlock_irq(&sk->receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
 
 /**
  * skb_kill_datagram - Kill a datagram forcibly.
@@ -711,7 +659,7 @@ static int ccs_execute(struct ccs_request_info *r)
 	retval = ccs_check_acl(r, false);
 	if (retval < 0)
 		goto out;
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 	/*
 	 * Switch to execute handler if matched. To avoid infinite execute
 	 * handler loop, don't use execute handler if the current process is
@@ -757,7 +705,7 @@ out:
 	return retval;
 }
 
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 
 /**
  * ccs_unescape - Unescape escaped string.
@@ -982,9 +930,7 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 	r->obj.path[0].mnt = filp->f_vfsmnt;
 	bprm->file = filp;
 	bprm->filename = r->handler;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	bprm->interp = bprm->filename;
-#endif
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
@@ -1096,7 +1042,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	r->obj.path[0].dentry = bprm->file->f_dentry;
 	r->obj.path[0].mnt = bprm->file->f_vfsmnt;
 	retval = ccs_execute(r);
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	if (!retval && bprm->envc)
 		retval = ccs_environ(r);
 #endif
@@ -1193,7 +1139,7 @@ void __init ccs_permission_init(void)
 	ccsecurity_ops.ioctl_permission = __ccs_ioctl_permission;
 	ccsecurity_ops.chmod_permission = __ccs_chmod_permission;
 	ccsecurity_ops.chown_permission = __ccs_chown_permission;
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 	ccsecurity_ops.getattr_permission = __ccs_getattr_permission;
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
@@ -1244,8 +1190,10 @@ void __init ccs_permission_init(void)
 	ccsecurity_ops.socket_post_recvmsg_permission =
 		__ccs_socket_post_recvmsg_permission;
 #endif
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
+#endif
+#ifdef CONFIG_CCSECURITY_SIGNAL
 	ccsecurity_ops.kill_permission = ccs_signal_permission0;
 	ccsecurity_ops.tgkill_permission = ccs_signal_permission1;
 	ccsecurity_ops.tkill_permission = ccs_signal_permission0;
@@ -1293,11 +1241,7 @@ static int ccs_kern_path(const char *pathname, int flags, struct path *path)
  */
 static int ccs_get_path(const char *pathname, struct path *path)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	return ccs_kern_path(pathname, LOOKUP_FOLLOW, path);
-#else
-	return ccs_kern_path(pathname, LOOKUP_FOLLOW | LOOKUP_POSITIVE, path);
-#endif
 }
 
 /**
@@ -1317,13 +1261,8 @@ static int ccs_execute_path(struct linux_binprm *bprm, struct path *path)
 	const unsigned int follow =
 		(bprm->file->f_dentry->d_sb->s_magic == PROC_SUPER_MAGIC) ?
 		LOOKUP_FOLLOW : 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	if (ccs_kern_path(bprm->filename, follow, path))
 		return -ENOENT;
-#else
-	if (ccs_kern_path(bprm->filename, follow | LOOKUP_POSITIVE, path))
-		return -ENOENT;
-#endif
 	return 0;
 }
 
@@ -1541,7 +1480,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	if (current->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		return 0;
 #endif
-#ifndef CONFIG_CCSECURITY_FILE_GETATTR
+#ifndef CONFIG_CCSECURITY_GETATTR
 	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
 		return 0;
 #endif
@@ -1623,9 +1562,7 @@ static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
 	ccs_check_auto_domain_transition();
 	r.obj.path[0].dentry = dentry;
 	r.obj.path[0].mnt = mnt;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	dev = new_decode_dev(dev);
-#endif
 	r.type = operation;
 	r.param.i[0] = mode;
 	r.param.i[1] = MAJOR(dev);
@@ -1915,7 +1852,7 @@ static int __ccs_unlink_permission(struct dentry *dentry, struct vfsmount *mnt)
 	return ccs_path_perm(CCS_MAC_UNLINK, dentry, mnt);
 }
 
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 
 /**
  * __ccs_getattr_permission - Check permission for vfs_getattr().
@@ -2597,12 +2534,7 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 		}
 	default: /* == PF_UNIX */
 		{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 			struct unix_address *u = unix_sk(skb->sk)->addr;
-#else
-			struct unix_address *u =
-				skb->sk->protinfo.af_unix.addr;
-#endif
 			unsigned int addr_len;
 			if (u && u->len <= sizeof(addr)) {
 				addr_len = u->len;
@@ -2751,7 +2683,7 @@ bool ccs_manager(void)
 	return allowed;
 }
 
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 
 /**
  * __ccs_ptrace_permission - Check permission for ptrace().
@@ -2793,6 +2725,10 @@ static int __ccs_ptrace_permission(long request, long pid)
 	ccs_read_unlock(idx);
 	return error;
 }
+
+#endif
+
+#ifdef CONFIG_CCSECURITY_SIGNAL
 
 /**
  * __ccs_signal_permission - Check permission for signal.
@@ -2845,7 +2781,7 @@ static int ccs_signal_permission1(pid_t tgid, pid_t pid, int sig)
 
 #endif
 
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 
 /**
  * ccs_env_perm - Check permission for environment variable's name.
@@ -3088,8 +3024,9 @@ static bool ccs_check_envp(struct ccs_request_info *r,
 			/* Check. */
 			cp = strchr(arg_ptr, '=');
 			if (!cp)
-				continue;
-			*cp++ = '\0';
+				cp = "";
+			else
+				*cp++ = '\0';
 			env.name = arg_ptr;
 			ccs_fill_path_info(&env);
 			if (!ccs_path_matches_pattern(&env, name))
@@ -3137,13 +3074,7 @@ void ccs_get_attributes(struct ccs_request_info *r)
 		default:
 			if (!dentry)
 				continue;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-			spin_lock(&dcache_lock);
-			dentry = dget(dentry->d_parent);
-			spin_unlock(&dcache_lock);
-#else
 			dentry = dget_parent(dentry);
-#endif
 			break;
 		}
 		inode = dentry->d_inode;
@@ -3153,11 +3084,7 @@ void ccs_get_attributes(struct ccs_request_info *r)
 			stat->gid  = inode->i_gid;
 			stat->ino  = inode->i_ino;
 			stat->mode = inode->i_mode;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-			stat->dev  = inode->i_dev;
-#else
 			stat->dev  = inode->i_sb->s_dev;
-#endif
 			stat->rdev = inode->i_rdev;
 			stat->fsmagic = dentry->d_sb->s_magic;
 			r->obj.stat_valid[i] = true;
@@ -3646,7 +3573,7 @@ static bool ccs_condition(struct ccs_request_info *r,
  */
 static void ccs_check_auto_domain_transition(void)
 {
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_AUTO_DOMAIN_TRANSITION
 	struct ccs_request_info r = { };
 	const int idx = ccs_read_lock();
 	r.type = CCS_MAC_AUTO_DOMAIN_TRANSITION;
