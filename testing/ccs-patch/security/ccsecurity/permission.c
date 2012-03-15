@@ -68,8 +68,10 @@ enum ccs_arg_type {
 	CCS_ARG_TYPE_NAME,
 	CCS_ARG_TYPE_GROUP,
 	CCS_ARG_TYPE_BITOP,
+#ifdef CONFIG_CCSECURITY_NETWORK
 	CCS_ARG_TYPE_IPV4ADDR,
 	CCS_ARG_TYPE_IPV6ADDR,
+#endif
 } __packed;
 
 /***** SECTION2: Structure definition *****/
@@ -3310,6 +3312,7 @@ not_single_name:
 		(*condp)++;
 		return true;
 	}
+#ifdef CONFIG_CCSECURITY_NETWORK
 	if (cmd == CCS_IMM_IPV4ADDR_ENTRY1) {
 		arg->type = CCS_ARG_TYPE_IPV4ADDR;
 		memmove(&arg->ip[0], &(*condp)->ip, 4);
@@ -3343,6 +3346,7 @@ not_single_name:
 			(((u8 *) *condp) + sizeof(struct in6_addr));
 		return true;
 	}
+#endif
 	switch (cmd) {
 	case CCS_MODE_SETUID:
 		value = S_ISUID;

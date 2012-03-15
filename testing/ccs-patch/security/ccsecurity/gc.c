@@ -325,12 +325,14 @@ void ccs_del_condition(struct list_head *element)
 			condp++;
 		else if (right == CCS_IMM_NUMBER_ENTRY2)
 			condp += 2;
+#ifdef CONFIG_CCSECURITY_NETWORK
 		else if (right == CCS_IMM_IPV6ADDR_ENTRY1)
 			condp = (void *)
 				(((u8 *) condp) + sizeof(struct in6_addr));
 		else if (right == CCS_IMM_IPV6ADDR_ENTRY2)
 			condp = (void *)
 				(((u8 *) condp) + sizeof(struct in6_addr) * 2);
+#endif
 	}
 }
 
