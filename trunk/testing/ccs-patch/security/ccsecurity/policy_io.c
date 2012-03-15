@@ -704,6 +704,46 @@ static char *ip6_compressed_string(char *p, const char *addr)
 #endif
 
 /**
+ * ccs_print_ipv4 - Print an IPv4 address.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ip:   Pointer to "u32" in network byte order.
+ *
+ * Returns nothing.
+ */
+static void ccs_print_ipv4(struct ccs_io_buffer *head, const u32 *ip)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
+	ccs_io_printf(head, "%pI4", ip);
+#else
+	char addr[sizeof("255.255.255.255")];
+	ip4_string(addr, (const u8 *) ip);
+	ccs_io_printf(head, "%s", addr);
+#endif
+}
+
+/**
+ * ccs_print_ipv6 - Print an IPv6 address.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ip:   Pointer to "struct in6_addr".
+ *
+ * Returns nothing.
+ */
+static void ccs_print_ipv6(struct ccs_io_buffer *head,
+			   const struct in6_addr *ip)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
+	ccs_io_printf(head, "%pI6c", ip);
+#else
+	char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:"
+			 "255.255.255.255")];
+	ip6_compressed_string(addr, (const u8 *) ip);
+	ccs_io_printf(head, "%s", addr);
+#endif
+}
+
+/**
  * ccs_print_ip - Print an IP address.
  *
  * @head:   Pointer to "struct ccs_io_buffer".
@@ -2150,6 +2190,7 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 				condp->value = tmp.value[1];
 				condp++;
 			}
+#ifdef CONFIG_CCSECURITY_NETWORK
 		} else if (tmp.right == CCS_IMM_IPV4ADDR_ENTRY1 ||
 			   tmp.right == CCS_IMM_IPV4ADDR_ENTRY2) {
 			condp->ip = * (u32 *) &tmp.ipv6[0];
@@ -2168,6 +2209,7 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 				condp = (void *) (((u8 *) condp) +
 						  sizeof(struct in6_addr));
 			}
+#endif
 		}
 	}
 #ifdef CONFIG_CCSECURITY_AUTO_DOMAIN_TRANSITION
@@ -2581,46 +2623,6 @@ static void ccs_print_misc_attribute(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_ipv4 - Print an IPv4 address.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ip:   Pointer to "u32" in network byte order.
- *
- * Returns nothing.
- */
-static void ccs_print_ipv4(struct ccs_io_buffer *head, const u32 *ip)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-	ccs_io_printf(head, "%pI4", ip);
-#else
-	char addr[sizeof("255.255.255.255")];
-	ip4_string(addr, (const u8 *) ip);
-	ccs_io_printf(head, "%s", addr);
-#endif
-}
-
-/**
- * ccs_print_ipv6 - Print an IPv6 address.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ip:   Pointer to "struct in6_addr".
- *
- * Returns nothing.
- */
-static void ccs_print_ipv6(struct ccs_io_buffer *head,
-			   const struct in6_addr *ip)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
-	ccs_io_printf(head, "%pI6c", ip);
-#else
-	char addr[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:"
-			 "255.255.255.255")];
-	ip6_compressed_string(addr, (const u8 *) ip);
-	ccs_io_printf(head, "%s", addr);
-#endif
-}
-
-/**
  * ccs_print_condition_loop - Print condition part.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -2709,6 +2711,7 @@ static bool ccs_print_condition_loop(struct ccs_io_buffer *head,
 			ccs_print_number(head, (radix >> 2) & 3, condp->value);
 			condp++;
 			break;
+#ifdef CONFIG_CCSECURITY_NETWORK
 		case CCS_IMM_IPV4ADDR_ENTRY1:
 		case CCS_IMM_IPV4ADDR_ENTRY2:
 			ccs_print_ipv4(head, &condp->ip);
@@ -2731,6 +2734,7 @@ static bool ccs_print_condition_loop(struct ccs_io_buffer *head,
 			condp = (void *)
 				((u8 *) condp) + sizeof(struct in6_addr);
 			break;
+#endif
 		default:
 			ccs_print_misc_attribute(head, type, right);
 		}
