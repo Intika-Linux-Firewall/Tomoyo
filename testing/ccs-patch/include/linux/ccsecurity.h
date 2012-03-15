@@ -588,7 +588,7 @@ static inline void ccs_free_task_security(const struct task_struct *task)
 
 #endif
 
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 
 static inline int ccs_getattr_permission(struct vfsmount *mnt,
 					 struct dentry *dentry)
@@ -745,13 +745,24 @@ static inline int ccs_socket_create_permission(int family, int type,
 
 #endif
 
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 
 static inline int ccs_ptrace_permission(long request, long pid)
 {
 	int (*func) (long, long) = ccsecurity_ops.ptrace_permission;
 	return func ? func(request, pid) : 0;
 }
+
+#else
+
+static inline int ccs_ptrace_permission(long request, long pid)
+{
+	return 0;
+}
+
+#endif
+
+#ifdef CONFIG_CCSECURITY_SIGNAL
 
 static inline int ccs_kill_permission(pid_t pid, int sig)
 {
@@ -784,11 +795,6 @@ static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 }
 
 #else
-
-static inline int ccs_ptrace_permission(long request, long pid)
-{
-	return 0;
-}
 
 static inline int ccs_kill_permission(pid_t pid, int sig)
 {

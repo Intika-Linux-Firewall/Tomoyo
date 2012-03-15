@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2012/02/29
+ * Version: 1.8.3+   2012/03/15
  */
 
 #include "internal.h"
@@ -27,7 +27,7 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_APPEND]     = "append",
 	[CCS_MAC_CREATE]     = "create",
 	[CCS_MAC_UNLINK]     = "unlink",
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 	[CCS_MAC_GETATTR]    = "getattr",
 #endif
 	[CCS_MAC_MKDIR]      = "mkdir",
@@ -48,7 +48,7 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_MOUNT]      = "mount",
 	[CCS_MAC_UMOUNT]     = "unmount",
 	[CCS_MAC_PIVOT_ROOT] = "pivot_root",
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	[CCS_MAC_ENVIRON] = "environ",
 #endif
 #ifdef CONFIG_CCSECURITY_NETWORK
@@ -80,8 +80,10 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
 	[CCS_MAC_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
 #endif
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 	[CCS_MAC_PTRACE] = "ptrace",
+#endif
+#ifdef CONFIG_CCSECURITY_SIGNAL
 	[CCS_MAC_SIGNAL] = "signal",
 #endif
 	[CCS_MAC_MODIFY_POLICY]      = "modify_policy",
@@ -96,8 +98,10 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_USE_KERNEL_MODULE]  = "use_kernel_module",
 	[CCS_MAC_USE_NEW_KERNEL]     = "use_new_kernel",
 #endif
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_AUTO_DOMAIN_TRANSITION
 	[CCS_MAC_AUTO_DOMAIN_TRANSITION]   = "auto_domain_transition",
+#endif
+#ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 	[CCS_MAC_MANUAL_DOMAIN_TRANSITION] = "manual_domain_transition",
 #endif
 };
@@ -213,13 +217,8 @@ struct ccs_cond_tmp {
 
 /***** SECTION3: Prototype definition section *****/
 
-int ccs_audit_log(struct ccs_request_info *r);
-bool ccs_transit_domain(const char *domainname);
-void ccs_warn_oom(const char *function);
-
 static bool ccs_correct_domain(const unsigned char *domainname);
 static bool ccs_correct_word(const char *string);
-static bool ccs_correct_word2(const char *string, size_t len);
 static bool ccs_flush(struct ccs_io_buffer *head);
 static bool ccs_print_condition(struct ccs_io_buffer *head,
 				const struct ccs_condition *cond);
@@ -261,7 +260,6 @@ static struct ccs_domain_info *ccs_find_domain(const char *domainname);
 static struct ccs_acl_info *ccs_find_acl_by_qid(unsigned int serial);
 static struct ccs_group *ccs_get_group(struct ccs_io_buffer *head,
 				       const enum ccs_group_id idx);
-static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
 static enum ccs_value_type ccs_parse_ulong(unsigned long *result, char **str);
 static unsigned int ccs_poll(struct file *file, poll_table *wait);
 static void __init ccs_create_entry(const char *name, const umode_t mode,
@@ -281,7 +279,7 @@ static void ccs_read_policy(struct ccs_io_buffer *head);
 static void ccs_read_query(struct ccs_io_buffer *head);
 static void *ccs_commit_ok(void *data, const unsigned int size);
 static bool ccs_read_quota(struct ccs_io_buffer *head);
-static bool ccs_read_stat(struct ccs_io_buffer *head);
+static void ccs_read_stat(struct ccs_io_buffer *head);
 static void ccs_read_version(struct ccs_io_buffer *head);
 static void ccs_set_space(struct ccs_io_buffer *head);
 static void ccs_set_string(struct ccs_io_buffer *head, const char *string);
@@ -289,6 +287,8 @@ static void ccs_update_stat(const u8 index);
 static void ccs_write_log(struct ccs_request_info *r);
 
 #ifdef CONFIG_CCSECURITY_NETWORK
+static enum ccs_ipaddr_type ccs_parse_ipaddr(char *address,
+					     struct in6_addr ipv6[2]);
 static void ccs_print_ipv4(struct ccs_io_buffer *head, const u32 *ip);
 static void ccs_print_ipv6(struct ccs_io_buffer *head,
 			   const struct in6_addr *ip);
@@ -296,7 +296,7 @@ static void ccs_print_ip(struct ccs_io_buffer *head,
 			 struct ccs_ip_group *member);
 #endif
 
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 static ssize_t ccs_write_self(struct file *file, const char __user *buf,
 			      size_t count, loff_t *ppos);
 #endif
@@ -316,67 +316,6 @@ static ssize_t ccs_write_self(struct file *file, const char __user *buf,
  */
 #define fatal_signal_pending(p) (signal_pending(p) &&			\
 				 sigismember(&p->pending.signal, SIGKILL))
-
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * __wait_event_interruptible_timeout - Sleep until a condition gets true or a timeout elapses.
- *
- * @wq:        The waitqueue to wait on.
- * @condition: A C expression for the event to wait for.
- * @ret:       Timeout, in jiffies.
- *
- * Returns 0 if the @timeout elapsed, -ERESTARTSYS if it was interrupted by a
- * signal, and the remaining jiffies otherwise if the condition evaluated to
- * true before the timeout elapsed.
- *
- * This is for compatibility with older kernels.
- */
-#define __wait_event_interruptible_timeout(wq, condition, ret)		\
-do {									\
-	wait_queue_t __wait;						\
-	init_waitqueue_entry(&__wait, current);				\
-									\
-	add_wait_queue(&wq, &__wait);					\
-	for (;;) {							\
-		set_current_state(TASK_INTERRUPTIBLE);			\
-		if (condition)						\
-			break;						\
-		if (!signal_pending(current)) {				\
-			ret = schedule_timeout(ret);			\
-			if (!ret)					\
-				break;					\
-			continue;					\
-		}							\
-		ret = -ERESTARTSYS;					\
-		break;							\
-	}								\
-	current->state = TASK_RUNNING;					\
-	remove_wait_queue(&wq, &__wait);				\
-} while (0)
-
-/**
- * wait_event_interruptible_timeout - Sleep until a condition gets true or a timeout elapses.
- *
- * @wq:        The waitqueue to wait on.
- * @condition: A C expression for the event to wait for.
- * @timeout:   Timeout, in jiffies.
- *
- * Returns 0 if the @timeout elapsed, -ERESTARTSYS if it was interrupted by a
- * signal, and the remaining jiffies otherwise if the condition evaluated to
- * true before the timeout elapsed.
- *
- * This is for compatibility with older kernels.
- */
-#define wait_event_interruptible_timeout(wq, condition, timeout)	\
-({									\
-	long __ret = timeout;						\
-	if (!(condition))						\
-		__wait_event_interruptible_timeout(wq, condition, __ret); \
-	__ret;								\
-})
 
 #endif
 
@@ -419,65 +358,6 @@ static void ccs_convert_time(time_t time, struct ccs_time *stamp)
 	stamp->month = ++m;
 	stamp->day = ++time;
 }
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
-#if !defined(RHEL_VERSION) || RHEL_VERSION != 3
-
-/**
- * PDE - Get "struct proc_dir_entry".
- *
- * @inode: Pointer to "struct inode".
- *
- * Returns pointer to "struct proc_dir_entry".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct proc_dir_entry *PDE(const struct inode *inode)
-{
-	return (struct proc_dir_entry *) inode->u.generic_ip;
-}
-
-#endif
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/**
- * proc_notify_change - Update inode's attributes and reflect to the dentry.
- *
- * @dentry: Pointer to "struct dentry".
- * @iattr:  Pointer to "struct iattr".
- *
- * Returns 0 on success, negative value otherwise.
- *
- * The 2.4 kernels don't allow chmod()/chown() for files in /proc,
- * while the 2.6 kernels allow.
- * To permit management of /proc/ccs/ interface by non-root user,
- * I modified to allow chmod()/chown() of /proc/ccs/ interface like 2.6 kernels
- * by adding "struct inode_operations"->setattr hook.
- */
-static int proc_notify_change(struct dentry *dentry, struct iattr *iattr)
-{
-	struct inode *inode = dentry->d_inode;
-	struct proc_dir_entry *de = PDE(inode);
-	int error;
-
-	error = inode_change_ok(inode, iattr);
-	if (error)
-		goto out;
-
-	error = inode_setattr(inode, iattr);
-	if (error)
-		goto out;
-
-	de->uid = inode->i_uid;
-	de->gid = inode->i_gid;
-	de->mode = inode->i_mode;
-out:
-	return error;
-}
-
-#endif
 
 #ifdef CONFIG_CCSECURITY_NETWORK
 
@@ -882,7 +762,7 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 		if (index == 1)
 			return "put_old";
 		break;
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	case CCS_MAC_ENVIRON:
 		if (index == 2)
 			return "name";
@@ -906,7 +786,7 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 	case CCS_MAC_WRITE:
 	case CCS_MAC_APPEND:
 	case CCS_MAC_UNLINK:
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 	case CCS_MAC_GETATTR:
 #endif
 	case CCS_MAC_RMDIR:
@@ -968,7 +848,7 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 			return "addr";
 		break;
 #endif
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 	case CCS_MAC_PTRACE:
 		if (index == 0)
 			return "domain";
@@ -1046,11 +926,13 @@ static const char *ccs_get_narg(const enum ccs_mac_index type, const u8 index)
 			return "proto";
 		break;
 #endif
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 	case CCS_MAC_PTRACE:
 		if (index == 0)
 			return "cmd";
 		break;
+#endif
+#ifdef CONFIG_CCSECURITY_SIGNAL
 	case CCS_MAC_SIGNAL:
 		if (index == 0)
 			return "cmd";
@@ -1127,7 +1009,7 @@ static
 const
 #endif
 struct file_operations ccs_self_operations = {
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 	.write = ccs_write_self,
 #endif
 	.read  = ccs_read_self,
@@ -1145,16 +1027,6 @@ struct file_operations ccs_operations = {
 	.read    = ccs_read,
 	.write   = ccs_write,
 };
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/* The inode operations for /proc/ccs/ directory. */
-static struct inode_operations ccs_dir_inode_operations;
-
-/* The inode operations for files under /proc/ccs/ directory. */
-static struct inode_operations ccs_file_inode_operations;
-
-#endif
 
 /***** SECTION6: Dependent functions section *****/
 
@@ -1217,7 +1089,7 @@ static bool ccs_memory_ok(const void *ptr, const unsigned int size)
 /**
  * ccs_get_name - Allocate memory for string data.
  *
- * @name: The string to store into the permernent memory.
+ * @name: The string to store into the permernent memory. Maybe NULL.
  *
  * Returns pointer to "struct ccs_path_info" on success, NULL otherwise.
  */
@@ -1233,11 +1105,7 @@ static const struct ccs_path_info *ccs_get_name(const char *name)
 		return NULL;
 	len = strlen(name) + 1;
 	hash = full_name_hash((const unsigned char *) name, len - 1);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) || defined(RHEL_MAJOR)
 	head = &ccs_name_list[hash_long(hash, CCS_HASH_BITS)];
-#else
-	head = &ccs_name_list[hash % CCS_MAX_HASH];
-#endif
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return NULL;
 	list_for_each_entry(ptr, head, head.list) {
@@ -1288,95 +1156,6 @@ static char *ccs_read_token(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_make_byte - Make byte value from three octal characters.
- *
- * @c1: The first character.
- * @c2: The second character.
- * @c3: The third character.
- *
- * Returns byte value.
- */
-static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
-{
-	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
-}
-
-/**
- * ccs_correct_word2 - Check whether the given string follows the naming rules.
- *
- * @string: The byte sequence to check. Not '\0'-terminated.
- * @len:    Length of @string.
- *
- * Returns true if @string follows the naming rules, false otherwise.
- */
-static bool ccs_correct_word2(const char *string, size_t len)
-{
-	const char *const start = string;
-	bool in_repetition = false;
-	unsigned char c;
-	unsigned char d;
-	unsigned char e;
-	if (!len)
-		goto out;
-	while (len--) {
-		c = *string++;
-		if (c == '\\') {
-			if (!len--)
-				goto out;
-			c = *string++;
-			switch (c) {
-			case '$':   /* "\$" */
-			case '+':   /* "\+" */
-			case '?':   /* "\?" */
-			case '*':   /* "\*" */
-			case '@':   /* "\@" */
-			case 'x':   /* "\x" */
-			case 'X':   /* "\X" */
-			case 'a':   /* "\a" */
-			case 'A':   /* "\A" */
-			case '-':   /* "\-" */
-				continue;
-			case '{':   /* "/\{" */
-				if (string - 3 < start || *(string - 3) != '/')
-					break;
-				in_repetition = true;
-				continue;
-			case '}':   /* "\}/" */
-				if (*string != '/')
-					break;
-				if (!in_repetition)
-					break;
-				in_repetition = false;
-				continue;
-			case '0':   /* "\ooo" */
-			case '1':
-			case '2':
-			case '3':
-				if (!len-- || !len--)
-					break;
-				d = *string++;
-				e = *string++;
-				if (d < '0' || d > '7' || e < '0' || e > '7')
-					break;
-				c = ccs_make_byte(c, d, e);
-				if (c <= ' ' || c >= 127 || c == '\\')
-					continue;
-			}
-			goto out;
-		} else if (in_repetition && c == '/') {
-			goto out;
-		} else if (c <= ' ' || c >= 127) {
-			goto out;
-		}
-	}
-	if (in_repetition)
-		goto out;
-	return true;
-out:
-	return false;
-}
-
-/**
  * ccs_correct_word - Check whether the given string follows the naming rules.
  *
  * @string: The string to check.
@@ -1385,7 +1164,63 @@ out:
  */
 static bool ccs_correct_word(const char *string)
 {
-	return ccs_correct_word2(string, strlen(string));
+	const char *const start = string;
+	bool in_repetition = false;
+	if (!*string)
+		goto out;
+	while (*string) {
+		unsigned char c = *string++;
+		if (in_repetition && c == '/')
+			goto out;
+		if (c <= ' ' || c >= 127)
+			goto out;
+		if (c != '\\')
+			continue;
+		c = *string++;
+		if (c >= '0' && c <= '3') {
+			unsigned char d;
+			unsigned char e;
+			d = *string++;
+			if (d < '0' || d > '7')
+				goto out;
+			e = *string++;
+			if (e < '0' || e > '7')
+				goto out;
+			c = ((c - '0') << 6) + ((d - '0') << 3) + (e - '0');
+			if (c <= ' ' || c >= 127 || c == '\\')
+				continue;
+			goto out;
+		}
+		switch (c) {
+		case '$':   /* "\$" */
+		case '+':   /* "\+" */
+		case '?':   /* "\?" */
+		case '*':   /* "\*" */
+		case '@':   /* "\@" */
+		case 'x':   /* "\x" */
+		case 'X':   /* "\X" */
+		case 'a':   /* "\a" */
+		case 'A':   /* "\A" */
+		case '-':   /* "\-" */
+			continue;
+		case '{':   /* "/\{" */
+			if (string - 3 < start || *(string - 3) != '/')
+				goto out;
+			in_repetition = true;
+			continue;
+		case '}':   /* "\}/" */
+			if (!in_repetition || *string++ != '/')
+				goto out;
+			in_repetition = false;
+			continue;
+		}
+		goto out;
+	}
+	if (in_repetition)
+		goto out;
+	return true;
+out:
+	return false;
 }
 
 /**
@@ -1502,7 +1337,7 @@ static enum ccs_value_type ccs_parse_ulong(unsigned long *result, char **str)
 /**
  * ccs_get_dqword - ccs_get_name() for a quoted string.
  *
- * @start: String to save.
+ * @start: String to parse.
  *
  * Returns pointer to "struct ccs_path_info" on success, NULL otherwise.
  */
@@ -1525,8 +1360,8 @@ static const struct ccs_path_info *ccs_get_dqword(char *start)
  *
  * Returns true if @a == @b, false otherwise.
  */
-static bool ccs_same_condition(const struct ccs_condition *a,
-			       const struct ccs_condition *b)
+static inline bool ccs_same_condition(const struct ccs_condition *a,
+				      const struct ccs_condition *b)
 {
 	return a->size == b->size &&
 		!memcmp(a + 1, b + 1, a->size - sizeof(*a));
@@ -1589,7 +1424,7 @@ out:
  */
 static bool ccs_correct_domain(const unsigned char *domainname)
 {
-	if (!*domainname || !ccs_correct_word(domainname))
+	if (!ccs_correct_word(domainname))
 		return false;
 	while (*domainname) {
 		if (*domainname++ != '\\')
@@ -1664,11 +1499,11 @@ static u8 ccs_parse_values(char *value, unsigned long v[2])
  * @address: Address to parse.
  * @ipv6:    Pointer to "struct in6_addr".
  *
- * Returns 1 if @address is an IPv6 address, 2 if @address is IPv6 address
- * range, 3 if @address is an IPv4 address, 4 if @address is IPv4 address
- * range, 0 otherwise.
+ * Returns one of values in "enum ccs_ipaddr_type".
  */
-static u8 ccs_parse_ipaddr(char *address, struct in6_addr ipv6[2])
+/* Index numbers for type of IP addresses. */
+static enum ccs_ipaddr_type ccs_parse_ipaddr(char *address,
+					     struct in6_addr ipv6[2])
 {
 	const char *end;
 	if (!strchr(address, ':') &&
@@ -1676,26 +1511,26 @@ static u8 ccs_parse_ipaddr(char *address, struct in6_addr ipv6[2])
 		if (!*end) {
 			ipv6[0].s6_addr32[0] = ipv6[0].s6_addr32[0];
 			ipv6[1].s6_addr32[0] = ipv6[0].s6_addr32[0];
-			return 1;
+			return CCS_ADDRESS_TYPE_IPV4;
 		}
 		if (*end++ != '-' ||
 		    ccs_in4_pton(end, -1, ipv6[1].s6_addr, '\0', &end) <= 0 ||
 		    *end || memcmp(&ipv6[0], &ipv6[1], 4) >= 0)
-			return 0;
-		return 2;
+			return CCS_ADDRESS_TYPE_INVALID;
+		return CCS_ADDRESS_TYPE_IPV4_RANGE;
 	}
 	if (ccs_in6_pton(address, -1, ipv6[0].s6_addr, '-', &end) > 0) {
 		if (!*end) {
 			ipv6[1] = ipv6[0];
-			return 3;
+			return CCS_ADDRESS_TYPE_IPV6;
 		}
 		if (*end++ != '-' ||
 		    ccs_in6_pton(end, -1, ipv6[1].s6_addr, '\0', &end) <= 0 ||
 		    *end || memcmp(&ipv6[0], &ipv6[1], 16) >= 0)
-			return 0;
-		return 4;
+			return CCS_ADDRESS_TYPE_INVALID;
+		return CCS_ADDRESS_TYPE_IPV6_RANGE;
 	}
-	return 0;
+	return CCS_ADDRESS_TYPE_INVALID;
 }
 
 #endif
@@ -1757,7 +1592,7 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 	case CCS_MAC_WRITE:
 	case CCS_MAC_APPEND:
 	case CCS_MAC_UNLINK:
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 	case CCS_MAC_GETATTR:
 #endif
 	case CCS_MAC_RMDIR:
@@ -1864,7 +1699,7 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 			return CCS_COND_SARG0;
 		break;
 #endif
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	case CCS_MAC_ENVIRON:
 		if (!strcmp(word, "name"))
 			return CCS_COND_SARG2;
@@ -1872,19 +1707,21 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 			return CCS_COND_SARG3;
 		break;
 #endif
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 	case CCS_MAC_PTRACE:
 		if (!strcmp(word, "domain"))
 			return CCS_COND_DOMAIN;
 		if (!strcmp(word, "cmd"))
 			return CCS_COND_NARG0;
 		break;
+#endif
+#ifdef CONFIG_CCSECURITY_SIGNAL
 	case CCS_MAC_SIGNAL:
 		if (!strcmp(word, "sig"))
 			return CCS_COND_NARG0;
 		break;
 #endif
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 	case CCS_MAC_MANUAL_DOMAIN_TRANSITION:
 		if (!strcmp(word, "domain"))
 			return CCS_COND_DOMAIN;
@@ -1914,7 +1751,7 @@ static enum ccs_conditions_index ccs_parse_path_attribute
 	case CCS_MAC_WRITE:
 	case CCS_MAC_APPEND:
 	case CCS_MAC_UNLINK:
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 	case CCS_MAC_GETATTR:
 #endif
 	case CCS_MAC_RMDIR:
@@ -1926,6 +1763,9 @@ static enum ccs_conditions_index ccs_parse_path_attribute
 	case CCS_MAC_IOCTL:
 	case CCS_MAC_EXECUTE:
 	case CCS_MAC_UMOUNT:
+#ifdef CONFIG_CCSECURITY_GETATTR
+	case CCS_MAC_ENVIRON:
+#endif
 		if (ccs_str_starts(&word, "path"))
 			goto path1;
 		if (type == CCS_MAC_EXECUTE &&
@@ -2074,7 +1914,7 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 	if (!*left || !*right)
 		return false;
 	if (type == CCS_MAC_EXECUTE
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	    || type == CCS_MAC_ENVIRON
 #endif
 	    ) {
@@ -2202,16 +2042,16 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 #ifdef CONFIG_CCSECURITY_NETWORK
 	if (g == CCS_IP_GROUP) {
 		switch (ccs_parse_ipaddr(right, tmp->ipv6)) {
-		case 1:
+		case CCS_ADDRESS_TYPE_IPV4:
 			tmp->right = CCS_IMM_IPV4ADDR_ENTRY1;
 			break;
-		case 2:
+		case CCS_ADDRESS_TYPE_IPV4_RANGE:
 			tmp->right = CCS_IMM_IPV4ADDR_ENTRY2;
 			break;
-		case 3:
+		case CCS_ADDRESS_TYPE_IPV6:
 			tmp->right = CCS_IMM_IPV6ADDR_ENTRY1;
 			break;
-		case 4:
+		case CCS_ADDRESS_TYPE_IPV6_RANGE:
 			tmp->right = CCS_IMM_IPV6ADDR_ENTRY2;
 			break;
 		default:
@@ -2236,7 +2076,7 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 	union ccs_condition_element *condp;
 	struct ccs_cond_tmp tmp;
 	const enum ccs_mac_index type = head->w.acl_index;
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 	bool handler_path_done = head->w.is_deny ||
 		type != CCS_MAC_EXECUTE;
 #else
@@ -2244,7 +2084,7 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 #endif
 	bool transit_domain_done = head->w.is_deny ||
 		(type != CCS_MAC_EXECUTE
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_AUTO_DOMAIN_TRANSITION
 		 && type != CCS_MAC_AUTO_DOMAIN_TRANSITION
 #endif
 		 );
@@ -2330,7 +2170,7 @@ struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 			}
 		}
 	}
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_AUTO_DOMAIN_TRANSITION
 	if (!transit_domain_done && type == CCS_MAC_AUTO_DOMAIN_TRANSITION)
 		goto out;
 #endif
@@ -2470,7 +2310,7 @@ static void ccs_set_space(struct ccs_io_buffer *head)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns nothing.
+ * Returns true if all data was flushed, false otherwise.
  */
 static bool ccs_set_lf(struct ccs_io_buffer *head)
 {
@@ -2479,23 +2319,23 @@ static bool ccs_set_lf(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_check_profile - Check all profiles currently assigned to domains are defined.
+ * ccs_check_profile - Check policy is loaded.
  *
  * Returns nothing.
  */
 static void ccs_check_profile(void)
 {
 	ccs_policy_loaded = true;
-	printk(KERN_INFO "CCSecurity: 1.8.3+   2012/02/29\n");
+	printk(KERN_INFO "CCSecurity: 1.8.3+   2012/03/15\n");
 	if (ccs_policy_version == 20100903) {
 		printk(KERN_INFO "Mandatory Access Control activated.\n");
 		return;
 	}
 	printk(KERN_ERR "Policy version %u is not supported.\n",
 	       ccs_policy_version);
-	printk(KERN_ERR "Userland tools for TOMOYO 1.8 must be installed and "
+	printk(KERN_ERR "Userland tools for TOMOYO must be installed and "
 	       "policy must be initialized.\n");
-	printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/1.8/ "
+	printk(KERN_ERR "Please see http://tomoyo.sourceforge.jp/testing/ "
 	       "for more information.\n");
 	panic("STOP!");
 }
@@ -2538,8 +2378,7 @@ static struct ccs_domain_info *ccs_find_domain(const char *domainname)
 	name.name = domainname;
 	ccs_fill_path_info(&name);
 	list_for_each_entry_srcu(domain, &ccs_domain_list, list, &ccs_ss) {
-		if (!domain->is_deleted &&
-		    !ccs_pathcmp(&name, domain->domainname))
+		if (!ccs_pathcmp(&name, domain->domainname))
 			return domain;
 	}
 	return NULL;
@@ -2594,7 +2433,6 @@ static int ccs_update_acl(struct list_head * const list,
 	struct ccs_acl_info new_entry = { };
 	const bool is_delete = head->w.is_delete;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	new_entry.priority = head->w.priority;
 	new_entry.priority = head->w.priority;
 	new_entry.is_deny = head->w.is_deny;
 	if (head->w.data[0]) {
@@ -2979,9 +2817,10 @@ static int ccs_write_pid(struct ccs_io_buffer *head)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns the domainname which the specified PID is in or
- * process information of the specified PID on success,
- * empty string otherwise.
+ * Returns nothing.
+ *
+ * Reads the domainname which the specified PID is in or
+ * process information of the specified PID on success.
  *
  * Caller holds ccs_read_lock().
  */
@@ -3059,8 +2898,10 @@ static int ccs_update_group(struct ccs_io_buffer *head,
 	} e = { };
 	if (!group)
 		return -ENOMEM;
-	if (!*word)
-		return -EINVAL;
+	if (!*word) {
+		error = -EINVAL;
+		goto out;
+	}
 	if (type == CCS_STRING_GROUP) {
 		if (!ccs_correct_word(word)) {
 			error = -EINVAL;
@@ -3077,21 +2918,23 @@ static int ccs_update_group(struct ccs_io_buffer *head,
 		if (e.number.radix == CCS_VALUE_TYPE_INVALID)
 			goto out;
 		size = sizeof(e.number);
-#ifdef CONFIG_CCSECURITY_NETWORK
 	} else {
+#ifdef CONFIG_CCSECURITY_NETWORK
 		switch (ccs_parse_ipaddr(word, e.address.ip)) {
-		case 1:
-		case 2:
+		case CCS_ADDRESS_TYPE_IPV4:
+		case CCS_ADDRESS_TYPE_IPV4_RANGE:
 			e.address.is_ipv6 = false;
 			break;
-		case 3:
-		case 4:
+		case CCS_ADDRESS_TYPE_IPV6:
+		case CCS_ADDRESS_TYPE_IPV6_RANGE:
 			e.address.is_ipv6 = true;
 			break;
 		default:
 			goto out;
 		}
 		size = sizeof(e.address);
+#else
+		goto out;
 #endif
 	}
 	if (mutex_lock_interruptible(&ccs_policy_lock) == 0) {
@@ -3169,7 +3012,6 @@ no_acl_selected:
 		return ccs_write_memory_quota(head->w.data);
 	return ccs_write_audit_quota(head->w.data);
 }
-
 
 /**
  * ccs_read_subgroup - Read "struct ccs_string_group"/"struct ccs_number_group"/"struct ccs_ip_group" list.
@@ -3255,10 +3097,9 @@ static bool ccs_read_group(struct ccs_io_buffer *head)
  *
  * @r: Pointer to "struct ccs_request_info".
  *
- * Returns 0 if the supervisor decided to permit the access request which
- * violated the policy in enforcing mode, CCS_RETRY_REQUEST if the supervisor
- * decided to retry the access request which violated the policy in enforcing
- * mode, 0 if it is not in enforcing mode, -EPERM otherwise.
+ * Returns 0 if the supervisor decided to permit the access request,
+ * CCS_RETRY_REQUEST if the supervisor decided to retry the access request,
+ * -EPERM otherwise.
  */
 static int ccs_supervisor(struct ccs_request_info *r)
 {
@@ -3355,7 +3196,7 @@ int ccs_audit_log(struct ccs_request_info *r)
  *
  * @serial: Query ID assigned by ccs_supervisor().
  *
- * Returns pointer to "struct ccs_ack_info" if found, NULL otherwise.
+ * Returns pointer to "struct ccs_acl_info" if found, NULL otherwise.
  */
 static struct ccs_acl_info *ccs_find_acl_by_qid(unsigned int serial)
 {
@@ -3507,9 +3348,9 @@ static void ccs_update_stat(const u8 index)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns true on success, false otherwise.
+ * Returns nothing.
  */
-static bool ccs_read_stat(struct ccs_io_buffer *head)
+static void ccs_read_stat(struct ccs_io_buffer *head)
 {
 	u8 i;
 	for (i = 0; i < CCS_MAX_POLICY_STAT; i++) {
@@ -3531,7 +3372,6 @@ static bool ccs_read_stat(struct ccs_io_buffer *head)
 	for (i = 0; i < CCS_MAX_MEMORY_STAT; i++)
 		ccs_io_printf(head, "stat Memory used by %s: %u\n",
 			      ccs_memory_headers[i], ccs_memory_used[i]);
-	return true;
 }
 
 /**
@@ -3703,11 +3543,10 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
 				*cp++ = (c & 7) + '0';
 				continue;
 			}
-			/* Ignore malformed $name=$value entry. */
+			/* Print "]=" part if not yet printed. */
 			if (!argv_count && !env_value)
-				cp = last_start;
-			else
-				*cp++ = '"';
+				cp += snprintf(cp, len, "\"]=\"");
+			*cp++ = '"';
 			last_start = cp;
 reset:
 			skip = false;
@@ -3716,7 +3555,7 @@ reset:
 				argv_count--;
 			else if (envp_count)
 				envp_count--;
-			else
+			if (!argv_count && !envp_count)
 				break;
 		}
 		offset = 0;
@@ -3890,7 +3729,7 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	case CCS_MAC_WRITE:
 	case CCS_MAC_APPEND:
 	case CCS_MAC_UNLINK:
-#ifdef CONFIG_CCSECURITY_FILE_GETATTR
+#ifdef CONFIG_CCSECURITY_GETATTR
 	case CCS_MAC_GETATTR:
 #endif
 	case CCS_MAC_RMDIR:
@@ -3937,7 +3776,7 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	case CCS_MAC_PIVOT_ROOT:
 		return snprintf(buf, len, " new_root=\"%s\" put_old=\"%s\"",
 				r->param.s[0]->name, r->param.s[1]->name);
-#ifdef CONFIG_CCSECURITY_MISC
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	case CCS_MAC_ENVIRON:
 		return snprintf(buf, len, " name=\"%s\" value=\"%s\"",
 				r->param.s[2]->name, r->param.s[3]->name);
@@ -3976,14 +3815,16 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	case CCS_MAC_UNIX_SEQPACKET_ACCEPT:
 		return snprintf(buf, len, " addr=\"%s\"", r->param.s[0]->name);
 #endif
-#ifdef CONFIG_CCSECURITY_IPC
+#ifdef CONFIG_CCSECURITY_PTRACE
 	case CCS_MAC_PTRACE:
 		return snprintf(buf, len, " cmd=%lu domain=\"%s\"",
 				r->param.i[0], r->param.s[0]->name);
+#endif
+#ifdef CONFIG_CCSECURITY_SIGNAL
 	case CCS_MAC_SIGNAL:
 		return snprintf(buf, len, " sig=%lu", r->param.i[0]);
 #endif
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 	case CCS_MAC_MANUAL_DOMAIN_TRANSITION:
 		return snprintf(buf, len, " domain=\"%s\"",
 				r->param.s[0]->name);
@@ -3993,7 +3834,6 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	}
 	return 0;
 }
-
 
 /**
  * ccs_init_log - Allocate buffer for audit logs.
@@ -4204,7 +4044,7 @@ static int ccs_parse_policy(struct ccs_io_buffer *head, char *line)
 		memmove(line, line + 7, strlen(line + 7) + 1);
 	/* Do the update. */
 	switch (head->type) {
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 	case CCS_EXECUTE_HANDLER:
 #endif
 	case CCS_PROCESS_STATUS:
@@ -4429,7 +4269,7 @@ static int ccs_open(struct inode *inode, struct file *file)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
 	head->type = type;
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 	if (type == CCS_EXECUTE_HANDLER) {
 		/* Allow execute_handler to read process's status. */
 		if (!(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
@@ -4547,7 +4387,7 @@ static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
 		case CCS_AUDIT:
 			ccs_read_log(head);
 			break;
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 		case CCS_EXECUTE_HANDLER:
 #endif
 		case CCS_PROCESS_STATUS:
@@ -4571,7 +4411,7 @@ static ssize_t ccs_read(struct file *file, char __user *buf, size_t count,
 	return len;
 }
 
-#ifdef CONFIG_CCSECURITY_TASK_DOMAIN_TRANSITION
+#ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 
 /**
  * ccs_write_self - write() for /proc/ccs/self_domain interface.
@@ -4714,13 +4554,6 @@ static void __init ccs_create_entry(const char *name, const umode_t mode,
 	if (entry) {
 		entry->proc_fops = &ccs_operations;
 		entry->data = ((u8 *) NULL) + key;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-		if (entry->proc_iops)
-			ccs_file_inode_operations = *entry->proc_iops;
-		if (!ccs_file_inode_operations.setattr)
-			ccs_file_inode_operations.setattr = proc_notify_change;
-		entry->proc_iops = &ccs_file_inode_operations;
-#endif
 	}
 }
 
@@ -4732,19 +4565,12 @@ static void __init ccs_create_entry(const char *name, const umode_t mode,
 static void __init ccs_proc_init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	if (ccs_dir->proc_iops)
-		ccs_dir_inode_operations = *ccs_dir->proc_iops;
-	if (!ccs_dir_inode_operations.setattr)
-		ccs_dir_inode_operations.setattr = proc_notify_change;
-	ccs_dir->proc_iops = &ccs_dir_inode_operations;
-#endif
 	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
 	ccs_create_entry("audit",            0400, ccs_dir, CCS_AUDIT);
 	ccs_create_entry(".process_status",  0600, ccs_dir,
 			 CCS_PROCESS_STATUS);
 	ccs_create_entry("version",          0400, ccs_dir, CCS_VERSION);
-#ifdef CONFIG_CCSECURITY_TASK_EXECUTE_HANDLER
+#ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 	ccs_create_entry(".execute_handler", 0666, ccs_dir,
 			 CCS_EXECUTE_HANDLER);
 #endif
@@ -4773,9 +4599,6 @@ static int __init ccs_init_module(void)
 		printk(KERN_INFO "ccs_mac_keywords[%u]==NULL\n", idx);
 		return -EINVAL;
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-	MOD_INC_USE_COUNT;
-#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 	if (init_srcu_struct(&ccs_ss))
 		panic("Out of memory.");
