@@ -600,7 +600,7 @@ enum ccs_update_counter_index {
 struct ccs_io_buffer {
 	int (*read) (struct ccs_io_buffer *);
 	int (*write) (struct ccs_io_buffer *);
-	int (*poll) (struct file *file, poll_table *wait);
+	unsigned int (*poll) (struct file *file, poll_table *wait);
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
 	/* The position currently reading from. */
@@ -738,11 +738,11 @@ int ccs_delete_domain(char *data);
 /* Open operation for /proc/ccs/ interface. */
 int ccs_open_control(const u8 type, struct file *file);
 /* Poll operation for /proc/ccs/ interface. */
-int ccs_poll_control(struct file *file, poll_table *wait);
+unsigned int ccs_poll_control(struct file *file, poll_table *wait);
 /* Check whether there is a grant log. */
-int ccs_poll_grant_log(struct file *file, poll_table *wait);
+unsigned int ccs_poll_grant_log(struct file *file, poll_table *wait);
 /* Check whether there is a reject log. */
-int ccs_poll_reject_log(struct file *file, poll_table *wait);
+unsigned int ccs_poll_reject_log(struct file *file, poll_table *wait);
 /* Read operation for /proc/ccs/ interface. */
 int ccs_read_control(struct file *file, char __user *buffer,
 		     const int buffer_len);
