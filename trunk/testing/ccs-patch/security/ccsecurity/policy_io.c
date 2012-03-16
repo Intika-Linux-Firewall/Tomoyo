@@ -3700,7 +3700,7 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 			snprintf(ip, sizeof(ip), "%pI6c",
 				 (const struct in6_addr *) r->param.ip);
 #else
-			ip6_compressed_string(ip, (const u8 *) r->param.ipip);
+			ip6_compressed_string(ip, (const u8 *) r->param.ip);
 #endif
 		} else {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32)
