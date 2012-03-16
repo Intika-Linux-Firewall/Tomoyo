@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=185b7fcd33fea8f86cdd31bbbec61127806ea0a3;sf=tgz
+Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=7f44e6cad8388b84075537f7dc91111b8c3ded22;sf=tgz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -59,7 +59,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.3-rc6-next-20120307 2012/03/08\n");
++	printk(KERN_INFO "Hook version: 3.3-rc7-next-20120315 2012/03/16\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -101,7 +101,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  };
 @@ -1622,6 +1624,10 @@ struct task_struct {
  	struct uprobe_task *utask;
- 	int uprobes_srcu_id;
+ 	int uprobe_srcu_id;
  #endif
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
@@ -344,7 +344,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1481,6 +1485,7 @@ bad_fork_cleanup_semundo:
+@@ -1478,6 +1482,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -560,7 +560,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		result = timekeeping_inject_offset(&delta);
 --- linux-next.orig/net/ipv4/raw.c
 +++ linux-next/net/ipv4/raw.c
-@@ -700,6 +700,10 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -697,6 +697,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -573,7 +573,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (len < copied) {
 --- linux-next.orig/net/ipv4/udp.c
 +++ linux-next/net/ipv4/udp.c
-@@ -1186,6 +1186,10 @@ try_again:
+@@ -1188,6 +1188,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
