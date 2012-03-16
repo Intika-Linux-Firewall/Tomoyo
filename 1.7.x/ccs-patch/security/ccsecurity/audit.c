@@ -500,11 +500,11 @@ void ccs_read_audit_log(struct ccs_io_buffer *head)
  * ccs_poll_audit_log - Wait for an audit log.
  *
  * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
+ * @wait: Pointer to "poll_table". May be NULL.
  *
- * Returns POLLIN | POLLRDNORM when ready to read a grant log.
+ * Returns POLLIN | POLLRDNORM if ready to read an audit log, 0 otherwise.
  */
-int ccs_poll_audit_log(struct file *file, poll_table *wait)
+unsigned int ccs_poll_audit_log(struct file *file, poll_table *wait)
 {
 	struct ccs_io_buffer *head = file->private_data;
 	const bool is_granted = head->type == CCS_GRANTLOG;

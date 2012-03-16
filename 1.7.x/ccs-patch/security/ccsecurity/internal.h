@@ -837,7 +837,7 @@ struct ccs_name_entry {
 struct ccs_io_buffer {
 	void (*read) (struct ccs_io_buffer *);
 	int (*write) (struct ccs_io_buffer *);
-	int (*poll) (struct file *file, poll_table *wait);
+	unsigned int (*poll) (struct file *file, poll_table *wait);
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
 	/* Index returned by ccs_lock().        */
@@ -975,8 +975,8 @@ int ccs_open_control(const u8 type, struct file *file);
 int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
 int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 			const struct ccs_path_info *filename);
-int ccs_poll_control(struct file *file, poll_table *wait);
-int ccs_poll_audit_log(struct file *file, poll_table *wait);
+unsigned int ccs_poll_control(struct file *file, poll_table *wait);
+unsigned int ccs_poll_audit_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer,
 		     const int buffer_len);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)

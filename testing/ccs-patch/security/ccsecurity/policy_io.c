@@ -4349,14 +4349,12 @@ static unsigned int ccs_poll(struct file *file, poll_table *wait)
 	if (head->type == CCS_AUDIT) {
 		if (!ccs_memory_used[CCS_MEMORY_AUDIT]) {
 			poll_wait(file, &ccs_log_wait, wait);
-			/* Recheck in case we raced. */
 			if (!ccs_memory_used[CCS_MEMORY_AUDIT])
 				return POLLOUT | POLLWRNORM;
 		}
 	} else if (head->type == CCS_QUERY) {
 		if (list_empty(&ccs_query_list)) {
 			poll_wait(file, &ccs_query_wait, wait);
-			/* Recheck in case we raced. */
 			if (list_empty(&ccs_query_list))
 				return POLLOUT | POLLWRNORM;
 		}

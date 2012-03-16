@@ -2767,36 +2767,17 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
  * ccs_poll_query - poll() for /proc/ccs/query.
  *
  * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
+ * @wait: Pointer to "poll_table". May be NULL.
  *
- * Returns POLLIN | POLLRDNORM when ready to read, 0 otherwise.
- *
- * Waits for access requests which violated policy in enforcing mode.
+ * Returns POLLIN | POLLRDNORM if ready to read a query, 0 otherwise.
  */
-static int ccs_poll_query(struct file *file, poll_table *wait)
+static unsigned int ccs_poll_query(struct file *file, poll_table *wait)
 {
-	struct list_head *tmp;
-	bool found = false;
-	u8 i;
-	for (i = 0; i < 2; i++) {
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&ccs_query_list_lock);
-		list_for_each(tmp, &ccs_query_list) {
-			struct ccs_query_entry *ptr
-				= list_entry(tmp, struct ccs_query_entry, list);
-			if (ptr->answer)
-				continue;
-			found = true;
-			break;
-		}
-		spin_unlock(&ccs_query_list_lock);
-		/***** CRITICAL SECTION END *****/
-		if (found)
-			return POLLIN | POLLRDNORM;
-		if (i)
-			break;
-		poll_wait(file, &ccs_query_wait, wait);
-	}
+	if (!list_empty(&ccs_query_list))
+		return POLLIN | POLLRDNORM;
+	poll_wait(file, &ccs_query_wait, wait);
+	if (!list_empty(&ccs_query_list))
+		return POLLIN | POLLRDNORM;
 	return 0;
 }
 
@@ -2825,8 +2806,6 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query_entry *ptr
 			= list_entry(tmp, struct ccs_query_entry, list);
-		if (ptr->answer)
-			continue;
 		if (pos++ != head->read_step)
 			continue;
 		len = ptr->query_len;
@@ -2847,8 +2826,6 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query_entry *ptr
 			= list_entry(tmp, struct ccs_query_entry, list);
-		if (ptr->answer)
-			continue;
 		if (pos++ != head->read_step)
 			continue;
 		/*
@@ -2903,8 +2880,12 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 			= list_entry(tmp, struct ccs_query_entry, list);
 		if (ptr->serial != serial)
 			continue;
-		if (!ptr->answer)
-			ptr->answer = answer;
+		ptr->answer = answer;
+		/* Remove from ccs_query_list. */
+		if (ptr->answer) {
+			list_del(&ptr->list);
+			INIT_LIST_HEAD(&ptr->list);
+		}
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
@@ -3238,12 +3219,12 @@ int ccs_open_control(const u8 type, struct file *file)
  * /proc/ccs/grant_log and /proc/ccs/reject_log are handled by
  * /usr/lib/ccs/ccs-auditd.
  */
-int ccs_poll_control(struct file *file, poll_table *wait)
+unsigned int ccs_poll_control(struct file *file, poll_table *wait)
 {
 	struct ccs_io_buffer *head = file->private_data;
 	if (!head->poll)
-		return -ENOSYS;
-	return head->poll(file, wait);
+		return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM;
+	return head->poll(file, wait) | POLLOUT | POLLWRNORM;
 }
 
 /**

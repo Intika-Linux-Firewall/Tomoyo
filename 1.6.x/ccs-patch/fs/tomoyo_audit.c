@@ -367,11 +367,11 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
  * ccs_poll_grant_log - Wait for a grant log.
  *
  * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
+ * @wait: Pointer to "poll_table". May be NULL.
  *
- * Returns POLLIN | POLLRDNORM when ready to read a grant log.
+ * Returns POLLIN | POLLRDNORM if ready to read a grant log, 0 otherwise.
  */
-int ccs_poll_grant_log(struct file *file, poll_table *wait)
+unsigned int ccs_poll_grant_log(struct file *file, poll_table *wait)
 {
 	if (ccs_grant_log_count)
 		return POLLIN | POLLRDNORM;
@@ -421,11 +421,11 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
  * ccs_poll_reject_log - Wait for a reject log.
  *
  * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
+ * @wait: Pointer to "poll_table". May be NULL.
  *
- * Returns POLLIN | POLLRDNORM when ready to read a reject log.
+ * Returns POLLIN | POLLRDNORM if ready to read a reject log, 0 otherwise.
  */
-int ccs_poll_reject_log(struct file *file, poll_table *wait)
+unsigned int ccs_poll_reject_log(struct file *file, poll_table *wait)
 {
 	if (ccs_reject_log_count)
 		return POLLIN | POLLRDNORM;
