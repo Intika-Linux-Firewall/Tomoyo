@@ -612,6 +612,22 @@ retry:
 			goto retry;
 		break;
 	}
+	/*
+	 * If conditions could not be checked due to out of memory,
+	 * reject the request with -ENOMEM, for we don't know whether
+	 * there was a possibility of matching "deny" lines or not.
+	 */
+	if (r->failed_by_oom) {
+		static struct timeval ccs_last_tv;
+		struct timeval tv;
+		do_gettimeofday(&tv);
+		if (tv.tv_sec != ccs_last_tv.tv_sec) {
+			ccs_last_tv = tv;
+			printk(KERN_INFO "CCSecurity: Rejecting access "
+			       "request due to out of memory.\n");
+		}
+		error = -ENOMEM;
+	}
 	return error;
 }
 
@@ -850,7 +866,7 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 
 	/* Set argv[2] */
 	{
-		char *exe = (char *) ccs_get_exe();
+		char *exe = ccs_get_exe();
 		if (exe) {
 			retval = ccs_copy_argv(exe, bprm);
 			kfree(exe);
@@ -898,7 +914,7 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 		}
 		handler_len = r->handler_path->total_len + 1;
 		/* r->handler is released by ccs_finish_execve(). */
-		r->handler = kmalloc(handler_len, CCS_GFP_FLAGS);
+		r->handler = kmalloc(handler_len, GFP_NOFS);
 		if (!r->handler) {
 			retval = -ENOMEM;
 			goto out;
@@ -937,7 +953,9 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 	if (retval < 0)
 		goto out;
 	ccs_populate_patharg(r, true);
-	if (!r->param.s[0] || ccs_pathcmp(r->param.s[0], r->handler_path)) {
+	if (!r->param.s[0])
+		retval = -ENOMEM;
+	else if (ccs_pathcmp(r->param.s[0], r->handler_path)) {
 		/* Failed to verify execute handler. */
 		static u8 counter = 20;
 		if (counter) {
@@ -978,7 +996,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 	struct page *page;
 	/* dump->data is released by ccs_start_execve(). */
 	if (!dump->data) {
-		dump->data = kzalloc(PAGE_SIZE, CCS_GFP_FLAGS);
+		dump->data = kzalloc(PAGE_SIZE, GFP_NOFS);
 		if (!dump->data)
 			return false;
 	}
@@ -1034,10 +1052,10 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	int idx;
 	*rp = NULL;
 	ccs_check_auto_domain_transition();
-	r = kzalloc(sizeof(*r), CCS_GFP_FLAGS);
+	r = kzalloc(sizeof(*r), GFP_NOFS);
 	if (!r)
 		return -ENOMEM;
-	r->tmp = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+	r->tmp = kzalloc(CCS_EXEC_TMPSIZE, GFP_NOFS);
 	if (!r->tmp) {
 		kfree(r);
 		return -ENOMEM;
@@ -2007,7 +2025,7 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		op |= 002;
 	if (!op) /* Neither read nor write */
 		return 0;
-	buffer = kmalloc(PAGE_SIZE, CCS_GFP_FLAGS);
+	buffer = kmalloc(PAGE_SIZE, GFP_NOFS);
 	if (!buffer)
 		goto out;
 	snprintf(buffer, PAGE_SIZE - 1, "proc:/sys");
@@ -2836,7 +2854,7 @@ static int ccs_environ(struct ccs_request_info *r)
 	int argv_count = bprm->argc;
 	int envp_count = bprm->envc;
 	int error = -ENOMEM;
-	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, GFP_NOFS);
 	if (!arg_ptr)
 		goto out;
 	while (error == -ENOMEM) {
@@ -3120,8 +3138,11 @@ void ccs_populate_patharg(struct ccs_request_info *r, const bool first)
 	if (!buf->name && path->dentry) {
 		int len;
 		buf->name = ccs_realpath(path);
-		if (!buf->name)
+		/* Set OOM flag if failed. */
+		if (!buf->name) {
+			r->failed_by_oom = true;
 			return;
+		}
 		len = strlen(buf->name) - 1;
 		if (len >= 0 && buf->name[len] != '/' &&
 		    (r->type == CCS_MAC_MKDIR ||
@@ -3296,8 +3317,12 @@ not_single_value:
 		(*condp)++;
 		break;
 	case CCS_SELF_EXE:
-		if (!r->exename.name)
+		if (!r->exename.name) {
 			ccs_get_exename(&r->exename);
+			/* Set OOM flag if failed. */
+			if (!r->exename.name)
+				r->failed_by_oom = true;
+		}
 		arg->name = &r->exename;
 		break;
 	case CCS_COND_DOMAIN:

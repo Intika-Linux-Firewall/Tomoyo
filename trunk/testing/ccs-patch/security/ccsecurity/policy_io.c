@@ -1156,7 +1156,7 @@ static const struct ccs_path_info *ccs_get_name(const char *name)
 		goto out;
 	}
 	allocated_len = sizeof(*ptr) + len;
-	ptr = kzalloc(allocated_len, CCS_GFP_FLAGS);
+	ptr = kzalloc(allocated_len, GFP_NOFS);
 	if (ccs_memory_ok(ptr, allocated_len)) {
 		ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 		memmove((char *) ptr->entry.name, name, len);
@@ -1276,7 +1276,7 @@ out:
  */
 static void *ccs_commit_ok(void *data, const unsigned int size)
 {
-	void *ptr = kmalloc(size, CCS_GFP_FLAGS);
+	void *ptr = kmalloc(size, GFP_NOFS);
 	if (ccs_memory_ok(ptr, size)) {
 		memmove(ptr, data, size);
 		memset(data, 0, size);
@@ -2112,7 +2112,7 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
  */
 struct ccs_condition *ccs_get_condition(struct ccs_io_buffer *head)
 {
-	struct ccs_condition *entry = kmalloc(PAGE_SIZE, CCS_GFP_FLAGS);
+	struct ccs_condition *entry = kmalloc(PAGE_SIZE, GFP_NOFS);
 	union ccs_condition_element *condp;
 	struct ccs_cond_tmp tmp;
 	const enum ccs_mac_index type = head->w.acl_index;
@@ -3247,7 +3247,7 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 		head->r.query_index = 0;
 		return;
 	}
-	buf = kzalloc(len + 32, CCS_GFP_FLAGS);
+	buf = kzalloc(len + 32, GFP_NOFS);
 	if (!buf)
 		return;
 	pos = 0;
@@ -3483,7 +3483,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
 			    struct ccs_page_dump *dump)
 {
 	static const int ccs_buffer_len = 4096 * 2;
-	char *buffer = kzalloc(ccs_buffer_len, CCS_GFP_FLAGS);
+	char *buffer = kzalloc(ccs_buffer_len, GFP_NOFS);
 	char *cp;
 	char *last_start;
 	unsigned long pos = bprm->p;
@@ -3614,7 +3614,7 @@ static char *ccs_print_trailer(struct ccs_request_info *r)
 	const char *exe = r->exename.name;
 	const char *domain = ccs_current_domain()->domainname->name;
 	const int ccs_buffer_len = 2000 + strlen(exe) + strlen(domain);
-	char *buffer = kmalloc(ccs_buffer_len, CCS_GFP_FLAGS);
+	char *buffer = kmalloc(ccs_buffer_len, GFP_NOFS);
 	int pos;
 	u8 i;
 	if (!buffer)
@@ -3879,13 +3879,14 @@ static char *ccs_init_log(struct ccs_request_info *r)
 	len = 0;
 	while (1) {
 		int pos;
-		buf = kzalloc(len, CCS_GFP_FLAGS);
+		buf = kzalloc(len, GFP_NOFS);
 		if (!buf)
 			break;
 		pos = snprintf(buf, len, "#%04u/%02u/%02u %02u:%02u:%02u# "
-			       "global-pid=%u result=%s / %s", stamp.year,
-			       stamp.month, stamp.day, stamp.hour, stamp.min,
-			       stamp.sec, gpid, k[r->result],
+			       "global-pid=%u result=%s priority=%u / %s",
+			       stamp.year, stamp.month, stamp.day, stamp.hour,
+			       stamp.min, stamp.sec, gpid, k[r->result],
+			       r->matched_acl ? r->matched_acl->priority : 0,
 			       ccs_mac_keywords[r->type]);
 		pos += ccs_print_param(r, buf + pos,
 				       pos < len ? len - pos : 0);
@@ -3922,7 +3923,7 @@ static void ccs_write_log(struct ccs_request_info *r)
 	char *buf = ccs_init_log(r);
 	if (!buf)
 		return;
-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+	entry = kzalloc(sizeof(*entry), GFP_NOFS);
 	if (!entry) {
 		kfree(buf);
 		return;
@@ -4268,7 +4269,7 @@ done:
 static int ccs_open(struct inode *inode, struct file *file)
 {
 	const u8 type = (unsigned long) PDE(inode)->data;
-	struct ccs_io_buffer *head = kzalloc(sizeof(*head), CCS_GFP_FLAGS);
+	struct ccs_io_buffer *head = kzalloc(sizeof(*head), GFP_NOFS);
 	if (!head)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
@@ -4286,7 +4287,7 @@ static int ccs_open(struct inode *inode, struct file *file)
 	    type != CCS_QUERY) {
 		/* Don't allocate read_buf for poll() access. */
 		head->readbuf_size = 4096;
-		head->read_buf = kzalloc(head->readbuf_size, CCS_GFP_FLAGS);
+		head->read_buf = kzalloc(head->readbuf_size, GFP_NOFS);
 		if (!head->read_buf) {
 			kfree(head);
 			return -ENOMEM;
@@ -4294,7 +4295,7 @@ static int ccs_open(struct inode *inode, struct file *file)
 	}
 	if (file->f_mode & FMODE_WRITE) {
 		head->writebuf_size = 4096;
-		head->write_buf = kzalloc(head->writebuf_size, CCS_GFP_FLAGS);
+		head->write_buf = kzalloc(head->writebuf_size, GFP_NOFS);
 		if (!head->write_buf) {
 			kfree(head->read_buf);
 			kfree(head);
@@ -4435,7 +4436,7 @@ static ssize_t ccs_write_self(struct file *file, const char __user *buf,
 	int error;
 	if (!count || count >= CCS_EXEC_TMPSIZE - 10)
 		return -ENOMEM;
-	data = kzalloc(count + 1, CCS_GFP_FLAGS);
+	data = kzalloc(count + 1, GFP_NOFS);
 	if (!data)
 		return -ENOMEM;
 	if (copy_from_user(data, buf, count)) {
@@ -4493,7 +4494,7 @@ static ssize_t ccs_write(struct file *file, const char __user *buf,
 		char c;
 		if (head->w.avail >= head->writebuf_size - 1) {
 			const int len = head->writebuf_size * 2;
-			char *cp = kzalloc(len, CCS_GFP_FLAGS);
+			char *cp = kzalloc(len, GFP_NOFS);
 			if (!cp) {
 				error = -ENOMEM;
 				break;
