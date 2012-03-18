@@ -817,7 +817,12 @@ struct ccs_request_info {
 	u8 retry;
 	/* For holding max audit log count for this matching entry. */
 	u8 audit;
-	/* True if condition could not be checked due to out of memory. */
+	/*
+	 * Set to true if condition could not be checked due to out of memory.
+	 * This flag is used for returning out of memory flag back to
+	 * ccs_check_acl_list(). Thus, this flag will not be set if out of
+	 * memory occurred before ccs_check_acl_list() is called.
+	 */
 	bool failed_by_oom;
 };
 

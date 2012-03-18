@@ -581,8 +581,11 @@ static int ccs_check_acl_list(struct ccs_request_info *r)
 	list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
 		struct ccs_acl_info *ptr2;
 retry:
-		if (!ccs_check_entry(r, ptr))
+		if (!ccs_check_entry(r, ptr)) {
+			if (unlikely(r->failed_by_oom))
+				goto oom;
 			continue;
+		}
 		r->matched_acl = ptr;
 		r->audit = ptr->audit;
 		r->result = CCS_MATCHING_UNMATCHED;
@@ -590,8 +593,11 @@ retry:
 					 &ccs_ss) {
 			r->transition_candidate = NULL;
 			r->handler_path_candidate = NULL;
-			if (!ccs_check_entry(r, ptr2))
+			if (!ccs_check_entry(r, ptr2)) {
+				if (unlikely(r->failed_by_oom))
+					goto oom;
 				continue;
+			}
 			if (ptr2->is_deny) {
 				r->result = CCS_MATCHING_DENIED;
 				break;
@@ -606,18 +612,22 @@ retry:
 			break;
 		}
 		error = ccs_audit_log(r);
+		/* Ignore out of memory during audit. */
+		r->failed_by_oom = false;
 		if (!error)
 			continue;
 		if (error == CCS_RETRY_REQUEST)
 			goto retry;
 		break;
 	}
+	return error;
+oom:
 	/*
 	 * If conditions could not be checked due to out of memory,
 	 * reject the request with -ENOMEM, for we don't know whether
 	 * there was a possibility of matching "deny" lines or not.
 	 */
-	if (r->failed_by_oom) {
+	{
 		static struct timeval ccs_last_tv;
 		struct timeval tv;
 		do_gettimeofday(&tv);
@@ -626,9 +636,8 @@ retry:
 			printk(KERN_INFO "CCSecurity: Rejecting access "
 			       "request due to out of memory.\n");
 		}
-		error = -ENOMEM;
 	}
-	return error;
+	return -ENOMEM;
 }
 
 /**
@@ -2855,11 +2864,15 @@ static int ccs_environ(struct ccs_request_info *r)
 	int envp_count = bprm->envc;
 	int error = -ENOMEM;
 	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, GFP_NOFS);
-	if (!arg_ptr)
+	if (!arg_ptr) {
+		r->failed_by_oom = true;
 		goto out;
+	}
 	while (error == -ENOMEM) {
-		if (!ccs_dump_page(bprm, pos, &env_page))
+		if (!ccs_dump_page(bprm, pos, &env_page)) {
+			r->failed_by_oom = true;
 			goto out;
+		}
 		pos += PAGE_SIZE - offset;
 		/* Read. */
 		while (argv_count && offset < PAGE_SIZE) {
@@ -2961,8 +2974,10 @@ static bool ccs_check_argv(struct ccs_request_info *r, unsigned long index,
 	if (index > bprm->argc)
 		return false;
 	while (1) {
-		if (!ccs_dump_page(bprm, pos, dump))
+		if (!ccs_dump_page(bprm, pos, dump)) {
+			r->failed_by_oom = true;
 			return false;
+		}
 		pos += PAGE_SIZE - offset;
 		while (offset < PAGE_SIZE) {
 			const unsigned char c = dump->data[offset++];
@@ -3022,8 +3037,10 @@ static bool ccs_check_envp(struct ccs_request_info *r,
 	struct ccs_path_info env;
 	char *cp;
 	while (envp_count) {
-		if (!ccs_dump_page(bprm, pos, dump))
+		if (!ccs_dump_page(bprm, pos, dump)) {
+			r->failed_by_oom = true;
 			return false;
+		}
 		pos += PAGE_SIZE - offset;
 		while (envp_count && offset < PAGE_SIZE) {
 			const unsigned char c = dump->data[offset++];
