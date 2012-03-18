@@ -632,24 +632,6 @@ enum ccs_ipaddr_type {
  */
 #define CCS_RETRY_REQUEST 1
 
-/* Ignore gfp flags which are not supported. */
-#ifndef __GFP_HIGHIO
-#define __GFP_HIGHIO 0
-#endif
-#ifndef __GFP_NOWARN
-#define __GFP_NOWARN 0
-#endif
-#ifndef __GFP_NORETRY
-#define __GFP_NORETRY 0
-#endif
-#ifndef __GFP_NOMEMALLOC
-#define __GFP_NOMEMALLOC 0
-#endif
-
-/* The gfp flags used by TOMOYO. */
-#define CCS_GFP_FLAGS (__GFP_WAIT | __GFP_IO | __GFP_HIGHIO | __GFP_NOWARN | \
-		       __GFP_NORETRY | __GFP_NOMEMALLOC)
-
 /* Size of read buffer for /proc/ccs/ interface. */
 #define CCS_MAX_IO_READ_QUEUE 64
 
@@ -779,6 +761,7 @@ struct ccs_request_info {
 		bool validate_done;
 		/* True if @stat[] is valid. */
 		bool stat_valid[CCS_MAX_PATH_STAT];
+		/* Pointer to file objects. */
 		struct path path[2];
 		/*
 		 * Information on @path[0], @path[0]'s parent directory,
@@ -795,7 +778,7 @@ struct ccs_request_info {
 		struct linux_binprm *bprm;
 		struct ccs_domain_info *previous_domain;
 		/* For execute_handler. */
-		char *handler; /* kstrdup(handler_path->name, CCS_GFP_FLAGS) */
+		char *handler; /* kstrdup(handler_path->name, GFP_NOFS) */
 		/* For dumping argv[] and envp[]. */
 		struct ccs_page_dump dump;
 		/* For temporary use. Size is CCS_EXEC_TMPSIZE bytes. */
@@ -834,6 +817,8 @@ struct ccs_request_info {
 	u8 retry;
 	/* For holding max audit log count for this matching entry. */
 	u8 audit;
+	/* True if condition could not be checked due to out of memory. */
+	bool failed_by_oom;
 };
 
 /* Structure for domain information. */
@@ -926,7 +911,7 @@ bool ccs_transit_domain(const char *domainname);
 char *ccs_encode(const char *str);
 char *ccs_encode2(const char *str, int str_len);
 char *ccs_realpath(struct path *path);
-const char *ccs_get_exe(void);
+char *ccs_get_exe(void);
 int ccs_audit_log(struct ccs_request_info *r);
 int ccs_check_acl(struct ccs_request_info *r, const bool clear);
 void ccs_del_condition(struct list_head *element);

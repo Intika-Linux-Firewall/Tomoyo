@@ -464,7 +464,7 @@ char *ccs_realpath(struct path *path)
 		struct inode *inode;
 		buf_len <<= 1;
 		kfree(buf);
-		buf = kmalloc(buf_len, CCS_GFP_FLAGS);
+		buf = kmalloc(buf_len, GFP_NOFS);
 		if (!buf)
 			break;
 		/* To make sure that pos is '\0' terminated. */
@@ -538,7 +538,7 @@ char *ccs_encode2(const char *str, int str_len)
 	}
 	len++;
 	/* Reserve space for appending "/". */
-	cp = kzalloc(len + 10, CCS_GFP_FLAGS);
+	cp = kzalloc(len + 10, GFP_NOFS);
 	if (!cp)
 		return NULL;
 	cp0 = cp;
@@ -641,12 +641,12 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
  * This function uses kzalloc(), so the caller must kfree()
  * if this function didn't return NULL.
  */
-const char *ccs_get_exe(void)
+char *ccs_get_exe(void)
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
 	bool done = false;
-	const char *cp = NULL;
+	char *cp = NULL;
 	if (!mm)
 		goto task_has_no_mm;
 	down_read(&mm->mmap_sem);
@@ -667,13 +667,11 @@ const char *ccs_get_exe(void)
 	if (done)
 		return cp;
 task_has_no_mm:
-	{
-		/* Probably I'm a kernel thread. But I'm not sure. */
-		char *exe = kzalloc(16, CCS_GFP_FLAGS);
-		if (exe)
-			memcpy(exe, "<unknown>", 10);
-		return exe;
-	}
+	/* Probably I'm a kernel thread. But I'm not sure. */
+	cp = kzalloc(16, GFP_NOFS);
+	if (cp)
+		memcpy(cp, "<unknown>", 10);
+	return cp;
 }
 
 /**
