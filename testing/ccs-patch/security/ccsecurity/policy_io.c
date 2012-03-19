@@ -48,9 +48,6 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_MOUNT]      = "mount",
 	[CCS_MAC_UMOUNT]     = "unmount",
 	[CCS_MAC_PIVOT_ROOT] = "pivot_root",
-#ifdef CONFIG_CCSECURITY_ENVIRON
-	[CCS_MAC_ENVIRON] = "environ",
-#endif
 #ifdef CONFIG_CCSECURITY_NETWORK
 	[CCS_MAC_INET_STREAM_BIND]       = "inet_stream_bind",
 	[CCS_MAC_INET_STREAM_LISTEN]     = "inet_stream_listen",
@@ -79,6 +76,9 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_UNIX_SEQPACKET_LISTEN]  = "unix_seqpacket_listen",
 	[CCS_MAC_UNIX_SEQPACKET_CONNECT] = "unix_seqpacket_connect",
 	[CCS_MAC_UNIX_SEQPACKET_ACCEPT]  = "unix_seqpacket_accept",
+#endif
+#ifdef CONFIG_CCSECURITY_ENVIRON
+	[CCS_MAC_ENVIRON] = "environ",
 #endif
 #ifdef CONFIG_CCSECURITY_PTRACE
 	[CCS_MAC_PTRACE] = "ptrace",
@@ -1741,6 +1741,10 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 #endif
 #ifdef CONFIG_CCSECURITY_ENVIRON
 	case CCS_MAC_ENVIRON:
+		if (!strcmp(word, "path"))
+			return CCS_COND_SARG0;
+		if (!strcmp(word, "exec"))
+			return CCS_COND_SARG1;
 		if (!strcmp(word, "name"))
 			return CCS_COND_SARG2;
 		if (!strcmp(word, "value"))
@@ -1803,14 +1807,20 @@ static enum ccs_conditions_index ccs_parse_path_attribute
 	case CCS_MAC_IOCTL:
 	case CCS_MAC_EXECUTE:
 	case CCS_MAC_UMOUNT:
-#ifdef CONFIG_CCSECURITY_GETATTR
+#ifdef CONFIG_CCSECURITY_ENVIRON
 	case CCS_MAC_ENVIRON:
 #endif
 		if (ccs_str_starts(&word, "path"))
 			goto path1;
+#ifdef CONFIG_CCSECURITY_ENVIRON
+		if ((type == CCS_MAC_EXECUTE || type == CCS_MAC_ENVIRON) &&
+		    ccs_str_starts(&word, "exec"))
+			goto path2;
+#else
 		if (type == CCS_MAC_EXECUTE &&
 		    ccs_str_starts(&word, "exec"))
 			goto path2;
+#endif
 		break;
 	case CCS_MAC_MKDIR:
 	case CCS_MAC_CREATE:
@@ -3715,12 +3725,12 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	}
 #endif
 	/* Make sure that string arguments are ready. */
-	if (!r->param.s[0]) {
+	if (!r->param.s[0] && r->obj.path[0].dentry) {
 		ccs_populate_patharg(r, true);
 		if (!r->param.s[0])
 			return 0;
 	}
-	if (!r->param.s[1]) {
+	if (!r->param.s[1] && r->obj.path[1].dentry) {
 		ccs_populate_patharg(r, false);
 		if (!r->param.s[1])
 			return 0;
@@ -3773,17 +3783,30 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 		return snprintf(buf, len, " path=\"%s\" cmd=0x%lX",
 				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_MOUNT:
-		return snprintf(buf, len, " source=\"%s\" target=\"%s\""
-				" fstype=\"%s\" flags=0x%lX",
-				r->param.s[0]->name, r->param.s[1]->name,
-				r->param.s[2]->name, r->param.i[0]);
+		{
+			int pos = 0;
+			if (r->param.s[0])
+				pos = snprintf(buf, len, " source=\"%s\"",
+					       r->param.s[0]->name);
+			if (r->param.s[1])
+				pos += snprintf(buf + pos,
+						pos < len ? len - pos : 0,
+						" target=\"%s\"",
+						r->param.s[1]->name);
+			pos += snprintf(buf + pos, pos < len ? len - pos : 0,
+					" fstype=\"%s\" flags=0x%lX",
+					r->param.s[2]->name, r->param.i[0]);
+			return pos;
+		}
 	case CCS_MAC_PIVOT_ROOT:
 		return snprintf(buf, len, " new_root=\"%s\" put_old=\"%s\"",
 				r->param.s[0]->name, r->param.s[1]->name);
 #ifdef CONFIG_CCSECURITY_ENVIRON
 	case CCS_MAC_ENVIRON:
-		return snprintf(buf, len, " name=\"%s\" value=\"%s\"",
-				r->param.s[2]->name, r->param.s[3]->name);
+		return snprintf(buf, len, " name=\"%s\" value=\"%s\""
+				" exec=\"%s\" path=\"%s\"",
+				r->param.s[2]->name, r->param.s[3]->name,
+				r->param.s[1]->name, r->param.s[0]->name);
 #endif
 #ifdef CONFIG_CCSECURITY_NETWORK
 	case CCS_MAC_INET_STREAM_BIND:
@@ -4596,12 +4619,14 @@ static int __init ccs_init_module(void)
 	u16 idx;
 	if (ccsecurity_ops.disabled)
 		return -EINVAL;
+#ifdef DEBUG_CONDITION
 	for (idx = 0; idx < CCS_MAX_MAC_INDEX; idx++) {
 		if (ccs_mac_keywords[idx])
 			continue;
 		printk(KERN_INFO "ccs_mac_keywords[%u]==NULL\n", idx);
 		return -EINVAL;
 	}
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 	if (init_srcu_struct(&ccs_ss))
 		panic("Out of memory.");
