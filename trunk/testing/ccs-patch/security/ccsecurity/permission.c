@@ -677,15 +677,14 @@ static int ccs_execute(struct ccs_request_info *r)
 	if (retval < 0)
 		return retval;
 	ccs_populate_patharg(r, false);
-	retval = -ENOMEM;
 	if (!r->param.s[1])
-		goto out;
+		return -ENOMEM;
 
 	/* Check execute permission. */
 	r->type = CCS_MAC_EXECUTE;
 	retval = ccs_check_acl(r, false);
 	if (retval < 0)
-		goto out;
+		return retval;
 #ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
 	/*
 	 * Switch to execute handler if matched. To avoid infinite execute
@@ -696,7 +695,7 @@ static int ccs_execute(struct ccs_request_info *r)
 	    !(ccs_current_flags() & CCS_TASK_IS_EXECUTE_HANDLER)) {
 		retval = ccs_try_alt_exec(r);
 		if (retval < 0)
-			goto out;
+			return retval;
 	}
 #endif
 	/*
@@ -704,10 +703,9 @@ static int ccs_execute(struct ccs_request_info *r)
 	 * Also, tell open_exec() to check read permission.
 	 */
 	ccs_current_security()->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
-	retval = 0;
 	if (!r->transition || r->transition == &ccs_null_name)
 		/* Keep current domain. */
-		goto done;
+		return 0;
 	/*
 	 * Make ccs_current_security()->ccs_flags visible to GC before changing
 	 * ccs_current_security()->ccs_domain_info.
@@ -718,18 +716,10 @@ static int ccs_execute(struct ccs_request_info *r)
 	 * It will be reverted if execve() failed.
 	 */
 	if (ccs_transit_domain(r->transition->name))
-		goto done;
+		return 0;
 	printk(KERN_WARNING "ERROR: Domain '%s' not ready.\n",
 	       r->transition->name);
-done:
-	ccs_clear_request_info(r);
-out:
-	/* Drop refcount obtained by ccs_execute_path(). */
-	if (r->obj.path[1].dentry) {
-		path_put(&r->obj.path[1]);
-		r->obj.path[1].dentry = NULL;
-	}
-	return retval;
+	return -ENOMEM;
 }
 
 #ifdef CONFIG_CCSECURITY_EXECUTE_HANDLER
@@ -1083,6 +1073,12 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	if (!retval && bprm->envc)
 		retval = ccs_environ(r);
 #endif
+	ccs_clear_request_info(r);
+	/* Drop refcount obtained by ccs_execute_path(). */
+	if (r->obj.path[1].dentry) {
+		path_put(&r->obj.path[1]);
+		r->obj.path[1].dentry = NULL;
+	}
 	ccs_read_unlock(idx);
 	kfree(r->tmp);
 	r->tmp = NULL;
@@ -1653,6 +1649,7 @@ static int __ccs_symlink_permission(struct dentry *dentry,
 	if (!r.obj.pathname[1].name)
 		return -ENOMEM;
 	ccs_fill_path_info(&r.obj.pathname[1]);
+	r.param.s[1] = &r.obj.pathname[1];
 	return ccs_check_acl(&r, true);
 }
 
@@ -2690,7 +2687,6 @@ static int __ccs_socket_create_permission(int family, int type, int protocol)
 bool ccs_manager(void)
 {
 	struct ccs_security *task;
-	bool allowed;
 	if (!ccs_policy_loaded)
 		return true;
 	task = ccs_current_security();
@@ -2699,25 +2695,25 @@ bool ccs_manager(void)
 	{
 		struct ccs_request_info r = { };
 		r.type = CCS_MAC_MODIFY_POLICY;
-		ccs_check_acl(&r, true);
-		allowed =  r.result == CCS_MATCHING_ALLOWED;
+		if (ccs_check_acl(&r, true) == 0) {
+			/* Set manager flag. */
+			task->ccs_flags |= CCS_TASK_IS_MANAGER;
+			return true;
+		}
 	}
-	if (allowed) {
-		/* Set manager flag. */
-		task->ccs_flags |= CCS_TASK_IS_MANAGER;
-	} else { /* Reduce error messages. */
+	{ /* Reduce error messages. */
 		static pid_t ccs_last_pid;
 		const pid_t pid = current->pid;
 		if (ccs_last_pid != pid) {
 			const char *exe = ccs_get_exe();
-			printk(KERN_WARNING "Pid %u (exe='%s' domain='%s') is"
-			       " not permitted to update policies.\n", pid,
-			       exe, task->ccs_domain_info->domainname->name);
+			printk(KERN_WARNING "'%s' (pid=%u domain='%s') is"
+			       " not permitted to update policies.\n", exe,
+			       pid, task->ccs_domain_info->domainname->name);
 			ccs_last_pid = pid;
 			kfree(exe);
 		}
 	}
-	return allowed;
+	return false;
 }
 
 #ifdef CONFIG_CCSECURITY_PTRACE
