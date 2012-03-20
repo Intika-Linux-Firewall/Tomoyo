@@ -22,6 +22,29 @@
  */
 #include "ccstools.h"
 
+/**
+ * ccs_close_write - Close stream opened by ccs_open_write().
+ *
+ * @fp: Pointer to "FILE".
+ *
+ * Returns true on success, false otherwise.
+ */
+static _Bool ccs_close_write(FILE *fp)
+{
+	_Bool result = true;
+	if (ccs_network_mode) {
+		if (fputc(0, fp) == EOF)
+			result = false;
+		if (fflush(fp) == EOF)
+			result = false;
+		if (fgetc(fp) == EOF)
+			result = false;
+	}
+	if (fclose(fp) == EOF)
+		result = false;
+	return result;
+}
+
 static _Bool ccs_move_file_to_proc(const char *dest)
 {
 	FILE *proc_fp = ccs_open_write(dest);

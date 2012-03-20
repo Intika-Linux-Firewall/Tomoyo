@@ -22,6 +22,45 @@
  */
 #include "ccstools.h"
 
+/**
+ * ccs_move_proc_to_file - Save /proc/ccs/ to /etc/ccs/ .
+ *
+ * @src:  Filename to save from.
+ * @dest: Filename to save to.
+ *
+ * Returns true on success, false otherwise.
+ */
+static _Bool ccs_move_proc_to_file(const char *src, const char *dest)
+{
+	FILE *proc_fp = ccs_open_read(src);
+	FILE *file_fp;
+	_Bool result = true;
+	if (!proc_fp) {
+		fprintf(stderr, "Can't open %s for reading.\n", src);
+		return false;
+	}
+	file_fp = dest ? fopen(dest, "w") : stdout;
+	if (!file_fp) {
+		fprintf(stderr, "Can't open %s for writing.\n", dest);
+		fclose(proc_fp);
+		return false;
+	}
+	while (true) {
+		const int c = fgetc(proc_fp);
+		if (ccs_network_mode && !c)
+			break;
+		if (c == EOF)
+			break;
+		if (fputc(c, file_fp) == EOF)
+			result = false;
+	}
+	fclose(proc_fp);
+	if (file_fp != stdout)
+		if (fclose(file_fp) == EOF)
+			result = false;
+	return result;
+}
+
 static const char *ccs_policy_dir = NULL;
 
 static _Bool ccs_cat_file(const char *path)
