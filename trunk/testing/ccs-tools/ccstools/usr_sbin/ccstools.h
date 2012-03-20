@@ -61,16 +61,6 @@
 
 /***** STRUCTURES DEFINITION START *****/
 
-struct ccs_task_entry {
-	pid_t pid;
-	pid_t ppid;
-	char *name;
-	char *domain;
-	_Bool selected;
-	int index;
-	int depth;
-};
-
 /***** STRUCTURES DEFINITION END *****/
 
 /***** PROTOTYPES DEFINITION START *****/
@@ -78,9 +68,7 @@ struct ccs_task_entry {
 FILE *ccs_open_read(const char *filename);
 FILE *ccs_open_write(const char *filename);
 _Bool ccs_check_remote_host(void);
-_Bool ccs_close_write(FILE *fp);
 _Bool ccs_decode(const char *ascii, char *bin);
-_Bool ccs_move_proc_to_file(const char *src, const char *dest);
 _Bool ccs_str_starts(char *str, const char *begin);
 char *ccs_freadline(FILE *fp);
 char *ccs_strdup(const char *string);
@@ -90,11 +78,8 @@ void *ccs_realloc(void *ptr, const size_t size);
 void ccs_get(void);
 void ccs_normalize_line(char *buffer);
 void ccs_put(void);
-void ccs_read_process_list(_Bool show_all);
 
 extern _Bool ccs_network_mode;
-extern int ccs_task_list_len;
-extern struct ccs_task_entry *ccs_task_list;
 extern u16 ccs_network_port;
 extern u32 ccs_network_ip;
 
