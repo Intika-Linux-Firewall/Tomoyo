@@ -1,4 +1,4 @@
-ALL_FILES = ccs_param_test
+ALL_FILES = ccs_param_test ccs_log_test
 
 #ccs_accept_test ccs_argv0_test ccs_bind_test ccs_bprm_test \
 #	ccs_capability_test ccs_cond_test ccs_env_test \
