@@ -83,11 +83,7 @@ static _Bool ccs_policy_loader_exists(void)
 		ccs_loader = CONFIG_CCSECURITY_POLICY_LOADER;
 	if (path_lookup(ccs_loader, LOOKUP_FOLLOW | LOOKUP_POSITIVE,
 			&nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		path_put(&nd.path);
-#else
-		path_release(&nd);
-#endif
 		return 1;
 	}
 #endif
@@ -149,11 +145,7 @@ static void ccs_load_policy(const char *filename)
 		envp[0] = "HOME=/";
 		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
 		envp[2] = NULL;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) || defined(UMH_WAIT_PROC)
 		call_usermodehelper(argv[0], argv, envp, UMH_WAIT_PROC);
-#else
-		call_usermodehelper(argv[0], argv, envp, 1);
-#endif
 	}
 	if (ccsecurity_ops.check_profile)
 		ccsecurity_ops.check_profile();
@@ -214,10 +206,8 @@ const struct ccsecurity_exports ccsecurity_exports = {
 #else
 	.vfsmount_lock = &vfsmount_lock,
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 	.find_task_by_vpid = find_task_by_vpid,
 	.find_task_by_pid_ns = find_task_by_pid_ns,
-#endif
 };
 #ifdef CONFIG_CCSECURITY_LKM
 /* Only ccsecurity module need to access this struct. */

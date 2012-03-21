@@ -37,10 +37,8 @@ int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 /* Obtain prototype of __d_path() or d_absolute_path(). */
 #include <linux/dcache.h>
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 /* Obtain prototype of find_task_by_vpid() and find_task_by_pid_ns(). */
 #include <linux/sched.h>
-#endif
 
 /* For exporting variables and functions. */
 struct ccsecurity_exports {
@@ -49,33 +47,22 @@ struct ccsecurity_exports {
 	typeof(d_absolute_path) (*d_absolute_path);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
 	typeof(__d_path) (*__d_path);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#else
 	spinlock_t *vfsmount_lock;
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 	typeof(find_task_by_vpid) (*find_task_by_vpid);
 	typeof(find_task_by_pid_ns) (*find_task_by_pid_ns);
-#endif
 };
 
 /* For doing access control. */
 struct ccsecurity_operations {
 	void (*check_profile) (void);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	int (*chroot_permission) (struct path *path);
 	int (*pivot_root_permission) (struct path *old_path,
 				      struct path *new_path);
 	int (*mount_permission) (char *dev_name, struct path *path,
 				 const char *type, unsigned long flags,
 				 void *data_page);
-#else
-	int (*chroot_permission) (struct nameidata *nd);
-	int (*pivot_root_permission) (struct nameidata *old_nd,
-				      struct nameidata *new_nd);
-	int (*mount_permission) (char *dev_name, struct nameidata *nd,
-				 const char *type, unsigned long flags,
-				 void *data_page);
-#endif
 	int (*umount_permission) (struct vfsmount *mnt, int flags);
 	_Bool (*lport_reserved) (const u16 port); /* Not implemented. */
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
@@ -149,8 +136,6 @@ struct ccsecurity_operations {
 
 extern struct ccsecurity_operations ccsecurity_ops;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-
 static inline int ccs_chroot_permission(struct path *path)
 {
 	int (*func) (struct path *) = ccsecurity_ops.chroot_permission;
@@ -174,34 +159,6 @@ static inline int ccs_mount_permission(char *dev_name, struct path *path,
 	return func ? func(dev_name, path, (const char *) type, flags,
 			   data_page) : 0;
 }
-
-#else
-
-static inline int ccs_chroot_permission(struct nameidata *nd)
-{
-	int (*func) (struct nameidata *) = ccsecurity_ops.chroot_permission;
-	return func ? func(nd) : 0;
-}
-
-static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
-					    struct nameidata *new_nd)
-{
-	int (*func) (struct nameidata *, struct nameidata *)
-		= ccsecurity_ops.pivot_root_permission;
-	return func ? func(old_nd, new_nd) : 0;
-}
-
-static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
-				       char *type, unsigned long flags,
-				       void *data_page)
-{
-	int (*func) (char *, struct nameidata *, const char *, unsigned long,
-		     void *) = ccsecurity_ops.mount_permission;
-	return func ? func(dev_name, nd, (const char *) type, flags,
-			   data_page) : 0;
-}
-
-#endif
 
 static inline int ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
@@ -382,8 +339,6 @@ static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 
 #else
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-
 static inline int ccs_chroot_permission(struct path *path)
 {
 	return 0;
@@ -401,28 +356,6 @@ static inline int ccs_mount_permission(char *dev_name, struct path *path,
 {
 	return 0;
 }
-
-#else
-
-static inline int ccs_chroot_permission(struct nameidata *nd)
-{
-	return 0;
-}
-
-static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
-					    struct nameidata *new_nd)
-{
-	return 0;
-}
-
-static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
-				       char *type, unsigned long flags,
-				       void *data_page)
-{
-	return 0;
-}
-
-#endif
 
 static inline int ccs_umount_permission(struct vfsmount *mnt, int flags)
 {

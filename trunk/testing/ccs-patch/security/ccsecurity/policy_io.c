@@ -303,22 +303,6 @@ static ssize_t ccs_write_self(struct file *file, const char __user *buf,
 
 /***** SECTION4: Standalone functions section *****/
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
-
-/**
- * fatal_signal_pending - Check whether SIGKILL is pending or not.
- *
- * @p: Pointer to "struct task_struct".
- *
- * Returns true if SIGKILL is pending on @p, false otherwise.
- *
- * This is for compatibility with older kernels.
- */
-#define fatal_signal_pending(p) (signal_pending(p) &&			\
-				 sigismember(&p->pending.signal, SIGKILL))
-
-#endif
-
 /**
  * ccs_convert_time - Convert time_t to YYYY/MM/DD hh/mm/ss.
  *
@@ -361,223 +345,6 @@ static void ccs_convert_time(time_t time, struct ccs_time *stamp)
 
 #ifdef CONFIG_CCSECURITY_NETWORK
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19) && defined(CONFIG_NET)
-#define ccs_in4_pton in4_pton
-#define ccs_in6_pton in6_pton
-#else
-/*
- * Routines for parsing IPv4 or IPv6 address.
- * These are copied from lib/hexdump.c net/core/utils.c .
- */
-#include <linux/ctype.h>
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35)
-static int hex_to_bin(char ch)
-{
-	if ((ch >= '0') && (ch <= '9'))
-		return ch - '0';
-	ch = tolower(ch);
-	if ((ch >= 'a') && (ch <= 'f'))
-		return ch - 'a' + 10;
-	return -1;
-}
-#endif
-
-#define IN6PTON_XDIGIT		0x00010000
-#define IN6PTON_DIGIT		0x00020000
-#define IN6PTON_COLON_MASK	0x00700000
-#define IN6PTON_COLON_1		0x00100000	/* single : requested */
-#define IN6PTON_COLON_2		0x00200000	/* second : requested */
-#define IN6PTON_COLON_1_2	0x00400000	/* :: requested */
-#define IN6PTON_DOT		0x00800000	/* . */
-#define IN6PTON_DELIM		0x10000000
-#define IN6PTON_NULL		0x20000000	/* first/tail */
-#define IN6PTON_UNKNOWN		0x40000000
-
-static inline int xdigit2bin(char c, int delim)
-{
-	int val;
-
-	if (c == delim || c == '\0')
-		return IN6PTON_DELIM;
-	if (c == ':')
-		return IN6PTON_COLON_MASK;
-	if (c == '.')
-		return IN6PTON_DOT;
-
-	val = hex_to_bin(c);
-	if (val >= 0)
-		return val | IN6PTON_XDIGIT | (val < 10 ? IN6PTON_DIGIT : 0);
-
-	if (delim == -1)
-		return IN6PTON_DELIM;
-	return IN6PTON_UNKNOWN;
-}
-
-static int ccs_in4_pton(const char *src, int srclen, u8 *dst, int delim,
-			const char **end)
-{
-	const char *s;
-	u8 *d;
-	u8 dbuf[4];
-	int ret = 0;
-	int i;
-	int w = 0;
-
-	if (srclen < 0)
-		srclen = strlen(src);
-	s = src;
-	d = dbuf;
-	i = 0;
-	while (1) {
-		int c;
-		c = xdigit2bin(srclen > 0 ? *s : '\0', delim);
-		if (!(c & (IN6PTON_DIGIT | IN6PTON_DOT | IN6PTON_DELIM |
-			   IN6PTON_COLON_MASK)))
-			goto out;
-		if (c & (IN6PTON_DOT | IN6PTON_DELIM | IN6PTON_COLON_MASK)) {
-			if (w == 0)
-				goto out;
-			*d++ = w & 0xff;
-			w = 0;
-			i++;
-			if (c & (IN6PTON_DELIM | IN6PTON_COLON_MASK)) {
-				if (i != 4)
-					goto out;
-				break;
-			}
-			goto cont;
-		}
-		w = (w * 10) + c;
-		if ((w & 0xffff) > 255)
-			goto out;
-cont:
-		if (i >= 4)
-			goto out;
-		s++;
-		srclen--;
-	}
-	ret = 1;
-	memcpy(dst, dbuf, sizeof(dbuf));
-out:
-	if (end)
-		*end = s;
-	return ret;
-}
-
-static int ccs_in6_pton(const char *src, int srclen, u8 *dst, int delim,
-			const char **end)
-{
-	const char *s, *tok = NULL;
-	u8 *d, *dc = NULL;
-	u8 dbuf[16];
-	int ret = 0;
-	int i;
-	int state = IN6PTON_COLON_1_2 | IN6PTON_XDIGIT | IN6PTON_NULL;
-	int w = 0;
-
-	memset(dbuf, 0, sizeof(dbuf));
-
-	s = src;
-	d = dbuf;
-	if (srclen < 0)
-		srclen = strlen(src);
-
-	while (1) {
-		int c;
-
-		c = xdigit2bin(srclen > 0 ? *s : '\0', delim);
-		if (!(c & state))
-			goto out;
-		if (c & (IN6PTON_DELIM | IN6PTON_COLON_MASK)) {
-			/* process one 16-bit word */
-			if (!(state & IN6PTON_NULL)) {
-				*d++ = (w >> 8) & 0xff;
-				*d++ = w & 0xff;
-			}
-			w = 0;
-			if (c & IN6PTON_DELIM) {
-				/* We've processed last word */
-				break;
-			}
-			/*
-			 * COLON_1 => XDIGIT
-			 * COLON_2 => XDIGIT|DELIM
-			 * COLON_1_2 => COLON_2
-			 */
-			switch (state & IN6PTON_COLON_MASK) {
-			case IN6PTON_COLON_2:
-				dc = d;
-				state = IN6PTON_XDIGIT | IN6PTON_DELIM;
-				if (dc - dbuf >= sizeof(dbuf))
-					state |= IN6PTON_NULL;
-				break;
-			case IN6PTON_COLON_1|IN6PTON_COLON_1_2:
-				state = IN6PTON_XDIGIT | IN6PTON_COLON_2;
-				break;
-			case IN6PTON_COLON_1:
-				state = IN6PTON_XDIGIT;
-				break;
-			case IN6PTON_COLON_1_2:
-				state = IN6PTON_COLON_2;
-				break;
-			default:
-				state = 0;
-			}
-			tok = s + 1;
-			goto cont;
-		}
-
-		if (c & IN6PTON_DOT) {
-			ret = ccs_in4_pton(tok ? tok : s, srclen +
-					   (int)(s - tok), d, delim, &s);
-			if (ret > 0) {
-				d += 4;
-				break;
-			}
-			goto out;
-		}
-
-		w = (w << 4) | (0xff & c);
-		state = IN6PTON_COLON_1 | IN6PTON_DELIM;
-		if (!(w & 0xf000))
-			state |= IN6PTON_XDIGIT;
-		if (!dc && d + 2 < dbuf + sizeof(dbuf)) {
-			state |= IN6PTON_COLON_1_2;
-			state &= ~IN6PTON_DELIM;
-		}
-		if (d + 2 >= dbuf + sizeof(dbuf))
-			state &= ~(IN6PTON_COLON_1|IN6PTON_COLON_1_2);
-cont:
-		if ((dc && d + 4 < dbuf + sizeof(dbuf)) ||
-		    d + 4 == dbuf + sizeof(dbuf))
-			state |= IN6PTON_DOT;
-		if (d >= dbuf + sizeof(dbuf))
-			state &= ~(IN6PTON_XDIGIT|IN6PTON_COLON_MASK);
-		s++;
-		srclen--;
-	}
-
-	i = 15; d--;
-
-	if (dc) {
-		while (d >= dc)
-			dst[i--] = *d--;
-		while (i >= dc - dbuf)
-			dst[i--] = 0;
-		while (i >= 0)
-			dst[i--] = *d--;
-	} else
-		memcpy(dst, dbuf, sizeof(dbuf));
-
-	ret = 1;
-out:
-	if (end)
-		*end = s;
-	return ret;
-}
-#endif
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
 
 /*
@@ -585,27 +352,6 @@ out:
  * These are copied from include/linux/kernel.h include/net/ipv6.h
  * include/net/addrconf.h lib/hexdump.c lib/vsprintf.c and simplified.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 26)
-static const char hex_asc[] = "0123456789abcdef";
-#define hex_asc_lo(x)   hex_asc[((x) & 0x0f)]
-#define hex_asc_hi(x)   hex_asc[((x) & 0xf0) >> 4]
-
-static inline char *pack_hex_byte(char *buf, u8 byte)
-{
-	*buf++ = hex_asc_hi(byte);
-	*buf++ = hex_asc_lo(byte);
-	return buf;
-}
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-static inline int ipv6_addr_v4mapped(const struct in6_addr *a)
-{
-	return (a->s6_addr32[0] | a->s6_addr32[1] |
-		(a->s6_addr32[2] ^ htonl(0x0000ffff))) == 0;
-}
-#endif
-
 static inline int ipv6_addr_is_isatap(const struct in6_addr *addr)
 {
 	return (addr->s6_addr32[2] | htonl(0x02000000)) == htonl(0x02005EFE);
@@ -1044,11 +790,7 @@ static unsigned int ccs_stat_updated[CCS_MAX_POLICY_STAT];
 static unsigned int ccs_stat_modified[CCS_MAX_POLICY_STAT];
 
 /* Operations for /proc/ccs/self_domain interface. */
-static
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
-const
-#endif
-struct file_operations ccs_self_operations = {
+static const struct file_operations ccs_self_operations = {
 #ifdef CONFIG_CCSECURITY_MANUAL_DOMAIN_TRANSITION
 	.write = ccs_write_self,
 #endif
@@ -1056,11 +798,7 @@ struct file_operations ccs_self_operations = {
 };
 
 /* Operations for /proc/ccs/ interface. */
-static
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
-const
-#endif
-struct file_operations ccs_operations = {
+static const struct file_operations ccs_operations = {
 	.open    = ccs_open,
 	.release = ccs_release,
 	.poll    = ccs_poll,
@@ -1547,25 +1285,25 @@ static enum ccs_ipaddr_type ccs_parse_ipaddr(char *address,
 {
 	const char *end;
 	if (!strchr(address, ':') &&
-	    ccs_in4_pton(address, -1, ipv6[0].s6_addr, '-', &end) > 0) {
+	    in4_pton(address, -1, ipv6[0].s6_addr, '-', &end) > 0) {
 		if (!*end) {
 			ipv6[0].s6_addr32[0] = ipv6[0].s6_addr32[0];
 			ipv6[1].s6_addr32[0] = ipv6[0].s6_addr32[0];
 			return CCS_ADDRESS_TYPE_IPV4;
 		}
 		if (*end++ != '-' ||
-		    ccs_in4_pton(end, -1, ipv6[1].s6_addr, '\0', &end) <= 0 ||
+		    in4_pton(end, -1, ipv6[1].s6_addr, '\0', &end) <= 0 ||
 		    *end || memcmp(&ipv6[0], &ipv6[1], 4) >= 0)
 			return CCS_ADDRESS_TYPE_INVALID;
 		return CCS_ADDRESS_TYPE_IPV4_RANGE;
 	}
-	if (ccs_in6_pton(address, -1, ipv6[0].s6_addr, '-', &end) > 0) {
+	if (in6_pton(address, -1, ipv6[0].s6_addr, '-', &end) > 0) {
 		if (!*end) {
 			ipv6[1] = ipv6[0];
 			return CCS_ADDRESS_TYPE_IPV6;
 		}
 		if (*end++ != '-' ||
-		    ccs_in6_pton(end, -1, ipv6[1].s6_addr, '\0', &end) <= 0 ||
+		    in6_pton(end, -1, ipv6[1].s6_addr, '\0', &end) <= 0 ||
 		    *end || memcmp(&ipv6[0], &ipv6[1], 16) >= 0)
 			return CCS_ADDRESS_TYPE_INVALID;
 		return CCS_ADDRESS_TYPE_IPV6_RANGE;
@@ -2861,14 +2599,10 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 		global_pid = true;
 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
 	ccs_tasklist_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 	if (global_pid)
 		p = ccsecurity_exports.find_task_by_pid_ns(pid, &init_pid_ns);
 	else
 		p = ccsecurity_exports.find_task_by_vpid(pid);
-#else
-	p = find_task_by_pid(pid);
-#endif
 	if (p) {
 		domain = ccs_task_domain(p);
 		ccs_flags = ccs_task_flags(p);
@@ -3874,11 +3608,7 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
  */
 static char *ccs_init_log(struct ccs_request_info *r)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-	const pid_t gpid = ccs_sys_getpid();
-#else
 	const pid_t gpid = task_pid_nr(current);
-#endif
 	struct timeval tv;
 	struct ccs_time stamp;
 	static const char * const k[CCS_MAX_MATCHING] = {
@@ -4627,10 +4357,8 @@ static int __init ccs_init_module(void)
 		return -EINVAL;
 	}
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 	if (init_srcu_struct(&ccs_ss))
 		panic("Out of memory.");
-#endif
 	for (idx = 0; idx < CCS_MAX_MAC_INDEX; idx++)
 		INIT_LIST_HEAD(&ccs_acl_list[idx]);
 	for (idx = 0; idx < CCS_MAX_GROUP; idx++)

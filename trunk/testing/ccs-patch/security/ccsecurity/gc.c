@@ -22,21 +22,6 @@ static DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
 
 /***** SECTION2: Structure definition *****/
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-
-/*
- * Lock for syscall users.
- *
- * This lock is used for protecting single SRCU section for 2.6.18 and
- * earlier kernels because they don't have SRCU support.
- */
-struct ccs_lock_struct {
-	int counter_idx; /* Currently active index (0 or 1). */
-	int counter[2];  /* Current users. Protected by ccs_counter_lock. */
-};
-
-#endif
-
 /***** SECTION3: Prototype definition section *****/
 
 static bool ccs_domain_used_by_task(struct ccs_domain_info *domain);
@@ -48,9 +33,6 @@ static void ccs_collect_entry(void);
 static void ccs_collect_member(const enum ccs_policy_id id,
 			       struct list_head *member_list);
 static void ccs_memory_free(const void *ptr, const enum ccs_policy_id type);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-static void ccs_synchronize_counter(void);
-#endif
 static void ccs_try_to_gc(const enum ccs_policy_id type,
 			  struct list_head *element);
 
@@ -58,22 +40,12 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 
 /***** SECTION5: Variables definition section *****/
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-
 /*
  * Lock for syscall users.
  *
  * This lock is held for only protecting single SRCU section.
  */
 struct srcu_struct ccs_ss;
-
-#else
-
-static struct ccs_lock_struct ccs_counter;
-/* Lock for protecting ccs_counter. */
-static DEFINE_SPINLOCK(ccs_counter_lock);
-
-#endif
 
 /***** SECTION6: Dependent functions section *****/
 
@@ -336,69 +308,6 @@ void ccs_del_condition(struct list_head *element)
 	}
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-
-/**
- * ccs_lock - Alternative for srcu_read_lock().
- *
- * Returns index number which has to be passed to ccs_unlock().
- */
-int ccs_lock(void)
-{
-	int idx;
-	spin_lock(&ccs_counter_lock);
-	idx = ccs_counter.counter_idx;
-	ccs_counter.counter[idx]++;
-	spin_unlock(&ccs_counter_lock);
-	return idx;
-}
-
-/**
- * ccs_unlock - Alternative for srcu_read_unlock().
- *
- * @idx: Index number returned by ccs_lock().
- *
- * Returns nothing.
- */
-void ccs_unlock(const int idx)
-{
-	spin_lock(&ccs_counter_lock);
-	ccs_counter.counter[idx]--;
-	spin_unlock(&ccs_counter_lock);
-}
-
-/**
- * ccs_synchronize_counter - Alternative for synchronize_srcu().
- *
- * Returns nothing.
- */
-static void ccs_synchronize_counter(void)
-{
-	int idx;
-	int v;
-	/*
-	 * Change currently active counter's index. Make it visible to other
-	 * threads by doing it with ccs_counter_lock held.
-	 * This function is called by garbage collector thread, and the garbage
-	 * collector thread is exclusive. Therefore, it is guaranteed that
-	 * SRCU grace period has expired when returning from this function.
-	 */
-	spin_lock(&ccs_counter_lock);
-	idx = ccs_counter.counter_idx;
-	ccs_counter.counter_idx ^= 1;
-	v = ccs_counter.counter[idx];
-	spin_unlock(&ccs_counter_lock);
-	/* Wait for previously active counter to become 0. */
-	while (v) {
-		ssleep(1);
-		spin_lock(&ccs_counter_lock);
-		v = ccs_counter.counter[idx];
-		spin_unlock(&ccs_counter_lock);
-	}
-}
-
-#endif
-
 /**
  * ccs_try_to_gc - Try to kfree() an entry.
  *
@@ -420,11 +329,7 @@ static void ccs_try_to_gc(const enum ccs_policy_id type,
 	 */
 	__list_del_entry(element);
 	mutex_unlock(&ccs_policy_lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 	synchronize_srcu(&ccs_ss);
-#else
-	ccs_synchronize_counter();
-#endif
 	/*
 	 * However, there are two users which may still be using the list
 	 * element. We need to defer until both users forget this element.
@@ -620,11 +525,6 @@ static int ccs_gc_thread(void *unused)
 	static DEFINE_MUTEX(ccs_gc_mutex);
 	if (!mutex_trylock(&ccs_gc_mutex))
 		goto out;
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
-	/* daemonize() not needed. */
-#else
-	daemonize("GC for CCS");
-#endif
 	ccs_collect_entry();
 	{
 		struct ccs_io_buffer *head;
@@ -673,13 +573,9 @@ void ccs_notify_gc(struct ccs_io_buffer *head, const bool is_register)
 	}
 	spin_unlock(&ccs_io_buffer_list_lock);
 	if (is_write) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 6)
 		struct task_struct *task = kthread_create(ccs_gc_thread, NULL,
 							  "GC for CCS");
 		if (!IS_ERR(task))
 			wake_up_process(task);
-#else
-		kernel_thread(ccs_gc_thread, NULL, 0);
-#endif
 	}
 }

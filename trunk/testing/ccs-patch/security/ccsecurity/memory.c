@@ -23,11 +23,7 @@ static int __ccs_alloc_task_security(const struct task_struct *task);
 static void __ccs_free_task_security(const struct task_struct *task);
 static void ccs_add_task_security(struct ccs_security *ptr,
 				  struct list_head *list);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 8)
 static void ccs_rcu_free(struct rcu_head *rcu);
-#else
-static void ccs_rcu_free(void *arg);
-#endif
 
 /***** SECTION4: Standalone functions section *****/
 
@@ -133,8 +129,6 @@ struct ccs_security *ccs_find_task_security(const struct task_struct *task)
 	return ptr;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 8)
-
 /**
  * ccs_rcu_free - RCU callback for releasing "struct ccs_security".
  *
@@ -147,23 +141,6 @@ static void ccs_rcu_free(struct rcu_head *rcu)
 	struct ccs_security *ptr = container_of(rcu, typeof(*ptr), rcu);
 	kfree(ptr);
 }
-
-#else
-
-/**
- * ccs_rcu_free - RCU callback for releasing "struct ccs_security".
- *
- * @arg: Pointer to "void".
- *
- * Returns nothing.
- */
-static void ccs_rcu_free(void *arg)
-{
-	struct ccs_security *ptr = arg;
-	kfree(ptr);
-}
-
-#endif
 
 /**
  * __ccs_free_task_security - Release memory associated with "struct task_struct".
@@ -181,11 +158,7 @@ static void __ccs_free_task_security(const struct task_struct *task)
 	spin_lock_irqsave(&ccs_task_security_list_lock, flags);
 	list_del_rcu(&ptr->list);
 	spin_unlock_irqrestore(&ccs_task_security_list_lock, flags);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 8)
 	call_rcu(&ptr->rcu, ccs_rcu_free);
-#else
-	call_rcu(&ptr->rcu, ccs_rcu_free, ptr);
-#endif
 }
 
 /**
