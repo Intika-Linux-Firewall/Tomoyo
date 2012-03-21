@@ -184,13 +184,13 @@ static int __ccs_uselib_permission(struct dentry *dentry,
 #endif
 static int ccs_execute_path(struct linux_binprm *bprm, struct path *path);
 static int ccs_execute(struct ccs_request_info *r);
-static int ccs_get_path(const char *pathname, struct path *path);
 static int ccs_kern_path(const char *pathname, int flags, struct path *path);
 static int ccs_mkdev_perm(const u8 operation, struct dentry *dentry,
 			  struct vfsmount *mnt, const unsigned int mode,
 			  unsigned int dev);
-static int ccs_mount_acl(char *dev_name, struct path *dir, const char *type,
-			 unsigned long flags);
+static int ccs_mount_acl(const char *dev_name, struct path *dir,
+			 const char *type, unsigned long flags,
+			 const char *data);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 static int ccs_new_open_permission(struct file *filp);
 #endif
@@ -1108,19 +1108,6 @@ static int ccs_kern_path(const char *pathname, int flags, struct path *path)
 }
 
 /**
- * ccs_get_path - Get dentry/vfsmmount of a pathname.
- *
- * @pathname: The pathname to solve. Maybe NULL.
- * @path:     Pointer to "struct path".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_get_path(const char *pathname, struct path *path)
-{
-	return ccs_kern_path(pathname, LOOKUP_FOLLOW, path);
-}
-
-/**
  * ccs_execute_path - Get dentry/vfsmount of a program.
  *
  * @bprm: Pointer to "struct linux_binprm".
@@ -1145,69 +1132,99 @@ static int ccs_execute_path(struct linux_binprm *bprm, struct path *path)
 /**
  * ccs_mount_acl - Check permission for mount() operation.
  *
- * @dev_name: Name of device file. Maybe NULL.
+ * @dev_name: Name of device file or mount source. Maybe NULL.
  * @dir:      Pointer to "struct path".
- * @type:     Name of filesystem type.
+ * @type:     Name of filesystem type. Maybe NULL.
  * @flags:    Mount options.
+ * @data:     Mount options not in @flags. Maybe NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_mount_acl(char *dev_name, struct path *dir, const char *type,
-			 unsigned long flags)
+static int ccs_mount_acl(const char *dev_name, struct path *dir,
+			 const char *type, unsigned long flags,
+			 const char *data)
 {
 	struct ccs_request_info r = { };
-	struct ccs_path_info rtype;
-	int need_dev = 0;
-	int error = -ENOMEM;
+	struct ccs_path_info rtype = { };
+	struct ccs_path_info rdata = { };
+	bool check_dev = false;
+	bool check_data = false;
+	int error;
 
 	/* Compare fstype in order to determine type of dev_name argument. */
-	if (type == ccs_mounts[CCS_MOUNT_REMOUNT] ||
-	    type == ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE] ||
-	    type == ccs_mounts[CCS_MOUNT_MAKE_PRIVATE] ||
-	    type == ccs_mounts[CCS_MOUNT_MAKE_SLAVE] ||
-	    type == ccs_mounts[CCS_MOUNT_MAKE_SHARED]) {
-		/* dev_name is ignored. */
-	} else if (type == ccs_mounts[CCS_MOUNT_BIND] ||
-		   type == ccs_mounts[CCS_MOUNT_MOVE]) {
-		need_dev = -1; /* dev_name is a directory */
+	if (type == ccs_mounts[CCS_MOUNT_REMOUNT]) {
+		/* do_remount() case. */
+		if (data && !(dir->mnt->mnt_sb->s_type->fs_flags &
+			      FS_BINARY_MOUNTDATA))
+			check_data = true;
+	} else if (type == ccs_mounts[CCS_MOUNT_BIND]) {
+		/* do_loopback() case. */
+		check_dev = true;
+	} else if (type == ccs_mounts[CCS_MOUNT_MAKE_UNBINDABLE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_PRIVATE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_SLAVE] ||
+		   type == ccs_mounts[CCS_MOUNT_MAKE_SHARED]) {
+		/* do_change_type() case. */
+	} else if (type == ccs_mounts[CCS_MOUNT_MOVE]) {
+		/* do_move_mount() case. */
+		check_dev = true;
 	} else {
-		struct file_system_type *fstype = get_fs_type(type);
+		/* do_new_mount() case. */
+		struct file_system_type *fstype;
+		if (!type)
+			return -EINVAL;
+		fstype = get_fs_type(type);
 		if (!fstype)
 			return -ENODEV;
 		if (fstype->fs_flags & FS_REQUIRES_DEV)
-			need_dev = 1; /* dev_name is a block device file. */
+			check_dev = true;
+		if (data && !(fstype->fs_flags & FS_BINARY_MOUNTDATA))
+			check_data = true;
 		ccs_put_filesystem(fstype);
 	}
-	if (need_dev) {
-		/* Get mount point or device file. */
-		if (ccs_get_path(dev_name, &r.obj.path[0]))
-			return -ENOENT;
-	} else {
-		/* Map dev_name to "<NULL>" if no dev_name given. */
-		if (!dev_name)
-			dev_name = "<NULL>";
-		r.obj.pathname[0].name = ccs_encode(dev_name);
-		if (!r.obj.pathname[0].name)
-			return -ENOMEM;
-		ccs_fill_path_info(&r.obj.pathname[0]);
-	}
-	/* Remember mount point. */
+	/* Start filling arguments. */
+	r.type = CCS_MAC_MOUNT;
+	/* Remember mount options. */
+	r.param.i[0] = flags;
+	/*
+	 * Remember mount point.
+	 * r.param.s[1] is calculated from r.obj.path[1] as needed.
+	 */
 	r.obj.path[1] = *dir;
 	/* Remember fstype. */
 	rtype.name = ccs_encode(type);
-	if (rtype.name) {
-		ccs_fill_path_info(&rtype);
-		r.type = CCS_MAC_MOUNT;
-		r.param.s[2] = &rtype;
-		r.param.i[0] = flags;
-		r.param.i[1] = need_dev;
-		error = ccs_check_acl(&r, false);
-		kfree(rtype.name);
+	if (!rtype.name)
+		return -ENOMEM;
+	ccs_fill_path_info(&rtype);
+	r.param.s[2] = &rtype;
+	if (check_data) {
+		/* Remember data argument. */
+		rdata.name = ccs_encode(data);
+		if (!rdata.name) {
+			error = -ENOMEM;
+			goto out;
+		}
+		ccs_fill_path_info(&rdata);
+		r.param.s[3] = &rdata;
 	}
-	ccs_clear_request_info(&r);
-	/* Drop refcount obtained by ccs_get_path(). */
-	if (need_dev)
+	if (check_dev) {
+		/*
+		 * Remember device file or mount source.
+		 * r.param.s[0] is calculated from r.obj.path[0] as needed.
+		 */
+		if (ccs_kern_path(dev_name, LOOKUP_FOLLOW, &r.obj.path[0])) {
+			error = -ENOENT;
+			goto out;
+		}
+	}
+	error = ccs_check_acl(&r, false);
+	/* Drop refcount obtained by ccs_kern_path(). */
+	if (check_dev)
 		path_put(&r.obj.path[0]);
+out:
+	kfree(rtype.name);
+	kfree(rdata.name);
+	ccs_clear_request_info(&r);
 	return error;
 }
 
@@ -1218,7 +1235,7 @@ static int ccs_mount_acl(char *dev_name, struct path *dir, const char *type,
  * @path:      Pointer to "struct path".
  * @type:      Name of filesystem type. Maybe NULL.
  * @flags:     Mount options.
- * @data_page: Optional data. Maybe NULL.
+ * @data_page: Mount options not in @flags. Maybe NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -1258,10 +1275,13 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 		type = ccs_mounts[CCS_MOUNT_MOVE];
 		flags &= ~MS_MOVE;
 	}
-	if (!type)
-		type = "<NULL>";
+	/*
+	 * do_mount() terminates data_page with '\0' if data_page != NULL.
+	 * Therefore, it is safe to pass data_page argument to ccs_mount_acl()
+	 * as "const char *" rather than "void *".
+	 */
 	ccs_check_auto_domain_transition();
-	return ccs_mount_acl(dev_name, path, type, flags);
+	return ccs_mount_acl(dev_name, path, type, flags, data_page);
 }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
@@ -1369,7 +1389,7 @@ static int ccs_new_open_permission(struct file *filp)
 #endif
 
 /**
- * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "append", "getattr", "chroot" and "unmount".
+ * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "append", "getattr" and "chroot".
  *
  * @operation: One of values in "enum ccs_mac_index".
  * @dentry:    Pointer to "struct dentry".
@@ -1466,7 +1486,7 @@ static int __ccs_symlink_permission(struct dentry *dentry,
 }
 
 /**
- * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
+ * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp" and "unmount".
  *
  * @type:   One of values in "enum ccs_mac_index".
  * @dentry: Pointer to "struct dentry".
@@ -1605,13 +1625,13 @@ static int __ccs_chroot_permission(struct path *path)
  * __ccs_umount_permission - Check permission for unmount.
  *
  * @mnt:   Pointer to "struct vfsmount".
- * @flags: Unused.
+ * @flags: Unmount flags.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
-	return ccs_path_perm(CCS_MAC_UMOUNT, mnt->mnt_root, mnt);
+	return ccs_path_number_perm(CCS_MAC_UMOUNT, mnt->mnt_root, mnt, flags);
 }
 
 /**
@@ -3706,10 +3726,9 @@ static void ccs_clear_request_info(struct ccs_request_info *r)
 	 * Their callers do not allocate memory until pathnames becomes needed
 	 * for checking condition or auditing requests.
 	 *
-	 * r->obj.s[2] is used by ccs_mount_acl()/ccs_env_perm() and is
-	 * allocated/released by their callers.
-	 * r->obj.s[3] is used by ccs_env_perm() and is allocated/released by
-	 * its caller.
+	 * r->obj.s[2] and r->obj.s[3] are used by
+	 * ccs_mount_acl()/ccs_env_perm() and are allocated/released by their
+	 * callers.
 	 */
 	for (i = 0; i < 2; i++) {
 		kfree(r->obj.pathname[i].name);

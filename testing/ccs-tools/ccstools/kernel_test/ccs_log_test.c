@@ -8,6 +8,22 @@
 #include <sys/mount.h>
 #include <sys/ioctl.h>
 
+#ifndef MS_MOVE
+#define MS_MOVE         8192
+#endif
+#ifndef MS_UNBINDABLE
+#define MS_UNBINDABLE   (1<<17)
+#endif
+#ifndef MS_PRIVATE
+#define MS_PRIVATE      (1<<18)
+#endif
+#ifndef MS_SLAVE
+#define MS_SLAVE        (1<<19)
+#endif
+#ifndef MS_SHARED
+#define MS_SHARED       (1<<20)
+#endif
+
 #include <asm/unistd.h>
 static inline int pivot_root(const char *new_root, const char *put_old)
 {
@@ -193,15 +209,30 @@ static void test_chroot(void)
 	chroot("/");
 }
 
-static void test_mount(void)
+static void test_mount1(void)
 {
-	mount(NULL, "/tmp", "tmpfs", 0, NULL);
+	mount(NULL, "/tmp", "tmpfs", 0, "size=10%,uid=0,gid=0");
 	umount("/tmp");
+}
+
+static void test_mount2(void)
+{
+	mount("/", "/", NULL, MS_BIND, NULL);
+}
+
+static void test_mount3(void)
+{
+	mount("/", "/", NULL, MS_MOVE, NULL);
+}
+
+static void test_mount4(void)
+{
+	mount(NULL, "/", NULL, MS_REMOUNT | MS_NOATIME, "errors=remount-ro");
 }
 
 static void test_unmount(void)
 {
-	umount("/");
+	umount2("/", 1);
 }
 
 static void test_pivot_root(void)
@@ -266,7 +297,10 @@ int main(int argc, char *argv[])
 		{ "chgrp", test_chgrp },
 		{ "ioctl", test_ioctl },
 		{ "chroot", test_chroot },
-		{ "mount", test_mount },
+		{ "mount", test_mount1 },
+		{ "mount", test_mount2 },
+		{ "mount", test_mount3 },
+		{ "mount", test_mount4 },
 		{ "unmount", test_unmount },
 		{ "pivot_root", test_pivot_root },
 		/*
