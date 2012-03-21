@@ -908,7 +908,6 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	struct ccs_request_info *r;
 	int idx;
 	*rp = NULL;
-	ccs_check_auto_domain_transition();
 	r = kzalloc(sizeof(*r), GFP_NOFS);
 	if (!r)
 		return -ENOMEM;
@@ -1261,6 +1260,7 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	}
 	if (!type)
 		type = "<NULL>";
+	ccs_check_auto_domain_transition();
 	return ccs_mount_acl(dev_name, path, type, flags);
 }
 
@@ -1381,6 +1381,7 @@ static int ccs_path_perm(const enum ccs_mac_index operation,
 			 struct dentry *dentry, struct vfsmount *mnt)
 {
 	struct ccs_request_info r = { };
+	ccs_check_auto_domain_transition();
 	r.type = operation;
 	r.obj.path[0].dentry = dentry;
 	r.obj.path[0].mnt = mnt;
@@ -1479,8 +1480,6 @@ static int ccs_path_number_perm(const enum ccs_mac_index type,
 				unsigned long number)
 {
 	struct ccs_request_info r = { };
-	if (!dentry)
-		return 0;
 	ccs_check_auto_domain_transition();
 	r.type = type;
 	r.obj.path[0].dentry = dentry;
