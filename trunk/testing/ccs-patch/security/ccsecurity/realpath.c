@@ -627,15 +627,21 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
  *
  * Returns the ccs_realpath() of current process on success, NULL otherwise.
  *
+ * Unlike ccs_realpath(), this function may not reserve space for appending
+ * "/".
+ *
  * This function uses kzalloc(), so the caller must kfree()
  * if this function didn't return NULL.
  */
 char *ccs_get_exe(void)
 {
-	struct mm_struct *mm = current->mm;
+	struct mm_struct *mm;
 	struct vm_area_struct *vma;
 	bool done = false;
 	char *cp = NULL;
+	if (current->flags & PF_KTHREAD)
+		return kstrdup("<kernel>", GFP_NOFS);
+	mm = current->mm;
 	if (!mm)
 		goto task_has_no_mm;
 	down_read(&mm->mmap_sem);
@@ -650,11 +656,8 @@ char *ccs_get_exe(void)
 	if (done)
 		return cp;
 task_has_no_mm:
-	/* Probably I'm a kernel thread. But I'm not sure. */
-	cp = kzalloc(16, GFP_NOFS);
-	if (cp)
-		memcpy(cp, "<unknown>", 10);
-	return cp;
+	/* I'don't know. */
+	return kstrdup("<unknown>", GFP_NOFS);
 }
 
 /**

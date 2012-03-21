@@ -541,6 +541,8 @@ static const char *ccs_get_sarg(const enum ccs_mac_index type, const u8 index)
 			return "target";
 		if (index == 2)
 			return "fstype";
+		if (index == 3)
+			return "data";
 		break;
 	case CCS_MAC_PIVOT_ROOT:
 		if (index == 0)
@@ -1426,6 +1428,8 @@ static enum ccs_conditions_index ccs_parse_syscall_arg
 			return CCS_COND_SARG1;
 		if (!strcmp(word, "fstype"))
 			return CCS_COND_SARG2;
+		if (!strcmp(word, "data"))
+			return CCS_COND_SARG3;
 		if (!strcmp(word, "flags"))
 			return CCS_COND_NARG0;
 		break;
@@ -3470,6 +3474,8 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 			return 0;
 	}
 	switch (r->type) {
+		int pos;
+		u8 i;
 	case CCS_MAC_EXECUTE:
 		return snprintf(buf, len, " exec=\"%s\" path=\"%s\"",
 				r->param.s[1]->name, r->param.s[0]->name);
@@ -3483,7 +3489,6 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 	case CCS_MAC_RMDIR:
 	case CCS_MAC_TRUNCATE:
 	case CCS_MAC_CHROOT:
-	case CCS_MAC_UMOUNT:
 		return snprintf(buf, len, " path=\"%s\"", r->param.s[0]->name);
 	case CCS_MAC_CREATE:
 	case CCS_MAC_MKDIR:
@@ -3517,21 +3522,23 @@ static int ccs_print_param(struct ccs_request_info *r, char *buf, int len)
 		return snprintf(buf, len, " path=\"%s\" cmd=0x%lX",
 				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_MOUNT:
-		{
-			int pos = 0;
-			if (r->param.s[0])
-				pos = snprintf(buf, len, " source=\"%s\"",
-					       r->param.s[0]->name);
-			if (r->param.s[1])
-				pos += snprintf(buf + pos,
-						pos < len ? len - pos : 0,
-						" target=\"%s\"",
-						r->param.s[1]->name);
+		pos = 0;
+		for (i = 0; i < 4; i++) {
+			if (i == 3)
+				pos += snprintf(buf + pos, pos < len ?
+						len - pos : 0, " flags=0x%lX",
+						r->param.i[0]);
+			if (!r->param.s[i])
+				continue;
 			pos += snprintf(buf + pos, pos < len ? len - pos : 0,
-					" fstype=\"%s\" flags=0x%lX",
-					r->param.s[2]->name, r->param.i[0]);
-			return pos;
+					" %s=\"%s\"",
+					ccs_get_sarg(CCS_MAC_MOUNT, i),
+					r->param.s[i]->name);
 		}
+		return pos;
+	case CCS_MAC_UMOUNT:
+		return snprintf(buf, len, " path=\"%s\" flags=0x%lX",
+				r->param.s[0]->name, r->param.i[0]);
 	case CCS_MAC_PIVOT_ROOT:
 		return snprintf(buf, len, " new_root=\"%s\" put_old=\"%s\"",
 				r->param.s[0]->name, r->param.s[1]->name);

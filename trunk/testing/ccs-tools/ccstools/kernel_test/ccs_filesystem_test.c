@@ -183,95 +183,19 @@ int main(int argc, char *argv[])
 
 	/* Test mount(). */
 	{
-		set_profile(3, "file::mount");
-		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 1);
-		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else if (errno == ENODEV)
-			printf("OK: No such device.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		set_profile(1, "file::mount");
-		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 0);
-		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
-		    errno == ENOMEM)
-			printf("OK: Out of memory.\n");
-		else if (errno == ENODEV)
-			printf("OK: No such device.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		set_profile(3, "file::mount");
-		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 0);
-		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
-		    errno == ENOMEM)
-			printf("OK: Out of memory.\n");
-		else if (errno == ENODEV)
-			printf("OK: No such device.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete file mount dev\\011name / "
-			"fs\\011name 0\n");
-		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 1);
-		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else if (errno == ENODEV)
-			printf("OK: No such device.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		set_profile(1, "file::mount");
-		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
-		if (mount(NULL, "/", "tmpfs", 0, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success\n");
-		set_profile(3, "file::mount");
-		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
-		if (mount(NULL, "/", "tmpfs", 0, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success\n");
-		show_prompt("mount('anydev', '/', 'tmpfs') ", 0);
-		if (mount("anydev", "/", "tmpfs", 0, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success\n");
-		fprintf(domain_fp, "delete file mount <NULL> / tmpfs 0\n");
-		fprintf(domain_fp, "file mount anydev / tmpfs 0\n");
-		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
-		if (mount(NULL, "/", "tmpfs", 0, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success\n");
-		fprintf(domain_fp, "delete file mount anydev / tmpfs 0\n");
-		set_profile(2, "file::mount");
-		show_prompt("mount(NULL, NULL, 'tmpfs') ", 1);
-		if (mount(NULL, NULL, "tmpfs", 0, NULL))
-			printf("OK: %s\n", strerror(errno));
-		else
-			printf("BUG: Did not fail.\n");
-		show_prompt("mount(NULL, NULL, NULL) ", 1);
-		if (mount(NULL, NULL, NULL, 0, NULL))
-			printf("OK: %s\n", strerror(errno));
-		else
-			printf("BUG: Did not fail.\n");
-		show_prompt("mount('/', NULL, NULL) ", 1);
-		if (mount("/", NULL, NULL, 0, NULL))
-			printf("OK: %s\n", strerror(errno));
-		else
-			printf("BUG: Did not fail.\n");
-		show_prompt("mount('/', NULL, 'tmpfs') ", 1);
-		if (mount("/", NULL, "tmpfs", 0, NULL))
-			printf("OK: %s\n", strerror(errno));
-		else
-			printf("BUG: Did not fail.\n");
-		show_prompt("mount('/', '/', 'nonexistentfs') ", 1);
-		if (mount("/", "/", "nonexistentfs", 0, NULL))
-			printf("OK: %s\n", strerror(errno));
-		else
-			printf("BUG: Did not fail.\n");
-		set_profile(0, "file::mount");
+		mount("dev\tname", "/", "fs\tname", 0, NULL);
+		mount("dev\tname", "/", "fs\tname", 0, NULL);
+		mount("dev\tname", "/", "fs\tname", 0, NULL);
+		mount("dev\tname", "/", "fs\tname", 0, NULL);
+		mount(NULL, "/", "tmpfs", 0, NULL);
+		mount(NULL, "/", "tmpfs", 0, NULL);
+		mount("anydev", "/", "tmpfs", 0, NULL);
+		mount(NULL, "/", "tmpfs", 0, NULL);
+		mount(NULL, NULL, "tmpfs", 0, NULL);
+		mount(NULL, NULL, NULL, 0, NULL);
+		mount("/", NULL, NULL, 0, NULL);
+		mount("/", NULL, "tmpfs", 0, NULL);
+		mount("/", "/", "nonexistentfs", 0, NULL);
 	}
 
 	mkdir("/tmp/mount/", 0755);
@@ -308,74 +232,13 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Can't write to %s .\n",
 					dev_ram_path);
 		}
-		set_profile(3, "file::mount");
+		mount("none", "/tmp/mount/", "tmpfs", 0, NULL);
+		mount(dev_ram_path, "/tmp/mount/", "ext2", MS_RDONLY, NULL);
+		mount("none", "/tmp/mount/", "tmpfs", 0, NULL);
+		mount("none", "/tmp/mount/", "tmpfs", 0, NULL);
+		mount(dev_ram_path, "/tmp/mount/", "ext2", MS_RDONLY, NULL);
+		mount("none", "/tmp/mount/", "tmpfs", 0, NULL);
 
-		/* Test standard case */
-		show_prompt("mount('none', '/tmp/mount/', 'tmpfs') for "
-			    "'/tmp/mount/'", 1);
-		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		/* Test device_name with pattern */
-		snprintf(buf, sizeof(buf) - 1, "mount('%s', '/tmp/mount/', "
-			 "'ext2') for '%s\\*'", dev_ram_path, dev_ram_path);
-		show_prompt(buf, 1);
-		if (mount(dev_ram_path, "/tmp/mount/", "ext2", MS_RDONLY, NULL)
-		    == EOF && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		/* Test dir_name with pattern */
-		show_prompt("mount('none', '/tmp/mount/', 'tmpfs') for "
-			    "'/tmp/\\?\\?\\?\\?\\?/'", 1);
-		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		/* Test standard case */
-		fprintf(domain_fp, "file mount none /tmp/mount/ tmpfs 0\n");
-		show_prompt("mount('none', '/tmp/mount/', 'tmpfs') for "
-			    "'/tmp/mount/'", 0);
-		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
-			printf("OK\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-		fprintf(domain_fp,
-			"delete file mount none /tmp/mount/ tmpfs 0\n");
-
-		/* Test device_name with pattern */
-		fprintf(domain_fp, "file mount %s\\* /tmp/mount/ ext2 1\n",
-			dev_ram_path);
-		snprintf(buf, sizeof(buf) - 1, "mount('%s', '/tmp/mount/', "
-			 "'ext2') for '%s\\*'", dev_ram_path, dev_ram_path);
-		show_prompt(buf, 0);
-		if (mount(dev_ram_path, "/tmp/mount/", "ext2", MS_RDONLY, NULL)
-		    == 0)
-			printf("OK\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete file mount %s\\* "
-			"/tmp/mount/ ext2 1\n", dev_ram_path);
-
-		/* Test dir_name with pattern */
-		fprintf(domain_fp,
-			"file mount none /tmp/\\?\\?\\?\\?\\?/ tmpfs 0\n");
-		show_prompt("mount('none', '/tmp/mount/', 'tmpfs') for "
-			    "'/tmp/\\?\\?\\?\\?\\?/'", 0);
-		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
-			printf("OK\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete file mount none "
-			"/tmp/\\?\\?\\?\\?\\?/ tmpfs 0\n");
-
-		set_profile(0, "file::mount");
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
 	}
@@ -383,181 +246,25 @@ int main(int argc, char *argv[])
 	/* Test mount(). */
 	{
 		mount2("none", "/tmp/mount/", "tmpfs");
-		set_profile(3, "file::mount");
-
-		/* Test remount case */
-		show_prompt("mount('/tmp/mount/', MS_REMOUNT)", 1);
-		if (mount("none", "/tmp/mount/", "tmpfs", MS_REMOUNT, NULL)
-		    == EOF && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		show_prompt("mount('/tmp/mount/', MS_REMOUNT)", 1);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_REMOUNT, NULL) == EOF
-		    && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		fprintf(domain_fp, "file mount something /tmp/mount/ "
-			"--remount 0\n");
-		show_prompt("mount('/tmp/mount/', MS_REMOUNT)", 0);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_REMOUNT, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success.\n");
-		fprintf(domain_fp, "delete file mount something /tmp/mount/ "
-			"--remount 0\n");
-
-		/* Test bind case */
-		show_prompt("mount('/tmp/mount/', '/tmp/mount_bind/', "
-			    "MS_BIND)", 1);
-		if (mount("/tmp/mount/", "/tmp/mount_bind/", NULL, MS_BIND,
-			  NULL) == EOF && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		/* Test move case */
-		show_prompt("mount('/tmp/mount/', '/tmp/mount_move/', "
-			    "MS_MOVE)", 1);
-		if (mount("/tmp/mount/", "/tmp/mount_move/", NULL, MS_MOVE,
-			  NULL) == EOF && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		/* Test remount case */
-		fprintf(domain_fp,
-			"file mount any /tmp/mount/ --remount 0\n");
-		show_prompt("mount('/tmp/mount/', MS_REMOUNT)", 0);
-		if (mount("none", "/tmp/mount/", "tmpfs", MS_REMOUNT, NULL)
-		    == 0)
-			printf("OK\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete file mount any /tmp/mount/ "
-			"--remount 0\n");
-
-		/* Test bind case */
-		fprintf(domain_fp,
-			"file mount /tmp/mount/ /tmp/mount_bind/ --bind 0\n");
-		show_prompt("mount('/tmp/mount/', '/tmp/mount_bind', MS_BIND)",
-			    0);
-		if (mount("/tmp/mount/", "/tmp/mount_bind/", NULL, MS_BIND,
-			  NULL) == 0)
-			printf("OK\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-		set_profile(0, "file::mount");
-		umount("/tmp/mount_bind/");
-		fprintf(domain_fp, "delete file mount /tmp/mount/ "
-			"/tmp/mount_bind/ --bind 0\n");
-
-		/* Test move case */
-		set_profile(3, "file::mount");
-		fprintf(domain_fp, "file unmount /tmp/mount/\n");
-		fprintf(domain_fp, "file mount /tmp/mount/ /tmp/mount_move/ "
-			"--move 0\n");
-		show_prompt("mount('/tmp/mount/', '/tmp/mount_move/', "
-			    "MS_MOVE)", 0);
-		if (mount("/tmp/mount/", "/tmp/mount_move/", NULL, MS_MOVE,
-			  NULL) == 0)
-			printf("OK\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-		set_profile(0, "file::mount");
-		umount("/tmp/mount_move/");
-		fprintf(domain_fp, "delete file unmount /tmp/mount/\n");
-		fprintf(domain_fp, "delete file mount /tmp/mount/ "
-			"/tmp/mount_move/ --move 0\n");
-
-		fprintf(domain_fp, "file mount something /tmp/mount/ tmpfs"
-			" 0\n");
+		mount("none", "/tmp/mount/", "tmpfs", MS_REMOUNT, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_REMOUNT, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_REMOUNT, NULL);
+		mount("/tmp/mount/", "/tmp/mount_bind/", NULL, MS_BIND, NULL);
+		mount("/tmp/mount/", "/tmp/mount_move/", NULL, MS_MOVE, NULL);
+		mount("none", "/tmp/mount/", "tmpfs", MS_REMOUNT, NULL);
+		mount("/tmp/mount/", "/tmp/mount_bind/", NULL, MS_BIND, NULL);
+		mount("/tmp/mount/", "/tmp/mount_move/", NULL, MS_MOVE, NULL);
 		mount2("none", "/tmp/mount/", "tmpfs");
-		fprintf(domain_fp, "delete file mount something /tmp/mount/"
-			" tmpfs 0\n");
-
-		/* Tests for shared subtree case. */
-		set_profile(0, "file::mount");
 		mount2("none", "/tmp/mount/", "tmpfs");
-		set_profile(3, "file::mount");
-		/* Test private case */
-		fprintf(domain_fp, "file mount something /tmp/mount/"
-			" --make-private 0\n");
-		show_prompt("mount('/tmp/mount/', MS_PRIVATE)", 0);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success.\n");
-		fprintf(domain_fp, "delete file mount something"
-			" /tmp/mount/ --make-private 0\n");
-		show_prompt("mount('/tmp/mount/', MS_PRIVATE)", 1);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE, NULL) == EOF
-		    && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		
-		/* Test shared case */
-		fprintf(domain_fp, "file mount something /tmp/mount/"
-			" --make-shared 0\n");
-		show_prompt("mount('/tmp/mount/', MS_SHARED)", 0);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_SHARED, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success.\n");
-		fprintf(domain_fp, "delete file mount something"
-			" /tmp/mount/ --make-shared 0\n");
-		show_prompt("mount('/tmp/mount/', MS_SHARED)", 1);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_SHARED, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		
-		/* Test slave case */
-		fprintf(domain_fp, "file mount something /tmp/mount/"
-			" --make-slave 0\n");
-		show_prompt("mount('/tmp/mount/', MS_SLAVE)", 0);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_SLAVE, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success.\n");
-		fprintf(domain_fp, "delete file mount something"
-			" /tmp/mount/ --make-slave 0\n");
-		show_prompt("mount('/tmp/mount/', MS_SLAVE)", 1);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_SLAVE, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		/* Test unbindable case */
-		fprintf(domain_fp, "file mount something /tmp/mount/"
-			" --make-unbindable 0\n");
-		show_prompt("mount('/tmp/mount/', MS_UNBINDABLE)", 0);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_UNBINDABLE, NULL))
-			printf("BUG: %s\n", strerror(errno));
-		else
-			printf("OK: Success.\n");
-		fprintf(domain_fp, "delete file mount something"
-			" /tmp/mount/ --make-unbindable 0\n");
-		show_prompt("mount('/tmp/mount/', MS_UNBINDABLE)", 1);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_UNBINDABLE,
-			  NULL) == EOF && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		/* Test invalid case */
-		show_prompt("mount('/tmp/mount/', MS_PRIVATE | MS_SHARED)", 1);
-		if (mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE | MS_SHARED,
-			  NULL) == EOF && errno == EINVAL)
-			printf("OK: Invalid argument.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		set_profile(0, "file::mount");
+		mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_SHARED, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_SHARED, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_SLAVE, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_SLAVE, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_UNBINDABLE, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_UNBINDABLE, NULL);
+		mount(NULL, "/tmp/mount/", NULL, MS_PRIVATE | MS_SHARED, NULL);
 
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
