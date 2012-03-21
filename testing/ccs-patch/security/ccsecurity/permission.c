@@ -157,7 +157,7 @@ static int __ccs_open_exec_permission(struct dentry *dentry,
 #endif
 static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 				 const int flag);
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL)
 static int ccs_sysctl_permission(enum ccs_mac_index type,
 				 const struct ccs_path_info *filename);
 static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
@@ -193,14 +193,6 @@ static int ccs_mount_acl(char *dev_name, struct path *dir, const char *type,
 			 unsigned long flags);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 static int ccs_new_open_permission(struct file *filp);
-#endif
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-static int ccs_old_chroot_permission(struct nameidata *nd);
-static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
-				    const char *type, unsigned long flags,
-				    void *data_page);
-static int ccs_old_pivot_root_permission(struct nameidata *old_nd,
-					 struct nameidata *new_nd);
 #endif
 static int ccs_path2_perm(const enum ccs_mac_index operation,
 			  struct dentry *dentry1, struct vfsmount *mnt1,
@@ -337,13 +329,8 @@ static inline int ccs_copy_argv(char *arg, struct linux_binprm *bprm)
 static inline void get_fs_root(struct fs_struct *fs, struct path *root)
 {
 	read_lock(&fs->lock);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	*root = fs->root;
 	path_get(root);
-#else
-	root->dentry = dget(fs->root);
-	root->mnt = mntget(fs->rootmnt);
-#endif
 	read_unlock(&fs->lock);
 }
 
@@ -362,120 +349,6 @@ static inline void ccs_put_filesystem(struct file_system_type *fstype)
 {
 	module_put(fstype->owner);
 }
-
-#ifdef CONFIG_CCSECURITY_NETWORK_RECVMSG
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
-#if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
-#if !defined(AX_MAJOR) || AX_MAJOR != 3
-
-/**
- * ip_hdr - Get "struct iphdr".
- *
- * @skb: Pointer to "struct sk_buff".
- *
- * Returns pointer to "struct iphdr".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
-{
-	return skb->nh.iph;
-}
-
-/**
- * udp_hdr - Get "struct udphdr".
- *
- * @skb: Pointer to "struct sk_buff".
- *
- * Returns pointer to "struct udphdr".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct udphdr *udp_hdr(const struct sk_buff *skb)
-{
-	return skb->h.uh;
-}
-
-/**
- * ipv6_hdr - Get "struct ipv6hdr".
- *
- * @skb: Pointer to "struct sk_buff".
- *
- * Returns pointer to "struct ipv6hdr".
- *
- * This is for compatibility with older kernels.
- */
-static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
-{
-	return skb->nh.ipv6h;
-}
-
-#endif
-#endif
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
-
-/**
- * skb_kill_datagram - Kill a datagram forcibly.
- *
- * @sk:    Pointer to "struct sock".
- * @skb:   Pointer to "struct sk_buff".
- * @flags: Flags passed to skb_recv_datagram().
- *
- * Returns nothing.
- */
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_irq(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_irq(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-
-/**
- * skb_kill_datagram - Kill a datagram forcibly.
- *
- * @sk:    Pointer to "struct sock".
- * @skb:   Pointer to "struct sk_buff".
- * @flags: Flags passed to skb_recv_datagram().
- *
- * Returns nothing.
- */
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_bh(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_bh(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-
-#endif
-
-#endif
 
 /***** SECTION5: Variables definition section *****/
 
@@ -929,11 +802,6 @@ static int ccs_try_alt_exec(struct ccs_request_info *r)
 		if (retval < 0)
 			goto out;
 	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-	bprm->argv_len = bprm->exec - bprm->p;
-#endif
-#endif
 
 	/*
 	 * OK, now restart the process with execute handler program's dentry.
@@ -970,16 +838,6 @@ out:
 
 #endif
 
-#ifdef CONFIG_MMU
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
-#define CCS_BPRM_MMU
-#elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5
-#define CCS_BPRM_MMU
-#elif defined(AX_MAJOR) && AX_MAJOR == 3
-#define CCS_BPRM_MMU
-#endif
-#endif
-
 /**
  * ccs_dump_page - Dump a page to buffer.
  *
@@ -1000,7 +858,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 			return false;
 	}
 	/* Same with get_arg_page(bprm, pos, 0) in fs/exec.c */
-#ifdef CCS_BPRM_MMU
+#ifdef CONFIG_MMU
 	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
 		return false;
 #else
@@ -1028,7 +886,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 #endif
 	}
 	/* Same with put_arg_page(page) in fs/exec.c */
-#ifdef CCS_BPRM_MMU
+#ifdef CONFIG_MMU
 	put_page(page);
 #endif
 	return true;
@@ -1175,13 +1033,8 @@ void __init ccs_permission_init(void)
 #ifdef CONFIG_CCSECURITY_GETATTR
 	ccsecurity_ops.getattr_permission = __ccs_getattr_permission;
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.pivot_root_permission = __ccs_pivot_root_permission;
 	ccsecurity_ops.chroot_permission = __ccs_chroot_permission;
-#else
-	ccsecurity_ops.pivot_root_permission = ccs_old_pivot_root_permission;
-	ccsecurity_ops.chroot_permission = ccs_old_chroot_permission;
-#endif
 	ccsecurity_ops.umount_permission = __ccs_umount_permission;
 	ccsecurity_ops.mknod_permission = __ccs_mknod_permission;
 	ccsecurity_ops.mkdir_permission = __ccs_mkdir_permission;
@@ -1195,14 +1048,10 @@ void __init ccs_permission_init(void)
 	ccsecurity_ops.open_exec_permission = __ccs_open_exec_permission;
 	ccsecurity_ops.uselib_permission = __ccs_uselib_permission;
 #endif
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL)
 	ccsecurity_ops.parse_table = __ccs_parse_table;
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.mount_permission = __ccs_mount_permission;
-#else
-	ccsecurity_ops.mount_permission = ccs_old_mount_permission;
-#endif
 #ifdef CONFIG_CCSECURITY_CAPABILITY
 	ccsecurity_ops.capable = __ccs_capable;
 	ccsecurity_ops.socket_create_permission =
@@ -1254,12 +1103,7 @@ static int ccs_kern_path(const char *pathname, int flags, struct path *path)
 	struct nameidata nd;
 	if (!pathname || path_lookup(pathname, flags, &nd))
 		return -ENOENT;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	*path = nd.path;
-#else
-	path->dentry = nd.dentry;
-	path->mnt = nd.mnt;
-#endif
 #endif
 	return 0;
 }
@@ -1420,29 +1264,6 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	return ccs_mount_acl(dev_name, path, type, flags);
 }
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-
-/**
- * ccs_old_mount_permission - Check permission for mount() operation.
- *
- * @dev_name:  Name of device file.
- * @nd:        Pointer to "struct nameidata".
- * @type:      Name of filesystem type. Maybe NULL.
- * @flags:     Mount options.
- * @data_page: Optional data. Maybe NULL.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
-				    const char *type, unsigned long flags,
-				    void *data_page)
-{
-	struct path path = { nd->mnt, nd->dentry };
-	return __ccs_mount_permission(dev_name, &path, type, flags, data_page);
-}
-
-#endif
-
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
 
 /**
@@ -1464,12 +1285,6 @@ static void __ccs_save_open_mode(int mode)
 {
 	if ((mode & 3) == 3)
 		ccs_current_security()->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
-	/* O_TRUNC passes MAY_WRITE to ccs_open_permission(). */
-	else if (!(mode & 3) && (mode & O_TRUNC))
-		ccs_current_security()->ccs_flags |=
-			CCS_OPEN_FOR_READ_TRUNCATE;
-#endif
 }
 
 /**
@@ -1479,8 +1294,7 @@ static void __ccs_save_open_mode(int mode)
  */
 static void __ccs_clear_open_mode(void)
 {
-	ccs_current_security()->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
-					       CCS_OPEN_FOR_READ_TRUNCATE);
+	ccs_current_security()->ccs_flags &= ~CCS_OPEN_FOR_IOCTL_ONLY;
 }
 
 #endif
@@ -1503,9 +1317,6 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
 #else
 	const u8 acc_mode = (ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY) ? 0 :
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
-		(ccs_flags & CCS_OPEN_FOR_READ_TRUNCATE) ? 4 :
-#endif
 		ACC_MODE(flag);
 #endif
 	int error = 0;
@@ -1984,7 +1795,7 @@ static int __ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 
 #endif
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33) && defined(CONFIG_SYSCTL_SYSCALL)
 
 /**
  * ccs_sysctl_permission - Check permission for sysctl operation.
@@ -2044,20 +1855,11 @@ repeat:
 		error = -EFAULT;
 		goto out;
 	}
-	for ( ; table->ctl_name
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
-		      || table->procname
-#endif
-		      ; table++) {
+	for ( ; table->ctl_name || table->procname; table++) {
 		int pos;
 		const char *cp;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
-		if (n != table->ctl_name && table->ctl_name != CTL_ANY)
-			continue;
-#else
 		if (!n || n != table->ctl_name)
 			continue;
-#endif
 		pos = strlen(buffer);
 		cp = table->procname;
 		error = -ENOMEM;
@@ -2076,26 +1878,6 @@ repeat:
 		}
 		if (!table->child)
 			goto no_child;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
-		if (!table->strategy)
-			goto no_strategy;
-		/* printk("sysctl='%s'\n", buffer); */
-		buf.name = ccs_encode(buffer);
-		if (!buf.name)
-			goto out;
-		ccs_fill_path_info(&buf);
-		if (op & MAY_READ)
-			error = ccs_sysctl_permission(CCS_MAC_READ, &buf);
-		else
-			error = 0;
-		if (!error && (op & MAY_WRITE))
-			error = ccs_sysctl_permission(CCS_MAC_WRITE,
-						      &buf);
-		kfree(buf.name);
-		if (error)
-			goto out;
-no_strategy:
-#endif
 		name++;
 		nlen--;
 		table = table->child;
@@ -2120,39 +1902,6 @@ no_child:
 out:
 	kfree(buffer);
 	return error;
-}
-
-#endif
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
-
-/**
- * ccs_old_pivot_root_permission - Check permission for pivot_root().
- *
- * @old_nd: Pointer to "struct nameidata".
- * @new_nd: Pointer to "struct nameidata".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_old_pivot_root_permission(struct nameidata *old_nd,
-					 struct nameidata *new_nd)
-{
-	struct path old_path = { old_nd->mnt, old_nd->dentry };
-	struct path new_path = { new_nd->mnt, new_nd->dentry };
-	return __ccs_pivot_root_permission(&old_path, &new_path);
-}
-
-/**
- * ccs_old_chroot_permission - Check permission for chroot().
- *
- * @nd: Pointer to "struct nameidata".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_old_chroot_permission(struct nameidata *nd)
-{
-	struct path path = { nd->mnt, nd->dentry };
-	return __ccs_chroot_permission(&path);
 }
 
 #endif
@@ -2603,7 +2352,7 @@ out:
 		bool slow = false;
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			slow = lock_sock_fast(sk);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+#else
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			lock_sock(sk);
 #endif
@@ -2611,7 +2360,7 @@ out:
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			unlock_sock_fast(sk, slow);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+#else
 		if (type == SOCK_DGRAM && family != PF_UNIX)
 			release_sock(sk);
 #endif
@@ -2737,11 +2486,7 @@ static int __ccs_ptrace_permission(long request, long pid)
 	} else {
 		struct task_struct *p;
 		ccs_tasklist_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		p = ccsecurity_exports.find_task_by_vpid((pid_t) pid);
-#else
-		p = find_task_by_pid((pid_t) pid);
-#endif
 		if (p)
 			dest = ccs_task_domain(p);
 		else

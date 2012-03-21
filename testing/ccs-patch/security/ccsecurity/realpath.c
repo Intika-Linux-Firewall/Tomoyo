@@ -353,7 +353,6 @@ static char *ccs_get_local_path(struct dentry *dentry, char * const buffer,
 	if (sb->s_magic == PROC_SUPER_MAGIC && *pos == '/') {
 		char *ep;
 		const pid_t pid = (pid_t) simple_strtoul(pos + 1, &ep, 10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 		if (*ep == '/' && pid && pid ==
 		    task_tgid_nr_ns(current, sb->s_fs_info)) {
 			pos = ep - 5;
@@ -361,14 +360,6 @@ static char *ccs_get_local_path(struct dentry *dentry, char * const buffer,
 				goto out;
 			memmove(pos, "/self", 5);
 		}
-#else
-		if (*ep == '/' && pid == ccs_sys_getpid()) {
-			pos = ep - 5;
-			if (pos < buffer)
-				goto out;
-			memmove(pos, "/self", 5);
-		}
-#endif
 		goto prepend_filesystem_name;
 	}
 	/* Use filesystem name for unnamed devices. */
@@ -474,13 +465,11 @@ char *ccs_realpath(struct path *path)
 			pos = ccs_get_socket_name(path, buf, buf_len - 1);
 			goto encode;
 		}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 		/* For "pipe:[\$]". */
 		if (dentry->d_op && dentry->d_op->d_dname) {
 			pos = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
 			goto encode;
 		}
-#endif
 		inode = sb->s_root->d_inode;
 		/*
 		 * Use local name for "filesystems without rename() operation"
@@ -652,13 +641,7 @@ char *ccs_get_exe(void)
 	down_read(&mm->mmap_sem);
 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-			struct path path = { vma->vm_file->f_vfsmnt,
-					     vma->vm_file->f_dentry };
-			cp = ccs_realpath(&path);
-#else
 			cp = ccs_realpath(&vma->vm_file->f_path);
-#endif
 			done = true;
 			break;
 		}
