@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2012/03/15
+ * Version: 1.8.3+   2012/03/22
  */
 
 #include "internal.h"
@@ -945,7 +945,7 @@ static char *ccs_read_token(struct ccs_io_buffer *head)
 static bool ccs_correct_word(const char *string)
 {
 	const char *const start = string;
-	bool in_repetition = false;
+	u8 in_repetition = 0;
 	if (!*string)
 		goto out;
 	while (*string) {
@@ -986,12 +986,22 @@ static bool ccs_correct_word(const char *string)
 		case '{':   /* "/\{" */
 			if (string - 3 < start || *(string - 3) != '/')
 				goto out;
-			in_repetition = true;
+			in_repetition = 1;
 			continue;
 		case '}':   /* "\}/" */
-			if (!in_repetition || *string++ != '/')
+			if (in_repetition != 1 || *string++ != '/')
 				goto out;
-			in_repetition = false;
+			in_repetition = 0;
+			continue;
+		case '(':   /* "/\(" */
+			if (string - 3 < start || *(string - 3) != '/')
+				goto out;
+			in_repetition = 2;
+			continue;
+		case ')':   /* "\)/" */
+			if (in_repetition != 2 || *string++ != '/')
+				goto out;
+			in_repetition = 0;
 			continue;
 		}
 		goto out;
@@ -1753,7 +1763,8 @@ static bool ccs_parse_cond(struct ccs_cond_tmp *tmp,
 			tmp->path = &ccs_null_name;
 		} else {
 			tmp->path = ccs_get_dqword(right);
-			if (!tmp->path || tmp->path->is_patterned)
+			if (!tmp->path ||
+			    tmp->path->const_len != tmp->path->total_len)
 				return false;
 		}
 		return true;
@@ -2120,7 +2131,7 @@ static bool ccs_set_lf(struct ccs_io_buffer *head)
 static void ccs_check_profile(void)
 {
 	ccs_policy_loaded = true;
-	printk(KERN_INFO "CCSecurity: 1.8.3+   2012/03/15\n");
+	printk(KERN_INFO "CCSecurity: 1.8.3+   2012/03/22\n");
 	if (ccs_policy_version == 20100903) {
 		printk(KERN_INFO "Mandatory Access Control activated.\n");
 		return;

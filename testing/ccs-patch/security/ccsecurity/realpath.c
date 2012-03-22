@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2012/03/15
+ * Version: 1.8.3+   2012/03/22
  */
 
 #include "internal.h"
@@ -160,26 +160,14 @@ static inline void ccs_realpath_unlock(void)
  *
  * Caller holds the dcache_lock and vfsmount_lock.
  * Based on __d_path() in fs/dcache.c
- *
- * If dentry is a directory, trailing '/' is appended.
  */
 static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 				   const int buflen)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
-	char *pos = ERR_PTR(-ENOMEM);
-	if (buflen >= 256) {
-		pos = ccsecurity_exports.d_absolute_path(path, buffer,
-							 buflen - 1);
-		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
-			struct inode *inode = path->dentry->d_inode;
-			if (inode && S_ISDIR(inode->i_mode)) {
-				buffer[buflen - 2] = '/';
-				buffer[buflen - 1] = '\0';
-			}
-		}
-	}
-	return pos;
+	if (buflen < 256)
+		return ERR_PTR(-ENOMEM);
+	return ccsecurity_exports.d_absolute_path(path, buffer, buflen - 1);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
 	/*
 	 * __d_path() will start returning NULL by backporting commit 02125a82
@@ -195,41 +183,35 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 	 * I want to keep TOMOYO 1.x architecture independent. Thus, supply
 	 * non empty root like AppArmor's d_namespace_path() did.
 	 */
-	char *pos = ERR_PTR(-ENOMEM);
-	if (buflen >= 256) {
-		static bool ccs_no_empty;
-		if (!ccs_no_empty) {
-			struct path root = { };
-			pos = ccsecurity_exports.__d_path(path, &root, buffer,
-							  buflen - 1);
-		} else {
-			pos = NULL;
-		}
-		if (!pos) {
-			struct task_struct *task = current;
-			struct path root;
-			struct path tmp;
-			spin_lock(&task->fs->lock);
-			root.mnt = task->nsproxy->mnt_ns->root;
-			root.dentry = root.mnt->mnt_root;
-			path_get(&root);
-			spin_unlock(&task->fs->lock);
-			tmp = root;
-			pos = ccsecurity_exports.__d_path(path, &tmp, buffer,
-							  buflen - 1);
-			path_put(&root);
-			if (!pos)
-				return ERR_PTR(-EINVAL);
-			/* Remember if __d_path() needs non empty root. */
-			ccs_no_empty = true;
-		}
-		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
-			struct inode *inode = path->dentry->d_inode;
-			if (inode && S_ISDIR(inode->i_mode)) {
-				buffer[buflen - 2] = '/';
-				buffer[buflen - 1] = '\0';
-			}
-		}
+	static bool ccs_no_empty;
+	char *pos;
+	if (buflen < 256)
+		return ERR_PTR(-ENOMEM);
+	if (!ccs_no_empty) {
+		struct path root = { };
+		pos = ccsecurity_exports.__d_path(path, &root, buffer,
+						  buflen - 1);
+	} else {
+		pos = NULL;
+	}
+	if (!pos) {
+		struct task_struct *task = current;
+		struct path root;
+		struct path tmp;
+		spin_lock(&task->fs->lock);
+		root.mnt = task->nsproxy->mnt_ns->root;
+		root.dentry = root.mnt->mnt_root;
+		path_get(&root);
+		spin_unlock(&task->fs->lock);
+		tmp = root;
+		pos = ccsecurity_exports.__d_path(path, &tmp, buffer,
+						  buflen - 1);
+		path_put(&root);
+		if (pos)
+			return pos;
+		/* Remember if __d_path() needs non empty root. */
+		ccs_no_empty = true;
+		pos = ERR_PTR(-EINVAL);
 	}
 	return pos;
 #else
@@ -243,8 +225,6 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 		goto out;
 
 	*pos = '\0';
-	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
-		*--pos = '/';
 	for (;;) {
 		struct dentry *parent;
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
@@ -287,33 +267,20 @@ out:
  * Returns the buffer on success, an error code otherwise.
  *
  * Based on dentry_path() in fs/dcache.c
- *
- * If dentry is a directory, trailing '/' is appended.
  */
 static char *ccs_get_dentry_path(struct dentry *dentry, char * const buffer,
 				 const int buflen)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 38)
-	char *pos = ERR_PTR(-ENOMEM);
-	if (buflen >= 256) {
-		/* rename_lock is locked/unlocked by dentry_path_raw(). */
-		pos = dentry_path_raw(dentry, buffer, buflen - 1);
-		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
-			struct inode *inode = dentry->d_inode;
-			if (inode && S_ISDIR(inode->i_mode)) {
-				buffer[buflen - 2] = '/';
-				buffer[buflen - 1] = '\0';
-			}
-		}
-	}
-	return pos;
+	if (buflen < 256)
+		return ERR_PTR(-ENOMEM);
+	/* rename_lock is locked/unlocked by dentry_path_raw(). */
+	return dentry_path_raw(dentry, buffer, buflen - 1);
 #else
 	char *pos = buffer + buflen - 1;
 	if (buflen < 256)
 		return ERR_PTR(-ENOMEM);
 	*pos = '\0';
-	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
-		*--pos = '/';
 	spin_lock(&dcache_lock);
 	while (!IS_ROOT(dentry)) {
 		struct dentry *parent = dentry->d_parent;
@@ -329,6 +296,8 @@ static char *ccs_get_dentry_path(struct dentry *dentry, char * const buffer,
 		dentry = parent;
 	}
 	spin_unlock(&dcache_lock);
+	if (pos == buffer + buflen - 1)
+		*--pos = '/';
 	return pos;
 #endif
 }
@@ -526,8 +495,7 @@ char *ccs_encode2(const char *str, int str_len)
 			len += 3;
 	}
 	len++;
-	/* Reserve space for appending "/". */
-	cp = kzalloc(len + 10, GFP_NOFS);
+	cp = kzalloc(len, GFP_NOFS);
 	if (!cp)
 		return NULL;
 	cp0 = cp;
@@ -617,8 +585,6 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 	const int len = strlen(name);
 	ptr->total_len = len;
 	ptr->const_len = ccs_const_part_length(name);
-	ptr->is_dir = len && (name[len - 1] == '/');
-	ptr->is_patterned = (ptr->const_len < len);
 	ptr->hash = full_name_hash(name, len);
 }
 
@@ -626,9 +592,6 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
  * ccs_get_exe - Get ccs_realpath() of current process.
  *
  * Returns the ccs_realpath() of current process on success, NULL otherwise.
- *
- * Unlike ccs_realpath(), this function may not reserve space for appending
- * "/".
  *
  * This function uses kzalloc(), so the caller must kfree()
  * if this function didn't return NULL.
