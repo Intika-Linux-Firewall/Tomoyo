@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2012/03/15
+ * Version: 1.8.3+   2012/03/22
  */
 
 #ifndef _SECURITY_CCSECURITY_INTERNAL_H
@@ -602,10 +602,8 @@ struct ccs_condition {
 struct ccs_path_info {
 	const char *name;
 	u32 hash;          /* = full_name_hash(name, strlen(name)) */
-	u16 total_len;     /* = strlen(name)                       */
-	u16 const_len;     /* = ccs_const_part_length(name)        */
-	bool is_dir;       /* = ccs_strendswith(name, "/")         */
-	bool is_patterned; /* = const_len < total_len              */
+	u32 total_len;     /* = strlen(name)                       */
+	u32 const_len;     /* = ccs_const_part_length(name)        */
 };
 
 /* Structure for request info. */
