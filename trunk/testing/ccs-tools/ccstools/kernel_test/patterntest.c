@@ -32,10 +32,8 @@
 struct ccs_path_info {
 	const char *name;
 	u32 hash;          /* = full_name_hash(name, strlen(name)) */
-	u16 total_len;     /* = strlen(name)                       */
-	u16 const_len;     /* = ccs_const_part_length(name)        */
-	bool is_dir;       /* = ccs_strendswith(name, "/")         */
-	bool is_patterned; /* = const_len < total_len              */
+	u32 total_len;     /* = strlen(name)                       */
+	u32 const_len;     /* = ccs_const_part_length(name)        */
 };
 
 /* Copied from kernel source. */
@@ -61,126 +59,93 @@ static bool ccs_pathcmp(const struct ccs_path_info *a,
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
-static bool ccs_is_byte_range(const char *str)
+static bool ccs_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
 		*str >= '0' && *str++ <= '7' &&
 		*str >= '0' && *str <= '7';
 }
 
-static bool ccs_is_decimal(const char c)
+static bool ccs_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
 
-static bool ccs_is_hexadecimal(const char c)
+static bool ccs_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
 		(c >= 'a' && c <= 'f');
 }
 
-static bool ccs_is_alphabet_char(const char c)
+static bool ccs_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
-static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
+static bool ccs_correct_word(const char *string)
 {
-	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
-}
-
-static bool ccs_is_correct_path(const char *filename, const s8 start_type,
-				const s8 pattern_type, const s8 end_type)
-{
-	const char *const start = filename;
-	bool in_repetition = false;
-	bool contains_pattern = false;
-	unsigned char c;
-	unsigned char d;
-	unsigned char e;
-	if (!filename)
+	const char *const start = string;
+	u8 in_repetition = 0;
+	if (!*string)
 		goto out;
-	c = *filename;
-	if (start_type == 1) { /* Must start with '/' */
-		if (c != '/')
+	while (*string) {
+		unsigned char c = *string++;
+		if (in_repetition && c == '/')
 			goto out;
-	} else if (start_type == -1) { /* Must not start with '/' */
-		if (c == '/')
+		if (c <= ' ' || c >= 127)
 			goto out;
-	}
-	if (c)
-		c = *(filename + strlen(filename) - 1);
-	if (end_type == 1) { /* Must end with '/' */
-		if (c != '/')
-			goto out;
-	} else if (end_type == -1) { /* Must not end with '/' */
-		if (c == '/')
-			goto out;
-	}
-	while (true) {
-		c = *filename++;
-		if (!c)
-			break;
-		if (c == '\\') {
-			c = *filename++;
-			switch (c) {
-			case '\\':  /* "\\" */
+		if (c != '\\')
+			continue;
+		c = *string++;
+		if (c >= '0' && c <= '3') {
+			unsigned char d;
+			unsigned char e;
+			d = *string++;
+			if (d < '0' || d > '7')
+				goto out;
+			e = *string++;
+			if (e < '0' || e > '7')
+				goto out;
+			c = ((c - '0') << 6) + ((d - '0') << 3) + (e - '0');
+			if (c <= ' ' || c >= 127 || c == '\\')
 				continue;
-			case '$':   /* "\$" */
-			case '+':   /* "\+" */
-			case '?':   /* "\?" */
-			case '*':   /* "\*" */
-			case '@':   /* "\@" */
-			case 'x':   /* "\x" */
-			case 'X':   /* "\X" */
-			case 'a':   /* "\a" */
-			case 'A':   /* "\A" */
-			case '-':   /* "\-" */
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
-				continue;
-			case '{':   /* "/\{" */
-				if (filename - 3 < start ||
-				    *(filename - 3) != '/')
-					break;
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
-				in_repetition = true;
-				continue;
-			case '}':   /* "\}/" */
-				if (*filename != '/')
-					break;
-				if (!in_repetition)
-					break;
-				in_repetition = false;
-				continue;
-			case '0':   /* "\ooo" */
-			case '1':
-			case '2':
-			case '3':
-				d = *filename++;
-				if (d < '0' || d > '7')
-					break;
-				e = *filename++;
-				if (e < '0' || e > '7')
-					break;
-				c = ccs_make_byte(c, d, e);
-				if (c <= ' ' || c >= 127)
-					continue;
-			}
-			goto out;
-		} else if (in_repetition && c == '/') {
-			goto out;
-		} else if (c <= ' ' || c >= 127) {
 			goto out;
 		}
-	}
-	if (pattern_type == 1) { /* Must contain pattern */
-		if (!contains_pattern)
-			goto out;
+		switch (c) {
+		case '$':   /* "\$" */
+		case '+':   /* "\+" */
+		case '?':   /* "\?" */
+		case '*':   /* "\*" */
+		case '@':   /* "\@" */
+		case 'x':   /* "\x" */
+		case 'X':   /* "\X" */
+		case 'a':   /* "\a" */
+		case 'A':   /* "\A" */
+		case '-':   /* "\-" */
+			continue;
+		case '{':   /* "/\{" */
+			if (string - 3 < start || *(string - 3) != '/')
+				goto out;
+			in_repetition = 1;
+			continue;
+		case '}':   /* "\}/" */
+			if (in_repetition != 1 || *string++ != '/')
+				goto out;
+			in_repetition = 0;
+			continue;
+		case '(':   /* "/\(" */
+			if (string - 3 < start || *(string - 3) != '/')
+				goto out;
+			in_repetition = 2;
+			continue;
+		case ')':   /* "\)/" */
+			if (in_repetition != 2 || *string++ != '/')
+				goto out;
+			in_repetition = 0;
+			continue;
+		}
+		goto out;
 	}
 	if (in_repetition)
 		goto out;
@@ -246,37 +211,29 @@ static bool ccs_file_matches_pattern2(const char *filename,
 			if (c == '/') {
 				return false;
 			} else if (c == '\\') {
-				if (filename[1] == '\\')
-					filename++;
-				else if (ccs_is_byte_range(filename + 1))
+				if (ccs_byte_range(filename + 1))
 					filename += 3;
 				else
 					return false;
 			}
 			break;
-		case '\\':
-			if (c != '\\')
-				return false;
-			if (*++filename != '\\')
-				return false;
-			break;
 		case '+':
-			if (!ccs_is_decimal(c))
+			if (!ccs_decimal(c))
 				return false;
 			break;
 		case 'x':
-			if (!ccs_is_hexadecimal(c))
+			if (!ccs_hexadecimal(c))
 				return false;
 			break;
 		case 'a':
-			if (!ccs_is_alphabet_char(c))
+			if (!ccs_alphabet_char(c))
 				return false;
 			break;
 		case '0':
 		case '1':
 		case '2':
 		case '3':
-			if (c == '\\' && ccs_is_byte_range(filename + 1)
+			if (c == '\\' && ccs_byte_range(filename + 1)
 			    && !strncmp(filename + 1, pattern, 3)) {
 				filename += 3;
 				pattern += 2;
@@ -296,9 +253,7 @@ static bool ccs_file_matches_pattern2(const char *filename,
 					break;
 				if (c != '\\')
 					continue;
-				if (filename[i + 1] == '\\')
-					i++;
-				else if (ccs_is_byte_range(filename + i + 1))
+				if (ccs_byte_range(filename + i + 1))
 					i += 3;
 				else
 					break; /* Bad pattern. */
@@ -308,13 +263,13 @@ static bool ccs_file_matches_pattern2(const char *filename,
 			j = 0;
 			c = *pattern;
 			if (c == '$') {
-				while (ccs_is_decimal(filename[j]))
+				while (ccs_decimal(filename[j]))
 					j++;
 			} else if (c == 'X') {
-				while (ccs_is_hexadecimal(filename[j]))
+				while (ccs_hexadecimal(filename[j]))
 					j++;
 			} else if (c == 'A') {
-				while (ccs_is_alphabet_char(filename[j]))
+				while (ccs_alphabet_char(filename[j]))
 					j++;
 			}
 			for (i = 1; i <= j; i++) {
@@ -329,6 +284,7 @@ static bool ccs_file_matches_pattern2(const char *filename,
 		filename++;
 		pattern++;
 	}
+	/* Ignore trailing "\*" and "\@" in @pattern. */
 	while (*pattern == '\\' &&
 	       (*(pattern + 1) == '*' || *(pattern + 1) == '@'))
 		pattern += 2;
@@ -365,15 +321,24 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 {
 	const char *f_delimiter;
 	const char *p_delimiter;
+	char recursive_end;
 	while (*f && *p) {
 		f_delimiter = strchr(f, '/');
+		p_delimiter = strchr(p, '/');
 		if (!f_delimiter)
 			f_delimiter = f + strlen(f);
-		p_delimiter = strchr(p, '/');
 		if (!p_delimiter)
 			p_delimiter = p + strlen(p);
-		if (*p == '\\' && *(p + 1) == '{')
-			goto recursive;
+		if (*p == '\\') {
+			if (*(p + 1) == '{') {
+				recursive_end = '}'; 
+				goto recursive;
+			}
+			if (*(p + 1) == '(') {
+				recursive_end = ')';
+				goto recursive;
+			}
+		}
 		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
 			return false;
 		f = f_delimiter;
@@ -390,14 +355,21 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 	return !*f && !*p;
 recursive:
 	/*
-	 * The "\{" pattern is permitted only after '/' character.
+	 * The "\{" or "\(" pattern is permitted only after '/' character.
 	 * This guarantees that below "*(p - 1)" is safe.
-	 * Also, the "\}" pattern is permitted only before '/' character
-	 * so that "\{" + "\}" pair will not break the "\-" operator.
+	 * Also, the "\}" or "\)" pattern is permitted only before '/'
+	 * character so that "\{" + "\}" or "\(" + "\)" pair will not break
+	 * the "\-" operator.
 	 */
 	if (*(p - 1) != '/' || p_delimiter <= p + 3 || *p_delimiter != '/' ||
-	    *(p_delimiter - 1) != '}' || *(p_delimiter - 2) != '\\')
+	    *(p_delimiter - 1) != recursive_end || *(p_delimiter - 2) != '\\')
 		return false; /* Bad pattern. */
+	if (recursive_end == ')') {
+		/* Check zero repetition. */
+		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
+			return true;
+		/* Fall back to one or more repetition. */
+	}
 	do {
 		/* Compare current component with pattern. */
 		if (!ccs_file_matches_pattern(f, f_delimiter, p + 2,
@@ -423,16 +395,27 @@ static bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 	const char *p = pattern->name;
 	const int len = pattern->const_len;
 	/* If @pattern doesn't contain pattern, I can use strcmp(). */
-	if (!pattern->is_patterned)
+	if (len == pattern->total_len)
 		return !ccs_pathcmp(filename, pattern);
-	/* Don't compare directory and non-directory. */
-	if (filename->is_dir != pattern->is_dir)
-		return false;
 	/* Compare the initial length without patterns. */
 	if (strncmp(f, p, len))
 		return false;
 	f += len;
 	p += len;
+	/* Compare the last component first. */
+	{
+		const char *f2 = strrchr(f, '/');
+		const char *p2 = strrchr(p, '/');
+		if (!f2++)
+			f2 = f;
+		if (!p2++)
+			p2 = p;
+		if (!ccs_file_matches_pattern(f2, filename->name
+					      + filename->total_len,
+					      p2, pattern->name
+					      + pattern->total_len))
+			return false;
+	}
 	return ccs_path_matches_pattern2(f, p);
 }
 
@@ -442,8 +425,6 @@ static void ccs_fill_path_info(struct ccs_path_info *ptr)
 	const int len = strlen(name);
 	ptr->total_len = len;
 	ptr->const_len = ccs_const_part_length(name);
-	ptr->is_dir = len && (name[len - 1] == '/');
-	ptr->is_patterned = (ptr->const_len < len);
 	ptr->hash = full_name_hash(name, len);
 }
 
@@ -487,16 +468,28 @@ static const struct {
 	{ "/var/www/html/test/test/test/index.html",
 	  "/var/www/html/\\{test\\}/\\*.html", 1 },
 	{ "/etc/skel/", "/etc/\\{\\*\\}/\\*/", 0 },
+	{ "/etc/skel/", "/etc/\\(\\*\\)/\\*/", 1 },
 	{ "/etc/passwd", "/etc/\\{\\*\\}/\\*", 0 },
+	{ "/etc/passwd", "/etc/\\(\\*\\)/\\*", 1 },
 	{ "/bin/true", "/bin/\\*/", 0 },
-	{ "/bin/", "/bin/\\*", 0 },
-	{ "/bin/", "/bin/\\@", 0 },
-	{ "/bin/", "/bin/\\@\\@", 0 },
+	{ "/bin/", "/bin/\\*", 1 },
+	{ "/bin/", "/bin/\\@", 1 },
+	{ "/bin/", "/bin/\\@\\@", 1 },
 	{ "http://tomoyo.sourceforge.jp/", "\\*/\\*/\\*/\?", 0 },
 	{ "http://tomoyo.sourceforge.jp/index.html", "\\*/\\*/\\*/\\@", 0 },
 	{ "http://tomoyo.sourceforge.jp/index.html", "http://\\*/\\@", 0 },
 	{ "socket:[family=1:type=2:protocol=3]",
 	  "/\\{\\*\\}/socket:[\\*]", 0 },
+	{ "/tmp/foo", "/tmp/\\(\\*\\)/", 0 },
+	{ "/tmp/foo", "/tmp/\\(\\*\\)/foo", 1 },
+	{ "/tmp/foo/", "/tmp/\\(\\*\\)/", 1 },
+	{ "/tmp/foo/foo", "/tmp/\\(\\*\\-\\?\\)/", 0 },
+	{ "/tmp/foo", "/tmp/\\{\\*\\}/", 0 },
+	{ "/tmp/foo", "/tmp/\\{\\*\\}/foo", 0 },
+	{ "/tmp/foo/", "/tmp/\\{\\*\\}/", 1 },
+	{ "/tmp/foo/foo", "/tmp/\\{\\*\\-\\?\\}/", 0 },
+	{ "/tmp/foo/foo/boo/foo", "/tmp/\\{foo\\}/foo", 0 },
+	{ "/tmp/foo/boo/foo/foo", "/tmp/\\{foo\\}/foo", 0 },
 	{ NULL, NULL, 0 }
 };
 
@@ -508,16 +501,17 @@ int main(int argc, char *argv[])
 	for (i = 0; testcases[i].pathname; i++) {
 		f.name = testcases[i].pathname;
 		p.name = testcases[i].pattern;
-		if (!ccs_is_correct_path(f.name, 0, -1, 0)) {
+		if (!ccs_correct_word(f.name)) {
 			printf("Bad pathname: %s\n", f.name);
 			continue;
-		} else if (!ccs_is_correct_path(p.name, 0, 0, 0)) {
+		} else if (!ccs_correct_word(p.name)) {
 			printf("Bad pattern: %s\n", p.name);
 			continue;
 		}
 		ccs_fill_path_info(&f);
 		ccs_fill_path_info(&p);
-		if (ccs_path_matches_pattern(&f, &p) == testcases[i].match)
+		if (f.total_len == f.const_len &&
+		    ccs_path_matches_pattern(&f, &p) == testcases[i].match)
 			continue;
 		printf("Bad result: %s %s %u\n", f.name, p.name,
 		       testcases[i].match);
