@@ -71,6 +71,10 @@
 
 <p>Representation of \ character has been changed from \\ to \134.</p>
 
+<p>Distinction between directory's pathname and non-directory's pathname has been removed by removing / character from directory's pathname.</p>
+
+<p>A new wildcard /\(dir\)/ has been introduced for helping converting from (e.g.) "/tmp/\{\*\}/" to "/tmp/\(\*\)/\*", for directory's pathname (except the root directory itself) no longer ends with / character which previously matched /\{\*\}/ wildcard.</p>
+
 <p>Category keywords (i.e. "file", "network", "ipc", "misc", "capability", "task") have been removed because access control levels which was specified using profile has been removed. Some of operation keywords have been renamed (e.g. "network inet stream connect" became "inet_stream_connect", "misc env" became "environ").</p>
 
 <p>"task auto_execute_handler" keyword has been renamed to "handler=" argument of "execute" keyword. This is intended for using execute handler for preprocessing purpose when executing specific programs rather than when executing from specific domains. "task denied_execute_handler" keyword has been removed.</p>
@@ -163,7 +167,7 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 
 <table border="1">
 <tr><td>
-#2012/03/02 08:11:51# global-pid=2826 result=unmatched / read path="/etc/shadow" task.pid=2826 task.ppid=2814 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/bin/passwd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33708 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
+#2012/03/02 08:11:51# global-pid=2826 result=unmatched priority=100 / read path="/etc/shadow" task.pid=2826 task.ppid=2814 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/bin/passwd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33708 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
 </td></tr>
 </table>
 
@@ -181,8 +185,8 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 
 <table border="1">
 <tr><td>
-#2012/03/02 08:13:06# global-pid=2831 result=unmatched / read path="/etc/shadow" task.pid=2831 task.ppid=2691 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/sbin/sshd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53<br>
-#2012/03/02 08:13:12# global-pid=2837 result=unmatched / read path="/etc/shadow" task.pid=2837 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
+#2012/03/02 08:13:06# global-pid=2831 result=unmatched priority=100 / read path="/etc/shadow" task.pid=2831 task.ppid=2691 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/usr/sbin/sshd" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53<br>
+#2012/03/02 08:13:12# global-pid=2837 result=unmatched priority=100 / read path="/etc/shadow" task.pid=2837 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
 </td></tr>
 </table>
 
@@ -202,7 +206,7 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 
 <table border="1">
 <tr><td>
-#2012/03/02 08:14:38# global-pid=2842 result=denied / read path="/etc/shadow" task.pid=2842 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
+#2012/03/02 08:14:38# global-pid=2842 result=denied priority=100 / read path="/etc/shadow" task.pid=2842 task.ppid=2833 task.uid=0 task.gid=0 task.euid=0 task.egid=0 task.suid=0 task.sgid=0 task.fsuid=0 task.fsgid=0 task.type!=execute_handler task.exe="/bin/cat" task.domain="/usr/sbin/sshd" path.uid=0 path.gid=42 path.ino=33716 path.major=8 path.minor=1 path.perm=0640 path.type=file path.fsmagic=0xEF53 path.parent.uid=0 path.parent.gid=0 path.parent.ino=32769 path.parent.major=8 path.parent.minor=1 path.parent.perm=0755 path.parent.type=directory path.parent.fsmagic=0xEF53
 </td></tr>
 </table>
 
@@ -672,8 +676,8 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 <td><p>\-</p></td>
 <td><p>Pathname subtraction operator (negative match)</p></td>
 <td>
-<p>/\*\-proc\-sys/</p>
-<p>This will match /\*/ directories except "/proc/" and "/sys/".</p>
+<p>/\*\-proc\-sys</p>
+<p>This will match /\* except "/proc" and "/sys".</p>
 </td>
 </tr>
 <tr>
@@ -681,11 +685,17 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 <td><p>Recursive directory matching operator.</p>
 <p>Matches "/" and 1 or more repetitions of "dir/".</p></td>
 <td>
-<p>/var/www/html/\{\*\}/</p>
-<p>This will match all subdirectories under /var/www/html/ . Note that /var/www/html/ will not match.</p>
-<br>
 <p>/var/www/html/\{\*\}/\*.html</p>
-<p>This will match all *.html files in subdirectories under /var/www/html/ . Note that /var/www/html/\*.html will not match.</p>
+<p>This will match all *.html files in subdirectories under /var/www/html/ directory. Note that /var/www/html/\*.html will not match.</p>
+</td>
+</tr>
+<tr>
+<td><p>/({dir\)/</p></td>
+<td><p>Recursive directory matching operator.</p>
+<p>Matches "/" and 0 or more repetitions of "dir/".</p></td>
+<td>
+<p>/var/www/html/\(\*\)/\*.html</p>
+<p>This will match all *.html files under /var/www/html/ directory. Note that /var/www/html/\*.html will match.</p>
 </td>
 </tr>
 </table>
@@ -732,25 +742,23 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 
 <h3><a name="string_comparison">2.1. Conditional expressions which handle string parameters</a></h3>
 
-<p>Number of parameters which is represented as string data depends on "operation". For example, "read" operation has one and "rename" operation has two. Thus, the name of variables which references string data varies on "operation". Below description assumes that the name of variable is "path".</p>
+<p>Number of parameters which is represented as string data depends on "operation". For example, "read" operation has one and "rename" operation has two. Thus, the name of variables which references string data varies on "operation". See <a href="#syntax_list">List of syntaxes sorted by operations</a> for name of variables that handle string data. Below description assumes that the name of variable is "path".</p>
 
-<p>Comparison with string data is defined as below. Note that one string which ends with / and another string which does not end with / never matches.</p>
+<p>Comparison with string data is defined as below.</p>
 
 <table border="1">
 <tr><td>Conditions example</td><td>Value of variable "path"</td><td>Comparison result</td></tr>
-<tr><td rowspan="6">path="/tmp/\*"</td>
+<tr><td rowspan="5">path="/tmp/\*"</td>
 <td>/</td><td>Does not match</td></tr>
-<tr><td>/tmp/</td><td>Does not match</td></tr>
-<tr><td>/tmp/rt6bh84t</td><td>Matches</td></tr>
-<tr><td>/tmp/hbrt4768</td><td>Matches</td></tr>
-<tr><td>/tmp/349gy08t/</td><td>Does not match</td></tr>
-<tr><td>/tmp/349gy08t/y8024fgf</td><td>Does not match</td></tr>
-<tr><td rowspan="6">path!="/tmp/\*"</td>
-<td>/</td><td>Matches</td></tr>
+<tr><td>/tmp</td><td>Does not match</td></tr>
 <tr><td>/tmp/</td><td>Matches</td></tr>
+<tr><td>/tmp/rt6bh84t</td><td>Matches</td></tr>
+<tr><td>/tmp/349gy08t/y8024fgf</td><td>Does not match</td></tr>
+<tr><td rowspan="5">path!="/tmp/\*"</td>
+<td>/</td><td>Matches</td></tr>
+<tr><td>/tmp</td><td>Matches</td></tr>
+<tr><td>/tmp/</td><td>Does not match</td></tr>
 <tr><td>/tmp/rt6bh84t</td><td>Does not match</td></tr>
-<tr><td>/tmp/hbrt4768</td><td>Does not match</td></tr>
-<tr><td>/tmp/349gy08t/</td><td>Matches</td></tr>
 <tr><td>/tmp/349gy08t/y8024fgf</td><td>Matches</td></tr>
 </table>
 
@@ -758,10 +766,8 @@ quota audit[1] allowed=0 unmatched=1024 denied=1024
 
 <table border="1">
 <tr><td>
-string_group TMPDIR /tmp/<br>
-string_group TMPDIR /tmp/\*<br>
-string_group TMPDIR /tmp/\{\*\}/<br>
-string_group TMPDIR /tmp/\{\*\}/\*
+string_group TMPDIR /tmp<br>
+string_group TMPDIR /tmp/\(\*\)/\*
 </td></tr>
 </table>
 
@@ -769,27 +775,21 @@ string_group TMPDIR /tmp/\{\*\}/\*
 
 <table border="1">
 <tr><td>Conditions example</td><td>Value of variable "path"</td><td>Value of TMPDIR group</td><td>Comparison result</td></tr>
-<tr><td rowspan="6">path=@TMPDIR</td>
-<td>/</td><td rowspan="6">/tmp/<br>/tmp/\*<br>/tmp/\{\*\}/<br>/tmp/\{\*\}/\*</td><td>Does not match</td></tr>
-<tr><td>/tmp/</td><td>Matches</td></tr>
+<tr><td rowspan="4">path=@TMPDIR</td>
+<td>/</td><td rowspan="4">/tmp<br>/tmp/\(\*\)/\*</td><td>Does not match</td></tr>
+<tr><td>/tmp</td><td>Matches</td></tr>
 <tr><td>/tmp/rt6bh84t</td><td>Matches</td></tr>
-<tr><td>/tmp/hbrt4768</td><td>Matches</td></tr>
-<tr><td>/tmp/349gy08t/</td><td>Matches</td></tr>
 <tr><td>/tmp/349gy08t/y8024fgf</td><td>Matches</td></tr>
-<tr><td rowspan="6">path!=@TMPDIR</td>
-<td>/</td><td rowspan="6">/tmp/<br>/tmp/\*<br>/tmp/\{\*\}/<br>/tmp/\{\*\}/\*</td><td>Matches</td></tr>
-<tr><td>/tmp/</td><td>Does not match</td></tr>
+<tr><td rowspan="4">path!=@TMPDIR</td>
+<td>/</td><td rowspan="4">/tmp<br>/tmp/\(\*\)/\*</td><td>Matches</td></tr>
+<tr><td>/tmp</td><td>Does not match</td></tr>
 <tr><td>/tmp/rt6bh84t</td><td>Does not match</td></tr>
-<tr><td>/tmp/hbrt4768</td><td>Does not match</td></tr>
-<tr><td>/tmp/349gy08t/</td><td>Does not match</td></tr>
 <tr><td>/tmp/349gy08t/y8024fgf</td><td>Does not match</td></tr>
 </table>
 
-<p>See <a href="#syntax_list">List of syntaxes sorted by operations</a> for name of variables that handle string data.</p>
-
 <h3><a name="integer_comparison">2.2. Conditional expressions which handle numeric parameters</a></h3>
 
-<p>Number of parameters which is represented as numeric data depends on "operation". For example, "create" operation has one and "mkblock" operation has three. Thus, the name of variables which references numeric parameters varies on "operation". Below description uses "task.uid" (which references current thread's user ID) and "task.gid" (which references current thread's group ID) as an example.</p>
+<p>Number of parameters which is represented as numeric data depends on "operation". For example, "create" operation has one and "mkblock" operation has three. Thus, the name of variables which references numeric parameters varies on "operation". See <a href="#syntax_list">List of syntaxes sorted by operations</a> for name of variables that handle numeric data. Below description uses "task.uid" (which references current thread's user ID) and "task.gid" (which references current thread's group ID) as an example.</p>
 
 <p>Comparison with numeric value is defined as below.</p>
 
@@ -859,11 +859,9 @@ number_group ID_GROUP 200-500
 <tr><td>1000</td><td>Matches</td></tr>
 </table>
 
-<p>See <a href="#syntax_list">List of syntaxes sorted by operations</a> for name of variables that handle numeric data.</p>
-
 <h3><a name="ipaddr_comparison">2.3. Conditional expressions which handle IP address parameters</a></h3>
 
-<p>Any "operation" which handles IPv4/IPv6 network address can check IP address using variable "ip".</p>
+<p>Any "operation" which handles IPv4/IPv6 network address can check IP address using variable "ip". See <a href="#syntax_list">List of syntaxes sorted by operations</a> for operations that can handle IP address.</p>
 
 <p>Comparison with IP address value is defined as below. Note that comparison between an IPv4 address and an IPv6 address does not match.</p>
 
@@ -935,8 +933,6 @@ ip_group PRIVATE_ADDRESS fd00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
 <tr><td>fd01::</td><td>Does not match</td></tr>
 </table>
 
-<p>See <a href="#syntax_list">List of syntaxes sorted by operations</a> for operations that can handle IP address.</p>
-
 <h3><a name="task_attributes_comparison">2.4. Conditional expressions which handle current thread's attributes</a></h3>
 
 <p>It is possible to use current thread's attributes as part of conditions. Below variables are always available.</p>
@@ -980,8 +976,8 @@ ip_group PRIVATE_ADDRESS fd00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
 <tr><td>Conditions example</td><td>Comparison method</td><td>Meaning</td><td></td></tr>
 <tr><td>envp["PATH"]="/"</td><td><a href="#string_comparison">String</a></td><td>Environment variable PATH is defined and its value is "/"</td></tr>
 <tr><td>envp["PATH"]!="/"</td><td><a href="#string_comparison">String</a></td><td>Either<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is not defined<br>or<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is defined but its value is not "/"</td></tr>
-<tr><td>envp["PATH"]=@ENV_PATH_VALUES"/"</td><td><a href="#string_comparison">String</a></td><td>Environment variable PATH is defined and its value matches one of strings in string_group ENVP_PATH_VALUES group</td></tr>
-<tr><td>envp["PATH"]!=@ENV_PATH_VALUES"/"</td><td><a href="#string_comparison">String</a></td><td>Either<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is not defined<br>or<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is defined but its value matches none of strings in string_group ENVP_PATH_VALUES group</td></tr>
+<tr><td>envp["PATH"]=@ENV_PATH_VALUES</td><td><a href="#string_comparison">String</a></td><td>Environment variable PATH is defined and its value matches one of strings in string_group ENVP_PATH_VALUES group</td></tr>
+<tr><td>envp["PATH"]!=@ENV_PATH_VALUES</td><td><a href="#string_comparison">String</a></td><td>Either<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is not defined<br>or<br>&nbsp;&nbsp;&nbsp;&nbsp;Environment variable PATH is defined but its value matches none of strings in string_group ENVP_PATH_VALUES group</td></tr>
 <tr><td>envp["PATH"]=NULL</td><td>None</td><td>Environment variable PATH is not defined</td></tr>
 <tr><td>envp["PATH"]!=NULL</td><td>None</td><td>Environment variable PATH is not defined</td></tr>
 </table>
@@ -1080,6 +1076,8 @@ Below table assumes that the variable name for referencing the requested pathnam
 </table>
 
 <p>It does not make sense to use path.parent.type path.parent.dev_major path.parent.dev_minor because path.parent is always a directory.</p>
+
+<p>If path refers a mount point (root of directory entry tree within that partition), path.parent refers the same path rather than referring mount point's parent.</p>
 
 <h2><a name="syntax_list">3. List of syntaxes sorted by operations</a></h2>
 
@@ -1215,10 +1213,22 @@ Below table assumes that the variable name for referencing the requested pathnam
 <tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="9">mount</td><td rowspan="9">Mount a filesystem</td><td><a href="#string_comparison">source</a></td><td>Device name if mount operation requires device file, source name if bind or move mount.</td><td rowspan="9">mount(2)</td></tr>
-<tr><td><a href="#string_comparison">target</a></td><td>Mount point</td></tr>
-<tr><td><a href="#string_comparison">fstype</a></td><td>Filesystem name</td></tr>
+<tr><td rowspan="9">mount</td><td rowspan="9">Mount a filesystem</td><td><a href="#string_comparison">source</a></td><td>Source name if filesystem name is one of "--bind", "--move" or a filesystem that requires device file. Unavailable otherwise.</td><td rowspan="9">mount(2)</td></tr>
+<tr><td><a href="#string_comparison">target</a></td><td>Mount point or target name</td></tr>
+<tr><td><a href="#string_comparison">fstype</a></td><td>Filesystem name, determined by below oeder.<br>
+<ol>
+<li>"--remount" if mount flags contains MS_REMOUNT flag</li>
+<li>"--bind" if mount flags contains MS_BIND flag</li>
+<li>"--make-shared" if mount flags contains MS_SHARED flag</li>
+<li>"--make-private" if mount flags contains MS_PRIVATE flag</li>
+<li>"--make-slave" if mount flags contains MS_SLAVE flag</li>
+<li>"--make-unbindable" if mount flags contains MS_UNBINDABLE flag</li>
+<li>"--move" if mount flags contains MS_MOVE flag</li>
+<li>name of filesystem</li>
+</ol>
+</td></tr>
 <tr><td><a href="#integer_comparison">flags</a></td><td>Mount flags</td></tr>
+<tr><td><a href="#string_comparison">data</a></td><td>Mount options not in mount flags argument (e.g. "errors=remount-ro"). This variable is not available to filesystems that require binary mount options (e.g."nfs", "coda", "ncpfs"). Also, this variable is available only if filesystem type is either "--remount" or name of filesystem.</td></tr>
 <tr><td><a href="#file_attributes_comparison">source.$attribute</a></td><td>Attributes of an object referenced by variable "source" when variable "source" references a valid pathname</td></tr>
 <tr><td><a href="#file_attributes_comparison">source.parent.$attribute</a></td><td>Attributes of parent directory of an object referenced by variable "source" when variable "source" references a valid pathname</td></tr>
 <tr><td><a href="#file_attributes_comparison">target.$attribute</a></td><td>Attributes of an object referenced by variable "target"</td></tr>
@@ -1319,8 +1329,16 @@ Below table assumes that the variable name for referencing the requested pathnam
 <tr><td rowspan="2">signal</td><td rowspan="2">Send signals</td><td><a href="#integer_comparison">sig</a></td><td>Signal number</td><td rowspan="2">kill(2), tkill(2), tgkill(2), rt_sigqueueinfo(2)</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
-<tr><td rowspan="3">environ</td><td rowspan="3">Receive environment variables upon program execution</td><td><a href="#string_comparison">name</a></td><td>Environment variable's name</td><td rowspan="3">execve(2)</td></tr>
+<tr><td rowspan="11">environ</td><td rowspan="11">Receive environment variables upon program execution</td><td><a href="#string_comparison">name</a></td><td>Environment variable's name</td><td rowspan="11">execve(2)</td></tr>
 <tr><td><a href="#string_comparison">value</a></td><td>Environment variable's value</td></tr>
+<tr><td><a href="#string_comparison">path</a></td><td>Requested program's pathname</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.$attribute</a></td><td>Attributes of an object referenced by variable "path"</td></tr>
+<tr><td><a href="#file_attributes_comparison">path.parent.$attribute</a></td><td>Parent directory's attributes</tr>
+<tr><td><a href="#string_comparison">exec</a></td><td>Requested program's pathname, but maybe a symbolic link</td></tr>
+<tr><td><a href="#integer_comparison">argc</a></td><td>Number of command line arguments passed to this request</td></tr>
+<tr><td><a href="#integer_comparison">envc</a></td><td>Number of environment variables arguments</td></tr>
+<tr><td><a href="#argv_comparison">argv[$index]</a></td><td>$index'th (0 &lt;= $index &lt; argc) value of command line arguments</td></tr>
+<tr><td><a href="#envp_comparison">envp["$name"]</a></td><td>Value of environment variable named $name</td></tr>
 <tr><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td></tr>
 
 <tr><td rowspan="1">modify_policy</td><td rowspan="1">Modify policy configuration</td><td><a href="#task_attributes_comparison">task.$attribute</a></td><td>Current thread's attributes</td><td rowspan="1"></td></tr>
@@ -1492,13 +1510,13 @@ $acl_priority acl $operation $conditions_to_filter<br>
 100 acl mount<br>
 &nbsp;&nbsp;&nbsp;&nbsp;audit allowed=0 unmatched=0 denied=1024<br>
 &nbsp;&nbsp;&nbsp;&nbsp;1 deny task.exe!="/bin/mount"<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 allow source="proc" target="/proc/" fstype="proc" flags=0x0<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 allow source="sysfs" target="/sys/" fstype="sysfs" flags=0x0<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 allow source="devpts" target="/dev/pts/" fstype="devpts" flags=0x0<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 allow source="tmpfs" target="/dev/shm/" fstype="tmpfs" flags=0x0<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 allow source="/dev/sda1" target="/" fstype="--remount" flags=0x1<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 allow source="/dev/sda1" target="/" fstype="--remount" flags=0x400<br>
-&nbsp;&nbsp;&nbsp;&nbsp;10 allow source="securityfs" target="sysfs:/kernel/security/" fstype="securityfs" flags=0x0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow target="/proc/" fstype="proc" flags=0x0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow target="/sys/" fstype="sysfs" flags=0x0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow target="/dev/pts/" fstype="devpts" flags=0x0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow target="/dev/shm/" fstype="tmpfs" flags=0x0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow target="/" fstype="--remount" flags=0x1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow target="/" fstype="--remount" flags=0x400<br>
+&nbsp;&nbsp;&nbsp;&nbsp;10 allow target="sysfs:/kernel/security/" fstype="securityfs" flags=0x0<br>
 &nbsp;&nbsp;&nbsp;&nbsp;10 deny
 </td></tr>
 </table>
