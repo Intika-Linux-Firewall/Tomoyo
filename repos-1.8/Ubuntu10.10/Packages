@@ -8,10 +8,10 @@ Source: linux-meta
 Version: 2.6.35.32.42
 Depends: linux-image-2.6.35-32-generic-pae-ccs, linux-firmware
 Filename: ./linux-image-generic-pae-ccs1.8.3p5_2.6.35.32.42_i386.deb
-Size: 5772
-MD5sum: 6454264d652420ef3f5e90563e071542
-SHA1: 6be8c0a5103493997186505b84fc17ed5ddc1ece
-SHA256: d624ce5c8452d9f9ada05d93930c87410bd14df087d8d7ced2cd02b8a72d0b8f
+Size: 5778
+MD5sum: 31b39821e8c326edcaed176ddcff3aad
+SHA1: 1df0f8220ec85e369d41b8b408e62454dfd7f2bd
+SHA256: e3ff57e962d9b65b175081088b3d359db8cf27fcdf37e04c0107dc50888bbd84
 Description: Generic Linux kernel image
  This package will always depend on the latest generic kernel image
  available.
@@ -35,43 +35,25 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.81.)
 
-Package: linux-headers-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.35.32.42
-Depends: linux-headers-2.6.35-32-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.3p5_2.6.35.32.42_i386.deb
-Size: 5760
-MD5sum: 88f59d85501bbaa28fd54c17d53f401d
-SHA1: 7a2d3d645ff63ad72ec604e8518766999c08b3ae
-SHA256: 1906f89e5a3e72079413f3457575dcdb08519e6dab5a8fcfbb109d53833366f7
-Description: Generic Linux kernel headers
- This package will always depend on the latest generic kernel headers
- available.
-
 Package: linux-image-2.6.35-32-generic-pae-ccs
 Priority: optional
 Section: admin
-Installed-Size: 105156
+Installed-Size: 105168
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 2.6.35-32.66
+Version: 2.6.35-32.67
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
 Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.35 | linux-source-2.6.35, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.35-32-generic-pae-ccs1.8.3p5_2.6.35-32.66_i386.deb
-Size: 38293948
-MD5sum: 4ae5739b58f3012416baa57f69e53442
-SHA1: 1da99ee0564de15e5526f6b0acbb8e2958a8d6b2
-SHA256: 7dbf90505db9f2367bb8c6411aa32bcb0a6126546911db6fcfc6d045f56946f2
+Filename: ./linux-image-2.6.35-32-generic-pae-ccs1.8.3p5_2.6.35-32.67_i386.deb
+Size: 38298106
+MD5sum: 90ad7db2c098043557a8a6c730b86f2b
+SHA1: 42a245dff306a6b4df5663ea263555ba9506193c
+SHA256: 7666caed9599d57a0804306258ec62f4e59043aa3e7d0ee73fca2f4329c58873
 Description: Linux kernel image for version 2.6.35 on x86
  This package contains the Linux kernel image for version 2.6.35 on
  x86.
@@ -88,6 +70,46 @@ Description: Linux kernel image for version 2.6.35 on x86
  the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
+Package: linux-headers-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.35.32.42
+Depends: linux-headers-2.6.35-32-generic-pae-ccs
+Filename: ./linux-headers-generic-pae-ccs1.8.3p5_2.6.35.32.42_i386.deb
+Size: 5766
+MD5sum: 587e8702da31db0ddf291a886f87b2ab
+SHA1: ccaa8d2d227af3677c92eb9bab98f39ef4004074
+SHA256: b9a47a977cd84449017e40e7827fa8b3dadd01a6ccc2af5ba0908cb13dbc6935
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
+Package: linux-headers-2.6.35-32-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 12380
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.35-32.67
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.35-32, libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
+Filename: ./linux-headers-2.6.35-32-generic-pae-ccs1.8.3p5_2.6.35-32.67_i386.deb
+Size: 1276838
+MD5sum: c25a1ee36d1b4906bc7896e2196871c5
+SHA1: de025641a3b4d1033bc63bde6cd5015a65f1fac8
+SHA256: 77ca85efc3ef69acce9237b08b7753b124b8b73e96e7042756d3c4611e2188f5
+Description: Linux kernel headers for version 2.6.35 on x86
+ This package provides kernel header files for version 2.6.35 on
+ x86.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.35-32/debian.README.gz for details.
+
 Package: linux-generic-pae-ccs
 Priority: optional
 Section: metapackages
@@ -98,33 +120,11 @@ Source: linux-meta
 Version: 2.6.35.32.42
 Depends: linux-image-generic-pae-ccs (= 2.6.35.32.42)
 Filename: ./linux-generic-pae-ccs1.8.3p5_2.6.35.32.42_i386.deb
-Size: 5766
-MD5sum: a68e63c6d7f12ddc8ff2f1435db6b69e
-SHA1: f9a34b45529ecdb12d549d13693037edd4036442
-SHA256: da5d6df231e63a39395ac34b6b4e4a1625424cdfaf95befc471521db2ae22fd0
+Size: 5770
+MD5sum: 8bb51a3f26bbe06506d25b93083a6f02
+SHA1: 54cbcc0a7654c3acd07db275bfa83b96562c7e84
+SHA256: 10c6aedae09a37e8c69faeeba70ea4855d5304f8c6bd85ae72f53c9e6d5022f6
 Description: Complete Generic Linux kernel
  This package will always depend on the latest complete generic Linux kernel
  available.
-
-Package: linux-headers-2.6.35-32-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 12380
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.35-32.66
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.35-32, libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
-Filename: ./linux-headers-2.6.35-32-generic-pae-ccs1.8.3p5_2.6.35-32.66_i386.deb
-Size: 1286640
-MD5sum: 99ef96a6364b5eb6f1b5e66d43369ca9
-SHA1: a197aa189cb732faeddb6abd49c2ffbf889bd7ad
-SHA256: 012be3f90251d00e275b709c69f57cfd5a6ba15026244d2ff135fdcab235f2e3
-Description: Linux kernel headers for version 2.6.35 on x86
- This package provides kernel header files for version 2.6.35 on
- x86.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.35-32/debian.README.gz for details.
 
