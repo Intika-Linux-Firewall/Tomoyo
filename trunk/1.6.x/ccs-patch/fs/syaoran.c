@@ -3,9 +3,9 @@
  *
  * Implementation of the Tamper-Proof Device Filesystem.
  *
- * Portions Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Portions Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.6.9   2011/04/01
+ * Version: 1.6.9+   2012/04/01
  *
  * This file is applicable to 2.4.30 and later.
  * See README.ccs for ChangeLog.
