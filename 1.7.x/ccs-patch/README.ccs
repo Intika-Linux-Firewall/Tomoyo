@@ -2500,3 +2500,10 @@ Fix 2012/02/29
       Fix these bugs by changing priority to MS_REMOUNT -> MS_BIND ->
       MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE -> MS_MOVE as with do_mount()
       does.
+
+Fix 2012/03/16
+
+    @ Return appropriate value to poll().
+
+      Return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM if ready to read/write,
+      POLLOUT | POLLWRNORM otherwise.

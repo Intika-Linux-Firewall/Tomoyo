@@ -3110,3 +3110,10 @@ Fix 2012/03/08
       Currently -EPERM is returned when ccs_ptrace_permission() returned an
       error code. I changed to return return value from ccs_ptrace_permission()
       so that we can return -ESRCH when target process was not found.
+
+Fix 2012/03/16
+
+    @ Return appropriate value to poll().
+
+      Return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM if ready to read/write,
+      POLLOUT | POLLWRNORM otherwise.

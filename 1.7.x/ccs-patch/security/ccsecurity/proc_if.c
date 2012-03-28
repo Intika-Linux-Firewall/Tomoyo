@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/proc_if.c
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.7.3   2011/04/01
+ * Version: 1.7.3+   2012/04/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -134,7 +134,7 @@ static int ccs_release(struct inode *inode, struct file *file)
  * ccs_poll - poll() for /proc/ccs/ interface.
  *
  * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table". Maybe NULL.
+ * @wait: Pointer to "poll_table". May be NULL.
  *
  * Returns POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM if ready to read/write,
  * POLLOUT | POLLWRNORM otherwise.
