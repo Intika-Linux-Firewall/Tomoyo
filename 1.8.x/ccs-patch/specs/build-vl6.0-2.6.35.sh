@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.35-21vl6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.35-21vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20120301.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20120401.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120301.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20120401.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120401.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 21%{?_dist_release}
-+%define release 21%{?_dist_release}_tomoyo_1.8.3p5
++%define release 21%{?_dist_release}_tomoyo_1.8.3p6
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20120301.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20120401.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.35-vine-linux-6.0.diff
 +
  cp %{SOURCE10} Documentation/
