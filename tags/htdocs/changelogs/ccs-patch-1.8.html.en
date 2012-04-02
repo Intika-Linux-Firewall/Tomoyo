@@ -32,6 +32,62 @@
 <h4>ChangeLog for ccs-patch 1.8.3</h4>
 
 <pre>
+Fix 2012/03/16
+
+    @ Return appropriate value to poll().
+
+      Return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM if ready to read/write,
+      POLLOUT | POLLWRNORM otherwise.
+
+Fix 2012/03/08
+
+    @ Allow returning other errors when ptrace permission cannot be checked.
+
+      Currently -EPERM is returned when ccs_ptrace_permission() returned an
+      error code. I changed to return return value from ccs_ptrace_permission()
+      so that we can return -ESRCH when target process was not found.
+
+Fix 2012/02/29
+
+    @ Fix mount flags checking order.
+
+      Userspace can pass in arbitrary combinations of MS_* flags to mount().
+
+      If both MS_BIND and one of MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE
+      are passed, device name which should be checked for MS_BIND was not
+      checked because MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE had higher
+      priority than MS_BIND.
+
+      If both one of MS_BIND/MS_MOVE and MS_REMOUNT are passed, device name
+      which should not be checked for MS_REMOUNT was checked because MS_BIND/
+      MS_MOVE had higher priority than MS_REMOUNT.
+
+      Fix these bugs by changing priority to MS_REMOUNT -&gt; MS_BIND -&gt;
+      MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE -&gt; MS_MOVE as with do_mount()
+      does. Also, I changed to unconditionally return -EINVAL if more than one
+      of MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE is passed so that TOMOYO
+      will not generate inaccurate audit logs, for commit 7a2e8a8f "VFS: Sanity
+      check mount flags passed to change_mnt_propagation()" clarified that
+      these flags must be exclusively passed.
+
+Fix 2012/02/25
+
+    @ Follow changes in linux-next.
+
+      UMH_WAIT_PROC constant (currently 1) is scheduled for renumbering in 3.4.
+
+      Use UMH_WAIT_PROC constant instead of hardcoded constant in preparation
+      for backporting call_usermodehelper() related changes. If renumbering was
+      backported, you will start experiencing the kernel panic upon execution
+      of external policy loader (i.e. /sbin/ccs-init), for the kernel will no
+      longer wait for completion of external policy loader process.
+
+      Although I changed to use UMH_WAIT_PROC constant, this change could fail
+      to detect renumbering in 2.6.22 and earlier kernels, for UMH_WAIT_PROC
+      constant is currently available to only 2.6.23 and later kernels. If you
+      started to experience the kernel panic, please check whether renumbering
+      was backported or not.
+
 Fix 2012/01/20
 
     @ Follow changes in 3.3-rc1.
