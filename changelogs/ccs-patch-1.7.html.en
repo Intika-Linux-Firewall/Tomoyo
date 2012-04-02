@@ -32,6 +32,27 @@
 <h4>ChangeLog for ccs-patch 1.7.3</h4>
 
 <pre>
+Fix 2012/03/16
+
+    @ Return appropriate value to poll().
+
+      Return POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM if ready to read/write,
+      POLLOUT | POLLWRNORM otherwise.
+
+Fix 2012/02/29
+
+    @ Fix mount flags checking order.
+
+      Userspace can pass in arbitrary combinations of MS_* flags to mount().
+
+      It is legal to pass both MS_BIND and MS_REMOUNT at the same time, but
+      current code was rejecting such request. Also, if multiple MS_* flags are
+      passed, the resulting permission check was inaccurate.
+
+      Fix these bugs by changing priority to MS_REMOUNT -&gt; MS_BIND -&gt;
+      MS_SHARED/MS_PRIVATE/MS_SLAVE/MS_UNBINDABLE -&gt; MS_MOVE as with do_mount()
+      does.
+
 Fix 2011/05/05
 
     @ Fix wrong profile number in audit logs for "allow_env" permission.
