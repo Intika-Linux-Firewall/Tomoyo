@@ -2,19 +2,20 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.2.2.tar.bz2
- $ tar -jxf linux-3.2.2.tar.bz2 --strip 1 linux-3.2.2/security/tomoyo/
+ $ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.4-rc1.tar.bz2
+ $ tar -jxf linux-3.4-rc1.tar.bz2 --strip 1 linux-3.4-rc1/security/tomoyo/
 
 .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.h        |    4 -
+ security/tomoyo/domain.c        |    4 -
  security/tomoyo/gc.c            |   12 +++++
- security/tomoyo/realpath.c      |   83 ++++++++++++++++++++++++++++++----------
+ security/tomoyo/realpath.c      |   86 ++++++++++++++++++++++++++++++----------
  security/tomoyo/securityfs_if.c |    1 
- security/tomoyo/tomoyo.c        |    3 -
- 5 files changed, 80 insertions(+), 23 deletions(-)
+ security/tomoyo/tomoyo.c        |   18 +++++---
+ 6 files changed, 93 insertions(+), 32 deletions(-)
 
 --- linux-2.6.33.20.orig/security/tomoyo/common.h
 +++ linux-2.6.33.20/security/tomoyo/common.h
@@ -24,10 +25,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!pos)							\
 -		pos =  srcu_dereference((head)->next, &tomoyo_ss);	\
 -	for ( ; pos != (head); pos = srcu_dereference(pos->next, &tomoyo_ss))
-+		pos =  rcu_dereference((head)->next);	\
++		pos = rcu_dereference((head)->next);	\
 +	for ( ; pos != (head); pos = rcu_dereference(pos->next))
  
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
+--- linux-2.6.33.20.orig/security/tomoyo/domain.c
++++ linux-2.6.33.20/security/tomoyo/domain.c
+@@ -886,12 +886,12 @@ bool tomoyo_dump_page(struct linux_binpr
+ 		 * But remove_arg_zero() uses kmap_atomic()/kunmap_atomic().
+ 		 * So do I.
+ 		 */
+-		char *kaddr = kmap_atomic(page);
++		char *kaddr = kmap_atomic(page, KM_USER0);
+ 
+ 		dump->page = page;
+ 		memcpy(dump->data + offset, kaddr + offset,
+ 		       PAGE_SIZE - offset);
+-		kunmap_atomic(kaddr);
++		kunmap_atomic(kaddr, KM_USER0);
+ 	}
+ 	/* Same with put_arg_page(page) in fs/exec.c */
+ #ifdef CONFIG_MMU
 --- linux-2.6.33.20.orig/security/tomoyo/gc.c
 +++ linux-2.6.33.20/security/tomoyo/gc.c
 @@ -362,6 +362,18 @@ static inline void tomoyo_del_number_gro
@@ -51,7 +69,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @type:    One of values in "enum tomoyo_policy_id".
 --- linux-2.6.33.20.orig/security/tomoyo/realpath.c
 +++ linux-2.6.33.20/security/tomoyo/realpath.c
-@@ -94,24 +94,55 @@ char *tomoyo_encode(const char *str)
+@@ -5,6 +5,7 @@
+  */
+ 
+ #include "common.h"
++#include "../../fs/internal.h"
+ #include <linux/magic.h>
+ 
+ /**
+@@ -87,24 +88,55 @@ char *tomoyo_encode(const char *str)
   *
   * Returns the buffer on success, an error code otherwise.
   *
@@ -94,6 +120,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			vfsmnt = vfsmnt->mnt_parent;
 +			continue;
  		}
+-	}
 +		parent = dentry->d_parent;
 +		name = dentry->d_name.name;
 +		len = dentry->d_name.len;
@@ -103,7 +130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		memmove(pos, name, len);
 +		*--pos = '/';
 +		dentry = parent;
- 	}
++	}
 +	if (*pos == '/')
 +		pos++;
 +	len = dentry->d_name.len;
@@ -117,7 +144,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -128,17 +159,27 @@ static char *tomoyo_get_absolute_path(st
+@@ -121,17 +153,27 @@ static char *tomoyo_get_absolute_path(st
  static char *tomoyo_get_dentry_path(struct dentry *dentry, char * const buffer,
  				    const int buflen)
  {
@@ -154,7 +181,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return pos;
  }
  
-@@ -294,7 +335,11 @@ char *tomoyo_realpath_from_path(struct p
+@@ -287,7 +329,11 @@ char *tomoyo_realpath_from_path(struct p
  						    buf_len - 1);
  		/* Get absolute name for the rest. */
  		else {
@@ -168,7 +195,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			 * available.
 --- linux-2.6.33.20.orig/security/tomoyo/securityfs_if.c
 +++ linux-2.6.33.20/security/tomoyo/securityfs_if.c
-@@ -211,7 +211,6 @@ static const struct file_operations tomo
+@@ -212,7 +212,6 @@ static const struct file_operations tomo
  	.poll    = tomoyo_poll,
  	.read    = tomoyo_read,
  	.write   = tomoyo_write,
@@ -188,3 +215,43 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path, NULL);
  }
+@@ -186,7 +187,7 @@ static int tomoyo_path_unlink(struct pat
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int tomoyo_path_mkdir(struct path *parent, struct dentry *dentry,
+-			     umode_t mode)
++			     int mode)
+ {
+ 	struct path path = { parent->mnt, dentry };
+ 	return tomoyo_path_number_perm(TOMOYO_TYPE_MKDIR, &path,
+@@ -234,7 +235,7 @@ static int tomoyo_path_symlink(struct pa
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int tomoyo_path_mknod(struct path *parent, struct dentry *dentry,
+-			     umode_t mode, unsigned int dev)
++			     int mode, unsigned int dev)
+ {
+ 	struct path path = { parent->mnt, dentry };
+ 	int type = TOMOYO_TYPE_CREATE;
+@@ -353,14 +354,17 @@ static int tomoyo_file_ioctl(struct file
+ /**
+  * tomoyo_path_chmod - Target for security_path_chmod().
+  *
+- * @path: Pointer to "struct path".
+- * @mode: DAC permission mode.
++ * @dentry: Pointer to "struct dentry".
++ * @mnt:    Pointer to "struct vfsmount".
++ * @mode:   DAC permission mode.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int tomoyo_path_chmod(struct path *path, umode_t mode)
++static int tomoyo_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
++			     mode_t mode)
+ {
+-	return tomoyo_path_number_perm(TOMOYO_TYPE_CHMOD, path,
++	struct path path = { mnt, dentry };
++	return tomoyo_path_number_perm(TOMOYO_TYPE_CHMOD, &path,
+ 				       mode & S_IALLUGO);
+ }
+ 

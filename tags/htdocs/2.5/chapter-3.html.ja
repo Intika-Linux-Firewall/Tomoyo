@@ -99,13 +99,20 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。</p>
 
-<p>カーネル 2.6.33 ～ 3.1 で TOMOYO 2.5 を利用したい場合、カーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
+<p>カーネル 2.6.33 ～ 3.2 で TOMOYO 2.5 を利用したい場合、カーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
 
 <pre class="command">
-$ wget http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.2.2.tar.bz2
-$ tar -jxf linux-3.2.2.tar.bz2 --strip 1 linux-3.2.2/security/tomoyo/
+$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.4-rc1.tar.bz2
+$ tar -jxf linux-3.4-rc1.tar.bz2 --strip 1 linux-3.4-rc1/security/tomoyo/
 $ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
+</pre>
+
+<p>カーネル 3.3 で TOMOYO 2.5 を利用したい場合、以下のコマンドを実行してください：</p>
+
+<pre class="command">
+$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.4-rc1.tar.bz2
+$ tar -jxf linux-3.4-rc1.tar.bz2 --strip 1 linux-3.4-rc1/security/tomoyo/
 </pre>
 
 <h4><a name="3.1.4">3.1.4. カーネルコンパイルオプションの設定</a></h4>
