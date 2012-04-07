@@ -201,10 +201,24 @@ echo &gt; stat.conf
 
 <h3>Step 7: Build the Android kernel.</h3>
 
-<p>Download Linux 3.2 or later (or Linux 2.6.33 to 3.1 with a backport patch from <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> applied) and extract and go to the extracted directory. Hereafter, I call the extracted directory as $ANDROID_HOME/tmp/common/ .</p>
+<p>Download Linux 2.6.33 or later, and extract and go to the extracted directory. Hereafter, I call the extracted directory as $ANDROID_HOME/tmp/common/ .</p>
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/common/
+</pre>
+
+<p>Then, if you use Linux 2.6.33 to 3.3, download Linux 3.4-rc1 and overwrite security/tomoyo/ directory by extracting from it.</p>
+
+<pre class="command">
+wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.4-rc1.tar.bz2
+tar -jxf linux-3.4-rc1.tar.bz2 --strip 1 linux-3.4-rc1/security/tomoyo/
+</pre>
+
+<p>Then, if you use Linux 2.6.33 to 3.2, download a backport patch from <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> and apply it.</p>
+
+<p>Then, create a default kernel configuration.</p>
+
+<pre class="command">
 ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s goldfish_armv7_defconfig
 </pre>
 
