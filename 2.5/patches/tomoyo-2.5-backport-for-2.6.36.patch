@@ -2,17 +2,36 @@
 
 Apply this patch after overwriting security/tomoyo/ directory by doing
 
- $ wget http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.2.2.tar.bz2
- $ tar -jxf linux-3.2.2.tar.bz2 --strip 1 linux-3.2.2/security/tomoyo/
+ $ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.4-rc1.tar.bz2
+ $ tar -jxf linux-3.4-rc1.tar.bz2 --strip 1 linux-3.4-rc1/security/tomoyo/
 
 .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
+ security/tomoyo/domain.c   |    4 +--
  security/tomoyo/gc.c       |   12 +++++++++
  security/tomoyo/realpath.c |   55 ++++++++++++++++++++++++++++++++++++---------
- 2 files changed, 56 insertions(+), 11 deletions(-)
+ security/tomoyo/tomoyo.c   |   15 +++++++-----
+ 4 files changed, 67 insertions(+), 19 deletions(-)
 
+--- linux-2.6.36.4.orig/security/tomoyo/domain.c
++++ linux-2.6.36.4/security/tomoyo/domain.c
+@@ -886,12 +886,12 @@ bool tomoyo_dump_page(struct linux_binpr
+ 		 * But remove_arg_zero() uses kmap_atomic()/kunmap_atomic().
+ 		 * So do I.
+ 		 */
+-		char *kaddr = kmap_atomic(page);
++		char *kaddr = kmap_atomic(page, KM_USER0);
+ 
+ 		dump->page = page;
+ 		memcpy(dump->data + offset, kaddr + offset,
+ 		       PAGE_SIZE - offset);
+-		kunmap_atomic(kaddr);
++		kunmap_atomic(kaddr, KM_USER0);
+ 	}
+ 	/* Same with put_arg_page(page) in fs/exec.c */
+ #ifdef CONFIG_MMU
 --- linux-2.6.36.4.orig/security/tomoyo/gc.c
 +++ linux-2.6.36.4/security/tomoyo/gc.c
 @@ -362,6 +362,18 @@ static inline void tomoyo_del_number_gro
@@ -36,7 +55,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @type:    One of values in "enum tomoyo_policy_id".
 --- linux-2.6.36.4.orig/security/tomoyo/realpath.c
 +++ linux-2.6.36.4/security/tomoyo/realpath.c
-@@ -101,8 +101,31 @@ static char *tomoyo_get_absolute_path(st
+@@ -94,8 +94,31 @@ static char *tomoyo_get_absolute_path(st
  {
  	char *pos = ERR_PTR(-ENOMEM);
  	if (buflen >= 256) {
@@ -70,7 +89,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!IS_ERR(pos) && *pos == '/' && pos[1]) {
  			struct inode *inode = path->dentry->d_inode;
  			if (inode && S_ISDIR(inode->i_mode)) {
-@@ -128,17 +151,27 @@ static char *tomoyo_get_absolute_path(st
+@@ -121,17 +144,27 @@ static char *tomoyo_get_absolute_path(st
  static char *tomoyo_get_dentry_path(struct dentry *dentry, char * const buffer,
  				    const int buflen)
  {
@@ -105,5 +124,47 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
 +	spin_unlock(&dcache_lock);
  	return pos;
+ }
+ 
+--- linux-2.6.36.4.orig/security/tomoyo/tomoyo.c
++++ linux-2.6.36.4/security/tomoyo/tomoyo.c
+@@ -186,7 +186,7 @@ static int tomoyo_path_unlink(struct pat
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int tomoyo_path_mkdir(struct path *parent, struct dentry *dentry,
+-			     umode_t mode)
++			     int mode)
+ {
+ 	struct path path = { parent->mnt, dentry };
+ 	return tomoyo_path_number_perm(TOMOYO_TYPE_MKDIR, &path,
+@@ -234,7 +234,7 @@ static int tomoyo_path_symlink(struct pa
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int tomoyo_path_mknod(struct path *parent, struct dentry *dentry,
+-			     umode_t mode, unsigned int dev)
++			     int mode, unsigned int dev)
+ {
+ 	struct path path = { parent->mnt, dentry };
+ 	int type = TOMOYO_TYPE_CREATE;
+@@ -353,14 +353,17 @@ static int tomoyo_file_ioctl(struct file
+ /**
+  * tomoyo_path_chmod - Target for security_path_chmod().
+  *
+- * @path: Pointer to "struct path".
+- * @mode: DAC permission mode.
++ * @dentry: Pointer to "struct dentry".
++ * @mnt:    Pointer to "struct vfsmount".
++ * @mode:   DAC permission mode.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int tomoyo_path_chmod(struct path *path, umode_t mode)
++static int tomoyo_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
++			     mode_t mode)
+ {
+-	return tomoyo_path_number_perm(TOMOYO_TYPE_CHMOD, path,
++	struct path path = { mnt, dentry };
++	return tomoyo_path_number_perm(TOMOYO_TYPE_CHMOD, &path,
+ 				       mode & S_IALLUGO);
  }
  
