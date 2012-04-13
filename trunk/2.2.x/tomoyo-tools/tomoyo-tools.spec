@@ -2,15 +2,15 @@ Summary: Userspace tools for TOMOYO Linux 2.2.x
 
 Name: tomoyo-tools
 Version: 2.2.0
-Release: 3
+Release: 4
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: tomoyo-tools < 2.2.0-3
+Conflicts: tomoyo-tools < 2.2.0-4
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20110211.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20120414.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.2.x.
@@ -41,6 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
+* Sat Apr 14 2012 2.2.0-4
+- Let tomoyo-editpolicy parse statistics lines correctly.
+
 * Fri Feb 11 2011 2.2.0-3
 - Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.
 
