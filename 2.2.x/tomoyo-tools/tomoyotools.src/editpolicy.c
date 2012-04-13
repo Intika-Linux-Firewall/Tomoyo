@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.2.0   2009/07/27
+ * Version: 2.2.0+   2012/04/14
  *
  */
 #include "tomoyotools.h"

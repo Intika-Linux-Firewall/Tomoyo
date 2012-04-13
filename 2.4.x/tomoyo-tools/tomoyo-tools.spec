@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 2.4.x
 
 Name: tomoyo-tools
 Version: 2.4.0
-Release: 4
+Release: 5
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.4.0-4
+Conflicts: tomoyo-tools < 2.4.0-5
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/52848/tomoyo-tools-2.4.0-20111025.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/52848/tomoyo-tools-2.4.0-20120414.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.4.
@@ -52,6 +52,9 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Sat Apr 14 2012 2.4.0-5
+- Let tomoyo-editpolicy print number of selected entries if any.
+
 * Tue Oct 25 2011 2.4.0-4
 - Add "socket:[family=\\$:type=\\$:protocol=\\$]" to ANY_PATHNAME group.
 

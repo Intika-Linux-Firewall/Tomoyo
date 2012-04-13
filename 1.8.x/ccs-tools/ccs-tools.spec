@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.3
-Release: 3
+Release: 4
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.3-3
+Conflicts: ccs-tools < 1.8.3-4
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20120414.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -25,7 +25,7 @@ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
 
 %prep
 
-%setup -q -n ccstools
+%setup -q -n ccs-tools
 
 %build
 
@@ -52,6 +52,10 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Sat Apr 14 2012 1.8.3-4
+- Fix IP address parsing in ccs_parse_ip().
+- Rename root of source tree from ccstools to ccs-tools.
+
 * Thu Mar 01 2012 1.8.3-3
 - Let ccs-editpolicy print number of selected entries if any.
 
