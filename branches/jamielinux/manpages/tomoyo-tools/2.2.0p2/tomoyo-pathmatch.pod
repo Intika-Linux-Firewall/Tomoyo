@@ -1,0 +1,45 @@
+=head1 NAME
+
+tomoyo-pathmatch - utility to show pathnames that matches given patterns
+
+=head1 SYNOPSIS
+
+B<tomoyo-pathmatch> I<pattern>
+
+=head1 DESCRIPTION
+
+This program scans the filesystem for given pathname patterns. You can use this program to determine how deep patterns are needed for defining C<file_pattern> and/or C<path_group> directives.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item B<Find pathnames matching C</etc/\*> or C</tmp/\*>>
+
+  tomoyo-pathmatch '/etc/\*' '/tmp/\*'
+
+=back
+
+=head1 BUGS
+
+If you find any bugs, send an email to E<lt>tomoyo-users-en@lists.sourceforge.jpE<gt>.
+
+=head1 AUTHORS
+
+=over 4
+
+=item Tetsuo Handa E<lt>penguin-kernel@I-love.SAKURA.ne.jpE<gt>
+
+Main author.
+
+=item Jamie Nguyen E<lt>jamie@tomoyolinux.co.ukE<gt>
+
+Documentation and website.
+
+=back
+
+=head1 SEE ALSO
+
+B<tomoyo-patternize>(8)
+
+See E<lt>http://tomoyo.sourceforge.jpE<gt> for more information.
