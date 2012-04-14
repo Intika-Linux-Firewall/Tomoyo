@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.2.0+   2010/02/25
+ * Version: 2.2.0+   2012/04/14
  *
  */
 #define _FILE_OFFSET_BITS 64
@@ -395,55 +395,6 @@ static void scan_dir_for_read2(_Bool flag, int const_len)
 				strstr(name, "icons");
 			scan_dir_for_read2(f, f != flag ?
 					   strlen(path) : const_len);
-		}
-		free((void *) namelist[i]);
-	}
-	free((void *) namelist);
-}
-
-static void scan_init_scripts(void)
-{
-	struct dirent **namelist;
-	int n = scandir(path, &namelist, scandir_symlink_and_dir_filter, 0);
-	int len;
-	int i;
-	if (n < 0)
-		return;
-	len = strlen(path);
-	for (i = 0; i < n; i++) {
-		const char *name = namelist[i]->d_name;
-		unsigned char type = namelist[i]->d_type;
-		snprintf(path + len, sizeof(path) - len - 1, "/%s", name);
-		if (type == DT_UNKNOWN)
-			type = revalidate_path(path);
-		if (type == DT_DIR)
-			scan_init_scripts();
-		else if (type == DT_LNK
-			 && (name[0] == 'S' || name[0] == 'K')
-			 && (name[1] >= '0' && name[1] <= '9')
-			 && (name[2] >= '0' && name[2] <= '9')
-			 && !access(path, X_OK)) {
-			char *entity = get_realpath(path);
-			path[len] = '\0';
-			if (entity) {
-				char *cp = strrchr(path, '/');
-				fprintf(filp, "aggregator ");
-				if (cp && !strncmp(cp, "/rc", 3) &&
-				    ((cp[3] >= '0' && cp[3] <= '6') ||
-				     cp[3] == 'S') && !strcmp(cp + 4, ".d")) {
-					*cp = '\0';
-					printf_encoded(path, 0);
-					fprintf(filp, "/rc\\?.d");
-					*cp = '/';
-				} else
-					printf_encoded(path, 0);
-				fprintf(filp, "/\\?\\+\\+");
-				printf_encoded(name + 3, 0);
-				fputc(' ', filp);
-				printf_encoded(entity, 0);
-				fputc('\n', filp);
-				free(entity);
-			}
 		}
 		free((void *) namelist[i]);
 	}

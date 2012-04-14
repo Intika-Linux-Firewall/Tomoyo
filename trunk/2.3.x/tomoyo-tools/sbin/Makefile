@@ -1,12 +1,12 @@
+include ../Include.make
+
 BUILD_FILES = tomoyo-init
 
 all: $(BUILD_FILES)
 
 install: all
-	mkdir -p $(INSTALLDIR)/sbin
-	chmod 700 $(BUILD_FILES)
-	chown -R root:root .
-	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/sbin/
+	mkdir -p -m 0755 $(INSTALLDIR)$(SBINDIR)
+	$(INSTALL) -m 0700 $(BUILD_FILES) $(INSTALLDIR)$(SBINDIR)
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $<

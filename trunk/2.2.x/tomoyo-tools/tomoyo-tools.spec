@@ -8,6 +8,13 @@ Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+##
+## This spec file is intended to be distribution independent.
+## I don't enable "BuildRequires:" line because rpmbuild will fail on
+## environments where packages are managed by (e.g.) apt.
+##
+# BuildRequires: ncurses-devel
+Requires: ncurses
 Conflicts: tomoyo-tools < 2.2.0-4
 
 Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20120414.tar.gz
@@ -22,11 +29,12 @@ Please see http://tomoyo.sourceforge.jp/2.2/ for documentation.
 
 %build
 
-make -s all
+make USRLIBDIR=%_libdir CFLAGS="-Wall $RPM_OPT_FLAGS"
 
 %install
 
-make -s install INSTALLDIR=%{buildroot}
+rm -rf $RPM_BUILD_ROOT
+make INSTALLDIR=$RPM_BUILD_ROOT USRLIBDIR=%_libdir install
 
 %clean
 
@@ -34,15 +42,17 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-/sbin/tomoyo-init
-/usr/lib/tomoyo/
+/sbin/
+%_libdir/tomoyo/
 /usr/sbin/
-/usr/share/man/
-%config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
+/usr/share/man/man8/
+%config(noreplace) %_libdir/tomoyo/tomoyotools.conf
 
 %changelog
 * Sat Apr 14 2012 2.2.0-4
 - Let tomoyo-editpolicy parse statistics lines correctly.
+- Update manpages.
+- Update Makefile to include variables.
 
 * Fri Feb 11 2011 2.2.0-3
 - Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.

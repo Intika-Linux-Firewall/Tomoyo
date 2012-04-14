@@ -1,12 +1,13 @@
+include ../Include.make
+
 BUILD_FILES = tomoyo-notifyd tomoyo-editpolicy-agent init_policy
 
 all: $(BUILD_FILES)
 
 install: all
-	mkdir -p $(INSTALLDIR)/usr/lib/tomoyo
-	chmod 755 $(INSTALLDIR)/usr/lib/tomoyo
-	chown -R root:root .
-	cp -af --remove-destination $(BUILD_FILES) tomoyotools.conf ../README.tomoyo ../COPYING.tomoyo $(INSTALLDIR)/usr/lib/tomoyo/
+	mkdir -p -m 0755 $(INSTALLDIR)/$(USRLIBDIR)/tomoyo
+	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/
+	$(INSTALL) -m 0644 tomoyotools.conf ../README.tomoyo ../COPYING.tomoyo $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $<

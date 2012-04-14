@@ -1,3 +1,5 @@
+include ../Include.make
+
 BUILD_FILES = tomoyo-domainmatch tomoyo-queryd tomoyo-pstree \
 	tomoyo-checkpolicy tomoyo-editpolicy tomoyo-findtemp tomoyo-ld-watch \
 	tomoyo-loadpolicy tomoyo-patternize tomoyo-savepolicy tomoyo-setlevel \
@@ -27,13 +29,14 @@ tomoyo-queryd: tomoyotools.h tomoyo-queryd.c readline.h /usr/include/curses.h li
 	$(CC) $(CFLAGS) -o tomoyo-queryd tomoyo-queryd.c -lncurses -ltomoyotools -L.
 
 install: all
-	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
-	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/usr/sbin/
-	cp -ad --remove-destination libtomoyotools.so.1.0.1 $(INSTALLDIR)/usr/lib/
-	ln -sf libtomoyotools.so.1.0.1 $(INSTALLDIR)/usr/lib/libtomoyotools.so.1
+	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
+	$(INSTALL) -m 0755 libtomoyotools.so.1.0.1 $(INSTALLDIR)$(USRLIBDIR)
+	ln -sf libtomoyotools.so.1.0.1 $(INSTALLDIR)$(USRLIBDIR)/libtomoyotools.so.1
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif
+	mkdir -p -m 0755 $(INSTALLDIR)$(USRSBINDIR)
+	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)$(USRSBINDIR)
 
 clean:
 	rm -f -- $(BUILD_FILES) libtomoyotools.so*

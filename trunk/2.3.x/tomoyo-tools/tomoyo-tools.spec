@@ -2,15 +2,22 @@ Summary: Userspace tools for TOMOYO Linux 2.3.x
 
 Name: tomoyo-tools
 Version: 2.3.0
-Release: 4
+Release: 5
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: tomoyo-tools < 2.3.0-4
+##
+## This spec file is intended to be distribution independent.
+## I don't enable "BuildRequires:" line because rpmbuild will fail on
+## environments where packages are managed by (e.g.) apt.
+##
+# BuildRequires: ncurses-devel
+Requires: ncurses
+Conflicts: tomoyo-tools < 2.3.0-5
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/48663/tomoyo-tools-2.3.0-20110929.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/48663/tomoyo-tools-2.3.0-20120414.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.3.x.
@@ -22,25 +29,33 @@ Please see http://tomoyo.sourceforge.jp/2.3/ for documentation.
 
 %build
 
-make -s all
+make USRLIBDIR=%_libdir CFLAGS="-Wall $RPM_OPT_FLAGS"
 
 %install
 
-make -s install INSTALLDIR=%{buildroot}
+rm -rf $RPM_BUILD_ROOT
+make INSTALLDIR=$RPM_BUILD_ROOT USRLIBDIR=%_libdir install
 
 %clean
 
 rm -rf $RPM_BUILD_ROOT
 
+%post
+ldconfig || true
+
 %files
 %defattr(-,root,root)
-/sbin/tomoyo-init
-/usr/lib/
+/sbin/
+%_libdir/tomoyo/
 /usr/sbin/
-/usr/share/man/
-%config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
+/usr/share/man/man8/
+%config(noreplace) %_libdir/tomoyo/tomoyotools.conf
 
 %changelog
+* Sat Apr 14 2012 2.3.0-5
+- Update manpages.
+- Update Makefile to include variables.
+
 * Thu Sep 29 2011 2.3.0-4
 - Fix build failure with --as-needed option.
 - Bring "#define _GNU_SOURCE" to the top in order to make sure that CLONE_NEWNS is defined.
