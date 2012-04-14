@@ -54,6 +54,7 @@ ldconfig || true
 %changelog
 * Sat Apr 14 2012 2.4.0-5
 - Let tomoyo-editpolicy print number of selected entries if any.
+- Update manpages.
 
 * Tue Oct 25 2011 2.4.0-4
 - Add "socket:[family=\\$:type=\\$:protocol=\\$]" to ANY_PATHNAME group.

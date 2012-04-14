@@ -1,37 +1,21 @@
-INSTALLDIR = /
+include Include.make
 
-MAIN_FILES = tomoyotools tomoyo_init_policy tomoyo-init
+BUILD_FILES := tomoyotools tomoyo_init_policy tomoyo-init tomoyo-editpolicy-agent
 
-MISC_FILES = tomoyo-editpolicy-agent
+ALIAS_LIST := pstree checkpolicy editpolicy findtemp ld-watch loadpolicy pathmatch patternize savepolicy setlevel setprofile sortpolicy domainmatch
 
-ALIAS_LIST = pstree checkpolicy editpolicy findtemp ld-watch loadpolicy pathmatch patternize savepolicy setlevel setprofile sortpolicy domainmatch
-
-all: main misc
-
-main: $(MAIN_FILES)
-
-misc: $(MISC_FILES)
+all: $(BUILD_FILES)
 
 install: all
-	mkdir -p $(INSTALLDIR)/usr/lib/tomoyo $(INSTALLDIR)/sbin $(INSTALLDIR)/usr/sbin
-	chmod 755 $(INSTALLDIR)/usr/lib/tomoyo
-	cp -af --remove-destination tomoyotools $(INSTALLDIR)/usr/sbin/
-	cp -af --remove-destination tomoyotools.conf $(INSTALLDIR)/usr/lib/tomoyo/
-	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/sbin/tomoyotools $(INSTALLDIR)/usr/sbin/tomoyo-$$i; done
-	rm -f $(INSTALLDIR)/usr/sbin/tomoyotools
-	cp -af --remove-destination tomoyo_init_policy $(INSTALLDIR)/usr/lib/tomoyo/
-	ln -sf tomoyo_init_policy $(INSTALLDIR)/usr/lib/tomoyo/tomoyo_init_policy.sh
-	cp -af --remove-destination $(MISC_FILES) $(INSTALLDIR)/usr/lib/tomoyo/
-	cp -af --remove-destination README.tomoyo COPYING.tomoyo $(INSTALLDIR)/usr/lib/tomoyo/
-	chown -R root:root tomoyo-init $(INSTALLDIR)/usr/lib/tomoyo/
-	chmod 700 tomoyo-init
-	cp -af --remove-destination tomoyo-init $(INSTALLDIR)/sbin/
-	mkdir -p $(INSTALLDIR)/usr/share/man/man8/
-	cp -af --remove-destination man/man8/* $(INSTALLDIR)/usr/share/man/man8/
-
-CC=gcc
-
-CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/null > /dev/null 2>&1 && echo "-Wno-pointer-sign"}
+	mkdir -p -m 0755 $(INSTALLDIR)/$(USRLIBDIR)/tomoyo $(INSTALLDIR)/$(SBINDIR) $(INSTALLDIR)/$(USRSBINDIR) $(INSTALLDIR)/$(MAN8)/
+	chmod 755 $(INSTALLDIR)/$(USRLIBDIR)/tomoyo
+	$(INSTALL) -m 0755 $(BUILD_FILES) $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/
+	mv $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/tomoyo-init $(INSTALLDIR)/$(SBINDIR)/
+	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/tomoyotools $(INSTALLDIR)/$(USRSBINDIR)/tomoyo-$$i; done
+	rm -f $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/tomoyotools
+	$(INSTALL) -m 0644 tomoyotools.conf $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/
+	$(INSTALL) -m 0644 README.tomoyo COPYING.tomoyo $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/
+	$(INSTALL) -m 0644 man/man8/* $(INSTALLDIR)/$(MAN8)/
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
@@ -45,6 +29,6 @@ tomoyotools: tomoyotools.src/*.c tomoyotools.src/*.h /usr/include/curses.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	rm -f $(MAIN_FILES) $(MISC_FILES)
+	rm -f $(BUILD_FILES)
 
 .PHONY: clean install
