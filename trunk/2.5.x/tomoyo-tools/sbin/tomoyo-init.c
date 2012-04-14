@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2012/04/14
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -333,15 +333,12 @@ static void show_memory_usage(void)
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		unsigned int size;
-		if (sscanf(buffer, "Shared: %u", &size) == 1)
-			printf("%u KB shared. ", (size + 1023) / 1024);
-		else if (sscanf(buffer, "Private: %u", &size) == 1)
-			printf("%u KB private. ", (size + 1023) / 1024);
-		else if (sscanf(buffer, "Policy: %u", &size) == 1)
-			printf("%u KB used by policy.", (size + 1023) / 1024);
+		if (sscanf(buffer, "Policy: %u", &size) != 1)
+			continue;
+		printf("%u KB used by policy.\n", (size + 1023) / 1024);
+		break;
 	}
 	fclose(fp);
-	putchar('\n');
 }
 
 int main(int argc, char *argv[])

@@ -50,6 +50,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Sat Apr 14 2012 2.2.0-4
+- Let tomoyo-init parse statistics lines correctly.
 - Let tomoyo-editpolicy parse statistics lines correctly.
 - Update manpages.
 - Update Makefile to include variables.
