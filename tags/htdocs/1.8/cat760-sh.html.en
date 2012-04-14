@@ -160,16 +160,16 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <pre class="command">
 # cd
-# wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'
-# wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'
-# gpg ccs-tools-1.8.3-20120301.tar.gz.asc
-# tar -zxf ccs-tools-1.8.3-20120301.tar.gz
+# wget -O ccs-tools-1.8.3-20120414.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120414.tar.gz'
+# wget -O ccs-tools-1.8.3-20120414.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120414.tar.gz.asc'
+# gpg ccs-tools-1.8.3-20120414.tar.gz.asc
+# tar -zxf ccs-tools-1.8.3-20120414.tar.gz
 </pre>
 
 <p>Do cross compilation for CAT760. Cross compiled programs are installed under /home/ebihara/tmp/sbin/ directory and /home/ebihara/tmp/usr/ directory.</p>
 
 <pre class="command">
-# make -C ccstools/ CC=sh4-linux-gcc INSTALLDIR=/home/ebihara/tmp/ install clean
+# make -C ccs-tools/ CC=sh4-linux-gcc INSTALLDIR=/home/ebihara/tmp/ install clean
 </pre>
 
 <p>Delete man pages as we don't need them.</p>
@@ -181,7 +181,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>To operate from host environment, compile tools for host environment as well. Compiled programs are installed under /sbin/ directory and /usr/ directory.</p>
 
 <pre class="command">
-# make -sC ccstools/ install clean
+# make -sC ccs-tools/ install clean
 </pre>
 
 <h3><a name="basic_5">Step 5: Formatting compact flash memory</a></h3>

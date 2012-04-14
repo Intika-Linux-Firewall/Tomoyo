@@ -355,11 +355,11 @@ $ make -s
 
 <pre class="command">
 $ cd ~/rpmbuild/BUILD/
-$ wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'
-$ wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'
-$ gpg ccs-tools-1.8.3-20120301.tar.gz.asc
-$ tar -zxf ccs-tools-1.8.3-20120301.tar.gz
-$ make -sC ccstools/
+$ wget -O ccs-tools-1.8.3-20120414.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120414.tar.gz'
+$ wget -O ccs-tools-1.8.3-20120414.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120414.tar.gz.asc'
+$ gpg ccs-tools-1.8.3-20120414.tar.gz.asc
+$ tar -zxf ccs-tools-1.8.3-20120414.tar.gz
+$ make -sC ccs-tools/
 </pre>
 
 <p>Create a directory for temporarily holding kernel and tools and copy them.</p>
@@ -367,7 +367,7 @@ $ make -sC ccstools/
 <pre class="command">
 $ su
 # mkdir -p /tmp/meego/boot/extlinux/
-# make -sC ccstools/ INSTALLDIR=/tmp/meego/ install
+# make -sC ccs-tools/ INSTALLDIR=/tmp/meego/ install
 # cd kernel-2.6.35.3/linux-2.6.35/
 # make -s INSTALL_MOD_PATH=/tmp/meego/ modules_install vdso_install
 # make -s INSTALL_PATH=/tmp/meego/boot/extlinux/ install
