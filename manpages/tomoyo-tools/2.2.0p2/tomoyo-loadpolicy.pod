@@ -32,7 +32,7 @@ Load exception policy and domain policy. [default]
 
 Load profile from F</etc/tomoyo/profile.base> + F</etc/tomoyo/profile.conf>.
 
-=item B<s>
+=item B<m>
 
 Load manager from F</etc/tomoyo/manager.base> + F</etc/tomoyo/manager.conf>.
 
@@ -76,11 +76,11 @@ Write to policy on a remote system via an agent waiting at port I<remote_port> o
 
 =item B<Replace currently loaded domain policy with C</etc/tomoyo/domain_policy.base> + C</etc/tomoyo/domain_policy.conf>>
 
-  tomoyo-loadpolicy -df
+  tomoyo-loadpolicy df
 
 =item B<Append to policy remotely from the specified directory>
 
-  tomoyo-loadpolicy -d /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000
+  tomoyo-loadpolicy d /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000
 
 =back
 
