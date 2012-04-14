@@ -292,7 +292,7 @@ static void show_memory_usage(void)
 	while (memset(buffer, 0, sizeof(buffer)) &&
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		unsigned int size;
-		if (sscanf(buffer, "Policy: %u", &size) != 1)
+		if (sscanf(buffer, "Memory used by policy: %u", &size) != 1)
 			continue;
 		printf("%u KB used by policy.\n", (size + 1023) / 1024);
 		break;

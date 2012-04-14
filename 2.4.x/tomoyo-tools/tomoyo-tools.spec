@@ -53,6 +53,7 @@ ldconfig || true
 
 %changelog
 * Sat Apr 14 2012 2.4.0-5
+- Let tomoyo-init parse statistics lines correctly.
 - Let tomoyo-editpolicy print number of selected entries if any.
 - Update manpages.
 

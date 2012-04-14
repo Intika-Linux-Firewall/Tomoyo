@@ -53,6 +53,7 @@ ldconfig || true
 
 %changelog
 * Sat Apr 14 2012 1.8.3-4
+- Let ccs-init parse statistics lines correctly.
 - Fix IP address parsing in ccs_parse_ip().
 - Rename root of source tree from ccstools to ccs-tools.
 

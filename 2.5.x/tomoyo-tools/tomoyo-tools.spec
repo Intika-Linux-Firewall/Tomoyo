@@ -53,6 +53,7 @@ ldconfig || true
 
 %changelog
 * Sat Apr 14 2012 2.5.0-3
+- Let tomoyo-init parse statistics lines correctly.
 - Let tomoyo-editpolicy print number of selected entries if any.
 - Fix IP address parsing in ccs_parse_ip().
 
