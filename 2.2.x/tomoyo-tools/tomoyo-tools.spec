@@ -53,6 +53,7 @@ rm -rf $RPM_BUILD_ROOT
 - Let tomoyo-editpolicy parse statistics lines correctly.
 - Update manpages.
 - Update Makefile to include variables.
+- Remove /usr/lib/tomoyo/tomoyo_init_policy.sh .
 
 * Fri Feb 11 2011 2.2.0-3
 - Mount sysfs when /sys/kernel/security/ does not exist rather than when /sys/kernel/ does not exist, for some distributions have /sys/kernel/debug/ on root device.

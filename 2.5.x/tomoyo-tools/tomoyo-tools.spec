@@ -20,7 +20,7 @@ Conflicts: tomoyo-tools < 2.5.0-3
 Source0: http://osdn.dl.sourceforge.jp/tomoyo/53357/tomoyo-tools-2.5.0-20120414.tar.gz
 
 %description
-This package contains userspace tools for administrating TOMOYO Linux 2.5.
+This package contains userspace tools for administrating TOMOYO Linux 2.5.x.
 Please see http://tomoyo.sourceforge.jp/2.5/ for documentation.
 
 %prep

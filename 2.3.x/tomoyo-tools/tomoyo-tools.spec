@@ -47,6 +47,7 @@ ldconfig || true
 %defattr(-,root,root)
 /sbin/
 %_libdir/tomoyo/
+%_libdir/libtomoyo*
 /usr/sbin/
 /usr/share/man/man8/
 %config(noreplace) %_libdir/tomoyo/tomoyotools.conf
