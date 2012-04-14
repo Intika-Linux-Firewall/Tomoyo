@@ -92,12 +92,12 @@ make
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-wget -O ccs-tools-1.8.3-20120301.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz'
-wget -O ccs-tools-1.8.3-20120301.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120301.tar.gz.asc'
+wget -O ccs-tools-1.8.3-20120414.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120414.tar.gz'
+wget -O ccs-tools-1.8.3-20120414.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20120414.tar.gz.asc'
 wget http://I-love.SAKURA.ne.jp/kumaneko-key
 gpg --import kumaneko-key
-gpg ccs-tools-1.8.3-20120301.tar.gz.asc
-tar -zxf ccs-tools-1.8.3-20120301.tar.gz
+gpg ccs-tools-1.8.3-20120414.tar.gz.asc
+tar -zxf ccs-tools-1.8.3-20120414.tar.gz
 cd ccstools
 make
 sudo make install
@@ -120,7 +120,7 @@ cd $ANDROID_HOME/tmp/
 wget -O agcc http://plausible.org/andy/agcc
 sed -i -e 's@4\.2\.1@4.4.3@g' -e 's@interwork/@@g' -- agcc
 chmod 755 agcc
-./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/usr_lib_ccs/ccs-editpolicy-agent.c
+./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccs-tools/usr_lib_ccs/ccs-editpolicy-agent.c
 chmod 700 ccs-editpolicy-agent
 </pre>
 
@@ -418,8 +418,8 @@ sed -e 's:/sbin/init:/init:' -- config.ccs &gt;&gt; .config
 
 <pre class="command">
 cd $ANDROID_HOME/tmp/
-sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccstools/sbin/ccs-init.c &gt; $ANDROID_HOME/tmp/ccstools/sbin/ccs-init2.c
-./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/sbin/ccs-init2.c
+sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccs-tools/sbin/ccs-init.c &gt; $ANDROID_HOME/tmp/ccs-tools/sbin/ccs-init2.c
+./agcc -o ccs-init $ANDROID_HOME/tmp/ccs-tools/sbin/ccs-init2.c
 cd $ANDROID_IMG/tmp/
 mkdir -p sbin system/bin system/lib
 cp -p $ANDROID_HOME/tmp/ccs-init sbin/
