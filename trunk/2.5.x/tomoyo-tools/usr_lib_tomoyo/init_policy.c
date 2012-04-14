@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2011/10/25
+ * Version: 2.5.0+   2012/04/14
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -859,8 +859,6 @@ static const char *reject_log = "yes";
 static unsigned int max_audit_log = 1024;
 /* How many ACL entries to add automatically by learning mode? */
 static unsigned int max_learning_entry = 2048;
-/* How long should we carry sleep penalty? */
-static unsigned int enforcing_penalty = 0;
 
 /**
  * make_profile - Make /etc/tomoyo/policy/current/profile.conf .
@@ -885,29 +883,25 @@ static void make_profile(void)
 		file_only = "::file";
 	fprintf(fp, "PROFILE_VERSION=20110903\n");
 	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
-		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
+		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u }\n"
 		"0-CONFIG%s={ mode=disabled grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, file_only, grant_log,
+		reject_log);
 	fprintf(fp, "1-COMMENT=-----Learning Mode-----\n"
-		"1-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
+		"1-PREFERENCE={ max_audit_log=%u max_learning_entry=%u }\n"
 		"1-CONFIG%s={ mode=learning grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, file_only, grant_log,
+		reject_log);
 	fprintf(fp, "2-COMMENT=-----Permissive Mode-----\n"
-		"2-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
+		"2-PREFERENCE={ max_audit_log=%u max_learning_entry=%u }\n"
 		"2-CONFIG%s={ mode=permissive grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, file_only, grant_log,
+		reject_log);
 	fprintf(fp, "3-COMMENT=-----Enforcing Mode-----\n"
-		"3-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
-		"enforcing_penalty=%u }\n"
+		"3-PREFERENCE={ max_audit_log=%u max_learning_entry=%u }\n"
 		"3-CONFIG%s={ mode=enforcing grant_log=%s reject_log=%s }\n",
-		max_audit_log, max_learning_entry, enforcing_penalty,
-		file_only, grant_log, reject_log);
+		max_audit_log, max_learning_entry, file_only, grant_log,
+		reject_log);
 	close_file(fp, 1, "profile.tmp", "profile.conf");
 }
 
@@ -1620,9 +1614,7 @@ int main(int argc, char *argv[])
 			reject_log = arg + 11;
 		} else if (!sscanf(arg, "max_audit_log=%u", &max_audit_log) &&
 			   !sscanf(arg, "max_learning_entry=%u",
-				   &max_learning_entry) &&
-			   !sscanf(arg, "enforcing_penalty=%u",
-				   &enforcing_penalty)) {
+				   &max_learning_entry)) {
 			fprintf(stderr, "Unknown option: '%s'\n", argv[i]);
 			return 1;
 		}
