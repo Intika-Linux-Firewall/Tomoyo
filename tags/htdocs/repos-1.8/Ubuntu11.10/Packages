@@ -1,20 +1,22 @@
-Package: linux-image-generic-pae-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 36
+Package: ccs-tools
+Priority: extra
+Section: alien
+Installed-Size: 668
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux-meta
-Version: 3.0.0.17.20
-Depends: linux-image-3.0.0-17-generic-pae-ccs, linux-firmware
-Filename: ./linux-image-generic-pae-ccs1.8.3p5_3.0.0.17.20_i386.deb
-Size: 6308
-MD5sum: 2afa272010f89f02634536a7616b5aec
-SHA1: a16a35e2d13fa1edf766f957d677be775b429ee3
-SHA256: a6ef342f0fe4dcdfb2e4e5320af47c02e7ef5e01e85ee58240273a634ffe2348
-Description: Generic Linux kernel image
- This package will always depend on the latest generic kernel image
- available.
+Version: 1.8.3-4
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.5-5~), libtinfo5 (>= 5.6+20070908)
+Filename: ./ccs-tools_1.8.3-4_i386.deb
+Size: 228150
+MD5sum: 65a34860c865a38d3bb33ccdf98e4058
+SHA1: 066a3606b8f8f536706d25f5931913619a9215d3
+SHA256: 30bd8307860bf1257e3974ffbc46f8083168456e678ccefa08004c6f39f9793d
+SHA512: 6e7b189ac8efae95793ac7053b6ea8577acbaaec9429dc29751ec9bb82649d5d82f092b44d08108e607d0d30d50c74cb00dcdc61a3958398802a1fa49356d3ce
+Description: Userspace tools for TOMOYO Linux 1.8.x
+ This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
+ Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+ .
+ (Converted from a rpm package by alien version 8.85.)
 
 Package: linux-headers-generic-pae-ccs
 Priority: optional
@@ -25,49 +27,68 @@ Architecture: i386
 Source: linux-meta
 Version: 3.0.0.17.20
 Depends: linux-headers-3.0.0-17-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.3p5_3.0.0.17.20_i386.deb
-Size: 6298
-MD5sum: f1fdc6649765b02cfad126b5424beb1d
-SHA1: 5a04254e0fa5b3c001635c980c17ddabae4ce723
-SHA256: 119f0e73b29b2202a7c3627c155a130afdcaa4e4086dbb7bfa13e57cd7400dc4
+Filename: ./linux-headers-generic-pae-ccs1.8.3p6_3.0.0.17.20_i386.deb
+Size: 6290
+MD5sum: d76268475dea99b911beedc0e24f710a
+SHA1: b5ceff8995247536e39d4e044aacbe77ca2b0f4a
+SHA256: 708b18b8410f03c3d86606358e3b4b0b2bd7f85e5784b0c0681a136b884a0982
+SHA512: c4c3864c8215ac68eb10d7983c9df8f56072ba87b04266cba812b75751807b068cbb0f375d037ef149d8a5c76e690334d2e45d4989265b3f09c2ffba2acb1de0
 Description: Generic Linux kernel headers
  This package will always depend on the latest generic kernel headers
  available.
 
-Package: ccs-tools
-Priority: extra
-Section: alien
-Installed-Size: 680
+Package: linux-image-3.0.0-17-generic-pae-ccs
+Priority: optional
+Section: admin
+Installed-Size: 113124
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Version: 1.8.3-3
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.5-5~), libtinfo5 (>= 5.6+20070908)
-Filename: ./ccs-tools_1.8.3-3_i386.deb
-Size: 227148
-MD5sum: 5ac4b3ace22b419a37462c7fcce54222
-SHA1: 6259362b9e20dfe27c6463b1de4c1d05eeb292da
-SHA256: f4ea0278e169c92f998e34e02bdfe2fca86f90f99d37ef802a4c29ffa80c0403
-Description: Userspace tools for TOMOYO Linux 1.8.x
- This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
- Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
+Source: linux
+Version: 3.0.0-17.30
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-3.0, ndiswrapper-modules-1.9, redhat-cluster-modules
+Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
+Pre-Depends: dpkg (>= 1.10.24)
+Recommends: grub-pc | grub | lilo (>= 19.1)
+Suggests: fdutils, linux-doc-3.0.0 | linux-source-3.0.0, linux-tools
+Conflicts: hotplug (<< 0.0.20040105-1)
+Filename: ./linux-image-3.0.0-17-generic-pae-ccs1.8.3p6_3.0.0-17.30_i386.deb
+Size: 41376274
+MD5sum: 165e64fd9b8b39650a1f60ddc1424d60
+SHA1: b24e289295596a1dc7438bbf9bc0ef241c334ebb
+SHA256: 867cfbe61ce2f0c9e1ee75ba754edf63a272ea9d0a212640b06904cd46e36619
+SHA512: a5576d65d037e5963848eac661d587686197e6de6ec20481cacda4bc94f228664386dca1b4b81de0a10733088158ab1e3f370cff4846c97fbcd9f363a53bbc1e
+Description: Linux kernel image for version 3.0.0 on x86
+ This package contains the Linux kernel image for version 3.0.0 on
+ x86.
  .
- (Converted from a rpm package by alien version 8.85.)
+ Also includes the corresponding System.map file, the modules built by the
+ packager, and scripts that try to ensure that the system is not left in an
+ unbootable state after an update.
+ .
+ Supports Generic processors.
+ .
+ Geared toward 32 bit desktop systems with more then 4GB RAM.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
 
 Package: linux-headers-3.0.0-17-generic-pae-ccs
 Priority: optional
 Section: devel
-Installed-Size: 13216
+Installed-Size: 13140
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
 Version: 3.0.0-17.30
 Provides: linux-headers, linux-headers-3.0
 Depends: coreutils | fileutils (>= 4.0), linux-headers-3.0.0-17, libc6 (>= 2.11)
-Filename: ./linux-headers-3.0.0-17-generic-pae-ccs1.8.3p5_3.0.0-17.30_i386.deb
-Size: 1420566
-MD5sum: efda63f1a69eec442c6ecc71c024f524
-SHA1: d511d1ce6d47d4499fc87cf0edb6f1ee3396c73d
-SHA256: 429c9b80306a4a8f511e2b9ab9a39cdc8444e7916a25dccbd02facb2add6d679
+Filename: ./linux-headers-3.0.0-17-generic-pae-ccs1.8.3p6_3.0.0-17.30_i386.deb
+Size: 1415974
+MD5sum: 584d34de3d95fb08d753ebd5fee0c16c
+SHA1: 06dc33e6b73646e111e36ef7813620cb357b8281
+SHA256: 8e1d774fd42a3e23f0efd83c69d6866918b518a45be4b067a37160e4247f085e
+SHA512: 4bb2025ba18f8a74c9163e05cebe10d50f64acc91d1204d24ea4fcf77ca562e0969bd39c196ffd756c0b5adb980d9ff45613d45117d930273533774a3bdb6736
 Description: Linux kernel headers for version 3.0.0 on x86
  This package provides kernel header files for version 3.0.0 on
  x86.
@@ -84,47 +105,32 @@ Architecture: i386
 Source: linux-meta
 Version: 3.0.0.17.20
 Depends: linux-image-generic-pae-ccs (= 3.0.0.17.20)
-Filename: ./linux-generic-pae-ccs1.8.3p5_3.0.0.17.20_i386.deb
-Size: 6304
-MD5sum: 06506f0b746218468c945dc90aada7e6
-SHA1: 836bbd8381e62a02e0f6dd0f530fec55b2ccf77b
-SHA256: 4d9249e23254ea9232875c8a77885e65393888f1d89a9eeb3b53b0fd360a2060
+Filename: ./linux-generic-pae-ccs1.8.3p6_3.0.0.17.20_i386.deb
+Size: 6296
+MD5sum: 5c03a3257d69f7c9cadcb82fb594fb2d
+SHA1: 3ba5c67d2146e126fe312063d52d4e6571d0a819
+SHA256: cbdaec015b22bfcad0f70a53e71d43bc42cbfbe5badf533b6f976349c3ab9a0c
+SHA512: 02d8b6b2881e4928fa761f1584c4ae624a6b718f916a9107c18459a449d84840f65b9f911e74cbc17325fcec166fa6ce615ccf89eb9a360e2f078158f4d91224
 Description: Complete Generic Linux kernel
  This package will always depend on the latest complete generic Linux kernel
  available.
 
-Package: linux-image-3.0.0-17-generic-pae-ccs
+Package: linux-image-generic-pae-ccs
 Priority: optional
-Section: admin
-Installed-Size: 114732
+Section: metapackages
+Installed-Size: 36
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux
-Version: 3.0.0-17.30
-Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-3.0, ndiswrapper-modules-1.9, redhat-cluster-modules
-Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
-Pre-Depends: dpkg (>= 1.10.24)
-Recommends: grub-pc | grub | lilo (>= 19.1)
-Suggests: fdutils, linux-doc-3.0.0 | linux-source-3.0.0, linux-tools
-Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-3.0.0-17-generic-pae-ccs1.8.3p5_3.0.0-17.30_i386.deb
-Size: 41372094
-MD5sum: 8d40d548334139b5f73d4546852b5686
-SHA1: eb5e1895a9b4bc070e9b1aa4d4a41f264d8e4a5d
-SHA256: 21458547f4bac26dc9afb7e641e01ad99492d7c4096ef2aaf4d783f27d5aaf42
-Description: Linux kernel image for version 3.0.0 on x86
- This package contains the Linux kernel image for version 3.0.0 on
- x86.
- .
- Also includes the corresponding System.map file, the modules built by the
- packager, and scripts that try to ensure that the system is not left in an
- unbootable state after an update.
- .
- Supports Generic processors.
- .
- Geared toward 32 bit desktop systems with more then 4GB RAM.
- .
- You likely do not want to install this package directly. Instead, install
- the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
- correctly, and that supporting packages are also installed.
+Source: linux-meta
+Version: 3.0.0.17.20
+Depends: linux-image-3.0.0-17-generic-pae-ccs, linux-firmware
+Filename: ./linux-image-generic-pae-ccs1.8.3p6_3.0.0.17.20_i386.deb
+Size: 6300
+MD5sum: 8ec439abb8e5ac230cd8a3ae76598047
+SHA1: 7b70a0af0d76e5b4b3a5c78cbbc477e68acfe3b6
+SHA256: 3c37f2306b4e52831712d2c67b61b752d4f771c4c8a4d70170b538e2b83b7399
+SHA512: 17232cae0ddd91564b6b3db0306585af7df9cad4aaa787710a0962d1d0b403309a06c171a992016e696abd3def320ae1f344340ff493dee9bb965b3db0b7fd52
+Description: Generic Linux kernel image
+ This package will always depend on the latest generic kernel image
+ available.
 

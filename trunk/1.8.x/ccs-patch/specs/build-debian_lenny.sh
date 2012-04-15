@@ -48,7 +48,7 @@ cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
 make-kpkg --append-to-version -2-686-ccs --revision `sed -e 's/ /-/' version.Debian` --initrd binary-arch || die "Failed to build kernel package."
 
 # Generate meta packages.
-wget http://ftp.jp.debian.org/debian/pool/main/l/linux-latest-2.6/linux-image-2.6-686_2.6.26+17+lenny1_i386.deb
+wget http://archive.debian.org/debian/pool/main/l/linux-latest-2.6/linux-image-2.6-686_2.6.26+17+lenny1_i386.deb
 generate_meta_package linux-image-2.6-686_2.6.26+17+lenny1_i386.deb linux-image-2.6-686-ccs_2.6.26+17+lenny1_i386.deb
 
 exit 0
