@@ -1,16 +1,17 @@
 Package: ccs-tools
 Priority: extra
 Section: alien
-Installed-Size: 640
+Installed-Size: 628
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Version: 1.8.3-3
+Version: 1.8.3-4
 Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
-Filename: ./ccs-tools_1.8.3-3_i386.deb
-Size: 218216
-MD5sum: 4e0bb17745bc2142abe6c9c9da161788
-SHA1: c423e703988f5d5619b9c32b77c8963c1e542a32
-SHA256: b2413d261073c38a784c0312fe822881c48bbd86346e51ea61e63c64f59d39ab
+Filename: ./ccs-tools_1.8.3-4_i386.deb
+Size: 218356
+MD5sum: 08dbc764459cffa39ddd822824f3ccec
+SHA1: ee1a5de59b1ece583aa26e3b699c86fdad9a689c
+SHA256: e455dd9139975ca9bd7b7a17e4e63ba1046981c20efcb09d7f0f729978bf419a
+SHA512: e7e327abf4d8d58aa6cb89da1ac4e5306da9d3efda792809bf5fd02646ead7ff149f27c7dd0f394a37b609698c85e888d6af10b028fff56b59c288d5b8a00342
 Description: Userspace tools for TOMOYO Linux 1.8.x
  This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
  Please see http://tomoyo.sourceforge.jp/1.8/ for documentation.
@@ -27,21 +28,50 @@ Source: linux-latest-2.6 (29)
 Version: 2.6.32+29
 Provides: linux-latest-modules-2.6.32-5-686-ccs
 Depends: linux-image-2.6.32-5-686-ccs
-Filename: ./linux-image-2.6-686-ccs1.8.3p5_2.6.32+29_i386.deb
-Size: 4432
-MD5sum: 7ae32eeb89f6730135a7e14a41248009
-SHA1: 554b8deccdc86bfa61dc4f93734b2a8f169a9c85
-SHA256: 2ff806e560a87732212bd5e3ebe7b98cc74163314c1606521d352e33451353da
+Filename: ./linux-image-2.6-686-ccs1.8.3p6_2.6.32+29_i386.deb
+Size: 4442
+MD5sum: 7cb96576c181fddd218d810a8aec7d1b
+SHA1: 986de35f3d865ce6e62f7b888f0f48ea2f191fef
+SHA256: a28c9b8dcce503ba3e2a37b452b05cd57ec974fd33797ad294734d8cc8faa40f
+SHA512: 9d6290f67d9bbe2ffd718e61f783d71237a3e1fad565983f130a4ff8f99f7f013944c9824c3005b7ada7a6944ea1170aeb84aa824219ae7efd2e4ae4cb751821
 Description: Linux 2.6 for modern PCs (meta-package)
  This package depends on the latest Linux kernel 2.6 and modules for use on
  PCs with Intel Pentium Pro/II/III/4/4M/D/M, Xeon, Celeron, Core or Atom;
  AMD Geode LX/NX, Athlon (K7), Duron, Opteron, Sempron, Turion or Phenom;
  Transmeta Efficeon; VIA C3 "Nehemiah" or C7 processors.
 
+Package: linux-headers-2.6.32-5-686-ccs
+Priority: optional
+Section: devel
+Installed-Size: 46628
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-source-2.6.32-5-686-ccs
+Version: 2.6.32-41squeeze2
+Provides: linux-headers, linux-headers-2.6
+Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
+Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
+Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
+Filename: ./linux-headers-2.6.32-5-686-ccs1.8.3p6_2.6.32-41squeeze2_i386.deb
+Size: 6452946
+MD5sum: 80f6924ffd93dff9f4edb844f97c3e68
+SHA1: a78574dc4c2d78b293194f1b6c86770c0b5bf4e8
+SHA256: 004697eec14556b4bf14bdaad12a132361e697d30a1aa32f6c81196d7393194d
+SHA512: 248e5b2306567ee630055c0634353259a626f2098a9e7886eeb2fda1ca121c24c5d646a9f09c9b739cb0231d55ff405af6635065398394d1c4d2bb39e707642d
+Description: Header files related to Linux kernel, specifically,
+ version 2.6.32-5-686-ccs
+ .
+ This package provides kernel header files for sites
+ that want the latest kernel headers for version
+ 2.6.32-5-686-ccs.
+ Please read
+ /usr/share/doc/linux-headers-2.6.32-5-686-ccs/debian.README.gz
+ for details
+
 Package: linux-image-2.6.32-5-686-ccs
 Priority: optional
 Section: kernel
-Installed-Size: 79752
+Installed-Size: 78688
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-source-2.6.32-5-686-ccs
@@ -50,11 +80,12 @@ Provides: linux-image, linux-image-2.6
 Depends: coreutils (>= 5.96)
 Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
 Suggests: fdutils, linux-doc-2.6.32-5-686-ccs | linux-source-2.6.32-5-686-ccs, ksymoops, linux-image-2.6.32-5-686-ccs-dbg
-Filename: ./linux-image-2.6.32-5-686-ccs1.8.3p5_2.6.32-41squeeze2_i386.deb
-Size: 27791452
-MD5sum: 2c64dbe754835c89300812839f3c6c99
-SHA1: 2694d18fe61d6909047fdedd20d6a3671f37e4d5
-SHA256: 028fc41a6e988f2714897998026123168f47e61fef3386a69557836c0ec82f8f
+Filename: ./linux-image-2.6.32-5-686-ccs1.8.3p6_2.6.32-41squeeze2_i386.deb
+Size: 27786372
+MD5sum: 009a3cbf0b37335279ddd3bba4e03b8d
+SHA1: abb0a62d4e3f75ed6d6a3126f27d0d55b253b73c
+SHA256: 5e0958993aceb58ef1b8dc26bbcb27f75625b47ede371b70eb0a1fce6e695ab4
+SHA512: a092ea46f49f2134080dd6f3dc76ba7e730dbb11662bce0539e8bb8cc308b772642ccc83122b81c4d55da6d5b5a8d8cd350b7e44092d2897da97d728cdf67c50
 Description: Linux kernel binary image for version 2.6.32-5-686-ccs
  This package contains the Linux kernel image for version
  2.6.32-5-686-ccs.
@@ -69,31 +100,4 @@ Description: Linux kernel binary image for version 2.6.32-5-686-ccs
  and /usr/share/doc/kernel-package/README.gz  from the package kernel-package
  for details on how to tailor the  installation of this or any other kernel
  image package
-
-Package: linux-headers-2.6.32-5-686-ccs
-Priority: optional
-Section: devel
-Installed-Size: 46820
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-source-2.6.32-5-686-ccs
-Version: 2.6.32-41squeeze2
-Provides: linux-headers, linux-headers-2.6
-Depends: libc6 (>= 2.7), libncurses5 (>= 5.7+20100313)
-Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
-Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
-Filename: ./linux-headers-2.6.32-5-686-ccs1.8.3p5_2.6.32-41squeeze2_i386.deb
-Size: 6451988
-MD5sum: a0fc667239eddedacab242e89787ffcc
-SHA1: 31facb17555ac64e586980a8cc31f4bad71c884b
-SHA256: 5c98a8e91807827aab46885f0012a2f50f0eec1896b7e55eaea55b05bf4fa13b
-Description: Header files related to Linux kernel, specifically,
- version 2.6.32-5-686-ccs
- .
- This package provides kernel header files for sites
- that want the latest kernel headers for version
- 2.6.32-5-686-ccs.
- Please read
- /usr/share/doc/linux-headers-2.6.32-5-686-ccs/debian.README.gz
- for details
 
