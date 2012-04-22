@@ -3125,3 +3125,12 @@ Fix 2012/04/22
       This check was added in revision 3741 and was removed in revision 4084.
 
       Add it back in order to support RHEL 5.0, 5.1, 5.2 kernels.
+
+    @ Fix skb_kill_datagram() for kernels 2.6.0 - 2.6.11.
+
+      Commit 208d8984 "[IPV4]: Fix BUG() in 2.6.x, udp_poll(), fragments +
+      CONFIG_HIGHMEM" clarified that skb_kill_datagram() should use
+      spin_lock_bh()/spin_unlock_bh() rather than
+      spin_lock_irq()/spin_unlock_irq().
+
+      RHEL 4.9 (2.6.9) kernel has that patch backported. So do I.
