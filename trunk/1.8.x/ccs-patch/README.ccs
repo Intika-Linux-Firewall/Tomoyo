@@ -3134,3 +3134,10 @@ Fix 2012/04/22
       spin_lock_irq()/spin_unlock_irq().
 
       RHEL 4.9 (2.6.9) kernel has that patch backported. So do I.
+
+    @ Fix missing locks for RHEL 5.2-5.8 kernels.
+
+      Since RHEL 5.2 and later kernels have backported commit 95766fff
+      "[UDP]: Add memory accounting." patch, TOMOYO needs to call
+      lock_sock()/release_sock() around skb_kill_datagram() call when UDP
+      packet was dropped by TOMOYO.
