@@ -8,8 +8,7 @@ die () {
     exit 1
 }
 
-VERSION=`uname -r | cut -d - -f 1,2`
-#VERSION=`apt-cache search ^linux-image-2.6.32-..- | cut -b 13-21 | awk ' { print $1 }' | sort -r | uniq | head -n 1`
+VERSION=`apt-cache search ^linux-image-2.6.32-..- | cut -b 13-21 | awk ' { print $1 }' | sort -r | uniq | head -n 1`
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
