@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 15's 2.6.42 kernel.
+# This is a kernel build script for Fedora 15's 2.6.43 kernel.
 #
 
 die () {
@@ -8,14 +8,16 @@ die () {
     exit 1
 }
 
+yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.42.12-1.fc15.src.rpm ]
+if [ ! -r kernel-2.6.43.2-6.fc15.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.42.12-1.fc15.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.43.2-6.fc15.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.42.12-1.fc15.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.42.12-1.fc15.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.43.2-6.fc15.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.43.2-6.fc15.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120401.tar.gz ]
@@ -58,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -851,7 +856,7 @@
+@@ -847,7 +852,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -67,18 +69,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1357,6 +1362,10 @@
+@@ -1347,6 +1352,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120401.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.42-fedora-15.diff
++patch -sp1 < patches/ccs-patch-3.3-fedora-16.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1385,6 +1394,18 @@
+@@ -1375,6 +1384,18 @@
  for i in *.config
  do
    mv $i .config
