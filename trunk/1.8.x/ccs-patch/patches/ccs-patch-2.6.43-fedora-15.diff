@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for Fedora 15.
 
-Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/kernel-2.6.42.12-1.fc15.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-2.6.43.2-6.fc15.src.rpm
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -13,7 +13,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  kernel/kexec.c            |    3 +
  kernel/module.c           |    5 +
  kernel/ptrace.c           |   10 +++
- kernel/sched.c            |    2 
+ kernel/sched/core.c       |    2 
  kernel/signal.c           |   10 +++
  kernel/sys.c              |   10 +++
  kernel/time/ntp.c         |    8 ++
@@ -28,9 +28,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  security/security.c       |  134 +++++++++++++++++++++++++++++++++++++---------
  24 files changed, 247 insertions(+), 49 deletions(-)
 
---- linux-2.6.42.12-1.fc15.orig/fs/exec.c
-+++ linux-2.6.42.12-1.fc15/fs/exec.c
-@@ -1535,7 +1535,7 @@ static int do_execve_common(const char *
+--- linux-2.6.43.2-6.fc15.orig/fs/exec.c
++++ linux-2.6.43.2-6.fc15/fs/exec.c
+@@ -1540,7 +1540,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
  
@@ -39,8 +39,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.42.12-1.fc15.orig/fs/open.c
-+++ linux-2.6.42.12-1.fc15/fs/open.c
+--- linux-2.6.43.2-6.fc15.orig/fs/open.c
++++ linux-2.6.43.2-6.fc15/fs/open.c
 @@ -1106,6 +1106,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.42.12-1.fc15.orig/fs/proc/version.c
-+++ linux-2.6.42.12-1.fc15/fs/proc/version.c
+--- linux-2.6.43.2-6.fc15.orig/fs/proc/version.c
++++ linux-2.6.43.2-6.fc15/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,13 +59,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.42.12-1.fc15 2012/03/26\n");
++	printk(KERN_INFO "Hook version: 2.6.43.2-6 2012/04/26\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.42.12-1.fc15.orig/include/linux/init_task.h
-+++ linux-2.6.42.12-1.fc15/include/linux/init_task.h
-@@ -128,6 +128,14 @@ extern struct cred init_cred;
+--- linux-2.6.43.2-6.fc15.orig/include/linux/init_task.h
++++ linux-2.6.43.2-6.fc15/include/linux/init_task.h
+@@ -127,6 +127,14 @@ extern struct cred init_cred;
  
  #define INIT_TASK_COMM "swapper"
  
@@ -80,7 +80,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -193,6 +201,7 @@ extern struct cred init_cred;
+@@ -192,6 +200,7 @@ extern struct cred init_cred;
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
  	INIT_TASK_RCU_PREEMPT(tsk)					\
@@ -88,8 +88,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  
---- linux-2.6.42.12-1.fc15.orig/include/linux/sched.h
-+++ linux-2.6.42.12-1.fc15/include/linux/sched.h
+--- linux-2.6.43.2-6.fc15.orig/include/linux/sched.h
++++ linux-2.6.43.2-6.fc15/include/linux/sched.h
 @@ -44,6 +44,8 @@
  
  #ifdef __KERNEL__
@@ -99,7 +99,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1586,6 +1588,10 @@ struct task_struct {
+@@ -1604,6 +1606,10 @@ struct task_struct {
  #ifdef CONFIG_HAVE_HW_BREAKPOINT
  	atomic_t ptrace_bp_refcnt;
  #endif
@@ -110,8 +110,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.42.12-1.fc15.orig/include/linux/security.h
-+++ linux-2.6.42.12-1.fc15/include/linux/security.h
+--- linux-2.6.43.2-6.fc15.orig/include/linux/security.h
++++ linux-2.6.43.2-6.fc15/include/linux/security.h
 @@ -38,6 +38,7 @@
  #include <linux/slab.h>
  #include <linux/xattr.h>
@@ -120,7 +120,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -1921,7 +1922,10 @@ static inline int security_syslog(int ty
+@@ -1893,7 +1894,10 @@ static inline int security_syslog(int ty
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -132,7 +132,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_vm_enough_memory(long pages)
-@@ -2004,18 +2008,18 @@ static inline int security_sb_mount(char
+@@ -1976,18 +1980,18 @@ static inline int security_sb_mount(char
  				    char *type, unsigned long flags,
  				    void *data)
  {
@@ -154,7 +154,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -2139,7 +2143,7 @@ static inline int security_inode_setattr
+@@ -2111,7 +2115,7 @@ static inline int security_inode_setattr
  static inline int security_inode_getattr(struct vfsmount *mnt,
  					  struct dentry *dentry)
  {
@@ -163,7 +163,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -2215,7 +2219,7 @@ static inline void security_file_free(st
+@@ -2187,7 +2191,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -172,7 +172,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -2242,7 +2246,7 @@ static inline int security_file_lock(str
+@@ -2214,7 +2218,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -181,7 +181,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_file_set_fowner(struct file *file)
-@@ -2265,7 +2269,7 @@ static inline int security_file_receive(
+@@ -2237,7 +2241,7 @@ static inline int security_file_receive(
  static inline int security_dentry_open(struct file *file,
  				       const struct cred *cred)
  {
@@ -190,7 +190,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -2610,7 +2614,7 @@ static inline int security_unix_may_send
+@@ -2577,7 +2581,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -199,7 +199,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2625,19 +2629,19 @@ static inline int security_socket_bind(s
+@@ -2592,19 +2596,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -222,7 +222,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2649,7 +2653,7 @@ static inline int security_socket_accept
+@@ -2616,7 +2620,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -231,7 +231,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2873,42 +2877,42 @@ int security_path_chroot(struct path *pa
+@@ -2839,42 +2843,42 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
@@ -240,7 +240,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_path_mkdir(struct path *dir, struct dentry *dentry,
- 				      int mode)
+ 				      umode_t mode)
  {
 -	return 0;
 +	return ccs_mkdir_permission(dentry, dir->mnt, mode);
@@ -253,7 +253,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_path_mknod(struct path *dir, struct dentry *dentry,
- 				      int mode, unsigned int dev)
+ 				      umode_t mode, unsigned int dev)
  {
 -	return 0;
 +	return ccs_mknod_permission(dentry, dir->mnt, mode, dev);
@@ -281,7 +281,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2916,24 +2920,24 @@ static inline int security_path_rename(s
+@@ -2882,22 +2886,22 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -289,12 +289,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
 +	return ccs_rename_permission(old_dentry, new_dentry, new_dir->mnt);
  }
  
- static inline int security_path_chmod(struct dentry *dentry,
- 				      struct vfsmount *mnt,
- 				      mode_t mode)
+ static inline int security_path_chmod(struct path *path, umode_t mode)
  {
 -	return 0;
-+	return ccs_chmod_permission(dentry, mnt, mode);
++	return ccs_chmod_permission(path->dentry, path->mnt, mode);
  }
  
  static inline int security_path_chown(struct path *path, uid_t uid, gid_t gid)
@@ -310,8 +308,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-2.6.42.12-1.fc15.orig/include/net/ip.h
-+++ linux-2.6.42.12-1.fc15/include/net/ip.h
+--- linux-2.6.43.2-6.fc15.orig/include/net/ip.h
++++ linux-2.6.43.2-6.fc15/include/net/ip.h
 @@ -217,6 +217,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
@@ -321,9 +319,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.42.12-1.fc15.orig/kernel/fork.c
-+++ linux-2.6.42.12-1.fc15/kernel/fork.c
-@@ -197,6 +197,7 @@ void __put_task_struct(struct task_struc
+--- linux-2.6.43.2-6.fc15.orig/kernel/fork.c
++++ linux-2.6.43.2-6.fc15/kernel/fork.c
+@@ -200,6 +200,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -331,7 +329,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1223,6 +1224,9 @@ static struct task_struct *copy_process(
+@@ -1270,6 +1271,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -341,7 +339,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1409,6 +1413,7 @@ bad_fork_cleanup_semundo:
+@@ -1460,6 +1464,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -349,9 +347,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-2.6.42.12-1.fc15.orig/kernel/kexec.c
-+++ linux-2.6.42.12-1.fc15/kernel/kexec.c
-@@ -40,6 +40,7 @@
+--- linux-2.6.43.2-6.fc15.orig/kernel/kexec.c
++++ linux-2.6.43.2-6.fc15/kernel/kexec.c
+@@ -39,6 +39,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
  #include <asm/sections.h>
@@ -359,7 +357,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t __percpu *crash_notes;
-@@ -948,6 +949,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -947,6 +948,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -368,8 +366,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.42.12-1.fc15.orig/kernel/module.c
-+++ linux-2.6.42.12-1.fc15/kernel/module.c
+--- linux-2.6.43.2-6.fc15.orig/kernel/module.c
++++ linux-2.6.43.2-6.fc15/kernel/module.c
 @@ -58,6 +58,7 @@
  #include <linux/jump_label.h>
  #include <linux/pfn.h>
@@ -378,7 +376,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -780,6 +781,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -773,6 +774,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -387,7 +385,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2960,6 +2963,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2987,6 +2990,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -396,9 +394,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	/* Do all the hard work */
  	mod = load_module(umod, len, uargs);
---- linux-2.6.42.12-1.fc15.orig/kernel/ptrace.c
-+++ linux-2.6.42.12-1.fc15/kernel/ptrace.c
-@@ -897,6 +897,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-2.6.43.2-6.fc15.orig/kernel/ptrace.c
++++ linux-2.6.43.2-6.fc15/kernel/ptrace.c
+@@ -905,6 +905,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -410,7 +408,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1042,6 +1047,11 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1050,6 +1055,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -422,9 +420,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.42.12-1.fc15.orig/kernel/sched.c
-+++ linux-2.6.42.12-1.fc15/kernel/sched.c
-@@ -5114,6 +5114,8 @@ int can_nice(const struct task_struct *p
+--- linux-2.6.43.2-6.fc15.orig/kernel/sched/core.c
++++ linux-2.6.43.2-6.fc15/kernel/sched/core.c
+@@ -3868,6 +3868,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -433,9 +431,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.42.12-1.fc15.orig/kernel/signal.c
-+++ linux-2.6.42.12-1.fc15/kernel/signal.c
-@@ -2802,6 +2802,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+--- linux-2.6.43.2-6.fc15.orig/kernel/signal.c
++++ linux-2.6.43.2-6.fc15/kernel/signal.c
+@@ -2868,6 +2868,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -444,7 +442,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2870,6 +2872,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2936,6 +2938,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -453,7 +451,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2886,6 +2890,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2952,6 +2956,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -462,7 +460,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2913,6 +2919,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2979,6 +2985,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t,
  		return -EPERM;
  	}
  	info.si_signo = sig;
@@ -471,7 +469,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2933,6 +2941,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2999,6 +3007,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -480,8 +478,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.42.12-1.fc15.orig/kernel/sys.c
-+++ linux-2.6.42.12-1.fc15/kernel/sys.c
+--- linux-2.6.43.2-6.fc15.orig/kernel/sys.c
++++ linux-2.6.43.2-6.fc15/kernel/sys.c
 @@ -180,6 +180,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -520,8 +518,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.42.12-1.fc15.orig/kernel/time/ntp.c
-+++ linux-2.6.42.12-1.fc15/kernel/time/ntp.c
+--- linux-2.6.43.2-6.fc15.orig/kernel/time/ntp.c
++++ linux-2.6.43.2-6.fc15/kernel/time/ntp.c
 @@ -15,6 +15,7 @@
  #include <linux/time.h>
  #include <linux/mm.h>
@@ -555,9 +553,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  		if (!(txc->modes & ADJ_NANO))
  			delta.tv_nsec *= 1000;
  		result = timekeeping_inject_offset(&delta);
---- linux-2.6.42.12-1.fc15.orig/net/ipv4/raw.c
-+++ linux-2.6.42.12-1.fc15/net/ipv4/raw.c
-@@ -695,6 +695,10 @@ static int raw_recvmsg(struct kiocb *ioc
+--- linux-2.6.43.2-6.fc15.orig/net/ipv4/raw.c
++++ linux-2.6.43.2-6.fc15/net/ipv4/raw.c
+@@ -699,6 +699,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -568,9 +566,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.42.12-1.fc15.orig/net/ipv4/udp.c
-+++ linux-2.6.42.12-1.fc15/net/ipv4/udp.c
-@@ -1184,6 +1184,10 @@ try_again:
+--- linux-2.6.43.2-6.fc15.orig/net/ipv4/udp.c
++++ linux-2.6.43.2-6.fc15/net/ipv4/udp.c
+@@ -1185,6 +1185,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -581,9 +579,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.42.12-1.fc15.orig/net/ipv6/raw.c
-+++ linux-2.6.42.12-1.fc15/net/ipv6/raw.c
-@@ -469,6 +469,10 @@ static int rawv6_recvmsg(struct kiocb *i
+--- linux-2.6.43.2-6.fc15.orig/net/ipv6/raw.c
++++ linux-2.6.43.2-6.fc15/net/ipv6/raw.c
+@@ -470,6 +470,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -594,9 +592,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.42.12-1.fc15.orig/net/ipv6/udp.c
-+++ linux-2.6.42.12-1.fc15/net/ipv6/udp.c
-@@ -361,6 +361,10 @@ try_again:
+--- linux-2.6.43.2-6.fc15.orig/net/ipv6/udp.c
++++ linux-2.6.43.2-6.fc15/net/ipv6/udp.c
+@@ -362,6 +362,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -607,9 +605,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.42.12-1.fc15.orig/net/socket.c
-+++ linux-2.6.42.12-1.fc15/net/socket.c
-@@ -1530,6 +1530,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+--- linux-2.6.43.2-6.fc15.orig/net/socket.c
++++ linux-2.6.43.2-6.fc15/net/socket.c
+@@ -1550,6 +1550,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -620,9 +618,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-2.6.42.12-1.fc15.orig/net/unix/af_unix.c
-+++ linux-2.6.42.12-1.fc15/net/unix/af_unix.c
-@@ -1780,6 +1780,10 @@ static int unix_dgram_recvmsg(struct kio
+--- linux-2.6.43.2-6.fc15.orig/net/unix/af_unix.c
++++ linux-2.6.43.2-6.fc15/net/unix/af_unix.c
+@@ -1783,6 +1783,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -633,8 +631,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-2.6.42.12-1.fc15.orig/security/Kconfig
-+++ linux-2.6.42.12-1.fc15/security/Kconfig
+--- linux-2.6.43.2-6.fc15.orig/security/Kconfig
++++ linux-2.6.43.2-6.fc15/security/Kconfig
 @@ -227,5 +227,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
@@ -643,8 +641,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
 +
  endmenu
  
---- linux-2.6.42.12-1.fc15.orig/security/Makefile
-+++ linux-2.6.42.12-1.fc15/security/Makefile
+--- linux-2.6.43.2-6.fc15.orig/security/Makefile
++++ linux-2.6.43.2-6.fc15/security/Makefile
 @@ -26,3 +26,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -652,9 +650,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-2.6.42.12-1.fc15.orig/security/security.c
-+++ linux-2.6.42.12-1.fc15/security/security.c
-@@ -203,7 +203,10 @@ int security_syslog(int type)
+--- linux-2.6.43.2-6.fc15.orig/security/security.c
++++ linux-2.6.43.2-6.fc15/security/security.c
+@@ -184,7 +184,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
  {
@@ -666,7 +664,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  int security_vm_enough_memory(long pages)
-@@ -294,17 +297,27 @@ int security_sb_statfs(struct dentry *de
+@@ -275,17 +278,27 @@ int security_sb_statfs(struct dentry *de
  int security_sb_mount(char *dev_name, struct path *path,
                         char *type, unsigned long flags, void *data)
  {
@@ -697,8 +695,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -391,87 +404,133 @@ EXPORT_SYMBOL(security_old_inode_init_se
- int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
+@@ -372,86 +385,132 @@ EXPORT_SYMBOL(security_old_inode_init_se
+ int security_path_mknod(struct path *dir, struct dentry *dentry, umode_t mode,
  			unsigned int dev)
  {
 +	int error;
@@ -712,7 +710,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  EXPORT_SYMBOL(security_path_mknod);
  
- int security_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
+ int security_path_mkdir(struct path *dir, struct dentry *dentry, umode_t mode)
  {
 +	int error;
  	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
@@ -807,16 +805,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
 +	return error;
  }
  
- int security_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
- 			mode_t mode)
+ int security_path_chmod(struct path *path, umode_t mode)
  {
 +	int error;
- 	if (unlikely(IS_PRIVATE(dentry->d_inode)))
+ 	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
  		return 0;
--	return security_ops->path_chmod(dentry, mnt, mode);
-+	error = security_ops->path_chmod(dentry, mnt, mode);
+-	return security_ops->path_chmod(path, mode);
++	error = security_ops->path_chmod(path, mode);
 +	if (!error)
-+		error = ccs_chmod_permission(dentry, mnt, mode);
++		error = ccs_chmod_permission(path->dentry, path->mnt, mode);
 +	return error;
  }
  
@@ -843,7 +840,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  #endif
  
-@@ -574,9 +633,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+@@ -554,9 +613,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
  
  int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
  {
@@ -858,7 +855,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  int security_inode_setxattr(struct dentry *dentry, const char *name,
-@@ -686,7 +749,10 @@ void security_file_free(struct file *fil
+@@ -666,7 +729,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -870,7 +867,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -714,7 +780,10 @@ int security_file_lock(struct file *file
+@@ -694,7 +760,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -882,7 +879,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -738,6 +807,8 @@ int security_dentry_open(struct file *fi
+@@ -718,6 +787,8 @@ int security_dentry_open(struct file *fi
  	int ret;
  
  	ret = security_ops->dentry_open(file, cred);
@@ -891,7 +888,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  	if (ret)
  		return ret;
  
-@@ -1053,7 +1124,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1027,7 +1098,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -903,7 +900,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1065,17 +1139,26 @@ int security_socket_post_create(struct s
+@@ -1039,17 +1113,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -933,7 +930,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/15/SRPMS/
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1085,7 +1168,10 @@ int security_socket_accept(struct socket
+@@ -1059,7 +1142,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
