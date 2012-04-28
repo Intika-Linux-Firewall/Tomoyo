@@ -3,7 +3,7 @@
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="Ubuntu 12.04 i386 TOMOYO 1.8.3"
 ISOIMAGE_NAME=../ubuntu-12.04-desktop-i386-tomoyo-1.8.3.iso
-KERNEL_VERSION=3.2.0-23-generic-pae-ccs
+KERNEL_VERSION=3.2.0-24-generic-pae-ccs
 
 # set -v
 
@@ -93,7 +93,7 @@ do
     fi
 done
 
-SETUP_SCRIPT=initrd/scripts/casper-bottom/10adduser
+SETUP_SCRIPT=initrd/scripts/casper-bottom/25adduser
 
 if ! grep -q TOMOYO ${SETUP_SCRIPT}
 then
