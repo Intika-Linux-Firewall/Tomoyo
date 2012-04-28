@@ -88,8 +88,8 @@ do
     if [ ! -d initrd/lib/${KERNEL_DIR}/${KERNEL_VERSION}/ ]
     then
 	mkdir initrd/lib/${KERNEL_DIR}/${KERNEL_VERSION} || die "Can't create kernel modules directory."
-	( cd initrd/lib/${KERNEL_DIR}/*-generic/ ; find ! -type d -print0 ) | ( cd squash/lib/${KERNEL_DIR}/${KERNEL_VERSION} ; xargs -0 tar -cf - ) | ( cd initrd/lib/${KERNEL_DIR}/${KERNEL_VERSION} ; tar -xf - ) || die "Can't copy kernel modules."
-	rm -fR initrd/lib/${KERNEL_DIR}/*-generic || die "Can't delete kernel modules directory."
+	( cd initrd/lib/${KERNEL_DIR}/*-generic-pae/ ; find ! -type d -print0 ) | ( cd squash/lib/${KERNEL_DIR}/${KERNEL_VERSION} ; xargs -0 tar -cf - ) | ( cd initrd/lib/${KERNEL_DIR}/${KERNEL_VERSION} ; tar -xf - ) || die "Can't copy kernel modules."
+	rm -fR initrd/lib/${KERNEL_DIR}/*-generic-pae || die "Can't delete kernel modules directory."
     fi
 done
 
@@ -117,8 +117,8 @@ cd cdrom/
 mv md5sum.txt md5sum.txt.old
 cat md5sum.txt.old | awk '{ print $2 }' | xargs md5sum > md5sum.txt
 rm -f md5sum.txt.old
-[ -r .disk/casper-uuid-ccs ] || mv .disk/casper-uuid-generic .disk/casper-uuid-ccs
-sed -i -e 's/casper-uuid-generic/casper-uuid-ccs/' -- md5sum.txt
+[ -r .disk/casper-uuid-ccs ] || mv .disk/casper-uuid-generic-pae .disk/casper-uuid-ccs
+sed -i -e 's/casper-uuid-generic-pae/casper-uuid-ccs/' -- md5sum.txt
 
 cd ${LIVECD_HOME}
 echo "********** Generating iso image file. **********"
