@@ -8,15 +8,17 @@ modprobe binfmt_misc
 modprobe -q -b lp
 modprobe -q -b ppdev
 mkdir mnt cdrom squash initrd
-mount -o loop ~/ubuntu-12.04-desktop-i386.iso mnt/
+mount -o loop,ro ~/ubuntu-12.04-desktop-i386.iso mnt/
 cp -a mnt/* mnt/.disk/ cdrom/
-umount -d mnt/
-mount -t squashfs -o loop cdrom/casper/filesystem.squashfs mnt/
+umount mnt/
+mount -t squashfs -o loop,ro cdrom/casper/filesystem.squashfs mnt/
 cp -a mnt/* squash/
-umount -d mnt/
+umount mnt/
 cd squash/
 cp -p ../package-install.sh /etc/apt/sources.list .
 cp -p /etc/resolv.conf etc/
+mount --bind /dev/ dev/
 chroot . /package-install.sh
+umount dev/
 cd ../
 ./generate-livecd.sh
