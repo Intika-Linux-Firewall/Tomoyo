@@ -27,12 +27,18 @@ apt-get -y -o Dir::Etc::SourceList=/sources.list autoremove
 apt-get -y -o Dir::Etc::SourceList=/sources.list clean
 
 /usr/lib/ccs/init_policy
+awk ' { print "squashfs:"$0 } ' /etc/ccs/policy/current/manager.conf > /etc/ccs/policy/current/manager.conf.tmp
+cat /etc/ccs/policy/current/manager.conf.tmp >> /etc/ccs/policy/current/manager.conf
+rm -f /etc/ccs/policy/current/manager.conf
 
 wget http://osdn.dl.sourceforge.jp/tomoyo/55680/tomoyo-tools_2.5.0-3_i386.deb
 echo 'd94b61bedd65857fc71a51e5440256f0  tomoyo-tools_2.5.0-3_i386.deb' | md5sum -c - || rm -f tomoyo-tools_2.5.0-3_i386.deb
 dpkg -i tomoyo-tools_2.5.0-3_i386.deb
 rm -f tomoyo-tools_2.5.0-3_i386.deb
 /usr/lib/tomoyo/init_policy
+awk ' { print "squashfs:"$0 } ' /etc/tomoyo/policy/current/manager.conf > /etc/tomoyo/policy/current/manager.conf.tmp
+cat /etc/tomoyo/policy/current/manager.conf.tmp >> /etc/tomoyo/policy/current/manager.conf
+rm -f /etc/tomoyo/policy/current/manager.conf
 
 umount -l /dev/pts/
 umount -l /sys/
