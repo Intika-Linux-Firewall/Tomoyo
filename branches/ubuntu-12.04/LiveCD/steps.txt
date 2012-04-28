@@ -1,14 +1,14 @@
 cd
 apt-get -y install lzma squashfs-tools mkisofs
-wget http://ftp.jaist.ac.jp/pub/Linux/ubuntu-releases/10.04.3/ubuntu-10.04.3-desktop-i386.iso
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ubuntu-10.04/LiveCD.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+wget http://ftp.jaist.ac.jp/pub/Linux/ubuntu-releases/12.04/ubuntu-12.04-desktop-i386.iso
+wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ubuntu-12.04/LiveCD.tar.gz?root=tomoyo&view=tar' | tar -zxf -
 cd LiveCD/
 chmod +x *.sh
 modprobe binfmt_misc
 modprobe -q -b lp
 modprobe -q -b ppdev
 mkdir mnt cdrom squash initrd
-mount -o loop ~/ubuntu-10.04.3-desktop-i386.iso mnt/
+mount -o loop ~/ubuntu-12.04-desktop-i386.iso mnt/
 cp -a mnt/* mnt/.disk/ cdrom/
 umount -d mnt/
 mount -t squashfs -o loop cdrom/casper/filesystem.squashfs mnt/
