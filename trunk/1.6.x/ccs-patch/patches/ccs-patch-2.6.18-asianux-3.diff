@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for Asianux 3.0.
 
-Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-274.6.AXS3.src.rpm
+Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-308.1.AXS3.src.rpm
 ---
  arch/alpha/kernel/ptrace.c  |    3 +++
  arch/ia64/ia32/sys_ia32.c   |    3 +++
@@ -40,8 +40,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/unix/af_unix.c          |    4 ++++
  36 files changed, 268 insertions(+), 6 deletions(-)
 
---- linux-2.6.18-274.6.AXS3.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18-274.6.AXS3/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18-308.1.AXS3.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18-308.1.AXS3/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -59,8 +59,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18-274.6.AXS3.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18-274.6.AXS3/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18-308.1.AXS3.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18-308.1.AXS3/arch/ia64/ia32/sys_ia32.c
 @@ -58,6 +58,7 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -78,8 +78,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-274.6.AXS3.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18-274.6.AXS3/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18-308.1.AXS3.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18-308.1.AXS3/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -97,8 +97,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-274.6.AXS3.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18-274.6.AXS3/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18-308.1.AXS3.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18-308.1.AXS3/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,7 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -116,8 +116,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18-274.6.AXS3.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18-274.6.AXS3/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18-308.1.AXS3.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18-308.1.AXS3/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -137,8 +137,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18-274.6.AXS3.orig/fs/Kconfig
-+++ linux-2.6.18-274.6.AXS3/fs/Kconfig
+--- linux-2.6.18-308.1.AXS3.orig/fs/Kconfig
++++ linux-2.6.18-308.1.AXS3/fs/Kconfig
 @@ -2072,5 +2072,7 @@ endmenu
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -147,16 +147,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
 +
  endmenu
  
---- linux-2.6.18-274.6.AXS3.orig/fs/Makefile
-+++ linux-2.6.18-274.6.AXS3/fs/Makefile
+--- linux-2.6.18-308.1.AXS3.orig/fs/Makefile
++++ linux-2.6.18-308.1.AXS3/fs/Makefile
 @@ -116,3 +116,5 @@ obj-$(CONFIG_CACHEFILES)	+= cachefiles/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.18-274.6.AXS3.orig/fs/attr.c
-+++ linux-2.6.18-274.6.AXS3/fs/attr.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/attr.c
++++ linux-2.6.18-308.1.AXS3/fs/attr.c
 @@ -15,6 +15,7 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -190,8 +190,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.18-274.6.AXS3.orig/fs/compat.c
-+++ linux-2.6.18-274.6.AXS3/fs/compat.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/compat.c
++++ linux-2.6.18-308.1.AXS3/fs/compat.c
 @@ -52,6 +52,7 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -229,8 +229,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.18-274.6.AXS3.orig/fs/exec.c
-+++ linux-2.6.18-274.6.AXS3/fs/exec.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/exec.c
++++ linux-2.6.18-308.1.AXS3/fs/exec.c
 @@ -62,6 +62,8 @@
  #include <linux/kmod.h>
  #endif
@@ -271,8 +271,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux-2.6.18-274.6.AXS3.orig/fs/fcntl.c
-+++ linux-2.6.18-274.6.AXS3/fs/fcntl.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/fcntl.c
++++ linux-2.6.18-308.1.AXS3/fs/fcntl.c
 @@ -22,6 +22,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -292,8 +292,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18-274.6.AXS3.orig/fs/ioctl.c
-+++ linux-2.6.18-274.6.AXS3/fs/ioctl.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/ioctl.c
++++ linux-2.6.18-308.1.AXS3/fs/ioctl.c
 @@ -17,6 +17,7 @@
  
  #include <asm/uaccess.h>
@@ -302,7 +302,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  /* So that the fiemap access checks can't overflow on 32 bit machines. */
  #define FIEMAP_MAX_EXTENTS	(UINT_MAX / sizeof(struct fiemap_extent))
-@@ -28,6 +29,8 @@ static long do_ioctl(struct file *filp, 
+@@ -28,6 +29,8 @@ static long do_ioctl(struct file *filp,
  
  	if (!filp->f_op)
  		goto out;
@@ -320,8 +320,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (error)
  		goto out_fput;
  
---- linux-2.6.18-274.6.AXS3.orig/fs/namei.c
-+++ linux-2.6.18-274.6.AXS3/fs/namei.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/namei.c
++++ linux-2.6.18-308.1.AXS3/fs/namei.c
 @@ -37,6 +37,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -331,7 +331,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1636,6 +1638,11 @@ int may_open(struct nameidata *nd, int a
+@@ -1793,6 +1795,11 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -343,7 +343,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1667,6 +1674,7 @@ int may_open(struct nameidata *nd, int a
+@@ -1824,6 +1831,7 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -351,7 +351,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  /*
   *	open_namei()
   *
-@@ -1750,6 +1758,9 @@ do_last:
+@@ -1907,6 +1915,9 @@ do_last:
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -361,7 +361,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		mutex_unlock(&dir->d_inode->i_mutex);
  		dput(nd->dentry);
-@@ -1948,6 +1959,10 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2103,6 +2114,10 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -372,7 +372,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -2021,6 +2036,10 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2176,6 +2191,10 @@ asmlinkage long sys_mkdirat(int dfd, con
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -383,7 +383,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2129,6 +2148,9 @@ static long do_rmdir(int dfd, const char
+@@ -2284,6 +2303,9 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -393,7 +393,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2210,6 +2232,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2365,6 +2387,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -403,7 +403,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2288,6 +2313,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2443,6 +2468,10 @@ asmlinkage long sys_symlinkat(const char
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -414,7 +414,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2382,6 +2411,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2537,6 +2566,10 @@ asmlinkage long sys_linkat(int olddfd, c
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -425,7 +425,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2608,6 +2641,11 @@ static int do_rename(int olddfd, const c
+@@ -2763,6 +2796,11 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -437,8 +437,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
---- linux-2.6.18-274.6.AXS3.orig/fs/namespace.c
-+++ linux-2.6.18-274.6.AXS3/fs/namespace.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/namespace.c
++++ linux-2.6.18-308.1.AXS3/fs/namespace.c
 @@ -25,6 +25,8 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -467,7 +467,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -963,6 +970,9 @@ static int do_loopback(struct nameidata 
+@@ -963,6 +970,9 @@ static int do_loopback(struct nameidata
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -477,7 +477,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1047,7 +1057,9 @@ static int do_move_mount(struct nameidat
+@@ -1049,7 +1059,9 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -488,7 +488,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1149,6 +1161,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1153,6 +1165,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -498,7 +498,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1440,6 +1455,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1444,6 +1459,13 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -512,7 +512,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1731,6 +1753,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1735,6 +1757,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -521,7 +521,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	lock_kernel();
  
-@@ -1747,6 +1771,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1751,6 +1775,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -530,8 +530,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18-274.6.AXS3.orig/fs/open.c
-+++ linux-2.6.18-274.6.AXS3/fs/open.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/open.c
++++ linux-2.6.18-308.1.AXS3/fs/open.c
 @@ -31,6 +31,8 @@
  #include <linux/falloc.h>
  
@@ -581,8 +581,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18-274.6.AXS3.orig/fs/proc/Makefile
-+++ linux-2.6.18-274.6.AXS3/fs/proc/Makefile
+--- linux-2.6.18-308.1.AXS3.orig/fs/proc/Makefile
++++ linux-2.6.18-308.1.AXS3/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -590,18 +590,18 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.18-274.6.AXS3.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18-274.6.AXS3/fs/proc/proc_misc.c
+--- linux-2.6.18-308.1.AXS3.orig/fs/proc/proc_misc.c
++++ linux-2.6.18-308.1.AXS3/fs/proc/proc_misc.c
 @@ -739,4 +739,7 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-274.6.AXS3 2012/03/16\n");
++	printk(KERN_INFO "Hook version: 2.6.18-308.1.AXS3 2012/05/02\n");
 +#endif
  }
---- linux-2.6.18-274.6.AXS3.orig/include/linux/init_task.h
-+++ linux-2.6.18-274.6.AXS3/include/linux/init_task.h
+--- linux-2.6.18-308.1.AXS3.orig/include/linux/init_task.h
++++ linux-2.6.18-308.1.AXS3/include/linux/init_task.h
 @@ -125,6 +125,8 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -611,8 +611,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  }
  
  
---- linux-2.6.18-274.6.AXS3.orig/include/linux/sched.h
-+++ linux-2.6.18-274.6.AXS3/include/linux/sched.h
+--- linux-2.6.18-308.1.AXS3.orig/include/linux/sched.h
++++ linux-2.6.18-308.1.AXS3/include/linux/sched.h
 @@ -25,6 +25,8 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -631,8 +631,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18-274.6.AXS3.orig/include/net/ip.h
-+++ linux-2.6.18-274.6.AXS3/include/net/ip.h
+--- linux-2.6.18-308.1.AXS3.orig/include/net/ip.h
++++ linux-2.6.18-308.1.AXS3/include/net/ip.h
 @@ -171,8 +171,11 @@ extern void inet_get_local_port_range(in
  extern int sysctl_local_port_range[2];
  
@@ -645,8 +645,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.18-274.6.AXS3.orig/kernel/compat.c
-+++ linux-2.6.18-274.6.AXS3/kernel/compat.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/compat.c
++++ linux-2.6.18-308.1.AXS3/kernel/compat.c
 @@ -25,6 +25,7 @@
  
  #include <asm/uaccess.h>
@@ -664,8 +664,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18-274.6.AXS3.orig/kernel/kexec.c
-+++ linux-2.6.18-274.6.AXS3/kernel/kexec.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/kexec.c
++++ linux-2.6.18-308.1.AXS3/kernel/kexec.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -674,7 +674,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  #if defined(__x86_64__)
  #include <asm/virtext.h>
-@@ -981,6 +982,8 @@ asmlinkage long sys_kexec_load(unsigned 
+@@ -981,6 +982,8 @@ asmlinkage long sys_kexec_load(unsigned
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -683,8 +683,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.18-274.6.AXS3.orig/kernel/kmod.c
-+++ linux-2.6.18-274.6.AXS3/kernel/kmod.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/kmod.c
++++ linux-2.6.18-308.1.AXS3/kernel/kmod.c
 @@ -147,6 +147,9 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
@@ -695,8 +695,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
---- linux-2.6.18-274.6.AXS3.orig/kernel/module.c
-+++ linux-2.6.18-274.6.AXS3/kernel/module.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/module.c
++++ linux-2.6.18-308.1.AXS3/kernel/module.c
 @@ -46,6 +46,7 @@
  #include <linux/license.h>
  #include <linux/tracepoint.h>
@@ -725,8 +725,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18-274.6.AXS3.orig/kernel/ptrace.c
-+++ linux-2.6.18-274.6.AXS3/kernel/ptrace.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/ptrace.c
++++ linux-2.6.18-308.1.AXS3/kernel/ptrace.c
 @@ -26,6 +26,7 @@
  #include <asm/tracehook.h>
  #include <asm/pgtable.h>
@@ -753,8 +753,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
  		 current->pid, request, pid, addr, cdata);
---- linux-2.6.18-274.6.AXS3.orig/kernel/sched.c
-+++ linux-2.6.18-274.6.AXS3/kernel/sched.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/sched.c
++++ linux-2.6.18-308.1.AXS3/kernel/sched.c
 @@ -57,6 +57,7 @@
  #include <trace/sched.h>
  
@@ -772,8 +772,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18-274.6.AXS3.orig/kernel/signal.c
-+++ linux-2.6.18-274.6.AXS3/kernel/signal.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/signal.c
++++ linux-2.6.18-308.1.AXS3/kernel/signal.c
 @@ -29,6 +29,7 @@
  #include <asm/siginfo.h>
  #include "audit.h"	/* audit_signal_info() */
@@ -815,8 +815,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.18-274.6.AXS3.orig/kernel/sys.c
-+++ linux-2.6.18-274.6.AXS3/kernel/sys.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/sys.c
++++ linux-2.6.18-308.1.AXS3/kernel/sys.c
 @@ -37,6 +37,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -863,8 +863,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18-274.6.AXS3.orig/kernel/sysctl.c
-+++ linux-2.6.18-274.6.AXS3/kernel/sysctl.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/sysctl.c
++++ linux-2.6.18-308.1.AXS3/kernel/sysctl.c
 @@ -51,6 +51,7 @@
  
  #include <asm/uaccess.h>
@@ -873,7 +873,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  extern int proc_nr_files(ctl_table *table, int write, struct file *filp,
                       void __user *buffer, size_t *lenp, loff_t *ppos);
-@@ -1536,6 +1537,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1539,6 +1540,9 @@ int do_sysctl(int __user *name, int nlen
  
  		spin_unlock(&sysctl_lock);
  
@@ -883,7 +883,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table,
  					&context);
-@@ -1608,6 +1612,13 @@ repeat:
+@@ -1611,6 +1615,13 @@ repeat:
  				if (ctl_perm(table, 001))
  					return -EPERM;
  				if (table->strategy) {
@@ -897,8 +897,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18-274.6.AXS3.orig/kernel/time.c
-+++ linux-2.6.18-274.6.AXS3/kernel/time.c
+--- linux-2.6.18-308.1.AXS3.orig/kernel/time.c
++++ linux-2.6.18-308.1.AXS3/kernel/time.c
 @@ -40,6 +40,7 @@
  
  #include <asm/uaccess.h>
@@ -907,7 +907,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  /* 
   * The timezone where the local system is located.  Used as a default by some
-@@ -92,6 +93,8 @@ asmlinkage long sys_stime(time_t __user 
+@@ -92,6 +93,8 @@ asmlinkage long sys_stime(time_t __user
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -916,7 +916,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -162,6 +165,8 @@ int do_sys_settimeofday(struct timespec 
+@@ -162,6 +165,8 @@ int do_sys_settimeofday(struct timespec
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -934,8 +934,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18-274.6.AXS3.orig/net/ipv4/raw.c
-+++ linux-2.6.18-274.6.AXS3/net/ipv4/raw.c
+--- linux-2.6.18-308.1.AXS3.orig/net/ipv4/raw.c
++++ linux-2.6.18-308.1.AXS3/net/ipv4/raw.c
 @@ -78,6 +78,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -954,8 +954,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.18-274.6.AXS3.orig/net/ipv4/udp.c
-+++ linux-2.6.18-274.6.AXS3/net/ipv4/udp.c
+--- linux-2.6.18-308.1.AXS3.orig/net/ipv4/udp.c
++++ linux-2.6.18-308.1.AXS3/net/ipv4/udp.c
 @@ -109,6 +109,7 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -974,8 +974,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
    
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
---- linux-2.6.18-274.6.AXS3.orig/net/ipv6/raw.c
-+++ linux-2.6.18-274.6.AXS3/net/ipv6/raw.c
+--- linux-2.6.18-308.1.AXS3.orig/net/ipv6/raw.c
++++ linux-2.6.18-308.1.AXS3/net/ipv6/raw.c
 @@ -56,6 +56,7 @@
  
  #include <linux/proc_fs.h>
@@ -994,8 +994,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	copied = skb->len;
    	if (copied > len) {
---- linux-2.6.18-274.6.AXS3.orig/net/ipv6/udp.c
-+++ linux-2.6.18-274.6.AXS3/net/ipv6/udp.c
+--- linux-2.6.18-308.1.AXS3.orig/net/ipv6/udp.c
++++ linux-2.6.18-308.1.AXS3/net/ipv6/udp.c
 @@ -58,6 +58,7 @@
  
  #include <linux/proc_fs.h>
@@ -1014,8 +1014,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
---- linux-2.6.18-274.6.AXS3.orig/net/socket.c
-+++ linux-2.6.18-274.6.AXS3/net/socket.c
+--- linux-2.6.18-308.1.AXS3.orig/net/socket.c
++++ linux-2.6.18-308.1.AXS3/net/socket.c
 @@ -96,6 +96,9 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1026,7 +1026,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -596,6 +599,10 @@ static inline int __sock_sendmsg(struct 
+@@ -596,6 +599,10 @@ static inline int __sock_sendmsg(struct
  	err = security_socket_sendmsg(sock, msg, size);
  	if (err)
  		return err;
@@ -1048,7 +1048,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1417,6 +1428,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1417,6 +1428,11 @@ asmlinkage long sys_bind(int fd, struct
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
  			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
  			if (!err)
@@ -1093,8 +1093,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18-274.6.AXS3.orig/net/unix/af_unix.c
-+++ linux-2.6.18-274.6.AXS3/net/unix/af_unix.c
+--- linux-2.6.18-308.1.AXS3.orig/net/unix/af_unix.c
++++ linux-2.6.18-308.1.AXS3/net/unix/af_unix.c
 @@ -116,6 +116,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
