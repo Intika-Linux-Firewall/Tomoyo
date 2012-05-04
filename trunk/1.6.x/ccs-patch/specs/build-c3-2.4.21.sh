@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.4.21-63.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.9-20120401.tar.gz ]
+if [ ! -r ccs-patch-1.6.9-20120505.tar.gz ]
 then
-    wget -O ccs-patch-1.6.9-20120401.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20120401.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.6.9-20120505.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.9-20120505.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 63.EL
-+%define release 63.EL_tomoyo_1.6.9p3
++%define release 63.EL_tomoyo_1.6.9p4
  %define sublevel 21
  %define kversion 2.4.%{sublevel}
  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
@@ -50,7 +50,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.9-20120401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.9-20120505.tar.gz
 +patch -sp1 < patches/ccs-patch-2.4.21-centos-3.9.diff
 +
  cp %{SOURCE10} Documentation/
