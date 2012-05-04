@@ -18,7 +18,7 @@ mount -t devpts none /dev/pts/
 
 wget http://osdn.dl.sourceforge.jp/tomoyo/55680/tomoyo-tools_2.5.0-3_i386.deb
 echo 'd94b61bedd65857fc71a51e5440256f0  tomoyo-tools_2.5.0-3_i386.deb' | md5sum -c - || rm -f tomoyo-tools_2.5.0-3_i386.deb
-dpkg-dex -x tomoyo-tools_2.5.0-3_i386.deb /
+dpkg-deb -x tomoyo-tools_2.5.0-3_i386.deb /
 rm -f tomoyo-tools_2.5.0-3_i386.deb
 
 wget -O - http://I-love.SAKURA.ne.jp/kumaneko-key | apt-key add - || die "Can't install key."
