@@ -16,6 +16,11 @@ mount -t proc none /proc/
 mount -t sysfs none /sys/
 mount -t devpts none /dev/pts/
 
+wget http://osdn.dl.sourceforge.jp/tomoyo/55680/tomoyo-tools_2.5.0-3_i386.deb
+echo 'd94b61bedd65857fc71a51e5440256f0  tomoyo-tools_2.5.0-3_i386.deb' | md5sum -c - || rm -f tomoyo-tools_2.5.0-3_i386.deb
+dpkg-dex -x tomoyo-tools_2.5.0-3_i386.deb /
+rm -f tomoyo-tools_2.5.0-3_i386.deb
+
 wget -O - http://I-love.SAKURA.ne.jp/kumaneko-key | apt-key add - || die "Can't install key."
 grep -qF tomoyo.sourceforge.jp /sources.list || echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu12.04/ ./' >> /sources.list
 apt-get -y -o Dir::Etc::SourceList=/sources.list update || die "apt-get update failed. Try again later."
@@ -26,16 +31,12 @@ apt-get -y -o Dir::Etc::SourceList=/sources.list dist-upgrade || die "apt-get di
 apt-get -y -o Dir::Etc::SourceList=/sources.list autoremove
 apt-get -y -o Dir::Etc::SourceList=/sources.list clean
 
-/usr/lib/ccs/init_policy
+/usr/lib/ccs/init_policy --use_profile=1
 awk ' { print "squashfs:"$0 } ' /etc/ccs/policy/current/manager.conf > /etc/ccs/policy/current/manager.conf.tmp
 cat /etc/ccs/policy/current/manager.conf.tmp >> /etc/ccs/policy/current/manager.conf
 rm -f /etc/ccs/policy/current/manager.conf.tmp
 
-wget http://osdn.dl.sourceforge.jp/tomoyo/55680/tomoyo-tools_2.5.0-3_i386.deb
-echo 'd94b61bedd65857fc71a51e5440256f0  tomoyo-tools_2.5.0-3_i386.deb' | md5sum -c - || rm -f tomoyo-tools_2.5.0-3_i386.deb
-dpkg -i tomoyo-tools_2.5.0-3_i386.deb
-rm -f tomoyo-tools_2.5.0-3_i386.deb
-/usr/lib/tomoyo/init_policy
+/usr/lib/tomoyo/init_policy --use_profile=1
 awk ' { print "squashfs:"$0 } ' /etc/tomoyo/policy/current/manager.conf > /etc/tomoyo/policy/current/manager.conf.tmp
 cat /etc/tomoyo/policy/current/manager.conf.tmp >> /etc/tomoyo/policy/current/manager.conf
 rm -f /etc/tomoyo/policy/current/manager.conf.tmp
