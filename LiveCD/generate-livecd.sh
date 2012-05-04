@@ -15,25 +15,24 @@ die () {
 cd ${LIVECD_HOME}
 echo "********** Updating root filesystem for LiveCD. **********"
 
-echo '<kernel>' > squash/etc/ccs/domain_policy.conf
-echo 'use_profile 1' >> squash/etc/ccs/domain_policy.conf
-
-echo '<kernel>' > squash/etc/tomoyo/domain_policy.conf
-echo 'use_profile 1' >> squash/etc/tomoyo/domain_policy.conf
-
 mkdir -p -m 700 squash/var/log/tomoyo
-if  ! grep -q ccs-auditd squash/etc/init.d/rc.local
+if  ! grep -q tomoyo squash/etc/init.d/rc.local
 then
     (
-	echo 'if [ `stat -f --printf=%t /` -eq 61756673 ]'
+	echo 'if [ `stat -f --printf=%t /` -eq 1021994 ]'
 	echo 'then'
-	echo 'ccs-loadpolicy -e << EOF
+	echo '[ -d /proc/ccs/ ] && ccs-loadpolicy -e << EOF
+initialize_domain /usr/share/ubiquity/install.py
+keep_domain <kernel> /usr/share/ubiquity/install.py
+EOF'
+	echo '[ -d /sys/kernel/security/tomoyo/ ] && tomoyo-loadpolicy -e << EOF
 initialize_domain /usr/share/ubiquity/install.py
 keep_domain <kernel> /usr/share/ubiquity/install.py
 EOF'
 	echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/'
 	echo 'fi'
-	echo '/usr/sbin/ccs-auditd'
+	echo '[ -d /proc/ccs/ ] && /usr/sbin/ccs-auditd'
+	echo '[ -d /sys/kernel/security/tomoyo/ ] && /usr/sbin/tomoyo-auditd'
 	) >> squash/etc/init.d/rc.local
 fi
 
@@ -99,8 +98,9 @@ if ! grep -q TOMOYO ${SETUP_SCRIPT}
 then
 (
     echo '# --- TOMOYO Linux Project (begin) ---'
-    echo 'mv /root/home/$USERNAME/tomoyo-*.desktop /root/home/$USERNAME/Desktop/'
-    echo 'grep -q security=tomoyo /proc/cmdline && mv /root/home/$USERNAME/tomoyo2-editpolicy.desktop /root/home/$USERNAME/Desktop/' 
+    echo 'mv /root/home/$USERNAME/tomoyo*.desktop /root/home/$USERNAME/Desktop/'
+    echo '[ -d /proc/ccs/ ] || rm /root/home/$USERNAME/Desktop/tomoyo-editpolicy.desktop' 
+    echo '[ -d /sys/kernel/security/tomoyo/ ] || rm /root/home/$USERNAME/Desktop/tomoyo2-editpolicy.desktop' 
     echo '# --- TOMOYO Linux Project (end) ---'
 ) >> ${SETUP_SCRIPT}
 fi
