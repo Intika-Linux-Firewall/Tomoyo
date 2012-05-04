@@ -37,9 +37,21 @@ cat /etc/ccs/policy/current/manager.conf.tmp >> /etc/ccs/policy/current/manager.
 rm -f /etc/ccs/policy/current/manager.conf.tmp
 
 /usr/lib/tomoyo/init_policy --use_profile=1
-awk ' { print "squashfs:"$0 } ' /etc/tomoyo/policy/current/manager.conf > /etc/tomoyo/policy/current/manager.conf.tmp
-cat /etc/tomoyo/policy/current/manager.conf.tmp >> /etc/tomoyo/policy/current/manager.conf
-rm -f /etc/tomoyo/policy/current/manager.conf.tmp
+# Workaround for squashfs:/path/to/manager which the TOMOYO 2.5 kernel cannot acccept.
+(
+echo '<kernel> /usr/sbin/tomoyo-loadpolicy'
+echo '<kernel> /usr/sbin/tomoyo-editpolicy'
+echo '<kernel> /usr/sbin/tomoyo-setlevel'
+echo '<kernel> /usr/sbin/tomoyo-setprofile'
+echo '<kernel> /usr/sbin/tomoyo-queryd'
+) > /etc/tomoyo/policy/current/manager.conf
+(
+echo 'initialize_domain /usr/sbin/tomoyo-loadpolicy from any'
+echo 'initialize_domain /usr/sbin/tomoyo-editpolicy from any'
+echo 'initialize_domain /usr/sbin/tomoyo-setlevel from any'
+echo 'initialize_domain /usr/sbin/tomoyo-setprofile from any'
+echo 'initialize_domain /usr/sbin/tomoyo-queryd from any'
+) >> /etc/tomoyo/policy/current/exception_policy.conf
 
 umount -l /dev/pts/
 umount -l /sys/

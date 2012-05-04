@@ -25,7 +25,7 @@ then
 initialize_domain /usr/share/ubiquity/install.py
 keep_domain <kernel> /usr/share/ubiquity/install.py
 EOF'
-	echo '[ -d /sys/kernel/security/tomoyo/ ] && tomoyo-loadpolicy -e << EOF
+	echo 'grep -qF security=tomoyo /proc/cmdline && tomoyo-loadpolicy -e << EOF
 initialize_domain /usr/share/ubiquity/install.py
 keep_domain <kernel> /usr/share/ubiquity/install.py
 EOF'
@@ -100,7 +100,7 @@ then
     echo '# --- TOMOYO Linux Project (begin) ---'
     echo 'mv /root/home/$USERNAME/tomoyo*.desktop /root/home/$USERNAME/Desktop/'
     echo '[ -d /proc/ccs/ ] || rm /root/home/$USERNAME/Desktop/tomoyo-editpolicy.desktop' 
-    echo '[ -d /sys/kernel/security/tomoyo/ ] || rm /root/home/$USERNAME/Desktop/tomoyo2-editpolicy.desktop' 
+    echo 'grep -qF security=tomoyo /proc/cmdline || rm /root/home/$USERNAME/Desktop/tomoyo2-editpolicy.desktop' 
     echo '# --- TOMOYO Linux Project (end) ---'
 ) >> ${SETUP_SCRIPT}
 fi
