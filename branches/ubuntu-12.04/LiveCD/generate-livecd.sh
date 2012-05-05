@@ -25,7 +25,7 @@ then
 initialize_domain /usr/share/ubiquity/install.py
 keep_domain <kernel> /usr/share/ubiquity/install.py
 EOF'
-	echo 'grep -qF security=tomoyo /proc/cmdline && tomoyo-loadpolicy -e << EOF
+	echo '[ -d /sys/kernel/security/tomoyo/ ] && tomoyo-loadpolicy -e << EOF
 initialize_domain /usr/share/ubiquity/install.py
 keep_domain <kernel> /usr/share/ubiquity/install.py
 EOF'
@@ -70,10 +70,12 @@ rm -f squash/package-install.sh
 rm -f squash/var/lib/apt/lists/*_*
 rm -f squash/var/cache/debconf/*-old
 rm -f squash/boot/initrd.img-*-ccs
+rm -f squashetc/apt/trusted.gpg~
 
 cd ${LIVECD_HOME}
 echo "********** Copying kernel. **********"
-cp -af squash/boot/vmlinuz-*-ccs cdrom/casper/vmlinuz || die "Can't copy kernel."
+cp -af squash/boot/vmlinuz-*-ccs cdrom/casper/vmlinuz
+rm -f squash/boot/vmlinuz-*-ccs
 
 cd ${LIVECD_HOME}
 echo "********** Updating initramfs. **********"
@@ -99,8 +101,10 @@ then
 (
     echo '# --- TOMOYO Linux Project (begin) ---'
     echo 'mv /root/home/$USERNAME/tomoyo*.desktop /root/home/$USERNAME/Desktop/'
-    echo '[ -d /proc/ccs/ ] || rm /root/home/$USERNAME/Desktop/tomoyo-editpolicy.desktop' 
-    echo 'grep -qF security=tomoyo /proc/cmdline || rm /root/home/$USERNAME/Desktop/tomoyo2-editpolicy.desktop' 
+    echo '[ -d /proc/ccs/ ] || rm /root/home/$USERNAME/Desktop/tomoyo-editpolicy.desktop'
+    echo 'mount -t securityfs none /sys/kernel/security/'
+    echo '[ -d /sys/kernel/security/tomoyo/ ] || rm /root/home/$USERNAME/Desktop/tomoyo2-editpolicy.desktop'
+    echo 'umount /sys/kernel/security/'
     echo '# --- TOMOYO Linux Project (end) ---'
 ) >> ${SETUP_SCRIPT}
 fi

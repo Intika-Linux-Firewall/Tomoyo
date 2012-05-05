@@ -29,6 +29,8 @@ apt-get -y -o Dir::Etc::SourceList=/sources.list purge linux-image-3.2.0-23-gene
 apt-get -y -o Dir::Etc::SourceList=/sources.list upgrade || die "apt-get upgrade failed. Try again later."
 apt-get -y -o Dir::Etc::SourceList=/sources.list dist-upgrade || die "apt-get dist-upgrade failed. Try again later."
 apt-get -y -o Dir::Etc::SourceList=/sources.list autoremove
+dpkg --purge linux-headers-3.2.0-23 linux-headers-3.2.0-23-generic-pae
+find / -name '*.pyc' -print0 | xargs -0 rm --
 apt-get -y -o Dir::Etc::SourceList=/sources.list clean
 
 /usr/lib/ccs/init_policy --use_profile=1
