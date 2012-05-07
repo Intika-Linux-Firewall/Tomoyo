@@ -1307,7 +1307,7 @@ int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 	if (type == SOCK_DGRAM)
 		lock_sock(sk);
 #elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 2
-	if (type == SOCK_DGRAM && family != PF_UNIX)
+	if (type == SOCK_DGRAM)
 		lock_sock(sk);
 #endif
 	skb_kill_datagram(sk, skb, flags);
@@ -1315,7 +1315,7 @@ int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 	if (type == SOCK_DGRAM)
 		release_sock(sk);
 #elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 2
-	if (type == SOCK_DGRAM && family != PF_UNIX)
+	if (type == SOCK_DGRAM)
 		release_sock(sk);
 #endif
 	/* Hope less harmful than -EPERM. */
