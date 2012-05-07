@@ -1,7 +1,7 @@
 #! /bin/sh
 
 rm -f -- *backport*.deb *debug*.deb
-ls -1 linux*ccs*deb | awk ' { if ( index($0, "ccs1.7.3p3") == 0 ) print "mv " $0 " " $0; } ' | sed -e 's/ccs/ccs1.7.3p3/2' | sh
+ls -1 linux*ccs*deb | awk ' { if ( index($0, "ccs1.7.3p4") == 0 ) print "mv " $0 " " $0; } ' | sed -e 's/ccs/ccs1.7.3p4/2' | sh
 rm -f Contents.gz Packages Packages.gz Release Release.gpg
 apt-ftparchive contents . | gzip -9 > Contents.gz
 apt-ftparchive packages . > Packages
