@@ -18,11 +18,39 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.72.)
 
+Package: linux-headers-2.6.26-2-686-ccs
+Priority: optional
+Section: devel
+Installed-Size: 69020
+Maintainer: Unknown Kernel Package Maintainer <unknown@unconfigured.in.etc.kernel-pkg.conf>
+Architecture: i386
+Source: linux-source-2.6.26-2-686-ccs
+Version: 2.6.26-29
+Provides: linux-headers, linux-headers-2.6
+Depends: libc6 (>= 2.7-1), libncurses5 (>= 5.6+20071006-3)
+Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
+Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
+Filename: ./linux-headers-2.6.26-2-686-ccs1.8.3p7_2.6.26-29_i386.deb
+Size: 9319700
+MD5sum: 398d8c9574324c55fa17ee54b1bc0846
+SHA1: 1927d388388d2b26884bb49a19b58ecdb985f30e
+SHA256: 99c121533d2472485a45a88cb2aca9c6e5c39a46cd718a194f59cb196c704616
+SHA512: 9c7d3501249300c17dfb892cb1315d9145d96f176700194133463a2f0cfc97fd2a328e281428ee67a8b07fbdf8b48fe9290d50b19fbddc9a1c7b1611c68c1a66
+Description: Header files related to Linux kernel, specifically,
+ version 2.6.26-2-686-ccs
+ .
+ This package provides kernel header files for sites
+ that want the latest kernel headers for version
+ 2.6.26-2-686-ccs.
+ Please read
+ /usr/share/doc/linux-headers-2.6.26-2-686-ccs/debian.README.gz
+ for details
+
 Package: linux-image-2.6.26-2-686-ccs
 Priority: optional
 Section: admin
 Installed-Size: 59012
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Maintainer: Unknown Kernel Package Maintainer <unknown@unconfigured.in.etc.kernel-pkg.conf>
 Architecture: i386
 Source: linux-source-2.6.26-2-686-ccs
 Version: 2.6.26-29
@@ -30,12 +58,12 @@ Provides: linux-image, linux-image-2.6
 Depends: initramfs-tools (>= 0.53) | yaird (>= 0.0.11) | linux-initramfs-tool, coreutils (>= 5.96)
 Pre-Depends: debconf (>= 0.2.17) | debconf-2.0
 Suggests: lilo (>= 19.1) | grub, fdutils, linux-doc-2.6.26-2-686-ccs | linux-source-2.6.26-2-686-ccs, ksymoops
-Filename: ./linux-image-2.6.26-2-686-ccs1.8.3p6_2.6.26-29_i386.deb
-Size: 20410922
-MD5sum: d58f04ac5cd38026ad280b2091c44f67
-SHA1: bc09b8e257c0c4e3551628d687af8066f435011c
-SHA256: 6d4c55172d8b72e1854e9538d0c1c56334342e71835799aeb200f14a65b04594
-SHA512: e8ff3c1756b67659368e91c35a1f8a11f20611e2d03ca6ecf5d94d5533f6761943c8a455c872996751183998d36a4728d1fcf7f4d29c69cfbe7767830444aa97
+Filename: ./linux-image-2.6.26-2-686-ccs1.8.3p7_2.6.26-29_i386.deb
+Size: 20411098
+MD5sum: ea098d0796179cba5198bd5b19b89c0f
+SHA1: 14b2e54acfa372964e125acf6bdc3883736c0205
+SHA256: 7fb96fec82271bb4aa1e1e1fa77c63d3ad6fe60f6b6128cebbc8dd38333c50aa
+SHA512: 9b34af8dab088aa1f9a942e0dcad2e8296c12baf57409892a8f0a04b669a6054f228928f95bbfc9c643e27ef02bfd861155a44524315b8a657fd1f48d13f1e4c
 Description: Linux kernel binary image for version 2.6.26-2-686-ccs
  This package contains the Linux kernel image for version
  2.6.26-2-686-ccs.
@@ -51,50 +79,22 @@ Description: Linux kernel binary image for version 2.6.26-2-686-ccs
  for details on how to tailor the  installation of this or any other kernel
  image package
 
-Package: linux-headers-2.6.26-2-686-ccs
-Priority: optional
-Section: devel
-Installed-Size: 69020
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-source-2.6.26-2-686-ccs
-Version: 2.6.26-29
-Provides: linux-headers, linux-headers-2.6
-Depends: libc6 (>= 2.7-1), libncurses5 (>= 5.6+20071006-3)
-Recommends: libc6-dev | libc-dev, gcc | c-compiler, make (>= 3.80-10), binutils (>= 2.12), util-linux (>= 2.10o)
-Suggests: module-init-tools (>= 0.9.10), e2fsprogs (>= 1.29)
-Filename: ./linux-headers-2.6.26-2-686-ccs1.8.3p6_2.6.26-29_i386.deb
-Size: 9319672
-MD5sum: c3c847ab5f67ed106db63166a98e1b70
-SHA1: 011606dae3746ecd81c298698b4683308097bdc8
-SHA256: 59021941eccb6446918b9af2fe4bd46f60e49b7295bde1b2ca31682d2762a1cc
-SHA512: e25a5aa99648c606024831caf9a9bad9a7983ee2f701bf2e6ff795700966d9827443c08e96a884f0691966a7497b9fea95f6d38b19a9c32ff7c74099bc8e3dcd
-Description: Header files related to Linux kernel, specifically,
- version 2.6.26-2-686-ccs
- .
- This package provides kernel header files for sites
- that want the latest kernel headers for version
- 2.6.26-2-686-ccs.
- Please read
- /usr/share/doc/linux-headers-2.6.26-2-686-ccs/debian.README.gz
- for details
-
 Package: linux-image-2.6-686-ccs
 Priority: optional
 Section: admin
 Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Maintainer: Debian Kernel Team <debian-kernel@lists.debian.org>
 Architecture: i386
 Source: linux-latest-2.6 (17+lenny1)
 Version: 2.6.26+17+lenny1
 Provides: linux-latest-modules-2.6.26-2-686-ccs
 Depends: linux-image-2.6.26-2-686-ccs
-Filename: ./linux-image-2.6-686-ccs1.8.3p6_2.6.26+17+lenny1_i386.deb
-Size: 2544
-MD5sum: b4e2c9e4111b2c23189221da7f66df15
-SHA1: a56d72118af4c0639b60667b8d37e7c1bee93b40
-SHA256: f5737bae78e3b7d8caa81fb25cea7877432dcfb86255407adaadf8faf8ea6e78
-SHA512: 820e7af4c55bb25f55441a1c7e7acae2e4c150bff631d6fa14d869a7184ce64b17ad9ec90e0f1a3cbc68015b9a1ffe907c8d39f53b09b9ad4d745b381f0cd1b0
+Filename: ./linux-image-2.6-686-ccs1.8.3p7_2.6.26+17+lenny1_i386.deb
+Size: 2522
+MD5sum: c1b789fe906b20893e740c2b32d988c0
+SHA1: ca32edc9ba4ad2cbe97b6ac0e71cadc335324f97
+SHA256: 235a84b07ccd46063f10c24cbeb92210afd5e43f72ab2a7fed396d27c87e2ab7
+SHA512: 4e1f3e152769d62c26b049255077b5afcfba1849e0084222fb6707e8ed8fc5664f85817a7f832f7a929f71d51f44a45553281994780985959a38d91d2761ecc1
 Description: Linux 2.6 image on PPro/Celeron/PII/PIII/P4
  This package depends on the latest binary image for Linux kernel 2.6 on
  Pentium Pro/Celeron/Pentium II/Pentium III/Pentium 4 machines.
