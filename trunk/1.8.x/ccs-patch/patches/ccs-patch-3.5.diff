@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=220cfd342e935e9b6125a167fb9103073e6efa49;sf=tgz
+Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=b5b6cf5ccac07db5b8f95bfdf2bed432d05bf236;sf=tgz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -59,15 +59,15 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.4-rc7-next-20120516 2012/05/17\n");
++	printk(KERN_INFO "Hook version: 3.4-next-20120521 2012/05/21\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 --- linux-next.orig/include/linux/init_task.h
 +++ linux-next/include/linux/init_task.h
-@@ -134,6 +134,14 @@ extern struct cred init_cred;
- 
- #define INIT_TASK_COMM "swapper"
+@@ -141,6 +141,14 @@ extern struct cred init_cred;
+ # define INIT_TASK_NUMA(tsk)
+ #endif
  
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
@@ -80,10 +80,10 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -200,6 +208,7 @@ extern struct cred init_cred;
- 	INIT_TRACE_RECURSION						\
+@@ -208,6 +216,7 @@ extern struct cred init_cred;
  	INIT_TASK_RCU_PREEMPT(tsk)					\
  	INIT_CPUSET_SEQ							\
+ 	INIT_TASK_NUMA(tsk)						\
 +	INIT_CCSECURITY                                                 \
  }
  
@@ -99,7 +99,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  struct sched_param {
  	int sched_priority;
  };
-@@ -1626,6 +1628,10 @@ struct task_struct {
+@@ -1589,6 +1591,10 @@ struct task_struct {
  	struct uprobe_task *utask;
  	int uprobe_srcu_id;
  #endif
@@ -315,7 +315,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
 --- linux-next.orig/include/net/ip.h
 +++ linux-next/include/net/ip.h
-@@ -217,6 +217,8 @@ extern void inet_get_local_port_range(in
+@@ -200,6 +200,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
  {
@@ -334,7 +334,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1329,6 +1330,9 @@ static struct task_struct *copy_process(
+@@ -1323,6 +1324,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -344,7 +344,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1529,6 +1533,7 @@ bad_fork_cleanup_semundo:
+@@ -1527,6 +1531,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -427,7 +427,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		ret = ptrace_traceme();
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3943,6 +3943,8 @@ int can_nice(const struct task_struct *p
+@@ -3947,6 +3947,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -456,7 +456,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2906,6 +2910,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2906,6 +2910,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -465,7 +465,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2933,6 +2939,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t,
+@@ -2933,6 +2939,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  		return -EPERM;
  	}
  	info.si_signo = sig;
