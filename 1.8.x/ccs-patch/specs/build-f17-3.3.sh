@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.3.4-5.fc17.src.rpm ]
+if [ ! -r kernel-3.3.6-3.fc17.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/testing/17/SRPMS/kernel-3.3.4-5.fc17.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/testing/17/SRPMS/kernel-3.3.6-3.fc17.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.3.4-5.fc17.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.3.4-5.fc17.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.3.6-3.fc17.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.3.6-3.fc17.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120505.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -995,7 +1000,7 @@
+@@ -986,7 +991,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1014,7 +1019,7 @@
+@@ -1005,7 +1010,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1590,6 +1595,10 @@
+@@ -1571,6 +1576,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1619,6 +1628,18 @@
+@@ -1600,6 +1609,18 @@
  for i in *.config
  do
    mv $i .config
