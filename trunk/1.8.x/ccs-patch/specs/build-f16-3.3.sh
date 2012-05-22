@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.3.5-2.fc16.src.rpm ]
+if [ ! -r kernel-3.3.6-3.fc16.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.3.5-2.fc16.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.3.6-3.fc16.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.3.5-2.fc16.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.3.5-2.fc16.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.3.6-3.fc16.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.3.6-3.fc16.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120505.tar.gz ]
