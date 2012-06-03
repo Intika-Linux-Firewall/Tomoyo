@@ -99,20 +99,13 @@ Linux kernel 2.6.33 and later are supported.</p>
 
 <p>Extract the kernel source and go to the extracted directory.</p>
 
-<p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 3.2, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
+<p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 3.4, download a backport patch that matches your kernel version from <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
 
 <pre class="command">
-$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.4-rc1.tar.bz2
-$ tar -jxf linux-3.4-rc1.tar.bz2 --strip 1 linux-3.4-rc1/security/tomoyo/
+$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.5-rc1.tar.bz2
+$ tar -jxf linux-3.5-rc1.tar.bz2 --strip 1 linux-3.5-rc1/security/tomoyo/
 $ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
-</pre>
-
-<p>If you want to use TOMOYO 2.5 on Linux 3.3 kernels, run the following commands:</p>
-
-<pre class="command">
-$ wget http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.4-rc1.tar.bz2
-$ tar -jxf linux-3.4-rc1.tar.bz2 --strip 1 linux-3.4-rc1/security/tomoyo/
 </pre>
 
 <h4><a name="3.1.4">3.1.4. Configure the kernel</a></h4>
