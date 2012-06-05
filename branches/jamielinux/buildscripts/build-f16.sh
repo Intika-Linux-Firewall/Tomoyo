@@ -5,14 +5,14 @@ DOWNLOAD_DIR="${HOME}/sources"
 
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
-URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/16/SRPMS"
+URL_KERNEL="http://fedora.mirrors.ovh.net/linux/updates/16/SRPMS"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.3p4"
-CCS_PATCH_VER="1.8.3-20120120"
-KERNEL_VER="3.2.7-1.fc16"
+CCS_VER="1.8.3p7"
+CCS_PATCH_VER="1.8.3-20120505"
+KERNEL_VER="3.3.7-1.fc16"
 
-CCS_DIFF_NAME="ccs-patch-3.2.diff"
+CCS_DIFF_NAME="ccs-patch-3.3.diff"
 
 UPDATED_DIFF=0
 #CCS_DIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
@@ -23,7 +23,7 @@ rm -rf "${HOME}/rpmbuild/SOURCES"
 ln -sf "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}" ${HOME}/rpmbuild/SOURCES
 
 if [[ ! -d "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}" ]]; then
-	mkdir "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
+	mkdir -p "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
 fi
 cd "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
 
