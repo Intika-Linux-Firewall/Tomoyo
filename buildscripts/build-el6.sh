@@ -5,13 +5,12 @@ DOWNLOAD_DIR="${HOME}/sources"
 
 URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
 URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
-#URL_KERNEL="http://www.mirrorservice.org/sites/ftp.scientificlinux.org/linux/scientific/6.1/SRPMS/vendor"
 URL_KERNEL="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.3p4"
-CCS_PATCH_VER="1.8.3-20120120"
-KERNEL_VER="2.6.32-220.4.1.el6"
+CCS_VER="1.8.3p7"
+CCS_PATCH_VER="1.8.3-20120505"
+KERNEL_VER="2.6.32-220.17.1.el6"
 
 CCS_DIFF_NAME="ccs-patch-2.6.32-centos-6.2.diff"
 
@@ -24,7 +23,7 @@ rm -rf "${HOME}/rpmbuild/SOURCES"
 ln -sf "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}" ${HOME}/rpmbuild/SOURCES
 
 if [[ ! -d "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}" ]]; then
-	mkdir "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
+	mkdir -p "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
 fi
 cd "${DOWNLOAD_DIR}/ccs-kernel-${KERNEL_VER}"
 
