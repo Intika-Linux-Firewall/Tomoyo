@@ -45,7 +45,7 @@
 <p>以下のディストリビューションに関してバイナリパッケージが提供されています：</p>
 
 <ul>
-<li>Fedora 14/15/16</li>
+<li>Fedora 14/15/16/17</li>
 <li>RHEL/CentOS/Scientific Linux 3.9/4.9/5.8/6.2</li>
 <li>Debian Lenny/Squeeze</li>
 <li>OpenSUSE 11.3/11.4/12.1</li>
@@ -317,6 +317,12 @@ $ make -s menuconfig
 <p><em>Location of userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはポリシーローダとして使用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで CCS_loader= オプションで上書きできます。</p>
 
 <p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで CCS_trigger= オプションで上書きできます。例えば、 init=/bin/systemd というオプションを指定する場合、 CCS_trigger=/bin/systemd というオプションも指定することになるでしょう。</p>
+
+<p>Fedora 17 では、 <code>/sbin/init</code> は <code>/usr/lib/systemd/systemd</code> へのシンボリックリンクです。そのため、 Fedora 17 で TOMOYO を使うには、カーネルのコマンドラインに CCS_trigger=/usr/lib/systemd/systemd を追加する必要があります。 /boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
+
+<pre>
+GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True rd.luks=0 KEYTABLE=jp106 LANG=ja_JP.UTF-8 rhgb quiet CCS_trigger=/usr/lib/systemd/systemd"
+</pre>
 
 <h4><a name="3.3.4">3.3.4. カーネルのコンパイルおよびインストール</a></h4>
 
