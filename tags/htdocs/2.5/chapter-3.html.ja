@@ -135,6 +135,8 @@ $ make -s menuconfig
 
 <p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_trigger= オプションで上書きできます。例えば、 init=/bin/systemd というオプションを指定する場合、 TOMOYO_trigger=/bin/systemd というオプションも指定することになるでしょう。</p>
 
+<p>Fedora 17 では、 /sbin/init は /usr/lib/systemd/systemd へのシンボリックリンクです。そのため、 Fedora 17 で TOMOYO を使うには、コンパイル時に /sbin/init の代わりに /usr/lib/systemd/systemd を指定しない場合、カーネルのコマンドラインに TOMOYO_trigger=/usr/lib/systemd/systemd を追加する必要があります。</p>
+
 <h4><a name="3.1.5">3.1.5. カーネルのコンパイルおよびインストール</a></h4>
 
 <p>カーネルコンパイルオプションの変更が終わったら、以下のコマンドを実行してカーネルをコンパイルしてください：</p>

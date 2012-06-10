@@ -135,6 +135,8 @@ $ make -s menuconfig
 
 <p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "TOMOYO_trigger=" kernel command-line option. For example, if you pass "init=/bin/systemd" option, you may also want to pass "TOMOYO_trigger=/bin/systemd" option.</p>
 
+<p>In Fedora 17, /sbin/init is a symlink to /usr/lib/systemd/systemd . Therefore, to use TOMOYO in Fedora 17, you will need to include "TOMOYO_trigger=/usr/lib/systemd/systemd" in the kernel boot options if you don't specify /usr/lib/systemd/systemd instead for /sbin/init at build time.</p>
+
 <h4><a name="3.1.5">3.1.5. Compile and install the kernel</a></h4>
 
 <p>Once the kernel has been configured, compile and install the kernel with the following commands:</p>
