@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27-74vl5.src.rpm ]
+if [ ! -r kernel-2.6.27-76vl5.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-5.2/updates/SRPMS/kernel-2.6.27-74vl5.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-5.2/updates/SRPMS/kernel-2.6.27-76vl5.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.27-74vl5.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.27-76vl5.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.9-20120511.tar.gz ]
@@ -28,11 +28,11 @@ patch << "EOF" || die "Can't patch spec file."
 --- kernel-2.6-vl.spec
 +++ kernel-2.6-vl.spec
 @@ -27,7 +27,7 @@
- %define patchlevel 59
+ %define patchlevel 62
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 74%{?_dist_release}
-+%define release 74%{?_dist_release}_tomoyo_1.6.9p4
+-%define release 76%{?_dist_release}
++%define release 76%{?_dist_release}_tomoyo_1.6.9p4
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -846,6 +849,10 @@
+@@ -848,6 +851,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -864,6 +871,9 @@
+@@ -866,6 +873,9 @@
  for i in *.config
  do 
  	mv $i .config 
