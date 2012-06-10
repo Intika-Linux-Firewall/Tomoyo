@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 16's 3.3 kernel.
+# This is a kernel build script for Fedora 17's 3.4 kernel.
 #
 
 die () {
@@ -8,16 +8,16 @@ die () {
     exit 1
 }
 
-yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc
+yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.3.7-1.fc17.src.rpm ]
+if [ ! -r kernel-3.4.0-1.fc17.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.3.7-1.fc17.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.4.0-1.fc17.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.3.7-1.fc17.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.3.7-1.fc17.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.4.0-1.fc17.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.4.0-1.fc17.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120505.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -985,7 +990,7 @@
+@@ -945,7 +950,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1004,7 +1009,7 @@
+@@ -964,7 +969,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1569,6 +1574,10 @@
+@@ -1484,6 +1489,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120505.tar.gz
-+patch -sp1 < patches/ccs-patch-3.3-fedora-16.diff
++patch -sp1 < patches/ccs-patch-3.4-fedora-17.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1598,6 +1607,18 @@
+@@ -1513,6 +1522,18 @@
  for i in *.config
  do
    mv $i .config
