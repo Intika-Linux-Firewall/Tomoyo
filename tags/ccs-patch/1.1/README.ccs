@@ -1,0 +1,260 @@
+Notes for TOMOYO Linux project
+
+This is a handy Mandatory Access Control patch for Linux kernels.
+This patch is released under the GPL.
+
+Project URL: http://sourceforge.jp/projects/tomoyo/
+             http://tomoyo.sourceforge.jp/
+
+The authors of this patch (hereafter, we) don't have much experience
+in kernel programming. We are worried that this patch would contain
+some mistakes such as missing hooks, improper location of hooks,
+potential deadlocks. There would be better way of implementation.
+All kinds of comments, pointing the errors and suggestions are welcome.
+
+We do hope this patch reduces the labor of server security management
+and you enjoy the life with Linux.
+
+This project was very inspired by the comic "Card Captor SAKURA",
+one of the CLAMP's masterworks.
+The names SAKURA and TOMOYO and SYAORAN were borrowed from the comic
+with the heartfelt thanks to CLAMP.
+
+
+
+ChangeLog:
+
+Version 1.0   2005/11/11   First release.
+
+Fix 2005/11/18
+
+    @ Add setattr() missing hook in SYAORAN fs.
+
+      setattr() checking for special inode was missing.
+
+Fix 2005/11/25
+
+    @ Allow initrd.img include /sbin/init .
+
+      Since version 1.0 loads policy when /sbin/init is called
+      for the first time, initrd.img without the policy directory
+      mustn't start /sbin/init . This forced users not to use
+      initrd.img that includes /sbin/init .
+      I modified to delay loading policy if the policy directory
+      doesn't exist and wait for /sbin/init being called again.
+
+Fix 2005/12/02
+
+    @ Use lookup_one_len() instead of lookup_hash().
+
+      Kernel 2.6.15 changed parameters for lookup_hash().
+      I modified to use lookup_one_len() to keep compatibility.
+
+Fix 2005/12/06
+
+    @ Add S_ISDIR() check in SYAORAN fs.
+
+      Malicious configuration file that attempts to create an inode
+      under non-directory inode caused segmentation fault.
+
+Version 1.0.1 2005/12/08   Minor update release.
+
+Fix 2006/01/04
+
+    @ Add CheckWritePermission() check in unix_bind().
+
+      I modified to check write permission in unix_bind(), for
+      sys_mknod(S_IFSOCK) checks write permission.
+
+    @ Show hook version in proc_misc_init().
+
+      The hook part of this patch depends on the kernel's version,
+      while the rest part of this patch doesn't.
+      I added the hook version so that the administrator can
+      know the last modified date of the hooks.
+
+    @ Move permission checks from filp_open() to open_namei().
+
+      I moved the location of checking MAC's permission
+      from filp_open() to open_namei().
+
+    @ Fix an error in filp_open().  (only 2.6.15-rc5)
+
+      This error was only in the patch 2.6.15-rc5 and
+      was fixed in the patch for 2.6.15.
+
+Fix 2006/01/12
+
+    @ Add /proc/ccs/info/self_domain.
+
+      I added /proc/ccs/info/self_domain so that the userland programs
+      can know the name of domain they belong to if necessary.
+
+Fix 2006/01/13
+
+    @ Merge constants for CheckTaskCapability().
+
+      I merged *_INHERITABLE_* and *_LOCAL_* to avoid always
+      calling CheckTaskCapability() with both constants.
+
+    @ DropTaskCapability() returns -EAGAIN on success.
+
+      DropTaskCapability() must not return 0 on success, for
+      DropTaskCapability() is called from do_execve().
+
+    @ Fix an error for chroot() permission check.
+
+      The chroot() restriction was not working due to the following mistake.
+      CheckChRootPermission() || CheckTaskCapability() returns 0 or 1, while
+      CheckChRootPermission() | CheckTaskCapability() returns 0 or -EPERM.
+
+Fix 2006/01/17
+
+    @ Suppress some of debug messages in TOMOYO.
+
+      I added KERN_DEBUG to suppress some of debug messages.
+
+Fix 2006/01/19
+
+    @ Remove isRoot() checks in AddChrootACL() and AddMountACL().
+
+      I found a program that needs to chroot by non-root.
+      So, I stopped checking uid=euid=0 for these functions so that
+      "accept mode" can append ACLs.
+      The isRoot() is checked at AddChrootPolicy() and AddMountPolicy().
+
+    @ Map NULL device name to "<NULL>" in AddMountACL().
+
+      VMware mounts vmware-hgfs with NULL device name.
+      So I mapped NULL device name to "<NULL>".
+
+Fix 2006/01/20
+
+    @ Suppress some of debug messages in SAKURA.
+
+      I added KERN_DEBUG to suppress some of debug messages.
+
+    @ Call panic() if failed to load given profile.
+
+      Call panic() if profile index was given via CCS= parameter
+      but the profile doesn't exist.
+      If CCS= parameter is not given, the kernel attempts to load
+      profile 0, but it doesn't call panic() if profile 0 doesn't exist.
+
+Fix 2006/01/24
+
+    @ Use full_name_hash() for IsGloballyReadableFile().
+
+      I modified to use full_name_hash() for faster scan.
+
+    @ Add signal checking condition in CheckSignalACL().
+
+      The documentation says "if the target domain's domainname
+      starts with the source domain's domainname, it is always granted"
+      but actually it isn't. I'll change the documentation instead of
+      changing the source code.
+
+      Also, checking for pid = -1 was missing. This error was fixed.
+
+Fix 2006/02/09
+
+    @ Use mutex_lock()/mutex_unlock instead of down()/up().
+
+      Kernel 2.6.16 changed members of "struct inode".
+      I modified to use mutex_lock()/mutex_unlock() for after 2.6.16
+      and down()/up() for before 2.6.16.
+
+Version 1.0.2 2006/02/14   Many bug-fixes release.
+
+Fix 2006/02/21
+
+    @ Divide generic-write permission into individual write permissions.
+
+      Write permission was divided into the following permissions.
+
+      'mkdir'     for creating directory.
+      'rmdir'     for deleting directory.
+      'create'    for creating regular file.
+      'unlink'    for deleting non-directory.
+      'mksock'    for creating UNIX domain socket.
+      'mkfifo'    for creating FIFO.
+      'mkchar'    for creating character device.
+      'mkblock'   for creating block device.
+      'link'      for creating hard link.
+      'symlink'   for creating symbolic link.
+      'rename'    for renaming directory or non-directory.
+      'truncate'  for truncating regular file.
+
+      The permission check for opening files is done using
+      conventional read/write/execute permission.
+
+    @ Add /proc/ccs/info/mapping.
+
+      I added /proc/ccs/info/mapping so that the userland programs
+      can know the mapping of individual write permissions.
+
+Fix 2006/02/27
+
+    @ Fix handling of trailing '\*' in PathMatchesToPattern().
+
+      PathMatchesToPattern("/tmp/", "/tmp/\*") returned true
+      because "\*" matches to "more than or equals to 0 character
+      until '/' or end". But since this is a comparison between
+      directory and non-directory, this should not match.
+
+      This behavior causes the following security risks.
+      In enforce mode, allowing "2 /tmp/\*" grants
+      "mkdir /tmp/" and "rmdir /tmp/" which should be
+      granted only when "2 /tmp/" is allowed.
+      In accept mode, "mkdir /tmp/" or "rmdir /tmp/" appends
+      "2 /tmp/\*" into the domain policy if "file_pattern /tmp/\*"
+      is in the exception policy.
+
+      I changed not to ignore trailing '\*' in the pattern
+      if pathname ends with '/'.
+
+Fix 2006/03/01
+
+    @ Add missing spinlock in GetAbsolutePath().
+
+      vfsmount_lock was missing.
+
+Fix 2006/03/08
+
+    @ Add support for "shared subtree" mount operations.
+
+      Kernel 2.6.15 introduced "shared subtree" functionality.
+      But CheckMountPermission() couldn't recognize flags for
+      do_change_type().
+
+    @ Add support for more mount flags.
+
+      atime/noatime, diratime/nodiratime, recurse/norecurse flags
+      are supported.
+
+Fix 2006/03/20
+
+    @ Check port numbers for only AF_INET/AF_INET6.
+
+      CheckBindEntry() and CheckConnectEntry() should check port numbers
+      only when the given address family is either AF_INET or AF_INET6,
+      for address family such as AF_UNSPEC could be passed to bind()
+      and connect() for PF_INET/PF_INET6 sockets.
+
+Fix 2006/03/27
+
+    @ Use /proc/self/ rather than /proc/\$/ for current process.
+
+      GetAbsolutePath() now uses "self" instead of pid
+      if current process refers to information related to itself.
+      This exception violates the rule "TOMOYO Linux's pathnames don't
+      contain symbolic links before the last '/'", but I think it worth
+      to do so. The following are the merits gained by this exception.
+
+      Prevent administrators from granting redundant permissions
+      when a process needs to refer to only current process's information.
+
+      Allow administrators make current process's information always
+      readable using 'allow_read' directive.
+
+Version 1.1   2006/04/01   Functionality enhancement release.
