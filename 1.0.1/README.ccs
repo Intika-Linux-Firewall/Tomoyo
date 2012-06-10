@@ -1,0 +1,60 @@
+Notes for TOMOYO Linux project
+
+This is a handy Mandatory Access Control patch for Linux kernels.
+This patch is released under the GPL.
+
+Project URL: http://sourceforge.jp/projects/tomoyo/
+             http://tomoyo.sourceforge.jp/
+
+The authors of this patch (hereafter, we) don't have much experience
+in kernel programming. We are worried that this patch would contain
+some mistakes such as missing hooks, improper location of hooks,
+potential deadlocks. There would be better way of implementation.
+All kinds of comments, pointing the errors and suggestions are welcome.
+
+We do hope this patch reduces the labor of server security management
+and you enjoy the life with Linux.
+
+This project was very inspired by the comic "Card Captor SAKURA",
+one of the CLAMP's masterworks.
+The names SAKURA and TOMOYO and SYAORAN were borrowed from the comic
+with the heartfelt thanks to CLAMP.
+
+
+
+ChangeLog:
+
+Version 1.0   2005/11/11   First release.
+
+Fix 2005/11/18
+
+    @ Add setattr() missing hook in SYAORAN fs.
+
+      setattr() checking for special inode was missing.
+
+Fix 2005/11/25
+
+    @ Allow initrd.img include /sbin/init .
+
+      Since version 1.0 loads policy when /sbin/init is called
+      for the first time, initrd.img without the policy directory
+      mustn't start /sbin/init . This forced users not to use
+      initrd.img that includes /sbin/init .
+      I modified to delay loading policy if the policy directory
+      doesn't exist and wait for /sbin/init being called again.
+
+Fix 2005/12/02
+
+    @ Use lookup_one_len() instead of lookup_hash().
+
+      Kernel 2.6.15 changed parameters for lookup_hash().
+      I modified to use lookup_one_len() to keep compatibility.
+
+Fix 2005/12/06
+
+    @ Add S_ISDIR() check in SYAORAN fs.
+
+      Malicious configuration file that attempts to create an inode
+      under non-directory inode caused segmentation fault.
+
+Version 1.0.1 2005/12/08   Minor update release.

@@ -1,0 +1,73 @@
+#
+# Mandatory Access Control configuration
+#
+[ -z "$CONFIG_SAKURA" ] && define_bool CONFIG_SAKURA n
+bool 'SAKURA (Domain-Free Mandatory Access Control) support' CONFIG_SAKURA
+
+if [ "$CONFIG_SAKURA" = "y" ]; then
+
+  [ -z "$CONFIG_SAKURA_RESTRICT_MOUNT" ] && define_bool CONFIG_SAKURA_RESTRICT_MOUNT y
+  bool '  mount() restriction support' CONFIG_SAKURA_RESTRICT_MOUNT
+
+  [ -z "$CONFIG_SAKURA_RESTRICT_CHROOT" ] && define_bool CONFIG_SAKURA_RESTRICT_CHROOT y
+  bool '  chroot() restriction support' CONFIG_SAKURA_RESTRICT_CHROOT
+
+  [ -z "$CONFIG_SAKURA_RESTRICT_UNMOUNT" ] && define_bool CONFIG_SAKURA_RESTRICT_UNMOUNT y
+  bool '  umount() restriction support' CONFIG_SAKURA_RESTRICT_UNMOUNT
+
+  [ -z "$CONFIG_SAKURA_TRACE_READONLY" ] && define_bool CONFIG_SAKURA_TRACE_READONLY y
+  bool '  Read-only filesystem error tracing support' CONFIG_SAKURA_TRACE_READONLY
+
+  [ -z "$CONFIG_SAKURA_DENY_CONCEAL_MOUNT" ] && define_bool CONFIG_SAKURA_DENY_CONCEAL_MOUNT y
+  bool '  Conceal mount disabler support' CONFIG_SAKURA_DENY_CONCEAL_MOUNT
+
+  [ -z "$CONFIG_SAKURA_DENY_PIVOT_ROOT" ] && define_bool CONFIG_SAKURA_DENY_PIVOT_ROOT y
+  bool '  pivot_root() disabler support' CONFIG_SAKURA_DENY_PIVOT_ROOT
+
+  [ -z "$CONFIG_SAKURA_RESTRICT_AUTOBIND" ] && define_bool CONFIG_SAKURA_RESTRICT_AUTOBIND y
+  bool '  Autobind restriction support' CONFIG_SAKURA_RESTRICT_AUTOBIND
+
+  [ -z "$CONFIG_SAKURA_DROP_CAPABILITY_API" ] && define_bool CONFIG_SAKURA_DROP_CAPABILITY_API n
+  bool '  Dropping capabilities interface support (EXPERIMENTAL)' CONFIG_SAKURA_DROP_CAPABILITY_API
+
+fi
+
+[ -z "$CONFIG_TOMOYO" ] && define_bool CONFIG_TOMOYO n
+bool 'TOMOYO (Domain-Based Mandatory Access Control) support' CONFIG_TOMOYO
+
+if [ "$CONFIG_TOMOYO" = "y" ]; then
+
+  [ -z "$CONFIG_TOMOYO_MAC_FOR_FILE" ] && define_bool CONFIG_TOMOYO_MAC_FOR_FILE y
+  bool '  File Access Control support' CONFIG_TOMOYO_MAC_FOR_FILE
+
+  [ -z "$CONFIG_TOMOYO_MAC_FOR_BINDPORT" ] && define_bool CONFIG_TOMOYO_MAC_FOR_BINDPORT y
+  bool '  Local Port Control support' CONFIG_TOMOYO_MAC_FOR_BINDPORT
+
+  [ -z "$CONFIG_TOMOYO_MAC_FOR_CONNECTPORT" ] && define_bool CONFIG_TOMOYO_MAC_FOR_CONNECTPORT y
+  bool '  Remote Port Control support' CONFIG_TOMOYO_MAC_FOR_CONNECTPORT
+
+  [ -z "$CONFIG_TOMOYO_MAC_FOR_SIGNAL" ] && define_bool CONFIG_TOMOYO_MAC_FOR_SIGNAL y
+  bool '  Signal Control support' CONFIG_TOMOYO_MAC_FOR_SIGNAL
+
+  [ -z "$CONFIG_TOMOYO_MAC_FOR_CAPABILITY" ] && define_bool CONFIG_TOMOYO_MAC_FOR_CAPABILITY y
+  bool '  Capability Control support' CONFIG_TOMOYO_MAC_FOR_CAPABILITY
+
+  [ -z "$CONFIG_TOMOYO_MAX_ACCEPT_FILES" ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_FILES 256
+  [ $CONFIG_TOMOYO_MAX_ACCEPT_FILES -lt 0 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_FILES 0
+  [ $CONFIG_TOMOYO_MAX_ACCEPT_FILES -gt 1048576 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_FILES 1048576
+  int  '  Default maximal count for accept mode (0-1048576)' CONFIG_TOMOYO_MAX_ACCEPT_FILES
+
+  [ -z "$CONFIG_TOMOYO_MAX_GRANT_LOG" ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 1024
+  [ $CONFIG_TOMOYO_MAX_GRANT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 0
+  [ $CONFIG_TOMOYO_MAX_GRANT_LOG -gt 1024 ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 1024
+  int  '  Default maximal count for grant log (0-1024)' CONFIG_TOMOYO_MAX_GRANT_LOG
+
+  [ -z "$CONFIG_TOMOYO_MAX_REJECT_LOG" ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 1024
+  [ $CONFIG_TOMOYO_MAX_REJECT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 0
+  [ $CONFIG_TOMOYO_MAX_REJECT_LOG -gt 1024 ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 1024
+  int  '  Default maximal count for reject log (0-1024)' CONFIG_TOMOYO_MAX_REJECT_LOG
+
+fi
+
+[ -z "$CONFIG_SYAORAN" ] && define_tristate CONFIG_SYAORAN n
+tristate 'SYAORAN (Tamper-Proof Device Filesystem) support' CONFIG_SYAORAN
