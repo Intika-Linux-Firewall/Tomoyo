@@ -405,7 +405,23 @@ Creating configuration file for ccs-notifyd ... OK
 
 <p>TOMOYO Linux supports the kernel boot option "CCS_trigger" from version 1.8.2 and later. This is useful for systems that run a program other than <code>/sbin/init</code> on startup, for example when booting using systemd which uses <code>/bin/systemd</code>. In this case, you should include "CCS_trigger=/bin/systemd" in the kernel boot options.</p>
 
-<p>In Fedora 17, <code>/sbin/init</code> is a symlink to <code>/usr/lib/systemd/systemd</code>. Therefore, to use TOMOYO in Fedora 17, you need to include "CCS_trigger=/usr/lib/systemd/systemd" in the kernel boot options. You may directly edit /boot/grub2/grub.cfg file. But it is recommended that you also modify GRUB_CMDLINE_LINUX line in /etc/default/grub file like below in case you update kernel packages in the future:</p>
+<p>In Fedora 17, /sbin/init exists as a symlink to /usr/lib/systemd/systemd . However, since /init script in the initramfs tries to execute /usr/lib/systemd/systemd (the pathname printed by readlink command) rather than /sbin/init (the pathname passed to readlink command), the trigger for activating TOMOYO is /usr/lib/systemd/systemd rather than /sbin/init :</p>
+
+<pre>
+# By the time we get here, the root filesystem should be mounted.
+# Try to find init.
+for i in "$(getarg real_init=)" "$(getarg init=)" $(getargs rd.distroinit=) /sbin/init; do
+    [ -n "$i" ] || continue
+
+    __p=$(readlink -f "${NEWROOT}/${i}")
+    if [ -x "$__p" ]; then
+        INIT="$i"
+        break
+    fi
+done
+</pre>
+
+<p>Therefore, in Fedora 17, you need to include "CCS_trigger=/usr/lib/systemd/systemd" in the kernel boot options if you didn't specify /usr/lib/systemd/systemd at <a href="#3.3.3">3.3.3. Configure the kernel</a>. You may directly edit /boot/grub2/grub.cfg file. But it is recommended that you also modify GRUB_CMDLINE_LINUX line in /etc/default/grub file like below in case you update kernel packages in the future:</p>
 
 <pre>
 GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True rd.luks=0 KEYTABLE=en LANG=en_US.UTF-8 rhgb quiet CCS_trigger=/usr/lib/systemd/systemd"
