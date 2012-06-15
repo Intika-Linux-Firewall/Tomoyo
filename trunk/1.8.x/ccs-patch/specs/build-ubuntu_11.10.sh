@@ -3,6 +3,16 @@
 # This is kernel build script for ubuntu 11.10's 3.0 kernel.
 #
 
+update_maintainer () {
+    for i in debian*/control debian*/control.stub*
+    do
+	cp -p $i $i.orig
+	sed -i -e 's/Maintainer: .*/Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>/' -- $i
+	touch -r $i.orig $i
+	rm $i.orig
+    done
+}
+
 die () {
     echo $1
     exit 1
@@ -33,6 +43,7 @@ for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, "
 
 # Apply patches and create kernel config.
 cd linux-3.0.0/ || die "Can't chdir to linux-3.0.0/ ."
+update_maintainer
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.3-20120610.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-3.0-ubuntu-11.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
@@ -79,6 +90,7 @@ cd /usr/src/
 rm -fR linux-meta-*/
 apt-get source linux-meta
 cd linux-meta-*/
+update_maintainer
 sed -e 's/'${ORIGINAL_FLAVOUR}'/'${NEW_FLAVOUR}'/g' -- debian/control.d/${ORIGINAL_FLAVOUR} > debian/${NEW_FLAVOUR}
 rm -f debian/control.d/*
 mv debian/${NEW_FLAVOUR} debian/control.d/${NEW_FLAVOUR}
