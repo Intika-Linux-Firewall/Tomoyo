@@ -3,6 +3,16 @@
 # This is kernel build script for debian squeeze's 2.6.32 kernel.
 #
 
+update_maintainer () {
+    for i in debian*/control debian*/control.stub*
+    do
+	cp -p $i $i.orig
+	sed -i -e 's/Maintainer: .*/Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>/' -- $i
+	touch -r $i.orig $i
+	rm $i.orig
+    done
+}
+
 die () {
     echo $1
     exit 1
@@ -42,6 +52,7 @@ tar -jxf linux-source-2.6.32.tar.bz2
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.32 || die "Can't chdir to linux-source-2.6.18/ ."
+update_maintainer
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.3-20120610.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.32-debian-squeeze.diff || die "Can't apply patch."
 cat /boot/config-2.6.32-5-686 config.ccs > .config || die "Can't create config."

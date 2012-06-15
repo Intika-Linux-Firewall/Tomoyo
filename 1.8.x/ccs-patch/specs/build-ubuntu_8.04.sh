@@ -3,6 +3,16 @@
 # This is kernel build script for ubuntu 8.04's 2.6.24 kernel.
 #
 
+update_maintainer () {
+    for i in debian*/control debian*/control.stub*
+    do
+	cp -p $i $i.orig
+	sed -i -e 's/Maintainer: .*/Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>/' -- $i
+	touch -r $i.orig $i
+	rm $i.orig
+    done
+}
+
 die () {
     echo $1
     exit 1
@@ -36,6 +46,7 @@ for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, "
 
 # Copy patches and create kernel config.
 cd linux-2.6.24/ || die "Can't chdir to linux-2.6.24/ ."
+update_maintainer
 mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
 mkdir -p ccs-patch/ || die "Can't create directory."
 cd ccs-patch/ || die "Can't chdir to ccs-patch/ ."
@@ -61,6 +72,7 @@ cd ../ || die "Can't chdir to ../ ."
 # Install header package for compiling additional modules.
 dpkg -i linux-headers-*-ccs*.deb || die "Can't install packages."
 cd linux-ubuntu-modules-2.6.24-2.6.24 || die "Can't chdir to linux-ubuntu-modules-2.6.24-2.6.24 ."
+update_maintainer
 awk ' BEGIN { flag = 0; print ""; } { if ($1 == "Package:" ) { if (index($0, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub | sed -e 's:-generic:-ccs:' > debian/control.stub.ccs || die "Can't create file."
 cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
 debian/rules debian/control || die "Can't run control."
@@ -69,6 +81,7 @@ debian/rules binary-indep binary-arch || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
 cd linux-restricted-modules-2.6.24-2.6.24.18/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.18/ ."
+update_maintainer
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
 sed -i -e 's/,generic/,ccs generic/' debian/rules || die "Can't edit file."
@@ -80,6 +93,7 @@ cd /usr/src/
 rm -fR linux-meta-*/
 apt-get source linux-meta
 cd linux-meta-*/
+update_maintainer
 sed -e 's/generic/ccs/g' -- debian/control.d/generic > debian/ccs
 rm -f debian/control.d/*
 mv debian/ccs debian/control.d/ccs
