@@ -9,7 +9,7 @@ URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/16/SRPMS"
 
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p7"
-CCS_PATCH_VER="1.8.3-20120505"
+CCS_PATCH_VER="1.8.3-20120610"
 KERNEL_VER="3.3.8-1.fc16"
 
 CCS_DIFF_NAME="ccs-patch-3.3.diff"
