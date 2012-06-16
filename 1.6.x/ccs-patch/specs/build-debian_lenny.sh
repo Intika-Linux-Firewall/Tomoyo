@@ -3,6 +3,16 @@
 # This is kernel build script for debian lenny's 2.6.26 kernel.
 #
 
+update_maintainer () {
+    for i in debian*/control debian*/control.stub*
+    do
+	cp -p $i $i.orig
+	sed -i -e 's/Maintainer: .*/Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>/' -- $i
+	touch -r $i.orig $i
+	rm $i.orig
+    done
+}
+
 die () {
     echo $1
     exit 1
@@ -45,6 +55,8 @@ patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch
 cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
 
 # Start compilation.
+make-kpkg --append-to-version -2-686-ccs --revision `sed -e 's/ /-/' version.Debian` --initrd configure || die "Failed to build kernel package."
+update_maintainer
 make-kpkg --append-to-version -2-686-ccs --revision `sed -e 's/ /-/' version.Debian` --initrd binary-arch || die "Failed to build kernel package."
 
 # Generate meta packages.

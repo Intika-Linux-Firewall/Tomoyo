@@ -3,6 +3,16 @@
 # This is kernel build script for ubuntu 10.10's 2.6.35 kernel.
 #
 
+update_maintainer () {
+    for i in debian*/control debian*/control.stub*
+    do
+	cp -p $i $i.orig
+	sed -i -e 's/Maintainer: .*/Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>/' -- $i
+	touch -r $i.orig $i
+	rm $i.orig
+    done
+}
+
 die () {
     echo $1
     exit 1
@@ -35,6 +45,7 @@ apt-get install linux-headers-${VERSION} || die "Can't install packages."
 
 # Apply patches and create kernel config.
 cd linux-2.6.35/ || die "Can't chdir to linux-2.6.35/ ."
+update_maintainer
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.7.3-20120511.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.35-ubuntu-10.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
@@ -81,6 +92,7 @@ cd /usr/src/
 rm -fR linux-meta-*/
 apt-get source linux-meta
 cd linux-meta-*/
+update_maintainer
 sed -e 's/generic-pae/ccs/g' -- debian/control.d/generic-pae > debian/ccs
 rm -f debian/control.d/*
 mv debian/ccs debian/control.d/ccs

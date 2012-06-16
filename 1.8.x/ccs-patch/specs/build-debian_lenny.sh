@@ -50,12 +50,13 @@ tar -jxf linux-source-2.6.26.tar.bz2
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.26 || die "Can't chdir to linux-source-2.6.18/ ."
-update_maintainer
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.8.3-20120610.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
 
 # Start compilation.
+make-kpkg --append-to-version -2-686-ccs --revision `sed -e 's/ /-/' version.Debian` --initrd configure || die "Failed to build kernel package."
+update_maintainer
 make-kpkg --append-to-version -2-686-ccs --revision `sed -e 's/ /-/' version.Debian` --initrd binary-arch || die "Failed to build kernel package."
 
 # Generate meta packages.
