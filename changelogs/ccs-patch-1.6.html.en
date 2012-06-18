@@ -32,6 +32,24 @@
 <h4>ChangeLog for ccs-patch 1.6.9</h4>
 
 <pre>
+Fix 2012/05/04
+
+    @ Fix skb_kill_datagram() for kernels 2.6.0 - 2.6.11.
+
+      Commit 208d8984 "[IPV4]: Fix BUG() in 2.6.x, udp_poll(), fragments +
+      CONFIG_HIGHMEM" clarified that skb_kill_datagram() should use
+      spin_lock_bh()/spin_unlock_bh() rather than
+      spin_lock_irq()/spin_unlock_irq().
+
+      RHEL 4.9 (2.6.9) kernel has that patch backported. So do I.
+
+    @ Fix missing locks for RHEL 5.2-5.8 kernels.
+
+      Since RHEL 5.2 and later kernels have backported commit 95766fff
+      "[UDP]: Add memory accounting." patch, TOMOYO needs to call
+      lock_sock()/release_sock() around skb_kill_datagram() call when UDP
+      packet was dropped by TOMOYO.
+
 Fix 2012/03/16
 
     @ Return appropriate value to poll().

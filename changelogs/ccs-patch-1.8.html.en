@@ -32,6 +32,39 @@
 <h4>ChangeLog for ccs-patch 1.8.3</h4>
 
 <pre>
+Fix 2012/04/28
+
+    @ Accept manager programs which do not start with / .
+
+      The pathname of /usr/sbin/ccs-editpolicy seen from Ubuntu 12.04 Live
+      CD is squashfs:/usr/sbin/ccs-editpolicy rather than
+      /usr/sbin/ccs-editpolicy . Therefore, we need to accept manager
+      programs which do not start with / .
+
+Fix 2012/04/22
+
+    @ Readd RHEL_MINOR/AX_MINOR checks.
+
+      This check was added in revision 2346 and was removed in revision 4084.
+
+      Add it back in order to support RHEL 5.0, 5.1, 5.2 kernels.
+
+    @ Fix skb_kill_datagram() for kernels 2.6.0 - 2.6.11.
+
+      Commit 208d8984 "[IPV4]: Fix BUG() in 2.6.x, udp_poll(), fragments +
+      CONFIG_HIGHMEM" clarified that skb_kill_datagram() should use
+      spin_lock_bh()/spin_unlock_bh() rather than
+      spin_lock_irq()/spin_unlock_irq().
+
+      RHEL 4.9 (2.6.9) kernel has that patch backported. So do I.
+
+    @ Fix missing locks for RHEL 5.2-5.8 kernels.
+
+      Since RHEL 5.2 and later kernels have backported commit 95766fff
+      "[UDP]: Add memory accounting." patch, TOMOYO needs to call
+      lock_sock()/release_sock() around skb_kill_datagram() call when UDP
+      packet was dropped by TOMOYO.
+
 Fix 2012/03/16
 
     @ Return appropriate value to poll().
