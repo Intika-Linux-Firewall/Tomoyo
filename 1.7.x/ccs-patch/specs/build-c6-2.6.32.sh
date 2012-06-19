@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-220.17.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-220.23.1.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.2/updates/Source/SPackages/kernel-2.6.32-220.17.1.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.2/updates/Source/SPackages/kernel-2.6.32-220.23.1.el6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32-220.17.1.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-220.17.1.el6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32-220.23.1.el6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-220.23.1.el6.src.rpm || die "Can't install source package."
 # sed -i -e 's@--keyring \./kernel\.pub Red@--keyring ./kernel.pub CentOS@' -- /root/rpmbuild/SPECS/kernel.spec || die "Can't update spec file"
 # sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
 
@@ -57,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -737,7 +737,7 @@
+@@ -748,7 +748,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -903,6 +903,10 @@
+@@ -914,6 +914,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
@@ -77,7 +77,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -927,6 +931,9 @@
+@@ -938,6 +942,9 @@
  for i in *.config
  do
    mv $i .config
