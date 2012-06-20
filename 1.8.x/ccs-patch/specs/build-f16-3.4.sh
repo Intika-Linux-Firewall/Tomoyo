@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 16's 3.3 kernel.
+# This is a kernel build script for Fedora 16's 3.4 kernel.
 #
 
 die () {
@@ -8,16 +8,16 @@ die () {
     exit 1
 }
 
-yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc
+yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.3.8-1.fc16.src.rpm ]
+if [ ! -r kernel-3.4.2-1.fc16.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.3.8-1.fc16.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/16/SRPMS/kernel-3.4.2-1.fc16.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.3.8-1.fc16.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.3.8-1.fc16.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.4.2-1.fc16.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.4.2-1.fc16.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120610.tar.gz ]
@@ -39,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -462,6 +462,11 @@
+@@ -463,6 +463,11 @@
  # to versions below the minimum
  #
  
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -521,7 +526,7 @@
+@@ -522,7 +527,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -942,7 +947,7 @@
+@@ -914,7 +919,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,18 +69,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1491,6 +1496,10 @@
+@@ -1432,6 +1437,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120610.tar.gz
-+patch -sp1 < patches/ccs-patch-3.3-fedora-16.diff
++patch -sp1 < patches/ccs-patch-3.4-fedora-17.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1520,6 +1529,18 @@
+@@ -1461,6 +1470,18 @@
  for i in *.config
  do
    mv $i .config
