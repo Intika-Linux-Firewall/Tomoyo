@@ -45,8 +45,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  security/Makefile               |    3 +++
  41 files changed, 262 insertions(+), 3 deletions(-)
 
---- linux-2.6.24-31.101.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.24-31.101/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.24-31.102.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.24-31.102/arch/ia64/ia32/sys_ia32.c
 @@ -55,6 +55,7 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -64,8 +64,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.24-31.101.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.24-31.101/arch/ia64/kernel/ptrace.c
+--- linux-2.6.24-31.102.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.24-31.102/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,7 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -83,8 +83,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.24-31.101.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.24-31.101/arch/mips/kernel/ptrace32.c
+--- linux-2.6.24-31.102.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.24-31.102/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,7 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -102,8 +102,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.24-31.101.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.24-31.101/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.24-31.102.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.24-31.102/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,7 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -121,8 +121,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.24-31.101.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.24-31.101/arch/s390/kernel/ptrace.c
+--- linux-2.6.24-31.102.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.24-31.102/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,7 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -140,8 +140,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-2.6.24-31.101.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.24-31.101/arch/sparc/kernel/ptrace.c
+--- linux-2.6.24-31.102.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.24-31.102/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -161,8 +161,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.24-31.101.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.24-31.101/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.24-31.102.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.24-31.102/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,7 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -182,8 +182,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.24-31.101.orig/arch/x86/ia32/ptrace32.c
-+++ linux-2.6.24-31.101/arch/x86/ia32/ptrace32.c
+--- linux-2.6.24-31.102.orig/arch/x86/ia32/ptrace32.c
++++ linux-2.6.24-31.102/arch/x86/ia32/ptrace32.c
 @@ -27,6 +27,7 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -201,8 +201,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.6.24-31.101.orig/fs/compat.c
-+++ linux-2.6.24-31.101/fs/compat.c
+--- linux-2.6.24-31.102.orig/fs/compat.c
++++ linux-2.6.24-31.102/fs/compat.c
 @@ -55,6 +55,7 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -220,8 +220,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.24-31.101.orig/fs/compat_ioctl.c
-+++ linux-2.6.24-31.101/fs/compat_ioctl.c
+--- linux-2.6.24-31.102.orig/fs/compat_ioctl.c
++++ linux-2.6.24-31.102/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -250,8 +250,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.24-31.101.orig/fs/exec.c
-+++ linux-2.6.24-31.101/fs/exec.c
+--- linux-2.6.24-31.102.orig/fs/exec.c
++++ linux-2.6.24-31.102/fs/exec.c
 @@ -60,6 +60,8 @@
  #include <linux/kmod.h>
  #endif
@@ -291,8 +291,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux-2.6.24-31.101.orig/fs/fcntl.c
-+++ linux-2.6.24-31.101/fs/fcntl.c
+--- linux-2.6.24-31.102.orig/fs/fcntl.c
++++ linux-2.6.24-31.102/fs/fcntl.c
 @@ -23,6 +23,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -311,8 +311,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.24-31.101.orig/fs/ioctl.c
-+++ linux-2.6.24-31.101/fs/ioctl.c
+--- linux-2.6.24-31.102.orig/fs/ioctl.c
++++ linux-2.6.24-31.102/fs/ioctl.c
 @@ -15,6 +15,7 @@
  
  #include <asm/uaccess.h>
@@ -339,8 +339,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (error)
  		goto out_fput;
  
---- linux-2.6.24-31.101.orig/fs/namei.c
-+++ linux-2.6.24-31.101/fs/namei.c
+--- linux-2.6.24-31.102.orig/fs/namei.c
++++ linux-2.6.24-31.102/fs/namei.c
 @@ -35,6 +35,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -442,8 +442,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = vfs_rename(old_dir->d_inode, old_dentry, oldnd.mnt,
  			   new_dir->d_inode, new_dentry, newnd.mnt);
  exit5:
---- linux-2.6.24-31.101.orig/fs/namespace.c
-+++ linux-2.6.24-31.101/fs/namespace.c
+--- linux-2.6.24-31.102.orig/fs/namespace.c
++++ linux-2.6.24-31.102/fs/namespace.c
 @@ -29,6 +29,7 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -527,8 +527,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.24-31.101.orig/fs/open.c
-+++ linux-2.6.24-31.101/fs/open.c
+--- linux-2.6.24-31.102.orig/fs/open.c
++++ linux-2.6.24-31.102/fs/open.c
 @@ -27,6 +27,7 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -641,16 +641,16 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.24-31.101.orig/fs/proc/proc_misc.c
-+++ linux-2.6.24-31.101/fs/proc/proc_misc.c
+--- linux-2.6.24-31.102.orig/fs/proc/proc_misc.c
++++ linux-2.6.24-31.102/fs/proc/proc_misc.c
 @@ -784,4 +784,5 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24-31.101 2012/05/26\n");
++	printk(KERN_INFO "Hook version: 2.6.24-31.102 2012/06/29\n");
  }
---- linux-2.6.24-31.101.orig/include/linux/init_task.h
-+++ linux-2.6.24-31.101/include/linux/init_task.h
+--- linux-2.6.24-31.102.orig/include/linux/init_task.h
++++ linux-2.6.24-31.102/include/linux/init_task.h
 @@ -114,6 +114,14 @@ extern struct group_info init_groups;
  	.pid = &init_struct_pid,				\
  }
@@ -674,8 +674,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  }
  
  
---- linux-2.6.24-31.101.orig/include/linux/sched.h
-+++ linux-2.6.24-31.101/include/linux/sched.h
+--- linux-2.6.24-31.102.orig/include/linux/sched.h
++++ linux-2.6.24-31.102/include/linux/sched.h
 @@ -40,6 +40,8 @@
  
  #ifdef __KERNEL__
@@ -696,8 +696,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  };
  
  /*
---- linux-2.6.24-31.101.orig/kernel/compat.c
-+++ linux-2.6.24-31.101/kernel/compat.c
+--- linux-2.6.24-31.102.orig/kernel/compat.c
++++ linux-2.6.24-31.102/kernel/compat.c
 @@ -26,6 +26,7 @@
  #include <linux/module.h>
  
@@ -715,8 +715,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.24-31.101.orig/kernel/kexec.c
-+++ linux-2.6.24-31.101/kernel/kexec.c
+--- linux-2.6.24-31.102.orig/kernel/kexec.c
++++ linux-2.6.24-31.102/kernel/kexec.c
 @@ -31,6 +31,7 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -734,8 +734,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.24-31.101.orig/kernel/kmod.c
-+++ linux-2.6.24-31.101/kernel/kmod.c
+--- linux-2.6.24-31.102.orig/kernel/kmod.c
++++ linux-2.6.24-31.102/kernel/kmod.c
 @@ -173,6 +173,11 @@ static int ____call_usermodehelper(void
  	 */
  	set_user_nice(current, 0);
@@ -748,8 +748,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = kernel_execve(sub_info->path,
---- linux-2.6.24-31.101.orig/kernel/module.c
-+++ linux-2.6.24-31.101/kernel/module.c
+--- linux-2.6.24-31.102.orig/kernel/module.c
++++ linux-2.6.24-31.102/kernel/module.c
 @@ -46,6 +46,7 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -776,8 +776,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.24-31.101.orig/kernel/ptrace.c
-+++ linux-2.6.24-31.101/kernel/ptrace.c
+--- linux-2.6.24-31.102.orig/kernel/ptrace.c
++++ linux-2.6.24-31.102/kernel/ptrace.c
 @@ -23,6 +23,7 @@
  
  #include <asm/pgtable.h>
@@ -795,8 +795,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.24-31.101.orig/kernel/sched.c
-+++ linux-2.6.24-31.101/kernel/sched.c
+--- linux-2.6.24-31.102.orig/kernel/sched.c
++++ linux-2.6.24-31.102/kernel/sched.c
 @@ -66,6 +66,7 @@
  
  #include <asm/tlb.h>
@@ -814,8 +814,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.24-31.101.orig/kernel/signal.c
-+++ linux-2.6.24-31.101/kernel/signal.c
+--- linux-2.6.24-31.102.orig/kernel/signal.c
++++ linux-2.6.24-31.102/kernel/signal.c
 @@ -32,6 +32,7 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -860,8 +860,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
---- linux-2.6.24-31.101.orig/kernel/sys.c
-+++ linux-2.6.24-31.101/kernel/sys.c
+--- linux-2.6.24-31.102.orig/kernel/sys.c
++++ linux-2.6.24-31.102/kernel/sys.c
 @@ -42,6 +42,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -908,8 +908,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.24-31.101.orig/kernel/sysctl.c
-+++ linux-2.6.24-31.101/kernel/sysctl.c
+--- linux-2.6.24-31.102.orig/kernel/sysctl.c
++++ linux-2.6.24-31.102/kernel/sysctl.c
 @@ -50,6 +50,7 @@
  
  #include <asm/uaccess.h>
@@ -936,8 +936,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table);
  		if (error != -ENOTDIR) {
---- linux-2.6.24-31.101.orig/kernel/time.c
-+++ linux-2.6.24-31.101/kernel/time.c
+--- linux-2.6.24-31.102.orig/kernel/time.c
++++ linux-2.6.24-31.102/kernel/time.c
 @@ -38,6 +38,7 @@
  
  #include <asm/uaccess.h>
@@ -964,8 +964,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.24-31.101.orig/kernel/time/ntp.c
-+++ linux-2.6.24-31.101/kernel/time/ntp.c
+--- linux-2.6.24-31.102.orig/kernel/time/ntp.c
++++ linux-2.6.24-31.102/kernel/time/ntp.c
 @@ -17,6 +17,7 @@
  #include <linux/capability.h>
  #include <asm/div64.h>
@@ -983,8 +983,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.24-31.101.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.24-31.101/net/ipv4/inet_connection_sock.c
+--- linux-2.6.24-31.102.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.24-31.102/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,7 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1002,8 +1002,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.24-31.101.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.24-31.101/net/ipv4/inet_hashtables.c
+--- linux-2.6.24-31.102.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.24-31.102/net/ipv4/inet_hashtables.c
 @@ -23,6 +23,7 @@
  #include <net/inet_hashtables.h>
  #include <net/secure_seq.h>
@@ -1021,8 +1021,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.24-31.101.orig/net/ipv4/raw.c
-+++ linux-2.6.24-31.101/net/ipv4/raw.c
+--- linux-2.6.24-31.102.orig/net/ipv4/raw.c
++++ linux-2.6.24-31.102/net/ipv4/raw.c
 @@ -79,6 +79,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -1041,8 +1041,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.24-31.101.orig/net/ipv4/udp.c
-+++ linux-2.6.24-31.101/net/ipv4/udp.c
+--- linux-2.6.24-31.102.orig/net/ipv4/udp.c
++++ linux-2.6.24-31.102/net/ipv4/udp.c
 @@ -104,6 +104,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1078,8 +1078,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.24-31.101.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.24-31.101/net/ipv6/inet6_hashtables.c
+--- linux-2.6.24-31.102.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.24-31.102/net/ipv6/inet6_hashtables.c
 @@ -22,6 +22,7 @@
  #include <net/inet6_hashtables.h>
  #include <net/secure_seq.h>
@@ -1097,8 +1097,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
---- linux-2.6.24-31.101.orig/net/ipv6/raw.c
-+++ linux-2.6.24-31.101/net/ipv6/raw.c
+--- linux-2.6.24-31.102.orig/net/ipv6/raw.c
++++ linux-2.6.24-31.102/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -1117,8 +1117,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.24-31.101.orig/net/ipv6/udp.c
-+++ linux-2.6.24-31.101/net/ipv6/udp.c
+--- linux-2.6.24-31.102.orig/net/ipv6/udp.c
++++ linux-2.6.24-31.102/net/ipv6/udp.c
 @@ -49,6 +49,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -1137,8 +1137,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.24-31.101.orig/net/socket.c
-+++ linux-2.6.24-31.101/net/socket.c
+--- linux-2.6.24-31.102.orig/net/socket.c
++++ linux-2.6.24-31.102/net/socket.c
 @@ -94,6 +94,8 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1209,8 +1209,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (err)
  		goto out_put;
  
---- linux-2.6.24-31.101.orig/net/unix/af_unix.c
-+++ linux-2.6.24-31.101/net/unix/af_unix.c
+--- linux-2.6.24-31.102.orig/net/unix/af_unix.c
++++ linux-2.6.24-31.102/net/unix/af_unix.c
 @@ -116,6 +116,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1229,8 +1229,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, nd.mnt, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.24-31.101.orig/security/Kconfig
-+++ linux-2.6.24-31.101/security/Kconfig
+--- linux-2.6.24-31.102.orig/security/Kconfig
++++ linux-2.6.24-31.102/security/Kconfig
 @@ -122,5 +122,7 @@ config LSM_MMAP_MIN_ADDR
  source security/selinux/Kconfig
  source security/apparmor/Kconfig
@@ -1239,8 +1239,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
 +
  endmenu
  
---- linux-2.6.24-31.101.orig/security/Makefile
-+++ linux-2.6.24-31.101/security/Makefile
+--- linux-2.6.24-31.102.orig/security/Makefile
++++ linux-2.6.24-31.102/security/Makefile
 @@ -19,3 +19,6 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
  obj-$(CONFIG_SECURITY_APPARMOR)		+= commoncap.o apparmor/
  obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
