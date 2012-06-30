@@ -62,10 +62,11 @@ cd debian/binary-custom.d/ccs/ || die "Can't chdir to debian/binary-custom.d/ccs
 cat ../../config/i386/config ../../config/i386/config.generic ../../../ccs-patch/config.ccs > config.i386 || die "Can't create config."
 sed -i -e 's:CONFIG_DEBUG_INFO=.*:# CONFIG_DEBUG_INFO is not set:' -- config.i386 || die "Can't edit config."
 touch rules || die "Can't create file."
+sed -e 's@do_debug="Yes"@do_debug="No"@' ../../control.d/vars.generic > vars
 cd ../../../ || die "Can't chdir to ../../../ ."
 rm -fR ccs-patch || die "Can't delete directory."
-awk ' BEGIN { flag = 0; print ""; } { if ($1 == "Package:" ) { if (index($0, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub | sed -e 's:-generic:-ccs:' > debian/control.stub.ccs || die "Can't create file."
-cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."
+echo 'all_custom_flavours += ccs' >> debian/rules.d/0-common-vars.mk
+for i in debian/rules.d/[a-zA-Z]*.mk; do echo 'custom_flavours += ccs' >> $i; done
 debian/rules debian/control || die "Can't run control."
 
 # Start compilation.
