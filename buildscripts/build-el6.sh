@@ -8,11 +8,11 @@ URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patc
 URL_KERNEL="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/"
 
 ARCH="$(uname -m)"
-CCS_VER="1.8.3p7.1"
-CCS_PATCH_VER="1.8.3-20120610"
-KERNEL_VER="2.6.32-220.23.1.el6"
+CCS_VER="1.8.3p7.2"
+CCS_PATCH_VER="1.8.3-20120710"
+KERNEL_VER="2.6.32-279.1.1.el6"
 
-CCS_DIFF_NAME="ccs-patch-2.6.32-centos-6.2.diff"
+CCS_DIFF_NAME="ccs-patch-2.6.32-centos-6.3.diff"
 
 UPDATED_DIFF=0
 #CCS_DIFF_REVISION="ccs-patch-2.6.32-centos-6.1.diff?view=co&revision=5710&root=tomoyo&pathrev=5710"
