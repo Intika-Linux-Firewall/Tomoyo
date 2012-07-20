@@ -10,7 +10,7 @@ URL_KERNEL="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p7.2"
 CCS_PATCH_VER="1.8.3-20120710"
-KERNEL_VER="2.6.32-279.1.1.el6"
+KERNEL_VER="2.6.32-279.2.1.el6"
 
 CCS_DIFF_NAME="ccs-patch-2.6.32-centos-6.3.diff"
 
