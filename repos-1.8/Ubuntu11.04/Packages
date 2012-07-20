@@ -8,11 +8,11 @@ Source: linux-meta
 Version: 2.6.38.15.30
 Depends: linux-image-2.6.38-15-generic-pae-ccs, linux-firmware
 Filename: ./linux-image-generic-pae-ccs1.8.3p7_2.6.38.15.30_i386.deb
-Size: 5846
-MD5sum: 03dc00b92790ad01c52d7d42e368ef83
-SHA1: 412db398e7699143799286629663d225804e35ca
-SHA256: 15a1fd4c520afd74647a74949b29f59d96678d2a354cc6b17cf8226b9da61787
-SHA512: b1a4bda8682c2da3686cef8134dcf8bd244c90b082e06fa1cafd7f88ffc8b150265c0ec04b74854590692a85fdcf9db9d480ec4a24ff2bca1da29290abe4930b
+Size: 5848
+MD5sum: 7159408a50d22779309db2c6b20eedcc
+SHA1: 7b221ffe6f73066c18c819c7689682024f897f4a
+SHA256: a5463c7476ed284f02a1178983e617e34242e1fee42cab2f67161b8b7357d242
+SHA512: 57cfe951030ca94adf7c997ae48d55b6edf433ff67d8607777ba483a1d810e79a6f5ba9218919cc844802f276ef524e8b139841cda5a32b4e8c42c358a3c7610
 Description: Generic Linux kernel image
  This package will always depend on the latest generic kernel image
  available.
@@ -47,33 +47,37 @@ Source: linux-meta
 Version: 2.6.38.15.30
 Depends: linux-headers-2.6.38-15-generic-pae-ccs
 Filename: ./linux-headers-generic-pae-ccs1.8.3p7_2.6.38.15.30_i386.deb
-Size: 5836
-MD5sum: a1cbd45828809f64444525939c2d3226
-SHA1: 7bf6fbd5bdd98d36b69f7959dbfbf13d5483cec6
-SHA256: 9e04b938ded78cc7c56d00a9e9d9d3e9ece4bf62f69e87d7157d2a372685ab35
-SHA512: 6a9254b66b21c63d4c9ab84541140d9b77aa5f01c8843705e9c3f2ed7e8c9b253ce72ac3e9bb323c899849c57d0b3796b4e30a07bb25a7644b1a93d3d6ff3bde
+Size: 5838
+MD5sum: 57edbfea2048f83c5233e9b44b3fc381
+SHA1: a9d0f841d6078f8f5f38b87f79928ab7337414cf
+SHA256: 5fb96dc8648e6890e08368d4446fb8a032f4d183fefa181b614226aeb0982340
+SHA512: 4d79cbbbe07a30e188bcae2314bf26889597684d40859a841f2a841e44d61f2e09ede7f4211094347ef33724924f651b42fe8623f71cc94a01651e00bf4e8536
 Description: Generic Linux kernel headers
  This package will always depend on the latest generic kernel headers
  available.
 
-Package: linux-generic-pae-ccs
+Package: linux-headers-2.6.38-15-generic-pae-ccs
 Priority: optional
-Section: metapackages
-Installed-Size: 32
+Section: devel
+Installed-Size: 13048
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux-meta
-Version: 2.6.38.15.30
-Depends: linux-image-generic-pae-ccs (= 2.6.38.15.30)
-Filename: ./linux-generic-pae-ccs1.8.3p7_2.6.38.15.30_i386.deb
-Size: 5840
-MD5sum: 2c568575817dcd4669a713a1bca1e975
-SHA1: ec62131c3b8ba9c08e08f58b3554cf4fc053f035
-SHA256: 8d4888b0bb7de904a592202ed4a82cc8537b08d346be19873fb1933297551c3a
-SHA512: d1cfc7b9ce3cca5a3c0a88b4894f27c34be617f06877a1491945702a3ea8bcd7c604f27c517a74c3b93e3f9d60988c40edb0b85772f5856d7df950d5db7c6701
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete generic Linux kernel
- available.
+Source: linux
+Version: 2.6.38-15.64
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.38-15, libc6 (>= 2.11)
+Filename: ./linux-headers-2.6.38-15-generic-pae-ccs1.8.3p7_2.6.38-15.64_i386.deb
+Size: 1355192
+MD5sum: b2db8e051ea62af781ad74d2694a1ebe
+SHA1: 3448d0096c53ad6fa3bd6ae5f60b88fd09b940ce
+SHA256: ceb48e1f1fed40eeb63ab6faee80f23408ecc819aa0539e537c507d4da6996e8
+SHA512: 72c600e6e942e095911e96edeffd218467462ee0035db8766762f415125344891022f65c0faa92bc74ffde4a134a0abbf9a07606e22a24c8233c796828b3af11
+Description: Linux kernel headers for version 2.6.38 on x86
+ This package provides kernel header files for version 2.6.38 on
+ x86.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.38-15/debian.README.gz for details.
 
 Package: linux-image-2.6.38-15-generic-pae-ccs
 Priority: optional
@@ -82,19 +86,19 @@ Installed-Size: 110084
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 2.6.38-15.61
+Version: 2.6.38-15.64
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, ndiswrapper-modules-1.9, redhat-cluster-modules
 Depends: initramfs-tools (>= 0.36ubuntu6), coreutils | fileutils (>= 4.0), module-init-tools (>= 3.3-pre11-4ubuntu3), wireless-crda
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-2.6.38 | linux-source-2.6.38, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.38-15-generic-pae-ccs1.8.3p7_2.6.38-15.61_i386.deb
-Size: 36409020
-MD5sum: 6e8a131da5af3e66b85155ee0dff1b05
-SHA1: a9dfae1eb5a070469c0c7200d753d1df7f0c8a57
-SHA256: 37b7e9079e1a4e68b04f2ff231d0da532645ede233e8f7f709cb7e230f40cf5c
-SHA512: 924c76075b9c26d73e3aad2981e230557fe54df1707acf671052c11e39044745f20aa990f9eef84811c7eab5c5b3b2d3632d28209c95fc227c46a37b06f6d43d
+Filename: ./linux-image-2.6.38-15-generic-pae-ccs1.8.3p7_2.6.38-15.64_i386.deb
+Size: 36407672
+MD5sum: e209cd45a35fbca3c51d454fdb50fb72
+SHA1: 557f6aa142f2b6a79ac2e8d7d59e79a34b67126c
+SHA256: 7281ae96c2f367a3a6e667cd4b983f36acd059e6b33aa9e6945828c0d1728180
+SHA512: 13ec273b2462363db70353eaebca845262268daad1789600b5c514c9dff8690f2d4232862f9593e1c663d668cd6b570a4f8b74f65649823121f9047b8b186c1f
 Description: Linux kernel image for version 2.6.38 on x86
  This package contains the Linux kernel image for version 2.6.38 on
  x86.
@@ -111,26 +115,22 @@ Description: Linux kernel image for version 2.6.38 on x86
  the linux-generic-pae-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-headers-2.6.38-15-generic-pae-ccs
+Package: linux-generic-pae-ccs
 Priority: optional
-Section: devel
-Installed-Size: 13048
+Section: metapackages
+Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux
-Version: 2.6.38-15.61
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.38-15, libc6 (>= 2.11)
-Filename: ./linux-headers-2.6.38-15-generic-pae-ccs1.8.3p7_2.6.38-15.61_i386.deb
-Size: 1353792
-MD5sum: 1316acf395629578a1007daff6f10b58
-SHA1: 2cc3fa141c36e663c666b2e40b783c3c9336b703
-SHA256: 65c94211824b67586c31f8f98c4230b04605977365dcc4666e4739f40345213e
-SHA512: ea61a41b771aa1ac7add241c65cba943a1bd7b1523a7e3f65a303bed7bec3fe63462beb5c6a2a32d246877cce7212e30260166e924551ab9fd750dbbba32e7c8
-Description: Linux kernel headers for version 2.6.38 on x86
- This package provides kernel header files for version 2.6.38 on
- x86.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.38-15/debian.README.gz for details.
+Source: linux-meta
+Version: 2.6.38.15.30
+Depends: linux-image-generic-pae-ccs (= 2.6.38.15.30)
+Filename: ./linux-generic-pae-ccs1.8.3p7_2.6.38.15.30_i386.deb
+Size: 5840
+MD5sum: a5036ce1602ffc4a63579928e3f9f735
+SHA1: 625128a3685ac341f2d120aeea716651e5741e98
+SHA256: a0e9b12d862c6e8e55b1fa2e2cccfba806c6b17658f4716c146f846ee8d37304
+SHA512: 794c3d941d3c3c8141e89b42123302c4ff19dd7fc6aba1211822695440dbfd1e56377ea7fd07d1593afc0858e075306a0a43689c5a7091d3ac30aad59261a366
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete generic Linux kernel
+ available.
 
