@@ -1,25 +1,33 @@
-Package: linux-headers-2.6.24-31-ccs
+Package: linux-restricted-modules-2.6.24-32-ccs
 Priority: optional
-Section: devel
-Installed-Size: 7272
+Section: restricted/misc
+Installed-Size: 32336
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux
-Version: 2.6.24-31.102
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), libc6 (>= 2.4), libncurses5 (>= 5.6+20071006-3), linux-headers-2.6.24-31
-Filename: ./linux-headers-2.6.24-31-ccs1.8.3p7_2.6.24-31.102_i386.deb
-Size: 682950
-MD5sum: 0dba57d6fb8e40d16b23862ce1a70d1f
-SHA1: a01fc3127c8f7f2063d09c87c820411d76c76e56
-SHA256: b5de28ef7c40586e4aee5a698a565b9080f2aa91313bc2719749b748ed31f08c
-SHA512: c9ffb4839ae1758c0087582350c3da56b5f99ffd14c51c576f0c1643656302c598c79cff9f4df19c21941d5617e4663e46557bb8451e129a56d64fb96dacd811
-Description: Linux kernel headers for version 2.6.24 on x86/x86_64
- This package provides kernel header files for version 2.6.24 on
+Source: linux-restricted-modules-2.6.24
+Version: 2.6.24.18-32.14
+Provides: nvidia-kernel-169.12, nvidia-kernel-71.86.04, nvidia-kernel-96.43.05
+Depends: linux-image-2.6.24-32-ccs, linux-restricted-modules-common (>= 2.6.24), module-init-tools, nvidia-kernel-common
+Suggests: avm-fritz-firmware-2.6.24-32, nvidia-glx | nvidia-glx-legacy | nvidia-glx-new
+Filename: ./linux-restricted-modules-2.6.24-32-ccs1.8.3p7_2.6.24.18-32.14_i386.deb
+Size: 11718128
+MD5sum: 549ce33fdfe1d14cccd65ff5a34c0fc0
+SHA1: e1282cc283e8bcd747760dd7c62326c5f6bf47d5
+SHA256: 5f0a67e3ad60ce556f559c25fe8312fb21a69d103724a7fb0d3f507c70458954
+SHA512: 152cbf425e759b405d18f9cea267b2854ec14d7f973e2db701831f0a69e8db8248874fc110edcc9c113976abd7fc8b0a13de30bc760c5bd32b419e5e74e6f7ec
+Description: Non-free Linux 2.6.24 modules on x86/x86_64
+ This package provides restricted modules for Linux version 2.6.24 on
  x86/x86_64.
  .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.24-31/debian.README.gz for details.
+ Currently the following modules are included:
+  - madwifi (Atheros)
+  - fglrx (ATI)
+  - nvidia
+  - fcdsl2, fcdslsl, fcdslslusb, fcdslusb, fcdslusb2, fcpci (AVM ISDN)
+  - fcdsl, fcdslusba, fcusb, fwlanusb, fxusb (AVM ISDN x86 only)
+ .
+ These modules are "restricted" because they are not available under a
+ completely Free licence.
 
 Package: ccs-tools
 Priority: extra
@@ -41,31 +49,6 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.69.)
 
-Package: linux-ubuntu-modules-2.6.24-31-ccs
-Priority: optional
-Section: base
-Installed-Size: 17788
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-ubuntu-modules-2.6.24
-Version: 2.6.24-31.51
-Provides: ndiswrapper-modules-1.9
-Depends: linux-image-2.6.24-31-ccs
-Pre-Depends: dpkg (>= 1.10.24)
-Filename: ./linux-ubuntu-modules-2.6.24-31-ccs1.8.3p7_2.6.24-31.51_i386.deb
-Size: 6410492
-MD5sum: 5c38574b86588b58864c448f9964153f
-SHA1: aa27deec84ab9de46f80fd7630fa41ae0259548a
-SHA256: 1da47ed78c238ee50977043e8d5aa277400d044963975b656862ed5874b19d66
-SHA512: 04c0a61bf8284124b453b2870fb094ae76ad9ec03477ca61868b7b5d591c0c23fc0fd430c7edbd20cfc016f20e34b1cc669ef21f19cda6ea611477de4da3a1bf
-Description: Ubuntu supplied Linux modules for version 2.6.24 on x86/x86_64
- This package contains modules supplied by Ubuntu for Linux kernel 2.6.24 on
- x86/x86_64.
- .
- You likely do not want to install this package directly. Instead, install
- the linux-ccs meta-package, which will ensure that upgrades work
- correctly, and that supporting packages are also installed.
-
 Package: linux-restricted-modules-ccs
 Priority: optional
 Section: restricted/metapackages
@@ -73,48 +56,17 @@ Installed-Size: 56
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 2.6.24.31.33
-Depends: linux-restricted-modules-2.6.24-31-ccs
-Filename: ./linux-restricted-modules-ccs1.8.3p7_2.6.24.31.33_i386.deb
-Size: 26840
-MD5sum: 77966bb5376313c1795acf9e6022c873
-SHA1: 2c60903b86d55a828af38cf25816cfdaf6c44b06
-SHA256: 9ec05d94ce8fed63fa3bd731b7d5ca308d733104dc2396edaba15e0fb0f97673
-SHA512: 70105647f054630e682f52e3d0fa7f18e1bec8b6fb545251722bfc625b19faf6da71af96da0d49a831a9f2fa8962ba79d252321118c624804fdc59ca2956dfe5
+Version: 2.6.24.32.34
+Depends: linux-restricted-modules-2.6.24-32-ccs
+Filename: ./linux-restricted-modules-ccs1.8.3p7_2.6.24.32.34_i386.deb
+Size: 26868
+MD5sum: 61abbd63f2cd218eb227566a85db8f5f
+SHA1: d3cb8e58f287bde9c0b743c14e2d839b65bb74e0
+SHA256: 5991cffd706ac33457a7a8e723ca5652876b3a6bda19c217bde21143e41cd90a
+SHA512: e9e1a2074218b7a27107947e94ab29942bdb4175f8a65b81ab1ccb183179ef1c67c07e00a8f99f5ed8a8aa1b9f6987c8e76e90f68451a874c13dd7d8b668aabb
 Description: Restricted Linux modules for ccs kernels
  This package will always depend on the latest restricted modules available
  for ccs kernels.
-
-Package: linux-restricted-modules-2.6.24-31-ccs
-Priority: optional
-Section: restricted/misc
-Installed-Size: 32336
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-restricted-modules-2.6.24
-Version: 2.6.24.18-31.12
-Provides: nvidia-kernel-169.12, nvidia-kernel-71.86.04, nvidia-kernel-96.43.05
-Depends: linux-image-2.6.24-31-ccs, linux-restricted-modules-common (>= 2.6.24), module-init-tools, nvidia-kernel-common
-Suggests: avm-fritz-firmware-2.6.24-31, nvidia-glx | nvidia-glx-legacy | nvidia-glx-new
-Filename: ./linux-restricted-modules-2.6.24-31-ccs1.8.3p7_2.6.24.18-31.12_i386.deb
-Size: 11718044
-MD5sum: 42b5a12324757ddd7bf5055b989c8139
-SHA1: ef74096b7907dd6e3877bc82c6191ce49cbbd762
-SHA256: 18f76c94b55704690ecf4a274fec9c9356a79cc0dc9432836175ce5e190bf6bd
-SHA512: 6eab77eadb1e18923db5602d54fa1ba44e30a08c17779efa173bbf61831ddd21c3869f6e7e1640eac35dd02c3e504d46d51bc7ef597934cf586c1722d94e7a07
-Description: Non-free Linux 2.6.24 modules on x86/x86_64
- This package provides restricted modules for Linux version 2.6.24 on
- x86/x86_64.
- .
- Currently the following modules are included:
-  - madwifi (Atheros)
-  - fglrx (ATI)
-  - nvidia
-  - fcdsl2, fcdslsl, fcdslslusb, fcdslusb, fcdslusb2, fcpci (AVM ISDN)
-  - fcdsl, fcdslusba, fcusb, fwlanusb, fxusb (AVM ISDN x86 only)
- .
- These modules are "restricted" because they are not available under a
- completely Free licence.
 
 Package: linux-headers-ccs
 Priority: optional
@@ -123,38 +75,122 @@ Installed-Size: 56
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 2.6.24.31.33
-Depends: linux-headers-2.6.24-31-ccs
-Filename: ./linux-headers-ccs1.8.3p7_2.6.24.31.33_i386.deb
-Size: 26814
-MD5sum: 118abbd0006461a8fba676ad50154ebc
-SHA1: 2706bdc3dc9b8820344cbf867999139c5df150e8
-SHA256: 2b27267b779dee68f2904a30ca463da0fc7e942a41716ead03ae5382ee211544
-SHA512: 701a6bdc60cfd41395f62aedb83cc3f76f89256b9632ab34ced66c9e48b6967e180924b5719e23d1dc41ca16275cec9dcd6db126f18f432199b2798c7e8b892c
+Version: 2.6.24.32.34
+Depends: linux-headers-2.6.24-32-ccs
+Filename: ./linux-headers-ccs1.8.3p7_2.6.24.32.34_i386.deb
+Size: 26840
+MD5sum: 57dec5b70709dadfca83c6e6b77c70bf
+SHA1: 2c35c54b9399907765fa5c36cf591ba90ce851a9
+SHA256: b12ca6f34fffb7fee890e8b845bc4cf9eb9c94a834872b2623a8963d734be3e2
+SHA512: 88a60fbe03a9d1aff8db5dadcd3f4b924fbc20b093796e082d73dbb00e289ecebde8107d23f5e33db79b8a90cf28aa29f7de556592ed10e9a0b72e15eb71d067
 Description: Generic Linux kernel headers
  This package will always depend on the latest ccs kernel headers
  available.
 
-Package: linux-image-2.6.24-31-ccs
+Package: linux-ccs
+Priority: optional
+Section: restricted/metapackages
+Installed-Size: 56
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.24.32.34
+Depends: linux-image-ccs (= 2.6.24.32.34), linux-restricted-modules-ccs (= 2.6.24.32.34)
+Filename: ./linux-ccs1.8.3p7_2.6.24.32.34_i386.deb
+Size: 26866
+MD5sum: ec9203dba0d3ed2d581afbc26031049f
+SHA1: f53aa39c8d6bb9d24735e2a64fa6fdbed756b993
+SHA256: 059eea4bb4ad37997fa889b18bbb50018d3f89339e3a3e59f59185fb74158395
+SHA512: e1d45c489899dde5e4ac7654e65282067012f6b968f57f1df33a7e8fa549df1d79887e0d3bbd03e4cb72293d63a78313d21710e051f008c9a0d521a9e28fd3ad
+Description: Complete Generic Linux kernel
+ This package will always depend on the latest complete ccs Linux kernel
+ available.
+
+Package: linux-ubuntu-modules-2.6.24-32-ccs
+Priority: optional
+Section: base
+Installed-Size: 17788
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-ubuntu-modules-2.6.24
+Version: 2.6.24-32.52
+Provides: ndiswrapper-modules-1.9
+Depends: linux-image-2.6.24-32-ccs
+Pre-Depends: dpkg (>= 1.10.24)
+Filename: ./linux-ubuntu-modules-2.6.24-32-ccs1.8.3p7_2.6.24-32.52_i386.deb
+Size: 6410892
+MD5sum: f1ca1f3b74f43fd5be4168a35c001e02
+SHA1: c89fe870f86bfc6a1d368d14d66e4a1710253b65
+SHA256: ddff1ac39665169fa44297ab6e05b148fe3a28d0120268f0bd30cc17ae2cecb2
+SHA512: 263c3d5919bf447347da5507fab42f94ed0200225994cfdbfb1323f3b409875693878a5f44ce0b3fca1894d0c73379c7ebc9ad8c0b900a07d7e740f100a49a98
+Description: Ubuntu supplied Linux modules for version 2.6.24 on x86/x86_64
+ This package contains modules supplied by Ubuntu for Linux kernel 2.6.24 on
+ x86/x86_64.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-ccs meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
+
+Package: linux-headers-lum-2.6.24-32-ccs
+Priority: optional
+Section: base
+Installed-Size: 1004
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-ubuntu-modules-2.6.24
+Version: 2.6.24-32.52
+Provides: linux-headers-lum, linux-headers-lum-2.6
+Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.24-32-ccs
+Filename: ./linux-headers-lum-2.6.24-32-ccs1.8.3p7_2.6.24-32.52_i386.deb
+Size: 192252
+MD5sum: aeafeda3a6d9cfa14c6464125d20a55d
+SHA1: b13391e7dbbb40a1a530757315322a2391168125
+SHA256: a5543e54074aeebfca15fe265ac6b5f40cfef76d0c3efa7fd6a4779b97a41976
+SHA512: 3de30c4d016a6ebaf4442cd799848717e2c9a1da38783d402663cc1167a52a5625e3cd615fd68cca756939e0fe74ce3b58841eb462c4efcdbb993d9a0ba1fecf
+Description: Header files related to linux-ubuntu-modules version 2.6.24
+ This package provides linux-ubuntu-modules header files for version 2.6.24, for sites
+ that want the latest linux-ubuntu-modules headers. Please read
+ /usr/share/doc/linux-headers-lum-2.6.24-32/debian.README.gz for details
+
+Package: linux-image-ccs
+Priority: optional
+Section: metapackages
+Installed-Size: 56
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 2.6.24.32.34
+Depends: linux-image-2.6.24-32-ccs, linux-ubuntu-modules-2.6.24-32-ccs
+Filename: ./linux-image-ccs1.8.3p7_2.6.24.32.34_i386.deb
+Size: 26854
+MD5sum: 2941669b857b1475263c5624e7805c16
+SHA1: 1441bb5c5e63402835185f9deb9fee4865dcacb0
+SHA256: a2c19196eb4f11eb59cc4a8932177bf9cd01bec906a1f699c755d15a8cb59f4e
+SHA512: 5462e488d8ad5b5969cb25f22e112dbe1f873cbac6d66b938ff5db2fff0bd76523af837f5161a0e245e97f751114af5a8fb5019bcdddff294112cd501ba26f35
+Description: Generic Linux kernel image
+ This package will always depend on the latest ccs kernel image
+ available.
+
+Package: linux-image-2.6.24-32-ccs
 Priority: optional
 Section: base
 Installed-Size: 59328
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 2.6.24-31.102
+Version: 2.6.24-32.104
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, redhat-cluster-modules
 Depends: coreutils | fileutils (>= 4.0), initramfs-tools (>= 0.36ubuntu6), module-init-tools (>= 3.3-pre11-4ubuntu3)
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: lilo (>= 19.1) | grub
 Suggests: fdutils, linux-doc-2.6.24 | linux-source-2.6.24
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.24-31-ccs1.8.3p7_2.6.24-31.102_i386.deb
-Size: 18437100
-MD5sum: 9bd3966c14fd242978e73d08840adc6b
-SHA1: 6d338a0891eb1318852dac3b76a130f6d5d3cb41
-SHA256: 8f5d24096b6c54136a6283a09c24cbe248db9b693a5c5394d70e79d90e48015d
-SHA512: bfc01e203c7aeaa7eb462cfbe77cd359770a0649f128b3d7febf51d9a9a441ade1db095d51052552a0de8b3c8bf567a991fb174c694c683395847e41da76bbdf
+Filename: ./linux-image-2.6.24-32-ccs1.8.3p7_2.6.24-32.104_i386.deb
+Size: 18439854
+MD5sum: 798e651cb629ef4157c29078d8c533c0
+SHA1: ec1d17594a85d52108a391f7138180b21f64e4f4
+SHA256: dba0db5c1f44fdbff68ebe75c05bf04bed6f31369f831ebe327c3a7c03988dc6
+SHA512: e5273ba86bc8946eff42c6503ee21d603b5430f1340d54598a422f3bd2e1f7d26d5235e1287fcf64500baa33542e501fea19f7803c586975bf6a9bd43b032666
 Description: Linux kernel image for version 2.6.24 on x86/x86_64
  This package contains the Linux kernel image for version 2.6.24 on
  x86/x86_64.
@@ -171,62 +207,26 @@ Description: Linux kernel image for version 2.6.24 on x86/x86_64
  the linux-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
 
-Package: linux-ccs
+Package: linux-headers-2.6.24-32-ccs
 Priority: optional
-Section: restricted/metapackages
-Installed-Size: 56
+Section: devel
+Installed-Size: 7272
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
-Source: linux-meta
-Version: 2.6.24.31.33
-Depends: linux-image-ccs (= 2.6.24.31.33), linux-restricted-modules-ccs (= 2.6.24.31.33)
-Filename: ./linux-ccs1.8.3p7_2.6.24.31.33_i386.deb
-Size: 26838
-MD5sum: 968fb47dccf5e01919bdc48fc04fd723
-SHA1: 6e7d208326618cfd7283701f83c28f03f667e4ee
-SHA256: 706b9f7fb5cadeae3f7931672d847340e633304f142c3174f32d070d45f56084
-SHA512: 59395f0696ac3d774c08647131d01ece34aea708eb74077d05dad4b30f2e18c7458372c44de10a37f3a1cab76260dbefee08bb348dc6469bd580408f0055f25e
-Description: Complete Generic Linux kernel
- This package will always depend on the latest complete ccs Linux kernel
- available.
-
-Package: linux-headers-lum-2.6.24-31-ccs
-Priority: optional
-Section: base
-Installed-Size: 1004
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-ubuntu-modules-2.6.24
-Version: 2.6.24-31.51
-Provides: linux-headers-lum, linux-headers-lum-2.6
-Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.24-31-ccs
-Filename: ./linux-headers-lum-2.6.24-31-ccs1.8.3p7_2.6.24-31.51_i386.deb
-Size: 192218
-MD5sum: 24bcdd2c181f458452af25e39b69497d
-SHA1: 9229b3b394d942394d6cca7387b0e8c1f10cd3bf
-SHA256: 5ce2bc1690f0e35c332d6d3489b41cd09bb7461ed75e0c4ad3c2c7d41ac092bc
-SHA512: ba5b813647620d657a87334746bd7afbd326602db0cc1c1383a7242065faa430788ab29a0df322d4fa78be2f84f500098d81159152f46b05216dce355dd1b6a1
-Description: Header files related to linux-ubuntu-modules version 2.6.24
- This package provides linux-ubuntu-modules header files for version 2.6.24, for sites
- that want the latest linux-ubuntu-modules headers. Please read
- /usr/share/doc/linux-headers-lum-2.6.24-31/debian.README.gz for details
-
-Package: linux-image-ccs
-Priority: optional
-Section: metapackages
-Installed-Size: 56
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 2.6.24.31.33
-Depends: linux-image-2.6.24-31-ccs, linux-ubuntu-modules-2.6.24-31-ccs
-Filename: ./linux-image-ccs1.8.3p7_2.6.24.31.33_i386.deb
-Size: 26828
-MD5sum: 892f916bb01f384fc2539eeb201d1a44
-SHA1: 0c8df4cf2a993bae332dfc11cc073b159de1dcaa
-SHA256: f9b7bacedd7d7998a48ecc7b2e0861c24038da94a9b4f9a6af3ff1ebd981d86a
-SHA512: d1fef5bb21d02f7feab9c82a9b83ee5708101b963f023b449017f77381596fc85a697c0841c333d5de2894c9b163a227ffe133e53071c67b4739ae332d008850
-Description: Generic Linux kernel image
- This package will always depend on the latest ccs kernel image
- available.
+Source: linux
+Version: 2.6.24-32.104
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), libc6 (>= 2.4), libncurses5 (>= 5.6+20071006-3), linux-headers-2.6.24-32
+Filename: ./linux-headers-2.6.24-32-ccs1.8.3p7_2.6.24-32.104_i386.deb
+Size: 683094
+MD5sum: af455f734d1e55b8da8aed14bb276aa1
+SHA1: 09506e72ade413d8b1dbf51ed9dae0d8c48499a9
+SHA256: e3e05fd9f3aac24b2d0cd092e3f727564854778ded3411ef7668be92c4b48b19
+SHA512: b822e39fe01f27160afd0d2801e3cb3cc47cfe3b39d5d1c1c1fb466fd9d95b23f82e7ec283dcf41b7a9cd811724cf9f7a59e4593b1b437c6cbbc5ddf9fd52e5c
+Description: Linux kernel headers for version 2.6.24 on x86/x86_64
+ This package provides kernel header files for version 2.6.24 on
+ x86/x86_64.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.24-32/debian.README.gz for details.
 
