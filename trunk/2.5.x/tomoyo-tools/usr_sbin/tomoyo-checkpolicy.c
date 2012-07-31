@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0   2012/07/31
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -703,6 +703,18 @@ static void ccs_check_exception_policy(char *policy)
 		{ }
 	};
 	u8 type;
+	if (*policy == '<') {
+		char *ns = strchr(policy, ' ');
+		if (ns) {
+			*ns++= '\0';
+			if (!ccs_domain_def(policy)) {
+				printf("%u: ERROR: '%s' is a bad namespace\n",
+				       ccs_line, policy);
+				ccs_errors++;
+			}
+			policy = ns;
+		}
+	}
 	for (type = 0; list[type].directive; type++) {
 		const int len = strlen(list[type].directive);
 		if (strncmp(policy, list[type].directive, len))
