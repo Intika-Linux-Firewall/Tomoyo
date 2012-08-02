@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for VineLinux 6.0's 2.6.35 kernel.
+# This is a kernel build script for VineLinux 6.1's 3.0 kernel.
 #
 
 die () {
@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.35-21vl6.src.rpm ]
+if [ ! -r kernel-3.0.38-1vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.0/updates/SRPMS/kernel-2.6.35-21vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.1/SRPMS/SRPMS.main/kernel-3.0.38-1vl6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.35-21vl6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.35-21vl6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.0.38-1vl6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.0.38-1vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120710.tar.gz ]
@@ -28,15 +28,15 @@ cp -p /root/rpm/SPECS/kernel-vl.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-vl.spec
 +++ kernel-vl.spec
-@@ -28,7 +28,7 @@
- %define patchlevel 13
- %define kversion 2.6.%{sublevel}
- %define rpmversion 2.6.%{sublevel}
--%define release 21%{?_dist_release}
-+%define release 21%{?_dist_release}_tomoyo_1.8.3p7
+@@ -27,7 +27,7 @@
+ %define sublevel 0
+ %define patchlevel 38
+ %define kversion 3.%{sublevel}
+-%define rpmversion 3.%{sublevel}.%{patchlevel}
++%define rpmversion 3.%{sublevel}.%{patchlevel}_tomoyo_1.8.3p7
+ %define release 1%{?_dist_release}
  
  %define make_target bzImage
- %define hdrarch %_target_cpu
 @@ -120,6 +120,9 @@
  # to versions below the minimum
  #
@@ -56,18 +56,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -651,6 +654,10 @@
+@@ -669,6 +672,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120710.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.35-vine-linux-6.0.diff
++patch -sp1 < patches/ccs-patch-3.0-vine-linux-6.1.diff
 +
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -669,6 +676,9 @@
+@@ -687,6 +694,9 @@
  for i in *.config
  do 
  	mv $i .config 
@@ -75,8 +75,8 @@ patch << "EOF" || die "Can't patch spec file."
 +	cat config.ccs >> .config
 +	sed -i -e "s/^CONFIG_DEBUG_INFO=.*/# CONFIG_DEBUG_INFO is not set/" -- .config
  	Arch=`head -1 .config | cut -b 3-`
+ 	make ARCH=$Arch oldnoconfig
  	echo "# $Arch" > configs/$i
- 	cat .config >> configs/$i 
 EOF
 mv kernel-vl.spec ccs-kernel.spec || die "Can't rename spec file."
 echo ""
