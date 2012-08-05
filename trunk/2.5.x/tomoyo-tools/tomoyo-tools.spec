@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 2.5.x
 
 Name: tomoyo-tools
 Version: 2.5.0
-Release: 3
+Release: 4
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.5.0-3
+Conflicts: tomoyo-tools < 2.5.0-4
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/53357/tomoyo-tools-2.5.0-20120414.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/53357/tomoyo-tools-2.5.0-20120805.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.5.x.
@@ -52,6 +52,11 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Sun Aug 05 2012 2.5.0-4
+- Let tomoyo-checkpolicy handle namespace prefix in exception policy.
+- Rename manpage for init_policy to tomoyo_init_policy
+  (to allow parallel installation of ccs-tools package).
+
 * Sat Apr 14 2012 2.5.0-3
 - Let tomoyo-init parse statistics lines correctly.
 - Let tomoyo-editpolicy print number of selected entries if any.
