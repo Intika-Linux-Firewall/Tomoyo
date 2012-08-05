@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.32.58 + grsecurity-2.9-2.6.32.58.
+This is TOMOYO Linux patch for kernel 2.6.32.59 + grsecurity-2.9.1-2.6.32.59.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.32/linux-2.6.32.58.tar.bz2 + http://grsecurity.net/stable/grsecurity-2.9-2.6.32.58-201203062047.patch
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.32/linux-2.6.32.59.tar.bz2 + http://grsecurity.net/stable/grsecurity-2.9.1-2.6.32.59-201208021518.patch
 ---
  fs/compat.c                     |    2 +-
  fs/compat_ioctl.c               |    3 +++
@@ -38,19 +38,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  security/Makefile               |    3 +++
  34 files changed, 204 insertions(+), 3 deletions(-)
 
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/compat.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/compat.c
-@@ -1615,7 +1615,7 @@ int compat_do_execve(char * filename,
- 	if (retval < 0)
- 		goto out_fail;
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/compat.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/compat.c
+@@ -1618,7 +1618,7 @@ int compat_do_execve(char * filename,
+ 
+ 	gr_handle_exec_args_compat(bprm, argv);
  
 -	retval = search_binary_handler(bprm, regs);
 +	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval < 0)
  		goto out_fail;
  #ifdef CONFIG_GRKERNSEC
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/compat_ioctl.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/compat_ioctl.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/compat_ioctl.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -68,10 +68,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/exec.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/exec.c
-@@ -1528,7 +1528,7 @@ int do_execve(char * filename,
- 		goto out_fail;
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/exec.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/exec.c
+@@ -1554,7 +1554,7 @@ int do_execve(char * filename,
+ 	gr_handle_exec_args(bprm, (const char __user *const __user *)argv);
  
  	current->flags &= ~PF_KTHREAD;
 -	retval = search_binary_handler(bprm,regs);
@@ -79,8 +79,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (retval < 0)
  		goto out_fail;
  #ifdef CONFIG_GRKERNSEC
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/fcntl.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/fcntl.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/fcntl.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/fcntl.c
 @@ -434,6 +434,8 @@ SYSCALL_DEFINE3(fcntl, unsigned int, fd,
  		goto out;
  
@@ -99,8 +99,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (err) {
  		fput(filp);
  		return err;
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/ioctl.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/ioctl.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/ioctl.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/ioctl.c
 @@ -618,6 +618,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
@@ -110,9 +110,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/namei.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/namei.c
-@@ -1592,6 +1592,11 @@ int may_open(struct path *path, int acc_
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/namei.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/namei.c
+@@ -1596,6 +1596,11 @@ int may_open(struct path *path, int acc_
  			goto err_out;
  		}
  
@@ -124,7 +124,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1672,6 +1677,9 @@ static int __open_namei_create(struct na
+@@ -1676,6 +1681,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -134,7 +134,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1842,7 +1850,9 @@ do_last:
+@@ -1847,7 +1855,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -144,7 +144,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1914,7 +1924,9 @@ ok:
+@@ -1919,7 +1929,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -154,7 +154,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2166,6 +2178,8 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2177,6 +2189,8 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -163,7 +163,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2249,6 +2263,8 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2260,6 +2274,8 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -172,7 +172,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2380,6 +2396,8 @@ static long do_rmdir(int dfd, const char
+@@ -2391,6 +2407,8 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -181,7 +181,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2484,6 +2502,8 @@ static long do_unlinkat(int dfd, const c
+@@ -2495,6 +2513,8 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -190,7 +190,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2576,6 +2596,8 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2587,6 +2607,8 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -199,7 +199,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2692,6 +2714,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2703,6 +2725,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -209,7 +209,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2943,6 +2968,9 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2954,6 +2979,9 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
@@ -219,8 +219,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/namespace.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/namespace.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/namespace.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/namespace.c
 @@ -1030,6 +1030,8 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
@@ -257,9 +257,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/open.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/open.c
-@@ -275,6 +275,8 @@ static long do_sys_truncate(const char _
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/open.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/open.c
+@@ -278,6 +278,8 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error)
  		error = security_path_truncate(&path, length, 0);
@@ -268,7 +268,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	if (!error && !gr_acl_handle_truncate(path.dentry, path.mnt))
  		error = -EACCES;
-@@ -338,6 +340,8 @@ static long do_sys_ftruncate(unsigned in
+@@ -341,6 +343,8 @@ static long do_sys_ftruncate(unsigned in
  		error = security_path_truncate(&file->f_path, length,
  					       ATTR_MTIME|ATTR_CTIME);
  	if (!error)
@@ -277,7 +277,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
-@@ -603,6 +607,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -606,6 +610,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -286,7 +286,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -627,6 +633,9 @@ static int chmod_common(struct path *pat
+@@ -630,6 +636,9 @@ static int chmod_common(struct path *pat
  	error = mnt_want_write(path->mnt);
  	if (error)
  		return error;
@@ -296,7 +296,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	mutex_lock(&inode->i_mutex);
  	if (!gr_acl_handle_chmod(path->dentry, path->mnt, &mode)) {
  		error = -EACCES;
-@@ -641,6 +650,7 @@ static int chmod_common(struct path *pat
+@@ -644,6 +653,7 @@ static int chmod_common(struct path *pat
  	error = notify_change(path->dentry, &newattrs);
  out_unlock:
  	mutex_unlock(&inode->i_mutex);
@@ -304,7 +304,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	mnt_drop_write(path->mnt);
  	return error;
  }
-@@ -683,6 +693,9 @@ static int chown_common(struct dentry * 
+@@ -686,6 +696,9 @@ static int chown_common(struct dentry * 
  	int error;
  	struct iattr newattrs;
  
@@ -314,7 +314,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (!gr_acl_handle_chown(dentry, mnt))
  		return -EACCES;
  
-@@ -1176,6 +1189,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1180,6 +1193,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -323,8 +323,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/proc/version.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/proc/version.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/proc/version.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/proc/version.c
 @@ -32,3 +32,11 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -332,13 +332,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32.58+grsecurity-2.9-2.6.32.58 "
-+	       "2012/03/08\n");
++	printk(KERN_INFO "Hook version: 2.6.32.59+grsecurity-2.9.1-2.6.32.59 "
++	       "2012/08/05\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/fs/stat.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/fs/stat.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/fs/stat.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/fs/stat.c
 @@ -43,6 +43,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
@@ -348,9 +348,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (retval)
  		return retval;
  
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/include/linux/init_task.h
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/include/linux/init_task.h
-@@ -121,6 +121,14 @@ extern struct cred init_cred;
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/include/linux/init_task.h
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/include/linux/init_task.h
+@@ -123,6 +123,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
  
@@ -373,8 +373,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  }
  
  
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/include/linux/sched.h
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/include/linux/sched.h
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/include/linux/sched.h
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -395,8 +395,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  };
  
  #define MF_PAX_PAGEEXEC		0x01000000	/* Paging based non-executable pages */
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/include/linux/security.h
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/include/linux/security.h
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/include/linux/security.h
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/include/linux/security.h
 @@ -36,6 +36,7 @@
  #include <linux/gfp.h>
  #include <linux/grsecurity.h>
@@ -405,8 +405,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/compat.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/compat.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/compat.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/compat.c
 @@ -924,6 +924,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
@@ -416,8 +416,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/fork.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/fork.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/fork.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/fork.c
 @@ -165,6 +165,7 @@ void __put_task_struct(struct task_struc
  	exit_creds(tsk);
  	delayacct_tsk_free(tsk);
@@ -426,7 +426,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1169,6 +1170,9 @@ static struct task_struct *copy_process(
+@@ -1176,6 +1177,9 @@ static struct task_struct *copy_process(
  
  	if ((retval = audit_alloc(p)))
  		goto bad_fork_cleanup_policy;
@@ -436,7 +436,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1352,6 +1356,7 @@ bad_fork_cleanup_semundo:
+@@ -1360,6 +1364,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -444,8 +444,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/kexec.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/kexec.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/kexec.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -463,8 +463,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/module.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/module.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/module.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/module.c
 @@ -56,6 +56,7 @@
  #include <linux/percpu.h>
  #include <linux/kmemleak.h>
@@ -491,8 +491,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/ptrace.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/ptrace.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/ptrace.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/ptrace.c
 @@ -623,6 +623,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -517,9 +517,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/sched.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/sched.c
-@@ -6394,6 +6394,8 @@ int can_nice(const struct task_struct *p
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/sched.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/sched.c
+@@ -6379,6 +6379,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -528,8 +528,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/signal.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/signal.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/signal.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/signal.c
 @@ -2283,6 +2283,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -575,8 +575,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/sys.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/sys.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/sys.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/sys.c
 @@ -161,6 +161,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -615,8 +615,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/sysctl.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/sysctl.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/sysctl.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/sysctl.c
 @@ -1903,6 +1903,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
@@ -627,8 +627,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/time.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/time.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/time.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/time.c
 @@ -92,6 +92,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
@@ -647,8 +647,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	if (tz) {
  		/* we log in do_settimeofday called below, so don't log twice
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/kernel/time/ntp.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/kernel/time/ntp.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/kernel/time/ntp.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -673,8 +673,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/ipv4/inet_connection_sock.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,7 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -692,8 +692,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover) {
  					if (tb->fastreuse > 0 &&
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/ipv4/inet_hashtables.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/ipv4/inet_hashtables.c
 @@ -447,6 +447,8 @@ int __inet_hash_connect(struct inet_time
  		local_bh_disable();
  		for (i = 1; i <= remaining; i++) {
@@ -703,8 +703,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/ipv4/raw.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/ipv4/raw.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/ipv4/raw.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -724,8 +724,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/ipv4/udp.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/ipv4/udp.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/ipv4/udp.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/ipv4/udp.c
 @@ -201,7 +201,8 @@ int udp_lib_get_port(struct sock *sk, un
  			 */
  			do {
@@ -747,8 +747,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	err = gr_search_udp_recvmsg(sk, skb);
  	if (err)
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/ipv6/raw.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/ipv6/raw.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/ipv6/raw.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -768,8 +768,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/ipv6/udp.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/ipv6/udp.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/ipv6/udp.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -789,8 +789,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/socket.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/socket.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/socket.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/socket.c
 @@ -583,6 +583,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
@@ -851,8 +851,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (err)
  		goto out_put;
  
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/net/unix/af_unix.c
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/net/unix/af_unix.c
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/net/unix/af_unix.c
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/net/unix/af_unix.c
 @@ -861,6 +861,9 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_dput;
@@ -874,9 +874,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/security/Kconfig
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/security/Kconfig
-@@ -785,5 +785,7 @@ source security/tomoyo/Kconfig
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/security/Kconfig
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/security/Kconfig
+@@ -1029,5 +1029,7 @@ source security/tomoyo/Kconfig
  
  source security/integrity/ima/Kconfig
  
@@ -884,8 +884,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/longte
 +
  endmenu
  
---- linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047.orig/security/Makefile
-+++ linux-2.6.32.58+grsecurity-2.9-2.6.32.58-201203062047/security/Makefile
+--- linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518.orig/security/Makefile
++++ linux-2.6.32.59+grsecurity-2.9.1-2.6.32.59-201208021518/security/Makefile
 @@ -25,3 +25,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
