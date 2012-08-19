@@ -36,9 +36,9 @@ apt-get -y install wget
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.3-20150819.tar.gz ]
+if [ ! -r ccs-patch-1.7.3-20120819.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20150819.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20150819.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20120819.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20120819.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -50,7 +50,7 @@ tar -jxf linux-source-2.6.26.tar.bz2
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.26 || die "Can't chdir to linux-source-2.6.18/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.3-20150819.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.3-20120819.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
 
