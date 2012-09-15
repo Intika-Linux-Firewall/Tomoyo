@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for openSUSE 11.4's 2.6.37 kernel.
+# This is a kernel build script for openSUSE 12.2's 3.4 kernel.
 #
 
 die () {
@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.37.6-0.20.1.src.rpm ]
+if [ ! -r kernel-source-3.4.6-2.10.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.4/rpm/src/kernel-source-2.6.37.6-0.20.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/source/distribution/12.2/repo/oss/suse/src/kernel-source-3.4.6-2.10.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-2.6.37.6-0.20.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-2.6.37.6-0.20.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.4.6-2.10.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.4.6-2.10.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-2.6.37.6-0.20.1.nosrc.rpm ]
+if [ ! -r kernel-default-3.4.6-2.10.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/11.4/rpm/src/kernel-default-2.6.37.6-0.20.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/source/distribution/12.2/repo/oss/suse/nosrc/kernel-default-3.4.6-2.10.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-2.6.37.6-0.20.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-2.6.37.6-0.20.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.4.6-2.10.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.4.6-2.10.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20120915.tar.gz ]
@@ -85,31 +85,31 @@ cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec
 +++ kernel-default.spec
-@@ -53,10 +53,10 @@
+@@ -55,10 +55,10 @@
  %define install_vdso 0
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.37.6
--Release:        0.20.1
-+Release:        0.20.1_tomoyo_1.8.3p7
- %if %using_buildservice
- %else
- %endif
-@@ -303,6 +303,11 @@
+ Version:        3.4.6
+-Release:        2.10.1
++Release:        2.10.1_tomoyo_1.8.3p7
+ License:        GPL-2.0
+ Group:          System/Kernel
+ Url:            http://www.kernel.org/
+@@ -342,6 +342,11 @@
  %endif
  	%_sourcedir/series.conf .. $SYMBOLS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20120915.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.37-suse-11.4.diff
++patch -sp1 < patches/ccs-patch-3.4-suse-12.2.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
 +
  cd %kernel_build_dir
  
- if [ -f %_sourcedir/localversion ] ; then
+ # Override the timestamp 'uname -v' reports with the source timestamp and
 EOF
 sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' -e 's:-n kernel:-n ccs-kernel:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
 echo ""

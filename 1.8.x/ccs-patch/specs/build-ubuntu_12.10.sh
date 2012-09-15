@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is kernel build script for ubuntu 10.04's 2.6.32 kernel.
+# This is kernel build script for ubuntu 12.10's 3.5 kernel.
 #
 
 update_maintainer () {
@@ -38,14 +38,14 @@ fi
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get -y install fakeroot build-essential || die "Can't install packages."
 apt-get build-dep linux || die "Can't install packages."
-apt-get source linux-source-2.6.32 || die "Can't install kernel source."
-for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, ","); for (i = 1; i <= n; i++) { split(a[i], b, " "); print b[1]; } } ' linux-2.6.32/debian/control`; do apt-get -y install $i; done
+apt-get source linux-source-3.5.0 || die "Can't install kernel source."
+for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, ","); for (i = 1; i <= n; i++) { split(a[i], b, " "); print b[1]; } } ' linux-3.5.0/debian/control`; do apt-get -y install $i; done
 
 # Apply patches and create kernel config.
-cd linux-2.6.32/ || die "Can't chdir to linux-2.6.32/ ."
+cd linux-3.5.0/ || die "Can't chdir to linux-3.5.0/ ."
 update_maintainer
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.3-20120915.tar.gz || die "Can't extract patch."
-patch -p1 < patches/ccs-patch-2.6.32-ubuntu-10.04.diff || die "Can't apply patch."
+patch -p1 < patches/ccs-patch-3.5-ubuntu-12.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*'${ORIGINAL_FLAVOUR}'*'`; do cp -p $i `echo $i | sed -e 's/'${ORIGINAL_FLAVOUR}'/'${NEW_FLAVOUR}'/g'`; done
 for i in debian.master/config/*/config.common.*; do cat config.ccs >> $i; done
@@ -58,7 +58,7 @@ debian/rules debian/control || die "Can't update control."
 patch -p0 << "EOF" || die "Can't patch link-headers."
 --- debian/scripts/link-headers
 +++ debian/scripts/link-headers
-@@ -39,4 +39,17 @@
+@@ -39,4 +39,19 @@
  done
  )
  
@@ -70,8 +70,10 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +	rm -f $hdrdir/include/linux/$i
 +	cp -p $i $hdrdir/include/linux/$i
 +    done
-+    rm -f $hdrdir/security
-+    cd ../../
++    rm -f $hdrdir/include/net $hdrdir/security
++    cd ../
++    tar -cf - net | tar -xf - -C $hdrdir/include/
++    cd ../
 +    tar -cf - security | tar -xf - -C $hdrdir
 +fi
 +

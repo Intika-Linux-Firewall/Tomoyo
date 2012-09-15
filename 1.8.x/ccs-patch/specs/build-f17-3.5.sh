@@ -12,17 +12,17 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.5.2-1.fc17.src.rpm ]
+if [ ! -r kernel-3.5.3-1.fc17.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.5.2-1.fc17.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.5.3-1.fc17.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.5.2-1.fc17.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.5.2-1.fc17.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.5.3-1.fc17.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.5.3-1.fc17.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20120805.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20120915.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20120805.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120805.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20120915.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120915.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -944,7 +949,7 @@
+@@ -941,7 +946,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -964,7 +969,7 @@
+@@ -961,7 +966,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1480,6 +1485,10 @@
+@@ -1475,6 +1480,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20120805.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20120915.tar.gz
 +patch -sp1 < patches/ccs-patch-3.5-fedora-17.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1509,6 +1518,18 @@
+@@ -1504,6 +1513,18 @@
  for i in *.config
  do
    mv $i .config
