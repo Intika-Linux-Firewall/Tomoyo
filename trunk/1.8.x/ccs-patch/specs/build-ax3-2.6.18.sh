@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-308.3.AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-308.4.AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-308.3.AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-308.4.AXS3.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-308.3.AXS3.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-308.3.AXS3.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-308.4.AXS3.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-308.4.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20120805.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20120915.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20120805.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120805.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20120915.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20120915.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,8 +32,8 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}.%{stablerev}
  %define rpmversion 2.6.%{sublevel}
  # %dist is defined in Asianux VPBS
--%define release %{revision}.3%{dist}
-+%define release %{revision}.3%{dist}_tomoyo_1.8.3p7
+-%define release %{revision}.4%{dist}
++%define release %{revision}.4%{dist}_tomoyo_1.8.3p7
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
@@ -56,18 +56,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -1046,6 +1049,10 @@
+@@ -1050,6 +1053,10 @@
  %patch200100 -p1
  # end of Asianux patches
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20120805.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20120915.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -1097,6 +1104,9 @@
+@@ -1101,6 +1108,9 @@
  for i in `ls *86*.config`
  do
    mv $i .config
