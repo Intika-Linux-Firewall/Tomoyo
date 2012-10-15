@@ -18,7 +18,7 @@ die () {
     exit 1
 }
 
-ORIGINAL_FLAVOUR=`uname -r | cut -d - -f 3-` # e.g. generic generic-pae server
+ORIGINAL_FLAVOUR=`uname -r | cut -d - -f 3- | sed -e 's/generic-pae/generic/'` # e.g. generic server
 NEW_FLAVOUR=${ORIGINAL_FLAVOUR}-ccs
 echo "Building "${NEW_FLAVOUR}" from "${ORIGINAL_FLAVOUR}"."
 
