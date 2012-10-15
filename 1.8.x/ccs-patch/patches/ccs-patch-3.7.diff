@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for linux-next.
+This is TOMOYO Linux patch for kernel 3.7-rc1.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=c88a9778c1018158943e3e28ae62fd32f8aa5cd0;sf=tgz
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.7-rc1.tar.bz2
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -28,9 +28,9 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  security/security.c       |  107 ++++++++++++++++++++++++++++++++++++++++------
  24 files changed, 235 insertions(+), 37 deletions(-)
 
---- linux-next.orig/fs/exec.c
-+++ linux-next/fs/exec.c
-@@ -1510,7 +1510,7 @@ static int do_execve_common(const char *
+--- linux-3.7-rc1.orig/fs/exec.c
++++ linux-3.7-rc1/fs/exec.c
+@@ -1523,7 +1523,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
  
@@ -39,9 +39,9 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (retval < 0)
  		goto out;
  
---- linux-next.orig/fs/open.c
-+++ linux-next/fs/open.c
-@@ -1007,6 +1007,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-3.7-rc1.orig/fs/open.c
++++ linux-3.7-rc1/fs/open.c
+@@ -1024,6 +1024,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -50,8 +50,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-next.orig/fs/proc/version.c
-+++ linux-next/fs/proc/version.c
+--- linux-3.7-rc1.orig/fs/proc/version.c
++++ linux-3.7-rc1/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.6-rc7-next-20120928 2012/10/01\n");
++	printk(KERN_INFO "Hook version: 3.7-rc1 2012/10/15\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-next.orig/include/linux/init_task.h
-+++ linux-next/include/linux/init_task.h
+--- linux-3.7-rc1.orig/include/linux/init_task.h
++++ linux-3.7-rc1/include/linux/init_task.h
 @@ -143,6 +143,14 @@ extern struct task_group root_task_group
  
  #define INIT_TASK_COMM "swapper"
@@ -88,18 +88,18 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  
---- linux-next.orig/include/linux/sched.h
-+++ linux-next/include/linux/sched.h
-@@ -44,6 +44,8 @@
+--- linux-3.7-rc1.orig/include/linux/sched.h
++++ linux-3.7-rc1/include/linux/sched.h
+@@ -4,6 +4,8 @@
+ #include <uapi/linux/sched.h>
  
- #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
  struct sched_param {
  	int sched_priority;
  };
-@@ -1588,6 +1590,10 @@ struct task_struct {
+@@ -1548,6 +1550,10 @@ struct task_struct {
  #ifdef CONFIG_UPROBES
  	struct uprobe_task *utask;
  #endif
@@ -110,8 +110,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-next.orig/include/linux/security.h
-+++ linux-next/include/linux/security.h
+--- linux-3.7-rc1.orig/include/linux/security.h
++++ linux-3.7-rc1/include/linux/security.h
 @@ -52,6 +52,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -132,8 +132,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  
  static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -1968,18 +1972,18 @@ static inline int security_sb_mount(char
- 				    char *type, unsigned long flags,
+@@ -1968,18 +1972,18 @@ static inline int security_sb_mount(cons
+ 				    const char *type, unsigned long flags,
  				    void *data)
  {
 -	return 0;
@@ -313,8 +313,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-next.orig/include/net/ip.h
-+++ linux-next/include/net/ip.h
+--- linux-3.7-rc1.orig/include/net/ip.h
++++ linux-3.7-rc1/include/net/ip.h
 @@ -203,6 +203,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
@@ -324,8 +324,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-next.orig/kernel/fork.c
-+++ linux-next/kernel/fork.c
+--- linux-3.7-rc1.orig/kernel/fork.c
++++ linux-3.7-rc1/kernel/fork.c
 @@ -241,6 +241,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -352,8 +352,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-next.orig/kernel/kexec.c
-+++ linux-next/kernel/kexec.c
+--- linux-3.7-rc1.orig/kernel/kexec.c
++++ linux-3.7-rc1/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -371,17 +371,17 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-next.orig/kernel/module.c
-+++ linux-next/kernel/module.c
-@@ -58,6 +58,7 @@
- #include <linux/jump_label.h>
- #include <linux/pfn.h>
+--- linux-3.7-rc1.orig/kernel/module.c
++++ linux-3.7-rc1/kernel/module.c
+@@ -60,6 +60,7 @@
  #include <linux/bsearch.h>
+ #include <linux/fips.h>
+ #include "module-internal.h"
 +#include <linux/ccsecurity.h>
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -774,6 +775,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -814,6 +815,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -390,7 +390,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3024,6 +3027,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -3119,6 +3122,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -399,8 +399,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	/* Do all the hard work */
  	mod = load_module(umod, len, uargs);
---- linux-next.orig/kernel/ptrace.c
-+++ linux-next/kernel/ptrace.c
+--- linux-3.7-rc1.orig/kernel/ptrace.c
++++ linux-3.7-rc1/kernel/ptrace.c
 @@ -860,6 +860,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -425,8 +425,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-next.orig/kernel/sched/core.c
-+++ linux-next/kernel/sched/core.c
+--- linux-3.7-rc1.orig/kernel/sched/core.c
++++ linux-3.7-rc1/kernel/sched/core.c
 @@ -3578,6 +3578,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -436,8 +436,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-next.orig/kernel/signal.c
-+++ linux-next/kernel/signal.c
+--- linux-3.7-rc1.orig/kernel/signal.c
++++ linux-3.7-rc1/kernel/signal.c
 @@ -2847,6 +2847,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -483,8 +483,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-next.orig/kernel/sys.c
-+++ linux-next/kernel/sys.c
+--- linux-3.7-rc1.orig/kernel/sys.c
++++ linux-3.7-rc1/kernel/sys.c
 @@ -180,6 +180,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -523,8 +523,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-next.orig/kernel/time/ntp.c
-+++ linux-next/kernel/time/ntp.c
+--- linux-3.7-rc1.orig/kernel/time/ntp.c
++++ linux-3.7-rc1/kernel/time/ntp.c
 @@ -15,6 +15,7 @@
  #include <linux/time.h>
  #include <linux/mm.h>
@@ -558,8 +558,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		if (!(txc->modes & ADJ_NANO))
  			delta.tv_nsec *= 1000;
  		result = timekeeping_inject_offset(&delta);
---- linux-next.orig/net/ipv4/raw.c
-+++ linux-next/net/ipv4/raw.c
+--- linux-3.7-rc1.orig/net/ipv4/raw.c
++++ linux-3.7-rc1/net/ipv4/raw.c
 @@ -704,6 +704,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -571,8 +571,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-next.orig/net/ipv4/udp.c
-+++ linux-next/net/ipv4/udp.c
+--- linux-3.7-rc1.orig/net/ipv4/udp.c
++++ linux-3.7-rc1/net/ipv4/udp.c
 @@ -1193,6 +1193,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -584,8 +584,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-next.orig/net/ipv6/raw.c
-+++ linux-next/net/ipv6/raw.c
+--- linux-3.7-rc1.orig/net/ipv6/raw.c
++++ linux-3.7-rc1/net/ipv6/raw.c
 @@ -472,6 +472,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -597,8 +597,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-next.orig/net/ipv6/udp.c
-+++ linux-next/net/ipv6/udp.c
+--- linux-3.7-rc1.orig/net/ipv6/udp.c
++++ linux-3.7-rc1/net/ipv6/udp.c
 @@ -363,6 +363,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -610,9 +610,9 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-next.orig/net/socket.c
-+++ linux-next/net/socket.c
-@@ -1642,6 +1642,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+--- linux-3.7-rc1.orig/net/socket.c
++++ linux-3.7-rc1/net/socket.c
+@@ -1640,6 +1640,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -623,8 +623,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-next.orig/net/unix/af_unix.c
-+++ linux-next/net/unix/af_unix.c
+--- linux-3.7-rc1.orig/net/unix/af_unix.c
++++ linux-3.7-rc1/net/unix/af_unix.c
 @@ -1803,6 +1803,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
@@ -636,8 +636,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-next.orig/security/Kconfig
-+++ linux-next/security/Kconfig
+--- linux-3.7-rc1.orig/security/Kconfig
++++ linux-3.7-rc1/security/Kconfig
 @@ -167,5 +167,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -646,8 +646,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
  endmenu
  
---- linux-next.orig/security/Makefile
-+++ linux-next/security/Makefile
+--- linux-3.7-rc1.orig/security/Makefile
++++ linux-3.7-rc1/security/Makefile
 @@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -655,8 +655,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-next.orig/security/security.c
-+++ linux-next/security/security.c
+--- linux-3.7-rc1.orig/security/security.c
++++ linux-3.7-rc1/security/security.c
 @@ -202,7 +202,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
@@ -670,8 +670,8 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
 @@ -279,17 +282,27 @@ int security_sb_statfs(struct dentry *de
- int security_sb_mount(char *dev_name, struct path *path,
-                        char *type, unsigned long flags, void *data)
+ int security_sb_mount(const char *dev_name, struct path *path,
+                        const char *type, unsigned long flags, void *data)
  {
 -	return security_ops->sb_mount(dev_name, path, type, flags, data);
 +	int error = security_ops->sb_mount(dev_name, path, type, flags, data);
