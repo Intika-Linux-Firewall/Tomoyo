@@ -10,9 +10,9 @@ URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/17/SRPMS"
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p7"
 CCS_PATCH_VER="1.8.3-20120915"
-KERNEL_VER="3.5.3-1.fc17"
+KERNEL_VER="3.6.1-1.fc17"
 
-CCS_DIFF_NAME="ccs-patch-3.5.diff"
+CCS_DIFF_NAME="ccs-patch-3.6.diff"
 
 UPDATED_DIFF=0
 #CCS_DIFF_REVISION="ccs-patch-2.6.40-fedora-15.diff?revision=5320&root=tomoyo"
