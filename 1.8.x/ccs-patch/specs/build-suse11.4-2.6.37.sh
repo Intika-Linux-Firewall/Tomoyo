@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.37.6-0.20.1.src.rpm ]
+if [ ! -r kernel-source-2.6.37.6-24.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.4/rpm/src/kernel-source-2.6.37.6-0.20.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.4/rpm/src/kernel-source-2.6.37.6-24.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-2.6.37.6-0.20.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-2.6.37.6-0.20.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-2.6.37.6-24.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-2.6.37.6-24.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-2.6.37.6-0.20.1.nosrc.rpm ]
+if [ ! -r kernel-default-2.6.37.6-24.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/11.4/rpm/src/kernel-default-2.6.37.6-0.20.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.4/rpm/src/kernel-default-2.6.37.6-24.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-2.6.37.6-0.20.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-2.6.37.6-0.20.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-2.6.37.6-24.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-2.6.37.6-24.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20121015.tar.gz ]
@@ -85,20 +85,22 @@ cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec
 +++ kernel-default.spec
-@@ -53,10 +53,10 @@
+@@ -52,12 +52,12 @@
  %define install_vdso 0
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
+ License:        GPL-2.0
+ Group:          System/Kernel
  Version:        2.6.37.6
--Release:        0.20.1
-+Release:        0.20.1_tomoyo_1.8.3p7
+-Release:        24.1
++Release:        24.1_tomoyo_1.8.3p7
  %if %using_buildservice
  %else
  %endif
-@@ -303,6 +303,11 @@
+@@ -307,6 +307,11 @@
  %endif
  	%_sourcedir/series.conf .. $SYMBOLS
  
