@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.0.46-1vl6.src.rpm ]
+if [ ! -r kernel-3.0.50-1vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.1/updates/SRPMS/kernel-3.0.46-1vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.1/updates/SRPMS/kernel-3.0.50-1vl6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.0.46-1vl6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.0.46-1vl6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.0.50-1vl6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.0.50-1vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20121015.tar.gz ]
@@ -30,7 +30,7 @@ patch << "EOF" || die "Can't patch spec file."
 +++ kernel-vl.spec
 @@ -27,7 +27,7 @@
  %define sublevel 0
- %define patchlevel 46
+ %define patchlevel 50
  %define kversion 3.%{sublevel}
 -%define rpmversion 3.%{sublevel}.%{patchlevel}
 +%define rpmversion 3.%{sublevel}.%{patchlevel}_tomoyo_1.8.3p7
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -677,6 +680,10 @@
+@@ -687,6 +690,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -695,6 +702,9 @@
+@@ -705,6 +712,9 @@
  for i in *.config
  do 
  	mv $i .config 
