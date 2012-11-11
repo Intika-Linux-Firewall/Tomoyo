@@ -75,9 +75,9 @@ rpm --checksig kernel-default-2.6.37.6-24.1.nosrc.rpm || die "Can't verify signa
 rpm -ivh kernel-default-2.6.37.6-24.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20121015.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20121111.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20121015.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20121015.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20121111.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20121111.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -105,7 +105,7 @@ patch << "EOF" || die "Can't patch spec file."
  	%_sourcedir/series.conf .. $SYMBOLS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20121015.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20121111.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.37-suse-11.4.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
 +
