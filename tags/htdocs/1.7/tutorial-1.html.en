@@ -21,7 +21,7 @@
 
 <h3>Contents of this installment.</h3>
 
-<p>I explain summary of secure OS and steps for introducing TOMOYO Linux. I explain steps for installing prebuilt TOMOYO Linux 1.7.3 running on CentOS 5.8 installed on VMware environment. Also, I explain steps for booting with TOMOYO Linux kernel and experiencing TOMOYO Linux's automatic policy learning mode.</p>
+<p>I explain summary of secure OS and steps for introducing TOMOYO Linux. I explain steps for installing TOMOYO Linux 1.7.3 running on CentOS 5.8 installed on VMware environment. Also, I explain steps for booting with TOMOYO Linux kernel and experiencing TOMOYO Linux's automatic policy learning mode.</p>
 
 <h2>About secure OS.</h2>
 
@@ -49,67 +49,13 @@
 
 <h3>Preparation</h3>
 
-<p>TOMOYO Linux supports Linux kernel 2.4.37 and 2.6.27 to 2.6.37. Regarding distributions listed in Fig. 3, <a href="http://tomoyo.sourceforge.jp/1.7/install.html.en#install_from_repository">prebuilt kernel packages and tools packages for i686 architecture</a> are provided.</p>
+<p>TOMOYO Linux supports Linux kernel 2.4.37 and 2.6.27 to 2.6.37 and some distribution's latest kernels.</p>
 
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 3&nbsp;&nbsp;Distributions provided with binary packages.<br>
-<ul>
-<li>Fedora 14</li>
-<li>CentOS 3.9/4.9/5.8/6.3</li>
-<li>Debian Lenny</li>
-<li>OpenSUSE 11.3</li>
-<li>Asianux 2.0/3.0</li>
-<li>Ubuntu 8.04/10.04/10.10</li>
-<li>Vine Linux 5.2</li>
-</ul>
-</td></tr>
-</table>
+<p>In this series, I explain using CentOS 5.8 as an example, but you can do in a similar manner for any distributions.</p>
 
-<p>In this series, I explain using CentOS 5.8 as an example, but you can do in a similar manner regarding distributions listed above.</p>
+<h4>&diams;Installing kernel and tools</h4>
 
-<h4>&diams;Installing kernel</h4>
-
-<p>Download and install prebuilt kernel packages. (Fig. 4)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 4&nbsp;&nbsp;Installing prebuilt kernel
-<pre>
-# wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# rpm --import kumaneko-key
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo
-# yum -y install ccs-kernel
-</pre>
-</td></tr>
-</table>
-
-<p>If kernel is successfully installed, an entry like Fig. 5 should be added to /boot/grub/grub.conf .</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 5&nbsp;&nbsp;Entry for TOMOYO Linux kernel added to grub.conf
-<pre>
-title CentOS (2.6.18-238.9.1.el5_tomoyo_1.7.3)
-        root (hd0,0)
-        kernel /boot/vmlinuz-2.6.18-238.9.1.el5_tomoyo_1.7.3 ro root=LABEL=/
-        initrd /boot/initrd-2.6.18-238.9.1.el5_tomoyo_1.7.3.img
-</pre>
-</td></tr>
-</table>
-
-<h4>&diams;Installing utility</h4>
-
-<p>Download and install utility for managing policy configuration. (Fig. 6)</p>
-
-<table border="1" summary="fig">
-<tr><td>
-&diams; Fig. 6&nbsp;&nbsp;Installing prebuilt utility
-<pre>
-# yum -y install ccs-tools
-</pre>
-</td></tr>
-</table>
+<p>See <a href="http://tomoyo.sourceforge.jp/1.7/install.html.en">Installing TOMOYO Linux kernels and tools.</a> for how to download and install kernel and tools.</p>
 
 <p>Utility programs are installed into /usr/sbin/ directory. Role of each program is described in Fig. 7. I explain usage of these programs when each program appears for the first time in this series.</p>
 
