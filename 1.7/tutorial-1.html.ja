@@ -21,7 +21,7 @@
 
 <h3>今回の内容</h3>
 
-<p>セキュアＯＳの概要と TOMOYO Linux の導入手順について説明します．手順については， VMware 上に構築した CentOS 5.8 にコンパイル済みの TOMOYO Linux カーネルバージョン 1.7.3 を導入します．導入しただけではつまらないので，実際に TOMOYO Linux カーネルで起動し， TOMOYO Linux のポリシー自動学習を「体験」していただくまでが今回の内容です．</p>
+<p>セキュアＯＳの概要と TOMOYO Linux の導入手順について説明します．手順については， VMware 上に構築した CentOS 5.8 に TOMOYO Linux カーネルバージョン 1.7.3 を導入します．導入しただけではつまらないので，実際に TOMOYO Linux カーネルで起動し， TOMOYO Linux のポリシー自動学習を「体験」していただくまでが今回の内容です．</p>
 
 <h2>セキュアＯＳについて</h2>
 
@@ -49,67 +49,13 @@
 
 <h3>準備</h3>
 
-<p>TOMOYO Linux はカーネル 2.4.37 および 2.6.27 ～ 2.6.37 に対応しています．図３のディストリビューションについては<a href="http://tomoyo.sourceforge.jp/1.7/install.html.ja#install_from_repository"> i686 向けのコンパイル済みカーネルとツールのパッケージ</a>を用意しています．</p>
+<p>TOMOYO Linux はカーネル 2.4.37 および 2.6.27 ～ 2.6.37 と、幾つかのディストリビューションの最新カーネルに対応しています．</p>
 
-<table border="1" summary="fig">
-<tr><td>
-■図３　バイナリパッケージが提供されているディストリビューション<br>
-<ul>
-<li>Fedora 14</li>
-<li>CentOS 3.9/4.9/5.8/6.3</li>
-<li>Debian Lenny</li>
-<li>OpenSUSE 11.3</li>
-<li>Asianux 2.0/3.0</li>
-<li>Ubuntu 8.04/10.04/10.10</li>
-<li>Vine Linux 5.2</li>
-</ul>
-</td></tr>
-</table>
+<p>本連載では， CentOS 5.8 を例に挙げて説明しますが，どのディストリビューションでもほぼ同じ手順で利用いただけます．</p>
 
-<p>本連載では， CentOS 5.8 を例に挙げて説明しますが，上記ディストリビューションであればほぼ同じ手順で利用いただけます．</p>
+<h4>●カーネルとツールのインストール</h4>
 
-<h4>●カーネルのインストール</h4>
-
-<p>コンパイル済みのカーネルパッケージをダウンロードし，インストールします（図４）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図４　コンパイル済みカーネルのインストール
-<pre>
-# wget http://I-love.SAKURA.ne.jp/kumaneko-key
-# rpm --import kumaneko-key
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo
-# yum -y install ccs-kernel
-</pre>
-</td></tr>
-</table>
-
-<p>カーネルのインストールが成功していれば， /boot/grub/grub.conf には図５のようなエントリが追加されているはずです．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図５　grub.conf に追加される TOMOYO Linux カーネル用のエントリ
-<pre>
-title CentOS (2.6.18-238.9.1.el5_tomoyo_1.7.3)
-        root (hd0,0)
-        kernel /boot/vmlinuz-2.6.18-238.9.1.el5_tomoyo_1.7.3 ro root=LABEL=/
-        initrd /boot/initrd-2.6.18-238.9.1.el5_tomoyo_1.7.3.img
-</pre>
-</td></tr>
-</table>
-
-<h4>●ユーティリティのインストール</h4>
-
-<p>ポリシーを管理するためのユーティリティをダウンロードし，インストールします（図６）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図６　ユーティリティのインストール
-<pre>
-# yum -y install ccs-tools
-</pre>
-</td></tr>
-</table>
+<p><a href="http://tomoyo.sourceforge.jp/1.7/install.html.ja">TOMOYO Linux 対応カーネルとツールのインストール</a>に従ってカーネルをインストールします．</p>
 
 <p>ユーティリティは /usr/sbin/ ディレクトリにインストールされます．各プログラムの役割は図７のとおりです．それぞれの使い方については，本連載の中で登場したところで説明していきます．</p>
 
