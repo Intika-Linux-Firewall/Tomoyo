@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=ce2931ab5e448a93fee55d9d82de9f5e754ff6f7;sf=tgz
+Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=7bd0111c8f2c15d7bc59dfcdae4793c5cd5883dd;sf=tgz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -59,7 +59,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.7-rc7-next-20121127 2012/11/27\n");
++	printk(KERN_INFO "Hook version: 3.7-rc8-next-20121207 2012/12/09\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -99,7 +99,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  struct sched_param {
  	int sched_priority;
  };
-@@ -1593,6 +1595,10 @@ struct task_struct {
+@@ -1616,6 +1618,10 @@ struct task_struct {
  #ifdef CONFIG_UPROBES
  	struct uprobe_task *utask;
  #endif
@@ -390,7 +390,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3087,6 +3090,8 @@ static int may_init_module(void)
+@@ -3083,6 +3086,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -427,7 +427,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		ret = ptrace_traceme();
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3610,6 +3610,8 @@ int can_nice(const struct task_struct *p
+@@ -3626,6 +3626,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
