@@ -10,11 +10,11 @@ Provides: nvidia-kernel-169.12, nvidia-kernel-71.86.04, nvidia-kernel-96.43.05
 Depends: linux-image-2.6.24-32-ccs, linux-restricted-modules-common (>= 2.6.24), module-init-tools, nvidia-kernel-common
 Suggests: avm-fritz-firmware-2.6.24-32, nvidia-glx | nvidia-glx-legacy | nvidia-glx-new
 Filename: ./linux-restricted-modules-2.6.24-32-ccs1.8.3p7_2.6.24.18-32.14_i386.deb
-Size: 11718200
-MD5sum: 4a002a3eb5f28374ff5fe8b33bb22d07
-SHA1: d04ccceae232d66e0300252afb66eeb5c5debf13
-SHA256: 41dadca3e0210ac18bf90e10e4bb1b2f36349e526db55bee106b58df313e43b8
-SHA512: 0013ce22e4da11e484a011796c520cb206480bef29b8303d36beb8cc51264c1176bf4cccc90281210cf9207218d6d7728d4d989356dddacc95db702f94f00518
+Size: 11718160
+MD5sum: 19313e18dde678a1e08a56ddac321fcd
+SHA1: 3b92210e2deb39d9684d4b2bf7a41689807462ae
+SHA256: c618e22eca17de198d37f33c2bb4de44b4d5e4df791946c4c0ea9d6e2b67ff23
+SHA512: 2b19cc0bfc1d457f238e28e6ba386ac0915bc0daa3487775759a13c9f01bbbb5c924e619d7b9df353d2b30ffa882b4f970ccf016457f0dfccf6245bf4e46927f
 Description: Non-free Linux 2.6.24 modules on x86/x86_64
  This package provides restricted modules for Linux version 2.6.24 on
  x86/x86_64.
@@ -39,14 +39,73 @@ Source: linux-meta
 Version: 2.6.24.32.34
 Depends: linux-restricted-modules-2.6.24-32-ccs
 Filename: ./linux-restricted-modules-ccs1.8.3p7_2.6.24.32.34_i386.deb
-Size: 26868
-MD5sum: cb323771d3133a930c0b591ff1e1f234
-SHA1: 5449370d205b67d25e438910054b9a273442d7f4
-SHA256: 53750346b56ffbbf3ed5744551f0f7de32551ec0009da28344deb5374b62e0b2
-SHA512: 9cc54d58e2f8867bb229bc270b39db32849bddaad90ffad63c4318421655a76bd99790e70699797c0fd58fa6c2d7a05b8fd7e6edee88393af1fcc81b18cf15f2
+Size: 26870
+MD5sum: 45c4e8c1fd2e4cb5e73ddd60096001bd
+SHA1: 568d6fa4da68ad8904a068fbe946045b713594bc
+SHA256: 02e70b1b760bd9f912bcbada31eb4512277f6809c56a0ee2789651694f0befa6
+SHA512: 8fbbb99a7a026359df30aed5ba13a64e10486e0a4397c67888df6a25cd27ac20a673873e11b864063b57d8c549cb93e365a9b77c8e2a9d2dd0ed2ec1164e2df2
 Description: Restricted Linux modules for ccs kernels
  This package will always depend on the latest restricted modules available
  for ccs kernels.
+
+Package: linux-headers-2.6.24-32-ccs
+Priority: optional
+Section: devel
+Installed-Size: 7272
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.24-32.107
+Provides: linux-headers, linux-headers-2.6
+Depends: coreutils | fileutils (>= 4.0), libc6 (>= 2.4), libncurses5 (>= 5.6+20071006-3), linux-headers-2.6.24-32
+Filename: ./linux-headers-2.6.24-32-ccs1.8.3p7_2.6.24-32.107_i386.deb
+Size: 683260
+MD5sum: 1d9217015ee8346ef28b81765ad349ec
+SHA1: d838fd3d5ea54992c01c90b4e39fc1e4ea6e960a
+SHA256: 61b1e658356d092e048b35b5909f11d60c9aa874bf279cf97b70030df4205560
+SHA512: 6dfe9f9f9fbc217439f87c1f0480eed96e220c2d3691045cc1dfd06a08d71a9fbd4798a5641d15cca6a7d7497e5d526eb73b4dc0225103ae708210feede1ed0d
+Description: Linux kernel headers for version 2.6.24 on x86/x86_64
+ This package provides kernel header files for version 2.6.24 on
+ x86/x86_64.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-2.6.24-32/debian.README.gz for details.
+
+Package: linux-image-2.6.24-32-ccs
+Priority: optional
+Section: base
+Installed-Size: 59328
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 2.6.24-32.107
+Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, redhat-cluster-modules
+Depends: coreutils | fileutils (>= 4.0), initramfs-tools (>= 0.36ubuntu6), module-init-tools (>= 3.3-pre11-4ubuntu3)
+Pre-Depends: dpkg (>= 1.10.24)
+Recommends: lilo (>= 19.1) | grub
+Suggests: fdutils, linux-doc-2.6.24 | linux-source-2.6.24
+Conflicts: hotplug (<< 0.0.20040105-1)
+Filename: ./linux-image-2.6.24-32-ccs1.8.3p7_2.6.24-32.107_i386.deb
+Size: 18438958
+MD5sum: 86989587be8b5df11e9c655b2f542c08
+SHA1: 061ec3c6a59dbc960d0fffe48e705bee0fa9c64e
+SHA256: 10edfa9ff4a2a8d485fd573892e07a69d0f5350abddb7474cf84b2d8e7f2fc86
+SHA512: 125da15c1f6a83b6f62e009120095c7baca23f042dd23b720bd84ec05ed20b8a5fc3d597823730cc22876deb9ebad04a5220707149846a610300b94b3fdd0a48
+Description: Linux kernel image for version 2.6.24 on x86/x86_64
+ This package contains the Linux kernel image for version 2.6.24 on
+ x86/x86_64.
+ .
+ Also includes the corresponding System.map file, the modules built by the
+ packager, and scripts that try to ensure that the system is not left in an
+ unbootable state after an update.
+ .
+ Supports Generic processors.
+ .
+ Geared toward desktop systems.
+ .
+ You likely do not want to install this package directly. Instead, install
+ the linux-ccs meta-package, which will ensure that upgrades work
+ correctly, and that supporting packages are also installed.
 
 Package: linux-headers-ccs
 Priority: optional
@@ -59,10 +118,10 @@ Version: 2.6.24.32.34
 Depends: linux-headers-2.6.24-32-ccs
 Filename: ./linux-headers-ccs1.8.3p7_2.6.24.32.34_i386.deb
 Size: 26842
-MD5sum: b07a6ffc4bb3b9cefa9eea24e2e3ff4e
-SHA1: cfccf258f8d1b23b4f5128f09046a6944387120f
-SHA256: 7b631c99e0ad93fb73ce83ef04497067804133c9708f001b2d78ae0553583ecd
-SHA512: 1c8398b4f47619d8a0bce228ab3c1d8741c904faf1b95b923cd621606bed0b3baff8988a11ca1b6d9442ebd8bfca57401a1165b0ec6c54c51d54ba39590c54a3
+MD5sum: ad55e1250e0ad96b09d9a533985146f5
+SHA1: 6afb7c76405f1a07906f78b1abdbd0505f1e85cd
+SHA256: ee280d70380a7647ffac2980ac5a49665f05fb321fe054669f4fcc6148bf3eeb
+SHA512: 39880f67d092413986fa7037ce7e631c2d2675699d3bf2a40db5f30938c0542c29a984e2c5b5384d227f732ca22a01219530c17a89d7f310b8d4d80946c336a1
 Description: Generic Linux kernel headers
  This package will always depend on the latest ccs kernel headers
  available.
@@ -98,10 +157,10 @@ Version: 2.6.24.32.34
 Depends: linux-image-ccs (= 2.6.24.32.34), linux-restricted-modules-ccs (= 2.6.24.32.34)
 Filename: ./linux-ccs1.8.3p7_2.6.24.32.34_i386.deb
 Size: 26864
-MD5sum: ce0105a9dcfd73963b133f95acaf2461
-SHA1: 02dd278996ad3e5bd0228dbaece67f48fbd8f009
-SHA256: b85d88ef989c5d011e91b06c2c2ecb7165a1143f7b2a8e49d517c777ef20191b
-SHA512: c58373edb93728e1a64892959fb64d321392fbc0f43a54083b2d633b2f5ba4f151f39692bad6e0f0916a99a3f687fe35c6230270d636a085ff373e67e62f135b
+MD5sum: 401bba7277bb48031e3b9fb8c3bcce14
+SHA1: aaf132f6ff640d33e1d853d32ea4c7afe970c641
+SHA256: 978f33220ccd05c2f0ed2fb7e0fb9bdc77daca3cd11fa76da0acc5b747492533
+SHA512: 069109c6d6b9b3c0550af1964892f7988b8052a4e1f1f518c728dde28d215f98b8da4f98ccf230639bb6833d8f2cca448afa2ac169871a20c6af197c3a379f39
 Description: Complete Generic Linux kernel
  This package will always depend on the latest complete ccs Linux kernel
  available.
@@ -118,11 +177,11 @@ Provides: ndiswrapper-modules-1.9
 Depends: linux-image-2.6.24-32-ccs
 Pre-Depends: dpkg (>= 1.10.24)
 Filename: ./linux-ubuntu-modules-2.6.24-32-ccs1.8.3p7_2.6.24-32.52_i386.deb
-Size: 6411044
-MD5sum: e60e78419d1587dd616febb33846a1c2
-SHA1: e27ac0b4a5e8719f827cdf3439c4efb21d68f645
-SHA256: b1c3589c7e7237f3b6a91ae1ef7ce8a5a0517abe5accb48014631c33cb2d4070
-SHA512: 7c9bcb38c9d2be422cf8dec7b84ab4504046d63cb302b0224936c60d58bfbca99dcdd0648a5c515607bf52bf0661a35d0b8b0356ee8ef031206951ea1d5efd83
+Size: 6411216
+MD5sum: 2d12f791b53878ec180fe0f4451591ff
+SHA1: 3200a811c90cdbceac4bf5d431d3de2996604496
+SHA256: 458298371643da46784d596da79bb4da3f0d72f53eaf53bb6b85dfda4f69f784
+SHA512: c43197d83f07c9aafbe8307e43f90266fd4ec6b6aedc7b4e7a0ee68a68fe0d68b0987a4321a6fc83456fa353d5b7ea15df903704a7a13b227591777ad078979c
 Description: Ubuntu supplied Linux modules for version 2.6.24 on x86/x86_64
  This package contains modules supplied by Ubuntu for Linux kernel 2.6.24 on
  x86/x86_64.
@@ -130,29 +189,6 @@ Description: Ubuntu supplied Linux modules for version 2.6.24 on x86/x86_64
  You likely do not want to install this package directly. Instead, install
  the linux-ccs meta-package, which will ensure that upgrades work
  correctly, and that supporting packages are also installed.
-
-Package: linux-headers-2.6.24-32-ccs
-Priority: optional
-Section: devel
-Installed-Size: 7272
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.24-32.106
-Provides: linux-headers, linux-headers-2.6
-Depends: coreutils | fileutils (>= 4.0), libc6 (>= 2.4), libncurses5 (>= 5.6+20071006-3), linux-headers-2.6.24-32
-Filename: ./linux-headers-2.6.24-32-ccs1.8.3p7_2.6.24-32.106_i386.deb
-Size: 684780
-MD5sum: c4a1ae87025d90a16190fe28d23e9b9f
-SHA1: 28ecf9715702582c047c5355d9939a3e24d25537
-SHA256: 4e324abaf341ec0c266dc68cfa0f95fb94e984a31b047896ee5966c9dcea31ab
-SHA512: e1a2e7f4f2ac22d4feea5a153bdd2d3bd9b709aa83c8efc10617da17fec60a07579fe660290a8c6ae243c6f1ae5770c365cf011b3b7a8c9ad33942e9a77b9a75
-Description: Linux kernel headers for version 2.6.24 on x86/x86_64
- This package provides kernel header files for version 2.6.24 on
- x86/x86_64.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-2.6.24-32/debian.README.gz for details.
 
 Package: linux-headers-lum-2.6.24-32-ccs
 Priority: optional
@@ -165,11 +201,11 @@ Version: 2.6.24-32.52
 Provides: linux-headers-lum, linux-headers-lum-2.6
 Depends: coreutils | fileutils (>= 4.0), linux-headers-2.6.24-32-ccs
 Filename: ./linux-headers-lum-2.6.24-32-ccs1.8.3p7_2.6.24-32.52_i386.deb
-Size: 192250
-MD5sum: 1f3d77fc93222fce11afdcb42a91faf6
-SHA1: f8af81d6fdd82fcdf685278738c61a3cf4ffc2c7
-SHA256: 2a33701fb1bf029f7ae388dfad218d2fb75c502bfc033ccec7a24fffc42947eb
-SHA512: cf8b57319c57fc0f71caf69b8a68d2862e93f9470a7080bf408946d2015c762638bf84571609b9c9d3e50b4cfc11e546f311acbd24ddbe785a248ac805be5ecc
+Size: 192244
+MD5sum: f01d730e0ec918c2995480470497d631
+SHA1: e6d697b60f4883a5fbf14405cb05f084d26ad784
+SHA256: 4c56394ef2e5da288b5b4c129e58d609e255e42030e64bcd96944c13419a3e38
+SHA512: 23d2726fd4c9d3443a300417177b26cfb1d161f61566c90ce91b0e95158a1ac921b65085497eb5a9d3007def0e1eb20f6156a6f40ba9096739be0ed0644b201c
 Description: Header files related to linux-ubuntu-modules version 2.6.24
  This package provides linux-ubuntu-modules header files for version 2.6.24, for sites
  that want the latest linux-ubuntu-modules headers. Please read
@@ -185,48 +221,12 @@ Source: linux-meta
 Version: 2.6.24.32.34
 Depends: linux-image-2.6.24-32-ccs, linux-ubuntu-modules-2.6.24-32-ccs
 Filename: ./linux-image-ccs1.8.3p7_2.6.24.32.34_i386.deb
-Size: 26856
-MD5sum: c46769ceeee956be24a5e1fd25534a80
-SHA1: 95061907f2fa866cfa69a7a0be3e5475314b207b
-SHA256: d526fadbba73914f522f45031b97113ed297f6fe9b9ccefcdca85754778128fd
-SHA512: 217f1976bce18ee770b6f7477dc09584758900100399d3fd372e93bdd3953919046ad89a69f75dbbe37a4ec611b99964f1ed25e26dc935078134d20b57a9084e
+Size: 26858
+MD5sum: 4a1967ac26aed63552960b4c5fa250fb
+SHA1: bcfc5f2a74bb0674fc578cd37e4528c4f3e54988
+SHA256: 3f44f4e53143ac290efa576965de48eaee185e1f187270bd786708206dd95a6c
+SHA512: 9d73f88c15b12111970756485f203cfc5e5c4a5745fef776a4ae77cea584582624a3c06759bbb816a136afe40996235e83db6725e0d42a1ce0ba8922fca252d0
 Description: Generic Linux kernel image
  This package will always depend on the latest ccs kernel image
  available.
-
-Package: linux-image-2.6.24-32-ccs
-Priority: optional
-Section: base
-Installed-Size: 59328
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 2.6.24-32.106
-Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-2.6, redhat-cluster-modules
-Depends: coreutils | fileutils (>= 4.0), initramfs-tools (>= 0.36ubuntu6), module-init-tools (>= 3.3-pre11-4ubuntu3)
-Pre-Depends: dpkg (>= 1.10.24)
-Recommends: lilo (>= 19.1) | grub
-Suggests: fdutils, linux-doc-2.6.24 | linux-source-2.6.24
-Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-2.6.24-32-ccs1.8.3p7_2.6.24-32.106_i386.deb
-Size: 18440072
-MD5sum: ce271581b0507469b633a38c5d10c422
-SHA1: 41ca1698a1e7611f240fc472e750a78b4a7fa64d
-SHA256: 5b41276df5e53db043a380cf163077275b151c7d2889b24b431430f75232ffd2
-SHA512: b85ffcffdf18a094e12bd0659bcf8b3c2d3691dfd0803a6ebc373bcd96ad7788a0ec0612bce662da97a419fa20c11b298f8f3529915b5810ec16e4e8bf3f6bc8
-Description: Linux kernel image for version 2.6.24 on x86/x86_64
- This package contains the Linux kernel image for version 2.6.24 on
- x86/x86_64.
- .
- Also includes the corresponding System.map file, the modules built by the
- packager, and scripts that try to ensure that the system is not left in an
- unbootable state after an update.
- .
- Supports Generic processors.
- .
- Geared toward desktop systems.
- .
- You likely do not want to install this package directly. Instead, install
- the linux-ccs meta-package, which will ensure that upgrades work
- correctly, and that supporting packages are also installed.
 
