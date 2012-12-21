@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-279.14.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-279.19.1.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.3/updates/Source/SPackages/kernel-2.6.32-279.14.1.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.3/updates/Source/SPackages/kernel-2.6.32-279.19.1.el6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32-279.14.1.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-279.14.1.el6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32-279.19.1.el6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-279.19.1.el6.src.rpm || die "Can't install source package."
 # sed -i -e 's@--keyring \./kernel\.pub Red@--keyring ./kernel.pub CentOS@' -- /root/rpmbuild/SPECS/kernel.spec || die "Can't update spec file"
 # sed -i -e 's@Red Hat, Inc\.@CentOS@' -- /root/rpmbuild/SOURCES/genkey || die "Can't patch file"
 
