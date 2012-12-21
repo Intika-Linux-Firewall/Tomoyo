@@ -28,9 +28,9 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  security/security.c       |  129 +++++++++++++++++++++++++++++++++++++---------
  24 files changed, 246 insertions(+), 48 deletions(-)
 
---- linux-3.5.0-19.30.orig/fs/exec.c
-+++ linux-3.5.0-19.30/fs/exec.c
-@@ -1554,7 +1554,7 @@ static int do_execve_common(const char *
+--- linux-3.5.0-21.32.orig/fs/exec.c
++++ linux-3.5.0-21.32/fs/exec.c
+@@ -1555,7 +1555,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
  
@@ -39,8 +39,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  	if (retval < 0)
  		goto out;
  
---- linux-3.5.0-19.30.orig/fs/open.c
-+++ linux-3.5.0-19.30/fs/open.c
+--- linux-3.5.0-21.32.orig/fs/open.c
++++ linux-3.5.0-21.32/fs/open.c
 @@ -1176,6 +1176,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.5.0-19.30.orig/fs/proc/version.c
-+++ linux-3.5.0-19.30/fs/proc/version.c
+--- linux-3.5.0-21.32.orig/fs/proc/version.c
++++ linux-3.5.0-21.32/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.5.0-19.30 2012/12/02\n");
++	printk(KERN_INFO "Hook version: 3.5.0-21.32 2012/12/21\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-3.5.0-19.30.orig/include/linux/init_task.h
-+++ linux-3.5.0-19.30/include/linux/init_task.h
+--- linux-3.5.0-21.32.orig/include/linux/init_task.h
++++ linux-3.5.0-21.32/include/linux/init_task.h
 @@ -143,6 +143,14 @@ extern struct task_group root_task_group
  
  #define INIT_TASK_COMM "swapper"
@@ -88,8 +88,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  }
  
  
---- linux-3.5.0-19.30.orig/include/linux/sched.h
-+++ linux-3.5.0-19.30/include/linux/sched.h
+--- linux-3.5.0-21.32.orig/include/linux/sched.h
++++ linux-3.5.0-21.32/include/linux/sched.h
 @@ -44,6 +44,8 @@
  
  #ifdef __KERNEL__
@@ -110,8 +110,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.5.0-19.30.orig/include/linux/security.h
-+++ linux-3.5.0-19.30/include/linux/security.h
+--- linux-3.5.0-21.32.orig/include/linux/security.h
++++ linux-3.5.0-21.32/include/linux/security.h
 @@ -52,6 +52,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -313,8 +313,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.5.0-19.30.orig/include/net/ip.h
-+++ linux-3.5.0-19.30/include/net/ip.h
+--- linux-3.5.0-21.32.orig/include/net/ip.h
++++ linux-3.5.0-21.32/include/net/ip.h
 @@ -200,6 +200,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
@@ -324,8 +324,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-3.5.0-19.30.orig/kernel/fork.c
-+++ linux-3.5.0-19.30/kernel/fork.c
+--- linux-3.5.0-21.32.orig/kernel/fork.c
++++ linux-3.5.0-21.32/kernel/fork.c
 @@ -237,6 +237,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -352,8 +352,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-3.5.0-19.30.orig/kernel/kexec.c
-+++ linux-3.5.0-19.30/kernel/kexec.c
+--- linux-3.5.0-21.32.orig/kernel/kexec.c
++++ linux-3.5.0-21.32/kernel/kexec.c
 @@ -38,6 +38,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -371,8 +371,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	/* Processes in containers must not be allowed to load a new
  	 * kernel, even if they have CAP_SYS_BOOT */
---- linux-3.5.0-19.30.orig/kernel/module.c
-+++ linux-3.5.0-19.30/kernel/module.c
+--- linux-3.5.0-21.32.orig/kernel/module.c
++++ linux-3.5.0-21.32/kernel/module.c
 @@ -58,6 +58,7 @@
  #include <linux/jump_label.h>
  #include <linux/pfn.h>
@@ -390,7 +390,7 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3016,6 +3019,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -3020,6 +3023,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -399,8 +399,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	/* Do all the hard work */
  	mod = load_module(umod, len, uargs);
---- linux-3.5.0-19.30.orig/kernel/ptrace.c
-+++ linux-3.5.0-19.30/kernel/ptrace.c
+--- linux-3.5.0-21.32.orig/kernel/ptrace.c
++++ linux-3.5.0-21.32/kernel/ptrace.c
 @@ -859,6 +859,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -425,8 +425,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.5.0-19.30.orig/kernel/sched/core.c
-+++ linux-3.5.0-19.30/kernel/sched/core.c
+--- linux-3.5.0-21.32.orig/kernel/sched/core.c
++++ linux-3.5.0-21.32/kernel/sched/core.c
 @@ -4119,6 +4119,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -436,8 +436,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.5.0-19.30.orig/kernel/signal.c
-+++ linux-3.5.0-19.30/kernel/signal.c
+--- linux-3.5.0-21.32.orig/kernel/signal.c
++++ linux-3.5.0-21.32/kernel/signal.c
 @@ -2841,6 +2841,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -483,8 +483,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.5.0-19.30.orig/kernel/sys.c
-+++ linux-3.5.0-19.30/kernel/sys.c
+--- linux-3.5.0-21.32.orig/kernel/sys.c
++++ linux-3.5.0-21.32/kernel/sys.c
 @@ -180,6 +180,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -523,8 +523,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.5.0-19.30.orig/kernel/time/ntp.c
-+++ linux-3.5.0-19.30/kernel/time/ntp.c
+--- linux-3.5.0-21.32.orig/kernel/time/ntp.c
++++ linux-3.5.0-21.32/kernel/time/ntp.c
 @@ -15,6 +15,7 @@
  #include <linux/time.h>
  #include <linux/mm.h>
@@ -558,8 +558,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  		if (!(txc->modes & ADJ_NANO))
  			delta.tv_nsec *= 1000;
  		result = timekeeping_inject_offset(&delta);
---- linux-3.5.0-19.30.orig/net/ipv4/raw.c
-+++ linux-3.5.0-19.30/net/ipv4/raw.c
+--- linux-3.5.0-21.32.orig/net/ipv4/raw.c
++++ linux-3.5.0-21.32/net/ipv4/raw.c
 @@ -699,6 +699,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -571,8 +571,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.5.0-19.30.orig/net/ipv4/udp.c
-+++ linux-3.5.0-19.30/net/ipv4/udp.c
+--- linux-3.5.0-21.32.orig/net/ipv4/udp.c
++++ linux-3.5.0-21.32/net/ipv4/udp.c
 @@ -1188,6 +1188,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -584,8 +584,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.5.0-19.30.orig/net/ipv6/raw.c
-+++ linux-3.5.0-19.30/net/ipv6/raw.c
+--- linux-3.5.0-21.32.orig/net/ipv6/raw.c
++++ linux-3.5.0-21.32/net/ipv6/raw.c
 @@ -469,6 +469,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -597,8 +597,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.5.0-19.30.orig/net/ipv6/udp.c
-+++ linux-3.5.0-19.30/net/ipv6/udp.c
+--- linux-3.5.0-21.32.orig/net/ipv6/udp.c
++++ linux-3.5.0-21.32/net/ipv6/udp.c
 @@ -362,6 +362,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -610,8 +610,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.5.0-19.30.orig/net/socket.c
-+++ linux-3.5.0-19.30/net/socket.c
+--- linux-3.5.0-21.32.orig/net/socket.c
++++ linux-3.5.0-21.32/net/socket.c
 @@ -1552,6 +1552,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -623,8 +623,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.5.0-19.30.orig/net/unix/af_unix.c
-+++ linux-3.5.0-19.30/net/unix/af_unix.c
+--- linux-3.5.0-21.32.orig/net/unix/af_unix.c
++++ linux-3.5.0-21.32/net/unix/af_unix.c
 @@ -1804,6 +1804,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
@@ -636,8 +636,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.5.0-19.30.orig/security/Kconfig
-+++ linux-3.5.0-19.30/security/Kconfig
+--- linux-3.5.0-21.32.orig/security/Kconfig
++++ linux-3.5.0-21.32/security/Kconfig
 @@ -167,5 +167,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -646,8 +646,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
 +
  endmenu
  
---- linux-3.5.0-19.30.orig/security/Makefile
-+++ linux-3.5.0-19.30/security/Makefile
+--- linux-3.5.0-21.32.orig/security/Makefile
++++ linux-3.5.0-21.32/security/Makefile
 @@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -655,8 +655,8 @@ Source code for this patch is "apt-get install linux-source-3.5.0"
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-3.5.0-19.30.orig/security/security.c
-+++ linux-3.5.0-19.30/security/security.c
+--- linux-3.5.0-21.32.orig/security/security.c
++++ linux-3.5.0-21.32/security/security.c
 @@ -198,7 +198,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
