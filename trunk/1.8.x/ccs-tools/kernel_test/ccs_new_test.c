@@ -386,16 +386,15 @@ static void test_SYS_REBOOT(void)
 
 static void test_SYS_VHANGUP(void)
 {
-	int pty_fd = EOF;
 	int status = 0;
 	int pipe_fd[2] = { EOF, EOF };
 	int ret_ignored;
 	ret_ignored = pipe(pipe_fd);
-	switch (forkpty(&pty_fd, NULL, NULL, NULL)) {
+	switch (fork()) {
 	case 0:
+		setsid();
 		errno = 0;
 		vhangup();
-		/* Unreachable if vhangup() succeeded. */
 		status = errno;
 		ret_ignored = write(pipe_fd[1], &status, sizeof(status));
 		_exit(0);
@@ -407,7 +406,6 @@ static void test_SYS_VHANGUP(void)
 		ret_ignored = read(pipe_fd[0], &status, sizeof(status));
 		wait(NULL);
 		close(pipe_fd[0]);
-		close(pty_fd);
 	}
 	errno = status;
 	result = status ? EOF : 0;

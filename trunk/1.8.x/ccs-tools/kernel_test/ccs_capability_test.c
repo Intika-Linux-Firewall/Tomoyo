@@ -140,29 +140,27 @@ static void stage_capability_test(void)
 	unset_capability("SYS_KEXEC_LOAD");
 
 	{
-		int pty_fd = EOF;
 		int status = 0;
 		int pipe_fd[2] = { EOF, EOF };
 		ret_ignored = pipe(pipe_fd);
 		set_capability("SYS_VHANGUP");
-		switch (forkpty(&pty_fd, NULL, NULL, NULL)) {
+		switch (fork()) {
 		case 0:
+			setsid();
 			errno = 0;
 			vhangup();
-			/* Unreachable if vhangup() succeeded. */
 			status = errno;
 			ret_ignored = write(pipe_fd[1], &status,
 					    sizeof(status));
 			_exit(0);
 		case -1:
-			fprintf(stderr, "forkpty() failed.\n");
+			fprintf(stderr, "fork() failed.\n");
 			break;
 		default:
 			close(pipe_fd[1]);
 			ret_ignored = read(pipe_fd[0], &status, sizeof(status));
 			wait(NULL);
 			close(pipe_fd[0]);
-			close(pty_fd);
 			show_prompt("SYS_VHANGUP");
 			errno = status;
 			show_result(status ? EOF : 0);

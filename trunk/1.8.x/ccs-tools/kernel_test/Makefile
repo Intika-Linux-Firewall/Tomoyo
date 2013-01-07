@@ -19,15 +19,6 @@ CFLAGS=-Wall -O2
 # Tools for kernel testing.
 #
 
-ccs_capability_test: ccs_capability_test.c
-	$(CC) $(CFLAGS) -o ccs_capability_test ccs_capability_test.c -lutil
-
-ccs_new_capability_test: ccs_new_capability_test.c
-	$(CC) $(CFLAGS) -o ccs_new_capability_test ccs_new_capability_test.c -lutil
-
-ccs_new_test: ccs_new_test.c include.h
-	$(CC) $(CFLAGS) -o ccs_new_test ccs_new_test.c -lutil
-
 .c:
 	$(CC) $(CFLAGS) -o $@ $<
 
