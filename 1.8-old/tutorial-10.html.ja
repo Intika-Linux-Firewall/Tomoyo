@@ -14,7 +14,7 @@
 
 <h2>今回の内容</h2>
 
-<p>今回は Apache の VirtualHost 毎にドメインを分割する手順について紹介しようと思います．環境としては， CentOS 5.6 を使用します．</p>
+<p>今回は Apache の VirtualHost 毎にドメインを分割する手順について紹介しようと思います．環境としては， CentOS 5.9 を使用します．</p>
 
 <h3>mod_ccs のインストール</h3>
 
@@ -131,7 +131,7 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
 </td></tr>
 </table>
 
-<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では /proc/ccs/self_domain への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /proc/ccs/self_domain への書き込みを認めるようにしてください．（ SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．図８は CentOS 5.6 では使えますが，それより古いバージョンでは使えないことがあります．）</p>
+<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では /proc/ccs/self_domain への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /proc/ccs/self_domain への書き込みを認めるようにしてください．（ SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．図８は CentOS 5.9 では使えますが，それより古いバージョンでは使えないことがあります．）</p>
 
 <table border="1" summary="fig">
 <tr><td>
