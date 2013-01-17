@@ -73,10 +73,10 @@ cd $ANDROID_HOME/tmp/<br>
 git clone https://android.googlesource.com/kernel/goldfish<br>
 cd goldfish/<br>
 git checkout origin/android-goldfish-2.6.29<br>
-wget -O ccs-patch-1.7.3-20120819.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20120819.tar.gz'<br>
-wget -O ccs-patch-1.7.3-20120819.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20120819.tar.gz.asc'<br>
-gpg ccs-patch-1.7.3-20120819.tar.gz.asc<br>
-tar -zxf ccs-patch-1.7.3-20120819.tar.gz<br>
+wget -O ccs-patch-1.7.3-20130117.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20130117.tar.gz'<br>
+wget -O ccs-patch-1.7.3-20130117.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20130117.tar.gz.asc'<br>
+gpg ccs-patch-1.7.3-20130117.tar.gz.asc<br>
+tar -zxf ccs-patch-1.7.3-20130117.tar.gz<br>
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff<br>
 sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig<br>
 ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s goldfish_armv7_defconfig<br>

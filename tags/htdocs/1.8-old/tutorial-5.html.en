@@ -316,7 +316,7 @@ I am running as /tmp/passwd
 </td></tr>
 </table>
 
-<p>Some programs are designed to behave differently depending on the invocation name (called argv[0]). For example, in CentOS 5.6, /sbin/pidof is a symbolic link to /sbin/killall5 . If /sbin/killall5 is executed as "pidof", the program prints process ID of specified program. If /sbin/killall5 is executed as "killall5", the program sends signals to all processes except processes running in the same session.</p>
+<p>Some programs are designed to behave differently depending on the invocation name (called argv[0]). For example, in CentOS 5.9, /sbin/pidof is a symbolic link to /sbin/killall5 . If /sbin/killall5 is executed as "pidof", the program prints process ID of specified program. If /sbin/killall5 is executed as "killall5", the program sends signals to all processes except processes running in the same session.</p>
 
 <p>In TOMOYO Linux, the process runs in "/tmp/cat" domain if the program is executed as "/tmp/cat" and the process runs in "/tmp/passwd" domain if the program is executed as "/tmp/passwd". Then, what will happen if /tmp/passwd is executed as /tmp/cat like Fig. 20? (Guess the result.)</p>
 
