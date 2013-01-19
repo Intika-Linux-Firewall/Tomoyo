@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.6.11-1.fc17.src.rpm ]
+if [ ! -r kernel-3.6.11-5.fc17.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.6.11-1.fc17.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.6.11-5.fc17.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.6.11-1.fc17.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.6.11-1.fc17.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.6.11-5.fc17.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.6.11-5.fc17.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130117.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -973,7 +978,7 @@
+@@ -982,7 +987,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -993,7 +998,7 @@
+@@ -1002,7 +1007,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1531,6 +1536,10 @@
+@@ -1549,6 +1554,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1560,6 +1569,18 @@
+@@ -1578,6 +1587,18 @@
  for i in *.config
  do
    mv $i .config
