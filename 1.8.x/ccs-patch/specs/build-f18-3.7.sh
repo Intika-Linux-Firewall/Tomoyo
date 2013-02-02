@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gn
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.7.2-204.fc18.src.rpm ]
+if [ ! -r kernel-3.7.4-204.fc18.src.rpm ]
 then
     wget http://ftp.riken.jp/Linux/fedora/updates/18/SRPMS/kernel-3.6.11-5.fc17.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.7.2-204.fc18.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.7.2-204.fc18.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.7.4-204.fc18.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.7.4-204.fc18.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130117.tar.gz ]
@@ -39,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -466,6 +466,11 @@
+@@ -460,6 +460,11 @@
  # to versions below the minimum
  #
  
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -521,7 +526,7 @@
+@@ -515,7 +520,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -975,7 +980,7 @@
+@@ -976,7 +981,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -995,7 +1000,7 @@
+@@ -996,7 +1001,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1519,6 +1524,10 @@
+@@ -1514,6 +1519,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1548,6 +1557,18 @@
+@@ -1543,6 +1552,18 @@
  for i in *.config
  do
    mv $i .config
