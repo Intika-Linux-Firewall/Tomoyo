@@ -11,7 +11,7 @@ install: all
 	$(INSTALL) -m 0644 ../README.tomoyo ../COPYING.tomoyo $(INSTALLDIR)/$(USRLIBDIR)/tomoyo/
 
 .c:
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 clean:
 	rm -f -- $(BUILD_FILES)
