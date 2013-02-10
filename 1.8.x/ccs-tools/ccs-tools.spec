@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.3
-Release: 5
+Release: 6
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.3-5
+Conflicts: ccs-tools < 1.8.3-6
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20120805.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20130214.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -45,13 +45,18 @@ ldconfig || true
 
 %files
 %defattr(-,root,root)
-/sbin/
-%_libdir/ccs/
+/sbin/*
+%_libdir/ccs/*
 %_libdir/libccs*
-/usr/sbin/
-/usr/share/man/man8/
+/usr/sbin/*
+/usr/share/man/man8/*
 
 %changelog
+* Thu Feb 14 2013 1.8.3-6
+- Change Makefile's build flags, as suggested by Simon Ruderich and Hideki
+  Yamane. (Debian bug 674723)
+- Change / to /* in rpm's %files section because Fedora 18 complains conflicts.
+
 * Sun Aug 05 2012 1.8.3-5
 - Let ccs-checkpolicy handle namespace prefix in exception policy.
 - Rename manpage for init_policy to ccs_init_policy

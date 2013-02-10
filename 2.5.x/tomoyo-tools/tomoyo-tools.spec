@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 2.5.x
 
 Name: tomoyo-tools
 Version: 2.5.0
-Release: 4
+Release: 5
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.5.0-4
+Conflicts: tomoyo-tools < 2.5.0-5
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/53357/tomoyo-tools-2.5.0-20120805.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/53357/tomoyo-tools-2.5.0-20130214.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.5.x.
@@ -45,13 +45,18 @@ ldconfig || true
 
 %files
 %defattr(-,root,root)
-/sbin/
-%_libdir/tomoyo/
+/sbin/*
+%_libdir/tomoyo/*
 %_libdir/libtomoyo*
-/usr/sbin/
-/usr/share/man/man8/
+/usr/sbin/*
+/usr/share/man/man8/*
 
 %changelog
+* Thu Feb 14 2013 2.5.0-5
+- Change Makefile's build flags, as suggested by Simon Ruderich and Hideki
+  Yamane. (Debian bug 674723)
+- Change / to /* in rpm's %files section because Fedora 18 complains conflicts.
+
 * Sun Aug 05 2012 2.5.0-4
 - Let tomoyo-checkpolicy handle namespace prefix in exception policy.
 - Rename manpage for init_policy to tomoyo_init_policy

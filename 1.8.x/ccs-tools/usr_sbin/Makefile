@@ -14,23 +14,27 @@ $(BUILD_FILES): libccstools.so
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses-dev'"
 	sleep 10
 
+# -fPIE conflicts with -fPIC, disable it for libraries.
+CFLAGS_PIC  := $(filter-out -fPIE,$(CFLAGS))
+LDFLAGS_PIC := $(filter-out -pie,$(filter-out -fPIE,$(LDFLAGS)))
+
 libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.3 -o libccstools.so.3.0.1
-	ln -sf libccstools.so.3.0.1 libccstools.so
+	$(CC) $(CPPFLAGS) $(CFLAGS_PIC) $(LDFLAGS_PIC) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.3 -o libccstools.so.3.0.2
+	ln -sf libccstools.so.3.0.2 libccstools.so
 
 .c:
-	$(CC) $(CFLAGS) -o $@ $< -lccstools -L. 
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $< -lccstools -L. 
 
 ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h libccstools.so
-	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
 
 ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools.so
-	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
-	$(INSTALL) -m 0755 libccstools.so.3.0.1 $(INSTALLDIR)$(USRLIBDIR)
-	ln -sf libccstools.so.3.0.1 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.3
+	$(INSTALL) -m 0755 libccstools.so.3.0.2 $(INSTALLDIR)$(USRLIBDIR)
+	ln -sf libccstools.so.3.0.2 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.3
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif

@@ -1,3 +1,5 @@
+include ../Include.make
+
 ALL_FILES = tomoyo_accept_test tomoyo_argv0_test tomoyo_bprm_test \
 	tomoyo_cond_test tomoyo_env_test tomoyo_filesystem_test \
 	tomoyo_file_test tomoyo_network_test tomoyo_new_file_test \
@@ -10,16 +12,14 @@ all: $(ALL_FILES)
 
 $(ALL_FILES): include.h
 
-CC=gcc
 
-CFLAGS=-Wall -O2
 
 #
 # Tools for kernel testing.
 #
 
 .c:
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 #
 # Delete all test programs.
