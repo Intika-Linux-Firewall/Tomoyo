@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=164708bec016c6ceb76a2bb2e29b086bf0ad4e37;sf=tgz
+Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=snapshot;h=019f4bc86a462d66a2e4054fbf66fb7a98c8af4b;sf=tgz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -59,13 +59,13 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.8-rc6-next-20130204 2013/02/04\n");
++	printk(KERN_INFO "Hook version: 3.8-rc7-next-20130214 2013/02/14\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 --- linux-next.orig/include/linux/init_task.h
 +++ linux-next/include/linux/init_task.h
-@@ -143,6 +143,14 @@ extern struct task_group root_task_group
+@@ -153,6 +153,14 @@ extern struct task_group root_task_group
  
  #define INIT_TASK_COMM "swapper"
  
@@ -80,10 +80,10 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -210,6 +218,7 @@ extern struct task_group root_task_group
- 	INIT_TRACE_RECURSION						\
+@@ -221,6 +229,7 @@ extern struct task_group root_task_group
  	INIT_TASK_RCU_PREEMPT(tsk)					\
  	INIT_CPUSET_SEQ							\
+ 	INIT_VTIME(tsk)							\
 +	INIT_CCSECURITY                                                 \
  }
  
@@ -99,7 +99,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  struct sched_param {
  	int sched_priority;
  };
-@@ -1605,6 +1607,10 @@ struct task_struct {
+@@ -1573,6 +1575,10 @@ struct task_struct {
  #ifdef CONFIG_UPROBES
  	struct uprobe_task *utask;
  #endif
@@ -334,7 +334,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1305,6 +1306,9 @@ static struct task_struct *copy_process(
+@@ -1307,6 +1308,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -344,7 +344,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1499,6 +1503,7 @@ bad_fork_cleanup_semundo:
+@@ -1501,6 +1505,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -362,7 +362,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t __percpu *crash_notes;
-@@ -951,6 +952,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -949,6 +950,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -401,7 +401,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  }
 --- linux-next.orig/kernel/ptrace.c
 +++ linux-next/kernel/ptrace.c
-@@ -909,6 +909,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -915,6 +915,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -413,7 +413,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1056,6 +1061,11 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1062,6 +1067,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -427,7 +427,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		ret = ptrace_traceme();
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3657,6 +3657,8 @@ int can_nice(const struct task_struct *p
+@@ -3652,6 +3652,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -438,7 +438,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	 * Setpriority might change our priority at the same moment.
 --- linux-next.orig/kernel/signal.c
 +++ linux-next/kernel/signal.c
-@@ -2899,6 +2899,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2903,6 +2903,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -447,7 +447,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2967,6 +2969,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2971,6 +2973,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -456,7 +456,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2983,6 +2987,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2987,6 +2991,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -465,7 +465,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2999,6 +3005,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -3003,6 +3009,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -474,7 +474,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, info, pid);
-@@ -3049,6 +3057,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+@@ -3053,6 +3061,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -525,15 +525,15 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	errno = -EFAULT;
 --- linux-next.orig/kernel/time/ntp.c
 +++ linux-next/kernel/time/ntp.c
-@@ -15,6 +15,7 @@
- #include <linux/time.h>
+@@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
+ #include <linux/rtc.h>
 +#include <linux/ccsecurity.h>
  
  #include "tick-internal.h"
  
-@@ -630,10 +631,15 @@ int do_adjtimex(struct timex *txc)
+@@ -638,10 +639,15 @@ int do_adjtimex(struct timex *txc)
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -549,7 +549,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  
  		/*
  		 * if the quartz is off by more than 10% then
-@@ -651,6 +657,8 @@ int do_adjtimex(struct timex *txc)
+@@ -659,6 +665,8 @@ int do_adjtimex(struct timex *txc)
  		delta.tv_nsec = txc->time.tv_usec;
  		if (!capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -560,7 +560,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  		result = timekeeping_inject_offset(&delta);
 --- linux-next.orig/net/ipv4/raw.c
 +++ linux-next/net/ipv4/raw.c
-@@ -704,6 +704,10 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -707,6 +707,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -586,7 +586,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  	copied = len;
 --- linux-next.orig/net/ipv6/raw.c
 +++ linux-next/net/ipv6/raw.c
-@@ -472,6 +472,10 @@ static int rawv6_recvmsg(struct kiocb *i
+@@ -489,6 +489,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -625,7 +625,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/next/lin
  					  &len, 2) < 0) {
 --- linux-next.orig/net/unix/af_unix.c
 +++ linux-next/net/unix/af_unix.c
-@@ -1803,6 +1803,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1801,6 +1801,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
