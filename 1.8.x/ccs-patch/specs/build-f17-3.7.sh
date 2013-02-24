@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc redhat-rpm-config xmlto asciidoc gnupg el
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.7.3-101.fc17.src.rpm ]
+if [ ! -r kernel-3.7.6-102.fc17.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.7.3-101.fc17.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.7.6-102.fc17.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.7.3-101.fc17.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.7.3-101.fc17.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.7.6-102.fc17.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.7.6-102.fc17.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130214.tar.gz ]
@@ -39,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -455,6 +455,11 @@
+@@ -449,6 +449,11 @@
  # to versions below the minimum
  #
  
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -510,7 +515,7 @@
+@@ -504,7 +509,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -940,7 +945,7 @@
+@@ -943,7 +948,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -960,7 +965,7 @@
+@@ -963,7 +968,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1464,6 +1469,10 @@
+@@ -1465,6 +1470,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1493,6 +1502,18 @@
+@@ -1494,6 +1503,18 @@
  for i in *.config
  do
    mv $i .config

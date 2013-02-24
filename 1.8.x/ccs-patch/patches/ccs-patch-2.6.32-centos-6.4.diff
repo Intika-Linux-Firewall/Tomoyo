@@ -1,46 +1,45 @@
-This is TOMOYO Linux patch for Ubuntu 10.04.
+This is TOMOYO Linux patch for CentOS 6.4.
 
-Source code for this patch is "apt-get install linux-source-2.6.32"
+Source code for this patch is kernel-2.6.32-358.el6.src.rpm
 ---
- fs/compat.c                     |    2 +-
- fs/compat_ioctl.c               |    3 +++
- fs/exec.c                       |    2 +-
- fs/fcntl.c                      |    4 ++++
- fs/ioctl.c                      |    2 ++
- fs/namei.c                      |   28 ++++++++++++++++++++++++++++
- fs/namespace.c                  |    8 ++++++++
- fs/open.c                       |   15 +++++++++++++++
- fs/proc/version.c               |    7 +++++++
- fs/stat.c                       |    2 ++
- include/linux/init_task.h       |    9 +++++++++
- include/linux/sched.h           |    6 ++++++
- include/linux/security.h        |    1 +
- kernel/compat.c                 |    2 ++
- kernel/fork.c                   |    5 +++++
- kernel/kexec.c                  |    3 +++
- kernel/module.c                 |    5 +++++
- kernel/ptrace.c                 |   10 ++++++++++
- kernel/sched.c                  |    2 ++
- kernel/signal.c                 |   10 ++++++++++
- kernel/sys.c                    |   10 ++++++++++
- kernel/sysctl.c                 |    3 +++
- kernel/time.c                   |    4 ++++
- kernel/time/ntp.c               |    6 ++++++
- net/ipv4/inet_connection_sock.c |    3 +++
- net/ipv4/inet_hashtables.c      |    3 +++
- net/ipv4/raw.c                  |    5 +++++
- net/ipv4/udp.c                  |    8 +++++++-
- net/ipv6/raw.c                  |    5 +++++
- net/ipv6/udp.c                  |    5 +++++
- net/socket.c                    |   18 ++++++++++++++++++
- net/unix/af_unix.c              |    7 +++++++
- security/Kconfig                |    2 ++
- security/Makefile               |    3 +++
- 34 files changed, 205 insertions(+), 3 deletions(-)
+ fs/compat.c               |    2 +-
+ fs/compat_ioctl.c         |    3 +++
+ fs/exec.c                 |    2 +-
+ fs/fcntl.c                |    4 ++++
+ fs/ioctl.c                |    2 ++
+ fs/namei.c                |   24 ++++++++++++++++++++++++
+ fs/namespace.c            |    8 ++++++++
+ fs/open.c                 |   24 ++++++++++++++++++++++++
+ fs/proc/version.c         |    7 +++++++
+ fs/stat.c                 |    2 ++
+ include/linux/init_task.h |    9 +++++++++
+ include/linux/sched.h     |    6 ++++++
+ include/linux/security.h  |    1 +
+ include/net/ip.h          |    3 +++
+ kernel/compat.c           |    2 ++
+ kernel/fork.c             |    5 +++++
+ kernel/kexec.c            |    3 +++
+ kernel/module.c           |    5 +++++
+ kernel/ptrace.c           |   10 ++++++++++
+ kernel/sched.c            |    2 ++
+ kernel/signal.c           |   10 ++++++++++
+ kernel/sys.c              |   10 ++++++++++
+ kernel/sysctl.c           |    3 +++
+ kernel/time.c             |    4 ++++
+ kernel/time/ntp.c         |    6 ++++++
+ net/ipv4/raw.c            |    5 +++++
+ net/ipv4/udp.c            |    5 +++++
+ net/ipv6/raw.c            |    5 +++++
+ net/ipv6/udp.c            |    5 +++++
+ net/socket.c              |   18 ++++++++++++++++++
+ net/unix/af_unix.c        |    7 +++++++
+ security/Kconfig          |    2 ++
+ security/Makefile         |    3 +++
+ 33 files changed, 205 insertions(+), 2 deletions(-)
 
---- linux-2.6.32-45.104.orig/fs/compat.c
-+++ linux-2.6.32-45.104/fs/compat.c
-@@ -1534,7 +1534,7 @@ int compat_do_execve(char * filename,
+--- linux-2.6.32-358.el6.orig/fs/compat.c
++++ linux-2.6.32-358.el6/fs/compat.c
+@@ -1550,7 +1550,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -49,8 +48,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-45.104.orig/fs/compat_ioctl.c
-+++ linux-2.6.32-45.104/fs/compat_ioctl.c
+--- linux-2.6.32-358.el6.orig/fs/compat_ioctl.c
++++ linux-2.6.32-358.el6/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -59,7 +58,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2778,6 +2779,8 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2763,6 +2764,8 @@ asmlinkage long compat_sys_ioctl(unsigne
  
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
@@ -68,9 +67,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-45.104.orig/fs/exec.c
-+++ linux-2.6.32-45.104/fs/exec.c
-@@ -1432,7 +1432,7 @@ int do_execve(char * filename,
+--- linux-2.6.32-358.el6.orig/fs/exec.c
++++ linux-2.6.32-358.el6/fs/exec.c
+@@ -1450,7 +1450,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -79,8 +78,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-45.104.orig/fs/fcntl.c
-+++ linux-2.6.32-45.104/fs/fcntl.c
+--- linux-2.6.32-358.el6.orig/fs/fcntl.c
++++ linux-2.6.32-358.el6/fs/fcntl.c
 @@ -428,6 +428,8 @@ SYSCALL_DEFINE3(fcntl, unsigned int, fd,
  		goto out;
  
@@ -99,9 +98,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (err) {
  		fput(filp);
  		return err;
---- linux-2.6.32-45.104.orig/fs/ioctl.c
-+++ linux-2.6.32-45.104/fs/ioctl.c
-@@ -618,6 +618,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
+--- linux-2.6.32-358.el6.orig/fs/ioctl.c
++++ linux-2.6.32-358.el6/fs/ioctl.c
+@@ -639,6 +639,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -110,21 +109,21 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-45.104.orig/fs/namei.c
-+++ linux-2.6.32-45.104/fs/namei.c
-@@ -1572,6 +1572,11 @@ int may_open(struct path *path, int acc_
- 			goto err_out;
- 		}
+--- linux-2.6.32-358.el6.orig/fs/namei.c
++++ linux-2.6.32-358.el6/fs/namei.c
+@@ -1741,6 +1741,11 @@ int may_open(struct path *path, int acc_
+ 	if (flag & O_NOATIME && !is_owner_or_cap(inode))
+ 		return -EPERM;
  
 +	/* includes O_APPEND and O_TRUNC checks */
 +	error = ccs_open_permission(dentry, path->mnt, flag);
 +	if (error)
-+		goto err_out;
++		return error;
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1627,6 +1632,9 @@ static int __open_namei_create(struct na
+@@ -1784,6 +1789,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -134,94 +133,74 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1779,7 +1787,9 @@ do_last:
- 		error = mnt_want_write(nd.path.mnt);
- 		if (error)
- 			goto exit_mutex_unlock;
-+		ccs_save_open_mode(open_flag);
- 		error = __open_namei_create(&nd, &path, flag, mode);
-+		ccs_clear_open_mode();
- 		if (error) {
- 			mnt_drop_write(nd.path.mnt);
- 			goto exit;
-@@ -1838,7 +1848,9 @@ ok:
- 		if (error)
- 			goto exit;
- 	}
-+	ccs_save_open_mode(open_flag);
- 	error = may_open(&nd.path, acc_mode, flag);
-+	ccs_clear_open_mode();
- 	if (error) {
- 		if (will_write)
- 			mnt_drop_write(nd.path.mnt);
-@@ -2068,6 +2080,8 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2274,6 +2282,8 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
 +	if (!error)
 +		error = ccs_mknod_permission(dentry, nd.path.mnt, mode, dev);
  	if (error)
- 		goto out_drop_write;
- 	switch (mode & S_IFMT) {
-@@ -2143,6 +2157,8 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
- 	if (error)
  		goto out_dput;
+ 	switch (mode & S_IFMT) {
+@@ -2353,6 +2363,8 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+ 	if (!IS_POSIXACL(nd.path.dentry->d_inode))
+ 		mode &= ~current_umask();
  	error = security_path_mkdir(&nd.path, dentry, mode);
 +	if (!error)
 +		error = ccs_mkdir_permission(dentry, nd.path.mnt, mode);
  	if (error)
- 		goto out_drop_write;
+ 		goto out_dput;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2257,6 +2273,8 @@ static long do_rmdir(int dfd, const char
- 	if (error)
- 		goto exit3;
+@@ -2467,6 +2479,8 @@ static long do_rmdir(int dfd, const char
+ 	if (IS_ERR(dentry))
+ 		goto exit2;
  	error = security_path_rmdir(&nd.path, dentry);
 +	if (!error)
 +		error = ccs_rmdir_permission(dentry, nd.path.mnt);
  	if (error)
- 		goto exit4;
+ 		goto exit3;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2346,6 +2364,8 @@ static long do_unlinkat(int dfd, const c
- 		if (error)
- 			goto exit2;
+@@ -2555,6 +2569,8 @@ static long do_unlinkat(int dfd, const c
+ 		if (inode)
+ 			atomic_inc(&inode->i_count);
  		error = security_path_unlink(&nd.path, dentry);
 +		if (!error)
 +			error = ccs_unlink_permission(dentry, nd.path.mnt);
  		if (error)
- 			goto exit3;
+ 			goto exit2;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2431,6 +2451,8 @@ SYSCALL_DEFINE3(symlinkat, const char __
- 	if (error)
+@@ -2643,6 +2659,8 @@ SYSCALL_DEFINE3(symlinkat, const char __
  		goto out_dput;
+ 	}
  	error = security_path_symlink(&nd.path, dentry, from);
 +	if (!error)
 +		error = ccs_symlink_permission(dentry, nd.path.mnt, from);
  	if (error)
- 		goto out_drop_write;
- 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2531,6 +2553,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
- 	if (error)
  		goto out_dput;
+ 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
+@@ -2743,6 +2761,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+ 	if (IS_ERR(new_dentry))
+ 		goto out_unlock;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
 +	if (!error)
 +		error = ccs_link_permission(old_path.dentry, new_dentry,
 +					    nd.path.mnt);
  	if (error)
- 		goto out_drop_write;
+ 		goto out_dput;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2772,6 +2797,9 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
- 		goto exit5;
+@@ -2984,6 +3005,9 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+ 
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
 +	if (!error)
 +		error = ccs_rename_permission(old_dentry, new_dentry,
 +					      newnd.path.mnt);
  	if (error)
- 		goto exit6;
+ 		goto exit5;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.32-45.104.orig/fs/namespace.c
-+++ linux-2.6.32-45.104/fs/namespace.c
-@@ -1031,6 +1031,8 @@ static int do_umount(struct vfsmount *mn
+--- linux-2.6.32-358.el6.orig/fs/namespace.c
++++ linux-2.6.32-358.el6/fs/namespace.c
+@@ -1119,6 +1119,8 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
  	retval = security_sb_umount(mnt, flags);
@@ -230,7 +209,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (retval)
  		return retval;
  
-@@ -1913,6 +1915,7 @@ int copy_mount_string(const void __user
+@@ -2082,6 +2084,7 @@ int copy_mount_string(const void __user 
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -238,7 +217,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	struct path path;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1960,6 +1963,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -2129,6 +2132,9 @@ long do_mount(char *dev_name, char *dir_
  
  	retval = security_sb_mount(dev_name, &path,
  				   type_page, flags, data_page);
@@ -248,7 +227,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (retval)
  		goto dput_out;
  
-@@ -2178,6 +2184,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2347,6 +2353,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -257,64 +236,108 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.32-45.104.orig/fs/open.c
-+++ linux-2.6.32-45.104/fs/open.c
-@@ -279,6 +279,8 @@ static long do_sys_truncate(const char _
+--- linux-2.6.32-358.el6.orig/fs/open.c
++++ linux-2.6.32-358.el6/fs/open.c
+@@ -102,6 +102,8 @@ long vfs_truncate(struct path *path, lof
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error)
- 		error = security_path_truncate(&path, length, 0);
+ 		error = security_path_truncate(path, length, 0);
 +	if (!error)
-+		error = ccs_truncate_permission(path.dentry, path.mnt);
++		error = ccs_truncate_permission(path->dentry, path->mnt);
  	if (!error) {
  		vfs_dq_init(inode);
- 		error = do_truncate(path.dentry, length, 0, NULL);
-@@ -338,6 +340,8 @@ static long do_sys_ftruncate(unsigned in
+ 		error = do_truncate(path->dentry, length, 0, NULL);
+@@ -177,6 +179,8 @@ static long do_sys_ftruncate(unsigned in
  		error = security_path_truncate(&file->f_path, length,
  					       ATTR_MTIME|ATTR_CTIME);
  	if (!error)
 +		error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
+ 	sb_end_write(inode->i_sb);
  out_putf:
- 	fput(file);
-@@ -592,6 +596,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -447,6 +451,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+ 	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
- 	error = security_path_chroot(&path);
-+	if (!error)
-+		error = ccs_chroot_permission(&path);
- 	if (error)
- 		goto dput_and_out;
++	if (ccs_chroot_permission(&path))
++		goto dput_and_out;
  
-@@ -625,6 +631,8 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
- 		goto out_putf;
- 	mutex_lock(&inode->i_mutex);
- 	err = security_path_chmod(dentry, file->f_vfsmnt, mode);
-+	if (!err)
-+		err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
+ 	set_fs_root(current->fs, &path);
+ 	error = 0;
+@@ -476,6 +482,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write_file(file);
  	if (err)
- 		goto out_unlock;
- 	if (mode == (mode_t) -1)
-@@ -658,6 +666,8 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
- 		goto dput_and_out;
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
  	mutex_lock(&inode->i_mutex);
- 	error = security_path_chmod(path.dentry, path.mnt, mode);
-+	if (!error)
-+		error = ccs_chmod_permission(path.dentry, path.mnt, mode);
- 	if (error)
- 		goto out_unlock;
  	if (mode == (mode_t) -1)
-@@ -700,6 +710,9 @@ static int chown_common(struct path *pat
- 	mutex_lock(&inode->i_mutex);
- 	error = security_path_chown(path, user, group);
- 	if (!error)
-+		error = ccs_chown_permission(path->dentry, path->mnt,
-+					     user, group);
-+	if (!error)
- 		error = notify_change(path->dentry, &newattrs);
+ 		mode = inode->i_mode;
+@@ -483,6 +492,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	err = notify_change(dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
- 
-@@ -1178,6 +1191,8 @@ EXPORT_SYMBOL(sys_close);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -505,6 +515,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -512,6 +525,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	error = notify_change(path.dentry, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(path.mnt);
+ dput_and_out:
+ 	path_put(&path);
+@@ -560,6 +574,8 @@ SYSCALL_DEFINE3(chown, const char __user
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -585,6 +601,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -604,6 +622,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -627,6 +647,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, user, group);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1020,6 +1042,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -323,8 +346,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.32-45.104.orig/fs/proc/version.c
-+++ linux-2.6.32-45.104/fs/proc/version.c
+--- linux-2.6.32-358.el6.orig/fs/proc/version.c
++++ linux-2.6.32-358.el6/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -332,12 +355,12 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32-45.104 2013/02/24\n");
++	printk(KERN_INFO "Hook version: 2.6.32-358.el6 2013/02/24\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.32-45.104.orig/fs/stat.c
-+++ linux-2.6.32-45.104/fs/stat.c
+--- linux-2.6.32-358.el6.orig/fs/stat.c
++++ linux-2.6.32-358.el6/fs/stat.c
 @@ -43,6 +43,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
@@ -347,9 +370,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (retval)
  		return retval;
  
---- linux-2.6.32-45.104.orig/include/linux/init_task.h
-+++ linux-2.6.32-45.104/include/linux/init_task.h
-@@ -115,6 +115,14 @@ extern struct cred init_cred;
+--- linux-2.6.32-358.el6.orig/include/linux/init_task.h
++++ linux-2.6.32-358.el6/include/linux/init_task.h
+@@ -124,6 +124,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
  
@@ -364,7 +387,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -184,6 +192,7 @@ extern struct cred init_cred;
+@@ -193,6 +201,7 @@ extern struct cred init_cred;
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
  	INIT_TASK_RCU_PREEMPT(tsk)					\
@@ -372,8 +395,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  }
  
  
---- linux-2.6.32-45.104.orig/include/linux/sched.h
-+++ linux-2.6.32-45.104/include/linux/sched.h
+--- linux-2.6.32-358.el6.orig/include/linux/sched.h
++++ linux-2.6.32-358.el6/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -383,10 +406,10 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  struct sched_param {
  	int sched_priority;
  };
-@@ -1543,6 +1545,10 @@ struct task_struct {
- 	/* bitmask of trace recursion */
- 	unsigned long trace_recursion;
- #endif /* CONFIG_TRACING */
+@@ -1660,6 +1662,10 @@ struct task_struct {
+ 	} memcg_batch;
+ #endif
+ #endif
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
@@ -394,8 +417,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.32-45.104.orig/include/linux/security.h
-+++ linux-2.6.32-45.104/include/linux/security.h
+--- linux-2.6.32-358.el6.orig/include/linux/security.h
++++ linux-2.6.32-358.el6/include/linux/security.h
 @@ -35,6 +35,7 @@
  #include <linux/xfrm.h>
  #include <linux/gfp.h>
@@ -404,9 +427,28 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
---- linux-2.6.32-45.104.orig/kernel/compat.c
-+++ linux-2.6.32-45.104/kernel/compat.c
-@@ -924,6 +924,8 @@ asmlinkage long compat_sys_stime(compat_
+--- linux-2.6.32-358.el6.orig/include/net/ip.h
++++ linux-2.6.32-358.el6/include/net/ip.h
+@@ -30,6 +30,7 @@
+ #include <net/inet_sock.h>
+ #include <net/snmp.h>
+ #include <net/flow.h>
++#include <linux/ccsecurity.h>
+ 
+ struct sock;
+ 
+@@ -209,6 +210,8 @@ extern void inet_get_local_port_range(in
+ extern unsigned long *sysctl_local_reserved_ports;
+ static inline int inet_is_reserved_local_port(int port)
+ {
++	if (ccs_lport_reserved(port))
++		return 1;
+ 	return test_bit(port, sysctl_local_reserved_ports);
+ }
+ 
+--- linux-2.6.32-358.el6.orig/kernel/compat.c
++++ linux-2.6.32-358.el6/kernel/compat.c
+@@ -1005,6 +1005,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -415,9 +457,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.32-45.104.orig/kernel/fork.c
-+++ linux-2.6.32-45.104/kernel/fork.c
-@@ -166,6 +166,7 @@ void __put_task_struct(struct task_struc
+--- linux-2.6.32-358.el6.orig/kernel/fork.c
++++ linux-2.6.32-358.el6/kernel/fork.c
+@@ -169,6 +169,7 @@ void __put_task_struct(struct task_struc
  	exit_creds(tsk);
  	delayacct_tsk_free(tsk);
  
@@ -425,7 +467,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1141,6 +1142,9 @@ static struct task_struct *copy_process(
+@@ -1197,6 +1198,9 @@ static struct task_struct *copy_process(
  
  	if ((retval = audit_alloc(p)))
  		goto bad_fork_cleanup_policy;
@@ -435,7 +477,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	/* copy all the process information */
  	if ((retval = copy_semundo(clone_flags, p)))
  		goto bad_fork_cleanup_audit;
-@@ -1322,6 +1326,7 @@ bad_fork_cleanup_semundo:
+@@ -1386,6 +1390,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -443,36 +485,36 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-2.6.32-45.104.orig/kernel/kexec.c
-+++ linux-2.6.32-45.104/kernel/kexec.c
-@@ -37,6 +37,7 @@
- #include <asm/io.h>
+--- linux-2.6.32-358.el6.orig/kernel/kexec.c
++++ linux-2.6.32-358.el6/kernel/kexec.c
+@@ -40,6 +40,7 @@
  #include <asm/system.h>
  #include <asm/sections.h>
+ #include <asm/setup.h>
 +#include <linux/ccsecurity.h>
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t* crash_notes;
-@@ -943,6 +944,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -947,6 +948,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
 +	if (!ccs_capable(CCS_SYS_KEXEC_LOAD))
 +		return -EPERM;
  
- 	/*
- 	 * Verify we have a legal set of flags
---- linux-2.6.32-45.104.orig/kernel/module.c
-+++ linux-2.6.32-45.104/kernel/module.c
-@@ -55,6 +55,7 @@
- #include <linux/async.h>
+ 	if (kexec_load_disabled)
+ 		return -EPERM;
+--- linux-2.6.32-358.el6.orig/kernel/module.c
++++ linux-2.6.32-358.el6/kernel/module.c
+@@ -56,6 +56,7 @@
  #include <linux/percpu.h>
  #include <linux/kmemleak.h>
+ #include "module-verify.h"
 +#include <linux/ccsecurity.h>
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -801,6 +802,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -805,6 +806,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -481,7 +523,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2590,6 +2593,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2599,6 +2602,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -490,9 +532,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.32-45.104.orig/kernel/ptrace.c
-+++ linux-2.6.32-45.104/kernel/ptrace.c
-@@ -637,6 +637,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-2.6.32-358.el6.orig/kernel/ptrace.c
++++ linux-2.6.32-358.el6/kernel/ptrace.c
+@@ -195,6 +195,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -504,7 +546,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -760,6 +765,11 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -264,6 +269,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -516,9 +558,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.32-45.104.orig/kernel/sched.c
-+++ linux-2.6.32-45.104/kernel/sched.c
-@@ -6402,6 +6402,8 @@ int can_nice(const struct task_struct *p
+--- linux-2.6.32-358.el6.orig/kernel/sched.c
++++ linux-2.6.32-358.el6/kernel/sched.c
+@@ -6719,6 +6719,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -527,9 +569,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.32-45.104.orig/kernel/signal.c
-+++ linux-2.6.32-45.104/kernel/signal.c
-@@ -2256,6 +2256,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+--- linux-2.6.32-358.el6.orig/kernel/signal.c
++++ linux-2.6.32-358.el6/kernel/signal.c
+@@ -2288,6 +2288,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -538,7 +580,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2324,6 +2326,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2356,6 +2358,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -547,7 +589,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2336,6 +2340,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2368,6 +2372,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -556,7 +598,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2357,6 +2363,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t,
+@@ -2389,6 +2395,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  		return -EPERM;
  	}
  	info.si_signo = sig;
@@ -565,7 +607,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2377,6 +2385,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2409,6 +2417,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -574,9 +616,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.32-45.104.orig/kernel/sys.c
-+++ linux-2.6.32-45.104/kernel/sys.c
-@@ -155,6 +155,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+--- linux-2.6.32-358.el6.orig/kernel/sys.c
++++ linux-2.6.32-358.el6/kernel/sys.c
+@@ -157,6 +157,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -587,7 +629,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -374,6 +378,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -380,6 +384,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -596,7 +638,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1133,6 +1139,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1144,6 +1150,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -605,7 +647,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1182,6 +1190,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1193,6 +1201,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -614,9 +656,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.32-45.104.orig/kernel/sysctl.c
-+++ linux-2.6.32-45.104/kernel/sysctl.c
-@@ -1853,6 +1853,9 @@ int do_sysctl(int __user *name, int nlen
+--- linux-2.6.32-358.el6.orig/kernel/sysctl.c
++++ linux-2.6.32-358.el6/kernel/sysctl.c
+@@ -2035,6 +2035,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -626,9 +668,9 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.32-45.104.orig/kernel/time.c
-+++ linux-2.6.32-45.104/kernel/time.c
-@@ -92,6 +92,8 @@ SYSCALL_DEFINE1(stime, time_t __user *,
+--- linux-2.6.32-358.el6.orig/kernel/time.c
++++ linux-2.6.32-358.el6/kernel/time.c
+@@ -92,6 +92,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -637,7 +679,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -163,6 +165,8 @@ int do_sys_settimeofday(struct timespec
+@@ -162,6 +164,8 @@ int do_sys_settimeofday(const struct tim
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -646,8 +688,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.32-45.104.orig/kernel/time/ntp.c
-+++ linux-2.6.32-45.104/kernel/time/ntp.c
+--- linux-2.6.32-358.el6.orig/kernel/time/ntp.c
++++ linux-2.6.32-358.el6/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -656,7 +698,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  /*
   * NTP timekeeping variables:
-@@ -423,10 +424,15 @@ int do_adjtimex(struct timex *txc)
+@@ -451,10 +452,15 @@ int do_adjtimex(struct timex *txc)
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -672,46 +714,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.32-45.104.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.32-45.104/net/ipv4/inet_connection_sock.c
-@@ -23,6 +23,7 @@
- #include <net/route.h>
- #include <net/tcp_states.h>
- #include <net/xfrm.h>
-+#include <linux/ccsecurity.h>
- 
- #ifdef INET_CSK_DEBUG
- const char inet_csk_timer_bug_msg[] = "inet_csk BUG: unknown timer value\n";
-@@ -111,6 +112,8 @@ again:
- 			head = &hashinfo->bhash[inet_bhashfn(net, rover,
- 					hashinfo->bhash_size)];
- 			spin_lock(&head->lock);
-+			if (ccs_lport_reserved(rover))
-+				goto next;
- 			inet_bind_bucket_for_each(tb, node, &head->chain)
- 				if (ib_net(tb) == net && tb->port == rover) {
- 					if (tb->fastreuse > 0 &&
---- linux-2.6.32-45.104.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.32-45.104/net/ipv4/inet_hashtables.c
-@@ -23,6 +23,7 @@
- #include <net/inet_hashtables.h>
- #include <net/secure_seq.h>
- #include <net/ip.h>
-+#include <linux/ccsecurity.h>
- 
- /*
-  * Allocate and initialize a new local port bind bucket.
-@@ -444,6 +445,8 @@ int __inet_hash_connect(struct inet_time
- 		local_bh_disable();
- 		for (i = 1; i <= remaining; i++) {
- 			port = low + (i + offset) % remaining;
-+			if (ccs_lport_reserved(port))
-+				continue;
- 			head = &hinfo->bhash[inet_bhashfn(net, port,
- 					hinfo->bhash_size)];
- 			spin_lock(&head->lock);
---- linux-2.6.32-45.104.orig/net/ipv4/raw.c
-+++ linux-2.6.32-45.104/net/ipv4/raw.c
+--- linux-2.6.32-358.el6.orig/net/ipv4/raw.c
++++ linux-2.6.32-358.el6/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -720,7 +724,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  static struct raw_hashinfo raw_v4_hashinfo = {
  	.lock = __RW_LOCK_UNLOCKED(raw_v4_hashinfo.lock),
-@@ -681,6 +682,10 @@ static int raw_recvmsg(struct kiocb *ioc
+@@ -692,6 +693,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -731,27 +735,17 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.32-45.104.orig/net/ipv4/udp.c
-+++ linux-2.6.32-45.104/net/ipv4/udp.c
-@@ -105,6 +105,7 @@
- #include <net/checksum.h>
+--- linux-2.6.32-358.el6.orig/net/ipv4/udp.c
++++ linux-2.6.32-358.el6/net/ipv4/udp.c
+@@ -106,6 +106,7 @@
  #include <net/xfrm.h>
+ #include <trace/events/udp.h>
  #include "udp_impl.h"
 +#include <linux/ccsecurity.h>
  
  struct udp_table udp_table;
  EXPORT_SYMBOL(udp_table);
-@@ -196,7 +197,8 @@ int udp_lib_get_port(struct sock *sk, un
- 			 */
- 			do {
- 				if (low <= snum && snum <= high &&
--				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap))
-+				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap)
-+				    && !ccs_lport_reserved(snum))
- 					goto found;
- 				snum += rand;
- 			} while (snum != first);
-@@ -944,6 +946,10 @@ try_again:
+@@ -987,6 +988,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -762,8 +756,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32-45.104.orig/net/ipv6/raw.c
-+++ linux-2.6.32-45.104/net/ipv6/raw.c
+--- linux-2.6.32-358.el6.orig/net/ipv6/raw.c
++++ linux-2.6.32-358.el6/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -783,8 +777,8 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.32-45.104.orig/net/ipv6/udp.c
-+++ linux-2.6.32-45.104/net/ipv6/udp.c
+--- linux-2.6.32-358.el6.orig/net/ipv6/udp.c
++++ linux-2.6.32-358.el6/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -793,7 +787,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  int ipv6_rcv_saddr_equal(const struct sock *sk, const struct sock *sk2)
  {
-@@ -211,6 +212,10 @@ try_again:
+@@ -219,6 +220,10 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -804,18 +798,18 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32-45.104.orig/net/socket.c
-+++ linux-2.6.32-45.104/net/socket.c
-@@ -567,6 +567,8 @@ static inline int __sock_sendmsg(struct
- 	si->size = size;
- 
- 	err = security_socket_sendmsg(sock, msg, size);
+--- linux-2.6.32-358.el6.orig/net/socket.c
++++ linux-2.6.32-358.el6/net/socket.c
+@@ -570,6 +570,8 @@ static inline int __sock_sendmsg(struct 
+ 				 struct msghdr *msg, size_t size)
+ {
+ 	int err = security_socket_sendmsg(sock, msg, size);
 +	if (!err)
 +		err = ccs_socket_sendmsg_permission(sock, msg, size);
- 	if (err)
- 		return err;
  
-@@ -1171,6 +1173,8 @@ static int __sock_create(struct net *net
+ 	return err ?: __sock_sendmsg_nosec(iocb, sock, msg, size);
+ }
+@@ -1223,6 +1225,8 @@ int __sock_create(struct net *net, int f
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -824,7 +818,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (err)
  		return err;
  
-@@ -1419,6 +1423,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1452,6 +1456,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -836,7 +830,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1448,6 +1457,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1481,6 +1490,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -845,7 +839,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1517,6 +1528,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1546,6 +1557,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -856,7 +850,7 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1583,6 +1598,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1607,6 +1622,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
@@ -866,17 +860,17 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (err)
  		goto out_put;
  
---- linux-2.6.32-45.104.orig/net/unix/af_unix.c
-+++ linux-2.6.32-45.104/net/unix/af_unix.c
-@@ -846,6 +846,9 @@ static int unix_bind(struct socket *sock
- 		if (err)
- 			goto out_mknod_dput;
+--- linux-2.6.32-358.el6.orig/net/unix/af_unix.c
++++ linux-2.6.32-358.el6/net/unix/af_unix.c
+@@ -845,6 +845,9 @@ static int unix_bind(struct socket *sock
+ 		mode = S_IFSOCK |
+ 		       (SOCK_INODE(sock)->i_mode & ~current_umask());
  		err = security_path_mknod(&nd.path, dentry, mode, 0);
 +		if (!err)
 +			err = ccs_mknod_permission(dentry, nd.path.mnt, mode,
 +						   0);
  		if (err)
- 			goto out_mknod_drop_write;
+ 			goto out_mknod_dput;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
 @@ -1709,6 +1712,10 @@ static int unix_dgram_recvmsg(struct kio
  
@@ -889,19 +883,19 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-2.6.32-45.104.orig/security/Kconfig
-+++ linux-2.6.32-45.104/security/Kconfig
-@@ -203,5 +203,7 @@ config DEFAULT_SECURITY
- 	default "apparmor" if DEFAULT_SECURITY_APPARMOR
- 	default "" if DEFAULT_SECURITY_DAC
+--- linux-2.6.32-358.el6.orig/security/Kconfig
++++ linux-2.6.32-358.el6/security/Kconfig
+@@ -177,5 +177,7 @@ source security/tomoyo/Kconfig
+ 
+ source security/integrity/ima/Kconfig
  
 +source security/ccsecurity/Kconfig
 +
  endmenu
  
---- linux-2.6.32-45.104.orig/security/Makefile
-+++ linux-2.6.32-45.104/security/Makefile
-@@ -27,3 +27,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+--- linux-2.6.32-358.el6.orig/security/Makefile
++++ linux-2.6.32-358.el6/security/Makefile
+@@ -25,3 +25,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
  obj-$(CONFIG_IMA)			+= integrity/ima/built-in.o
