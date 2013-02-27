@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2011  NTT DATA CORPORATION
+ * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2013/02/27
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -2882,7 +2882,7 @@ static bool ccs_parse_ipaddr_union(struct ccs_acl_param *param,
 				   struct ccs_ipaddr_union *ptr)
 {
 	struct ccs_ip_address_entry e;
-	memset(ptr, 0, sizeof(ptr));
+	memset(ptr, 0, sizeof(*ptr));
 	if (ccs_parse_ip(ccs_read_token(param), &e) == 0) {
 		memmove(&ptr->ip[0], e.min, sizeof(ptr->ip[0]));
 		memmove(&ptr->ip[1], e.max, sizeof(ptr->ip[1]));
@@ -4753,7 +4753,7 @@ static void ccs_write_control(char *buffer, const size_t buffer_len)
  *
  * Returns nothing.
  */
-static void ccs_editpolicy_offline_init(coid)
+static void ccs_editpolicy_offline_init(void)
 {
 	static _Bool first = true;
 	int i;
