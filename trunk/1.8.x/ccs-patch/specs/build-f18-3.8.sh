@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 18's 3.7 kernel.
+# This is a kernel build script for Fedora 18's 3.8 kernel.
 #
 
 die () {
@@ -12,12 +12,12 @@ yum -y install wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gn
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.7.9-201.fc18.src.rpm ]
+if [ ! -r kernel-3.8.1-201.fc18.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/18/SRPMS/kernel-3.6.11-5.fc17.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/18/SRPMS/kernel-3.8.1-201.fc18.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.7.9-201.fc18.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.7.9-201.fc18.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.8.1-201.fc18.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.8.1-201.fc18.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130214.tar.gz ]
@@ -39,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -460,6 +460,11 @@
+@@ -447,6 +447,11 @@
  # to versions below the minimum
  #
  
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -515,7 +520,7 @@
+@@ -502,7 +507,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -984,7 +989,7 @@
+@@ -943,7 +948,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1004,7 +1009,7 @@
+@@ -963,7 +968,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1531,6 +1536,10 @@
+@@ -1466,6 +1471,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1560,6 +1569,18 @@
+@@ -1488,6 +1497,18 @@
  for i in *.config
  do
    mv $i .config
