@@ -101,7 +101,7 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <h4><a name="3.1.3">3.1.3. カーネルソースの入手</a></h4>
 
-<p>カーネルのソースを "<a href="http://www.kernel.org/pub/linux/kernel/v3.0/">linux-3</a>" または "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git;a=summary">linux git tree</a>" からダウンロードして展開してください。<br>
+<p>カーネルのソースを "<a href="https://www.kernel.org/pub/linux/kernel/v3.x/">linux-3</a>" または "<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git">linux git tree</a>" からダウンロードして展開してください。<br>
 カーネル 2.6.33 以降に対応しています。</p>
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。</p>
@@ -109,7 +109,7 @@ ffffffff8115e460 T tomoyo_write_inet_network
 <p>カーネル 2.6.33 ～ 3.4 で TOMOYO 2.5 を利用したい場合、カーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
 
 <pre class="command">
-$ wget http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.5.tar.bz2
+$ wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.5.tar.bz2
 $ tar -jxf linux-3.5.tar.bz2 --strip 1 linux-3.5/security/tomoyo/
 $ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
