@@ -5,7 +5,7 @@ CD_LABEL="CentOS-5.9-i386-TOMOYO-LiveCD"
 ISOIMAGE_NAME=../CentOS-5.9-i386-TOMOYO-LiveCD.iso
 ORIGINAL_VERSION=2.6.18-238.el5
 ORIGINAL_VERSION_REGEXP=2\.6\.18-238\.el5
-KERNEL_VERSION=2.6.18-348.1.1.el5_tomoyo_1.8.3p7
+KERNEL_VERSION=2.6.18-348.2.1.el5_tomoyo_1.8.3p7
 
 set -v
 
@@ -75,7 +75,7 @@ echo "********** Updating root filesystem for LiveCD. **********"
 
 rm squash/LiveOS/ext3fs.img || die "Can't delete old image file."
 dd if=/dev/zero of=squash/LiveOS/ext3fs.img bs=1048576 count=4096 || die "Can't create image file."
-mke2fs -j -m 0 -L "CentOS-5.8-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
+mke2fs -j -m 0 -L "CentOS-5.9-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
 tune2fs -c -1 -i 0 -o user_xattr,acl squash/LiveOS/ext3fs.img || die "Can't tune filesystem."
 mount -o loop,noatime squash/LiveOS/ext3fs.img mnt/ || die "Can't mount filesystem."
 cp -a ext3/* mnt/ || die "Can't copy image file."
@@ -103,7 +103,7 @@ cd ${LIVECD_HOME}
 echo "********** Generating iso image file. **********"
 cd cdrom/
 grep -q TOMOYO -- isolinux/isolinux.cfg || sed -i -e 's/i386/i386-TOMOYO/' -- isolinux/isolinux.cfg
-sed -i -e 's/5\.6-/5.8-/g' -e 's/quiet //g' -- isolinux/isolinux.cfg
+sed -i -e 's/5\.6-/5.9-/g' -e 's/quiet //g' -- isolinux/isolinux.cfg
 mkisofs -r -V "${CD_LABEL}" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o ${ISOIMAGE_NAME} . || die "Can't generate iso image file."
 
 echo "********** Done. **********"
