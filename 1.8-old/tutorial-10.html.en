@@ -14,7 +14,7 @@
 
 <h2>Contents of this installment.</h2>
 
-<p>In this installment, I explain steps for splitting domains based on Apache's VirtualHost configuration. I use CentOS 5.9 for this installment.</p>
+<p>In this installment, I explain steps for splitting domains based on Apache's VirtualHost configuration. I use CentOS 5 for this installment.</p>
 
 <h3>Installing mod_ccs</h3>
 
@@ -131,7 +131,7 @@ task manual_domain_transition &lt;kernel&gt; //apache /www.tomoyo00.com /default
 </td></tr>
 </table>
 
-<p>TOMOYO Linux can be used with SELinux. But SELinux's default policy configuration does not allow Apache to write to /proc/ccs/self_domain . If SELinux is enabled, modify SELinux's policy configuration to allow Apache to write to /proc/ccs/self_domain . (Steps for modifying SELinux's policy configuration depend on distributions and versions. Fig. 8 should work for CentOS 5.9 but may not work for older versions.)</p>
+<p>TOMOYO Linux can be used with SELinux. But SELinux's default policy configuration does not allow Apache to write to /proc/ccs/self_domain . If SELinux is enabled, modify SELinux's policy configuration to allow Apache to write to /proc/ccs/self_domain . (Steps for modifying SELinux's policy configuration depend on distributions and versions. Fig. 8 should work for CentOS 5 but may not work for older versions.)</p>
 
 <table border="1" summary="fig">
 <tr><td>
