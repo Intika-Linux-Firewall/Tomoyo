@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 4.9's 2.6.9 kernel.
+# This is a kernel build script for CentOS 4's 2.6.9 kernel.
 #
 
 die () {

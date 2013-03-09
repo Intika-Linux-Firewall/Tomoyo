@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 3.9's 2.4.21 kernel.
+# This is a kernel build script for CentOS 3's 2.4.21 kernel.
 #
 
 die () {
