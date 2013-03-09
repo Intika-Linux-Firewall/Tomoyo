@@ -62,7 +62,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20130214.tar.gz
-+patch -sp1 < patches/ccs-patch-3.0-vine-linux-6.1.diff
++patch -sp1 < patches/ccs-patch-3.0-vine-linux-6.diff
 +
  cp %{SOURCE10} Documentation/
  
