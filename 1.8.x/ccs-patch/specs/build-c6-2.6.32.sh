@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 6.3's 2.6.32 kernel.
+# This is a kernel build script for CentOS 6.4's 2.6.32 kernel.
 #
 
 die () {
@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-279.22.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-358.0.1.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.3/updates/Source/SPackages/kernel-2.6.32-279.22.1.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.4/updates/Source/SPackages/kernel-2.6.32-358.0.1.el6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32-279.22.1.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-279.22.1.el6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32-358.0.1.el6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-358.0.1.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130214.tar.gz ]
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  %define rhel 1
  %if %{rhel}
-@@ -451,7 +451,7 @@
+@@ -454,7 +454,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut-kernel >= 002-18.git413bcf78
  %else
-@@ -487,7 +487,7 @@
+@@ -490,7 +490,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -755,7 +755,7 @@
+@@ -778,7 +778,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -64,18 +64,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -921,6 +921,10 @@
+@@ -944,6 +944,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20130214.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.32-centos-6.3.diff
++patch -sp1 < patches/ccs-patch-2.6.32-centos-6.4.diff
 +
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -945,6 +949,9 @@
+@@ -968,6 +972,9 @@
  for i in *.config
  do
    mv $i .config
