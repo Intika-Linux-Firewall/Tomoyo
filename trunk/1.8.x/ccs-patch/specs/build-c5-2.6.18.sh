@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 5.9's 2.6.18 kernel.
+# This is a kernel build script for CentOS 5's 2.6.18 kernel.
 #
 
 die () {

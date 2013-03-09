@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 6.4's 2.6.32 kernel.
+# This is a kernel build script for CentOS 6's 2.6.32 kernel.
 #
 
 die () {
