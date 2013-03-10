@@ -20,9 +20,9 @@ rpm --checksig kernel-3.8.1-201.fc18.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-3.8.1-201.fc18.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20130214.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20130310.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20130214.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20130214.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20130310.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20130310.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -83,7 +83,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20130214.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20130310.tar.gz
 +patch -sp1 < patches/ccs-patch-3.8-fedora-18.diff
 +
  %endif
