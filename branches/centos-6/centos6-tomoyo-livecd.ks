@@ -26,26 +26,27 @@ ccs-tools
 @core
 @basic-desktop
 @desktop-platform
-@fonts
+#@fonts
+vlgothic-fonts
 @general-desktop
 @graphical-admin-tools
 @internet-browser
 @legacy-x
 @network-file-system-client
 @print-client
-@remote-desktop-clients
+#@remote-desktop-clients
 @x11
-mtools
-python-dmidecode
-sgpio
-genisoimage
-wodim
-libXmu
+-mtools
+-python-dmidecode
+-sgpio
+-genisoimage
+-wodim
+-libXmu
 -abrt-cli
 -abrt-addon-kerneloops
 -abrt-addon-ccpp
 -nano
--abrt-plugin-sosreport
+#-abrt-plugin-sosreport
 -abrt-addon-python
 #-rhn-setup-gnome
 -gok
@@ -63,12 +64,12 @@ libXmu
 -evince-dvi
 -seahorse
 -sound-juicer
-gthumb
-totem
-pidgin
-cups
--thunderbird
-gimp
+-gthumb
+-totem
+-pidgin
+-cups
+thunderbird
+-gimp
 
 # livecd bits to set up the livecd and be able to install
 memtest86+
@@ -511,6 +512,8 @@ mv /etc/hosts /etc/hosts.tmp
 #export http_proxy=http://proxy:port/
 echo '202.221.179.21 sourceforge.jp' > /etc/hosts
 echo '202.221.179.25 svn.sourceforge.jp' >> /etc/hosts
+echo '192.150.16.58 get.adobe.com' >> /etc/hosts
+echo '69.192.178.70 fpdownload.macromedia.com' >> /etc/hosts
 wget -O centos6-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
 wget -O centos6-live.html.ja 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo'
 wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf -
@@ -557,6 +560,11 @@ rm -fR /var/tmp/*/
 rm -f /var/lib/rpm/__db.00*
 rm -f /boot/initramfs-*
 rm -f /root/.bash_history
+# Install Flash Player plugin needed for TOMOYO website.
+FILENAME=`wget -O - 'http://get.adobe.com/jp/flashplayer/completion/?installer=Flash_Player_11.2_for_other_Linux_(.rpm)_32-bit' | awk ' { if ($1 == "location.href") print $3; } ' | awk -F\' ' { if ( substr($2, 0, 33) == "http://fpdownload.macromedia.com/" && index($2, ".rpm") > 0) print $2 } '`
+rpm -ivh $FILENAME
+# Create symbolic link needed for Mozilla.
+ln -s /usr/lib/flash-plugin/libflashplayer.so /usr/lib/mozilla/plugins-wrapped/
 cat /dev/zero > /file || rm -f /file
 ### TOMOYO Linux end ###
 EOF_post
