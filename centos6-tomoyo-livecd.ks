@@ -32,6 +32,8 @@ ccs-tools
 @internet-browser
 @legacy-x
 @network-file-system-client
+@print-client
+@remote-desktop-clients
 @x11
 mtools
 python-dmidecode
@@ -43,6 +45,7 @@ libXmu
 -abrt-addon-kerneloops
 -abrt-addon-ccpp
 -nano
+-abrt-plugin-sosreport
 -abrt-addon-python
 #-rhn-setup-gnome
 -gok
@@ -64,24 +67,8 @@ gthumb
 totem
 pidgin
 cups
-thunderbird
-avahi-gobject
-celt051
-ctapi-common
-gtk-vnc
-libao-devel
-libcacard
-log4cpp
-openct
-pcsc-lite
-pcsc-lite-libs
-pcsc-lite-openct
-rdesktop
-spice-client
-spice-xpi
-tigervnc
-tsclient
-vinagre
+-thunderbird
+gimp
 
 # livecd bits to set up the livecd and be able to install
 memtest86+
