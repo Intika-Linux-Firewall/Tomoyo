@@ -517,6 +517,10 @@ echo '69.192.178.70 fpdownload.macromedia.com' >> /etc/hosts
 wget -O centos6-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
 wget -O centos6-live.html.ja 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo'
 wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+# Install Flash Player plugin needed for TOMOYO website.
+rpm -ivh `wget -O - 'http://get.adobe.com/jp/flashplayer/completion/?installer=Flash_Player_11.2_for_other_Linux_(.rpm)_32-bit' | awk ' { if ($1 == "location.href") print substr($3, 2, length($3) - 3); } '`
+# Create symbolic link needed for Mozilla.
+ln -s /usr/lib/flash-plugin/libflashplayer.so /usr/lib/mozilla/plugins-wrapped/
 mv /etc/hosts.tmp /etc/hosts
 ln -s centos6-live.html.en index.html.en
 ln -s centos6-live.html.ja index.html.ja
@@ -560,11 +564,6 @@ rm -fR /var/tmp/*/
 rm -f /var/lib/rpm/__db.00*
 rm -f /boot/initramfs-*
 rm -f /root/.bash_history
-# Install Flash Player plugin needed for TOMOYO website.
-FILENAME=`wget -O - 'http://get.adobe.com/jp/flashplayer/completion/?installer=Flash_Player_11.2_for_other_Linux_(.rpm)_32-bit' | awk ' { if ($1 == "location.href") print $3; } ' | awk -F\' ' { if ( substr($2, 0, 33) == "http://fpdownload.macromedia.com/" && index($2, ".rpm") > 0) print $2 } '`
-rpm -ivh $FILENAME
-# Create symbolic link needed for Mozilla.
-ln -s /usr/lib/flash-plugin/libflashplayer.so /usr/lib/mozilla/plugins-wrapped/
 cat /dev/zero > /file || rm -f /file
 ### TOMOYO Linux end ###
 EOF_post
