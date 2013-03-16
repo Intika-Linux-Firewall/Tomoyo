@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.0.60-2vl6.src.rpm ]
+if [ ! -r kernel-3.0.68-1vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.1/updates/SRPMS/kernel-3.0.60-2vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.1/updates/SRPMS/kernel-3.0.68-1vl6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.0.60-2vl6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.0.60-2vl6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.0.68-1vl6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.0.68-1vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130310.tar.gz ]
@@ -28,15 +28,15 @@ cp -p /root/rpm/SPECS/kernel-vl.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-vl.spec
 +++ kernel-vl.spec
-@@ -27,7 +27,7 @@
- %define sublevel 0
- %define patchlevel 60
+@@ -28,7 +28,7 @@
+ %define patchlevel 68
  %define kversion 3.%{sublevel}
--%define rpmversion 3.%{sublevel}.%{patchlevel}
-+%define rpmversion 3.%{sublevel}.%{patchlevel}_tomoyo_1.8.3p7
- %define release 2%{?_dist_release}
+ %define rpmversion 3.%{sublevel}.%{patchlevel}
+-%define release 1%{?_dist_release}
++%define release 1%{?_dist_release}_tomoyo_1.8.3p7
  
  %define make_target bzImage
+ %define hdrarch %_target_cpu
 @@ -120,6 +120,9 @@
  # to versions below the minimum
  #
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -699,6 +702,10 @@
+@@ -703,6 +706,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -717,6 +724,9 @@
+@@ -721,6 +728,9 @@
  for i in *.config
  do 
  	mv $i .config 
