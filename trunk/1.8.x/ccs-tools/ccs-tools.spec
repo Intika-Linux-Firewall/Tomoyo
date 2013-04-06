@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.3
-Release: 6
+Release: 7
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.3-6
+Conflicts: ccs-tools < 1.8.3-7
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20130214.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20130406.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -52,6 +52,9 @@ ldconfig || true
 /usr/share/man/man8/*
 
 %changelog
+* Sat Apr 06 2013 1.8.3-7
+- Fix compile warning from clang.
+
 * Thu Feb 14 2013 1.8.3-6
 - Change Makefile's build flags, as suggested by Simon Ruderich and Hideki
   Yamane. (Debian bug 674723)
