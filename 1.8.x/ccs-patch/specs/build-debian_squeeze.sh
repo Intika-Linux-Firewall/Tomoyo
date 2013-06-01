@@ -51,7 +51,7 @@ rm -fR linux-source-2.6.32
 tar -jxf linux-source-2.6.32.tar.bz2
 
 # Apply patches and create kernel config.
-cd linux-source-2.6.32 || die "Can't chdir to linux-source-2.6.18/ ."
+cd linux-source-2.6.32 || die "Can't chdir to linux-source-2.6.32/ ."
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.3-20130512.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.32-debian-squeeze.diff || die "Can't apply patch."
 cat /boot/config-2.6.32-5-686 config.ccs > .config || die "Can't create config."
