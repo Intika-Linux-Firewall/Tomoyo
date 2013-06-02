@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-348.4.1.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-348.6.1.el5.src.rpm ]
 then
-    wget http://vault.centos.org/5.9/updates/SRPMS/kernel-2.6.18-348.4.1.el5.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/5.9/updates/SRPMS/kernel-2.6.18-348.6.1.el5.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-348.4.1.el5.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-348.4.1.el5.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-348.6.1.el5.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-348.6.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20130310.tar.gz ]
