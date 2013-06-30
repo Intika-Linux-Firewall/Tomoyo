@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-3.4.42-2.28.1.src.rpm ]
+if [ ! -r kernel-source-3.4.47-2.38.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/12.2/src/kernel-source-3.4.42-2.28.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.2/src/kernel-source-3.4.47-2.38.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.4.42-2.28.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-3.4.42-2.28.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.4.47-2.38.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.4.47-2.38.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-3.4.42-2.28.1.nosrc.rpm ]
+if [ ! -r kernel-default-3.4.47-2.38.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/12.2/nosrc/kernel-default-3.4.42-2.28.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.2/nosrc/kernel-default-3.4.47-2.38.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.4.42-2.28.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-3.4.42-2.28.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.4.47-2.38.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.4.47-2.38.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130512.tar.gz ]
@@ -85,20 +85,22 @@ cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec
 +++ kernel-default.spec
-@@ -55,10 +55,10 @@
+@@ -54,12 +54,12 @@
  %define install_vdso 0
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        3.4.42
--Release:        2.28.1
-+Release:        2.28.1_tomoyo_1.8.3p7
  License:        GPL-2.0
  Group:          System/Kernel
+ Version:        3.4.47
+-Release:        2.38.1
++Release:        2.38.1_tomoyo_1.8.3p7
  Url:            http://www.kernel.org/
-@@ -342,6 +342,11 @@
+ BuildRequires:  coreutils
+ BuildRequires:  fdupes
+@@ -347,6 +347,11 @@
  %endif
  	%_sourcedir/series.conf .. $SYMBOLS
  

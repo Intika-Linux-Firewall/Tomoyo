@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 18's 3.9 kernel.
+# This is a kernel build script for Fedora 19's 3.9 kernel.
 #
 
 die () {
@@ -8,16 +8,16 @@ die () {
     exit 1
 }
 
-yum -y install wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison net-tools audit-libs-devel pesign bc
+yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison net-tools audit-libs-devel pesign bc
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.9.6-200.fc18.src.rpm ]
+if [ ! -r kernel-3.9.6-301.fc19.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/18/SRPMS/kernel-3.9.6-200.fc18.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.9.6-301.fc19.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.9.6-200.fc18.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.9.6-200.fc18.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.9.6-301.fc19.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.9.6-301.fc19.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130512.tar.gz ]
@@ -39,7 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -444,6 +444,11 @@
+@@ -435,6 +435,11 @@
  # to versions below the minimum
  #
  
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -503,7 +508,7 @@
+@@ -494,7 +499,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -977,7 +982,7 @@
+@@ -987,7 +992,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -997,7 +1002,7 @@
+@@ -1007,7 +1012,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1522,6 +1527,10 @@
+@@ -1553,6 +1558,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1545,6 +1554,18 @@
+@@ -1575,6 +1584,18 @@
  for i in *.config
  do
    mv $i .config
