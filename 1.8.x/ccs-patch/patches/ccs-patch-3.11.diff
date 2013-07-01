@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/next-20130628.tar.bz2
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/next-20130701.tar.bz2
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -60,7 +60,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.10-rc7-next-20130628 2013/06/30\n");
++	printk(KERN_INFO "Hook version: 3.10-next-20130701 2013/07/01\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -402,7 +402,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
 --- linux-next.orig/kernel/ptrace.c
 +++ linux-next/kernel/ptrace.c
-@@ -1036,6 +1036,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -1038,6 +1038,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -414,7 +414,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1183,6 +1188,11 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1185,6 +1190,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
