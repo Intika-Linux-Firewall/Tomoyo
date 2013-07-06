@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 17's 3.8 kernel.
+# This is a kernel build script for Fedora 17's 3.9 kernel.
 #
 
 die () {
@@ -8,16 +8,16 @@ die () {
     exit 1
 }
 
-yum -y install wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison net-tools audit-libs-devel
+yum -y install wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison net-tools audit-libs-devel pesign bc
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.8.13-100.fc17.src.rpm ]
+if [ ! -r kernel-3.9.8-100.fc17.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.8.13-100.fc17.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.9.8-100.fc17.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.8.13-100.fc17.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.8.13-100.fc17.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.9.8-100.fc17.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.9.8-100.fc17.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130512.tar.gz ]
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -493,7 +498,7 @@
+@@ -495,7 +500,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -951,7 +956,7 @@
+@@ -957,7 +962,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -971,7 +976,7 @@
+@@ -977,7 +982,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1490,6 +1495,10 @@
+@@ -1498,6 +1503,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20130512.tar.gz
-+patch -sp1 < patches/ccs-patch-3.8.diff
++patch -sp1 < patches/ccs-patch-3.9.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1519,6 +1528,18 @@
+@@ -1527,6 +1536,18 @@
  for i in *.config
  do
    mv $i .config
