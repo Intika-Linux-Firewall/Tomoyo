@@ -53,22 +53,6 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <p>/proc/kallsyms の中に tomoyo_write_inet_network を含む行が存在していた場合、既に TOMOYO Linux 対応カーネルですので、 <a href="#3.2">3.2. 管理ツールのインストール</a>へと進んでください。</p>
 
-<p>もし x86_64 上で Fedora 16 または Fedora 17 を使用している場合、 TOMOYO Linux 対応カーネルを <a href="http://repo.tomoyolinux.co.uk/">http://repo.tomoyolinux.co.uk</a> からインストールできるので、カーネルをコンパイルする必要はありません。インストールするには、</p>
-
-<pre class="command">$ wget http://cdn.tomoyolinux.co.uk/pub/fedora/16/x86_64/tomoyolinux-release-16-5.fc16.noarch.rpm         
-# yum install tomoyolinux-release-16-5.fc16.noarch.rpm
-# yum install ccs-kernel
-</pre>
-
-<p>または</p>
-
-<pre class="command">$ wget http://cdn.tomoyolinux.co.uk/pub/fedora/17/x86_64/tomoyolinux-release-16-5.fc17.noarch.rpm
-# yum install tomoyolinux-release-16-5.fc17.noarch.rpm
-# yum install ccs-kernel
-</pre>
-
-<p>を実行してください。そして、 <a href="#3.2">3.2. 管理ツールのインストール</a>へと進んでください。なお、 ccs-kernel パッケージには TOMOYO 2.5 と <a href="../1.8/">TOMOYO 1.8</a> の両方が含まれているため、 TOMOYO 2.5 だけを有効にするために <a href="#3.4">3.4. ブートローダの設定</a>において security=tomoyo の代わりに security=tomoyo ccsecurity=off のように指定してください。</p>
-
 <p>存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。</p>
 
 <p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.sourceforge.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.sourceforge.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
