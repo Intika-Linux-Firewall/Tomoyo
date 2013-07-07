@@ -45,13 +45,11 @@
 <p>以下のディストリビューションに関してバイナリパッケージが提供されています：</p>
 
 <ul>
-<li>Fedora 14/15/16/17</li>
 <li>RHEL/CentOS/Scientific Linux 3/4/5/6</li>
-<li>Debian Lenny/Squeeze</li>
-<li>OpenSUSE 11.3/11.4/12.1</li>
-<li>Asianux 2/3</li>
-<li>Ubuntu 8.04/10.04/10.10/11.04/11.10/12.04</li>
-<li>Vine Linux 5/6</li>
+<li>Debian Squeeze</li>
+<li>Asianux 3</li>
+<li>Ubuntu 10.04/12.04</li>
+<li>Vine Linux 6</li>
 </ul>
 
 <p>もし、上記の何れかのディストリビューションを使用しているのであれば、<a href="chapter-3.html.ja#3.2">3.2. バイナリパッケージからのインストール</a>へと進んでください。そうではない場合には、カーネルをコンパイルする必要がありますので、<a href="chapter-3.html.ja#3.3">3.3. ソースからのインストール</a>へと進んでください。</p>
@@ -73,18 +71,6 @@
 </pre>
 
 <p>プロジェクトで配布しているバイナリパッケージは <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=12016" target="_blank">SourceForge のページ</a>から手動でダウンロードすることも可能です。カーネルパッケージと管理ツールパッケージが必要です。レポジトリを使うと簡単にダウンロードできます。レポジトリを使う場合には以下のコマンドを実行してください：</p>
-
-<p><strong>Fedora 15 (686-PAE flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora15/ccs.repo
-# yum install ccs-kernel-PAE ccs-tools
-</pre>
-
-<p><strong>Fedora 14 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Fedora14/ccs.repo
-# yum install ccs-kernel ccs-tools
-</pre>
 
 <p><strong>CentOS 6 (686 flavour)</strong></p>
 <pre class="command">
@@ -116,12 +102,6 @@
 # yum install ccs-kernel ccs-tools
 </pre>
 
-<p><strong>Asianux 2 (686 flavour)</strong></p>
-<pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux2/ccs.repo
-# yum install ccs-kernel-smp ccs-tools
-</pre>
-
 <p><strong>Vine Linux 6 (686-pae flavour)</strong></p>
 <pre class="command">
 # echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux6/ ./" &gt;&gt; /etc/apt/sources.list
@@ -129,41 +109,9 @@
 # apt-get install ccs-kernel-pae ccs-tools
 </pre>
 
-<p><strong>Vine Linux 5 (686 flavour)</strong></p>
-<pre class="command">
-# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux5/ ./" &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install ccs-kernel ccs-tools
-</pre>
-
-<p><strong>OpenSUSE 12.1 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE12.1/ ccs
-# zypper install ccs-kernel-default ccs-tools
-</pre>
-
-<p><strong>OpenSUSE 11.4 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.4/ ccs
-# zypper install ccs-kernel-default ccs-tools
-</pre>
-
-<p><strong>OpenSUSE 11.3 (default flavour)</strong></p>
-<pre class="command">
-# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.8/SUSE11.3/ ccs
-# zypper install ccs-kernel-default ccs-tools
-</pre>
-
 <p><strong>Debian Squeeze (686 flavour)</strong></p>
 <pre class="command">
 # echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianSqueeze/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-image-2.6-686-ccs ccs-tools
-</pre>
-
-<p><strong>Debian Lenny (686 flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianLenny/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-image-2.6-686-ccs ccs-tools
 </pre>
@@ -175,39 +123,11 @@
 # apt-get install linux-generic-pae-ccs ccs-tools
 </pre>
 
-<p><strong>Ubuntu 11.10 (generic-pae flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu11.10/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-generic-pae-ccs ccs-tools
-</pre>
-
-<p><strong>Ubuntu 11.04 (generic-pae flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu11.04/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-generic-pae-ccs ccs-tools
-</pre>
-
-<p><strong>Ubuntu 10.10 (generic-pae flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.10/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-generic-pae-ccs ccs-tools
-</pre>
-
 <p><strong>Ubuntu 10.04 (generic-pae flavour)</strong></p>
 <pre class="command">
 # echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.04/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-generic-pae-ccs ccs-tools
-</pre>
-
-<p><strong>Ubuntu 8.04 (generic flavour)</strong></p>
-<pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu8.04/ ./' &gt;&gt; /etc/apt/sources.list
-# apt-get update
-# apt-get install linux-ccs ccs-tools
 </pre>
 
 <p><a href="chapter-3.html.ja#3.4">3.4. 設定の初期化</a>へと進んでください。</p>
@@ -252,13 +172,13 @@ linux-2.6 についてはカーネル 2.6.27 以降に対応しています。<b
 linux-3 についてはカーネル 3.0 以降に対応しています。</p>
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。<br>
-以下の操作において、例えばカーネル 3.8.10 を使う場合、 $VERSION.$PATCHLEVEL.diff を 3.8.diff に置き換えてください：</p>
+以下の操作において、例えばカーネル 3.9.9 を使う場合、 $VERSION.$PATCHLEVEL.diff を 3.9.diff に置き換えてください：</p>
 
 <pre class="command">
-$ wget -O ccs-patch-1.8.3-20130512.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20130512.tar.gz'
-$ wget -O ccs-patch-1.8.3-20130512.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20130512.tar.gz.asc'
-$ gpg ccs-patch-1.8.3-20130512.tar.gz.asc
-$ tar -zxf ccs-patch-1.8.3-20130512.tar.gz
+$ wget -O ccs-patch-1.8.3-20130707.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20130707.tar.gz'
+$ wget -O ccs-patch-1.8.3-20130707.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20130707.tar.gz.asc'
+$ gpg ccs-patch-1.8.3-20130707.tar.gz.asc
+$ tar -zxf ccs-patch-1.8.3-20130707.tar.gz
 $ patch -sp1 &lt; patches/ccs-patch-$VERSION.$PATCHLEVEL.diff
 </pre>
 

@@ -18,9 +18,9 @@ rpm --checksig kernel-3.0.77-1vl6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-3.0.77-1vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20130512.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20130707.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20130512.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20130512.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20130707.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20130707.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20130512.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20130707.tar.gz
 +patch -sp1 < patches/ccs-patch-3.0-vine-linux-6.diff
 +
  cp %{SOURCE10} Documentation/

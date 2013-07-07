@@ -53,22 +53,6 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <p>If the output of the above command includes a line with "tomoyo_write_inet_network", then the running kernel was built with TOMOYO Linux support and you can proceed to <a href="#3.2">3.2 Install the userspace tools</a>.</p>
 
-<p>If you are using Fedora 16 or Fedora 17 on x86_64, you don't need to compile kernel because you can install TOMOYO Linux enabled binary kernels from <a href="http://repo.tomoyolinux.co.uk/">http://repo.tomoyolinux.co.uk</a>. To install, please do</p>
-
-<pre class="command">$ wget http://cdn.tomoyolinux.co.uk/pub/fedora/16/x86_64/tomoyolinux-release-16-5.fc16.noarch.rpm         
-# yum install tomoyolinux-release-16-5.fc16.noarch.rpm
-# yum install ccs-kernel
-</pre>
-
-<p>or</p>
-
-<pre class="command">$ wget http://cdn.tomoyolinux.co.uk/pub/fedora/17/x86_64/tomoyolinux-release-16-5.fc17.noarch.rpm
-# yum install tomoyolinux-release-16-5.fc17.noarch.rpm
-# yum install ccs-kernel
-</pre>
-
-<p>and then proceed to <a href="#3.2">3.2 Install the userspace tools</a>. Please remember to add "security=tomoyo ccsecurity=off" instead of "security=tomoyo" at <a href="#3.4">3.4 Configure bootloader</a> because ccs-kernel package includes both TOMOYO 2.5 and <a href="../1.8/">TOMOYO 1.8</a> but you want to enable only TOMOYO 2.5.</p>
-
 <p>If not, then the running kernel was not built with TOMOYO Linux support and you should follow the steps below.</p>
 
 <p>If you wish to obtain the most functionality out of TOMOYO Linux, then you may wish to use either the 1.x branch (which requires you to build your own kernel), or AKARI (which is a module and does not require you to build your own kernel). AKARI module currently provides more functionality than the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="http://akari.sourceforge.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="http://akari.sourceforge.jp/">AKARI website</a>.</p>
