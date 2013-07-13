@@ -1,56 +1,7 @@
-Index: internal.h
-===================================================================
---- internal.h	(revision 5696)
-+++ internal.h	(working copy)
-@@ -412,6 +412,7 @@
- 	CCS_TYPE_AUTO_TASK_ACL,
- 	CCS_TYPE_MANUAL_TASK_ACL,
- #endif
-+	CCS_TYPE_USE_GROUP_ACL,
- };
- 
- /* Index numbers for "struct ccs_condition". */
-@@ -513,6 +514,7 @@
- enum ccs_group_id {
- 	CCS_PATH_GROUP,
- 	CCS_NUMBER_GROUP,
-+	CCS_ACL_GROUP,
- #ifdef CONFIG_CCSECURITY_NETWORK
- 	CCS_ADDRESS_GROUP,
- #endif
-@@ -1354,6 +1356,12 @@
- 	struct ccs_name_union name;
- };
- 
-+/* Structure for "use_group @" directive. */
-+struct ccs_use_group_acl {
-+	struct ccs_acl_info head; /* type = CCS_TYPE_USE_GROUP_ACL */
-+	struct ccs_group *group;
-+};
-+
- /* Structure for holding string data. */
- struct ccs_name {
- 	struct ccs_shared_acl_head head;
-@@ -1381,6 +1389,7 @@
- 		struct ccs_signal_acl signal_acl;
- 		struct ccs_inet_acl inet_acl;
- 		struct ccs_unix_acl unix_acl;
-+		struct ccs_use_group_acl use_group_acl;
- 		/**/
- 		struct ccs_acl_head acl_head;
- 		struct ccs_transition_control transition_control;
-@@ -1404,6 +1413,7 @@
- 		struct list_head *domain;
- 		struct list_head *group;
- 		struct list_head *acl;
-+		const struct ccs_path_info *acl_group_name; 
- 		size_t avail;
- 		unsigned int step;
- 		unsigned int query_index;
 Index: policy_io.c
 ===================================================================
---- policy_io.c	(revision 5698)
-+++ policy_io.c	(working copy)
+--- policy_io.c	(リビジョン 6261)
++++ policy_io.c	(作業コピー)
 @@ -356,6 +356,7 @@
  static const char * const ccs_group_name[CCS_MAX_GROUP] = {
  	[CCS_PATH_GROUP]    = "path_group ",
@@ -59,7 +10,7 @@ Index: policy_io.c
  #ifdef CONFIG_CCSECURITY_NETWORK
  	[CCS_ADDRESS_GROUP] = "address_group ",
  #endif
-@@ -3426,6 +3427,27 @@
+@@ -3422,6 +3423,27 @@
  #endif
  
  /**
@@ -87,7 +38,7 @@ Index: policy_io.c
   * ccs_write_acl - Write "struct ccs_acl_info" list.
   *
   * @ns:        Pointer to "struct ccs_policy_namespace".
-@@ -3466,6 +3488,7 @@
+@@ -3462,6 +3484,7 @@
  		{ "ipc signal ", ccs_write_ipc },
  #endif
  		{ "task ", ccs_write_task },
@@ -95,7 +46,7 @@ Index: policy_io.c
  	};
  	u8 i;
  	/* Forced zero clear for using memcmp() at ccs_update_acl(). */
-@@ -3550,11 +3573,14 @@
+@@ -3546,11 +3569,14 @@
  				domain->profile = (u8) profile;
  		return 0;
  	}
@@ -115,7 +66,7 @@ Index: policy_io.c
  	}
  	for (profile = 0; profile < CCS_MAX_DOMAIN_INFO_FLAGS; profile++) {
  		const char *cp = ccs_dif[profile];
-@@ -3815,7 +3841,12 @@
+@@ -3811,7 +3837,12 @@
  {
  	if (head->type == CCS_EXCEPTION_POLICY) {
  		ccs_print_namespace(head);
@@ -129,7 +80,7 @@ Index: policy_io.c
  	}
  	ccs_set_string(head, category);
  }
-@@ -3841,6 +3872,8 @@
+@@ -3837,6 +3868,8 @@
  		return true;
  	if (!ccs_flush(head))
  		return false;
@@ -138,7 +89,7 @@ Index: policy_io.c
  	else if (acl_type == CCS_TYPE_PATH_ACL) {
  		struct ccs_path_acl *ptr
  			= container_of(acl, typeof(*ptr), head);
-@@ -3883,6 +3916,11 @@
+@@ -3879,6 +3912,11 @@
  			       "manual_domain_transition ");
  		ccs_set_string(head, ptr->domainname->name);
  #endif
@@ -150,7 +101,7 @@ Index: policy_io.c
  	} else if (head->r.print_transition_related_only &&
  		   !may_trigger_transition) {
  		return true;
-@@ -4198,8 +4236,17 @@
+@@ -4194,8 +4232,17 @@
   */
  static int ccs_write_group(struct ccs_acl_param *param, const u8 type)
  {
@@ -169,7 +120,7 @@ Index: policy_io.c
  	if (!group)
  		return -ENOMEM;
  	param->list = &group->member_list;
-@@ -4218,6 +4265,11 @@
+@@ -4214,6 +4261,11 @@
  		    !ccs_parse_number_union(param, &e->number))
  			goto out;
  		error = ccs_update_policy(sizeof(*e), param);
@@ -181,7 +132,7 @@ Index: policy_io.c
  #ifdef CONFIG_CCSECURITY_NETWORK
  	} else {
  		struct ccs_address_group *e = &param->e.address_group;
-@@ -4404,15 +4456,6 @@
+@@ -4400,15 +4452,6 @@
  	for (i = 0; i < CCS_MAX_GROUP; i++)
  		if (ccs_str_starts(&param.data, ccs_group_name[i]))
  			return ccs_write_group(&param, i);
@@ -197,7 +148,7 @@ Index: policy_io.c
  	return -EINVAL;
  }
  
-@@ -4431,6 +4474,22 @@
+@@ -4427,6 +4470,22 @@
  	struct ccs_policy_namespace *ns = container_of(head->r.ns, typeof(*ns),
  						       namespace_list);
  	struct list_head *list = &ns->group_list[idx];
@@ -222,8 +173,8 @@ Index: policy_io.c
  			list_entry(head->r.group, typeof(*group), head.list);
 Index: gc.c
 ===================================================================
---- gc.c	(revision 5696)
-+++ gc.c	(working copy)
+--- gc.c	(リビジョン 6261)
++++ gc.c	(作業コピー)
 @@ -152,6 +152,7 @@
  		[CCS_TYPE_AUTO_TASK_ACL] = sizeof(struct ccs_task_acl),
  		[CCS_TYPE_MANUAL_TASK_ACL] = sizeof(struct ccs_task_acl),
@@ -293,3 +244,52 @@ Index: gc.c
  				ccs_try_to_gc(CCS_ID_GROUP, &group->head.list);
  			}
  		}
+Index: internal.h
+===================================================================
+--- internal.h	(リビジョン 6261)
++++ internal.h	(作業コピー)
+@@ -454,6 +454,7 @@
+ 	CCS_TYPE_AUTO_TASK_ACL,
+ 	CCS_TYPE_MANUAL_TASK_ACL,
+ #endif
++	CCS_TYPE_USE_GROUP_ACL,
+ };
+ 
+ /* Index numbers for "struct ccs_condition". */
+@@ -555,6 +556,7 @@
+ enum ccs_group_id {
+ 	CCS_PATH_GROUP,
+ 	CCS_NUMBER_GROUP,
++	CCS_ACL_GROUP,
+ #ifdef CONFIG_CCSECURITY_NETWORK
+ 	CCS_ADDRESS_GROUP,
+ #endif
+@@ -1400,6 +1402,12 @@
+ 	struct ccs_name_union name;
+ };
+ 
++/* Structure for "use_group @" directive. */
++struct ccs_use_group_acl {
++	struct ccs_acl_info head; /* type = CCS_TYPE_USE_GROUP_ACL */
++	struct ccs_group *group;
++};
++
+ /* Structure for holding string data. */
+ struct ccs_name {
+ 	struct ccs_shared_acl_head head;
+@@ -1427,6 +1435,7 @@
+ 		struct ccs_signal_acl signal_acl;
+ 		struct ccs_inet_acl inet_acl;
+ 		struct ccs_unix_acl unix_acl;
++		struct ccs_use_group_acl use_group_acl;
+ 		/**/
+ 		struct ccs_acl_head acl_head;
+ 		struct ccs_transition_control transition_control;
+@@ -1450,6 +1459,7 @@
+ 		struct list_head *domain;
+ 		struct list_head *group;
+ 		struct list_head *acl;
++		const struct ccs_path_info *acl_group_name; 
+ 		size_t avail;
+ 		unsigned int step;
+ 		unsigned int query_index;
