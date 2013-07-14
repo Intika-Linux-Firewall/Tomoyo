@@ -16,6 +16,7 @@ wget http://jaist.dl.sourceforge.jp/tomoyo/51567/ccs-kernel-2.6.18-348.12.1.el5_
 rpm --checksig ccs-*.rpm
 cp -p ../package-install.sh .
 cat /etc/resolv.conf > etc/resolv.conf
+rm -f dev/null
 mknod -m 666 dev/null c 1 3
 mknod -m 444 dev/urandom c 1 9
 chroot . /package-install.sh
