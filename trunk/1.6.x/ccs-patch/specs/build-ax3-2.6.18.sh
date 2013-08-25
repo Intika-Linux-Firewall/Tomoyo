@@ -26,6 +26,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
+--- kernel.spec
++++ kernel.spec
 @@ -68,7 +68,7 @@
  %define kversion 2.6.%{sublevel}.%{stablerev}
  %define rpmversion 2.6.%{sublevel}
