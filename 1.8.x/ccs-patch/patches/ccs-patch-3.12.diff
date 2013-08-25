@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/next-20130812.tar.bz2
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/next-20130822.tar.bz2
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -60,7 +60,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.11-rc4-next-20130812 2013/08/12\n");
++	printk(KERN_INFO "Hook version: 3.11-rc6-next-20130822 2013/08/25\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -382,7 +382,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -836,6 +837,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -837,6 +838,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -391,7 +391,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3128,6 +3131,8 @@ static int may_init_module(void)
+@@ -3129,6 +3132,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -447,7 +447,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * If pid namespaces are enabled and the current task is in a child
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3138,6 +3138,8 @@ int can_nice(const struct task_struct *p
+@@ -3148,6 +3148,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -476,7 +476,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2993,6 +2997,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2993,6 +2997,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -636,7 +636,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  					  &len, 2) < 0) {
 --- linux-next.orig/net/unix/af_unix.c
 +++ linux-next/net/unix/af_unix.c
-@@ -1791,6 +1791,10 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1792,6 +1792,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
