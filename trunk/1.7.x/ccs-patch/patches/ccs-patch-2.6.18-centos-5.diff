@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for CentOS 5.
 
-Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2.6.18-348.12.1.el5.src.rpm
+Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2.6.18-348.16.1.el5.src.rpm
 ---
  arch/alpha/kernel/ptrace.c  |    3 +++
  arch/ia64/ia32/sys_ia32.c   |    3 +++
@@ -38,8 +38,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  security/Makefile           |    3 +++
  34 files changed, 250 insertions(+), 6 deletions(-)
 
---- linux-2.6.18-348.12.1.el5.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18-348.12.1.el5/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18-348.16.1.el5.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18-348.16.1.el5/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -57,8 +57,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18-348.12.1.el5.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18-348.12.1.el5/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18-348.16.1.el5.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18-348.16.1.el5/arch/ia64/ia32/sys_ia32.c
 @@ -58,6 +58,7 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -76,8 +76,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-348.12.1.el5.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18-348.12.1.el5/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18-348.16.1.el5.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18-348.16.1.el5/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -95,8 +95,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-348.12.1.el5.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18-348.12.1.el5/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18-348.16.1.el5.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18-348.16.1.el5/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,7 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -114,8 +114,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18-348.12.1.el5.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18-348.12.1.el5/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18-348.16.1.el5.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18-348.16.1.el5/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,7 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -135,8 +135,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18-348.12.1.el5.orig/fs/compat.c
-+++ linux-2.6.18-348.12.1.el5/fs/compat.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/compat.c
++++ linux-2.6.18-348.16.1.el5/fs/compat.c
 @@ -52,6 +52,7 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -174,8 +174,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.18-348.12.1.el5.orig/fs/exec.c
-+++ linux-2.6.18-348.12.1.el5/fs/exec.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/exec.c
++++ linux-2.6.18-348.16.1.el5/fs/exec.c
 @@ -62,6 +62,8 @@
  #include <linux/kmod.h>
  #endif
@@ -216,8 +216,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux-2.6.18-348.12.1.el5.orig/fs/fcntl.c
-+++ linux-2.6.18-348.12.1.el5/fs/fcntl.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/fcntl.c
++++ linux-2.6.18-348.16.1.el5/fs/fcntl.c
 @@ -22,6 +22,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -236,8 +236,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18-348.12.1.el5.orig/fs/ioctl.c
-+++ linux-2.6.18-348.12.1.el5/fs/ioctl.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/ioctl.c
++++ linux-2.6.18-348.16.1.el5/fs/ioctl.c
 @@ -17,6 +17,7 @@
  
  #include <asm/uaccess.h>
@@ -264,8 +264,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	if (error)
  		goto out_fput;
  
---- linux-2.6.18-348.12.1.el5.orig/fs/namei.c
-+++ linux-2.6.18-348.12.1.el5/fs/namei.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/namei.c
++++ linux-2.6.18-348.16.1.el5/fs/namei.c
 @@ -37,6 +37,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -367,8 +367,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
---- linux-2.6.18-348.12.1.el5.orig/fs/namespace.c
-+++ linux-2.6.18-348.12.1.el5/fs/namespace.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/namespace.c
++++ linux-2.6.18-348.16.1.el5/fs/namespace.c
 @@ -25,6 +25,7 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -453,8 +453,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18-348.12.1.el5.orig/fs/open.c
-+++ linux-2.6.18-348.12.1.el5/fs/open.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/open.c
++++ linux-2.6.18-348.16.1.el5/fs/open.c
 @@ -31,6 +31,7 @@
  #include <linux/falloc.h>
  
@@ -567,16 +567,16 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18-348.12.1.el5.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18-348.12.1.el5/fs/proc/proc_misc.c
+--- linux-2.6.18-348.16.1.el5.orig/fs/proc/proc_misc.c
++++ linux-2.6.18-348.16.1.el5/fs/proc/proc_misc.c
 @@ -739,4 +739,5 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-348.12.1.el5 2013/07/13\n");
++	printk(KERN_INFO "Hook version: 2.6.18-348.16.1.el5 2013/08/25\n");
  }
---- linux-2.6.18-348.12.1.el5.orig/include/linux/init_task.h
-+++ linux-2.6.18-348.12.1.el5/include/linux/init_task.h
+--- linux-2.6.18-348.16.1.el5.orig/include/linux/init_task.h
++++ linux-2.6.18-348.16.1.el5/include/linux/init_task.h
 @@ -76,6 +76,14 @@
  
  extern struct group_info init_groups;
@@ -600,8 +600,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  }
  
  
---- linux-2.6.18-348.12.1.el5.orig/include/linux/sched.h
-+++ linux-2.6.18-348.12.1.el5/include/linux/sched.h
+--- linux-2.6.18-348.16.1.el5.orig/include/linux/sched.h
++++ linux-2.6.18-348.16.1.el5/include/linux/sched.h
 @@ -35,6 +35,8 @@
  
  #ifdef __KERNEL__
@@ -611,10 +611,10 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  struct sched_param {
  	int sched_priority;
  };
-@@ -1137,6 +1139,10 @@ struct task_struct {
- #ifdef	CONFIG_TASK_DELAY_ACCT
- 	struct task_delay_info *delays;
+@@ -1155,6 +1157,10 @@ struct task_struct {
+ 	unsigned char fpu_counter;
  #endif
+ #endif /* CONFIG_X86 */
 +#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
@@ -622,8 +622,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18-348.12.1.el5.orig/include/net/ip.h
-+++ linux-2.6.18-348.12.1.el5/include/net/ip.h
+--- linux-2.6.18-348.16.1.el5.orig/include/net/ip.h
++++ linux-2.6.18-348.16.1.el5/include/net/ip.h
 @@ -171,8 +171,11 @@ extern void inet_get_local_port_range(in
  extern int sysctl_local_port_range[2];
  
@@ -636,8 +636,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.18-348.12.1.el5.orig/kernel/compat.c
-+++ linux-2.6.18-348.12.1.el5/kernel/compat.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/compat.c
++++ linux-2.6.18-348.16.1.el5/kernel/compat.c
 @@ -25,6 +25,7 @@
  
  #include <asm/uaccess.h>
@@ -655,8 +655,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18-348.12.1.el5.orig/kernel/kexec.c
-+++ linux-2.6.18-348.12.1.el5/kernel/kexec.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/kexec.c
++++ linux-2.6.18-348.16.1.el5/kernel/kexec.c
 @@ -32,6 +32,7 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -674,8 +674,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.18-348.12.1.el5.orig/kernel/kmod.c
-+++ linux-2.6.18-348.12.1.el5/kernel/kmod.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/kmod.c
++++ linux-2.6.18-348.16.1.el5/kernel/kmod.c
 @@ -147,6 +147,11 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
@@ -688,8 +688,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
---- linux-2.6.18-348.12.1.el5.orig/kernel/module.c
-+++ linux-2.6.18-348.12.1.el5/kernel/module.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/module.c
++++ linux-2.6.18-348.16.1.el5/kernel/module.c
 @@ -46,6 +46,7 @@
  #include <linux/license.h>
  #include <linux/tracepoint.h>
@@ -718,8 +718,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18-348.12.1.el5.orig/kernel/ptrace.c
-+++ linux-2.6.18-348.12.1.el5/kernel/ptrace.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/ptrace.c
++++ linux-2.6.18-348.16.1.el5/kernel/ptrace.c
 @@ -26,6 +26,7 @@
  #include <asm/tracehook.h>
  #include <asm/pgtable.h>
@@ -746,8 +746,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
  		 current->pid, request, pid, addr, cdata);
---- linux-2.6.18-348.12.1.el5.orig/kernel/sched.c
-+++ linux-2.6.18-348.12.1.el5/kernel/sched.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/sched.c
++++ linux-2.6.18-348.16.1.el5/kernel/sched.c
 @@ -57,6 +57,7 @@
  #include <trace/sched.h>
  
@@ -765,8 +765,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18-348.12.1.el5.orig/kernel/signal.c
-+++ linux-2.6.18-348.12.1.el5/kernel/signal.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/signal.c
++++ linux-2.6.18-348.16.1.el5/kernel/signal.c
 @@ -29,6 +29,7 @@
  #include <asm/siginfo.h>
  #include "audit.h"	/* audit_signal_info() */
@@ -811,8 +811,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
---- linux-2.6.18-348.12.1.el5.orig/kernel/sys.c
-+++ linux-2.6.18-348.12.1.el5/kernel/sys.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/sys.c
++++ linux-2.6.18-348.16.1.el5/kernel/sys.c
 @@ -37,6 +37,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -859,8 +859,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18-348.12.1.el5.orig/kernel/sysctl.c
-+++ linux-2.6.18-348.12.1.el5/kernel/sysctl.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/sysctl.c
++++ linux-2.6.18-348.16.1.el5/kernel/sysctl.c
 @@ -51,6 +51,7 @@
  
  #include <asm/uaccess.h>
@@ -893,8 +893,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18-348.12.1.el5.orig/kernel/time.c
-+++ linux-2.6.18-348.12.1.el5/kernel/time.c
+--- linux-2.6.18-348.16.1.el5.orig/kernel/time.c
++++ linux-2.6.18-348.16.1.el5/kernel/time.c
 @@ -41,6 +41,7 @@
  
  #include <asm/uaccess.h>
@@ -930,8 +930,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18-348.12.1.el5.orig/net/ipv4/raw.c
-+++ linux-2.6.18-348.12.1.el5/net/ipv4/raw.c
+--- linux-2.6.18-348.16.1.el5.orig/net/ipv4/raw.c
++++ linux-2.6.18-348.16.1.el5/net/ipv4/raw.c
 @@ -78,6 +78,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -950,8 +950,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.18-348.12.1.el5.orig/net/ipv4/udp.c
-+++ linux-2.6.18-348.12.1.el5/net/ipv4/udp.c
+--- linux-2.6.18-348.16.1.el5.orig/net/ipv4/udp.c
++++ linux-2.6.18-348.16.1.el5/net/ipv4/udp.c
 @@ -109,6 +109,7 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -970,8 +970,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
    
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
---- linux-2.6.18-348.12.1.el5.orig/net/ipv6/raw.c
-+++ linux-2.6.18-348.12.1.el5/net/ipv6/raw.c
+--- linux-2.6.18-348.16.1.el5.orig/net/ipv6/raw.c
++++ linux-2.6.18-348.16.1.el5/net/ipv6/raw.c
 @@ -56,6 +56,7 @@
  
  #include <linux/proc_fs.h>
@@ -990,8 +990,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
  	copied = skb->len;
    	if (copied > len) {
---- linux-2.6.18-348.12.1.el5.orig/net/ipv6/udp.c
-+++ linux-2.6.18-348.12.1.el5/net/ipv6/udp.c
+--- linux-2.6.18-348.16.1.el5.orig/net/ipv6/udp.c
++++ linux-2.6.18-348.16.1.el5/net/ipv6/udp.c
 @@ -58,6 +58,7 @@
  
  #include <linux/proc_fs.h>
@@ -1010,8 +1010,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
---- linux-2.6.18-348.12.1.el5.orig/net/socket.c
-+++ linux-2.6.18-348.12.1.el5/net/socket.c
+--- linux-2.6.18-348.16.1.el5.orig/net/socket.c
++++ linux-2.6.18-348.16.1.el5/net/socket.c
 @@ -96,6 +96,8 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1085,8 +1085,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18-348.12.1.el5.orig/net/unix/af_unix.c
-+++ linux-2.6.18-348.12.1.el5/net/unix/af_unix.c
+--- linux-2.6.18-348.16.1.el5.orig/net/unix/af_unix.c
++++ linux-2.6.18-348.16.1.el5/net/unix/af_unix.c
 @@ -116,6 +116,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1105,8 +1105,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
---- linux-2.6.18-348.12.1.el5.orig/security/Kconfig
-+++ linux-2.6.18-348.12.1.el5/security/Kconfig
+--- linux-2.6.18-348.16.1.el5.orig/security/Kconfig
++++ linux-2.6.18-348.16.1.el5/security/Kconfig
 @@ -135,5 +135,7 @@ config LSM_MMAP_MIN_ADDR
  
  source security/selinux/Kconfig
@@ -1115,8 +1115,8 @@ Source code for this patch is http://vault.centos.org/5.9/updates/SRPMS/kernel-2
 +
  endmenu
  
---- linux-2.6.18-348.12.1.el5.orig/security/Makefile
-+++ linux-2.6.18-348.12.1.el5/security/Makefile
+--- linux-2.6.18-348.16.1.el5.orig/security/Makefile
++++ linux-2.6.18-348.16.1.el5/security/Makefile
 @@ -19,3 +19,6 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
  obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
