@@ -11,8 +11,8 @@ rm -f /var/lib/rpm/__db*
 rpm --rebuilddb
 rpm -ivh /*.rpm
 rpm -e kernel
-# Due to CD-R's capacity limit (700MB), remove openoffice.org packages.
-yum -y remove 'openoffice.org-*'
+# Due to CD-R's capacity limit (700MB), remove openoffice.org and thunderbird packages.
+yum -y remove 'openoffice.org-*' thunderbird
 # Install Japanese fonts needed for TOMOYO tutorial.
 yum -y install fonts-japanese
 yum -y update
