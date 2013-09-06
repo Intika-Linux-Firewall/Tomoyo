@@ -14,7 +14,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-3.9.10-100.fc17.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/17/SRPMS/kernel-3.9.10-100.fc17.src.rpm || die "Can't download source package."
+    wget http://archives.fedoraproject.org/pub/archive/fedora/linux/updates/17/SRPMS/kernel-3.9.10-100.fc17.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-3.9.10-100.fc17.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-3.9.10-100.fc17.src.rpm || die "Can't install source package."
