@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for linux-next.
+This is TOMOYO Linux patch for kernel 3.12-rc1.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/next-20130822.tar.bz2
+Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/testing/linux-3.12-rc1.tar.xz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -29,8 +29,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  security/security.c       |  107 ++++++++++++++++++++++++++++++++++++++++------
  25 files changed, 236 insertions(+), 37 deletions(-)
 
---- linux-next.orig/fs/exec.c
-+++ linux-next/fs/exec.c
+--- linux-3.12-rc1.orig/fs/exec.c
++++ linux-3.12-rc1/fs/exec.c
 @@ -1434,7 +1434,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
@@ -40,9 +40,9 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (ret >= 0) {
  		trace_sched_process_exec(current, old_pid, bprm);
  		ptrace_event(PTRACE_EVENT_EXEC, old_vpid);
---- linux-next.orig/fs/open.c
-+++ linux-next/fs/open.c
-@@ -1048,6 +1048,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-3.12-rc1.orig/fs/open.c
++++ linux-3.12-rc1/fs/open.c
+@@ -1047,6 +1047,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -51,8 +51,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-next.orig/fs/proc/version.c
-+++ linux-next/fs/proc/version.c
+--- linux-3.12-rc1.orig/fs/proc/version.c
++++ linux-3.12-rc1/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -60,12 +60,12 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.11-rc6-next-20130822 2013/08/25\n");
++	printk(KERN_INFO "Hook version: 3.12-rc1 2013/09/17\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-next.orig/include/linux/init_task.h
-+++ linux-next/include/linux/init_task.h
+--- linux-3.12-rc1.orig/include/linux/init_task.h
++++ linux-3.12-rc1/include/linux/init_task.h
 @@ -154,6 +154,14 @@ extern struct task_group root_task_group
  
  #define INIT_TASK_COMM "swapper"
@@ -89,8 +89,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  
---- linux-next.orig/include/linux/sched.h
-+++ linux-next/include/linux/sched.h
+--- linux-3.12-rc1.orig/include/linux/sched.h
++++ linux-3.12-rc1/include/linux/sched.h
 @@ -4,6 +4,8 @@
  #include <uapi/linux/sched.h>
  
@@ -100,7 +100,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1409,6 +1411,10 @@ struct task_struct {
+@@ -1408,6 +1410,10 @@ struct task_struct {
  	unsigned int	sequential_io;
  	unsigned int	sequential_io_avg;
  #endif
@@ -111,8 +111,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-next.orig/include/linux/security.h
-+++ linux-next/include/linux/security.h
+--- linux-3.12-rc1.orig/include/linux/security.h
++++ linux-3.12-rc1/include/linux/security.h
 @@ -53,6 +53,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -121,7 +121,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -1972,7 +1973,10 @@ static inline int security_syslog(int ty
+@@ -1962,7 +1963,10 @@ static inline int security_syslog(int ty
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -133,7 +133,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -2041,18 +2045,18 @@ static inline int security_sb_mount(cons
+@@ -2031,18 +2035,18 @@ static inline int security_sb_mount(cons
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -155,7 +155,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -2190,7 +2194,7 @@ static inline int security_inode_setattr
+@@ -2180,7 +2184,7 @@ static inline int security_inode_setattr
  static inline int security_inode_getattr(struct vfsmount *mnt,
  					  struct dentry *dentry)
  {
@@ -164,7 +164,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -2266,7 +2270,7 @@ static inline void security_file_free(st
+@@ -2256,7 +2260,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -173,7 +173,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -2295,7 +2299,7 @@ static inline int security_file_lock(str
+@@ -2285,7 +2289,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -182,7 +182,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_file_set_fowner(struct file *file)
-@@ -2318,7 +2322,7 @@ static inline int security_file_receive(
+@@ -2308,7 +2312,7 @@ static inline int security_file_receive(
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -191,7 +191,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -2676,7 +2680,7 @@ static inline int security_unix_may_send
+@@ -2666,7 +2670,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -200,7 +200,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2691,19 +2695,19 @@ static inline int security_socket_bind(s
+@@ -2681,19 +2685,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -223,7 +223,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2715,7 +2719,7 @@ static inline int security_socket_accept
+@@ -2705,7 +2709,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -232,7 +232,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2956,44 +2960,47 @@ int security_path_chmod(struct path *pat
+@@ -2946,44 +2950,47 @@ int security_path_chmod(struct path *pat
  int security_path_chown(struct path *path, kuid_t uid, kgid_t gid);
  int security_path_chroot(struct path *path);
  #else	/* CONFIG_SECURITY_PATH */
@@ -287,7 +287,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -3001,22 +3008,22 @@ static inline int security_path_rename(s
+@@ -2991,22 +2998,22 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -314,9 +314,9 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-next.orig/include/net/ip.h
-+++ linux-next/include/net/ip.h
-@@ -205,6 +205,8 @@ extern void inet_get_local_port_range(in
+--- linux-3.12-rc1.orig/include/net/ip.h
++++ linux-3.12-rc1/include/net/ip.h
+@@ -215,6 +215,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
  {
@@ -325,8 +325,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-next.orig/kernel/fork.c
-+++ linux-next/kernel/fork.c
+--- linux-3.12-rc1.orig/kernel/fork.c
++++ linux-3.12-rc1/kernel/fork.c
 @@ -242,6 +242,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -335,7 +335,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1317,6 +1318,9 @@ static struct task_struct *copy_process(
+@@ -1321,6 +1322,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_policy;
@@ -345,7 +345,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1513,6 +1517,7 @@ bad_fork_cleanup_semundo:
+@@ -1517,6 +1521,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -353,8 +353,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-next.orig/kernel/kexec.c
-+++ linux-next/kernel/kexec.c
+--- linux-3.12-rc1.orig/kernel/kexec.c
++++ linux-3.12-rc1/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -372,8 +372,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-next.orig/kernel/module.c
-+++ linux-next/kernel/module.c
+--- linux-3.12-rc1.orig/kernel/module.c
++++ linux-3.12-rc1/kernel/module.c
 @@ -63,6 +63,7 @@
  #include <linux/fips.h>
  #include <uapi/linux/module.h>
@@ -391,7 +391,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3129,6 +3132,8 @@ static int may_init_module(void)
+@@ -3136,6 +3139,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -400,8 +400,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	return 0;
  }
---- linux-next.orig/kernel/ptrace.c
-+++ linux-next/kernel/ptrace.c
+--- linux-3.12-rc1.orig/kernel/ptrace.c
++++ linux-3.12-rc1/kernel/ptrace.c
 @@ -1037,6 +1037,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -426,8 +426,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-next.orig/kernel/reboot.c
-+++ linux-next/kernel/reboot.c
+--- linux-3.12-rc1.orig/kernel/reboot.c
++++ linux-3.12-rc1/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -445,8 +445,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-next.orig/kernel/sched/core.c
-+++ linux-next/kernel/sched/core.c
+--- linux-3.12-rc1.orig/kernel/sched/core.c
++++ linux-3.12-rc1/kernel/sched/core.c
 @@ -3148,6 +3148,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -456,8 +456,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-next.orig/kernel/signal.c
-+++ linux-next/kernel/signal.c
+--- linux-3.12-rc1.orig/kernel/signal.c
++++ linux-3.12-rc1/kernel/signal.c
 @@ -2909,6 +2909,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -503,8 +503,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-next.orig/kernel/sys.c
-+++ linux-next/kernel/sys.c
+--- linux-3.12-rc1.orig/kernel/sys.c
++++ linux-3.12-rc1/kernel/sys.c
 @@ -172,6 +172,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -534,8 +534,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-next.orig/kernel/time/ntp.c
-+++ linux-next/kernel/time/ntp.c
+--- linux-3.12-rc1.orig/kernel/time/ntp.c
++++ linux-3.12-rc1/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -569,9 +569,9 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	return 0;
  }
---- linux-next.orig/net/ipv4/raw.c
-+++ linux-next/net/ipv4/raw.c
-@@ -702,6 +702,10 @@ static int raw_recvmsg(struct kiocb *ioc
+--- linux-3.12-rc1.orig/net/ipv4/raw.c
++++ linux-3.12-rc1/net/ipv4/raw.c
+@@ -703,6 +703,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -582,8 +582,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-next.orig/net/ipv4/udp.c
-+++ linux-next/net/ipv4/udp.c
+--- linux-3.12-rc1.orig/net/ipv4/udp.c
++++ linux-3.12-rc1/net/ipv4/udp.c
 @@ -1223,6 +1223,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -595,8 +595,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-next.orig/net/ipv6/raw.c
-+++ linux-next/net/ipv6/raw.c
+--- linux-3.12-rc1.orig/net/ipv6/raw.c
++++ linux-3.12-rc1/net/ipv6/raw.c
 @@ -476,6 +476,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -608,8 +608,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-next.orig/net/ipv6/udp.c
-+++ linux-next/net/ipv6/udp.c
+--- linux-3.12-rc1.orig/net/ipv6/udp.c
++++ linux-3.12-rc1/net/ipv6/udp.c
 @@ -388,6 +388,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -621,8 +621,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-next.orig/net/socket.c
-+++ linux-next/net/socket.c
+--- linux-3.12-rc1.orig/net/socket.c
++++ linux-3.12-rc1/net/socket.c
 @@ -1618,6 +1618,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -634,8 +634,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-next.orig/net/unix/af_unix.c
-+++ linux-next/net/unix/af_unix.c
+--- linux-3.12-rc1.orig/net/unix/af_unix.c
++++ linux-3.12-rc1/net/unix/af_unix.c
 @@ -1792,6 +1792,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
@@ -647,8 +647,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-next.orig/security/Kconfig
-+++ linux-next/security/Kconfig
+--- linux-3.12-rc1.orig/security/Kconfig
++++ linux-3.12-rc1/security/Kconfig
 @@ -167,5 +167,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -657,8 +657,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
  endmenu
  
---- linux-next.orig/security/Makefile
-+++ linux-next/security/Makefile
+--- linux-3.12-rc1.orig/security/Makefile
++++ linux-3.12-rc1/security/Makefile
 @@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -666,8 +666,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-next.orig/security/security.c
-+++ linux-next/security/security.c
+--- linux-3.12-rc1.orig/security/security.c
++++ linux-3.12-rc1/security/security.c
 @@ -203,7 +203,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
