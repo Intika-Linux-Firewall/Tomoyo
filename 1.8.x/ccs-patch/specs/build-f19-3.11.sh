@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 19's 3.10 kernel.
+# This is a kernel build script for Fedora 19's 3.11 kernel.
 #
 
 die () {
@@ -12,12 +12,12 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.10.9-200.fc19.src.rpm ]
+if [ ! -r kernel-3.11.1-200.fc19.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.10.9-200.fc19.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.11.1-200.fc19.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.10.9-200.fc19.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.10.9-200.fc19.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.11.1-200.fc19.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.11.1-200.fc19.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20130825.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -962,7 +967,7 @@
+@@ -943,7 +948,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -982,7 +987,7 @@
+@@ -963,7 +968,7 @@
  Provides: kernel-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1502,6 +1507,10 @@
+@@ -1464,6 +1469,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20130825.tar.gz
-+patch -sp1 < patches/ccs-patch-3.10-fedora-19.diff
++patch -sp1 < patches/ccs-patch-3.11.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1524,6 +1533,18 @@
+@@ -1486,6 +1495,18 @@
  for i in *.config
  do
    mv $i .config
