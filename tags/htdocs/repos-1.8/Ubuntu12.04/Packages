@@ -1,3 +1,26 @@
+Package: linux-headers-3.2.0-54-generic-pae-ccs
+Priority: optional
+Section: devel
+Installed-Size: 13082
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux
+Version: 3.2.0-54.82
+Provides: linux-headers, linux-headers-3.0
+Depends: linux-headers-3.2.0-54, libc6 (>= 2.11)
+Filename: ./linux-headers-3.2.0-54-generic-pae-ccs1.8.3p7_3.2.0-54.82_i386.deb
+Size: 1635034
+MD5sum: b4cb51e7220c3df5eece0efd3e622838
+SHA1: 769b46b9c5d4b465bf23e6bb2399e7000180489b
+SHA256: 0af21a7105d80a09a4c8583bf8d633317eacfcc1d213c8f2900ab9696fa27d02
+SHA512: 7bcf26098a87938802162ee0eb8658af86486830d10fcfa25b6870d98a129c5feead3e9b86ea26776201f32e4395904d9fcfbb65380deb2b4ec78c5e18f7befb
+Description: Linux kernel headers for version 3.2.0 on 32 bit x86 SMP
+ This package provides kernel header files for version 3.2.0 on
+ 32 bit x86 SMP.
+ .
+ This is for sites that want the latest kernel headers.  Please read
+ /usr/share/doc/linux-headers-3.2.0-54/debian.README.gz for details.
+
 Package: linux-generic-pae-ccs
 Priority: optional
 Section: kernel
@@ -5,35 +28,16 @@ Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 3.2.0.53.63
-Depends: linux-image-generic-pae-ccs (= 3.2.0.53.63), linux-headers-generic-pae-ccs (= 3.2.0.53.63)
-Filename: ./linux-generic-pae-ccs1.8.3p7_3.2.0.53.63_i386.deb
-Size: 7960
-MD5sum: 4de50e1d78a5e774e09ae62ede44dda6
-SHA1: 53361961e318cbd90b038af02f017089cae41ad9
-SHA256: 2e28ec6ddb4ef56468e08c2c0d25d86929f19b964703f1349120b5d337185940
-SHA512: ce5c725d64ef65c75640eed99e796bfe6495073f006c66f5c261d5fdb98c2fbb355038ef1f1f3af5a063e94a580bcb77002a34a79d19076b0a1e2f3fb074184c
+Version: 3.2.0.54.64
+Depends: linux-image-generic-pae-ccs (= 3.2.0.54.64), linux-headers-generic-pae-ccs (= 3.2.0.54.64)
+Filename: ./linux-generic-pae-ccs1.8.3p7_3.2.0.54.64_i386.deb
+Size: 7962
+MD5sum: 693d71eb9ebb172852304f08eb1d597e
+SHA1: a17882fd360d75740cf6946200709431c4f0214e
+SHA256: 3e03ec04b2e49d40eb4aa6364e7389fd6f41a99aa6a503612eccbfb02e52604e
+SHA512: a92d35e140706585326eb63f9fe367f3534d2edf1deff89e5340751a33b42114983756175005ce32246fc6c2325797ced6c92ffd13aae3a307212a025882bd9b
 Description: Complete Generic Linux kernel
  This package will always depend on the latest complete generic Linux kernel
- available.
-
-Package: linux-headers-generic-pae-ccs
-Priority: optional
-Section: kernel
-Installed-Size: 32
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux-meta
-Version: 3.2.0.53.63
-Depends: linux-headers-3.2.0-53-generic-pae-ccs
-Filename: ./linux-headers-generic-pae-ccs1.8.3p7_3.2.0.53.63_i386.deb
-Size: 7944
-MD5sum: 6658378508dc137690aed58bbddc407e
-SHA1: bdc96be6067cd0c5ada2fe5c15454ca54abfe46c
-SHA256: d3697d5e303f5f6c28e1d94257eec8c26bf83f4675c9bedae463c9fce633cfc6
-SHA512: 7d6dcbc8e2e8689fe087e85571c8434278d6e22835a62589bf799a434baf2b05ffe469367c066f91707a644260596fbfe692a57144c55e9e0e1bb7b00822a50d
-Description: Generic Linux kernel headers
- This package will always depend on the latest generic kernel headers
  available.
 
 Package: ccs-tools
@@ -56,6 +60,25 @@ Description: Userspace tools for TOMOYO Linux 1.8.x
  .
  (Converted from a rpm package by alien version 8.86.)
 
+Package: linux-headers-generic-pae-ccs
+Priority: optional
+Section: kernel
+Installed-Size: 32
+Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Architecture: i386
+Source: linux-meta
+Version: 3.2.0.54.64
+Depends: linux-headers-3.2.0-54-generic-pae-ccs
+Filename: ./linux-headers-generic-pae-ccs1.8.3p7_3.2.0.54.64_i386.deb
+Size: 7950
+MD5sum: 1cdd4bf76963ab03d5e97db3a6a9e300
+SHA1: d7b96d81f322747901ec5f5bf511ec90a1a36f3b
+SHA256: 8a454c0ff4fa7cb71c32fdf03bdf8df04ad00ab9227454b426e2f0f5e02071c1
+SHA512: ab62d6f3e9c42ab55b50c8af77af6f5656d4030fcd3b8ca1fc09952133ff113c95ad4524fcfca2be80140e5b64fe588475021135f04714adc54625570b11d4ef
+Description: Generic Linux kernel headers
+ This package will always depend on the latest generic kernel headers
+ available.
+
 Package: linux-image-generic-pae-ccs
 Priority: optional
 Section: kernel
@@ -63,61 +86,38 @@ Installed-Size: 32
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux-meta
-Version: 3.2.0.53.63
-Depends: linux-image-3.2.0-53-generic-pae-ccs, linux-firmware
-Filename: ./linux-image-generic-pae-ccs1.8.3p7_3.2.0.53.63_i386.deb
-Size: 7952
-MD5sum: 86df84a6489f6e6e35f4d998afb30b7b
-SHA1: f98d4ffc6125217d6e2b9ecdc42645b215e0acf2
-SHA256: b8ef78d1f6e1f4ee6f1d7cce05b33e539f056c39b23e734d4a004d65f5e382a3
-SHA512: a321295a14dec0668e58b1bafb994e6eae595fb4e51bc523f3a15a9e7d58de90ed2508f34598efbfde22f0efc2e94eb4601ac327d6c7d8bb851a09cd683b70fc
+Version: 3.2.0.54.64
+Depends: linux-image-3.2.0-54-generic-pae-ccs, linux-firmware
+Filename: ./linux-image-generic-pae-ccs1.8.3p7_3.2.0.54.64_i386.deb
+Size: 7960
+MD5sum: 193b7e80c333b5a1e90f4bccb7056a3f
+SHA1: 13067b83adeabad9ca7b550ae1ec46984d21f2ca
+SHA256: dd88305950d30869dc8057265eaee8f961596754591bb5c74e380358588072da
+SHA512: d8b8607b0f4f2d6ac8ba906e66da2cf95b0a726c3d9fd43f7cf1956f6bd30ed4578e4d9181a176c4d1bbc1711a1d0b7dc6f94b93c027fbf90224fa570f3285bb
 Description: Generic Linux kernel image
  This package will always depend on the latest generic kernel image
  available.
 
-Package: linux-headers-3.2.0-53-generic-pae-ccs
-Priority: optional
-Section: devel
-Installed-Size: 13081
-Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Architecture: i386
-Source: linux
-Version: 3.2.0-53.81
-Provides: linux-headers, linux-headers-3.0
-Depends: linux-headers-3.2.0-53, libc6 (>= 2.11)
-Filename: ./linux-headers-3.2.0-53-generic-pae-ccs1.8.3p7_3.2.0-53.81_i386.deb
-Size: 1629996
-MD5sum: 726f9e998d7c9bad5666689415357343
-SHA1: e8f28a8a114bc4e81760519bfc6278e9cc88e438
-SHA256: b3836aee422b667261d324d3188d1d2f4bd10eb1353cf69afd3b74dac65f3b54
-SHA512: cc4b893a8791443d22d0eb59853adaa39cc81b76903fa2a0889f5acb0793c5aa6f4380f676996a765e4ddb3d5bb7b13a2c3ed0602d3295898f1868f66d4f3487
-Description: Linux kernel headers for version 3.2.0 on 32 bit x86 SMP
- This package provides kernel header files for version 3.2.0 on
- 32 bit x86 SMP.
- .
- This is for sites that want the latest kernel headers.  Please read
- /usr/share/doc/linux-headers-3.2.0-53/debian.README.gz for details.
-
-Package: linux-image-3.2.0-53-generic-pae-ccs
+Package: linux-image-3.2.0-54-generic-pae-ccs
 Priority: optional
 Section: kernel
-Installed-Size: 110571
+Installed-Size: 110572
 Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Architecture: i386
 Source: linux
-Version: 3.2.0-53.81
+Version: 3.2.0-54.82
 Provides: fuse-module, ivtv-modules, kvm-api-4, linux-image, linux-image-3.0, redhat-cluster-modules
 Depends: initramfs-tools (>= 0.36ubuntu6), module-init-tools (>= 3.3-pre11-4ubuntu3), crda (>= 1.1.1-1ubuntu2) | wireless-crda
 Pre-Depends: dpkg (>= 1.10.24)
 Recommends: grub-pc | grub | lilo (>= 19.1)
 Suggests: fdutils, linux-doc-3.2.0 | linux-source-3.2.0, linux-tools
 Conflicts: hotplug (<< 0.0.20040105-1)
-Filename: ./linux-image-3.2.0-53-generic-pae-ccs1.8.3p7_3.2.0-53.81_i386.deb
-Size: 38585568
-MD5sum: e887236d19aca0c56c61ea445563ce1d
-SHA1: 515d2af133791c8c339bcd8a365ff69bf6dfe89d
-SHA256: 43a4a122ea68a249982a40d1327fdd38138964e0c2fe5e351897d61a37c6921a
-SHA512: ee26ddb93ec63396c8ec5625061e4566220c881a8c41c78272adf4cbf6be2e29bbb2590fcda7e447f0487a74d2713dc66eaa2c1adcd2f624e3efb0b5b352e951
+Filename: ./linux-image-3.2.0-54-generic-pae-ccs1.8.3p7_3.2.0-54.82_i386.deb
+Size: 38583186
+MD5sum: 27c3e62412ac0a0d3cc0281164c52329
+SHA1: 5160d7e109eea80b97cf941d263f61b41ccecf6b
+SHA256: 86b57f557244daf4fce134d54521e23727de0ebf27e9d1a8869bb030888a86c3
+SHA512: 0b46a1c41e71560a16e37e497b161c21d6455c0ba1b24f9d27f96c6fbdf1fc4e4435a2aa6ef202a49f80478a71ba3ac6d14ce604dca36585d38e8e6734d2b9fd
 Description: Linux kernel image for version 3.2.0 on 32 bit x86 SMP
  This package contains the Linux kernel image for version 3.2.0 on
  32 bit x86 SMP.
