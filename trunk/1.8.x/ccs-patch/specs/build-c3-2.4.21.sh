@@ -18,9 +18,9 @@ rpm --checksig kernel-2.4.21-63.EL.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.4.21-63.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20130825.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20131019.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20130825.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20130825.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20131019.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20131019.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -51,7 +51,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20130825.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20131019.tar.gz
 +patch -sp1 < patches/ccs-patch-2.4.21-centos-3.diff
 +
  cp %{SOURCE10} Documentation/
