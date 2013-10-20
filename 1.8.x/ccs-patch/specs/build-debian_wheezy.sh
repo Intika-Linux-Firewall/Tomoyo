@@ -16,7 +16,7 @@ REVISION=`apt-cache show --no-all-versions linux-source-3.2 | awk ' { if ($1 == 
 echo "Building "${NEW_FLAVOUR}" from "${ORIGINAL_FLAVOUR}"."
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
-# Install pbase packages.
+# Install base packages.
 apt-get install build-essential kernel-package || die "Can't install packages."
 sed -i -e 's/maintainer := .*/maintainer := Tetsuo Handa/' -e 's/email := .*/email := penguin-kernel@I-love.SAKURA.ne.jp/' -- /etc/kernel-pkg.conf || die "Can't edit /etc/kernel-pkg.conf ."
 
