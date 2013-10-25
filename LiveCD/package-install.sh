@@ -6,7 +6,7 @@ mount -t proc none /proc/
 mount -t sysfs none /sys/
 mount -t selinuxfs none /selinux/
 
-# rpmdb of CentOS 5.9 LiveCD seems to be damaged...
+# rpmdb of CentOS 5.10 LiveCD seems to be damaged...
 rm -f /var/lib/rpm/__db*
 rpm --rebuilddb
 rpm -ivh /*.rpm
@@ -20,7 +20,7 @@ yum clean all
 rpm --rebuilddb
 rm -f /var/log/yum.log
 # Install Flash Player plugin needed for TOMOYO website.
-rpm -ivh `wget -O - 'http://get.adobe.com/jp/flashplayer/completion/?installer=Flash_Player_11.2_for_other_Linux_(.rpm)_32-bit' | awk ' { if ($1 == "location.href") print substr($3, 2, length($3) - 3); } '`
+rpm -ivh `wget -O - 'http://get.adobe.com/jp/flashplayer/download/?installer=Flash_Player_11.2_for_other_Linux_%28.rpm%29_32-bit&standalone=1' | awk ' { if ($1 == "setTimeout(\"location.href") print substr($3, 2, length($3) - 5); } '`
 # Create symbolic link needed for Mozilla.
 ln -s /usr/lib/flash-plugin/libflashplayer.so /usr/lib/mozilla/plugins-wrapped/
 
