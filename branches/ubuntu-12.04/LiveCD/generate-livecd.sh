@@ -3,7 +3,7 @@
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="Ubuntu 12.04 i386 TOMOYO 1.8.3"
 ISOIMAGE_NAME=../ubuntu-12.04-desktop-i386-tomoyo-1.8.3.iso
-KERNEL_VERSION=3.2.0-54-generic-pae-ccs
+KERNEL_VERSION=3.2.0-55-generic-pae-ccs
 
 # set -v
 
