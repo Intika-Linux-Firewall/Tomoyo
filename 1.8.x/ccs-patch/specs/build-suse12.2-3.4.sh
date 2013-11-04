@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-3.4.47-2.38.1.src.rpm ]
+if [ ! -r kernel-source-3.4.63-2.44.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/12.2/src/kernel-source-3.4.47-2.38.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.2/src/kernel-source-3.4.63-2.44.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.4.47-2.38.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-3.4.47-2.38.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.4.63-2.44.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.4.63-2.44.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-3.4.47-2.38.1.nosrc.rpm ]
+if [ ! -r kernel-default-3.4.63-2.44.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/12.2/nosrc/kernel-default-3.4.47-2.38.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.2/nosrc/kernel-default-3.4.63-2.44.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.4.47-2.38.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-3.4.47-2.38.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.4.63-2.44.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.4.63-2.44.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20131019.tar.gz ]
@@ -85,22 +85,24 @@ cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec
 +++ kernel-default.spec
-@@ -54,12 +54,12 @@
+@@ -55,13 +55,13 @@
  %define install_vdso 0
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
+ Version:        3.4.63
+ %if 0%{?is_kotd}
+-Release:        2.44.1.gd91a619
++Release:        2.44.1.gd91a619_tomoyo_1.8.3p7
+ %else
+-Release:        2.44.1
++Release:        2.44.1_tomoyo_1.8.3p7
+ %endif
  License:        GPL-2.0
  Group:          System/Kernel
- Version:        3.4.47
--Release:        2.38.1
-+Release:        2.38.1_tomoyo_1.8.3p7
- Url:            http://www.kernel.org/
- BuildRequires:  coreutils
- BuildRequires:  fdupes
-@@ -347,6 +347,11 @@
+@@ -346,6 +346,11 @@
  %endif
  	%_sourcedir/series.conf .. $SYMBOLS
  
