@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for Fedora 19.
 
-Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.11.6-200.fc19.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.11.9-200.fc19.src.rpm
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -29,8 +29,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  security/security.c       |  107 ++++++++++++++++++++++++++++++++++++++++------
  25 files changed, 236 insertions(+), 37 deletions(-)
 
---- linux-3.11.6-200.fc19.orig/fs/exec.c
-+++ linux-3.11.6-200.fc19/fs/exec.c
+--- linux-3.11.9-200.fc19.orig/fs/exec.c
++++ linux-3.11.9-200.fc19/fs/exec.c
 @@ -1541,7 +1541,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
@@ -40,8 +40,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  	if (retval < 0)
  		goto out;
  
---- linux-3.11.6-200.fc19.orig/fs/open.c
-+++ linux-3.11.6-200.fc19/fs/open.c
+--- linux-3.11.9-200.fc19.orig/fs/open.c
++++ linux-3.11.9-200.fc19/fs/open.c
 @@ -1048,6 +1048,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -51,8 +51,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.11.6-200.fc19.orig/fs/proc/version.c
-+++ linux-3.11.6-200.fc19/fs/proc/version.c
+--- linux-3.11.9-200.fc19.orig/fs/proc/version.c
++++ linux-3.11.9-200.fc19/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -60,12 +60,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.11.6-200.fc19 2013/10/25\n");
++	printk(KERN_INFO "Hook version: 3.11.9-200.fc19 2013/12/01\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-3.11.6-200.fc19.orig/include/linux/init_task.h
-+++ linux-3.11.6-200.fc19/include/linux/init_task.h
+--- linux-3.11.9-200.fc19.orig/include/linux/init_task.h
++++ linux-3.11.9-200.fc19/include/linux/init_task.h
 @@ -154,6 +154,14 @@ extern struct task_group root_task_group
  
  #define INIT_TASK_COMM "swapper"
@@ -89,8 +89,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  }
  
  
---- linux-3.11.6-200.fc19.orig/include/linux/sched.h
-+++ linux-3.11.6-200.fc19/include/linux/sched.h
+--- linux-3.11.9-200.fc19.orig/include/linux/sched.h
++++ linux-3.11.9-200.fc19/include/linux/sched.h
 @@ -4,6 +4,8 @@
  #include <uapi/linux/sched.h>
  
@@ -111,8 +111,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.11.6-200.fc19.orig/include/linux/security.h
-+++ linux-3.11.6-200.fc19/include/linux/security.h
+--- linux-3.11.9-200.fc19.orig/include/linux/security.h
++++ linux-3.11.9-200.fc19/include/linux/security.h
 @@ -53,6 +53,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -314,8 +314,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.11.6-200.fc19.orig/include/net/ip.h
-+++ linux-3.11.6-200.fc19/include/net/ip.h
+--- linux-3.11.9-200.fc19.orig/include/net/ip.h
++++ linux-3.11.9-200.fc19/include/net/ip.h
 @@ -205,6 +205,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
@@ -325,8 +325,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-3.11.6-200.fc19.orig/kernel/fork.c
-+++ linux-3.11.6-200.fc19/kernel/fork.c
+--- linux-3.11.9-200.fc19.orig/kernel/fork.c
++++ linux-3.11.9-200.fc19/kernel/fork.c
 @@ -242,6 +242,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -353,8 +353,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-3.11.6-200.fc19.orig/kernel/kexec.c
-+++ linux-3.11.6-200.fc19/kernel/kexec.c
+--- linux-3.11.9-200.fc19.orig/kernel/kexec.c
++++ linux-3.11.9-200.fc19/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -372,8 +372,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-3.11.6-200.fc19.orig/kernel/module.c
-+++ linux-3.11.6-200.fc19/kernel/module.c
+--- linux-3.11.9-200.fc19.orig/kernel/module.c
++++ linux-3.11.9-200.fc19/kernel/module.c
 @@ -63,6 +63,7 @@
  #include <linux/fips.h>
  #include <uapi/linux/module.h>
@@ -400,8 +400,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	return 0;
  }
---- linux-3.11.6-200.fc19.orig/kernel/ptrace.c
-+++ linux-3.11.6-200.fc19/kernel/ptrace.c
+--- linux-3.11.9-200.fc19.orig/kernel/ptrace.c
++++ linux-3.11.9-200.fc19/kernel/ptrace.c
 @@ -1037,6 +1037,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -426,8 +426,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.11.6-200.fc19.orig/kernel/reboot.c
-+++ linux-3.11.6-200.fc19/kernel/reboot.c
+--- linux-3.11.9-200.fc19.orig/kernel/reboot.c
++++ linux-3.11.9-200.fc19/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -445,8 +445,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-3.11.6-200.fc19.orig/kernel/sched/core.c
-+++ linux-3.11.6-200.fc19/kernel/sched/core.c
+--- linux-3.11.9-200.fc19.orig/kernel/sched/core.c
++++ linux-3.11.9-200.fc19/kernel/sched/core.c
 @@ -3165,6 +3165,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -456,8 +456,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.11.6-200.fc19.orig/kernel/signal.c
-+++ linux-3.11.6-200.fc19/kernel/signal.c
+--- linux-3.11.9-200.fc19.orig/kernel/signal.c
++++ linux-3.11.9-200.fc19/kernel/signal.c
 @@ -2909,6 +2909,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -503,8 +503,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.11.6-200.fc19.orig/kernel/sys.c
-+++ linux-3.11.6-200.fc19/kernel/sys.c
+--- linux-3.11.9-200.fc19.orig/kernel/sys.c
++++ linux-3.11.9-200.fc19/kernel/sys.c
 @@ -172,6 +172,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -534,8 +534,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.11.6-200.fc19.orig/kernel/time/ntp.c
-+++ linux-3.11.6-200.fc19/kernel/time/ntp.c
+--- linux-3.11.9-200.fc19.orig/kernel/time/ntp.c
++++ linux-3.11.9-200.fc19/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -569,8 +569,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	return 0;
  }
---- linux-3.11.6-200.fc19.orig/net/ipv4/raw.c
-+++ linux-3.11.6-200.fc19/net/ipv4/raw.c
+--- linux-3.11.9-200.fc19.orig/net/ipv4/raw.c
++++ linux-3.11.9-200.fc19/net/ipv4/raw.c
 @@ -703,6 +703,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -582,8 +582,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.11.6-200.fc19.orig/net/ipv4/udp.c
-+++ linux-3.11.6-200.fc19/net/ipv4/udp.c
+--- linux-3.11.9-200.fc19.orig/net/ipv4/udp.c
++++ linux-3.11.9-200.fc19/net/ipv4/udp.c
 @@ -1222,6 +1222,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -595,8 +595,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.11.6-200.fc19.orig/net/ipv6/raw.c
-+++ linux-3.11.6-200.fc19/net/ipv6/raw.c
+--- linux-3.11.9-200.fc19.orig/net/ipv6/raw.c
++++ linux-3.11.9-200.fc19/net/ipv6/raw.c
 @@ -471,6 +471,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -608,8 +608,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.11.6-200.fc19.orig/net/ipv6/udp.c
-+++ linux-3.11.6-200.fc19/net/ipv6/udp.c
+--- linux-3.11.9-200.fc19.orig/net/ipv6/udp.c
++++ linux-3.11.9-200.fc19/net/ipv6/udp.c
 @@ -388,6 +388,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -621,8 +621,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.11.6-200.fc19.orig/net/socket.c
-+++ linux-3.11.6-200.fc19/net/socket.c
+--- linux-3.11.9-200.fc19.orig/net/socket.c
++++ linux-3.11.9-200.fc19/net/socket.c
 @@ -1627,6 +1627,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -634,9 +634,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.11.6-200.fc19.orig/net/unix/af_unix.c
-+++ linux-3.11.6-200.fc19/net/unix/af_unix.c
-@@ -1800,6 +1800,10 @@ static int unix_dgram_recvmsg(struct kio
+--- linux-3.11.9-200.fc19.orig/net/unix/af_unix.c
++++ linux-3.11.9-200.fc19/net/unix/af_unix.c
+@@ -1810,6 +1810,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -647,8 +647,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.11.6-200.fc19.orig/security/Kconfig
-+++ linux-3.11.6-200.fc19/security/Kconfig
+--- linux-3.11.9-200.fc19.orig/security/Kconfig
++++ linux-3.11.9-200.fc19/security/Kconfig
 @@ -167,5 +167,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -657,8 +657,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
 +
  endmenu
  
---- linux-3.11.6-200.fc19.orig/security/Makefile
-+++ linux-3.11.6-200.fc19/security/Makefile
+--- linux-3.11.9-200.fc19.orig/security/Makefile
++++ linux-3.11.9-200.fc19/security/Makefile
 @@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -666,8 +666,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-3.11.6-200.fc19.orig/security/security.c
-+++ linux-3.11.6-200.fc19/security/security.c
+--- linux-3.11.9-200.fc19.orig/security/security.c
++++ linux-3.11.9-200.fc19/security/security.c
 @@ -203,7 +203,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
