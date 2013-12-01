@@ -23,10 +23,10 @@ sed -i -e 's/maintainer := .*/maintainer := Tetsuo Handa/' -e 's/email := .*/ema
 # Download TOMOYO Linux patches.
 mkdir -p /root/rpmbuild/SOURCES/
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20131019.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20131201.tar.gz ]
 then
     apt-get -y install wget
-    wget -O ccs-patch-1.8.3-20131019.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20131019.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20131201.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20131201.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -38,7 +38,7 @@ tar -jxf linux-source-3.2.tar.bz2
 
 # Apply patches and create kernel config.
 cd linux-source-3.2 || die "Can't chdir to linux-source-3.2/ ."
-tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.3-20131019.tar.gz || die "Can't extract patch."
+tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.3-20131201.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-3.2-debian-wheezy.diff || die "Can't apply patch."
 cat /boot/config-3.2.0-$ABI_VERSION-$ORIGINAL_FLAVOUR config.ccs > .config || die "Can't create config."
 sed -i -e 's/SUBLEVEL = .*/SUBLEVEL = 0/' Makefile || die "Can't edit Makefile"
