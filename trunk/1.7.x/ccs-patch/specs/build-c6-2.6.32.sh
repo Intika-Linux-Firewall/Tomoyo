@@ -28,16 +28,16 @@ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec
 +++ ccs-kernel.spec
-@@ -15,7 +15,7 @@
+@@ -14,7 +14,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
  #
 -# % define buildid .local
 +%define buildid _tomoyo_1.7.3p4
  
- %define rhel 1
- %if %{rhel}
-@@ -454,7 +454,7 @@
+ %define distro_build 431
+ %define signmodules 1
+@@ -436,7 +436,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut-kernel >= 002-18.git413bcf78
  %else
-@@ -490,7 +490,7 @@
+@@ -472,7 +472,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -778,7 +778,7 @@
+@@ -767,7 +767,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -64,7 +64,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -944,6 +944,10 @@
+@@ -933,6 +933,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -968,6 +972,9 @@
+@@ -957,6 +961,9 @@
  for i in *.config
  do
    mv $i .config
