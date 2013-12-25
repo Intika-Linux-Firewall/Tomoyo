@@ -48,19 +48,20 @@
 
 <h3>カーネルソースの入手と TOMOYO Linux パッチの適用</h3>
 
-<p>カーネルのソースコードを <a href="https://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="https://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> からダウンロードしてください。<br>
-linux-2.4 についてはカーネル 2.4.30 以降に対応しています。<br>
-linux-2.6 についてはカーネル 2.6.11.12 以降に対応しています。</p>
+<p>カーネルのソースコードを <a href="https://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> または <a href="https://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> または <a href="https://www.kernel.org/pub/linux/kernel/v3.x/">linux-3</a> からダウンロードしてください。<br>
+linux-2.4 についてはカーネル 2.4.37 に対応しています。<br>
+linux-2.6 についてはカーネル 2.6.27 以降に対応しています。<br>
+linux-3 についてはカーネル 3.0 以降に対応しています。</p>
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。<br>
-以下の操作において、例えばカーネル 2.6.38.7 を使う場合、 2.$PATCHLEVEL.$SUBLEVEL.diff を 2.6.38.diff に置き換えてください。</p>
+以下の操作において、例えばカーネル 3.12.6 を使う場合、 $VERSION.$PATCHLEVEL.diff を 3.12.diff に置き換えてください。</p>
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-patch-1.8.3-20131201.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131201.tar.gz'<br>
-[user@tomoyo ~]$ wget -O ccs-patch-1.8.3-20131201.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131201.tar.gz.asc'<br>
-[user@tomoyo ~]$ gpg ccs-patch-1.8.3-20131201.tar.gz.asc<br>
-[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.3-20131201.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.3-20131225.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131225.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.3-20131225.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131225.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-patch-1.8.3-20131225.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.3-20131225.tar.gz<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
 </td></tr>
 </table>
@@ -117,10 +118,10 @@ linux-2.6 についてはカーネル 2.6.11.12 以降に対応しています�
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-tools-1.8.3-20130406.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20130406.tar.gz'<br>
-[user@tomoyo ~]$ wget -O ccs-tools-1.8.3-20130406.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20130406.tar.gz.asc'<br>
-[user@tomoyo ~]$ gpg ccs-tools-1.8.3-20130406.tar.gz.asc<br>
-[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.3-20130406.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.3-20131225.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20131225.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-tools-1.8.3-20131225.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20131225.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-tools-1.8.3-20131225.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools-1.8.3-20131225.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
 [user@tomoyo ~]$ make -s<br>
 [user@tomoyo ~]$ su<br>

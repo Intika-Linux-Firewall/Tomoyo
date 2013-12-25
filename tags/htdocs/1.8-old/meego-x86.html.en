@@ -305,10 +305,10 @@ $ sed -i -e 's/CONFIG_DEBUG_INFO=y/# CONFIG_DEBUG_INFO is not set/' -- .config
 <p>Next, download and apply TOMOYO Linux kernel patch.</p>
 
 <pre>
-$ wget -O ccs-patch-1.8.3-20131201.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131201.tar.gz'
-$ wget -O ccs-patch-1.8.3-20131201.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131201.tar.gz.asc'
-$ gpg ccs-patch-1.8.3-20131201.tar.gz.asc
-$ tar -zxf ccs-patch-1.8.3-20131201.tar.gz
+$ wget -O ccs-patch-1.8.3-20131225.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131225.tar.gz'
+$ wget -O ccs-patch-1.8.3-20131225.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20131225.tar.gz.asc'
+$ gpg ccs-patch-1.8.3-20131225.tar.gz.asc
+$ tar -zxf ccs-patch-1.8.3-20131225.tar.gz
 $ patch -p1 &lt; patches/ccs-patch-2.6.35.diff
 $ cat config.ccs &gt;&gt; .config
 </pre>
@@ -323,8 +323,8 @@ $ make -s
 
 <pre>
 $ cd ~/rpmbuild/BUILD/
-$ wget -O ccs-tools-1.8.3-20130406.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20130406.tar.gz'
-$ tar -zxf ccs-tools-1.8.3-20130406.tar.gz
+$ wget -O ccs-tools-1.8.3-20131225.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20131225.tar.gz'
+$ tar -zxf ccs-tools-1.8.3-20131225.tar.gz
 $ make -sC ccstools/
 </pre>
 
