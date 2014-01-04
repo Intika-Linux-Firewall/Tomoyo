@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-3.7.10-1.16.1.src.rpm ]
+if [ ! -r kernel-source-3.7.10-1.24.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.16.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.24.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.7.10-1.16.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-3.7.10-1.16.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.7.10-1.24.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.7.10-1.24.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-3.7.10-1.16.1.nosrc.rpm ]
+if [ ! -r kernel-default-3.7.10-1.24.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.16.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.24.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.7.10-1.16.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-3.7.10-1.16.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.7.10-1.24.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.7.10-1.24.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20131225.tar.gz ]
@@ -85,7 +85,6 @@ cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec
 +++ kernel-default.spec
-@@ -57,12 +57,12 @@
  %define install_vdso 0
  %endif
  
@@ -95,12 +94,12 @@ patch << "EOF" || die "Can't patch spec file."
  License:        GPL-2.0
  Group:          System/Kernel
  Version:        3.7.10
--Release:        1.16.1
-+Release:        1.16.1_tomoyo_1.8.3p7
- Url:            http://www.kernel.org/
- BuildRequires:  coreutils
- BuildRequires:  fdupes
-@@ -333,6 +333,11 @@
+-Release:        1.24.1
++Release:        1.24.1_tomoyo_1.8.3p7
+ %if 0%{?is_kotd}
+ %else
+ %endif
+@@ -336,6 +336,11 @@
  %endif
  	%_sourcedir/series.conf .. $SYMBOLS
  
