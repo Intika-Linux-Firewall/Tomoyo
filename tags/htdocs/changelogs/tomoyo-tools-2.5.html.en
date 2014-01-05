@@ -32,6 +32,25 @@
 <h4>ChangeLog for tomoyo-tools 2.5.0</h4>
 
 <pre>
+Version 2.5.0p6 2014/01/05   Bug fix release.
+
+  /usr/lib/tomoyo/init_policy
+    Add path to systemd , as suggested by Shawn Landden.
+
+  /usr/sbin/tomoyo-queryd
+    Use poll() rather than select().
+
+Version 2.5.0p5 2013/04/06   Packaging fix release.
+
+  Fix compile warning from clang.
+
+Version 2.5.0p4 2013/02/14   Packaging fix release.
+
+  Change Makefile's build flags, as suggested by Simon Ruderich and Hideki
+  Yamane. (Debian bug 674723)
+
+  Change / to /* in rpm's %files section because Fedora 18 complains conflicts.
+
 Version 2.5.0p3 2012/08/05   Bug fix release.
 
   /usr/sbin/tomoyo-checkpolicy

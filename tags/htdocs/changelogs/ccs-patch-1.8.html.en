@@ -32,6 +32,24 @@
 <h4>ChangeLog for ccs-patch 1.8.3</h4>
 
 <pre>
+Fix 2012/10/08
+
+    @ Fix KABI breakage on Ubuntu 12.10.
+
+      I was using include/linux/security.h as the common path for pulling in
+      include/linux/ccsecurity.h so that I can avoid scattering #include line.
+
+      When scripts/genksyms/genksyms calculates hash values for Module.symvers
+      file, it uses the extracted form of involved structures if the structure
+      layout is known but it instead uses UNKNOWN if the structure layout is
+      not known. Therefore, pulling in include files that define structure's
+      layout from include/linux/ccsecurity.h causes changes in the hash values
+      and causes KABI breakage, even if no changes were made to the involved
+      structures.
+
+      Fix this breakage by avoiding pulling in include/linux/sched.h and
+      include/linux/dcache.h from include/linux/ccsecurity.h where possible.
+
 Fix 2012/04/28
 
     @ Accept manager programs which do not start with / .
