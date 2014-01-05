@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.3   2011/09/29
+ * Version: 1.8.3   2014/01/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -41,6 +41,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <poll.h>
 
 #define s8 __s8
 #define u8 __u8

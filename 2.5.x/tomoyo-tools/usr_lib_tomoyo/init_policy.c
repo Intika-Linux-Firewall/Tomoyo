@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2013/12/01
+ * Version: 2.5.0+   2014/01/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -313,12 +313,22 @@ static void scan_init_scripts(void)
 static void make_systemd_exceptions(void)
 {
 	/* allow systemd to re-execute itself */
-	if (access("/lib/systemd/systemd", X_OK) == 0)
-		fprintf(filp, "keep_domain /lib/systemd/systemd from "
-			"<kernel> /sbin/init\n");
-	if (access("/usr/lib/systemd/systemd", X_OK) == 0)
-		fprintf(filp, "keep_domain /usr/lib/systemd/systemd from "
-			"<kernel> /sbin/init\n");
+	static const char * const systemd[] = {
+		"/lib/systemd/systemd",
+		"/usr/lib/systemd/systemd",
+	};
+	int i;
+	keyword = NULL;
+	for (i = 0; i < elementof(systemd); i++) {
+		/* Check realpath because /lib may be a symlink to /usr/lib .*/
+		char *path = get_realpath(systemd[i]);
+		if (!path)
+			continue;
+		fprintf(filp, "keep_domain ");
+		printf_encoded(path);
+		fprintf(filp, " from <kernel> /sbin/init\n");
+		free(path);
+	}
 }
 
 /**

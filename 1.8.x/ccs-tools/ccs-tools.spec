@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.3
-Release: 7
+Release: 8
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.3-7
+Conflicts: ccs-tools < 1.8.3-8
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20130406.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20140105.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -52,6 +52,10 @@ ldconfig || true
 /usr/share/man/man8/*
 
 %changelog
+* Sun Jan 05 2014 1.8.3-8
+- Let init_policy add path to systemd , as suggested by Shawn Landden.
+- Let ccs-queryd use poll() rather than select().
+
 * Sat Apr 06 2013 1.8.3-7
 - Fix compile warning from clang.
 
